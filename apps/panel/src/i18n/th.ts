@@ -3448,7 +3448,7 @@ export default {
       "addWmsAccount": "เพิ่มบัญชี WMS",
       "editWmsAccount": "แก้ไขบัญชี WMS",
       "deleteWmsAccount": "ลบบัญชี WMS",
-      "wmsProviderSupportTooltip": "ขณะนี้เราสนับสนุน Yejoin ในฐานะ WMS บุคคลที่สามเพียงรายเดียว หากต้องการขอผู้ให้บริการรายอื่น โปรดติดต่อเราผ่านทางอีเมลที่ระบุไว้ในเว็บไซต์อย่างเป็นทางการของเรา",
+      "wmsProviderSupportTooltip": "ขณะนี้เราสนับสนุน Yejoin และ Lingxing WMS ในฐานะผู้ให้บริการ WMS บุคคลที่สาม หากต้องการขอผู้ให้บริการรายอื่น โปรดติดต่อเราผ่านทางอีเมลที่ระบุไว้ในเว็บไซต์อย่างเป็นทางการของเรา",
       "confirmDeleteWmsAccount": "ลบ \"{{label}}\" หรือไม่ บัญชีนี้จะถูกเก็บถาวรและจะไม่แสดงหรือใช้ในการซิงค์อีกต่อไป",
       "refreshInventory": "รีเฟรชข้อมูลสินค้าคงคลัง",
       "noWmsAccounts": "ยังไม่มีบัญชี WMS ที่เชื่อมต่อ",
@@ -3459,10 +3459,12 @@ export default {
       "region": "ภูมิภาค",
       "provider": "ผู้ให้บริการ WMS",
       "providers": {
-        "YEJOIN": "เยจอย"
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS"
       },
       "warehouseProviders": {
-        "YEJOIN": "เยจอย",
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS",
         "TIKTOK_FBT": "TikTok FBT",
         "SELLER": "ผู้ขาย",
         "AMAZON_FBA": "อเมซอน เอฟบีเอ"
@@ -3489,6 +3491,14 @@ export default {
       "apiTokenPlaceholder": "วางโทเค็น",
       "apiTokenEditPlaceholder": "เว้นว่างไว้เพื่อเก็บโทเค็นที่มีอยู่",
       "apiTokenHint": "โทเค็นเป็นแบบเขียนเท่านั้นและจะไม่แสดงอีก",
+      "apiTokenPlaceholders": {
+        "YEJOIN": "วางโทเค็น",
+        "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"
+      },
+      "apiTokenHints": {
+        "YEJOIN": "โทเค็นเป็นแบบเขียนเท่านั้นและจะไม่แสดงอีก",
+        "XLWMS": "วาง JSON ที่มี appKey และ appSecret ข้อมูลรับรองเป็นแบบเขียนเท่านั้นและจะไม่แสดงอีก"
+      },
       "apiTokenEditHint": "โทเค็นเป็นแบบเขียนเท่านั้นและจะไม่แสดงอีก เว้นว่างไว้เพื่อเก็บโทเค็นที่มีอยู่ ป้อนโทเค็นใหม่เพื่อบันทึกและซิงค์คลังสินค้าอีกครั้ง",
       "notes": "หมายเหตุ",
       "notesPlaceholder": "หมายเหตุภายในเพิ่มเติม",

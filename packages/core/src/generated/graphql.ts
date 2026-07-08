@@ -251,9 +251,13 @@ export const ActionProposalStatus = {
 export type ActionProposalStatus = typeof ActionProposalStatus[keyof typeof ActionProposalStatus];
 export interface ActionProposalStep {
   approvalPolicyUpdateIntent?: Maybe<ActionProposalApprovalPolicyUpdateIntent>;
+  /** Committed relationship checkpoint used as this proposal's reasoning base. */
+  baseCheckpointId?: Maybe<Scalars['String']['output']>;
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
+  /** Candidate checkpoint produced by the agent run. It is promoted only after direct execution or approved execution succeeds. */
+  candidateCheckpointId?: Maybe<Scalars['String']['output']>;
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
@@ -932,9 +936,9 @@ export interface AffiliateCreatorRelationship {
   blocked: Scalars['Boolean']['output'];
   /** When blocked=true and this list is empty, the user-level block applies to all current/future shops. */
   blockedShopIds: Array<Scalars['ID']['output']>;
-  createdAt: Scalars['DateTimeISO']['output'];
   committedCheckpointAt?: Maybe<Scalars['DateTimeISO']['output']>;
   committedCheckpointId?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
   emailContacts: Array<AffiliateCreatorEmailContact>;
   id: Scalars['ID']['output'];
@@ -1208,15 +1212,6 @@ export interface AffiliateHumanBaselinePrediction {
   wouldApprove?: Maybe<Scalars['Boolean']['output']>;
 }
 
-export const AffiliateLifecycleActorType = {
-  Agent: 'AGENT',
-  CloudWorker: 'CLOUD_WORKER',
-  Human: 'HUMAN',
-  PlatformWebhook: 'PLATFORM_WEBHOOK',
-  System: 'SYSTEM'
-} as const;
-
-export type AffiliateLifecycleActorType = typeof AffiliateLifecycleActorType[keyof typeof AffiliateLifecycleActorType];
 export const AffiliateLifecycleActorRole = {
   Agent: 'AGENT',
   Creator: 'CREATOR',
@@ -1226,6 +1221,15 @@ export const AffiliateLifecycleActorRole = {
 } as const;
 
 export type AffiliateLifecycleActorRole = typeof AffiliateLifecycleActorRole[keyof typeof AffiliateLifecycleActorRole];
+export const AffiliateLifecycleActorType = {
+  Agent: 'AGENT',
+  CloudWorker: 'CLOUD_WORKER',
+  Human: 'HUMAN',
+  PlatformWebhook: 'PLATFORM_WEBHOOK',
+  System: 'SYSTEM'
+} as const;
+
+export type AffiliateLifecycleActorType = typeof AffiliateLifecycleActorType[keyof typeof AffiliateLifecycleActorType];
 export const AffiliateLifecycleEntityType = {
   ActionProposal: 'ACTION_PROPOSAL',
   AffiliateApprovalPolicy: 'AFFILIATE_APPROVAL_POLICY',
@@ -1249,6 +1253,8 @@ export const AffiliateLifecycleEventType = {
   Archived: 'ARCHIVED',
   CandidateExcluded: 'CANDIDATE_EXCLUDED',
   CandidateQualified: 'CANDIDATE_QUALIFIED',
+  CollaborationClosed: 'COLLABORATION_CLOSED',
+  CollaborationCreated: 'COLLABORATION_CREATED',
   ContentDetected: 'CONTENT_DETECTED',
   Created: 'CREATED',
   MessageSent: 'MESSAGE_SENT',
@@ -1260,12 +1266,10 @@ export const AffiliateLifecycleEventType = {
   ProposalModified: 'PROPOSAL_MODIFIED',
   ProposalRejected: 'PROPOSAL_REJECTED',
   ProposalRevisionRequested: 'PROPOSAL_REVISION_REQUESTED',
-  CollaborationCreated: 'COLLABORATION_CREATED',
-  CollaborationClosed: 'COLLABORATION_CLOSED',
-  SampleApplicationSubmitted: 'SAMPLE_APPLICATION_SUBMITTED',
   SampleApplicationApproved: 'SAMPLE_APPLICATION_APPROVED',
-  SampleApplicationRejected: 'SAMPLE_APPLICATION_REJECTED',
   SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
+  SampleApplicationRejected: 'SAMPLE_APPLICATION_REJECTED',
+  SampleApplicationSubmitted: 'SAMPLE_APPLICATION_SUBMITTED',
   SampleApproved: 'SAMPLE_APPROVED',
   SampleDelivered: 'SAMPLE_DELIVERED',
   SampleDeliveryFailed: 'SAMPLE_DELIVERY_FAILED',
@@ -3615,13 +3619,16 @@ export const EcomBiDimension = {
   Email: 'EMAIL',
   FulfillmentType: 'FULFILLMENT_TYPE',
   FullyReturnedOrRefunded: 'FULLY_RETURNED_OR_REFUNDED',
+  GmvModule: 'GMV_MODULE',
   HouseNameOrNumber: 'HOUSE_NAME_OR_NUMBER',
+  LineItemSkuType: 'LINE_ITEM_SKU_TYPE',
   NormalOrPreorder: 'NORMAL_OR_PREORDER',
   OrderDeliveryTime: 'ORDER_DELIVERY_TIME',
   OrderId: 'ORDER_ID',
   OrderLineKey: 'ORDER_LINE_KEY',
   OrderStatus: 'ORDER_STATUS',
   OrderSubstatus: 'ORDER_SUBSTATUS',
+  OrderType: 'ORDER_TYPE',
   PackageId: 'PACKAGE_ID',
   PaidTime: 'PAID_TIME',
   PaymentMethod: 'PAYMENT_METHOD',
@@ -3846,6 +3853,22 @@ export interface EcomBiOrderByInput {
   metric?: InputMaybe<EcomBiMetric>;
 }
 
+/** BI query pagination metadata for safe auto-pagination. */
+export interface EcomBiPageInfo {
+  /** Backend effective row page size after applying safety caps. */
+  effectiveLimit: Scalars['Int']['output'];
+  /** Whether another backend page exists for the same query window. */
+  hasMore: Scalars['Boolean']['output'];
+  /** Offset for the next page, or null when hasMore is false. */
+  nextOffset?: Maybe<Scalars['Int']['output']>;
+  /** Requested starting offset used by this backend page. */
+  offset: Scalars['Int']['output'];
+  /** Requested row window from offset. Null means unlimited rows from offset. */
+  requestedLimit?: Maybe<Scalars['Int']['output']>;
+  /** Rows returned in this response. */
+  returnedRows: Scalars['Int']['output'];
+}
+
 /** Warehouse-backed BI query. Dates are inclusive/exclusive YYYY-MM-DD report dates. */
 export interface EcomBiQueryInput {
   /** Optional governed dynamic attributes to group by. Values must come from getEcommerceBiCatalog.attributes. */
@@ -3862,11 +3885,11 @@ export interface EcomBiQueryInput {
   filters?: InputMaybe<Array<EcomBiFilterInput>>;
   /** Date granularity. The current Ads GMV Max datasets support DAILY only. */
   granularity?: InputMaybe<EcomBiGranularity>;
-  /** Maximum rows to return. Defaults to 500; use 0 for the backend maximum. */
+  /** Maximum rows requested from offset. Defaults to 500 for non-persisted calls. For normal analysis/report exports use persistResult=true and limit=0 to retrieve all rows from offset via auto-pagination; use a positive limit only for explicit sampling or capped exports. */
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** Metrics to return. Defaults are declared by dataset metadata. */
   metrics?: InputMaybe<Array<EcomBiMetric>>;
-  /** Rows to skip before returning data. Use with limit to page large export-style result sets. */
+  /** Rows to skip before returning data. For persisted exports this is the starting offset; the cloud tool continues from pageInfo.nextOffset. */
   offset?: InputMaybe<Scalars['Int']['input']>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
@@ -3881,6 +3904,7 @@ export interface EcomBiQueryResult {
   columns: Array<EcomBiResultColumn>;
   datasetId: EcomBiDatasetId;
   granularity: EcomBiGranularity;
+  pageInfo: EcomBiPageInfo;
   rows: Array<Scalars['JSONObject']['output']>;
   totalCount: Scalars['Int']['output'];
 }
@@ -4061,6 +4085,8 @@ export interface EcomOrderLineItem {
   skuId?: Maybe<Scalars['String']['output']>;
   skuImage?: Maybe<Scalars['String']['output']>;
   skuName?: Maybe<Scalars['String']['output']>;
+  /** Raw TikTok Shop line item sku_type enum */
+  skuType?: Maybe<Scalars['String']['output']>;
   trackingNumber?: Maybe<Scalars['String']['output']>;
 }
 
@@ -5167,6 +5193,7 @@ export interface InventoryGoodMapping {
 export const InventoryGoodMappingSourceSystem = {
   TiktokFbt: 'TIKTOK_FBT',
   TiktokShop: 'TIKTOK_SHOP',
+  Xlwms: 'XLWMS',
   YejoinWms: 'YEJOIN_WMS'
 } as const;
 
@@ -5221,29 +5248,6 @@ export const InventoryWeightUnit = {
 } as const;
 
 export type InventoryWeightUnit = typeof InventoryWeightUnit[keyof typeof InventoryWeightUnit];
-/** Append-only lifecycle event for audit and materialized state reconstruction. */
-export interface LifecycleEvent {
-  actorId?: Maybe<Scalars['ID']['output']>;
-  actorType?: Maybe<AffiliateLifecycleActorType>;
-  campaignId?: Maybe<Scalars['ID']['output']>;
-  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
-  createdAt: Scalars['DateTimeISO']['output'];
-  creatorId?: Maybe<Scalars['ID']['output']>;
-  creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
-  /** Display/debug payload only. Lifecycle reducers must use typed fields. */
-  displayPayloadJson?: Maybe<Scalars['String']['output']>;
-  entityId: Scalars['ID']['output'];
-  entityType: AffiliateLifecycleEntityType;
-  eventType: AffiliateLifecycleEventType;
-  fromStage?: Maybe<AffiliateLifecycleStage>;
-  id: Scalars['ID']['output'];
-  productId?: Maybe<Scalars['String']['output']>;
-  proposalId?: Maybe<Scalars['ID']['output']>;
-  shopId: Scalars['ID']['output'];
-  toStage?: Maybe<AffiliateLifecycleStage>;
-  userId: Scalars['ID']['output'];
-}
-
 export interface ListAffiliateEmailAccountsInput {
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<EmailAccountStatus>;
@@ -9043,6 +9047,7 @@ export const WarehouseProvider = {
   AmazonFba: 'AMAZON_FBA',
   Seller: 'SELLER',
   TiktokFbt: 'TIKTOK_FBT',
+  Xlwms: 'XLWMS',
   Yejoin: 'YEJOIN'
 } as const;
 
@@ -9175,6 +9180,7 @@ export interface WmsAccount {
 
 /** Third-party WMS provider */
 export const WmsAccountProvider = {
+  Xlwms: 'XLWMS',
   Yejoin: 'YEJOIN'
 } as const;
 

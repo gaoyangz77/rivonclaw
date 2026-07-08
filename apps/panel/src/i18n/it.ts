@@ -3448,7 +3448,7 @@ export default {
       "addWmsAccount": "Aggiungi account WMS",
       "editWmsAccount": "Modifica account WMS",
       "deleteWmsAccount": "Elimina l'account WMS",
-      "wmsProviderSupportTooltip": "Attualmente supportiamo Yejoin come unico WMS di terze parti. Per richiedere un altro fornitore, contattaci tramite l'e-mail elencata sul nostro sito Web ufficiale.",
+      "wmsProviderSupportTooltip": "Attualmente supportiamo Yejoin e Lingxing WMS come fornitori WMS di terze parti. Per richiedere un altro fornitore, contattaci tramite l'e-mail elencata sul nostro sito Web ufficiale.",
       "confirmDeleteWmsAccount": "Eliminare \"{{label}}\"? Questo account verrà archiviato e non sarà più mostrato o utilizzato per la sincronizzazione.",
       "refreshInventory": "Aggiorna i dati di inventario",
       "noWmsAccounts": "Nessun account WMS ancora collegato.",
@@ -3459,10 +3459,12 @@ export default {
       "region": "Regione",
       "provider": "Fornitore WMS",
       "providers": {
-        "YEJOIN": "Yejoin"
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS"
       },
       "warehouseProviders": {
         "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS",
         "TIKTOK_FBT": "TikTok FBT",
         "SELLER": "Venditore",
         "AMAZON_FBA": "Logistica di Amazon"
@@ -3489,6 +3491,14 @@ export default {
       "apiTokenPlaceholder": "Incolla gettone",
       "apiTokenEditPlaceholder": "Lascia vuoto per mantenere il token esistente",
       "apiTokenHint": "Il token è di sola scrittura e non verrà visualizzato nuovamente.",
+      "apiTokenPlaceholders": {
+        "YEJOIN": "Incolla token",
+        "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"
+      },
+      "apiTokenHints": {
+        "YEJOIN": "Il token è di sola scrittura e non verrà visualizzato nuovamente.",
+        "XLWMS": "Incolla JSON con appKey e appSecret. Le credenziali sono di sola scrittura e non verranno visualizzate nuovamente."
+      },
       "apiTokenEditHint": "Il token è di sola scrittura e non verrà visualizzato nuovamente. Lascia vuoto per mantenere il token esistente; inserisci un nuovo token per salvare e risincronizzare i magazzini.",
       "notes": "Note",
       "notesPlaceholder": "Nota interna facoltativa",

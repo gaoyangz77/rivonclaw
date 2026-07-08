@@ -3448,7 +3448,7 @@ export default {
       "addWmsAccount": "Ajouter un compte WMS",
       "editWmsAccount": "Modifier le compte WMS",
       "deleteWmsAccount": "Supprimer le compte WMS",
-      "wmsProviderSupportTooltip": "Nous prenons actuellement en charge Yejoin en tant que seul WMS tiers. Pour demander un autre fournisseur, veuillez nous contacter via l'e-mail indiqué sur notre site officiel.",
+      "wmsProviderSupportTooltip": "Nous prenons actuellement en charge Yejoin et Lingxing WMS comme fournisseurs WMS tiers. Pour demander un autre fournisseur, veuillez nous contacter via l'e-mail indiqué sur notre site officiel.",
       "confirmDeleteWmsAccount": "Supprimer « {{label}} »? Ce compte sera archivé et ne sera plus affiché ni utilisé pour la synchronisation.",
       "refreshInventory": "Actualiser les données d'inventaire",
       "noWmsAccounts": "Aucun compte WMS connecté pour le moment.",
@@ -3459,10 +3459,12 @@ export default {
       "region": "Région",
       "provider": "Fournisseur WMS",
       "providers": {
-        "YEJOIN": "Rejoindre"
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS"
       },
       "warehouseProviders": {
-        "YEJOIN": "Rejoindre",
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS",
         "TIKTOK_FBT": "TikTok FBT",
         "SELLER": "Vendeur",
         "AMAZON_FBA": "Amazon Expédié par Amazon"
@@ -3489,6 +3491,14 @@ export default {
       "apiTokenPlaceholder": "Coller le jeton",
       "apiTokenEditPlaceholder": "Laisser vide pour conserver le jeton existant",
       "apiTokenHint": "Le jeton est en écriture seule et ne sera plus affiché.",
+      "apiTokenPlaceholders": {
+        "YEJOIN": "Coller le jeton",
+        "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"
+      },
+      "apiTokenHints": {
+        "YEJOIN": "Le jeton est en écriture seule et ne sera plus affiché.",
+        "XLWMS": "Collez un JSON avec appKey et appSecret. Les identifiants sont en écriture seule et ne seront plus affichés."
+      },
       "apiTokenEditHint": "Le jeton est en écriture seule et ne sera plus affiché. Laissez vide pour conserver le jeton existant; entrez un nouveau jeton pour enregistrer et resynchroniser les entrepôts.",
       "notes": "Remarques",
       "notesPlaceholder": "Note interne facultative",

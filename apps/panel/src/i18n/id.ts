@@ -3446,7 +3446,7 @@ export default {
       "addWmsAccount": "Tambahkan Akun WMS",
       "editWmsAccount": "Edit Akun WMS",
       "deleteWmsAccount": "Hapus Akun WMS",
-      "wmsProviderSupportTooltip": "Saat ini kami mendukung Yejoin sebagai satu-satunya pihak ketiga WMS. Untuk meminta penyedia lain, silahkan menghubungi kami melalui email yang tertera di website resmi kami.",
+      "wmsProviderSupportTooltip": "Saat ini kami mendukung Yejoin dan Lingxing WMS sebagai penyedia WMS pihak ketiga. Untuk meminta penyedia lain, silahkan menghubungi kami melalui email yang tertera di website resmi kami.",
       "confirmDeleteWmsAccount": "Hapus \"{{label}}\"? Akun ini akan diarsipkan dan tidak lagi ditampilkan atau digunakan untuk sinkronisasi.",
       "refreshInventory": "Segarkan data inventaris",
       "noWmsAccounts": "Belum ada akun WMS yang terhubung.",
@@ -3457,10 +3457,12 @@ export default {
       "region": "Wilayah",
       "provider": "Penyedia WMS",
       "providers": {
-        "YEJOIN": "bergabunglah"
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS"
       },
       "warehouseProviders": {
-        "YEJOIN": "bergabunglah",
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS",
         "TIKTOK_FBT": "TikTok FBT",
         "SELLER": "Penjual",
         "AMAZON_FBA": "Amazon FBA"
@@ -3487,6 +3489,14 @@ export default {
       "apiTokenPlaceholder": "Tempelkan token",
       "apiTokenEditPlaceholder": "Biarkan kosong untuk menyimpan token yang ada",
       "apiTokenHint": "Token hanya bersifat tulis dan tidak akan ditampilkan lagi.",
+      "apiTokenPlaceholders": {
+        "YEJOIN": "Tempelkan token",
+        "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"
+      },
+      "apiTokenHints": {
+        "YEJOIN": "Token hanya bersifat tulis dan tidak akan ditampilkan lagi.",
+        "XLWMS": "Tempelkan JSON dengan appKey dan appSecret. Kredensial hanya bersifat tulis dan tidak akan ditampilkan lagi."
+      },
       "apiTokenEditHint": "Token hanya bersifat tulis dan tidak akan ditampilkan lagi. Biarkan kosong untuk menyimpan token yang ada; masukkan token baru untuk menyimpan dan menyinkronkan ulang gudang.",
       "notes": "Catatan",
       "notesPlaceholder": "Catatan internal opsional",

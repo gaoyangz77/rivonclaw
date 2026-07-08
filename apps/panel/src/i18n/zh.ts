@@ -3901,7 +3901,7 @@ export default {
       addWmsAccount: "新增仓库管理系统账号",
       editWmsAccount: "编辑仓库管理系统账号",
       deleteWmsAccount: "删除仓库管理系统账号",
-      wmsProviderSupportTooltip: "目前第三方仓库只支持易境通。如果需要新增其他仓库服务商，请通过官网邮箱联系我们。",
+      wmsProviderSupportTooltip: "目前第三方仓库支持易境通和领星 WMS。如果需要新增其他仓库服务商，请通过官网邮箱联系我们。",
       confirmDeleteWmsAccount: "确定要删除「{{label}}」吗？此账号会被归档，不再展示或用于同步。",
       refreshInventory: "刷新库存数据",
       noWmsAccounts: "尚未连接仓库管理系统账号。",
@@ -3913,9 +3913,11 @@ export default {
       provider: "仓库管理系统服务商",
       providers: {
         YEJOIN: "易境通",
+        XLWMS: "领星 WMS",
       },
       warehouseProviders: {
         YEJOIN: "易境通",
+        XLWMS: "领星 WMS",
         TIKTOK_FBT: "TikTok FBT",
         SELLER: "卖家",
         AMAZON_FBA: "Amazon FBA",
@@ -3942,6 +3944,14 @@ export default {
       apiTokenPlaceholder: "粘贴 API 令牌",
       apiTokenEditPlaceholder: "留空则保持现有 API 令牌",
       apiTokenHint: "API 令牌只写入后端，不会再次展示。",
+      apiTokenPlaceholders: {
+        YEJOIN: "粘贴 API 令牌",
+        XLWMS: "{\"appKey\":\"...\",\"appSecret\":\"...\"}",
+      },
+      apiTokenHints: {
+        YEJOIN: "API 令牌只写入后端，不会再次展示。",
+        XLWMS: "请粘贴包含 appKey 和 appSecret 的 JSON。密钥只写入后端，不会再次展示。",
+      },
       apiTokenEditHint: "API 令牌只写入后端，不会再次展示。留空则保持现有令牌；填写新令牌会保存后重新同步仓库。",
       notes: "备注",
       notesPlaceholder: "可选内部备注",
