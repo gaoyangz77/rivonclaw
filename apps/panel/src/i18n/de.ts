@@ -3448,7 +3448,7 @@ export default {
       "addWmsAccount": "WMS-Konto hinzufügen",
       "editWmsAccount": "Bearbeiten Sie das WMS-Konto",
       "deleteWmsAccount": "Löschen Sie das WMS-Konto",
-      "wmsProviderSupportTooltip": "Wir unterstützen derzeit Yejoin als einzigen Drittanbieter WMS. Um einen anderen Anbieter anzufordern, kontaktieren Sie uns bitte über die auf unserer offiziellen Website angegebene E-Mail-Adresse.",
+      "wmsProviderSupportTooltip": "Wir unterstützen derzeit Yejoin und Lingxing WMS als Drittanbieter-WMS. Um einen anderen Anbieter anzufordern, kontaktieren Sie uns bitte über die auf unserer offiziellen Website angegebene E-Mail-Adresse.",
       "confirmDeleteWmsAccount": "„{{label}}“ löschen? Dieses Konto wird archiviert und nicht mehr angezeigt oder für die Synchronisierung verwendet.",
       "refreshInventory": "Bestandsdaten aktualisieren",
       "noWmsAccounts": "Es sind noch keine WMS-Konten verbunden.",
@@ -3459,10 +3459,12 @@ export default {
       "region": "Region",
       "provider": "WMS Anbieter",
       "providers": {
-        "YEJOIN": "Ja, mach mit"
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS"
       },
       "warehouseProviders": {
-        "YEJOIN": "Ja, mach mit",
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS",
         "TIKTOK_FBT": "TikTok FBT",
         "SELLER": "Verkäufer",
         "AMAZON_FBA": "Amazon FBA"
@@ -3489,6 +3491,14 @@ export default {
       "apiTokenPlaceholder": "Token einfügen",
       "apiTokenEditPlaceholder": "Lassen Sie das Feld leer, um das vorhandene Token beizubehalten",
       "apiTokenHint": "Das Token ist schreibgeschützt und wird nicht erneut angezeigt.",
+      "apiTokenPlaceholders": {
+        "YEJOIN": "Token einfügen",
+        "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"
+      },
+      "apiTokenHints": {
+        "YEJOIN": "Das Token ist schreibgeschützt und wird nicht erneut angezeigt.",
+        "XLWMS": "JSON mit appKey und appSecret einfügen. Die Zugangsdaten sind schreibgeschützt und werden nicht erneut angezeigt."
+      },
       "apiTokenEditHint": "Das Token ist schreibgeschützt und wird nicht erneut angezeigt. Lassen Sie das Feld leer, um das vorhandene Token beizubehalten. Geben Sie ein neues Token ein, um Lager zu speichern und neu zu synchronisieren.",
       "notes": "Notizen",
       "notesPlaceholder": "Optionale interne Notiz",

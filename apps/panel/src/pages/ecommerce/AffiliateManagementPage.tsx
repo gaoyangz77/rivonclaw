@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
+import type { AffiliateLifecycleEvent } from "@rivonclaw/core/models";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
@@ -6402,7 +6403,7 @@ function renderProposalActivityDetail(
 }
 
 function renderLifecycleEventDetail(
-  event: GQL.LifecycleEvent,
+  event: AffiliateLifecycleEvent,
   t: ReturnType<typeof useTranslation>["t"],
 ): string {
   const payload = parseLifecycleDisplayPayload(event.displayPayloadJson);

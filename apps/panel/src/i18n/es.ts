@@ -3448,7 +3448,7 @@ export default {
       "addWmsAccount": "Agregar cuenta WMS",
       "editWmsAccount": "Editar cuenta WMS",
       "deleteWmsAccount": "Eliminar cuenta WMS",
-      "wmsProviderSupportTooltip": "Actualmente admitimos a Yejoin como el único WMS de terceros. Para solicitar otro proveedor, comuníquese con nosotros a través del correo electrónico que figura en nuestro sitio web oficial.",
+      "wmsProviderSupportTooltip": "Actualmente admitimos Yejoin y Lingxing WMS como proveedores WMS de terceros. Para solicitar otro proveedor, comuníquese con nosotros a través del correo electrónico que figura en nuestro sitio web oficial.",
       "confirmDeleteWmsAccount": "¿Eliminar \"{{label}}\"? Esta cuenta se archivará y ya no se mostrará ni se utilizará para la sincronización.",
       "refreshInventory": "Actualizar datos de inventario",
       "noWmsAccounts": "Aún no hay cuentas WMS conectadas.",
@@ -3459,10 +3459,12 @@ export default {
       "region": "Región",
       "provider": "Proveedor WMS",
       "providers": {
-        "YEJOIN": "yejoin"
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS"
       },
       "warehouseProviders": {
-        "YEJOIN": "yejoin",
+        "YEJOIN": "Yejoin",
+        "XLWMS": "Lingxing WMS",
         "TIKTOK_FBT": "TikTok FBT",
         "SELLER": "Vendedor",
         "AMAZON_FBA": "Logística de Amazon"
@@ -3489,6 +3491,14 @@ export default {
       "apiTokenPlaceholder": "Pegar token",
       "apiTokenEditPlaceholder": "Déjelo en blanco para conservar el token existente",
       "apiTokenHint": "El token es de sólo escritura y no se volverá a mostrar.",
+      "apiTokenPlaceholders": {
+        "YEJOIN": "Pegar token",
+        "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"
+      },
+      "apiTokenHints": {
+        "YEJOIN": "El token es de sólo escritura y no se volverá a mostrar.",
+        "XLWMS": "Pegue JSON con appKey y appSecret. Las credenciales son de sólo escritura y no se volverán a mostrar."
+      },
       "apiTokenEditHint": "El token es de sólo escritura y no se volverá a mostrar. Déjelo en blanco para conservar el token existente; ingrese un nuevo token para guardar y resincronizar los almacenes.",
       "notes": "Notas",
       "notesPlaceholder": "Nota interna opcional",

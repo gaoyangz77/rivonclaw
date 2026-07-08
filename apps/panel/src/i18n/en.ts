@@ -3902,7 +3902,7 @@ export default {
       addWmsAccount: "Add WMS Account",
       editWmsAccount: "Edit WMS Account",
       deleteWmsAccount: "Delete WMS Account",
-      wmsProviderSupportTooltip: "We currently support Yejoin as the only third-party WMS. To request another provider, please contact us via the email listed on our official website.",
+      wmsProviderSupportTooltip: "We currently support Yejoin and Lingxing WMS as third-party WMS providers. To request another provider, please contact us via the email listed on our official website.",
       confirmDeleteWmsAccount: "Delete \"{{label}}\"? This account will be archived and no longer shown or used for sync.",
       refreshInventory: "Refresh inventory data",
       noWmsAccounts: "No WMS accounts connected yet.",
@@ -3914,9 +3914,11 @@ export default {
       provider: "WMS Provider",
       providers: {
         YEJOIN: "Yejoin",
+        XLWMS: "Lingxing WMS",
       },
       warehouseProviders: {
         YEJOIN: "Yejoin",
+        XLWMS: "Lingxing WMS",
         TIKTOK_FBT: "TikTok FBT",
         SELLER: "Seller",
         AMAZON_FBA: "Amazon FBA",
@@ -3943,6 +3945,14 @@ export default {
       apiTokenPlaceholder: "Paste token",
       apiTokenEditPlaceholder: "Leave blank to keep existing token",
       apiTokenHint: "The token is write-only and will not be shown again.",
+      apiTokenPlaceholders: {
+        YEJOIN: "Paste token",
+        XLWMS: "{\"appKey\":\"...\",\"appSecret\":\"...\"}",
+      },
+      apiTokenHints: {
+        YEJOIN: "The token is write-only and will not be shown again.",
+        XLWMS: "Paste JSON with appKey and appSecret. The credentials are write-only and will not be shown again.",
+      },
       apiTokenEditHint: "The token is write-only and will not be shown again. Leave blank to keep the existing token; enter a new token to save and resync warehouses.",
       notes: "Notes",
       notesPlaceholder: "Optional internal note",

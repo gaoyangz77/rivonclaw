@@ -187,6 +187,8 @@ export const AffiliateLifecycleEventModel = types.model("AffiliateLifecycleEvent
   createdAt: types.string,
 });
 
+export interface AffiliateLifecycleEvent extends Instance<typeof AffiliateLifecycleEventModel> {}
+
 export const AffiliateActionProposalModel = types.model("AffiliateActionProposal", {
   id: types.identifier,
   userId: types.optional(types.string, ""),
@@ -561,7 +563,7 @@ export const AffiliateWorkspaceModel = types
       upsertById(self.actionProposals as any, proposal as any);
     }
 
-    function upsertLifecycleEvent(event: GQL.LifecycleEvent | null | undefined): void {
+    function upsertLifecycleEvent(event: AffiliateLifecycleEvent | null | undefined): void {
       if (!event?.id) return;
       upsertById(self.lifecycleEvents as any, event as any);
     }
@@ -605,7 +607,7 @@ export const AffiliateWorkspaceModel = types
         for (const sample of workspace?.sampleApplicationRecords ?? []) upsertSampleApplication(sample);
         for (const proposal of workspace?.actionProposals ?? []) upsertProposal(proposal);
         const lifecycleEvents = (workspace as (GQL.AffiliateWorkspacePayload & {
-          lifecycleEvents?: GQL.LifecycleEvent[];
+          lifecycleEvents?: AffiliateLifecycleEvent[];
         }) | null | undefined)?.lifecycleEvents ?? [];
         for (const event of lifecycleEvents) upsertLifecycleEvent(event);
       },

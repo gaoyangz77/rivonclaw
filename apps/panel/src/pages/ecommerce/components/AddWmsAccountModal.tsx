@@ -11,6 +11,11 @@ const currencyOptions = Object.values(GQL.Currency).map((currency) => ({
   label: `ecommerce.inventory.currencies.${currency}`,
 }));
 
+const wmsProviderOptions = [
+  { value: "YEJOIN", labelKey: "ecommerce.inventory.providers.YEJOIN" },
+  { value: "XLWMS", labelKey: "ecommerce.inventory.providers.XLWMS" },
+];
+
 export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -19,11 +24,11 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
   const isEdit = inventory.isEditingWmsAccount;
 
   const canSubmit = Boolean(
-    draft.provider
-    && draft.label.trim()
-    && draft.endpoint.trim()
-    && draft.declaredValueCurrency
-    && (isEdit || draft.apiToken.trim()),
+    draft.provider &&
+    draft.label.trim() &&
+    draft.endpoint.trim() &&
+    draft.declaredValueCurrency &&
+    (isEdit || draft.apiToken.trim()),
   );
 
   return (
@@ -34,7 +39,9 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
           inventory.setAddWmsAccountModalOpen(false);
         }
       }}
-      title={isEdit ? t("ecommerce.inventory.editWmsAccount") : t("ecommerce.inventory.addWmsAccount")}
+      title={
+        isEdit ? t("ecommerce.inventory.editWmsAccount") : t("ecommerce.inventory.addWmsAccount")
+      }
       preventBackdropClose={inventory.addWmsAccountSaving}
     >
       <form
@@ -63,9 +70,10 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
             value={draft.provider}
             onChange={(provider) => inventory.updateAddWmsAccountDraft({ provider })}
             className="input-full"
-            options={[
-              { value: "YEJOIN", label: t("ecommerce.inventory.providers.YEJOIN") },
-            ]}
+            options={wmsProviderOptions.map((option) => ({
+              value: option.value,
+              label: t(option.labelKey, { defaultValue: option.value }),
+            }))}
           />
         </div>
 
@@ -103,7 +111,9 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
           </label>
           <Select
             value={draft.declaredValueCurrency}
-            onChange={(declaredValueCurrency) => inventory.updateAddWmsAccountDraft({ declaredValueCurrency })}
+            onChange={(declaredValueCurrency) =>
+              inventory.updateAddWmsAccountDraft({ declaredValueCurrency })
+            }
             className="input-full"
             placeholder={t("ecommerce.inventory.selectCurrency")}
             disabled={inventory.addWmsAccountSaving}
@@ -123,12 +133,22 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
             className="input-full input-mono"
             value={draft.apiToken}
             onChange={(e) => inventory.updateAddWmsAccountDraft({ apiToken: e.target.value })}
-            placeholder={isEdit ? t("ecommerce.inventory.apiTokenEditPlaceholder") : t("ecommerce.inventory.apiTokenPlaceholder")}
+            placeholder={
+              isEdit
+                ? t("ecommerce.inventory.apiTokenEditPlaceholder")
+                : t(`ecommerce.inventory.apiTokenPlaceholders.${draft.provider}`, {
+                    defaultValue: t("ecommerce.inventory.apiTokenPlaceholder"),
+                  })
+            }
             disabled={inventory.addWmsAccountSaving}
             required={!isEdit}
           />
           <div className="form-hint">
-            {isEdit ? t("ecommerce.inventory.apiTokenEditHint") : t("ecommerce.inventory.apiTokenHint")}
+            {isEdit
+              ? t("ecommerce.inventory.apiTokenEditHint")
+              : t(`ecommerce.inventory.apiTokenHints.${draft.provider}`, {
+                  defaultValue: t("ecommerce.inventory.apiTokenHint"),
+                })}
           </div>
         </div>
 
