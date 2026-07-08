@@ -34,6 +34,10 @@ function isSessionInvalidErrorMessage(message: string): boolean {
   return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
 }
 
+function isJwtSignatureMismatchErrorMessage(message: string): boolean {
+  return /invalid signature/i.test(message);
+}
+
 export class AuthSessionManager {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
@@ -104,10 +108,6 @@ export class AuthSessionManager {
 
   /** Refresh the access token using the stored refresh token. Single-flight. */
   async refresh(options?: RefreshOptions): Promise<string> {
-    if (options?.clearOnInvalid === false) {
-      return this.doRefresh(options);
-    }
-
     if (this.refreshPromise) return this.refreshPromise;
 
     this.refreshPromise = this.doRefresh(options).finally(() => {
@@ -118,9 +118,6 @@ export class AuthSessionManager {
 
   private async doRefresh(options?: RefreshOptions): Promise<string> {
     if (!this.refreshToken) {
-      if (options?.clearOnInvalid !== false) {
-        await this.clearTokens();
-      }
       throw new Error("No refresh token available");
     }
 
@@ -137,7 +134,7 @@ export class AuthSessionManager {
       return payload.accessToken;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (options?.clearOnInvalid !== false && isSessionInvalidErrorMessage(msg)) {
+      if (options?.clearOnInvalid === true && isJwtSignatureMismatchErrorMessage(msg)) {
         await this.clearTokens();
       }
       throw err;
@@ -150,19 +147,16 @@ export class AuthSessionManager {
 
     try {
       log.info("validate: sending ME_QUERY...");
-      const result = await this.graphqlFetch<{ me: GQL.MeResponse }>(ME_QUERY, undefined, { clearOnInvalidRefresh: true });
+      const result = await this.graphqlFetch<{ me: GQL.MeResponse }>(ME_QUERY);
       log.info(`validate: success, user=${result.me.email}`);
       await this.setUser(result.me);
       return result.me;
     } catch (err) {
-      // Only clear tokens on auth errors (expired/revoked token that refresh also failed).
-      // Network errors (timeout, DNS, server 500) should NOT clear tokens — the user
-      // may simply be offline or the server temporarily unavailable.
       const msg = err instanceof Error ? err.message : String(err);
       const isAuthError = isSessionInvalidErrorMessage(msg);
       if (isAuthError) {
-        log.error("JWT invalid for current backend; clearing stored auth session", { reason: msg });
-        await this.clearTokens();
+        log.error("JWT rejected during validate; keeping stored auth tokens", { reason: msg });
+        await this.setUser(null);
       } else {
         log.warn("validate: non-auth error, keeping tokens.", err);
       }
