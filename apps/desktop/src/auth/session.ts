@@ -118,7 +118,9 @@ export class AuthSessionManager {
 
   private async doRefresh(options?: RefreshOptions): Promise<string> {
     if (!this.refreshToken) {
-      await this.clearTokens();
+      if (options?.clearOnInvalid !== false) {
+        await this.clearTokens();
+      }
       throw new Error("No refresh token available");
     }
 
@@ -148,7 +150,7 @@ export class AuthSessionManager {
 
     try {
       log.info("validate: sending ME_QUERY...");
-      const result = await this.graphqlFetch<{ me: GQL.MeResponse }>(ME_QUERY);
+      const result = await this.graphqlFetch<{ me: GQL.MeResponse }>(ME_QUERY, undefined, { clearOnInvalidRefresh: true });
       log.info(`validate: success, user=${result.me.email}`);
       await this.setUser(result.me);
       return result.me;
@@ -218,6 +220,7 @@ export class AuthSessionManager {
     const url = getGraphqlUrl(this.locale);
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     const autoRefresh = options?.autoRefresh !== false;
+    const clearOnInvalidRefresh = options?.clearOnInvalidRefresh === true;
     if (options?.includeAccessToken !== false && this.accessToken) {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
@@ -232,7 +235,7 @@ export class AuthSessionManager {
 
     let refreshed = false;
     if (autoRefresh && res.status === 401 && this.refreshToken) {
-      headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: options?.clearOnInvalidRefresh })}`;
+      headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: clearOnInvalidRefresh })}`;
       refreshed = true;
       res = await doFetch();
     }
@@ -244,7 +247,7 @@ export class AuthSessionManager {
     if (autoRefresh && json.errors?.length && !refreshed && this.refreshToken) {
       const msg = json.errors.map(e => e.message).join("; ");
       if (isRecoverableAuthErrorMessage(msg)) {
-        headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: options?.clearOnInvalidRefresh })}`;
+        headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: clearOnInvalidRefresh })}`;
         res = await doFetch();
         json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
       }

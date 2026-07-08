@@ -39,7 +39,7 @@ export class CloudClient {
     });
 
     if (res.status === 401) {
-      const newToken = await this.authSession.refresh();
+      const newToken = await this.authSession.refresh({ clearOnInvalid: false });
       res = await this.fetchFn(url, {
         ...init,
         headers: makeHeaders(newToken),
