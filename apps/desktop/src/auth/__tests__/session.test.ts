@@ -271,7 +271,7 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
-  it("can auto-refresh GraphQL auth errors without clearing stored tokens", async () => {
+  it("does not clear stored tokens when background GraphQL auto-refresh sees an invalid JWT", async () => {
     fetchFn
       .mockResolvedValueOnce({
         status: 200,
@@ -287,12 +287,37 @@ describe("AuthSessionManager.refresh", () => {
       });
 
     await expect(
-      manager.graphqlFetch("query ShopLifecycle { shops { id } }", undefined, { clearOnInvalidRefresh: false }),
+      manager.graphqlFetch("query CreateCsSession { shops { id } }"),
     ).rejects.toThrow("invalid signature");
 
     expect(manager.getAccessToken()).toBe("stale-at");
     expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
     expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("can explicitly clear stored tokens when GraphQL auto-refresh sees an invalid JWT", async () => {
+    fetchFn
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          errors: [{ message: "Authentication required" }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({
+          errors: [{ message: "invalid signature" }],
+        }),
+      });
+
+    await expect(
+      manager.graphqlFetch("query ValidateMe { me { userId } }", undefined, { clearOnInvalidRefresh: true }),
+    ).rejects.toThrow("invalid signature");
+
+    expect(manager.getAccessToken()).toBeNull();
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
