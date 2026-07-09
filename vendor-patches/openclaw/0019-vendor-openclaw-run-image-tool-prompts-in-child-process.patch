@@ -1,0 +1,372 @@
+From 5f702132fda5571f5694cdd4eda1b827c33b44b5 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Wed, 8 Jul 2026 20:16:28 -0700
+Subject: [PATCH] vendor(openclaw): run image tool prompts in child process
+
+Why:
+- RivonClaw customer-service workloads can trigger OpenClaw's built-in image tool on large or multi-image buyer messages.
+- Running the image-model prompt path in the gateway process can block the event loop and saturate the main process CPU.
+- RivonClaw needs to keep the official image tool name and capability semantics while isolating the heavy image prompt execution path.
+
+Removal:
+- Drop when upstream OpenClaw runs image-tool media understanding outside the gateway event-loop process or exposes an equivalent worker-backed image tool execution option.
+
+Tests:
+- vendor/openclaw/src/agents/tools/image-tool.test.ts
+- apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts
+---
+ src/agents/tools/image-tool-worker.ts |  38 ++++++
+ src/agents/tools/image-tool.test.ts   |  51 ++++++++
+ src/agents/tools/image-tool.ts        | 175 +++++++++++++++++++++++++-
+ tsdown.config.ts                      |   1 +
+ 4 files changed, 260 insertions(+), 5 deletions(-)
+ create mode 100644 src/agents/tools/image-tool-worker.ts
+
+diff --git a/src/agents/tools/image-tool-worker.ts b/src/agents/tools/image-tool-worker.ts
+new file mode 100644
+index 0000000000..f1e6a754b5
+--- /dev/null
++++ b/src/agents/tools/image-tool-worker.ts
+@@ -0,0 +1,38 @@
++import { formatErrorMessage } from "../../infra/errors.js";
++import {
++  runImagePrompt,
++  type ImagePromptParams,
++  type ImagePromptResult,
++} from "./image-tool.js";
++
++type ImagePromptWorkerRequest = {
++  type: "run-image-prompt";
++  params: ImagePromptParams;
++};
++
++type ImagePromptWorkerResponse =
++  | { type: "success"; result: ImagePromptResult }
++  | { type: "error"; error: string };
++
++function send(response: ImagePromptWorkerResponse): void {
++  if (typeof process.send === "function") {
++    process.send(response);
++  }
++}
++
++process.on("message", async (message: unknown) => {
++  const request = message as ImagePromptWorkerRequest | undefined;
++  if (request?.type !== "run-image-prompt") {
++    send({ type: "error", error: "invalid image tool worker request" });
++    return;
++  }
++
++  try {
++    const result = await runImagePrompt(request.params);
++    send({ type: "success", result });
++  } catch (err) {
++    send({ type: "error", error: formatErrorMessage(err) });
++  } finally {
++    process.exit(0);
++  }
++});
+diff --git a/src/agents/tools/image-tool.test.ts b/src/agents/tools/image-tool.test.ts
+index 4e1c6cc536..504ee125b3 100644
+--- a/src/agents/tools/image-tool.test.ts
++++ b/src/agents/tools/image-tool.test.ts
+@@ -1952,3 +1952,54 @@ describe("image tool response validation", () => {
+     expect(__testing.hasImageReasoningOnlyResponse(message as never)).toBe(false);
+   });
+ });
++
++describe("image tool child process delegation", () => {
++  afterEach(() => {
++    vi.unstubAllEnvs();
++    __testing.setImagePromptChildRunnerForTest();
++  });
++
++  it("runs image model prompting through the child runner when enabled", async () => {
++    vi.stubEnv("OPENCLAW_IMAGE_TOOL_CHILD_PROCESS", "1");
++
++    await withTempAgentDir(async (agentDir) => {
++      const childRunner = vi.fn(async () => ({
++        text: "worker-ok",
++        provider: "openai",
++        model: "gpt-5.4-mini",
++        attempts: [],
++      }));
++      __testing.setImagePromptChildRunnerForTest(childRunner);
++
++      const tool = createRequiredImageTool({
++        agentDir,
++        config: {
++          agents: {
++            defaults: {
++              model: { primary: "openai/gpt-5.4-mini" },
++              imageModel: { primary: "openai/gpt-5.4-mini" },
++            },
++          },
++        },
++      });
++
++      const result = await tool.execute("t1", {
++        prompt: "Describe the image.",
++        image: `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
++      });
++
++      expect(childRunner).toHaveBeenCalledTimes(1);
++      expect(childRunner.mock.calls[0]?.[0]).toMatchObject({
++        agentDir,
++        prompt: "Describe the image.",
++        images: [{ mimeType: "image/png" }],
++      });
++      expect(result).toMatchObject({
++        content: [{ type: "text", text: "worker-ok" }],
++        details: {
++          model: "openai/gpt-5.4-mini",
++        },
++      });
++    });
++  });
++});
+diff --git a/src/agents/tools/image-tool.ts b/src/agents/tools/image-tool.ts
+index 739c9cf001..3c0cd34c90 100644
+--- a/src/agents/tools/image-tool.ts
++++ b/src/agents/tools/image-tool.ts
+@@ -1,7 +1,12 @@
+-import { resolve, isAbsolute } from "node:path";
++import { fork } from "node:child_process";
++import { existsSync } from "node:fs";
++import { dirname, resolve, isAbsolute } from "node:path";
++import { fileURLToPath } from "node:url";
+ import { Type } from "typebox";
+ import type { OpenClawConfig } from "../../config/types.openclaw.js";
+ import type { MediaUnderstandingModelConfig } from "../../config/types.tools.js";
++import { formatErrorMessage } from "../../infra/errors.js";
++import { createSubsystemLogger } from "../../logging/subsystem.js";
+ import {
+   DEFAULT_TIMEOUT_SECONDS,
+   resolveAutoMediaKeyProviders,
+@@ -57,6 +62,8 @@ import {
+ 
+ const DEFAULT_PROMPT = "Describe the image.";
+ const DEFAULT_MAX_IMAGES = 20;
++const DEFAULT_CHILD_PROCESS_TIMEOUT_MS = 10 * 60 * 1000;
++const log = createSubsystemLogger("tools");
+ 
+ const imageToolProviderDeps = {
+   buildProviderRegistry,
+@@ -93,6 +100,11 @@ export const __testing = {
+     imageToolProviderDeps.resolveDefaultMediaModel =
+       overrides?.resolveDefaultMediaModel ?? resolveDefaultMediaModel;
+   },
++  setImagePromptChildRunnerForTest(
++    runner?: typeof runImagePromptInChildProcess,
++  ) {
++    imagePromptChildRunner = runner ?? runImagePromptInChildProcess;
++  },
+ } as const;
+ 
+ function resolveImageToolMaxTokens(modelMaxTokens: number | undefined, requestedMaxTokens = 4096) {
+@@ -261,18 +273,22 @@ type ImageSandboxConfig = {
+   bridge: SandboxFsBridge;
+ };
+ 
+-async function runImagePrompt(params: {
++export type ImagePromptParams = {
+   cfg?: OpenClawConfig;
+   agentDir: string;
+   imageModelConfig: ImageModelConfig;
+   prompt: string;
+   images: Array<{ buffer: Buffer; mimeType: string }>;
+-}): Promise<{
++};
++
++export type ImagePromptResult = {
+   text: string;
+   provider: string;
+   model: string;
+   attempts: Array<{ provider: string; model: string; error: string }>;
+-}> {
++};
++
++export async function runImagePrompt(params: ImagePromptParams): Promise<ImagePromptResult> {
+   const effectiveCfg = applyImageModelConfigDefaults(params.cfg, params.imageModelConfig);
+   const providerCfg: OpenClawConfig = effectiveCfg ?? {};
+   const providerRegistry = imageToolProviderDeps.buildProviderRegistry(undefined, providerCfg);
+@@ -367,6 +383,155 @@ async function runImagePrompt(params: {
+   };
+ }
+ 
++type ImagePromptWorkerRequest = {
++  type: "run-image-prompt";
++  params: ImagePromptParams;
++};
++
++type ImagePromptWorkerResponse =
++  | { type: "success"; result: ImagePromptResult }
++  | { type: "error"; error: string };
++
++function shouldUseImagePromptChildProcess(): boolean {
++  if (process.env.OPENCLAW_IMAGE_TOOL_CHILD_PROCESS === "0") {
++    return false;
++  }
++  if (process.env.OPENCLAW_IMAGE_TOOL_CHILD_PROCESS === "1") {
++    return true;
++  }
++  return process.env.VITEST !== "true";
++}
++
++function resolveImagePromptWorkerPath(): string {
++  const here = dirname(fileURLToPath(import.meta.url));
++  const candidates = [
++    resolve(here, "agents/tools/image-tool-worker.js"),
++    resolve(here, "image-tool-worker.js"),
++    resolve(process.cwd(), "dist/agents/tools/image-tool-worker.js"),
++  ];
++  const found = candidates.find((candidate) => existsSync(candidate));
++  if (!found) {
++    throw new Error(`image tool worker entry not found; checked ${candidates.join(", ")}`);
++  }
++  return found;
++}
++
++async function runImagePromptInChildProcess(params: ImagePromptParams): Promise<ImagePromptResult> {
++  const workerPath = resolveImagePromptWorkerPath();
++  const startedAt = Date.now();
++  const child = fork(workerPath, [], {
++    env: {
++      ...process.env,
++      ...(process.versions.electron ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
++    },
++    execArgv: [],
++    serialization: "advanced",
++    stdio: ["ignore", "ignore", "pipe", "ipc"],
++  });
++  const childPid = child.pid ?? "unknown";
++  log.info(`image tool worker start: pid=${childPid} images=${params.images.length}`);
++
++  return await new Promise<ImagePromptResult>((resolvePromise, rejectPromise) => {
++    let settled = false;
++    const timeoutMs = (() => {
++      const raw = Number(process.env.OPENCLAW_IMAGE_TOOL_CHILD_TIMEOUT_MS);
++      return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_CHILD_PROCESS_TIMEOUT_MS;
++    })();
++    const timeout = setTimeout(() => {
++      finish(
++        new Error(`image tool worker timed out after ${timeoutMs}ms`),
++        undefined,
++        true,
++      );
++    }, timeoutMs);
++
++    function cleanup() {
++      clearTimeout(timeout);
++      child.off("message", onMessage);
++      child.off("error", onError);
++      child.off("exit", onExit);
++      child.stderr?.off("data", onStderr);
++    }
++
++    function finish(error?: Error, result?: ImagePromptResult, kill = false) {
++      if (settled) return;
++      settled = true;
++      cleanup();
++      if (kill && !child.killed) {
++        child.kill("SIGKILL");
++      }
++      const durationMs = Date.now() - startedAt;
++      if (error) {
++        log.warn(
++          `image tool worker failed: pid=${childPid} durationMs=${durationMs} error=${formatErrorMessage(error)}`,
++        );
++        rejectPromise(error);
++        return;
++      }
++      log.info(`image tool worker success: pid=${childPid} durationMs=${durationMs}`);
++      resolvePromise(result!);
++    }
++
++    function onMessage(message: unknown) {
++      const response = message as ImagePromptWorkerResponse | undefined;
++      if (response?.type === "success") {
++        finish(undefined, response.result);
++        return;
++      }
++      if (response?.type === "error") {
++        finish(new Error(response.error || "image tool worker failed"));
++        return;
++      }
++      finish(new Error("image tool worker returned an invalid response"));
++    }
++
++    function onError(error: Error) {
++      finish(error);
++    }
++
++    function onExit(code: number | null, signal: NodeJS.Signals | null) {
++      if (!settled) {
++        finish(
++          new Error(
++            `image tool worker exited before response: code=${code ?? "null"} signal=${signal ?? "null"}`,
++          ),
++        );
++      }
++    }
++
++    function onStderr(data: Buffer) {
++      const text = data.toString("utf8").trim();
++      if (text) {
++        log.warn(`image tool worker stderr: pid=${childPid} ${text}`);
++      }
++    }
++
++    child.on("message", onMessage);
++    child.on("error", onError);
++    child.on("exit", onExit);
++    child.stderr?.on("data", onStderr);
++    child.send({ type: "run-image-prompt", params } satisfies ImagePromptWorkerRequest);
++  });
++}
++
++let imagePromptChildRunner = runImagePromptInChildProcess;
++
++async function runImagePromptWithWorkerFallback(
++  params: ImagePromptParams,
++): Promise<ImagePromptResult> {
++  if (!shouldUseImagePromptChildProcess()) {
++    return await runImagePrompt(params);
++  }
++  try {
++    return await imagePromptChildRunner(params);
++  } catch (err) {
++    log.warn(
++      `image tool worker unavailable; falling back to main process: ${formatErrorMessage(err)}`,
++    );
++    return await runImagePrompt(params);
++  }
++}
++
+ export function createImageTool(options?: {
+   config?: OpenClawConfig;
+   agentDir?: string;
+@@ -629,7 +794,7 @@ export function createImageTool(options?: {
+           "No image model is configured. Set agents.defaults.imageModel or configure an image-capable provider.",
+         );
+       }
+-      const result = await runImagePrompt({
++      const result = await runImagePromptWithWorkerFallback({
+         cfg: options?.config,
+         agentDir,
+         imageModelConfig,
+diff --git a/tsdown.config.ts b/tsdown.config.ts
+index a33fb36dc8..d8beb90f90 100644
+--- a/tsdown.config.ts
++++ b/tsdown.config.ts
+@@ -305,6 +305,7 @@ function buildCoreDistEntries(): Record<string, string> {
+     "subagent-registry.runtime": "src/agents/subagent-registry.runtime.ts",
+     "task-registry-control.runtime": "src/tasks/task-registry-control.runtime.ts",
+     "agents/pi-model-discovery-runtime": "src/agents/pi-model-discovery-runtime.ts",
++    "agents/tools/image-tool-worker": "src/agents/tools/image-tool-worker.ts",
+     "link-understanding/apply.runtime": "src/link-understanding/apply.runtime.ts",
+     "media-understanding/apply.runtime": "src/media-understanding/apply.runtime.ts",
+     "commands/doctor/shared/plugin-registry-migration":
+-- 
+2.53.0
+

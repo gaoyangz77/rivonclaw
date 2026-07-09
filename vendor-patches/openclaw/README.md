@@ -376,6 +376,30 @@ clear it in the patch handler.
 `contextTokens` through `sessions.patch` or another stable gateway session
 settings API.
 
+### 0019 — Run image tool prompts in a child process
+
+**File:** `0019-vendor-openclaw-run-image-tool-prompts-in-child-process.patch`
+
+**Why:** RivonClaw Customer Service can trigger OpenClaw's official `image`
+tool on buyer-sent product images. Production logs showed the gateway event
+loop and main-process CPU saturating while the tool was active. RivonClaw needs
+to keep the official tool name and capability semantics while isolating the
+heavy image-model prompt execution path from the gateway process.
+
+**Change:** Keep `name: "image"` unchanged, but route `runImagePrompt()` through
+a forked `image-tool-worker` child process by default. The main process still
+does the existing argument normalization, media loading, sandbox checks, and
+SSRF policy enforcement. If the worker cannot start or fails, OpenClaw falls
+back to the original in-process prompt execution and logs the fallback.
+
+**Tests:**
+- `vendor/openclaw/src/agents/tools/image-tool.test.ts`
+- `apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts`
+
+**Removal:** Drop when upstream OpenClaw runs image-tool media understanding
+outside the gateway event-loop process or exposes an equivalent worker-backed
+image tool execution option.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals
