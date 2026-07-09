@@ -18228,50 +18228,6 @@ html[lang="zh"] .acct-tool-chips {
   align-items: center;
 }
 
-.affiliate-product-summary-footer {
-  display: flex;
-  grid-column: 1 / -1;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 2px;
-}
-
-.affiliate-product-summary-footer-hint {
-  min-width: 0;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.affiliate-product-summary-action {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
-  color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-.affiliate-product-summary-action:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
-}
-
-.affiliate-product-summary-action:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-primary) 72%, transparent);
-  outline-offset: 2px;
-}
-
-.affiliate-product-summary-action svg {
-  flex: 0 0 auto;
-}
-
 .affiliate-product-price,
 .affiliate-product-status,
 .affiliate-product-muted {
