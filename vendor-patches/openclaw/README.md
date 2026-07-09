@@ -404,6 +404,28 @@ the image model with only a few seconds remaining.
 outside the gateway event-loop process or exposes an equivalent worker-backed
 image tool execution option.
 
+### 0020 — Stream Feishu card deltas
+
+**File:** `0020-vendor-openclaw-stream-feishu-card-deltas.patch`
+
+**Why:** RivonClaw defaults Feishu QR-created accounts to card streaming so
+users see progress during long-running tasks. OpenClaw was sending full
+accumulated snapshots to Feishu CardKit's streaming content update endpoint;
+Feishu renders those updates as appended fragments, so partial replies, tool
+status lines, and final text could repeat inside the same card.
+
+**Change:** Keep OpenClaw's internal combined stream text for final close, but
+send only the new delta/status fragment to active Feishu streaming cards. The
+patch also keeps reasoning previews formatted while avoiding replaying prior
+reasoning text.
+
+**Tests:**
+- `vendor/openclaw/extensions/feishu/src/reply-dispatcher.test.ts`
+
+**Removal:** Drop when upstream OpenClaw's Feishu CardKit streaming adapter
+sends append-safe deltas, switches to a true replacement API, or otherwise
+avoids replaying full snapshots during streaming updates.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals
