@@ -691,6 +691,110 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     }
   });
 
+  it("defaults Feishu accounts to streaming cards without opting into core block streaming", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-streaming-"));
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
+      const accounts: Array<{
+        channelId: string;
+        accountId: string;
+        name: string | null;
+        config: Record<string, unknown>;
+        createdAt: number;
+        updatedAt: number;
+      }> = [];
+      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
+        const record = { channelId, accountId, name, config, createdAt: 1, updatedAt: 1 };
+        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
+        if (index >= 0) accounts[index] = record;
+        else accounts.push(record);
+        return record;
+      });
+
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            upsert: upsertAccount,
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      root.channelManager.addAccount({
+        channelId: "feishu",
+        accountId: "default",
+        name: "Feishu Bot",
+        config: { appId: "cli_default", appSecret: "secret_default" },
+      });
+      root.channelManager.addAccount({
+        channelId: "feishu",
+        accountId: "quiet",
+        name: "Quiet Feishu Bot",
+        config: {
+          appId: "cli_quiet",
+          appSecret: "secret_quiet",
+          streaming: false,
+          blockStreaming: false,
+        },
+      });
+      root.channelManager.addAccount({
+        channelId: "feishu",
+        accountId: "blocks",
+        name: "Block Streaming Feishu Bot",
+        config: {
+          appId: "cli_blocks",
+          appSecret: "secret_blocks",
+          blockStreaming: true,
+        },
+      });
+
+      expect(accounts.find((account) => account.accountId === "default")?.config).toMatchObject({
+        renderMode: "card",
+        streaming: true,
+        blockStreaming: false,
+      });
+      expect(accounts.find((account) => account.accountId === "quiet")?.config).toMatchObject({
+        streaming: false,
+        blockStreaming: false,
+      });
+      expect(accounts.find((account) => account.accountId === "blocks")?.config).toMatchObject({
+        renderMode: "card",
+        streaming: true,
+        blockStreaming: true,
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.feishu.accounts.default.renderMode).toBe("card");
+      expect(config.channels.feishu.accounts.default.streaming).toBe(true);
+      expect(config.channels.feishu.accounts.default.blockStreaming).toBe(false);
+      expect(config.channels.feishu.accounts.quiet.streaming).toBe(false);
+      expect(config.channels.feishu.accounts.quiet.blockStreaming).toBe(false);
+      expect(config.channels.feishu.accounts.blocks.renderMode).toBe("card");
+      expect(config.channels.feishu.accounts.blocks.streaming).toBe(true);
+      expect(config.channels.feishu.accounts.blocks.blockStreaming).toBe(true);
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("hydrates the official Feishu plugin root during startup", () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-hydrate-"));
     const previousVendorDir = getVendorDir();
@@ -861,6 +965,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const official = accounts.find((account) => account.channelId === "feishu" && account.accountId === accountId);
       expect(official?.name).toBe("Feishu Official Bot (i_test)");
       expect(official?.config).toMatchObject({
+        renderMode: "card",
+        streaming: true,
+        blockStreaming: false,
         dmPolicy: "open",
         allowFrom: ["*"],
         groupPolicy: "open",
@@ -871,6 +978,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.feishu.accounts[accountId].dmPolicy).toBe("open");
+      expect(config.channels.feishu.accounts[accountId].renderMode).toBe("card");
+      expect(config.channels.feishu.accounts[accountId].streaming).toBe(true);
+      expect(config.channels.feishu.accounts[accountId].blockStreaming).toBe(false);
       expect(config.channels.feishu.accounts[accountId].allowFrom).toEqual(["*"]);
       expect(config.channels.feishu.accounts[accountId].groupPolicy).toBe("open");
       expect(config.channels.feishu.accounts[accountId].groupAllowFrom).toBeUndefined();
@@ -1028,6 +1138,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(accounts.find((account) => account.accountId === newAccountId)?.config).toMatchObject({
         appId: "cli_new_bot",
         appSecret: "new_secret",
+        renderMode: "card",
+        streaming: true,
+        blockStreaming: false,
         dmPolicy: "open",
         groupPolicy: "open",
       });
@@ -1035,6 +1148,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.feishu.accounts.default.appId).toBe("cli_existing");
       expect(config.channels.feishu.accounts[newAccountId].appId).toBe("cli_new_bot");
+      expect(config.channels.feishu.accounts[newAccountId].renderMode).toBe("card");
+      expect(config.channels.feishu.accounts[newAccountId].streaming).toBe(true);
+      expect(config.channels.feishu.accounts[newAccountId].blockStreaming).toBe(false);
       expect(config.channels.feishu.appId).toBe("cli_existing");
       expect(config.plugins.entries.feishu.enabled).toBe(true);
       expect(config.plugins.entries["openclaw-lark"]).toBeUndefined();

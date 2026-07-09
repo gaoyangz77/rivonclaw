@@ -317,6 +317,14 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
       allowFrom: allowFrom.includes("*") ? allowFrom : ["*", ...allowFrom],
     };
   }
+  if (channelId === FEISHU_CHANNEL_ID) {
+    next = {
+      ...next,
+      renderMode: typeof next.renderMode === "string" ? next.renderMode : "card",
+      streaming: typeof next.streaming === "boolean" ? next.streaming : true,
+      blockStreaming: typeof next.blockStreaming === "boolean" ? next.blockStreaming : false,
+    };
+  }
   if (channelId === TELEGRAM_CHANNEL_ID) {
     return { ...next, streaming: { mode: "block" } };
   }
@@ -989,6 +997,9 @@ export const ChannelManagerModel = types
         appSecret: params.appSecret,
         domain: params.domain,
         connectionMode: "websocket",
+        renderMode: "card",
+        streaming: true,
+        blockStreaming: false,
         requireMention: true,
         dmPolicy: "open",
         allowFrom: ["*"],
