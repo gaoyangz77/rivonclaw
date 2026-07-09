@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.56",
+    "date": "2026-07-08",
+    "en": [
+      "Run the OpenClaw image tool through a worker process for better desktop stability",
+      "Add XLWMS provider support to seller workflows",
+      "Refresh analytics billing overview fields and hide the legacy affiliate staff page"
+    ],
+    "zh": [
+      "将 OpenClaw 图片工具切换到 worker 进程运行，提升桌面端稳定性",
+      "新增 XLWMS provider 支持，完善卖家工作流",
+      "刷新 analytics billing overview 字段，并隐藏旧版达人 staff 页面"
+    ]
+  },
+  {
     "version": "1.8.55",
     "date": "2026-07-07",
     "en": [
