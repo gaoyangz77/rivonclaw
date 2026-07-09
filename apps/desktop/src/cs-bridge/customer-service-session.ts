@@ -1804,25 +1804,25 @@ export class CustomerServiceSession {
     return true;
   }
 
-  private async applyCurrentSessionModel(): Promise<void> {
+  private buildCustomerServiceSessionPreferencesPatch(): Record<string, unknown> | undefined {
+    if (this.customerServiceSessionPreferencesApplied) return undefined;
+    return {
+      contextTokens: CS_AGENT_CONTEXT_TOKENS,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
+    };
+  }
+
+  private async applyCurrentSessionModelAndPreferences(): Promise<void> {
+    const sessionPatch = this.buildCustomerServiceSessionPreferencesPatch();
     await rootStore.llmManager.applyModelForSession(this.scopeKey, {
       type: ScopeType.CS_SESSION,
       shopId: this.shop.objectId,
     }, {
       requestTimeoutMs: CS_GATEWAY_SETUP_RPC_TIMEOUT_MS,
+      ...(sessionPatch ? { sessionPatch } : {}),
     });
-  }
-
-  private async applyCustomerServiceSessionPreferences(): Promise<boolean> {
-    if (this.customerServiceSessionPreferencesApplied) return false;
-    await openClawConnector.request("sessions.patch", {
-      key: this.scopeKey,
-      contextTokens: CS_AGENT_CONTEXT_TOKENS,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, CS_GATEWAY_SETUP_RPC_TIMEOUT_MS);
-    this.customerServiceSessionPreferencesApplied = true;
-    return true;
+    if (sessionPatch) this.customerServiceSessionPreferencesApplied = true;
   }
 
   private buildGatewaySessionRegistrationSignature(): string {
@@ -1861,8 +1861,7 @@ export class CustomerServiceSession {
 
     if (this.gatewaySetupReady) {
       const modelStartedAt = Date.now();
-      await this.applyCurrentSessionModel();
-      await this.applyCustomerServiceSessionPreferences();
+      await this.applyCurrentSessionModelAndPreferences();
       if (this.ensureSessionRunProfile(runProfileId)) {
         log.info(
           `Gateway runProfile binding refreshed: conv=${this.csContext.conversationId} ` +
@@ -1882,8 +1881,7 @@ export class CustomerServiceSession {
     const runProfileMs = Date.now() - runProfileStartedAt;
 
     const modelStartedAt = Date.now();
-    await this.applyCurrentSessionModel();
-    await this.applyCustomerServiceSessionPreferences();
+    await this.applyCurrentSessionModelAndPreferences();
     const modelMs = Date.now() - modelStartedAt;
 
     this.gatewaySetupReady = true;

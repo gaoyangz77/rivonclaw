@@ -834,10 +834,11 @@ describe("shop context management", () => {
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
-    // session registration + sessions.patch (model) + sessions.patch (CS preferences) + agent dispatch
-    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
+    // session registration + combined sessions.patch (model + CS preferences) + agent dispatch
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
+      model: "rivonclaw-pro/gpt-5.5",
       contextTokens: 100_000,
       thinkingLevel: "off",
       reasoningLevel: "off",
@@ -1516,7 +1517,7 @@ describe("agent dispatch", () => {
     // Should not throw
     await triggerMessage(bridge, createFrame({ messageId: "msg-fail" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
@@ -1570,8 +1571,8 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     // Bridge no longer validates profile existence — it stores the ID.
-    // cs_register_session + sessions.patch (model) + sessions.patch (CS preferences) + agent dispatch.
-    expect(mockRpcRequest).toHaveBeenCalledTimes(4);
+    // cs_register_session + combined sessions.patch (model + CS preferences) + agent dispatch.
+    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
@@ -2300,6 +2301,9 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "zhipu/glm-5",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
     }, 120000);
   });
 
@@ -2313,6 +2317,9 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "rivonclaw-pro/gpt-5.5",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
     }, 120000);
   });
 
@@ -2326,6 +2333,9 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "rivonclaw-pro/gpt-5.5",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
     }, 120000);
   });
 
@@ -2340,6 +2350,9 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "openai/gpt-4o",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
     }, 120000);
   });
 
@@ -2353,6 +2366,9 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "rivonclaw-pro/gpt-5.5",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
     }, 120000);
   });
 
@@ -2366,6 +2382,9 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "zhipu/glm-5",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
     }, 120000);
 
     await seedCatalogAndShop({ csProviderOverride: "openai", csModelOverride: "gpt-4o" });
@@ -2390,6 +2409,9 @@ describe("multi-provider model override", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-789",
       model: "zhipu/glm-5",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+      reasoningLevel: "off",
     }, 120000);
 
     await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });

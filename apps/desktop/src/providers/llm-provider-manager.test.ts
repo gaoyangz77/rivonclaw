@@ -129,6 +129,17 @@ describe("LLMProviderManager", () => {
       key: "chat-session-1",
       model: "rivonclaw-pro/gpt-5.4",
     });
+
+    rpcRequest.mockClear();
+    await rootStore.llmManager.applyModelForSession("chat-session-1", undefined, {
+      sessionPatch: { contextTokens: 100_000, thinkingLevel: "off" },
+    });
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: "chat-session-1",
+      model: "rivonclaw-pro/gpt-5.4",
+      contextTokens: 100_000,
+      thinkingLevel: "off",
+    });
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
