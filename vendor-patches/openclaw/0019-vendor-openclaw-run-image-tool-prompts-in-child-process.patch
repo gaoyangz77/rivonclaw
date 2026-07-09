@@ -1,25 +1,37 @@
-From 5f702132fda5571f5694cdd4eda1b827c33b44b5 Mon Sep 17 00:00:00 2001
+From e2b27873809119ac09c9a28074d1912ead4186c3 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 8 Jul 2026 20:16:28 -0700
 Subject: [PATCH] vendor(openclaw): run image tool prompts in child process
 
 Why:
+
 - RivonClaw customer-service workloads can trigger OpenClaw's built-in image tool on large or multi-image buyer messages.
+
 - Running the image-model prompt path in the gateway process can block the event loop and saturate the main process CPU.
+
 - RivonClaw needs to keep the official image tool name and capability semantics while isolating the heavy image prompt execution path.
 
+- Worker startup and model runtime resolution must not consume the provider request timeout budget, otherwise cold workers reach the image model with only a few seconds remaining.
+
 Removal:
-- Drop when upstream OpenClaw runs image-tool media understanding outside the gateway event-loop process or exposes an equivalent worker-backed image tool execution option.
+
+- Drop when upstream OpenClaw runs image-tool media understanding outside the gateway event-loop process or exposes an equivalent worker-backed image tool execution option with provider-request timeout isolation.
 
 Tests:
+
+- vendor/openclaw/src/media-understanding/image.test.ts
+
 - vendor/openclaw/src/agents/tools/image-tool.test.ts
+
 - apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts
 ---
  src/agents/tools/image-tool-worker.ts |  38 ++++++
  src/agents/tools/image-tool.test.ts   |  51 ++++++++
  src/agents/tools/image-tool.ts        | 175 +++++++++++++++++++++++++-
+ src/media-understanding/image.test.ts |  23 +++-
+ src/media-understanding/image.ts      |  10 +-
  tsdown.config.ts                      |   1 +
- 4 files changed, 260 insertions(+), 5 deletions(-)
+ 6 files changed, 283 insertions(+), 15 deletions(-)
  create mode 100644 src/agents/tools/image-tool-worker.ts
 
 diff --git a/src/agents/tools/image-tool-worker.ts b/src/agents/tools/image-tool-worker.ts
@@ -355,6 +367,86 @@ index 739c9cf001..3c0cd34c90 100644
          cfg: options?.config,
          agentDir,
          imageModelConfig,
+diff --git a/src/media-understanding/image.test.ts b/src/media-understanding/image.test.ts
+index 15d4b8185c..251f191e76 100644
+--- a/src/media-understanding/image.test.ts
++++ b/src/media-understanding/image.test.ts
+@@ -583,9 +583,21 @@ describe("describeImageWithModel", () => {
+     expect(options?.timeoutMs).toBe(25);
+   });
+ 
+-  it("rejects when image runtime setup exceeds the request timeout", async () => {
++  it("does not spend provider request timeout while resolving image runtime", async () => {
+     vi.useFakeTimers();
+-    ensureOpenClawModelsJsonMock.mockImplementationOnce(() => new Promise(() => {}));
++    discoverModelsMock.mockReturnValue({
++      find: vi.fn(() => ({
++        api: "openai-responses",
++        provider: "openai",
++        id: "gpt-5.4-mini",
++        input: ["text", "image"],
++        baseUrl: "https://api.openai.com/v1",
++      })),
++    });
++    ensureOpenClawModelsJsonMock.mockImplementationOnce(
++      () => new Promise((resolve) => setTimeout(resolve, 24)),
++    );
++    completeMock.mockImplementation(() => new Promise(() => {}));
+ 
+     const result = describeImageWithModel({
+       cfg: {},
+@@ -599,10 +611,15 @@ describe("describeImageWithModel", () => {
+       timeoutMs: 25,
+     });
+ 
++    await vi.advanceTimersByTimeAsync(24);
++    expect(completeMock).toHaveBeenCalledTimes(1);
++    const [, , options] = completeMock.mock.calls[0] ?? [];
++    expect(options?.timeoutMs).toBe(25);
++
+     const assertion = expect(result).rejects.toThrow("image description timed out after 25ms");
+     await vi.advanceTimersByTimeAsync(25);
+     await assertion;
+-    expect(completeMock).not.toHaveBeenCalled();
++    expect(options?.signal?.aborted).toBe(true);
+   });
+ 
+   it("normalizes deprecated google flash ids before lookup and keeps profile auth selection", async () => {
+diff --git a/src/media-understanding/image.ts b/src/media-understanding/image.ts
+index 35cc3f26dc..8508faf407 100644
+--- a/src/media-understanding/image.ts
++++ b/src/media-understanding/image.ts
+@@ -356,17 +356,12 @@ async function describeImagesWithModelInternal(
+   options: { onPayload?: ProviderStreamOptions["onPayload"] } = {},
+ ): Promise<ImagesDescriptionResult> {
+   const prompt = params.prompt ?? "Describe the image.";
+-  const startedAtMs = Date.now();
+   const controller = new AbortController();
+   let apiKey: string;
+   let model: Model<Api> | undefined;
+ 
+   try {
+-    const resolved = await withImageDescriptionTimeout({
+-      controller,
+-      timeoutMs: resolveImageDescriptionTimeoutMs(params.timeoutMs, startedAtMs),
+-      task: resolveImageRuntime(params),
+-    });
++    const resolved = await resolveImageRuntime(params);
+     apiKey = resolved.apiKey;
+     model = resolved.model;
+   } catch (err) {
+@@ -406,9 +401,10 @@ async function describeImagesWithModelInternal(
+   });
+ 
+   const maxTokens = resolveImageToolMaxTokens(model.maxTokens, params.maxTokens ?? 512);
++  const requestStartedAtMs = Date.now();
+   const completeImage = async (onPayload?: ProviderStreamOptions["onPayload"]) => {
+     const payloadHandler = composeImageDescriptionPayloadHandlers(onPayload, options.onPayload);
+-    const timeoutMs = resolveImageDescriptionTimeoutMs(params.timeoutMs, startedAtMs);
++    const timeoutMs = resolveImageDescriptionTimeoutMs(params.timeoutMs, requestStartedAtMs);
+     return await withImageDescriptionTimeout({
+       controller,
+       timeoutMs,
 diff --git a/tsdown.config.ts b/tsdown.config.ts
 index a33fb36dc8..d8beb90f90 100644
 --- a/tsdown.config.ts
@@ -368,5 +460,5 @@ index a33fb36dc8..d8beb90f90 100644
      "media-understanding/apply.runtime": "src/media-understanding/apply.runtime.ts",
      "commands/doctor/shared/plugin-registry-migration":
 -- 
-2.53.0
+2.50.1 (Apple Git-155)
 

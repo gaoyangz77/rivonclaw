@@ -390,9 +390,13 @@ heavy image-model prompt execution path from the gateway process.
 a forked `image-tool-worker` child process by default. The main process still
 does the existing argument normalization, media loading, sandbox checks, and
 SSRF policy enforcement. If the worker cannot start or fails, OpenClaw falls
-back to the original in-process prompt execution and logs the fallback.
+back to the original in-process prompt execution and logs the fallback. The
+patch also prevents worker cold start and image model runtime resolution from
+consuming the provider request timeout budget, so a cold worker does not reach
+the image model with only a few seconds remaining.
 
 **Tests:**
+- `vendor/openclaw/src/media-understanding/image.test.ts`
 - `vendor/openclaw/src/agents/tools/image-tool.test.ts`
 - `apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts`
 
