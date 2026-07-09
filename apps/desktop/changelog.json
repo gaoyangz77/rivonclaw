@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.57",
+    "date": "2026-07-09",
+    "en": [
+      "Tune the OpenClaw image worker timeout budget for more reliable long-running image tasks",
+      "Document TikTok Business API rate limits for ads and reporting integrations"
+    ],
+    "zh": [
+      "调整 OpenClaw 图片 worker 超时预算，提升长耗时图片任务稳定性",
+      "补充 TikTok Business API 限流文档，覆盖广告和报表集成"
+    ]
+  },
+  {
     "version": "1.8.56",
     "date": "2026-07-08",
     "en": [
