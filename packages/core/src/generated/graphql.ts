@@ -3556,13 +3556,15 @@ export const EcomBiDatasetId = {
   OrderProductDaily: 'ORDER_PRODUCT_DAILY',
   OrderShopDaily: 'ORDER_SHOP_DAILY',
   OrderSkuDaily: 'ORDER_SKU_DAILY',
-  OrderSkuExportLine: 'ORDER_SKU_EXPORT_LINE'
+  OrderSkuExportLine: 'ORDER_SKU_EXPORT_LINE',
+  WmsCurrentStock: 'WMS_CURRENT_STOCK'
 } as const;
 
 export type EcomBiDatasetId = typeof EcomBiDatasetId[keyof typeof EcomBiDatasetId];
 /** BI dataset metadata. */
 export interface EcomBiDatasetMetadata {
   attributes: Array<EcomBiAttributeMetadata>;
+  dateRangeRequirement: EcomBiDateRangeRequirement;
   defaultDimensions: Array<EcomBiDimension>;
   defaultMetrics: Array<EcomBiMetric>;
   description: Scalars['String']['output'];
@@ -3571,9 +3573,18 @@ export interface EcomBiDatasetMetadata {
   id: EcomBiDatasetId;
   label: Scalars['String']['output'];
   metrics: Array<EcomBiMetricMetadata>;
+  scopeTypes: Array<EcomBiScopeType>;
   supportedGranularities: Array<EcomBiGranularity>;
 }
 
+/** Whether a BI dataset uses startDateGe/endDateLt. */
+export const EcomBiDateRangeRequirement = {
+  Optional: 'OPTIONAL',
+  Required: 'REQUIRED',
+  Unused: 'UNUSED'
+} as const;
+
+export type EcomBiDateRangeRequirement = typeof EcomBiDateRangeRequirement[keyof typeof EcomBiDateRangeRequirement];
 /** Allowed BI dimensions. Dataset metadata declares which are valid per dataset. */
 export const EcomBiDimension = {
   AdvertiserId: 'ADVERTISER_ID',
@@ -3623,6 +3634,7 @@ export const EcomBiDimension = {
   HouseNameOrNumber: 'HOUSE_NAME_OR_NUMBER',
   LineItemSkuType: 'LINE_ITEM_SKU_TYPE',
   NormalOrPreorder: 'NORMAL_OR_PREORDER',
+  ObservedAt: 'OBSERVED_AT',
   OrderDeliveryTime: 'ORDER_DELIVERY_TIME',
   OrderId: 'ORDER_ID',
   OrderLineKey: 'ORDER_LINE_KEY',
@@ -3673,7 +3685,13 @@ export const EcomBiDimension = {
   TrackingId: 'TRACKING_ID',
   Variation: 'VARIATION',
   VideoSource: 'VIDEO_SOURCE',
+  WarehouseCode: 'WAREHOUSE_CODE',
+  WarehouseExternalId: 'WAREHOUSE_EXTERNAL_ID',
+  WarehouseId: 'WAREHOUSE_ID',
   WarehouseName: 'WAREHOUSE_NAME',
+  WmsAccountId: 'WMS_ACCOUNT_ID',
+  WmsAccountLabel: 'WMS_ACCOUNT_LABEL',
+  WmsProvider: 'WMS_PROVIDER',
   Zipcode: 'ZIPCODE'
 } as const;
 
@@ -3698,7 +3716,9 @@ export const EcomBiDimensionEntity = {
   Product: 'PRODUCT',
   Shop: 'SHOP',
   Sku: 'SKU',
-  Store: 'STORE'
+  Store: 'STORE',
+  Warehouse: 'WAREHOUSE',
+  WmsAccount: 'WMS_ACCOUNT'
 } as const;
 
 export type EcomBiDimensionEntity = typeof EcomBiDimensionEntity[keyof typeof EcomBiDimensionEntity];
@@ -3799,8 +3819,11 @@ export const EcomBiMetric = {
   GrossRevenueAmount: 'GROSS_REVENUE_AMOUNT',
   GrossUnits: 'GROSS_UNITS',
   InboundMessages: 'INBOUND_MESSAGES',
+  InTransitQuantity: 'IN_TRANSIT_QUANTITY',
+  LockedQuantity: 'LOCKED_QUANTITY',
   NetCostAmount: 'NET_COST_AMOUNT',
   NewConversations: 'NEW_CONVERSATIONS',
+  OfflineQuantity: 'OFFLINE_QUANTITY',
   Orders: 'ORDERS',
   OrderAmount: 'ORDER_AMOUNT',
   OrderRefundAmount: 'ORDER_REFUND_AMOUNT',
@@ -3829,7 +3852,10 @@ export const EcomBiMetric = {
   SkuSubtotalAfterDiscount: 'SKU_SUBTOTAL_AFTER_DISCOUNT',
   SkuSubtotalBeforeDiscount: 'SKU_SUBTOTAL_BEFORE_DISCOUNT',
   SkuUnitOriginalPrice: 'SKU_UNIT_ORIGINAL_PRICE',
+  StockQuantity: 'STOCK_QUANTITY',
   SupportSessionCount: 'SUPPORT_SESSION_COUNT',
+  TotalInTransitQuantity: 'TOTAL_IN_TRANSIT_QUANTITY',
+  TotalStockQuantity: 'TOTAL_STOCK_QUANTITY',
   WeightKg: 'WEIGHT_KG'
 } as const;
 
@@ -3869,8 +3895,10 @@ export interface EcomBiPageInfo {
   returnedRows: Scalars['Int']['output'];
 }
 
-/** Warehouse-backed BI query. Dates are inclusive/exclusive YYYY-MM-DD report dates. */
+/** Ecommerce data query. Date range and scope requirements depend on dataset metadata from getEcommerceBiCatalog. */
 export interface EcomBiQueryInput {
+  /** Advertiser Mongo IDs for future advertiser-scoped datasets. Current Ads BI datasets still use shopIds. */
+  advertiserIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Optional governed dynamic attributes to group by. Values must come from getEcommerceBiCatalog.attributes. */
   attributeDimensions?: InputMaybe<Array<EcomBiAttributeRefInput>>;
   /** Optional filters over governed dynamic attributes from getEcommerceBiCatalog.attributes. */
@@ -3879,8 +3907,8 @@ export interface EcomBiQueryInput {
   datasetId: EcomBiDatasetId;
   /** Dimensions to group by. Defaults are declared by dataset metadata. */
   dimensions?: InputMaybe<Array<EcomBiDimension>>;
-  /** End date exclusive in YYYY-MM-DD format. */
-  endDateLt: Scalars['String']['input'];
+  /** End date exclusive in YYYY-MM-DD format when the dataset uses dates. */
+  endDateLt?: InputMaybe<Scalars['String']['input']>;
   /** Optional filters over dataset-supported dimensions. */
   filters?: InputMaybe<Array<EcomBiFilterInput>>;
   /** Date granularity. The current Ads GMV Max datasets support DAILY only. */
@@ -3893,10 +3921,14 @@ export interface EcomBiQueryInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
-  /** Onboarded shop Mongo IDs. BI queries only expose Ads rows whose store binding matches these authorized shops. */
-  shopIds: Array<Scalars['ID']['input']>;
-  /** Start date inclusive in YYYY-MM-DD format. */
-  startDateGe: Scalars['String']['input'];
+  /** Onboarded shop Mongo IDs. Required for current shop-scoped SQL BI datasets; optional for datasets that can derive scope another way. */
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. */
+  startDateGe?: InputMaybe<Scalars['String']['input']>;
+  /** Canonical warehouse Mongo IDs for warehouse-scoped live inventory datasets. */
+  warehouseIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** WMS account Mongo IDs for WMS-account-scoped live inventory datasets. */
+  wmsAccountIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
 /** BI query result. */
@@ -3922,6 +3954,15 @@ export interface EcomBiResultColumn {
   valueType: EcomBiValueType;
 }
 
+/** Business entity types that may scope a BI dataset query. */
+export const EcomBiScopeType = {
+  Advertiser: 'ADVERTISER',
+  Shop: 'SHOP',
+  Warehouse: 'WAREHOUSE',
+  WmsAccount: 'WMS_ACCOUNT'
+} as const;
+
+export type EcomBiScopeType = typeof EcomBiScopeType[keyof typeof EcomBiScopeType];
 /** Logical value type for BI fields. */
 export const EcomBiValueType = {
   Boolean: 'BOOLEAN',
