@@ -12,6 +12,7 @@
 - GMV Max shop list: https://business-api.tiktok.com/portal/docs?id=1822001044479041
 - GMV Max report: https://business-api.tiktok.com/portal/docs?id=1824721673497601
 - GMV Max metrics: https://business-api.tiktok.com/portal/docs?id=1824722485971009
+- Rate limits overview: https://business-api.tiktok.com/portal/docs/rate-limits/v1.3
 - Spark Ads post list: https://business-api.tiktok.com/portal/docs?id=1738376465972226
 - Spark Ads post info: https://business-api.tiktok.com/portal/docs?id=1738376324021250
 
@@ -20,6 +21,8 @@
 GMV Max is an automated ad campaign type that optimizes total channel ROI for a TikTok Shop. It has Product GMV Max and LIVE GMV Max variants.
 
 GMV Max is not shop-only in Business API. The primary endpoints require `advertiser_id`; shop selection and authorization add `store_id`/`store_ids` and often `store_authorized_bc_id`.
+
+GMV Max report pulls are constrained by both the global developer-app rate limit and the endpoint-specific `/gmv_max/report/get/` limit. At Basic tier, the GMV report endpoint limit is `8 QPS / 240 QPM / 20,000 QPD`; see [RATE_LIMITS.md](RATE_LIMITS.md).
 
 ## Required IDs by Workflow
 
