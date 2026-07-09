@@ -133,11 +133,14 @@ export function useEscalation(
         // Auto-select the first recipient for a user-initiated channel change.
         // Passive draft syncs from shop data must not write back, or reopening the
         // drawer can revert a just-saved routing change with a stale snapshot.
+        // They also must not overwrite the displayed draft recipient; otherwise
+        // every reopened drawer shows the first allowlisted recipient instead of
+        // the value stored on the shop.
+        const shouldSaveUserChannelChange = pendingUserChannelSaveRef.current === draftEscalationChannel;
         const firstRecipient = data.allowlist[0];
-        if (firstRecipient) {
+        if (firstRecipient && shouldSaveUserChannelChange) {
           setDraftEscalationRecipient(firstRecipient);
           const shopId = selectedShopId;
-          const shouldSaveUserChannelChange = pendingUserChannelSaveRef.current === draftEscalationChannel;
           if (shopId && shouldSaveUserChannelChange) {
             pendingUserChannelSaveRef.current = null;
             const shop = entityStore.shops.find((s) => s.id === shopId);
