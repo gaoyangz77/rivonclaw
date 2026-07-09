@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.59",
+    "date": "2026-07-09",
+    "en": [
+      "Preserve escalation recipient drafts while editing customer-service routing"
+    ],
+    "zh": [
+      "编辑客服升级路由时保留接收人草稿"
+    ]
+  },
+  {
     "version": "1.8.58",
     "date": "2026-07-09",
     "en": [
