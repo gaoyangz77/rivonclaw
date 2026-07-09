@@ -1973,7 +1973,7 @@ export interface AffiliateWorkspacePayload {
   searchRuns: Array<CreatorSearchRun>;
 }
 
-/** Agent-facing CS settings patch. Omit a field or pass null to keep it; pass a concrete non-empty value to set it. Empty strings are rejected by ecom_update_shop; clear fields manually in shop settings. */
+/** Agent-facing CS settings patch. Omit a field or pass null/blank to keep it; pass a concrete non-empty value to set it. This tool cannot clear fields; clear fields manually in shop settings. */
 export interface AgentCsSettingsInput {
   /** Store instructions. Omit or pass null to keep, empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
