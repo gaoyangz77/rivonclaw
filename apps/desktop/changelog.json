@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.58",
+    "date": "2026-07-09",
+    "en": [
+      "Fix customer-service escalation routing autosave behavior",
+      "Make Feishu card streaming updates append-safe",
+      "Refresh customer-service session patches and generated GraphQL types"
+    ],
+    "zh": [
+      "修复客服升级路由自动保存行为",
+      "让飞书卡片流式更新在追加内容时更稳定",
+      "刷新客服会话补丁和生成的 GraphQL 类型"
+    ]
+  },
+  {
     "version": "1.8.57",
     "date": "2026-07-09",
     "en": [
