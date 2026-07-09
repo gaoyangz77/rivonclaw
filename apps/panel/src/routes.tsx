@@ -25,7 +25,6 @@ import {
   AffiliateHistoryPage,
   AffiliateManagementPage,
   AffiliateNeedsAttentionPage,
-  AffiliateStaffHandlingPage,
 } from "./pages/ecommerce/AffiliateManagementPage.js";
 import {
   CustomerServiceConversationsPage,
@@ -80,7 +79,6 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/affiliate/creators", pageKey: "ecommerce-affiliate-creators", component: AffiliateCreatorsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateCreators", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/affiliate/staff", pageKey: "ecommerce-affiliate-staff", component: AffiliateStaffHandlingPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateStaffHandling", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/intelligence", pageKey: "ecommerce-affiliate-intelligence", component: AffiliateIntelligencePage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateIntelligence", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", authRequired: true },
   { path: "/commerce/inventory", pageKey: "ecommerce-inventory", component: InventoryManagementPage, icon: <ModuleIcon />, navLabelKey: "nav.inventoryManagement", authRequired: true },
