@@ -33,4 +33,10 @@ describe("vendor patch 0019: worker-backed OpenClaw image tool", () => {
     expect(patch).toContain('vi.stubEnv("OPENCLAW_IMAGE_TOOL_CHILD_PROCESS", "1")');
     expect(patch).toContain("expect(childRunner).toHaveBeenCalledTimes(1)");
   });
+
+  it("preserves provider request timeout budget after worker runtime setup", () => {
+    expect(patch).toContain("does not spend provider request timeout while resolving image runtime");
+    expect(patch).toContain("const requestStartedAtMs = Date.now()");
+    expect(patch).toContain("expect(options?.timeoutMs).toBe(25)");
+  });
 });
