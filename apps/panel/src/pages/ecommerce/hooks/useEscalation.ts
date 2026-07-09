@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
 import { fetchChannelStatus, fetchAllowlist, type AllowlistResult, type ChannelsStatusSnapshot } from "../../../api/channels.js";
@@ -22,6 +22,7 @@ export function useEscalation(
   const [draftEscalationChannel, setDraftEscalationChannel] = useState("");
   const [draftEscalationRecipient, setDraftEscalationRecipient] = useState("");
   const [recipientData, setRecipientData] = useState<Omit<AllowlistResult, "owners"> | null>(null);
+  const pendingUserChannelSaveRef = useRef<string | null>(null);
 
   // Fetch channel accounts for escalation channel selector
   useEffect(() => {
@@ -40,6 +41,7 @@ export function useEscalation(
   // Sync draft escalation fields from shop data when shop selection changes
   useEffect(() => {
     const cs = selectedShop?.services?.customerService;
+    pendingUserChannelSaveRef.current = null;
     setDraftEscalationChannel(cs?.escalationChannelId ?? "");
     setDraftEscalationRecipient(cs?.escalationRecipientId ?? "");
   }, [selectedShop?.id, selectedShop?.services?.customerService?.escalationChannelId, selectedShop?.services?.customerService?.escalationRecipientId]);
@@ -57,6 +59,7 @@ export function useEscalation(
     setDraftEscalationChannel(value);
     // Clear recipient when channel changes — the previous recipient is invalid for a different channel
     setDraftEscalationRecipient("");
+    pendingUserChannelSaveRef.current = value || null;
 
     // If user cleared the channel (selected "—"), immediately save both as empty strings
     if (!value) {
@@ -127,13 +130,16 @@ export function useEscalation(
       .then((data) => {
         if (cancelled) return;
         setRecipientData({ allowlist: data.allowlist, labels: data.labels });
-        // Auto-select first recipient and save only if values actually changed
+        // Auto-select the first recipient for a user-initiated channel change.
+        // Passive draft syncs from shop data must not write back, or reopening the
+        // drawer can revert a just-saved routing change with a stale snapshot.
         const firstRecipient = data.allowlist[0];
         if (firstRecipient) {
           setDraftEscalationRecipient(firstRecipient);
-          // Only save if channel or recipient changed from what's already persisted
           const shopId = selectedShopId;
-          if (shopId) {
+          const shouldSaveUserChannelChange = pendingUserChannelSaveRef.current === draftEscalationChannel;
+          if (shopId && shouldSaveUserChannelChange) {
+            pendingUserChannelSaveRef.current = null;
             const shop = entityStore.shops.find((s) => s.id === shopId);
             const cs = shop?.services?.customerService;
             if (shop && (cs?.escalationChannelId !== draftEscalationChannel || cs?.escalationRecipientId !== firstRecipient)) {
@@ -150,6 +156,8 @@ export function useEscalation(
                 .finally(() => setSavingEscalation(false));
             }
           }
+        } else if (pendingUserChannelSaveRef.current === draftEscalationChannel) {
+          pendingUserChannelSaveRef.current = null;
         }
       })
       .catch(() => {
