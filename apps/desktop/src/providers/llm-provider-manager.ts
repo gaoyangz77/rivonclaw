@@ -62,6 +62,7 @@ interface CloudModel {
 
 interface ApplyModelForSessionOptions {
   requestTimeoutMs?: number;
+  sessionPatch?: Record<string, unknown>;
 }
 
 type OpenClawSessionEntry = {
@@ -278,7 +279,7 @@ export const LLMProviderManagerModel = types
       const { getRpcClient } = getEnvDeps();
       const rpc = getRpcClient();
       if (!rpc) throw new Error("RPC client not available");
-      const payload = { key: sessionKey, model: modelRef };
+      const payload = { ...(options?.sessionPatch ?? {}), key: sessionKey, model: modelRef };
       if (options?.requestTimeoutMs === undefined) {
         await rpc.request("sessions.patch", payload);
       } else {
@@ -292,7 +293,7 @@ export const LLMProviderManagerModel = types
       modelRef: string,
       options?: ApplyModelForSessionOptions,
     ): Promise<boolean> {
-      if (self.appliedSessionModelRefs.get(sessionKey) === signature) {
+      if (self.appliedSessionModelRefs.get(sessionKey) === signature && !options?.sessionPatch) {
         return false;
       }
       await patchSession(sessionKey, modelRef, options);
