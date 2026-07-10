@@ -1,53 +1,89 @@
-From e1e31f09f20179be9afa618114311c1aacc1fc92 Mon Sep 17 00:00:00 2001
+From 79d6c98bc9bdaa4a0a6257361692cbe8428b8f36 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
-Date: Thu, 9 Jul 2026 05:54:47 -0700
+Date: Fri, 10 Jul 2026 07:14:53 -0700
 Subject: [PATCH] vendor(openclaw): stream Feishu card deltas
 
 Why:
-- RivonClaw defaults Feishu QR-created accounts to CardKit streaming, but the pinned transport seeds a permanent Thinking placeholder and does not track whether CardKit updates actually succeeded.
-- The dispatcher also needs stable delta handling so long replies do not replay earlier partial snapshots or tool status text.
-- Together these gaps can render a stale Thinking card followed by the answer content and can hide rejected CardKit updates.
+- Keep Feishu CardKit replies on the channel dispatcher so group-chat defaults do not create a second message through the message tool.
+- Show a transient Thinking placeholder before the first model token, then replace it and stream on the same card.
+- Preserve append-safe partial and block deltas without replaying overlapping text.
+- Surface rejected CardKit updates and close the same card with exact final content.
 
 Upstream:
-- Backport the CardKit transport lifecycle from openclaw/openclaw#82419 (f436b4310a) with the full-content preservation correction from openclaw/openclaw#90181 (1f1ce8a1fe).
+- Backport openclaw/openclaw#82419 (f436b4310a) and openclaw/openclaw#90181 (1f1ce8a1fe), with Feishu dispatcher routing and placeholder lifecycle for CardKit streaming.
 
 Removal:
-- Drop when the pinned OpenClaw version includes both upstream fixes and its Feishu dispatcher preserves append-safe, non-duplicated streaming output in group and direct-message replies.
+- Drop when the pinned OpenClaw version includes both upstream fixes and explicitly keeps Feishu CardKit replies on automatic source delivery with a same-card waiting state.
 
 Tests:
 - apps/desktop/src/channels/vendor-feishu-card-streaming.sentinel.test.ts
 - extensions/feishu/src/reply-dispatcher.test.ts
 - extensions/feishu/src/streaming-card.test.ts
 ---
- .../feishu/src/reply-dispatcher.test.ts       | 155 +++++++++++++++++-
- extensions/feishu/src/reply-dispatcher.ts     |  95 ++++++++++-
- extensions/feishu/src/streaming-card.test.ts  | 108 ++++++++++++
- extensions/feishu/src/streaming-card.ts       | 125 ++++++++++----
- 4 files changed, 443 insertions(+), 40 deletions(-)
+ .../feishu/src/reply-dispatcher.test.ts       | 183 +++++++++++++++++-
+ extensions/feishu/src/reply-dispatcher.ts     | 104 +++++++++-
+ extensions/feishu/src/streaming-card.test.ts  | 118 +++++++++++
+ extensions/feishu/src/streaming-card.ts       | 129 +++++++++---
+ 4 files changed, 493 insertions(+), 41 deletions(-)
 
 diff --git a/extensions/feishu/src/reply-dispatcher.test.ts b/extensions/feishu/src/reply-dispatcher.test.ts
-index b85e7ae295..32d86ddeff 100644
+index b85e7ae295..f65d8931d8 100644
 --- a/extensions/feishu/src/reply-dispatcher.test.ts
 +++ b/extensions/feishu/src/reply-dispatcher.test.ts
-@@ -532,7 +532,7 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
+@@ -297,6 +297,34 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
+     expect(result.replyOptions).toHaveProperty("disableBlockStreaming", true);
+   });
+
++  it("keeps source replies on the Feishu dispatcher for CardKit streaming", () => {
++    const { result } = createDispatcherHarness();
++
++    expect(result.replyOptions).toHaveProperty("sourceReplyDeliveryMode", "automatic");
++  });
++
++  it("starts one streaming card before the first model response in auto mode", async () => {
++    const { result, options } = createDispatcherHarness({
++      runtime: createRuntimeLogger(),
++    });
++
++    await options.onReplyStart?.();
++
++    expect(streamingInstances).toHaveLength(1);
++    expect(streamingInstances[0].start).toHaveBeenCalledTimes(1);
++
++    result.replyOptions.onPartialReply?.({ text: "First streamed answer" });
++    await options.onIdle?.();
++
++    expect(streamingInstances).toHaveLength(1);
++    expect(streamingInstances[0].update).toHaveBeenCalledWith("First streamed answer");
++    expect(streamingInstances[0].close).toHaveBeenCalledWith("First streamed answer", {
++      note: "Agent: agent",
++    });
++    expect(sendMessageFeishuMock).not.toHaveBeenCalled();
++    expect(sendStructuredCardFeishuMock).not.toHaveBeenCalled();
++  });
++
+   it("enables core block streaming when Feishu blockStreaming is explicitly true", async () => {
+     resolveFeishuAccountMock.mockReturnValue({
+       accountId: "main",
+@@ -532,7 +560,7 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
      );
    });
  
 -  it("treats block updates as delta chunks", async () => {
-+  it("treats block updates as stable delta chunks without leaking earlier partials", async () => {
++  it("merges overlapping block deltas without repeating streamed text", async () => {
      resolveFeishuAccountMock.mockReturnValue({
        accountId: "main",
        appId: "app_id",
-@@ -554,7 +554,7 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
+@@ -554,7 +582,7 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
  
      expect(streamingInstances).toHaveLength(1);
      expect(streamingInstances[0].close).toHaveBeenCalledTimes(1);
 -    expect(streamingInstances[0].close).toHaveBeenCalledWith("hellolo world", {
-+    expect(streamingInstances[0].close).toHaveBeenCalledWith("lo world", {
++    expect(streamingInstances[0].close).toHaveBeenCalledWith("hello world", {
        note: "Agent: agent",
      });
    });
-@@ -896,9 +896,10 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
+@@ -896,9 +924,10 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
      expect(reasoningUpdate).toContain("> thinking step");
      expect(reasoningUpdate).not.toContain("Reasoning:");
      expect(reasoningUpdate).not.toMatch(/> _.*_/);
@@ -60,7 +96,7 @@ index b85e7ae295..32d86ddeff 100644
  
      expect(streamingInstances[0].close).toHaveBeenCalledTimes(1);
      const closeArg = streamingInstances[0].close.mock.calls[0][0] as string;
-@@ -1130,6 +1131,152 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
+@@ -1130,6 +1159,152 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
      });
    });
  
@@ -214,7 +250,7 @@ index b85e7ae295..32d86ddeff 100644
      resolveFeishuAccountMock.mockReturnValue({
        accountId: "main",
 diff --git a/extensions/feishu/src/reply-dispatcher.ts b/extensions/feishu/src/reply-dispatcher.ts
-index d958567c68..23e78e731b 100644
+index d958567c68..0d05435ed6 100644
 --- a/extensions/feishu/src/reply-dispatcher.ts
 +++ b/extensions/feishu/src/reply-dispatcher.ts
 @@ -231,9 +231,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
@@ -297,7 +333,7 @@ index d958567c68..23e78e731b 100644
      const mode = options?.mode ?? "snapshot";
      if (mode === "delta") {
 -      streamText = `${streamText}${nextText}`;
-+      streamText = `${displayedStreamText}${nextText}`;
++      streamText = mergeStreamingText(displayedStreamText, nextText);
      } else {
        const currentSnapshotText = snapshotBaseText
          ? streamText.slice(snapshotBaseText.length)
@@ -375,7 +411,20 @@ index d958567c68..23e78e731b 100644
    };
  
    const sendChunkedTextReply = async (params: {
-@@ -585,10 +650,25 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -516,8 +581,11 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+         deliveredFinalTexts.clear();
+         streamingClosedForReply = false;
+         streamingCloseErroredForReply = false;
+-        if (streamingEnabled && renderMode === "card") {
++        if (streamingEnabled) {
+           startStreaming();
++          if (streamingStartPromise) {
++            await streamingStartPromise;
++          }
+         }
+         await typingCallbacks?.onReplyStart?.();
+       },
+@@ -585,10 +653,25 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
                queueStreamingUpdate(text, { mode: "delta", dedupeWithLastPartial: true });
              }
              if (info?.kind === "final") {
@@ -402,7 +451,18 @@ index d958567c68..23e78e731b 100644
              }
              // Send media even when streaming handled the text
              if (hasMedia) {
-@@ -682,6 +762,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -668,6 +751,10 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+     replyOptions: {
+       ...replyOptions,
+       onModelSelected: prefixContext.onModelSelected,
++      // Feishu CardKit streaming is owned by this dispatcher. Keep normal
++      // source replies on the dispatcher instead of the group-chat default,
++      // which asks the agent to send a second message via the message tool.
++      sourceReplyDeliveryMode: "automatic",
+       disableBlockStreaming:
+         typeof account.config?.blockStreaming === "boolean" ? !account.config.blockStreaming : true,
+       onPartialReply: streamingEnabled
+@@ -682,6 +769,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
              if (!cleaned) {
                return;
              }
@@ -411,7 +471,7 @@ index d958567c68..23e78e731b 100644
                dedupeWithLastPartial: true,
                mode: "snapshot",
 diff --git a/extensions/feishu/src/streaming-card.test.ts b/extensions/feishu/src/streaming-card.test.ts
-index f531e11fd1..2730992ce4 100644
+index f531e11fd1..143956efa0 100644
 --- a/extensions/feishu/src/streaming-card.test.ts
 +++ b/extensions/feishu/src/streaming-card.test.ts
 @@ -17,6 +17,7 @@ type StreamingSessionState = {
@@ -438,13 +498,14 @@ index f531e11fd1..2730992ce4 100644
          hasNote: false,
        },
        lastUpdateTime: 2_000,
-@@ -135,6 +138,111 @@ describe("FeishuStreamingSession", () => {
+@@ -135,6 +138,121 @@ describe("FeishuStreamingSession", () => {
        content: "hello!",
      });
    });
 +
-+  it("starts reply cards with an empty streaming element instead of a permanent Thinking card", async () => {
++  it("replaces the transient Thinking placeholder with the first streamed text", async () => {
 +    const createBodies: string[] = [];
++    const updateBodies: string[] = [];
 +    fetchWithSsrFGuardMock.mockImplementation(
 +      async ({ url, init }: { url: string; init?: { body?: string } }) => {
 +        const release = vi.fn(async () => {});
@@ -471,6 +532,9 @@ index f531e11fd1..2730992ce4 100644
 +            },
 +            release,
 +          };
++        }
++        if (url.includes("/elements/content/content")) {
++          updateBodies.push(init?.body ?? "");
 +        }
 +        return {
 +          response: { ok: true, json: async () => ({ code: 0, msg: "ok" }) },
@@ -500,15 +564,21 @@ index f531e11fd1..2730992ce4 100644
 +      body?: { elements?: Array<{ element_id?: string; content?: string }> };
 +    };
 +    expect(card.body?.elements?.find((element) => element.element_id === "content")?.content).toBe(
-+      "",
++      "⏳ Thinking...",
 +    );
-+    expect(createRequest.data).not.toContain("Thinking");
 +    expect(reply).toHaveBeenCalledWith(
 +      expect.objectContaining({
 +        path: { message_id: "om_parent" },
 +        data: expect.objectContaining({ reply_in_thread: true }),
 +      }),
 +    );
++
++    await session.update("First streamed answer");
++
++    expect(updateBodies).toHaveLength(1);
++    expect(JSON.parse(updateBodies[0] ?? "{}")).toMatchObject({
++      content: "First streamed answer",
++    });
 +  });
 +
 +  it("does not mark failed CardKit updates as delivered", async () => {
@@ -551,7 +621,7 @@ index f531e11fd1..2730992ce4 100644
  
  describe("mergeStreamingText", () => {
 diff --git a/extensions/feishu/src/streaming-card.ts b/extensions/feishu/src/streaming-card.ts
-index 78e1228411..95b22c5241 100644
+index 78e1228411..92812c741c 100644
 --- a/extensions/feishu/src/streaming-card.ts
 +++ b/extensions/feishu/src/streaming-card.ts
 @@ -14,6 +14,7 @@ type CardState = {
@@ -562,16 +632,27 @@ index 78e1228411..95b22c5241 100644
    hasNote: boolean;
  };
  
-@@ -205,7 +206,7 @@ export class FeishuStreamingSession {
+@@ -41,6 +42,7 @@ type StreamingStartOptions = {
+
+ const STREAMING_UPDATE_THROTTLE_MS = 160;
+ const STREAMING_SIGNIFICANT_DELTA_CHARS = 18;
++const STREAMING_INITIAL_TEXT = "⏳ Thinking...";
+
+ // Token cache (keyed by domain + appId)
+ const tokenCache = new Map<string, { token: string; expiresAt: number }>();
+@@ -205,7 +207,10 @@ export class FeishuStreamingSession {
  
      const apiBase = resolveApiBase(this.creds.domain);
      const elements: Record<string, unknown>[] = [
 -      { tag: "markdown", content: "⏳ Thinking...", element_id: "content" },
-+      { tag: "markdown", content: "", element_id: "content" },
++      // Keep the user informed while the model is still producing its first
++      // token. Session state intentionally starts empty so the first real
++      // update replaces this transient placeholder on the same card.
++      { tag: "markdown", content: STREAMING_INITIAL_TEXT, element_id: "content" },
      ];
      if (options?.note) {
        elements.push({ tag: "hr" });
-@@ -306,39 +307,90 @@ export class FeishuStreamingSession {
+@@ -306,39 +311,90 @@ export class FeishuStreamingSession {
        messageId: sendRes.data.message_id,
        sequence: 1,
        currentText: "",
@@ -685,7 +766,7 @@ index 78e1228411..95b22c5241 100644
    }
  
    private clearFlushTimer(): void {
-@@ -391,9 +443,17 @@ export class FeishuStreamingSession {
+@@ -391,9 +447,17 @@ export class FeishuStreamingSession {
        if (!mergedText || mergedText === this.state.currentText) {
          return;
        }
@@ -704,7 +785,7 @@ index 78e1228411..95b22c5241 100644
      });
      await this.queue;
    }
-@@ -437,13 +497,20 @@ export class FeishuStreamingSession {
+@@ -437,13 +501,20 @@ export class FeishuStreamingSession {
      await this.queue;
  
      const pendingMerged = mergeStreamingText(this.state.currentText, this.pendingText ?? undefined);
@@ -731,4 +812,3 @@ index 78e1228411..95b22c5241 100644
      // Update note with final model/provider info
 -- 
 2.50.1 (Apple Git-155)
-
