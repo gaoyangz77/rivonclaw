@@ -41,7 +41,9 @@ type PluginHookBeforeToolCallResult = {
 
 type AffiliateCheckpointExtension = {
   baseCheckpointId?: string | null;
+  baseEventCursor?: number | null;
   candidateCheckpointId?: string | null;
+  targetEventCursor?: number | null;
 };
 
 type SessionModelInfo = {
@@ -125,10 +127,14 @@ export default defineRivonClawPlugin({
         const candidateCheckpointId = checkpoint?.candidateCheckpointId?.trim();
         if (!candidateCheckpointId) return;
         const baseCheckpointId = checkpoint?.baseCheckpointId?.trim() || null;
+        const baseEventCursor = checkpoint?.baseEventCursor ?? 0;
+        const targetEventCursor = checkpoint?.targetEventCursor ?? baseEventCursor;
         const params = injectAffiliateCheckpointParams(
           event.params,
           baseCheckpointId,
+          baseEventCursor,
           candidateCheckpointId,
+          targetEventCursor,
         );
         return { params };
       },
@@ -245,7 +251,9 @@ export default defineRivonClawPlugin({
 function injectAffiliateCheckpointParams(
   params: Record<string, unknown>,
   baseCheckpointId: string | null,
+  baseEventCursor: number,
   candidateCheckpointId: string,
+  targetEventCursor: number,
 ): Record<string, unknown> {
   const maybeInput = params.input;
   if (maybeInput && typeof maybeInput === "object" && !Array.isArray(maybeInput)) {
@@ -254,13 +262,17 @@ function injectAffiliateCheckpointParams(
       input: {
         ...(maybeInput as Record<string, unknown>),
         baseCheckpointId,
+        baseEventCursor,
         candidateCheckpointId,
+        targetEventCursor,
       },
     };
   }
   return {
     ...params,
     baseCheckpointId,
+    baseEventCursor,
     candidateCheckpointId,
+    targetEventCursor,
   };
 }

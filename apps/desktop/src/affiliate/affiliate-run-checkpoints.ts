@@ -3,7 +3,9 @@ export interface ActiveAffiliateRunCheckpoint {
   sessionKey: string;
   runId: string;
   baseCheckpointId: string | null;
+  baseEventCursor: number;
   candidateCheckpointId: string;
+  targetEventCursor: number;
 }
 
 const activeAffiliateRunCheckpoints = new Map<string, ActiveAffiliateRunCheckpoint>();

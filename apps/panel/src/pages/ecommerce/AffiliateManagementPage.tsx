@@ -22,7 +22,6 @@ import {
   APPLY_CREATOR_TAG_MUTATION,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   REMOVE_CREATOR_TAG_MUTATION,
-  SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
 } from "../../api/shops-queries.js";
 import { creatorTagLabel } from "./affiliate-tag-labels.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
@@ -4461,6 +4460,13 @@ function relationshipWorkItemFromWorkItem(
     projectedFocusCollaboration ??
     null;
   const relationship = workItem.creatorRelationship ?? context.creatorRelation ?? projection?.creatorRelationship ?? null;
+  const primaryAgenda = relationship?.agendaItems?.find(
+    (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.Agent,
+  ) ?? relationship?.agendaItems?.find(
+    (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.Staff,
+  ) ?? relationship?.agendaItems?.find(
+    (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.External,
+  ) ?? null;
   const activeCollaborations = mergeById([
     ...(context.activeCollaborations ?? []),
     ...(focusCollaboration ? [focusCollaboration] : []),
@@ -4478,12 +4484,14 @@ function relationshipWorkItemFromWorkItem(
     creatorId: relationship?.creatorId ?? focusCollaboration?.creatorId ?? null,
     creatorOpenId: focusCollaboration?.creatorOpenId ?? null,
     creatorImId: focusCollaboration?.creatorImId ?? null,
-    processingStatus: relationship?.processingStatus ?? workItem.processingStatus,
-    requiredAction: relationship?.requiredAction ?? workItem.requiredAction,
-    processReasons: relationship?.processReasons ?? workItem.processReasons ?? [],
+    processingStatus: primaryAgenda
+      ? relationshipProcessingStatusFromAgendaOwner(primaryAgenda.owner)
+      : workItem.processingStatus,
+    requiredAction: primaryAgenda?.requiredAction ?? workItem.requiredAction,
+    processReasons: primaryAgenda?.reasons ?? workItem.processReasons ?? [],
     lastInboundAt: relationship?.lastInboundAt ?? focusCollaboration?.lastCreatorMessageAt ?? null,
     lastOutboundAt: relationship?.lastOutboundAt ?? null,
-    nextSellerActionAt: relationship?.nextSellerActionAt ?? focusCollaboration?.nextSellerActionAt ?? null,
+    nextSellerActionAt: relationship?.workSummary?.nextActionAt ?? focusCollaboration?.nextSellerActionAt ?? null,
     stateUpdatedAt: relationship?.stateUpdatedAt ?? focusCollaboration?.stateUpdatedAt ?? workItem.versionAt,
     creatorProfile: context.creatorProfile ?? projection?.creatorProfile ?? null,
     creatorRelation: relationship,
@@ -4564,6 +4572,18 @@ function relationshipProcessingStatusFromCollaboration(
     default:
       return GQL.AffiliateRelationshipProcessingStatus.Idle;
   }
+}
+
+function relationshipProcessingStatusFromAgendaOwner(
+  owner: GQL.AffiliateRelationshipAgendaOwner,
+): GQL.AffiliateRelationshipProcessingStatus {
+  if (owner === GQL.AffiliateRelationshipAgendaOwner.Agent) {
+    return GQL.AffiliateRelationshipProcessingStatus.AgentRequired;
+  }
+  if (owner === GQL.AffiliateRelationshipAgendaOwner.Staff) {
+    return GQL.AffiliateRelationshipProcessingStatus.StaffRequired;
+  }
+  return GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting;
 }
 
 function relationshipRequiredActionFromCollaboration(
@@ -4978,19 +4998,26 @@ function CreatorRelationshipDetailModal({
     ...workItem.pendingProposals,
     ...(workItem.focusedProposal ? [workItem.focusedProposal] : []),
   ])).filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending);
+  const relationshipSummary = item.creatorRelation?.workSummary;
+  const relationshipAgenda = item.creatorRelation?.agendaItems ?? [];
+  const relationshipAggregateStatus =
+    (relationshipSummary?.agentRequiredCount ?? 0) > 0
+      ? GQL.AffiliateRelationshipProcessingStatus.AgentRequired
+      : (relationshipSummary?.staffRequiredCount ?? 0) > 0
+        ? GQL.AffiliateRelationshipProcessingStatus.StaffRequired
+        : (relationshipSummary?.externalWaitingCount ?? 0) > 0
+          ? GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting
+          : GQL.AffiliateRelationshipProcessingStatus.Idle;
   const relationshipStatusDisplay = primaryWorkItem
     ? creatorRelationshipStatusDisplay(primaryWorkItem, t)
     : item.creatorRelation
       ? {
-          primary: t(`ecommerce.affiliateWorkspace.statusLabels.${item.creatorRelation.processingStatus}`, {
-            defaultValue: formatAffiliateEnumLabel(item.creatorRelation.processingStatus),
+          primary: t(`ecommerce.affiliateWorkspace.statusLabels.${relationshipAggregateStatus}`, {
+            defaultValue: formatAffiliateEnumLabel(relationshipAggregateStatus),
           }),
-          secondary: firstTranslatedStatusDetail(
-            t,
-            item.creatorRelation.processReasons,
-            null,
-            item.creatorRelation.requiredAction,
-          ),
+          secondary: relationshipAgenda[0]
+            ? formatAffiliateEnumLabel(relationshipAgenda[0].workKind)
+            : null,
         }
       : {
           primary: management?.needsAttention
@@ -5001,7 +5028,7 @@ function CreatorRelationshipDetailModal({
   const relationshipTone = primaryWorkItem
     ? relationshipStatusTone(primaryWorkItem.processingStatus)
     : item.creatorRelation
-      ? relationshipStatusTone(item.creatorRelation.processingStatus)
+      ? relationshipStatusTone(relationshipAggregateStatus)
       : management?.needsAttention
         ? "attention"
         : "done";

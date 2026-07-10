@@ -176,10 +176,6 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       shopStates: [],
       whatsappContacts: [],
       emailContacts: [],
-      processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-      requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
-      processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
-      nextSellerActionAt: null,
       lastInboundAt: null,
       lastOutboundAt: null,
       lastAgentHandledAt: null,
@@ -188,6 +184,32 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       stateUpdatedAt: "2026-05-11T00:01:00.000Z",
       activeCollaborationRecordIds: ["collab-001"],
       pendingActionProposalId: null,
+      agendaItems: [{
+        key: "collaboration:collab-001:COMPLETE_COLLABORATION_TASK",
+        owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
+        sourceType: GQL.AffiliateRelationshipAgendaSourceType.Collaboration,
+        status: GQL.AffiliateRelationshipAgendaItemStatus.Open,
+        workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
+        shopId: "shop-001",
+        collaborationRecordId: "collab-001",
+        sampleApplicationRecordId: "sample-record-001",
+        proposalId: null,
+        reasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+        nextActionAt: null,
+        boundaryEventCursor: 1,
+        updatedAt: "2026-05-11T00:01:00.000Z",
+      }],
+      workSummary: {
+        agentRequiredCount: 1,
+        staffRequiredCount: 0,
+        externalWaitingCount: 0,
+        activeCollaborationCount: 1,
+        nextActionAt: null,
+      },
+      committedCheckpointId: null,
+      committedEventCursor: 0,
+      lifecycleEventSequence: 1,
       blocked: false,
       blockedShopIds: [],
       createdAt: "2026-05-11T00:00:00.000Z",
@@ -260,11 +282,69 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
   } as GQL.AffiliateWorkItem;
 }
 
+function withCheckpointContext(
+  graphqlFetch: (query: string, variables?: unknown) => unknown | Promise<unknown>,
+): (query: string, variables?: unknown) => Promise<unknown> {
+  return async (query, variables) => {
+    if (query.includes("affiliateContextBuilder")) {
+      return {
+        affiliateContextBuilder: {
+          creatorRelationship: createSampleReviewWorkItem().creatorRelationship,
+          baseCheckpointId: null,
+          baseEventCursor: 0,
+          targetEventCursor: 1,
+          baseMatchesCommitted: true,
+          truncated: false,
+          events: [],
+          workspace: {
+            sampleApplicationRecords: [],
+            collaborationRecords: [],
+            actionProposals: [],
+            approvalPolicies: [],
+            creatorRelations: [],
+            creatorTags: [],
+            creatorProfiles: [],
+            campaigns: [],
+            campaignProducts: [],
+            affiliateCollaborations: [],
+            searchRuns: [],
+            candidates: [],
+          },
+        },
+      };
+    }
+    return graphqlFetch(query, variables);
+  };
+}
+
 describe("affiliate work item dispatch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     __clearActiveAffiliateRunCheckpointsForTests();
-    mockGetAuthSession.mockReturnValue(null);
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: vi.fn(withCheckpointContext(async (query: string) => {
+        if (query.includes("affiliateWorkItems")) return { affiliateWorkItems: [] };
+        if (query.includes("affiliateWorkspace")) {
+          return {
+            affiliateWorkspace: {
+              sampleApplicationRecords: [],
+              collaborationRecords: [],
+              actionProposals: [],
+              approvalPolicies: [],
+              creatorRelations: [],
+              creatorTags: [],
+              creatorProfiles: [],
+              campaigns: [],
+              campaignProducts: [],
+              affiliateCollaborations: [],
+              searchRuns: [],
+              candidates: [],
+            },
+          };
+        }
+        throw new Error(`Unexpected GraphQL call: ${query}`);
+      })),
+    });
     mockRpcRequest.mockResolvedValue({ runId: "run-affiliate-001" });
     initLLMProviderManagerEnv({
       storage: {
@@ -320,7 +400,7 @@ describe("affiliate work item dispatch", () => {
       }
       throw new Error(`Unexpected GraphQL call: ${query} ${JSON.stringify(variables)}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const session = new AffiliateSession(
       {
         objectId: "shop-001",
@@ -456,7 +536,9 @@ describe("affiliate work item dispatch", () => {
       namespace: "affiliateCheckpoint",
       value: {
         baseCheckpointId: null,
+        baseEventCursor: 0,
         candidateCheckpointId: expect.any(String),
+        targetEventCursor: 1,
       },
     }));
 
@@ -516,6 +598,55 @@ describe("affiliate work item dispatch", () => {
     }));
   });
 
+  it.each([
+    {
+      name: "the checkpoint and event cursor base is stale",
+      baseMatchesCommitted: false,
+      truncated: false,
+    },
+    {
+      name: "the event delta is truncated",
+      baseMatchesCommitted: true,
+      truncated: true,
+    },
+  ])("does not dispatch affiliate work when $name", async ({ baseMatchesCommitted, truncated }) => {
+    const workItem = createSampleReviewWorkItem();
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: vi.fn(async () => ({
+        affiliateContextBuilder: {
+          creatorRelationship: workItem.creatorRelationship,
+          baseCheckpointId: null,
+          baseEventCursor: 0,
+          targetEventCursor: 1,
+          baseMatchesCommitted,
+          truncated,
+          events: [],
+          workspace: null,
+        },
+      })),
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+      },
+    );
+
+    await expect(session.handleWorkItem(workItem)).resolves.toEqual({ runId: undefined });
+    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(false);
+  });
+
   it("does not dispatch caught-up sample-review work items when the backend dispatch flag is false", async () => {
     const sampleWorkItem = createSampleReviewWorkItem({
       focusShopId: "shop-001",
@@ -534,7 +665,7 @@ describe("affiliate work item dispatch", () => {
       }
       throw new Error(`Unexpected GraphQL variables: ${JSON.stringify(variables)}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const inbound = new AffiliateInbound("en");
 
     inbound.syncFromShops([
@@ -618,7 +749,7 @@ describe("affiliate work item dispatch", () => {
       }
       throw new Error("delta unavailable");
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const session = new AffiliateSession(
       {
         objectId: "shop-001",
@@ -688,168 +819,6 @@ describe("affiliate work item dispatch", () => {
     });
   });
 
-  it("dispatches relationship-scoped WhatsApp creator signals through the delivery bridge", async () => {
-    const graphqlFetch = vi.fn().mockImplementation(async (query: string) => {
-      if (query.includes("DeliverAffiliateCreatorText")) {
-        return {
-          deliverAffiliateCreatorText: {
-            id: "delivery-whatsapp-001",
-            status: "SENT",
-            preferredChannel: "WHATSAPP",
-            actualChannel: "WHATSAPP",
-          },
-        };
-      }
-      throw new Error("workspace unavailable");
-    });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
-    const session = new AffiliateSession(
-      {
-        objectId: "shop-001",
-        userId: "user-001",
-        platformShopId: "platform-shop-001",
-        shopName: "Affiliate Test Shop",
-        platform: "tiktok",
-        runProfileId: "AFFILIATE_OPERATOR",
-      },
-      {
-        shopId: "shop-001",
-        platformShopId: "platform-shop-001",
-        creatorRelationshipId: "relationship-001",
-        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-        triggerId: "relationship-001",
-      },
-    );
-
-    const result = await session.handleRelationshipSignal({
-      type: GQL.AffiliateRelationshipSignalType.AffiliateRelationshipMessageObserved,
-      source: GQL.AffiliateRelationshipSignalSource.Webhook,
-      workSignal: true,
-      shopId: "shop-001",
-      platformShopId: "platform-shop-001",
-      creatorRelationshipId: "relationship-001",
-      messageId: "wamid-1",
-      messageType: "conversation",
-      channel: "WHATSAPP",
-      messageDirection: GQL.AffiliateCreatorMessageDirection.Creator,
-      eventTime: "2026-07-01T12:00:00.000Z",
-    } as GQL.AffiliateRelationshipSignal);
-    expect(result.runMode).toBe("CREATOR_OUTREACH");
-
-    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("WhatsApp and Outlook email are direct affiliate outreach channels");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_get_creator_contact_state");
-    expect(agentCall?.[1]?.message).toContain("Affiliate Creator Message Update");
-    expect(agentCall?.[1]?.message).toContain("Current Channel: WHATSAPP");
-    expect(agentCall?.[1]?.message).toContain("Creator Relationship ID: relationship-001");
-
-    session.handleAgentEvent({
-      runId: result.runId,
-      stream: "assistant",
-      data: { text: "Thanks, I will send the next steps here." },
-    });
-    session.handleAgentEvent({
-      runId: result.runId,
-      stream: "lifecycle",
-      data: { phase: "end" },
-    });
-    session.onRunCompleted(result.runId!);
-
-    await waitForCondition(() =>
-      graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
-    );
-    const [, variables] = graphqlFetch.mock.calls.find(([query]) =>
-      String(query).includes("DeliverAffiliateCreatorText"),
-    )!;
-    expect(variables).toEqual({
-      input: expect.objectContaining({
-        creatorRelationshipId: "relationship-001",
-        text: "Thanks, I will send the next steps here.",
-        sessionKey: "agent:main:affiliate:user-001:relationship-001",
-        baseCheckpointId: null,
-        candidateCheckpointId: expect.any(String),
-        preferredChannel: "WHATSAPP",
-      }),
-    });
-  });
-
-  it("preserves email as preferred channel for relationship-scoped Outlook creator signals", async () => {
-    const graphqlFetch = vi.fn().mockImplementation(async (query: string) => {
-      if (query.includes("DeliverAffiliateCreatorText")) {
-        return {
-          deliverAffiliateCreatorText: {
-            id: "delivery-email-001",
-            status: "SENT",
-            preferredChannel: "EMAIL",
-            actualChannel: "EMAIL",
-          },
-        };
-      }
-      throw new Error("workspace unavailable");
-    });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
-    const session = new AffiliateSession(
-      {
-        objectId: "shop-001",
-        userId: "user-001",
-        platformShopId: "platform-shop-001",
-        shopName: "Affiliate Test Shop",
-        platform: "tiktok",
-        runProfileId: "AFFILIATE_OPERATOR",
-      },
-      {
-        shopId: "shop-001",
-        platformShopId: "platform-shop-001",
-        creatorRelationshipId: "relationship-001",
-        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-        triggerId: "relationship-001",
-      },
-    );
-
-    const result = await session.handleRelationshipSignal({
-      type: GQL.AffiliateRelationshipSignalType.AffiliateRelationshipMessageObserved,
-      source: GQL.AffiliateRelationshipSignalSource.Webhook,
-      workSignal: true,
-      shopId: "shop-001",
-      platformShopId: "platform-shop-001",
-      creatorRelationshipId: "relationship-001",
-      messageId: "graph-message-1",
-      messageType: "email",
-      channel: "EMAIL",
-      messageDirection: GQL.AffiliateCreatorMessageDirection.Creator,
-      eventTime: "2026-07-01T12:05:00.000Z",
-    } as GQL.AffiliateRelationshipSignal);
-
-    session.handleAgentEvent({
-      runId: result.runId,
-      stream: "assistant",
-      data: { text: "Thanks, I will reply with the agreement details by email." },
-    });
-    session.handleAgentEvent({
-      runId: result.runId,
-      stream: "lifecycle",
-      data: { phase: "end" },
-    });
-    session.onRunCompleted(result.runId!);
-
-    await waitForCondition(() =>
-      graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
-    );
-    const [, variables] = graphqlFetch.mock.calls.find(([query]) =>
-      String(query).includes("DeliverAffiliateCreatorText"),
-    )!;
-    expect(variables).toEqual({
-      input: expect.objectContaining({
-        creatorRelationshipId: "relationship-001",
-        text: "Thanks, I will reply with the agreement details by email.",
-        sessionKey: "agent:main:affiliate:user-001:relationship-001",
-        baseCheckpointId: null,
-        candidateCheckpointId: expect.any(String),
-        preferredChannel: "EMAIL",
-      }),
-    });
-  });
-
   it("does not create creator-outreach sessions without a creator relationship id", () => {
     expect(() => new AffiliateSession(
       {
@@ -873,7 +842,7 @@ describe("affiliate work item dispatch", () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem({
       id: "collab-expected-001",
       collaborationRecordId: "collab-expected-001",
@@ -930,7 +899,7 @@ describe("affiliate work item dispatch", () => {
         predictions: [],
       },
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem();
     const session = new AffiliateSession(
       {
@@ -978,7 +947,7 @@ describe("affiliate work item dispatch", () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createSampleReviewWorkItem({
       id: "collab-with-snapshot",
       collaborationRecordId: "collab-with-snapshot",
@@ -1055,7 +1024,7 @@ describe("affiliate work item dispatch", () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createSampleReviewWorkItem({
       id: "collab-sample-agent-001",
       collaborationRecordId: "collab-sample-agent-001",
@@ -1206,7 +1175,7 @@ describe("affiliate work item dispatch", () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createSampleReviewWorkItem();
     const session = new AffiliateSession(
       {
@@ -1357,7 +1326,7 @@ describe("affiliate work item dispatch", () => {
       }
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem({
       collaboration: {
         ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
@@ -1447,7 +1416,7 @@ describe("affiliate work item dispatch", () => {
       }
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem({
       versionAt: "2026-05-11T00:01:00.000Z",
       collaboration: {

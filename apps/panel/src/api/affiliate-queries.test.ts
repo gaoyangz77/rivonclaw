@@ -46,7 +46,7 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("trackingNumber");
   });
 
-  it("loads staff handling items as work items with relationship context", () => {
+  it("retains work items as an internal relationship dispatch contract", () => {
     const query = queryText(AFFILIATE_WORK_ITEMS_QUERY);
 
     expect(query).toContain("affiliateWorkItems(input: $input)");

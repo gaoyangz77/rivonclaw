@@ -1297,6 +1297,32 @@ export const AFFILIATE_CREATORS_QUERY = gql`
         creatorId
         blocked
         blockedShopIds
+        committedCheckpointId
+        committedEventCursor
+        lifecycleEventSequence
+        agendaItems {
+          key
+          owner
+          sourceType
+          status
+          workKind
+          requiredAction
+          shopId
+          collaborationRecordId
+          sampleApplicationRecordId
+          proposalId
+          reasons
+          nextActionAt
+          boundaryEventCursor
+          updatedAt
+        }
+        workSummary {
+          agentRequiredCount
+          staffRequiredCount
+          externalWaitingCount
+          activeCollaborationCount
+          nextActionAt
+        }
         shopStates {
           shopId
           lifecycleStage
@@ -1404,8 +1430,34 @@ export const APPLY_CREATOR_TAG_MUTATION = gql`
       id
       creatorId
       blocked
-      blockedShopIds
-      shopStates {
+        blockedShopIds
+        committedCheckpointId
+        committedEventCursor
+        lifecycleEventSequence
+        agendaItems {
+          key
+          owner
+          sourceType
+          status
+          workKind
+          requiredAction
+          shopId
+          collaborationRecordId
+          sampleApplicationRecordId
+          proposalId
+          reasons
+          nextActionAt
+          boundaryEventCursor
+          updatedAt
+        }
+        workSummary {
+          agentRequiredCount
+          staffRequiredCount
+          externalWaitingCount
+          activeCollaborationCount
+          nextActionAt
+        }
+        shopStates {
         shopId
         lifecycleStage
         tagIds

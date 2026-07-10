@@ -297,7 +297,9 @@ describe("cloud-graphql handler", () => {
       sessionKey: "agent:main:affiliate:user-1:relationship-1",
       runId: "run-checkpoint-1",
       baseCheckpointId: null,
+      baseEventCursor: 7,
       candidateCheckpointId: "candidate-checkpoint-1",
+      targetEventCursor: 9,
     });
 
     const mutation = `
@@ -335,7 +337,9 @@ describe("cloud-graphql handler", () => {
       expect.objectContaining({
         input: expect.objectContaining({
           baseCheckpointId: null,
+          baseEventCursor: 7,
           candidateCheckpointId: "candidate-checkpoint-1",
+          targetEventCursor: 9,
         }),
       }),
     );
@@ -370,7 +374,9 @@ describe("cloud-graphql handler", () => {
       sessionKey: "agent:main:affiliate:user-1:relationship-1",
       runId: "run-checkpoint-1",
       baseCheckpointId: null,
+      baseEventCursor: 7,
       candidateCheckpointId: "candidate-checkpoint-1",
+      targetEventCursor: 9,
     });
 
     const mutation = `
