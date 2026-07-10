@@ -260,19 +260,54 @@ export class AffiliateInbound {
       return false;
     }
 
-    const context = this.buildContextFromSignal(shop, signal);
-    if (context == null) {
-      log.warn(`Affiliate signal missing stable trigger id: type=${signal.type} shop=${signal.platformShopId}`);
+    const creatorRelationshipId = signal.creatorRelationshipId?.trim();
+    if (!creatorRelationshipId) {
+      log.warn(
+        `Affiliate signal missing creatorRelationshipId: type=${signal.type} shop=${signal.platformShopId}`,
+      );
       return false;
     }
+    return this.refreshRelationshipWorkItem(shop, creatorRelationshipId, signal.type);
+  }
 
-    const session = this.getOrCreateSession(shop, context);
+  private async refreshRelationshipWorkItem(
+    shop: AffiliateShopContext,
+    creatorRelationshipId: string,
+    signalType: string,
+  ): Promise<boolean> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      log.warn(`No auth session available for affiliate relationship refresh ${creatorRelationshipId}`);
+      return false;
+    }
     try {
-      const result = await session.handleRelationshipSignal(signal);
-      if (result.runId) this.runIndex.set(result.runId, session.scopeKey);
+      const result = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+        AFFILIATE_WORK_ITEMS_QUERY,
+        {
+          input: {
+            shopId: shop.objectId,
+            creatorRelationshipId,
+            limit: 10,
+          },
+        },
+      );
+      const workItems = result.affiliateWorkItems ?? [];
+      if (workItems.length === 0) {
+        log.info(
+          `Affiliate signal produced no dispatchable relationship work: ` +
+          `type=${signalType} relationship=${creatorRelationshipId}`,
+        );
+        return true;
+      }
+      for (const workItem of workItems) {
+        await this.handleWorkItem(workItem);
+      }
       return true;
     } catch (err) {
-      log.error(`Failed to handle affiliate backend signal ${signal.type}:`, err);
+      log.error(
+        `Failed to refresh affiliate relationship work after ${signalType} for ${creatorRelationshipId}:`,
+        err,
+      );
       return false;
     }
   }
@@ -490,62 +525,6 @@ export class AffiliateInbound {
     return session;
   }
 
-  private buildContextFromSignal(
-    shop: AffiliateShopContext,
-    signal: AffiliateRelationshipSignalPayload,
-  ): AffiliateContext | null {
-    const creatorRelationshipId = signalCreatorRelationshipId(signal);
-    if (!creatorRelationshipId) return null;
-    const signalUserId = (signal as { userId?: string | null }).userId?.trim();
-    const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
-      userId: signalUserId || shop.userId || rootStore.currentUser?.userId || "",
-      shopId: shop.objectId,
-      platformShopId: shop.platformShopId,
-      creatorImUserId: signal.creatorImId ?? undefined,
-      creatorRelationshipId,
-      productId: signal.productId ?? undefined,
-      orderId: signal.orderId ?? undefined,
-      collaborationRecordId: signal.collaborationRecordId ?? undefined,
-    };
-
-    switch (signal.type) {
-      case "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED":
-        {
-          return {
-            ...base,
-            triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-            triggerId: base.creatorRelationshipId,
-          };
-        }
-      case "AFFILIATE_SAMPLE_APPLICATION_OBSERVED":
-      case "AFFILIATE_SAMPLE_FULFILLMENT_OBSERVED":
-        if (!signal.platformApplicationId) return null;
-        return {
-          ...base,
-          triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
-          triggerId: signal.platformApplicationId,
-          sampleApplicationId: signal.platformApplicationId,
-        };
-      case "AFFILIATE_TARGET_COLLABORATION_OBSERVED":
-        if (!signal.platformTargetCollaborationId) return null;
-        return {
-          ...base,
-          triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
-          triggerId: signal.platformTargetCollaborationId,
-          collaborationRecordId: signal.collaborationRecordId ?? signal.platformTargetCollaborationId,
-        };
-      case "AFFILIATE_TIMER_DUE":
-        if (!signal.collaborationRecordId) return null;
-        return {
-          ...base,
-          triggerKind: AffiliateTriggerKind.TARGET_COLLABORATION,
-          triggerId: signal.collaborationRecordId,
-        };
-      default:
-        return null;
-    }
-  }
-
   private findRoutedShopContext(workItem: AffiliateWorkItemPayload): AffiliateShopContext | undefined {
     const platformShopIds = uniqueNonEmpty([
       ...(workItem.routingPlatformShopIds ?? []),
@@ -606,7 +585,8 @@ export class AffiliateInbound {
     workItem: AffiliateWorkItemPayload,
   ): string {
     const workItemUserId = (workItem as { userId?: string | null }).userId?.trim();
-    return workItemUserId || shop.userId || rootStore.currentUser?.userId || "";
+    const relationshipUserId = workItem.creatorRelationship?.userId?.trim();
+    return workItemUserId || relationshipUserId || shop.userId || rootStore.currentUser?.userId || "";
   }
 
   private buildContextFromWorkKindFallback(
@@ -689,18 +669,4 @@ function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {
 
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => typeof value === "string" && value.length > 0))];
-}
-
-function signalCreatorRelationshipId(signal: AffiliateRelationshipSignalPayload): string | undefined {
-  const value = signal.creatorRelationshipId;
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function firstNonEmpty(...values: Array<string | null | undefined>): string | undefined {
-  for (const value of values) {
-    if (typeof value !== "string") continue;
-    const trimmed = value.trim();
-    if (trimmed) return trimmed;
-  }
-  return undefined;
 }

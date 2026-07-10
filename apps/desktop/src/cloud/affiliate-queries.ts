@@ -49,6 +49,156 @@ export interface AffiliateRelationshipHistoryQueryResult {
   affiliateRelationshipHistory: GQL.AffiliateRelationshipHistoryPayload;
 }
 
+export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
+  query AffiliateContextBuilder($input: AffiliateContextBuilderInput!) {
+    affiliateContextBuilder(input: $input) {
+      baseCheckpointId
+      baseEventCursor
+      targetEventCursor
+      baseMatchesCommitted
+      truncated
+      events {
+        id
+        occurredAt
+        actorType
+        actorRole
+        summary
+        relatedIds {
+          shopId
+          creatorId
+          collaborationRecordId
+          sampleApplicationRecordId
+          platformApplicationId
+          actionProposalId
+          lifecycleEventId
+          productId
+        }
+        lifecycleEvent {
+          lifecycleEventId
+          eventType
+          entityType
+          entityId
+          relationshipSequence
+          decisionRelevant
+          displayPayloadJson
+        }
+      }
+      creatorRelationship {
+        id
+        committedCheckpointId
+        committedEventCursor
+        lifecycleEventSequence
+        agendaItems {
+          key
+          owner
+          sourceType
+          status
+          workKind
+          requiredAction
+          shopId
+          collaborationRecordId
+          sampleApplicationRecordId
+          proposalId
+          reasons
+          nextActionAt
+          boundaryEventCursor
+          updatedAt
+        }
+        workSummary {
+          agentRequiredCount
+          staffRequiredCount
+          externalWaitingCount
+          activeCollaborationCount
+          nextActionAt
+        }
+      }
+      workspace {
+        creatorRelations {
+          id
+          creatorId
+          blocked
+          agendaItems {
+            key
+            owner
+            sourceType
+            workKind
+            requiredAction
+            collaborationRecordId
+            sampleApplicationRecordId
+            proposalId
+            reasons
+            nextActionAt
+          }
+        }
+        collaborationRecords {
+          id
+          shopId
+          creatorId
+          creatorRelationshipId
+          productId
+          lifecycleStage
+          processingStatus
+          requiredAction
+          processReasons
+          sampleApplicationRecordId
+          lastSignalAt
+          nextSellerActionAt
+          stateUpdatedAt
+        }
+        sampleApplicationRecords {
+          id
+          platformApplicationId
+          creatorId
+          productId
+          sampleWorkStatus
+          order {
+            platformOrderId
+            trackingNumber
+            carrier
+          }
+          trackingNumber
+          carrier
+          shippedAt
+          deliveredAt
+          observedContentCount
+          latestObservedContentAt
+          updatedAt
+        }
+        actionProposals {
+          id
+          status
+          type
+          operatorSummary
+          creatorRelationshipId
+          collaborationRecordId
+          baseCheckpointId
+          baseEventCursor
+          candidateCheckpointId
+          targetEventCursor
+          steps {
+            stepId
+            type
+            operatorSummary
+          }
+        }
+        creatorProfiles {
+          id
+          platform
+          creatorOpenId
+          username
+          nickname
+          marketplaceSnapshotJson
+          followerCount
+        }
+      }
+    }
+  }
+`;
+
+export interface AffiliateContextBuilderQueryResult {
+  affiliateContextBuilder: GQL.AffiliateContextBuilderPayload;
+}
+
 export const AFFILIATE_WORKSPACE_QUERY = `
   query AffiliateWorkspace($input: AffiliateWorkspaceInput!) {
     affiliateWorkspace(input: $input) {
@@ -148,8 +298,34 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         blockedShopIds
         committedCheckpointId
         committedCheckpointAt
+        committedEventCursor
+        lifecycleEventSequence
         activeRunId
         activeRunBaseCheckpointId
+        activeRunBaseEventCursor
+        agendaItems {
+          key
+          owner
+          sourceType
+          status
+          workKind
+          requiredAction
+          shopId
+          collaborationRecordId
+          sampleApplicationRecordId
+          proposalId
+          reasons
+          nextActionAt
+          boundaryEventCursor
+          updatedAt
+        }
+        workSummary {
+          agentRequiredCount
+          staffRequiredCount
+          externalWaitingCount
+          activeCollaborationCount
+          nextActionAt
+        }
         shopStates {
           shopId
           lifecycleStage

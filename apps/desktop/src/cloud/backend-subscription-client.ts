@@ -368,8 +368,34 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           lastAgentHandledAt
           committedCheckpointId
           committedCheckpointAt
+          committedEventCursor
+          lifecycleEventSequence
           activeRunId
           activeRunBaseCheckpointId
+          activeRunBaseEventCursor
+          agendaItems {
+            key
+            owner
+            sourceType
+            status
+            workKind
+            requiredAction
+            shopId
+            collaborationRecordId
+            sampleApplicationRecordId
+            proposalId
+            reasons
+            nextActionAt
+            boundaryEventCursor
+            updatedAt
+          }
+          workSummary {
+            agentRequiredCount
+            staffRequiredCount
+            externalWaitingCount
+            activeCollaborationCount
+            nextActionAt
+          }
           stateUpdatedAt
           activeCollaborationRecordIds
           pendingActionProposalId

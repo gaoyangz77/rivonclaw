@@ -5,7 +5,6 @@
  * - creator relationships
  * - action proposals
  * - collaboration records
- * - staff handling items
  * - affiliate intelligence/settings-adjacent surface
  *
  * The test is read-only. It only logs in, renders pages, and opens a detail
@@ -141,7 +140,7 @@ async function expectAffiliatePage(
 test.describe("Affiliate workspace entity pages", () => {
   test.skip(!testEmail || !testPassword || !deterministicCaptchaToken, "Staging credentials not configured");
 
-  test("renders the five affiliate entry points and opens relationship context when data exists", async ({ window, apiBase }) => {
+  test("renders the four affiliate entry points and opens relationship context when data exists", async ({ window, apiBase }) => {
     await dismissModals(window);
     await login(window, apiBase);
 
@@ -162,12 +161,6 @@ test.describe("Affiliate workspace entity pages", () => {
       "/commerce/affiliate/history",
       "Collaboration records",
       ".affiliate-collaboration-record-card",
-    );
-    await expectAffiliatePage(
-      window,
-      "/commerce/affiliate/staff",
-      "Collaborations needing staff handling",
-      ".affiliate-creator-relationship-work-card",
     );
     await expectAffiliatePage(
       window,

@@ -8,7 +8,6 @@ import {
   type AffiliateSampleApplicationUpdatedFrame,
   type AffiliateTargetCollaborationUpdatedFrame,
 } from "@rivonclaw/core";
-import type { AffiliateRelationshipSignalPayload } from "../cloud/backend-subscription-client.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { rootStore } from "../app/store/desktop-store.js";
@@ -16,12 +15,14 @@ import { normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
+  AFFILIATE_CONTEXT_BUILDER_QUERY,
   AFFILIATE_RELATIONSHIP_HISTORY_QUERY,
   DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateActionProposalDeltaQueryResult,
+  type AffiliateContextBuilderQueryResult,
   type AffiliateRelationshipHistoryQueryResult,
   type DeliverAffiliateCreatorTextMutationResult,
   type AffiliateWorkItemsQueryResult,
@@ -92,7 +93,9 @@ export interface AffiliateDispatchResult {
 
 interface AffiliateRunCheckpoint {
   baseCheckpointId: string | null;
+  baseEventCursor: number;
   candidateCheckpointId: string;
+  targetEventCursor: number;
 }
 
 export enum AffiliateAgentRunMode {
@@ -261,103 +264,31 @@ export class AffiliateSession {
     return result;
   }
 
-  async handleRelationshipSignal(signal: AffiliateRelationshipSignalPayload): Promise<AffiliateDispatchResult> {
-    const creatorRelationshipId = signalCreatorRelationshipId(signal);
-
-    if (isAffiliateMessageSignal(signal.type) && signal.messageId && !creatorRelationshipId) {
-      log.warn(
-        `Skipping affiliate message signal ${signal.messageId} because no creatorRelationshipId was provided; ` +
-        "message signals must be materialized to a CreatorRelationship before agent dispatch",
-      );
-      return { runId: undefined };
-    }
-
-    if (isAffiliateMessageSignal(signal.type) && creatorRelationshipId && signal.messageId) {
-      const generation = this.beginCreatorMessageTakeover();
-      const workspaceSnapshot = await this.buildWorkspaceSnapshot({
-        includePolicies: true,
-        limit: 20,
-      });
-      const message = await this.buildRelationshipMessageUpdateWorkPackage({
-        currentSignalId: signal.messageId,
-        currentChannel: signal.channel ?? GQL.AffiliateMessageChannel.PlatformChat,
-        messageType: signal.messageType ?? undefined,
-        senderRole: signal.senderRole ?? undefined,
-        eventTime: String(signal.eventTime),
-      });
-      const relationshipHeader = [
-        "[Creator Relationship Workspace]",
-        `Creator Relationship ID: ${creatorRelationshipId}`,
-        "This message history is relationship-level channel evidence. Do not treat any provider conversation route as the business subject.",
-      ].join("\n");
-      if (generation !== this.dispatchGeneration) return { runId: undefined };
-      return this.dispatch({
-        message: appendOptionalSection([relationshipHeader, "", message].join("\n"), workspaceSnapshot),
-        idempotencyKey: buildSignalIdempotencyKey(this.platform, signal),
-        abortActive: false,
-        runMode: AffiliateAgentRunMode.CREATOR_OUTREACH,
-        preferredChannel: directSignalPreferredChannel(signal),
-      });
-    }
-
-    const workspaceSnapshot = await this.buildWorkspaceSnapshot({
-      includePolicies: true,
-      platformApplicationId: signal.platformApplicationId ?? undefined,
-      limit: 20,
-    });
-
-    const message = [
-      "[Affiliate Backend Signal]",
-      `Signal Type: ${signal.type}`,
-      `Source: ${signal.source}`,
-      `Work Signal: ${signal.workSignal}`,
-      `Shop ID: ${signal.shopId}`,
-      ...(signal.collaborationRecordId ? [`Related Collaboration Record ID: ${signal.collaborationRecordId}`] : []),
-      ...(signal.processingStatus ? [`Processing Status: ${signal.processingStatus}`] : []),
-      ...(signal.processReasons?.length ? [`Process Reasons: ${signal.processReasons.join(", ")}`] : []),
-      ...(signal.messageType ? [`Message Type: ${signal.messageType}`] : []),
-      ...(signal.messageDirection ? [`Message Direction: ${signal.messageDirection}`] : []),
-      ...(signal.platformApplicationId ? [`Sample Application ID: ${signal.platformApplicationId}`] : []),
-      ...(signal.platformTargetCollaborationId ? [`Target Collaboration ID: ${signal.platformTargetCollaborationId}`] : []),
-      ...(signal.platformStatus ? [`Platform Status: ${signal.platformStatus}`] : []),
-      ...(signal.platformFulfillmentStatus ? [`Platform Fulfillment Status: ${signal.platformFulfillmentStatus}`] : []),
-      ...(signal.platformFulfillmentId ? [`Platform Fulfillment ID: ${signal.platformFulfillmentId}`] : []),
-      ...(signal.contentId ? [`Content ID: ${signal.contentId}`] : []),
-      ...(signal.productId ? [`Product ID: ${signal.productId}`] : []),
-      ...(signal.orderId ? [`Order ID: ${signal.orderId}`] : []),
-      ...(signal.platformProgramId ? [`Platform Program ID: ${signal.platformProgramId}`] : []),
-      ...(signal.notificationId ? [`Notification ID: ${signal.notificationId}`] : []),
-      `Event Time: ${signal.eventTime}`,
-      "",
-      "Backend has already materialized or updated affiliate state for this signal.",
-      "Use the injected workspace snapshot below as the current backend fact set.",
-      "If the snapshot contains a matching sampleApplicationRecord in PENDING_REVIEW, resolve the work item through affiliate_resolve_work_item.",
-      "If the snapshot contains a matching collaboration with CREATOR_MESSAGE_NEEDS_REPLY, use decision REQUEST_ACTION with action.type SEND_MESSAGE when a reply is needed.",
-      "If approval policy requires review, affiliate_resolve_work_item returns an ActionProposal instead of executing.",
-    ].join("\n");
-
-    return this.dispatch({
-      message: appendOptionalSection(message, workspaceSnapshot),
-      idempotencyKey: buildSignalIdempotencyKey(this.platform, signal),
-      runMode: AffiliateAgentRunMode.OPERATOR_REASONING,
-    });
-  }
-
   async handleWorkItem(workItem: GQL.AffiliateWorkItem): Promise<AffiliateDispatchResult> {
     if (!workItem.agentDispatchRecommended) {
       log.info(`Affiliate work item ${workItem.id} does not recommend agent dispatch; skipping`);
       return { runId: undefined };
     }
 
-    let relationshipMessageUpdate: string | undefined;
+    const baseCheckpointId = normalizeCheckpointId(workItem.creatorRelationship?.committedCheckpointId);
+    const baseEventCursor = workItem.creatorRelationship?.committedEventCursor ?? 0;
+    const dispatchContext = await this.fetchDispatchContext({
+      workItem,
+      baseCheckpointId,
+      baseEventCursor,
+    });
+    if (!dispatchContext) return { runId: undefined };
+
+    let relationshipMessageUpdate = renderAffiliateDispatchContext(dispatchContext);
     let generation: number | undefined;
     if (isCreatorReplyWorkItem(workItem)) {
       generation = this.beginCreatorMessageTakeover();
-      relationshipMessageUpdate = await this.buildRelationshipMessageUpdateWorkPackage({
+      const messageUpdate = await this.buildRelationshipMessageUpdateWorkPackage({
         currentSignalId: workItemCurrentMessageId(workItem) ?? undefined,
         currentChannel: GQL.AffiliateMessageChannel.PlatformChat,
         eventTime: workItem.collaboration?.lastCreatorMessageAt ?? workItem.creatorRelationship?.lastInboundAt ?? undefined,
       });
+      relationshipMessageUpdate = [relationshipMessageUpdate, messageUpdate].join("\n\n");
       if (generation !== this.dispatchGeneration) return { runId: undefined };
     }
 
@@ -367,7 +298,7 @@ export class AffiliateSession {
       workItem,
       platform: this.platform,
       relationshipMessageUpdate,
-      proposalDeltaSection: await this.buildProposalDeltaSection(workItem),
+      proposalDeltaSection: "## Proposal Delta\nIncluded in the checkpoint-bound operational event delta above.",
       ...predictionContext,
       ...thresholdContext,
       businessPrompt: this.shop.businessPrompt,
@@ -378,7 +309,9 @@ export class AffiliateSession {
     const result = await this.dispatch({
       ...request,
       runMode: AffiliateAgentRunMode.OPERATOR_REASONING,
-      baseCheckpointId: normalizeCheckpointId(workItem.creatorRelationship?.committedCheckpointId),
+      baseCheckpointId,
+      baseEventCursor,
+      targetEventCursor: dispatchContext.targetEventCursor,
     });
     if (result.runId) {
       this.pendingRunCompletions.set(result.runId, workItem);
@@ -483,7 +416,9 @@ export class AffiliateSession {
             runId,
             sessionKey: this.scopeKey,
             baseCheckpointId: checkpoint?.baseCheckpointId ?? null,
+            baseEventCursor: checkpoint?.baseEventCursor ?? 0,
             candidateCheckpointId: checkpoint?.candidateCheckpointId,
+            targetEventCursor: checkpoint?.targetEventCursor ?? 0,
             source: "AGENT_AUTO_FORWARD",
             fallbackToPlatform: true,
             preferredChannel: state.preferredChannel,
@@ -523,11 +458,17 @@ export class AffiliateSession {
     runMode?: AffiliateAgentRunMode;
     preferredChannel?: GQL.AffiliateMessageChannel;
     baseCheckpointId?: string | null;
+    baseEventCursor?: number | null;
+    targetEventCursor?: number | null;
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
     const runMode = params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING;
     await this.setup();
-    const checkpoint = await this.prepareRunCheckpoint(params.baseCheckpointId);
+    const checkpoint = await this.prepareRunCheckpoint({
+      baseCheckpointId: params.baseCheckpointId,
+      baseEventCursor: params.baseEventCursor,
+      targetEventCursor: params.targetEventCursor,
+    });
     await this.applyCurrentSessionModel();
     this.logDispatchPromptContext(params);
     const provisionalRunId = params.idempotencyKey;
@@ -536,7 +477,9 @@ export class AffiliateSession {
       sessionKey: this.scopeKey,
       runId: provisionalRunId,
       baseCheckpointId: checkpoint.baseCheckpointId,
+      baseEventCursor: checkpoint.baseEventCursor,
       candidateCheckpointId: checkpoint.candidateCheckpointId,
+      targetEventCursor: checkpoint.targetEventCursor,
     });
 
     let response: AffiliateDispatchResult | undefined;
@@ -564,7 +507,9 @@ export class AffiliateSession {
         sessionKey: this.scopeKey,
         runId: response.runId,
         baseCheckpointId: checkpoint.baseCheckpointId,
+        baseEventCursor: checkpoint.baseEventCursor,
         candidateCheckpointId: checkpoint.candidateCheckpointId,
+        targetEventCursor: checkpoint.targetEventCursor,
       });
       if (runMode === AffiliateAgentRunMode.CREATOR_OUTREACH) {
         this.creatorOutreachRuns.set(response.runId, {
@@ -628,11 +573,21 @@ export class AffiliateSession {
   }
 
   private async prepareRunCheckpoint(
-    requestedBaseCheckpointId: string | null | undefined,
+    requested: {
+      baseCheckpointId?: string | null;
+      baseEventCursor?: number | null;
+      targetEventCursor?: number | null;
+    },
   ): Promise<AffiliateRunCheckpoint> {
-    const baseCheckpointId = requestedBaseCheckpointId === undefined
-      ? await this.resolveRelationshipCommittedCheckpointId()
-      : normalizeCheckpointId(requestedBaseCheckpointId);
+    const committed =
+      requested.baseCheckpointId === undefined || requested.baseEventCursor === undefined
+        ? await this.resolveRelationshipCommittedCheckpoint()
+        : null;
+    const baseCheckpointId = requested.baseCheckpointId === undefined
+      ? committed?.checkpointId ?? null
+      : normalizeCheckpointId(requested.baseCheckpointId);
+    const baseEventCursor = requested.baseEventCursor ?? committed?.eventCursor ?? 0;
+    const targetEventCursor = requested.targetEventCursor ?? baseEventCursor;
     const candidateCheckpointId = randomUUID();
 
     await openClawConnector.request("sessions.create", {
@@ -658,11 +613,13 @@ export class AffiliateSession {
       namespace: AFFILIATE_CHECKPOINT_EXTENSION_NAMESPACE,
       value: {
         baseCheckpointId,
+        baseEventCursor,
         candidateCheckpointId,
+        targetEventCursor,
       },
     });
 
-    return { baseCheckpointId, candidateCheckpointId };
+    return { baseCheckpointId, baseEventCursor, candidateCheckpointId, targetEventCursor };
   }
 
   private async finalizeSuccessfulRun(
@@ -700,7 +657,10 @@ export class AffiliateSession {
     });
   }
 
-  private async resolveRelationshipCommittedCheckpointId(): Promise<string | null> {
+  private async resolveRelationshipCommittedCheckpoint(): Promise<{
+    checkpointId: string | null;
+    eventCursor: number;
+  }> {
     const workspace = await this.fetchWorkspace({
       includePolicies: false,
       limit: 1,
@@ -708,7 +668,10 @@ export class AffiliateSession {
     const relationship = workspace?.creatorRelations?.find(
       item => item.id === this.affiliateContext.creatorRelationshipId,
     );
-    return normalizeCheckpointId(relationship?.committedCheckpointId);
+    return {
+      checkpointId: normalizeCheckpointId(relationship?.committedCheckpointId),
+      eventCursor: relationship?.committedEventCursor ?? 0,
+    };
   }
 
   private async completeWorkItemIfUnresolved(runId: string, workItem: GQL.AffiliateWorkItem): Promise<void> {
@@ -733,6 +696,10 @@ export class AffiliateSession {
           input: {
             creatorRelationshipId: workItem.creatorRelationshipId,
             handledSignalAt: workItemBoundaryAt(workItem),
+            baseCheckpointId: this.runCheckpoints.get(runId)?.baseCheckpointId ?? null,
+            baseEventCursor: this.runCheckpoints.get(runId)?.baseEventCursor ?? 0,
+            candidateCheckpointId: this.runCheckpoints.get(runId)?.candidateCheckpointId,
+            targetEventCursor: this.runCheckpoints.get(runId)?.targetEventCursor ?? 0,
             decision: "FAILED_OR_INCOMPLETE",
             operatorSummary: `Agent run ${runId} completed without a structured affiliate_resolve_work_item decision.`,
           },
@@ -883,6 +850,52 @@ export class AffiliateSession {
     } catch (err) {
       log.warn(
         `Failed to fetch affiliate relationship history for ${this.affiliateContext.creatorRelationshipId}: ${String(err)}`,
+      );
+      return null;
+    }
+  }
+
+  private async fetchDispatchContext(input: {
+    workItem: GQL.AffiliateWorkItem;
+    baseCheckpointId: string | null;
+    baseEventCursor: number;
+  }): Promise<GQL.AffiliateContextBuilderPayload | null> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      log.warn("No auth session available, cannot build affiliate dispatch context");
+      return null;
+    }
+    try {
+      const result = await authSession.graphqlFetch<AffiliateContextBuilderQueryResult>(
+        AFFILIATE_CONTEXT_BUILDER_QUERY,
+        {
+          input: {
+            shopId: input.workItem.focusShopId,
+            creatorRelationshipId: input.workItem.creatorRelationshipId,
+            baseCheckpointId: input.baseCheckpointId,
+            baseEventCursor: input.baseEventCursor,
+            limit: 1000,
+          },
+        },
+      );
+      const context = result.affiliateContextBuilder;
+      if (!context.baseMatchesCommitted) {
+        log.warn(
+          `Affiliate dispatch skipped because checkpoint/cursor base is stale: relationship=${input.workItem.creatorRelationshipId}`,
+        );
+        return null;
+      }
+      if (context.truncated) {
+        log.error(
+          `Affiliate dispatch skipped because event delta exceeds the safe context limit: relationship=${input.workItem.creatorRelationshipId}`,
+        );
+        return null;
+      }
+      return context;
+    } catch (err) {
+      log.error(
+        `Failed to build checkpoint-bound affiliate context for ${workItemSubjectLabel(input.workItem)}:`,
+        err,
       );
       return null;
     }
@@ -1092,19 +1105,6 @@ export class AffiliateSession {
   }
 }
 
-function buildSignalIdempotencyKey(platform: string, signal: AffiliateRelationshipSignalPayload): string {
-  const stableId = signal.messageId
-    ?? signal.platformApplicationId
-    ?? signal.platformTargetCollaborationId
-    ?? signal.platformFulfillmentId
-    ?? signal.creatorRelationshipId
-    ?? signal.collaborationRecordId
-    ?? signal.orderId
-    ?? signal.notificationId
-    ?? "unknown";
-  return `affiliate:${platform}:signal:${signal.type}:${stableId}:${signal.eventTime}`;
-}
-
 interface AffiliatePredictionDispatchContext {
   predictionSection?: string;
   predictionCacheIds?: readonly string[];
@@ -1187,8 +1187,45 @@ function isCreatorFollowUpWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   );
 }
 
-function isOkPredictionStatus(status: unknown): boolean {
-  return String(status ?? "").toUpperCase() === "OK";
+function renderAffiliateDispatchContext(context: GQL.AffiliateContextBuilderPayload): string {
+  const events = (context.events ?? []).map((event, index) => {
+    const lifecycle = event.lifecycleEvent;
+    return [
+      `${index + 1}. cursor=${lifecycle?.relationshipSequence ?? "?"} type=${lifecycle?.eventType ?? event.type}`,
+      `   occurredAt=${event.occurredAt} actor=${event.actorRole ?? "UNKNOWN"}`,
+      `   summary=${event.summary}`,
+      ...(lifecycle?.displayPayloadJson
+        ? [`   payload=${lifecycle.displayPayloadJson}`]
+        : []),
+      `   refs=${JSON.stringify(event.relatedIds ?? {})}`,
+    ].join("\n");
+  });
+  const workspace = context.workspace;
+  const currentSnapshot = {
+    agendaItems: context.creatorRelationship.agendaItems ?? [],
+    workSummary: context.creatorRelationship.workSummary ?? null,
+    collaborations: workspace.collaborationRecords ?? [],
+    sampleApplications: workspace.sampleApplicationRecords ?? [],
+    pendingProposals: (workspace.actionProposals ?? []).filter(
+      (proposal) => proposal.status === GQL.ActionProposalStatus.Pending,
+    ),
+    creatorProfiles: workspace.creatorProfiles ?? [],
+  };
+  return [
+    "[Affiliate Checkpoint-Bound Operational Context]",
+    `Creator Relationship ID: ${context.creatorRelationship.id}`,
+    `Base Checkpoint ID: ${context.baseCheckpointId ?? "(brand new session)"}`,
+    `Base Event Cursor: ${context.baseEventCursor}`,
+    `Target Event Cursor: ${context.targetEventCursor}`,
+    "",
+    "## Events Not Present In The Restored Checkpoint",
+    ...(events.length ? events : ["(No new lifecycle events.)"]),
+    "",
+    "## Current Workspace Snapshot",
+    JSON.stringify(currentSnapshot, null, 2),
+    "",
+    "Use the event delta as the authoritative account of what changed after the restored checkpoint. Use the current snapshot for present facts. Resolve all simultaneously open agenda items that can be handled safely in one ordered action bundle.",
+  ].join("\n");
 }
 
 function renderExpectedSalesPredictionSnapshotSection(
@@ -1230,31 +1267,6 @@ function renderPredictionPlainMeaning(expectedSalesUnits: number | null | undefi
 function numberFromUnknown(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   return null;
-}
-
-function isAffiliateMessageSignal(type: AffiliateRelationshipSignalPayload["type"]): boolean {
-  return type === "AFFILIATE_RELATIONSHIP_MESSAGE_OBSERVED";
-}
-
-function signalCreatorRelationshipId(signal: AffiliateRelationshipSignalPayload): string | undefined {
-  const value = signal.creatorRelationshipId;
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function directSignalPreferredChannel(
-  signal: AffiliateRelationshipSignalPayload,
-): GQL.AffiliateMessageChannel | undefined {
-  const channel = signal.channel;
-  switch (channel) {
-    case GQL.AffiliateMessageChannel.Email:
-      return GQL.AffiliateMessageChannel.Email;
-    case GQL.AffiliateMessageChannel.Whatsapp:
-      return GQL.AffiliateMessageChannel.Whatsapp;
-    case GQL.AffiliateMessageChannel.PlatformChat:
-      return GQL.AffiliateMessageChannel.PlatformChat;
-    default:
-      return undefined;
-  }
 }
 
 function sanitizeCreatorOutreachText(text: string): string {

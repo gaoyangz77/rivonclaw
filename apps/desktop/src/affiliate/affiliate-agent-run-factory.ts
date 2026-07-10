@@ -492,13 +492,12 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
     "",
     "## Creator Relationship",
     `- Workspace Relationship ID: ${workItem.creatorRelationshipId}`,
-    `- Status: ${relationship?.processingStatus ?? workItem.processingStatus}`,
-    `- Required Action: ${relationship?.requiredAction ?? workItem.requiredAction}`,
-    `- Process Reasons: ${((relationship?.processReasons ?? workItem.processReasons) ?? []).join(", ") || "(none)"}`,
+    `- Open Agenda Items: ${JSON.stringify(relationship?.agendaItems ?? [])}`,
+    `- Work Summary: ${JSON.stringify(relationship?.workSummary ?? null)}`,
     `- Last Inbound At: ${relationship?.lastInboundAt ?? collaboration?.lastCreatorMessageAt ?? ""}`,
     `- Last Outbound At: ${relationship?.lastOutboundAt ?? ""}`,
     `- Last Agent Handled At: ${relationship?.lastAgentHandledAt ?? ""}`,
-    `- Next Seller Action At: ${relationship?.nextSellerActionAt ?? collaboration?.nextSellerActionAt ?? ""}`,
+    `- Next Seller Action At: ${relationship?.workSummary?.nextActionAt ?? collaboration?.nextSellerActionAt ?? ""}`,
     `- Active Collaboration IDs: ${activeCollaborationIds.join(", ") || "(none)"}`,
     `- Pending Proposal ID: ${relationship?.pendingActionProposalId ?? ""}`,
     "",
@@ -548,7 +547,7 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
 function renderActionableDelta(workItem: GQL.AffiliateWorkItem): string[] {
   const sources = inferActionableDeltaSources(workItem);
   const boundary = workItemBoundaryAt(workItem) ?? "";
-  const nextSellerActionAt = workItem.creatorRelationship?.nextSellerActionAt ?? workItem.collaboration?.nextSellerActionAt ?? "";
+  const nextSellerActionAt = workItem.creatorRelationship?.workSummary?.nextActionAt ?? workItem.collaboration?.nextSellerActionAt ?? "";
   const lines = [
     `- Sources: ${sources.join(", ") || "STATE"}`,
     `- Boundary At: ${boundary}`,
