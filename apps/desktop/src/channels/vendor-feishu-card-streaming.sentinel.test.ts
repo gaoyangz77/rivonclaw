@@ -14,9 +14,10 @@ const PATCH_FILE = resolve(
 describe("vendor patch 0020: stable Feishu CardKit streaming", () => {
   const patch = readFileSync(PATCH_FILE, "utf8");
 
-  it("does not seed a permanent Thinking placeholder before CardKit updates", () => {
-    expect(patch).toContain('{ tag: "markdown", content: "", element_id: "content" }');
-    expect(patch).toContain("instead of a permanent Thinking card");
+  it("uses a transient Thinking placeholder on the same streaming card", () => {
+    expect(patch).toContain('const STREAMING_INITIAL_TEXT = "⏳ Thinking..."');
+    expect(patch).toContain("update replaces this transient placeholder on the same card");
+    expect(patch).toContain("starts one streaming card before the first model response");
   });
 
   it("tracks successful CardKit delivery and surfaces rejected updates", () => {
@@ -28,6 +29,12 @@ describe("vendor patch 0020: stable Feishu CardKit streaming", () => {
   it("keeps streaming active when OpenClaw does not queue a final payload", () => {
     expect(patch).toContain("partial-only runs that do not queue a final payload");
     expect(patch).toContain('update).toHaveBeenCalledWith("和最终正文")');
+  });
+
+  it("keeps Feishu group replies on the CardKit dispatcher", () => {
+    expect(patch).toContain('sourceReplyDeliveryMode: "automatic"');
+    expect(patch).toContain("instead of the group-chat default");
+    expect(patch).toContain("keeps source replies on the Feishu dispatcher for CardKit streaming");
   });
 
   it("records the upstream transport fixes that make the patch removable", () => {
