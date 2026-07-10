@@ -1031,7 +1031,8 @@ export const AffiliateDeliveryStatus = {
   Failed: 'FAILED',
   FallbackSent: 'FALLBACK_SENT',
   Queued: 'QUEUED',
-  Sent: 'SENT'
+  Sent: 'SENT',
+  Submitted: 'SUBMITTED'
 } as const;
 
 export type AffiliateDeliveryStatus = typeof AffiliateDeliveryStatus[keyof typeof AffiliateDeliveryStatus];
@@ -1327,6 +1328,9 @@ export type AffiliateMessageChannel = typeof AffiliateMessageChannel[keyof typeo
 /** Recorded delivery attempt for a creator-facing affiliate message. */
 export interface AffiliateMessageDelivery {
   actualChannel?: Maybe<AffiliateMessageChannel>;
+  baseCheckpointId?: Maybe<Scalars['String']['output']>;
+  baseEventCursor?: Maybe<Scalars['Int']['output']>;
+  candidateCheckpointId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
   creatorRelationshipId: Scalars['ID']['output'];
@@ -1342,6 +1346,7 @@ export interface AffiliateMessageDelivery {
   shopId?: Maybe<Scalars['ID']['output']>;
   source: AffiliateDeliverySource;
   status: AffiliateDeliveryStatus;
+  targetEventCursor?: Maybe<Scalars['Int']['output']>;
   text: Scalars['String']['output'];
   textHash: Scalars['String']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -6713,7 +6718,7 @@ export interface Query {
   affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
   /** Read merged relationship-level affiliate creator message history with channel labels. */
   affiliateCreatorMessageHistory: AffiliateCreatorMessageHistoryPayload;
-  /** Read stored WhatsApp messages for an affiliate creator relationship with channel labels and without raw provider route ids. */
+  /** Read WhatsApp messages on demand from the bound provider for an affiliate creator relationship. */
   affiliateCreatorWhatsAppMessages: Array<AffiliateCreatorMessageHistoryItem>;
   /** Read shop-scoped cooperation creators with profile, relation tags, latest collaboration, and attention context. */
   affiliateCreators: Array<AffiliateCreatorManagementItem>;
