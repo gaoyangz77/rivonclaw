@@ -213,6 +213,7 @@ global `EnvHttpProxyAgent` dispatcher set by EasyClaw's `proxy-setup.cjs`,
 so proxy/firewall configurations (including GFW bypass) are honored.
 
 **Upstream issues:**
+
 - openclaw/openclaw#64312 — guarded runtime fetch drops multipart FormData fields
 - openclaw/openclaw#64762 — SSRF guard pinned DNS corrupts FormData
 - openclaw/openclaw#64766 — incomplete fix (pinDns only)
@@ -252,6 +253,7 @@ Gemini, Groq, Volcengine, Brave, Perplexity). The warm-cache test was
 misleading — the bottleneck is CPU-bound provider discovery, not V8 compilation.
 
 **Upstream issues:**
+
 - openclaw/openclaw#62364 — slow startup with multiple providers
 - openclaw/openclaw#62051 — worker processes load all plugins
 
@@ -304,6 +306,7 @@ startup-pinned channel registry remains responsible for outbound adapter
 resolution.
 
 **Tests:**
+
 - `vendor/openclaw/src/plugins/tools.optional.test.ts`
 - `apps/desktop/src/gateway/vendor-channel-registry-pin.sentinel.test.ts`
 
@@ -349,6 +352,7 @@ relay route, upstream fetch behavior is preserved; on the CN relay route,
 resolver failures surface as explicit RivonClaw media-cache errors.
 
 **Tests:**
+
 - `vendor/openclaw/src/media/fetch.test.ts`
 - `apps/desktop/src/gateway/vendor-media-cache-proxy.sentinel.test.ts`
 
@@ -368,6 +372,7 @@ expose that field through the gateway protocol.
 clear it in the patch handler.
 
 **Tests:**
+
 - `vendor/openclaw/src/gateway/sessions-patch.test.ts`
 - `apps/desktop/src/cs-bridge/customer-service-bridge.test.ts`
 - `apps/desktop/src/cs-bridge/vendor-session-context-tokens.sentinel.test.ts`
@@ -396,6 +401,7 @@ consuming the provider request timeout budget, so a cold worker does not reach
 the image model with only a few seconds remaining.
 
 **Tests:**
+
 - `vendor/openclaw/src/media-understanding/image.test.ts`
 - `vendor/openclaw/src/agents/tools/image-tool.test.ts`
 - `apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts`
@@ -420,11 +426,34 @@ patch also keeps reasoning previews formatted while avoiding replaying prior
 reasoning text.
 
 **Tests:**
+
 - `vendor/openclaw/extensions/feishu/src/reply-dispatcher.test.ts`
 
 **Removal:** Drop when upstream OpenClaw's Feishu CardKit streaming adapter
 sends append-safe deltas, switches to a true replacement API, or otherwise
 avoids replaying full snapshots during streaming updates.
+
+### 0021 — Request full Feishu card content
+
+**File:** `0021-vendor-openclaw-request-full-Feishu-card-content.patch`
+
+**Why:** Feishu's message APIs return only a CardKit reference unless callers
+request `card_msg_content_type=user_card_content`. Without that parameter, an
+agent sees `[Interactive Card]` when a user quotes one of its streamed card
+replies instead of the quoted message body.
+
+**Change:** Request full user-visible card JSON when reading a single quoted
+message and when listing messages in a Feishu topic. Existing card parsing then
+extracts the actual markdown without any local content cache or rewriting.
+
+**Tests:**
+
+- `vendor/openclaw/extensions/feishu/src/send.test.ts`
+- `apps/desktop/src/channels/vendor-feishu-card-quote-content.sentinel.test.ts`
+
+**Removal:** Drop when the pinned OpenClaw version includes upstream commit
+`1db8ab3734221925ffe3af06a73d710fe8fdfdce` or an equivalent full-card message
+read.
 
 ## Dropped Patches
 
