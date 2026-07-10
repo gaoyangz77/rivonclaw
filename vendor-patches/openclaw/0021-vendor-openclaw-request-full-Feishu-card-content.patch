@@ -1,0 +1,73 @@
+From 58ab43b708077d5c01d640ef996ea8ba08021ee1 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Thu, 9 Jul 2026 20:56:06 -0700
+Subject: [PATCH 21/21] vendor(openclaw): request full Feishu card content
+
+Why:
+- The pinned Feishu adapter reads CardKit messages without card_msg_content_type=user_card_content, so replies quoting a streamed agent card receive only a card reference and degrade to [Interactive Card].
+
+Removal:
+- Drop when the pinned OpenClaw version includes upstream commit 1db8ab3734221925ffe3af06a73d710fe8fdfdce or an equivalent full-card message read.
+
+Tests:
+- extensions/feishu/src/send.test.ts
+- apps/desktop/src/channels/vendor-feishu-card-quote-content.sentinel.test.ts
+---
+ extensions/feishu/src/send.test.ts | 13 +++++++++++++
+ extensions/feishu/src/send.ts      |  2 ++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/extensions/feishu/src/send.test.ts b/extensions/feishu/src/send.test.ts
+index c6d3940bb1..6c837a2174 100644
+--- a/extensions/feishu/src/send.test.ts
++++ b/extensions/feishu/src/send.test.ts
+@@ -158,6 +158,10 @@ describe("getMessageFeishu", () => {
+       messageId: "om_1",
+     });
+ 
++    expect(mockClientGet).toHaveBeenCalledWith({
++      params: { card_msg_content_type: "user_card_content" },
++      path: { message_id: "om_1" },
++    });
+     expect(result).toEqual(
+       expect.objectContaining({
+         messageId: "om_1",
+@@ -404,6 +408,15 @@ describe("getMessageFeishu", () => {
+       rootMessageId: "om_root",
+     });
+ 
++    expect(mockClientList).toHaveBeenCalledWith({
++      params: {
++        container_id_type: "thread",
++        container_id: "omt_1",
++        sort_type: "ByCreateTimeDesc",
++        page_size: 21,
++        card_msg_content_type: "user_card_content",
++      },
++    });
+     expect(result).toEqual([
+       expect.objectContaining({
+         messageId: "om_file",
+diff --git a/extensions/feishu/src/send.ts b/extensions/feishu/src/send.ts
+index 293e34414d..2c1b7ec265 100644
+--- a/extensions/feishu/src/send.ts
++++ b/extensions/feishu/src/send.ts
+@@ -395,6 +395,7 @@ export async function getMessageFeishu(params: {
+ 
+   try {
+     const response = (await client.im.message.get({
++      params: { card_msg_content_type: "user_card_content" },
+       path: { message_id: messageId },
+     })) as FeishuGetMessageResponse;
+ 
+@@ -458,6 +459,7 @@ export async function listFeishuThreadMessages(params: {
+       // Results are reversed below to restore chronological order.
+       sort_type: "ByCreateTimeDesc",
+       page_size: Math.min(limit + 1, 50),
++      card_msg_content_type: "user_card_content",
+     },
+   })) as {
+     code?: number;
+-- 
+2.50.1 (Apple Git-155)
+
