@@ -469,6 +469,10 @@ unhandled `ENOENT` event from crashing the gateway.
 child process. This is a minimal backport of upstream OpenClaw #101392 and does
 not change process termination timing or fallback behavior.
 
+**Upstream status:** Already fixed by OpenClaw #101392 in commit
+`55fa22b482a7c6b8163f47590047c34b0dcd7382`. Deprecate this patch immediately
+after the pinned vendor includes that commit.
+
 **Tests:**
 
 - `vendor/openclaw/src/process/kill-tree.test.ts`
