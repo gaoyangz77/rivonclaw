@@ -26,6 +26,12 @@ interface GraphqlFetchOptions {
   clearOnInvalidRefresh?: boolean;
 }
 
+export interface GraphqlResponseEnvelope<T> {
+  data?: T | null;
+  errors?: Array<{ message: string }>;
+  extensions?: Record<string, unknown>;
+}
+
 function isRecoverableAuthErrorMessage(message: string): boolean {
   return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
 }
@@ -227,6 +233,20 @@ export class AuthSessionManager {
     variables?: Record<string, unknown>,
     options?: GraphqlFetchOptions,
   ): Promise<T> {
+    const json = await this.graphqlFetchEnvelope<T>(query, variables, undefined, options);
+    if (!json.data) {
+      throw new Error("No data returned from cloud GraphQL");
+    }
+    return json.data;
+  }
+
+  /** GraphQL request that preserves top-level extensions for agent tool jobs. */
+  async graphqlFetchEnvelope<T = unknown>(
+    query: string,
+    variables?: Record<string, unknown>,
+    requestExtensions?: Record<string, unknown>,
+    options?: GraphqlFetchOptions,
+  ): Promise<GraphqlResponseEnvelope<T>> {
     const url = getGraphqlUrl(this.locale);
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     const autoRefresh = options?.autoRefresh !== false;
@@ -238,7 +258,7 @@ export class AuthSessionManager {
     const doFetch = () => this.fetchFn(url, {
       method: "POST",
       headers,
-      body: JSON.stringify({ query, variables }),
+      body: JSON.stringify({ query, variables, extensions: requestExtensions }),
     });
 
     let res = await doFetch();
@@ -250,7 +270,7 @@ export class AuthSessionManager {
       res = await doFetch();
     }
 
-    let json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
+    let json = await res.json() as GraphqlResponseEnvelope<T>;
 
     // Some servers return auth errors as GraphQL errors (HTTP 200) rather than HTTP 401.
     // Attempt a token refresh if we haven't already.
@@ -259,7 +279,7 @@ export class AuthSessionManager {
       if (isRecoverableAuthErrorMessage(msg)) {
         headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: clearOnInvalidRefresh })}`;
         res = await doFetch();
-        json = await res.json() as { data?: T; errors?: Array<{ message: string }> };
+        json = await res.json() as GraphqlResponseEnvelope<T>;
       }
     }
 
@@ -270,9 +290,6 @@ export class AuthSessionManager {
       }
       throw new Error(msg);
     }
-    if (!json.data) {
-      throw new Error("No data returned from cloud GraphQL");
-    }
-    return json.data;
+    return json;
   }
 }

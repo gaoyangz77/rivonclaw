@@ -9,14 +9,23 @@ function getPanelUrl(): string {
 export async function extensionGraphqlFetch<T>(
   query: string,
   variables?: Record<string, unknown>,
-): Promise<{ data?: T | null; errors?: Array<{ message: string }> }> {
+  extensions?: Record<string, unknown>,
+): Promise<{
+  data?: T | null;
+  errors?: Array<{ message: string }>;
+  extensions?: Record<string, unknown>;
+}> {
   const res = await fetch(`${getPanelUrl()}${DEFAULTS.api.cloudGraphql}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Request-Source": "extension" },
-    body: JSON.stringify({ query, variables }),
+    body: JSON.stringify({ query, variables, extensions }),
   });
   if (!res.ok) throw new Error(`GraphQL HTTP error: ${res.status} ${res.statusText}`);
-  return res.json() as Promise<{ data?: T | null; errors?: Array<{ message: string }> }>;
+  return res.json() as Promise<{
+    data?: T | null;
+    errors?: Array<{ message: string }>;
+    extensions?: Record<string, unknown>;
+  }>;
 }
 
 /**

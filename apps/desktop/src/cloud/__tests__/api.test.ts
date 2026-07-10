@@ -130,6 +130,52 @@ describe("cloud-graphql handler", () => {
     expect(res._body).toEqual({ errors: [{ message: "Missing query" }] });
   });
 
+  it("whitelists persistentResult extensions and preserves the backend envelope for tools", async () => {
+    const envelope = {
+      data: null,
+      extensions: {
+        persistentResult: { jobId: "job-1", status: "QUEUED", pollAfterMs: 1000 },
+      },
+    };
+    const graphqlFetchEnvelope = vi.fn().mockResolvedValue(envelope);
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetchEnvelope,
+      },
+    } as unknown as ApiContext;
+
+    const { res } = await dispatch(
+      "POST",
+      pathname,
+      ctx,
+      {
+        query: "query GetData { getData { id } }",
+        variables: { id: "1" },
+        extensions: {
+          rivonclaw: {
+            persistResult: true,
+            toolId: "ECOM_GET_BI_DATA",
+            ignored: "not-forwarded",
+          },
+        },
+      },
+      { "x-request-source": "extension" },
+    );
+
+    expect(graphqlFetchEnvelope).toHaveBeenCalledWith(
+      "query GetData { getData { id } }",
+      { id: "1" },
+      {
+        rivonclaw: {
+          persistResult: true,
+          toolId: "ECOM_GET_BI_DATA",
+        },
+      },
+    );
+    expect(res._body).toEqual(envelope);
+  });
+
   it("forwards public queries without token (transparent proxy)", async () => {
     const mockData = { skills: [{ slug: "1password" }] };
     const ctx = {
