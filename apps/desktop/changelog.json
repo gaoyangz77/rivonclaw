@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.60",
+    "date": "2026-07-09",
+    "en": [
+      "Preserve quoted Feishu card content during message updates",
+      "Clarify agent shop blank-field documentation"
+    ],
+    "zh": [
+      "在消息更新时保留飞书引用卡片内容",
+      "完善 agent 店铺空字段文档说明"
+    ]
+  },
+  {
     "version": "1.8.59",
     "date": "2026-07-09",
     "en": [
