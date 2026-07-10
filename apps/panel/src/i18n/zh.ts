@@ -30,6 +30,8 @@ export default {
     website: "官网",
     refresh: "刷新",
     currencySymbol: "$",
+    cloudToolsUnavailableTitle: "云端工具库不可用",
+    cloudToolsUnavailableBody: "云端工具及相关 Agent 能力暂时不可用，请检查网络连接后稍后重试。",
   },
   authGate: {
     loginRequired: "需要登录",

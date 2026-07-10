@@ -36,7 +36,6 @@ describe("agent tooling readiness", () => {
 
     configureAgentToolingReadiness({
       getRpc: () => rpc,
-      isAuthenticated: () => true,
       initializeToolCapability,
       retryDelayMs: 0,
       sleep: vi.fn(async () => undefined),
@@ -71,7 +70,6 @@ describe("agent tooling readiness", () => {
 
     configureAgentToolingReadiness({
       getRpc: () => rpc,
-      isAuthenticated: () => true,
       initializeToolCapability,
       retryDelayMs: 0,
       sleep: vi.fn(async () => undefined),
@@ -84,5 +82,49 @@ describe("agent tooling readiness", () => {
 
     expect(initializeToolCapability).toHaveBeenCalledTimes(2);
     expect(request).toHaveBeenCalledTimes(4);
+  });
+
+  it("keeps tooling unavailable after a failed gate and recovers on a later attempt", async () => {
+    let ready = false;
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) {
+        return ready ? { ready: true, toolCount: 1 } : { ready: false, toolCount: 0 };
+      }
+      return {
+        groups: [{
+          tools: ready
+            ? [
+                { id: "read", source: "core" },
+                { id: "ecom_find_orders", source: "plugin", pluginId: CLOUD_TOOLS_PLUGIN_ID },
+              ]
+            : [{ id: "read", source: "core" }],
+        }],
+      };
+    });
+    const rpc: RpcClientLike = { request: request as RpcClientLike["request"] };
+    const initializeToolCapability = vi.fn();
+    const setCloudToolsStatus = vi.fn();
+
+    configureAgentToolingReadiness({
+      getRpc: () => rpc,
+      initializeToolCapability,
+      setCloudToolsStatus,
+      maxAttempts: 1,
+      retryDelayMs: 0,
+      sleep: vi.fn(async () => undefined),
+    });
+
+    await expect(ensureAgentToolingReady()).rejects.toThrow("was not ready");
+    expect(initializeToolCapability).not.toHaveBeenCalled();
+    expect(setCloudToolsStatus).toHaveBeenLastCalledWith(
+      "unavailable",
+      expect.stringContaining("was not ready"),
+    );
+
+    ready = true;
+    await ensureAgentToolingReady();
+
+    expect(initializeToolCapability).toHaveBeenCalledOnce();
+    expect(setCloudToolsStatus).toHaveBeenLastCalledWith("ready");
   });
 });

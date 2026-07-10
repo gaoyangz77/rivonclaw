@@ -26,7 +26,9 @@ export default {
     "language": "Sprache",
     "help": "Hilfe",
     "refresh": "Aktualisieren",
-    "currencySymbol": "$"
+    "currencySymbol": "$",
+    "cloudToolsUnavailableTitle": "Cloud-Tools nicht verfügbar",
+    "cloudToolsUnavailableBody": "Cloud-Tools und zugehörige Agent-Funktionen sind vorübergehend nicht verfügbar. Prüfen Sie Ihre Verbindung und versuchen Sie es später erneut."
   },
   "authGate": {
     "loginRequired": "Anmeldung erforderlich",

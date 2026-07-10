@@ -37,4 +37,22 @@ describe("cloud-tools-runtime", () => {
 
     expect(result).toEqual({ ok: false, error });
   });
+
+  it("pushes an empty ToolSpecs snapshot as a valid signed-out initialization", async () => {
+    const request = vi.fn(async () => ({ ready: true, toolCount: 0 }));
+
+    const result = await reloadCloudToolsFromSpecs({
+      rpc: { request },
+      toolSpecs: [],
+      revision: "empty",
+      digest: "empty",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(request).toHaveBeenCalledWith(CLOUD_TOOLS_RELOAD_METHOD, {
+      toolSpecs: [],
+      revision: "empty",
+      digest: "empty",
+    });
+  });
 });

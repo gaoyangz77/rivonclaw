@@ -52,6 +52,7 @@ import { allKeysToMstSnapshots, toMstSnapshot } from "../providers/provider-key-
 import { syncActiveKey } from "../providers/provider-validator.js";
 import { reaction } from "mobx";
 import { rootStore, initLLMProviderManagerEnv, initChannelManagerEnv } from "./store/desktop-store.js";
+import { runtimeStatusStore } from "./store/runtime-status-store.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
 import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
@@ -235,9 +236,11 @@ app.whenReady().then(async () => {
 
   configureAgentToolingReadiness({
     getRpc: () => openClawConnector.ensureRpcReady(),
-    isAuthenticated: () => Boolean(authSession.getAccessToken()),
     initializeToolCapability: (catalogTools) => {
       rootStore.toolCapability.init(catalogTools, OUR_PLUGIN_IDS);
+    },
+    setCloudToolsStatus: (state, error) => {
+      runtimeStatusStore.setCloudToolsStatus(state, error);
     },
     logger: log,
   });
@@ -670,16 +673,19 @@ app.whenReady().then(async () => {
   }
 
   async function pushCurrentCloudToolsToGateway(rpc = openClawConnector.ensureRpcReady()): Promise<void> {
-    if (!authSession.getAccessToken()) return;
     const toolSpecs = getEntitledToolSpecsSnapshot();
-    if (toolSpecs.length === 0) return;
     const digest = computeToolSpecsDigest(toolSpecs);
-    await reloadCloudToolsFromSpecs({
+    const result = await reloadCloudToolsFromSpecs({
       rpc,
       toolSpecs,
       revision: digest,
       digest,
     });
+    if (!result.ok) {
+      throw result.error instanceof Error
+        ? result.error
+        : new Error("Cloud tools plugin rejected the ToolSpecs snapshot");
+    }
   }
 
   let toolSpecsRefreshQueue: Promise<void> = Promise.resolve();
@@ -1805,7 +1811,6 @@ app.whenReady().then(async () => {
       }
       await runGatewayStartupCoordinator({
         rpc,
-        waitForCloudTools: Boolean(authSession.getAccessToken()),
         logger: log,
         ensureAgentToolingReady,
         tasks: [
@@ -1815,12 +1820,13 @@ app.whenReady().then(async () => {
           },
           {
             name: "cs-bridge",
-            requiresCloudTools: true,
             run: () => tryStartCsBridge(deviceId ?? "unknown", storage.settings.get("locale") ?? locale),
           },
         ],
       });
-    })();
+    })().catch((err: unknown) => {
+      log.error("Gateway startup blocked because agent tooling is unavailable:", err);
+    });
 
   });
 

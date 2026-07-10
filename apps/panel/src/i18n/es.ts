@@ -26,7 +26,9 @@ export default {
     "language": "Idioma",
     "help": "Ayuda",
     "refresh": "Actualizar",
-    "currencySymbol": "$"
+    "currencySymbol": "$",
+    "cloudToolsUnavailableTitle": "Herramientas en la nube no disponibles",
+    "cloudToolsUnavailableBody": "Las herramientas en la nube y las funciones relacionadas del agente no están disponibles temporalmente. Comprueba tu conexión e inténtalo de nuevo más tarde."
   },
   "authGate": {
     "loginRequired": "Iniciar sesión requerido",

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  CloudToolsNotReadyError,
   CLOUD_TOOLS_PLUGIN_ID,
   CLOUD_TOOLS_STATUS_METHOD,
   loadGatewayToolCatalogTools,
@@ -41,7 +42,7 @@ describe("loadGatewayToolCatalogTools", () => {
       sleep,
     });
 
-    expect(request).toHaveBeenCalledTimes(3);
+    expect(request).toHaveBeenCalledTimes(4);
     expect(sleep).toHaveBeenCalledTimes(1);
     expect(tools).toEqual([
       { id: "read", source: "core" },
@@ -90,42 +91,80 @@ describe("loadGatewayToolCatalogTools", () => {
     });
   });
 
-  it("returns the final catalog after cloud tools never appear", async () => {
-    const request = vi.fn().mockResolvedValue({
-      groups: [{ tools: [{ id: "read", source: "core" }] }],
+  it("rejects instead of returning an incomplete catalog", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: false, toolCount: 0 };
+      return {
+        groups: [{ tools: [{ id: "read", source: "core" }] }],
+      };
     });
     const rpc: RpcClientLike = {
       request: request as RpcClientLike["request"],
     };
     const logger = { info: vi.fn(), warn: vi.fn() };
 
-    const tools = await loadGatewayToolCatalogTools(rpc, {
-      logger,
-      maxAttempts: 2,
-      retryDelayMs: 0,
-      sleep: vi.fn(async () => undefined),
-    });
+    await expect(
+      loadGatewayToolCatalogTools(rpc, {
+        logger,
+        maxAttempts: 2,
+        retryDelayMs: 0,
+        sleep: vi.fn(async () => undefined),
+      }),
+    ).rejects.toBeInstanceOf(CloudToolsNotReadyError);
 
-    expect(request).toHaveBeenCalledTimes(2);
-    expect(tools).toEqual([{ id: "read", source: "core" }]);
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("were not ready"));
+    expect(request).toHaveBeenCalledTimes(4);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("refusing to initialize ToolCapability"),
+      expect.any(CloudToolsNotReadyError),
+    );
   });
 
-  it("does not wait for cloud tools when disabled", async () => {
-    const request = vi.fn().mockResolvedValue({
-      groups: [{ tools: [{ id: "read", source: "core" }] }],
+  it("accepts a ready empty ToolSpecs snapshot while signed out", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: true, toolCount: 0 };
+      return {
+        groups: [{ tools: [{ id: "read", source: "core" }] }],
+      };
     });
     const rpc: RpcClientLike = {
       request: request as RpcClientLike["request"],
     };
 
     const tools = await loadGatewayToolCatalogTools(rpc, {
-      waitForCloudTools: false,
       maxAttempts: 3,
       sleep: vi.fn(async () => undefined),
     });
 
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(2);
     expect(tools).toEqual([{ id: "read", source: "core" }]);
+  });
+
+  it("waits until the plugin and catalog tool counts match", async () => {
+    const catalogResponses = [
+      { groups: [{ tools: [{ id: "read", source: "core" }] }] },
+      {
+        groups: [{
+          tools: [
+            { id: "read", source: "core" },
+            { id: "ecom_find_orders", source: "plugin", pluginId: CLOUD_TOOLS_PLUGIN_ID },
+          ],
+        }],
+      },
+    ];
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: true, toolCount: 1 };
+      return catalogResponses.shift();
+    });
+    const rpc: RpcClientLike = { request: request as RpcClientLike["request"] };
+    const sleep = vi.fn(async () => undefined);
+
+    const tools = await loadGatewayToolCatalogTools(rpc, {
+      maxAttempts: 2,
+      retryDelayMs: 0,
+      sleep,
+    });
+
+    expect(sleep).toHaveBeenCalledOnce();
+    expect(tools).toHaveLength(2);
   });
 });

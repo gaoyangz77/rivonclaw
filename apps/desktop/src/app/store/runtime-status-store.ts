@@ -79,6 +79,10 @@ export const DesktopRuntimeStatusModel = RuntimeStatusStoreModel.actions((self) 
     self.csBridge.state = "reconnecting";
     self.csBridge.reconnectAttempt = attempt;
   },
+  setCloudToolsStatus(state: "checking" | "ready" | "unavailable", error?: string) {
+    self.cloudTools.state = state;
+    self.cloudTools.lastError = state === "unavailable" ? error ?? "" : "";
+  },
   setDeviceId(id: string) {
     self.deviceId = id;
   },

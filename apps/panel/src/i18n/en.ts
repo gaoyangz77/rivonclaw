@@ -30,6 +30,8 @@ export default {
     website: "Website",
     refresh: "Refresh",
     currencySymbol: "$",
+    cloudToolsUnavailableTitle: "Cloud tools unavailable",
+    cloudToolsUnavailableBody: "Cloud tools and related agent capabilities are temporarily unavailable. Check your connection and try again shortly.",
   },
   authGate: {
     loginRequired: "Login Required",

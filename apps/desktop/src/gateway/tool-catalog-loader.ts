@@ -29,13 +29,26 @@ type CloudToolsStatus = {
   toolCount?: unknown;
 };
 
+export class CloudToolsNotReadyError extends Error {
+  constructor(
+    readonly attempts: number,
+    readonly pluginToolCount: number,
+    readonly catalogToolCount: number,
+  ) {
+    super(
+      `Gateway ${CLOUD_TOOLS_PLUGIN_ID} was not ready after ${attempts} attempt(s) ` +
+        `(plugin=${pluginToolCount}, catalog=${catalogToolCount})`,
+    );
+    this.name = "CloudToolsNotReadyError";
+  }
+}
+
 type LoggerLike = {
   info(message: string): void;
   warn(message: string, err?: unknown): void;
 };
 
 export type LoadGatewayToolCatalogOptions = {
-  waitForCloudTools?: boolean;
   maxAttempts?: number;
   retryDelayMs?: number;
   logger?: LoggerLike;
@@ -46,7 +59,6 @@ export async function loadGatewayToolCatalogTools(
   rpc: RpcClientLike,
   options: LoadGatewayToolCatalogOptions = {},
 ): Promise<GatewayCatalogTool[]> {
-  const waitForCloudTools = options.waitForCloudTools ?? true;
   const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_CLOUD_TOOLS_CATALOG_ATTEMPTS);
   const retryDelayMs = Math.max(0, options.retryDelayMs ?? DEFAULT_CLOUD_TOOLS_CATALOG_RETRY_MS);
   const sleep = options.sleep ?? defaultSleep;
@@ -56,41 +68,41 @@ export async function loadGatewayToolCatalogTools(
       await rpc.request<GatewayCatalog>("tools.catalog", { includePlugins: true }),
     );
 
-    if (!waitForCloudTools) return tools;
+    const status = await getCloudToolsStatus(rpc);
+    const catalogToolCount = countCloudTools(tools);
+    if (status.ready && status.toolCount === catalogToolCount) {
+      if (attempt > 1) {
+        options.logger?.info(`Cloud tools became ready after ${attempt} attempt(s)`);
+      }
+      return tools;
+    }
 
-    if (hasCloudTools(tools)) {
-      const status = await getCloudToolsStatus(rpc);
-      if (status.ready) {
-        if (attempt > 1) {
-          options.logger?.info(`Cloud tools became ready after ${attempt} attempt(s)`);
-        }
-        return tools;
-      }
-
-      if (attempt < maxAttempts) {
-        options.logger?.info(
-          `Gateway tools.catalog includes ${CLOUD_TOOLS_PLUGIN_ID}, but ToolSpecs are not ready yet; retrying (${attempt}/${maxAttempts})`,
-        );
-      }
-    } else {
-      if (attempt < maxAttempts) {
-        options.logger?.info(
-          `Gateway tools.catalog does not include ${CLOUD_TOOLS_PLUGIN_ID} yet; retrying (${attempt}/${maxAttempts})`,
-        );
-      }
+    if (attempt < maxAttempts) {
+      options.logger?.info(
+        status.ready
+          ? `Gateway ${CLOUD_TOOLS_PLUGIN_ID} catalog is not synchronized yet ` +
+              `(plugin=${status.toolCount}, catalog=${catalogToolCount}); retrying (${attempt}/${maxAttempts})`
+          : `Gateway ${CLOUD_TOOLS_PLUGIN_ID} has not received ToolSpecs yet; retrying (${attempt}/${maxAttempts})`,
+      );
     }
 
     if (attempt === maxAttempts) {
-      options.logger?.warn(
-        `Gateway ${CLOUD_TOOLS_PLUGIN_ID} tools were not ready after ${maxAttempts} attempt(s); initializing ToolCapability with the latest catalog`,
+      const error = new CloudToolsNotReadyError(
+        maxAttempts,
+        status.toolCount,
+        catalogToolCount,
       );
-      return tools;
+      options.logger?.warn(
+        `${error.message}; refusing to initialize ToolCapability with an incomplete catalog`,
+        error,
+      );
+      throw error;
     }
 
     await sleep(retryDelayMs);
   }
 
-  return [];
+  throw new CloudToolsNotReadyError(maxAttempts, 0, 0);
 }
 
 function flattenGatewayCatalog(catalog: GatewayCatalog): GatewayCatalogTool[] {
@@ -109,8 +121,10 @@ function flattenGatewayCatalog(catalog: GatewayCatalog): GatewayCatalogTool[] {
   return tools;
 }
 
-function hasCloudTools(tools: readonly GatewayCatalogTool[]): boolean {
-  return tools.some((tool) => tool.source === "plugin" && tool.pluginId === CLOUD_TOOLS_PLUGIN_ID);
+function countCloudTools(tools: readonly GatewayCatalogTool[]): number {
+  return tools.filter(
+    (tool) => tool.source === "plugin" && tool.pluginId === CLOUD_TOOLS_PLUGIN_ID,
+  ).length;
 }
 
 async function getCloudToolsStatus(

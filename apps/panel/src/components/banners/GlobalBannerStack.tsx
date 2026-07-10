@@ -6,6 +6,7 @@ import { useToast } from "../Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
 import { CloudLlmQuotaBanner } from "./CloudLlmQuotaBanner.js";
+import { CloudToolsBanner } from "./CloudToolsBanner.js";
 import {
   CustomerServiceBridgeBanner,
   CustomerServiceRoutingBanner,
@@ -73,6 +74,7 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
     <>
       <UpdateBanner onCurrentVersionChange={onCurrentVersionChange} />
       <CloudLlmQuotaBanner onNavigate={onNavigate} />
+      <CloudToolsBanner state={runtimeStatus.cloudTools.state} />
       <LlmUnavailableBanner show={showLlmUnavailableBanner} />
       <CustomerServiceBridgeBanner
         show={showCsBridgeBanner}
