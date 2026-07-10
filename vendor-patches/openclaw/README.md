@@ -455,6 +455,29 @@ extracts the actual markdown without any local content cache or rewriting.
 `1db8ab3734221925ffe3af06a73d710fe8fdfdce` or an equivalent full-card message
 read.
 
+### 0022 — Handle asynchronous `taskkill` spawn errors
+
+**File:** `0022-vendor-openclaw-handle-taskkill-spawn-errors.patch`
+
+**Why:** On Windows, OpenClaw terminates `exec` and other managed child
+processes with `taskkill`. Some packaged runtime environments do not expose
+`taskkill.exe` through `PATH`; Node reports that failure asynchronously on the
+spawned ChildProcess, so the existing synchronous `try/catch` cannot stop the
+unhandled `ENOENT` event from crashing the gateway.
+
+**Change:** Attach a one-shot `error` listener to the best-effort `taskkill`
+child process. This is a minimal backport of upstream OpenClaw #101392 and does
+not change process termination timing or fallback behavior.
+
+**Tests:**
+
+- `vendor/openclaw/src/process/kill-tree.test.ts`
+- `apps/desktop/src/gateway/vendor-taskkill-spawn-error.sentinel.test.ts`
+
+**Removal:** Drop when the pinned OpenClaw version includes upstream commit
+`55fa22b482a7c6b8163f47590047c34b0dcd7382` or an equivalent asynchronous
+`taskkill` error handler.
+
 ## Dropped Patches
 
 ### (Dropped in v2026.4.9 upgrade) Respect `ask=off` for obfuscation-triggered approvals
