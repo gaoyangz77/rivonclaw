@@ -257,6 +257,9 @@ importers:
       '@rivonclaw/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
+      adm-zip:
+        specifier: ^0.5.16
+        version: 0.5.16
     devDependencies:
       '@rivonclaw/core':
         specifier: workspace:*
@@ -264,6 +267,9 @@ importers:
       '@sinclair/typebox':
         specifier: ^0.34.0
         version: 0.34.48
+      '@types/adm-zip':
+        specifier: ^0.5.7
+        version: 0.5.7
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.9

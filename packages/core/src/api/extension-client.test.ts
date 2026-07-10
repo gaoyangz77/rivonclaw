@@ -51,6 +51,25 @@ describe("extensionGraphqlFetch", () => {
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
     expect(body).toEqual({ query: "query { hello }" });
   });
+
+  it("forwards GraphQL request extensions for remote persistent results", async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: null, extensions: { persistentResult: { jobId: "job-1" } } }),
+    });
+
+    const extensions = {
+      rivonclaw: { persistResult: true, toolId: "ECOM_GET_BI_DATA" },
+    };
+    const result = await extensionGraphqlFetch("query { hello }", { id: "1" }, extensions);
+
+    expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toEqual({
+      query: "query { hello }",
+      variables: { id: "1" },
+      extensions,
+    });
+    expect(result.extensions).toEqual({ persistentResult: { jobId: "job-1" } });
+  });
 });
 
 describe("extensionRestFetch", () => {

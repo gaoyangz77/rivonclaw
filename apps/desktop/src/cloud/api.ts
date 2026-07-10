@@ -641,7 +641,11 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     return;
   }
 
-  const body = (await parseBody(req)) as { query?: string; variables?: Record<string, unknown> };
+  const body = (await parseBody(req)) as {
+    query?: string;
+    variables?: Record<string, unknown>;
+    extensions?: { rivonclaw?: Record<string, unknown> };
+  };
   if (!body.query) {
     sendJson(res, 200, { errors: [{ message: "Missing query" }] });
     return;
@@ -686,11 +690,26 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   // Transparent proxy: always returns 200 with standard GraphQL response.
   try {
     await ensureAffiliateResolveCheckpointSnapshot(opName, body.query, variables);
-    const data = await ctx.authSession.graphqlFetch(body.query, variables);
+    const isExtension = req.headers["x-request-source"] === "extension";
+    const requestedPersistent = body.extensions?.rivonclaw;
+    const requestExtensions =
+      isExtension &&
+      requestedPersistent?.persistResult === true &&
+      typeof requestedPersistent.toolId === "string"
+        ? {
+            rivonclaw: {
+              persistResult: true,
+              toolId: requestedPersistent.toolId,
+            },
+          }
+        : undefined;
+    const envelope = isExtension
+      ? await ctx.authSession.graphqlFetchEnvelope(body.query, variables, requestExtensions)
+      : null;
+    const data = envelope ? envelope.data : await ctx.authSession.graphqlFetch(body.query, variables);
 
     // Only ingest Panel responses into MST. Extension (agent tool) responses
     // return partial entities that would overwrite complete store data.
-    const isExtension = req.headers["x-request-source"] === "extension";
     if (!isExtension) {
       rootStore.ingestGraphQLResponse(data as Record<string, unknown>);
     }
@@ -711,7 +730,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       runCloudLlmEntitlementSyncInBackground(ctx);
     }
 
-    sendJson(res, 200, { data });
+    sendJson(res, 200, envelope ?? { data });
   } catch (err) {
     // undici's "fetch failed" TypeError hides the real error in .cause
     const cause =

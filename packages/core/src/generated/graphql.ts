@@ -3737,6 +3737,7 @@ export const EcomBiDimension = {
   ShopAlias: 'SHOP_ALIAS',
   ShopId: 'SHOP_ID',
   ShopName: 'SHOP_NAME',
+  ShopOrderStatus: 'SHOP_ORDER_STATUS',
   ShopRegion: 'SHOP_REGION',
   SkuId: 'SKU_ID',
   SkuName: 'SKU_NAME',
@@ -3949,7 +3950,7 @@ export interface EcomBiOrderByInput {
   metric?: InputMaybe<EcomBiMetric>;
 }
 
-/** BI query pagination metadata for safe auto-pagination. */
+/** BI query pagination and result-size metadata. */
 export interface EcomBiPageInfo {
   /** Backend effective row page size after applying safety caps. */
   effectiveLimit: Scalars['Int']['output'];
@@ -3983,11 +3984,11 @@ export interface EcomBiQueryInput {
   filters?: InputMaybe<Array<EcomBiFilterInput>>;
   /** Date granularity. The current Ads GMV Max datasets support DAILY only. */
   granularity?: InputMaybe<EcomBiGranularity>;
-  /** Maximum rows requested from offset. Defaults to 500 for non-persisted calls. For normal analysis/report exports use persistResult=true and limit=0 to retrieve all rows from offset via auto-pagination; use a positive limit only for explicit sampling or capped exports. */
+  /** Maximum rows requested from offset. Defaults to 500 for inline calls. With persistResult=true, limit=0 asks the server to prepare one uncapped export; use a positive limit only for explicit sampling or capped exports. */
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** Metrics to return. Defaults are declared by dataset metadata. */
   metrics?: InputMaybe<Array<EcomBiMetric>>;
-  /** Rows to skip before returning data. For persisted exports this is the starting offset; the cloud tool continues from pageInfo.nextOffset. */
+  /** Rows to skip before returning data. For persisted exports this is the starting offset of the server-prepared result. */
   offset?: InputMaybe<Scalars['Int']['input']>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
@@ -6391,6 +6392,38 @@ export const PaymentStatus = {
 } as const;
 
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+export interface PersistentResultArtifact {
+  archiveSha256: Scalars['String']['output'];
+  compressedBytes: Scalars['Int']['output'];
+  contentType: Scalars['String']['output'];
+  entryName: Scalars['String']['output'];
+  fileName: Scalars['String']['output'];
+  jsonSha256: Scalars['String']['output'];
+  rootType: Scalars['String']['output'];
+  rowCount?: Maybe<Scalars['Int']['output']>;
+  schema: Scalars['String']['output'];
+  uncompressedBytes: Scalars['Int']['output'];
+  urlExpiresAt: Scalars['DateTimeISO']['output'];
+  zipUrl: Scalars['String']['output'];
+}
+
+export interface PersistentResultJobPayload {
+  artifact?: Maybe<PersistentResultArtifact>;
+  error?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  pollAfterMs: Scalars['Int']['output'];
+  status: PersistentResultJobStatus;
+}
+
+/** Lifecycle status of a remotely prepared persistent tool result */
+export const PersistentResultJobStatus = {
+  Completed: 'COMPLETED',
+  Failed: 'FAILED',
+  Queued: 'QUEUED',
+  Running: 'RUNNING'
+} as const;
+
+export type PersistentResultJobStatus = typeof PersistentResultJobStatus[keyof typeof PersistentResultJobStatus];
 export interface Plan {
   currency: Scalars['String']['output'];
   planDetail: Array<PlanDetail>;
@@ -6830,6 +6863,8 @@ export interface Query {
   microsoftGraphConnectorStatus: MicrosoftGraphConnectorStatus;
   /** Get PWA install URL (base URL without pairing code) */
   mobileInstallUrl: Scalars['String']['output'];
+  /** Poll an authenticated user's remote persistent-result preparation job. */
+  persistentResultJob: PersistentResultJobPayload;
   /** List all active platform app secrets (admin-only, for relay startup) */
   platformAppSecrets: Array<PlatformAppSecretResult>;
   /** List active PlatformApps (for OAuth target selection) */
@@ -7307,6 +7342,11 @@ export interface QueryEmailAccountBindingsArgs {
 
 export interface QueryGetEcommerceBiDataArgs {
   input: EcomBiQueryInput;
+}
+
+
+export interface QueryPersistentResultJobArgs {
+  id: Scalars['ID']['input'];
 }
 
 
