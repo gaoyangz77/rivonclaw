@@ -10,6 +10,14 @@ export const CsBridgeStatusModel = types.model("CsBridgeStatus", {
   reconnectAttempt: types.optional(types.number, 0),
 });
 
+export const CloudToolsStatusModel = types.model("CloudToolsStatus", {
+  state: types.optional(
+    types.enumeration("CloudToolsState", ["checking", "ready", "unavailable"]),
+    "checking",
+  ),
+  lastError: types.optional(types.string, ""),
+});
+
 /**
  * Observable app settings — Desktop loads from storage on startup,
  * updates via MST actions on writes, and patches flow to Panel via SSE.
@@ -72,6 +80,7 @@ export const AppSettingsModel = types.model("AppSettings", {
 
 export const RuntimeStatusStoreModel = types.model("RuntimeStatusStore", {
   csBridge: types.optional(CsBridgeStatusModel, {}),
+  cloudTools: types.optional(CloudToolsStatusModel, {}),
   appSettings: types.optional(AppSettingsModel, {}),
   gatewayRpcConnected: types.optional(types.boolean, false),
   openClawConnector: types.optional(OpenClawConnectorModel, {}),
@@ -81,4 +90,5 @@ export const RuntimeStatusStoreModel = types.model("RuntimeStatusStore", {
 
 export interface AppSettings extends Instance<typeof AppSettingsModel> {}
 export interface CsBridgeStatus extends Instance<typeof CsBridgeStatusModel> {}
+export interface CloudToolsStatus extends Instance<typeof CloudToolsStatusModel> {}
 export interface RuntimeStatusStore extends Instance<typeof RuntimeStatusStoreModel> {}

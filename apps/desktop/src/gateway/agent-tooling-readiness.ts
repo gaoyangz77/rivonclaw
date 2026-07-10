@@ -17,8 +17,8 @@ type AgentToolingReadinessDeps = Pick<
   "maxAttempts" | "retryDelayMs" | "sleep"
 > & {
   getRpc: () => RpcClientLike;
-  isAuthenticated: () => boolean;
   initializeToolCapability: (catalogTools: GatewayCatalogTool[]) => Promise<void> | void;
+  setCloudToolsStatus?: (state: "checking" | "ready" | "unavailable", error?: string) => void;
   logger?: LoggerLike;
 };
 
@@ -42,6 +42,7 @@ export function resetAgentToolingReadiness(reason: string): void {
   generation += 1;
   readyGeneration = -1;
   inflight = null;
+  deps?.setCloudToolsStatus?.("checking");
   deps?.logger?.info(`Agent tooling readiness reset: ${reason} (generation=${generation})`);
 }
 
@@ -80,8 +81,10 @@ async function initializeForGeneration(targetGeneration: number): Promise<void> 
   }
 
   try {
+    if (generation === targetGeneration) {
+      currentDeps.setCloudToolsStatus?.("checking");
+    }
     const catalogTools = await loadGatewayToolCatalogTools(currentDeps.getRpc(), {
-      waitForCloudTools: currentDeps.isAuthenticated(),
       maxAttempts: currentDeps.maxAttempts,
       retryDelayMs: currentDeps.retryDelayMs,
       logger: currentDeps.logger,
@@ -91,11 +94,18 @@ async function initializeForGeneration(targetGeneration: number): Promise<void> 
 
     if (generation === targetGeneration) {
       readyGeneration = targetGeneration;
+      currentDeps.setCloudToolsStatus?.("ready");
       currentDeps.logger?.info(`Agent tooling ready (generation=${targetGeneration})`);
     }
   } catch (err) {
     if (inflight?.generation === targetGeneration) {
       inflight = null;
+    }
+    if (generation === targetGeneration) {
+      currentDeps.setCloudToolsStatus?.(
+        "unavailable",
+        err instanceof Error ? err.message : String(err),
+      );
     }
     currentDeps.logger?.warn(
       `Agent tooling readiness failed (generation=${targetGeneration})`,

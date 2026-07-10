@@ -26,7 +26,9 @@ export default {
     "language": "ภาษา",
     "help": "ช่วยด้วย",
     "refresh": "รีเฟรช",
-    "currencySymbol": "$"
+    "currencySymbol": "$",
+    "cloudToolsUnavailableTitle": "เครื่องมือคลาวด์ไม่พร้อมใช้งาน",
+    "cloudToolsUnavailableBody": "เครื่องมือคลาวด์และความสามารถของ Agent ที่เกี่ยวข้องไม่พร้อมใช้งานชั่วคราว โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้งในภายหลัง"
   },
   "authGate": {
     "loginRequired": "ต้องเข้าสู่ระบบ",

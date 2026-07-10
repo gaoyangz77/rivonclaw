@@ -11,11 +11,16 @@ import {
 // Usage:  __runtimeStatus.simulateCsBridge("reconnecting", 3)
 //         __runtimeStatus.simulateCsBridge("disconnected")
 //         __runtimeStatus.simulateCsBridge("connected")
+//         __runtimeStatus.simulateCloudTools("unavailable")
+//         __runtimeStatus.simulateCloudTools("ready")
 if (import.meta.env.DEV) {
   (window as any).__runtimeStatus = {
     store: runtimeStatusStore,
     simulateCsBridge(state: "connected" | "disconnected" | "reconnecting", attempt = 0) {
       applySnapshot(runtimeStatusStore.csBridge, { state, reconnectAttempt: attempt });
+    },
+    simulateCloudTools(state: "checking" | "ready" | "unavailable", lastError = "") {
+      applySnapshot(runtimeStatusStore.cloudTools, { state, lastError });
     },
   };
 }

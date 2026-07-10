@@ -26,7 +26,9 @@ export default {
     "language": "Bahasa",
     "help": "Bantuan",
     "refresh": "Segarkan",
-    "currencySymbol": "$"
+    "currencySymbol": "$",
+    "cloudToolsUnavailableTitle": "Alat cloud tidak tersedia",
+    "cloudToolsUnavailableBody": "Alat cloud dan kemampuan agen terkait untuk sementara tidak tersedia. Periksa koneksi Anda dan coba lagi nanti."
   },
   "authGate": {
     "loginRequired": "Diperlukan Masuk",

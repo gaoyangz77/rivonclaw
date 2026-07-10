@@ -13,7 +13,6 @@ type LoggerLike = {
 
 export type GatewayStartupTask = {
   name: string;
-  requiresCloudTools?: boolean;
   run: () => Promise<void> | void;
 };
 
@@ -23,7 +22,6 @@ export type RunGatewayStartupCoordinatorOptions = Pick<
 > & {
   rpc: RpcClientLike;
   logger?: LoggerLike;
-  waitForCloudTools?: boolean;
   initializeToolCapability?: (catalogTools: GatewayCatalogTool[]) => Promise<void> | void;
   ensureAgentToolingReady?: () => Promise<void>;
   tasks?: readonly GatewayStartupTask[];
@@ -33,14 +31,11 @@ export async function runGatewayStartupCoordinator(
   options: RunGatewayStartupCoordinatorOptions,
 ): Promise<void> {
   const tasks = options.tasks ?? [];
-  const waitForCloudTools =
-    options.waitForCloudTools === true || tasks.some((task) => task.requiresCloudTools === true);
 
   if (options.ensureAgentToolingReady) {
     await options.ensureAgentToolingReady();
   } else if (options.initializeToolCapability) {
     const catalogTools = await loadGatewayToolCatalogTools(options.rpc, {
-      waitForCloudTools,
       maxAttempts: options.maxAttempts,
       retryDelayMs: options.retryDelayMs,
       logger: options.logger,

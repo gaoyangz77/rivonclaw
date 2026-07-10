@@ -5,7 +5,7 @@ import { runGatewayStartupCoordinator } from "./startup-coordinator.js";
 type RpcClientLike = Parameters<typeof runGatewayStartupCoordinator>[0]["rpc"];
 
 describe("runGatewayStartupCoordinator", () => {
-  it("waits for cloud tools once before running dependent startup tasks", async () => {
+  it("waits for cloud tools once before running startup tasks", async () => {
     const catalog = {
       groups: [
         {
@@ -39,7 +39,6 @@ describe("runGatewayStartupCoordinator", () => {
       tasks: [
         {
           name: "cs-bridge",
-          requiresCloudTools: true,
           run: () => {
             calls.push("cs-bridge");
           },
@@ -57,10 +56,11 @@ describe("runGatewayStartupCoordinator", () => {
     expect(calls).toEqual(["capability:2", "cs-bridge", "other"]);
   });
 
-  it("does not wait for cloud tools when no startup task or caller requires them", async () => {
-    const request = vi.fn(async () => ({
-      groups: [{ tools: [{ id: "read", source: "core" }] }],
-    }));
+  it("always waits for cloud tools before running any startup task", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: true, toolCount: 0 };
+      return { groups: [{ tools: [{ id: "read", source: "core" }] }] };
+    });
     const rpc: RpcClientLike = {
       request: request as RpcClientLike["request"],
     };
@@ -68,13 +68,33 @@ describe("runGatewayStartupCoordinator", () => {
 
     await runGatewayStartupCoordinator({
       rpc,
-      waitForCloudTools: false,
       initializeToolCapability: vi.fn(),
       tasks: [{ name: "plain-task", run: task }],
     });
 
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(2);
     expect(request).toHaveBeenCalledWith("tools.catalog", { includePlugins: true });
+    expect(request).toHaveBeenCalledWith(CLOUD_TOOLS_STATUS_METHOD);
     expect(task).toHaveBeenCalledOnce();
+  });
+
+  it("does not run startup tasks when cloud tools are unavailable", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: false, toolCount: 0 };
+      return { groups: [{ tools: [{ id: "read", source: "core" }] }] };
+    });
+    const rpc: RpcClientLike = { request: request as RpcClientLike["request"] };
+    const task = vi.fn();
+
+    await expect(runGatewayStartupCoordinator({
+      rpc,
+      initializeToolCapability: vi.fn(),
+      maxAttempts: 1,
+      retryDelayMs: 0,
+      sleep: vi.fn(async () => undefined),
+      tasks: [{ name: "plain-task", run: task }],
+    })).rejects.toThrow("was not ready");
+
+    expect(task).not.toHaveBeenCalled();
   });
 });
