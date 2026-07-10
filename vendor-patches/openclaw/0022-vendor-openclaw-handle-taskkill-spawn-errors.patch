@@ -7,6 +7,10 @@ Why:
 - Windows packaged runtimes can omit taskkill from PATH, causing an asynchronous ENOENT event that crashes the gateway while an exec child is being terminated.
 - Backport upstream openclaw/openclaw#101392 (55fa22b) so process cleanup remains best-effort.
 
+Upstream:
+- Already fixed by openclaw/openclaw#101392 in commit 55fa22b482a7c6b8163f47590047c34b0dcd7382.
+- Deprecate and remove this patch as soon as the pinned OpenClaw version contains that commit.
+
 Removal:
 - Drop after the pinned OpenClaw version includes upstream commit 55fa22b482a7c6b8163f47590047c34b0dcd7382.
 
@@ -71,4 +75,3 @@ index 0260f7d55a..85e4b76266 100644
    }
 -- 
 2.50.1 (Apple Git-155)
-
