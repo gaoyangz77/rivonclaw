@@ -1,23 +1,32 @@
-From aa4738c1c3c437c0a6538c90fec0a56865210007 Mon Sep 17 00:00:00 2001
+From e1e31f09f20179be9afa618114311c1aacc1fc92 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 9 Jul 2026 05:54:47 -0700
 Subject: [PATCH] vendor(openclaw): stream Feishu card deltas
 
 Why:
-- RivonClaw defaults Feishu QR-created accounts to card streaming, but OpenClaw sent full accumulated snapshots to Feishu CardKit's streaming content endpoint. Feishu appends those fragments, which duplicated partial replies, tool status lines, and final text in long-running conversations.
+- RivonClaw defaults Feishu QR-created accounts to CardKit streaming, but the pinned transport seeds a permanent Thinking placeholder and does not track whether CardKit updates actually succeeded.
+- The dispatcher also needs stable delta handling so long replies do not replay earlier partial snapshots or tool status text.
+- Together these gaps can render a stale Thinking card followed by the answer content and can hide rejected CardKit updates.
+
+Upstream:
+- Backport the CardKit transport lifecycle from openclaw/openclaw#82419 (f436b4310a) with the full-content preservation correction from openclaw/openclaw#90181 (1f1ce8a1fe).
 
 Removal:
-- Drop when upstream OpenClaw's Feishu CardKit streaming adapter sends append-safe deltas, switches to a true replacement API, or otherwise avoids replaying full snapshots during streaming updates.
+- Drop when the pinned OpenClaw version includes both upstream fixes and its Feishu dispatcher preserves append-safe, non-duplicated streaming output in group and direct-message replies.
 
 Tests:
+- apps/desktop/src/channels/vendor-feishu-card-streaming.sentinel.test.ts
 - extensions/feishu/src/reply-dispatcher.test.ts
+- extensions/feishu/src/streaming-card.test.ts
 ---
- .../feishu/src/reply-dispatcher.test.ts       | 126 +++++++++++++++++-
- extensions/feishu/src/reply-dispatcher.ts     |  91 ++++++++++++-
- 2 files changed, 206 insertions(+), 11 deletions(-)
+ .../feishu/src/reply-dispatcher.test.ts       | 155 +++++++++++++++++-
+ extensions/feishu/src/reply-dispatcher.ts     |  95 ++++++++++-
+ extensions/feishu/src/streaming-card.test.ts  | 108 ++++++++++++
+ extensions/feishu/src/streaming-card.ts       | 125 ++++++++++----
+ 4 files changed, 443 insertions(+), 40 deletions(-)
 
 diff --git a/extensions/feishu/src/reply-dispatcher.test.ts b/extensions/feishu/src/reply-dispatcher.test.ts
-index b85e7ae295..d863df851f 100644
+index b85e7ae295..32d86ddeff 100644
 --- a/extensions/feishu/src/reply-dispatcher.test.ts
 +++ b/extensions/feishu/src/reply-dispatcher.test.ts
 @@ -532,7 +532,7 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
@@ -51,11 +60,11 @@ index b85e7ae295..d863df851f 100644
  
      expect(streamingInstances[0].close).toHaveBeenCalledTimes(1);
      const closeArg = streamingInstances[0].close.mock.calls[0][0] as string;
-@@ -1130,6 +1131,123 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
+@@ -1130,6 +1131,152 @@ describe("createFeishuReplyDispatcher streaming behavior", () => {
      });
    });
  
-+  it("keeps partial snapshots out of Feishu card updates and closes with the final text", async () => {
++  it("streams partial snapshots and closes with the exact final text", async () => {
 +    resolveFeishuAccountMock.mockReturnValue({
 +      accountId: "main",
 +      appId: "app_id",
@@ -95,14 +104,43 @@ index b85e7ae295..d863df851f 100644
 +    );
 +
 +    expect(updateTexts.some((text) => text.includes("Update Plan"))).toBe(true);
-+    expect(updateTexts.some((text) => text.includes("Usersgaoyang"))).toBe(false);
-+    expect(updateTexts.some((text) => text.includes("里面有 个 sheet"))).toBe(false);
++    expect(updateTexts.some((text) => text.includes("Usersgaoyang"))).toBe(true);
++    expect(updateTexts.some((text) => text.includes("里面有 个 sheet"))).toBe(true);
 +    expect(streamingInstances[0].close).toHaveBeenCalledWith(
 +      "搞定，06 店铺 7 月订单 Excel 已放到桌面：\n\n`/Users/gaoyangz/Desktop/file.xlsx`",
 +      {
 +        note: "Agent: agent",
 +      },
 +    );
++  });
++
++  it("streams and closes partial-only runs that do not queue a final payload", async () => {
++    resolveFeishuAccountMock.mockReturnValue({
++      accountId: "main",
++      appId: "app_id",
++      appSecret: "app_secret",
++      domain: "feishu",
++      config: {
++        renderMode: "card",
++        streaming: true,
++      },
++    });
++
++    const { result, options } = createDispatcherHarness({
++      runtime: createRuntimeLogger(),
++    });
++    await options.onReplyStart?.();
++
++    result.replyOptions.onPartialReply?.({ text: "第一段" });
++    result.replyOptions.onPartialReply?.({ text: "第一段和最终正文" });
++    await options.onIdle?.();
++
++    expect(streamingInstances).toHaveLength(1);
++    expect(streamingInstances[0].update).toHaveBeenCalledWith("第一段");
++    expect(streamingInstances[0].update).toHaveBeenCalledWith("和最终正文");
++    expect(streamingInstances[0].close).toHaveBeenCalledWith("第一段和最终正文", {
++      note: "Agent: agent",
++    });
 +  });
 +
 +  it("separates the final answer from an earlier tool status line", async () => {
@@ -176,7 +214,7 @@ index b85e7ae295..d863df851f 100644
      resolveFeishuAccountMock.mockReturnValue({
        accountId: "main",
 diff --git a/extensions/feishu/src/reply-dispatcher.ts b/extensions/feishu/src/reply-dispatcher.ts
-index d958567c68..498f11305f 100644
+index d958567c68..23e78e731b 100644
 --- a/extensions/feishu/src/reply-dispatcher.ts
 +++ b/extensions/feishu/src/reply-dispatcher.ts
 @@ -231,9 +231,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
@@ -192,7 +230,7 @@ index d958567c68..498f11305f 100644
    let snapshotBaseText = "";
    let lastSnapshotTextLength = 0;
    const deliveredFinalTexts = new Set<string>();
-@@ -253,6 +256,15 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -253,6 +256,18 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
      return `> 💭 **Thinking**\n${lines.join("\n")}`;
    };
  
@@ -202,13 +240,16 @@ index d958567c68..498f11305f 100644
 +    }
 +    const withoutLabel = thinking.replace(/^Reasoning:\n/, "");
 +    const plain = withoutLabel.replace(/^_(.*)_$/gm, "$1");
-+    return plain.split("\n").map((line) => `> ${line}`).join("\n");
++    return plain
++      .split("\n")
++      .map((line) => `> ${line}`)
++      .join("\n");
 +  };
 +
    const buildCombinedStreamText = (thinking: string, answer: string): string => {
      const parts: string[] = [];
      if (thinking) {
-@@ -270,21 +282,37 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -270,21 +285,37 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
      return parts.join("");
    };
  
@@ -248,7 +289,7 @@ index d958567c68..498f11305f 100644
        mode?: StreamTextUpdateMode;
      },
    ) => {
-@@ -297,9 +325,10 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -297,9 +328,10 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
      if (options?.dedupeWithLastPartial) {
        lastPartial = nextText;
      }
@@ -260,7 +301,7 @@ index d958567c68..498f11305f 100644
      } else {
        const currentSnapshotText = snapshotBaseText
          ? streamText.slice(snapshotBaseText.length)
-@@ -316,15 +345,35 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -316,15 +348,36 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
        }
        lastSnapshotTextLength = nextText.length;
      }
@@ -290,15 +331,16 @@ index d958567c68..498f11305f 100644
 +    const reasoningDelta = reasoningText.startsWith(previousReasoningText)
 +      ? reasoningText.slice(previousReasoningText.length)
 +      : reasoningText;
-+    const streamUpdateText = previousReasoningText && reasoningText.startsWith(previousReasoningText)
-+      ? formatReasoningContinuation(reasoningDelta)
-+      : formatReasoningPrefix(reasoningText);
++    const streamUpdateText =
++      previousReasoningText && reasoningText.startsWith(previousReasoningText)
++        ? formatReasoningContinuation(reasoningDelta)
++        : formatReasoningPrefix(reasoningText);
 +    flushStreamingCardUpdate(buildCombinedStreamText(reasoningText, streamText), streamUpdateText);
 +    lastStreamingUpdateWasStatusLine = false;
    };
  
    const startStreaming = () => {
-@@ -401,21 +450,33 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -401,21 +454,33 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
        streamingStartPromise = null;
        partialUpdateQueue = Promise.resolve();
        streamText = "";
@@ -333,7 +375,7 @@ index d958567c68..498f11305f 100644
    };
  
    const sendChunkedTextReply = async (params: {
-@@ -585,10 +646,25 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -585,10 +650,25 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
                queueStreamingUpdate(text, { mode: "delta", dedupeWithLastPartial: true });
              }
              if (info?.kind === "final") {
@@ -360,14 +402,333 @@ index d958567c68..498f11305f 100644
              }
              // Send media even when streaming handled the text
              if (hasMedia) {
-@@ -684,6 +760,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -682,6 +762,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+             if (!cleaned) {
+               return;
              }
++            startStreaming();
              queueStreamingUpdate(cleaned, {
                dedupeWithLastPartial: true,
-+              flush: false,
                mode: "snapshot",
-             });
-           }
+diff --git a/extensions/feishu/src/streaming-card.test.ts b/extensions/feishu/src/streaming-card.test.ts
+index f531e11fd1..2730992ce4 100644
+--- a/extensions/feishu/src/streaming-card.test.ts
++++ b/extensions/feishu/src/streaming-card.test.ts
+@@ -17,6 +17,7 @@ type StreamingSessionState = {
+   messageId: string;
+   sequence: number;
+   currentText: string;
++  sentText: string;
+   hasNote: boolean;
+ };
+ 
+@@ -91,6 +92,7 @@ describe("FeishuStreamingSession", () => {
+         messageId: "om_1",
+         sequence: 1,
+         currentText: "hello",
++        sentText: "hello",
+         hasNote: false,
+       },
+       lastUpdateTime: 1_000,
+@@ -123,6 +125,7 @@ describe("FeishuStreamingSession", () => {
+         messageId: "om_2",
+         sequence: 1,
+         currentText: "hello",
++        sentText: "hello",
+         hasNote: false,
+       },
+       lastUpdateTime: 2_000,
+@@ -135,6 +138,111 @@ describe("FeishuStreamingSession", () => {
+       content: "hello!",
+     });
+   });
++
++  it("starts reply cards with an empty streaming element instead of a permanent Thinking card", async () => {
++    const createBodies: string[] = [];
++    fetchWithSsrFGuardMock.mockImplementation(
++      async ({ url, init }: { url: string; init?: { body?: string } }) => {
++        const release = vi.fn(async () => {});
++        if (url.includes("/auth/")) {
++          return {
++            response: {
++              ok: true,
++              json: async () => ({
++                code: 0,
++                msg: "ok",
++                tenant_access_token: "token",
++                expire: 7200,
++              }),
++            },
++            release,
++          };
++        }
++        if (url.endsWith("/cardkit/v1/cards")) {
++          createBodies.push(init?.body ?? "");
++          return {
++            response: {
++              ok: true,
++              json: async () => ({ code: 0, msg: "ok", data: { card_id: "card_start" } }),
++            },
++            release,
++          };
++        }
++        return {
++          response: { ok: true, json: async () => ({ code: 0, msg: "ok" }) },
++          release,
++        };
++      },
++    );
++    const reply = vi.fn(async () => ({
++      code: 0,
++      msg: "ok",
++      data: { message_id: "om_streaming" },
++    }));
++    const session = new FeishuStreamingSession({ im: { message: { reply } } } as never, {
++      appId: "app_blank_start",
++      appSecret: "secret",
++    });
++
++    await session.start("oc_group", "chat_id", {
++      replyToMessageId: "om_parent",
++      replyInThread: true,
++      note: "Agent: main",
++    });
++
++    expect(createBodies).toHaveLength(1);
++    const createRequest = JSON.parse(createBodies[0] ?? "{}") as { data?: string };
++    const card = JSON.parse(createRequest.data ?? "{}") as {
++      body?: { elements?: Array<{ element_id?: string; content?: string }> };
++    };
++    expect(card.body?.elements?.find((element) => element.element_id === "content")?.content).toBe(
++      "",
++    );
++    expect(createRequest.data).not.toContain("Thinking");
++    expect(reply).toHaveBeenCalledWith(
++      expect.objectContaining({
++        path: { message_id: "om_parent" },
++        data: expect.objectContaining({ reply_in_thread: true }),
++      }),
++    );
++  });
++
++  it("does not mark failed CardKit updates as delivered", async () => {
++    const logs: string[] = [];
++    fetchWithSsrFGuardMock.mockImplementation(async ({ url }: { url: string }) => ({
++      response: url.includes("/auth/")
++        ? {
++            ok: true,
++            json: async () => ({
++              code: 0,
++              msg: "ok",
++              tenant_access_token: "token",
++              expire: 7200,
++            }),
++          }
++        : { ok: false, status: 400 },
++      release: vi.fn(async () => {}),
++    }));
++    const session = new FeishuStreamingSession(
++      {} as never,
++      { appId: "app_failed_update", appSecret: "secret" },
++      (message) => logs.push(message),
++    );
++    const state: StreamingSessionState = {
++      cardId: "card_failed",
++      messageId: "om_failed",
++      sequence: 1,
++      currentText: "",
++      sentText: "",
++      hasNote: false,
++    };
++    setStreamingSessionInternals(session, { state });
++
++    await session.update("final answer");
++
++    expect(state.sentText).toBe("");
++    expect(logs).toContain("Update failed: Error: Update card content failed with HTTP 400");
++  });
+ });
+ 
+ describe("mergeStreamingText", () => {
+diff --git a/extensions/feishu/src/streaming-card.ts b/extensions/feishu/src/streaming-card.ts
+index 78e1228411..95b22c5241 100644
+--- a/extensions/feishu/src/streaming-card.ts
++++ b/extensions/feishu/src/streaming-card.ts
+@@ -14,6 +14,7 @@ type CardState = {
+   messageId: string;
+   sequence: number;
+   currentText: string;
++  sentText: string;
+   hasNote: boolean;
+ };
+ 
+@@ -205,7 +206,7 @@ export class FeishuStreamingSession {
+ 
+     const apiBase = resolveApiBase(this.creds.domain);
+     const elements: Record<string, unknown>[] = [
+-      { tag: "markdown", content: "⏳ Thinking...", element_id: "content" },
++      { tag: "markdown", content: "", element_id: "content" },
+     ];
+     if (options?.note) {
+       elements.push({ tag: "hr" });
+@@ -306,39 +307,90 @@ export class FeishuStreamingSession {
+       messageId: sendRes.data.message_id,
+       sequence: 1,
+       currentText: "",
++      sentText: "",
+       hasNote: !!options?.note,
+     };
+     this.log?.(`Started streaming: cardId=${cardId}, messageId=${sendRes.data.message_id}`);
+   }
+ 
+-  private async updateCardContent(text: string, onError?: (error: unknown) => void): Promise<void> {
++  private async updateCardContent(
++    text: string,
++    onError?: (error: unknown) => void,
++  ): Promise<boolean> {
+     if (!this.state) {
+-      return;
++      return false;
+     }
+     const apiBase = resolveApiBase(this.creds.domain);
+     this.state.sequence += 1;
+-    await fetchWithSsrFGuard({
+-      url: `${apiBase}/cardkit/v1/cards/${this.state.cardId}/elements/content/content`,
+-      init: {
+-        method: "PUT",
+-        headers: {
+-          Authorization: `Bearer ${await getToken(this.creds)}`,
+-          "Content-Type": "application/json",
+-          "User-Agent": getFeishuUserAgent(),
++    try {
++      const { response, release } = await fetchWithSsrFGuard({
++        url: `${apiBase}/cardkit/v1/cards/${this.state.cardId}/elements/content/content`,
++        init: {
++          method: "PUT",
++          headers: {
++            Authorization: `Bearer ${await getToken(this.creds)}`,
++            "Content-Type": "application/json",
++            "User-Agent": getFeishuUserAgent(),
++          },
++          body: JSON.stringify({
++            content: text,
++            sequence: this.state.sequence,
++            uuid: `s_${this.state.cardId}_${this.state.sequence}`,
++          }),
+         },
+-        body: JSON.stringify({
+-          content: text,
+-          sequence: this.state.sequence,
+-          uuid: `s_${this.state.cardId}_${this.state.sequence}`,
+-        }),
+-      },
+-      policy: { allowedHostnames: resolveAllowedHostnames(this.creds.domain) },
+-      auditContext: "feishu.streaming-card.update",
+-    })
+-      .then(async ({ release }) => {
+-        await release();
+-      })
+-      .catch((error) => onError?.(error));
++        policy: { allowedHostnames: resolveAllowedHostnames(this.creds.domain) },
++        auditContext: "feishu.streaming-card.update",
++      });
++      await release();
++      if (!response.ok) {
++        onError?.(new Error(`Update card content failed with HTTP ${response.status}`));
++        return false;
++      }
++      return true;
++    } catch (error) {
++      onError?.(error);
++      return false;
++    }
++  }
++
++  private async replaceCardContent(
++    text: string,
++    onError?: (error: unknown) => void,
++  ): Promise<boolean> {
++    if (!this.state) {
++      return false;
++    }
++    const apiBase = resolveApiBase(this.creds.domain);
++    this.state.sequence += 1;
++    try {
++      const { response, release } = await fetchWithSsrFGuard({
++        url: `${apiBase}/cardkit/v1/cards/${this.state.cardId}/elements/content`,
++        init: {
++          method: "PUT",
++          headers: {
++            Authorization: `Bearer ${await getToken(this.creds)}`,
++            "Content-Type": "application/json",
++            "User-Agent": getFeishuUserAgent(),
++          },
++          body: JSON.stringify({
++            element: JSON.stringify({ tag: "markdown", content: text, element_id: "content" }),
++            sequence: this.state.sequence,
++            uuid: `r_${this.state.cardId}_${this.state.sequence}`,
++          }),
++        },
++        policy: { allowedHostnames: resolveAllowedHostnames(this.creds.domain) },
++        auditContext: "feishu.streaming-card.replace",
++      });
++      await release();
++      if (!response.ok) {
++        onError?.(new Error(`Replace card content failed with HTTP ${response.status}`));
++        return false;
++      }
++      return true;
++    } catch (error) {
++      onError?.(error);
++      return false;
++    }
+   }
+ 
+   private clearFlushTimer(): void {
+@@ -391,9 +443,17 @@ export class FeishuStreamingSession {
+       if (!mergedText || mergedText === this.state.currentText) {
+         return;
+       }
++      if (mergedText === this.state.sentText) {
++        return;
++      }
+       this.pendingText = null;
+       this.state.currentText = mergedText;
+-      await this.updateCardContent(mergedText, (e) => this.log?.(`Update failed: ${String(e)}`));
++      const sent = await this.updateCardContent(mergedText, (e) =>
++        this.log?.(`Update failed: ${String(e)}`),
++      );
++      if (sent && this.state) {
++        this.state.sentText = mergedText;
++      }
+     });
+     await this.queue;
+   }
+@@ -437,13 +497,20 @@ export class FeishuStreamingSession {
+     await this.queue;
+ 
+     const pendingMerged = mergeStreamingText(this.state.currentText, this.pendingText ?? undefined);
+-    const text = finalText ? mergeStreamingText(pendingMerged, finalText) : pendingMerged;
++    const text = finalText ?? pendingMerged;
+     const apiBase = resolveApiBase(this.creds.domain);
+ 
+-    // Only send final update if content differs from what's already displayed
+-    if (text && text !== this.state.currentText) {
+-      await this.updateCardContent(text);
++    // An explicit empty final text clears a transient preview before closeout.
++    if ((text || finalText !== undefined) && text !== this.state.sentText) {
++      const sent = text.startsWith(this.state.sentText)
++        ? await this.updateCardContent(text, (e) => this.log?.(`Final update failed: ${String(e)}`))
++        : await this.replaceCardContent(text, (e) =>
++            this.log?.(`Final replace failed: ${String(e)}`),
++          );
+       this.state.currentText = text;
++      if (sent) {
++        this.state.sentText = text;
++      }
+     }
+ 
+     // Update note with final model/provider info
 -- 
 2.50.1 (Apple Git-155)
 

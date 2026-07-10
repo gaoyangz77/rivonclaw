@@ -415,23 +415,33 @@ image tool execution option.
 **File:** `0020-vendor-openclaw-stream-feishu-card-deltas.patch`
 
 **Why:** RivonClaw defaults Feishu QR-created accounts to card streaming so
-users see progress during long-running tasks. OpenClaw was sending full
-accumulated snapshots to Feishu CardKit's streaming content update endpoint;
-Feishu renders those updates as appended fragments, so partial replies, tool
-status lines, and final text could repeat inside the same card.
+users see progress during long-running tasks. The pinned CardKit transport
+pre-fills the streaming element with `Thinking...` and does not distinguish
+successful updates from HTTP failures. Together with unstable partial snapshot
+handling, this can leave a permanent Thinking card followed by the answer
+content, suppress streaming progress, or repeat earlier text.
 
-**Change:** Keep OpenClaw's internal combined stream text for final close, but
-send only the new delta/status fragment to active Feishu streaming cards. The
-patch also keeps reasoning previews formatted while avoiding replaying prior
-reasoning text.
+**Change:** Start with an empty CardKit streaming element, track text confirmed
+as delivered, validate update responses, and replace the final element when it
+diverges from the streamed preview. Keep OpenClaw's internal combined text for
+final close while feeding stable answer/status deltas into the streaming
+session. Agent content is preserved; the patch only corrects transport and
+delivery state.
+
+**Upstream status:** The CardKit transport lifecycle is fixed by OpenClaw
+#82419 (`f436b4310a`) with the full-content preservation correction from
+#90181 (`1f1ce8a1fe`). Remove this patch once the pinned vendor includes both
+fixes and equivalent dispatcher delta handling.
 
 **Tests:**
 
 - `vendor/openclaw/extensions/feishu/src/reply-dispatcher.test.ts`
+- `vendor/openclaw/extensions/feishu/src/streaming-card.test.ts`
+- `apps/desktop/src/channels/vendor-feishu-card-streaming.sentinel.test.ts`
 
-**Removal:** Drop when upstream OpenClaw's Feishu CardKit streaming adapter
-sends append-safe deltas, switches to a true replacement API, or otherwise
-avoids replaying full snapshots during streaming updates.
+**Removal:** Drop when the pinned OpenClaw version contains the upstream
+transport fixes above and its Feishu dispatcher preserves non-duplicated
+streaming output in group and direct-message replies.
 
 ### 0021 — Request full Feishu card content
 
