@@ -3195,6 +3195,10 @@ export interface CustomerServicePerformanceDailyRow {
   activeConversations?: Maybe<Scalars['Int']['output']>;
   /** Average first-response time in seconds */
   avgFirstResponseSecs?: Maybe<Scalars['Float']['output']>;
+  /** Mature TikTok-attributed CS-guided GMV as a decimal string. Dates within the latest seven full shop-local days are excluded and return null. */
+  csGuidedGmv?: Maybe<Scalars['String']['output']>;
+  /** Currency for csGuidedGmv. Null when the value is immature or the selected scope contains multiple currencies. */
+  csGuidedGmvCurrency?: Maybe<Scalars['String']['output']>;
   /** Report date (YYYY-MM-DD) */
   dateKey: Scalars['String']['output'];
   /** Aborted or superseded dispatches */
@@ -3267,6 +3271,10 @@ export interface CustomerServicePerformanceMetrics {
   activeConversations?: Maybe<Scalars['Int']['output']>;
   /** Average first-response time in seconds */
   avgFirstResponseSecs?: Maybe<Scalars['Float']['output']>;
+  /** Mature TikTok-attributed CS-guided GMV as a decimal string. Dates within the latest seven full shop-local days are excluded and return null. */
+  csGuidedGmv?: Maybe<Scalars['String']['output']>;
+  /** Currency for csGuidedGmv. Null when the value is immature or the selected scope contains multiple currencies. */
+  csGuidedGmvCurrency?: Maybe<Scalars['String']['output']>;
   /** Aborted or superseded dispatches */
   dispatchAborted?: Maybe<Scalars['Int']['output']>;
   /** Accepted dispatches */
@@ -3872,6 +3880,7 @@ export const EcomBiMetric = {
   CompletedUnits: 'COMPLETED_UNITS',
   CostAmount: 'COST_AMOUNT',
   CostPerOrderAmount: 'COST_PER_ORDER_AMOUNT',
+  CsGuidedGmv: 'CS_GUIDED_GMV',
   CurrentBudgetAmount: 'CURRENT_BUDGET_AMOUNT',
   EffectiveGmv: 'EFFECTIVE_GMV',
   EffectiveOrderCount: 'EFFECTIVE_ORDER_COUNT',
