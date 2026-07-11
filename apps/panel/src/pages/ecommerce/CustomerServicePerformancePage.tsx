@@ -305,27 +305,26 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
           <h1>{t("ecommerce.customerServicePerformance.title")}</h1>
           <p className="ecommerce-page-subtitle">{t("ecommerce.customerServicePerformance.subtitle")}</p>
         </div>
-      </div>
-
-      <div className="cs-performance-tabs" role="tablist" aria-label={t("ecommerce.customerServicePerformance.tabs.label")}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "realtime"}
-          className={`cs-performance-tab ${activeTab === "realtime" ? "active" : ""}`}
-          onClick={() => setActiveTab("realtime")}
-        >
-          {t("ecommerce.customerServicePerformance.tabs.realtime")}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "history"}
-          className={`cs-performance-tab ${activeTab === "history" ? "active" : ""}`}
-          onClick={() => setActiveTab("history")}
-        >
-          {t("ecommerce.customerServicePerformance.tabs.history")}
-        </button>
+        <div className="cs-performance-tabs" role="tablist" aria-label={t("ecommerce.customerServicePerformance.tabs.label")}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "realtime"}
+            className={`cs-performance-tab ${activeTab === "realtime" ? "active" : ""}`}
+            onClick={() => setActiveTab("realtime")}
+          >
+            {t("ecommerce.customerServicePerformance.tabs.realtime")}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "history"}
+            className={`cs-performance-tab ${activeTab === "history" ? "active" : ""}`}
+            onClick={() => setActiveTab("history")}
+          >
+            {t("ecommerce.customerServicePerformance.tabs.history")}
+          </button>
+        </div>
       </div>
 
       <div className="section-card cs-performance-toolbar">
