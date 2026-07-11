@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "Rentang waktu",
       "loadFailed": "Gagal memuat data performa",
       "noData": "Tidak ada data performa untuk rentang ini.",
-      "guidedGmvNoMatureData": "Tidak ada Guided GMV dalam rentang ini. Nilai 7 hari terakhir tidak ditampilkan karena atribusi masih berubah.",
+      "guidedGmvNoMatureData": "Tidak ada rata-rata Guided GMV 7 hari yang lengkap dalam rentang ini.",
       "downloadCsv": "Unduh CSV",
       "dailyTable": "Performa harian",
       "scopeSummary": "{{start}} hingga {{end}} di {{shops}} toko. Menampilkan semua hari dalam rentang ini.",
@@ -2379,7 +2379,7 @@ export default {
         "firstResponse": "Respons pertama P50",
         "firstResponseSamples": "{{value}} percakapan terukur",
         "guidedGmv": "Guided GMV",
-        "guidedGmvMaturity": "Tidak termasuk 7 hari terakhir",
+        "guidedGmvMaturity": "Rata-rata 7 hari lengkap terbaru · tidak termasuk 7 hari terakhir",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2389,7 +2389,7 @@ export default {
         "satisfaction": "Kepuasan pelanggan",
         "firstResponse": "Kecepatan respons pertama",
         "guidedGmv": "Guided GMV layanan pelanggan",
-        "guidedGmvTooltip": "GMV yang diatribusikan TikTok dari pesanan dalam 7 hari setelah balasan layanan pelanggan. Tujuh hari penuh terbaru menurut waktu lokal toko tidak ditampilkan karena atribusi masih berubah."
+        "guidedGmvTooltip": "Rata-rata bergerak 7 hari lengkap dari GMV yang diatribusikan TikTok untuk pesanan dalam 7 hari setelah balasan layanan pelanggan. Titik hanya muncul jika seluruh 7 nilai harian tersedia; titik terakhir adalah 7 hari yang lalu."
       },
       "realtimeCharts": {
         "state": "Aktif / tertunda / dieskalasi",
@@ -2421,7 +2421,7 @@ export default {
         "satisfaction7dWeighted": "Rata2 tertimbang 7h",
         "firstResponseP50": "P50",
         "firstResponseP90": "P90",
-        "guidedGmv": "Guided GMV"
+        "guidedGmv": "Rata-rata 7 hari"
       },
       "table": {
         "date": "Tanggal",

@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "ช่วงเวลา",
       "loadFailed": "โหลดข้อมูลประสิทธิภาพไม่สำเร็จ",
       "noData": "ไม่มีข้อมูลประสิทธิภาพในช่วงเวลานี้",
-      "guidedGmvNoMatureData": "ไม่มี Guided GMV ในช่วงเวลานี้ ระบบจะไม่แสดงข้อมูล 7 วันล่าสุดเนื่องจากการระบุแหล่งที่มายังเปลี่ยนแปลงอยู่",
+      "guidedGmvNoMatureData": "ไม่มีค่าเฉลี่ย Guided GMV แบบครบ 7 วันในช่วงเวลานี้",
       "downloadCsv": "ดาวน์โหลด CSV",
       "dailyTable": "ประสิทธิภาพรายวัน",
       "scopeSummary": "{{start}} ถึง {{end}} ครอบคลุม {{shops}} ร้าน แสดงทุกวันในช่วงเวลานี้",
@@ -2379,7 +2379,7 @@ export default {
         "firstResponse": "การตอบกลับแรก P50",
         "firstResponseSamples": "บทสนทนาที่วัดแล้ว {{value}} รายการ",
         "guidedGmv": "Guided GMV",
-        "guidedGmvMaturity": "ไม่รวม 7 วันล่าสุด",
+        "guidedGmvMaturity": "ค่าเฉลี่ยครบ 7 วันล่าสุด · ไม่รวม 7 วันล่าสุด",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2389,7 +2389,7 @@ export default {
         "satisfaction": "ความพึงพอใจของลูกค้า",
         "firstResponse": "ความเร็วในการตอบกลับแรก",
         "guidedGmv": "Guided GMV จากงานบริการลูกค้า",
-        "guidedGmvTooltip": "GMV ที่ TikTok ระบุว่าเกิดจากคำสั่งซื้อภายใน 7 วันหลังการตอบของฝ่ายบริการลูกค้า ระบบจะไม่แสดง 7 วันเต็มล่าสุดตามเวลาท้องถิ่นของร้าน เนื่องจากการระบุแหล่งที่มายังเปลี่ยนแปลงอยู่"
+        "guidedGmvTooltip": "ค่าเฉลี่ยเคลื่อนที่แบบครบ 7 วันของ GMV ที่ TikTok ระบุว่าเกิดจากคำสั่งซื้อภายใน 7 วันหลังการตอบของฝ่ายบริการลูกค้า จุดข้อมูลจะแสดงเมื่อมีค่ารายวันครบทั้ง 7 วันเท่านั้น โดยจุดล่าสุดคือข้อมูลเมื่อ 7 วันก่อน"
       },
       "realtimeCharts": {
         "state": "ใช้งานอยู่ / รอดำเนินการ / ยกระดับ",
@@ -2421,7 +2421,7 @@ export default {
         "satisfaction7dWeighted": "เฉลี่ยถ่วงน้ำหนัก 7 วัน",
         "firstResponseP50": "P50",
         "firstResponseP90": "P90",
-        "guidedGmv": "Guided GMV"
+        "guidedGmv": "ค่าเฉลี่ย 7 วัน"
       },
       "table": {
         "date": "วันที่",

@@ -2607,7 +2607,7 @@ export default {
       timeRange: "时间范围",
       loadFailed: "加载绩效数据失败",
       noData: "该时间范围内暂无绩效数据。",
-      guidedGmvNoMatureData: "该范围内暂无引导成交额。最近 7 天的数据仍在归因中，因此暂不展示。",
+      guidedGmvNoMatureData: "该范围内暂无完整的 7 天引导成交额平均值。",
       downloadCsv: "下载 CSV",
       dailyTable: "每日绩效",
       scopeSummary: "{{start}} 至 {{end}}，覆盖 {{shops}} 个店铺。表格显示该时间范围内全部日期。",
@@ -2642,7 +2642,7 @@ export default {
         firstResponse: "首次响应 P50",
         firstResponseSamples: "{{value}} 个已测量会话",
         guidedGmv: "引导成交额",
-        guidedGmvMaturity: "不包含最近 7 天",
+        guidedGmvMaturity: "最新完整 7 天平均值 · 不包含最近 7 天",
         p90: "P90 {{value}}",
       },
       charts: {
@@ -2652,7 +2652,7 @@ export default {
         satisfaction: "客户满意度",
         firstResponse: "首次响应速度",
         guidedGmv: "客服引导成交额",
-        guidedGmvTooltip: "TikTok 将客服回复后 7 天内产生的订单归因为客服引导成交额。最近 7 个店铺本地自然日仍在持续变化，因此暂不展示。",
+        guidedGmvTooltip: "TikTok 将客服回复后 7 天内产生的订单归因为客服引导成交额。图中展示完整的 7 天滚动平均值，只有 7 个自然日数据均完整时才生成数据点，最后一个数据点是 7 天前。",
       },
       realtimeCharts: {
         state: "活跃 / 待处理 / 已升级",
@@ -2684,7 +2684,7 @@ export default {
         satisfaction7dWeighted: "7 天加权平均",
         firstResponseP50: "P50",
         firstResponseP90: "P90",
-        guidedGmv: "引导成交额",
+        guidedGmv: "7 天平均值",
       },
       table: {
         date: "日期",

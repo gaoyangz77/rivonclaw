@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "Période",
       "loadFailed": "Échec du chargement des données de performance",
       "noData": "Aucune donnée de performance pour cette période.",
-      "guidedGmvNoMatureData": "Aucune donnée de GMV guidé sur cette période. Les 7 derniers jours ne sont pas affichés car l’attribution évolue encore.",
+      "guidedGmvNoMatureData": "Aucune moyenne complète sur 7 jours du GMV guidé n’est disponible sur cette période.",
       "downloadCsv": "Télécharger CSV",
       "dailyTable": "Performance quotidienne",
       "scopeSummary": "{{start}} à {{end}} sur {{shops}} boutique(s). Tous les jours de cette période sont affichés.",
@@ -2379,7 +2379,7 @@ export default {
         "firstResponse": "Première réponse P50",
         "firstResponseSamples": "{{value}} conversations mesurées",
         "guidedGmv": "GMV guidé",
-        "guidedGmvMaturity": "Hors 7 derniers jours",
+        "guidedGmvMaturity": "Dernière moyenne complète sur 7 jours · hors 7 derniers jours",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2389,7 +2389,7 @@ export default {
         "satisfaction": "Satisfaction client",
         "firstResponse": "Vitesse de première réponse",
         "guidedGmv": "GMV guidé par le service client",
-        "guidedGmvTooltip": "GMV attribué par TikTok aux commandes passées dans les 7 jours suivant une réponse du service client. Les 7 derniers jours complets du fuseau de la boutique sont exclus car l’attribution évolue encore."
+        "guidedGmvTooltip": "Moyenne mobile complète sur 7 jours du GMV attribué par TikTok aux commandes passées dans les 7 jours suivant une réponse du service client. Un point apparaît uniquement lorsque les 7 valeurs quotidiennes sont disponibles ; le dernier point date d’il y a 7 jours."
       },
       "realtimeCharts": {
         "state": "Actives / en attente / escaladées",
@@ -2421,7 +2421,7 @@ export default {
         "satisfaction7dWeighted": "Moy. pondérée 7 j",
         "firstResponseP50": "P50",
         "firstResponseP90": "P90",
-        "guidedGmv": "GMV guidé"
+        "guidedGmv": "Moyenne sur 7 jours"
       },
       "table": {
         "date": "Date",

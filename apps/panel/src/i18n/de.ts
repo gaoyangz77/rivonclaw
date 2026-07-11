@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "Zeitraum",
       "loadFailed": "Leistungsdaten konnten nicht geladen werden",
       "noData": "Keine Leistungsdaten für diesen Zeitraum.",
-      "guidedGmvNoMatureData": "Keine Guided-GMV-Daten in diesem Zeitraum. Werte der letzten 7 Tage werden wegen laufender Zuordnung nicht angezeigt.",
+      "guidedGmvNoMatureData": "Für diesen Zeitraum ist kein vollständiger 7-Tage-Durchschnitt des Guided GMV verfügbar.",
       "downloadCsv": "CSV herunterladen",
       "dailyTable": "Tägliche Leistung",
       "scopeSummary": "{{start}} bis {{end}} über {{shops}} Shop(s). Alle Tage in diesem Zeitraum werden angezeigt.",
@@ -2379,7 +2379,7 @@ export default {
         "firstResponse": "Erste Antwort P50",
         "firstResponseSamples": "{{value}} gemessene Gespräche",
         "guidedGmv": "Guided GMV",
-        "guidedGmvMaturity": "Ohne die letzten 7 Tage",
+        "guidedGmvMaturity": "Letzter vollständiger 7-Tage-Durchschnitt · ohne die letzten 7 Tage",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2389,7 +2389,7 @@ export default {
         "satisfaction": "Kundenzufriedenheit",
         "firstResponse": "Geschwindigkeit der ersten Antwort",
         "guidedGmv": "Durch Kundenservice beeinflusster GMV",
-        "guidedGmvTooltip": "Von TikTok zugeordneter GMV aus Bestellungen innerhalb von 7 Tagen nach einer Kundenservice-Antwort. Die letzten 7 vollständigen lokalen Shop-Tage werden nicht angezeigt, da sich die Zuordnung noch ändert."
+        "guidedGmvTooltip": "Vollständiger gleitender 7-Tage-Durchschnitt des von TikTok zugeordneten GMV aus Bestellungen innerhalb von 7 Tagen nach einer Kundenservice-Antwort. Ein Punkt erscheint nur, wenn alle 7 Tageswerte verfügbar sind; der letzte Punkt liegt 7 Tage zurück."
       },
       "realtimeCharts": {
         "state": "Aktiv / ausstehend / eskaliert",
@@ -2421,7 +2421,7 @@ export default {
         "satisfaction7dWeighted": "7-Tage gew. Ø",
         "firstResponseP50": "P50",
         "firstResponseP90": "P90",
-        "guidedGmv": "Guided GMV"
+        "guidedGmv": "7-Tage-Durchschnitt"
       },
       "table": {
         "date": "Datum",
