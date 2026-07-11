@@ -49,6 +49,7 @@ const FEISHU_CHANNEL_ID = "feishu";
 const FEISHU_OFFICIAL_PLUGIN_ID = "feishu";
 const FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID = "openclaw-lark";
 const FEISHU_OFFICIAL_ACCOUNT_ID = "default";
+const FEISHU_MEDIA_MAX_MB = 30;
 const FEISHU_ACCOUNT_ID_MAX_LENGTH = 64;
 const FEISHU_OFFICIAL_PLUGIN_ROOTS = [
   "dist/extensions/feishu",
@@ -320,6 +321,14 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
   if (channelId === FEISHU_CHANNEL_ID) {
     next = {
       ...next,
+      // OpenClaw's generic outbound media normalizer defaults to 5 MB when
+      // this field is absent, while the Feishu sender supports 30 MB. Keep
+      // the limit explicit so valid Feishu attachments are not dropped before
+      // they reach the channel plugin.
+      mediaMaxMb:
+        typeof next.mediaMaxMb === "number" && Number.isFinite(next.mediaMaxMb) && next.mediaMaxMb > 0
+          ? next.mediaMaxMb
+          : FEISHU_MEDIA_MAX_MB,
       renderMode: typeof next.renderMode === "string" ? next.renderMode : "card",
       streaming: typeof next.streaming === "boolean" ? next.streaming : true,
       blockStreaming: typeof next.blockStreaming === "boolean" ? next.blockStreaming : false,
@@ -535,6 +544,7 @@ function mirrorFeishuDefaultAccountToChannelRoot(
     "appSecret",
     "domain",
     "connectionMode",
+    "mediaMaxMb",
     "requireMention",
     "dmPolicy",
     "allowFrom",
@@ -997,6 +1007,7 @@ export const ChannelManagerModel = types
         appSecret: params.appSecret,
         domain: params.domain,
         connectionMode: "websocket",
+        mediaMaxMb: FEISHU_MEDIA_MAX_MB,
         renderMode: "card",
         streaming: true,
         blockStreaming: false,
