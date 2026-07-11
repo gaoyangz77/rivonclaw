@@ -20,7 +20,6 @@ import {
 import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { completeSevenDayAverage } from "./cs-performance-metrics.js";
 
 type PerformanceTab = "history" | "realtime";
 type TimeRange = "7d" | "30d" | "90d";
@@ -29,8 +28,7 @@ type RealtimeRange = "1" | "6" | "12" | "24";
 type ChartRow = GQL.CustomerServicePerformanceDailyRow & {
   dateLabel: string;
   satisfaction7dWeighted: number | null;
-  guidedGmvValue: number | null;
-  guidedGmv7dAverage: number | null;
+  guidedGmv7dAverageValue: number | null;
 };
 
 type RealtimeChartRow = GQL.CustomerServiceRealtimePerformancePoint & {
@@ -181,9 +179,10 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     const rows = (report?.byDate ?? []).map((row) => ({
       ...row,
       dateLabel: row.dateKey.slice(5),
-      guidedGmvValue: row.csGuidedGmv == null || Number.isNaN(Number(row.csGuidedGmv))
+      guidedGmv7dAverageValue: row.csGuidedGmv7dAverage == null
+        || Number.isNaN(Number(row.csGuidedGmv7dAverage))
         ? null
-        : Number(row.csGuidedGmv),
+        : Number(row.csGuidedGmv7dAverage),
     }));
 
     return rows.map((row, index) => {
@@ -193,19 +192,14 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       return {
         ...row,
         satisfaction7dWeighted: ratedSessions > 0 ? satisfiedSessions / ratedSessions : null,
-        guidedGmv7dAverage: completeSevenDayAverage(windowRows.map((item) => ({
-          dateKey: item.dateKey,
-          value: item.guidedGmvValue,
-          currency: item.csGuidedGmvCurrency,
-        }))),
       };
     });
   }, [report]);
 
   const latestGuidedGmvAverageRow = [...chartRows]
     .reverse()
-    .find((row) => row.guidedGmv7dAverage != null);
-  const guidedGmvCurrency = latestGuidedGmvAverageRow?.csGuidedGmvCurrency ?? null;
+    .find((row) => row.guidedGmv7dAverageValue != null);
+  const guidedGmvCurrency = latestGuidedGmvAverageRow?.csGuidedGmv7dAverageCurrency ?? null;
   const hasGuidedGmvAverage = latestGuidedGmvAverageRow != null;
 
   const realtimeRows: RealtimeChartRow[] = useMemo(() => (
@@ -415,7 +409,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             <MetricTile
               label={t("ecommerce.customerServicePerformance.metrics.guidedGmv")}
               value={formatMoney(
-                latestGuidedGmvAverageRow?.guidedGmv7dAverage,
+                latestGuidedGmvAverageRow?.guidedGmv7dAverageValue,
                 guidedGmvCurrency,
                 i18n.resolvedLanguage,
               )}
@@ -619,7 +613,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <Legend verticalAlign="bottom" height={36} iconType="line" />
                 <Line
                   type="monotone"
-                  dataKey="guidedGmv7dAverage"
+                  dataKey="guidedGmv7dAverageValue"
                   name={t("ecommerce.customerServicePerformance.series.guidedGmv")}
                   stroke="var(--cs-performance-gmv)"
                   strokeWidth={2.6}

@@ -3197,6 +3197,10 @@ export interface CustomerServicePerformanceDailyRow {
   avgFirstResponseSecs?: Maybe<Scalars['Float']['output']>;
   /** Mature TikTok-attributed CS-guided GMV as a decimal string. Dates within the latest seven full shop-local days are excluded and return null. */
   csGuidedGmv?: Maybe<Scalars['String']['output']>;
+  /** Complete seven-day rolling average of mature TikTok-attributed CS-guided GMV. The query reads the six preceding dates before the requested range; null unless all seven consecutive shop-local dates are available in one currency. */
+  csGuidedGmv7dAverage?: Maybe<Scalars['String']['output']>;
+  /** Currency for csGuidedGmv7dAverage. Null when no complete single-currency seven-day window is available. */
+  csGuidedGmv7dAverageCurrency?: Maybe<Scalars['String']['output']>;
   /** Currency for csGuidedGmv. Null when the value is immature or the selected scope contains multiple currencies. */
   csGuidedGmvCurrency?: Maybe<Scalars['String']['output']>;
   /** Report date (YYYY-MM-DD) */
@@ -3273,6 +3277,10 @@ export interface CustomerServicePerformanceMetrics {
   avgFirstResponseSecs?: Maybe<Scalars['Float']['output']>;
   /** Mature TikTok-attributed CS-guided GMV as a decimal string. Dates within the latest seven full shop-local days are excluded and return null. */
   csGuidedGmv?: Maybe<Scalars['String']['output']>;
+  /** Complete seven-day rolling average of mature TikTok-attributed CS-guided GMV. The query reads the six preceding dates before the requested range; null unless all seven consecutive shop-local dates are available in one currency. */
+  csGuidedGmv7dAverage?: Maybe<Scalars['String']['output']>;
+  /** Currency for csGuidedGmv7dAverage. Null when no complete single-currency seven-day window is available. */
+  csGuidedGmv7dAverageCurrency?: Maybe<Scalars['String']['output']>;
   /** Currency for csGuidedGmv. Null when the value is immature or the selected scope contains multiple currencies. */
   csGuidedGmvCurrency?: Maybe<Scalars['String']['output']>;
   /** Aborted or superseded dispatches */
@@ -3881,6 +3889,7 @@ export const EcomBiMetric = {
   CostAmount: 'COST_AMOUNT',
   CostPerOrderAmount: 'COST_PER_ORDER_AMOUNT',
   CsGuidedGmv: 'CS_GUIDED_GMV',
+  CsGuidedGmv_7DAverage: 'CS_GUIDED_GMV_7D_AVERAGE',
   CurrentBudgetAmount: 'CURRENT_BUDGET_AMOUNT',
   EffectiveGmv: 'EFFECTIVE_GMV',
   EffectiveOrderCount: 'EFFECTIVE_ORDER_COUNT',

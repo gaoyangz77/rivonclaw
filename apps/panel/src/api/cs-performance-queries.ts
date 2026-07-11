@@ -11,6 +11,8 @@ export const ECOMMERCE_GET_CS_PERFORMANCE_QUERY = gql`
       }
       summary {
         csGuidedGmv
+        csGuidedGmv7dAverage
+        csGuidedGmv7dAverageCurrency
         csGuidedGmvCurrency
         activeConversations
         newConversations
@@ -42,6 +44,8 @@ export const ECOMMERCE_GET_CS_PERFORMANCE_QUERY = gql`
         startDate
         endDate
         csGuidedGmv
+        csGuidedGmv7dAverage
+        csGuidedGmv7dAverageCurrency
         csGuidedGmvCurrency
         activeConversations
         newConversations
