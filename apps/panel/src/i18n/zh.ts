@@ -2607,6 +2607,7 @@ export default {
       timeRange: "时间范围",
       loadFailed: "加载绩效数据失败",
       noData: "该时间范围内暂无绩效数据。",
+      guidedGmvNoMatureData: "该范围内暂无已成熟的引导成交额。最近 7 天的数据仍在归因中，因此暂不展示。",
       downloadCsv: "下载 CSV",
       dailyTable: "每日绩效",
       scopeSummary: "{{start}} 至 {{end}}，覆盖 {{shops}} 个店铺。表格显示该时间范围内全部日期。",
@@ -2640,6 +2641,8 @@ export default {
         ratedSessions: "{{value}} 个已评价会话",
         firstResponse: "首次响应 P50",
         firstResponseSamples: "{{value}} 个已测量会话",
+        guidedGmv: "已成熟引导成交额",
+        guidedGmvMaturity: "不包含最近 7 天",
         p90: "P90 {{value}}",
       },
       charts: {
@@ -2648,6 +2651,8 @@ export default {
         escalationTooltip: "升级会话代表 Agent 无法独立完成、必须由人工接待的对话。这个图是非常重要的人工接待完成指标：已处理量可以帮助判断员工响应是否及时、是否能跟上升级会话的压力。",
         satisfaction: "客户满意度",
         firstResponse: "首次响应速度",
+        guidedGmv: "客服引导成交额",
+        guidedGmvTooltip: "TikTok 将客服回复后 7 天内产生的订单归因为客服引导成交额。最近 7 个店铺本地自然日仍在持续变化，因此暂不展示。",
       },
       realtimeCharts: {
         state: "活跃 / 待处理 / 已升级",
@@ -2679,6 +2684,7 @@ export default {
         satisfaction7dWeighted: "7 天加权平均",
         firstResponseP50: "P50",
         firstResponseP90: "P90",
+        guidedGmv: "引导成交额",
       },
       table: {
         date: "日期",
@@ -2693,6 +2699,7 @@ export default {
         satisfaction7dWeighted: "7 天平均",
         firstResponse: "P50 响应",
         errors: "错误/会话",
+        guidedGmv: "引导成交额",
       },
     },
     affiliateWorkspace: {

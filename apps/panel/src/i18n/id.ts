@@ -2344,6 +2344,7 @@ export default {
       "timeRange": "Rentang waktu",
       "loadFailed": "Gagal memuat data performa",
       "noData": "Tidak ada data performa untuk rentang ini.",
+      "guidedGmvNoMatureData": "Tidak ada Guided GMV matang dalam rentang ini. Nilai 7 hari terakhir tidak ditampilkan karena atribusi masih berubah.",
       "downloadCsv": "Unduh CSV",
       "dailyTable": "Performa harian",
       "scopeSummary": "{{start}} hingga {{end}} di {{shops}} toko. Menampilkan semua hari dalam rentang ini.",
@@ -2377,6 +2378,8 @@ export default {
         "ratedSessions": "{{value}} sesi dinilai",
         "firstResponse": "Respons pertama P50",
         "firstResponseSamples": "{{value}} percakapan terukur",
+        "guidedGmv": "Guided GMV matang",
+        "guidedGmvMaturity": "Tidak termasuk 7 hari terakhir",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2384,7 +2387,9 @@ export default {
         "escalation": "Penanganan eskalasi",
         "escalationTooltip": "Eskalasi adalah percakapan yang tidak dapat diselesaikan agen sendiri dan harus ditangani staf. Grafik ini adalah sinyal penting penyelesaian layanan manual: jumlah selesai menunjukkan apakah tim merespons cukup cepat dan mampu mengikuti tekanan eskalasi.",
         "satisfaction": "Kepuasan pelanggan",
-        "firstResponse": "Kecepatan respons pertama"
+        "firstResponse": "Kecepatan respons pertama",
+        "guidedGmv": "Guided GMV layanan pelanggan",
+        "guidedGmvTooltip": "GMV yang diatribusikan TikTok dari pesanan dalam 7 hari setelah balasan layanan pelanggan. Tujuh hari penuh terbaru menurut waktu lokal toko tidak ditampilkan karena atribusi masih berubah."
       },
       "realtimeCharts": {
         "state": "Aktif / tertunda / dieskalasi",
@@ -2415,7 +2420,8 @@ export default {
         "satisfaction": "Kepuasan",
         "satisfaction7dWeighted": "Rata2 tertimbang 7h",
         "firstResponseP50": "P50",
-        "firstResponseP90": "P90"
+        "firstResponseP90": "P90",
+        "guidedGmv": "Guided GMV"
       },
       "table": {
         "date": "Tanggal",
@@ -2429,7 +2435,8 @@ export default {
         "satisfaction": "Kepuasan",
         "satisfaction7dWeighted": "Rata2 7h",
         "firstResponse": "Respons P50",
-        "errors": "Error/perc."
+        "errors": "Error/perc.",
+        "guidedGmv": "Guided GMV"
       }
     },
     "affiliateWorkspace": {

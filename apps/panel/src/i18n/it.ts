@@ -2344,6 +2344,7 @@ export default {
       "timeRange": "Intervallo",
       "loadFailed": "Impossibile caricare i dati sulle prestazioni",
       "noData": "Nessun dato sulle prestazioni per questo intervallo.",
+      "guidedGmvNoMatureData": "Nessun GMV guidato consolidato in questo intervallo. I valori degli ultimi 7 giorni non vengono mostrati perché l’attribuzione è ancora in evoluzione.",
       "downloadCsv": "Scarica CSV",
       "dailyTable": "Prestazioni giornaliere",
       "scopeSummary": "Da {{start}} a {{end}} su {{shops}} negozio/i. Sono mostrati tutti i giorni del periodo.",
@@ -2377,6 +2378,8 @@ export default {
         "ratedSessions": "{{value}} sessioni valutate",
         "firstResponse": "Prima risposta P50",
         "firstResponseSamples": "{{value}} conversazioni misurate",
+        "guidedGmv": "GMV guidato consolidato",
+        "guidedGmvMaturity": "Esclude gli ultimi 7 giorni",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2384,7 +2387,9 @@ export default {
         "escalation": "Gestione escalation",
         "escalationTooltip": "Le escalation sono conversazioni che l'agente non può chiudere da solo e che devono essere gestite dal personale. Questo grafico è un segnale chiave di completamento del servizio manuale: i casi risolti mostrano se il team risponde abbastanza velocemente e riesce a stare al passo.",
         "satisfaction": "Soddisfazione clienti",
-        "firstResponse": "Velocità della prima risposta"
+        "firstResponse": "Velocità della prima risposta",
+        "guidedGmv": "GMV guidato dal servizio clienti",
+        "guidedGmvTooltip": "GMV attribuito da TikTok agli ordini effettuati entro 7 giorni da una risposta del servizio clienti. Gli ultimi 7 giorni completi nel fuso del negozio sono esclusi perché l’attribuzione è ancora in evoluzione."
       },
       "realtimeCharts": {
         "state": "Attive / in attesa / escalate",
@@ -2415,7 +2420,8 @@ export default {
         "satisfaction": "Soddisfazione",
         "satisfaction7dWeighted": "Media pond. 7 g",
         "firstResponseP50": "P50",
-        "firstResponseP90": "P90"
+        "firstResponseP90": "P90",
+        "guidedGmv": "GMV guidato"
       },
       "table": {
         "date": "Data",
@@ -2429,7 +2435,8 @@ export default {
         "satisfaction": "Soddisfazione",
         "satisfaction7dWeighted": "Media 7 g",
         "firstResponse": "Risposta P50",
-        "errors": "Errori/conv."
+        "errors": "Errori/conv.",
+        "guidedGmv": "GMV guidato"
       }
     },
     "affiliateWorkspace": {
