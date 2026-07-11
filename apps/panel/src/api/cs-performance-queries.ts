@@ -10,6 +10,8 @@ export const ECOMMERCE_GET_CS_PERFORMANCE_QUERY = gql`
         endDate
       }
       summary {
+        csGuidedGmv
+        csGuidedGmvCurrency
         activeConversations
         newConversations
         reopenedConversations
@@ -39,6 +41,8 @@ export const ECOMMERCE_GET_CS_PERFORMANCE_QUERY = gql`
         dateKey
         startDate
         endDate
+        csGuidedGmv
+        csGuidedGmvCurrency
         activeConversations
         newConversations
         reopenedConversations
