@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.64",
+    "date": "2026-07-11",
+    "en": [
+      "Preserve Feishu replies after queue eviction",
+      "Move customer-service performance tabs into the header",
+      "Use backend rolling guided GMV in customer-service performance"
+    ],
+    "zh": [
+      "飞书队列清理后保留回复内容",
+      "将客服绩效标签页移入顶部栏",
+      "客服绩效使用后端滚动引导 GMV 数据"
+    ]
+  },
+  {
     "version": "1.8.63",
     "date": "2026-07-11",
     "en": [
