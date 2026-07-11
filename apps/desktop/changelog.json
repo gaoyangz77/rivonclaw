@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.66",
+    "date": "2026-07-11",
+    "en": [
+      "Add multi-stage unpaid order reachout",
+      "Allow verified ZIP attachments in media delivery"
+    ],
+    "zh": [
+      "新增未付款订单多阶段触达",
+      "支持已校验 ZIP 附件的媒体发送"
+    ]
+  },
+  {
     "version": "1.8.65",
     "date": "2026-07-11",
     "en": [
