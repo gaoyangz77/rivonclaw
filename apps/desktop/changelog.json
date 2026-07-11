@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.62",
+    "date": "2026-07-10",
+    "en": [
+      "Harden Windows Node provisioning for China network environments"
+    ],
+    "zh": [
+      "增强 Windows 在中国网络环境下的 Node provisioning 稳定性"
+    ]
+  },
+  {
     "version": "1.8.61",
     "date": "2026-07-10",
     "en": [
