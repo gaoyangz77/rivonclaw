@@ -20,6 +20,7 @@ import {
 import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { completeSevenDayAverage } from "./cs-performance-metrics.js";
 
 type PerformanceTab = "history" | "realtime";
 type TimeRange = "7d" | "30d" | "90d";
@@ -29,6 +30,7 @@ type ChartRow = GQL.CustomerServicePerformanceDailyRow & {
   dateLabel: string;
   satisfaction7dWeighted: number | null;
   guidedGmvValue: number | null;
+  guidedGmv7dAverage: number | null;
 };
 
 type RealtimeChartRow = GQL.CustomerServiceRealtimePerformancePoint & {
@@ -191,14 +193,20 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       return {
         ...row,
         satisfaction7dWeighted: ratedSessions > 0 ? satisfiedSessions / ratedSessions : null,
+        guidedGmv7dAverage: completeSevenDayAverage(windowRows.map((item) => ({
+          dateKey: item.dateKey,
+          value: item.guidedGmvValue,
+          currency: item.csGuidedGmvCurrency,
+        }))),
       };
     });
   }, [report]);
 
-  const guidedGmvCurrency = summary?.csGuidedGmvCurrency
-    ?? chartRows.find((row) => row.csGuidedGmvCurrency)?.csGuidedGmvCurrency
-    ?? null;
-  const hasMatureGuidedGmv = chartRows.some((row) => row.guidedGmvValue != null);
+  const latestGuidedGmvAverageRow = [...chartRows]
+    .reverse()
+    .find((row) => row.guidedGmv7dAverage != null);
+  const guidedGmvCurrency = latestGuidedGmvAverageRow?.csGuidedGmvCurrency ?? null;
+  const hasGuidedGmvAverage = latestGuidedGmvAverageRow != null;
 
   const realtimeRows: RealtimeChartRow[] = useMemo(() => (
     (realtimeReport?.points ?? []).map((point) => ({
@@ -408,8 +416,8 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             <MetricTile
               label={t("ecommerce.customerServicePerformance.metrics.guidedGmv")}
               value={formatMoney(
-                summary?.csGuidedGmv,
-                summary?.csGuidedGmvCurrency,
+                latestGuidedGmvAverageRow?.guidedGmv7dAverage,
+                guidedGmvCurrency,
                 i18n.resolvedLanguage,
               )}
               detail={t("ecommerce.customerServicePerformance.metrics.guidedGmvMaturity")}
@@ -418,41 +426,6 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
           </div>
 
           <div className="cs-performance-chart-grid">
-            <ChartPanel
-              title={t("ecommerce.customerServicePerformance.charts.guidedGmv")}
-              tooltip={t("ecommerce.customerServicePerformance.charts.guidedGmvTooltip")}
-              loading={loading}
-              empty={!hasMatureGuidedGmv}
-              loadingLabel={t("common.loading")}
-              emptyLabel={t("ecommerce.customerServicePerformance.guidedGmvNoMatureData")}
-              wide
-            >
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={chartRows}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="dateLabel" tickLine={false} />
-                  <YAxis
-                    tickFormatter={(value) => formatCompactMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
-                    tickLine={false}
-                    width={72}
-                  />
-                  <Tooltip
-                    formatter={(value) => formatMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
-                  />
-                  <Legend verticalAlign="bottom" height={36} iconType="line" />
-                  <Line
-                    type="monotone"
-                    dataKey="guidedGmvValue"
-                    name={t("ecommerce.customerServicePerformance.series.guidedGmv")}
-                    stroke="var(--cs-performance-gmv)"
-                    strokeWidth={2.6}
-                    dot={false}
-                    connectNulls={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-
             <ChartPanel
               title={t("ecommerce.customerServicePerformance.charts.volume")}
               loading={loading}
@@ -623,30 +596,65 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       )}
 
       {activeTab === "history" && (
-        <div className="section-card cs-performance-table-card">
-        <div className="ecommerce-section-header cs-performance-table-header">
-          <div>
-            <h3>{t("ecommerce.customerServicePerformance.dailyTable")}</h3>
-            <p className="ecommerce-section-subtitle">
-              {t("ecommerce.customerServicePerformance.scopeSummary", {
-                start: report?.scope.startDate ?? range.startTime,
-                end: report?.scope.endDate ?? range.endTime,
-                shops: formatCount(report?.scope.shopCount),
-              })}
-            </p>
-          </div>
-          <button
-            className="button-secondary cs-performance-download"
-            type="button"
-            onClick={downloadCsv}
-            disabled={!tableRows.length}
+        <>
+          <ChartPanel
+            title={t("ecommerce.customerServicePerformance.charts.guidedGmv")}
+            tooltip={t("ecommerce.customerServicePerformance.charts.guidedGmvTooltip")}
+            loading={loading}
+            empty={!hasGuidedGmvAverage}
+            loadingLabel={t("common.loading")}
+            emptyLabel={t("ecommerce.customerServicePerformance.guidedGmvNoMatureData")}
           >
-            <DownloadIcon aria-hidden="true" />
-            <span>{t("ecommerce.customerServicePerformance.downloadCsv")}</span>
-          </button>
-        </div>
-        <div className="cs-performance-table-wrap">
-          <table className="cs-performance-table">
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={chartRows}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="dateLabel" tickLine={false} />
+                <YAxis
+                  tickFormatter={(value) => formatCompactMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
+                  tickLine={false}
+                  width={72}
+                />
+                <Tooltip
+                  formatter={(value) => formatMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
+                />
+                <Legend verticalAlign="bottom" height={36} iconType="line" />
+                <Line
+                  type="monotone"
+                  dataKey="guidedGmv7dAverage"
+                  name={t("ecommerce.customerServicePerformance.series.guidedGmv")}
+                  stroke="var(--cs-performance-gmv)"
+                  strokeWidth={2.6}
+                  dot={false}
+                  connectNulls={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartPanel>
+
+          <div className="section-card cs-performance-table-card">
+            <div className="ecommerce-section-header cs-performance-table-header">
+              <div>
+                <h3>{t("ecommerce.customerServicePerformance.dailyTable")}</h3>
+                <p className="ecommerce-section-subtitle">
+                  {t("ecommerce.customerServicePerformance.scopeSummary", {
+                    start: report?.scope.startDate ?? range.startTime,
+                    end: report?.scope.endDate ?? range.endTime,
+                    shops: formatCount(report?.scope.shopCount),
+                  })}
+                </p>
+              </div>
+              <button
+                className="button-secondary cs-performance-download"
+                type="button"
+                onClick={downloadCsv}
+                disabled={!tableRows.length}
+              >
+                <DownloadIcon aria-hidden="true" />
+                <span>{t("ecommerce.customerServicePerformance.downloadCsv")}</span>
+              </button>
+            </div>
+            <div className="cs-performance-table-wrap">
+              <table className="cs-performance-table">
             <thead>
               <tr>
                 <th>{t("ecommerce.customerServicePerformance.table.date")}</th>
@@ -684,9 +692,10 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      </div>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -719,7 +728,6 @@ function ChartPanel({
   empty,
   loadingLabel,
   emptyLabel,
-  wide,
   children,
 }: {
   title: string;
@@ -728,11 +736,10 @@ function ChartPanel({
   empty: boolean;
   loadingLabel: string;
   emptyLabel: string;
-  wide?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className={`section-card cs-performance-chart-card${wide ? " wide" : ""}`}>
+    <div className="section-card cs-performance-chart-card">
       <div className="cs-performance-chart-title">
         <h3>{title}</h3>
         {tooltip && (

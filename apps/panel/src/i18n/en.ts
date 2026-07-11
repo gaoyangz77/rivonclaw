@@ -2608,7 +2608,7 @@ export default {
       timeRange: "Time range",
       loadFailed: "Failed to load performance data",
       noData: "No performance data for this range.",
-      guidedGmvNoMatureData: "No Guided GMV is available in this range. Values from the latest 7 days are intentionally withheld.",
+      guidedGmvNoMatureData: "No complete 7-day Guided GMV average is available in this range.",
       downloadCsv: "Download CSV",
       dailyTable: "Daily performance",
       scopeSummary: "{{start}} to {{end}} across {{shops}} shop(s). Showing all days in this range.",
@@ -2643,7 +2643,7 @@ export default {
         firstResponse: "First response P50",
         firstResponseSamples: "{{value}} measured conversations",
         guidedGmv: "Guided GMV",
-        guidedGmvMaturity: "Excludes the latest 7 days",
+        guidedGmvMaturity: "Latest complete 7-day average · excludes the latest 7 days",
         p90: "P90 {{value}}",
       },
       charts: {
@@ -2653,7 +2653,7 @@ export default {
         satisfaction: "Customer satisfaction",
         firstResponse: "First response speed",
         guidedGmv: "Customer-service Guided GMV",
-        guidedGmvTooltip: "TikTok-attributed GMV from orders placed within 7 days after a customer-service reply. The latest 7 full shop-local days are excluded because attribution is still changing.",
+        guidedGmvTooltip: "Complete 7-day rolling average of TikTok-attributed GMV from orders placed within 7 days after a customer-service reply. A point appears only when all 7 daily values are available; the latest point is 7 days ago.",
       },
       realtimeCharts: {
         state: "Active / pending / escalated",
@@ -2685,7 +2685,7 @@ export default {
         satisfaction7dWeighted: "7d weighted avg",
         firstResponseP50: "P50",
         firstResponseP90: "P90",
-        guidedGmv: "Guided GMV",
+        guidedGmv: "7-day average",
       },
       table: {
         date: "Date",

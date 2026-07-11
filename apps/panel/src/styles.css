@@ -12067,10 +12067,6 @@ html[lang="zh"] .acct-tool-chips {
   overflow: hidden;
 }
 
-.cs-performance-chart-card.wide {
-  grid-column: 1 / -1;
-}
-
 .cs-performance-chart-title {
   display: flex;
   min-height: 26px;
