@@ -125,8 +125,8 @@ export const INIT_SHOPS_QUERY = `
         customerService {
           enabled
           unpaidOrderReachoutEnabled
-          unpaidOrderReachoutDelayHours
-          unpaidOrderReminderMessageTemplate
+          unpaidOrderReachoutStages { id enabled delayMinutes messageTemplate }
+          unpaidOrderReachoutExperiment { enabled holdoutPercent experimentId startedAt }
           businessPrompt
           runProfileId
           csDeviceId

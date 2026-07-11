@@ -8,7 +8,6 @@ export type CsAgentDispatchReason =
   | "MANUAL_START"
   | "SESSION_EXPIRING_ESCALATION_FOLLOW_UP"
   | "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"
-  | "UNPAID_ORDER_FOLLOW_UP"
   | "BAD_REVIEW_REACHOUT";
 
 export interface CsAgentDispatchRequest extends CsConversationSignalPayload {
@@ -41,11 +40,6 @@ const CONVERSATION_DISPATCH_PLANS: Record<string, {
     dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
     useMessageDelta: false,
   },
-  UNPAID_ORDER_FOLLOW_UP: {
-    signalType: "UNPAID_ORDER_FOLLOW_UP",
-    dispatchReason: "UNPAID_ORDER_FOLLOW_UP",
-    useMessageDelta: false,
-  },
   BAD_REVIEW_REACHOUT: {
     signalType: "MANUAL_START",
     dispatchReason: "BAD_REVIEW_REACHOUT",
@@ -68,10 +62,6 @@ const SIGNAL_DISPATCH_PLANS: Record<string, {
   UNREAD_DETECTED: {
     dispatchReason: "PENDING_BUYER_MESSAGE",
     useMessageDelta: true,
-  },
-  UNPAID_ORDER_FOLLOW_UP: {
-    dispatchReason: "UNPAID_ORDER_FOLLOW_UP",
-    useMessageDelta: false,
   },
 };
 
@@ -191,10 +181,6 @@ export function buildCsAgentDispatchSystemPrompt(reason: CsAgentDispatchReason):
         "Use the operator instruction as the task authority.",
         "Use the provided dispatch context and local session context; fetch more context only when the operator instruction cannot be executed from available context.",
         END_SESSION_GUIDANCE,
-      ].join(" ");
-    case "UNPAID_ORDER_FOLLOW_UP":
-      return [
-        "This dispatch was initiated by backend/Airflow for a TikTok Shop unpaid-order customer-service flow.",
       ].join(" ");
     case "BAD_REVIEW_REACHOUT":
       return [

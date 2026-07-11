@@ -13,6 +13,23 @@ import { ShopTable } from "./components/ShopTable.js";
 import { ConnectShopModal } from "./components/ConnectShopModal.js";
 import { ShopDrawer } from "./components/ShopDrawer.js";
 
+export interface UnpaidReachoutStageDraft {
+  id?: string;
+  enabled: boolean;
+  delayMinutes: string;
+  messageTemplate: string;
+}
+
+function defaultUnpaidReachoutTemplate(region: string | undefined): string {
+  const templates: Record<string, string> = {
+    DE: "Hallo, ich sehe, dass Ihre Bestellung {{order_id}} mit {{product_count}} Artikel(n) noch unbezahlt ist. Wenn es beim Checkout oder Bezahlen ein Problem gab oder Sie noch Fragen zum Produkt haben, helfe ich gern.",
+    ES: "Hola, veo que su pedido {{order_id}} con {{product_count}} artículo(s) aún está sin pagar. Si tuvo algún problema con el checkout o el pago, o si aún tiene dudas sobre el producto, con gusto le ayudo.",
+    FR: "Bonjour, j’ai remarqué que votre commande {{order_id}} avec {{product_count}} article(s) n’est pas encore payée. Si vous avez eu un souci au paiement, ou si vous avez encore des questions sur le produit, je peux vous aider.",
+    IT: "Ciao, ho notato che il tuo ordine {{order_id}} con {{product_count}} articolo/i risulta ancora non pagato. Se hai avuto problemi con checkout o pagamento, o hai ancora domande sul prodotto, sono qui per aiutarti.",
+  };
+  return templates[region ?? ""] ?? "Hi, I noticed your order {{order_id}} with {{product_count}} item(s) is still unpaid. If checkout or payment failed, or if you still have questions about the product, I am happy to help.";
+}
+
 export const EcommercePage = observer(function EcommercePage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -35,8 +52,9 @@ export const EcommercePage = observer(function EcommercePage() {
   const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
   const [editBusinessPrompt, setEditBusinessPrompt] = useState("");
   const [draftUnpaidReachoutEnabled, setDraftUnpaidReachoutEnabled] = useState(false);
-  const [draftUnpaidReachoutDelayHours, setDraftUnpaidReachoutDelayHours] = useState("24");
-  const [editUnpaidOrderReminderTemplate, setEditUnpaidOrderReminderTemplate] = useState("");
+  const [draftUnpaidReachoutStages, setDraftUnpaidReachoutStages] = useState<UnpaidReachoutStageDraft[]>([]);
+  const [draftUnpaidExperimentEnabled, setDraftUnpaidExperimentEnabled] = useState(false);
+  const [draftUnpaidHoldoutPercent, setDraftUnpaidHoldoutPercent] = useState("5");
   const [draftReviewOptimizationEnabled, setDraftReviewOptimizationEnabled] = useState(false);
   const [draftBadReviewReachoutEnabled, setDraftBadReviewReachoutEnabled] = useState(false);
   const [draftBadReviewReachoutStars, setDraftBadReviewReachoutStars] = useState("3");
@@ -106,12 +124,20 @@ export const EcommercePage = observer(function EcommercePage() {
       setDraftUnpaidReachoutEnabled(
         selectedShop.services?.customerService?.unpaidOrderReachoutEnabled ?? false,
       );
-      setDraftUnpaidReachoutDelayHours(
-        String(selectedShop.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24),
+      setDraftUnpaidReachoutStages(
+        (selectedShop.services?.customerService?.unpaidOrderReachoutStages ?? []).map((stage) => ({
+          id: stage.id,
+          enabled: stage.enabled,
+          delayMinutes: String(stage.delayMinutes),
+          messageTemplate: stage.messageTemplate,
+        })),
       );
-      setEditUnpaidOrderReminderTemplate(
-        selectedShop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "",
+      setDraftUnpaidExperimentEnabled(
+        selectedShop.services?.customerService?.unpaidOrderReachoutExperiment?.enabled ?? false,
       );
+      setDraftUnpaidHoldoutPercent(String(
+        selectedShop.services?.customerService?.unpaidOrderReachoutExperiment?.holdoutPercent ?? 5,
+      ));
       setDraftReviewOptimizationEnabled(
         selectedShop.services?.customerService?.reviewOptimization?.enabled ?? false,
       );
@@ -129,8 +155,9 @@ export const EcommercePage = observer(function EcommercePage() {
     selectedShop?.id,
     selectedShop?.services?.customerService?.businessPrompt,
     selectedShop?.services?.customerService?.unpaidOrderReachoutEnabled,
-    selectedShop?.services?.customerService?.unpaidOrderReachoutDelayHours,
-    selectedShop?.services?.customerService?.unpaidOrderReminderMessageTemplate,
+    selectedShop?.services?.customerService?.unpaidOrderReachoutStages,
+    selectedShop?.services?.customerService?.unpaidOrderReachoutExperiment?.enabled,
+    selectedShop?.services?.customerService?.unpaidOrderReachoutExperiment?.holdoutPercent,
     selectedShop?.services?.customerService?.reviewOptimization?.enabled,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled,
     selectedShop?.services?.customerService?.reviewOptimization?.badReviewReachout?.stars,
@@ -322,10 +349,24 @@ export const EcommercePage = observer(function EcommercePage() {
 
   async function handleSaveUnpaidReachoutSettings() {
     if (!selectedShopId) return;
-    const trimmedDelay = draftUnpaidReachoutDelayHours.trim();
-    const parsedDelay = Number(trimmedDelay);
-    if (!Number.isInteger(parsedDelay) || parsedDelay < 1 || parsedDelay > 47) {
+    const normalizedStages = draftUnpaidReachoutStages.map((stage) => ({
+      id: stage.id,
+      enabled: stage.enabled,
+      delayMinutes: Number(stage.delayMinutes.trim()),
+      messageTemplate: stage.messageTemplate,
+    })).sort((a, b) => a.delayMinutes - b.delayMinutes);
+    const enabledDelays = normalizedStages.filter((stage) => stage.enabled).map((stage) => stage.delayMinutes);
+    if (
+      normalizedStages.length > 3 ||
+      normalizedStages.some((stage) => !Number.isInteger(stage.delayMinutes) || stage.delayMinutes < 1 || stage.delayMinutes > 2879) ||
+      new Set(enabledDelays).size !== enabledDelays.length
+    ) {
       showToast(t("ecommerce.shopDrawer.aiCS.unpaidReachoutInvalidDelay"), "error");
+      return;
+    }
+    const holdoutPercent = Number(draftUnpaidHoldoutPercent.trim());
+    if (!Number.isInteger(holdoutPercent) || holdoutPercent < 1 || holdoutPercent > 20) {
+      showToast("Holdout must be an integer between 1% and 20%.", "error");
       return;
     }
 
@@ -338,12 +379,15 @@ export const EcommercePage = observer(function EcommercePage() {
         services: {
           customerService: {
             unpaidOrderReachoutEnabled: draftUnpaidReachoutEnabled,
-            unpaidOrderReachoutDelayHours: parsedDelay,
-            unpaidOrderReminderMessageTemplate: editUnpaidOrderReminderTemplate,
+            unpaidOrderReachoutStages: normalizedStages,
+            unpaidOrderReachoutExperiment: {
+              enabled: draftUnpaidExperimentEnabled,
+              holdoutPercent,
+            },
           },
         },
       });
-      setDraftUnpaidReachoutDelayHours(String(parsedDelay));
+      await entityStore.fetchShops();
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -718,12 +762,20 @@ export const EcommercePage = observer(function EcommercePage() {
         savingModel={savingModel}
         onCSModelChange={handleCSModelChange}
         draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
-        draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
-        editUnpaidOrderReminderTemplate={editUnpaidOrderReminderTemplate}
+        draftUnpaidReachoutStages={draftUnpaidReachoutStages}
+        draftUnpaidExperimentEnabled={draftUnpaidExperimentEnabled}
+        draftUnpaidHoldoutPercent={draftUnpaidHoldoutPercent}
         savingUnpaidReachoutSettings={savingUnpaidReachoutSettings}
-        onToggleUnpaidReachoutEnabled={setDraftUnpaidReachoutEnabled}
-        onDraftUnpaidReachoutDelayHoursChange={setDraftUnpaidReachoutDelayHours}
-        onEditUnpaidOrderReminderTemplate={setEditUnpaidOrderReminderTemplate}
+        onToggleUnpaidReachoutEnabled={(enabled) => {
+          setDraftUnpaidReachoutEnabled(enabled);
+          if (enabled && draftUnpaidReachoutStages.length === 0) {
+            const isEurope = ["DE", "ES", "FR", "IE", "IT"].includes(selectedShop?.region ?? "");
+            setDraftUnpaidReachoutStages([{ enabled: true, delayMinutes: isEurope ? "3" : "1440", messageTemplate: defaultUnpaidReachoutTemplate(selectedShop?.region) }]);
+          }
+        }}
+        onDraftUnpaidReachoutStagesChange={setDraftUnpaidReachoutStages}
+        onDraftUnpaidExperimentEnabledChange={setDraftUnpaidExperimentEnabled}
+        onDraftUnpaidHoldoutPercentChange={setDraftUnpaidHoldoutPercent}
         onSaveUnpaidReachoutSettings={handleSaveUnpaidReachoutSettings}
         draftReviewOptimizationEnabled={draftReviewOptimizationEnabled}
         draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}

@@ -11,6 +11,7 @@ import { AffiliateManagementTab } from "./AffiliateManagementTab.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import type { DrawerTab } from "../ecommerce-types.js";
+import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 
 const workspaceSectionId = (tab: DrawerTab, section: string) => `shop-workspace-${tab}-${section}`;
 
@@ -43,12 +44,14 @@ interface ShopDrawerProps {
   savingModel: boolean;
   onCSModelChange: (provider: string, model: string) => void;
   draftUnpaidReachoutEnabled: boolean;
-  draftUnpaidReachoutDelayHours: string;
-  editUnpaidOrderReminderTemplate: string;
+  draftUnpaidReachoutStages: UnpaidReachoutStageDraft[];
+  draftUnpaidExperimentEnabled: boolean;
+  draftUnpaidHoldoutPercent: string;
   savingUnpaidReachoutSettings: boolean;
   onToggleUnpaidReachoutEnabled: (value: boolean) => void;
-  onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
-  onEditUnpaidOrderReminderTemplate: (value: string) => void;
+  onDraftUnpaidReachoutStagesChange: (value: UnpaidReachoutStageDraft[]) => void;
+  onDraftUnpaidExperimentEnabledChange: (value: boolean) => void;
+  onDraftUnpaidHoldoutPercentChange: (value: string) => void;
   onSaveUnpaidReachoutSettings: () => void;
   draftReviewOptimizationEnabled: boolean;
   draftBadReviewReachoutEnabled: boolean;
@@ -116,12 +119,14 @@ export const ShopDrawer = observer(function ShopDrawer({
   savingModel,
   onCSModelChange,
   draftUnpaidReachoutEnabled,
-  draftUnpaidReachoutDelayHours,
-  editUnpaidOrderReminderTemplate,
+  draftUnpaidReachoutStages,
+  draftUnpaidExperimentEnabled,
+  draftUnpaidHoldoutPercent,
   savingUnpaidReachoutSettings,
   onToggleUnpaidReachoutEnabled,
-  onDraftUnpaidReachoutDelayHoursChange,
-  onEditUnpaidOrderReminderTemplate,
+  onDraftUnpaidReachoutStagesChange,
+  onDraftUnpaidExperimentEnabledChange,
+  onDraftUnpaidHoldoutPercentChange,
   onSaveUnpaidReachoutSettings,
   draftReviewOptimizationEnabled,
   draftBadReviewReachoutEnabled,
@@ -527,12 +532,14 @@ export const ShopDrawer = observer(function ShopDrawer({
                     savingModel={savingModel}
                     onCSModelChange={onCSModelChange}
                     draftUnpaidReachoutEnabled={draftUnpaidReachoutEnabled}
-                    draftUnpaidReachoutDelayHours={draftUnpaidReachoutDelayHours}
-                    editUnpaidOrderReminderTemplate={editUnpaidOrderReminderTemplate}
+                    draftUnpaidReachoutStages={draftUnpaidReachoutStages}
+                    draftUnpaidExperimentEnabled={draftUnpaidExperimentEnabled}
+                    draftUnpaidHoldoutPercent={draftUnpaidHoldoutPercent}
                     savingUnpaidReachoutSettings={savingUnpaidReachoutSettings}
                     onToggleUnpaidReachoutEnabled={onToggleUnpaidReachoutEnabled}
-                    onDraftUnpaidReachoutDelayHoursChange={onDraftUnpaidReachoutDelayHoursChange}
-                    onEditUnpaidOrderReminderTemplate={onEditUnpaidOrderReminderTemplate}
+                    onDraftUnpaidReachoutStagesChange={onDraftUnpaidReachoutStagesChange}
+                    onDraftUnpaidExperimentEnabledChange={onDraftUnpaidExperimentEnabledChange}
+                    onDraftUnpaidHoldoutPercentChange={onDraftUnpaidHoldoutPercentChange}
                     onSaveUnpaidReachoutSettings={onSaveUnpaidReachoutSettings}
                     draftReviewOptimizationEnabled={draftReviewOptimizationEnabled}
                     draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}

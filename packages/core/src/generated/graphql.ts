@@ -2059,12 +2059,12 @@ export interface AgentCsSettingsInput {
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
-  /** Whole-hour delay before unpaid-order proactive reachout. Omit or pass null to keep. Valid range: 1-47. */
-  unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Template for unpaid-order reminders. Omit or pass null to keep, empty string to clear. Placeholders: {{order_id}}, {{product_count}}, {{shop_name}}. */
-  unpaidOrderReminderMessageTemplate?: InputMaybe<Scalars['String']['input']>;
+  /** Unpaid-order holdout experiment patch. Omit/null to keep. */
+  unpaidOrderReachoutExperiment?: InputMaybe<UnpaidOrderReachoutExperimentInput>;
+  /** Full replacement for unpaid-order reminder stages. Omit/null to keep. Maximum 3 stages. */
+  unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
 }
 
 export const AnnouncementActionRole = {
@@ -2912,6 +2912,22 @@ export interface CsOpenEscalationPage {
   total: Scalars['Int']['output'];
 }
 
+export interface CsOrderStatusWebhookInput {
+  eventTime: Scalars['String']['input'];
+  isOnHoldOrder?: InputMaybe<Scalars['Boolean']['input']>;
+  notificationId: Scalars['String']['input'];
+  orderId: Scalars['String']['input'];
+  orderStatus: Scalars['String']['input'];
+  platformShopId: Scalars['String']['input'];
+  updateTime: Scalars['String']['input'];
+}
+
+export interface CsOrderStatusWebhookResult {
+  accepted: Scalars['Boolean']['output'];
+  duplicate: Scalars['Boolean']['output'];
+  shopId?: Maybe<Scalars['String']['output']>;
+}
+
 /** Result returned after a manager responds to a CS escalation */
 export interface CsRespondResult {
   error?: Maybe<Scalars['String']['output']>;
@@ -2925,6 +2941,72 @@ export interface CsRespondResult {
 export interface CsSessionResult {
   isNew: Scalars['Boolean']['output'];
   sessionId: Scalars['String']['output'];
+}
+
+export interface CsUnpaidOrderReachoutPerformanceReport {
+  byDate: Array<CsUnpaidReachoutPerformanceDateRow>;
+  byStage: Array<CsUnpaidReachoutPerformanceStageRow>;
+  endDate: Scalars['String']['output'];
+  experiment: CsUnpaidReachoutExperimentResult;
+  semanticsNotice: Scalars['String']['output'];
+  startDate: Scalars['String']['output'];
+  summary: CsUnpaidReachoutPerformanceSummary;
+}
+
+export interface CsUnpaidReachoutCurrencyGmv {
+  amount: Scalars['Float']['output'];
+  currency: Scalars['String']['output'];
+}
+
+export interface CsUnpaidReachoutExperimentArm {
+  assignment: Scalars['String']['output'];
+  eligible: Scalars['Int']['output'];
+  gmvPerEligible: Array<CsUnpaidReachoutCurrencyGmv>;
+  paidOrders: Scalars['Int']['output'];
+  paymentRate: Scalars['Float']['output'];
+  unitsPerEligible: Scalars['Float']['output'];
+}
+
+export interface CsUnpaidReachoutExperimentResult {
+  absolutePaymentRateDifference?: Maybe<Scalars['Float']['output']>;
+  arms: Array<CsUnpaidReachoutExperimentArm>;
+  confidenceIntervalHigh?: Maybe<Scalars['Float']['output']>;
+  confidenceIntervalLow?: Maybe<Scalars['Float']['output']>;
+  experimentId?: Maybe<Scalars['String']['output']>;
+  insufficientSample: Scalars['Boolean']['output'];
+  relativePaymentRateDifference?: Maybe<Scalars['Float']['output']>;
+}
+
+export interface CsUnpaidReachoutPerformanceDateRow {
+  associatedConversionRate: Scalars['Float']['output'];
+  associatedGmv: Array<CsUnpaidReachoutCurrencyGmv>;
+  associatedPaidOrders: Scalars['Int']['output'];
+  associatedSalesUnits: Scalars['Int']['output'];
+  cohortDate: Scalars['String']['output'];
+  eligible: Scalars['Int']['output'];
+  reached: Scalars['Int']['output'];
+  sentMessages: Scalars['Int']['output'];
+}
+
+export interface CsUnpaidReachoutPerformanceStageRow {
+  associatedGmv: Array<CsUnpaidReachoutCurrencyGmv>;
+  associatedPayments: Scalars['Int']['output'];
+  associatedSalesUnits: Scalars['Int']['output'];
+  delayMinutes: Scalars['Int']['output'];
+  eligible: Scalars['Int']['output'];
+  sent: Scalars['Int']['output'];
+  stageId: Scalars['String']['output'];
+  stageIndex: Scalars['Int']['output'];
+}
+
+export interface CsUnpaidReachoutPerformanceSummary {
+  associatedConversionRate: Scalars['Float']['output'];
+  associatedGmv: Array<CsUnpaidReachoutCurrencyGmv>;
+  associatedPaidOrders: Scalars['Int']['output'];
+  associatedSalesUnits: Scalars['Int']['output'];
+  eligible: Scalars['Int']['output'];
+  reached: Scalars['Int']['output'];
+  sentMessages: Scalars['Int']['output'];
 }
 
 /** Supported payment currencies */
@@ -3491,12 +3573,10 @@ export interface CustomerServiceSettings {
   reviewOptimization: ReviewOptimizationSettings;
   /** RunProfile ID for CS agent sessions */
   runProfileId?: Maybe<Scalars['String']['output']>;
-  /** Whole-hour delay before unpaid-order proactive reachout. Valid range: 1-47. */
-  unpaidOrderReachoutDelayHours?: Maybe<Scalars['Int']['output']>;
   /** Whether CS should proactively reach out for eligible unpaid orders. */
   unpaidOrderReachoutEnabled: Scalars['Boolean']['output'];
-  /** Template for deterministic unpaid-order customer-service reminders. Supported placeholders: {{order_id}}, {{product_count}}, {{shop_name}}. */
-  unpaidOrderReminderMessageTemplate?: Maybe<Scalars['String']['output']>;
+  unpaidOrderReachoutExperiment: UnpaidOrderReachoutExperiment;
+  unpaidOrderReachoutStages: Array<UnpaidOrderReachoutStage>;
 }
 
 /** Full CS settings including device-level fields (Panel/backend use) */
@@ -3519,12 +3599,12 @@ export interface CustomerServiceSettingsInput {
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
-  /** Whole-hour delay before unpaid-order proactive reachout. Omit or pass null to keep. Valid range: 1-47. */
-  unpaidOrderReachoutDelayHours?: InputMaybe<Scalars['Int']['input']>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Template for unpaid-order reminders. Omit or pass null to keep, empty string to clear. Placeholders: {{order_id}}, {{product_count}}, {{shop_name}}. */
-  unpaidOrderReminderMessageTemplate?: InputMaybe<Scalars['String']['input']>;
+  /** Unpaid-order holdout experiment patch. Omit/null to keep. */
+  unpaidOrderReachoutExperiment?: InputMaybe<UnpaidOrderReachoutExperimentInput>;
+  /** Full replacement for unpaid-order reminder stages. Omit/null to keep. Maximum 3 stages. */
+  unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
 }
 
 export interface DecideActionProposalInput {
@@ -5573,6 +5653,7 @@ export interface Mutation {
   csEscalate: CsEscalateResult;
   /** Get an existing CS session or create a new one for a conversation */
   csGetOrCreateSession: CsSessionResult;
+  csIngestOrderStatusWebhook: CsOrderStatusWebhookResult;
   /** Publish a CS conversation signal. Buyer-message and unread-detected signals also mark the conversation pending. */
   csPublishConversationSignal: CsConversationSignal;
   /** Admin/Airflow hook: re-publish failed CS escalation side-effect events to active GraphQL subscribers. Only the latest event per escalation is considered; older failed events are ignored once a newer event exists. */
@@ -5888,6 +5969,11 @@ export interface MutationCsEscalateArgs {
 export interface MutationCsGetOrCreateSessionArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
+}
+
+
+export interface MutationCsIngestOrderStatusWebhookArgs {
+  input: CsOrderStatusWebhookInput;
 }
 
 
@@ -6825,6 +6911,8 @@ export interface Query {
   ecommerceGetCSPerformance: CustomerServicePerformanceReport;
   /** Get near-real-time customer service performance metrics from the warehouse. */
   ecommerceGetCSRealtimePerformance: CustomerServiceRealtimePerformanceReport;
+  /** Get observational unpaid-order reachout performance and randomized experiment metrics. */
+  ecommerceGetCSUnpaidOrderReachoutPerformance: CsUnpaidOrderReachoutPerformanceReport;
   /** Get full conversation details including conversation metadata (unread count, status, participants, latest message preview) and a normalized buyer participant slice. */
   ecommerceGetConversationDetails: CustomerServiceConversationDetails;
   /** Get a bounded customer-service conversation delta from a local OpenClaw-session anchor through the current inbound message. */
@@ -7171,6 +7259,13 @@ export interface QueryEcommerceGetCsPerformanceArgs {
 export interface QueryEcommerceGetCsRealtimePerformanceArgs {
   hours?: InputMaybe<Scalars['Int']['input']>;
   shopId?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface QueryEcommerceGetCsUnpaidOrderReachoutPerformanceArgs {
+  endTime?: InputMaybe<Scalars['String']['input']>;
+  shopId?: InputMaybe<Scalars['String']['input']>;
+  startTime?: InputMaybe<Scalars['String']['input']>;
 }
 
 
@@ -9007,6 +9102,42 @@ export interface ToolSpecsChangedPayload {
   publishedAt: Scalars['DateTimeISO']['output'];
   reason?: Maybe<Scalars['String']['output']>;
   revision: Scalars['String']['output'];
+}
+
+/** Unpaid-order holdout experiment settings */
+export interface UnpaidOrderReachoutExperiment {
+  enabled: Scalars['Boolean']['output'];
+  experimentId?: Maybe<Scalars['String']['output']>;
+  holdoutPercent: Scalars['Int']['output'];
+  startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+}
+
+/** Unpaid-order holdout experiment settings patch */
+export interface UnpaidOrderReachoutExperimentInput {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Holdout percentage. Valid range: 1-20. */
+  holdoutPercent?: InputMaybe<Scalars['Int']['input']>;
+}
+
+/** One scheduled unpaid-order customer-service reminder stage */
+export interface UnpaidOrderReachoutStage {
+  /** Minutes after order creation. Valid range: 1-2879. */
+  delayMinutes: Scalars['Int']['output'];
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['String']['output'];
+  /** Deterministic reminder template. */
+  messageTemplate: Scalars['String']['output'];
+}
+
+/** One unpaid-order reminder stage input */
+export interface UnpaidOrderReachoutStageInput {
+  /** Minutes after order creation. Valid range: 1-2879. */
+  delayMinutes: Scalars['Int']['input'];
+  enabled: Scalars['Boolean']['input'];
+  /** Stable stage ID. Omit to let Backend generate one. */
+  id?: InputMaybe<Scalars['String']['input']>;
+  /** Blank/omitted uses the localized stage default. */
+  messageTemplate?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** One active shop SKU that cannot be safely resolved to canonical InventoryGood. */

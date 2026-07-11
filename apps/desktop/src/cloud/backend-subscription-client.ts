@@ -51,8 +51,8 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
           customerService {
             enabled
             unpaidOrderReachoutEnabled
-            unpaidOrderReachoutDelayHours
-            unpaidOrderReminderMessageTemplate
+            unpaidOrderReachoutStages { id enabled delayMinutes messageTemplate }
+            unpaidOrderReachoutExperiment { enabled holdoutPercent experimentId startedAt }
             businessPrompt
             runProfileId
             csDeviceId
@@ -129,8 +129,8 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
         customerService {
           enabled
           unpaidOrderReachoutEnabled
-          unpaidOrderReachoutDelayHours
-          unpaidOrderReminderMessageTemplate
+          unpaidOrderReachoutStages { id enabled delayMinutes messageTemplate }
+          unpaidOrderReachoutExperiment { enabled holdoutPercent experimentId startedAt }
           businessPrompt
           runProfileId
           csDeviceId
