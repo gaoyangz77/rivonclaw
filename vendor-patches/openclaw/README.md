@@ -78,6 +78,24 @@ vendor upgrade, the AI must still inspect whether each patch:
 
 ## Current Patches
 
+### 0024 — Allow buffer-verified ZIP attachments
+
+**File:** `0024-vendor-openclaw-allow-buffer-verified-ZIP-attachment.patch`
+
+**Why:** This is a temporary backport of an official OpenClaw fix. OpenClaw has
+already fixed the regression upstream, but RivonClaw's currently pinned vendor
+revision predates that fix. Without the backport, the host-media validator rejects
+ZIP attachments before they reach the channel uploader, even when they are below
+the configured media size limit.
+
+**Change:** Add `application/zip` to the host-read document allowlist only after
+the payload has been identified from its bytes. Filename extensions alone are
+not trusted.
+
+**Removal:** Delete this temporary patch after upgrading to an OpenClaw revision
+containing official upstream commit `d6881962a3`; carrying it after that upgrade
+would be redundant.
+
 ### 0023 — Preserve Feishu task lifecycle after queue eviction
 
 **File:** `0023-vendor-openclaw-preserve-Feishu-task-lifecycle-after.patch`
