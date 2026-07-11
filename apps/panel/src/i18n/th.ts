@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "ช่วงเวลา",
       "loadFailed": "โหลดข้อมูลประสิทธิภาพไม่สำเร็จ",
       "noData": "ไม่มีข้อมูลประสิทธิภาพในช่วงเวลานี้",
-      "guidedGmvNoMatureData": "ไม่มี Guided GMV ที่ยืนยันแล้วในช่วงเวลานี้ ระบบจะไม่แสดงข้อมูล 7 วันล่าสุดเนื่องจากการระบุแหล่งที่มายังเปลี่ยนแปลงอยู่",
+      "guidedGmvNoMatureData": "ไม่มี Guided GMV ในช่วงเวลานี้ ระบบจะไม่แสดงข้อมูล 7 วันล่าสุดเนื่องจากการระบุแหล่งที่มายังเปลี่ยนแปลงอยู่",
       "downloadCsv": "ดาวน์โหลด CSV",
       "dailyTable": "ประสิทธิภาพรายวัน",
       "scopeSummary": "{{start}} ถึง {{end}} ครอบคลุม {{shops}} ร้าน แสดงทุกวันในช่วงเวลานี้",
@@ -2378,7 +2378,7 @@ export default {
         "ratedSessions": "เซสชันที่ให้คะแนน {{value}} รายการ",
         "firstResponse": "การตอบกลับแรก P50",
         "firstResponseSamples": "บทสนทนาที่วัดแล้ว {{value}} รายการ",
-        "guidedGmv": "Guided GMV ที่ยืนยันแล้ว",
+        "guidedGmv": "Guided GMV",
         "guidedGmvMaturity": "ไม่รวม 7 วันล่าสุด",
         "p90": "P90 {{value}}"
       },

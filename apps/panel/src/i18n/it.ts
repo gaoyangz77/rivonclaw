@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "Intervallo",
       "loadFailed": "Impossibile caricare i dati sulle prestazioni",
       "noData": "Nessun dato sulle prestazioni per questo intervallo.",
-      "guidedGmvNoMatureData": "Nessun GMV guidato consolidato in questo intervallo. I valori degli ultimi 7 giorni non vengono mostrati perché l’attribuzione è ancora in evoluzione.",
+      "guidedGmvNoMatureData": "Nessun GMV guidato in questo intervallo. I valori degli ultimi 7 giorni non vengono mostrati perché l’attribuzione è ancora in evoluzione.",
       "downloadCsv": "Scarica CSV",
       "dailyTable": "Prestazioni giornaliere",
       "scopeSummary": "Da {{start}} a {{end}} su {{shops}} negozio/i. Sono mostrati tutti i giorni del periodo.",
@@ -2378,7 +2378,7 @@ export default {
         "ratedSessions": "{{value}} sessioni valutate",
         "firstResponse": "Prima risposta P50",
         "firstResponseSamples": "{{value}} conversazioni misurate",
-        "guidedGmv": "GMV guidato consolidato",
+        "guidedGmv": "GMV guidato",
         "guidedGmvMaturity": "Esclude gli ultimi 7 giorni",
         "p90": "P90 {{value}}"
       },
