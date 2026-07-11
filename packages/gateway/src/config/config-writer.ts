@@ -150,6 +150,20 @@ function mergePluginWebSearchConfig(
     : { ...webSearch, ...existingWebSearch };
 }
 
+function clearPluginWebSearchApiKey(config: Record<string, unknown>, pluginId: string): void {
+  const plugins = config.plugins;
+  if (!plugins || typeof plugins !== "object" || Array.isArray(plugins)) return;
+  const entries = (plugins as Record<string, unknown>).entries;
+  if (!entries || typeof entries !== "object" || Array.isArray(entries)) return;
+  const entry = (entries as Record<string, unknown>)[pluginId];
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return;
+  const entryConfig = (entry as Record<string, unknown>).config;
+  if (!entryConfig || typeof entryConfig !== "object" || Array.isArray(entryConfig)) return;
+  const webSearch = (entryConfig as Record<string, unknown>).webSearch;
+  if (!webSearch || typeof webSearch !== "object" || Array.isArray(webSearch)) return;
+  delete (webSearch as Record<string, unknown>).apiKey;
+}
+
 /**
  * Strip keys that the OpenClaw Zod schema does not recognise at any nesting
  * level.  Uses `OpenClawSchema.safeParse()` to detect `unrecognized_keys`
@@ -1313,6 +1327,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         );
       } else {
         mergePluginWebSearchConfig(config, pluginId, {}, false);
+        clearPluginWebSearchApiKey(config, pluginId);
       }
 
       const allow = Array.isArray(plugins.allow) ? (plugins.allow as string[]) : [];
@@ -1322,6 +1337,10 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       }
     } else {
       existingWeb.search = { enabled: false };
+      clearPluginWebSearchApiKey(
+        config,
+        WEB_SEARCH_PROVIDER_PLUGIN_IDS[options.webSearch.provider],
+      );
     }
 
     config.tools = { ...existingTools, web: existingWeb };
@@ -1355,6 +1374,15 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           ...existingRemote,
           apiKey: "${" + options.embedding.apiKeyEnvVar + "}",
         };
+      } else if (
+        typeof memoryConfig.remote === "object" &&
+        memoryConfig.remote !== null &&
+        !Array.isArray(memoryConfig.remote)
+      ) {
+        const remote = { ...(memoryConfig.remote as Record<string, unknown>) };
+        delete remote.apiKey;
+        if (Object.keys(remote).length > 0) memoryConfig.remote = remote;
+        else delete memoryConfig.remote;
       }
       existingDefaults.memorySearch = memoryConfig;
     } else {

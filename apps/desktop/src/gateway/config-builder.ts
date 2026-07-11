@@ -1,12 +1,20 @@
 import { join } from "node:path";
 import type { LLMProvider } from "@rivonclaw/core";
-import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, getOllamaOpenAiBaseUrl } from "@rivonclaw/core";
+import {
+  resolveModelConfig,
+  LOCAL_PROVIDER_IDS,
+  getProviderMeta,
+  getOllamaOpenAiBaseUrl,
+} from "@rivonclaw/core";
 import { resolveUserSkillsDir } from "@rivonclaw/core/node";
 import { buildExtraProviderConfigs, writeGatewayConfig } from "@rivonclaw/gateway";
+import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
-import type { SecretStore } from "@rivonclaw/secrets";
+import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
 import { buildOwnerAllowFrom } from "../auth/owner-sync.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
+
+const log = createLogger("gateway:config-builder");
 
 export interface GatewayConfigDeps {
   storage: Storage;
@@ -21,15 +29,16 @@ export interface GatewayConfigDeps {
   /** Returns plugin entries for channels with at least one account (from ChannelManager). */
   channelPluginEntries: () => Record<string, { enabled: boolean }>;
   /** Returns channel account configs for gateway config write-back (from ChannelManager). */
-  channelConfigAccounts: () => Array<{ channelId: string; accountId: string; config: Record<string, unknown> }>;
+  channelConfigAccounts: () => Array<{
+    channelId: string;
+    accountId: string;
+    config: Record<string, unknown>;
+  }>;
   /** Returns merchant extension paths after any runtime staging. */
   merchantExtensionPaths?: () => string[];
 }
 
-export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = [
-  "rivonclaw-cloud-tools",
-  "rivonclaw-local-tools",
-];
+export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools", "rivonclaw-local-tools"];
 
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
@@ -42,6 +51,12 @@ type RawCustomModel =
       input?: unknown;
       input_modalities?: unknown;
       inputModalities?: unknown;
+      context_length?: unknown;
+      contextWindow?: unknown;
+      max_completion_tokens?: unknown;
+      maxTokens?: unknown;
+      display_name?: unknown;
+      name?: unknown;
     };
 type ProviderKeyLike = {
   provider: string;
@@ -55,9 +70,7 @@ type ProviderKeyLike = {
 export function normalizeGeminiOAuthModelId(modelId: string): string {
   let normalized = modelId.trim();
   for (;;) {
-    const next = normalized
-      .replace(/^google-gemini-cli\//, "")
-      .replace(/^google\//, "");
+    const next = normalized.replace(/^google-gemini-cli\//, "").replace(/^google\//, "");
     if (next === normalized) return normalized;
     normalized = next;
   }
@@ -87,16 +100,35 @@ function rawModelInputModalities(
   );
 }
 
+function positiveInt(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.trunc(value)
+    : undefined;
+}
+
+type CustomProviderModel = {
+  id: string;
+  name: string;
+  input?: GatewayInputModality[];
+  contextWindow?: number;
+  maxTokens?: number;
+};
+
 export function buildCustomProviderOverridesFromKeys(
   allKeys: ProviderKeyLike[],
-): Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string; input?: GatewayInputModality[] }> }> {
-  const overrides: Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string; input?: GatewayInputModality[] }> }> = {};
+): Record<string, { baseUrl: string; api: string; models: CustomProviderModel[] }> {
+  const overrides: Record<string, { baseUrl: string; api: string; models: CustomProviderModel[] }> =
+    {};
   const customKeys = allKeys.filter((k) => k.authType === "custom");
 
   for (const key of customKeys) {
     if (!key.baseUrl || !key.customModelsJson || !key.customProtocol) continue;
     let rawModels: RawCustomModel[];
-    try { rawModels = JSON.parse(key.customModelsJson) as RawCustomModel[]; } catch { continue; }
+    try {
+      rawModels = JSON.parse(key.customModelsJson) as RawCustomModel[];
+    } catch {
+      continue;
+    }
     if (!Array.isArray(rawModels)) continue;
     const api = key.customProtocol === "anthropic" ? "anthropic-messages" : "openai-completions";
     const forceImageInput = key.provider === RIVONCLAW_CLOUD_PROVIDER_ID;
@@ -110,11 +142,23 @@ export function buildCustomProviderOverridesFromKeys(
         if (typeof m === "string") return [{ id: m, name: m, input: keyLevelInput }];
         const id = typeof m.id === "string" ? m.id.trim() : "";
         if (!id) return [];
-        return [{
-          id,
-          name: id,
-          input: forceImageInput ? keyLevelInput : rawModelInputModalities(m, keyLevelInput),
-        }];
+        const displayName =
+          typeof m.display_name === "string"
+            ? m.display_name.trim()
+            : typeof m.name === "string"
+              ? m.name.trim()
+              : id;
+        const contextWindow = positiveInt(m.contextWindow) ?? positiveInt(m.context_length);
+        const maxTokens = positiveInt(m.maxTokens) ?? positiveInt(m.max_completion_tokens);
+        return [
+          {
+            id,
+            name: displayName || id,
+            input: forceImageInput ? keyLevelInput : rawModelInputModalities(m, keyLevelInput),
+            ...(contextWindow ? { contextWindow } : {}),
+            ...(maxTokens ? { maxTokens } : {}),
+          },
+        ];
       }),
     };
   }
@@ -129,15 +173,32 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
   const { storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath } = deps;
 
   function isGeminiOAuthActive(): boolean {
-    return storage.providerKeys.getAll()
+    return storage.providerKeys
+      .getAll()
       .some((k) => k.provider === "gemini" && k.authType === "oauth" && k.isDefault);
   }
 
-  function resolveGeminiOAuthModel(provider: string, modelId: string): { provider: string; modelId: string } {
+  async function hasSecret(key: string): Promise<boolean> {
+    try {
+      return !!(await secretStore.get(key));
+    } catch (error) {
+      if (!(error instanceof SecretStoreAccessError)) throw error;
+      log.warn(`Secure storage is unavailable while checking ${key}; disabling dependent feature`);
+      return false;
+    }
+  }
+
+  function resolveGeminiOAuthModel(
+    provider: string,
+    modelId: string,
+  ): { provider: string; modelId: string } {
     if (!isGeminiOAuthActive() || provider !== "gemini") {
       return { provider, modelId };
     }
-    return { provider: GEMINI_OAUTH_GATEWAY_PROVIDER_ID, modelId: normalizeGeminiOAuthModelId(modelId) };
+    return {
+      provider: GEMINI_OAUTH_GATEWAY_PROVIDER_ID,
+      modelId: normalizeGeminiOAuthModelId(modelId),
+    };
   }
 
   /** Only include extra providers that the user has configured (has a provider key in DB).
@@ -154,8 +215,14 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     return filtered;
   }
 
-  function buildLocalProviderOverrides(): Record<string, { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }> {
-    const overrides: Record<string, { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }> = {};
+  function buildLocalProviderOverrides(): Record<
+    string,
+    { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }
+  > {
+    const overrides: Record<
+      string,
+      { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }
+    > = {};
     for (const localProvider of LOCAL_PROVIDER_IDS) {
       const activeKey = storage.providerKeys.getByProvider(localProvider)[0];
       if (!activeKey) continue;
@@ -168,14 +235,19 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       if (modelId) {
         overrides[localProvider] = {
           baseUrl,
-          models: [{ id: modelId, name: modelId, inputModalities: activeKey.inputModalities ?? undefined }],
+          models: [
+            { id: modelId, name: modelId, inputModalities: activeKey.inputModalities ?? undefined },
+          ],
         };
       }
     }
     return overrides;
   }
 
-  function buildCustomProviderOverrides(): Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string; input?: Array<"text" | "image"> }> }> {
+  function buildCustomProviderOverrides(): Record<
+    string,
+    { baseUrl: string; api: string; models: CustomProviderModel[] }
+  > {
     return buildCustomProviderOverridesFromKeys(storage.providerKeys.getAll());
   }
 
@@ -201,22 +273,36 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     const curRegion = storage.settings.get("region") ?? (locale === "zh" ? "cn" : "us");
     const curModel = activeKey
       ? resolveModelConfig({
-        region: curRegion,
-        userProvider: activeKey.provider as LLMProvider,
-        userModelId: activeKey.model,
-      })
+          region: curRegion,
+          userProvider: activeKey.provider as LLMProvider,
+          userModelId: activeKey.model,
+        })
       : null;
 
     const curSttEnabled = storage.settings.get("stt.enabled") === "true";
-    const curSttProvider = (storage.settings.get("stt.provider") || "groq") as "groq" | "volcengine";
+    const curSttProvider = (storage.settings.get("stt.provider") || "groq") as
+      | "groq"
+      | "volcengine";
 
     const curWebSearchEnabled = storage.settings.get("webSearch.enabled") === "true";
-    const curWebSearchProvider = (storage.settings.get("webSearch.provider") || "brave") as "brave" | "perplexity" | "grok" | "gemini" | "kimi";
+    const curWebSearchProvider = (storage.settings.get("webSearch.provider") || "brave") as
+      | "brave"
+      | "perplexity"
+      | "grok"
+      | "gemini"
+      | "kimi";
 
     const curEmbeddingEnabled = storage.settings.get("embedding.enabled") === "true";
-    const curEmbeddingProvider = (storage.settings.get("embedding.provider") || "openai") as "openai" | "gemini" | "voyage" | "mistral" | "ollama";
+    const curEmbeddingProvider = (storage.settings.get("embedding.provider") || "openai") as
+      | "openai"
+      | "gemini"
+      | "voyage"
+      | "mistral"
+      | "ollama";
 
-    const curBrowserMode = (storage.settings.get("browser-mode") || "standalone") as "standalone" | "cdp";
+    const curBrowserMode = (storage.settings.get("browser-mode") || "standalone") as
+      | "standalone"
+      | "cdp";
     const curBrowserCdpPort = parseInt(storage.settings.get("browser-cdp-port") || "9222", 10);
 
     // Build the full set of extra providers (all built-in non-OpenClaw providers).
@@ -226,11 +312,16 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
 
     // Only reference apiKey env var if key exists in keychain
     const wsKeyExists = curWebSearchEnabled
-      ? !!(await secretStore.get(`websearch-${curWebSearchProvider}-apikey`))
+      ? await hasSecret(`websearch-${curWebSearchProvider}-apikey`)
       : false;
-    const embKeyExists = curEmbeddingEnabled && curEmbeddingProvider !== "ollama"
-      ? !!(await secretStore.get(`embedding-${curEmbeddingProvider}-apikey`))
-      : false;
+    const embKeyExists =
+      curEmbeddingEnabled && curEmbeddingProvider !== "ollama"
+        ? await hasSecret(`embedding-${curEmbeddingProvider}-apikey`)
+        : false;
+
+    const effectiveWebSearchEnabled = curWebSearchEnabled && wsKeyExists;
+    const effectiveEmbeddingEnabled =
+      curEmbeddingEnabled && (curEmbeddingProvider === "ollama" || embKeyExists);
 
     return {
       configPath,
@@ -304,16 +395,19 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         sttCliPath,
       },
       webSearch: {
-        enabled: curWebSearchEnabled,
+        enabled: effectiveWebSearchEnabled,
         provider: curWebSearchProvider,
         apiKeyEnvVar: wsKeyExists ? WS_ENV_MAP[curWebSearchProvider] : undefined,
       },
       embedding: {
-        enabled: curEmbeddingEnabled,
+        enabled: effectiveEmbeddingEnabled,
         provider: curEmbeddingProvider,
         apiKeyEnvVar: embKeyExists ? EMB_ENV_MAP[curEmbeddingProvider] : undefined,
       },
-      extraProviders: { ...filterConfiguredExtraProviders(allExtraProviders), ...buildCustomProviderOverrides() },
+      extraProviders: {
+        ...filterConfiguredExtraProviders(allExtraProviders),
+        ...buildCustomProviderOverrides(),
+      },
       managedProviderKeys: Object.keys(allExtraProviders),
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
@@ -332,5 +426,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     };
   }
 
-  return { isGeminiOAuthActive, resolveGeminiOAuthModel, buildLocalProviderOverrides, buildFullGatewayConfig };
+  return {
+    isGeminiOAuthActive,
+    resolveGeminiOAuthModel,
+    buildLocalProviderOverrides,
+    buildFullGatewayConfig,
+  };
 }

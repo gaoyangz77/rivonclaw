@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { GQL } from "@rivonclaw/core";
-import type { SecretStore } from "@rivonclaw/secrets";
+import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
 import { AuthSessionManager } from "../session.js";
 
 // ---------------------------------------------------------------------------
@@ -25,6 +25,36 @@ const mockUser: GQL.MeResponse = {
   entitlementKeys: [],
   defaultRunProfileId: "SHOP_OPERATIONS",
 };
+
+describe("AuthSessionManager secure storage", () => {
+  it("keeps desktop startup alive while exposing an unavailable keychain", async () => {
+    const secretStore = makeSecretStore();
+    secretStore.get = vi.fn(async () => {
+      throw new SecretStoreAccessError("get", "auth.accessToken");
+    });
+    const manager = new AuthSessionManager(secretStore, "en", vi.fn() as unknown as typeof fetch);
+
+    await expect(manager.loadFromKeychain()).resolves.toBeUndefined();
+    expect(manager.getAccessToken()).toBeNull();
+    expect(manager.isSecureStorageAvailable()).toBe(false);
+  });
+
+  it("marks secure storage healthy after tokens are persisted", async () => {
+    const secretStore = makeSecretStore();
+    const manager = new AuthSessionManager(
+      secretStore,
+      "en",
+      vi.fn() as unknown as typeof fetch,
+    );
+
+    await manager.storeTokens("access", "refresh");
+    expect(manager.isSecureStorageAvailable()).toBe(true);
+    expect(vi.mocked(secretStore.set).mock.calls).toEqual([
+      ["auth.refreshToken", "refresh"],
+      ["auth.accessToken", "access"],
+    ]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Tests: loginWithCredentials
@@ -254,7 +284,7 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
-  it("only clears stored tokens when explicitly asked and the JWT signature is invalid", async () => {
+  it("does not clear stored tokens for a JWT signature error even when clearing is requested", async () => {
     fetchFn.mockResolvedValueOnce({
       status: 200,
       json: async () => ({
@@ -264,10 +294,9 @@ describe("AuthSessionManager.refresh", () => {
 
     await expect(manager.refresh({ clearOnInvalid: true })).rejects.toThrow("invalid signature");
 
-    expect(manager.getAccessToken()).toBeNull();
-    expect(manager.getCachedUser()).toBeNull();
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+    expect(manager.getAccessToken()).toBe("stale-at");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
@@ -287,6 +316,80 @@ describe("AuthSessionManager.refresh", () => {
     expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(fetchFn.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it("clears stored tokens when the backend rejects the refresh token", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        errors: [{ message: "Refresh token revoked or invalid" }],
+      }),
+    });
+
+    await expect(manager.refresh()).rejects.toThrow("Refresh token revoked or invalid");
+
+    expect(manager.getAccessToken()).toBeNull();
+    expect(manager.getCachedUser()).toBeNull();
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves a newer token persisted while an older refresh request was in flight", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => {
+        await secretStore.set("auth.refreshToken", "newer-rt");
+        await secretStore.set("auth.accessToken", "newer-at");
+        return { errors: [{ message: "Refresh token revoked or invalid" }] };
+      },
+    });
+
+    await expect(manager.refresh()).rejects.toThrow("Refresh token revoked or invalid");
+
+    expect(manager.getAccessToken()).toBe("newer-at");
+    expect(secretStore.delete).not.toHaveBeenCalled();
+  });
+
+  it("does not clear tokens for an imprecise refresh-token error", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        errors: [{ message: "Refresh token temporarily unavailable" }],
+      }),
+    });
+
+    await expect(manager.refresh()).rejects.toThrow("Refresh token temporarily unavailable");
+
+    expect(manager.getAccessToken()).toBe("stale-at");
+    expect(secretStore.delete).not.toHaveBeenCalled();
+  });
+
+  it("keeps a successfully refreshed session in memory when secure storage is unavailable", async () => {
+    vi.mocked(secretStore.set).mockImplementation(async (key) => {
+      if (key === "auth.refreshToken") {
+        throw new SecretStoreAccessError("set", key);
+      }
+    });
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        data: {
+          refreshToken: {
+            accessToken: "fresh-at",
+            refreshToken: "fresh-rt",
+            user: mockUser,
+          },
+        },
+      }),
+    });
+
+    await expect(manager.refresh()).resolves.toBe("fresh-at");
+
+    expect(manager.getAccessToken()).toBe("fresh-at");
+    expect(manager.getCachedUser()).toEqual(mockUser);
+    expect(manager.isSecureStorageAvailable()).toBe(false);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
   it("does not clear stored tokens when background GraphQL auto-refresh sees an invalid JWT", async () => {
@@ -314,7 +417,7 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
-  it("can explicitly clear stored tokens when GraphQL auto-refresh sees a JWT signature mismatch", async () => {
+  it("does not clear stored tokens when GraphQL explicitly requests clearing for a JWT signature mismatch", async () => {
     fetchFn
       .mockResolvedValueOnce({
         status: 200,
@@ -333,9 +436,9 @@ describe("AuthSessionManager.refresh", () => {
       manager.graphqlFetch("query ValidateMe { me { userId } }", undefined, { clearOnInvalidRefresh: true }),
     ).rejects.toThrow("invalid signature");
 
-    expect(manager.getAccessToken()).toBeNull();
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+    expect(manager.getAccessToken()).toBe("stale-at");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
@@ -382,7 +485,7 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
-  it("clears the cached auth session when validate sees an illegal JWT signature", async () => {
+  it("keeps the cached auth session when validate sees an illegal JWT signature", async () => {
     await manager.storeTokens("validate-at", "validate-rt");
     manager.setCachedUser(mockUser);
 
@@ -402,10 +505,10 @@ describe("AuthSessionManager.refresh", () => {
 
     await expect(manager.validate()).resolves.toBeNull();
 
-    expect(manager.getAccessToken()).toBeNull();
-    expect(manager.getCachedUser()).toBeNull();
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
-    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+    expect(manager.getAccessToken()).toBe("validate-at");
+    expect(manager.getCachedUser()).toEqual(mockUser);
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).not.toHaveBeenCalledWith("auth.refreshToken");
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 });

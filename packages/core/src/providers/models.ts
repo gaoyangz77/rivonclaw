@@ -35,7 +35,19 @@ export type LLMProvider =
   | "ollama";
 
 /** Root provider IDs (excludes subscription plan IDs). */
-export type RootProvider = Exclude<LLMProvider, "openai-codex" | "zhipu-coding" | "moonshot-coding" | "minimax-coding" | "volcengine-coding" | "qwen-coding" | "modelscope" | "nvidia-nim" | "gemini" | "claude">;
+export type RootProvider = Exclude<
+  LLMProvider,
+  | "openai-codex"
+  | "zhipu-coding"
+  | "moonshot-coding"
+  | "minimax-coding"
+  | "volcengine-coding"
+  | "qwen-coding"
+  | "modelscope"
+  | "nvidia-nim"
+  | "gemini"
+  | "claude"
+>;
 
 /** Per-million-token cost in USD for OpenClaw usage tracking. */
 export interface ModelCost {
@@ -177,13 +189,35 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         oauth: true,
         catalogProvider: "openai-codex",
         api: "openai-codex-responses",
-        validationModel: "gpt-5.4-mini",
-        preferredModel: "latest",
+        validationModel: "gpt-5.6-luna",
+        preferredModel: "gpt-5.6-terra",
         // OpenClaw separates native contextWindow from the default runtime
         // contextTokens budget used for compaction on Codex subscription routes.
         fallbackModels: [
-          { provider: "openai-codex", modelId: "gpt-5.5", displayName: "GPT-5.5", contextWindow: 400000, contextTokens: 272000 },
-          { provider: "openai-codex", modelId: "gpt-5.4-mini", displayName: "GPT-5.4 Mini", contextWindow: 400000, contextTokens: 272000 },
+          {
+            provider: "openai-codex",
+            modelId: "gpt-5.6-terra",
+            displayName: "GPT-5.6 Terra",
+            supportsVision: true,
+            contextWindow: 372000,
+            contextTokens: 244000,
+          },
+          {
+            provider: "openai-codex",
+            modelId: "gpt-5.6-luna",
+            displayName: "GPT-5.6 Luna",
+            supportsVision: true,
+            contextWindow: 372000,
+            contextTokens: 244000,
+          },
+          {
+            provider: "openai-codex",
+            modelId: "gpt-5.6-sol",
+            displayName: "GPT-5.6 Sol",
+            supportsVision: true,
+            contextWindow: 372000,
+            contextTokens: 244000,
+          },
         ],
       },
     ],
@@ -234,8 +268,18 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     envVar: "DEEPSEEK_API_KEY",
     preferredModel: "deepseek-chat",
     extraModels: [
-      { provider: "deepseek", modelId: "deepseek-chat", displayName: "DeepSeek Chat (V3)", contextWindow: 128000 },
-      { provider: "deepseek", modelId: "deepseek-reasoner", displayName: "DeepSeek Reasoner (R1)", contextWindow: 128000 },
+      {
+        provider: "deepseek",
+        modelId: "deepseek-chat",
+        displayName: "DeepSeek Chat (V3)",
+        contextWindow: 128000,
+      },
+      {
+        provider: "deepseek",
+        modelId: "deepseek-reasoner",
+        displayName: "DeepSeek Reasoner (R1)",
+        contextWindow: 128000,
+      },
     ],
   },
   zhipu: {
@@ -481,9 +525,24 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
       { provider: "qwen", modelId: "qwen-plus", displayName: "Qwen Plus", contextWindow: 131072 },
       { provider: "qwen", modelId: "qwen-turbo", displayName: "Qwen Turbo", contextWindow: 131072 },
       { provider: "qwen", modelId: "qwen-long", displayName: "Qwen Long", contextWindow: 10000000 },
-      { provider: "qwen", modelId: "qwen3-235b-a22b", displayName: "Qwen3 235B", contextWindow: 256000 },
-      { provider: "qwen", modelId: "qwen3-30b-a3b", displayName: "Qwen3 30B", contextWindow: 256000 },
-      { provider: "qwen", modelId: "qwen3-coder-plus", displayName: "Qwen3 Coder Plus", contextWindow: 131072 },
+      {
+        provider: "qwen",
+        modelId: "qwen3-235b-a22b",
+        displayName: "Qwen3 235B",
+        contextWindow: 256000,
+      },
+      {
+        provider: "qwen",
+        modelId: "qwen3-30b-a3b",
+        displayName: "Qwen3 30B",
+        contextWindow: 256000,
+      },
+      {
+        provider: "qwen",
+        modelId: "qwen3-coder-plus",
+        displayName: "Qwen3 Coder Plus",
+        contextWindow: 131072,
+      },
       { provider: "qwen", modelId: "qwq-plus", displayName: "QwQ Plus", contextWindow: 131072 },
     ],
     subscriptionPlans: [
@@ -495,14 +554,56 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         apiKeyUrl: "https://bailian.console.aliyun.com/cn-beijing/?tab=model#/efm/coding_plan",
         envVar: "DASHSCOPE_CODING_API_KEY",
         extraModels: [
-          { provider: "qwen-coding", modelId: "qwen3.5-plus", displayName: "Qwen3.5 Plus", supportsVision: true, contextWindow: 131072 },
-          { provider: "qwen-coding", modelId: "qwen3-max-2026-01-23", displayName: "Qwen3 Max", contextWindow: 32768 },
-          { provider: "qwen-coding", modelId: "qwen3-coder-next", displayName: "Qwen3 Coder Next", contextWindow: 131072 },
-          { provider: "qwen-coding", modelId: "qwen3-coder-plus", displayName: "Qwen3 Coder Plus", contextWindow: 131072 },
-          { provider: "qwen-coding", modelId: "MiniMax-M2.5", displayName: "MiniMax M2.5", contextWindow: 192000 },
-          { provider: "qwen-coding", modelId: "glm-5", displayName: "GLM-5", contextWindow: 202752 },
-          { provider: "qwen-coding", modelId: "glm-4.7", displayName: "GLM-4.7", contextWindow: 204800 },
-          { provider: "qwen-coding", modelId: "kimi-k2.5", displayName: "Kimi K2.5", supportsVision: true, contextWindow: 262144 },
+          {
+            provider: "qwen-coding",
+            modelId: "qwen3.5-plus",
+            displayName: "Qwen3.5 Plus",
+            supportsVision: true,
+            contextWindow: 131072,
+          },
+          {
+            provider: "qwen-coding",
+            modelId: "qwen3-max-2026-01-23",
+            displayName: "Qwen3 Max",
+            contextWindow: 32768,
+          },
+          {
+            provider: "qwen-coding",
+            modelId: "qwen3-coder-next",
+            displayName: "Qwen3 Coder Next",
+            contextWindow: 131072,
+          },
+          {
+            provider: "qwen-coding",
+            modelId: "qwen3-coder-plus",
+            displayName: "Qwen3 Coder Plus",
+            contextWindow: 131072,
+          },
+          {
+            provider: "qwen-coding",
+            modelId: "MiniMax-M2.5",
+            displayName: "MiniMax M2.5",
+            contextWindow: 192000,
+          },
+          {
+            provider: "qwen-coding",
+            modelId: "glm-5",
+            displayName: "GLM-5",
+            contextWindow: 202752,
+          },
+          {
+            provider: "qwen-coding",
+            modelId: "glm-4.7",
+            displayName: "GLM-4.7",
+            contextWindow: 204800,
+          },
+          {
+            provider: "qwen-coding",
+            modelId: "kimi-k2.5",
+            displayName: "Kimi K2.5",
+            supportsVision: true,
+            contextWindow: 262144,
+          },
         ],
       },
       {
@@ -513,18 +614,78 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         apiKeyUrl: "https://modelscope.cn/my/myaccesstoken",
         envVar: "MODELSCOPE_API_KEY",
         extraModels: [
-          { provider: "modelscope", modelId: "Qwen/Qwen3.5-397B-A17B", displayName: "Qwen3.5 397B", contextWindow: 131072 },
-          { provider: "modelscope", modelId: "Qwen/Qwen3-235B-A22B-Instruct-2507", displayName: "Qwen3 235B Instruct", contextWindow: 256000 },
-          { provider: "modelscope", modelId: "Qwen/Qwen3-235B-A22B-Thinking-2507", displayName: "Qwen3 235B Thinking", contextWindow: 256000 },
-          { provider: "modelscope", modelId: "Qwen/Qwen3-Coder-480B-A35B-Instruct", displayName: "Qwen3 Coder 480B", contextWindow: 256000 },
-          { provider: "modelscope", modelId: "Qwen/Qwen3-Coder-30B-A3B-Instruct", displayName: "Qwen3 Coder 30B", contextWindow: 256000 },
-          { provider: "modelscope", modelId: "Qwen/Qwen3-32B", displayName: "Qwen3 32B", contextWindow: 131072 },
-          { provider: "modelscope", modelId: "Qwen/QwQ-32B", displayName: "QwQ 32B", contextWindow: 131072 },
-          { provider: "modelscope", modelId: "deepseek-ai/DeepSeek-R1-0528", displayName: "DeepSeek R1", contextWindow: 128000 },
-          { provider: "modelscope", modelId: "deepseek-ai/DeepSeek-V3.2", displayName: "DeepSeek V3.2", contextWindow: 159000 },
-          { provider: "modelscope", modelId: "moonshotai/Kimi-K2.5", displayName: "Kimi K2.5", contextWindow: 262144 },
-          { provider: "modelscope", modelId: "ZhipuAI/GLM-5", displayName: "GLM-5", contextWindow: 202752 },
-          { provider: "modelscope", modelId: "ZhipuAI/GLM-4.7-Flash", displayName: "GLM-4.7 Flash", contextWindow: 204800 },
+          {
+            provider: "modelscope",
+            modelId: "Qwen/Qwen3.5-397B-A17B",
+            displayName: "Qwen3.5 397B",
+            contextWindow: 131072,
+          },
+          {
+            provider: "modelscope",
+            modelId: "Qwen/Qwen3-235B-A22B-Instruct-2507",
+            displayName: "Qwen3 235B Instruct",
+            contextWindow: 256000,
+          },
+          {
+            provider: "modelscope",
+            modelId: "Qwen/Qwen3-235B-A22B-Thinking-2507",
+            displayName: "Qwen3 235B Thinking",
+            contextWindow: 256000,
+          },
+          {
+            provider: "modelscope",
+            modelId: "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+            displayName: "Qwen3 Coder 480B",
+            contextWindow: 256000,
+          },
+          {
+            provider: "modelscope",
+            modelId: "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+            displayName: "Qwen3 Coder 30B",
+            contextWindow: 256000,
+          },
+          {
+            provider: "modelscope",
+            modelId: "Qwen/Qwen3-32B",
+            displayName: "Qwen3 32B",
+            contextWindow: 131072,
+          },
+          {
+            provider: "modelscope",
+            modelId: "Qwen/QwQ-32B",
+            displayName: "QwQ 32B",
+            contextWindow: 131072,
+          },
+          {
+            provider: "modelscope",
+            modelId: "deepseek-ai/DeepSeek-R1-0528",
+            displayName: "DeepSeek R1",
+            contextWindow: 128000,
+          },
+          {
+            provider: "modelscope",
+            modelId: "deepseek-ai/DeepSeek-V3.2",
+            displayName: "DeepSeek V3.2",
+            contextWindow: 159000,
+          },
+          {
+            provider: "modelscope",
+            modelId: "moonshotai/Kimi-K2.5",
+            displayName: "Kimi K2.5",
+            contextWindow: 262144,
+          },
+          {
+            provider: "modelscope",
+            modelId: "ZhipuAI/GLM-5",
+            displayName: "GLM-5",
+            contextWindow: 202752,
+          },
+          {
+            provider: "modelscope",
+            modelId: "ZhipuAI/GLM-4.7-Flash",
+            displayName: "GLM-4.7 Flash",
+            contextWindow: 204800,
+          },
         ],
       },
     ],
@@ -576,7 +737,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         provider: "minimax-cn",
         modelId: "MiniMax-M2.1-highspeed",
         displayName: "MiniMax M2.1 Highspeed",
-        cost: { input: 0.60, output: 2.40, cacheRead: 0, cacheWrite: 0 },
+        cost: { input: 0.6, output: 2.4, cacheRead: 0, cacheWrite: 0 },
         contextWindow: 192000,
       },
     ],
@@ -589,10 +750,30 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         apiKeyUrl: "https://platform.minimaxi.com/user-center/basic-information/interface-key",
         envVar: "MINIMAX_CODING_API_KEY",
         extraModels: [
-          { provider: "minimax-coding", modelId: "MiniMax-M2.5", displayName: "MiniMax M2.5", contextWindow: 192000 },
-          { provider: "minimax-coding", modelId: "MiniMax-M2.5-highspeed", displayName: "MiniMax M2.5 Highspeed", contextWindow: 192000 },
-          { provider: "minimax-coding", modelId: "MiniMax-M2.1", displayName: "MiniMax M2.1", contextWindow: 192000 },
-          { provider: "minimax-coding", modelId: "MiniMax-M2", displayName: "MiniMax M2", contextWindow: 192000 },
+          {
+            provider: "minimax-coding",
+            modelId: "MiniMax-M2.5",
+            displayName: "MiniMax M2.5",
+            contextWindow: 192000,
+          },
+          {
+            provider: "minimax-coding",
+            modelId: "MiniMax-M2.5-highspeed",
+            displayName: "MiniMax M2.5 Highspeed",
+            contextWindow: 192000,
+          },
+          {
+            provider: "minimax-coding",
+            modelId: "MiniMax-M2.1",
+            displayName: "MiniMax M2.1",
+            contextWindow: 192000,
+          },
+          {
+            provider: "minimax-coding",
+            modelId: "MiniMax-M2",
+            displayName: "MiniMax M2",
+            contextWindow: 192000,
+          },
         ],
       },
     ],
@@ -604,12 +785,42 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     apiKeyUrl: "https://venice.ai/settings/api",
     envVar: "VENICE_API_KEY",
     extraModels: [
-      { provider: "venice", modelId: "zai-org-glm-4.7", displayName: "GLM 4.7", contextWindow: 128000 },
-      { provider: "venice", modelId: "deepseek-v3.2", displayName: "DeepSeek V3.2", contextWindow: 128000 },
-      { provider: "venice", modelId: "openai-gpt-52", displayName: "GPT-5.2", contextWindow: 128000 },
-      { provider: "venice", modelId: "claude-opus-4-6", displayName: "Claude Opus 4.6", contextWindow: 128000 },
-      { provider: "venice", modelId: "grok-41-fast", displayName: "Grok 4.1 Fast", contextWindow: 128000 },
-      { provider: "venice", modelId: "gemini-3-1-pro-preview", displayName: "Gemini 3.1 Pro Preview", contextWindow: 128000 },
+      {
+        provider: "venice",
+        modelId: "zai-org-glm-4.7",
+        displayName: "GLM 4.7",
+        contextWindow: 128000,
+      },
+      {
+        provider: "venice",
+        modelId: "deepseek-v3.2",
+        displayName: "DeepSeek V3.2",
+        contextWindow: 128000,
+      },
+      {
+        provider: "venice",
+        modelId: "openai-gpt-52",
+        displayName: "GPT-5.2",
+        contextWindow: 128000,
+      },
+      {
+        provider: "venice",
+        modelId: "claude-opus-4-6",
+        displayName: "Claude Opus 4.6",
+        contextWindow: 128000,
+      },
+      {
+        provider: "venice",
+        modelId: "grok-41-fast",
+        displayName: "Grok 4.1 Fast",
+        contextWindow: 128000,
+      },
+      {
+        provider: "venice",
+        modelId: "gemini-3-1-pro-preview",
+        displayName: "Gemini 3.1 Pro Preview",
+        contextWindow: 128000,
+      },
     ],
   },
   xiaomi: {
@@ -619,7 +830,12 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     apiKeyUrl: "https://platform.xiaomimimo.com/",
     envVar: "XIAOMI_API_KEY",
     extraModels: [
-      { provider: "xiaomi", modelId: "mimo-v2-flash", displayName: "MiMo V2 Flash", contextWindow: 131072 },
+      {
+        provider: "xiaomi",
+        modelId: "mimo-v2-flash",
+        displayName: "MiMo V2 Flash",
+        contextWindow: 131072,
+      },
     ],
   },
   volcengine: {
@@ -720,11 +936,36 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     apiKeyUrl: "https://build.nvidia.com/settings/api-keys",
     envVar: "NVIDIA_API_KEY",
     extraModels: [
-      { provider: "nvidia", modelId: "meta/llama-3.3-70b-instruct", displayName: "Llama 3.3 70B Instruct", contextWindow: 128000 },
-      { provider: "nvidia", modelId: "meta/llama-3.1-405b-instruct", displayName: "Llama 3.1 405B Instruct", contextWindow: 128000 },
-      { provider: "nvidia", modelId: "meta/llama-3.1-8b-instruct", displayName: "Llama 3.1 8B Instruct", contextWindow: 128000 },
-      { provider: "nvidia", modelId: "deepseek-ai/deepseek-v3.2", displayName: "DeepSeek V3.2", contextWindow: 159000 },
-      { provider: "nvidia", modelId: "nvidia/llama-3.1-nemotron-ultra-253b-v1", displayName: "Nemotron Ultra 253B", contextWindow: 131072 },
+      {
+        provider: "nvidia",
+        modelId: "meta/llama-3.3-70b-instruct",
+        displayName: "Llama 3.3 70B Instruct",
+        contextWindow: 128000,
+      },
+      {
+        provider: "nvidia",
+        modelId: "meta/llama-3.1-405b-instruct",
+        displayName: "Llama 3.1 405B Instruct",
+        contextWindow: 128000,
+      },
+      {
+        provider: "nvidia",
+        modelId: "meta/llama-3.1-8b-instruct",
+        displayName: "Llama 3.1 8B Instruct",
+        contextWindow: 128000,
+      },
+      {
+        provider: "nvidia",
+        modelId: "deepseek-ai/deepseek-v3.2",
+        displayName: "DeepSeek V3.2",
+        contextWindow: 159000,
+      },
+      {
+        provider: "nvidia",
+        modelId: "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+        displayName: "Nemotron Ultra 253B",
+        contextWindow: 131072,
+      },
     ],
     subscriptionPlans: [
       {
@@ -735,15 +976,59 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         apiKeyUrl: "https://build.nvidia.com/settings/api-keys",
         envVar: "NVIDIA_NIM_API_KEY",
         extraModels: [
-          { provider: "nvidia-nim", modelId: "meta/llama-3.3-70b-instruct", displayName: "Llama 3.3 70B Instruct", contextWindow: 128000 },
-          { provider: "nvidia-nim", modelId: "meta/llama-3.1-405b-instruct", displayName: "Llama 3.1 405B Instruct", contextWindow: 128000 },
-          { provider: "nvidia-nim", modelId: "meta/llama-3.1-8b-instruct", displayName: "Llama 3.1 8B Instruct", contextWindow: 128000 },
-          { provider: "nvidia-nim", modelId: "deepseek-ai/deepseek-v3.2", displayName: "DeepSeek V3.2", contextWindow: 159000 },
-          { provider: "nvidia-nim", modelId: "qwen/qwen2.5-72b-instruct", displayName: "Qwen 2.5 72B Instruct", contextWindow: 131072 },
-          { provider: "nvidia-nim", modelId: "google/gemma-2-27b-it", displayName: "Gemma 2 27B IT", contextWindow: 8192 },
-          { provider: "nvidia-nim", modelId: "mistralai/mistral-large-3-675b-instruct-2512", displayName: "Mistral Large 3 675B" },
-          { provider: "nvidia-nim", modelId: "nvidia/llama-3.1-nemotron-ultra-253b-v1", displayName: "Nemotron Ultra 253B", contextWindow: 131072 },
-          { provider: "nvidia-nim", modelId: "nvidia/llama-3.1-nemotron-70b-instruct", displayName: "Nemotron 70B Instruct", contextWindow: 131072 },
+          {
+            provider: "nvidia-nim",
+            modelId: "meta/llama-3.3-70b-instruct",
+            displayName: "Llama 3.3 70B Instruct",
+            contextWindow: 128000,
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "meta/llama-3.1-405b-instruct",
+            displayName: "Llama 3.1 405B Instruct",
+            contextWindow: 128000,
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "meta/llama-3.1-8b-instruct",
+            displayName: "Llama 3.1 8B Instruct",
+            contextWindow: 128000,
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "deepseek-ai/deepseek-v3.2",
+            displayName: "DeepSeek V3.2",
+            contextWindow: 159000,
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "qwen/qwen2.5-72b-instruct",
+            displayName: "Qwen 2.5 72B Instruct",
+            contextWindow: 131072,
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "google/gemma-2-27b-it",
+            displayName: "Gemma 2 27B IT",
+            contextWindow: 8192,
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "mistralai/mistral-large-3-675b-instruct-2512",
+            displayName: "Mistral Large 3 675B",
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+            displayName: "Nemotron Ultra 253B",
+            contextWindow: 131072,
+          },
+          {
+            provider: "nvidia-nim",
+            modelId: "nvidia/llama-3.1-nemotron-70b-instruct",
+            displayName: "Nemotron 70B Instruct",
+            contextWindow: 131072,
+          },
         ],
       },
     ],
@@ -962,12 +1247,11 @@ export function providerSecretKey(provider: LLMProvider): string {
  * `initKnownModels()` populates it with OpenClaw's full catalog.
  */
 // eslint-disable-next-line import/no-mutable-exports
-export let KNOWN_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> =
-  Object.fromEntries(
-    ALL_PROVIDERS
-      .map((p) => [p, getSupplementalModels(p)] as const)
-      .filter(([, models]) => models.length > 0),
-  );
+export let KNOWN_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> = Object.fromEntries(
+  ALL_PROVIDERS.map((p) => [p, getSupplementalModels(p)] as const).filter(
+    ([, models]) => models.length > 0,
+  ),
+);
 
 /**
  * Populate KNOWN_MODELS from the gateway's model catalog.
@@ -978,7 +1262,10 @@ export let KNOWN_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> =
  * catalog entries that don't overlap are appended after.
  */
 export function initKnownModels(
-  catalog: Record<string, Array<{ id: string; name: string; contextWindow?: number; contextTokens?: number }>>,
+  catalog: Record<
+    string,
+    Array<{ id: string; name: string; contextWindow?: number; contextTokens?: number }>
+  >,
 ): void {
   const result: Partial<Record<LLMProvider, ModelConfig[]>> = {};
 
@@ -1007,10 +1294,7 @@ export function initKnownModels(
       ];
     } else {
       const catalogIds = new Set(catalogModels.map((m) => m.modelId));
-      result[p] = [
-        ...catalogModels,
-        ...fallback.filter((m) => !catalogIds.has(m.modelId)),
-      ];
+      result[p] = [...catalogModels, ...fallback.filter((m) => !catalogIds.has(m.modelId))];
     }
   }
 
@@ -1060,9 +1344,7 @@ export function getDefaultModelForRegion(region: string): ModelConfig {
  * If a preferred default is configured and exists in the provider's list,
  * returns that; otherwise returns the first model.
  */
-export function getDefaultModelForProvider(
-  provider: LLMProvider,
-): ModelConfig | undefined {
+export function getDefaultModelForProvider(provider: LLMProvider): ModelConfig | undefined {
   const models = KNOWN_MODELS[provider];
   if (!models || models.length === 0) return undefined;
   const preferred = getProviderMeta(provider)?.preferredModel;

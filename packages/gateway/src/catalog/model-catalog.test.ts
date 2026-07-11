@@ -27,7 +27,8 @@ function entry(id: string, name?: string, context?: Partial<CatalogModelEntry>):
 }
 
 // Import after mocking
-const { normalizeCatalog, readGatewayModelCatalog, readFullModelCatalog } = await import("./model-catalog.js");
+const { normalizeCatalog, readGatewayModelCatalog, readFullModelCatalog } =
+  await import("./model-catalog.js");
 
 describe("normalizeCatalog", () => {
   it("should keep 'zai' and 'zhipu' as separate providers", () => {
@@ -63,10 +64,7 @@ describe("normalizeCatalog", () => {
     const result = normalizeCatalog(catalog);
 
     expect(result.codex).toBeUndefined();
-    expect(result["openai-codex"]!.map((m) => m.id)).toEqual([
-      "gpt-5.5",
-      "gpt-5.4-mini",
-    ]);
+    expect(result["openai-codex"]!.map((m) => m.id)).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
   });
 
   it("should keep codex-cli separate because it uses a different runtime", () => {
@@ -112,7 +110,10 @@ describe("normalizeCatalog", () => {
   });
 
   it("should normalize model IDs using provided aliases", () => {
-    const aliases = { "gemini-3-pro": "gemini-3-pro-preview", "gemini-3-flash": "gemini-3-flash-preview" };
+    const aliases = {
+      "gemini-3-pro": "gemini-3-pro-preview",
+      "gemini-3-flash": "gemini-3-flash-preview",
+    };
     const catalog = {
       "google-gemini-cli": [
         entry("gemini-3-pro", "Gemini 3 Pro"),
@@ -182,6 +183,18 @@ describe("normalizeCatalog", () => {
       contextTokens: 272_000,
     });
   });
+
+  it("should use the GPT-5.6 native window and runtime input budget", () => {
+    const result = normalizeCatalog({
+      codex: [entry("gpt-5.6-terra", "GPT-5.6 Terra", { contextWindow: 128_000 })],
+    });
+
+    expect(result["openai-codex"]![0]).toMatchObject({
+      id: "gpt-5.6-terra",
+      contextWindow: 372_000,
+      contextTokens: 244_000,
+    });
+  });
 });
 
 describe("readGatewayModelCatalog", () => {
@@ -198,21 +211,26 @@ describe("readGatewayModelCatalog", () => {
 
   it("should parse models.json correctly", () => {
     mocks.existsSync.mockReturnValue(true);
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        openai: {
-          models: [
-            { id: "gpt-4o", name: "GPT-4o" },
-            { id: "gpt-4o-mini", name: "GPT-4o Mini", contextWindow: 128000, contextTokens: 64000 },
-          ],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          openai: {
+            models: [
+              { id: "gpt-4o", name: "GPT-4o" },
+              {
+                id: "gpt-4o-mini",
+                name: "GPT-4o Mini",
+                contextWindow: 128000,
+                contextTokens: 64000,
+              },
+            ],
+          },
+          anthropic: {
+            models: [{ id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" }],
+          },
         },
-        anthropic: {
-          models: [
-            { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
-          ],
-        },
-      },
-    }));
+      }),
+    );
 
     const result = readGatewayModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     expect(Object.keys(result)).toContain("openai");
@@ -227,12 +245,14 @@ describe("readGatewayModelCatalog", () => {
 
   it("should skip providers with empty model arrays", () => {
     mocks.existsSync.mockReturnValue(true);
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        openai: { models: [] },
-        anthropic: { models: [{ id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" }] },
-      },
-    }));
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          openai: { models: [] },
+          anthropic: { models: [{ id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" }] },
+        },
+      }),
+    );
 
     const result = readGatewayModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     expect(result.openai).toBeUndefined();
@@ -276,13 +296,15 @@ describe("readFullModelCatalog", () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        openai: {
-          models: [{ id: "gpt-4o", name: "GPT-4o" }],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          openai: {
+            models: [{ id: "gpt-4o", name: "GPT-4o" }],
+          },
         },
-      },
-    }));
+      }),
+    );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
@@ -304,23 +326,29 @@ describe("readFullModelCatalog", () => {
     expect(KNOWN_MODELS.volcengine).toBeDefined();
     expect(KNOWN_MODELS.volcengine!.length).toBeGreaterThan(0);
     expect(KNOWN_MODELS["openai-codex"]).toBeDefined();
-    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
+    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual([
+      "gpt-5.6-terra",
+      "gpt-5.6-sol",
+      "gpt-5.6-luna",
+    ]);
   });
 
   it("should populate KNOWN_MODELS with gateway models", async () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        openai: {
-          models: [{ id: "gpt-4o", name: "GPT-4o" }],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          openai: {
+            models: [{ id: "gpt-4o", name: "GPT-4o" }],
+          },
+          anthropic: {
+            models: [{ id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" }],
+          },
         },
-        anthropic: {
-          models: [{ id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" }],
-        },
-      },
-    }));
+      }),
+    );
 
     await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
@@ -335,27 +363,27 @@ describe("readFullModelCatalog", () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        anthropic: {
-          models: [
-            { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
-            { id: "claude-opus-4-6", name: "Claude Opus 4.6" },
-          ],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          anthropic: {
+            models: [
+              { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
+              { id: "claude-opus-4-6", name: "Claude Opus 4.6" },
+            ],
+          },
+          google: {
+            models: [{ id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" }],
+          },
+          "google-gemini-cli": {
+            models: [
+              { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
+              { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+            ],
+          },
         },
-        google: {
-          models: [
-            { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
-          ],
-        },
-        "google-gemini-cli": {
-          models: [
-            { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
-            { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-          ],
-        },
-      },
-    }));
+      }),
+    );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
@@ -385,7 +413,11 @@ describe("readFullModelCatalog", () => {
 
     // openai-codex is fallback-only and should keep its own list instead of inheriting openai.
     expect(result["openai-codex"]).toBeDefined();
-    expect(result["openai-codex"]!.map((m) => m.id)).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
+    expect(result["openai-codex"]!.map((m) => m.id)).toEqual([
+      "gpt-5.6-terra",
+      "gpt-5.6-sol",
+      "gpt-5.6-luna",
+    ]);
   });
 
   it("should supplement (not replace) gateway models with extraModels", async () => {
@@ -393,13 +425,15 @@ describe("readFullModelCatalog", () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        volcengine: {
-          models: [{ id: "vendor-only-model", name: "Vendor Only Model" }],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          volcengine: {
+            models: [{ id: "vendor-only-model", name: "Vendor Only Model" }],
+          },
         },
-      },
-    }));
+      }),
+    );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
@@ -411,9 +445,7 @@ describe("readFullModelCatalog", () => {
       expect(ids).toContain(extra.modelId);
     }
     // Total should be gateway (1 new) + extraModels (N)
-    expect(result.volcengine!.length).toBe(
-      getProviderMeta("volcengine")!.extraModels!.length + 1,
-    );
+    expect(result.volcengine!.length).toBe(getProviderMeta("volcengine")!.extraModels!.length + 1);
   });
 
   it("should not duplicate models present in both gateway and extraModels", async () => {
@@ -421,13 +453,15 @@ describe("readFullModelCatalog", () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        volcengine: {
-          models: [{ id: firstExtra.modelId, name: "Gateway Version" }],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          volcengine: {
+            models: [{ id: firstExtra.modelId, name: "Gateway Version" }],
+          },
         },
-      },
-    }));
+      }),
+    );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
@@ -440,39 +474,44 @@ describe("readFullModelCatalog", () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        "openai-codex": {
-          models: [{ id: "vendor-only-codex", name: "Vendor Only Codex" }],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          "openai-codex": {
+            models: [{ id: "vendor-only-codex", name: "Vendor Only Codex" }],
+          },
         },
-      },
-    }));
+      }),
+    );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     const ids = result["openai-codex"]!.map((m) => m.id);
 
     expect(ids).toContain("vendor-only-codex");
-    expect(ids).toContain("gpt-5.5");
-    expect(ids).toContain("gpt-5.4-mini");
+    expect(ids).toContain("gpt-5.6-terra");
+    expect(ids).toContain("gpt-5.6-luna");
+    expect(ids).toContain("gpt-5.6-sol");
   });
 
   it("should expose upstream codex models under openai-codex even when openai-codex is empty", async () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
-    mocks.readFileSync.mockReturnValue(JSON.stringify({
-      providers: {
-        "openai-codex": {
-          models: [],
+    mocks.readFileSync.mockReturnValue(
+      JSON.stringify({
+        providers: {
+          "openai-codex": {
+            models: [],
+          },
+          codex: {
+            models: [
+              { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
+              { id: "gpt-upstream-mini", name: "GPT Upstream Mini" },
+            ],
+          },
         },
-        codex: {
-          models: [
-            { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
-            { id: "gpt-upstream-mini", name: "GPT Upstream Mini" },
-          ],
-        },
-      },
-    }));
+      }),
+    );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     const ids = result["openai-codex"]!.map((m) => m.id);
@@ -480,7 +519,8 @@ describe("readFullModelCatalog", () => {
     expect(result.codex).toBeUndefined();
     expect(ids).toContain("gpt-upstream-latest");
     expect(ids).toContain("gpt-upstream-mini");
-    expect(ids).toContain("gpt-5.5");
-    expect(ids).toContain("gpt-5.4-mini");
+    expect(ids).toContain("gpt-5.6-terra");
+    expect(ids).toContain("gpt-5.6-luna");
+    expect(ids).toContain("gpt-5.6-sol");
   });
 });

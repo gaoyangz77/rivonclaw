@@ -1,4 +1,4 @@
-import type { SecretStore } from "@rivonclaw/secrets";
+import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
 import { createQuietLogger, DEBUG_FLAGS } from "@rivonclaw/logger";
 
 const log = createQuietLogger("gateway:secret-injector", DEBUG_FLAGS.SECRETS);
@@ -50,7 +50,14 @@ export async function resolveSecretEnv(
 
   // Inject non-LLM secrets only (STT, web search, embedding)
   for (const [secretKey, envVar] of Object.entries(STATIC_SECRET_ENV_MAP)) {
-    const value = await store.get(secretKey);
+    let value: string | null;
+    try {
+      value = await store.get(secretKey);
+    } catch (error) {
+      if (!(error instanceof SecretStoreAccessError)) throw error;
+      log.warn("Secure storage is unavailable; starting gateway without optional secret env");
+      break;
+    }
     if (value !== null) {
       env[envVar] = value;
       log.debug("Injecting secret: " + secretKey + " -> " + envVar);
