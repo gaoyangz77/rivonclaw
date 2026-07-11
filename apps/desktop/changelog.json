@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.65",
+    "date": "2026-07-11",
+    "en": [
+      "Make Feishu attachment delivery more reliable"
+    ],
+    "zh": [
+      "提升飞书附件发送的可靠性"
+    ]
+  },
+  {
     "version": "1.8.64",
     "date": "2026-07-11",
     "en": [
