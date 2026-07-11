@@ -78,6 +78,24 @@ vendor upgrade, the AI must still inspect whether each patch:
 
 ## Current Patches
 
+### 0023 — Preserve Feishu task lifecycle after queue eviction
+
+**File:** `0023-vendor-openclaw-preserve-Feishu-task-lifecycle-after.patch`
+
+**Why:** Feishu's per-chat queue stops blocking later messages after five minutes,
+but upstream returns that bounded queue promise to the message receiver. When the
+cap fires, the receiver treats the still-running dispatch as complete and closes
+its streaming card. This can detach an OpenClaw same-model timeout retry at the
+exact moment it starts, leaving the user with only the last progress update.
+
+**Change:** Keep the bounded promise only in the per-chat ordering chain while
+returning the original task promise to its caller. Later same-chat messages can
+still proceed after the cap, while the original handler and streaming card remain
+alive until the agent retry actually completes.
+
+**Removal:** Drop when upstream Feishu's sequential queue independently bounds
+the ordering chain without resolving the original task's caller-facing promise.
+
 ### 0002 — `before_tool_resolve` hook for per-session tool filtering
 
 **File:** `0002-vendor-openclaw-add-before_tool_resolve-hook-for-per.patch`
