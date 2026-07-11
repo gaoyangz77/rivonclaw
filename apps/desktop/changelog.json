@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.63",
+    "date": "2026-07-11",
+    "en": [
+      "Add GPT-5.6 models and harden secure auth storage",
+      "Show seven-day average guided GMV in customer-service performance views"
+    ],
+    "zh": [
+      "新增 GPT-5.6 模型，并加固安全认证存储",
+      "在客服绩效视图展示七日平均引导 GMV"
+    ]
+  },
+  {
     "version": "1.8.62",
     "date": "2026-07-10",
     "en": [
