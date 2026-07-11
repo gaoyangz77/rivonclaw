@@ -75,12 +75,8 @@ describe("initKnownModels", () => {
         { id: "gpt-4o", name: "GPT-4o" },
         { id: "gpt-4o-mini", name: "GPT-4o Mini" },
       ],
-      anthropic: [
-        { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
-      ],
-      deepseek: [
-        { id: "deepseek-chat", name: "DeepSeek Chat" },
-      ],
+      anthropic: [{ id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" }],
+      deepseek: [{ id: "deepseek-chat", name: "DeepSeek Chat" }],
     };
 
     initKnownModels(catalog);
@@ -96,9 +92,7 @@ describe("initKnownModels", () => {
 
   it("should merge supplemental models with catalog entries (supplement, not replace)", () => {
     const catalog = {
-      volcengine: [
-        { id: "some-other-model", name: "Other Model" },
-      ],
+      volcengine: [{ id: "some-other-model", name: "Other Model" }],
     };
 
     initKnownModels(catalog);
@@ -110,30 +104,25 @@ describe("initKnownModels", () => {
     }
     // catalog-only model should also be appended
     expect(ids).toContain("some-other-model");
-    expect(KNOWN_MODELS.volcengine!.length).toBe(
-      PROVIDERS.volcengine.extraModels!.length + 1,
-    );
+    expect(KNOWN_MODELS.volcengine!.length).toBe(PROVIDERS.volcengine.extraModels!.length + 1);
   });
 
   it("should place fallback models after upstream catalog models", () => {
     initKnownModels({
-      "openai-codex": [
-        { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
-      ],
+      "openai-codex": [{ id: "gpt-upstream-latest", name: "GPT Upstream Latest" }],
     });
 
     const models = getModelsForProvider("openai-codex");
 
     expect(models[0].modelId).toBe("gpt-upstream-latest");
-    expect(models.map((m) => m.modelId)).toContain("gpt-5.5");
-    expect(models.map((m) => m.modelId)).toContain("gpt-5.4-mini");
+    expect(models.map((m) => m.modelId)).toContain("gpt-5.6-terra");
+    expect(models.map((m) => m.modelId)).toContain("gpt-5.6-luna");
+    expect(models.map((m) => m.modelId)).toContain("gpt-5.6-sol");
   });
 
   it("should ignore unknown providers", () => {
     const catalog = {
-      "unknown-provider": [
-        { id: "model-1", name: "Model 1" },
-      ],
+      "unknown-provider": [{ id: "model-1", name: "Model 1" }],
     };
 
     initKnownModels(catalog);
@@ -256,7 +245,7 @@ describe("getModelsForProvider", () => {
     const models = getModelsForProvider("openai-codex");
     const ids = models.map((m) => m.modelId);
 
-    expect(ids).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
+    expect(ids).toEqual(["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol"]);
   });
 
   it("should return empty array for providers with no models", () => {
@@ -379,10 +368,10 @@ describe("openai-codex defaults", () => {
 
     const model = getDefaultModelForProvider("openai-codex");
     expect(model).toBeDefined();
-    expect(model!.modelId).toBe("gpt-5.5");
+    expect(model!.modelId).toBe("gpt-5.6-terra");
   });
 
-  it("should prefer the latest upstream catalog model when available", () => {
+  it("should prefer Terra when it is available as a local fallback", () => {
     initKnownModels({
       "openai-codex": [
         { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
@@ -393,6 +382,6 @@ describe("openai-codex defaults", () => {
     const model = getDefaultModelForProvider("openai-codex");
 
     expect(model).toBeDefined();
-    expect(model!.modelId).toBe("gpt-upstream-latest");
+    expect(model!.modelId).toBe("gpt-5.6-terra");
   });
 });

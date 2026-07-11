@@ -241,6 +241,46 @@ describe("config-writer", () => {
       });
     });
 
+    it("removes stale optional secret references when their features cannot use a key", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              memorySearch: {
+                enabled: true,
+                provider: "gemini",
+                remote: { apiKey: "${RIVONCLAW_EMB_GEMINI_APIKEY}" },
+              },
+            },
+          },
+          plugins: {
+            entries: {
+              brave: {
+                enabled: true,
+                config: {
+                  webSearch: { apiKey: "${RIVONCLAW_WS_BRAVE_APIKEY}" },
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        webSearch: { enabled: false, provider: "brave" },
+        embedding: { enabled: true, provider: "gemini" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.entries.brave.config.webSearch.apiKey).toBeUndefined();
+      expect(config.agents.defaults.memorySearch.remote).toBeUndefined();
+      expect(JSON.stringify(config)).not.toContain("RIVONCLAW_EMB_GEMINI_APIKEY");
+      expect(JSON.stringify(config)).not.toContain("RIVONCLAW_WS_BRAVE_APIKEY");
+    });
+
     it("marks the WeChat QR bootstrap channel as managed", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({ configPath });

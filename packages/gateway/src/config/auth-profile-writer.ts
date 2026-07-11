@@ -3,6 +3,7 @@ import { join, dirname } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
 import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
+import { SecretStoreAccessError } from "@rivonclaw/secrets";
 
 const log = createLogger("gateway:auth-profile");
 
@@ -183,6 +184,14 @@ export async function syncAllAuthProfiles(
 ): Promise<void> {
   const filePath = resolveAuthProfilePath(stateDir);
   const store: AuthProfileStore = { version: 1, profiles: {}, order: {} };
+
+  try {
+    await secretStore.get("__rivonclaw-secure-store-healthcheck__");
+  } catch (error) {
+    if (!(error instanceof SecretStoreAccessError)) throw error;
+    log.warn("Secure storage is unavailable; preserving existing auth profiles");
+    return;
+  }
 
   const allKeys = storage.providerKeys.getAll();
 

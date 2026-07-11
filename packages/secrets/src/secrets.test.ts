@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MemorySecretStore } from "./stores/memory-store.js";
 import { FileSecretStore } from "./stores/file-store.js";
 import { createSecretStore } from "./factory.js";
-import type { SecretStore } from "./types.js";
-import { mkdtempSync, rmSync } from "node:fs";
+import { SecretStoreAccessError, type SecretStore } from "./types.js";
+import { KeychainSecretStore } from "./stores/keychain.js";
+import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -121,6 +122,36 @@ describe("FileSecretStore", () => {
     await store.set("llm-api-key", unicodeValue);
     const value = await store.get("llm-api-key");
     expect(value).toBe(unicodeValue);
+  });
+});
+
+describe("KeychainSecretStore", () => {
+  it("returns null only when the keychain item is missing", async () => {
+    const store = new KeychainSecretStore(async () => {
+      throw { stderr: "security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain." };
+    });
+
+    await expect(store.get("missing")).resolves.toBeNull();
+    await expect(store.delete("missing")).resolves.toBe(false);
+  });
+
+  it("reports an unavailable keychain instead of treating every secret as missing", async () => {
+    const store = new KeychainSecretStore(async () => {
+      throw { stderr: "security: The user name or passphrase you entered is not correct." };
+    });
+
+    await expect(store.get("auth.accessToken")).rejects.toBeInstanceOf(SecretStoreAccessError);
+    await expect(store.listKeys()).rejects.toBeInstanceOf(SecretStoreAccessError);
+  });
+
+  it("does not include a secret value in a write failure", async () => {
+    const store = new KeychainSecretStore(async () => {
+      throw new Error("command failed");
+    });
+
+    const error = await store.set("auth.accessToken", "super-secret-token").catch((cause) => cause);
+    expect(error).toBeInstanceOf(SecretStoreAccessError);
+    expect(String(error)).not.toContain("super-secret-token");
   });
 });
 

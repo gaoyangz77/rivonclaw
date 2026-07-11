@@ -2,7 +2,13 @@ import { types, flow, getRoot } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { parseProxyUrl, resolveGatewayProvider, getApiBaseUrl, ScopeType, isUsageQueryableProvider } from "@rivonclaw/core";
+import {
+  parseProxyUrl,
+  resolveGatewayProvider,
+  getApiBaseUrl,
+  ScopeType,
+  isUsageQueryableProvider,
+} from "@rivonclaw/core";
 import type { GQL, LLMProvider, ProviderKeyEntry, ToolScopeType } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
@@ -27,11 +33,25 @@ export interface LLMProviderManagerEnv {
   storage: Storage;
   secretStore: SecretStore;
   getRpcClient: () => GatewayRpcClient | null;
-  toMstSnapshot: (entry: ProviderKeyEntry, secretStore: SecretStore) => Promise<MstProviderKeySnapshot>;
-  allKeysToMstSnapshots: (entries: ProviderKeyEntry[], secretStore: SecretStore) => Promise<MstProviderKeySnapshot[]>;
+  toMstSnapshot: (
+    entry: ProviderKeyEntry,
+    secretStore: SecretStore,
+  ) => Promise<MstProviderKeySnapshot>;
+  allKeysToMstSnapshots: (
+    entries: ProviderKeyEntry[],
+    secretStore: SecretStore,
+  ) => Promise<MstProviderKeySnapshot[]>;
   syncActiveKey: (provider: string, storage: Storage, secretStore: SecretStore) => Promise<void>;
-  syncAllAuthProfiles: (stateDir: string, storage: Storage, secretStore: SecretStore) => Promise<void>;
-  writeProxyRouterConfig: (storage: Storage, secretStore: SecretStore, lastSystemProxy: string | null) => Promise<void>;
+  syncAllAuthProfiles: (
+    stateDir: string,
+    storage: Storage,
+    secretStore: SecretStore,
+  ) => Promise<void>;
+  writeProxyRouterConfig: (
+    storage: Storage,
+    secretStore: SecretStore,
+    lastSystemProxy: string | null,
+  ) => Promise<void>;
   writeDefaultModelToConfig: (gwProvider: string, modelId: string) => void;
   /** Rewrite the full gateway config (used when provider-level config changes, e.g., new custom provider added). */
   writeFullGatewayConfig: () => Promise<void>;
@@ -47,7 +67,7 @@ export interface LLMProviderManagerEnv {
 
 const CLOUD_PROVIDER_ID = "rivonclaw-pro";
 const CLOUD_KEY_LABEL = "RivonClaw AI";
-const CLOUD_DEFAULT_MODEL_ID = "gpt-5.5";
+const CLOUD_DEFAULT_MODEL_ID = "gpt-5.6-terra";
 const GEMINI_OAUTH_PROVIDER_ID = "gemini";
 const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 const NO_ACTIVE_LLM_PROVIDER_ERROR =
@@ -75,7 +95,9 @@ type OpenClawSessionEntry = {
 type OpenClawSessionStore = Record<string, OpenClawSessionEntry | undefined>;
 
 function selectCloudDefaultModel(cloudModels: CloudModel[]): string {
-  return cloudModels.find((model) => model.id === CLOUD_DEFAULT_MODEL_ID)?.id ?? cloudModels[0]?.id ?? "";
+  return (
+    cloudModels.find((model) => model.id === CLOUD_DEFAULT_MODEL_ID)?.id ?? cloudModels[0]?.id ?? ""
+  );
 }
 
 interface ProvisionLlmApiKeyMutationResult {
@@ -107,7 +129,9 @@ class CloudModelCatalogError extends Error {
 
 function isCloudLlmKeyUnavailableError(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err);
-  return /subscription|entitlement|payment required|requires active|not allowed|forbidden|inactive|no active/i.test(message);
+  return /subscription|entitlement|payment required|requires active|not allowed|forbidden|inactive|no active/i.test(
+    message,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -118,9 +142,8 @@ function resolveModelRef(provider: string, model: string, authType?: string): st
   if (provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth") {
     return `${GEMINI_OAUTH_GATEWAY_PROVIDER_ID}/${normalizeGeminiOAuthModelId(model)}`;
   }
-  const gwProvider = authType === "custom"
-    ? provider
-    : resolveGatewayProvider(provider as LLMProvider);
+  const gwProvider =
+    authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider);
   return `${gwProvider}/${stripProviderPrefix(model, gwProvider)}`;
 }
 
@@ -136,7 +159,10 @@ function stripProviderPrefix(model: string, provider: string): string {
 function normalizeGeminiOAuthModelId(model: string): string {
   let normalized = model.trim();
   for (;;) {
-    const next = stripProviderPrefix(stripProviderPrefix(normalized, GEMINI_OAUTH_GATEWAY_PROVIDER_ID), "google");
+    const next = stripProviderPrefix(
+      stripProviderPrefix(normalized, GEMINI_OAUTH_GATEWAY_PROVIDER_ID),
+      "google",
+    );
     if (next === normalized) return normalized;
     normalized = next;
   }
@@ -181,9 +207,9 @@ interface ResolvedSessionModelInfo {
 
 /** Scope context for model resolution. */
 export interface ModelScope {
-  type: ToolScopeType;  // e.g., ScopeType.CS_SESSION
-  shopId?: string;      // scope detail: which shop (for CS)
-  [key: string]: string | undefined;  // extensible for future scope types
+  type: ToolScopeType; // e.g., ScopeType.CS_SESSION
+  shopId?: string; // scope detail: which shop (for CS)
+  [key: string]: string | undefined; // extensible for future scope types
 }
 
 export const LLMProviderManagerModel = types
@@ -212,12 +238,20 @@ export const LLMProviderManagerModel = types
     },
     /** Get the EasyClaw-owned session model fact, or synthesize default-following. */
     getSessionModelFact(sessionKey: string): SessionModelFact {
-      return self.sessionModelFacts.get(sessionKey) ?? { mode: "default", provider: null, model: null };
+      return (
+        self.sessionModelFacts.get(sessionKey) ?? { mode: "default", provider: null, model: null }
+      );
     },
     /** Get the fully resolved model info for a session (override → global fallback). */
     getSessionModelInfo(sessionKey: string): {
-      provider: string; model: string; isOverridden: boolean; mode: SessionModelMode;
-      gatewayProvider: string; gatewayModel: string; appliedProvider?: string; appliedModel?: string;
+      provider: string;
+      model: string;
+      isOverridden: boolean;
+      mode: SessionModelMode;
+      gatewayProvider: string;
+      gatewayModel: string;
+      appliedProvider?: string;
+      appliedModel?: string;
     } | null {
       const { storage } = (self as any)._env as LLMProviderManagerEnv;
       const activeKey = storage.providerKeys.getActive();
@@ -235,7 +269,8 @@ export const LLMProviderManagerModel = types
         model,
         isOverridden,
         mode,
-        gatewayProvider: authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider),
+        gatewayProvider:
+          authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider),
         gatewayModel: model,
         appliedProvider: applied?.provider,
         appliedModel: applied?.model,
@@ -254,10 +289,17 @@ export const LLMProviderManagerModel = types
           model: fact.appliedModel,
         });
       }
-      return resolveInfo(activeKey.provider, activeKey.model, false, "default", activeKey.authType, {
-        provider: fact?.appliedProvider,
-        model: fact?.appliedModel,
-      });
+      return resolveInfo(
+        activeKey.provider,
+        activeKey.model,
+        false,
+        "default",
+        activeKey.authType,
+        {
+          provider: fact?.appliedProvider,
+          model: fact?.appliedModel,
+        },
+      );
     },
   }))
   .actions((self) => {
@@ -369,7 +411,9 @@ export const LLMProviderManagerModel = types
       try {
         store = JSON.parse(raw) as OpenClawSessionStore;
       } catch (err) {
-        log.warn(`Failed to parse OpenClaw session store while clearing auth profile for ${sessionKey}: ${err}`);
+        log.warn(
+          `Failed to parse OpenClaw session store while clearing auth profile for ${sessionKey}: ${err}`,
+        );
         return;
       }
 
@@ -431,7 +475,9 @@ export const LLMProviderManagerModel = types
           if (isModelAvailable(provider, model)) {
             return { provider, model };
           }
-          log.warn(`CS model override ${provider}/${model} for shop ${scope.shopId} not in catalog, falling back`);
+          log.warn(
+            `CS model override ${provider}/${model} for shop ${scope.shopId} not in catalog, falling back`,
+          );
           return null;
         }
       }
@@ -444,12 +490,16 @@ export const LLMProviderManagerModel = types
      */
     function writeDefaultModel(provider: string, modelId: string, authType?: string): void {
       const { writeDefaultModelToConfig } = getEnvDeps();
-      const gwProvider = provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth"
-        ? GEMINI_OAUTH_GATEWAY_PROVIDER_ID
-        : authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider);
-      const gatewayModelId = provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth"
-        ? normalizeGeminiOAuthModelId(modelId)
-        : stripProviderPrefix(modelId, gwProvider);
+      const gwProvider =
+        provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth"
+          ? GEMINI_OAUTH_GATEWAY_PROVIDER_ID
+          : authType === "custom"
+            ? provider
+            : resolveGatewayProvider(provider as LLMProvider);
+      const gatewayModelId =
+        provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth"
+          ? normalizeGeminiOAuthModelId(modelId)
+          : stripProviderPrefix(modelId, gwProvider);
       writeDefaultModelToConfig(gwProvider, gatewayModelId);
       log.info(`Updated default model to ${gwProvider}/${gatewayModelId}`);
     }
@@ -458,7 +508,14 @@ export const LLMProviderManagerModel = types
      * Sync auth profiles and proxy router config.
      */
     async function syncAuthAndProxy(): Promise<void> {
-      const { syncAllAuthProfiles, writeProxyRouterConfig, stateDir, storage, secretStore, getLastSystemProxy } = getEnvDeps();
+      const {
+        syncAllAuthProfiles,
+        writeProxyRouterConfig,
+        stateDir,
+        storage,
+        secretStore,
+        getLastSystemProxy,
+      } = getEnvDeps();
       await Promise.all([
         syncAllAuthProfiles(stateDir, storage, secretStore),
         writeProxyRouterConfig(storage, secretStore, getLastSystemProxy()),
@@ -577,7 +634,9 @@ export const LLMProviderManagerModel = types
             log.info(`Applied session override ${ref} to ${sessionKey}`);
             return sessionOverride;
           }
-          log.warn(`Session override ${sessionOverride.provider}/${sessionOverride.model} unavailable, checking scope`);
+          log.warn(
+            `Session override ${sessionOverride.provider}/${sessionOverride.model} unavailable, checking scope`,
+          );
         }
 
         // Layer 2: scope-level override (e.g., per-shop CS model)
@@ -587,7 +646,9 @@ export const LLMProviderManagerModel = types
             const ref = resolveModelRef(scopeModel.provider, scopeModel.model);
             yield patchSessionIfModelChanged(sessionKey, `scope:${ref}`, ref, options);
             markScope(sessionKey, scopeModel);
-            log.info(`Applied scope override ${ref} to ${sessionKey} (${scope.type}/${scope.shopId ?? ""})`);
+            log.info(
+              `Applied scope override ${ref} to ${sessionKey} (${scope.type}/${scope.shopId ?? ""})`,
+            );
             return scopeModel;
           }
         }
@@ -710,9 +771,9 @@ export const LLMProviderManagerModel = types
           isDefault: shouldActivate,
           proxyBaseUrl,
           authType: data.authType ?? "api_key",
-          baseUrl: (isLocal || isCustom) ? (data.baseUrl || null) : null,
-          customProtocol: isCustom ? (data.customProtocol || null) : null,
-          customModelsJson: isCustom ? (data.customModelsJson || null) : null,
+          baseUrl: isLocal || isCustom ? data.baseUrl || null : null,
+          customProtocol: isCustom ? data.customProtocol || null : null,
+          customModelsJson: isCustom ? data.customModelsJson || null : null,
           inputModalities: data.inputModalities ?? undefined,
           source: "local",
           createdAt: "",
@@ -745,15 +806,18 @@ export const LLMProviderManagerModel = types
       /**
        * Update fields on an existing provider key.
        */
-      updateKey: flow(function* (id: string, fields: {
-        label?: string;
-        model?: string;
-        apiKey?: string;
-        proxyUrl?: string;
-        baseUrl?: string;
-        inputModalities?: string[];
-        customModelsJson?: string;
-      }) {
+      updateKey: flow(function* (
+        id: string,
+        fields: {
+          label?: string;
+          model?: string;
+          apiKey?: string;
+          proxyUrl?: string;
+          baseUrl?: string;
+          inputModalities?: string[];
+          customModelsJson?: string;
+        },
+      ) {
         const { storage, secretStore, syncActiveKey, toMstSnapshot } = getEnvDeps();
 
         const existing = storage.providerKeys.getById(id);
@@ -906,8 +970,11 @@ export const LLMProviderManagerModel = types
        * original key on login so a new device can sync without rotating it.
        */
       syncCloud: flow(function* (user: GQL.MeResponse | null) {
-        const { storage, secretStore, syncActiveKey, toMstSnapshot, allKeysToMstSnapshots } = getEnvDeps();
-        const existing = storage.providerKeys.getAll().find((k) => k.provider === CLOUD_PROVIDER_ID);
+        const { storage, secretStore, syncActiveKey, toMstSnapshot, allKeysToMstSnapshots } =
+          getEnvDeps();
+        const existing = storage.providerKeys
+          .getAll()
+          .find((k) => k.provider === CLOUD_PROVIDER_ID);
 
         function* removeExistingCloudProvider(reason: string) {
           if (!existing) return;
@@ -950,9 +1017,13 @@ export const LLMProviderManagerModel = types
         async function provisionCloudApiKey(): Promise<string> {
           const { graphqlFetch } = getEnvDeps();
           if (!graphqlFetch) {
-            throw new Error("Authenticated GraphQL fetch is not available for cloud key provisioning");
+            throw new Error(
+              "Authenticated GraphQL fetch is not available for cloud key provisioning",
+            );
           }
-          const data = await graphqlFetch<ProvisionLlmApiKeyMutationResult>(PROVISION_LLM_API_KEY_MUTATION);
+          const data = await graphqlFetch<ProvisionLlmApiKeyMutationResult>(
+            PROVISION_LLM_API_KEY_MUTATION,
+          );
           const key = data.provisionLlmApiKey.key;
           if (!key) {
             throw new Error("Cloud LLM key provisioning returned an empty key");
@@ -960,13 +1031,19 @@ export const LLMProviderManagerModel = types
           return key;
         }
 
-        async function fetchCloudModels(baseUrl: string, apiKeyValue: string): Promise<CloudModel[]> {
+        async function fetchCloudModels(
+          baseUrl: string,
+          apiKeyValue: string,
+        ): Promise<CloudModel[]> {
           const { proxyFetch } = getEnvDeps();
           const res = await proxyFetch(baseUrl + "/models", {
             headers: { Authorization: `Bearer ${apiKeyValue}` },
           });
           if (!res.ok) {
-            throw new CloudModelCatalogError(`Cloud model catalog request failed (${res.status})`, res.status);
+            throw new CloudModelCatalogError(
+              `Cloud model catalog request failed (${res.status})`,
+              res.status,
+            );
           }
           const data = (await res.json()) as { data?: CloudModel[] };
           return data.data ?? [];
@@ -1010,13 +1087,17 @@ export const LLMProviderManagerModel = types
 
           // Always refresh model list (capabilities may have changed on the backend)
           let modelsChanged = false;
+          let modelChanged = false;
           try {
             const effectiveBaseUrl = baseUrlChanged ? currentBaseUrl : existing.baseUrl!;
             let cloudModels: CloudModel[];
             try {
               cloudModels = yield fetchCloudModels(effectiveBaseUrl, currentKey);
             } catch (err) {
-              if (!(err instanceof CloudModelCatalogError) || (err.status !== 401 && err.status !== 403)) {
+              if (
+                !(err instanceof CloudModelCatalogError) ||
+                (err.status !== 401 && err.status !== 403)
+              ) {
                 throw err;
               }
               const provisionedKey: string = yield provisionCloudApiKey();
@@ -1034,10 +1115,19 @@ export const LLMProviderManagerModel = types
             if (cloudModels.length > 0) {
               const nextCustomModelsJson = JSON.stringify(cloudModels);
               const nextInputModalities = JSON.stringify(["text", "image"]);
-              if (previousCustomModelsJson !== nextCustomModelsJson || previousInputModalities !== nextInputModalities) {
+              const nextModel = cloudModels.some((model) => model.id === existing.model)
+                ? existing.model
+                : selectCloudDefaultModel(cloudModels);
+              modelChanged = nextModel !== "" && nextModel !== existing.model;
+              if (
+                previousCustomModelsJson !== nextCustomModelsJson ||
+                previousInputModalities !== nextInputModalities ||
+                modelChanged
+              ) {
                 storage.providerKeys.update(existing.id, {
                   customModelsJson: nextCustomModelsJson,
                   inputModalities: ["text", "image"],
+                  model: modelChanged ? nextModel : existing.model,
                 });
                 modelsChanged = true;
               }
@@ -1055,12 +1145,12 @@ export const LLMProviderManagerModel = types
           // material actually changed. Billing overview polling can call this
           // path frequently; it must not rewrite config or patch all sessions
           // unless the underlying provider data changed.
-          if (keyChanged || baseUrlChanged || labelChanged || modelsChanged) {
+          if (keyChanged || baseUrlChanged || labelChanged || modelsChanged || modelChanged) {
             yield syncAuthProxyAndConfig();
           }
 
           log.info(
-            keyChanged || baseUrlChanged || labelChanged || modelsChanged
+            keyChanged || baseUrlChanged || labelChanged || modelsChanged || modelChanged
               ? "Synced cloud provider (key/baseUrl/models refreshed)"
               : "Cloud provider already up to date",
           );

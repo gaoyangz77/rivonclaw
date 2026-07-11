@@ -1,4 +1,4 @@
-import type { SecretStore } from "@rivonclaw/secrets";
+import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
 import { getGraphqlUrl, GQL } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import {
@@ -37,7 +37,12 @@ function isRecoverableAuthErrorMessage(message: string): boolean {
 }
 
 function isSessionInvalidErrorMessage(message: string): boolean {
-  return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message);
+  return /Not authenticated|Authentication required|Invalid token|Token expired|invalid signature|jwt malformed|jwt expired/i.test(message)
+    || isTerminalRefreshErrorMessage(message);
+}
+
+function isTerminalRefreshErrorMessage(message: string): boolean {
+  return message.split(";").some((part) => part.trim() === "Refresh token revoked or invalid");
 }
 
 class JwtIllegalError extends Error {
@@ -65,6 +70,7 @@ export class AuthSessionManager {
   private cachedUser: GQL.MeResponse | null = null;
   private refreshPromise: Promise<string> | null = null;
   private userChangedListeners: UserChangedListener[] = [];
+  private secureStorageAvailable = true;
 
   constructor(
     private secretStore: SecretStore,
@@ -94,9 +100,22 @@ export class AuthSessionManager {
 
   /** Load tokens from keychain into memory. Call once at startup. */
   async loadFromKeychain(): Promise<void> {
-    this.accessToken = await this.secretStore.get(ACCESS_TOKEN_KEY) ?? null;
-    this.refreshToken = await this.secretStore.get(REFRESH_TOKEN_KEY) ?? null;
+    try {
+      this.accessToken = (await this.secretStore.get(ACCESS_TOKEN_KEY)) ?? null;
+      this.refreshToken = (await this.secretStore.get(REFRESH_TOKEN_KEY)) ?? null;
+      this.secureStorageAvailable = true;
+    } catch (error) {
+      if (!(error instanceof SecretStoreAccessError)) throw error;
+      this.accessToken = null;
+      this.refreshToken = null;
+      this.secureStorageAvailable = false;
+      log.error("loadFromKeychain: secure storage unavailable");
+    }
     log.info(`loadFromKeychain: access=${this.accessToken ? "found" : "missing"} refresh=${this.refreshToken ? "found" : "missing"}`);
+  }
+
+  isSecureStorageAvailable(): boolean {
+    return this.secureStorageAvailable;
   }
 
   getAccessToken(): string | null {
@@ -115,8 +134,17 @@ export class AuthSessionManager {
   async storeTokens(accessToken: string, refreshToken: string): Promise<void> {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
-    await this.secretStore.set(ACCESS_TOKEN_KEY, accessToken);
-    await this.secretStore.set(REFRESH_TOKEN_KEY, refreshToken);
+    try {
+      // A successful backend refresh revokes the previous refresh token. Persist
+      // its replacement first so an access-token write failure cannot strand the
+      // next process with a server-revoked refresh token.
+      await this.secretStore.set(REFRESH_TOKEN_KEY, refreshToken);
+      await this.secretStore.set(ACCESS_TOKEN_KEY, accessToken);
+      this.secureStorageAvailable = true;
+    } catch (error) {
+      if (error instanceof SecretStoreAccessError) this.secureStorageAvailable = false;
+      throw error;
+    }
   }
 
   async clearTokens(): Promise<void> {
@@ -129,35 +157,77 @@ export class AuthSessionManager {
 
   /** Refresh the access token using the stored refresh token. Single-flight. */
   async refresh(options?: RefreshOptions): Promise<string> {
+    // Kept for call-site compatibility; session invalidation is deliberately
+    // controlled only by the backend's explicit refresh-token rejection.
+    void options;
     if (this.refreshPromise) return this.refreshPromise;
 
-    this.refreshPromise = this.doRefresh(options).finally(() => {
+    this.refreshPromise = this.doRefresh().finally(() => {
       this.refreshPromise = null;
     });
     return this.refreshPromise;
   }
 
-  private async doRefresh(options?: RefreshOptions): Promise<string> {
+  private async doRefresh(): Promise<string> {
     if (!this.refreshToken) {
       throw new Error("No refresh token available");
     }
+    const attemptedRefreshToken = this.refreshToken;
 
     try {
       const result = await this.graphqlFetch<{ refreshToken: { accessToken: string; refreshToken: string; user: GQL.MeResponse } }>(
         REFRESH_TOKEN_MUTATION,
-        { refreshToken: this.refreshToken },
+        { refreshToken: attemptedRefreshToken },
         { autoRefresh: false, includeAccessToken: false },
       );
 
       const payload = result.refreshToken;
-      await this.storeTokens(payload.accessToken, payload.refreshToken);
+      try {
+        await this.storeTokens(payload.accessToken, payload.refreshToken);
+      } catch (error) {
+        if (!(error instanceof SecretStoreAccessError)) throw error;
+        // The backend refresh already succeeded and rotated the token. Keep the
+        // new pair alive in memory instead of repeating a state-changing refresh.
+        log.error("Refreshed auth session could not be persisted; keeping it in memory");
+      }
       await this.setUser(payload.user);
       return payload.accessToken;
     } catch (err) {
-      if (options?.clearOnInvalid === true && isJwtIllegalError(err)) {
-        await this.clearTokens();
+      const terminalRefreshError = isTerminalRefreshErrorMessage(getErrorMessage(err));
+      if (terminalRefreshError) {
+        log.warn("Refresh token is no longer valid; clearing stored auth session");
+        await this.invalidateRejectedRefreshToken(attemptedRefreshToken);
       }
       throw err;
+    }
+  }
+
+  private async invalidateRejectedRefreshToken(rejectedToken: string): Promise<void> {
+    if (this.refreshToken !== rejectedToken) return;
+
+    try {
+      const storedRefreshToken = await this.secretStore.get(REFRESH_TOKEN_KEY);
+      if (storedRefreshToken && storedRefreshToken !== rejectedToken) {
+        // Another process refreshed and persisted a newer token after this
+        // request started. Adopt it instead of deleting the newer session.
+        this.refreshToken = storedRefreshToken;
+        this.accessToken = (await this.secretStore.get(ACCESS_TOKEN_KEY)) ?? null;
+        log.info("Preserving a newer auth session found in secure storage");
+        return;
+      }
+
+      this.accessToken = null;
+      this.refreshToken = null;
+      await this.setUser(null);
+      await this.secretStore.delete(ACCESS_TOKEN_KEY);
+      await this.secretStore.delete(REFRESH_TOKEN_KEY);
+    } catch (error) {
+      if (!(error instanceof SecretStoreAccessError)) throw error;
+      this.accessToken = null;
+      this.refreshToken = null;
+      this.secureStorageAvailable = false;
+      await this.setUser(null);
+      log.error("Rejected auth session could not be removed because secure storage is unavailable");
     }
   }
 
@@ -175,8 +245,9 @@ export class AuthSessionManager {
       const msg = getErrorMessage(err);
       const isAuthError = isSessionInvalidErrorMessage(msg);
       if (isJwtIllegalError(err)) {
-        log.error("JWT illegal for current backend; clearing stored auth session", { reason: msg });
-        await this.clearTokens();
+        log.warn("validate: JWT rejected, keeping cached auth session", { reason: msg });
+      } else if (isTerminalRefreshErrorMessage(msg)) {
+        log.warn("validate: refresh token rejected; auth session was cleared", { reason: msg });
       } else if (isAuthError) {
         log.warn("validate: auth rejected, keeping cached auth session.", { reason: msg });
       } else {
@@ -250,7 +321,6 @@ export class AuthSessionManager {
     const url = getGraphqlUrl(this.locale);
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     const autoRefresh = options?.autoRefresh !== false;
-    const clearOnInvalidRefresh = options?.clearOnInvalidRefresh === true;
     if (options?.includeAccessToken !== false && this.accessToken) {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
@@ -265,7 +335,7 @@ export class AuthSessionManager {
 
     let refreshed = false;
     if (autoRefresh && res.status === 401 && this.refreshToken) {
-      headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: clearOnInvalidRefresh })}`;
+      headers["Authorization"] = `Bearer ${await this.refresh()}`;
       refreshed = true;
       res = await doFetch();
     }
@@ -277,7 +347,7 @@ export class AuthSessionManager {
     if (autoRefresh && json.errors?.length && !refreshed && this.refreshToken) {
       const msg = json.errors.map(e => e.message).join("; ");
       if (isRecoverableAuthErrorMessage(msg)) {
-        headers["Authorization"] = `Bearer ${await this.refresh({ clearOnInvalid: clearOnInvalidRefresh })}`;
+        headers["Authorization"] = `Bearer ${await this.refresh()}`;
         res = await doFetch();
         json = await res.json() as GraphqlResponseEnvelope<T>;
       }

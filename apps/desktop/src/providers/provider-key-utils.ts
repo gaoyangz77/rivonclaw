@@ -1,7 +1,16 @@
 import type { ProviderKeyEntry } from "@rivonclaw/core";
 import { decodeJwtPayload } from "@rivonclaw/core";
 import { reconstructProxyUrl } from "@rivonclaw/core";
-import type { SecretStore } from "@rivonclaw/secrets";
+import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
+
+async function getOptionalSecret(secretStore: SecretStore, key: string): Promise<string | null> {
+  try {
+    return await secretStore.get(key);
+  } catch (error) {
+    if (error instanceof SecretStoreAccessError) return null;
+    throw error;
+  }
+}
 
 /**
  * Shape of a provider key entry enriched with the reconstructed proxyUrl
@@ -40,7 +49,7 @@ async function resolveOAuthExpiresAt(entry: ProviderKeyEntry, secretStore: Secre
     return entry.oauthExpiresAt ?? null;
   }
 
-  const credentialJson = await secretStore.get(`oauth-cred-${entry.id}`);
+  const credentialJson = await getOptionalSecret(secretStore, `oauth-cred-${entry.id}`);
   if (!credentialJson) {
     return entry.oauthExpiresAt ?? null;
   }
@@ -67,7 +76,7 @@ export async function toMstSnapshot(
 ): Promise<MstProviderKeySnapshot> {
   let proxyUrl: string | null = null;
   if (entry.proxyBaseUrl) {
-    const credentials = await secretStore.get(`proxy-auth-${entry.id}`);
+    const credentials = await getOptionalSecret(secretStore, `proxy-auth-${entry.id}`);
     proxyUrl = credentials
       ? reconstructProxyUrl(entry.proxyBaseUrl, credentials)
       : entry.proxyBaseUrl;

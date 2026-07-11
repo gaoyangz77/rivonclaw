@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolveSecretEnv, buildGatewayEnv } from "./secret-injector.js";
-import type { SecretStore } from "@rivonclaw/secrets";
+import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
 
 class MockSecretStore implements SecretStore {
   private store = new Map<string, string>();
@@ -69,6 +69,15 @@ describe("resolveSecretEnv", () => {
     const env = await resolveSecretEnv(store);
     expect(env["STT_API_KEY"]).toBe("stt-key");
     expect(Object.keys(env)).toHaveLength(1);
+  });
+
+  it("starts without optional secret env when secure storage is unavailable", async () => {
+    const store = new MockSecretStore();
+    store.get = async () => {
+      throw new SecretStoreAccessError("get", "stt-api-key");
+    };
+
+    await expect(resolveSecretEnv(store)).resolves.toEqual({});
   });
 });
 

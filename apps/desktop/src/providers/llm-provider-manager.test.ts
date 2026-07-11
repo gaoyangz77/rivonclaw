@@ -9,8 +9,12 @@ import { allKeysToMstSnapshots, toMstSnapshot } from "./provider-key-utils.js";
 const secretMap = new Map<string, string>();
 const mockSecretStore = {
   get: async (key: string) => secretMap.get(key) ?? null,
-  set: async (key: string, value: string) => { secretMap.set(key, value); },
-  delete: async (key: string) => { secretMap.delete(key); },
+  set: async (key: string, value: string) => {
+    secretMap.set(key, value);
+  },
+  delete: async (key: string) => {
+    secretMap.delete(key);
+  },
 };
 
 afterEach(() => {
@@ -48,10 +52,13 @@ describe("LLMProviderManager", () => {
       getLastSystemProxy: () => null,
     });
 
-    await expect(rootStore.llmManager.applyModelForSession("agent:main:cs:tiktok:conv-no-key"))
-      .rejects
-      .toThrow("No active LLM provider is configured");
-    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.objectContaining({ model: null }));
+    await expect(
+      rootStore.llmManager.applyModelForSession("agent:main:cs:tiktok:conv-no-key"),
+    ).rejects.toThrow("No active LLM provider is configured");
+    expect(rpcRequest).not.toHaveBeenCalledWith(
+      "sessions.patch",
+      expect.objectContaining({ model: null }),
+    );
   });
 
   it("updates gateway default without eagerly resetting default-following sessions when the active key model changes", async () => {
@@ -263,15 +270,19 @@ describe("LLMProviderManager", () => {
       await mkdir(sessionsDir, { recursive: true });
       await writeFile(
         sessionsPath,
-        `${JSON.stringify({
-          [sessionKey]: {
-            sessionId: "s1",
-            updatedAt: 1,
-            authProfileOverride: "google-gemini-cli:user@example.com",
-            authProfileOverrideSource: "auto",
-            authProfileOverrideCompactionCount: 0,
+        `${JSON.stringify(
+          {
+            [sessionKey]: {
+              sessionId: "s1",
+              updatedAt: 1,
+              authProfileOverride: "google-gemini-cli:user@example.com",
+              authProfileOverrideSource: "auto",
+              authProfileOverrideCompactionCount: 0,
+            },
           },
-        }, null, 2)}\n`,
+          null,
+          2,
+        )}\n`,
         "utf8",
       );
 
@@ -372,10 +383,7 @@ describe("LLMProviderManager", () => {
         get: vi.fn(),
       },
       chatSessions: {
-        list: () => [
-          { key: "historical-session-default" },
-          { key: "chat-session-explicit" },
-        ],
+        list: () => [{ key: "historical-session-default" }, { key: "chat-session-explicit" }],
       },
     };
     rootStore.loadProviderKeys(await allKeysToMstSnapshots(keys, mockSecretStore as any));
@@ -397,7 +405,11 @@ describe("LLMProviderManager", () => {
       getLastSystemProxy: () => null,
     });
 
-    await rootStore.llmManager.switchModelForSession("chat-session-explicit", "kimi", "moonshot-v1-8k");
+    await rootStore.llmManager.switchModelForSession(
+      "chat-session-explicit",
+      "kimi",
+      "moonshot-v1-8k",
+    );
     rootStore.llmManager.trackSessionActivity("telegram-session-default");
     rpcRequest.mockClear();
 
@@ -489,7 +501,7 @@ describe("LLMProviderManager", () => {
       }),
       proxyFetch: vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ data: [{ id: "gpt-5.4" }, { id: "gpt-5.5" }] }),
+        json: async () => ({ data: [{ id: "gpt-5.6-luna" }, { id: "gpt-5.6-terra" }] }),
       }) as any,
       stateDir: "/tmp/rivonclaw-llm-manager-test",
       getLastSystemProxy: () => null,
@@ -509,14 +521,16 @@ describe("LLMProviderManager", () => {
     expect(keys[0]).toMatchObject({
       provider: "rivonclaw-pro",
       label: "RivonClaw AI",
-      model: "gpt-5.5",
+      model: "gpt-5.6-terra",
       isDefault: true,
       inputModalities: ["text", "image"],
     });
     expect(writeFullGatewayConfig).toHaveBeenCalled();
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.5");
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.6-terra");
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
-    expect(rootStore.llmManager.getSessionModelFact("agent:main:telegram:default:direct:42")).toMatchObject({
+    expect(
+      rootStore.llmManager.getSessionModelFact("agent:main:telegram:default:direct:42"),
+    ).toMatchObject({
       mode: "default",
       provider: null,
       model: null,
@@ -525,12 +539,12 @@ describe("LLMProviderManager", () => {
     await rootStore.llmManager.applyModelForSession("agent:main:telegram:default:direct:42");
     expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:telegram:default:direct:42",
-      model: "rivonclaw-pro/gpt-5.5",
+      model: "rivonclaw-pro/gpt-5.6-terra",
     });
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
-  it("rotates an existing cloud provider key when the cloud model catalog returns auth failure", async () => {
+  it("rotates an existing cloud key and migrates a removed model to Terra", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();
     const writeFullGatewayConfig = vi.fn();
@@ -573,7 +587,8 @@ describe("LLMProviderManager", () => {
     await mockSecretStore.set(`provider-key-${entry.id}`, "stale-cloud-token");
     rootStore.loadProviderKeys([await toMstSnapshot(entry, mockSecretStore as any)]);
 
-    const graphqlFetch = vi.fn()
+    const graphqlFetch = vi
+      .fn()
       .mockResolvedValueOnce({
         provisionLlmApiKey: {
           id: "llm-key-1",
@@ -596,7 +611,8 @@ describe("LLMProviderManager", () => {
           lastUsedAt: null,
         },
       });
-    const proxyFetch = vi.fn()
+    const proxyFetch = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -605,7 +621,16 @@ describe("LLMProviderManager", () => {
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ data: [{ id: "gpt-5.4", input_modalities: ["text", "image"] }] }),
+        json: async () => ({
+          data: [
+            {
+              id: "gpt-5.6-terra",
+              input_modalities: ["text", "image"],
+              context_length: 372_000,
+              max_completion_tokens: 128_000,
+            },
+          ],
+        }),
       });
 
     initLLMProviderManagerEnv({
@@ -636,13 +661,29 @@ describe("LLMProviderManager", () => {
       defaultRunProfileId: null,
     });
 
-    expect(await mockSecretStore.get(`provider-key-${entry.id}`)).toBe("rcllm_test_fresh_cloud_token_2");
+    expect(await mockSecretStore.get(`provider-key-${entry.id}`)).toBe(
+      "rcllm_test_fresh_cloud_token_2",
+    );
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
     expect(proxyFetch).toHaveBeenCalledTimes(2);
-    expect(proxyFetch.mock.calls[0]?.[1]?.headers).toEqual({ Authorization: "Bearer rcllm_test_fresh_cloud_token_1" });
-    expect(proxyFetch.mock.calls[1]?.[1]?.headers).toEqual({ Authorization: "Bearer rcllm_test_fresh_cloud_token_2" });
+    expect(proxyFetch.mock.calls[0]?.[1]?.headers).toEqual({
+      Authorization: "Bearer rcllm_test_fresh_cloud_token_1",
+    });
+    expect(proxyFetch.mock.calls[1]?.[1]?.headers).toEqual({
+      Authorization: "Bearer rcllm_test_fresh_cloud_token_2",
+    });
     expect(entry.label).toBe("RivonClaw AI");
-    expect(entry.customModelsJson).toBe(JSON.stringify([{ id: "gpt-5.4", input_modalities: ["text", "image"] }]));
+    expect(entry.model).toBe("gpt-5.6-terra");
+    expect(entry.customModelsJson).toBe(
+      JSON.stringify([
+        {
+          id: "gpt-5.6-terra",
+          input_modalities: ["text", "image"],
+          context_length: 372_000,
+          max_completion_tokens: 128_000,
+        },
+      ]),
+    );
     expect(entry.inputModalities).toEqual(["text", "image"]);
     expect(writeFullGatewayConfig).toHaveBeenCalled();
     expect(writeDefaultModelToConfig).not.toHaveBeenCalled();
@@ -660,12 +701,14 @@ describe("LLMProviderManager", () => {
       id: "cloud-rivonclaw-pro",
       provider: "rivonclaw-pro",
       label: "RivonClaw AI",
-      model: "gpt-5.5",
+      model: "gpt-5.6-terra",
       isDefault: true,
       authType: "custom",
       baseUrl: "https://api.rivonclaw.com/llm/v1",
       customProtocol: "openai",
-      customModelsJson: JSON.stringify([{ id: "gpt-5.5", input_modalities: ["text", "image"] }]),
+      customModelsJson: JSON.stringify([
+        { id: "gpt-5.6-terra", input_modalities: ["text", "image"] },
+      ]),
       inputModalities: ["text", "image"],
       source: "cloud",
       createdAt: "",
@@ -719,7 +762,9 @@ describe("LLMProviderManager", () => {
       proxyFetch: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ data: [{ id: "gpt-5.5", input_modalities: ["text", "image"] }] }),
+        json: async () => ({
+          data: [{ id: "gpt-5.6-terra", input_modalities: ["text", "image"] }],
+        }),
       }) as any,
       stateDir: "/tmp/rivonclaw-llm-manager-test",
       getLastSystemProxy: () => null,
@@ -809,7 +854,9 @@ describe("LLMProviderManager", () => {
       writeDefaultModelToConfig,
       writeFullGatewayConfig,
       restartGateway: async () => {},
-      graphqlFetch: vi.fn().mockRejectedValue(new Error("Requires active RivonClaw AI subscription")),
+      graphqlFetch: vi
+        .fn()
+        .mockRejectedValue(new Error("Requires active RivonClaw AI subscription")),
       proxyFetch: vi.fn() as any,
       stateDir: "/tmp/rivonclaw-llm-manager-test",
       getLastSystemProxy: () => null,
@@ -880,19 +927,21 @@ describe("LLMProviderManager", () => {
     };
     rootStore.loadProviderKeys(await allKeysToMstSnapshots(keys, mockSecretStore as any));
     rootStore.ingestGraphQLResponse({
-      shops: [{
-        id: "shop-cs-override",
-        platform: "TIKTOK_SHOP",
-        platformShopId: "platform-shop-cs-override",
-        shopName: "CS Override Shop",
-        services: {
-          customerService: {
-            enabled: true,
-            csProviderOverride: "zhipu",
-            csModelOverride: "glm-5",
+      shops: [
+        {
+          id: "shop-cs-override",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "platform-shop-cs-override",
+          shopName: "CS Override Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csProviderOverride: "zhipu",
+              csModelOverride: "glm-5",
+            },
           },
         },
-      }],
+      ],
     });
 
     initLLMProviderManagerEnv({

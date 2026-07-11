@@ -11,12 +11,13 @@ describe("gateway config builder", () => {
   });
 
   it("normalizes Gemini OAuth model ids that already include a gateway provider prefix", () => {
-    expect(normalizeGeminiOAuthModelId("google-gemini-cli/gemini-3-pro-preview"))
-      .toBe("gemini-3-pro-preview");
-    expect(normalizeGeminiOAuthModelId("google-gemini-cli/google-gemini-cli/gemini-3-pro-preview"))
-      .toBe("gemini-3-pro-preview");
-    expect(normalizeGeminiOAuthModelId("google/gemini-3-pro-preview"))
-      .toBe("gemini-3-pro-preview");
+    expect(normalizeGeminiOAuthModelId("google-gemini-cli/gemini-3-pro-preview")).toBe(
+      "gemini-3-pro-preview",
+    );
+    expect(
+      normalizeGeminiOAuthModelId("google-gemini-cli/google-gemini-cli/gemini-3-pro-preview"),
+    ).toBe("gemini-3-pro-preview");
+    expect(normalizeGeminiOAuthModelId("google/gemini-3-pro-preview")).toBe("gemini-3-pro-preview");
   });
 
   it("forces RivonClaw cloud models to support image input", () => {
@@ -26,9 +27,7 @@ describe("gateway config builder", () => {
         authType: "custom",
         baseUrl: "https://api.rivonclaw.com/llm/v1",
         customProtocol: "openai",
-        customModelsJson: JSON.stringify([
-          { id: "vision", input: ["text"] },
-        ]),
+        customModelsJson: JSON.stringify([{ id: "vision", input: ["text"] }]),
         inputModalities: ["text"],
       },
     ]);
@@ -52,6 +51,35 @@ describe("gateway config builder", () => {
 
     expect(overrides["rivonclaw-pro"]?.models).toEqual([
       { id: "vision", name: "vision", input: ["text", "image"] },
+    ]);
+  });
+
+  it("preserves cloud model context and output limits", () => {
+    const overrides = buildCustomProviderOverridesFromKeys([
+      {
+        provider: "rivonclaw-pro",
+        authType: "custom",
+        baseUrl: "https://api.rivonclaw.com/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify([
+          {
+            id: "gpt-5.6-terra",
+            display_name: "GPT 5.6 Terra",
+            context_length: 372_000,
+            max_completion_tokens: 128_000,
+          },
+        ]),
+      },
+    ]);
+
+    expect(overrides["rivonclaw-pro"]?.models).toEqual([
+      {
+        id: "gpt-5.6-terra",
+        name: "GPT 5.6 Terra",
+        input: ["text", "image"],
+        contextWindow: 372_000,
+        maxTokens: 128_000,
+      },
     ]);
   });
 });
