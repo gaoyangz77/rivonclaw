@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "Zeitraum",
       "loadFailed": "Leistungsdaten konnten nicht geladen werden",
       "noData": "Keine Leistungsdaten für diesen Zeitraum.",
-      "guidedGmvNoMatureData": "Keine ausgereiften Guided-GMV-Daten in diesem Zeitraum. Werte der letzten 7 Tage werden wegen laufender Zuordnung nicht angezeigt.",
+      "guidedGmvNoMatureData": "Keine Guided-GMV-Daten in diesem Zeitraum. Werte der letzten 7 Tage werden wegen laufender Zuordnung nicht angezeigt.",
       "downloadCsv": "CSV herunterladen",
       "dailyTable": "Tägliche Leistung",
       "scopeSummary": "{{start}} bis {{end}} über {{shops}} Shop(s). Alle Tage in diesem Zeitraum werden angezeigt.",
@@ -2378,7 +2378,7 @@ export default {
         "ratedSessions": "{{value}} bewertete Sitzungen",
         "firstResponse": "Erste Antwort P50",
         "firstResponseSamples": "{{value}} gemessene Gespräche",
-        "guidedGmv": "Ausgereifter Guided GMV",
+        "guidedGmv": "Guided GMV",
         "guidedGmvMaturity": "Ohne die letzten 7 Tage",
         "p90": "P90 {{value}}"
       },

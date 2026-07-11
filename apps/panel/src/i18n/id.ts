@@ -2344,7 +2344,7 @@ export default {
       "timeRange": "Rentang waktu",
       "loadFailed": "Gagal memuat data performa",
       "noData": "Tidak ada data performa untuk rentang ini.",
-      "guidedGmvNoMatureData": "Tidak ada Guided GMV matang dalam rentang ini. Nilai 7 hari terakhir tidak ditampilkan karena atribusi masih berubah.",
+      "guidedGmvNoMatureData": "Tidak ada Guided GMV dalam rentang ini. Nilai 7 hari terakhir tidak ditampilkan karena atribusi masih berubah.",
       "downloadCsv": "Unduh CSV",
       "dailyTable": "Performa harian",
       "scopeSummary": "{{start}} hingga {{end}} di {{shops}} toko. Menampilkan semua hari dalam rentang ini.",
@@ -2378,7 +2378,7 @@ export default {
         "ratedSessions": "{{value}} sesi dinilai",
         "firstResponse": "Respons pertama P50",
         "firstResponseSamples": "{{value}} percakapan terukur",
-        "guidedGmv": "Guided GMV matang",
+        "guidedGmv": "Guided GMV",
         "guidedGmvMaturity": "Tidak termasuk 7 hari terakhir",
         "p90": "P90 {{value}}"
       },
