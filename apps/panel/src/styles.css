@@ -11935,13 +11935,18 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .cs-performance-header {
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 18px;
+}
+
+.cs-performance-header > :first-child {
+  min-width: 0;
 }
 
 .cs-performance-tabs {
   display: inline-flex;
-  align-self: flex-start;
+  flex: 0 0 auto;
   gap: 4px;
   padding: 4px;
   border: 1px solid var(--color-border-light);
