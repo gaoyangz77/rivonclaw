@@ -47,7 +47,10 @@ import { installDep } from "../dep-installer.js";
  * Create a mock child process that emits close with the given exit code.
  * Optionally emits stdout/stderr data before closing.
  */
-function createMockChild(exitCode = 0) {
+function createMockChild(
+  exitCode = 0,
+  output: { stdout?: string; stderr?: string } = {},
+) {
   const handlers: Record<string, Function[]> = {};
 
   const addHandler = (key: string, handler: Function) => {
@@ -68,8 +71,20 @@ function createMockChild(exitCode = 0) {
     },
     on: vi.fn((event: string, handler: Function) => {
       if (event === "close") {
-        // Emit close event asynchronously
-        setTimeout(() => handler(exitCode), 0);
+        // Emit output and close asynchronously, after spawnAsync attaches listeners.
+        setTimeout(() => {
+          if (output.stdout) {
+            for (const dataHandler of handlers["stdout:data"] ?? []) {
+              dataHandler(Buffer.from(output.stdout));
+            }
+          }
+          if (output.stderr) {
+            for (const dataHandler of handlers["stderr:data"] ?? []) {
+              dataHandler(Buffer.from(output.stderr));
+            }
+          }
+          handler(exitCode);
+        }, 0);
       }
       if (event === "error") {
         addHandler("error", handler);
@@ -278,10 +293,48 @@ describe("installDep", () => {
       const psCall = spawnCalls.find((c) => c.cmd === "powershell");
       expect(psCall).toBeDefined();
       expect(psCall!.args.join(" ")).toContain(
-        "https://mirrors.huaweicloud.com/nodejs/v24.16.0/node-v24.16.0-x64.msi",
+        "https://mirrors.huaweicloud.com/nodejs/v24.16.0/node-v24.16.0-win-x64.zip",
       );
-      expect(psCall!.args.join(" ")).toContain("SHASUMS256.txt");
-      expect(psCall!.args.join(" ")).toContain("MSIINSTALLPERUSER=1");
+      expect(psCall!.args.join(" ")).toContain(
+        "EDACA9BD58EC8E92037DAC4E877D52F6B8F430B81C18B57E264B4E2FB111CD56",
+      );
+      expect(psCall!.args.join(" ")).toContain("Expand-Archive");
+      expect(psCall!.args.join(" ")).toContain("LocalApplicationData");
+      expect(psCall!.args.join(" ")).toContain(".rivonclaw-managed-node");
+      expect(psCall!.args.join(" ")).toContain("RivonClaw-node-backup-");
+      expect(psCall!.args.join(" ")).toContain("registry.npmmirror.com");
+      expect(psCall!.args.join(" ")).not.toContain("SHASUMS256.txt");
+      expect(psCall!.args.join(" ")).not.toContain("msiexec.exe");
+      expect((psCall!.opts as { shell?: boolean }).shell).toBe(false);
+    });
+
+    it("uses the pinned arm64 Node archive hash", async () => {
+      setupSpawn();
+      mockArch.mockReturnValue("arm64");
+
+      await installDep("node", "win32", "cn", onOutput);
+
+      const psCall = spawnCalls.find((c) => c.cmd === "powershell");
+      expect(psCall!.args.join(" ")).toContain(
+        "node-v24.16.0-win-arm64.zip",
+      );
+      expect(psCall!.args.join(" ")).toContain(
+        "14834611D4C6B3C06054E7007732B90474C16E0B32F395E05B55A571EF71C6D2",
+      );
+    });
+
+    it("includes recent PowerShell output in installation errors", async () => {
+      mockSpawn.mockImplementation(() =>
+        createMockChild(255, {
+          stderr: "Cannot find SHA256 entry for node archive\n",
+        }),
+      );
+
+      await expect(
+        installDep("node", "win32", "cn", onOutput),
+      ).rejects.toThrow(
+        /powershell exited with code 255: Cannot find SHA256 entry for node archive/,
+      );
     });
 
     it("installs uv via pip in cn region without winget", async () => {
