@@ -28,6 +28,7 @@ type RealtimeRange = "1" | "6" | "12" | "24";
 type ChartRow = GQL.CustomerServicePerformanceDailyRow & {
   dateLabel: string;
   satisfaction7dWeighted: number | null;
+  guidedGmvValue: number | null;
 };
 
 type RealtimeChartRow = GQL.CustomerServiceRealtimePerformancePoint & {
@@ -79,6 +80,43 @@ function formatDecimal(value: number | null | undefined): string {
   return value.toFixed(value >= 10 ? 0 : 2);
 }
 
+function formatMoney(
+  value: string | number | null | undefined,
+  currency: string | null | undefined,
+  locale?: string,
+): string {
+  if (value == null || currency == null) return "--";
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) return "--";
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(numericValue);
+  } catch {
+    return `${currency} ${numericValue.toLocaleString(locale)}`;
+  }
+}
+
+function formatCompactMoney(
+  value: number | null | undefined,
+  currency: string | null | undefined,
+  locale?: string,
+): string {
+  if (value == null || currency == null || Number.isNaN(value)) return "--";
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
+  } catch {
+    return formatMoney(value, currency, locale);
+  }
+}
+
 function metricNumber(value: number | null | undefined): number {
   return Number(value ?? 0);
 }
@@ -89,7 +127,7 @@ function csvCell(value: string | number): string {
 }
 
 export const CustomerServicePerformancePage = observer(function CustomerServicePerformancePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
@@ -141,6 +179,9 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     const rows = (report?.byDate ?? []).map((row) => ({
       ...row,
       dateLabel: row.dateKey.slice(5),
+      guidedGmvValue: row.csGuidedGmv == null || Number.isNaN(Number(row.csGuidedGmv))
+        ? null
+        : Number(row.csGuidedGmv),
     }));
 
     return rows.map((row, index) => {
@@ -153,6 +194,11 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       };
     });
   }, [report]);
+
+  const guidedGmvCurrency = summary?.csGuidedGmvCurrency
+    ?? chartRows.find((row) => row.csGuidedGmvCurrency)?.csGuidedGmvCurrency
+    ?? null;
+  const hasMatureGuidedGmv = chartRows.some((row) => row.guidedGmvValue != null);
 
   const realtimeRows: RealtimeChartRow[] = useMemo(() => (
     (realtimeReport?.points ?? []).map((point) => ({
@@ -198,6 +244,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       t("ecommerce.customerServicePerformance.table.satisfaction7dWeighted"),
       t("ecommerce.customerServicePerformance.table.firstResponse"),
       t("ecommerce.customerServicePerformance.table.errors"),
+      t("ecommerce.customerServicePerformance.table.guidedGmv"),
     ];
     const rows = tableRows.map((row) => [
       row.dateKey,
@@ -210,6 +257,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
       formatRate(row.satisfaction7dWeighted),
       formatSeconds(row.firstResponseP50Secs),
       formatDecimal(row.errorsPerConversation),
+      formatMoney(row.csGuidedGmv, row.csGuidedGmvCurrency, i18n.resolvedLanguage),
     ]);
     const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -357,9 +405,54 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 defaultValue: "{{value}} measured conversations",
               })}
             />
+            <MetricTile
+              label={t("ecommerce.customerServicePerformance.metrics.guidedGmv")}
+              value={formatMoney(
+                summary?.csGuidedGmv,
+                summary?.csGuidedGmvCurrency,
+                i18n.resolvedLanguage,
+              )}
+              detail={t("ecommerce.customerServicePerformance.metrics.guidedGmvMaturity")}
+              accent="gmv"
+            />
           </div>
 
           <div className="cs-performance-chart-grid">
+            <ChartPanel
+              title={t("ecommerce.customerServicePerformance.charts.guidedGmv")}
+              tooltip={t("ecommerce.customerServicePerformance.charts.guidedGmvTooltip")}
+              loading={loading}
+              empty={!hasMatureGuidedGmv}
+              loadingLabel={t("common.loading")}
+              emptyLabel={t("ecommerce.customerServicePerformance.guidedGmvNoMatureData")}
+              wide
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={chartRows}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="dateLabel" tickLine={false} />
+                  <YAxis
+                    tickFormatter={(value) => formatCompactMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
+                    tickLine={false}
+                    width={72}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatMoney(Number(value), guidedGmvCurrency, i18n.resolvedLanguage)}
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="line" />
+                  <Line
+                    type="monotone"
+                    dataKey="guidedGmvValue"
+                    name={t("ecommerce.customerServicePerformance.series.guidedGmv")}
+                    stroke="var(--cs-performance-gmv)"
+                    strokeWidth={2.6}
+                    dot={false}
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartPanel>
+
             <ChartPanel
               title={t("ecommerce.customerServicePerformance.charts.volume")}
               loading={loading}
@@ -566,12 +659,13 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                 <th>{t("ecommerce.customerServicePerformance.table.satisfaction7dWeighted")}</th>
                 <th>{t("ecommerce.customerServicePerformance.table.firstResponse")}</th>
                 <th>{t("ecommerce.customerServicePerformance.table.errors")}</th>
+                <th>{t("ecommerce.customerServicePerformance.table.guidedGmv")}</th>
               </tr>
             </thead>
             <tbody>
               {tableRows.length === 0 && (
                 <tr>
-                  <td colSpan={10}>{loading ? t("common.loading") : t("ecommerce.customerServicePerformance.noData")}</td>
+                  <td colSpan={11}>{loading ? t("common.loading") : t("ecommerce.customerServicePerformance.noData")}</td>
                 </tr>
               )}
               {tableRows.map((row) => (
@@ -586,6 +680,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
                   <td>{formatRate(row.satisfaction7dWeighted)}</td>
                   <td>{formatSeconds(row.firstResponseP50Secs)}</td>
                   <td>{formatDecimal(row.errorsPerConversation)}</td>
+                  <td>{formatMoney(row.csGuidedGmv, row.csGuidedGmvCurrency, i18n.resolvedLanguage)}</td>
                 </tr>
               ))}
             </tbody>
@@ -597,9 +692,19 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
   );
 });
 
-function MetricTile({ label, value, detail }: { label: string; value: string; detail: string }) {
+function MetricTile({
+  label,
+  value,
+  detail,
+  accent,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  accent?: "gmv";
+}) {
   return (
-    <div className="cs-performance-kpi">
+    <div className={`cs-performance-kpi${accent ? ` ${accent}` : ""}`}>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{detail}</small>
@@ -614,6 +719,7 @@ function ChartPanel({
   empty,
   loadingLabel,
   emptyLabel,
+  wide,
   children,
 }: {
   title: string;
@@ -622,10 +728,11 @@ function ChartPanel({
   empty: boolean;
   loadingLabel: string;
   emptyLabel: string;
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="section-card cs-performance-chart-card">
+    <div className={`section-card cs-performance-chart-card${wide ? " wide" : ""}`}>
       <div className="cs-performance-chart-title">
         <h3>{title}</h3>
         {tooltip && (

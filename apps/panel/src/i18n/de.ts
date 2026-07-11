@@ -2344,6 +2344,7 @@ export default {
       "timeRange": "Zeitraum",
       "loadFailed": "Leistungsdaten konnten nicht geladen werden",
       "noData": "Keine Leistungsdaten für diesen Zeitraum.",
+      "guidedGmvNoMatureData": "Keine ausgereiften Guided-GMV-Daten in diesem Zeitraum. Werte der letzten 7 Tage werden wegen laufender Zuordnung nicht angezeigt.",
       "downloadCsv": "CSV herunterladen",
       "dailyTable": "Tägliche Leistung",
       "scopeSummary": "{{start}} bis {{end}} über {{shops}} Shop(s). Alle Tage in diesem Zeitraum werden angezeigt.",
@@ -2377,6 +2378,8 @@ export default {
         "ratedSessions": "{{value}} bewertete Sitzungen",
         "firstResponse": "Erste Antwort P50",
         "firstResponseSamples": "{{value}} gemessene Gespräche",
+        "guidedGmv": "Ausgereifter Guided GMV",
+        "guidedGmvMaturity": "Ohne die letzten 7 Tage",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2384,7 +2387,9 @@ export default {
         "escalation": "Eskalationsbearbeitung",
         "escalationTooltip": "Eskalationen sind Gespräche, die der Agent nicht allein abschließen kann und die Mitarbeiter übernehmen müssen. Dieses Diagramm ist ein wichtiges Signal für den Abschluss manueller Betreuung: Gelöste Fälle zeigen, ob Mitarbeiter schnell genug reagieren und mit Eskalationen Schritt halten.",
         "satisfaction": "Kundenzufriedenheit",
-        "firstResponse": "Geschwindigkeit der ersten Antwort"
+        "firstResponse": "Geschwindigkeit der ersten Antwort",
+        "guidedGmv": "Durch Kundenservice beeinflusster GMV",
+        "guidedGmvTooltip": "Von TikTok zugeordneter GMV aus Bestellungen innerhalb von 7 Tagen nach einer Kundenservice-Antwort. Die letzten 7 vollständigen lokalen Shop-Tage werden nicht angezeigt, da sich die Zuordnung noch ändert."
       },
       "realtimeCharts": {
         "state": "Aktiv / ausstehend / eskaliert",
@@ -2415,7 +2420,8 @@ export default {
         "satisfaction": "Zufriedenheit",
         "satisfaction7dWeighted": "7-Tage gew. Ø",
         "firstResponseP50": "P50",
-        "firstResponseP90": "P90"
+        "firstResponseP90": "P90",
+        "guidedGmv": "Guided GMV"
       },
       "table": {
         "date": "Datum",
@@ -2429,7 +2435,8 @@ export default {
         "satisfaction": "Zufriedenheit",
         "satisfaction7dWeighted": "7-Tage Ø",
         "firstResponse": "P50-Antwort",
-        "errors": "Fehler/Gespräch"
+        "errors": "Fehler/Gespräch",
+        "guidedGmv": "Guided GMV"
       }
     },
     "affiliateWorkspace": {

@@ -2344,6 +2344,7 @@ export default {
       "timeRange": "ช่วงเวลา",
       "loadFailed": "โหลดข้อมูลประสิทธิภาพไม่สำเร็จ",
       "noData": "ไม่มีข้อมูลประสิทธิภาพในช่วงเวลานี้",
+      "guidedGmvNoMatureData": "ไม่มี Guided GMV ที่ยืนยันแล้วในช่วงเวลานี้ ระบบจะไม่แสดงข้อมูล 7 วันล่าสุดเนื่องจากการระบุแหล่งที่มายังเปลี่ยนแปลงอยู่",
       "downloadCsv": "ดาวน์โหลด CSV",
       "dailyTable": "ประสิทธิภาพรายวัน",
       "scopeSummary": "{{start}} ถึง {{end}} ครอบคลุม {{shops}} ร้าน แสดงทุกวันในช่วงเวลานี้",
@@ -2377,6 +2378,8 @@ export default {
         "ratedSessions": "เซสชันที่ให้คะแนน {{value}} รายการ",
         "firstResponse": "การตอบกลับแรก P50",
         "firstResponseSamples": "บทสนทนาที่วัดแล้ว {{value}} รายการ",
+        "guidedGmv": "Guided GMV ที่ยืนยันแล้ว",
+        "guidedGmvMaturity": "ไม่รวม 7 วันล่าสุด",
         "p90": "P90 {{value}}"
       },
       "charts": {
@@ -2384,7 +2387,9 @@ export default {
         "escalation": "การจัดการการยกระดับ",
         "escalationTooltip": "การยกระดับคือบทสนทนาที่ Agent ไม่สามารถปิดงานได้เองและต้องให้เจ้าหน้าที่ดูแล กราฟนี้เป็นสัญญาณสำคัญของการปิดงานบริการโดยคน: จำนวนที่แก้ไขแล้วช่วยบอกว่าทีมตอบสนองได้เร็วพอและรับมือกับเคสที่ยกระดับได้ทันหรือไม่",
         "satisfaction": "ความพึงพอใจของลูกค้า",
-        "firstResponse": "ความเร็วในการตอบกลับแรก"
+        "firstResponse": "ความเร็วในการตอบกลับแรก",
+        "guidedGmv": "Guided GMV จากงานบริการลูกค้า",
+        "guidedGmvTooltip": "GMV ที่ TikTok ระบุว่าเกิดจากคำสั่งซื้อภายใน 7 วันหลังการตอบของฝ่ายบริการลูกค้า ระบบจะไม่แสดง 7 วันเต็มล่าสุดตามเวลาท้องถิ่นของร้าน เนื่องจากการระบุแหล่งที่มายังเปลี่ยนแปลงอยู่"
       },
       "realtimeCharts": {
         "state": "ใช้งานอยู่ / รอดำเนินการ / ยกระดับ",
@@ -2415,7 +2420,8 @@ export default {
         "satisfaction": "ความพึงพอใจ",
         "satisfaction7dWeighted": "เฉลี่ยถ่วงน้ำหนัก 7 วัน",
         "firstResponseP50": "P50",
-        "firstResponseP90": "P90"
+        "firstResponseP90": "P90",
+        "guidedGmv": "Guided GMV"
       },
       "table": {
         "date": "วันที่",
@@ -2429,7 +2435,8 @@ export default {
         "satisfaction": "ความพึงพอใจ",
         "satisfaction7dWeighted": "เฉลี่ย 7 วัน",
         "firstResponse": "ตอบกลับ P50",
-        "errors": "ข้อผิดพลาด/บทสนทนา"
+        "errors": "ข้อผิดพลาด/บทสนทนา",
+        "guidedGmv": "Guided GMV"
       }
     },
     "affiliateWorkspace": {

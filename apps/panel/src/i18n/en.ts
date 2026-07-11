@@ -2608,6 +2608,7 @@ export default {
       timeRange: "Time range",
       loadFailed: "Failed to load performance data",
       noData: "No performance data for this range.",
+      guidedGmvNoMatureData: "No mature Guided GMV in this range. Values from the latest 7 days are intentionally withheld.",
       downloadCsv: "Download CSV",
       dailyTable: "Daily performance",
       scopeSummary: "{{start}} to {{end}} across {{shops}} shop(s). Showing all days in this range.",
@@ -2641,6 +2642,8 @@ export default {
         ratedSessions: "{{value}} rated sessions",
         firstResponse: "First response P50",
         firstResponseSamples: "{{value}} measured conversations",
+        guidedGmv: "Mature Guided GMV",
+        guidedGmvMaturity: "Excludes the latest 7 days",
         p90: "P90 {{value}}",
       },
       charts: {
@@ -2649,6 +2652,8 @@ export default {
         escalationTooltip: "Escalations are conversations the agent cannot finish alone and must be handled by staff. This chart is a key manual-service completion signal: resolved volume shows whether people are responding quickly enough and keeping up with escalated cases.",
         satisfaction: "Customer satisfaction",
         firstResponse: "First response speed",
+        guidedGmv: "Customer-service Guided GMV",
+        guidedGmvTooltip: "TikTok-attributed GMV from orders placed within 7 days after a customer-service reply. The latest 7 full shop-local days are excluded because attribution is still changing.",
       },
       realtimeCharts: {
         state: "Active / pending / escalated",
@@ -2680,6 +2685,7 @@ export default {
         satisfaction7dWeighted: "7d weighted avg",
         firstResponseP50: "P50",
         firstResponseP90: "P90",
+        guidedGmv: "Guided GMV",
       },
       table: {
         date: "Date",
@@ -2694,6 +2700,7 @@ export default {
         satisfaction7dWeighted: "7d avg",
         firstResponse: "P50 response",
         errors: "Errors/conv",
+        guidedGmv: "Guided GMV",
       },
     },
     affiliateWorkspace: {
