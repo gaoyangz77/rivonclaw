@@ -37,6 +37,12 @@ describe("vendor patch 0020: stable Feishu CardKit streaming", () => {
     expect(patch).toContain("keeps source replies on the Feishu dispatcher for CardKit streaming");
   });
 
+  it("makes local attachment delivery observable to the agent", () => {
+    expect(patch).toContain("wait for the tool result");
+    expect(patch).toContain("A successful result includes the sent message ID");
+    expect(patch).toContain("Do not use a final-answer `MEDIA:` directive");
+  });
+
   it("records the upstream transport fixes that make the patch removable", () => {
     expect(patch).toContain("openclaw/openclaw#82419");
     expect(patch).toContain("openclaw/openclaw#90181");

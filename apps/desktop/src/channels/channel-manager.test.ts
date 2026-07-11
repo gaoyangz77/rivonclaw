@@ -751,6 +751,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         config: {
           appId: "cli_quiet",
           appSecret: "secret_quiet",
+          mediaMaxMb: 12,
           streaming: false,
           blockStreaming: false,
         },
@@ -767,11 +768,13 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       });
 
       expect(accounts.find((account) => account.accountId === "default")?.config).toMatchObject({
+        mediaMaxMb: 30,
         renderMode: "card",
         streaming: true,
         blockStreaming: false,
       });
       expect(accounts.find((account) => account.accountId === "quiet")?.config).toMatchObject({
+        mediaMaxMb: 12,
         streaming: false,
         blockStreaming: false,
       });
@@ -783,9 +786,11 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.feishu.accounts.default.renderMode).toBe("card");
+      expect(config.channels.feishu.accounts.default.mediaMaxMb).toBe(30);
       expect(config.channels.feishu.accounts.default.streaming).toBe(true);
       expect(config.channels.feishu.accounts.default.blockStreaming).toBe(false);
       expect(config.channels.feishu.accounts.quiet.streaming).toBe(false);
+      expect(config.channels.feishu.accounts.quiet.mediaMaxMb).toBe(12);
       expect(config.channels.feishu.accounts.quiet.blockStreaming).toBe(false);
       expect(config.channels.feishu.accounts.blocks.renderMode).toBe("card");
       expect(config.channels.feishu.accounts.blocks.streaming).toBe(true);
@@ -965,6 +970,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const official = accounts.find((account) => account.channelId === "feishu" && account.accountId === accountId);
       expect(official?.name).toBe("Feishu Official Bot (i_test)");
       expect(official?.config).toMatchObject({
+        mediaMaxMb: 30,
         renderMode: "card",
         streaming: true,
         blockStreaming: false,
@@ -978,6 +984,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.feishu.accounts[accountId].dmPolicy).toBe("open");
+      expect(config.channels.feishu.accounts[accountId].mediaMaxMb).toBe(30);
       expect(config.channels.feishu.accounts[accountId].renderMode).toBe("card");
       expect(config.channels.feishu.accounts[accountId].streaming).toBe(true);
       expect(config.channels.feishu.accounts[accountId].blockStreaming).toBe(false);
@@ -1138,6 +1145,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(accounts.find((account) => account.accountId === newAccountId)?.config).toMatchObject({
         appId: "cli_new_bot",
         appSecret: "new_secret",
+        mediaMaxMb: 30,
         renderMode: "card",
         streaming: true,
         blockStreaming: false,
@@ -1148,6 +1156,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.feishu.accounts.default.appId).toBe("cli_existing");
       expect(config.channels.feishu.accounts[newAccountId].appId).toBe("cli_new_bot");
+      expect(config.channels.feishu.accounts[newAccountId].mediaMaxMb).toBe(30);
       expect(config.channels.feishu.accounts[newAccountId].renderMode).toBe("card");
       expect(config.channels.feishu.accounts[newAccountId].streaming).toBe(true);
       expect(config.channels.feishu.accounts[newAccountId].blockStreaming).toBe(false);
