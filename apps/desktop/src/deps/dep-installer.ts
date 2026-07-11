@@ -38,6 +38,7 @@ function spawnAsync(
   return new Promise((resolve, reject) => {
     const timeoutMs = opts.timeout ?? INSTALL_TIMEOUT;
     let timedOut = false;
+    const recentOutput: string[] = [];
     const env = {
       ...(opts.env ?? { ...process.env, PATH: getAugmentedPath() }),
       ...UTF8_ENV,
@@ -57,6 +58,8 @@ function spawnAsync(
       const text = data.toString("utf-8").replace(/\uFFFD/g, "");
       for (const line of text.split(/\r?\n/)) {
         if (line.length > 0) {
+          recentOutput.push(line);
+          if (recentOutput.length > 20) recentOutput.shift();
           onOutput(line);
         }
       }
@@ -84,7 +87,12 @@ function spawnAsync(
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`${cmd} exited with code ${code}`));
+        const details = recentOutput.slice(-5).join(" | ");
+        reject(
+          new Error(
+            `${cmd} exited with code ${code}${details ? `: ${details}` : ""}`,
+          ),
+        );
       }
     });
   });
@@ -283,6 +291,16 @@ const GIT_FOR_WINDOWS_CN_INSTALLERS = {
 const NODE_WINDOWS_CN_VERSION = "24.16.0";
 const NODE_WINDOWS_CN_MIRROR_BASE =
   `https://mirrors.huaweicloud.com/nodejs/v${NODE_WINDOWS_CN_VERSION}`;
+const NODE_WINDOWS_CN_ARCHIVES = {
+  x64: {
+    fileName: `node-v${NODE_WINDOWS_CN_VERSION}-win-x64.zip`,
+    sha256: "EDACA9BD58EC8E92037DAC4E877D52F6B8F430B81C18B57E264B4E2FB111CD56",
+  },
+  arm64: {
+    fileName: `node-v${NODE_WINDOWS_CN_VERSION}-win-arm64.zip`,
+    sha256: "14834611D4C6B3C06054E7007732B90474C16E0B32F395E05B55A571EF71C6D2",
+  },
+} as const;
 
 const PYTHON_WINDOWS_CN_VERSION = "3.13.13";
 const PYTHON_WINDOWS_CN_MIRROR_BASE =
@@ -347,19 +365,24 @@ async function installGitWindowsFromChinaMirror(
     "powershell",
     ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
     onOutput,
-    { shell: true },
+    // Invoke PowerShell directly so cmd.exe cannot reinterpret the multiline
+    // script or its metacharacters before PowerShell receives it.
+    { shell: false },
   );
 }
 
 function getNodeWindowsCnInstaller(): {
   fileName: string;
+  sha256: string;
   url: string;
 } {
-  const archName = arch() === "arm64" ? "arm64" : "x64";
-  const fileName = `node-v${NODE_WINDOWS_CN_VERSION}-${archName}.msi`;
+  const archive =
+    arch() === "arm64"
+      ? NODE_WINDOWS_CN_ARCHIVES.arm64
+      : NODE_WINDOWS_CN_ARCHIVES.x64;
   return {
-    fileName,
-    url: `${NODE_WINDOWS_CN_MIRROR_BASE}/${fileName}`,
+    ...archive,
+    url: `${NODE_WINDOWS_CN_MIRROR_BASE}/${archive.fileName}`,
   };
 }
 
@@ -370,34 +393,78 @@ async function installNodeWindowsFromChinaMirror(
   onOutput(`Installing node from China mirror (${installer.fileName})...`);
 
   const tempFileName = `RivonClaw-${installer.fileName}`;
-  const shasumsUrl = `${NODE_WINDOWS_CN_MIRROR_BASE}/SHASUMS256.txt`;
+  const archiveDirName = installer.fileName.replace(/\.zip$/, "");
   const script = [
     "$ErrorActionPreference = 'Stop'",
     "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12",
     `$url = ${quotePowerShellString(installer.url)}`,
-    `$shasumsUrl = ${quotePowerShellString(shasumsUrl)}`,
-    `$fileName = ${quotePowerShellString(installer.fileName)}`,
     `$out = Join-Path $env:TEMP ${quotePowerShellString(tempFileName)}`,
-    `Write-Output ${quotePowerShellString(`Downloading ${installer.fileName} from Huawei Cloud mirror...`)}`,
-    "$shasums = (Invoke-WebRequest -Uri $shasumsUrl -UseBasicParsing).Content",
-    "$line = ($shasums -split \"`n\" | Where-Object { $_.Trim().EndsWith($fileName) } | Select-Object -First 1)",
-    'if (-not $line) { throw "Cannot find SHA256 entry for $fileName" }',
-    "$expected = ($line.Trim() -split '\\s+')[0].ToUpperInvariant()",
-    "Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing",
-    "$actual = (Get-FileHash -Algorithm SHA256 $out).Hash.ToUpperInvariant()",
-    'if ($actual -ne $expected) { throw "Node installer SHA256 mismatch: expected $expected, got $actual" }',
-    `Write-Output ${quotePowerShellString("Installing Node.js silently...")}`,
-    "$arguments = @('/i', $out, '/qn', '/norestart', 'ALLUSERS=2', 'MSIINSTALLPERUSER=1')",
-    "$process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru",
-    'if ($process.ExitCode -ne 0) { throw "Node installer exited with code $($process.ExitCode)" }',
-    "Remove-Item $out -Force -ErrorAction SilentlyContinue",
-  ].join("; ");
+    `$expected = ${quotePowerShellString(installer.sha256)}`,
+    "$staging = Join-Path $env:TEMP ('RivonClaw-node-' + [IO.Path]::GetRandomFileName())",
+    "$programsDir = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs'",
+    "$installDir = Join-Path $programsDir 'nodejs'",
+    "$managedMarker = Join-Path $installDir '.rivonclaw-managed-node'",
+    "$backupDir = $null",
+    "try {",
+    `  Write-Output ${quotePowerShellString(`Downloading ${installer.fileName} from Huawei Cloud mirror...`)}`,
+    "  Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing",
+    "  $actual = (Get-FileHash -Algorithm SHA256 $out).Hash.ToUpperInvariant()",
+    '  if ($actual -ne $expected) { throw "Node archive SHA256 mismatch: expected $expected, got $actual" }',
+    `  Write-Output ${quotePowerShellString("Installing Node.js for the current user...")}`,
+    "  New-Item -ItemType Directory -Path $staging -Force | Out-Null",
+    "  Expand-Archive -LiteralPath $out -DestinationPath $staging -Force",
+    `  $sourceDir = Join-Path $staging ${quotePowerShellString(archiveDirName)}`,
+    "  $sourceNode = Join-Path $sourceDir 'node.exe'",
+    '  if (-not (Test-Path -LiteralPath $sourceNode)) { throw "Downloaded Node archive has an unexpected layout" }',
+    "  if (Test-Path -LiteralPath $installDir) {",
+    '    if (-not (Test-Path -LiteralPath $managedMarker)) { throw "Node target directory already exists and is not managed by RivonClaw: $installDir" }',
+    "    $backupDir = Join-Path $programsDir ('RivonClaw-node-backup-' + [IO.Path]::GetRandomFileName())",
+    "    Move-Item -LiteralPath $installDir -Destination $backupDir",
+    "  }",
+    "  New-Item -ItemType Directory -Path $programsDir -Force | Out-Null",
+    "  Move-Item -LiteralPath $sourceDir -Destination $installDir",
+    `  Set-Content -LiteralPath $managedMarker -Value ${quotePowerShellString(NODE_WINDOWS_CN_VERSION)} -Encoding ASCII`,
+    "  $nodeExe = Join-Path $installDir 'node.exe'",
+    "  $npmCmd = Join-Path $installDir 'npm.cmd'",
+    '  if (-not (Test-Path -LiteralPath $npmCmd)) { throw "Node archive does not contain npm.cmd" }',
+    "  $nodeVersion = (& $nodeExe --version).Trim()",
+    '  if ($LASTEXITCODE -ne 0) { throw "Installed Node.js verification failed with code $LASTEXITCODE" }',
+    "  $npmVersion = (& $npmCmd --version).Trim()",
+    '  if ($LASTEXITCODE -ne 0) { throw "Installed npm verification failed with code $LASTEXITCODE" }',
+    "  & $npmCmd config set registry https://registry.npmmirror.com",
+    '  if ($LASTEXITCODE -ne 0) { throw "Failed to configure the npm China mirror (code $LASTEXITCODE)" }',
+    "  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')",
+    "  $pathEntries = @($userPath -split ';' | Where-Object { $_ })",
+    "  if ($pathEntries -inotcontains $installDir) {",
+    "    [Environment]::SetEnvironmentVariable('Path', (($pathEntries + $installDir) -join ';'), 'User')",
+    "  }",
+    "  if ($backupDir) {",
+    "    Remove-Item -LiteralPath $backupDir -Recurse -Force",
+    "    $backupDir = $null",
+    "  }",
+    '  Write-Output "Installed Node.js $nodeVersion with npm $npmVersion"',
+    "} catch {",
+    "  if ($backupDir -and (Test-Path -LiteralPath $backupDir)) {",
+    "    Remove-Item -LiteralPath $installDir -Recurse -Force -ErrorAction SilentlyContinue",
+    "    Move-Item -LiteralPath $backupDir -Destination $installDir",
+    "    $backupDir = $null",
+    "  } elseif (Test-Path -LiteralPath $managedMarker) {",
+    "    Remove-Item -LiteralPath $installDir -Recurse -Force -ErrorAction SilentlyContinue",
+    "  }",
+    "  throw",
+    "} finally {",
+    "  Remove-Item -LiteralPath $out -Force -ErrorAction SilentlyContinue",
+    "  Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue",
+    "}",
+  ].join("\n");
 
   await spawnAsync(
     "powershell",
     ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
     onOutput,
-    { shell: true },
+    // Invoke PowerShell directly so cmd.exe cannot reinterpret the multiline
+    // script or its metacharacters before PowerShell receives it.
+    { shell: false },
   );
 }
 
@@ -445,7 +512,7 @@ async function installPythonWindowsFromChinaMirror(
     "powershell",
     ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
     onOutput,
-    { shell: true },
+    { shell: false },
   );
 }
 
