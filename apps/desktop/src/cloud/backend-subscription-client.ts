@@ -334,7 +334,7 @@ const AFFILIATE_RELATIONSHIP_SIGNAL_SUBSCRIPTION = `
   }
 `;
 
-const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
+export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
   subscription AffiliateWorkItemChanged {
     affiliateWorkItemChanged {
       workItem {
@@ -360,9 +360,6 @@ const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           creatorId
           blocked
           blockedShopIds
-          processingStatus
-          requiredAction
-          processReasons
           lastInboundAt
           lastOutboundAt
           lastAgentHandledAt

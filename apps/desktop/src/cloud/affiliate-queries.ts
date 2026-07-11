@@ -529,9 +529,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         creatorId
         blocked
         blockedShopIds
-        processingStatus
-        requiredAction
-        processReasons
         lastInboundAt
         lastOutboundAt
         lastAgentHandledAt
