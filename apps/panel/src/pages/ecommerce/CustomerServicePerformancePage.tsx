@@ -16,12 +16,13 @@ import type { GQL } from "@rivonclaw/core";
 import {
   ECOMMERCE_GET_CS_PERFORMANCE_QUERY,
   ECOMMERCE_GET_CS_REALTIME_PERFORMANCE_QUERY,
+  ECOMMERCE_GET_CS_UNPAID_REACHOUT_PERFORMANCE_QUERY,
 } from "../../api/cs-performance-queries.js";
 import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 
-type PerformanceTab = "history" | "realtime";
+type PerformanceTab = "history" | "realtime" | "unpaid";
 type TimeRange = "7d" | "30d" | "90d";
 type RealtimeRange = "1" | "6" | "12" | "24";
 
@@ -170,10 +171,20 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
     pollInterval: activeTab === "realtime" ? 60_000 : 0,
   });
 
-  const loading = activeTab === "realtime" ? realtimeQuery.loading : historyQuery.loading;
-  const error = activeTab === "realtime" ? realtimeQuery.error : historyQuery.error;
+  const unpaidQuery = useQuery<{ ecommerceGetCSUnpaidOrderReachoutPerformance: any }>(
+    ECOMMERCE_GET_CS_UNPAID_REACHOUT_PERFORMANCE_QUERY,
+    {
+      variables: { shopId: shopId || null, startTime: range.startTime, endTime: range.endTime },
+      skip: !user || activeTab !== "unpaid",
+      fetchPolicy: "cache-and-network",
+    },
+  );
+
+  const loading = activeTab === "realtime" ? realtimeQuery.loading : activeTab === "unpaid" ? unpaidQuery.loading : historyQuery.loading;
+  const error = activeTab === "realtime" ? realtimeQuery.error : activeTab === "unpaid" ? unpaidQuery.error : historyQuery.error;
   const report = historyQuery.data?.ecommerceGetCSPerformance ?? null;
   const realtimeReport = realtimeQuery.data?.ecommerceGetCSRealtimePerformance ?? null;
+  const unpaidReport = unpaidQuery.data?.ecommerceGetCSUnpaidOrderReachoutPerformance ?? null;
   const summary = report?.summary;
   const chartRows: ChartRow[] = useMemo(() => {
     const rows = (report?.byDate ?? []).map((row) => ({
@@ -318,6 +329,15 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
           >
             {t("ecommerce.customerServicePerformance.tabs.history")}
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "unpaid"}
+            className={`cs-performance-tab ${activeTab === "unpaid" ? "active" : ""}`}
+            onClick={() => setActiveTab("unpaid")}
+          >
+            Unpaid reachout
+          </button>
         </div>
       </div>
 
@@ -332,7 +352,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             searchable
           />
         </label>
-        {activeTab === "history" ? (
+        {activeTab !== "realtime" ? (
           <label className="cs-performance-filter">
             <span>{t("ecommerce.customerServicePerformance.timeRange")}</span>
             <Select
@@ -356,7 +376,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         <button
           className="icon-button"
           type="button"
-          onClick={() => (activeTab === "realtime" ? realtimeQuery.refetch() : historyQuery.refetch())}
+          onClick={() => (activeTab === "realtime" ? realtimeQuery.refetch() : activeTab === "unpaid" ? unpaidQuery.refetch() : historyQuery.refetch())}
           title={t("common.refresh")}
         >
           <RefreshIcon aria-hidden="true" />
@@ -370,7 +390,45 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         </div>
       )}
 
-      {activeTab === "history" ? (
+      {activeTab === "unpaid" ? (
+        <>
+          <div className="cs-performance-kpis">
+            <MetricTile label="Eligible orders" value={formatCount(unpaidReport?.summary.eligible)} detail="Reached opportunity cohort" />
+            <MetricTile label="Reached orders" value={formatCount(unpaidReport?.summary.reached)} detail={`${formatCount(unpaidReport?.summary.sentMessages)} messages sent`} />
+            <MetricTile label="Associated paid orders" value={formatCount(unpaidReport?.summary.associatedPaidOrders)} detail={`${formatRate(unpaidReport?.summary.associatedConversionRate)} associated conversion`} />
+            <MetricTile label="Associated units" value={formatCount(unpaidReport?.summary.associatedSalesUnits)} detail={(unpaidReport?.summary.associatedGmv ?? []).map((item: any) => formatMoney(item.amount, item.currency, i18n.language)).join(" · ") || "No associated GMV"} />
+          </div>
+          <div className="section-card cs-unpaid-funnel">
+            <h3>Eligible → Reached → Paid</h3>
+            <div className="cs-unpaid-funnel-steps">
+              {[["Eligible", unpaidReport?.summary.eligible], ["Reached", unpaidReport?.summary.reached], ["Paid", unpaidReport?.summary.associatedPaidOrders]].map(([label, value]) => <div key={String(label)}><strong>{formatCount(value as number)}</strong><span>{label}</span></div>)}
+            </div>
+            <p className="form-hint">{unpaidReport?.semanticsNotice ?? "Associated results do not represent incremental sales."}</p>
+          </div>
+          <ChartPanel title="Cohort trend" loading={loading} empty={!unpaidReport?.byDate?.length} loadingLabel={t("common.loading")} emptyLabel="No data">
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={unpaidReport?.byDate ?? []} margin={{ top: 12, right: 18, bottom: 4, left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="cohortDate" tickFormatter={(value) => String(value).slice(5)} />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="eligible" name="Eligible" stroke="var(--cs-performance-ink)" strokeWidth={2.4} dot={false} />
+                <Line type="monotone" dataKey="reached" name="Reached" stroke="var(--cs-performance-accent)" strokeWidth={2.4} dot={false} />
+                <Line type="monotone" dataKey="associatedPaidOrders" name="Associated paid" stroke="var(--cs-performance-good)" strokeWidth={2.4} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartPanel>
+          <div className="section-card cs-performance-table-card">
+            <div className="cs-performance-table-heading"><h3>Stage comparison</h3></div>
+            <div className="table-scroll"><table><thead><tr><th>Stage</th><th>Delay</th><th>Eligible</th><th>Sent</th><th>Associated payments</th><th>Units</th><th>GMV</th></tr></thead><tbody>
+              {(unpaidReport?.byStage ?? []).map((row: any) => <tr key={row.stageId}><td>Stage {row.stageIndex + 1}</td><td>{row.delayMinutes}m</td><td>{formatCount(row.eligible)}</td><td>{formatCount(row.sent)}</td><td>{formatCount(row.associatedPayments)}</td><td>{formatCount(row.associatedSalesUnits)}</td><td>{row.associatedGmv.map((item: any) => formatMoney(item.amount, item.currency, i18n.language)).join(" · ") || "--"}</td></tr>)}
+              {!loading && !(unpaidReport?.byStage?.length) && <tr><td colSpan={7}>No data</td></tr>}
+            </tbody></table></div>
+          </div>
+          {unpaidReport?.experiment?.experimentId && <div className="section-card cs-performance-table-card"><div className="cs-performance-table-heading"><h3>A/B experiment</h3><span>{unpaidReport.experiment.insufficientSample ? "Sample is still too small for a reliable conclusion" : `95% CI ${formatRate(unpaidReport.experiment.confidenceIntervalLow)} to ${formatRate(unpaidReport.experiment.confidenceIntervalHigh)}`}</span></div><div className="table-scroll"><table><thead><tr><th>Arm</th><th>Eligible</th><th>Paid</th><th>Payment rate</th><th>GMV / eligible</th><th>Units / eligible</th></tr></thead><tbody>{unpaidReport.experiment.arms.map((arm: any) => <tr key={arm.assignment}><td>{arm.assignment}</td><td>{formatCount(arm.eligible)}</td><td>{formatCount(arm.paidOrders)}</td><td>{formatRate(arm.paymentRate)}</td><td>{arm.gmvPerEligible.map((item: any) => formatMoney(item.amount, item.currency, i18n.language)).join(" · ") || "--"}</td><td>{formatDecimal(arm.unitsPerEligible)}</td></tr>)}</tbody></table></div></div>}
+        </>
+      ) : activeTab === "history" ? (
         <>
           <div className="cs-performance-kpis">
             <MetricTile

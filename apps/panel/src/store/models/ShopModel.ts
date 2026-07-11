@@ -54,8 +54,16 @@ export const ShopModel = ShopModelBase.views((self) => ({
         customerService?: {
           enabled?: boolean;
           unpaidOrderReachoutEnabled?: boolean;
-          unpaidOrderReachoutDelayHours?: number | null;
-          unpaidOrderReminderMessageTemplate?: string | null;
+          unpaidOrderReachoutStages?: Array<{
+            id?: string | null;
+            enabled: boolean;
+            delayMinutes: number;
+            messageTemplate?: string | null;
+          }>;
+          unpaidOrderReachoutExperiment?: {
+            enabled?: boolean;
+            holdoutPercent?: number;
+          };
           businessPrompt?: string | null;
           runProfileId?: string;
           csDeviceId?: string | null;

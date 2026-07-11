@@ -5,8 +5,24 @@ export const CustomerServiceConfigModel = types
   .model("CustomerServiceConfig", {
     enabled: types.optional(types.boolean, false),
     unpaidOrderReachoutEnabled: types.optional(types.boolean, false),
-    unpaidOrderReachoutDelayHours: types.maybeNull(types.number),
-    unpaidOrderReminderMessageTemplate: types.maybeNull(types.string),
+    unpaidOrderReachoutStages: types.optional(
+      types.array(types.model("UnpaidOrderReachoutStage", {
+        id: types.identifier,
+        enabled: types.optional(types.boolean, true),
+        delayMinutes: types.number,
+        messageTemplate: types.string,
+      })),
+      [],
+    ),
+    unpaidOrderReachoutExperiment: types.optional(
+      types.model("UnpaidOrderReachoutExperiment", {
+        enabled: types.optional(types.boolean, false),
+        holdoutPercent: types.optional(types.number, 5),
+        experimentId: types.maybeNull(types.string),
+        startedAt: types.maybeNull(types.string),
+      }),
+      {},
+    ),
     businessPrompt: types.optional(types.maybeNull(types.string), null),
     csDeviceId: types.maybeNull(types.string),
     csProviderOverride: types.maybeNull(types.string),

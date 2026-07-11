@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import type { Shop } from "@rivonclaw/core/models";
@@ -6,6 +5,7 @@ import { Select } from "../../../components/inputs/Select.js";
 import { KeyModelSelector } from "../../../components/inputs/KeyModelSelector.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { CustomerServiceBillingCta } from "../../../components/billing/CustomerServiceBillingCta.js";
+import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const UNPAID_ORDER_TEMPLATE_PLACEHOLDERS = [
@@ -34,12 +34,14 @@ interface AiCustomerServiceTabProps {
   onCSModelChange: (provider: string, model: string) => void;
   // Unpaid-order reachout
   draftUnpaidReachoutEnabled: boolean;
-  draftUnpaidReachoutDelayHours: string;
-  editUnpaidOrderReminderTemplate: string;
+  draftUnpaidReachoutStages: UnpaidReachoutStageDraft[];
+  draftUnpaidExperimentEnabled: boolean;
+  draftUnpaidHoldoutPercent: string;
   savingUnpaidReachoutSettings: boolean;
   onToggleUnpaidReachoutEnabled: (value: boolean) => void;
-  onDraftUnpaidReachoutDelayHoursChange: (value: string) => void;
-  onEditUnpaidOrderReminderTemplate: (value: string) => void;
+  onDraftUnpaidReachoutStagesChange: (value: UnpaidReachoutStageDraft[]) => void;
+  onDraftUnpaidExperimentEnabledChange: (value: boolean) => void;
+  onDraftUnpaidHoldoutPercentChange: (value: string) => void;
   onSaveUnpaidReachoutSettings: () => void;
   // Review optimization
   draftReviewOptimizationEnabled: boolean;
@@ -83,12 +85,14 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   savingModel,
   onCSModelChange,
   draftUnpaidReachoutEnabled,
-  draftUnpaidReachoutDelayHours,
-  editUnpaidOrderReminderTemplate,
+  draftUnpaidReachoutStages,
+  draftUnpaidExperimentEnabled,
+  draftUnpaidHoldoutPercent,
   savingUnpaidReachoutSettings,
   onToggleUnpaidReachoutEnabled,
-  onDraftUnpaidReachoutDelayHoursChange,
-  onEditUnpaidOrderReminderTemplate,
+  onDraftUnpaidReachoutStagesChange,
+  onDraftUnpaidExperimentEnabledChange,
+  onDraftUnpaidHoldoutPercentChange,
   onSaveUnpaidReachoutSettings,
   savingEscalation,
   draftEscalationChannel,
@@ -103,23 +107,24 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   onUnbindDevice,
 }: AiCustomerServiceTabProps) {
   const { t } = useTranslation();
-  const unpaidTemplateTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
   const savedUnpaidReachoutEnabled = shop.services?.customerService?.unpaidOrderReachoutEnabled ?? false;
-  const savedUnpaidReachoutDelayHours = shop.services?.customerService?.unpaidOrderReachoutDelayHours ?? 24;
-  const savedUnpaidOrderReminderTemplate = shop.services?.customerService?.unpaidOrderReminderMessageTemplate ?? "";
-  const draftDelayTrimmed = draftUnpaidReachoutDelayHours.trim();
-  const draftDelayNumber = Number(draftDelayTrimmed);
-  const draftDelayValid =
-    Number.isInteger(draftDelayNumber) &&
-    draftDelayNumber >= 1 &&
-    draftDelayNumber <= 47;
+  const savedStages = shop.services?.customerService?.unpaidOrderReachoutStages ?? [];
+  const savedExperiment = shop.services?.customerService?.unpaidOrderReachoutExperiment;
+  const stagesValid = draftUnpaidReachoutStages.every((stage) => {
+    const delay = Number(stage.delayMinutes.trim());
+    return Number.isInteger(delay) && delay >= 1 && delay <= 2879;
+  });
+  const enabledDelays = draftUnpaidReachoutStages.filter((stage) => stage.enabled).map((stage) => stage.delayMinutes.trim());
+  const holdout = Number(draftUnpaidHoldoutPercent.trim());
+  const experimentValid = Number.isInteger(holdout) && holdout >= 1 && holdout <= 20;
   const unpaidReachoutDirty =
     draftUnpaidReachoutEnabled !== savedUnpaidReachoutEnabled ||
-    draftDelayTrimmed !== String(savedUnpaidReachoutDelayHours) ||
-    editUnpaidOrderReminderTemplate !== savedUnpaidOrderReminderTemplate;
+    JSON.stringify(draftUnpaidReachoutStages.map((stage) => ({ ...stage, delayMinutes: Number(stage.delayMinutes) }))) !== JSON.stringify(savedStages) ||
+    draftUnpaidExperimentEnabled !== (savedExperiment?.enabled ?? false) ||
+    draftUnpaidHoldoutPercent.trim() !== String(savedExperiment?.holdoutPercent ?? 5);
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((t) => t.id === toolId);
     const catLabel = tool?.category ? t(`tools.selector.category.${tool.category}`, { defaultValue: tool.category }) : "";
@@ -127,24 +132,10 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
     return catLabel ? `${catLabel} — ${nameLabel}` : nameLabel;
   }
 
-  function insertUnpaidOrderTemplatePlaceholder(placeholder: string) {
-    const textarea = unpaidTemplateTextareaRef.current;
-    const currentValue = editUnpaidOrderReminderTemplate;
-    const selectionStart = textarea?.selectionStart ?? currentValue.length;
-    const selectionEnd = textarea?.selectionEnd ?? selectionStart;
-    const nextValue =
-      currentValue.slice(0, selectionStart) +
-      placeholder +
-      currentValue.slice(selectionEnd);
-    const nextCursor = selectionStart + placeholder.length;
-
-    onEditUnpaidOrderReminderTemplate(nextValue);
-    window.requestAnimationFrame(() => {
-      const node = unpaidTemplateTextareaRef.current;
-      if (!node) return;
-      node.focus();
-      node.setSelectionRange(nextCursor, nextCursor);
-    });
+  function updateStage(index: number, patch: Partial<UnpaidReachoutStageDraft>) {
+    onDraftUnpaidReachoutStagesChange(
+      draftUnpaidReachoutStages.map((stage, stageIndex) => stageIndex === index ? { ...stage, ...patch } : stage),
+    );
   }
 
   return (
@@ -281,65 +272,47 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
               </span>
             </div>
           </div>
-          <div className="shop-unpaid-reachout-delay">
-            <label className="form-label-block">
-              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelay")}
-            </label>
-            <div className="shop-unpaid-reachout-delay-control">
-              <input
-                className="input-full shop-unpaid-reachout-delay-input"
-                type="number"
-                min={1}
-                max={47}
-                step={1}
-                value={draftUnpaidReachoutDelayHours}
-                onChange={(e) => onDraftUnpaidReachoutDelayHoursChange(e.target.value)}
-                disabled={savingUnpaidReachoutSettings}
-                aria-invalid={draftDelayTrimmed.length > 0 && !draftDelayValid}
-              />
-              <div className="shop-info-card-hint shop-unpaid-reachout-delay-hint">
-                {t("ecommerce.shopDrawer.aiCS.unpaidReachoutDelayHint")}
-              </div>
-            </div>
+          <div className="shop-unpaid-stage-list">
+            {draftUnpaidReachoutStages.map((stage, index) => {
+              const delay = Number(stage.delayMinutes.trim());
+              const delayValid = Number.isInteger(delay) && delay >= 1 && delay <= 2879;
+              return (
+                <div className="shop-unpaid-stage" key={stage.id ?? `new-${index}`}>
+                  <div className="shop-unpaid-stage-head">
+                    <span className="shop-unpaid-stage-number">{index + 1}</span>
+                    <strong>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutStage", { index: index + 1 })}</strong>
+                    <label className="toggle-switch shop-unpaid-stage-toggle">
+                      <input type="checkbox" checked={stage.enabled} onChange={(event) => updateStage(index, { enabled: event.target.checked })} />
+                      <span className={`toggle-track ${stage.enabled ? "toggle-track-on" : "toggle-track-off"}`}><span className={`toggle-thumb ${stage.enabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} /></span>
+                    </label>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => onDraftUnpaidReachoutStagesChange(draftUnpaidReachoutStages.filter((_, itemIndex) => itemIndex !== index))}>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutRemoveStage")}</button>
+                  </div>
+                  <div className="shop-unpaid-stage-delay-row">
+                    <input className="input-full shop-unpaid-reachout-delay-input" type="number" min={1} max={2879} step={1} value={stage.delayMinutes} onChange={(event) => updateStage(index, { delayMinutes: event.target.value })} aria-invalid={!delayValid} />
+                    <span className="shop-info-card-hint">{t("ecommerce.shopDrawer.aiCS.unpaidReachoutStageMinutes")}</span>
+                  </div>
+                  <textarea className="textarea-field shop-unpaid-reachout-template-input" value={stage.messageTemplate} onChange={(event) => updateStage(index, { messageTemplate: event.target.value })} rows={3} placeholder={t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplatePlaceholder")} />
+                  <div className="shop-unpaid-reachout-placeholder-row">
+                    {UNPAID_ORDER_TEMPLATE_PLACEHOLDERS.map((placeholder) => (
+                      <button key={placeholder.token} type="button" className="shop-unpaid-reachout-placeholder-chip" onClick={() => updateStage(index, { messageTemplate: `${stage.messageTemplate}${placeholder.token}` })}>
+                        <span className="shop-unpaid-reachout-placeholder-chip-token">{placeholder.token}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <button type="button" className="btn btn-secondary btn-sm shop-unpaid-add-stage" disabled={draftUnpaidReachoutStages.length >= 3 || savingUnpaidReachoutSettings} onClick={() => onDraftUnpaidReachoutStagesChange([...draftUnpaidReachoutStages, { enabled: true, delayMinutes: "", messageTemplate: "" }])}>
+              + {t("ecommerce.shopDrawer.aiCS.unpaidReachoutAddStage")} {draftUnpaidReachoutStages.length >= 3 ? `(${t("ecommerce.shopDrawer.aiCS.unpaidReachoutMaxStages")})` : ""}
+            </button>
           </div>
-          <div className="shop-unpaid-reachout-template">
-            <label className="form-label-block">
-              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplate")}
-            </label>
-            <textarea
-              ref={unpaidTemplateTextareaRef}
-              className="textarea-field shop-unpaid-reachout-template-input"
-              value={editUnpaidOrderReminderTemplate}
-              onChange={(e) => onEditUnpaidOrderReminderTemplate(e.target.value)}
-              rows={3}
-              disabled={savingUnpaidReachoutSettings}
-              placeholder={t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplatePlaceholder")}
-            />
-            <div className="shop-info-card-hint">
-              {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateHint")}
+          <div className="shop-unpaid-experiment">
+            <div className="shop-unpaid-reachout-toggle-pane">
+              <label className="toggle-switch"><input type="checkbox" checked={draftUnpaidExperimentEnabled} onChange={(event) => onDraftUnpaidExperimentEnabledChange(event.target.checked)} /><span className={`toggle-track ${draftUnpaidExperimentEnabled ? "toggle-track-on" : "toggle-track-off"}`}><span className={`toggle-thumb ${draftUnpaidExperimentEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`} /></span></label>
+              <div className="shop-unpaid-reachout-copy"><span className="shop-toggle-card-label">{t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlGroup")}</span><span className="form-hint">{t("ecommerce.shopDrawer.aiCS.unpaidReachoutControlHint")}</span></div>
             </div>
-            <div className="shop-unpaid-reachout-placeholder-row">
-              <span className="shop-unpaid-reachout-placeholder-label">
-                {t("ecommerce.shopDrawer.aiCS.unpaidReachoutTemplateTokens")}
-              </span>
-              {UNPAID_ORDER_TEMPLATE_PLACEHOLDERS.map((placeholder) => (
-                <button
-                  key={placeholder.token}
-                  type="button"
-                  className="shop-unpaid-reachout-placeholder-chip"
-                  onClick={() => insertUnpaidOrderTemplatePlaceholder(placeholder.token)}
-                  disabled={savingUnpaidReachoutSettings}
-                  title={placeholder.token}
-                >
-                  <span className="shop-unpaid-reachout-placeholder-chip-label">
-                    {t(`ecommerce.shopDrawer.aiCS.${placeholder.labelKey}`)}
-                  </span>
-                  <span className="shop-unpaid-reachout-placeholder-chip-token">
-                    {placeholder.token}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {draftUnpaidExperimentEnabled && <div className="shop-unpaid-stage-delay-row"><input className="input-full shop-unpaid-reachout-delay-input" type="number" min={1} max={20} value={draftUnpaidHoldoutPercent} onChange={(event) => onDraftUnpaidHoldoutPercentChange(event.target.value)} aria-invalid={!experimentValid} /><span className="shop-info-card-hint">{t("ecommerce.shopDrawer.aiCS.unpaidReachoutHoldoutHint")}</span></div>}
+            {savedExperiment?.experimentId && <div className="shop-info-card-hint">Experiment {savedExperiment.experimentId}{savedExperiment.startedAt ? ` · started ${new Date(savedExperiment.startedAt).toLocaleDateString()}` : ""}</div>}
             <div className="shop-unpaid-reachout-actions">
               {unpaidReachoutDirty && (
                 <span className="shop-unpaid-reachout-dirty">
@@ -352,7 +325,7 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
                 onClick={onSaveUnpaidReachoutSettings}
                 disabled={
                   savingUnpaidReachoutSettings ||
-                  !unpaidReachoutDirty
+                  !unpaidReachoutDirty || !stagesValid || enabledDelays.length !== new Set(enabledDelays).size || !experimentValid
                 }
               >
                 {savingUnpaidReachoutSettings ? t("common.saving") : t("common.save")}

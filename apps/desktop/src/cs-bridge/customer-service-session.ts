@@ -1324,10 +1324,6 @@ export class CustomerServiceSession {
 
   private catchUpIdempotencyKey(options?: CatchUpDispatchOptions): string {
     if (!options?.currentMessageId) {
-      if ((options?.dispatchReason ?? "") === "UNPAID_ORDER_FOLLOW_UP") {
-        const orderToken = this.csContext.orderId ?? "unknown-order";
-        return `cs-unpaid-order:${this.csContext.conversationId}:${orderToken}:${this.dispatchAttemptToken(options)}`;
-      }
       return `cs-start:${this.csContext.conversationId}:${Date.now()}`;
     }
 

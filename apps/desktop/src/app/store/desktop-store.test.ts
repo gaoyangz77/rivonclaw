@@ -25,8 +25,8 @@ function customerServiceShop(id: string, name: string) {
       customerService: {
         enabled: true,
         unpaidOrderReachoutEnabled: true,
-        unpaidOrderReachoutDelayHours: 12,
-        unpaidOrderReminderMessageTemplate: "Order {{order_id}} has {{product_count}} item(s).",
+        unpaidOrderReachoutStages: [{ id: "stage-1", enabled: true, delayMinutes: 12, messageTemplate: "Order {{order_id}} has {{product_count}} item(s)." }],
+        unpaidOrderReachoutExperiment: { enabled: false, holdoutPercent: 5, experimentId: null, startedAt: null },
         businessPrompt: "original prompt",
         runProfileId: "CUSTOMER_SERVICE",
         csDeviceId: "device-1",
@@ -109,10 +109,8 @@ describe("DesktopRootStore shop ingestion", () => {
     expect(rootStore.getShop("shop-1")?.shopName).toBe("Shop 1 Updated");
     expect(cs?.businessPrompt).toBe("updated prompt");
     expect(cs?.unpaidOrderReachoutEnabled).toBe(true);
-    expect(cs?.unpaidOrderReachoutDelayHours).toBe(12);
-    expect(cs?.unpaidOrderReminderMessageTemplate).toBe(
-      "Order {{order_id}} has {{product_count}} item(s).",
-    );
+    expect(cs?.unpaidOrderReachoutStages[0]?.delayMinutes).toBe(12);
+    expect(cs?.unpaidOrderReachoutStages[0]?.messageTemplate).toBe("Order {{order_id}} has {{product_count}} item(s).");
   });
 
   it("accepts nullable customer-service business prompt from GraphQL", () => {
