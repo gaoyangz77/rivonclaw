@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.61",
+    "date": "2026-07-10",
+    "en": [
+      "Gate desktop agent tooling on cloud tools readiness",
+      "Stabilize Feishu CardKit streaming replies on a single card",
+      "Support remote persistent tool results and improve Windows gateway task handling"
+    ],
+    "zh": [
+      "桌面端 agent 工具调用增加云端工具就绪状态保护",
+      "稳定飞书 CardKit 流式回复，保持在同一张卡片上更新",
+      "支持远程持久化工具结果，并优化 Windows gateway task 处理"
+    ]
+  },
+  {
     "version": "1.8.60",
     "date": "2026-07-09",
     "en": [
