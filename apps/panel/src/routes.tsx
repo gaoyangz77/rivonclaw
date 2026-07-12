@@ -31,6 +31,7 @@ import {
   CustomerServiceEscalationQueuePage,
 } from "./pages/ecommerce/CustomerServiceEscalationsPage.js";
 import { CustomerServicePerformancePage } from "./pages/ecommerce/CustomerServicePerformancePage.js";
+import { CustomerServiceExperimentsPage } from "./pages/ecommerce/CustomerServiceExperimentsPage.js";
 import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
 import { InventoryManagementPage } from "./pages/ecommerce/InventoryManagementPage.js";
 
@@ -75,6 +76,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/customer-service/conversations", pageKey: "ecommerce-customer-service-conversations", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceConversations", authRequired: true, parentPath: "/commerce/customer-service" },
   { path: "/commerce/customer-service/escalations", pageKey: "ecommerce-customer-service-escalations", component: CustomerServiceEscalationQueuePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceEscalations", authRequired: true, parentPath: "/commerce/customer-service" },
   { path: "/commerce/customer-service/performance", pageKey: "ecommerce-customer-service-performance", component: CustomerServicePerformancePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServicePerformance", authRequired: true, parentPath: "/commerce/customer-service" },
+  { path: "/commerce/customer-service/experiments", pageKey: "ecommerce-customer-service-experiments", component: CustomerServiceExperimentsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceExperiments", authRequired: true, parentPath: "/commerce/customer-service" },
   { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true },
   { path: "/commerce/affiliate/creators", pageKey: "ecommerce-affiliate-creators", component: AffiliateCreatorsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateCreators", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },

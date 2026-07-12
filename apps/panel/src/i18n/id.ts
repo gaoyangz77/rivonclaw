@@ -1,3 +1,5 @@
+import { customerServiceExperimentTranslations } from "./customerServiceExperiments.js";
+
 export default {
   "common": {
     "loading": "Memuat...",
@@ -59,6 +61,7 @@ export default {
     "customerServiceConversations": "Percakapan",
     "customerServiceEscalations": "Eskalasi",
     "customerServicePerformance": "Performa",
+    "customerServiceExperiments": "Eksperimen",
     "affiliateManagement": "Manajemen Afiliasi",
     "affiliateIntelligence": "Intelijen Afiliasi",
     "affiliateNeedsAttention": "Proposal tindakan",
@@ -2306,6 +2309,7 @@ export default {
     "notEnrolled": "Dengan disabilitas"
   },
   "ecommerce": {
+    "customerServiceExperiments": customerServiceExperimentTranslations.id,
     "title": "Manajemen Toko",
     "subtitle": "Kelola toko terhubung, otorisasi, dan pengaturan layanan.",
     "shops": "Toko",

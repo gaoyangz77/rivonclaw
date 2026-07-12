@@ -1,3 +1,5 @@
+import { customerServiceExperimentTranslations } from "./customerServiceExperiments.js";
+
 export default {
   "common": {
     "loading": "กำลังโหลด...",
@@ -59,6 +61,7 @@ export default {
     "customerServiceConversations": "บทสนทนา",
     "customerServiceEscalations": "การยกระดับ",
     "customerServicePerformance": "ประสิทธิภาพ",
+    "customerServiceExperiments": "การทดลอง",
     "affiliateManagement": "การจัดการพันธมิตร",
     "affiliateIntelligence": "Affiliate Intelligence",
     "affiliateNeedsAttention": "ข้อเสนอการดำเนินการ",
@@ -2306,6 +2309,7 @@ export default {
     "notEnrolled": "ปิดการใช้งาน"
   },
   "ecommerce": {
+    "customerServiceExperiments": customerServiceExperimentTranslations.th,
     "title": "จัดการร้านค้า",
     "subtitle": "จัดการร้านค้าที่เชื่อมต่อ การอนุญาต และการตั้งค่าบริการ",
     "shops": "ร้านค้า",

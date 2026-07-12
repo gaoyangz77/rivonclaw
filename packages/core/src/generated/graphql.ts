@@ -2914,12 +2914,188 @@ export const CsEscalationStatus = {
 } as const;
 
 export type CsEscalationStatus = typeof CsEscalationStatus[keyof typeof CsEscalationStatus];
+export interface CsExperimentComparisonView {
+  absoluteEffect?: Maybe<Scalars['Float']['output']>;
+  adjustedPValue?: Maybe<Scalars['Float']['output']>;
+  asOf: Scalars['DateTimeISO']['output'];
+  baselineUnits: Scalars['Int']['output'];
+  baselineValue?: Maybe<Scalars['Float']['output']>;
+  baselineVariantKey: Scalars['String']['output'];
+  confidenceIntervalHigh?: Maybe<Scalars['Float']['output']>;
+  confidenceIntervalLow?: Maybe<Scalars['Float']['output']>;
+  correctionMethod: Scalars['String']['output'];
+  insufficientSample: Scalars['Boolean']['output'];
+  metricKey: CsExperimentMetricKey;
+  pValue?: Maybe<Scalars['Float']['output']>;
+  relativeEffect?: Maybe<Scalars['Float']['output']>;
+  variantKey: Scalars['String']['output'];
+  variantUnits: Scalars['Int']['output'];
+  variantValue?: Maybe<Scalars['Float']['output']>;
+}
+
 export const CsExperimentCorrectionMethod = {
   Holm: 'HOLM',
   None: 'NONE'
 } as const;
 
 export type CsExperimentCorrectionMethod = typeof CsExperimentCorrectionMethod[keyof typeof CsExperimentCorrectionMethod];
+export const CsExperimentDataStatus = {
+  Final: 'FINAL',
+  Provisional: 'PROVISIONAL'
+} as const;
+
+export type CsExperimentDataStatus = typeof CsExperimentDataStatus[keyof typeof CsExperimentDataStatus];
+export interface CsExperimentDetailView {
+  comparisons: Array<CsExperimentComparisonView>;
+  dataStatus: CsExperimentDataStatus;
+  displayStatus: CsExperimentDisplayStatus;
+  experimentType: ExperimentType;
+  id: Scalars['ID']['output'];
+  metrics: Array<CsExperimentMetricSummaryView>;
+  quality?: Maybe<CsExperimentQualityView>;
+  resultsFinalAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  stoppedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  targetCount: Scalars['Int']['output'];
+  targets: Array<CsExperimentTargetView>;
+  variantCount: Scalars['Int']['output'];
+  variants: Array<CsExperimentVariantView>;
+  version: Scalars['Int']['output'];
+}
+
+export const CsExperimentDisplayStatus = {
+  Final: 'FINAL',
+  Running: 'RUNNING',
+  StoppedMaturing: 'STOPPED_MATURING'
+} as const;
+
+export type CsExperimentDisplayStatus = typeof CsExperimentDisplayStatus[keyof typeof CsExperimentDisplayStatus];
+export interface CsExperimentListItemView {
+  dataStatus: CsExperimentDataStatus;
+  displayStatus: CsExperimentDisplayStatus;
+  experimentType: ExperimentType;
+  id: Scalars['ID']['output'];
+  quality?: Maybe<CsExperimentQualityView>;
+  resultsFinalAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  stoppedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  targetCount: Scalars['Int']['output'];
+  targets: Array<CsExperimentTargetView>;
+  variantCount: Scalars['Int']['output'];
+  version: Scalars['Int']['output'];
+}
+
+export const CsExperimentMetricKey = {
+  GmvPerAssignedOrder: 'GMV_PER_ASSIGNED_ORDER',
+  MessageSendFailureRate: 'MESSAGE_SEND_FAILURE_RATE',
+  PaymentLatency: 'PAYMENT_LATENCY',
+  PaymentWithinWindow: 'PAYMENT_WITHIN_WINDOW',
+  UnitsPerAssignedOrder: 'UNITS_PER_ASSIGNED_ORDER'
+} as const;
+
+export type CsExperimentMetricKey = typeof CsExperimentMetricKey[keyof typeof CsExperimentMetricKey];
+export interface CsExperimentMetricSummaryView {
+  dimensionKey: Scalars['String']['output'];
+  dimensionValue: Scalars['String']['output'];
+  eligibleUnits: Scalars['Int']['output'];
+  metricKey: CsExperimentMetricKey;
+  observedUnits: Scalars['Int']['output'];
+  value?: Maybe<Scalars['Float']['output']>;
+  variantKey: Scalars['String']['output'];
+}
+
+export interface CsExperimentPageInput {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  experimentType?: InputMaybe<CsExperimentTypeFilter>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+  view: CsExperimentPageView;
+}
+
+export interface CsExperimentPageResult {
+  asOf: Scalars['DateTimeISO']['output'];
+  items: Array<CsExperimentListItemView>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
+export const CsExperimentPageView = {
+  History: 'HISTORY',
+  Realtime: 'REALTIME'
+} as const;
+
+export type CsExperimentPageView = typeof CsExperimentPageView[keyof typeof CsExperimentPageView];
+export interface CsExperimentQualityView {
+  assignedUnits: Scalars['Int']['output'];
+  calculatedAt: Scalars['DateTimeISO']['output'];
+  exposedUnits: Scalars['Int']['output'];
+  maturedUnits: Scalars['Int']['output'];
+  maxAllocationDeviationBps?: Maybe<Scalars['Int']['output']>;
+  srmPValue?: Maybe<Scalars['Float']['output']>;
+}
+
+export interface CsExperimentTargetView {
+  id: Scalars['ID']['output'];
+  name?: Maybe<Scalars['String']['output']>;
+  region?: Maybe<Scalars['String']['output']>;
+}
+
+export interface CsExperimentTrendInput {
+  experimentId: Scalars['ID']['input'];
+  metricKey: CsExperimentMetricKey;
+  range: CsExperimentTrendRange;
+}
+
+export interface CsExperimentTrendPointView {
+  bucketStart: Scalars['DateTimeISO']['output'];
+  dimensionKey: Scalars['String']['output'];
+  dimensionValue: Scalars['String']['output'];
+  eligibleUnits: Scalars['Int']['output'];
+  observedUnits: Scalars['Int']['output'];
+  value?: Maybe<Scalars['Float']['output']>;
+  variantKey: Scalars['String']['output'];
+}
+
+export const CsExperimentTrendRange = {
+  Daily_30D: 'DAILY_30D',
+  Daily_90D: 'DAILY_90D',
+  Realtime_6H: 'REALTIME_6H',
+  Realtime_24H: 'REALTIME_24H',
+  Realtime_72H: 'REALTIME_72H'
+} as const;
+
+export type CsExperimentTrendRange = typeof CsExperimentTrendRange[keyof typeof CsExperimentTrendRange];
+export interface CsExperimentTrendView {
+  asOf: Scalars['DateTimeISO']['output'];
+  bucketMinutes: Scalars['Int']['output'];
+  dataStatus: CsExperimentDataStatus;
+  experimentId: Scalars['ID']['output'];
+  metricKey: CsExperimentMetricKey;
+  points: Array<CsExperimentTrendPointView>;
+  range: CsExperimentTrendRange;
+}
+
+export const CsExperimentTypeFilter = {
+  Config: 'CONFIG',
+  Holdout: 'HOLDOUT'
+} as const;
+
+export type CsExperimentTypeFilter = typeof CsExperimentTypeFilter[keyof typeof CsExperimentTypeFilter];
+export interface CsExperimentVariantStageView {
+  delayMinutes: Scalars['Int']['output'];
+  enabled: Scalars['Boolean']['output'];
+  stageId: Scalars['String']['output'];
+  stageIndex: Scalars['Int']['output'];
+  templateHash: Scalars['String']['output'];
+}
+
+export interface CsExperimentVariantView {
+  action: ExperimentVariantAction;
+  label: Scalars['String']['output'];
+  stages: Array<CsExperimentVariantStageView>;
+  variantKey: Scalars['String']['output'];
+  weightBps: Scalars['Int']['output'];
+}
+
 /** Filter for open CS escalations awaiting manager or agent completion */
 export interface CsOpenEscalationFilterInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -5327,6 +5503,19 @@ export const ExperimentStatus = {
 } as const;
 
 export type ExperimentStatus = typeof ExperimentStatus[keyof typeof ExperimentStatus];
+export const ExperimentType = {
+  ConfigVariant: 'CONFIG_VARIANT',
+  Holdout: 'HOLDOUT'
+} as const;
+
+export type ExperimentType = typeof ExperimentType[keyof typeof ExperimentType];
+export const ExperimentVariantAction = {
+  ApplyConfig: 'APPLY_CONFIG',
+  Continue: 'CONTINUE',
+  NoReachout: 'NO_REACHOUT'
+} as const;
+
+export type ExperimentVariantAction = typeof ExperimentVariantAction[keyof typeof ExperimentVariantAction];
 export interface GeneratePairingResult {
   code: Scalars['String']['output'];
   qrUrl?: Maybe<Scalars['String']['output']>;
@@ -7179,6 +7368,9 @@ export interface Query {
   csPendingEscalationEvents: Array<CsEscalationEventDelivery>;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
+  ecommerceGetCSExperimentDetail: CsExperimentDetailView;
+  ecommerceGetCSExperimentPage: CsExperimentPageResult;
+  ecommerceGetCSExperimentTrend: CsExperimentTrendView;
   /** Get comprehensive customer service performance metrics from the warehouse. */
   ecommerceGetCSPerformance: CustomerServicePerformanceReport;
   /** Get near-real-time customer service performance metrics from the warehouse. */
@@ -7524,6 +7716,21 @@ export interface QueryEcommerceGetAftersaleEligibilityArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetCsExperimentDetailArgs {
+  experimentId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetCsExperimentPageArgs {
+  input: CsExperimentPageInput;
+}
+
+
+export interface QueryEcommerceGetCsExperimentTrendArgs {
+  input: CsExperimentTrendInput;
 }
 
 
