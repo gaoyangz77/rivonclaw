@@ -110,14 +110,17 @@ export default {
     errorRateLimit: "当前模型已达到使用上限，请稍后再试或切换到其他模型。",
     errorBilling: "API 密钥余额不足，请前往提供商后台充值或切换其他密钥。",
     errorTimeout: "请求超时。",
-    errorContextOverflow: "对话太长，超出了模型的上下文限制。请使用 /reset 开始新对话，或切换到支持更长上下文的模型。",
+    errorContextOverflow:
+      "对话太长，超出了模型的上下文限制。请使用 /reset 开始新对话，或切换到支持更长上下文的模型。",
     errorAuth: "认证失败，请前往「模型」页面检查 API 密钥或重新登录。",
     disconnectedError: "连接中断，正在重连，稍后可重新发送消息。",
     stalledError: "回复中断 — 未收到最终回复。任务可能已在服务端完成，请尝试上滑查看或重新发送。",
     watchdogError: "5 分钟内无响应活动，连接可能已静默断开。请尝试重新发送消息。",
-    contextWindowWarning: "当前对话已使用约 {{currentTokens}} tokens，超过新模型上下文窗口 ({{newContextWindow}}) 的 80%。建议开始新对话以避免错误。",
+    contextWindowWarning:
+      "当前对话已使用约 {{currentTokens}} tokens，超过新模型上下文窗口 ({{newContextWindow}}) 的 80%。建议开始新对话以避免错误。",
     contextOverflowTitle: "上下文窗口已超出",
-    contextOverflowBody: "当前对话已使用约 {{current}} tokens，超过新模型的上下文窗口 ({{max}} tokens)。请选择处理方式：",
+    contextOverflowBody:
+      "当前对话已使用约 {{current}} tokens，超过新模型的上下文窗口 ({{max}} tokens)。请选择处理方式：",
     contextOverflowContinue: "切换模型",
     contextOverflowContinueHint: "系统将在下次对话时自动压缩历史消息",
     contextOverflowClear: "切换并清空对话",
@@ -134,7 +137,8 @@ export default {
     toolStatus_failed: "失败",
     stopCommand: "停止",
     resetCommand: "重置",
-    resetTooltip: "清空对话上下文以节省 Token。聊天记录将被归档，但 AI 将不再能看到之前的对话内容。",
+    resetTooltip:
+      "清空对话上下文以节省 Token。聊天记录将被归档，但 AI 将不再能看到之前的对话内容。",
     stopCommandFeedback: "已停止生成。",
     resetCommandFeedback: "对话已重置。",
     expandMessage: "展开全文",
@@ -222,7 +226,8 @@ export default {
     anthropicTokenLabel: "Token",
     anthropicTokenPlaceholder: "安全存储在系统钥匙串中，不会写入配置文件。",
     anthropicUpdatePlaceholder: "输入新的 Token 或 API 密钥",
-    anthropicTokenWarning: "通过 \"claude setup-token\" 生成的 OAuth Token 有效期为一年。只有第一个 Token 有效——在其过期前重新生成的 Token 将无法使用。",
+    anthropicTokenWarning:
+      '通过 "claude setup-token" 生成的 OAuth Token 有效期为一年。只有第一个 Token 有效——在其过期前重新生成的 Token 将无法使用。',
     failedToLoad: "加载设置失败：",
     oauthFailed: "OAuth 登录失败：",
     errorDetails: "详情",
@@ -256,7 +261,8 @@ export default {
       callbackLabel: "回调网址",
       callbackPlaceholder: "将浏览器中的回调网址粘贴到此处",
       callbackHelp_gemini: "使用 Google 账号登录后，从浏览器地址栏复制完整回调网址并粘贴到此处。",
-      "callbackHelp_openai-codex": "使用 ChatGPT 账号登录后，从浏览器地址栏复制完整回调网址并粘贴到此处。",
+      "callbackHelp_openai-codex":
+        "使用 ChatGPT 账号登录后，从浏览器地址栏复制完整回调网址并粘贴到此处。",
       completeSignIn: "完成登录",
       confirm: "确认更换凭据",
       tokenReady: "已获取新的 OAuth 令牌。可重试更换已存储的凭据。",
@@ -344,19 +350,25 @@ export default {
     oauthLoading: "正在设置...",
     oauthBadge: "OAuth",
     oauthSectionTitle: "OAuth 提供商",
-    oauthInfo_gemini: "使用 Google 账号登录即可免费使用 Gemini，无需 API Key。如果尚未安装 Gemini CLI，将自动安装。OAuth 令牌安全存储在系统钥匙串中。",
-    "oauthInfo_openai-codex": "使用 ChatGPT 账号登录以使用 OpenAI Codex 模型。需要 ChatGPT Plus 或 Pro 订阅。OAuth 令牌安全存储在系统钥匙串中。",
+    oauthInfo_gemini:
+      "使用 Google 账号登录即可免费使用 Gemini，无需 API Key。如果尚未安装 Gemini CLI，将自动安装。OAuth 令牌安全存储在系统钥匙串中。",
+    "oauthInfo_openai-codex":
+      "使用 ChatGPT 账号登录以使用 OpenAI Codex 模型。需要 ChatGPT Plus 或 Pro 订阅。OAuth 令牌安全存储在系统钥匙串中。",
     oauthTokenLabel: "OAuth 令牌",
     oauthTokenHelp_gemini: "通过 Google OAuth 获取的令牌，安全存储在系统钥匙串中。",
     "oauthTokenHelp_openai-codex": "通过 OpenAI OAuth 获取的令牌，安全存储在系统钥匙串中。",
-    oauthManualInfo_gemini: "请在浏览器中完成登录。如使用远程机器，请复制下方授权链接，在浏览器中完成登录后将跳转链接粘贴回来。",
-    "oauthManualInfo_openai-codex": "请在浏览器中完成登录。如使用远程机器，请复制下方授权链接，在浏览器中完成登录后将跳转链接粘贴回来。",
+    oauthManualInfo_gemini:
+      "请在浏览器中完成登录。如使用远程机器，请复制下方授权链接，在浏览器中完成登录后将跳转链接粘贴回来。",
+    "oauthManualInfo_openai-codex":
+      "请在浏览器中完成登录。如使用远程机器，请复制下方授权链接，在浏览器中完成登录后将跳转链接粘贴回来。",
     oauthWaitingForBrowser: "等待浏览器登录中...",
     oauthManualUrlLabel: "授权链接",
     oauthManualCallbackLabel: "回调网址",
     oauthManualCallbackPlaceholder: "将浏览器中的回调网址粘贴到此处",
-    oauthManualCallbackHelp_gemini: "使用 Google 账号登录后，浏览器会跳转到本地的 http://127.0.0.1 网址——请从浏览器地址栏复制完整网址并粘贴到此处。",
-    "oauthManualCallbackHelp_openai-codex": "使用 ChatGPT 账号登录后，浏览器会跳转到一个 localhost 网址——请从浏览器地址栏复制完整网址并粘贴到此处。",
+    oauthManualCallbackHelp_gemini:
+      "使用 Google 账号登录后，浏览器会跳转到本地的 http://127.0.0.1 网址——请从浏览器地址栏复制完整网址并粘贴到此处。",
+    "oauthManualCallbackHelp_openai-codex":
+      "使用 ChatGPT 账号登录后，浏览器会跳转到一个 localhost 网址——请从浏览器地址栏复制完整网址并粘贴到此处。",
     oauthManualSubmit: "完成登录",
     desc_openai: "GPT 和 ChatGPT 的创造者，通用 AI 行业领导者。",
     desc_anthropic: "Claude 的开发者，以安全可靠的高能力模型著称。",
@@ -388,7 +400,8 @@ export default {
     "desc_amazon-bedrock": "AWS 托管服务，通过统一 API 访问多家供应商。",
     hint_openai: "在 platform.openai.com 获取 API 密钥。",
     hint_anthropic: "在 console.anthropic.com 获取 API 密钥，或运行 {{cmd}} 获取 OAuth Token。",
-    hint_claude: "在 claude.ai 订阅后，前往 console.anthropic.com 获取 API 密钥，或运行 {{cmd}} 获取 OAuth Token。",
+    hint_claude:
+      "在 claude.ai 订阅后，前往 console.anthropic.com 获取 API 密钥，或运行 {{cmd}} 获取 OAuth Token。",
     hint_google: "在 aistudio.google.com 获取 API 密钥。",
     hint_deepseek: "在 platform.deepseek.com 获取 API 密钥。",
     hint_zhipu: "在 open.bigmodel.cn 获取 API 密钥。",
@@ -426,14 +439,16 @@ export default {
     modelCapabilitiesHelp: "选择本地模型支持的输入类型。",
     localApiKeyHelp: "可选，Ollama 默认无需填写",
     localInfoTitle: "开始使用 Ollama",
-    localInfoBody: "目前仅支持 Ollama。\n\n1. 从 ollama.com 安装 Ollama\n2. 运行: ollama pull llama3.2\n3. 启动服务: ollama serve\n4. 在左侧输入服务地址",
+    localInfoBody:
+      "目前仅支持 Ollama。\n\n1. 从 ollama.com 安装 Ollama\n2. 运行: ollama pull llama3.2\n3. 启动服务: ollama serve\n4. 在左侧输入服务地址",
     connectionSuccess: "已连接",
     connectionFailed: "无法连接",
     badgeLocal: "本地",
     updateUrl: "更新地址",
     customDefault: "自定义提供商",
     customInfoTitle: "自定义提供商",
-    customInfoBody: "连接任何兼容 OpenAI 或 Anthropic 的 API 端点。手动输入基础 URL、API 密钥和模型 ID。",
+    customInfoBody:
+      "连接任何兼容 OpenAI 或 Anthropic 的 API 端点。手动输入基础 URL、API 密钥和模型 ID。",
     customNameLabel: "提供商名称",
     customNamePlaceholder: "例如：我的 vLLM 服务器",
     customProtocolLabel: "协议",
@@ -454,7 +469,8 @@ export default {
     statusSubtitle: "OpenClaw 网关状态（每 30 秒自动刷新）",
     emptyState: "暂未配置通道。",
     emptyStateTitle: "未配置通道",
-    emptyStateDescription: "通道允许 OpenClaw 从 Telegram、Discord、Slack 等平台接收消息。在 OpenClaw 设置中配置通道，或为现有通道添加账号。",
+    emptyStateDescription:
+      "通道允许 OpenClaw 从 Telegram、Discord、Slack 等平台接收消息。在 OpenClaw 设置中配置通道，或为现有通道添加账号。",
     refreshButton: "刷新",
     refreshing: "刷新中...",
     loading: "正在加载通道...",
@@ -512,8 +528,10 @@ export default {
     colMode: "模式 / 状态",
     colActions: "操作",
     noAccountsConfigured: "此通道暂无账号",
-    wechatContextTokenNotReadyTooltip: "微信已连接，但还没有可用于主动发送消息的上下文凭证。请先用这个微信号主动给 bot 发一条消息完成确认。",
-    wechatSendUnavailableTooltip: "最近一次微信发送失败。建议重新扫码添加，或先用这个微信号给 bot 主动发一条消息重新激活。",
+    wechatContextTokenNotReadyTooltip:
+      "微信已连接，但还没有可用于主动发送消息的上下文凭证。请先用这个微信号主动给 bot 发一条消息完成确认。",
+    wechatSendUnavailableTooltip:
+      "最近一次微信发送失败。建议重新扫码添加，或先用这个微信号给 bot 主动发一条消息重新激活。",
     // Channel labels
     channelTelegram: "Telegram",
     channelWhatsApp: "WhatsApp",
@@ -564,22 +582,32 @@ export default {
     fieldGroupAllowFromPlaceholder: "输入 ID 后按回车",
     fieldAllowedGroups: "允许的群组",
     fieldAllowedGroupsPlaceholder: "输入群组 ID 后按回车",
-    telegramGroupAllowFromHint: "输入 Telegram 用户 ID。获取方式：在群组中添加 @userinfobot，或让用户私聊 @userinfobot。",
-    feishuGroupAllowFromHint: "输入飞书用户 ID（open_id 或 user_id）。可在飞书管理后台 → 成员管理中查找。",
-    discordGroupAllowFromHint: "输入 Discord 用户 ID。右键用户 → 复制用户 ID（需在设置 → 高级中开启开发者模式）。",
+    telegramGroupAllowFromHint:
+      "输入 Telegram 用户 ID。获取方式：在群组中添加 @userinfobot，或让用户私聊 @userinfobot。",
+    feishuGroupAllowFromHint:
+      "输入飞书用户 ID（open_id 或 user_id）。可在飞书管理后台 → 成员管理中查找。",
+    discordGroupAllowFromHint:
+      "输入 Discord 用户 ID。右键用户 → 复制用户 ID（需在设置 → 高级中开启开发者模式）。",
     slackGroupAllowFromHint: "输入 Slack 成员 ID。点击用户头像 → 更多 → 复制成员 ID。",
     signalGroupAllowFromHint: "输入 Signal 用户手机号，使用 E.164 格式（如 +1234567890）。",
     googlechatGroupAllowFromHint: "输入 Google Chat 用户 ID。可在 Google 管理控制台 → 用户中查找。",
     imessageGroupAllowFromHint: "输入允许的发送者手机号或 Apple ID。",
-    msteamsGroupAllowFromHint: "输入 Microsoft Teams 用户 ID（Azure AD 对象 ID）。可在 Azure AD 管理中心查找。",
-    telegramAllowedGroupsHint: "输入 Telegram 群聊 ID（通常是 -1001234567890 这样的负数）。获取方式：把 @RawDataBot 加入群组，它会回复 chat ID。",
-    feishuAllowedGroupsHint: "输入飞书群聊 ID（chat_id）。可在飞书管理后台 → 群组，或通过飞书开放平台 API 查询。",
-    discordAllowedGroupsHint: "输入 Discord 服务器（guild）ID。右键服务器图标 → 复制服务器 ID（需在设置 → 高级中开启开发者模式）。",
-    slackAllowedGroupsHint: "输入 Slack 频道 ID（如 C0ABC12345）。右键频道 → 查看频道详情 → 滚动到底部查看频道 ID。",
-    googlechatAllowedGroupsHint: "输入 Google Chat 空间 ID。可通过 Google Chat API 或空间 URL 查找。",
+    msteamsGroupAllowFromHint:
+      "输入 Microsoft Teams 用户 ID（Azure AD 对象 ID）。可在 Azure AD 管理中心查找。",
+    telegramAllowedGroupsHint:
+      "输入 Telegram 群聊 ID（通常是 -1001234567890 这样的负数）。获取方式：把 @RawDataBot 加入群组，它会回复 chat ID。",
+    feishuAllowedGroupsHint:
+      "输入飞书群聊 ID（chat_id）。可在飞书管理后台 → 群组，或通过飞书开放平台 API 查询。",
+    discordAllowedGroupsHint:
+      "输入 Discord 服务器（guild）ID。右键服务器图标 → 复制服务器 ID（需在设置 → 高级中开启开发者模式）。",
+    slackAllowedGroupsHint:
+      "输入 Slack 频道 ID（如 C0ABC12345）。右键频道 → 查看频道详情 → 滚动到底部查看频道 ID。",
+    googlechatAllowedGroupsHint:
+      "输入 Google Chat 空间 ID。可通过 Google Chat API 或空间 URL 查找。",
     signalAllowedGroupsHint: "输入 Signal 群组 ID，即 Signal 群组信息里显示的内部群组标识。",
     imessageAllowedGroupsHint: "输入 iMessage 群聊 ID，即 Messages 数据库中的聊天标识。",
-    msteamsAllowedGroupsHint: "输入 Microsoft Teams 频道 ID。可在 Teams → 频道设置 → 获取频道链接，或通过 Microsoft Graph API 查询。",
+    msteamsAllowedGroupsHint:
+      "输入 Microsoft Teams 频道 ID。可在 Teams → 频道设置 → 获取频道链接，或通过 Microsoft Graph API 查询。",
     groupPolicyOpen: "开放 - 在所有加入的群组中响应",
     groupPolicyAllowlist: "白名单 - 仅在已批准的群组中响应",
     groupPolicyDisabled: "禁用 - 忽略所有群组消息",
@@ -782,7 +810,8 @@ export default {
     title: "连接微信",
     generating: "正在生成二维码...",
     scanPrompt: "请使用微信扫描二维码",
-    weixinDuplicateScanWarning: "如果这个微信号已成功扫码连接，二次扫码不会重新绑定；请先在微信里解除绑定后再扫码。",
+    weixinDuplicateScanWarning:
+      "如果这个微信号已成功扫码连接，二次扫码不会重新绑定；请先在微信里解除绑定后再扫码。",
     waiting: "等待确认...",
     success: "绑定成功！",
     alreadyConnected: "账号已存在",
@@ -792,7 +821,8 @@ export default {
     gatewayUnavailable: "网关未连接，请先启动网关。",
     autoRefresh: "{{seconds}}秒后自动刷新",
     refreshing: "正在刷新二维码...",
-    weixinActivationHint: "微信已绑定成功。请在微信里主动给 bot 发送一条消息完成确认，否则无法主动发送消息。",
+    weixinActivationHint:
+      "微信已绑定成功。请在微信里主动给 bot 发送一条消息完成确认，否则无法主动发送消息。",
     weixinAlreadyConnectedHint: "这个微信账号已经连接过，本次已刷新登录状态。",
   },
   mobile: {
@@ -811,8 +841,9 @@ export default {
     expiresIn: "{{seconds}}秒后过期",
     existingPairings: "已有 {{count}} 台设备配对。",
     pairTitle: "配对设备",
-    installHint: "首次添加请扫描右侧二维码打开爪聊，并根据提示完成添加到桌面的操作；如已安装，请点击「连接」按钮，然后用爪聊的扫码功能扫描弹窗中的二维码进行配对。",
-    pairHint: "打开爪聊 App，使用内置扫码功能扫描此二维码完成配对。"
+    installHint:
+      "首次添加请扫描右侧二维码打开爪聊，并根据提示完成添加到桌面的操作；如已安装，请点击「连接」按钮，然后用爪聊的扫码功能扫描弹窗中的二维码进行配对。",
+    pairHint: "打开爪聊 App，使用内置扫码功能扫描此二维码完成配对。",
   },
   stt: {
     title: "语音转文字",
@@ -845,7 +876,8 @@ export default {
     keyNotChanged: "留空保持不变",
     update: "更新",
     whatIsStt: "什么是语音转文字？",
-    sttExplanation: "语音转文字（STT）会在语音消息发送给 AI 代理之前自动将其转录为文字。这使你的代理能够理解并回复来自 Telegram、WhatsApp 等通道的语音消息。",
+    sttExplanation:
+      "语音转文字（STT）会在语音消息发送给 AI 代理之前自动将其转录为文字。这使你的代理能够理解并回复来自 Telegram、WhatsApp 等通道的语音消息。",
     feature1: "自动转录所有已连接通道的语音消息",
     feature2: "区域感知的服务商选择，以获得最佳性能和合规性",
     feature3: "安全的凭证存储在操作系统密钥链中（macOS Keychain / Windows DPAPI）",
@@ -920,7 +952,8 @@ export default {
     noRecordsHelp: "通过网关进行 API 调用后，Token 用量将显示在这里。",
     loadingData: "正在加载使用数据...",
     failedToLoad: "加载使用数据失败：",
-    costDisclaimer: "费用根据厂商公示的标准价格估算，实际扣费可能因账户类型、优惠活动等因素而不同。",
+    costDisclaimer:
+      "费用根据厂商公示的标准价格估算，实际扣费可能因账户类型、优惠活动等因素而不同。",
   },
   keyUsage: {
     title: "用量",
@@ -969,7 +1002,8 @@ export default {
     agent: {
       title: "智能体设置",
       dmScope: "私信会话隔离",
-      dmScopeHint: "仅在你的智能体通过私信服务多个用户时有意义。控制这些用户是共享同一个对话，还是各自独立对话。",
+      dmScopeHint:
+        "仅在你的智能体通过私信服务多个用户时有意义。控制这些用户是共享同一个对话，还是各自独立对话。",
       dmScopeMain: "共享（默认）- 所有用户共享同一个会话",
       dmScopePerPeer: "按用户隔离 - 每个用户独立会话",
       dmScopePerChannelPeer: "按渠道+用户隔离 - 不同渠道的同一用户也分开",
@@ -994,9 +1028,11 @@ export default {
       modeStandalone: "独立模式",
       modeStandaloneDesc: "启动隔离的 Chrome 实例，不影响你的浏览器",
       modeCdp: "CDP 模式（连接你的 Chrome）",
-      modeCdpDesc: "使用你自己的 Chrome，保留账号、Cookie 和扩展。在 macOS/Linux 上体验最佳。Windows 上首次使用可能需要重新登录网站（Cookie 路径加密限制）。",
+      modeCdpDesc:
+        "使用你自己的 Chrome，保留账号、Cookie 和扩展。在 macOS/Linux 上体验最佳。Windows 上首次使用可能需要重新登录网站（Cookie 路径加密限制）。",
       cdpConfirmTitle: "切换到 CDP 模式",
-      cdpConfirm: "当前 Chrome 将被关闭并以远程调试模式重启。此后每次启动应用时，Chrome 也会随之自动打开。Chrome 中未保存的内容可能会丢失。\n\nWindows 用户注意：由于 Chrome 的路径加密机制，首次切换后可能需要重新登录各网站。你的扩展、书签和历史记录不受影响，后续启动会保持登录状态。",
+      cdpConfirm:
+        "当前 Chrome 将被关闭并以远程调试模式重启。此后每次启动应用时，Chrome 也会随之自动打开。Chrome 中未保存的内容可能会丢失。\n\nWindows 用户注意：由于 Chrome 的路径加密机制，首次切换后可能需要重新登录各网站。你的扩展、书签和历史记录不受影响，后续启动会保持登录状态。",
       cdpConfirmOk: "切换到 CDP",
       failedToSave: "保存浏览器设置失败：",
     },
@@ -1050,7 +1086,8 @@ export default {
     },
     deps: {
       title: "系统依赖",
-      description: "检查并安装 Agent 引擎所需的系统依赖（Git、Python、Node.js、uv），国内用户自动切换镜像加速。",
+      description:
+        "检查并安装 Agent 引擎所需的系统依赖（Git、Python、Node.js、uv），国内用户自动切换镜像加速。",
       installButton: "安装依赖",
       statusRunning: "正在打开安装窗口...",
     },
@@ -1101,7 +1138,8 @@ export default {
     useAsGuest: "以游客身份使用",
     kicker: "电商工作台",
     accountTitle: "从卖家账号开始",
-    accountDesc: "创建 RivonClaw 账号后即可连接店铺、领取符合条件的试用，并同步你的电商工作台。已有账号可以直接登录继续使用。",
+    accountDesc:
+      "创建 RivonClaw 账号后即可连接店铺、领取符合条件的试用，并同步你的电商工作台。已有账号可以直接登录继续使用。",
     createAccountTitle: "新用户注册",
     createAccountDesc: "创建账号，如有邀请码可填写，然后连接第一家符合条件的店铺。",
     loginTitle: "老用户登录",
@@ -1299,24 +1337,16 @@ export default {
     historySummary: "摘要 / 错误",
     loadMore: "加载更多",
     // Tooltips
-    tooltipWakeMode:
-      '"立即"会马上启动 Gateway；"下次心跳"会等待下一个心跳周期再执行。',
-    tooltipThinking:
-      "控制模型回答前的推理深度。越高质量越好，但速度更慢、费用更高。",
-    tooltipModel:
-      "为此任务指定特定模型，覆盖默认模型（如 gpt-4o、claude-sonnet-4-20250514）。",
-    tooltipPayloadKind:
-      "Agent 消息 = 向独立 Agent 会话发送提示词；系统事件 = 在主会话中触发事件。",
-    tooltipMessage:
-      "任务执行时发送给 Agent 的提示消息。",
-    tooltipText:
-      "任务执行时在主会话中触发的事件文本。",
+    tooltipWakeMode: '"立即"会马上启动 Gateway；"下次心跳"会等待下一个心跳周期再执行。',
+    tooltipThinking: "控制模型回答前的推理深度。越高质量越好，但速度更慢、费用更高。",
+    tooltipModel: "为此任务指定特定模型，覆盖默认模型（如 gpt-4o、claude-sonnet-4-20250514）。",
+    tooltipPayloadKind: "Agent 消息 = 向独立 Agent 会话发送提示词；系统事件 = 在主会话中触发事件。",
+    tooltipMessage: "任务执行时发送给 Agent 的提示消息。",
+    tooltipText: "任务执行时在主会话中触发的事件文本。",
     tooltipDeliveryMode:
       "不投递 = 静默执行；频道通知 = 将结果发送到消息频道；Webhook = POST 结果到指定 URL。",
-    tooltipDeleteAfterRun:
-      "任务执行一次后自动删除。对一次性调度类型会自动启用。",
-    tooltipTimeout:
-      "最长执行时间（秒）。超时后任务将被取消。",
+    tooltipDeleteAfterRun: "任务执行一次后自动删除。对一次性调度类型会自动启用。",
+    tooltipTimeout: "最长执行时间（秒）。超时后任务将被取消。",
     // Cron presets
     presetEveryMinute: "每分钟",
     presetEvery5Min: "每 5 分钟",
@@ -1468,7 +1498,8 @@ export default {
     description: "查看账户权益、店铺服务订阅状态和支付记录。",
     accountLlm: "账户 LLM",
     accountAi: "RivonClaw AI",
-    accountAiDescription: "RivonClaw 提供的云端 LLM 服务。你可以订阅并使用我们托管的模型，也可以继续使用自己的 OpenAI、Gemini 或 Anthropic provider。",
+    accountAiDescription:
+      "RivonClaw 提供的云端 LLM 服务。你可以订阅并使用我们托管的模型，也可以继续使用自己的 OpenAI、Gemini 或 Anthropic provider。",
     shopServices: "店铺服务订阅",
     planDefinitions: "方案定义",
     planDefinitionsUnavailable: "后端尚未返回方案定义。",
@@ -1492,7 +1523,8 @@ export default {
     graceUntil: "宽限期至",
     subscriptionAmount: "订阅金额",
     monthlyPlanPrice: "套餐月费",
-    upgradeProrationHint: "升级会抵扣当前套餐未使用部分的价值，因此本次实际扣款可能低于这里显示的整月价格。",
+    upgradeProrationHint:
+      "升级会抵扣当前套餐未使用部分的价值，因此本次实际扣款可能低于这里显示的整月价格。",
     cnyMonthlyPrice: "人民币月费",
     cancelAtPeriodEnd: "将在周期结束时取消",
     serviceAccess: "服务订阅状态",
@@ -1505,9 +1537,11 @@ export default {
     usageUsedPercent: "已用 {{percent}}",
     usageRemainingPercent: "剩余 {{percent}}",
     cloudQuotaExhaustedTitle: "RivonClaw AI token 已耗尽",
-    cloudQuotaExhaustedBody: "当前五小时或每周云端 LLM 额度已经用完。为避免影响业务，请升级套餐或添加新的 LLM 密钥。",
+    cloudQuotaExhaustedBody:
+      "当前五小时或每周云端 LLM 额度已经用完。为避免影响业务，请升级套餐或添加新的 LLM 密钥。",
     cloudQuotaLowTitle: "RivonClaw AI token 即将耗尽",
-    cloudQuotaLowBody: "当前云端 LLM 额度剩余不足 5%。为避免影响业务，请升级套餐或添加新的 LLM 密钥。",
+    cloudQuotaLowBody:
+      "当前云端 LLM 额度剩余不足 5%。为避免影响业务，请升级套餐或添加新的 LLM 密钥。",
     openBilling: "前往账单",
     addLlmKey: "添加 LLM 密钥",
     changeAccountPlan: "订阅 / 升级",
@@ -1535,10 +1569,12 @@ export default {
     extendPrepaid: "续费",
     extendPrepaidTitle: "续费",
     extendPrepaidMessage: "使用微信或支付宝付款，会在 {{date}} 之后延长服务访问时间。",
-    renewSubscriptionMessage: "选择付款方式续费。信用卡会恢复或开启自动续订，微信 / 支付宝会以预付费方式延长服务。",
+    renewSubscriptionMessage:
+      "选择付款方式续费。信用卡会恢复或开启自动续订，微信 / 支付宝会以预付费方式延长服务。",
     resumeSubscription: "恢复自动续费",
     resumeSubscriptionTitle: "恢复自动续费",
-    resumeSubscriptionMessage: "恢复后会取消原定的到期退订，服务保持生效，并在 {{date}} 后继续续费。",
+    resumeSubscriptionMessage:
+      "恢复后会取消原定的到期退订，服务保持生效，并在 {{date}} 后继续续费。",
     subscribeCustomerService: "开通 AI 智能客服",
     subscribeService: {
       customerService: "开通 AI 智能客服",
@@ -1856,16 +1892,24 @@ export default {
   },
   tutorial: {
     bubble: { tooltip: "页面教程" },
-    nav: { prev: "上一步", next: "下一步", done: "完成", close: "关闭", stepOf: "{{current}} / {{total}}" },
+    nav: {
+      prev: "上一步",
+      next: "下一步",
+      done: "完成",
+      close: "关闭",
+      stepOf: "{{current}} / {{total}}",
+    },
     adsManagement: {
       welcomeTitle: "TikTok Ads",
       welcomeBody: "这个页面用于连接 TikTok Business 授权，并查看店铺的广告账户覆盖情况。",
       actionsTitle: "连接与刷新",
-      actionsBody: "使用连接 TikTok Business 来授权广告账户访问。刷新会更新广告账户和店铺覆盖状态。",
+      actionsBody:
+        "使用连接 TikTok Business 来授权广告账户访问。刷新会更新广告账户和店铺覆盖状态。",
       summaryTitle: "覆盖概览",
       summaryBody: "这些数字展示已授权广告账户，以及已有广告覆盖的店铺数量。",
       advertisersTitle: "广告账户",
-      advertisersBody: "每一行都是通过 TikTok Business 授权获得的广告账户，包括授权状态、同步状态和操作入口。",
+      advertisersBody:
+        "每一行都是通过 TikTok Business 授权获得的广告账户，包括授权状态、同步状态和操作入口。",
       shopCoverageTitle: "店铺广告覆盖",
       shopCoverageBody: "这里按店铺组合展示广告覆盖状态，便于区分已覆盖、部分覆盖和未覆盖。",
     },
@@ -1873,361 +1917,503 @@ export default {
       welcomeTitle: "欢迎来到模型页面",
       welcomeBody: "在这里配置驱动 Agent 的 LLM 提供商。我们来逐步了解这个页面的每个部分。",
       tabBarTitle: "提供商类型",
-      tabBarBody: "四个标签页可选：订阅（托管服务，按月计费）、API 密钥（自带密钥，如 OpenAI、Anthropic 等）、本地（通过 Ollama、LM Studio 等自托管模型）、自定义（任何 OpenAI/Anthropic 兼容端点）。",
+      tabBarBody:
+        "四个标签页可选：订阅（托管服务，按月计费）、API 密钥（自带密钥，如 OpenAI、Anthropic 等）、本地（通过 Ollama、LM Studio 等自托管模型）、自定义（任何 OpenAI/Anthropic 兼容端点）。",
       providerSelectTitle: "选择提供商",
-      providerSelectBody: "点击此下拉框选择你的 LLM 提供商。列表会根据你的语言按热门程度排序，每个选项都显示提供商名称和简要描述。",
+      providerSelectBody:
+        "点击此下拉框选择你的 LLM 提供商。列表会根据你的语言按热门程度排序，每个选项都显示提供商名称和简要描述。",
       labelFieldTitle: "密钥标签",
-      labelFieldBody: "为此密钥取一个易识别的名称（如「工作账号」、「个人账号」）。当你配置了多个提供商时，标签可以帮助你区分它们。",
+      labelFieldBody:
+        "为此密钥取一个易识别的名称（如「工作账号」、「个人账号」）。当你配置了多个提供商时，标签可以帮助你区分它们。",
       modelFieldTitle: "模型选择",
-      modelFieldBody: "选择此提供商要使用的模型。不同模型有不同的能力和费用。你可以稍后在已配置密钥列表中随时切换模型。",
+      modelFieldBody:
+        "选择此提供商要使用的模型。不同模型有不同的能力和费用。你可以稍后在已配置密钥列表中随时切换模型。",
       apiKeyFieldTitle: "API 密钥",
-      apiKeyFieldBody: "在此粘贴你的 API 密钥。密钥会被加密安全地存储在本地设备上。系统会向提供商发送测试请求来验证密钥的有效性。",
+      apiKeyFieldBody:
+        "在此粘贴你的 API 密钥。密钥会被加密安全地存储在本地设备上。系统会向提供商发送测试请求来验证密钥的有效性。",
       providerLinksTitle: "获取密钥",
       providerLinksBody: "还没有 API 密钥？点击此链接前往提供商官网，你可以在那里注册并生成密钥。",
       advancedTitle: "高级设置",
-      advancedBody: "点击展开高级选项。在这里可以配置代理 URL，如果你的网络环境需要通过代理才能访问提供商的 API（如企业防火墙或区域限制）。",
+      advancedBody:
+        "点击展开高级选项。在这里可以配置代理 URL，如果你的网络环境需要通过代理才能访问提供商的 API（如企业防火墙或区域限制）。",
       saveButtonTitle: "保存",
-      saveButtonBody: "点击保存来验证并存储你的提供商配置。系统会在保存前测试你的 API 密钥。如果验证失败，会显示详细的错误信息。",
+      saveButtonBody:
+        "点击保存来验证并存储你的提供商配置。系统会在保存前测试你的 API 密钥。如果验证失败，会显示详细的错误信息。",
       pricingPanelTitle: "定价与信息",
-      pricingPanelBody: "侧面板显示当前所选提供商和模型的定价详情，帮助你比较成本。对于订阅类提供商，会显示套餐选项。",
+      pricingPanelBody:
+        "侧面板显示当前所选提供商和模型的定价详情，帮助你比较成本。对于订阅类提供商，会显示套餐选项。",
       configuredTitle: "已配置的密钥",
-      configuredBody: "你保存的所有提供商密钥都显示在下方。标记为「Active」的是 Agent 当前正在使用的密钥。你可以配置多个密钥并随时切换。",
+      configuredBody:
+        "你保存的所有提供商密钥都显示在下方。标记为「Active」的是 Agent 当前正在使用的密钥。你可以配置多个密钥并随时切换。",
       keyCardTitle: "密钥卡片",
-      keyCardBody: "每张卡片显示：提供商名称、认证类型（API 密钥/订阅/本地/自定义）以及是否为活跃密钥。「Active」标记表示这是 Agent 当前使用的密钥。",
+      keyCardBody:
+        "每张卡片显示：提供商名称、认证类型（API 密钥/订阅/本地/自定义）以及是否为活跃密钥。「Active」标记表示这是 Agent 当前使用的密钥。",
       keyModelTitle: "标签和模型",
-      keyModelBody: "这里显示密钥的标签（点击铅笔图标可重命名）。下方是模型选择器——你可以随时切换模型，无需重新输入密钥。",
+      keyModelBody:
+        "这里显示密钥的标签（点击铅笔图标可重命名）。下方是模型选择器——你可以随时切换模型，无需重新输入密钥。",
       keyActionsTitle: "操作按钮",
-      keyActionsBody: "三个操作可用：「激活」将此密钥设为 Agent 的默认密钥。「更新」可以修改 API 密钥或代理设置。「移除」会永久删除此密钥。",
+      keyActionsBody:
+        "三个操作可用：「激活」将此密钥设为 Agent 的默认密钥。「更新」可以修改 API 密钥或代理设置。「移除」会永久删除此密钥。",
       updateBtnTitle: "更新密钥",
-      updateBtnBody: "点击「更新」会在密钥卡片下方展开一个表单，你可以在那里输入新的 API 密钥或修改代理设置。让我们看看它的样子。",
+      updateBtnBody:
+        "点击「更新」会在密钥卡片下方展开一个表单，你可以在那里输入新的 API 密钥或修改代理设置。让我们看看它的样子。",
       updateFormTitle: "更新表单",
-      updateFormBody: "在这里粘贴新的 API 密钥来替换当前密钥。下方还可以为此密钥单独配置代理 URL。修改完成后点击保存。",
+      updateFormBody:
+        "在这里粘贴新的 API 密钥来替换当前密钥。下方还可以为此密钥单独配置代理 URL。修改完成后点击保存。",
       removeBtnTitle: "移除密钥",
-      removeBtnBody: "这会从你的设备上永久删除此密钥。如果这是你唯一的活跃密钥，Agent 将无法调用 LLM，直到你添加新密钥。请谨慎操作！",
+      removeBtnBody:
+        "这会从你的设备上永久删除此密钥。如果这是你唯一的活跃密钥，Agent 将无法调用 LLM，直到你添加新密钥。请谨慎操作！",
     },
     settings: {
       toggle: "教程模式",
       hint: "开启后，每个页面会出现一个教程气泡，引导你了解各项功能。",
       welcomeTitle: "欢迎来到设置页面",
-      welcomeBody: "在这里你可以自定义 EasyClaw 的各项行为。每个部分控制应用的不同方面，让我们逐一了解每个选项。",
+      welcomeBody:
+        "在这里你可以自定义 EasyClaw 的各项行为。每个部分控制应用的不同方面，让我们逐一了解每个选项。",
       agentSectionTitle: "Agent 设置",
       agentSectionBody: "这些设置控制 AI Agent 如何处理对话以及如何与浏览器交互。更改会立即生效。",
       dmScopeTitle: "私聊会话隔离范围",
-      dmScopeBody: "控制 Agent 处理私聊消息时，对话上下文的隔离方式。共有四个选项：\n\n• 主上下文 — 所有私聊共享一个 Agent 上下文。Agent 能记住所有聊天中的信息，功能强大但意味着某个联系人的信息可能会泄露到与其他联系人的对话中。\n\n• 按联系人 — 每个联系人拥有独立的 Agent 上下文。更注重隐私，每个人有自己的对话历史，但 Agent 无法跨联系人交叉引用信息。\n\n• 按渠道+联系人 — 按渠道和联系人组合隔离。同一个人通过不同渠道（如企微和网页）发送消息时，会获得独立的 Agent 上下文。\n\n• 按账号+渠道+联系人 — 最细粒度的选项。按账号、渠道和联系人三重隔离。如果你运营多个账号，每个账号的对话完全独立。\n\n根据你的隐私需求选择：「主上下文」获得最强的 Agent 智能，「按联系人」或更高级别获得严格的对话隔离。",
+      dmScopeBody:
+        "控制 Agent 处理私聊消息时，对话上下文的隔离方式。共有四个选项：\n\n• 主上下文 — 所有私聊共享一个 Agent 上下文。Agent 能记住所有聊天中的信息，功能强大但意味着某个联系人的信息可能会泄露到与其他联系人的对话中。\n\n• 按联系人 — 每个联系人拥有独立的 Agent 上下文。更注重隐私，每个人有自己的对话历史，但 Agent 无法跨联系人交叉引用信息。\n\n• 按渠道+联系人 — 按渠道和联系人组合隔离。同一个人通过不同渠道（如企微和网页）发送消息时，会获得独立的 Agent 上下文。\n\n• 按账号+渠道+联系人 — 最细粒度的选项。按账号、渠道和联系人三重隔离。如果你运营多个账号，每个账号的对话完全独立。\n\n根据你的隐私需求选择：「主上下文」获得最强的 Agent 智能，「按联系人」或更高级别获得严格的对话隔离。",
       browserModeTitle: "浏览器模式",
-      browserModeBody: "控制 Agent 如何启动和控制浏览器来执行自动化任务。\n\n• 独立模式 — 应用启动全新的浏览器实例。设置更简单、更加隔离，但浏览器启动时没有任何 Cookie 或登录状态。Agent 需要从头登录网站。\n\n• CDP（Chrome 开发者协议） — 连接到你已经启动的 Chrome 浏览器（需开启远程调试端口）。Agent 可以使用你现有浏览器中的所有 Cookie、已保存密码和登录状态。功能更强大，但需要你用特殊参数（--remote-debugging-port）启动 Chrome。\n\n简单任务使用独立模式。需要 Agent 访问你已登录的网站账号时使用 CDP。",
+      browserModeBody:
+        "控制 Agent 如何启动和控制浏览器来执行自动化任务。\n\n• 独立模式 — 应用启动全新的浏览器实例。设置更简单、更加隔离，但浏览器启动时没有任何 Cookie 或登录状态。Agent 需要从头登录网站。\n\n• CDP（Chrome 开发者协议） — 连接到你已经启动的 Chrome 浏览器（需开启远程调试端口）。Agent 可以使用你现有浏览器中的所有 Cookie、已保存密码和登录状态。功能更强大，但需要你用特殊参数（--remote-debugging-port）启动 Chrome。\n\n简单任务使用独立模式。需要 Agent 访问你已登录的网站账号时使用 CDP。",
       chatSectionTitle: "聊天设置",
-      chatSectionBody: "这些设置控制你在聊天界面中看到的内容。它们只影响视觉显示，不会改变 Agent 的实际行为。",
+      chatSectionBody:
+        "这些设置控制你在聊天界面中看到的内容。它们只影响视觉显示，不会改变 Agent 的实际行为。",
       showAgentEventsTitle: "显示 Agent 事件",
-      showAgentEventsBody: "控制是否在聊天界面中显示 Agent 的内部事件，包括工具调用（浏览器操作、API 请求）、思考步骤和系统消息。\n\n开启后，你可以看到 Agent 在幕后做了什么——调用了哪些工具、传递了什么参数、获得了什么结果。这对调试或理解意外行为非常有价值。\n\n关闭后，聊天中只显示 Agent 的最终文字回复，界面更简洁、更少技术细节。普通用户建议关闭，开发者或排查问题时建议开启。",
+      showAgentEventsBody:
+        "控制是否在聊天界面中显示 Agent 的内部事件，包括工具调用（浏览器操作、API 请求）、思考步骤和系统消息。\n\n开启后，你可以看到 Agent 在幕后做了什么——调用了哪些工具、传递了什么参数、获得了什么结果。这对调试或理解意外行为非常有价值。\n\n关闭后，聊天中只显示 Agent 的最终文字回复，界面更简洁、更少技术细节。普通用户建议关闭，开发者或排查问题时建议开启。",
       preserveToolEventsTitle: "保留工具事件",
-      preserveToolEventsBody: "控制工具执行事件在 Agent 使用完毕后是否仍然可见。\n\n开启后，每次工具调用都会保留在聊天历史中——你可以回滚查看 Agent 执行的完整操作序列。\n\n关闭后，工具事件在完成后会折叠或消失，保持聊天流的简洁。此选项仅在「显示 Agent 事件」同时开启时才有意义。",
+      preserveToolEventsBody:
+        "控制工具执行事件在 Agent 使用完毕后是否仍然可见。\n\n开启后，每次工具调用都会保留在聊天历史中——你可以回滚查看 Agent 执行的完整操作序列。\n\n关闭后，工具事件在完成后会折叠或消失，保持聊天流的简洁。此选项仅在「显示 Agent 事件」同时开启时才有意义。",
       collapseMessagesTitle: "折叠消息",
-      collapseMessagesBody: "控制是否自动折叠过长的 Agent 消息。\n\n开启后，非常长的回复会被截断并显示「展开更多」按钮，保持聊天界面的可读性，避免单条超长回复占满整个屏幕。\n\n关闭后，无论消息多长都会完整显示。如果你经常需要查看完整回复而不想多点一次，可以关闭此选项。",
+      collapseMessagesBody:
+        "控制是否自动折叠过长的 Agent 消息。\n\n开启后，非常长的回复会被截断并显示「展开更多」按钮，保持聊天界面的可读性，避免单条超长回复占满整个屏幕。\n\n关闭后，无论消息多长都会完整显示。如果你经常需要查看完整回复而不想多点一次，可以关闭此选项。",
       accentColorTitle: "主题颜色",
-      accentColorBody: "选择应用界面的主题色。这会改变整个界面中按钮、链接、选中状态和高亮区域使用的主色调。选择你觉得最舒适的颜色——这纯粹是外观设置，不影响功能。",
+      accentColorBody:
+        "选择应用界面的主题色。这会改变整个界面中按钮、链接、选中状态和高亮区域使用的主色调。选择你觉得最舒适的颜色——这纯粹是外观设置，不影响功能。",
       privacyModeTitle: "隐私模式",
-      privacyModeBody: "在整个界面中隐藏敏感内容。开启后，API 密钥、消息内容和其他可能敏感的数据会被星号或模糊效果遮盖。\n\n在会议中共享屏幕、录制演示或在公共场所使用时特别有用。你的数据不会受到影响——仅改变视觉显示。\n\n关闭后即可重新看到实际数据。",
+      privacyModeBody:
+        "在整个界面中隐藏敏感内容。开启后，API 密钥、消息内容和其他可能敏感的数据会被星号或模糊效果遮盖。\n\n在会议中共享屏幕、录制演示或在公共场所使用时特别有用。你的数据不会受到影响——仅改变视觉显示。\n\n关闭后即可重新看到实际数据。",
       showAgentNameTitle: "侧边栏 Agent 名称",
-      showAgentNameBody: "控制侧边栏品牌位置是否显示当前 Agent 名称，而不是应用名称。运行多个命名 Agent 时，开启它可以更快确认当前激活的是哪一个。",
+      showAgentNameBody:
+        "控制侧边栏品牌位置是否显示当前 Agent 名称，而不是应用名称。运行多个命名 Agent 时，开启它可以更快确认当前激活的是哪一个。",
       tutorialToggleTitle: "教程模式",
-      tutorialToggleBody: "控制是否在每个页面显示教程气泡。开启后，每个页面都会出现一个小帮助图标，点击后会启动该页面功能的引导介绍。你正在使用的就是这个功能！熟悉应用后可以关闭。",
+      tutorialToggleBody:
+        "控制是否在每个页面显示教程气泡。开启后，每个页面都会出现一个小帮助图标，点击后会启动该页面功能的引导介绍。你正在使用的就是这个功能！熟悉应用后可以关闭。",
       autoLaunchTitle: "开机自启",
-      autoLaunchBody: "控制 EasyClaw 是否在电脑启动时自动运行。\n\n开启后，应用会在你登录操作系统后立即在后台启动。你的 Agent 会立即准备好并开始监听——如果你每天都依赖它处理客服或自动化任务，这非常方便。\n\n关闭后，你需要每次手动启动应用。如果你只是偶尔使用 Agent 或想要更快的系统启动速度，可以关闭此选项。",
+      autoLaunchBody:
+        "控制 EasyClaw 是否在电脑启动时自动运行。\n\n开启后，应用会在你登录操作系统后立即在后台启动。你的 Agent 会立即准备好并开始监听——如果你每天都依赖它处理客服或自动化任务，这非常方便。\n\n关闭后，你需要每次手动启动应用。如果你只是偶尔使用 Agent 或想要更快的系统启动速度，可以关闭此选项。",
       dataDirTitle: "数据目录",
-      dataDirBody: "显示 EasyClaw 存储所有数据的位置——包括 SQLite 数据库、配置文件、日志和缓存内容。当前路径旁的标签表明是默认位置还是自定义路径。\n\n更改此路径会将数据移动到新位置。当你需要将数据存储在外置硬盘、加密分区或磁盘空间更大的位置时很有用。",
+      dataDirBody:
+        "显示 EasyClaw 存储所有数据的位置——包括 SQLite 数据库、配置文件、日志和缓存内容。当前路径旁的标签表明是默认位置还是自定义路径。\n\n更改此路径会将数据移动到新位置。当你需要将数据存储在外置硬盘、加密分区或磁盘空间更大的位置时很有用。",
       dataDirActionsTitle: "更改 / 重置目录",
-      dataDirActionsBody: "点击「更改」选择新的数据存储目录。点击「重置」（仅在使用自定义路径时显示）恢复到默认位置。任一操作都需要重启应用才能生效——你会看到提示。",
+      dataDirActionsBody:
+        "点击「更改」选择新的数据存储目录。点击「重置」（仅在使用自定义路径时显示）恢复到默认位置。任一操作都需要重启应用才能生效——你会看到提示。",
       telemetryToggleTitle: "遥测数据",
-      telemetryToggleBody: "控制匿名使用分析。开启后，应用会发送基础使用数据（功能使用情况、错误计数、应用生命周期事件）以帮助开发团队改进产品。\n\n绝不会收集个人数据、对话内容、API 密钥或规则文本。你可以在此开关下方的详情部分查看确切的收集和不收集内容。\n\n如果你不希望分享任何数据，请关闭此选项。",
+      telemetryToggleBody:
+        "控制匿名使用分析。开启后，应用会发送基础使用数据（功能使用情况、错误计数、应用生命周期事件）以帮助开发团队改进产品。\n\n绝不会收集个人数据、对话内容、API 密钥或规则文本。你可以在此开关下方的详情部分查看确切的收集和不收集内容。\n\n如果你不希望分享任何数据，请关闭此选项。",
       telemetryDetailsTitle: "遥测详情",
-      telemetryDetailsBody: "此部分精确列出了哪些数据会被收集、哪些不会。仔细阅读后再决定是否启用遥测。「我们收集的内容」列出了匿名运营指标。「我们不收集的内容」确认没有任何敏感信息会离开你的设备。",
+      telemetryDetailsBody:
+        "此部分精确列出了哪些数据会被收集、哪些不会。仔细阅读后再决定是否启用遥测。「我们收集的内容」列出了匿名运营指标。「我们不收集的内容」确认没有任何敏感信息会离开你的设备。",
       installDepsTitle: "安装依赖",
-      installDepsBody: "重新安装引擎所需的系统级依赖（如浏览器自动化所需的浏览器二进制文件、语音转文字库等）。\n\n如果浏览器自动化或语音输入等功能停止工作，或在系统大版本更新后，请点击此按钮。安装程序在后台运行——你可以在安装过程中继续使用应用。",
+      installDepsBody:
+        "重新安装引擎所需的系统级依赖（如浏览器自动化所需的浏览器二进制文件、语音转文字库等）。\n\n如果浏览器自动化或语音输入等功能停止工作，或在系统大版本更新后，请点击此按钮。安装程序在后台运行——你可以在安装过程中继续使用应用。",
       diagnosticsTitle: "运行诊断 / 修复",
-      diagnosticsBody: "两个系统健康管理按钮：\n\n• 「运行诊断」对你的系统配置进行全面检查——验证依赖项、文件权限、网络连接和引擎健康状态。结果会显示在按钮上方的日志输出中。\n\n• 「修复」运行同样的检查，但还会尝试自动修复发现的问题（如重新安装缺失的依赖、修复文件权限）。\n\n建议先用「运行诊断」查看问题，然后再用「修复」让应用尝试自动修复。",
+      diagnosticsBody:
+        "两个系统健康管理按钮：\n\n• 「运行诊断」对你的系统配置进行全面检查——验证依赖项、文件权限、网络连接和引擎健康状态。结果会显示在按钮上方的日志输出中。\n\n• 「修复」运行同样的检查，但还会尝试自动修复发现的问题（如重新安装缺失的依赖、修复文件权限）。\n\n建议先用「运行诊断」查看问题，然后再用「修复」让应用尝试自动修复。",
     },
     chat: {
       welcomeTitle: "欢迎来到对话页面",
-      welcomeBody: "这是与 Agent 对话的主界面。你可以发送消息、附加图片，并实时监控 Agent 的工作状态。",
+      welcomeBody:
+        "这是与 Agent 对话的主界面。你可以发送消息、附加图片，并实时监控 Agent 的工作状态。",
       sessionTabsTitle: "会话标签",
-      sessionTabsBody: "每个标签是一个独立的对话线程。主会话始终是第一个标签。来自其他渠道（Telegram、微信等）的会话也会出现在这里。双击标签可重命名，拖拽可调整顺序。",
+      sessionTabsBody:
+        "每个标签是一个独立的对话线程。主会话始终是第一个标签。来自其他渠道（Telegram、微信等）的会话也会出现在这里。双击标签可重命名，拖拽可调整顺序。",
       newSessionBtnTitle: "新建会话",
-      newSessionBtnBody: "点击「+」按钮开始新的对话。新会话拥有独立的历史记录和上下文，与其他会话互不影响。",
+      newSessionBtnBody:
+        "点击「+」按钮开始新的对话。新会话拥有独立的历史记录和上下文，与其他会话互不影响。",
       archivedBtnTitle: "已归档会话",
-      archivedBtnBody: "点击归档图标可浏览之前关闭的会话。支持按名称或内容搜索，点击任意会话即可恢复到标签栏。",
+      archivedBtnBody:
+        "点击归档图标可浏览之前关闭的会话。支持按名称或内容搜索，点击任意会话即可恢复到标签栏。",
       messageAreaTitle: "消息区域",
-      messageAreaBody: "所有对话消息显示在这里。你的消息在右侧，Agent 的回复在左侧。向上滚动可加载更早的消息。长回复可折叠或展开。",
+      messageAreaBody:
+        "所有对话消息显示在这里。你的消息在右侧，Agent 的回复在左侧。向上滚动可加载更早的消息。长回复可折叠或展开。",
       examplesTitle: "示例提示词",
-      examplesBody: "不知道说什么？这些示例提示词为你提供快速入口。点击任意卡片即可将其加载到输入框。可用箭头按钮展开或收起此区域。",
+      examplesBody:
+        "不知道说什么？这些示例提示词为你提供快速入口。点击任意卡片即可将其加载到输入框。可用箭头按钮展开或收起此区域。",
       exampleEditTitle: "编辑示例提示词",
-      exampleEditBody: "点击示例卡片上的铅笔图标可自定义提示词内容。弹窗中可以重写提示词使其更贴合你的工作流。点击弹窗内的「恢复默认」可还原为原始文本。",
+      exampleEditBody:
+        "点击示例卡片上的铅笔图标可自定义提示词内容。弹窗中可以重写提示词使其更贴合你的工作流。点击弹窗内的「恢复默认」可还原为原始文本。",
       statusBarTitle: "状态栏",
-      statusBarBody: "这里显示连接状态、当前模型、思考级别、可用工具和重置按钮。它是当前会话的控制中心。",
+      statusBarBody:
+        "这里显示连接状态、当前模型、思考级别、可用工具和重置按钮。它是当前会话的控制中心。",
       connectionDotTitle: "连接指示器",
-      connectionDotBody: "彩色圆点显示与 Agent 的连接状态：绿色表示已连接并就绪，黄色表示正在连接，红色表示已断开。断开时无法发送消息。",
+      connectionDotBody:
+        "彩色圆点显示与 Agent 的连接状态：绿色表示已连接并就绪，黄色表示正在连接，红色表示已断开。断开时无法发送消息。",
       modelSelectTitle: "模型选择器",
-      modelSelectBody: "双级联动选择器，用于选择 AI 模型。左侧面板选择服务商密钥，右侧面板选择具体模型。顶部的「跟随全局默认」选项可继承系统级模型设置。支持输入关键词搜索过滤模型，每个模型条目会显示其上下文窗口大小供参考。选择后立即对下一条消息生效。",
+      modelSelectBody:
+        "双级联动选择器，用于选择 AI 模型。左侧面板选择服务商密钥，右侧面板选择具体模型。顶部的「跟随全局默认」选项可继承系统级模型设置。支持输入关键词搜索过滤模型，每个模型条目会显示其上下文窗口大小供参考。选择后立即对下一条消息生效。",
       thinkingSelectTitle: "思考级别",
-      thinkingSelectBody: "控制 Agent 回复前的推理深度。「无」最快，「高」产出最深思熟虑的回答但耗时更长。根据问题复杂度选择合适的级别。",
+      thinkingSelectBody:
+        "控制 Agent 回复前的推理深度。「无」最快，「高」产出最深思熟虑的回答但耗时更长。根据问题复杂度选择合适的级别。",
       contextUsageTitle: "上下文用量",
-      contextUsageBody: "显示模型上下文窗口的消耗情况，格式为「Xk / Yk」（已用 token / 总 token）。用量达到 80% 时指示器变黄作为预警，达到 100% 时变红表示上下文已满。上下文溢出后，Agent 将无法读取更早的消息，可能丢失对话脉络。",
+      contextUsageBody:
+        "显示模型上下文窗口的消耗情况，格式为「Xk / Yk」（已用 token / 总 token）。用量达到 80% 时指示器变黄作为预警，达到 100% 时变红表示上下文已满。上下文溢出后，Agent 将无法读取更早的消息，可能丢失对话脉络。",
       runProfileTitle: "运行配置",
-      runProfileBody: "选择一个运行配置来控制本次对话可用的工具。「默认」仅提供系统工具，其他配置可额外启用特定功能（如浏览器自动化）。运行配置的选择会按标签页记忆，每个标签页保留各自的配置。可在账户页面管理运行配置。",
+      runProfileBody:
+        "选择一个运行配置来控制本次对话可用的工具。「默认」仅提供系统工具，其他配置可额外启用特定功能（如浏览器自动化）。运行配置的选择会按标签页记忆，每个标签页保留各自的配置。可在账户页面管理运行配置。",
       resetBtnTitle: "重置会话",
-      resetBtnBody: "重置当前会话的 Agent 对话。所有可见消息会被替换为一条重置确认消息，Agent 将从零开始、不带任何之前的上下文。适合在你想完全重新开始时使用。",
+      resetBtnBody:
+        "重置当前会话的 Agent 对话。所有可见消息会被替换为一条重置确认消息，Agent 将从零开始、不带任何之前的上下文。适合在你想完全重新开始时使用。",
       inputAreaTitle: "消息输入",
-      inputAreaBody: "在这里输入你的消息。按 Enter 发送，Shift+Enter 换行。你也可以直接从剪贴板粘贴图片。",
+      inputAreaBody:
+        "在这里输入你的消息。按 Enter 发送，Shift+Enter 换行。你也可以直接从剪贴板粘贴图片。",
       attachBtnTitle: "附加文件和图片",
-      attachBtnBody: "两个附件按钮：回形针将文件路径插入消息中，图片图标附加一张 Agent 可以查看和分析的图片。支持格式：JPEG、PNG、GIF、WebP。",
+      attachBtnBody:
+        "两个附件按钮：回形针将文件路径插入消息中，图片图标附加一张 Agent 可以查看和分析的图片。支持格式：JPEG、PNG、GIF、WebP。",
       emojiBtnTitle: "表情选择器",
       emojiBtnBody: "点击打开表情面板。选择一个表情即可将其插入到消息光标位置。",
       sendStopBtnTitle: "发送 / 停止",
-      sendStopBtnBody: "蓝色「发送」按钮提交你的消息。Agent 工作时，它会变成红色「停止」按钮，可取消当前操作。",
+      sendStopBtnBody:
+        "蓝色「发送」按钮提交你的消息。Agent 工作时，它会变成红色「停止」按钮，可取消当前操作。",
     },
     channels: {
       welcomeTitle: "欢迎来到渠道页面",
-      welcomeBody: "渠道将你的 Agent 连接到 Telegram、微信、Discord、Slack 等通讯平台。配置完成后，用户可以直接从这些平台与你的 Agent 聊天。",
+      welcomeBody:
+        "渠道将你的 Agent 连接到 Telegram、微信、Discord、Slack 等通讯平台。配置完成后，用户可以直接从这些平台与你的 Agent 聊天。",
       refreshBtnTitle: "刷新状态",
       refreshBtnBody: "点击刷新所有渠道的连接状态。检查每个渠道的机器人是否正在运行且可达。",
       addSectionTitle: "添加渠道账号",
-      addSectionBody: "在这里设置新的通讯渠道。选择平台，配置凭据（如 Bot Token），然后连接到你的 Agent。",
+      addSectionBody:
+        "在这里设置新的通讯渠道。选择平台，配置凭据（如 Bot Token），然后连接到你的 Agent。",
       channelDropdownTitle: "渠道类型",
-      channelDropdownBody: "选择要连接的通讯平台。选项包括 Telegram、微信、飞书、Discord、Slack、WhatsApp 等。每个平台需要不同的配置信息。",
+      channelDropdownBody:
+        "选择要连接的通讯平台。选项包括 Telegram、微信、飞书、Discord、Slack、WhatsApp 等。每个平台需要不同的配置信息。",
       connectBtnTitle: "连接按钮",
-      connectBtnBody: "选择渠道类型后，点击连接打开配置对话框。对于手机聊天，会打开二维码配对流程。",
+      connectBtnBody:
+        "选择渠道类型后，点击连接打开配置对话框。对于手机聊天，会打开二维码配对流程。",
       infoBoxTitle: "渠道信息",
       infoBoxBody: "选择渠道后，此区域会显示有用的设置说明，可能还包含该平台的分步教程链接。",
       accountsTableTitle: "已连接的账号",
       accountsTableBody: "此表格显示所有已配置的渠道账号。每行代表一个通讯平台上的机器人或连接。",
       tableColumnsTitle: "表格列说明",
-      tableColumnsBody: "渠道：平台名称。名称：你的自定义标签。已配置/运行中：绿色表示正常，红色表示有问题。私聊策略：机器人处理私信的方式（如仅白名单或开放）。",
+      tableColumnsBody:
+        "渠道：平台名称。名称：你的自定义标签。已配置/运行中：绿色表示正常，红色表示有问题。私聊策略：机器人处理私信的方式（如仅白名单或开放）。",
       accountRowTitle: "账号行",
-      accountRowBody: "点击任意行可展开查看接收者白名单——即被授权与你的机器人在该渠道上交互的用户。",
+      accountRowBody:
+        "点击任意行可展开查看接收者白名单——即被授权与你的机器人在该渠道上交互的用户。",
       rowActionsTitle: "账号操作",
-      rowActionsBody: "编辑打开配置对话框修改凭据或设置。删除永久移除该渠道连接。手机聊天账号只能删除，不能编辑。",
+      rowActionsBody:
+        "编辑打开配置对话框修改凭据或设置。删除永久移除该渠道连接。手机聊天账号只能删除，不能编辑。",
       expandArrowTitle: "展开详情",
       expandArrowBody: "每行左侧的箭头可切换展开视图，显示该渠道的配对请求和已授权的接收者。",
       recipientsTitle: "接收者与配对",
-      recipientsBody: "展开区域显示待处理的配对请求（正在尝试连接的用户）和当前白名单（已批准的用户）。你可以批准新用户、设置标签、切换管理员权限或移除访问权限。",
+      recipientsBody:
+        "展开区域显示待处理的配对请求（正在尝试连接的用户）和当前白名单（已批准的用户）。你可以批准新用户、设置标签、切换管理员权限或移除访问权限。",
       editBtnTitle: "编辑渠道",
       editBtnBody: "点击编辑可打开该渠道账号的配置对话框。让我们看看里面的内容。",
       modalOverviewTitle: "渠道配置",
-      modalOverviewBody: "此表单用于配置渠道连接。字段会根据渠道类型（Telegram、微信、Discord 等）有所不同，但结构相同：显示名称、凭据和选项。",
+      modalOverviewBody:
+        "此表单用于配置渠道连接。字段会根据渠道类型（Telegram、微信、Discord 等）有所不同，但结构相同：显示名称、凭据和选项。",
       modalNameFieldTitle: "显示名称",
-      modalNameFieldBody: "为此渠道账号取一个易识别的名称（如「客服机器人」、「销售团队」）。它会出现在渠道列表中，帮助你区分同一平台上的不同连接。",
+      modalNameFieldBody:
+        "为此渠道账号取一个易识别的名称（如「客服机器人」、「销售团队」）。它会出现在渠道列表中，帮助你区分同一平台上的不同连接。",
       modalCredentialsTitle: "渠道凭据",
-      modalCredentialsBody: "该渠道的认证凭据。例如：\n\n• Telegram：来自 @BotFather 的 Bot Token\n• Discord：来自 Discord 开发者门户的 Bot Token\n• Slack：Bot Token + Signing Secret\n• 微信：AppID + AppSecret\n\n编辑时密钥字段会显示为遮蔽状态——留空即保留现有值。",
+      modalCredentialsBody:
+        "该渠道的认证凭据。例如：\n\n• Telegram：来自 @BotFather 的 Bot Token\n• Discord：来自 Discord 开发者门户的 Bot Token\n• Slack：Bot Token + Signing Secret\n• 微信：AppID + AppSecret\n\n编辑时密钥字段会显示为遮蔽状态——留空即保留现有值。",
       modalDmPolicyTitle: "私聊策略",
-      modalDmPolicyBody: "控制机器人如何处理用户的私聊（私信）消息。三个选项：\n\n• 配对 — 用户必须先发送配对码才能聊天。这是最安全的选项：只有你明确批准的用户才能与机器人互动。\n\n• 白名单 — 只有预先批准的用户 ID 才能发送私聊。你需要手动管理允许的用户列表。\n\n• 禁用 — 机器人完全忽略所有私聊消息。如果你的机器人只应在群聊中回复，请使用此选项。",
+      modalDmPolicyBody:
+        "控制机器人如何处理用户的私聊（私信）消息。三个选项：\n\n• 配对 — 用户必须先发送配对码才能聊天。这是最安全的选项：只有你明确批准的用户才能与机器人互动。\n\n• 白名单 — 只有预先批准的用户 ID 才能发送私聊。你需要手动管理允许的用户列表。\n\n• 禁用 — 机器人完全忽略所有私聊消息。如果你的机器人只应在群聊中回复，请使用此选项。",
       modalGroupPolicyTitle: "群聊策略",
-      modalGroupPolicyBody: "控制机器人在群聊中的行为。三个选项：\n\n• 开放 — 机器人在任何被加入的群组中都会回复消息。简单但控制较少。\n\n• 白名单 — 机器人只在你明确批准的群组中回复。使用下方的「允许的群组」指定哪些群组 ID 被允许。你还可以使用「允许的发送者」限制哪些用户可以触发机器人。\n\n• 禁用 — 机器人忽略所有群聊消息。如果机器人只应处理私聊，请使用此选项。",
+      modalGroupPolicyBody:
+        "控制机器人在群聊中的行为。三个选项：\n\n• 开放 — 机器人在任何被加入的群组中都会回复消息。简单但控制较少。\n\n• 白名单 — 机器人只在你明确批准的群组中回复。使用下方的「允许的群组」指定哪些群组 ID 被允许。你还可以使用「允许的发送者」限制哪些用户可以触发机器人。\n\n• 禁用 — 机器人忽略所有群聊消息。如果机器人只应处理私聊，请使用此选项。",
       modalAllowedSendersTitle: "允许的群组和发送者",
-      modalAllowedSendersBody: "当群聊策略设为「白名单」时，这些标签输入框会出现。输入机器人应该活跃的群组 ID，以及可选的允许在这些群组中触发机器人的用户 ID。发送者字段留空表示允许所有群成员与机器人互动。",
+      modalAllowedSendersBody:
+        "当群聊策略设为「白名单」时，这些标签输入框会出现。输入机器人应该活跃的群组 ID，以及可选的允许在这些群组中触发机器人的用户 ID。发送者字段留空表示允许所有群成员与机器人互动。",
       modalEnabledTitle: "启用开关",
-      modalEnabledBody: "控制此渠道账号是否处于活跃状态。取消勾选后，机器人将停止在该渠道上监听消息，但不会删除配置。适合临时维护时使用。",
+      modalEnabledBody:
+        "控制此渠道账号是否处于活跃状态。取消勾选后，机器人将停止在该渠道上监听消息，但不会删除配置。适合临时维护时使用。",
       modalActionsTitle: "保存 / 取消",
-      modalActionsBody: "点击保存来验证并应用更改。系统会尝试使用新凭据连接到该渠道。点击取消放弃更改。",
+      modalActionsBody:
+        "点击保存来验证并应用更改。系统会尝试使用新凭据连接到该渠道。点击取消放弃更改。",
       lastUpdatedTitle: "最后更新",
-      lastUpdatedBody: "显示渠道状态的最后刷新时间。状态会自动定期刷新，你也可以点击刷新按钮立即更新。",
+      lastUpdatedBody:
+        "显示渠道状态的最后刷新时间。状态会自动定期刷新，你也可以点击刷新按钮立即更新。",
     },
     skills: {
       welcomeTitle: "欢迎来到技能页面",
-      welcomeBody: "技能是赋予 Agent 新能力的插件——从网络搜索、文件处理到自定义集成。浏览市场、安装所需技能，你的 Agent 就能即刻学会新本领。",
+      welcomeBody:
+        "技能是赋予 Agent 新能力的插件——从网络搜索、文件处理到自定义集成。浏览市场、安装所需技能，你的 Agent 就能即刻学会新本领。",
       tabBarTitle: "市场与已安装",
-      tabBarBody: "两个标签页：「市场」展示社区中所有可安装的技能，「已安装」展示当前在你的 Agent 上已激活的技能。",
+      tabBarBody:
+        "两个标签页：「市场」展示社区中所有可安装的技能，「已安装」展示当前在你的 Agent 上已激活的技能。",
       searchTitle: "搜索技能",
       searchBody: "输入关键词，按名称或描述筛选技能。结果会在你输入时自动更新。",
       categoriesTitle: "分类筛选",
-      categoriesBody: "点击分类标签可以缩小搜索范围到特定类型（如效率工具、自动化、通信）。点击「全部」清除筛选。",
+      categoriesBody:
+        "点击分类标签可以缩小搜索范围到特定类型（如效率工具、自动化、通信）。点击「全部」清除筛选。",
       gridTitle: "技能卡片",
       gridBody: "每张卡片代表一个可安装的技能，展示技能名称、描述、作者和人气数据。",
       cardHeaderTitle: "技能名称和版本",
       cardHeaderBody: "技能的显示名称和当前版本号。当作者发布新版本时，版本会自动更新。",
       cardSlugTitle: "技能标识符",
-      cardSlugBody: "此技能的唯一标识 slug（如 'web-search'）。双击可复制到剪贴板——在规则或自动化中引用技能时很有用。",
+      cardSlugBody:
+        "此技能的唯一标识 slug（如 'web-search'）。双击可复制到剪贴板——在规则或自动化中引用技能时很有用。",
       cardDescTitle: "描述",
       cardDescBody: "简要说明此技能的功能和适用场景。阅读描述来判断此技能是否符合你的需求。",
       cardMetaTitle: "作者与统计",
-      cardMetaBody: "显示技能的开发者和社区统计数据：星标数（多少用户喜欢）和下载量（总安装次数）。数字越高通常意味着技能越可靠。",
+      cardMetaBody:
+        "显示技能的开发者和社区统计数据：星标数（多少用户喜欢）和下载量（总安装次数）。数字越高通常意味着技能越可靠。",
       cardActionsTitle: "安装 / 状态",
-      cardActionsBody: "点击「安装」将此技能添加到你的 Agent。如果已安装，会显示对勾。内置技能（随应用捆绑的）会标记为内置，无法移除。",
+      cardActionsBody:
+        "点击「安装」将此技能添加到你的 Agent。如果已安装，会显示对勾。内置技能（随应用捆绑的）会标记为内置，无法移除。",
       paginationTitle: "翻页导航",
       paginationBody: "当技能数量较多时，使用分页控件浏览不同页面。点击页码或上一页/下一页按钮。",
       installedTabTitle: "已安装技能",
-      installedTabBody: "切换到已安装标签页，查看当前 Agent 上已激活的技能。你可以在这里管理或移除它们。",
+      installedTabBody:
+        "切换到已安装标签页，查看当前 Agent 上已激活的技能。你可以在这里管理或移除它们。",
       openFolderTitle: "打开技能文件夹",
-      openFolderBody: "点击此按钮打开技能文件存储在你电脑上的本地文件夹。适合高级用户检查或手动编辑技能配置。",
+      openFolderBody:
+        "点击此按钮打开技能文件存储在你电脑上的本地文件夹。适合高级用户检查或手动编辑技能配置。",
       deleteBtnTitle: "移除技能",
-      deleteBtnBody: "点击「删除」从 Agent 卸载此技能。在实际移除前会弹出确认对话框。内置技能无法删除。",
+      deleteBtnBody:
+        "点击「删除」从 Agent 卸载此技能。在实际移除前会弹出确认对话框。内置技能无法删除。",
     },
     crons: {
       welcomeTitle: "欢迎来到定时任务页面",
-      welcomeBody: "定时任务让你安排 Agent 自动执行的计划——比如发送每日报告、检查数据或触发提醒。把它们想象成告诉 Agent 在什么时间做什么事的闹钟。",
+      welcomeBody:
+        "定时任务让你安排 Agent 自动执行的计划——比如发送每日报告、检查数据或触发提醒。把它们想象成告诉 Agent 在什么时间做什么事的闹钟。",
       statusBarTitle: "连接状态",
-      statusBarBody: "此指示器显示定时调度器是否已连接并运行。绿点表示正在运行。任务数量显示当前有多少个计划任务。",
+      statusBarBody:
+        "此指示器显示定时调度器是否已连接并运行。绿点表示正在运行。任务数量显示当前有多少个计划任务。",
       toolbarTitle: "工具栏",
-      toolbarBody: "使用此工具栏搜索、筛选、排序和创建定时任务。所有控件协同工作，帮助你查找和管理计划任务。",
+      toolbarBody:
+        "使用此工具栏搜索、筛选、排序和创建定时任务。所有控件协同工作，帮助你查找和管理计划任务。",
       searchTitle: "搜索任务",
-      searchBody: "输入关键词按名称筛选定时任务。当你有很多计划任务需要查找特定的某一个时非常方便。",
+      searchBody:
+        "输入关键词按名称筛选定时任务。当你有很多计划任务需要查找特定的某一个时非常方便。",
       enabledFilterTitle: "状态筛选",
-      enabledFilterBody: "按状态筛选任务：「全部」显示所有任务，「已启用」仅显示活跃的任务，「已禁用」显示暂停的任务。用它快速找到需要关注的任务。",
+      enabledFilterBody:
+        "按状态筛选任务：「全部」显示所有任务，「已启用」仅显示活跃的任务，「已禁用」显示暂停的任务。用它快速找到需要关注的任务。",
       sortTitle: "排序方式",
       sortBody: "改变任务的排列顺序：按下次运行时间、最近更新时间或按名称字母排序。",
       addBtnTitle: "创建新任务",
-      addBtnBody: "点击这里打开创建新定时任务的表单。你需要设置名称、运行计划，以及任务运行时 Agent 应该做什么。",
+      addBtnBody:
+        "点击这里打开创建新定时任务的表单。你需要设置名称、运行计划，以及任务运行时 Agent 应该做什么。",
       tableTitle: "任务列表",
-      tableBody: "此表格展示所有定时任务及其计划、状态、上次运行时间、下次运行时间和操作按钮。每行是一个计划任务。",
+      tableBody:
+        "此表格展示所有定时任务及其计划、状态、上次运行时间、下次运行时间和操作按钮。每行是一个计划任务。",
       jobNameTitle: "任务名称",
-      jobNameBody: "创建时你给这个任务取的名字。下方是可选的描述信息，提供更多关于任务用途的上下文。",
+      jobNameBody:
+        "创建时你给这个任务取的名字。下方是可选的描述信息，提供更多关于任务用途的上下文。",
       scheduleColTitle: "运行计划",
-      scheduleColBody: "显示此任务的运行时间——可以是 cron 表达式（如每 5 分钟 '*/5 * * * *'）、简单的间隔频率或一次性日期。如果配置了时区会显示在下方。",
+      scheduleColBody:
+        "显示此任务的运行时间——可以是 cron 表达式（如每 5 分钟 '*/5 * * * *'）、简单的间隔频率或一次性日期。如果配置了时区会显示在下方。",
       toggleTitle: "启用 / 禁用",
-      toggleBody: "拨动此开关暂停或恢复任务。禁用的任务保留计划但不会运行，直到重新启用。适合临时暂停而不删除任务。",
+      toggleBody:
+        "拨动此开关暂停或恢复任务。禁用的任务保留计划但不会运行，直到重新启用。适合临时暂停而不删除任务。",
       actionsTitle: "任务操作",
-      actionsBody: "四个操作：「编辑」修改任务设置，「立即运行」立即触发任务（无需等待计划时间），「历史记录」查看过去的运行结果，「删除」永久移除任务。",
+      actionsBody:
+        "四个操作：「编辑」修改任务设置，「立即运行」立即触发任务（无需等待计划时间），「历史记录」查看过去的运行结果，「删除」永久移除任务。",
       createFormTitle: "创建任务表单",
       createFormBody: "让我们打开创建表单，看看设置新定时任务时有哪些选项。",
       formOverviewTitle: "任务配置",
-      formOverviewBody: "此表单分为三个部分：基本信息（名称和描述）、运行计划（何时运行）和载荷（做什么）。带星号的为必填字段。",
+      formOverviewBody:
+        "此表单分为三个部分：基本信息（名称和描述）、运行计划（何时运行）和载荷（做什么）。带星号的为必填字段。",
       formNameTitle: "任务名称",
-      formNameBody: "为你的任务取一个清晰、描述性的名称。这是你在任务列表中看到的名字，请确保容易辨认——如「每日销售报告」或「每小时系统检查」。",
+      formNameBody:
+        "为你的任务取一个清晰、描述性的名称。这是你在任务列表中看到的名字，请确保容易辨认——如「每日销售报告」或「每小时系统检查」。",
       scheduleTypeTitle: "计划类型",
-      scheduleTypeBody: "三种计划模式：「Cron」使用标准 cron 表达式实现复杂计划，「间隔」按简单周期运行（如每 5 分钟），「定时」在指定的日期和时间运行一次。",
+      scheduleTypeBody:
+        "三种计划模式：「Cron」使用标准 cron 表达式实现复杂计划，「间隔」按简单周期运行（如每 5 分钟），「定时」在指定的日期和时间运行一次。",
       runProfileTitle: "运行配置",
-      runProfileBody: "选择一个运行配置来控制此定时任务可用的工具。「默认」仅提供系统工具。如果任务需要特定功能（如浏览器自动化），请选择包含相应工具的配置。",
+      runProfileBody:
+        "选择一个运行配置来控制此定时任务可用的工具。「默认」仅提供系统工具。如果任务需要特定功能（如浏览器自动化），请选择包含相应工具的配置。",
       formActionsTitle: "保存或取消",
-      formActionsBody: "点击「创建」保存新任务，或「取消」放弃。任务创建后（如果已启用）会在计划时间开始运行。",
+      formActionsBody:
+        "点击「创建」保存新任务，或「取消」放弃。任务创建后（如果已启用）会在计划时间开始运行。",
     },
     extras: {
       welcomeTitle: "欢迎来到扩展功能",
-      welcomeBody: "扩展功能是增强 Agent 基本对话能力之外的可选功能。启用语音转文字实现语音输入，启用网络搜索获取实时信息，启用向量嵌入让 Agent 拥有长期记忆。",
+      welcomeBody:
+        "扩展功能是增强 Agent 基本对话能力之外的可选功能。启用语音转文字实现语音输入，启用网络搜索获取实时信息，启用向量嵌入让 Agent 拥有长期记忆。",
       sttHeadTitle: "语音转文字",
       sttHeadBody: "此功能将语音转换为文字，让你可以通过移动聊天渠道用语音消息与 Agent 交流。",
       sttToggleTitle: "启用语音转文字",
       sttToggleBody: "拨动此开关开启或关闭语音转文字。启用后需要在下方配置提供商和 API 密钥。",
       sttProviderTitle: "语音转文字提供商",
-      sttProviderBody: "选择语音转文字引擎：Groq 提供快速转录和广泛的语言支持，火山引擎针对中文优化并提供大方的免费额度。",
+      sttProviderBody:
+        "选择语音转文字引擎：Groq 提供快速转录和广泛的语言支持，火山引擎针对中文优化并提供大方的免费额度。",
       sttApiKeyTitle: "语音转文字 API 密钥",
-      sttApiKeyBody: "粘贴所选提供商的 API 密钥。密钥安全存储在你的设备上。如果已配置密钥会显示「已保存」标记——留空即保留现有密钥。",
+      sttApiKeyBody:
+        "粘贴所选提供商的 API 密钥。密钥安全存储在你的设备上。如果已配置密钥会显示「已保存」标记——留空即保留现有密钥。",
       sttSaveTitle: "保存语音转文字设置",
       sttSaveBody: "点击保存来验证和存储你的语音转文字配置。系统会在激活功能前验证你的凭证。",
       webSearchHeadTitle: "网络搜索",
-      webSearchHeadBody: "赋予 Agent 搜索互联网获取最新信息的能力。适用于关于时事、价格或任何频繁变化内容的问题。",
+      webSearchHeadBody:
+        "赋予 Agent 搜索互联网获取最新信息的能力。适用于关于时事、价格或任何频繁变化内容的问题。",
       webSearchToggleTitle: "启用网络搜索",
       webSearchToggleBody: "开启或关闭网络搜索。启用后，Agent 可以在对话中查找实时信息。",
       webSearchProviderTitle: "搜索提供商",
-      webSearchProviderBody: "选择搜索引擎：Brave Search 提供注重隐私的结果，Perplexity 专注于 AI 驱动的回答，Grok、Gemini 和 Kimi 提供其他搜索能力。",
+      webSearchProviderBody:
+        "选择搜索引擎：Brave Search 提供注重隐私的结果，Perplexity 专注于 AI 驱动的回答，Grok、Gemini 和 Kimi 提供其他搜索能力。",
       webSearchApiKeyTitle: "搜索 API 密钥",
-      webSearchApiKeyBody: "粘贴所选搜索提供商的 API 密钥。每个提供商有自己的密钥——查看下方的帮助链接了解获取方式。",
+      webSearchApiKeyBody:
+        "粘贴所选搜索提供商的 API 密钥。每个提供商有自己的密钥——查看下方的帮助链接了解获取方式。",
       webSearchSaveTitle: "保存网络搜索",
       webSearchSaveBody: "点击保存存储网络搜索设置。你的 Agent 将在下次对话中开始使用网络搜索。",
       embeddingHeadTitle: "向量嵌入 / 记忆",
-      embeddingHeadBody: "向量嵌入让 Agent 通过将对话转换为向量表示来构建长期记忆。这帮助 Agent 在不同会话间回忆过去的话题和上下文。",
+      embeddingHeadBody:
+        "向量嵌入让 Agent 通过将对话转换为向量表示来构建长期记忆。这帮助 Agent 在不同会话间回忆过去的话题和上下文。",
       embeddingToggleTitle: "启用向量嵌入",
-      embeddingToggleBody: "开启或关闭向量嵌入。启用后，Agent 会存储对话记忆，以便之后搜索和回忆，提供更有上下文的回复。",
+      embeddingToggleBody:
+        "开启或关闭向量嵌入。启用后，Agent 会存储对话记忆，以便之后搜索和回忆，提供更有上下文的回复。",
       embeddingProviderTitle: "嵌入提供商",
-      embeddingProviderBody: "选择嵌入引擎：OpenAI、Gemini、Voyage 和 Mistral 是不同定价的云端选项。Ollama 在本地运行，无需 API 密钥。",
+      embeddingProviderBody:
+        "选择嵌入引擎：OpenAI、Gemini、Voyage 和 Mistral 是不同定价的云端选项。Ollama 在本地运行，无需 API 密钥。",
       embeddingApiKeyTitle: "嵌入 API 密钥",
-      embeddingApiKeyBody: "粘贴所选提供商的 API 密钥。对于 Ollama（本地），无需密钥——只需确保 Ollama 正在你的机器上运行。",
+      embeddingApiKeyBody:
+        "粘贴所选提供商的 API 密钥。对于 Ollama（本地），无需密钥——只需确保 Ollama 正在你的机器上运行。",
       embeddingSaveTitle: "保存嵌入设置",
       embeddingSaveBody: "点击保存存储嵌入配置。保存后，Agent 将开始从未来的对话中构建长期记忆。",
     },
     usage: {
       welcomeTitle: "欢迎来到用量页面",
-      welcomeBody: "此页面追踪 Agent 使用各 LLM 提供商的情况——Token 数量、费用和时间趋势。用它来监控支出并优化模型选择。",
+      welcomeBody:
+        "此页面追踪 Agent 使用各 LLM 提供商的情况——Token 数量、费用和时间趋势。用它来监控支出并优化模型选择。",
       refreshTitle: "刷新数据",
       refreshBody: "点击从服务器重新加载所有用量数据。数据也会每 60 秒自动刷新。",
       todayTitle: "今日用量",
       todayBody: "此部分仅显示今天的 Token 消耗和费用，让你快速了解当前支出。",
       blocksTitle: "提供商区块",
-      blocksBody: "用量按提供商和 API 密钥分组。每个区块显示一个密钥在其访问过的所有模型上的使用情况。",
+      blocksBody:
+        "用量按提供商和 API 密钥分组。每个区块显示一个密钥在其访问过的所有模型上的使用情况。",
       keyHeaderTitle: "密钥信息与费用",
-      keyHeaderBody: "标题栏显示提供商名称、密钥标签和该密钥的预估总费用。订阅密钥显示用量但不显示费用，因为已包含在你的套餐中。",
+      keyHeaderBody:
+        "标题栏显示提供商名称、密钥标签和该密钥的预估总费用。订阅密钥显示用量但不显示费用，因为已包含在你的套餐中。",
       innerTableTitle: "模型明细",
-      innerTableBody: "每行显示一个模型的输入 Token（你发送的）、输出 Token（Agent 生成的）和预估费用。「Active」标记表示当前正在使用的模型。",
+      innerTableBody:
+        "每行显示一个模型的输入 Token（你发送的）、输出 Token（Agent 生成的）和预估费用。「Active」标记表示当前正在使用的模型。",
       timeRangeTitle: "时间范围",
-      timeRangeBody: "在 7 天、30 天或全部时间视图之间切换。这同时控制下方的历史表格和用量图表。选择较短范围可聚焦近期趋势。",
+      timeRangeBody:
+        "在 7 天、30 天或全部时间视图之间切换。这同时控制下方的历史表格和用量图表。选择较短范围可聚焦近期趋势。",
       chartTitle: "用量趋势图",
-      chartBody: "此折线图显示所选时间段内每日 Token 用量。每条线代表一个不同的模型。点击图例条目可单独显示该系列；再次点击显示全部。",
+      chartBody:
+        "此折线图显示所选时间段内每日 Token 用量。每条线代表一个不同的模型。点击图例条目可单独显示该系列；再次点击显示全部。",
       lastUpdatedTitle: "最后更新时间",
       lastUpdatedBody: "显示数据的最后刷新时间。如果时间看起来较旧，请点击页面顶部的刷新按钮。",
     },
     apps: {
       welcomeTitle: "欢迎来到应用页面",
-      welcomeBody: "应用页面用于将外部消息渠道连接到你的 AI Agent。目前支持企业微信客服集成，更多平台即将推出。",
+      welcomeBody:
+        "应用页面用于将外部消息渠道连接到你的 AI Agent。目前支持企业微信客服集成，更多平台即将推出。",
       wecomCardTitle: "企业微信集成",
-      wecomCardBody: "此卡片管理你的企业微信客服连接。企业微信是中国广泛使用的企业通讯平台。连接后，你的 AI Agent 可以自动处理通过企业微信接收的客户咨询。",
+      wecomCardBody:
+        "此卡片管理你的企业微信客服连接。企业微信是中国广泛使用的企业通讯平台。连接后，你的 AI Agent 可以自动处理通过企业微信接收的客户咨询。",
       credentialRowTitle: "凭据状态",
-      credentialRowBody: "显示你的企业微信 API 凭据是否已配置。绿色「已配置」标签表示凭据已保存并准备就绪。灰色「未配置」标签表示你需要先设置凭据才能连接。",
+      credentialRowBody:
+        "显示你的企业微信 API 凭据是否已配置。绿色「已配置」标签表示凭据已保存并准备就绪。灰色「未配置」标签表示你需要先设置凭据才能连接。",
       configureButtonTitle: "配置凭据",
-      configureButtonBody: "点击此按钮打开凭据配置对话框。你需要企业微信的 API 凭据来建立连接。让我们看看里面的内容。",
+      configureButtonBody:
+        "点击此按钮打开凭据配置对话框。你需要企业微信的 API 凭据来建立连接。让我们看看里面的内容。",
       invitationCodeTitle: "邀请码",
-      invitationCodeBody: "你的面板访问令牌，在入驻时提供。用于将你的 EasyClaw 实例与云服务进行身份验证。如果之前已保存过，后续编辑时此字段可以留空。",
+      invitationCodeBody:
+        "你的面板访问令牌，在入驻时提供。用于将你的 EasyClaw 实例与云服务进行身份验证。如果之前已保存过，后续编辑时此字段可以留空。",
       wecomFieldsTitle: "企业微信 API 凭据",
-      wecomFieldsBody: "来自企业微信管理后台的四个字段：企业 ID（你的企业标识）、应用密钥（API 认证密钥）、Token 和 EncodingAESKey（用于回调验证）。你可以在企业微信客服管理后台的回调配置中找到这些信息。",
+      wecomFieldsBody:
+        "来自企业微信管理后台的四个字段：企业 ID（你的企业标识）、应用密钥（API 认证密钥）、Token 和 EncodingAESKey（用于回调验证）。你可以在企业微信客服管理后台的回调配置中找到这些信息。",
       kfLinkIdTitle: "客服链接 ID",
-      kfLinkIdBody: "你的企业微信客服账号链接的唯一标识。告诉系统要连接到哪个特定的客服账号。你可以在企业微信客服设置页面找到此 ID。",
+      kfLinkIdBody:
+        "你的企业微信客服账号链接的唯一标识。告诉系统要连接到哪个特定的客服账号。你可以在企业微信客服设置页面找到此 ID。",
       credentialActionsTitle: "保存 / 删除",
-      credentialActionsBody: "点击「保存」验证并存储你的凭据。系统会在保存前对企业微信 API 进行验证。如果之前已保存过凭据，还会看到「删除」按钮，可以完全移除已有配置。",
+      credentialActionsBody:
+        "点击「保存」验证并存储你的凭据。系统会在保存前对企业微信 API 进行验证。如果之前已保存过凭据，还会看到「删除」按钮，可以完全移除已有配置。",
       promptRowTitle: "业务提示词",
-      promptRowBody: "业务提示词告诉 AI Agent 关于你的公司、产品以及如何处理客户咨询的信息。可以理解为 Agent 的操作手册。点击「编辑」来编写或更新提示词。没有提示词时，Agent 会使用通用回复。",
+      promptRowBody:
+        "业务提示词告诉 AI Agent 关于你的公司、产品以及如何处理客户咨询的信息。可以理解为 Agent 的操作手册。点击「编辑」来编写或更新提示词。没有提示词时，Agent 会使用通用回复。",
       connectionToggleTitle: "连接开关",
-      connectionToggleBody: "此开关启动或停止企业微信客服连接。开启后，Agent 开始监听传入的客户消息。关闭后，连接断开，不再处理任何消息。连接前请确保凭据和提示词已配置完成。",
+      connectionToggleBody:
+        "此开关启动或停止企业微信客服连接。开启后，Agent 开始监听传入的客户消息。关闭后，连接断开，不再处理任何消息。连接前请确保凭据和提示词已配置完成。",
       connectionStatusTitle: "连接状态",
-      connectionStatusBody: "显示实时连接状态：「已连接」（绿色）表示 Agent 正在监听消息。「连接中」（黄色）表示正在尝试连接。「已断开」（红色）表示服务离线。状态每隔几秒自动更新。",
+      connectionStatusBody:
+        "显示实时连接状态：「已连接」（绿色）表示 Agent 正在监听消息。「连接中」（黄色）表示正在尝试连接。「已断开」（红色）表示服务离线。状态每隔几秒自动更新。",
     },
     account: {
       welcomeTitle: "欢迎来到账户页面",
-      welcomeBody: "账户页面是你管理个人资料、订阅、工具访问控制、执行配置和功能模块的中心。让我们逐一了解每个部分。",
+      welcomeBody:
+        "账户页面是你管理个人资料、订阅、工具访问控制、执行配置和功能模块的中心。让我们逐一了解每个部分。",
       profileCardTitle: "个人资料与订阅",
-      profileCardBody: "这张卡片一览你的身份和订阅信息——头像、姓名、邮箱、计划标识、注册时间、有效期以及 LLM 使用配额。",
+      profileCardBody:
+        "这张卡片一览你的身份和订阅信息——头像、姓名、邮箱、计划标识、注册时间、有效期以及 LLM 使用配额。",
       identityTitle: "你的身份",
-      identityBody: "你的头像（根据姓名首字母生成）、显示名称和邮箱地址。邮箱是你注册或登录 EasyClaw 时使用的地址。",
+      identityBody:
+        "你的头像（根据姓名首字母生成）、显示名称和邮箱地址。邮箱是你注册或登录 EasyClaw 时使用的地址。",
       logoutTitle: "退出登录",
-      logoutBody: "点击此按钮退出当前账户。你将被重定向到首页。需要身份验证的功能在重新登录前将无法访问。",
+      logoutBody:
+        "点击此按钮退出当前账户。你将被重定向到首页。需要身份验证的功能在重新登录前将无法访问。",
       planTitle: "当前计划",
-      planBody: "显示你所在的订阅计划（如免费版、专业版、企业版）。你的计划决定了可用的功能、工具权限和使用限制。",
+      planBody:
+        "显示你所在的订阅计划（如免费版、专业版、企业版）。你的计划决定了可用的功能、工具权限和使用限制。",
       memberSinceTitle: "注册时间",
       memberSinceBody: "你的账户创建日期。帮助你了解使用 EasyClaw 的时长。",
       validUntilTitle: "有效期至",
-      validUntilBody: "当前订阅的到期日期。请关注此日期以避免服务中断。如果没有活跃订阅，会显示一个横杠。",
+      validUntilBody:
+        "当前订阅的到期日期。请关注此日期以避免服务中断。如果没有活跃订阅，会显示一个横杠。",
       quotaFiveHourTitle: "LLM 使用配额",
-      quotaFiveHourBody: "这里列出当前账号生效的 LLM 使用窗口。每一行都会显示指标、时间窗口、剩余额度比例和下一次刷新时间。",
+      quotaFiveHourBody:
+        "这里列出当前账号生效的 LLM 使用窗口。每一行都会显示指标、时间窗口、剩余额度比例和下一次刷新时间。",
       quotaWeeklyTitle: "配额进度",
-      quotaWeeklyBody: "进度条显示某个使用窗口的剩余额度。额度偏低时会高亮提醒，方便你在触达限制前调整用量或升级计划。",
+      quotaWeeklyBody:
+        "进度条显示某个使用窗口的剩余额度。额度偏低时会高亮提醒，方便你在触达限制前调整用量或升级计划。",
       surfacesSectionTitle: "场景",
-      surfacesSectionBody: "场景定义了某个使用场景中可用的工具集（如「客户支持」、「内部运营」）。每个场景是一个工具访问边界——当某个场景被激活时，Agent 只能使用该场景中列出的工具。",
+      surfacesSectionBody:
+        "场景定义了某个使用场景中可用的工具集（如「客户支持」、「内部运营」）。每个场景是一个工具访问边界——当某个场景被激活时，Agent 只能使用该场景中列出的工具。",
       surfacesHeaderTitle: "场景标题栏",
       surfacesHeaderBody: "标题和描述说明了场景的用途。右侧有创建新场景或从现有预设开始的按钮。",
       createSurfaceBtnTitle: "新建场景",
-      createSurfaceBtnBody: "点击打开表单，你可以命名场景、添加可选描述，并选择允许的工具。如果工具列表留空，场景将是「不受限」的——所有工具均可使用。",
+      createSurfaceBtnBody:
+        "点击打开表单，你可以命名场景、添加可选描述，并选择允许的工具。如果工具列表留空，场景将是「不受限」的——所有工具均可使用。",
       fromPresetBtnTitle: "从预设创建",
-      fromPresetBtnBody: "点击通过复制现有场景（包括系统预设）来创建新场景。这是从已知配置快速开始并进行自定义的捷径。系统默认场景会复制所有可用工具。",
+      fromPresetBtnBody:
+        "点击通过复制现有场景（包括系统预设）来创建新场景。这是从已知配置快速开始并进行自定义的捷径。系统默认场景会复制所有可用工具。",
       surfaceListTitle: "场景列表",
-      surfaceListBody: "所有场景都显示在这里。系统场景（由平台创建）标有「系统」徽章，不能编辑或删除。你的自定义场景会显示编辑和删除按钮。",
+      surfaceListBody:
+        "所有场景都显示在这里。系统场景（由平台创建）标有「系统」徽章，不能编辑或删除。你的自定义场景会显示编辑和删除按钮。",
       surfaceItemTitle: "场景卡片",
-      surfaceItemBody: "每张场景卡片显示名称、可选描述、标识徽章（平台提供的为「系统」，无工具限制的为「不受限」）、关联的运行配置数量和工具数量。自定义场景右侧有编辑和删除按钮。",
+      surfaceItemBody:
+        "每张场景卡片显示名称、可选描述、标识徽章（平台提供的为「系统」，无工具限制的为「不受限」）、关联的运行配置数量和工具数量。自定义场景右侧有编辑和删除按钮。",
       surfaceToolChipsTitle: "允许的工具",
-      surfaceToolChipsBody: "这些标签显示此场景中允许的具体工具。如果没有显示标签，表示场景不受限，可访问所有工具。编辑时可使用多选工具选择器添加或移除工具。",
+      surfaceToolChipsBody:
+        "这些标签显示此场景中允许的具体工具。如果没有显示标签，表示场景不受限，可访问所有工具。编辑时可使用多选工具选择器添加或移除工具。",
       profilesSectionTitle: "运行配置",
-      profilesSectionBody: "运行配置是在场景内选择特定工具的执行配置。当你开始聊天或定时任务时，选择一个运行配置来精确控制 Agent 在该次运行中可以使用哪些工具。",
+      profilesSectionBody:
+        "运行配置是在场景内选择特定工具的执行配置。当你开始聊天或定时任务时，选择一个运行配置来精确控制 Agent 在该次运行中可以使用哪些工具。",
       profilesHeaderTitle: "运行配置标题栏",
-      profilesHeaderBody: "标题和描述说明了运行配置的工作方式。右侧的「新建配置」按钮用于创建——需要至少有一个场景才能创建。",
+      profilesHeaderBody:
+        "标题和描述说明了运行配置的工作方式。右侧的「新建配置」按钮用于创建——需要至少有一个场景才能创建。",
       createProfileBtnTitle: "新建配置",
-      createProfileBtnBody: "点击打开创建表单。你需要选择一个父场景、为配置命名，并从该场景中选择可用的工具。工具选择器只显示所选场景允许的工具。",
+      createProfileBtnBody:
+        "点击打开创建表单。你需要选择一个父场景、为配置命名，并从该场景中选择可用的工具。工具选择器只显示所选场景允许的工具。",
       defaultProfileTitle: "默认运行配置",
-      defaultProfileBody: "此下拉菜单用于设置启动新聊天或定时任务时默认使用的运行配置。Agent 将使用所选配置的场景和工具集，除非你在单次会话中手动覆盖。如果未设置默认值，每次启动时系统会提示你选择配置。",
+      defaultProfileBody:
+        "此下拉菜单用于设置启动新聊天或定时任务时默认使用的运行配置。Agent 将使用所选配置的场景和工具集，除非你在单次会话中手动覆盖。如果未设置默认值，每次启动时系统会提示你选择配置。",
       profileListTitle: "配置列表",
-      profileListBody: "所有运行配置都显示在这里。系统配置标有「系统」徽章，不能编辑或删除。每个配置会显示父场景名称和工具数量。",
+      profileListBody:
+        "所有运行配置都显示在这里。系统配置标有「系统」徽章，不能编辑或删除。每个配置会显示父场景名称和工具数量。",
       profileItemTitle: "配置卡片",
-      profileItemBody: "每张配置卡片显示名称、关联的场景、工具数量和编辑/删除操作按钮。系统配置不可修改。",
+      profileItemBody:
+        "每张配置卡片显示名称、关联的场景、工具数量和编辑/删除操作按钮。系统配置不可修改。",
       profileToolChipsTitle: "已选工具",
-      profileToolChipsBody: "这些标签显示此运行配置中选择的工具。如果某个工具不再在父场景的允许列表中，会显示警告图标——在场景更新前，该工具在运行时会被忽略。",
+      profileToolChipsBody:
+        "这些标签显示此运行配置中选择的工具。如果某个工具不再在父场景的允许列表中，会显示警告图标——在场景更新前，该工具在运行时会被忽略。",
       modulesSectionTitle: "功能模块",
-      modulesSectionBody: "模块是可选的功能扩展包，为 EasyClaw 添加特定领域的专业能力。每个模块会解锁额外的工具、页面和集成，服务于特定的工作流程。在此处启用或禁用模块来定制你的工作空间。",
+      modulesSectionBody:
+        "模块是可选的功能扩展包，为 EasyClaw 添加特定领域的专业能力。每个模块会解锁额外的工具、页面和集成，服务于特定的工作流程。在此处启用或禁用模块来定制你的工作空间。",
       moduleItemTitle: "模块开关",
-      moduleItemBody: "每张模块卡片显示模块名称、描述和一个开关。打开开关即可加入该模块——这会在整个应用中激活其工具和界面。关闭开关则退出模块并隐藏相关功能。更改会立即生效。",
+      moduleItemBody:
+        "每张模块卡片显示模块名称、描述和一个开关。打开开关即可加入该模块——这会在整个应用中激活其工具和界面。关闭开关则退出模块并隐藏相关功能。更改会立即生效。",
     },
     billing: {
       welcomeTitle: "欢迎来到计费页面",
@@ -2235,15 +2421,18 @@ export default {
       overviewTitle: "计费概览",
       overviewBody: "标题区域说明这里展示的计费数据。你可以在此查看当前权益并管理付费服务。",
       accountPlanTitle: "账号 AI 套餐",
-      accountPlanBody: "这张卡片展示账号级 AI 权益、套餐状态、有效期以及通用 Agent 运行的使用限制。",
+      accountPlanBody:
+        "这张卡片展示账号级 AI 权益、套餐状态、有效期以及通用 Agent 运行的使用限制。",
       usageTitle: "用量与套餐详情",
       usageBody: "用量卡片和元数据显示剩余额度、续期时间和订阅状态。这些是来自计费后端的只读快照。",
       accountActionsTitle: "账号计费操作",
       accountActionsBody: "当当前套餐支持时，可通过这些按钮发起结账、管理支付方式或打开计费门户。",
       shopServicesTitle: "店铺服务",
-      shopServicesBody: "店铺服务计费独立于账号 AI 计费。每个已连接店铺可以拥有独立的服务权益，例如 AI 客服。",
+      shopServicesBody:
+        "店铺服务计费独立于账号 AI 计费。每个已连接店铺可以拥有独立的服务权益，例如 AI 客服。",
       subscribeFlowTitle: "为店铺订阅",
-      subscribeFlowBody: "此流程用于选择店铺和服务套餐后进入结账。只有存在可追加服务权益的店铺时才会显示。",
+      subscribeFlowBody:
+        "此流程用于选择店铺和服务套餐后进入结账。只有存在可追加服务权益的店铺时才会显示。",
       shopListTitle: "店铺订阅列表",
       shopListBody: "每一行汇总一个店铺已启用的付费服务、状态、续期信息和服务级操作。",
       paymentsTitle: "支付记录",
@@ -2255,7 +2444,8 @@ export default {
       shopsTitle: "已连接店铺",
       shopsBody: "店铺区域列出所有已连接的卖家账号，并提供每个店铺的主要运营入口。",
       shopActionsTitle: "店铺操作",
-      shopActionsBody: "刷新会拉取最新店铺状态。添加店铺会启动平台 OAuth 授权流程，用于连接新的卖家账号。",
+      shopActionsBody:
+        "刷新会拉取最新店铺状态。添加店铺会启动平台 OAuth 授权流程，用于连接新的卖家账号。",
       shopTableTitle: "店铺表格",
       shopTableBody: "表格展示店铺身份、别名、平台、区域、授权状态、余额和行级操作。",
       shopAliasTitle: "店铺别名",
@@ -2354,11 +2544,11 @@ export default {
     toolOutOfScope: "此工具不在父场景的允许列表中，运行时将被忽略。",
     surfaceNarrowWarning: "{{count}} 个运行配置使用了将超出此场景范围的工具：",
     systemNames: {
-      "Default": "默认",
-      "ECOMMERCE_SELLER": "电商卖家",
-      "CUSTOMER_SERVICE": "客服",
-      "SHOP_OPERATIONS": "店铺运营",
-      "AFFILIATE_OPERATOR": "达人联盟运营",
+      Default: "默认",
+      ECOMMERCE_SELLER: "电商卖家",
+      CUSTOMER_SERVICE: "客服",
+      SHOP_OPERATIONS: "店铺运营",
+      AFFILIATE_OPERATOR: "达人联盟运营",
     } as Record<string, string>,
   },
   runProfileSelector: {
@@ -2483,10 +2673,12 @@ export default {
     authorizedAdvertisers: "已授权",
     needsAttention: "需要处理",
     adsReadyShops: "广告就绪店铺",
-    authSeparationHint: "TikTok Ads 能力通过 Business/Ads Manager 授权。EasyClaw 只管理同时已授权为 TikTok Shop 的店铺。",
+    authSeparationHint:
+      "TikTok Ads 能力通过 Business/Ads Manager 授权。EasyClaw 只管理同时已授权为 TikTok Shop 的店铺。",
     businessAccountHint: "连接广告账户后，可以查看哪些已授权店铺已被广告账户覆盖。",
     advertiserTableTitle: "广告账户",
-    advertiserTableSubtitle: "连接 TikTok Business 或 Ads Manager 后，Airflow 会通过这些广告账户同步 campaign、ad group、ad 以及 GMV Max 报表数据。",
+    advertiserTableSubtitle:
+      "连接 TikTok Business 或 Ads Manager 后，Airflow 会通过这些广告账户同步 campaign、ad group、ad 以及 GMV Max 报表数据。",
     searchPlaceholder: "搜索广告账户",
     noMatchingResults: "没有匹配结果。",
     filters: {
@@ -2648,21 +2840,25 @@ export default {
       charts: {
         volume: "新增会话与结束会话",
         escalation: "人工升级处理",
-        escalationTooltip: "升级会话代表 Agent 无法独立完成、必须由人工接待的对话。这个图是非常重要的人工接待完成指标：已处理量可以帮助判断员工响应是否及时、是否能跟上升级会话的压力。",
+        escalationTooltip:
+          "升级会话代表 Agent 无法独立完成、必须由人工接待的对话。这个图是非常重要的人工接待完成指标：已处理量可以帮助判断员工响应是否及时、是否能跟上升级会话的压力。",
         satisfaction: "客户满意度",
         firstResponse: "首次响应速度",
         guidedGmv: "客服引导成交额",
-        guidedGmvTooltip: "TikTok 将客服回复后 7 天内产生的订单归因为客服引导成交额。图中展示完整的 7 天滚动平均值，只有 7 个自然日数据均完整时才生成数据点，最后一个数据点是 7 天前。",
+        guidedGmvTooltip:
+          "TikTok 将客服回复后 7 天内产生的订单归因为客服引导成交额。图中展示完整的 7 天滚动平均值，只有 7 个自然日数据均完整时才生成数据点，最后一个数据点是 7 天前。",
       },
       realtimeCharts: {
         state: "活跃 / 待处理 / 已升级",
         escalationActivity: "人工升级处理",
-        escalationActivityTooltip: "实时展示需要人工介入的新增升级，以及已经被人工处理完成的升级。用来判断人工接待是否跟得上升级压力。",
+        escalationActivityTooltip:
+          "实时展示需要人工介入的新增升级，以及已经被人工处理完成的升级。用来判断人工接待是否跟得上升级压力。",
         firstResponse: "首次响应速度",
         pendingAge: "首次响应速度",
         slaBuckets: "等待中买家",
         sessionFlow: "AI 处理轮次与结束会话",
-        sessionFlowTooltip: "AI 处理轮次统计客服 AI 被接受并实际处理的轮次；结束会话统计实时成功执行的 end-session 工具调用。",
+        sessionFlowTooltip:
+          "AI 处理轮次统计客服 AI 被接受并实际处理的轮次；结束会话统计实时成功执行的 end-session 工具调用。",
       },
       series: {
         active: "活跃会话",
@@ -2766,8 +2962,10 @@ export default {
       relationshipWorkNoPendingProposals: "这条合作记录暂无待审批提案。",
       relationshipWorkActiveTitle: "{{count}} 个活跃合作",
       relationshipConversationTitle: "达人关系对话",
-      relationshipWorkAmbiguousSummary: "这条合作记录有多个可能的商品上下文，请先核对后再执行商品相关动作。",
-      relationshipWorkDefaultSummary: "店铺和达人之间的合作记录；当商品或样品上下文明确后，具体商品合作会显示在这里。",
+      relationshipWorkAmbiguousSummary:
+        "这条合作记录有多个可能的商品上下文，请先核对后再执行商品相关动作。",
+      relationshipWorkDefaultSummary:
+        "店铺和达人之间的合作记录；当商品或样品上下文明确后，具体商品合作会显示在这里。",
       openCreatorRelationshipWorkDetailHint: "打开合作记录详情，查看对话、提案和相关合作。",
       messageChannels: {
         PLATFORM_CHAT: "店铺后台私信",
@@ -2851,24 +3049,31 @@ export default {
       intelligenceConfidenceHigh: "高置信度",
       intelligenceConfidenceHighHint: "这个提升在当前留出测试窗口中较稳定，可以作为主要参考。",
       intelligenceConfidenceLow: "置信度较低",
-      intelligenceConfidenceLowHint: "这个提升的不确定性较高，建议只作为方向性参考，并结合账号模型和人工判断。",
+      intelligenceConfidenceLowHint:
+        "这个提升的不确定性较高，建议只作为方向性参考，并结合账号模型和人工判断。",
       intelligenceConfidenceMedium: "中等置信度",
       intelligenceConfidenceMediumHint: "这个提升方向较明确，但稳定性还没有达到高置信度。",
       intelligenceBusinessVerdict: "模型选择更高效",
-      intelligenceBusinessVerdictLift: "在同样样本预算下，模型排序预计比历史人工选择多卖 {{lift}}。",
+      intelligenceBusinessVerdictLift:
+        "在同样样本预算下，模型排序预计比历史人工选择多卖 {{lift}}。",
       intelligenceBusinessVerdictNeutral: "这个范围暂时还没有显示出相对历史人工选择的明确提升。",
       intelligenceClaimPrecisionTitle: "同样发样预算，模型更会挑人",
-      intelligenceClaimPrecisionBody: "在最近留出测试窗口里，如果同样放出 {{count}} 个样品，模型选择的达人预计比历史人工选择多卖 {{lift}}。",
-      intelligenceClaimPrecisionNeutral: "在最近留出测试窗口里，同样放出 {{count}} 个样品时，本次模型暂时还没有显示出明确提升。",
+      intelligenceClaimPrecisionBody:
+        "在最近留出测试窗口里，如果同样放出 {{count}} 个样品，模型选择的达人预计比历史人工选择多卖 {{lift}}。",
+      intelligenceClaimPrecisionNeutral:
+        "在最近留出测试窗口里，同样放出 {{count}} 个样品时，本次模型暂时还没有显示出明确提升。",
       intelligenceClaimReachTitle: "同样销量门槛下，发现更多值得看的达人",
-      intelligenceClaimReachBody: "在预测销量 {{bar}} 件的门槛下，模型标记出 {{creators}} 个值得看的达人，其中 {{overlooked}} 个是历史人工未通过的达人。",
-      intelligenceClaimReachNeutral: "在同样预测销量门槛下，本次模型暂时还没有显示出更广的达人覆盖。",
+      intelligenceClaimReachBody:
+        "在预测销量 {{bar}} 件的门槛下，模型标记出 {{creators}} 个值得看的达人，其中 {{overlooked}} 个是历史人工未通过的达人。",
+      intelligenceClaimReachNeutral:
+        "在同样预测销量门槛下，本次模型暂时还没有显示出更广的达人覆盖。",
       intelligenceChartSameBudget: "同样发样数量",
       intelligenceChartSameSalesBar: "相同预期销量门槛",
       intelligenceChartCreatorSwap: "模型会替换哪些选择",
       intelligenceSameBudgetStory: "{{window}} · 对比同样 {{count}} 个发样机会下的预测销量",
       intelligenceSameSalesBarStory: "{{window}} · 达到或超过同一个 {{bar}} 件预测销量门槛的达人",
-      intelligenceCreatorSwapStory: "在相同通过数量下，模型会过滤 {{filtered}} 个低优先级批准，并换入被人工漏掉的达人。",
+      intelligenceCreatorSwapStory:
+        "在相同通过数量下，模型会过滤 {{filtered}} 个低优先级批准，并换入被人工漏掉的达人。",
       intelligenceModelSelector: "模型选择",
       intelligenceHumanSelector: "历史人工选择",
       intelligenceModelQualifiedCreators: "模型标记达人",
@@ -2879,24 +3084,30 @@ export default {
       intelligenceHistoricalRate: "历史通过率",
       intelligenceFilteredRate: "会被过滤的历史通过样本",
       intelligenceImpliedThresholdTitle: "历史隐含门槛",
-      intelligenceImpliedThresholdHint: "如果保持约 {{approvalRate}} 的历史通过率，模型对应的最低预期销量门槛。",
+      intelligenceImpliedThresholdHint:
+        "如果保持约 {{approvalRate}} 的历史通过率，模型对应的最低预期销量门槛。",
       intelligenceConfiguredThresholdTitle: "当前店铺设置",
-      intelligenceConfiguredThresholdHint: "当 Campaign 没有单独阈值时，Agent 默认使用的最低预期销量。",
+      intelligenceConfiguredThresholdHint:
+        "当 Campaign 没有单独阈值时，Agent 默认使用的最低预期销量。",
       intelligenceConfiguredThresholdUnset: "未设置",
-      intelligenceTrainingScope: "{{window}} · 训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
-      intelligenceLegalDisclaimer: "本页面基于统计模型和机器学习预测，不代表用户使用该模型后一定会产生真实业务增长。",
+      intelligenceTrainingScope:
+        "{{window}} · 训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
+      intelligenceLegalDisclaimer:
+        "本页面基于统计模型和机器学习预测，不代表用户使用该模型后一定会产生真实业务增长。",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} 天",
       intelligenceWindowLatestTraining: "已结束合作结果观察窗口",
       intelligenceDistributionTitle: "销量分布对比",
       intelligenceDistributionHeadline: "模型选择的人群更偏向高销量区间",
-      intelligenceDistributionHint: "{{window}} · 对比历史人工通过后的实际销量，以及模型选择/拒绝人群的预期销量区间。",
+      intelligenceDistributionHint:
+        "{{window}} · 对比历史人工通过后的实际销量，以及模型选择/拒绝人群的预期销量区间。",
       intelligenceHistoricalApplications: "历史申请数",
       intelligenceHistoricalApproved: "历史通过数",
       intelligenceObservedApproved: "有销量结果的通过样本",
       intelligenceHistoricalApprovedActual: "历史通过 · 实际销量",
       intelligenceModelSelectedExpected: "模型选择 · 预期销量",
       intelligenceModelRejectedExpected: "模型拒绝 · 预期销量",
-      intelligenceDistributionIncomplete: "本次模型评估缺少必要的分布摘要。请重新训练模型刷新该视图。",
+      intelligenceDistributionIncomplete:
+        "本次模型评估缺少必要的分布摘要。请重新训练模型刷新该视图。",
       intelligenceBudgetStatsTitle: "提升来自哪里",
       intelligenceBudgetStatsHeadline: "同样发样数量，模型选择的人更多落在高预测销量区间",
       intelligenceBudgetStatsHint: "{{window}} · 留出测试窗口中的预测销量分布。",
@@ -2908,7 +3119,8 @@ export default {
       intelligenceReachStatsHint: "{{window}} · 预测销量达到或超过 {{bar}} 件的达人。",
       intelligenceOverlookedQualifiedCreators: "历史未通过但模型标记",
       intelligenceReachOpportunityTitle: "额外发现 {{count}} 个达人",
-      intelligenceReachOpportunityBody: "这是模型评分得到的机会池。这些达人历史上没有通过，因此没有可直接观察的真实销量结果。",
+      intelligenceReachOpportunityBody:
+        "这是模型评分得到的机会池。这些达人历史上没有通过，因此没有可直接观察的真实销量结果。",
       intelligenceReachCumulativeTitle: "达到不同预测销量目标的达人数量",
       intelligenceReachCumulativeHint: "灰色是历史人工，绿色是模型标记。",
       intelligenceReachThresholdBar: "≥{{bar}}",
@@ -2921,7 +3133,8 @@ export default {
         outcome_observation_window: "已结束合作结果观察窗口",
         time_based_holdout: "最近留出测试窗口",
       },
-      mlInsightsEmpty: "暂无 Affiliate ML 评估结果。请在 affiliate history ready 后运行训练 pipeline。",
+      mlInsightsEmpty:
+        "暂无 Affiliate ML 评估结果。请在 affiliate history ready 后运行训练 pipeline。",
       mlScope: "范围",
       mlHumanApprovalRate: "历史人工通过率",
       mlSameBudgetLift: "同等样本预算提升",
@@ -2937,7 +3150,8 @@ export default {
       mlBudgetThreshold: "校准阈值",
       mlBudgetThresholdBody: "按照历史通过量校准，隐含的最低预期销量约为 {{value}} 件。",
       mlFalseNegativeRisk: "错过的历史有效样本",
-      mlFalseNegativeRiskBody: "模型会过滤 {{rate}} 的历史人工通过样本；这些有结果的样本实际卖出 {{units}} 件。",
+      mlFalseNegativeRiskBody:
+        "模型会过滤 {{rate}} 的历史人工通过样本；这些有结果的样本实际卖出 {{units}} 件。",
       mlModelVersion: "模型版本",
       searchPlaceholder: "搜索达人、商品、提案或合作",
       statusFilter: "状态筛选",
@@ -2950,7 +3164,8 @@ export default {
       collaborationRecords: "合作记录",
       historicalCollaborations: "历史合作",
       relatedCollaborations: "相关合作",
-      collaborationRecordsHint: "每张卡片代表一条店铺和达人之间的合作记录；商品或样品上下文明确后，具体商品合作会显示在记录内。",
+      collaborationRecordsHint:
+        "每张卡片代表一条店铺和达人之间的合作记录；商品或样品上下文明确后，具体商品合作会显示在记录内。",
       pageTitles: {
         NEEDS_ATTENTION: "审批提案",
         IN_PROGRESS: "达人合作进行中",
@@ -3440,16 +3655,20 @@ export default {
         DEFAULT: "查看这条达人合作",
       },
       collaborationWorkDescriptions: {
-        RESPOND_TO_CREATOR: "Agent 会根据最近对话、商品和合作上下文生成回复；如果需要审批，会先形成提案。",
-        REVIEW_SAMPLE_APPLICATION: "达人已提交样品申请。Agent 会结合店铺规则和预测结果建议同意或拒绝。",
+        RESPOND_TO_CREATOR:
+          "Agent 会根据最近对话、商品和合作上下文生成回复；如果需要审批，会先形成提案。",
+        REVIEW_SAMPLE_APPLICATION:
+          "达人已提交样品申请。Agent 会结合店铺规则和预测结果建议同意或拒绝。",
         SHIP_SAMPLE: "样品申请已经同意，下一步需要员工在平台或仓储流程中安排发货。",
         FOLLOW_UP_CREATOR: "达人侧下一步动作已超时，需要根据当前合作上下文跟进达人。",
         REVIEW_ACTION_PROPOSAL: "Agent 已经生成平台动作提案，请在审批提案页面同意或拒绝。",
         REVIEW_AGENT_FAILURE: "Agent 没有成功完成处理，请查看记录并人工决定下一步。",
         RESOLVE_CREATOR_IDENTITY: "系统还不能稳定识别该达人，需要人工确认身份或等待更多平台信息。",
         REVIEW_COLLABORATION: "这条合作需要人工判断。可以打开详情查看历史，再决定是否去平台处理。",
-        PROPOSAL_REJECTED: "员工已拒绝 Agent 的建议。系统不会执行该提案，后续需要人工处理或等待新的达人/平台事件。",
-        PROPOSAL_REVISION_REQUESTED: "员工已要求 Agent 根据备注重新生成提案。备注会进入下一次 Agent 运行上下文。",
+        PROPOSAL_REJECTED:
+          "员工已拒绝 Agent 的建议。系统不会执行该提案，后续需要人工处理或等待新的达人/平台事件。",
+        PROPOSAL_REVISION_REQUESTED:
+          "员工已要求 Agent 根据备注重新生成提案。备注会进入下一次 Agent 运行上下文。",
         WAITING_CREATOR: "当前不需要员工操作，等待达人回复、寄样状态变化或内容发布。",
         WAITING_PLATFORM: "当前不需要员工操作，等待 TikTok Shop 同步新的样品、内容或合作状态。",
         DONE: "这条合作当前没有待处理事项。可以打开详情查看历史记录。",
@@ -3572,7 +3791,8 @@ export default {
       endSessionTooltip: "在买家的问题已经处理完成后，结束平台客服会话。",
       endSessionDisabledTooltip: "请先处理或关闭未完成的升级请求，再结束会话。",
       endSessionConfirmTitle: "确定结束这个客服会话吗？",
-      endSessionConfirmBody: "请只在买家问题已经处理完成后结束会话。平台可能会关闭客服会话，并向买家展示评价或商品 review 入口。",
+      endSessionConfirmBody:
+        "请只在买家问题已经处理完成后结束会话。平台可能会关闭客服会话，并向买家展示评价或商品 review 入口。",
       endSessionSuccess: "客服会话已结束。",
       endSessionFailed: "结束客服会话失败。",
       summarize: "总结",
@@ -3584,7 +3804,8 @@ export default {
       summaryGeneratingHint: "正在拉取消息并生成便于客服理解的摘要。",
       clearEscalations: "关闭升级请求",
       clearEscalationsSuccess: "升级请求已关闭。",
-      confirmClearConversationEscalations: "确定关闭该会话下所有未完成升级请求吗？这不会唤醒 AI Agent。",
+      confirmClearConversationEscalations:
+        "确定关闭该会话下所有未完成升级请求吗？这不会唤醒 AI Agent。",
       dismissConversationEscalationsSuccess: "升级请求已关闭。",
       dismissConversationEscalationsConfirm: "确定关闭该会话下 {{count}} 个未完成升级请求吗？",
       details: "详情",
@@ -3630,9 +3851,11 @@ export default {
       instructions: "给 Agent 的指令",
       instructionsPlaceholder: "明确告诉客服 Agent 下一步应该如何处理。",
       managerGuidance: "处理意见",
-      managerGuidancePlaceholder: "写给 CS Agent 的处理决定和下一步，例如同意退款、要求买家补充凭证，或等待物流确认。",
+      managerGuidancePlaceholder:
+        "写给 CS Agent 的处理决定和下一步，例如同意退款、要求买家补充凭证，或等待物流确认。",
       markResolved: "这是最终决定",
-      finalDecisionTooltip: "勾选后，CS Agent 会把这条处理意见视为最终决定，并关闭这个客服升级请求。不勾选则表示只是阶段性更新，升级请求继续保持未完成。",
+      finalDecisionTooltip:
+        "勾选后，CS Agent 会把这条处理意见视为最终决定，并关闭这个客服升级请求。不勾选则表示只是阶段性更新，升级请求继续保持未完成。",
       sendResponse: "发送处理意见",
       dismissEscalation: "关闭升级请求",
       dismissEscalationTooltip: "关闭升级请求，但不会唤醒 AI Agent，也不会给买家发送消息。",
@@ -3727,7 +3950,8 @@ export default {
         csToggleHint: "为此店铺启用 AI 智能客服后，可以处理买家消息和订单对话。",
         inventoryToggle: "库存管理",
         affiliateToggle: "达人管理",
-        affiliateToggleHint: "为此店铺启用达人管理后，桌面 Agent 可以处理达人回复、样品和合作流程。",
+        affiliateToggleHint:
+          "为此店铺启用达人管理后，桌面 Agent 可以处理达人回复、样品和合作流程。",
         businessPromptHint: "描述你的业务背景，帮助 AI 提供更好的客服回复。",
         save: "保存",
       },
@@ -3778,7 +4002,8 @@ export default {
         unpaidReachoutInvalidDelay: "每个延迟必须是 1 到 2879 之间且不重复的整数分钟。",
         unpaidReachoutTemplate: "提醒消息模板",
         unpaidReachoutTemplatePlaceholder: "填写将发送给未付款买家的提醒消息。",
-        unpaidReachoutTemplateHint: "支持 {{order_id}}、{{product_count}} 和 {{shop_name}}。留空时使用本地化默认模板。",
+        unpaidReachoutTemplateHint:
+          "支持 {{order_id}}、{{product_count}} 和 {{shop_name}}。留空时使用本地化默认模板。",
         unpaidReachoutStage: "第 {{index}} 阶段",
         unpaidReachoutStageMinutes: "下单后分钟数",
         unpaidReachoutRemoveStage: "删除",
@@ -3792,14 +4017,64 @@ export default {
         unpaidReachoutTemplateTokenProductCount: "商品数",
         unpaidReachoutTemplateTokenShopName: "店铺名",
         unpaidReachoutUnsaved: "有未保存修改",
+        unpaidReachoutInvalidHoldout: "对照组比例必须是 1% 到 20% 之间的整数。",
+        unpaidStatusExperiment: "配置实验运行中",
+        unpaidStatusActive: "正在触达",
+        unpaidStatusDisabled: "未启用",
+        unpaidStagesEnabled: "个启用阶段",
+        unpaidFirstReachout: "首次触达",
+        unpaidSchedule: "跟进计划",
+        unpaidScheduleHint: "订单保持未付款时，消息将按时间顺序发送。",
+        unpaidRunningLock: "配置实验运行中，基础方案已锁定",
+        unpaidEvaluation: "评估与优化",
+        unpaidEvaluationHint: "评估增量效果，并比较完整的未付款跟进策略。",
+        unpaidHoldoutLabel: "对照组比例",
+        unpaidNoReachout: "不触达",
+        unpaidTreatment: "正常触达",
+        unpaidConfigOptimization: "配置优化",
+        unpaidExperimentVersion: "版本",
+        unpaidDraftReady: "已有一份服务端草稿可继续编辑。",
+        unpaidNoConfigExperiment: "当前没有运行中的配置实验。",
+        unpaidManageExperiment: "管理实验",
+        unpaidContinueDraft: "继续编辑草稿",
+        unpaidConfigureExperiment: "配置 A/B 测试",
+        unpaidSaveBeforeExperiment: "请先保存触达和效果评估设置，再配置实验。",
+        unpaidExperimentModalTitle: "未付款订单触达实验",
+        unpaidRunning: "运行中",
+        unpaidDraft: "草稿",
+        unpaidPlans: "方案",
+        unpaidAddPlan: "新增方案",
+        unpaidTreatmentShare: "实验组内流量",
+        unpaidVariantInvalid:
+          "该方案需要名称、至少一个启用阶段、合法且不重复的延迟，以及与其他方案不同的配置。",
+        unpaidExperimentInvalid: "请先修复方案和流量分配问题。",
+        unpaidSaveDraft: "保存草稿",
+        unpaidDiscardDraft: "归档草稿",
+        unpaidStartNewVersion: "启动新版本",
+        unpaidStartExperiment: "启动实验",
+        unpaidCreateVersion: "创建新版本",
+        unpaidStopExperiment: "停止实验",
+        unpaidUnsavedDraftTitle: "是否保存实验草稿？",
+        unpaidUnsavedDraftHint: "保存后可以在刷新页面或其他设备上继续编辑。",
+        unpaidDiscardChanges: "放弃修改",
+        unpaidSaveAndClose: "保存并关闭",
+        unpaidExperimentDraftSaved: "实验草稿已保存。",
+        unpaidExperimentStarted: "配置实验已启动。",
+        unpaidExperimentStopped: "实验已停止；已有 cohort 将继续等待成熟。",
+        unpaidPreviousFinal: "历史实验已完成",
+        unpaidUsePlan: "应用方案",
+        unpaidFinal: "已完成",
+        unpaidMaturing: "等待成熟",
         reviewManagement: "评价管理",
         reviewManagementModule: "主模块",
         reviewManagementSubmodule: "子功能",
         reviewOptimizationEnabled: "启用评价管理",
-        reviewOptimizationHint: "开启后，系统会把商品评价同步到客服业务数据，并按下面的规则识别需要跟进的差评。",
+        reviewOptimizationHint:
+          "开启后，系统会把商品评价同步到客服业务数据，并按下面的规则识别需要跟进的差评。",
         badReviewReachoutTitle: "差评跟进",
         badReviewReachoutEnabled: "启用差评跟进",
-        badReviewReachoutHint: "开启后，符合条件的新差评会进入客服待处理流程，由本设备 Agent 根据评价内容主动联系买家。",
+        badReviewReachoutHint:
+          "开启后，符合条件的新差评会进入客服待处理流程，由本设备 Agent 根据评价内容主动联系买家。",
         badReviewReachoutStars: "差评星级",
         badReviewReachoutStarsHint: "评分小于等于该星级时视为差评。请输入 1 到 3。",
         badReviewReachoutRecentDays: "跟进天数",
@@ -3821,7 +4096,8 @@ export default {
         runProfileNone: "未选择运行配置",
         modelUsageScope: "使用模型",
         modelUsageScopeLabel: "预测模型",
-        modelUsageScopeHint: "选择该店铺在预估达人销量时使用账号级、区域级，还是本店铺历史训练出的店铺级模型。",
+        modelUsageScopeHint:
+          "选择该店铺在预估达人销量时使用账号级、区域级，还是本店铺历史训练出的店铺级模型。",
         modelUsageScopeUserLevel: "User level（账号级）",
         modelUsageScopeRegionLevel: "Region level（区域级）",
         modelUsageScopeShopLevel: "Shop level（店铺级）",
@@ -3834,8 +4110,10 @@ export default {
         modelRecommendationIncomplete: "当前模型表现数据不完整，暂时保留默认账号级模型。",
         modelRecommendationNoData: "暂无数据",
         modelRecommendationReasons: {
-          account_more_stable: "账号级模型使用跨店铺达人历史，当前表现更稳，适合作为该店铺的默认预测模型。",
-          region_balanced: "区域级模型只借鉴同一区域店铺的达人历史，在跨店铺样本量和区域差异之间更平衡。",
+          account_more_stable:
+            "账号级模型使用跨店铺达人历史，当前表现更稳，适合作为该店铺的默认预测模型。",
+          region_balanced:
+            "区域级模型只借鉴同一区域店铺的达人历史，在跨店铺样本量和区域差异之间更平衡。",
           shop_clear_advantage: "店铺级模型在该店铺的留出测试窗口里优势更明显，且置信度不低。",
           only_account: "目前只有账号级模型有可用评估结果。",
           only_region: "目前只有区域级模型有可用评估结果。",
@@ -3848,11 +4126,13 @@ export default {
         },
         decisionThresholds: "决策阈值",
         minExpectedSalesUnits: "最低预期销量",
-        minExpectedSalesUnitsHint: "当合作没有更具体的 Campaign 阈值时，Agent 会把这个数作为默认放量/寄样判断参考。留空表示不配置默认数值。",
+        minExpectedSalesUnitsHint:
+          "当合作没有更具体的 Campaign 阈值时，Agent 会把这个数作为默认放量/寄样判断参考。留空表示不配置默认数值。",
         noThreshold: "未设置",
         invalidDecisionThreshold: "最低预期销量必须是 0 或更大的数字。",
         businessPrompt: "达人业务提示词",
-        businessPromptHint: "配置本店铺面向达人的合作规则、沟通风格、佣金/样品边界和人工确认要求。该提示词会注入达人管理 Agent run。",
+        businessPromptHint:
+          "配置本店铺面向达人的合作规则、沟通风格、佣金/样品边界和人工确认要求。该提示词会注入达人管理 Agent run。",
         availableTools: "可用工具",
         toolCount: "共 {{count}} 个工具",
         proposals: "审批队列",
@@ -3925,7 +4205,8 @@ export default {
       addWmsAccount: "新增仓库管理系统账号",
       editWmsAccount: "编辑仓库管理系统账号",
       deleteWmsAccount: "删除仓库管理系统账号",
-      wmsProviderSupportTooltip: "目前第三方仓库支持易境通和领星 WMS。如果需要新增其他仓库服务商，请通过官网邮箱联系我们。",
+      wmsProviderSupportTooltip:
+        "目前第三方仓库支持易境通和领星 WMS。如果需要新增其他仓库服务商，请通过官网邮箱联系我们。",
       confirmDeleteWmsAccount: "确定要删除「{{label}}」吗？此账号会被归档，不再展示或用于同步。",
       refreshInventory: "刷新库存数据",
       noWmsAccounts: "尚未连接仓库管理系统账号。",
@@ -3970,13 +4251,14 @@ export default {
       apiTokenHint: "API 令牌只写入后端，不会再次展示。",
       apiTokenPlaceholders: {
         YEJOIN: "粘贴 API 令牌",
-        XLWMS: "{\"appKey\":\"...\",\"appSecret\":\"...\"}",
+        XLWMS: '{"appKey":"...","appSecret":"..."}',
       },
       apiTokenHints: {
         YEJOIN: "API 令牌只写入后端，不会再次展示。",
         XLWMS: "请粘贴包含 appKey 和 appSecret 的 JSON。密钥只写入后端，不会再次展示。",
       },
-      apiTokenEditHint: "API 令牌只写入后端，不会再次展示。留空则保持现有令牌；填写新令牌会保存后重新同步仓库。",
+      apiTokenEditHint:
+        "API 令牌只写入后端，不会再次展示。留空则保持现有令牌；填写新令牌会保存后重新同步仓库。",
       notes: "备注",
       notesPlaceholder: "可选内部备注",
       syncedWarehouses: "仓库数",
@@ -4000,7 +4282,8 @@ export default {
       deleteInventoryGood: "删除库存商品",
       confirmDeleteInventoryGood: "确定删除库存商品「{{sku}}」吗？此操作会将其归档。",
       deleteSelectedInventoryGoodsTitle: "删除已选库存商品",
-      confirmDeleteSelectedInventoryGoods: "确定删除已选的 {{count}} 个库存商品吗？此操作会将它们归档。",
+      confirmDeleteSelectedInventoryGoods:
+        "确定删除已选的 {{count}} 个库存商品吗？此操作会将它们归档。",
       deleteSelectedInventoryGoods: "删除已选（{{count}}）",
       noInventoryGoods: "还没有库存商品。",
       noInventoryGoodsForFilters: "当前筛选条件下没有库存商品。",
@@ -4054,7 +4337,8 @@ export default {
       viewDetails: "查看详情",
       matchedInventoryGoodsCount: "已有 {{count}} 个商品匹配到系统内部库存商品。",
       needSyncInventoryGoodsCount: "{{count}} 个商品需要同步。",
-      matchedInventoryGoodsDetailsUnavailable: "后端目前只返回已匹配数量，没有返回已匹配商品明细，所以这里没有可逐条查看的列表。",
+      matchedInventoryGoodsDetailsUnavailable:
+        "后端目前只返回已匹配数量，没有返回已匹配商品明细，所以这里没有可逐条查看的列表。",
       noInventoryGoodsNeedSync: "没有需要同步的库存商品。",
       allInventoryGoodsMatched: "此仓库管理系统中的库存商品都已匹配到系统内部库存商品。",
       noWmsInventoryGoodsFound: "此账号没有发现可同步的库存商品。",
@@ -4063,7 +4347,8 @@ export default {
       syncNewInventoryGoods: "同步新增库存商品",
       syncAllInventoryGoods: "同步所有库存商品",
       confirmInventoryGoodsSync: "确认",
-      syncInventoryGoodsDone: "库存商品同步完成。新增 {{created}}，更新 {{updated}}，跳过 {{skipped}}，失败 {{failed}}。",
+      syncInventoryGoodsDone:
+        "库存商品同步完成。新增 {{created}}，更新 {{updated}}，跳过 {{skipped}}，失败 {{failed}}。",
       syncInventoryGoodsErrors: "同步错误",
       wmsCoverageReasons: {
         noActiveInventoryGood: "没有匹配的库存商品",
@@ -4103,9 +4388,11 @@ export default {
     updateFailed: "更新店铺设置失败，请重试。",
     upgradeRequired: "此功能需要订阅。请升级你的套餐。",
     llmUnavailableTitle: "AI 模型不可用",
-    llmUnavailableBody: "当前没有可用的 AI 模型密钥。请续订 RivonClaw AI，或在模型设置中添加并启用 API 密钥。",
+    llmUnavailableBody:
+      "当前没有可用的 AI 模型密钥。请续订 RivonClaw AI，或在模型设置中添加并启用 API 密钥。",
     customerServiceRoutingUnavailableTitle: "当前设备上的 AI 客服升级不可用",
-    customerServiceRoutingUnavailableBody: "以下店铺已选择本机作为客服接收设备，但升级接收渠道不可用。基础 AI 客服不受影响；请重新选择存在的升级渠道，或完成微信消息凭证确认。",
+    customerServiceRoutingUnavailableBody:
+      "以下店铺已选择本机作为客服接收设备，但升级接收渠道不可用。基础 AI 客服不受影响；请重新选择存在的升级渠道，或完成微信消息凭证确认。",
     customerServiceRoutingIssue_invalid_channel: "渠道不存在",
     customerServiceRoutingIssue_missing_context_token: "微信缺少主动发送消息所需的上下文凭证",
     shopUpdatedToast: "店铺「{{shopName}}」已更新。",

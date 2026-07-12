@@ -27,7 +27,10 @@ function defaultUnpaidReachoutTemplate(region: string | undefined): string {
     FR: "Bonjour, j’ai remarqué que votre commande {{order_id}} avec {{product_count}} article(s) n’est pas encore payée. Si vous avez eu un souci au paiement, ou si vous avez encore des questions sur le produit, je peux vous aider.",
     IT: "Ciao, ho notato che il tuo ordine {{order_id}} con {{product_count}} articolo/i risulta ancora non pagato. Se hai avuto problemi con checkout o pagamento, o hai ancora domande sul prodotto, sono qui per aiutarti.",
   };
-  return templates[region ?? ""] ?? "Hi, I noticed your order {{order_id}} with {{product_count}} item(s) is still unpaid. If checkout or payment failed, or if you still have questions about the product, I am happy to help.";
+  return (
+    templates[region ?? ""] ??
+    "Hi, I noticed your order {{order_id}} with {{product_count}} item(s) is still unpaid. If checkout or payment failed, or if you still have questions about the product, I am happy to help."
+  );
 }
 
 export const EcommercePage = observer(function EcommercePage() {
@@ -52,7 +55,9 @@ export const EcommercePage = observer(function EcommercePage() {
   const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
   const [editBusinessPrompt, setEditBusinessPrompt] = useState("");
   const [draftUnpaidReachoutEnabled, setDraftUnpaidReachoutEnabled] = useState(false);
-  const [draftUnpaidReachoutStages, setDraftUnpaidReachoutStages] = useState<UnpaidReachoutStageDraft[]>([]);
+  const [draftUnpaidReachoutStages, setDraftUnpaidReachoutStages] = useState<
+    UnpaidReachoutStageDraft[]
+  >([]);
   const [draftUnpaidExperimentEnabled, setDraftUnpaidExperimentEnabled] = useState(false);
   const [draftUnpaidHoldoutPercent, setDraftUnpaidHoldoutPercent] = useState("5");
   const [draftReviewOptimizationEnabled, setDraftReviewOptimizationEnabled] = useState(false);
@@ -61,7 +66,9 @@ export const EcommercePage = observer(function EcommercePage() {
   const [draftBadReviewReachoutRecentDays, setDraftBadReviewReachoutRecentDays] = useState("7");
   const [editAffiliateBusinessPrompt, setEditAffiliateBusinessPrompt] = useState("");
   const [editAffiliateMinExpectedSalesUnits, setEditAffiliateMinExpectedSalesUnits] = useState("");
-  const [editAffiliateModelUsageScope, setEditAffiliateModelUsageScope] = useState<"USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL">("USER_LEVEL");
+  const [editAffiliateModelUsageScope, setEditAffiliateModelUsageScope] = useState<
+    "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL"
+  >("USER_LEVEL");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingAffiliateSettings, setSavingAffiliateSettings] = useState(false);
   const [togglingServiceId, setTogglingServiceId] = useState<string | null>(null);
@@ -70,11 +77,14 @@ export const EcommercePage = observer(function EcommercePage() {
   const [savingRunProfile, setSavingRunProfile] = useState(false);
   const [savingAffiliateRunProfile, setSavingAffiliateRunProfile] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
-  const [savingUnpaidReachoutSettings, setSavingUnpaidReachoutSettings] = useState(false);
   const [savingReviewOptimizationSettings, setSavingReviewOptimizationSettings] = useState(false);
   const [confirmDeleteShopId, setConfirmDeleteShopId] = useState<string | null>(null);
-  const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(null);
-  const [togglingAffiliateBindShopId, setTogglingAffiliateBindShopId] = useState<string | null>(null);
+  const [affiliateBindConflictShopId, setAffiliateBindConflictShopId] = useState<string | null>(
+    null,
+  );
+  const [togglingAffiliateBindShopId, setTogglingAffiliateBindShopId] = useState<string | null>(
+    null,
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   const selectedShop = shops.find((s) => s.id === selectedShopId) ?? null;
@@ -97,7 +107,13 @@ export const EcommercePage = observer(function EcommercePage() {
   // ── Fetch helpers ──
   async function handleFetchPlatformApps() {
     setPlatformAppsLoading(true);
-    try { await entityStore.fetchPlatformApps(); } catch { /* ignore */ } finally { setPlatformAppsLoading(false); }
+    try {
+      await entityStore.fetchPlatformApps();
+    } catch {
+      /* ignore */
+    } finally {
+      setPlatformAppsLoading(false);
+    }
   }
   // ── Effects ──
 
@@ -135,20 +151,29 @@ export const EcommercePage = observer(function EcommercePage() {
       setDraftUnpaidExperimentEnabled(
         selectedShop.services?.customerService?.unpaidOrderReachoutExperiment?.enabled ?? false,
       );
-      setDraftUnpaidHoldoutPercent(String(
-        selectedShop.services?.customerService?.unpaidOrderReachoutExperiment?.holdoutPercent ?? 5,
-      ));
+      setDraftUnpaidHoldoutPercent(
+        String(
+          selectedShop.services?.customerService?.unpaidOrderReachoutExperiment?.holdoutPercent ??
+            5,
+        ),
+      );
       setDraftReviewOptimizationEnabled(
         selectedShop.services?.customerService?.reviewOptimization?.enabled ?? false,
       );
       setDraftBadReviewReachoutEnabled(
-        selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled ?? false,
+        selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.enabled ??
+          false,
       );
       setDraftBadReviewReachoutStars(
-        String(selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.stars ?? 3),
+        String(
+          selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.stars ?? 3,
+        ),
       );
       setDraftBadReviewReachoutRecentDays(
-        String(selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout?.recentDays ?? 7),
+        String(
+          selectedShop.services?.customerService?.reviewOptimization?.badReviewReachout
+            ?.recentDays ?? 7,
+        ),
       );
     }
   }, [
@@ -167,11 +192,16 @@ export const EcommercePage = observer(function EcommercePage() {
   useEffect(() => {
     if (selectedShop) {
       setEditAffiliateBusinessPrompt(selectedShop.services?.affiliateService?.businessPrompt ?? "");
-      const minExpectedSalesUnits = selectedShop.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits;
-      setEditAffiliateMinExpectedSalesUnits(typeof minExpectedSalesUnits === "number" ? String(minExpectedSalesUnits) : "");
+      const minExpectedSalesUnits =
+        selectedShop.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits;
+      setEditAffiliateMinExpectedSalesUnits(
+        typeof minExpectedSalesUnits === "number" ? String(minExpectedSalesUnits) : "",
+      );
       const modelUsageScope = selectedShop.services?.affiliateService?.modelUsageScope;
       setEditAffiliateModelUsageScope(
-        modelUsageScope === "SHOP_LEVEL" || modelUsageScope === "REGION_LEVEL" ? modelUsageScope : "USER_LEVEL",
+        modelUsageScope === "SHOP_LEVEL" || modelUsageScope === "REGION_LEVEL"
+          ? modelUsageScope
+          : "USER_LEVEL",
       );
     }
   }, [
@@ -186,10 +216,7 @@ export const EcommercePage = observer(function EcommercePage() {
   async function handleRefreshShops() {
     setRefreshing(true);
     try {
-      await Promise.all([
-        entityStore.fetchShops(),
-        handleFetchPlatformApps(),
-      ]);
+      await Promise.all([entityStore.fetchShops(), handleFetchPlatformApps()]);
     } finally {
       setRefreshing(false);
     }
@@ -198,14 +225,16 @@ export const EcommercePage = observer(function EcommercePage() {
   function handleConnectShop(platformAppId: string) {
     if (!platformAppId) return;
     setUpgradePrompt(false);
-    oauthFlow.initiateOAuth(
-      platformAppId,
-      async () => {
-        await entityStore.fetchShops();
-        setConnectModalOpen(false);
-      },
-      (err) => handleError(err, "ecommerce.oauthFailed"),
-    ).catch(() => {}); // Error already handled by onError callback
+    oauthFlow
+      .initiateOAuth(
+        platformAppId,
+        async () => {
+          await entityStore.fetchShops();
+          setConnectModalOpen(false);
+        },
+        (err) => handleError(err, "ecommerce.oauthFailed"),
+      )
+      .catch(() => {}); // Error already handled by onError callback
   }
 
   async function handleReauthorize(shopId: string) {
@@ -254,7 +283,9 @@ export const EcommercePage = observer(function EcommercePage() {
     try {
       const shop = shops.find((s) => s.id === shopId);
       if (!shop) throw new Error(`Shop ${shopId} not found`);
-      await (shop as typeof shop & { updateAlias: (nextAlias: string) => Promise<unknown> }).updateAlias(alias);
+      await (
+        shop as typeof shop & { updateAlias: (nextAlias: string) => Promise<unknown> }
+      ).updateAlias(alias);
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
       throw err;
@@ -347,54 +378,6 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
-  async function handleSaveUnpaidReachoutSettings() {
-    if (!selectedShopId) return;
-    const normalizedStages = draftUnpaidReachoutStages.map((stage) => ({
-      id: stage.id,
-      enabled: stage.enabled,
-      delayMinutes: Number(stage.delayMinutes.trim()),
-      messageTemplate: stage.messageTemplate,
-    })).sort((a, b) => a.delayMinutes - b.delayMinutes);
-    const enabledDelays = normalizedStages.filter((stage) => stage.enabled).map((stage) => stage.delayMinutes);
-    if (
-      normalizedStages.length > 3 ||
-      normalizedStages.some((stage) => !Number.isInteger(stage.delayMinutes) || stage.delayMinutes < 1 || stage.delayMinutes > 2879) ||
-      new Set(enabledDelays).size !== enabledDelays.length
-    ) {
-      showToast(t("ecommerce.shopDrawer.aiCS.unpaidReachoutInvalidDelay"), "error");
-      return;
-    }
-    const holdoutPercent = Number(draftUnpaidHoldoutPercent.trim());
-    if (!Number.isInteger(holdoutPercent) || holdoutPercent < 1 || holdoutPercent > 20) {
-      showToast("Holdout must be an integer between 1% and 20%.", "error");
-      return;
-    }
-
-    setSavingUnpaidReachoutSettings(true);
-    setUpgradePrompt(false);
-    try {
-      const shop = shops.find((s) => s.id === selectedShopId);
-      if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
-      await shop.update({
-        services: {
-          customerService: {
-            unpaidOrderReachoutEnabled: draftUnpaidReachoutEnabled,
-            unpaidOrderReachoutStages: normalizedStages,
-            unpaidOrderReachoutExperiment: {
-              enabled: draftUnpaidExperimentEnabled,
-              holdoutPercent,
-            },
-          },
-        },
-      });
-      await entityStore.fetchShops();
-    } catch (err) {
-      handleError(err, "ecommerce.updateFailed");
-    } finally {
-      setSavingUnpaidReachoutSettings(false);
-    }
-  }
-
   async function handleSaveReviewOptimizationSettings() {
     if (!selectedShopId) return;
     const trimmedStars = draftBadReviewReachoutStars.trim();
@@ -456,7 +439,10 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
-  async function handleSaveAffiliateDecisionThresholds(value = editAffiliateMinExpectedSalesUnits, shopId = selectedShopId) {
+  async function handleSaveAffiliateDecisionThresholds(
+    value = editAffiliateMinExpectedSalesUnits,
+    shopId = selectedShopId,
+  ) {
     if (!shopId) return;
     const shop = shops.find((s) => s.id === shopId);
     if (!shop) return;
@@ -494,10 +480,13 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
-  async function handleAffiliateModelUsageScopeChange(value: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL") {
+  async function handleAffiliateModelUsageScopeChange(
+    value: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL",
+  ) {
     if (!selectedShopId) return;
     setEditAffiliateModelUsageScope(value);
-    if (value === (selectedShop?.services?.affiliateService?.modelUsageScope ?? "USER_LEVEL")) return;
+    if (value === (selectedShop?.services?.affiliateService?.modelUsageScope ?? "USER_LEVEL"))
+      return;
     setSavingAffiliateSettings(true);
     setUpgradePrompt(false);
     try {
@@ -614,10 +603,12 @@ export const EcommercePage = observer(function EcommercePage() {
       if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
       // Empty provider+model means "use global default"
       await shop.update({
-        services: { customerService: {
-          csProviderOverride: provider,
-          csModelOverride: model,
-        } },
+        services: {
+          customerService: {
+            csProviderOverride: provider,
+            csModelOverride: model,
+          },
+        },
       });
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
@@ -646,12 +637,16 @@ export const EcommercePage = observer(function EcommercePage() {
 
   const selectedRunProfileId = selectedShop?.services?.customerService?.runProfileId ?? "";
   const selectedRunProfile = runProfiles.find((p) => p.id === selectedRunProfileId) ?? null;
-  const selectedAffiliateRunProfileId = selectedShop?.services?.affiliateService?.runProfileId ?? "AFFILIATE_OPERATOR";
-  const selectedAffiliateRunProfile = runProfiles.find((p) => p.id === selectedAffiliateRunProfileId) ?? null;
+  const selectedAffiliateRunProfileId =
+    selectedShop?.services?.affiliateService?.runProfileId ?? "AFFILIATE_OPERATOR";
+  const selectedAffiliateRunProfile =
+    runProfiles.find((p) => p.id === selectedAffiliateRunProfileId) ?? null;
 
   const runProfileOptions = runProfiles.map((p) => ({
     value: p.id,
-    label: !p.userId ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string) : p.name,
+    label: !p.userId
+      ? (t(`surfaces.systemNames.${p.name}`, { defaultValue: p.name }) as string)
+      : p.name,
   }));
 
   const selectedCSProvider = selectedShop?.services?.customerService?.csProviderOverride ?? "";
@@ -690,9 +685,7 @@ export const EcommercePage = observer(function EcommercePage() {
       </div>
 
       {upgradePrompt && (
-        <div className="info-box info-box-blue">
-          {t("ecommerce.upgradeRequired")}
-        </div>
+        <div className="info-box info-box-blue">{t("ecommerce.upgradeRequired")}</div>
       )}
 
       {/* Shop Table */}
@@ -765,18 +758,22 @@ export const EcommercePage = observer(function EcommercePage() {
         draftUnpaidReachoutStages={draftUnpaidReachoutStages}
         draftUnpaidExperimentEnabled={draftUnpaidExperimentEnabled}
         draftUnpaidHoldoutPercent={draftUnpaidHoldoutPercent}
-        savingUnpaidReachoutSettings={savingUnpaidReachoutSettings}
         onToggleUnpaidReachoutEnabled={(enabled) => {
           setDraftUnpaidReachoutEnabled(enabled);
           if (enabled && draftUnpaidReachoutStages.length === 0) {
             const isEurope = ["DE", "ES", "FR", "IE", "IT"].includes(selectedShop?.region ?? "");
-            setDraftUnpaidReachoutStages([{ enabled: true, delayMinutes: isEurope ? "3" : "1440", messageTemplate: defaultUnpaidReachoutTemplate(selectedShop?.region) }]);
+            setDraftUnpaidReachoutStages([
+              {
+                enabled: true,
+                delayMinutes: isEurope ? "3" : "1440",
+                messageTemplate: defaultUnpaidReachoutTemplate(selectedShop?.region),
+              },
+            ]);
           }
         }}
         onDraftUnpaidReachoutStagesChange={setDraftUnpaidReachoutStages}
         onDraftUnpaidExperimentEnabledChange={setDraftUnpaidExperimentEnabled}
         onDraftUnpaidHoldoutPercentChange={setDraftUnpaidHoldoutPercent}
-        onSaveUnpaidReachoutSettings={handleSaveUnpaidReachoutSettings}
         draftReviewOptimizationEnabled={draftReviewOptimizationEnabled}
         draftBadReviewReachoutEnabled={draftBadReviewReachoutEnabled}
         draftBadReviewReachoutStars={draftBadReviewReachoutStars}

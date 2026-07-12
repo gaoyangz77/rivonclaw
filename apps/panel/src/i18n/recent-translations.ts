@@ -1,3 +1,55 @@
+const UNPAID_EXPERIMENT_TRANSLATIONS = {
+  unpaidReachoutInvalidHoldout: "Holdout must be a whole number from 1% to 20%.",
+  unpaidStatusExperiment: "Configuration experiment running",
+  unpaidStatusActive: "Reachout active",
+  unpaidStatusDisabled: "Not enabled",
+  unpaidStagesEnabled: "active stages",
+  unpaidFirstReachout: "First reachout",
+  unpaidSchedule: "Follow-up schedule",
+  unpaidScheduleHint: "Messages run in chronological order while the order remains unpaid.",
+  unpaidRunningLock: "Locked by running experiment",
+  unpaidEvaluation: "Evaluation & optimization",
+  unpaidEvaluationHint: "Measure incremental impact and compare complete reachout strategies.",
+  unpaidHoldoutLabel: "Holdout percentage",
+  unpaidNoReachout: "No reachout",
+  unpaidTreatment: "Treatment",
+  unpaidConfigOptimization: "Configuration optimization",
+  unpaidExperimentVersion: "Version",
+  unpaidDraftReady: "A saved draft is ready to continue.",
+  unpaidNoConfigExperiment: "No configuration experiment is running.",
+  unpaidManageExperiment: "Manage experiment",
+  unpaidContinueDraft: "Continue draft",
+  unpaidConfigureExperiment: "Configure A/B test",
+  unpaidSaveBeforeExperiment:
+    "Save reachout and evaluation settings before configuring an experiment.",
+  unpaidExperimentModalTitle: "Unpaid order reachout experiment",
+  unpaidRunning: "Running",
+  unpaidDraft: "Draft",
+  unpaidPlans: "Plans",
+  unpaidAddPlan: "Add plan",
+  unpaidTreatmentShare: "Treatment share",
+  unpaidVariantInvalid:
+    "This plan needs a name, at least one enabled stage, valid unique delays, and a unique configuration.",
+  unpaidExperimentInvalid: "Resolve plan and allocation errors before starting.",
+  unpaidSaveDraft: "Save draft",
+  unpaidDiscardDraft: "Archive draft",
+  unpaidStartNewVersion: "Start new version",
+  unpaidStartExperiment: "Start experiment",
+  unpaidCreateVersion: "Create new version",
+  unpaidStopExperiment: "Stop experiment",
+  unpaidUnsavedDraftTitle: "Save this experiment draft?",
+  unpaidUnsavedDraftHint: "The draft can be continued from another device after it is saved.",
+  unpaidDiscardChanges: "Discard changes",
+  unpaidSaveAndClose: "Save & close",
+  unpaidExperimentDraftSaved: "Experiment draft saved.",
+  unpaidExperimentStarted: "Configuration experiment started.",
+  unpaidExperimentStopped: "Experiment stopped; existing cohorts will continue to mature.",
+  unpaidPreviousFinal: "Previous experiment finalized",
+  unpaidUsePlan: "Use plan",
+  unpaidFinal: "Final",
+  unpaidMaturing: "Waiting for maturity",
+} as const;
+
 export const RECENT_TRANSLATIONS = {
   de: {
     adsManagement: {
@@ -36,6 +88,7 @@ export const RECENT_TRANSLATIONS = {
       },
       shopDrawer: {
         aiCS: {
+          ...UNPAID_EXPERIMENT_TRANSLATIONS,
           unpaidReachoutStage: "Stufe {{index}}",
           unpaidReachoutStageMinutes: "Minuten nach der Bestellerstellung",
           unpaidReachoutRemoveStage: "Entfernen",
@@ -107,6 +160,7 @@ export const RECENT_TRANSLATIONS = {
       },
       shopDrawer: {
         aiCS: {
+          ...UNPAID_EXPERIMENT_TRANSLATIONS,
           unpaidReachoutStage: "Etapa {{index}}",
           unpaidReachoutStageMinutes: "minutos después de crear el pedido",
           unpaidReachoutRemoveStage: "Eliminar",
@@ -177,6 +231,7 @@ export const RECENT_TRANSLATIONS = {
       },
       shopDrawer: {
         aiCS: {
+          ...UNPAID_EXPERIMENT_TRANSLATIONS,
           unpaidReachoutStage: "Étape {{index}}",
           unpaidReachoutStageMinutes: "minutes après la création de la commande",
           unpaidReachoutRemoveStage: "Supprimer",
@@ -254,6 +309,7 @@ export const RECENT_TRANSLATIONS = {
       },
       shopDrawer: {
         aiCS: {
+          ...UNPAID_EXPERIMENT_TRANSLATIONS,
           unpaidReachoutStage: "Tahap {{index}}",
           unpaidReachoutStageMinutes: "menit setelah pesanan dibuat",
           unpaidReachoutRemoveStage: "Hapus",
@@ -324,6 +380,7 @@ export const RECENT_TRANSLATIONS = {
       },
       shopDrawer: {
         aiCS: {
+          ...UNPAID_EXPERIMENT_TRANSLATIONS,
           unpaidReachoutStage: "Fase {{index}}",
           unpaidReachoutStageMinutes: "minuti dopo la creazione dell'ordine",
           unpaidReachoutRemoveStage: "Rimuovi",
@@ -394,6 +451,7 @@ export const RECENT_TRANSLATIONS = {
       },
       shopDrawer: {
         aiCS: {
+          ...UNPAID_EXPERIMENT_TRANSLATIONS,
           unpaidReachoutStage: "ขั้นตอน {{index}}",
           unpaidReachoutStageMinutes: "นาทีหลังจากสร้างคำสั่งซื้อ",
           unpaidReachoutRemoveStage: "ลบ",
