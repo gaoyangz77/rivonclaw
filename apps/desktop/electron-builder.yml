@@ -36,6 +36,7 @@ extraResources:
       - "package.json"
       - "vendor-runtime.tar"
       - "vendor-runtime-manifest.json"
+      - "src/agents/templates/**"
       - "docs/reference/templates/**"
       - "dist/**"
       - "!.git"
