@@ -17,6 +17,18 @@ const nmDir = path.join(vendorDir, "node_modules");
 const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-06-25.1";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 
+function hasCompletedProductionInstall() {
+  try {
+    const modulesState = JSON.parse(
+      fs.readFileSync(path.join(nmDir, ".modules.yaml"), "utf-8"),
+    );
+    return modulesState?.included?.dependencies === true &&
+      modulesState?.included?.devDependencies === false;
+  } catch {
+    return false;
+  }
+}
+
 const macRuntimeArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "arm64" ||
   process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "x64"
   ? process.env.RIVONCLAW_MAC_RUNTIME_ARCH
@@ -550,17 +562,21 @@ try {
     cwd: vendorDir,
     stdio: "inherit",
     timeout: 120_000,
-    env: {
-      ...process.env,
-      CI: "true",
-      // Keep the workflow-pinned pnpm; vendor auto-switching can hang after install on Linux.
-      npm_config_manage_package_manager_versions: "false",
-      npm_config_node_linker: "hoisted",
-    },
+    env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
   });
 } catch (err) {
-  console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
-  process.exit(1);
+  if (
+    process.platform === "linux" &&
+    err?.code === "ETIMEDOUT" &&
+    hasCompletedProductionInstall()
+  ) {
+    console.warn(
+      "[prune-vendor-deps] pnpm finished the production install but did not exit; continuing after verified timeout.",
+    );
+  } else {
+    console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
+    process.exit(1);
+  }
 }
 
 try {
