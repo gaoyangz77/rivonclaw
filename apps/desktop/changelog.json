@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.68",
+    "date": "2026-07-12",
+    "en": [
+      "Upgrade the bundled OpenClaw runtime and refresh vendor boundary checks"
+    ],
+    "zh": [
+      "升级内置 OpenClaw 运行时，并刷新 vendor 边界检查"
+    ]
+  },
+  {
     "version": "1.8.67",
     "date": "2026-07-11",
     "en": [

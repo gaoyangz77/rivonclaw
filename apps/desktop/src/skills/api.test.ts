@@ -54,7 +54,9 @@ describe("syncOfficialPresetSkills", () => {
         return new Response(JSON.stringify(manifest(currentVersion)), { status: 200 });
       }
       if (href.endsWith("/skills/official-foo.zip")) {
-        return new Response(skillZip("preset-foo", currentVersion, `content ${currentVersion}`), { status: 200 });
+        return new Response(new Uint8Array(skillZip("preset-foo", currentVersion, `content ${currentVersion}`)), {
+          status: 200,
+        });
       }
       return new Response("not found", { status: 404 });
     });

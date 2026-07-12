@@ -804,10 +804,11 @@ const cloudRest: EndpointHandler = async (req, res, _url, params, ctx: ApiContex
   }
 
   try {
+    const requestBody = body.length > 0 ? new Uint8Array(body) : undefined;
     const data = await ctx.cloudClient.rest(backendPath, {
       method: (req.method ?? "POST") as "GET" | "POST" | "PUT" | "DELETE",
       headers: forwardHeaders,
-      body: body.length > 0 ? body : undefined,
+      body: requestBody,
     });
     sendJson(res, 200, data);
   } catch (err) {
