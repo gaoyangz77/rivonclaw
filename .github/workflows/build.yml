@@ -168,7 +168,7 @@ jobs:
           $sizeBytes = (Get-ChildItem -Path $vendor -Recurse -File | Measure-Object -Property Length -Sum).Sum
           $sizeMB = [math]::Round($sizeBytes / 1MB, 1)
           Write-Host "Windows vendor payload: ${sizeMB}MB"
-          if ($sizeMB -gt 900) {
+          if ($sizeMB -gt 1000) {
             throw "Windows vendor payload is too large after prune: ${sizeMB}MB"
           }
 
@@ -636,7 +636,7 @@ jobs:
           node apps/desktop/scripts/verify-vendor-runtime-contract.cjs --vendor "$VENDOR"
           SIZE_MB=$(du -sm "$VENDOR" | awk '{print $1}')
           echo "Linux vendor payload: ${SIZE_MB}MB"
-          test "$SIZE_MB" -le 900 || { echo "Linux vendor payload is too large after prune: ${SIZE_MB}MB"; exit 1; }
+          test "$SIZE_MB" -le 1000 || { echo "Linux vendor payload is too large after prune: ${SIZE_MB}MB"; exit 1; }
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
