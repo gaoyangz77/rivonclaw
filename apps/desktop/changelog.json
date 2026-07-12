@@ -13,10 +13,12 @@
     "version": "1.8.68",
     "date": "2026-07-12",
     "en": [
-      "Upgrade the bundled OpenClaw runtime and refresh vendor boundary checks"
+      "Upgrade the bundled OpenClaw runtime and refresh vendor boundary checks",
+      "Redesign unpaid order reachout experiment settings"
     ],
     "zh": [
-      "升级内置 OpenClaw 运行时，并刷新 vendor 边界检查"
+      "升级内置 OpenClaw 运行时，并刷新 vendor 边界检查",
+      "重设计未付款订单触达实验设置"
     ]
   },
   {
