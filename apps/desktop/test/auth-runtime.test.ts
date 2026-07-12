@@ -99,6 +99,9 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
       backendState.adsOAuthCompleteHandler = handler;
       return () => {};
     }
+    subscribeToAffiliateOutreachAccountConnected() {
+      return () => {};
+    }
     subscribeToShopUpdated() {
       return () => {};
     }

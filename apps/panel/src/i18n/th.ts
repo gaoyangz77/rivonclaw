@@ -2492,7 +2492,6 @@ export default {
       "proposalIdLabel": "ข้อเสนอ",
       "creatorIdLabel": "ผู้สร้าง",
       "collaborationIdLabel": "ร่วมมือกัน",
-      "threadContext": "บริบทของบันทึก",
       "latestRecordLabel": "บันทึกล่าสุด",
       "viewDetails": "ดูรายละเอียด",
       "productIdLabel": "สินค้า",

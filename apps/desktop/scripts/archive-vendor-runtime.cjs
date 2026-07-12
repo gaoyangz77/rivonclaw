@@ -77,6 +77,7 @@ const RUNTIME_INCLUDES = [
   "openclaw.mjs",
   "package.json",
   "docs/reference/templates",
+  "skills",
   "dist",
   "dist-runtime",
   "extensions",

@@ -16,20 +16,31 @@ test.describe("Telegram Pairing Flow", () => {
     }
 
     // --- Step 2: Navigate to Channels page ---
-    const channelsBtn = window.locator(".nav-btn", { hasText: "Messaging" });
+    const connectionsGroup = window.locator(".nav-group-toggle", {
+      hasText: "Connections & Models",
+    });
+    if (await connectionsGroup.isVisible().catch(() => false)) {
+      const expanded = await connectionsGroup.getAttribute("aria-expanded");
+      if (expanded !== "true") {
+        await connectionsGroup.click();
+      }
+    }
+
+    const channelsBtn = window.locator(".nav-btn", { hasText: "Channels" });
     await channelsBtn.click();
     await expect(channelsBtn).toHaveClass(/nav-active/);
 
-    const channelTitle = window.locator(".channel-title");
+    const channelTitle = window.locator(".channel-title").first();
     await expect(channelTitle).toBeVisible({ timeout: 15_000 });
 
     const telegramRows = window
-      .locator(".channel-table tbody tr.table-hover-row")
+      .locator(".channel-table").first()
+      .locator("tbody tr.table-hover-row")
       .filter({ hasText: "Telegram" });
     const initialTelegramRowCount = await telegramRows.count();
 
     // --- Step 3: Select Telegram from the channel dropdown ---
-    const addSection = window.locator(".channel-add-section");
+    const addSection = window.locator(".channel-add-section").first();
     await expect(addSection).toBeVisible();
 
     // Open the custom Select dropdown (portal-rendered)
@@ -39,7 +50,7 @@ test.describe("Telegram Pairing Flow", () => {
     // The dropdown is rendered via portal to document.body
     const telegramOption = window.locator(".custom-select-dropdown .custom-select-option", {
       hasText: "Telegram",
-    });
+    }).first();
     await expect(telegramOption).toBeVisible({ timeout: 5_000 });
     await telegramOption.click();
 

@@ -40,6 +40,10 @@ test.describe("RivonClaw Welcome Flow", () => {
   });
 
   test("fresh user can login through deterministic captcha UI", async ({ window }) => {
+    test.skip(
+      Boolean(process.env.E2E_EXECUTABLE_PATH),
+      "Packaged production builds intentionally disable deterministic captcha mode",
+    );
     test.skip(!testEmail || !testPassword || !captchaToken, "Staging credentials and captcha token are required");
 
     await expect(window.locator(".welcome-page")).toBeVisible();
