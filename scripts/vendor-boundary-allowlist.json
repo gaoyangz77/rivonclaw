@@ -43,8 +43,13 @@
     },
     {
       "file": "apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts",
-      "vendorPath": "vendor/openclaw/src/agents/pi-embedded-runner/run/attempt.ts",
-      "reason": "Drift guard — validates system prompt override is re-applied before LLM call (vendor patch 0006)"
+      "vendorPath": "vendor/openclaw/src/agents/embedded-agent-runner/run/attempt.ts",
+      "reason": "Drift guard — validates the generated raw prompt is installed before the LLM call (vendor patch 0003)"
+    },
+    {
+      "file": "apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/embedded-agent-runner/system-prompt.ts",
+      "reason": "Drift guard — validates the raw prompt uses OpenClaw's native AgentSession API (vendor patch 0003)"
     },
     {
       "file": "apps/desktop/src/gateway/vendor-pi-compat-validation.sentinel.test.ts",
