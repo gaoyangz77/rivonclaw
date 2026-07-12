@@ -38,6 +38,7 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
         shopName
         __typename
         id
+        userId
         platform
         platformAppId
         platformShopId
@@ -115,6 +116,7 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
     shopUpdated {
       __typename
       id
+      userId
       platform
       platformAppId
       platformShopId

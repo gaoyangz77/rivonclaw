@@ -7,6 +7,7 @@ import id from "./id.js";
 import it from "./it.js";
 import th from "./th.js";
 import { LEGACY_I18N_BACKFILL } from "./legacy-backfill.js";
+import { RECENT_TRANSLATIONS } from "./recent-translations.js";
 
 type TranslationResource = object;
 export type SupportedLanguageCode = "en" | "zh" | "de" | "es" | "fr" | "id" | "it" | "th";
@@ -40,12 +41,12 @@ function mergeTranslationResource<T extends TranslationResourceRecord>(
 export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
   { code: "en", label: "English", resource: en },
   { code: "zh", label: "中文", resource: zh },
-  { code: "de", label: "Deutsch", resource: mergeTranslationResource(de, LEGACY_I18N_BACKFILL.de) },
-  { code: "es", label: "Español", resource: mergeTranslationResource(es, LEGACY_I18N_BACKFILL.es) },
-  { code: "fr", label: "Français", resource: mergeTranslationResource(fr, LEGACY_I18N_BACKFILL.fr) },
-  { code: "id", label: "Bahasa Indonesia", resource: mergeTranslationResource(id, LEGACY_I18N_BACKFILL.id) },
-  { code: "it", label: "Italiano", resource: mergeTranslationResource(it, LEGACY_I18N_BACKFILL.it) },
-  { code: "th", label: "ไทย", resource: mergeTranslationResource(th, LEGACY_I18N_BACKFILL.th) },
+  { code: "de", label: "Deutsch", resource: mergeTranslationResource(mergeTranslationResource(de, LEGACY_I18N_BACKFILL.de), RECENT_TRANSLATIONS.de) },
+  { code: "es", label: "Español", resource: mergeTranslationResource(mergeTranslationResource(es, LEGACY_I18N_BACKFILL.es), RECENT_TRANSLATIONS.es) },
+  { code: "fr", label: "Français", resource: mergeTranslationResource(mergeTranslationResource(fr, LEGACY_I18N_BACKFILL.fr), RECENT_TRANSLATIONS.fr) },
+  { code: "id", label: "Bahasa Indonesia", resource: mergeTranslationResource(mergeTranslationResource(id, LEGACY_I18N_BACKFILL.id), RECENT_TRANSLATIONS.id) },
+  { code: "it", label: "Italiano", resource: mergeTranslationResource(mergeTranslationResource(it, LEGACY_I18N_BACKFILL.it), RECENT_TRANSLATIONS.it) },
+  { code: "th", label: "ไทย", resource: mergeTranslationResource(mergeTranslationResource(th, LEGACY_I18N_BACKFILL.th), RECENT_TRANSLATIONS.th) },
 ] as const;
 
 export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] = LANGUAGE_OPTIONS.map((language) => language.code);

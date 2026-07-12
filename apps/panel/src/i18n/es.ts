@@ -2492,7 +2492,6 @@ export default {
       "proposalIdLabel": "Propuesta",
       "creatorIdLabel": "Creador",
       "collaborationIdLabel": "Colaboración",
-      "threadContext": "Contexto del registro",
       "latestRecordLabel": "Registro más reciente",
       "viewDetails": "Ver detalles",
       "productIdLabel": "Producto",

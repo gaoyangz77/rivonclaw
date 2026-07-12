@@ -54,6 +54,8 @@ function activatePlugin() {
       handlers[event] = handler;
     }),
     registerGatewayMethod: vi.fn(),
+    registerSessionExtension: vi.fn(),
+    registerTrustedToolPolicy: vi.fn(),
   };
 
   plugin.activate(api as any);

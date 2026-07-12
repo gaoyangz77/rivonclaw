@@ -2,7 +2,7 @@ import { test as base, type ElectronApplication, type Page, type TestInfo } from
 import { _electron } from "playwright";
 import path from "node:path";
 import dotenv from "dotenv";
-import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { execSync } from "node:child_process";
 import { createConnection } from "node:net";
@@ -290,6 +290,11 @@ async function launchElectronApp(
   // single-instance lock. Without this, force-killed prod instances
   // leave a stale lock that blocks subsequent test launches.
   const userDataDir = path.join(tempDir, "electron-data");
+  const sharedRuntimeCache = process.env.RIVONCLAW_E2E_VENDOR_RUNTIME_CACHE;
+  if (sharedRuntimeCache) {
+    mkdirSync(userDataDir, { recursive: true });
+    symlinkSync(sharedRuntimeCache, path.join(userDataDir, "runtime"), "dir");
+  }
 
   if (execPath) {
     // Prod mode: launch the packaged app binary
@@ -321,7 +326,7 @@ async function launchElectronApp(
     // in ANY fixture, not just inside use(app)).
     await attachDesktopLogs(tempDir, testInfo);
 
-    const failed = testInfo.status !== "passed";
+    const failed = testInfo.status !== testInfo.expectedStatus;
     if (failed) {
       console.log(`[e2e] Test FAILED — temp dir preserved: ${tempDir}`);
     } else {

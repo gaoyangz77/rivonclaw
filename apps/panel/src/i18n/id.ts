@@ -2492,7 +2492,6 @@ export default {
       "proposalIdLabel": "Usulan",
       "creatorIdLabel": "Pencipta",
       "collaborationIdLabel": "Kolaborasi",
-      "threadContext": "Konteks catatan",
       "latestRecordLabel": "Catatan terbaru",
       "viewDetails": "Lihat detail",
       "productIdLabel": "Produk",

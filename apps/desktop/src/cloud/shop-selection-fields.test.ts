@@ -25,6 +25,24 @@ function requiredShopLeafPaths(): string[] {
   }
 
   for (const field of modelPropertyNames(CustomerServiceConfigModel)) {
+    if (field === "unpaidOrderReachoutStages") {
+      paths.push(
+        "services.customerService.unpaidOrderReachoutStages.id",
+        "services.customerService.unpaidOrderReachoutStages.enabled",
+        "services.customerService.unpaidOrderReachoutStages.delayMinutes",
+        "services.customerService.unpaidOrderReachoutStages.messageTemplate",
+      );
+      continue;
+    }
+    if (field === "unpaidOrderReachoutExperiment") {
+      paths.push(
+        "services.customerService.unpaidOrderReachoutExperiment.enabled",
+        "services.customerService.unpaidOrderReachoutExperiment.holdoutPercent",
+        "services.customerService.unpaidOrderReachoutExperiment.experimentId",
+        "services.customerService.unpaidOrderReachoutExperiment.startedAt",
+      );
+      continue;
+    }
     if (field === "reviewOptimization") {
       paths.push(
         "services.customerService.reviewOptimization.enabled",

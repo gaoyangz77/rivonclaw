@@ -224,6 +224,7 @@ describe("BackendSubscriptionClient", () => {
 
     const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
+    c.enableAuthenticatedSubscriptions();
     c.subscribeToUpdates(currentVersion, onUpdate);
     client = c;
 
@@ -258,11 +259,16 @@ describe("BackendSubscriptionClient", () => {
     const onUpdate = vi.fn<(payload: UpdatePayload) => void>();
     const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
+    c.enableAuthenticatedSubscriptions();
     c.subscribeToUpdates("1.0.0", onUpdate);
     client = c;
 
-    // Wait for the subscription to be established
-    await new Promise((r) => setTimeout(r, 500));
+    // Auth enablement restarts the transport. Wait for the operation to be
+    // registered on the replacement connection before publishing the event.
+    await vi.waitFor(
+      () => expect(mockServer.getSubscribeCount()).toBe(1),
+      { timeout: 3_000, interval: 50 },
+    );
 
     mockServer.pushUpdate({
       version: "3.0.0",
@@ -286,11 +292,14 @@ describe("BackendSubscriptionClient", () => {
     const onUpdate = vi.fn<(payload: UpdatePayload) => void>();
     const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
+    c.enableAuthenticatedSubscriptions();
     c.subscribeToUpdates("2.0.0", onUpdate);
     client = c;
 
-    // Wait for the subscription to be established
-    await new Promise((r) => setTimeout(r, 500));
+    await vi.waitFor(
+      () => expect(mockServer.getSubscribeCount()).toBe(1),
+      { timeout: 3_000, interval: 50 },
+    );
 
     mockServer.pushUpdate({ version: "1.5.0" });
 
@@ -305,6 +314,7 @@ describe("BackendSubscriptionClient", () => {
 
     const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
+    c.enableAuthenticatedSubscriptions();
     c.subscribeToUpdates("1.0.0", vi.fn());
     client = c;
 

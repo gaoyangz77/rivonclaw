@@ -39,6 +39,7 @@ const REQUIRED_RUNTIME_FILES = [
   "docs/reference/templates/BOOTSTRAP.md",
   "docs/reference/templates/SOUL.md",
   "docs/reference/templates/TOOLS.md",
+  "skills",
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
   "extensions/openclaw-lark/openclaw.plugin.json",
