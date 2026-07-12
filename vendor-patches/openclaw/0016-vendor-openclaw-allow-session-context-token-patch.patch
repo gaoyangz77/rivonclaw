@@ -1,4 +1,4 @@
-From e6636f54285947c69c3483ee9cea905007671308 Mon Sep 17 00:00:00 2001
+From 306c1cd57edd53d96adfc5fd478e0902bfabd87b Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 18 Jun 2026 23:53:22 -0700
 Subject: [PATCH] vendor(openclaw): allow session context token patch
@@ -15,28 +15,28 @@ Tests:
 - apps/desktop/src/cs-bridge/vendor-session-context-tokens.sentinel.test.ts
 - vendor/openclaw/src/gateway/sessions-patch.test.ts
 ---
- src/gateway/protocol/schema/sessions.ts |  1 +
- src/gateway/sessions-patch.test.ts      | 27 +++++++++++++++++++++++++
- src/gateway/sessions-patch.ts           | 12 +++++++++++
+ .../gateway-protocol/src/schema/sessions.ts   |  1 +
+ src/gateway/sessions-patch.test.ts            | 27 +++++++++++++++++++
+ src/gateway/sessions-patch.ts                 | 12 +++++++++
  3 files changed, 40 insertions(+)
 
-diff --git a/src/gateway/protocol/schema/sessions.ts b/src/gateway/protocol/schema/sessions.ts
-index 83c31ad375..899dda5783 100644
---- a/src/gateway/protocol/schema/sessions.ts
-+++ b/src/gateway/protocol/schema/sessions.ts
-@@ -178,6 +178,7 @@ export const SessionsPatchParamsSchema = Type.Object(
+diff --git a/packages/gateway-protocol/src/schema/sessions.ts b/packages/gateway-protocol/src/schema/sessions.ts
+index d938f80f68..d0b78ab20c 100644
+--- a/packages/gateway-protocol/src/schema/sessions.ts
++++ b/packages/gateway-protocol/src/schema/sessions.ts
+@@ -322,6 +322,7 @@ export const SessionsPatchParamsSchema = Type.Object(
      execAsk: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
      execNode: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
      model: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
 +    contextTokens: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()])),
      spawnedBy: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
      spawnedWorkspaceDir: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
-     spawnDepth: Type.Optional(Type.Union([Type.Integer({ minimum: 0 }), Type.Null()])),
+     spawnedCwd: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
 diff --git a/src/gateway/sessions-patch.test.ts b/src/gateway/sessions-patch.test.ts
-index 47719c5ef3..a3387fca8d 100644
+index 90b86c7996..91539e7bbe 100644
 --- a/src/gateway/sessions-patch.test.ts
 +++ b/src/gateway/sessions-patch.test.ts
-@@ -133,6 +133,33 @@ describe("gateway sessions patch", () => {
+@@ -238,6 +238,33 @@ describe("gateway sessions patch", () => {
      expect(entry.thinkingLevel).toBeUndefined();
    });
  
@@ -71,10 +71,10 @@ index 47719c5ef3..a3387fca8d 100644
      const entry = expectPatchOk(
        await runPatch({
 diff --git a/src/gateway/sessions-patch.ts b/src/gateway/sessions-patch.ts
-index d4373272bd..59d7681c55 100644
+index b1500b0590..5c708840bc 100644
 --- a/src/gateway/sessions-patch.ts
 +++ b/src/gateway/sessions-patch.ts
-@@ -453,6 +453,18 @@ export async function applySessionsPatchToStore(params: {
+@@ -588,6 +588,18 @@ export async function projectSessionsPatchEntry(params: {
      }
    }
  

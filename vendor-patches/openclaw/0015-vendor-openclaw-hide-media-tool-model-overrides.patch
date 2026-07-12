@@ -1,4 +1,4 @@
-From b4101df76e5706467cd7860e5fc61caabd2016a6 Mon Sep 17 00:00:00 2001
+From 02b6b46d5c8a33f58f62cbfa3899f36122c650b5 Mon Sep 17 00:00:00 2001
 From: Gaoyang Zhang <younglobalization@gmail.com>
 Date: Fri, 5 Jun 2026 02:26:11 -0700
 Subject: [PATCH] vendor(openclaw): hide media tool model overrides
@@ -13,61 +13,79 @@ Removal:
 Tests:
 - node scripts/run-vitest.mjs run --config test/vitest/vitest.agents-tools.config.ts src/agents/tools/image-tool.test.ts src/agents/tools/video-generate-tool.test.ts
 ---
- src/agents/tools/image-tool.test.ts          |  1 -
- src/agents/tools/image-tool.ts               | 13 ++++---------
- src/agents/tools/video-generate-tool.test.ts | 16 ++++++++++++++++
- src/agents/tools/video-generate-tool.ts      | 16 ++++------------
- 4 files changed, 24 insertions(+), 22 deletions(-)
+ src/agents/tools/image-tool.test.ts          | 14 +++++++----
+ src/agents/tools/image-tool.ts               | 16 +++---------
+ src/agents/tools/video-generate-tool.test.ts | 16 ++++++++++++
+ src/agents/tools/video-generate-tool.ts      | 26 ++++----------------
+ 4 files changed, 34 insertions(+), 38 deletions(-)
 
 diff --git a/src/agents/tools/image-tool.test.ts b/src/agents/tools/image-tool.test.ts
-index 93f5db0a22..4e1c6cc536 100644
+index 518405ea46..a3396cf3a7 100644
 --- a/src/agents/tools/image-tool.test.ts
 +++ b/src/agents/tools/image-tool.test.ts
-@@ -1306,7 +1306,6 @@ describe("image tool implicit imageModel config", () => {
+@@ -1220,7 +1220,7 @@ describe("image tool implicit imageModel config", () => {
+     });
+   });
+ 
+-  it("honors a per-call model override when no imageModel is configured", async () => {
++  it("ignores a caller-supplied model field and uses configured imageModel", async () => {
+     await withTempAgentDir(async (agentDir) => {
+       const describeImage = vi.fn(async (params: ImageDescriptionRequest) => ({
+         text: `ok ${params.provider}/${params.model}`,
+@@ -1232,7 +1232,12 @@ describe("image tool implicit imageModel config", () => {
+         describeImage,
+       });
+       const cfg: OpenClawConfig = {
+-        agents: { defaults: { model: { primary: "opencode-go/kimi-k2.6" } } },
++        agents: {
++          defaults: {
++            model: { primary: "opencode-go/kimi-k2.6" },
++            imageModel: { primary: "opencode-go/kimi-k2.6" },
++          },
++        },
+       };
+       const tool = createRequiredImageTool({
+         config: cfg,
+@@ -1248,8 +1253,8 @@ describe("image tool implicit imageModel config", () => {
+ 
+       const request = firstImageRequest(describeImage);
+       expect(request.provider).toBe("opencode-go");
+-      expect(request.model).toBe("mimo-v2-omni");
+-      expectToolText(result, "ok opencode-go/mimo-v2-omni");
++      expect(request.model).toBe("kimi-k2.6");
++      expectToolText(result, "ok opencode-go/kimi-k2.6");
+     });
+   });
+ 
+@@ -2059,7 +2064,6 @@ describe("image tool implicit imageModel config", () => {
              type: "array",
              items: { type: "string" },
            },
 -          model: { type: "string" },
-           maxBytesMb: { type: "number" },
-           maxImages: { type: "number" },
+           maxBytesMb: { type: "number", exclusiveMinimum: 0 },
+           maxImages: { type: "integer", minimum: 1 },
          },
 diff --git a/src/agents/tools/image-tool.ts b/src/agents/tools/image-tool.ts
-index 31653e2e31..739c9cf001 100644
+index d0e4381040..b4796b864b 100644
 --- a/src/agents/tools/image-tool.ts
 +++ b/src/agents/tools/image-tool.ts
-@@ -39,7 +39,6 @@ import {
-   buildTextToolResult,
+@@ -68,7 +68,6 @@ import {
+   resolveMediaToolInboundRoots,
    resolveMediaToolLocalRoots,
    resolveRemoteMediaSsrfPolicy,
 -  resolvePromptAndModelOverride,
  } from "./media-tool-shared.js";
  import {
    buildToolModelConfigFromCandidates,
-@@ -266,7 +265,6 @@ async function runImagePrompt(params: {
-   cfg?: OpenClawConfig;
-   agentDir: string;
-   imageModelConfig: ImageModelConfig;
--  modelOverride?: string;
-   prompt: string;
-   images: Array<{ buffer: Buffer; mimeType: string }>;
- }): Promise<{
-@@ -281,7 +279,6 @@ async function runImagePrompt(params: {
- 
-   const result = await runWithImageModelFallback({
-     cfg: effectiveCfg,
--    modelOverride: params.modelOverride,
-     run: async (provider, modelId) => {
-       const timeoutMs = resolveImageToolTimeoutMs({
-         cfg: providerCfg,
-@@ -434,7 +431,6 @@ export function createImageTool(options?: {
-           description: "Multiple image paths or URLs (up to maxImages, default 20).",
+@@ -816,7 +815,6 @@ export function createImageTool(options?: {
+           description: "Image paths/URLs; maxImages default 20.",
          }),
        ),
 -      model: Type.Optional(Type.String()),
-       maxBytesMb: Type.Optional(Type.Number()),
-       maxImages: Type.Optional(Type.Number()),
+       maxBytesMb: optionalFiniteNumberSchema({ exclusiveMinimum: 0 }),
+       maxImages: optionalPositiveIntegerSchema(),
      }),
-@@ -485,10 +481,10 @@ export function createImageTool(options?: {
+@@ -863,10 +861,10 @@ export function createImageTool(options?: {
          };
        }
  
@@ -79,23 +97,42 @@ index 31653e2e31..739c9cf001 100644
 +        typeof record.prompt === "string" && record.prompt.trim()
 +          ? record.prompt.trim()
 +          : DEFAULT_PROMPT;
-       const maxBytesMb = typeof record.maxBytesMb === "number" ? record.maxBytesMb : undefined;
+       const maxBytesMb = readFiniteNumberParam(record, "maxBytesMb", {
+         min: 0,
+         minExclusive: true,
+@@ -875,10 +873,6 @@ export function createImageTool(options?: {
        const maxBytes = pickMaxBytes(options?.config, maxBytesMb);
- 
-@@ -637,7 +633,6 @@ export function createImageTool(options?: {
+       const imageModelConfig =
+         resolvedImageModelConfig ??
+-        resolveImageModelConfigForOverride({
+-          cfg: options?.config,
+-          modelOverride,
+-        }) ??
+         resolveImageModelConfigForTool({
+           cfg: options?.config,
+           agentDir,
+@@ -893,7 +887,6 @@ export function createImageTool(options?: {
+       const imageCompression = await imageToolProviderDeps.resolveImageCompressionPolicy({
          cfg: options?.config,
+         imageModelConfig,
+-        modelOverride,
+         imageCount: imageInputs.length,
          agentDir,
+         workspaceDir: options?.workspaceDir,
+@@ -1058,7 +1051,6 @@ export function createImageTool(options?: {
+         agentDir,
+         authStore: options?.authProfileStore,
          imageModelConfig,
 -        modelOverride,
          prompt: promptRaw,
          images: loadedImages.map((img) => ({ buffer: img.buffer, mimeType: img.mimeType })),
-       });
+         workspaceDir: options?.workspaceDir,
 diff --git a/src/agents/tools/video-generate-tool.test.ts b/src/agents/tools/video-generate-tool.test.ts
-index b34dd3a622..7eccb536bc 100644
+index 719a7c94f6..11e7ea5fcc 100644
 --- a/src/agents/tools/video-generate-tool.test.ts
 +++ b/src/agents/tools/video-generate-tool.test.ts
-@@ -183,6 +183,22 @@ describe("createVideoGenerateTool", () => {
-     ).not.toBeNull();
+@@ -374,6 +374,22 @@ describe("createVideoGenerateTool", () => {
+     );
    });
  
 +  it("does not expose or forward a per-call model override", async () => {
@@ -118,20 +155,33 @@ index b34dd3a622..7eccb536bc 100644
      const listProviders = vi
        .spyOn(videoGenerationRuntime, "listRuntimeVideoGenerationProviders")
 diff --git a/src/agents/tools/video-generate-tool.ts b/src/agents/tools/video-generate-tool.ts
-index b32c774625..276ee31bc1 100644
+index 138ea74abf..c56742b7bc 100644
 --- a/src/agents/tools/video-generate-tool.ts
 +++ b/src/agents/tools/video-generate-tool.ts
-@@ -167,9 +167,6 @@ const VideoGenerateToolSchema = Type.Object({
-         "Must not have more entries than the combined audio list; use an empty string to leave a position unset.",
+@@ -162,9 +162,6 @@ const VideoGenerateToolProperties = {
+         "`audioRef` + `audioRefs` roles by index after de-dupe. Value: reference_audio; empty string leaves unset.",
      }),
    ),
 -  model: Type.Optional(
--    Type.String({ description: "Optional provider/model override, e.g. qwen/wan2.6-t2v." }),
+-    Type.String({ description: "Provider/model override, e.g. qwen/wan2.6-t2v." }),
 -  ),
    filename: Type.Optional(
      Type.String({
-       description:
-@@ -581,7 +578,6 @@ async function executeVideoGenerationJob(params: {
+       description: "Output filename hint; basename preserved in managed media dir.",
+@@ -434,12 +431,10 @@ function normalizeReferenceInputs(params: {
+ function resolveSelectedVideoGenerationProvider(params: {
+   config?: OpenClawConfig;
+   videoGenerationModelConfig: ToolModelConfig;
+-  modelOverride?: string;
+ }): VideoGenerationProvider | undefined {
+   return resolveSelectedCapabilityProvider({
+     providers: listRuntimeVideoGenerationProviders({ config: params.config }),
+     modelConfig: params.videoGenerationModelConfig,
+-    modelOverride: params.modelOverride,
+     parseModelRef: parseVideoGenerationModelRef,
+   });
+ }
+@@ -681,7 +676,6 @@ async function executeVideoGenerationJob(params: {
    effectiveCfg: OpenClawConfig;
    prompt: string;
    agentDir?: string;
@@ -139,7 +189,7 @@ index b32c774625..276ee31bc1 100644
    size?: string;
    aspectRatio?: string;
    resolution?: VideoGenerationResolution;
-@@ -607,7 +603,6 @@ async function executeVideoGenerationJob(params: {
+@@ -707,7 +701,6 @@ async function executeVideoGenerationJob(params: {
      cfg: params.effectiveCfg,
      prompt: params.prompt,
      agentDir: params.agentDir,
@@ -147,45 +197,58 @@ index b32c774625..276ee31bc1 100644
      size: params.size,
      aspectRatio: params.aspectRatio,
      resolution: params.resolution,
-@@ -880,7 +875,6 @@ export function createVideoGenerateTool(options?: {
+@@ -1010,7 +1003,6 @@ export function createVideoGenerateTool(options?: {
+         return activeDuplicateGuardResult;
        }
  
-       const prompt = readStringParam(args, "prompt", { required: true });
 -      const model = readStringParam(args, "model");
        const filename = readStringParam(args, "filename");
        const size = readStringParam(args, "size");
        const aspectRatio = normalizeAspectRatio(readStringParam(args, "aspectRatio"));
-@@ -946,8 +940,10 @@ export function createVideoGenerateTool(options?: {
+@@ -1082,20 +1074,16 @@ export function createVideoGenerateTool(options?: {
        const selectedProvider = resolveSelectedVideoGenerationProvider({
          config: effectiveCfg,
          videoGenerationModelConfig,
 -        modelOverride: model,
        });
-+      const selectedModel =
-+        parseVideoGenerationModelRef(videoGenerationModelConfig.primary)?.model ??
-+        selectedProvider?.defaultModel;
-       const loadedReferenceImages = await loadReferenceAssets({
-         inputs: imageInputs,
-         expectedKind: "image",
-@@ -990,8 +986,7 @@ export function createVideoGenerateTool(options?: {
+-      const explicitModelRef = parseVideoGenerationModelRef(model);
+       const primaryModelRef = parseVideoGenerationModelRef(videoGenerationModelConfig.primary);
+       const requestKey = buildMediaGenerationRequestKey({
+         tool: "video_generate",
+         prompt,
+-        provider: selectedProvider?.id ?? explicitModelRef?.provider ?? primaryModelRef?.provider,
++        provider: selectedProvider?.id ?? primaryModelRef?.provider,
+         model:
+-          model !== undefined
+-            ? (explicitModelRef?.model ?? model)
+-            : (primaryModelRef?.model ??
+-              videoGenerationModelConfig.primary ??
+-              selectedProvider?.defaultModel),
++          primaryModelRef?.model ??
++          videoGenerationModelConfig.primary ??
++          selectedProvider?.defaultModel,
+         size,
+         aspectRatio,
+         resolution,
+@@ -1160,8 +1148,7 @@ export function createVideoGenerateTool(options?: {
        }
        validateVideoGenerationCapabilities({
          provider: selectedProvider,
 -        model:
 -          parseVideoGenerationModelRef(model)?.model ?? model ?? selectedProvider?.defaultModel,
-+        model: selectedModel,
++        model: primaryModelRef?.model ?? selectedProvider?.defaultModel,
          inputImageCount: loadedReferenceImages.length,
          inputVideoCount: loadedReferenceVideos.length,
          inputAudioCount: loadedReferenceAudios.length,
-@@ -1021,7 +1016,6 @@ export function createVideoGenerateTool(options?: {
-                   effectiveCfg,
-                   prompt,
-                   agentDir: options?.agentDir,
--                  model,
-                   size,
-                   aspectRatio,
-                   resolution,
-@@ -1101,7 +1095,6 @@ export function createVideoGenerateTool(options?: {
+@@ -1207,7 +1194,6 @@ export function createVideoGenerateTool(options?: {
+               effectiveCfg,
+               prompt,
+               agentDir: options?.agentDir,
+-              model,
+               size,
+               aspectRatio,
+               resolution,
+@@ -1252,7 +1238,6 @@ export function createVideoGenerateTool(options?: {
                getResolvedInput: (entry) => entry.resolvedInput,
                singleRewriteKey: "videoRewrittenFrom",
              }),
@@ -193,7 +256,7 @@ index b32c774625..276ee31bc1 100644
              ...(size ? { size } : {}),
              ...(aspectRatio ? { aspectRatio } : {}),
              ...(resolution ? { resolution } : {}),
-@@ -1119,7 +1112,6 @@ export function createVideoGenerateTool(options?: {
+@@ -1270,7 +1255,6 @@ export function createVideoGenerateTool(options?: {
            effectiveCfg,
            prompt,
            agentDir: options?.agentDir,

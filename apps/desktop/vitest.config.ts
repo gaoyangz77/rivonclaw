@@ -21,6 +21,22 @@ export default defineConfig({
       "@rivonclaw/core": resolve(__dirname, "../../packages/core/src/index.ts"),
       "@rivonclaw/storage": resolve(__dirname, "../../packages/storage/src/index.ts"),
       "@rivonclaw/updater": resolve(__dirname, "../../packages/updater/src/index.ts"),
+      "@openclaw/normalization-core/string-coerce": resolve(
+        __dirname,
+        "../../vendor/openclaw/packages/normalization-core/src/string-coerce.ts",
+      ),
+      "@openclaw/normalization-core/string-normalization": resolve(
+        __dirname,
+        "../../vendor/openclaw/packages/normalization-core/src/string-normalization.ts",
+      ),
+      "@openclaw/normalization-core/number-coercion": resolve(
+        __dirname,
+        "../../vendor/openclaw/packages/normalization-core/src/number-coercion.ts",
+      ),
+      "@openclaw/normalization-core/record-coerce": resolve(
+        __dirname,
+        "../../vendor/openclaw/packages/normalization-core/src/record-coerce.ts",
+      ),
       "graphql": graphqlPath,
     },
   },

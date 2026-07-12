@@ -1,4 +1,4 @@
-From e2b27873809119ac09c9a28074d1912ead4186c3 Mon Sep 17 00:00:00 2001
+From c6b43e160f2f8871b115ce640d363d55b0326205 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 8 Jul 2026 20:16:28 -0700
 Subject: [PATCH] vendor(openclaw): run image tool prompts in child process
@@ -25,13 +25,11 @@ Tests:
 
 - apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts
 ---
- src/agents/tools/image-tool-worker.ts |  38 ++++++
- src/agents/tools/image-tool.test.ts   |  51 ++++++++
- src/agents/tools/image-tool.ts        | 175 +++++++++++++++++++++++++-
- src/media-understanding/image.test.ts |  23 +++-
- src/media-understanding/image.ts      |  10 +-
+ src/agents/tools/image-tool-worker.ts |  38 ++++++++
+ src/agents/tools/image-tool.test.ts   |  51 ++++++++++
+ src/agents/tools/image-tool.ts        | 133 +++++++++++++++++++++++++-
  tsdown.config.ts                      |   1 +
- 6 files changed, 283 insertions(+), 15 deletions(-)
+ 4 files changed, 218 insertions(+), 5 deletions(-)
  create mode 100644 src/agents/tools/image-tool-worker.ts
 
 diff --git a/src/agents/tools/image-tool-worker.ts b/src/agents/tools/image-tool-worker.ts
@@ -79,18 +77,18 @@ index 0000000000..f1e6a754b5
 +  }
 +});
 diff --git a/src/agents/tools/image-tool.test.ts b/src/agents/tools/image-tool.test.ts
-index 4e1c6cc536..504ee125b3 100644
+index a3396cf3a7..11b790ee79 100644
 --- a/src/agents/tools/image-tool.test.ts
 +++ b/src/agents/tools/image-tool.test.ts
-@@ -1952,3 +1952,54 @@ describe("image tool response validation", () => {
-     expect(__testing.hasImageReasoningOnlyResponse(message as never)).toBe(false);
+@@ -3316,3 +3316,54 @@ describe("image compression policy", () => {
+     });
    });
  });
 +
 +describe("image tool child process delegation", () => {
 +  afterEach(() => {
 +    vi.unstubAllEnvs();
-+    __testing.setImagePromptChildRunnerForTest();
++    testing.setImagePromptChildRunnerForTest();
 +  });
 +
 +  it("runs image model prompting through the child runner when enabled", async () => {
@@ -103,7 +101,7 @@ index 4e1c6cc536..504ee125b3 100644
 +        model: "gpt-5.4-mini",
 +        attempts: [],
 +      }));
-+      __testing.setImagePromptChildRunnerForTest(childRunner);
++      testing.setImagePromptChildRunnerForTest(childRunner);
 +
 +      const tool = createRequiredImageTool({
 +        agentDir,
@@ -138,14 +136,17 @@ index 4e1c6cc536..504ee125b3 100644
 +  });
 +});
 diff --git a/src/agents/tools/image-tool.ts b/src/agents/tools/image-tool.ts
-index 739c9cf001..3c0cd34c90 100644
+index b4796b864b..d4345baaee 100644
 --- a/src/agents/tools/image-tool.ts
 +++ b/src/agents/tools/image-tool.ts
-@@ -1,7 +1,12 @@
+@@ -3,10 +3,15 @@
+  *
+  * Describes local, staged, web, and generated media through configured media-understanding providers.
+  */
 -import { resolve, isAbsolute } from "node:path";
 +import { fork } from "node:child_process";
 +import { existsSync } from "node:fs";
-+import { dirname, resolve, isAbsolute } from "node:path";
++import { dirname, isAbsolute, resolve } from "node:path";
 +import { fileURLToPath } from "node:url";
  import { Type } from "typebox";
  import type { OpenClawConfig } from "../../config/types.openclaw.js";
@@ -155,28 +156,26 @@ index 739c9cf001..3c0cd34c90 100644
  import {
    DEFAULT_TIMEOUT_SECONDS,
    resolveAutoMediaKeyProviders,
-@@ -57,6 +62,8 @@ import {
+@@ -87,6 +92,8 @@ import {
  
  const DEFAULT_PROMPT = "Describe the image.";
  const DEFAULT_MAX_IMAGES = 20;
 +const DEFAULT_CHILD_PROCESS_TIMEOUT_MS = 10 * 60 * 1000;
 +const log = createSubsystemLogger("tools");
  
- const imageToolProviderDeps = {
-   buildProviderRegistry,
-@@ -93,6 +100,11 @@ export const __testing = {
-     imageToolProviderDeps.resolveDefaultMediaModel =
-       overrides?.resolveDefaultMediaModel ?? resolveDefaultMediaModel;
+ type ImageToolLoadWebMediaOptions = {
+   maxBytes?: number;
+@@ -206,6 +213,9 @@ export const testing = {
+     imageToolProviderDeps.loadImageWebMediaRuntime =
+       overrides?.loadImageWebMediaRuntime ?? loadImageWebMediaRuntime;
    },
-+  setImagePromptChildRunnerForTest(
-+    runner?: typeof runImagePromptInChildProcess,
-+  ) {
++  setImagePromptChildRunnerForTest(runner?: typeof runImagePromptInChildProcess) {
 +    imagePromptChildRunner = runner ?? runImagePromptInChildProcess;
 +  },
  } as const;
  
  function resolveImageToolMaxTokens(modelMaxTokens: number | undefined, requestedMaxTokens = 4096) {
-@@ -261,18 +273,22 @@ type ImageSandboxConfig = {
+@@ -632,7 +642,7 @@ type ImageSandboxConfig = {
    bridge: SandboxFsBridge;
  };
  
@@ -184,9 +183,11 @@ index 739c9cf001..3c0cd34c90 100644
 +export type ImagePromptParams = {
    cfg?: OpenClawConfig;
    agentDir: string;
-   imageModelConfig: ImageModelConfig;
+   authStore?: AuthProfileStore;
+@@ -641,12 +651,16 @@ async function runImagePrompt(params: {
    prompt: string;
    images: Array<{ buffer: Buffer; mimeType: string }>;
+   workspaceDir?: string;
 -}): Promise<{
 +};
 +
@@ -202,15 +203,10 @@ index 739c9cf001..3c0cd34c90 100644
    const effectiveCfg = applyImageModelConfigDefaults(params.cfg, params.imageModelConfig);
    const providerCfg: OpenClawConfig = effectiveCfg ?? {};
    const providerRegistry = imageToolProviderDeps.buildProviderRegistry(undefined, providerCfg);
-@@ -367,6 +383,155 @@ async function runImagePrompt(params: {
+@@ -748,6 +762,115 @@ async function runImagePrompt(params: {
    };
  }
  
-+type ImagePromptWorkerRequest = {
-+  type: "run-image-prompt";
-+  params: ImagePromptParams;
-+};
-+
 +type ImagePromptWorkerResponse =
 +  | { type: "success"; result: ImagePromptResult }
 +  | { type: "error"; error: string };
@@ -240,9 +236,7 @@ index 739c9cf001..3c0cd34c90 100644
 +}
 +
 +async function runImagePromptInChildProcess(params: ImagePromptParams): Promise<ImagePromptResult> {
-+  const workerPath = resolveImagePromptWorkerPath();
-+  const startedAt = Date.now();
-+  const child = fork(workerPath, [], {
++  const child = fork(resolveImagePromptWorkerPath(), [], {
 +    env: {
 +      ...process.env,
 +      ...(process.versions.electron ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
@@ -251,68 +245,46 @@ index 739c9cf001..3c0cd34c90 100644
 +    serialization: "advanced",
 +    stdio: ["ignore", "ignore", "pipe", "ipc"],
 +  });
-+  const childPid = child.pid ?? "unknown";
-+  log.info(`image tool worker start: pid=${childPid} images=${params.images.length}`);
-+
 +  return await new Promise<ImagePromptResult>((resolvePromise, rejectPromise) => {
 +    let settled = false;
-+    const timeoutMs = (() => {
-+      const raw = Number(process.env.OPENCLAW_IMAGE_TOOL_CHILD_TIMEOUT_MS);
-+      return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_CHILD_PROCESS_TIMEOUT_MS;
-+    })();
-+    const timeout = setTimeout(() => {
-+      finish(
-+        new Error(`image tool worker timed out after ${timeoutMs}ms`),
-+        undefined,
-+        true,
-+      );
-+    }, timeoutMs);
-+
-+    function cleanup() {
-+      clearTimeout(timeout);
-+      child.off("message", onMessage);
-+      child.off("error", onError);
-+      child.off("exit", onExit);
-+      child.stderr?.off("data", onStderr);
-+    }
-+
-+    function finish(error?: Error, result?: ImagePromptResult, kill = false) {
-+      if (settled) return;
++    const configuredTimeout = Number(process.env.OPENCLAW_IMAGE_TOOL_CHILD_TIMEOUT_MS);
++    const timeoutMs =
++      Number.isFinite(configuredTimeout) && configuredTimeout > 0
++        ? configuredTimeout
++        : DEFAULT_CHILD_PROCESS_TIMEOUT_MS;
++    const timeout = setTimeout(
++      () => finish(new Error(`image tool worker timed out after ${timeoutMs}ms`), true),
++      timeoutMs,
++    );
++    const finish = (error?: Error, kill = false, result?: ImagePromptResult) => {
++      if (settled) {
++        return;
++      }
 +      settled = true;
-+      cleanup();
++      clearTimeout(timeout);
 +      if (kill && !child.killed) {
 +        child.kill("SIGKILL");
 +      }
-+      const durationMs = Date.now() - startedAt;
 +      if (error) {
-+        log.warn(
-+          `image tool worker failed: pid=${childPid} durationMs=${durationMs} error=${formatErrorMessage(error)}`,
-+        );
 +        rejectPromise(error);
-+        return;
++      } else if (result) {
++        resolvePromise(result);
++      } else {
++        rejectPromise(new Error("image tool worker returned no result"));
 +      }
-+      log.info(`image tool worker success: pid=${childPid} durationMs=${durationMs}`);
-+      resolvePromise(result!);
-+    }
-+
-+    function onMessage(message: unknown) {
++    };
++    child.on("message", (message: unknown) => {
 +      const response = message as ImagePromptWorkerResponse | undefined;
 +      if (response?.type === "success") {
-+        finish(undefined, response.result);
-+        return;
-+      }
-+      if (response?.type === "error") {
++        finish(undefined, false, response.result);
++      } else if (response?.type === "error") {
 +        finish(new Error(response.error || "image tool worker failed"));
-+        return;
++      } else {
++        finish(new Error("image tool worker returned an invalid response"));
 +      }
-+      finish(new Error("image tool worker returned an invalid response"));
-+    }
-+
-+    function onError(error: Error) {
-+      finish(error);
-+    }
-+
-+    function onExit(code: number | null, signal: NodeJS.Signals | null) {
++    });
++    child.once("error", (error) => finish(error));
++    child.once("exit", (code, signal) => {
 +      if (!settled) {
 +        finish(
 +          new Error(
@@ -320,20 +292,11 @@ index 739c9cf001..3c0cd34c90 100644
 +          ),
 +        );
 +      }
-+    }
-+
-+    function onStderr(data: Buffer) {
-+      const text = data.toString("utf8").trim();
-+      if (text) {
-+        log.warn(`image tool worker stderr: pid=${childPid} ${text}`);
-+      }
-+    }
-+
-+    child.on("message", onMessage);
-+    child.on("error", onError);
-+    child.on("exit", onExit);
-+    child.stderr?.on("data", onStderr);
-+    child.send({ type: "run-image-prompt", params } satisfies ImagePromptWorkerRequest);
++    });
++    child.send({
++      type: "run-image-prompt",
++      params: { ...params, authStore: undefined },
++    });
 +  });
 +}
 +
@@ -348,9 +311,7 @@ index 739c9cf001..3c0cd34c90 100644
 +  try {
 +    return await imagePromptChildRunner(params);
 +  } catch (err) {
-+    log.warn(
-+      `image tool worker unavailable; falling back to main process: ${formatErrorMessage(err)}`,
-+    );
++    log.warn(`image tool worker unavailable; using main process: ${formatErrorMessage(err)}`);
 +    return await runImagePrompt(params);
 +  }
 +}
@@ -358,107 +319,27 @@ index 739c9cf001..3c0cd34c90 100644
  export function createImageTool(options?: {
    config?: OpenClawConfig;
    agentDir?: string;
-@@ -629,7 +794,7 @@ export function createImageTool(options?: {
-           "No image model is configured. Set agents.defaults.imageModel or configure an image-capable provider.",
-         );
+@@ -1046,7 +1169,7 @@ export function createImageTool(options?: {
        }
+ 
+       // MARK: - Run image prompt with all loaded images
 -      const result = await runImagePrompt({
 +      const result = await runImagePromptWithWorkerFallback({
          cfg: options?.config,
          agentDir,
-         imageModelConfig,
-diff --git a/src/media-understanding/image.test.ts b/src/media-understanding/image.test.ts
-index 15d4b8185c..251f191e76 100644
---- a/src/media-understanding/image.test.ts
-+++ b/src/media-understanding/image.test.ts
-@@ -583,9 +583,21 @@ describe("describeImageWithModel", () => {
-     expect(options?.timeoutMs).toBe(25);
-   });
- 
--  it("rejects when image runtime setup exceeds the request timeout", async () => {
-+  it("does not spend provider request timeout while resolving image runtime", async () => {
-     vi.useFakeTimers();
--    ensureOpenClawModelsJsonMock.mockImplementationOnce(() => new Promise(() => {}));
-+    discoverModelsMock.mockReturnValue({
-+      find: vi.fn(() => ({
-+        api: "openai-responses",
-+        provider: "openai",
-+        id: "gpt-5.4-mini",
-+        input: ["text", "image"],
-+        baseUrl: "https://api.openai.com/v1",
-+      })),
-+    });
-+    ensureOpenClawModelsJsonMock.mockImplementationOnce(
-+      () => new Promise((resolve) => setTimeout(resolve, 24)),
-+    );
-+    completeMock.mockImplementation(() => new Promise(() => {}));
- 
-     const result = describeImageWithModel({
-       cfg: {},
-@@ -599,10 +611,15 @@ describe("describeImageWithModel", () => {
-       timeoutMs: 25,
-     });
- 
-+    await vi.advanceTimersByTimeAsync(24);
-+    expect(completeMock).toHaveBeenCalledTimes(1);
-+    const [, , options] = completeMock.mock.calls[0] ?? [];
-+    expect(options?.timeoutMs).toBe(25);
-+
-     const assertion = expect(result).rejects.toThrow("image description timed out after 25ms");
-     await vi.advanceTimersByTimeAsync(25);
-     await assertion;
--    expect(completeMock).not.toHaveBeenCalled();
-+    expect(options?.signal?.aborted).toBe(true);
-   });
- 
-   it("normalizes deprecated google flash ids before lookup and keeps profile auth selection", async () => {
-diff --git a/src/media-understanding/image.ts b/src/media-understanding/image.ts
-index 35cc3f26dc..8508faf407 100644
---- a/src/media-understanding/image.ts
-+++ b/src/media-understanding/image.ts
-@@ -356,17 +356,12 @@ async function describeImagesWithModelInternal(
-   options: { onPayload?: ProviderStreamOptions["onPayload"] } = {},
- ): Promise<ImagesDescriptionResult> {
-   const prompt = params.prompt ?? "Describe the image.";
--  const startedAtMs = Date.now();
-   const controller = new AbortController();
-   let apiKey: string;
-   let model: Model<Api> | undefined;
- 
-   try {
--    const resolved = await withImageDescriptionTimeout({
--      controller,
--      timeoutMs: resolveImageDescriptionTimeoutMs(params.timeoutMs, startedAtMs),
--      task: resolveImageRuntime(params),
--    });
-+    const resolved = await resolveImageRuntime(params);
-     apiKey = resolved.apiKey;
-     model = resolved.model;
-   } catch (err) {
-@@ -406,9 +401,10 @@ async function describeImagesWithModelInternal(
-   });
- 
-   const maxTokens = resolveImageToolMaxTokens(model.maxTokens, params.maxTokens ?? 512);
-+  const requestStartedAtMs = Date.now();
-   const completeImage = async (onPayload?: ProviderStreamOptions["onPayload"]) => {
-     const payloadHandler = composeImageDescriptionPayloadHandlers(onPayload, options.onPayload);
--    const timeoutMs = resolveImageDescriptionTimeoutMs(params.timeoutMs, startedAtMs);
-+    const timeoutMs = resolveImageDescriptionTimeoutMs(params.timeoutMs, requestStartedAtMs);
-     return await withImageDescriptionTimeout({
-       controller,
-       timeoutMs,
+         authStore: options?.authProfileStore,
 diff --git a/tsdown.config.ts b/tsdown.config.ts
-index a33fb36dc8..d8beb90f90 100644
+index 9418df0141..a1fabf0a19 100644
 --- a/tsdown.config.ts
 +++ b/tsdown.config.ts
-@@ -305,6 +305,7 @@ function buildCoreDistEntries(): Record<string, string> {
-     "subagent-registry.runtime": "src/agents/subagent-registry.runtime.ts",
-     "task-registry-control.runtime": "src/tasks/task-registry-control.runtime.ts",
-     "agents/pi-model-discovery-runtime": "src/agents/pi-model-discovery-runtime.ts",
+@@ -263,6 +263,7 @@ function buildCoreDistEntries(): Record<string, string> {
+     "agents/code-mode.worker": "src/agents/code-mode.worker.ts",
+     "agents/compaction-planning.worker": "src/agents/compaction-planning.worker.ts",
+     "agents/model-provider-auth.worker": "src/agents/model-provider-auth.worker.ts",
 +    "agents/tools/image-tool-worker": "src/agents/tools/image-tool-worker.ts",
-     "link-understanding/apply.runtime": "src/link-understanding/apply.runtime.ts",
-     "media-understanding/apply.runtime": "src/media-understanding/apply.runtime.ts",
-     "commands/doctor/shared/plugin-registry-migration":
+     "acp/control-plane/manager": "src/acp/control-plane/manager.ts",
+     "cli/gateway-lifecycle.runtime": "src/cli/gateway-cli/lifecycle.runtime.ts",
+     "provider-dispatcher.runtime": "src/auto-reply/reply/provider-dispatcher.runtime.ts",
 -- 
 2.50.1 (Apple Git-155)
 

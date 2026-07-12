@@ -17,12 +17,18 @@
     "generate:api-routes": "node scripts/generate-api-routes-doc.mjs",
     "check:api-routes": "node scripts/generate-api-routes-doc.mjs --check",
     "generate:vendor-artifacts": "node scripts/generate-vendor-artifacts.mjs",
+    "generate:openclaw-config-doc": "node scripts/generate-openclaw-config-doc.mjs",
     "check:vendor-boundary": "node scripts/check-vendor-boundary.mjs",
     "check:tools": "node scripts/check-tool-consistency.mjs",
     "check:panel-arch": "node scripts/check-panel-architecture.mjs",
     "check:affiliate-outreach-codegen": "node scripts/check-affiliate-outreach-codegen-sync.mjs",
     "verify:affiliate-outreach:clients": "bash scripts/verify-affiliate-outreach-clients.sh",
     "verify:affiliate-outreach:local": "bash scripts/verify-affiliate-outreach-local.sh"
+  },
+  "dependencies": {
+    "@larksuite/openclaw-lark": "2026.6.10",
+    "@larksuiteoapi/node-sdk": "^1.59.0",
+    "@rolldown/binding-darwin-arm64": "1.0.0-rc.3"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
@@ -35,11 +41,6 @@
     "node": ">=24"
   },
   "packageManager": "pnpm@10.6.2",
-  "dependencies": {
-    "@larksuite/openclaw-lark": "2026.6.10",
-    "@larksuiteoapi/node-sdk": "^1.59.0",
-    "@rolldown/binding-darwin-arm64": "1.0.0-rc.3"
-  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3",

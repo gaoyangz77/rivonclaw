@@ -130,7 +130,8 @@ test.describe("LLM Providers", () => {
     await form.locator(".provider-select-option", { hasText: /Google \(Gemini\)/i }).click();
 
     // Open the model dropdown and count options.
-    // The full Google catalog has 20+ models from the vendor registry.
+    // OpenClaw v2026.6.11 exposes seven supported chat models from the Google
+    // plugin static catalog. Keep this aligned with the generated vendor boundary.
     const modelTrigger = form.locator(".custom-select-trigger");
     await expect(modelTrigger).toBeVisible({ timeout: 10_000 });
     await modelTrigger.click();
@@ -138,6 +139,6 @@ test.describe("LLM Providers", () => {
     await expect(modelOptions.first()).toBeVisible({ timeout: 10_000 });
 
     const count = await modelOptions.count();
-    expect(count).toBeGreaterThanOrEqual(10);
+    expect(count).toBeGreaterThanOrEqual(7);
   });
 });

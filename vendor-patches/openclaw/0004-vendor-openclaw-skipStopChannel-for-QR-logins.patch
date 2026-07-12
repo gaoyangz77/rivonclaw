@@ -1,8 +1,7 @@
-From 10ac0b819a40c66c5712ea739f411ce02a302b03 Mon Sep 17 00:00:00 2001
+From 58a5091c6e25cdc73ff8407c8e83aa64635f70f0 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:17:51 -0700
-Subject: [PATCH 04/12] vendor(openclaw): skip stopChannel for new-account QR
- logins
+Subject: [PATCH] vendor(openclaw): skip stopChannel for new-account QR logins
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -23,24 +22,22 @@ Removal:
 Tests:
 - apps/desktop/src/gateway/vendor-web-login-no-stop.sentinel.test.ts
 ---
- src/gateway/server-methods/web.ts | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ src/gateway/server-methods/web.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/gateway/server-methods/web.ts b/src/gateway/server-methods/web.ts
-index 8f8df9582d..a9947f0b79 100644
+index 24f6caf455..794dc433a5 100644
 --- a/src/gateway/server-methods/web.ts
 +++ b/src/gateway/server-methods/web.ts
-@@ -87,7 +87,9 @@ export const webHandlers: GatewayRequestHandlers = {
-         channelId: provider.id,
+@@ -120,7 +120,7 @@ export const webHandlers: GatewayRequestHandlers = {
          accountId,
        });
--      await context.stopChannel(provider.id, accountId);
-+      if (accountId) {
-+        await context.stopChannel(provider.id, accountId);
-+      }
-       const result = await provider.gateway.loginWithQrStart({
-         force: Boolean((params as { force?: boolean }).force),
-         timeoutMs:
+       const forceLogin = Boolean(params.force);
+-      const stoppedBeforeLogin = forceLogin || !wasRunning;
++      const stoppedBeforeLogin = Boolean(accountId) && (forceLogin || !wasRunning);
+       if (stoppedBeforeLogin) {
+         await context.stopChannel(provider.id, accountId);
+       }
 -- 
 2.50.1 (Apple Git-155)
 

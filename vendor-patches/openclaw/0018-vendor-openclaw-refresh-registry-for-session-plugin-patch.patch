@@ -1,4 +1,4 @@
-From 7da668fe8f1c5101ae0a9c703e5086c4186c41d1 Mon Sep 17 00:00:00 2001
+From 9b1fa96bdf3e306db535fb970ec7ae7bb142c569 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Mon, 6 Jul 2026 00:29:05 -0700
 Subject: [PATCH] vendor(openclaw): refresh registry for session plugin patch
@@ -19,10 +19,10 @@ Tests:
  create mode 100644 src/gateway/server.sessions.plugin-patch-registry.test.ts
 
 diff --git a/src/gateway/server-methods/sessions.ts b/src/gateway/server-methods/sessions.ts
-index 27b5167253..8e40d5976c 100644
+index 5a9c721e9c..90eb738783 100644
 --- a/src/gateway/server-methods/sessions.ts
 +++ b/src/gateway/server-methods/sessions.ts
-@@ -32,6 +32,7 @@ import {
+@@ -77,6 +77,7 @@ import {
  import { formatErrorMessage } from "../../infra/errors.js";
  import { patchPluginSessionExtension } from "../../plugins/host-hook-state.js";
  import { isPluginJsonValue } from "../../plugins/host-hooks.js";
@@ -30,7 +30,7 @@ index 27b5167253..8e40d5976c 100644
  import {
    normalizeAgentId,
    parseAgentSessionKey,
-@@ -1708,14 +1709,25 @@ export const sessionsHandlers: GatewayRequestHandlers = {
+@@ -2248,14 +2249,25 @@ export const sessionsHandlers: GatewayRequestHandlers = {
        );
        return;
      }
@@ -144,5 +144,5 @@ index 0000000000..61490be161
 +  });
 +});
 -- 
-2.53.0
+2.50.1 (Apple Git-155)
 

@@ -1,8 +1,8 @@
-From 2fe6f429146d663f75d8f82ccc3b6b0d1babaf56 Mon Sep 17 00:00:00 2001
+From cba256e29327360dd183e094dbe8dd8456b4bd34 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Mon, 13 Apr 2026 09:11:51 -0700
-Subject: [PATCH 07/12] vendor(openclaw): defer prewarmConfiguredPrimaryModel
- to unblock event loop
+Subject: [PATCH] vendor(openclaw): defer prewarmConfiguredPrimaryModel to
+ unblock event loop
 
 Why:
 - ensureOpenClawModelsJson() inside prewarmConfiguredPrimaryModel() runs
@@ -27,10 +27,10 @@ Tests:
  1 file changed, 11 insertions(+), 9 deletions(-)
 
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index 2c54136185..ca421e2871 100644
+index 6950b6594f..5936d6ebf6 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -464,18 +464,20 @@ export async function startGatewaySidecars(params: {
+@@ -736,18 +736,20 @@ export async function startGatewaySidecars(params: {
    await measureStartup(params.startupTrace, "sidecars.channels", async () => {
      if (!skipChannels) {
        try {

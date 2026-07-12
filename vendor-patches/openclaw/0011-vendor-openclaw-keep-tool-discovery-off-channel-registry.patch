@@ -1,8 +1,7 @@
-From faeb7daa206f8c112ffe48f87505bc7e58dea690 Mon Sep 17 00:00:00 2001
+From 5e2eeef14e413e1b42a3928660e77d3885b8bd56 Mon Sep 17 00:00:00 2001
 From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
 Date: Wed, 6 May 2026 05:47:35 -0700
-Subject: [PATCH 11/12] vendor(openclaw): keep tool discovery off channel
- registry
+Subject: [PATCH] vendor(openclaw): keep tool discovery off channel registry
 
 Why:
 - RivonClaw cloud tools are loaded through OpenClaw plugin tool discovery.
@@ -21,10 +20,10 @@ Tests:
  2 files changed, 54 insertions(+), 1 deletion(-)
 
 diff --git a/src/plugins/tools.optional.test.ts b/src/plugins/tools.optional.test.ts
-index e1de9a25da..8851a6954b 100644
+index 57490d8b02..0daa3392c6 100644
 --- a/src/plugins/tools.optional.test.ts
 +++ b/src/plugins/tools.optional.test.ts
-@@ -35,6 +35,7 @@ let buildPluginToolMetadataKey: typeof import("./tools.js").buildPluginToolMetad
+@@ -36,6 +36,7 @@ let buildPluginToolMetadataKey: typeof import("./tools.js").buildPluginToolMetad
  let getPluginToolMeta: typeof import("./tools.js").getPluginToolMeta;
  let resetPluginToolFactoryCache: typeof import("./tools.js").resetPluginToolFactoryCache;
  let getActivePluginRegistry: typeof import("./runtime.js").getActivePluginRegistry;
@@ -32,7 +31,7 @@ index e1de9a25da..8851a6954b 100644
  let pinActivePluginChannelRegistry: typeof import("./runtime.js").pinActivePluginChannelRegistry;
  let resetPluginRuntimeStateForTest: typeof import("./runtime.js").resetPluginRuntimeStateForTest;
  let setActivePluginRegistry: typeof import("./runtime.js").setActivePluginRegistry;
-@@ -415,6 +416,7 @@ describe("resolvePluginTools optional tools", () => {
+@@ -478,6 +479,7 @@ describe("resolvePluginTools optional tools", () => {
        resetPluginToolFactoryCache,
        resolvePluginTools,
      } = await import("./tools.js"));
@@ -40,7 +39,7 @@ index e1de9a25da..8851a6954b 100644
      ({
        getActivePluginRegistry,
        pinActivePluginChannelRegistry,
-@@ -493,6 +495,7 @@ describe("resolvePluginTools optional tools", () => {
+@@ -938,6 +940,7 @@ describe("resolvePluginTools optional tools", () => {
    it("standalone bootstrap loads configured plugin tools before resolution", () => {
      const config = createContext().config;
      const registry = createToolRegistry([createOptionalDemoEntry()]);
@@ -48,8 +47,8 @@ index e1de9a25da..8851a6954b 100644
      loadOpenClawPluginsMock.mockReturnValue(registry);
      installToolManifestSnapshot({
        config,
-@@ -638,6 +641,53 @@ describe("resolvePluginTools optional tools", () => {
-     );
+@@ -1086,6 +1089,53 @@ describe("resolvePluginTools optional tools", () => {
+     expect(loaderParams.toolDiscovery).toBe(true);
    });
  
 +  it("keeps standalone tool discovery from replacing pinned channel outbound registry", async () => {
@@ -103,13 +102,13 @@ index e1de9a25da..8851a6954b 100644
      const context = {
        ...createContext(),
 diff --git a/src/plugins/tools.ts b/src/plugins/tools.ts
-index 6d67e60890..3ee031382f 100644
+index 9ebc295767..9d2772a570 100644
 --- a/src/plugins/tools.ts
 +++ b/src/plugins/tools.ts
-@@ -862,7 +862,10 @@ export function ensureStandalonePluginToolRegistryLoaded(params: {
-     return;
+@@ -1025,7 +1025,10 @@ export function ensureStandalonePluginToolRegistryLoaded(params: {
+     return undefined;
    }
-   ensureStandaloneRuntimePluginRegistryLoaded({
+   const registry = ensureStandaloneRuntimePluginRegistryLoaded({
 -    surface: "channel",
 +    // Tool discovery may load a scoped registry containing only tool-owner
 +    // plugins. Keep that registry off the channel surface so configured

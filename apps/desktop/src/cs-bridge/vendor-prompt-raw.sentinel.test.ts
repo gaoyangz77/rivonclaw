@@ -32,7 +32,11 @@ const VENDOR_TYPES_FILE = resolve(
 
 const ATTEMPT_FILE = resolve(
   __dirname,
-  "../../../../vendor/openclaw/src/agents/pi-embedded-runner/run/attempt.ts",
+  "../../../../vendor/openclaw/src/agents/embedded-agent-runner/run/attempt.ts",
+);
+const EMBEDDED_SYSTEM_PROMPT_FILE = resolve(
+  __dirname,
+  "../../../../vendor/openclaw/src/agents/embedded-agent-runner/system-prompt.ts",
 );
 
 /** Check if the vendor source has the promptMode raw patch applied. */
@@ -64,31 +68,12 @@ runOrSkip("vendor patch 0004: promptMode raw", () => {
     expect(rawIndex).toBeLessThan(noneIndex);
   });
 
-  it("attempt.ts re-applies system prompt override before activeSession.prompt()", () => {
+  it("installs the generated prompt through the native AgentSession API", () => {
     const attemptSrc = readFileSync(ATTEMPT_FILE, "utf-8");
+    const embeddedPromptSrc = readFileSync(EMBEDDED_SYSTEM_PROMPT_FILE, "utf-8");
 
-    // Find the final applySystemPromptOverrideToSession call that guards the prompt
-    const lines = attemptSrc.split("\n");
-    let lastOverrideIdx = -1;
-    let promptCallIdx = -1;
-
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes("applySystemPromptOverrideToSession(activeSession, systemPromptText)")) {
-        lastOverrideIdx = i;
-      }
-      if (
-        lines[i].includes("activeSession.prompt(effectivePrompt")
-        || lines[i].includes("activeSession.prompt(promptForModel")
-      ) {
-        if (promptCallIdx === -1) promptCallIdx = i;
-      }
-    }
-
-    expect(lastOverrideIdx).toBeGreaterThan(-1);
-    expect(promptCallIdx).toBeGreaterThan(-1);
-    // The last override must appear shortly before the first prompt call (within 15 lines)
-    expect(lastOverrideIdx).toBeLessThan(promptCallIdx);
-    expect(promptCallIdx - lastOverrideIdx).toBeLessThan(15);
+    expect(attemptSrc).toContain("applySystemPromptToSession(activeSession, nextSystemPrompt)");
+    expect(embeddedPromptSrc).toContain("session.setBaseSystemPrompt(systemPrompt.trim())");
   });
 
   it("raw mode returns extraSystemPrompt only", () => {

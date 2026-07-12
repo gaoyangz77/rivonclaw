@@ -805,7 +805,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     const previousVendorDir = getVendorDir();
     try {
       const configPath = join(stateDir, "openclaw.json");
-      const pluginRoot = join(stateDir, "vendor", "openclaw", "dist", "extensions", "feishu");
+      const pluginRoot = join(stateDir, "vendor", "openclaw", "dist-runtime", "extensions", "feishu");
       mkdirSync(pluginRoot, { recursive: true });
       writeFileSync(
         join(pluginRoot, "openclaw.plugin.json"),
@@ -814,7 +814,10 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       );
       writeFileSync(configPath, JSON.stringify({
         plugins: {
-          load: { paths: [] },
+          load: { paths: [
+            "/Users/test/old-checkout/vendor/openclaw/dist/extensions/feishu",
+            "/custom/plugin",
+          ] },
         },
         }, null, 2), "utf-8");
       setVendorDir(join(stateDir, "vendor", "openclaw"));
@@ -859,7 +862,11 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(config.plugins.entries.feishu.enabled).toBe(true);
       expect(config.plugins.entries["openclaw-lark"]).toBeUndefined();
       expect(config.plugins.allow).toContain("feishu");
-      expect(config.plugins.load.paths).toContain(pluginRoot);
+      expect(config.plugins.load.paths).not.toContain(pluginRoot);
+      expect(config.plugins.load.paths).toContain("/custom/plugin");
+      expect(config.plugins.load.paths).not.toContain(
+        "/Users/test/old-checkout/vendor/openclaw/dist/extensions/feishu",
+      );
       expect(config.tools.alsoAllow).toContain("feishu_send");
     } finally {
       setVendorDir(previousVendorDir);
