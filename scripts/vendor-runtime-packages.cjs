@@ -27,6 +27,10 @@ const ALWAYS_EXTERNAL_PACKAGES = [
   // Feishu SDK is resolved from the app workspace at runtime.
   "@larksuiteoapi/node-sdk",
 
+  // The official Feishu plugin loads these production dependencies at runtime.
+  "image-size",
+  "zod",
+
   // Schema library used by both bundled code AND plugins loaded at runtime.
   "@sinclair/typebox",
   "@sinclair/typebox/*",
