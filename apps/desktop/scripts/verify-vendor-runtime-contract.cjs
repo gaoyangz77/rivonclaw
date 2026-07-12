@@ -40,6 +40,19 @@ const PRUNED_FORBIDDEN_PATHS = [
   "node_modules/@openai/codex",
   "node_modules/@tloncorp/tlon-skill",
   "node_modules/@zed-industries/codex-acp",
+  "extensions/copilot",
+  "extensions/copilot-proxy",
+  "extensions/github-copilot",
+  "dist/extensions/copilot",
+  "dist/extensions/copilot-proxy",
+  "dist/extensions/github-copilot",
+  "dist-runtime/extensions/copilot",
+  "dist-runtime/extensions/copilot-proxy",
+  "dist-runtime/extensions/github-copilot",
+];
+
+const PRUNED_FORBIDDEN_CHILD_PREFIXES = [
+  { dir: "node_modules/@github", prefix: "copilot" },
 ];
 
 function usage() {
@@ -103,6 +116,15 @@ function assertAbsent(vendorDir, relPath) {
   const fullPath = path.join(vendorDir, relPath);
   if (fs.existsSync(fullPath)) {
     throw new Error(`forbidden pruned path is present: ${relPath}`);
+  }
+}
+
+function assertNoChildPrefix(vendorDir, { dir, prefix }) {
+  const fullDir = path.join(vendorDir, dir);
+  if (!fs.existsSync(fullDir)) return;
+  const match = fs.readdirSync(fullDir).find((name) => name.startsWith(prefix));
+  if (match) {
+    throw new Error(`forbidden pruned path is present: ${path.posix.join(dir, match)}`);
   }
 }
 
@@ -172,6 +194,9 @@ async function main() {
   if (!args.skipPruneChecks) {
     for (const relPath of PRUNED_FORBIDDEN_PATHS) {
       assertAbsent(vendorDir, relPath);
+    }
+    for (const entry of PRUNED_FORBIDDEN_CHILD_PREFIXES) {
+      assertNoChildPrefix(vendorDir, entry);
     }
   }
 

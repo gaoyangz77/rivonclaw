@@ -14,8 +14,9 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-06-25.1";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-07-12.1";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
+const DISABLED_VENDOR_EXTENSIONS = ["copilot", "copilot-proxy", "github-copilot"];
 
 function hasCompletedProductionInstall() {
   try {
@@ -44,6 +45,10 @@ const EXTRA_REMOVE = [
   "@openai/codex",
   "@tloncorp/tlon-skill",
   "@zed-industries/codex-acp",
+
+  // RivonClaw does not expose OpenClaw's optional GitHub Copilot runtimes.
+  "@github/copilot",
+  "@github/copilot-sdk",
 
   // Build/UI dependencies left behind by hoisted production installs.
   "vite",
@@ -78,6 +83,7 @@ const EXTRA_REMOVE = [
 
 const EXTRA_REMOVE_PREFIXES = [
   "@anthropic-ai/claude-agent-sdk-",
+  "@github/copilot-",
   "@img/sharp-",
   "@img/sharp-libvips-",
   "@lancedb/lancedb-",
@@ -255,6 +261,26 @@ function hasBlacklistedPackage() {
     if (packageDirsForPrefix(prefix).length > 0) return true;
   }
   return false;
+}
+
+function disabledVendorExtensionDirs() {
+  const matches = [];
+  for (const root of ["extensions", "dist/extensions", "dist-runtime/extensions"]) {
+    for (const extensionId of DISABLED_VENDOR_EXTENSIONS) {
+      const extensionDir = path.join(vendorDir, root, extensionId);
+      if (fs.existsSync(extensionDir)) matches.push(extensionDir);
+    }
+  }
+  return matches;
+}
+
+function removeDisabledVendorExtensions() {
+  for (const extensionDir of disabledVendorExtensionDirs()) {
+    const size = dirSize(extensionDir);
+    const label = path.relative(vendorDir, extensionDir).replace(/\\/g, "/");
+    fs.rmSync(extensionDir, { recursive: true, force: true });
+    console.log(`  removed disabled extension ${label} (${(size / 1024 / 1024).toFixed(1)}MB)`);
+  }
 }
 
 function hasRequiredOfficialVendorPlugins() {
@@ -541,7 +567,13 @@ if (fs.existsSync(prunedMarkerPath)) {
   const hasCurrentPruneProfile = markerText.includes(`profile=${PRUNE_PROFILE_VERSION}`);
   const hasDevDeps = fs.existsSync(path.join(nmDir, "typescript"));
 
-  if (hasCurrentPruneProfile && !hasDevDeps && !hasBlacklistedPackage() && hasRequiredOfficialVendorPlugins()) {
+  if (
+    hasCurrentPruneProfile &&
+    !hasDevDeps &&
+    !hasBlacklistedPackage() &&
+    disabledVendorExtensionDirs().length === 0 &&
+    hasRequiredOfficialVendorPlugins()
+  ) {
     console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
     process.exit(0);
   }
@@ -603,6 +635,7 @@ for (const prefix of EXTRA_REMOVE_PREFIXES) {
     removePackageDir(pkgDir);
   }
 }
+removeDisabledVendorExtensions();
 
 const sizeP2 = dirSize(nmDir);
 console.log(
