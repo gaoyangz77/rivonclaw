@@ -549,7 +549,7 @@ try {
   execSync("pnpm install --prod --no-frozen-lockfile --ignore-scripts", {
     cwd: vendorDir,
     stdio: "inherit",
-    timeout: 120_000,
+    timeout: 300_000,
     env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
   });
 } catch (err) {
