@@ -31,13 +31,16 @@ export default {
     refresh: "Refresh",
     currencySymbol: "$",
     cloudToolsUnavailableTitle: "Cloud tools unavailable",
-    cloudToolsUnavailableBody: "Cloud tools and related agent capabilities are temporarily unavailable. Check your connection and try again shortly.",
+    cloudToolsUnavailableBody:
+      "Cloud tools and related agent capabilities are temporarily unavailable. Check your connection and try again shortly.",
   },
   authGate: {
     loginRequired: "Login Required",
-    loginRequiredDesc: "You need to be logged in to access this feature. Please log in or create an account.",
+    loginRequiredDesc:
+      "You need to be logged in to access this feature. Please log in or create an account.",
     subscriptionRequired: "Subscription Required",
-    subscriptionRequiredDesc: "This feature is available for Pro and Enterprise subscribers. Please upgrade your plan to continue.",
+    subscriptionRequiredDesc:
+      "This feature is available for Pro and Enterprise subscribers. Please upgrade your plan to continue.",
     upgradeAction: "Upgrade Plan",
   },
   nav: {
@@ -90,7 +93,8 @@ export default {
     examplesTitle: "Try asking",
     example1: "Organize and sort the files and folders on my desktop",
     example2: "I have an Excel with messy phone number formats — clean them up for me",
-    example3: "Search for nearby piano schools and compile info, phone numbers, and lesson prices for 20 of them",
+    example3:
+      "Search for nearby piano schools and compile info, phone numbers, and lesson prices for 20 of them",
     example4: "Help me find a cost-effective dynamic microphone online for live singing",
     example5: "Summarize this 30-page PDF and extract all the key action items",
     example6: "Monitor this webpage and notify me whenever the price drops below $50",
@@ -99,7 +103,8 @@ export default {
     historyEnd: "Beginning of conversation",
     loadError: "Failed to connect to gateway",
     noProviderError: "No LLM provider configured. Please go to Models page and add an API key.",
-    timeoutError: "Request timed out. The model may be unavailable or the model ID may be incorrect.",
+    timeoutError:
+      "Request timed out. The model may be unavailable or the model ID may be incorrect.",
     emoji: "Emoji",
     attachFile: "Attach file",
     attachImage: "Attach image",
@@ -107,19 +112,29 @@ export default {
     removeImage: "Remove",
     unknownError: "An error occurred.",
     sendError: "Failed to send message.",
-    errorRateLimit: "The model has reached its usage limit. Try again later or switch to a different model.",
-    errorBilling: "Your API key has run out of credits. Check your provider's billing dashboard or switch to a different key.",
+    errorRateLimit:
+      "The model has reached its usage limit. Try again later or switch to a different model.",
+    errorBilling:
+      "Your API key has run out of credits. Check your provider's billing dashboard or switch to a different key.",
     errorTimeout: "Request timed out.",
-    errorContextOverflow: "The conversation is too long for this model. Use /reset to start fresh, or switch to a model with a larger context window.",
-    errorAuth: "Authentication failed. Please check your API key or re-authenticate in the Models page.",
-    disconnectedError: "Connection interrupted. Reconnecting — you can resend your message shortly.",
-    stalledError: "Response stalled — no final reply received. The task may have completed on the server. Try scrolling up or resending.",
-    watchdogError: "No response activity for 5 minutes. The connection may have been lost silently. You can try resending your message.",
-    contextWindowWarning: "Current conversation (~{{currentTokens}} tokens) exceeds 80% of the new model's context window ({{newContextWindow}}). Consider starting a new conversation.",
+    errorContextOverflow:
+      "The conversation is too long for this model. Use /reset to start fresh, or switch to a model with a larger context window.",
+    errorAuth:
+      "Authentication failed. Please check your API key or re-authenticate in the Models page.",
+    disconnectedError:
+      "Connection interrupted. Reconnecting — you can resend your message shortly.",
+    stalledError:
+      "Response stalled — no final reply received. The task may have completed on the server. Try scrolling up or resending.",
+    watchdogError:
+      "No response activity for 5 minutes. The connection may have been lost silently. You can try resending your message.",
+    contextWindowWarning:
+      "Current conversation (~{{currentTokens}} tokens) exceeds 80% of the new model's context window ({{newContextWindow}}). Consider starting a new conversation.",
     contextOverflowTitle: "Context window exceeded",
-    contextOverflowBody: "Current conversation (~{{current}} tokens) exceeds the new model's context window ({{max}} tokens). Choose how to proceed:",
+    contextOverflowBody:
+      "Current conversation (~{{current}} tokens) exceeds the new model's context window ({{max}} tokens). Choose how to proceed:",
     contextOverflowContinue: "Switch model",
-    contextOverflowContinueHint: "The system will automatically compress the conversation on the next message",
+    contextOverflowContinueHint:
+      "The system will automatically compress the conversation on the next message",
     contextOverflowClear: "Switch & clear conversation",
     contextOverflowClearHint: "Switch model and start fresh",
     imageOnlyPlaceholder: "Please look at this image",
@@ -134,7 +149,8 @@ export default {
     toolStatus_failed: "Failed",
     stopCommand: "Stop",
     resetCommand: "Reset",
-    resetTooltip: "Clear the conversation context to save tokens. Chat history will be archived but will no longer be visible to the AI.",
+    resetTooltip:
+      "Clear the conversation context to save tokens. Chat history will be archived but will no longer be visible to the AI.",
     stopCommandFeedback: "Generation stopped.",
     resetCommandFeedback: "Conversation reset.",
     expandMessage: "Show more",
@@ -203,7 +219,8 @@ export default {
   },
   providers: {
     title: "Models",
-    description: "Configure your LLM providers and API keys. You can add multiple providers and switch between them.",
+    description:
+      "Configure your LLM providers and API keys. You can add multiple providers and switch between them.",
     providerLabel: "Provider",
     apiKeyLabel: "API Key",
     apiKeyPlaceholder: "Stored securely in your OS keychain. Never written to config files.",
@@ -220,9 +237,11 @@ export default {
     validating: "Validating...",
     invalidKey: "Invalid API key. Please check and try again.",
     anthropicTokenLabel: "Token",
-    anthropicTokenPlaceholder: "Stored securely in your OS keychain. Never written to config files.",
+    anthropicTokenPlaceholder:
+      "Stored securely in your OS keychain. Never written to config files.",
     anthropicUpdatePlaceholder: "Enter new token or API key",
-    anthropicTokenWarning: "OAuth tokens from \"claude setup-token\" are long-lived (1 year). Only the first token is valid — regenerating a new one before it expires will produce an unusable token.",
+    anthropicTokenWarning:
+      'OAuth tokens from "claude setup-token" are long-lived (1 year). Only the first token is valid — regenerating a new one before it expires will produce an unusable token.',
     failedToLoad: "Failed to load settings: ",
     oauthFailed: "OAuth login failed: ",
     errorDetails: "Details",
@@ -248,15 +267,18 @@ export default {
     expired: "Expired",
     reauthModal: {
       title: "Re-authenticate {{label}}",
-      intro: "Sign in again to rotate the OAuth credentials for this key. Your label, model, and proxy are preserved — only the stored token is replaced.",
+      intro:
+        "Sign in again to rotate the OAuth credentials for this key. Your label, model, and proxy are preserved — only the stored token is replaced.",
       signIn_gemini: "Sign in with Google",
       "signIn_openai-codex": "Sign in with ChatGPT",
       waitingForBrowser: "Waiting for browser sign-in…",
       authUrlLabel: "Authorization URL",
       callbackLabel: "Redirect URL",
       callbackPlaceholder: "Paste the redirect URL from your browser here",
-      callbackHelp_gemini: "After signing in with Google, copy the full redirect URL from your browser's address bar and paste it here.",
-      "callbackHelp_openai-codex": "After signing in with ChatGPT, copy the full redirect URL from your browser's address bar and paste it here.",
+      callbackHelp_gemini:
+        "After signing in with Google, copy the full redirect URL from your browser's address bar and paste it here.",
+      "callbackHelp_openai-codex":
+        "After signing in with ChatGPT, copy the full redirect URL from your browser's address bar and paste it here.",
       completeSignIn: "Complete Sign-in",
       confirm: "Confirm Re-authentication",
       tokenReady: "New OAuth token ready. You can retry rotating the stored credential.",
@@ -264,7 +286,8 @@ export default {
       starting: "Starting…",
       rotating: "Rotating credential…",
       cancel: "Cancel",
-      captureWarning: "Token rotated, but we couldn't read the token expiry. If your next request fails, please Re-authenticate again.",
+      captureWarning:
+        "Token rotated, but we couldn't read the token expiry. If your next request fails, please Re-authenticate again.",
     },
     modelLabel: "Model",
     labelPlaceholder: "Label (optional)",
@@ -273,7 +296,8 @@ export default {
     advancedSettings: "Advanced Settings",
     proxyLabel: "Proxy URL (optional)",
     proxyPlaceholder: "http://user:pass@proxy.example.com:8080 or socks5://user:pass@...",
-    proxyHelp: "HTTP/HTTPS/SOCKS5 proxy for this key. Credentials are stored securely in your OS keychain.",
+    proxyHelp:
+      "HTTP/HTTPS/SOCKS5 proxy for this key. Credentials are stored securely in your OS keychain.",
     proxyTooltip: "LLM calls with this key are routed through a proxy",
     colLabel: "Label",
     colModel: "Model",
@@ -292,7 +316,8 @@ export default {
     pricingUnavailable: "Pricing data unavailable.",
     pricingViewFull: "View full pricing",
     pricingCurrency: "Currency",
-    pricingDisclaimer: "Prices shown are official list prices. Actual costs may vary by account tier, promotions, or billing agreements.",
+    pricingDisclaimer:
+      "Prices shown are official list prices. Actual costs may vary by account tier, promotions, or billing agreements.",
     pricingPlansTitle: "Subscription Plans",
     pricingPlansUnavailable: "Plan details unavailable.",
     configuredKeysTitle: "Configured Keys",
@@ -344,19 +369,26 @@ export default {
     oauthLoading: "Setting up...",
     oauthBadge: "OAuth",
     oauthSectionTitle: "OAuth Providers",
-    oauthInfo_gemini: "Sign in with your Google account for free Gemini access. No API key needed — Gemini CLI will be set up automatically if not already installed. OAuth tokens are stored securely in your OS keychain.",
-    "oauthInfo_openai-codex": "Sign in with your ChatGPT account to use OpenAI Codex models. Requires a ChatGPT Plus or Pro subscription. OAuth tokens are stored securely in your OS keychain.",
+    oauthInfo_gemini:
+      "Sign in with your Google account for free Gemini access. No API key needed — Gemini CLI will be set up automatically if not already installed. OAuth tokens are stored securely in your OS keychain.",
+    "oauthInfo_openai-codex":
+      "Sign in with your ChatGPT account to use OpenAI Codex models. Requires a ChatGPT Plus or Pro subscription. OAuth tokens are stored securely in your OS keychain.",
     oauthTokenLabel: "OAuth Token",
     oauthTokenHelp_gemini: "Token acquired via Google OAuth. Stored securely in your OS keychain.",
-    "oauthTokenHelp_openai-codex": "Token acquired via OpenAI OAuth. Stored securely in your OS keychain.",
-    oauthManualInfo_gemini: "Complete sign-in in the browser. If using a remote machine, copy the authorization URL below and paste the redirect URL back after signing in.",
-    "oauthManualInfo_openai-codex": "Complete sign-in in the browser. If using a remote machine, copy the authorization URL below and paste the redirect URL back after signing in.",
+    "oauthTokenHelp_openai-codex":
+      "Token acquired via OpenAI OAuth. Stored securely in your OS keychain.",
+    oauthManualInfo_gemini:
+      "Complete sign-in in the browser. If using a remote machine, copy the authorization URL below and paste the redirect URL back after signing in.",
+    "oauthManualInfo_openai-codex":
+      "Complete sign-in in the browser. If using a remote machine, copy the authorization URL below and paste the redirect URL back after signing in.",
     oauthWaitingForBrowser: "Waiting for browser sign-in...",
     oauthManualUrlLabel: "Authorization URL",
     oauthManualCallbackLabel: "Redirect URL",
     oauthManualCallbackPlaceholder: "Paste the redirect URL from your browser here",
-    oauthManualCallbackHelp_gemini: "After signing in with Google, your browser will redirect to a local http://127.0.0.1 URL — copy the full URL from your browser's address bar and paste it here.",
-    "oauthManualCallbackHelp_openai-codex": "After signing in with ChatGPT, your browser will redirect to a localhost URL — copy the full URL from your browser's address bar and paste it here.",
+    oauthManualCallbackHelp_gemini:
+      "After signing in with Google, your browser will redirect to a local http://127.0.0.1 URL — copy the full URL from your browser's address bar and paste it here.",
+    "oauthManualCallbackHelp_openai-codex":
+      "After signing in with ChatGPT, your browser will redirect to a localhost URL — copy the full URL from your browser's address bar and paste it here.",
     oauthManualSubmit: "Complete Sign-in",
     desc_openai: "Creator of GPT & ChatGPT. Industry leader in general-purpose AI.",
     desc_anthropic: "Maker of Claude. Known for safety-focused, highly capable models.",
@@ -368,9 +400,11 @@ export default {
     desc_zai: "Zhipu AI's global service (z.ai). Priced in USD.",
     desc_moonshot: "Moonshot AI's global service (moonshot.ai). Priced in USD.",
     desc_kimi: "Kimi's China service (moonshot.cn). Priced in CNY.",
-    "desc_moonshot-coding": "Kimi Code subscription plan for Kimi CLI, Claude Code, and other dev tools.",
+    "desc_moonshot-coding":
+      "Kimi Code subscription plan for Kimi CLI, Claude Code, and other dev tools.",
     desc_qwen: "Alibaba's AI models. Strong multilingual and coding capabilities.",
-    "desc_qwen-coding": "Alibaba Cloud Coding Plan subscription for Claude Code and other dev tools.",
+    "desc_qwen-coding":
+      "Alibaba Cloud Coding Plan subscription for Claude Code and other dev tools.",
     desc_modelscope: "ModelScope community free inference. Access Qwen models with free quota.",
     desc_groq: "Ultra-fast inference platform. Runs open-source models at high speed.",
     desc_mistral: "European AI leader. Efficient, high-quality open-weight models.",
@@ -382,23 +416,27 @@ export default {
     desc_venice: "Privacy-focused AI platform. Uncensored model hosting.",
     desc_xiaomi: "Xiaomi's AI lab. Lightweight models optimized for efficiency.",
     desc_volcengine: "ByteDance's cloud platform. Home of Doubao large language models.",
-    "desc_volcengine-coding": "Volcengine Coding Plan subscription for Claude Code and other dev tools.",
+    "desc_volcengine-coding":
+      "Volcengine Coding Plan subscription for Claude Code and other dev tools.",
     desc_nvidia: "NVIDIA's AI platform. Access GPU-optimized open-source models.",
     "desc_nvidia-nim": "NVIDIA NIM microservices. Access GPU-optimized models on NVIDIA's cloud.",
     "desc_amazon-bedrock": "AWS managed service. Access multiple providers through one API.",
     hint_openai: "Get your API key at platform.openai.com.",
     hint_anthropic: "Get your API key at console.anthropic.com, or run {{cmd}} for an OAuth token.",
-    hint_claude: "Subscribe at claude.ai, then get your API key at console.anthropic.com or run {{cmd}} for an OAuth token.",
+    hint_claude:
+      "Subscribe at claude.ai, then get your API key at console.anthropic.com or run {{cmd}} for an OAuth token.",
     hint_google: "Get your API key at aistudio.google.com.",
     hint_deepseek: "Get your API key at platform.deepseek.com.",
     hint_zhipu: "Get your API key at open.bigmodel.cn.",
-    "hint_zhipu-coding": "Get your API key at open.bigmodel.cn. Requires GLM Coding Plan subscription.",
+    "hint_zhipu-coding":
+      "Get your API key at open.bigmodel.cn. Requires GLM Coding Plan subscription.",
     hint_zai: "Get your API key at z.ai.",
     hint_moonshot: "Get your API key at platform.moonshot.ai.",
     hint_kimi: "Get your API key at platform.moonshot.cn.",
     "hint_moonshot-coding": "Subscribe at kimi.com/code, then get your API key from the console.",
     hint_qwen: "Get your API key at dashscope.console.aliyun.com.",
-    "hint_qwen-coding": "Subscribe at aliyun.com Coding Plan, then get your API key from the console.",
+    "hint_qwen-coding":
+      "Subscribe at aliyun.com Coding Plan, then get your API key from the console.",
     hint_modelscope: "Get your access token at modelscope.cn/my/myaccesstoken.",
     hint_groq: "Get your API key at console.groq.com.",
     hint_mistral: "Get your API key at console.mistral.ai.",
@@ -406,11 +444,13 @@ export default {
     hint_openrouter: "Get your API key at openrouter.ai/keys.",
     hint_minimax: "Get your API key at platform.minimaxi.com.",
     "hint_minimax-cn": "Get your API key at platform.minimaxi.com.",
-    "hint_minimax-coding": "Subscribe at platform.minimaxi.com, then get your API key from the console.",
+    "hint_minimax-coding":
+      "Subscribe at platform.minimaxi.com, then get your API key from the console.",
     hint_venice: "Get your API key at venice.ai/settings.",
     hint_xiaomi: "Get your API key at developers.xiaomi.com.",
     hint_volcengine: "Get your API key at console.volcengine.com.",
-    "hint_volcengine-coding": "Subscribe to Coding Plan at volcengine.com, then get your API key from the console.",
+    "hint_volcengine-coding":
+      "Subscribe to Coding Plan at volcengine.com, then get your API key from the console.",
     hint_nvidia: "Get your API key at build.nvidia.com/settings/api-keys.",
     "hint_nvidia-nim": "Get your API key at build.nvidia.com/settings/api-keys.",
     "hint_amazon-bedrock": "Configure AWS credentials with {{cmd}}.",
@@ -426,14 +466,16 @@ export default {
     modelCapabilitiesHelp: "Select the input types your local model supports.",
     localApiKeyHelp: "Optional. Leave empty if your Ollama server has no authentication.",
     localInfoTitle: "Getting Started with Ollama",
-    localInfoBody: "Currently only Ollama is supported.\n\n1. Install Ollama from ollama.com\n2. Run: ollama pull llama3.2\n3. Start server: ollama serve\n4. Enter the server URL on the left",
+    localInfoBody:
+      "Currently only Ollama is supported.\n\n1. Install Ollama from ollama.com\n2. Run: ollama pull llama3.2\n3. Start server: ollama serve\n4. Enter the server URL on the left",
     connectionSuccess: "Connected",
     connectionFailed: "Cannot connect",
     badgeLocal: "Local",
     updateUrl: "Update URL",
     customDefault: "Custom Provider",
     customInfoTitle: "Custom Provider",
-    customInfoBody: "Connect any OpenAI-compatible or Anthropic-compatible API endpoint. Enter the base URL, API key, and model IDs manually.",
+    customInfoBody:
+      "Connect any OpenAI-compatible or Anthropic-compatible API endpoint. Enter the base URL, API key, and model IDs manually.",
     customNameLabel: "Provider Name",
     customNamePlaceholder: "e.g., My vLLM Server",
     customProtocolLabel: "Protocol",
@@ -454,7 +496,8 @@ export default {
     statusSubtitle: "Status from OpenClaw gateway (auto-refreshes every 30s)",
     emptyState: "No channels configured yet.",
     emptyStateTitle: "No channels configured",
-    emptyStateDescription: "Channels allow OpenClaw to receive messages from platforms like Telegram, Discord, Slack, and more. Configure channels in your OpenClaw settings or add accounts to existing channels.",
+    emptyStateDescription:
+      "Channels allow OpenClaw to receive messages from platforms like Telegram, Discord, Slack, and more. Configure channels in your OpenClaw settings or add accounts to existing channels.",
     refreshButton: "Refresh",
     refreshing: "Refreshing...",
     loading: "Loading channels...",
@@ -468,7 +511,8 @@ export default {
     deleting: "Deleting...",
     failedToDelete: "Failed to delete account:",
     deleteConfirmTitle: "Are you sure you want to delete this {{channel}} account?",
-    deleteConfirmMessage: "This will remove the account configuration and all stored secrets. This action cannot be undone.",
+    deleteConfirmMessage:
+      "This will remove the account configuration and all stored secrets. This action cannot be undone.",
     // Time formatters
     timeNever: "Never",
     timeJustNow: "Just now",
@@ -512,8 +556,10 @@ export default {
     colMode: "Mode / Status",
     colActions: "Actions",
     noAccountsConfigured: "No accounts configured for this channel",
-    wechatContextTokenNotReadyTooltip: "WeChat is connected, but it does not yet have the context token required for proactive outbound messages. Send one message from this WeChat account to the bot to confirm activation.",
-    wechatSendUnavailableTooltip: "The latest WeChat send failed. Scan again or send one message from this WeChat account to the bot to reactivate it.",
+    wechatContextTokenNotReadyTooltip:
+      "WeChat is connected, but it does not yet have the context token required for proactive outbound messages. Send one message from this WeChat account to the bot to confirm activation.",
+    wechatSendUnavailableTooltip:
+      "The latest WeChat send failed. Scan again or send one message from this WeChat account to the bot to reactivate it.",
     // Channel labels
     channelTelegram: "Telegram",
     channelWhatsApp: "WhatsApp",
@@ -559,34 +605,51 @@ export default {
     dmPolicyLabel_open: "Open",
     dmPolicyLabel_disabled: "Disabled",
     fieldGroupPolicy: "Group Policy",
-    fieldGroupPolicyHint: "Controls which groups the bot responds in and who can trigger it within those groups",
+    fieldGroupPolicyHint:
+      "Controls which groups the bot responds in and who can trigger it within those groups",
     fieldGroupAllowFrom: "Allowed Senders in Groups",
     fieldGroupAllowFromPlaceholder: "Enter ID and press Enter",
     fieldAllowedGroups: "Allowed Groups",
     fieldAllowedGroupsPlaceholder: "Enter group ID and press Enter",
-    telegramGroupAllowFromHint: "Enter Telegram user IDs. To find a user's ID: add @userinfobot to the group chat, or have the user message @userinfobot directly.",
-    feishuGroupAllowFromHint: "Enter Feishu user IDs (open_id or user_id). Find them in Feishu Admin Console \u2192 Members.",
-    discordGroupAllowFromHint: "Enter Discord user IDs. Right-click a user \u2192 Copy User ID (enable Developer Mode in Settings \u2192 Advanced).",
-    slackGroupAllowFromHint: "Enter Slack member IDs. Click a user's profile \u2192 More \u2192 Copy member ID.",
-    signalGroupAllowFromHint: "Enter Signal user phone numbers in E.164 format (e.g., +1234567890).",
-    googlechatGroupAllowFromHint: "Enter Google Chat user IDs. Find them in the Google Admin Console \u2192 Users.",
+    telegramGroupAllowFromHint:
+      "Enter Telegram user IDs. To find a user's ID: add @userinfobot to the group chat, or have the user message @userinfobot directly.",
+    feishuGroupAllowFromHint:
+      "Enter Feishu user IDs (open_id or user_id). Find them in Feishu Admin Console \u2192 Members.",
+    discordGroupAllowFromHint:
+      "Enter Discord user IDs. Right-click a user \u2192 Copy User ID (enable Developer Mode in Settings \u2192 Advanced).",
+    slackGroupAllowFromHint:
+      "Enter Slack member IDs. Click a user's profile \u2192 More \u2192 Copy member ID.",
+    signalGroupAllowFromHint:
+      "Enter Signal user phone numbers in E.164 format (e.g., +1234567890).",
+    googlechatGroupAllowFromHint:
+      "Enter Google Chat user IDs. Find them in the Google Admin Console \u2192 Users.",
     imessageGroupAllowFromHint: "Enter phone numbers or Apple IDs of allowed senders.",
-    msteamsGroupAllowFromHint: "Enter Microsoft Teams user IDs (Azure AD Object IDs). Find them in the Azure AD admin center.",
-    telegramAllowedGroupsHint: "Enter Telegram group chat IDs (negative numbers like -1001234567890). To find the ID: add @RawDataBot to the group, it will reply with the chat ID.",
-    feishuAllowedGroupsHint: "Enter Feishu group chat IDs (chat_id). Find them in Feishu Admin Console \u2192 Groups, or use the Feishu Open API to list chats.",
-    discordAllowedGroupsHint: "Enter Discord server (guild) IDs. Right-click the server icon \u2192 Copy Server ID (enable Developer Mode in Settings \u2192 Advanced).",
-    slackAllowedGroupsHint: "Enter Slack channel IDs (e.g., C0ABC12345). Right-click a channel \u2192 View channel details \u2192 scroll to the bottom for Channel ID.",
-    googlechatAllowedGroupsHint: "Enter Google Chat space IDs. Find them in the Google Chat API or from the space URL.",
-    signalAllowedGroupsHint: "Enter Signal group IDs. These are the internal group identifiers shown in Signal's group info.",
-    imessageAllowedGroupsHint: "Enter iMessage group chat IDs. These are the chat identifiers from the Messages database.",
-    msteamsAllowedGroupsHint: "Enter Microsoft Teams channel IDs. Find them in Teams \u2192 channel settings \u2192 Get link to channel, or via the Microsoft Graph API.",
+    msteamsGroupAllowFromHint:
+      "Enter Microsoft Teams user IDs (Azure AD Object IDs). Find them in the Azure AD admin center.",
+    telegramAllowedGroupsHint:
+      "Enter Telegram group chat IDs (negative numbers like -1001234567890). To find the ID: add @RawDataBot to the group, it will reply with the chat ID.",
+    feishuAllowedGroupsHint:
+      "Enter Feishu group chat IDs (chat_id). Find them in Feishu Admin Console \u2192 Groups, or use the Feishu Open API to list chats.",
+    discordAllowedGroupsHint:
+      "Enter Discord server (guild) IDs. Right-click the server icon \u2192 Copy Server ID (enable Developer Mode in Settings \u2192 Advanced).",
+    slackAllowedGroupsHint:
+      "Enter Slack channel IDs (e.g., C0ABC12345). Right-click a channel \u2192 View channel details \u2192 scroll to the bottom for Channel ID.",
+    googlechatAllowedGroupsHint:
+      "Enter Google Chat space IDs. Find them in the Google Chat API or from the space URL.",
+    signalAllowedGroupsHint:
+      "Enter Signal group IDs. These are the internal group identifiers shown in Signal's group info.",
+    imessageAllowedGroupsHint:
+      "Enter iMessage group chat IDs. These are the chat identifiers from the Messages database.",
+    msteamsAllowedGroupsHint:
+      "Enter Microsoft Teams channel IDs. Find them in Teams \u2192 channel settings \u2192 Get link to channel, or via the Microsoft Graph API.",
     groupPolicyOpen: "Open - Respond to anyone in any group the bot is added to",
     groupPolicyAllowlist: "Allowlist - Only respond in approved groups, from approved senders",
     groupPolicyDisabled: "Disabled - Ignore all group messages",
     fieldEnableAccount: "Enable this account",
     errorAccountIdRequired: "Account ID is required",
     errorBotTokenRequired: "Bot token is required",
-    errorChannelNotSupported: "Channel type {{channelId}} is not yet supported in UI. Only Telegram is currently supported.",
+    errorChannelNotSupported:
+      "Channel type {{channelId}} is not yet supported in UI. Only Telegram is currently supported.",
     errorLabel: "Error:",
     buttonCancel: "Cancel",
     buttonSaving: "Saving...",
@@ -635,9 +698,11 @@ export default {
     // Tooltips for each channel
     tooltipTelegram: "Find @BotFather to create a bot and get token",
     tooltipWhatsApp: "Need a real phone number, use 'openclaw channels login' to scan QR code",
-    tooltipDiscord: "Create Application + Bot at discord.com/developers, enable Message Content Intent",
+    tooltipDiscord:
+      "Create Application + Bot at discord.com/developers, enable Message Content Intent",
     tooltipSlack: "Create App at api.slack.com/apps, get App Token (xapp-) and Bot Token (xoxb-)",
-    tooltipGoogleChat: "Create Service Account in Google Cloud + configure Chat App, requires public HTTPS endpoint",
+    tooltipGoogleChat:
+      "Create Service Account in Google Cloud + configure Chat App, requires public HTTPS endpoint",
     tooltipSignal: "Install signal-cli (requires Java), use 'signal-cli link' to scan QR code",
     tooltipIMessage: "macOS only, install imsg CLI, requires Full Disk Access permission",
     // New channel tooltips
@@ -665,7 +730,8 @@ export default {
     feishuEncryptKeyHint: "Optional. Used for Feishu event encryption in webhook mode.",
     feishuGroupPolicyHint: "Controls how group messages are handled in Feishu",
     feishuRequireMention: "Require @mention",
-    feishuRequireMentionHint: "When enabled, the bot only responds to messages that @mention it in groups",
+    feishuRequireMentionHint:
+      "When enabled, the bot only responds to messages that @mention it in groups",
     requireMentionTrue: "Yes - Only respond when mentioned",
     requireMentionFalse: "No - Respond to all messages",
     // LINE fields
@@ -690,7 +756,8 @@ export default {
     // Mattermost fields
     mattermostBotToken: "Bot Token",
     mattermostBotTokenPlaceholder: "Enter personal access token",
-    mattermostBotTokenHint: "Create in Mattermost → Account Settings → Security → Personal Access Tokens",
+    mattermostBotTokenHint:
+      "Create in Mattermost → Account Settings → Security → Personal Access Tokens",
     mattermostBaseUrl: "Server URL",
     mattermostBaseUrlPlaceholder: "https://mattermost.example.com",
     mattermostBaseUrlHint: "Your Mattermost server URL",
@@ -714,7 +781,8 @@ export default {
     slackBotTokenHint: "Bot User OAuth Token from Slack App settings. Stored securely in Keychain.",
     slackAppToken: "App Token (Optional)",
     slackAppTokenPlaceholder: "xapp-...",
-    slackAppTokenHint: "Required for Socket Mode. App-Level Token from Slack App settings. Stored securely in Keychain.",
+    slackAppTokenHint:
+      "Required for Socket Mode. App-Level Token from Slack App settings. Stored securely in Keychain.",
     slackMode: "Connection Mode",
     slackModeHint: "Socket Mode recommended for ease of setup",
     // Google Chat fields
@@ -725,7 +793,8 @@ export default {
     googlechatWebhookUrlPlaceholder: "https://your-server.com/webhook",
     googlechatWebhookUrlHint: "Public URL where Google Chat can send events",
     // WhatsApp fields
-    whatsappSetupHint: "WhatsApp requires QR code authentication via CLI: openclaw channels login whatsapp",
+    whatsappSetupHint:
+      "WhatsApp requires QR code authentication via CLI: openclaw channels login whatsapp",
     // Signal fields
     signalAccount: "Phone Number",
     signalAccountPlaceholder: "+1234567890",
@@ -782,7 +851,8 @@ export default {
     title: "Connect WeChat",
     generating: "Generating QR code...",
     scanPrompt: "Scan with WeChat to connect",
-    weixinDuplicateScanWarning: "If this WeChat account has already been connected, scanning again will not re-bind it. Unbind it in WeChat first, then scan again.",
+    weixinDuplicateScanWarning:
+      "If this WeChat account has already been connected, scanning again will not re-bind it. Unbind it in WeChat first, then scan again.",
     waiting: "Waiting for confirmation...",
     success: "Bound successfully!",
     alreadyConnected: "Account already connected",
@@ -792,11 +862,14 @@ export default {
     gatewayUnavailable: "Gateway is not connected. Please start the gateway first.",
     autoRefresh: "Auto-refresh in {{seconds}}s",
     refreshing: "Refreshing QR code...",
-    weixinActivationHint: "WeChat is bound. Please send one message to the bot in WeChat to confirm activation; otherwise proactive outbound messages may not be delivered.",
-    weixinAlreadyConnectedHint: "This WeChat account was already connected. Its login state has been refreshed.",
+    weixinActivationHint:
+      "WeChat is bound. Please send one message to the bot in WeChat to confirm activation; otherwise proactive outbound messages may not be delivered.",
+    weixinAlreadyConnectedHint:
+      "This WeChat account was already connected. Its login state has been refreshed.",
   },
   mobile: {
-    description: "Scan to connect your phone — zero config, zero hassle. Chat with your AI agent anytime, anywhere.",
+    description:
+      "Scan to connect your phone — zero config, zero hassle. Chat with your AI agent anytime, anywhere.",
     statusTitle: "ChatClaw Connection",
     generationFailed: "Failed to generate pairing code: {{error}}",
     disconnectConfirm: "Are you sure you want to disconnect the current mobile device?",
@@ -811,18 +884,21 @@ export default {
     expiresIn: "Expires in {{seconds}}s",
     existingPairings: "{{count}} device(s) already paired.",
     pairTitle: "Pair Device",
-    installHint: "First time? Scan the QR code on the right to install ChatClaw on your phone. Already installed? Click the Connect button, then scan the popup QR code using ChatClaw's built-in scanner to pair.",
-    pairHint: "Open the ChatClaw app and use its built-in scanner to scan this QR code."
+    installHint:
+      "First time? Scan the QR code on the right to install ChatClaw on your phone. Already installed? Click the Connect button, then scan the popup QR code using ChatClaw's built-in scanner to pair.",
+    pairHint: "Open the ChatClaw app and use its built-in scanner to scan this QR code.",
   },
   stt: {
     title: "Speech-to-Text",
     description: "Configure speech-to-text transcription for voice messages.",
     enableStt: "Enable Speech-to-Text",
-    enableHelp: "When enabled, voice messages from channels will be automatically transcribed to text before being processed by the agent.",
+    enableHelp:
+      "When enabled, voice messages from channels will be automatically transcribed to text before being processed by the agent.",
     provider: "STT Provider",
     providerGroq: "Groq (Whisper)",
     providerVolcengine: "Volcengine",
-    providerHelp: "Select a speech-to-text provider. Region-aware defaults: Groq for global, Volcengine for China.",
+    providerHelp:
+      "Select a speech-to-text provider. Region-aware defaults: Groq for global, Volcengine for China.",
     groqApiKey: "Groq API Key",
     groqApiKeyPlaceholder: "Enter your Groq API key",
     groqApiKeyRequired: "Groq API key is required when using Groq provider.",
@@ -837,7 +913,7 @@ export default {
     volcentineFreeLink: "Get started",
     volcengineStepsTitle: "How to get credentials?",
     volcengineStep1: "1. Click the link above to open the speech console and create an app",
-    volcengineStep2: "2. Find \"Doubao Recording File Recognition Model 2.0\" and click into it",
+    volcengineStep2: '2. Find "Doubao Recording File Recognition Model 2.0" and click into it',
     volcengineStep3: "3. Copy the APP ID and Access Token from the page and paste below",
     failedToLoad: "Failed to load STT settings: ",
     failedToSave: "Failed to save STT settings: ",
@@ -845,17 +921,20 @@ export default {
     keyNotChanged: "leave empty to keep unchanged",
     update: "Update",
     whatIsStt: "What is Speech-to-Text?",
-    sttExplanation: "Speech-to-Text (STT) automatically transcribes voice messages into text before they're sent to your AI agent. This allows your agent to understand and respond to voice messages from channels like Telegram, WhatsApp, and others.",
+    sttExplanation:
+      "Speech-to-Text (STT) automatically transcribes voice messages into text before they're sent to your AI agent. This allows your agent to understand and respond to voice messages from channels like Telegram, WhatsApp, and others.",
     feature1: "Automatic transcription of voice messages from all connected channels",
     feature2: "Region-aware provider selection for optimal performance and compliance",
     feature3: "Secure credential storage in your OS keychain (macOS Keychain / Windows DPAPI)",
   },
   extras: {
     title: "Extra Features",
-    description: "Configure additional capabilities for your AI agent: speech-to-text, web search, and memory.",
+    description:
+      "Configure additional capabilities for your AI agent: speech-to-text, web search, and memory.",
     sttSection: "Speech-to-Text",
     webSearchSection: "Web Search",
-    webSearchDescription: "Enable web search to let your agent find real-time information from the internet without opening a browser.",
+    webSearchDescription:
+      "Enable web search to let your agent find real-time information from the internet without opening a browser.",
     enableWebSearch: "Enable Web Search",
     webSearchProvider: "Search Provider",
     webSearchProviderBrave: "Brave Search",
@@ -873,7 +952,8 @@ export default {
     webSearchGeminiHelp: "Get your API key from",
     webSearchKimiHelp: "Get your API key from",
     embeddingSection: "Embedding / Memory",
-    embeddingDescription: "Enable semantic memory to let your agent remember and recall more efficiently over time.",
+    embeddingDescription:
+      "Enable semantic memory to let your agent remember and recall more efficiently over time.",
     enableEmbedding: "Enable Memory Search",
     embeddingProvider: "Embedding Provider",
     embeddingProviderOpenai: "OpenAI",
@@ -920,7 +1000,8 @@ export default {
     noRecordsHelp: "Token usage will appear here as API calls are made through the gateway.",
     loadingData: "Loading usage data...",
     failedToLoad: "Failed to load usage data: ",
-    costDisclaimer: "Costs are estimated from official list prices. Actual charges may differ based on your account tier, promotions, or billing agreements.",
+    costDisclaimer:
+      "Costs are estimated from official list prices. Actual charges may differ based on your account tier, promotions, or billing agreements.",
   },
   keyUsage: {
     title: "Usage",
@@ -961,15 +1042,18 @@ export default {
       accentTiffany: "Tiffany Mint",
       accentGray: "Slate Gray",
       privacyMode: "Privacy Mode",
-      privacyModeHint: "Hide sensitive information like QR codes behind a blur. Useful for screen sharing or live streaming.",
+      privacyModeHint:
+        "Hide sensitive information like QR codes behind a blur. Useful for screen sharing or live streaming.",
       clickToReveal: "Click to reveal",
       showAgentName: "Show Agent Name in Sidebar",
-      showAgentNameHint: "Display the agent's name in the sidebar header instead of the app brand name.",
+      showAgentNameHint:
+        "Display the agent's name in the sidebar header instead of the app brand name.",
     },
     agent: {
       title: "Agent Settings",
       dmScope: "DM Session Scope",
-      dmScopeHint: "Only relevant when your agent serves multiple users via DM. Controls whether they share the same conversation session or get separate ones.",
+      dmScopeHint:
+        "Only relevant when your agent serves multiple users via DM. Controls whether they share the same conversation session or get separate ones.",
       dmScopeMain: "Shared (default) - All users share one session",
       dmScopePerPeer: "Per User - Each user gets a separate session",
       dmScopePerChannelPeer: "Per Channel + User - Separate by channel and user",
@@ -980,11 +1064,14 @@ export default {
     chat: {
       title: "Chat Settings",
       showAgentEvents: "Show agent processing status",
-      showAgentEventsHint: "Display what the agent is doing (processing, using tools, generating) while waiting for a response.",
+      showAgentEventsHint:
+        "Display what the agent is doing (processing, using tools, generating) while waiting for a response.",
       preserveToolEvents: "Preserve tool call records",
-      preserveToolEventsHint: "Save tool call entries inline in the chat history so they remain visible after the conversation ends.",
+      preserveToolEventsHint:
+        "Save tool call entries inline in the chat history so they remain visible after the conversation ends.",
       collapseMessages: "Collapse long messages",
-      collapseMessagesHint: "Automatically collapse agent messages that exceed ~15 lines. You can still expand individual messages manually.",
+      collapseMessagesHint:
+        "Automatically collapse agent messages that exceed ~15 lines. You can still expand individual messages manually.",
       failedToSave: "Failed to save chat settings: ",
     },
     browser: {
@@ -994,9 +1081,11 @@ export default {
       modeStandalone: "Standalone",
       modeStandaloneDesc: "Launch an isolated Chrome — doesn't affect your browser",
       modeCdp: "CDP (Connect to your Chrome)",
-      modeCdpDesc: "Use your own Chrome with all your accounts, cookies, and extensions. Works best on macOS/Linux. On Windows, you may need to re-login to websites once due to cookie encryption.",
+      modeCdpDesc:
+        "Use your own Chrome with all your accounts, cookies, and extensions. Works best on macOS/Linux. On Windows, you may need to re-login to websites once due to cookie encryption.",
       cdpConfirmTitle: "Switch to CDP Mode",
-      cdpConfirm: "This will close your current Chrome and relaunch it with remote debugging enabled. Chrome will also auto-launch with the app on every startup. Any unsaved work in Chrome may be lost.\n\nOn Windows: due to Chrome's path-based cookie encryption, you may need to re-login to websites the first time. Your extensions, bookmarks, and history will still be available. Subsequent launches will preserve your sessions.",
+      cdpConfirm:
+        "This will close your current Chrome and relaunch it with remote debugging enabled. Chrome will also auto-launch with the app on every startup. Any unsaved work in Chrome may be lost.\n\nOn Windows: due to Chrome's path-based cookie encryption, you may need to re-login to websites the first time. Your extensions, bookmarks, and history will still be available. Subsequent launches will preserve your sessions.",
       cdpConfirmOk: "Switch to CDP",
       failedToSave: "Failed to save browser settings: ",
     },
@@ -1008,7 +1097,8 @@ export default {
     },
     telemetry: {
       title: "Telemetry & Privacy",
-      description: "Help us improve RivonClaw by sharing anonymous usage statistics. Your privacy is important to us.",
+      description:
+        "Help us improve RivonClaw by sharing anonymous usage statistics. Your privacy is important to us.",
       toggle: "Send anonymous usage statistics",
       whatWeCollect: "What we collect",
       whatWeDontCollect: "What we don't collect",
@@ -1030,7 +1120,8 @@ export default {
       failedToSave: "Failed to save telemetry settings: ",
       consent: {
         title: "Help Improve RivonClaw",
-        description: "We collect anonymous usage statistics to improve the product. No personal data, conversation content, or API keys are ever collected.",
+        description:
+          "We collect anonymous usage statistics to improve the product. No personal data, conversation content, or API keys are ever collected.",
         collectLabel: "What we collect:",
         items: "App lifecycle, feature usage, error reports, runtime stats",
         agree: "Agree",
@@ -1043,14 +1134,16 @@ export default {
       button: "Upload Log File",
       uploading: "Uploading...",
       success: "Log file uploaded successfully",
-      notFound: "Log file does not exist yet — try again after the app has been running for a while",
+      notFound:
+        "Log file does not exist yet — try again after the app has been running for a while",
       tooLarge: "Log file exceeds the 10 MB upload limit",
       rateLimited: "Upload rate limit exceeded — please try again later",
       failed: "Upload failed: ",
     },
     deps: {
       title: "System Dependencies",
-      description: "Check and install system dependencies (Git, Python, Node.js, uv) required by the agent engine.",
+      description:
+        "Check and install system dependencies (Git, Python, Node.js, uv) required by the agent engine.",
       installButton: "Install Dependencies",
       statusRunning: "Opening installer...",
     },
@@ -1101,9 +1194,11 @@ export default {
     useAsGuest: "Use as guest",
     kicker: "E-commerce workspace",
     accountTitle: "Start with your seller account",
-    accountDesc: "Create a RivonClaw account to connect shops, activate trials, and sync your ecommerce workspace. Already have an account? Sign in and continue where you left off.",
+    accountDesc:
+      "Create a RivonClaw account to connect shops, activate trials, and sync your ecommerce workspace. Already have an account? Sign in and continue where you left off.",
     createAccountTitle: "New user registration",
-    createAccountDesc: "Create an account, enter an invite code if you have one, then connect your first eligible shop.",
+    createAccountDesc:
+      "Create an account, enter an invite code if you have one, then connect your first eligible shop.",
     loginTitle: "Existing user login",
     loginDesc: "Sign in to restore your shops, billing, presets, and cloud workspace.",
   },
@@ -1151,7 +1246,7 @@ export default {
     delete: "Delete",
     deleting: "Deleting...",
     confirmDelete: "Are you sure you want to delete this skill?",
-    confirmDeleteDesc: "This will remove \"{{name}}\" from your local machine.",
+    confirmDeleteDesc: 'This will remove "{{name}}" from your local machine.',
     stars: "{{count}} stars",
     downloads: "{{count}} downloads",
     version: "v{{version}}",
@@ -1289,7 +1384,7 @@ export default {
     webhookUrlRequired: "Webhook URL is required",
     // Confirm delete
     confirmDelete: "Delete Cron Job",
-    confirmDeleteMessage: "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
+    confirmDeleteMessage: 'Are you sure you want to delete "{{name}}"? This cannot be undone.',
     // Run history
     historyTitle: "Run History",
     historyTimestamp: "Time",
@@ -1307,10 +1402,8 @@ export default {
       "Use a specific model for this job instead of the default (e.g. gpt-4o, claude-sonnet-4-20250514).",
     tooltipPayloadKind:
       "Agent Message = send a prompt to an isolated agent session; System Event = emit an event in the main session.",
-    tooltipMessage:
-      "The prompt message that will be sent to the agent when this job runs.",
-    tooltipText:
-      "The event text that will be emitted in the main session when this job runs.",
+    tooltipMessage: "The prompt message that will be sent to the agent when this job runs.",
+    tooltipText: "The event text that will be emitted in the main session when this job runs.",
     tooltipDeliveryMode:
       "None = no notification; Announce = send result to a messaging channel; Webhook = POST result to a URL.",
     tooltipDeleteAfterRun:
@@ -1438,7 +1531,8 @@ export default {
     userAgreement: "User Agreement",
     agreeUserAgreementSuffix: ".",
     errorUserAgreementRequired: "Please agree to the User Agreement to create an account.",
-    autoRegisterNotice: "No account found for this email. Please verify your captcha and click Create Account.",
+    autoRegisterNotice:
+      "No account found for this email. Please verify your captcha and click Create Account.",
     errorEmailNotRegistered: "Email not registered",
   },
   account: {
@@ -1447,13 +1541,15 @@ export default {
     profile: "Profile",
     plan: "Plan",
     inviteCode: "Invite Code",
-    inviteCodeTooltip: "Invite other users to join and earn benefits. Please contact the official team to confirm the current benefit policy.",
+    inviteCodeTooltip:
+      "Invite other users to join and earn benefits. Please contact the official team to confirm the current benefit policy.",
     subscription: "Subscription",
     memberSince: "Member Since",
     status: "Status",
     seats: "Seats",
     validUntil: "Valid Until",
-    runProfilesDesc: "Tool presets for agent runs. Select one or more when starting a chat or cron job.",
+    runProfilesDesc:
+      "Tool presets for agent runs. Select one or more when starting a chat or cron job.",
     defaultRunProfile: "Default Run Profile",
     defaultRunProfileHint: "Applied to new sessions when no specific profile is selected",
     noDefault: "None (baseline tools only)",
@@ -1468,7 +1564,8 @@ export default {
     description: "Review account entitlements, shop service subscriptions, and payment records.",
     accountLlm: "Account LLM",
     accountAi: "RivonClaw AI",
-    accountAiDescription: "RivonClaw's cloud LLM service. You can subscribe to use our hosted models, or keep using your own OpenAI, Gemini, or Anthropic provider.",
+    accountAiDescription:
+      "RivonClaw's cloud LLM service. You can subscribe to use our hosted models, or keep using your own OpenAI, Gemini, or Anthropic provider.",
     shopServices: "Shop Service Subscriptions",
     planDefinitions: "Plan Definitions",
     planDefinitionsUnavailable: "Plan definitions are not available from the backend yet.",
@@ -1492,7 +1589,8 @@ export default {
     graceUntil: "Grace Until",
     subscriptionAmount: "Subscription Amount",
     monthlyPlanPrice: "Monthly plan price",
-    upgradeProrationHint: "Upgrades deduct the unused value from your current plan, so today's charge may be lower than this monthly price.",
+    upgradeProrationHint:
+      "Upgrades deduct the unused value from your current plan, so today's charge may be lower than this monthly price.",
     cnyMonthlyPrice: "CNY Monthly Price",
     cancelAtPeriodEnd: "Cancels at period end",
     serviceAccess: "Service Subscription",
@@ -1505,9 +1603,11 @@ export default {
     usageUsedPercent: "{{percent}} used",
     usageRemainingPercent: "{{percent}} remaining",
     cloudQuotaExhaustedTitle: "RivonClaw AI tokens exhausted",
-    cloudQuotaExhaustedBody: "Your five-hour or weekly cloud LLM quota has been used up. To avoid business interruption, upgrade your plan or add another LLM key.",
+    cloudQuotaExhaustedBody:
+      "Your five-hour or weekly cloud LLM quota has been used up. To avoid business interruption, upgrade your plan or add another LLM key.",
     cloudQuotaLowTitle: "RivonClaw AI tokens almost exhausted",
-    cloudQuotaLowBody: "Your cloud LLM quota has 5% or less remaining. To avoid business interruption, upgrade your plan or add another LLM key.",
+    cloudQuotaLowBody:
+      "Your cloud LLM quota has 5% or less remaining. To avoid business interruption, upgrade your plan or add another LLM key.",
     openBilling: "Billing",
     addLlmKey: "Add LLM key",
     changeAccountPlan: "Subscribe / Upgrade",
@@ -1523,22 +1623,27 @@ export default {
     continueToPayment: "Continue to payment",
     manageSubscription: "Manage",
     managePaymentMethod: "Payment method",
-    managePaymentMethodMessage: "Open Stripe's secure billing portal to update the card used for this subscription.",
+    managePaymentMethodMessage:
+      "Open Stripe's secure billing portal to update the card used for this subscription.",
     changePaymentMethod: "Change card",
     cancelSubscription: "Cancel subscription",
     cancelSubscriptionTitle: "Cancel subscription?",
-    cancelSubscriptionMessage: "Access remains active until {{date}}. The subscription will not renew after that.",
+    cancelSubscriptionMessage:
+      "Access remains active until {{date}}. The subscription will not renew after that.",
     cancelSubscriptionConfirm: "Cancel at period end",
-    renewalReminder: "This service is not set to renew automatically. Renew before {{date}} to avoid interruption.",
+    renewalReminder:
+      "This service is not set to renew automatically. Renew before {{date}} to avoid interruption.",
     renewBefore: "Renew before {{date}}",
     renewSubscription: "Renew",
     extendPrepaid: "Renew",
     extendPrepaidTitle: "Renew",
     extendPrepaidMessage: "Pay with WeChat Pay or Alipay to extend service access after {{date}}.",
-    renewSubscriptionMessage: "Choose a payment method to renew. Credit card restores or starts auto-renewal; WeChat Pay / Alipay extends service as prepaid access.",
+    renewSubscriptionMessage:
+      "Choose a payment method to renew. Credit card restores or starts auto-renewal; WeChat Pay / Alipay extends service as prepaid access.",
     resumeSubscription: "Resume automatic renewal",
     resumeSubscriptionTitle: "Resume automatic renewal",
-    resumeSubscriptionMessage: "This removes the scheduled cancellation. Your service stays active and renews after {{date}}.",
+    resumeSubscriptionMessage:
+      "This removes the scheduled cancellation. Your service stays active and renews after {{date}}.",
     subscribeCustomerService: "Subscribe to AI Customer Service",
     subscribeService: {
       customerService: "Subscribe to AI Customer Service",
@@ -1648,12 +1753,15 @@ export default {
     },
     paymentPending: {
       title: "Payment Pending",
-      stripeHelp: "Card checkout opened in your browser. Return here after payment and refresh the status.",
-      lakalaHelp: "Scan this QR code with WeChat Pay or Alipay. Status refreshes automatically for up to 5 minutes.",
+      stripeHelp:
+        "Card checkout opened in your browser. Return here after payment and refresh the status.",
+      lakalaHelp:
+        "Scan this QR code with WeChat Pay or Alipay. Status refreshes automatically for up to 5 minutes.",
       qrAlt: "Payment QR code",
       qrUnavailable: "QR code is not available for this payment.",
       success: "Payment succeeded.",
-      successClosing: "Payment succeeded. Billing data has been refreshed. This window will close shortly.",
+      successClosing:
+        "Payment succeeded. Billing data has been refreshed. This window will close shortly.",
       successCountdown: "Billing data is being refreshed. This window will close in {{count}}s.",
     },
     subscriptionStartAction: {
@@ -1662,9 +1770,11 @@ export default {
     },
     errors: {
       checkoutFailed: "Payment update failed: {{message}}",
-      missingCheckoutUrl: "Card checkout did not return a checkout URL. Please refresh and try again.",
+      missingCheckoutUrl:
+        "Card checkout did not return a checkout URL. Please refresh and try again.",
       missingQrCode: "QR payment did not return a code for this payment.",
-      missingBillingPortalUrl: "Stripe billing portal did not return a URL. Please refresh and try again.",
+      missingBillingPortalUrl:
+        "Stripe billing portal did not return a URL. Please refresh and try again.",
       pollingExpired: "Payment status polling stopped after 5 minutes. You can refresh manually.",
     },
   },
@@ -1684,7 +1794,8 @@ export default {
       title: "Tool Selection",
       noTools: "No tools available",
       unavailableSelected: "Selected but unavailable",
-      unavailableSelectedHint: "This tool is no longer available in the current tool list, but you can still deselect it here.",
+      unavailableSelectedHint:
+        "This tool is no longer available in the current tool list, but you can still deselect it here.",
       sourceSystem: "System",
       sourceExtension: "Extension",
       sourceCloud: "Cloud",
@@ -1856,475 +1967,689 @@ export default {
   },
   tutorial: {
     bubble: { tooltip: "Page Tutorial" },
-    nav: { prev: "Previous", next: "Next", done: "Done", close: "Close", stepOf: "{{current}} / {{total}}" },
+    nav: {
+      prev: "Previous",
+      next: "Next",
+      done: "Done",
+      close: "Close",
+      stepOf: "{{current}} / {{total}}",
+    },
     adsManagement: {
       welcomeTitle: "TikTok Ads",
       welcomeBody: "This page connects TikTok Business access and shows shop ad coverage.",
       actionsTitle: "Connect and Refresh",
-      actionsBody: "Use Connect TikTok Business to authorize ad-account access. Refresh updates ad accounts and shop coverage.",
+      actionsBody:
+        "Use Connect TikTok Business to authorize ad-account access. Refresh updates ad accounts and shop coverage.",
       summaryTitle: "Coverage Summary",
       summaryBody: "These counters show authorized ad accounts and shops with ad coverage.",
       advertisersTitle: "Advertising Accounts",
-      advertisersBody: "Each row is an ad account available through TikTok Business authorization, including auth state, sync state, and actions.",
+      advertisersBody:
+        "Each row is an ad account available through TikTok Business authorization, including auth state, sync state, and actions.",
       shopCoverageTitle: "Shop Ads Coverage",
       shopCoverageBody: "Shop groups show whether ad coverage is complete, partial, or missing.",
     },
     providers: {
       welcomeTitle: "Welcome to Models",
-      welcomeBody: "This is where you configure the LLM providers that power your agent. Let's walk through each part of this page.",
+      welcomeBody:
+        "This is where you configure the LLM providers that power your agent. Let's walk through each part of this page.",
       tabBarTitle: "Provider Types",
-      tabBarBody: "Four tabs to choose from: Subscription (managed service with monthly billing), API Key (bring your own key from providers like OpenAI, Anthropic, etc.), Local (self-hosted models via Ollama, LM Studio), or Custom (any OpenAI/Anthropic-compatible endpoint).",
+      tabBarBody:
+        "Four tabs to choose from: Subscription (managed service with monthly billing), API Key (bring your own key from providers like OpenAI, Anthropic, etc.), Local (self-hosted models via Ollama, LM Studio), or Custom (any OpenAI/Anthropic-compatible endpoint).",
       providerSelectTitle: "Select a Provider",
-      providerSelectBody: "Click this dropdown to choose your LLM provider. The list is sorted by popularity for your language. Each option shows the provider name and a brief description.",
+      providerSelectBody:
+        "Click this dropdown to choose your LLM provider. The list is sorted by popularity for your language. Each option shows the provider name and a brief description.",
       labelFieldTitle: "Key Label",
-      labelFieldBody: "Give this key a friendly name (e.g., 'Work Account', 'Personal'). This helps you tell keys apart when you have multiple providers configured.",
+      labelFieldBody:
+        "Give this key a friendly name (e.g., 'Work Account', 'Personal'). This helps you tell keys apart when you have multiple providers configured.",
       modelFieldTitle: "Model Selection",
-      modelFieldBody: "Choose which model to use with this provider. Different models have different capabilities and costs. You can change the model later from the configured keys list.",
+      modelFieldBody:
+        "Choose which model to use with this provider. Different models have different capabilities and costs. You can change the model later from the configured keys list.",
       apiKeyFieldTitle: "API Key",
-      apiKeyFieldBody: "Paste your API key here. The key is encrypted and stored securely on your device. The system will validate the key by making a test request to the provider.",
+      apiKeyFieldBody:
+        "Paste your API key here. The key is encrypted and stored securely on your device. The system will validate the key by making a test request to the provider.",
       providerLinksTitle: "Get Your Key",
-      providerLinksBody: "Don't have an API key yet? Click this link to go to the provider's website where you can sign up and generate one.",
+      providerLinksBody:
+        "Don't have an API key yet? Click this link to go to the provider's website where you can sign up and generate one.",
       advancedTitle: "Advanced Settings",
-      advancedBody: "Click to expand advanced options. Here you can configure a proxy URL if your network requires one to reach the provider's API (e.g., for corporate firewalls or regional restrictions).",
+      advancedBody:
+        "Click to expand advanced options. Here you can configure a proxy URL if your network requires one to reach the provider's API (e.g., for corporate firewalls or regional restrictions).",
       saveButtonTitle: "Save",
-      saveButtonBody: "Click Save to validate and store your provider configuration. The system will test your API key before saving. If validation fails, you'll see an error message with details.",
+      saveButtonBody:
+        "Click Save to validate and store your provider configuration. The system will test your API key before saving. If validation fails, you'll see an error message with details.",
       pricingPanelTitle: "Pricing & Info",
-      pricingPanelBody: "This side panel shows pricing details for the selected provider and model, helping you compare costs. For subscription providers, it shows plan options.",
+      pricingPanelBody:
+        "This side panel shows pricing details for the selected provider and model, helping you compare costs. For subscription providers, it shows plan options.",
       configuredTitle: "Configured Keys",
-      configuredBody: "All your saved provider keys appear below. The one marked 'Active' is currently being used by your agent. You can have multiple keys and switch between them.",
+      configuredBody:
+        "All your saved provider keys appear below. The one marked 'Active' is currently being used by your agent. You can have multiple keys and switch between them.",
       keyCardTitle: "Provider Key Card",
-      keyCardBody: "Each card shows: the provider name, authentication type (API Key / Subscription / Local / Custom), and whether it's the active key. The 'Active' badge means this is the key your agent is currently using.",
+      keyCardBody:
+        "Each card shows: the provider name, authentication type (API Key / Subscription / Local / Custom), and whether it's the active key. The 'Active' badge means this is the key your agent is currently using.",
       keyModelTitle: "Label & Model",
-      keyModelBody: "The key's label is shown here (click the pencil icon to rename it). Below is the model selector — you can switch models anytime without re-entering your key.",
+      keyModelBody:
+        "The key's label is shown here (click the pencil icon to rename it). Below is the model selector — you can switch models anytime without re-entering your key.",
       keyActionsTitle: "Key Actions",
-      keyActionsBody: "Three actions available: 'Activate' makes this key the default for your agent. 'Update' lets you change the API key or proxy settings. 'Remove' deletes this key permanently.",
+      keyActionsBody:
+        "Three actions available: 'Activate' makes this key the default for your agent. 'Update' lets you change the API key or proxy settings. 'Remove' deletes this key permanently.",
       updateBtnTitle: "Update Key",
-      updateBtnBody: "Clicking 'Update' expands a form below the key card where you can enter a new API key or change proxy settings. Let's see what that looks like.",
+      updateBtnBody:
+        "Clicking 'Update' expands a form below the key card where you can enter a new API key or change proxy settings. Let's see what that looks like.",
       updateFormTitle: "Update Form",
-      updateFormBody: "Here you can paste a new API key to replace the current one. Below that, you can configure a proxy URL for this specific key. Click Save to apply changes.",
+      updateFormBody:
+        "Here you can paste a new API key to replace the current one. Below that, you can configure a proxy URL for this specific key. Click Save to apply changes.",
       removeBtnTitle: "Remove Key",
-      removeBtnBody: "This permanently deletes the key from your device. If this is your only active key, your agent won't be able to make LLM calls until you add a new one. Be careful!",
+      removeBtnBody:
+        "This permanently deletes the key from your device. If this is your only active key, your agent won't be able to make LLM calls until you add a new one. Be careful!",
     },
     settings: {
       toggle: "Tutorial Mode",
       hint: "When enabled, a tutorial bubble appears on each page to guide you through the features.",
       welcomeTitle: "Welcome to Settings",
-      welcomeBody: "This page lets you customize how EasyClaw behaves. Each section controls a different aspect of the app. Let's walk through every option.",
+      welcomeBody:
+        "This page lets you customize how EasyClaw behaves. Each section controls a different aspect of the app. Let's walk through every option.",
       agentSectionTitle: "Agent Settings",
-      agentSectionBody: "These settings control how your AI agent processes conversations and interacts with browsers. Changes take effect immediately.",
+      agentSectionBody:
+        "These settings control how your AI agent processes conversations and interacts with browsers. Changes take effect immediately.",
       dmScopeTitle: "DM Scope",
-      dmScopeBody: "Controls how conversation context is isolated when your agent handles direct messages. Four options are available:\n\n• Main — All DM conversations share one agent context. The agent remembers everything across all chats, which is powerful but means information from one contact could leak into conversations with another.\n\n• Per-Peer — Each contact gets their own isolated agent context. More private since each person has their own conversation history, but the agent cannot cross-reference information between contacts.\n\n• Per-Channel-Peer — Isolated by channel + contact combination. The same person messaging you on different channels (e.g., WeCom vs. web) gets separate agent contexts.\n\n• Per-Account-Channel-Peer — The most granular option. Isolated by account + channel + contact. If you run multiple accounts, each account's conversations are fully isolated.\n\nChoose based on your privacy requirements: 'Main' for maximum agent intelligence, 'Per-Peer' or higher for strict conversation isolation.",
+      dmScopeBody:
+        "Controls how conversation context is isolated when your agent handles direct messages. Four options are available:\n\n• Main — All DM conversations share one agent context. The agent remembers everything across all chats, which is powerful but means information from one contact could leak into conversations with another.\n\n• Per-Peer — Each contact gets their own isolated agent context. More private since each person has their own conversation history, but the agent cannot cross-reference information between contacts.\n\n• Per-Channel-Peer — Isolated by channel + contact combination. The same person messaging you on different channels (e.g., WeCom vs. web) gets separate agent contexts.\n\n• Per-Account-Channel-Peer — The most granular option. Isolated by account + channel + contact. If you run multiple accounts, each account's conversations are fully isolated.\n\nChoose based on your privacy requirements: 'Main' for maximum agent intelligence, 'Per-Peer' or higher for strict conversation isolation.",
       browserModeTitle: "Browser Mode",
-      browserModeBody: "Controls how the agent launches and controls web browsers for automation tasks.\n\n• Standalone — The app launches its own fresh browser instances. This is simpler to set up and more isolated, but the browser starts with no cookies or login sessions. The agent would need to log into websites from scratch.\n\n• CDP (Chrome DevTools Protocol) — Connects to an existing Chrome browser that you have already launched with remote debugging enabled. This lets the agent use your existing browser with all your cookies, saved passwords, and active login sessions. More powerful but requires you to start Chrome with a special flag (--remote-debugging-port).\n\nUse Standalone for simple tasks. Use CDP when the agent needs access to your logged-in web accounts.",
+      browserModeBody:
+        "Controls how the agent launches and controls web browsers for automation tasks.\n\n• Standalone — The app launches its own fresh browser instances. This is simpler to set up and more isolated, but the browser starts with no cookies or login sessions. The agent would need to log into websites from scratch.\n\n• CDP (Chrome DevTools Protocol) — Connects to an existing Chrome browser that you have already launched with remote debugging enabled. This lets the agent use your existing browser with all your cookies, saved passwords, and active login sessions. More powerful but requires you to start Chrome with a special flag (--remote-debugging-port).\n\nUse Standalone for simple tasks. Use CDP when the agent needs access to your logged-in web accounts.",
       chatSectionTitle: "Chat Settings",
-      chatSectionBody: "These settings control what you see in the chat interface when interacting with your agent. They affect the visual display only — not the agent's actual behavior.",
+      chatSectionBody:
+        "These settings control what you see in the chat interface when interacting with your agent. They affect the visual display only — not the agent's actual behavior.",
       showAgentEventsTitle: "Show Agent Events",
-      showAgentEventsBody: "Controls whether internal agent events are visible in the chat UI. These events include tool calls (browser actions, API requests), thinking steps, and system messages.\n\nWhen enabled, you can see exactly what the agent is doing behind the scenes — which tools it calls, what arguments it passes, and what results it gets back. This is invaluable for debugging or understanding unexpected behavior.\n\nWhen disabled, only the agent's final text responses appear in chat, giving a cleaner, less technical conversation view. Recommended off for regular users, on for developers or troubleshooting.",
+      showAgentEventsBody:
+        "Controls whether internal agent events are visible in the chat UI. These events include tool calls (browser actions, API requests), thinking steps, and system messages.\n\nWhen enabled, you can see exactly what the agent is doing behind the scenes — which tools it calls, what arguments it passes, and what results it gets back. This is invaluable for debugging or understanding unexpected behavior.\n\nWhen disabled, only the agent's final text responses appear in chat, giving a cleaner, less technical conversation view. Recommended off for regular users, on for developers or troubleshooting.",
       preserveToolEventsTitle: "Preserve Tool Events",
-      preserveToolEventsBody: "Controls whether tool execution events stay visible after the agent finishes using them.\n\nWhen enabled, every tool call remains visible in the chat history — you can scroll back and see the full sequence of actions the agent took.\n\nWhen disabled, tool events collapse or disappear after completion, keeping the chat stream clean and focused on the agent's responses. This only matters if 'Show Agent Events' is also enabled.",
+      preserveToolEventsBody:
+        "Controls whether tool execution events stay visible after the agent finishes using them.\n\nWhen enabled, every tool call remains visible in the chat history — you can scroll back and see the full sequence of actions the agent took.\n\nWhen disabled, tool events collapse or disappear after completion, keeping the chat stream clean and focused on the agent's responses. This only matters if 'Show Agent Events' is also enabled.",
       collapseMessagesTitle: "Collapse Messages",
-      collapseMessagesBody: "Controls whether long agent messages are automatically collapsed.\n\nWhen enabled, very long responses are truncated with a 'show more' button, keeping the chat readable and preventing a single huge response from dominating the screen.\n\nWhen disabled, all message content is shown in full regardless of length. Turn this off if you frequently need to see complete responses without extra clicks.",
+      collapseMessagesBody:
+        "Controls whether long agent messages are automatically collapsed.\n\nWhen enabled, very long responses are truncated with a 'show more' button, keeping the chat readable and preventing a single huge response from dominating the screen.\n\nWhen disabled, all message content is shown in full regardless of length. Turn this off if you frequently need to see complete responses without extra clicks.",
       accentColorTitle: "Theme Color",
-      accentColorBody: "Choose the accent color for the app interface. This changes the primary color used for buttons, links, active states, and highlights throughout the UI. Pick the color that feels most comfortable to you — it's purely cosmetic and doesn't affect functionality.",
+      accentColorBody:
+        "Choose the accent color for the app interface. This changes the primary color used for buttons, links, active states, and highlights throughout the UI. Pick the color that feels most comfortable to you — it's purely cosmetic and doesn't affect functionality.",
       privacyModeTitle: "Privacy Mode",
-      privacyModeBody: "Hides sensitive content throughout the UI. When enabled, API keys, message content, and other potentially sensitive data are masked with asterisks or blur effects.\n\nThis is especially useful when screen-sharing during a meeting, recording a demo, or working in a public space where someone might see your screen. Your data is not affected — only the visual display changes.\n\nToggle it off to see your actual data again.",
+      privacyModeBody:
+        "Hides sensitive content throughout the UI. When enabled, API keys, message content, and other potentially sensitive data are masked with asterisks or blur effects.\n\nThis is especially useful when screen-sharing during a meeting, recording a demo, or working in a public space where someone might see your screen. Your data is not affected — only the visual display changes.\n\nToggle it off to see your actual data again.",
       showAgentNameTitle: "Sidebar Agent Name",
-      showAgentNameBody: "Controls whether the sidebar brand label may show the current agent name instead of the app name. Turn it on when you run multiple named agents and want a quick visual check of which one is active.",
+      showAgentNameBody:
+        "Controls whether the sidebar brand label may show the current agent name instead of the app name. Turn it on when you run multiple named agents and want a quick visual check of which one is active.",
       tutorialToggleTitle: "Tutorial Mode",
-      tutorialToggleBody: "Controls whether the tutorial bubble appears on each page. When enabled, you will see a small help icon on every page that launches a guided walkthrough of that page's features. This is the feature you are using right now! Disable it once you are familiar with the app.",
+      tutorialToggleBody:
+        "Controls whether the tutorial bubble appears on each page. When enabled, you will see a small help icon on every page that launches a guided walkthrough of that page's features. This is the feature you are using right now! Disable it once you are familiar with the app.",
       autoLaunchTitle: "Auto-Launch",
-      autoLaunchBody: "Controls whether EasyClaw starts automatically when your computer boots up.\n\nWhen enabled, the app launches in the background as soon as you log into your operating system. Your agent will be ready and listening immediately — convenient if you rely on it daily for customer service or automation.\n\nWhen disabled, you need to manually start the app each time. Disable this if you only use the agent occasionally or want faster system startup.",
+      autoLaunchBody:
+        "Controls whether EasyClaw starts automatically when your computer boots up.\n\nWhen enabled, the app launches in the background as soon as you log into your operating system. Your agent will be ready and listening immediately — convenient if you rely on it daily for customer service or automation.\n\nWhen disabled, you need to manually start the app each time. Disable this if you only use the agent occasionally or want faster system startup.",
       dataDirTitle: "Data Directory",
-      dataDirBody: "Shows where EasyClaw stores all its data — the SQLite database, configuration files, logs, and cached content. The current path is displayed along with a badge indicating whether it is the default location or a custom override.\n\nChanging this moves your data to a different location. Useful if you want to store data on an external drive, an encrypted volume, or a location with more disk space.",
+      dataDirBody:
+        "Shows where EasyClaw stores all its data — the SQLite database, configuration files, logs, and cached content. The current path is displayed along with a badge indicating whether it is the default location or a custom override.\n\nChanging this moves your data to a different location. Useful if you want to store data on an external drive, an encrypted volume, or a location with more disk space.",
       dataDirActionsTitle: "Change / Reset Directory",
-      dataDirActionsBody: "Click 'Change' to select a new directory for app data. Click 'Reset' (only visible when using a custom path) to revert to the default location. Either action requires an app restart to take effect — you will see a notice reminding you to restart.",
+      dataDirActionsBody:
+        "Click 'Change' to select a new directory for app data. Click 'Reset' (only visible when using a custom path) to revert to the default location. Either action requires an app restart to take effect — you will see a notice reminding you to restart.",
       telemetryToggleTitle: "Telemetry",
-      telemetryToggleBody: "Controls anonymous usage analytics. When enabled, the app sends basic usage data (feature usage, error counts, app lifecycle events) to help the development team improve the product.\n\nNo personal data, conversation content, API keys, or rule text is ever collected. You can review exactly what is and is not collected in the details section below this toggle.\n\nDisable this if you prefer to share no data at all.",
+      telemetryToggleBody:
+        "Controls anonymous usage analytics. When enabled, the app sends basic usage data (feature usage, error counts, app lifecycle events) to help the development team improve the product.\n\nNo personal data, conversation content, API keys, or rule text is ever collected. You can review exactly what is and is not collected in the details section below this toggle.\n\nDisable this if you prefer to share no data at all.",
       telemetryDetailsTitle: "Telemetry Details",
-      telemetryDetailsBody: "This section lists exactly what data is collected and what is not. Review it to make an informed decision about whether to enable telemetry. The 'What we collect' list covers anonymous operational metrics. The 'What we don't collect' list confirms that no sensitive information ever leaves your device.",
+      telemetryDetailsBody:
+        "This section lists exactly what data is collected and what is not. Review it to make an informed decision about whether to enable telemetry. The 'What we collect' list covers anonymous operational metrics. The 'What we don't collect' list confirms that no sensitive information ever leaves your device.",
       installDepsTitle: "Install Dependencies",
-      installDepsBody: "Reinstalls system-level dependencies required by the engine (e.g., browser binaries for automation, speech-to-text libraries).\n\nUse this button if features like browser automation or voice input stop working, or after a major system update. The provisioner runs in the background — you can continue using the app while it works.",
+      installDepsBody:
+        "Reinstalls system-level dependencies required by the engine (e.g., browser binaries for automation, speech-to-text libraries).\n\nUse this button if features like browser automation or voice input stop working, or after a major system update. The provisioner runs in the background — you can continue using the app while it works.",
       diagnosticsTitle: "Run Doctor / Fix",
-      diagnosticsBody: "Two buttons for system health management:\n\n• 'Run Doctor' performs a comprehensive check of your system configuration — verifying dependencies, file permissions, network connectivity, and engine health. Results appear in a log output above the buttons.\n\n• 'Fix' runs the same checks but also attempts to automatically repair any detected problems (e.g., reinstalling missing dependencies, fixing file permissions).\n\nUse 'Run Doctor' first to see what is wrong, then 'Fix' if you want the app to attempt automatic repairs.",
+      diagnosticsBody:
+        "Two buttons for system health management:\n\n• 'Run Doctor' performs a comprehensive check of your system configuration — verifying dependencies, file permissions, network connectivity, and engine health. Results appear in a log output above the buttons.\n\n• 'Fix' runs the same checks but also attempts to automatically repair any detected problems (e.g., reinstalling missing dependencies, fixing file permissions).\n\nUse 'Run Doctor' first to see what is wrong, then 'Fix' if you want the app to attempt automatic repairs.",
     },
     chat: {
       welcomeTitle: "Welcome to Chat",
-      welcomeBody: "This is the main conversation interface where you talk to your agent. You can send messages, attach images, and monitor what the agent is doing in real time.",
+      welcomeBody:
+        "This is the main conversation interface where you talk to your agent. You can send messages, attach images, and monitor what the agent is doing in real time.",
       sessionTabsTitle: "Session Tabs",
-      sessionTabsBody: "Each tab is a separate conversation thread. Your main session is always the first tab. Sessions from other channels (Telegram, WeChat, etc.) also appear here. Double-click a tab to rename it, or drag to reorder.",
+      sessionTabsBody:
+        "Each tab is a separate conversation thread. Your main session is always the first tab. Sessions from other channels (Telegram, WeChat, etc.) also appear here. Double-click a tab to rename it, or drag to reorder.",
       newSessionBtnTitle: "New Session",
-      newSessionBtnBody: "Click the \"+\" button to start a fresh conversation. The new session gets its own history and context, independent of other sessions.",
+      newSessionBtnBody:
+        'Click the "+" button to start a fresh conversation. The new session gets its own history and context, independent of other sessions.',
       archivedBtnTitle: "Archived Sessions",
-      archivedBtnBody: "Click the archive icon to browse sessions you've previously closed. You can search by name or content, and click any session to restore it back to your tab bar.",
+      archivedBtnBody:
+        "Click the archive icon to browse sessions you've previously closed. You can search by name or content, and click any session to restore it back to your tab bar.",
       messageAreaTitle: "Message Area",
-      messageAreaBody: "All conversation messages appear here. Your messages are on the right, the agent's responses are on the left. Scroll up to load older messages. Long responses can be collapsed or expanded.",
+      messageAreaBody:
+        "All conversation messages appear here. Your messages are on the right, the agent's responses are on the left. Scroll up to load older messages. Long responses can be collapsed or expanded.",
       examplesTitle: "Example Prompts",
-      examplesBody: "Not sure what to say? These example prompts give you quick starting points. Click any card to load it into the input field. You can toggle this section open or closed with the chevron button.",
+      examplesBody:
+        "Not sure what to say? These example prompts give you quick starting points. Click any card to load it into the input field. You can toggle this section open or closed with the chevron button.",
       exampleEditTitle: "Edit Example Prompts",
-      exampleEditBody: "Click the pencil icon on any example card to customize its prompt text. A modal opens where you can rewrite the prompt to better fit your workflow. Use 'Restore Default' inside the modal to revert back to the original text.",
+      exampleEditBody:
+        "Click the pencil icon on any example card to customize its prompt text. A modal opens where you can rewrite the prompt to better fit your workflow. Use 'Restore Default' inside the modal to revert back to the original text.",
       statusBarTitle: "Status Bar",
-      statusBarBody: "This bar shows your connection status, active model, thinking level, available tools, and a reset button. It's your control center for the current chat session.",
+      statusBarBody:
+        "This bar shows your connection status, active model, thinking level, available tools, and a reset button. It's your control center for the current chat session.",
       connectionDotTitle: "Connection Indicator",
-      connectionDotBody: "The colored dot shows your connection to the agent: green means connected and ready, yellow means connecting, red means disconnected. If disconnected, messages cannot be sent.",
+      connectionDotBody:
+        "The colored dot shows your connection to the agent: green means connected and ready, yellow means connecting, red means disconnected. If disconnected, messages cannot be sent.",
       modelSelectTitle: "Model Selector",
-      modelSelectBody: "A two-level cascading picker for choosing your AI model. Select a provider key on the left panel, then pick a model from the right panel. Use 'Follow global default' at the top to inherit the system-wide model setting. You can type in the search box to filter models by name. Each model entry shows its context window size for reference. The selection takes effect immediately for the next message.",
+      modelSelectBody:
+        "A two-level cascading picker for choosing your AI model. Select a provider key on the left panel, then pick a model from the right panel. Use 'Follow global default' at the top to inherit the system-wide model setting. You can type in the search box to filter models by name. Each model entry shows its context window size for reference. The selection takes effect immediately for the next message.",
       thinkingSelectTitle: "Thinking Level",
-      thinkingSelectBody: "Control how deeply the agent reasons before responding. 'None' is fastest, 'High' produces the most thoughtful responses but takes longer. Choose based on the complexity of your question.",
+      thinkingSelectBody:
+        "Control how deeply the agent reasons before responding. 'None' is fastest, 'High' produces the most thoughtful responses but takes longer. Choose based on the complexity of your question.",
       contextUsageTitle: "Context Usage",
-      contextUsageBody: "Shows how much of the model's context window is consumed, displayed as 'Xk / Yk' (used tokens / total tokens). The indicator turns yellow at 80% usage as an early warning, and red at 100% when the context is full. When context overflows, the agent can no longer read earlier messages and may lose track of the conversation.",
+      contextUsageBody:
+        "Shows how much of the model's context window is consumed, displayed as 'Xk / Yk' (used tokens / total tokens). The indicator turns yellow at 80% usage as an early warning, and red at 100% when the context is full. When context overflows, the agent can no longer read earlier messages and may lose track of the conversation.",
       runProfileTitle: "Run Profile",
-      runProfileBody: "Select a Run Profile to control which tools are available for this conversation. 'Default' provides system tools only. Other profiles add specific capabilities (e.g., browser automation). The profile selection is remembered per session tab, so each tab retains its own chosen profile. Manage profiles in your Account page.",
+      runProfileBody:
+        "Select a Run Profile to control which tools are available for this conversation. 'Default' provides system tools only. Other profiles add specific capabilities (e.g., browser automation). The profile selection is remembered per session tab, so each tab retains its own chosen profile. Manage profiles in your Account page.",
       resetBtnTitle: "Reset Session",
-      resetBtnBody: "Resets the agent's conversation for this session. All visible messages are replaced with a single reset confirmation message, and the agent starts fresh with no prior context. Useful when you want to completely start over.",
+      resetBtnBody:
+        "Resets the agent's conversation for this session. All visible messages are replaced with a single reset confirmation message, and the agent starts fresh with no prior context. Useful when you want to completely start over.",
       inputAreaTitle: "Message Input",
-      inputAreaBody: "Type your message here. Press Enter to send, or Shift+Enter for a new line. You can also paste images directly from your clipboard.",
+      inputAreaBody:
+        "Type your message here. Press Enter to send, or Shift+Enter for a new line. You can also paste images directly from your clipboard.",
       attachBtnTitle: "Attach Files & Images",
-      attachBtnBody: "Two attachment buttons: the paperclip inserts a file path into your message, and the image icon attaches a picture that the agent can see and analyze. Supported formats: JPEG, PNG, GIF, WebP.",
+      attachBtnBody:
+        "Two attachment buttons: the paperclip inserts a file path into your message, and the image icon attaches a picture that the agent can see and analyze. Supported formats: JPEG, PNG, GIF, WebP.",
       emojiBtnTitle: "Emoji Picker",
-      emojiBtnBody: "Click to open the emoji picker. Select an emoji to insert it at the cursor position in your message.",
+      emojiBtnBody:
+        "Click to open the emoji picker. Select an emoji to insert it at the cursor position in your message.",
       sendStopBtnTitle: "Send / Stop",
-      sendStopBtnBody: "The blue 'Send' button submits your message. While the agent is working, it changes to a red 'Stop' button that cancels the current operation.",
+      sendStopBtnBody:
+        "The blue 'Send' button submits your message. While the agent is working, it changes to a red 'Stop' button that cancels the current operation.",
     },
     channels: {
       welcomeTitle: "Welcome to Channels",
-      welcomeBody: "Channels connect your agent to messaging platforms like Telegram, WeChat, Discord, Slack, and more. Once configured, people can chat with your agent directly from those platforms.",
+      welcomeBody:
+        "Channels connect your agent to messaging platforms like Telegram, WeChat, Discord, Slack, and more. Once configured, people can chat with your agent directly from those platforms.",
       refreshBtnTitle: "Refresh Status",
-      refreshBtnBody: "Click to refresh the connection status of all channels. This checks whether each channel's bot is running and reachable.",
+      refreshBtnBody:
+        "Click to refresh the connection status of all channels. This checks whether each channel's bot is running and reachable.",
       addSectionTitle: "Add a Channel Account",
-      addSectionBody: "Set up a new messaging channel here. Select the platform, configure the credentials (like a bot token), and connect it to your agent.",
+      addSectionBody:
+        "Set up a new messaging channel here. Select the platform, configure the credentials (like a bot token), and connect it to your agent.",
       channelDropdownTitle: "Channel Type",
-      channelDropdownBody: "Choose which messaging platform to connect. Options include Telegram, WeChat, Feishu/Lark, Discord, Slack, WhatsApp, and more. Each platform requires different configuration.",
+      channelDropdownBody:
+        "Choose which messaging platform to connect. Options include Telegram, WeChat, Feishu/Lark, Discord, Slack, WhatsApp, and more. Each platform requires different configuration.",
       connectBtnTitle: "Connect Button",
-      connectBtnBody: "After selecting a channel type, click Connect to open the configuration dialog. For Mobile Chat, this opens a QR code pairing flow instead.",
+      connectBtnBody:
+        "After selecting a channel type, click Connect to open the configuration dialog. For Mobile Chat, this opens a QR code pairing flow instead.",
       infoBoxTitle: "Channel Info",
-      infoBoxBody: "When you select a channel, this area shows helpful setup instructions and may include a link to a step-by-step tutorial for that platform.",
+      infoBoxBody:
+        "When you select a channel, this area shows helpful setup instructions and may include a link to a step-by-step tutorial for that platform.",
       accountsTableTitle: "Connected Accounts",
-      accountsTableBody: "This table shows all your configured channel accounts. Each row represents one bot or connection on a messaging platform.",
+      accountsTableBody:
+        "This table shows all your configured channel accounts. Each row represents one bot or connection on a messaging platform.",
       tableColumnsTitle: "Table Columns",
-      tableColumnsBody: "Channel: the platform name. Name: your custom label. Configured/Running: green means OK, red means there's an issue. DM Policy: how the bot handles direct messages (e.g., allowlist-only or open).",
+      tableColumnsBody:
+        "Channel: the platform name. Name: your custom label. Configured/Running: green means OK, red means there's an issue. DM Policy: how the bot handles direct messages (e.g., allowlist-only or open).",
       accountRowTitle: "Account Row",
-      accountRowBody: "Click anywhere on a row to expand it and see the recipient allowlist — the users who are authorized to interact with your bot on that channel.",
+      accountRowBody:
+        "Click anywhere on a row to expand it and see the recipient allowlist — the users who are authorized to interact with your bot on that channel.",
       rowActionsTitle: "Account Actions",
-      rowActionsBody: "Edit opens the configuration dialog to change credentials or settings. Delete permanently removes the channel connection. Mobile Chat accounts can only be deleted, not edited.",
+      rowActionsBody:
+        "Edit opens the configuration dialog to change credentials or settings. Delete permanently removes the channel connection. Mobile Chat accounts can only be deleted, not edited.",
       expandArrowTitle: "Expand Details",
-      expandArrowBody: "The arrow on the left of each row toggles the expanded view, which shows the pairing requests and authorized recipients for that channel.",
+      expandArrowBody:
+        "The arrow on the left of each row toggles the expanded view, which shows the pairing requests and authorized recipients for that channel.",
       recipientsTitle: "Recipients & Pairing",
-      recipientsBody: "The expanded section shows pending pairing requests (users trying to connect) and the current allowlist (approved users). You can approve new users, set labels, toggle owner privileges, or remove access.",
+      recipientsBody:
+        "The expanded section shows pending pairing requests (users trying to connect) and the current allowlist (approved users). You can approve new users, set labels, toggle owner privileges, or remove access.",
       editBtnTitle: "Edit Channel",
-      editBtnBody: "Click Edit to open the configuration dialog for this channel account. Let's take a look inside.",
+      editBtnBody:
+        "Click Edit to open the configuration dialog for this channel account. Let's take a look inside.",
       modalOverviewTitle: "Channel Configuration",
-      modalOverviewBody: "This form lets you configure the channel connection. The fields vary depending on the channel type (Telegram, WeChat, Discord, etc.), but the structure is the same: display name, credentials, and options.",
+      modalOverviewBody:
+        "This form lets you configure the channel connection. The fields vary depending on the channel type (Telegram, WeChat, Discord, etc.), but the structure is the same: display name, credentials, and options.",
       modalNameFieldTitle: "Display Name",
-      modalNameFieldBody: "A friendly name for this channel account (e.g., 'Support Bot', 'Sales Team'). This appears in the channel list to help you identify different connections on the same platform.",
+      modalNameFieldBody:
+        "A friendly name for this channel account (e.g., 'Support Bot', 'Sales Team'). This appears in the channel list to help you identify different connections on the same platform.",
       modalCredentialsTitle: "Channel Credentials",
-      modalCredentialsBody: "The authentication credentials for this channel. For example:\n\n• Telegram: Bot Token from @BotFather\n• Discord: Bot Token from Discord Developer Portal\n• Slack: Bot Token + Signing Secret\n• WeChat: AppID + AppSecret\n\nSecret fields show as masked when editing — leave empty to keep the existing value.",
+      modalCredentialsBody:
+        "The authentication credentials for this channel. For example:\n\n• Telegram: Bot Token from @BotFather\n• Discord: Bot Token from Discord Developer Portal\n• Slack: Bot Token + Signing Secret\n• WeChat: AppID + AppSecret\n\nSecret fields show as masked when editing — leave empty to keep the existing value.",
       modalDmPolicyTitle: "DM Policy",
-      modalDmPolicyBody: "Controls how the bot handles direct (private) messages from users. Three options:\n\n• Pairing — Users must send a pairing code before they can chat. This is the most secure option: only users you explicitly approve can interact with the bot.\n\n• Allowlist — Only pre-approved user IDs can send DMs. You manually manage the list of allowed users.\n\n• Disabled — The bot ignores all direct messages entirely. Use this if your bot should only respond in group chats.",
+      modalDmPolicyBody:
+        "Controls how the bot handles direct (private) messages from users. Three options:\n\n• Pairing — Users must send a pairing code before they can chat. This is the most secure option: only users you explicitly approve can interact with the bot.\n\n• Allowlist — Only pre-approved user IDs can send DMs. You manually manage the list of allowed users.\n\n• Disabled — The bot ignores all direct messages entirely. Use this if your bot should only respond in group chats.",
       modalGroupPolicyTitle: "Group Policy",
-      modalGroupPolicyBody: "Controls how the bot behaves in group chats. Three options:\n\n• Open — The bot responds to messages in any group it's added to. Simple but less controlled.\n\n• Allowlist — The bot only responds in groups you explicitly approve. Use 'Allowed Groups' below to specify which group IDs are permitted. You can also restrict which users can trigger the bot using 'Allowed Senders'.\n\n• Disabled — The bot ignores all group messages. Use this if the bot should only handle DMs.",
+      modalGroupPolicyBody:
+        "Controls how the bot behaves in group chats. Three options:\n\n• Open — The bot responds to messages in any group it's added to. Simple but less controlled.\n\n• Allowlist — The bot only responds in groups you explicitly approve. Use 'Allowed Groups' below to specify which group IDs are permitted. You can also restrict which users can trigger the bot using 'Allowed Senders'.\n\n• Disabled — The bot ignores all group messages. Use this if the bot should only handle DMs.",
       modalAllowedSendersTitle: "Allowed Groups & Senders",
-      modalAllowedSendersBody: "These tag fields appear when Group Policy is set to 'Allowlist'. Enter the group IDs where the bot should be active, and optionally the user IDs allowed to trigger the bot within those groups. Leave the senders field empty to allow all group members to interact with the bot.",
+      modalAllowedSendersBody:
+        "These tag fields appear when Group Policy is set to 'Allowlist'. Enter the group IDs where the bot should be active, and optionally the user IDs allowed to trigger the bot within those groups. Leave the senders field empty to allow all group members to interact with the bot.",
       modalEnabledTitle: "Enabled Toggle",
-      modalEnabledBody: "Controls whether this channel account is active. When unchecked, the bot stops listening for messages on this channel without deleting the configuration. Useful for temporary maintenance.",
+      modalEnabledBody:
+        "Controls whether this channel account is active. When unchecked, the bot stops listening for messages on this channel without deleting the configuration. Useful for temporary maintenance.",
       modalActionsTitle: "Save / Cancel",
-      modalActionsBody: "Click Save to validate and apply your changes. The system will attempt to connect to the channel with the new credentials. Click Cancel to discard changes.",
+      modalActionsBody:
+        "Click Save to validate and apply your changes. The system will attempt to connect to the channel with the new credentials. Click Cancel to discard changes.",
       lastUpdatedTitle: "Last Updated",
-      lastUpdatedBody: "Shows when the channel status was last refreshed. The status auto-refreshes periodically, or you can click the refresh button for an immediate update.",
+      lastUpdatedBody:
+        "Shows when the channel status was last refreshed. The status auto-refreshes periodically, or you can click the refresh button for an immediate update.",
     },
     skills: {
       welcomeTitle: "Welcome to Skills",
-      welcomeBody: "Skills are plugins that give your agent new capabilities — from web search and file handling to custom integrations. Browse the marketplace, install what you need, and your agent will learn new tricks instantly.",
+      welcomeBody:
+        "Skills are plugins that give your agent new capabilities — from web search and file handling to custom integrations. Browse the marketplace, install what you need, and your agent will learn new tricks instantly.",
       tabBarTitle: "Marketplace & Installed",
-      tabBarBody: "Two tabs: 'Marketplace' shows all available skills you can install from the community. 'Installed' shows skills currently active on your agent.",
+      tabBarBody:
+        "Two tabs: 'Marketplace' shows all available skills you can install from the community. 'Installed' shows skills currently active on your agent.",
       searchTitle: "Search Skills",
-      searchBody: "Type a keyword to filter skills by name or description. Results update automatically as you type.",
+      searchBody:
+        "Type a keyword to filter skills by name or description. Results update automatically as you type.",
       categoriesTitle: "Category Filters",
-      categoriesBody: "Click a category chip to narrow results to a specific type (e.g., productivity, automation, communication). Click 'All' to clear the filter.",
+      categoriesBody:
+        "Click a category chip to narrow results to a specific type (e.g., productivity, automation, communication). Click 'All' to clear the filter.",
       gridTitle: "Skill Cards",
-      gridBody: "Each card represents a skill available for installation. Cards show the skill name, description, author, and popularity stats.",
+      gridBody:
+        "Each card represents a skill available for installation. Cards show the skill name, description, author, and popularity stats.",
       cardHeaderTitle: "Skill Name & Version",
-      cardHeaderBody: "The skill's display name and current version number. Version updates happen automatically when the author publishes a new release.",
+      cardHeaderBody:
+        "The skill's display name and current version number. Version updates happen automatically when the author publishes a new release.",
       cardSlugTitle: "Skill Identifier",
-      cardSlugBody: "The unique slug identifier for this skill (e.g., 'web-search'). Double-click to copy it to your clipboard — useful for referencing skills in rules or automation.",
+      cardSlugBody:
+        "The unique slug identifier for this skill (e.g., 'web-search'). Double-click to copy it to your clipboard — useful for referencing skills in rules or automation.",
       cardDescTitle: "Description",
-      cardDescBody: "A brief summary of what this skill does and when to use it. Read this to decide if the skill fits your needs.",
+      cardDescBody:
+        "A brief summary of what this skill does and when to use it. Read this to decide if the skill fits your needs.",
       cardMetaTitle: "Author & Stats",
-      cardMetaBody: "Shows who built the skill, plus community stats: stars (how many users liked it) and downloads (total installations). Higher numbers generally mean a more reliable skill.",
+      cardMetaBody:
+        "Shows who built the skill, plus community stats: stars (how many users liked it) and downloads (total installations). Higher numbers generally mean a more reliable skill.",
       cardActionsTitle: "Install / Status",
-      cardActionsBody: "Click 'Install' to add this skill to your agent. If already installed, it shows a checkmark. Built-in skills (bundled with the app) are marked as such and cannot be removed.",
+      cardActionsBody:
+        "Click 'Install' to add this skill to your agent. If already installed, it shows a checkmark. Built-in skills (bundled with the app) are marked as such and cannot be removed.",
       paginationTitle: "Page Navigation",
-      paginationBody: "When there are many skills, use the pagination controls to browse through pages. Click page numbers or the Previous/Next buttons.",
+      paginationBody:
+        "When there are many skills, use the pagination controls to browse through pages. Click page numbers or the Previous/Next buttons.",
       installedTabTitle: "Installed Skills",
-      installedTabBody: "Switching to the Installed tab to see the skills currently active on your agent. From here you can manage or remove them.",
+      installedTabBody:
+        "Switching to the Installed tab to see the skills currently active on your agent. From here you can manage or remove them.",
       openFolderTitle: "Open Skills Folder",
-      openFolderBody: "Click this button to open the local folder where skill files are stored on your computer. Useful for advanced users who want to inspect or manually edit skill configurations.",
+      openFolderBody:
+        "Click this button to open the local folder where skill files are stored on your computer. Useful for advanced users who want to inspect or manually edit skill configurations.",
       deleteBtnTitle: "Remove a Skill",
-      deleteBtnBody: "Click 'Delete' to uninstall a skill from your agent. A confirmation dialog will appear before the skill is actually removed. Built-in skills cannot be deleted.",
+      deleteBtnBody:
+        "Click 'Delete' to uninstall a skill from your agent. A confirmation dialog will appear before the skill is actually removed. Built-in skills cannot be deleted.",
     },
     crons: {
       welcomeTitle: "Welcome to Cron Jobs",
-      welcomeBody: "Cron jobs let you schedule tasks that your agent runs automatically — like sending daily reports, checking data, or triggering reminders. Think of them as alarms that tell your agent what to do and when.",
+      welcomeBody:
+        "Cron jobs let you schedule tasks that your agent runs automatically — like sending daily reports, checking data, or triggering reminders. Think of them as alarms that tell your agent what to do and when.",
       statusBarTitle: "Connection Status",
-      statusBarBody: "This indicator shows whether the cron scheduler is connected and running. A green dot means it's active. The job count shows how many scheduled tasks exist.",
+      statusBarBody:
+        "This indicator shows whether the cron scheduler is connected and running. A green dot means it's active. The job count shows how many scheduled tasks exist.",
       toolbarTitle: "Toolbar",
-      toolbarBody: "Use this toolbar to search, filter, sort, and create cron jobs. All controls work together to help you find and manage your scheduled tasks.",
+      toolbarBody:
+        "Use this toolbar to search, filter, sort, and create cron jobs. All controls work together to help you find and manage your scheduled tasks.",
       searchTitle: "Search Jobs",
-      searchBody: "Type a keyword to filter cron jobs by name. Handy when you have many scheduled tasks and need to find a specific one.",
+      searchBody:
+        "Type a keyword to filter cron jobs by name. Handy when you have many scheduled tasks and need to find a specific one.",
       enabledFilterTitle: "Status Filter",
-      enabledFilterBody: "Filter jobs by status: 'All' shows everything, 'Enabled' shows only active jobs, 'Disabled' shows paused ones. Use this to quickly find jobs that need attention.",
+      enabledFilterBody:
+        "Filter jobs by status: 'All' shows everything, 'Enabled' shows only active jobs, 'Disabled' shows paused ones. Use this to quickly find jobs that need attention.",
       sortTitle: "Sort Order",
-      sortBody: "Change how jobs are ordered: by next scheduled run time, last update, or alphabetically by name.",
+      sortBody:
+        "Change how jobs are ordered: by next scheduled run time, last update, or alphabetically by name.",
       addBtnTitle: "Create New Job",
-      addBtnBody: "Click here to open the form for creating a new cron job. You'll set a name, schedule, and what the agent should do when the job runs.",
+      addBtnBody:
+        "Click here to open the form for creating a new cron job. You'll set a name, schedule, and what the agent should do when the job runs.",
       tableTitle: "Job List",
-      tableBody: "This table shows all your cron jobs with their schedule, status, last run time, next run time, and action buttons. Each row is one scheduled task.",
+      tableBody:
+        "This table shows all your cron jobs with their schedule, status, last run time, next run time, and action buttons. Each row is one scheduled task.",
       jobNameTitle: "Job Name",
-      jobNameBody: "The name you gave this job when creating it. Below is an optional description for more context about what the job does.",
+      jobNameBody:
+        "The name you gave this job when creating it. Below is an optional description for more context about what the job does.",
       scheduleColTitle: "Schedule",
-      scheduleColBody: "Shows when this job runs — either as a cron expression (e.g., '*/5 * * * *' for every 5 minutes), a simple interval, or a one-time date. The timezone is shown below if configured.",
+      scheduleColBody:
+        "Shows when this job runs — either as a cron expression (e.g., '*/5 * * * *' for every 5 minutes), a simple interval, or a one-time date. The timezone is shown below if configured.",
       toggleTitle: "Enable / Disable",
-      toggleBody: "Flip this switch to pause or resume a job. Disabled jobs keep their schedule but won't run until re-enabled. Useful for temporary pauses without deleting the job.",
+      toggleBody:
+        "Flip this switch to pause or resume a job. Disabled jobs keep their schedule but won't run until re-enabled. Useful for temporary pauses without deleting the job.",
       actionsTitle: "Job Actions",
-      actionsBody: "Four actions: 'Edit' modifies the job settings. 'Run Now' triggers the job immediately (without waiting for the schedule). 'History' shows past runs and their results. 'Delete' removes the job permanently.",
+      actionsBody:
+        "Four actions: 'Edit' modifies the job settings. 'Run Now' triggers the job immediately (without waiting for the schedule). 'History' shows past runs and their results. 'Delete' removes the job permanently.",
       createFormTitle: "Create Job Form",
-      createFormBody: "Let's open the creation form to see all the options available when setting up a new cron job.",
+      createFormBody:
+        "Let's open the creation form to see all the options available when setting up a new cron job.",
       formOverviewTitle: "Job Configuration",
-      formOverviewBody: "This form has three sections: basic info (name & description), schedule (when to run), and payload (what to do). Required fields are marked with an asterisk.",
+      formOverviewBody:
+        "This form has three sections: basic info (name & description), schedule (when to run), and payload (what to do). Required fields are marked with an asterisk.",
       formNameTitle: "Job Name",
-      formNameBody: "Give your job a clear, descriptive name. This is what you'll see in the job list, so make it easy to recognize — e.g., 'Daily Sales Report' or 'Hourly System Check'.",
+      formNameBody:
+        "Give your job a clear, descriptive name. This is what you'll see in the job list, so make it easy to recognize — e.g., 'Daily Sales Report' or 'Hourly System Check'.",
       scheduleTypeTitle: "Schedule Type",
-      scheduleTypeBody: "Three schedule modes: 'Cron' uses standard cron expressions for complex schedules. 'Every' runs at a simple interval (e.g., every 5 minutes). 'At' runs once at a specific date and time.",
+      scheduleTypeBody:
+        "Three schedule modes: 'Cron' uses standard cron expressions for complex schedules. 'Every' runs at a simple interval (e.g., every 5 minutes). 'At' runs once at a specific date and time.",
       runProfileTitle: "Run Profile",
-      runProfileBody: "Select a Run Profile to control which tools this cron job can use. 'Default' provides system tools only. Choose a profile with specific capabilities (e.g., browser automation) if your job needs them.",
+      runProfileBody:
+        "Select a Run Profile to control which tools this cron job can use. 'Default' provides system tools only. Choose a profile with specific capabilities (e.g., browser automation) if your job needs them.",
       formActionsTitle: "Save or Cancel",
-      formActionsBody: "Click 'Create' to save your new job, or 'Cancel' to discard. The job will start running at its scheduled time as soon as it's created (if enabled).",
+      formActionsBody:
+        "Click 'Create' to save your new job, or 'Cancel' to discard. The job will start running at its scheduled time as soon as it's created (if enabled).",
     },
     extras: {
       welcomeTitle: "Welcome to Extras",
-      welcomeBody: "Extras are optional capabilities that enhance your agent beyond basic chat. Enable speech-to-text for voice input, web search for real-time information, or embedding for long-term memory.",
+      welcomeBody:
+        "Extras are optional capabilities that enhance your agent beyond basic chat. Enable speech-to-text for voice input, web search for real-time information, or embedding for long-term memory.",
       sttHeadTitle: "Speech-to-Text",
-      sttHeadBody: "This feature converts spoken words into text, allowing you to talk to your agent using voice messages from mobile chat channels.",
+      sttHeadBody:
+        "This feature converts spoken words into text, allowing you to talk to your agent using voice messages from mobile chat channels.",
       sttToggleTitle: "Enable STT",
-      sttToggleBody: "Flip this switch to turn speech-to-text on or off. When enabled, you'll need to configure a provider and API key below.",
+      sttToggleBody:
+        "Flip this switch to turn speech-to-text on or off. When enabled, you'll need to configure a provider and API key below.",
       sttProviderTitle: "STT Provider",
-      sttProviderBody: "Choose your speech-to-text engine: Groq offers fast transcription with broad language support. Volcengine is optimized for Chinese and offers a generous free tier.",
+      sttProviderBody:
+        "Choose your speech-to-text engine: Groq offers fast transcription with broad language support. Volcengine is optimized for Chinese and offers a generous free tier.",
       sttApiKeyTitle: "STT API Key",
-      sttApiKeyBody: "Paste your API key for the selected provider. The key is stored securely on your device. A 'Saved' badge appears if a key is already configured — leave the field empty to keep the existing key.",
+      sttApiKeyBody:
+        "Paste your API key for the selected provider. The key is stored securely on your device. A 'Saved' badge appears if a key is already configured — leave the field empty to keep the existing key.",
       sttSaveTitle: "Save STT Settings",
-      sttSaveBody: "Click Save to validate and store your speech-to-text configuration. The system will verify your credentials before activating the feature.",
+      sttSaveBody:
+        "Click Save to validate and store your speech-to-text configuration. The system will verify your credentials before activating the feature.",
       webSearchHeadTitle: "Web Search",
-      webSearchHeadBody: "Give your agent the ability to search the internet for up-to-date information. Useful for questions about current events, prices, or anything that changes frequently.",
+      webSearchHeadBody:
+        "Give your agent the ability to search the internet for up-to-date information. Useful for questions about current events, prices, or anything that changes frequently.",
       webSearchToggleTitle: "Enable Web Search",
-      webSearchToggleBody: "Turn web search on or off. When enabled, your agent can look up real-time information during conversations.",
+      webSearchToggleBody:
+        "Turn web search on or off. When enabled, your agent can look up real-time information during conversations.",
       webSearchProviderTitle: "Search Provider",
-      webSearchProviderBody: "Choose your search engine: Brave Search provides privacy-focused results. Perplexity specializes in AI-powered answers. Grok, Gemini, and Kimi offer alternative search capabilities.",
+      webSearchProviderBody:
+        "Choose your search engine: Brave Search provides privacy-focused results. Perplexity specializes in AI-powered answers. Grok, Gemini, and Kimi offer alternative search capabilities.",
       webSearchApiKeyTitle: "Search API Key",
-      webSearchApiKeyBody: "Paste the API key for your chosen search provider. Each provider has its own key — check the help link below for instructions on obtaining one.",
+      webSearchApiKeyBody:
+        "Paste the API key for your chosen search provider. Each provider has its own key — check the help link below for instructions on obtaining one.",
       webSearchSaveTitle: "Save Web Search",
-      webSearchSaveBody: "Click Save to store your web search settings. Your agent will start using web search in its next conversation.",
+      webSearchSaveBody:
+        "Click Save to store your web search settings. Your agent will start using web search in its next conversation.",
       embeddingHeadTitle: "Embedding / Memory",
-      embeddingHeadBody: "Embedding lets your agent build long-term memory by converting conversations into vector representations. This helps the agent recall past topics and context across sessions.",
+      embeddingHeadBody:
+        "Embedding lets your agent build long-term memory by converting conversations into vector representations. This helps the agent recall past topics and context across sessions.",
       embeddingToggleTitle: "Enable Embedding",
-      embeddingToggleBody: "Turn embedding on or off. When enabled, your agent stores conversation memories that it can search and recall later for more contextual responses.",
+      embeddingToggleBody:
+        "Turn embedding on or off. When enabled, your agent stores conversation memories that it can search and recall later for more contextual responses.",
       embeddingProviderTitle: "Embedding Provider",
-      embeddingProviderBody: "Choose your embedding engine: OpenAI, Gemini, Voyage, and Mistral are cloud options with different pricing. Ollama runs locally on your machine with no API key needed.",
+      embeddingProviderBody:
+        "Choose your embedding engine: OpenAI, Gemini, Voyage, and Mistral are cloud options with different pricing. Ollama runs locally on your machine with no API key needed.",
       embeddingApiKeyTitle: "Embedding API Key",
-      embeddingApiKeyBody: "Paste your API key for the selected provider. For Ollama (local), no key is needed — just make sure Ollama is running on your machine.",
+      embeddingApiKeyBody:
+        "Paste your API key for the selected provider. For Ollama (local), no key is needed — just make sure Ollama is running on your machine.",
       embeddingSaveTitle: "Save Embedding",
-      embeddingSaveBody: "Click Save to store your embedding configuration. Once saved, your agent will begin building its long-term memory from future conversations.",
+      embeddingSaveBody:
+        "Click Save to store your embedding configuration. Once saved, your agent will begin building its long-term memory from future conversations.",
     },
     usage: {
       welcomeTitle: "Welcome to Usage",
-      welcomeBody: "This page tracks how much your agent uses each LLM provider — token counts, costs, and trends over time. Use it to monitor spending and optimize which models you use.",
+      welcomeBody:
+        "This page tracks how much your agent uses each LLM provider — token counts, costs, and trends over time. Use it to monitor spending and optimize which models you use.",
       refreshTitle: "Refresh Data",
-      refreshBody: "Click to reload all usage data from the server. Data also refreshes automatically every 60 seconds.",
+      refreshBody:
+        "Click to reload all usage data from the server. Data also refreshes automatically every 60 seconds.",
       todayTitle: "Today's Usage",
-      todayBody: "This section shows token consumption and costs for today only, giving you a quick snapshot of current spending.",
+      todayBody:
+        "This section shows token consumption and costs for today only, giving you a quick snapshot of current spending.",
       blocksTitle: "Provider Blocks",
-      blocksBody: "Usage is grouped by provider and API key. Each block shows one key's usage across all models it has accessed.",
+      blocksBody:
+        "Usage is grouped by provider and API key. Each block shows one key's usage across all models it has accessed.",
       keyHeaderTitle: "Key Info & Cost",
-      keyHeaderBody: "The header shows the provider name, key label, and total estimated cost for that key. Subscription keys show usage without cost since they're covered by your plan.",
+      keyHeaderBody:
+        "The header shows the provider name, key label, and total estimated cost for that key. Subscription keys show usage without cost since they're covered by your plan.",
       innerTableTitle: "Model Breakdown",
-      innerTableBody: "Each row shows a model's input tokens (what you send), output tokens (what the agent generates), and estimated cost. The 'Active' badge marks the model currently in use.",
+      innerTableBody:
+        "Each row shows a model's input tokens (what you send), output tokens (what the agent generates), and estimated cost. The 'Active' badge marks the model currently in use.",
       timeRangeTitle: "Time Range",
-      timeRangeBody: "Switch between 7-day, 30-day, or all-time views. This controls both the historical table below and the usage chart. Pick a shorter range to focus on recent trends.",
+      timeRangeBody:
+        "Switch between 7-day, 30-day, or all-time views. This controls both the historical table below and the usage chart. Pick a shorter range to focus on recent trends.",
       chartTitle: "Usage Trend Chart",
-      chartBody: "This line chart shows daily token usage over the selected time period. Each line represents a different model. Click a legend entry to isolate that series; click again to show all.",
+      chartBody:
+        "This line chart shows daily token usage over the selected time period. Each line represents a different model. Click a legend entry to isolate that series; click again to show all.",
       lastUpdatedTitle: "Last Updated",
-      lastUpdatedBody: "Shows when the data was last refreshed. If the time seems stale, click the Refresh button at the top of the page.",
+      lastUpdatedBody:
+        "Shows when the data was last refreshed. If the time seems stale, click the Refresh button at the top of the page.",
     },
     apps: {
       welcomeTitle: "Welcome to Apps",
-      welcomeBody: "The Apps page is where you connect external messaging channels to your AI agent. Currently supports WeCom (WeChat Work) customer service integration. More platforms are coming soon.",
+      welcomeBody:
+        "The Apps page is where you connect external messaging channels to your AI agent. Currently supports WeCom (WeChat Work) customer service integration. More platforms are coming soon.",
       wecomCardTitle: "WeCom Integration",
-      wecomCardBody: "This card manages your WeCom customer service connection. WeCom is a popular enterprise messaging platform in China. Once connected, your AI agent can automatically handle customer inquiries received through WeCom.",
+      wecomCardBody:
+        "This card manages your WeCom customer service connection. WeCom is a popular enterprise messaging platform in China. Once connected, your AI agent can automatically handle customer inquiries received through WeCom.",
       credentialRowTitle: "Credentials Status",
-      credentialRowBody: "Shows whether your WeCom API credentials have been configured. A green 'Configured' badge means credentials are saved and ready. A gray 'Not Configured' badge means you need to set them up before connecting.",
+      credentialRowBody:
+        "Shows whether your WeCom API credentials have been configured. A green 'Configured' badge means credentials are saved and ready. A gray 'Not Configured' badge means you need to set them up before connecting.",
       configureButtonTitle: "Configure Credentials",
-      configureButtonBody: "Click this button to open the credential configuration dialog. You will need your WeCom API credentials to set up the connection. Let's take a look inside.",
+      configureButtonBody:
+        "Click this button to open the credential configuration dialog. You will need your WeCom API credentials to set up the connection. Let's take a look inside.",
       invitationCodeTitle: "Invitation Code",
-      invitationCodeBody: "Your panel access token, provided during onboarding. This authenticates your EasyClaw instance with the cloud service. If you have already saved one, this field can be left empty on subsequent edits.",
+      invitationCodeBody:
+        "Your panel access token, provided during onboarding. This authenticates your EasyClaw instance with the cloud service. If you have already saved one, this field can be left empty on subsequent edits.",
       wecomFieldsTitle: "WeCom API Credentials",
-      wecomFieldsBody: "Four fields from your WeCom admin console: Corp ID (your enterprise identifier), App Secret (API authentication key), Token and Encoding AES Key (for webhook callback verification). You can find these in the WeCom customer service management console under callback configuration.",
+      wecomFieldsBody:
+        "Four fields from your WeCom admin console: Corp ID (your enterprise identifier), App Secret (API authentication key), Token and Encoding AES Key (for webhook callback verification). You can find these in the WeCom customer service management console under callback configuration.",
       kfLinkIdTitle: "Customer Service Link ID",
-      kfLinkIdBody: "The unique identifier for your WeCom customer service account link. This tells the system which specific customer service account to connect to. You can find this in your WeCom customer service settings page.",
+      kfLinkIdBody:
+        "The unique identifier for your WeCom customer service account link. This tells the system which specific customer service account to connect to. You can find this in your WeCom customer service settings page.",
       credentialActionsTitle: "Save / Delete",
-      credentialActionsBody: "Click 'Save' to validate and store your credentials. The system will verify them against the WeCom API before saving. If credentials were previously saved, you will also see a 'Delete' button to remove them entirely.",
+      credentialActionsBody:
+        "Click 'Save' to validate and store your credentials. The system will verify them against the WeCom API before saving. If credentials were previously saved, you will also see a 'Delete' button to remove them entirely.",
       promptRowTitle: "Business Prompt",
-      promptRowBody: "The business prompt tells your AI agent about your company, products, and how to handle customer inquiries. Think of it as the agent's instruction manual. Click 'Edit' to write or update the prompt. Without a prompt, the agent uses generic responses.",
+      promptRowBody:
+        "The business prompt tells your AI agent about your company, products, and how to handle customer inquiries. Think of it as the agent's instruction manual. Click 'Edit' to write or update the prompt. Without a prompt, the agent uses generic responses.",
       connectionToggleTitle: "Connection Toggle",
-      connectionToggleBody: "This toggle starts or stops the WeCom customer service connection. When turned on, the agent begins listening for incoming customer messages. When turned off, the connection is closed and no messages are processed. Make sure your credentials and prompt are configured before connecting.",
+      connectionToggleBody:
+        "This toggle starts or stops the WeCom customer service connection. When turned on, the agent begins listening for incoming customer messages. When turned off, the connection is closed and no messages are processed. Make sure your credentials and prompt are configured before connecting.",
       connectionStatusTitle: "Connection Status",
-      connectionStatusBody: "Shows the real-time connection state: 'Connected' (green) means the agent is actively listening for messages. 'Connecting' (yellow) means a connection attempt is in progress. 'Disconnected' (red) means the service is offline. The status updates automatically every few seconds.",
+      connectionStatusBody:
+        "Shows the real-time connection state: 'Connected' (green) means the agent is actively listening for messages. 'Connecting' (yellow) means a connection attempt is in progress. 'Disconnected' (red) means the service is offline. The status updates automatically every few seconds.",
     },
     account: {
       welcomeTitle: "Welcome to Account",
-      welcomeBody: "The Account page is your command center for profile, subscription, tool access control, execution configurations, and feature modules. Let's walk through every section.",
+      welcomeBody:
+        "The Account page is your command center for profile, subscription, tool access control, execution configurations, and feature modules. Let's walk through every section.",
       profileCardTitle: "Profile & Subscription",
-      profileCardBody: "This card shows your identity and subscription at a glance — avatar, name, email, plan badge, membership date, validity period, and LLM usage quotas.",
+      profileCardBody:
+        "This card shows your identity and subscription at a glance — avatar, name, email, plan badge, membership date, validity period, and LLM usage quotas.",
       identityTitle: "Your Identity",
-      identityBody: "Your avatar (generated from your name initial), display name, and email address. The email is the one you used to sign up or log in to EasyClaw.",
+      identityBody:
+        "Your avatar (generated from your name initial), display name, and email address. The email is the one you used to sign up or log in to EasyClaw.",
       logoutTitle: "Log Out",
-      logoutBody: "Click this button to sign out of your account. You will be redirected to the home page. Features that require authentication will not be accessible until you log in again.",
+      logoutBody:
+        "Click this button to sign out of your account. You will be redirected to the home page. Features that require authentication will not be accessible until you log in again.",
       planTitle: "Current Plan",
-      planBody: "Shows which subscription plan you are on (e.g., Free, Pro, Enterprise). Your plan determines the features, tool access, and usage limits available to you.",
+      planBody:
+        "Shows which subscription plan you are on (e.g., Free, Pro, Enterprise). Your plan determines the features, tool access, and usage limits available to you.",
       memberSinceTitle: "Member Since",
-      memberSinceBody: "The date when your account was created. This helps you track how long you have been using EasyClaw.",
+      memberSinceBody:
+        "The date when your account was created. This helps you track how long you have been using EasyClaw.",
       validUntilTitle: "Valid Until",
-      validUntilBody: "The expiration date of your current subscription. Keep an eye on this to avoid service interruption. If no subscription is active, a dash is shown.",
+      validUntilBody:
+        "The expiration date of your current subscription. Keep an eye on this to avoid service interruption. If no subscription is active, a dash is shown.",
       quotaFiveHourTitle: "LLM Usage Quotas",
-      quotaFiveHourBody: "This area lists the active LLM usage windows on your account. Each row shows the metric, window, remaining percentage, and the next refresh time.",
+      quotaFiveHourBody:
+        "This area lists the active LLM usage windows on your account. Each row shows the metric, window, remaining percentage, and the next refresh time.",
       quotaWeeklyTitle: "Quota Progress",
-      quotaWeeklyBody: "The progress bar shows how much quota remains for a usage window. Low remaining quota is highlighted so you can switch plans or slow down before hitting the limit.",
+      quotaWeeklyBody:
+        "The progress bar shows how much quota remains for a usage window. Low remaining quota is highlighted so you can switch plans or slow down before hitting the limit.",
       surfacesSectionTitle: "Surfaces",
-      surfacesSectionBody: "Surfaces define which tools are available for a given usage scenario (e.g., 'Customer Support', 'Internal Ops'). Each surface acts as a tool access boundary — only tools listed in a surface can be used by the agent when that surface is active.",
+      surfacesSectionBody:
+        "Surfaces define which tools are available for a given usage scenario (e.g., 'Customer Support', 'Internal Ops'). Each surface acts as a tool access boundary — only tools listed in a surface can be used by the agent when that surface is active.",
       surfacesHeaderTitle: "Surfaces Header",
-      surfacesHeaderBody: "The section title and description explain the purpose of surfaces. On the right, you'll find buttons to create a new surface or start from an existing preset.",
+      surfacesHeaderBody:
+        "The section title and description explain the purpose of surfaces. On the right, you'll find buttons to create a new surface or start from an existing preset.",
       createSurfaceBtnTitle: "New Surface",
-      createSurfaceBtnBody: "Click to open a form where you name the surface, add an optional description, and select which tools are allowed. If you leave the tool list empty, the surface is 'unrestricted' — all tools are available.",
+      createSurfaceBtnBody:
+        "Click to open a form where you name the surface, add an optional description, and select which tools are allowed. If you leave the tool list empty, the surface is 'unrestricted' — all tools are available.",
       fromPresetBtnTitle: "From Preset",
-      fromPresetBtnBody: "Click to create a new surface by copying an existing one (including system presets). This is a quick way to start with a known configuration and customize it. The System Default surface copies all available tools.",
+      fromPresetBtnBody:
+        "Click to create a new surface by copying an existing one (including system presets). This is a quick way to start with a known configuration and customize it. The System Default surface copies all available tools.",
       surfaceListTitle: "Surface List",
-      surfaceListBody: "All surfaces appear here. System surfaces (created by the platform) are marked with a 'System' badge and cannot be edited or deleted. Your custom surfaces show Edit and Delete buttons.",
+      surfaceListBody:
+        "All surfaces appear here. System surfaces (created by the platform) are marked with a 'System' badge and cannot be edited or deleted. Your custom surfaces show Edit and Delete buttons.",
       surfaceItemTitle: "Surface Card",
-      surfaceItemBody: "Each surface card shows its name, optional description, badges ('System' for platform-provided, 'Unrestricted' for no tool limit), the number of linked run profiles, and the tool count. Custom surfaces have Edit and Delete buttons on the right.",
+      surfaceItemBody:
+        "Each surface card shows its name, optional description, badges ('System' for platform-provided, 'Unrestricted' for no tool limit), the number of linked run profiles, and the tool count. Custom surfaces have Edit and Delete buttons on the right.",
       surfaceToolChipsTitle: "Allowed Tools",
-      surfaceToolChipsBody: "These chips show the specific tools allowed in this surface. If no chips appear, the surface is unrestricted and grants access to all tools. When editing, you can add or remove tools using the multi-select picker.",
+      surfaceToolChipsBody:
+        "These chips show the specific tools allowed in this surface. If no chips appear, the surface is unrestricted and grants access to all tools. When editing, you can add or remove tools using the multi-select picker.",
       profilesSectionTitle: "Run Profiles",
-      profilesSectionBody: "Run Profiles are execution configurations that select specific tools within a surface. When you start a chat or cron job, you pick a run profile to control exactly which tools the agent can use for that run.",
+      profilesSectionBody:
+        "Run Profiles are execution configurations that select specific tools within a surface. When you start a chat or cron job, you pick a run profile to control exactly which tools the agent can use for that run.",
       profilesHeaderTitle: "Run Profiles Header",
-      profilesHeaderBody: "The section title and description explain how run profiles work. The 'New Profile' button on the right lets you create one — it requires at least one surface to exist first.",
+      profilesHeaderBody:
+        "The section title and description explain how run profiles work. The 'New Profile' button on the right lets you create one — it requires at least one surface to exist first.",
       createProfileBtnTitle: "New Profile",
-      createProfileBtnBody: "Click to open the creation form. You'll select a parent surface, give the profile a name, and pick which tools from that surface should be available. The tool picker only shows tools allowed by the selected surface.",
+      createProfileBtnBody:
+        "Click to open the creation form. You'll select a parent surface, give the profile a name, and pick which tools from that surface should be available. The tool picker only shows tools allowed by the selected surface.",
       defaultProfileTitle: "Default Run Profile",
-      defaultProfileBody: "This dropdown sets which run profile is used by default when starting new chats or cron jobs. The agent will use the selected profile's surface and tool set unless you explicitly override it per session. If no default is set, you will be prompted to choose a profile each time.",
+      defaultProfileBody:
+        "This dropdown sets which run profile is used by default when starting new chats or cron jobs. The agent will use the selected profile's surface and tool set unless you explicitly override it per session. If no default is set, you will be prompted to choose a profile each time.",
       profileListTitle: "Profile List",
-      profileListBody: "All run profiles appear here. System profiles are marked with a 'System' badge and cannot be edited or deleted. Each profile shows the parent surface name and tool count.",
+      profileListBody:
+        "All run profiles appear here. System profiles are marked with a 'System' badge and cannot be edited or deleted. Each profile shows the parent surface name and tool count.",
       profileItemTitle: "Profile Card",
-      profileItemBody: "Each profile card shows its name, linked surface, tool count, and action buttons for editing or deleting. System profiles cannot be modified.",
+      profileItemBody:
+        "Each profile card shows its name, linked surface, tool count, and action buttons for editing or deleting. System profiles cannot be modified.",
       profileToolChipsTitle: "Selected Tools",
-      profileToolChipsBody: "These chips show which tools are selected in this run profile. If a tool is no longer in the parent surface's allowed list, it appears with a warning icon — it will be ignored at runtime until the surface is updated.",
+      profileToolChipsBody:
+        "These chips show which tools are selected in this run profile. If a tool is no longer in the parent surface's allowed list, it appears with a warning icon — it will be ignored at runtime until the surface is updated.",
       modulesSectionTitle: "Feature Modules",
-      modulesSectionBody: "Modules are optional feature packs that extend EasyClaw with specialized capabilities. Each module unlocks additional tools, pages, and integrations tailored to a specific workflow. Enable or disable modules here to customize your workspace.",
+      modulesSectionBody:
+        "Modules are optional feature packs that extend EasyClaw with specialized capabilities. Each module unlocks additional tools, pages, and integrations tailored to a specific workflow. Enable or disable modules here to customize your workspace.",
       moduleItemTitle: "Module Toggle",
-      moduleItemBody: "Each module card shows its name, description, and a toggle switch. Flip the toggle on to enroll in the module — this activates its tools and UI sections across the app. Flip it off to unenroll and hide module-specific features. Changes take effect immediately.",
+      moduleItemBody:
+        "Each module card shows its name, description, and a toggle switch. Flip the toggle on to enroll in the module — this activates its tools and UI sections across the app. Flip it off to unenroll and hide module-specific features. Changes take effect immediately.",
     },
     billing: {
       welcomeTitle: "Welcome to Billing",
-      welcomeBody: "This page brings together account AI subscription, shop service subscriptions, and payment records.",
+      welcomeBody:
+        "This page brings together account AI subscription, shop service subscriptions, and payment records.",
       overviewTitle: "Billing Overview",
-      overviewBody: "The header explains what billing data is shown here. Use this page to review current access and manage paid services.",
+      overviewBody:
+        "The header explains what billing data is shown here. Use this page to review current access and manage paid services.",
       accountPlanTitle: "Account AI Plan",
-      accountPlanBody: "This card shows your account-level AI entitlement, plan status, validity, and usage limits for general agent runs.",
+      accountPlanBody:
+        "This card shows your account-level AI entitlement, plan status, validity, and usage limits for general agent runs.",
       usageTitle: "Usage And Plan Details",
-      usageBody: "Usage cards and metadata show remaining quota, renewal timing, and subscription state. These details are read-only snapshots from the billing backend.",
+      usageBody:
+        "Usage cards and metadata show remaining quota, renewal timing, and subscription state. These details are read-only snapshots from the billing backend.",
       accountActionsTitle: "Account Billing Actions",
-      accountActionsBody: "Use these buttons to start checkout, manage the payment method, or open the billing portal when those actions are available for your plan.",
+      accountActionsBody:
+        "Use these buttons to start checkout, manage the payment method, or open the billing portal when those actions are available for your plan.",
       shopServicesTitle: "Shop Services",
-      shopServicesBody: "Shop service billing is separate from account AI billing. Each connected shop can have service-specific access such as AI customer service.",
+      shopServicesBody:
+        "Shop service billing is separate from account AI billing. Each connected shop can have service-specific access such as AI customer service.",
       subscribeFlowTitle: "Subscribe A Shop",
-      subscribeFlowBody: "This flow lets you choose a shop and a service plan before checkout. It only appears when there are shops eligible for additional service access.",
+      subscribeFlowBody:
+        "This flow lets you choose a shop and a service plan before checkout. It only appears when there are shops eligible for additional service access.",
       shopListTitle: "Shop Subscription List",
-      shopListBody: "Each row summarizes a shop's enabled paid services, status, renewal information, and service-level actions.",
+      shopListBody:
+        "Each row summarizes a shop's enabled paid services, status, renewal information, and service-level actions.",
       paymentsTitle: "Payment Records",
-      paymentsBody: "Completed payments and invoices appear here so you can audit recent billing activity without leaving the desktop app.",
+      paymentsBody:
+        "Completed payments and invoices appear here so you can audit recent billing activity without leaving the desktop app.",
     },
     ecommerce: {
       welcomeTitle: "Welcome to Global E-commerce",
-      welcomeBody: "This page manages connected shops, AI customer service, affiliate automation, and warehouse integrations for the e-commerce module.",
+      welcomeBody:
+        "This page manages connected shops, AI customer service, affiliate automation, and warehouse integrations for the e-commerce module.",
       shopsTitle: "Connected Shops",
-      shopsBody: "The shop section lists every connected seller account and gives you the main operational entry points for each shop.",
+      shopsBody:
+        "The shop section lists every connected seller account and gives you the main operational entry points for each shop.",
       shopActionsTitle: "Shop Actions",
-      shopActionsBody: "Refresh pulls the latest shop state. Add Shop starts the platform OAuth flow for connecting another seller account.",
+      shopActionsBody:
+        "Refresh pulls the latest shop state. Add Shop starts the platform OAuth flow for connecting another seller account.",
       shopTableTitle: "Shop Table",
-      shopTableBody: "The table shows shop identity, alias, platform, region, authorization state, balance, and row actions.",
+      shopTableBody:
+        "The table shows shop identity, alias, platform, region, authorization state, balance, and row actions.",
       shopAliasTitle: "Shop Alias",
-      shopAliasBody: "Aliases let you rename a shop locally for easier recognition. Press Enter or blur the field to save.",
+      shopAliasBody:
+        "Aliases let you rename a shop locally for easier recognition. Press Enter or blur the field to save.",
       shopRowActionsTitle: "Row Actions",
-      shopRowActionsBody: "Open the drawer to configure services, reauthorize expired tokens, or disconnect a shop.",
+      shopRowActionsBody:
+        "Open the drawer to configure services, reauthorize expired tokens, or disconnect a shop.",
       wmsTitle: "Warehouse Accounts",
       wmsBody: "Warehouse accounts connect your shop data to inventory and fulfillment systems.",
       wmsActionsTitle: "Warehouse Actions",
-      wmsActionsBody: "Refresh inventory state, review supported WMS providers, or add a warehouse account.",
+      wmsActionsBody:
+        "Refresh inventory state, review supported WMS providers, or add a warehouse account.",
       wmsTableTitle: "Warehouse Table",
-      wmsTableBody: "The warehouse table shows synced warehouses, endpoints, currencies, sync time, and inventory-management actions.",
+      wmsTableBody:
+        "The warehouse table shows synced warehouses, endpoints, currencies, sync time, and inventory-management actions.",
       drawerTitle: "Shop Drawer",
-      drawerBody: "The drawer is where per-shop configuration lives: overview, AI customer service, inventory, affiliate management, billing, and device binding.",
+      drawerBody:
+        "The drawer is where per-shop configuration lives: overview, AI customer service, inventory, affiliate management, billing, and device binding.",
     },
     ecommerceCustomerService: {
       welcomeTitle: "Welcome to Customer Service",
-      welcomeBody: "This workspace is for monitoring buyer conversations and handling AI escalations across connected shops.",
+      welcomeBody:
+        "This workspace is for monitoring buyer conversations and handling AI escalations across connected shops.",
       tabsTitle: "Workspace Tabs",
-      tabsBody: "Switch between the live conversation inbox and the escalation queue. Counts help you see current workload at a glance.",
+      tabsBody:
+        "Switch between the live conversation inbox and the escalation queue. Counts help you see current workload at a glance.",
       filtersTitle: "Filters",
-      filtersBody: "Filter by shop, conversation status, AI state, escalation state, and page size to focus the queue.",
+      filtersBody:
+        "Filter by shop, conversation status, AI state, escalation state, and page size to focus the queue.",
       searchTitle: "Search",
-      searchBody: "Search narrows the queue by buyer, order, or conversation identifiers. Apply search to refresh the current workspace view.",
+      searchBody:
+        "Search narrows the queue by buyer, order, or conversation identifiers. Apply search to refresh the current workspace view.",
       conversationShellTitle: "Conversation Workspace",
-      conversationShellBody: "The split view keeps the queue on the left and the selected conversation detail on the right.",
+      conversationShellBody:
+        "The split view keeps the queue on the left and the selected conversation detail on the right.",
       conversationListTitle: "Conversation List",
-      conversationListBody: "Each row summarizes a buyer conversation with shop, timestamp, status, escalation badge, and preview text.",
+      conversationListBody:
+        "Each row summarizes a buyer conversation with shop, timestamp, status, escalation badge, and preview text.",
       conversationDetailTitle: "Conversation Detail",
-      conversationDetailBody: "The detail pane shows messages, summary tools, AI enablement, manual reply controls, and metadata for the selected conversation.",
+      conversationDetailBody:
+        "The detail pane shows messages, summary tools, AI enablement, manual reply controls, and metadata for the selected conversation.",
       manualReplyTitle: "Manual Reply",
-      manualReplyBody: "Use manual reply when a human needs to respond directly. This works alongside the AI controls for the conversation.",
+      manualReplyBody:
+        "Use manual reply when a human needs to respond directly. This works alongside the AI controls for the conversation.",
       escalationQueueTitle: "Escalation Queue",
-      escalationQueueBody: "The escalation tab lists open or pending cases that need review, response, or dismissal.",
+      escalationQueueBody:
+        "The escalation tab lists open or pending cases that need review, response, or dismissal.",
     },
     ecommerceAffiliate: {
       welcomeTitle: "Welcome to Affiliate Management",
-      welcomeBody: "This workspace reviews AI-generated affiliate action proposals before they are applied.",
+      welcomeBody:
+        "This workspace reviews AI-generated affiliate action proposals before they are applied.",
       panelTitle: "Proposal Panel",
-      panelBody: "The panel contains pending creator or collaboration proposals grouped by shop and creator context.",
+      panelBody:
+        "The panel contains pending creator or collaboration proposals grouped by shop and creator context.",
       toolbarTitle: "Toolbar",
-      toolbarBody: "The toolbar shows pending count, shop filter, and refresh action for pulling the latest proposals.",
+      toolbarBody:
+        "The toolbar shows pending count, shop filter, and refresh action for pulling the latest proposals.",
       shopFilterTitle: "Shop Filter",
-      shopFilterBody: "Use the shop filter to focus on one seller account or review proposals across all shops.",
+      shopFilterBody:
+        "Use the shop filter to focus on one seller account or review proposals across all shops.",
       queueTitle: "Proposal Queue",
-      queueBody: "Proposal groups appear here. Empty states are normal when no AI action is waiting for human approval.",
+      queueBody:
+        "Proposal groups appear here. Empty states are normal when no AI action is waiting for human approval.",
       proposalCardTitle: "Proposal Card",
-      proposalCardBody: "Each card explains the action type, reasoning, target IDs, and policy context for the proposed affiliate operation.",
+      proposalCardBody:
+        "Each card explains the action type, reasoning, target IDs, and policy context for the proposed affiliate operation.",
       actionsTitle: "Approve Or Reject",
-      actionsBody: "Approve applies the proposal. Reject dismisses it with a decision note so the automation does not perform that action.",
+      actionsBody:
+        "Approve applies the proposal. Reject dismisses it with a decision note so the automation does not perform that action.",
     },
   },
   surfaces: {
     title: "Surfaces & Run Profiles",
-    description: "Surfaces define which tools are available for a usage scenario. Run Profiles select specific tools within a Surface for individual runs.",
+    description:
+      "Surfaces define which tools are available for a usage scenario. Run Profiles select specific tools within a Surface for individual runs.",
     surfacesTitle: "Surfaces",
     refreshTools: "Refresh Tools",
     createSurface: "New Surface",
     createFromPreset: "From Preset",
     editSurface: "Edit Surface",
     deleteSurface: "Delete",
-    confirmDeleteSurface: "Are you sure you want to delete this surface? All associated run profiles will also be deleted.",
+    confirmDeleteSurface:
+      "Are you sure you want to delete this surface? All associated run profiles will also be deleted.",
     name: "Name",
     namePlaceholder: "e.g. Customer Support",
     descriptionLabel: "Description",
     descriptionPlaceholder: "What is this surface for?",
     allowedToolIds: "Allowed Tool IDs",
     allowedToolIdsPlaceholder: "Tool IDs (comma-separated)",
-    allowedToolIdsHint: "Enter tool IDs separated by commas. These define which tools are exposed in this surface.",
+    allowedToolIdsHint:
+      "Enter tool IDs separated by commas. These define which tools are exposed in this surface.",
     noSurfaces: "No surfaces configured. Create one or start from a preset.",
     presetLabel: "Preset",
     selectPreset: "Select a preset...",
@@ -2341,7 +2666,8 @@ export default {
     profileNamePlaceholder: "e.g. Minimal Tools",
     selectedToolIds: "Selected Tool IDs",
     selectedToolIdsPlaceholder: "Tool IDs (comma-separated)",
-    selectedToolIdsHint: "Enter tool IDs separated by commas. These are the tools selected for this run profile.",
+    selectedToolIdsHint:
+      "Enter tool IDs separated by commas. These are the tools selected for this run profile.",
     noRunProfiles: "No run profiles for this surface.",
     failedToLoadProfiles: "Failed to load run profiles.",
     failedToSaveProfile: "Failed to save run profile.",
@@ -2351,15 +2677,17 @@ export default {
     system: "System",
     unrestricted: "Unrestricted",
     copySuffix: "(copy)",
-    toolOutOfScope: "This tool is not in the parent surface's allowed list and will be ignored at runtime.",
-    surfaceNarrowWarning: "{{count}} run profile(s) use tools that will be outside this surface's scope:",
+    toolOutOfScope:
+      "This tool is not in the parent surface's allowed list and will be ignored at runtime.",
+    surfaceNarrowWarning:
+      "{{count}} run profile(s) use tools that will be outside this surface's scope:",
     /** Localized names for system-provided surfaces and run profiles (keyed by DB name). */
     systemNames: {
-      "Default": "Default",
-      "ECOMMERCE_SELLER": "E-commerce Seller",
-      "CUSTOMER_SERVICE": "AI Customer Service",
-      "SHOP_OPERATIONS": "Shop Operations",
-      "AFFILIATE_OPERATOR": "Affiliate Operator",
+      Default: "Default",
+      ECOMMERCE_SELLER: "E-commerce Seller",
+      CUSTOMER_SERVICE: "AI Customer Service",
+      SHOP_OPERATIONS: "Shop Operations",
+      AFFILIATE_OPERATOR: "Affiliate Operator",
     } as Record<string, string>,
   },
   runProfileSelector: {
@@ -2371,12 +2699,14 @@ export default {
   },
   tiktokShops: {
     title: "TikTok Shops",
-    description: "Connect and manage your TikTok Shop accounts. Enable AI-powered customer service per shop.",
+    description:
+      "Connect and manage your TikTok Shop accounts. Enable AI-powered customer service per shop.",
     connectedShops: "Connected Shops",
     connectShop: "Connect Shop",
     connectShopTitle: "Connect TikTok Shop",
-    connectShopDesc: "A TikTok authorization page will open in your browser. After authorization, your shop will appear here automatically.",
-    noShops: "No TikTok Shops connected yet. Click \"Connect Shop\" to get started.",
+    connectShopDesc:
+      "A TikTok authorization page will open in your browser. After authorization, your shop will appear here automatically.",
+    noShops: 'No TikTok Shops connected yet. Click "Connect Shop" to get started.',
     view: "View",
     // Platform app selection
     platformAppLabel: "Platform Account",
@@ -2414,23 +2744,27 @@ export default {
     // Actions
     reauthorize: "Re-authorize",
     disconnect: "Disconnect",
-    confirmDisconnect: "Disconnect this shop? Your service balance will be preserved and restored if you reconnect later.",
+    confirmDisconnect:
+      "Disconnect this shop? Your service balance will be preserved and restored if you reconnect later.",
     disconnectSuccess: "Shop disconnected. Balance preserved.",
     // Service toggles
     customerServiceLabel: "AI Customer Service",
-    customerServiceActiveHint: "AI customer service is active for this shop. Configure skills in the Skills page.",
+    customerServiceActiveHint:
+      "AI customer service is active for this shop. Configure skills in the Skills page.",
     // Detail modal
     detail: {
       platform: "Platform",
       accessTokenExpiry: "Access Token Expires",
       refreshTokenExpiry: "Refresh Token Expires",
       businessPrompt: "Business Prompt",
-      businessPromptHint: "Describe your business context to help the AI provide better customer service responses.",
+      businessPromptHint:
+        "Describe your business context to help the AI provide better customer service responses.",
       escalationRouting: "Escalation Routing",
       escalationChannel: "Channel",
       escalationChannelHint: "The messaging channel through which escalation alerts are sent.",
       escalationRecipient: "Recipient",
-      escalationRecipientHint: "The group or individual who receives escalations. Available after selecting a channel.",
+      escalationRecipientHint:
+        "The group or individual who receives escalations. Available after selecting a channel.",
       balanceExpiry: "Access Valid Until",
     },
     // Modal tabs
@@ -2476,7 +2810,8 @@ export default {
   },
   adsManagement: {
     title: "TikTok Ads Management",
-    subtitle: "Connect TikTok Business access and verify which authorized shops are covered by those ad accounts.",
+    subtitle:
+      "Connect TikTok Business access and verify which authorized shops are covered by those ad accounts.",
     connect: "Connect TikTok Ads",
     connectAdvertiser: "Connect Ads Account",
     connectBusiness: "Connect TikTok Business",
@@ -2484,19 +2819,24 @@ export default {
     authorizedAdvertisers: "Authorized",
     needsAttention: "Needs attention",
     adsReadyShops: "Ads-ready shops",
-    authSeparationHint: "TikTok Ads access is granted through Business/Ads Manager. EasyClaw only manages stores that are also authorized as TikTok Shops.",
-    businessAccountHint: "After connecting ad accounts, review which authorized shops are covered by advertising access.",
+    authSeparationHint:
+      "TikTok Ads access is granted through Business/Ads Manager. EasyClaw only manages stores that are also authorized as TikTok Shops.",
+    businessAccountHint:
+      "After connecting ad accounts, review which authorized shops are covered by advertising access.",
     advertiserTableTitle: "Advertising Accounts",
-    advertiserTableSubtitle: "Connect TikTok Business or Ads Manager, then Airflow syncs campaign, ad group, ad, and GMV Max reporting data from these advertisers.",
+    advertiserTableSubtitle:
+      "Connect TikTok Business or Ads Manager, then Airflow syncs campaign, ad group, ad, and GMV Max reporting data from these advertisers.",
     searchPlaceholder: "Search ad accounts",
     noMatchingResults: "No matching results.",
     filters: {
       all: "All",
     },
     emptyAdvertisersTitle: "No advertising accounts connected",
-    emptyAdvertisersBody: "Connect TikTok Business or Ads Manager to discover available ad accounts.",
+    emptyAdvertisersBody:
+      "Connect TikTok Business or Ads Manager to discover available ad accounts.",
     shopReadinessTitle: "Shop Ads Readiness",
-    shopReadinessSubtitle: "Review each connected shop's Ads account coverage and GMV Max readiness.",
+    shopReadinessSubtitle:
+      "Review each connected shop's Ads account coverage and GMV Max readiness.",
     shopCoverageTitle: "Shop Ads Coverage",
     shopCoverageSubtitle: "Review ad coverage by shop group.",
     unonboardedStoreCount: "{{count}} ad-account shop(s) are not connected in EasyClaw",
@@ -2504,14 +2844,17 @@ export default {
     loadFailed: "Failed to load Ads management data.",
     oauthModalTitle: "Connect TikTok Ads",
     openAuthLink: "Open the TikTok Ads authorization link",
-    oauthHint: "Open this link in a browser signed in to the TikTok Business Center or Ads Manager account that owns the advertisers.",
+    oauthHint:
+      "Open this link in a browser signed in to the TikTok Business Center or Ads Manager account that owns the advertisers.",
     waitingAuth: "Waiting for TikTok Ads authorization...",
     oauthSuccess: "TikTok Business connection completed successfully.",
     oauthFailed: "Failed to start TikTok Ads authorization.",
-    oauthTimeout: "Authorization timed out. Refresh the page if authorization completed in the browser.",
+    oauthTimeout:
+      "Authorization timed out. Refresh the page if authorization completed in the browser.",
     copyFailed: "Failed to copy authorization link.",
     disconnect: "Disconnect",
-    confirmDisconnect: "Disconnect this advertising account? BI sync will stop until it is re-authorized.",
+    confirmDisconnect:
+      "Disconnect this advertising account? BI sync will stop until it is re-authorized.",
     disconnectSuccess: "Advertising account disconnected.",
     disconnectFailed: "Failed to disconnect advertising account.",
     columns: {
@@ -2602,7 +2945,8 @@ export default {
     },
     customerServicePerformance: {
       title: "Customer Service Performance",
-      subtitle: "Track response speed, escalation pressure, satisfaction, and customer-service workload across your operation.",
+      subtitle:
+        "Track response speed, escalation pressure, satisfaction, and customer-service workload across your operation.",
       allShops: "All shops",
       shopFilter: "Shop",
       timeRange: "Time range",
@@ -2611,7 +2955,8 @@ export default {
       guidedGmvNoMatureData: "No complete 7-day Guided GMV average is available in this range.",
       downloadCsv: "Download CSV",
       dailyTable: "Daily performance",
-      scopeSummary: "{{start}} to {{end}} across {{shops}} shop(s). Showing all days in this range.",
+      scopeSummary:
+        "{{start}} to {{end}} across {{shops}} shop(s). Showing all days in this range.",
       tabs: {
         label: "Performance view",
         history: "History",
@@ -2649,21 +2994,25 @@ export default {
       charts: {
         volume: "New sessions vs ended sessions",
         escalation: "Escalation handling",
-        escalationTooltip: "Escalations are conversations the agent cannot finish alone and must be handled by staff. This chart is a key manual-service completion signal: resolved volume shows whether people are responding quickly enough and keeping up with escalated cases.",
+        escalationTooltip:
+          "Escalations are conversations the agent cannot finish alone and must be handled by staff. This chart is a key manual-service completion signal: resolved volume shows whether people are responding quickly enough and keeping up with escalated cases.",
         satisfaction: "Customer satisfaction",
         firstResponse: "First response speed",
         guidedGmv: "Customer-service Guided GMV",
-        guidedGmvTooltip: "Complete 7-day rolling average of TikTok-attributed GMV from orders placed within 7 days after a customer-service reply. A point appears only when all 7 daily values are available; the latest point is 7 days ago.",
+        guidedGmvTooltip:
+          "Complete 7-day rolling average of TikTok-attributed GMV from orders placed within 7 days after a customer-service reply. A point appears only when all 7 daily values are available; the latest point is 7 days ago.",
       },
       realtimeCharts: {
         state: "Active / pending / escalated",
         escalationActivity: "Escalation handling",
-        escalationActivityTooltip: "Shows durable escalation activity in realtime: new escalations that need staff help, and escalations staff resolved.",
+        escalationActivityTooltip:
+          "Shows durable escalation activity in realtime: new escalations that need staff help, and escalations staff resolved.",
         firstResponse: "First response speed",
         pendingAge: "First response speed",
         slaBuckets: "Waiting buyers",
         sessionFlow: "AI handling rounds and ended sessions",
-        sessionFlowTooltip: "AI handling rounds count accepted customer-service AI runs. Ended sessions count successful realtime end-session tool calls.",
+        sessionFlowTooltip:
+          "AI handling rounds count accepted customer-service AI runs. Ended sessions count successful realtime end-session tool calls.",
       },
       series: {
         active: "Active conversations",
@@ -2707,9 +3056,11 @@ export default {
       title: "Affiliate Management",
       subtitle: "Review pending agent actions for creator lifecycle work.",
       creatorsTitle: "Cooperation creators",
-      creatorsSubtitle: "Manage creators who already entered this shop's affiliate workflow, including labels used by approval policy.",
+      creatorsSubtitle:
+        "Manage creators who already entered this shop's affiliate workflow, including labels used by approval policy.",
       creatorsPanelTitle: "Shop creator pool",
-      creatorsPanelHint: "Only creators with materialized collaboration records in this shop are shown.",
+      creatorsPanelHint:
+        "Only creators with materialized collaboration records in this shop are shown.",
       creatorTagFilter: "Tag filter",
       allCreatorTagsFilter: "All tags",
       creatorAttentionOnly: "Needs attention only",
@@ -2742,7 +3093,8 @@ export default {
       relationshipWorkActiveCollaborations: "Active collaborations",
       relationshipWorkPendingProposals: "Pending proposals",
       focusedProposal: "Focused proposal",
-      relationshipWorkbenchSubtitle: "A work panel for creator profile, communication, collaborations, and action history.",
+      relationshipWorkbenchSubtitle:
+        "A work panel for creator profile, communication, collaborations, and action history.",
       relationshipProfileSummary: "Creator summary",
       relationshipCurrentDecision: "Current work",
       relationshipPanelCurrentWork: "Current work",
@@ -2750,10 +3102,13 @@ export default {
       relationshipPanelCollaborations: "Collaboration records",
       relationshipPanelActivity: "Action history",
       relationshipNoCurrentWork: "No active work",
-      relationshipNoCurrentWorkHint: "This creator relationship has no pending proposal or manual task right now.",
-      relationshipNeedsManualReview: "This creator relationship needs staff review before the next step is decided.",
+      relationshipNoCurrentWorkHint:
+        "This creator relationship has no pending proposal or manual task right now.",
+      relationshipNeedsManualReview:
+        "This creator relationship needs staff review before the next step is decided.",
       relationshipAcrossShops: "Cross-shop",
-      relationshipCommunicationHint: "Merged from available shop, platform chat, WhatsApp, and email records.",
+      relationshipCommunicationHint:
+        "Merged from available shop, platform chat, WhatsApp, and email records.",
       noRecentContact: "No recent contact",
       relationshipMoreShopStates: "+{{count}} more shop state(s)",
       relationshipWorkUnread: "Unread",
@@ -2763,13 +3118,17 @@ export default {
       relationshipWorkLastOutbound: "Last outbound",
       relationshipWorkContext: "Record context",
       relationshipWorkAmbiguousCollaborations: "Ambiguous collaboration candidates",
-      relationshipWorkNoCollaborations: "This collaboration record does not have a linked product collaboration yet.",
+      relationshipWorkNoCollaborations:
+        "This collaboration record does not have a linked product collaboration yet.",
       relationshipWorkNoPendingProposals: "No pending proposals on this collaboration record.",
       relationshipWorkActiveTitle: "{{count}} active collaboration(s)",
       relationshipConversationTitle: "Relationship conversation",
-      relationshipWorkAmbiguousSummary: "This collaboration record has multiple possible product contexts. Review before taking product-specific action.",
-      relationshipWorkDefaultSummary: "Shop-level creator collaboration record. Product collaborations appear here when product or sample context is known.",
-      openCreatorRelationshipWorkDetailHint: "Open the collaboration record for conversation, proposals, and related collaborations.",
+      relationshipWorkAmbiguousSummary:
+        "This collaboration record has multiple possible product contexts. Review before taking product-specific action.",
+      relationshipWorkDefaultSummary:
+        "Shop-level creator collaboration record. Product collaborations appear here when product or sample context is known.",
+      openCreatorRelationshipWorkDetailHint:
+        "Open the collaboration record for conversation, proposals, and related collaborations.",
       messageChannels: {
         PLATFORM_CHAT: "Shop backend chat",
         WHATSAPP: "WhatsApp",
@@ -2811,12 +3170,14 @@ export default {
       },
       emptyCreators: "No cooperation creators for this shop yet.",
       historyTitle: "Collaboration records",
-      historySubtitle: "Browse collaboration records and open one to review conversations, proposals, and related collaborations.",
+      historySubtitle:
+        "Browse collaboration records and open one to review conversations, proposals, and related collaborations.",
       approvalQueueTitle: "Action proposals",
       approvalQueueHint: "Agent-created platform actions waiting for staff approval or rejection.",
       approvalQueueShortTitle: "Proposals",
       collaborationWorkQueueTitle: "Collaborations needing staff handling",
-      collaborationWorkQueueHint: "Collaboration work with no pending proposal. Staff should decide the next step manually.",
+      collaborationWorkQueueHint:
+        "Collaboration work with no pending proposal. Staff should decide the next step manually.",
       collaborationWorkQueueShortTitle: "Collaborations",
       pagination: "Collaboration pagination",
       pageSummary: "Showing {{start}}-{{end}} of {{total}}",
@@ -2829,7 +3190,8 @@ export default {
       staffActionHandled: "Marked as handled",
       staffActionHandledNote: "Staff handled this affiliate collaboration work outside RivonClaw.",
       mlInsightsTitle: "Affiliate Intelligence",
-      mlInsightsHint: "See where the model can discover more productive creators and how it compares with historical staff selection.",
+      mlInsightsHint:
+        "See where the model can discover more productive creators and how it compares with historical staff selection.",
       mlInsightsShortTitle: "Intelligence",
       intelligenceKicker: "Creator opportunity model",
       intelligenceAllShops: "All affiliate shops",
@@ -2840,7 +3202,8 @@ export default {
       intelligenceModelsReady: "{{count}} models ready",
       intelligenceNoModel: "No model yet",
       intelligenceModelUnavailable: "Data not loaded",
-      intelligenceModelUnavailableHint: "Model data did not load yet. Refresh intelligence again in a moment.",
+      intelligenceModelUnavailableHint:
+        "Model data did not load yet. Refresh intelligence again in a moment.",
       intelligenceModelSourceSelector: "Model used for this store",
       intelligenceAccountModel: "Account model",
       intelligenceAccountModelHint: "Uses this account's cross-shop affiliate history.",
@@ -2850,26 +3213,38 @@ export default {
       intelligenceStoreModelHint: "Uses only this store's affiliate history.",
       intelligenceRecommendedModel: "Recommended",
       intelligenceConfidenceHigh: "High confidence",
-      intelligenceConfidenceHighHint: "This lift is relatively stable in the current holdout test window and can be used as a primary reference.",
+      intelligenceConfidenceHighHint:
+        "This lift is relatively stable in the current holdout test window and can be used as a primary reference.",
       intelligenceConfidenceLow: "Low confidence",
-      intelligenceConfidenceLowHint: "This lift has higher uncertainty. Treat it as directional and compare it with the account model and staff judgment.",
+      intelligenceConfidenceLowHint:
+        "This lift has higher uncertainty. Treat it as directional and compare it with the account model and staff judgment.",
       intelligenceConfidenceMedium: "Medium confidence",
-      intelligenceConfidenceMediumHint: "The lift direction is clearer, but its stability has not reached high confidence yet.",
+      intelligenceConfidenceMediumHint:
+        "The lift direction is clearer, but its stability has not reached high confidence yet.",
       intelligenceBusinessVerdict: "Model selection is more efficient",
-      intelligenceBusinessVerdictLift: "At the same sample budget, the model ranks creators expected to sell {{lift}} more than historical staff choices.",
-      intelligenceBusinessVerdictNeutral: "This scope does not yet show a clear lift over historical staff choices.",
+      intelligenceBusinessVerdictLift:
+        "At the same sample budget, the model ranks creators expected to sell {{lift}} more than historical staff choices.",
+      intelligenceBusinessVerdictNeutral:
+        "This scope does not yet show a clear lift over historical staff choices.",
       intelligenceClaimPrecisionTitle: "Better picks with the same sample budget",
-      intelligenceClaimPrecisionBody: "In the recent test window, if you send the same {{count}} samples, the model-ranked creators are predicted to sell {{lift}} more than historical staff choices.",
-      intelligenceClaimPrecisionNeutral: "In the recent test window, sending the same {{count}} samples does not yet show a clear model lift.",
+      intelligenceClaimPrecisionBody:
+        "In the recent test window, if you send the same {{count}} samples, the model-ranked creators are predicted to sell {{lift}} more than historical staff choices.",
+      intelligenceClaimPrecisionNeutral:
+        "In the recent test window, sending the same {{count}} samples does not yet show a clear model lift.",
       intelligenceClaimReachTitle: "More creators worth reviewing at the same sales bar",
-      intelligenceClaimReachBody: "At the {{bar}} predicted-sales bar, the model flags {{creators}} creators worth reviewing, including {{overlooked}} creators historical staff did not approve.",
-      intelligenceClaimReachNeutral: "At the same predicted-sales bar, this model run does not yet show broader creator coverage.",
+      intelligenceClaimReachBody:
+        "At the {{bar}} predicted-sales bar, the model flags {{creators}} creators worth reviewing, including {{overlooked}} creators historical staff did not approve.",
+      intelligenceClaimReachNeutral:
+        "At the same predicted-sales bar, this model run does not yet show broader creator coverage.",
       intelligenceChartSameBudget: "Same sample count",
       intelligenceChartSameSalesBar: "Same expected-sales bar",
       intelligenceChartCreatorSwap: "Who the model would swap",
-      intelligenceSameBudgetStory: "{{window}} · predicted sales from the same {{count}} sample opportunities",
-      intelligenceSameSalesBarStory: "{{window}} · creators at or above the same {{bar}} predicted-sales bar",
-      intelligenceCreatorSwapStory: "At the same approval count, the model filters {{filtered}} lower-priority approvals and replaces them with overlooked creators.",
+      intelligenceSameBudgetStory:
+        "{{window}} · predicted sales from the same {{count}} sample opportunities",
+      intelligenceSameSalesBarStory:
+        "{{window}} · creators at or above the same {{bar}} predicted-sales bar",
+      intelligenceCreatorSwapStory:
+        "At the same approval count, the model filters {{filtered}} lower-priority approvals and replaces them with overlooked creators.",
       intelligenceModelSelector: "Model choice",
       intelligenceHumanSelector: "Historical staff choice",
       intelligenceModelQualifiedCreators: "model-flagged creators",
@@ -2880,36 +3255,47 @@ export default {
       intelligenceHistoricalRate: "historical approval rate",
       intelligenceFilteredRate: "historical approvals filtered",
       intelligenceImpliedThresholdTitle: "Historical implied bar",
-      intelligenceImpliedThresholdHint: "The expected-sales threshold that would keep roughly the historical approval rate of {{approvalRate}}.",
+      intelligenceImpliedThresholdHint:
+        "The expected-sales threshold that would keep roughly the historical approval rate of {{approvalRate}}.",
       intelligenceConfiguredThresholdTitle: "Current shop setting",
-      intelligenceConfiguredThresholdHint: "The default minimum expected sales used by the agent when no campaign threshold is set.",
+      intelligenceConfiguredThresholdHint:
+        "The default minimum expected sales used by the agent when no campaign threshold is set.",
       intelligenceConfiguredThresholdUnset: "Not set",
-      intelligenceTrainingScope: "{{window}} · trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
-      intelligenceLegalDisclaimer: "This view is based on statistical modeling and machine learning predictions. It is not a guarantee that using the model will produce actual business growth.",
+      intelligenceTrainingScope:
+        "{{window}} · trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
+      intelligenceLegalDisclaimer:
+        "This view is based on statistical modeling and machine learning predictions. It is not a guarantee that using the model will produce actual business growth.",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} days",
       intelligenceWindowLatestTraining: "Completed outcome observation window",
       intelligenceDistributionTitle: "Sales distribution comparison",
-      intelligenceDistributionHeadline: "The model shifts the selected group toward higher sales buckets",
-      intelligenceDistributionHint: "{{window}} · historical approved outcomes versus model-selected and model-rejected expected sales buckets.",
+      intelligenceDistributionHeadline:
+        "The model shifts the selected group toward higher sales buckets",
+      intelligenceDistributionHint:
+        "{{window}} · historical approved outcomes versus model-selected and model-rejected expected sales buckets.",
       intelligenceHistoricalApplications: "sample applications",
       intelligenceHistoricalApproved: "historically approved",
       intelligenceObservedApproved: "approved with sales outcomes",
       intelligenceHistoricalApprovedActual: "Historical approved · actual sales",
       intelligenceModelSelectedExpected: "Model selected · expected sales",
       intelligenceModelRejectedExpected: "Model rejected · expected sales",
-      intelligenceDistributionIncomplete: "This model run does not include the required distribution summary. Retrain the model to refresh this view.",
+      intelligenceDistributionIncomplete:
+        "This model run does not include the required distribution summary. Retrain the model to refresh this view.",
       intelligenceBudgetStatsTitle: "Where the better picks come from",
-      intelligenceBudgetStatsHeadline: "Same sample count, more model picks land in higher predicted-sales ranges",
-      intelligenceBudgetStatsHint: "{{window}} · distribution of predicted sales in the holdout test window.",
+      intelligenceBudgetStatsHeadline:
+        "Same sample count, more model picks land in higher predicted-sales ranges",
+      intelligenceBudgetStatsHint:
+        "{{window}} · distribution of predicted sales in the holdout test window.",
       intelligenceHistoricalExpectedUnits: "staff-choice predicted units",
       intelligenceModelExpectedUnits: "model-choice predicted units",
       intelligenceHistoricalApprovedExpected: "Historical staff choice · predicted sales",
       intelligenceReachStatsTitle: "More creators to consider",
       intelligenceReachStatsHeadline: "Same sales bar, larger model-flagged opportunity pool",
-      intelligenceReachStatsHint: "{{window}} · creators whose predicted sales meet or exceed {{bar}} units.",
+      intelligenceReachStatsHint:
+        "{{window}} · creators whose predicted sales meet or exceed {{bar}} units.",
       intelligenceOverlookedQualifiedCreators: "historically missed, model-flagged",
       intelligenceReachOpportunityTitle: "{{count}} additional creators surfaced",
-      intelligenceReachOpportunityBody: "This is a model-scored opportunity pool. These creators were not historically approved, so their real sales outcomes are not directly observed.",
+      intelligenceReachOpportunityBody:
+        "This is a model-scored opportunity pool. These creators were not historically approved, so their real sales outcomes are not directly observed.",
       intelligenceReachCumulativeTitle: "Creators above each predicted-sales target",
       intelligenceReachCumulativeHint: "Gray is historical staff; green is model-flagged.",
       intelligenceReachThresholdBar: "≥{{bar}}",
@@ -2922,23 +3308,29 @@ export default {
         outcome_observation_window: "Completed outcome observation window",
         time_based_holdout: "Recent holdout test window",
       },
-      mlInsightsEmpty: "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
+      mlInsightsEmpty:
+        "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
       mlScope: "Scope",
       mlHumanApprovalRate: "Historical approval rate",
       mlSameBudgetLift: "Same sample budget lift",
       mlEstimatedUnits: "estimated units",
       mlModelExpected: "Model-ranked expected units",
-      mlModelExpectedHint: "Predicted total units if the model selected the same number of samples as historical staff.",
+      mlModelExpectedHint:
+        "Predicted total units if the model selected the same number of samples as historical staff.",
       mlHumanExpected: "Human-selected expected units",
       mlHumanExpectedHint: "Predicted total units for the historical staff-approved applications.",
       mlDiscoveredCreators: "Additional high-potential creators",
-      mlDiscoveredCreatorsHint: "Applications the model would select that historical staff rejected, measured counterfactually.",
+      mlDiscoveredCreatorsHint:
+        "Applications the model would select that historical staff rejected, measured counterfactually.",
       mlFilteredApproved: "Human-approved filtered by model",
-      mlFilteredApprovedHint: "Historical approvals the model would not prioritize at the same sample count.",
+      mlFilteredApprovedHint:
+        "Historical approvals the model would not prioritize at the same sample count.",
       mlBudgetThreshold: "Calibrated threshold",
-      mlBudgetThresholdBody: "At the historical approval volume, the implied minimum expected sales is {{value}} units.",
+      mlBudgetThresholdBody:
+        "At the historical approval volume, the implied minimum expected sales is {{value}} units.",
       mlFalseNegativeRisk: "Missed historical winners",
-      mlFalseNegativeRiskBody: "{{rate}} of historical approvals would be filtered; those observed approvals sold {{units}} units.",
+      mlFalseNegativeRiskBody:
+        "{{rate}} of historical approvals would be filtered; those observed approvals sold {{units}} units.",
       mlModelVersion: "Model version",
       searchPlaceholder: "Search creator, product, proposal, or collaboration",
       statusFilter: "Status filter",
@@ -2951,16 +3343,20 @@ export default {
       collaborationRecords: "Collaboration records",
       historicalCollaborations: "Historical collaborations",
       relatedCollaborations: "Related collaborations",
-      collaborationRecordsHint: "Each card represents one shop-creator collaboration record. Product-level collaborations appear inside the record when product or sample context is known.",
+      collaborationRecordsHint:
+        "Each card represents one shop-creator collaboration record. Product-level collaborations appear inside the record when product or sample context is known.",
       pageTitles: {
         NEEDS_ATTENTION: "Action proposals",
         IN_PROGRESS: "Affiliate work in progress",
         HISTORY: "Affiliate history",
       },
       pageSubtitles: {
-        NEEDS_ATTENTION: "Review approvals, manual follow-ups, and affiliate work that needs agent handling.",
-        IN_PROGRESS: "Monitor creator collaborations that are waiting on creators or platform updates.",
-        HISTORY: "Review executed actions, rejected proposals, superseded items, and platform events.",
+        NEEDS_ATTENTION:
+          "Review approvals, manual follow-ups, and affiliate work that needs agent handling.",
+        IN_PROGRESS:
+          "Monitor creator collaborations that are waiting on creators or platform updates.",
+        HISTORY:
+          "Review executed actions, rejected proposals, superseded items, and platform events.",
       },
       allShops: "All shops",
       queueHint: "Grouped by creator and collaboration so related requests can be judged together.",
@@ -2973,9 +3369,11 @@ export default {
       productIdLabel: "Product",
       productContextConfirmed: "Product linked",
       productContextMissing: "No confirmed product context",
-      productContextMissingHint: "Ask the creator to apply for a sample or confirm the collaboration product.",
+      productContextMissingHint:
+        "Ask the creator to apply for a sample or confirm the collaboration product.",
       productIdShort: "Product {{productId}}",
-      actionProductNotConfirmed: "Action references product {{productId}}, but collaboration is not bound to it.",
+      actionProductNotConfirmed:
+        "Action references product {{productId}}, but collaboration is not bound to it.",
       copyFailed: "Failed to copy ID.",
       copyCreatorHandle: "Copy TikTok handle",
       creatorHandleCopied: "Handle copied",
@@ -2994,7 +3392,8 @@ export default {
       copyDebugId: "Copy system ID",
       debugIdCopied: "System ID copied",
       openCreatorDetail: "Open creator details",
-      openCollaborationDetailHint: "Open the detail view for conversation, sample, and operation history.",
+      openCollaborationDetailHint:
+        "Open the detail view for conversation, sample, and operation history.",
       operationHistory: "Operation history",
       detailTabs: {
         overview: "Overview",
@@ -3136,7 +3535,8 @@ export default {
       },
       sectionHints: {
         NEEDS_ATTENTION: "Affiliate work that needs approval, manual follow-up, or agent handling.",
-        IN_PROGRESS: "Creator collaborations already moving forward with no immediate staff action.",
+        IN_PROGRESS:
+          "Creator collaborations already moving forward with no immediate staff action.",
         HISTORY: "Executed actions, rejected proposals, platform events, and direct agent actions.",
       },
       summary: {
@@ -3316,11 +3716,14 @@ export default {
         CREATE_TARGET_COLLABORATION: "Create a target collaboration",
       },
       proposalExecutionDescriptions: {
-        APPROVE_SAMPLE_REQUEST: "The system will approve the creator's sample request on TikTok Shop.",
-        REJECT_SAMPLE_REQUEST: "The system will reject the creator's sample request on TikTok Shop.",
+        APPROVE_SAMPLE_REQUEST:
+          "The system will approve the creator's sample request on TikTok Shop.",
+        REJECT_SAMPLE_REQUEST:
+          "The system will reject the creator's sample request on TikTok Shop.",
         REVIEW_SAMPLE_REQUEST: "The system will submit this sample-review decision on TikTok Shop.",
         SEND_MESSAGE: "The system will send the message below to the creator.",
-        CREATE_TARGET_COLLABORATION: "The system will create a target collaboration invitation for this creator.",
+        CREATE_TARGET_COLLABORATION:
+          "The system will create a target collaboration invitation for this creator.",
       },
       policyActions: {
         SEND_MESSAGE: "Send message",
@@ -3329,17 +3732,21 @@ export default {
       },
       policyActionDescriptions: {
         SEND_MESSAGE: "Require approval before the agent sends creator messages.",
-        REVIEW_SAMPLE_APPLICATION: "Require approval before sample requests are approved or rejected.",
-        CREATE_TARGET_COLLABORATION: "Require approval before targeted collaboration invitations are created.",
+        REVIEW_SAMPLE_APPLICATION:
+          "Require approval before sample requests are approved or rejected.",
+        CREATE_TARGET_COLLABORATION:
+          "Require approval before targeted collaboration invitations are created.",
       },
       policies: {
         title: "Approval Policies",
-        subtitle: "Control which affiliate platform write actions require merchant approval before execution.",
+        subtitle:
+          "Control which affiliate platform write actions require merchant approval before execution.",
         shopSelector: "Approval policy shop",
         refresh: "Refresh policies",
         noAffiliateShops: "No affiliate-enabled shop is available.",
         currentPolicies: "{{shop}} policies",
-        recommendedHint: "Recommended baseline: require approval for messages, sample reviews, and target collaborations across the whole shop.",
+        recommendedHint:
+          "Recommended baseline: require approval for messages, sample reviews, and target collaborations across the whole shop.",
         recommendedReady: "Recommended global approval policies are enabled for this shop.",
         applyRecommended: "Apply recommended",
         empty: "No approval policies have been configured for this shop.",
@@ -3354,10 +3761,12 @@ export default {
         copyPolicySystemId: "Copy policy system ID",
         createTitle: "Create policy",
         editTitle: "Edit policy",
-        editorHint: "A policy matches only when every configured condition dimension matches. Empty conditions apply to all.",
+        editorHint:
+          "A policy matches only when every configured condition dimension matches. Empty conditions apply to all.",
         actionLabel: "Action",
         enabledLabel: "Enabled",
-        enabledHint: "Enabled policies intercept matching backend actions and create approval proposals.",
+        enabledHint:
+          "Enabled policies intercept matching backend actions and create approval proposals.",
         reasonLabel: "Reason",
         reasonPlaceholder: "Explain why this action should require approval.",
         defaultReason: "Require merchant approval before this affiliate platform action executes.",
@@ -3370,9 +3779,12 @@ export default {
         allProducts: "Applies to all products.",
         appliesToAll: "Applies to all",
         appliesToAllDescription: "All creators, campaigns, and products match for this action.",
-        allMatchPreview: "{{action}} will require approval for all creators, campaigns, and products.",
-        filteredMatchPreview: "This policy requires approval only when all configured filter dimensions match.",
-        filteredMatchDescription: "All listed dimensions are evaluated together; within a dimension, any listed value can match.",
+        allMatchPreview:
+          "{{action}} will require approval for all creators, campaigns, and products.",
+        filteredMatchPreview:
+          "This policy requires approval only when all configured filter dimensions match.",
+        filteredMatchDescription:
+          "All listed dimensions are evaluated together; within a dimension, any listed value can match.",
         creatorTagSummary: "Creator tags: {{value}}",
         campaignSummary: "Campaigns: {{value}}",
         productSummary: "{{count}} product(s)",
@@ -3413,7 +3825,8 @@ export default {
         sameDecision: "Aligned",
         differentDecision: "Different",
         sameDecisionHint: "The model recommendation is aligned with historical staff behavior.",
-        differentDecisionHint: "The model recommendation differs from historical staff behavior, so review the context carefully.",
+        differentDecisionHint:
+          "The model recommendation differs from historical staff behavior, so review the context carefully.",
         modelDecisions: {
           APPROVE: "Approve sample",
           REJECT: "Reject sample",
@@ -3441,18 +3854,30 @@ export default {
         DEFAULT: "Review this collaboration",
       },
       collaborationWorkDescriptions: {
-        RESPOND_TO_CREATOR: "The agent will draft a reply using the recent conversation, product context, and collaboration history. If approval is required, it will create a proposal first.",
-        REVIEW_SAMPLE_APPLICATION: "The creator submitted a sample request. The agent will use shop rules and prediction results to recommend approval or rejection.",
-        SHIP_SAMPLE: "The sample request has been approved. Staff should arrange shipment in the platform or warehouse flow.",
-        FOLLOW_UP_CREATOR: "The creator-side next step is overdue. Follow up with the creator based on the current collaboration context.",
-        REVIEW_ACTION_PROPOSAL: "The agent has created a platform-action proposal. Approve or reject it on the Action proposals page.",
-        REVIEW_AGENT_FAILURE: "The agent did not complete this work item. Review the record and decide the next step manually.",
-        RESOLVE_CREATOR_IDENTITY: "The system cannot reliably identify this creator yet. Confirm the identity manually or wait for more platform data.",
-        REVIEW_COLLABORATION: "This collaboration needs staff judgment. Open the detail view, review history, then decide whether to handle it on-platform.",
-        PROPOSAL_REJECTED: "Staff rejected the agent recommendation. The system will not execute that proposal; handle it manually or wait for the next creator/platform event.",
-        PROPOSAL_REVISION_REQUESTED: "Staff requested a revised recommendation. The revision note will be included in the next agent run.",
-        WAITING_CREATOR: "No staff action is needed right now. Waiting for the creator to reply, receive the sample, or publish content.",
-        WAITING_PLATFORM: "No staff action is needed right now. Waiting for TikTok Shop to sync sample, content, or collaboration updates.",
+        RESPOND_TO_CREATOR:
+          "The agent will draft a reply using the recent conversation, product context, and collaboration history. If approval is required, it will create a proposal first.",
+        REVIEW_SAMPLE_APPLICATION:
+          "The creator submitted a sample request. The agent will use shop rules and prediction results to recommend approval or rejection.",
+        SHIP_SAMPLE:
+          "The sample request has been approved. Staff should arrange shipment in the platform or warehouse flow.",
+        FOLLOW_UP_CREATOR:
+          "The creator-side next step is overdue. Follow up with the creator based on the current collaboration context.",
+        REVIEW_ACTION_PROPOSAL:
+          "The agent has created a platform-action proposal. Approve or reject it on the Action proposals page.",
+        REVIEW_AGENT_FAILURE:
+          "The agent did not complete this work item. Review the record and decide the next step manually.",
+        RESOLVE_CREATOR_IDENTITY:
+          "The system cannot reliably identify this creator yet. Confirm the identity manually or wait for more platform data.",
+        REVIEW_COLLABORATION:
+          "This collaboration needs staff judgment. Open the detail view, review history, then decide whether to handle it on-platform.",
+        PROPOSAL_REJECTED:
+          "Staff rejected the agent recommendation. The system will not execute that proposal; handle it manually or wait for the next creator/platform event.",
+        PROPOSAL_REVISION_REQUESTED:
+          "Staff requested a revised recommendation. The revision note will be included in the next agent run.",
+        WAITING_CREATOR:
+          "No staff action is needed right now. Waiting for the creator to reply, receive the sample, or publish content.",
+        WAITING_PLATFORM:
+          "No staff action is needed right now. Waiting for TikTok Shop to sync sample, content, or collaboration updates.",
         DONE: "There is no open work on this collaboration. Open the detail view to inspect history.",
         BLOCKED: "This collaboration is blocked and will not be advanced automatically.",
         DEFAULT: "Open the detail view to inspect history, proposals, and platform events.",
@@ -3468,14 +3893,18 @@ export default {
         blocked: "Blocked",
       },
       sampleWorkStatusDescriptions: {
-        REQUEST_PENDING_REVIEW: "The creator has submitted a sample request and is waiting for your decision.",
-        APPROVED_AWAITING_SHIPMENT: "The sample request is approved, but the sample still needs to be shipped.",
+        REQUEST_PENDING_REVIEW:
+          "The creator has submitted a sample request and is waiting for your decision.",
+        APPROVED_AWAITING_SHIPMENT:
+          "The sample request is approved, but the sample still needs to be shipped.",
         SHIPPED_IN_TRANSIT: "The sample has shipped and is on the way to the creator.",
-        DELIVERED_AWAITING_CONTENT: "The creator has received the sample and should publish content next.",
+        DELIVERED_AWAITING_CONTENT:
+          "The creator has received the sample and should publish content next.",
         CONTENT_OBSERVED_REVIEWING: "Content has been detected and is being reviewed.",
         FULFILLED: "The sample collaboration has been fulfilled.",
         FULFILLMENT_FAILED: "The sample collaboration did not finish successfully.",
-        PLATFORM_STATUS_UNKNOWN: "TikTok Shop did not return a reviewable sample status, so no sample review action will be attempted.",
+        PLATFORM_STATUS_UNKNOWN:
+          "TikTok Shop did not return a reviewable sample status, so no sample review action will be attempted.",
         CANCELLED: "The sample request was cancelled.",
         EXPIRED: "The sample request expired before it was completed.",
         DEFAULT: "The sample request has an updated platform status.",
@@ -3492,18 +3921,23 @@ export default {
         CANCELLED: "Cancelled",
         EXPIRED: "Expired",
       },
-      sampleSituationPreview: "{{statusDescription}} {{contentCount}} content item(s) have been observed.",
-      manualFollowUpNote: "The agent proposal was rejected. Staff should handle this item manually on-platform or in follow-up communication.",
+      sampleSituationPreview:
+        "{{statusDescription}} {{contentCount}} content item(s) have been observed.",
+      manualFollowUpNote:
+        "The agent proposal was rejected. Staff should handle this item manually on-platform or in follow-up communication.",
       sampleStatusPreview: "Sample status: {{status}}; {{contentCount}} content item(s) observed.",
       lifecycleEventPreview: "Platform/system event: {{eventType}}",
     },
     customerServiceWorkspace: {
       title: "Customer Service",
-      subtitle: "Monitor cross-shop customer conversations, control AI handling, and resolve escalations.",
+      subtitle:
+        "Monitor cross-shop customer conversations, control AI handling, and resolve escalations.",
       conversationsPageTitle: "Customer service conversations",
-      conversationsPageSubtitle: "Monitor buyer conversations, AI handling state, and recent customer messages.",
+      conversationsPageSubtitle:
+        "Monitor buyer conversations, AI handling state, and recent customer messages.",
       escalationsPageTitle: "Customer service escalations",
-      escalationsPageSubtitle: "Review escalation requests that the customer-service agent sent to staff.",
+      escalationsPageSubtitle:
+        "Review escalation requests that the customer-service agent sent to staff.",
       allShops: "All shops",
       conversationsTab: "Conversations",
       escalationsTab: "Escalations",
@@ -3570,10 +4004,13 @@ export default {
       startAiSuccess: "Customer-service run started.",
       startAiFailed: "Failed to start customer-service run.",
       endSession: "End session",
-      endSessionTooltip: "End the platform customer-service session after the buyer's issue is fully handled.",
-      endSessionDisabledTooltip: "Resolve or dismiss the open escalation before ending this session.",
+      endSessionTooltip:
+        "End the platform customer-service session after the buyer's issue is fully handled.",
+      endSessionDisabledTooltip:
+        "Resolve or dismiss the open escalation before ending this session.",
       endSessionConfirmTitle: "End this customer-service session?",
-      endSessionConfirmBody: "Only end the session after the buyer's issue is fully handled. The platform may close the support session and show the buyer an evaluation or review flow.",
+      endSessionConfirmBody:
+        "Only end the session after the buyer's issue is fully handled. The platform may close the support session and show the buyer an evaluation or review flow.",
       endSessionSuccess: "Customer-service session ended.",
       endSessionFailed: "Failed to end customer-service session.",
       summarize: "Summarize",
@@ -3585,9 +4022,11 @@ export default {
       summaryGeneratingHint: "Fetching messages and preparing an operator-friendly summary.",
       clearEscalations: "Dismiss escalation",
       clearEscalationsSuccess: "Escalations dismissed.",
-      confirmClearConversationEscalations: "Dismiss all open escalations for this conversation? This will not wake the AI agent.",
+      confirmClearConversationEscalations:
+        "Dismiss all open escalations for this conversation? This will not wake the AI agent.",
       dismissConversationEscalationsSuccess: "Escalations dismissed.",
-      dismissConversationEscalationsConfirm: "Dismiss {{count}} open escalation(s) for this conversation?",
+      dismissConversationEscalationsConfirm:
+        "Dismiss {{count}} open escalation(s) for this conversation?",
       details: "Details",
       conversationDetails: "Conversation details",
       search: "Search",
@@ -3631,12 +4070,15 @@ export default {
       instructions: "Instructions for the agent",
       instructionsPlaceholder: "Tell the customer service agent exactly how to proceed.",
       managerGuidance: "Manager guidance",
-      managerGuidancePlaceholder: "Write the decision and exact next step for the CS agent, e.g. approve refund, ask buyer for proof, or wait for carrier confirmation.",
+      managerGuidancePlaceholder:
+        "Write the decision and exact next step for the CS agent, e.g. approve refund, ask buyer for proof, or wait for carrier confirmation.",
       markResolved: "This is the final decision",
-      finalDecisionTooltip: "When checked, the CS agent treats this guidance as the final decision and closes this customer service escalation. Leave unchecked to send an interim update and keep it open.",
+      finalDecisionTooltip:
+        "When checked, the CS agent treats this guidance as the final decision and closes this customer service escalation. Leave unchecked to send an interim update and keep it open.",
       sendResponse: "Send response",
       dismissEscalation: "Dismiss escalation",
-      dismissEscalationTooltip: "Dismisses the escalation without waking the AI agent and without sending a buyer message.",
+      dismissEscalationTooltip:
+        "Dismisses the escalation without waking the AI agent and without sending a buyer message.",
       dismissEscalationSuccess: "Escalation dismissed.",
       confirmDismissEscalation: "Dismiss this escalation?",
       previousEscalation: "Previous item",
@@ -3665,7 +4107,8 @@ export default {
       copyButton: "Copy Link",
       copySuccess: "Link copied to clipboard!",
       waitingAuth: "Waiting for authorization...",
-      tooltip: "Copy this link and open it in the browser where you manage your TikTok Shop seller account.",
+      tooltip:
+        "Copy this link and open it in the browser where you manage your TikTok Shop seller account.",
       noMatch: "No platform app available for this combination.",
       multipleMatch: "Multiple platform apps found — contact support.",
     },
@@ -3709,8 +4152,10 @@ export default {
       needs_link: "Needs review",
       needs_advertiser: "No Ads account",
       hint_connected: "This shop is linked to a TikTok Ads store binding.",
-      hint_needs_link: "A TikTok Ads account is connected, but this shop still needs ad coverage configuration.",
-      hint_needs_advertiser: "Connect a TikTok Ads account before this shop can be used for Ads reporting.",
+      hint_needs_link:
+        "A TikTok Ads account is connected, but this shop still needs ad coverage configuration.",
+      hint_needs_advertiser:
+        "Connect a TikTok Ads account before this shop can be used for Ads reporting.",
     },
     shopDrawer: {
       tabs: {
@@ -3725,11 +4170,14 @@ export default {
         adsReadiness: "Ads Readiness",
         services: "Services",
         csToggle: "AI Customer Service",
-        csToggleHint: "Enable AI customer service to reply to buyer messages and support order conversations for this shop.",
+        csToggleHint:
+          "Enable AI customer service to reply to buyer messages and support order conversations for this shop.",
         inventoryToggle: "Inventory Management",
         affiliateToggle: "Affiliate Management",
-        affiliateToggleHint: "Enable affiliate management to let the desktop agent handle creator replies, samples, and collaboration workflows.",
-        businessPromptHint: "Describe your business context to help the AI provide better customer service responses.",
+        affiliateToggleHint:
+          "Enable affiliate management to let the desktop agent handle creator replies, samples, and collaboration workflows.",
+        businessPromptHint:
+          "Describe your business context to help the AI provide better customer service responses.",
         save: "Save",
       },
       billing: {
@@ -3760,26 +4208,31 @@ export default {
         toolCount: "{{count}} tools total",
         csBindDevice: "Handle CS on this device",
         csBindDeviceHint: "Enable to receive and respond to customer messages on this device",
-        csBindConflict: "Another device is currently handling this shop's customer service. Switch to this device?",
+        csBindConflict:
+          "Another device is currently handling this shop's customer service. Switch to this device?",
         csBindConflictTitle: "Device Conflict",
         csUnbind: "Stop handling CS on this device",
         csThisDevice: "Handled by this device",
         csOtherDevice: "Handled by another device",
         csModelOverride: "CS Model",
-        csModelOverrideHint: "Select a specific model for customer service sessions. Default uses the globally active model.",
+        csModelOverrideHint:
+          "Select a specific model for customer service sessions. Default uses the globally active model.",
         csModelDefault: "Default (global model)",
         csModelUnavailable: "Selected model is no longer available",
         bridgeDisconnected: "CS bridge disconnected — customer messages will not be received.",
         bridgeReconnecting: "CS bridge reconnecting (attempt {{attempt}})…",
         unpaidReachout: "Unpaid order reachout",
         unpaidReachoutEnabled: "Reach out to unpaid orders",
-        unpaidReachoutHint: "Send up to three backend-scheduled reminders while the order remains unpaid.",
+        unpaidReachoutHint:
+          "Send up to three backend-scheduled reminders while the order remains unpaid.",
         unpaidReachoutDelay: "Delay minutes",
         unpaidReachoutDelayHint: "Use a whole number from 1 to 2879 minutes.",
-        unpaidReachoutInvalidDelay: "Each delay must be a unique whole number from 1 to 2879 minutes.",
+        unpaidReachoutInvalidDelay:
+          "Each delay must be a unique whole number from 1 to 2879 minutes.",
         unpaidReachoutTemplate: "Reminder template",
         unpaidReachoutTemplatePlaceholder: "Write the reminder message shown to unpaid buyers.",
-        unpaidReachoutTemplateHint: "Supports {{order_id}}, {{product_count}}, and {{shop_name}}. Empty uses the localized default.",
+        unpaidReachoutTemplateHint:
+          "Supports {{order_id}}, {{product_count}}, and {{shop_name}}. Empty uses the localized default.",
         unpaidReachoutStage: "Stage {{index}}",
         unpaidReachoutStageMinutes: "minutes after order creation",
         unpaidReachoutRemoveStage: "Remove",
@@ -3793,26 +4246,82 @@ export default {
         unpaidReachoutTemplateTokenProductCount: "Item count",
         unpaidReachoutTemplateTokenShopName: "Shop name",
         unpaidReachoutUnsaved: "Unsaved changes",
+        unpaidReachoutInvalidHoldout: "Holdout must be a whole number from 1% to 20%.",
+        unpaidStatusExperiment: "Configuration experiment running",
+        unpaidStatusActive: "Reachout active",
+        unpaidStatusDisabled: "Not enabled",
+        unpaidStagesEnabled: "active stages",
+        unpaidFirstReachout: "First reachout",
+        unpaidSchedule: "Follow-up schedule",
+        unpaidScheduleHint: "Messages run in chronological order while the order remains unpaid.",
+        unpaidRunningLock: "Locked by running experiment",
+        unpaidEvaluation: "Evaluation & optimization",
+        unpaidEvaluationHint:
+          "Measure incremental impact and compare complete reachout strategies.",
+        unpaidHoldoutLabel: "Holdout percentage",
+        unpaidNoReachout: "No reachout",
+        unpaidTreatment: "Treatment",
+        unpaidConfigOptimization: "Configuration optimization",
+        unpaidExperimentVersion: "Version",
+        unpaidDraftReady: "A saved draft is ready to continue.",
+        unpaidNoConfigExperiment: "No configuration experiment is running.",
+        unpaidManageExperiment: "Manage experiment",
+        unpaidContinueDraft: "Continue draft",
+        unpaidConfigureExperiment: "Configure A/B test",
+        unpaidSaveBeforeExperiment:
+          "Save reachout and evaluation settings before configuring an experiment.",
+        unpaidExperimentModalTitle: "Unpaid order reachout experiment",
+        unpaidRunning: "Running",
+        unpaidDraft: "Draft",
+        unpaidPlans: "Plans",
+        unpaidAddPlan: "Add plan",
+        unpaidTreatmentShare: "Treatment share",
+        unpaidVariantInvalid:
+          "This plan needs a name, at least one enabled stage, valid unique delays, and a unique configuration.",
+        unpaidExperimentInvalid: "Resolve plan and allocation errors before starting.",
+        unpaidSaveDraft: "Save draft",
+        unpaidDiscardDraft: "Archive draft",
+        unpaidStartNewVersion: "Start new version",
+        unpaidStartExperiment: "Start experiment",
+        unpaidCreateVersion: "Create new version",
+        unpaidStopExperiment: "Stop experiment",
+        unpaidUnsavedDraftTitle: "Save this experiment draft?",
+        unpaidUnsavedDraftHint: "The draft can be continued from another device after it is saved.",
+        unpaidDiscardChanges: "Discard changes",
+        unpaidSaveAndClose: "Save & close",
+        unpaidExperimentDraftSaved: "Experiment draft saved.",
+        unpaidExperimentStarted: "Configuration experiment started.",
+        unpaidExperimentStopped: "Experiment stopped; existing cohorts will continue to mature.",
+        unpaidPreviousFinal: "Previous experiment finalized",
+        unpaidUsePlan: "Use plan",
+        unpaidFinal: "Final",
+        unpaidMaturing: "Waiting for maturity",
         reviewManagement: "Review management",
         reviewManagementModule: "Main module",
         reviewManagementSubmodule: "Subfeature",
         reviewOptimizationEnabled: "Enable review management",
-        reviewOptimizationHint: "When enabled, product reviews are synced into customer-service business data and evaluated with the rules below.",
+        reviewOptimizationHint:
+          "When enabled, product reviews are synced into customer-service business data and evaluated with the rules below.",
         badReviewReachoutTitle: "Bad-review follow-up",
         badReviewReachoutEnabled: "Enable bad-review follow-up",
-        badReviewReachoutHint: "Eligible new bad reviews enter the CS follow-up flow so the desktop agent can reach out with review-specific context.",
+        badReviewReachoutHint:
+          "Eligible new bad reviews enter the CS follow-up flow so the desktop agent can reach out with review-specific context.",
         badReviewReachoutStars: "Bad-review stars",
-        badReviewReachoutStarsHint: "Reviews at or below this star rating are treated as bad reviews. Use 1 to 3.",
+        badReviewReachoutStarsHint:
+          "Reviews at or below this star rating are treated as bad reviews. Use 1 to 3.",
         badReviewReachoutRecentDays: "Follow-up days",
-        badReviewReachoutRecentDaysHint: "Only reviews created in the last N days need follow-up. Use 1 to 90.",
+        badReviewReachoutRecentDaysHint:
+          "Only reviews created in the last N days need follow-up. Use 1 to 90.",
         reviewOptimizationInvalidStars: "Bad-review stars must be a whole number from 1 to 3.",
         reviewOptimizationInvalidRecentDays: "Follow-up days must be a whole number from 1 to 90.",
       },
       affiliate: {
         serviceStatus: "Service Status",
         bindDevice: "Handle affiliate inbound on this device",
-        bindDeviceHint: "Enable to wake this desktop's agent for creator replies and affiliate lifecycle signals.",
-        bindConflict: "Another device is currently handling affiliate inbound for this shop. Switch to this device?",
+        bindDeviceHint:
+          "Enable to wake this desktop's agent for creator replies and affiliate lifecycle signals.",
+        bindConflict:
+          "Another device is currently handling affiliate inbound for this shop. Switch to this device?",
         bindConflictTitle: "Device Conflict",
         thisDevice: "Handled by this device",
         otherDevice: "Handled by another device",
@@ -3822,7 +4331,8 @@ export default {
         runProfileNone: "No RunProfile selected",
         modelUsageScope: "Use Model",
         modelUsageScopeLabel: "Prediction model",
-        modelUsageScopeHint: "Choose whether this shop uses the account-level, region-level, or shop-level model for expected-sales predictions.",
+        modelUsageScopeHint:
+          "Choose whether this shop uses the account-level, region-level, or shop-level model for expected-sales predictions.",
         modelUsageScopeUserLevel: "User level",
         modelUsageScopeRegionLevel: "Region level",
         modelUsageScopeShopLevel: "Shop level",
@@ -3832,12 +4342,16 @@ export default {
         modelRecommendationPending: "Model recommendation unavailable",
         modelRecommendationLoading: "Reading this shop's model performance data.",
         modelRecommendationUnavailable: "Refresh intelligence to show the recommendation here.",
-        modelRecommendationIncomplete: "Model performance data is incomplete, so the account-level model remains the default.",
+        modelRecommendationIncomplete:
+          "Model performance data is incomplete, so the account-level model remains the default.",
         modelRecommendationNoData: "No data yet",
         modelRecommendationReasons: {
-          account_more_stable: "The account model uses cross-shop creator history and is currently the steadier default for this shop.",
-          region_balanced: "The region model borrows creator history only from shops in the same region, balancing sample size with market differences.",
-          shop_clear_advantage: "The shop model shows a clearer advantage for this shop in the holdout test window, with non-low confidence.",
+          account_more_stable:
+            "The account model uses cross-shop creator history and is currently the steadier default for this shop.",
+          region_balanced:
+            "The region model borrows creator history only from shops in the same region, balancing sample size with market differences.",
+          shop_clear_advantage:
+            "The shop model shows a clearer advantage for this shop in the holdout test window, with non-low confidence.",
           only_account: "Only the account-level model has an available evaluation right now.",
           only_region: "Only the region-level model has an available evaluation right now.",
           only_shop: "Only the shop-level model has an available evaluation right now.",
@@ -3849,11 +4363,14 @@ export default {
         },
         decisionThresholds: "Decision Thresholds",
         minExpectedSalesUnits: "Minimum expected sales units",
-        minExpectedSalesUnitsHint: "When a collaboration has no more specific campaign threshold, the agent uses this as the default proceed/sample-review reference. Leave empty for no default numeric threshold.",
+        minExpectedSalesUnitsHint:
+          "When a collaboration has no more specific campaign threshold, the agent uses this as the default proceed/sample-review reference. Leave empty for no default numeric threshold.",
         noThreshold: "Not set",
-        invalidDecisionThreshold: "Minimum expected sales units must be a number greater than or equal to 0.",
+        invalidDecisionThreshold:
+          "Minimum expected sales units must be a number greater than or equal to 0.",
         businessPrompt: "Business Prompt",
-        businessPromptHint: "Configure this shop's affiliate collaboration rules, communication style, commission/sample boundaries, and human-review requirements. This prompt is injected into affiliate agent runs.",
+        businessPromptHint:
+          "Configure this shop's affiliate collaboration rules, communication style, commission/sample boundaries, and human-review requirements. This prompt is injected into affiliate agent runs.",
         availableTools: "Available Tools",
         toolCount: "{{count}} tools total",
         proposals: "Approval Queue",
@@ -3871,8 +4388,10 @@ export default {
         requestProposalRevision: "Request revision",
         sendProposalRevisionRequest: "Send revision request",
         proposalRevisionNoteLabel: "Revision notes",
-        proposalRevisionNotePlaceholder: "Tell the agent what to change, for example: approve the sample but use a shorter reply.",
-        proposalRevisionNoteHint: "These notes are sent back to the affiliate agent for the next proposal.",
+        proposalRevisionNotePlaceholder:
+          "Tell the agent what to change, for example: approve the sample but use a shorter reply.",
+        proposalRevisionNoteHint:
+          "These notes are sent back to the affiliate agent for the next proposal.",
         messageIntentFallback: "{{type}} message",
         sampleReviewPreview: "{{decision}} sample application {{applicationId}}",
         sampleReviewDecisions: {
@@ -3880,7 +4399,8 @@ export default {
           REJECT: "Reject",
         },
         sampleShipmentPreview: "Ship {{quantity}} sample item(s) for application {{applicationId}}",
-        targetCollaborationPreview: "Create target collaboration \"{{name}}\" with {{count}} product(s).",
+        targetCollaborationPreview:
+          'Create target collaboration "{{name}}" with {{count}} product(s).',
         blockCreatorPreview: "Block creator {{creatorId}}.",
         creatorTagPreview: "Update tag {{tagId}} for creator {{creatorId}}.",
         campaignProductPreview: "Update campaign product {{productId}}.",
@@ -3916,18 +4436,22 @@ export default {
       pageTitle: "Inventory Management",
       pageSubtitle: "Manage WMS accounts and inventory goods.",
       shopMappings: "Shop Warehouse Mapping",
-      shopMappingsSubtitle: "Choose a shop, enable inventory management, and map platform warehouses to canonical WMS warehouses.",
+      shopMappingsSubtitle:
+        "Choose a shop, enable inventory management, and map platform warehouses to canonical WMS warehouses.",
       selectShop: "Shop",
       enableShopInventory: "Inventory Management",
-      enableShopHint: "Enable inventory management for this shop to sync and map platform warehouses.",
+      enableShopHint:
+        "Enable inventory management for this shop to sync and map platform warehouses.",
       noShops: "No connected shops.",
       wmsAccounts: "WMS Accounts",
       wmsAccountsSubtitle: "Warehouses synced from third-party WMS accounts.",
       addWmsAccount: "Add WMS Account",
       editWmsAccount: "Edit WMS Account",
       deleteWmsAccount: "Delete WMS Account",
-      wmsProviderSupportTooltip: "We currently support Yejoin and Lingxing WMS as third-party WMS providers. To request another provider, please contact us via the email listed on our official website.",
-      confirmDeleteWmsAccount: "Delete \"{{label}}\"? This account will be archived and no longer shown or used for sync.",
+      wmsProviderSupportTooltip:
+        "We currently support Yejoin and Lingxing WMS as third-party WMS providers. To request another provider, please contact us via the email listed on our official website.",
+      confirmDeleteWmsAccount:
+        'Delete "{{label}}"? This account will be archived and no longer shown or used for sync.',
       refreshInventory: "Refresh inventory data",
       noWmsAccounts: "No WMS accounts connected yet.",
       noSyncedWarehouses: "No warehouses have been synced for this account.",
@@ -3971,20 +4495,23 @@ export default {
       apiTokenHint: "The token is write-only and will not be shown again.",
       apiTokenPlaceholders: {
         YEJOIN: "Paste token",
-        XLWMS: "{\"appKey\":\"...\",\"appSecret\":\"...\"}",
+        XLWMS: '{"appKey":"...","appSecret":"..."}',
       },
       apiTokenHints: {
         YEJOIN: "The token is write-only and will not be shown again.",
-        XLWMS: "Paste JSON with appKey and appSecret. The credentials are write-only and will not be shown again.",
+        XLWMS:
+          "Paste JSON with appKey and appSecret. The credentials are write-only and will not be shown again.",
       },
-      apiTokenEditHint: "The token is write-only and will not be shown again. Leave blank to keep the existing token; enter a new token to save and resync warehouses.",
+      apiTokenEditHint:
+        "The token is write-only and will not be shown again. Leave blank to keep the existing token; enter a new token to save and resync warehouses.",
       notes: "Notes",
       notesPlaceholder: "Optional internal note",
       syncedWarehouses: "Warehouses",
       lastSyncedAt: "Last Synced",
       syncWarehouses: "Sync warehouses",
       inventoryGoods: "Inventory Goods",
-      inventoryGoodsSubtitle: "Internal stockable goods used by warehouse and shop inventory workflows.",
+      inventoryGoodsSubtitle:
+        "Internal stockable goods used by warehouse and shop inventory workflows.",
       refreshInventoryGoods: "Refresh inventory goods",
       searchInventoryGoods: "Search",
       searchInventoryGoodsPlaceholder: "Search SKU, barcode, GTIN, or metadata",
@@ -3999,9 +4526,10 @@ export default {
       addInventoryGood: "Add Inventory Good",
       editInventoryGood: "Edit Inventory Good",
       deleteInventoryGood: "Delete Inventory Good",
-      confirmDeleteInventoryGood: "Delete inventory good \"{{sku}}\"? This archives it.",
+      confirmDeleteInventoryGood: 'Delete inventory good "{{sku}}"? This archives it.',
       deleteSelectedInventoryGoodsTitle: "Delete selected inventory goods",
-      confirmDeleteSelectedInventoryGoods: "Delete {{count}} selected inventory goods? This archives them.",
+      confirmDeleteSelectedInventoryGoods:
+        "Delete {{count}} selected inventory goods? This archives them.",
       deleteSelectedInventoryGoods: "Delete selected ({{count}})",
       noInventoryGoods: "No inventory goods yet.",
       noInventoryGoodsForFilters: "No inventory goods match the current filters.",
@@ -4055,7 +4583,8 @@ export default {
       viewDetails: "View details",
       matchedInventoryGoodsCount: "{{count}} goods already match internal inventory goods.",
       needSyncInventoryGoodsCount: "{{count}} goods need sync.",
-      matchedInventoryGoodsDetailsUnavailable: "The backend currently returns the matched count only, so there are no matched rows to review here.",
+      matchedInventoryGoodsDetailsUnavailable:
+        "The backend currently returns the matched count only, so there are no matched rows to review here.",
       noInventoryGoodsNeedSync: "No inventory goods need sync.",
       allInventoryGoodsMatched: "All WMS inventory goods already match internal inventory goods.",
       noWmsInventoryGoodsFound: "No active WMS inventory goods were found for this account.",
@@ -4064,7 +4593,8 @@ export default {
       syncNewInventoryGoods: "Sync New Inventory Goods",
       syncAllInventoryGoods: "Sync All Inventory Goods",
       confirmInventoryGoodsSync: "Confirm",
-      syncInventoryGoodsDone: "Inventory goods synced. Created {{created}}, updated {{updated}}, skipped {{skipped}}, failed {{failed}}.",
+      syncInventoryGoodsDone:
+        "Inventory goods synced. Created {{created}}, updated {{updated}}, skipped {{skipped}}, failed {{failed}}.",
       syncInventoryGoodsErrors: "Sync errors",
       wmsCoverageReasons: {
         noActiveInventoryGood: "No matching inventory good",
@@ -4073,9 +4603,11 @@ export default {
       expand: "Expand",
       collapse: "Collapse",
       shopWarehouses: "Shop Warehouses",
-      shopWarehousesHint: "Map platform shop warehouses to canonical warehouses before inventory workflows use them.",
+      shopWarehousesHint:
+        "Map platform shop warehouses to canonical warehouses before inventory workflows use them.",
       syncShopWarehouses: "Sync Shop Warehouses",
-      noShopWarehouses: "No shop warehouse rows exist yet. Sync shop warehouses so the backend creates real rows before mapping.",
+      noShopWarehouses:
+        "No shop warehouse rows exist yet. Sync shop warehouses so the backend creates real rows before mapping.",
       shopWarehouseColumn: "Shop warehouse",
       warehouseStatusColumn: "Status",
       canonicalWarehouseColumn: "Canonical warehouse",
@@ -4091,11 +4623,12 @@ export default {
       noOfficialShopWarehouses: "No official shop warehouses.",
       defaultWarehouse: "Default",
     },
-    noShops: "No shops connected yet. Click \"Add Shop\" to get started.",
+    noShops: 'No shops connected yet. Click "Add Shop" to get started.',
     view: "View",
     reauthorize: "Re-authorize",
     disconnect: "Disconnect",
-    confirmDisconnect: "Disconnect this shop? Your service balance will be preserved and restored if you reconnect later.",
+    confirmDisconnect:
+      "Disconnect this shop? Your service balance will be preserved and restored if you reconnect later.",
     disconnectSuccess: "Shop disconnected. Balance preserved.",
     oauthSuccess: "Shop connected successfully!",
     oauthFailed: "Failed to connect shop. Please try again.",
@@ -4104,11 +4637,15 @@ export default {
     updateFailed: "Failed to update shop settings. Please try again.",
     upgradeRequired: "This feature requires a subscription. Please upgrade your plan.",
     llmUnavailableTitle: "AI model unavailable",
-    llmUnavailableBody: "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
-    customerServiceRoutingUnavailableTitle: "AI customer service escalation is unavailable on this device",
-    customerServiceRoutingUnavailableBody: "The following shops use this device for customer service, but their escalation recipient channel is unavailable. Core AI customer service is not affected. Select an existing escalation channel, or complete WeChat message-token activation.",
+    llmUnavailableBody:
+      "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
+    customerServiceRoutingUnavailableTitle:
+      "AI customer service escalation is unavailable on this device",
+    customerServiceRoutingUnavailableBody:
+      "The following shops use this device for customer service, but their escalation recipient channel is unavailable. Core AI customer service is not affected. Select an existing escalation channel, or complete WeChat message-token activation.",
     customerServiceRoutingIssue_invalid_channel: "Channel no longer exists",
-    customerServiceRoutingIssue_missing_context_token: "WeChat is missing the context token required for proactive outbound messages",
-    shopUpdatedToast: "Shop \"{{shopName}}\" has been updated.",
+    customerServiceRoutingIssue_missing_context_token:
+      "WeChat is missing the context token required for proactive outbound messages",
+    shopUpdatedToast: 'Shop "{{shopName}}" has been updated.',
   },
 } as const;

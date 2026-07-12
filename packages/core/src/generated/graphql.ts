@@ -2059,12 +2059,32 @@ export interface AgentCsSettingsInput {
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
+  unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
   /** Unpaid-order holdout experiment patch. Omit/null to keep. */
   unpaidOrderReachoutExperiment?: InputMaybe<UnpaidOrderReachoutExperimentInput>;
   /** Full replacement for unpaid-order reminder stages. Omit/null to keep. Maximum 3 stages. */
   unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
+}
+
+export interface AgentUnpaidOrderConfigExperimentInput {
+  enabled: Scalars['Boolean']['input'];
+  expectedExperimentId?: InputMaybe<Scalars['String']['input']>;
+  variants?: InputMaybe<Array<AgentUnpaidOrderConfigVariantInput>>;
+}
+
+export interface AgentUnpaidOrderConfigVariantInput {
+  label: Scalars['String']['input'];
+  percentage: Scalars['Float']['input'];
+  stages: Array<UnpaidOrderReachoutStageInput>;
+  variantKey: Scalars['String']['input'];
+}
+
+export interface AgentUnpaidOrderEvaluationInput {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  holdoutPercent?: InputMaybe<Scalars['Int']['input']>;
 }
 
 export const AnnouncementActionRole = {
@@ -2894,6 +2914,12 @@ export const CsEscalationStatus = {
 } as const;
 
 export type CsEscalationStatus = typeof CsEscalationStatus[keyof typeof CsEscalationStatus];
+export const CsExperimentCorrectionMethod = {
+  Holm: 'HOLM',
+  None: 'NONE'
+} as const;
+
+export type CsExperimentCorrectionMethod = typeof CsExperimentCorrectionMethod[keyof typeof CsExperimentCorrectionMethod];
 /** Filter for open CS escalations awaiting manager or agent completion */
 export interface CsOpenEscalationFilterInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -2943,14 +2969,123 @@ export interface CsSessionResult {
   sessionId: Scalars['String']['output'];
 }
 
+export const CsUnpaidAnalyticsStatus = {
+  Final: 'FINAL',
+  Provisional: 'PROVISIONAL'
+} as const;
+
+export type CsUnpaidAnalyticsStatus = typeof CsUnpaidAnalyticsStatus[keyof typeof CsUnpaidAnalyticsStatus];
+export interface CsUnpaidOrderConfigExperimentInput {
+  expectedExperimentId?: InputMaybe<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
+  variants: Array<CsUnpaidOrderConfigVariantInput>;
+}
+
+export interface CsUnpaidOrderConfigExperimentView {
+  displayStatus: CsUnpaidOrderExperimentDisplayStatus;
+  id: Scalars['ID']['output'];
+  resultsFinalAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: ExperimentStatus;
+  stoppedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  variants: Array<CsUnpaidOrderConfigVariantView>;
+  version: Scalars['Int']['output'];
+}
+
+export interface CsUnpaidOrderConfigStateView {
+  draftExperiment?: Maybe<CsUnpaidOrderConfigExperimentView>;
+  recentExperiments: Array<CsUnpaidOrderConfigExperimentView>;
+  runningExperiment?: Maybe<CsUnpaidOrderConfigExperimentView>;
+}
+
+export interface CsUnpaidOrderConfigVariantInput {
+  label: Scalars['String']['input'];
+  /** Percentage of Treatment traffic. */
+  percentage: Scalars['Float']['input'];
+  stages: Array<UnpaidOrderReachoutStageInput>;
+  variantKey: Scalars['String']['input'];
+}
+
+export interface CsUnpaidOrderConfigVariantView {
+  label: Scalars['String']['output'];
+  percentage: Scalars['Float']['output'];
+  stages: Array<UnpaidOrderReachoutStage>;
+  variantKey: Scalars['String']['output'];
+}
+
+export interface CsUnpaidOrderEvaluationSettingsInput {
+  enabled: Scalars['Boolean']['input'];
+  holdoutPercent: Scalars['Int']['input'];
+}
+
+export interface CsUnpaidOrderEvaluationView {
+  config: CsUnpaidOrderConfigStateView;
+  configExperiment?: Maybe<CsUnpaidOrderConfigExperimentView>;
+  enabled: Scalars['Boolean']['output'];
+  holdout: CsUnpaidOrderHoldoutView;
+  holdoutPercent: Scalars['Int']['output'];
+  locks: CsUnpaidOrderSettingsLocksView;
+  reachoutEnabled: Scalars['Boolean']['output'];
+  stages: Array<UnpaidOrderReachoutStage>;
+}
+
+export const CsUnpaidOrderExperimentDisplayStatus = {
+  Archived: 'ARCHIVED',
+  Draft: 'DRAFT',
+  Final: 'FINAL',
+  Running: 'RUNNING',
+  StoppedMaturing: 'STOPPED_MATURING'
+} as const;
+
+export type CsUnpaidOrderExperimentDisplayStatus = typeof CsUnpaidOrderExperimentDisplayStatus[keyof typeof CsUnpaidOrderExperimentDisplayStatus];
+export interface CsUnpaidOrderHoldoutExperimentView {
+  displayStatus: CsUnpaidOrderExperimentDisplayStatus;
+  id: Scalars['ID']['output'];
+  resultsFinalAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: ExperimentStatus;
+  stoppedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  version: Scalars['Int']['output'];
+}
+
+export interface CsUnpaidOrderHoldoutView {
+  enabled: Scalars['Boolean']['output'];
+  experiment?: Maybe<CsUnpaidOrderHoldoutExperimentView>;
+  holdoutPercent: Scalars['Int']['output'];
+}
+
 export interface CsUnpaidOrderReachoutPerformanceReport {
+  asOf: Scalars['DateTimeISO']['output'];
   byDate: Array<CsUnpaidReachoutPerformanceDateRow>;
   byStage: Array<CsUnpaidReachoutPerformanceStageRow>;
+  dataStatus: CsUnpaidAnalyticsStatus;
   endDate: Scalars['String']['output'];
   experiment: CsUnpaidReachoutExperimentResult;
   semanticsNotice: Scalars['String']['output'];
   startDate: Scalars['String']['output'];
   summary: CsUnpaidReachoutPerformanceSummary;
+}
+
+export interface CsUnpaidOrderReachoutSettingsInput {
+  evaluation?: InputMaybe<CsUnpaidOrderEvaluationSettingsInput>;
+  expectedConfigExperimentId?: InputMaybe<Scalars['ID']['input']>;
+  expectedHoldoutExperimentId?: InputMaybe<Scalars['ID']['input']>;
+  reachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  shopId: Scalars['ID']['input'];
+  stages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
+}
+
+export const CsUnpaidOrderSettingsLockReason = {
+  ConfigExperimentRunning: 'CONFIG_EXPERIMENT_RUNNING',
+  EvaluationDisabled: 'EVALUATION_DISABLED',
+  FeatureDisabled: 'FEATURE_DISABLED'
+} as const;
+
+export type CsUnpaidOrderSettingsLockReason = typeof CsUnpaidOrderSettingsLockReason[keyof typeof CsUnpaidOrderSettingsLockReason];
+export interface CsUnpaidOrderSettingsLocksView {
+  canEditBaseStages: Scalars['Boolean']['output'];
+  canStartConfigExperiment: Scalars['Boolean']['output'];
+  reason?: Maybe<CsUnpaidOrderSettingsLockReason>;
 }
 
 export interface CsUnpaidReachoutCurrencyGmv {
@@ -2967,11 +3102,26 @@ export interface CsUnpaidReachoutExperimentArm {
   unitsPerEligible: Scalars['Float']['output'];
 }
 
+export interface CsUnpaidReachoutExperimentComparison {
+  absoluteEffect?: Maybe<Scalars['Float']['output']>;
+  adjustedPValue?: Maybe<Scalars['Float']['output']>;
+  baselineVariantKey: Scalars['String']['output'];
+  confidenceIntervalHigh?: Maybe<Scalars['Float']['output']>;
+  confidenceIntervalLow?: Maybe<Scalars['Float']['output']>;
+  correctionMethod: CsExperimentCorrectionMethod;
+  pValue?: Maybe<Scalars['Float']['output']>;
+  relativeEffect?: Maybe<Scalars['Float']['output']>;
+  variantKey: Scalars['String']['output'];
+}
+
 export interface CsUnpaidReachoutExperimentResult {
   absolutePaymentRateDifference?: Maybe<Scalars['Float']['output']>;
   arms: Array<CsUnpaidReachoutExperimentArm>;
+  asOf?: Maybe<Scalars['DateTimeISO']['output']>;
+  comparisons: Array<CsUnpaidReachoutExperimentComparison>;
   confidenceIntervalHigh?: Maybe<Scalars['Float']['output']>;
   confidenceIntervalLow?: Maybe<Scalars['Float']['output']>;
+  dataStatus: CsUnpaidAnalyticsStatus;
   experimentId?: Maybe<Scalars['String']['output']>;
   insufficientSample: Scalars['Boolean']['output'];
   relativePaymentRateDifference?: Maybe<Scalars['Float']['output']>;
@@ -3007,6 +3157,27 @@ export interface CsUnpaidReachoutPerformanceSummary {
   eligible: Scalars['Int']['output'];
   reached: Scalars['Int']['output'];
   sentMessages: Scalars['Int']['output'];
+}
+
+export interface CsUnpaidReachoutRealtimeBucket {
+  associatedGmv: Array<CsUnpaidReachoutCurrencyGmv>;
+  bucketStart: Scalars['DateTimeISO']['output'];
+  dueToSentP50Seconds?: Maybe<Scalars['Int']['output']>;
+  dueToSentP95Seconds?: Maybe<Scalars['Int']['output']>;
+  eligibleOrders: Scalars['Int']['output'];
+  failedAttempts: Scalars['Int']['output'];
+  reachedOrders: Scalars['Int']['output'];
+  sentMessages: Scalars['Int']['output'];
+  skippedBuyerEngaged: Scalars['Int']['output'];
+  skippedCancelled: Scalars['Int']['output'];
+  skippedPaid: Scalars['Int']['output'];
+  unpaidOrders: Scalars['Int']['output'];
+}
+
+export interface CsUnpaidReachoutRealtimeReport {
+  asOf: Scalars['DateTimeISO']['output'];
+  buckets: Array<CsUnpaidReachoutRealtimeBucket>;
+  dataStatus: CsUnpaidAnalyticsStatus;
 }
 
 /** Supported payment currencies */
@@ -3599,6 +3770,8 @@ export interface CustomerServiceSettingsInput {
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
+  unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
   /** Unpaid-order holdout experiment patch. Omit/null to keep. */
@@ -5106,6 +5279,54 @@ export const EntitlementKey = {
 } as const;
 
 export type EntitlementKey = typeof EntitlementKey[keyof typeof EntitlementKey];
+export interface ExperimentAnalyticsView {
+  assignments: Array<ExperimentAssignmentDailyView>;
+  experimentId: Scalars['ID']['output'];
+  metrics: Array<ExperimentMetricDailyView>;
+  quality?: Maybe<ExperimentQualitySnapshotView>;
+}
+
+export interface ExperimentAssignmentDailyView {
+  assignedDate: Scalars['String']['output'];
+  assignedUnits: Scalars['Float']['output'];
+  expectedWeightBps: Scalars['Int']['output'];
+  exposedUnits: Scalars['Float']['output'];
+  maturedUnits: Scalars['Float']['output'];
+  variantKey: Scalars['String']['output'];
+}
+
+export interface ExperimentMetricDailyView {
+  cohortDate: Scalars['String']['output'];
+  denominatorSum?: Maybe<Scalars['Float']['output']>;
+  dimensionKey: Scalars['String']['output'];
+  dimensionValue: Scalars['String']['output'];
+  eligibleUnits: Scalars['Float']['output'];
+  metricKey: Scalars['String']['output'];
+  numeratorSum?: Maybe<Scalars['Float']['output']>;
+  observedUnits: Scalars['Float']['output'];
+  sumSquares?: Maybe<Scalars['Float']['output']>;
+  sumValue?: Maybe<Scalars['Float']['output']>;
+  variantKey: Scalars['String']['output'];
+}
+
+export interface ExperimentQualitySnapshotView {
+  assignedUnits: Scalars['Float']['output'];
+  calculatedAt: Scalars['DateTimeISO']['output'];
+  chiSquareStatistic?: Maybe<Scalars['Float']['output']>;
+  exposedUnits: Scalars['Float']['output'];
+  maturedUnits: Scalars['Float']['output'];
+  maxAllocationDeviationBps?: Maybe<Scalars['Int']['output']>;
+  srmPValue?: Maybe<Scalars['Float']['output']>;
+}
+
+export const ExperimentStatus = {
+  Archived: 'ARCHIVED',
+  Draft: 'DRAFT',
+  Running: 'RUNNING',
+  Stopped: 'STOPPED'
+} as const;
+
+export type ExperimentStatus = typeof ExperimentStatus[keyof typeof ExperimentStatus];
 export interface GeneratePairingResult {
   code: Scalars['String']['output'];
   qrUrl?: Maybe<Scalars['String']['output']>;
@@ -5678,22 +5899,30 @@ export interface Mutation {
   deliverAffiliateCreatorText: AffiliateMessageDelivery;
   /** Disconnect one advertising account for the authenticated user. */
   disconnectAdsAdvertiser: Scalars['Boolean']['output'];
+  ecommerceApplyCSUnpaidOrderConfigVariantToBase: CsUnpaidOrderEvaluationView;
   /** Approve a cancellation request. Returns true on success. */
   ecommerceApproveCancellation: Scalars['Boolean']['output'];
   /** Approve a refund request. Returns true on success. */
   ecommerceApproveRefund: Scalars['Boolean']['output'];
   /** Approve a return/replacement request. Returns true on success. */
   ecommerceApproveReturn: Scalars['Boolean']['output'];
+  ecommerceArchiveCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
+  ecommerceCreateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
   /** Create a new conversation with a buyer */
   ecommerceCreateConversation: CustomerServiceCreateConversationResult;
   /** Mark a conversation as read. Returns true on success. */
   ecommerceMarkConversationRead: Scalars['Boolean']['output'];
+  ecommerceReplaceCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
   /** Send a manual text reply in a CS conversation without waking or requiring an AI session. */
   ecommerceSendCustomerServiceTextReply: CustomerServiceSendMessageResult;
   /** Send a rich card (order, product, or logistics) in a CS conversation. */
   ecommerceSendMessage: CustomerServiceSendMessageResult;
   /** Enable or disable AI automation for one backend-materialized CS conversation. */
   ecommerceSetCustomerServiceConversationAiEnabled: CustomerServiceConversationInboxItem;
+  ecommerceStartCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
+  ecommerceStopCSUnpaidOrderConfigExperiment: CsUnpaidOrderConfigExperimentView;
+  ecommerceUpdateCSUnpaidOrderConfigExperimentDraft: CsUnpaidOrderConfigExperimentView;
+  ecommerceUpdateCSUnpaidOrderReachoutSettings: CsUnpaidOrderEvaluationView;
   /** Update inventory for one or more shops. Each input item contains shopId and its SKU inventory updates. */
   ecommerceUpdateInventory: Array<EcomUpdateInventoryResult>;
   /** Update shop settings (agent-facing, flat params) */
@@ -6043,6 +6272,12 @@ export interface MutationDisconnectAdsAdvertiserArgs {
 }
 
 
+export interface MutationEcommerceApplyCsUnpaidOrderConfigVariantToBaseArgs {
+  experimentId: Scalars['ID']['input'];
+  variantKey: Scalars['String']['input'];
+}
+
+
 export interface MutationEcommerceApproveCancellationArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   cancelId: Scalars['String']['input'];
@@ -6069,6 +6304,16 @@ export interface MutationEcommerceApproveReturnArgs {
 }
 
 
+export interface MutationEcommerceArchiveCsUnpaidOrderConfigExperimentDraftArgs {
+  experimentId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceCreateCsUnpaidOrderConfigExperimentDraftArgs {
+  input: CsUnpaidOrderConfigExperimentInput;
+}
+
+
 export interface MutationEcommerceCreateConversationArgs {
   buyerUserId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
@@ -6078,6 +6323,11 @@ export interface MutationEcommerceCreateConversationArgs {
 export interface MutationEcommerceMarkConversationReadArgs {
   conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceReplaceCsUnpaidOrderConfigExperimentArgs {
+  input: CsUnpaidOrderConfigExperimentInput;
 }
 
 
@@ -6100,6 +6350,28 @@ export interface MutationEcommerceSetCustomerServiceConversationAiEnabledArgs {
   aiEnabled: Scalars['Boolean']['input'];
   conversationId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
+}
+
+
+export interface MutationEcommerceStartCsUnpaidOrderConfigExperimentArgs {
+  expectedRunningExperimentId?: InputMaybe<Scalars['ID']['input']>;
+  experimentId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceStopCsUnpaidOrderConfigExperimentArgs {
+  experimentId: Scalars['ID']['input'];
+}
+
+
+export interface MutationEcommerceUpdateCsUnpaidOrderConfigExperimentDraftArgs {
+  experimentId: Scalars['ID']['input'];
+  input: CsUnpaidOrderConfigExperimentInput;
+}
+
+
+export interface MutationEcommerceUpdateCsUnpaidOrderReachoutSettingsArgs {
+  input: CsUnpaidOrderReachoutSettingsInput;
 }
 
 
@@ -6911,8 +7183,12 @@ export interface Query {
   ecommerceGetCSPerformance: CustomerServicePerformanceReport;
   /** Get near-real-time customer service performance metrics from the warehouse. */
   ecommerceGetCSRealtimePerformance: CustomerServiceRealtimePerformanceReport;
-  /** Get observational unpaid-order reachout performance and randomized experiment metrics. */
+  ecommerceGetCSUnpaidOrderEvaluation: CsUnpaidOrderEvaluationView;
+  ecommerceGetCSUnpaidOrderExperimentAnalysis: CsUnpaidReachoutExperimentResult;
+  ecommerceGetCSUnpaidOrderExperimentPerformance: Array<CsUnpaidReachoutExperimentArm>;
+  /** Get shop-level observational unpaid-order reachout performance with a compatible holdout summary. */
   ecommerceGetCSUnpaidOrderReachoutPerformance: CsUnpaidOrderReachoutPerformanceReport;
+  ecommerceGetCSUnpaidOrderReachoutRealtime: CsUnpaidReachoutRealtimeReport;
   /** Get full conversation details including conversation metadata (unread count, status, participants, latest message preview) and a normalized buyer participant slice. */
   ecommerceGetConversationDetails: CustomerServiceConversationDetails;
   /** Get a bounded customer-service conversation delta from a local OpenClaw-session anchor through the current inbound message. */
@@ -6945,6 +7221,7 @@ export interface Query {
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
   /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
+  ecommerceListCSUnpaidOrderExperiments: Array<CsUnpaidOrderConfigExperimentView>;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
   /** Search order cancellation requests and return a flat list. Pagination is handled internally by the backend. */
@@ -6957,6 +7234,7 @@ export interface Query {
   ecommerceSearchReturns: Array<EcomReturn>;
   /** List Outlook/Microsoft Graph email account bindings for the authenticated seller. */
   emailAccountBindings: Array<EmailAccountBinding>;
+  experimentGetAnalytics: ExperimentAnalyticsView;
   /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
   getEcommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Query typed warehouse-backed ecommerce BI data. */
@@ -7262,10 +7540,31 @@ export interface QueryEcommerceGetCsRealtimePerformanceArgs {
 }
 
 
+export interface QueryEcommerceGetCsUnpaidOrderEvaluationArgs {
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetCsUnpaidOrderExperimentAnalysisArgs {
+  experimentId: Scalars['ID']['input'];
+}
+
+
+export interface QueryEcommerceGetCsUnpaidOrderExperimentPerformanceArgs {
+  experimentId: Scalars['ID']['input'];
+}
+
+
 export interface QueryEcommerceGetCsUnpaidOrderReachoutPerformanceArgs {
   endTime?: InputMaybe<Scalars['String']['input']>;
   shopId?: InputMaybe<Scalars['String']['input']>;
   startTime?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface QueryEcommerceGetCsUnpaidOrderReachoutRealtimeArgs {
+  hours?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -7390,6 +7689,11 @@ export interface QueryEcommerceGetShopSkuPerformanceListArgs {
 }
 
 
+export interface QueryEcommerceListCsUnpaidOrderExperimentsArgs {
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryEcommerceSearchCsSessionsArgs {
   beginTimeGe: Scalars['Float']['input'];
   beginTimeLt: Scalars['Float']['input'];
@@ -7450,6 +7754,11 @@ export interface QueryEcommerceSearchReturnsArgs {
 
 export interface QueryEmailAccountBindingsArgs {
   status?: InputMaybe<EmailAccountStatus>;
+}
+
+
+export interface QueryExperimentGetAnalyticsArgs {
+  experimentId: Scalars['ID']['input'];
 }
 
 

@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.69",
+    "date": "2026-07-12",
+    "en": [
+      "Redesign unpaid-order reachout settings and add a full experiment configuration workspace"
+    ],
+    "zh": [
+      "重构未付款订单触达设置，并新增完整的实验配置工作台"
+    ]
+  },
+  {
     "version": "1.8.68",
     "date": "2026-07-12",
     "en": [
