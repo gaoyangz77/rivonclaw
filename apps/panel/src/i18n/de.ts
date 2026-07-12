@@ -1,3 +1,5 @@
+import { customerServiceExperimentTranslations } from "./customerServiceExperiments.js";
+
 export default {
   "common": {
     "loading": "Laden...",
@@ -59,6 +61,7 @@ export default {
     "customerServiceConversations": "Konversationen",
     "customerServiceEscalations": "Eskalationen",
     "customerServicePerformance": "Leistung",
+    "customerServiceExperiments": "Experimente",
     "affiliateManagement": "Affiliate-Management",
     "affiliateIntelligence": "Affiliate Intelligence",
     "affiliateNeedsAttention": "Aktionsvorschläge",
@@ -2306,6 +2309,7 @@ export default {
     "notEnrolled": "Deaktiviert"
   },
   "ecommerce": {
+    "customerServiceExperiments": customerServiceExperimentTranslations.de,
     "title": "Shop-Verwaltung",
     "subtitle": "Verwalten Sie verbundene Shops, Autorisierung und Serviceeinstellungen.",
     "shops": "Geschäfte",

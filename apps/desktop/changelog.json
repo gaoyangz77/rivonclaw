@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.69",
+    "date": "2026-07-12",
+    "en": [
+      "Add realtime and historical analysis for customer service experiments",
+      "Reduce the bundled runtime by excluding unused GitHub Copilot components"
+    ],
+    "zh": [
+      "新增客服实验的实时与历史分析页面",
+      "移除未使用的 GitHub Copilot 组件以缩减内置运行时"
+    ]
+  },
+  {
     "version": "1.8.68",
     "date": "2026-07-12",
     "en": [

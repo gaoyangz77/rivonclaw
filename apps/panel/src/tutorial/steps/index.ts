@@ -22,6 +22,7 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/customer-service/conversations": ecommerceCustomerServiceSteps,
   "/commerce/customer-service/escalations": ecommerceCustomerServiceSteps,
   "/commerce/customer-service/performance": ecommerceCustomerServiceSteps,
+  "/commerce/customer-service/experiments": ecommerceCustomerServiceSteps,
   "/commerce/affiliate": ecommerceAffiliateSteps,
   "/commerce/affiliate/attention": ecommerceAffiliateSteps,
   "/commerce/affiliate/history": ecommerceAffiliateSteps,
