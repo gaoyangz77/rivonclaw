@@ -134,7 +134,6 @@ jobs:
             throw "Windows vendor node_modules missing after packaging."
           }
           foreach ($requiredPath in @(
-            "$vendor/node_modules/cli-highlight",
             "$vendor/node_modules/highlight.js"
           )) {
             if (-not (Test-Path $requiredPath)) {
@@ -316,7 +315,6 @@ jobs:
           test -f "$VENDOR/vendor-runtime.tar" || { echo "FAIL: archive missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
-          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
@@ -487,7 +485,6 @@ jobs:
           test -f "$VENDOR/vendor-runtime.tar" || { echo "FAIL: archive missing"; exit 1; }
           # Must NOT have node_modules
           test ! -d "$VENDOR/node_modules" || { echo "FAIL: exploded node_modules in bundle"; exit 1; }
-          tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/cli-highlight/package.json$' || { echo "FAIL: cli-highlight missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^node_modules/highlight.js/package.json$' || { echo "FAIL: highlight.js missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/AGENTS.md$' || { echo "FAIL: AGENTS.md template missing from vendor archive"; exit 1; }
           tar -tf "$VENDOR/vendor-runtime.tar" | grep -q '^docs/reference/templates/SOUL.md$' || { echo "FAIL: SOUL.md template missing from vendor archive"; exit 1; }
@@ -612,7 +609,6 @@ jobs:
           test -d "$VENDOR" || { echo "Linux unpacked vendor directory not found: $VENDOR"; exit 1; }
           test -d "$VENDOR/node_modules" || { echo "Linux vendor node_modules missing after packaging."; exit 1; }
           for path in \
-            "$VENDOR/node_modules/cli-highlight" \
             "$VENDOR/node_modules/highlight.js"
           do
             test -e "$path" || { echo "Required runtime package is missing from Linux artifact: $path"; exit 1; }
