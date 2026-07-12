@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.67",
+    "date": "2026-07-11",
+    "en": [
+      "Deduplicate directly sent block media in OpenClaw conversations"
+    ],
+    "zh": [
+      "去重 OpenClaw 对话中直接发送的区块媒体"
+    ]
+  },
+  {
     "version": "1.8.66",
     "date": "2026-07-11",
     "en": [
