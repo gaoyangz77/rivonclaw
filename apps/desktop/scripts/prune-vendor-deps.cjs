@@ -549,8 +549,14 @@ try {
   execSync("pnpm install --prod --no-frozen-lockfile --ignore-scripts", {
     cwd: vendorDir,
     stdio: "inherit",
-    timeout: 300_000,
-    env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
+    timeout: 120_000,
+    env: {
+      ...process.env,
+      CI: "true",
+      // Keep the workflow-pinned pnpm; vendor auto-switching can hang after install on Linux.
+      npm_config_manage_package_manager_versions: "false",
+      npm_config_node_linker: "hoisted",
+    },
   });
 } catch (err) {
   console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
