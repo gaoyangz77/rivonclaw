@@ -27,7 +27,7 @@ describe("vendor patch 0014: route remote media through RivonClaw cache", () => 
     expect(patch).toContain("RIVONCLAW_CN_RELAY");
     expect(patch).toContain("shouldFailHardOnRivonClawMediaCacheError");
     expect(patch).toContain(
-      "keeps upstream fetch behavior when RivonClaw media cache is unavailable outside the CN relay route",
+      "falls back to the original URL when the desktop cache is unavailable globally",
     );
   });
 

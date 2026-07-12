@@ -1,8 +1,7 @@
-From ecb34e2531bc9d94217e7287cc4772822f496ad6 Mon Sep 17 00:00:00 2001
+From 2159a22b3016228e9479f87ab725f18a94bbda42 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 25 Apr 2026 20:08:44 -0700
-Subject: [PATCH 09/12] vendor(openclaw): replace CLI guidance for RivonClaw
- desktop
+Subject: [PATCH] vendor(openclaw): replace CLI guidance for RivonClaw desktop
 
 Why:
 - RivonClaw Desktop does not expose a reliable OpenClaw CLI to agents or end users.
@@ -14,38 +13,35 @@ Removal:
 Tests:
 - apps/desktop/src/cs-bridge/vendor-no-openclaw-cli-guidance.sentinel.test.ts
 ---
- src/agents/system-prompt.ts | 19 ++++++-------------
- 1 file changed, 6 insertions(+), 13 deletions(-)
+ src/agents/system-prompt.ts | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 747b309f28..f4dae24b80 100644
+index 4586f042b1..f32b5e91b4 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -538,7 +538,7 @@ function buildDocsSection(params: {
+@@ -614,9 +614,9 @@ function buildDocsSection(params: {
+       : "Docs are authoritative for OpenClaw self-knowledge: before understanding how OpenClaw works (memory/daily notes, sessions, tools, Gateway, config, commands, project context), use the docs mirror first when web tooling is available; treat AGENTS.md/project context, workspace/profile/memory notes, and `memory_search` as instruction context or user memory, not OpenClaw design/implementation knowledge.",
+     "Config fields: use `gateway` action `config.schema.lookup`; broader config docs: `docs/gateway/configuration.md`, `docs/gateway/configuration-reference.md`.",
      sourcePath
-       ? "If docs are incomplete or stale, inspect the local OpenClaw source code before answering."
-       : "If docs are incomplete or stale, review the OpenClaw source on GitHub before answering.",
--    "When diagnosing issues, run `openclaw status` yourself when possible; only ask the user if you lack access (e.g., sandboxed).",
+-      ? "If docs are silent/stale, say so and inspect local source."
+-      : "If docs are silent/stale, say so and inspect GitHub source.",
+-    "Diagnosing issues: run `openclaw status` when possible; ask user only if blocked.",
++      ? "If docs are incomplete or stale, inspect the local OpenClaw source code before answering."
++      : "If docs are incomplete or stale, review the OpenClaw source on GitHub before answering.",
 +    "When diagnosing issues in RivonClaw Desktop, use available first-class runtime tools instead of shelling out to the OpenClaw CLI.",
      "",
    ];
    return lines.filter((line): line is string => line !== undefined);
-@@ -968,18 +968,11 @@ export function buildAgentSystemPrompt(params: {
+@@ -1138,11 +1138,11 @@ export function buildAgentSystemPrompt(params: {
          fallback: [],
        }),
        ...safetySection,
--      "## OpenClaw CLI Quick Reference",
--      "OpenClaw is controlled via subcommands. Do not invent commands.",
--      "For config changes, use the first-class `gateway` tool (`config.schema.lookup`, `config.get`, `config.patch`, `config.apply`) instead of editing config through exec; the gateway tool hot-reloads config when possible and uses a safe restart only when required.",
--      "Use the `gateway` tool action `restart` for Gateway restarts. Only use CLI service lifecycle commands when the user explicitly asks for them.",
--      "Gateway service lifecycle quick reference:",
--      "- openclaw gateway status",
--      "- openclaw gateway restart",
--      "Operator-only, explicit user request:",
--      "- openclaw gateway start",
--      "- openclaw gateway stop",
--      "Do not chain `openclaw gateway stop` and `openclaw gateway start` as a restart substitute.",
--      "If unsure, ask the user to run `openclaw help` (or `openclaw gateway --help`) and paste the output.",
+-      "## OpenClaw Control",
+-      "Do not invent commands.",
+-      "Config/restart: prefer `gateway` tool (`config.schema.lookup|get|patch|apply`, `restart`).",
+-      "CLI lifecycle only on explicit user request: `openclaw gateway status|restart|start|stop`.",
+-      "`restart`, not stop+start.",
 +      "## RivonClaw Desktop Runtime",
 +      "RivonClaw Desktop manages the OpenClaw gateway lifecycle for this session.",
 +      "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
@@ -53,7 +49,7 @@ index 747b309f28..f4dae24b80 100644
 +      "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
        "",
        ...skillsSection,
-       ...memorySection,
+       ...skillWorkshopSection,
 -- 
 2.50.1 (Apple Git-155)
 

@@ -52,6 +52,7 @@ const FEISHU_OFFICIAL_ACCOUNT_ID = "default";
 const FEISHU_MEDIA_MAX_MB = 30;
 const FEISHU_ACCOUNT_ID_MAX_LENGTH = 64;
 const FEISHU_OFFICIAL_PLUGIN_ROOTS = [
+  "dist-runtime/extensions/feishu",
   "dist/extensions/feishu",
   "extensions/feishu",
   "extensions/openclaw-lark",
@@ -437,6 +438,20 @@ function resolveFeishuOfficialPluginRoot(): string | undefined {
   return undefined;
 }
 
+function isFeishuOfficialPluginPath(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const normalized = value.replace(/\\/g, "/").replace(/\/+$/, "");
+  return FEISHU_OFFICIAL_PLUGIN_ROOTS.some((relativeRoot) =>
+    normalized.endsWith(`/vendor/openclaw/${relativeRoot}`),
+  );
+}
+
+function isBundledFeishuOfficialPluginRoot(pluginRoot: string): boolean {
+  return pluginRoot.replace(/\\/g, "/").replace(/\/+$/, "").endsWith(
+    "/dist-runtime/extensions/feishu",
+  );
+}
+
 function addUniqueString(values: unknown[], value: string): void {
   if (!values.some((entry) => entry === value)) {
     values.push(value);
@@ -516,7 +531,17 @@ function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void
 
   const load = ensureRecord(plugins, "load");
   const paths = ensureArrayRecord(load, "paths");
-  addUniqueString(paths, pluginRoot);
+  // Worktrees and app upgrades can leave an absolute path to an older vendored
+  // Feishu plugin in openclaw.json. Loading both versions gives them the same
+  // plugin id and can select an implementation with an incompatible runtime API.
+  for (let i = paths.length - 1; i >= 0; i--) {
+    if (isFeishuOfficialPluginPath(paths[i])) paths.splice(i, 1);
+  }
+  // Current OpenClaw bundles Feishu in dist-runtime and marks bundled plugins
+  // as trusted. Older runtimes still need the explicit fallback path.
+  if (!isBundledFeishuOfficialPluginRoot(pluginRoot)) {
+    addUniqueString(paths, pluginRoot);
+  }
 
   const tools = ensureRecord(config, "tools");
   const alsoAllow = ensureArrayRecord(tools, "alsoAllow");

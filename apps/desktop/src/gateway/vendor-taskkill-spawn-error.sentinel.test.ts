@@ -20,7 +20,7 @@ describe("vendor patch 0022: tolerate taskkill spawn errors", () => {
   });
 
   it("carries the upstream behavior test for an asynchronous ENOENT", () => {
-    expect(patch).toContain("on Windows ignores async taskkill spawn errors");
+    expect(patch).toContain("on Windows ignores asynchronous taskkill spawn errors");
     expect(patch).toContain('taskkillChild.emit("error", new Error("spawn ENOENT"))');
   });
 });

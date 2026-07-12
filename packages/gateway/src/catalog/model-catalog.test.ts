@@ -261,6 +261,19 @@ describe("readGatewayModelCatalog", () => {
 });
 
 describe("readFullModelCatalog", () => {
+  it("includes Google plugin static catalogs when pi-ai has no Google entries", async () => {
+    mocks.existsSync.mockReturnValue(false);
+
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
+
+    expect(result.google?.map((model) => model.id)).toContain("gemini-3.1-pro-preview");
+    expect(result["google-gemini-cli"]?.map((model) => model.id)).toContain(
+      "gemini-3.1-pro-preview",
+    );
+    expect(result.google!.length).toBeGreaterThanOrEqual(7);
+    expect(result["google-gemini-cli"]!.length).toBeGreaterThanOrEqual(7);
+  });
+
   beforeEach(() => {
     mocks.existsSync.mockReset().mockReturnValue(false);
     mocks.readFileSync.mockReset().mockReturnValue("{}");

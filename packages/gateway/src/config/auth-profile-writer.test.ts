@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, readFileSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
+import { DatabaseSync } from "node:sqlite";
 import {
   resolveAuthProfilePath,
+  resolveAuthProfileDatabasePath,
   resolveManagedGeminiCliHome,
   syncAuthProfile,
   removeAuthProfile,
@@ -18,7 +20,10 @@ import {
 const VENDOR_ROOT = resolve(import.meta.dirname, "../../../../vendor/openclaw");
 
 function createTempDir(): string {
-  const dir = join(tmpdir(), `auth-profile-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const dir = join(
+    tmpdir(),
+    `auth-profile-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -27,10 +32,31 @@ function readJsonFile(path: string): unknown {
   return JSON.parse(readFileSync(path, "utf-8"));
 }
 
+function readSqliteStore(stateDir: string): unknown {
+  const database = new DatabaseSync(resolveAuthProfileDatabasePath(stateDir), { readOnly: true });
+  try {
+    const row = database
+      .prepare("SELECT store_json FROM auth_profile_store WHERE store_key = ?")
+      .get("primary") as { store_json: string };
+    return JSON.parse(row.store_json);
+  } finally {
+    database.close();
+  }
+}
+
 describe("resolveAuthProfilePath", () => {
   it("returns the correct path structure", () => {
     const result = resolveAuthProfilePath("/home/user/.rivonclaw/openclaw");
-    expect(result).toBe(join("/home/user/.rivonclaw/openclaw", "agents", "main", "agent", "auth-profiles.json"));
+    expect(result).toBe(
+      join("/home/user/.rivonclaw/openclaw", "agents", "main", "agent", "auth-profiles.json"),
+    );
+  });
+
+  it("returns the SQLite auth store used by current OpenClaw", () => {
+    const result = resolveAuthProfileDatabasePath("/home/user/.rivonclaw/openclaw");
+    expect(result).toBe(
+      join("/home/user/.rivonclaw/openclaw", "agents", "main", "agent", "openclaw-agent.sqlite"),
+    );
   });
 });
 
@@ -65,6 +91,7 @@ describe("syncAuthProfile", () => {
         qwen: ["qwen:active"],
       },
     });
+    expect(readSqliteStore(stateDir)).toEqual(store);
   });
 
   it("overwrites existing profile for the same provider", () => {
@@ -86,6 +113,34 @@ describe("syncAuthProfile", () => {
     const profiles = store.profiles as Record<string, Record<string, string>>;
     expect(profiles["openai:active"].key).toBe("sk-openai-key");
     expect(profiles["qwen:active"].key).toBe("sk-qwen-key");
+  });
+
+  it("treats SQLite as authoritative when the legacy JSON mirror diverges", () => {
+    syncAuthProfile(stateDir, "openai", "sk-sqlite-key");
+
+    const filePath = resolveAuthProfilePath(stateDir);
+    const staleStore = {
+      version: 1,
+      profiles: {
+        "anthropic:active": {
+          type: "api_key",
+          provider: "anthropic",
+          key: "sk-stale-json-key",
+        },
+      },
+      order: { anthropic: ["anthropic:active"] },
+    };
+    writeFileSync(filePath, `${JSON.stringify(staleStore, null, 2)}\n`);
+
+    syncAuthProfile(stateDir, "qwen", "sk-qwen-key");
+
+    const store = readSqliteStore(stateDir) as {
+      profiles: Record<string, { key: string }>;
+    };
+    expect(store.profiles["openai:active"].key).toBe("sk-sqlite-key");
+    expect(store.profiles["qwen:active"].key).toBe("sk-qwen-key");
+    expect(store.profiles["anthropic:active"]).toBeUndefined();
+    expect(readJsonFile(filePath)).toEqual(store);
   });
 
   it("maps subscription plan names to gateway provider names", () => {
@@ -142,6 +197,7 @@ describe("removeAuthProfile", () => {
     const filePath = resolveAuthProfilePath(stateDir);
     const store = readJsonFile(filePath) as Record<string, unknown>;
     expect(store).toEqual({ version: 1, profiles: {}, order: {} });
+    expect(readSqliteStore(stateDir)).toEqual(store);
   });
 });
 
@@ -277,9 +333,7 @@ describe("syncAllAuthProfiles", () => {
   it("maps subscription plan names to gateway provider names", async () => {
     const mockStorage = {
       providerKeys: {
-        getAll: () => [
-          { id: "key-1", provider: "claude", isDefault: true },
-        ],
+        getAll: () => [{ id: "key-1", provider: "claude", isDefault: true }],
       },
     };
     const mockSecretStore = {
@@ -308,9 +362,7 @@ describe("syncAllAuthProfiles", () => {
 
     const mockStorage = {
       providerKeys: {
-        getAll: () => [
-          { id: "key-1", provider: "qwen", isDefault: true },
-        ],
+        getAll: () => [{ id: "key-1", provider: "qwen", isDefault: true }],
       },
     };
     const mockSecretStore = {
@@ -418,9 +470,9 @@ describe("vendor contract: auth profile format", () => {
   it("vendor's normalizeProviderId preserves google-gemini-cli", () => {
     // Profile lookup uses normalizeProviderId(cred.provider) === normalizeProviderId(model.provider).
     // Both sides must resolve to the same string for google-gemini-cli.
-    // In v2026.4.1 normalizeProviderId moved from model-selection.ts to provider-id.ts.
+    // In v2026.6.11 normalizeProviderId lives in the model-catalog-core workspace package.
     const providerIdSrc = readFileSync(
-      join(VENDOR_ROOT, "src/agents/provider-id.ts"),
+      join(VENDOR_ROOT, "packages/model-catalog-core/src/provider-id.ts"),
       "utf-8",
     );
     // normalizeProviderId should NOT alias "google-gemini-cli" to something else.
@@ -431,20 +483,14 @@ describe("vendor contract: auth profile format", () => {
   });
 
   it("OAuth credential fields match vendor's OAuthCredential type", () => {
-    const typesSrc = readFileSync(
-      join(VENDOR_ROOT, "src/agents/auth-profiles/types.ts"),
-      "utf-8",
-    );
+    const typesSrc = readFileSync(join(VENDOR_ROOT, "src/agents/auth-profiles/types.ts"), "utf-8");
     expect(typesSrc).toContain('type: "oauth"');
     expect(typesSrc).toContain("provider: string");
     expect(typesSrc).toContain("email?: string");
   });
 
   it("API key credential fields match vendor's ApiKeyCredential type", () => {
-    const typesSrc = readFileSync(
-      join(VENDOR_ROOT, "src/agents/auth-profiles/types.ts"),
-      "utf-8",
-    );
+    const typesSrc = readFileSync(join(VENDOR_ROOT, "src/agents/auth-profiles/types.ts"), "utf-8");
     expect(typesSrc).toContain('type: "api_key"');
     expect(typesSrc).toContain("provider: string");
     expect(typesSrc).toContain("key?: string");
@@ -453,10 +499,7 @@ describe("vendor contract: auth profile format", () => {
   it("OAuth base fields stay aligned with vendor OAuth credential usage", () => {
     // The desktop prune step strips vendor .d.ts files, so this contract test
     // verifies the runtime source shape instead of a generated declaration.
-    const writerSrc = readFileSync(
-      join(import.meta.dirname, "auth-profile-writer.ts"),
-      "utf-8",
-    );
+    const writerSrc = readFileSync(join(import.meta.dirname, "auth-profile-writer.ts"), "utf-8");
     // In v2026.4.1 the OAuth credential construction moved from
     // src/providers/qwen-portal-oauth.ts to src/agents/cli-credentials.ts.
     const vendorOauthSrc = readFileSync(
@@ -483,9 +526,16 @@ describe("vendor contract: auth profile format", () => {
       join(VENDOR_ROOT, "extensions/google/gemini-cli-provider.ts"),
       "utf-8",
     );
+    const authHomeSrc = readFileSync(
+      join(VENDOR_ROOT, "extensions/google/gemini-cli-auth-home.ts"),
+      "utf-8",
+    );
 
     expect(manifestSrc).toContain('"google-gemini-cli"');
-    expect(providerSrc).toContain('const PROVIDER_ID = "google-gemini-cli"');
+    expect(authHomeSrc).toContain(
+      'export const GOOGLE_GEMINI_CLI_PROVIDER_ID = "google-gemini-cli"',
+    );
+    expect(providerSrc).toContain("const PROVIDER_ID = GOOGLE_GEMINI_CLI_PROVIDER_ID");
     expect(providerSrc).toContain('const DEFAULT_MODEL = "google/gemini-3.1-pro-preview"');
     expect(providerSrc).toContain("formatGoogleOauthApiKey");
   });
@@ -551,7 +601,10 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
     const settings = readJsonFile(join(managedHome, ".gemini", "settings.json")) as {
       security?: { auth?: { selectedType?: string } };
     };
-    const creds = readJsonFile(join(managedHome, ".gemini", "oauth_creds.json")) as Record<string, unknown>;
+    const creds = readJsonFile(join(managedHome, ".gemini", "oauth_creds.json")) as Record<
+      string,
+      unknown
+    >;
     expect(settings.security?.auth?.selectedType).toBe("oauth-personal");
     expect(creds).toMatchObject({
       access_token: "ya29.test-access-token",

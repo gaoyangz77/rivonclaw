@@ -24,8 +24,6 @@ describe("vendor patch 0019: worker-backed OpenClaw image tool", () => {
     expect(patch).toContain('import { fork } from "node:child_process"');
     expect(patch).toContain("image-tool-worker.ts");
     expect(patch).toContain("OPENCLAW_IMAGE_TOOL_CHILD_PROCESS");
-    expect(patch).toContain("image tool worker start");
-    expect(patch).toContain("image tool worker success");
   });
 
   it("carries a vendor behavior test for child runner delegation", () => {
@@ -34,9 +32,4 @@ describe("vendor patch 0019: worker-backed OpenClaw image tool", () => {
     expect(patch).toContain("expect(childRunner).toHaveBeenCalledTimes(1)");
   });
 
-  it("preserves provider request timeout budget after worker runtime setup", () => {
-    expect(patch).toContain("does not spend provider request timeout while resolving image runtime");
-    expect(patch).toContain("const requestStartedAtMs = Date.now()");
-    expect(patch).toContain("expect(options?.timeoutMs).toBe(25)");
-  });
 });

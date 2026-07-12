@@ -1,10 +1,7 @@
 // AUTO-GENERATED from vendor/openclaw — do not edit manually.
 // Re-generate with: node scripts/generate-vendor-artifacts.mjs
 
-// vendor/openclaw/src/config/zod-schema.ts
-import { z as z18 } from "zod";
-
-// vendor/openclaw/src/shared/string-coerce.ts
+// vendor/openclaw/packages/normalization-core/src/string-coerce.ts
 function normalizeNullableString(value) {
   if (typeof value !== "string") {
     return null;
@@ -31,6 +28,9 @@ function normalizeLowercaseStringOrEmpty(value) {
   return normalizeOptionalLowercaseString(value) ?? "";
 }
 
+// vendor/openclaw/src/config/zod-schema.ts
+import { z as z15 } from "zod";
+
 // vendor/openclaw/src/cli/parse-bytes.ts
 var UNIT_MULTIPLIERS = {
   b: 1,
@@ -43,27 +43,32 @@ var UNIT_MULTIPLIERS = {
   tb: 1024 ** 4,
   t: 1024 ** 4
 };
+function invalidByteSize(raw, reason) {
+  const value = raw.trim() ? `"${raw}"` : "empty value";
+  const prefix = reason ? `Invalid byte size (${reason}): ${value}.` : `Invalid byte size: ${value}.`;
+  return new Error(`${prefix} Use values like 512kb, 10mb, 1gb, or 500.`);
+}
 function parseByteSize(raw, opts) {
   const trimmed = normalizeLowercaseStringOrEmpty(normalizeOptionalString(raw) ?? "");
   if (!trimmed) {
-    throw new Error("invalid byte size (empty)");
+    throw invalidByteSize(raw, "empty");
   }
   const m = /^(\d+(?:\.\d+)?)([a-z]+)?$/.exec(trimmed);
   if (!m) {
-    throw new Error(`invalid byte size: ${raw}`);
+    throw invalidByteSize(raw);
   }
   const value = Number(m[1]);
   if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`invalid byte size: ${raw}`);
+    throw invalidByteSize(raw);
   }
   const unit = normalizeLowercaseStringOrEmpty(m[2] ?? opts?.defaultUnit ?? "b");
   const multiplier = UNIT_MULTIPLIERS[unit];
   if (!multiplier) {
-    throw new Error(`invalid byte size unit: ${raw}`);
+    throw invalidByteSize(raw, `unknown unit "${unit}"`);
   }
   const bytes = Math.round(value * multiplier);
   if (!Number.isFinite(bytes)) {
-    throw new Error(`invalid byte size: ${raw}`);
+    throw invalidByteSize(raw);
   }
   return bytes;
 }
@@ -76,23 +81,31 @@ var DURATION_MULTIPLIERS = {
   h: 36e5,
   d: 864e5
 };
+function invalidDuration(raw, reason) {
+  const value = raw.trim() ? `"${raw}"` : "empty value";
+  const prefix = reason ? `Invalid duration (${reason}): ${value}.` : `Invalid duration: ${value}.`;
+  return new Error(`${prefix} Use values like 500ms, 30s, 5m, 2h, or 1h30m.`);
+}
+function roundSafeDurationMs(raw, value) {
+  const ms = Math.round(value);
+  if (!Number.isSafeInteger(ms)) {
+    throw invalidDuration(raw);
+  }
+  return ms;
+}
 function parseDurationMs(raw, opts) {
   const trimmed = normalizeLowercaseStringOrEmpty(normalizeOptionalString(raw) ?? "");
   if (!trimmed) {
-    throw new Error("invalid duration (empty)");
+    throw invalidDuration(raw, "empty");
   }
   const single = /^(\d+(?:\.\d+)?)(ms|s|m|h|d)?$/.exec(trimmed);
   if (single) {
     const value = Number(single[1]);
     if (!Number.isFinite(value) || value < 0) {
-      throw new Error(`invalid duration: ${raw}`);
+      throw invalidDuration(raw);
     }
     const unit = single[2] ?? opts?.defaultUnit ?? "ms";
-    const ms2 = Math.round(value * DURATION_MULTIPLIERS[unit]);
-    if (!Number.isFinite(ms2)) {
-      throw new Error(`invalid duration: ${raw}`);
-    }
-    return ms2;
+    return roundSafeDurationMs(raw, value * DURATION_MULTIPLIERS[unit]);
   }
   let totalMs = 0;
   let consumed = 0;
@@ -101,30 +114,50 @@ function parseDurationMs(raw, opts) {
     const [full, valueRaw, unitRaw] = match;
     const index = match.index ?? -1;
     if (!full || !valueRaw || !unitRaw || index < 0) {
-      throw new Error(`invalid duration: ${raw}`);
+      throw invalidDuration(raw);
     }
     if (index !== consumed) {
-      throw new Error(`invalid duration: ${raw}`);
+      throw invalidDuration(raw, "each composite segment needs a unit");
     }
     const value = Number(valueRaw);
     if (!Number.isFinite(value) || value < 0) {
-      throw new Error(`invalid duration: ${raw}`);
+      throw invalidDuration(raw);
     }
     const multiplier = DURATION_MULTIPLIERS[unitRaw];
     if (!multiplier) {
-      throw new Error(`invalid duration: ${raw}`);
+      throw invalidDuration(raw);
     }
     totalMs += value * multiplier;
     consumed += full.length;
   }
   if (consumed !== trimmed.length || consumed === 0) {
-    throw new Error(`invalid duration: ${raw}`);
+    throw invalidDuration(raw);
   }
-  const ms = Math.round(totalMs);
-  if (!Number.isFinite(ms)) {
-    throw new Error(`invalid duration: ${raw}`);
+  return roundSafeDurationMs(raw, totalMs);
+}
+
+// vendor/openclaw/src/infra/prototype-keys.ts
+var BLOCKED_OBJECT_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
+function isBlockedObjectKey(key) {
+  return BLOCKED_OBJECT_KEYS.has(key);
+}
+
+// vendor/openclaw/src/routing/session-key.ts
+var DEFAULT_AGENT_ID = "main";
+var VALID_ID_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
+var INVALID_CHARS_RE = /[^a-z0-9_-]+/g;
+var LEADING_DASH_RE = /^-+/;
+var TRAILING_DASH_RE = /-+$/;
+function normalizeAgentId(value) {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) {
+    return DEFAULT_AGENT_ID;
   }
-  return ms;
+  const normalized = normalizeLowercaseStringOrEmpty(trimmed);
+  if (VALID_ID_RE.test(trimmed)) {
+    return normalized;
+  }
+  return normalized.replace(INVALID_CHARS_RE, "-").replace(LEADING_DASH_RE, "").replace(TRAILING_DASH_RE, "").slice(0, 64) || DEFAULT_AGENT_ID;
 }
 
 // vendor/openclaw/src/config/control-ui-css.ts
@@ -208,6 +241,19 @@ function isValidNonNegativeByteSizeString(value) {
   return parseNonNegativeByteSize(value) !== null;
 }
 
+// vendor/openclaw/packages/normalization-core/src/record-coerce.ts
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+// vendor/openclaw/packages/normalization-core/src/string-normalization.ts
+function uniqueValues(values) {
+  return [...new Set(values)];
+}
+function uniqueStrings(values) {
+  return uniqueValues(values);
+}
+
 // vendor/openclaw/src/config/zod-schema.agent-runtime.ts
 import { z as z5 } from "zod";
 
@@ -239,17 +285,17 @@ function getHostContainerSeparatorIndex(spec) {
   return -1;
 }
 
-// vendor/openclaw/src/infra/boundary-path.ts
-var BOUNDARY_PATH_ALIAS_POLICIES = {
-  strict: Object.freeze({
-    allowFinalSymlinkForUnlink: false,
-    allowFinalHardlinkForUnlink: false
-  }),
-  unlinkTarget: Object.freeze({
-    allowFinalSymlinkForUnlink: true,
-    allowFinalHardlinkForUnlink: true
-  })
-};
+// vendor/openclaw/node_modules/@openclaw/fs-safe/dist/pinned-python-config.js
+var overrideConfig = {};
+function configureFsSafePython(config) {
+  overrideConfig = { ...overrideConfig, ...config };
+}
+
+// vendor/openclaw/src/infra/fs-safe-defaults.ts
+var hasPythonModeOverride = process.env.FS_SAFE_PYTHON_MODE != null || process.env.OPENCLAW_FS_SAFE_PYTHON_MODE != null;
+if (!hasPythonModeOverride) {
+  configureFsSafePython({ mode: "off" });
+}
 
 // vendor/openclaw/src/agents/sandbox/host-paths.ts
 function stripWindowsNamespacePrefix(input) {
@@ -296,9 +342,32 @@ function getBlockedNetworkModeReason(params) {
   return null;
 }
 
+// vendor/openclaw/src/config/web-search-legacy-provider-keys.ts
+var LEGACY_WEB_SEARCH_PROVIDER_CONFIG_KEYS = /* @__PURE__ */ new Set([
+  "brave",
+  "duckduckgo",
+  "exa",
+  "firecrawl",
+  "gemini",
+  "grok",
+  "kimi",
+  "minimax",
+  "ollama",
+  "perplexity",
+  "searxng",
+  "tavily"
+]);
+
 // vendor/openclaw/src/config/zod-schema.agent-model.ts
 import { z } from "zod";
 var AgentModelSchema = z.union([
+  z.string(),
+  z.object({
+    primary: z.string().optional(),
+    fallbacks: z.array(z.string()).optional()
+  }).strict()
+]);
+var AgentToolModelSchema = z.union([
   z.string(),
   z.object({
     primary: z.string().optional(),
@@ -309,6 +378,16 @@ var AgentModelSchema = z.union([
 
 // vendor/openclaw/src/config/zod-schema.core.ts
 import path3 from "node:path";
+
+// vendor/openclaw/packages/model-catalog-core/src/provider-id.ts
+function normalizeLowercaseStringOrEmpty2(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+function normalizeProviderId(provider) {
+  return normalizeLowercaseStringOrEmpty2(provider);
+}
+
+// vendor/openclaw/src/config/zod-schema.core.ts
 import { z as z4 } from "zod";
 
 // vendor/openclaw/src/infra/exec-safety.ts
@@ -363,43 +442,11 @@ import path2 from "node:path";
 import os from "node:os";
 import path from "node:path";
 function normalize(value) {
-  const trimmed = normalizeOptionalString(value);
-  if (!trimmed) {
-    return void 0;
-  }
-  if (trimmed === "undefined" || trimmed === "null") {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === "undefined" || trimmed === "null") {
     return void 0;
   }
   return trimmed;
-}
-function resolveEffectiveHomeDir(env = process.env, homedir = os.homedir) {
-  const raw = resolveRawHomeDir(env, homedir);
-  return raw ? path.resolve(raw) : void 0;
-}
-function resolveRawHomeDir(env, homedir) {
-  const explicitHome = normalize(env.OPENCLAW_HOME);
-  if (explicitHome) {
-    if (explicitHome === "~" || explicitHome.startsWith("~/") || explicitHome.startsWith("~\\")) {
-      const fallbackHome = resolveRawOsHomeDir(env, homedir);
-      if (fallbackHome) {
-        return explicitHome.replace(/^~(?=$|[\\/])/, fallbackHome);
-      }
-      return void 0;
-    }
-    return explicitHome;
-  }
-  return resolveRawOsHomeDir(env, homedir);
-}
-function resolveRawOsHomeDir(env, homedir) {
-  const envHome = normalize(env.HOME);
-  if (envHome) {
-    return envHome;
-  }
-  const userProfile = normalize(env.USERPROFILE);
-  if (userProfile) {
-    return userProfile;
-  }
-  return normalizeSafe(homedir);
 }
 function normalizeSafe(homedir) {
   try {
@@ -407,6 +454,34 @@ function normalizeSafe(homedir) {
   } catch {
     return void 0;
   }
+}
+function resolveTermuxHome(env) {
+  const prefix = normalize(env.PREFIX);
+  if (!prefix || !normalize(env.ANDROID_DATA)) {
+    return void 0;
+  }
+  if (!/(?:^|\/)com\.termux\/files\/usr\/?$/u.test(prefix.replace(/\\/gu, "/"))) {
+    return void 0;
+  }
+  return path.resolve(prefix, "..", "home");
+}
+function resolveRawOsHomeDir(env, homedir) {
+  return normalize(env.HOME) ?? normalize(env.USERPROFILE) ?? resolveTermuxHome(env) ?? normalizeSafe(homedir);
+}
+function resolveRawHomeDir(env, homedir) {
+  const explicitHome = normalize(env.OPENCLAW_HOME);
+  if (!explicitHome) {
+    return resolveRawOsHomeDir(env, homedir);
+  }
+  if (explicitHome === "~" || explicitHome.startsWith("~/") || explicitHome.startsWith("~\\")) {
+    const fallbackHome = resolveRawOsHomeDir(env, homedir);
+    return fallbackHome ? explicitHome.replace(/^~(?=$|[\\/])/, fallbackHome) : void 0;
+  }
+  return explicitHome;
+}
+function resolveEffectiveHomeDir(env = process.env, homedir = os.homedir) {
+  const raw = resolveRawHomeDir(env, homedir);
+  return raw ? path.resolve(raw) : void 0;
 }
 function resolveRequiredHomeDir(env = process.env, homedir = os.homedir) {
   return resolveEffectiveHomeDir(env, homedir) ?? path.resolve(process.cwd());
@@ -437,10 +512,11 @@ function resolveHomeRelativePath(input, opts) {
   return path.resolve(trimmed);
 }
 
+// vendor/openclaw/packages/normalization-core/src/number-coercion.ts
+var MAX_TIMER_TIMEOUT_MS = 2147e6;
+var MAX_TIMER_TIMEOUT_SECONDS = Math.floor(MAX_TIMER_TIMEOUT_MS / 1e3);
+
 // vendor/openclaw/src/utils.ts
-function isRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 function resolveUserPath(input, env = process.env, homedir = os2.homedir) {
   if (!input) {
     return "";
@@ -468,73 +544,9 @@ function resolveConfigDir(env = process.env, homedir = os2.homedir) {
 }
 var CONFIG_DIR = resolveConfigDir();
 
-// vendor/openclaw/src/config/types.secrets.ts
-var DEFAULT_SECRET_PROVIDER_ALIAS = "default";
-var ENV_SECRET_TEMPLATE_RE = /^\$\{([A-Z][A-Z0-9_]{0,127})\}$/;
-function isSecretRef(value) {
-  if (!isRecord(value)) {
-    return false;
-  }
-  if (Object.keys(value).length !== 3) {
-    return false;
-  }
-  return (value.source === "env" || value.source === "file" || value.source === "exec") && typeof value.provider === "string" && value.provider.trim().length > 0 && typeof value.id === "string" && value.id.trim().length > 0;
-}
-function isLegacySecretRefWithoutProvider(value) {
-  if (!isRecord(value)) {
-    return false;
-  }
-  return (value.source === "env" || value.source === "file" || value.source === "exec") && typeof value.id === "string" && value.id.trim().length > 0 && value.provider === void 0;
-}
-function parseEnvTemplateSecretRef(value, provider = DEFAULT_SECRET_PROVIDER_ALIAS) {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const match = ENV_SECRET_TEMPLATE_RE.exec(value.trim());
-  if (!match) {
-    return null;
-  }
-  return {
-    source: "env",
-    provider: provider.trim() || DEFAULT_SECRET_PROVIDER_ALIAS,
-    id: match[1]
-  };
-}
-function coerceSecretRef(value, defaults) {
-  if (isSecretRef(value)) {
-    return value;
-  }
-  if (isLegacySecretRefWithoutProvider(value)) {
-    const provider = value.source === "env" ? defaults?.env ?? DEFAULT_SECRET_PROVIDER_ALIAS : value.source === "file" ? defaults?.file ?? DEFAULT_SECRET_PROVIDER_ALIAS : defaults?.exec ?? DEFAULT_SECRET_PROVIDER_ALIAS;
-    return {
-      source: value.source,
-      provider,
-      id: value.id
-    };
-  }
-  const envTemplate = parseEnvTemplateSecretRef(value, defaults?.env);
-  if (envTemplate) {
-    return envTemplate;
-  }
-  return null;
-}
-function hasConfiguredSecretInput(value, defaults) {
-  if (normalizeSecretInputString(value)) {
-    return true;
-  }
-  return coerceSecretRef(value, defaults) !== null;
-}
-function normalizeSecretInputString(value) {
-  if (typeof value !== "string") {
-    return void 0;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : void 0;
-}
-
 // vendor/openclaw/src/secrets/ref-contract.ts
 var FILE_SECRET_REF_SEGMENT_PATTERN = /^(?:[^~]|~0|~1)*$/;
-var EXEC_SECRET_REF_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/;
+var EXEC_SECRET_REF_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/#-]{0,255}$/;
 var SINGLE_VALUE_FILE_REF_ID = "value";
 function isValidFileSecretRefId(value) {
   if (value === SINGLE_VALUE_FILE_REF_ID) {
@@ -561,28 +573,33 @@ function isValidExecSecretRefId(value) {
 }
 function formatExecSecretRefIdValidationMessage() {
   return [
-    "Exec secret reference id must match /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/",
+    "Exec secret reference id must match /^[A-Za-z0-9][A-Za-z0-9._:/#-]{0,255}$/",
     'and must not include "." or ".." path segments',
-    '(example: "vault/openai/api-key").'
+    '(example: "vault/openai/api-key" or "aws/secret#json_key").'
   ].join(" ");
-}
-
-// vendor/openclaw/src/shared/string-normalization.ts
-function normalizeStringEntries(list) {
-  return (list ?? []).map((entry) => normalizeOptionalString(String(entry)) ?? "").filter(Boolean);
 }
 
 // vendor/openclaw/src/config/types.models.ts
 var MODEL_APIS = [
   "openai-completions",
   "openai-responses",
-  "openai-codex-responses",
+  "openai-chatgpt-responses",
   "anthropic-messages",
   "google-generative-ai",
+  "google-vertex",
   "github-copilot",
   "bedrock-converse-stream",
   "ollama",
   "azure-openai-responses"
+];
+var MODEL_THINKING_FORMATS = [
+  "openai",
+  "openrouter",
+  "deepseek",
+  "together",
+  "qwen",
+  "qwen-chat-template",
+  "zai"
 ];
 
 // vendor/openclaw/src/config/zod-schema.allowdeny.ts
@@ -672,7 +689,7 @@ var SecretsFileProviderSchema = z4.object({
   maxBytes: z4.number().int().positive().max(20 * 1024 * 1024).optional(),
   allowInsecurePath: z4.boolean().optional()
 }).strict();
-var SecretsExecProviderSchema = z4.object({
+var SecretsManualExecProviderSchema = z4.object({
   source: z4.literal("exec"),
   command: z4.string().min(1).refine((value) => isSafeExecutableValue(value), "secrets.providers.*.command is unsafe.").refine(
     (value) => isAbsolutePath(value),
@@ -691,14 +708,25 @@ var SecretsExecProviderSchema = z4.object({
   allowInsecurePath: z4.boolean().optional(),
   allowSymlinkCommand: z4.boolean().optional()
 }).strict();
-var SecretProviderSchema = z4.discriminatedUnion("source", [
+var SecretsPluginIntegrationExecProviderSchema = z4.object({
+  source: z4.literal("exec"),
+  pluginIntegration: z4.object({
+    pluginId: z4.string().min(1).max(128),
+    integrationId: z4.string().min(1).max(128)
+  }).strict()
+}).strict();
+var SecretsExecProviderSchema = z4.union([
+  SecretsManualExecProviderSchema,
+  SecretsPluginIntegrationExecProviderSchema
+]);
+var SecretProviderSchema = z4.union([
   SecretsEnvProviderSchema,
   SecretsFileProviderSchema,
   SecretsExecProviderSchema
 ]);
 var SecretsConfigSchema = z4.object({
   providers: z4.object({
-    // Keep this as a record so users can define multiple providers per source.
+    // Keep this as a record so users can define multiple named providers per source.
   }).catchall(SecretProviderSchema).optional(),
   defaults: z4.object({
     env: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN).optional(),
@@ -721,19 +749,16 @@ var ModelCompatSchema = z4.object({
   supportsTools: z4.boolean().optional(),
   supportsStrictMode: z4.boolean().optional(),
   requiresStringContent: z4.boolean().optional(),
+  strictMessageKeys: z4.boolean().optional(),
   visibleReasoningDetailTypes: z4.array(z4.string().min(1)).optional(),
   supportedReasoningEfforts: z4.array(z4.string().min(1)).optional(),
   reasoningEffortMap: z4.record(z4.string().min(1), z4.string().min(1)).optional(),
   maxTokensField: z4.union([z4.literal("max_completion_tokens"), z4.literal("max_tokens")]).optional(),
-  thinkingFormat: z4.union([
-    z4.literal("openai"),
-    z4.literal("openrouter"),
-    z4.literal("deepseek"),
-    z4.literal("zai")
-  ]).optional(),
+  thinkingFormat: z4.enum(MODEL_THINKING_FORMATS).optional(),
   requiresToolResultName: z4.boolean().optional(),
   requiresAssistantAfterToolResult: z4.boolean().optional(),
   requiresThinkingAsText: z4.boolean().optional(),
+  requiresReasoningContentOnAssistantMessages: z4.boolean().optional(),
   toolSchemaProfile: z4.string().optional(),
   unsupportedToolSchemaKeywords: z4.array(z4.string().min(1)).optional(),
   nativeWebSearchTool: z4.boolean().optional(),
@@ -786,6 +811,29 @@ var ConfiguredModelProviderRequestSchema = z4.object({
   ...ConfiguredProviderRequestFields,
   allowPrivateNetwork: z4.boolean().optional()
 }).strict().optional();
+var ModelAgentRuntimePolicySchema = z4.object({
+  id: z4.string().optional()
+}).strict().optional();
+var ModelImageInputSchema = z4.object({
+  maxBytes: z4.number().int().positive().optional(),
+  maxPixels: z4.number().int().positive().optional(),
+  maxSidePx: z4.number().int().positive().optional(),
+  preferredSidePx: z4.number().int().positive().optional(),
+  tokenMode: z4.union([z4.literal("tile"), z4.literal("detail"), z4.literal("provider")]).optional()
+}).strict();
+var ModelMediaInputSchema = z4.object({
+  image: ModelImageInputSchema.optional()
+}).strict();
+var ThinkingLevelMapValueSchema = z4.string().nullable();
+var ThinkingLevelMapSchema = z4.object({
+  off: ThinkingLevelMapValueSchema.optional(),
+  minimal: ThinkingLevelMapValueSchema.optional(),
+  low: ThinkingLevelMapValueSchema.optional(),
+  medium: ThinkingLevelMapValueSchema.optional(),
+  high: ThinkingLevelMapValueSchema.optional(),
+  xhigh: ThinkingLevelMapValueSchema.optional(),
+  max: ThinkingLevelMapValueSchema.optional()
+}).strict();
 var ModelDefinitionSchema = z4.object({
   id: z4.string().min(1),
   name: z4.string().min(1),
@@ -813,13 +861,91 @@ var ModelDefinitionSchema = z4.object({
   contextWindow: z4.number().positive().optional(),
   contextTokens: z4.number().int().positive().optional(),
   maxTokens: z4.number().positive().optional(),
+  thinkingLevelMap: ThinkingLevelMapSchema.optional(),
   params: z4.record(z4.string(), z4.unknown()).optional(),
+  agentRuntime: ModelAgentRuntimePolicySchema,
   headers: z4.record(z4.string(), z4.string()).optional(),
   compat: ModelCompatSchema,
+  mediaInput: ModelMediaInputSchema.optional(),
   metadataSource: z4.literal("models-add").optional()
 }).strict();
+var ModelProviderLocalServiceSchema = z4.object({
+  command: z4.string().min(1),
+  args: z4.array(z4.string()).optional(),
+  cwd: z4.string().min(1).optional(),
+  env: z4.record(z4.string(), z4.string().register(sensitive)).optional(),
+  healthUrl: z4.string().min(1).optional(),
+  readyTimeoutMs: z4.number().int().positive().optional(),
+  idleStopMs: z4.number().int().nonnegative().optional()
+}).strict().optional();
+var BUILT_IN_MODEL_PROVIDER_OVERLAY_IDS = /* @__PURE__ */ new Set([
+  "amazon-bedrock",
+  "amazon-bedrock-mantle",
+  "anthropic",
+  "anthropic-vertex",
+  "arcee",
+  "byteplus",
+  "byteplus-plan",
+  "cerebras",
+  "chutes",
+  "cloudflare-ai-gateway",
+  "codex",
+  "comfy",
+  "copilot-proxy",
+  "dashscope",
+  "deepinfra",
+  "deepseek",
+  "fal",
+  "fireworks",
+  "github-copilot",
+  "google",
+  "google-antigravity",
+  "google-gemini-cli",
+  "google-vertex",
+  "groq",
+  "huggingface",
+  "kilocode",
+  "kimi",
+  "kimi-coding",
+  "litellm",
+  "lmstudio",
+  "microsoft-foundry",
+  "minimax",
+  "minimax-portal",
+  "mistral",
+  "modelstudio",
+  "moonshot",
+  "nvidia",
+  "ollama",
+  "openai",
+  "opencode",
+  "opencode-go",
+  "openrouter",
+  "qianfan",
+  "qwen",
+  "qwencloud",
+  "sglang",
+  "stepfun",
+  "stepfun-plan",
+  "synthetic",
+  "tencent-tokenhub",
+  "together",
+  "venice",
+  "vercel-ai-gateway",
+  "vllm",
+  "volcengine",
+  "volcengine-plan",
+  "vydra",
+  "xai",
+  "xiaomi",
+  "xiaomi-token-plan",
+  "zai"
+]);
+function isBuiltInModelProviderOverlayId(providerId) {
+  return BUILT_IN_MODEL_PROVIDER_OVERLAY_IDS.has(normalizeProviderId(providerId));
+}
 var ModelProviderSchema = z4.object({
-  baseUrl: z4.string().min(1),
+  baseUrl: z4.string().min(1).optional(),
   apiKey: SecretInputSchema.optional().register(sensitive),
   auth: z4.union([z4.literal("api-key"), z4.literal("aws-sdk"), z4.literal("oauth"), z4.literal("token")]).optional(),
   api: ModelApiSchema.optional(),
@@ -827,22 +953,47 @@ var ModelProviderSchema = z4.object({
   contextTokens: z4.number().int().positive().optional(),
   maxTokens: z4.number().positive().optional(),
   timeoutSeconds: z4.number().int().positive().optional(),
+  region: z4.string().min(1).optional(),
   injectNumCtxForOpenAICompat: z4.boolean().optional(),
   params: z4.record(z4.string(), z4.unknown()).optional(),
+  agentRuntime: ModelAgentRuntimePolicySchema,
+  localService: ModelProviderLocalServiceSchema,
   headers: z4.record(z4.string(), SecretInputSchema.register(sensitive)).optional(),
   authHeader: z4.boolean().optional(),
   request: ConfiguredModelProviderRequestSchema,
-  models: z4.array(ModelDefinitionSchema)
+  models: z4.array(ModelDefinitionSchema).optional()
 }).strict();
+var ModelProvidersSchema = z4.record(z4.string(), ModelProviderSchema).superRefine((providers, ctx) => {
+  for (const [providerId, provider] of Object.entries(providers)) {
+    if (isBuiltInModelProviderOverlayId(providerId)) {
+      continue;
+    }
+    if (!provider.baseUrl) {
+      ctx.addIssue({
+        code: "custom",
+        path: [providerId, "baseUrl"],
+        message: "custom model providers must declare baseUrl; provider overlays without baseUrl are only supported for bundled providers"
+      });
+    }
+    if (!Array.isArray(provider.models)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [providerId, "models"],
+        message: "custom model providers must declare models; provider overlays without models are only supported for bundled providers"
+      });
+    }
+  }
+});
 var ModelPricingConfigSchema = z4.object({
   enabled: z4.boolean().optional()
 }).strict().optional();
 var ModelsConfigSchema = z4.object({
   mode: z4.union([z4.literal("merge"), z4.literal("replace")]).optional(),
-  providers: z4.record(z4.string(), ModelProviderSchema).optional(),
+  providers: ModelProvidersSchema.optional(),
   pricing: ModelPricingConfigSchema
 }).strict().optional();
 var VisibleRepliesValueSchema = z4.enum(["automatic", "message_tool"]);
+var AmbientGroupInboundSchema = z4.enum(["user_request", "room_event"]);
 var VisibleRepliesSchema = z4.union([VisibleRepliesValueSchema, z4.boolean()]).overwrite((value) => {
   if (value === true) {
     return "automatic";
@@ -852,9 +1003,16 @@ var VisibleRepliesSchema = z4.union([VisibleRepliesValueSchema, z4.boolean()]).o
   }
   return value;
 });
+var MentionPatternsModeSchema = z4.union([z4.literal("allow"), z4.literal("deny")]);
+var MentionPatternsPolicySchema = z4.object({
+  mode: MentionPatternsModeSchema.optional(),
+  allowIn: z4.array(z4.string()).optional(),
+  denyIn: z4.array(z4.string()).optional()
+}).strict();
 var GroupChatSchema = z4.object({
   mentionPatterns: z4.array(z4.string()).optional(),
   historyLimit: z4.number().int().positive().optional(),
+  unmentionedInbound: AmbientGroupInboundSchema.optional(),
   visibleReplies: VisibleRepliesSchema.optional()
 }).strict().optional();
 var DmConfigSchema = z4.object({
@@ -870,9 +1028,6 @@ var QueueModeSchema = z4.union([
   z4.literal("steer"),
   z4.literal("followup"),
   z4.literal("collect"),
-  z4.literal("steer-backlog"),
-  z4.literal("steer+backlog"),
-  z4.literal("queue"),
   z4.literal("interrupt")
 ]);
 var QueueDropSchema = z4.union([z4.literal("old"), z4.literal("new"), z4.literal("summarize")]);
@@ -992,7 +1147,7 @@ var CliBackendSchema = z4.object({
   args: z4.array(z4.string()).optional(),
   output: z4.union([z4.literal("json"), z4.literal("text"), z4.literal("jsonl")]).optional(),
   resumeOutput: z4.union([z4.literal("json"), z4.literal("text"), z4.literal("jsonl")]).optional(),
-  jsonlDialect: z4.literal("claude-stream-json").optional(),
+  jsonlDialect: z4.union([z4.literal("claude-stream-json"), z4.literal("gemini-stream-json")]).optional(),
   liveSession: z4.literal("claude-stdio").optional(),
   input: z4.union([z4.literal("arg"), z4.literal("stdin")]).optional(),
   maxPromptArgChars: z4.number().int().positive().optional(),
@@ -1015,6 +1170,7 @@ var CliBackendSchema = z4.object({
   imageMode: z4.union([z4.literal("repeat"), z4.literal("list")]).optional(),
   imagePathScope: z4.union([z4.literal("temp"), z4.literal("workspace")]).optional(),
   serialize: z4.boolean().optional(),
+  reseedFromRawTranscriptWhenUncompacted: z4.boolean().optional(),
   reliability: z4.object({
     outputLimits: CliBackendOutputLimitsSchema,
     watchdog: z4.object({
@@ -1023,35 +1179,6 @@ var CliBackendSchema = z4.object({
     }).strict().optional()
   }).strict().optional()
 }).strict();
-var normalizeAllowFrom = (values) => normalizeStringEntries(values);
-var requireOpenAllowFrom = (params) => {
-  if (params.policy !== "open") {
-    return;
-  }
-  const allow = normalizeAllowFrom(params.allowFrom);
-  if (allow.includes("*")) {
-    return;
-  }
-  params.ctx.addIssue({
-    code: z4.ZodIssueCode.custom,
-    path: params.path,
-    message: params.message
-  });
-};
-var requireAllowlistAllowFrom = (params) => {
-  if (params.policy !== "allowlist") {
-    return;
-  }
-  const allow = normalizeAllowFrom(params.allowFrom);
-  if (allow.length > 0) {
-    return;
-  }
-  params.ctx.addIssue({
-    code: z4.ZodIssueCode.custom,
-    path: params.path,
-    message: params.message
-  });
-};
 var MSTeamsReplyStyleSchema = z4.enum(["thread", "top-level"]);
 var RetryConfigSchema = z4.object({
   attempts: z4.number().int().min(1).optional(),
@@ -1064,12 +1191,14 @@ var QueueModeBySurfaceSchema = z4.object({
   telegram: QueueModeSchema.optional(),
   discord: QueueModeSchema.optional(),
   irc: QueueModeSchema.optional(),
+  googlechat: QueueModeSchema.optional(),
   slack: QueueModeSchema.optional(),
   mattermost: QueueModeSchema.optional(),
   signal: QueueModeSchema.optional(),
   imessage: QueueModeSchema.optional(),
   msteams: QueueModeSchema.optional(),
-  webchat: QueueModeSchema.optional()
+  webchat: QueueModeSchema.optional(),
+  matrix: QueueModeSchema.optional()
 }).strict().optional();
 var DebounceMsBySurfaceSchema = z4.record(z4.string(), z4.number().int().nonnegative()).optional();
 var QueueSchema = z4.object({
@@ -1177,6 +1306,48 @@ var ProviderCommandsSchema = z4.object({
 }).strict().optional();
 
 // vendor/openclaw/src/config/zod-schema.agent-runtime.ts
+function validateSandboxBindEntries(binds, ctx) {
+  if (!binds) {
+    return;
+  }
+  for (let i = 0; i < binds.length; i += 1) {
+    const bind = normalizeOptionalString(binds[i]) ?? "";
+    if (!bind) {
+      ctx.addIssue({
+        code: z5.ZodIssueCode.custom,
+        path: ["binds", i],
+        message: "Sandbox security: bind mount entry must be a non-empty string."
+      });
+      continue;
+    }
+    const parsed = splitSandboxBindSpec(bind);
+    const source = (parsed ? parsed.host : bind).trim();
+    if (!isSandboxHostPathAbsolute(source)) {
+      ctx.addIssue({
+        code: z5.ZodIssueCode.custom,
+        path: ["binds", i],
+        message: `Sandbox security: bind mount "${bind}" uses a non-absolute source path "${source}". Only absolute POSIX or Windows drive-letter paths are supported for sandbox binds.`
+      });
+    }
+  }
+}
+var AgentRunRetriesConfigSchema = z5.object({
+  base: z5.number().int().positive().optional(),
+  perProfile: z5.number().int().nonnegative().optional(),
+  min: z5.number().int().positive().optional(),
+  max: z5.number().int().positive().optional()
+}).strict().refine(
+  (data) => {
+    if (data.min !== void 0 && data.max !== void 0) {
+      return data.max >= data.min;
+    }
+    return true;
+  },
+  { message: "max must be greater than or equal to min", path: ["max"] }
+);
+var AgentEntryEmbeddedAgentConfigSchema = z5.object({
+  executionContract: z5.union([z5.literal("default"), z5.literal("strict-agentic")]).optional()
+}).strict();
 var HeartbeatSchema = z5.object({
   every: z5.string().optional(),
   activeHours: z5.object({
@@ -1217,14 +1388,14 @@ var HeartbeatSchema = z5.object({
     return;
   }
   const timePattern = /^([01]\d|2[0-3]|24):([0-5]\d)$/;
-  const validateTime = (raw, opts, path6) => {
+  const validateTime = (raw, opts, path5) => {
     if (!raw) {
       return;
     }
     if (!timePattern.test(raw)) {
       ctx.addIssue({
         code: z5.ZodIssueCode.custom,
-        path: ["activeHours", path6],
+        path: ["activeHours", path5],
         message: 'invalid time (use "HH:MM" 24h format)'
       });
       return;
@@ -1235,7 +1406,7 @@ var HeartbeatSchema = z5.object({
     if (hour === 24 && minute !== 0) {
       ctx.addIssue({
         code: z5.ZodIssueCode.custom,
-        path: ["activeHours", path6],
+        path: ["activeHours", path5],
         message: "invalid time (24:00 is the only allowed 24:xx value)"
       });
       return;
@@ -1243,7 +1414,7 @@ var HeartbeatSchema = z5.object({
     if (hour === 24 && !opts.allow24) {
       ctx.addIssue({
         code: z5.ZodIssueCode.custom,
-        path: ["activeHours", path6],
+        path: ["activeHours", path5],
         message: "invalid time (start cannot be 24:00)"
       });
     }
@@ -1261,7 +1432,7 @@ var SandboxDockerSchema = z5.object({
   user: z5.string().optional(),
   capDrop: z5.array(z5.string()).optional(),
   env: z5.record(z5.string(), z5.string()).optional(),
-  setupCommand: z5.union([z5.string(), z5.array(z5.string())]).transform((value) => Array.isArray(value) ? value.join("\n") : value).optional(),
+  setupCommand: z5.union([z5.string(), z5.array(z5.string())]).transform((value) => Array.isArray(value) ? value.join("\n") : value).pipe(z5.string()).optional(),
   pidsLimit: z5.number().int().positive().optional(),
   memory: z5.union([z5.string(), z5.number()]).optional(),
   memorySwap: z5.union([z5.string(), z5.number()]).optional(),
@@ -1287,28 +1458,7 @@ var SandboxDockerSchema = z5.object({
   dangerouslyAllowExternalBindSources: z5.boolean().optional(),
   dangerouslyAllowContainerNamespaceJoin: z5.boolean().optional()
 }).strict().superRefine((data, ctx) => {
-  if (data.binds) {
-    for (let i = 0; i < data.binds.length; i += 1) {
-      const bind = normalizeOptionalString(data.binds[i]) ?? "";
-      if (!bind) {
-        ctx.addIssue({
-          code: z5.ZodIssueCode.custom,
-          path: ["binds", i],
-          message: "Sandbox security: bind mount entry must be a non-empty string."
-        });
-        continue;
-      }
-      const parsed = splitSandboxBindSpec(bind);
-      const source = (parsed ? parsed.host : bind).trim();
-      if (!isSandboxHostPathAbsolute(source)) {
-        ctx.addIssue({
-          code: z5.ZodIssueCode.custom,
-          path: ["binds", i],
-          message: `Sandbox security: bind mount "${bind}" uses a non-absolute source path "${source}". Only absolute POSIX or Windows drive-letter paths are supported for sandbox binds.`
-        });
-      }
-    }
-  }
+  validateSandboxBindEntries(data.binds, ctx);
   const blockedNetworkReason = getBlockedNetworkModeReason({
     network: data.network,
     allowContainerNamespaceJoin: data.dangerouslyAllowContainerNamespaceJoin === true
@@ -1358,6 +1508,7 @@ var SandboxBrowserSchema = z5.object({
   autoStartTimeoutMs: z5.number().int().positive().optional(),
   binds: z5.array(z5.string()).optional()
 }).superRefine((data, ctx) => {
+  validateSandboxBindEntries(data.binds, ctx);
   if (normalizeLowercaseStringOrEmpty(data.network ?? "") === "host") {
     ctx.addIssue({
       code: z5.ZodIssueCode.custom,
@@ -1373,7 +1524,7 @@ var SandboxPruneSchema = z5.object({
 var AgentContextLimitsSchema = z5.object({
   memoryGetMaxChars: z5.number().int().min(1).max(25e4).optional(),
   memoryGetDefaultLines: z5.number().int().min(1).max(5e3).optional(),
-  toolResultMaxChars: z5.number().int().min(1).max(25e4).optional(),
+  toolResultMaxChars: z5.number().int().min(1).max(1e6).optional(),
   postCompactionMaxChars: z5.number().int().min(1).max(5e4).optional()
 }).strict().optional();
 var AgentSkillsLimitsSchema = z5.object({
@@ -1392,14 +1543,15 @@ var ToolPolicySchema = ToolPolicyBaseSchema.superRefine((value, ctx) => {
     });
   }
 }).optional();
+var ToolPolicyBySenderSchema = z5.record(z5.string(), ToolPolicySchema).optional();
 var TrimmedOptionalConfigStringSchema = z5.string().transform((value) => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : void 0;
 }).optional();
 var CodexAllowedDomainsSchema = z5.array(z5.string()).transform((values) => {
-  const deduped = [
-    ...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))
-  ];
+  const deduped = uniqueStrings(
+    values.map((value) => value.trim()).filter((value) => value.length > 0)
+  );
   return deduped.length > 0 ? deduped : void 0;
 }).optional();
 var CodexUserLocationSchema = z5.object({
@@ -1410,21 +1562,65 @@ var CodexUserLocationSchema = z5.object({
 }).strict().transform((value) => {
   return value.country || value.region || value.city || value.timezone ? value : void 0;
 }).optional();
-var ToolsWebSearchSchema = z5.object({
-  enabled: z5.boolean().optional(),
-  provider: z5.string().optional(),
-  maxResults: z5.number().int().positive().optional(),
-  timeoutSeconds: z5.number().int().positive().optional(),
-  cacheTtlMinutes: z5.number().nonnegative().optional(),
-  apiKey: SecretInputSchema.optional().register(sensitive),
-  openaiCodex: z5.object({
+var BLOCKED_WEB_SEARCH_KEYS_ISSUE_FIELD = "__openclawBlockedWebSearchKeys";
+var ToolsWebSearchSchema = z5.preprocess(
+  (value) => {
+    if (!isRecord(value)) {
+      return value;
+    }
+    const blockedKeys = Object.getOwnPropertyNames(value).filter(
+      (key) => isBlockedObjectKey(key)
+    );
+    if (blockedKeys.length === 0) {
+      return value;
+    }
+    return {
+      ...value,
+      [BLOCKED_WEB_SEARCH_KEYS_ISSUE_FIELD]: blockedKeys
+    };
+  },
+  z5.object({
     enabled: z5.boolean().optional(),
-    mode: z5.union([z5.literal("cached"), z5.literal("live")]).optional(),
-    allowedDomains: CodexAllowedDomainsSchema,
-    contextSize: z5.union([z5.literal("low"), z5.literal("medium"), z5.literal("high")]).optional(),
-    userLocation: CodexUserLocationSchema
-  }).strict().optional()
-}).strict().optional();
+    provider: z5.string().optional(),
+    maxResults: z5.number().int().positive().optional(),
+    timeoutSeconds: z5.number().int().positive().optional(),
+    cacheTtlMinutes: z5.number().nonnegative().optional(),
+    apiKey: SecretInputSchema.optional().register(sensitive),
+    openaiCodex: z5.object({
+      enabled: z5.boolean().optional(),
+      mode: z5.union([z5.literal("cached"), z5.literal("live")]).optional(),
+      allowedDomains: CodexAllowedDomainsSchema,
+      contextSize: z5.union([z5.literal("low"), z5.literal("medium"), z5.literal("high")]).optional(),
+      userLocation: CodexUserLocationSchema
+    }).strict().optional()
+  }).catchall(z5.unknown()).superRefine((value, ctx) => {
+    const blockedKeys = value[BLOCKED_WEB_SEARCH_KEYS_ISSUE_FIELD];
+    if (Array.isArray(blockedKeys)) {
+      for (const key of blockedKeys) {
+        if (typeof key !== "string") {
+          continue;
+        }
+        ctx.addIssue({
+          code: z5.ZodIssueCode.custom,
+          path: [key],
+          message: "tools.web.search must not contain blocked object keys"
+        });
+      }
+    }
+    for (const [key, entry] of Object.entries(value)) {
+      if (key === BLOCKED_WEB_SEARCH_KEYS_ISSUE_FIELD || isBlockedObjectKey(key)) {
+        continue;
+      }
+      if (LEGACY_WEB_SEARCH_PROVIDER_CONFIG_KEYS.has(key) && isRecord(entry)) {
+        ctx.addIssue({
+          code: z5.ZodIssueCode.custom,
+          path: [key],
+          message: "legacy web_search provider config must use plugins.entries.<plugin>.config.webSearch"
+        });
+      }
+    }
+  })
+).optional();
 var ToolsWebFetchSchema = z5.object({
   enabled: z5.boolean().optional(),
   provider: z5.string().optional(),
@@ -1500,14 +1696,20 @@ var ToolExecSafeBinProfileSchema = z5.object({
 }).strict();
 var ToolExecBaseShape = {
   host: z5.enum(["auto", "sandbox", "gateway", "node"]).optional(),
+  mode: z5.enum(["deny", "allowlist", "ask", "auto", "full"]).optional(),
   security: z5.enum(["deny", "allowlist", "full"]).optional(),
   ask: z5.enum(["off", "on-miss", "always"]).optional(),
   node: z5.string().optional(),
   pathPrepend: z5.array(z5.string()).optional(),
   safeBins: z5.array(z5.string()).optional(),
   strictInlineEval: z5.boolean().optional(),
+  commandHighlighting: z5.boolean().optional(),
   safeBinTrustedDirs: z5.array(z5.string()).optional(),
   safeBinProfiles: z5.record(z5.string(), ToolExecSafeBinProfileSchema).optional(),
+  reviewer: z5.object({
+    model: AgentModelSchema.optional(),
+    timeoutMs: z5.number().int().positive().optional()
+  }).strict().optional(),
   backgroundMs: z5.number().int().positive().optional(),
   timeoutSec: z5.number().int().positive().optional(),
   cleanupMs: z5.number().int().positive().optional(),
@@ -1515,11 +1717,21 @@ var ToolExecBaseShape = {
   notifyOnExitEmptySuccess: z5.boolean().optional(),
   applyPatch: ToolExecApplyPatchSchema
 };
+function addExecPolicyModeConflictIssue(value, ctx) {
+  if (value.mode === void 0 || value.security === void 0 && value.ask === void 0) {
+    return;
+  }
+  ctx.addIssue({
+    code: z5.ZodIssueCode.custom,
+    path: ["mode"],
+    message: "tools.exec.mode cannot be combined with tools.exec.security or tools.exec.ask"
+  });
+}
 var AgentToolExecSchema = z5.object({
   ...ToolExecBaseShape,
   approvalRunningNoticeMs: z5.number().int().nonnegative().optional()
-}).strict().optional();
-var ToolExecSchema = z5.object(ToolExecBaseShape).strict().optional();
+}).strict().superRefine(addExecPolicyModeConflictIssue).optional();
+var ToolExecSchema = z5.object(ToolExecBaseShape).strict().superRefine(addExecPolicyModeConflictIssue).optional();
 var ToolFsSchema = z5.object({
   workspaceOnly: z5.boolean().optional()
 }).strict().optional();
@@ -1556,6 +1768,33 @@ var ToolLoopDetectionSchema = z5.object({
     });
   }
 }).optional();
+var ToolSearchSchema = z5.union([
+  z5.boolean(),
+  z5.object({
+    enabled: z5.boolean().optional(),
+    mode: z5.enum(["code", "tools", "directory"]).optional(),
+    codeTimeoutMs: z5.number().int().positive().optional(),
+    searchDefaultLimit: z5.number().int().positive().optional(),
+    maxSearchLimit: z5.number().int().positive().optional()
+  }).strict()
+]).optional();
+var CodeModeSchema = z5.union([
+  z5.boolean(),
+  z5.object({
+    enabled: z5.boolean().optional(),
+    runtime: z5.literal("quickjs-wasi").optional(),
+    mode: z5.literal("only").optional(),
+    languages: z5.array(z5.enum(["javascript", "typescript"])).optional(),
+    timeoutMs: z5.number().int().positive().optional(),
+    memoryLimitBytes: z5.number().int().positive().optional(),
+    maxOutputBytes: z5.number().int().positive().optional(),
+    maxSnapshotBytes: z5.number().int().positive().optional(),
+    maxPendingToolCalls: z5.number().int().positive().optional(),
+    snapshotTtlSeconds: z5.number().int().positive().optional(),
+    searchDefaultLimit: z5.number().int().positive().optional(),
+    maxSearchLimit: z5.number().int().positive().optional()
+  }).strict()
+]).optional();
 var SandboxSshSchema = z5.object({
   target: z5.string().min(1).optional(),
   command: z5.string().min(1).optional(),
@@ -1598,10 +1837,30 @@ var CommonToolPolicyFields = {
   allow: z5.array(z5.string()).optional(),
   alsoAllow: z5.array(z5.string()).optional(),
   deny: z5.array(z5.string()).optional(),
-  byProvider: z5.record(z5.string(), ToolPolicyWithProfileSchema).optional()
+  byProvider: z5.record(z5.string(), ToolPolicyWithProfileSchema).optional(),
+  toolsBySender: ToolPolicyBySenderSchema
 };
+var MessageToolConfigSchema = z5.object({
+  allowCrossContextSend: z5.boolean().optional(),
+  crossContext: z5.object({
+    allowWithinProvider: z5.boolean().optional(),
+    allowAcrossProviders: z5.boolean().optional(),
+    marker: z5.object({
+      enabled: z5.boolean().optional(),
+      prefix: z5.string().optional(),
+      suffix: z5.string().optional()
+    }).strict().optional()
+  }).strict().optional(),
+  actions: z5.object({
+    allow: z5.array(z5.string()).optional()
+  }).strict().optional(),
+  broadcast: z5.object({
+    enabled: z5.boolean().optional()
+  }).strict().optional()
+}).strict().optional();
 var AgentToolsSchema = z5.object({
   ...CommonToolPolicyFields,
+  codeMode: CodeModeSchema,
   elevated: z5.object({
     enabled: z5.boolean().optional(),
     allowFrom: ElevatedAllowFromSchema
@@ -1609,6 +1868,7 @@ var AgentToolsSchema = z5.object({
   exec: AgentToolExecSchema,
   fs: ToolFsSchema,
   loopDetection: ToolLoopDetectionSchema,
+  message: MessageToolConfigSchema,
   sandbox: z5.object({
     tools: ToolPolicySchema
   }).strict().optional()
@@ -1667,7 +1927,6 @@ var MemorySearchSchema = z5.object({
   }).strict().optional(),
   store: z5.object({
     driver: z5.literal("sqlite").optional(),
-    path: z5.string().optional(),
     fts: z5.object({
       tokenizer: z5.union([z5.literal("unicode61"), z5.literal("trigram")]).optional()
     }).strict().optional(),
@@ -1731,27 +1990,35 @@ var AgentRuntimeSchema = z5.union([
     acp: AgentRuntimeAcpSchema
   }).strict()
 ]).optional();
-var AgentEmbeddedHarnessSchema = z5.object({
-  runtime: z5.string().optional()
-}).strict().optional();
 var AgentRuntimePolicySchema = z5.object({
   id: z5.string().optional()
 }).strict().optional();
+var AgentModelRuntimeEntrySchema = z5.object({
+  alias: z5.string().optional(),
+  params: z5.record(z5.string(), z5.unknown()).optional(),
+  agentRuntime: AgentRuntimePolicySchema,
+  streaming: z5.boolean().optional()
+}).strict();
 var AgentEntrySchema = z5.object({
   id: z5.string(),
   default: z5.boolean().optional(),
   name: z5.string().optional(),
+  description: z5.string().optional(),
   workspace: z5.string().optional(),
   agentDir: z5.string().optional(),
-  systemPromptOverride: z5.string().optional(),
-  agentRuntime: AgentRuntimePolicySchema,
-  embeddedHarness: AgentEmbeddedHarnessSchema,
   model: AgentModelSchema.optional(),
+  models: z5.record(z5.string(), AgentModelRuntimeEntrySchema).optional(),
   thinkingDefault: z5.enum(["off", "minimal", "low", "medium", "high", "xhigh", "adaptive", "max"]).optional(),
   verboseDefault: z5.enum(["off", "on", "full"]).optional(),
   toolProgressDetail: z5.enum(["explain", "raw"]).optional(),
   reasoningDefault: z5.enum(["on", "off", "stream"]).optional(),
-  fastModeDefault: z5.boolean().optional(),
+  fastModeDefault: z5.union([z5.boolean(), z5.literal("auto")]).optional(),
+  contextInjection: z5.union([z5.literal("always"), z5.literal("continuation-skip"), z5.literal("never")]).optional(),
+  bootstrapMaxChars: z5.number().int().positive().optional(),
+  bootstrapTotalMaxChars: z5.number().int().positive().optional(),
+  experimental: z5.object({
+    localModelLean: z5.boolean().optional()
+  }).strict().optional(),
   skills: z5.array(z5.string()).optional(),
   memorySearch: MemorySearchSchema,
   humanDelay: HumanDelaySchema.optional(),
@@ -1763,20 +2030,14 @@ var AgentEntrySchema = z5.object({
   identity: IdentitySchema,
   groupChat: GroupChatSchema,
   subagents: z5.object({
+    delegationMode: z5.enum(["suggest", "prefer"]).optional(),
     allowAgents: z5.array(z5.string()).optional(),
-    model: z5.union([
-      z5.string(),
-      z5.object({
-        primary: z5.string().optional(),
-        fallbacks: z5.array(z5.string()).optional()
-      }).strict()
-    ]).optional(),
+    model: AgentModelSchema.optional(),
     thinking: z5.string().optional(),
     requireAgentId: z5.boolean().optional()
   }).strict().optional(),
-  embeddedPi: z5.object({
-    executionContract: z5.union([z5.literal("default"), z5.literal("strict-agentic")]).optional()
-  }).strict().optional(),
+  runRetries: AgentRunRetriesConfigSchema.optional(),
+  embeddedAgent: AgentEntryEmbeddedAgentConfigSchema.optional(),
   sandbox: AgentSandboxSchema,
   params: z5.record(z5.string(), z5.unknown()).optional(),
   tools: AgentToolsSchema,
@@ -1791,21 +2052,9 @@ var ToolsSchema = z5.object({
     visibility: z5.enum(["self", "tree", "agent", "all"]).optional()
   }).strict().optional(),
   loopDetection: ToolLoopDetectionSchema,
-  message: z5.object({
-    allowCrossContextSend: z5.boolean().optional(),
-    crossContext: z5.object({
-      allowWithinProvider: z5.boolean().optional(),
-      allowAcrossProviders: z5.boolean().optional(),
-      marker: z5.object({
-        enabled: z5.boolean().optional(),
-        prefix: z5.string().optional(),
-        suffix: z5.string().optional()
-      }).strict().optional()
-    }).strict().optional(),
-    broadcast: z5.object({
-      enabled: z5.boolean().optional()
-    }).strict().optional()
-  }).strict().optional(),
+  toolSearch: ToolSearchSchema,
+  codeMode: CodeModeSchema,
+  message: MessageToolConfigSchema,
   agentToAgent: z5.object({
     enabled: z5.boolean().optional(),
     allow: z5.array(z5.string()).optional()
@@ -1854,46 +2103,32 @@ var OptionalBootstrapFileNameSchema = z6.enum([
   "HEARTBEAT.md",
   "IDENTITY.md"
 ]);
+var EmbeddedAgentConfigSchema = z6.object({
+  projectSettingsPolicy: z6.union([z6.literal("trusted"), z6.literal("sanitize"), z6.literal("ignore")]).optional(),
+  executionContract: z6.union([z6.literal("default"), z6.literal("strict-agentic")]).optional()
+}).strict();
 var SilentReplyPolicyConfigSchema = z6.object({
-  direct: SilentReplyPolicySchema.optional(),
   group: SilentReplyPolicySchema.optional(),
   internal: SilentReplyPolicySchema.optional()
-}).strict();
-var SilentReplyRewriteConfigSchema = z6.object({
-  direct: z6.boolean().optional(),
-  group: z6.boolean().optional(),
-  internal: z6.boolean().optional()
 }).strict();
 var AgentDefaultsSchema = z6.object({
   /** Global default provider params applied to all models before per-model and per-agent overrides. */
   params: z6.record(z6.string(), z6.unknown()).optional(),
-  agentRuntime: AgentRuntimePolicySchema,
-  embeddedHarness: AgentEmbeddedHarnessSchema,
   model: AgentModelSchema.optional(),
-  imageModel: AgentModelSchema.optional(),
-  imageGenerationModel: AgentModelSchema.optional(),
-  videoGenerationModel: AgentModelSchema.optional(),
-  musicGenerationModel: AgentModelSchema.optional(),
+  imageModel: AgentToolModelSchema.optional(),
+  imageGenerationModel: AgentToolModelSchema.optional(),
+  videoGenerationModel: AgentToolModelSchema.optional(),
+  musicGenerationModel: AgentToolModelSchema.optional(),
+  voiceModel: AgentToolModelSchema.optional(),
   mediaGenerationAutoProviderFallback: z6.boolean().optional(),
-  pdfModel: AgentModelSchema.optional(),
+  pdfModel: AgentToolModelSchema.optional(),
   pdfMaxBytesMb: z6.number().positive().optional(),
   pdfMaxPages: z6.number().int().positive().optional(),
-  models: z6.record(
-    z6.string(),
-    z6.object({
-      alias: z6.string().optional(),
-      /** Provider-specific API parameters (e.g., GLM-4.7 thinking mode). */
-      params: z6.record(z6.string(), z6.unknown()).optional(),
-      /** Enable streaming for this model (default: true, false for Ollama to avoid SDK issue #1205). */
-      streaming: z6.boolean().optional()
-    }).strict()
-  ).optional(),
+  models: z6.record(z6.string(), AgentModelRuntimeEntrySchema).optional(),
   workspace: z6.string().optional(),
   skills: z6.array(z6.string()).optional(),
   silentReply: SilentReplyPolicyConfigSchema.optional(),
-  silentReplyRewrite: SilentReplyRewriteConfigSchema.optional(),
   repoRoot: z6.string().optional(),
-  systemPromptOverride: z6.string().optional(),
   promptOverlays: z6.object({
     gpt5: z6.object({
       personality: z6.union([z6.literal("friendly"), z6.literal("on"), z6.literal("off")]).optional()
@@ -1980,10 +2215,8 @@ var AgentDefaultsSchema = z6.object({
     maxActiveTranscriptBytes: NonNegativeByteSizeSchema.optional(),
     notifyUser: z6.boolean().optional()
   }).strict().optional(),
-  embeddedPi: z6.object({
-    projectSettingsPolicy: z6.union([z6.literal("trusted"), z6.literal("sanitize"), z6.literal("ignore")]).optional(),
-    executionContract: z6.union([z6.literal("default"), z6.literal("strict-agentic")]).optional()
-  }).strict().optional(),
+  runRetries: AgentRunRetriesConfigSchema.optional(),
+  embeddedAgent: EmbeddedAgentConfigSchema.optional(),
   thinkingDefault: z6.union([
     z6.literal("off"),
     z6.literal("minimal"),
@@ -2006,11 +2239,13 @@ var AgentDefaultsSchema = z6.object({
   timeoutSeconds: z6.number().int().positive().optional(),
   mediaMaxMb: z6.number().positive().optional(),
   imageMaxDimensionPx: z6.number().int().positive().optional(),
+  imageQuality: z6.enum(["auto", "efficient", "balanced", "high"]).optional(),
   typingIntervalSeconds: z6.number().int().positive().optional(),
   typingMode: TypingModeSchema.optional(),
   heartbeat: HeartbeatSchema,
   maxConcurrent: z6.number().int().positive().optional(),
   subagents: z6.object({
+    delegationMode: z6.enum(["suggest", "prefer"]).optional(),
     allowAgents: z6.array(z6.string()).optional(),
     maxConcurrent: z6.number().int().positive().optional(),
     maxSpawnDepth: z6.number().int().min(1).max(5).optional().describe(
@@ -2086,7 +2321,6 @@ var AcpBindingSchema = z7.object({
       path: ["match", "peer"],
       message: "ACP bindings require match.peer.id to target a concrete conversation."
     });
-    return;
   }
 });
 var BindingsSchema = z7.array(z7.union([RouteBindingSchema, AcpBindingSchema])).optional();
@@ -2100,6 +2334,7 @@ var AudioSchema = z7.object({
 
 // vendor/openclaw/src/config/zod-schema.approvals.ts
 import { z as z8 } from "zod";
+var NativeExecApprovalEnableModeSchema = z8.union([z8.boolean(), z8.literal("auto")]);
 var ExecApprovalForwardTargetSchema = z8.object({
   channel: z8.string().min(1),
   to: z8.string().min(1),
@@ -2118,56 +2353,114 @@ var ApprovalsSchema = z8.object({
   plugin: ExecApprovalForwardingSchema
 }).strict().optional();
 
-// vendor/openclaw/src/config/zod-schema.hooks.ts
-import path4 from "node:path";
+// vendor/openclaw/src/config/zod-schema.channels-config.ts
 import { z as z10 } from "zod";
 
-// vendor/openclaw/src/config/zod-schema.installs.ts
+// vendor/openclaw/src/config/zod-schema.channels.ts
 import { z as z9 } from "zod";
-var InstallSourceSchema = z9.union([
-  z9.literal("npm"),
-  z9.literal("archive"),
-  z9.literal("path"),
-  z9.literal("clawhub"),
-  z9.literal("git")
+var ChannelHeartbeatVisibilitySchema = z9.object({
+  showOk: z9.boolean().optional(),
+  showAlerts: z9.boolean().optional(),
+  useIndicator: z9.boolean().optional()
+}).strict().optional();
+var ChannelHealthMonitorSchema = z9.object({
+  enabled: z9.boolean().optional()
+}).strict().optional();
+
+// vendor/openclaw/src/config/zod-schema.channels-config.ts
+var ChannelModelByChannelSchema = z10.record(z10.string(), z10.record(z10.string(), z10.string())).optional();
+var ChannelBotLoopProtectionSchema = z10.object({
+  enabled: z10.boolean().optional(),
+  maxEventsPerWindow: z10.number().int().positive().optional(),
+  windowSeconds: z10.number().int().positive().optional(),
+  cooldownSeconds: z10.number().int().positive().optional()
+}).strict();
+function addLegacyChannelAcpBindingIssues(value, ctx, path5 = []) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => addLegacyChannelAcpBindingIssues(entry, ctx, [...path5, index]));
+    return;
+  }
+  const record = value;
+  const bindings = record.bindings;
+  if (bindings && typeof bindings === "object" && !Array.isArray(bindings)) {
+    const acp = bindings.acp;
+    if (acp && typeof acp === "object") {
+      ctx.addIssue({
+        code: z10.ZodIssueCode.custom,
+        path: [...path5, "bindings", "acp"],
+        message: "Legacy channel-local ACP bindings were removed; use top-level bindings[] entries."
+      });
+    }
+  }
+  for (const [key, entry] of Object.entries(record)) {
+    addLegacyChannelAcpBindingIssues(entry, ctx, [...path5, key]);
+  }
+}
+var ChannelsSchema = z10.object({
+  defaults: z10.object({
+    groupPolicy: GroupPolicySchema.optional(),
+    contextVisibility: ContextVisibilityModeSchema.optional(),
+    heartbeat: ChannelHeartbeatVisibilitySchema,
+    botLoopProtection: ChannelBotLoopProtectionSchema.optional()
+  }).strict().optional(),
+  modelByChannel: ChannelModelByChannelSchema
+}).passthrough().superRefine((value, ctx) => {
+  addLegacyChannelAcpBindingIssues(value, ctx);
+}).optional();
+
+// vendor/openclaw/src/config/zod-schema.hooks.ts
+import path4 from "node:path";
+import { z as z12 } from "zod";
+
+// vendor/openclaw/src/config/zod-schema.installs.ts
+import { z as z11 } from "zod";
+var InstallSourceSchema = z11.union([
+  z11.literal("npm"),
+  z11.literal("archive"),
+  z11.literal("path"),
+  z11.literal("clawhub"),
+  z11.literal("git")
 ]);
-var PluginInstallSourceSchema = z9.union([InstallSourceSchema, z9.literal("marketplace")]);
+var PluginInstallSourceSchema = z11.union([InstallSourceSchema, z11.literal("marketplace")]);
 var InstallRecordShape = {
   source: InstallSourceSchema,
-  spec: z9.string().optional(),
-  sourcePath: z9.string().optional(),
-  installPath: z9.string().optional(),
-  version: z9.string().optional(),
-  resolvedName: z9.string().optional(),
-  resolvedVersion: z9.string().optional(),
-  resolvedSpec: z9.string().optional(),
-  integrity: z9.string().optional(),
-  shasum: z9.string().optional(),
-  resolvedAt: z9.string().optional(),
-  installedAt: z9.string().optional(),
-  clawhubUrl: z9.string().optional(),
-  clawhubPackage: z9.string().optional(),
-  clawhubFamily: z9.union([z9.literal("code-plugin"), z9.literal("bundle-plugin")]).optional(),
-  clawhubChannel: z9.union([z9.literal("official"), z9.literal("community"), z9.literal("private")]).optional(),
-  artifactKind: z9.union([z9.literal("legacy-zip"), z9.literal("npm-pack")]).optional(),
-  artifactFormat: z9.union([z9.literal("zip"), z9.literal("tgz")]).optional(),
-  npmIntegrity: z9.string().optional(),
-  npmShasum: z9.string().optional(),
-  npmTarballName: z9.string().optional(),
-  clawpackSha256: z9.string().optional(),
-  clawpackSpecVersion: z9.number().int().nonnegative().optional(),
-  clawpackManifestSha256: z9.string().optional(),
-  clawpackSize: z9.number().int().nonnegative().optional(),
-  gitUrl: z9.string().optional(),
-  gitRef: z9.string().optional(),
-  gitCommit: z9.string().optional()
+  spec: z11.string().optional(),
+  sourcePath: z11.string().optional(),
+  installPath: z11.string().optional(),
+  version: z11.string().optional(),
+  resolvedName: z11.string().optional(),
+  resolvedVersion: z11.string().optional(),
+  resolvedSpec: z11.string().optional(),
+  integrity: z11.string().optional(),
+  shasum: z11.string().optional(),
+  resolvedAt: z11.string().optional(),
+  installedAt: z11.string().optional(),
+  clawhubUrl: z11.string().optional(),
+  clawhubPackage: z11.string().optional(),
+  clawhubFamily: z11.union([z11.literal("code-plugin"), z11.literal("bundle-plugin")]).optional(),
+  clawhubChannel: z11.union([z11.literal("official"), z11.literal("community"), z11.literal("private")]).optional(),
+  artifactKind: z11.union([z11.literal("legacy-zip"), z11.literal("npm-pack")]).optional(),
+  artifactFormat: z11.union([z11.literal("zip"), z11.literal("tgz")]).optional(),
+  npmIntegrity: z11.string().optional(),
+  npmShasum: z11.string().optional(),
+  npmTarballName: z11.string().optional(),
+  clawpackSha256: z11.string().optional(),
+  clawpackSpecVersion: z11.number().int().nonnegative().optional(),
+  clawpackManifestSha256: z11.string().optional(),
+  clawpackSize: z11.number().int().nonnegative().optional(),
+  gitUrl: z11.string().optional(),
+  gitRef: z11.string().optional(),
+  gitCommit: z11.string().optional()
 };
 var PluginInstallRecordShape = {
   ...InstallRecordShape,
   source: PluginInstallSourceSchema,
-  marketplaceName: z9.string().optional(),
-  marketplaceSource: z9.string().optional(),
-  marketplacePlugin: z9.string().optional()
+  marketplaceName: z11.string().optional(),
+  marketplaceSource: z11.string().optional(),
+  marketplacePlugin: z11.string().optional()
 };
 
 // vendor/openclaw/src/config/zod-schema.hooks.ts
@@ -2191,1914 +2484,169 @@ function isSafeRelativeModulePath(raw) {
   }
   return true;
 }
-var SafeRelativeModulePathSchema = z10.string().refine(isSafeRelativeModulePath, "module must be a safe relative path (no absolute paths)");
-var HookMappingSchema = z10.object({
-  id: z10.string().optional(),
-  match: z10.object({
-    path: z10.string().optional(),
-    source: z10.string().optional()
+var SafeRelativeModulePathSchema = z12.string().refine(isSafeRelativeModulePath, "module must be a safe relative path (no absolute paths)");
+var HookMappingSchema = z12.object({
+  id: z12.string().optional(),
+  match: z12.object({
+    path: z12.string().optional(),
+    source: z12.string().optional()
   }).optional(),
-  action: z10.union([z10.literal("wake"), z10.literal("agent")]).optional(),
-  wakeMode: z10.union([z10.literal("now"), z10.literal("next-heartbeat")]).optional(),
-  name: z10.string().optional(),
-  agentId: z10.string().optional(),
-  sessionKey: z10.string().optional().register(sensitive),
-  messageTemplate: z10.string().optional(),
-  textTemplate: z10.string().optional(),
-  deliver: z10.boolean().optional(),
-  allowUnsafeExternalContent: z10.boolean().optional(),
+  action: z12.union([z12.literal("wake"), z12.literal("agent")]).optional(),
+  wakeMode: z12.union([z12.literal("now"), z12.literal("next-heartbeat")]).optional(),
+  name: z12.string().optional(),
+  agentId: z12.string().optional(),
+  sessionKey: z12.string().optional().register(sensitive),
+  messageTemplate: z12.string().optional(),
+  textTemplate: z12.string().optional(),
+  deliver: z12.boolean().optional(),
+  allowUnsafeExternalContent: z12.boolean().optional(),
   // Keep this open-ended so runtime channel plugins (for example feishu) can be
   // referenced without hard-coding every channel id in the config schema.
   // Runtime still validates the resolved value against currently registered channels.
-  channel: z10.string().trim().min(1).optional(),
-  to: z10.string().optional(),
-  model: z10.string().optional(),
-  thinking: z10.string().optional(),
-  timeoutSeconds: z10.number().int().positive().optional(),
-  transform: z10.object({
+  channel: z12.string().trim().min(1).optional(),
+  to: z12.string().optional(),
+  model: z12.string().optional(),
+  thinking: z12.string().optional(),
+  timeoutSeconds: z12.number().int().positive().optional(),
+  transform: z12.object({
     module: SafeRelativeModulePathSchema,
-    export: z10.string().optional()
+    export: z12.string().optional()
   }).strict().optional()
 }).strict().optional();
-var InternalHookHandlerSchema = z10.object({
-  event: z10.string(),
+var InternalHookHandlerSchema = z12.object({
+  event: z12.string(),
   module: SafeRelativeModulePathSchema,
-  export: z10.string().optional()
+  export: z12.string().optional()
 }).strict();
-var HookConfigSchema = z10.object({
-  enabled: z10.boolean().optional(),
-  env: z10.record(z10.string(), z10.string()).optional()
+var HookConfigSchema = z12.object({
+  enabled: z12.boolean().optional(),
+  env: z12.record(z12.string(), z12.string()).optional()
 }).passthrough();
-var HookInstallRecordSchema = z10.object({
+var HookInstallRecordSchema = z12.object({
   ...InstallRecordShape,
-  hooks: z10.array(z10.string()).optional()
+  hooks: z12.array(z12.string()).optional()
 }).strict();
-var InternalHooksSchema = z10.object({
-  enabled: z10.boolean().optional(),
-  handlers: z10.array(InternalHookHandlerSchema).optional(),
-  entries: z10.record(z10.string(), HookConfigSchema).optional(),
-  load: z10.object({
-    extraDirs: z10.array(z10.string()).optional()
+var InternalHooksSchema = z12.object({
+  enabled: z12.boolean().optional(),
+  handlers: z12.array(InternalHookHandlerSchema).optional(),
+  entries: z12.record(z12.string(), HookConfigSchema).optional(),
+  load: z12.object({
+    extraDirs: z12.array(z12.string()).optional()
   }).strict().optional(),
-  installs: z10.record(z10.string(), HookInstallRecordSchema).optional()
+  installs: z12.record(z12.string(), HookInstallRecordSchema).optional()
 }).strict().optional();
-var HooksGmailSchema = z10.object({
-  account: z10.string().optional(),
-  label: z10.string().optional(),
-  topic: z10.string().optional(),
-  subscription: z10.string().optional(),
-  pushToken: z10.string().optional().register(sensitive),
-  hookUrl: z10.string().optional(),
-  includeBody: z10.boolean().optional(),
-  maxBytes: z10.number().int().positive().optional(),
-  renewEveryMinutes: z10.number().int().positive().optional(),
-  allowUnsafeExternalContent: z10.boolean().optional(),
-  serve: z10.object({
-    bind: z10.string().optional(),
-    port: z10.number().int().positive().optional(),
-    path: z10.string().optional()
+var HooksGmailSchema = z12.object({
+  account: z12.string().optional(),
+  label: z12.string().optional(),
+  topic: z12.string().optional(),
+  subscription: z12.string().optional(),
+  pushToken: z12.string().optional().register(sensitive),
+  hookUrl: z12.string().optional(),
+  includeBody: z12.boolean().optional(),
+  maxBytes: z12.number().int().positive().optional(),
+  renewEveryMinutes: z12.number().int().positive().optional(),
+  allowUnsafeExternalContent: z12.boolean().optional(),
+  serve: z12.object({
+    bind: z12.string().optional(),
+    port: z12.number().int().positive().optional(),
+    path: z12.string().optional()
   }).strict().optional(),
-  tailscale: z10.object({
-    mode: z10.union([z10.literal("off"), z10.literal("serve"), z10.literal("funnel")]).optional(),
-    path: z10.string().optional(),
-    target: z10.string().optional()
+  tailscale: z12.object({
+    mode: z12.union([z12.literal("off"), z12.literal("serve"), z12.literal("funnel")]).optional(),
+    path: z12.string().optional(),
+    target: z12.string().optional()
   }).strict().optional(),
-  model: z10.string().optional(),
-  thinking: z10.union([
-    z10.literal("off"),
-    z10.literal("minimal"),
-    z10.literal("low"),
-    z10.literal("medium"),
-    z10.literal("high")
+  model: z12.string().optional(),
+  thinking: z12.union([
+    z12.literal("off"),
+    z12.literal("minimal"),
+    z12.literal("low"),
+    z12.literal("medium"),
+    z12.literal("high")
   ]).optional()
 }).strict().optional();
-
-// vendor/openclaw/src/config/zod-schema.providers.ts
-import { z as z15 } from "zod";
-
-// vendor/openclaw/src/config/zod-schema.channels.ts
-import { z as z11 } from "zod";
-var ChannelHeartbeatVisibilitySchema = z11.object({
-  showOk: z11.boolean().optional(),
-  showAlerts: z11.boolean().optional(),
-  useIndicator: z11.boolean().optional()
-}).strict().optional();
-var ChannelHealthMonitorSchema = z11.object({
-  enabled: z11.boolean().optional()
-}).strict().optional();
-
-// vendor/openclaw/src/config/zod-schema.providers-core.ts
-import { z as z13 } from "zod";
-
-// vendor/openclaw/src/infra/scp-host.ts
-var SSH_TOKEN = /^[A-Za-z0-9._-]+$/;
-var BRACKETED_IPV6 = /^\[[0-9A-Fa-f:.%]+\]$/;
-var WHITESPACE = /\s/;
-function hasControlOrWhitespace(value) {
-  for (const char of value) {
-    const code = char.charCodeAt(0);
-    if (code <= 31 || code === 127 || WHITESPACE.test(char)) {
-      return true;
-    }
-  }
-  return false;
-}
-function normalizeScpRemoteHost(value) {
-  const trimmed = normalizeOptionalString(value);
-  if (!trimmed) {
-    return void 0;
-  }
-  if (hasControlOrWhitespace(trimmed)) {
-    return void 0;
-  }
-  if (trimmed.startsWith("-") || trimmed.includes("/") || trimmed.includes("\\")) {
-    return void 0;
-  }
-  const firstAt = trimmed.indexOf("@");
-  const lastAt = trimmed.lastIndexOf("@");
-  let user;
-  let host = trimmed;
-  if (firstAt !== -1) {
-    if (firstAt !== lastAt || firstAt === 0 || firstAt === trimmed.length - 1) {
-      return void 0;
-    }
-    user = trimmed.slice(0, firstAt);
-    host = trimmed.slice(firstAt + 1);
-    if (!SSH_TOKEN.test(user)) {
-      return void 0;
-    }
-  }
-  if (!host || host.startsWith("-") || host.includes("@")) {
-    return void 0;
-  }
-  if (host.includes(":") && !BRACKETED_IPV6.test(host)) {
-    return void 0;
-  }
-  if (!SSH_TOKEN.test(host) && !BRACKETED_IPV6.test(host)) {
-    return void 0;
-  }
-  return user ? `${user}@${host}` : host;
-}
-function isSafeScpRemoteHost(value) {
-  return normalizeScpRemoteHost(value) !== void 0;
-}
-
-// vendor/openclaw/src/media/inbound-path-policy.ts
-import path5 from "node:path";
-var WILDCARD_SEGMENT = "*";
-var WINDOWS_DRIVE_ABS_RE = /^[A-Za-z]:\//;
-var WINDOWS_DRIVE_ROOT_RE = /^[A-Za-z]:$/;
-function normalizePosixAbsolutePath(value) {
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.includes("\0")) {
-    return void 0;
-  }
-  const normalized = path5.posix.normalize(trimmed.replaceAll("\\", "/"));
-  const isAbsolute = normalized.startsWith("/") || WINDOWS_DRIVE_ABS_RE.test(normalized);
-  if (!isAbsolute || normalized === "/") {
-    return void 0;
-  }
-  const withoutTrailingSlash = normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
-  if (WINDOWS_DRIVE_ROOT_RE.test(withoutTrailingSlash)) {
-    return void 0;
-  }
-  return withoutTrailingSlash;
-}
-function splitPathSegments(value) {
-  return value.split("/").filter(Boolean);
-}
-function isValidInboundPathRootPattern(value) {
-  const normalized = normalizePosixAbsolutePath(value);
-  if (!normalized) {
-    return false;
-  }
-  const segments = splitPathSegments(normalized);
-  if (segments.length === 0) {
-    return false;
-  }
-  return segments.every((segment) => segment === WILDCARD_SEGMENT || !segment.includes("*"));
-}
-
-// vendor/openclaw/src/shared/custom-command-config.ts
-var DEFAULT_PREFIX = "/";
-function normalizeSlashCommandName(value) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return "";
-  }
-  const withoutSlash = trimmed.startsWith(DEFAULT_PREFIX) ? trimmed.slice(1) : trimmed;
-  return normalizeLowercaseStringOrEmpty(withoutSlash).replace(/-/g, "_");
-}
-function normalizeCommandDescription(value) {
-  return value.trim();
-}
-function resolveCustomCommands(params) {
-  const entries = Array.isArray(params.commands) ? params.commands : [];
-  const reserved = params.reservedCommands ?? /* @__PURE__ */ new Set();
-  const checkReserved = params.checkReserved !== false;
-  const checkDuplicates = params.checkDuplicates !== false;
-  const seen = /* @__PURE__ */ new Set();
-  const resolved = [];
-  const issues = [];
-  const label = params.config.label;
-  const prefix = params.config.prefix ?? DEFAULT_PREFIX;
-  for (let index = 0; index < entries.length; index += 1) {
-    const entry = entries[index];
-    const normalized = normalizeSlashCommandName(entry?.command ?? "");
-    if (!normalized) {
-      issues.push({
-        index,
-        field: "command",
-        message: `${label} custom command is missing a command name.`
-      });
-      continue;
-    }
-    if (!params.config.pattern.test(normalized)) {
-      issues.push({
-        index,
-        field: "command",
-        message: `${label} custom command "${prefix}${normalized}" is invalid (${params.config.patternDescription}).`
-      });
-      continue;
-    }
-    if (checkReserved && reserved.has(normalized)) {
-      issues.push({
-        index,
-        field: "command",
-        message: `${label} custom command "${prefix}${normalized}" conflicts with a native command.`
-      });
-      continue;
-    }
-    if (checkDuplicates && seen.has(normalized)) {
-      issues.push({
-        index,
-        field: "command",
-        message: `${label} custom command "${prefix}${normalized}" is duplicated.`
-      });
-      continue;
-    }
-    const description = normalizeCommandDescription(entry?.description ?? "");
-    if (!description) {
-      issues.push({
-        index,
-        field: "description",
-        message: `${label} custom command "${prefix}${normalized}" is missing a description.`
-      });
-      continue;
-    }
-    if (checkDuplicates) {
-      seen.add(normalized);
-    }
-    resolved.push({ command: normalized, description });
-  }
-  return { commands: resolved, issues };
-}
-
-// vendor/openclaw/src/config/zod-schema.secret-input-validation.ts
-import { z as z12 } from "zod";
-function forEachEnabledAccount(accounts, run) {
-  if (!accounts) {
-    return;
-  }
-  for (const [accountId, account] of Object.entries(accounts)) {
-    if (!account || account.enabled === false) {
-      continue;
-    }
-    run(accountId, account);
-  }
-}
-function validateTelegramWebhookSecretRequirements(value, ctx) {
-  const baseWebhookUrl = normalizeOptionalString(value.webhookUrl) ?? "";
-  const hasBaseWebhookSecret = hasConfiguredSecretInput(value.webhookSecret);
-  if (baseWebhookUrl && !hasBaseWebhookSecret) {
-    ctx.addIssue({
-      code: z12.ZodIssueCode.custom,
-      message: "channels.telegram.webhookUrl requires channels.telegram.webhookSecret",
-      path: ["webhookSecret"]
-    });
-  }
-  forEachEnabledAccount(value.accounts, (accountId, account) => {
-    const accountWebhookUrl = normalizeOptionalString(account.webhookUrl) ?? "";
-    if (!accountWebhookUrl) {
-      return;
-    }
-    const hasAccountSecret = hasConfiguredSecretInput(account.webhookSecret);
-    if (!hasAccountSecret && !hasBaseWebhookSecret) {
-      ctx.addIssue({
-        code: z12.ZodIssueCode.custom,
-        message: "channels.telegram.accounts.*.webhookUrl requires channels.telegram.webhookSecret or channels.telegram.accounts.*.webhookSecret",
-        path: ["accounts", accountId, "webhookSecret"]
-      });
-    }
-  });
-}
-function validateSlackSigningSecretRequirements(value, ctx) {
-  const baseMode = value.mode === "http" || value.mode === "socket" ? value.mode : "socket";
-  if (baseMode === "http" && !hasConfiguredSecretInput(value.signingSecret)) {
-    ctx.addIssue({
-      code: z12.ZodIssueCode.custom,
-      message: 'channels.slack.mode="http" requires channels.slack.signingSecret',
-      path: ["signingSecret"]
-    });
-  }
-  forEachEnabledAccount(value.accounts, (accountId, account) => {
-    const accountMode = account.mode === "http" || account.mode === "socket" ? account.mode : baseMode;
-    if (accountMode !== "http") {
-      return;
-    }
-    const accountSecret = account.signingSecret ?? value.signingSecret;
-    if (!hasConfiguredSecretInput(accountSecret)) {
-      ctx.addIssue({
-        code: z12.ZodIssueCode.custom,
-        message: 'channels.slack.accounts.*.mode="http" requires channels.slack.signingSecret or channels.slack.accounts.*.signingSecret',
-        path: ["accounts", accountId, "signingSecret"]
-      });
-    }
-  });
-}
-
-// vendor/openclaw/src/config/zod-schema.providers-core.ts
-var ToolPolicyBySenderSchema = z13.record(z13.string(), ToolPolicySchema).optional();
-var DiscordIdSchema = z13.union([z13.string(), z13.number()]).transform((value, ctx) => {
-  if (typeof value === "number") {
-    if (!Number.isSafeInteger(value) || value < 0) {
-      ctx.addIssue({
-        code: z13.ZodIssueCode.custom,
-        message: `Discord ID "${String(value)}" is not a valid non-negative safe integer. Wrap it in quotes in your config file.`
-      });
-      return z13.NEVER;
-    }
-    return String(value);
-  }
-  return value;
-}).pipe(z13.string());
-var DiscordIdListSchema = z13.array(DiscordIdSchema);
-var DiscordSnowflakeStringSchema = z13.string().regex(/^\d+$/, "Discord user ID must be numeric");
-var TelegramInlineButtonsScopeSchema = z13.enum(["off", "dm", "group", "all", "allowlist"]);
-var TelegramIdListSchema = z13.array(z13.union([z13.string(), z13.number()]));
-var TelegramCapabilitiesSchema = z13.union([
-  z13.array(z13.string()),
-  z13.object({
-    inlineButtons: TelegramInlineButtonsScopeSchema.optional()
-  }).strict()
-]);
-var TextChunkModeSchema = z13.enum(["length", "newline"]);
-var UnifiedStreamingModeSchema = z13.enum(["off", "partial", "block", "progress"]);
-var ChannelStreamingBlockSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  coalesce: BlockStreamingCoalesceSchema.optional()
-}).strict();
-var ChannelStreamingPreviewSchema = z13.object({
-  chunk: BlockStreamingChunkSchema.optional(),
-  toolProgress: z13.boolean().optional(),
-  commandText: z13.enum(["raw", "status"]).optional()
-}).strict();
-var ChannelStreamingProgressSchema = z13.object({
-  label: z13.union([z13.string(), z13.literal(false)]).optional(),
-  labels: z13.array(z13.string()).optional(),
-  maxLines: z13.number().int().positive().optional(),
-  render: z13.enum(["text", "rich"]).optional(),
-  toolProgress: z13.boolean().optional(),
-  commandText: z13.enum(["raw", "status"]).optional()
-}).strict();
-var ChannelPreviewStreamingConfigSchema = z13.object({
-  mode: UnifiedStreamingModeSchema.optional(),
-  chunkMode: TextChunkModeSchema.optional(),
-  preview: ChannelStreamingPreviewSchema.optional(),
-  progress: ChannelStreamingProgressSchema.optional(),
-  block: ChannelStreamingBlockSchema.optional()
-}).strict();
-var SlackStreamingConfigSchema = ChannelPreviewStreamingConfigSchema.extend({
-  nativeTransport: z13.boolean().optional()
-}).strict();
-var SlackCapabilitiesSchema = z13.union([
-  z13.array(z13.string()),
-  z13.object({
-    interactiveReplies: z13.boolean().optional()
-  }).strict()
-]);
-var TelegramErrorPolicySchema = z13.enum(["always", "once", "silent"]).optional();
-var TelegramCommandNamePattern = /^[a-z0-9_]{1,32}$/;
-var TelegramCustomCommandConfig = {
-  label: "Telegram",
-  pattern: TelegramCommandNamePattern,
-  patternDescription: "use a-z, 0-9, underscore; max 32 chars"
-};
-var TelegramTopicSchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  ingest: z13.boolean().optional(),
-  disableAudioPreflight: z13.boolean().optional(),
-  groupPolicy: GroupPolicySchema.optional(),
-  skills: z13.array(z13.string()).optional(),
-  enabled: z13.boolean().optional(),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  systemPrompt: z13.string().optional(),
-  agentId: z13.string().optional(),
-  errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z13.number().int().nonnegative().optional()
-}).strict();
-var TelegramGroupSchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  ingest: z13.boolean().optional(),
-  disableAudioPreflight: z13.boolean().optional(),
-  groupPolicy: GroupPolicySchema.optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  skills: z13.array(z13.string()).optional(),
-  enabled: z13.boolean().optional(),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  systemPrompt: z13.string().optional(),
-  topics: z13.record(z13.string(), TelegramTopicSchema.optional()).optional(),
-  errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z13.number().int().nonnegative().optional()
-}).strict();
-var TelegramDmThreadRepliesSchema = z13.enum(["off", "inbound", "always"]);
-var TelegramDmSchema = z13.object({
-  threadReplies: TelegramDmThreadRepliesSchema.optional()
-}).strict();
-var AutoTopicLabelSchema = z13.union([
-  z13.boolean(),
-  z13.object({
-    enabled: z13.boolean().optional(),
-    prompt: z13.string().optional()
-  }).strict()
-]).optional();
-var TelegramDirectSchema = z13.object({
-  dmPolicy: DmPolicySchema.optional(),
-  threadReplies: z13.enum(["off", "inbound", "always"]).optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  skills: z13.array(z13.string()).optional(),
-  enabled: z13.boolean().optional(),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  systemPrompt: z13.string().optional(),
-  topics: z13.record(z13.string(), TelegramTopicSchema.optional()).optional(),
-  errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z13.number().int().nonnegative().optional(),
-  requireTopic: z13.boolean().optional(),
-  autoTopicLabel: AutoTopicLabelSchema
-}).strict();
-var TelegramCustomCommandSchema = z13.object({
-  command: z13.string().overwrite(normalizeSlashCommandName),
-  description: z13.string().overwrite(normalizeCommandDescription)
-}).strict();
-var validateTelegramCustomCommands = (value, ctx) => {
-  if (!value.customCommands || value.customCommands.length === 0) {
-    return;
-  }
-  const { issues } = resolveCustomCommands({
-    commands: value.customCommands,
-    checkReserved: false,
-    checkDuplicates: false,
-    config: TelegramCustomCommandConfig
-  });
-  for (const issue of issues) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      path: ["customCommands", issue.index, issue.field],
-      message: issue.message
-    });
-  }
-};
-var TelegramAccountSchemaBase = z13.object({
-  name: z13.string().optional(),
-  capabilities: TelegramCapabilitiesSchema.optional(),
-  execApprovals: z13.object({
-    enabled: z13.boolean().optional(),
-    approvers: TelegramIdListSchema.optional(),
-    agentFilter: z13.array(z13.string()).optional(),
-    sessionFilter: z13.array(z13.string()).optional(),
-    target: z13.enum(["dm", "channel", "both"]).optional()
-  }).strict().optional(),
-  markdown: MarkdownConfigSchema,
-  enabled: z13.boolean().optional(),
-  commands: ProviderCommandsSchema,
-  customCommands: z13.array(TelegramCustomCommandSchema).optional(),
-  configWrites: z13.boolean().optional(),
-  dmPolicy: DmPolicySchema.optional().default("pairing"),
-  botToken: SecretInputSchema.optional().register(sensitive),
-  tokenFile: z13.string().optional(),
-  replyToMode: ReplyToModeSchema.optional(),
-  dm: TelegramDmSchema.optional(),
-  groups: z13.record(z13.string(), TelegramGroupSchema.optional()).optional(),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  defaultTo: z13.union([z13.string(), z13.number()]).optional(),
-  groupAllowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  direct: z13.record(z13.string(), TelegramDirectSchema.optional()).optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  streaming: ChannelPreviewStreamingConfigSchema.optional(),
-  mediaMaxMb: z13.number().positive().optional(),
-  timeoutSeconds: z13.number().int().positive().optional(),
-  mediaGroupFlushMs: z13.number().int().min(10).max(6e4).optional().describe(
-    "Buffer window in milliseconds for Telegram media groups/albums before dispatching them as one inbound message. Default: 500."
-  ),
-  pollingStallThresholdMs: z13.number().int().min(3e4).max(6e5).optional(),
-  retry: RetryConfigSchema,
-  network: z13.object({
-    autoSelectFamily: z13.boolean().optional(),
-    dnsResultOrder: z13.enum(["ipv4first", "verbatim"]).optional(),
-    dangerouslyAllowPrivateNetwork: z13.boolean().optional().describe(
-      "Dangerous opt-in for trusted Telegram fake-IP or transparent-proxy environments where api.telegram.org resolves to private/internal/special-use addresses during media downloads."
-    )
-  }).strict().optional(),
-  proxy: z13.string().optional(),
-  webhookUrl: z13.string().optional().describe(
-    "Public HTTPS webhook URL registered with Telegram for inbound updates. This must be internet-reachable and requires channels.telegram.webhookSecret."
-  ),
-  webhookSecret: SecretInputSchema.optional().describe(
-    "Secret token sent to Telegram during webhook registration and verified on inbound webhook requests. Telegram returns this value for verification; this is not the gateway auth token and not the bot token."
-  ).register(sensitive),
-  webhookPath: z13.string().optional().describe(
-    "Local webhook route path served by the gateway listener. Defaults to /telegram-webhook."
-  ),
-  webhookHost: z13.string().optional().describe(
-    "Local bind host for the webhook listener. Defaults to 127.0.0.1; keep loopback unless you intentionally expose direct ingress."
-  ),
-  webhookPort: z13.number().int().nonnegative().optional().describe(
-    "Local bind port for the webhook listener. Defaults to 8787; set to 0 to let the OS assign an ephemeral port."
-  ),
-  webhookCertPath: z13.string().optional().describe(
-    "Path to the self-signed certificate (PEM) to upload to Telegram during webhook registration. Required for self-signed certs (direct IP or no domain)."
-  ),
-  actions: z13.object({
-    reactions: z13.boolean().optional(),
-    sendMessage: z13.boolean().optional(),
-    poll: z13.boolean().optional(),
-    deleteMessage: z13.boolean().optional(),
-    editMessage: z13.boolean().optional(),
-    sticker: z13.boolean().optional(),
-    createForumTopic: z13.boolean().optional(),
-    editForumTopic: z13.boolean().optional()
-  }).strict().optional(),
-  threadBindings: z13.object({
-    enabled: z13.boolean().optional(),
-    idleHours: z13.number().nonnegative().optional(),
-    maxAgeHours: z13.number().nonnegative().optional(),
-    spawnSessions: z13.boolean().optional(),
-    defaultSpawnContext: z13.enum(["isolated", "fork"]).optional(),
-    spawnSubagentSessions: z13.boolean().optional(),
-    spawnAcpSessions: z13.boolean().optional()
-  }).strict().optional(),
-  reactionNotifications: z13.enum(["off", "own", "all"]).optional(),
-  reactionLevel: z13.enum(["off", "ack", "minimal", "extensive"]).optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  linkPreview: z13.boolean().optional(),
-  silentErrorReplies: z13.boolean().optional(),
-  responsePrefix: z13.string().optional(),
-  ackReaction: z13.string().optional(),
-  errorPolicy: TelegramErrorPolicySchema,
-  errorCooldownMs: z13.number().int().nonnegative().optional(),
-  apiRoot: z13.string().url().optional(),
-  trustedLocalFileRoots: z13.array(z13.string()).optional().describe(
-    "Trusted local filesystem roots for self-hosted Telegram Bot API absolute file_path values. Only absolute paths under these roots are read directly; all other absolute paths are rejected."
-  ),
-  autoTopicLabel: AutoTopicLabelSchema
-}).strict();
-var TelegramAccountSchema = TelegramAccountSchemaBase.superRefine((value, ctx) => {
-  validateTelegramCustomCommands(value, ctx);
-});
-var TelegramConfigSchema = TelegramAccountSchemaBase.extend({
-  accounts: z13.record(z13.string(), TelegramAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional()
-}).superRefine((value, ctx) => {
-  requireOpenAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.telegram.dmPolicy="open" requires channels.telegram.allowFrom to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.telegram.dmPolicy="allowlist" requires channels.telegram.allowFrom to contain at least one sender ID'
-  });
-  validateTelegramCustomCommands(value, ctx);
-  if (value.accounts) {
-    for (const [accountId, account] of Object.entries(value.accounts)) {
-      if (!account) {
-        continue;
-      }
-      const effectivePolicy = account.dmPolicy ?? value.dmPolicy;
-      const effectiveAllowFrom = account.allowFrom ?? value.allowFrom;
-      requireOpenAllowFrom({
-        policy: effectivePolicy,
-        allowFrom: effectiveAllowFrom,
-        ctx,
-        path: ["accounts", accountId, "allowFrom"],
-        message: 'channels.telegram.accounts.*.dmPolicy="open" requires channels.telegram.accounts.*.allowFrom (or channels.telegram.allowFrom) to include "*"'
-      });
-      requireAllowlistAllowFrom({
-        policy: effectivePolicy,
-        allowFrom: effectiveAllowFrom,
-        ctx,
-        path: ["accounts", accountId, "allowFrom"],
-        message: 'channels.telegram.accounts.*.dmPolicy="allowlist" requires channels.telegram.accounts.*.allowFrom (or channels.telegram.allowFrom) to contain at least one sender ID'
-      });
-    }
-  }
-  if (!value.accounts) {
-    validateTelegramWebhookSecretRequirements(value, ctx);
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    if (account.enabled === false) {
-      continue;
-    }
-    const effectiveDmPolicy = account.dmPolicy ?? value.dmPolicy;
-    const effectiveAllowFrom = Array.isArray(account.allowFrom) ? account.allowFrom : value.allowFrom;
-    requireOpenAllowFrom({
-      policy: effectiveDmPolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.telegram.accounts.*.dmPolicy="open" requires channels.telegram.allowFrom or channels.telegram.accounts.*.allowFrom to include "*"'
-    });
-    requireAllowlistAllowFrom({
-      policy: effectiveDmPolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.telegram.accounts.*.dmPolicy="allowlist" requires channels.telegram.allowFrom or channels.telegram.accounts.*.allowFrom to contain at least one sender ID'
-    });
-  }
-  validateTelegramWebhookSecretRequirements(value, ctx);
-});
-var DiscordDmSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  policy: DmPolicySchema.optional(),
-  allowFrom: DiscordIdListSchema.optional(),
-  groupEnabled: z13.boolean().optional(),
-  groupChannels: DiscordIdListSchema.optional()
-}).strict();
-var DiscordThreadSchema = z13.object({
-  inheritParent: z13.boolean().optional()
-}).strict();
-var DiscordGuildChannelSchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  ignoreOtherMentions: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  skills: z13.array(z13.string()).optional(),
-  enabled: z13.boolean().optional(),
-  users: DiscordIdListSchema.optional(),
-  roles: DiscordIdListSchema.optional(),
-  systemPrompt: z13.string().optional(),
-  includeThreadStarter: z13.boolean().optional(),
-  autoThread: z13.boolean().optional(),
-  /** Naming strategy for auto-created threads. "message" uses message text; "generated" creates an LLM title after thread creation. */
-  autoThreadName: z13.enum(["message", "generated"]).optional(),
-  /** Archive duration for auto-created threads in minutes. Discord supports 60, 1440 (1 day), 4320 (3 days), 10080 (1 week). Default: 60. */
-  autoArchiveDuration: z13.union([
-    z13.enum(["60", "1440", "4320", "10080"]),
-    z13.literal(60),
-    z13.literal(1440),
-    z13.literal(4320),
-    z13.literal(10080)
-  ]).optional()
-}).strict();
-var DiscordGuildSchema = z13.object({
-  slug: z13.string().optional(),
-  requireMention: z13.boolean().optional(),
-  ignoreOtherMentions: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  reactionNotifications: z13.enum(["off", "own", "all", "allowlist"]).optional(),
-  users: DiscordIdListSchema.optional(),
-  roles: DiscordIdListSchema.optional(),
-  channels: z13.record(z13.string(), DiscordGuildChannelSchema.optional()).optional()
-}).strict();
-var DiscordUiSchema = z13.object({
-  components: z13.object({
-    accentColor: HexColorSchema.optional()
-  }).strict().optional()
-}).strict().optional();
-var DiscordVoiceAutoJoinSchema = z13.object({
-  guildId: z13.string().min(1),
-  channelId: z13.string().min(1)
-}).strict();
-var DiscordVoiceSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  model: z13.string().min(1).optional(),
-  autoJoin: z13.array(DiscordVoiceAutoJoinSchema).optional(),
-  daveEncryption: z13.boolean().optional(),
-  decryptionFailureTolerance: z13.number().int().min(0).optional(),
-  connectTimeoutMs: z13.number().int().positive().max(12e4).optional(),
-  reconnectGraceMs: z13.number().int().positive().max(12e4).optional(),
-  tts: TtsConfigSchema.optional()
-}).strict().optional();
-var DiscordAccountSchema = z13.object({
-  name: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
-  markdown: MarkdownConfigSchema,
-  enabled: z13.boolean().optional(),
-  commands: ProviderCommandsSchema,
-  configWrites: z13.boolean().optional(),
-  token: SecretInputSchema.optional().register(sensitive),
-  applicationId: DiscordIdSchema.optional(),
-  proxy: z13.string().optional(),
-  gatewayInfoTimeoutMs: z13.number().int().positive().max(12e4).optional(),
-  gatewayReadyTimeoutMs: z13.number().int().positive().max(12e4).optional(),
-  gatewayRuntimeReadyTimeoutMs: z13.number().int().positive().max(12e4).optional(),
-  allowBots: z13.union([z13.boolean(), z13.literal("mentions")]).optional(),
-  dangerouslyAllowNameMatching: z13.boolean().optional(),
-  mentionAliases: z13.record(z13.string(), DiscordSnowflakeStringSchema).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  streaming: ChannelPreviewStreamingConfigSchema.optional(),
-  maxLinesPerMessage: z13.number().int().positive().optional(),
-  mediaMaxMb: z13.number().positive().optional(),
-  retry: RetryConfigSchema,
-  actions: z13.object({
-    reactions: z13.boolean().optional(),
-    stickers: z13.boolean().optional(),
-    emojiUploads: z13.boolean().optional(),
-    stickerUploads: z13.boolean().optional(),
-    polls: z13.boolean().optional(),
-    permissions: z13.boolean().optional(),
-    messages: z13.boolean().optional(),
-    threads: z13.boolean().optional(),
-    pins: z13.boolean().optional(),
-    search: z13.boolean().optional(),
-    memberInfo: z13.boolean().optional(),
-    roleInfo: z13.boolean().optional(),
-    roles: z13.boolean().optional(),
-    channelInfo: z13.boolean().optional(),
-    voiceStatus: z13.boolean().optional(),
-    events: z13.boolean().optional(),
-    moderation: z13.boolean().optional(),
-    channels: z13.boolean().optional(),
-    presence: z13.boolean().optional()
-  }).strict().optional(),
-  replyToMode: ReplyToModeSchema.optional(),
-  thread: DiscordThreadSchema.optional(),
-  // Aliases for channels.discord.dm.policy / channels.discord.dm.allowFrom. Prefer these for
-  // inheritance in multi-account setups (shallow merge works; nested dm object doesn't).
-  dmPolicy: DmPolicySchema.optional(),
-  allowFrom: DiscordIdListSchema.optional(),
-  defaultTo: z13.string().optional(),
-  dm: DiscordDmSchema.optional(),
-  guilds: z13.record(z13.string(), DiscordGuildSchema.optional()).optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  execApprovals: z13.object({
-    enabled: z13.boolean().optional(),
-    approvers: DiscordIdListSchema.optional(),
-    agentFilter: z13.array(z13.string()).optional(),
-    sessionFilter: z13.array(z13.string()).optional(),
-    cleanupAfterResolve: z13.boolean().optional(),
-    target: z13.enum(["dm", "channel", "both"]).optional()
-  }).strict().optional(),
-  agentComponents: z13.object({
-    enabled: z13.boolean().optional()
-  }).strict().optional(),
-  ui: DiscordUiSchema,
-  slashCommand: z13.object({
-    ephemeral: z13.boolean().optional()
-  }).strict().optional(),
-  threadBindings: z13.object({
-    enabled: z13.boolean().optional(),
-    idleHours: z13.number().nonnegative().optional(),
-    maxAgeHours: z13.number().nonnegative().optional(),
-    spawnSessions: z13.boolean().optional(),
-    defaultSpawnContext: z13.enum(["isolated", "fork"]).optional(),
-    spawnSubagentSessions: z13.boolean().optional(),
-    spawnAcpSessions: z13.boolean().optional()
-  }).strict().optional(),
-  intents: z13.object({
-    presence: z13.boolean().optional(),
-    guildMembers: z13.boolean().optional(),
-    voiceStates: z13.boolean().optional()
-  }).strict().optional(),
-  voice: DiscordVoiceSchema,
-  pluralkit: z13.object({
-    enabled: z13.boolean().optional(),
-    token: SecretInputSchema.optional().register(sensitive)
-  }).strict().optional(),
-  responsePrefix: z13.string().optional(),
-  ackReaction: z13.string().optional(),
-  ackReactionScope: z13.enum(["group-mentions", "group-all", "direct", "all", "off", "none"]).optional(),
-  activity: z13.string().optional(),
-  status: z13.enum(["online", "dnd", "idle", "invisible"]).optional(),
-  autoPresence: z13.object({
-    enabled: z13.boolean().optional(),
-    intervalMs: z13.number().int().positive().optional(),
-    minUpdateIntervalMs: z13.number().int().positive().optional(),
-    healthyText: z13.string().optional(),
-    degradedText: z13.string().optional(),
-    exhaustedText: z13.string().optional()
-  }).strict().optional(),
-  activityType: z13.union([z13.literal(0), z13.literal(1), z13.literal(2), z13.literal(3), z13.literal(4), z13.literal(5)]).optional(),
-  activityUrl: z13.string().url().optional(),
-  inboundWorker: z13.object({
-    runTimeoutMs: z13.number().int().nonnegative().optional()
-  }).strict().optional(),
-  eventQueue: z13.object({
-    listenerTimeout: z13.number().int().positive().optional(),
-    maxQueueSize: z13.number().int().positive().optional(),
-    maxConcurrency: z13.number().int().positive().optional()
-  }).strict().optional()
-}).strict().superRefine((value, ctx) => {
-  const activityText = normalizeOptionalString(value.activity) ?? "";
-  const hasActivity = Boolean(activityText);
-  const hasActivityType = value.activityType !== void 0;
-  const activityUrl = normalizeOptionalString(value.activityUrl) ?? "";
-  const hasActivityUrl = Boolean(activityUrl);
-  if ((hasActivityType || hasActivityUrl) && !hasActivity) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      message: "channels.discord.activity is required when activityType or activityUrl is set",
-      path: ["activity"]
-    });
-  }
-  if (value.activityType === 1 && !hasActivityUrl) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      message: "channels.discord.activityUrl is required when activityType is 1 (Streaming)",
-      path: ["activityUrl"]
-    });
-  }
-  if (hasActivityUrl && value.activityType !== 1) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      message: "channels.discord.activityType must be 1 (Streaming) when activityUrl is set",
-      path: ["activityType"]
-    });
-  }
-  const autoPresenceInterval = value.autoPresence?.intervalMs;
-  const autoPresenceMinUpdate = value.autoPresence?.minUpdateIntervalMs;
-  if (typeof autoPresenceInterval === "number" && typeof autoPresenceMinUpdate === "number" && autoPresenceMinUpdate > autoPresenceInterval) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      message: "channels.discord.autoPresence.minUpdateIntervalMs must be less than or equal to channels.discord.autoPresence.intervalMs",
-      path: ["autoPresence", "minUpdateIntervalMs"]
-    });
-  }
-});
-var DiscordConfigSchema = DiscordAccountSchema.extend({
-  accounts: z13.record(z13.string(), DiscordAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional()
-}).superRefine((value, ctx) => {
-  const dmPolicy = value.dmPolicy ?? value.dm?.policy ?? "pairing";
-  const allowFrom = value.allowFrom ?? value.dm?.allowFrom;
-  const allowFromPath = value.allowFrom !== void 0 ? ["allowFrom"] : ["dm", "allowFrom"];
-  requireOpenAllowFrom({
-    policy: dmPolicy,
-    allowFrom,
-    ctx,
-    path: [...allowFromPath],
-    message: 'channels.discord.dmPolicy="open" requires channels.discord.allowFrom (or channels.discord.dm.allowFrom) to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: dmPolicy,
-    allowFrom,
-    ctx,
-    path: [...allowFromPath],
-    message: 'channels.discord.dmPolicy="allowlist" requires channels.discord.allowFrom (or channels.discord.dm.allowFrom) to contain at least one sender ID'
-  });
-  if (!value.accounts) {
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    const effectivePolicy = account.dmPolicy ?? account.dm?.policy ?? value.dmPolicy ?? value.dm?.policy ?? "pairing";
-    const effectiveAllowFrom = account.allowFrom ?? account.dm?.allowFrom ?? value.allowFrom ?? value.dm?.allowFrom;
-    requireOpenAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.discord.accounts.*.dmPolicy="open" requires channels.discord.accounts.*.allowFrom (or channels.discord.allowFrom) to include "*"'
-    });
-    requireAllowlistAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.discord.accounts.*.dmPolicy="allowlist" requires channels.discord.accounts.*.allowFrom (or channels.discord.allowFrom) to contain at least one sender ID'
-    });
-  }
-});
-var GoogleChatDmSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  policy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional()
-}).strict().superRefine((value, ctx) => {
-  requireOpenAllowFrom({
-    policy: value.policy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.googlechat.dm.policy="open" requires channels.googlechat.dm.allowFrom to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: value.policy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.googlechat.dm.policy="allowlist" requires channels.googlechat.dm.allowFrom to contain at least one sender ID'
-  });
-});
-var GoogleChatGroupSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  requireMention: z13.boolean().optional(),
-  users: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  systemPrompt: z13.string().optional()
-}).strict();
-var GoogleChatAccountSchema = z13.object({
-  name: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
-  enabled: z13.boolean().optional(),
-  configWrites: z13.boolean().optional(),
-  allowBots: z13.boolean().optional(),
-  dangerouslyAllowNameMatching: z13.boolean().optional(),
-  requireMention: z13.boolean().optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  groupAllowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  groups: z13.record(z13.string(), GoogleChatGroupSchema.optional()).optional(),
-  defaultTo: z13.string().optional(),
-  serviceAccount: z13.union([z13.string(), z13.record(z13.string(), z13.unknown()), SecretRefSchema]).optional().register(sensitive),
-  serviceAccountRef: SecretRefSchema.optional().register(sensitive),
-  serviceAccountFile: z13.string().optional(),
-  audienceType: z13.enum(["app-url", "project-number"]).optional(),
-  audience: z13.string().optional(),
-  appPrincipal: z13.string().optional(),
-  webhookPath: z13.string().optional(),
-  webhookUrl: z13.string().optional(),
-  botUser: z13.string().optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  chunkMode: z13.enum(["length", "newline"]).optional(),
-  blockStreaming: z13.boolean().optional(),
-  blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaMaxMb: z13.number().positive().optional(),
-  replyToMode: ReplyToModeSchema.optional(),
-  actions: z13.object({
-    reactions: z13.boolean().optional()
-  }).strict().optional(),
-  dm: GoogleChatDmSchema.optional(),
-  healthMonitor: ChannelHealthMonitorSchema,
-  typingIndicator: z13.enum(["none", "message", "reaction"]).optional(),
-  responsePrefix: z13.string().optional()
-}).strict();
-var GoogleChatConfigSchema = GoogleChatAccountSchema.extend({
-  accounts: z13.record(z13.string(), GoogleChatAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional()
-});
-var SlackDmSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  policy: DmPolicySchema.optional(),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  groupEnabled: z13.boolean().optional(),
-  groupChannels: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  replyToMode: ReplyToModeSchema.optional()
-}).strict();
-var SlackChannelSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  requireMention: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  allowBots: z13.boolean().optional(),
-  users: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  skills: z13.array(z13.string()).optional(),
-  systemPrompt: z13.string().optional()
-}).strict();
-var SlackThreadSchema = z13.object({
-  historyScope: z13.enum(["thread", "channel"]).optional(),
-  inheritParent: z13.boolean().optional(),
-  initialHistoryLimit: z13.number().int().min(0).optional(),
-  requireExplicitMention: z13.boolean().optional()
-}).strict();
-var SlackReplyToModeByChatTypeSchema = z13.object({
-  direct: ReplyToModeSchema.optional(),
-  group: ReplyToModeSchema.optional(),
-  channel: ReplyToModeSchema.optional()
-}).strict();
-var SlackSocketModeSchema = z13.object({
-  clientPingTimeout: z13.number().int().positive().optional(),
-  serverPingTimeout: z13.number().int().positive().optional(),
-  pingPongLoggingEnabled: z13.boolean().optional()
-}).strict();
-var SlackAccountSchema = z13.object({
-  name: z13.string().optional(),
-  mode: z13.enum(["socket", "http"]).optional(),
-  socketMode: SlackSocketModeSchema.optional(),
-  signingSecret: SecretInputSchema.optional().register(sensitive),
-  webhookPath: z13.string().optional(),
-  capabilities: SlackCapabilitiesSchema.optional(),
-  execApprovals: z13.object({
-    enabled: z13.boolean().optional(),
-    approvers: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-    agentFilter: z13.array(z13.string()).optional(),
-    sessionFilter: z13.array(z13.string()).optional(),
-    target: z13.enum(["dm", "channel", "both"]).optional()
-  }).strict().optional(),
-  markdown: MarkdownConfigSchema,
-  enabled: z13.boolean().optional(),
-  commands: ProviderCommandsSchema,
-  configWrites: z13.boolean().optional(),
-  botToken: SecretInputSchema.optional().register(sensitive),
-  appToken: SecretInputSchema.optional().register(sensitive),
-  userToken: SecretInputSchema.optional().register(sensitive),
-  userTokenReadOnly: z13.boolean().optional().default(true),
-  allowBots: z13.boolean().optional(),
-  dangerouslyAllowNameMatching: z13.boolean().optional(),
-  requireMention: z13.boolean().optional(),
-  groupPolicy: GroupPolicySchema.optional(),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  streaming: SlackStreamingConfigSchema.optional(),
-  mediaMaxMb: z13.number().positive().optional(),
-  reactionNotifications: z13.enum(["off", "own", "all", "allowlist"]).optional(),
-  reactionAllowlist: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  replyToMode: ReplyToModeSchema.optional(),
-  replyToModeByChatType: SlackReplyToModeByChatTypeSchema.optional(),
-  thread: SlackThreadSchema.optional(),
-  actions: z13.object({
-    reactions: z13.boolean().optional(),
-    messages: z13.boolean().optional(),
-    pins: z13.boolean().optional(),
-    search: z13.boolean().optional(),
-    permissions: z13.boolean().optional(),
-    memberInfo: z13.boolean().optional(),
-    channelInfo: z13.boolean().optional(),
-    emojiList: z13.boolean().optional()
-  }).strict().optional(),
-  slashCommand: z13.object({
-    enabled: z13.boolean().optional(),
-    name: z13.string().optional(),
-    sessionPrefix: z13.string().optional(),
-    ephemeral: z13.boolean().optional()
-  }).strict().optional(),
-  // Aliases for channels.slack.dm.policy / channels.slack.dm.allowFrom. Prefer these for
-  // inheritance in multi-account setups (shallow merge works; nested dm object doesn't).
-  dmPolicy: DmPolicySchema.optional(),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  defaultTo: z13.string().optional(),
-  dm: SlackDmSchema.optional(),
-  channels: z13.record(z13.string(), SlackChannelSchema.optional()).optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z13.string().optional(),
-  ackReaction: z13.string().optional(),
-  typingReaction: z13.string().optional()
-}).strict().superRefine(() => {
-});
-var SlackConfigSchema = SlackAccountSchema.safeExtend({
-  mode: z13.enum(["socket", "http"]).optional().default("socket"),
-  signingSecret: SecretInputSchema.optional().register(sensitive),
-  webhookPath: z13.string().optional().default("/slack/events"),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  accounts: z13.record(z13.string(), SlackAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional()
-}).superRefine((value, ctx) => {
-  const dmPolicy = value.dmPolicy ?? value.dm?.policy ?? "pairing";
-  const allowFrom = value.allowFrom ?? value.dm?.allowFrom;
-  const allowFromPath = value.allowFrom !== void 0 ? ["allowFrom"] : ["dm", "allowFrom"];
-  requireOpenAllowFrom({
-    policy: dmPolicy,
-    allowFrom,
-    ctx,
-    path: [...allowFromPath],
-    message: 'channels.slack.dmPolicy="open" requires channels.slack.allowFrom (or channels.slack.dm.allowFrom) to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: dmPolicy,
-    allowFrom,
-    ctx,
-    path: [...allowFromPath],
-    message: 'channels.slack.dmPolicy="allowlist" requires channels.slack.allowFrom (or channels.slack.dm.allowFrom) to contain at least one sender ID'
-  });
-  const baseMode = value.mode ?? "socket";
-  if (!value.accounts) {
-    validateSlackSigningSecretRequirements(value, ctx);
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    if (account.enabled === false) {
-      continue;
-    }
-    const accountMode = account.mode ?? baseMode;
-    const effectivePolicy = account.dmPolicy ?? account.dm?.policy ?? value.dmPolicy ?? value.dm?.policy ?? "pairing";
-    const effectiveAllowFrom = account.allowFrom ?? account.dm?.allowFrom ?? value.allowFrom ?? value.dm?.allowFrom;
-    requireOpenAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.slack.accounts.*.dmPolicy="open" requires channels.slack.accounts.*.allowFrom (or channels.slack.allowFrom) to include "*"'
-    });
-    requireAllowlistAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.slack.accounts.*.dmPolicy="allowlist" requires channels.slack.accounts.*.allowFrom (or channels.slack.allowFrom) to contain at least one sender ID'
-    });
-    if (accountMode !== "http") {
-      continue;
-    }
-  }
-  validateSlackSigningSecretRequirements(value, ctx);
-});
-var SignalGroupEntrySchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  ingest: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema
-}).strict();
-var SignalGroupsSchema = z13.record(z13.string(), SignalGroupEntrySchema.optional()).optional();
-var SignalAccountSchemaBase = z13.object({
-  name: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
-  markdown: MarkdownConfigSchema,
-  enabled: z13.boolean().optional(),
-  configWrites: z13.boolean().optional(),
-  account: z13.string().optional(),
-  accountUuid: z13.string().optional(),
-  httpUrl: z13.string().optional(),
-  httpHost: z13.string().optional(),
-  httpPort: z13.number().int().positive().optional(),
-  cliPath: ExecutableTokenSchema.optional(),
-  autoStart: z13.boolean().optional(),
-  startupTimeoutMs: z13.number().int().min(1e3).max(12e4).optional(),
-  receiveMode: z13.union([z13.literal("on-start"), z13.literal("manual")]).optional(),
-  ignoreAttachments: z13.boolean().optional(),
-  ignoreStories: z13.boolean().optional(),
-  sendReadReceipts: z13.boolean().optional(),
-  dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  defaultTo: z13.string().optional(),
-  groupAllowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  groups: SignalGroupsSchema,
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  chunkMode: z13.enum(["length", "newline"]).optional(),
-  blockStreaming: z13.boolean().optional(),
-  blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaMaxMb: z13.number().int().positive().optional(),
-  reactionNotifications: z13.enum(["off", "own", "all", "allowlist"]).optional(),
-  reactionAllowlist: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  actions: z13.object({
-    reactions: z13.boolean().optional()
-  }).strict().optional(),
-  reactionLevel: z13.enum(["off", "ack", "minimal", "extensive"]).optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z13.string().optional()
-}).strict();
-var SignalAccountSchema = SignalAccountSchemaBase;
-var SignalConfigSchema = SignalAccountSchemaBase.extend({
-  accounts: z13.record(z13.string(), SignalAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional()
-}).superRefine((value, ctx) => {
-  requireOpenAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.signal.dmPolicy="open" requires channels.signal.allowFrom to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.signal.dmPolicy="allowlist" requires channels.signal.allowFrom to contain at least one sender ID'
-  });
-  if (!value.accounts) {
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    const effectivePolicy = account.dmPolicy ?? value.dmPolicy;
-    const effectiveAllowFrom = account.allowFrom ?? value.allowFrom;
-    requireOpenAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.signal.accounts.*.dmPolicy="open" requires channels.signal.accounts.*.allowFrom (or channels.signal.allowFrom) to include "*"'
-    });
-    requireAllowlistAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.signal.accounts.*.dmPolicy="allowlist" requires channels.signal.accounts.*.allowFrom (or channels.signal.allowFrom) to contain at least one sender ID'
-    });
-  }
-});
-var IrcGroupSchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  skills: z13.array(z13.string()).optional(),
-  enabled: z13.boolean().optional(),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  systemPrompt: z13.string().optional()
-}).strict();
-var IrcNickServSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  service: z13.string().optional(),
-  password: SecretInputSchema.optional().register(sensitive),
-  passwordFile: z13.string().optional(),
-  register: z13.boolean().optional(),
-  registerEmail: z13.string().optional()
-}).strict();
-var IrcAccountSchemaBase = z13.object({
-  name: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
-  markdown: MarkdownConfigSchema,
-  enabled: z13.boolean().optional(),
-  configWrites: z13.boolean().optional(),
-  host: z13.string().optional(),
-  port: z13.number().int().min(1).max(65535).optional(),
-  tls: z13.boolean().optional(),
-  nick: z13.string().optional(),
-  username: z13.string().optional(),
-  realname: z13.string().optional(),
-  password: SecretInputSchema.optional().register(sensitive),
-  passwordFile: z13.string().optional(),
-  nickserv: IrcNickServSchema.optional(),
-  channels: z13.array(z13.string()).optional(),
-  dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  defaultTo: z13.string().optional(),
-  groupAllowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  groups: z13.record(z13.string(), IrcGroupSchema.optional()).optional(),
-  mentionPatterns: z13.array(z13.string()).optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  chunkMode: z13.enum(["length", "newline"]).optional(),
-  blockStreaming: z13.boolean().optional(),
-  blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaMaxMb: z13.number().positive().optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z13.string().optional()
-}).strict();
-function refineIrcAllowFromAndNickserv(value, ctx) {
-  requireOpenAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.irc.dmPolicy="open" requires channels.irc.allowFrom to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.irc.dmPolicy="allowlist" requires channels.irc.allowFrom to contain at least one sender ID'
-  });
-  if (value.nickserv?.register && !value.nickserv.registerEmail?.trim()) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      path: ["nickserv", "registerEmail"],
-      message: "channels.irc.nickserv.register=true requires channels.irc.nickserv.registerEmail"
-    });
-  }
-}
-var IrcAccountSchema = IrcAccountSchemaBase.superRefine((value, ctx) => {
-  if (value.nickserv?.register && !value.nickserv.registerEmail?.trim()) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      path: ["nickserv", "registerEmail"],
-      message: "channels.irc.nickserv.register=true requires channels.irc.nickserv.registerEmail"
-    });
-  }
-});
-var IrcConfigSchema = IrcAccountSchemaBase.extend({
-  accounts: z13.record(z13.string(), IrcAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional()
-}).superRefine((value, ctx) => {
-  refineIrcAllowFromAndNickserv(value, ctx);
-  if (!value.accounts) {
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    const effectivePolicy = account.dmPolicy ?? value.dmPolicy;
-    const effectiveAllowFrom = account.allowFrom ?? value.allowFrom;
-    requireOpenAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.irc.accounts.*.dmPolicy="open" requires channels.irc.accounts.*.allowFrom (or channels.irc.allowFrom) to include "*"'
-    });
-    requireAllowlistAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.irc.accounts.*.dmPolicy="allowlist" requires channels.irc.accounts.*.allowFrom (or channels.irc.allowFrom) to contain at least one sender ID'
-    });
-  }
-});
-var IMessageAccountSchemaBase = z13.object({
-  name: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
-  markdown: MarkdownConfigSchema,
-  enabled: z13.boolean().optional(),
-  configWrites: z13.boolean().optional(),
-  cliPath: ExecutableTokenSchema.optional(),
-  dbPath: z13.string().optional(),
-  remoteHost: z13.string().refine(isSafeScpRemoteHost, "expected SSH host or user@host (no spaces/options)").optional(),
-  service: z13.union([z13.literal("imessage"), z13.literal("sms"), z13.literal("auto")]).optional(),
-  region: z13.string().optional(),
-  dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  defaultTo: z13.string().optional(),
-  groupAllowFrom: z13.array(z13.union([z13.string(), z13.number()])).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  includeAttachments: z13.boolean().optional(),
-  attachmentRoots: z13.array(z13.string().refine(isValidInboundPathRootPattern, "expected absolute path root")).optional(),
-  remoteAttachmentRoots: z13.array(z13.string().refine(isValidInboundPathRootPattern, "expected absolute path root")).optional(),
-  mediaMaxMb: z13.number().int().positive().optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  chunkMode: z13.enum(["length", "newline"]).optional(),
-  blockStreaming: z13.boolean().optional(),
-  blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  groups: z13.record(
-    z13.string(),
-    z13.object({
-      requireMention: z13.boolean().optional(),
-      tools: ToolPolicySchema,
-      toolsBySender: ToolPolicyBySenderSchema
-    }).strict().optional()
-  ).optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z13.string().optional()
-}).strict();
-var IMessageAccountSchema = IMessageAccountSchemaBase;
-var IMessageConfigSchema = IMessageAccountSchemaBase.extend({
-  accounts: z13.record(z13.string(), IMessageAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional()
-}).superRefine((value, ctx) => {
-  requireOpenAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.imessage.dmPolicy="open" requires channels.imessage.allowFrom to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.imessage.dmPolicy="allowlist" requires channels.imessage.allowFrom to contain at least one sender ID'
-  });
-  if (!value.accounts) {
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    const effectivePolicy = account.dmPolicy ?? value.dmPolicy;
-    const effectiveAllowFrom = account.allowFrom ?? value.allowFrom;
-    requireOpenAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.imessage.accounts.*.dmPolicy="open" requires channels.imessage.accounts.*.allowFrom (or channels.imessage.allowFrom) to include "*"'
-    });
-    requireAllowlistAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.imessage.accounts.*.dmPolicy="allowlist" requires channels.imessage.accounts.*.allowFrom (or channels.imessage.allowFrom) to contain at least one sender ID'
-    });
-  }
-});
-var BlueBubblesAllowFromEntry = z13.union([z13.string(), z13.number()]);
-var BlueBubblesActionSchema = z13.object({
-  reactions: z13.boolean().optional(),
-  edit: z13.boolean().optional(),
-  unsend: z13.boolean().optional(),
-  reply: z13.boolean().optional(),
-  sendWithEffect: z13.boolean().optional(),
-  renameGroup: z13.boolean().optional(),
-  setGroupIcon: z13.boolean().optional(),
-  addParticipant: z13.boolean().optional(),
-  removeParticipant: z13.boolean().optional(),
-  leaveGroup: z13.boolean().optional(),
-  sendAttachment: z13.boolean().optional()
-}).strict().optional();
-var BlueBubblesGroupConfigSchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema
-}).strict();
-var BlueBubblesAccountSchemaBase = z13.object({
-  name: z13.string().optional(),
-  capabilities: z13.array(z13.string()).optional(),
-  markdown: MarkdownConfigSchema,
-  configWrites: z13.boolean().optional(),
-  enabled: z13.boolean().optional(),
-  serverUrl: z13.string().optional(),
-  password: SecretInputSchema.optional().register(sensitive),
-  webhookPath: z13.string().optional(),
-  dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z13.array(BlueBubblesAllowFromEntry).optional(),
-  groupAllowFrom: z13.array(BlueBubblesAllowFromEntry).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  sendTimeoutMs: z13.number().int().positive().optional(),
-  chunkMode: z13.enum(["length", "newline"]).optional(),
-  mediaMaxMb: z13.number().int().positive().optional(),
-  mediaLocalRoots: z13.array(z13.string()).optional(),
-  sendReadReceipts: z13.boolean().optional(),
-  network: z13.object({
-    dangerouslyAllowPrivateNetwork: z13.boolean().optional()
-  }).strict().optional(),
-  blockStreaming: z13.boolean().optional(),
-  blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  groups: z13.record(z13.string(), BlueBubblesGroupConfigSchema.optional()).optional(),
-  enrichGroupParticipantsFromContacts: z13.boolean().optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z13.string().optional(),
-  coalesceSameSenderDms: z13.boolean().optional()
-}).strict();
-var BlueBubblesAccountSchema = BlueBubblesAccountSchemaBase;
-var BlueBubblesConfigSchema = BlueBubblesAccountSchemaBase.extend({
-  accounts: z13.record(z13.string(), BlueBubblesAccountSchema.optional()).optional(),
-  defaultAccount: z13.string().optional(),
-  actions: BlueBubblesActionSchema
-}).superRefine((value, ctx) => {
-  requireOpenAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.bluebubbles.dmPolicy="open" requires channels.bluebubbles.allowFrom to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.bluebubbles.dmPolicy="allowlist" requires channels.bluebubbles.allowFrom to contain at least one sender ID'
-  });
-  if (!value.accounts) {
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    const effectivePolicy = account.dmPolicy ?? value.dmPolicy;
-    const effectiveAllowFrom = account.allowFrom ?? value.allowFrom;
-    requireOpenAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.bluebubbles.accounts.*.dmPolicy="open" requires channels.bluebubbles.accounts.*.allowFrom (or channels.bluebubbles.allowFrom) to include "*"'
-    });
-    requireAllowlistAllowFrom({
-      policy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.bluebubbles.accounts.*.dmPolicy="allowlist" requires channels.bluebubbles.accounts.*.allowFrom (or channels.bluebubbles.allowFrom) to contain at least one sender ID'
-    });
-  }
-});
-var MSTeamsChannelSchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  replyStyle: MSTeamsReplyStyleSchema.optional()
-}).strict();
-var MSTeamsTeamSchema = z13.object({
-  requireMention: z13.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema,
-  replyStyle: MSTeamsReplyStyleSchema.optional(),
-  channels: z13.record(z13.string(), MSTeamsChannelSchema.optional()).optional()
-}).strict();
-var MSTeamsConfigSchema = z13.object({
-  enabled: z13.boolean().optional(),
-  capabilities: z13.array(z13.string()).optional(),
-  dangerouslyAllowNameMatching: z13.boolean().optional(),
-  markdown: MarkdownConfigSchema,
-  configWrites: z13.boolean().optional(),
-  appId: z13.string().optional(),
-  appPassword: SecretInputSchema.optional().register(sensitive),
-  tenantId: z13.string().optional(),
-  authType: z13.enum(["secret", "federated"]).optional(),
-  certificatePath: z13.string().optional(),
-  certificateThumbprint: z13.string().optional(),
-  useManagedIdentity: z13.boolean().optional(),
-  managedIdentityClientId: z13.string().optional(),
-  webhook: z13.object({
-    port: z13.number().int().positive().optional(),
-    path: z13.string().optional()
-  }).strict().optional(),
-  dmPolicy: DmPolicySchema.optional().default("pairing"),
-  allowFrom: z13.array(z13.string()).optional(),
-  defaultTo: z13.string().optional(),
-  groupAllowFrom: z13.array(z13.string()).optional(),
-  groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-  contextVisibility: ContextVisibilityModeSchema.optional(),
-  textChunkLimit: z13.number().int().positive().optional(),
-  chunkMode: z13.enum(["length", "newline"]).optional(),
-  streaming: ChannelPreviewStreamingConfigSchema.optional(),
-  typingIndicator: z13.boolean().optional(),
-  blockStreaming: z13.boolean().optional(),
-  blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-  mediaAllowHosts: z13.array(z13.string()).optional(),
-  mediaAuthAllowHosts: z13.array(z13.string()).optional(),
-  requireMention: z13.boolean().optional(),
-  historyLimit: z13.number().int().min(0).optional(),
-  dmHistoryLimit: z13.number().int().min(0).optional(),
-  dms: z13.record(z13.string(), DmConfigSchema.optional()).optional(),
-  replyStyle: MSTeamsReplyStyleSchema.optional(),
-  teams: z13.record(z13.string(), MSTeamsTeamSchema.optional()).optional(),
-  /** Max media size in MB (default: 100MB for OneDrive upload support). */
-  mediaMaxMb: z13.number().positive().optional(),
-  /** SharePoint site ID for file uploads in group chats/channels (e.g., "contoso.sharepoint.com,guid1,guid2") */
-  sharePointSiteId: z13.string().optional(),
-  heartbeat: ChannelHeartbeatVisibilitySchema,
-  healthMonitor: ChannelHealthMonitorSchema,
-  responsePrefix: z13.string().optional(),
-  welcomeCard: z13.boolean().optional(),
-  promptStarters: z13.array(z13.string()).optional(),
-  groupWelcomeCard: z13.boolean().optional(),
-  feedbackEnabled: z13.boolean().optional(),
-  feedbackReflection: z13.boolean().optional(),
-  feedbackReflectionCooldownMs: z13.number().int().min(0).optional(),
-  delegatedAuth: z13.object({
-    enabled: z13.boolean().optional(),
-    scopes: z13.array(z13.string()).optional()
-  }).strict().optional(),
-  sso: z13.object({
-    enabled: z13.boolean().optional(),
-    connectionName: z13.string().optional()
-  }).strict().optional()
-}).strict().superRefine((value, ctx) => {
-  requireOpenAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.msteams.dmPolicy="open" requires channels.msteams.allowFrom to include "*"'
-  });
-  requireAllowlistAllowFrom({
-    policy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    path: ["allowFrom"],
-    message: 'channels.msteams.dmPolicy="allowlist" requires channels.msteams.allowFrom to contain at least one sender ID'
-  });
-  if (value.sso?.enabled === true && !value.sso.connectionName?.trim()) {
-    ctx.addIssue({
-      code: z13.ZodIssueCode.custom,
-      path: ["sso", "connectionName"],
-      message: "channels.msteams.sso.enabled=true requires channels.msteams.sso.connectionName to identify the Bot Framework OAuth connection"
-    });
-  }
-});
-
-// vendor/openclaw/src/config/zod-schema.providers-whatsapp.ts
-import { z as z14 } from "zod";
-
-// vendor/openclaw/src/routing/account-lookup.ts
-function resolveAccountEntry(accounts, accountId) {
-  if (!accounts || typeof accounts !== "object") {
-    return void 0;
-  }
-  if (Object.hasOwn(accounts, accountId)) {
-    return accounts[accountId];
-  }
-  const normalized = normalizeLowercaseStringOrEmpty(accountId);
-  const matchKey = Object.keys(accounts).find(
-    (key) => normalizeLowercaseStringOrEmpty(key) === normalized
-  );
-  return matchKey ? accounts[matchKey] : void 0;
-}
-
-// vendor/openclaw/src/config/zod-schema.providers-whatsapp.ts
-var ToolPolicyBySenderSchema2 = z14.record(z14.string(), ToolPolicySchema).optional();
-var WhatsAppGroupEntrySchema = z14.object({
-  requireMention: z14.boolean().optional(),
-  tools: ToolPolicySchema,
-  toolsBySender: ToolPolicyBySenderSchema2,
-  systemPrompt: z14.string().optional()
-}).strict().optional();
-var WhatsAppGroupsSchema = z14.record(z14.string(), WhatsAppGroupEntrySchema).optional();
-var WhatsAppDirectEntrySchema = z14.object({
-  systemPrompt: z14.string().optional()
-}).strict().optional();
-var WhatsAppDirectSchema = z14.record(z14.string(), WhatsAppDirectEntrySchema).optional();
-var WhatsAppAckReactionSchema = z14.object({
-  emoji: z14.string().optional(),
-  direct: z14.boolean().optional().default(true),
-  group: z14.enum(["always", "mentions", "never"]).optional().default("mentions")
-}).strict().optional();
-function stripDeprecatedWhatsAppNoopKeys(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return value;
-  }
-  if (!Object.hasOwn(value, "exposeErrorText")) {
-    return value;
-  }
-  const next = { ...value };
-  delete next.exposeErrorText;
-  return next;
-}
-function buildWhatsAppCommonShape(params) {
-  return {
-    enabled: z14.boolean().optional(),
-    capabilities: z14.array(z14.string()).optional(),
-    markdown: MarkdownConfigSchema,
-    configWrites: z14.boolean().optional(),
-    sendReadReceipts: z14.boolean().optional(),
-    messagePrefix: z14.string().optional(),
-    responsePrefix: z14.string().optional(),
-    dmPolicy: params.useDefaults ? DmPolicySchema.optional().default("pairing") : DmPolicySchema.optional(),
-    selfChatMode: z14.boolean().optional(),
-    allowFrom: z14.array(z14.string()).optional(),
-    defaultTo: z14.string().optional(),
-    groupAllowFrom: z14.array(z14.string()).optional(),
-    groupPolicy: params.useDefaults ? GroupPolicySchema.optional().default("allowlist") : GroupPolicySchema.optional(),
-    contextVisibility: ContextVisibilityModeSchema.optional(),
-    historyLimit: z14.number().int().min(0).optional(),
-    dmHistoryLimit: z14.number().int().min(0).optional(),
-    dms: z14.record(z14.string(), DmConfigSchema.optional()).optional(),
-    textChunkLimit: z14.number().int().positive().optional(),
-    chunkMode: z14.enum(["length", "newline"]).optional(),
-    blockStreaming: z14.boolean().optional(),
-    blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-    groups: WhatsAppGroupsSchema,
-    direct: WhatsAppDirectSchema,
-    ackReaction: WhatsAppAckReactionSchema,
-    reactionLevel: z14.enum(["off", "ack", "minimal", "extensive"]).optional(),
-    debounceMs: params.useDefaults ? z14.number().int().nonnegative().optional().default(0) : z14.number().int().nonnegative().optional(),
-    replyToMode: ReplyToModeSchema.optional(),
-    heartbeat: ChannelHeartbeatVisibilitySchema,
-    healthMonitor: ChannelHealthMonitorSchema
-  };
-}
-function enforceOpenDmPolicyAllowFromStar(params) {
-  if (params.dmPolicy !== "open") {
-    return;
-  }
-  const allow = normalizeStringEntries(Array.isArray(params.allowFrom) ? params.allowFrom : []);
-  if (allow.includes("*")) {
-    return;
-  }
-  params.ctx.addIssue({
-    code: z14.ZodIssueCode.custom,
-    path: params.path ?? ["allowFrom"],
-    message: params.message
-  });
-}
-function enforceAllowlistDmPolicyAllowFrom(params) {
-  if (params.dmPolicy !== "allowlist") {
-    return;
-  }
-  const allow = normalizeStringEntries(Array.isArray(params.allowFrom) ? params.allowFrom : []);
-  if (allow.length > 0) {
-    return;
-  }
-  params.ctx.addIssue({
-    code: z14.ZodIssueCode.custom,
-    path: params.path ?? ["allowFrom"],
-    message: params.message
-  });
-}
-var WhatsAppAccountObjectSchema = z14.object({
-  ...buildWhatsAppCommonShape({ useDefaults: false }),
-  name: z14.string().optional(),
-  enabled: z14.boolean().optional(),
-  /** Override auth directory for this WhatsApp account (Baileys multi-file auth state). */
-  authDir: z14.string().optional(),
-  mediaMaxMb: z14.number().int().positive().optional()
-}).strict();
-var WhatsAppAccountSchema = z14.preprocess(
-  stripDeprecatedWhatsAppNoopKeys,
-  WhatsAppAccountObjectSchema
-);
-var WhatsAppConfigObjectSchema = z14.object({
-  ...buildWhatsAppCommonShape({ useDefaults: true }),
-  accounts: z14.record(z14.string(), WhatsAppAccountSchema.optional()).optional(),
-  defaultAccount: z14.string().optional(),
-  mediaMaxMb: z14.number().int().positive().optional().default(50),
-  actions: z14.object({
-    reactions: z14.boolean().optional(),
-    sendMessage: z14.boolean().optional(),
-    polls: z14.boolean().optional()
-  }).strict().optional()
-}).strict().superRefine((value, ctx) => {
-  const defaultAccount = resolveAccountEntry(value.accounts, "default");
-  enforceOpenDmPolicyAllowFromStar({
-    dmPolicy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    message: 'channels.whatsapp.dmPolicy="open" requires channels.whatsapp.allowFrom to include "*"'
-  });
-  enforceAllowlistDmPolicyAllowFrom({
-    dmPolicy: value.dmPolicy,
-    allowFrom: value.allowFrom,
-    ctx,
-    message: 'channels.whatsapp.dmPolicy="allowlist" requires channels.whatsapp.allowFrom to contain at least one sender ID'
-  });
-  if (!value.accounts) {
-    return;
-  }
-  for (const [accountId, account] of Object.entries(value.accounts)) {
-    if (!account) {
-      continue;
-    }
-    const effectivePolicy = account.dmPolicy ?? (accountId === "default" ? void 0 : defaultAccount?.dmPolicy) ?? value.dmPolicy;
-    const effectiveAllowFrom = account.allowFrom ?? (accountId === "default" ? void 0 : defaultAccount?.allowFrom) ?? value.allowFrom;
-    enforceOpenDmPolicyAllowFromStar({
-      dmPolicy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.whatsapp.accounts.*.dmPolicy="open" requires channels.whatsapp.accounts.*.allowFrom (or channels.whatsapp.allowFrom) to include "*"'
-    });
-    enforceAllowlistDmPolicyAllowFrom({
-      dmPolicy: effectivePolicy,
-      allowFrom: effectiveAllowFrom,
-      ctx,
-      path: ["accounts", accountId, "allowFrom"],
-      message: 'channels.whatsapp.accounts.*.dmPolicy="allowlist" requires channels.whatsapp.accounts.*.allowFrom (or channels.whatsapp.allowFrom) to contain at least one sender ID'
-    });
-  }
-});
-var WhatsAppConfigSchema = z14.preprocess(
-  stripDeprecatedWhatsAppNoopKeys,
-  WhatsAppConfigObjectSchema
-);
-
-// vendor/openclaw/src/config/zod-schema.providers.ts
-var ChannelModelByChannelSchema = z15.record(z15.string(), z15.record(z15.string(), z15.string())).optional();
-function addLegacyChannelAcpBindingIssues(value, ctx, path6 = []) {
-  if (!value || typeof value !== "object") {
-    return;
-  }
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) => addLegacyChannelAcpBindingIssues(entry, ctx, [...path6, index]));
-    return;
-  }
-  const record = value;
-  const bindings = record.bindings;
-  if (bindings && typeof bindings === "object" && !Array.isArray(bindings)) {
-    const acp = bindings.acp;
-    if (acp && typeof acp === "object") {
-      ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
-        path: [...path6, "bindings", "acp"],
-        message: "Legacy channel-local ACP bindings were removed; use top-level bindings[] entries."
-      });
-    }
-  }
-  for (const [key, entry] of Object.entries(record)) {
-    addLegacyChannelAcpBindingIssues(entry, ctx, [...path6, key]);
-  }
-}
-var ChannelsSchema = z15.object({
-  defaults: z15.object({
-    groupPolicy: GroupPolicySchema.optional(),
-    contextVisibility: ContextVisibilityModeSchema.optional(),
-    heartbeat: ChannelHeartbeatVisibilitySchema
-  }).strict().optional(),
-  modelByChannel: ChannelModelByChannelSchema
-}).passthrough().superRefine((value, ctx) => {
-  addLegacyChannelAcpBindingIssues(value, ctx);
-}).optional();
 
 // vendor/openclaw/src/config/zod-schema.proxy.ts
-import { z as z16 } from "zod";
-function isHttpProxyUrl(value) {
+import { z as z13 } from "zod";
+function isHttpOrHttpsProxyUrl(value) {
   try {
     const url = new URL(value);
-    return url.protocol === "http:";
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
   }
 }
-var ProxyConfigSchema = z16.object({
-  enabled: z16.boolean().optional(),
-  proxyUrl: z16.string().url().refine(isHttpProxyUrl, {
-    message: "proxyUrl must use http://"
-  }).register(sensitive).optional()
+var ProxyLoopbackModeSchema = z13.enum(["gateway-only", "proxy", "block"]);
+var ProxyTlsConfigSchema = z13.object({
+  caFile: z13.string().min(1).optional()
+}).strict().optional();
+var ProxyConfigSchema = z13.object({
+  enabled: z13.boolean().optional(),
+  proxyUrl: z13.url().refine(isHttpOrHttpsProxyUrl, {
+    message: "proxyUrl must use http:// or https://"
+  }).register(sensitive).optional(),
+  tls: ProxyTlsConfigSchema,
+  loopbackMode: ProxyLoopbackModeSchema.optional()
 }).strict().optional();
 
 // vendor/openclaw/src/config/zod-schema.session.ts
-import { z as z17 } from "zod";
-var SessionResetConfigSchema = z17.object({
-  mode: z17.union([z17.literal("daily"), z17.literal("idle")]).optional(),
-  atHour: z17.number().int().min(0).max(23).optional(),
-  idleMinutes: z17.number().int().positive().optional()
+import { z as z14 } from "zod";
+var SessionResetConfigSchema = z14.object({
+  mode: z14.union([z14.literal("daily"), z14.literal("idle")]).optional(),
+  atHour: z14.number().int().min(0).max(23).optional(),
+  idleMinutes: z14.number().int().positive().optional()
 }).strict();
 var SessionSendPolicySchema = createAllowDenyChannelRulesSchema();
-var SessionSchema = z17.object({
-  scope: z17.union([z17.literal("per-sender"), z17.literal("global")]).optional(),
-  dmScope: z17.union([
-    z17.literal("main"),
-    z17.literal("per-peer"),
-    z17.literal("per-channel-peer"),
-    z17.literal("per-account-channel-peer")
+var SessionSchema = z14.object({
+  scope: z14.union([z14.literal("per-sender"), z14.literal("global")]).optional(),
+  dmScope: z14.union([
+    z14.literal("main"),
+    z14.literal("per-peer"),
+    z14.literal("per-channel-peer"),
+    z14.literal("per-account-channel-peer")
   ]).optional(),
-  identityLinks: z17.record(z17.string(), z17.array(z17.string())).optional(),
-  resetTriggers: z17.array(z17.string()).optional(),
-  idleMinutes: z17.number().int().positive().optional(),
+  identityLinks: z14.record(z14.string(), z14.array(z14.string())).optional(),
+  resetTriggers: z14.array(z14.string()).optional(),
+  idleMinutes: z14.number().int().positive().optional(),
   reset: SessionResetConfigSchema.optional(),
-  resetByType: z17.object({
+  resetByType: z14.object({
     direct: SessionResetConfigSchema.optional(),
     /** @deprecated Use `direct` instead. Kept for backward compatibility. */
     dm: SessionResetConfigSchema.optional(),
     group: SessionResetConfigSchema.optional(),
     thread: SessionResetConfigSchema.optional()
   }).strict().optional(),
-  resetByChannel: z17.record(z17.string(), SessionResetConfigSchema).optional(),
-  store: z17.string().optional(),
-  typingIntervalSeconds: z17.number().int().positive().optional(),
+  resetByChannel: z14.record(z14.string(), SessionResetConfigSchema).optional(),
+  store: z14.string().optional(),
+  typingIntervalSeconds: z14.number().int().positive().optional(),
   typingMode: TypingModeSchema.optional(),
-  mainKey: z17.string().optional(),
+  mainKey: z14.string().optional(),
   sendPolicy: SessionSendPolicySchema.optional(),
-  writeLock: z17.object({
-    acquireTimeoutMs: z17.number().int().positive().optional()
+  writeLock: z14.object({
+    acquireTimeoutMs: z14.number().int().positive().optional(),
+    staleMs: z14.number().int().positive().optional(),
+    maxHoldMs: z14.number().int().positive().optional()
   }).strict().optional(),
-  agentToAgent: z17.object({
-    maxPingPongTurns: z17.number().int().min(0).max(5).optional()
+  agentToAgent: z14.object({
+    maxPingPongTurns: z14.number().int().min(0).max(20).optional()
   }).strict().optional(),
-  threadBindings: z17.object({
-    enabled: z17.boolean().optional(),
-    idleHours: z17.number().nonnegative().optional(),
-    maxAgeHours: z17.number().nonnegative().optional(),
-    spawnSessions: z17.boolean().optional(),
-    defaultSpawnContext: z17.enum(["isolated", "fork"]).optional()
+  threadBindings: z14.object({
+    enabled: z14.boolean().optional(),
+    idleHours: z14.number().nonnegative().optional(),
+    maxAgeHours: z14.number().nonnegative().optional(),
+    spawnSessions: z14.boolean().optional(),
+    defaultSpawnContext: z14.enum(["isolated", "fork"]).optional()
   }).strict().optional(),
-  maintenance: z17.object({
-    mode: z17.enum(["enforce", "warn"]).optional(),
-    pruneAfter: z17.union([z17.string(), z17.number()]).optional(),
+  maintenance: z14.object({
+    mode: z14.enum(["enforce", "warn"]).optional(),
+    pruneAfter: z14.union([z14.string(), z14.number()]).optional(),
     /** @deprecated Use pruneAfter instead. */
-    pruneDays: z17.number().int().positive().optional(),
-    maxEntries: z17.number().int().positive().optional(),
-    rotateBytes: z17.union([z17.string(), z17.number()]).optional(),
-    resetArchiveRetention: z17.union([z17.string(), z17.number(), z17.literal(false)]).optional(),
-    maxDiskBytes: z17.union([z17.string(), z17.number()]).optional(),
-    highWaterBytes: z17.union([z17.string(), z17.number()]).optional()
+    pruneDays: z14.number().int().positive().optional(),
+    maxEntries: z14.number().int().positive().optional(),
+    rotateBytes: z14.union([z14.string(), z14.number()]).optional(),
+    resetArchiveRetention: z14.union([z14.string(), z14.number(), z14.literal(false)]).optional(),
+    maxDiskBytes: z14.union([z14.string(), z14.number()]).optional(),
+    highWaterBytes: z14.union([z14.string(), z14.number()]).optional()
   }).strict().superRefine((val, ctx) => {
     if (val.pruneAfter !== void 0) {
       try {
@@ -4107,7 +2655,7 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z14.ZodIssueCode.custom,
           path: ["pruneAfter"],
           message: "invalid duration (use ms, s, m, h, d)"
         });
@@ -4120,7 +2668,7 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z14.ZodIssueCode.custom,
           path: ["resetArchiveRetention"],
           message: "invalid duration (use ms, s, m, h, d)"
         });
@@ -4133,7 +2681,7 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z14.ZodIssueCode.custom,
           path: ["maxDiskBytes"],
           message: "invalid size (use b, kb, mb, gb, tb)"
         });
@@ -4146,7 +2694,7 @@ var SessionSchema = z17.object({
         });
       } catch {
         ctx.addIssue({
-          code: z17.ZodIssueCode.custom,
+          code: z14.ZodIssueCode.custom,
           path: ["highWaterBytes"],
           message: "invalid size (use b, kb, mb, gb, tb)"
         });
@@ -4154,55 +2702,59 @@ var SessionSchema = z17.object({
     }
   }).optional()
 }).strict().optional();
-var MessagesSchema = z17.object({
-  messagePrefix: z17.string().optional(),
+var MessagesSchema = z14.object({
+  messagePrefix: z14.string().optional(),
   visibleReplies: VisibleRepliesSchema.optional(),
-  responsePrefix: z17.string().optional(),
+  responsePrefix: z14.string().optional(),
+  usageTemplate: z14.union([z14.string(), z14.record(z14.string(), z14.unknown())]).optional(),
   groupChat: GroupChatSchema,
   queue: QueueSchema,
   inbound: InboundDebounceSchema,
-  ackReaction: z17.string().optional(),
-  ackReactionScope: z17.enum(["group-mentions", "group-all", "direct", "all", "off", "none"]).optional(),
-  removeAckAfterReply: z17.boolean().optional(),
-  statusReactions: z17.object({
-    enabled: z17.boolean().optional(),
-    emojis: z17.object({
-      thinking: z17.string().optional(),
-      tool: z17.string().optional(),
-      coding: z17.string().optional(),
-      web: z17.string().optional(),
-      done: z17.string().optional(),
-      error: z17.string().optional(),
-      stallSoft: z17.string().optional(),
-      stallHard: z17.string().optional(),
-      compacting: z17.string().optional()
+  ackReaction: z14.string().optional(),
+  ackReactionScope: z14.enum(["group-mentions", "group-all", "direct", "all", "off", "none"]).optional(),
+  removeAckAfterReply: z14.boolean().optional(),
+  statusReactions: z14.object({
+    enabled: z14.boolean().optional(),
+    emojis: z14.object({
+      thinking: z14.string().optional(),
+      tool: z14.string().optional(),
+      coding: z14.string().optional(),
+      web: z14.string().optional(),
+      deploy: z14.string().optional(),
+      build: z14.string().optional(),
+      concierge: z14.string().optional(),
+      done: z14.string().optional(),
+      error: z14.string().optional(),
+      stallSoft: z14.string().optional(),
+      stallHard: z14.string().optional(),
+      compacting: z14.string().optional()
     }).strict().optional(),
-    timing: z17.object({
-      debounceMs: z17.number().int().min(0).optional(),
-      stallSoftMs: z17.number().int().min(0).optional(),
-      stallHardMs: z17.number().int().min(0).optional(),
-      doneHoldMs: z17.number().int().min(0).optional(),
-      errorHoldMs: z17.number().int().min(0).optional()
+    timing: z14.object({
+      debounceMs: z14.number().int().min(0).optional(),
+      stallSoftMs: z14.number().int().min(0).optional(),
+      stallHardMs: z14.number().int().min(0).optional(),
+      doneHoldMs: z14.number().int().min(0).optional(),
+      errorHoldMs: z14.number().int().min(0).optional()
     }).strict().optional()
   }).strict().optional(),
-  suppressToolErrors: z17.boolean().optional(),
+  suppressToolErrors: z14.boolean().optional(),
   tts: TtsConfigSchema
 }).strict().optional();
-var CommandsSchema = z17.object({
+var CommandsSchema = z14.object({
   native: NativeCommandsSettingSchema.optional().default("auto"),
   nativeSkills: NativeCommandsSettingSchema.optional().default("auto"),
-  text: z17.boolean().optional(),
-  bash: z17.boolean().optional(),
-  bashForegroundMs: z17.number().int().min(0).max(3e4).optional(),
-  config: z17.boolean().optional(),
-  mcp: z17.boolean().optional(),
-  plugins: z17.boolean().optional(),
-  debug: z17.boolean().optional(),
-  restart: z17.boolean().optional().default(true),
-  useAccessGroups: z17.boolean().optional(),
-  ownerAllowFrom: z17.array(z17.union([z17.string(), z17.number()])).optional(),
-  ownerDisplay: z17.enum(["raw", "hash"]).optional().default("raw"),
-  ownerDisplaySecret: z17.string().optional().register(sensitive),
+  text: z14.boolean().optional(),
+  bash: z14.boolean().optional(),
+  bashForegroundMs: z14.number().int().min(0).max(3e4).optional(),
+  config: z14.boolean().optional(),
+  mcp: z14.boolean().optional(),
+  plugins: z14.boolean().optional(),
+  debug: z14.boolean().optional(),
+  restart: z14.boolean().optional().default(true),
+  useAccessGroups: z14.boolean().optional(),
+  ownerAllowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
+  ownerDisplay: z14.enum(["raw", "hash"]).optional().default("raw"),
+  ownerDisplaySecret: z14.string().optional().register(sensitive),
   allowFrom: ElevatedAllowFromSchema.optional()
 }).strict().optional().default(
   () => ({
@@ -4214,305 +2766,441 @@ var CommandsSchema = z17.object({
 );
 
 // vendor/openclaw/src/config/zod-schema.ts
-var BrowserSnapshotDefaultsSchema = z18.object({
-  mode: z18.literal("efficient").optional()
+var BrowserSnapshotDefaultsSchema = z15.object({
+  mode: z15.literal("efficient").optional()
 }).strict().optional();
-var NodeHostSchema = z18.object({
-  browserProxy: z18.object({
-    enabled: z18.boolean().optional(),
-    allowProfiles: z18.array(z18.string()).optional()
+var NodeHostSchema = z15.object({
+  browserProxy: z15.object({
+    enabled: z15.boolean().optional(),
+    allowProfiles: z15.array(z15.string()).optional()
   }).strict().optional()
 }).strict().optional();
-var AccessGroupsSchema = z18.record(
-  z18.string().min(1),
-  z18.discriminatedUnion("type", [
-    z18.object({
-      type: z18.literal("discord.channelAudience"),
-      guildId: z18.string().min(1),
-      channelId: z18.string().min(1),
-      membership: z18.literal("canViewChannel").optional()
+var GatewayRemoteSchemaShape = {
+  enabled: z15.boolean().optional(),
+  url: z15.string().optional(),
+  transport: z15.union([z15.literal("ssh"), z15.literal("direct")]).optional(),
+  remotePort: z15.number().int().min(1).max(65535).optional(),
+  token: SecretInputSchema.optional().register(sensitive),
+  password: SecretInputSchema.optional().register(sensitive),
+  tlsFingerprint: z15.string().optional(),
+  sshTarget: z15.string().optional(),
+  sshIdentity: z15.string().optional()
+};
+var GatewayRemoteConfigSchema = z15.object(GatewayRemoteSchemaShape).strict().optional();
+var TailscaleServiceNameSchema = z15.string().regex(/^svc:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/, {
+  message: 'Tailscale serviceName must use the "svc:<dns-label>" format, for example "svc:openclaw"'
+});
+var LegacyCanvasHostSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  root: z15.string().optional(),
+  port: z15.number().int().positive().optional(),
+  liveReload: z15.boolean().optional()
+}).strict().optional();
+var SecuritySchema = z15.object({
+  audit: z15.object({
+    suppressions: z15.array(
+      z15.object({
+        checkId: z15.string().min(1),
+        titleIncludes: z15.string().min(1).optional(),
+        detailIncludes: z15.string().min(1).optional(),
+        reason: z15.string().min(1).optional()
+      }).strict()
+    ).optional()
+  }).strict().optional(),
+  installPolicy: z15.object({
+    enabled: z15.boolean().optional(),
+    targets: z15.array(z15.union([z15.literal("skill"), z15.literal("plugin")])).min(1).optional(),
+    exec: z15.object({
+      source: z15.literal("exec"),
+      command: z15.string().min(1),
+      args: z15.array(z15.string()).optional(),
+      timeoutMs: z15.number().int().min(1).optional(),
+      noOutputTimeoutMs: z15.number().int().min(1).optional(),
+      maxOutputBytes: z15.number().int().min(1).optional(),
+      env: z15.record(z15.string(), z15.string().register(sensitive)).optional(),
+      passEnv: z15.array(z15.string()).optional(),
+      trustedDirs: z15.array(z15.string()).optional(),
+      allowInsecurePath: z15.boolean().optional(),
+      allowSymlinkCommand: z15.boolean().optional()
+    }).strict().optional()
+  }).strict().optional()
+}).strict().optional();
+var AccessGroupsSchema = z15.record(
+  z15.string().min(1),
+  z15.discriminatedUnion("type", [
+    z15.object({
+      type: z15.literal("discord.channelAudience"),
+      guildId: z15.string().min(1),
+      channelId: z15.string().min(1),
+      membership: z15.literal("canViewChannel").optional()
     }).strict(),
-    z18.object({
-      type: z18.literal("message.senders"),
-      members: z18.record(z18.string().min(1), z18.array(z18.string().min(1)))
+    z15.object({
+      type: z15.literal("message.senders"),
+      members: z15.record(z15.string().min(1), z15.array(z15.string().min(1)))
     }).strict()
   ])
 ).optional();
-var MemoryQmdPathSchema = z18.object({
-  path: z18.string(),
-  name: z18.string().optional(),
-  pattern: z18.string().optional()
+var MemoryQmdPathSchema = z15.object({
+  path: z15.string(),
+  name: z15.string().optional(),
+  pattern: z15.string().optional()
 }).strict();
-var MemoryQmdSessionSchema = z18.object({
-  enabled: z18.boolean().optional(),
-  exportDir: z18.string().optional(),
-  retentionDays: z18.number().int().nonnegative().optional()
+var MemoryQmdSessionSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  exportDir: z15.string().optional(),
+  retentionDays: z15.number().int().nonnegative().optional()
 }).strict();
-var MemoryQmdUpdateSchema = z18.object({
-  interval: z18.string().optional(),
-  debounceMs: z18.number().int().nonnegative().optional(),
-  onBoot: z18.boolean().optional(),
-  startup: z18.enum(["off", "idle", "immediate"]).optional(),
-  startupDelayMs: z18.number().int().nonnegative().optional(),
-  waitForBootSync: z18.boolean().optional(),
-  embedInterval: z18.string().optional(),
-  commandTimeoutMs: z18.number().int().nonnegative().optional(),
-  updateTimeoutMs: z18.number().int().nonnegative().optional(),
-  embedTimeoutMs: z18.number().int().nonnegative().optional()
+var MemoryQmdUpdateSchema = z15.object({
+  interval: z15.string().optional(),
+  debounceMs: z15.number().int().nonnegative().optional(),
+  onBoot: z15.boolean().optional(),
+  startup: z15.enum(["off", "idle", "immediate"]).optional(),
+  startupDelayMs: z15.number().int().nonnegative().optional(),
+  waitForBootSync: z15.boolean().optional(),
+  embedInterval: z15.string().optional(),
+  commandTimeoutMs: z15.number().int().nonnegative().optional(),
+  updateTimeoutMs: z15.number().int().nonnegative().optional(),
+  embedTimeoutMs: z15.number().int().nonnegative().optional()
 }).strict();
-var MemoryQmdLimitsSchema = z18.object({
-  maxResults: z18.number().int().positive().optional(),
-  maxSnippetChars: z18.number().int().positive().optional(),
-  maxInjectedChars: z18.number().int().positive().optional(),
-  timeoutMs: z18.number().int().nonnegative().optional()
+var MemoryQmdLimitsSchema = z15.object({
+  maxResults: z15.number().int().positive().optional(),
+  maxSnippetChars: z15.number().int().positive().optional(),
+  maxInjectedChars: z15.number().int().positive().optional(),
+  timeoutMs: z15.number().int().nonnegative().optional()
 }).strict();
-var MemoryQmdMcporterSchema = z18.object({
-  enabled: z18.boolean().optional(),
-  serverName: z18.string().optional(),
-  startDaemon: z18.boolean().optional()
+var MemoryQmdMcporterSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  serverName: z15.string().optional(),
+  startDaemon: z15.boolean().optional()
 }).strict();
-var LoggingLevelSchema = z18.union([
-  z18.literal("silent"),
-  z18.literal("fatal"),
-  z18.literal("error"),
-  z18.literal("warn"),
-  z18.literal("info"),
-  z18.literal("debug"),
-  z18.literal("trace")
+var LoggingLevelSchema = z15.union([
+  z15.literal("silent"),
+  z15.literal("fatal"),
+  z15.literal("error"),
+  z15.literal("warn"),
+  z15.literal("info"),
+  z15.literal("debug"),
+  z15.literal("trace")
 ]);
-var MemoryQmdSchema = z18.object({
-  command: z18.string().optional(),
+var MemoryQmdSchema = z15.object({
+  command: z15.string().optional(),
   mcporter: MemoryQmdMcporterSchema.optional(),
-  searchMode: z18.union([z18.literal("query"), z18.literal("search"), z18.literal("vsearch")]).optional(),
-  searchTool: z18.string().trim().min(1).optional(),
-  includeDefaultMemory: z18.boolean().optional(),
-  paths: z18.array(MemoryQmdPathSchema).optional(),
+  searchMode: z15.union([z15.literal("query"), z15.literal("search"), z15.literal("vsearch")]).optional(),
+  rerank: z15.boolean().optional(),
+  searchTool: z15.string().trim().min(1).optional(),
+  includeDefaultMemory: z15.boolean().optional(),
+  paths: z15.array(MemoryQmdPathSchema).optional(),
   sessions: MemoryQmdSessionSchema.optional(),
   update: MemoryQmdUpdateSchema.optional(),
   limits: MemoryQmdLimitsSchema.optional(),
   scope: SessionSendPolicySchema.optional()
 }).strict();
-var MemorySchema = z18.object({
-  backend: z18.union([z18.literal("builtin"), z18.literal("qmd")]).optional(),
-  citations: z18.union([z18.literal("auto"), z18.literal("on"), z18.literal("off")]).optional(),
+var MemorySchema = z15.object({
+  backend: z15.union([z15.literal("builtin"), z15.literal("qmd")]).optional(),
+  citations: z15.union([z15.literal("auto"), z15.literal("on"), z15.literal("off")]).optional(),
   qmd: MemoryQmdSchema.optional()
 }).strict().optional();
-var HttpUrlSchema = z18.string().url().refine((value) => {
+var HttpUrlSchema = z15.string().url().refine((value) => {
   const protocol = new URL(value).protocol;
   return protocol === "http:" || protocol === "https:";
 }, "Expected http:// or https:// URL");
+var McpOAuthClientMetadataUrlSchema = z15.string().url().refine((value) => {
+  const url = new URL(value);
+  return url.protocol === "https:" && url.pathname !== "/";
+}, "Expected https:// URL with a non-root pathname");
 var ResponsesEndpointUrlFetchShape = {
-  allowUrl: z18.boolean().optional(),
-  urlAllowlist: z18.array(z18.string()).optional(),
-  allowedMimes: z18.array(z18.string()).optional(),
-  maxBytes: z18.number().int().positive().optional(),
-  maxRedirects: z18.number().int().nonnegative().optional(),
-  timeoutMs: z18.number().int().positive().optional()
+  allowUrl: z15.boolean().optional(),
+  urlAllowlist: z15.array(z15.string()).optional(),
+  allowedMimes: z15.array(z15.string()).optional(),
+  maxBytes: z15.number().int().positive().optional(),
+  maxRedirects: z15.number().int().nonnegative().optional(),
+  timeoutMs: z15.number().int().positive().optional()
 };
-var SkillEntrySchema = z18.object({
-  enabled: z18.boolean().optional(),
+var SkillEntrySchema = z15.object({
+  enabled: z15.boolean().optional(),
   apiKey: SecretInputSchema.optional().register(sensitive),
-  env: z18.record(z18.string(), z18.string()).optional(),
-  config: z18.record(z18.string(), z18.unknown()).optional()
+  env: z15.record(z15.string(), z15.string()).optional(),
+  config: z15.record(z15.string(), z15.unknown()).optional()
 }).strict();
-var PluginEntrySchema = z18.object({
-  enabled: z18.boolean().optional(),
-  hooks: z18.object({
-    allowPromptInjection: z18.boolean().optional(),
-    allowConversationAccess: z18.boolean().optional(),
-    timeoutMs: z18.number().int().positive().max(6e5).optional(),
-    timeouts: z18.record(z18.string(), z18.number().int().positive().max(6e5)).optional()
+var PluginEntrySchema = z15.object({
+  enabled: z15.boolean().optional(),
+  hooks: z15.object({
+    allowPromptInjection: z15.boolean().optional(),
+    allowConversationAccess: z15.boolean().optional(),
+    timeoutMs: z15.number().int().positive().max(6e5).optional(),
+    timeouts: z15.record(z15.string(), z15.number().int().positive().max(6e5)).optional()
   }).strict().optional(),
-  subagent: z18.object({
-    allowModelOverride: z18.boolean().optional(),
-    allowedModels: z18.array(z18.string()).optional()
+  subagent: z15.object({
+    allowModelOverride: z15.boolean().optional(),
+    allowedModels: z15.array(z15.string()).optional()
   }).strict().optional(),
-  config: z18.record(z18.string(), z18.unknown()).optional()
+  llm: z15.object({
+    allowModelOverride: z15.boolean().optional(),
+    allowedModels: z15.array(z15.string()).optional(),
+    allowAgentIdOverride: z15.boolean().optional()
+  }).strict().optional(),
+  config: z15.record(z15.string(), z15.unknown()).optional()
 }).strict();
-var TalkProviderEntrySchema = z18.object({
+var TalkProviderEntrySchema = z15.object({
   apiKey: SecretInputSchema.optional().register(sensitive)
-}).catchall(z18.unknown());
-var TalkSchema = z18.object({
-  provider: z18.string().optional(),
-  providers: z18.record(z18.string(), TalkProviderEntrySchema).optional(),
-  speechLocale: z18.string().optional(),
-  interruptOnSpeech: z18.boolean().optional(),
-  silenceTimeoutMs: z18.number().int().positive().optional()
+}).catchall(z15.unknown());
+var TalkRealtimeSchema = z15.object({
+  provider: z15.string().optional(),
+  providers: z15.record(z15.string(), TalkProviderEntrySchema).optional(),
+  model: z15.string().optional(),
+  speakerVoice: z15.string().optional(),
+  speakerVoiceId: z15.string().optional(),
+  voice: z15.string().optional(),
+  instructions: z15.string().optional(),
+  mode: z15.enum(["realtime", "stt-tts", "transcription"]).optional(),
+  transport: z15.enum(["webrtc", "provider-websocket", "gateway-relay", "managed-room"]).optional(),
+  brain: z15.enum(["agent-consult", "direct-tools", "none"]).optional(),
+  consultRouting: z15.enum(["provider-direct", "force-agent-consult"]).optional()
+}).strict().superRefine((realtime, ctx) => {
+  const provider = normalizeLowercaseStringOrEmpty(realtime.provider ?? "");
+  const providers = realtime.providers ? Object.keys(realtime.providers) : [];
+  if (provider && providers.length > 0 && !(provider in realtime.providers)) {
+    ctx.addIssue({
+      code: z15.ZodIssueCode.custom,
+      path: ["provider"],
+      message: `talk.realtime.provider must match a key in talk.realtime.providers (missing "${provider}")`
+    });
+  }
+  if (!provider && providers.length > 1) {
+    ctx.addIssue({
+      code: z15.ZodIssueCode.custom,
+      path: ["provider"],
+      message: "talk.realtime.provider is required when talk.realtime.providers defines multiple providers"
+    });
+  }
+});
+var TalkSchema = z15.object({
+  provider: z15.string().optional(),
+  providers: z15.record(z15.string(), TalkProviderEntrySchema).optional(),
+  realtime: TalkRealtimeSchema.optional(),
+  consultThinkingLevel: z15.enum(["off", "minimal", "low", "medium", "high", "xhigh", "adaptive", "max"]).optional(),
+  consultFastMode: z15.boolean().optional(),
+  speechLocale: z15.string().optional(),
+  interruptOnSpeech: z15.boolean().optional(),
+  silenceTimeoutMs: z15.number().int().positive().optional()
 }).strict().superRefine((talk, ctx) => {
   const provider = normalizeLowercaseStringOrEmpty(talk.provider ?? "");
   const providers = talk.providers ? Object.keys(talk.providers) : [];
   if (provider && providers.length > 0 && !(provider in talk.providers)) {
     ctx.addIssue({
-      code: z18.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       path: ["provider"],
       message: `talk.provider must match a key in talk.providers (missing "${provider}")`
     });
   }
   if (!provider && providers.length > 1) {
     ctx.addIssue({
-      code: z18.ZodIssueCode.custom,
+      code: z15.ZodIssueCode.custom,
       path: ["provider"],
       message: "talk.provider is required when talk.providers defines multiple providers"
     });
   }
 });
-var McpServerSchema = z18.object({
-  command: z18.string().optional(),
-  args: z18.array(z18.string()).optional(),
-  env: z18.record(z18.string(), z18.union([z18.string(), z18.number(), z18.boolean()])).optional(),
-  cwd: z18.string().optional(),
-  workingDirectory: z18.string().optional(),
+var McpServerSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  command: z15.string().optional(),
+  args: z15.array(z15.string()).optional(),
+  env: z15.record(z15.string(), z15.union([z15.string(), z15.number(), z15.boolean()])).optional(),
+  cwd: z15.string().optional(),
+  workingDirectory: z15.string().optional(),
   url: HttpUrlSchema.optional(),
-  transport: z18.union([z18.literal("sse"), z18.literal("streamable-http")]).optional(),
-  headers: z18.record(
-    z18.string(),
-    z18.union([z18.string().register(sensitive), z18.number(), z18.boolean()]).register(sensitive)
-  ).optional()
-}).catchall(z18.unknown());
-var McpConfigSchema = z18.object({
-  servers: z18.record(z18.string(), McpServerSchema).optional(),
-  sessionIdleTtlMs: z18.number().finite().min(0).optional()
+  transport: z15.union([z15.literal("stdio"), z15.literal("sse"), z15.literal("streamable-http")]).optional(),
+  headers: z15.record(
+    z15.string(),
+    z15.union([z15.string().register(sensitive), z15.number(), z15.boolean()]).register(sensitive)
+  ).optional(),
+  connectionTimeoutMs: z15.number().finite().positive().optional(),
+  connectTimeout: z15.number().finite().positive().optional(),
+  connect_timeout: z15.number().finite().positive().optional(),
+  requestTimeoutMs: z15.number().finite().positive().optional(),
+  timeout: z15.number().finite().positive().optional(),
+  supportsParallelToolCalls: z15.boolean().optional(),
+  supports_parallel_tool_calls: z15.boolean().optional(),
+  auth: z15.literal("oauth").optional(),
+  oauth: z15.object({
+    scope: z15.string().trim().min(1).optional(),
+    redirectUrl: HttpUrlSchema.optional(),
+    clientMetadataUrl: McpOAuthClientMetadataUrlSchema.optional()
+  }).strict().optional(),
+  sslVerify: z15.boolean().optional(),
+  ssl_verify: z15.boolean().optional(),
+  clientCert: z15.string().optional(),
+  client_cert: z15.string().optional(),
+  clientKey: z15.string().optional(),
+  client_key: z15.string().optional(),
+  toolFilter: z15.object({
+    include: z15.array(z15.string().trim().min(1)).min(1).optional(),
+    exclude: z15.array(z15.string().trim().min(1)).min(1).optional()
+  }).strict().optional(),
+  codex: z15.object({
+    agents: z15.array(
+      z15.string().trim().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/i)
+    ).min(1).optional(),
+    defaultToolsApprovalMode: z15.enum(["auto", "prompt", "approve"]).optional(),
+    default_tools_approval_mode: z15.enum(["auto", "prompt", "approve"]).optional()
+  }).strict().optional()
+}).superRefine((data, ctx) => {
+  if (data.transport === "stdio" && (typeof data.command !== "string" || data.command.trim().length === 0)) {
+    ctx.addIssue({
+      code: z15.ZodIssueCode.custom,
+      message: '"stdio" transport requires a non-empty command',
+      path: ["transport"]
+    });
+  }
+}).catchall(z15.unknown());
+var McpConfigSchema = z15.object({
+  servers: z15.record(z15.string(), McpServerSchema).optional(),
+  sessionIdleTtlMs: z15.number().finite().min(0).optional()
 }).strict().optional();
-var CrestodianSchema = z18.object({
-  rescue: z18.object({
-    enabled: z18.union([z18.literal("auto"), z18.boolean()]).optional(),
-    ownerDmOnly: z18.boolean().optional(),
-    pendingTtlMinutes: z18.number().int().positive().optional()
+var CrestodianSchema = z15.object({
+  rescue: z15.object({
+    enabled: z15.union([z15.literal("auto"), z15.boolean()]).optional(),
+    ownerDmOnly: z15.boolean().optional(),
+    pendingTtlMinutes: z15.number().int().positive().optional()
   }).strict().optional()
 }).strict().optional();
-var CommitmentsSchema = z18.object({
-  enabled: z18.boolean().optional(),
-  maxPerDay: z18.number().int().positive().optional()
+var CommitmentsSchema = z15.object({
+  enabled: z15.boolean().optional(),
+  maxPerDay: z15.number().int().positive().optional()
 }).strict().optional();
-var OpenClawSchema = z18.object({
-  $schema: z18.string().optional(),
-  meta: z18.object({
-    lastTouchedVersion: z18.string().optional(),
+var OpenClawSchema = z15.object({
+  $schema: z15.string().optional(),
+  meta: z15.object({
+    lastTouchedVersion: z15.string().optional(),
     // Accept any string unchanged (backwards-compatible) and coerce numeric Unix
     // timestamps to ISO strings (agent file edits may write Date.now()).
-    lastTouchedAt: z18.union([
-      z18.string(),
-      z18.number().transform((n, ctx) => {
+    lastTouchedAt: z15.union([
+      z15.string(),
+      z15.number().transform((n, ctx) => {
         const d = new Date(n);
         if (Number.isNaN(d.getTime())) {
-          ctx.addIssue({ code: z18.ZodIssueCode.custom, message: "Invalid timestamp" });
-          return z18.NEVER;
+          ctx.addIssue({ code: z15.ZodIssueCode.custom, message: "Invalid timestamp" });
+          return z15.NEVER;
         }
         return d.toISOString();
-      })
+      }).pipe(z15.string())
     ]).optional()
   }).strict().optional(),
-  env: z18.object({
-    shellEnv: z18.object({
-      enabled: z18.boolean().optional(),
-      timeoutMs: z18.number().int().nonnegative().optional()
+  env: z15.object({
+    shellEnv: z15.object({
+      enabled: z15.boolean().optional(),
+      timeoutMs: z15.number().int().nonnegative().optional()
     }).strict().optional(),
-    vars: z18.record(z18.string(), z18.string()).optional()
-  }).catchall(z18.string()).optional(),
-  wizard: z18.object({
-    lastRunAt: z18.string().optional(),
-    lastRunVersion: z18.string().optional(),
-    lastRunCommit: z18.string().optional(),
-    lastRunCommand: z18.string().optional(),
-    lastRunMode: z18.union([z18.literal("local"), z18.literal("remote")]).optional()
+    vars: z15.record(z15.string(), z15.string()).optional()
+  }).catchall(z15.string()).optional(),
+  wizard: z15.object({
+    lastRunAt: z15.string().optional(),
+    lastRunVersion: z15.string().optional(),
+    lastRunCommit: z15.string().optional(),
+    lastRunCommand: z15.string().optional(),
+    lastRunMode: z15.union([z15.literal("local"), z15.literal("remote")]).optional()
   }).strict().optional(),
-  diagnostics: z18.object({
-    enabled: z18.boolean().optional(),
-    flags: z18.array(z18.string()).optional(),
-    stuckSessionWarnMs: z18.number().int().positive().optional(),
-    otel: z18.object({
-      enabled: z18.boolean().optional(),
-      endpoint: z18.string().optional(),
-      tracesEndpoint: z18.string().optional(),
-      metricsEndpoint: z18.string().optional(),
-      logsEndpoint: z18.string().optional(),
-      protocol: z18.union([z18.literal("http/protobuf"), z18.literal("grpc")]).optional(),
-      headers: z18.record(z18.string(), z18.string()).optional(),
-      serviceName: z18.string().optional(),
-      traces: z18.boolean().optional(),
-      metrics: z18.boolean().optional(),
-      logs: z18.boolean().optional(),
-      sampleRate: z18.number().min(0).max(1).optional(),
-      flushIntervalMs: z18.number().int().nonnegative().optional(),
-      captureContent: z18.union([
-        z18.boolean(),
-        z18.object({
-          enabled: z18.boolean().optional(),
-          inputMessages: z18.boolean().optional(),
-          outputMessages: z18.boolean().optional(),
-          toolInputs: z18.boolean().optional(),
-          toolOutputs: z18.boolean().optional(),
-          systemPrompt: z18.boolean().optional()
+  diagnostics: z15.object({
+    enabled: z15.boolean().optional(),
+    flags: z15.array(z15.string()).optional(),
+    stuckSessionWarnMs: z15.number().int().positive().optional(),
+    stuckSessionAbortMs: z15.number().int().positive().optional(),
+    memoryPressureSnapshot: z15.boolean().optional(),
+    otel: z15.object({
+      enabled: z15.boolean().optional(),
+      endpoint: z15.string().optional(),
+      tracesEndpoint: z15.string().optional(),
+      metricsEndpoint: z15.string().optional(),
+      logsEndpoint: z15.string().optional(),
+      protocol: z15.union([z15.literal("http/protobuf"), z15.literal("grpc")]).optional(),
+      headers: z15.record(z15.string(), z15.string()).optional(),
+      serviceName: z15.string().optional(),
+      traces: z15.boolean().optional(),
+      metrics: z15.boolean().optional(),
+      logs: z15.boolean().optional(),
+      logsExporter: z15.union([z15.literal("otlp"), z15.literal("stdout"), z15.literal("both")]).optional(),
+      sampleRate: z15.number().min(0).max(1).optional(),
+      flushIntervalMs: z15.number().int().nonnegative().optional(),
+      captureContent: z15.union([
+        z15.boolean(),
+        z15.object({
+          enabled: z15.boolean().optional(),
+          inputMessages: z15.boolean().optional(),
+          outputMessages: z15.boolean().optional(),
+          toolInputs: z15.boolean().optional(),
+          toolOutputs: z15.boolean().optional(),
+          systemPrompt: z15.boolean().optional(),
+          toolDefinitions: z15.boolean().optional()
         }).strict()
       ]).optional()
     }).strict().optional(),
-    cacheTrace: z18.object({
-      enabled: z18.boolean().optional(),
-      filePath: z18.string().optional(),
-      includeMessages: z18.boolean().optional(),
-      includePrompt: z18.boolean().optional(),
-      includeSystem: z18.boolean().optional()
+    cacheTrace: z15.object({
+      enabled: z15.boolean().optional(),
+      filePath: z15.string().optional(),
+      includeMessages: z15.boolean().optional(),
+      includePrompt: z15.boolean().optional(),
+      includeSystem: z15.boolean().optional()
     }).strict().optional()
   }).strict().optional(),
-  logging: z18.object({
+  logging: z15.object({
     level: LoggingLevelSchema.optional(),
-    file: z18.string().optional(),
-    maxFileBytes: z18.number().int().positive().optional(),
+    file: z15.string().optional(),
+    maxFileBytes: z15.number().int().positive().optional(),
     consoleLevel: LoggingLevelSchema.optional(),
-    consoleStyle: z18.union([z18.literal("pretty"), z18.literal("compact"), z18.literal("json")]).optional(),
-    redactSensitive: z18.union([z18.literal("off"), z18.literal("tools")]).optional(),
-    redactPatterns: z18.array(z18.string()).optional()
+    consoleStyle: z15.union([z15.literal("pretty"), z15.literal("compact"), z15.literal("json")]).optional(),
+    redactSensitive: z15.union([z15.literal("off"), z15.literal("tools")]).optional(),
+    redactPatterns: z15.array(z15.string()).optional()
   }).strict().optional(),
-  cli: z18.object({
-    banner: z18.object({
-      taglineMode: z18.union([z18.literal("random"), z18.literal("default"), z18.literal("off")]).optional()
+  cli: z15.object({
+    banner: z15.object({
+      taglineMode: z15.union([z15.literal("random"), z15.literal("default"), z15.literal("off")]).optional()
     }).strict().optional()
   }).strict().optional(),
   crestodian: CrestodianSchema,
-  update: z18.object({
-    channel: z18.union([z18.literal("stable"), z18.literal("beta"), z18.literal("dev")]).optional(),
-    checkOnStart: z18.boolean().optional(),
-    auto: z18.object({
-      enabled: z18.boolean().optional(),
-      stableDelayHours: z18.number().nonnegative().max(168).optional(),
-      stableJitterHours: z18.number().nonnegative().max(168).optional(),
-      betaCheckIntervalHours: z18.number().positive().max(24).optional()
+  update: z15.object({
+    channel: z15.union([z15.literal("stable"), z15.literal("beta"), z15.literal("dev")]).optional(),
+    checkOnStart: z15.boolean().optional(),
+    auto: z15.object({
+      enabled: z15.boolean().optional(),
+      stableDelayHours: z15.number().nonnegative().max(168).optional(),
+      stableJitterHours: z15.number().nonnegative().max(168).optional(),
+      betaCheckIntervalHours: z15.number().positive().max(24).optional()
     }).strict().optional()
   }).strict().optional(),
-  browser: z18.object({
-    enabled: z18.boolean().optional(),
-    evaluateEnabled: z18.boolean().optional(),
-    cdpUrl: z18.string().optional(),
-    remoteCdpTimeoutMs: z18.number().int().nonnegative().optional(),
-    remoteCdpHandshakeTimeoutMs: z18.number().int().nonnegative().optional(),
-    localLaunchTimeoutMs: z18.number().int().positive().max(12e4).optional(),
-    localCdpReadyTimeoutMs: z18.number().int().positive().max(12e4).optional(),
-    actionTimeoutMs: z18.number().int().positive().optional(),
-    color: z18.string().optional(),
-    executablePath: z18.string().optional(),
-    headless: z18.boolean().optional(),
-    noSandbox: z18.boolean().optional(),
-    attachOnly: z18.boolean().optional(),
-    cdpPortRangeStart: z18.number().int().min(1).max(65535).optional(),
-    defaultProfile: z18.string().optional(),
+  browser: z15.object({
+    enabled: z15.boolean().optional(),
+    evaluateEnabled: z15.boolean().optional(),
+    cdpUrl: z15.string().optional(),
+    remoteCdpTimeoutMs: z15.number().int().nonnegative().optional(),
+    remoteCdpHandshakeTimeoutMs: z15.number().int().nonnegative().optional(),
+    localLaunchTimeoutMs: z15.number().int().positive().max(12e4).optional(),
+    localCdpReadyTimeoutMs: z15.number().int().positive().max(12e4).optional(),
+    actionTimeoutMs: z15.number().int().positive().optional(),
+    color: z15.string().optional(),
+    executablePath: z15.string().optional(),
+    headless: z15.boolean().optional(),
+    noSandbox: z15.boolean().optional(),
+    attachOnly: z15.boolean().optional(),
+    cdpPortRangeStart: z15.number().int().min(1).max(65535).optional(),
+    defaultProfile: z15.string().optional(),
     snapshotDefaults: BrowserSnapshotDefaultsSchema,
-    ssrfPolicy: z18.object({
-      dangerouslyAllowPrivateNetwork: z18.boolean().optional(),
-      allowedHostnames: z18.array(z18.string()).optional(),
-      hostnameAllowlist: z18.array(z18.string()).optional()
+    ssrfPolicy: z15.object({
+      dangerouslyAllowPrivateNetwork: z15.boolean().optional(),
+      allowedHostnames: z15.array(z15.string()).optional(),
+      hostnameAllowlist: z15.array(z15.string()).optional()
     }).strict().optional(),
-    profiles: z18.record(
-      z18.string().regex(/^[a-z0-9-]+$/, "Profile names must be alphanumeric with hyphens only"),
-      z18.object({
-        cdpPort: z18.number().int().min(1).max(65535).optional(),
-        cdpUrl: z18.string().optional(),
-        userDataDir: z18.string().optional(),
-        mcpCommand: z18.string().optional(),
-        mcpArgs: z18.array(z18.string()).optional(),
-        driver: z18.union([z18.literal("openclaw"), z18.literal("clawd"), z18.literal("existing-session")]).optional(),
-        headless: z18.boolean().optional(),
-        executablePath: z18.string().optional(),
-        attachOnly: z18.boolean().optional(),
+    profiles: z15.record(
+      z15.string().regex(/^[a-z0-9-]+$/, "Profile names must be alphanumeric with hyphens only"),
+      z15.object({
+        cdpPort: z15.number().int().min(1).max(65535).optional(),
+        cdpUrl: z15.string().optional(),
+        userDataDir: z15.string().optional(),
+        mcpCommand: z15.string().optional(),
+        mcpArgs: z15.array(z15.string()).optional(),
+        driver: z15.union([z15.literal("openclaw"), z15.literal("clawd"), z15.literal("existing-session")]).optional(),
+        headless: z15.boolean().optional(),
+        executablePath: z15.string().optional(),
+        attachOnly: z15.boolean().optional(),
         color: HexColorSchema
       }).strict().refine(
         (value) => value.driver === "existing-session" || value.cdpPort || value.cdpUrl,
@@ -4523,119 +3211,131 @@ var OpenClawSchema = z18.object({
         message: 'Profile userDataDir is only supported with driver="existing-session"'
       })
     ).optional(),
-    extraArgs: z18.array(z18.string()).optional(),
-    tabCleanup: z18.object({
-      enabled: z18.boolean().optional(),
-      idleMinutes: z18.number().int().nonnegative().optional(),
-      maxTabsPerSession: z18.number().int().nonnegative().optional(),
-      sweepMinutes: z18.number().int().positive().optional()
+    extraArgs: z15.array(z15.string()).optional(),
+    tabCleanup: z15.object({
+      enabled: z15.boolean().optional(),
+      idleMinutes: z15.number().int().nonnegative().optional(),
+      maxTabsPerSession: z15.number().int().nonnegative().optional(),
+      sweepMinutes: z15.number().int().positive().optional()
     }).strict().optional()
   }).strict().optional(),
-  ui: z18.object({
+  ui: z15.object({
     seamColor: HexColorSchema.optional(),
-    assistant: z18.object({
-      name: z18.string().max(50).optional(),
-      avatar: z18.string().max(2e6).optional()
+    assistant: z15.object({
+      name: z15.string().max(50).optional(),
+      avatar: z15.string().max(2e6).optional()
+    }).strict().optional()
+  }).strict().optional(),
+  tui: z15.object({
+    footer: z15.object({
+      showRemoteHost: z15.boolean().optional()
     }).strict().optional()
   }).strict().optional(),
   secrets: SecretsConfigSchema,
-  auth: z18.object({
-    profiles: z18.record(
-      z18.string(),
-      z18.object({
-        provider: z18.string(),
-        mode: z18.union([z18.literal("api_key"), z18.literal("oauth"), z18.literal("token")]),
-        email: z18.string().optional(),
-        displayName: z18.string().optional()
+  auth: z15.object({
+    profiles: z15.record(
+      z15.string(),
+      z15.object({
+        provider: z15.string(),
+        mode: z15.union([
+          z15.literal("api_key"),
+          z15.literal("aws-sdk"),
+          z15.literal("oauth"),
+          z15.literal("token")
+        ]),
+        email: z15.string().optional(),
+        displayName: z15.string().optional()
       }).strict()
     ).optional(),
-    order: z18.record(z18.string(), z18.array(z18.string())).optional(),
-    cooldowns: z18.object({
-      billingBackoffHours: z18.number().positive().optional(),
-      billingBackoffHoursByProvider: z18.record(z18.string(), z18.number().positive()).optional(),
-      billingMaxHours: z18.number().positive().optional(),
-      authPermanentBackoffMinutes: z18.number().positive().optional(),
-      authPermanentMaxMinutes: z18.number().positive().optional(),
-      failureWindowHours: z18.number().positive().optional(),
-      overloadedProfileRotations: z18.number().int().nonnegative().optional(),
-      overloadedBackoffMs: z18.number().int().nonnegative().optional(),
-      rateLimitedProfileRotations: z18.number().int().nonnegative().optional()
+    order: z15.record(z15.string(), z15.array(z15.string())).optional(),
+    cooldowns: z15.object({
+      billingBackoffHours: z15.number().positive().optional(),
+      billingBackoffHoursByProvider: z15.record(z15.string(), z15.number().positive()).optional(),
+      billingMaxHours: z15.number().positive().optional(),
+      authPermanentBackoffMinutes: z15.number().positive().optional(),
+      authPermanentMaxMinutes: z15.number().positive().optional(),
+      failureWindowHours: z15.number().positive().optional(),
+      overloadedProfileRotations: z15.number().int().nonnegative().optional(),
+      overloadedBackoffMs: z15.number().int().nonnegative().optional(),
+      rateLimitedProfileRotations: z15.number().int().nonnegative().optional()
     }).strict().optional()
   }).strict().optional(),
   accessGroups: AccessGroupsSchema,
-  acp: z18.object({
-    enabled: z18.boolean().optional(),
-    dispatch: z18.object({
-      enabled: z18.boolean().optional()
+  acp: z15.object({
+    enabled: z15.boolean().optional(),
+    dispatch: z15.object({
+      enabled: z15.boolean().optional()
     }).strict().optional(),
-    backend: z18.string().optional(),
-    defaultAgent: z18.string().optional(),
-    allowedAgents: z18.array(z18.string()).optional(),
-    maxConcurrentSessions: z18.number().int().positive().optional(),
-    stream: z18.object({
-      coalesceIdleMs: z18.number().int().nonnegative().optional(),
-      maxChunkChars: z18.number().int().positive().optional(),
-      repeatSuppression: z18.boolean().optional(),
-      deliveryMode: z18.union([z18.literal("live"), z18.literal("final_only")]).optional(),
-      hiddenBoundarySeparator: z18.union([
-        z18.literal("none"),
-        z18.literal("space"),
-        z18.literal("newline"),
-        z18.literal("paragraph")
+    backend: z15.string().optional(),
+    fallbacks: z15.array(z15.string()).optional(),
+    defaultAgent: z15.string().optional(),
+    allowedAgents: z15.array(z15.string()).optional(),
+    maxConcurrentSessions: z15.number().int().positive().optional(),
+    stream: z15.object({
+      coalesceIdleMs: z15.number().int().nonnegative().optional(),
+      maxChunkChars: z15.number().int().positive().optional(),
+      repeatSuppression: z15.boolean().optional(),
+      deliveryMode: z15.union([z15.literal("live"), z15.literal("final_only")]).optional(),
+      hiddenBoundarySeparator: z15.union([
+        z15.literal("none"),
+        z15.literal("space"),
+        z15.literal("newline"),
+        z15.literal("paragraph")
       ]).optional(),
-      maxOutputChars: z18.number().int().positive().optional(),
-      maxSessionUpdateChars: z18.number().int().positive().optional(),
-      tagVisibility: z18.record(z18.string(), z18.boolean()).optional()
+      maxOutputChars: z15.number().int().positive().optional(),
+      maxSessionUpdateChars: z15.number().int().positive().optional(),
+      tagVisibility: z15.record(z15.string(), z15.boolean()).optional()
     }).strict().optional(),
-    runtime: z18.object({
-      ttlMinutes: z18.number().int().positive().optional(),
-      installCommand: z18.string().optional()
+    runtime: z15.object({
+      ttlMinutes: z15.number().int().positive().optional(),
+      installCommand: z15.string().optional()
     }).strict().optional()
   }).strict().optional(),
   models: ModelsConfigSchema,
   nodeHost: NodeHostSchema,
   agents: AgentsSchema,
   tools: ToolsSchema,
+  security: SecuritySchema,
   bindings: BindingsSchema,
   broadcast: BroadcastSchema,
   audio: AudioSchema,
-  media: z18.object({
-    preserveFilenames: z18.boolean().optional(),
-    ttlHours: z18.number().int().min(1).max(24 * 7).optional()
+  media: z15.object({
+    preserveFilenames: z15.boolean().optional(),
+    ttlHours: z15.number().int().min(1).max(24 * 7).optional()
   }).strict().optional(),
   messages: MessagesSchema,
   commands: CommandsSchema,
   approvals: ApprovalsSchema,
   session: SessionSchema,
-  cron: z18.object({
-    enabled: z18.boolean().optional(),
-    store: z18.string().optional(),
-    maxConcurrentRuns: z18.number().int().positive().optional(),
-    retry: z18.object({
-      maxAttempts: z18.number().int().min(0).max(10).optional(),
-      backoffMs: z18.array(z18.number().int().nonnegative()).min(1).max(10).optional(),
-      retryOn: z18.array(z18.enum(["rate_limit", "overloaded", "network", "timeout", "server_error"])).min(1).optional()
+  cron: z15.object({
+    enabled: z15.boolean().optional(),
+    store: z15.string().optional(),
+    maxConcurrentRuns: z15.number().int().positive().optional(),
+    retry: z15.object({
+      maxAttempts: z15.number().int().min(0).max(10).optional(),
+      backoffMs: z15.array(z15.number().int().nonnegative()).min(1).max(10).optional(),
+      retryOn: z15.array(z15.enum(["rate_limit", "overloaded", "network", "timeout", "server_error"])).min(1).optional()
     }).strict().optional(),
     webhook: HttpUrlSchema.optional(),
     webhookToken: SecretInputSchema.optional().register(sensitive),
-    sessionRetention: z18.union([z18.string(), z18.literal(false)]).optional(),
-    runLog: z18.object({
-      maxBytes: z18.union([z18.string(), z18.number()]).optional(),
-      keepLines: z18.number().int().positive().optional()
+    sessionRetention: z15.union([z15.string(), z15.literal(false)]).optional(),
+    runLog: z15.object({
+      maxBytes: z15.union([z15.string(), z15.number()]).optional(),
+      keepLines: z15.number().int().positive().optional()
     }).strict().optional(),
-    failureAlert: z18.object({
-      enabled: z18.boolean().optional(),
-      after: z18.number().int().min(1).optional(),
-      cooldownMs: z18.number().int().min(0).optional(),
-      includeSkipped: z18.boolean().optional(),
-      mode: z18.enum(["announce", "webhook"]).optional(),
-      accountId: z18.string().optional()
+    failureAlert: z15.object({
+      enabled: z15.boolean().optional(),
+      after: z15.number().int().min(1).optional(),
+      cooldownMs: z15.number().int().min(0).optional(),
+      includeSkipped: z15.boolean().optional(),
+      mode: z15.enum(["announce", "webhook"]).optional(),
+      accountId: z15.string().optional()
     }).strict().optional(),
-    failureDestination: z18.object({
-      channel: z18.string().optional(),
-      to: z18.string().optional(),
-      accountId: z18.string().optional(),
-      mode: z18.enum(["announce", "webhook"]).optional()
+    failureDestination: z15.object({
+      channel: z15.string().optional(),
+      to: z15.string().optional(),
+      accountId: z15.string().optional(),
+      mode: z15.enum(["announce", "webhook"]).optional()
     }).strict().optional()
   }).strict().superRefine((val, ctx) => {
     if (val.sessionRetention !== void 0 && val.sessionRetention !== false) {
@@ -4645,7 +3345,7 @@ var OpenClawSchema = z18.object({
         });
       } catch {
         ctx.addIssue({
-          code: z18.ZodIssueCode.custom,
+          code: z15.ZodIssueCode.custom,
           path: ["sessionRetention"],
           message: "invalid duration (use ms, s, m, h, d)"
         });
@@ -4658,210 +3358,214 @@ var OpenClawSchema = z18.object({
         });
       } catch {
         ctx.addIssue({
-          code: z18.ZodIssueCode.custom,
+          code: z15.ZodIssueCode.custom,
           path: ["runLog", "maxBytes"],
           message: "invalid size (use b, kb, mb, gb, tb)"
         });
       }
     }
   }).optional(),
+  transcripts: z15.object({
+    enabled: z15.boolean().optional(),
+    maxUtterances: z15.number().int().min(1).max(1e4).optional(),
+    autoStart: z15.array(
+      z15.object({
+        providerId: z15.string().min(1),
+        sessionId: z15.string().min(1).optional(),
+        title: z15.string().min(1).optional(),
+        accountId: z15.string().min(1).optional(),
+        guildId: z15.string().min(1).optional(),
+        channelId: z15.string().min(1).optional(),
+        meetingUrl: z15.string().min(1).optional()
+      }).strict()
+    ).optional()
+  }).strict().optional(),
   commitments: CommitmentsSchema,
-  hooks: z18.object({
-    enabled: z18.boolean().optional(),
-    path: z18.string().optional(),
-    token: z18.string().optional().register(sensitive),
-    defaultSessionKey: z18.string().optional(),
-    allowRequestSessionKey: z18.boolean().optional(),
-    allowedSessionKeyPrefixes: z18.array(z18.string()).optional(),
-    allowedAgentIds: z18.array(z18.string()).optional(),
-    maxBodyBytes: z18.number().int().positive().optional(),
-    presets: z18.array(z18.string()).optional(),
-    transformsDir: z18.string().optional(),
-    mappings: z18.array(HookMappingSchema).optional(),
+  hooks: z15.object({
+    enabled: z15.boolean().optional(),
+    path: z15.string().optional(),
+    token: z15.string().optional().register(sensitive),
+    defaultSessionKey: z15.string().optional(),
+    allowRequestSessionKey: z15.boolean().optional(),
+    allowedSessionKeyPrefixes: z15.array(z15.string()).optional(),
+    allowedAgentIds: z15.array(z15.string()).optional(),
+    maxBodyBytes: z15.number().int().positive().optional(),
+    presets: z15.array(z15.string()).optional(),
+    transformsDir: z15.string().optional(),
+    mappings: z15.array(HookMappingSchema).optional(),
     gmail: HooksGmailSchema,
     internal: InternalHooksSchema
   }).strict().optional(),
-  web: z18.object({
-    enabled: z18.boolean().optional(),
-    heartbeatSeconds: z18.number().int().positive().optional(),
-    reconnect: z18.object({
-      initialMs: z18.number().positive().optional(),
-      maxMs: z18.number().positive().optional(),
-      factor: z18.number().positive().optional(),
-      jitter: z18.number().min(0).max(1).optional(),
-      maxAttempts: z18.number().int().min(0).optional()
+  web: z15.object({
+    enabled: z15.boolean().optional(),
+    heartbeatSeconds: z15.number().int().positive().optional(),
+    reconnect: z15.object({
+      initialMs: z15.number().positive().optional(),
+      maxMs: z15.number().positive().optional(),
+      factor: z15.number().positive().optional(),
+      jitter: z15.number().min(0).max(1).optional(),
+      maxAttempts: z15.number().int().min(0).optional()
     }).strict().optional(),
-    whatsapp: z18.object({
-      keepAliveIntervalMs: z18.number().int().positive().optional(),
-      connectTimeoutMs: z18.number().int().positive().optional(),
-      defaultQueryTimeoutMs: z18.number().int().positive().optional()
+    whatsapp: z15.object({
+      keepAliveIntervalMs: z15.number().int().positive().optional(),
+      connectTimeoutMs: z15.number().int().positive().optional(),
+      defaultQueryTimeoutMs: z15.number().int().positive().optional()
     }).strict().optional()
   }).strict().optional(),
   channels: ChannelsSchema,
-  discovery: z18.object({
-    wideArea: z18.object({
-      enabled: z18.boolean().optional(),
-      domain: z18.string().optional()
+  discovery: z15.object({
+    wideArea: z15.object({
+      enabled: z15.boolean().optional(),
+      domain: z15.string().optional()
     }).strict().optional(),
-    mdns: z18.object({
-      mode: z18.enum(["off", "minimal", "full"]).optional()
+    mdns: z15.object({
+      mode: z15.enum(["off", "minimal", "full"]).optional()
     }).strict().optional()
   }).strict().optional(),
-  canvasHost: z18.object({
-    enabled: z18.boolean().optional(),
-    root: z18.string().optional(),
-    port: z18.number().int().positive().optional(),
-    liveReload: z18.boolean().optional()
-  }).strict().optional(),
   talk: TalkSchema.optional(),
-  gateway: z18.object({
-    port: z18.number().int().positive().optional(),
-    mode: z18.union([z18.literal("local"), z18.literal("remote")]).optional(),
-    bind: z18.union([
-      z18.literal("auto"),
-      z18.literal("lan"),
-      z18.literal("loopback"),
-      z18.literal("custom"),
-      z18.literal("tailnet")
+  gateway: z15.object({
+    port: z15.number().int().positive().optional(),
+    mode: z15.union([z15.literal("local"), z15.literal("remote")]).optional(),
+    bind: z15.union([
+      z15.literal("auto"),
+      z15.literal("lan"),
+      z15.literal("loopback"),
+      z15.literal("custom"),
+      z15.literal("tailnet")
     ]).optional(),
-    customBindHost: z18.string().optional(),
-    controlUi: z18.object({
-      enabled: z18.boolean().optional(),
-      basePath: z18.string().optional(),
-      root: z18.string().optional(),
-      embedSandbox: z18.union([z18.literal("strict"), z18.literal("scripts"), z18.literal("trusted")]).optional(),
-      allowExternalEmbedUrls: z18.boolean().optional(),
-      chatMessageMaxWidth: z18.string().transform((value) => normalizeControlUiChatMessageMaxWidth(value)).refine((value) => isValidControlUiChatMessageMaxWidth(value), {
+    customBindHost: z15.string().optional(),
+    controlUi: z15.object({
+      enabled: z15.boolean().optional(),
+      basePath: z15.string().optional(),
+      root: z15.string().optional(),
+      embedSandbox: z15.union([z15.literal("strict"), z15.literal("scripts"), z15.literal("trusted")]).optional(),
+      allowExternalEmbedUrls: z15.boolean().optional(),
+      chatMessageMaxWidth: z15.string().transform((value) => normalizeControlUiChatMessageMaxWidth(value)).refine((value) => isValidControlUiChatMessageMaxWidth(value), {
         message: "Expected a CSS width value such as 960px, 82%, min(1280px, 82%), or calc(100% - 2rem)"
       }).optional(),
-      allowedOrigins: z18.array(z18.string()).optional(),
-      dangerouslyAllowHostHeaderOriginFallback: z18.boolean().optional(),
-      allowInsecureAuth: z18.boolean().optional(),
-      dangerouslyDisableDeviceAuth: z18.boolean().optional()
+      allowedOrigins: z15.array(z15.string()).optional(),
+      dangerouslyAllowHostHeaderOriginFallback: z15.boolean().optional(),
+      allowInsecureAuth: z15.boolean().optional(),
+      dangerouslyDisableDeviceAuth: z15.boolean().optional()
     }).strict().optional(),
-    auth: z18.object({
-      mode: z18.union([
-        z18.literal("none"),
-        z18.literal("token"),
-        z18.literal("password"),
-        z18.literal("trusted-proxy")
+    auth: z15.object({
+      mode: z15.union([
+        z15.literal("none"),
+        z15.literal("token"),
+        z15.literal("password"),
+        z15.literal("trusted-proxy")
       ]).optional(),
       token: SecretInputSchema.optional().register(sensitive),
       password: SecretInputSchema.optional().register(sensitive),
-      allowTailscale: z18.boolean().optional(),
-      rateLimit: z18.object({
-        maxAttempts: z18.number().optional(),
-        windowMs: z18.number().optional(),
-        lockoutMs: z18.number().optional(),
-        exemptLoopback: z18.boolean().optional()
+      allowTailscale: z15.boolean().optional(),
+      rateLimit: z15.object({
+        maxAttempts: z15.number().optional(),
+        windowMs: z15.number().optional(),
+        lockoutMs: z15.number().optional(),
+        exemptLoopback: z15.boolean().optional()
       }).strict().optional(),
-      trustedProxy: z18.object({
-        userHeader: z18.string().min(1, "userHeader is required for trusted-proxy mode"),
-        requiredHeaders: z18.array(z18.string()).optional(),
-        allowUsers: z18.array(z18.string()).optional(),
-        allowLoopback: z18.boolean().optional()
+      trustedProxy: z15.object({
+        userHeader: z15.string().min(1, "userHeader is required for trusted-proxy mode"),
+        requiredHeaders: z15.array(z15.string()).optional(),
+        allowUsers: z15.array(z15.string()).optional(),
+        allowLoopback: z15.boolean().optional()
       }).strict().optional()
     }).strict().optional(),
-    trustedProxies: z18.array(z18.string()).optional(),
-    allowRealIpFallback: z18.boolean().optional(),
-    tools: z18.object({
-      deny: z18.array(z18.string()).optional(),
-      allow: z18.array(z18.string()).optional()
+    trustedProxies: z15.array(z15.string()).optional(),
+    allowRealIpFallback: z15.boolean().optional(),
+    tools: z15.object({
+      deny: z15.array(z15.string()).optional(),
+      allow: z15.array(z15.string()).optional()
     }).strict().optional(),
-    webchat: z18.object({
-      chatHistoryMaxChars: z18.number().int().positive().max(5e5).optional()
+    handshakeTimeoutMs: z15.number().int().min(1).optional(),
+    channelHealthCheckMinutes: z15.number().int().min(0).optional(),
+    channelStaleEventThresholdMinutes: z15.number().int().min(1).optional(),
+    channelMaxRestartsPerHour: z15.number().int().min(1).optional(),
+    tailscale: z15.object({
+      mode: z15.union([z15.literal("off"), z15.literal("serve"), z15.literal("funnel")]).optional(),
+      resetOnExit: z15.boolean().optional(),
+      serviceName: TailscaleServiceNameSchema.optional(),
+      preserveFunnel: z15.boolean().optional()
     }).strict().optional(),
-    handshakeTimeoutMs: z18.number().int().min(1).optional(),
-    channelHealthCheckMinutes: z18.number().int().min(0).optional(),
-    channelStaleEventThresholdMinutes: z18.number().int().min(1).optional(),
-    channelMaxRestartsPerHour: z18.number().int().min(1).optional(),
-    tailscale: z18.object({
-      mode: z18.union([z18.literal("off"), z18.literal("serve"), z18.literal("funnel")]).optional(),
-      resetOnExit: z18.boolean().optional()
-    }).strict().optional(),
-    remote: z18.object({
-      url: z18.string().optional(),
-      transport: z18.union([z18.literal("ssh"), z18.literal("direct")]).optional(),
-      token: SecretInputSchema.optional().register(sensitive),
-      password: SecretInputSchema.optional().register(sensitive),
-      tlsFingerprint: z18.string().optional(),
-      sshTarget: z18.string().optional(),
-      sshIdentity: z18.string().optional()
-    }).strict().optional(),
-    reload: z18.object({
-      mode: z18.union([
-        z18.literal("off"),
-        z18.literal("restart"),
-        z18.literal("hot"),
-        z18.literal("hybrid")
+    remote: GatewayRemoteConfigSchema,
+    reload: z15.object({
+      mode: z15.union([
+        z15.literal("off"),
+        z15.literal("restart"),
+        z15.literal("hot"),
+        z15.literal("hybrid")
       ]).optional(),
-      debounceMs: z18.number().int().min(0).optional(),
-      deferralTimeoutMs: z18.number().int().min(0).optional()
+      debounceMs: z15.number().int().min(0).optional(),
+      deferralTimeoutMs: z15.number().int().min(0).optional()
     }).strict().optional(),
-    tls: z18.object({
-      enabled: z18.boolean().optional(),
-      autoGenerate: z18.boolean().optional(),
-      certPath: z18.string().optional(),
-      keyPath: z18.string().optional(),
-      caPath: z18.string().optional()
+    tls: z15.object({
+      enabled: z15.boolean().optional(),
+      autoGenerate: z15.boolean().optional(),
+      // Reject blank values without transforming the string. Trimming here would
+      // silently rewrite a legitimate filesystem path that contains leading or
+      // trailing spaces and persist the trimmed value into validated config;
+      // runtime path resolution (resolveUserPath) owns all normalization.
+      certPath: z15.string().optional().refine((v) => v === void 0 || v.trim().length > 0, "certPath must not be blank"),
+      keyPath: z15.string().optional().refine((v) => v === void 0 || v.trim().length > 0, "keyPath must not be blank"),
+      caPath: z15.string().optional()
     }).optional(),
-    http: z18.object({
-      endpoints: z18.object({
-        chatCompletions: z18.object({
-          enabled: z18.boolean().optional(),
-          maxBodyBytes: z18.number().int().positive().optional(),
-          maxImageParts: z18.number().int().nonnegative().optional(),
-          maxTotalImageBytes: z18.number().int().positive().optional(),
-          images: z18.object({
+    http: z15.object({
+      endpoints: z15.object({
+        chatCompletions: z15.object({
+          enabled: z15.boolean().optional(),
+          maxBodyBytes: z15.number().int().positive().optional(),
+          maxImageParts: z15.number().int().nonnegative().optional(),
+          maxTotalImageBytes: z15.number().int().positive().optional(),
+          images: z15.object({
             ...ResponsesEndpointUrlFetchShape
           }).strict().optional()
         }).strict().optional(),
-        responses: z18.object({
-          enabled: z18.boolean().optional(),
-          maxBodyBytes: z18.number().int().positive().optional(),
-          maxUrlParts: z18.number().int().nonnegative().optional(),
-          files: z18.object({
+        responses: z15.object({
+          enabled: z15.boolean().optional(),
+          maxBodyBytes: z15.number().int().positive().optional(),
+          maxUrlParts: z15.number().int().nonnegative().optional(),
+          files: z15.object({
             ...ResponsesEndpointUrlFetchShape,
-            maxChars: z18.number().int().positive().optional(),
-            pdf: z18.object({
-              maxPages: z18.number().int().positive().optional(),
-              maxPixels: z18.number().int().positive().optional(),
-              minTextChars: z18.number().int().nonnegative().optional()
+            maxChars: z15.number().int().positive().optional(),
+            pdf: z15.object({
+              maxPages: z15.number().int().positive().optional(),
+              maxPixels: z15.number().int().positive().optional(),
+              minTextChars: z15.number().int().nonnegative().optional()
             }).strict().optional()
           }).strict().optional(),
-          images: z18.object({
+          images: z15.object({
             ...ResponsesEndpointUrlFetchShape
           }).strict().optional()
         }).strict().optional()
       }).strict().optional(),
-      securityHeaders: z18.object({
-        strictTransportSecurity: z18.union([z18.string(), z18.literal(false)]).optional()
+      securityHeaders: z15.object({
+        strictTransportSecurity: z15.union([z15.string(), z15.literal(false)]).optional()
       }).strict().optional()
     }).strict().optional(),
-    push: z18.object({
-      apns: z18.object({
-        relay: z18.object({
-          baseUrl: z18.string().optional(),
-          timeoutMs: z18.number().int().positive().optional()
+    push: z15.object({
+      apns: z15.object({
+        relay: z15.object({
+          baseUrl: z15.string().optional(),
+          timeoutMs: z15.number().int().positive().optional()
         }).strict().optional()
       }).strict().optional()
     }).strict().optional(),
-    nodes: z18.object({
-      browser: z18.object({
-        mode: z18.union([z18.literal("auto"), z18.literal("manual"), z18.literal("off")]).optional(),
-        node: z18.string().optional()
+    nodes: z15.object({
+      browser: z15.object({
+        mode: z15.union([z15.literal("auto"), z15.literal("manual"), z15.literal("off")]).optional(),
+        node: z15.string().optional()
       }).strict().optional(),
-      pairing: z18.object({
-        autoApproveCidrs: z18.array(z18.string()).optional()
+      pairing: z15.object({
+        autoApproveCidrs: z15.array(z15.string()).optional()
       }).strict().optional(),
-      allowCommands: z18.array(z18.string()).optional(),
-      denyCommands: z18.array(z18.string()).optional()
+      allowCommands: z15.array(z15.string()).optional(),
+      denyCommands: z15.array(z15.string()).optional()
     }).strict().optional()
   }).strict().superRefine((gateway, ctx) => {
     const effectiveHealthCheckMinutes = gateway.channelHealthCheckMinutes ?? 5;
     if (gateway.channelStaleEventThresholdMinutes != null && effectiveHealthCheckMinutes !== 0 && gateway.channelStaleEventThresholdMinutes < effectiveHealthCheckMinutes) {
       ctx.addIssue({
-        code: z18.ZodIssueCode.custom,
+        code: z15.ZodIssueCode.custom,
         path: ["channelStaleEventThresholdMinutes"],
         message: "channelStaleEventThresholdMinutes should be >= channelHealthCheckMinutes to avoid delayed stale detection"
       });
@@ -4869,45 +3573,56 @@ var OpenClawSchema = z18.object({
   }).optional(),
   memory: MemorySchema,
   mcp: McpConfigSchema,
-  skills: z18.object({
-    allowBundled: z18.array(z18.string()).optional(),
-    load: z18.object({
-      extraDirs: z18.array(z18.string()).optional(),
-      watch: z18.boolean().optional(),
-      watchDebounceMs: z18.number().int().min(0).optional()
+  skills: z15.object({
+    allowBundled: z15.array(z15.string()).optional(),
+    load: z15.object({
+      extraDirs: z15.array(z15.string()).optional(),
+      allowSymlinkTargets: z15.array(z15.string()).optional(),
+      watch: z15.boolean().optional(),
+      watchDebounceMs: z15.number().int().min(0).optional()
     }).strict().optional(),
-    install: z18.object({
-      preferBrew: z18.boolean().optional(),
-      nodeManager: z18.union([z18.literal("npm"), z18.literal("pnpm"), z18.literal("yarn"), z18.literal("bun")]).optional()
+    install: z15.object({
+      preferBrew: z15.boolean().optional(),
+      nodeManager: z15.union([z15.literal("npm"), z15.literal("pnpm"), z15.literal("yarn"), z15.literal("bun")]).optional(),
+      allowUploadedArchives: z15.boolean().optional()
     }).strict().optional(),
-    limits: z18.object({
-      maxCandidatesPerRoot: z18.number().int().min(1).optional(),
-      maxSkillsLoadedPerSource: z18.number().int().min(1).optional(),
-      maxSkillsInPrompt: z18.number().int().min(0).optional(),
-      maxSkillsPromptChars: z18.number().int().min(0).optional(),
-      maxSkillFileBytes: z18.number().int().min(0).optional()
+    limits: z15.object({
+      maxCandidatesPerRoot: z15.number().int().min(1).optional(),
+      maxSkillsLoadedPerSource: z15.number().int().min(1).optional(),
+      maxSkillsInPrompt: z15.number().int().min(0).optional(),
+      maxSkillsPromptChars: z15.number().int().min(0).optional(),
+      maxSkillFileBytes: z15.number().int().min(0).optional()
     }).strict().optional(),
-    entries: z18.record(z18.string(), SkillEntrySchema).optional()
+    workshop: z15.object({
+      autonomous: z15.object({
+        enabled: z15.boolean().optional()
+      }).strict().optional(),
+      approvalPolicy: z15.union([z15.literal("pending"), z15.literal("auto")]).optional(),
+      allowSymlinkTargetWrites: z15.boolean().optional(),
+      maxPending: z15.number().int().min(1).optional(),
+      maxSkillBytes: z15.number().int().min(1).optional()
+    }).strict().optional(),
+    entries: z15.record(z15.string(), SkillEntrySchema).optional()
   }).strict().optional(),
-  plugins: z18.object({
-    enabled: z18.boolean().optional(),
-    allow: z18.array(z18.string()).optional(),
-    deny: z18.array(z18.string()).optional(),
-    load: z18.object({
-      paths: z18.array(z18.string()).optional()
+  plugins: z15.object({
+    enabled: z15.boolean().optional(),
+    allow: z15.array(z15.string()).optional(),
+    deny: z15.array(z15.string()).optional(),
+    load: z15.object({
+      paths: z15.array(z15.string()).optional()
     }).strict().optional(),
-    slots: z18.object({
-      memory: z18.string().optional(),
-      contextEngine: z18.string().optional()
+    slots: z15.object({
+      memory: z15.string().optional(),
+      contextEngine: z15.string().optional()
     }).strict().optional(),
-    entries: z18.record(z18.string(), PluginEntrySchema).optional(),
-    bundledDiscovery: z18.enum(["compat", "allowlist"]).optional()
+    entries: z15.record(z15.string(), PluginEntrySchema).optional(),
+    bundledDiscovery: z15.enum(["compat", "allowlist"]).optional()
   }).strict().optional(),
-  surfaces: z18.record(
-    z18.string(),
-    z18.object({
-      silentReply: SilentReplyPolicyConfigSchema.optional(),
-      silentReplyRewrite: SilentReplyRewriteConfigSchema.optional()
+  canvasHost: LegacyCanvasHostSchema,
+  surfaces: z15.record(
+    z15.string(),
+    z15.object({
+      silentReply: SilentReplyPolicyConfigSchema.optional()
     }).strict()
   ).optional(),
   proxy: ProxyConfigSchema
@@ -4917,6 +3632,24 @@ var OpenClawSchema = z18.object({
     return;
   }
   const agentIds = new Set(agents.map((agent) => agent.id));
+  const effectiveAgentIds = new Set(agents.map((agent) => normalizeAgentId(agent.id)));
+  const bindings = cfg.bindings;
+  if (Array.isArray(bindings)) {
+    for (let idx = 0; idx < bindings.length; idx += 1) {
+      const binding = bindings[idx];
+      if (!binding || typeof binding !== "object") {
+        continue;
+      }
+      const agentId = binding.agentId;
+      if (typeof agentId === "string" && !effectiveAgentIds.has(normalizeAgentId(agentId))) {
+        ctx.addIssue({
+          code: z15.ZodIssueCode.custom,
+          path: ["bindings", idx, "agentId"],
+          message: `Unknown agent id "${agentId}" (not in agents.list).`
+        });
+      }
+    }
+  }
   const broadcast = cfg.broadcast;
   if (!broadcast) {
     return;
@@ -4932,7 +3665,7 @@ var OpenClawSchema = z18.object({
       const agentId = ids[idx];
       if (!agentIds.has(agentId)) {
         ctx.addIssue({
-          code: z18.ZodIssueCode.custom,
+          code: z15.ZodIssueCode.custom,
           path: ["broadcast", peerId, idx],
           message: `Unknown agent id "${agentId}" (not in agents.list).`
         });

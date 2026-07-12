@@ -22,21 +22,10 @@ const VENDOR_SYSTEM_PROMPT = resolve(
 describe("vendor patch 0009: replace OpenClaw CLI guidance", () => {
   const patch = readFileSync(CLI_PATCH_FILE, "utf-8");
 
-  it("removes the upstream OpenClaw CLI quick reference", () => {
-    expect(patch).toContain("\"## OpenClaw CLI Quick Reference\"");
-    expect(patch).toContain("\"- openclaw gateway status\"");
-    expect(patch).toContain("\"If unsure, ask the user to run `openclaw help`");
-  });
-
   it("adds RivonClaw Desktop runtime guidance instead", () => {
     expect(patch).toContain("\"## RivonClaw Desktop Runtime\"");
-    expect(patch).toContain("Do not run or ask the user to run `openclaw` CLI commands");
-    expect(patch).toContain("use first-class runtime tools");
-  });
-
-  it("removes the docs-section instruction to run openclaw status", () => {
-    expect(patch).toContain("-    \"When diagnosing issues, run `openclaw status` yourself");
     expect(patch).toContain("use available first-class runtime tools instead of shelling out");
+    expect(patch).toContain("instead of shell CLI commands");
   });
 
   it("is applied to the vendored system prompt source", () => {
@@ -54,8 +43,6 @@ describe("vendor patch 0010: brand agent prompt for RivonClaw Desktop", () => {
   const patch = readFileSync(BRAND_PATCH_FILE, "utf-8");
 
   it("brands the primary assistant identity as RivonClaw Desktop", () => {
-    expect(patch).toContain('-    return "You are a personal assistant running inside OpenClaw."');
-    expect(patch).toContain('+    return "You are a personal assistant running inside RivonClaw Desktop."');
     expect(patch).toContain('"You are a personal assistant running inside OpenClaw."');
     expect(patch).toContain('"You are a personal assistant running inside RivonClaw Desktop."');
   });

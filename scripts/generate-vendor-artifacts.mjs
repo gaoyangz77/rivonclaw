@@ -11,7 +11,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -26,16 +26,21 @@ function generateReasoningTags() {
     resolve(ROOT, "vendor/openclaw/src/shared/text/reasoning-tags.ts"),
     "utf-8",
   );
+  const finalTagsSrc = readFileSync(
+    resolve(ROOT, "vendor/openclaw/src/shared/text/final-tags.ts"),
+    "utf-8",
+  );
 
   // --- Transform code-regions: strip exports, keep as file-private -----------
   const codeRegionsBody = codeRegionsSrc
     // Remove "export " keyword — these become file-private
     .replace(/^export /gm, "");
 
-  // --- Transform reasoning-tags: remove the import, keep exports -------------
-  const reasoningTagsBody = reasoningTagsSrc
-    // Remove the import line that pulls in code-regions (now inlined above)
-    .replace(/^import\s*\{[^}]*\}\s*from\s*["']\.\/code-regions\.js["'];?\s*\n/m, "");
+  // --- Transform reasoning-tags: remove inlined imports, keep exports --------
+  const reasoningTagsBody = reasoningTagsSrc.replace(
+    /^import\s*\{[^}]*\}\s*from\s*["']\.\/(?:code-regions|final-tags)\.js["'];?\s*\n/gm,
+    "",
+  );
 
   const output = `// AUTO-GENERATED from vendor/openclaw — do not edit manually.
 // Re-generate with: node scripts/generate-vendor-artifacts.mjs
@@ -45,6 +50,12 @@ function generateReasoningTags() {
 // ---------------------------------------------------------------------------
 
 ${codeRegionsBody.trim()}
+
+// ---------------------------------------------------------------------------
+// Inlined from vendor/openclaw/src/shared/text/final-tags.ts (public exports)
+// ---------------------------------------------------------------------------
+
+${finalTagsSrc.trim()}
 
 // ---------------------------------------------------------------------------
 // From vendor/openclaw/src/shared/text/reasoning-tags.ts (public exports)
@@ -104,5 +115,35 @@ export declare const OpenClawSchema: z.ZodType<Record<string, unknown>>;
   console.log(`wrote ${dtsOutPath}`);
 }
 
+async function generatePluginModelCatalog() {
+  const googleCatalogPath = resolve(ROOT, "vendor/openclaw/extensions/google/provider-catalog.ts");
+  const { buildGoogleStaticCatalogProvider, buildGoogleVertexStaticCatalogProvider } = await import(
+    `${pathToFileURL(googleCatalogPath).href}?generated=${Date.now()}`
+  );
+
+  const toEntries = (provider) =>
+    provider.models.map((model) => ({
+      id: model.id,
+      name: model.name,
+      ...(Number.isFinite(model.contextWindow) ? { contextWindow: model.contextWindow } : {}),
+    }));
+  const google = toEntries(buildGoogleStaticCatalogProvider());
+  const catalog = {
+    google,
+    "google-gemini-cli": google,
+    "google-vertex": toEntries(buildGoogleVertexStaticCatalogProvider()),
+  };
+  const output = `// AUTO-GENERATED from vendor/openclaw — do not edit manually.
+// Re-generate with: node scripts/generate-vendor-artifacts.mjs
+
+export const OPENCLAW_PLUGIN_MODEL_CATALOG = ${JSON.stringify(catalog, null, 2)} as const;
+`;
+  const outPath = resolve(ROOT, "packages/gateway/src/generated/openclaw-plugin-model-catalog.ts");
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, output, "utf-8");
+  console.log(`wrote ${outPath}`);
+}
+
 generateReasoningTags();
+await generatePluginModelCatalog();
 await generateOpenClawSchema();

@@ -17,6 +17,7 @@ const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const REQUIRED_PATHS = [
   "openclaw.mjs",
   "package.json",
+  "src/agents/templates/HEARTBEAT.md",
   "docs/reference/templates/AGENTS.md",
   "docs/reference/templates/BOOT.md",
   "docs/reference/templates/BOOTSTRAP.md",
@@ -28,7 +29,6 @@ const REQUIRED_PATHS = [
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
   "extensions/openclaw-lark/openclaw.plugin.json",
-  "node_modules/cli-highlight/package.json",
   "node_modules/highlight.js/package.json",
   "node_modules/@larksuiteoapi/node-sdk/package.json",
   "node_modules/openclaw/package.json",
@@ -181,6 +181,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`[verify-vendor-runtime] FAIL: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(
+    `[verify-vendor-runtime] FAIL: ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exit(1);
 });

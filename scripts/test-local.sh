@@ -272,8 +272,12 @@ if [ "$PIPELINE_FAILED" = false ]; then
 
   if [ -d "$VENDOR_DIR/.git" ]; then
     ACTUAL_HASH="$(cd "$VENDOR_DIR" && git rev-parse HEAD)"
-    # Compare short-hash prefix so .openclaw-version can use abbreviated hashes
-    if [[ "$ACTUAL_HASH" == "$EXPECTED_HASH"* ]]; then
+    DIST_HASH="$(tr -d '[:space:]' < "$VENDOR_DIR/dist/.dist-complete" 2>/dev/null || true)"
+    # Patched vendor trees contain replay commits on top of the pinned upstream
+    # commit. Accept that state when the pin is an ancestor and dist was built
+    # for the same pin.
+    if (cd "$VENDOR_DIR" && git merge-base --is-ancestor "$EXPECTED_HASH" "$ACTUAL_HASH") \
+      && [[ "$DIST_HASH" == "$EXPECTED_HASH"* ]]; then
       info "Vendor already at $EXPECTED_HASH — skipping setup."
     else
       warn "Vendor mismatch: expected $EXPECTED_HASH, got ${ACTUAL_HASH:0:9}"
@@ -354,7 +358,13 @@ if [ "$EARLY_FAILURE" = false ]; then
   step_start=$SECONDS
   # Clean stale release dirs to avoid picking up wrong binary in prod E2E
   rm -rf "$RELEASE_DIR"
-  if (cd "$DESKTOP_DIR" && pnpm run pack); then
+  if [ "$PLATFORM" = "mac" ]; then
+    pack_command=(pnpm run pack:mac)
+  else
+    pack_command=(pnpm run pack)
+  fi
+
+  if (cd "$DESKTOP_DIR" && "${pack_command[@]}"); then
     PACK_SUCCEEDED=true
     record_step "pack" 0 $((SECONDS - step_start))
     info "Pack complete."

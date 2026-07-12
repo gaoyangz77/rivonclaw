@@ -46,7 +46,8 @@ hash.update(openclawVersion);
 // 2. Sorted patch contents
 const patchDir = path.join(repoRoot, "vendor-patches", "openclaw");
 if (fs.existsSync(patchDir)) {
-  const patches = fs.readdirSync(patchDir)
+  const patches = fs
+    .readdirSync(patchDir)
     .filter((f) => f.endsWith(".patch"))
     .sort();
   for (const p of patches) {
@@ -76,6 +77,7 @@ console.log(`[archive-vendor-runtime] Version key: ${version}`);
 const RUNTIME_INCLUDES = [
   "openclaw.mjs",
   "package.json",
+  "src/agents/templates",
   "docs/reference/templates",
   "skills",
   "dist",
@@ -86,7 +88,9 @@ const RUNTIME_INCLUDES = [
 
 // Verify at least the entry point exists before archiving
 if (!fs.existsSync(path.join(vendorDir, "openclaw.mjs"))) {
-  console.error("[archive-vendor-runtime] FAIL: vendor/openclaw/openclaw.mjs not found. Is vendor set up?");
+  console.error(
+    "[archive-vendor-runtime] FAIL: vendor/openclaw/openclaw.mjs not found. Is vendor set up?",
+  );
   process.exit(1);
 }
 
@@ -184,21 +188,29 @@ function signMacOSRuntimeBinaries(machoFiles) {
   }
 
   if (process.env.RIVONCLAW_REQUIRE_NO_VENDOR_MACHO === "1") {
-    console.error(`[archive-vendor-runtime] FAIL: Found ${machoFiles.length} vendor Mach-O binaries after pruning:`);
+    console.error(
+      `[archive-vendor-runtime] FAIL: Found ${machoFiles.length} vendor Mach-O binaries after pruning:`,
+    );
     for (const file of machoFiles) {
       console.error(`[archive-vendor-runtime]   ${path.relative(vendorDir, file)}`);
     }
-    console.error("[archive-vendor-runtime] Prune these native runtime files instead of signing them inside vendor-runtime.tar.");
+    console.error(
+      "[archive-vendor-runtime] Prune these native runtime files instead of signing them inside vendor-runtime.tar.",
+    );
     process.exit(1);
   }
 
   const identity = process.env.CSC_NAME || findDeveloperIdIdentity();
   if (!identity) {
-    console.warn("[archive-vendor-runtime] No Developer ID identity found; skipping vendor Mach-O signing and verification.");
+    console.warn(
+      "[archive-vendor-runtime] No Developer ID identity found; skipping vendor Mach-O signing and verification.",
+    );
     return false;
   }
 
-  console.log(`[archive-vendor-runtime] Signing ${machoFiles.length} vendor Mach-O binaries with ${identity}...`);
+  console.log(
+    `[archive-vendor-runtime] Signing ${machoFiles.length} vendor Mach-O binaries with ${identity}...`,
+  );
   const keychainArgs = process.env.MACOS_KEYCHAIN_PATH
     ? ["--keychain", shellQuote(process.env.MACOS_KEYCHAIN_PATH)]
     : [];
@@ -209,10 +221,12 @@ function signMacOSRuntimeBinaries(machoFiles) {
       [
         "codesign",
         "--force",
-        "--options", "runtime",
+        "--options",
+        "runtime",
         "--timestamp",
         ...keychainArgs,
-        "--sign", shellQuote(identity),
+        "--sign",
+        shellQuote(identity),
         shellQuote(file),
       ].join(" "),
       { stdio: "inherit", timeout: 120_000 },
@@ -230,7 +244,9 @@ function verifyMacOSRuntimeBinaries(machoFiles) {
     return;
   }
 
-  console.log(`[archive-vendor-runtime] Verifying ${machoFiles.length} signed vendor Mach-O binaries...`);
+  console.log(
+    `[archive-vendor-runtime] Verifying ${machoFiles.length} signed vendor Mach-O binaries...`,
+  );
   for (const file of machoFiles) {
     try {
       execSync(`codesign --verify --strict --verbose=2 ${shellQuote(file)}`, {
@@ -238,7 +254,9 @@ function verifyMacOSRuntimeBinaries(machoFiles) {
         timeout: 30_000,
       });
     } catch (err) {
-      console.error(`[archive-vendor-runtime] FAIL: unsigned or invalid Mach-O: ${path.relative(vendorDir, file)}`);
+      console.error(
+        `[archive-vendor-runtime] FAIL: unsigned or invalid Mach-O: ${path.relative(vendorDir, file)}`,
+      );
       if (err && typeof err === "object" && "stderr" in err && err.stderr) {
         console.error(String(err.stderr));
       }
@@ -251,7 +269,9 @@ function verifyMacOSRuntimeBinaries(machoFiles) {
 const macOSRuntimeMachOBinaries = isMacOS ? listMachOBinaries(vendorDir) : [];
 
 if (process.env.SKIP_VENDOR_RUNTIME_SIGNING === "1") {
-  console.log("[archive-vendor-runtime] SKIP_VENDOR_RUNTIME_SIGNING=1; skipping vendor Mach-O signing and verification.");
+  console.log(
+    "[archive-vendor-runtime] SKIP_VENDOR_RUNTIME_SIGNING=1; skipping vendor Mach-O signing and verification.",
+  );
 } else {
   const didSignMacOSRuntimeBinaries = signMacOSRuntimeBinaries(macOSRuntimeMachOBinaries);
   if (didSignMacOSRuntimeBinaries) {
@@ -260,8 +280,7 @@ if (process.env.SKIP_VENDOR_RUNTIME_SIGNING === "1") {
 }
 
 // Build the include arguments — only add paths that actually exist
-const includeArgs = RUNTIME_INCLUDES
-  .filter((p) => fs.existsSync(path.join(vendorDir, p)))
+const includeArgs = RUNTIME_INCLUDES.filter((p) => fs.existsSync(path.join(vendorDir, p)))
   .map((p) => shellQuote(p))
   .join(" ");
 
@@ -271,10 +290,10 @@ const startMs = Date.now();
 fs.rmSync(archivePath, { force: true });
 fs.rmSync(legacyGzipArchivePath, { force: true });
 
-execSync(
-  `tar -cf ${shellQuote(archivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`,
-  { stdio: "inherit", timeout: 300_000 },
-);
+execSync(`tar -cf ${shellQuote(archivePath)} -C ${shellQuote(vendorDir)} ${includeArgs}`, {
+  stdio: "inherit",
+  timeout: 300_000,
+});
 
 const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
 console.log(`[archive-vendor-runtime] Archive created in ${elapsedSec}s`);
@@ -285,7 +304,9 @@ const archiveSizeBytes = archiveStats.size;
 const archiveSizeMB = (archiveSizeBytes / 1024 / 1024).toFixed(1);
 
 if (archiveSizeBytes < 1024 * 1024) {
-  console.error(`[archive-vendor-runtime] FAIL: Archive is only ${archiveSizeBytes} bytes (< 1MB). Something is wrong.`);
+  console.error(
+    `[archive-vendor-runtime] FAIL: Archive is only ${archiveSizeBytes} bytes (< 1MB). Something is wrong.`,
+  );
   process.exit(1);
 }
 
@@ -304,6 +325,7 @@ try {
 console.log("[archive-vendor-runtime] Archive verification passed (openclaw.mjs found).");
 
 for (const requiredPath of [
+  "src/agents/templates/HEARTBEAT.md",
   "docs/reference/templates/AGENTS.md",
   "docs/reference/templates/SOUL.md",
   "docs/reference/templates/TOOLS.md",

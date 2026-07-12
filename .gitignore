@@ -1,5 +1,8 @@
 client/
 docs/
+!docs/
+docs/*
+!docs/OPENCLAW_CONFIG.md
 vendor/openclaw/
 node_modules/
 dist/

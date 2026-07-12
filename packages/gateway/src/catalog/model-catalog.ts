@@ -11,6 +11,7 @@ import {
   type LLMProvider,
   type RootProvider,
 } from "@rivonclaw/core";
+import { OPENCLAW_PLUGIN_MODEL_CATALOG } from "../generated/openclaw-plugin-model-catalog.js";
 
 /** A minimal model entry for the UI (no secrets, no cost data). */
 export interface CatalogModelEntry {
@@ -253,6 +254,16 @@ export function normalizeCatalog(
 /** Module-level cache for the vendor model catalog. */
 let vendorCatalogCache: Record<string, CatalogModelEntry[]> | null = null;
 
+function mergePluginModelCatalog(
+  catalog: Record<string, CatalogModelEntry[]>,
+): Record<string, CatalogModelEntry[]> {
+  const merged = { ...catalog };
+  for (const [provider, entries] of Object.entries(OPENCLAW_PLUGIN_MODEL_CATALOG)) {
+    merged[provider] = [...(merged[provider] ?? []), ...entries];
+  }
+  return merged;
+}
+
 /**
  * Read the vendor model catalog — a pre-extracted JSON file containing { id, name }
  * per provider from the pi-ai MODELS constant.
@@ -276,7 +287,9 @@ export async function readVendorModelCatalog(
     const vendorModelsJson = join(vendorDir, "dist", "vendor-models.json");
     if (existsSync(vendorModelsJson)) {
       const raw = readFileSync(vendorModelsJson, "utf8");
-      vendorCatalogCache = JSON.parse(raw) as Record<string, CatalogModelEntry[]>;
+      vendorCatalogCache = mergePluginModelCatalog(
+        JSON.parse(raw) as Record<string, CatalogModelEntry[]>,
+      );
       return vendorCatalogCache;
     }
 
@@ -291,7 +304,7 @@ export async function readVendorModelCatalog(
     );
 
     if (!existsSync(piAiModelsPath)) {
-      vendorCatalogCache = {};
+      vendorCatalogCache = mergePluginModelCatalog({});
       return vendorCatalogCache;
     }
 
@@ -308,7 +321,7 @@ export async function readVendorModelCatalog(
 
     const allModels = mod.MODELS;
     if (!allModels || typeof allModels !== "object") {
-      vendorCatalogCache = {};
+      vendorCatalogCache = mergePluginModelCatalog({});
       return vendorCatalogCache;
     }
 
@@ -334,10 +347,10 @@ export async function readVendorModelCatalog(
       }
     }
 
-    vendorCatalogCache = result;
+    vendorCatalogCache = mergePluginModelCatalog(result);
     return result;
   } catch {
-    vendorCatalogCache = {};
+    vendorCatalogCache = mergePluginModelCatalog({});
     return vendorCatalogCache;
   }
 }

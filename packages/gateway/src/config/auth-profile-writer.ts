@@ -1,5 +1,6 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, chmodSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
 import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
@@ -8,6 +9,8 @@ import { SecretStoreAccessError } from "@rivonclaw/secrets";
 const log = createLogger("gateway:auth-profile");
 
 const AUTH_PROFILE_FILENAME = "auth-profiles.json";
+const AUTH_PROFILE_DATABASE_FILENAME = "openclaw-agent.sqlite";
+const AUTH_PROFILE_STORE_KEY = "primary";
 const GEMINI_CLI_HOME_DIRNAME = "gemini-cli-home";
 
 type ApiKeyProfile = { type: "api_key"; provider: string; key: string };
@@ -33,11 +36,16 @@ interface AuthProfileStore {
 }
 
 /**
- * Resolve the auth-profiles.json path from an OpenClaw state directory.
+ * Resolve the legacy auth-profiles.json path from an OpenClaw state directory.
  * Path: {stateDir}/agents/main/agent/auth-profiles.json
  */
 export function resolveAuthProfilePath(stateDir: string): string {
   return join(stateDir, "agents", DEFAULT_AGENT_ID, "agent", AUTH_PROFILE_FILENAME);
+}
+
+/** Resolve the authoritative auth store used by OpenClaw v2026.6.11+. */
+export function resolveAuthProfileDatabasePath(stateDir: string): string {
+  return join(stateDir, "agents", DEFAULT_AGENT_ID, "agent", AUTH_PROFILE_DATABASE_FILENAME);
 }
 
 /**
@@ -45,23 +53,48 @@ export function resolveAuthProfilePath(stateDir: string): string {
  *
  * Gemini's official CLI reads OAuth from ~/.gemini/oauth_creds.json and auth
  * selection from ~/.gemini/settings.json. We derive those files from
- * auth-profiles.json instead of mutating the user's real ~/.gemini directory.
+ * the managed auth store instead of mutating the user's real ~/.gemini directory.
  */
 export function resolveManagedGeminiCliHome(stateDir: string): string {
   return join(stateDir, GEMINI_CLI_HOME_DIRNAME);
 }
 
 /**
- * Read the current auth-profiles.json from disk.
- * Returns an empty store if the file doesn't exist or can't be parsed.
+ * Parse an OpenClaw auth profile store.
  */
-function readStore(filePath: string): AuthProfileStore {
+function parseStore(data: unknown): AuthProfileStore | null {
+  if (data && typeof data === "object" && (data as { version?: unknown }).version === 1) {
+    return data as AuthProfileStore;
+  }
+  return null;
+}
+
+function readDatabaseStore(databasePath: string): AuthProfileStore | null {
+  if (!existsSync(databasePath)) return null;
+
+  const database = new DatabaseSync(databasePath, { readOnly: true });
+  try {
+    database.exec("PRAGMA busy_timeout = 5000");
+    const row = database
+      .prepare("SELECT store_json FROM auth_profile_store WHERE store_key = ?")
+      .get(AUTH_PROFILE_STORE_KEY) as { store_json?: unknown } | undefined;
+    if (typeof row?.store_json !== "string") return null;
+    return parseStore(JSON.parse(row.store_json));
+  } catch {
+    return null;
+  } finally {
+    database.close();
+  }
+}
+
+function readStore(filePath: string, databasePath: string): AuthProfileStore {
+  const databaseStore = readDatabaseStore(databasePath);
+  if (databaseStore) return databaseStore;
+
   try {
     if (existsSync(filePath)) {
-      const data = JSON.parse(readFileSync(filePath, "utf-8"));
-      if (data && typeof data === "object" && data.version === 1) {
-        return data as AuthProfileStore;
-      }
+      const store = parseStore(JSON.parse(readFileSync(filePath, "utf-8")));
+      if (store) return store;
     }
   } catch {
     log.warn(`Failed to read auth profiles at ${filePath}, starting fresh`);
@@ -70,12 +103,43 @@ function readStore(filePath: string): AuthProfileStore {
 }
 
 /**
- * Write the auth profile store to disk with restricted permissions (0o600).
- * Matches OpenClaw's convention: directory 0o700, file 0o600.
+ * Write the auth profile store to OpenClaw's authoritative SQLite database.
+ * Matches OpenClaw's convention: directory 0o700, database 0o600.
  */
-function writeStore(filePath: string, store: AuthProfileStore): void {
+function writeDatabaseStore(databasePath: string, store: AuthProfileStore): void {
+  const dir = dirname(databasePath);
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const database = new DatabaseSync(databasePath);
+  try {
+    database.exec(`
+      PRAGMA busy_timeout = 5000;
+      CREATE TABLE IF NOT EXISTS auth_profile_store (
+        store_key TEXT NOT NULL PRIMARY KEY,
+        store_json TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+    database
+      .prepare(
+        `INSERT INTO auth_profile_store (store_key, store_json, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(store_key) DO UPDATE SET
+           store_json = excluded.store_json,
+           updated_at = excluded.updated_at`,
+      )
+      .run(AUTH_PROFILE_STORE_KEY, JSON.stringify(store), Date.now());
+  } finally {
+    database.close();
+  }
+  chmodSync(databasePath, 0o600);
+}
+
+function writeStore(filePath: string, databasePath: string, store: AuthProfileStore): void {
   const dir = dirname(filePath);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
+  // OpenClaw v2026.6.11+ reads SQLite. Keep JSON in sync for rollback to older
+  // vendored versions and for diagnostics, but never treat it as authoritative.
+  writeDatabaseStore(databasePath, store);
   writeFileSync(filePath, JSON.stringify(store, null, 2) + "\n", {
     encoding: "utf-8",
     mode: 0o600,
@@ -116,18 +180,15 @@ function syncManagedGeminiCliHome(stateDir: string, store: AuthProfileStore): vo
 }
 
 /**
- * Sync a single provider's active API key into auth-profiles.json.
+ * Sync a single provider's active API key into OpenClaw's auth stores.
  *
  * Uses the profile ID `{provider}:active` and sets the order for that
  * provider so OpenClaw picks it up on the next LLM turn — no restart needed.
  */
-export function syncAuthProfile(
-  stateDir: string,
-  provider: string,
-  apiKey: string,
-): void {
+export function syncAuthProfile(stateDir: string, provider: string, apiKey: string): void {
   const filePath = resolveAuthProfilePath(stateDir);
-  const store = readStore(filePath);
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
+  const store = readStore(filePath, databasePath);
 
   // Use the gateway provider name so OpenClaw can match it to the model config.
   // e.g. "claude" → "anthropic", "gemini" → "google"
@@ -137,16 +198,17 @@ export function syncAuthProfile(
   store.order = store.order ?? {};
   store.order[gwProvider] = [profileId];
 
-  writeStore(filePath, store);
+  writeStore(filePath, databasePath, store);
   log.info(`Synced auth profile for ${provider} (gateway: ${gwProvider})`);
 }
 
 /**
- * Remove a provider's profile from auth-profiles.json.
+ * Remove a provider's profile from OpenClaw's auth stores.
  */
 export function removeAuthProfile(stateDir: string, provider: string): void {
   const filePath = resolveAuthProfilePath(stateDir);
-  const store = readStore(filePath);
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
+  const store = readStore(filePath, databasePath);
 
   const gwProvider = resolveGatewayProvider(provider as LLMProvider);
   const profileId = `${gwProvider}:active`;
@@ -155,15 +217,15 @@ export function removeAuthProfile(stateDir: string, provider: string): void {
     delete store.order[gwProvider];
   }
 
-  writeStore(filePath, store);
+  writeStore(filePath, databasePath, store);
   log.info(`Removed auth profile for ${provider} (gateway: ${gwProvider})`);
 }
 
 /**
- * Sync ALL active provider keys to auth-profiles.json.
+ * Sync ALL active provider keys to OpenClaw's auth stores.
  *
  * Reads every default key from storage, fetches the secret value
- * from the secret store, and writes them all to auth-profiles.json.
+ * from the secret store, and writes them to SQLite plus the legacy JSON mirror.
  *
  * Intended to be called once at startup so the gateway has all
  * active keys available from the first turn.
@@ -183,6 +245,7 @@ export async function syncAllAuthProfiles(
   secretStore: { get(key: string): Promise<string | null> },
 ): Promise<void> {
   const filePath = resolveAuthProfilePath(stateDir);
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
   const store: AuthProfileStore = { version: 1, profiles: {}, order: {} };
 
   try {
@@ -200,9 +263,8 @@ export async function syncAllAuthProfiles(
   // so OpenClaw can use any provider when sessions.patch switches models.
   const keysByProvider = new Map<string, (typeof allKeys)[0]>();
   for (const k of allKeys) {
-    const gwProvider = k.authType === "custom"
-      ? k.provider
-      : resolveGatewayProvider(k.provider as LLMProvider);
+    const gwProvider =
+      k.authType === "custom" ? k.provider : resolveGatewayProvider(k.provider as LLMProvider);
     const existing = keysByProvider.get(gwProvider);
     if (!existing || k.isDefault) {
       keysByProvider.set(gwProvider, k);
@@ -212,9 +274,10 @@ export async function syncAllAuthProfiles(
   for (const key of keysByProvider.values()) {
     // Custom providers use their slug directly (registered in extraProviders under that slug).
     // Built-in providers resolve via the gateway provider map.
-    const gwProvider = key.authType === "custom"
-      ? key.provider
-      : resolveGatewayProvider(key.provider as LLMProvider);
+    const gwProvider =
+      key.authType === "custom"
+        ? key.provider
+        : resolveGatewayProvider(key.provider as LLMProvider);
 
     if (key.authType === "oauth") {
       // OAuth entry: try structured credential first (oauth-cred-{id}), then fall back
@@ -289,16 +352,16 @@ export async function syncAllAuthProfiles(
     }
   }
 
-  writeStore(filePath, store);
+  writeStore(filePath, databasePath, store);
   syncManagedGeminiCliHome(stateDir, store);
   log.info(`Synced ${Object.keys(store.profiles).length} auth profile(s)`);
 }
 
 /**
- * Sync back OAuth credentials from auth-profiles.json to Keychain.
+ * Sync back OAuth credentials from OpenClaw's auth store to Keychain.
  *
  * OpenClaw may refresh OAuth access tokens during runtime. Before shutdown,
- * we read the (possibly refreshed) tokens from auth-profiles.json and write
+ * we read the (possibly refreshed) tokens from authoritative SQLite and write
  * them back to Keychain so the latest tokens survive across restarts.
  *
  * Call this BEFORE clearAllAuthProfiles().
@@ -321,7 +384,8 @@ export async function syncBackOAuthCredentials(
   },
 ): Promise<void> {
   const filePath = resolveAuthProfilePath(stateDir);
-  const store = readStore(filePath);
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
+  const store = readStore(filePath, databasePath);
 
   const oauthKeys = storage.providerKeys
     .getAll()
@@ -329,7 +393,7 @@ export async function syncBackOAuthCredentials(
 
   let synced = 0;
   for (const key of oauthKeys) {
-    // Find the matching OAuth profile in auth-profiles.json.
+    // Find the matching OAuth profile in the authoritative store.
     const gwProvider = resolveGatewayProvider(key.provider as LLMProvider);
     const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
     const matchingProfile = Object.values(store.profiles).find(
@@ -361,13 +425,14 @@ export async function syncBackOAuthCredentials(
 }
 
 /**
- * Clear all auth profiles from auth-profiles.json.
+ * Clear all auth profiles from OpenClaw's SQLite and legacy JSON stores.
  * Called on app shutdown to remove sensitive API keys from disk.
  */
 export function clearAllAuthProfiles(stateDir: string): void {
   const filePath = resolveAuthProfilePath(stateDir);
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
   const emptyStore: AuthProfileStore = { version: 1, profiles: {}, order: {} };
-  writeStore(filePath, emptyStore);
+  writeStore(filePath, databasePath, emptyStore);
   syncManagedGeminiCliHome(stateDir, emptyStore);
   log.info("Cleared all auth profiles");
 }

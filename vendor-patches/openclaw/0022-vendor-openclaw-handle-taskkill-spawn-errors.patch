@@ -1,4 +1,4 @@
-From 8a7dbd5cb3e5b0fd0c80023b23fc25f63a45ff02 Mon Sep 17 00:00:00 2001
+From f0adb3f9ce1f21375debd7301c92344f8fdb88d9 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Jul 2026 04:59:37 -0700
 Subject: [PATCH] vendor(openclaw): handle taskkill spawn errors
@@ -18,48 +18,15 @@ Tests:
 - apps/desktop/src/gateway/vendor-taskkill-spawn-error.sentinel.test.ts
 - vendor/openclaw/src/process/kill-tree.test.ts
 ---
- src/process/kill-tree.test.ts | 18 ++++++++++++++++++
- src/process/kill-tree.ts      |  3 ++-
- 2 files changed, 20 insertions(+), 1 deletion(-)
+ packages/agent-core/src/harness/env/kill-tree.ts |  3 ++-
+ src/process/kill-tree.test.ts                    | 13 +++++++++++++
+ 2 files changed, 15 insertions(+), 1 deletion(-)
 
-diff --git a/src/process/kill-tree.test.ts b/src/process/kill-tree.test.ts
-index a482c2490c..dd143ddc33 100644
---- a/src/process/kill-tree.test.ts
-+++ b/src/process/kill-tree.test.ts
-@@ -1,3 +1,4 @@
-+import { EventEmitter } from "node:events";
- import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
- 
- const { spawnMock } = vi.hoisted(() => ({
-@@ -100,6 +101,23 @@ describe("killProcessTree", () => {
-     });
-   });
- 
-+  it("on Windows ignores async taskkill spawn errors", async () => {
-+    const taskkillChild = new EventEmitter();
-+    spawnMock.mockReturnValueOnce(taskkillChild);
-+
-+    await withPlatform("win32", async () => {
-+      killProcessTree(9191, { graceMs: 25 });
-+
-+      expect(() => taskkillChild.emit("error", new Error("spawn ENOENT"))).not.toThrow();
-+      expect(spawnMock).toHaveBeenNthCalledWith(
-+        1,
-+        "taskkill",
-+        ["/T", "/PID", "9191"],
-+        expect.objectContaining({ detached: true, stdio: "ignore" }),
-+      );
-+    });
-+  });
-+
-   it("on Unix sends SIGTERM first and skips SIGKILL when process exits", async () => {
-     killSpy.mockImplementation(((pid: number, signal?: NodeJS.Signals | number) => {
-       if (pid === -3333 && signal === 0) {
-diff --git a/src/process/kill-tree.ts b/src/process/kill-tree.ts
-index 0260f7d55a..85e4b76266 100644
---- a/src/process/kill-tree.ts
-+++ b/src/process/kill-tree.ts
-@@ -99,11 +99,12 @@ function killProcessTreeUnix(pid: number, graceMs: number, useGroupKill: boolean
+diff --git a/packages/agent-core/src/harness/env/kill-tree.ts b/packages/agent-core/src/harness/env/kill-tree.ts
+index 4ea5f2e5de..236e4c1a64 100644
+--- a/packages/agent-core/src/harness/env/kill-tree.ts
++++ b/packages/agent-core/src/harness/env/kill-tree.ts
+@@ -110,11 +110,12 @@ function signalProcessTreeUnix(
  
  function runTaskkill(args: string[]): void {
    try {
@@ -71,7 +38,44 @@ index 0260f7d55a..85e4b76266 100644
      });
 +    child.once("error", () => {});
    } catch {
-     // Ignore taskkill spawn failures
+     // Ignore taskkill spawn failures.
    }
+diff --git a/src/process/kill-tree.test.ts b/src/process/kill-tree.test.ts
+index 57fbe6709d..5f00282bef 100644
+--- a/src/process/kill-tree.test.ts
++++ b/src/process/kill-tree.test.ts
+@@ -1,4 +1,5 @@
+ // Kill tree tests cover process tree termination and platform-specific fallbacks.
++import { EventEmitter } from "node:events";
+ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+ import { withMockedPlatform } from "../test-utils/vitest-spies.js";
+ 
+@@ -40,6 +41,7 @@ describe("killProcessTree", () => {
+ 
+   beforeEach(() => {
+     spawnMock.mockClear();
++    spawnMock.mockReturnValue({ once: vi.fn() });
+     killSpy = vi.spyOn(process, "kill");
+     vi.useFakeTimers();
+   });
+@@ -88,6 +90,17 @@ describe("killProcessTree", () => {
+     });
+   });
+ 
++  it("on Windows ignores asynchronous taskkill spawn errors", async () => {
++    const taskkillChild = new EventEmitter();
++    spawnMock.mockReturnValueOnce(taskkillChild);
++
++    await withMockedPlatform("win32", async () => {
++      killProcessTree(9191, { graceMs: 25 });
++      expect(() => taskkillChild.emit("error", new Error("spawn ENOENT"))).not.toThrow();
++      expectTaskkillCall(0, ["/T", "/PID", "9191"]);
++    });
++  });
++
+   it("on Unix sends SIGTERM first and skips SIGKILL when process exits", async () => {
+     killSpy.mockImplementation(((pid: number, signal?: NodeJS.Signals | number) => {
+       if (pid === -3333 && signal === 0) {
 -- 
 2.50.1 (Apple Git-155)
+

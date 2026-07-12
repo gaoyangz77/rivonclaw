@@ -1,4 +1,4 @@
-From 95b73675d4e8bb6d7639f0f892894aa4c1ca38b1 Mon Sep 17 00:00:00 2001
+From e230c11b862900cfc9b88e008780e2b963c15009 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 3 Jun 2026 22:09:15 -0700
 Subject: [PATCH] vendor(openclaw): route remote media through RivonClaw cache
@@ -13,23 +13,25 @@ Removal:
 Tests:
 - src/media/fetch.test.ts
 ---
- src/media/fetch.test.ts | 111 +++++++++++++++++++++++++++++++++++++++-
- src/media/fetch.ts      |  94 ++++++++++++++++++++++++++++++++--
- 2 files changed, 199 insertions(+), 6 deletions(-)
+ src/media/fetch.test.ts | 70 +++++++++++++++++++++++++++++++++++++-
+ src/media/fetch.ts      | 75 ++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 143 insertions(+), 2 deletions(-)
 
 diff --git a/src/media/fetch.test.ts b/src/media/fetch.test.ts
-index 07f3ac2b72..45df9f2442 100644
+index 7b91df5dd6..b7bb9d83b1 100644
 --- a/src/media/fetch.test.ts
 +++ b/src/media/fetch.test.ts
-@@ -1,4 +1,4 @@
--import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+@@ -1,6 +1,6 @@
+ // Media fetch tests cover remote media download limits and validation.
+ import fs from "node:fs/promises";
+-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
++import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+ import { MAX_TIMER_TIMEOUT_MS } from "../shared/number-coercion.js";
+ import { createTempHomeEnv, type TempHomeEnv } from "../test-utils/temp-home.js";
  
- const fetchWithSsrFGuardMock = vi.hoisted(() => vi.fn());
- 
-@@ -17,6 +17,13 @@ type LookupFn = NonNullable<Parameters<FetchRemoteMedia>[0]["lookupFn"]>;
- let fetchRemoteMedia: FetchRemoteMedia;
+@@ -26,6 +26,13 @@ let saveResponseMedia: SaveResponseMedia;
  let defaultFetchMediaMaxBytes: number;
+ let tempHome: TempHomeEnv;
  
 +function clearRivonClawMediaCacheEnv() {
 +  delete process.env.RIVONCLAW_PANEL_PORT;
@@ -41,7 +43,7 @@ index 07f3ac2b72..45df9f2442 100644
  function makeStream(chunks: Uint8Array[]) {
    return new ReadableStream<Uint8Array>({
      start(controller) {
-@@ -186,6 +193,7 @@ describe("fetchRemoteMedia", () => {
+@@ -228,6 +235,7 @@ describe("readRemoteMediaBuffer", () => {
  
    beforeEach(() => {
      vi.useRealTimers();
@@ -49,8 +51,8 @@ index 07f3ac2b72..45df9f2442 100644
      fetchWithSsrFGuardMock.mockReset().mockImplementation(async (paramsUnknown: unknown) => {
        const params = paramsUnknown as {
          url: string;
-@@ -207,6 +215,107 @@ describe("fetchRemoteMedia", () => {
-     });
+@@ -253,6 +261,66 @@ describe("readRemoteMediaBuffer", () => {
+     await tempHome.restore();
    });
  
 +  afterEach(() => {
@@ -58,98 +60,57 @@ index 07f3ac2b72..45df9f2442 100644
 +    vi.unstubAllGlobals();
 +  });
 +
-+  it("resolves remote media through RivonClaw Desktop media cache before guarded fetch", async () => {
++  it("resolves remote media through the RivonClaw Desktop media cache", async () => {
 +    process.env.RIVONCLAW_PANEL_PORT = "61234";
 +    process.env.RIVONCLAW_DESKTOP_API_TOKEN = "desktop-token";
 +    process.env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE = "cn-relay";
-+
-+    const desktopFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-+      expect(String(input)).toBe("http://127.0.0.1:61234/api/media-cache/resolve");
-+      expect(init?.method).toBe("POST");
-+      expect((init?.headers as Record<string, string>)["X-RivonClaw-Desktop-Token"]).toBe(
-+        "desktop-token",
-+      );
-+      expect(JSON.parse(String(init?.body))).toEqual({
-+        sourceUrl: "https://p16-oec-general-useast5.ttcdn-us.com/image.jpeg",
-+      });
-+      return new Response(JSON.stringify({ url: "https://media-cache.example.com/image.jpeg" }), {
-+        status: 200,
-+        headers: { "content-type": "application/json" },
-+      });
-+    });
-+    vi.stubGlobal("fetch", desktopFetch);
-+
-+    const fetchImpl = vi.fn(
-+      async () =>
-+        new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), {
++    vi.stubGlobal(
++      "fetch",
++      vi.fn(async () =>
++        new Response(JSON.stringify({ url: "https://media-cache.example.com/image.jpeg" }), {
 +          status: 200,
-+          headers: { "content-type": "image/jpeg" },
 +        }),
++      ),
 +    );
-+
-+    const result = await fetchRemoteMedia({
-+      url: "https://p16-oec-general-useast5.ttcdn-us.com/image.jpeg",
-+      fetchImpl,
++    await readRemoteMediaBuffer({
++      url: "https://blocked.example.com/image.jpeg",
++      fetchImpl: vi.fn(async () =>
++        new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), { status: 200 }),
++      ),
 +      lookupFn: makeLookupFn(),
 +      maxBytes: 1024,
 +    });
-+
-+    expect(result.contentType).toBe("image/jpeg");
 +    expect(fetchWithSsrFGuardMock).toHaveBeenCalledWith(
 +      expect.objectContaining({ url: "https://media-cache.example.com/image.jpeg" }),
 +    );
-+    expect(fetchImpl).toHaveBeenCalledWith("https://media-cache.example.com/image.jpeg", undefined);
 +  });
 +
-+  it("keeps upstream fetch behavior when RivonClaw media cache is unavailable outside the CN relay route", async () => {
++  it("falls back to the original URL when the desktop cache is unavailable globally", async () => {
 +    process.env.RIVONCLAW_PANEL_PORT = "61234";
 +    process.env.RIVONCLAW_DESKTOP_API_TOKEN = "desktop-token";
 +    process.env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE = "global";
-+    vi.stubGlobal(
-+      "fetch",
-+      vi.fn(async () => {
-+        throw new Error("panel server unavailable");
-+      }),
-+    );
-+
-+    const fetchImpl = vi.fn(
-+      async () =>
-+        new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), {
-+          status: 200,
-+          headers: { "content-type": "image/jpeg" },
-+        }),
-+    );
-+
-+    await fetchRemoteMedia({
++    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("unavailable"))));
++    await readRemoteMediaBuffer({
 +      url: "https://example.com/image.jpeg",
-+      fetchImpl,
++      fetchImpl: vi.fn(async () => new Response(new Uint8Array([1]), { status: 200 })),
 +      lookupFn: makeLookupFn(),
 +      maxBytes: 1024,
 +    });
-+
 +    expect(fetchWithSsrFGuardMock).toHaveBeenCalledWith(
 +      expect.objectContaining({ url: "https://example.com/image.jpeg" }),
 +    );
 +  });
 +
-+  it("fails with a clear RivonClaw media-cache error on the CN relay route", async () => {
++  it("fails clearly when the desktop cache is unavailable on the CN relay route", async () => {
 +    process.env.RIVONCLAW_PANEL_PORT = "61234";
 +    process.env.RIVONCLAW_DESKTOP_API_TOKEN = "desktop-token";
 +    process.env.RIVONCLAW_FIRST_PARTY_DOMAIN_ROUTE = "cn-relay";
-+    vi.stubGlobal(
-+      "fetch",
-+      vi.fn(
-+        async () =>
-+          new Response(JSON.stringify({ error: "Authentication required" }), { status: 401 }),
-+      ),
-+    );
-+
++    vi.stubGlobal("fetch", vi.fn(async () => new Response("denied", { status: 401 })));
 +    await expect(
-+      fetchRemoteMedia({
++      readRemoteMediaBuffer({
 +        url: "https://example.com/image.jpeg",
 +        fetchImpl: vi.fn(),
 +        lookupFn: makeLookupFn(),
-+        maxBytes: 1024,
 +      }),
 +    ).rejects.toThrow("RivonClaw media cache proxy resolve failed");
 +  });
@@ -158,10 +119,10 @@ index 07f3ac2b72..45df9f2442 100644
      {
        name: "rejects when content-length exceeds maxBytes",
 diff --git a/src/media/fetch.ts b/src/media/fetch.ts
-index 668d57f41d..dfca575399 100644
+index d2d10ee113..774c680e8d 100644
 --- a/src/media/fetch.ts
 +++ b/src/media/fetch.ts
-@@ -38,6 +38,10 @@ export type FetchDispatcherAttempt = {
+@@ -67,6 +67,10 @@ export type FetchDispatcherAttempt = {
    lookupFn?: LookupFn;
  };
  
@@ -172,7 +133,7 @@ index 668d57f41d..dfca575399 100644
  type FetchMediaOptions = {
    url: string;
    fetchImpl?: FetchLike;
-@@ -106,6 +110,84 @@ function redactMediaUrl(url: string): string {
+@@ -179,6 +183,74 @@ function redactMediaUrl(url: string): string {
    return redactSensitiveText(url);
  }
  
@@ -186,12 +147,7 @@ index 668d57f41d..dfca575399 100644
 +function isLoopbackUrl(url: string): boolean {
 +  try {
 +    const parsed = new URL(url);
-+    return (
-+      parsed.hostname === "localhost" ||
-+      parsed.hostname === "127.0.0.1" ||
-+      parsed.hostname === "::1" ||
-+      parsed.hostname === "[::1]"
-+    );
++    return ["localhost", "127.0.0.1", "::1", "[::1]"].includes(parsed.hostname);
 +  } catch {
 +    return false;
 +  }
@@ -210,17 +166,14 @@ index 668d57f41d..dfca575399 100644
 +  if (!/^https?:\/\//i.test(url) || isLoopbackUrl(url)) {
 +    return url;
 +  }
-+
 +  const panelPort = process.env.RIVONCLAW_PANEL_PORT?.trim();
 +  const desktopToken = process.env.RIVONCLAW_DESKTOP_API_TOKEN?.trim();
 +  if (!panelPort || !desktopToken || !/^\d{2,5}$/.test(panelPort)) {
 +    return url;
 +  }
-+
 +  const controller = new AbortController();
 +  const timeout = setTimeout(() => controller.abort(), 10_000);
 +  timeout.unref?.();
-+
 +  try {
 +    const res = await globalThis.fetch(`http://127.0.0.1:${panelPort}/api/media-cache/resolve`, {
 +      method: "POST",
@@ -231,11 +184,9 @@ index 668d57f41d..dfca575399 100644
 +      body: JSON.stringify({ sourceUrl: url }),
 +      signal: controller.signal,
 +    });
-+
 +    if (!res.ok) {
 +      throw new Error(`HTTP ${res.status}${await readResolveErrorSnippet(res)}`);
 +    }
-+
 +    const body = (await res.json()) as RivonClawMediaCacheResolveResponse;
 +    if (typeof body.url !== "string" || !/^https?:\/\//i.test(body.url)) {
 +      throw new Error("response did not include a valid http(s) url");
@@ -254,22 +205,18 @@ index 668d57f41d..dfca575399 100644
 +  }
 +}
 +
- export async function fetchRemoteMedia(options: FetchMediaOptions): Promise<FetchMediaResult> {
-   const {
-     url,
-@@ -123,9 +205,10 @@ export async function fetchRemoteMedia(options: FetchMediaOptions): Promise<Fetc
+ async function fetchGuardedMediaResponse(
+   options: FetchMediaOptions,
+ ): Promise<GuardedMediaResponse> {
+@@ -196,6 +268,7 @@ async function fetchGuardedMediaResponse(
      trustExplicitProxyDns,
    } = options;
    const sourceUrl = redactMediaUrl(url);
 +  const requestUrl = await resolveRivonClawDesktopMediaCacheUrl(url);
  
-   let res: Response;
--  let finalUrl = url;
-+  let finalUrl = requestUrl;
-   let release: (() => Promise<void>) | null = null;
+   // Dispatcher attempts are fallback routes inside one logical guarded fetch operation.
    const attempts =
-     dispatcherAttempts && dispatcherAttempts.length > 0
-@@ -136,7 +219,7 @@ export async function fetchRemoteMedia(options: FetchMediaOptions): Promise<Fetc
+@@ -207,7 +280,7 @@ async function fetchGuardedMediaResponse(
        (trustExplicitProxyDns && attempt.dispatcherPolicy?.mode === "explicit-proxy"
          ? withTrustedExplicitProxyGuardedFetchMode
          : withStrictGuardedFetchMode)({
@@ -278,34 +225,6 @@ index 668d57f41d..dfca575399 100644
          fetchImpl,
          init: requestInit,
          maxRedirects,
-@@ -196,7 +279,8 @@ export async function fetchRemoteMedia(options: FetchMediaOptions): Promise<Fetc
-   try {
-     if (!res.ok) {
-       const statusText = res.statusText ? ` ${res.statusText}` : "";
--      const redirected = finalUrl !== url ? ` (redirected to ${redactMediaUrl(finalUrl)})` : "";
-+      const redirected =
-+        finalUrl !== requestUrl ? ` (redirected to ${redactMediaUrl(finalUrl)})` : "";
-       let detail = `HTTP ${res.status}${statusText}`;
-       if (!res.body) {
-         detail = `HTTP ${res.status}${statusText}; empty response body`;
-@@ -230,7 +314,7 @@ export async function fetchRemoteMedia(options: FetchMediaOptions): Promise<Fetc
-         onOverflow: ({ maxBytes, res }) =>
-           new MediaFetchError(
-             "max_bytes",
--            `Failed to fetch media from ${redactMediaUrl(res.url || url)}: payload exceeds maxBytes ${maxBytes}`,
-+            `Failed to fetch media from ${redactMediaUrl(res.url || requestUrl)}: payload exceeds maxBytes ${maxBytes}`,
-           ),
-         chunkTimeoutMs: readIdleTimeoutMs,
-       });
-@@ -240,7 +324,7 @@ export async function fetchRemoteMedia(options: FetchMediaOptions): Promise<Fetc
-       }
-       throw new MediaFetchError(
-         "fetch_failed",
--        `Failed to fetch media from ${redactMediaUrl(res.url || url)}: ${formatErrorMessage(err)}`,
-+        `Failed to fetch media from ${redactMediaUrl(res.url || requestUrl)}: ${formatErrorMessage(err)}`,
-         { cause: err },
-       );
-     }
 -- 
 2.50.1 (Apple Git-155)
 

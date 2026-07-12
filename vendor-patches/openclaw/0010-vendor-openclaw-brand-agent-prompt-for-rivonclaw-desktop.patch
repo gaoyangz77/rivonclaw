@@ -1,8 +1,7 @@
-From bf8ad7ceddeb05e6e324fc9d9f40d990a211c40a Mon Sep 17 00:00:00 2001
+From 1c17e81bc70802fa9adc29e67a5ea9ad34edf4e4 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 26 Apr 2026 02:44:52 -0700
-Subject: [PATCH 10/12] vendor(openclaw): brand agent prompt for RivonClaw
- desktop
+Subject: [PATCH] vendor(openclaw): brand agent prompt for RivonClaw desktop
 
 Why:
 - Patch 0009 removes the CLI quick reference, but the default agent prompt still
@@ -20,14 +19,14 @@ Removal:
 Tests:
 - apps/desktop/src/cs-bridge/vendor-no-openclaw-cli-guidance.sentinel.test.ts
 ---
- src/agents/system-prompt.ts | 22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
+ src/agents/system-prompt.ts | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index f4dae24b80..d69d95037c 100644
+index f32b5e91b4..8b3e684bc7 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -472,7 +472,7 @@ function buildMessagingSection(params: {
+@@ -533,7 +533,7 @@ function buildMessagingSection(params: {
      "- Cross-session messaging → use sessions_send(sessionKey, message)",
      subagentOrchestrationGuidance,
      completionEventGuidance,
@@ -36,7 +35,7 @@ index f4dae24b80..d69d95037c 100644
      params.availableTools.has("message")
        ? [
            "",
-@@ -637,10 +637,10 @@ export function buildAgentSystemPrompt(params: {
+@@ -774,10 +774,10 @@ export function buildAgentSystemPrompt(params: {
      nodes: "List/describe/notify/camera/screen on paired nodes",
      cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
      message: "Send messages and channel actions",
@@ -50,16 +49,16 @@ index f4dae24b80..d69d95037c 100644
      sessions_list: "List other sessions (incl. sub-agents) with filters/last",
      sessions_history: "Fetch history for another session/sub-agent",
      sessions_send: "Send a message to another session/sub-agent",
-@@ -830,7 +830,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -994,7 +994,7 @@ export function buildAgentSystemPrompt(params: {
  
    // For "none" mode, return just the basic identity line
    if (promptMode === "none") {
--    return "You are a personal assistant running inside OpenClaw.";
-+    return "You are a personal assistant running inside RivonClaw Desktop.";
+-    return ["You are a personal assistant running inside OpenClaw.", modelIdentityLine]
++    return ["You are a personal assistant running inside RivonClaw Desktop.", modelIdentityLine]
+       .filter(Boolean)
+       .join("\n");
    }
- 
-   const contextFiles = params.contextFiles ?? [];
-@@ -885,7 +885,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1050,7 +1050,7 @@ export function buildAgentSystemPrompt(params: {
    });
    const stablePrefix = cacheStablePromptPrefix(stablePrefixCacheKey, () => {
      const lines = [
@@ -67,17 +66,8 @@ index f4dae24b80..d69d95037c 100644
 +      "You are a personal assistant running inside RivonClaw Desktop.",
        "",
        "## Tooling",
-       "Tool availability (filtered by policy):",
-@@ -900,7 +900,7 @@ export function buildAgentSystemPrompt(params: {
-             "- apply_patch: apply multi-file patches",
-             `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
-             `- ${processToolName}: manage background exec sessions`,
--            "- browser: control OpenClaw's dedicated browser",
-+            "- browser: control RivonClaw's dedicated browser",
-             "- canvas: present/eval/snapshot the Canvas",
-             "- nodes: list/describe/notify/camera/screen on paired nodes",
-             "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
-@@ -969,21 +969,21 @@ export function buildAgentSystemPrompt(params: {
+       "Available tools are policy-filtered. Names are case-sensitive; call exactly as listed.",
+@@ -1139,7 +1139,7 @@ export function buildAgentSystemPrompt(params: {
        }),
        ...safetySection,
        "## RivonClaw Desktop Runtime",
@@ -86,30 +76,30 @@ index f4dae24b80..d69d95037c 100644
        "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
        "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools for gateway status, config, and restart instead of shell CLI commands.",
        "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
-       "",
+@@ -1147,13 +1147,13 @@ export function buildAgentSystemPrompt(params: {
        ...skillsSection,
+       ...skillWorkshopSection,
        ...memorySection,
 -      hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",
 +      hasGateway && !isMinimal ? "## RivonClaw Desktop Updates" : "",
        hasGateway && !isMinimal
          ? [
-             "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
-             "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
-             "Use config.schema.lookup with a specific dot path to inspect only the relevant config subtree before making config changes or answering config-field questions; avoid guessing field names/types.",
-             "Actions: config.schema.lookup, config.get, config.patch (partial update, merges with existing), config.apply (validate + write full config), update.run (update deps or git, then restart). Config writes hot-reload when possible and use a safe restart only when required.",
+             "Only explicit user request.",
+             "Before config edits/questions: `config.schema.lookup` for the exact dot path.",
+             "Actions: config.get, config.patch, config.apply, update.run. Config writes hot-reload when possible; restart when required.",
 -            "After restart, OpenClaw pings the last active session automatically.",
 +            "After restart, RivonClaw pings the last active session automatically.",
            ].join("\n")
          : "",
        hasGateway && !isMinimal ? "" : "",
-@@ -1076,7 +1076,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1247,7 +1247,7 @@ export function buildAgentSystemPrompt(params: {
        }),
        ...bootstrapSystemPromptSections,
        "## Workspace Files (injected)",
 -      "These user-editable files are loaded by OpenClaw and included below in Project Context.",
 +      "These user-editable files are loaded by RivonClaw and included below in Project Context.",
        "",
-       ...buildAssistantOutputDirectivesSection(isMinimal),
+       ...buildAssistantOutputDirectivesSection({ isMinimal, sourceMessageToolOnly }),
      ];
 -- 
 2.50.1 (Apple Git-155)
