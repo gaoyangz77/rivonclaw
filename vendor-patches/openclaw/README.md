@@ -78,6 +78,24 @@ vendor upgrade, the AI must still inspect whether each patch:
 
 ## Current Patches
 
+### 0025 — Deduplicate directly sent block media
+
+**File:** `0025-vendor-openclaw-dedupe-directly-sent-block-media.patch`
+
+**Why:** This is a temporary backport of two official OpenClaw fixes. The pinned
+vendor can send an attachment immediately during a block/tool flush and then
+reconstruct that same attachment in the final reply payload. A single requested
+file is delivered twice; with multiple files, the attachment already sent in the
+first block is duplicated.
+
+**Change:** Record text fragments and media URLs only after direct block delivery
+succeeds. During final payload construction, remove text and media already
+delivered while preserving any remaining attachments. Failed direct sends are
+not marked as delivered and remain eligible for final delivery.
+
+**Removal:** Delete this temporary patch after upgrading to an OpenClaw revision
+containing official upstream commits `9922da3965` and `41000143a1`.
+
 ### 0024 — Allow buffer-verified ZIP attachments
 
 **File:** `0024-vendor-openclaw-allow-buffer-verified-ZIP-attachment.patch`
