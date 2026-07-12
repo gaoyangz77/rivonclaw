@@ -50,6 +50,6 @@ export async function uploadCurrentLog<T = unknown>(
   return cloudClient.rest<T>("/api/client-logs/upload", {
     method: "POST",
     headers,
-    body: fileBuffer,
+    body: new Uint8Array(fileBuffer),
   });
 }

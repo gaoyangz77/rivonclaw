@@ -128,7 +128,7 @@ describe("CloudClient", () => {
       await client.rest("/api/upload", {
         method: "POST",
         headers: { "Content-Type": "image/png", "x-shop-id": "shop-1" },
-        body: Buffer.from("image-data"),
+        body: new Uint8Array(Buffer.from("image-data")),
       });
 
       const [url, init] = mockFetch.mock.calls[0];

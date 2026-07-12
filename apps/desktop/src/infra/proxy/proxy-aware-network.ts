@@ -89,10 +89,11 @@ export class ProxyAwareNetwork {
   private async doFetch(url: string | URL, init?: RequestInit): Promise<Response> {
     if (this.proxyRouterPort) {
       const { ProxyAgent } = await import("undici");
-      return fetch(url, {
+      const proxiedInit = {
         ...init,
         dispatcher: new ProxyAgent(`http://127.0.0.1:${this.proxyRouterPort}`) as any,
-      });
+      } as RequestInit;
+      return fetch(url, proxiedInit);
     }
     // Avoid passing undefined as second arg so callers that spy on fetch
     // see the same arity as a direct fetch(url) call.
