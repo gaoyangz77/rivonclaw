@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
-import { ChannelsIcon, DownloadIcon, RefreshIcon, UserIcon, UserPlusIcon } from "../../components/icons.js";
+import { CheckIcon, ChannelsIcon, CloseIcon, DownloadIcon, InfoIcon, RefreshIcon, UserIcon, UserPlusIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { useToast } from "../../components/Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -70,6 +70,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [manualDeveloperId, setManualDeveloperId] = useState(UNASSIGNED_ID);
   const [manualNote, setManualNote] = useState("");
   const [confirmedProtectionBoundary, setConfirmedProtectionBoundary] = useState(false);
+  const [showProtectionManager, setShowProtectionManager] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const developersQuery = useQuery<{ affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[] }>(
@@ -141,6 +142,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   ], [activeDevelopers, t]);
   const loading = developersQuery.loading || settingsQuery.loading || whatsappQuery.loading || emailQuery.loading;
   const onboardingComplete = Boolean(workspace.operationalSettings?.onboardingCompletedAt);
+  const totalChannelCount = workspace.whatsappAccounts.length + workspace.emailAccounts.length;
+  const unassignedChannelCount = workspace.whatsappAccounts.filter((account) => !account.businessDeveloperId).length
+    + workspace.emailAccounts.filter((account) => !account.businessDeveloperId).length;
+  const protectedCreatorCount = workspace.creatorProtectionIntents.length;
+  const appliedProtectionCount = workspace.creatorProtectionIntents.filter((intent) => intent.appliedAt).length;
+  const protectionManagerOpen = !onboardingComplete || showProtectionManager;
 
   function beginCreateDeveloper() {
     setSelectedOwnerId(AI_TEAM_ID);
@@ -329,6 +336,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       if (result.data?.completeAffiliateOperationalOnboarding) {
         workspace.setAffiliateOperationalSettings(result.data.completeAffiliateOperationalOnboarding);
       }
+      setShowProtectionManager(false);
       showToast(t("ecommerce.affiliateTeam.onboardingCompleted"), "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
@@ -349,10 +357,14 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     XLSX.writeFile(workbook, "affiliate-protected-creators.xlsx");
   }
 
+  function removeProtectionRow(rowNumber: number) {
+    setProtectionRows((rows) => rows.filter((row) => row.rowNumber !== rowNumber));
+  }
+
   return (
     <div className="affiliate-team-page">
       <header className="affiliate-team-header">
-        <div>
+        <div className="affiliate-team-title-block">
           <span className="affiliate-team-eyebrow">{t("ecommerce.affiliateTeam.eyebrow")}</span>
           <h1>{t("ecommerce.affiliateTeam.title")}</h1>
           <p>{t("ecommerce.affiliateTeam.subtitle")}</p>
@@ -369,84 +381,132 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         </div>
       </header>
 
-      {!onboardingComplete && (
-        <section className="affiliate-onboarding-band">
-          <div className="affiliate-onboarding-copy">
-            <span>{t("ecommerce.affiliateTeam.onboardingStep")}</span>
-            <h2>{t("ecommerce.affiliateTeam.onboardingTitle")}</h2>
-            <p>{t("ecommerce.affiliateTeam.onboardingHint")}</p>
+      <section className="affiliate-team-overview" aria-label={t("ecommerce.affiliateTeam.operationsOverview")}>
+        <div className={`affiliate-team-overview-status ${onboardingComplete ? "is-ready" : "needs-setup"}`}>
+          <span className="affiliate-team-overview-icon">{onboardingComplete ? <CheckIcon /> : <InfoIcon />}</span>
+          <div>
+            <span>{t("ecommerce.affiliateTeam.setupStatus")}</span>
+            <strong>{t(onboardingComplete ? "ecommerce.affiliateTeam.setupReady" : "ecommerce.affiliateTeam.setupRequired")}</strong>
           </div>
-          <div className="affiliate-onboarding-actions">
-            <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
-            <button className="btn btn-secondary" type="button" onClick={() => void downloadTemplate()}>
-              <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
+        </div>
+        <div><span>{t("ecommerce.affiliateTeam.humanDevelopers")}</span><strong>{activeDevelopers.length}</strong></div>
+        <div><span>{t("ecommerce.affiliateTeam.connectedChannels")}</span><strong>{totalChannelCount}</strong><small>{t("ecommerce.affiliateTeam.unassignedChannels", { count: unassignedChannelCount })}</small></div>
+        <div><span>{t("ecommerce.affiliateTeam.protectedCreators")}</span><strong>{protectedCreatorCount}</strong><small>{t("ecommerce.affiliateTeam.appliedProtections", { count: appliedProtectionCount })}</small></div>
+      </section>
+
+      <section className={`affiliate-protection-boundary ${protectionManagerOpen ? "is-open" : ""}`}>
+        <div className="affiliate-protection-boundary-head">
+          <div className="affiliate-protection-boundary-title">
+            <span className="affiliate-protection-boundary-icon"><InfoIcon /></span>
+            <div>
+              <span>{t("ecommerce.affiliateTeam.protectionBoundary")}</span>
+              <h2>{t("ecommerce.affiliateTeam.onboardingTitle")}</h2>
+              <p>{t(onboardingComplete ? "ecommerce.affiliateTeam.protectionBoundaryReady" : "ecommerce.affiliateTeam.onboardingHint")}</p>
+            </div>
+          </div>
+          {onboardingComplete && (
+            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setShowProtectionManager((value) => !value)}>
+              {t(protectionManagerOpen ? "ecommerce.affiliateTeam.hideProtectionManager" : "ecommerce.affiliateTeam.showProtectionManager")}
             </button>
-            <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
-              {t("ecommerce.affiliateTeam.importProtected")}
-            </button>
-          </div>
-          <div className="affiliate-protection-manual">
-            <label>
-              <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
-              <input value={manualCreator} onChange={(event) => setManualCreator(event.target.value)} placeholder={t("ecommerce.affiliateTeam.creatorIdentityPlaceholder")} />
-            </label>
-            <label>
-              <span>{t("ecommerce.affiliateTeam.assignDeveloper")}</span>
-              <Select value={manualDeveloperId} options={ownerOptions} onChange={setManualDeveloperId} />
-            </label>
-            <label>
-              <span>{t("ecommerce.affiliateTeam.note")}</span>
-              <input value={manualNote} onChange={(event) => setManualNote(event.target.value)} placeholder={t("ecommerce.affiliateTeam.notePlaceholder")} />
-            </label>
-            <button className="btn btn-secondary" type="button" onClick={addManualProtection}>{t("ecommerce.affiliateTeam.addProtectedCreator")}</button>
-          </div>
-          {protectionRows.length > 0 && (
-            <div className="affiliate-protection-preview">
-              <div className="affiliate-protection-preview-head">
-                <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
-                <button className="btn btn-primary btn-sm" type="button" onClick={submitProtectionRows} disabled={importState.loading || protectionRows.every((row) => row.error)}>
-                  {t("ecommerce.affiliateTeam.importValid", { count: protectionRows.filter((row) => !row.error).length })}
+          )}
+        </div>
+
+        {protectionManagerOpen && (
+          <div className="affiliate-protection-console">
+            <div className="affiliate-protection-console-toolbar">
+              <div>
+                <strong>{t("ecommerce.affiliateTeam.addProtectionEntries")}</strong>
+                <span>{t("ecommerce.affiliateTeam.protectionEntryHint")}</span>
+              </div>
+              <div className="affiliate-onboarding-actions">
+                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()}>
+                  <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
+                </button>
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => fileInputRef.current?.click()}>
+                  {t("ecommerce.affiliateTeam.importProtected")}
                 </button>
               </div>
-              {protectionRows.slice(0, 20).map((row) => (
-                <div className={`affiliate-protection-row ${row.error ? "affiliate-protection-row-error" : ""}`} key={row.rowNumber}>
-                  <span>#{row.rowNumber}</span>
-                  <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
-                  <span>{row.businessDeveloperName || t("ecommerce.affiliateTeam.protectedOnly")}</span>
-                  <em>{row.error || t("ecommerce.affiliateTeam.ready")}</em>
-                </div>
-              ))}
             </div>
-          )}
-          <label className="affiliate-onboarding-confirm">
-            <input type="checkbox" checked={confirmedProtectionBoundary} onChange={(event) => setConfirmedProtectionBoundary(event.target.checked)} />
-            <span>{t("ecommerce.affiliateTeam.confirmBoundary")}</span>
-          </label>
-          <button className="btn btn-primary" type="button" onClick={finishOnboarding} disabled={!confirmedProtectionBoundary || onboardingState.loading}>
-            {t("ecommerce.affiliateTeam.completeSetup")}
-          </button>
-        </section>
-      )}
+            <div className="affiliate-protection-manual">
+              <label>
+                <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
+                <input value={manualCreator} onChange={(event) => setManualCreator(event.target.value)} placeholder={t("ecommerce.affiliateTeam.creatorIdentityPlaceholder")} />
+              </label>
+              <label>
+                <span>{t("ecommerce.affiliateTeam.assignDeveloper")}</span>
+                <Select value={manualDeveloperId} options={ownerOptions} onChange={setManualDeveloperId} />
+              </label>
+              <label>
+                <span>{t("ecommerce.affiliateTeam.note")}</span>
+                <input value={manualNote} onChange={(event) => setManualNote(event.target.value)} placeholder={t("ecommerce.affiliateTeam.notePlaceholder")} />
+              </label>
+              <button className="btn btn-secondary" type="button" onClick={addManualProtection}>{t("ecommerce.affiliateTeam.addProtectedCreator")}</button>
+            </div>
+            {protectionRows.length > 0 && (
+              <div className="affiliate-protection-preview">
+                <div className="affiliate-protection-preview-head">
+                  <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
+                  <button className="btn btn-primary btn-sm" type="button" onClick={submitProtectionRows} disabled={importState.loading || protectionRows.every((row) => row.error)}>
+                    {t("ecommerce.affiliateTeam.importValid", { count: protectionRows.filter((row) => !row.error).length })}
+                  </button>
+                </div>
+                {protectionRows.slice(0, 20).map((row) => (
+                  <div className={`affiliate-protection-row ${row.error ? "affiliate-protection-row-error" : ""}`} key={row.rowNumber}>
+                    <span>#{row.rowNumber}</span>
+                    <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
+                    <span>{row.businessDeveloperName || t("ecommerce.affiliateTeam.protectedOnly")}</span>
+                    <em>{row.error || t("ecommerce.affiliateTeam.ready")}</em>
+                    <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")}><CloseIcon /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!onboardingComplete && (
+              <div className="affiliate-onboarding-completion">
+                <label className="affiliate-onboarding-confirm">
+                  <input type="checkbox" checked={confirmedProtectionBoundary} onChange={(event) => setConfirmedProtectionBoundary(event.target.checked)} />
+                  <span>{t("ecommerce.affiliateTeam.confirmBoundary")}</span>
+                </label>
+                <button className="btn btn-primary" type="button" onClick={finishOnboarding} disabled={!confirmedProtectionBoundary || onboardingState.loading}>
+                  {t("ecommerce.affiliateTeam.completeSetup")}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
-      <div className="affiliate-team-workspace">
+      <section className="affiliate-team-responsibility">
+        <div className="affiliate-team-responsibility-head">
+          <div>
+            <span>{t("ecommerce.affiliateTeam.responsibilityMap")}</span>
+            <h2>{t("ecommerce.affiliateTeam.responsibilityTitle")}</h2>
+            <p>{t("ecommerce.affiliateTeam.responsibilityHint")}</p>
+          </div>
+          <span className="affiliate-team-owner-count">{t("ecommerce.affiliateTeam.ownerCount", { count: activeDevelopers.length + 1 })}</span>
+        </div>
+        <div className="affiliate-team-workspace">
         <aside className="affiliate-team-roster">
           <div className="affiliate-team-section-head">
             <strong>{t("ecommerce.affiliateTeam.roster")}</strong>
             <span>{activeDevelopers.length + 1}</span>
           </div>
-          <button className={`affiliate-team-roster-item ${selectedOwnerId === AI_TEAM_ID ? "active" : ""}`} type="button" onClick={() => { setSelectedOwnerId(AI_TEAM_ID); setEditing(false); }}>
+          <button className={`affiliate-team-roster-item ${selectedOwnerId === AI_TEAM_ID ? "active" : ""}`} type="button" onClick={() => { setSelectedOwnerId(AI_TEAM_ID); setEditing(false); setShowConnectors(false); }}>
             <span className="affiliate-team-avatar"><ChannelsIcon /></span>
             <span><strong>{t("ecommerce.affiliateTeam.aiTeam")}</strong><small>{t("ecommerce.affiliateTeam.aiTeamHint")}</small></span>
+            <span className="affiliate-team-roster-count">{unassignedChannelCount}</span>
           </button>
           {activeDevelopers.map((developer) => (
-            <button className={`affiliate-team-roster-item ${selectedOwnerId === developer.id ? "active" : ""}`} type="button" key={developer.id} onClick={() => { setSelectedOwnerId(developer.id); setEditing(false); }}>
+            <button className={`affiliate-team-roster-item ${selectedOwnerId === developer.id ? "active" : ""}`} type="button" key={developer.id} onClick={() => { setSelectedOwnerId(developer.id); setEditing(false); setShowConnectors(false); }}>
               <span className="affiliate-team-avatar"><UserIcon /></span>
               <span><strong>{developer.displayName}</strong><small>{developer.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? t("ecommerce.affiliateTeam.humanOnly") : t("ecommerce.affiliateTeam.aiAssisted")}</small></span>
+              <span className="affiliate-team-roster-count">{workspace.whatsappAccountsForBusinessDeveloper(developer.id).length + workspace.emailAccountsForBusinessDeveloper(developer.id).length}</span>
             </button>
           ))}
         </aside>
 
-        <main className="affiliate-team-detail">
+        <div className="affiliate-team-detail">
           {editing ? (
             <DeveloperEditor form={form} setForm={setForm} onCancel={() => setEditing(false)} onSave={saveDeveloper} saving={writeState.loading} t={t} />
           ) : (
@@ -466,6 +526,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 <div><span>{t("ecommerce.affiliateTeam.workMode")}</span><strong>{selectedDeveloper ? (selectedDeveloper.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? t("ecommerce.affiliateTeam.humanOnly") : t("ecommerce.affiliateTeam.aiAssisted")) : t("ecommerce.affiliateTeam.aiManaged")}</strong></div>
                 <div><span>{t("ecommerce.affiliateTeam.whatsappAccounts")}</span><strong>{selectedWhatsapp.length}</strong></div>
                 <div><span>{t("ecommerce.affiliateTeam.emailAccounts")}</span><strong>{selectedEmail.length}</strong></div>
+                <div><span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span><strong>{selectedDeveloper ? t(selectedDeveloper.acceptingCreators ? "common.yes" : "common.no") : t("common.yes")}</strong></div>
               </div>
               {selectedDeveloper?.businessPrompt && <div className="affiliate-team-instructions"><span>{t("ecommerce.affiliateTeam.workingStyle")}</span><p>{selectedDeveloper.businessPrompt}</p></div>}
 
@@ -481,8 +542,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </div>}
             </>
           )}
-        </main>
+        </div>
       </div>
+      </section>
     </div>
   );
 });
