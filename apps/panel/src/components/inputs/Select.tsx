@@ -19,11 +19,13 @@ export interface SelectProps {
   className?: string;
   /** Show a search input at the top of the dropdown to filter options. */
   searchable?: boolean;
+  /** Localized placeholder for the dropdown search input. */
+  searchPlaceholder?: string;
   /** When true (requires searchable), allow the user to submit a custom value not in the options list. */
   creatable?: boolean;
 }
 
-export function Select({ value, onChange, options, placeholder, ariaLabel, disabled, className, searchable, creatable }: SelectProps) {
+export function Select({ value, onChange, options, placeholder, ariaLabel, disabled, className, searchable, searchPlaceholder, creatable }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -171,7 +173,7 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
                 className="custom-select-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder={searchPlaceholder ?? "Search..."}
                 onClick={(e) => e.stopPropagation()}
               />
             </div>

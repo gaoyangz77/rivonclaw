@@ -5,6 +5,22 @@ import { describe, expect, it, vi } from "vitest";
 import { Select } from "./Select.js";
 
 describe("Select", () => {
+  it("uses the caller-provided localized search placeholder", () => {
+    render(
+      <Select
+        value=""
+        onChange={() => {}}
+        options={[{ value: "shop", label: "Shop" }]}
+        placeholder="Select"
+        searchable
+        searchPlaceholder="搜索店铺"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Select/i }));
+    expect(screen.getByPlaceholderText("搜索店铺")).toBeTruthy();
+  });
+
   it("shows option status badges in both the trigger and dropdown", () => {
     const onChange = vi.fn();
     render(

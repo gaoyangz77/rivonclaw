@@ -80,12 +80,12 @@ function usePageVisibility(): boolean {
   return visible;
 }
 
-function formatDate(value?: string | null, includeTime = true): string {
+function formatDate(value?: string | null, includeTime = true, locale?: string): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat(
-    undefined,
+    locale,
     includeTime
       ? { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
       : { year: "numeric", month: "short", day: "numeric" },
@@ -104,14 +104,9 @@ function formatLift(value?: number | null): string {
   return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(2)}%`;
 }
 
-function compactDelay(minutes: number): string {
-  if (minutes >= 1440 && minutes % 1440 === 0) return `${minutes / 1440}d`;
-  if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60}h`;
-  return `${minutes}m`;
-}
-
 export const CustomerServiceExperimentsPage = observer(function CustomerServiceExperimentsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || i18n.language;
   const entityStore = useEntityStore();
   const initial = useMemo(readUrlState, []);
   const [view, setView] = useState<View>(initial.view);
@@ -126,6 +121,36 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
   );
   const [configurationVariantKey, setConfigurationVariantKey] = useState<string | null>(null);
   const visible = usePageVisibility();
+  const variantDisplayLabel = (variantKey: string, label?: string | null): string => {
+    const key = variantKey.trim().toUpperCase();
+    const normalizedLabel = label?.trim().toUpperCase();
+    if (key === "CONTROL" || normalizedLabel === "CONTROL")
+      return t("ecommerce.customerServiceExperiments.terms.control");
+    if (key === "TREATMENT" || normalizedLabel === "TREATMENT")
+      return t("ecommerce.customerServiceExperiments.terms.treatment");
+    return label?.trim() || variantKey;
+  };
+  const formatDuration = (minutes: number): string => {
+    if (minutes >= 1440 && minutes % 1440 === 0)
+      return t("ecommerce.customerServiceExperiments.duration.day", { count: minutes / 1440 });
+    if (minutes >= 60 && minutes % 60 === 0)
+      return t("ecommerce.customerServiceExperiments.duration.hour", { count: minutes / 60 });
+    return t("ecommerce.customerServiceExperiments.duration.minute", { count: minutes });
+  };
+  const formatMetricValue = (
+    metricKey: GQL.CsExperimentMetricKey,
+    value?: number | null,
+  ): string => {
+    if (metricKey !== "PAYMENT_LATENCY") return formatMetric(metricKey, value);
+    if (value == null || Number.isNaN(value)) return "—";
+    return value >= 3_600
+      ? t("ecommerce.customerServiceExperiments.duration.hour", {
+          count: Number((value / 3_600).toFixed(1)),
+        })
+      : t("ecommerce.customerServiceExperiments.duration.minute", {
+          count: Number((value / 60).toFixed(1)),
+        });
+  };
 
   useEffect(() => {
     setCurveEstimator(GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard);
@@ -218,17 +243,17 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     const series = new Set<string>();
     for (const point of trend?.points ?? []) {
       const key = point.bucketStart;
-      const seriesKey = `${point.variantKey}${point.dimensionValue ? ` · ${point.dimensionValue}` : ""}`;
+      const seriesKey = `${variantDisplayLabel(point.variantKey)}${point.dimensionValue ? ` · ${point.dimensionValue}` : ""}`;
       series.add(seriesKey);
       const row: Record<string, string | number | null> = rows.get(key) ?? {
         bucketStart: key,
-        label: formatDate(key),
+        label: formatDate(key, true, locale),
       };
       row[seriesKey] = point.value ?? null;
       rows.set(key, row);
     }
     return { rows: [...rows.values()], series: [...series] };
-  }, [trend]);
+  }, [trend, t, locale]);
 
   const metricRows = detail?.metrics.filter((item) => item.metricKey === metric) ?? [];
   const comparisons = detail?.comparisons.filter((item) => item.metricKey === metric) ?? [];
@@ -280,7 +305,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     return {
       value: item.id,
       label: `${targetLabel} · ${typeLabel}`,
-      description: `${formatDate(item.startedAt)} · v${item.version}`,
+      description: `${formatDate(item.startedAt, true, locale)} · v${item.version}`,
       badge: t(`ecommerce.customerServiceExperiments.status.${item.displayStatus}`),
       badgeTone:
         item.displayStatus === "RUNNING"
@@ -375,6 +400,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
             onChange={setShopId}
             options={shops}
             searchable
+            searchPlaceholder={t("ecommerce.customerServiceExperiments.filters.searchShops")}
             className="cs-experiments-filter-select"
           />
         </label>
@@ -402,7 +428,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         <div className="cs-experiments-freshness">
           <span />
           {t("ecommerce.customerServiceExperiments.asOf", {
-            time: formatDate(pageQuery.data?.ecommerceGetCSExperimentPage.asOf),
+            time: formatDate(pageQuery.data?.ecommerceGetCSExperimentPage.asOf, true, locale),
           })}
         </div>
       </div>
@@ -442,6 +468,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                 onChange={setExperimentId}
                 options={experimentOptions}
                 searchable
+                searchPlaceholder={t(
+                  "ecommerce.customerServiceExperiments.filters.searchExperiments",
+                )}
                 ariaLabel={t("ecommerce.customerServiceExperiments.experimentList")}
                 className="cs-experiment-picker-select"
               />
@@ -464,7 +493,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
             </div>
             <div className="cs-experiment-picker-meta">
               <span>{t("ecommerce.customerServiceExperiments.kpis.started")}</span>
-              <strong>{formatDate(selectedContext?.startedAt)}</strong>
+              <strong>{formatDate(selectedContext?.startedAt, true, locale)}</strong>
               <small>
                 v{selectedContext?.version ?? "—"} · {selectedContext?.variantCount ?? "—"}{" "}
                 {t("ecommerce.customerServiceExperiments.variants")}
@@ -519,7 +548,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                           width: `${variant.weightBps / 100}%`,
                           background: SERIES_COLORS[index % SERIES_COLORS.length],
                         }}
-                        title={`${variant.label}: ${variant.weightBps / 100}%`}
+                        title={`${variantDisplayLabel(variant.variantKey, variant.label)}: ${variant.weightBps / 100}%`}
                       />
                     ))}
                   </div>
@@ -528,11 +557,11 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       <article key={variant.variantKey}>
                         <header>
                           <i style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }} />
-                          <strong>{variant.label}</strong>
+                          <strong>{variantDisplayLabel(variant.variantKey, variant.label)}</strong>
                           <b>{(variant.weightBps / 100).toFixed(0)}%</b>
                         </header>
                         <small>
-                          {variant.variantKey} ·{" "}
+                          {variantDisplayLabel(variant.variantKey)} ·{" "}
                           {t(`ecommerce.customerServiceExperiments.actions.${variant.action}`)}
                         </small>
                         {variant.stages.length ? (
@@ -542,7 +571,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                                 key={stage.stageId}
                                 className={!stage.enabled ? "disabled" : ""}
                               >
-                                {stage.delayMinutes}m
+                                {formatDuration(stage.delayMinutes)}
                               </span>
                             ))}
                           </div>
@@ -692,11 +721,15 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                               style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }}
                             />
                             <span>
-                              {item.variantKey}
+                              {variantDisplayLabel(item.variantKey)}
                               {item.dimensionValue ? ` · ${item.dimensionValue}` : ""}
                             </span>
-                            <strong>{formatMetric(metric, item.value)}</strong>
-                            <small>n = {item.observedUnits.toLocaleString()}</small>
+                            <strong>{formatMetricValue(metric, item.value)}</strong>
+                            <small>
+                              {t("ecommerce.customerServiceExperiments.sampleSize", {
+                                value: item.observedUnits.toLocaleString(),
+                              })}
+                            </small>
                           </div>
                         ))}
                       </div>
@@ -711,7 +744,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                             <p>
                               {t("ecommerce.customerServiceExperiments.awaitingMaturityBody", {
                                 assigned: detail.quality.assignedUnits.toLocaleString(),
-                                time: formatDate(detail.quality.nextMaturityAt),
+                                time: formatDate(detail.quality.nextMaturityAt, true, locale),
                               })}
                             </p>
                           </div>
@@ -729,10 +762,12 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                               <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={36} />
                               <YAxis
                                 tick={{ fontSize: 11 }}
-                                tickFormatter={(value) => formatMetric(metric, value)}
+                                tickFormatter={(value) => formatMetricValue(metric, value)}
                                 width={64}
                               />
-                              <Tooltip formatter={(value) => formatMetric(metric, Number(value))} />
+                              <Tooltip
+                                formatter={(value) => formatMetricValue(metric, Number(value))}
+                              />
                               {chart.series.map((series, index) => (
                                 <Line
                                   key={series}
@@ -772,8 +807,12 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                             <th>{t("ecommerce.customerServiceExperiments.table.comparison")}</th>
                             <th>{t("ecommerce.customerServiceExperiments.table.rate")}</th>
                             <th>{t("ecommerce.customerServiceExperiments.table.lift")}</th>
-                            <th>95% CI</th>
-                            <th>p</th>
+                            <th>
+                              {t(
+                                "ecommerce.customerServiceExperiments.table.confidenceInterval",
+                              )}
+                            </th>
+                            <th>{t("ecommerce.customerServiceExperiments.table.pValue")}</th>
                             <th>{t("ecommerce.customerServiceExperiments.table.signal")}</th>
                           </tr>
                         </thead>
@@ -781,10 +820,14 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                           {comparisons.map((item) => (
                             <tr key={`${item.baselineVariantKey}:${item.variantKey}`}>
                               <td>
-                                <strong>{item.variantKey}</strong>
-                                <span>vs {item.baselineVariantKey}</span>
+                                <strong>{variantDisplayLabel(item.variantKey)}</strong>
+                                <span>
+                                  {t("ecommerce.customerServiceExperiments.table.versus", {
+                                    baseline: variantDisplayLabel(item.baselineVariantKey),
+                                  })}
+                                </span>
                               </td>
-                              <td>{formatMetric(metric, item.variantValue)}</td>
+                              <td>{formatMetricValue(metric, item.variantValue)}</td>
                               <td
                                 className={
                                   (item.relativeEffect ?? 0) >= 0 ? "positive" : "negative"
@@ -823,7 +866,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       </strong>
                       <p>
                         {t("ecommerce.customerServiceExperiments.comparisonAwaitingBody", {
-                          time: formatDate(detail.quality.nextMaturityAt),
+                          time: formatDate(detail.quality.nextMaturityAt, true, locale),
                         })}
                       </p>
                     </div>
@@ -842,7 +885,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         isOpen={Boolean(configurationVariant)}
         onClose={() => setConfigurationVariantKey(null)}
         title={t("ecommerce.customerServiceExperiments.configurationTitle", {
-          variant: configurationVariant?.label ?? "",
+          variant: configurationVariant
+            ? variantDisplayLabel(configurationVariant.variantKey, configurationVariant.label)
+            : "",
         })}
         closeLabel={t("common.close")}
         maxWidth={760}
@@ -853,8 +898,10 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
           <div className="cs-experiment-config-modal-body">
             <div className="cs-experiment-config-modal-intro">
               <div>
-                <span>{configurationVariant.variantKey}</span>
-                <strong>{configurationVariant.label}</strong>
+                <span>{variantDisplayLabel(configurationVariant.variantKey)}</span>
+                <strong>
+                  {variantDisplayLabel(configurationVariant.variantKey, configurationVariant.label)}
+                </strong>
               </div>
               <b>{(configurationVariant.weightBps / 100).toFixed(0)}%</b>
               <p>{t("ecommerce.customerServiceExperiments.configurationSubtitle")}</p>
@@ -886,7 +933,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                             </span>
                           </div>
                           <div className="cs-experiment-config-delay">
-                            <b>{compactDelay(stage.delayMinutes)}</b>
+                            <b>{formatDuration(stage.delayMinutes)}</b>
                             <small>
                               {t("ecommerce.customerServiceExperiments.afterOrder", {
                                 minutes: stage.delayMinutes,

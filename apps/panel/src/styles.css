@@ -13556,7 +13556,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .cs-experiment-picker {
   display: grid;
-  grid-template-columns: minmax(330px, 1.7fr) repeat(4, minmax(120px, 0.72fr));
+  grid-template-columns: minmax(400px, 2.35fr) repeat(4, minmax(108px, 0.64fr));
   min-width: 0;
   padding: 0;
   overflow: visible;
@@ -13564,6 +13564,7 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-picker-control {
   display: grid;
   min-width: 0;
+  overflow: hidden;
   gap: 7px;
   padding: 14px 16px 12px;
 }
@@ -13610,8 +13611,20 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-picker-select .custom-select-trigger {
   height: 42px;
   min-height: 42px;
+  min-width: 0;
+  gap: 8px;
   font-size: 13px;
   font-weight: 680;
+}
+.cs-experiment-picker-select .custom-select-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cs-experiment-picker-select .custom-select-badge,
+.cs-experiment-picker-select .custom-select-chevron {
+  flex: 0 0 auto;
 }
 .custom-select-dropdown.cs-experiment-picker-select .custom-select-option-label {
   font-size: 12px;
