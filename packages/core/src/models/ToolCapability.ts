@@ -13,6 +13,7 @@ const SessionProfileModel = types.model("SessionProfile", {
 
 const SESSION_PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_PROFILE_CLEANUP_THRESHOLD = 100;
+const CUSTOMER_SERVICE_DENIED_TOOL_IDS = new Set(["IMAGE_GENERATE"]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,11 @@ export function toolIdMatch(a: string, b: string): boolean {
 /** Check if a tool ID is in a set (case-insensitive). */
 function toolIdInSet(toolId: string, idSet: Set<string>): boolean {
   return idSet.has(toolId) || idSet.has(toolId.toUpperCase());
+}
+
+function applyScopeToolExclusions(scopeType: ScopeType, toolIds: string[]): string[] {
+  if (scopeType !== ScopeType.CS_SESSION) return toolIds;
+  return toolIds.filter((toolId) => !CUSTOMER_SERVICE_DENIED_TOOL_IDS.has(toolId.toUpperCase()));
 }
 
 // ── Available tool shape for Panel UI ──────────────────────────────────────
@@ -308,7 +314,10 @@ export const ToolCapabilityModel = types
       if (!runProfileId) {
         if (TRUSTED_SCOPE_TYPES.has(scopeType)) {
           // System + extension tools only, no entitlement tools
-          return [...self.systemToolIds, ...self.extensionToolIds];
+          return applyScopeToolExclusions(scopeType, [
+            ...self.systemToolIds,
+            ...self.extensionToolIds,
+          ]);
         }
         return []; // Untrusted scope without profile → no tools
       }
@@ -319,10 +328,10 @@ export const ToolCapabilityModel = types
       if (TRUSTED_SCOPE_TYPES.has(scopeType)) {
         const merged = new Set(result.effectiveToolIds);
         for (const id of self.systemToolIds) merged.add(id);
-        return [...merged];
+        return applyScopeToolExclusions(scopeType, [...merged]);
       }
 
-      return result.effectiveToolIds;
+      return applyScopeToolExclusions(scopeType, result.effectiveToolIds);
     },
   }))
   .actions((self) => ({
