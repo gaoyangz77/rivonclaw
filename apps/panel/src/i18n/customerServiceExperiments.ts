@@ -16,6 +16,7 @@ const base = {
     control: "Control",
     treatment: "Reachout-eligible traffic",
     productionConfig: "Current production configuration",
+    configExploration: "Configuration optimization traffic",
   },
   duration: { minute: "{{count}} min", hour: "{{count}} hr", day: "{{count}} day" },
   types: { holdout: "Incrementality holdout", config: "Configuration A/B test" },
@@ -62,6 +63,10 @@ const base = {
   emptyBody: "Try another shop, experiment type, or switch between realtime and history.",
   allocation: "Traffic & configurations",
   allocationHint: "Variant percentages are calculated within experiment traffic.",
+  actualAllocationHint:
+    "Observed share of assigned orders. Incrementality compares only Control with the current production configuration A.",
+  actualAssignedOrders: "{{count}} assigned orders",
+  excludedFromIncrementality: "Analyzed in the configuration test; excluded from incrementality",
   noReachout: "No message configuration",
   usesBaseConfiguration: "Uses the shop's base reachout configuration",
   viewConfiguration: "View configuration",
@@ -218,6 +223,7 @@ export const customerServiceExperimentTranslations = {
       control: "Kontrollgruppe",
       treatment: "Für Kontaktaufnahme vorgesehener Traffic",
       productionConfig: "Aktuelle Produktionskonfiguration",
+      configExploration: "Traffic zur Konfigurationsoptimierung",
     },
     duration: { minute: "{{count}} Min.", hour: "{{count}} Std.", day: "{{count}} Tag" },
     actions: {
@@ -232,6 +238,10 @@ export const customerServiceExperimentTranslations = {
     liveQueue: "Live-Experimente",
     archive: "Finales Archiv",
     variants: "Varianten",
+    actualAllocationHint:
+      "Beobachteter Anteil der zugewiesenen Bestellungen. Die Inkrementalität vergleicht nur die Kontrollgruppe mit der aktuellen Produktionskonfiguration A.",
+    actualAssignedOrders: "{{count}} zugewiesene Bestellungen",
+    excludedFromIncrementality: "Wird im Konfigurationstest analysiert und nicht in die Inkrementalität einbezogen",
     sampleSize: "Stichprobe {{value}}",
     loadMore: "Mehr laden",
     analysis: "Ergebnissignal",
@@ -279,6 +289,7 @@ export const customerServiceExperimentTranslations = {
       control: "Grupo de control",
       treatment: "Tráfico apto para contacto",
       productionConfig: "Configuración actual de producción",
+      configExploration: "Tráfico de optimización de configuración",
     },
     duration: { minute: "{{count}} min", hour: "{{count}} h", day: "{{count}} día" },
     actions: {
@@ -293,6 +304,10 @@ export const customerServiceExperimentTranslations = {
     liveQueue: "Cola activa",
     archive: "Archivo final",
     variants: "variantes",
+    actualAllocationHint:
+      "Proporción observada de pedidos asignados. La incrementalidad compara solo el control con la configuración de producción A.",
+    actualAssignedOrders: "{{count}} pedidos asignados",
+    excludedFromIncrementality: "Se analiza en la prueba de configuración y se excluye de incrementalidad",
     sampleSize: "Muestra {{value}}",
     loadMore: "Cargar más",
     analysis: "Señal de resultado",
@@ -340,6 +355,7 @@ export const customerServiceExperimentTranslations = {
       control: "Groupe témoin",
       treatment: "Trafic éligible à la relance",
       productionConfig: "Configuration de production actuelle",
+      configExploration: "Trafic d’optimisation de configuration",
     },
     duration: { minute: "{{count}} min", hour: "{{count}} h", day: "{{count}} jour" },
     actions: {
@@ -354,6 +370,10 @@ export const customerServiceExperimentTranslations = {
     liveQueue: "File active",
     archive: "Archive finale",
     variants: "variantes",
+    actualAllocationHint:
+      "Part observée des commandes assignées. L’incrémentalité compare uniquement le contrôle à la configuration de production A.",
+    actualAssignedOrders: "{{count}} commandes assignées",
+    excludedFromIncrementality: "Analysé dans le test de configuration et exclu de l’incrémentalité",
     sampleSize: "Échantillon {{value}}",
     loadMore: "Charger plus",
     analysis: "Signal de résultat",
@@ -401,6 +421,7 @@ export const customerServiceExperimentTranslations = {
       control: "Grup kontrol",
       treatment: "Traffic yang memenuhi syarat untuk dijangkau",
       productionConfig: "Konfigurasi produksi saat ini",
+      configExploration: "Traffic optimasi konfigurasi",
     },
     duration: { minute: "{{count}} mnt", hour: "{{count}} jam", day: "{{count}} hari" },
     actions: {
@@ -415,6 +436,10 @@ export const customerServiceExperimentTranslations = {
     liveQueue: "Antrean aktif",
     archive: "Arsip final",
     variants: "varian",
+    actualAllocationHint:
+      "Porsi aktual pesanan yang ditetapkan. Inkrementalitas hanya membandingkan kontrol dengan konfigurasi produksi A.",
+    actualAssignedOrders: "{{count}} pesanan ditetapkan",
+    excludedFromIncrementality: "Dianalisis dalam uji konfigurasi dan dikecualikan dari inkrementalitas",
     sampleSize: "Sampel {{value}}",
     loadMore: "Muat lagi",
     analysis: "Sinyal hasil",
@@ -462,6 +487,7 @@ export const customerServiceExperimentTranslations = {
       control: "Gruppo di controllo",
       treatment: "Traffico idoneo al contatto",
       productionConfig: "Configurazione di produzione attuale",
+      configExploration: "Traffico di ottimizzazione della configurazione",
     },
     duration: { minute: "{{count}} min", hour: "{{count}} h", day: "{{count}} giorno" },
     actions: {
@@ -476,6 +502,10 @@ export const customerServiceExperimentTranslations = {
     liveQueue: "Coda attiva",
     archive: "Archivio finale",
     variants: "varianti",
+    actualAllocationHint:
+      "Quota osservata degli ordini assegnati. L’incrementalità confronta solo il controllo con la configurazione di produzione A.",
+    actualAssignedOrders: "{{count}} ordini assegnati",
+    excludedFromIncrementality: "Analizzato nel test di configurazione ed escluso dall’incrementalità",
     sampleSize: "Campione {{value}}",
     loadMore: "Carica altro",
     analysis: "Segnale risultato",
@@ -522,6 +552,7 @@ export const customerServiceExperimentTranslations = {
       control: "กลุ่มควบคุม",
       treatment: "ทราฟฟิกที่เข้าเกณฑ์การติดต่อ",
       productionConfig: "การกำหนดค่าที่ใช้งานจริงในปัจจุบัน",
+      configExploration: "ทราฟฟิกสำหรับปรับแต่งการกำหนดค่า",
     },
     duration: { minute: "{{count}} นาที", hour: "{{count}} ชม.", day: "{{count}} วัน" },
     actions: {
@@ -536,6 +567,10 @@ export const customerServiceExperimentTranslations = {
     liveQueue: "รายการสด",
     archive: "ประวัติที่เสร็จแล้ว",
     variants: "รูปแบบ",
+    actualAllocationHint:
+      "สัดส่วนจริงของคำสั่งซื้อที่ถูกจัดกลุ่ม การประเมินส่วนเพิ่มเปรียบเทียบเฉพาะกลุ่มควบคุมกับการกำหนดค่าที่ใช้งานจริง A",
+    actualAssignedOrders: "คำสั่งซื้อที่จัดกลุ่ม {{count}} รายการ",
+    excludedFromIncrementality: "วิเคราะห์ใน A/B test การกำหนดค่า และไม่นับในการประเมินส่วนเพิ่ม",
     sampleSize: "ตัวอย่าง {{value}}",
     loadMore: "โหลดเพิ่ม",
     analysis: "สัญญาณผลลัพธ์",

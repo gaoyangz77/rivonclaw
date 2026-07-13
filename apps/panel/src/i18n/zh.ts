@@ -2916,6 +2916,7 @@ export default {
         control: "对照组",
         treatment: "触达候选流量",
         productionConfig: "当前生产配置",
+        configExploration: "配置优化流量",
       },
       duration: { minute: "{{count}} 分钟", hour: "{{count}} 小时", day: "{{count}} 天" },
       types: { holdout: "增量效果评估", config: "配置 A/B 测试" },
@@ -2958,6 +2959,10 @@ export default {
       emptyBody: "可以更换店铺、实验类型，或切换实时与历史视图。",
       allocation: "流量与方案",
       allocationHint: "方案百分比按实验触达组流量内部计算。",
+      actualAllocationHint:
+        "展示已分组订单的实际占比；增量评估只比较对照组与当前生产配置 A。",
+      actualAssignedOrders: "实际分组 {{count}} 单",
+      excludedFromIncrementality: "仅用于配置 A/B 测试，不进入增量评估",
       noReachout: "不发送消息",
       usesBaseConfiguration: "使用店铺基础配置正常触达",
       viewConfiguration: "查看配置",

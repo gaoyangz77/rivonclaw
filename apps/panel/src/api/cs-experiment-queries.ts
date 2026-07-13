@@ -69,6 +69,12 @@ const EXPERIMENT_DETAIL_FIELDS = gql`
         messageTemplate
       }
     }
+    analysisPopulation {
+      variantKey
+      assignedUnits
+      actualWeightBps
+      includedInPrimaryAnalysis
+    }
     metrics {
       metricKey
       variantKey

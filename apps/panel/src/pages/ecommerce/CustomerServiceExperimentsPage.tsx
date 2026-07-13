@@ -128,6 +128,8 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       return t("ecommerce.customerServiceExperiments.terms.control");
     if (key === "PRODUCTION_CONFIG" || normalizedLabel === "PRODUCTION_CONFIG")
       return t("ecommerce.customerServiceExperiments.terms.productionConfig");
+    if (key === "CONFIG_EXPLORATION" || normalizedLabel === "CONFIG_EXPLORATION")
+      return t("ecommerce.customerServiceExperiments.terms.configExploration");
     if (key === "TREATMENT" || normalizedLabel === "TREATMENT")
       return t("ecommerce.customerServiceExperiments.terms.treatment");
     return label?.trim() || variantKey;
@@ -233,6 +235,29 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         ? workspaceQuery.previousData
         : undefined;
   const detail = workspaceData?.ecommerceGetCSExperimentDetail;
+  const allocationItems = useMemo(() => {
+    if (!detail) return [];
+    if (detail.experimentType !== "HOLDOUT" || !detail.analysisPopulation.length) {
+      return detail.variants.map((variant) => ({
+        variantKey: variant.variantKey,
+        weightBps: variant.weightBps,
+        assignedUnits: undefined,
+        includedInPrimaryAnalysis: true,
+        variant,
+      }));
+    }
+    return detail.analysisPopulation.map((population) => ({
+      variantKey: population.variantKey,
+      weightBps: population.actualWeightBps,
+      assignedUnits: population.assignedUnits,
+      includedInPrimaryAnalysis: population.includedInPrimaryAnalysis,
+      variant:
+        detail.variants.find((variant) => variant.variantKey === population.variantKey) ??
+        (population.variantKey === "PRODUCTION_CONFIG"
+          ? detail.variants.find((variant) => variant.variantKey === "TREATMENT")
+          : undefined),
+    }));
+  }, [detail]);
   const configurationVariant = detail?.variants.find(
     (variant) => variant.variantKey === configurationVariantKey,
   );
@@ -545,35 +570,53 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       <span>01</span>
                       <h3>{t("ecommerce.customerServiceExperiments.allocation")}</h3>
                     </div>
-                    <small>{t("ecommerce.customerServiceExperiments.allocationHint")}</small>
+                    <small>
+                      {t(
+                        detail.experimentType === "HOLDOUT" && detail.analysisPopulation.length
+                          ? "ecommerce.customerServiceExperiments.actualAllocationHint"
+                          : "ecommerce.customerServiceExperiments.allocationHint",
+                      )}
+                    </small>
                   </div>
                   <div className="cs-experiment-allocation-bar">
-                    {detail.variants.map((variant, index) => (
+                    {allocationItems.map((item, index) => (
                       <i
-                        key={variant.variantKey}
+                        key={item.variantKey}
                         style={{
-                          width: `${variant.weightBps / 100}%`,
+                          width: `${item.weightBps / 100}%`,
                           background: SERIES_COLORS[index % SERIES_COLORS.length],
                         }}
-                        title={`${variantDisplayLabel(variant.variantKey, variant.label)}: ${variant.weightBps / 100}%`}
+                        title={`${variantDisplayLabel(item.variantKey, item.variant?.label)}: ${(item.weightBps / 100).toFixed(2)}%`}
                       />
                     ))}
                   </div>
                   <div className="cs-experiment-variant-grid">
-                    {detail.variants.map((variant, index) => (
-                      <article key={variant.variantKey}>
+                    {allocationItems.map((item, index) => (
+                      <article
+                        key={item.variantKey}
+                        className={!item.includedInPrimaryAnalysis ? "is-excluded" : ""}
+                      >
                         <header>
                           <i style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }} />
-                          <strong>{variantDisplayLabel(variant.variantKey, variant.label)}</strong>
-                          <b>{(variant.weightBps / 100).toFixed(0)}%</b>
+                          <strong>{variantDisplayLabel(item.variantKey, item.variant?.label)}</strong>
+                          <b>{(item.weightBps / 100).toFixed(2)}%</b>
                         </header>
                         <small>
-                          {variantDisplayLabel(variant.variantKey)} ·{" "}
-                          {t(`ecommerce.customerServiceExperiments.actions.${variant.action}`)}
+                          {item.assignedUnits == null
+                            ? variantDisplayLabel(item.variantKey)
+                            : t("ecommerce.customerServiceExperiments.actualAssignedOrders", {
+                                count: item.assignedUnits,
+                              })}
+                          {item.variant ? (
+                            <>
+                              {" · "}
+                              {t(`ecommerce.customerServiceExperiments.actions.${item.variant.action}`)}
+                            </>
+                          ) : null}
                         </small>
-                        {variant.stages.length ? (
+                        {item.variant?.stages.length ? (
                           <div className="cs-experiment-stage-line">
-                            {variant.stages.map((stage) => (
+                            {item.variant.stages.map((stage) => (
                               <span
                                 key={stage.stageId}
                                 className={!stage.enabled ? "disabled" : ""}
@@ -584,16 +627,18 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                           </div>
                         ) : (
                           <div className="cs-experiment-stage-line muted">
-                            {variant.action === "CONTINUE"
+                            {!item.includedInPrimaryAnalysis
+                              ? t("ecommerce.customerServiceExperiments.excludedFromIncrementality")
+                              : item.variant?.action === "CONTINUE"
                               ? t("ecommerce.customerServiceExperiments.usesBaseConfiguration")
                               : t("ecommerce.customerServiceExperiments.noReachout")}
                           </div>
                         )}
-                        {variant.action !== "NO_REACHOUT" ? (
+                        {item.variant && item.variant.action !== "NO_REACHOUT" && item.includedInPrimaryAnalysis ? (
                           <button
                             type="button"
                             className="cs-experiment-config-quick-view"
-                            onClick={() => setConfigurationVariantKey(variant.variantKey)}
+                            onClick={() => setConfigurationVariantKey(item.variant!.variantKey)}
                           >
                             {t("ecommerce.customerServiceExperiments.viewConfiguration")}
                             <span aria-hidden="true">↗</span>

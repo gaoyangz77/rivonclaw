@@ -13996,6 +13996,10 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 8px;
   background: var(--color-bg-alt);
 }
+.cs-experiment-variant-grid article.is-excluded {
+  border-style: dashed;
+  opacity: 0.72;
+}
 .cs-experiment-variant-grid header {
   display: flex;
   align-items: center;
