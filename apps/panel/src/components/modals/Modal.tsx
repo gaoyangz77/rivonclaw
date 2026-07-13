@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ export interface ModalProps {
   preventBackdropClose?: boolean;
   className?: string;
   closeLabel?: string;
+  /** Render against document.body so the modal is independent of transformed or clipped parents. */
+  portal?: boolean;
 }
 
 export function Modal({
@@ -25,6 +28,7 @@ export function Modal({
   preventBackdropClose,
   className,
   closeLabel = "Close",
+  portal = false,
 }: ModalProps) {
   const mouseDownOnBackdrop = useRef(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -73,7 +77,7 @@ export function Modal({
 
   if (!isOpen) return null;
 
-  return (
+  const modal = (
     <div
       className="modal-backdrop"
       onMouseDown={(e) => {
@@ -109,4 +113,6 @@ export function Modal({
       </div>
     </div>
   );
+
+  return portal ? createPortal(modal, document.body) : modal;
 }
