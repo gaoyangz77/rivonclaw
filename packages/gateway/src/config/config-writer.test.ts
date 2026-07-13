@@ -300,9 +300,43 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.plugins.entries.brave.config.webSearch.apiKey).toBeUndefined();
+      expect(config.plugins.allow).toContain("google");
       expect(config.agents.defaults.memorySearch.remote).toBeUndefined();
       expect(JSON.stringify(config)).not.toContain("RIVONCLAW_EMB_GEMINI_APIKEY");
       expect(JSON.stringify(config)).not.toContain("RIVONCLAW_WS_BRAVE_APIKEY");
+    });
+
+    it.each([
+      ["openai", "openai"],
+      ["gemini", "google"],
+      ["voyage", "voyage"],
+      ["mistral", "mistral"],
+      ["ollama", "ollama"],
+    ] as const)("allows the %s embedding provider plugin", (provider, pluginId) => {
+      const configPath = join(tmpDir, "openclaw.json");
+
+      writeGatewayConfig({
+        configPath,
+        plugins: { allow: ["memory-core"] },
+        embedding: { enabled: true, provider },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.allow).toContain(pluginId);
+      expect(config.plugins.deny).not.toContain(pluginId);
+    });
+
+    it("does not allow an embedding provider plugin when embedding is disabled", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+
+      writeGatewayConfig({
+        configPath,
+        plugins: { allow: ["memory-core"] },
+        embedding: { enabled: false, provider: "gemini" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.allow).not.toContain("google");
     });
 
     it("marks the WeChat QR bootstrap channel as managed", () => {

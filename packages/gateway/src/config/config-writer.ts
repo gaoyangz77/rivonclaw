@@ -46,6 +46,14 @@ const WEB_SEARCH_PROVIDER_PLUGIN_IDS = {
   kimi: "moonshot",
 } as const;
 
+const EMBEDDING_PROVIDER_PLUGIN_IDS = {
+  openai: "openai",
+  gemini: "google",
+  voyage: "voyage",
+  mistral: "mistral",
+  ollama: "ollama",
+} as const;
+
 function ensureRecord(parent: Record<string, unknown>, key: string): Record<string, unknown> {
   const existing = parent[key];
   if (existing && typeof existing === "object" && !Array.isArray(existing)) {
@@ -1457,6 +1465,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         : {};
 
     if (options.embedding.enabled) {
+      const pluginId = EMBEDDING_PROVIDER_PLUGIN_IDS[options.embedding.provider];
+      const plugins = ensureRecord(config, "plugins");
+      const allow = Array.isArray(plugins.allow) ? (plugins.allow as string[]) : [];
+      plugins.allow = [...new Set([...allow, pluginId])];
+      if (Array.isArray(plugins.deny)) {
+        plugins.deny = (plugins.deny as string[]).filter((id) => id !== pluginId);
+      }
+
       const memoryConfig: Record<string, unknown> = {
         ...(typeof existingDefaults.memorySearch === "object" &&
         existingDefaults.memorySearch !== null
