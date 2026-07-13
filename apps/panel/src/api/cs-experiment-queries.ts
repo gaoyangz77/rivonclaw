@@ -29,6 +29,75 @@ const EXPERIMENT_LIST_FIELDS = gql`
   }
 `;
 
+const EXPERIMENT_DETAIL_FIELDS = gql`
+  fragment CsExperimentDetailFields on CsExperimentDetailView {
+    id
+    experimentType
+    displayStatus
+    dataStatus
+    version
+    startedAt
+    stoppedAt
+    resultsFinalAt
+    variantCount
+    targetCount
+    targets {
+      id
+      name
+      region
+    }
+    quality {
+      assignedUnits
+      exposedUnits
+      maturedUnits
+      srmPValue
+      maxAllocationDeviationBps
+      calculatedAt
+      nextMaturityAt
+    }
+    variants {
+      variantKey
+      label
+      weightBps
+      action
+      stages {
+        stageId
+        stageIndex
+        enabled
+        delayMinutes
+        templateHash
+      }
+    }
+    metrics {
+      metricKey
+      variantKey
+      dimensionKey
+      dimensionValue
+      eligibleUnits
+      observedUnits
+      value
+    }
+    comparisons {
+      metricKey
+      baselineVariantKey
+      variantKey
+      baselineUnits
+      variantUnits
+      baselineValue
+      variantValue
+      absoluteEffect
+      relativeEffect
+      confidenceIntervalLow
+      confidenceIntervalHigh
+      pValue
+      adjustedPValue
+      correctionMethod
+      insufficientSample
+      asOf
+    }
+  }
+`;
+
 export const ECOMMERCE_GET_CS_EXPERIMENT_PAGE = gql`
   ${EXPERIMENT_LIST_FIELDS}
   query EcommerceGetCSExperimentPage($input: CsExperimentPageInput!) {
@@ -39,71 +108,72 @@ export const ECOMMERCE_GET_CS_EXPERIMENT_PAGE = gql`
 `;
 
 export const ECOMMERCE_GET_CS_EXPERIMENT_DETAIL = gql`
+  ${EXPERIMENT_DETAIL_FIELDS}
   query EcommerceGetCSExperimentDetail($experimentId: ID!) {
+    ecommerceGetCSExperimentDetail(experimentId: $experimentId) { ...CsExperimentDetailFields }
+  }
+`;
+
+export const ECOMMERCE_GET_CS_EXPERIMENT_WORKSPACE = gql`
+  ${EXPERIMENT_DETAIL_FIELDS}
+  query EcommerceGetCSExperimentWorkspace(
+    $experimentId: ID!
+    $curveInput: CsExperimentTimeToEventCurveInput!
+    $trendInput: CsExperimentTrendInput!
+    $includeCurve: Boolean!
+    $includeTrend: Boolean!
+  ) {
     ecommerceGetCSExperimentDetail(experimentId: $experimentId) {
-      id
-      experimentType
-      displayStatus
+      ...CsExperimentDetailFields
+    }
+    ecommerceGetCSExperimentTimeToEventCurve(input: $curveInput) @include(if: $includeCurve) {
+      experimentId
+      eventKey
+      estimator
       dataStatus
-      version
-      startedAt
-      stoppedAt
-      resultsFinalAt
-      variantCount
-      targetCount
-      targets {
-        id
-        name
-        region
-      }
-      quality {
-        assignedUnits
-        exposedUnits
-        maturedUnits
-        srmPValue
-        maxAllocationDeviationBps
-        calculatedAt
-        nextMaturityAt
-      }
-      variants {
-        variantKey
+      asOf
+      maxElapsedMinutes
+      assignedUnits
+      excludedUnits
+      series {
+        seriesKey
+        seriesRole
         label
-        weightBps
         action
         stages {
-          stageId
           stageIndex
-          enabled
           delayMinutes
-          templateHash
+        }
+        points {
+          elapsedMinutes
+          estimate
+          confidenceIntervalLow
+          confidenceIntervalHigh
+          assignedUnits
+          observedThroughUnits
+          atRiskUnits
+          cumulativePaidUnits
+          cumulativeCancelledUnits
+          censoredUnits
+          coverageRate
         }
       }
-      metrics {
-        metricKey
+    }
+    ecommerceGetCSExperimentTrend(input: $trendInput) @include(if: $includeTrend) {
+      experimentId
+      metricKey
+      range
+      bucketMinutes
+      dataStatus
+      asOf
+      points {
+        bucketStart
         variantKey
         dimensionKey
         dimensionValue
         eligibleUnits
         observedUnits
         value
-      }
-      comparisons {
-        metricKey
-        baselineVariantKey
-        variantKey
-        baselineUnits
-        variantUnits
-        baselineValue
-        variantValue
-        absoluteEffect
-        relativeEffect
-        confidenceIntervalLow
-        confidenceIntervalHigh
-        pValue
-        adjustedPValue
-        correctionMethod
-        insufficientSample
-        asOf
       }
     }
   }
