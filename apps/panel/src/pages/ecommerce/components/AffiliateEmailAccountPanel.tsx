@@ -29,7 +29,7 @@ type StartMicrosoftEmailOAuthPayload = {
   state: string;
 };
 
-export function AffiliateEmailAccountPanel() {
+export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { businessDeveloperId?: string | null }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [mailboxType, setMailboxType] = useState<GQL.EmailMailboxType>(GQL.EmailMailboxType.Personal);
@@ -117,6 +117,7 @@ export function AffiliateEmailAccountPanel() {
       const result = await startOAuth({
         variables: {
           input: {
+            businessDeveloperId,
             mailboxType,
             sharedMailboxAddress: mailboxType === GQL.EmailMailboxType.Shared ? sharedAddress : null,
           },

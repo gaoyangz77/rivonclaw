@@ -8,8 +8,6 @@ import { Select } from "../../../components/inputs/Select.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
 import { AffiliateApprovalPolicyPanel } from "./AffiliateApprovalPolicyPanel.js";
-import { AffiliateEmailAccountPanel } from "./AffiliateEmailAccountPanel.js";
-import { AffiliateWhatsAppAccountPanel } from "./AffiliateWhatsAppAccountPanel.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const SHOP_MODEL_RECOMMENDATION_LIFT_RATIO = 1.25;
@@ -159,20 +157,6 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
           </label>
         </div>
         <AffiliateOutreachOpsPanel shopId={shop.id} />
-      </section>
-
-      <section id="shop-workspace-affiliateManagement-whatsapp" className="shop-workspace-section">
-        <div className="drawer-section-label">
-          {t("ecommerce.affiliateWorkspace.whatsapp.title", { defaultValue: "WhatsApp outreach accounts" })}
-        </div>
-        <AffiliateWhatsAppAccountPanel />
-      </section>
-
-      <section id="shop-workspace-affiliateManagement-email" className="shop-workspace-section">
-        <div className="drawer-section-label">
-          {t("ecommerce.affiliateWorkspace.email.title", { defaultValue: "Outlook email accounts" })}
-        </div>
-        <AffiliateEmailAccountPanel />
       </section>
 
       <section id="shop-workspace-affiliateManagement-run-profile" className="shop-workspace-section">

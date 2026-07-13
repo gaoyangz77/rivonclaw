@@ -951,6 +951,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         creatorRelation {
           id
           creatorId
+          businessDeveloperId
+          protectionIntentId
+          aiEngagementStatus
+          aiEngagementSource
+          operationalConfigRevision
           blocked
           blockedShopIds
           shopStates {
@@ -1295,6 +1300,11 @@ export const AFFILIATE_CREATORS_QUERY = gql`
       creatorRelation {
         id
         creatorId
+        businessDeveloperId
+        protectionIntentId
+        aiEngagementStatus
+        aiEngagementSource
+        operationalConfigRevision
         blocked
         blockedShopIds
         committedCheckpointId
@@ -1800,6 +1810,9 @@ export const SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION = gql`
 export const WHATSAPP_ACCOUNT_FIELDS_FRAGMENT = gql`
   fragment WhatsAppAccountFields on WhatsAppAccountBinding {
     id
+    userId
+    businessDeveloperId
+    businessDeveloperAssignedAt
     provider
     status
     evolutionInstanceName
@@ -1931,6 +1944,9 @@ export const REVOKE_WHATSAPP_ACCOUNT_BINDING_MUTATION = gql`
 export const EMAIL_ACCOUNT_FIELDS_FRAGMENT = gql`
   fragment EmailAccountFields on EmailAccountBinding {
     id
+    userId
+    businessDeveloperId
+    businessDeveloperAssignedAt
     provider
     status
     mailboxType
@@ -2040,6 +2056,183 @@ export const REVOKE_EMAIL_ACCOUNT_BINDING_MUTATION = gql`
   mutation RevokeEmailAccountBinding($bindingId: ID!) {
     revokeEmailAccountBinding(bindingId: $bindingId) {
       ...EmailAccountFields
+    }
+  }
+`;
+
+export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
+  fragment AffiliateBusinessDeveloperFields on AffiliateBusinessDeveloper {
+    id
+    userId
+    displayName
+    regions
+    acceptingCreators
+    agentAssistanceMode
+    businessPrompt
+    configRevision
+    archivedAt
+    createdAt
+    updatedAt
+  }
+`;
+
+export const AFFILIATE_BUSINESS_DEVELOPERS_QUERY = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  query AffiliateBusinessDevelopers($includeArchived: Boolean) {
+    affiliateBusinessDevelopers(includeArchived: $includeArchived) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
+  query AffiliateOperationalSettings {
+    affiliateOperationalSettings {
+      id
+      userId
+      onboardingCompletedAt
+      newRelationshipAiEngagementDefault
+    }
+  }
+`;
+
+export const AFFILIATE_CREATOR_PROTECTION_INTENTS_QUERY = gql`
+  query AffiliateCreatorProtectionIntents {
+    affiliateCreatorProtectionIntents {
+      id
+      platform
+      matchType
+      matchValue
+      businessDeveloperId
+      importBatchId
+      note
+      appliedCreatorRelationshipId
+      appliedAt
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const WRITE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation WriteAffiliateBusinessDeveloper($input: WriteAffiliateBusinessDeveloperInput!) {
+    writeAffiliateBusinessDeveloper(input: $input) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const ARCHIVE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation ArchiveAffiliateBusinessDeveloper($id: ID!) {
+    archiveAffiliateBusinessDeveloper(id: $id) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const ASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION = gql`
+  ${WHATSAPP_ACCOUNT_FIELDS_FRAGMENT}
+  mutation AssignAffiliateWhatsAppAccount($accountBindingId: ID!, $businessDeveloperId: ID!) {
+    assignAffiliateWhatsAppAccount(accountBindingId: $accountBindingId, businessDeveloperId: $businessDeveloperId) {
+      ...WhatsAppAccountFields
+    }
+  }
+`;
+
+export const UNASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION = gql`
+  ${WHATSAPP_ACCOUNT_FIELDS_FRAGMENT}
+  mutation UnassignAffiliateWhatsAppAccount($accountBindingId: ID!) {
+    unassignAffiliateWhatsAppAccount(accountBindingId: $accountBindingId) {
+      ...WhatsAppAccountFields
+    }
+  }
+`;
+
+export const ASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION = gql`
+  ${EMAIL_ACCOUNT_FIELDS_FRAGMENT}
+  mutation AssignAffiliateEmailAccount($accountBindingId: ID!, $businessDeveloperId: ID!) {
+    assignAffiliateEmailAccount(accountBindingId: $accountBindingId, businessDeveloperId: $businessDeveloperId) {
+      ...EmailAccountFields
+    }
+  }
+`;
+
+export const UNASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION = gql`
+  ${EMAIL_ACCOUNT_FIELDS_FRAGMENT}
+  mutation UnassignAffiliateEmailAccount($accountBindingId: ID!) {
+    unassignAffiliateEmailAccount(accountBindingId: $accountBindingId) {
+      ...EmailAccountFields
+    }
+  }
+`;
+
+export const IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION = gql`
+  mutation ImportAffiliateCreatorProtections($input: ImportAffiliateCreatorProtectionsInput!) {
+    importAffiliateCreatorProtections(input: $input) {
+      id
+      platform
+      matchType
+      matchValue
+      businessDeveloperId
+      importBatchId
+      note
+      appliedCreatorRelationshipId
+      appliedAt
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
+  mutation CompleteAffiliateOperationalOnboarding {
+    completeAffiliateOperationalOnboarding {
+      id
+      userId
+      onboardingCompletedAt
+      newRelationshipAiEngagementDefault
+    }
+  }
+`;
+
+export const ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
+  mutation AssignAffiliateBusinessDeveloper($input: AssignAffiliateBusinessDeveloperInput!) {
+    assignAffiliateBusinessDeveloper(input: $input) {
+      id
+      businessDeveloperId
+      aiEngagementStatus
+      aiEngagementSource
+      operationalConfigRevision
+      updatedAt
+    }
+  }
+`;
+
+export const UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
+  mutation UnassignAffiliateBusinessDeveloper($creatorRelationshipId: ID!) {
+    unassignAffiliateBusinessDeveloper(creatorRelationshipId: $creatorRelationshipId) {
+      id
+      businessDeveloperId
+      aiEngagementStatus
+      aiEngagementSource
+      operationalConfigRevision
+      updatedAt
+    }
+  }
+`;
+
+export const SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION = gql`
+  mutation SetAffiliateRelationshipAiEngagement($input: SetAffiliateRelationshipAiEngagementInput!) {
+    setAffiliateRelationshipAiEngagement(input: $input) {
+      id
+      businessDeveloperId
+      protectionIntentId
+      aiEngagementStatus
+      aiEngagementSource
+      operationalConfigRevision
+      updatedAt
     }
   }
 `;

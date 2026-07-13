@@ -108,6 +108,9 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "",
       renderBusinessPrompt(input.businessPrompt),
       "",
+      input.relationshipMessageUpdate
+        ?? "Checkpoint-bound relationship context was not available. Use affiliate_get_workspace before deciding.",
+      "",
       "## Task",
       "Decide how the seller should handle this sample application.",
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
@@ -204,6 +207,9 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
       "",
       renderBusinessPrompt(input.businessPrompt),
+      "",
+      input.relationshipMessageUpdate
+        ?? "Checkpoint-bound relationship context was not available. Use affiliate_get_workspace before deciding.",
       "",
       "## Task",
       "The creator appears to be past a configured creator-side follow-up point. This may be after a target invitation, sample delivery, content-pending state, or another creator-turn workflow.",

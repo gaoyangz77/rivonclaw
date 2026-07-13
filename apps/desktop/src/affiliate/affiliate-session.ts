@@ -1201,6 +1201,7 @@ function renderAffiliateDispatchContext(context: GQL.AffiliateContextBuilderPayl
     ].join("\n");
   });
   const workspace = context.workspace;
+  const businessDeveloper = context.businessDeveloper;
   const currentSnapshot = {
     agendaItems: context.creatorRelationship.agendaItems ?? [],
     workSummary: context.creatorRelationship.workSummary ?? null,
@@ -1217,6 +1218,19 @@ function renderAffiliateDispatchContext(context: GQL.AffiliateContextBuilderPayl
     `Base Checkpoint ID: ${context.baseCheckpointId ?? "(brand new session)"}`,
     `Base Event Cursor: ${context.baseEventCursor}`,
     `Target Event Cursor: ${context.targetEventCursor}`,
+    `Relationship Operational Config Revision: ${context.relationshipOperationalConfigRevision}`,
+    `Business Developer Snapshot: ${context.businessDeveloperIdSnapshot ?? "(AI team)"}`,
+    `Business Developer Config Revision: ${context.businessDeveloperConfigRevision ?? "(none)"}`,
+    "",
+    "## Assigned Business Developer",
+    ...(businessDeveloper
+      ? [
+          `- Name: ${businessDeveloper.displayName}`,
+          `- Assistance Mode: ${businessDeveloper.agentAssistanceMode}`,
+          `- Regions: ${(businessDeveloper.regions ?? []).join(", ") || "(all)"}`,
+          `- Working Style: ${businessDeveloper.businessPrompt?.trim() || "(no additional instructions)"}`,
+        ]
+      : ["- Owner: AI team", "- Working Style: use merchant Affiliate instructions and current relationship facts."]),
     "",
     "## Events Not Present In The Restored Checkpoint",
     ...(events.length ? events : ["(No new lifecycle events.)"]),
