@@ -3079,7 +3079,8 @@ export const CsExperimentCorrectionMethod = {
 
 export type CsExperimentCorrectionMethod = typeof CsExperimentCorrectionMethod[keyof typeof CsExperimentCorrectionMethod];
 export const CsExperimentCurveEstimator = {
-  AalenJohansen: 'AALEN_JOHANSEN'
+  AalenJohansen: 'AALEN_JOHANSEN',
+  SharedShapeConstrainedHazard: 'SHARED_SHAPE_CONSTRAINED_HAZARD'
 } as const;
 
 export type CsExperimentCurveEstimator = typeof CsExperimentCurveEstimator[keyof typeof CsExperimentCurveEstimator];
@@ -3197,6 +3198,7 @@ export interface CsExperimentTargetView {
 }
 
 export interface CsExperimentTimeToEventCurveInput {
+  estimator?: InputMaybe<CsExperimentCurveEstimator>;
   eventKey: CsExperimentOutcomeEventKey;
   experimentId: Scalars['ID']['input'];
 }
