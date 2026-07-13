@@ -3078,6 +3078,18 @@ export const CsExperimentCorrectionMethod = {
 } as const;
 
 export type CsExperimentCorrectionMethod = typeof CsExperimentCorrectionMethod[keyof typeof CsExperimentCorrectionMethod];
+export const CsExperimentCurveEstimator = {
+  AalenJohansen: 'AALEN_JOHANSEN'
+} as const;
+
+export type CsExperimentCurveEstimator = typeof CsExperimentCurveEstimator[keyof typeof CsExperimentCurveEstimator];
+export const CsExperimentCurveSeriesRole = {
+  ConfigVariant: 'CONFIG_VARIANT',
+  Control: 'CONTROL',
+  Treatment: 'TREATMENT'
+} as const;
+
+export type CsExperimentCurveSeriesRole = typeof CsExperimentCurveSeriesRole[keyof typeof CsExperimentCurveSeriesRole];
 export const CsExperimentDataStatus = {
   Final: 'FINAL',
   Provisional: 'PROVISIONAL'
@@ -3143,6 +3155,11 @@ export interface CsExperimentMetricSummaryView {
   variantKey: Scalars['String']['output'];
 }
 
+export const CsExperimentOutcomeEventKey = {
+  CsUnpaidPayment: 'CS_UNPAID_PAYMENT'
+} as const;
+
+export type CsExperimentOutcomeEventKey = typeof CsExperimentOutcomeEventKey[keyof typeof CsExperimentOutcomeEventKey];
 export interface CsExperimentPageInput {
   cursor?: InputMaybe<Scalars['String']['input']>;
   experimentType?: InputMaybe<CsExperimentTypeFilter>;
@@ -3177,6 +3194,51 @@ export interface CsExperimentTargetView {
   id: Scalars['ID']['output'];
   name?: Maybe<Scalars['String']['output']>;
   region?: Maybe<Scalars['String']['output']>;
+}
+
+export interface CsExperimentTimeToEventCurveInput {
+  eventKey: CsExperimentOutcomeEventKey;
+  experimentId: Scalars['ID']['input'];
+}
+
+export interface CsExperimentTimeToEventCurvePointView {
+  assignedUnits: Scalars['Int']['output'];
+  atRiskUnits: Scalars['Int']['output'];
+  censoredUnits: Scalars['Int']['output'];
+  confidenceIntervalHigh: Scalars['Float']['output'];
+  confidenceIntervalLow: Scalars['Float']['output'];
+  coverageRate: Scalars['Float']['output'];
+  cumulativeCancelledUnits: Scalars['Int']['output'];
+  cumulativePaidUnits: Scalars['Int']['output'];
+  elapsedMinutes: Scalars['Int']['output'];
+  estimate: Scalars['Float']['output'];
+  observedThroughUnits: Scalars['Int']['output'];
+}
+
+export interface CsExperimentTimeToEventCurveSeriesView {
+  action: ExperimentVariantAction;
+  label: Scalars['String']['output'];
+  points: Array<CsExperimentTimeToEventCurvePointView>;
+  seriesKey: Scalars['String']['output'];
+  seriesRole: CsExperimentCurveSeriesRole;
+  stages: Array<CsExperimentTimeToEventCurveStageView>;
+}
+
+export interface CsExperimentTimeToEventCurveStageView {
+  delayMinutes: Scalars['Int']['output'];
+  stageIndex: Scalars['Int']['output'];
+}
+
+export interface CsExperimentTimeToEventCurveView {
+  asOf: Scalars['DateTimeISO']['output'];
+  assignedUnits: Scalars['Int']['output'];
+  dataStatus: CsExperimentDataStatus;
+  estimator: CsExperimentCurveEstimator;
+  eventKey: CsExperimentOutcomeEventKey;
+  excludedUnits: Scalars['Int']['output'];
+  experimentId: Scalars['ID']['output'];
+  maxElapsedMinutes: Scalars['Int']['output'];
+  series: Array<CsExperimentTimeToEventCurveSeriesView>;
 }
 
 export interface CsExperimentTrendInput {
@@ -7593,6 +7655,7 @@ export interface Query {
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   ecommerceGetCSExperimentDetail: CsExperimentDetailView;
   ecommerceGetCSExperimentPage: CsExperimentPageResult;
+  ecommerceGetCSExperimentTimeToEventCurve: CsExperimentTimeToEventCurveView;
   ecommerceGetCSExperimentTrend: CsExperimentTrendView;
   /** Get comprehensive customer service performance metrics from the warehouse. */
   ecommerceGetCSPerformance: CustomerServicePerformanceReport;
@@ -7959,6 +8022,11 @@ export interface QueryEcommerceGetCsExperimentDetailArgs {
 
 export interface QueryEcommerceGetCsExperimentPageArgs {
   input: CsExperimentPageInput;
+}
+
+
+export interface QueryEcommerceGetCsExperimentTimeToEventCurveArgs {
+  input: CsExperimentTimeToEventCurveInput;
 }
 
 

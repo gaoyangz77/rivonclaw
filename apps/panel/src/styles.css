@@ -13399,6 +13399,9 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-stage-line.muted { color: var(--color-text-muted); font-size: 10px; }
 
 .cs-experiment-analysis-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+.cs-experiment-signal-tabs { display: inline-flex; gap: 3px; margin-bottom: 13px; padding: 3px; border: 1px solid var(--color-border-light); border-radius: 7px; background: var(--color-bg-alt); }
+.cs-experiment-signal-tabs button { min-width: 118px; padding: 7px 12px; border: 0; border-radius: 5px; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 11px; font-weight: 750; }
+.cs-experiment-signal-tabs button.active { background: var(--color-bg); color: var(--experiment-ink); box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 8%, transparent); }
 .cs-experiment-analysis-controls .custom-select:first-child { min-width: 250px; }
 .cs-experiment-metric-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 7px; }
 .cs-experiment-metric-cards > div { position: relative; display: grid; min-width: 0; gap: 3px; padding: 10px 11px 10px 22px; border: 1px solid var(--color-border-light); border-radius: 7px; }
@@ -13414,6 +13417,46 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-maturity-empty p { max-width: 520px; margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.55; }
 .cs-experiment-maturity-empty.compact { min-height: 120px; }
 .cs-experiment-maturity-empty.compact::before { width: 32px; height: 32px; font-size: 13px; }
+
+.cs-experiment-curve-workbench { --experiment-curve-ci: color-mix(in srgb, var(--experiment-ink) 13%, transparent); display: grid; gap: 10px; }
+.cs-experiment-curve-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid var(--color-border-light); border-radius: 8px; background: color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg)); }
+.cs-experiment-curve-toolbar > div { display: flex; align-items: center; gap: 8px; }
+.cs-experiment-curve-toolbar small { color: var(--color-text-muted); font-size: 10px; }
+.cs-experiment-curve-zoom { display: inline-flex; align-items: center; gap: 7px; color: var(--color-text-secondary); cursor: pointer; font-size: 10px; font-weight: 700; }
+.cs-experiment-curve-zoom input { accent-color: var(--experiment-ink); }
+.cs-experiment-curve-legend { display: grid; gap: 7px; }
+.cs-experiment-curve-legend-tools { display: flex; align-items: center; gap: 6px; }
+.cs-experiment-curve-legend-tools input { min-width: 180px; height: 30px; padding: 0 9px; border: 1px solid var(--color-border-light); border-radius: 6px; background: var(--color-bg); color: var(--color-text); font: inherit; font-size: 10px; }
+.cs-experiment-curve-legend-tools button { height: 30px; padding: 0 9px; border: 1px solid var(--color-border-light); border-radius: 6px; background: var(--color-bg); color: var(--color-text-secondary); cursor: pointer; font: inherit; font-size: 9px; font-weight: 750; }
+.cs-experiment-curve-legend-items { display: flex; flex-wrap: wrap; gap: 5px; }
+.cs-experiment-curve-legend-items button { display: inline-flex; min-width: 0; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--color-border-light); border-radius: 999px; background: var(--color-bg); color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 9px; }
+.cs-experiment-curve-legend-items button.active { border-color: color-mix(in srgb, var(--experiment-ink) 34%, var(--color-border-light)); color: var(--color-text); }
+.cs-experiment-curve-legend-items button.control { order: -1; }
+.cs-experiment-curve-legend-items button:not(.active) { opacity: 0.54; }
+.cs-experiment-curve-legend-items .series-color { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--experiment-ink); }
+.cs-experiment-curve-legend-items .control .series-color { background: var(--color-text-muted); }
+.cs-experiment-curve-legend-items .series-color-1 { background: var(--experiment-brass); }
+.cs-experiment-curve-legend-items .series-color-2 { background: var(--color-info); }
+.cs-experiment-curve-legend-items .series-color-3 { background: var(--color-warning); }
+.cs-experiment-curve-legend-items .series-color-4 { background: var(--color-danger); }
+.cs-experiment-curve-legend-items .series-color-5 { background: var(--color-success); }
+.cs-experiment-curve-legend-items .series-color-6 { background: var(--color-accent-secondary); }
+.cs-experiment-curve-legend-items .series-color-7 { background: var(--color-primary); }
+.cs-experiment-curve-chart { min-height: 340px; padding: 6px 0 0; border-top: 1px solid var(--color-border-light); }
+.cs-experiment-curve-tooltip { display: grid; min-width: 230px; gap: 8px; padding: 10px; border: 1px solid var(--color-border-strong); border-radius: 8px; background: var(--color-bg); box-shadow: 0 10px 30px color-mix(in srgb, var(--color-text) 14%, transparent); }
+.cs-experiment-curve-tooltip > strong { color: var(--color-text-secondary); font: 750 10px "JetBrains Mono", monospace; }
+.cs-experiment-curve-tooltip > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding-top: 6px; border-top: 1px solid var(--color-border-light); }
+.cs-experiment-curve-tooltip b { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.cs-experiment-curve-tooltip span { font: 750 11px "JetBrains Mono", monospace; }
+.cs-experiment-curve-tooltip em { color: var(--experiment-brass); font-size: 9px; font-style: normal; }
+.cs-experiment-curve-tooltip small { grid-column: 1 / -1; color: var(--color-text-muted); font-size: 9px; }
+.cs-experiment-curve-note { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; color: var(--color-text-muted); font-size: 9px; line-height: 1.5; }
+.cs-experiment-curve-note > div { display: grid; gap: 3px; }
+.cs-experiment-curve-endpoint { min-width: max-content; grid-template-columns: repeat(2, auto); column-gap: 10px; text-align: right; }
+.cs-experiment-curve-endpoint strong { grid-column: 1 / -1; color: var(--color-text-secondary); font-size: 9px; }
+.cs-experiment-curve-empty { display: grid; min-height: 280px; place-items: center; align-content: center; gap: 7px; border-top: 1px solid var(--color-border-light); color: var(--color-text-secondary); text-align: center; }
+.cs-experiment-curve-empty p { max-width: 520px; margin: 0; color: var(--color-text-muted); font-size: 11px; }
+.cs-experiment-curve-empty.error { color: var(--color-danger); }
 
 .cs-experiment-comparison-table { overflow-x: auto; }
 .cs-experiment-comparison-table table { width: 100%; min-width: 690px; border-collapse: collapse; font-size: 11px; }
@@ -13455,6 +13498,11 @@ html[lang="zh"] .acct-tool-chips {
   .cs-experiment-stat-strip > div:nth-child(odd) { padding-left: 0; border-left: 0; }
   .cs-experiment-analysis-controls { align-items: stretch; flex-direction: column; }
   .cs-experiment-analysis-controls .custom-select:first-child { min-width: 0; }
+  .cs-experiment-signal-tabs { display: flex; }
+  .cs-experiment-signal-tabs button { min-width: 0; flex: 1; }
+  .cs-experiment-curve-toolbar, .cs-experiment-curve-note { align-items: stretch; flex-direction: column; }
+  .cs-experiment-curve-legend-tools { align-items: stretch; flex-wrap: wrap; }
+  .cs-experiment-curve-legend-tools input { min-width: 100%; }
 }
 
 .cs-conversation-shell {

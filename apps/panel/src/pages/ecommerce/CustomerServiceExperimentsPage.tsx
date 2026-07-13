@@ -20,8 +20,10 @@ import {
 import { RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import { ExperimentPaymentProgressChart } from "./ExperimentPaymentProgressChart.js";
 
 type View = "REALTIME" | "HISTORY";
+type SignalView = "PAYMENT_PROGRESS" | "METRIC_TREND";
 const METRICS: GQL.CsExperimentMetricKey[] = [
   "PAYMENT_WITHIN_WINDOW",
   "GMV_PER_ASSIGNED_ORDER",
@@ -97,6 +99,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
   const [range, setRange] = useState(initial.range);
   const [typeFilter, setTypeFilter] = useState("");
   const [shopId, setShopId] = useState("");
+  const [signalView, setSignalView] = useState<SignalView>("PAYMENT_PROGRESS");
   const visible = usePageVisibility();
 
   useEffect(() => {
@@ -503,89 +506,119 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       {t(`ecommerce.customerServiceExperiments.dataStatus.${detail.dataStatus}`)}
                     </span>
                   </div>
-                  <div className="cs-experiment-analysis-controls">
-                    <Select
-                      value={metric}
-                      onChange={(value) => setMetric(value as GQL.CsExperimentMetricKey)}
-                      options={METRICS.map((value) => ({
-                        value,
-                        label: t(`ecommerce.customerServiceExperiments.metrics.${value}`),
-                      }))}
+                  <div className="cs-experiment-signal-tabs" role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={signalView === "PAYMENT_PROGRESS"}
+                      className={signalView === "PAYMENT_PROGRESS" ? "active" : ""}
+                      onClick={() => setSignalView("PAYMENT_PROGRESS")}
+                    >
+                      {t("ecommerce.customerServiceExperiments.curve.paymentProgress")}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={signalView === "METRIC_TREND"}
+                      className={signalView === "METRIC_TREND" ? "active" : ""}
+                      onClick={() => setSignalView("METRIC_TREND")}
+                    >
+                      {t("ecommerce.customerServiceExperiments.curve.metricTrend")}
+                    </button>
+                  </div>
+                  {signalView === "PAYMENT_PROGRESS" ? (
+                    <ExperimentPaymentProgressChart
+                      experimentId={detail.id}
+                      realtime={view === "REALTIME"}
+                      visible={visible}
                     />
-                    <Select
-                      value={range}
-                      onChange={setRange}
-                      options={validRanges.map((value) => ({
-                        value,
-                        label: t(`ecommerce.customerServiceExperiments.ranges.${value}`),
-                      }))}
-                    />
-                  </div>
-                  <div className="cs-experiment-metric-cards">
-                    {metricRows.map((item, index) => (
-                      <div key={`${item.variantKey}:${item.dimensionValue}`}>
-                        <i style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }} />
-                        <span>
-                          {item.variantKey}
-                          {item.dimensionValue ? ` · ${item.dimensionValue}` : ""}
-                        </span>
-                        <strong>{formatMetric(metric, item.value)}</strong>
-                        <small>n = {item.observedUnits.toLocaleString()}</small>
+                  ) : (
+                    <>
+                      <div className="cs-experiment-analysis-controls">
+                        <Select
+                          value={metric}
+                          onChange={(value) => setMetric(value as GQL.CsExperimentMetricKey)}
+                          options={METRICS.map((value) => ({
+                            value,
+                            label: t(`ecommerce.customerServiceExperiments.metrics.${value}`),
+                          }))}
+                        />
+                        <Select
+                          value={range}
+                          onChange={setRange}
+                          options={validRanges.map((value) => ({
+                            value,
+                            label: t(`ecommerce.customerServiceExperiments.ranges.${value}`),
+                          }))}
+                        />
                       </div>
-                    ))}
-                  </div>
-                  <div className="cs-experiment-chart">
-                    {trendQuery.loading && !trend ? (
-                      <div className="cs-experiments-loading">{t("common.loading")}</div>
-                    ) : detail.quality?.maturedUnits === 0 ? (
-                      <div className="cs-experiment-maturity-empty">
-                        <strong>
-                          {t("ecommerce.customerServiceExperiments.awaitingMaturityTitle")}
-                        </strong>
-                        <p>
-                          {t("ecommerce.customerServiceExperiments.awaitingMaturityBody", {
-                            assigned: detail.quality.assignedUnits.toLocaleString(),
-                            time: formatDate(detail.quality.nextMaturityAt),
-                          })}
-                        </p>
+                      <div className="cs-experiment-metric-cards">
+                        {metricRows.map((item, index) => (
+                          <div key={`${item.variantKey}:${item.dimensionValue}`}>
+                            <i style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }} />
+                            <span>
+                              {item.variantKey}
+                              {item.dimensionValue ? ` · ${item.dimensionValue}` : ""}
+                            </span>
+                            <strong>{formatMetric(metric, item.value)}</strong>
+                            <small>n = {item.observedUnits.toLocaleString()}</small>
+                          </div>
+                        ))}
                       </div>
-                    ) : chart.rows.length ? (
-                      <ResponsiveContainer width="100%" height={280}>
-                        <LineChart
-                          data={chart.rows}
-                          margin={{ top: 12, right: 18, left: 4, bottom: 4 }}
-                        >
-                          <CartesianGrid
-                            strokeDasharray="2 6"
-                            vertical={false}
-                            stroke="var(--color-border-light)"
-                          />
-                          <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={36} />
-                          <YAxis
-                            tick={{ fontSize: 11 }}
-                            tickFormatter={(value) => formatMetric(metric, value)}
-                            width={64}
-                          />
-                          <Tooltip formatter={(value) => formatMetric(metric, Number(value))} />
-                          {chart.series.map((series, index) => (
-                            <Line
-                              key={series}
-                              type="monotone"
-                              dataKey={series}
-                              stroke={SERIES_COLORS[index % SERIES_COLORS.length]}
-                              strokeWidth={2}
-                              dot={false}
-                              connectNulls
-                            />
-                          ))}
-                        </LineChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="cs-experiments-chart-empty">
-                        {t("ecommerce.customerServiceExperiments.noTrend")}
+                      <div className="cs-experiment-chart">
+                        {trendQuery.loading && !trend ? (
+                          <div className="cs-experiments-loading">{t("common.loading")}</div>
+                        ) : detail.quality?.maturedUnits === 0 ? (
+                          <div className="cs-experiment-maturity-empty">
+                            <strong>
+                              {t("ecommerce.customerServiceExperiments.awaitingMaturityTitle")}
+                            </strong>
+                            <p>
+                              {t("ecommerce.customerServiceExperiments.awaitingMaturityBody", {
+                                assigned: detail.quality.assignedUnits.toLocaleString(),
+                                time: formatDate(detail.quality.nextMaturityAt),
+                              })}
+                            </p>
+                          </div>
+                        ) : chart.rows.length ? (
+                          <ResponsiveContainer width="100%" height={280}>
+                            <LineChart
+                              data={chart.rows}
+                              margin={{ top: 12, right: 18, left: 4, bottom: 4 }}
+                            >
+                              <CartesianGrid
+                                strokeDasharray="2 6"
+                                vertical={false}
+                                stroke="var(--color-border-light)"
+                              />
+                              <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={36} />
+                              <YAxis
+                                tick={{ fontSize: 11 }}
+                                tickFormatter={(value) => formatMetric(metric, value)}
+                                width={64}
+                              />
+                              <Tooltip formatter={(value) => formatMetric(metric, Number(value))} />
+                              {chart.series.map((series, index) => (
+                                <Line
+                                  key={series}
+                                  type="monotone"
+                                  dataKey={series}
+                                  stroke={SERIES_COLORS[index % SERIES_COLORS.length]}
+                                  strokeWidth={2}
+                                  dot={false}
+                                  connectNulls
+                                />
+                              ))}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="cs-experiments-chart-empty">
+                            {t("ecommerce.customerServiceExperiments.noTrend")}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </section>
 
                 <section className="section-card cs-experiment-comparisons">
