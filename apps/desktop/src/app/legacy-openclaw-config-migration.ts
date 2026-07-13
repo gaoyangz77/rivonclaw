@@ -17,6 +17,24 @@ const REMOVED_PLUGIN_IDS = new Set([
   "rivonclaw-tools",
 ]);
 
+// These optional provider plugins are not shipped in the pruned Desktop
+// runtime. Older builds seeded them into plugins.deny to reduce discovery
+// overhead; remove only the stale deny references while preserving any user
+// provider entries. Moonshot remains packaged/configurable for Kimi search.
+const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
+  "amazon-bedrock",
+  "anthropic-vertex",
+  "chutes",
+  "cloudflare-ai-gateway",
+  "deepseek",
+  "github-copilot",
+  "kilocode",
+  "kimi",
+  "qianfan",
+  "venice",
+  "vercel-ai-gateway",
+]);
+
 const REMOVED_PLUGIN_LOAD_PATH_HINTS = [
   "@larksuite/openclaw-lark",
   "/node_modules/@larksuite/openclaw-lark",
@@ -125,7 +143,20 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
       touched.push("plugins.allow");
     }
 
-    const deny = pruneRemovedPluginIds(plugins.deny);
+    const deny = Array.isArray(plugins.deny)
+      ? {
+          value: plugins.deny.filter(
+            (entry) =>
+              typeof entry !== "string" ||
+              (!REMOVED_PLUGIN_IDS.has(entry) && !STALE_OPTIONAL_PLUGIN_DENY_IDS.has(entry)),
+          ),
+          changed: plugins.deny.some(
+            (entry) =>
+              typeof entry === "string" &&
+              (REMOVED_PLUGIN_IDS.has(entry) || STALE_OPTIONAL_PLUGIN_DENY_IDS.has(entry)),
+          ),
+        }
+      : { value: plugins.deny, changed: false };
     if (deny.changed) {
       plugins.deny = deny.value;
       touched.push("plugins.deny");

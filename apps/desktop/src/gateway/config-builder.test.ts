@@ -78,6 +78,38 @@ describe("gateway config builder", () => {
         name: "GPT 5.6 Terra",
         input: ["text", "image"],
         contextWindow: 372_000,
+        contextTokens: 244_000,
+        maxTokens: 128_000,
+      },
+    ]);
+  });
+
+  it("restores runtime limits for legacy cloud model ID lists", () => {
+    const overrides = buildCustomProviderOverridesFromKeys([
+      {
+        provider: "rivonclaw-pro",
+        authType: "custom",
+        baseUrl: "https://api.rivonclaw.com/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify(["gpt-5.6-terra", "gpt-5.6-luna"]),
+      },
+    ]);
+
+    expect(overrides["rivonclaw-pro"]?.models).toEqual([
+      {
+        id: "gpt-5.6-terra",
+        name: "gpt-5.6-terra",
+        input: ["text", "image"],
+        contextWindow: 372_000,
+        contextTokens: 244_000,
+        maxTokens: 128_000,
+      },
+      {
+        id: "gpt-5.6-luna",
+        name: "gpt-5.6-luna",
+        input: ["text", "image"],
+        contextWindow: 372_000,
+        contextTokens: 244_000,
         maxTokens: 128_000,
       },
     ]);

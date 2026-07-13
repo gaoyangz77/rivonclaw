@@ -66,10 +66,15 @@ export interface ModelConfig {
   cost?: ModelCost;
   /** Whether this model supports image/vision input. Defaults to false for extra models. */
   supportsVision?: boolean;
-  /** Context window size in tokens. Used by config-writer; falls back to 128000 if omitted. */
+  /**
+   * Native model context window. When adding a cloud model, also set contextTokens and
+   * maxTokens so legacy model-list responses cannot fall back to OpenClaw's generic limits.
+   */
   contextWindow?: number;
   /** Effective runtime context budget cap when OpenClaw budgets below the native window. */
   contextTokens?: number;
+  /** Maximum completion/output tokens advertised to OpenClaw. */
+  maxTokens?: number;
 }
 
 /** A subscription plan nested under a root provider. */
@@ -201,6 +206,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
             supportsVision: true,
             contextWindow: 372000,
             contextTokens: 244000,
+            maxTokens: 128000,
           },
           {
             provider: "openai-codex",
@@ -209,6 +215,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
             supportsVision: true,
             contextWindow: 372000,
             contextTokens: 244000,
+            maxTokens: 128000,
           },
           {
             provider: "openai-codex",
@@ -217,6 +224,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
             supportsVision: true,
             contextWindow: 372000,
             contextTokens: 244000,
+            maxTokens: 128000,
           },
         ],
       },

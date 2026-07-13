@@ -3,8 +3,12 @@ import { dirname, join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
 import {
-  ALL_PROVIDERS, getProviderMeta, resolveGatewayProvider,
-  DEFAULT_GATEWAY_PORT, CDP_PORT_OFFSET, DEFAULTS,
+  ALL_PROVIDERS,
+  getProviderMeta,
+  resolveGatewayProvider,
+  DEFAULT_GATEWAY_PORT,
+  CDP_PORT_OFFSET,
+  DEFAULTS,
   type LLMProvider,
 } from "@rivonclaw/core";
 import {
@@ -22,12 +26,7 @@ const log = createLogger("gateway:config");
 
 const FIXED_DM_SCOPE = "per-account-channel-peer";
 const GEMINI_CLI_BACKEND_ID = "google-gemini-cli";
-const GEMINI_CLI_BACKEND_ARGS = [
-  "--output-format",
-  "json",
-  "--prompt",
-  "{prompt}",
-] as const;
+const GEMINI_CLI_BACKEND_ARGS = ["--output-format", "json", "--prompt", "{prompt}"] as const;
 const GEMINI_CLI_BACKEND_RESUME_ARGS = [
   "--resume",
   "{sessionId}",
@@ -78,9 +77,9 @@ function writeGeminiCliWrapper(stateDir: string): string {
         "@echo off",
         `set "HOME=${managedHome}"`,
         `set "PATH=${managedGeminiBin};%PATH%"`,
-        "set \"GOOGLE_GENAI_USE_GCA=true\"",
-        "set \"GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true\"",
-        "set \"NODE_NO_WARNINGS=1\"",
+        'set "GOOGLE_GENAI_USE_GCA=true"',
+        'set "GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true"',
+        'set "NODE_NO_WARNINGS=1"',
         "gemini %*",
         "",
       ].join("\r\n"),
@@ -98,7 +97,7 @@ function writeGeminiCliWrapper(stateDir: string): string {
       "export GOOGLE_GENAI_USE_GCA=true",
       "export GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true",
       "export NODE_NO_WARNINGS=1",
-      "exec gemini \"$@\"",
+      'exec gemini "$@"',
       "",
     ].join("\n"),
     { encoding: "utf-8", mode: 0o700 },
@@ -140,7 +139,9 @@ function mergePluginWebSearchConfig(
   const entry = ensureRecord(entries, pluginId);
   const entryConfig = ensureRecord(entry, "config");
   const existingWebSearch =
-    entryConfig.webSearch && typeof entryConfig.webSearch === "object" && !Array.isArray(entryConfig.webSearch)
+    entryConfig.webSearch &&
+    typeof entryConfig.webSearch === "object" &&
+    !Array.isArray(entryConfig.webSearch)
       ? (entryConfig.webSearch as Record<string, unknown>)
       : {};
 
@@ -270,13 +271,16 @@ function fixSemanticErrors(config: Record<string, unknown>): string[] {
 
 /** Plugin IDs that have been permanently removed from the project. */
 const REMOVED_PLUGIN_IDS = new Set([
-  "wecom", "dingtalk",
+  "wecom",
+  "dingtalk",
   // W31: tiktok-shop replaced by dynamic tool registration via @Tool decorator (ADR-035).
   // rivonclaw-ecommerce plugin was never shipped — removed during W31 refactor.
-  "tiktok-shop", "rivonclaw-ecommerce",
+  "tiktok-shop",
+  "rivonclaw-ecommerce",
   // v2026.4.1: google-gemini-cli-auth merged into the google extension plugin;
   // qwen-portal-auth removed (Qwen provider restructured).
-  "google-gemini-cli-auth", "qwen-portal-auth",
+  "google-gemini-cli-auth",
+  "qwen-portal-auth",
   // v2026.4.3: channel-manager previously wrote the bare channel ID "mobile"
   // into plugins.entries instead of the full plugin ID "rivonclaw-mobile-chat-channel".
   // Clean up the stale entry so the gateway stops warning about it.
@@ -286,13 +290,36 @@ const REMOVED_PLUGIN_IDS = new Set([
   // v1.8.10: RivonClaw Desktop ships an OpenClaw CLI shim, so the prompt
   // override plugin that told agents not to use the CLI is removed. Vendor prompt
   // patch 0009 also replaces the upstream CLI guidance directly in OpenClaw.
-  "easyclaw-tools", "rivonclaw-tools",
+  "easyclaw-tools",
+  "rivonclaw-tools",
   // v1.9.0: RivonClaw's custom file-permissions plugin and UI were removed.
   // OpenClaw's native sandbox configuration is the remaining file boundary.
-  "easyclaw-file-permissions", "rivonclaw-file-permissions",
+  "easyclaw-file-permissions",
+  "rivonclaw-file-permissions",
   // v1.9.0: Browser Profiles and the CDP/session-state plugin were removed.
-  "browser-profiles-tools", "rivonclaw-browser-profiles-tools",
+  "browser-profiles-tools",
+  "rivonclaw-browser-profiles-tools",
 ]);
+
+/** Optional provider plugins absent from the pruned Desktop runtime.
+ * Remove only stale plugins.deny references; provider entries are preserved. */
+const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
+  "amazon-bedrock",
+  "anthropic-vertex",
+  "chutes",
+  "cloudflare-ai-gateway",
+  "deepseek",
+  "github-copilot",
+  "kilocode",
+  "kimi",
+  "qianfan",
+  "venice",
+  "vercel-ai-gateway",
+]);
+
+const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
+const RIVONCLAW_CLOUD_COMPACTION_MODEL = "rivonclaw-pro/gpt-5.6-luna";
+const DEFAULT_COMPACTION_MAX_HISTORY_SHARE = 0.35;
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
 /** Plugin IDs renamed during the EasyClaw → RivonClaw rebrand.
@@ -348,12 +375,18 @@ function resolveExtensionsDir(): string {
   return resolve(monorepoRoot, "extensions");
 }
 
-function isStalePluginLoadPath(pathValue: string, extDir: string, merchantExtensionPaths: string[]): boolean {
+function isStalePluginLoadPath(
+  pathValue: string,
+  extDir: string,
+  merchantExtensionPaths: string[],
+): boolean {
   const normalized = pathValue.replace(/\\/g, "/");
   const resolvedNormalized = resolve(pathValue).replace(/\\/g, "/");
   return (
     REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) => normalized.includes(hint.replace(/\\/g, "/"))) ||
-    REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) => resolvedNormalized.includes(hint.replace(/\\/g, "/"))) ||
+    REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) =>
+      resolvedNormalized.includes(hint.replace(/\\/g, "/")),
+    ) ||
     merchantExtensionPaths.some((merchantPath) => {
       const normalizedMerchant = resolve(merchantPath).replace(/\\/g, "/");
       return resolvedNormalized === normalizedMerchant;
@@ -378,20 +411,9 @@ export function generateGatewayToken(): string {
  *
  * All EXTRA_MODELS providers use OpenAI-compatible APIs.
  */
-export function buildExtraProviderConfigs(): Record<string, {
-  baseUrl: string;
-  api: string;
-  models: Array<{
-    id: string;
-    name: string;
-    reasoning: boolean;
-    input: Array<"text" | "image">;
-    cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
-    contextWindow: number;
-    maxTokens: number;
-  }>;
-}> {
-  const result: Record<string, {
+export function buildExtraProviderConfigs(): Record<
+  string,
+  {
     baseUrl: string;
     api: string;
     models: Array<{
@@ -403,7 +425,24 @@ export function buildExtraProviderConfigs(): Record<string, {
       contextWindow: number;
       maxTokens: number;
     }>;
-  }> = {};
+  }
+> {
+  const result: Record<
+    string,
+    {
+      baseUrl: string;
+      api: string;
+      models: Array<{
+        id: string;
+        name: string;
+        reasoning: boolean;
+        input: Array<"text" | "image">;
+        cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
+        contextWindow: number;
+        maxTokens: number;
+      }>;
+    }
+  > = {};
 
   // OpenClaw/pi-ai already ships a native openai-codex provider with the
   // correct ChatGPT subscription endpoint (chatgpt.com/backend-api). If we
@@ -427,7 +466,7 @@ export function buildExtraProviderConfigs(): Record<string, {
         input: (m.supportsVision ? ["text", "image"] : ["text"]) as Array<"text" | "image">,
         cost: m.cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: m.contextWindow ?? 128000,
-        maxTokens: 8192,
+        maxTokens: m.maxTokens ?? 8192,
       })),
     };
   }
@@ -487,20 +526,13 @@ const resolveOpenClawConfigPath = _resolveOpenClawConfigPath;
  * Read existing OpenClaw config from disk.
  * Returns an empty object if the file does not exist or cannot be parsed.
  */
-export function readExistingConfig(
-  configPath: string,
-): Record<string, unknown> {
+export function readExistingConfig(configPath: string): Record<string, unknown> {
   try {
     if (existsSync(configPath)) {
-      return JSON.parse(readFileSync(configPath, "utf-8")) as Record<
-        string,
-        unknown
-      >;
+      return JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     }
   } catch {
-    log.warn(
-      `Failed to read existing config at ${configPath}, starting fresh`,
-    );
+    log.warn(`Failed to read existing config at ${configPath}, starting fresh`);
   }
   return {};
 }
@@ -526,7 +558,11 @@ export interface WriteGatewayConfigOptions {
   extraSkillDirs?: string[];
   /** Channel accounts from SQLite — written back into config.channels so the
    *  config file can be fully reconstructed from SQLite (source of truth). */
-  channelAccounts?: Array<{ channelId: string; accountId: string; config: Record<string, unknown> }>;
+  channelAccounts?: Array<{
+    channelId: string;
+    accountId: string;
+    config: Record<string, unknown>;
+  }>;
   /** Enable the OpenAI-compatible /v1/chat/completions endpoint (disabled by default in OpenClaw). */
   enableChatCompletions?: boolean;
   /** Enable commands.restart so SIGUSR1 graceful reload is authorized. */
@@ -591,27 +627,34 @@ export interface WriteGatewayConfigOptions {
    * Extra LLM providers to register in OpenClaw's models.providers config.
    * Used for providers not natively supported by OpenClaw (e.g. zhipu, volcengine).
    */
-  extraProviders?: Record<string, {
-    baseUrl: string;
-    api?: string;
-    models: Array<{
-      id: string;
-      name: string;
-      reasoning?: boolean;
-      input?: Array<"text" | "image">;
-      cost?: { input: number; output: number; cacheRead: number; cacheWrite: number };
-      contextWindow?: number;
-      maxTokens?: number;
-    }>;
-  }>;
+  extraProviders?: Record<
+    string,
+    {
+      baseUrl: string;
+      api?: string;
+      models: Array<{
+        id: string;
+        name: string;
+        reasoning?: boolean;
+        input?: Array<"text" | "image">;
+        cost?: { input: number; output: number; cacheRead: number; cacheWrite: number };
+        contextWindow?: number;
+        contextTokens?: number;
+        maxTokens?: number;
+      }>;
+    }
+  >;
   /** Provider keys managed by RivonClaw (the full set from buildExtraProviderConfigs).
    *  Used to clean up stale providers from previous configs that are no longer active. */
   managedProviderKeys?: string[];
   /** Override base URLs and models for local providers (e.g. Ollama with user-configured endpoint). */
-  localProviderOverrides?: Record<string, {
-    baseUrl: string;
-    models: Array<{ id: string; name: string; inputModalities?: string[] }>;
-  }>;
+  localProviderOverrides?: Record<
+    string,
+    {
+      baseUrl: string;
+      models: Array<{ id: string; name: string; inputModalities?: string[] }>;
+    }
+  >;
   /**
    * Tool allowlist for optional plugin tools (ADR-031).
    * Written to `tools.allow` in openclaw.json so that `collectExplicitAllowlist()`
@@ -639,9 +682,8 @@ function resolveTelegramDefaultAccountId(
   const accountIds = Object.keys(accounts);
   if (accountIds.length === 0) return undefined;
 
-  const configuredDefault = typeof existingChannel.defaultAccount === "string"
-    ? existingChannel.defaultAccount.trim()
-    : "";
+  const configuredDefault =
+    typeof existingChannel.defaultAccount === "string" ? existingChannel.defaultAccount.trim() : "";
   if (
     configuredDefault &&
     configuredDefault !== RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID &&
@@ -906,7 +948,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ? (existingCliBackends[GEMINI_CLI_BACKEND_ID] as Record<string, unknown>)
         : {};
     const existingGeminiEnv =
-      typeof existingGeminiBackend.env === "object" && existingGeminiBackend.env !== null &&
+      typeof existingGeminiBackend.env === "object" &&
+      existingGeminiBackend.env !== null &&
       !Array.isArray(existingGeminiBackend.env)
         ? (existingGeminiBackend.env as Record<string, unknown>)
         : {};
@@ -953,14 +996,43 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingDefaults.compaction === "object" && existingDefaults.compaction !== null
         ? (existingDefaults.compaction as Record<string, unknown>)
         : {};
+    const existingMidTurnPrecheck =
+      typeof existingCompaction.midTurnPrecheck === "object" &&
+      existingCompaction.midTurnPrecheck !== null
+        ? (existingCompaction.midTurnPrecheck as Record<string, unknown>)
+        : {};
+    const defaultGatewayProvider = options.defaultModel
+      ? resolveGatewayProvider(options.defaultModel.provider as LLMProvider)
+      : undefined;
+    const existingCompactionModel =
+      typeof existingCompaction.model === "string" ? existingCompaction.model.trim() : "";
+    const shouldRemoveManagedCloudCompactionModel =
+      options.defaultModel !== undefined &&
+      defaultGatewayProvider !== RIVONCLAW_CLOUD_PROVIDER_ID &&
+      existingCompactionModel === RIVONCLAW_CLOUD_COMPACTION_MODEL;
+    const compactionModel = shouldRemoveManagedCloudCompactionModel
+      ? undefined
+      : defaultGatewayProvider === RIVONCLAW_CLOUD_PROVIDER_ID && !existingCompactionModel
+        ? RIVONCLAW_CLOUD_COMPACTION_MODEL
+        : existingCompaction.model;
+    const nextCompaction: Record<string, unknown> = {
+      ...existingCompaction,
+      ...(compactionModel ? { model: compactionModel } : {}),
+      maxHistoryShare: existingCompaction.maxHistoryShare ?? DEFAULT_COMPACTION_MAX_HISTORY_SHARE,
+      midTurnPrecheck: {
+        ...existingMidTurnPrecheck,
+        enabled: existingMidTurnPrecheck.enabled ?? true,
+      },
+      notifyUser: DEFAULTS.gatewayConfig.compactionNotifyUser,
+    };
+    if (shouldRemoveManagedCloudCompactionModel) {
+      delete nextCompaction.model;
+    }
     config.agents = {
       ...existingAgents,
       defaults: {
         ...existingDefaults,
-        compaction: {
-          ...existingCompaction,
-          notifyUser: DEFAULTS.gatewayConfig.compactionNotifyUser,
-        },
+        compaction: nextCompaction,
       },
     };
   }
@@ -1017,7 +1089,12 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     config.tools = {
       ...cleanExistingTools,
       profile: DEFAULTS.gatewayConfig.toolsProfile,
-      exec: { ...existingExec, host: DEFAULTS.gatewayConfig.execHost, security: DEFAULTS.gatewayConfig.execSecurity, ask: "off" },
+      exec: {
+        ...existingExec,
+        host: DEFAULTS.gatewayConfig.execHost,
+        security: DEFAULTS.gatewayConfig.execSecurity,
+        ask: "off",
+      },
     };
   }
 
@@ -1112,18 +1189,20 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         // /Volumes/RivonClaw/... vs /Applications/RivonClaw.app/...),
         // and avoid duplicating the extensions dir itself.
         // Use sep-agnostic checks so this works on both macOS (/) and Windows (\).
-        const merchantExtensionPaths = options.merchantExtensionPaths
-          ?.filter((p) => typeof p === "string" && p.trim().length > 0 && existsSync(p))
-          ?? null;
+        const merchantExtensionPaths =
+          options.merchantExtensionPaths?.filter(
+            (p) => typeof p === "string" && p.trim().length > 0 && existsSync(p),
+          ) ?? null;
         const normalizedMerchantExtensionPaths = new Set(
           (merchantExtensionPaths ?? []).map((p) => resolve(p).replace(/\\/g, "/")),
         );
 
         const isManagedMerchantExtensionPath = (normalized: string): boolean => {
-          return [...MANAGED_MERCHANT_EXTENSION_IDS].some((id) => (
-            normalized.endsWith(`/extensions-merchant/${id}`) ||
-            normalized.includes(`/extensions-merchant/${id}/`)
-          ));
+          return [...MANAGED_MERCHANT_EXTENSION_IDS].some(
+            (id) =>
+              normalized.endsWith(`/extensions-merchant/${id}`) ||
+              normalized.includes(`/extensions-merchant/${id}/`),
+          );
         };
 
         const isStaleExtPath = (p: string): boolean => {
@@ -1152,8 +1231,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         // It lives alongside extensions/ as a separate clone and is discovered
         // via plugins.load.paths rather than being nested inside extensions/.
         const merchantDir = resolve(extDir, "..", "extensions-merchant");
-        const extraDirs = merchantExtensionPaths
-          ?? (existsSync(merchantDir) ? [merchantDir] : []);
+        const extraDirs = merchantExtensionPaths ?? (existsSync(merchantDir) ? [merchantDir] : []);
 
         merged.load = {
           ...existingLoad,
@@ -1197,7 +1275,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           log.warn(`Removed stale plugin IDs from plugins.allow: ${removed.join(", ")}`);
         }
         if (renamed.length > 0) {
-          log.info(`Renamed plugin IDs in plugins.allow: ${renamed.map((id) => `${id} → ${RENAMED_PLUGIN_IDS[id]}`).join(", ")}`);
+          log.info(
+            `Renamed plugin IDs in plugins.allow: ${renamed.map((id) => `${id} → ${RENAMED_PLUGIN_IDS[id]}`).join(", ")}`,
+          );
         }
         merged.allow = [...new Set(after)];
       }
@@ -1228,22 +1308,36 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       // TODO: Remove this seed once vendor makes plugins.allow filter
       //   discovery, or when bundled plugin scanning goes parallel/lazy.
       const SEED_DENY_PLUGINS = [
-        "amazon-bedrock", "anthropic-vertex", "byteplus", "chutes",
-        "cloudflare-ai-gateway", "deepseek", "github-copilot", "huggingface",
-        "kilocode", "kimi", "litellm", "minimax", "mistral", "moonshot",
-        "nvidia", "qianfan", "sglang", "synthetic", "together", "venice",
-        "vercel-ai-gateway", "vllm", "volcengine", "xai", "xiaomi",
+        "byteplus",
+        "huggingface",
+        "litellm",
+        "minimax",
+        "mistral",
+        "moonshot",
+        "nvidia",
+        "sglang",
+        "synthetic",
+        "together",
+        "vllm",
+        "volcengine",
+        "xai",
+        "xiaomi",
       ];
       const existingDeny = Array.isArray(merged.deny) ? (merged.deny as string[]) : [];
-      const denySet = new Set(existingDeny.filter((id) => !REMOVED_PLUGIN_IDS.has(id)));
-      const removedFromDeny = existingDeny.filter((id) => REMOVED_PLUGIN_IDS.has(id));
+      const denySet = new Set(
+        existingDeny.filter(
+          (id) => !REMOVED_PLUGIN_IDS.has(id) && !STALE_OPTIONAL_PLUGIN_DENY_IDS.has(id),
+        ),
+      );
+      const removedFromDeny = existingDeny.filter(
+        (id) => REMOVED_PLUGIN_IDS.has(id) || STALE_OPTIONAL_PLUGIN_DENY_IDS.has(id),
+      );
       if (removedFromDeny.length > 0) {
         log.warn(`Removed stale plugin IDs from plugins.deny: ${removedFromDeny.join(", ")}`);
       }
       for (const id of SEED_DENY_PLUGINS) denySet.add(id);
       merged.deny = [...denySet];
     }
-
 
     config.plugins = merged;
   }
@@ -1303,7 +1397,12 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     for (const [provider, pluginId] of Object.entries(WEB_SEARCH_PROVIDER_PLUGIN_IDS)) {
       const providerConfig = searchConfig[provider];
       if (providerConfig && typeof providerConfig === "object" && !Array.isArray(providerConfig)) {
-        mergePluginWebSearchConfig(config, pluginId, providerConfig as Record<string, unknown>, false);
+        mergePluginWebSearchConfig(
+          config,
+          pluginId,
+          providerConfig as Record<string, unknown>,
+          false,
+        );
       }
       delete searchConfig[provider];
     }
@@ -1359,7 +1458,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 
     if (options.embedding.enabled) {
       const memoryConfig: Record<string, unknown> = {
-        ...(typeof existingDefaults.memorySearch === "object" && existingDefaults.memorySearch !== null
+        ...(typeof existingDefaults.memorySearch === "object" &&
+        existingDefaults.memorySearch !== null
           ? (existingDefaults.memorySearch as Record<string, unknown>)
           : {}),
         enabled: true,
@@ -1424,7 +1524,10 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   }
 
   // Local provider overrides → models.providers (e.g. Ollama with dynamic models)
-  if (options.localProviderOverrides !== undefined && Object.keys(options.localProviderOverrides).length > 0) {
+  if (
+    options.localProviderOverrides !== undefined &&
+    Object.keys(options.localProviderOverrides).length > 0
+  ) {
     const existingModels =
       typeof config.models === "object" && config.models !== null
         ? (config.models as Record<string, unknown>)
@@ -1463,7 +1566,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 
   // Browser mode configuration.
   // Backward compat: treat forceStandaloneBrowser as browserMode: "standalone".
-  const browserMode = options.browserMode ?? (options.forceStandaloneBrowser ? "standalone" : undefined);
+  const browserMode =
+    options.browserMode ?? (options.forceStandaloneBrowser ? "standalone" : undefined);
   if (browserMode !== undefined) {
     const existingBrowser =
       typeof config.browser === "object" && config.browser !== null
@@ -1480,7 +1584,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       // `profile="openclaw"` for the isolated browser, so naming it anything
       // else causes the auto-injected fallback profile to be used instead.
       const cdpPort = options.browserCdpPort ?? DEFAULTS.gatewayConfig.defaultBrowserCdpPort;
-      const { attachOnly: _, ...cleanBrowser } = existingBrowser as Record<string, unknown> & { attachOnly?: unknown };
+      const { attachOnly: _, ...cleanBrowser } = existingBrowser as Record<string, unknown> & {
+        attachOnly?: unknown;
+      };
       // Clean up stale "user-chrome" profile from old configs
       const { "user-chrome": __, ...cleanProfiles } = existingProfiles as Record<string, unknown>;
       config.browser = {
@@ -1503,8 +1609,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       // Clean up stale CDP-mode keys and profiles.
       // Remove "user-chrome" (old CDP profile name) and "openclaw" (current CDP profile name)
       // so ensureDefaultProfile() auto-creates a fresh "openclaw" with correct cdpPort.
-      const { attachOnly: _, ...cleanBrowser } = existingBrowser as Record<string, unknown> & { attachOnly?: unknown };
-      const { "user-chrome": _uc, openclaw: _oc, ...cleanProfiles } = existingProfiles as Record<string, unknown>;
+      const { attachOnly: _, ...cleanBrowser } = existingBrowser as Record<string, unknown> & {
+        attachOnly?: unknown;
+      };
+      const {
+        "user-chrome": _uc,
+        openclaw: _oc,
+        ...cleanProfiles
+      } = existingProfiles as Record<string, unknown>;
       config.browser = {
         ...cleanBrowser,
         defaultProfile: "openclaw",
@@ -1512,7 +1624,11 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ssrfPolicy: { dangerouslyAllowPrivateNetwork: true },
         profiles: {
           ...cleanProfiles,
-          chrome: { driver: "clawd", cdpPort: (options.gatewayPort ?? DEFAULT_GATEWAY_PORT) + CDP_PORT_OFFSET, color: "#00AA00" },
+          chrome: {
+            driver: "clawd",
+            cdpPort: (options.gatewayPort ?? DEFAULT_GATEWAY_PORT) + CDP_PORT_OFFSET,
+            color: "#00AA00",
+          },
         },
       };
     }
@@ -1544,7 +1660,10 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     config.session = {
       ...existingSession,
       dmScope: FIXED_DM_SCOPE,
-      reset: { mode: DEFAULTS.gatewayConfig.sessionResetMode, idleMinutes: DEFAULTS.gatewayConfig.sessionResetIdleMinutes },
+      reset: {
+        mode: DEFAULTS.gatewayConfig.sessionResetMode,
+        idleMinutes: DEFAULTS.gatewayConfig.sessionResetIdleMinutes,
+      },
       maintenance,
     };
   }
@@ -1596,7 +1715,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         : {};
 
     const existingWeixin =
-      typeof existingChannels["openclaw-weixin"] === "object" && existingChannels["openclaw-weixin"] !== null
+      typeof existingChannels["openclaw-weixin"] === "object" &&
+      existingChannels["openclaw-weixin"] !== null
         ? (existingChannels["openclaw-weixin"] as Record<string, unknown>)
         : {};
     existingChannels["openclaw-weixin"] = { ...existingWeixin, managed: true };

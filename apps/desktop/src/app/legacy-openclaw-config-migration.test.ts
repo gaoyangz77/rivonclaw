@@ -43,7 +43,14 @@ describe("migrateLegacyOpenClawConfig", () => {
             ],
           },
           allow: ["memory-core", "rivonclaw-tools", "modelstudio"],
-          deny: ["xai", "easyclaw-tools"],
+          deny: [
+            "xai",
+            "easyclaw-tools",
+            "amazon-bedrock",
+            "github-copilot",
+            "kimi",
+            "moonshot",
+          ],
           entries: {
             "rivonclaw-tools": { enabled: true },
             "rivonclaw-policy": { enabled: true },
@@ -62,7 +69,7 @@ describe("migrateLegacyOpenClawConfig", () => {
       "/some/other/plugin",
     ]);
     expect((config.plugins as { allow: string[] }).allow).toEqual(["memory-core"]);
-    expect((config.plugins as { deny: string[] }).deny).toEqual(["xai"]);
+    expect((config.plugins as { deny: string[] }).deny).toEqual(["xai", "moonshot"]);
     expect((config.plugins as { entries: Record<string, unknown> }).entries).toEqual({
       "rivonclaw-policy": { enabled: true },
     });
