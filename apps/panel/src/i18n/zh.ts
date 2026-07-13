@@ -2965,12 +2965,21 @@ export default {
         searchVariants: "搜索实验方案",
         selectAll: "全选",
         clear: "清空",
+        baselineBadge: "基准",
+        pointEstimate: "估计值 {{value}}%",
         directionalOnly: "方向性信号，暂不用于结论",
         noExposureTitle: "尚无订单到达消息触发时间",
         noExposureBody: "当前曲线仅反映触达前的自然支付与取消，暂时不能用于评价触达效果。",
-        tooltipCounts: "支付 {{paid}} · 取消 {{cancelled}} · 截尾 {{censored}} · 风险集 {{risk}} · 覆盖 {{coverage}}%",
+        tooltipCounts:
+          "总分组 {{assigned}} · 支付 {{paid}} · 取消 {{cancelled}} · 截尾 {{censored}} · 风险集 {{risk}} · 覆盖 {{coverage}}%",
         axisNote: "阶梯曲线从下单后第1分钟开始：不同时间仍未转化为支付的比例。",
-        reliabilityNote: "分组少于100单、置信区间宽于10个百分点或观察覆盖低于80%的区段以淡色虚线展示。",
+        reliabilityNote:
+          "分组少于100单、置信区间宽于10个百分点或观察覆盖低于80%的区段以淡色虚线展示。",
+        glossaryTitle: "观察口径说明",
+        censoredDefinition:
+          "截尾：截至本次计算尚未观察到支付或取消、且观察时间已在该点结束的订单。",
+        atRiskDefinition: "风险集：到该时间点仍未支付且未取消、之后仍可能进入任一结果的订单。",
+        coverageDefinition: "覆盖：已观察到该时间点，或此前已产生支付/取消结果的分组订单占比。",
         endpointCancelled: "终点已取消 {{value}}%",
         endpointStillUnpaid: "终点仍未支付 {{value}}%",
         endpointDirectional: "终点样本仍不足，仅显示方向性趋势",

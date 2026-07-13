@@ -75,15 +75,24 @@ const base = {
     searchVariants: "Search variants",
     selectAll: "Select all",
     clear: "Clear",
+    baselineBadge: "Baseline",
+    pointEstimate: "Estimate {{value}}%",
     directionalOnly: "Directional signal",
     noExposureTitle: "No order has reached its message time yet",
     noExposureBody:
       "This curve only shows natural payment and cancellation before any reachout. It cannot be used to evaluate reachout impact yet.",
     tooltipCounts:
-      "Paid {{paid}} · cancelled {{cancelled}} · censored {{censored}} · at risk {{risk}} · coverage {{coverage}}%",
+      "Assigned {{assigned}} · paid {{paid}} · cancelled {{cancelled}} · censored {{censored}} · at risk {{risk}} · coverage {{coverage}}%",
     axisNote: "Step curve from minute 1: share not yet converted to paid after order creation.",
     reliabilityNote:
       "Faded segments have fewer than 100 assigned orders, CI wider than 10pp, or observation coverage below 80%.",
+    glossaryTitle: "How to read the observation counts",
+    censoredDefinition:
+      "Censored: orders whose observation ended at this snapshot before payment or cancellation was seen.",
+    atRiskDefinition:
+      "At risk: orders still unpaid and not cancelled at this elapsed time, so they can still reach either outcome.",
+    coverageDefinition:
+      "Coverage: share of assigned orders observed through this elapsed time or already at a final outcome.",
     endpointCancelled: "Endpoint cancelled {{value}}%",
     endpointStillUnpaid: "Endpoint still unpaid {{value}}%",
     endpointDirectional: "Endpoint estimate remains directional",

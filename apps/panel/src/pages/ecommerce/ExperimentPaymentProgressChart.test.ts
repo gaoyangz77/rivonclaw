@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   curveYAxisDomain,
+  curveLinePresentation,
   defaultVisibleCurveSeries,
   firstPositiveCurveMinute,
   isCurvePointReliable,
+  sortCurveTooltipSeries,
 } from "./ExperimentPaymentProgressChart.js";
 
 describe("ExperimentPaymentProgressChart", () => {
@@ -135,5 +137,35 @@ describe("ExperimentPaymentProgressChart", () => {
       ]),
     ).toBe(1);
     expect(firstPositiveCurveMinute([{ elapsedMinutes: 0 }])).toBe(1);
+  });
+
+  it("keeps control as the strongest baseline even while its estimate is directional", () => {
+    const control = curveLinePresentation("CONTROL", false, false);
+    const uncertainVariant = curveLinePresentation("CONFIG_VARIANT", false, false);
+    const reliableVariant = curveLinePresentation("CONFIG_VARIANT", true, false);
+
+    expect(control.strokeDasharray).toBe("12 5");
+    expect(control.strokeOpacity).toBeGreaterThan(uncertainVariant.strokeOpacity);
+    expect(control.strokeWidth).toBeGreaterThan(reliableVariant.strokeWidth);
+    expect(uncertainVariant.strokeDasharray).toBe("5 4");
+  });
+
+  it("orders tooltip series by the estimate at the hovered minute", () => {
+    const series = [
+      { seriesKey: "CONTROL", seriesRole: "CONTROL", label: "Control" },
+      { seriesKey: "A", seriesRole: "CONFIG_VARIANT", label: "10 min" },
+      { seriesKey: "B", seriesRole: "CONFIG_VARIANT", label: "180 min" },
+    ] as Parameters<typeof sortCurveTooltipSeries>[0];
+    const points = {
+      CONTROL: { estimate: 0.25 },
+      A: { estimate: 0.231 },
+      B: { estimate: 0.294 },
+    } as Parameters<typeof sortCurveTooltipSeries>[1];
+
+    expect(sortCurveTooltipSeries(series, points).map((item) => item.seriesKey)).toEqual([
+      "B",
+      "CONTROL",
+      "A",
+    ]);
   });
 });
