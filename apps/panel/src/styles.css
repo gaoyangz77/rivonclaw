@@ -21813,3 +21813,252 @@ html[lang="zh"] .acct-tool-chips {
     width: 100%;
   }
 }
+.affiliate-team-page {
+  width: min(1500px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 32px 0 56px;
+  color: var(--text-primary);
+}
+
+.affiliate-team-header,
+.affiliate-team-detail-head,
+.affiliate-team-section-head,
+.affiliate-protection-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.affiliate-team-header h1,
+.affiliate-team-detail-head h2,
+.affiliate-onboarding-copy h2 {
+  margin: 4px 0 6px;
+  letter-spacing: 0;
+}
+
+.affiliate-team-header h1 { font-size: 28px; }
+.affiliate-team-header p,
+.affiliate-team-detail-head p,
+.affiliate-onboarding-copy p { margin: 0; color: var(--text-muted); }
+.affiliate-team-eyebrow,
+.affiliate-team-detail-head span,
+.affiliate-onboarding-copy > span {
+  color: var(--accent-color);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.affiliate-team-header-actions,
+.affiliate-team-detail-actions,
+.affiliate-onboarding-actions,
+.affiliate-developer-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.affiliate-team-header-actions svg,
+.affiliate-onboarding-actions svg { width: 16px; height: 16px; }
+
+.affiliate-onboarding-band {
+  margin-top: 24px;
+  padding: 22px 24px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 36%, var(--border-color));
+  border-left: 4px solid var(--accent-color);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-color) 5%, var(--surface-primary));
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 18px 28px;
+  align-items: center;
+}
+
+.affiliate-onboarding-confirm {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.affiliate-onboarding-band > .btn-primary { justify-self: start; }
+
+.affiliate-protection-manual {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 260px) minmax(180px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+.affiliate-protection-manual label { min-width: 0; display: grid; gap: 6px; }
+.affiliate-protection-manual label > span { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+
+.affiliate-protection-preview {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.affiliate-protection-row {
+  display: grid;
+  grid-template-columns: 52px minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(180px, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+}
+
+.affiliate-protection-row em { color: var(--success-color); font-style: normal; }
+.affiliate-protection-row-error em { color: var(--danger-color); }
+
+.affiliate-team-workspace {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  min-height: 660px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-primary);
+}
+
+.affiliate-team-roster {
+  padding: 18px 12px;
+  border-right: 1px solid var(--border-color);
+  background: var(--surface-secondary);
+}
+
+.affiliate-team-section-head { min-height: 36px; margin-bottom: 10px; }
+.affiliate-team-section-head > span {
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-tertiary);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.affiliate-team-roster-item {
+  width: 100%;
+  min-height: 68px;
+  margin: 4px 0;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.affiliate-team-roster-item:hover { background: var(--surface-primary); }
+.affiliate-team-roster-item.active {
+  border-color: color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
+  background: var(--surface-primary);
+}
+.affiliate-team-roster-item > span:last-child { min-width: 0; display: grid; gap: 4px; }
+.affiliate-team-roster-item strong,
+.affiliate-team-roster-item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.affiliate-team-roster-item small { color: var(--text-muted); }
+
+.affiliate-team-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-color) 12%, var(--surface-primary));
+  color: var(--accent-color);
+}
+.affiliate-team-avatar svg { width: 19px; height: 19px; }
+
+.affiliate-team-detail { min-width: 0; padding: 26px 30px 36px; }
+.affiliate-team-detail-head { align-items: flex-start; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+.affiliate-team-detail-head h2 { font-size: 22px; }
+
+.affiliate-team-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 22px 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--border-color);
+}
+.affiliate-team-facts > div { padding: 16px 18px; background: var(--surface-primary); display: grid; gap: 6px; }
+.affiliate-team-facts span,
+.affiliate-team-instructions span { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.affiliate-team-facts strong { font-size: 18px; }
+
+.affiliate-team-instructions {
+  padding: 16px 18px;
+  border-left: 3px solid var(--accent-color);
+  background: var(--surface-secondary);
+}
+.affiliate-team-instructions p { margin: 7px 0 0; white-space: pre-wrap; line-height: 1.55; }
+
+.affiliate-channel-section { margin-top: 26px; }
+.affiliate-channel-row {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 92px minmax(180px, 1fr) 110px minmax(180px, 240px);
+  gap: 16px;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+}
+.affiliate-channel-row > div { min-width: 0; display: grid; gap: 4px; }
+.affiliate-channel-row strong,
+.affiliate-channel-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.affiliate-channel-row small { color: var(--text-muted); }
+.affiliate-channel-kind { font-weight: 650; }
+.affiliate-channel-health { font-size: 12px; color: var(--text-muted); }
+.affiliate-channel-health.connected { color: var(--success-color); }
+.affiliate-channel-health.error { color: var(--danger-color); }
+.affiliate-channel-empty { padding: 36px 0; border-top: 1px solid var(--border-color); color: var(--text-muted); text-align: center; }
+
+.affiliate-channel-connectors { display: grid; gap: 20px; margin-top: 20px; }
+.affiliate-channel-connectors > div { padding: 20px; border: 1px solid var(--border-color); border-radius: 6px; }
+
+.affiliate-developer-editor { max-width: 760px; display: grid; gap: 18px; }
+.affiliate-developer-editor > label { display: grid; gap: 7px; }
+.affiliate-developer-editor textarea { resize: vertical; min-height: 130px; }
+.affiliate-developer-editor fieldset { margin: 0; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: 6px; }
+.affiliate-developer-editor legend { padding: 0 6px; color: var(--text-muted); }
+.affiliate-region-grid { display: grid; grid-template-columns: repeat(5, minmax(56px, 1fr)); gap: 8px; }
+.affiliate-region-grid label,
+.affiliate-developer-toggle { display: flex !important; align-items: center; gap: 7px; }
+.affiliate-developer-editor-actions { justify-content: flex-end; }
+
+.affiliate-relationship-owner-card { display: grid; gap: 13px; }
+.affiliate-relationship-owner-card .affiliate-relationship-work-side-card-head strong {
+  color: var(--accent-color);
+  font-size: 12px;
+}
+.affiliate-relationship-owner-card > label { display: grid; gap: 6px; }
+.affiliate-relationship-owner-card > label > span,
+.affiliate-relationship-owner-card > small { color: var(--text-muted); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .affiliate-team-page { width: min(100% - 24px, 1500px); padding-top: 20px; }
+  .affiliate-team-header { align-items: flex-start; flex-direction: column; }
+  .affiliate-onboarding-band { grid-template-columns: 1fr; }
+  .affiliate-onboarding-actions { justify-content: flex-start; }
+  .affiliate-protection-manual { grid-template-columns: 1fr; }
+  .affiliate-team-workspace { grid-template-columns: 1fr; }
+  .affiliate-team-roster { border-right: 0; border-bottom: 1px solid var(--border-color); }
+  .affiliate-team-roster-item { display: inline-flex; width: min(260px, 100%); vertical-align: top; }
+  .affiliate-channel-row { grid-template-columns: 1fr; gap: 8px; padding: 14px 0; }
+  .affiliate-team-facts { grid-template-columns: 1fr; }
+  .affiliate-protection-row { grid-template-columns: 42px 1fr; }
+  .affiliate-protection-row > :nth-child(n + 3) { grid-column: 2; }
+}

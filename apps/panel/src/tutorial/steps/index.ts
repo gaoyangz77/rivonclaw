@@ -28,6 +28,7 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/affiliate/history": ecommerceAffiliateSteps,
   "/commerce/affiliate/creators": ecommerceAffiliateSteps,
   "/commerce/affiliate/intelligence": ecommerceAffiliateSteps,
+  "/commerce/affiliate/team": ecommerceAffiliateSteps,
   "/commerce/ads": adsManagementSteps,
   "/commerce/inventory": inventoryManagementSteps,
   "/automation/skills": skillsSteps,

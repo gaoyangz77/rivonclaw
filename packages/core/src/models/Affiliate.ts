@@ -64,6 +64,11 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   id: types.identifier,
   userId: types.optional(types.string, ""),
   creatorId: types.string,
+  businessDeveloperId: types.maybeNull(types.string),
+  protectionIntentId: types.maybeNull(types.string),
+  aiEngagementStatus: types.optional(types.string, "PROTECTED"),
+  aiEngagementSource: types.optional(types.string, "ONBOARDING_DEFAULT"),
+  operationalConfigRevision: types.optional(types.number, 1),
   shopStates: types.optional(types.array(AffiliateCreatorRelationshipShopStateModel), []),
   whatsappContacts: types.optional(types.array(types.frozen<Record<string, any>>()), []),
   emailContacts: types.optional(types.array(types.frozen<Record<string, any>>()), []),
@@ -74,6 +79,18 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   lastInboundAt: types.maybeNull(types.string),
   lastOutboundAt: types.maybeNull(types.string),
   lastAgentHandledAt: types.maybeNull(types.string),
+  committedCheckpointId: types.maybeNull(types.string),
+  committedCheckpointAt: types.maybeNull(types.string),
+  committedEventCursor: types.maybeNull(types.number),
+  lifecycleEventSequence: types.maybeNull(types.number),
+  activeRunId: types.maybeNull(types.string),
+  activeRunBaseCheckpointId: types.maybeNull(types.string),
+  activeRunBaseEventCursor: types.maybeNull(types.number),
+  activeRunOperationalConfigRevision: types.maybeNull(types.number),
+  activeRunBusinessDeveloperId: types.maybeNull(types.string),
+  activeRunBusinessDeveloperConfigRevision: types.maybeNull(types.number),
+  agendaItems: types.optional(types.array(types.frozen<Record<string, any>>()), []),
+  workSummary: types.maybeNull(types.frozen<Record<string, any>>()),
   lastBlockedAt: types.maybeNull(types.string),
   lastPlatformSyncedAt: types.maybeNull(types.string),
   stateUpdatedAt: types.optional(types.string, nowIso),
@@ -81,6 +98,94 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   pendingActionProposalId: types.maybeNull(types.string),
   blocked: types.optional(types.boolean, false),
   blockedShopIds: types.optional(types.array(types.string), []),
+  createdAt: types.optional(types.string, nowIso),
+  updatedAt: types.optional(types.string, nowIso),
+});
+
+export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDeveloper", {
+  id: types.identifier,
+  userId: types.string,
+  displayName: types.string,
+  regions: types.optional(types.array(types.string), []),
+  acceptingCreators: types.optional(types.boolean, true),
+  agentAssistanceMode: types.optional(types.string, "AI_ASSISTED"),
+  businessPrompt: types.maybeNull(types.string),
+  configRevision: types.optional(types.number, 1),
+  archivedAt: types.maybeNull(types.string),
+  createdAt: types.optional(types.string, nowIso),
+  updatedAt: types.optional(types.string, nowIso),
+});
+
+export const AffiliateOperationalSettingsModel = types.model("AffiliateOperationalSettings", {
+  id: types.identifier,
+  userId: types.string,
+  onboardingCompletedAt: types.maybeNull(types.string),
+  newRelationshipAiEngagementDefault: types.optional(types.string, "PROTECTED"),
+});
+
+export const AffiliateCreatorChannelConnectionModel = types.model("AffiliateCreatorChannelConnection", {
+  id: types.identifier,
+  creatorRelationshipId: types.string,
+  creatorContactPointId: types.string,
+  channel: types.string,
+  accountBindingId: types.string,
+  businessDeveloperId: types.maybeNull(types.string),
+  status: types.string,
+  source: types.string,
+  firstObservedAt: types.string,
+  lastObservedAt: types.string,
+  lastInboundAt: types.maybeNull(types.string),
+  lastOutboundAt: types.maybeNull(types.string),
+});
+
+export const AffiliateCreatorProtectionIntentModel = types.model("AffiliateCreatorProtectionIntent", {
+  id: types.identifier,
+  platform: types.string,
+  matchType: types.string,
+  matchValue: types.string,
+  businessDeveloperId: types.maybeNull(types.string),
+  importBatchId: types.maybeNull(types.string),
+  note: types.maybeNull(types.string),
+  appliedCreatorRelationshipId: types.maybeNull(types.string),
+  appliedAt: types.maybeNull(types.string),
+  createdAt: types.optional(types.string, nowIso),
+  updatedAt: types.optional(types.string, nowIso),
+});
+
+export const AffiliateWhatsAppAccountModel = types.model("AffiliateWhatsAppAccount", {
+  id: types.identifier,
+  userId: types.string,
+  businessDeveloperId: types.maybeNull(types.string),
+  businessDeveloperAssignedAt: types.maybeNull(types.string),
+  provider: types.string,
+  status: types.string,
+  evolutionInstanceName: types.string,
+  evolutionInstanceId: types.maybeNull(types.string),
+  displayName: types.maybeNull(types.string),
+  phoneNumber: types.maybeNull(types.string),
+  profilePicUrl: types.maybeNull(types.string),
+  proxyId: types.maybeNull(types.string),
+  lastConnectedAt: types.maybeNull(types.string),
+  lastDisconnectedAt: types.maybeNull(types.string),
+  lastQrAt: types.maybeNull(types.string),
+  lastError: types.maybeNull(types.string),
+  createdAt: types.optional(types.string, nowIso),
+  updatedAt: types.optional(types.string, nowIso),
+});
+
+export const AffiliateEmailAccountModel = types.model("AffiliateEmailAccount", {
+  id: types.identifier,
+  userId: types.string,
+  businessDeveloperId: types.maybeNull(types.string),
+  businessDeveloperAssignedAt: types.maybeNull(types.string),
+  provider: types.string,
+  status: types.string,
+  mailboxType: types.string,
+  emailAddress: types.string,
+  displayName: types.maybeNull(types.string),
+  sharedMailboxAddress: types.maybeNull(types.string),
+  lastSyncAt: types.maybeNull(types.string),
+  lastError: types.maybeNull(types.string),
   createdAt: types.optional(types.string, nowIso),
   updatedAt: types.optional(types.string, nowIso),
 });
@@ -231,6 +336,12 @@ export const AffiliateWorkspaceModel = types
     sampleApplicationRecords: types.optional(types.array(AffiliateSampleApplicationRecordModel), []),
     lifecycleEvents: types.optional(types.array(AffiliateLifecycleEventModel), []),
     productSummaries: types.optional(types.array(AffiliateProductSummaryModel), []),
+    businessDevelopers: types.optional(types.array(AffiliateBusinessDeveloperModel), []),
+    operationalSettings: types.maybeNull(AffiliateOperationalSettingsModel),
+    creatorChannelConnections: types.optional(types.array(AffiliateCreatorChannelConnectionModel), []),
+    creatorProtectionIntents: types.optional(types.array(AffiliateCreatorProtectionIntentModel), []),
+    whatsappAccounts: types.optional(types.array(AffiliateWhatsAppAccountModel), []),
+    emailAccounts: types.optional(types.array(AffiliateEmailAccountModel), []),
   })
   .views((self) => ({
     getActionProposal(id: string) {
@@ -251,6 +362,16 @@ export const AffiliateWorkspaceModel = types
     getCreatorRelationshipByCreatorId(creatorId: string | null | undefined) {
       if (!creatorId) return null;
       return self.creatorRelationships.find((relationship) => relationship.creatorId === creatorId) ?? null;
+    },
+    getBusinessDeveloper(id: string | null | undefined) {
+      if (!id) return null;
+      return self.businessDevelopers.find((developer) => developer.id === id) ?? null;
+    },
+    whatsappAccountsForBusinessDeveloper(id: string | null | undefined) {
+      return self.whatsappAccounts.filter((account) => (account.businessDeveloperId ?? null) === (id ?? null));
+    },
+    emailAccountsForBusinessDeveloper(id: string | null | undefined) {
+      return self.emailAccounts.filter((account) => (account.businessDeveloperId ?? null) === (id ?? null));
     },
     getProductSummary(productId: string | null | undefined) {
       const key = productSummaryKey(productId);
@@ -573,6 +694,21 @@ export const AffiliateWorkspaceModel = types
       upsertById(self.sampleApplicationRecords as any, record as any);
     }
 
+    function upsertBusinessDeveloper(developer: GQL.AffiliateBusinessDeveloper | null | undefined): void {
+      if (!developer?.id) return;
+      upsertById(self.businessDevelopers as any, developer as any);
+    }
+
+    function upsertChannelConnection(connection: GQL.AffiliateCreatorChannelConnection | null | undefined): void {
+      if (!connection?.id) return;
+      upsertById(self.creatorChannelConnections as any, connection as any);
+    }
+
+    function upsertProtectionIntent(intent: GQL.AffiliateCreatorProtectionIntent | null | undefined): void {
+      if (!intent?.id) return;
+      upsertById(self.creatorProtectionIntents as any, intent as any);
+    }
+
     return {
       upsertAffiliateActionProposal: upsertProposal,
       ingestAffiliateActionProposals(proposals: GQL.ActionProposal[]) {
@@ -600,6 +736,30 @@ export const AffiliateWorkspaceModel = types
       upsertAffiliateProductSummary: upsertProduct,
       upsertAffiliateSampleApplicationRecord: upsertSampleApplication,
       upsertAffiliateLifecycleEvent: upsertLifecycleEvent,
+      upsertAffiliateBusinessDeveloper: upsertBusinessDeveloper,
+      replaceAffiliateBusinessDevelopers(developers: GQL.AffiliateBusinessDeveloper[]) {
+        self.businessDevelopers.clear();
+        for (const developer of developers) upsertBusinessDeveloper(developer);
+      },
+      setAffiliateOperationalSettings(settings: GQL.AffiliateOperationalSettings | null | undefined) {
+        self.operationalSettings = settings as any;
+      },
+      replaceAffiliateCreatorChannelConnections(connections: GQL.AffiliateCreatorChannelConnection[]) {
+        self.creatorChannelConnections.clear();
+        for (const connection of connections) upsertChannelConnection(connection);
+      },
+      replaceAffiliateCreatorProtectionIntents(intents: GQL.AffiliateCreatorProtectionIntent[]) {
+        self.creatorProtectionIntents.clear();
+        for (const intent of intents) upsertProtectionIntent(intent);
+      },
+      replaceAffiliateWhatsAppAccounts(accounts: GQL.WhatsAppAccountBinding[]) {
+        self.whatsappAccounts.clear();
+        for (const account of accounts) upsertById(self.whatsappAccounts as any, account as any);
+      },
+      replaceAffiliateEmailAccounts(accounts: GQL.EmailAccountBinding[]) {
+        self.emailAccounts.clear();
+        for (const account of accounts) upsertById(self.emailAccounts as any, account as any);
+      },
       ingestAffiliateWorkspace(workspace: GQL.AffiliateWorkspacePayload | null | undefined) {
         for (const relationship of workspace?.creatorRelations ?? []) upsertCreatorRelationship(relationship);
         for (const profile of workspace?.creatorProfiles ?? []) upsertCreator(profile);
@@ -619,6 +779,12 @@ export const AffiliateWorkspaceModel = types
         self.sampleApplicationRecords.clear();
         self.lifecycleEvents.clear();
         self.productSummaries.clear();
+        self.businessDevelopers.clear();
+        self.operationalSettings = null;
+        self.creatorChannelConnections.clear();
+        self.creatorProtectionIntents.clear();
+        self.whatsappAccounts.clear();
+        self.emailAccounts.clear();
       },
     };
   });

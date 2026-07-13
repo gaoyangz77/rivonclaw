@@ -55,8 +55,20 @@ export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
       baseCheckpointId
       baseEventCursor
       targetEventCursor
+      relationshipOperationalConfigRevision
+      businessDeveloperIdSnapshot
+      businessDeveloperConfigRevision
       baseMatchesCommitted
       truncated
+      businessDeveloper {
+        id
+        displayName
+        regions
+        acceptingCreators
+        agentAssistanceMode
+        businessPrompt
+        configRevision
+      }
       events {
         id
         occurredAt
@@ -515,6 +527,9 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       subjectType
       creatorRelationshipId
       collaborationRecordId
+      relationshipOperationalConfigRevision
+      businessDeveloperIdSnapshot
+      businessDeveloperConfigRevision
       workKind
       workBundleKind
       recommendedActionTypes
@@ -527,6 +542,10 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       creatorRelationship {
         id
         creatorId
+        businessDeveloperId
+        aiEngagementStatus
+        aiEngagementSource
+        operationalConfigRevision
         blocked
         blockedShopIds
         lastInboundAt

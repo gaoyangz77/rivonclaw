@@ -2,6 +2,54 @@ import { describe, expect, it } from "vitest";
 import { AffiliateWorkspaceModel } from "./Affiliate.js";
 
 describe("AffiliateWorkspaceModel", () => {
+  it("normalizes BD ownership, operational settings, and outreach accounts", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+
+    workspace.replaceAffiliateBusinessDevelopers([{
+      id: "bd-1",
+      userId: "user-1",
+      displayName: "Maria",
+      regions: ["US"],
+      acceptingCreators: true,
+      agentAssistanceMode: "AI_ASSISTED",
+      businessPrompt: "Keep outreach concise.",
+      configRevision: 2,
+      createdAt: "2026-07-12T00:00:00.000Z",
+      updatedAt: "2026-07-12T00:00:00.000Z",
+    }] as any);
+    workspace.setAffiliateOperationalSettings({
+      id: "settings-1",
+      userId: "user-1",
+      onboardingCompletedAt: "2026-07-12T00:00:00.000Z",
+      newRelationshipAiEngagementDefault: "ENABLED",
+    } as any);
+    workspace.replaceAffiliateWhatsAppAccounts([{
+      id: "wa-1",
+      userId: "user-1",
+      businessDeveloperId: "bd-1",
+      provider: "EVOLUTION_API",
+      status: "CONNECTED",
+      evolutionInstanceName: "maria-primary",
+      createdAt: "2026-07-12T00:00:00.000Z",
+      updatedAt: "2026-07-12T00:00:00.000Z",
+    }] as any);
+    workspace.replaceAffiliateEmailAccounts([{
+      id: "email-1",
+      userId: "user-1",
+      provider: "MICROSOFT_GRAPH",
+      status: "CONNECTED",
+      mailboxType: "PERSONAL",
+      emailAddress: "creators@example.com",
+      createdAt: "2026-07-12T00:00:00.000Z",
+      updatedAt: "2026-07-12T00:00:00.000Z",
+    }] as any);
+
+    expect(workspace.getBusinessDeveloper("bd-1")?.businessPrompt).toBe("Keep outreach concise.");
+    expect(workspace.operationalSettings?.newRelationshipAiEngagementDefault).toBe("ENABLED");
+    expect(workspace.whatsappAccountsForBusinessDeveloper("bd-1").map((account) => account.id)).toEqual(["wa-1"]);
+    expect(workspace.emailAccountsForBusinessDeveloper(null).map((account) => account.id)).toEqual(["email-1"]);
+  });
+
   it("merges partial proposal updates without dropping normalized proposal context", () => {
     const workspace = AffiliateWorkspaceModel.create({});
 

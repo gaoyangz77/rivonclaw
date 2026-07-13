@@ -161,6 +161,9 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
     agentDispatchRecommended: true,
     staffReviewRequired: false,
+    relationshipOperationalConfigRevision: 1,
+    businessDeveloperIdSnapshot: null,
+    businessDeveloperConfigRevision: null,
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
@@ -173,6 +176,9 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       id: "relationship-001",
       userId: "user-001",
       creatorId: "creator-001",
+      aiEngagementStatus: GQL.AffiliateRelationshipAiEngagementStatus.Enabled,
+      aiEngagementSource: GQL.AffiliateRelationshipAiEngagementSource.Staff,
+      operationalConfigRevision: 1,
       shopStates: [],
       whatsappContacts: [],
       emailContacts: [],
@@ -290,9 +296,24 @@ function withCheckpointContext(
       return {
         affiliateContextBuilder: {
           creatorRelationship: createSampleReviewWorkItem().creatorRelationship,
+          businessDeveloper: {
+            id: "bd-001",
+            userId: "user-001",
+            displayName: "Maria",
+            regions: [GQL.ShopRegion.Us],
+            acceptingCreators: true,
+            agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
+            businessPrompt: "Keep creator outreach concise and warm.",
+            configRevision: 3,
+            createdAt: "2026-05-11T00:00:00.000Z",
+            updatedAt: "2026-05-11T00:00:00.000Z",
+          },
           baseCheckpointId: null,
           baseEventCursor: 0,
           targetEventCursor: 1,
+          relationshipOperationalConfigRevision: 2,
+          businessDeveloperIdSnapshot: "bd-001",
+          businessDeveloperConfigRevision: 3,
           baseMatchesCommitted: true,
           truncated: false,
           events: [],
@@ -476,6 +497,7 @@ describe("affiliate work item dispatch", () => {
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(agentCall?.[1]?.message).toContain("non-binding evidence");
+    expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
   });
 
   it("starts affiliate work runs from a brand-new checkpoint session when no checkpoint is committed", async () => {

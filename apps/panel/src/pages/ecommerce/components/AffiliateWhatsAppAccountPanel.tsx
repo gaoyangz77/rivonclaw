@@ -9,6 +9,7 @@ import { RefreshIcon } from "../../../components/icons.js";
 import { panelEventBus } from "../../../lib/event-bus.js";
 import {
   CREATE_WHATSAPP_ACCOUNT_BINDING_MUTATION,
+  ASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION,
   CREATE_WHATSAPP_PROXY_MUTATION,
   REFRESH_WHATSAPP_ACCOUNT_BINDING_MUTATION,
   REVOKE_WHATSAPP_ACCOUNT_BINDING_MUTATION,
@@ -59,7 +60,7 @@ const DEFAULT_PROXY_FORM: ProxyForm = {
   region: "",
 };
 
-export function AffiliateWhatsAppAccountPanel() {
+export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { businessDeveloperId?: string | null }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [selectedProxyId, setSelectedProxyId] = useState(NO_PROXY_VALUE);
@@ -96,6 +97,10 @@ export function AffiliateWhatsAppAccountPanel() {
     { createWhatsAppAccountBinding: WhatsAppAccount },
     { proxyId?: string | null }
   >(CREATE_WHATSAPP_ACCOUNT_BINDING_MUTATION);
+  const [assignBinding] = useMutation<
+    { assignAffiliateWhatsAppAccount: WhatsAppAccount },
+    { accountBindingId: string; businessDeveloperId: string }
+  >(ASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION);
   const [startQr, { loading: startingQr }] = useMutation<
     { startWhatsAppQrOnboarding: QrPayload },
     { input: GQL.StartWhatsAppQrOnboardingInput }
@@ -200,6 +205,9 @@ export function AffiliateWhatsAppAccountPanel() {
       });
       const bindingId = created.data?.createWhatsAppAccountBinding.id;
       if (!bindingId) throw new Error("WhatsApp binding was not created");
+      if (businessDeveloperId) {
+        await assignBinding({ variables: { accountBindingId: bindingId, businessDeveloperId } });
+      }
       await handleStartQr(bindingId);
       await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
     } catch (err) {

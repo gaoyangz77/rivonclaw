@@ -13,6 +13,7 @@ import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
+  AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_COLLABORATION_RECORDS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
   AFFILIATE_CREATORS_QUERY,
@@ -20,8 +21,11 @@ import {
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_POLICY_CONTEXT_QUERY,
   APPLY_CREATOR_TAG_MUTATION,
+  ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   REMOVE_CREATOR_TAG_MUTATION,
+  SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION,
+  UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
 } from "../../api/shops-queries.js";
 import { creatorTagLabel } from "./affiliate-tag-labels.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
@@ -4954,6 +4958,9 @@ function CreatorRelationshipDetailModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
+  const entityStore = useEntityStore();
+  const affiliateWorkspace = entityStore.affiliateWorkspace;
   const [activeTab, setActiveTab] = useState<"overview" | "conversation" | "collaborations" | "activity">("overview");
   const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const activityBottomRef = useRef<HTMLDivElement | null>(null);
@@ -4975,6 +4982,35 @@ function CreatorRelationshipDetailModal({
     new Date(right.stateUpdatedAt ?? 0).getTime() - new Date(left.stateUpdatedAt ?? 0).getTime(),
   )[0] ?? null;
   const relationshipId = item.creatorRelation?.id ?? primaryWorkItem?.relationshipId ?? null;
+  const [relationshipOwnerId, setRelationshipOwnerId] = useState(item.creatorRelation?.businessDeveloperId ?? "__AI_TEAM__");
+  const [relationshipAiStatus, setRelationshipAiStatus] = useState<GQL.AffiliateRelationshipAiEngagementStatus>(
+    item.creatorRelation?.aiEngagementStatus ?? GQL.AffiliateRelationshipAiEngagementStatus.Protected,
+  );
+  const { data: developerData } = useQuery<{ affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[] }>(
+    AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
+    { variables: { includeArchived: false }, fetchPolicy: "cache-and-network" },
+  );
+  useEffect(() => {
+    if (developerData) affiliateWorkspace.replaceAffiliateBusinessDevelopers(developerData.affiliateBusinessDevelopers);
+  }, [affiliateWorkspace, developerData]);
+  const [assignDeveloper, assignDeveloperState] = useMutation(ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
+  const [unassignDeveloper, unassignDeveloperState] = useMutation(UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
+  const [setAiEngagement, setAiEngagementState] = useMutation(SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION);
+  const ownerOptions = [
+    { value: "__AI_TEAM__", label: t("ecommerce.affiliateTeam.aiTeam") },
+    ...affiliateWorkspace.businessDevelopers
+      .filter((developer) => !developer.archivedAt)
+      .map((developer) => ({ value: developer.id, label: developer.displayName })),
+  ];
+  const relationshipOwner = relationshipOwnerId === "__AI_TEAM__"
+    ? null
+    : affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId);
+  const effectiveAiLabel = relationshipAiStatus === GQL.AffiliateRelationshipAiEngagementStatus.Protected
+    ? t("ecommerce.affiliateWorkspace.relationshipProtected")
+    : relationshipOwner?.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly
+      ? t("ecommerce.affiliateTeam.humanOnly")
+      : t("ecommerce.affiliateTeam.aiAssisted");
+  const ownershipBusy = assignDeveloperState.loading || unassignDeveloperState.loading || setAiEngagementState.loading;
   const messageShopId = primaryWorkItem?.shopId ?? item.shopState?.shopId ?? shopStates[0]?.shopId ?? null;
   const { data: relationshipCollaborationsData } = useQuery<
     { collaborationRecords: GQL.AffiliateCollaborationRecord[] },
@@ -5205,6 +5241,37 @@ function CreatorRelationshipDetailModal({
     });
   }
 
+  async function updateRelationshipOwner(nextOwnerId: string): Promise<void> {
+    if (!relationshipId || ownershipBusy || nextOwnerId === relationshipOwnerId) return;
+    if (!window.confirm(t("ecommerce.affiliateWorkspace.relationshipOwnerChangeConfirm"))) return;
+    try {
+      const result = nextOwnerId === "__AI_TEAM__"
+        ? await unassignDeveloper({ variables: { creatorRelationshipId: relationshipId } })
+        : await assignDeveloper({ variables: { input: { creatorRelationshipId: relationshipId, businessDeveloperId: nextOwnerId } } });
+      const relationship = (result.data as any)?.unassignAffiliateBusinessDeveloper
+        ?? (result.data as any)?.assignAffiliateBusinessDeveloper;
+      if (relationship) affiliateWorkspace.upsertAffiliateCreatorRelationship(relationship);
+      setRelationshipOwnerId(nextOwnerId);
+      showToast(t("ecommerce.affiliateTeam.saved"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
+  async function updateRelationshipAiStatus(nextStatus: string): Promise<void> {
+    if (!relationshipId || ownershipBusy || nextStatus === relationshipAiStatus) return;
+    if (!window.confirm(t("ecommerce.affiliateWorkspace.relationshipAiChangeConfirm"))) return;
+    try {
+      const result = await setAiEngagement({ variables: { input: { creatorRelationshipId: relationshipId, status: nextStatus } } });
+      const relationship = (result.data as any)?.setAffiliateRelationshipAiEngagement;
+      if (relationship) affiliateWorkspace.upsertAffiliateCreatorRelationship(relationship);
+      setRelationshipAiStatus(nextStatus as GQL.AffiliateRelationshipAiEngagementStatus);
+      showToast(t("ecommerce.affiliateTeam.saved"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
   return (
     <div className="modal-backdrop affiliate-creator-detail-backdrop" role="presentation" onClick={onClose}>
       <div
@@ -5274,6 +5341,36 @@ function CreatorRelationshipDetailModal({
                     </span>
                   ))}
                 </div>
+              ) : null}
+            </section>
+            <section className="affiliate-relationship-work-side-card affiliate-relationship-owner-card">
+              <div className="affiliate-relationship-work-side-card-head">
+                <span>{t("ecommerce.affiliateWorkspace.relationshipOwner")}</span>
+                <strong>{effectiveAiLabel}</strong>
+              </div>
+              <label>
+                <span>{t("ecommerce.affiliateWorkspace.relationshipOwnerLabel")}</span>
+                <Select
+                  value={relationshipOwnerId}
+                  onChange={(value) => void updateRelationshipOwner(value)}
+                  options={ownerOptions}
+                  disabled={!relationshipId || ownershipBusy}
+                />
+              </label>
+              <label>
+                <span>{t("ecommerce.affiliateWorkspace.relationshipAiParticipation")}</span>
+                <Select
+                  value={relationshipAiStatus}
+                  onChange={(value) => void updateRelationshipAiStatus(value)}
+                  options={[
+                    { value: GQL.AffiliateRelationshipAiEngagementStatus.Enabled, label: t("ecommerce.affiliateWorkspace.relationshipAiEnabled") },
+                    { value: GQL.AffiliateRelationshipAiEngagementStatus.Protected, label: t("ecommerce.affiliateWorkspace.relationshipProtected") },
+                  ]}
+                  disabled={!relationshipId || ownershipBusy}
+                />
+              </label>
+              {relationshipOwner?.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? (
+                <small>{t("ecommerce.affiliateWorkspace.relationshipHumanOnlyHint", { name: relationshipOwner.displayName })}</small>
               ) : null}
             </section>
             <section className="affiliate-relationship-work-side-card">
