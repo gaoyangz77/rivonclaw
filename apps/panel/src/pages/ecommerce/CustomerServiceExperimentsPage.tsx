@@ -569,6 +569,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                   {signalView === "PAYMENT_PROGRESS" ? (
                     <ExperimentPaymentProgressChart
                       curve={curve}
+                      exposedUnits={detail.quality?.exposedUnits ?? 0}
                       loading={workspaceQuery.loading}
                       failed={Boolean(workspaceQuery.error)}
                       onRetry={() => void workspaceQuery.refetch()}

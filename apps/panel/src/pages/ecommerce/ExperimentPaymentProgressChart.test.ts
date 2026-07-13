@@ -9,6 +9,7 @@ describe("ExperimentPaymentProgressChart", () => {
   it("requires both a narrow confidence interval and sufficient coverage", () => {
     expect(
       isCurvePointReliable({
+        assignedUnits: 100,
         confidenceIntervalLow: 0.7,
         confidenceIntervalHigh: 0.8,
         coverageRate: 0.8,
@@ -16,6 +17,7 @@ describe("ExperimentPaymentProgressChart", () => {
     ).toBe(true);
     expect(
       isCurvePointReliable({
+        assignedUnits: 100,
         confidenceIntervalLow: 0.69,
         confidenceIntervalHigh: 0.8,
         coverageRate: 0.9,
@@ -23,9 +25,18 @@ describe("ExperimentPaymentProgressChart", () => {
     ).toBe(false);
     expect(
       isCurvePointReliable({
+        assignedUnits: 100,
         confidenceIntervalLow: 0.7,
         confidenceIntervalHigh: 0.79,
         coverageRate: 0.79,
+      }),
+    ).toBe(false);
+    expect(
+      isCurvePointReliable({
+        assignedUnits: 68,
+        confidenceIntervalLow: 0,
+        confidenceIntervalHigh: 0.053,
+        coverageRate: 1,
       }),
     ).toBe(false);
   });
@@ -78,5 +89,39 @@ describe("ExperimentPaymentProgressChart", () => {
         ["CONTROL"],
       ),
     ).toEqual([0, 100]);
+  });
+
+  it("includes confidence bounds when zooming so small samples are not exaggerated", () => {
+    expect(
+      zoomedCurveYAxisDomain(
+        [
+          {
+            seriesKey: "CONTROL",
+            points: [
+              { elapsedMinutes: 0, estimate: 1 },
+              {
+                elapsedMinutes: 3,
+                estimate: 0,
+                confidenceIntervalLow: 0,
+                confidenceIntervalHigh: 0.0528,
+              },
+            ],
+          },
+          {
+            seriesKey: "TREATMENT",
+            points: [
+              { elapsedMinutes: 0, estimate: 1 },
+              {
+                elapsedMinutes: 3,
+                estimate: 0.005,
+                confidenceIntervalLow: 0.002,
+                confidenceIntervalHigh: 0.009,
+              },
+            ],
+          },
+        ],
+        ["CONTROL", "TREATMENT"],
+      ),
+    ).toEqual([0, 6.5]);
   });
 });

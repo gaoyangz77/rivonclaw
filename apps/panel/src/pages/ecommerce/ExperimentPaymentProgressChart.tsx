@@ -15,6 +15,7 @@ import {
 
 const RELIABLE_CI_WIDTH = 0.1;
 const RELIABLE_COVERAGE = 0.8;
+const RELIABLE_ASSIGNED_UNITS = 100;
 const FLOAT_TOLERANCE = 1e-9;
 const SERIES_COLORS = [
   "var(--experiment-ink)",
@@ -29,6 +30,7 @@ const SERIES_COLORS = [
 
 interface ExperimentPaymentProgressChartProps {
   curve?: GQL.CsExperimentTimeToEventCurveView;
+  exposedUnits: number;
   loading: boolean;
   failed: boolean;
   onRetry: () => void;
@@ -44,13 +46,20 @@ interface ChartRow {
 }
 
 type CurveDomainSeries = Pick<CurveSeries, "seriesKey"> & {
-  points: Array<Pick<CurvePoint, "elapsedMinutes" | "estimate">>;
+  points: Array<
+    Pick<CurvePoint, "elapsedMinutes" | "estimate"> &
+      Partial<Pick<CurvePoint, "confidenceIntervalHigh" | "confidenceIntervalLow">>
+  >;
 };
 
 export function isCurvePointReliable(
-  point: Pick<CurvePoint, "confidenceIntervalHigh" | "confidenceIntervalLow" | "coverageRate">,
+  point: Pick<
+    CurvePoint,
+    "assignedUnits" | "confidenceIntervalHigh" | "confidenceIntervalLow" | "coverageRate"
+  >,
 ): boolean {
   return (
+    point.assignedUnits >= RELIABLE_ASSIGNED_UNITS &&
     point.confidenceIntervalHigh - point.confidenceIntervalLow <=
       RELIABLE_CI_WIDTH + FLOAT_TOLERANCE &&
     point.coverageRate + FLOAT_TOLERANCE >= RELIABLE_COVERAGE
@@ -78,7 +87,15 @@ export function zoomedCurveYAxisDomain(
     visible.has(item.seriesKey)
       ? item.points
           .filter((point) => point.elapsedMinutes > 0 && Number.isFinite(point.estimate))
-          .map((point) => point.estimate * 100)
+          .flatMap((point) =>
+            [
+              point.estimate,
+              point.confidenceIntervalLow,
+              point.confidenceIntervalHigh,
+            ]
+              .filter((value): value is number => value != null && Number.isFinite(value))
+              .map((value) => value * 100),
+          )
       : [],
   );
   if (!values.length) return [0, 100];
@@ -109,6 +126,7 @@ function curveColor(index: number, series: CurveSeries): string {
 
 export function ExperimentPaymentProgressChart({
   curve,
+  exposedUnits,
   loading,
   failed,
   onRetry,
@@ -231,6 +249,12 @@ export function ExperimentPaymentProgressChart({
           ) : null}
         </label>
       </div>
+      {exposedUnits === 0 ? (
+        <div className="cs-experiment-curve-context-warning" role="status">
+          <strong>{t("ecommerce.customerServiceExperiments.curve.noExposureTitle")}</strong>
+          <span>{t("ecommerce.customerServiceExperiments.curve.noExposureBody")}</span>
+        </div>
+      ) : null}
       <div className="cs-experiment-curve-legend">
         {orderedSeries.length > 6 ? (
           <div className="cs-experiment-curve-legend-tools">
@@ -411,7 +435,7 @@ export function ExperimentPaymentProgressChart({
           <span>{t("ecommerce.customerServiceExperiments.curve.axisNote")}</span>
           <span>{t("ecommerce.customerServiceExperiments.curve.reliabilityNote")}</span>
         </div>
-        {focusedEndpoint ? (
+        {focusedEndpoint && isCurvePointReliable(focusedEndpoint) ? (
           <div className="cs-experiment-curve-endpoint">
             <strong>{displayLabel(focused)}</strong>
             <span>
@@ -430,6 +454,11 @@ export function ExperimentPaymentProgressChart({
                 ).toFixed(1),
               })}
             </span>
+          </div>
+        ) : focusedEndpoint ? (
+          <div className="cs-experiment-curve-endpoint directional">
+            <strong>{displayLabel(focused)}</strong>
+            <span>{t("ecommerce.customerServiceExperiments.curve.endpointDirectional")}</span>
           </div>
         ) : null}
       </footer>
