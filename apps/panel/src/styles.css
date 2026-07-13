@@ -12103,6 +12103,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .unpaid-workspace-meta,
 .unpaid-workspace-allocation,
+.unpaid-workspace-allocation-note,
 .unpaid-workspace-body,
 .unpaid-workspace-footer {
   margin-right: 22px;
@@ -12144,6 +12145,24 @@ html[lang="zh"] .acct-tool-chips {
 .unpaid-workspace-allocation small {
   font-size: 9px;
   opacity: 0.72;
+}
+
+.unpaid-workspace-allocation-note {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, var(--color-border-light));
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-bg));
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.unpaid-workspace-allocation-note strong {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
 }
 
 .unpaid-workspace-body {
@@ -12216,6 +12235,18 @@ html[lang="zh"] .acct-tool-chips {
 
 .unpaid-variant-nav > button small {
   color: var(--color-text-muted);
+}
+
+.unpaid-variant-nav > button em {
+  width: fit-content;
+  margin-top: 3px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-bg));
+  color: var(--color-success);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .unpaid-variant-nav > button i {
@@ -12295,6 +12326,23 @@ html[lang="zh"] .acct-tool-chips {
   gap: 8px;
   min-height: 34px;
   margin: 10px 0;
+}
+
+.unpaid-production-lock {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-success) 20%, var(--color-border-light));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-success) 5%, var(--color-bg));
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.unpaid-production-lock strong {
+  flex: 0 0 auto;
+  color: var(--color-success);
 }
 
 .unpaid-variant-stages {
@@ -14059,7 +14107,9 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 5px;
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
   color: var(--color-primary);
-  font: 700 10px "JetBrains Mono", monospace;
+  font:
+    700 10px "JetBrains Mono",
+    monospace;
 }
 .cs-experiment-config-modal-intro strong {
   color: var(--color-text-primary);
@@ -14067,7 +14117,9 @@ html[lang="zh"] .acct-tool-chips {
 }
 .cs-experiment-config-modal-intro > b {
   color: var(--color-primary);
-  font: 750 14px "JetBrains Mono", monospace;
+  font:
+    750 14px "JetBrains Mono",
+    monospace;
 }
 .cs-experiment-config-modal-intro p {
   grid-column: 1 / -1;
@@ -14098,7 +14150,9 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 50%;
   background: var(--color-bg);
   color: var(--color-primary);
-  font: 700 10px "JetBrains Mono", monospace;
+  font:
+    700 10px "JetBrains Mono",
+    monospace;
 }
 .cs-experiment-config-stage-rail i {
   width: 1px;
@@ -14154,7 +14208,9 @@ html[lang="zh"] .acct-tool-chips {
 }
 .cs-experiment-config-delay b {
   color: var(--color-primary);
-  font: 750 16px "JetBrains Mono", monospace;
+  font:
+    750 16px "JetBrains Mono",
+    monospace;
 }
 .cs-experiment-config-delay small {
   margin-top: 2px;

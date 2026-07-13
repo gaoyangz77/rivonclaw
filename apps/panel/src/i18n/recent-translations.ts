@@ -1,5 +1,7 @@
 const UNPAID_EXPERIMENT_TRANSLATIONS = {
   unpaidReachoutInvalidHoldout: "Holdout must be a whole number from 1% to 20%.",
+  unpaidSettingsConflictRefreshed:
+    "Settings changed elsewhere. The latest version is loaded; review your unsaved changes and save again.",
   unpaidStatusExperiment: "Configuration experiment running",
   unpaidStatusActive: "Reachout active",
   unpaidStatusDisabled: "Not enabled",
@@ -13,6 +15,11 @@ const UNPAID_EXPERIMENT_TRANSLATIONS = {
   unpaidHoldoutLabel: "Holdout percentage",
   unpaidTrafficAllocation: "Experiment traffic",
   unpaidTrafficSummary: "{{holdout}}% holdout · {{treatment}}% normal reachout",
+  unpaidNestedTrafficSummary:
+    "{{holdout}}% holdout · {{treatment}}% enters configuration optimization",
+  unpaidOptimizedTreatment: "Configuration experiment traffic",
+  unpaidIncrementalProductionHint:
+    "Incremental evaluation compares holdout with production Plan A. Exploratory B/C variants are analyzed only in the configuration experiment.",
   unpaidNoReachout: "No reachout",
   unpaidTreatment: "Treatment",
   unpaidAdvancedOptimization: "Advanced optimization",
@@ -31,6 +38,12 @@ const UNPAID_EXPERIMENT_TRANSLATIONS = {
   unpaidPlans: "Plans",
   unpaidAddPlan: "Add plan",
   unpaidTreatmentShare: "Treatment share",
+  unpaidNestedAllocationTitle: "Nested traffic allocation",
+  unpaidNestedAllocationHint:
+    "First {{holdout}}% is kept as no-reachout control. The remaining {{treatment}}% is split among A/B variants; A is always the current production configuration.",
+  unpaidProductionVariant: "Current production",
+  unpaidProductionVariantHint:
+    "Plan A always follows the shop's production stages. Its traffic share can be changed, but its stages cannot be edited inside the experiment.",
   unpaidVariantInvalid:
     "This plan needs a name, at least one enabled stage, valid unique delays, and a unique configuration.",
   unpaidExperimentInvalid: "Resolve plan and allocation errors before starting.",
