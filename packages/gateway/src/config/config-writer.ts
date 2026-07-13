@@ -1837,7 +1837,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 /**
  * Ensure a minimal gateway config exists on disk.
  *
- * If a config file already exists, returns its path without modification.
+ * Existing configs are left intact unless their gateway auth token is missing.
  * Otherwise, writes a default config with empty plugins and skill dirs.
  *
  * Returns the absolute path of the config file.
@@ -1859,6 +1859,24 @@ export function ensureGatewayConfig(options?: {
         entries: {},
       },
       extraSkillDirs: [],
+    });
+  }
+
+  const existing = readExistingConfig(configPath);
+  const gateway =
+    typeof existing.gateway === "object" && existing.gateway !== null
+      ? (existing.gateway as Record<string, unknown>)
+      : undefined;
+  const auth =
+    typeof gateway?.auth === "object" && gateway.auth !== null
+      ? (gateway.auth as Record<string, unknown>)
+      : undefined;
+  const token = typeof auth?.token === "string" ? auth.token.trim() : "";
+  if (!token) {
+    log.warn("Gateway auth token missing from existing config; generating a persistent token");
+    return writeGatewayConfig({
+      configPath,
+      gatewayToken: generateGatewayToken(),
     });
   }
 

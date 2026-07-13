@@ -1096,14 +1096,15 @@ describe("config-writer", () => {
 
     it("does not overwrite existing config", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      writeFileSync(configPath, JSON.stringify({ gateway: { port: 1234 }, custom: true }));
+      writeFileSync(configPath, JSON.stringify({ gateway: { port: 1234 } }));
 
       ensureGatewayConfig({ configPath });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      // Should NOT have been overwritten
+      // Existing fields are preserved while required auth is repaired.
       expect(config.gateway.port).toBe(1234);
-      expect(config.custom).toBe(true);
+      expect(config.gateway.auth.mode).toBe("token");
+      expect(config.gateway.auth.token).toMatch(/^[0-9a-f]{64}$/);
     });
 
     it("returns config path even when file already exists", () => {
@@ -1189,6 +1190,31 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.auth.mode).toBe("token");
       expect(config.gateway.auth.token).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it("repairs an existing config with a missing auth token", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({ gateway: { port: 4567 } }));
+
+      ensureGatewayConfig({ configPath });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.gateway.port).toBe(4567);
+      expect(config.gateway.auth.mode).toBe("token");
+      expect(config.gateway.auth.token).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it("preserves an existing auth token", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({ gateway: { auth: { mode: "token", token: "stable-token" } } }),
+      );
+
+      ensureGatewayConfig({ configPath });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.gateway.auth.token).toBe("stable-token");
     });
   });
 
