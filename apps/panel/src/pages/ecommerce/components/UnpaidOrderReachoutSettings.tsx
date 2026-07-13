@@ -144,6 +144,13 @@ export function serializeUnpaidReachoutStages(stages: ReadonlyArray<ComparableSt
   );
 }
 
+export function isUnpaidSettingsVersionConflict(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /The (holdout|configuration) experiment changed; refresh before saving/.test(error.message)
+  );
+}
+
 function toVariantDrafts(experiment: ConfigExperiment): VariantDraft[] {
   return experiment.variants.map((variant) => ({
     variantKey: variant.variantKey,
@@ -151,6 +158,15 @@ function toVariantDrafts(experiment: ConfigExperiment): VariantDraft[] {
     percentage: String(variant.percentage),
     stages: toDraftStages(variant.stages),
   }));
+}
+
+export function bindProductionVariant(
+  variants: VariantDraft[],
+  productionStages: ReadonlyArray<ComparableStage>,
+): VariantDraft[] {
+  return variants.map((variant) =>
+    variant.variantKey === "A" ? { ...variant, stages: toDraftStages(productionStages) } : variant,
+  );
 }
 
 export function rebalanceUnpaidExperimentVariants(variants: VariantDraft[]): VariantDraft[] {
@@ -208,6 +224,11 @@ export function validateUnpaidExperimentVariants(variants: VariantDraft[]): Map<
   }
   if (variants.length < 2 || variants.length > MAX_VARIANTS)
     errors.set("$experiment", ["variantCount"]);
+  if (
+    variants[0]?.variantKey !== "A" ||
+    variants.filter((variant) => variant.variantKey === "A").length !== 1
+  )
+    errors.set("$production", ["productionVariant"]);
   const total = variants.reduce((sum, variant) => sum + Number(variant.percentage || 0), 0);
   if (Math.abs(total - 100) > 0.001) errors.set("$weights", ["weightTotal"]);
   return errors;
@@ -273,16 +294,22 @@ export function UnpaidOrderReachoutSettings({
   const earliestDelay = enabledStages.length
     ? Math.min(...enabledStages.map((stage) => Number(stage.delayMinutes)))
     : null;
+  const workspaceVariants = useMemo(
+    () => (workspaceMode === "DRAFT" ? bindProductionVariant(variants, stages) : variants),
+    [variants, stages, workspaceMode],
+  );
   const errors = useMemo(
     () =>
       workspaceMode === "DRAFT"
-        ? validateUnpaidExperimentVariants(variants)
+        ? validateUnpaidExperimentVariants(workspaceVariants)
         : new Map<string, string[]>(),
-    [variants, workspaceMode],
+    [workspaceVariants, workspaceMode],
   );
   const workspaceValid = [...errors.values()].every((items) => items.length === 0);
   const selectedVariant =
-    variants.find((variant) => variant.variantKey === selectedVariantKey) ?? variants[0];
+    workspaceVariants.find((variant) => variant.variantKey === selectedVariantKey) ??
+    workspaceVariants[0];
+  const selectedIsProduction = selectedVariant?.variantKey === "A";
   const experimentActionDisabled =
     settingsDirty ||
     (!evaluation && query.loading) ||
@@ -296,24 +323,35 @@ export function UnpaidOrderReachoutSettings({
       holdoutPercent.trim() === String(shopHoldout) &&
       serializeUnpaidReachoutStages(stages) === serializeUnpaidReachoutStages(shopStages);
     hydratedShopRef.current = shop.id;
-    if (draftStillMatchesShop) applyAuthoritative(evaluation);
+    if (draftStillMatchesShop) applyAuthoritativeDraft(evaluation);
   }, [shop.id, evaluation]);
 
   useEffect(() => {
     if (!workspaceOpen || workspaceDirty) return;
     const source = workspaceMode === "RUNNING" ? running : serverDraft;
     if (source) {
-      setVariants(toVariantDrafts(source));
+      setVariants(
+        workspaceMode === "DRAFT"
+          ? bindProductionVariant(toVariantDrafts(source), stages)
+          : toVariantDrafts(source),
+      );
       setWorkspaceExperimentId(source.id);
       setSelectedVariantKey(source.variants[0]?.variantKey ?? "A");
     }
   }, [workspaceOpen, workspaceDirty, workspaceMode, running?.id, serverDraft?.id]);
 
-  function applyAuthoritative(view: EvaluationView) {
+  function applyAuthoritativeDraft(view: EvaluationView) {
     onEnabledChange(view.reachoutEnabled);
     onStagesChange(toDraftStages(view.stages));
     onEvaluationEnabledChange(view.holdout.enabled);
     onHoldoutPercentChange(String(view.holdout.holdoutPercent));
+  }
+
+  function acceptAuthoritative(view: EvaluationView) {
+    query.updateQuery(() => ({
+      ecommerceGetCSUnpaidOrderEvaluation: view,
+    }));
+    applyAuthoritativeDraft(view);
   }
 
   function updateStage(index: number, patch: Partial<UnpaidReachoutStageDraft>) {
@@ -327,7 +365,11 @@ export function UnpaidOrderReachoutSettings({
     mode: "DRAFT" | "RUNNING" | "HISTORY" = "DRAFT",
   ) {
     if (source) {
-      setVariants(toVariantDrafts(source));
+      setVariants(
+        mode === "DRAFT"
+          ? bindProductionVariant(toVariantDrafts(source), stages)
+          : toVariantDrafts(source),
+      );
       setWorkspaceExperimentId(source.id);
       setSelectedVariantKey(source.variants[0]?.variantKey ?? "A");
     } else {
@@ -352,7 +394,7 @@ export function UnpaidOrderReachoutSettings({
     }
     if (!running) return;
     setVariants(
-      toVariantDrafts(running).map((variant) => ({
+      bindProductionVariant(toVariantDrafts(running), stages).map((variant) => ({
         ...variant,
         stages: variant.stages.map((stage) => ({ ...stage, id: undefined })),
       })),
@@ -415,11 +457,28 @@ export function UnpaidOrderReachoutSettings({
         result.data as { ecommerceUpdateCSUnpaidOrderReachoutSettings: EvaluationView } | undefined
       )?.ecommerceUpdateCSUnpaidOrderReachoutSettings;
       if (view) {
-        applyAuthoritative(view);
+        acceptAuthoritative(view);
       } else {
-        await query.refetch();
+        const refreshed = await query.refetch();
+        const refreshedView = refreshed.data?.ecommerceGetCSUnpaidOrderEvaluation;
+        if (refreshedView) applyAuthoritativeDraft(refreshedView);
       }
     } catch (error) {
+      if (isUnpaidSettingsVersionConflict(error)) {
+        try {
+          await query.refetch();
+          showToast(
+            t("ecommerce.shopDrawer.aiCS.unpaidSettingsConflictRefreshed", {
+              defaultValue:
+                "Settings changed elsewhere. The latest version is loaded; review your unsaved changes and save again.",
+            }),
+            "warning",
+          );
+          return;
+        } catch {
+          // Fall through to the original mutation error when refresh also fails.
+        }
+      }
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
   }
@@ -430,7 +489,7 @@ export function UnpaidOrderReachoutSettings({
     try {
       const input = {
         shopId: shop.id,
-        variants: variants.map((variant) => ({
+        variants: workspaceVariants.map((variant) => ({
           variantKey: variant.variantKey,
           label: variant.label.trim(),
           percentage: Number(variant.percentage),
@@ -751,13 +810,27 @@ export function UnpaidOrderReachoutSettings({
                       })}
                     </span>
                     <strong>
-                      {t("ecommerce.shopDrawer.aiCS.unpaidTrafficSummary", {
-                        holdout: holdoutPercent || 5,
-                        treatment: 100 - (Number(holdoutPercent) || 5),
-                        defaultValue: "{{holdout}}% holdout · {{treatment}}% normal reachout",
-                      })}
+                      {running
+                        ? t("ecommerce.shopDrawer.aiCS.unpaidNestedTrafficSummary", {
+                            holdout: holdoutPercent || 5,
+                            treatment: 100 - (Number(holdoutPercent) || 5),
+                            defaultValue:
+                              "{{holdout}}% holdout · {{treatment}}% enters configuration optimization",
+                          })
+                        : t("ecommerce.shopDrawer.aiCS.unpaidTrafficSummary", {
+                            holdout: holdoutPercent || 5,
+                            treatment: 100 - (Number(holdoutPercent) || 5),
+                            defaultValue: "{{holdout}}% holdout · {{treatment}}% normal reachout",
+                          })}
                     </strong>
-                    <p>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutHoldoutHint")}</p>
+                    <p>
+                      {running
+                        ? t("ecommerce.shopDrawer.aiCS.unpaidIncrementalProductionHint", {
+                            defaultValue:
+                              "Incremental evaluation compares holdout with production Plan A. Exploratory B/C variants are analyzed only in the configuration experiment.",
+                          })
+                        : t("ecommerce.shopDrawer.aiCS.unpaidReachoutHoldoutHint")}
+                    </p>
                   </div>
                   <label className="unpaid-holdout-field">
                     <span>
@@ -793,7 +866,13 @@ export function UnpaidOrderReachoutSettings({
                   </span>
                   <span>
                     <i className="is-treatment" />
-                    {t("ecommerce.shopDrawer.aiCS.unpaidTreatment", { defaultValue: "Treatment" })}
+                    {running
+                      ? t("ecommerce.shopDrawer.aiCS.unpaidOptimizedTreatment", {
+                          defaultValue: "Configuration experiment traffic",
+                        })
+                      : t("ecommerce.shopDrawer.aiCS.unpaidTreatment", {
+                          defaultValue: "Treatment",
+                        })}
                     <strong>{100 - (Number(holdoutPercent) || 5)}%</strong>
                   </span>
                 </div>
@@ -925,7 +1004,7 @@ export function UnpaidOrderReachoutSettings({
           >
             {holdoutPercent || 5}%
           </div>
-          {variants.map((variant) => (
+          {workspaceVariants.map((variant) => (
             <div
               key={variant.variantKey}
               style={{
@@ -943,6 +1022,21 @@ export function UnpaidOrderReachoutSettings({
             </div>
           ))}
         </div>
+        <div className="unpaid-workspace-allocation-note">
+          <strong>
+            {t("ecommerce.shopDrawer.aiCS.unpaidNestedAllocationTitle", {
+              defaultValue: "Nested traffic allocation",
+            })}
+          </strong>
+          <span>
+            {t("ecommerce.shopDrawer.aiCS.unpaidNestedAllocationHint", {
+              holdout: Number(holdoutPercent) || 5,
+              treatment: 100 - (Number(holdoutPercent) || 5),
+              defaultValue:
+                "First {{holdout}}% is kept as no-reachout control. The remaining {{treatment}}% is split among A/B variants; A is always the current production configuration.",
+            })}
+          </span>
+        </div>
         <div className="unpaid-workspace-body">
           <aside className="unpaid-variant-nav">
             <div className="unpaid-variant-nav-head">
@@ -950,10 +1044,10 @@ export function UnpaidOrderReachoutSettings({
                 {t("ecommerce.shopDrawer.aiCS.unpaidPlans", { defaultValue: "Plans" })}
               </strong>
               <span>
-                {variants.length}/{MAX_VARIANTS}
+                {workspaceVariants.length}/{MAX_VARIANTS}
               </span>
             </div>
-            {variants.map((variant) => (
+            {workspaceVariants.map((variant) => (
               <button
                 type="button"
                 className={selectedVariant?.variantKey === variant.variantKey ? "is-selected" : ""}
@@ -964,19 +1058,26 @@ export function UnpaidOrderReachoutSettings({
                 <div>
                   <strong>{variant.label || variant.variantKey}</strong>
                   <small>{variant.percentage}%</small>
+                  {variant.variantKey === "A" && (
+                    <em>
+                      {t("ecommerce.shopDrawer.aiCS.unpaidProductionVariant", {
+                        defaultValue: "Current production",
+                      })}
+                    </em>
+                  )}
                 </div>
                 {(errors.get(variant.variantKey)?.length ?? 0) > 0 && <i>!</i>}
               </button>
             ))}
-            {workspaceMode === "DRAFT" && variants.length < MAX_VARIANTS && (
+            {workspaceMode === "DRAFT" && workspaceVariants.length < MAX_VARIANTS && (
               <button
                 type="button"
                 className="unpaid-add-variant"
                 onClick={() => {
-                  const key = nextVariantKey(variants);
+                  const key = nextVariantKey(workspaceVariants);
                   setVariants(
                     rebalanceUnpaidExperimentVariants([
-                      ...variants,
+                      ...workspaceVariants,
                       { variantKey: key, label: key, percentage: "1", stages: [] },
                     ]),
                   );
@@ -996,7 +1097,7 @@ export function UnpaidOrderReachoutSettings({
                     <span>{selectedVariant.variantKey}</span>
                     <input
                       value={selectedVariant.label}
-                      disabled={workspaceMode !== "DRAFT"}
+                      disabled={workspaceMode !== "DRAFT" || selectedIsProduction}
                       onChange={(event) => updateVariant({ label: event.target.value })}
                     />
                   </div>
@@ -1018,6 +1119,21 @@ export function UnpaidOrderReachoutSettings({
                     </span>
                   </label>
                 </header>
+                {selectedIsProduction && (
+                  <div className="unpaid-production-lock">
+                    <strong>
+                      {t("ecommerce.shopDrawer.aiCS.unpaidProductionVariant", {
+                        defaultValue: "Current production",
+                      })}
+                    </strong>
+                    <span>
+                      {t("ecommerce.shopDrawer.aiCS.unpaidProductionVariantHint", {
+                        defaultValue:
+                          "Plan A always follows the shop's production stages. Its traffic share can be changed, but its stages cannot be edited inside the experiment.",
+                      })}
+                    </span>
+                  </div>
+                )}
                 <div className="unpaid-variant-toolbar">
                   {workspaceMode === "DRAFT" && (
                     <>
@@ -1025,10 +1141,10 @@ export function UnpaidOrderReachoutSettings({
                         type="button"
                         className="btn btn-secondary btn-sm"
                         onClick={() => {
-                          const key = nextVariantKey(variants);
+                          const key = nextVariantKey(workspaceVariants);
                           setVariants(
                             rebalanceUnpaidExperimentVariants([
-                              ...variants,
+                              ...workspaceVariants,
                               {
                                 ...selectedVariant,
                                 variantKey: key,
@@ -1049,10 +1165,10 @@ export function UnpaidOrderReachoutSettings({
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
-                        disabled={variants.length <= 2}
+                        disabled={workspaceVariants.length <= 2 || selectedIsProduction}
                         onClick={() => {
                           const remaining = rebalanceUnpaidExperimentVariants(
-                            variants.filter(
+                            workspaceVariants.filter(
                               (variant) => variant.variantKey !== selectedVariant.variantKey,
                             ),
                           );
@@ -1077,7 +1193,7 @@ export function UnpaidOrderReachoutSettings({
                           <input
                             type="checkbox"
                             checked={stage.enabled}
-                            disabled={workspaceMode !== "DRAFT"}
+                            disabled={workspaceMode !== "DRAFT" || selectedIsProduction}
                             onChange={(event) =>
                               updateVariant({
                                 stages: selectedVariant.stages.map((item, itemIndex) =>
@@ -1090,7 +1206,7 @@ export function UnpaidOrderReachoutSettings({
                           />
                           {t("common.enabled", { defaultValue: "Enabled" })}
                         </label>
-                        {workspaceMode === "DRAFT" && (
+                        {workspaceMode === "DRAFT" && !selectedIsProduction && (
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
@@ -1112,7 +1228,7 @@ export function UnpaidOrderReachoutSettings({
                           min="1"
                           max="2879"
                           value={stage.delayMinutes}
-                          disabled={workspaceMode !== "DRAFT"}
+                          disabled={workspaceMode !== "DRAFT" || selectedIsProduction}
                           onChange={(event) =>
                             updateVariant({
                               stages: selectedVariant.stages.map((item, itemIndex) =>
@@ -1128,7 +1244,7 @@ export function UnpaidOrderReachoutSettings({
                       <textarea
                         rows={4}
                         value={stage.messageTemplate}
-                        disabled={workspaceMode !== "DRAFT"}
+                        disabled={workspaceMode !== "DRAFT" || selectedIsProduction}
                         onChange={(event) =>
                           updateVariant({
                             stages: selectedVariant.stages.map((item, itemIndex) =>
@@ -1144,7 +1260,7 @@ export function UnpaidOrderReachoutSettings({
                           <button
                             type="button"
                             key={token}
-                            disabled={workspaceMode !== "DRAFT"}
+                            disabled={workspaceMode !== "DRAFT" || selectedIsProduction}
                             onClick={() =>
                               updateVariant({
                                 stages: selectedVariant.stages.map((item, itemIndex) =>
@@ -1164,22 +1280,24 @@ export function UnpaidOrderReachoutSettings({
                       </div>
                     </div>
                   ))}
-                  {workspaceMode === "DRAFT" && selectedVariant.stages.length < 3 && (
-                    <button
-                      type="button"
-                      className="unpaid-add-stage"
-                      onClick={() =>
-                        updateVariant({
-                          stages: [
-                            ...selectedVariant.stages,
-                            { enabled: true, delayMinutes: "", messageTemplate: "" },
-                          ],
-                        })
-                      }
-                    >
-                      ＋ {t("ecommerce.shopDrawer.aiCS.unpaidReachoutAddStage")}
-                    </button>
-                  )}
+                  {workspaceMode === "DRAFT" &&
+                    !selectedIsProduction &&
+                    selectedVariant.stages.length < 3 && (
+                      <button
+                        type="button"
+                        className="unpaid-add-stage"
+                        onClick={() =>
+                          updateVariant({
+                            stages: [
+                              ...selectedVariant.stages,
+                              { enabled: true, delayMinutes: "", messageTemplate: "" },
+                            ],
+                          })
+                        }
+                      >
+                        ＋ {t("ecommerce.shopDrawer.aiCS.unpaidReachoutAddStage")}
+                      </button>
+                    )}
                 </div>
                 {(errors.get(selectedVariant.variantKey)?.length ?? 0) > 0 && (
                   <div className="unpaid-validation-card">

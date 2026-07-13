@@ -2912,7 +2912,11 @@ export default {
         searchShops: "搜索店铺",
         searchExperiments: "搜索实验",
       },
-      terms: { control: "对照组", treatment: "触达组" },
+      terms: {
+        control: "对照组",
+        treatment: "触达候选流量",
+        productionConfig: "当前生产配置",
+      },
       duration: { minute: "{{count}} 分钟", hour: "{{count}} 小时", day: "{{count}} 天" },
       types: { holdout: "增量效果评估", config: "配置 A/B 测试" },
       status: { RUNNING: "运行中", STOPPED_MATURING: "已结束", FINAL: "已完成" },
@@ -3000,8 +3004,7 @@ export default {
         noExposureBody: "当前曲线仅反映触达前的自然支付与取消，暂时不能用于评价触达效果。",
         tooltipCounts:
           "总分组 {{assigned}} · 支付 {{paid}} · 取消 {{cancelled}} · 截尾 {{censored}} · 风险集 {{risk}} · 覆盖 {{coverage}}%",
-        modelAxisNote:
-          "共享风险率模型从下单后第1分钟开始：各组在实际触达前共享自然付款基线。",
+        modelAxisNote: "共享风险率模型从下单后第1分钟开始：各组在实际触达前共享自然付款基线。",
         rawAxisNote:
           "原始竞争风险阶梯（Aalen–Johansen）从下单后第1分钟开始：未经模型约束的未支付比例。",
         modelIntervalLabel: "95% 不确定性区间",
@@ -4154,6 +4157,8 @@ export default {
         unpaidReachoutTemplateTokenShopName: "店铺名",
         unpaidReachoutUnsaved: "有未保存修改",
         unpaidReachoutInvalidHoldout: "对照组比例必须是 1% 到 20% 之间的整数。",
+        unpaidSettingsConflictRefreshed:
+          "设置已在其他位置更新。已载入最新版本，请检查未保存修改后再次保存。",
         unpaidStatusExperiment: "配置实验运行中",
         unpaidStatusActive: "正在触达",
         unpaidStatusDisabled: "未启用",
@@ -4167,6 +4172,10 @@ export default {
         unpaidHoldoutLabel: "对照组比例",
         unpaidTrafficAllocation: "实验流量",
         unpaidTrafficSummary: "{{holdout}}% 对照组 · {{treatment}}% 正常触达",
+        unpaidNestedTrafficSummary: "{{holdout}}% 不触达对照组 · {{treatment}}% 进入配置优化",
+        unpaidOptimizedTreatment: "配置实验流量",
+        unpaidIncrementalProductionHint:
+          "增量效果只比较不触达对照组与生产方案 A；探索性的 B/C 等方案仅进入配置实验分析。",
         unpaidNoReachout: "不触达",
         unpaidTreatment: "正常触达",
         unpaidAdvancedOptimization: "进阶优化",
@@ -4184,6 +4193,12 @@ export default {
         unpaidPlans: "方案",
         unpaidAddPlan: "新增方案",
         unpaidTreatmentShare: "实验组内流量",
+        unpaidNestedAllocationTitle: "嵌套流量分配",
+        unpaidNestedAllocationHint:
+          "先保留 {{holdout}}% 作为不触达对照组；其余 {{treatment}}% 再分配给 A/B 各方案。A 始终代表店铺当前生产配置。",
+        unpaidProductionVariant: "当前生产配置",
+        unpaidProductionVariantHint:
+          "方案 A 始终跟随店铺当前的生产触达阶段。可以调整它的实验组内流量，但不能在实验中修改其阶段。",
         unpaidVariantInvalid:
           "该方案需要名称、至少一个启用阶段、合法且不重复的延迟，以及与其他方案不同的配置。",
         unpaidExperimentInvalid: "请先修复方案和流量分配问题。",

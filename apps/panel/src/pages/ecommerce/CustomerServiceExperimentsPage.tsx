@@ -126,6 +126,8 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     const normalizedLabel = label?.trim().toUpperCase();
     if (key === "CONTROL" || normalizedLabel === "CONTROL")
       return t("ecommerce.customerServiceExperiments.terms.control");
+    if (key === "PRODUCTION_CONFIG" || normalizedLabel === "PRODUCTION_CONFIG")
+      return t("ecommerce.customerServiceExperiments.terms.productionConfig");
     if (key === "TREATMENT" || normalizedLabel === "TREATMENT")
       return t("ecommerce.customerServiceExperiments.terms.treatment");
     return label?.trim() || variantKey;
@@ -486,8 +488,12 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                 </strong>
               ) : null}
               {selectedContext ? (
-                <i className={`cs-experiment-status ${selectedContext.displayStatus.toLowerCase()}`}>
-                  {t(`ecommerce.customerServiceExperiments.status.${selectedContext.displayStatus}`)}
+                <i
+                  className={`cs-experiment-status ${selectedContext.displayStatus.toLowerCase()}`}
+                >
+                  {t(
+                    `ecommerce.customerServiceExperiments.status.${selectedContext.displayStatus}`,
+                  )}
                 </i>
               ) : null}
             </div>
@@ -503,7 +509,8 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
               <span>{t("ecommerce.customerServiceExperiments.kpis.assigned")}</span>
               <strong>{selectedContext?.quality?.assignedUnits.toLocaleString() ?? "—"}</strong>
               <small>
-                {t("ecommerce.customerServiceExperiments.kpis.matured")} {Math.round(maturity * 100)}%
+                {t("ecommerce.customerServiceExperiments.kpis.matured")}{" "}
+                {Math.round(maturity * 100)}%
               </small>
             </div>
             <div className="cs-experiment-picker-meta">
@@ -634,9 +641,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       <div
                         className="cs-experiment-curve-estimator-switch"
                         role="group"
-                        aria-label={t(
-                          "ecommerce.customerServiceExperiments.curve.estimatorLabel",
-                        )}
+                        aria-label={t("ecommerce.customerServiceExperiments.curve.estimatorLabel")}
                       >
                         <button
                           type="button"
@@ -808,9 +813,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                             <th>{t("ecommerce.customerServiceExperiments.table.rate")}</th>
                             <th>{t("ecommerce.customerServiceExperiments.table.lift")}</th>
                             <th>
-                              {t(
-                                "ecommerce.customerServiceExperiments.table.confidenceInterval",
-                              )}
+                              {t("ecommerce.customerServiceExperiments.table.confidenceInterval")}
                             </th>
                             <th>{t("ecommerce.customerServiceExperiments.table.pValue")}</th>
                             <th>{t("ecommerce.customerServiceExperiments.table.signal")}</th>

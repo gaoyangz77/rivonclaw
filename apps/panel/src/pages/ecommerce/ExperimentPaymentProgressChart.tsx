@@ -159,9 +159,7 @@ function activeChartMinute(event: unknown): number | null {
 export function curveInterpolationType(
   estimator: GQL.CsExperimentCurveEstimator | undefined,
 ): "monotoneX" | "stepAfter" {
-  return estimator === GQL.CsExperimentCurveEstimator.AalenJohansen
-    ? "stepAfter"
-    : "monotoneX";
+  return estimator === GQL.CsExperimentCurveEstimator.AalenJohansen ? "stepAfter" : "monotoneX";
 }
 
 function curveColor(index: number, series: CurveSeries): string {
@@ -226,6 +224,8 @@ export function ExperimentPaymentProgressChart({
   const displayLabel = (series: CurveSeries): string => {
     if (series.seriesRole === "CONTROL")
       return t("ecommerce.customerServiceExperiments.curve.controlLabel");
+    if (series.seriesKey.trim().toUpperCase() === "PRODUCTION_CONFIG")
+      return t("ecommerce.customerServiceExperiments.terms.productionConfig");
     if (
       series.seriesRole === "TREATMENT" ||
       series.seriesKey.trim().toUpperCase() === "TREATMENT" ||
@@ -246,10 +246,7 @@ export function ExperimentPaymentProgressChart({
   }, [orderedSeries]);
 
   useEffect(() => {
-    if (
-      curve?.experimentId !== experimentId ||
-      initializedExperimentRef.current === experimentId
-    )
+    if (curve?.experimentId !== experimentId || initializedExperimentRef.current === experimentId)
       return;
     initializedExperimentRef.current = experimentId;
     setSearch("");
@@ -382,7 +379,11 @@ export function ExperimentPaymentProgressChart({
         </output>
       </div>
       <div className="cs-experiment-curve-time-controls">
-        <div className="cs-experiment-curve-time-presets" role="group" aria-label={t("ecommerce.customerServiceExperiments.curve.timeWindow")}>
+        <div
+          className="cs-experiment-curve-time-presets"
+          role="group"
+          aria-label={t("ecommerce.customerServiceExperiments.curve.timeWindow")}
+        >
           <span>{t("ecommerce.customerServiceExperiments.curve.timeWindow")}</span>
           {timeWindowPresets.map((minutes) => {
             const active =
@@ -394,9 +395,7 @@ export function ExperimentPaymentProgressChart({
                 type="button"
                 className={active ? "active" : ""}
                 aria-pressed={active}
-                onClick={() =>
-                  setTimeDomain({ start: firstElapsedMinute, end: minutes })
-                }
+                onClick={() => setTimeDomain({ start: firstElapsedMinute, end: minutes })}
               >
                 {formatElapsed(minutes)}
               </button>
@@ -532,21 +531,23 @@ export function ExperimentPaymentProgressChart({
                   stroke="none"
                   fill="var(--experiment-curve-ci)"
                 />
-                {focused.stages.filter(
-                  (stage) => stage.delayMinutes >= xDomain[0] && stage.delayMinutes <= xDomain[1],
-                ).map((stage) => (
-                  <ReferenceLine
-                    key={`${focused.seriesKey}:${stage.stageIndex}:${stage.delayMinutes}`}
-                    x={stage.delayMinutes}
-                    stroke="var(--experiment-brass)"
-                    strokeDasharray="3 5"
-                    label={{
-                      value: formatElapsed(stage.delayMinutes),
-                      fill: "var(--color-text-muted)",
-                      fontSize: 9,
-                    }}
-                  />
-                ))}
+                {focused.stages
+                  .filter(
+                    (stage) => stage.delayMinutes >= xDomain[0] && stage.delayMinutes <= xDomain[1],
+                  )
+                  .map((stage) => (
+                    <ReferenceLine
+                      key={`${focused.seriesKey}:${stage.stageIndex}:${stage.delayMinutes}`}
+                      x={stage.delayMinutes}
+                      stroke="var(--experiment-brass)"
+                      strokeDasharray="3 5"
+                      label={{
+                        value: formatElapsed(stage.delayMinutes),
+                        fill: "var(--color-text-muted)",
+                        fontSize: 9,
+                      }}
+                    />
+                  ))}
               </>
             ) : null}
             {selectionStart != null && selectionEnd != null ? (

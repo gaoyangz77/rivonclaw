@@ -12,7 +12,11 @@ const base = {
     searchShops: "Search shops",
     searchExperiments: "Search experiments",
   },
-  terms: { control: "Control", treatment: "Treatment" },
+  terms: {
+    control: "Control",
+    treatment: "Reachout-eligible traffic",
+    productionConfig: "Current production configuration",
+  },
   duration: { minute: "{{count}} min", hour: "{{count}} hr", day: "{{count}} day" },
   types: { holdout: "Incrementality holdout", config: "Configuration A/B test" },
   status: { RUNNING: "Running", STOPPED_MATURING: "Ended", FINAL: "Final" },
@@ -210,7 +214,11 @@ export const customerServiceExperimentTranslations = {
       searchShops: "Shops durchsuchen",
       searchExperiments: "Experimente durchsuchen",
     },
-    terms: { control: "Kontrollgruppe", treatment: "Behandlungsgruppe" },
+    terms: {
+      control: "Kontrollgruppe",
+      treatment: "Für Kontaktaufnahme vorgesehener Traffic",
+      productionConfig: "Aktuelle Produktionskonfiguration",
+    },
     duration: { minute: "{{count}} Min.", hour: "{{count}} Std.", day: "{{count}} Tag" },
     actions: {
       NO_REACHOUT: "Keine Kontaktaufnahme",
@@ -267,7 +275,11 @@ export const customerServiceExperimentTranslations = {
       searchShops: "Buscar tiendas",
       searchExperiments: "Buscar experimentos",
     },
-    terms: { control: "Grupo de control", treatment: "Grupo de tratamiento" },
+    terms: {
+      control: "Grupo de control",
+      treatment: "Tráfico apto para contacto",
+      productionConfig: "Configuración actual de producción",
+    },
     duration: { minute: "{{count}} min", hour: "{{count}} h", day: "{{count}} día" },
     actions: {
       NO_REACHOUT: "Sin contacto",
@@ -324,7 +336,11 @@ export const customerServiceExperimentTranslations = {
       searchShops: "Rechercher des boutiques",
       searchExperiments: "Rechercher des expériences",
     },
-    terms: { control: "Groupe témoin", treatment: "Groupe traité" },
+    terms: {
+      control: "Groupe témoin",
+      treatment: "Trafic éligible à la relance",
+      productionConfig: "Configuration de production actuelle",
+    },
     duration: { minute: "{{count}} min", hour: "{{count}} h", day: "{{count}} jour" },
     actions: {
       NO_REACHOUT: "Aucun contact",
@@ -381,7 +397,11 @@ export const customerServiceExperimentTranslations = {
       searchShops: "Cari toko",
       searchExperiments: "Cari eksperimen",
     },
-    terms: { control: "Grup kontrol", treatment: "Grup perlakuan" },
+    terms: {
+      control: "Grup kontrol",
+      treatment: "Traffic yang memenuhi syarat untuk dijangkau",
+      productionConfig: "Konfigurasi produksi saat ini",
+    },
     duration: { minute: "{{count}} mnt", hour: "{{count}} jam", day: "{{count}} hari" },
     actions: {
       NO_REACHOUT: "Tanpa pesan",
@@ -438,7 +458,11 @@ export const customerServiceExperimentTranslations = {
       searchShops: "Cerca negozi",
       searchExperiments: "Cerca esperimenti",
     },
-    terms: { control: "Gruppo di controllo", treatment: "Gruppo trattato" },
+    terms: {
+      control: "Gruppo di controllo",
+      treatment: "Traffico idoneo al contatto",
+      productionConfig: "Configurazione di produzione attuale",
+    },
     duration: { minute: "{{count}} min", hour: "{{count}} h", day: "{{count}} giorno" },
     actions: {
       NO_REACHOUT: "Nessun contatto",
@@ -494,7 +518,11 @@ export const customerServiceExperimentTranslations = {
       searchShops: "ค้นหาร้านค้า",
       searchExperiments: "ค้นหาการทดลอง",
     },
-    terms: { control: "กลุ่มควบคุม", treatment: "กลุ่มทดลอง" },
+    terms: {
+      control: "กลุ่มควบคุม",
+      treatment: "ทราฟฟิกที่เข้าเกณฑ์การติดต่อ",
+      productionConfig: "การกำหนดค่าที่ใช้งานจริงในปัจจุบัน",
+    },
     duration: { minute: "{{count}} นาที", hour: "{{count}} ชม.", day: "{{count}} วัน" },
     actions: {
       NO_REACHOUT: "ไม่ส่งข้อความ",
@@ -523,8 +551,7 @@ export const customerServiceExperimentTranslations = {
       dragHint: "ลากในแนวนอนบนกราฟเพื่อขยายช่วงเวลาใดก็ได้",
       modelAxisNote:
         "แบบจำลองอัตราการชำระเงินร่วมกันตั้งแต่นาทีที่ 1: ทุกกลุ่มใช้ฐานการชำระเงินตามธรรมชาติเดียวกันก่อนส่งข้อความ",
-      rawAxisNote:
-        "ขั้น Aalen–Johansen ตั้งแต่นาทีที่ 1: สัดส่วนแบบไม่อิงพารามิเตอร์ที่ยังไม่เปลี่ยนเป็นการชำระเงิน",
+      rawAxisNote: "ขั้น Aalen–Johansen ตั้งแต่นาทีที่ 1: สัดส่วนแบบไม่อิงพารามิเตอร์ที่ยังไม่เปลี่ยนเป็นการชำระเงิน",
       modelIntervalLabel: "ช่วงความไม่แน่นอน 95%",
       rawIntervalLabel: "ช่วงความเชื่อมั่น 95%",
       controlLabel: "กลุ่มควบคุม · ไม่ส่งข้อความ",

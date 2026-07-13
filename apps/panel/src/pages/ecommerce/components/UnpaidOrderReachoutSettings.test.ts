@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  bindProductionVariant,
   rebalanceUnpaidExperimentVariants,
+  isUnpaidSettingsVersionConflict,
   serializeUnpaidReachoutStages,
   toUnpaidReachoutStageInput,
   validateUnpaidExperimentVariants,
@@ -59,9 +61,23 @@ describe("unpaid reachout experiment validation", () => {
     );
   });
 
+  it("recognizes both holdout and configuration optimistic concurrency conflicts", () => {
+    expect(
+      isUnpaidSettingsVersionConflict(
+        new Error("The holdout experiment changed; refresh before saving"),
+      ),
+    ).toBe(true);
+    expect(
+      isUnpaidSettingsVersionConflict(
+        new Error("The configuration experiment changed; refresh before saving"),
+      ),
+    ).toBe(true);
+    expect(isUnpaidSettingsVersionConflict(new Error("Network request failed"))).toBe(false);
+  });
+
   it.each([2, 3, 6, 20])("accepts %i distinct variants after rebalancing", (count) => {
     const drafts = Array.from({ length: count }, (_, index) =>
-      variant(`V${index + 1}`, "1", String(index + 1)),
+      variant(index === 0 ? "A" : `V${index + 1}`, "1", String(index + 1)),
     );
     const balanced = rebalanceUnpaidExperimentVariants(drafts);
     expect(balanced.reduce((sum, item) => sum + Number(item.percentage), 0)).toBeCloseTo(100, 5);
@@ -85,5 +101,26 @@ describe("unpaid reachout experiment validation", () => {
     const errors = validateUnpaidExperimentVariants([a, b]);
     expect(errors.get("A")).toContain("delay");
     expect(errors.get("B")).toEqual(expect.arrayContaining(["stages", "enabledStage"]));
+  });
+
+  it("binds Variant A to production stages without changing its allocation", () => {
+    const result = bindProductionVariant(
+      [variant("A", "35", "10"), variant("B", "65", "60")],
+      [{ id: "production", enabled: true, delayMinutes: 3, messageTemplate: "Production" }],
+    );
+    expect(result[0]).toMatchObject({
+      variantKey: "A",
+      percentage: "35",
+      stages: [{ id: "production", delayMinutes: "3", messageTemplate: "Production" }],
+    });
+    expect(result[1].stages[0].delayMinutes).toBe("60");
+  });
+
+  it("requires Variant A to be the unique first production option", () => {
+    const errors = validateUnpaidExperimentVariants([
+      variant("B", "50", "3"),
+      variant("A", "50", "10"),
+    ]);
+    expect(errors.get("$production")).toContain("productionVariant");
   });
 });
