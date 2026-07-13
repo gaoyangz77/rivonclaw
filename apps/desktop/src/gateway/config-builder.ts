@@ -53,6 +53,8 @@ type RawCustomModel =
       inputModalities?: unknown;
       context_length?: unknown;
       contextWindow?: unknown;
+      context_tokens?: unknown;
+      contextTokens?: unknown;
       max_completion_tokens?: unknown;
       maxTokens?: unknown;
       display_name?: unknown;
@@ -111,8 +113,20 @@ type CustomProviderModel = {
   name: string;
   input?: GatewayInputModality[];
   contextWindow?: number;
+  contextTokens?: number;
   maxTokens?: number;
 };
+
+const CLOUD_MODEL_RUNTIME_LIMITS = new Map(
+  (getProviderMeta("openai-codex")?.fallbackModels ?? []).map((model) => [
+    model.modelId,
+    {
+      contextWindow: model.contextWindow,
+      contextTokens: model.contextTokens,
+      maxTokens: model.maxTokens,
+    },
+  ]),
+);
 
 export function buildCustomProviderOverridesFromKeys(
   allKeys: ProviderKeyLike[],
@@ -139,7 +153,10 @@ export function buildCustomProviderOverridesFromKeys(
       baseUrl: key.baseUrl,
       api,
       models: rawModels.flatMap((m) => {
-        if (typeof m === "string") return [{ id: m, name: m, input: keyLevelInput }];
+        if (typeof m === "string") {
+          const runtimeLimits = forceImageInput ? CLOUD_MODEL_RUNTIME_LIMITS.get(m) : undefined;
+          return [{ id: m, name: m, input: keyLevelInput, ...runtimeLimits }];
+        }
         const id = typeof m.id === "string" ? m.id.trim() : "";
         if (!id) return [];
         const displayName =
@@ -149,14 +166,24 @@ export function buildCustomProviderOverridesFromKeys(
               ? m.name.trim()
               : id;
         const contextWindow = positiveInt(m.contextWindow) ?? positiveInt(m.context_length);
+        const cloudRuntimeLimits = forceImageInput ? CLOUD_MODEL_RUNTIME_LIMITS.get(id) : undefined;
+        const contextTokens =
+          positiveInt(m.contextTokens) ??
+          positiveInt(m.context_tokens) ??
+          cloudRuntimeLimits?.contextTokens;
         const maxTokens = positiveInt(m.maxTokens) ?? positiveInt(m.max_completion_tokens);
         return [
           {
             id,
             name: displayName || id,
             input: forceImageInput ? keyLevelInput : rawModelInputModalities(m, keyLevelInput),
-            ...(contextWindow ? { contextWindow } : {}),
-            ...(maxTokens ? { maxTokens } : {}),
+            ...(contextWindow || cloudRuntimeLimits?.contextWindow
+              ? { contextWindow: contextWindow ?? cloudRuntimeLimits?.contextWindow }
+              : {}),
+            ...(contextTokens ? { contextTokens } : {}),
+            ...(maxTokens || cloudRuntimeLimits?.maxTokens
+              ? { maxTokens: maxTokens ?? cloudRuntimeLimits?.maxTokens }
+              : {}),
           },
         ];
       }),

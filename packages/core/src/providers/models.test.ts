@@ -42,6 +42,19 @@ describe("PROVIDERS extraModels", () => {
       }
     }
   });
+
+  it("keeps complete runtime limits for cloud fallback models", () => {
+    const models = getProviderMeta("openai-codex")?.fallbackModels ?? [];
+    expect(models.length).toBeGreaterThan(0);
+
+    for (const model of models) {
+      expect(model.contextWindow, `${model.modelId} contextWindow`).toBeGreaterThan(0);
+      expect(model.contextTokens, `${model.modelId} contextTokens`).toBeGreaterThan(0);
+      expect(model.maxTokens, `${model.modelId} maxTokens`).toBeGreaterThan(0);
+      expect(model.contextTokens!).toBeLessThanOrEqual(model.contextWindow!);
+      expect(model.maxTokens!).toBeLessThanOrEqual(model.contextWindow!);
+    }
+  });
 });
 
 describe("KNOWN_MODELS (before initKnownModels)", () => {

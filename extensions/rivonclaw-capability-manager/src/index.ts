@@ -120,6 +120,7 @@ export default defineRivonClawPlugin({
 
     api.registerTrustedToolPolicy({
       id: "affiliate-checkpoint-injection",
+      description: "Inject the active affiliate checkpoint into work-item resolution calls",
       evaluate(event: PluginHookBeforeToolCallEvent, ctx: PluginHookToolContext) {
         if (event.toolName !== "affiliate_resolve_work_item") return;
         const checkpoint =

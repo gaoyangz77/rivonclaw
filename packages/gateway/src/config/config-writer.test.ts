@@ -136,6 +136,30 @@ describe("config-writer", () => {
       expect(config.plugins.entries).toEqual({ "my-plugin": { enabled: true } });
     });
 
+    it("removes stale optional provider deny IDs while preserving Moonshot and entries", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          plugins: {
+            deny: ["amazon-bedrock", "github-copilot", "kimi", "moonshot"],
+            entries: {
+              deepseek: { enabled: true },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, plugins: {} });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.deny).toContain("moonshot");
+      expect(config.plugins.deny).not.toContain("amazon-bedrock");
+      expect(config.plugins.deny).not.toContain("github-copilot");
+      expect(config.plugins.deny).not.toContain("kimi");
+      expect(config.plugins.entries.deepseek).toEqual({ enabled: true });
+    });
+
     it("writes plugin tool additions through tools.alsoAllow", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({
@@ -576,10 +600,7 @@ describe("config-writer", () => {
 
     it("sanitisation is idempotent", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      writeFileSync(
-        configPath,
-        JSON.stringify({ history: true, gateway: { port: 1234 } }),
-      );
+      writeFileSync(configPath, JSON.stringify({ history: true, gateway: { port: 1234 } }));
 
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
       const first = readFileSync(configPath, "utf-8");
@@ -608,7 +629,11 @@ describe("config-writer", () => {
       writeFileSync(
         configPath,
         JSON.stringify({
-          agents: { defaults: { model: { primary: "openai/gpt-4o", fallbacks: ["deepseek/deepseek-chat"] } } },
+          agents: {
+            defaults: {
+              model: { primary: "openai/gpt-4o", fallbacks: ["deepseek/deepseek-chat"] },
+            },
+          },
         }),
       );
 
@@ -660,7 +685,11 @@ describe("config-writer", () => {
       writeFileSync(
         configPath,
         JSON.stringify({
-          agents: { defaults: { model: { primary: "deepseek/deepseek-chat", fallbacks: ["openai/gpt-4o"] } } },
+          agents: {
+            defaults: {
+              model: { primary: "deepseek/deepseek-chat", fallbacks: ["openai/gpt-4o"] },
+            },
+          },
         }),
       );
 
@@ -774,7 +803,7 @@ describe("config-writer", () => {
       expect(geminiWrapper).toContain(`export HOME='${join(tmpDir, "gemini-cli-home")}'`);
       expect(geminiWrapper).toContain("gemini-cli/node_modules/.bin");
       expect(geminiWrapper).toContain("export GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true");
-      expect(geminiWrapper).toContain("exec gemini \"$@\"");
+      expect(geminiWrapper).toContain('exec gemini "$@"');
       expect(config.agents.defaults.cliBackends["google-gemini-cli"].env).toMatchObject({
         GOOGLE_GENAI_USE_GCA: "true",
         GEMINI_FORCE_ENCRYPTED_FILE_STORAGE: "true",
@@ -818,10 +847,7 @@ describe("config-writer", () => {
 
     it("preserves existing commands fields", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      writeFileSync(
-        configPath,
-        JSON.stringify({ commands: { native: true } }),
-      );
+      writeFileSync(configPath, JSON.stringify({ commands: { native: true } }));
 
       writeGatewayConfig({
         configPath,
@@ -1013,17 +1039,24 @@ describe("config-writer", () => {
       mkdirSync(extDir, { recursive: true });
       mkdirSync(stagedCloudDir, { recursive: true });
       mkdirSync(currentCsDir, { recursive: true });
-      writeFileSync(configPath, JSON.stringify({
-        plugins: {
-          load: {
-            paths: [
-              join(oldInstallDir, "rivonclaw-cloud-tools"),
-              join(oldInstallDir, "rivonclaw-cs"),
-              "/custom/plugin",
-            ],
+      writeFileSync(
+        configPath,
+        JSON.stringify(
+          {
+            plugins: {
+              load: {
+                paths: [
+                  join(oldInstallDir, "rivonclaw-cloud-tools"),
+                  join(oldInstallDir, "rivonclaw-cs"),
+                  "/custom/plugin",
+                ],
+              },
+            },
           },
-        },
-      }, null, 2));
+          null,
+          2,
+        ),
+      );
 
       writeGatewayConfig({
         configPath,
@@ -1040,7 +1073,6 @@ describe("config-writer", () => {
       expect(paths).not.toContain(join(oldInstallDir, "rivonclaw-cloud-tools"));
       expect(paths).not.toContain(join(oldInstallDir, "rivonclaw-cs"));
     });
-
   });
 
   describe("ensureGatewayConfig", () => {
@@ -1064,10 +1096,7 @@ describe("config-writer", () => {
 
     it("does not overwrite existing config", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      writeFileSync(
-        configPath,
-        JSON.stringify({ gateway: { port: 1234 }, custom: true }),
-      );
+      writeFileSync(configPath, JSON.stringify({ gateway: { port: 1234 }, custom: true }));
 
       ensureGatewayConfig({ configPath });
 
@@ -1161,7 +1190,6 @@ describe("config-writer", () => {
       expect(config.gateway.auth.mode).toBe("token");
       expect(config.gateway.auth.token).toMatch(/^[0-9a-f]{64}$/);
     });
-
   });
 
   describe("DEFAULT_GATEWAY_PORT", () => {
@@ -1187,6 +1215,7 @@ describe("config-writer", () => {
                 input: ["text"],
                 cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
                 contextWindow: 128000,
+                contextTokens: 96000,
                 maxTokens: 8192,
               },
             ],
@@ -1200,6 +1229,7 @@ describe("config-writer", () => {
       expect(config.models.providers.zhipu.api).toBe("openai-completions");
       expect(config.models.providers.zhipu.models).toHaveLength(1);
       expect(config.models.providers.zhipu.models[0].id).toBe("glm-4.7-flash");
+      expect(config.models.providers.zhipu.models[0].contextTokens).toBe(96000);
     });
 
     it("sets mode to merge by default", () => {
@@ -1302,7 +1332,9 @@ describe("config-writer", () => {
       expect(glm45v?.input).toEqual(["text", "image"]);
       const doubao18 = configs.volcengine.models.find((m) => m.id === "doubao-seed-1-8-251228");
       expect(doubao18?.input).toEqual(["text", "image"]);
-      const doubaoLite = configs.volcengine.models.find((m) => m.id === "doubao-seed-1-6-lite-251015");
+      const doubaoLite = configs.volcengine.models.find(
+        (m) => m.id === "doubao-seed-1-6-lite-251015",
+      );
       expect(doubaoLite?.input).toEqual(["text", "image"]);
       // qwen-coding vision models
       const qwen35plus = configs["qwen-coding"].models.find((m) => m.id === "qwen3.5-plus");
@@ -1558,9 +1590,12 @@ describe("config-writer", () => {
 
     it("preserves existing browser fields when setting mode", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      writeFileSync(configPath, JSON.stringify({
-        browser: { remoteCdpTimeoutMs: 3000 },
-      }));
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          browser: { remoteCdpTimeoutMs: 3000 },
+        }),
+      );
 
       writeGatewayConfig({ configPath, browserMode: "standalone" });
 
@@ -1587,9 +1622,17 @@ describe("config-writer", () => {
 
     it("ssrfPolicy overrides any pre-existing value", () => {
       const configPath = join(tmpDir, "openclaw.json");
-      writeFileSync(configPath, JSON.stringify({
-        browser: { ssrfPolicy: { dangerouslyAllowPrivateNetwork: false, allowedHostnames: ["example.com"] } },
-      }));
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          browser: {
+            ssrfPolicy: {
+              dangerouslyAllowPrivateNetwork: false,
+              allowedHostnames: ["example.com"],
+            },
+          },
+        }),
+      );
 
       writeGatewayConfig({ configPath, browserMode: "standalone" });
 
@@ -1615,7 +1658,7 @@ describe("config-writer", () => {
         );
         expect.fail(
           `Default config fails OpenClaw schema validation:\n${messages.join("\n")}\n` +
-          "The vendor schema likely changed. Update ensureGatewayConfig to match.",
+            "The vendor schema likely changed. Update ensureGatewayConfig to match.",
         );
       }
     });
@@ -1645,7 +1688,7 @@ describe("config-writer", () => {
         if (messages.length > 0) {
           expect.fail(
             `writeGatewayConfig output fails OpenClaw schema validation:\n${messages.join("\n")}\n` +
-            "Fix writeGatewayConfig to produce valid config.",
+              "Fix writeGatewayConfig to produce valid config.",
           );
         }
       }
@@ -1874,12 +1917,51 @@ describe("config-writer", () => {
   });
 
   describe("writeGatewayConfig - compaction defaults", () => {
-    it("writes agents.defaults.compaction.notifyUser as false", () => {
+    it("writes resilient compaction defaults", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.compaction.notifyUser).toBe(false);
+      expect(config.agents.defaults.compaction.reserveTokensFloor).toBeUndefined();
+      expect(config.agents.defaults.compaction.maxHistoryShare).toBe(0.35);
+      expect(config.agents.defaults.compaction.midTurnPrecheck.enabled).toBe(true);
+      expect(config.agents.defaults.compaction.model).toBeUndefined();
+    });
+
+    it("uses Luna for cloud compaction without changing the primary model", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        gatewayPort: 18789,
+        defaultModel: { provider: "rivonclaw-pro", modelId: "gpt-5.6-terra" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.model.primary).toBe("rivonclaw-pro/gpt-5.6-terra");
+      expect(config.agents.defaults.compaction.model).toBe("rivonclaw-pro/gpt-5.6-luna");
+    });
+
+    it("removes the managed Luna compaction model when leaving the cloud provider", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              compaction: { model: "rivonclaw-pro/gpt-5.6-luna" },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        defaultModel: { provider: "openai", modelId: "gpt-4o" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.compaction.model).toBeUndefined();
     });
 
     it("preserves existing compaction fields alongside notifyUser", () => {
@@ -1892,6 +1974,10 @@ describe("config-writer", () => {
               compaction: {
                 mode: "safeguard",
                 recentTurnsPreserve: 5,
+                reserveTokensFloor: 80_000,
+                maxHistoryShare: 0.25,
+                midTurnPrecheck: { enabled: false },
+                model: "openai/gpt-4o-mini",
               },
             },
           },
@@ -1904,6 +1990,10 @@ describe("config-writer", () => {
       expect(config.agents.defaults.compaction.notifyUser).toBe(false);
       expect(config.agents.defaults.compaction.mode).toBe("safeguard");
       expect(config.agents.defaults.compaction.recentTurnsPreserve).toBe(5);
+      expect(config.agents.defaults.compaction.reserveTokensFloor).toBe(80_000);
+      expect(config.agents.defaults.compaction.maxHistoryShare).toBe(0.25);
+      expect(config.agents.defaults.compaction.midTurnPrecheck.enabled).toBe(false);
+      expect(config.agents.defaults.compaction.model).toBe("openai/gpt-4o-mini");
     });
 
     it("overwrites pre-existing notifyUser value", () => {

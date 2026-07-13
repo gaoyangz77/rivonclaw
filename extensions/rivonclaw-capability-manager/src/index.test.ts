@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import manifest from "../openclaw.plugin.json";
 import plugin from "./index.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -67,6 +68,23 @@ beforeEach(() => {
 });
 
 // ── Tests ───────────────────────────────────────────────────────────
+
+describe("trusted tool policy", () => {
+  it("declares and registers the affiliate checkpoint policy contract", () => {
+    const { api } = activatePlugin();
+
+    expect(manifest.contracts.trustedToolPolicies).toContain(
+      "affiliate-checkpoint-injection",
+    );
+    expect(api.registerTrustedToolPolicy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "affiliate-checkpoint-injection",
+        description: expect.any(String),
+        evaluate: expect.any(Function),
+      }),
+    );
+  });
+});
 
 describe("before_dispatch", () => {
   it("applies Desktop session model state before channel dispatch", async () => {

@@ -6,5 +6,8 @@
   "activation": {
     "onStartup": true
   },
+  "contracts": {
+    "trustedToolPolicies": ["affiliate-checkpoint-injection"]
+  },
   "configSchema": {}
 }
