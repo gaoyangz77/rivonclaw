@@ -13300,24 +13300,21 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiments-tabs button.active .cs-experiments-tab-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--experiment-ink) 13%, transparent); opacity: 1; }
 
 .cs-experiments-toolbar {
-  display: grid;
-  min-height: 82px;
-  grid-template-columns: minmax(220px, 320px) minmax(220px, 320px) 36px minmax(220px, 1fr);
-  align-items: end;
-  gap: 12px;
-  padding: 15px 18px 14px;
+  margin-bottom: 0;
+  padding: 12px;
 }
 
-.cs-experiments-toolbar label { display: grid; min-width: 0; gap: 6px; }
-.cs-experiments-toolbar label > span { color: var(--color-text-muted); font-size: 10px; font-weight: 780; letter-spacing: 0.05em; text-transform: uppercase; }
+.cs-experiments-toolbar > * { margin-top: 0 !important; }
+.cs-experiments-toolbar .cs-performance-filter:first-child { width: min(320px, 48vw); }
+.cs-experiments-toolbar .cs-performance-filter:nth-child(2) { width: min(280px, 42vw); }
 .cs-experiments-toolbar .cs-experiments-filter-select { width: 100%; min-width: 0; }
-.cs-experiments-toolbar .custom-select-trigger { height: 36px; min-height: 36px; }
-.cs-experiments-toolbar .icon-button { width: 36px; height: 36px; }
-.cs-experiments-freshness { display: flex; min-width: 0; align-items: center; justify-self: end; gap: 7px; padding-bottom: 10px; color: var(--color-text-muted); font-size: 11px; white-space: nowrap; }
+.cs-experiments-toolbar .custom-select-trigger { height: 38px; min-height: 38px; }
+.cs-experiments-toolbar .icon-button { width: 38px; height: 38px; flex: 0 0 38px; align-self: end; }
+.cs-experiments-freshness { display: flex; min-width: max-content; height: 38px; align-items: center; gap: 7px; margin-left: auto !important; padding: 0 8px; color: var(--color-text-muted); font-size: 11px; white-space: nowrap; }
 .cs-experiments-freshness > span { width: 7px; height: 7px; border-radius: 50%; background: #30a46c; box-shadow: 0 0 0 4px rgb(48 164 108 / 12%); }
 
 .cs-experiments-workbench { display: grid; grid-template-columns: minmax(250px, 290px) minmax(0, 1fr); gap: 14px; min-height: 680px; }
-.cs-experiment-list { display: flex; min-height: 0; max-height: calc(100vh - 254px); flex-direction: column; padding: 0; overflow: hidden; }
+.cs-experiment-list { display: flex; height: calc(100dvh - 254px); min-height: 520px; flex-direction: column; padding: 0; overflow: hidden; }
 .cs-experiment-list-heading { display: flex; align-items: center; justify-content: space-between; padding: 14px 15px 10px; color: var(--color-text-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 .cs-experiment-list-heading b { display: grid; min-width: 24px; height: 24px; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--experiment-ink) 10%, transparent); color: var(--experiment-ink); font-size: 11px; }
 .cs-experiment-list-scroll { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 4px; padding: 0 7px 8px; overflow-y: auto; }
@@ -13363,15 +13360,14 @@ html[lang="zh"] .acct-tool-chips {
 
 .cs-experiment-detail { display: flex; min-width: 0; flex-direction: column; gap: 14px; }
 .cs-experiment-detail > .section-card { padding: 17px; }
-.cs-experiment-overview { position: relative; overflow: hidden; background: var(--experiment-paper); }
-.cs-experiment-overview::after { position: absolute; top: -60px; right: -50px; width: 220px; height: 220px; border: 1px solid var(--experiment-grid); border-radius: 50%; box-shadow: 0 0 0 30px var(--experiment-grid), 0 0 0 60px var(--experiment-grid); content: ""; opacity: 0.32; pointer-events: none; }
-.cs-experiment-overview-title { position: relative; z-index: 1; display: flex; align-items: start; justify-content: space-between; gap: 18px; }
+.cs-experiment-overview { background: var(--experiment-paper); }
+.cs-experiment-overview-title { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
 .cs-experiment-overview-title h2 { margin: 7px 0 3px; font-size: 20px; letter-spacing: -0.02em; }
 .cs-experiment-overview-title p { margin: 0; color: var(--color-text-secondary); font-size: 12px; }
 .cs-experiment-id { display: grid; gap: 4px; text-align: right; }
 .cs-experiment-id span { color: var(--color-text-muted); font: 700 9px "JetBrains Mono", monospace; letter-spacing: 0.12em; }
 .cs-experiment-id code { color: var(--color-text-secondary); font-size: 10px; }
-.cs-experiment-stat-strip { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 20px; border-top: 1px solid var(--color-border-light); }
+.cs-experiment-stat-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 20px; border-top: 1px solid var(--color-border-light); }
 .cs-experiment-stat-strip > div { display: grid; min-width: 0; gap: 4px; padding: 13px 14px 0; border-left: 1px solid var(--color-border-light); }
 .cs-experiment-stat-strip > div:first-child { padding-left: 0; border-left: 0; }
 .cs-experiment-stat-strip span { color: var(--color-text-muted); font-size: 9px; font-weight: 780; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -13435,10 +13431,11 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-curve-legend-items { display: flex; flex-wrap: wrap; gap: 5px; }
 .cs-experiment-curve-legend-items button { display: inline-flex; min-width: 0; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--color-border-light); border-radius: 999px; background: var(--color-bg); color: var(--color-text-muted); cursor: pointer; font: inherit; font-size: 9px; }
 .cs-experiment-curve-legend-items button.active { border-color: color-mix(in srgb, var(--experiment-ink) 34%, var(--color-border-light)); color: var(--color-text); }
-.cs-experiment-curve-legend-items button.control { order: -1; }
+.cs-experiment-curve-legend-items button.control { order: -1; border-color: color-mix(in srgb, var(--experiment-ink) 48%, var(--color-border-light)); background: color-mix(in srgb, var(--experiment-ink) 5%, var(--color-bg)); color: var(--experiment-ink); font-weight: 750; }
 .cs-experiment-curve-legend-items button:not(.active) { opacity: 0.54; }
 .cs-experiment-curve-legend-items .series-color { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--experiment-ink); }
-.cs-experiment-curve-legend-items .control .series-color { background: var(--color-text-muted); }
+.cs-experiment-curve-legend-items .control .series-color { width: 18px; height: 0; border-top: 3px dashed var(--experiment-ink); border-radius: 0; background: transparent; }
+.cs-experiment-curve-legend-items .series-role-badge { padding: 1px 5px; border-radius: 999px; background: color-mix(in srgb, var(--experiment-ink) 10%, transparent); color: var(--experiment-ink); font-size: 7px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .cs-experiment-curve-legend-items .series-color-1 { background: var(--experiment-brass); }
 .cs-experiment-curve-legend-items .series-color-2 { background: var(--color-info); }
 .cs-experiment-curve-legend-items .series-color-3 { background: var(--color-warning); }
@@ -13453,10 +13450,15 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-curve-tooltip > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding-top: 6px; border-top: 1px solid var(--color-border-light); }
 .cs-experiment-curve-tooltip b { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .cs-experiment-curve-tooltip span { font: 750 11px "JetBrains Mono", monospace; }
-.cs-experiment-curve-tooltip em { color: var(--experiment-brass); font-size: 9px; font-style: normal; }
+.cs-experiment-curve-tooltip span.directional-estimate { color: var(--color-text-secondary); }
+.cs-experiment-curve-tooltip em { grid-column: 1 / -1; color: var(--experiment-brass); font-size: 9px; font-style: normal; }
 .cs-experiment-curve-tooltip small { grid-column: 1 / -1; color: var(--color-text-muted); font-size: 9px; }
 .cs-experiment-curve-note { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; color: var(--color-text-muted); font-size: 9px; line-height: 1.5; }
 .cs-experiment-curve-note > div { display: grid; gap: 3px; }
+.cs-experiment-curve-caption { max-width: 760px; }
+.cs-experiment-curve-glossary { display: flex !important; flex-wrap: wrap; gap: 4px 12px !important; margin-top: 5px; padding-top: 6px; border-top: 1px solid var(--color-border-light); }
+.cs-experiment-curve-glossary strong { width: 100%; color: var(--color-text-secondary); font-size: 9px; }
+.cs-experiment-curve-glossary span { max-width: 360px; }
 .cs-experiment-curve-endpoint { min-width: max-content; grid-template-columns: repeat(2, auto); column-gap: 10px; text-align: right; }
 .cs-experiment-curve-endpoint strong { grid-column: 1 / -1; color: var(--color-text-secondary); font-size: 9px; }
 .cs-experiment-curve-endpoint.directional { display: grid; grid-template-columns: 1fr; max-width: 210px; min-width: 0; }
@@ -13485,8 +13487,7 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiments-empty p { max-width: 420px; margin: 0; color: var(--color-text-muted); font-size: 12px; }
 
 @media (max-width: 1050px) {
-  .cs-experiments-toolbar { grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) 36px; }
-  .cs-experiments-freshness { grid-column: 1 / -1; grid-row: 2; justify-self: start; padding: 0; }
+  .cs-experiments-freshness { margin-left: 0 !important; }
   .cs-experiments-workbench { grid-template-columns: 230px minmax(0, 1fr); }
   .cs-experiment-stat-strip { grid-template-columns: repeat(3, 1fr); }
   .cs-experiment-stat-strip > div:nth-child(4) { padding-left: 0; border-left: 0; }
@@ -13496,12 +13497,13 @@ html[lang="zh"] .acct-tool-chips {
   .cs-experiments-header { align-items: stretch; flex-direction: column; }
   .cs-experiments-tabs { align-self: stretch; }
   .cs-experiments-tabs button { min-width: 0; flex: 1; }
-  .cs-experiments-toolbar { grid-template-columns: 1fr; align-items: stretch; }
-  .cs-experiments-toolbar label { min-width: 0; }
-  .cs-experiments-toolbar .icon-button { justify-self: start; }
-  .cs-experiments-freshness { grid-column: auto; grid-row: auto; justify-self: start; padding: 3px 0; white-space: normal; }
+  .cs-experiments-toolbar { align-items: stretch; }
+  .cs-experiments-toolbar .cs-performance-filter,
+  .cs-experiments-toolbar .cs-performance-filter:first-child,
+  .cs-experiments-toolbar .cs-performance-filter:nth-child(2) { width: 100%; min-width: 0; }
+  .cs-experiments-freshness { width: calc(100% - 48px); min-width: 0; margin-left: 0 !important; white-space: normal; }
   .cs-experiments-workbench { grid-template-columns: 1fr; }
-  .cs-experiment-list { max-height: 330px; }
+  .cs-experiment-list { height: 330px; min-height: 0; }
   .cs-experiment-overview-title { flex-direction: column; }
   .cs-experiment-id { text-align: left; }
   .cs-experiment-stat-strip { grid-template-columns: repeat(2, 1fr); }

@@ -78,6 +78,20 @@ export function defaultVisibleCurveSeries(
     .map((item) => item.seriesKey);
 }
 
+export function sortCurveTooltipSeries(
+  series: CurveSeries[],
+  points: Record<string, Pick<CurvePoint, "estimate"> | undefined>,
+): CurveSeries[] {
+  return [...series]
+    .filter((item) => points[item.seriesKey] != null)
+    .sort((left, right) => {
+      const estimateDifference =
+        (points[right.seriesKey]?.estimate ?? Number.NEGATIVE_INFINITY) -
+        (points[left.seriesKey]?.estimate ?? Number.NEGATIVE_INFINITY);
+      return estimateDifference || left.seriesKey.localeCompare(right.seriesKey);
+    });
+}
+
 export function curveYAxisDomain(
   series: CurveDomainSeries[],
   visibleKeys: string[],
@@ -119,8 +133,28 @@ function formatElapsed(minutes: number): string {
 
 function curveColor(index: number, series: CurveSeries): string {
   return series.seriesRole === "CONTROL"
-    ? "var(--color-text-muted)"
+    ? "var(--experiment-ink)"
     : SERIES_COLORS[index % SERIES_COLORS.length]!;
+}
+
+export function curveLinePresentation(
+  seriesRole: CurveSeries["seriesRole"],
+  reliable: boolean,
+  focused: boolean,
+): { strokeWidth: number; strokeDasharray?: string; strokeOpacity: number } {
+  if (seriesRole === "CONTROL") {
+    return {
+      strokeWidth: focused ? 3.4 : 3,
+      strokeDasharray: "12 5",
+      strokeOpacity: reliable ? 1 : 0.88,
+    };
+  }
+  if (reliable) return { strokeWidth: focused ? 2.7 : 1.9, strokeOpacity: 1 };
+  return {
+    strokeWidth: focused ? 2.3 : 1.9,
+    strokeDasharray: "5 4",
+    strokeOpacity: focused ? 0.78 : 0.62,
+  };
 }
 
 export function ExperimentPaymentProgressChart({
@@ -198,17 +232,12 @@ export function ExperimentPaymentProgressChart({
     ) ?? visibleSeries[0];
   const focusedEndpoint = focused?.points.at(-1);
 
-  if (loading && !curve)
-    return <div className="cs-experiments-loading">{t("common.loading")}</div>;
+  if (loading && !curve) return <div className="cs-experiments-loading">{t("common.loading")}</div>;
   if (failed)
     return (
       <div className="cs-experiment-curve-empty error">
         <strong>{t("ecommerce.customerServiceExperiments.curve.loadFailed")}</strong>
-        <button
-          className="btn btn-secondary"
-          type="button"
-          onClick={onRetry}
-        >
+        <button className="btn btn-secondary" type="button" onClick={onRetry}>
           {t("ecommerce.customerServiceExperiments.curve.retry")}
         </button>
       </div>
@@ -286,6 +315,11 @@ export function ExperimentPaymentProgressChart({
               >
                 <i className={`series-color series-color-${index % SERIES_COLORS.length}`} />
                 {displayLabel(series)}
+                {series.seriesRole === "CONTROL" ? (
+                  <small className="series-role-badge">
+                    {t("ecommerce.customerServiceExperiments.curve.baselineBadge")}
+                  </small>
+                ) : null}
               </button>
             );
           })}
@@ -346,29 +380,34 @@ export function ExperimentPaymentProgressChart({
             <Tooltip
               content={({ label }) => {
                 const row = rows.find((item) => item.elapsedMinutes === Number(label));
+                const tooltipSeries = row ? sortCurveTooltipSeries(visibleSeries, row.points) : [];
                 return row ? (
                   <div className="cs-experiment-curve-tooltip">
                     <strong>{formatElapsed(row.elapsedMinutes)}</strong>
-                    {visibleSeries.map((series) => {
+                    {tooltipSeries.map((series) => {
                       const point = row.points[series.seriesKey];
                       if (!point) return null;
                       const reliable = isCurvePointReliable(point);
                       return (
                         <div key={series.seriesKey}>
                           <b>{displayLabel(series)}</b>
-                          {reliable ? (
-                            <span>{(point.estimate * 100).toFixed(1)}%</span>
-                          ) : (
+                          <span className={!reliable ? "directional-estimate" : undefined}>
+                            {t("ecommerce.customerServiceExperiments.curve.pointEstimate", {
+                              value: (point.estimate * 100).toFixed(1),
+                            })}
+                          </span>
+                          {!reliable ? (
                             <em>
                               {t("ecommerce.customerServiceExperiments.curve.directionalOnly")}
                             </em>
-                          )}
+                          ) : null}
                           <small>
                             95% CI {(point.confidenceIntervalLow * 100).toFixed(1)}–
                             {(point.confidenceIntervalHigh * 100).toFixed(1)}%
                           </small>
                           <small>
                             {t("ecommerce.customerServiceExperiments.curve.tooltipCounts", {
+                              assigned: point.assignedUnits,
                               paid: point.cumulativePaidUnits,
                               cancelled: point.cumulativeCancelledUnits,
                               censored: point.censoredUnits,
@@ -388,44 +427,63 @@ export function ExperimentPaymentProgressChart({
                 orderedSeries.findIndex((item) => item.seriesKey === series.seriesKey),
                 series,
               );
+              const presentation = curveLinePresentation(
+                series.seriesRole,
+                true,
+                series.seriesKey === focusedKey,
+              );
               return (
                 <Line
                   key={`${series.seriesKey}:reliable`}
                   type="stepAfter"
                   dataKey={`${series.seriesKey}:reliable`}
                   stroke={color}
-                  strokeWidth={series.seriesKey === focusedKey ? 2.6 : 1.8}
-                  strokeDasharray={series.seriesRole === "CONTROL" ? "7 5" : undefined}
+                  strokeWidth={presentation.strokeWidth}
+                  strokeDasharray={presentation.strokeDasharray}
+                  strokeOpacity={presentation.strokeOpacity}
                   dot={false}
                   isAnimationActive={false}
                   onMouseEnter={() => setFocusedKey(series.seriesKey)}
                 />
               );
             })}
-            {visibleSeries.map((series) => (
-              <Line
-                key={`${series.seriesKey}:uncertain`}
-                type="stepAfter"
-                dataKey={`${series.seriesKey}:uncertain`}
-                stroke={curveColor(
-                  orderedSeries.findIndex((item) => item.seriesKey === series.seriesKey),
-                  series,
-                )}
-                strokeWidth={1.5}
-                strokeDasharray="2 7"
-                strokeOpacity={0.35}
-                dot={false}
-                isAnimationActive={false}
-                onMouseEnter={() => setFocusedKey(series.seriesKey)}
-              />
-            ))}
+            {visibleSeries.map((series) => {
+              const presentation = curveLinePresentation(
+                series.seriesRole,
+                false,
+                series.seriesKey === focusedKey,
+              );
+              return (
+                <Line
+                  key={`${series.seriesKey}:uncertain`}
+                  type="stepAfter"
+                  dataKey={`${series.seriesKey}:uncertain`}
+                  stroke={curveColor(
+                    orderedSeries.findIndex((item) => item.seriesKey === series.seriesKey),
+                    series,
+                  )}
+                  strokeWidth={presentation.strokeWidth}
+                  strokeDasharray={presentation.strokeDasharray}
+                  strokeOpacity={presentation.strokeOpacity}
+                  dot={false}
+                  isAnimationActive={false}
+                  onMouseEnter={() => setFocusedKey(series.seriesKey)}
+                />
+              );
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>
       <footer className="cs-experiment-curve-note">
-        <div>
+        <div className="cs-experiment-curve-caption">
           <span>{t("ecommerce.customerServiceExperiments.curve.axisNote")}</span>
           <span>{t("ecommerce.customerServiceExperiments.curve.reliabilityNote")}</span>
+          <div className="cs-experiment-curve-glossary">
+            <strong>{t("ecommerce.customerServiceExperiments.curve.glossaryTitle")}</strong>
+            <span>{t("ecommerce.customerServiceExperiments.curve.censoredDefinition")}</span>
+            <span>{t("ecommerce.customerServiceExperiments.curve.atRiskDefinition")}</span>
+            <span>{t("ecommerce.customerServiceExperiments.curve.coverageDefinition")}</span>
+          </div>
         </div>
         {focusedEndpoint && isCurvePointReliable(focusedEndpoint) ? (
           <div className="cs-experiment-curve-endpoint">

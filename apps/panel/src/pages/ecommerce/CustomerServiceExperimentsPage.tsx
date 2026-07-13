@@ -156,11 +156,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     view === "REALTIME"
       ? ["REALTIME_6H", "REALTIME_24H", "REALTIME_72H"]
       : ["DAILY_30D", "DAILY_90D"];
-  const effectiveRange = (validRanges.includes(range)
-    ? range
-    : view === "REALTIME"
-      ? "REALTIME_24H"
-      : "DAILY_30D") as GQL.CsExperimentTrendRange;
+  const effectiveRange = (
+    validRanges.includes(range) ? range : view === "REALTIME" ? "REALTIME_24H" : "DAILY_30D"
+  ) as GQL.CsExperimentTrendRange;
   useEffect(() => {
     if (range !== effectiveRange) setRange(effectiveRange);
   }, [view, range]);
@@ -201,8 +199,10 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       const key = point.bucketStart;
       const seriesKey = `${point.variantKey}${point.dimensionValue ? ` · ${point.dimensionValue}` : ""}`;
       series.add(seriesKey);
-      const row: Record<string, string | number | null> =
-        rows.get(key) ?? { bucketStart: key, label: formatDate(key) };
+      const row: Record<string, string | number | null> = rows.get(key) ?? {
+        bucketStart: key,
+        label: formatDate(key),
+      };
       row[seriesKey] = point.value ?? null;
       rows.set(key, row);
     }
@@ -211,13 +211,38 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
 
   const metricRows = detail?.metrics.filter((item) => item.metricKey === metric) ?? [];
   const comparisons = detail?.comparisons.filter((item) => item.metricKey === metric) ?? [];
+  const shopSortCollator = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  const sortedShops = [...entityStore.shops].sort((left, right) => {
+    const leftLabel = left.alias?.trim() || left.shopName || left.platformShopId || left.id;
+    const rightLabel = right.alias?.trim() || right.shopName || right.platformShopId || right.id;
+    return (
+      shopSortCollator.compare(leftLabel, rightLabel) ||
+      shopSortCollator.compare(left.shopName || "", right.shopName || "") ||
+      left.id.localeCompare(right.id)
+    );
+  });
   const shops = [
     { value: "", label: t("ecommerce.customerServiceExperiments.filters.allShops") },
-    ...entityStore.shops.map((shop) => ({
+    ...sortedShops.map((shop) => ({
       value: shop.id,
       label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
     })),
   ];
+  const shopById = new Map(entityStore.shops.map((shop) => [shop.id, shop]));
+  const formatTargetLabel = (target: GQL.CsExperimentTargetView, includeRegion = false) => {
+    const shop = shopById.get(target.id);
+    const parts = [shop?.alias, target.name || shop?.shopName];
+    if (includeRegion) parts.push(target.region || shop?.region);
+    const uniqueParts = parts
+      .map((part) => part?.trim())
+      .filter(
+        (part, index, values): part is string => Boolean(part) && values.indexOf(part) === index,
+      );
+    return uniqueParts.join(" · ") || target.id;
+  };
   const maturity =
     detail?.quality && detail.quality.assignedUnits > 0
       ? detail.quality.maturedUnits / detail.quality.assignedUnits
@@ -299,8 +324,8 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         </div>
       </header>
 
-      <div className="section-card cs-experiments-toolbar">
-        <label className="cs-experiments-toolbar-field">
+      <div className="section-card cs-performance-toolbar cs-experiments-toolbar">
+        <label className="cs-performance-filter">
           <span>{t("ecommerce.customerServiceExperiments.filters.shop")}</span>
           <Select
             value={shopId}
@@ -310,7 +335,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
             className="cs-experiments-filter-select"
           />
         </label>
-        <label className="cs-experiments-toolbar-field">
+        <label className="cs-performance-filter">
           <span>{t("ecommerce.customerServiceExperiments.filters.type")}</span>
           <Select
             value={typeFilter}
@@ -388,7 +413,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                         : t("ecommerce.customerServiceExperiments.types.config")}
                     </strong>
                     <small>
-                      {item.targets.map((target) => target.name || target.id).join(", ") ||
+                      {item.targets.map((target) => formatTargetLabel(target)).join(", ") ||
                         t("ecommerce.customerServiceExperiments.unknownShop")}
                     </small>
                     <div className="cs-experiment-mini-progress">
@@ -418,7 +443,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
 
           <main className="cs-experiment-detail">
             {workspaceQuery.error && !detail ? (
-              <div className="section-card cs-experiments-error">{workspaceQuery.error.message}</div>
+              <div className="section-card cs-experiments-error">
+                {workspaceQuery.error.message}
+              </div>
             ) : null}
             {!detail && workspaceQuery.loading ? (
               <div className="section-card cs-experiments-loading">{t("common.loading")}</div>
@@ -440,10 +467,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       </h2>
                       <p>
                         {detail.targets
-                          .map(
-                            (target) =>
-                              `${target.name || target.id}${target.region ? ` · ${target.region}` : ""}`,
-                          )
+                          .map((target) => formatTargetLabel(target, true))
                           .join("  /  ")}
                       </p>
                     </div>
@@ -604,7 +628,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                       <div className="cs-experiment-metric-cards">
                         {metricRows.map((item, index) => (
                           <div key={`${item.variantKey}:${item.dimensionValue}`}>
-                            <i style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }} />
+                            <i
+                              style={{ background: SERIES_COLORS[index % SERIES_COLORS.length] }}
+                            />
                             <span>
                               {item.variantKey}
                               {item.dimensionValue ? ` · ${item.dimensionValue}` : ""}
