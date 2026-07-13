@@ -13422,6 +13422,9 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-curve-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid var(--color-border-light); border-radius: 8px; background: color-mix(in srgb, var(--color-bg-alt) 72%, var(--color-bg)); }
 .cs-experiment-curve-toolbar > div { display: flex; align-items: center; gap: 8px; }
 .cs-experiment-curve-toolbar small { color: var(--color-text-muted); font-size: 10px; }
+.cs-experiment-curve-context-warning { display: grid; grid-template-columns: max-content 1fr; align-items: center; gap: 5px 10px; padding: 9px 11px; border: 1px solid color-mix(in srgb, var(--experiment-brass) 30%, var(--color-border-light)); border-radius: 8px; background: color-mix(in srgb, var(--experiment-brass) 7%, var(--color-bg)); color: var(--color-text-secondary); }
+.cs-experiment-curve-context-warning strong { color: var(--experiment-brass); font-size: 10px; }
+.cs-experiment-curve-context-warning span { font-size: 9px; line-height: 1.45; }
 .cs-experiment-curve-zoom { display: inline-flex; min-height: 30px; align-items: center; gap: 7px; padding: 0 4px 0 7px; border: 1px solid transparent; border-radius: 999px; color: var(--color-text-secondary); cursor: pointer; font-size: 10px; font-weight: 700; transition: border-color 160ms ease, background 160ms ease, color 160ms ease; }
 .cs-experiment-curve-zoom:hover { background: color-mix(in srgb, var(--experiment-brass) 7%, transparent); }
 .cs-experiment-curve-zoom.active { border-color: color-mix(in srgb, var(--experiment-brass) 32%, var(--color-border-light)); background: color-mix(in srgb, var(--experiment-brass) 8%, var(--color-bg)); color: var(--color-text); }
@@ -13458,6 +13461,8 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-curve-note > div { display: grid; gap: 3px; }
 .cs-experiment-curve-endpoint { min-width: max-content; grid-template-columns: repeat(2, auto); column-gap: 10px; text-align: right; }
 .cs-experiment-curve-endpoint strong { grid-column: 1 / -1; color: var(--color-text-secondary); font-size: 9px; }
+.cs-experiment-curve-endpoint.directional { display: grid; grid-template-columns: 1fr; max-width: 210px; min-width: 0; }
+.cs-experiment-curve-endpoint.directional span { color: var(--experiment-brass); }
 .cs-experiment-curve-empty { display: grid; min-height: 280px; place-items: center; align-content: center; gap: 7px; border-top: 1px solid var(--color-border-light); color: var(--color-text-secondary); text-align: center; }
 .cs-experiment-curve-empty p { max-width: 520px; margin: 0; color: var(--color-text-muted); font-size: 11px; }
 .cs-experiment-curve-empty.error { color: var(--color-danger); }
