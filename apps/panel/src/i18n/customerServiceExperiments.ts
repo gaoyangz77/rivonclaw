@@ -54,12 +54,19 @@ const base = {
   allocation: "Traffic & configurations",
   allocationHint: "Variant percentages are calculated within experiment traffic.",
   noReachout: "No message configuration",
+  usesBaseConfiguration: "Uses the shop's base reachout configuration",
   analysis: "Outcome signal",
   comparisons: "Statistical comparisons",
   comparisonHint:
     "Randomized comparisons only. Provisional results may still change as cohorts mature.",
   noTrend: "No trend data is available for this range.",
   noComparison: "No statistical comparison is available yet.",
+  awaitingMaturityTitle: "Waiting for the first mature cohort",
+  awaitingMaturityBody:
+    "{{assigned}} assigned orders are still inside the fixed outcome window. The next cohort matures around {{time}}; showing an earlier payment-rate comparison would bias the experiment.",
+  comparisonAwaitingTitle: "Statistical comparison is not ready",
+  comparisonAwaitingBody:
+    "A comparison appears after both arms have mature observations. The next cohort matures around {{time}}.",
   insufficient: "More data needed",
   ready: "Analyzable",
   table: {

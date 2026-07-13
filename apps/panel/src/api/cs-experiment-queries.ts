@@ -24,6 +24,7 @@ const EXPERIMENT_LIST_FIELDS = gql`
       srmPValue
       maxAllocationDeviationBps
       calculatedAt
+      nextMaturityAt
     }
   }
 `;
@@ -62,6 +63,7 @@ export const ECOMMERCE_GET_CS_EXPERIMENT_DETAIL = gql`
         srmPValue
         maxAllocationDeviationBps
         calculatedAt
+        nextMaturityAt
       }
       variants {
         variantKey

@@ -13408,6 +13408,12 @@ html[lang="zh"] .acct-tool-chips {
 .cs-experiment-metric-cards small { color: var(--color-text-muted); font: 9px "JetBrains Mono", monospace; }
 .cs-experiment-chart { min-height: 280px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--color-border-light); }
 .cs-experiments-chart-empty, .cs-experiments-loading { display: grid; min-height: 220px; place-items: center; color: var(--color-text-muted); font-size: 12px; }
+.cs-experiment-maturity-empty { display: grid; min-height: 220px; place-items: center; align-content: center; gap: 7px; padding: 28px; text-align: center; }
+.cs-experiment-maturity-empty::before { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid color-mix(in srgb, var(--experiment-brass) 35%, var(--color-border-light)); border-radius: 50%; background: color-mix(in srgb, var(--experiment-brass) 8%, transparent); color: var(--experiment-brass); content: "⌛"; font-size: 17px; }
+.cs-experiment-maturity-empty strong { font-size: 13px; }
+.cs-experiment-maturity-empty p { max-width: 520px; margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.55; }
+.cs-experiment-maturity-empty.compact { min-height: 120px; }
+.cs-experiment-maturity-empty.compact::before { width: 32px; height: 32px; font-size: 13px; }
 
 .cs-experiment-comparison-table { overflow-x: auto; }
 .cs-experiment-comparison-table table { width: 100%; min-width: 690px; border-collapse: collapse; font-size: 11px; }

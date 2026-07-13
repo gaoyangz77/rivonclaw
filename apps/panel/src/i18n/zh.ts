@@ -2945,11 +2945,18 @@ export default {
       allocation: "流量与方案",
       allocationHint: "方案百分比按实验 Treatment 流量内部计算。",
       noReachout: "不发送消息",
+      usesBaseConfiguration: "使用店铺基础配置正常触达",
       analysis: "结果信号",
       comparisons: "统计对比",
       comparisonHint: "仅展示随机实验对比；队列成熟前，实时结果仍可能变化。",
       noTrend: "该时间范围内暂无趋势数据。",
       noComparison: "当前还没有可用的统计对比。",
+      awaitingMaturityTitle: "正在等待首批 Cohort 成熟",
+      awaitingMaturityBody:
+        "当前 {{assigned}} 个分组订单仍处于固定结果窗口内。下一批预计在 {{time}} 左右成熟；提前比较支付率会给实验带来偏差。",
+      comparisonAwaitingTitle: "统计对比尚未就绪",
+      comparisonAwaitingBody:
+        "Control 与 Treatment 都产生成熟样本后才会生成统计对比。下一批预计在 {{time}} 左右成熟。",
       insufficient: "样本不足",
       ready: "可分析",
       table: { comparison: "对比", rate: "观测值", lift: "相对差异", signal: "结论状态" },

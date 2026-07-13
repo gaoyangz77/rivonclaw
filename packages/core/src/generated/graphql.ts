@@ -3169,6 +3169,7 @@ export interface CsExperimentQualityView {
   exposedUnits: Scalars['Int']['output'];
   maturedUnits: Scalars['Int']['output'];
   maxAllocationDeviationBps?: Maybe<Scalars['Int']['output']>;
+  nextMaturityAt?: Maybe<Scalars['DateTimeISO']['output']>;
   srmPValue?: Maybe<Scalars['Float']['output']>;
 }
 
