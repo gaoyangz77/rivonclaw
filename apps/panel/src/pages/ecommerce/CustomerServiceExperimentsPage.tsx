@@ -300,15 +300,22 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       </header>
 
       <div className="section-card cs-experiments-toolbar">
-        <label>
+        <label className="cs-experiments-toolbar-field">
           <span>{t("ecommerce.customerServiceExperiments.filters.shop")}</span>
-          <Select value={shopId} onChange={setShopId} options={shops} searchable />
+          <Select
+            value={shopId}
+            onChange={setShopId}
+            options={shops}
+            searchable
+            className="cs-experiments-filter-select"
+          />
         </label>
-        <label>
+        <label className="cs-experiments-toolbar-field">
           <span>{t("ecommerce.customerServiceExperiments.filters.type")}</span>
           <Select
             value={typeFilter}
             onChange={setTypeFilter}
+            className="cs-experiments-filter-select"
             options={[
               { value: "", label: t("ecommerce.customerServiceExperiments.filters.allTypes") },
               { value: "HOLDOUT", label: t("ecommerce.customerServiceExperiments.types.holdout") },
