@@ -2191,6 +2191,7 @@ export interface AgentCsSettingsInput {
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  /** Nested configuration optimization within holdout Treatment traffic. Variant A is always the current production configuration. */
   unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
   unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
@@ -2204,6 +2205,7 @@ export interface AgentCsSettingsInput {
 export interface AgentUnpaidOrderConfigExperimentInput {
   enabled: Scalars['Boolean']['input'];
   expectedExperimentId?: InputMaybe<Scalars['String']['input']>;
+  /** Full replacement of 2-20 variants. Variant A must be first and its stages must equal the shop's current production unpaid-order stages; A's percentage remains configurable. */
   variants?: InputMaybe<Array<AgentUnpaidOrderConfigVariantInput>>;
 }
 
@@ -2211,6 +2213,7 @@ export interface AgentUnpaidOrderConfigVariantInput {
   label: Scalars['String']['input'];
   percentage: Scalars['Float']['input'];
   stages: Array<UnpaidOrderReachoutStageInput>;
+  /** Stable variant key. The first variant must be A and represent current production stages. */
   variantKey: Scalars['String']['input'];
 }
 
@@ -3053,6 +3056,13 @@ export const CsEscalationStatus = {
 } as const;
 
 export type CsEscalationStatus = typeof CsEscalationStatus[keyof typeof CsEscalationStatus];
+export interface CsExperimentAnalysisPopulationView {
+  actualWeightBps: Scalars['Int']['output'];
+  assignedUnits: Scalars['Int']['output'];
+  includedInPrimaryAnalysis: Scalars['Boolean']['output'];
+  variantKey: Scalars['String']['output'];
+}
+
 export interface CsExperimentComparisonView {
   absoluteEffect?: Maybe<Scalars['Float']['output']>;
   adjustedPValue?: Maybe<Scalars['Float']['output']>;
@@ -3098,6 +3108,7 @@ export const CsExperimentDataStatus = {
 
 export type CsExperimentDataStatus = typeof CsExperimentDataStatus[keyof typeof CsExperimentDataStatus];
 export interface CsExperimentDetailView {
+  analysisPopulation: Array<CsExperimentAnalysisPopulationView>;
   comparisons: Array<CsExperimentComparisonView>;
   dataStatus: CsExperimentDataStatus;
   displayStatus: CsExperimentDisplayStatus;
@@ -4151,6 +4162,7 @@ export interface CustomerServiceSettingsInput {
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
+  /** Nested configuration optimization within holdout Treatment traffic. Variant A is always the current production configuration. */
   unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
   unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */

@@ -3071,6 +3071,7 @@ export default {
         control: "Control",
         treatment: "Reachout-eligible traffic",
         productionConfig: "Current production configuration",
+        configExploration: "Configuration optimization traffic",
       },
       duration: { minute: "{{count}} min", hour: "{{count}} hr", day: "{{count}} day" },
       types: { holdout: "Incrementality holdout", config: "Configuration A/B test" },
@@ -3117,6 +3118,10 @@ export default {
       emptyBody: "Try another shop, experiment type, or switch between realtime and history.",
       allocation: "Traffic & configurations",
       allocationHint: "Variant percentages are calculated within experiment traffic.",
+      actualAllocationHint:
+        "Observed share of assigned orders. Incrementality compares only Control with the current production configuration A.",
+      actualAssignedOrders: "{{count}} assigned orders",
+      excludedFromIncrementality: "Analyzed in the configuration test; excluded from incrementality",
       noReachout: "No message configuration",
       usesBaseConfiguration: "Uses the shop's base reachout configuration",
       viewConfiguration: "View configuration",
