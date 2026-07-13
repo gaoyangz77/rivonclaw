@@ -3125,6 +3125,11 @@ export default {
       curve: {
         paymentProgress: "Payment progress",
         metricTrend: "Metric trend",
+        estimatorLabel: "Payment-progress estimator",
+        modelEstimator: "Modeled signal",
+        modelEstimatorHint: "Shared natural hazard before reachout",
+        rawEstimator: "Raw steps",
+        rawEstimatorHint: "Non-parametric diagnostic",
         asOf: "Estimated {{time}}",
         focusedScale: "Focused scale {{low}}–{{high}}%",
         searchVariants: "Search variants",
@@ -3138,7 +3143,12 @@ export default {
           "This curve only shows natural payment and cancellation before any reachout. It cannot be used to evaluate reachout impact yet.",
         tooltipCounts:
           "Assigned {{assigned}} · paid {{paid}} · cancelled {{cancelled}} · censored {{censored}} · at risk {{risk}} · coverage {{coverage}}%",
-        axisNote: "Step curve from minute 1: share not yet converted to paid after order creation.",
+        modelAxisNote:
+          "Shared-hazard model from minute 1: arms share the natural payment baseline until their reachout begins.",
+        rawAxisNote:
+          "Raw Aalen–Johansen steps from minute 1: the non-parametric share not yet converted to paid.",
+        modelIntervalLabel: "95% uncertainty band",
+        rawIntervalLabel: "95% CI",
         reliabilityNote:
           "Faded segments have fewer than 100 assigned orders, CI wider than 10pp, or observation coverage below 80%.",
         glossaryTitle: "How to read the observation counts",

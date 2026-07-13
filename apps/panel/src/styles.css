@@ -13867,6 +13867,48 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--experiment-ink);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 8%, transparent);
 }
+.cs-experiment-curve-estimator-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(190px, 1fr));
+  max-width: 620px;
+  gap: 6px;
+  margin: -3px 0 12px;
+}
+.cs-experiment-curve-estimator-switch button {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  padding: 8px 11px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg-alt) 66%, var(--color-bg));
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+.cs-experiment-curve-estimator-switch button:hover {
+  border-color: color-mix(in srgb, var(--experiment-ink) 35%, var(--color-border-light));
+}
+.cs-experiment-curve-estimator-switch button.active {
+  border-color: color-mix(in srgb, var(--experiment-ink) 58%, var(--color-border-light));
+  background: color-mix(in srgb, var(--experiment-ink) 7%, var(--color-bg));
+  box-shadow: inset 3px 0 0 var(--experiment-ink);
+  color: var(--experiment-ink);
+}
+.cs-experiment-curve-estimator-switch strong {
+  font-size: 10px;
+}
+.cs-experiment-curve-estimator-switch small {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .cs-experiment-analysis-controls .custom-select:first-child {
   min-width: 250px;
 }
@@ -14415,6 +14457,10 @@ html[lang="zh"] .acct-tool-chips {
   .cs-experiment-signal-tabs button {
     min-width: 0;
     flex: 1;
+  }
+  .cs-experiment-curve-estimator-switch {
+    grid-template-columns: 1fr;
+    max-width: none;
   }
   .cs-experiment-curve-toolbar,
   .cs-experiment-curve-note {

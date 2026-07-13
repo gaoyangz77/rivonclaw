@@ -2960,6 +2960,11 @@ export default {
       curve: {
         paymentProgress: "支付进程",
         metricTrend: "指标趋势",
+        estimatorLabel: "支付进程估计方式",
+        modelEstimator: "模型信号",
+        modelEstimatorHint: "触达前共享自然付款 Hazard",
+        rawEstimator: "原始阶梯",
+        rawEstimatorHint: "非参数诊断基线",
         asOf: "估算于 {{time}}",
         focusedScale: "聚焦区间 {{low}}–{{high}}%",
         searchVariants: "搜索实验方案",
@@ -2972,7 +2977,12 @@ export default {
         noExposureBody: "当前曲线仅反映触达前的自然支付与取消，暂时不能用于评价触达效果。",
         tooltipCounts:
           "总分组 {{assigned}} · 支付 {{paid}} · 取消 {{cancelled}} · 截尾 {{censored}} · 风险集 {{risk}} · 覆盖 {{coverage}}%",
-        axisNote: "阶梯曲线从下单后第1分钟开始：不同时间仍未转化为支付的比例。",
+        modelAxisNote:
+          "共享 Hazard 模型从下单后第1分钟开始：各组在实际触达前共享自然付款基线。",
+        rawAxisNote:
+          "原始 Aalen–Johansen 阶梯从下单后第1分钟开始：未经模型约束的未支付比例。",
+        modelIntervalLabel: "95% 不确定性区间",
+        rawIntervalLabel: "95% 置信区间",
         reliabilityNote:
           "分组少于100单、置信区间宽于10个百分点或观察覆盖低于80%的区段以淡色虚线展示。",
         glossaryTitle: "观察口径说明",

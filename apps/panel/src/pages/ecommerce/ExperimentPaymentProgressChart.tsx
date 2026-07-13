@@ -125,6 +125,14 @@ export function firstPositiveCurveMinute(points: Array<{ elapsedMinutes: number 
   return positive.length ? Math.min(...positive) : 1;
 }
 
+export function curveInterpolationType(
+  estimator: GQL.CsExperimentCurveEstimator | undefined,
+): "monotoneX" | "stepAfter" {
+  return estimator === GQL.CsExperimentCurveEstimator.AalenJohansen
+    ? "stepAfter"
+    : "monotoneX";
+}
+
 function formatElapsed(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = minutes / 60;
@@ -224,6 +232,7 @@ export function ExperimentPaymentProgressChart({
     displayLabel(series).toLowerCase().includes(search.trim().toLowerCase()),
   );
   const yDomain = curveYAxisDomain(orderedSeries, visibleKeys);
+  const interpolationType = curveInterpolationType(curve?.estimator);
   const firstElapsedMinute = firstPositiveCurveMinute(rows);
   const chartRows = rows.filter((row) => row.elapsedMinutes >= firstElapsedMinute);
   const focused =
@@ -402,7 +411,12 @@ export function ExperimentPaymentProgressChart({
                             </em>
                           ) : null}
                           <small>
-                            95% CI {(point.confidenceIntervalLow * 100).toFixed(1)}–
+                            {t(
+                              curve.estimator === GQL.CsExperimentCurveEstimator.AalenJohansen
+                                ? "ecommerce.customerServiceExperiments.curve.rawIntervalLabel"
+                                : "ecommerce.customerServiceExperiments.curve.modelIntervalLabel",
+                            )}{" "}
+                            {(point.confidenceIntervalLow * 100).toFixed(1)}–
                             {(point.confidenceIntervalHigh * 100).toFixed(1)}%
                           </small>
                           <small>
@@ -435,7 +449,7 @@ export function ExperimentPaymentProgressChart({
               return (
                 <Line
                   key={`${series.seriesKey}:reliable`}
-                  type="stepAfter"
+                  type={interpolationType}
                   dataKey={`${series.seriesKey}:reliable`}
                   stroke={color}
                   strokeWidth={presentation.strokeWidth}
@@ -456,7 +470,7 @@ export function ExperimentPaymentProgressChart({
               return (
                 <Line
                   key={`${series.seriesKey}:uncertain`}
-                  type="stepAfter"
+                  type={interpolationType}
                   dataKey={`${series.seriesKey}:uncertain`}
                   stroke={curveColor(
                     orderedSeries.findIndex((item) => item.seriesKey === series.seriesKey),
@@ -476,7 +490,13 @@ export function ExperimentPaymentProgressChart({
       </div>
       <footer className="cs-experiment-curve-note">
         <div className="cs-experiment-curve-caption">
-          <span>{t("ecommerce.customerServiceExperiments.curve.axisNote")}</span>
+          <span>
+            {t(
+              curve.estimator === GQL.CsExperimentCurveEstimator.AalenJohansen
+                ? "ecommerce.customerServiceExperiments.curve.rawAxisNote"
+                : "ecommerce.customerServiceExperiments.curve.modelAxisNote",
+            )}
+          </span>
           <span>{t("ecommerce.customerServiceExperiments.curve.reliabilityNote")}</span>
           <div className="cs-experiment-curve-glossary">
             <strong>{t("ecommerce.customerServiceExperiments.curve.glossaryTitle")}</strong>

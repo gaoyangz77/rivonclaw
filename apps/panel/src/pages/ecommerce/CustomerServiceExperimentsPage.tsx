@@ -114,6 +114,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
   const [typeFilter, setTypeFilter] = useState("");
   const [shopId, setShopId] = useState("");
   const [signalView, setSignalView] = useState<SignalView>("PAYMENT_PROGRESS");
+  const [curveEstimator, setCurveEstimator] = useState<GQL.CsExperimentCurveEstimator>(
+    GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
+  );
   const visible = usePageVisibility();
 
   useEffect(() => {
@@ -170,6 +173,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         curveInput: {
           experimentId,
           eventKey: GQL.CsExperimentOutcomeEventKey.CsUnpaidPayment,
+          estimator: curveEstimator,
         },
         trendInput: { experimentId, metricKey: metric, range: effectiveRange },
         includeCurve: signalView === "PAYMENT_PROGRESS",
@@ -190,7 +194,8 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         : undefined;
   const detail = workspaceData?.ecommerceGetCSExperimentDetail;
   const trend = workspaceData?.ecommerceGetCSExperimentTrend;
-  const curve = workspaceData?.ecommerceGetCSExperimentTimeToEventCurve;
+  const curveCandidate = workspaceData?.ecommerceGetCSExperimentTimeToEventCurve;
+  const curve = curveCandidate?.estimator === curveEstimator ? curveCandidate : undefined;
 
   const chart = useMemo(() => {
     const rows = new Map<string, Record<string, string | number | null>>();
@@ -598,13 +603,69 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                     </button>
                   </div>
                   {signalView === "PAYMENT_PROGRESS" ? (
-                    <ExperimentPaymentProgressChart
-                      curve={curve}
-                      exposedUnits={detail.quality?.exposedUnits ?? 0}
-                      loading={workspaceQuery.loading}
-                      failed={Boolean(workspaceQuery.error)}
-                      onRetry={() => void workspaceQuery.refetch()}
-                    />
+                    <>
+                      <div
+                        className="cs-experiment-curve-estimator-switch"
+                        role="group"
+                        aria-label={t(
+                          "ecommerce.customerServiceExperiments.curve.estimatorLabel",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          className={
+                            curveEstimator ===
+                            GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard
+                              ? "active"
+                              : ""
+                          }
+                          aria-pressed={
+                            curveEstimator ===
+                            GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard
+                          }
+                          onClick={() =>
+                            setCurveEstimator(
+                              GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
+                            )
+                          }
+                        >
+                          <strong>
+                            {t("ecommerce.customerServiceExperiments.curve.modelEstimator")}
+                          </strong>
+                          <small>
+                            {t("ecommerce.customerServiceExperiments.curve.modelEstimatorHint")}
+                          </small>
+                        </button>
+                        <button
+                          type="button"
+                          className={
+                            curveEstimator === GQL.CsExperimentCurveEstimator.AalenJohansen
+                              ? "active"
+                              : ""
+                          }
+                          aria-pressed={
+                            curveEstimator === GQL.CsExperimentCurveEstimator.AalenJohansen
+                          }
+                          onClick={() =>
+                            setCurveEstimator(GQL.CsExperimentCurveEstimator.AalenJohansen)
+                          }
+                        >
+                          <strong>
+                            {t("ecommerce.customerServiceExperiments.curve.rawEstimator")}
+                          </strong>
+                          <small>
+                            {t("ecommerce.customerServiceExperiments.curve.rawEstimatorHint")}
+                          </small>
+                        </button>
+                      </div>
+                      <ExperimentPaymentProgressChart
+                        curve={curve}
+                        exposedUnits={detail.quality?.exposedUnits ?? 0}
+                        loading={workspaceQuery.loading}
+                        failed={Boolean(workspaceQuery.error)}
+                        onRetry={() => void workspaceQuery.refetch()}
+                      />
+                    </>
                   ) : (
                     <>
                       <div className="cs-experiment-analysis-controls">

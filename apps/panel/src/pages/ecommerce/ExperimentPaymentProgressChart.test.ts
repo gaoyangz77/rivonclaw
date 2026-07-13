@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { GQL } from "@rivonclaw/core";
 import {
+  curveInterpolationType,
   curveYAxisDomain,
   curveLinePresentation,
   defaultVisibleCurveSeries,
@@ -137,6 +139,15 @@ describe("ExperimentPaymentProgressChart", () => {
       ]),
     ).toBe(1);
     expect(firstPositiveCurveMinute([{ elapsedMinutes: 0 }])).toBe(1);
+  });
+
+  it("renders the modeled signal continuously and preserves raw diagnostic steps", () => {
+    expect(
+      curveInterpolationType(GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard),
+    ).toBe("monotoneX");
+    expect(curveInterpolationType(GQL.CsExperimentCurveEstimator.AalenJohansen)).toBe(
+      "stepAfter",
+    );
   });
 
   it("keeps control as the strongest baseline even while its estimate is directional", () => {
