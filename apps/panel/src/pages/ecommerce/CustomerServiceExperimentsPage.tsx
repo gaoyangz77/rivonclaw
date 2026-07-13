@@ -481,7 +481,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                           </div>
                         ) : (
                           <div className="cs-experiment-stage-line muted">
-                            {t("ecommerce.customerServiceExperiments.noReachout")}
+                            {variant.action === "CONTINUE"
+                              ? t("ecommerce.customerServiceExperiments.usesBaseConfiguration")
+                              : t("ecommerce.customerServiceExperiments.noReachout")}
                           </div>
                         )}
                       </article>
@@ -535,6 +537,18 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                   <div className="cs-experiment-chart">
                     {trendQuery.loading && !trend ? (
                       <div className="cs-experiments-loading">{t("common.loading")}</div>
+                    ) : detail.quality?.maturedUnits === 0 ? (
+                      <div className="cs-experiment-maturity-empty">
+                        <strong>
+                          {t("ecommerce.customerServiceExperiments.awaitingMaturityTitle")}
+                        </strong>
+                        <p>
+                          {t("ecommerce.customerServiceExperiments.awaitingMaturityBody", {
+                            assigned: detail.quality.assignedUnits.toLocaleString(),
+                            time: formatDate(detail.quality.nextMaturityAt),
+                          })}
+                        </p>
+                      </div>
                     ) : chart.rows.length ? (
                       <ResponsiveContainer width="100%" height={280}>
                         <LineChart
@@ -633,6 +647,17 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  ) : detail.quality?.maturedUnits === 0 ? (
+                    <div className="cs-experiment-maturity-empty compact">
+                      <strong>
+                        {t("ecommerce.customerServiceExperiments.comparisonAwaitingTitle")}
+                      </strong>
+                      <p>
+                        {t("ecommerce.customerServiceExperiments.comparisonAwaitingBody", {
+                          time: formatDate(detail.quality.nextMaturityAt),
+                        })}
+                      </p>
                     </div>
                   ) : (
                     <div className="cs-experiments-chart-empty">
