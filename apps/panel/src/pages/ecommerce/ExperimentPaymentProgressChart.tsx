@@ -164,12 +164,6 @@ export function curveInterpolationType(
     : "monotoneX";
 }
 
-function formatElapsed(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = minutes / 60;
-  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
-}
-
 function curveColor(index: number, series: CurveSeries): string {
   return series.seriesRole === "CONTROL"
     ? "var(--experiment-ink)"
@@ -204,7 +198,8 @@ export function ExperimentPaymentProgressChart({
   failed,
   onRetry,
 }: ExperimentPaymentProgressChartProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || i18n.language;
   const [search, setSearch] = useState("");
   const [visibleKeys, setVisibleKeys] = useState<string[]>([]);
   const [focusedKey, setFocusedKey] = useState("");
@@ -212,6 +207,13 @@ export function ExperimentPaymentProgressChart({
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
   const initializedExperimentRef = useRef<string | null>(null);
+  const formatElapsed = (minutes: number): string => {
+    if (minutes < 60)
+      return t("ecommerce.customerServiceExperiments.duration.minute", { count: minutes });
+    return t("ecommerce.customerServiceExperiments.duration.hour", {
+      count: Number((minutes / 60).toFixed(Number.isInteger(minutes / 60) ? 0 : 1)),
+    });
+  };
   const orderedSeries = useMemo(
     () =>
       [...(curve?.series ?? [])].sort((left, right) => {
@@ -221,10 +223,17 @@ export function ExperimentPaymentProgressChart({
       }),
     [curve],
   );
-  const displayLabel = (series: CurveSeries): string =>
-    series.seriesRole === "CONTROL"
-      ? t("ecommerce.customerServiceExperiments.curve.controlLabel")
-      : series.label;
+  const displayLabel = (series: CurveSeries): string => {
+    if (series.seriesRole === "CONTROL")
+      return t("ecommerce.customerServiceExperiments.curve.controlLabel");
+    if (
+      series.seriesRole === "TREATMENT" ||
+      series.seriesKey.trim().toUpperCase() === "TREATMENT" ||
+      series.label.trim().toUpperCase() === "TREATMENT"
+    )
+      return t("ecommerce.customerServiceExperiments.terms.treatment");
+    return series.label;
+  };
 
   useEffect(() => {
     const keys = orderedSeries.map((series) => series.seriesKey);
@@ -361,7 +370,7 @@ export function ExperimentPaymentProgressChart({
           </span>
           <small>
             {t("ecommerce.customerServiceExperiments.curve.asOf", {
-              time: new Date(curve.asOf).toLocaleString(),
+              time: new Date(curve.asOf).toLocaleString(locale),
             })}
           </small>
         </div>
