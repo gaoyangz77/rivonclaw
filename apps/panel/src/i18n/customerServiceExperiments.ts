@@ -67,6 +67,28 @@ const base = {
   comparisonAwaitingTitle: "Statistical comparison is not ready",
   comparisonAwaitingBody:
     "A comparison appears after both arms have mature observations. The next cohort matures around {{time}}.",
+  curve: {
+    paymentProgress: "Payment progress",
+    metricTrend: "Metric trend",
+    asOf: "Estimated {{time}}",
+    zoomDifferences: "Zoom differences",
+    searchVariants: "Search variants",
+    selectAll: "Select all",
+    clear: "Clear",
+    directionalOnly: "Directional signal",
+    tooltipCounts:
+      "Paid {{paid}} · cancelled {{cancelled}} · censored {{censored}} · at risk {{risk}} · coverage {{coverage}}%",
+    axisNote: "Step curve: share not yet converted to paid, by minutes since order creation.",
+    reliabilityNote: "Faded segments have CI wider than 10pp or observation coverage below 80%.",
+    endpointCancelled: "Endpoint cancelled {{value}}%",
+    endpointStillUnpaid: "Endpoint still unpaid {{value}}%",
+    preparingTitle: "Building the first payment-progress estimate",
+    preparingBody:
+      "The five-minute pipeline will publish a provisional curve after assignments reach the warehouse.",
+    loadFailed: "Payment-progress curve failed to load",
+    retry: "Retry",
+    controlLabel: "Control · no reachout",
+  },
   insufficient: "More data needed",
   ready: "Analyzable",
   table: {
@@ -90,6 +112,7 @@ type TranslationOverride = Partial<
     | "metrics"
     | "ranges"
     | "kpis"
+    | "curve"
     | "table"
   >
 > & {
@@ -102,6 +125,7 @@ type TranslationOverride = Partial<
   metrics?: Partial<Translation["metrics"]>;
   ranges?: Partial<Translation["ranges"]>;
   kpis?: Partial<Translation["kpis"]>;
+  curve?: Partial<Translation["curve"]>;
   table?: Partial<Translation["table"]>;
 };
 const localized = (value: TranslationOverride): Translation => ({
@@ -116,6 +140,7 @@ const localized = (value: TranslationOverride): Translation => ({
   metrics: { ...base.metrics, ...value.metrics },
   ranges: { ...base.ranges, ...value.ranges },
   kpis: { ...base.kpis, ...value.kpis },
+  curve: { ...base.curve, ...value.curve },
   table: { ...base.table, ...value.table },
 });
 

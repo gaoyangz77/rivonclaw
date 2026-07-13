@@ -130,3 +130,41 @@ export const ECOMMERCE_GET_CS_EXPERIMENT_TREND = gql`
     }
   }
 `;
+
+export const ECOMMERCE_GET_CS_EXPERIMENT_TIME_TO_EVENT_CURVE = gql`
+  query EcommerceGetCSExperimentTimeToEventCurve($input: CsExperimentTimeToEventCurveInput!) {
+    ecommerceGetCSExperimentTimeToEventCurve(input: $input) {
+      experimentId
+      eventKey
+      estimator
+      dataStatus
+      asOf
+      maxElapsedMinutes
+      assignedUnits
+      excludedUnits
+      series {
+        seriesKey
+        seriesRole
+        label
+        action
+        stages {
+          stageIndex
+          delayMinutes
+        }
+        points {
+          elapsedMinutes
+          estimate
+          confidenceIntervalLow
+          confidenceIntervalHigh
+          assignedUnits
+          observedThroughUnits
+          atRiskUnits
+          cumulativePaidUnits
+          cumulativeCancelledUnits
+          censoredUnits
+          coverageRate
+        }
+      }
+    }
+  }
+`;
