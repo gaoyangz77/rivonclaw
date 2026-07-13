@@ -224,7 +224,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     expect(result.effectiveToolIds).toContain("image");
   });
 
-  it("CS_SESSION excludes image generation even when its RunProfile selects it", () => {
+  it("globally excludes image generation until the product supports configuring it", () => {
     rootStore.ingestGraphQLResponse({
       runProfiles: [
         {
@@ -248,10 +248,8 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
       "profile-cs-with-image-generation",
     );
 
-    expect(
-      rootStore.toolCapability.computeEffectiveTools("profile-cs-with-image-generation")
-        .effectiveToolIds,
-    ).toContain("image_generate");
+    expect(rootStore.toolCapability.allAvailableToolIds).not.toContain("image_generate");
+    expect(rootStore.toolCapability.extensionToolIds).not.toContain("image_generate");
 
     const result = rootStore.toolCapability.getEffectiveToolsForScope(
       ScopeType.CS_SESSION,
@@ -265,12 +263,12 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
       "agent:main:panel-image-generation",
       "profile-cs-with-image-generation",
     );
-    expect(
-      rootStore.toolCapability.getEffectiveToolsForScope(
-        ScopeType.CHAT_SESSION,
-        "agent:main:panel-image-generation",
-      ),
-    ).toContain("image_generate");
+    const chatResult = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-image-generation",
+    );
+    expect(chatResult).toContain("image");
+    expect(chatResult).not.toContain("image_generate");
   });
 
   it("CS system run profile stays attached to ecommerce seller surface", () => {
