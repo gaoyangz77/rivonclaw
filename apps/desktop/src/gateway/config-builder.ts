@@ -42,6 +42,7 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools", "rivoncl
 
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
+export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 135;
 const TEXT_AND_IMAGE_INPUT: GatewayInputModality[] = ["text", "image"];
 const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 type RawCustomModel =
@@ -130,9 +131,14 @@ const CLOUD_MODEL_RUNTIME_LIMITS = new Map(
 
 export function buildCustomProviderOverridesFromKeys(
   allKeys: ProviderKeyLike[],
-): Record<string, { baseUrl: string; api: string; models: CustomProviderModel[] }> {
-  const overrides: Record<string, { baseUrl: string; api: string; models: CustomProviderModel[] }> =
-    {};
+): Record<
+  string,
+  { baseUrl: string; api: string; timeoutSeconds?: number; models: CustomProviderModel[] }
+> {
+  const overrides: Record<
+    string,
+    { baseUrl: string; api: string; timeoutSeconds?: number; models: CustomProviderModel[] }
+  > = {};
   const customKeys = allKeys.filter((k) => k.authType === "custom");
 
   for (const key of customKeys) {
@@ -152,6 +158,7 @@ export function buildCustomProviderOverridesFromKeys(
     overrides[key.provider] = {
       baseUrl: key.baseUrl,
       api,
+      ...(forceImageInput ? { timeoutSeconds: RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS } : {}),
       models: rawModels.flatMap((m) => {
         if (typeof m === "string") {
           const runtimeLimits = forceImageInput ? CLOUD_MODEL_RUNTIME_LIMITS.get(m) : undefined;
@@ -273,7 +280,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
 
   function buildCustomProviderOverrides(): Record<
     string,
-    { baseUrl: string; api: string; models: CustomProviderModel[] }
+    { baseUrl: string; api: string; timeoutSeconds?: number; models: CustomProviderModel[] }
   > {
     return buildCustomProviderOverridesFromKeys(storage.providerKeys.getAll());
   }
