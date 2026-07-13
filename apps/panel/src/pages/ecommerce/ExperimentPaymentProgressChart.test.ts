@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import {
   curveInterpolationType,
+  curveTimeWindowPresets,
   curveYAxisDomain,
   curveLinePresentation,
   defaultVisibleCurveSeries,
   firstPositiveCurveMinute,
   isCurvePointReliable,
+  normalizeCurveTimeDomain,
   sortCurveTooltipSeries,
 } from "./ExperimentPaymentProgressChart.js";
 
@@ -139,6 +141,19 @@ describe("ExperimentPaymentProgressChart", () => {
       ]),
     ).toBe(1);
     expect(firstPositiveCurveMinute([{ elapsedMinutes: 0 }])).toBe(1);
+  });
+
+  it("offers useful leading-window presets without duplicating the full range", () => {
+    expect(curveTimeWindowPresets(2_880)).toEqual([30, 60, 360, 1_440]);
+    expect(curveTimeWindowPresets(60)).toEqual([30]);
+    expect(curveTimeWindowPresets(15)).toEqual([]);
+  });
+
+  it("normalizes drag selections and treats the complete range as reset", () => {
+    expect(normalizeCurveTimeDomain(30, 5, 1, 2_880)).toEqual({ start: 5, end: 30 });
+    expect(normalizeCurveTimeDomain(-20, 45, 1, 2_880)).toEqual({ start: 1, end: 45 });
+    expect(normalizeCurveTimeDomain(1, 2_880, 1, 2_880)).toBeNull();
+    expect(normalizeCurveTimeDomain(10, 10, 1, 2_880)).toBeNull();
   });
 
   it("renders the modeled signal continuously and preserves raw diagnostic steps", () => {

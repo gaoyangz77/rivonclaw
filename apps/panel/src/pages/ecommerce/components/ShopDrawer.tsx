@@ -169,6 +169,7 @@ export const ShopDrawer = observer(function ShopDrawer({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const shop = shopId ? (entityStore.shops.find((item) => item.id === shopId) ?? null) : null;
+  const shopAlias = shop?.alias?.trim() ?? "";
   const customerServiceEntitlement = shop
     ? (entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)
         ?.customerService ?? null)
@@ -298,7 +299,14 @@ export const ShopDrawer = observer(function ShopDrawer({
               <ShopIcon size={20} />
             </span>
             <div className="drawer-header-info">
-              <h3 className="drawer-header-title">{shop?.shopName ?? ""}</h3>
+              <div className="drawer-header-identity">
+                <h3 className="drawer-header-title">{shopAlias || shop?.shopName || ""}</h3>
+                {shopAlias && shop?.shopName && (
+                  <span className="drawer-header-shop-name" title={shop.shopName}>
+                    {shop.shopName}
+                  </span>
+                )}
+              </div>
               {shop && (
                 <span className={getAuthStatusBadgeClass(shop.authStatus)}>
                   {t(`tiktokShops.authStatus_${shop.authStatus}`)}

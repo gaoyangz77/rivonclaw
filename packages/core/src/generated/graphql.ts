@@ -3287,6 +3287,7 @@ export type CsExperimentTypeFilter = typeof CsExperimentTypeFilter[keyof typeof 
 export interface CsExperimentVariantStageView {
   delayMinutes: Scalars['Int']['output'];
   enabled: Scalars['Boolean']['output'];
+  messageTemplate?: Maybe<Scalars['String']['output']>;
   stageId: Scalars['String']['output'];
   stageIndex: Scalars['Int']['output'];
   templateHash: Scalars['String']['output'];

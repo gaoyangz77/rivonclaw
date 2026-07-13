@@ -66,6 +66,7 @@ const EXPERIMENT_DETAIL_FIELDS = gql`
         enabled
         delayMinutes
         templateHash
+        messageTemplate
       }
     }
     metrics {

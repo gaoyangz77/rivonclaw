@@ -7,6 +7,7 @@ describe("customer service experiment workspace query", () => {
     const query = print(ECOMMERCE_GET_CS_EXPERIMENT_WORKSPACE);
 
     expect(query).toContain("ecommerceGetCSExperimentDetail");
+    expect(query).toContain("messageTemplate");
     expect(query).toMatch(
       /ecommerceGetCSExperimentTimeToEventCurve\(input: \$curveInput\) @include\(if: \$includeCurve\)/,
     );

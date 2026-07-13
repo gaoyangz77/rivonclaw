@@ -106,15 +106,31 @@ function humanDelay(minutes: number, language: string): string {
   return language.startsWith("zh") ? `${hours} 小时` : `${hours}h`;
 }
 
-function toDraftStages(stages: ExperimentStage[]): UnpaidReachoutStageDraft[] {
-  return stages.map((stage) => ({ ...stage, delayMinutes: String(stage.delayMinutes) }));
-}
-
 interface ComparableStage {
   id?: string | null;
   enabled: boolean;
   delayMinutes: string | number;
   messageTemplate: string;
+}
+
+function toDraftStages(stages: ReadonlyArray<ComparableStage>): UnpaidReachoutStageDraft[] {
+  return stages.map((stage) => ({
+    id: stage.id ?? undefined,
+    enabled: stage.enabled,
+    delayMinutes: String(stage.delayMinutes),
+    messageTemplate: stage.messageTemplate,
+  }));
+}
+
+export function toUnpaidReachoutStageInput(
+  stage: ComparableStage,
+): GQL.UnpaidOrderReachoutStageInput {
+  return {
+    id: stage.id ?? undefined,
+    enabled: stage.enabled,
+    delayMinutes: Number(stage.delayMinutes),
+    messageTemplate: stage.messageTemplate,
+  };
 }
 
 export function serializeUnpaidReachoutStages(stages: ReadonlyArray<ComparableStage>): string {
@@ -257,7 +273,13 @@ export function UnpaidOrderReachoutSettings({
   const earliestDelay = enabledStages.length
     ? Math.min(...enabledStages.map((stage) => Number(stage.delayMinutes)))
     : null;
-  const errors = useMemo(() => validateUnpaidExperimentVariants(variants), [variants]);
+  const errors = useMemo(
+    () =>
+      workspaceMode === "DRAFT"
+        ? validateUnpaidExperimentVariants(variants)
+        : new Map<string, string[]>(),
+    [variants, workspaceMode],
+  );
   const workspaceValid = [...errors.values()].every((items) => items.length === 0);
   const selectedVariant =
     variants.find((variant) => variant.variantKey === selectedVariantKey) ?? variants[0];
@@ -368,9 +390,7 @@ export function UnpaidOrderReachoutSettings({
     }
     try {
       const stagesChanged =
-        JSON.stringify(
-          stages.map((stage) => ({ ...stage, delayMinutes: Number(stage.delayMinutes) })),
-        ) !== JSON.stringify(savedStages);
+        serializeUnpaidReachoutStages(stages) !== serializeUnpaidReachoutStages(savedStages);
       const evaluationChanged =
         evaluationEnabled !== savedEvaluationEnabled || holdout !== savedHoldout;
       const result = await updateSettings({
@@ -380,10 +400,7 @@ export function UnpaidOrderReachoutSettings({
             ...(enabled !== savedEnabled ? { reachoutEnabled: enabled } : {}),
             ...(stagesChanged && evaluation?.locks.canEditBaseStages !== false
               ? {
-                  stages: stages.map((stage) => ({
-                    ...stage,
-                    delayMinutes: Number(stage.delayMinutes),
-                  })),
+                  stages: stages.map(toUnpaidReachoutStageInput),
                 }
               : {}),
             ...(evaluationChanged
@@ -397,9 +414,11 @@ export function UnpaidOrderReachoutSettings({
       const view = (
         result.data as { ecommerceUpdateCSUnpaidOrderReachoutSettings: EvaluationView } | undefined
       )?.ecommerceUpdateCSUnpaidOrderReachoutSettings;
-      if (view) applyAuthoritative(view);
-      await Promise.all([query.refetch(), entityStore.fetchShops()]);
-      showToast(t("common.saved"), "success");
+      if (view) {
+        applyAuthoritative(view);
+      } else {
+        await query.refetch();
+      }
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
@@ -415,10 +434,7 @@ export function UnpaidOrderReachoutSettings({
           variantKey: variant.variantKey,
           label: variant.label.trim(),
           percentage: Number(variant.percentage),
-          stages: variant.stages.map((stage) => ({
-            ...stage,
-            delayMinutes: Number(stage.delayMinutes),
-          })),
+          stages: variant.stages.map(toUnpaidReachoutStageInput),
         })),
       };
       const result = workspaceExperimentId
@@ -849,38 +865,38 @@ export function UnpaidOrderReachoutSettings({
         </div>
       </details>
 
-      <div className="unpaid-sticky-footer">
-        <span className={settingsDirty ? "is-dirty" : "is-saved"}>
-          {updateState.loading
-            ? t("common.saving")
-            : settingsDirty
-              ? t("ecommerce.shopDrawer.aiCS.unpaidReachoutUnsaved")
-              : t("common.saved")}
-        </span>
-        <div>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={!settingsDirty || updateState.loading}
-            onClick={() => {
-              onEnabledChange(savedEnabled);
-              onStagesChange(toDraftStages(savedStages));
-              onEvaluationEnabledChange(savedEvaluationEnabled);
-              onHoldoutPercentChange(String(savedHoldout));
-            }}
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!settingsDirty || updateState.loading}
-            onClick={saveSettings}
-          >
-            {t("common.save")}
-          </button>
+      {(settingsDirty || updateState.loading) && (
+        <div className="unpaid-sticky-footer">
+          <span className="is-dirty">
+            {updateState.loading
+              ? t("common.saving")
+              : t("ecommerce.shopDrawer.aiCS.unpaidReachoutUnsaved")}
+          </span>
+          <div>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={updateState.loading}
+              onClick={() => {
+                onEnabledChange(savedEnabled);
+                onStagesChange(toDraftStages(savedStages));
+                onEvaluationEnabledChange(savedEvaluationEnabled);
+                onHoldoutPercentChange(String(savedHoldout));
+              }}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={updateState.loading}
+              onClick={saveSettings}
+            >
+              {t("common.save")}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <Modal
         isOpen={workspaceOpen}
@@ -1179,13 +1195,17 @@ export function UnpaidOrderReachoutSettings({
         </div>
         <footer className="unpaid-workspace-footer">
           <div>
-            {workspaceMode === "DRAFT" && !workspaceValid
-              ? t("ecommerce.shopDrawer.aiCS.unpaidExperimentInvalid", {
-                  defaultValue: "Resolve plan and allocation errors before starting.",
+            {workspaceMode !== "DRAFT"
+              ? t("ecommerce.shopDrawer.aiCS.unpaidRunningLock", {
+                  defaultValue: "Running configuration is read-only.",
                 })
-              : workspaceDirty
-                ? t("ecommerce.shopDrawer.aiCS.unpaidReachoutUnsaved")
-                : t("common.saved")}
+              : !workspaceValid
+                ? t("ecommerce.shopDrawer.aiCS.unpaidExperimentInvalid", {
+                    defaultValue: "Resolve plan and allocation errors before starting.",
+                  })
+                : workspaceDirty
+                  ? t("ecommerce.shopDrawer.aiCS.unpaidReachoutUnsaved")
+                  : t("common.saved")}
           </div>
           <div>
             {workspaceMode === "DRAFT" ? (

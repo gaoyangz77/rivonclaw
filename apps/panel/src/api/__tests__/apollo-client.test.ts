@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { gql } from "@apollo/client";
 
 // Reset module state between tests so _client is null each time
 let mod: typeof import("../apollo-client.js");
@@ -15,6 +16,58 @@ describe("createApolloClient", () => {
     expect(client).toBeDefined();
     expect(typeof client.query).toBe("function");
     expect(typeof client.mutate).toBe("function");
+  });
+
+  it("keeps copied unpaid-order stages scoped to their experiment variants", () => {
+    const client = mod.createApolloClient();
+    const query = gql`
+      query ExperimentVariants {
+        experiment {
+          id
+          variants {
+            variantKey
+            stages { id delayMinutes }
+          }
+        }
+      }
+    `;
+    client.cache.writeQuery({
+      query,
+      data: {
+        experiment: {
+          __typename: "CsUnpaidOrderConfigExperimentView",
+          id: "experiment-1",
+          variants: [
+            {
+              __typename: "CsUnpaidOrderConfigVariantView",
+              variantKey: "A",
+              stages: [{
+                __typename: "UnpaidOrderReachoutStage",
+                id: "shared-stage-id",
+                delayMinutes: 3,
+              }],
+            },
+            {
+              __typename: "CsUnpaidOrderConfigVariantView",
+              variantKey: "B",
+              stages: [{
+                __typename: "UnpaidOrderReachoutStage",
+                id: "shared-stage-id",
+                delayMinutes: 720,
+              }],
+            },
+          ],
+        },
+      },
+    });
+
+    const result = client.cache.readQuery<{
+      experiment: { variants: Array<{ stages: Array<{ delayMinutes: number }> }> };
+    }>({ query });
+    expect(result?.experiment.variants.map((variant) => variant.stages[0]?.delayMinutes)).toEqual([
+      3,
+      720,
+    ]);
   });
 });
 
