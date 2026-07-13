@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.70",
+    "date": "2026-07-13",
+    "en": [
+      "Refine unpaid-order experiments with clearer workflows, maturity signals, and modeled payment curves",
+      "Redesign affiliate team operations with BD team and channel controls",
+      "Improve desktop gateway authentication, provider loading, and customer-service agent behavior"
+    ],
+    "zh": [
+      "优化未付款订单实验工作流、成熟度提示和付款预测曲线",
+      "重构达人团队运营工作台，新增 BD 团队与渠道控制",
+      "提升桌面端 gateway 认证、provider 加载和客服 agent 行为的稳定性"
+    ]
+  },
+  {
     "version": "1.8.69",
     "date": "2026-07-12",
     "en": [
