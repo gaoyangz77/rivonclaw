@@ -95,6 +95,9 @@ export function resolveCredentialsDir(
 /** Default agent ID used by the OpenClaw engine. */
 export const DEFAULT_AGENT_ID = "main";
 
+/** RivonClaw-managed agent dedicated to external customer-service sessions. */
+export const CUSTOMER_SERVICE_AGENT_ID = "customer-service";
+
 /** Resolve the main agent config directory (models.json, auth-profiles.json). */
 export function resolveAgentConfigDir(
   env: Record<string, string | undefined> = process.env,

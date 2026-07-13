@@ -23,7 +23,7 @@ import { join } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
 import { ScopeType, GQL, normalizeWeixinAccountId } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
-import { resolveAgentSessionsDir } from "@rivonclaw/core/node";
+import { CUSTOMER_SERVICE_AGENT_ID, resolveAgentSessionsDir } from "@rivonclaw/core/node";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { getAuthSession } from "../auth/session-ref.js";
@@ -58,12 +58,11 @@ import {
   buildCsAgentDispatchSystemPrompt,
   type CsAgentDispatchReason,
 } from "./cs-agent-dispatch-resolver.js";
+import { buildCustomerServiceSessionKey } from "./customer-service-agent.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
-const CS_GATEWAY_SETUP_RPC_TIMEOUT_MS = 120_000;
 const CS_AGENT_DISPATCH_RPC_TIMEOUT_MS = 120_000;
-const CS_AGENT_CONTEXT_TOKENS = 100_000;
 const DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS = 10_000;
 
 function resolveBuyerMessageQuietWindowMs(): number {
@@ -299,10 +298,9 @@ export class CustomerServiceSession {
   /** Whether a backend session has been created (entitlement checked). */
   private backendSessionReady = false;
 
-  /** Whether gateway session setup has been completed (cs_register_session + RunProfile + model). */
+  /** Whether gateway session setup has been completed (cs_register_session + RunProfile). */
   private gatewaySetupReady = false;
   private gatewaySessionRegistrationSignature: string | null = null;
-  private customerServiceSessionPreferencesApplied = false;
 
   /** Active buyer round for this conversation. */
   private activeRound: CSRound | null = null;
@@ -335,8 +333,12 @@ export class CustomerServiceSession {
     },
   ) {
     this.platform = shop.platform ?? "tiktok";
-    this.scopeKey = `agent:main:cs:${this.platform}:${csContext.conversationId}`;
-    this.dispatchKey = `cs:${this.platform}:${csContext.conversationId}`;
+    this.scopeKey = buildCustomerServiceSessionKey({
+      platform: this.platform,
+      shopId: csContext.shopId,
+      conversationId: csContext.conversationId,
+    });
+    this.dispatchKey = this.scopeKey;
   }
 
   private telemetryContext(extra: {
@@ -1123,7 +1125,10 @@ export class CustomerServiceSession {
       }
       if (!sessionId) return;
 
-      const sessionFile = join(resolveAgentSessionsDir(), `${sessionId}.jsonl`);
+      const sessionFile = join(
+        resolveAgentSessionsDir(process.env, CUSTOMER_SERVICE_AGENT_ID),
+        `${sessionId}.jsonl`,
+      );
       const summary = await loadSessionCostSummary({ sessionFile });
       if (!summary) return;
 
@@ -1800,27 +1805,6 @@ export class CustomerServiceSession {
     return true;
   }
 
-  private buildCustomerServiceSessionPreferencesPatch(): Record<string, unknown> | undefined {
-    if (this.customerServiceSessionPreferencesApplied) return undefined;
-    return {
-      contextTokens: CS_AGENT_CONTEXT_TOKENS,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    };
-  }
-
-  private async applyCurrentSessionModelAndPreferences(): Promise<void> {
-    const sessionPatch = this.buildCustomerServiceSessionPreferencesPatch();
-    await rootStore.llmManager.applyModelForSession(this.scopeKey, {
-      type: ScopeType.CS_SESSION,
-      shopId: this.shop.objectId,
-    }, {
-      requestTimeoutMs: CS_GATEWAY_SETUP_RPC_TIMEOUT_MS,
-      ...(sessionPatch ? { sessionPatch } : {}),
-    });
-    if (sessionPatch) this.customerServiceSessionPreferencesApplied = true;
-  }
-
   private buildGatewaySessionRegistrationSignature(): string {
     return JSON.stringify({
       sessionKey: this.scopeKey,
@@ -1856,8 +1840,6 @@ export class CustomerServiceSession {
     const registerMs = registration.durationMs;
 
     if (this.gatewaySetupReady) {
-      const modelStartedAt = Date.now();
-      await this.applyCurrentSessionModelAndPreferences();
       if (this.ensureSessionRunProfile(runProfileId)) {
         log.info(
           `Gateway runProfile binding refreshed: conv=${this.csContext.conversationId} ` +
@@ -1866,7 +1848,7 @@ export class CustomerServiceSession {
       }
       log.info(
         `Gateway setup refreshed: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
-        `registerMs=${registerMs} registerSkipped=${registration.skipped} modelMs=${Date.now() - modelStartedAt} ` +
+        `registerMs=${registerMs} registerSkipped=${registration.skipped} ` +
         `scope=${this.scopeKey}`,
       );
       return;
@@ -1876,14 +1858,10 @@ export class CustomerServiceSession {
     this.ensureSessionRunProfile(runProfileId);
     const runProfileMs = Date.now() - runProfileStartedAt;
 
-    const modelStartedAt = Date.now();
-    await this.applyCurrentSessionModelAndPreferences();
-    const modelMs = Date.now() - modelStartedAt;
-
     this.gatewaySetupReady = true;
     log.info(
       `Gateway setup ready: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
-      `registerMs=${registerMs} registerSkipped=${registration.skipped} runProfileMs=${runProfileMs} modelMs=${modelMs} ` +
+      `registerMs=${registerMs} registerSkipped=${registration.skipped} runProfileMs=${runProfileMs} ` +
       `scope=${this.scopeKey} runProfileId=${runProfileId}`,
     );
   }
@@ -1928,8 +1906,14 @@ export class CustomerServiceSession {
         `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
         `messageChars=${params.message.length}`,
       );
+      const resolvedModel = rootStore.llmManager.resolveModelForDispatch(this.scopeKey, {
+        type: ScopeType.CS_SESSION,
+        shopId: this.shop.objectId,
+      });
       const response = await requestAgent<DispatchResult>({
         sessionKey: this.dispatchKey,
+        provider: resolvedModel.provider,
+        model: resolvedModel.model,
         message: params.message,
         extraSystemPrompt,
         promptMode: "raw",

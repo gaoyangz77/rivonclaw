@@ -738,6 +738,88 @@ describe("config-writer", () => {
     });
   });
 
+  describe("writeGatewayConfig - managed agents", () => {
+    it("upserts managed agents, preserves custom agents, and keeps one default", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            list: [
+              { id: "main", name: "Primary" },
+              { id: "custom", default: true, workspace: "/custom" },
+            ],
+          },
+        }),
+      );
+
+      const managedAgents = [
+        { id: "main", default: true },
+        {
+          id: "customer-service",
+          workspace: "/state/workspace-customer-service",
+          contextTokens: 100_000,
+          thinkingDefault: "off" as const,
+          reasoningDefault: "off" as const,
+        },
+      ];
+      writeGatewayConfig({ configPath, managedAgents });
+      writeGatewayConfig({ configPath, managedAgents });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.list).toEqual([
+        { id: "main", name: "Primary", default: true },
+        { id: "custom", default: false, workspace: "/custom" },
+        {
+          id: "customer-service",
+          workspace: "/state/workspace-customer-service",
+          contextTokens: 100_000,
+          thinkingDefault: "off",
+          reasoningDefault: "off",
+        },
+      ]);
+    });
+
+    it("removes a previously managed per-agent context cap", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            list: [
+              {
+                id: "customer-service",
+                contextTokens: 100_000,
+                thinkingDefault: "off",
+              },
+            ],
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        managedAgents: [
+          {
+            id: "customer-service",
+            contextTokens: null,
+            thinkingDefault: "low",
+            reasoningDefault: "off",
+          },
+        ],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.list).toEqual([
+        {
+          id: "customer-service",
+          thinkingDefault: "low",
+          reasoningDefault: "off",
+        },
+      ]);
+    });
+  });
+
   describe("writeGatewayConfig - blockStreaming", () => {
     it("always writes blockStreamingDefault and blockStreamingBreak into agents.defaults", () => {
       const configPath = join(tmpDir, "openclaw.json");

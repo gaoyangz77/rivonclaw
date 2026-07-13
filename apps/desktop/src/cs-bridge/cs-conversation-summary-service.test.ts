@@ -4,6 +4,15 @@ import { generateConversationSummary } from "./cs-conversation-summary-service.j
 const summaryState = vi.hoisted(() => ({
   rpcRequest: vi.fn(),
   writeConversationSummary: vi.fn(),
+  resolveModelForDispatch: vi.fn(() => ({ provider: "rivonclaw-pro", model: "gpt-5.5" })),
+}));
+
+vi.mock("../app/store/desktop-store.js", () => ({
+  rootStore: {
+    llmManager: {
+      resolveModelForDispatch: summaryState.resolveModelForDispatch,
+    },
+  },
 }));
 
 vi.mock("../openclaw/index.js", () => ({
@@ -14,13 +23,14 @@ vi.mock("../openclaw/index.js", () => ({
 
 vi.mock("./cs-session-cursor-store.js", () => ({
   readConversationSummary: vi.fn(),
-  writeConversationSummary: (...args: unknown[]) => summaryState.writeConversationSummary(...args),
+  writeConversationSummary: summaryState.writeConversationSummary,
 }));
 
 describe("generateConversationSummary", () => {
   beforeEach(() => {
     summaryState.rpcRequest.mockReset();
     summaryState.writeConversationSummary.mockReset();
+    summaryState.resolveModelForDispatch.mockClear();
     summaryState.writeConversationSummary.mockImplementation(async (record: Record<string, unknown>) => ({
       ...record,
       updatedAt: "2026-05-21T00:00:00.000Z",
@@ -84,6 +94,9 @@ describe("generateConversationSummary", () => {
     expect(agentCall).toBeDefined();
     const agentParams = agentCall?.[1] as Record<string, unknown>;
     expect(agentParams).toEqual(expect.objectContaining({
+      sessionKey: expect.stringMatching(/^agent:customer-service:cs-summary:shop-1:conv-1:/),
+      provider: "rivonclaw-pro",
+      model: "gpt-5.5",
       modelRun: true,
       promptMode: "raw",
       deliver: false,
@@ -91,5 +104,9 @@ describe("generateConversationSummary", () => {
     expect(agentParams.message).toContain('current UI locale is "en"');
     expect(agentParams).not.toHaveProperty("runProfileId");
     expect(agentParams).not.toHaveProperty("tools");
+    expect(summaryState.resolveModelForDispatch).toHaveBeenCalledWith(
+      expect.stringMatching(/^agent:customer-service:cs-summary:shop-1:conv-1:/),
+      { type: "cs_session", shopId: "shop-1" },
+    );
   });
 });

@@ -21,7 +21,7 @@ export function createUsageRuntime(storage: Storage): {
     try {
       const ocConfigPath = resolveOpenClawConfigPath();
       const ocConfig = readExistingConfig(ocConfigPath);
-      const sessions = await discoverAllSessions({});
+      const sessions = await discoverAllSessions({ config: ocConfig });
       for (const s of sessions) {
         const summary = await loadSessionCostSummary({ sessionFile: s.sessionFile, config: ocConfig });
         if (!summary?.modelUsage) continue;
