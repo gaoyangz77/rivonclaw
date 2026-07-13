@@ -224,6 +224,55 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     expect(result.effectiveToolIds).toContain("image");
   });
 
+  it("CS_SESSION excludes image generation even when its RunProfile selects it", () => {
+    rootStore.ingestGraphQLResponse({
+      runProfiles: [
+        {
+          id: "profile-cs-with-image-generation",
+          name: "CS with accidental image generation",
+          selectedToolIds: ["entitled_tool_1", "image", "image_generate"],
+          surfaceId: "Default",
+          userId: "user1",
+        },
+      ],
+    });
+    rootStore.toolCapability.init(
+      [
+        { id: "image", source: "core" },
+        { id: "image_generate", source: "plugin", pluginId: "upstream-media-tools" },
+      ],
+      new Set(),
+    );
+    rootStore.toolCapability.setSessionRunProfile(
+      "agent:customer-service:cs:tiktok:shop-1:conv-1",
+      "profile-cs-with-image-generation",
+    );
+
+    expect(
+      rootStore.toolCapability.computeEffectiveTools("profile-cs-with-image-generation")
+        .effectiveToolIds,
+    ).toContain("image_generate");
+
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CS_SESSION,
+      "agent:customer-service:cs:tiktok:shop-1:conv-1",
+    );
+
+    expect(result).toContain("image");
+    expect(result).not.toContain("image_generate");
+
+    rootStore.toolCapability.setSessionRunProfile(
+      "agent:main:panel-image-generation",
+      "profile-cs-with-image-generation",
+    );
+    expect(
+      rootStore.toolCapability.getEffectiveToolsForScope(
+        ScopeType.CHAT_SESSION,
+        "agent:main:panel-image-generation",
+      ),
+    ).toContain("image_generate");
+  });
+
   it("CS system run profile stays attached to ecommerce seller surface", () => {
     const profile = rootStore.toolCapability.runProfilesById.get("CUSTOMER_SERVICE");
     const surface = rootStore.toolCapability.surfacesById.get("ECOMMERCE_SELLER");

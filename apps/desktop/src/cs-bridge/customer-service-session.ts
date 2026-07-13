@@ -462,6 +462,10 @@ export class CustomerServiceSession {
     lines.push(
       this.shop.systemPrompt,
       "",
+      "## Media Capabilities",
+      "You may inspect buyer-provided images when image analysis is available.",
+      "Image generation and image editing are not available in customer-service runs. Do not claim or attempt those capabilities.",
+      "",
       "## Current Session",
       `- Shop ID: ${this.csContext.shopId}`,
       `- Conversation ID: ${this.csContext.conversationId}`,

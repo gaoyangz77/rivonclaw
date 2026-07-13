@@ -1360,6 +1360,7 @@ describe("agent dispatch", () => {
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     expect(agentCall).toBeDefined();
     const prompt = agentCall![1].extraSystemPrompt as string;
+    expect(prompt).toContain("Image generation and image editing are not available");
     expect(prompt).toContain("Custom shop prompt for testing.");
     expect(prompt).toContain("conv-prompt");
     expect(prompt).toContain("buyer-prompt");
