@@ -119,6 +119,24 @@ describe("discoverAllSessions", () => {
     const sessions = await discoverAllSessions();
     expect(sessions).toHaveLength(0);
   });
+
+  it("discovers sessions from every configured agent", async () => {
+    const customerServiceDir = join(tempDir, "agents", "customer-service", "sessions");
+    await mkdir(customerServiceDir, { recursive: true });
+    await writeFile(
+      join(customerServiceDir, "cs-session.jsonl"),
+      `${makeEntry({ role: "user", content: "Buyer question" })}\n`,
+      "utf-8",
+    );
+
+    const sessions = await discoverAllSessions({
+      config: { agents: { list: [{ id: "main" }, { id: "customer-service" }] } },
+    });
+
+    expect(sessions).toEqual([
+      expect.objectContaining({ agentId: "customer-service", sessionId: "cs-session" }),
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -431,6 +449,26 @@ describe("loadCostUsageSummary", () => {
     const result = await loadCostUsageSummary();
     expect(result.totals.totalTokens).toBe(0);
     expect(result.daily).toHaveLength(0);
+  });
+
+  it("aggregates usage across configured agents", async () => {
+    await writeSession("main-session", [
+      makeEntry({ role: "assistant", input_tokens: 10, output_tokens: 5 }),
+    ]);
+    const customerServiceDir = join(tempDir, "agents", "customer-service", "sessions");
+    await mkdir(customerServiceDir, { recursive: true });
+    await writeFile(
+      join(customerServiceDir, "cs-session.jsonl"),
+      `${makeEntry({ role: "assistant", input_tokens: 20, output_tokens: 7 })}\n`,
+      "utf-8",
+    );
+
+    const result = await loadCostUsageSummary({
+      config: { agents: { list: [{ id: "main" }, { id: "customer-service" }] } },
+    });
+
+    expect(result.totals.input).toBe(30);
+    expect(result.totals.output).toBe(12);
   });
 });
 

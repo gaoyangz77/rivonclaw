@@ -20,7 +20,7 @@ async function navigateToChannels(window: import("@playwright/test").Page) {
     }
   }
 
-  const channelsBtn = window.locator(".nav-btn", { hasText: "Channels" });
+  const channelsBtn = window.getByRole("button", { name: "Channels", exact: true });
   await channelsBtn.click();
   await expect(channelsBtn).toHaveClass(/nav-active/);
   const channelTitle = window.locator(".channel-title").first();

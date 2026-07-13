@@ -147,6 +147,17 @@ function resolveModelRef(provider: string, model: string, authType?: string): st
   return `${gwProvider}/${stripProviderPrefix(model, gwProvider)}`;
 }
 
+function splitModelRef(modelRef: string): SessionModelOverride {
+  const separator = modelRef.indexOf("/");
+  if (separator <= 0 || separator === modelRef.length - 1) {
+    throw new Error(`Invalid gateway model reference: ${modelRef}`);
+  }
+  return {
+    provider: modelRef.slice(0, separator),
+    model: modelRef.slice(separator + 1),
+  };
+}
+
 function stripProviderPrefix(model: string, provider: string): string {
   const prefix = `${provider}/`;
   let normalized = model.trim();
@@ -586,6 +597,31 @@ export const LLMProviderManagerModel = types
       /** Clear gateway-lifetime patch state after RPC reconnect/restart. */
       clearAppliedSessionModelState() {
         self.appliedSessionModelRefs.clear();
+      },
+
+      /**
+       * Resolve a concrete gateway provider/model without mutating the session.
+       * Used by callers that can pass model selection when creating an agent run.
+       */
+      resolveModelForDispatch(sessionKey: string, scope?: ModelScope): SessionModelOverride {
+        const sessionOverride = self.sessionOverrides.get(sessionKey);
+        if (
+          sessionOverride &&
+          isModelAvailable(sessionOverride.provider, sessionOverride.model)
+        ) {
+          return splitModelRef(resolveModelRef(sessionOverride.provider, sessionOverride.model));
+        }
+
+        if (scope) {
+          const scopeModel = resolveModelForScope(scope);
+          if (scopeModel) {
+            return splitModelRef(resolveModelRef(scopeModel.provider, scopeModel.model));
+          }
+        }
+
+        const active = getActiveDefaultModel();
+        if (!active) throw new Error(NO_ACTIVE_LLM_PROVIDER_ERROR);
+        return splitModelRef(active.modelRef);
       },
 
       /**

@@ -26,7 +26,7 @@ test.describe("Telegram Pairing Flow", () => {
       }
     }
 
-    const channelsBtn = window.locator(".nav-btn", { hasText: "Channels" });
+    const channelsBtn = window.getByRole("button", { name: "Channels", exact: true });
     await channelsBtn.click();
     await expect(channelsBtn).toHaveClass(/nav-active/);
 

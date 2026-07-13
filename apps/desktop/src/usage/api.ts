@@ -150,7 +150,7 @@ const getUsageSummary: EndpointHandler = async (_req, res, url, _params, _ctx) =
 
     const costSummary = await loadCostUsageSummary({ startMs, endMs, config });
 
-    const sessions = await discoverAllSessions({ startMs, endMs });
+    const sessions = await discoverAllSessions({ startMs, endMs, config });
     const sessionSummaries: SessionCostSummary[] = [];
 
     for (const session of sessions) {

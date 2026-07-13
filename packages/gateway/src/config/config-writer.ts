@@ -614,6 +614,16 @@ export interface WriteGatewayConfigOptions {
   /** Agent workspace directory. Written as agents.defaults.workspace so OpenClaw stores
    *  SOUL.md, USER.md, memory/ etc. under the RivonClaw-managed state dir instead of ~/.openclaw/workspace. */
   agentWorkspace?: string;
+  /** RivonClaw-managed OpenClaw agents. Existing non-managed agents are preserved. */
+  managedAgents?: Array<{
+    id: string;
+    default?: boolean;
+    workspace?: string;
+    /** Set to null to remove a previously managed per-agent cap. */
+    contextTokens?: number | null;
+    thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "max";
+    reasoningDefault?: "on" | "off" | "stream";
+  }>;
   /** Explicit owner allowlist for commands.ownerAllowFrom.
    *  If provided, replaces the default ["openclaw-control-ui"]. */
   ownerAllowFrom?: string[];
@@ -909,6 +919,46 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ...existingDefaults,
         ...patch,
       },
+    };
+  }
+
+  // Managed agents are merged by id so repeated config syncs are idempotent and
+  // user-created agents keep their fields. When RivonClaw declares a default,
+  // keep it as the sole default to avoid OpenClaw's order-dependent fallback.
+  if (options.managedAgents !== undefined) {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingList = Array.isArray(existingAgents.list)
+      ? existingAgents.list.filter(
+          (entry): entry is Record<string, unknown> =>
+            entry !== null && typeof entry === "object" && !Array.isArray(entry),
+        )
+      : [];
+    const managedDefaultId = options.managedAgents.find((entry) => entry.default)?.id;
+    const byId = new Map<string, Record<string, unknown>>();
+    for (const entry of existingList) {
+      const id = typeof entry.id === "string" ? entry.id.trim() : "";
+      if (!id) continue;
+      byId.set(id, {
+        ...entry,
+        ...(managedDefaultId && id !== managedDefaultId && entry.default === true
+          ? { default: false }
+          : {}),
+      });
+    }
+    for (const managed of options.managedAgents) {
+      const existingEntry = byId.get(managed.id) ?? {};
+      const nextEntry = { ...existingEntry, ...managed } as Record<string, unknown>;
+      if (managed.contextTokens === null) {
+        delete nextEntry.contextTokens;
+      }
+      byId.set(managed.id, nextEntry);
+    }
+    config.agents = {
+      ...existingAgents,
+      list: [...byId.values()],
     };
   }
 

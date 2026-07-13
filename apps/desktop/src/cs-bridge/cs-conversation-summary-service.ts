@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
-import { GQL } from "@rivonclaw/core";
+import { GQL, ScopeType } from "@rivonclaw/core";
 import type { AuthSessionManager } from "../auth/session.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
+import { rootStore } from "../app/store/desktop-store.js";
 import { GET_CONVERSATION_MESSAGES_QUERY } from "../cloud/cs-queries.js";
 import {
   readConversationSummary,
@@ -11,6 +12,7 @@ import {
   type CustomerServiceMessageCursor,
   type CustomerServiceSummaryRecord,
 } from "./cs-session-cursor-store.js";
+import { buildCustomerServiceSummarySessionKey } from "./customer-service-agent.js";
 
 const log = createLogger("cs-conversation-summary");
 const CONVERSATION_MESSAGES_PAGE_SIZE = 10;
@@ -181,10 +183,20 @@ export async function generateConversationSummary(input: {
     throw new Error("Cannot anchor summary because the latest message has no cursor");
   }
 
-  const sessionKey = `agent:main:cs-summary:${input.shopId}:${input.conversationId}:${randomUUID()}`;
+  const sessionKey = buildCustomerServiceSummarySessionKey({
+    shopId: input.shopId,
+    conversationId: input.conversationId,
+    nonce: randomUUID(),
+  });
+  const resolvedModel = rootStore.llmManager.resolveModelForDispatch(sessionKey, {
+    type: ScopeType.CS_SESSION,
+    shopId: input.shopId,
+  });
   const prompt = buildSummaryPrompt({ ...input, messages });
   const response = await requestAgent<{ runId?: string }>({
     sessionKey,
+    provider: resolvedModel.provider,
+    model: resolvedModel.model,
     message: prompt,
     extraSystemPrompt: "You are a one-shot customer-service summarizer. Do not call tools. Return only the operator-facing summary.",
     modelRun: true,

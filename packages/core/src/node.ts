@@ -21,6 +21,7 @@ export {
   resolveUserSkillsDir,
   resolveCredentialsDir,
   DEFAULT_AGENT_ID,
+  CUSTOMER_SERVICE_AGENT_ID,
   resolveAgentConfigDir,
   resolveAgentSessionsDir,
 } from "./node-utils/paths.js";

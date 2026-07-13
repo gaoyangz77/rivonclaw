@@ -6,7 +6,11 @@ import {
   getProviderMeta,
   getOllamaOpenAiBaseUrl,
 } from "@rivonclaw/core";
-import { resolveUserSkillsDir } from "@rivonclaw/core/node";
+import {
+  CUSTOMER_SERVICE_AGENT_ID,
+  DEFAULT_AGENT_ID,
+  resolveUserSkillsDir,
+} from "@rivonclaw/core/node";
 import { buildExtraProviderConfigs, writeGatewayConfig } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
@@ -447,6 +451,16 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
       agentWorkspace: join(stateDir, "workspace"),
+      managedAgents: [
+        { id: DEFAULT_AGENT_ID, default: true },
+        {
+          id: CUSTOMER_SERVICE_AGENT_ID,
+          workspace: join(stateDir, "workspace-customer-service"),
+          contextTokens: null,
+          thinkingDefault: "low",
+          reasoningDefault: "off",
+        },
+      ],
       extraSkillDirs: [resolveUserSkillsDir()],
       // Keep the default OpenClaw profile unrestricted, and use alsoAllow only
       // as an optional plugin discovery hint. `tools.allow` is a hard runtime

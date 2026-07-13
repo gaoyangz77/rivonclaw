@@ -572,7 +572,7 @@ beforeEach(() => {
     getAccessToken: () => "test-token",
     graphqlFetch: mockGraphqlFetch,
   });
-  // Initialize LLMProviderManager env so applyModelForSession can call sessions.patch
+  // Initialize LLMProviderManager env so CS dispatches can resolve a concrete model.
   const activeProviderKey = {
     id: "key-default",
     provider: "rivonclaw-pro",
@@ -907,22 +907,24 @@ describe("shop context management", () => {
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
-    // session registration + combined sessions.patch (model + CS preferences) + agent dispatch
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "rivonclaw-pro/gpt-5.5",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
+        provider: "rivonclaw-pro",
+        model: "gpt-5.5",
+      }),
+      120000,
+    );
   });
 });
 
 // ─── 2. Session key construction ────────────────────────────────────────────
 
 describe("session key construction", () => {
-  it("cs_register_session receives scopeKey (agent:main:cs:tiktok:{conversationId})", async () => {
+  it("uses the canonical customer-service agent key for registration", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -931,12 +933,12 @@ describe("session key construction", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "cs_register_session",
       expect.objectContaining({
-        sessionKey: "agent:main:cs:tiktok:conv-ABC",
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-ABC",
       }),
     );
   });
 
-  it("agent RPC receives dispatchKey (cs:tiktok:{conversationId})", async () => {
+  it("uses the same canonical key for agent dispatch", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
@@ -945,7 +947,7 @@ describe("session key construction", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "cs:tiktok:conv-ABC",
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-ABC",
       }),
       120000,
     );
@@ -958,7 +960,7 @@ describe("session key construction", () => {
     await triggerMessage(bridge, createFrame({ conversationId: "conv-XYZ" }));
 
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:cs:tiktok:conv-XYZ",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-XYZ",
       runProfileId: "CUSTOMER_SERVICE",
     });
   });
@@ -972,13 +974,13 @@ describe("session key construction", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "cs_register_session",
       expect.objectContaining({
-        sessionKey: "agent:main:cs:shopee:conv-PLAT",
+        sessionKey: "agent:customer-service:cs:shopee:mongo-id-123:conv-PLAT",
       }),
     );
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "cs:shopee:conv-PLAT",
+        sessionKey: "agent:customer-service:cs:shopee:mongo-id-123:conv-PLAT",
         idempotencyKey: "cs-start:conv-PLAT:msg-001",
       }),
       120000,
@@ -995,7 +997,7 @@ describe("session key construction", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "cs_register_session",
       expect.objectContaining({
-        sessionKey: "agent:main:cs:tiktok:conv-DEF",
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-DEF",
       }),
     );
   });
@@ -1167,7 +1169,7 @@ describe("CS RunProfile setup", () => {
     await triggerMessage(bridge, createFrame());
 
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:cs:tiktok:conv-789",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
       runProfileId: "CUSTOMER_SERVICE",
     });
   });
@@ -1187,7 +1189,7 @@ describe("CS RunProfile setup", () => {
     );
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:cs:tiktok:conv-789",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
       runProfileId: "CUSTOMER_SERVICE",
     });
   });
@@ -1211,7 +1213,7 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-1" }));
 
-    rootStore.toolCapability.setSessionRunProfile("agent:main:cs:tiktok:conv-789", null);
+    rootStore.toolCapability.setSessionRunProfile("agent:customer-service:cs:tiktok:mongo-id-123:conv-789", null);
     setSessionRunProfileCalls.length = 0;
     mockRpcRequest.mockClear();
 
@@ -1220,7 +1222,7 @@ describe("CS RunProfile setup", () => {
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:cs:tiktok:conv-789",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
       runProfileId: "CUSTOMER_SERVICE",
     });
   });
@@ -1254,7 +1256,7 @@ describe("session registration", () => {
     }));
 
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
-      sessionKey: "agent:main:cs:tiktok:conv-100",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-100",
       csContext: {
         shopId: "mongo-id-123",
         conversationId: "conv-100",
@@ -1337,7 +1339,7 @@ describe("agent dispatch", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "cs:tiktok:conv-dispatch",
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-dispatch",
       }),
       120000,
     );
@@ -1424,7 +1426,7 @@ describe("agent dispatch", () => {
       messageId: "msg-seen",
       messageIndex: "1779000000000000",
       createTime: 1779000000,
-      sessionKey: "cs:tiktok:conv-delta",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-delta",
       runId: "run-local",
       updatedAt: "2026-05-23T00:00:00.000Z",
     });
@@ -1590,9 +1592,8 @@ describe("agent dispatch", () => {
     // Should not throw
     await triggerMessage(bridge, createFrame({ messageId: "msg-fail" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
   });
 });
@@ -1644,10 +1645,8 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     // Bridge no longer validates profile existence — it stores the ID.
-    // cs_register_session + combined sessions.patch (model + CS preferences) + agent dispatch.
-    expect(mockRpcRequest).toHaveBeenCalledTimes(3);
+    expect(mockRpcRequest).toHaveBeenCalledTimes(2);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", expect.anything(), 120000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
   });
 
@@ -1969,7 +1968,7 @@ describe("reactive entity cache sync", () => {
       expect(mockRpcRequest).toHaveBeenCalledWith(
         "cs_register_session",
         expect.objectContaining({
-          sessionKey: "agent:main:cs:tiktok:conv-789",
+          sessionKey: "agent:customer-service:cs:tiktok:shop-1:conv-789",
         }),
       );
     });
@@ -2324,11 +2323,24 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
 
 // ─── 11. Multi-provider model override (via LLMProviderManager) ──────────────
 //
-// Model resolution is now delegated to rootStore.llmManager.applyModelForSession.
+// Model resolution is delegated to rootStore.llmManager.resolveModelForDispatch.
 // The LLM manager reads csProviderOverride/csModelOverride from the MST shop entity
 // (not from bridge's CSShopContext), so we seed shops in the MST store.
 
 describe("multi-provider model override", () => {
+  function expectDispatchedModel(provider: string, model: string): void {
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
+        provider,
+        model,
+      }),
+      120000,
+    );
+  }
+
   /** Helper: seed the model catalog on the LLM manager and seed a shop into MST store. */
   async function seedCatalogAndShop(overrides?: {
     csProviderOverride?: string | null;
@@ -2364,20 +2376,14 @@ describe("multi-provider model override", () => {
     });
   }
 
-  it("two-field override: sends provider/model to sessions.patch when in catalog", async () => {
+  it("two-field override: sends provider/model directly with the agent run", async () => {
     const bridge = createBridge();
     await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: "glm-5" });
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "zhipu/glm-5",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expectDispatchedModel("zhipu", "glm-5");
   });
 
   it("two-field override: falls back to active default when provider/model not in catalog", async () => {
@@ -2387,29 +2393,17 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "rivonclaw-pro/gpt-5.5",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
   });
 
-  it("no override: neither provider nor model set, sessions.patch called with active default", async () => {
+  it("no override: dispatches with the active default", async () => {
     const bridge = createBridge();
     await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "rivonclaw-pro/gpt-5.5",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
   });
 
   it("refreshModelCatalog caches all providers, not just active provider", async () => {
@@ -2420,29 +2414,17 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "openai/gpt-4o",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expectDispatchedModel("openai", "gpt-4o");
   });
 
-  it("provider set without model: sessions.patch called with active default (treated as no override)", async () => {
+  it("provider set without model: dispatches with active default", async () => {
     const bridge = createBridge();
     await seedCatalogAndShop({ csProviderOverride: "zhipu", csModelOverride: null });
     bridge.setShopContext(defaultShop);
 
     await triggerMessage(bridge, createFrame());
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "rivonclaw-pro/gpt-5.5",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
   });
 
   it("refreshes an existing CS session when the shop model override changes", async () => {
@@ -2452,13 +2434,7 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-1" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "zhipu/glm-5",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expectDispatchedModel("zhipu", "glm-5");
 
     await seedCatalogAndShop({ csProviderOverride: "openai", csModelOverride: "gpt-4o" });
     mockRpcRequest.mockClear();
@@ -2466,10 +2442,7 @@ describe("multi-provider model override", () => {
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-2" }));
 
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "openai/gpt-4o",
-    }, 120000);
+    expectDispatchedModel("openai", "gpt-4o");
   });
 
   it("clears an existing CS session model override when the shop returns to global default", async () => {
@@ -2479,13 +2452,7 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-1" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "zhipu/glm-5",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
-      reasoningLevel: "off",
-    }, 120000);
+    expectDispatchedModel("zhipu", "glm-5");
 
     await seedCatalogAndShop({ csProviderOverride: null, csModelOverride: null });
     mockRpcRequest.mockClear();
@@ -2493,10 +2460,7 @@ describe("multi-provider model override", () => {
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-2" }));
 
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:cs:tiktok:conv-789",
-      model: "rivonclaw-pro/gpt-5.5",
-    }, 120000);
+    expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
   });
 });
 
@@ -3095,7 +3059,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
 
     expect(mockRpcRequest).toHaveBeenCalledWith("chat.abort", expect.objectContaining({
-      sessionKey: "agent:main:cs:tiktok:conv-789",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
     }));
   });
 
@@ -3278,7 +3242,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     await promiseB;
 
     expect(mockRpcRequest).toHaveBeenCalledWith("chat.abort", expect.objectContaining({
-      sessionKey: "agent:main:cs:tiktok:conv-cloud-rapid",
+      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-cloud-rapid",
     }));
 
     bridge.onGatewayEvent({

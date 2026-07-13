@@ -70,6 +70,7 @@ export type SessionCostSummary = CostUsageTotals & {
 };
 
 export type DiscoveredSession = {
+  agentId: string;
   sessionId: string;
   sessionFile: string;
   mtime: number;
@@ -81,6 +82,9 @@ export type DiscoveredSession = {
  * Matches the runtime structure of the OpenClaw config file.
  */
 export type OpenClawConfig = {
+  agents?: {
+    list?: Array<{ id?: string }>;
+  };
   models?: {
     providers?: Record<
       string,
@@ -103,8 +107,25 @@ export type OpenClawConfig = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function sessionsDir(): string {
-  return resolveAgentSessionsDir();
+function configuredAgentIds(config?: OpenClawConfig | Record<string, unknown>): string[] {
+  const ids = new Set<string>(["main"]);
+  const agents = (config as OpenClawConfig | undefined)?.agents?.list;
+  if (Array.isArray(agents)) {
+    for (const agent of agents) {
+      if (typeof agent?.id === "string" && agent.id.trim()) ids.add(agent.id.trim());
+    }
+  }
+  return [...ids];
+}
+
+function sessionDirs(config?: OpenClawConfig | Record<string, unknown>): Array<{
+  agentId: string;
+  dir: string;
+}> {
+  return configuredAgentIds(config).map((agentId) => ({
+    agentId,
+    dir: resolveAgentSessionsDir(process.env, agentId),
+  }));
 }
 
 function emptyCostTotals(): CostUsageTotals {
@@ -301,54 +322,56 @@ async function* readJsonlLines(
 // ---------------------------------------------------------------------------
 
 export async function discoverAllSessions(
-  params?: { startMs?: number; endMs?: number },
+  params?: {
+    startMs?: number;
+    endMs?: number;
+    config?: OpenClawConfig | Record<string, unknown>;
+  },
 ): Promise<DiscoveredSession[]> {
-  const dir = sessionsDir();
-
-  let files: string[];
-  try {
-    files = await readdir(dir);
-  } catch {
-    return [];
-  }
-
-  files = files.filter((f) => f.endsWith(".jsonl"));
-
   const results: DiscoveredSession[] = [];
 
-  for (const file of files) {
-    const filePath = join(dir, file);
-    const fileStat = await stat(filePath);
-    const mtime = fileStat.mtimeMs;
-
-    if (params?.startMs !== undefined && mtime < params.startMs) continue;
-
-    const sessionId = file.replace(/\.jsonl$/, "");
-
-    let firstUserMessage: string | undefined;
+  for (const { agentId, dir } of sessionDirs(params?.config)) {
+    let files: string[];
     try {
-      for await (const entry of readJsonlLines(filePath)) {
-        const msg = entry.message as Record<string, unknown> | undefined;
-        if (msg?.role !== "user") continue;
-        const content = msg.content;
-        if (typeof content === "string") {
-          firstUserMessage = content.slice(0, 100);
-        } else if (Array.isArray(content)) {
-          const textPart = content.find(
-            (p: unknown) =>
-              typeof p === "object" && p !== null && (p as Record<string, unknown>).type === "text",
-          ) as Record<string, unknown> | undefined;
-          if (textPart && typeof textPart.text === "string") {
-            firstUserMessage = (textPart.text as string).slice(0, 100);
-          }
-        }
-        break; // Only need first user message
-      }
+      files = (await readdir(dir)).filter((file) => file.endsWith(".jsonl"));
     } catch {
-      // If we can't read the file for the label, that's fine
+      continue;
     }
 
-    results.push({ sessionId, sessionFile: filePath, mtime, firstUserMessage });
+    for (const file of files) {
+      const filePath = join(dir, file);
+      const fileStat = await stat(filePath);
+      const mtime = fileStat.mtimeMs;
+
+      if (params?.startMs !== undefined && mtime < params.startMs) continue;
+
+      const sessionId = file.replace(/\.jsonl$/, "");
+
+      let firstUserMessage: string | undefined;
+      try {
+        for await (const entry of readJsonlLines(filePath)) {
+          const msg = entry.message as Record<string, unknown> | undefined;
+          if (msg?.role !== "user") continue;
+          const content = msg.content;
+          if (typeof content === "string") {
+            firstUserMessage = content.slice(0, 100);
+          } else if (Array.isArray(content)) {
+            const textPart = content.find(
+              (p: unknown) =>
+                typeof p === "object" && p !== null && (p as Record<string, unknown>).type === "text",
+            ) as Record<string, unknown> | undefined;
+            if (textPart && typeof textPart.text === "string") {
+              firstUserMessage = (textPart.text as string).slice(0, 100);
+            }
+          }
+          break;
+        }
+      } catch {
+        // If we can't read the file for the label, that's fine.
+      }
+
+      results.push({ agentId, sessionId, sessionFile: filePath, mtime, firstUserMessage });
+    }
   }
 
   results.sort((a, b) => b.mtime - a.mtime);
@@ -518,92 +541,83 @@ export async function loadCostUsageSummary(params?: {
   config?: OpenClawConfig | Record<string, unknown>;
 }): Promise<CostUsageSummary> {
   const { startMs, endMs, config } = params ?? {};
-  const dir = sessionsDir();
-
-  let files: string[];
-  try {
-    files = await readdir(dir);
-  } catch {
-    return {
-      updatedAt: Date.now(),
-      days: 0,
-      daily: [],
-      totals: emptyCostTotals(),
-    };
-  }
-
-  files = files.filter((f) => f.endsWith(".jsonl"));
-
   const grandTotals = emptyCostTotals();
   const dailyMap = new Map<string, CostUsageTotals>();
 
-  for (const file of files) {
-    const filePath = join(dir, file);
-
-    // Optionally filter by mtime
-    if (startMs !== undefined) {
-      const fileStat = await stat(filePath);
-      if (fileStat.mtimeMs < startMs) continue;
+  for (const { dir } of sessionDirs(config)) {
+    let files: string[];
+    try {
+      files = (await readdir(dir)).filter((file) => file.endsWith(".jsonl"));
+    } catch {
+      continue;
     }
 
-    for await (const entry of readJsonlLines(filePath)) {
-      const msg = entry.message as Record<string, unknown> | undefined;
-      if (!msg) continue;
-      const role = msg.role as string | undefined;
-      // Only assistant messages carry billable LLM `usage` fields. See the
-      // matching guard in `loadSessionCostSummary` for rationale.
-      if (role !== "assistant") continue;
+    for (const file of files) {
+      const filePath = join(dir, file);
 
-      const usage = msg.usage as Record<string, unknown> | undefined;
-      if (!usage) continue;
-
-      const ts = extractTimestamp(entry);
-      if (ts !== null) {
-        if (startMs !== undefined && ts < startMs) continue;
-        if (endMs !== undefined && ts > endMs) continue;
+      // Optionally filter by mtime
+      if (startMs !== undefined) {
+        const fileStat = await stat(filePath);
+        if (fileStat.mtimeMs < startMs) continue;
       }
 
-      const provider = (msg.provider as string) ?? (entry.provider as string) ?? undefined;
-      const model = (msg.model as string) ?? (entry.model as string) ?? undefined;
+      for await (const entry of readJsonlLines(filePath)) {
+        const msg = entry.message as Record<string, unknown> | undefined;
+        if (!msg) continue;
+        const role = msg.role as string | undefined;
+        // Only assistant messages carry billable LLM `usage` fields. See the
+        // matching guard in `loadSessionCostSummary` for rationale.
+        if (role !== "assistant") continue;
 
-      const normalised = normaliseUsage(usage);
-      const cost = extractCost(usage, normalised, provider, model, config as OpenClawConfig | undefined);
+        const usage = msg.usage as Record<string, unknown> | undefined;
+        if (!usage) continue;
 
-      const tokens = normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
-
-      // Grand totals
-      grandTotals.input += normalised.input;
-      grandTotals.output += normalised.output;
-      grandTotals.cacheRead += normalised.cacheRead;
-      grandTotals.cacheWrite += normalised.cacheWrite;
-      grandTotals.totalTokens += tokens;
-      grandTotals.totalCost += cost.total;
-      grandTotals.inputCost += cost.inputCost;
-      grandTotals.outputCost += cost.outputCost;
-      grandTotals.cacheReadCost += cost.cacheReadCost;
-      grandTotals.cacheWriteCost += cost.cacheWriteCost;
-      if (cost.total === 0 && cost.estimated) {
-        grandTotals.missingCostEntries++;
-      }
-
-      // Daily bucket
-      if (ts !== null) {
-        const dateKey = localDateKey(ts);
-        const day = dailyMap.get(dateKey) ?? emptyCostTotals();
-        day.input += normalised.input;
-        day.output += normalised.output;
-        day.cacheRead += normalised.cacheRead;
-        day.cacheWrite += normalised.cacheWrite;
-        day.totalTokens += tokens;
-        day.totalCost += cost.total;
-        day.inputCost += cost.inputCost;
-        day.outputCost += cost.outputCost;
-        day.cacheReadCost += cost.cacheReadCost;
-        day.cacheWriteCost += cost.cacheWriteCost;
-        if (cost.total === 0 && cost.estimated) {
-          day.missingCostEntries++;
+        const ts = extractTimestamp(entry);
+        if (ts !== null) {
+          if (startMs !== undefined && ts < startMs) continue;
+          if (endMs !== undefined && ts > endMs) continue;
         }
-        dailyMap.set(dateKey, day);
+
+        const provider = (msg.provider as string) ?? (entry.provider as string) ?? undefined;
+        const model = (msg.model as string) ?? (entry.model as string) ?? undefined;
+
+        const normalised = normaliseUsage(usage);
+        const cost = extractCost(usage, normalised, provider, model, config as OpenClawConfig | undefined);
+
+        const tokens = normalised.input + normalised.output + normalised.cacheRead + normalised.cacheWrite;
+
+        grandTotals.input += normalised.input;
+        grandTotals.output += normalised.output;
+        grandTotals.cacheRead += normalised.cacheRead;
+        grandTotals.cacheWrite += normalised.cacheWrite;
+        grandTotals.totalTokens += tokens;
+        grandTotals.totalCost += cost.total;
+        grandTotals.inputCost += cost.inputCost;
+        grandTotals.outputCost += cost.outputCost;
+        grandTotals.cacheReadCost += cost.cacheReadCost;
+        grandTotals.cacheWriteCost += cost.cacheWriteCost;
+        if (cost.total === 0 && cost.estimated) {
+          grandTotals.missingCostEntries++;
+        }
+
+        if (ts !== null) {
+          const dateKey = localDateKey(ts);
+          const day = dailyMap.get(dateKey) ?? emptyCostTotals();
+          day.input += normalised.input;
+          day.output += normalised.output;
+          day.cacheRead += normalised.cacheRead;
+          day.cacheWrite += normalised.cacheWrite;
+          day.totalTokens += tokens;
+          day.totalCost += cost.total;
+          day.inputCost += cost.inputCost;
+          day.outputCost += cost.outputCost;
+          day.cacheReadCost += cost.cacheReadCost;
+          day.cacheWriteCost += cost.cacheWriteCost;
+          if (cost.total === 0 && cost.estimated) {
+            day.missingCostEntries++;
+          }
+          dailyMap.set(dateKey, day);
+        }
       }
     }
   }
