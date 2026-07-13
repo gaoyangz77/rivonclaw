@@ -78,7 +78,7 @@ export function defaultVisibleCurveSeries(
     .map((item) => item.seriesKey);
 }
 
-export function zoomedCurveYAxisDomain(
+export function curveYAxisDomain(
   series: CurveDomainSeries[],
   visibleKeys: string[],
 ): [number, number] {
@@ -87,15 +87,7 @@ export function zoomedCurveYAxisDomain(
     visible.has(item.seriesKey)
       ? item.points
           .filter((point) => point.elapsedMinutes > 0 && Number.isFinite(point.estimate))
-          .flatMap((point) =>
-            [
-              point.estimate,
-              point.confidenceIntervalLow,
-              point.confidenceIntervalHigh,
-            ]
-              .filter((value): value is number => value != null && Number.isFinite(value))
-              .map((value) => value * 100),
-          )
+          .map((point) => point.estimate * 100)
       : [],
   );
   if (!values.length) return [0, 100];
@@ -110,6 +102,13 @@ export function zoomedCurveYAxisDomain(
     upper = Math.min(100, Math.ceil((maximum + 0.5) * 2) / 2);
   }
   return upper > lower ? [lower, upper] : [Math.max(0, lower - 0.5), Math.min(100, upper + 0.5)];
+}
+
+export function firstPositiveCurveMinute(points: Array<{ elapsedMinutes: number }>): number {
+  const positive = points
+    .map((point) => point.elapsedMinutes)
+    .filter((minute) => Number.isFinite(minute) && minute > 0);
+  return positive.length ? Math.min(...positive) : 1;
 }
 
 function formatElapsed(minutes: number): string {
@@ -132,7 +131,6 @@ export function ExperimentPaymentProgressChart({
   onRetry,
 }: ExperimentPaymentProgressChartProps) {
   const { t } = useTranslation();
-  const [zoomed, setZoomed] = useState(false);
   const [search, setSearch] = useState("");
   const [visibleKeys, setVisibleKeys] = useState<string[]>([]);
   const [focusedKey, setFocusedKey] = useState("");
@@ -191,8 +189,9 @@ export function ExperimentPaymentProgressChart({
   const filteredSeries = orderedSeries.filter((series) =>
     displayLabel(series).toLowerCase().includes(search.trim().toLowerCase()),
   );
-  const zoomDomain = zoomedCurveYAxisDomain(orderedSeries, visibleKeys);
-  const chartRows = zoomed ? rows.filter((row) => row.elapsedMinutes > 0) : rows;
+  const yDomain = curveYAxisDomain(orderedSeries, visibleKeys);
+  const firstElapsedMinute = firstPositiveCurveMinute(rows);
+  const chartRows = rows.filter((row) => row.elapsedMinutes >= firstElapsedMinute);
   const focused =
     orderedSeries.find(
       (series) => series.seriesKey === focusedKey && visibleKeys.includes(series.seriesKey),
@@ -235,19 +234,12 @@ export function ExperimentPaymentProgressChart({
             })}
           </small>
         </div>
-        <label className={`cs-experiment-curve-zoom ${zoomed ? "active" : ""}`}>
-          <input
-            type="checkbox"
-            checked={zoomed}
-            onChange={(event) => setZoomed(event.target.checked)}
-          />
-          <span>{t("ecommerce.customerServiceExperiments.curve.zoomDifferences")}</span>
-          {zoomed ? (
-            <output className="cs-experiment-curve-zoom-range" aria-live="polite">
-              {zoomDomain[0]}–{zoomDomain[1]}%
-            </output>
-          ) : null}
-        </label>
+        <output className="cs-experiment-curve-scale" aria-live="polite">
+          {t("ecommerce.customerServiceExperiments.curve.focusedScale", {
+            low: yDomain[0],
+            high: yDomain[1],
+          })}
+        </output>
       </div>
       {exposedUnits === 0 ? (
         <div className="cs-experiment-curve-context-warning" role="status">
@@ -299,7 +291,7 @@ export function ExperimentPaymentProgressChart({
           })}
         </div>
       </div>
-      <div className={`cs-experiment-curve-chart ${zoomed ? "zoomed" : ""}`}>
+      <div className="cs-experiment-curve-chart focused-scale">
         <ResponsiveContainer width="100%" height={340}>
           <LineChart data={chartRows} margin={{ top: 18, right: 18, left: 4, bottom: 12 }}>
             <CartesianGrid
@@ -310,13 +302,13 @@ export function ExperimentPaymentProgressChart({
             <XAxis
               type="number"
               dataKey="elapsedMinutes"
-              domain={[0, curve.maxElapsedMinutes]}
+              domain={[firstElapsedMinute, curve.maxElapsedMinutes]}
               tickFormatter={formatElapsed}
               tick={{ fontSize: 10 }}
             />
             <YAxis
-              domain={zoomed ? zoomDomain : [0, 100]}
-              allowDataOverflow={zoomed}
+              domain={yDomain}
+              allowDataOverflow
               tickCount={5}
               tickFormatter={(value) => `${value}%`}
               tick={{ fontSize: 10 }}

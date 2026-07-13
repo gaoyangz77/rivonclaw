@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  curveYAxisDomain,
   defaultVisibleCurveSeries,
+  firstPositiveCurveMinute,
   isCurvePointReliable,
-  zoomedCurveYAxisDomain,
 } from "./ExperimentPaymentProgressChart.js";
 
 describe("ExperimentPaymentProgressChart", () => {
@@ -77,23 +78,23 @@ describe("ExperimentPaymentProgressChart", () => {
         ],
       },
     ];
-    expect(zoomedCurveYAxisDomain(series, ["CONTROL", "TREATMENT"])).toEqual([2.5, 4]);
-    expect(zoomedCurveYAxisDomain(series, ["CONTROL"])).toEqual([2.5, 4]);
+    expect(curveYAxisDomain(series, ["CONTROL", "TREATMENT"])).toEqual([2.5, 4]);
+    expect(curveYAxisDomain(series, ["CONTROL"])).toEqual([2.5, 4]);
   });
 
   it("uses a safe fallback when no visible post-origin values exist", () => {
-    expect(zoomedCurveYAxisDomain([], [])).toEqual([0, 100]);
+    expect(curveYAxisDomain([], [])).toEqual([0, 100]);
     expect(
-      zoomedCurveYAxisDomain(
+      curveYAxisDomain(
         [{ seriesKey: "CONTROL", points: [{ elapsedMinutes: 0, estimate: 1 }] }],
         ["CONTROL"],
       ),
     ).toEqual([0, 100]);
   });
 
-  it("includes confidence bounds when zooming so small samples are not exaggerated", () => {
+  it("keeps confidence bounds out of the axis domain so the outcome signal stays legible", () => {
     expect(
-      zoomedCurveYAxisDomain(
+      curveYAxisDomain(
         [
           {
             seriesKey: "CONTROL",
@@ -122,6 +123,17 @@ describe("ExperimentPaymentProgressChart", () => {
         ],
         ["CONTROL", "TREATMENT"],
       ),
-    ).toEqual([0, 6.5]);
+    ).toEqual([0, 1]);
+  });
+
+  it("starts the visible curve at the first positive minute", () => {
+    expect(
+      firstPositiveCurveMinute([
+        { elapsedMinutes: 10 },
+        { elapsedMinutes: 0 },
+        { elapsedMinutes: 1 },
+      ]),
+    ).toBe(1);
+    expect(firstPositiveCurveMinute([{ elapsedMinutes: 0 }])).toBe(1);
   });
 });

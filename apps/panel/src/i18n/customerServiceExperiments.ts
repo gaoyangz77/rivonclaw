@@ -71,7 +71,7 @@ const base = {
     paymentProgress: "Payment progress",
     metricTrend: "Metric trend",
     asOf: "Estimated {{time}}",
-    zoomDifferences: "Zoom differences",
+    focusedScale: "Focused scale {{low}}–{{high}}%",
     searchVariants: "Search variants",
     selectAll: "Select all",
     clear: "Clear",
@@ -81,7 +81,7 @@ const base = {
       "This curve only shows natural payment and cancellation before any reachout. It cannot be used to evaluate reachout impact yet.",
     tooltipCounts:
       "Paid {{paid}} · cancelled {{cancelled}} · censored {{censored}} · at risk {{risk}} · coverage {{coverage}}%",
-    axisNote: "Step curve: share not yet converted to paid, by minutes since order creation.",
+    axisNote: "Step curve from minute 1: share not yet converted to paid after order creation.",
     reliabilityNote:
       "Faded segments have fewer than 100 assigned orders, CI wider than 10pp, or observation coverage below 80%.",
     endpointCancelled: "Endpoint cancelled {{value}}%",

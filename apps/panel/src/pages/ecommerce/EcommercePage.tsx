@@ -761,11 +761,11 @@ export const EcommercePage = observer(function EcommercePage() {
         onToggleUnpaidReachoutEnabled={(enabled) => {
           setDraftUnpaidReachoutEnabled(enabled);
           if (enabled && draftUnpaidReachoutStages.length === 0) {
-            const isEurope = ["DE", "ES", "FR", "IE", "IT"].includes(selectedShop?.region ?? "");
+            const isMexico = selectedShop?.region === "MX";
             setDraftUnpaidReachoutStages([
               {
                 enabled: true,
-                delayMinutes: isEurope ? "3" : "1440",
+                delayMinutes: isMexico ? "1440" : "3",
                 messageTemplate: defaultUnpaidReachoutTemplate(selectedShop?.region),
               },
             ]);
