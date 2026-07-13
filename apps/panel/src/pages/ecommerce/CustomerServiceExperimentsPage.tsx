@@ -18,6 +18,7 @@ import {
 } from "../../api/cs-experiment-queries.js";
 import { RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { Modal } from "../../components/modals/Modal.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ExperimentPaymentProgressChart } from "./ExperimentPaymentProgressChart.js";
 
@@ -103,6 +104,12 @@ function formatLift(value?: number | null): string {
   return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(2)}%`;
 }
 
+function compactDelay(minutes: number): string {
+  if (minutes >= 1440 && minutes % 1440 === 0) return `${minutes / 1440}d`;
+  if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60}h`;
+  return `${minutes}m`;
+}
+
 export const CustomerServiceExperimentsPage = observer(function CustomerServiceExperimentsPage() {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -117,7 +124,13 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
   const [curveEstimator, setCurveEstimator] = useState<GQL.CsExperimentCurveEstimator>(
     GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
   );
+  const [configurationVariantKey, setConfigurationVariantKey] = useState<string | null>(null);
   const visible = usePageVisibility();
+
+  useEffect(() => {
+    setCurveEstimator(GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard);
+    setConfigurationVariantKey(null);
+  }, [experimentId]);
 
   useEffect(() => {
     if (entityStore.currentUser) entityStore.fetchShops().catch(() => {});
@@ -193,6 +206,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         ? workspaceQuery.previousData
         : undefined;
   const detail = workspaceData?.ecommerceGetCSExperimentDetail;
+  const configurationVariant = detail?.variants.find(
+    (variant) => variant.variantKey === configurationVariantKey,
+  );
   const trend = workspaceData?.ecommerceGetCSExperimentTrend;
   const curveCandidate = workspaceData?.ecommerceGetCSExperimentTimeToEventCurve;
   const curve = curveCandidate?.estimator === curveEstimator ? curveCandidate : undefined;
@@ -237,10 +253,9 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
     })),
   ];
   const shopById = new Map(entityStore.shops.map((shop) => [shop.id, shop]));
-  const formatTargetLabel = (target: GQL.CsExperimentTargetView, includeRegion = false) => {
+  const formatTargetLabel = (target: GQL.CsExperimentTargetView) => {
     const shop = shopById.get(target.id);
     const parts = [shop?.alias, target.name || shop?.shopName];
-    if (includeRegion) parts.push(target.region || shop?.region);
     const uniqueParts = parts
       .map((part) => part?.trim())
       .filter(
@@ -248,10 +263,33 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       );
     return uniqueParts.join(" · ") || target.id;
   };
+  const selectedListItem = items.find((item) => item.id === experimentId);
+  const selectedContext = detail?.id === experimentId ? detail : selectedListItem;
   const maturity =
-    detail?.quality && detail.quality.assignedUnits > 0
-      ? detail.quality.maturedUnits / detail.quality.assignedUnits
+    selectedContext?.quality && selectedContext.quality.assignedUnits > 0
+      ? selectedContext.quality.maturedUnits / selectedContext.quality.assignedUnits
       : 0;
+  const experimentOptions = items.map((item) => {
+    const targetLabel =
+      item.targets.map((target) => formatTargetLabel(target)).join(", ") ||
+      t("ecommerce.customerServiceExperiments.unknownShop");
+    const typeLabel =
+      item.experimentType === "HOLDOUT"
+        ? t("ecommerce.customerServiceExperiments.types.holdout")
+        : t("ecommerce.customerServiceExperiments.types.config");
+    return {
+      value: item.id,
+      label: `${targetLabel} · ${typeLabel}`,
+      description: `${formatDate(item.startedAt)} · v${item.version}`,
+      badge: t(`ecommerce.customerServiceExperiments.status.${item.displayStatus}`),
+      badgeTone:
+        item.displayStatus === "RUNNING"
+          ? ("success" as const)
+          : item.displayStatus === "FINAL"
+            ? ("info" as const)
+            : ("neutral" as const),
+    };
+  });
 
   const switchView = (next: View) => {
     setView(next);
@@ -383,69 +421,77 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       ) : null}
 
       {items.length ? (
-        <div className="cs-experiments-workbench">
-          <aside
-            className="section-card cs-experiment-list"
-            aria-label={t("ecommerce.customerServiceExperiments.experimentList")}
-          >
-            <div className="cs-experiment-list-heading">
-              <span>
-                {view === "REALTIME"
-                  ? t("ecommerce.customerServiceExperiments.liveQueue")
-                  : t("ecommerce.customerServiceExperiments.archive")}
-              </span>
-              <b>{items.length}</b>
-            </div>
-            <div className="cs-experiment-list-scroll">
-              {items.map((item) => {
-                const progress =
-                  item.quality && item.quality.assignedUnits
-                    ? item.quality.maturedUnits / item.quality.assignedUnits
-                    : 0;
-                return (
-                  <button
-                    type="button"
-                    key={item.id}
-                    className={`cs-experiment-list-item${experimentId === item.id ? " active" : ""}`}
-                    onClick={() => setExperimentId(item.id)}
-                  >
-                    <span className={`cs-experiment-status ${item.displayStatus.toLowerCase()}`}>
-                      {t(`ecommerce.customerServiceExperiments.status.${item.displayStatus}`)}
-                    </span>
-                    <strong>
-                      {item.experimentType === "HOLDOUT"
-                        ? t("ecommerce.customerServiceExperiments.types.holdout")
-                        : t("ecommerce.customerServiceExperiments.types.config")}
-                    </strong>
-                    <small>
-                      {item.targets.map((target) => formatTargetLabel(target)).join(", ") ||
-                        t("ecommerce.customerServiceExperiments.unknownShop")}
-                    </small>
-                    <div className="cs-experiment-mini-progress">
-                      <i style={{ width: `${Math.min(progress * 100, 100)}%` }} />
-                    </div>
-                    <footer>
-                      <span>
-                        v{item.version} · {item.variantCount}{" "}
-                        {t("ecommerce.customerServiceExperiments.variants")}
-                      </span>
-                      <span>{Math.round(progress * 100)}%</span>
-                    </footer>
+        <>
+          <section className="section-card cs-experiment-picker">
+            <div className="cs-experiment-picker-control">
+              <div className="cs-experiment-picker-label">
+                <span>
+                  {view === "REALTIME"
+                    ? t("ecommerce.customerServiceExperiments.liveQueue")
+                    : t("ecommerce.customerServiceExperiments.archive")}
+                  <b>{items.length}</b>
+                </span>
+                {pageQuery.data?.ecommerceGetCSExperimentPage.nextCursor ? (
+                  <button type="button" onClick={loadMore}>
+                    {t("ecommerce.customerServiceExperiments.loadMore")}
                   </button>
-                );
-              })}
+                ) : null}
+              </div>
+              <Select
+                value={experimentId}
+                onChange={setExperimentId}
+                options={experimentOptions}
+                searchable
+                ariaLabel={t("ecommerce.customerServiceExperiments.experimentList")}
+                className="cs-experiment-picker-select"
+              />
+              <small>{selectedContext?.id ?? "—"}</small>
             </div>
-            {pageQuery.data?.ecommerceGetCSExperimentPage.nextCursor ? (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm cs-experiment-load-more"
-                onClick={loadMore}
-              >
-                {t("ecommerce.customerServiceExperiments.loadMore")}
-              </button>
-            ) : null}
-          </aside>
-
+            <div className="cs-experiment-picker-meta status">
+              <span>{t("ecommerce.customerServiceExperiments.filters.type")}</span>
+              {selectedContext ? (
+                <strong>
+                  {selectedContext.experimentType === "HOLDOUT"
+                    ? t("ecommerce.customerServiceExperiments.types.holdout")
+                    : t("ecommerce.customerServiceExperiments.types.config")}
+                </strong>
+              ) : null}
+              {selectedContext ? (
+                <i className={`cs-experiment-status ${selectedContext.displayStatus.toLowerCase()}`}>
+                  {t(`ecommerce.customerServiceExperiments.status.${selectedContext.displayStatus}`)}
+                </i>
+              ) : null}
+            </div>
+            <div className="cs-experiment-picker-meta">
+              <span>{t("ecommerce.customerServiceExperiments.kpis.started")}</span>
+              <strong>{formatDate(selectedContext?.startedAt)}</strong>
+              <small>
+                v{selectedContext?.version ?? "—"} · {selectedContext?.variantCount ?? "—"}{" "}
+                {t("ecommerce.customerServiceExperiments.variants")}
+              </small>
+            </div>
+            <div className="cs-experiment-picker-meta">
+              <span>{t("ecommerce.customerServiceExperiments.kpis.assigned")}</span>
+              <strong>{selectedContext?.quality?.assignedUnits.toLocaleString() ?? "—"}</strong>
+              <small>
+                {t("ecommerce.customerServiceExperiments.kpis.matured")} {Math.round(maturity * 100)}%
+              </small>
+            </div>
+            <div className="cs-experiment-picker-meta">
+              <span>{t("ecommerce.customerServiceExperiments.kpis.srm")}</span>
+              <strong>
+                {selectedContext?.quality?.srmPValue == null
+                  ? "—"
+                  : selectedContext.quality.srmPValue.toFixed(3)}
+              </strong>
+              <small>
+                {selectedContext?.quality?.srmPValue != null &&
+                selectedContext.quality.srmPValue < 0.01
+                  ? t("ecommerce.customerServiceExperiments.kpis.review")
+                  : t("ecommerce.customerServiceExperiments.kpis.healthy")}
+              </small>
+            </div>
+          </section>
           <main className="cs-experiment-detail">
             {workspaceQuery.error && !detail ? (
               <div className="section-card cs-experiments-error">
@@ -457,64 +503,6 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
             ) : null}
             {detail ? (
               <>
-                <section className="section-card cs-experiment-overview">
-                  <div className="cs-experiment-overview-title">
-                    <div>
-                      <span
-                        className={`cs-experiment-status ${detail.displayStatus.toLowerCase()}`}
-                      >
-                        {t(`ecommerce.customerServiceExperiments.status.${detail.displayStatus}`)}
-                      </span>
-                      <h2>
-                        {detail.experimentType === "HOLDOUT"
-                          ? t("ecommerce.customerServiceExperiments.types.holdout")
-                          : t("ecommerce.customerServiceExperiments.types.config")}
-                      </h2>
-                      <p>
-                        {detail.targets
-                          .map((target) => formatTargetLabel(target, true))
-                          .join("  /  ")}
-                      </p>
-                    </div>
-                    <div className="cs-experiment-id">
-                      <span>ID</span>
-                      <code>{detail.id}</code>
-                    </div>
-                  </div>
-                  <div className="cs-experiment-stat-strip">
-                    <div>
-                      <span>{t("ecommerce.customerServiceExperiments.kpis.assigned")}</span>
-                      <strong>{detail.quality?.assignedUnits.toLocaleString() ?? "—"}</strong>
-                    </div>
-                    <div>
-                      <span>{t("ecommerce.customerServiceExperiments.kpis.matured")}</span>
-                      <strong>{detail.quality?.maturedUnits.toLocaleString() ?? "—"}</strong>
-                      <small>{(maturity * 100).toFixed(1)}%</small>
-                    </div>
-                    <div>
-                      <span>{t("ecommerce.customerServiceExperiments.kpis.variants")}</span>
-                      <strong>{detail.variantCount}</strong>
-                    </div>
-                    <div>
-                      <span>{t("ecommerce.customerServiceExperiments.kpis.srm")}</span>
-                      <strong>
-                        {detail.quality?.srmPValue == null
-                          ? "—"
-                          : detail.quality.srmPValue.toFixed(3)}
-                      </strong>
-                      <small>
-                        {detail.quality?.srmPValue != null && detail.quality.srmPValue < 0.01
-                          ? t("ecommerce.customerServiceExperiments.kpis.review")
-                          : t("ecommerce.customerServiceExperiments.kpis.healthy")}
-                      </small>
-                    </div>
-                    <div>
-                      <span>{t("ecommerce.customerServiceExperiments.kpis.started")}</span>
-                      <strong className="date">{formatDate(detail.startedAt)}</strong>
-                    </div>
-                  </div>
-                </section>
-
                 <section className="section-card cs-experiment-variants">
                   <div className="cs-experiment-section-heading">
                     <div>
@@ -565,6 +553,16 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                               : t("ecommerce.customerServiceExperiments.noReachout")}
                           </div>
                         )}
+                        {variant.action !== "NO_REACHOUT" ? (
+                          <button
+                            type="button"
+                            className="cs-experiment-config-quick-view"
+                            onClick={() => setConfigurationVariantKey(variant.variantKey)}
+                          >
+                            {t("ecommerce.customerServiceExperiments.viewConfiguration")}
+                            <span aria-hidden="true">↗</span>
+                          </button>
+                        ) : null}
                       </article>
                     ))}
                   </div>
@@ -659,6 +657,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                         </button>
                       </div>
                       <ExperimentPaymentProgressChart
+                        experimentId={detail.id}
                         curve={curve}
                         exposedUnits={detail.quality?.exposedUnits ?? 0}
                         loading={workspaceQuery.loading}
@@ -837,8 +836,83 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
               </>
             ) : null}
           </main>
-        </div>
+        </>
       ) : null}
+      <Modal
+        isOpen={Boolean(configurationVariant)}
+        onClose={() => setConfigurationVariantKey(null)}
+        title={t("ecommerce.customerServiceExperiments.configurationTitle", {
+          variant: configurationVariant?.label ?? "",
+        })}
+        closeLabel={t("common.close")}
+        maxWidth={760}
+        className="cs-experiment-config-modal"
+        portal
+      >
+        {configurationVariant ? (
+          <div className="cs-experiment-config-modal-body">
+            <div className="cs-experiment-config-modal-intro">
+              <div>
+                <span>{configurationVariant.variantKey}</span>
+                <strong>{configurationVariant.label}</strong>
+              </div>
+              <b>{(configurationVariant.weightBps / 100).toFixed(0)}%</b>
+              <p>{t("ecommerce.customerServiceExperiments.configurationSubtitle")}</p>
+            </div>
+            {configurationVariant.stages.length ? (
+              <div className="cs-experiment-config-stage-list">
+                {[...configurationVariant.stages]
+                  .sort((left, right) => left.delayMinutes - right.delayMinutes)
+                  .map((stage, index) => (
+                    <article key={`${stage.stageId}:${stage.stageIndex}`}>
+                      <div className="cs-experiment-config-stage-rail">
+                        <span>{String(index + 1).padStart(2, "0")}</span>
+                        <i />
+                      </div>
+                      <div className="cs-experiment-config-stage-content">
+                        <header>
+                          <div>
+                            <strong>
+                              {t("ecommerce.customerServiceExperiments.stageLabel", {
+                                index: index + 1,
+                              })}
+                            </strong>
+                            <span className={stage.enabled ? "enabled" : "disabled"}>
+                              {t(
+                                stage.enabled
+                                  ? "ecommerce.customerServiceExperiments.enabledStage"
+                                  : "ecommerce.customerServiceExperiments.disabledStage",
+                              )}
+                            </span>
+                          </div>
+                          <div className="cs-experiment-config-delay">
+                            <b>{compactDelay(stage.delayMinutes)}</b>
+                            <small>
+                              {t("ecommerce.customerServiceExperiments.afterOrder", {
+                                minutes: stage.delayMinutes,
+                              })}
+                            </small>
+                          </div>
+                        </header>
+                        <div className="cs-experiment-config-template-label">
+                          {t("ecommerce.customerServiceExperiments.messageTemplate")}
+                        </div>
+                        <pre>
+                          {stage.messageTemplate ||
+                            t("ecommerce.customerServiceExperiments.configurationUnavailable")}
+                        </pre>
+                      </div>
+                    </article>
+                  ))}
+              </div>
+            ) : (
+              <div className="cs-experiment-config-empty">
+                {t("ecommerce.customerServiceExperiments.configurationUnavailable")}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 });

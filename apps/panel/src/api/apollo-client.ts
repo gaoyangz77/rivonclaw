@@ -21,7 +21,16 @@ let _client: ApolloClient | null = null;
 export function createApolloClient() {
   _client = new ApolloClient({
     link: createHttpLink({ uri: API["cloud.graphql"].path }),
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      typePolicies: {
+        // Stage IDs are stable inside a shop/configuration, but copied experiment
+        // variants intentionally reuse them. They are embedded values rather than
+        // globally addressable entities and must not collapse across variants.
+        UnpaidOrderReachoutStage: {
+          keyFields: false,
+        },
+      },
+    }),
     defaultOptions: {
       watchQuery: {
         fetchPolicy: "cache-and-network",

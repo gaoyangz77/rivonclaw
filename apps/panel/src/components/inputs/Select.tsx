@@ -5,6 +5,8 @@ export interface SelectOption {
   value: string;
   label: string;
   description?: string;
+  badge?: string;
+  badgeTone?: "neutral" | "success" | "warning" | "info";
 }
 
 export interface SelectProps {
@@ -152,6 +154,11 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
         <span className={selected ? "custom-select-label" : "custom-select-placeholder"}>
           {selected ? selected.label : placeholder ?? ""}
         </span>
+        {selected?.badge ? (
+          <span className={`custom-select-badge ${selected.badgeTone ?? "neutral"}`}>
+            {selected.badge}
+          </span>
+        ) : null}
         <span className="custom-select-chevron">{open ? "\u25B2" : "\u25BC"}</span>
       </button>
       {open && createPortal(
@@ -180,7 +187,14 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
                 setOpen(false);
               }}
             >
-              <div className="custom-select-option-label">{opt.label}</div>
+              <div className="custom-select-option-main">
+                <div className="custom-select-option-label">{opt.label}</div>
+                {opt.badge ? (
+                  <span className={`custom-select-badge ${opt.badgeTone ?? "neutral"}`}>
+                    {opt.badge}
+                  </span>
+                ) : null}
+              </div>
               {opt.description && (
                 <div className="custom-select-option-desc">{opt.description}</div>
               )}

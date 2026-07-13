@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import {
@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -29,6 +30,7 @@ const SERIES_COLORS = [
 ];
 
 interface ExperimentPaymentProgressChartProps {
+  experimentId: string;
   curve?: GQL.CsExperimentTimeToEventCurveView;
   exposedUnits: number;
   loading: boolean;
@@ -43,6 +45,11 @@ interface ChartRow {
   elapsedMinutes: number;
   points: Record<string, CurvePoint | undefined>;
   [key: string]: number | Record<string, CurvePoint | undefined> | null;
+}
+
+interface CurveTimeDomain {
+  start: number;
+  end: number;
 }
 
 type CurveDomainSeries = Pick<CurveSeries, "seriesKey"> & {
@@ -125,6 +132,30 @@ export function firstPositiveCurveMinute(points: Array<{ elapsedMinutes: number 
   return positive.length ? Math.min(...positive) : 1;
 }
 
+export function normalizeCurveTimeDomain(
+  start: number,
+  end: number,
+  minimum: number,
+  maximum: number,
+): CurveTimeDomain | null {
+  if (![start, end, minimum, maximum].every(Number.isFinite) || maximum <= minimum) return null;
+  const lower = Math.max(minimum, Math.min(start, end));
+  const upper = Math.min(maximum, Math.max(start, end));
+  if (upper - lower < 1) return null;
+  if (lower <= minimum && upper >= maximum) return null;
+  return { start: lower, end: upper };
+}
+
+export function curveTimeWindowPresets(maximum: number): number[] {
+  return [30, 60, 360, 1_440].filter((minutes) => minutes < maximum);
+}
+
+function activeChartMinute(event: unknown): number | null {
+  if (!event || typeof event !== "object" || !("activeLabel" in event)) return null;
+  const value = Number((event as { activeLabel?: unknown }).activeLabel);
+  return Number.isFinite(value) ? value : null;
+}
+
 export function curveInterpolationType(
   estimator: GQL.CsExperimentCurveEstimator | undefined,
 ): "monotoneX" | "stepAfter" {
@@ -166,6 +197,7 @@ export function curveLinePresentation(
 }
 
 export function ExperimentPaymentProgressChart({
+  experimentId,
   curve,
   exposedUnits,
   loading,
@@ -176,6 +208,10 @@ export function ExperimentPaymentProgressChart({
   const [search, setSearch] = useState("");
   const [visibleKeys, setVisibleKeys] = useState<string[]>([]);
   const [focusedKey, setFocusedKey] = useState("");
+  const [timeDomain, setTimeDomain] = useState<CurveTimeDomain | null>(null);
+  const [selectionStart, setSelectionStart] = useState<number | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
+  const initializedExperimentRef = useRef<string | null>(null);
   const orderedSeries = useMemo(
     () =>
       [...(curve?.series ?? [])].sort((left, right) => {
@@ -199,6 +235,25 @@ export function ExperimentPaymentProgressChart({
     });
     setFocusedKey((current) => (keys.includes(current) ? current : (keys[0] ?? "")));
   }, [orderedSeries]);
+
+  useEffect(() => {
+    if (
+      curve?.experimentId !== experimentId ||
+      initializedExperimentRef.current === experimentId
+    )
+      return;
+    initializedExperimentRef.current = experimentId;
+    setSearch("");
+    setVisibleKeys(defaultVisibleCurveSeries(orderedSeries));
+    setFocusedKey(
+      orderedSeries.find((series) => series.seriesRole === "CONTROL")?.seriesKey ??
+        orderedSeries[0]?.seriesKey ??
+        "",
+    );
+    setTimeDomain(null);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+  }, [experimentId, curve?.experimentId, orderedSeries]);
 
   const rows = useMemo(() => {
     const byMinute = new Map<number, ChartRow>();
@@ -231,15 +286,53 @@ export function ExperimentPaymentProgressChart({
   const filteredSeries = orderedSeries.filter((series) =>
     displayLabel(series).toLowerCase().includes(search.trim().toLowerCase()),
   );
-  const yDomain = curveYAxisDomain(orderedSeries, visibleKeys);
   const interpolationType = curveInterpolationType(curve?.estimator);
   const firstElapsedMinute = firstPositiveCurveMinute(rows);
   const chartRows = rows.filter((row) => row.elapsedMinutes >= firstElapsedMinute);
+  const maximumElapsedMinute = Math.max(firstElapsedMinute, curve?.maxElapsedMinutes ?? 0);
+  const normalizedTimeDomain = timeDomain
+    ? normalizeCurveTimeDomain(
+        timeDomain.start,
+        timeDomain.end,
+        firstElapsedMinute,
+        maximumElapsedMinute,
+      )
+    : null;
+  const xDomain: [number, number] = normalizedTimeDomain
+    ? [normalizedTimeDomain.start, normalizedTimeDomain.end]
+    : [firstElapsedMinute, maximumElapsedMinute];
+  const yDomain = curveYAxisDomain(
+    orderedSeries.map((series) => ({
+      ...series,
+      points: series.points.filter(
+        (point) => point.elapsedMinutes >= xDomain[0] && point.elapsedMinutes <= xDomain[1],
+      ),
+    })),
+    visibleKeys,
+  );
+  const timeWindowPresets = curveTimeWindowPresets(maximumElapsedMinute);
   const focused =
     orderedSeries.find(
       (series) => series.seriesKey === focusedKey && visibleKeys.includes(series.seriesKey),
     ) ?? visibleSeries[0];
   const focusedEndpoint = focused?.points.at(-1);
+
+  function finishTimeSelection(endMinute: number | null) {
+    if (selectionStart != null && endMinute != null) {
+      if (Math.abs(endMinute - selectionStart) >= 1) {
+        setTimeDomain(
+          normalizeCurveTimeDomain(
+            selectionStart,
+            endMinute,
+            firstElapsedMinute,
+            maximumElapsedMinute,
+          ),
+        );
+      }
+    }
+    setSelectionStart(null);
+    setSelectionEnd(null);
+  }
 
   if (loading && !curve) return <div className="cs-experiments-loading">{t("common.loading")}</div>;
   if (failed)
@@ -278,6 +371,49 @@ export function ExperimentPaymentProgressChart({
             high: yDomain[1],
           })}
         </output>
+      </div>
+      <div className="cs-experiment-curve-time-controls">
+        <div className="cs-experiment-curve-time-presets" role="group" aria-label={t("ecommerce.customerServiceExperiments.curve.timeWindow")}>
+          <span>{t("ecommerce.customerServiceExperiments.curve.timeWindow")}</span>
+          {timeWindowPresets.map((minutes) => {
+            const active =
+              normalizedTimeDomain?.start === firstElapsedMinute &&
+              normalizedTimeDomain.end === minutes;
+            return (
+              <button
+                key={minutes}
+                type="button"
+                className={active ? "active" : ""}
+                aria-pressed={active}
+                onClick={() =>
+                  setTimeDomain({ start: firstElapsedMinute, end: minutes })
+                }
+              >
+                {formatElapsed(minutes)}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className={!normalizedTimeDomain ? "active" : ""}
+            aria-pressed={!normalizedTimeDomain}
+            onClick={() => setTimeDomain(null)}
+          >
+            {t("ecommerce.customerServiceExperiments.curve.fullWindow")}
+          </button>
+        </div>
+        <div className="cs-experiment-curve-window-state">
+          <output aria-live="polite">
+            {formatElapsed(xDomain[0])}–{formatElapsed(xDomain[1])}
+          </output>
+          {normalizedTimeDomain ? (
+            <button type="button" onClick={() => setTimeDomain(null)}>
+              {t("ecommerce.customerServiceExperiments.curve.resetWindow")}
+            </button>
+          ) : (
+            <small>{t("ecommerce.customerServiceExperiments.curve.dragHint")}</small>
+          )}
+        </div>
       </div>
       {exposedUnits === 0 ? (
         <div className="cs-experiment-curve-context-warning" role="status">
@@ -335,8 +471,23 @@ export function ExperimentPaymentProgressChart({
         </div>
       </div>
       <div className="cs-experiment-curve-chart focused-scale">
-        <ResponsiveContainer width="100%" height={340}>
-          <LineChart data={chartRows} margin={{ top: 18, right: 18, left: 4, bottom: 12 }}>
+        <ResponsiveContainer width="100%" height={380}>
+          <LineChart
+            data={chartRows}
+            margin={{ top: 18, right: 18, left: 4, bottom: 12 }}
+            onMouseDown={(event) => {
+              const minute = activeChartMinute(event);
+              if (minute == null) return;
+              setSelectionStart(minute);
+              setSelectionEnd(minute);
+            }}
+            onMouseMove={(event) => {
+              if (selectionStart == null) return;
+              const minute = activeChartMinute(event);
+              if (minute != null) setSelectionEnd(minute);
+            }}
+            onMouseUp={(event) => finishTimeSelection(activeChartMinute(event))}
+          >
             <CartesianGrid
               strokeDasharray="2 6"
               vertical={false}
@@ -345,17 +496,18 @@ export function ExperimentPaymentProgressChart({
             <XAxis
               type="number"
               dataKey="elapsedMinutes"
-              domain={[firstElapsedMinute, curve.maxElapsedMinutes]}
+              domain={xDomain}
+              allowDataOverflow
               tickFormatter={formatElapsed}
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 11 }}
             />
             <YAxis
               domain={yDomain}
               allowDataOverflow
               tickCount={5}
               tickFormatter={(value) => `${value}%`}
-              tick={{ fontSize: 10 }}
-              width={48}
+              tick={{ fontSize: 11 }}
+              width={52}
             />
             {focused ? (
               <>
@@ -371,7 +523,9 @@ export function ExperimentPaymentProgressChart({
                   stroke="none"
                   fill="var(--experiment-curve-ci)"
                 />
-                {focused.stages.map((stage) => (
+                {focused.stages.filter(
+                  (stage) => stage.delayMinutes >= xDomain[0] && stage.delayMinutes <= xDomain[1],
+                ).map((stage) => (
                   <ReferenceLine
                     key={`${focused.seriesKey}:${stage.stageIndex}:${stage.delayMinutes}`}
                     x={stage.delayMinutes}
@@ -385,6 +539,16 @@ export function ExperimentPaymentProgressChart({
                   />
                 ))}
               </>
+            ) : null}
+            {selectionStart != null && selectionEnd != null ? (
+              <ReferenceArea
+                x1={Math.min(selectionStart, selectionEnd)}
+                x2={Math.max(selectionStart, selectionEnd)}
+                fill="var(--experiment-ink)"
+                fillOpacity={0.12}
+                stroke="var(--experiment-ink)"
+                strokeOpacity={0.5}
+              />
             ) : null}
             <Tooltip
               content={({ label }) => {

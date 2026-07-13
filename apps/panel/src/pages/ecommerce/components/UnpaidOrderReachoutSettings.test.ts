@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   rebalanceUnpaidExperimentVariants,
   serializeUnpaidReachoutStages,
+  toUnpaidReachoutStageInput,
   validateUnpaidExperimentVariants,
   type UnpaidExperimentVariantDraft,
 } from "./UnpaidOrderReachoutSettings.js";
@@ -16,6 +17,24 @@ function variant(key: string, percentage: string, delay: string): UnpaidExperime
 }
 
 describe("unpaid reachout experiment validation", () => {
+  it("serializes GraphQL stages into strict mutation inputs", () => {
+    const graphqlStage = {
+      __typename: "UnpaidOrderReachoutStage",
+      id: "stage-a",
+      enabled: true,
+      delayMinutes: "3",
+      messageTemplate: "Need help?",
+    };
+
+    expect(toUnpaidReachoutStageInput(graphqlStage)).toEqual({
+      id: "stage-a",
+      enabled: true,
+      delayMinutes: 3,
+      messageTemplate: "Need help?",
+    });
+    expect(toUnpaidReachoutStageInput(graphqlStage)).not.toHaveProperty("__typename");
+  });
+
   it("treats equivalent stage drafts and server stages as unchanged", () => {
     const draft = [
       { id: "stage-a", enabled: true, delayMinutes: "3", messageTemplate: "Need help?" },
