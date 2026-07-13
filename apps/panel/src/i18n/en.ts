@@ -4374,8 +4374,11 @@ export default {
         unpaidEvaluationHint:
           "Measure incremental impact and compare complete reachout strategies.",
         unpaidHoldoutLabel: "Holdout percentage",
+        unpaidTrafficAllocation: "Experiment traffic",
+        unpaidTrafficSummary: "{{holdout}}% holdout · {{treatment}}% normal reachout",
         unpaidNoReachout: "No reachout",
         unpaidTreatment: "Treatment",
+        unpaidAdvancedOptimization: "Advanced optimization",
         unpaidConfigOptimization: "Configuration optimization",
         unpaidExperimentVersion: "Version",
         unpaidDraftReady: "A saved draft is ready to continue.",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
@@ -29,11 +29,10 @@ interface ExperimentVariant extends Omit<GQL.CsUnpaidOrderConfigVariantView, "st
   stages: ExperimentStage[];
 }
 
-interface ConfigExperiment
-  extends Omit<
-    GQL.CsUnpaidOrderConfigExperimentView,
-    "displayStatus" | "startedAt" | "stoppedAt" | "resultsFinalAt" | "variants"
-  > {
+interface ConfigExperiment extends Omit<
+  GQL.CsUnpaidOrderConfigExperimentView,
+  "displayStatus" | "startedAt" | "stoppedAt" | "resultsFinalAt" | "variants"
+> {
   displayStatus: DisplayStatus;
   startedAt?: string | null;
   stoppedAt?: string | null;
@@ -41,8 +40,10 @@ interface ConfigExperiment
   variants: ExperimentVariant[];
 }
 
-interface EvaluationView
-  extends Omit<GQL.CsUnpaidOrderEvaluationView, "stages" | "holdout" | "config" | "locks"> {
+interface EvaluationView extends Omit<
+  GQL.CsUnpaidOrderEvaluationView,
+  "stages" | "holdout" | "config" | "locks"
+> {
   stages: ExperimentStage[];
   holdout: {
     enabled: boolean;
@@ -107,6 +108,24 @@ function humanDelay(minutes: number, language: string): string {
 
 function toDraftStages(stages: ExperimentStage[]): UnpaidReachoutStageDraft[] {
   return stages.map((stage) => ({ ...stage, delayMinutes: String(stage.delayMinutes) }));
+}
+
+interface ComparableStage {
+  id?: string | null;
+  enabled: boolean;
+  delayMinutes: string | number;
+  messageTemplate: string;
+}
+
+export function serializeUnpaidReachoutStages(stages: ReadonlyArray<ComparableStage>): string {
+  return JSON.stringify(
+    stages.map((stage) => ({
+      id: stage.id ?? null,
+      enabled: stage.enabled,
+      delayMinutes: Number(stage.delayMinutes),
+      messageTemplate: stage.messageTemplate,
+    })),
+  );
 }
 
 function toVariantDrafts(experiment: ConfigExperiment): VariantDraft[] {
@@ -218,27 +237,22 @@ export function UnpaidOrderReachoutSettings({
   const [workspaceDirty, setWorkspaceDirty] = useState(false);
   const [workspaceBusy, setWorkspaceBusy] = useState(false);
   const [closePrompt, setClosePrompt] = useState(false);
-  const savedStages =
-    evaluation?.stages ?? shop.services?.customerService?.unpaidOrderReachoutStages ?? [];
-  const savedEnabled =
-    evaluation?.reachoutEnabled ??
-    shop.services?.customerService?.unpaidOrderReachoutEnabled ??
-    false;
-  const savedEvaluationEnabled =
-    evaluation?.holdout.enabled ??
-    shop.services?.customerService?.unpaidOrderReachoutExperiment?.enabled ??
-    false;
-  const savedHoldout =
-    evaluation?.holdout.holdoutPercent ??
-    shop.services?.customerService?.unpaidOrderReachoutExperiment?.holdoutPercent ??
-    5;
+  const hydratedShopRef = useRef<string | null>(null);
+  const shopStages = shop.services?.customerService?.unpaidOrderReachoutStages ?? [];
+  const shopEnabled = shop.services?.customerService?.unpaidOrderReachoutEnabled ?? false;
+  const shopEvaluationEnabled =
+    shop.services?.customerService?.unpaidOrderReachoutExperiment?.enabled ?? false;
+  const shopHoldout =
+    shop.services?.customerService?.unpaidOrderReachoutExperiment?.holdoutPercent ?? 5;
+  const savedStages = evaluation?.stages ?? shopStages;
+  const savedEnabled = evaluation?.reachoutEnabled ?? shopEnabled;
+  const savedEvaluationEnabled = evaluation?.holdout.enabled ?? shopEvaluationEnabled;
+  const savedHoldout = evaluation?.holdout.holdoutPercent ?? shopHoldout;
   const settingsDirty =
     enabled !== savedEnabled ||
     evaluationEnabled !== savedEvaluationEnabled ||
     holdoutPercent.trim() !== String(savedHoldout) ||
-    JSON.stringify(
-      stages.map((stage) => ({ ...stage, delayMinutes: Number(stage.delayMinutes) })),
-    ) !== JSON.stringify(savedStages);
+    serializeUnpaidReachoutStages(stages) !== serializeUnpaidReachoutStages(savedStages);
   const enabledStages = stages.filter((stage) => stage.enabled);
   const earliestDelay = enabledStages.length
     ? Math.min(...enabledStages.map((stage) => Number(stage.delayMinutes)))
@@ -247,6 +261,21 @@ export function UnpaidOrderReachoutSettings({
   const workspaceValid = [...errors.values()].every((items) => items.length === 0);
   const selectedVariant =
     variants.find((variant) => variant.variantKey === selectedVariantKey) ?? variants[0];
+  const experimentActionDisabled =
+    settingsDirty ||
+    (!evaluation && query.loading) ||
+    (!running && !serverDraft && evaluation?.locks.canStartConfigExperiment === false);
+
+  useEffect(() => {
+    if (!evaluation || hydratedShopRef.current === shop.id) return;
+    const draftStillMatchesShop =
+      enabled === shopEnabled &&
+      evaluationEnabled === shopEvaluationEnabled &&
+      holdoutPercent.trim() === String(shopHoldout) &&
+      serializeUnpaidReachoutStages(stages) === serializeUnpaidReachoutStages(shopStages);
+    hydratedShopRef.current = shop.id;
+    if (draftStillMatchesShop) applyAuthoritative(evaluation);
+  }, [shop.id, evaluation]);
 
   useEffect(() => {
     if (!workspaceOpen || workspaceDirty) return;
@@ -697,40 +726,72 @@ export function UnpaidOrderReachoutSettings({
           </div>
           {evaluationEnabled && (
             <>
-              <div className="unpaid-holdout-control">
-                <label>
-                  {t("ecommerce.shopDrawer.aiCS.unpaidHoldoutLabel", {
-                    defaultValue: "Holdout percentage",
-                  })}
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={holdoutPercent}
-                    onChange={(event) => onHoldoutPercentChange(event.target.value)}
+              <div className="unpaid-holdout-panel">
+                <div className="unpaid-holdout-panel-head">
+                  <div>
+                    <span className="unpaid-overline">
+                      {t("ecommerce.shopDrawer.aiCS.unpaidTrafficAllocation", {
+                        defaultValue: "Traffic allocation",
+                      })}
+                    </span>
+                    <strong>
+                      {t("ecommerce.shopDrawer.aiCS.unpaidTrafficSummary", {
+                        holdout: holdoutPercent || 5,
+                        treatment: 100 - (Number(holdoutPercent) || 5),
+                        defaultValue: "{{holdout}}% holdout · {{treatment}}% normal reachout",
+                      })}
+                    </strong>
+                    <p>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutHoldoutHint")}</p>
+                  </div>
+                  <label className="unpaid-holdout-field">
+                    <span>
+                      {t("ecommerce.shopDrawer.aiCS.unpaidHoldoutLabel", {
+                        defaultValue: "Holdout percentage",
+                      })}
+                    </span>
+                    <span className="unpaid-number-field">
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={holdoutPercent}
+                        onChange={(event) => onHoldoutPercentChange(event.target.value)}
+                      />
+                      <span>%</span>
+                    </span>
+                  </label>
+                </div>
+                <div className="unpaid-traffic-bar" aria-hidden="true">
+                  <span
+                    style={{ width: `${Math.max(1, Math.min(20, Number(holdoutPercent) || 5))}%` }}
                   />
-                  <span>%</span>
-                </label>
-                <p>{t("ecommerce.shopDrawer.aiCS.unpaidReachoutHoldoutHint")}</p>
-              </div>
-              <div className="unpaid-traffic-bar">
-                <span
-                  style={{ width: `${Math.max(1, Math.min(20, Number(holdoutPercent) || 5))}%` }}
-                >
-                  {holdoutPercent || 5}%
-                </span>
-                <span>{100 - (Number(holdoutPercent) || 5)}%</span>
-              </div>
-              <div className="unpaid-traffic-legend">
-                <span>
-                  {t("ecommerce.shopDrawer.aiCS.unpaidNoReachout", { defaultValue: "No reachout" })}
-                </span>
-                <span>
-                  {t("ecommerce.shopDrawer.aiCS.unpaidTreatment", { defaultValue: "Treatment" })}
-                </span>
+                  <span />
+                </div>
+                <div className="unpaid-traffic-legend">
+                  <span>
+                    <i className="is-holdout" />
+                    {t("ecommerce.shopDrawer.aiCS.unpaidNoReachout", {
+                      defaultValue: "No reachout",
+                    })}
+                    <strong>{holdoutPercent || 5}%</strong>
+                  </span>
+                  <span>
+                    <i className="is-treatment" />
+                    {t("ecommerce.shopDrawer.aiCS.unpaidTreatment", { defaultValue: "Treatment" })}
+                    <strong>{100 - (Number(holdoutPercent) || 5)}%</strong>
+                  </span>
+                </div>
               </div>
               <div className="unpaid-experiment-summary">
-                <div>
+                <div className="unpaid-experiment-mark" aria-hidden="true">
+                  A/B
+                </div>
+                <div className="unpaid-experiment-copy">
+                  <span className="unpaid-overline">
+                    {t("ecommerce.shopDrawer.aiCS.unpaidAdvancedOptimization", {
+                      defaultValue: "Advanced optimization",
+                    })}
+                  </span>
                   <strong>
                     {t("ecommerce.shopDrawer.aiCS.unpaidConfigOptimization", {
                       defaultValue: "Configuration optimization",
@@ -753,7 +814,7 @@ export function UnpaidOrderReachoutSettings({
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  disabled={settingsDirty}
+                  disabled={experimentActionDisabled}
                   onClick={() =>
                     running
                       ? openWorkspace(running, "RUNNING")
@@ -830,6 +891,7 @@ export function UnpaidOrderReachoutSettings({
         closeLabel={t("common.close")}
         maxWidth={1180}
         className="unpaid-experiment-modal"
+        portal
       >
         <div className="unpaid-workspace-meta">
           <span>{shop.alias || shop.shopName}</span>

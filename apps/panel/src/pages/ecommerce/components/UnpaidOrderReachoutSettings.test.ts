@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   rebalanceUnpaidExperimentVariants,
+  serializeUnpaidReachoutStages,
   validateUnpaidExperimentVariants,
   type UnpaidExperimentVariantDraft,
 } from "./UnpaidOrderReachoutSettings.js";
@@ -15,6 +16,30 @@ function variant(key: string, percentage: string, delay: string): UnpaidExperime
 }
 
 describe("unpaid reachout experiment validation", () => {
+  it("treats equivalent stage drafts and server stages as unchanged", () => {
+    const draft = [
+      { id: "stage-a", enabled: true, delayMinutes: "3", messageTemplate: "Need help?" },
+    ];
+    const server = [
+      { id: "stage-a", enabled: true, delayMinutes: 3, messageTemplate: "Need help?" },
+    ];
+
+    expect(serializeUnpaidReachoutStages(draft)).toBe(serializeUnpaidReachoutStages(server));
+  });
+
+  it("detects a real stage configuration change", () => {
+    const original = [
+      { id: "stage-a", enabled: true, delayMinutes: 3, messageTemplate: "Need help?" },
+    ];
+    const changed = [
+      { id: "stage-a", enabled: true, delayMinutes: "10", messageTemplate: "Need help?" },
+    ];
+
+    expect(serializeUnpaidReachoutStages(original)).not.toBe(
+      serializeUnpaidReachoutStages(changed),
+    );
+  });
+
   it.each([2, 3, 6, 20])("accepts %i distinct variants after rebalancing", (count) => {
     const drafts = Array.from({ length: count }, (_, index) =>
       variant(`V${index + 1}`, "1", String(index + 1)),
