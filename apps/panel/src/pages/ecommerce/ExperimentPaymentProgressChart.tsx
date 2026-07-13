@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import {
@@ -13,7 +12,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ECOMMERCE_GET_CS_EXPERIMENT_TIME_TO_EVENT_CURVE } from "../../api/cs-experiment-queries.js";
 
 const RELIABLE_CI_WIDTH = 0.1;
 const RELIABLE_COVERAGE = 0.8;
@@ -30,9 +28,10 @@ const SERIES_COLORS = [
 ];
 
 interface ExperimentPaymentProgressChartProps {
-  experimentId: string;
-  realtime: boolean;
-  visible: boolean;
+  curve?: GQL.CsExperimentTimeToEventCurveView;
+  loading: boolean;
+  failed: boolean;
+  onRetry: () => void;
 }
 
 type CurvePoint = GQL.CsExperimentTimeToEventCurvePointView;
@@ -43,6 +42,10 @@ interface ChartRow {
   points: Record<string, CurvePoint | undefined>;
   [key: string]: number | Record<string, CurvePoint | undefined> | null;
 }
+
+type CurveDomainSeries = Pick<CurveSeries, "seriesKey"> & {
+  points: Array<Pick<CurvePoint, "elapsedMinutes" | "estimate">>;
+};
 
 export function isCurvePointReliable(
   point: Pick<CurvePoint, "confidenceIntervalHigh" | "confidenceIntervalLow" | "coverageRate">,
@@ -66,6 +69,32 @@ export function defaultVisibleCurveSeries(
     .map((item) => item.seriesKey);
 }
 
+export function zoomedCurveYAxisDomain(
+  series: CurveDomainSeries[],
+  visibleKeys: string[],
+): [number, number] {
+  const visible = new Set(visibleKeys);
+  const values = series.flatMap((item) =>
+    visible.has(item.seriesKey)
+      ? item.points
+          .filter((point) => point.elapsedMinutes > 0 && Number.isFinite(point.estimate))
+          .map((point) => point.estimate * 100)
+      : [],
+  );
+  if (!values.length) return [0, 100];
+
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const padding = Math.max(0.5, (maximum - minimum) * 0.15);
+  let lower = Math.max(0, Math.floor((minimum - padding) * 2) / 2);
+  let upper = Math.min(100, Math.ceil((maximum + padding) * 2) / 2);
+  if (upper - lower < 1) {
+    lower = Math.max(0, Math.floor((minimum - 0.5) * 2) / 2);
+    upper = Math.min(100, Math.ceil((maximum + 0.5) * 2) / 2);
+  }
+  return upper > lower ? [lower, upper] : [Math.max(0, lower - 0.5), Math.min(100, upper + 0.5)];
+}
+
 function formatElapsed(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = minutes / 60;
@@ -79,29 +108,16 @@ function curveColor(index: number, series: CurveSeries): string {
 }
 
 export function ExperimentPaymentProgressChart({
-  experimentId,
-  realtime,
-  visible,
+  curve,
+  loading,
+  failed,
+  onRetry,
 }: ExperimentPaymentProgressChartProps) {
   const { t } = useTranslation();
   const [zoomed, setZoomed] = useState(false);
   const [search, setSearch] = useState("");
   const [visibleKeys, setVisibleKeys] = useState<string[]>([]);
   const [focusedKey, setFocusedKey] = useState("");
-  const curveQuery = useQuery<
-    {
-      ecommerceGetCSExperimentTimeToEventCurve: GQL.CsExperimentTimeToEventCurveView;
-    },
-    { input: GQL.CsExperimentTimeToEventCurveInput }
-  >(ECOMMERCE_GET_CS_EXPERIMENT_TIME_TO_EVENT_CURVE, {
-    variables: {
-      input: { experimentId, eventKey: GQL.CsExperimentOutcomeEventKey.CsUnpaidPayment },
-    },
-    skip: !experimentId,
-    fetchPolicy: "cache-and-network",
-    pollInterval: realtime && visible ? 60_000 : 0,
-  });
-  const curve = curveQuery.data?.ecommerceGetCSExperimentTimeToEventCurve;
   const orderedSeries = useMemo(
     () =>
       [...(curve?.series ?? [])].sort((left, right) => {
@@ -157,29 +173,24 @@ export function ExperimentPaymentProgressChart({
   const filteredSeries = orderedSeries.filter((series) =>
     displayLabel(series).toLowerCase().includes(search.trim().toLowerCase()),
   );
-  const estimates = rows.flatMap((row) =>
-    visibleSeries.flatMap((series) => {
-      const point = row.points[series.seriesKey];
-      return point ? [point.confidenceIntervalLow * 100, point.confidenceIntervalHigh * 100] : [];
-    }),
-  );
-  const zoomMinimum = estimates.length ? Math.max(0, Math.floor(Math.min(...estimates) - 2)) : 0;
+  const zoomDomain = zoomedCurveYAxisDomain(orderedSeries, visibleKeys);
+  const chartRows = zoomed ? rows.filter((row) => row.elapsedMinutes > 0) : rows;
   const focused =
     orderedSeries.find(
       (series) => series.seriesKey === focusedKey && visibleKeys.includes(series.seriesKey),
     ) ?? visibleSeries[0];
   const focusedEndpoint = focused?.points.at(-1);
 
-  if (curveQuery.loading && !curve)
+  if (loading && !curve)
     return <div className="cs-experiments-loading">{t("common.loading")}</div>;
-  if (curveQuery.error)
+  if (failed)
     return (
       <div className="cs-experiment-curve-empty error">
         <strong>{t("ecommerce.customerServiceExperiments.curve.loadFailed")}</strong>
         <button
           className="btn btn-secondary"
           type="button"
-          onClick={() => void curveQuery.refetch()}
+          onClick={onRetry}
         >
           {t("ecommerce.customerServiceExperiments.curve.retry")}
         </button>
@@ -206,13 +217,18 @@ export function ExperimentPaymentProgressChart({
             })}
           </small>
         </div>
-        <label className="cs-experiment-curve-zoom">
+        <label className={`cs-experiment-curve-zoom ${zoomed ? "active" : ""}`}>
           <input
             type="checkbox"
             checked={zoomed}
             onChange={(event) => setZoomed(event.target.checked)}
           />
           <span>{t("ecommerce.customerServiceExperiments.curve.zoomDifferences")}</span>
+          {zoomed ? (
+            <output className="cs-experiment-curve-zoom-range" aria-live="polite">
+              {zoomDomain[0]}–{zoomDomain[1]}%
+            </output>
+          ) : null}
         </label>
       </div>
       <div className="cs-experiment-curve-legend">
@@ -259,9 +275,9 @@ export function ExperimentPaymentProgressChart({
           })}
         </div>
       </div>
-      <div className="cs-experiment-curve-chart">
+      <div className={`cs-experiment-curve-chart ${zoomed ? "zoomed" : ""}`}>
         <ResponsiveContainer width="100%" height={340}>
-          <LineChart data={rows} margin={{ top: 18, right: 18, left: 4, bottom: 12 }}>
+          <LineChart data={chartRows} margin={{ top: 18, right: 18, left: 4, bottom: 12 }}>
             <CartesianGrid
               strokeDasharray="2 6"
               vertical={false}
@@ -275,7 +291,9 @@ export function ExperimentPaymentProgressChart({
               tick={{ fontSize: 10 }}
             />
             <YAxis
-              domain={zoomed ? [zoomMinimum, 100] : [0, 100]}
+              domain={zoomed ? zoomDomain : [0, 100]}
+              allowDataOverflow={zoomed}
+              tickCount={5}
               tickFormatter={(value) => `${value}%`}
               tick={{ fontSize: 10 }}
               width={48}

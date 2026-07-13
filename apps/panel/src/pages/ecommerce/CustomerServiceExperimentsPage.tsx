@@ -11,11 +11,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { GQL } from "@rivonclaw/core";
+import { GQL } from "@rivonclaw/core";
 import {
-  ECOMMERCE_GET_CS_EXPERIMENT_DETAIL,
   ECOMMERCE_GET_CS_EXPERIMENT_PAGE,
-  ECOMMERCE_GET_CS_EXPERIMENT_TREND,
+  ECOMMERCE_GET_CS_EXPERIMENT_WORKSPACE,
 } from "../../api/cs-experiment-queries.js";
 import { RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
@@ -24,6 +23,21 @@ import { ExperimentPaymentProgressChart } from "./ExperimentPaymentProgressChart
 
 type View = "REALTIME" | "HISTORY";
 type SignalView = "PAYMENT_PROGRESS" | "METRIC_TREND";
+const REALTIME_REFRESH_INTERVAL_MS = 5 * 60_000;
+
+interface ExperimentWorkspaceData {
+  ecommerceGetCSExperimentDetail: GQL.CsExperimentDetailView;
+  ecommerceGetCSExperimentTimeToEventCurve?: GQL.CsExperimentTimeToEventCurveView;
+  ecommerceGetCSExperimentTrend?: GQL.CsExperimentTrendView;
+}
+
+interface ExperimentWorkspaceVariables {
+  experimentId: string;
+  curveInput: GQL.CsExperimentTimeToEventCurveInput;
+  trendInput: GQL.CsExperimentTrendInput;
+  includeCurve: boolean;
+  includeTrend: boolean;
+}
 const METRICS: GQL.CsExperimentMetricKey[] = [
   "PAYMENT_WITHIN_WINDOW",
   "GMV_PER_ASSIGNED_ORDER",
@@ -123,7 +137,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       },
       skip: !entityStore.currentUser,
       fetchPolicy: "cache-and-network",
-      pollInterval: view === "REALTIME" && visible ? 60_000 : 0,
+      pollInterval: view === "REALTIME" && visible ? REALTIME_REFRESH_INTERVAL_MS : 0,
       notifyOnNetworkStatusChange: true,
     },
   );
@@ -138,27 +152,47 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
       setExperimentId(items[0]!.id);
   }, [items, experimentId, pageQuery.loading]);
 
-  const detailQuery = useQuery<{ ecommerceGetCSExperimentDetail: GQL.CsExperimentDetailView }>(
-    ECOMMERCE_GET_CS_EXPERIMENT_DETAIL,
-    { variables: { experimentId }, skip: !experimentId, fetchPolicy: "cache-and-network" },
-  );
-  const detail = detailQuery.data?.ecommerceGetCSExperimentDetail;
   const validRanges =
     view === "REALTIME"
       ? ["REALTIME_6H", "REALTIME_24H", "REALTIME_72H"]
       : ["DAILY_30D", "DAILY_90D"];
+  const effectiveRange = (validRanges.includes(range)
+    ? range
+    : view === "REALTIME"
+      ? "REALTIME_24H"
+      : "DAILY_30D") as GQL.CsExperimentTrendRange;
   useEffect(() => {
-    if (!validRanges.includes(range)) setRange(view === "REALTIME" ? "REALTIME_24H" : "DAILY_30D");
+    if (range !== effectiveRange) setRange(effectiveRange);
   }, [view, range]);
-  const trendQuery = useQuery<{ ecommerceGetCSExperimentTrend: GQL.CsExperimentTrendView }>(
-    ECOMMERCE_GET_CS_EXPERIMENT_TREND,
+  const workspaceQuery = useQuery<ExperimentWorkspaceData, ExperimentWorkspaceVariables>(
+    ECOMMERCE_GET_CS_EXPERIMENT_WORKSPACE,
     {
-      variables: { input: { experimentId, metricKey: metric, range } },
-      skip: !experimentId || !validRanges.includes(range),
+      variables: {
+        experimentId,
+        curveInput: {
+          experimentId,
+          eventKey: GQL.CsExperimentOutcomeEventKey.CsUnpaidPayment,
+        },
+        trendInput: { experimentId, metricKey: metric, range: effectiveRange },
+        includeCurve: signalView === "PAYMENT_PROGRESS",
+        includeTrend: signalView === "METRIC_TREND",
+      },
+      skip: !experimentId,
       fetchPolicy: "cache-and-network",
+      errorPolicy: "all",
+      notifyOnNetworkStatusChange: true,
+      pollInterval: view === "REALTIME" && visible ? REALTIME_REFRESH_INTERVAL_MS : 0,
     },
   );
-  const trend = trendQuery.data?.ecommerceGetCSExperimentTrend;
+  const workspaceData =
+    workspaceQuery.data?.ecommerceGetCSExperimentDetail.id === experimentId
+      ? workspaceQuery.data
+      : workspaceQuery.previousData?.ecommerceGetCSExperimentDetail.id === experimentId
+        ? workspaceQuery.previousData
+        : undefined;
+  const detail = workspaceData?.ecommerceGetCSExperimentDetail;
+  const trend = workspaceData?.ecommerceGetCSExperimentTrend;
+  const curve = workspaceData?.ecommerceGetCSExperimentTimeToEventCurve;
 
   const chart = useMemo(() => {
     const rows = new Map<string, Record<string, string | number | null>>();
@@ -217,6 +251,12 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         },
       }),
     });
+  };
+  const refreshActiveView = () => {
+    void Promise.all([
+      pageQuery.refetch(),
+      experimentId ? workspaceQuery.refetch() : Promise.resolve(undefined),
+    ]);
   };
 
   if (!entityStore.currentUser)
@@ -280,7 +320,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
           type="button"
           className="icon-button"
           aria-label={t("common.refresh")}
-          onClick={() => void pageQuery.refetch()}
+          onClick={refreshActiveView}
         >
           <RefreshIcon />
         </button>
@@ -370,10 +410,10 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
           </aside>
 
           <main className="cs-experiment-detail">
-            {detailQuery.error ? (
-              <div className="section-card cs-experiments-error">{detailQuery.error.message}</div>
+            {workspaceQuery.error && !detail ? (
+              <div className="section-card cs-experiments-error">{workspaceQuery.error.message}</div>
             ) : null}
-            {!detail && detailQuery.loading ? (
+            {!detail && workspaceQuery.loading ? (
               <div className="section-card cs-experiments-loading">{t("common.loading")}</div>
             ) : null}
             {detail ? (
@@ -528,9 +568,10 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                   </div>
                   {signalView === "PAYMENT_PROGRESS" ? (
                     <ExperimentPaymentProgressChart
-                      experimentId={detail.id}
-                      realtime={view === "REALTIME"}
-                      visible={visible}
+                      curve={curve}
+                      loading={workspaceQuery.loading}
+                      failed={Boolean(workspaceQuery.error)}
+                      onRetry={() => void workspaceQuery.refetch()}
                     />
                   ) : (
                     <>
@@ -566,7 +607,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                         ))}
                       </div>
                       <div className="cs-experiment-chart">
-                        {trendQuery.loading && !trend ? (
+                        {workspaceQuery.loading && !trend ? (
                           <div className="cs-experiments-loading">{t("common.loading")}</div>
                         ) : detail.quality?.maturedUnits === 0 ? (
                           <div className="cs-experiment-maturity-empty">
