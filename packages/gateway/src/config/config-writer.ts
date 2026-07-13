@@ -640,6 +640,7 @@ export interface WriteGatewayConfigOptions {
     {
       baseUrl: string;
       api?: string;
+      timeoutSeconds?: number;
       models: Array<{
         id: string;
         name: string;

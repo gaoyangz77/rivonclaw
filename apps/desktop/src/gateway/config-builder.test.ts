@@ -1,8 +1,13 @@
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { writeGatewayConfig } from "@rivonclaw/gateway";
 import { describe, expect, it } from "vitest";
 import {
   buildCustomProviderOverridesFromKeys,
   DEFAULT_GATEWAY_TOOL_ALLOWLIST,
   normalizeGeminiOAuthModelId,
+  RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS,
 } from "./config-builder.js";
 
 describe("gateway config builder", () => {
@@ -35,6 +40,49 @@ describe("gateway config builder", () => {
     expect(overrides["rivonclaw-pro"]?.models).toEqual([
       { id: "vision", name: "vision", input: ["text", "image"] },
     ]);
+    expect(overrides["rivonclaw-pro"]?.timeoutSeconds).toBe(
+      RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS,
+    );
+  });
+
+  it("does not apply the cloud timeout to other custom providers", () => {
+    const overrides = buildCustomProviderOverridesFromKeys([
+      {
+        provider: "custom-openai",
+        authType: "custom",
+        baseUrl: "https://example.com/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify(["custom-model"]),
+      },
+    ]);
+
+    expect(overrides["custom-openai"]?.timeoutSeconds).toBeUndefined();
+  });
+
+  it("persists the cloud timeout through gateway config validation", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-cloud-timeout-"));
+    const configPath = join(tmpDir, "openclaw.json");
+
+    try {
+      const extraProviders = buildCustomProviderOverridesFromKeys([
+        {
+          provider: "rivonclaw-pro",
+          authType: "custom",
+          baseUrl: "https://api.rivonclaw.com/llm/v1",
+          customProtocol: "openai",
+          customModelsJson: JSON.stringify(["gpt-5.6-terra"]),
+        },
+      ]);
+
+      writeGatewayConfig({ configPath, extraProviders });
+
+      const config = JSON.parse(readFileSync(configPath, "utf8"));
+      expect(config.models.providers["rivonclaw-pro"].timeoutSeconds).toBe(
+        RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS,
+      );
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it("uses key-level image input when a custom model object has no per-model modalities", () => {
