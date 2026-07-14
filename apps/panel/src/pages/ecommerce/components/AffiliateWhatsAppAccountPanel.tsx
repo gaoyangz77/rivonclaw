@@ -199,46 +199,6 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
     });
   }, [refetchAccounts, refetchConnectorStatus, showToast, t]);
 
-  useEffect(() => {
-    const bindingId = activeQr?.binding.id;
-    if (!bindingId) return;
-    let cancelled = false;
-    let refreshInFlight = false;
-
-    const refreshUntilConnected = async () => {
-      if (refreshInFlight) return;
-      refreshInFlight = true;
-      try {
-        const result = await refreshBinding({ variables: { bindingId } });
-        const binding = result.data?.refreshWhatsAppAccountBinding;
-        if (cancelled || binding?.status !== GQL.WhatsAppAccountStatus.Connected) return;
-        const alreadyHandled = handledConnectedAccountIds.current.has(bindingId);
-        handledConnectedAccountIds.current.add(bindingId);
-        setActiveQr((current) => (current?.binding.id === bindingId ? null : current));
-        await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
-        if (!alreadyHandled && !cancelled) {
-          showToast(
-            t("ecommerce.affiliateWorkspace.whatsapp.accountConnected", {
-              defaultValue: "WhatsApp account connected.",
-            }),
-            "success",
-          );
-        }
-      } catch {
-        // Websocket delivery and the manual refresh action remain available while polling retries.
-      } finally {
-        refreshInFlight = false;
-      }
-    };
-
-    void refreshUntilConnected();
-    const interval = window.setInterval(() => void refreshUntilConnected(), 2_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [activeQr?.binding.id, refreshBinding, refetchAccounts, refetchConnectorStatus, showToast, t]);
-
   async function handleConnectNew() {
     if (!connectorStatus?.ready) {
       showToast(onboardingDisabledReason, "error");
