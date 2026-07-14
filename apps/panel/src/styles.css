@@ -23939,20 +23939,40 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--surface-primary);
 }
 
+.affiliate-developer-modal {
+  padding: 0;
+  overflow: hidden;
+}
+.affiliate-developer-modal .modal-header {
+  margin: 0;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+.affiliate-developer-modal .modal-title {
+  font-size: 20px;
+}
 .affiliate-developer-editor {
-  max-width: 760px;
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+  padding: 22px 24px 0;
 }
 .affiliate-developer-editor > label {
   display: grid;
   gap: 7px;
+}
+.affiliate-developer-editor > label > span,
+.affiliate-developer-editor legend {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
 }
 .affiliate-developer-editor textarea {
   resize: vertical;
   min-height: 130px;
 }
 .affiliate-developer-editor fieldset {
+  grid-column: 1 / -1;
   margin: 0;
   padding: 14px 16px;
   border: 1px solid var(--border-color);
@@ -23960,7 +23980,6 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-developer-editor legend {
   padding: 0 6px;
-  color: var(--text-muted);
 }
 .affiliate-region-grid {
   display: grid;
@@ -23973,8 +23992,21 @@ html[lang="zh"] .acct-tool-chips {
   align-items: center;
   gap: 7px;
 }
+.affiliate-developer-toggle,
+.affiliate-developer-editor > label:nth-of-type(4) {
+  grid-column: 1 / -1;
+}
+.affiliate-developer-toggle {
+  width: fit-content;
+  padding: 3px 0;
+}
 .affiliate-developer-editor-actions {
+  grid-column: 1 / -1;
   justify-content: flex-end;
+  margin: 2px -24px 0;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-secondary);
 }
 
 .affiliate-relationship-owner-card {
@@ -24075,5 +24107,11 @@ html[lang="zh"] .acct-tool-chips {
   }
   .affiliate-team-facts {
     grid-template-columns: 1fr;
+  }
+  .affiliate-developer-editor {
+    grid-template-columns: 1fr;
+  }
+  .affiliate-region-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
