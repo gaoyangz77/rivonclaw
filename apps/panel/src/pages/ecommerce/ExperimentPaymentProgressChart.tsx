@@ -47,6 +47,8 @@ interface ChartRow {
   [key: string]: number | Record<string, CurvePoint | undefined> | null;
 }
 
+type CurveAnchorSeries = Pick<CurveSeries, "seriesKey" | "stages">;
+
 interface CurveTimeDomain {
   start: number;
   end: number;
@@ -160,6 +162,36 @@ export function curveInterpolationType(
   estimator: GQL.CsExperimentCurveEstimator | undefined,
 ): "monotoneX" | "stepAfter" {
   return estimator === GQL.CsExperimentCurveEstimator.AalenJohansen ? "stepAfter" : "monotoneX";
+}
+
+export function withPreReachoutInterpolationAnchor(
+  rows: ChartRow[],
+  series: CurveAnchorSeries[],
+  estimator: GQL.CsExperimentCurveEstimator | undefined,
+): ChartRow[] {
+  if (estimator !== GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard) return rows;
+  const firstReachout = Math.min(
+    ...series.flatMap((item) => item.stages.map((stage) => stage.delayMinutes)),
+  );
+  if (!Number.isFinite(firstReachout)) return rows;
+
+  const previous = [...rows]
+    .reverse()
+    .find((row) => row.elapsedMinutes > 0 && row.elapsedMinutes < firstReachout);
+  const split = rows.find((row) => row.elapsedMinutes === firstReachout);
+  if (!previous || !split) return rows;
+
+  const anchorMinute = firstReachout - 0.000001;
+  if (anchorMinute <= previous.elapsedMinutes) return rows;
+  const anchor: ChartRow = { elapsedMinutes: anchorMinute, points: {} };
+  for (const item of series) {
+    for (const suffix of ["reliable", "uncertain", "ciBase", "ciSpan"] as const) {
+      const key = `${item.seriesKey}:${suffix}`;
+      const value = previous[key];
+      if (typeof value === "number") anchor[key] = value;
+    }
+  }
+  return [...rows, anchor].sort((left, right) => left.elapsedMinutes - right.elapsedMinutes);
 }
 
 function curveColor(index: number, series: CurveSeries): string {
@@ -295,6 +327,11 @@ export function ExperimentPaymentProgressChart({
   const interpolationType = curveInterpolationType(curve?.estimator);
   const firstElapsedMinute = firstPositiveCurveMinute(rows);
   const chartRows = rows.filter((row) => row.elapsedMinutes >= firstElapsedMinute);
+  const renderedChartRows = withPreReachoutInterpolationAnchor(
+    chartRows,
+    orderedSeries,
+    curve?.estimator,
+  );
   const maximumElapsedMinute = Math.max(firstElapsedMinute, curve?.maxElapsedMinutes ?? 0);
   const normalizedTimeDomain = timeDomain
     ? normalizeCurveTimeDomain(
@@ -481,7 +518,7 @@ export function ExperimentPaymentProgressChart({
       <div className="cs-experiment-curve-chart focused-scale">
         <ResponsiveContainer width="100%" height={380}>
           <LineChart
-            data={chartRows}
+            data={renderedChartRows}
             margin={{ top: 18, right: 18, left: 4, bottom: 12 }}
             onMouseDown={(event) => {
               const minute = activeChartMinute(event);
