@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import QRCode from "qrcode";
 import { useTranslation } from "react-i18next";
@@ -68,6 +68,7 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [proxyForm, setProxyForm] = useState<ProxyForm>(DEFAULT_PROXY_FORM);
   const [editingProxyId, setEditingProxyId] = useState<string | null>(null);
+  const handledConnectedAccountIds = useRef(new Set<string>());
 
   const {
     data: accountsData,
@@ -174,11 +175,17 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
 
   useEffect(() => {
     return panelEventBus.subscribe("affiliate-outreach-account-connected", (raw) => {
-      const event = raw as { channel?: unknown };
+      const event = raw as { channel?: unknown; accountId?: unknown };
       if (event.channel !== "WHATSAPP") return;
-      setActiveQr(null);
+      const accountId = typeof event.accountId === "string" ? event.accountId : undefined;
+      const alreadyHandled = accountId ? handledConnectedAccountIds.current.has(accountId) : false;
+      if (accountId) handledConnectedAccountIds.current.add(accountId);
+      setActiveQr((current) =>
+        !accountId || current?.binding.id === accountId ? null : current,
+      );
       void Promise.all([refetchAccounts(), refetchConnectorStatus()])
         .then(() => {
+          if (alreadyHandled) return;
           showToast(
             t("ecommerce.affiliateWorkspace.whatsapp.accountConnected", {
               defaultValue: "WhatsApp account connected.",
@@ -191,6 +198,46 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
         });
     });
   }, [refetchAccounts, refetchConnectorStatus, showToast, t]);
+
+  useEffect(() => {
+    const bindingId = activeQr?.binding.id;
+    if (!bindingId) return;
+    let cancelled = false;
+    let refreshInFlight = false;
+
+    const refreshUntilConnected = async () => {
+      if (refreshInFlight) return;
+      refreshInFlight = true;
+      try {
+        const result = await refreshBinding({ variables: { bindingId } });
+        const binding = result.data?.refreshWhatsAppAccountBinding;
+        if (cancelled || binding?.status !== GQL.WhatsAppAccountStatus.Connected) return;
+        const alreadyHandled = handledConnectedAccountIds.current.has(bindingId);
+        handledConnectedAccountIds.current.add(bindingId);
+        setActiveQr((current) => (current?.binding.id === bindingId ? null : current));
+        await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
+        if (!alreadyHandled && !cancelled) {
+          showToast(
+            t("ecommerce.affiliateWorkspace.whatsapp.accountConnected", {
+              defaultValue: "WhatsApp account connected.",
+            }),
+            "success",
+          );
+        }
+      } catch {
+        // Websocket delivery and the manual refresh action remain available while polling retries.
+      } finally {
+        refreshInFlight = false;
+      }
+    };
+
+    void refreshUntilConnected();
+    const interval = window.setInterval(() => void refreshUntilConnected(), 2_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [activeQr?.binding.id, refreshBinding, refetchAccounts, refetchConnectorStatus, showToast, t]);
 
   async function handleConnectNew() {
     if (!connectorStatus?.ready) {
