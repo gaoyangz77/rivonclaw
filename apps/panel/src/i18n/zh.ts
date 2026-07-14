@@ -4051,7 +4051,6 @@ export default {
       ID: "印尼",
       PH: "菲律宾",
       VN: "越南",
-      ROW: "其他地区",
     },
     platform: {
       TIKTOK_SHOP: "TikTok 商店",

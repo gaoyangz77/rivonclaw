@@ -3255,8 +3255,7 @@ export default {
       "TH": "Thailand",
       "ID": "Indonesia",
       "PH": "Filipina",
-      "VN": "Vietnam",
-      "ROW": "Seluruh Dunia"
+      "VN": "Vietnam"
     },
     "platform": {
       "TIKTOK_SHOP": "Toko TikTok"

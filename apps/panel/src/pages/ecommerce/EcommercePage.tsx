@@ -20,7 +20,7 @@ export interface UnpaidReachoutStageDraft {
   messageTemplate: string;
 }
 
-function defaultUnpaidReachoutTemplate(region: string | undefined): string {
+function defaultUnpaidReachoutTemplate(region: string | null | undefined): string {
   const templates: Record<string, string> = {
     DE: "Hallo, ich sehe, dass Ihre Bestellung {{order_id}} mit {{product_count}} Artikel(n) noch unbezahlt ist. Wenn es beim Checkout oder Bezahlen ein Problem gab oder Sie noch Fragen zum Produkt haben, helfe ich gern.",
     ES: "Hola, veo que su pedido {{order_id}} con {{product_count}} artículo(s) aún está sin pagar. Si tuvo algún problema con el checkout o el pago, o si aún tiene dudas sobre el producto, con gusto le ayudo.",
