@@ -114,9 +114,9 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
     }
 
     // Full restart path: rewrite config + restart process.
-    // SIGUSR1 graceful reload re-reads config but agent sessions keep their
-    // existing model assignment. A stop+start creates fresh sessions with
-    // the new default model from config.
+    // A stop+start also reloads provider/plugin state. Default-following
+    // sessions resolve the configured model natively; explicit per-session
+    // model overrides intentionally remain independent.
     log.info("Config updated, performing full gateway restart for model change");
     await openClawConnector.applyConfigMutation(async () => {
       // Rewrite full OpenClaw config (reads current provider/model from storage)

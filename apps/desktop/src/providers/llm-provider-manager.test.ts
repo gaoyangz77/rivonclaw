@@ -1,7 +1,4 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { ScopeType, type ProviderKeyEntry } from "@rivonclaw/core";
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "./provider-key-utils.js";
@@ -132,25 +129,17 @@ describe("LLMProviderManager", () => {
     });
 
     await rootStore.llmManager.applyModelForSession("chat-session-1");
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "chat-session-1",
-      model: "rivonclaw-pro/gpt-5.4",
-    });
-
-    rpcRequest.mockClear();
-    await rootStore.llmManager.applyModelForSession("chat-session-1", undefined, {
-      sessionPatch: { contextTokens: 100_000, thinkingLevel: "off" },
-    });
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "chat-session-1",
-      model: "rivonclaw-pro/gpt-5.4",
-      contextTokens: 100_000,
-      thinkingLevel: "off",
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+    expect(rootStore.llmManager.getSessionModelInfo("chat-session-1")).toMatchObject({
+      provider: "rivonclaw-pro",
+      model: "gpt-5.4",
+      mode: "default",
+      isOverridden: false,
     });
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
-  it("normalizes legacy Gemini OAuth model refs before patching default-following sessions", async () => {
+  it("normalizes legacy Gemini OAuth model refs without patching default-following sessions", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
 
     const entry: ProviderKeyEntry = {
@@ -193,15 +182,16 @@ describe("LLMProviderManager", () => {
       getLastSystemProxy: () => null,
     });
 
-    await rootStore.llmManager.applyModelForSession("agent:main:affiliate:test");
+    const resolved = rootStore.llmManager.resolveModelForDispatch("agent:main:affiliate:test");
 
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:affiliate:test",
-      model: "google-gemini-cli/gemini-3-pro-preview",
+    expect(resolved).toEqual({
+      provider: "google-gemini-cli",
+      model: "gemini-3-pro-preview",
     });
+    expect(rpcRequest).not.toHaveBeenCalled();
   });
 
-  it("skips redundant lazy default patches but reapplies after the active model changes", async () => {
+  it("resolves default model changes without writing session state", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     let entry: ProviderKeyEntry = {
       id: "key-default",
@@ -243,100 +233,83 @@ describe("LLMProviderManager", () => {
     await rootStore.llmManager.applyModelForSession("chat-session-1");
     await rootStore.llmManager.applyModelForSession("chat-session-1");
 
-    expect(rpcRequest).toHaveBeenCalledTimes(1);
-    expect(rpcRequest).toHaveBeenLastCalledWith("sessions.patch", {
-      key: "chat-session-1",
-      model: "rivonclaw-pro/gpt-5.4",
+    expect(rpcRequest).not.toHaveBeenCalled();
+    expect(rootStore.llmManager.getSessionModelInfo("chat-session-1")).toMatchObject({
+      provider: "rivonclaw-pro",
+      model: "gpt-5.4",
+      mode: "default",
     });
 
     entry = { ...entry, model: "gpt-5.5" };
     await rootStore.llmManager.applyModelForSession("chat-session-1");
 
-    expect(rpcRequest).toHaveBeenCalledTimes(2);
-    expect(rpcRequest).toHaveBeenLastCalledWith("sessions.patch", {
-      key: "chat-session-1",
-      model: "rivonclaw-pro/gpt-5.5",
+    expect(rpcRequest).not.toHaveBeenCalled();
+    expect(rootStore.llmManager.getSessionModelInfo("chat-session-1")).toMatchObject({
+      provider: "rivonclaw-pro",
+      model: "gpt-5.5",
+      mode: "default",
     });
   });
 
-  it("clears stale OpenClaw auth profile overrides when applying the global default", async () => {
+  it("patches only explicit session switches and clears them with model null", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
-    const stateDir = await mkdtemp(path.join(tmpdir(), "rivonclaw-llm-manager-"));
     const sessionKey = "agent:main:feishu:default:direct:ou_1";
-    const sessionsDir = path.join(stateDir, "openclaw", "agents", "main", "sessions");
-    const sessionsPath = path.join(sessionsDir, "sessions.json");
+    const entry: ProviderKeyEntry = {
+      id: "key-default",
+      provider: "rivonclaw-pro",
+      label: "RivonClaw AI",
+      model: "gpt-5.5",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://example.test/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify([{ id: "gpt-5.5" }]),
+      createdAt: "",
+      updatedAt: "",
+    };
 
-    try {
-      await mkdir(sessionsDir, { recursive: true });
-      await writeFile(
-        sessionsPath,
-        `${JSON.stringify(
-          {
-            [sessionKey]: {
-              sessionId: "s1",
-              updatedAt: 1,
-              authProfileOverride: "google-gemini-cli:user@example.com",
-              authProfileOverrideSource: "auto",
-              authProfileOverrideCompactionCount: 0,
-            },
-          },
-          null,
-          2,
-        )}\n`,
-        "utf8",
-      );
+    initLLMProviderManagerEnv({
+      storage: {
+        providerKeys: {
+          getActive: () => entry,
+          getById: () => entry,
+          getAll: () => [entry],
+        },
+      } as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig: vi.fn(),
+      writeFullGatewayConfig: async () => {},
+      restartGateway: async () => {},
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
 
-      const entry: ProviderKeyEntry = {
-        id: "key-default",
-        provider: "rivonclaw-pro",
-        label: "RivonClaw AI",
-        model: "gpt-5.5",
-        isDefault: true,
-        authType: "custom",
-        baseUrl: "https://example.test/llm/v1",
-        customProtocol: "openai",
-        customModelsJson: JSON.stringify([{ id: "gpt-5.5" }]),
-        createdAt: "",
-        updatedAt: "",
-      };
+    await rootStore.llmManager.switchModelForSession(sessionKey, "kimi", "moonshot-v1-8k");
+    expect(rpcRequest).toHaveBeenLastCalledWith("sessions.patch", {
+      key: sessionKey,
+      model: "kimi/moonshot-v1-8k",
+    });
 
-      initLLMProviderManagerEnv({
-        storage: {
-          providerKeys: {
-            getActive: () => entry,
-            getById: () => entry,
-            getAll: () => [entry],
-          },
-        } as any,
-        secretStore: mockSecretStore as any,
-        getRpcClient: () => ({ request: rpcRequest }) as any,
-        toMstSnapshot,
-        allKeysToMstSnapshots,
-        syncActiveKey: async () => {},
-        syncAllAuthProfiles: async () => {},
-        writeProxyRouterConfig: async () => {},
-        writeDefaultModelToConfig: vi.fn(),
-        writeFullGatewayConfig: async () => {},
-        restartGateway: async () => {},
-        proxyFetch: globalThis.fetch,
-        stateDir,
-        getLastSystemProxy: () => null,
-      });
-
-      await rootStore.llmManager.applyModelForSession(sessionKey);
-
-      expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-        key: sessionKey,
-        model: "rivonclaw-pro/gpt-5.5",
-      });
-      const store = JSON.parse(await readFile(sessionsPath, "utf8"));
-      expect(store[sessionKey].authProfileOverride).toBeUndefined();
-      expect(store[sessionKey].authProfileOverrideSource).toBeUndefined();
-      expect(store[sessionKey].authProfileOverrideCompactionCount).toBeUndefined();
-      expect(store[sessionKey].updatedAt).toBeGreaterThan(1);
-    } finally {
-      await rm(stateDir, { recursive: true, force: true });
-    }
+    rpcRequest.mockClear();
+    await rootStore.llmManager.resetSessionModel(sessionKey);
+    expect(rpcRequest).toHaveBeenCalledOnce();
+    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
+      key: sessionKey,
+      model: null,
+    });
+    expect(rootStore.llmManager.getSessionModel(sessionKey)).toBeNull();
+    expect(rootStore.llmManager.getSessionModelFact(sessionKey)).toMatchObject({
+      mode: "default",
+      provider: null,
+      model: null,
+    });
   });
 
   it("updates gateway default without eagerly resetting sessions on default provider activation", async () => {
@@ -433,10 +406,7 @@ describe("LLMProviderManager", () => {
     });
 
     await rootStore.llmManager.applyModelForSession("telegram-session-default");
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "telegram-session-default",
-      model: "rivonclaw-pro/gpt-5.4",
-    });
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.list", expect.anything());
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", {
       key: "chat-session-explicit",
@@ -537,10 +507,7 @@ describe("LLMProviderManager", () => {
     });
 
     await rootStore.llmManager.applyModelForSession("agent:main:telegram:default:direct:42");
-    expect(rpcRequest).toHaveBeenCalledWith("sessions.patch", {
-      key: "agent:main:telegram:default:direct:42",
-      model: "rivonclaw-pro/gpt-5.6-terra",
-    });
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(restartGateway).not.toHaveBeenCalled();
   });
 

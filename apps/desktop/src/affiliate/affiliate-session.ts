@@ -444,8 +444,8 @@ export class AffiliateSession {
     this.gatewaySetupReady = true;
   }
 
-  private async applyCurrentSessionModel(): Promise<void> {
-    await rootStore.llmManager.applyModelForSession(this.scopeKey, {
+  private resolveCurrentSessionModel(): { provider: string; model: string } {
+    return rootStore.llmManager.resolveModelForDispatch(this.scopeKey, {
       type: ScopeType.AFFILIATE_SESSION,
       shopId: this.shop.objectId,
     });
@@ -469,7 +469,7 @@ export class AffiliateSession {
       baseEventCursor: params.baseEventCursor,
       targetEventCursor: params.targetEventCursor,
     });
-    await this.applyCurrentSessionModel();
+    const resolvedModel = this.resolveCurrentSessionModel();
     this.logDispatchPromptContext(params);
     const provisionalRunId = params.idempotencyKey;
     registerActiveAffiliateRunCheckpoint({
@@ -486,6 +486,8 @@ export class AffiliateSession {
     try {
       response = await requestAgent<AffiliateDispatchResult>({
         sessionKey: this.scopeKey,
+        provider: resolvedModel.provider,
+        model: resolvedModel.model,
         message: params.message,
         extraSystemPrompt: this.buildExtraSystemPrompt(runMode),
         promptMode: "raw",

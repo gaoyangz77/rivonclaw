@@ -17,30 +17,6 @@ function mockEffectiveToolsResponse(tools: string[]) {
   });
 }
 
-function mockSessionModelResponse(info: {
-  provider: string;
-  model: string;
-  gatewayProvider?: string;
-  gatewayModel?: string;
-}) {
-  mockFetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => info,
-  });
-}
-
-function mockSessionModelApplyResponse(info: {
-  provider: string;
-  model: string;
-  gatewayProvider?: string;
-  gatewayModel?: string;
-}) {
-  mockFetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({ ok: true, sessionKey: "session-1", ...info }),
-  });
-}
-
 function mockFetchFailure() {
   mockFetch.mockRejectedValueOnce(new Error("Network error"));
 }
@@ -84,46 +60,11 @@ describe("trusted tool policy", () => {
       }),
     );
   });
-});
-
-describe("before_dispatch", () => {
-  it("applies Desktop session model state before channel dispatch", async () => {
+  it("does not mutate or override channel session model selection", () => {
     const { handlers } = activatePlugin();
-    const hook = handlers["before_dispatch"];
 
-    mockSessionModelApplyResponse({
-      provider: "rivonclaw-pro",
-      model: "gpt-5.5",
-      gatewayProvider: "rivonclaw-pro",
-      gatewayModel: "gpt-5.5",
-    });
-
-    const result = await hook(
-      { sessionKey: "agent:main:feishu:default:direct:ou_1", channel: "feishu" },
-      { sessionKey: "agent:main:feishu:default:direct:ou_1", channelId: "feishu" },
-    );
-
-    expect(result).toBeUndefined();
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/session-model/apply"),
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ sessionKey: "agent:main:feishu:default:direct:ou_1" }),
-      }),
-    );
-  });
-
-  it("does not apply model for non-channel dispatches", async () => {
-    const { handlers } = activatePlugin();
-    const hook = handlers["before_dispatch"];
-
-    const result = await hook(
-      { sessionKey: "agent:main:cron-1" },
-      { sessionKey: "agent:main:cron-1" },
-    );
-
-    expect(result).toBeUndefined();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(handlers).not.toHaveProperty("before_dispatch");
+    expect(handlers).not.toHaveProperty("before_model_resolve");
   });
 });
 
@@ -225,46 +166,6 @@ describe("before_tool_resolve", () => {
     const result = await hook({ tools: ["tool_a"] }, {});
 
     expect(result).toEqual({});
-  });
-});
-
-describe("before_model_resolve", () => {
-  it("overrides channel session model from Desktop session model state", async () => {
-    const { handlers } = activatePlugin();
-    const hook = handlers["before_model_resolve"];
-
-    mockSessionModelResponse({
-      provider: "rivonclaw-pro",
-      model: "gpt-5.5",
-      gatewayProvider: "rivonclaw-pro",
-      gatewayModel: "gpt-5.5",
-    });
-
-    const result = await hook(
-      { prompt: "hello" },
-      { sessionKey: "agent:main:feishu:default:direct:ou_1", channelId: "feishu" },
-    );
-
-    expect(result).toEqual({
-      providerOverride: "rivonclaw-pro",
-      modelOverride: "gpt-5.5",
-    });
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/session-model?sessionKey=agent%3Amain%3Afeishu%3Adefault%3Adirect%3Aou_1"),
-    );
-  });
-
-  it("does not override non-channel runs", async () => {
-    const { handlers } = activatePlugin();
-    const hook = handlers["before_model_resolve"];
-
-    const result = await hook(
-      { prompt: "cron" },
-      { sessionKey: "agent:main:cron-1" },
-    );
-
-    expect(result).toBeUndefined();
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
 
