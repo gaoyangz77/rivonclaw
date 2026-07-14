@@ -8937,7 +8937,7 @@ export interface Shop {
   platformAppId: Scalars['String']['output'];
   platformShopId: Scalars['String']['output'];
   refreshTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  region: ShopRegion;
+  region?: Maybe<ShopRegion>;
   services: ShopServiceConfig;
   shopName: Scalars['String']['output'];
   /** IANA timezone used for shop-local platform analytics dates */
@@ -9009,7 +9009,6 @@ export const ShopRegion = {
   Mx: 'MX',
   My: 'MY',
   Ph: 'PH',
-  Row: 'ROW',
   Sg: 'SG',
   Th: 'TH',
   Us: 'US',

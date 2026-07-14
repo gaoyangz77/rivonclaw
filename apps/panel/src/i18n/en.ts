@@ -4283,7 +4283,6 @@ export default {
       ID: "Indonesia",
       PH: "Philippines",
       VN: "Vietnam",
-      ROW: "Rest of World",
     },
     platform: {
       TIKTOK_SHOP: "TikTok Shop",

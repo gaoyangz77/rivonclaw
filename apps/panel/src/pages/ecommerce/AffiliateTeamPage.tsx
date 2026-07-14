@@ -29,7 +29,7 @@ import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAcc
 
 const AI_TEAM_ID = "__AI_TEAM__";
 const UNASSIGNED_ID = "__UNASSIGNED__";
-const SHOP_REGIONS = Object.values(GQL.ShopRegion);
+export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
 
 type DeveloperForm = {
   displayName: string;
@@ -602,7 +602,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   );
 });
 
-function DeveloperEditor({ form, setForm, onCancel, onSave, saving, t }: {
+export function DeveloperEditor({ form, setForm, onCancel, onSave, saving, t }: {
   form: DeveloperForm;
   setForm: (form: DeveloperForm) => void;
   onCancel: () => void;

@@ -108,7 +108,7 @@ export const ShopModel = types.model("Shop", {
   shopName: types.string,
   alias: types.optional(types.maybeNull(types.string), null),
   authStatus: types.optional(types.string, ""),
-  region: types.optional(types.string, ""),
+  region: types.optional(types.maybeNull(types.string), null),
   accessTokenExpiresAt: types.maybeNull(types.string),
   refreshTokenExpiresAt: types.maybeNull(types.string),
   services: types.maybeNull(ShopServiceConfigModel),
