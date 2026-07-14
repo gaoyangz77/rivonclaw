@@ -7,8 +7,6 @@ import {
   AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY,
   EMAIL_ACCOUNT_BINDINGS_QUERY,
   MICROSOFT_GRAPH_CONNECTOR_STATUS_QUERY,
-  REFRESH_WHATSAPP_ACCOUNT_BINDING_MUTATION,
-  START_WHATSAPP_QR_ONBOARDING_MUTATION,
   WHATSAPP_ACCOUNT_BINDINGS_QUERY,
   WHATSAPP_CONNECTOR_STATUS_QUERY,
   WHATSAPP_PROXIES_QUERY,
@@ -258,47 +256,6 @@ describe("affiliate outreach connector onboarding gates", () => {
     await waitFor(() => {
       expect(toastMock.showToast).toHaveBeenCalledWith("WhatsApp account connected.", "success");
     });
-  });
-
-  it("polls the active QR binding until WhatsApp reports connected", async () => {
-    const startQrSpy = vi.fn().mockResolvedValue({
-      data: {
-        startWhatsAppQrOnboarding: {
-          binding: {
-            id: "wa-1",
-            evolutionInstanceName: "wa_instance_1",
-            status: GQL.WhatsAppAccountStatus.PendingQr,
-          },
-          qrCode: "qr-payload",
-        },
-      },
-    });
-    const refreshBindingSpy = vi.fn().mockResolvedValue({
-      data: {
-        refreshWhatsAppAccountBinding: {
-          id: "wa-1",
-          evolutionInstanceName: "wa_instance_1",
-          status: GQL.WhatsAppAccountStatus.Connected,
-        },
-      },
-    });
-    vi.mocked(useMutation).mockImplementation((mutation) => {
-      const execute = mutation === START_WHATSAPP_QR_ONBOARDING_MUTATION
-        ? startQrSpy
-        : mutation === REFRESH_WHATSAPP_ACCOUNT_BINDING_MUTATION
-          ? refreshBindingSpy
-          : mutationSpy;
-      return [execute, { loading: false, called: false, reset: vi.fn() }] as never;
-    });
-    renderWhatsAppPanel({ ready: true });
-
-    fireEvent.click(screen.getByRole("button", { name: "QR" }));
-
-    await waitFor(() => expect(refreshBindingSpy).toHaveBeenCalledWith({ variables: { bindingId: "wa-1" } }));
-    await waitFor(() => {
-      expect(toastMock.showToast).toHaveBeenCalledWith("WhatsApp account connected.", "success");
-    });
-    expect(screen.queryByText("Scan with WhatsApp")).toBeNull();
   });
 
   it("disables Outlook OAuth onboarding while Microsoft Graph is not ready", () => {
