@@ -495,9 +495,14 @@ describe("affiliate work item dispatch", () => {
       runMode: "OPERATOR_REASONING",
     });
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]).toMatchObject({
+      provider: "openai",
+      model: "gpt-5-test",
+    });
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(agentCall?.[1]?.message).toContain("non-binding evidence");
     expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
+    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
   });
 
   it("starts affiliate work runs from a brand-new checkpoint session when no checkpoint is committed", async () => {

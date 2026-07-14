@@ -1,7 +1,5 @@
 import { types, flow, getRoot } from "mobx-state-tree";
 import { randomUUID } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import {
   parseProxyUrl,
   resolveGatewayProvider,
@@ -84,15 +82,6 @@ interface ApplyModelForSessionOptions {
   requestTimeoutMs?: number;
   sessionPatch?: Record<string, unknown>;
 }
-
-type OpenClawSessionEntry = {
-  updatedAt?: number;
-  authProfileOverride?: string;
-  authProfileOverrideSource?: string;
-  authProfileOverrideCompactionCount?: number;
-};
-
-type OpenClawSessionStore = Record<string, OpenClawSessionEntry | undefined>;
 
 function selectCloudDefaultModel(cloudModels: CloudModel[]): string {
   return (
@@ -232,8 +221,6 @@ export const LLMProviderManagerModel = types
     sessionOverrides: new Map<string, SessionModelOverride>(),
     /** EasyClaw-owned session model facts. Key = session key. Volatile by design. */
     sessionModelFacts: new Map<string, SessionModelFact>(),
-    /** Sessions that have had activity since app startup. Only these are patched on global default change. */
-    activeSessions: new Set<string>(),
     /** Concrete OpenClaw model refs successfully applied during this gateway lifetime. */
     appliedSessionModelRefs: new Map<string, string>(),
     /** Cached model catalog for validation. Set of "provider/modelId" strings. */
@@ -395,77 +382,6 @@ export const LLMProviderManagerModel = types
       });
     }
 
-    function agentIdFromSessionKey(sessionKey: string): string {
-      const parts = sessionKey.split(":");
-      return parts[0] === "agent" && parts[1] ? parts[1] : "main";
-    }
-
-    async function clearStoredAuthProfileOverride(sessionKey: string): Promise<void> {
-      const { stateDir } = getEnvDeps();
-      const sessionsPath = path.join(
-        stateDir,
-        "openclaw",
-        "agents",
-        agentIdFromSessionKey(sessionKey),
-        "sessions",
-        "sessions.json",
-      );
-
-      let raw: string;
-      try {
-        raw = await readFile(sessionsPath, "utf8");
-      } catch {
-        return;
-      }
-
-      let store: OpenClawSessionStore;
-      try {
-        store = JSON.parse(raw) as OpenClawSessionStore;
-      } catch (err) {
-        log.warn(
-          `Failed to parse OpenClaw session store while clearing auth profile for ${sessionKey}: ${err}`,
-        );
-        return;
-      }
-
-      const entry = store[sessionKey];
-      if (!entry?.authProfileOverride) return;
-
-      delete entry.authProfileOverride;
-      delete entry.authProfileOverrideSource;
-      delete entry.authProfileOverrideCompactionCount;
-      entry.updatedAt = Date.now();
-      await writeFile(sessionsPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
-      log.info(`Cleared stored auth profile override for default-following session ${sessionKey}`);
-    }
-
-    async function patchSessionToActiveDefault(
-      sessionKey: string,
-      options?: ApplyModelForSessionOptions,
-      force = false,
-    ): Promise<SessionModelOverride | null> {
-      const active = getActiveDefaultModel();
-      if (!active) {
-        markDefaultFollowing(sessionKey);
-        throw new Error(NO_ACTIVE_LLM_PROVIDER_ERROR);
-      }
-      const signature = `default:${active.modelRef}`;
-      let patched = false;
-      if (force) {
-        await patchSession(sessionKey, active.modelRef, options);
-        self.appliedSessionModelRefs.set(sessionKey, signature);
-        patched = true;
-      } else {
-        patched = await patchSessionIfModelChanged(sessionKey, signature, active.modelRef, options);
-      }
-      if (patched || force) {
-        await clearStoredAuthProfileOverride(sessionKey);
-      }
-      const applied = { provider: active.provider, model: active.model };
-      markDefaultFollowing(sessionKey, applied);
-      return applied;
-    }
-
     /** Check if a provider/model combo is available in the cached catalog. */
     function isModelAvailable(provider: string, model: string): boolean {
       if (self.catalogModelIds.size === 0) return true; // no catalog yet, allow
@@ -578,9 +494,8 @@ export const LLMProviderManagerModel = types
         }
       }),
 
-      /** Mark a session as active (had activity since app startup). */
+      /** Initialize Desktop's volatile model fact for a session. */
       trackSessionActivity(sessionKey: string) {
-        self.activeSessions.add(sessionKey);
         if (!self.sessionModelFacts.has(sessionKey)) {
           markDefaultFollowing(sessionKey);
         }
@@ -590,7 +505,6 @@ export const LLMProviderManagerModel = types
       clearVolatileSessionState() {
         self.sessionOverrides.clear();
         self.sessionModelFacts.clear();
-        self.activeSessions.clear();
         self.appliedSessionModelRefs.clear();
       },
 
@@ -634,15 +548,15 @@ export const LLMProviderManagerModel = types
         self.appliedSessionModelRefs.set(sessionKey, `explicit:${modelRef}`);
         self.sessionOverrides.set(sessionKey, { provider, model });
         markExplicit(sessionKey, { provider, model });
-        self.activeSessions.add(sessionKey);
         log.info(`Switched session ${sessionKey} to ${modelRef}`);
       }),
 
       /** Clear per-session override — session reverts to global default. */
       resetSessionModel: flow(function* (sessionKey: string) {
         self.sessionOverrides.delete(sessionKey);
-        yield patchSessionToActiveDefault(sessionKey, undefined, true);
-        self.activeSessions.add(sessionKey);
+        yield patchSession(sessionKey, null);
+        self.appliedSessionModelRefs.delete(sessionKey);
+        markDefaultFollowing(sessionKey);
         log.info(`Reset session ${sessionKey} to global default`);
       }),
 
@@ -650,7 +564,7 @@ export const LLMProviderManagerModel = types
        * Resolve and apply the best model for a session based on the override chain:
        *   1. Session-level override (explicit per-session switch)
        *   2. Scope-level override (e.g., per-shop CS model from entity cache)
-       *   3. Global default (EasyClaw fact stays null/default; OpenClaw gets the concrete active ref)
+       *   3. Global default (resolved natively by OpenClaw from agents.defaults.model.primary)
        *
        * If a resolved model is unavailable in the catalog, falls through to the next layer.
        */
@@ -659,8 +573,6 @@ export const LLMProviderManagerModel = types
         scope?: ModelScope,
         options?: ApplyModelForSessionOptions,
       ) {
-        self.activeSessions.add(sessionKey);
-
         const sessionOverride = self.sessionOverrides.get(sessionKey);
         if (sessionOverride) {
           if (isModelAvailable(sessionOverride.provider, sessionOverride.model)) {
@@ -689,15 +601,21 @@ export const LLMProviderManagerModel = types
           }
         }
 
-        // Layer 3: global default
-        yield patchSessionToActiveDefault(sessionKey, options);
-        log.info(`Applied global default to ${sessionKey}`);
+        // Layer 3: global default. Do not write session state: OpenClaw resolves
+        // agents.defaults.model.primary for sessions without an explicit override.
+        const active = getActiveDefaultModel();
+        if (!active) {
+          markDefaultFollowing(sessionKey);
+          throw new Error(NO_ACTIVE_LLM_PROVIDER_ERROR);
+        }
+        markDefaultFollowing(sessionKey, active);
+        log.info(`Resolved global default for ${sessionKey} without patching session state`);
         return null;
       }),
 
       /**
        * Switch the default model on an existing key (global default).
-       * Existing sessions apply it lazily before their next dispatch.
+       * Default-following sessions resolve it natively from OpenClaw config.
        */
       switchModel: flow(function* (keyId: string, newModel: string) {
         const { storage, secretStore, toMstSnapshot } = getEnvDeps();
@@ -712,8 +630,7 @@ export const LLMProviderManagerModel = types
           self.root.upsertProviderKey(mstEntry);
         }
 
-        // Update OpenClaw config default. Existing sessions apply it lazily
-        // before their next dispatch via applyModelForSession.
+        // Update the OpenClaw config default without mutating individual sessions.
         if (entry.isDefault) {
           writeDefaultModel(entry.provider, newModel, entry.authType);
         }
@@ -723,7 +640,7 @@ export const LLMProviderManagerModel = types
 
       /**
        * Activate (set as default) an existing provider key.
-       * Existing sessions apply it lazily before their next dispatch.
+       * Default-following sessions resolve it natively from OpenClaw config.
        */
       activateProvider: flow(function* (keyId: string) {
         const { storage, secretStore, syncActiveKey, allKeysToMstSnapshots } = getEnvDeps();
@@ -908,8 +825,8 @@ export const LLMProviderManagerModel = types
           yield syncAuthAndProxy();
         }
 
-        // If the active key's model changed, update the gateway default.
-        // Existing sessions apply it lazily before their next dispatch.
+        // If the active key's model changed, update the gateway default without
+        // mutating individual sessions.
         if (existing.isDefault && modelChanging && fields.model) {
           writeDefaultModel(existing.provider, fields.model, existing.authType);
         }

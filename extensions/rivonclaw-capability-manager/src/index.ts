@@ -29,7 +29,6 @@ type PluginHookBeforeToolCallEvent = {
 
 type PluginHookToolContext = {
   sessionKey?: string;
-  channelId?: string;
   getSessionExtension?: <T = unknown>(namespace: string) => T | undefined;
 };
 
@@ -46,18 +45,6 @@ type AffiliateCheckpointExtension = {
   targetEventCursor?: number | null;
 };
 
-type SessionModelInfo = {
-  provider?: string;
-  model?: string;
-  gatewayProvider?: string;
-  gatewayModel?: string;
-};
-
-type SessionModelApplyResult = SessionModelInfo & {
-  ok?: boolean;
-  sessionKey?: string;
-};
-
 /**
  * Fetch effective tools from Desktop's ToolCapabilityResolver.
  * No caching — always fetches fresh to reflect mid-session RunProfile changes.
@@ -71,36 +58,6 @@ async function getEffectiveTools(sessionKey: string): Promise<string[] | null> {
     if (!res.ok) return null;
     const data = await res.json() as { effectiveToolIds?: string[] };
     return data.effectiveToolIds ?? [];
-  } catch {
-    return null;
-  }
-}
-
-async function getSessionModelInfo(sessionKey: string): Promise<SessionModelInfo | null> {
-  try {
-    const res = await fetch(
-      `${PANEL_BASE_URL}/api/session-model?sessionKey=${encodeURIComponent(sessionKey)}`,
-    );
-    if (!res.ok) return null;
-    const data = await res.json() as SessionModelInfo | null;
-    if (!data?.provider || !data.model) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-async function applySessionModel(sessionKey: string): Promise<SessionModelApplyResult | null> {
-  try {
-    const res = await fetch(`${PANEL_BASE_URL}/api/session-model/apply`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sessionKey }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json() as SessionModelApplyResult | null;
-    if (!data?.provider || !data.model) return null;
-    return data;
   } catch {
     return null;
   }
@@ -140,54 +97,6 @@ export default defineRivonClawPlugin({
         return { params };
       },
     });
-
-    // Keep channel sessions synced before OpenClaw selects a backend/model.
-    //
-    // The CLI backend reads persisted session selection state before
-    // before_model_resolve runs. Applying Desktop's resolved model during
-    // before_dispatch updates that persisted state for the current dispatch.
-    api.on(
-      "before_dispatch",
-      async (
-        _event: { sessionKey?: string; channel?: string },
-        ctx: PluginHookToolContext,
-      ) => {
-        const sessionKey = ctx.sessionKey ?? _event.sessionKey;
-        const channelId = ctx.channelId ?? _event.channel;
-        if (!sessionKey || !channelId) return;
-
-        const info = await applySessionModel(sessionKey);
-        if (!info) {
-          api.logger.warn?.(`Failed to sync channel session model before dispatch: ${sessionKey}`);
-        }
-      },
-      { priority: 100 },
-    );
-
-    // ── before_model_resolve: keep channel sessions following Desktop's model state.
-    //
-    // OpenClaw persists a session-level model override. If a channel session
-    // was first created while the global default pointed at an unavailable
-    // model, later inbound messages can keep hitting that stale provider unless
-    // we override the model for each channel run.
-    api.on(
-      "before_model_resolve",
-      async (
-        _event: { prompt?: string },
-        ctx: PluginHookToolContext,
-      ) => {
-        if (!ctx.sessionKey || !ctx.channelId) return;
-
-        const info = await getSessionModelInfo(ctx.sessionKey);
-        if (!info) return;
-
-        return {
-          providerOverride: info.gatewayProvider ?? info.provider,
-          modelOverride: info.gatewayModel ?? info.model,
-        };
-      },
-      { priority: 100 },
-    );
 
     // ── before_tool_resolve: filter tool visibility (Layer 3) ──────
     // Removes tools not in effectiveTools from the LLM's tool list.
