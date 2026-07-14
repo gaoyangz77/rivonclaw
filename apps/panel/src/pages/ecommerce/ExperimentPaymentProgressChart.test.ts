@@ -10,6 +10,7 @@ import {
   isCurvePointReliable,
   normalizeCurveTimeDomain,
   sortCurveTooltipSeries,
+  withPreReachoutInterpolationAnchor,
 } from "./ExperimentPaymentProgressChart.js";
 
 describe("ExperimentPaymentProgressChart", () => {
@@ -163,6 +164,53 @@ describe("ExperimentPaymentProgressChart", () => {
     expect(curveInterpolationType(GQL.CsExperimentCurveEstimator.AalenJohansen)).toBe(
       "stepAfter",
     );
+  });
+
+  it("keeps modeled arms visually shared until the first reachout", () => {
+    const rows = [
+      {
+        elapsedMinutes: 1,
+        points: {},
+        "CONTROL:uncertain": 2.5,
+        "TREATMENT:reliable": 2.5,
+      },
+      {
+        elapsedMinutes: 2,
+        points: {},
+        "CONTROL:uncertain": 1.4,
+        "TREATMENT:reliable": 1.4,
+      },
+      {
+        elapsedMinutes: 3,
+        points: {},
+        "CONTROL:uncertain": 0,
+        "TREATMENT:reliable": 1.3,
+      },
+    ] as Parameters<typeof withPreReachoutInterpolationAnchor>[0];
+    const series = [
+      { seriesKey: "CONTROL", stages: [] },
+      { seriesKey: "TREATMENT", stages: [{ delayMinutes: 3 }] },
+    ] as Parameters<typeof withPreReachoutInterpolationAnchor>[1];
+
+    const anchored = withPreReachoutInterpolationAnchor(
+      rows,
+      series,
+      GQL.CsExperimentCurveEstimator.SharedShapeConstrainedHazard,
+    );
+    const anchor = anchored.find(
+      (row) => row.elapsedMinutes > 2 && row.elapsedMinutes < 3,
+    );
+    expect(anchor?.["CONTROL:uncertain"]).toBe(1.4);
+    expect(anchor?.["TREATMENT:reliable"]).toBe(1.4);
+    expect(anchor?.points).toEqual({});
+
+    expect(
+      withPreReachoutInterpolationAnchor(
+        rows,
+        series,
+        GQL.CsExperimentCurveEstimator.AalenJohansen,
+      ),
+    ).toBe(rows);
   });
 
   it("keeps control as the strongest baseline even while its estimate is directional", () => {
