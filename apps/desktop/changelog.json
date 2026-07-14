@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.71",
+    "date": "2026-07-14",
+    "en": [
+      "Localize customer-service experiment analysis and clarify nested experiment behavior",
+      "Show actual incremental experiment traffic in results",
+      "Stop patching default session models to preserve intended model settings"
+    ],
+    "zh": [
+      "本地化客服实验分析界面，并澄清嵌套实验行为",
+      "在实验结果中展示真实增量流量",
+      "停止修改默认会话模型，保留预期的模型设置"
+    ]
+  },
+  {
     "version": "1.8.70",
     "date": "2026-07-13",
     "en": [
