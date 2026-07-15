@@ -23729,19 +23729,505 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-team-workspace {
-  display: grid;
-  grid-template-columns: 310px minmax(0, 1fr);
-  min-height: 540px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
   background: var(--surface-primary);
 }
 
-.affiliate-team-roster {
-  padding: 18px 12px;
-  border-right: 1px solid var(--border-color);
+.affiliate-team-empty-developers {
+  min-height: 420px;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.affiliate-team-empty-developers-icon {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-color) 12%, var(--surface-primary));
+  color: var(--accent-color);
+}
+
+.affiliate-team-empty-developers-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.affiliate-team-empty-developers h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.affiliate-team-empty-developers p {
+  max-width: 520px;
+  margin: 9px 0 20px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.affiliate-team-empty-developers .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.affiliate-team-empty-developers .btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.affiliate-team-owner-filter {
+  min-width: 0;
+  min-height: 92px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(320px, 520px) auto;
+  align-items: center;
+  gap: 22px;
+  border-bottom: 1px solid var(--border-color);
   background: var(--surface-secondary);
+}
+
+.affiliate-bd-table-toolbar {
+  min-height: 76px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-secondary);
+}
+
+.affiliate-bd-search {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 6px;
+}
+
+.affiliate-bd-search > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.affiliate-bd-search .input {
+  width: 100%;
+  min-height: 38px;
+}
+
+.affiliate-bd-table-filters,
+.affiliate-bd-connect-actions,
+.affiliate-bd-detail-footer > div,
+.affiliate-bd-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.affiliate-bd-archive-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.affiliate-bd-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.affiliate-bd-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.affiliate-bd-table th,
+.affiliate-bd-table td {
+  height: 66px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.affiliate-bd-table th {
+  height: 42px;
+  background: color-mix(in srgb, var(--surface-secondary) 72%, var(--surface-primary));
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.affiliate-bd-table th:first-child { width: 28%; }
+.affiliate-bd-table th:nth-child(2) { width: 16%; }
+.affiliate-bd-table th:nth-child(3),
+.affiliate-bd-table th:nth-child(4),
+.affiliate-bd-table th:nth-child(5) { width: 10%; }
+.affiliate-bd-table th:nth-child(6) { width: 18%; }
+.affiliate-bd-table th:last-child { width: 44px; }
+
+.affiliate-bd-table tbody tr {
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.affiliate-bd-table tbody tr:hover,
+.affiliate-bd-table tbody tr:focus-visible {
+  outline: 0;
+  background: color-mix(in srgb, var(--accent-color) 5%, var(--surface-primary));
+}
+
+.affiliate-bd-table tbody tr.is-archived {
+  opacity: 0.68;
+}
+
+.affiliate-bd-table .is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.affiliate-bd-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.affiliate-bd-avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--info-color) 11%, var(--surface-primary));
+  color: var(--info-color);
+}
+
+.affiliate-bd-avatar svg {
+  width: 17px;
+  height: 17px;
+}
+
+.affiliate-bd-identity > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.affiliate-bd-identity strong,
+.affiliate-bd-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-bd-identity small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.affiliate-bd-availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.affiliate-bd-availability::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.affiliate-bd-availability.is-accepting {
+  color: var(--success-color);
+}
+
+.affiliate-bd-channel-count {
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  min-width: 34px;
+}
+
+.affiliate-bd-channel-count small {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--warning-color) 15%, var(--surface-primary));
+  color: var(--warning-color);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.affiliate-bd-row-action {
+  color: var(--text-muted);
+  text-align: right !important;
+}
+
+.affiliate-bd-pagination {
+  min-height: 56px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.affiliate-bd-page-button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.affiliate-bd-page-button.is-previous svg {
+  transform: rotate(180deg);
+}
+
+.affiliate-bd-page-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.affiliate-bd-table-message {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.affiliate-bd-detail-modal,
+.affiliate-unassigned-modal {
+  padding: 0;
+  overflow: hidden;
+}
+
+.affiliate-bd-detail-modal .modal-header,
+.affiliate-unassigned-modal .modal-header {
+  margin: 0;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.affiliate-bd-detail-tabs {
+  height: 48px;
+  padding: 0 24px;
+  display: flex;
+  align-items: end;
+  gap: 24px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-secondary);
+}
+
+.affiliate-bd-detail-tabs button {
+  height: 48px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.affiliate-bd-detail-tabs button.is-active {
+  border-bottom-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.affiliate-bd-detail-body {
+  padding: 22px 24px 24px;
+}
+
+.affiliate-bd-detail-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.affiliate-bd-detail-summary > div {
+  min-width: 0;
+  min-height: 76px;
+  padding: 14px 16px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+}
+
+.affiliate-bd-detail-summary > div:not(:last-child) {
+  border-right: 1px solid var(--border-color);
+}
+
+.affiliate-bd-detail-summary span,
+.affiliate-bd-metadata dt {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.affiliate-bd-detail-summary strong {
+  font-size: 19px;
+}
+
+.affiliate-bd-metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 22px 0;
+}
+
+.affiliate-bd-metadata > div {
+  display: grid;
+  gap: 5px;
+}
+
+.affiliate-bd-metadata dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.affiliate-bd-detail-footer {
+  min-height: 58px;
+  margin: 24px -24px -24px;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-secondary);
+}
+
+.affiliate-bd-detail-footer > span {
+  color: var(--warning-color);
+  font-size: 12px;
+}
+
+.affiliate-bd-channel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.affiliate-bd-channel-toolbar > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.affiliate-bd-channel-toolbar > div:first-child > span,
+.affiliate-unassigned-body > p {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.affiliate-bd-channel-body .affiliate-channel-section {
+  margin-top: 14px;
+}
+
+.affiliate-bd-channel-body .affiliate-channel-connectors {
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.affiliate-unassigned-body {
+  padding: 4px 24px 24px;
+}
+
+.affiliate-unassigned-body > p {
+  margin: 16px 0;
+}
+
+.affiliate-team-owner-filter-intro {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+
+.affiliate-team-owner-filter-intro > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.affiliate-team-owner-filter-intro small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-team-owner-filter-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-color) 12%, var(--surface-primary));
+  color: var(--accent-color);
+}
+
+.affiliate-team-owner-filter-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.affiliate-team-owner-filter-control {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.affiliate-team-owner-filter-control > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.affiliate-team-owner-select,
+.affiliate-team-owner-select .custom-select-trigger {
+  width: 100%;
+}
+
+.custom-select-dropdown.affiliate-team-owner-select {
+  min-width: min(520px, calc(100vw - 32px)) !important;
 }
 
 .affiliate-team-section-head {
@@ -23757,79 +24243,9 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--text-muted);
 }
 
-.affiliate-team-roster-item {
-  width: 100%;
-  min-height: 68px;
-  margin: 4px 0;
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.affiliate-team-roster-item:hover {
-  background: var(--surface-primary);
-}
-.affiliate-team-roster-item.active {
-  border-color: color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
-  background: var(--surface-primary);
-}
-.affiliate-team-roster-item > span:last-child {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-.affiliate-team-roster-item strong,
-.affiliate-team-roster-item small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.affiliate-team-roster-item small {
-  color: var(--text-muted);
-}
-
-.affiliate-team-roster-count {
-  min-width: 25px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--surface-tertiary);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.affiliate-team-roster-item.active .affiliate-team-roster-count {
-  background: color-mix(in srgb, var(--accent-color) 10%, var(--surface-primary));
-  color: var(--accent-color);
-}
-
-.affiliate-team-avatar {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--accent-color) 12%, var(--surface-primary));
-  color: var(--accent-color);
-}
-.affiliate-team-avatar svg {
-  width: 19px;
-  height: 19px;
-}
-
 .affiliate-team-detail {
   min-width: 0;
-  padding: 24px 28px 32px;
+  padding: 24px 30px 32px;
 }
 .affiliate-team-detail-head {
   align-items: flex-start;
@@ -23933,10 +24349,7 @@ html[lang="zh"] .acct-tool-chips {
   margin-top: 20px;
 }
 .affiliate-channel-connectors > div {
-  padding: 20px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--surface-primary);
+  min-width: 0;
 }
 
 .affiliate-developer-modal {
@@ -24048,9 +24461,28 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-protection-boundary-head,
   .affiliate-protection-console-toolbar,
   .affiliate-team-responsibility-head,
-  .affiliate-onboarding-completion {
+  .affiliate-onboarding-completion,
+  .affiliate-bd-table-toolbar,
+  .affiliate-bd-channel-toolbar,
+  .affiliate-bd-detail-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .affiliate-bd-search {
+    width: 100%;
+  }
+  .affiliate-bd-table-filters {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .affiliate-bd-detail-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .affiliate-bd-detail-summary > div:nth-child(2) {
+    border-right: 0;
+  }
+  .affiliate-bd-detail-summary > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border-color);
   }
   .affiliate-onboarding-actions {
     justify-content: flex-start;
@@ -24058,17 +24490,12 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-protection-manual {
     grid-template-columns: 1fr;
   }
-  .affiliate-team-workspace {
-    grid-template-columns: 1fr;
+  .affiliate-team-owner-filter {
+    grid-template-columns: 1fr auto;
   }
-  .affiliate-team-roster {
-    border-right: 0;
-    border-bottom: 1px solid var(--border-color);
-  }
-  .affiliate-team-roster-item {
-    display: inline-grid;
-    width: min(260px, 100%);
-    vertical-align: top;
+  .affiliate-team-owner-filter-control {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
   .affiliate-channel-row {
     grid-template-columns: 1fr;
@@ -24105,8 +24532,43 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-team-detail {
     padding: 20px 16px 28px;
   }
+  .affiliate-bd-table-filters,
+  .affiliate-bd-pagination,
+  .affiliate-bd-detail-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .affiliate-bd-pagination > div {
+    justify-content: space-between;
+  }
+  .affiliate-bd-detail-summary,
+  .affiliate-bd-metadata {
+    grid-template-columns: 1fr;
+  }
+  .affiliate-bd-detail-summary > div {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .affiliate-bd-detail-summary > div:last-child {
+    border-bottom: 0;
+  }
+  .affiliate-bd-connect-actions {
+    width: 100%;
+  }
+  .affiliate-bd-connect-actions .btn {
+    flex: 1;
+  }
   .affiliate-team-facts {
     grid-template-columns: 1fr;
+  }
+  .affiliate-team-owner-filter {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .affiliate-team-owner-filter-control,
+  .affiliate-team-owner-filter > .affiliate-team-owner-count {
+    grid-column: 1;
+    grid-row: auto;
   }
   .affiliate-developer-editor {
     grid-template-columns: 1fr;

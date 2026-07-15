@@ -9,6 +9,7 @@ import th from "./th.js";
 import { LEGACY_I18N_BACKFILL } from "./legacy-backfill.js";
 import { RECENT_TRANSLATIONS } from "./recent-translations.js";
 import { AFFILIATE_TEAM_TRANSLATIONS } from "./affiliate-team-translations.js";
+import { AFFILIATE_CHANNEL_TRANSLATIONS } from "./affiliate-channel-translations.js";
 
 type TranslationResource = object;
 export type SupportedLanguageCode = "en" | "zh" | "de" | "es" | "fr" | "id" | "it" | "th";
@@ -39,15 +40,25 @@ function mergeTranslationResource<T extends TranslationResourceRecord>(
   return merged as T;
 }
 
+function mergeTranslationResources<T extends TranslationResourceRecord>(
+  resource: T,
+  ...backfills: TranslationResourceRecord[]
+): T {
+  return backfills.reduce<TranslationResourceRecord>(
+    (merged, backfill) => mergeTranslationResource(merged, backfill),
+    resource,
+  ) as T;
+}
+
 export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
-  { code: "en", label: "English", resource: mergeTranslationResource(en, AFFILIATE_TEAM_TRANSLATIONS.en) },
-  { code: "zh", label: "中文", resource: mergeTranslationResource(zh, AFFILIATE_TEAM_TRANSLATIONS.zh) },
-  { code: "de", label: "Deutsch", resource: mergeTranslationResource(mergeTranslationResource(mergeTranslationResource(de, LEGACY_I18N_BACKFILL.de), RECENT_TRANSLATIONS.de), AFFILIATE_TEAM_TRANSLATIONS.de) },
-  { code: "es", label: "Español", resource: mergeTranslationResource(mergeTranslationResource(mergeTranslationResource(es, LEGACY_I18N_BACKFILL.es), RECENT_TRANSLATIONS.es), AFFILIATE_TEAM_TRANSLATIONS.es) },
-  { code: "fr", label: "Français", resource: mergeTranslationResource(mergeTranslationResource(mergeTranslationResource(fr, LEGACY_I18N_BACKFILL.fr), RECENT_TRANSLATIONS.fr), AFFILIATE_TEAM_TRANSLATIONS.fr) },
-  { code: "id", label: "Bahasa Indonesia", resource: mergeTranslationResource(mergeTranslationResource(mergeTranslationResource(id, LEGACY_I18N_BACKFILL.id), RECENT_TRANSLATIONS.id), AFFILIATE_TEAM_TRANSLATIONS.id) },
-  { code: "it", label: "Italiano", resource: mergeTranslationResource(mergeTranslationResource(mergeTranslationResource(it, LEGACY_I18N_BACKFILL.it), RECENT_TRANSLATIONS.it), AFFILIATE_TEAM_TRANSLATIONS.it) },
-  { code: "th", label: "ไทย", resource: mergeTranslationResource(mergeTranslationResource(mergeTranslationResource(th, LEGACY_I18N_BACKFILL.th), RECENT_TRANSLATIONS.th), AFFILIATE_TEAM_TRANSLATIONS.th) },
+  { code: "en", label: "English", resource: mergeTranslationResources(en, AFFILIATE_TEAM_TRANSLATIONS.en, AFFILIATE_CHANNEL_TRANSLATIONS.en) },
+  { code: "zh", label: "中文", resource: mergeTranslationResources(zh, AFFILIATE_TEAM_TRANSLATIONS.zh, AFFILIATE_CHANNEL_TRANSLATIONS.zh) },
+  { code: "de", label: "Deutsch", resource: mergeTranslationResources(de, LEGACY_I18N_BACKFILL.de, RECENT_TRANSLATIONS.de, AFFILIATE_TEAM_TRANSLATIONS.de, AFFILIATE_CHANNEL_TRANSLATIONS.de) },
+  { code: "es", label: "Español", resource: mergeTranslationResources(es, LEGACY_I18N_BACKFILL.es, RECENT_TRANSLATIONS.es, AFFILIATE_TEAM_TRANSLATIONS.es, AFFILIATE_CHANNEL_TRANSLATIONS.es) },
+  { code: "fr", label: "Français", resource: mergeTranslationResources(fr, LEGACY_I18N_BACKFILL.fr, RECENT_TRANSLATIONS.fr, AFFILIATE_TEAM_TRANSLATIONS.fr, AFFILIATE_CHANNEL_TRANSLATIONS.fr) },
+  { code: "id", label: "Bahasa Indonesia", resource: mergeTranslationResources(id, LEGACY_I18N_BACKFILL.id, RECENT_TRANSLATIONS.id, AFFILIATE_TEAM_TRANSLATIONS.id, AFFILIATE_CHANNEL_TRANSLATIONS.id) },
+  { code: "it", label: "Italiano", resource: mergeTranslationResources(it, LEGACY_I18N_BACKFILL.it, RECENT_TRANSLATIONS.it, AFFILIATE_TEAM_TRANSLATIONS.it, AFFILIATE_CHANNEL_TRANSLATIONS.it) },
+  { code: "th", label: "ไทย", resource: mergeTranslationResources(th, LEGACY_I18N_BACKFILL.th, RECENT_TRANSLATIONS.th, AFFILIATE_TEAM_TRANSLATIONS.th, AFFILIATE_CHANNEL_TRANSLATIONS.th) },
 ] as const;
 
 export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] = LANGUAGE_OPTIONS.map((language) => language.code);

@@ -60,7 +60,15 @@ const DEFAULT_PROXY_FORM: ProxyForm = {
   region: "",
 };
 
-export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { businessDeveloperId?: string | null }) {
+export function AffiliateWhatsAppAccountPanel({
+  businessDeveloperId = null,
+  showAccountList = true,
+  onAccountsChanged,
+}: {
+  businessDeveloperId?: string | null;
+  showAccountList?: boolean;
+  onAccountsChanged?: () => void | Promise<void>;
+}) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [selectedProxyId, setSelectedProxyId] = useState(NO_PROXY_VALUE);
@@ -124,6 +132,9 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
   >(UPDATE_WHATSAPP_PROXY_MUTATION);
 
   const accounts = accountsData?.whatsAppAccountBindings ?? [];
+  const visibleAccounts = businessDeveloperId
+    ? accounts.filter((account) => account.businessDeveloperId === businessDeveloperId)
+    : accounts;
   const proxies = proxiesData?.whatsAppProxies ?? [];
   const activeProxies = proxies.filter((proxy) => proxy.status === GQL.ProxyStatus.Active);
   const connectorStatus = connectorData?.whatsAppConnectorStatus ?? null;
@@ -185,6 +196,7 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
       );
       void Promise.all([refetchAccounts(), refetchConnectorStatus()])
         .then(() => {
+          void onAccountsChanged?.();
           if (alreadyHandled) return;
           showToast(
             t("ecommerce.affiliateWorkspace.whatsapp.accountConnected", {
@@ -197,7 +209,7 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
           showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
         });
     });
-  }, [refetchAccounts, refetchConnectorStatus, showToast, t]);
+  }, [onAccountsChanged, refetchAccounts, refetchConnectorStatus, showToast, t]);
 
   async function handleConnectNew() {
     if (!connectorStatus?.ready) {
@@ -211,12 +223,17 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
         },
       });
       const bindingId = created.data?.createWhatsAppAccountBinding.id;
-      if (!bindingId) throw new Error("WhatsApp binding was not created");
+      if (!bindingId) {
+        throw new Error(t("ecommerce.affiliateWorkspace.whatsapp.bindingCreateFailed", {
+          defaultValue: "The WhatsApp account could not be created.",
+        }));
+      }
       if (businessDeveloperId) {
         await assignBinding({ variables: { accountBindingId: bindingId, businessDeveloperId } });
       }
       await handleStartQr(bindingId);
       await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
+      await onAccountsChanged?.();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
@@ -234,9 +251,14 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
         },
       });
       const payload = result.data?.startWhatsAppQrOnboarding;
-      if (!payload) throw new Error("WhatsApp QR data was not returned");
+      if (!payload) {
+        throw new Error(t("ecommerce.affiliateWorkspace.whatsapp.qrDataMissing", {
+          defaultValue: "The WhatsApp QR code could not be loaded.",
+        }));
+      }
       setActiveQr(payload);
       await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
+      await onAccountsChanged?.();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
@@ -246,6 +268,7 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
     try {
       await refreshBinding({ variables: { bindingId } });
       await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
+      await onAccountsChanged?.();
       showToast(t("ecommerce.affiliateWorkspace.whatsapp.refreshSuccess", { defaultValue: "WhatsApp account refreshed." }), "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
@@ -257,6 +280,7 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
       await revokeBinding({ variables: { bindingId, deleteInstance: false } });
       if (activeQr?.binding.id === bindingId) setActiveQr(null);
       await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
+      await onAccountsChanged?.();
       showToast(t("ecommerce.affiliateWorkspace.whatsapp.revokeSuccess", { defaultValue: "WhatsApp account revoked." }), "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
@@ -511,7 +535,7 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
             <div className="affiliate-whatsapp-proxy-row" key={proxy.id}>
               <div>
                 <span className={`affiliate-whatsapp-status affiliate-whatsapp-status-${proxy.status.toLowerCase()}`}>
-                  {proxy.status.toLowerCase()}
+                  {proxyStatusLabel(t, proxy.status)}
                 </span>
                 <strong>{proxyDisplayLabel(proxy)}</strong>
                 {proxy.lastError && <em>{proxy.lastError}</em>}
@@ -553,15 +577,15 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
         </div>
       )}
 
-      <div className="affiliate-whatsapp-list">
-        {accounts.length === 0 && (
+      {showAccountList && <div className="affiliate-whatsapp-list">
+        {visibleAccounts.length === 0 && (
           <div className="affiliate-policy-option-empty">
             {accountsLoading
               ? t("common.loading")
               : t("ecommerce.affiliateWorkspace.whatsapp.empty", { defaultValue: "No WhatsApp account connected yet." })}
           </div>
         )}
-        {accounts.map((account) => (
+        {visibleAccounts.map((account) => (
           <div className="affiliate-whatsapp-account" key={account.id}>
             <div className="affiliate-whatsapp-account-main">
               <span className={`affiliate-whatsapp-status affiliate-whatsapp-status-${account.status.toLowerCase()}`}>
@@ -602,7 +626,7 @@ export function AffiliateWhatsAppAccountPanel({ businessDeveloperId = null }: { 
             </div>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -612,6 +636,15 @@ function whatsAppStatusLabel(
   status: GQL.WhatsAppAccountStatus,
 ): string {
   return t(`ecommerce.affiliateWorkspace.whatsapp.status.${status}`, {
+    defaultValue: status.replace(/_/g, " ").toLowerCase(),
+  });
+}
+
+function proxyStatusLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  status: GQL.ProxyStatus,
+): string {
+  return t(`ecommerce.affiliateWorkspace.whatsapp.proxyStatus.${status}`, {
     defaultValue: status.replace(/_/g, " ").toLowerCase(),
   });
 }
