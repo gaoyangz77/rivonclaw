@@ -2690,7 +2690,11 @@ export default {
     shopReadinessTitle: "店铺 Ads 状态",
     shopReadinessSubtitle: "查看每个已连接店铺的广告账户覆盖和 GMV Max 就绪状态。",
     shopCoverageTitle: "店铺广告覆盖",
-    shopCoverageSubtitle: "按店铺组合查看哪些店铺已被广告账户覆盖。",
+    shopCoverageSubtitle:
+      "展示每个店铺当前有效的全部广告账户，并单独标出当前 GMV MAX 授权账户。此处不是按日期展示的实际投放账户。",
+    currentGmvMaxAccount: "当前 GMV MAX",
+    gmvMaxAvailable: "GMV MAX 可用",
+    currentGmvMaxUnknown: "当前授权账户待同步",
     unonboardedStoreCount: "{{count}} 个广告账户可识别的店铺尚未连接到 EasyClaw",
     noShops: "尚未连接店铺。",
     loadFailed: "加载 Ads 管理数据失败。",
@@ -2740,8 +2744,8 @@ export default {
       region: "地区",
       adsStatus: "Ads 状态",
       coverage: "覆盖状态",
-      advertiser: "广告账户",
-      gmvMax: "GMV Max",
+      advertiser: "当前有效广告账户",
+      gmvMax: "当前 GMV MAX 授权",
       action: "操作",
     },
     shopAdsStatus: {

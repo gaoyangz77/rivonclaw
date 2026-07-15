@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
-import type { AdsAdvertiser, Shop } from "@rivonclaw/core/models";
+import type { AdsAdvertiser, AdsStoreBinding, Shop } from "@rivonclaw/core/models";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { AdsIcon, CheckIcon, ChevronRightIcon, CopyIcon, InfoIcon, RefreshIcon, ShopIcon } from "../../components/icons.js";
@@ -50,7 +50,10 @@ interface AdvertiserViewGroup {
 interface ShopCoverageRow {
   shop: Shop;
   readiness: ReturnType<typeof resolveShopAdsReadiness>;
-  advertiser: AdsAdvertiser | null;
+  accounts: Array<{
+    access: AdsStoreBinding;
+    advertiser: AdsAdvertiser | null;
+  }>;
 }
 
 interface ShopCoverageGroup {
@@ -115,15 +118,23 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
     return groupShopsByCollection(shops).map((group) => {
       const rows = group.shops.map((shop) => {
         const readiness = resolveShopAdsReadiness(shop, advertisers, storeAccesses);
-        const access = readiness.binding;
-        const advertiser = access
-          ? advertisers.find((item) => item.id === access.adsAdvertiserId || item.advertiserId === access.advertiserId) ?? null
-          : null;
-        return { shop, readiness, advertiser };
+        const accounts = readiness.bindings.map((access) => ({
+          access,
+          advertiser: advertisers.find(
+            (item) => item.id === access.adsAdvertiserId || item.advertiserId === access.advertiserId,
+          ) ?? null,
+        })).sort((a, b) => {
+          const aName = a.advertiser?.advertiserName || a.access.advertiserId;
+          const bName = b.advertiser?.advertiserName || b.access.advertiserId;
+          return aName.localeCompare(bName, undefined, { numeric: true });
+        });
+        return { shop, readiness, accounts };
       });
       const advertiserMap = new Map<string, AdsAdvertiser>();
       for (const row of rows) {
-        if (row.advertiser) advertiserMap.set(row.advertiser.id, row.advertiser);
+        for (const account of row.accounts) {
+          if (account.advertiser) advertiserMap.set(account.advertiser.id, account.advertiser);
+        }
       }
       return {
         key: group.key,
@@ -141,8 +152,6 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   }, [advertisers, shops, storeAccesses]);
 
   const coveredShopCount = shopCoverageGroups.reduce((sum, group) => sum + group.connectedCount, 0);
-  const incompleteCoverageGroupCount = shopCoverageGroups.filter((group) => group.status !== "connected").length;
-
   const filteredAdvertisers = useMemo(() => {
     const query = advertiserQuery.trim().toLowerCase();
     return advertisers.filter((advertiser) => {
@@ -534,7 +543,9 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                     : group.advertisers.length === 1
                       ? (group.advertisers[0].advertiserName || group.advertisers[0].advertiserId)
                       : t("adsManagement.totalAdvertisers", { defaultValue: "Advertisers" }) + `: ${group.advertisers.length}`;
-                  const gmvReadyCount = group.rows.filter((row) => row.readiness.binding?.isGmvMaxAvailable).length;
+                  const currentGmvMaxCount = group.rows.filter(
+                    (row) => Boolean(row.readiness.exclusiveAuthorizedAdvertiserId),
+                  ).length;
                   return (
                     <Fragment key={group.key}>
                       <tr className="table-hover-row ads-coverage-group-row">
@@ -560,10 +571,15 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                           <div className="td-muted">{group.connectedCount}/{group.shops.length}</div>
                         </td>
                         <td>{advertiserLabel}</td>
-                        <td>{gmvReadyCount > 0 ? `${gmvReadyCount}/${group.shops.length}` : "-"}</td>
+                        <td>{currentGmvMaxCount > 0 ? `${currentGmvMaxCount}/${group.shops.length}` : "-"}</td>
                       </tr>
-                      {expanded && group.rows.map(({ shop, readiness, advertiser }) => {
-                        const access = readiness.binding;
+                      {expanded && group.rows.map(({ shop, readiness, accounts }) => {
+                        const currentGmvMaxAccount = accounts.find(
+                          ({ access }) => access.advertiserId === readiness.exclusiveAuthorizedAdvertiserId,
+                        );
+                        const hasGmvMaxAvailableAccount = accounts.some(
+                          ({ access }) => access.isGmvMaxAvailable,
+                        );
                         return (
                           <tr className="ads-coverage-child-row" key={shop.id}>
                             <td>
@@ -577,16 +593,50 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
                               </span>
                             </td>
                             <td>
-                              {advertiser ? (
+                              {accounts.length > 0 ? (
+                                <div className="ads-coverage-account-list">
+                                  {accounts.map(({ access, advertiser }) => {
+                                    const isCurrentGmvMax =
+                                      access.advertiserId === readiness.exclusiveAuthorizedAdvertiserId;
+                                    return (
+                                      <div className="ads-coverage-account" key={access.id}>
+                                        <div className="shop-table-name">
+                                          {advertiser?.advertiserName || access.advertiserId}
+                                          {isCurrentGmvMax ? (
+                                            <span className="status-badge status-authorized">
+                                              {t("adsManagement.currentGmvMaxAccount")}
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                        <div className="td-muted td-code">{access.advertiserId}</div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : "-"}
+                            </td>
+                            <td>
+                              {currentGmvMaxAccount ? (
                                 <>
-                                  <div className="shop-table-name">{advertiser.advertiserName || advertiser.advertiserId}</div>
-                                  <div className="td-muted td-code">{advertiser.advertiserId}</div>
+                                  <div className="shop-table-name">
+                                    {currentGmvMaxAccount.advertiser?.advertiserName ||
+                                      currentGmvMaxAccount.access.advertiserId}
+                                  </div>
+                                  <div className="td-muted td-code">
+                                    {currentGmvMaxAccount.access.advertiserId}
+                                  </div>
+                                </>
+                              ) : hasGmvMaxAvailableAccount ? (
+                                <>
+                                  <span className="status-badge status-warning">
+                                    {t("adsManagement.gmvMaxAvailable")}
+                                  </span>
+                                  <div className="td-muted">
+                                    {t("adsManagement.currentGmvMaxUnknown")}
+                                  </div>
                                 </>
                               ) : "-"}
                             </td>
-                            <td>{access?.isGmvMaxAvailable == null ? "-" : (
-                              access.isGmvMaxAvailable ? t("common.yes") : t("common.no")
-                            )}</td>
                           </tr>
                         );
                       })}

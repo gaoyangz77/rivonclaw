@@ -1,7 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CloseIcon, ShopIcon } from "../../../components/icons.js";
+import { ChevronRightIcon, CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import {
@@ -18,6 +18,7 @@ import type { DrawerTab } from "../ecommerce-types.js";
 import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 
 const workspaceSectionId = (tab: DrawerTab, section: string) => `shop-workspace-${tab}-${section}`;
+const ADS_ACCOUNT_COLLAPSE_THRESHOLD = 4;
 
 interface ShopDrawerProps {
   shopId: string | null;
@@ -177,6 +178,17 @@ export const ShopDrawer = observer(function ShopDrawer({
   const adsReadiness = shop
     ? resolveShopAdsReadiness(shop, entityStore.adsAdvertisers, entityStore.adsStoreBindings)
     : null;
+  const shopAdsAccounts = (adsReadiness?.bindings ?? []).map((access) => ({
+    access,
+    advertiser:
+      entityStore.adsAdvertisers.find(
+        (item) => item.id === access.adsAdvertiserId || item.advertiserId === access.advertiserId,
+      ) ?? null,
+  }));
+  const currentGmvMaxAccount = shopAdsAccounts.find(
+    ({ access }) => access.advertiserId === adsReadiness?.exclusiveAuthorizedAdvertiserId,
+  );
+  const hasGmvMaxAvailableAccount = shopAdsAccounts.some(({ access }) => access.isGmvMaxAvailable);
   const workspaceSections = !shop
     ? []
     : activeTab === "overview"
@@ -276,10 +288,15 @@ export const ShopDrawer = observer(function ShopDrawer({
             : [];
   const firstWorkspaceSectionId = workspaceSections[0]?.id ?? "";
   const [activeWorkspaceSection, setActiveWorkspaceSection] = useState("");
+  const [adsAccountsExpanded, setAdsAccountsExpanded] = useState(false);
 
   useEffect(() => {
     setActiveWorkspaceSection(firstWorkspaceSectionId);
   }, [firstWorkspaceSectionId]);
+
+  useEffect(() => {
+    setAdsAccountsExpanded(false);
+  }, [shopId]);
 
   const handleWorkspaceSectionClick = (sectionId: string) => {
     setActiveWorkspaceSection(sectionId);
@@ -440,24 +457,68 @@ export const ShopDrawer = observer(function ShopDrawer({
                             )}
                           </span>
                         </div>
-                        <div className="shop-info-row">
+                        <div className="shop-info-row shop-ads-accounts-row">
                           <span className="shop-info-label">
                             {t("adsManagement.shopColumns.advertiser")}
                           </span>
-                          <span className="shop-info-value td-code">
-                            {adsReadiness?.binding?.advertiserId ?? "-"}
-                          </span>
+                          <div className="shop-info-value shop-ads-accounts-value">
+                            {shopAdsAccounts.length > ADS_ACCOUNT_COLLAPSE_THRESHOLD && (
+                              <button
+                                type="button"
+                                className="shop-ads-accounts-toggle"
+                                aria-expanded={adsAccountsExpanded}
+                                aria-controls={`shop-ads-accounts-${shop.id}`}
+                                onClick={() => setAdsAccountsExpanded((expanded) => !expanded)}
+                              >
+                                <span className="shop-ads-accounts-count">
+                                  {shopAdsAccounts.length}
+                                </span>
+                                <span>
+                                  {adsAccountsExpanded
+                                    ? t("chat.collapseMessage")
+                                    : t("chat.expandMessage")}
+                                </span>
+                                <ChevronRightIcon size={14} />
+                              </button>
+                            )}
+                            {shopAdsAccounts.length === 0 ? (
+                              "-"
+                            ) : shopAdsAccounts.length <= ADS_ACCOUNT_COLLAPSE_THRESHOLD ||
+                              adsAccountsExpanded ? (
+                              <div
+                                id={`shop-ads-accounts-${shop.id}`}
+                                className="ads-coverage-account-list shop-ads-account-list"
+                              >
+                                {shopAdsAccounts.map(({ access, advertiser }) => (
+                                  <span className="ads-coverage-account" key={access.id}>
+                                    <span>{advertiser?.advertiserName || access.advertiserId}</span>
+                                    <span className="td-muted td-code">{access.advertiserId}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                         <div className="shop-info-row">
                           <span className="shop-info-label">
                             {t("adsManagement.shopColumns.gmvMax")}
                           </span>
                           <span className="shop-info-value">
-                            {adsReadiness?.binding?.isGmvMaxAvailable == null
-                              ? "-"
-                              : adsReadiness.binding.isGmvMaxAvailable
-                                ? t("common.yes")
-                                : t("common.no")}
+                            {currentGmvMaxAccount ? (
+                              <>
+                                <span>
+                                  {currentGmvMaxAccount.advertiser?.advertiserName ||
+                                    currentGmvMaxAccount.access.advertiserId}
+                                </span>
+                                <span className="td-code">
+                                  {currentGmvMaxAccount.access.advertiserId}
+                                </span>
+                              </>
+                            ) : hasGmvMaxAvailableAccount ? (
+                              t("adsManagement.currentGmvMaxUnknown")
+                            ) : (
+                              "-"
+                            )}
                           </span>
                         </div>
                         <div className="shop-info-card-hint">

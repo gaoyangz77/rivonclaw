@@ -187,7 +187,7 @@ export const INIT_ADS_ADVERTISERS_QUERY = `
         lastError
       }
     }
-    adsStoreAccesses {
+    adsStoreAccesses(status: ACTIVE) {
       __typename
       id
       userId
