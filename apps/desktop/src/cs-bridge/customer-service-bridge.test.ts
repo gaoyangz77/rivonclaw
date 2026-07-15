@@ -521,30 +521,6 @@ beforeEach(() => {
     if (query.includes("ecommerceGetConversationDetails")) {
       return { ecommerceGetConversationDetails: { buyer: null } };
     }
-    if (query.includes("affiliateRelationshipHistory")) {
-      return {
-        affiliateRelationshipHistory: {
-          items: [{
-            id: "PLATFORM_CHAT_MESSAGE:message-history-001",
-            type: "PLATFORM_CHAT_MESSAGE",
-            occurredAt: "2026-05-08T10:00:00.000Z",
-            summary: "Can you send me a sample?",
-            relatedIds: { shopId: defaultShop.objectId },
-            message: {
-              channel: "PLATFORM_CHAT",
-              direction: "CREATOR",
-              textPreview: "Can you send me a sample?",
-              messageType: "TEXT",
-              deliveryStatus: null,
-              subject: null,
-              channelLabel: "TikTok Shop chat",
-              shopName: null,
-              accountLabel: null,
-            },
-          }],
-        },
-      };
-    }
     if (query.includes("affiliateWorkspace")) {
       return {
         affiliateWorkspace: {
@@ -762,10 +738,13 @@ describe("affiliate message dispatch", () => {
       expect.objectContaining({
         sessionKey: "agent:main:affiliate:user-001:relationship-001",
         idempotencyKey: expect.stringContaining("affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-001"),
-        message: expect.stringContaining("[Affiliate Checkpoint-Bound Operational Context]"),
+        message: expect.stringContaining("Call affiliate_get_relationship_history"),
         extraSystemPrompt: expect.stringContaining("OPERATOR_REASONING"),
       }),
     );
+    expect(mockGraphqlFetch.mock.calls.some(([query]) =>
+      typeof query === "string" && query.includes("affiliateRelationshipHistory"),
+    )).toBe(false);
   });
 
   it("uses the backend relationship owner when cached shop context omits a user id", async () => {
