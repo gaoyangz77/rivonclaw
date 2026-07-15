@@ -193,6 +193,19 @@ function buildAffiliateRelationshipWorkItem(
   };
 }
 
+function buildAffiliateCreatorContactState(creatorRelationshipId: string) {
+  return {
+    creatorRelationship: {
+      id: creatorRelationshipId,
+    },
+    whatsAppAccounts: [],
+    emailAccounts: [],
+    hasUsableWhatsAppContact: false,
+    hasUsableEmailContact: false,
+    preferredChannel: GQL.AffiliateMessageChannel.PlatformChat,
+  };
+}
+
 type TestCSMessagePayload = {
   type: "cs_tiktok_new_message";
   shopId: string;
@@ -502,6 +515,7 @@ beforeEach(() => {
             candidates: [],
           },
         },
+        affiliateCreatorContactState: buildAffiliateCreatorContactState(creatorRelationshipId),
       };
     }
     if (query.includes("ecommerceGetConversationDetails")) {
@@ -792,6 +806,7 @@ describe("affiliate message dispatch", () => {
               candidates: [],
             },
           },
+          affiliateCreatorContactState: buildAffiliateCreatorContactState(creatorRelationshipId),
         };
       }
       return {};
