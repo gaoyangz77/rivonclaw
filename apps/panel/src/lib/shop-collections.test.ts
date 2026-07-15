@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   groupShopsByCollection,
   shopCollectionDisplayName,
+  shopCollectionName,
   shopCollectionRegions,
+  sortShopCollectionGroupsByName,
 } from "./shop-collections.js";
 
 describe("shop collection grouping", () => {
@@ -35,7 +37,30 @@ describe("shop collection grouping", () => {
       { id: "shop-c", alias: "Italy", shopName: "Windboss Benessere", region: "IT" },
     ];
 
+    expect(shopCollectionName(shops)).toBe("Windboss Benessere");
     expect(shopCollectionDisplayName(shops)).toBe("Windboss Benessere + 2");
     expect(shopCollectionRegions(shops)).toEqual(["IE", "FR", "IT"]);
+  });
+
+  it("sorts collection groups and their shops by display name with stable tie breakers", () => {
+    const groups = groupShopsByCollection([
+      { id: "shop-z", shopName: "Shop 10" },
+      { id: "shop-fr", collectionKey: "seller:windboss", shopName: "Windboss FR" },
+      { id: "shop-b", shopName: "Same Shop" },
+      { id: "shop-de", collectionKey: "seller:windboss", shopName: "Windboss DE" },
+      { id: "shop-a", shopName: "Same Shop" },
+      { id: "shop-two", shopName: "Shop 2" },
+    ]);
+
+    const sorted = sortShopCollectionGroupsByName(groups);
+
+    expect(sorted.map((group) => group.key)).toEqual([
+      "shop:shop-a",
+      "shop:shop-b",
+      "shop:shop-two",
+      "shop:shop-z",
+      "seller:windboss",
+    ]);
+    expect(sorted.at(-1)?.shops.map((shop) => shop.id)).toEqual(["shop-de", "shop-fr"]);
   });
 });
