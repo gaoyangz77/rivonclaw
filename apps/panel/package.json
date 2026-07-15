@@ -6,6 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "help-labels": "node scripts/update-rivonclaw-help-labels.mjs",
+    "help-labels:check": "node scripts/update-rivonclaw-help-labels.mjs --check",
     "lint": "oxlint && node ../../scripts/check-panel-architecture.mjs",
     "test": "vitest run"
   },
