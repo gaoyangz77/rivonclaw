@@ -332,6 +332,39 @@ function withCheckpointContext(
             candidates: [],
           },
         },
+        affiliateCreatorContactState: {
+          creatorRelationship: createSampleReviewWorkItem().creatorRelationship,
+          preferredChannel: GQL.AffiliateMessageChannel.Whatsapp,
+          hasUsableWhatsAppContact: true,
+          hasUsableEmailContact: true,
+          whatsAppAccounts: [
+            {
+              id: "wa-bd-001",
+              businessDeveloperId: "bd-001",
+              displayName: "Maria WhatsApp",
+              phoneNumber: "+1 555 0100",
+              status: GQL.WhatsAppAccountStatus.Connected,
+            },
+            {
+              id: "wa-other-bd",
+              businessDeveloperId: "bd-002",
+              displayName: "Other BD WhatsApp",
+              phoneNumber: "+1 555 9999",
+              status: GQL.WhatsAppAccountStatus.Connected,
+            },
+          ],
+          emailAccounts: [
+            {
+              id: "email-bd-001",
+              businessDeveloperId: "bd-001",
+              displayName: "Maria",
+              emailAddress: "maria@example.com",
+              sharedMailboxAddress: null,
+              mailboxType: GQL.EmailMailboxType.Personal,
+              status: GQL.EmailAccountStatus.Connected,
+            },
+          ],
+        },
       };
     }
     return graphqlFetch(query, variables);
@@ -502,6 +535,11 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(agentCall?.[1]?.message).toContain("non-binding evidence");
     expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
+    expect(agentCall?.[1]?.message).toContain("## Assigned BD Outreach Accounts");
+    expect(agentCall?.[1]?.message).toContain("Maria WhatsApp");
+    expect(agentCall?.[1]?.message).toContain("bindingId=wa-bd-001");
+    expect(agentCall?.[1]?.message).toContain("address=maria@example.com");
+    expect(agentCall?.[1]?.message).not.toContain("Other BD WhatsApp");
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
   });
 

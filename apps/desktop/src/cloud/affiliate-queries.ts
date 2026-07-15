@@ -50,7 +50,10 @@ export interface AffiliateRelationshipHistoryQueryResult {
 }
 
 export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
-  query AffiliateContextBuilder($input: AffiliateContextBuilderInput!) {
+  query AffiliateContextBuilder(
+    $input: AffiliateContextBuilderInput!
+    $contactInput: AffiliateCreatorContactStateInput!
+  ) {
     affiliateContextBuilder(input: $input) {
       baseCheckpointId
       baseEventCursor
@@ -204,11 +207,33 @@ export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
         }
       }
     }
+    affiliateCreatorContactState(input: $contactInput) {
+      preferredChannel
+      hasUsableWhatsAppContact
+      hasUsableEmailContact
+      whatsAppAccounts {
+        id
+        businessDeveloperId
+        displayName
+        phoneNumber
+        status
+      }
+      emailAccounts {
+        id
+        businessDeveloperId
+        displayName
+        emailAddress
+        sharedMailboxAddress
+        mailboxType
+        status
+      }
+    }
   }
 `;
 
 export interface AffiliateContextBuilderQueryResult {
   affiliateContextBuilder: GQL.AffiliateContextBuilderPayload;
+  affiliateCreatorContactState: GQL.AffiliateCreatorContactStatePayload;
 }
 
 export const AFFILIATE_WORKSPACE_QUERY = `

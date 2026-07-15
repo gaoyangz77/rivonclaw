@@ -29,8 +29,16 @@ type StartMicrosoftEmailOAuthPayload = {
   state: string;
 };
 
-export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { businessDeveloperId?: string | null }) {
-  const { t } = useTranslation();
+export function AffiliateEmailAccountPanel({
+  businessDeveloperId = null,
+  showAccountList = true,
+  onAccountsChanged,
+}: {
+  businessDeveloperId?: string | null;
+  showAccountList?: boolean;
+  onAccountsChanged?: () => void | Promise<void>;
+}) {
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const [mailboxType, setMailboxType] = useState<GQL.EmailMailboxType>(GQL.EmailMailboxType.Personal);
   const [sharedMailboxAddress, setSharedMailboxAddress] = useState("");
@@ -60,6 +68,9 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
   >(REVOKE_EMAIL_ACCOUNT_BINDING_MUTATION);
 
   const accounts = data?.emailAccountBindings ?? [];
+  const visibleAccounts = businessDeveloperId
+    ? accounts.filter((account) => account.businessDeveloperId === businessDeveloperId)
+    : accounts;
   const connectorStatus = connectorData?.microsoftGraphConnectorStatus ?? null;
   const busy = startingOAuth || revokingBinding;
   const onboardingDisabled = busy || connectorLoading || !connectorStatus?.ready;
@@ -85,6 +96,7 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
       if (event.channel !== "EMAIL") return;
       void Promise.all([refetch(), refetchConnectorStatus()])
         .then(() => {
+          void onAccountsChanged?.();
           showToast(
             t("ecommerce.affiliateWorkspace.email.oauthCompleted", {
               defaultValue: "Outlook mailbox connected.",
@@ -96,7 +108,7 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
           showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
         });
     });
-  }, [refetch, refetchConnectorStatus, showToast, t]);
+  }, [onAccountsChanged, refetch, refetchConnectorStatus, showToast, t]);
 
   async function handleStartOAuth() {
     if (!connectorStatus?.ready) {
@@ -124,7 +136,11 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
         },
       });
       const url = result.data?.startMicrosoftEmailOAuth.url;
-      if (!url) throw new Error("Microsoft OAuth URL was not returned");
+      if (!url) {
+        throw new Error(t("ecommerce.affiliateWorkspace.email.oauthUrlMissing", {
+          defaultValue: "Microsoft sign-in could not be started.",
+        }));
+      }
       window.open(url, "_blank", "noopener,noreferrer");
       showToast(
         t("ecommerce.affiliateWorkspace.email.oauthStarted", {
@@ -141,6 +157,7 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
     try {
       await revokeBinding({ variables: { bindingId } });
       await refetch();
+      await onAccountsChanged?.();
       showToast(
         t("ecommerce.affiliateWorkspace.email.revokeSuccess", { defaultValue: "Outlook account revoked." }),
         "success",
@@ -243,15 +260,15 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
         </button>
       </div>
 
-      <div className="affiliate-email-list">
-        {accounts.length === 0 ? (
+      {showAccountList && <div className="affiliate-email-list">
+        {visibleAccounts.length === 0 ? (
           <div className="affiliate-email-empty">
             {loading
               ? t("common.loading", { defaultValue: "Loading..." })
               : t("ecommerce.affiliateWorkspace.email.empty", { defaultValue: "No Outlook mailbox connected yet." })}
           </div>
         ) : (
-          accounts.map((account) => (
+          visibleAccounts.map((account) => (
             <div className="affiliate-whatsapp-account" key={account.id}>
               <div className="affiliate-whatsapp-account-main">
                 <strong>{account.displayName || account.emailAddress}</strong>
@@ -265,7 +282,7 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
                 {account.lastError ? <em>{account.lastError}</em> : null}
                 <small>
                   {t("ecommerce.affiliateWorkspace.email.updatedAt", { defaultValue: "Updated" })}:{" "}
-                  {formatDate(account.updatedAt)}
+                  {formatDate(account.updatedAt, i18n.resolvedLanguage || i18n.language)}
                 </small>
               </div>
               <div className="affiliate-whatsapp-account-actions">
@@ -281,7 +298,7 @@ export function AffiliateEmailAccountPanel({ businessDeveloperId = null }: { bus
             </div>
           ))
         )}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -321,7 +338,7 @@ function microsoftGraphConnectorStatusText(
     });
   }
   if (!status.ready) {
-    return status.message || t("ecommerce.affiliateWorkspace.email.connectorNotReady", {
+    return t("ecommerce.affiliateWorkspace.email.connectorNotReady", {
       defaultValue: "Microsoft Graph connector is not ready.",
     });
   }
@@ -344,8 +361,8 @@ function countSubscriptionHealth(
   return status.subscriptionCounts.find((item) => item.health === health)?.count ?? 0;
 }
 
-function formatDate(value: string): string {
+function formatDate(value: string, locale: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }

@@ -98,6 +98,11 @@ interface AffiliateRunCheckpoint {
   targetEventCursor: number;
 }
 
+interface AffiliateResolvedDispatchContext {
+  checkpoint: GQL.AffiliateContextBuilderPayload;
+  contactState: GQL.AffiliateCreatorContactStatePayload;
+}
+
 export enum AffiliateAgentRunMode {
   OPERATOR_REASONING = "OPERATOR_REASONING",
   CREATOR_OUTREACH = "CREATOR_OUTREACH",
@@ -279,7 +284,10 @@ export class AffiliateSession {
     });
     if (!dispatchContext) return { runId: undefined };
 
-    let relationshipMessageUpdate = renderAffiliateDispatchContext(dispatchContext);
+    let relationshipMessageUpdate = renderAffiliateDispatchContext(
+      dispatchContext.checkpoint,
+      dispatchContext.contactState,
+    );
     let generation: number | undefined;
     if (isCreatorReplyWorkItem(workItem)) {
       generation = this.beginCreatorMessageTakeover();
@@ -311,7 +319,7 @@ export class AffiliateSession {
       runMode: AffiliateAgentRunMode.OPERATOR_REASONING,
       baseCheckpointId,
       baseEventCursor,
-      targetEventCursor: dispatchContext.targetEventCursor,
+      targetEventCursor: dispatchContext.checkpoint.targetEventCursor,
     });
     if (result.runId) {
       this.pendingRunCompletions.set(result.runId, workItem);
@@ -861,7 +869,7 @@ export class AffiliateSession {
     workItem: GQL.AffiliateWorkItem;
     baseCheckpointId: string | null;
     baseEventCursor: number;
-  }): Promise<GQL.AffiliateContextBuilderPayload | null> {
+  }): Promise<AffiliateResolvedDispatchContext | null> {
     const authSession = getAuthSession();
     if (!authSession) {
       log.warn("No auth session available, cannot build affiliate dispatch context");
@@ -878,6 +886,10 @@ export class AffiliateSession {
             baseEventCursor: input.baseEventCursor,
             limit: 1000,
           },
+          contactInput: {
+            shopId: input.workItem.focusShopId,
+            creatorRelationshipId: input.workItem.creatorRelationshipId,
+          },
         },
       );
       const context = result.affiliateContextBuilder;
@@ -893,7 +905,10 @@ export class AffiliateSession {
         );
         return null;
       }
-      return context;
+      return {
+        checkpoint: context,
+        contactState: result.affiliateCreatorContactState,
+      };
     } catch (err) {
       log.error(
         `Failed to build checkpoint-bound affiliate context for ${workItemSubjectLabel(input.workItem)}:`,
@@ -1189,7 +1204,10 @@ function isCreatorFollowUpWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   );
 }
 
-function renderAffiliateDispatchContext(context: GQL.AffiliateContextBuilderPayload): string {
+function renderAffiliateDispatchContext(
+  context: GQL.AffiliateContextBuilderPayload,
+  contactState: GQL.AffiliateCreatorContactStatePayload,
+): string {
   const events = (context.events ?? []).map((event, index) => {
     const lifecycle = event.lifecycleEvent;
     return [
@@ -1221,7 +1239,7 @@ function renderAffiliateDispatchContext(context: GQL.AffiliateContextBuilderPayl
     `Base Event Cursor: ${context.baseEventCursor}`,
     `Target Event Cursor: ${context.targetEventCursor}`,
     `Relationship Operational Config Revision: ${context.relationshipOperationalConfigRevision}`,
-    `Business Developer Snapshot: ${context.businessDeveloperIdSnapshot ?? "(AI team)"}`,
+    `Business Developer Snapshot: ${context.businessDeveloperIdSnapshot ?? "(no human BD assigned)"}`,
     `Business Developer Config Revision: ${context.businessDeveloperConfigRevision ?? "(none)"}`,
     "",
     "## Assigned Business Developer",
@@ -1232,7 +1250,12 @@ function renderAffiliateDispatchContext(context: GQL.AffiliateContextBuilderPayl
           `- Regions: ${(businessDeveloper.regions ?? []).join(", ") || "(all)"}`,
           `- Working Style: ${businessDeveloper.businessPrompt?.trim() || "(no additional instructions)"}`,
         ]
-      : ["- Owner: AI team", "- Working Style: use merchant Affiliate instructions and current relationship facts."]),
+      : [
+          "- Owner: no human BD assigned",
+          "- Routing: apply merchant Affiliate instructions and AI routing rules to the current relationship facts.",
+        ]),
+    "",
+    ...renderAssignedOutreachAccounts(context, contactState),
     "",
     "## Events Not Present In The Restored Checkpoint",
     ...(events.length ? events : ["(No new lifecycle events.)"]),
@@ -1242,6 +1265,48 @@ function renderAffiliateDispatchContext(context: GQL.AffiliateContextBuilderPayl
     "",
     "Use the event delta as the authoritative account of what changed after the restored checkpoint. Use the current snapshot for present facts. Resolve all simultaneously open agenda items that can be handled safely in one ordered action bundle.",
   ].join("\n");
+}
+
+function renderAssignedOutreachAccounts(
+  context: GQL.AffiliateContextBuilderPayload,
+  contactState: GQL.AffiliateCreatorContactStatePayload,
+): string[] {
+  const businessDeveloperId = context.businessDeveloperIdSnapshot ?? null;
+  const matchesOwner = (accountBusinessDeveloperId: string | null | undefined): boolean =>
+    businessDeveloperId
+      ? accountBusinessDeveloperId === businessDeveloperId
+      : accountBusinessDeveloperId == null;
+  const whatsAppAccounts = (contactState.whatsAppAccounts ?? []).filter((account) =>
+    matchesOwner(account.businessDeveloperId),
+  );
+  const emailAccounts = (contactState.emailAccounts ?? []).filter((account) =>
+    matchesOwner(account.businessDeveloperId),
+  );
+  const heading = businessDeveloperId
+    ? "## Assigned BD Outreach Accounts"
+    : "## Unassigned Outreach Accounts Available To AI Routing";
+
+  return [
+    heading,
+    "These are seller-side sender accounts, not creator contact details.",
+    `- Preferred relationship channel: ${contactState.preferredChannel}`,
+    `- Usable creator WhatsApp route: ${contactState.hasUsableWhatsAppContact ? "yes" : "no"}`,
+    `- Usable creator email route: ${contactState.hasUsableEmailContact ? "yes" : "no"}`,
+    ...(whatsAppAccounts.length
+      ? whatsAppAccounts.map((account) =>
+          `- WhatsApp sender: ${account.displayName?.trim() || account.phoneNumber?.trim() || "(unnamed)"}; ` +
+          `phone=${account.phoneNumber?.trim() || "(unknown)"}; status=${account.status}; bindingId=${account.id}`,
+        )
+      : ["- WhatsApp senders: (none assigned for this relationship owner)"]),
+    ...(emailAccounts.length
+      ? emailAccounts.map((account) =>
+          `- Email sender: ${account.displayName?.trim() || account.emailAddress}; ` +
+          `address=${account.sharedMailboxAddress?.trim() || account.emailAddress}; ` +
+          `mailboxType=${account.mailboxType}; status=${account.status}; bindingId=${account.id}`,
+        )
+      : ["- Email senders: (none assigned for this relationship owner)"]),
+    "Use the listed bindingId when a contact tool requires a specific seller account. The delivery bridge remains authoritative for final outbound routing and must not cross BD ownership boundaries.",
+  ];
 }
 
 function renderExpectedSalesPredictionSnapshotSection(

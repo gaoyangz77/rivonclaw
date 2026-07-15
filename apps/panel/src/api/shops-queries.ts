@@ -2085,6 +2085,27 @@ export const AFFILIATE_BUSINESS_DEVELOPERS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_BUSINESS_DEVELOPER_PAGE_QUERY = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  query AffiliateBusinessDeveloperPage($input: AffiliateBusinessDeveloperPageInput) {
+    affiliateBusinessDeveloperPage(input: $input) {
+      items {
+        developer {
+          ...AffiliateBusinessDeveloperFields
+        }
+        creatorRelationshipCount
+        whatsappAccountCount
+        unhealthyWhatsappAccountCount
+        emailAccountCount
+        unhealthyEmailAccountCount
+      }
+      totalCount
+      offset
+      limit
+    }
+  }
+`;
+
 export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
   query AffiliateOperationalSettings {
     affiliateOperationalSettings {

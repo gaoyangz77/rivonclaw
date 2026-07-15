@@ -643,6 +643,29 @@ export interface AffiliateBusinessDeveloper {
   userId: Scalars['ID']['output'];
 }
 
+export interface AffiliateBusinessDeveloperPage {
+  items: Array<AffiliateBusinessDeveloperSummary>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateBusinessDeveloperPageInput {
+  includeArchived?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface AffiliateBusinessDeveloperSummary {
+  creatorRelationshipCount: Scalars['Int']['output'];
+  developer: AffiliateBusinessDeveloper;
+  emailAccountCount: Scalars['Int']['output'];
+  unhealthyEmailAccountCount: Scalars['Int']['output'];
+  unhealthyWhatsappAccountCount: Scalars['Int']['output'];
+  whatsappAccountCount: Scalars['Int']['output'];
+}
+
 /** One affiliate campaign objective owned by a TikTok seller shop. */
 export interface AffiliateCampaign {
   createdAt: Scalars['DateTimeISO']['output'];
@@ -7601,6 +7624,8 @@ export interface Query {
   affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
+  /** List paginated user-level Affiliate business developers with workload and channel counts. */
+  affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
   affiliateBusinessDevelopers: Array<AffiliateBusinessDeveloper>;
   /** Read affiliate campaigns from Mongo state. */
@@ -7870,6 +7895,11 @@ export interface QueryAffiliateActionProposalDeltaArgs {
 
 export interface QueryAffiliateApprovalPoliciesArgs {
   input: ReadAffiliateApprovalPoliciesInput;
+}
+
+
+export interface QueryAffiliateBusinessDeveloperPageArgs {
+  input?: InputMaybe<AffiliateBusinessDeveloperPageInput>;
 }
 
 
