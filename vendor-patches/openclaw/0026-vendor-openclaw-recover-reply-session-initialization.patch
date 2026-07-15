@@ -1,0 +1,426 @@
+From 3a65f8a04be33ae58ce489313cd7b2d64bfe5e66 Mon Sep 17 00:00:00 2001
+From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
+Date: Wed, 15 Jul 2026 07:18:21 -0700
+Subject: [PATCH] vendor(openclaw): recover reply session initialization
+ conflicts
+
+Why:
+- OpenClaw v2026.6.11 compares the full session entry during reply initialization, so routine metadata writes can create false CAS conflicts and silently drop rapid channel messages.
+- A genuine competing session rotation can still conflict twice, so the outer unlocked initializer needs bounded retry with abort-aware backoff.
+
+Upstream:
+- 826c84ea19429ece853d62aba5b674cae90f5824 (PR #98835) narrows the revision guard to session identity and preserves concurrent metadata.
+- 101b601df8acb9139dedc6070081b993dcd5fccb (PR #105754) adds typed conflict recovery with five attempts and bounded backoff.
+
+Removal:
+- Delete this patch after .openclaw-version points to a commit containing both upstream commits, or equivalent identity-only reply-session CAS plus abort-aware five-attempt outer retry behavior.
+
+Tests:
+- src/auto-reply/reply/session.init-conflict-retry.test.ts
+- src/config/sessions/session-accessor.test.ts
+- apps/desktop/src/gateway/vendor-session-init-conflict-retry.sentinel.test.ts
+---
+ src/auto-reply/reply/get-reply.ts             |  1 +
+ .../reply/session-init-conflict-retry.ts      | 49 ++++++++++
+ .../reply/session.init-conflict-retry.test.ts | 83 +++++++++++++++++
+ src/auto-reply/reply/session.ts               | 13 ++-
+ src/config/sessions/session-accessor.test.ts  | 48 ++++++++++
+ src/config/sessions/session-accessor.ts       | 92 ++++++++++++++++++-
+ 6 files changed, 282 insertions(+), 4 deletions(-)
+ create mode 100644 src/auto-reply/reply/session-init-conflict-retry.ts
+ create mode 100644 src/auto-reply/reply/session.init-conflict-retry.test.ts
+
+diff --git a/src/auto-reply/reply/get-reply.ts b/src/auto-reply/reply/get-reply.ts
+index 22b2f25ab56..b1d89e6f3d5 100644
+--- a/src/auto-reply/reply/get-reply.ts
++++ b/src/auto-reply/reply/get-reply.ts
+@@ -489,6 +489,7 @@ export async function getReplyFromConfig(
+           commandAuthorized,
+           requestedSessionId: internalResolvedOpts?.requestedSessionId,
+           resumeRequestedSession: internalResolvedOpts?.resumeRequestedSession,
++          signal: opts?.abortSignal,
+         }),
+       );
+   const {
+diff --git a/src/auto-reply/reply/session-init-conflict-retry.ts b/src/auto-reply/reply/session-init-conflict-retry.ts
+new file mode 100644
+index 00000000000..9fd6240f707
+--- /dev/null
++++ b/src/auto-reply/reply/session-init-conflict-retry.ts
+@@ -0,0 +1,49 @@
++import { computeBackoff, sleepWithAbort, type BackoffPolicy } from "../../infra/backoff.js";
++import { createSubsystemLogger } from "../../logging/subsystem.js";
++
++const log = createSubsystemLogger("session-init");
++
++export class ReplySessionInitConflictError extends Error {
++  constructor(sessionKey: string) {
++    super(`reply session initialization conflicted for ${sessionKey}`);
++    this.name = "ReplySessionInitConflictError";
++  }
++}
++
++const SESSION_INIT_CONFLICT_MAX_ATTEMPTS = 5;
++const SESSION_INIT_CONFLICT_BACKOFF_POLICY = {
++  initialMs: 250,
++  maxMs: 4_000,
++  factor: 2,
++  jitter: 0.05,
++} satisfies BackoffPolicy;
++
++export async function runWithSessionInitConflictRetry<T>(
++  attempt: () => Promise<T>,
++  options?: {
++    maxAttempts?: number;
++    signal?: AbortSignal;
++    sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
++  },
++): Promise<T> {
++  const maxAttempts = options?.maxAttempts ?? SESSION_INIT_CONFLICT_MAX_ATTEMPTS;
++  const sleep = options?.sleep ?? sleepWithAbort;
++  for (let attemptIndex = 0; ; attemptIndex += 1) {
++    try {
++      return await attempt();
++    } catch (error) {
++      if (
++        !(error instanceof ReplySessionInitConflictError) ||
++        attemptIndex >= maxAttempts - 1 ||
++        options?.signal?.aborted === true
++      ) {
++        throw error;
++      }
++      const backoffMs = computeBackoff(SESSION_INIT_CONFLICT_BACKOFF_POLICY, attemptIndex + 1);
++      log.debug(
++        `reply session initialization conflicted; retrying in ${backoffMs}ms (attempt ${attemptIndex + 2}/${maxAttempts})`,
++      );
++      await sleep(backoffMs, options?.signal);
++    }
++  }
++}
+diff --git a/src/auto-reply/reply/session.init-conflict-retry.test.ts b/src/auto-reply/reply/session.init-conflict-retry.test.ts
+new file mode 100644
+index 00000000000..d716401e979
+--- /dev/null
++++ b/src/auto-reply/reply/session.init-conflict-retry.test.ts
+@@ -0,0 +1,83 @@
++import { describe, expect, it, vi } from "vitest";
++import {
++  ReplySessionInitConflictError,
++  runWithSessionInitConflictRetry,
++} from "./session-init-conflict-retry.js";
++
++const SESSION_KEY = "agent:main:feishu:default:direct:user";
++const instantSleep = async (_ms: number) => {};
++
++function conflictingAttempt(failures: number) {
++  const state = { calls: 0 };
++  const attempt = async () => {
++    state.calls += 1;
++    if (state.calls <= failures) {
++      throw new ReplySessionInitConflictError(SESSION_KEY);
++    }
++    return "ok" as const;
++  };
++  return { attempt, state };
++}
++
++describe("runWithSessionInitConflictRetry", () => {
++  it("retries conflicts and succeeds once the competing writer settles", async () => {
++    const { attempt, state } = conflictingAttempt(3);
++    await expect(runWithSessionInitConflictRetry(attempt, { sleep: instantSleep })).resolves.toBe(
++      "ok",
++    );
++    expect(state.calls).toBe(4);
++  });
++
++  it("rethrows after five attempts", async () => {
++    const { attempt, state } = conflictingAttempt(Number.POSITIVE_INFINITY);
++    await expect(runWithSessionInitConflictRetry(attempt, { sleep: instantSleep })).rejects.toThrow(
++      `reply session initialization conflicted for ${SESSION_KEY}`,
++    );
++    expect(state.calls).toBe(5);
++  });
++
++  it("does not retry unrelated errors", async () => {
++    let calls = 0;
++    const attempt = async () => {
++      calls += 1;
++      throw new Error("unrelated");
++    };
++    await expect(runWithSessionInitConflictRetry(attempt, { sleep: instantSleep })).rejects.toThrow(
++      "unrelated",
++    );
++    expect(calls).toBe(1);
++  });
++
++  it("stops retrying after cancellation", async () => {
++    const controller = new AbortController();
++    let calls = 0;
++    const attempt = async () => {
++      calls += 1;
++      controller.abort();
++      throw new ReplySessionInitConflictError(SESSION_KEY);
++    };
++    await expect(
++      runWithSessionInitConflictRetry(attempt, {
++        signal: controller.signal,
++        sleep: instantSleep,
++      }),
++    ).rejects.toBeInstanceOf(ReplySessionInitConflictError);
++    expect(calls).toBe(1);
++  });
++
++  it("uses capped exponential delays", async () => {
++    const delays: number[] = [];
++    const { attempt } = conflictingAttempt(Number.POSITIVE_INFINITY);
++    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
++    try {
++      await runWithSessionInitConflictRetry(attempt, {
++        sleep: async (ms) => {
++          delays.push(ms);
++        },
++      }).catch(() => {});
++      expect(delays).toEqual([250, 500, 1_000, 2_000]);
++    } finally {
++      randomSpy.mockRestore();
++    }
++  });
++});
+diff --git a/src/auto-reply/reply/session.ts b/src/auto-reply/reply/session.ts
+index c075867fa0b..f0fd1aaf793 100644
+--- a/src/auto-reply/reply/session.ts
++++ b/src/auto-reply/reply/session.ts
+@@ -82,6 +82,10 @@ import {
+   type ReplySessionEntryHandle,
+ } from "./session-entry-handle.js";
+ import { buildSessionEndHookPayload, buildSessionStartHookPayload } from "./session-hooks.js";
++import {
++  ReplySessionInitConflictError,
++  runWithSessionInitConflictRetry,
++} from "./session-init-conflict-retry.js";
+ import { prepareReplySessionParentFork } from "./session-parent-fork-prepare.js";
+ import { clearSessionResetRuntimeState } from "./session-reset-cleanup.js";
+ 
+@@ -184,6 +188,7 @@ export type InitSessionStateParams = {
+   ctx: MsgContext;
+   requestedSessionId?: string;
+   resumeRequestedSession?: boolean;
++  signal?: AbortSignal;
+ };
+ 
+ function resolveSessionConversationBindingContext(
+@@ -246,7 +251,10 @@ function resolveBoundConversationSessionKey(params: {
+ 
+ /** Initializes or reuses the reply session state for one inbound turn. */
+ export async function initSessionState(params: InitSessionStateParams): Promise<SessionInitResult> {
+-  return await initSessionStateAttempt(params, false);
++  return await runWithSessionInitConflictRetry(
++    async () => await initSessionStateAttempt(params, false),
++    { signal: params.signal },
++  );
+ }
+ 
+ async function initSessionStateAttempt(
+@@ -854,13 +862,14 @@ async function initSessionStateAttempt(
+     retiredEntry: retiredLegacyMainDelivery,
+     sessionEntry,
+     sessionKey,
++    snapshotEntry: initializationSnapshot.currentEntry,
+     storePath,
+   });
+   if (!committed.ok) {
+     if (!staleSnapshotRetried) {
+       return await initSessionStateAttempt(params, true);
+     }
+-    throw new Error(`reply session initialization conflicted for ${sessionKey}`);
++    throw new ReplySessionInitConflictError(sessionKey);
+   }
+   sessionEntry = committed.sessionEntry;
+   sessionId = sessionEntry.sessionId;
+diff --git a/src/config/sessions/session-accessor.test.ts b/src/config/sessions/session-accessor.test.ts
+index 794c3646ec6..f71741b9e19 100644
+--- a/src/config/sessions/session-accessor.test.ts
++++ b/src/config/sessions/session-accessor.test.ts
+@@ -446,6 +446,54 @@ describe("session accessor file-backed seam", () => {
+     });
+   });
+ 
++  it("preserves concurrent metadata while committing the same session identity", async () => {
++    const sessionKey = "agent:main:feishu:default:direct:user";
++    await upsertSessionEntry(
++      { sessionKey, storePath },
++      {
++        sessionId: "existing-session",
++        updatedAt: 10,
++        lastHeartbeatSentAt: 100,
++      },
++    );
++    const snapshot = loadReplySessionInitializationSnapshot({ sessionKey, storePath });
++    await sessionStore.updateSessionStore(storePath, (store) => {
++      const current = store[sessionKey];
++      if (!current) {
++        throw new Error("expected existing session entry");
++      }
++      store[sessionKey] = {
++        ...current,
++        lastHeartbeatSentAt: 200,
++        updatedAt: Date.now(),
++      };
++    });
++
++    const committed = await commitReplySessionInitialization({
++      activeSessionKey: sessionKey,
++      agentId: "main",
++      expectedRevision: snapshot.revision,
++      sessionEntry: {
++        sessionId: "existing-session",
++        updatedAt: 30,
++        lastHeartbeatSentAt: 100,
++      },
++      sessionKey,
++      snapshotEntry: snapshot.currentEntry,
++      storePath,
++    });
++
++    expect(committed.ok).toBe(true);
++    if (!committed.ok) {
++      throw new Error("expected reply session initialization to commit");
++    }
++    expect(committed.sessionEntry).toMatchObject({
++      lastHeartbeatSentAt: 200,
++      sessionId: "existing-session",
++      updatedAt: 30,
++    });
++  });
++
+   it("can borrow cached entry objects for read-only hot paths", async () => {
+     const scope = {
+       clone: false,
+diff --git a/src/config/sessions/session-accessor.ts b/src/config/sessions/session-accessor.ts
+index 444208e743c..d20ea930a74 100644
+--- a/src/config/sessions/session-accessor.ts
++++ b/src/config/sessions/session-accessor.ts
+@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
+ import fs from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
++import { isDeepStrictEqual } from "node:util";
+ import {
+   acquireSessionWriteLock,
+   resolveSessionWriteLockOptions,
+@@ -972,8 +973,88 @@ function cloneSessionEntries(store: Record<string, SessionEntry>): Record<string
+   );
+ }
+ 
++function collectSessionEntryKeys(...entries: SessionEntry[]): Array<keyof SessionEntry> {
++  const keys = new Set<keyof SessionEntry>();
++  for (const entry of entries) {
++    for (const key of Object.keys(entry) as Array<keyof SessionEntry>) {
++      keys.add(key);
++    }
++  }
++  return [...keys];
++}
++
++function sessionEntryFieldUnchanged(params: {
++  leftHasValue: boolean;
++  leftValue: SessionEntry[keyof SessionEntry];
++  rightHasValue: boolean;
++  rightValue: SessionEntry[keyof SessionEntry];
++}): boolean {
++  const { leftHasValue, leftValue, rightHasValue, rightValue } = params;
++  const leftUnset = !leftHasValue || leftValue === undefined;
++  const rightUnset = !rightHasValue || rightValue === undefined;
++  if (leftUnset && rightUnset) {
++    return true;
++  }
++  return (
++    leftHasValue === rightHasValue &&
++    (Object.is(leftValue, rightValue) || isDeepStrictEqual(leftValue, rightValue))
++  );
++}
++
++function mergeConcurrentReplySessionMetadata(params: {
++  currentEntry: SessionEntry;
++  preparedEntry: SessionEntry;
++  snapshotEntry?: SessionEntry;
++}): SessionEntry {
++  const { currentEntry, preparedEntry, snapshotEntry } = params;
++  if (!snapshotEntry || preparedEntry.sessionId !== snapshotEntry.sessionId) {
++    return preparedEntry;
++  }
++  const merged: SessionEntry = { ...preparedEntry };
++  const mergedFields = merged as Partial<
++    Record<keyof SessionEntry, SessionEntry[keyof SessionEntry]>
++  >;
++  for (const key of collectSessionEntryKeys(currentEntry, preparedEntry, snapshotEntry)) {
++    const currentHasValue = Object.hasOwn(currentEntry, key);
++    const snapshotHasValue = Object.hasOwn(snapshotEntry, key);
++    const preparedHasValue = Object.hasOwn(preparedEntry, key);
++    const currentValue = currentEntry[key];
++    const snapshotValue = snapshotEntry[key];
++    const preparedValue = preparedEntry[key];
++    const currentChanged = !sessionEntryFieldUnchanged({
++      leftHasValue: currentHasValue,
++      leftValue: currentValue,
++      rightHasValue: snapshotHasValue,
++      rightValue: snapshotValue,
++    });
++    const preparedKeptSnapshot = sessionEntryFieldUnchanged({
++      leftHasValue: preparedHasValue,
++      leftValue: preparedValue,
++      rightHasValue: snapshotHasValue,
++      rightValue: snapshotValue,
++    });
++    if (currentChanged && preparedKeptSnapshot) {
++      if (currentHasValue) {
++        mergedFields[key] = currentValue;
++      } else {
++        delete mergedFields[key];
++      }
++    }
++  }
++  return merged;
++}
++
+ function createReplySessionInitializationRevision(entry: SessionEntry | undefined): string {
+-  return JSON.stringify(entry ?? null);
++  if (!entry) {
++    return JSON.stringify(null);
++  }
++  const revisionEntry: Pick<SessionEntry, "sessionFile" | "sessionId"> = {
++    sessionId: entry.sessionId,
++  };
++  if (entry.sessionFile !== undefined) {
++    revisionEntry.sessionFile = entry.sessionFile;
++  }
++  return JSON.stringify(revisionEntry);
+ }
+ 
+ function resolveInitializedReplySessionEntry(params: {
+@@ -1415,6 +1496,7 @@ export async function commitReplySessionInitialization(params: {
+   retiredEntry?: SessionEntryRetirement;
+   sessionEntry: SessionEntry;
+   sessionKey: string;
++  snapshotEntry?: SessionEntry;
+   storePath: string;
+ }): Promise<ReplySessionInitializationCommitResult> {
+   const committed = await updateSessionStore(
+@@ -1450,7 +1532,13 @@ export async function commitReplySessionInitialization(params: {
+         sessionEntry: preparedSessionEntry,
+         storePath: params.storePath,
+       });
+-      store[resolved.normalizedKey] = sessionEntry;
++      store[resolved.normalizedKey] = currentEntry
++        ? mergeConcurrentReplySessionMetadata({
++            currentEntry,
++            preparedEntry: sessionEntry,
++            snapshotEntry: params.snapshotEntry ?? params.previousEntry,
++          })
++        : sessionEntry;
+       if (params.retiredEntry) {
+         store[params.retiredEntry.key] = params.retiredEntry.entry;
+       }
+-- 
+2.50.1 (Apple Git-155)
+
