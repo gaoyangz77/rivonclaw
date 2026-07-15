@@ -1360,6 +1360,8 @@ describe("agent dispatch", () => {
     expect(prompt).toContain("buyer-prompt");
     expect(prompt).toContain("mongo-id-123");
     expect(prompt).toContain("Reply in the buyer's language. Avoid Markdown styling; short hyphen bullets are OK.");
+    expect(prompt).toContain("highest-priority");
+    expect(prompt).toContain("overrides general customer-service and store instructions");
   });
 
   it("dispatchCatchUp appends operator instruction as a separate internal block", async () => {
@@ -2135,6 +2137,8 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     // Message tells agent to use tool, not the directive itself
     expect(agentCall![1].message).toContain(escalationId);
     expect(agentCall![1].message).toContain("cs_get_escalation_result");
+    expect(agentCall![1].message).toContain("Highest Priority Manager Instruction");
+    expect(agentCall![1].message).toContain("produce the required buyer-facing response");
   });
 
   it("stores decision in escalation record", async () => {
@@ -2265,6 +2269,7 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
       (c: any[]) => c[0] === "agent" && c[1].message.includes(eid2),
     );
     expect(resolvedCall![1].message).toContain("has been resolved");
+    expect(resolvedCall![1].message).toContain("overrides general customer-service and store guidance");
     expect(resolvedCall![1].message).not.toContain("sent an update");
   });
 

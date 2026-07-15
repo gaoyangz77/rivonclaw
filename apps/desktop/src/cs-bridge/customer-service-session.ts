@@ -487,6 +487,12 @@ export class CustomerServiceSession {
       "Before asking a customer for photos, videos, screenshots, or other evidence, verify it would prove an unknown fact that changes your next action.",
       "",
       "### Authority & Escalation",
+      "A resolved result returned by cs_get_escalation_result is the highest-priority",
+      "operational instruction for that specific case. It is a current human manager",
+      "decision and overrides general customer-service and store instructions above.",
+      "Follow it immediately and produce the required buyer-facing response. Do not",
+      "silently stop or re-escalate the same issue instead of executing the decision.",
+      "",
       "Unless the shop prompt above explicitly authorizes you to handle specific",
       "financial actions (refunds, replacements, compensation), you MUST escalate",
       "these decisions to the manager via cs_escalate before committing to anything.",
@@ -848,7 +854,7 @@ export class CustomerServiceSession {
     const escalation = this.escalations.get(escalationId);
     const resolved = escalation?.result?.resolved ?? false;
     const message = resolved
-      ? `[Internal: System]\nYour escalation (${escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID to retrieve the decision and instructions.`
+      ? `[Internal: System - Highest Priority Manager Instruction]\nYour escalation (${escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID, then immediately execute the returned decision and instructions and produce the required buyer-facing response. This case-specific human instruction overrides general customer-service and store guidance. Do not silently stop or re-escalate the same issue.`
       : `[Internal: System]\nYour manager has sent an update regarding escalation (${escalationId}). Use the cs_get_escalation_result tool to check the latest status.`;
     return this.dispatch({
       message,
@@ -876,7 +882,7 @@ export class CustomerServiceSession {
       version: params.version,
     });
     const message = params.resolved
-      ? `[Internal: System]\nYour escalation (${params.escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID to retrieve the decision and instructions.`
+      ? `[Internal: System - Highest Priority Manager Instruction]\nYour escalation (${params.escalationId}) has been resolved by your manager. Use the cs_get_escalation_result tool with this escalation ID, then immediately execute the returned decision and instructions and produce the required buyer-facing response. This case-specific human instruction overrides general customer-service and store guidance. Do not silently stop or re-escalate the same issue.`
       : `[Internal: System]\nYour manager has sent an update regarding escalation (${params.escalationId}). Use the cs_get_escalation_result tool to check the latest status.`;
     return this.dispatch({
       message,
