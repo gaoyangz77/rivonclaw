@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.72",
+    "date": "2026-07-15",
+    "en": [
+      "Refine shop collection hierarchy and clarify supported shop account coverage",
+      "Improve affiliate team channels, BD agent context, and on-demand provider history",
+      "Localize RivonClaw help content and recover reply-session initialization conflicts"
+    ],
+    "zh": [
+      "优化店铺 collection 层级，并明确支持的店铺账号覆盖范围",
+      "改进达人团队渠道、BD agent 上下文和按需加载的 provider 历史",
+      "本地化 RivonClaw 帮助内容，并修复回复会话初始化冲突"
+    ]
+  },
+  {
     "version": "1.8.71",
     "date": "2026-07-14",
     "en": [
