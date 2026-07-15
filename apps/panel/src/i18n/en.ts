@@ -2839,7 +2839,11 @@ export default {
     shopReadinessSubtitle:
       "Review each connected shop's Ads account coverage and GMV Max readiness.",
     shopCoverageTitle: "Shop Ads Coverage",
-    shopCoverageSubtitle: "Review ad coverage by shop group.",
+    shopCoverageSubtitle:
+      "Shows every currently active ad account for each shop and identifies the current GMV Max authorization separately. This is not a date-based delivery account view.",
+    currentGmvMaxAccount: "Current GMV Max",
+    gmvMaxAvailable: "GMV Max available",
+    currentGmvMaxUnknown: "Current authorized account pending sync",
     unonboardedStoreCount: "{{count}} ad-account shop(s) are not connected in EasyClaw",
     noShops: "No shops connected yet.",
     loadFailed: "Failed to load Ads management data.",
@@ -2892,8 +2896,8 @@ export default {
       region: "Region",
       adsStatus: "Ads Status",
       coverage: "Coverage",
-      advertiser: "Advertiser",
-      gmvMax: "GMV Max",
+      advertiser: "Active ad accounts",
+      gmvMax: "Current GMV Max authorization",
       action: "Action",
     },
     shopAdsStatus: {

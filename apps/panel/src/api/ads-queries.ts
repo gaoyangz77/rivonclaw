@@ -69,7 +69,7 @@ export const ADS_ADVERTISERS_QUERY = gql`
 export const ADS_STORE_ACCESSES_QUERY = gql`
   ${ADS_STORE_ACCESS_FIELDS_FRAGMENT}
   query AdsStoreAccesses {
-    adsStoreAccesses {
+    adsStoreAccesses(status: ACTIVE) {
       ...AdsStoreAccessFields
     }
   }

@@ -10273,7 +10273,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .ads-coverage-table-wrap {
-  max-height: 560px;
+  max-height: clamp(680px, 84vh, 920px);
 }
 
 .ads-compact-table,
@@ -10281,6 +10281,10 @@ html[lang="zh"] .acct-tool-chips {
   min-width: 760px;
   width: 100%;
   table-layout: fixed;
+}
+
+.ads-coverage-table {
+  min-width: 1040px;
 }
 
 .ads-compact-table th:nth-child(1),
@@ -10305,12 +10309,12 @@ html[lang="zh"] .acct-tool-chips {
 
 .ads-coverage-table th:nth-child(1),
 .ads-coverage-table td:nth-child(1) {
-  width: 31%;
+  width: 28%;
 }
 
 .ads-coverage-table th:nth-child(2),
 .ads-coverage-table td:nth-child(2) {
-  width: 24%;
+  width: 18%;
 }
 
 .ads-coverage-table th:nth-child(3),
@@ -10320,12 +10324,12 @@ html[lang="zh"] .acct-tool-chips {
 
 .ads-coverage-table th:nth-child(4),
 .ads-coverage-table td:nth-child(4) {
-  width: 24%;
+  width: 29%;
 }
 
 .ads-coverage-table th:nth-child(5),
 .ads-coverage-table td:nth-child(5) {
-  width: 110px;
+  width: 220px;
 }
 
 .ads-compact-table thead th,
@@ -10339,6 +10343,11 @@ html[lang="zh"] .acct-tool-chips {
 .ads-advertiser-table th,
 .ads-advertiser-table td {
   white-space: nowrap;
+}
+
+.ads-coverage-table th,
+.ads-coverage-table td {
+  white-space: normal;
 }
 
 .ads-advertiser-table .td-code {
@@ -10484,6 +10493,123 @@ html[lang="zh"] .acct-tool-chips {
   width: 12px;
   height: 2px;
   background: color-mix(in srgb, var(--color-primary) 16%, var(--color-border-light));
+}
+
+.ads-coverage-account-list {
+  display: grid;
+  gap: 8px;
+  white-space: normal;
+}
+
+.ads-coverage-account + .ads-coverage-account {
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.ads-coverage-account .shop-table-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ads-coverage-account .status-badge {
+  height: 20px;
+  padding: 0 7px;
+  font-size: 11px;
+}
+
+.shop-info-row.shop-ads-accounts-row {
+  align-items: flex-start;
+}
+
+.shop-ads-accounts-value {
+  display: grid;
+  justify-items: end;
+  width: min(100%, 920px);
+  gap: 8px;
+}
+
+.shop-ads-accounts-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 4px 8px 4px 6px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 7px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.shop-ads-accounts-toggle:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
+  color: var(--color-text);
+}
+
+.shop-ads-accounts-toggle svg {
+  transition: transform 160ms ease;
+}
+
+.shop-ads-accounts-toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.shop-ads-accounts-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-ads-account-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  max-height: min(46vh, 420px);
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-bg-alt);
+}
+
+.shop-ads-account-list .ads-coverage-account,
+.shop-ads-account-list .ads-coverage-account + .ads-coverage-account {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-bg);
+}
+
+.shop-ads-account-list .ads-coverage-account > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .shop-ads-account-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .status-badge {
