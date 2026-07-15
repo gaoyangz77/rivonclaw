@@ -18,6 +18,10 @@ import type {
   GatewayStatus,
   GatewayEvents,
 } from "./types.js";
+import {
+  GatewayPerformanceCapture,
+  type GatewayPerformanceBurst,
+} from "./gateway-performance-capture.js";
 import { enrichedPath } from "../utils/cli-utils.js";
 
 const log = createLogger("gateway");
@@ -62,6 +66,16 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
   private lastError: string | null = null;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
   private stopRequested = false;
+  private readonly performanceCapture = new GatewayPerformanceCapture({
+    emit: (burst: GatewayPerformanceBurst) => {
+      log.warn(`[gateway-perf] burst ${JSON.stringify(burst)}`);
+    },
+    onSamplerReady: (sample) => {
+      log.debug(
+        `[gateway-perf] sampler active pid=${this.process?.pid ?? "unknown"} intervalMs=${sample.intervalMs}`,
+      );
+    },
+  });
 
   constructor(options: GatewayLaunchOptions) {
     super();
@@ -182,6 +196,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
 
   private spawnProcess(): void {
     this.setState("starting");
+    this.performanceCapture.reset();
 
     const env: Record<string, string | undefined> = {
       ...process.env,
@@ -401,6 +416,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
       hasOutput = true;
       const lines = data.toString().trim().split("\n");
       for (const line of lines) {
+        if (this.performanceCapture.consumeStderrLine(line)) continue;
         if (
           line.startsWith("[startup-timer]") ||
           HARMLESS_WARN_PATTERNS.some((p) => line.includes(p))
@@ -420,6 +436,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
 
     child.on("exit", (code, signal) => {
       clearTimeout(noOutputTimer);
+      this.performanceCapture.flushOnGatewayExit();
       const prevState = this.state;
       this.process = null;
 
