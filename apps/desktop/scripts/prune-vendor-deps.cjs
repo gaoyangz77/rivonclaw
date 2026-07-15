@@ -597,11 +597,7 @@ try {
     env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
   });
 } catch (err) {
-  if (
-    process.platform === "linux" &&
-    err?.code === "ETIMEDOUT" &&
-    hasCompletedProductionInstall()
-  ) {
+  if (err?.code === "ETIMEDOUT" && hasCompletedProductionInstall()) {
     console.warn(
       "[prune-vendor-deps] pnpm finished the production install but did not exit; continuing after verified timeout.",
     );
