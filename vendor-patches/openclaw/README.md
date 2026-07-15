@@ -147,6 +147,19 @@ attached to a still-running agent retry without blocking later chat messages.
 Removal: upstream independently bounds ordering without resolving the original
 caller-facing task.
 
+### 0026 - Reply-session initialization conflict recovery
+
+Backports OpenClaw commit
+`826c84ea19429ece853d62aba5b674cae90f5824` (PR #98835) to compare only
+`sessionId` and `sessionFile` during reply initialization while preserving
+concurrent non-identity metadata. It also backports
+`101b601df8acb9139dedc6070081b993dcd5fccb` (PR #105754), which retries true
+initialization conflicts up to five times with bounded, abort-aware backoff.
+
+Removal: delete when `.openclaw-version` includes both upstream commits, or an
+equivalent implementation with identity-only reply-session CAS and
+abort-aware five-attempt outer retry behavior.
+
 ## Dropped In v2026.6.11
 
 - `0005`: OpenClaw now owns system prompts through
