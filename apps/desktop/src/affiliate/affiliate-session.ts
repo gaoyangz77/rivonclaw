@@ -16,14 +16,12 @@ import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
   AFFILIATE_CONTEXT_BUILDER_QUERY,
-  AFFILIATE_RELATIONSHIP_HISTORY_QUERY,
   DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateActionProposalDeltaQueryResult,
   type AffiliateContextBuilderQueryResult,
-  type AffiliateRelationshipHistoryQueryResult,
   type DeliverAffiliateCreatorTextMutationResult,
   type AffiliateWorkItemsQueryResult,
   type AffiliateWorkspaceQueryResult,
@@ -249,12 +247,11 @@ export class AffiliateSession {
     }
 
     const generation = this.beginCreatorMessageTakeover();
-    const message = await this.buildRelationshipMessageUpdateWorkPackage({
+    const message = this.buildRelationshipMessageUpdateWorkPackage({
       currentSignalId: frame.messageId,
       currentChannel: GQL.AffiliateMessageChannel.PlatformChat,
       messageType: frame.messageType,
       senderRole: frame.senderRole,
-      fallbackContent: this.parseMessageContent(frame),
       eventTime: String(frame.createTime),
     });
 
@@ -291,7 +288,7 @@ export class AffiliateSession {
     let generation: number | undefined;
     if (isCreatorReplyWorkItem(workItem)) {
       generation = this.beginCreatorMessageTakeover();
-      const messageUpdate = await this.buildRelationshipMessageUpdateWorkPackage({
+      const messageUpdate = this.buildRelationshipMessageUpdateWorkPackage({
         currentSignalId: workItemCurrentMessageId(workItem) ?? undefined,
         currentChannel: GQL.AffiliateMessageChannel.PlatformChat,
         eventTime: workItem.collaboration?.lastCreatorMessageAt ?? workItem.creatorRelationship?.lastInboundAt ?? undefined,
@@ -754,115 +751,31 @@ export class AffiliateSession {
     return this.dispatchGeneration;
   }
 
-  private async buildRelationshipMessageUpdateWorkPackage(params: {
+  private buildRelationshipMessageUpdateWorkPackage(params: {
     currentSignalId?: string;
     currentChannel?: GQL.AffiliateMessageChannel;
     messageType?: string;
     senderRole?: string;
-    fallbackContent?: string;
     eventTime?: string;
-  }): Promise<string> {
-    const history = await this.fetchRelationshipHistory({
-      limit: 30,
-    });
-    if (!history) {
-      return [
-        "[Affiliate Creator Message Update]",
-        `Creator Relationship ID: ${this.affiliateContext.creatorRelationshipId}`,
-        ...(params.currentChannel ? [`Current Channel: ${params.currentChannel}`] : []),
-        ...(params.currentSignalId ? [`Current Signal ID: ${params.currentSignalId}`] : []),
-        ...(params.senderRole ? [`Current Sender Role: ${params.senderRole}`] : []),
-        ...(params.messageType ? [`Current Message Type: ${params.messageType}`] : []),
-        ...(params.eventTime ? [`Event Time: ${params.eventTime}`] : []),
-        "",
-        "Relationship history could not be fetched before dispatch. Use affiliate_get_workspace and affiliate_get_relationship_history with creatorRelationshipId before taking action.",
-        "If this is a plain creator reply, write the creator-facing message as final assistant text so the affiliate bridge can deliver it through direct-channel routing.",
-        "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying or answer NO_REPLY if no creator-facing response is needed.",
-        "If the creator provides an email address, use affiliate_set_creator_email before replying or answer NO_REPLY if no creator-facing response is needed.",
-        ...(params.fallbackContent ? ["", "[Webhook Fallback Content]", params.fallbackContent] : []),
-      ].join("\n");
-    }
-
-    const timelineItems = relationshipHistoryMessages(history.items ?? [])
-      .filter((message) => !params.currentChannel || message.channel === params.currentChannel)
-      .sort((left, right) => historyItemTimestamp(left) - historyItemTimestamp(right));
-    const timeline = timelineItems.map((message, index) => {
-      const side = resolveRelationshipMessageSide(message);
-      return [
-        `${index + 1}. [${side}]`,
-        `   channel: ${message.channelLabel ?? message.channel}`,
-        ...(message.accountLabel ? [`   account: ${message.accountLabel}`] : []),
-        ...(message.shopName ? [`   shop: ${message.shopName}`] : []),
-        `   createdAt: ${message.createdAt ?? ""}`,
-        `   type: ${message.messageType ?? ""}`,
-        ...(message.subject ? [`   subject: ${message.subject}`] : []),
-        `   text: ${relationshipMessageText(message)}`,
-      ].join("\n");
-    });
-    const semanticHints = deriveRelationshipMessageSemanticHints(timelineItems);
-    const cardHints = deriveRelationshipMessageCardHints(timelineItems);
-
+  }): string {
     return [
       "[Affiliate Creator Message Update]",
-      "",
-      "This is merged relationship-level message history for the current CreatorRelationship workspace.",
-      "Messages may come from TikTok Shop platform chat, WhatsApp, email, or delivery records. Channel labels are provenance, not workspace boundaries.",
-      "Do not ask for or use provider conversation/thread ids. Use CreatorRelationship tools and business target refs.",
-      "",
-      "## Relationship Message Meta",
       `- Creator Relationship ID: ${this.affiliateContext.creatorRelationshipId}`,
       ...(params.currentChannel ? [`- Current Trigger Channel: ${params.currentChannel}`] : []),
       ...(params.currentSignalId ? [`- Current Signal ID: ${params.currentSignalId}`] : []),
-      `- Returned Message Count: ${timelineItems.length}`,
+      ...(params.senderRole ? [`- Current Sender Role: ${params.senderRole}`] : []),
+      ...(params.messageType ? [`- Current Message Type: ${params.messageType}`] : []),
+      ...(params.eventTime ? [`- Event Time: ${params.eventTime}`] : []),
       "",
-      "## Ordered Relationship Timeline",
-      ...(timeline.length ? timeline : ["(No relationship messages returned.)"]),
-      "",
-      ...(semanticHints.length ? ["## Derived Message Hints", ...semanticHints, ""] : []),
-      ...(cardHints.length ? ["## Candidate Card Hints", ...cardHints, ""] : []),
       "## Task",
-      "Handle the latest creator-side message in the relationship timeline, considering cross-channel context.",
+      "Message content is intentionally absent from this signal and is not mirrored in local storage.",
+      "Call affiliate_get_relationship_history with this creatorRelationshipId before deciding or replying. Use the trigger channel as channel provenance, not as a workspace key.",
+      "Read the provider-returned cross-channel context and handle the latest creator-side message. Do not use or request provider conversation/thread ids.",
+      "If provider history is unavailable, do not guess from signal metadata and do not use a local-message fallback; answer NO_REPLY so the work can be retried safely.",
       "If this is a plain creator reply, write the creator-facing message as final assistant text so the affiliate bridge can deliver it through direct-channel routing.",
       "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying or answer NO_REPLY if no creator-facing response is needed.",
       "If the creator provides an email address, use affiliate_set_creator_email before replying or answer NO_REPLY if no creator-facing response is needed.",
-      "If the timeline is incomplete or includes seller-side/human messages that change the commitment context, be conservative: ask a concise clarification as final assistant text, or answer NO_REPLY when no safe creator-facing message should be sent.",
     ].join("\n");
-  }
-
-  private async fetchRelationshipHistory(params: {
-    limit?: number;
-  }): Promise<GQL.AffiliateRelationshipHistoryPayload | null> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      log.warn("No auth session available, cannot fetch affiliate relationship history");
-      return null;
-    }
-
-    try {
-      const result = await authSession.graphqlFetch<AffiliateRelationshipHistoryQueryResult>(
-        AFFILIATE_RELATIONSHIP_HISTORY_QUERY,
-        {
-          input: {
-            shopId: this.affiliateContext.shopId,
-            creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
-            types: [
-              GQL.AffiliateRelationshipHistoryType.PlatformChatMessage,
-              GQL.AffiliateRelationshipHistoryType.WhatsappMessage,
-              GQL.AffiliateRelationshipHistoryType.EmailMessage,
-              GQL.AffiliateRelationshipHistoryType.MessageDelivery,
-              GQL.AffiliateRelationshipHistoryType.LifecycleEvent,
-            ],
-            limit: params.limit ?? 30,
-          },
-        },
-      );
-      return result.affiliateRelationshipHistory;
-    } catch (err) {
-      log.warn(
-        `Failed to fetch affiliate relationship history for ${this.affiliateContext.creatorRelationshipId}: ${String(err)}`,
-      );
-      return null;
-    }
   }
 
   private async fetchDispatchContext(input: {
@@ -1107,19 +1020,6 @@ export class AffiliateSession {
     });
   }
 
-  private parseMessageContent(frame: AffiliateNewMessageFrame): string {
-    if (frame.messageType.toUpperCase() === "TEXT") {
-      try {
-        const parsed = JSON.parse(frame.content) as Record<string, unknown>;
-        if (typeof parsed.content === "string") return parsed.content;
-        if (typeof parsed.text === "string") return parsed.text;
-      } catch {
-        // Not JSON — use raw content.
-      }
-      return frame.content;
-    }
-    return `[${frame.messageType}] ${frame.content}`;
-  }
 }
 
 interface AffiliatePredictionDispatchContext {
@@ -1516,280 +1416,4 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
     "## Active Approval Policies",
     ...policyLines,
   ].join("\n");
-}
-
-type RelationshipHistoryMessageRow = {
-  id: string;
-  channel: GQL.AffiliateMessageChannel;
-  direction?: GQL.AffiliateCreatorMessageDirection | null;
-  text?: string | null;
-  messageType?: string | null;
-  deliveryStatus?: GQL.AffiliateDeliveryStatus | null;
-  createdAt?: string | null;
-  subject?: string | null;
-  channelLabel?: string | null;
-  shopId?: string | null;
-  shopName?: string | null;
-  accountLabel?: string | null;
-};
-
-function relationshipHistoryMessages(items: GQL.AffiliateRelationshipHistoryItem[]): RelationshipHistoryMessageRow[] {
-  return items
-    .filter((item) => item.message)
-    .map((item) => ({
-      id: item.id,
-      channel: item.message!.channel,
-      direction: item.message!.direction,
-      text: item.message!.textPreview,
-      messageType: item.message!.messageType,
-      deliveryStatus: item.message!.deliveryStatus,
-      createdAt: item.occurredAt,
-      subject: item.message!.subject,
-      channelLabel: item.message!.channelLabel,
-      shopId: item.relatedIds.shopId,
-      shopName: item.message!.shopName,
-      accountLabel: item.message!.accountLabel,
-    }));
-}
-
-function historyItemTimestamp(message: RelationshipHistoryMessageRow): number {
-  const value = message.createdAt ? new Date(message.createdAt).getTime() : NaN;
-  return Number.isFinite(value) ? value : 0;
-}
-
-function relationshipMessageText(message: Pick<RelationshipHistoryMessageRow, "text">): string {
-  return message.text?.trim() ?? "";
-}
-
-function resolveRelationshipMessageSide(
-  message: Pick<RelationshipHistoryMessageRow, "direction">,
-): "CREATOR" | "SELLER_OR_SYSTEM" | "UNKNOWN" {
-  if (message.direction === GQL.AffiliateCreatorMessageDirection.Creator) return "CREATOR";
-  if (
-    message.direction === GQL.AffiliateCreatorMessageDirection.Seller
-    || message.direction === GQL.AffiliateCreatorMessageDirection.System
-  ) {
-    return "SELLER_OR_SYSTEM";
-  }
-  return "UNKNOWN";
-}
-
-function deriveRelationshipMessageSemanticHints(messages: RelationshipHistoryMessageRow[]): string[] {
-  const latestCreatorMessage = [...messages]
-    .reverse()
-    .find((message) => resolveRelationshipMessageSide(message) === "CREATOR");
-  if (!latestCreatorMessage) return [];
-
-  const latestCreatorText = relationshipMessageText(latestCreatorMessage).trim();
-  if (!looksLikeOpaqueAdCodeToken(latestCreatorText)) return [];
-
-  const previousSellerAskedForAdCode = messages.some((message) => {
-    if (message.id === latestCreatorMessage.id) return false;
-    if (resolveRelationshipMessageSide(message) !== "SELLER_OR_SYSTEM") return false;
-    return mentionsAdAuthorizationCode(relationshipMessageText(message));
-  });
-
-  if (!previousSellerAskedForAdCode) return [];
-
-  return [
-    "- The latest creator message is token-shaped and an earlier seller-side message asked for an ad code / ad authorization code.",
-    "- Treat the latest creator message as a likely ad authorization code, not as unreadable text. Do not ask the creator to resend only because it is not natural language.",
-    "- If there is no dedicated ad-code validation or ads handoff tool available, propose acknowledging receipt and routing it to the marketing/ads workflow.",
-  ];
-}
-
-function deriveRelationshipMessageCardHints(messages: RelationshipHistoryMessageRow[]): string[] {
-  const hints: string[] = [];
-  const seen = new Set<string>();
-
-  for (const message of messages) {
-    if (resolveRelationshipMessageSide(message) !== "CREATOR") continue;
-
-    const ids = extractAffiliateMessageReferenceIds(message.text ?? "");
-    if (
-      ids.productIds.length === 0
-      && ids.sampleApplicationIds.length === 0
-      && ids.collaborationIds.length === 0
-    ) {
-      continue;
-    }
-
-    const parts: string[] = [];
-    if (ids.productIds.length > 0) {
-      parts.push(`candidate productId(s): ${ids.productIds.join(", ")}`);
-    }
-    if (ids.sampleApplicationIds.length > 0) {
-      parts.push(`sample/application id(s): ${ids.sampleApplicationIds.join(", ")}`);
-    }
-    if (ids.collaborationIds.length > 0) {
-      parts.push(`target/platform collaboration id(s): ${ids.collaborationIds.join(", ")}`);
-    }
-
-    const key = `${message.createdAt ?? ""}:${relationshipMessageText(message)}:${parts.join("|")}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    hints.push(`- A creator-side message contains ${parts.join("; ")}.`);
-  }
-
-  if (hints.length === 0) return [];
-
-  return [
-    ...hints,
-    "- Treat these IDs as candidate evidence extracted from creator-side message cards, not as confirmed collaboration product context.",
-    "- If a candidate productId is relevant to the decision, call affiliate_predict_creator_product_fit with creatorRelationshipId, shopId, and productId before recommending cooperation, target collaboration creation, or a creator-facing reply about whether to proceed.",
-    "- If a sample/application id is relevant, use affiliate_get_workspace with creatorRelationshipId plus the sample/application identity to verify the current sample state before replying about approval, rejection, or shipment.",
-    "- If multiple candidate products appear and Backend Work Context has not confirmed one, compare the relevant candidates or ask the creator a clarifying question instead of silently choosing one.",
-  ];
-}
-
-function extractAffiliateMessageReferenceIds(content: string): {
-  productIds: string[];
-  sampleApplicationIds: string[];
-  collaborationIds: string[];
-} {
-  const result = {
-    productIds: new Set<string>(),
-    sampleApplicationIds: new Set<string>(),
-    collaborationIds: new Set<string>(),
-  };
-
-  const parsed = parseMaybeJson(content);
-  if (parsed != null) {
-    collectAffiliateReferenceIds(parsed, result);
-  }
-
-  collectAffiliateReferenceIdsFromText(content, result);
-
-  return {
-    productIds: [...result.productIds],
-    sampleApplicationIds: [...result.sampleApplicationIds],
-    collaborationIds: [...result.collaborationIds],
-  };
-}
-
-function parseMaybeJson(content: string): unknown | null {
-  const trimmed = content.trim();
-  if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) return null;
-  try {
-    return JSON.parse(trimmed) as unknown;
-  } catch {
-    return null;
-  }
-}
-
-function collectAffiliateReferenceIds(
-  value: unknown,
-  result: {
-    productIds: Set<string>;
-    sampleApplicationIds: Set<string>;
-    collaborationIds: Set<string>;
-  },
-  parentKey = "",
-  depth = 0,
-): void {
-  if (depth > 8 || value == null) return;
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectAffiliateReferenceIds(item, result, parentKey, depth + 1);
-    }
-    return;
-  }
-  if (typeof value !== "object") {
-    if (typeof value === "string") {
-      addAffiliateReferenceId(parentKey, value, result);
-    }
-    return;
-  }
-
-  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    const normalizedKey = normalizeReferenceKey(key);
-    if (typeof nested === "string" || typeof nested === "number") {
-      addAffiliateReferenceId(normalizedKey, String(nested), result);
-    }
-    collectAffiliateReferenceIds(nested, result, normalizedKey, depth + 1);
-  }
-}
-
-function collectAffiliateReferenceIdsFromText(
-  content: string,
-  result: {
-    productIds: Set<string>;
-    sampleApplicationIds: Set<string>;
-    collaborationIds: Set<string>;
-  },
-): void {
-  const patterns: Array<[RegExp, keyof typeof result]> = [
-    [/\b(?:product_id|productId|platform_product_id|platformProductId)["'\s:=]+([0-9]{8,24})\b/gi, "productIds"],
-    [/\b(?:apply_id|applyId|application_id|applicationId|sample_application_id|sampleApplicationId|platform_application_id|platformApplicationId)["'\s:=]+([0-9]{8,24})\b/gi, "sampleApplicationIds"],
-    [/\b(?:target_collaboration_id|targetCollaborationId|collaboration_id|collaborationId|platform_collaboration_id|platformCollaborationId)["'\s:=]+([0-9]{8,24})\b/gi, "collaborationIds"],
-  ];
-
-  for (const [pattern, bucket] of patterns) {
-    for (const match of content.matchAll(pattern)) {
-      addNumericPlatformId(result[bucket], match[1]);
-    }
-  }
-}
-
-function addAffiliateReferenceId(
-  normalizedKey: string,
-  rawValue: string,
-  result: {
-    productIds: Set<string>;
-    sampleApplicationIds: Set<string>;
-    collaborationIds: Set<string>;
-  },
-): void {
-  const value = rawValue.trim();
-  if (!/^[0-9]{8,24}$/.test(value)) return;
-
-  if (isProductReferenceKey(normalizedKey)) {
-    addNumericPlatformId(result.productIds, value);
-    return;
-  }
-  if (isSampleApplicationReferenceKey(normalizedKey)) {
-    addNumericPlatformId(result.sampleApplicationIds, value);
-    return;
-  }
-  if (isCollaborationReferenceKey(normalizedKey)) {
-    addNumericPlatformId(result.collaborationIds, value);
-  }
-}
-
-function addNumericPlatformId(target: Set<string>, value: string | undefined): void {
-  if (!value || !/^[0-9]{8,24}$/.test(value)) return;
-  target.add(value);
-}
-
-function normalizeReferenceKey(key: string): string {
-  return key.replace(/[^a-z0-9]/gi, "").toLowerCase();
-}
-
-function isProductReferenceKey(key: string): boolean {
-  return key.includes("productid") || key === "product";
-}
-
-function isSampleApplicationReferenceKey(key: string): boolean {
-  return (key.includes("applicationid") && !key.includes("collaboration"))
-    || key.includes("sampleapplicationid")
-    || key === "applyid";
-}
-
-function isCollaborationReferenceKey(key: string): boolean {
-  return key.includes("collaborationid") || key.includes("targetcollaborationid");
-}
-
-function mentionsAdAuthorizationCode(text: string): boolean {
-  return /\b(ad\s*(code|authorization|auth)|authorization\s*code|auth\s*code|spark\s*ads?|video\s*code)\b/i.test(text)
-    || /广告.*(授权|代码|码)/i.test(text)
-    || /(授权|投流).*(代码|码)/i.test(text);
-}
-
-function looksLikeOpaqueAdCodeToken(text: string): boolean {
-  const value = text.trim();
-  if (value.length < 16 || value.length > 256) return false;
-  if (/\s/.test(value)) return false;
-  if (/^https?:\/\//i.test(value)) return false;
-  if (/^#[A-Za-z0-9+/=_-]{12,}$/.test(value)) return true;
-  return /^[A-Za-z0-9+/=_-]{24,}$/.test(value) && /[A-Z]/.test(value) && /[a-z]/.test(value) && /\d/.test(value);
 }

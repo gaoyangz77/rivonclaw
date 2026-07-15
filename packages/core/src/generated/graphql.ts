@@ -1479,8 +1479,8 @@ export interface AffiliateMessageDelivery {
   source: AffiliateDeliverySource;
   status: AffiliateDeliveryStatus;
   targetEventCursor?: Maybe<Scalars['Int']['output']>;
-  text: Scalars['String']['output'];
   textHash: Scalars['String']['output'];
+  textLength: Scalars['Int']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
