@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.73",
+    "date": "2026-07-15",
+    "en": [
+      "Prioritize resolved manager instructions in customer-service sessions"
+    ],
+    "zh": [
+      "在客服会话中优先使用已解析的 manager 指令"
+    ]
+  },
+  {
     "version": "1.8.72",
     "date": "2026-07-15",
     "en": [
