@@ -34,6 +34,60 @@ function findFeishuMonitorChunk(): { distDir: string; chunkPath: string } {
 }
 
 describe("startup-timer preload", () => {
+  it("emits compact performance samples for the desktop collector", () => {
+    const preloadPath = resolve(here, "startup-timer.cjs");
+    const result = spawnSync(
+      process.execPath,
+      ["--require", preloadPath, "-e", "setTimeout(() => {}, 130)"],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          RIVONCLAW_PERF_SAMPLE_INTERVAL_MS: "50",
+        },
+        encoding: "utf8",
+        timeout: 5_000,
+      },
+    );
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    const line = result.stderr
+      .split("\n")
+      .find((entry) => entry.startsWith("[desktop-perf-sample] "));
+    expect(line).toBeTruthy();
+    expect(JSON.parse(line!.slice("[desktop-perf-sample] ".length))).toEqual(
+      expect.objectContaining({
+        ts: expect.any(Number),
+        intervalMs: expect.any(Number),
+        cpu: expect.objectContaining({ coreRatio: expect.any(Number) }),
+        eventLoop: expect.objectContaining({ p99Ms: expect.any(Number) }),
+        memory: expect.objectContaining({ heapUsedBytes: expect.any(Number) }),
+        gc: expect.objectContaining({ count: expect.any(Number) }),
+      }),
+    );
+  });
+
+  it("does not sample gateway descendant processes", () => {
+    const preloadPath = resolve(here, "startup-timer.cjs");
+    const result = spawnSync(
+      process.execPath,
+      ["--require", preloadPath, "-e", "setTimeout(() => {}, 130)"],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          RIVONCLAW_PERF_SAMPLE_INTERVAL_MS: "50",
+          RIVONCLAW_PERF_SAMPLER_OWNER_PID: "1",
+        },
+        encoding: "utf8",
+        timeout: 5_000,
+      },
+    );
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(result.stderr).not.toContain("[desktop-perf-sample] ");
+  });
+
   it("provides a vendor-dist __dirname fallback for bundled OpenClaw ESM chunks", () => {
     const { distDir, chunkPath } = findFeishuMonitorChunk();
     const preloadPath = resolve(here, "startup-timer.cjs");

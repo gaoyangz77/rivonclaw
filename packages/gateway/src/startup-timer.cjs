@@ -280,3 +280,128 @@ process.stdout.write = function (chunk, ...args) {
 process.on("exit", () => {
   logPhaseV("process exiting");
 });
+
+// ── Low-overhead rolling performance samples ──
+// Desktop consumes these internal lines without writing them to the user log.
+// When OpenClaw emits a liveness warning, Desktop writes one bounded burst with
+// the preceding 60 seconds and following 20 seconds of samples.
+const performanceSamplerOwnerPid = process.env.RIVONCLAW_PERF_SAMPLER_OWNER_PID;
+const ownsPerformanceSampler =
+  !performanceSamplerOwnerPid || performanceSamplerOwnerPid === String(process.pid);
+if (!performanceSamplerOwnerPid) {
+  // Descendants inherit this marker and skip sampling, keeping the Desktop
+  // ring buffer scoped to the root Gateway process.
+  process.env.RIVONCLAW_PERF_SAMPLER_OWNER_PID = String(process.pid);
+}
+
+if (ownsPerformanceSampler) {
+  try {
+    const {
+      constants: perfConstants,
+      monitorEventLoopDelay,
+      performance: perf,
+      PerformanceObserver,
+    } = require("perf_hooks");
+    const samplePrefix = "[desktop-perf-sample] ";
+    const configuredInterval = Number(process.env.RIVONCLAW_PERF_SAMPLE_INTERVAL_MS);
+    const sampleIntervalMs = Number.isFinite(configuredInterval)
+      ? Math.max(50, configuredInterval)
+      : 5_000;
+    const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
+    let lastWallAt = performance.now();
+    let lastCpuUsage = process.cpuUsage();
+    let lastEventLoopUtilization = perf.eventLoopUtilization();
+    let gcWindow = createGcWindow();
+
+    function createGcWindow() {
+      return {
+        count: 0,
+        totalMs: 0,
+        maxMs: 0,
+        minor: 0,
+        major: 0,
+        incremental: 0,
+        weakCallback: 0,
+        unknown: 0,
+      };
+    }
+
+    function roundMetric(value, digits = 1) {
+      if (!Number.isFinite(value)) return 0;
+      const factor = 10 ** digits;
+      return Math.round(value * factor) / factor;
+    }
+
+    const gcObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const duration = Number(entry.duration) || 0;
+        const kind = entry.detail?.kind;
+        gcWindow.count++;
+        gcWindow.totalMs += duration;
+        gcWindow.maxMs = Math.max(gcWindow.maxMs, duration);
+        if (kind === perfConstants.NODE_PERFORMANCE_GC_MINOR) gcWindow.minor++;
+        else if (kind === perfConstants.NODE_PERFORMANCE_GC_MAJOR) gcWindow.major++;
+        else if (kind === perfConstants.NODE_PERFORMANCE_GC_INCREMENTAL) gcWindow.incremental++;
+        else if (kind === perfConstants.NODE_PERFORMANCE_GC_WEAKCB) gcWindow.weakCallback++;
+        else gcWindow.unknown++;
+      }
+    });
+
+    gcObserver.observe({ entryTypes: ["gc"] });
+    eventLoopDelay.enable();
+    eventLoopDelay.reset();
+
+    const sampleTimer = setInterval(() => {
+      const now = performance.now();
+      const intervalMs = Math.max(1, now - lastWallAt);
+      const cpuUsage = process.cpuUsage(lastCpuUsage);
+      const currentEventLoopUtilization = perf.eventLoopUtilization();
+      const eventLoopUtilization = perf.eventLoopUtilization(
+        currentEventLoopUtilization,
+        lastEventLoopUtilization,
+      ).utilization;
+      const memory = process.memoryUsage();
+      const sample = {
+        ts: Date.now(),
+        intervalMs: roundMetric(intervalMs),
+        cpu: {
+          userMs: roundMetric(cpuUsage.user / 1_000),
+          systemMs: roundMetric(cpuUsage.system / 1_000),
+          coreRatio: roundMetric((cpuUsage.user + cpuUsage.system) / 1_000 / intervalMs, 3),
+        },
+        eventLoop: {
+          utilization: roundMetric(eventLoopUtilization, 3),
+          p99Ms: roundMetric(eventLoopDelay.percentile(99) / 1_000_000),
+          maxMs: roundMetric(eventLoopDelay.max / 1_000_000),
+        },
+        memory: {
+          rssBytes: memory.rss,
+          heapUsedBytes: memory.heapUsed,
+          externalBytes: memory.external,
+          arrayBuffersBytes: memory.arrayBuffers ?? 0,
+        },
+        gc: {
+          ...gcWindow,
+          totalMs: roundMetric(gcWindow.totalMs),
+          maxMs: roundMetric(gcWindow.maxMs),
+        },
+      };
+
+      lastWallAt = now;
+      lastCpuUsage = process.cpuUsage();
+      lastEventLoopUtilization = currentEventLoopUtilization;
+      gcWindow = createGcWindow();
+      eventLoopDelay.reset();
+      process.stderr.write(`${samplePrefix}${JSON.stringify(sample)}\n`);
+    }, sampleIntervalMs);
+    sampleTimer.unref();
+
+    process.on("exit", () => {
+      clearInterval(sampleTimer);
+      eventLoopDelay.disable();
+      gcObserver.disconnect();
+    });
+  } catch (error) {
+    logPhaseV(`performance sampler unavailable: ${error.message}`);
+  }
+}
