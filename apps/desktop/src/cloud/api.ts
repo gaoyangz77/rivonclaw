@@ -410,6 +410,12 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
     if (!hasNonEmptyString(messageIntent.messageType)) {
       messageIntent.messageType = action.messageType ?? "TEXT";
     }
+    if (hasNonEmptyString(action.preferredChannel)) {
+      messageIntent.preferredChannel = action.preferredChannel;
+    }
+    if (hasNonEmptyString(action.emailSubject)) {
+      messageIntent.emailSubject = action.emailSubject;
+    }
     return pickAffiliateActionFields(action, "messageIntent", messageIntent);
   }
 
@@ -419,6 +425,12 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
     messageType: action.messageType ?? "TEXT",
     text,
   };
+  if (hasNonEmptyString(action.preferredChannel)) {
+    messageIntent.preferredChannel = action.preferredChannel;
+  }
+  if (hasNonEmptyString(action.emailSubject)) {
+    messageIntent.emailSubject = action.emailSubject;
+  }
   for (const field of ["productId"]) {
     if (hasNonEmptyString(action[field])) messageIntent[field] = action[field];
   }
@@ -430,6 +442,8 @@ function pickAffiliateMessageIntentFields(intent: Record<string, unknown>): Reco
   for (const field of [
     "messageType",
     "text",
+    "preferredChannel",
+    "emailSubject",
     "imageUrl",
     "imageWidth",
     "imageHeight",

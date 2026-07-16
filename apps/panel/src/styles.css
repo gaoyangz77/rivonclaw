@@ -23666,6 +23666,37 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--surface-primary);
 }
 
+.affiliate-team-policy-section {
+  display: grid;
+  gap: 16px;
+}
+
+.affiliate-team-policy-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.affiliate-team-policy-heading h2 {
+  margin: 4px 0 0;
+}
+
+.affiliate-team-policy-heading p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+@media (max-width: 840px) {
+  .affiliate-team-policy-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 .affiliate-team-overview > div {
   position: relative;
   display: grid;

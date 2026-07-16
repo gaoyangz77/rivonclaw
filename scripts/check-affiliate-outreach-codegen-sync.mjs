@@ -85,15 +85,43 @@ addCheck(
   hasSnippet(messageChannelGenerated, "Whatsapp: 'WHATSAPP'"),
 );
 
-const deliveryInputSchema = block(schema, "input", "DeliverAffiliateCreatorTextInput");
-const deliveryInputGenerated = generatedInterface("DeliverAffiliateCreatorTextInput");
+const deliveryInputSchema = block(schema, "input", "ResolveAffiliateWorkItemActionInput");
+const deliveryInputGenerated = generatedInterface("ResolveAffiliateWorkItemActionInput");
 addCheck(
-  "DeliverAffiliateCreatorTextInput.preferredChannel is in backend schema",
+  "ResolveAffiliateWorkItemActionInput.preferredChannel is in backend schema",
   hasLine(deliveryInputSchema, "preferredChannel: AffiliateMessageChannel"),
 );
 addCheck(
-  "DeliverAffiliateCreatorTextInput.preferredChannel is in core generated type",
+  "ResolveAffiliateWorkItemActionInput.preferredChannel is in core generated type",
   hasLine(deliveryInputGenerated, "preferredChannel?: InputMaybe<AffiliateMessageChannel>;"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemActionInput.emailSubject is in backend schema",
+  hasLine(deliveryInputSchema, "emailSubject: String"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemActionInput.emailSubject is in core generated type",
+  hasLine(deliveryInputGenerated, "emailSubject?: InputMaybe<Scalars['String']['input']>;"),
+);
+
+const workItemSchema = block(schema, "type", "AffiliateWorkItem");
+const workItemGenerated = generatedInterface("AffiliateWorkItem");
+for (const field of ["triggerChannel: AffiliateMessageChannel", "triggerLifecycleEventId: ID"]) {
+  addCheck(`AffiliateWorkItem.${field.split(":")[0]} is in backend schema`, hasLine(workItemSchema, field));
+}
+addCheck(
+  "AffiliateWorkItem.triggerChannel is in core generated type",
+  hasLine(workItemGenerated, "triggerChannel?: Maybe<AffiliateMessageChannel>;"),
+);
+addCheck(
+  "AffiliateWorkItem.triggerLifecycleEventId is in core generated type",
+  hasLine(workItemGenerated, "triggerLifecycleEventId?: Maybe<Scalars['ID']['output']>;"),
+);
+addCheck(
+  "Legacy affiliate final-text delivery bridge is absent",
+  !schema.includes("deliverAffiliateCreatorText") &&
+    !schema.includes("DeliverAffiliateCreatorTextInput") &&
+    !generated.includes("DeliverAffiliateCreatorTextInput"),
 );
 
 const failed = checks.filter((check) => !check.ok);

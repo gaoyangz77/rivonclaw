@@ -231,6 +231,7 @@ const PROPOSAL_FILTERS = [
   "ALL",
   GQL.ActionProposalStatus.Approved,
   GQL.ActionProposalStatus.Executed,
+  GQL.ActionProposalStatus.ExecutionFailed,
   GQL.ActionProposalStatus.Rejected,
   GQL.ActionProposalStatus.RevisionRequested,
   GQL.ActionProposalStatus.Superseded,
@@ -3005,6 +3006,30 @@ function relationshipHistoryDetail(
   if (item.message?.subject) lines.push(item.message.subject);
   if (item.message?.textPreview && !parsePlatformCardPayload(item.message.textPreview)) {
     lines.push(item.message.textPreview);
+  }
+  if (item.message?.deliveryStatus) {
+    const selection = item.message.channelSelectionSource
+      ? t(`ecommerce.affiliateWorkspace.deliverySelection.${item.message.channelSelectionSource}`, {
+          defaultValue: formatAffiliateEnumLabel(item.message.channelSelectionSource),
+        })
+      : "—";
+    lines.push(t("ecommerce.affiliateWorkspace.deliveryAudit", {
+      defaultValue: "{{selection}} · selected {{preferred}} · actual {{actual}} · {{status}}",
+      selection,
+      preferred: item.message.preferredChannel
+        ? formatAffiliateEnumLabel(item.message.preferredChannel)
+        : "—",
+      actual: item.message.actualChannel
+        ? formatAffiliateEnumLabel(item.message.actualChannel)
+        : "—",
+      status: formatAffiliateEnumLabel(item.message.deliveryStatus),
+    }));
+  }
+  if (item.message?.errorMessage) {
+    lines.push(t("ecommerce.affiliateWorkspace.deliveryFailure", {
+      defaultValue: "Delivery failed: {{error}}",
+      error: item.message.errorMessage,
+    }));
   }
   if (item.lifecycleEvent?.displaySummary) lines.push(item.lifecycleEvent.displaySummary);
   if (!lines.length && item.summary && !item.lifecycleEvent) lines.push(item.summary);
@@ -6448,6 +6473,17 @@ function renderProposalPreview(
   if (proposal.messageIntent) {
     const text = proposal.messageIntent.text?.trim();
     if (text) return text;
+    if (
+      proposal.messageIntent.textHash &&
+      proposal.status !== GQL.ActionProposalStatus.Pending &&
+      proposal.status !== GQL.ActionProposalStatus.RevisionRequested
+    ) {
+      return t("ecommerce.affiliateWorkspace.proposalMessageCleared", {
+        defaultValue: "Message body cleared by retention policy · {{length}} characters · SHA-256 {{hash}}",
+        length: proposal.messageIntent.textLength ?? 0,
+        hash: proposal.messageIntent.textHash.slice(0, 12),
+      });
+    }
     return t("ecommerce.shopDrawer.affiliate.messageIntentFallback", {
       type: proposal.messageIntent.messageType,
     });
@@ -6521,6 +6557,24 @@ function renderProposalActivityDetail(
   if (proposal.executionResult?.errorMessage) {
     lines.push(t("ecommerce.affiliateWorkspace.activity.executionFailed", {
       error: proposal.executionResult.errorMessage,
+    }));
+  }
+  if (proposal.executionResult?.deliveryStatus) {
+    const selection = proposal.executionResult.channelSelectionSource
+      ? t(`ecommerce.affiliateWorkspace.deliverySelection.${proposal.executionResult.channelSelectionSource}`, {
+          defaultValue: formatAffiliateEnumLabel(proposal.executionResult.channelSelectionSource),
+        })
+      : "—";
+    lines.push(t("ecommerce.affiliateWorkspace.deliveryAudit", {
+      defaultValue: "{{selection}} · selected {{preferred}} · actual {{actual}} · {{status}}",
+      selection,
+      preferred: proposal.executionResult.preferredChannel
+        ? formatAffiliateEnumLabel(proposal.executionResult.preferredChannel)
+        : "—",
+      actual: proposal.executionResult.actualChannel
+        ? formatAffiliateEnumLabel(proposal.executionResult.actualChannel)
+        : "—",
+      status: formatAffiliateEnumLabel(proposal.executionResult.deliveryStatus),
     }));
   }
   return lines.join("\n");

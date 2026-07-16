@@ -26,6 +26,7 @@ import {
   WRITE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
 } from "../../api/shops-queries.js";
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
+import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
@@ -515,6 +516,28 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         <div><span>{t("ecommerce.affiliateTeam.humanDevelopers")}</span><strong>{activeDevelopers.length}</strong></div>
         <div><span>{t("ecommerce.affiliateTeam.connectedChannels")}</span><strong>{totalChannelCount}</strong><small>{t("ecommerce.affiliateTeam.unassignedChannels", { count: unassignedChannelCount })}</small></div>
         <div><span>{t("ecommerce.affiliateTeam.protectedCreators")}</span><strong>{protectedCreatorCount}</strong><small>{t("ecommerce.affiliateTeam.appliedProtections", { count: appliedProtectionCount })}</small></div>
+      </section>
+
+      <section className="affiliate-team-policy-section">
+        <div className="affiliate-team-policy-heading">
+          <div>
+            <span className="affiliate-team-eyebrow">
+              {t("ecommerce.affiliateWorkspace.policies.title")}
+            </span>
+            <h2>
+              {t("ecommerce.affiliateTeam.globalApprovalPolicies", {
+                defaultValue: "Account-wide approval policies",
+              })}
+            </h2>
+          </div>
+          <p>
+            {t("ecommerce.affiliateTeam.globalApprovalPoliciesHint", {
+              defaultValue:
+                "Applies to every Affiliate shop under this seller account. SEND_MESSAGE rules review the exact draft before provider delivery.",
+            })}
+          </p>
+        </div>
+        <AffiliateApprovalPolicyPanel />
       </section>
 
       <section className={`affiliate-protection-boundary ${protectionManagerOpen ? "is-open" : ""}`}>

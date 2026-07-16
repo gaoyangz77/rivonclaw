@@ -516,6 +516,8 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         versionAt
         triggerKind
         triggerId
+        triggerChannel
+        triggerLifecycleEventId
         recommendedActionTypes
       }
       collaborationRecord {
@@ -589,6 +591,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           creatorOpenId
           messageType
           text
+          preferredChannel
+          emailSubject
+          textHash
+          textLength
           productId
           platformApplicationId
           platformTargetCollaborationId
@@ -632,6 +638,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         creatorOpenId
         messageType
         text
+        preferredChannel
+        emailSubject
+        textHash
+        textLength
         productId
         platformApplicationId
         platformTargetCollaborationId
@@ -715,6 +725,11 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         lifecycleEventIds
         executedAt
         errorMessage
+        deliveryId
+        deliveryStatus
+        preferredChannel
+        actualChannel
+        channelSelectionSource
       }
     }
   }
@@ -931,6 +946,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           lifecycleEventIds
           executedAt
           errorMessage
+          deliveryId
+          deliveryStatus
+          preferredChannel
+          actualChannel
+          channelSelectionSource
         }
       }
       context {
@@ -1238,7 +1258,6 @@ export const AFFILIATE_APPROVAL_POLICIES_QUERY = gql`
     affiliateApprovalPolicies(input: $input) {
       id
       userId
-      shopId
       action
       creatorTagIds
       campaignIds
@@ -1252,22 +1271,28 @@ export const AFFILIATE_APPROVAL_POLICIES_QUERY = gql`
 `;
 
 export const AFFILIATE_POLICY_CONTEXT_QUERY = gql`
-  query AffiliatePolicyContext($campaignsInput: ReadAffiliateCampaignsInput!, $shopId: String!) {
-    affiliateCampaigns(input: $campaignsInput) {
-      id
-      shopId
-      name
-      status
-      updatedAt
-    }
-    creatorTags(shopId: $shopId) {
-      id
-      shopId
-      name
-      type
-      systemKey
-      sensitive
-      updatedAt
+  query AffiliatePolicyContext {
+    affiliateApprovalPolicyContext {
+      shops {
+        shopId
+        shopName
+        campaigns {
+          id
+          shopId
+          name
+          status
+          updatedAt
+        }
+        creatorTags {
+          id
+          shopId
+          name
+          type
+          systemKey
+          sensitive
+          updatedAt
+        }
+      }
     }
   }
 `;
@@ -1505,7 +1530,6 @@ export const WRITE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
     writeAffiliateApprovalPolicy(input: $input) {
       id
       userId
-      shopId
       action
       creatorTagIds
       campaignIds
@@ -1554,6 +1578,10 @@ export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = gql`
           textPreview
           messageType
           deliveryStatus
+          preferredChannel
+          actualChannel
+          channelSelectionSource
+          errorMessage
           subject
           channelLabel
           shopName
@@ -1761,6 +1789,11 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         lifecycleEventIds
         executedAt
         errorMessage
+        deliveryId
+        deliveryStatus
+        preferredChannel
+        actualChannel
+        channelSelectionSource
       }
     }
   }
@@ -1789,6 +1822,8 @@ export const SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION = gql`
         id
         preferredChannel
         actualChannel
+        channelSelectionSource
+        replyToLifecycleEventId
         status
         providerMessageId
         errorMessage
@@ -1976,7 +2011,6 @@ export const AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY = gql`
   query AffiliateOutreachOperationalStatus($input: AffiliateOutreachOperationalStatusInput!) {
     affiliateOutreachOperationalStatus(input: $input) {
       since
-      fallbackCount
       failedDeliveryCount
       webhookReceivedCount
       ignoredWebhookCount

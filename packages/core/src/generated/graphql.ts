@@ -142,41 +142,54 @@ export interface ActionProposalDecisionSnapshotInput {
 }
 
 export interface ActionProposalExecutionResultSnapshot {
+  actualChannel?: Maybe<AffiliateMessageChannel>;
+  channelSelectionSource?: Maybe<AffiliateDeliveryChannelSelectionSource>;
+  deliveryId?: Maybe<Scalars['ID']['output']>;
+  deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
   domainObjectId?: Maybe<Scalars['ID']['output']>;
   errorMessage?: Maybe<Scalars['String']['output']>;
   executedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lifecycleEventIds: Array<Scalars['ID']['output']>;
   platformObjectId?: Maybe<Scalars['String']['output']>;
+  preferredChannel?: Maybe<AffiliateMessageChannel>;
 }
 
 export interface ActionProposalMessageIntent {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   creatorOpenId?: Maybe<Scalars['String']['output']>;
+  emailSubject?: Maybe<Scalars['String']['output']>;
   imageHeight?: Maybe<Scalars['Int']['output']>;
   imageUrl?: Maybe<Scalars['String']['output']>;
   imageWidth?: Maybe<Scalars['Int']['output']>;
   messageType: AffiliateOutboundMessageType;
   platformApplicationId?: Maybe<Scalars['String']['output']>;
   platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
+  preferredChannel?: Maybe<AffiliateMessageChannel>;
   productId?: Maybe<Scalars['String']['output']>;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   text?: Maybe<Scalars['String']['output']>;
+  textHash?: Maybe<Scalars['String']['output']>;
+  textLength?: Maybe<Scalars['Int']['output']>;
 }
 
 export interface ActionProposalMessageIntentInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  emailSubject?: InputMaybe<Scalars['String']['input']>;
   imageHeight?: InputMaybe<Scalars['Int']['input']>;
   imageUrl?: InputMaybe<Scalars['String']['input']>;
   imageWidth?: InputMaybe<Scalars['Int']['input']>;
   messageType: AffiliateOutboundMessageType;
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   platformTargetCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   productId?: InputMaybe<Scalars['String']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   text?: InputMaybe<Scalars['String']['input']>;
+  textHash?: InputMaybe<Scalars['String']['input']>;
+  textLength?: InputMaybe<Scalars['Int']['input']>;
 }
 
 export interface ActionProposalPolicySnapshot {
@@ -232,8 +245,10 @@ export interface ActionProposalSourceWorkBoundary {
   recommendedActionTypes: Array<ActionProposalType>;
   /** Business subject for dispatch. New affiliate work should use CREATOR_RELATIONSHIP as the primary workspace boundary. */
   subjectType: AffiliateWorkItemSubjectType;
+  triggerChannel?: Maybe<AffiliateMessageChannel>;
   triggerId?: Maybe<Scalars['String']['output']>;
   triggerKind?: Maybe<Scalars['String']['output']>;
+  triggerLifecycleEventId?: Maybe<Scalars['ID']['output']>;
   versionAt: Scalars['DateTimeISO']['output'];
   workBundleKind: AffiliateWorkBundleKind;
   workKind: AffiliateWorkKind;
@@ -242,6 +257,7 @@ export interface ActionProposalSourceWorkBoundary {
 export const ActionProposalStatus = {
   Approved: 'APPROVED',
   Executed: 'EXECUTED',
+  ExecutionFailed: 'EXECUTION_FAILED',
   Expired: 'EXPIRED',
   Modified: 'MODIFIED',
   Pending: 'PENDING',
@@ -624,9 +640,19 @@ export interface AffiliateApprovalPolicy {
   /** AND condition dimension. Empty means any product. */
   productIds: Array<Scalars['String']['output']>;
   reason?: Maybe<Scalars['String']['output']>;
-  shopId: Scalars['ID']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
+}
+
+export interface AffiliateApprovalPolicyContextPayload {
+  shops: Array<AffiliateApprovalPolicyContextShop>;
+}
+
+export interface AffiliateApprovalPolicyContextShop {
+  campaigns: Array<AffiliateCampaign>;
+  creatorTags: Array<CreatorTag>;
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
 }
 
 export interface AffiliateBusinessDeveloper {
@@ -788,6 +814,7 @@ export const AffiliateCollaborationRecordProcessReason = {
   CreatorActionFollowUpDue: 'CREATOR_ACTION_FOLLOW_UP_DUE',
   CreatorMessageNeedsReply: 'CREATOR_MESSAGE_NEEDS_REPLY',
   IdentityResolution: 'IDENTITY_RESOLUTION',
+  MessageDeliveryFailed: 'MESSAGE_DELIVERY_FAILED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
   ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
@@ -1081,6 +1108,8 @@ export interface AffiliateCreatorRelationship {
   lastAgentHandledAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastBlockedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastInboundChannel?: Maybe<AffiliateMessageChannel>;
+  lastInboundLifecycleEventId?: Maybe<Scalars['ID']['output']>;
   lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastPlatformSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lifecycleEventSequence?: Maybe<Scalars['Int']['output']>;
@@ -1130,9 +1159,17 @@ export interface AffiliateDecisionThresholdsInput {
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
+/** How the outbound Affiliate delivery channel was selected */
+export const AffiliateDeliveryChannelSelectionSource = {
+  AgentOverride: 'AGENT_OVERRIDE',
+  RelationshipDefault: 'RELATIONSHIP_DEFAULT',
+  TriggerChannel: 'TRIGGER_CHANNEL'
+} as const;
+
+export type AffiliateDeliveryChannelSelectionSource = typeof AffiliateDeliveryChannelSelectionSource[keyof typeof AffiliateDeliveryChannelSelectionSource];
 /** Source of an affiliate creator-facing message delivery */
 export const AffiliateDeliverySource = {
-  AgentAutoForward: 'AGENT_AUTO_FORWARD',
+  AgentAction: 'AGENT_ACTION',
   HumanManual: 'HUMAN_MANUAL',
   System: 'SYSTEM'
 } as const;
@@ -1142,7 +1179,6 @@ export type AffiliateDeliverySource = typeof AffiliateDeliverySource[keyof typeo
 export const AffiliateDeliveryStatus = {
   Cancelled: 'CANCELLED',
   Failed: 'FAILED',
-  FallbackSent: 'FALLBACK_SENT',
   Queued: 'QUEUED',
   Sent: 'SENT',
   Submitted: 'SUBMITTED'
@@ -1463,6 +1499,7 @@ export interface AffiliateMessageDelivery {
   baseCheckpointId?: Maybe<Scalars['String']['output']>;
   baseEventCursor?: Maybe<Scalars['Int']['output']>;
   candidateCheckpointId?: Maybe<Scalars['String']['output']>;
+  channelSelectionSource: AffiliateDeliveryChannelSelectionSource;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
   creatorRelationshipId: Scalars['ID']['output'];
@@ -1475,6 +1512,7 @@ export interface AffiliateMessageDelivery {
   openClawSessionKey?: Maybe<Scalars['String']['output']>;
   preferredChannel: AffiliateMessageChannel;
   providerMessageId?: Maybe<Scalars['String']['output']>;
+  replyToLifecycleEventId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
   source: AffiliateDeliverySource;
   status: AffiliateDeliveryStatus;
@@ -1628,7 +1666,6 @@ export interface AffiliateOutreachOperationalStatusPayload {
   failedDeliveryCount: Scalars['Int']['output'];
   failedMailboxSyncCount: Scalars['Int']['output'];
   failedSubscriptionRenewalCount: Scalars['Int']['output'];
-  fallbackCount: Scalars['Int']['output'];
   ignoredWebhookCount: Scalars['Int']['output'];
   inboundCounts: Array<AffiliateOutreachInboundMessageCount>;
   latestDeliveryAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -1762,11 +1799,15 @@ export interface AffiliateRelationshipHistoryLifecycleEventSummary {
 
 export interface AffiliateRelationshipHistoryMessageSummary {
   accountLabel?: Maybe<Scalars['String']['output']>;
+  actualChannel?: Maybe<AffiliateMessageChannel>;
   channel: AffiliateMessageChannel;
   channelLabel?: Maybe<Scalars['String']['output']>;
+  channelSelectionSource?: Maybe<AffiliateDeliveryChannelSelectionSource>;
   deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
   direction?: Maybe<AffiliateCreatorMessageDirection>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
   messageType?: Maybe<Scalars['String']['output']>;
+  preferredChannel?: Maybe<AffiliateMessageChannel>;
   shopName?: Maybe<Scalars['String']['output']>;
   subject?: Maybe<Scalars['String']['output']>;
   textPreview?: Maybe<Scalars['String']['output']>;
@@ -2088,6 +2129,8 @@ export interface AffiliateWorkItem {
   staffReviewRequired: Scalars['Boolean']['output'];
   /** Business subject for dispatch. New affiliate work should use CREATOR_RELATIONSHIP as the primary workspace boundary. */
   subjectType: AffiliateWorkItemSubjectType;
+  triggerChannel?: Maybe<AffiliateMessageChannel>;
+  triggerLifecycleEventId?: Maybe<Scalars['ID']['output']>;
   /** Projection version timestamp. Desktop can use this for idempotent upsert. */
   versionAt: Scalars['DateTimeISO']['output'];
   workBundleKind: AffiliateWorkBundleKind;
@@ -4204,24 +4247,6 @@ export interface DecideActionProposalInput {
   status: ActionProposalStatus;
 }
 
-export interface DeliverAffiliateCreatorTextInput {
-  /** Committed CreatorRelationship checkpoint used as the base for this delivery run. */
-  baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
-  baseEventCursor?: InputMaybe<Scalars['Int']['input']>;
-  /** Candidate checkpoint created by the delivery run. Promoted only after delivery succeeds. */
-  candidateCheckpointId?: InputMaybe<Scalars['String']['input']>;
-  creatorRelationshipId: Scalars['ID']['input'];
-  fallbackToPlatform?: InputMaybe<Scalars['Boolean']['input']>;
-  idempotencyKey: Scalars['String']['input'];
-  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
-  runId?: InputMaybe<Scalars['String']['input']>;
-  sessionKey?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['ID']['input'];
-  source?: InputMaybe<AffiliateDeliverySource>;
-  targetEventCursor?: InputMaybe<Scalars['Int']['input']>;
-  text: Scalars['String']['input'];
-}
-
 /** Aftersale eligibility for an order */
 export interface EcomAftersaleEligibility {
   skuEligibility?: Maybe<Array<EcomAftersaleSkuEligibility>>;
@@ -4655,7 +4680,7 @@ export interface EcomBiPageInfo {
 
 /** Ecommerce data query. Date range and scope requirements depend on dataset metadata from getEcommerceBiCatalog. */
 export interface EcomBiQueryInput {
-  /** Advertiser Mongo IDs for future advertiser-scoped datasets. Current Ads BI datasets still use shopIds. */
+  /** Reserved for future advertiser-document scoping; current Ads BI datasets do not use this field. Filter current Ads datasets with the ADVERTISER_ID and/or STORE_ID dimensions instead. */
   advertiserIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Optional governed dynamic attributes to group by. Values must come from getEcommerceBiCatalog.attributes. */
   attributeDimensions?: InputMaybe<Array<EcomBiAttributeRefInput>>;
@@ -4679,7 +4704,7 @@ export interface EcomBiQueryInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
-  /** Onboarded shop Mongo IDs. Required for current shop-scoped SQL BI datasets; optional for datasets that can derive scope another way. */
+  /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Required for Order and CS datasets. Usually omit for Ads so authorized advertiser stores without onboarded Shops remain included; when supplied to Ads, this restricts results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. */
   startDateGe?: InputMaybe<Scalars['String']['input']>;
@@ -6344,8 +6369,6 @@ export interface Mutation {
   deleteShop: Scalars['Boolean']['output'];
   /** Delete a surface */
   deleteSurface: Scalars['Boolean']['output'];
-  /** Bridge-only creator-facing affiliate text delivery. Uses direct channels such as WhatsApp or Outlook email before TikTok Shop platform chat fallback. This operation is intentionally not exposed as an agent tool. */
-  deliverAffiliateCreatorText: AffiliateMessageDelivery;
   /** Disconnect one advertising account for the authenticated user. */
   disconnectAdsAdvertiser: Scalars['Boolean']['output'];
   ecommerceApplyCSUnpaidOrderConfigVariantToBase: CsUnpaidOrderEvaluationView;
@@ -6736,11 +6759,6 @@ export interface MutationDeleteShopArgs {
 
 export interface MutationDeleteSurfaceArgs {
   id: Scalars['ID']['input'];
-}
-
-
-export interface MutationDeliverAffiliateCreatorTextArgs {
-  input: DeliverAffiliateCreatorTextInput;
 }
 
 
@@ -7624,6 +7642,8 @@ export interface Query {
   affiliateActionProposalDelta: Array<ActionProposal>;
   /** Read affiliate approval interception policies. */
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
+  /** Read tag and campaign condition options across all Affiliate shops owned by the authenticated seller account. */
+  affiliateApprovalPolicyContext: AffiliateApprovalPolicyContextPayload;
   /** List paginated user-level Affiliate business developers with workload and channel counts. */
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
@@ -8488,7 +8508,6 @@ export interface ReadActionProposalsInput {
 export interface ReadAffiliateApprovalPoliciesInput {
   action?: InputMaybe<ActionProposalType>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  shopId: Scalars['ID']['input'];
 }
 
 export interface ReadAffiliateCampaignsInput {
@@ -8741,6 +8760,8 @@ export interface ResolveAffiliateWorkItemActionInput {
   /** Optional action-specific collaboration target inside the CreatorRelationship. Use this when a bundled relationship action targets a specific collaboration record; the top-level collaborationRecordId remains only a fallback focus. */
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
+  /** Required for SEND_MESSAGE when a new email thread must be started. */
+  emailSubject?: InputMaybe<Scalars['String']['input']>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE unless messageText is provided. For TEXT messages, text must contain the exact creator-facing message. Do not populate this for REVIEW_SAMPLE_APPLICATION. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
@@ -8752,6 +8773,8 @@ export interface ResolveAffiliateWorkItemActionInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Optional SEND_MESSAGE channel override. Omit to inherit the latest inbound channel. */
+  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with platformApplicationId and sampleReviewDecision when sampleReviewIntent is omitted. */
@@ -8799,6 +8822,8 @@ export interface ResolveAffiliateWorkItemMessageIntentInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
+  /** Required when starting a new email thread. Ignored for an exact reply to an existing email message. */
+  emailSubject?: InputMaybe<Scalars['String']['input']>;
   imageHeight?: InputMaybe<Scalars['Int']['input']>;
   imageUrl?: InputMaybe<Scalars['String']['input']>;
   imageWidth?: InputMaybe<Scalars['Int']['input']>;
@@ -8806,6 +8831,8 @@ export interface ResolveAffiliateWorkItemMessageIntentInput {
   messageType?: InputMaybe<AffiliateOutboundMessageType>;
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   platformTargetCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  /** Optional explicit outbound channel override. Omit to inherit the trigger channel or relationship default. */
+  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   productId?: InputMaybe<Scalars['String']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Required for affiliate_resolve_work_item SEND_MESSAGE actions. Must be the exact creator-facing text to send; do not put this text only in operatorSummary. */
@@ -8904,6 +8931,7 @@ export type SampleWorkStatus = typeof SampleWorkStatus[keyof typeof SampleWorkSt
 export interface SendAffiliateCreatorMessageInput {
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
+  emailSubject?: InputMaybe<Scalars['String']['input']>;
   idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   shopId: Scalars['ID']['input'];
@@ -10417,7 +10445,6 @@ export interface WriteAffiliateApprovalPolicyInput {
   id?: InputMaybe<Scalars['ID']['input']>;
   productIds?: InputMaybe<Array<Scalars['String']['input']>>;
   reason?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['ID']['input'];
 }
 
 export interface WriteAffiliateBusinessDeveloperInput {
