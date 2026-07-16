@@ -34,7 +34,6 @@ const DEVELOPER_PAGE_SIZE = 25;
 export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
 
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
-type DetailTab = "OVERVIEW" | "CHANNELS";
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
 
 type DeveloperForm = {
@@ -73,7 +72,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [developerSearch, setDeveloperSearch] = useState("");
   const [showArchivedDevelopers, setShowArchivedDevelopers] = useState(false);
   const [detailSummary, setDetailSummary] = useState<DeveloperSummary | null>(null);
-  const [detailTab, setDetailTab] = useState<DetailTab>("OVERVIEW");
   const [connectChannel, setConnectChannel] = useState<ConnectChannel>(null);
   const [showUnassignedAccounts, setShowUnassignedAccounts] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -232,7 +230,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
   function openDeveloperDetail(summary: DeveloperSummary) {
     setDetailSummary(summary);
-    setDetailTab("OVERVIEW");
     setConnectChannel(null);
   }
 
@@ -781,63 +778,95 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         portal
       >
         {detailDeveloper && detailSummary && <>
-          <div className="affiliate-bd-detail-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected={detailTab === "OVERVIEW"} className={detailTab === "OVERVIEW" ? "is-active" : ""} onClick={() => { setDetailTab("OVERVIEW"); setConnectChannel(null); }}>
-              {t("ecommerce.affiliateTeam.detailOverview", { defaultValue: "Overview" })}
-            </button>
-            <button type="button" role="tab" aria-selected={detailTab === "CHANNELS"} className={detailTab === "CHANNELS" ? "is-active" : ""} onClick={() => setDetailTab("CHANNELS")}>
-              {t("ecommerce.affiliateTeam.channels")} ({detailSummary.whatsappAccountCount + detailSummary.emailAccountCount})
-            </button>
-          </div>
-
-          {detailTab === "OVERVIEW" ? (
-            <div className="affiliate-bd-detail-body">
-              <div className="affiliate-bd-detail-summary">
-                <div><span>{t("ecommerce.affiliateTeam.managedCreators", { defaultValue: "Managed creators" })}</span><strong>{detailSummary.creatorRelationshipCount}</strong></div>
-                <div><span>{t("ecommerce.affiliateTeam.whatsappAccounts")}</span><strong>{detailSummary.whatsappAccountCount}</strong></div>
-                <div><span>{t("ecommerce.affiliateTeam.emailAccounts")}</span><strong>{detailSummary.emailAccountCount}</strong></div>
-                <div><span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span><strong>{t(detailDeveloper.acceptingCreators ? "common.yes" : "common.no")}</strong></div>
-              </div>
-              <dl className="affiliate-bd-metadata">
-                <div><dt>{t("ecommerce.affiliateTeam.workMode")}</dt><dd>{detailDeveloper.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? t("ecommerce.affiliateTeam.humanOnly") : t("ecommerce.affiliateTeam.aiAssisted")}</dd></div>
-                <div><dt>{t("ecommerce.affiliateTeam.regions")}</dt><dd>{detailDeveloper.regions.length > 0 ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ") : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })}</dd></div>
-              </dl>
-              <div className="affiliate-team-instructions">
-                <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
-                <p>{detailDeveloper.businessPrompt || t("ecommerce.affiliateTeam.noWorkingStyle", { defaultValue: "No additional working instructions." })}</p>
-              </div>
-              <div className="affiliate-bd-detail-footer">
-                {archiveBlocked && <span>{t("ecommerce.affiliateTeam.archiveBlockedHint", { defaultValue: "Move all creators and outreach accounts before archiving this BD." })}</span>}
-                <div>
-                  {!detailDeveloper.archivedAt && <button className="btn btn-secondary" type="button" onClick={() => beginEditDeveloper(detailDeveloper)}>{t("common.edit")}</button>}
-                  {!detailDeveloper.archivedAt && <button className="btn btn-danger" type="button" onClick={handleArchiveDeveloper} disabled={archiveState.loading || archiveBlocked}>{t("ecommerce.affiliateTeam.archive")}</button>}
+          <div className="affiliate-bd-command-header">
+            <div className="affiliate-bd-command-identity">
+              <span className="affiliate-bd-command-avatar"><UserIcon /></span>
+              <div>
+                <div className="affiliate-bd-command-chips">
+                  <span className={`affiliate-bd-availability ${detailDeveloper.acceptingCreators && !detailDeveloper.archivedAt ? "is-accepting" : "is-paused"}`}>
+                    {detailDeveloper.archivedAt
+                      ? t("ecommerce.affiliateTeam.archivedStatus", { defaultValue: "Archived" })
+                      : detailDeveloper.acceptingCreators
+                        ? t("ecommerce.affiliateTeam.acceptingStatus", { defaultValue: "Accepting" })
+                        : t("ecommerce.affiliateTeam.pausedStatus", { defaultValue: "Paused" })}
+                  </span>
+                  <span>{detailDeveloper.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? t("ecommerce.affiliateTeam.humanOnly") : t("ecommerce.affiliateTeam.aiAssisted")}</span>
                 </div>
+                <p>{detailDeveloper.regions.length > 0 ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ") : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })}</p>
               </div>
             </div>
-          ) : (
-            <div className="affiliate-bd-detail-body affiliate-bd-channel-body">
-              <div className="affiliate-bd-channel-toolbar">
+            <div className="affiliate-bd-command-metric">
+              <span>{t("ecommerce.affiliateTeam.managedCreators", { defaultValue: "Managed creators" })}</span>
+              <strong>{detailSummary.creatorRelationshipCount}</strong>
+            </div>
+          </div>
+
+          <div className="affiliate-bd-detail-scroll">
+            <section className="affiliate-bd-channel-command">
+              <div className="affiliate-bd-command-section-head">
                 <div>
                   <strong>{t("ecommerce.affiliateTeam.channels")}</strong>
                   <span>{t("ecommerce.affiliateTeam.channelTransferHint", { defaultValue: "Transfer an account by choosing another BD in its owner field." })}</span>
                 </div>
-                {!detailDeveloper.archivedAt && <div className="affiliate-bd-connect-actions">
-                  <button className={`btn btn-sm ${connectChannel === "WHATSAPP" ? "btn-primary" : "btn-secondary"}`} type="button" onClick={() => setConnectChannel((value) => value === "WHATSAPP" ? null : "WHATSAPP")}>WhatsApp</button>
-                  <button className={`btn btn-sm ${connectChannel === "EMAIL" ? "btn-primary" : "btn-secondary"}`} type="button" onClick={() => setConnectChannel((value) => value === "EMAIL" ? null : "EMAIL")}>Outlook</button>
-                </div>}
+                <span>{detailSummary.whatsappAccountCount + detailSummary.emailAccountCount}</span>
               </div>
-              <section className="affiliate-channel-section">
-                <ChannelAccountRows channel="WHATSAPP" accounts={detailWhatsapp} ownerOptions={ownerOptions} onOwnerChange={changeAccountOwner} t={t} />
-                <ChannelAccountRows channel="EMAIL" accounts={detailEmail} ownerOptions={ownerOptions} onOwnerChange={changeAccountOwner} t={t} />
-                {detailWhatsapp.length + detailEmail.length === 0 && <div className="affiliate-channel-empty">{t("ecommerce.affiliateTeam.noChannels")}</div>}
-              </section>
+              <div className="affiliate-bd-channel-grid">
+                <ChannelWorkspaceCard
+                  channel="WHATSAPP"
+                  accounts={detailWhatsapp}
+                  ownerOptions={ownerOptions}
+                  onOwnerChange={changeAccountOwner}
+                  canConnect={!detailDeveloper.archivedAt}
+                  connecting={connectChannel === "WHATSAPP"}
+                  onConnect={() => setConnectChannel((value) => value === "WHATSAPP" ? null : "WHATSAPP")}
+                  t={t}
+                />
+                <ChannelWorkspaceCard
+                  channel="EMAIL"
+                  accounts={detailEmail}
+                  ownerOptions={ownerOptions}
+                  onOwnerChange={changeAccountOwner}
+                  canConnect={!detailDeveloper.archivedAt}
+                  connecting={connectChannel === "EMAIL"}
+                  onConnect={() => setConnectChannel((value) => value === "EMAIL" ? null : "EMAIL")}
+                  t={t}
+                />
+              </div>
               {connectChannel && <div className="affiliate-channel-connectors">
                 {connectChannel === "WHATSAPP"
                   ? <AffiliateWhatsAppAccountPanel businessDeveloperId={detailDeveloper.id} showAccountList={false} onAccountsChanged={refreshChannelData} />
                   : <AffiliateEmailAccountPanel businessDeveloperId={detailDeveloper.id} showAccountList={false} onAccountsChanged={refreshChannelData} />}
               </div>}
+            </section>
+
+            <section className="affiliate-bd-profile-section">
+              <div className="affiliate-bd-command-section-head">
+                <div>
+                  <strong>{t("ecommerce.affiliateTeam.detailOverview", { defaultValue: "Overview" })}</strong>
+                  <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
+                </div>
+              </div>
+              <div className="affiliate-bd-profile-grid">
+                <dl className="affiliate-bd-metadata">
+                  <div><dt>{t("ecommerce.affiliateTeam.workMode")}</dt><dd>{detailDeveloper.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? t("ecommerce.affiliateTeam.humanOnly") : t("ecommerce.affiliateTeam.aiAssisted")}</dd></div>
+                  <div><dt>{t("ecommerce.affiliateTeam.regions")}</dt><dd>{detailDeveloper.regions.length > 0 ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ") : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })}</dd></div>
+                  <div><dt>{t("ecommerce.affiliateTeam.acceptingCreators")}</dt><dd>{t(detailDeveloper.acceptingCreators ? "common.yes" : "common.no")}</dd></div>
+                </dl>
+                <div className="affiliate-team-instructions">
+                  <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
+                  <p>{detailDeveloper.businessPrompt || t("ecommerce.affiliateTeam.noWorkingStyle", { defaultValue: "No additional working instructions." })}</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="affiliate-bd-detail-footer">
+            {archiveBlocked && <span>{t("ecommerce.affiliateTeam.archiveBlockedHint", { defaultValue: "Move all creators and outreach accounts before archiving this BD." })}</span>}
+            <div>
+              {!detailDeveloper.archivedAt && <button className="btn btn-secondary" type="button" onClick={() => beginEditDeveloper(detailDeveloper)}>{t("common.edit")}</button>}
+              {!detailDeveloper.archivedAt && <button className="btn btn-danger" type="button" onClick={handleArchiveDeveloper} disabled={archiveState.loading || archiveBlocked}>{t("ecommerce.affiliateTeam.archive")}</button>}
             </div>
-          )}
+          </div>
         </>}
       </Modal>
 
@@ -931,6 +960,44 @@ function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, t 
       <Select value={account.businessDeveloperId ?? UNASSIGNED_ID} onChange={(value) => onOwnerChange(channel, account.id, value)} options={ownerOptions} />
     </div>;
   })}</>;
+}
+
+function ChannelWorkspaceCard({ channel, accounts, ownerOptions, onOwnerChange, canConnect, connecting, onConnect, t }: {
+  channel: "WHATSAPP" | "EMAIL";
+  accounts: Array<{ id: string; businessDeveloperId?: string | null; status: string; displayName?: string | null; phoneNumber?: string | null; emailAddress?: string | null }>;
+  ownerOptions: Array<{ value: string; label: string }>;
+  onOwnerChange: (channel: "WHATSAPP" | "EMAIL", accountId: string, ownerId: string) => void;
+  canConnect: boolean;
+  connecting: boolean;
+  onConnect: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const label = channel === "WHATSAPP" ? "WhatsApp" : "Outlook";
+  const healthyCount = accounts.filter((account) => account.status.toLowerCase() === "connected").length;
+  return <section className={`affiliate-bd-channel-card is-${channel.toLowerCase()}`}>
+    <header className="affiliate-bd-channel-card-head">
+      <div className="affiliate-bd-channel-brand">
+        <span aria-hidden="true">{channel === "WHATSAPP" ? "W" : "O"}</span>
+        <div>
+          <strong>{label}</strong>
+          <small>{channel === "WHATSAPP" ? t("ecommerce.affiliateTeam.whatsappAccounts") : t("ecommerce.affiliateTeam.emailAccounts")}</small>
+        </div>
+      </div>
+      <span className={`affiliate-bd-channel-signal ${healthyCount === accounts.length && accounts.length > 0 ? "is-healthy" : ""}`}>
+        {healthyCount}/{accounts.length}
+      </span>
+    </header>
+    <div className="affiliate-bd-channel-card-body">
+      {accounts.length > 0
+        ? <ChannelAccountRows channel={channel} accounts={accounts} ownerOptions={ownerOptions} onOwnerChange={onOwnerChange} t={t} />
+        : <div className="affiliate-bd-channel-card-empty">{t("ecommerce.affiliateTeam.noChannels")}</div>}
+    </div>
+    {canConnect && <footer>
+      <button className={`btn btn-sm ${connecting ? "btn-primary" : "btn-secondary"}`} type="button" onClick={onConnect} aria-expanded={connecting}>
+        {t("ecommerce.affiliateTeam.connectChannel")} · {label}
+      </button>
+    </footer>}
+  </section>;
 }
 
 function normalizeSpreadsheetRow(row: Record<string, unknown>): Record<string, unknown> {
