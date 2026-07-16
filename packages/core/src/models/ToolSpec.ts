@@ -36,6 +36,7 @@ export const ToolModel = types
     description: types.optional(types.string, ""),
     supportsPersistResult: types.maybeNull(types.boolean),
     resultSchema: types.maybeNull(types.string),
+    resultMode: types.optional(types.string, "JSON"),
     category: types.string,
     source: types.optional(types.string, "entitled"),
     operationType: types.optional(types.string, ""),

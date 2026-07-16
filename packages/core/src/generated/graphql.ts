@@ -60,7 +60,7 @@ export interface ActionProposal {
   focusShopId: Scalars['ID']['output'];
   id: Scalars['ID']['output'];
   messageIntent?: Maybe<ActionProposalMessageIntent>;
-  /** Staff-facing proposal summary. Creator-facing text, if any, lives in messageIntent.text or a message step. */
+  /** Staff-facing proposal summary. Pending creator-facing content lives in ordered messageIntent.parts and is cleared at terminal state. */
   operatorSummary: Scalars['String']['output'];
   policySnapshot?: Maybe<ActionProposalPolicySnapshot>;
   /** Short-lived affiliate prediction cache ids carried with the frozen proposal until approval execution. */
@@ -155,41 +155,13 @@ export interface ActionProposalExecutionResultSnapshot {
 }
 
 export interface ActionProposalMessageIntent {
-  affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   creatorOpenId?: Maybe<Scalars['String']['output']>;
   emailSubject?: Maybe<Scalars['String']['output']>;
-  imageHeight?: Maybe<Scalars['Int']['output']>;
-  imageUrl?: Maybe<Scalars['String']['output']>;
-  imageWidth?: Maybe<Scalars['Int']['output']>;
-  messageType: AffiliateOutboundMessageType;
-  platformApplicationId?: Maybe<Scalars['String']['output']>;
-  platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
+  parts: Array<AffiliateMessagePart>;
   preferredChannel?: Maybe<AffiliateMessageChannel>;
-  productId?: Maybe<Scalars['String']['output']>;
-  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
-  text?: Maybe<Scalars['String']['output']>;
-  textHash?: Maybe<Scalars['String']['output']>;
-  textLength?: Maybe<Scalars['Int']['output']>;
-}
-
-export interface ActionProposalMessageIntentInput {
-  affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorOpenId?: InputMaybe<Scalars['String']['input']>;
-  emailSubject?: InputMaybe<Scalars['String']['input']>;
-  imageHeight?: InputMaybe<Scalars['Int']['input']>;
-  imageUrl?: InputMaybe<Scalars['String']['input']>;
-  imageWidth?: InputMaybe<Scalars['Int']['input']>;
-  messageType: AffiliateOutboundMessageType;
-  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
-  platformTargetCollaborationId?: InputMaybe<Scalars['String']['input']>;
-  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
-  productId?: InputMaybe<Scalars['String']['input']>;
-  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  text?: InputMaybe<Scalars['String']['input']>;
-  textHash?: InputMaybe<Scalars['String']['input']>;
-  textLength?: InputMaybe<Scalars['Int']['input']>;
+  subjectHash?: Maybe<Scalars['String']['output']>;
+  subjectLength?: Maybe<Scalars['Int']['output']>;
 }
 
 export interface ActionProposalPolicySnapshot {
@@ -1015,13 +987,13 @@ export interface AffiliateCreatorMessageHistoryItem {
   createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
   deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
   direction?: Maybe<AffiliateCreatorMessageDirection>;
-  messageId?: Maybe<Scalars['String']['output']>;
+  messageRef: Scalars['String']['output'];
   messageType?: Maybe<Scalars['String']['output']>;
+  parts: Array<AffiliateHistoryPart>;
   shopId?: Maybe<Scalars['ID']['output']>;
   shopName?: Maybe<Scalars['String']['output']>;
   source: Scalars['String']['output'];
   subject?: Maybe<Scalars['String']['output']>;
-  text?: Maybe<Scalars['String']['output']>;
 }
 
 /** Merged relationship-level affiliate creator chat history across channels. */
@@ -1167,6 +1139,15 @@ export const AffiliateDeliveryChannelSelectionSource = {
 } as const;
 
 export type AffiliateDeliveryChannelSelectionSource = typeof AffiliateDeliveryChannelSelectionSource[keyof typeof AffiliateDeliveryChannelSelectionSource];
+export const AffiliateDeliveryPartStatus = {
+  Failed: 'FAILED',
+  Queued: 'QUEUED',
+  Sent: 'SENT',
+  Skipped: 'SKIPPED',
+  Submitted: 'SUBMITTED'
+} as const;
+
+export type AffiliateDeliveryPartStatus = typeof AffiliateDeliveryPartStatus[keyof typeof AffiliateDeliveryPartStatus];
 /** Source of an affiliate creator-facing message delivery */
 export const AffiliateDeliverySource = {
   AgentAction: 'AGENT_ACTION',
@@ -1179,12 +1160,19 @@ export type AffiliateDeliverySource = typeof AffiliateDeliverySource[keyof typeo
 export const AffiliateDeliveryStatus = {
   Cancelled: 'CANCELLED',
   Failed: 'FAILED',
+  PartiallySent: 'PARTIALLY_SENT',
   Queued: 'QUEUED',
   Sent: 'SENT',
   Submitted: 'SUBMITTED'
 } as const;
 
 export type AffiliateDeliveryStatus = typeof AffiliateDeliveryStatus[keyof typeof AffiliateDeliveryStatus];
+export const AffiliateEmailAttachmentDisposition = {
+  Attachment: 'ATTACHMENT',
+  Inline: 'INLINE'
+} as const;
+
+export type AffiliateEmailAttachmentDisposition = typeof AffiliateEmailAttachmentDisposition[keyof typeof AffiliateEmailAttachmentDisposition];
 export interface AffiliateExpectedSalesModelVersion {
   bentomlTag?: Maybe<Scalars['String']['output']>;
   featureVersion?: Maybe<Scalars['String']['output']>;
@@ -1374,6 +1362,36 @@ export interface AffiliateExpectedSalesValidationIssue {
   severity?: Maybe<Scalars['String']['output']>;
 }
 
+export interface AffiliateHistoryPart {
+  agentReadable?: Maybe<Scalars['Boolean']['output']>;
+  attachmentRef?: Maybe<Scalars['String']['output']>;
+  caption?: Maybe<Scalars['String']['output']>;
+  durationMs?: Maybe<Scalars['Int']['output']>;
+  fileName?: Maybe<Scalars['String']['output']>;
+  height?: Maybe<Scalars['Int']['output']>;
+  inline?: Maybe<Scalars['Boolean']['output']>;
+  kind: AffiliateHistoryPartKind;
+  mimeType?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  providerType?: Maybe<Scalars['String']['output']>;
+  sampleApplicationId?: Maybe<Scalars['ID']['output']>;
+  sizeBytes?: Maybe<Scalars['Int']['output']>;
+  summary?: Maybe<Scalars['String']['output']>;
+  targetCollaborationId?: Maybe<Scalars['ID']['output']>;
+  text?: Maybe<Scalars['String']['output']>;
+  width?: Maybe<Scalars['Int']['output']>;
+}
+
+export const AffiliateHistoryPartKind = {
+  Attachment: 'ATTACHMENT',
+  FreeSampleCard: 'FREE_SAMPLE_CARD',
+  ProductCard: 'PRODUCT_CARD',
+  TargetCollaborationCard: 'TARGET_COLLABORATION_CARD',
+  Text: 'TEXT',
+  Unknown: 'UNKNOWN'
+} as const;
+
+export type AffiliateHistoryPartKind = typeof AffiliateHistoryPartKind[keyof typeof AffiliateHistoryPartKind];
 export interface AffiliateHumanBaselinePrediction {
   approvalCutoff?: Maybe<Scalars['Float']['output']>;
   historicalApprovalRate?: Maybe<Scalars['Float']['output']>;
@@ -1510,6 +1528,7 @@ export interface AffiliateMessageDelivery {
   idempotencyKey: Scalars['String']['output'];
   openClawRunId?: Maybe<Scalars['String']['output']>;
   openClawSessionKey?: Maybe<Scalars['String']['output']>;
+  parts: Array<AffiliateMessageDeliveryPart>;
   preferredChannel: AffiliateMessageChannel;
   providerMessageId?: Maybe<Scalars['String']['output']>;
   replyToLifecycleEventId?: Maybe<Scalars['ID']['output']>;
@@ -1517,13 +1536,61 @@ export interface AffiliateMessageDelivery {
   source: AffiliateDeliverySource;
   status: AffiliateDeliveryStatus;
   targetEventCursor?: Maybe<Scalars['Int']['output']>;
-  textHash: Scalars['String']['output'];
-  textLength: Scalars['Int']['output'];
+  textHash?: Maybe<Scalars['String']['output']>;
+  textLength?: Maybe<Scalars['Int']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
 }
 
+export interface AffiliateMessageDeliveryPart {
+  captionHash?: Maybe<Scalars['String']['output']>;
+  captionLength?: Maybe<Scalars['Int']['output']>;
+  emailDisposition?: Maybe<AffiliateEmailAttachmentDisposition>;
+  errorCode?: Maybe<Scalars['String']['output']>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  fileName?: Maybe<Scalars['String']['output']>;
+  kind: AffiliateMessagePartKind;
+  mimeType?: Maybe<Scalars['String']['output']>;
+  providerConfirmedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  providerMessageId?: Maybe<Scalars['String']['output']>;
+  providerSubmittedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  sequence: Scalars['Int']['output'];
+  sha256?: Maybe<Scalars['String']['output']>;
+  sizeBytes?: Maybe<Scalars['Int']['output']>;
+  status: AffiliateDeliveryPartStatus;
+  textHash?: Maybe<Scalars['String']['output']>;
+  textLength?: Maybe<Scalars['Int']['output']>;
+}
+
+export interface AffiliateMessagePart {
+  caption?: Maybe<Scalars['String']['output']>;
+  captionHash?: Maybe<Scalars['String']['output']>;
+  captionLength?: Maybe<Scalars['Int']['output']>;
+  draftAssetId?: Maybe<Scalars['ID']['output']>;
+  emailDisposition?: Maybe<AffiliateEmailAttachmentDisposition>;
+  fileName?: Maybe<Scalars['String']['output']>;
+  kind: AffiliateMessagePartKind;
+  mimeType?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  sampleApplicationId?: Maybe<Scalars['ID']['output']>;
+  sha256?: Maybe<Scalars['String']['output']>;
+  sizeBytes?: Maybe<Scalars['Int']['output']>;
+  targetCollaborationId?: Maybe<Scalars['ID']['output']>;
+  text?: Maybe<Scalars['String']['output']>;
+  textHash?: Maybe<Scalars['String']['output']>;
+  textLength?: Maybe<Scalars['Int']['output']>;
+}
+
+export const AffiliateMessagePartKind = {
+  Attachment: 'ATTACHMENT',
+  FreeSampleCard: 'FREE_SAMPLE_CARD',
+  ProductCard: 'PRODUCT_CARD',
+  TargetCollaborationCard: 'TARGET_COLLABORATION_CARD',
+  Text: 'TEXT'
+} as const;
+
+export type AffiliateMessagePartKind = typeof AffiliateMessagePartKind[keyof typeof AffiliateMessagePartKind];
 export interface AffiliateMlInsightSummariesInput {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
@@ -1584,15 +1651,17 @@ export interface AffiliateOperationalSettings {
   userId: Scalars['ID']['output'];
 }
 
-export const AffiliateOutboundMessageType = {
-  FreeSampleCard: 'FREE_SAMPLE_CARD',
-  Image: 'IMAGE',
-  ProductCard: 'PRODUCT_CARD',
-  TargetCollaborationCard: 'TARGET_COLLABORATION_CARD',
-  Text: 'TEXT'
-} as const;
+export interface AffiliateOutboundMessagePartInput {
+  caption?: InputMaybe<Scalars['String']['input']>;
+  draftAssetId?: InputMaybe<Scalars['ID']['input']>;
+  emailDisposition?: InputMaybe<AffiliateEmailAttachmentDisposition>;
+  kind: AffiliateMessagePartKind;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  sampleApplicationId?: InputMaybe<Scalars['ID']['input']>;
+  targetCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  text?: InputMaybe<Scalars['String']['input']>;
+}
 
-export type AffiliateOutboundMessageType = typeof AffiliateOutboundMessageType[keyof typeof AffiliateOutboundMessageType];
 /** Seller outreach account connection event for affiliate direct-channel onboarding. */
 export interface AffiliateOutreachAccountConnectedPayload {
   accountId: Scalars['ID']['output'];
@@ -1806,7 +1875,9 @@ export interface AffiliateRelationshipHistoryMessageSummary {
   deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
   direction?: Maybe<AffiliateCreatorMessageDirection>;
   errorMessage?: Maybe<Scalars['String']['output']>;
+  messageRef?: Maybe<Scalars['String']['output']>;
   messageType?: Maybe<Scalars['String']['output']>;
+  parts?: Maybe<Array<AffiliateHistoryPart>>;
   preferredChannel?: Maybe<AffiliateMessageChannel>;
   shopName?: Maybe<Scalars['String']['output']>;
   subject?: Maybe<Scalars['String']['output']>;
@@ -8727,7 +8798,7 @@ export interface RequestAffiliateActionInput {
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** The collaboration.lastSignalAt value that this action request handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  messageIntent?: InputMaybe<ActionProposalMessageIntentInput>;
+  messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
   operatorSummary: Scalars['String']['input'];
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -8754,27 +8825,19 @@ export interface ResolveAffiliateCollaborationStaffActionPayload {
   collaborationRecord: AffiliateCollaborationRecord;
 }
 
-/** One backend-supported TikTok affiliate platform write action. Populate required fields matching type: SEND_MESSAGE -> messageIntent or the typed messageText shortcut, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
+/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   /** Optional action-specific collaboration target inside the CreatorRelationship. Use this when a bundled relationship action targets a specific collaboration record; the top-level collaborationRecordId remains only a fallback focus. */
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
-  /** Required for SEND_MESSAGE when a new email thread must be started. */
-  emailSubject?: InputMaybe<Scalars['String']['input']>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  /** Required only when type is SEND_MESSAGE unless messageText is provided. For TEXT messages, text must contain the exact creator-facing message. Do not populate this for REVIEW_SAMPLE_APPLICATION. */
+  /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
-  /** Agent-facing shortcut for SEND_MESSAGE actions. Put the exact creator-facing text here. Backend normalizes this into messageIntent.text before validation and execution. */
-  messageText?: InputMaybe<Scalars['String']['input']>;
-  /** Optional SEND_MESSAGE shortcut companion. Defaults to TEXT when messageText or messageIntent.text is present. */
-  messageType?: InputMaybe<AffiliateOutboundMessageType>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with sampleApplicationRecordId and sampleReviewDecision when sampleReviewIntent is omitted. */
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Optional SEND_MESSAGE channel override. Omit to inherit the latest inbound channel. */
-  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with platformApplicationId and sampleReviewDecision when sampleReviewIntent is omitted. */
@@ -8819,24 +8882,14 @@ export interface ResolveAffiliateWorkItemInput {
 }
 
 export interface ResolveAffiliateWorkItemMessageIntentInput {
-  affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   /** Required when starting a new email thread. Ignored for an exact reply to an existing email message. */
   emailSubject?: InputMaybe<Scalars['String']['input']>;
-  imageHeight?: InputMaybe<Scalars['Int']['input']>;
-  imageUrl?: InputMaybe<Scalars['String']['input']>;
-  imageWidth?: InputMaybe<Scalars['Int']['input']>;
-  /** Optional for agent work-item resolution. Backend defaults text-only messages to TEXT. */
-  messageType?: InputMaybe<AffiliateOutboundMessageType>;
-  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
-  platformTargetCollaborationId?: InputMaybe<Scalars['String']['input']>;
+  /** One to ten ordered creator-facing message parts. Use only text, staged draftAssetId attachments, or typed platform-native cards. */
+  parts: Array<AffiliateOutboundMessagePartInput>;
   /** Optional explicit outbound channel override. Omit to inherit the trigger channel or relationship default. */
   preferredChannel?: InputMaybe<AffiliateMessageChannel>;
-  productId?: InputMaybe<Scalars['String']['input']>;
-  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  /** Required for affiliate_resolve_work_item SEND_MESSAGE actions. Must be the exact creator-facing text to send; do not put this text only in operatorSummary. */
-  text: Scalars['String']['input'];
 }
 
 export interface ResolveAffiliateWorkItemPayload {
@@ -8933,9 +8986,9 @@ export interface SendAffiliateCreatorMessageInput {
   creatorRelationshipId: Scalars['ID']['input'];
   emailSubject?: InputMaybe<Scalars['String']['input']>;
   idempotencyKey?: InputMaybe<Scalars['String']['input']>;
+  parts: Array<AffiliateOutboundMessagePartInput>;
   preferredChannel?: InputMaybe<AffiliateMessageChannel>;
   shopId: Scalars['ID']['input'];
-  text: Scalars['String']['input'];
 }
 
 export interface SendAffiliateCreatorMessagePayload {
@@ -9873,6 +9926,7 @@ export interface ToolContextBinding {
 /** Unique tool identifier */
 export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
+  AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetRelationshipHistory: 'AFFILIATE_GET_RELATIONSHIP_HISTORY',
@@ -9880,9 +9934,11 @@ export const ToolId = {
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
+  AffiliateReadMessageAttachment: 'AFFILIATE_READ_MESSAGE_ATTACHMENT',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
   AffiliateSetCreatorEmail: 'AFFILIATE_SET_CREATOR_EMAIL',
   AffiliateSetCreatorWhatsapp: 'AFFILIATE_SET_CREATOR_WHATSAPP',
+  AffiliateUploadDraftAttachment: 'AFFILIATE_UPLOAD_DRAFT_ATTACHMENT',
   CsDismissConversationEscalations: 'CS_DISMISS_CONVERSATION_ESCALATIONS',
   CsEscalate: 'CS_ESCALATE',
   CsGetEscalationResult: 'CS_GET_ESCALATION_RESULT',
@@ -9983,6 +10039,8 @@ export interface ToolSpec {
   restEndpoint?: Maybe<Scalars['String']['output']>;
   /** REST HTTP method */
   restMethod?: Maybe<Scalars['String']['output']>;
+  /** Result materialization mode: JSON or MEDIA */
+  resultMode?: Maybe<Scalars['String']['output']>;
   /** Agent-facing result contract schema */
   resultSchema?: Maybe<Scalars['String']['output']>;
   runProfiles?: Maybe<Array<SystemRunProfile>>;
