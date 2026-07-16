@@ -72,4 +72,15 @@ describe("tool-specs-sync", () => {
     expect(computeToolSpecsDigest(left)).toBe(computeToolSpecsDigest(right));
     expect(computeToolNameDigest(left)).toBe(computeToolNameDigest(right));
   });
+
+  it("requests deeply nested parameter schemas used by structured Affiliate actions", () => {
+    const childSelections = TOOL_SPECS_SYNC_QUERY.match(/children\s*\{/g) ?? [];
+    const nullableSelections = TOOL_SPECS_SYNC_QUERY.match(/^\s+nullable\s*$/gm) ?? [];
+
+    // input -> action -> messageIntent -> parts -> part fields requires four
+    // child edges. Keep extra capacity for other typed tool inputs so a nested
+    // object is never silently exposed to the model as an empty schema.
+    expect(childSelections.length).toBeGreaterThanOrEqual(6);
+    expect(nullableSelections).toHaveLength(childSelections.length + 1);
+  });
 });
