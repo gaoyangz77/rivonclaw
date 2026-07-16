@@ -73,6 +73,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [showArchivedDevelopers, setShowArchivedDevelopers] = useState(false);
   const [detailSummary, setDetailSummary] = useState<DeveloperSummary | null>(null);
   const [connectChannel, setConnectChannel] = useState<ConnectChannel>(null);
+  const [reconnectWhatsAppAccountId, setReconnectWhatsAppAccountId] = useState<string | null>(null);
   const [showUnassignedAccounts, setShowUnassignedAccounts] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingDeveloperId, setEditingDeveloperId] = useState<string | null>(null);
@@ -231,6 +232,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   function openDeveloperDetail(summary: DeveloperSummary) {
     setDetailSummary(summary);
     setConnectChannel(null);
+    setReconnectWhatsAppAccountId(null);
   }
 
   function beginCreateDeveloper() {
@@ -770,7 +772,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
       <Modal
         isOpen={Boolean(detailDeveloper && detailSummary)}
-        onClose={() => setDetailSummary(null)}
+        onClose={() => {
+          setDetailSummary(null);
+          setConnectChannel(null);
+          setReconnectWhatsAppAccountId(null);
+        }}
         title={detailDeveloper?.displayName ?? t("ecommerce.affiliateTeam.businessDeveloper")}
         maxWidth={1120}
         className="affiliate-bd-detail-modal"
@@ -818,7 +824,14 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                   onOwnerChange={changeAccountOwner}
                   canConnect={!detailDeveloper.archivedAt}
                   connecting={connectChannel === "WHATSAPP"}
-                  onConnect={() => setConnectChannel((value) => value === "WHATSAPP" ? null : "WHATSAPP")}
+                  onConnect={() => {
+                    setReconnectWhatsAppAccountId(null);
+                    setConnectChannel((value) => value === "WHATSAPP" ? null : "WHATSAPP");
+                  }}
+                  onReconnect={(accountId) => {
+                    setReconnectWhatsAppAccountId(accountId);
+                    setConnectChannel("WHATSAPP");
+                  }}
                   t={t}
                 />
                 <ChannelWorkspaceCard
@@ -834,7 +847,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </div>
               {connectChannel && <div className="affiliate-channel-connectors">
                 {connectChannel === "WHATSAPP"
-                  ? <AffiliateWhatsAppAccountPanel businessDeveloperId={detailDeveloper.id} showAccountList={false} onAccountsChanged={refreshChannelData} />
+                  ? <AffiliateWhatsAppAccountPanel
+                      businessDeveloperId={detailDeveloper.id}
+                      showAccountList={false}
+                      reconnectBindingId={reconnectWhatsAppAccountId}
+                      onReconnectComplete={() => {
+                        setReconnectWhatsAppAccountId(null);
+                        setConnectChannel(null);
+                      }}
+                      onAccountsChanged={refreshChannelData}
+                    />
                   : <AffiliateEmailAccountPanel businessDeveloperId={detailDeveloper.id} showAccountList={false} onAccountsChanged={refreshChannelData} />}
               </div>}
             </section>
@@ -938,11 +960,12 @@ function ChannelCount({ total, unhealthy }: { total: number; unhealthy: number }
   </span>;
 }
 
-function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, t }: {
+function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, onReconnect, t }: {
   channel: "WHATSAPP" | "EMAIL";
-  accounts: Array<{ id: string; businessDeveloperId?: string | null; status: string; displayName?: string | null; phoneNumber?: string | null; emailAddress?: string | null }>;
+  accounts: Array<{ id: string; businessDeveloperId?: string | null; status: string; displayName?: string | null; phoneNumber?: string | null; emailAddress?: string | null; lastError?: string | null }>;
   ownerOptions: Array<{ value: string; label: string }>;
   onOwnerChange: (channel: "WHATSAPP" | "EMAIL", accountId: string, ownerId: string) => void;
+  onReconnect?: (accountId: string) => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return <>{accounts.map((account) => {
@@ -955,21 +978,28 @@ function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, t 
       <div>
         <strong>{account.displayName || address || t("ecommerce.affiliateTeam.unnamedAccount")}</strong>
         {address && account.displayName && <small>{address}</small>}
+        {account.lastError && <small className="affiliate-channel-error-reason">{account.lastError}</small>}
       </div>
       <span className={`affiliate-channel-health ${account.status.toLowerCase()}`}>{statusLabel}</span>
+      {channel === "WHATSAPP" && account.status !== GQL.WhatsAppAccountStatus.Connected && account.status !== GQL.WhatsAppAccountStatus.Revoked && onReconnect && (
+        <button className="btn btn-primary btn-sm affiliate-channel-reconnect" type="button" onClick={() => onReconnect(account.id)}>
+          {t("ecommerce.affiliateTeam.reconnectChannel", { defaultValue: "Reconnect" })}
+        </button>
+      )}
       <Select value={account.businessDeveloperId ?? UNASSIGNED_ID} onChange={(value) => onOwnerChange(channel, account.id, value)} options={ownerOptions} />
     </div>;
   })}</>;
 }
 
-function ChannelWorkspaceCard({ channel, accounts, ownerOptions, onOwnerChange, canConnect, connecting, onConnect, t }: {
+function ChannelWorkspaceCard({ channel, accounts, ownerOptions, onOwnerChange, canConnect, connecting, onConnect, onReconnect, t }: {
   channel: "WHATSAPP" | "EMAIL";
-  accounts: Array<{ id: string; businessDeveloperId?: string | null; status: string; displayName?: string | null; phoneNumber?: string | null; emailAddress?: string | null }>;
+  accounts: Array<{ id: string; businessDeveloperId?: string | null; status: string; displayName?: string | null; phoneNumber?: string | null; emailAddress?: string | null; lastError?: string | null }>;
   ownerOptions: Array<{ value: string; label: string }>;
   onOwnerChange: (channel: "WHATSAPP" | "EMAIL", accountId: string, ownerId: string) => void;
   canConnect: boolean;
   connecting: boolean;
   onConnect: () => void;
+  onReconnect?: (accountId: string) => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const label = channel === "WHATSAPP" ? "WhatsApp" : "Outlook";
@@ -989,7 +1019,7 @@ function ChannelWorkspaceCard({ channel, accounts, ownerOptions, onOwnerChange, 
     </header>
     <div className="affiliate-bd-channel-card-body">
       {accounts.length > 0
-        ? <ChannelAccountRows channel={channel} accounts={accounts} ownerOptions={ownerOptions} onOwnerChange={onOwnerChange} t={t} />
+        ? <ChannelAccountRows channel={channel} accounts={accounts} ownerOptions={ownerOptions} onOwnerChange={onOwnerChange} onReconnect={onReconnect} t={t} />
         : <div className="affiliate-bd-channel-card-empty">{t("ecommerce.affiliateTeam.noChannels")}</div>}
     </div>
     {canConnect && <footer>
