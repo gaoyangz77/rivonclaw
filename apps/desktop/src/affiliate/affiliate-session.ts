@@ -3,7 +3,6 @@ import { createLogger } from "@rivonclaw/logger";
 import {
   GQL,
   ScopeType,
-  type AffiliateNewMessageFrame,
   type AffiliateOrderAttributedFrame,
   type AffiliateSampleApplicationUpdatedFrame,
   type AffiliateTargetCollaborationUpdatedFrame,
@@ -16,13 +15,11 @@ import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
   AFFILIATE_CONTEXT_BUILDER_QUERY,
-  DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateActionProposalDeltaQueryResult,
   type AffiliateContextBuilderQueryResult,
-  type DeliverAffiliateCreatorTextMutationResult,
   type AffiliateWorkItemsQueryResult,
   type AffiliateWorkspaceQueryResult,
   type ResolveAffiliateWorkItemMutationResult,
@@ -103,7 +100,6 @@ interface AffiliateResolvedDispatchContext {
 
 export enum AffiliateAgentRunMode {
   OPERATOR_REASONING = "OPERATOR_REASONING",
-  CREATOR_OUTREACH = "CREATOR_OUTREACH",
 }
 
 export enum AffiliateTriggerKind {
@@ -123,11 +119,6 @@ export class AffiliateSession {
   private pendingRunCompletions = new Map<string, GQL.AffiliateWorkItem>();
   private runCheckpoints = new Map<string, AffiliateRunCheckpoint>();
   private runtimeFailedRuns = new Set<string>();
-  private creatorOutreachRuns = new Map<string, {
-    text: string;
-    deliveryCount: number;
-    preferredChannel?: GQL.AffiliateMessageChannel;
-  }>();
 
   constructor(
     private shop: AffiliateShopContext,
@@ -162,32 +153,22 @@ export class AffiliateSession {
   }
 
   private buildExtraSystemPrompt(runMode: AffiliateAgentRunMode): string {
-    const isCreatorOutreach = runMode === AffiliateAgentRunMode.CREATOR_OUTREACH;
     return [
       "## Affiliate / Creator Management Agent",
       "",
       "You are operating an affiliate creator-management workflow for a TikTok Shop seller.",
-      isCreatorOutreach
-        ? "The active run is creator-facing. Your final assistant text may be delivered to the creator by the affiliate bridge."
-        : "This is not a customer-service conversation. Do not assume your assistant text is sent to the creator.",
+      "This is an internal reasoning run. Final assistant text is never sent to the creator.",
       "",
       "## Active Run Mode",
       `- ${runMode}`,
-      ...(isCreatorOutreach
-        ? [
-          "- CREATOR_OUTREACH: final assistant text is creator-facing and may be auto-forwarded through direct-channel delivery such as WhatsApp or Outlook email.",
-          "- Keep internal reasoning, tool plans, JSON, and operator notes out of final assistant text.",
-          "- If no creator-facing reply should be sent, make the final assistant response exactly NO_REPLY.",
-          "- Do not call affiliate_resolve_work_item just to send a plain reply; the bridge delivers the final assistant text.",
-        ]
-        : [
-          "- OPERATOR_REASONING: assistant output is internal/operator-facing and must not be auto-sent to a creator.",
-          "- For backend work items, put staff-facing detail in operatorSummary, then make the final assistant response exactly NO_REPLY after the required tool call.",
-        ]),
+      "- OPERATOR_REASONING: assistant output is internal/operator-facing and must not be auto-sent to a creator.",
+      "- Put staff-facing detail in operatorSummary, then make the final assistant response exactly NO_REPLY after the required tool call.",
       "",
       "## Channel Model",
       "- WhatsApp and Outlook email are direct affiliate outreach channels for non-China TikTok Shop creator communication.",
-      "- TikTok Shop platform chat is mainly for first contact, asking the creator for WhatsApp/email, and fallback when direct-channel delivery is unavailable or fails.",
+      "- Reply on the latest inbound channel by default. Only set preferredChannel when the creator explicitly asks to switch channels.",
+      "- Proactive outreach with no inbound channel uses backend selection order WhatsApp, then Outlook email, then TikTok Shop platform chat.",
+      "- A selected channel never falls back to another channel when unavailable or when sending fails.",
       "- Keep context at the seller-creator relationship level: WhatsApp, Outlook email, and platform chat are different channels for the same relationship, not separate memories.",
       "- When the creator provides or corrects a WhatsApp number, use affiliate_set_creator_whatsapp. Use affiliate_check_creator_whatsapp when the number needs validation.",
       "- When the creator provides or corrects an email address, use affiliate_set_creator_email.",
@@ -196,12 +177,14 @@ export class AffiliateSession {
       "",
       "## Operating Model",
       "- Use backend affiliate tools as the source of truth for campaigns, creator lifecycle state, tags, approval policies, and action execution.",
-      "- OPERATOR_REASONING work-item runs must end with exactly one affiliate_resolve_work_item call. A final text response alone does not complete a backend work item.",
-      "- CREATOR_OUTREACH signal runs are different: for a plain creator reply, final assistant text is the message to deliver and affiliate_resolve_work_item is not required.",
+      "- Every work-item run must end with exactly one affiliate_resolve_work_item call. A final text response alone never completes or sends a backend work item.",
       "- If a structured TikTok platform action is needed, such as reviewing a sample application or creating a target collaboration, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed platform action payload.",
       "- affiliate_resolve_work_item supports only three platform action types: SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent action types such as CHANGE_COMMISSION; use NEEDS_STAFF_REVIEW for unsupported seller operations.",
       "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageText, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
       "- For SEND_MESSAGE, action.messageText is required and must contain the final text the creator should receive. Do not put the intended creator message only in operatorSummary.",
+      "- Omit preferredChannel to reply on the trigger channel. Set it only for an intentional channel switch. For a proactive EMAIL without an existing thread, emailSubject is required.",
+      "- Never pass provider message, conversation, thread, or account route identifiers; backend resolves exact routes from the work boundary and relationship.",
+      "- After SEND_MESSAGE succeeds, enters approval, or returns a delivery failure, make the final assistant response exactly NO_REPLY.",
       "- For REVIEW_SAMPLE_APPLICATION, use action.sampleApplicationRecordId, action.platformApplicationId, action.sampleReviewDecision, and optional action.rejectReason. Do not send sampleReviewIntent: {}.",
       "- Omit optional fields when unknown. Never send empty strings for Date, ID, or object fields. nextSellerActionAt is only for DEFERRED decisions and must be a valid ISO timestamp.",
       "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",
@@ -215,7 +198,8 @@ export class AffiliateSession {
       "- Desktop resolves a small affiliate workspace snapshot before dispatch when possible. Use it as the initial fact set.",
       "- Call affiliate_get_workspace with creatorRelationshipId when a decision depends on dynamic facts not present in the injected snapshot, such as creator follower count, creator relation/tags, sample status, product context, approval policies, campaign setup, or pending proposals.",
       "- If you need a variable fact to apply a merchant rule or make a decision, for example follower count, GMV, prior performance, sample cost, inventory, or fulfillment state, fetch the narrow current CreatorRelationship workspace with affiliate_get_workspace before deciding.",
-      "- Use affiliate_get_relationship_history when you need relationship-level audit events, previous proposal decisions, prior sample actions, creator communications, or past staff/agent outcomes before deciding. Query by creatorRelationshipId; do not use provider conversation routes as history keys. Use affiliate_get_workspace for current entity snapshots.",
+      "- For every creator reply work item, first call affiliate_get_relationship_history with creatorRelationshipId to read the Provider-backed message history before drafting or sending. Do not rely on the content-free lifecycle projection or memory for message text.",
+      "- Use affiliate_get_relationship_history for relationship-level audit events, previous proposal decisions, prior sample actions, creator communications, or past staff/agent outcomes. Do not use provider conversation routes as history keys. Use affiliate_get_workspace for current entity snapshots.",
       "- Use affiliate_predict_creator_product_fit when a creator message or card mentions a candidate product and you need creator/product fit evidence before deciding whether to proceed, decline, create a target collaboration, or reply. The tool returns product summary, decision thresholds, and model prediction without confirming or binding the product to the collaboration.",
       "- A product card in a creator message is candidate evidence only. Do not treat it as the confirmed collaboration product unless Backend Work Context already has a product context, sample application, or target collaboration for that product.",
       "- Treat creator messages as continuation work: understand the request, check relevant campaign/collaboration/sample state, then resolve the work item through affiliate_resolve_work_item.",
@@ -235,35 +219,6 @@ export class AffiliateSession {
       ...(this.affiliateContext.collaborationRecordId ? [`- Related Collaboration Record ID: ${this.affiliateContext.collaborationRecordId}`] : []),
       ...(this.affiliateContext.orderId ? [`- Order ID: ${this.affiliateContext.orderId}`] : []),
     ].join("\n");
-  }
-
-  async handleCreatorMessage(frame: AffiliateNewMessageFrame): Promise<AffiliateDispatchResult> {
-    if (!this.affiliateContext.creatorRelationshipId) {
-      log.warn(
-        `Skipping affiliate creator message ${frame.messageId} because no creatorRelationshipId was provided; ` +
-        "relationship-level backend signal/work item must materialize this message before agent dispatch",
-      );
-      return { runId: undefined };
-    }
-
-    const generation = this.beginCreatorMessageTakeover();
-    const message = this.buildRelationshipMessageUpdateWorkPackage({
-      currentSignalId: frame.messageId,
-      currentChannel: GQL.AffiliateMessageChannel.PlatformChat,
-      messageType: frame.messageType,
-      senderRole: frame.senderRole,
-      eventTime: String(frame.createTime),
-    });
-
-    if (generation !== this.dispatchGeneration) return { runId: undefined };
-
-    const result = await this.dispatch({
-      message,
-      idempotencyKey: `affiliate:${this.platform}:${frame.messageId}`,
-      abortActive: false,
-      runMode: AffiliateAgentRunMode.CREATOR_OUTREACH,
-    });
-    return result;
   }
 
   async handleWorkItem(workItem: GQL.AffiliateWorkItem): Promise<AffiliateDispatchResult> {
@@ -289,8 +244,8 @@ export class AffiliateSession {
     if (isCreatorReplyWorkItem(workItem)) {
       generation = this.beginCreatorMessageTakeover();
       const messageUpdate = this.buildRelationshipMessageUpdateWorkPackage({
-        currentSignalId: workItemCurrentMessageId(workItem) ?? undefined,
-        currentChannel: GQL.AffiliateMessageChannel.PlatformChat,
+        currentSignalId: workItem.triggerLifecycleEventId ?? workItemCurrentMessageId(workItem) ?? undefined,
+        currentChannel: workItem.triggerChannel ?? undefined,
         eventTime: workItem.collaboration?.lastCreatorMessageAt ?? workItem.creatorRelationship?.lastInboundAt ?? undefined,
       });
       relationshipMessageUpdate = [relationshipMessageUpdate, messageUpdate].join("\n\n");
@@ -332,7 +287,6 @@ export class AffiliateSession {
     const runtimeFailed = this.runtimeFailedRuns.delete(runId);
     if (options.errored || runtimeFailed) {
       this.runCheckpoints.delete(runId);
-      this.creatorOutreachRuns.delete(runId);
       if (workItem != null) this.pendingRunCompletions.delete(runId);
       log.warn(
         `Affiliate agent run ended with gateway error; leaving work item unacked for retry: ` +
@@ -358,26 +312,7 @@ export class AffiliateSession {
       this.runtimeFailedRuns.add(runId);
     }
 
-    if (!this.creatorOutreachRuns.has(runId)) return false;
-
-    if (stream === "assistant") {
-      const text = data.text;
-      if (typeof text === "string") {
-        const state = this.creatorOutreachRuns.get(runId);
-        if (state) state.text = text;
-      }
-      return true;
-    }
-
-    if (stream === "tool" && data.phase === "start") {
-      return true;
-    }
-
-    if (stream === "lifecycle" && (data.phase === "end" || data.phase === "error")) {
-      return true;
-    }
-
-    return true;
+    return false;
   }
 
   private isRuntimeFailureAgentEvent(stream: string, data: Record<string, unknown>): boolean {
@@ -390,54 +325,6 @@ export class AffiliateSession {
       data.rawError,
     ].filter((value): value is string => typeof value === "string");
     return text.some((value) => AGENT_RUNTIME_FAILURE_PATTERNS.some((pattern) => pattern.test(value)));
-  }
-
-  private async flushCreatorOutreachText(runId: string): Promise<void> {
-    const state = this.creatorOutreachRuns.get(runId);
-    if (!state) return;
-    const text = sanitizeCreatorOutreachText(state.text);
-    state.text = "";
-    if (!text) return;
-    if (!this.affiliateContext.creatorRelationshipId) {
-      log.warn(`Creator outreach run ${runId} has no creatorRelationshipId; dropping final text`);
-      return;
-    }
-    const authSession = getAuthSession();
-    if (!authSession) {
-      log.warn(`No auth session available, cannot deliver affiliate creator text for run ${runId}`);
-      return;
-    }
-    state.deliveryCount += 1;
-    try {
-      const checkpoint = this.runCheckpoints.get(runId);
-      const result = await authSession.graphqlFetch<DeliverAffiliateCreatorTextMutationResult>(
-        DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION,
-        {
-          input: {
-            shopId: this.affiliateContext.shopId,
-            creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
-            text,
-            idempotencyKey: `affiliate-delivery:${runId}:${state.deliveryCount}`,
-            runId,
-            sessionKey: this.scopeKey,
-            baseCheckpointId: checkpoint?.baseCheckpointId ?? null,
-            baseEventCursor: checkpoint?.baseEventCursor ?? 0,
-            candidateCheckpointId: checkpoint?.candidateCheckpointId,
-            targetEventCursor: checkpoint?.targetEventCursor ?? 0,
-            source: "AGENT_AUTO_FORWARD",
-            fallbackToPlatform: true,
-            preferredChannel: state.preferredChannel,
-          },
-        },
-      );
-      const delivery = result.deliverAffiliateCreatorText;
-      log.info(
-        `Affiliate creator text delivered: runId=${runId} delivery=${delivery.id} ` +
-        `status=${delivery.status} channel=${delivery.actualChannel ?? ""}`,
-      );
-    } catch (err) {
-      log.error(`Failed to deliver affiliate creator text for run ${runId}:`, err);
-    }
   }
 
   private async setup(): Promise<void> {
@@ -461,7 +348,6 @@ export class AffiliateSession {
     idempotencyKey: string;
     abortActive?: boolean;
     runMode?: AffiliateAgentRunMode;
-    preferredChannel?: GQL.AffiliateMessageChannel;
     baseCheckpointId?: string | null;
     baseEventCursor?: number | null;
     targetEventCursor?: number | null;
@@ -518,13 +404,6 @@ export class AffiliateSession {
         candidateCheckpointId: checkpoint.candidateCheckpointId,
         targetEventCursor: checkpoint.targetEventCursor,
       });
-      if (runMode === AffiliateAgentRunMode.CREATOR_OUTREACH) {
-        this.creatorOutreachRuns.set(response.runId, {
-          text: "",
-          deliveryCount: 0,
-          preferredChannel: params.preferredChannel,
-        });
-      }
       log.info(`Affiliate agent run dispatched: runId=${response.runId} scope=${this.scopeKey}`);
     } else {
       this.activeRunId = null;
@@ -635,9 +514,6 @@ export class AffiliateSession {
   ): Promise<void> {
     try {
       await this.createCandidateCheckpoint(runId);
-      if (this.creatorOutreachRuns.has(runId)) {
-        await this.flushCreatorOutreachText(runId);
-      }
       if (workItem != null) {
         await this.completeWorkItemIfUnresolved(runId, workItem);
       }
@@ -648,7 +524,6 @@ export class AffiliateSession {
         creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
         runId,
       });
-      this.creatorOutreachRuns.delete(runId);
       this.pendingRunCompletions.delete(runId);
       this.runCheckpoints.delete(runId);
     }
@@ -771,10 +646,12 @@ export class AffiliateSession {
       "Message content is intentionally absent from this signal and is not mirrored in local storage.",
       "Call affiliate_get_relationship_history with this creatorRelationshipId before deciding or replying. Use the trigger channel as channel provenance, not as a workspace key.",
       "Read the provider-returned cross-channel context and handle the latest creator-side message. Do not use or request provider conversation/thread ids.",
-      "If provider history is unavailable, do not guess from signal metadata and do not use a local-message fallback; answer NO_REPLY so the work can be retried safely.",
-      "If this is a plain creator reply, write the creator-facing message as final assistant text so the affiliate bridge can deliver it through direct-channel routing.",
-      "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying or answer NO_REPLY if no creator-facing response is needed.",
-      "If the creator provides an email address, use affiliate_set_creator_email before replying or answer NO_REPLY if no creator-facing response is needed.",
+      "If provider history is unavailable, do not guess from signal metadata and do not use a local-message fallback; call affiliate_resolve_work_item with NEEDS_STAFF_REVIEW, then output exactly NO_REPLY.",
+      "If a reply is needed, call affiliate_resolve_work_item with REQUEST_ACTION, action.type SEND_MESSAGE, and the exact creator-facing action.messageText.",
+      "Omit preferredChannel to reply through the trigger channel. Only override it when the creator explicitly asks to switch channels.",
+      "After the structured action completes, is queued for approval, or fails delivery, output exactly NO_REPLY.",
+      "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying; if no creator-facing response is needed, resolve the work item with NO_ACTION_NEEDED, then output exactly NO_REPLY.",
+      "If the creator provides an email address, use affiliate_set_creator_email before replying; if no creator-facing response is needed, resolve the work item with NO_ACTION_NEEDED, then output exactly NO_REPLY.",
     ].join("\n");
   }
 
@@ -1248,28 +1125,6 @@ function renderPredictionPlainMeaning(expectedSalesUnits: number | null | undefi
 function numberFromUnknown(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   return null;
-}
-
-function sanitizeCreatorOutreachText(text: string): string {
-  let cleaned = text.trim();
-  if (!cleaned || cleaned === "NO_REPLY") return "";
-  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, " ");
-  cleaned = cleaned.replace(/```[\s\S]*?```/g, " ");
-  cleaned = cleaned
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => {
-      if (!line) return false;
-      if (/^\{[\s\S]*"(?:tool_uses|recipient_name|parameters|tool|arguments|name)"[\s\S]*\}$/.test(line)) {
-        return false;
-      }
-      if (/^to=functions\.[\w.-]+/i.test(line)) return false;
-      return true;
-    })
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-  return cleaned === "NO_REPLY" ? "" : cleaned;
 }
 
 function appendOptionalSection(message: string, section?: string): string {

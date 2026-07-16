@@ -143,7 +143,6 @@ function renderOpsPanel(status: Partial<AffiliateOutreachOperationalStatus>) {
         data: {
           affiliateOutreachOperationalStatus: {
             since: "2026-06-24T12:00:00.000Z",
-            fallbackCount: 3,
             failedDeliveryCount: 2,
             webhookReceivedCount: 11,
             ignoredWebhookCount: 1,
@@ -301,7 +300,6 @@ describe("affiliate outreach connector onboarding gates", () => {
 
     expect(screen.getByText("Direct sent: 9")).toBeTruthy();
     expect(screen.getByText("Direct inbound: 17")).toBeTruthy();
-    expect(screen.getByText("Fallbacks: 3")).toBeTruthy();
     expect(screen.getByText("Failed: 2")).toBeTruthy();
     expect(screen.getByText("Webhooks: 11")).toBeTruthy();
     expect(screen.getByText("Ignored webhooks: 1")).toBeTruthy();
@@ -342,7 +340,6 @@ type MicrosoftGraphConnectorStatus = {
 
 type AffiliateOutreachOperationalStatus = {
   since: string;
-  fallbackCount: number;
   failedDeliveryCount: number;
   webhookReceivedCount: number;
   ignoredWebhookCount: number;

@@ -800,21 +800,15 @@ describe("affiliate work item dispatch", () => {
     expect(context?.userId).toBe("user-001");
   });
 
-  it("auto-forwards creator-outreach assistant text through affiliate delivery bridge", async () => {
-    const graphqlFetch = vi.fn().mockImplementation(async (query: string) => {
-      if (query.includes("DeliverAffiliateCreatorText")) {
-        return {
-          deliverAffiliateCreatorText: {
-            id: "delivery-001",
-            status: "SENT",
-            preferredChannel: "WHATSAPP",
-            actualChannel: "WHATSAPP",
-          },
-        };
-      }
-      throw new Error("delta unavailable");
+  it("dispatches creator replies as internal work with a structured SEND_MESSAGE contract", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      throw new Error(`Unexpected GraphQL call: ${query}`);
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
+    const workItem = createCreatorReplyWorkItem({
+      triggerChannel: GQL.AffiliateMessageChannel.Whatsapp,
+      triggerLifecycleEventId: "lifecycle-message-001",
+    });
     const session = new AffiliateSession(
       {
         objectId: "shop-001",
@@ -833,55 +827,22 @@ describe("affiliate work item dispatch", () => {
       },
     );
 
-    const result = await session.handleCreatorMessage({
-      shopId: "platform-shop-001",
-      conversationId: "conversation-001",
-      messageId: "message-001",
-      messageType: "TEXT",
-      senderRole: "CREATOR",
-      imUserId: "creator-im-001",
-      content: JSON.stringify({ content: "Can we talk on WhatsApp?" }),
-      createTime: 1780000000,
-    } as any);
-    expect(result.runMode).toBe("CREATOR_OUTREACH");
+    const result = await session.handleWorkItem(workItem);
+    expect(result.runMode).toBe("OPERATOR_REASONING");
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("CREATOR_OUTREACH");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("WhatsApp and Outlook email are direct affiliate outreach channels");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("bridge delivers the final assistant text");
-    expect(agentCall?.[1]?.message).toContain("direct-channel routing");
-    expect(agentCall?.[1]?.message).toContain("affiliate_set_creator_email");
-    expect(agentCall?.[1]?.message).not.toContain("WhatsApp-first");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("OPERATOR_REASONING");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_resolve_work_item");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Omit preferredChannel to reply on the trigger channel");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
+    expect(agentCall?.[1]?.message).toContain("Current Trigger Channel: WHATSAPP");
+    expect(agentCall?.[1]?.message).toContain("Current Signal ID: lifecycle-message-001");
 
-    session.handleAgentEvent({
+    expect(session.handleAgentEvent({
       runId: result.runId,
       stream: "assistant",
-      data: { text: "Sure, I will follow up with the details here." },
-    });
-    session.handleAgentEvent({
-      runId: result.runId,
-      stream: "lifecycle",
-      data: { phase: "end" },
-    });
-    session.onRunCompleted(result.runId!);
-
-    await waitForCondition(() =>
-      graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText")),
-    );
-    const [, variables] = graphqlFetch.mock.calls.find(([query]) =>
-      String(query).includes("DeliverAffiliateCreatorText"),
-    )!;
-    expect(variables).toEqual({
-      input: expect.objectContaining({
-        shopId: "shop-001",
-        creatorRelationshipId: "relationship-001",
-        text: "Sure, I will follow up with the details here.",
-        runId: "run-affiliate-001",
-        sessionKey: "agent:main:affiliate:user-001:relationship-001",
-        baseCheckpointId: null,
-        candidateCheckpointId: expect.any(String),
-        source: "AGENT_AUTO_FORWARD",
-      }),
-    });
+      data: { text: "This text must remain internal and must not be forwarded." },
+    })).toBe(false);
+    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText"))).toBe(false);
   });
 
   it("does not create creator-outreach sessions without a creator relationship id", () => {

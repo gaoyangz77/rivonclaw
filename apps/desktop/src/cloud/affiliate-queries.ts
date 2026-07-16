@@ -508,6 +508,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       businessDeveloperConfigRevision
       workKind
       workBundleKind
+      triggerChannel
+      triggerLifecycleEventId
       recommendedActionTypes
       agentDispatchRecommended
       staffReviewRequired
@@ -525,6 +527,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         blocked
         blockedShopIds
         lastInboundAt
+        lastInboundChannel
+        lastInboundLifecycleEventId
         lastOutboundAt
         lastAgentHandledAt
         committedCheckpointId
@@ -862,29 +866,4 @@ export interface ResolveAffiliateWorkItemMutationResult {
       "id" | "processingStatus" | "processReasons" | "workHandledUntil" | "stateUpdatedAt"
     > | null;
   };
-}
-
-export const DELIVER_AFFILIATE_CREATOR_TEXT_MUTATION = `
-  mutation DeliverAffiliateCreatorText($input: DeliverAffiliateCreatorTextInput!) {
-    deliverAffiliateCreatorText(input: $input) {
-      id
-      status
-      preferredChannel
-      actualChannel
-      errorCode
-      errorMessage
-    }
-  }
-`;
-
-export interface DeliverAffiliateCreatorTextMutationResult {
-  deliverAffiliateCreatorText: Pick<
-    GQL.AffiliateMessageDelivery,
-    | "id"
-    | "status"
-    | "preferredChannel"
-    | "actualChannel"
-    | "errorCode"
-    | "errorMessage"
-  >;
 }

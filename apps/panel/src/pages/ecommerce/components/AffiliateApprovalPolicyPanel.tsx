@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
-import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../../components/modals/Modal.js";
@@ -44,7 +43,7 @@ const EMPTY_POLICY_FORM: AffiliatePolicyFormState = {
   productIdsText: "",
 };
 
-export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
+export function AffiliateApprovalPolicyPanel() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [form, setForm] = useState<AffiliatePolicyFormState>(EMPTY_POLICY_FORM);
@@ -61,21 +60,13 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
     { affiliateApprovalPolicies: AffiliateApprovalPolicy[] },
     { input: GQL.ReadAffiliateApprovalPoliciesInput }
   >(AFFILIATE_APPROVAL_POLICIES_QUERY, {
-    variables: { input: { shopId: shop.id } },
+    variables: { input: {} },
     fetchPolicy: "cache-and-network",
   });
 
-  const { data: contextData } = useQuery<
-    { affiliateCampaigns: GQL.AffiliateCampaign[]; creatorTags: GQL.CreatorTag[] },
-    { campaignsInput: GQL.ReadAffiliateCampaignsInput; shopId: string }
-  >(AFFILIATE_POLICY_CONTEXT_QUERY, {
-    variables: {
-      campaignsInput: {
-        shopId: shop.id,
-        limit: 500,
-      },
-      shopId: shop.id,
-    },
+  const { data: contextData } = useQuery<{
+    affiliateApprovalPolicyContext: GQL.AffiliateApprovalPolicyContextPayload;
+  }>(AFFILIATE_POLICY_CONTEXT_QUERY, {
     fetchPolicy: "cache-and-network",
   });
 
@@ -90,15 +81,29 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
   >(DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION);
 
   const policies = policiesData?.affiliateApprovalPolicies ?? [];
-  const creatorTags = contextData?.creatorTags ?? [];
-  const campaigns = contextData?.affiliateCampaigns ?? [];
+  const contextShops = useMemo(
+    () => contextData?.affiliateApprovalPolicyContext.shops ?? [],
+    [contextData],
+  );
+  const creatorTags = contextShops.flatMap((shopContext) => shopContext.creatorTags);
+  const campaigns = contextShops.flatMap((shopContext) => shopContext.campaigns);
+  const shopNameById = useMemo(
+    () => new Map(contextShops.map((shopContext) => [shopContext.shopId, shopContext.shopName])),
+    [contextShops],
+  );
   const creatorTagOptions = useMemo(
-    () => creatorTags.map((tag) => ({ id: tag.id, label: creatorTagLabel(t, tag) })),
-    [creatorTags, t],
+    () => creatorTags.map((tag) => ({
+      id: tag.id,
+      label: `${shopNameById.get(tag.shopId) ?? tag.shopId} · ${creatorTagLabel(t, tag)}`,
+    })),
+    [creatorTags, shopNameById, t],
   );
   const campaignOptions = useMemo(
-    () => campaigns.map((campaign) => ({ id: campaign.id, label: campaign.name })),
-    [campaigns],
+    () => campaigns.map((campaign) => ({
+      id: campaign.id,
+      label: `${shopNameById.get(campaign.shopId) ?? campaign.shopId} · ${campaign.name}`,
+    })),
+    [campaigns, shopNameById],
   );
   const actionOptions = useMemo(
     () =>
@@ -154,7 +159,6 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
         variables: {
           input: {
             id: form.id,
-            shopId: shop.id,
             action: form.action,
             enabled: form.enabled,
             reason: form.reason.trim() || undefined,
@@ -178,7 +182,6 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
         variables: {
           input: {
             id: policy.id,
-            shopId: policy.shopId,
             action: policy.action,
             enabled: !policy.enabled,
             reason: policy.reason ?? undefined,
@@ -228,7 +231,6 @@ export function AffiliateApprovalPolicyPanel({ shop }: { shop: Shop }) {
           variables: {
             input: {
               id: existingGlobal?.id,
-              shopId: shop.id,
               action,
               enabled: true,
               reason: existingGlobal?.reason || t("ecommerce.affiliateWorkspace.policies.defaultReason"),

@@ -7,7 +7,6 @@ import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
-import { AffiliateApprovalPolicyPanel } from "./AffiliateApprovalPolicyPanel.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 const SHOP_MODEL_RECOMMENDATION_LIFT_RATIO = 1.25;
@@ -266,11 +265,6 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
         </div>
       </section>
 
-      <section id="shop-workspace-affiliateManagement-policies" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.affiliateWorkspace.policies.title")}</div>
-        <AffiliateApprovalPolicyPanel shop={shop} />
-      </section>
-
       <section id="shop-workspace-affiliateManagement-prompt" className="shop-workspace-section">
         <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.businessPrompt")}</div>
         <div className="form-hint">{t("ecommerce.shopDrawer.affiliate.businessPromptHint")}</div>
@@ -302,7 +296,6 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
 
 type AffiliateOutreachOperationalStatus = {
   since: string;
-  fallbackCount: number;
   failedDeliveryCount: number;
   webhookReceivedCount: number;
   ignoredWebhookCount: number;
@@ -392,9 +385,6 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
         </span>
         <span>
           {t("ecommerce.affiliateWorkspace.ops.directInbound", { defaultValue: "Direct inbound" })}: {directInbound}
-        </span>
-        <span>
-          {t("ecommerce.affiliateWorkspace.ops.fallbacks", { defaultValue: "Fallbacks" })}: {status?.fallbackCount ?? 0}
         </span>
         <span>
           {t("ecommerce.affiliateWorkspace.ops.failed", { defaultValue: "Failed" })}: {status?.failedDeliveryCount ?? 0}
