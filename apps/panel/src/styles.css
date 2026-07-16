@@ -18523,6 +18523,144 @@ html[lang="zh"] .acct-tool-chips {
   overflow-wrap: anywhere;
 }
 
+.affiliate-whatsapp-reconnect-panel {
+  position: relative;
+  overflow: hidden;
+  gap: 16px;
+  padding: 18px;
+  border-color: color-mix(in srgb, #25d366 34%, var(--color-border-light));
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, #25d366 12%, transparent), transparent 42%),
+    var(--color-bg);
+}
+
+.affiliate-whatsapp-reconnect-panel::after {
+  position: absolute;
+  top: -42px;
+  right: -30px;
+  width: 122px;
+  height: 122px;
+  border: 1px solid color-mix(in srgb, #25d366 18%, transparent);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.affiliate-whatsapp-reconnect-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.affiliate-whatsapp-reconnect-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.affiliate-whatsapp-reconnect-head strong {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 780;
+}
+
+.affiliate-whatsapp-reconnect-head span,
+.affiliate-whatsapp-qr-copy small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.affiliate-whatsapp-reconnect-pulse {
+  position: relative;
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #25d366;
+  box-shadow: 0 0 0 5px color-mix(in srgb, #25d366 14%, transparent);
+}
+
+.affiliate-whatsapp-reconnect-pulse::after {
+  position: absolute;
+  inset: -5px;
+  border: 1px solid color-mix(in srgb, #25d366 42%, transparent);
+  border-radius: 50%;
+  animation: affiliate-reconnect-pulse 1.8s ease-out infinite;
+  content: "";
+}
+
+@keyframes affiliate-reconnect-pulse {
+  from { opacity: 0.8; transform: scale(0.75); }
+  to { opacity: 0; transform: scale(1.45); }
+}
+
+.affiliate-whatsapp-qr.is-reconnect {
+  position: relative;
+  z-index: 1;
+  grid-template-columns: 176px minmax(0, 1fr);
+  padding: 16px;
+  border-color: color-mix(in srgb, #25d366 28%, var(--color-border-light));
+  background: color-mix(in srgb, #25d366 5%, var(--color-bg));
+}
+
+.affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-frame {
+  width: 176px;
+  border-color: color-mix(in srgb, #25d366 24%, var(--color-border-light));
+  box-shadow: 0 14px 30px color-mix(in srgb, #0b3d22 12%, transparent);
+}
+
+.affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-frame img {
+  width: 158px;
+  height: 158px;
+}
+
+.affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-copy {
+  gap: 8px;
+}
+
+.affiliate-whatsapp-qr.is-reconnect .btn,
+.affiliate-whatsapp-reconnect-warning .btn {
+  width: fit-content;
+}
+
+.affiliate-whatsapp-reconnect-loading,
+.affiliate-whatsapp-reconnect-warning {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 13px 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--color-bg-alt) 60%, var(--color-bg));
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.affiliate-whatsapp-reconnect-warning {
+  justify-content: space-between;
+  border-color: color-mix(in srgb, var(--color-danger, #ef4444) 26%, var(--color-border-light));
+  color: var(--color-danger, #ef4444);
+}
+
+.affiliate-whatsapp-reconnect-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid color-mix(in srgb, #25d366 22%, transparent);
+  border-top-color: #25d366;
+  border-radius: 50%;
+  animation: affiliate-reconnect-spin 0.8s linear infinite;
+}
+
+@keyframes affiliate-reconnect-spin {
+  to { transform: rotate(360deg); }
+}
+
 .affiliate-whatsapp-proxy-panel {
   display: grid;
   gap: 12px;
@@ -18929,8 +19067,16 @@ html[lang="zh"] .acct-tool-chips {
     grid-template-columns: 1fr;
   }
 
+  .affiliate-whatsapp-qr.is-reconnect {
+    grid-template-columns: 1fr;
+  }
+
   .affiliate-whatsapp-qr-frame {
     width: min(150px, 100%);
+  }
+
+  .affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-frame {
+    width: min(176px, 100%);
   }
 
   .affiliate-whatsapp-proxy-head {
@@ -24603,6 +24749,16 @@ html[lang="zh"] .acct-tool-chips {
   grid-column: 1 / -1;
 }
 
+.affiliate-bd-channel-card .affiliate-channel-row:has(.affiliate-channel-reconnect) > .custom-select {
+  grid-column: 1;
+}
+
+.affiliate-bd-channel-card .affiliate-channel-reconnect {
+  grid-column: 2;
+  justify-self: end;
+  min-height: 32px;
+}
+
 .affiliate-bd-channel-card .custom-select-trigger {
   width: 100%;
   min-height: 32px;
@@ -24876,6 +25032,14 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-channel-row small {
   color: var(--text-muted);
+}
+.affiliate-channel-row .affiliate-channel-error-reason {
+  overflow: visible;
+  color: var(--danger-color);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: clip;
+  white-space: normal;
 }
 .affiliate-channel-kind {
   font-weight: 650;

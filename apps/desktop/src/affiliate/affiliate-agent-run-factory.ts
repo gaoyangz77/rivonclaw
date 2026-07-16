@@ -212,14 +212,15 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
         ?? "Checkpoint-bound relationship context was not available. Use affiliate_get_workspace before deciding.",
       "",
       "## Task",
-      "The creator appears to be past a configured creator-side follow-up point. This may be after a target invitation, sample delivery, content-pending state, or another creator-turn workflow.",
-      "Decide whether to send a gentle creator follow-up now.",
+      "A creator-side follow-up timer is due, but Affiliate outreach uses a strict one-outbound-turn policy.",
+      "Read Provider history and verify that the creator has responded after the latest seller/agent outbound message before considering any new SEND_MESSAGE.",
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
       "If the follow-up depends on a candidate product from a prior creator card and Backend Work Context does not confirm the product, call affiliate_predict_creator_product_fit with creatorRelationshipId before recommending continued investment or asking the creator to proceed.",
       renderCreatorFacingMessageGuidance("follow-up"),
-      "If a follow-up is appropriate, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
+      "If there is no newer creator response, use decision NO_ACTION_NEEDED and leave the relationship waiting; never switch channels to bypass this boundary.",
+      "Only if a newer creator response exists and a reply is appropriate may you use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
       "For every text follow-up, set action.messageIntent.parts to [{kind: TEXT, text: <final creator-facing reply>}].",
       "If no follow-up is needed, use decision NO_ACTION_NEEDED.",
@@ -298,7 +299,7 @@ function renderResolveWorkItemToolContract(): string {
 function renderCreatorFacingMessageGuidance(kind: "reply" | "follow-up"): string {
   const opening =
     kind === "follow-up"
-      ? "For creator follow-ups, choose a proactive progress-check posture: reference the confirmed collaboration/sample/content milestone, then ask for the next useful update or offer useful materials."
+      ? "For creator follow-ups, first verify a newer creator response after the latest outbound turn. Only then use a concise progress-check posture tied to a confirmed milestone."
       : "For creator messages, choose the posture that fits the visible work context: continue a visible conversation, open a new outreach thread, ask a concise clarification, or follow up on a confirmed collaboration milestone.";
   return [
     opening,

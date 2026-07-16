@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import { useMutation, useQuery } from "@apollo/client/react";
@@ -53,7 +54,10 @@ function mockMutationHooks() {
   vi.mocked(useMutation).mockImplementation(() => [mutationSpy, { loading: false, called: false, reset: vi.fn() }] as never);
 }
 
-function renderWhatsAppPanel(status: Partial<WhatsAppConnectorStatus>) {
+function renderWhatsAppPanel(
+  status: Partial<WhatsAppConnectorStatus>,
+  props: ComponentProps<typeof AffiliateWhatsAppAccountPanel> = {},
+) {
   vi.mocked(useQuery).mockImplementation((query) => {
     if (query === WHATSAPP_ACCOUNT_BINDINGS_QUERY) {
       return {
@@ -101,7 +105,7 @@ function renderWhatsAppPanel(status: Partial<WhatsAppConnectorStatus>) {
     }
     throw new Error("Unexpected WhatsApp query");
   });
-  return render(<AffiliateWhatsAppAccountPanel />);
+  return render(<AffiliateWhatsAppAccountPanel {...props} />);
 }
 
 function renderEmailPanel(status: Partial<MicrosoftGraphConnectorStatus>) {
@@ -237,6 +241,28 @@ describe("affiliate outreach connector onboarding gates", () => {
 
     expect((screen.getByRole("button", { name: "Connect WhatsApp" }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole("button", { name: "QR" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("opens a focused QR reconnect flow for an existing binding", async () => {
+    mutationSpy.mockResolvedValue({
+      data: {
+        startWhatsAppQrOnboarding: {
+          binding: { id: "wa-1", status: GQL.WhatsAppAccountStatus.PendingQr },
+          qrBase64: "data:image/png;base64,abc",
+        },
+      },
+    });
+    renderWhatsAppPanel({ ready: true }, {
+      reconnectBindingId: "wa-1",
+      showAccountList: false,
+    });
+
+    expect(screen.getByText("Reconnect this WhatsApp account")).toBeTruthy();
+    await waitFor(() => {
+      expect(mutationSpy).toHaveBeenCalledWith({ variables: { input: { bindingId: "wa-1" } } });
+    });
+    expect(await screen.findByAltText("WhatsApp login QR code")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Connect WhatsApp" })).toBeNull();
   });
 
   it("refreshes WhatsApp accounts when the desktop reports QR connection completion", async () => {
