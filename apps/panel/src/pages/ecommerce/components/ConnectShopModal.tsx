@@ -4,6 +4,10 @@ import { Modal } from "../../../components/modals/Modal.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { CopyIcon, CheckIcon, InfoIcon } from "../../../components/icons.js";
 import type { PlatformApp } from "@rivonclaw/core/models";
+import {
+  SHOP_ONBOARDING_MARKETS,
+  platformAppsForOnboardingMarket,
+} from "../shop-onboarding-markets.js";
 
 interface ConnectShopModalProps {
   isOpen: boolean;
@@ -36,7 +40,9 @@ export function ConnectShopModal({
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const prevOpenRef = useRef(false);
 
-  const availableMarkets = [...new Set(platformApps.map((app) => app.market))];
+  const availableMarkets = SHOP_ONBOARDING_MARKETS.filter(
+    (market) => platformAppsForOnboardingMarket(platformApps, market).length > 0,
+  );
   const availableMarketsSignature = availableMarkets.join("\u0001");
 
   // Auto-select the preferred market when the modal opens.
@@ -53,7 +59,7 @@ export function ConnectShopModal({
   }, [availableMarketsSignature, isOpen]);
 
   const matchingAppsForMarket = selectedMarket
-    ? platformApps.filter((app) => app.market === selectedMarket)
+    ? platformAppsForOnboardingMarket(platformApps, selectedMarket)
     : [];
 
   const availablePlatforms = [...new Set(matchingAppsForMarket.map((app) => app.platform))];
@@ -76,7 +82,7 @@ export function ConnectShopModal({
   }, [availablePlatformsSignature, selectedMarket, selectedPlatform]);
 
   const matchedApps = selectedMarket && selectedPlatform
-    ? platformApps.filter((app) => app.market === selectedMarket && app.platform === selectedPlatform)
+    ? matchingAppsForMarket.filter((app) => app.platform === selectedPlatform)
     : [];
 
   const selectedPlatformAppId = matchedApps.length === 1 ? matchedApps[0].id : "";
@@ -115,6 +121,7 @@ export function ConnectShopModal({
                   value={selectedMarket}
                   onChange={(v) => setSelectedMarket(v)}
                   className="input-full"
+                  ariaLabel={t("ecommerce.addShopModal.marketLabel")}
                   placeholder={t("ecommerce.addShopModal.marketPlaceholder")}
                   options={availableMarkets.map((market) => ({
                     value: market,
@@ -131,6 +138,7 @@ export function ConnectShopModal({
                 value={selectedPlatform}
                 onChange={(v) => setSelectedPlatform(v)}
                 className="input-full"
+                ariaLabel={t("ecommerce.addShopModal.platformLabel")}
                 placeholder={t("ecommerce.addShopModal.platformPlaceholder")}
                 disabled={!selectedMarket}
                 options={availablePlatforms.map((platform) => ({

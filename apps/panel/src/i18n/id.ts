@@ -3245,6 +3245,7 @@ export default {
     },
     "market": {
       "US": "Amerika Serikat",
+      "ROW": "Wilayah lainnya",
       "GB": "Inggris Raya",
       "MX": "Meksiko",
       "ES": "Spanyol",
