@@ -586,23 +586,31 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         type
         operatorSummary
         predictionCacheIds
-        messageIntent {
+messageIntent {
           creatorId
           creatorOpenId
-          messageType
-          text
           preferredChannel
           emailSubject
-          textHash
-          textLength
-          productId
-          platformApplicationId
-          platformTargetCollaborationId
-          sampleApplicationRecordId
-          targetCollaborationRecordId: affiliateCollaborationId
-          imageUrl
-          imageWidth
-          imageHeight
+          subjectHash
+          subjectLength
+          parts {
+            kind
+            text
+            textHash
+            textLength
+            draftAssetId
+            caption
+            captionHash
+            captionLength
+            emailDisposition
+            fileName
+            mimeType
+            sizeBytes
+            sha256
+            productId
+            targetCollaborationId
+            sampleApplicationId
+          }
         }
         sampleReviewIntent {
           sampleApplicationRecordId
@@ -633,24 +641,32 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         actorType
         actorId
       }
-      messageIntent {
-        creatorId
-        creatorOpenId
-        messageType
-        text
-        preferredChannel
-        emailSubject
-        textHash
-        textLength
-        productId
-        platformApplicationId
-        platformTargetCollaborationId
-        sampleApplicationRecordId
-        targetCollaborationRecordId: affiliateCollaborationId
-        imageUrl
-        imageWidth
-        imageHeight
-      }
+messageIntent {
+          creatorId
+          creatorOpenId
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts {
+            kind
+            text
+            textHash
+            textLength
+            draftAssetId
+            caption
+            captionHash
+            captionLength
+            emailDisposition
+            fileName
+            mimeType
+            sizeBytes
+            sha256
+            productId
+            targetCollaborationId
+            sampleApplicationId
+          }
+        }
       sampleReviewIntent {
         sampleApplicationRecordId
         platformApplicationId
@@ -815,20 +831,32 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           type
           operatorSummary
           predictionCacheIds
-          messageIntent {
-            creatorId
-            creatorOpenId
-            messageType
+messageIntent {
+          creatorId
+          creatorOpenId
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts {
+            kind
             text
+            textHash
+            textLength
+            draftAssetId
+            caption
+            captionHash
+            captionLength
+            emailDisposition
+            fileName
+            mimeType
+            sizeBytes
+            sha256
             productId
-            platformApplicationId
-            platformTargetCollaborationId
-            sampleApplicationRecordId
-            targetCollaborationRecordId: affiliateCollaborationId
-            imageUrl
-            imageWidth
-            imageHeight
+            targetCollaborationId
+            sampleApplicationId
           }
+        }
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId
@@ -858,19 +886,31 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           actorType
           actorId
         }
-        messageIntent {
+messageIntent {
           creatorId
           creatorOpenId
-          messageType
-          text
-          productId
-          platformApplicationId
-          platformTargetCollaborationId
-          sampleApplicationRecordId
-          targetCollaborationRecordId: affiliateCollaborationId
-          imageUrl
-          imageWidth
-          imageHeight
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts {
+            kind
+            text
+            textHash
+            textLength
+            draftAssetId
+            caption
+            captionHash
+            captionLength
+            emailDisposition
+            fileName
+            mimeType
+            sizeBytes
+            sha256
+            productId
+            targetCollaborationId
+            sampleApplicationId
+          }
         }
         sampleReviewIntent {
           sampleApplicationRecordId
@@ -1080,17 +1120,32 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           status
           operatorSummary
           updatedAt
-          messageIntent {
-            creatorId
-            creatorOpenId
-            messageType
-            text
-            productId
-            platformApplicationId
-            platformTargetCollaborationId
-            sampleApplicationRecordId
-            targetCollaborationRecordId: affiliateCollaborationId
-          }
+messageIntent {
+              creatorId
+              creatorOpenId
+              preferredChannel
+              emailSubject
+              subjectHash
+              subjectLength
+              parts {
+                kind
+                text
+                textHash
+                textLength
+                draftAssetId
+                caption
+                captionHash
+                captionLength
+                emailDisposition
+                fileName
+                mimeType
+                sizeBytes
+                sha256
+                productId
+                targetCollaborationId
+                sampleApplicationId
+              }
+            }
           sampleReviewIntent {
             sampleApplicationRecordId
             platformApplicationId
@@ -1419,13 +1474,31 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           reasons
           action
         }
-        messageIntent {
-          text
-          messageType
-          productId
+messageIntent {
           creatorId
-          sampleApplicationRecordId
-          platformApplicationId
+          creatorOpenId
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts {
+            kind
+            text
+            textHash
+            textLength
+            draftAssetId
+            caption
+            captionHash
+            captionLength
+            emailDisposition
+            fileName
+            mimeType
+            sizeBytes
+            sha256
+            productId
+            targetCollaborationId
+            sampleApplicationId
+          }
         }
         sampleReviewIntent {
           sampleApplicationRecordId
@@ -1576,6 +1649,26 @@ export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = gql`
           channel
           direction
           textPreview
+          messageRef
+          parts {
+            kind
+            text
+            attachmentRef
+            fileName
+            mimeType
+            sizeBytes
+            width
+            height
+            durationMs
+            inline
+            caption
+            agentReadable
+            productId
+            targetCollaborationId
+            sampleApplicationId
+            providerType
+            summary
+          }
           messageType
           deliveryStatus
           preferredChannel
@@ -1612,9 +1705,27 @@ export const AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY = gql`
       items {
         channel
         direction
-        text
+        messageRef
+        parts {
+          kind
+          text
+          attachmentRef
+          fileName
+          mimeType
+          sizeBytes
+          width
+          height
+          durationMs
+          inline
+          caption
+          agentReadable
+          productId
+          targetCollaborationId
+          sampleApplicationId
+          providerType
+          summary
+        }
         messageType
-        messageId
         deliveryStatus
         createdAt
         subject
@@ -1658,19 +1769,31 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         type
         operatorSummary
         predictionCacheIds
-        messageIntent {
+messageIntent {
           creatorId
           creatorOpenId
-          messageType
-          text
-          productId
-          platformApplicationId
-          platformTargetCollaborationId
-          sampleApplicationRecordId
-          targetCollaborationRecordId: affiliateCollaborationId
-          imageUrl
-          imageWidth
-          imageHeight
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts {
+            kind
+            text
+            textHash
+            textLength
+            draftAssetId
+            caption
+            captionHash
+            captionLength
+            emailDisposition
+            fileName
+            mimeType
+            sizeBytes
+            sha256
+            productId
+            targetCollaborationId
+            sampleApplicationId
+          }
         }
         sampleReviewIntent {
           sampleApplicationRecordId
@@ -1701,20 +1824,32 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         actorType
         actorId
       }
-      messageIntent {
-        creatorId
-        creatorOpenId
-        messageType
-        text
-        productId
-        platformApplicationId
-        platformTargetCollaborationId
-        sampleApplicationRecordId
-        targetCollaborationRecordId: affiliateCollaborationId
-        imageUrl
-        imageWidth
-        imageHeight
-      }
+messageIntent {
+          creatorId
+          creatorOpenId
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts {
+            kind
+            text
+            textHash
+            textLength
+            draftAssetId
+            caption
+            captionHash
+            captionLength
+            emailDisposition
+            fileName
+            mimeType
+            sizeBytes
+            sha256
+            productId
+            targetCollaborationId
+            sampleApplicationId
+          }
+        }
       sampleReviewIntent {
         sampleApplicationRecordId
         platformApplicationId
@@ -1825,6 +1960,25 @@ export const SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION = gql`
         channelSelectionSource
         replyToLifecycleEventId
         status
+        parts {
+          sequence
+          kind
+          status
+          textHash
+          textLength
+          captionHash
+          captionLength
+          emailDisposition
+          fileName
+          mimeType
+          sizeBytes
+          sha256
+          providerMessageId
+          providerSubmittedAt
+          providerConfirmedAt
+          errorCode
+          errorMessage
+        }
         providerMessageId
         errorMessage
         createdAt

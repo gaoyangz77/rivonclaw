@@ -155,7 +155,7 @@ function sanitizeCloudGraphqlVariables(
       "The agent attempted REQUEST_ACTION but omitted required typed action fields. " +
       "This is a tool payload schema error, not a business reason for NEEDS_STAFF_REVIEW. " +
       "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
-      "For SEND_MESSAGE use action.messageText with the exact creator-facing message; never send messageIntent: {}. " +
+      "For SEND_MESSAGE use action.messageIntent.parts with 1-10 ordered structured parts; never send messageIntent: {}. " +
       "For REVIEW_SAMPLE_APPLICATION use action.sampleApplicationRecordId, action.platformApplicationId, action.sampleReviewDecision, and optional action.rejectReason.";
     throw new Error(
       `${reason} raw=${describeAffiliateResolveActionShape(actionLike)} normalized=${describeAffiliateResolveActionShape(normalizedActions)} ${describeAffiliateResolveActionRepairHint(context)}`,
@@ -392,70 +392,27 @@ function firstNormalizedSampleReviewDecision(
 
 function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): unknown {
   const existingIntent = asRecord(action.messageIntent);
-  if (existingIntent) {
-    const messageIntent = pickAffiliateMessageIntentFields(existingIntent);
-    if (!hasNonEmptyString(messageIntent.text)) {
-      const text = firstNonEmptyString(
-        existingIntent.text,
-        existingIntent.messageText,
-        existingIntent.content,
-        existingIntent.body,
-        action.text,
-        action.messageText,
-        action.content,
-        action.body,
-      );
-      if (text) messageIntent.text = text;
-    }
-    if (!hasNonEmptyString(messageIntent.messageType)) {
-      messageIntent.messageType = action.messageType ?? "TEXT";
-    }
-    if (hasNonEmptyString(action.preferredChannel)) {
-      messageIntent.preferredChannel = action.preferredChannel;
-    }
-    if (hasNonEmptyString(action.emailSubject)) {
-      messageIntent.emailSubject = action.emailSubject;
-    }
-    return pickAffiliateActionFields(action, "messageIntent", messageIntent);
-  }
-
-  const text = firstNonEmptyString(action.text, action.messageText, action.content, action.body);
-  if (!text) return action;
-  const messageIntent: Record<string, unknown> = {
-    messageType: action.messageType ?? "TEXT",
-    text,
-  };
-  if (hasNonEmptyString(action.preferredChannel)) {
-    messageIntent.preferredChannel = action.preferredChannel;
-  }
-  if (hasNonEmptyString(action.emailSubject)) {
-    messageIntent.emailSubject = action.emailSubject;
-  }
-  for (const field of ["productId"]) {
-    if (hasNonEmptyString(action[field])) messageIntent[field] = action[field];
-  }
-  return pickAffiliateActionFields(action, "messageIntent", messageIntent);
-}
-
-function pickAffiliateMessageIntentFields(intent: Record<string, unknown>): Record<string, unknown> {
-  const picked: Record<string, unknown> = {};
-  for (const field of [
-    "messageType",
-    "text",
-    "preferredChannel",
-    "emailSubject",
-    "imageUrl",
-    "imageWidth",
-    "imageHeight",
-    "productId",
-    "affiliateCollaborationId",
-    "platformTargetCollaborationId",
-    "sampleApplicationRecordId",
-    "platformApplicationId",
-  ]) {
-    if (intent[field] !== undefined) picked[field] = intent[field];
-  }
-  return picked;
+  if (!existingIntent) return action;
+  const rawParts = Array.isArray(existingIntent.parts) ? existingIntent.parts : [];
+  const parts = rawParts.map((value) => {
+    const part = asRecord(value);
+    if (!part) return value;
+    return omitEmptyAffiliateStrings({
+      kind: hasNonEmptyString(part.kind) ? part.kind.trim().toUpperCase() : part.kind,
+      text: part.text,
+      draftAssetId: part.draftAssetId,
+      caption: part.caption,
+      emailDisposition: part.emailDisposition,
+      productId: part.productId,
+      targetCollaborationId: part.targetCollaborationId,
+      sampleApplicationId: part.sampleApplicationId,
+    });
+  });
+  return pickAffiliateActionFields(action, "messageIntent", omitEmptyAffiliateStrings({
+    parts,
+    preferredChannel: existingIntent.preferredChannel,
+    emailSubject: existingIntent.emailSubject,
+  }));
 }
 
 function normalizeAffiliateTargetCollaborationAction(action: Record<string, unknown>): unknown {
@@ -484,7 +441,20 @@ function isInvalidAffiliateResolveAction(value: unknown): boolean {
   switch (action.type) {
     case "SEND_MESSAGE": {
       const messageIntent = asRecord(action.messageIntent);
-      return !hasNonEmptyString(messageIntent?.text);
+      const parts = Array.isArray(messageIntent?.parts) ? messageIntent.parts : [];
+      if (parts.length < 1 || parts.length > 10) return true;
+      return parts.some((value) => {
+        const part = asRecord(value);
+        if (!part || !hasNonEmptyString(part.kind)) return true;
+        switch (part.kind.trim().toUpperCase()) {
+          case "TEXT": return !hasNonEmptyString(part.text);
+          case "ATTACHMENT": return !hasNonEmptyString(part.draftAssetId);
+          case "PRODUCT_CARD": return !hasNonEmptyString(part.productId);
+          case "TARGET_COLLABORATION_CARD": return !hasNonEmptyString(part.targetCollaborationId);
+          case "FREE_SAMPLE_CARD": return !hasNonEmptyString(part.sampleApplicationId);
+          default: return true;
+        }
+      });
     }
     case "REVIEW_SAMPLE_APPLICATION": {
       const sampleReviewIntent = asRecord(action.sampleReviewIntent);
@@ -637,7 +607,7 @@ function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActio
     [
       "sendMessageRequiredFields={type:SEND_MESSAGE",
       context.predictionCacheIds?.length ? `predictionCacheIds:${JSON.stringify(context.predictionCacheIds)}` : null,
-      "messageText:final-creator-facing-text}",
+      "messageIntent:{parts:[{kind:TEXT,text:final-creator-facing-text}]}}",
     ].filter(Boolean).join(" "),
   );
   return hints.join(" ");
@@ -819,12 +789,23 @@ const cloudRest: EndpointHandler = async (req, res, _url, params, ctx: ApiContex
 
   try {
     const requestBody = body.length > 0 ? new Uint8Array(body) : undefined;
-    const data = await ctx.cloudClient.rest(backendPath, {
+    const response = await ctx.cloudClient.restResponse(backendPath, {
       method: (req.method ?? "POST") as "GET" | "POST" | "PUT" | "DELETE",
       headers: forwardHeaders,
       body: requestBody,
     });
-    sendJson(res, 200, data);
+    const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+    if (contentType.includes("application/json")) {
+      sendJson(res, response.status, await response.json());
+      return;
+    }
+    res.statusCode = response.status;
+    res.setHeader("Content-Type", contentType);
+    for (const header of ["content-length", "x-affiliate-file-name"]) {
+      const value = response.headers.get(header);
+      if (value) res.setHeader(header, value);
+    }
+    res.end(Buffer.from(await response.arrayBuffer()));
   } catch (err) {
     if (err instanceof CloudRestError) {
       sendJson(res, err.status, err.body ?? { error: err.message });

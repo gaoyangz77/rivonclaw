@@ -24805,3 +24805,53 @@ html[lang="zh"] .acct-tool-chips {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.affiliate-message-composer {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-raised, var(--surface));
+}
+
+.affiliate-message-composer-text {
+  width: 100%;
+  resize: vertical;
+}
+
+.affiliate-message-composer-controls,
+.affiliate-message-composer-footer,
+.affiliate-message-staged-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.affiliate-message-composer-controls .form-input {
+  flex: 1 1 180px;
+}
+
+.affiliate-message-file-button input {
+  display: none;
+}
+
+.affiliate-message-staged-list {
+  display: grid;
+  gap: 6px;
+}
+
+.affiliate-message-staged-item {
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-subtle, rgba(127, 127, 127, 0.08));
+  font-size: 12px;
+}
+
+.affiliate-message-composer-footer {
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: 12px;
+}

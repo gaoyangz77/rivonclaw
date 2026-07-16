@@ -27,9 +27,15 @@ export class CloudClient {
 
   /** REST call to Cloud backend with auto-refresh on 401. */
   async rest<T>(path: string, init?: RequestInit): Promise<T> {
+    const res = await this.restResponse(path, init);
+    return res.json() as Promise<T>;
+  }
+
+  /** Raw REST response variant for authenticated provider media proxying. */
+  async restResponse(path: string, init?: RequestInit): Promise<Response> {
     const url = `${getApiBaseUrl(this.locale)}${path}`;
     const makeHeaders = (token: string | null): Record<string, string> => ({
-      ...(init?.headers as Record<string, string> ?? {}),
+      ...(init?.headers as Record<string, string> | undefined),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     });
 
@@ -51,6 +57,6 @@ export class CloudClient {
       try { body = await res.json(); } catch { body = null; }
       throw new CloudRestError(res.status, body);
     }
-    return res.json() as Promise<T>;
+    return res;
   }
 }

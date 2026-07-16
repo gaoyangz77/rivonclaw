@@ -38,6 +38,19 @@ export async function extensionGraphqlFetch<T>(
  * to return JSON.
  */
 export async function extensionRestFetch<T>(path: string, init?: RequestInit): Promise<T | undefined> {
+  const res = await extensionRestFetchResponse(path, init);
+  // 204 (or any empty body) → no JSON to parse.
+  if (res.status === 204) return undefined;
+  const text = await res.text();
+  if (!text) return undefined;
+  return JSON.parse(text) as T;
+}
+
+/** REST response variant used by media-producing dynamic tools. */
+export async function extensionRestFetchResponse(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   const res = await fetch(`${getPanelUrl()}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...init,
@@ -48,9 +61,5 @@ export async function extensionRestFetch<T>(path: string, init?: RequestInit): P
       `Extension REST error: ${res.status} ${res.statusText}${errBody ? ` — ${errBody}` : ""}`,
     );
   }
-  // 204 (or any empty body) → no JSON to parse.
-  if (res.status === 204) return undefined;
-  const text = await res.text();
-  if (!text) return undefined;
-  return JSON.parse(text) as T;
+  return res;
 }

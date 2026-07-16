@@ -672,10 +672,11 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           }
           messageIntent {
             creatorId
-            sampleApplicationRecordId
-            platformApplicationId
-            messageType
-            text
+            preferredChannel
+            emailSubject
+            subjectHash
+            subjectLength
+            parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
           updatedAt
         }
@@ -714,10 +715,11 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           }
           messageIntent {
             creatorId
-            sampleApplicationRecordId
-            platformApplicationId
-            messageType
-            text
+            preferredChannel
+            emailSubject
+            subjectHash
+            subjectLength
+            parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
         }
         creatorId
@@ -774,10 +776,11 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         }
         messageIntent {
           creatorId
-          sampleApplicationRecordId
-          platformApplicationId
-          messageType
-          text
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
         }
         targetCollaborationIntent {
           name

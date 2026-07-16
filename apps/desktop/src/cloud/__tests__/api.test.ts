@@ -370,7 +370,9 @@ describe("cloud-graphql handler", () => {
           candidateCheckpointId: null,
           action: {
             type: "SEND_MESSAGE",
-            messageText: "Hi, just checking in.",
+            messageIntent: {
+              parts: [{ kind: "TEXT", text: "Hi, just checking in." }],
+            },
           },
         },
       },
@@ -444,7 +446,9 @@ describe("cloud-graphql handler", () => {
           operatorSummary: "Follow up.",
           action: {
             type: "SEND_MESSAGE",
-            messageText: "Hi, just checking in.",
+            messageIntent: {
+              parts: [{ kind: "TEXT", text: "Hi, just checking in." }],
+            },
           },
         },
       },
@@ -710,8 +714,10 @@ describe("cloud-graphql handler", () => {
             {
               type: "SEND_MESSAGE",
               messageIntent: {
-                text: "Thanks for applying. We are not moving forward with this sample collaboration.",
-                messageType: "TEXT",
+                parts: [{
+                  kind: "TEXT",
+                  text: "Thanks for applying. We are not moving forward with this sample collaboration.",
+                }],
               },
             },
           ],
@@ -736,8 +742,10 @@ describe("cloud-graphql handler", () => {
       {
         type: "SEND_MESSAGE",
         messageIntent: {
-          messageType: "TEXT",
-          text: "Thanks for applying. We are not moving forward with this sample collaboration.",
+          parts: [{
+            kind: "TEXT",
+            text: "Thanks for applying. We are not moving forward with this sample collaboration.",
+          }],
         },
       },
     ]);
@@ -780,7 +788,12 @@ describe("cloud-graphql handler", () => {
           actions: [
             {
               type: "SEND_MESSAGE",
-              messageText: "Thanks for the update. We will review and get back to you soon.",
+              messageIntent: {
+                parts: [{
+                  kind: "TEXT",
+                  text: "Thanks for the update. We will review and get back to you soon.",
+                }],
+              },
             },
           ],
         },
@@ -795,8 +808,10 @@ describe("cloud-graphql handler", () => {
       {
         type: "SEND_MESSAGE",
         messageIntent: {
-          messageType: "TEXT",
-          text: "Thanks for the update. We will review and get back to you soon.",
+          parts: [{
+            kind: "TEXT",
+            text: "Thanks for the update. We will review and get back to you soon.",
+          }],
         },
       },
     ]);
@@ -1142,10 +1157,12 @@ describe("cloud-graphql handler", () => {
             type: "SEND_MESSAGE",
             predictionCacheIds: ["pred-1"],
             messageIntent: {
-              messageType: "TEXT",
-              text: "Thanks for the update.",
-              conversationId: "conv-1",
-              platformConversationId: "platform-conv-1",
+              parts: [{
+                kind: "text",
+                text: "Thanks for the update.",
+                providerMessageId: "must-not-forward",
+              }],
+              providerConversationId: "must-not-forward",
             },
             sampleReviewIntent: {
               sampleApplicationRecordId: "sample-1",
@@ -1169,8 +1186,10 @@ describe("cloud-graphql handler", () => {
             predictionCacheIds: ["pred-1"],
             expiresAt: undefined,
             messageIntent: {
-              messageType: "TEXT",
-              text: "Thanks for the update.",
+              parts: [{
+                kind: "TEXT",
+                text: "Thanks for the update.",
+              }],
             },
           },
         }),
@@ -1178,7 +1197,7 @@ describe("cloud-graphql handler", () => {
     );
   });
 
-  it("normalizes anonymous affiliate resolve mutations by input shape", async () => {
+  it("normalizes structured message parts in anonymous affiliate resolve mutations", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
         decision: "REQUEST_ACTION",
@@ -1212,8 +1231,9 @@ describe("cloud-graphql handler", () => {
           operatorSummary: "Reply to creator.",
           action: {
             type: "SEND_MESSAGE",
-            messageIntent: {},
-            text: "Thanks for the update.",
+            messageIntent: {
+              parts: [{ kind: "text", text: "Thanks for the update." }],
+            },
           },
         },
       },
@@ -1230,8 +1250,10 @@ describe("cloud-graphql handler", () => {
             predictionCacheIds: undefined,
             expiresAt: undefined,
             messageIntent: {
-              messageType: "TEXT",
-              text: "Thanks for the update.",
+              parts: [{
+                kind: "TEXT",
+                text: "Thanks for the update.",
+              }],
             },
           },
         }),
@@ -1239,7 +1261,7 @@ describe("cloud-graphql handler", () => {
     );
   });
 
-  it("normalizes common send message text aliases into messageIntent.text", async () => {
+  it("rejects removed send message text aliases", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
         decision: "REQUEST_ACTION",
@@ -1283,22 +1305,12 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      mutation,
-      expect.objectContaining({
-        input: expect.objectContaining({
-          action: {
-            type: "SEND_MESSAGE",
-            predictionCacheIds: undefined,
-            expiresAt: undefined,
-            messageIntent: {
-              messageType: "TEXT",
-              text: "Creator-facing reply.",
-            },
-          },
-        }),
-      }),
-    );
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [{
+        message: expect.stringContaining("messageIntent.parts"),
+      }],
+    });
   });
 
   it("drops empty optional affiliate resolve fields and does not forward creator identity on SEND_MESSAGE", async () => {
@@ -1339,14 +1351,18 @@ describe("cloud-graphql handler", () => {
             creatorId: "relationship-1",
             creatorOpenId: "open-id",
             expiresAt: ",",
-            messageText: "Thanks for the update.",
+            messageIntent: {
+              parts: [{ kind: "TEXT", text: "Stale singular action." }],
+            },
           },
           actions: [
             {
               type: "SEND_MESSAGE",
               creatorId: "relationship-1",
               expiresAt: ",",
-              messageText: "Thanks for the update.",
+              messageIntent: {
+                parts: [{ kind: "TEXT", text: "Thanks for the update." }],
+              },
             },
           ],
         },
@@ -1369,8 +1385,7 @@ describe("cloud-graphql handler", () => {
       {
         type: "SEND_MESSAGE",
         messageIntent: {
-          messageType: "TEXT",
-          text: "Thanks for the update.",
+          parts: [{ kind: "TEXT", text: "Thanks for the update." }],
         },
       },
     ]);

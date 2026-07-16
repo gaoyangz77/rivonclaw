@@ -156,7 +156,11 @@ export { RELAY_MAX_CLIENT_BYTES, RELAY_MAX_CLIENT_MB, RELAY_MAX_PAYLOAD_BYTES } 
 
 export { DEFAULTS } from "./defaults.js";
 
-export { extensionGraphqlFetch, extensionRestFetch } from "./api/extension-client.js";
+export {
+  extensionGraphqlFetch,
+  extensionRestFetch,
+  extensionRestFetchResponse,
+} from "./api/extension-client.js";
 
 export * as GQL from "./generated/graphql.js";
 

@@ -8,6 +8,7 @@ export const TOOL_SPECS_SYNC_QUERY = `
       description
       supportsPersistResult
       resultSchema
+      resultMode
       surfaces
       runProfiles
       graphqlOperation

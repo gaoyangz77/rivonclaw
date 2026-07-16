@@ -24,6 +24,7 @@ import {
   ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   REMOVE_CREATOR_TAG_MUTATION,
+  SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
   SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION,
   UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
 } from "../../api/shops-queries.js";
@@ -87,6 +88,15 @@ type AffiliateConversationMessage = GQL.AffiliateCreatorMessageHistoryItem & {
   productRefs?: AffiliateCreatorMessageProductReference[] | null;
   sampleApplicationRefs?: AffiliateCreatorMessageSampleApplicationReference[] | null;
   targetCollaborationRefs?: AffiliateCreatorMessageTargetCollaborationReference[] | null;
+};
+
+type StagedAffiliateAttachment = {
+  draftAssetId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  inline: boolean;
 };
 
 const HISTORY_STATUS_FILTERS = [
@@ -1784,8 +1794,7 @@ function actionProposalSearchText(
     collaboration?.creatorImId,
     collaboration?.productId,
     collaboration?.platformCollaborationId,
-    proposal.messageIntent?.text,
-    proposal.messageIntent?.productId,
+    ...(proposal.messageIntent?.parts.flatMap((part) => [part.text, part.productId, part.fileName]) ?? []),
     proposal.sampleReviewIntent?.platformApplicationId,
     proposal.sampleReviewIntent?.sampleApplicationRecordId,
   ];
@@ -1962,7 +1971,7 @@ function creatorManagementSearchText(item: AffiliateCreatorManagementItem): stri
     record?.platformCollaborationId,
     proposal?.id,
     proposal?.operatorSummary,
-    proposal?.messageIntent?.text,
+    ...(proposal?.messageIntent?.parts.flatMap((part) => [part.text, part.productId, part.fileName]) ?? []),
     sample?.id,
     sample?.platformApplicationId,
     sample?.productId,
@@ -3455,13 +3464,13 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
 function affiliateCreatorMessageKey(
   message: AffiliateConversationMessage,
 ): string {
-  if (message.messageId) return `message:${message.messageId}`;
+  if (message.messageRef) return `message:${message.messageRef}`;
   if ("conversationIndex" in message && message.conversationIndex != null) {
     return `platform-index:${message.conversationIndex}`;
   }
   const channel = "channel" in message ? message.channel : "PLATFORM_CHAT";
   const sender = "senderId" in message ? message.senderId ?? "" : "";
-  return `${channel}:${message.createdAt ?? "unknown"}:${sender}:${message.text ?? ""}`;
+  return `${channel}:${message.createdAt ?? "unknown"}:${sender}:${JSON.stringify(message.parts ?? [])}`;
 }
 
 function mergeAffiliateCreatorMessageHistoryItems(
@@ -3494,12 +3503,18 @@ function mergeAffiliateRelationshipHistoryPayload(
 
 function AffiliateCreatorMessageRow({
   message,
+  creatorRelationshipId,
 }: {
   message: AffiliateConversationMessage;
+  creatorRelationshipId: string;
 }) {
   const { t } = useTranslation();
   const direction = message.direction ?? GQL.AffiliateCreatorMessageDirection.System;
-  const text = message.text?.trim() || ("rawContent" in message ? message.rawContent?.trim() : "") || "";
+  const text = message.parts
+    .filter((part) => part.kind === GQL.AffiliateHistoryPartKind.Text)
+    .map((part) => part.text?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join("\n\n") || ("rawContent" in message ? message.rawContent?.trim() : "") || "";
   const time = message.createdAt
     ?? (typeof message.createTime === "number" ? new Date(message.createTime * 1000).toISOString() : null);
   const productRefs = "productRefs" in message ? message.productRefs ?? [] : [];
@@ -3553,8 +3568,98 @@ function AffiliateCreatorMessageRow({
           <AffiliateCreatorMessageRawPayloadCard payload={rawCardPayload} />
         </div>
       ) : null}
+      {message.parts.some((part) => part.kind !== GQL.AffiliateHistoryPartKind.Text) ? (
+        <div className="affiliate-conversation-card-stack">
+          {message.parts.map((part, index) => (
+            <AffiliateHistoryPartView
+              key={`${message.messageRef}:${index}`}
+              part={part}
+              creatorRelationshipId={creatorRelationshipId}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function AffiliateHistoryPartView({
+  part,
+  creatorRelationshipId,
+}: {
+  part: GQL.AffiliateHistoryPart;
+  creatorRelationshipId: string;
+}) {
+  const [downloading, setDownloading] = useState(false);
+  if (part.kind === GQL.AffiliateHistoryPartKind.Text) return null;
+  if (part.kind === GQL.AffiliateHistoryPartKind.Attachment) {
+    return (
+      <div className="affiliate-conversation-card affiliate-conversation-target-card">
+        <div className="affiliate-conversation-card-icon" aria-hidden="true">A</div>
+        <div className="affiliate-conversation-card-body">
+          <strong>{part.fileName ?? "Attachment"}</strong>
+          <span>{[part.mimeType, part.sizeBytes != null ? formatFileSize(part.sizeBytes) : null].filter(Boolean).join(" · ")}</span>
+          {part.caption ? <span>{part.caption}</span> : null}
+          {part.attachmentRef ? (
+            <button
+              className="btn btn-secondary"
+              type="button"
+              disabled={downloading}
+              onClick={() => void downloadAffiliateAttachment(part, creatorRelationshipId, setDownloading)}
+            >
+              {downloading ? "Loading…" : "Open / download"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+  const id = part.productId ?? part.targetCollaborationId ?? part.sampleApplicationId;
+  return (
+    <div className="affiliate-conversation-card affiliate-conversation-target-card">
+      <div className="affiliate-conversation-card-icon" aria-hidden="true">C</div>
+      <div className="affiliate-conversation-card-body">
+        <strong>{formatAffiliateEnumLabel(part.kind)}</strong>
+        {id ? <PlatformIdCopy value={id} /> : null}
+        {part.summary ? <span>{part.summary}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+async function downloadAffiliateAttachment(
+  part: GQL.AffiliateHistoryPart,
+  creatorRelationshipId: string,
+  setDownloading: (value: boolean) => void,
+): Promise<void> {
+  if (!part.attachmentRef) return;
+  setDownloading(true);
+  try {
+    const response = await fetch("/api/cloud/ecommerce/affiliate/read-message-attachment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Creator-Relationship-Id": creatorRelationshipId,
+        "X-Affiliate-Read-Mode": "DOWNLOAD",
+      },
+      body: JSON.stringify({ attachmentRef: part.attachmentRef }),
+    });
+    if (!response.ok) throw new Error(`Attachment download failed (${response.status})`);
+    const url = URL.createObjectURL(await response.blob());
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = part.fileName ?? "attachment";
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  } finally {
+    setDownloading(false);
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 type AffiliateCreatorMessageRawCardPayload = {
@@ -4988,6 +5093,12 @@ function CreatorRelationshipDetailModal({
   const affiliateWorkspace = entityStore.affiliateWorkspace;
   const [activeTab, setActiveTab] = useState<"overview" | "conversation" | "collaborations" | "activity">("overview");
   const [showCreatorProfile, setShowCreatorProfile] = useState(false);
+  const [composerText, setComposerText] = useState("");
+  const [composerChannel, setComposerChannel] = useState<"AUTO" | GQL.AffiliateMessageChannel>("AUTO");
+  const [composerSubject, setComposerSubject] = useState("");
+  const [stagedAttachments, setStagedAttachments] = useState<StagedAffiliateAttachment[]>([]);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const activityBottomRef = useRef<HTMLDivElement | null>(null);
   const activityLoadedOlderRef = useRef(false);
   const profile = item.creatorProfile ?? null;
@@ -5037,6 +5148,10 @@ function CreatorRelationshipDetailModal({
       : t("ecommerce.affiliateTeam.aiAssisted");
   const ownershipBusy = assignDeveloperState.loading || unassignDeveloperState.loading || setAiEngagementState.loading;
   const messageShopId = primaryWorkItem?.shopId ?? item.shopState?.shopId ?? shopStates[0]?.shopId ?? null;
+  const [sendAffiliateCreatorMessage] = useMutation<
+    { sendAffiliateCreatorMessage: GQL.SendAffiliateCreatorMessagePayload },
+    { input: GQL.SendAffiliateCreatorMessageInput }
+  >(SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION);
   const { data: relationshipCollaborationsData } = useQuery<
     { collaborationRecords: GQL.AffiliateCollaborationRecord[] },
     { input: GQL.ReadAffiliateCollaborationRecordsInput }
@@ -5110,6 +5225,7 @@ function CreatorRelationshipDetailModal({
     data: messageHistoryData,
     loading: conversationLoading,
     fetchMore: fetchMoreConversationMessages,
+    refetch: refetchConversationMessages,
   } = useQuery<
     { affiliateCreatorMessageHistory: GQL.AffiliateCreatorMessageHistoryPayload },
     { input: GQL.AffiliateCreatorMessageHistoryInput }
@@ -5127,6 +5243,71 @@ function CreatorRelationshipDetailModal({
   const conversationHistory = messageHistoryData?.affiliateCreatorMessageHistory;
   const conversationMessages = conversationHistory?.items ?? [];
   const canLoadOlderConversation = Boolean(conversationHistory?.hasMore && conversationHistory.nextOffset != null);
+
+  async function stageComposerFiles(files: FileList | null): Promise<void> {
+    if (!files?.length || !relationshipId) return;
+    setUploadingAttachments(true);
+    try {
+      const staged: StagedAffiliateAttachment[] = [];
+      for (const file of Array.from(files)) {
+        const response = await fetch("/api/cloud/ecommerce/affiliate/upload-draft-attachment", {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "X-Creator-Relationship-Id": relationshipId,
+            "X-File-Name": encodeURIComponent(file.name),
+            "X-Affiliate-Upload-Source": "HUMAN_UPLOAD",
+          },
+          body: file,
+        });
+        const payload = await response.json() as StagedAffiliateAttachment & { error?: string };
+        if (!response.ok) throw new Error(payload.error || `Upload failed (${response.status})`);
+        staged.push({ ...payload, inline: false });
+      }
+      setStagedAttachments((current) => [...current, ...staged].slice(0, 10));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
+    } finally {
+      setUploadingAttachments(false);
+    }
+  }
+
+  async function submitComposerMessage(): Promise<void> {
+    if (!relationshipId || !messageShopId) return;
+    const parts: GQL.AffiliateOutboundMessagePartInput[] = [];
+    if (composerText.trim()) parts.push({ kind: GQL.AffiliateMessagePartKind.Text, text: composerText.trim() });
+    parts.push(...stagedAttachments.map((asset) => ({
+      kind: GQL.AffiliateMessagePartKind.Attachment,
+      draftAssetId: asset.draftAssetId,
+      emailDisposition: asset.inline
+        ? GQL.AffiliateEmailAttachmentDisposition.Inline
+        : GQL.AffiliateEmailAttachmentDisposition.Attachment,
+    })));
+    if (!parts.length) return;
+    setSendingMessage(true);
+    try {
+      const result = await sendAffiliateCreatorMessage({ variables: { input: {
+        shopId: messageShopId,
+        creatorRelationshipId: relationshipId,
+        parts,
+        preferredChannel: composerChannel === "AUTO" ? undefined : composerChannel,
+        emailSubject: composerSubject.trim() || undefined,
+      } } });
+      const delivery = result.data?.sendAffiliateCreatorMessage.delivery;
+      if (delivery?.status === GQL.AffiliateDeliveryStatus.Failed || delivery?.status === GQL.AffiliateDeliveryStatus.PartiallySent) {
+        throw new Error(delivery.errorMessage || `Delivery ${delivery.status}`);
+      }
+      setComposerText("");
+      setComposerSubject("");
+      setStagedAttachments([]);
+      await refetchConversationMessages();
+      showToast("Message submitted", "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
+    } finally {
+      setSendingMessage(false);
+    }
+  }
   const {
     data: relationshipHistoryData,
     loading: relationshipHistoryLoading,
@@ -5517,6 +5698,7 @@ function CreatorRelationshipDetailModal({
                         <AffiliateCreatorMessageRow
                           key={affiliateCreatorMessageKey(message)}
                           message={message}
+                          creatorRelationshipId={relationshipId!}
                         />
                       ))
                     )}
@@ -5532,6 +5714,85 @@ function CreatorRelationshipDetailModal({
                           : t("ecommerce.affiliateWorkspace.conversation.loadOlder")}
                       </button>
                     ) : null}
+                  </div>
+                  <div className="affiliate-message-composer">
+                    <textarea
+                      className="form-input affiliate-message-composer-text"
+                      value={composerText}
+                      onChange={(event) => setComposerText(event.target.value)}
+                      placeholder="Write a creator-facing message…"
+                      rows={4}
+                    />
+                    <div className="affiliate-message-composer-controls">
+                      <select
+                        className="form-input"
+                        value={composerChannel}
+                        onChange={(event) => setComposerChannel(event.target.value as "AUTO" | GQL.AffiliateMessageChannel)}
+                      >
+                        <option value="AUTO">Reply/default channel</option>
+                        <option value={GQL.AffiliateMessageChannel.Whatsapp}>WhatsApp</option>
+                        <option value={GQL.AffiliateMessageChannel.Email}>Email</option>
+                        <option value={GQL.AffiliateMessageChannel.PlatformChat}>Platform chat</option>
+                      </select>
+                      {composerChannel === GQL.AffiliateMessageChannel.Email ? (
+                        <input
+                          className="form-input"
+                          value={composerSubject}
+                          onChange={(event) => setComposerSubject(event.target.value)}
+                          placeholder="Subject (required for a new thread)"
+                        />
+                      ) : null}
+                      <label className="btn btn-secondary affiliate-message-file-button">
+                        {uploadingAttachments ? "Uploading…" : "Add files"}
+                        <input
+                          type="file"
+                          multiple
+                          disabled={uploadingAttachments || stagedAttachments.length >= 10}
+                          onChange={(event) => {
+                            void stageComposerFiles(event.currentTarget.files);
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {stagedAttachments.length ? (
+                      <div className="affiliate-message-staged-list">
+                        {stagedAttachments.map((asset) => (
+                          <div className="affiliate-message-staged-item" key={asset.draftAssetId}>
+                            <span>{asset.fileName} · {formatFileSize(asset.sizeBytes)}</span>
+                            {composerChannel === GQL.AffiliateMessageChannel.Email && asset.mimeType.startsWith("image/") ? (
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={asset.inline}
+                                  onChange={(event) => setStagedAttachments((current) => current.map((item) =>
+                                    item.draftAssetId === asset.draftAssetId ? { ...item, inline: event.target.checked } : item))}
+                                />
+                                Inline
+                              </label>
+                            ) : null}
+                            <button
+                              className="btn btn-ghost"
+                              type="button"
+                              onClick={() => setStagedAttachments((current) => current.filter((item) => item.draftAssetId !== asset.draftAssetId))}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="affiliate-message-composer-footer">
+                      <span>1–10 ordered text/file parts · no cross-channel fallback</span>
+                      <button
+                        className="btn btn-primary"
+                        type="button"
+                        disabled={sendingMessage || uploadingAttachments || (!composerText.trim() && stagedAttachments.length === 0)}
+                        onClick={() => void submitComposerMessage()}
+                      >
+                        {sendingMessage ? "Sending…" : "Send"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -6054,12 +6315,12 @@ function normalizeTikTokUsername(value?: string | null): string | null {
 
 function getProposalActionProductId(proposal: GQL.ActionProposal | null): string | null {
   if (!proposal) return null;
-  const directProductId = proposal.messageIntent?.productId
+  const directProductId = proposal.messageIntent?.parts.find((part) => part.productId)?.productId
     ?? proposal.campaignProductUpdateIntent?.productId
     ?? null;
   if (directProductId) return directProductId;
   for (const step of proposal.steps ?? []) {
-    const stepProductId = step.messageIntent?.productId
+    const stepProductId = step.messageIntent?.parts.find((part) => part.productId)?.productId
       ?? step.campaignProductUpdateIntent?.productId
       ?? null;
     if (stepProductId) return stepProductId;
@@ -6217,10 +6478,10 @@ function renderProposalExecutionDescription(
 }
 
 function getProposalMessagePreview(proposal: GQL.ActionProposal): string | null {
-  const directText = proposal.messageIntent?.text?.trim();
+  const directText = proposal.messageIntent?.parts.find((part) => part.kind === GQL.AffiliateMessagePartKind.Text)?.text?.trim();
   if (directText) return directText;
   for (const step of proposal.steps ?? []) {
-    const text = step.messageIntent?.text?.trim();
+    const text = step.messageIntent?.parts.find((part) => part.kind === GQL.AffiliateMessagePartKind.Text)?.text?.trim();
     if (text) return text;
   }
   return null;
@@ -6471,21 +6732,27 @@ function renderProposalPreview(
   t: ReturnType<typeof useTranslation>["t"],
 ): string {
   if (proposal.messageIntent) {
-    const text = proposal.messageIntent.text?.trim();
-    if (text) return text;
-    if (
-      proposal.messageIntent.textHash &&
-      proposal.status !== GQL.ActionProposalStatus.Pending &&
-      proposal.status !== GQL.ActionProposalStatus.RevisionRequested
-    ) {
-      return t("ecommerce.affiliateWorkspace.proposalMessageCleared", {
-        defaultValue: "Message body cleared by retention policy · {{length}} characters · SHA-256 {{hash}}",
-        length: proposal.messageIntent.textLength ?? 0,
-        hash: proposal.messageIntent.textHash.slice(0, 12),
-      });
+    const pending = proposal.status === GQL.ActionProposalStatus.Pending
+      || proposal.status === GQL.ActionProposalStatus.RevisionRequested;
+    const previews = proposal.messageIntent.parts.map((part) => {
+      if (part.kind === GQL.AffiliateMessagePartKind.Text) {
+        if (part.text?.trim()) return part.text.trim();
+        return part.textHash
+          ? `TEXT · ${part.textLength ?? 0} chars · SHA-256 ${part.textHash.slice(0, 12)}`
+          : "TEXT";
+      }
+      if (part.kind === GQL.AffiliateMessagePartKind.Attachment) {
+        return `${part.fileName ?? "Attachment"} · ${part.mimeType ?? "unknown"} · ${part.sizeBytes != null ? formatFileSize(part.sizeBytes) : "?"} · SHA-256 ${part.sha256?.slice(0, 12) ?? "—"}`;
+      }
+      return `${formatAffiliateEnumLabel(part.kind)} · ${part.productId ?? part.targetCollaborationId ?? part.sampleApplicationId ?? "—"}`;
+    });
+    if (!pending && previews.length > 0) {
+      return `${t("ecommerce.affiliateWorkspace.proposalMessageCleared", {
+        defaultValue: "Content cleared by retention policy",
+      })}\n${previews.join("\n")}`;
     }
-    return t("ecommerce.shopDrawer.affiliate.messageIntentFallback", {
-      type: proposal.messageIntent.messageType,
+    return previews.join("\n") || t("ecommerce.shopDrawer.affiliate.messageIntentFallback", {
+      type: "MESSAGE",
     });
   }
   if (proposal.sampleReviewIntent) {

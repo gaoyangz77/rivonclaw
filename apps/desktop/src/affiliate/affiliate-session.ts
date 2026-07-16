@@ -180,8 +180,8 @@ export class AffiliateSession {
       "- Every work-item run must end with exactly one affiliate_resolve_work_item call. A final text response alone never completes or sends a backend work item.",
       "- If a structured TikTok platform action is needed, such as reviewing a sample application or creating a target collaboration, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed platform action payload.",
       "- affiliate_resolve_work_item supports only three platform action types: SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent action types such as CHANGE_COMMISSION; use NEEDS_STAFF_REVIEW for unsupported seller operations.",
-      "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageText, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
-      "- For SEND_MESSAGE, action.messageText is required and must contain the final text the creator should receive. Do not put the intended creator message only in operatorSummary.",
+      "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
+      "- For SEND_MESSAGE, action.messageIntent.parts must contain 1-10 ordered TEXT, staged ATTACHMENT, or platform-native card parts. Do not put creator-facing content only in operatorSummary.",
       "- Omit preferredChannel to reply on the trigger channel. Set it only for an intentional channel switch. For a proactive EMAIL without an existing thread, emailSubject is required.",
       "- Never pass provider message, conversation, thread, or account route identifiers; backend resolves exact routes from the work boundary and relationship.",
       "- After SEND_MESSAGE succeeds, enters approval, or returns a delivery failure, make the final assistant response exactly NO_REPLY.",
@@ -199,6 +199,8 @@ export class AffiliateSession {
       "- Call affiliate_get_workspace with creatorRelationshipId when a decision depends on dynamic facts not present in the injected snapshot, such as creator follower count, creator relation/tags, sample status, product context, approval policies, campaign setup, or pending proposals.",
       "- If you need a variable fact to apply a merchant rule or make a decision, for example follower count, GMV, prior performance, sample cost, inventory, or fulfillment state, fetch the narrow current CreatorRelationship workspace with affiliate_get_workspace before deciding.",
       "- For every creator reply work item, first call affiliate_get_relationship_history with creatorRelationshipId to read the Provider-backed message history before drafting or sending. Do not rely on the content-free lifecycle projection or memory for message text.",
+      "- History attachmentRef values are short-lived and relationship-bound. Read an attachment only when its contents affect the decision; use affiliate_copy_message_attachment for byte-exact forwarding and affiliate_upload_draft_attachment for a locally generated file.",
+      "- Never place URLs, provider ids, object keys, base64, or raw HTML in SEND_MESSAGE parts. If an unreadable attachment affects the decision, resolve the work item as NEEDS_STAFF_REVIEW.",
       "- Use affiliate_get_relationship_history for relationship-level audit events, previous proposal decisions, prior sample actions, creator communications, or past staff/agent outcomes. Do not use provider conversation routes as history keys. Use affiliate_get_workspace for current entity snapshots.",
       "- Use affiliate_predict_creator_product_fit when a creator message or card mentions a candidate product and you need creator/product fit evidence before deciding whether to proceed, decline, create a target collaboration, or reply. The tool returns product summary, decision thresholds, and model prediction without confirming or binding the product to the collaboration.",
       "- A product card in a creator message is candidate evidence only. Do not treat it as the confirmed collaboration product unless Backend Work Context already has a product context, sample application, or target collaboration for that product.",
@@ -647,7 +649,7 @@ export class AffiliateSession {
       "Call affiliate_get_relationship_history with this creatorRelationshipId before deciding or replying. Use the trigger channel as channel provenance, not as a workspace key.",
       "Read the provider-returned cross-channel context and handle the latest creator-side message. Do not use or request provider conversation/thread ids.",
       "If provider history is unavailable, do not guess from signal metadata and do not use a local-message fallback; call affiliate_resolve_work_item with NEEDS_STAFF_REVIEW, then output exactly NO_REPLY.",
-      "If a reply is needed, call affiliate_resolve_work_item with REQUEST_ACTION, action.type SEND_MESSAGE, and the exact creator-facing action.messageText.",
+      "If a reply is needed, call affiliate_resolve_work_item with REQUEST_ACTION, action.type SEND_MESSAGE, and ordered action.messageIntent.parts. A normal text reply uses [{kind: TEXT, text: <exact creator-facing reply>}].",
       "Omit preferredChannel to reply through the trigger channel. Only override it when the creator explicitly asks to switch channels.",
       "After the structured action completes, is queued for approval, or fails delivery, output exactly NO_REPLY.",
       "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying; if no creator-facing response is needed, resolve the work item with NO_ACTION_NEEDED, then output exactly NO_REPLY.",
@@ -865,7 +867,7 @@ export class AffiliateSession {
           ? ["", "## Merchant Affiliate Instructions", this.shop.businessPrompt.trim(), ""]
           : []),
         "If the matching sampleApplicationRecord is PENDING_REVIEW, resolve the work item through affiliate_resolve_work_item.",
-        `Use operatorSummary for staff-facing reasoning in ${this.shop.staffLanguage ?? "English"}. Creator-facing text belongs only in action.messageText.`,
+        `Use operatorSummary for staff-facing reasoning in ${this.shop.staffLanguage ?? "English"}. Creator-facing content belongs only in action.messageIntent.parts.`,
         "Do not pass this platform application ID as campaignId.",
       ].join("\n"), workspaceSnapshot),
       idempotencyKey: `affiliate:${this.platform}:sample:${frame.applicationId}:${frame.status}:${frame.eventTime}`,
@@ -1148,7 +1150,7 @@ function renderProposalDelta(proposals: GQL.ActionProposal[], since: string | nu
       proposal.steps?.length
         ? `   steps=${proposal.steps.map(step => `${step.type}:${step.operatorSummary ?? ""}`).join(" | ")}`
         : "   steps=(none)",
-      proposal.messageIntent?.text ? `   messageText=${proposal.messageIntent.text}` : "   messageText=(none)",
+      `   messageParts=${renderProposalMessageParts(proposal.messageIntent)}`,
       proposal.sampleReviewIntent
         ? `   sampleReview=${proposal.sampleReviewIntent.decision} platformApplicationId=${proposal.sampleReviewIntent.platformApplicationId}`
         : "   sampleReview=(none)",
@@ -1156,6 +1158,17 @@ function renderProposalDelta(proposals: GQL.ActionProposal[], since: string | nu
     "",
     "Use this section only to understand draft actions that were already proposed, rejected, superseded, or executed after the last handled work boundary. Do not treat it as stable workspace state.",
   ].join("\n");
+}
+
+function renderProposalMessageParts(intent: GQL.ActionProposalMessageIntent | null | undefined): string {
+  if (!intent?.parts?.length) return "(none or cleared)";
+  return intent.parts.map((part, index) => {
+    if (part.kind === "TEXT") return `${index}:TEXT:${part.text ?? `[cleared hash=${part.textHash ?? "n/a"}]`}`;
+    if (part.kind === "ATTACHMENT") {
+      return `${index}:ATTACHMENT:${part.fileName ?? "attachment"}:${part.mimeType ?? "unknown"}:${part.sizeBytes ?? "?"}`;
+    }
+    return `${index}:${part.kind}`;
+  }).join(" | ");
 }
 
 function parseOptionalDate(value: string | null | undefined): Date | null {

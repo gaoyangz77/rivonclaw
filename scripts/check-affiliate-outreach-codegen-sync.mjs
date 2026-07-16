@@ -87,21 +87,39 @@ addCheck(
 
 const deliveryInputSchema = block(schema, "input", "ResolveAffiliateWorkItemActionInput");
 const deliveryInputGenerated = generatedInterface("ResolveAffiliateWorkItemActionInput");
+const messageIntentInputSchema = block(schema, "input", "ResolveAffiliateWorkItemMessageIntentInput");
+const messageIntentInputGenerated = generatedInterface("ResolveAffiliateWorkItemMessageIntentInput");
 addCheck(
-  "ResolveAffiliateWorkItemActionInput.preferredChannel is in backend schema",
-  hasLine(deliveryInputSchema, "preferredChannel: AffiliateMessageChannel"),
+  "ResolveAffiliateWorkItemActionInput.messageIntent is in backend schema",
+  hasLine(deliveryInputSchema, "messageIntent: ResolveAffiliateWorkItemMessageIntentInput"),
 );
 addCheck(
-  "ResolveAffiliateWorkItemActionInput.preferredChannel is in core generated type",
-  hasLine(deliveryInputGenerated, "preferredChannel?: InputMaybe<AffiliateMessageChannel>;"),
+  "ResolveAffiliateWorkItemActionInput.messageIntent is in core generated type",
+  hasLine(deliveryInputGenerated, "messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;"),
 );
 addCheck(
-  "ResolveAffiliateWorkItemActionInput.emailSubject is in backend schema",
-  hasLine(deliveryInputSchema, "emailSubject: String"),
+  "ResolveAffiliateWorkItemMessageIntentInput.parts is in backend schema",
+  hasLine(messageIntentInputSchema, "parts: [AffiliateOutboundMessagePartInput!]!"),
 );
 addCheck(
-  "ResolveAffiliateWorkItemActionInput.emailSubject is in core generated type",
-  hasLine(deliveryInputGenerated, "emailSubject?: InputMaybe<Scalars['String']['input']>;"),
+  "ResolveAffiliateWorkItemMessageIntentInput.parts is in core generated type",
+  hasLine(messageIntentInputGenerated, "parts: Array<AffiliateOutboundMessagePartInput>;"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemMessageIntentInput.preferredChannel is in backend schema",
+  hasLine(messageIntentInputSchema, "preferredChannel: AffiliateMessageChannel"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemMessageIntentInput.preferredChannel is in core generated type",
+  hasLine(messageIntentInputGenerated, "preferredChannel?: InputMaybe<AffiliateMessageChannel>;"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemMessageIntentInput.emailSubject is in backend schema",
+  hasLine(messageIntentInputSchema, "emailSubject: String"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemMessageIntentInput.emailSubject is in core generated type",
+  hasLine(messageIntentInputGenerated, "emailSubject?: InputMaybe<Scalars['String']['input']>;"),
 );
 
 const workItemSchema = block(schema, "type", "AffiliateWorkItem");

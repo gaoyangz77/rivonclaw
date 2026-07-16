@@ -262,10 +262,11 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         }
         messageIntent {
           creatorId
-          sampleApplicationRecordId
-          platformApplicationId
-          messageType
-          text
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
         }
       }
       approvalPolicies {
@@ -390,10 +391,11 @@ export const AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY = `
       }
       messageIntent {
         creatorId
-        sampleApplicationRecordId
-        platformApplicationId
-        messageType
-        text
+        preferredChannel
+        emailSubject
+        subjectHash
+        subjectLength
+        parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
       }
       updatedAt
     }
@@ -813,10 +815,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         }
         messageIntent {
           creatorId
-          sampleApplicationRecordId
-          platformApplicationId
-          messageType
-          text
+          preferredChannel
+          emailSubject
+          subjectHash
+          subjectLength
+          parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
         }
         updatedAt
       }
