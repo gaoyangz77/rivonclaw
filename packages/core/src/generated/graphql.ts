@@ -6194,15 +6194,21 @@ export type InventoryGoodStatus = typeof InventoryGoodStatus[keyof typeof Invent
 /** ISO 3166-1 alpha-2 country or region code used by inventory warehouse metadata */
 export const InventoryRegionCode = {
   Au: 'AU',
+  Be: 'BE',
   Ca: 'CA',
   Cn: 'CN',
+  Cz: 'CZ',
   De: 'DE',
   Fr: 'FR',
   Gb: 'GB',
+  Gr: 'GR',
+  Hu: 'HU',
   Id: 'ID',
   Jp: 'JP',
   My: 'MY',
+  Nl: 'NL',
   Ph: 'PH',
+  Pt: 'PT',
   Sg: 'SG',
   Th: 'TH',
   Us: 'US',
@@ -7440,19 +7446,27 @@ export const PlatformAppStatus = {
 export type PlatformAppStatus = typeof PlatformAppStatus[keyof typeof PlatformAppStatus];
 /** Platform market region */
 export const PlatformMarket = {
+  Be: 'BE',
+  Cz: 'CZ',
   De: 'DE',
   Es: 'ES',
   Fr: 'FR',
   Gb: 'GB',
+  Gr: 'GR',
+  Hu: 'HU',
   Id: 'ID',
   Ie: 'IE',
   It: 'IT',
   Mx: 'MX',
   My: 'MY',
+  Nl: 'NL',
   Ph: 'PH',
+  Pt: 'PT',
   Row: 'ROW',
+  Sg: 'SG',
   Th: 'TH',
-  Us: 'US'
+  Us: 'US',
+  Vn: 'VN'
 } as const;
 
 export type PlatformMarket = typeof PlatformMarket[keyof typeof PlatformMarket];
@@ -9110,16 +9124,22 @@ export const ShopPlatform = {
 export type ShopPlatform = typeof ShopPlatform[keyof typeof ShopPlatform];
 /** Country/region code for a connected shop */
 export const ShopRegion = {
+  Be: 'BE',
+  Cz: 'CZ',
   De: 'DE',
   Es: 'ES',
   Fr: 'FR',
   Gb: 'GB',
+  Gr: 'GR',
+  Hu: 'HU',
   Id: 'ID',
   Ie: 'IE',
   It: 'IT',
   Mx: 'MX',
   My: 'MY',
+  Nl: 'NL',
   Ph: 'PH',
+  Pt: 'PT',
   Sg: 'SG',
   Th: 'TH',
   Us: 'US',
