@@ -4276,6 +4276,7 @@ export default {
     },
     market: {
       US: "United States",
+      ROW: "Other regions",
       GB: "United Kingdom",
       MX: "Mexico",
       ES: "Spain",

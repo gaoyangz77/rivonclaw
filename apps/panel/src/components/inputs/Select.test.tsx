@@ -1,8 +1,16 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Select } from "./Select.js";
+
+const defaultInnerHeight = window.innerHeight;
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: defaultInnerHeight });
+});
 
 describe("Select", () => {
   it("uses the caller-provided localized search placeholder", () => {
@@ -19,6 +27,37 @@ describe("Select", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Select/i }));
     expect(screen.getByPlaceholderText("搜索店铺")).toBeTruthy();
+  });
+
+  it("caps dropdown height and preserves a viewport gutter", () => {
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 820 });
+    render(
+      <Select
+        value=""
+        onChange={() => {}}
+        options={[{ value: "shop", label: "Shop" }]}
+        placeholder="Select"
+        ariaLabel="height test select"
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "height test select" });
+    vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({
+      top: 436,
+      bottom: 516,
+      left: 100,
+      right: 400,
+      width: 300,
+      height: 80,
+      x: 100,
+      y: 436,
+      toJSON: () => ({}),
+    });
+    fireEvent.click(trigger);
+
+    const dropdown = document.querySelector<HTMLElement>(".custom-select-dropdown");
+    expect(dropdown?.style.top).toBe("520px");
+    expect(dropdown?.style.maxHeight).toBe("280px");
   });
 
   it("shows option status badges in both the trigger and dropdown", () => {

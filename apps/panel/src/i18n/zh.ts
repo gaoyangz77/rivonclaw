@@ -4044,6 +4044,7 @@ export default {
     },
     market: {
       US: "美国",
+      ROW: "其他地区",
       GB: "英国",
       MX: "墨西哥",
       ES: "西班牙",

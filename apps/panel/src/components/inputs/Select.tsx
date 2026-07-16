@@ -1,6 +1,38 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
+const DROPDOWN_MAX_HEIGHT = 280;
+const DROPDOWN_GAP = 4;
+const VIEWPORT_GUTTER = 20;
+
+interface DropdownVerticalLayout {
+  top?: number;
+  bottom?: number;
+  maxHeight: number;
+}
+
+function getDropdownVerticalLayout(
+  rect: Pick<DOMRect, "top" | "bottom">,
+  viewportHeight: number,
+): DropdownVerticalLayout {
+  const availableBelow = Math.max(
+    0,
+    viewportHeight - rect.bottom - DROPDOWN_GAP - VIEWPORT_GUTTER,
+  );
+  const availableAbove = Math.max(0, rect.top - DROPDOWN_GAP - VIEWPORT_GUTTER);
+  const openAbove = availableBelow < DROPDOWN_MAX_HEIGHT && availableAbove > availableBelow;
+
+  return openAbove
+    ? {
+        bottom: viewportHeight - rect.top + DROPDOWN_GAP,
+        maxHeight: Math.min(DROPDOWN_MAX_HEIGHT, availableAbove),
+      }
+    : {
+        top: rect.bottom + DROPDOWN_GAP,
+        maxHeight: Math.min(DROPDOWN_MAX_HEIGHT, availableBelow),
+      };
+}
+
 export interface SelectOption {
   value: string;
   label: string;
@@ -37,9 +69,7 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const dropdownMaxHeight = 280;
-    const openAbove = spaceBelow < dropdownMaxHeight && rect.top > spaceBelow;
+    const verticalStyle = getDropdownVerticalLayout(rect, window.innerHeight);
     // Horizontal: if dropdown would overflow right edge, align to right side of trigger
     const dropdownWidth = Math.max(rect.width, 200);
     const overflowsRight = rect.left + dropdownWidth > window.innerWidth - 8;
@@ -49,9 +79,7 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
 
     setDropdownStyle({
       position: "fixed",
-      ...(openAbove
-        ? { bottom: window.innerHeight - rect.top + 4, maxHeight: rect.top - 8 }
-        : { top: rect.bottom + 4, maxHeight: spaceBelow - 8 }),
+      ...verticalStyle,
       ...horizontalStyle,
       minWidth: rect.width,
       width: "max-content",
@@ -91,19 +119,11 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
       if (scrollTarget.contains(ref.current)) {
         if (triggerRef.current && dropdownRef.current) {
           const rect = triggerRef.current.getBoundingClientRect();
-          const spaceBelow = window.innerHeight - rect.bottom;
-          const maxH = 280;
-          const above = spaceBelow < maxH && rect.top > spaceBelow;
+          const verticalStyle = getDropdownVerticalLayout(rect, window.innerHeight);
           const s = dropdownRef.current.style;
-          if (above) {
-            s.top = "";
-            s.bottom = `${window.innerHeight - rect.top + 4}px`;
-            s.maxHeight = `${rect.top - 8}px`;
-          } else {
-            s.bottom = "";
-            s.top = `${rect.bottom + 4}px`;
-            s.maxHeight = `${spaceBelow - 8}px`;
-          }
+          s.top = verticalStyle.top === undefined ? "" : `${verticalStyle.top}px`;
+          s.bottom = verticalStyle.bottom === undefined ? "" : `${verticalStyle.bottom}px`;
+          s.maxHeight = `${verticalStyle.maxHeight}px`;
           const dw = Math.max(rect.width, 200);
           if (rect.left + dw > window.innerWidth - 8) {
             s.left = "auto";
@@ -137,7 +157,9 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
     ?? (creatable && value ? { value, label: value } : undefined);
 
   const filteredOptions = searchable && search
-    ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()) || o.value.toLowerCase().includes(search.toLowerCase()))
+    ? options.filter((option) =>
+        option.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()) ||
+        option.value.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
     : options;
 
   const showCreatable = creatable && searchable && search.trim()
@@ -174,6 +196,7 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={searchPlaceholder ?? "Search..."}
+                aria-label={searchPlaceholder ?? "Search..."}
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
