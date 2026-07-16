@@ -247,6 +247,21 @@ export function AffiliateEmailAccountPanel({
             />
           </label>
         )}
+        {mailboxType === GQL.EmailMailboxType.Personal && (
+          <div className="affiliate-email-native-rule" role="note">
+            <strong>
+              {t("ecommerce.affiliateWorkspace.email.nativeOutlookTitle", {
+                defaultValue: "Native Outlook.com account required",
+              })}
+            </strong>
+            <span>
+              {t("ecommerce.affiliateWorkspace.email.nativeOutlookOnly", {
+                defaultValue:
+                  "Sign in with an account whose Microsoft login and mailbox both end in @outlook.com. Gmail-based Microsoft accounts are rejected.",
+              })}
+            </span>
+          </div>
+        )}
         <button
           className="btn btn-primary"
           type="button"

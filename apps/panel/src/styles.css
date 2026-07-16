@@ -44,6 +44,15 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -259,13 +268,16 @@ tbody td {
 .layout-root {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .layout-body {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -280,6 +292,8 @@ tbody td {
   display: flex;
   flex-direction: column;
   position: relative;
+  height: 100%;
+  min-height: 0;
   overflow: visible;
   transition:
     width 0.2s ease,
@@ -734,6 +748,7 @@ tbody td {
   padding: 28px 48px 48px;
   max-width: 1600px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .main-content > main:has(.cs-workspace-page) {
@@ -18350,6 +18365,42 @@ html[lang="zh"] .acct-tool-chips {
   line-height: 1.4;
 }
 
+.affiliate-email-native-rule {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  min-height: 56px;
+  padding: 9px 12px 9px 34px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border-light));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
+}
+
+.affiliate-email-native-rule::before {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  width: 9px;
+  height: 9px;
+  border: 3px solid color-mix(in srgb, var(--color-primary) 32%, transparent);
+  border-radius: 999px;
+  background: var(--color-primary);
+  content: "";
+}
+
+.affiliate-email-native-rule strong {
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.affiliate-email-native-rule span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .affiliate-email-connect .btn {
   min-height: 36px;
   white-space: nowrap;
@@ -24053,7 +24104,6 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-bd-table-filters,
-.affiliate-bd-connect-actions,
 .affiliate-bd-detail-footer > div,
 .affiliate-bd-pagination > div {
   display: flex;
@@ -24260,6 +24310,13 @@ html[lang="zh"] .acct-tool-chips {
   overflow: hidden;
 }
 
+.affiliate-bd-detail-modal {
+  max-height: min(860px, calc(100dvh - 80px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--border-color) 84%, transparent);
+}
+
 .affiliate-bd-detail-modal .modal-header,
 .affiliate-unassigned-modal .modal-header {
   margin: 0;
@@ -24267,68 +24324,346 @@ html[lang="zh"] .acct-tool-chips {
   border-bottom: 1px solid var(--border-color);
 }
 
-.affiliate-bd-detail-tabs {
-  height: 48px;
-  padding: 0 24px;
+.affiliate-bd-detail-modal .modal-header {
+  flex: 0 0 auto;
+  padding: 18px 22px 16px;
+}
+
+.affiliate-bd-detail-modal .modal-title {
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.affiliate-bd-command-header {
+  min-height: 86px;
+  flex: 0 0 auto;
+  padding: 16px 22px;
   display: flex;
-  align-items: end;
+  align-items: center;
+  justify-content: space-between;
   gap: 24px;
   border-bottom: 1px solid var(--border-color);
-  background: var(--surface-secondary);
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--accent-color) 7%, var(--surface-primary)), transparent 56%),
+    var(--surface-primary);
 }
 
-.affiliate-bd-detail-tabs button {
-  height: 48px;
-  padding: 0 2px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--text-muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.affiliate-bd-detail-tabs button.is-active {
-  border-bottom-color: var(--accent-color);
-  color: var(--text-primary);
-}
-
-.affiliate-bd-detail-body {
-  padding: 22px 24px 24px;
-}
-
-.affiliate-bd-detail-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid var(--border-color);
-  border-radius: 7px;
-  overflow: hidden;
-}
-
-.affiliate-bd-detail-summary > div {
+.affiliate-bd-command-identity {
   min-width: 0;
-  min-height: 76px;
-  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.affiliate-bd-command-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
   display: grid;
-  align-content: center;
-  gap: 5px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--accent-color) 10%, var(--surface-primary));
+  color: var(--accent-color);
 }
 
-.affiliate-bd-detail-summary > div:not(:last-child) {
-  border-right: 1px solid var(--border-color);
+.affiliate-bd-command-avatar svg {
+  width: 20px;
+  height: 20px;
 }
 
-.affiliate-bd-detail-summary span,
-.affiliate-bd-metadata dt {
+.affiliate-bd-command-identity > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.affiliate-bd-command-identity p {
+  max-width: 660px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-bd-command-chips {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.affiliate-bd-command-chips > span:last-child {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface-tertiary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.affiliate-bd-command-metric {
+  min-width: 92px;
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+}
+
+.affiliate-bd-command-metric span {
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 650;
 }
 
-.affiliate-bd-detail-summary strong {
-  font-size: 19px;
+.affiliate-bd-command-metric strong {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.affiliate-bd-detail-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 20px 22px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.affiliate-bd-channel-command,
+.affiliate-bd-profile-section {
+  display: grid;
+  gap: 13px;
+}
+
+.affiliate-bd-command-section-head {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.affiliate-bd-command-section-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.affiliate-bd-command-section-head strong {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.affiliate-bd-command-section-head span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.affiliate-bd-command-section-head > span {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.affiliate-bd-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.affiliate-bd-channel-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--surface-primary);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.affiliate-bd-channel-card.is-whatsapp {
+  border-top-color: color-mix(in srgb, var(--success-color) 46%, var(--border-color));
+}
+
+.affiliate-bd-channel-card.is-email {
+  border-top-color: color-mix(in srgb, var(--info-color) 46%, var(--border-color));
+}
+
+.affiliate-bd-channel-card-head {
+  min-height: 67px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--surface-secondary) 58%, var(--surface-primary));
+}
+
+.affiliate-bd-channel-brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.affiliate-bd-channel-brand > span {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--success-color) 12%, var(--surface-primary));
+  color: var(--success-color);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.affiliate-bd-channel-card.is-email .affiliate-bd-channel-brand > span {
+  background: color-mix(in srgb, var(--info-color) 11%, var(--surface-primary));
+  color: var(--info-color);
+}
+
+.affiliate-bd-channel-brand > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.affiliate-bd-channel-brand strong {
+  font-size: 14px;
+}
+
+.affiliate-bd-channel-brand small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-bd-channel-signal {
+  min-width: 40px;
+  height: 25px;
+  padding: 0 8px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-tertiary);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.affiliate-bd-channel-signal.is-healthy {
+  background: color-mix(in srgb, var(--success-color) 11%, var(--surface-primary));
+  color: var(--success-color);
+}
+
+.affiliate-bd-channel-card-body {
+  min-height: 104px;
+  flex: 1;
+  padding: 0 14px;
+}
+
+.affiliate-bd-channel-card .affiliate-channel-row {
+  min-height: 104px;
+  padding: 12px 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  gap: 8px 12px;
+  border-top: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.affiliate-bd-channel-card .affiliate-channel-row:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-bd-channel-card .affiliate-channel-kind {
+  display: none;
+}
+
+.affiliate-bd-channel-card .affiliate-channel-health {
+  align-self: start;
+  justify-self: end;
+}
+
+.affiliate-bd-channel-card .affiliate-channel-row > .custom-select {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.affiliate-bd-channel-card .custom-select-trigger {
+  width: 100%;
+  min-height: 32px;
+  background: color-mix(in srgb, var(--surface-secondary) 64%, var(--surface-primary));
+}
+
+.affiliate-bd-channel-card-empty {
+  min-height: 104px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.affiliate-bd-channel-card > footer {
+  padding: 11px 14px;
+  border-top: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--surface-secondary) 52%, var(--surface-primary));
+}
+
+.affiliate-bd-channel-card > footer .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.affiliate-bd-profile-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.affiliate-bd-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.4fr);
+  gap: 14px;
+}
+
+.affiliate-bd-profile-grid .affiliate-bd-metadata {
+  margin: 0;
+  padding: 15px 17px;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface-secondary) 46%, var(--surface-primary));
+}
+
+.affiliate-bd-profile-grid .affiliate-team-instructions {
+  min-height: 100%;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--info-color, var(--accent-color));
+  border-radius: 9px;
+}
+
+.affiliate-bd-metadata dt {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 650;
 }
 
 .affiliate-bd-metadata {
@@ -24349,9 +24684,10 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-bd-detail-footer {
-  min-height: 58px;
-  margin: 24px -24px -24px;
-  padding: 12px 24px;
+  min-height: 62px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 12px 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24381,15 +24717,6 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-unassigned-body > p {
   color: var(--text-muted);
   font-size: 12px;
-}
-
-.affiliate-bd-channel-body .affiliate-channel-section {
-  margin-top: 14px;
-}
-
-.affiliate-bd-channel-body .affiliate-channel-connectors {
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
 }
 
 .affiliate-unassigned-body {
@@ -24703,14 +25030,12 @@ html[lang="zh"] .acct-tool-chips {
     width: 100%;
     justify-content: space-between;
   }
-  .affiliate-bd-detail-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .affiliate-bd-channel-grid,
+  .affiliate-bd-profile-grid {
+    grid-template-columns: 1fr;
   }
-  .affiliate-bd-detail-summary > div:nth-child(2) {
-    border-right: 0;
-  }
-  .affiliate-bd-detail-summary > div:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--border-color);
+  .affiliate-bd-command-header {
+    align-items: flex-start;
   }
   .affiliate-onboarding-actions {
     justify-content: flex-start;
@@ -24769,22 +25094,24 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-bd-pagination > div {
     justify-content: space-between;
   }
-  .affiliate-bd-detail-summary,
   .affiliate-bd-metadata {
     grid-template-columns: 1fr;
   }
-  .affiliate-bd-detail-summary > div {
-    border-right: 0 !important;
-    border-bottom: 1px solid var(--border-color);
+  .affiliate-bd-detail-modal {
+    width: calc(100% - 24px);
+    max-height: calc(100dvh - 24px);
   }
-  .affiliate-bd-detail-summary > div:last-child {
-    border-bottom: 0;
+  .affiliate-bd-command-header {
+    padding: 14px 16px;
   }
-  .affiliate-bd-connect-actions {
-    width: 100%;
+  .affiliate-bd-command-metric {
+    display: none;
   }
-  .affiliate-bd-connect-actions .btn {
-    flex: 1;
+  .affiliate-bd-detail-scroll {
+    padding: 16px;
+  }
+  .affiliate-bd-detail-footer {
+    padding: 12px 16px;
   }
   .affiliate-team-facts {
     grid-template-columns: 1fr;
