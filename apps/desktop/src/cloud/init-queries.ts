@@ -19,6 +19,7 @@ export const TOOL_SPECS_SYNC_QUERY = `
         description
         graphqlVar
         required
+        nullable
         defaultValue
         enumValues
         isList
@@ -28,6 +29,7 @@ export const TOOL_SPECS_SYNC_QUERY = `
           description
           graphqlVar
           required
+          nullable
           defaultValue
           enumValues
           isList
@@ -37,9 +39,54 @@ export const TOOL_SPECS_SYNC_QUERY = `
             description
             graphqlVar
             required
+            nullable
             defaultValue
             enumValues
             isList
+            children {
+              name
+              type
+              description
+              graphqlVar
+              required
+              nullable
+              defaultValue
+              enumValues
+              isList
+              children {
+                name
+                type
+                description
+                graphqlVar
+                required
+                nullable
+                defaultValue
+                enumValues
+                isList
+                children {
+                  name
+                  type
+                  description
+                  graphqlVar
+                  required
+                  nullable
+                  defaultValue
+                  enumValues
+                  isList
+                  children {
+                    name
+                    type
+                    description
+                    graphqlVar
+                    required
+                    nullable
+                    defaultValue
+                    enumValues
+                    isList
+                  }
+                }
+              }
+            }
           }
         }
       }
