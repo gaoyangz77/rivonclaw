@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GQL } from "@rivonclaw/core";
 import i18n from "./index.js";
 import { LANGUAGE_OPTIONS } from "./languages.js";
 
@@ -62,6 +63,20 @@ describe("panel i18n resources", () => {
           interpolationVariables(languageValues[key] ?? ""),
           `${language.code} ${key} interpolation variables`,
         ).toEqual(interpolationVariables(baseValue));
+      }
+    }
+  });
+
+  it("localizes every concrete TikTok Shop onboarding market", () => {
+    const markets = new Set([
+      ...Object.values(GQL.ShopRegion),
+      ...Object.values(GQL.PlatformMarket).filter((market) => market !== GQL.PlatformMarket.Row),
+    ]);
+
+    for (const language of LANGUAGE_OPTIONS) {
+      const keys = new Set(flattenKeys(language.resource));
+      for (const market of markets) {
+        expect(keys.has(`ecommerce.market.${market}`), `${language.code} ${market}`).toBe(true);
       }
     }
   });
