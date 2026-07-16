@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.74",
+    "date": "2026-07-16",
+    "en": [
+      "Simplify TikTok Shop app selection and localize newly approved regions",
+      "Complete affiliate structured and multimedia messaging workflows",
+      "Capture gateway performance bursts for easier troubleshooting"
+    ],
+    "zh": [
+      "简化 TikTok Shop 应用选择，并本地化新批准地区",
+      "完善达人结构化与多媒体消息工作流",
+      "记录 gateway 性能突发数据，便于排查问题"
+    ]
+  },
+  {
     "version": "1.8.73",
     "date": "2026-07-15",
     "en": [
