@@ -15,11 +15,13 @@ import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
   AFFILIATE_CONTEXT_BUILDER_QUERY,
+  AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateActionProposalDeltaQueryResult,
   type AffiliateContextBuilderQueryResult,
+  type AffiliateCreatorMessagePreflightQueryResult,
   type AffiliateWorkItemsQueryResult,
   type AffiliateWorkspaceQueryResult,
   type ResolveAffiliateWorkItemMutationResult,
@@ -96,6 +98,11 @@ interface AffiliateRunCheckpoint {
 interface AffiliateResolvedDispatchContext {
   checkpoint: GQL.AffiliateContextBuilderPayload;
   contactState: GQL.AffiliateCreatorContactStatePayload;
+}
+
+interface AffiliateCreatorMessagePreflightResult {
+  safeForAgentRun: boolean;
+  operatorSummary: string;
 }
 
 export enum AffiliateAgentRunMode {
@@ -247,6 +254,15 @@ export class AffiliateSession {
     let generation: number | undefined;
     if (isCreatorReplyWorkItem(workItem)) {
       generation = this.beginCreatorMessageTakeover();
+      const preflight = await this.preflightCreatorMessage(workItem);
+      if (!preflight.safeForAgentRun) {
+        await this.transferCreatorMessageToStaffBeforeRun({
+          workItem,
+          dispatchContext,
+          operatorSummary: preflight.operatorSummary,
+        });
+        return { runId: undefined };
+      }
       const messageUpdate = this.buildRelationshipMessageUpdateWorkPackage({
         currentSignalId: workItem.triggerLifecycleEventId ?? workItemCurrentMessageId(workItem) ?? undefined,
         currentChannel: workItem.triggerChannel ?? undefined,
@@ -628,6 +644,114 @@ export class AffiliateSession {
     this.dispatchGeneration += 1;
     this.abortActiveRun();
     return this.dispatchGeneration;
+  }
+
+  private async preflightCreatorMessage(
+    workItem: GQL.AffiliateWorkItem,
+  ): Promise<AffiliateCreatorMessagePreflightResult> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      return {
+        safeForAgentRun: false,
+        operatorSummary: "Creator message was routed to staff before Agent run because no authenticated Provider-history session was available.",
+      };
+    }
+
+    try {
+      const result = await authSession.graphqlFetch<AffiliateCreatorMessagePreflightQueryResult>(
+        AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY,
+        {
+          input: {
+            shopId: workItem.focusShopId,
+            creatorRelationshipId: workItem.creatorRelationshipId,
+            limit: 25,
+            ...(workItem.triggerChannel ? { channelFilter: [workItem.triggerChannel] } : {}),
+          },
+        },
+      );
+      const expectedInboundAt = parseOptionalDate(
+        workItem.creatorRelationship?.lastInboundAt ?? workItem.collaboration?.lastCreatorMessageAt,
+      );
+      const currentMessage = result.affiliateCreatorMessageHistory.items.find((item) => {
+        if (item.direction !== GQL.AffiliateCreatorMessageDirection.Creator) return false;
+        const occurredAt = parseOptionalDate(item.createdAt);
+        return expectedInboundAt == null || (
+          occurredAt != null && occurredAt.getTime() >= expectedInboundAt.getTime() - 30_000
+        );
+      });
+      if (!currentMessage || currentMessage.parts.length === 0) {
+        return {
+          safeForAgentRun: false,
+          operatorSummary: "Creator message was routed to staff before Agent run because the current Provider-backed message could not be materialized safely.",
+        };
+      }
+
+      const unsupported = currentMessage.parts.filter((part) => (
+        part.kind === GQL.AffiliateHistoryPartKind.Unknown ||
+        (part.kind === GQL.AffiliateHistoryPartKind.Attachment && part.agentReadable !== true)
+      ));
+      if (unsupported.length > 0) {
+        const labels = unsupported.map((part) => (
+          part.fileName ?? part.mimeType ?? part.providerType ?? part.summary ?? part.kind
+        ));
+        return {
+          safeForAgentRun: false,
+          operatorSummary: `Creator message was routed to staff before Agent run because it contains unsupported content: ${labels.join(", ")}.`,
+        };
+      }
+      return {
+        safeForAgentRun: true,
+        operatorSummary: "Creator message parts passed the Agent-readable attachment preflight.",
+      };
+    } catch (error) {
+      log.warn("Affiliate creator message preflight failed; routing work to staff before Agent run", error);
+      return {
+        safeForAgentRun: false,
+        operatorSummary: "Creator message was routed to staff before Agent run because Provider-backed attachment preflight was unavailable.",
+      };
+    }
+  }
+
+  private async transferCreatorMessageToStaffBeforeRun(input: {
+    workItem: GQL.AffiliateWorkItem;
+    dispatchContext: AffiliateResolvedDispatchContext;
+    operatorSummary: string;
+  }): Promise<void> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      throw new Error(`Cannot transfer unsupported Affiliate message to staff without an auth session: ${input.workItem.id}`);
+    }
+    try {
+      const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
+        RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
+        {
+          input: {
+            shopId: input.workItem.focusShopId,
+            creatorRelationshipId: input.workItem.creatorRelationshipId,
+            collaborationRecordId: input.workItem.collaborationRecordId ?? undefined,
+            handledSignalAt: workItemBoundaryAt(input.workItem),
+            baseCheckpointId: input.dispatchContext.checkpoint.baseCheckpointId,
+            baseEventCursor: input.dispatchContext.checkpoint.baseEventCursor,
+            targetEventCursor: input.dispatchContext.checkpoint.targetEventCursor,
+            relationshipOperationalConfigRevision:
+              input.dispatchContext.checkpoint.relationshipOperationalConfigRevision,
+            businessDeveloperIdSnapshot:
+              input.dispatchContext.checkpoint.businessDeveloperIdSnapshot,
+            businessDeveloperConfigRevision:
+              input.dispatchContext.checkpoint.businessDeveloperConfigRevision,
+            decision: "NEEDS_STAFF_REVIEW",
+            operatorSummary: input.operatorSummary,
+          },
+        },
+      );
+      log.info(
+        `Affiliate creator message preflight resolved without Agent run: ` +
+        `workItem=${input.workItem.id} stale=${result.resolveAffiliateWorkItem.stale}`,
+      );
+    } catch (error) {
+      log.error(`Failed to transfer unsupported Affiliate message to staff: ${input.workItem.id}`, error);
+      throw error;
+    }
   }
 
   private buildRelationshipMessageUpdateWorkPackage(params: {

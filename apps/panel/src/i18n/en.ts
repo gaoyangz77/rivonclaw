@@ -3788,6 +3788,7 @@ export default {
       processReasons: {
         CREATOR_MESSAGE_NEEDS_REPLY: "Creator message needs reply",
         SAMPLE_PENDING_REVIEW: "Sample request pending review",
+        SAMPLE_AWAITING_PLATFORM_SHIPMENT: "Waiting for TikTok FBT shipment",
         SAMPLE_AWAITING_SHIPMENT: "Sample awaiting shipment",
         SAMPLE_CONTENT_FOLLOW_UP_DUE: "Sample content follow-up due",
         CREATOR_ACTION_FOLLOW_UP_DUE: "Creator follow-up due",
@@ -3839,6 +3840,7 @@ export default {
         MANUAL_REVIEW: "Awaiting manual confirmation",
         OBSERVATION_REVIEW: "Observation review",
         SAMPLE_APPLICATION_DECISION: "Sample application decision",
+        SAMPLE_PLATFORM_FULFILLMENT_WAIT: "Waiting for FBT fulfillment",
         SAMPLE_SHIPMENT: "Sample shipment",
       },
       statusLabels: {
@@ -4021,7 +4023,7 @@ export default {
         REVIEW_SAMPLE_APPLICATION:
           "The creator submitted a sample request. The agent will use shop rules and prediction results to recommend approval or rejection.",
         SHIP_SAMPLE:
-          "The sample request has been approved. Staff should arrange shipment in the platform or warehouse flow.",
+          "The sample request is approved. TikTok FBT will fulfill it automatically; no staff shipment action is required.",
         FOLLOW_UP_CREATOR:
           "The creator-side next step is overdue. Follow up with the creator based on the current collaboration context.",
         REVIEW_ACTION_PROPOSAL:
@@ -4040,6 +4042,8 @@ export default {
           "No staff action is needed right now. Waiting for the creator to reply, receive the sample, or publish content.",
         WAITING_PLATFORM:
           "No staff action is needed right now. Waiting for TikTok Shop to sync sample, content, or collaboration updates.",
+        WAITING_FBT_SHIPMENT:
+          "The sample is approved and TikTok FBT is fulfilling it automatically. No staff shipment action is required.",
         DONE: "There is no open work on this collaboration. Open the detail view to inspect history.",
         BLOCKED: "This collaboration is blocked and will not be advanced automatically.",
         DEFAULT: "Open the detail view to inspect history, proposals, and platform events.",
@@ -4058,7 +4062,7 @@ export default {
         REQUEST_PENDING_REVIEW:
           "The creator has submitted a sample request and is waiting for your decision.",
         APPROVED_AWAITING_SHIPMENT:
-          "The sample request is approved, but the sample still needs to be shipped.",
+          "The sample request is approved and is waiting for automatic TikTok FBT fulfillment.",
         SHIPPED_IN_TRANSIT: "The sample has shipped and is on the way to the creator.",
         DELIVERED_AWAITING_CONTENT:
           "The creator has received the sample and should publish content next.",

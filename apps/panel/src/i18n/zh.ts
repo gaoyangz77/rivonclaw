@@ -3591,6 +3591,7 @@ export default {
       processReasons: {
         CREATOR_MESSAGE_NEEDS_REPLY: "达人消息待回复",
         SAMPLE_PENDING_REVIEW: "样品申请待审核",
+        SAMPLE_AWAITING_PLATFORM_SHIPMENT: "等待 TikTok FBT 发货",
         SAMPLE_AWAITING_SHIPMENT: "样品待发货",
         SAMPLE_CONTENT_FOLLOW_UP_DUE: "样品内容待跟进",
         CREATOR_ACTION_FOLLOW_UP_DUE: "达人待跟进",
@@ -3642,6 +3643,7 @@ export default {
         MANUAL_REVIEW: "待人工确认",
         OBSERVATION_REVIEW: "观察结果复核",
         SAMPLE_APPLICATION_DECISION: "样品申请决策",
+        SAMPLE_PLATFORM_FULFILLMENT_WAIT: "等待 FBT 自动履约",
         SAMPLE_SHIPMENT: "样品寄送",
       },
       statusLabels: {
@@ -3810,7 +3812,7 @@ export default {
           "Agent 会根据最近对话、商品和合作上下文生成回复；如果需要审批，会先形成提案。",
         REVIEW_SAMPLE_APPLICATION:
           "达人已提交样品申请。Agent 会结合店铺规则和预测结果建议同意或拒绝。",
-        SHIP_SAMPLE: "样品申请已经同意，下一步需要员工在平台或仓储流程中安排发货。",
+        SHIP_SAMPLE: "样品申请已经同意，将由 TikTok FBT 自动履约，无需员工安排发货。",
         FOLLOW_UP_CREATOR: "达人侧下一步动作已超时，需要根据当前合作上下文跟进达人。",
         REVIEW_ACTION_PROPOSAL: "Agent 已经生成平台动作提案，请在审批提案页面同意或拒绝。",
         REVIEW_AGENT_FAILURE: "Agent 没有成功完成处理，请查看记录并人工决定下一步。",
@@ -3822,6 +3824,7 @@ export default {
           "员工已要求 Agent 根据备注重新生成提案。备注会进入下一次 Agent 运行上下文。",
         WAITING_CREATOR: "当前不需要员工操作，等待达人回复、寄样状态变化或内容发布。",
         WAITING_PLATFORM: "当前不需要员工操作，等待 TikTok Shop 同步新的样品、内容或合作状态。",
+        WAITING_FBT_SHIPMENT: "样品申请已同意，TikTok FBT 正在自动履约，无需员工安排发货。",
         DONE: "这条合作当前没有待处理事项。可以打开详情查看历史记录。",
         BLOCKED: "该合作已阻止，不会继续自动推进。",
         DEFAULT: "打开详情查看该合作的历史、提案和平台事件。",
@@ -3838,7 +3841,7 @@ export default {
       },
       sampleWorkStatusDescriptions: {
         REQUEST_PENDING_REVIEW: "达人已提交样品申请，正在等待你审核。",
-        APPROVED_AWAITING_SHIPMENT: "样品申请已同意，但样品还没有寄出。",
+        APPROVED_AWAITING_SHIPMENT: "样品申请已同意，正在等待 TikTok FBT 自动履约。",
         SHIPPED_IN_TRANSIT: "样品已经发出，正在运输途中。",
         DELIVERED_AWAITING_CONTENT: "达人已收到样品，下一步应发布内容。",
         CONTENT_OBSERVED_REVIEWING: "系统已检测到内容，正在等待进一步确认。",

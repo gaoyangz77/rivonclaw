@@ -516,6 +516,21 @@ beforeEach(() => {
         affiliateCreatorContactState: buildAffiliateCreatorContactState(creatorRelationshipId),
       };
     }
+    if (query.includes("AffiliateCreatorMessagePreflight")) {
+      return {
+        affiliateCreatorMessageHistory: {
+          items: [{
+            channel: variables?.input?.channelFilter?.[0] ?? GQL.AffiliateMessageChannel.PlatformChat,
+            direction: GQL.AffiliateCreatorMessageDirection.Creator,
+            messageRef: "message-ref-test",
+            parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
+            messageType: "TEXT",
+            createdAt: "2026-07-01T12:00:00.000Z",
+            source: "TEST",
+          }],
+        },
+      };
+    }
     if (query.includes("ecommerceGetConversationDetails")) {
       return { ecommerceGetConversationDetails: { buyer: null } };
     }
@@ -784,6 +799,21 @@ describe("affiliate message dispatch", () => {
             },
           },
           affiliateCreatorContactState: buildAffiliateCreatorContactState(creatorRelationshipId),
+        };
+      }
+      if (query.includes("AffiliateCreatorMessagePreflight")) {
+        return {
+          affiliateCreatorMessageHistory: {
+            items: [{
+              channel: GQL.AffiliateMessageChannel.Whatsapp,
+              direction: GQL.AffiliateCreatorMessageDirection.Creator,
+              messageRef: "message-ref-signal-user",
+              parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
+              messageType: "TEXT",
+              createdAt: "2026-07-01T12:05:00.000Z",
+              source: "TEST",
+            }],
+          },
         };
       }
       return {};

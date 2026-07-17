@@ -792,6 +792,7 @@ export const AffiliateCollaborationRecordProcessReason = {
   MessageDeliveryFailed: 'MESSAGE_DELIVERY_FAILED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
   ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
+  SampleAwaitingPlatformShipment: 'SAMPLE_AWAITING_PLATFORM_SHIPMENT',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SampleContentFollowUpDue: 'SAMPLE_CONTENT_FOLLOW_UP_DUE',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
@@ -2157,6 +2158,7 @@ export const AffiliateWorkBundleKind = {
   CreatorReplyWithSampleReview: 'CREATOR_REPLY_WITH_SAMPLE_REVIEW',
   GeneralReview: 'GENERAL_REVIEW',
   ObservationOnly: 'OBSERVATION_ONLY',
+  PlatformWaitOnly: 'PLATFORM_WAIT_ONLY',
   SampleReviewOnly: 'SAMPLE_REVIEW_ONLY',
   SampleShipmentStaffReview: 'SAMPLE_SHIPMENT_STAFF_REVIEW',
   StaffReviewOnly: 'STAFF_REVIEW_ONLY'
@@ -2252,6 +2254,7 @@ export const AffiliateWorkKind = {
   ManualReview: 'MANUAL_REVIEW',
   ObservationReview: 'OBSERVATION_REVIEW',
   SampleApplicationDecision: 'SAMPLE_APPLICATION_DECISION',
+  SamplePlatformFulfillmentWait: 'SAMPLE_PLATFORM_FULFILLMENT_WAIT',
   SampleShipment: 'SAMPLE_SHIPMENT'
 } as const;
 

@@ -288,6 +288,9 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
 
 function withCheckpointContext(
   graphqlFetch: (query: string, variables?: unknown) => unknown | Promise<unknown>,
+  options: {
+    preflightItems?: GQL.AffiliateCreatorMessageHistoryItem[];
+  } = {},
 ): (query: string, variables?: unknown) => Promise<unknown> {
   return async (query, variables) => {
     if (query.includes("affiliateContextBuilder")) {
@@ -383,7 +386,48 @@ function withCheckpointContext(
         },
       };
     }
+    if (query.includes("AffiliateCreatorMessagePreflight")) {
+      return {
+        affiliateCreatorMessageHistory: {
+          items: options.preflightItems ?? [{
+            channel: GQL.AffiliateMessageChannel.Whatsapp,
+            direction: GQL.AffiliateCreatorMessageDirection.Creator,
+            messageRef: "message-ref-001",
+            parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
+            messageType: "TEXT",
+            deliveryStatus: null,
+            createdAt: "2026-05-11T00:01:00.000Z",
+            subject: null,
+            channelLabel: "WhatsApp",
+            shopId: "shop-001",
+            shopName: "Affiliate Test Shop",
+            accountLabel: "Maria WhatsApp",
+            source: "WHATSAPP",
+          }],
+        },
+      };
+    }
     return graphqlFetch(query, variables);
+  };
+}
+
+function createPreflightMessage(
+  parts: GQL.AffiliateHistoryPart[],
+): GQL.AffiliateCreatorMessageHistoryItem {
+  return {
+    channel: GQL.AffiliateMessageChannel.Whatsapp,
+    direction: GQL.AffiliateCreatorMessageDirection.Creator,
+    messageRef: "message-ref-preflight",
+    parts,
+    messageType: "ATTACHMENT",
+    deliveryStatus: null,
+    createdAt: "2026-05-11T00:01:00.000Z",
+    subject: null,
+    channelLabel: "WhatsApp",
+    shopId: "shop-001",
+    shopName: "Affiliate Test Shop",
+    accountLabel: "Maria WhatsApp",
+    source: "WHATSAPP",
   };
 }
 
@@ -860,6 +904,97 @@ describe("affiliate work item dispatch", () => {
       data: { text: "This text must remain internal and must not be forwarded." },
     })).toBe(false);
     expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText"))).toBe(false);
+  });
+
+  it("routes unreadable creator attachments to staff before creating an Agent run", async () => {
+    const graphqlFetch = vi.fn(async (query: string, variables?: any) => {
+      if (query.includes("ResolveAffiliateWorkItem")) {
+        expect(variables?.input).toMatchObject({
+          creatorRelationshipId: "relationship-001",
+          decision: "NEEDS_STAFF_REVIEW",
+        });
+        expect(variables?.input?.operatorSummary).toContain("creator-video.mp4");
+        return {
+          resolveAffiliateWorkItem: {
+            decision: "NEEDS_STAFF_REVIEW",
+            stale: false,
+          },
+        };
+      }
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: withCheckpointContext(graphqlFetch, {
+        preflightItems: [createPreflightMessage([{
+          kind: GQL.AffiliateHistoryPartKind.Attachment,
+          fileName: "creator-video.mp4",
+          mimeType: "video/mp4",
+          sizeBytes: 1024,
+          agentReadable: false,
+        }])],
+      }),
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "message-video-001",
+      },
+    );
+
+    await expect(session.handleWorkItem(createCreatorReplyWorkItem())).resolves.toEqual({ runId: undefined });
+    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(false);
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("ResolveAffiliateWorkItem"),
+      expect.anything(),
+    );
+  });
+
+  it("allows PDF creator attachments through the pre-run attachment gate", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: withCheckpointContext(graphqlFetch, {
+        preflightItems: [createPreflightMessage([{
+          kind: GQL.AffiliateHistoryPartKind.Attachment,
+          fileName: "creator-brief.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 2048,
+          agentReadable: true,
+        }])],
+      }),
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "message-pdf-001",
+      },
+    );
+
+    await expect(session.handleWorkItem(createCreatorReplyWorkItem())).resolves.toMatchObject({
+      runId: "run-affiliate-001",
+    });
+    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(true);
   });
 
   it("does not create creator-outreach sessions without a creator relationship id", () => {

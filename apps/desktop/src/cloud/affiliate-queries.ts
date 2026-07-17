@@ -860,6 +860,32 @@ export interface AffiliateWorkItemsQueryResult {
   affiliateWorkItems: GQL.AffiliateWorkItem[];
 }
 
+export const AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY = `
+  query AffiliateCreatorMessagePreflight($input: AffiliateCreatorMessageHistoryInput!) {
+    affiliateCreatorMessageHistory(input: $input) {
+      items {
+        channel
+        direction
+        createdAt
+        messageType
+        parts {
+          kind
+          fileName
+          mimeType
+          sizeBytes
+          agentReadable
+          providerType
+          summary
+        }
+      }
+    }
+  }
+`;
+
+export interface AffiliateCreatorMessagePreflightQueryResult {
+  affiliateCreatorMessageHistory: Pick<GQL.AffiliateCreatorMessageHistoryPayload, "items">;
+}
+
 export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
   mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
     resolveAffiliateWorkItem(input: $input) {
