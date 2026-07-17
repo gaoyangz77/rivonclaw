@@ -2,10 +2,12 @@ import { print } from "graphql";
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
+  AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_COLLABORATION_RECORDS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
+  SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
 } from "./shops-queries.js";
 
 function queryText(document: Parameters<typeof print>[0]): string {
@@ -62,5 +64,23 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(mutation).toContain("decideActionProposal(input: $input)");
     expect(mutation).toContain("creatorRelationshipId");
     expect(mutation).toContain("decision");
+  });
+
+  it("loads exact seller-account to Creator contact assets", () => {
+    const query = queryText(AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY);
+
+    expect(query).toContain("affiliateCreatorChannelContacts(input: $input)");
+    expect(query).toContain("creatorRelationshipId");
+    expect(query).toContain("accountBindingId");
+    expect(query).toContain("businessDeveloperId");
+    expect(query).toContain("effectiveAlias");
+  });
+
+  it("sets the preferred sender account through the BD-scoped mutation", () => {
+    const mutation = queryText(SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION);
+
+    expect(mutation).toContain("setAffiliateBusinessDeveloperPreferredAccount(input: $input)");
+    expect(mutation).toContain("preferredWhatsAppAccountBindingId");
+    expect(mutation).toContain("preferredEmailAccountBindingId");
   });
 });

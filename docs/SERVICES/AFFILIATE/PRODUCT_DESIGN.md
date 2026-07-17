@@ -1527,6 +1527,9 @@ flowchart TD
     B --> C["CollaborationRecord<br/>一次具体合作事项"]
     C --> D["SampleApplication<br/>样品申请"]
     B --> E["Channel Messages<br/>TikTok / WhatsApp / Email"]
+    B --> I["Current BusinessDeveloper<br/>当前人工负责人"]
+    I --> J["Seller Channel Accounts<br/>一个 BD 可有多个 WhatsApp / Email 账号"]
+    J --> K["CreatorChannelContact<br/>具体卖家账号上的达人联系人资产"]
     B --> F["ActionProposal<br/>待审核行动提案"]
     B --> G["ActionHistory<br/>操作和审计历史"]
     B --> H["Relationship Agenda<br/>当前待处理事项"]
@@ -1559,9 +1562,7 @@ flowchart TD
 - `userId`
 - `creatorId`
 - `shopStates[]`
-- `preferredChannels[]`
-- `whatsappContacts[]`
-- `emailContacts[]`
+- `businessDeveloperId?`（当前唯一人工负责人）
 - `relationshipStatus`
 - `relationshipReasons[]`
 - `currentAgenda`
@@ -1588,6 +1589,45 @@ CreatorRelationship
       lifecycleStage: DISCOVERED
       tagIds: [...]
 ```
+
+达人联系方式不内嵌在 `CreatorRelationship`。Relationship 是卖家公司级长期资产；某个 WhatsApp 号码或 email 被加到哪一个 BD 的哪一个账号上，则由独立的 `AffiliateCreatorChannelContact` 表达。
+
+## AffiliateCreatorChannelContact
+
+`AffiliateCreatorChannelContact` 是卖家渠道账号上的达人联系人资产，而不是两侧完全对称的多对多 bridge。关系为：
+
+```text
+AffiliateBusinessDeveloper 1 -> N SellerChannelAccount
+SellerChannelAccount        1 -> N AffiliateCreatorChannelContact
+AffiliateCreatorRelationship 1 -> N AffiliateCreatorChannelContact
+```
+
+核心字段：
+
+- `userId`
+- `creatorRelationshipId`
+- `channel`：`WHATSAPP` 或 `EMAIL`
+- `accountBindingId`：卖家侧确切发件账号
+- `businessDeveloperId`：该账号当前 custodian 的冗余投影
+- `normalizedContactKey`
+- `creatorPhone?` / `creatorEmail?`
+- `providerRecipient?` / `providerRecipientAlt?`
+- `customAlias?` / `providerAlias?`
+- `status`、`source`
+- `firstObservedAt`、`lastObservedAt`、`lastInboundAt?`、`lastOutboundAt?`
+
+同一个达人号码或邮箱可以同时出现在同一 BD 的多个卖家账号下；这些是多条独立 Contact，各自拥有 alias、Provider route 和活跃时间。账号转移给另一个 BD 时，Contact 跟随卖家账号转移 custodian，不复制历史 edge。
+
+每个 BD 可以分别设置一个 `preferredWhatsAppAccountBindingId` 和一个 `preferredEmailAccountBindingId`。Agent prompt 只披露首选发件身份，不披露其他账号或任何 Provider/account ID。
+
+路由规则：
+
+1. 回复入站消息时，严格使用触发 lifecycle event 的 `channelContactId`，因此会从收到消息的确切卖家账号回复。
+2. 主动外联时，从 Relationship 的当前 `businessDeveloperId` 出发，按 `WhatsApp -> Email -> Platform chat` 选择渠道。
+3. 在同一直接渠道内，先选择当前 BD 的 preferred account 上的可用 Contact；没有时才选择最近活跃 Contact。
+4. Agent 显式指定渠道只改变渠道，不得指定账号、Contact 或 Provider route。
+5. 选定渠道或 Contact 不可用时严格失败，不跨渠道 fallback。
+6. Relationship 没有人工 BD 时，Agent 不得使用 WhatsApp/Email；直接渠道入站转人工处理，主动外联只能使用平台渠道。
 
 ## CollaborationRecord
 

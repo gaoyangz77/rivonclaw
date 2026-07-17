@@ -180,8 +180,6 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       aiEngagementSource: GQL.AffiliateRelationshipAiEngagementSource.Staff,
       operationalConfigRevision: 1,
       shopStates: [],
-      whatsappContacts: [],
-      emailContacts: [],
       lastInboundAt: null,
       lastOutboundAt: null,
       lastAgentHandledAt: null,
@@ -337,6 +335,24 @@ function withCheckpointContext(
           preferredChannel: GQL.AffiliateMessageChannel.Whatsapp,
           hasUsableWhatsAppContact: true,
           hasUsableEmailContact: true,
+          defaultOutboundChannel: GQL.AffiliateMessageChannel.Whatsapp,
+          preferredWhatsAppAccount: {
+            id: "wa-bd-001",
+            businessDeveloperId: "bd-001",
+            displayName: "Maria WhatsApp",
+            phoneNumber: "+1 555 0100",
+            status: GQL.WhatsAppAccountStatus.Connected,
+          },
+          preferredEmailAccount: {
+            id: "email-bd-001",
+            businessDeveloperId: "bd-001",
+            displayName: "Maria",
+            emailAddress: "maria@example.com",
+            sharedMailboxAddress: null,
+            mailboxType: GQL.EmailMailboxType.Personal,
+            status: GQL.EmailAccountStatus.Connected,
+          },
+          channelContacts: [],
           whatsAppAccounts: [
             {
               id: "wa-bd-001",
@@ -535,11 +551,12 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(agentCall?.[1]?.message).toContain("non-binding evidence");
     expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
-    expect(agentCall?.[1]?.message).toContain("## Assigned BD Outreach Accounts");
+    expect(agentCall?.[1]?.message).toContain("## Assigned BD Outreach Routing");
     expect(agentCall?.[1]?.message).toContain("Maria WhatsApp");
-    expect(agentCall?.[1]?.message).toContain("bindingId=wa-bd-001");
+    expect(agentCall?.[1]?.message).toContain("phone=+1 555 0100");
     expect(agentCall?.[1]?.message).toContain("address=maria@example.com");
     expect(agentCall?.[1]?.message).not.toContain("Other BD WhatsApp");
+    expect(agentCall?.[1]?.message).not.toContain("wa-bd-001");
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
   });
 

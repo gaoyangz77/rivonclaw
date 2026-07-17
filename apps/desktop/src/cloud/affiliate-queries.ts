@@ -159,9 +159,38 @@ export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
       }
     }
     affiliateCreatorContactState(input: $contactInput) {
-      preferredChannel
+      defaultOutboundChannel
       hasUsableWhatsAppContact
       hasUsableEmailContact
+      preferredWhatsAppAccount {
+        id
+        businessDeveloperId
+        displayName
+        phoneNumber
+        status
+      }
+      preferredEmailAccount {
+        id
+        businessDeveloperId
+        displayName
+        emailAddress
+        sharedMailboxAddress
+        mailboxType
+        status
+      }
+      channelContacts {
+        id
+        channel
+        accountBindingId
+        businessDeveloperId
+        creatorPhone
+        creatorEmail
+        effectiveAlias
+        status
+        verifiedAt
+        lastInboundAt
+        lastOutboundAt
+      }
       whatsAppAccounts {
         id
         businessDeveloperId

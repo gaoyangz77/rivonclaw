@@ -1053,40 +1053,54 @@ function renderAssignedOutreachAccounts(
   contactState: GQL.AffiliateCreatorContactStatePayload,
 ): string[] {
   const businessDeveloperId = context.businessDeveloperIdSnapshot ?? null;
-  const matchesOwner = (accountBusinessDeveloperId: string | null | undefined): boolean =>
-    businessDeveloperId
-      ? accountBusinessDeveloperId === businessDeveloperId
-      : accountBusinessDeveloperId == null;
-  const whatsAppAccounts = (contactState.whatsAppAccounts ?? []).filter((account) =>
-    matchesOwner(account.businessDeveloperId),
+  if (!businessDeveloperId) {
+    return [
+      "## Direct Outreach Routing",
+      "- No human BD is assigned to this Creator Relationship.",
+      "- WhatsApp and Email are unavailable. Use TikTok Shop platform chat only.",
+    ];
+  }
+  const whatsAppAccounts = (contactState.whatsAppAccounts ?? []).filter(
+    (account) => account.businessDeveloperId === businessDeveloperId,
   );
-  const emailAccounts = (contactState.emailAccounts ?? []).filter((account) =>
-    matchesOwner(account.businessDeveloperId),
+  const emailAccounts = (contactState.emailAccounts ?? []).filter(
+    (account) => account.businessDeveloperId === businessDeveloperId,
   );
-  const heading = businessDeveloperId
-    ? "## Assigned BD Outreach Accounts"
-    : "## Unassigned Outreach Accounts Available To AI Routing";
+  const preferredWhatsApp = contactState.preferredWhatsAppAccount?.businessDeveloperId === businessDeveloperId
+    && whatsAppAccounts.some((account) => account.id === contactState.preferredWhatsAppAccount?.id)
+    ? contactState.preferredWhatsAppAccount
+    : null;
+  const preferredEmail = contactState.preferredEmailAccount?.businessDeveloperId === businessDeveloperId
+    && emailAccounts.some((account) => account.id === contactState.preferredEmailAccount?.id)
+    ? contactState.preferredEmailAccount
+    : null;
+  const contacts = (contactState.channelContacts ?? []).filter(
+    (contact) => contact.businessDeveloperId === businessDeveloperId,
+  );
+  const contactLines = contacts.map((contact) => {
+    const address = contact.channel === GQL.AffiliateMessageChannel.Whatsapp
+      ? contact.creatorPhone ?? "(Provider-only WhatsApp identity)"
+      : contact.creatorEmail ?? "(unknown)";
+    return `- Creator ${contact.channel}: ${contact.effectiveAlias?.trim() || address}; address=${address}; status=${contact.status}`;
+  });
 
   return [
-    heading,
-    "These are seller-side sender accounts, not creator contact details.",
-    `- Preferred relationship channel: ${contactState.preferredChannel}`,
+    "## Assigned BD Outreach Routing",
+    "The preferred sender identities below are safe to disclose when following the BD's working instructions. Backend routing remains authoritative.",
+    `- Default proactive channel: ${contactState.defaultOutboundChannel}`,
     `- Usable creator WhatsApp route: ${contactState.hasUsableWhatsAppContact ? "yes" : "no"}`,
     `- Usable creator email route: ${contactState.hasUsableEmailContact ? "yes" : "no"}`,
-    ...(whatsAppAccounts.length
-      ? whatsAppAccounts.map((account) =>
-          `- WhatsApp sender: ${account.displayName?.trim() || account.phoneNumber?.trim() || "(unnamed)"}; ` +
-          `phone=${account.phoneNumber?.trim() || "(unknown)"}; status=${account.status}; bindingId=${account.id}`,
-        )
-      : ["- WhatsApp senders: (none assigned for this relationship owner)"]),
-    ...(emailAccounts.length
-      ? emailAccounts.map((account) =>
-          `- Email sender: ${account.displayName?.trim() || account.emailAddress}; ` +
-          `address=${account.sharedMailboxAddress?.trim() || account.emailAddress}; ` +
-          `mailboxType=${account.mailboxType}; status=${account.status}; bindingId=${account.id}`,
-        )
-      : ["- Email senders: (none assigned for this relationship owner)"]),
-    "Use the listed bindingId when a contact tool requires a specific seller account. The delivery bridge remains authoritative for final outbound routing and must not cross BD ownership boundaries.",
+    preferredWhatsApp
+      ? `- Preferred WhatsApp sender: ${preferredWhatsApp.displayName?.trim() || preferredWhatsApp.phoneNumber?.trim() || "(unnamed)"}; phone=${preferredWhatsApp.phoneNumber?.trim() || "(unknown)"}; status=${preferredWhatsApp.status}`
+      : "- Preferred WhatsApp sender: (none)",
+    `- Other assigned WhatsApp accounts: ${Math.max(whatsAppAccounts.length - (preferredWhatsApp ? 1 : 0), 0)}`,
+    preferredEmail
+      ? `- Preferred Email sender: ${preferredEmail.displayName?.trim() || preferredEmail.emailAddress}; address=${preferredEmail.sharedMailboxAddress?.trim() || preferredEmail.emailAddress}; mailboxType=${preferredEmail.mailboxType}; status=${preferredEmail.status}`
+      : "- Preferred Email sender: (none)",
+    `- Other assigned Email accounts: ${Math.max(emailAccounts.length - (preferredEmail ? 1 : 0), 0)}`,
+    "### Effective Creator Contacts Under This BD",
+    ...(contactLines.length ? contactLines : ["- (No direct-channel Creator contacts.)"]),
+    "Do not choose or pass seller account IDs. Contact tools use the BD preferred account when it is usable, otherwise another usable account assigned to the same BD; SEND_MESSAGE uses the exact trigger contact for replies and the backend default resolver for proactive outreach.",
   ];
 }
 

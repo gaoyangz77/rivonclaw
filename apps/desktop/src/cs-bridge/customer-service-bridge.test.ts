@@ -130,8 +130,6 @@ function buildAffiliateRelationshipWorkItem(
     userId,
     creatorId: "creator-001",
     shopStates: [],
-    whatsappContacts: [],
-    emailContacts: [],
     agendaItems: [],
     workSummary: {
       agentRequiredCount: 1,

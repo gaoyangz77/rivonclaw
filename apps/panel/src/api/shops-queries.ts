@@ -2257,6 +2257,8 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     acceptingCreators
     agentAssistanceMode
     businessPrompt
+    preferredWhatsAppAccountBindingId
+    preferredEmailAccountBindingId
     configRevision
     archivedAt
     createdAt
@@ -2337,6 +2339,44 @@ export const ARCHIVE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
   mutation ArchiveAffiliateBusinessDeveloper($id: ID!) {
     archiveAffiliateBusinessDeveloper(id: $id) {
       ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation SetAffiliateBusinessDeveloperPreferredAccount($input: SetAffiliateBusinessDeveloperPreferredAccountInput!) {
+    setAffiliateBusinessDeveloperPreferredAccount(input: $input) {
+      ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY = gql`
+  query AffiliateCreatorChannelContacts($input: AffiliateCreatorChannelContactPageInput!) {
+    affiliateCreatorChannelContacts(input: $input) {
+      items {
+        id
+        creatorRelationshipId
+        channel
+        accountBindingId
+        businessDeveloperId
+        creatorPhone
+        creatorEmail
+        customAlias
+        providerAlias
+        effectiveAlias
+        status
+        source
+        verifiedAt
+        firstObservedAt
+        lastObservedAt
+        lastInboundAt
+        lastOutboundAt
+      }
+      totalCount
+      offset
+      limit
     }
   }
 `;

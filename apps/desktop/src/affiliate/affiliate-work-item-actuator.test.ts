@@ -83,8 +83,6 @@ describe("affiliate work item actuator", () => {
         activeCollaborationRecordIds: ["collab-001"],
         pendingActionProposalId: null,
         shopStates: [],
-        whatsappContacts: [],
-        emailContacts: [],
         blocked: false,
         blockedShopIds: [],
         stateUpdatedAt: "2026-05-11T00:01:00.000Z",
