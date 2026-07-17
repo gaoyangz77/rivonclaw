@@ -271,14 +271,23 @@ export async function validateCustomProviderApiKey(
 
 /**
  * Fetch the list of available models from a custom provider's OpenAI-compatible /v1/models endpoint.
- * Returns { models: string[] } on success or { error: "..." } on failure.
+ * Returns model IDs plus the original catalog entries on success.
  */
+export interface CustomProviderModelEntry {
+  id: string;
+  [key: string]: unknown;
+}
+
 export async function fetchCustomProviderModels(
   baseUrl: string,
   apiKey: string,
   proxyRouterPort: number,
   proxyUrl?: string,
-): Promise<{ models?: string[]; error?: string }> {
+): Promise<{
+  models?: string[];
+  modelEntries?: CustomProviderModelEntry[];
+  error?: string;
+}> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
 
@@ -309,21 +318,21 @@ export async function fetchCustomProviderModels(
       return { error: `Provider returned ${res.status}: ${body.slice(0, 200)}` };
     }
 
-    const json = await res.json() as { data?: Array<{ id: string }> };
+    const json = await res.json() as { data?: CustomProviderModelEntry[] };
     if (!json.data || !Array.isArray(json.data)) {
       return { error: "Unexpected response format — expected { data: [...] }" };
     }
 
-    const models = json.data
-      .map((m) => m.id)
-      .filter((id): id is string => typeof id === "string" && id.length > 0)
-      .sort();
+    const modelEntries = json.data
+      .filter((model) => typeof model?.id === "string" && model.id.length > 0)
+      .sort((a, b) => a.id.localeCompare(b.id));
+    const models = modelEntries.map((model) => model.id);
 
     if (models.length === 0) {
       return { error: "No models returned by the provider" };
     }
 
-    return { models };
+    return { models, modelEntries };
   } catch (err) {
     const msg = formatError(err);
     log.error("Custom provider model fetch failed:", msg);

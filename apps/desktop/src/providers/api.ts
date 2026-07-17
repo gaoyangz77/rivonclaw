@@ -1,6 +1,10 @@
 import type { LLMProvider } from "@rivonclaw/core";
 import { getDefaultModelForProvider, reconstructProxyUrl, formatError, isReauthSupportedProvider } from "@rivonclaw/core";
-import { applyCatalogContextMetadata, readFullModelCatalog } from "@rivonclaw/gateway";
+import {
+  applyCatalogContextMetadata,
+  readFullModelCatalog,
+  type CatalogModelEntry,
+} from "@rivonclaw/gateway";
 import { API } from "@rivonclaw/core/api-contract";
 import { createLogger } from "@rivonclaw/logger";
 import { validateProviderApiKey, validateCustomProviderApiKey, fetchCustomProviderModels } from "./provider-validator.js";
@@ -215,7 +219,10 @@ const refreshModels: EndpointHandler = async (_req, res, _url, params, ctx: ApiC
   }
 
   // LLM Manager action: refresh models transaction (includes auth-profiles sync for active keys)
-  const updated = await rootStore.llmManager.refreshModels(id, result.models!);
+  const updated = await rootStore.llmManager.refreshModels(
+    id,
+    result.modelEntries ?? result.models!,
+  );
 
   sendJson(res, 200, updated);
 };
@@ -446,13 +453,51 @@ const modelCatalog: EndpointHandler = async (_req, res, _url, _params, ctx: ApiC
   for (const key of allKeys) {
     if (key.customModelsJson) {
       try {
-        const rawModels: Array<string | { id: string }> = JSON.parse(key.customModelsJson);
+        const rawModels: Array<
+          | string
+          | {
+              id: string;
+              name?: unknown;
+              display_name?: unknown;
+              contextWindow?: unknown;
+              context_length?: unknown;
+              contextTokens?: unknown;
+              context_tokens?: unknown;
+            }
+        > = JSON.parse(key.customModelsJson);
+        const storedEntries = rawModels.flatMap((model): CatalogModelEntry[] => {
+          const id = typeof model === "string" ? model : model.id;
+          if (typeof id !== "string" || !id) return [];
+          const entry: CatalogModelEntry = {
+            id,
+            name:
+              typeof model === "string"
+                ? id
+                : typeof model.display_name === "string"
+                  ? model.display_name
+                  : typeof model.name === "string"
+                    ? model.name
+                    : id,
+          };
+          if (typeof model !== "string") {
+            const contextWindow = positiveCatalogInt(model.contextWindow ?? model.context_length);
+            const contextTokens = positiveCatalogInt(model.contextTokens ?? model.context_tokens);
+            if (contextWindow) entry.contextWindow = contextWindow;
+            if (contextTokens) entry.contextTokens = contextTokens;
+          }
+          return [applyCatalogContextMetadata(key.provider, entry)];
+        });
+
+        // The cloud catalog is controlled by RivonClaw backend. Treat the
+        // locally synced list as authoritative so stale gateway models.json
+        // entries cannot leak old physical model IDs into the chat selector.
+        if (key.provider === "rivonclaw-pro") {
+          catalog[key.provider] = storedEntries;
+          continue;
+        }
         const existing = catalog[key.provider] ?? [];
         const existingIds = new Set(existing.map((e) => e.id));
-        const extras = rawModels
-          .map((m) => typeof m === "string" ? m : m.id)
-          .filter((id) => !existingIds.has(id))
-          .map((id) => applyCatalogContextMetadata(key.provider, { id, name: id }));
+        const extras = storedEntries.filter((entry) => !existingIds.has(entry.id));
         if (extras.length > 0) {
           catalog[key.provider] = [...existing, ...extras];
         }
@@ -464,6 +509,12 @@ const modelCatalog: EndpointHandler = async (_req, res, _url, _params, ctx: ApiC
 
   sendJson(res, 200, { models: catalog });
 };
+
+function positiveCatalogInt(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.trunc(value)
+    : undefined;
+}
 
 // ── POST /api/oauth/start ──
 

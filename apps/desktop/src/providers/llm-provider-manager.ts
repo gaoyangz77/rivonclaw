@@ -65,7 +65,7 @@ export interface LLMProviderManagerEnv {
 
 const CLOUD_PROVIDER_ID = "rivonclaw-pro";
 const CLOUD_KEY_LABEL = "RivonClaw AI";
-const CLOUD_DEFAULT_MODEL_ID = "gpt-5.6-terra";
+const CLOUD_DEFAULT_MODEL_ID = "rivonclaw-flagship";
 const GEMINI_OAUTH_PROVIDER_ID = "gemini";
 const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 const NO_ACTIVE_LLM_PROVIDER_ERROR =
@@ -73,9 +73,17 @@ const NO_ACTIVE_LLM_PROVIDER_ERROR =
 
 interface CloudModel {
   id: string;
+  name?: unknown;
+  display_name?: unknown;
   input?: unknown;
   input_modalities?: unknown;
   inputModalities?: unknown;
+  context_length?: unknown;
+  contextWindow?: unknown;
+  context_tokens?: unknown;
+  contextTokens?: unknown;
+  max_completion_tokens?: unknown;
+  maxTokens?: unknown;
 }
 
 interface ApplyModelForSessionOptions {
@@ -895,11 +903,23 @@ export const LLMProviderManagerModel = types
       /**
        * Refresh custom models for a provider key.
        */
-      refreshModels: flow(function* (id: string, models: string[]) {
+      refreshModels: flow(function* (id: string, models: Array<string | CloudModel>) {
         const { storage, secretStore, toMstSnapshot } = getEnvDeps();
+
+        const existing = storage.providerKeys.getById(id);
+        if (!existing) throw new Error("Provider key not found");
+        const modelEntries: CloudModel[] = models.flatMap((model) =>
+          typeof model === "string" ? [{ id: model }] : [model],
+        );
+        const modelIds = new Set(modelEntries.map((model) => model.id));
+        const nextModel =
+          existing.provider === CLOUD_PROVIDER_ID && !modelIds.has(existing.model)
+            ? selectCloudDefaultModel(modelEntries)
+            : existing.model;
 
         const updated = storage.providerKeys.update(id, {
           customModelsJson: JSON.stringify(models),
+          model: nextModel || existing.model,
         });
 
         // MST state
@@ -908,10 +928,9 @@ export const LLMProviderManagerModel = types
           self.root.upsertProviderKey(mstEntry);
         }
 
-        // Sync auth profiles (models list changed but provider config written at startup)
-        if (updated?.isDefault) {
-          yield syncAuthAndProxy();
-        }
+        // The provider definition and possibly its active model changed. Rewrite
+        // the full config so gateway models.json drops stale catalog entries.
+        yield syncAuthProxyAndConfig();
 
         return updated;
       }),
