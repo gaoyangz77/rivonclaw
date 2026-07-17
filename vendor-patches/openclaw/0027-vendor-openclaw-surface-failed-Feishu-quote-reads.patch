@@ -1,0 +1,695 @@
+From e306527b60952faa29c9cf29f205e11866cf4d79 Mon Sep 17 00:00:00 2001
+From: Gaoyang Zhang <younglobalization@gmail.com>
+Date: Fri, 17 Jul 2026 01:45:19 -0700
+Subject: [PATCH] vendor(openclaw): surface failed Feishu quote reads
+
+Why:
+- quoted-message API, empty-response, and parse failures collapse to null, so agents mistake employee replies for complete context
+- quoted-message GETs should use bounded transient and rate-limit retries before exposing a terminal failure
+
+Removal:
+- drop when upstream retries quoted-message reads, surfaces diagnostic failures, and preserves an explicit unavailable-quote marker in agent context
+
+Tests:
+- extensions/feishu/src/send.test.ts
+- extensions/feishu/src/bot.test.ts
+- apps/desktop/src/cs-bridge/vendor-feishu-escalation-quote.sentinel.test.ts
+---
+ extensions/feishu/src/bot.test.ts  | 117 ++++++++++++++++
+ extensions/feishu/src/bot.ts       |  43 ++++--
+ extensions/feishu/src/send.test.ts | 128 +++++++++++++++++
+ extensions/feishu/src/send.ts      | 218 ++++++++++++++++++++++++++---
+ 4 files changed, 474 insertions(+), 32 deletions(-)
+
+diff --git a/extensions/feishu/src/bot.test.ts b/extensions/feishu/src/bot.test.ts
+index 9b4de5274b0..3eb9f344018 100644
+--- a/extensions/feishu/src/bot.test.ts
++++ b/extensions/feishu/src/bot.test.ts
+@@ -348,6 +348,8 @@ vi.mock("./send.js", () => ({
+   sendMessageFeishu: mockSendMessageFeishu,
+   getMessageFeishu: mockGetMessageFeishu,
+   listFeishuThreadMessages: mockListFeishuThreadMessages,
++  describeFeishuMessageFetchError: (error: unknown) =>
++    error instanceof Error ? `reason=request_exception exception=${error.message}` : String(error),
+ }));
+ 
+ vi.mock("./media.js", () => ({
+@@ -1636,6 +1638,105 @@ describe("handleFeishuMessage command authorization", () => {
+     expect(context.SupplementalContext?.quote?.body).toBe("quoted content");
+   });
+ 
++  it("passes a fetched CS escalation id from quoted content to the agent", async () => {
++    mockGetMessageFeishu.mockResolvedValueOnce({
++      messageId: "om_escalation_parent",
++      chatId: "oc-dm",
++      senderType: "app",
++      content: "CS Escalation\n\nEscalation ID: 1LJPPG\nReason: refund approval",
++      contentType: "post",
++    });
++
++    await dispatchMessage({
++      cfg: {
++        channels: { feishu: { enabled: true, dmPolicy: "open", allowFrom: ["*"] } },
++      } as ClawdbotConfig,
++      event: {
++        sender: { sender_id: { open_id: "ou-employee" } },
++        message: {
++          message_id: "om_employee_reply",
++          parent_id: "om_escalation_parent",
++          chat_id: "oc-dm",
++          chat_type: "p2p",
++          message_type: "text",
++          content: JSON.stringify({ text: "Approved, process the refund" }),
++        },
++      },
++    });
++
++    const context = mockCallArg<{
++      SupplementalContext?: { quote?: { body?: string } };
++    }>(mockFinalizeInboundContext, 0, 0);
++    expect(context.SupplementalContext?.quote?.body).toContain("Escalation ID: 1LJPPG");
++    expect(mockDispatchReplyFromConfig).toHaveBeenCalledTimes(1);
++  });
++
++  it("tells the agent when quoted content remains unavailable after retries", async () => {
++    mockGetMessageFeishu.mockRejectedValueOnce(new Error("Feishu API timeout"));
++
++    const runtime = await dispatchMessage({
++      cfg: {
++        channels: { feishu: { enabled: true, dmPolicy: "open", allowFrom: ["*"] } },
++      } as ClawdbotConfig,
++      event: {
++        sender: { sender_id: { open_id: "ou-employee" } },
++        message: {
++          message_id: "om_employee_reply_missing_quote",
++          parent_id: "om_unknown_parent",
++          chat_id: "oc-dm",
++          chat_type: "p2p",
++          message_type: "text",
++          content: JSON.stringify({ text: "Approved, process the refund" }),
++        },
++      },
++    });
++
++    const context = mockCallArg<{
++      BodyForAgent?: string;
++      SupplementalContext?: { quote?: { body?: string } };
++    }>(mockFinalizeInboundContext, 0, 0);
++    expect(context.SupplementalContext?.quote?.body).toContain("Quoted message unavailable");
++    expect(context.SupplementalContext?.quote?.body).toContain("Do not infer or guess it");
++    expect(context.BodyForAgent).toContain("Quoted message unavailable");
++    expect(context.BodyForAgent).toContain("Do not infer or guess it");
++    expect(mockDispatchReplyFromConfig).toHaveBeenCalledTimes(1);
++    expect(mockSendMessageFeishu).not.toHaveBeenCalled();
++    expect(runtime.log).toHaveBeenCalledWith(
++      expect.stringContaining(
++        "accountId=default parentId=om_unknown_parent quotedMessageId=om_unknown_parent messageId=om_employee_reply_missing_quote",
++      ),
++    );
++  });
++
++  it("accepts an explicitly supplied escalation id when quoted content is unavailable", async () => {
++    mockGetMessageFeishu.mockRejectedValueOnce(new Error("Feishu API timeout"));
++
++    await dispatchMessage({
++      cfg: {
++        channels: { feishu: { enabled: true, dmPolicy: "open", allowFrom: ["*"] } },
++      } as ClawdbotConfig,
++      event: {
++        sender: { sender_id: { open_id: "ou-employee" } },
++        message: {
++          message_id: "om_employee_reply_explicit_id",
++          parent_id: "om_unknown_parent",
++          chat_id: "oc-dm",
++          chat_type: "p2p",
++          message_type: "text",
++          content: JSON.stringify({
++            text: "Escalation ID: 1LJPPG\nApproved, process the refund",
++          }),
++        },
++      },
++    });
++
++    const context = mockCallArg<{
++      SupplementalContext?: { quote?: { body?: string } };
++    }>(mockFinalizeInboundContext, 0, 0);
++    expect(context.SupplementalContext?.quote?.body).toContain("Quoted message unavailable");
++    expect(mockDispatchReplyFromConfig).toHaveBeenCalledTimes(1);
++  });
++
+   it("uses message create_time as Timestamp instead of Date.now()", async () => {
+     mockShouldComputeCommandAuthorized.mockReturnValue(false);
+ 
+@@ -3698,6 +3799,12 @@ describe("handleFeishuMessage command authorization", () => {
+ 
+   it("keeps root_id-only P2P replies as quote replies outside thread mode", async () => {
+     mockShouldComputeCommandAuthorized.mockReturnValue(false);
++    mockGetMessageFeishu.mockResolvedValueOnce({
++      messageId: "om_dm_quote_root",
++      chatId: "oc-dm-quote",
++      content: "quoted DM root content",
++      contentType: "text",
++    });
+ 
+     const cfg: ClawdbotConfig = {
+       channels: {
+@@ -3721,6 +3828,16 @@ describe("handleFeishuMessage command authorization", () => {
+ 
+     await dispatchMessage({ cfg, event });
+ 
++    expect(mockGetMessageFeishu).toHaveBeenCalledWith(
++      expect.objectContaining({ messageId: "om_dm_quote_root" }),
++    );
++    const context = mockCallArg<{
++      ReplyToId?: string;
++      SupplementalContext?: { quote?: { body?: string } };
++    }>(mockFinalizeInboundContext, 0, 0);
++    expect(context.ReplyToId).toBe("om_dm_quote_root");
++    expect(context.SupplementalContext?.quote?.body).toBe("quoted DM root content");
++
+     expect(mockCreateFeishuReplyDispatcher).toHaveBeenCalledWith(
+       expect.objectContaining({
+         replyToMessageId: "om_dm_quote_reply",
+diff --git a/extensions/feishu/src/bot.ts b/extensions/feishu/src/bot.ts
+index 8b89cf21633..99d7d55fc89 100644
+--- a/extensions/feishu/src/bot.ts
++++ b/extensions/feishu/src/bot.ts
+@@ -63,7 +63,12 @@ import {
+ import { resolveFeishuReasoningPreviewEnabled } from "./reasoning-preview.js";
+ import { createFeishuReplyDispatcher } from "./reply-dispatcher.js";
+ import { getFeishuRuntime } from "./runtime.js";
+-import { getMessageFeishu, listFeishuThreadMessages, sendMessageFeishu } from "./send.js";
++import {
++  describeFeishuMessageFetchError,
++  getMessageFeishu,
++  listFeishuThreadMessages,
++  sendMessageFeishu,
++} from "./send.js";
+ export type { FeishuBotAddedEvent, FeishuMessageEvent } from "./event-types.js";
+ import type { FeishuMessageEvent } from "./event-types.js";
+ import {
+@@ -74,6 +79,11 @@ import {
+   type ResolvedFeishuAccount,
+ } from "./types.js";
+ 
++const QUOTED_MESSAGE_UNAVAILABLE_CONTEXT =
++  "[Quoted message unavailable: Feishu could not retrieve the referenced message after retries. " +
++  "The quoted content is missing from this turn. Do not infer or guess it; ask the employee " +
++  "to quote the original message again or provide the required details explicitly.]";
++
+ export { toMessageResourceType } from "./bot-content.js";
+ 
+ // Cache permission errors to avoid spamming the user with repeated notifications.
+@@ -1029,13 +1039,15 @@ export async function handleFeishuMessage(params: {
+     // Fetch quoted/replied message content before the empty-message guard
+     // so a reply with only @bot (no text, no media) is not dropped when
+     // the quoted message carries meaningful content.
+-    let quotedMessageInfo: Awaited<ReturnType<typeof getMessageFeishu>> = null;
++    const quotedMessageId =
++      ctx.parentId ?? (isDirect && !ctx.threadId?.trim() ? ctx.rootId : undefined);
++    let quotedMessageInfo: Awaited<ReturnType<typeof getMessageFeishu>> | null = null;
+     let quotedContent: string | undefined;
+-    if (ctx.parentId) {
++    if (quotedMessageId) {
+       try {
+         quotedMessageInfo = await getMessageFeishu({
+           cfg,
+-          messageId: ctx.parentId,
++          messageId: quotedMessageId,
+           accountId: account.accountId,
+         });
+         if (
+@@ -1060,9 +1072,22 @@ export async function handleFeishuMessage(params: {
+           log(
+             `feishu[${account.accountId}]: skipped quoted message from sender ${quotedMessageInfo.senderId ?? "unknown"} (mode=${contextVisibilityMode})`,
+           );
++        } else {
++          quotedContent = QUOTED_MESSAGE_UNAVAILABLE_CONTEXT;
++          log(
++            `feishu[${account.accountId}]: quoted message fetch returned no message ` +
++              `accountId=${account.accountId} parentId=${ctx.parentId ?? "none"} ` +
++              `quotedMessageId=${quotedMessageId} messageId=${ctx.messageId}`,
++          );
+         }
+       } catch (err) {
+-        log(`feishu[${account.accountId}]: failed to fetch quoted message: ${String(err)}`);
++        quotedContent = QUOTED_MESSAGE_UNAVAILABLE_CONTEXT;
++        log(
++          `feishu[${account.accountId}]: quoted message fetch failed ` +
++            `accountId=${account.accountId} parentId=${ctx.parentId ?? "none"} ` +
++            `quotedMessageId=${quotedMessageId} messageId=${ctx.messageId} ` +
++            describeFeishuMessageFetchError(err),
++        );
+       }
+     }
+ 
+@@ -1212,7 +1237,7 @@ export async function handleFeishuMessage(params: {
+         threadLabel?: string;
+       }
+     >();
+-    let rootMessageInfo: Awaited<ReturnType<typeof getMessageFeishu>> | undefined;
++    let rootMessageInfo: Awaited<ReturnType<typeof getMessageFeishu>> | null | undefined;
+     let rootMessageThreadId: string | undefined;
+     let rootMessageFetched = false;
+     const getRootMessageInfo = async () => {
+@@ -1221,7 +1246,7 @@ export async function handleFeishuMessage(params: {
+       }
+       if (!rootMessageFetched) {
+         rootMessageFetched = true;
+-        if (ctx.rootId === ctx.parentId && quotedMessageInfo) {
++        if (ctx.rootId === quotedMessageId && quotedMessageInfo) {
+           rootMessageInfo = quotedMessageInfo;
+         } else {
+           try {
+@@ -1395,7 +1420,7 @@ export async function handleFeishuMessage(params: {
+         channel: "feishu",
+         finalize: core.channel.reply.finalizeInboundContext,
+         supplemental: {
+-          quote: quotedContent ? { id: ctx.parentId, body: quotedContent } : undefined,
++          quote: quotedContent ? { id: quotedMessageId, body: quotedContent } : undefined,
+           thread: {
+             starterBody: threadContext.threadStarterBody,
+             historyBody: threadContext.threadHistoryBody,
+@@ -1426,7 +1451,7 @@ export async function handleFeishuMessage(params: {
+         },
+         reply: {
+           to: feishuTo,
+-          replyToId: ctx.parentId,
++          replyToId: quotedMessageId,
+           messageThreadId: ctx.rootId && isTopicSessionForThread ? ctx.rootId : undefined,
+         },
+         message: {
+diff --git a/extensions/feishu/src/send.test.ts b/extensions/feishu/src/send.test.ts
+index f5ef931f0d5..971946c1966 100644
+--- a/extensions/feishu/src/send.test.ts
++++ b/extensions/feishu/src/send.test.ts
+@@ -544,6 +544,134 @@ describe("getMessageFeishu", () => {
+     });
+   });
+ 
++  it("surfaces Feishu API exceptions instead of returning null", async () => {
++    mockClientGet.mockRejectedValue(new Error("network unavailable"));
++
++    await expect(
++      getMessageFeishu({
++        cfg: {} as ClawdbotConfig,
++        messageId: "om_exception",
++        retryDelayMs: 0,
++      }),
++    ).rejects.toMatchObject({
++      reason: "request_exception",
++      responseMessage: expect.stringContaining("network unavailable"),
++      attempts: 3,
++    });
++    expect(mockClientGet).toHaveBeenCalledTimes(3);
++  });
++
++  it("retries a transient request failure before returning quoted content", async () => {
++    mockClientGet
++      .mockRejectedValueOnce(new Error("temporary network failure"))
++      .mockResolvedValueOnce({
++        code: 0,
++        data: {
++          items: [
++            {
++              message_id: "om_retry_success",
++              msg_type: "text",
++              body: { content: JSON.stringify({ text: "quoted after retry" }) },
++            },
++          ],
++        },
++      });
++
++    await expect(
++      getMessageFeishu({
++        cfg: {} as ClawdbotConfig,
++        messageId: "om_retry_success",
++        retryDelayMs: 0,
++      }),
++    ).resolves.toMatchObject({ content: "quoted after retry" });
++    expect(mockClientGet).toHaveBeenCalledTimes(2);
++  });
++
++  it("uses the Feishu rate-limit retry path for quoted-message reads", async () => {
++    mockClientGet
++      .mockResolvedValueOnce({ code: 11232, msg: "rate limited" })
++      .mockResolvedValueOnce({
++        code: 0,
++        data: {
++          items: [
++            {
++              message_id: "om_rate_limit_retry",
++              msg_type: "text",
++              body: { content: JSON.stringify({ text: "quoted after rate limit" }) },
++            },
++          ],
++        },
++      });
++
++    await expect(
++      getMessageFeishu({
++        cfg: {} as ClawdbotConfig,
++        messageId: "om_rate_limit_retry",
++        retryDelayMs: 0,
++      }),
++    ).resolves.toMatchObject({ content: "quoted after rate limit" });
++    expect(mockClientGet).toHaveBeenCalledTimes(2);
++  });
++
++  it("does not start another retry cycle after Feishu rate-limit retries are exhausted", async () => {
++    mockClientGet.mockResolvedValue({ code: 11232, msg: "rate limited" });
++
++    await expect(
++      getMessageFeishu({
++        cfg: {} as ClawdbotConfig,
++        messageId: "om_rate_limit_exhausted",
++        retryDelayMs: 0,
++      }),
++    ).rejects.toMatchObject({ reason: "api_response", code: 11232 });
++    expect(mockClientGet).toHaveBeenCalledTimes(3);
++  });
++
++  it("surfaces non-zero Feishu response codes and messages", async () => {
++    mockClientGet.mockResolvedValueOnce({ code: 99991663, msg: "tenant access denied" });
++
++    await expect(
++      getMessageFeishu({ cfg: {} as ClawdbotConfig, messageId: "om_denied" }),
++    ).rejects.toMatchObject({
++      reason: "api_response",
++      code: 99991663,
++      responseMessage: "tenant access denied",
++    });
++  });
++
++  it.each([
++    {
++      name: "empty items",
++      response: { code: 0, data: { items: [] } },
++      reason: "empty_response",
++    },
++    {
++      name: "malformed body content",
++      response: {
++        code: 0,
++        data: {
++          items: [
++            {
++              message_id: "om_malformed",
++              msg_type: "text",
++              body: { content: "{not-json" },
++            },
++          ],
++        },
++      },
++      reason: "parse_error",
++    },
++  ])("surfaces $name as a diagnostic fetch failure", async ({ response, reason }) => {
++    mockClientGet.mockResolvedValue(response);
++
++    await expect(
++      getMessageFeishu({
++        cfg: {} as ClawdbotConfig,
++        messageId: "om_malformed",
++        retryDelayMs: 0,
++      }),
++    ).rejects.toMatchObject({ reason });
++  });
++
+   it("reuses the same content parsing for thread history messages", async () => {
+     mockClientList.mockResolvedValueOnce({
+       code: 0,
+diff --git a/extensions/feishu/src/send.ts b/extensions/feishu/src/send.ts
+index 2da1319bead..a0998bc8f94 100644
+--- a/extensions/feishu/src/send.ts
++++ b/extensions/feishu/src/send.ts
+@@ -10,7 +10,7 @@ import { convertMarkdownTables } from "openclaw/plugin-sdk/text-chunking";
+ import type { ClawdbotConfig } from "../runtime-api.js";
+ import { resolveFeishuRuntimeAccount } from "./accounts.js";
+ import { createFeishuClient } from "./client.js";
+-import { requestFeishuApi } from "./comment-shared.js";
++import { getFeishuSendRateLimitCode, requestFeishuApi } from "./comment-shared.js";
+ import type { MentionTarget } from "./mention-target.types.js";
+ import { buildMentionedCardContent } from "./mention.js";
+ import { parsePostContent } from "./post.js";
+@@ -25,6 +25,8 @@ import type { FeishuChatType, FeishuMessageInfo, FeishuSendResult } from "./type
+ const WITHDRAWN_REPLY_ERROR_CODES = new Set([230011, 231003]);
+ const INTERACTIVE_CARD_FALLBACK_TEXT = "[Interactive Card]";
+ const POST_FALLBACK_TEXT = "[Rich text message]";
++const FEISHU_MESSAGE_GET_MAX_ATTEMPTS = 3;
++const FEISHU_MESSAGE_GET_RETRY_DELAY_MS = 200;
+ const FEISHU_CARD_TEMPLATES = new Set([
+   "blue",
+   "green",
+@@ -115,6 +117,73 @@ type FeishuGetMessageResponse = {
+   };
+ };
+ 
++export type FeishuMessageFetchFailureReason =
++  | "api_response"
++  | "empty_response"
++  | "parse_error"
++  | "request_exception";
++
++export class FeishuMessageFetchError extends Error {
++  readonly reason: FeishuMessageFetchFailureReason;
++  readonly code?: number;
++  readonly responseMessage?: string;
++  readonly attempts: number;
++
++  constructor(params: {
++    messageId: string;
++    reason: FeishuMessageFetchFailureReason;
++    code?: number;
++    responseMessage?: string;
++    attempts?: number;
++    cause?: unknown;
++  }) {
++    const attempts = params.attempts ?? 1;
++    const details = [
++      `reason=${params.reason}`,
++      `attempts=${attempts}`,
++      params.code === undefined ? undefined : `code=${params.code}`,
++      params.responseMessage ? `responseMessage=${params.responseMessage}` : undefined,
++    ]
++      .filter(Boolean)
++      .join(" ");
++    super(`Feishu message fetch failed for ${params.messageId}: ${details}`, {
++      cause: params.cause,
++    });
++    this.name = "FeishuMessageFetchError";
++    this.reason = params.reason;
++    this.code = params.code;
++    this.responseMessage = params.responseMessage;
++    this.attempts = attempts;
++  }
++}
++
++export function describeFeishuMessageFetchError(error: unknown): string {
++  if (error instanceof FeishuMessageFetchError) {
++    return [
++      `reason=${error.reason}`,
++      `attempts=${error.attempts}`,
++      error.code === undefined ? undefined : `code=${error.code}`,
++      error.responseMessage ? `responseMessage=${error.responseMessage}` : undefined,
++    ]
++      .filter(Boolean)
++      .join(" ");
++  }
++  const reason = error instanceof Error ? error.message : String(error);
++  return `reason=request_exception exception=${reason}`;
++}
++
++function findFeishuRateLimitCode(error: unknown): number | undefined {
++  let current = error;
++  for (let depth = 0; depth < 4 && current; depth += 1) {
++    const code = getFeishuSendRateLimitCode(current);
++    if (code !== undefined) {
++      return code;
++    }
++    current = current instanceof Error ? current.cause : undefined;
++  }
++  return undefined;
++}
++
+ /** Send a direct message as a fallback when a reply target is unavailable. */
+ async function sendFallbackDirect(
+   client: FeishuCreateMessageClient,
+@@ -371,9 +440,29 @@ function parseFeishuMessageContent(rawContent: string, msgType: string): string
+ function parseFeishuMessageItem(
+   item: FeishuMessageGetItem,
+   fallbackMessageId?: string,
++  strictContent = false,
+ ): FeishuMessageInfo {
+   const msgType = item.msg_type ?? "text";
+   const rawContent = item.body?.content ?? "";
++  if (strictContent && !rawContent.trim()) {
++    throw new FeishuMessageFetchError({
++      messageId: item.message_id ?? fallbackMessageId ?? "unknown",
++      reason: "parse_error",
++      responseMessage: "message body content is empty",
++    });
++  }
++  if (strictContent) {
++    try {
++      JSON.parse(rawContent);
++    } catch (cause) {
++      throw new FeishuMessageFetchError({
++        messageId: item.message_id ?? fallbackMessageId ?? "unknown",
++        reason: "parse_error",
++        responseMessage: "message body content is not valid JSON",
++        cause,
++      });
++    }
++  }
+ 
+   return {
+     messageId: item.message_id ?? fallbackMessageId ?? "",
+@@ -403,8 +492,11 @@ export async function getMessageFeishu(params: {
+   cfg: ClawdbotConfig;
+   messageId: string;
+   accountId?: string;
+-}): Promise<FeishuMessageInfo | null> {
++  /** @internal Override for fast retry tests. */
++  retryDelayMs?: number;
++}): Promise<FeishuMessageInfo> {
+   const { cfg, messageId, accountId } = params;
++  const retryDelayMs = params.retryDelayMs ?? FEISHU_MESSAGE_GET_RETRY_DELAY_MS;
+   const account = resolveFeishuRuntimeAccount({ cfg, accountId });
+   if (!account.configured) {
+     throw new Error(`Feishu account "${account.accountId}" not configured`);
+@@ -412,31 +504,111 @@ export async function getMessageFeishu(params: {
+ 
+   const client = createFeishuClient(account);
+ 
+-  try {
+-    const response = (await client.im.message.get({
+-      params: { card_msg_content_type: "user_card_content" },
+-      path: { message_id: messageId },
+-    })) as FeishuGetMessageResponse;
++  let lastRequestError: unknown;
++  for (let attempt = 1; attempt <= FEISHU_MESSAGE_GET_MAX_ATTEMPTS; attempt += 1) {
++    try {
++      const response = (await requestFeishuApi(
++        () =>
++          client.im.message.get({
++            params: { card_msg_content_type: "user_card_content" },
++            path: { message_id: messageId },
++          }),
++        `Feishu message fetch failed for ${messageId}`,
++        { retryDelayMs },
++      )) as FeishuGetMessageResponse;
++
++      if (response.code !== 0) {
++        throw new FeishuMessageFetchError({
++          messageId,
++          reason: "api_response",
++          attempts: attempt,
++          code: response.code,
++          responseMessage: response.msg,
++        });
++      }
+ 
+-    if (response.code !== 0) {
+-      return null;
+-    }
++      // Support both list shape (data.items[0]) and single-object shape (data as message)
++      const rawItem = response.data?.items?.[0] ?? response.data;
++      const item =
++        rawItem &&
++        (rawItem.body !== undefined ||
++          (rawItem as { message_id?: string }).message_id !== undefined)
++          ? rawItem
++          : null;
++      if (!item) {
++        if (attempt < FEISHU_MESSAGE_GET_MAX_ATTEMPTS) {
++          if (retryDelayMs > 0) {
++            await new Promise<void>((resolve) => {
++              setTimeout(resolve, attempt * retryDelayMs);
++            });
++          }
++          continue;
++        }
++        throw new FeishuMessageFetchError({
++          messageId,
++          reason: "empty_response",
++          attempts: attempt,
++          code: response.code,
++          responseMessage: response.msg,
++        });
++      }
+ 
+-    // Support both list shape (data.items[0]) and single-object shape (data as message)
+-    const rawItem = response.data?.items?.[0] ?? response.data;
+-    const item =
+-      rawItem &&
+-      (rawItem.body !== undefined || (rawItem as { message_id?: string }).message_id !== undefined)
+-        ? rawItem
+-        : null;
+-    if (!item) {
+-      return null;
++      const parsed = parseFeishuMessageItem(item, messageId, true);
++      if (
++        !parsed.content.trim() ||
++        parsed.content === "[Text message]" ||
++        parsed.content === POST_FALLBACK_TEXT ||
++        parsed.content === INTERACTIVE_CARD_FALLBACK_TEXT
++      ) {
++        throw new FeishuMessageFetchError({
++          messageId,
++          reason: "parse_error",
++          attempts: attempt,
++          responseMessage: `message content could not be recovered (type=${parsed.contentType})`,
++        });
++      }
++      return parsed;
++    } catch (error) {
++      if (error instanceof FeishuMessageFetchError) {
++        throw error;
++      }
++      const exhaustedRateLimitCode = findFeishuRateLimitCode(error);
++      if (exhaustedRateLimitCode !== undefined) {
++        throw new FeishuMessageFetchError({
++          messageId,
++          reason: "api_response",
++          attempts: attempt,
++          code: exhaustedRateLimitCode,
++          responseMessage: error instanceof Error ? error.message : String(error),
++          cause: error,
++        });
++      }
++      lastRequestError = error;
++      if (attempt < FEISHU_MESSAGE_GET_MAX_ATTEMPTS) {
++        if (retryDelayMs > 0) {
++          await new Promise<void>((resolve) => {
++            setTimeout(resolve, attempt * retryDelayMs);
++          });
++        }
++        continue;
++      }
++      throw new FeishuMessageFetchError({
++        messageId,
++        reason: "request_exception",
++        attempts: attempt,
++        responseMessage: error instanceof Error ? error.message : String(error),
++        cause: error,
++      });
+     }
+-
+-    return parseFeishuMessageItem(item, messageId);
+-  } catch {
+-    return null;
+   }
++  throw new FeishuMessageFetchError({
++    messageId,
++    reason: "request_exception",
++    attempts: FEISHU_MESSAGE_GET_MAX_ATTEMPTS,
++    responseMessage:
++      lastRequestError instanceof Error ? lastRequestError.message : String(lastRequestError),
++    cause: lastRequestError,
++  });
+ }
+ 
+ export type FeishuThreadMessageInfo = {
+-- 
+2.50.1 (Apple Git-155)
+

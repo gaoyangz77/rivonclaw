@@ -65,6 +65,33 @@ describe("tool-specs-sync", () => {
     expect(getCachedToolSpecsSnapshot()).toBeNull();
   });
 
+  it("tells cs_respond not to guess a missing escalation ID", async () => {
+    const authSession = {
+      getAccessToken: vi.fn(() => "token"),
+      graphqlFetch: vi.fn(async () => ({
+        toolSpecs: [
+          {
+            id: "cs-respond",
+            name: "cs_respond",
+            description: "Respond to a CS escalation as the shop manager.",
+          },
+          { id: "other", name: "ecom_get_order", description: "Get an order." },
+        ],
+      })),
+    };
+
+    const snapshot = await syncDesktopToolSpecs({ authSession, source: "test" });
+    const csRespond = snapshot.data.toolSpecs.find((spec) => spec.name === "cs_respond");
+    const other = snapshot.data.toolSpecs.find((spec) => spec.name === "ecom_get_order");
+
+    expect(csRespond?.description).toContain("Respond to a CS escalation as the shop manager.");
+    expect(csRespond?.description).toContain(
+      "If the escalation ID is missing or the quoted context is unavailable, ask the employee",
+    );
+    expect(csRespond?.description).toContain("Never guess, infer, try candidate IDs");
+    expect(other?.description).toBe("Get an order.");
+  });
+
   it("computes stable full and name digests", () => {
     const left = [{ name: "b", description: "B" }, { description: "A", name: "a" }];
     const right = [{ description: "B", name: "b" }, { name: "a", description: "A" }];
