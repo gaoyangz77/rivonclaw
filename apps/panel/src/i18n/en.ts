@@ -3908,10 +3908,10 @@ export default {
         noAffiliateShops: "No affiliate-enabled shop is available.",
         currentPolicies: "{{shop}} policies",
         recommendedHint:
-          "Recommended baseline: require approval for messages, sample reviews, and target collaborations across the whole shop.",
-        recommendedReady: "Recommended global approval policies are enabled for this shop.",
+          "Recommended baseline: require approval for messages, sample reviews, and target collaborations across this seller account.",
+        recommendedReady: "Recommended account-wide approval policies are enabled.",
         applyRecommended: "Apply recommended",
-        empty: "No approval policies have been configured for this shop.",
+        empty: "No account-wide approval policies have been configured yet.",
         addForAction: "Add",
         noPolicyForAction: "No policy for this action yet.",
         approvalRequired: "Approval required",
