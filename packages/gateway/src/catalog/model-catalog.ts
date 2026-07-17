@@ -60,6 +60,10 @@ const LOCAL_CONTEXT_OVERRIDES: Record<string, { contextWindow?: number; contextT
     "openai-codex/gpt-5.6-terra": { contextWindow: 372_000, contextTokens: 244_000 },
     "openai-codex/gpt-5.6-luna": { contextWindow: 372_000, contextTokens: 244_000 },
     "openai-codex/gpt-5.6-sol": { contextWindow: 372_000, contextTokens: 244_000 },
+    "rivonclaw-pro/rivonclaw-flagship": {
+      contextWindow: 372_000,
+      contextTokens: 244_000,
+    },
     "openai-codex/gpt-5.5": { contextWindow: 400_000, contextTokens: 272_000 },
     "openai-codex/gpt-5.5-pro": { contextWindow: 1_000_000, contextTokens: 272_000 },
     "openai-codex/gpt-5.4": { contextWindow: 1_050_000, contextTokens: 272_000 },

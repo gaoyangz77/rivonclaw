@@ -139,6 +139,79 @@ describe("LLMProviderManager", () => {
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
+  it("migrates a refreshed cloud catalog from a legacy model to Flagship", async () => {
+    const rpcRequest = vi.fn().mockResolvedValue(true);
+    const writeFullGatewayConfig = vi.fn().mockResolvedValue(undefined);
+    let entry: ProviderKeyEntry = {
+      id: "cloud-rivonclaw-pro",
+      provider: "rivonclaw-pro",
+      label: "RivonClaw AI",
+      model: "gpt-5.6-terra",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://api.rivonclaw.com/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify([{ id: "gpt-5.6-terra" }]),
+      createdAt: "",
+      updatedAt: "",
+    };
+    const storage = {
+      providerKeys: {
+        getActive: () => entry,
+        getById: (id: string) => (id === entry.id ? entry : undefined),
+        getAll: () => [entry],
+        update: (id: string, fields: Partial<ProviderKeyEntry>) => {
+          if (id !== entry.id) return undefined;
+          entry = { ...entry, ...fields, updatedAt: "updated" };
+          return entry;
+        },
+      },
+      settings: { set: vi.fn(), get: vi.fn() },
+    };
+    rootStore.loadProviderKeys([await toMstSnapshot(entry, mockSecretStore as any)]);
+
+    initLLMProviderManagerEnv({
+      storage: storage as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => ({ request: rpcRequest }) as any,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig: vi.fn(),
+      writeFullGatewayConfig,
+      restartGateway: async () => {},
+      proxyFetch: globalThis.fetch,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    rootStore.llmManager.trackSessionActivity("chat-session-flagship");
+    await rootStore.llmManager.refreshModels(entry.id, [
+      {
+        id: "rivonclaw-flagship",
+        display_name: "Flagship",
+        context_length: 372_000,
+        context_tokens: 244_000,
+        max_completion_tokens: 128_000,
+      },
+    ]);
+
+    expect(entry.model).toBe("rivonclaw-flagship");
+    expect(JSON.parse(entry.customModelsJson ?? "[]")).toEqual([
+      expect.objectContaining({ id: "rivonclaw-flagship", display_name: "Flagship" }),
+    ]);
+    expect(rootStore.llmManager.getSessionModelInfo("chat-session-flagship")).toMatchObject({
+      provider: "rivonclaw-pro",
+      model: "rivonclaw-flagship",
+      mode: "default",
+      isOverridden: false,
+    });
+    expect(writeFullGatewayConfig).toHaveBeenCalledOnce();
+    expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
+  });
+
   it("normalizes legacy Gemini OAuth model refs without patching default-following sessions", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
 
@@ -471,7 +544,7 @@ describe("LLMProviderManager", () => {
       }),
       proxyFetch: vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ data: [{ id: "gpt-5.6-luna" }, { id: "gpt-5.6-terra" }] }),
+        json: async () => ({ data: [{ id: "rivonclaw-flagship", display_name: "Flagship" }] }),
       }) as any,
       stateDir: "/tmp/rivonclaw-llm-manager-test",
       getLastSystemProxy: () => null,
@@ -491,12 +564,15 @@ describe("LLMProviderManager", () => {
     expect(keys[0]).toMatchObject({
       provider: "rivonclaw-pro",
       label: "RivonClaw AI",
-      model: "gpt-5.6-terra",
+      model: "rivonclaw-flagship",
       isDefault: true,
       inputModalities: ["text", "image"],
     });
     expect(writeFullGatewayConfig).toHaveBeenCalled();
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.6-terra");
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
+      "rivonclaw-pro",
+      "rivonclaw-flagship",
+    );
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(
       rootStore.llmManager.getSessionModelFact("agent:main:telegram:default:direct:42"),
@@ -511,7 +587,7 @@ describe("LLMProviderManager", () => {
     expect(restartGateway).not.toHaveBeenCalled();
   });
 
-  it("rotates an existing cloud key and migrates a removed model to Terra", async () => {
+  it("rotates an existing cloud key and migrates a removed model to Flagship", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     const writeDefaultModelToConfig = vi.fn();
     const writeFullGatewayConfig = vi.fn();
@@ -591,9 +667,11 @@ describe("LLMProviderManager", () => {
         json: async () => ({
           data: [
             {
-              id: "gpt-5.6-terra",
+              id: "rivonclaw-flagship",
+              display_name: "Flagship",
               input_modalities: ["text", "image"],
               context_length: 372_000,
+              context_tokens: 244_000,
               max_completion_tokens: 128_000,
             },
           ],
@@ -640,13 +718,15 @@ describe("LLMProviderManager", () => {
       Authorization: "Bearer rcllm_test_fresh_cloud_token_2",
     });
     expect(entry.label).toBe("RivonClaw AI");
-    expect(entry.model).toBe("gpt-5.6-terra");
+    expect(entry.model).toBe("rivonclaw-flagship");
     expect(entry.customModelsJson).toBe(
       JSON.stringify([
         {
-          id: "gpt-5.6-terra",
+          id: "rivonclaw-flagship",
+          display_name: "Flagship",
           input_modalities: ["text", "image"],
           context_length: 372_000,
+          context_tokens: 244_000,
           max_completion_tokens: 128_000,
         },
       ]),
@@ -668,13 +748,13 @@ describe("LLMProviderManager", () => {
       id: "cloud-rivonclaw-pro",
       provider: "rivonclaw-pro",
       label: "RivonClaw AI",
-      model: "gpt-5.6-terra",
+      model: "rivonclaw-flagship",
       isDefault: true,
       authType: "custom",
       baseUrl: "https://api.rivonclaw.com/llm/v1",
       customProtocol: "openai",
       customModelsJson: JSON.stringify([
-        { id: "gpt-5.6-terra", input_modalities: ["text", "image"] },
+        { id: "rivonclaw-flagship", input_modalities: ["text", "image"] },
       ]),
       inputModalities: ["text", "image"],
       source: "cloud",
@@ -730,7 +810,7 @@ describe("LLMProviderManager", () => {
         ok: true,
         status: 200,
         json: async () => ({
-          data: [{ id: "gpt-5.6-terra", input_modalities: ["text", "image"] }],
+          data: [{ id: "rivonclaw-flagship", input_modalities: ["text", "image"] }],
         }),
       }) as any,
       stateDir: "/tmp/rivonclaw-llm-manager-test",

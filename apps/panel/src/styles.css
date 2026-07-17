@@ -2021,6 +2021,19 @@ tbody td {
   min-width: 0;
 }
 
+.cloud-model-name {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* Label in tile context: takes available width, truncates with ellipsis
    when longer than the tile. The 240px fixed width from the previous row
    layout is gone — that was for horizontal alignment across list rows,

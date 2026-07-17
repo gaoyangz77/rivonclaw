@@ -332,7 +332,9 @@ export const ProvidersPage = observer(function ProvidersPage() {
                             </button>
                           </span>
                         )}
-                        {k.authType === "custom" && k.customModelsJson ? (
+                        {k.provider === "rivonclaw-pro" ? (
+                          <div className="cloud-model-name">Flagship</div>
+                        ) : k.authType === "custom" && k.customModelsJson ? (
                           <Select
                             value={k.model}
                             onChange={(model) => handleModelChange(k.id, model)}

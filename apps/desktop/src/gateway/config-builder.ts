@@ -123,14 +123,20 @@ type CustomProviderModel = {
 };
 
 const CLOUD_MODEL_RUNTIME_LIMITS = new Map(
-  (getProviderMeta("openai-codex")?.fallbackModels ?? []).map((model) => [
-    model.modelId,
-    {
-      contextWindow: model.contextWindow,
-      contextTokens: model.contextTokens,
-      maxTokens: model.maxTokens,
-    },
-  ]),
+  [
+    ...(getProviderMeta("openai-codex")?.fallbackModels ?? []).map((model) => [
+      model.modelId,
+      {
+        contextWindow: model.contextWindow,
+        contextTokens: model.contextTokens,
+        maxTokens: model.maxTokens,
+      },
+    ] as const),
+    [
+      "rivonclaw-flagship",
+      { contextWindow: 372_000, contextTokens: 244_000, maxTokens: 128_000 },
+    ] as const,
+  ],
 );
 
 export function buildCustomProviderOverridesFromKeys(

@@ -141,6 +141,49 @@ describe("panel-server API", () => {
     });
   });
 
+  describe("GET /api/models", () => {
+    it("uses the synced cloud catalog instead of stale gateway model entries", async () => {
+      storage.providerKeys.create({
+        id: "cloud-catalog-test",
+        provider: "rivonclaw-pro",
+        label: "RivonClaw AI",
+        model: "rivonclaw-flagship",
+        isDefault: true,
+        authType: "custom",
+        baseUrl: "https://api.rivonclaw.com/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify([
+          {
+            id: "rivonclaw-flagship",
+            display_name: "Flagship",
+            context_length: 372_000,
+            context_tokens: 244_000,
+          },
+        ]),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const { status, body } = await fetchJson<{
+        models: Record<
+          string,
+          Array<{ id: string; name: string; contextWindow?: number; contextTokens?: number }>
+        >;
+      }>("/api/models");
+
+      expect(status).toBe(200);
+      expect(body.models["rivonclaw-pro"]).toEqual([
+        {
+          id: "rivonclaw-flagship",
+          name: "Flagship",
+          contextWindow: 372_000,
+          contextTokens: 244_000,
+        },
+      ]);
+      storage.providerKeys.delete("cloud-catalog-test");
+    });
+  });
+
   // --- Skills API ---
   describe("Skills API", () => {
     describe("GET /api/skills/installed", () => {

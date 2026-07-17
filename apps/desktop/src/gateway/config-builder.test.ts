@@ -102,7 +102,7 @@ describe("gateway config builder", () => {
     ]);
   });
 
-  it("preserves cloud model context and output limits", () => {
+  it("preserves Flagship context and output limits", () => {
     const overrides = buildCustomProviderOverridesFromKeys([
       {
         provider: "rivonclaw-pro",
@@ -111,9 +111,10 @@ describe("gateway config builder", () => {
         customProtocol: "openai",
         customModelsJson: JSON.stringify([
           {
-            id: "gpt-5.6-terra",
-            display_name: "GPT 5.6 Terra",
+            id: "rivonclaw-flagship",
+            display_name: "Flagship",
             context_length: 372_000,
+            context_tokens: 244_000,
             max_completion_tokens: 128_000,
           },
         ]),
@@ -122,8 +123,8 @@ describe("gateway config builder", () => {
 
     expect(overrides["rivonclaw-pro"]?.models).toEqual([
       {
-        id: "gpt-5.6-terra",
-        name: "GPT 5.6 Terra",
+        id: "rivonclaw-flagship",
+        name: "Flagship",
         input: ["text", "image"],
         contextWindow: 372_000,
         contextTokens: 244_000,
@@ -155,6 +156,29 @@ describe("gateway config builder", () => {
       {
         id: "gpt-5.6-luna",
         name: "gpt-5.6-luna",
+        input: ["text", "image"],
+        contextWindow: 372_000,
+        contextTokens: 244_000,
+        maxTokens: 128_000,
+      },
+    ]);
+  });
+
+  it("restores Flagship runtime limits for an ID-only cloud catalog", () => {
+    const overrides = buildCustomProviderOverridesFromKeys([
+      {
+        provider: "rivonclaw-pro",
+        authType: "custom",
+        baseUrl: "https://api.rivonclaw.com/llm/v1",
+        customProtocol: "openai",
+        customModelsJson: JSON.stringify(["rivonclaw-flagship"]),
+      },
+    ]);
+
+    expect(overrides["rivonclaw-pro"]?.models).toEqual([
+      {
+        id: "rivonclaw-flagship",
+        name: "rivonclaw-flagship",
         input: ["text", "image"],
         contextWindow: 372_000,
         contextTokens: 244_000,

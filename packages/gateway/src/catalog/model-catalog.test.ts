@@ -195,6 +195,18 @@ describe("normalizeCatalog", () => {
       contextTokens: 244_000,
     });
   });
+
+  it("should use the Flagship native window and runtime input budget", () => {
+    const result = normalizeCatalog({
+      "rivonclaw-pro": [entry("rivonclaw-flagship", "Flagship")],
+    });
+
+    expect(result["rivonclaw-pro"]![0]).toMatchObject({
+      id: "rivonclaw-flagship",
+      contextWindow: 372_000,
+      contextTokens: 244_000,
+    });
+  });
 });
 
 describe("readGatewayModelCatalog", () => {
