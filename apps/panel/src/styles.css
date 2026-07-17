@@ -25114,7 +25114,7 @@ html[lang="zh"] .acct-tool-chips {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "identity health"
-    "actions actions";
+    "preferred actions";
   grid-template-rows: auto auto;
   gap: 10px 12px;
   border-top: 0;
@@ -25187,6 +25187,113 @@ html[lang="zh"] .acct-tool-chips {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.affiliate-channel-preferred {
+  grid-area: preferred;
+  min-height: 30px;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--surface-secondary);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.affiliate-channel-preferred > span {
+  color: #d69712;
+}
+
+.affiliate-channel-preferred:hover:not(:disabled),
+.affiliate-channel-preferred.is-preferred {
+  border-color: color-mix(in srgb, #d69712 34%, var(--border-color));
+  background: color-mix(in srgb, #d69712 9%, var(--surface-primary));
+  color: var(--text-primary);
+}
+
+.affiliate-channel-preferred:disabled {
+  cursor: default;
+  opacity: 0.82;
+}
+
+.affiliate-bd-contact-ledger {
+  margin-top: 8px;
+  display: grid;
+  gap: 12px;
+}
+
+.affiliate-bd-contact-list {
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--surface-primary);
+}
+
+.affiliate-bd-contact-row {
+  min-height: 72px;
+  padding: 12px 15px;
+  display: grid;
+  grid-template-columns: 88px minmax(150px, 1fr) 24px minmax(150px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.affiliate-bd-contact-row:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-bd-contact-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.affiliate-bd-contact-row strong,
+.affiliate-bd-contact-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-bd-contact-row small {
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
+.affiliate-bd-contact-channel {
+  min-height: 25px;
+  padding: 4px 8px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-color) 9%, var(--surface-secondary));
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.affiliate-bd-contact-channel.is-whatsapp {
+  background: color-mix(in srgb, #20b96b 10%, var(--surface-secondary));
+  color: #17884f;
+}
+
+.affiliate-bd-contact-channel.is-email {
+  background: color-mix(in srgb, #2376e5 10%, var(--surface-secondary));
+  color: #2064b9;
+}
+
+.affiliate-bd-contact-bridge {
+  color: var(--text-muted);
+  font-size: 18px;
+  text-align: center;
 }
 
 .affiliate-channel-transfer-button {
@@ -26034,7 +26141,7 @@ html[lang="zh"] .acct-tool-chips {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "identity health"
-      "actions actions";
+      "preferred actions";
     grid-template-rows: auto auto;
   }
   .affiliate-bd-channel-card .affiliate-channel-row-actions {
@@ -26052,6 +26159,13 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-bd-command-metric + .affiliate-bd-command-metric {
     border-top: 1px solid var(--border-color);
     border-left: 0;
+  }
+  .affiliate-bd-contact-row {
+    grid-template-columns: 78px minmax(0, 1fr) 20px minmax(0, 1fr);
+  }
+  .affiliate-bd-contact-row > .affiliate-channel-health {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
   .affiliate-onboarding-actions {
     justify-content: flex-start;

@@ -12,6 +12,7 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_BUSINESS_DEVELOPER_PAGE_QUERY,
+  AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_CREATOR_PROTECTION_INTENTS_QUERY,
   AFFILIATE_OPERATIONAL_SETTINGS_QUERY,
   ARCHIVE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
@@ -20,6 +21,7 @@ import {
   COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION,
   EMAIL_ACCOUNT_BINDINGS_QUERY,
   IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION,
+  SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
   UNASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION,
   UNASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION,
   WHATSAPP_ACCOUNT_BINDINGS_QUERY,
@@ -145,6 +147,21 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     EMAIL_ACCOUNT_BINDINGS_QUERY,
     { fetchPolicy: "cache-and-network" },
   );
+  const channelContactsQuery = useQuery<
+    { affiliateCreatorChannelContacts: GQL.AffiliateCreatorChannelContactPage },
+    { input: GQL.AffiliateCreatorChannelContactPageInput }
+  >(AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY, {
+    variables: {
+      input: {
+        businessDeveloperId: detailSummary?.developer.id ?? null,
+        includeHistorical: false,
+        offset: 0,
+        limit: 100,
+      },
+    },
+    skip: !detailSummary?.developer.id,
+    fetchPolicy: "cache-and-network",
+  });
 
   useEffect(() => {
     if (developersQuery.data) workspace.replaceAffiliateBusinessDevelopers(developersQuery.data.affiliateBusinessDevelopers);
@@ -182,6 +199,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [unassignWhatsapp] = useMutation(UNASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION);
   const [assignEmail] = useMutation(ASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION);
   const [unassignEmail] = useMutation(UNASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION);
+  const [setPreferredAccount, preferredAccountState] = useMutation<
+    { setAffiliateBusinessDeveloperPreferredAccount: GQL.AffiliateBusinessDeveloper },
+    { input: GQL.SetAffiliateBusinessDeveloperPreferredAccountInput }
+  >(SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION);
   const [importProtections, importState] = useMutation<
     { importAffiliateCreatorProtections: GQL.AffiliateCreatorProtectionIntent[] },
     { input: GQL.ImportAffiliateCreatorProtectionsInput }
@@ -216,6 +237,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const detailChannelCount = detailWhatsapp.length + detailEmail.length;
   const detailHealthyChannelCount = [...detailWhatsapp, ...detailEmail]
     .filter((account) => account.status.toLowerCase() === "connected").length;
+  const detailChannelContacts = channelContactsQuery.data?.affiliateCreatorChannelContacts.items ?? [];
   const detailRegionLabel = detailDeveloper
     ? detailDeveloper.regions.length > 0
       ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ")
@@ -267,6 +289,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       emailQuery.refetch(),
       developerPageQuery.refetch(),
     ]);
+    if (detailSummary?.developer.id) await channelContactsQuery.refetch();
     workspace.replaceAffiliateWhatsAppAccounts(whatsappResult.data?.whatsAppAccountBindings ?? []);
     workspace.replaceAffiliateEmailAccounts(emailResult.data?.emailAccountBindings ?? []);
     setDetailSummary((current) => {
@@ -275,7 +298,32 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         (item) => item.developer.id === current.developer.id,
       ) ?? current;
     });
-  }, [developerPageQuery, emailQuery, whatsappQuery, workspace]);
+  }, [channelContactsQuery, detailSummary?.developer.id, developerPageQuery, emailQuery, whatsappQuery, workspace]);
+
+  async function handleSetPreferredAccount(channel: "WHATSAPP" | "EMAIL", accountId: string) {
+    if (!detailDeveloper) return;
+    try {
+      const result = await setPreferredAccount({
+        variables: {
+          input: {
+            businessDeveloperId: detailDeveloper.id,
+            channel: channel === "WHATSAPP"
+              ? GQL.AffiliateMessageChannel.Whatsapp
+              : GQL.AffiliateMessageChannel.Email,
+            accountBindingId: accountId,
+          },
+        },
+      });
+      const developer = result.data?.setAffiliateBusinessDeveloperPreferredAccount;
+      if (developer) {
+        workspace.upsertAffiliateBusinessDeveloper(developer);
+        setDetailSummary((current) => current ? { ...current, developer } : current);
+      }
+      showToast(t("ecommerce.affiliateTeam.preferredAccountSaved", { defaultValue: "Preferred sender updated." }), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
 
   function openDeveloperDetail(summary: DeveloperSummary) {
     const developer = workspace.getBusinessDeveloper(summary.developer.id) ?? summary.developer;
@@ -1030,6 +1078,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 <ChannelWorkspaceCard
                   channel="WHATSAPP"
                   accounts={detailWhatsapp}
+                  preferredAccountId={detailDeveloper.preferredWhatsAppAccountBindingId ?? null}
+                  onSetPreferred={handleSetPreferredAccount}
+                  preferredBusy={preferredAccountState.loading}
                   onTransfer={beginAccountTransfer}
                   canConnect={!detailDeveloper.archivedAt}
                   connecting={connectChannel === "WHATSAPP"}
@@ -1046,12 +1097,53 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 <ChannelWorkspaceCard
                   channel="EMAIL"
                   accounts={detailEmail}
+                  preferredAccountId={detailDeveloper.preferredEmailAccountBindingId ?? null}
+                  onSetPreferred={handleSetPreferredAccount}
+                  preferredBusy={preferredAccountState.loading}
                   onTransfer={beginAccountTransfer}
                   canConnect={!detailDeveloper.archivedAt}
                   connecting={connectChannel === "EMAIL"}
                   onConnect={() => setConnectChannel((value) => value === "EMAIL" ? null : "EMAIL")}
                   t={t}
                 />
+              </div>
+              <div className="affiliate-bd-contact-ledger">
+                <div className="affiliate-bd-command-section-head">
+                  <div className="affiliate-bd-section-title">
+                    <span className="affiliate-bd-section-icon"><UserIcon /></span>
+                    <div>
+                      <strong>{t("ecommerce.affiliateTeam.creatorContacts", { defaultValue: "Creator contacts on these accounts" })}</strong>
+                      <span>{t("ecommerce.affiliateTeam.creatorContactsHint", { defaultValue: "Each row is one concrete sender account → Creator contact route." })}</span>
+                    </div>
+                  </div>
+                  <span>{detailChannelContacts.length}</span>
+                </div>
+                {channelContactsQuery.loading && !channelContactsQuery.data
+                  ? <div className="affiliate-bd-channel-card-empty">{t("common.loading")}</div>
+                  : detailChannelContacts.length > 0
+                    ? <div className="affiliate-bd-contact-list">{detailChannelContacts.map((contact) => {
+                        const account = contact.channel === GQL.AffiliateMessageChannel.Whatsapp
+                          ? detailWhatsapp.find((item) => item.id === contact.accountBindingId)
+                          : detailEmail.find((item) => item.id === contact.accountBindingId);
+                        const accountAddress = contact.channel === GQL.AffiliateMessageChannel.Whatsapp
+                          ? detailWhatsapp.find((item) => item.id === contact.accountBindingId)?.phoneNumber
+                          : detailEmail.find((item) => item.id === contact.accountBindingId)?.emailAddress;
+                        const address = contact.creatorPhone || contact.creatorEmail || t("ecommerce.affiliateTeam.unknownContact", { defaultValue: "Provider identity" });
+                        return <div className="affiliate-bd-contact-row" key={contact.id}>
+                          <span className={`affiliate-bd-contact-channel is-${contact.channel.toLowerCase()}`}>{contact.channel === GQL.AffiliateMessageChannel.Whatsapp ? "WhatsApp" : "Outlook"}</span>
+                          <div>
+                            <strong>{contact.effectiveAlias || address}</strong>
+                            <small>{address}</small>
+                          </div>
+                          <span className="affiliate-bd-contact-bridge">←</span>
+                          <div>
+                            <strong>{account?.displayName || accountAddress || t("ecommerce.affiliateTeam.unknownAccount", { defaultValue: "Unknown sender" })}</strong>
+                            <small>{accountAddress || t("ecommerce.affiliateTeam.unknownAccount", { defaultValue: "Unavailable sender" })}</small>
+                          </div>
+                          <span className={`affiliate-channel-health ${contact.status.toLowerCase()}`}>{contact.status}</span>
+                        </div>;
+                      })}</div>
+                    : <div className="affiliate-bd-channel-card-empty">{t("ecommerce.affiliateTeam.noCreatorContacts", { defaultValue: "No Creator contact has been added on this BD's accounts yet." })}</div>}
               </div>
             </section>}
 
@@ -1256,13 +1348,16 @@ function ChannelCount({ total, unhealthy }: { total: number; unhealthy: number }
   </span>;
 }
 
-function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, onTransfer, onReconnect, t }: {
+function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, onTransfer, onReconnect, preferredAccountId, onSetPreferred, preferredBusy, t }: {
   channel: "WHATSAPP" | "EMAIL";
   accounts: ChannelAccount[];
   ownerOptions?: Array<{ value: string; label: string }>;
   onOwnerChange?: (channel: "WHATSAPP" | "EMAIL", accountId: string, ownerId: string) => void;
   onTransfer?: (channel: "WHATSAPP" | "EMAIL", account: ChannelAccount) => void;
   onReconnect?: (accountId: string) => void;
+  preferredAccountId?: string | null;
+  onSetPreferred?: (channel: "WHATSAPP" | "EMAIL", accountId: string) => void;
+  preferredBusy?: boolean;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return <>{accounts.map((account) => {
@@ -1270,6 +1365,7 @@ function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, on
     const statusLabel = channel === "WHATSAPP"
       ? t(`ecommerce.affiliateWorkspace.whatsapp.status.${account.status}`, { defaultValue: account.status })
       : t(`ecommerce.affiliateWorkspace.email.status.${account.status.toLowerCase()}`, { defaultValue: account.status });
+    const preferred = preferredAccountId === account.id;
     return <div className="affiliate-channel-row" key={account.id}>
       <span className="affiliate-channel-kind">{channel === "WHATSAPP" ? "WhatsApp" : "Outlook"}</span>
       <div className="affiliate-channel-account-identity">
@@ -1281,6 +1377,18 @@ function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, on
         </div>
       </div>
       <span className={`affiliate-channel-health ${account.status.toLowerCase()}`}>{statusLabel}</span>
+      {onSetPreferred && <button
+        className={`affiliate-channel-preferred ${preferred ? "is-preferred" : ""}`}
+        type="button"
+        onClick={() => onSetPreferred(channel, account.id)}
+        disabled={preferredBusy || preferred}
+        aria-pressed={preferred}
+      >
+        <span aria-hidden="true">★</span>
+        {preferred
+          ? t("ecommerce.affiliateTeam.preferredAccount", { defaultValue: "Preferred" })
+          : t("ecommerce.affiliateTeam.makePreferred", { defaultValue: "Make preferred" })}
+      </button>}
       {(onTransfer || (channel === "WHATSAPP" && account.status !== GQL.WhatsAppAccountStatus.Connected && account.status !== GQL.WhatsAppAccountStatus.Revoked && onReconnect)) && (
         <div className="affiliate-channel-row-actions">
           {channel === "WHATSAPP" && account.status !== GQL.WhatsAppAccountStatus.Connected && account.status !== GQL.WhatsAppAccountStatus.Revoked && onReconnect && (
@@ -1301,7 +1409,7 @@ function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, on
   })}</>;
 }
 
-function ChannelWorkspaceCard({ channel, accounts, onTransfer, canConnect, connecting, onConnect, onReconnect, t }: {
+function ChannelWorkspaceCard({ channel, accounts, onTransfer, canConnect, connecting, onConnect, onReconnect, preferredAccountId, onSetPreferred, preferredBusy, t }: {
   channel: "WHATSAPP" | "EMAIL";
   accounts: ChannelAccount[];
   onTransfer: (channel: "WHATSAPP" | "EMAIL", account: ChannelAccount) => void;
@@ -1309,6 +1417,9 @@ function ChannelWorkspaceCard({ channel, accounts, onTransfer, canConnect, conne
   connecting: boolean;
   onConnect: () => void;
   onReconnect?: (accountId: string) => void;
+  preferredAccountId?: string | null;
+  onSetPreferred?: (channel: "WHATSAPP" | "EMAIL", accountId: string) => void;
+  preferredBusy?: boolean;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const label = channel === "WHATSAPP" ? "WhatsApp" : "Outlook";
@@ -1333,7 +1444,7 @@ function ChannelWorkspaceCard({ channel, accounts, onTransfer, canConnect, conne
     </header>
     <div className="affiliate-bd-channel-card-body">
       {accounts.length > 0
-        ? <ChannelAccountRows channel={channel} accounts={accounts} onTransfer={onTransfer} onReconnect={onReconnect} t={t} />
+        ? <ChannelAccountRows channel={channel} accounts={accounts} onTransfer={onTransfer} onReconnect={onReconnect} preferredAccountId={preferredAccountId} onSetPreferred={onSetPreferred} preferredBusy={preferredBusy} t={t} />
         : <div className="affiliate-bd-channel-card-empty">{t("ecommerce.affiliateTeam.noChannels")}</div>}
     </div>
   </section>;

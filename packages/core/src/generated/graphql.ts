@@ -636,6 +636,8 @@ export interface AffiliateBusinessDeveloper {
   createdAt: Scalars['DateTimeISO']['output'];
   displayName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  preferredEmailAccountBindingId?: Maybe<Scalars['ID']['output']>;
+  preferredWhatsAppAccountBindingId?: Maybe<Scalars['ID']['output']>;
   regions: Array<ShopRegion>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
@@ -781,6 +783,7 @@ export interface AffiliateCollaborationRecordPredictionSnapshot {
 /** Typed backend reasons explaining why a creator collaboration is in its processing state. */
 export const AffiliateCollaborationRecordProcessReason = {
   AgentRunFailed: 'AGENT_RUN_FAILED',
+  ChannelOwnershipConflict: 'CHANNEL_OWNERSHIP_CONFLICT',
   CollaborationContextAmbiguous: 'COLLABORATION_CONTEXT_AMBIGUOUS',
   ContentPublished: 'CONTENT_PUBLISHED',
   CreatorActionFollowUpDue: 'CREATOR_ACTION_FOLLOW_UP_DUE',
@@ -843,6 +846,16 @@ export const AffiliateCollaborationType = {
 } as const;
 
 export type AffiliateCollaborationType = typeof AffiliateCollaborationType[keyof typeof AffiliateCollaborationType];
+/** How the concrete seller-account to creator-contact route was selected */
+export const AffiliateContactSelectionSource = {
+  BdPreferredAccount: 'BD_PREFERRED_ACCOUNT',
+  PlatformDefault: 'PLATFORM_DEFAULT',
+  RecentContact: 'RECENT_CONTACT',
+  StaffOverride: 'STAFF_OVERRIDE',
+  TriggerContact: 'TRIGGER_CONTACT'
+} as const;
+
+export type AffiliateContactSelectionSource = typeof AffiliateContactSelectionSource[keyof typeof AffiliateContactSelectionSource];
 export interface AffiliateContextBuilderInput {
   baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
   baseEventCursor?: InputMaybe<Scalars['Int']['input']>;
@@ -866,22 +879,44 @@ export interface AffiliateContextBuilderPayload {
   workspace: AffiliateWorkspacePayload;
 }
 
-export interface AffiliateCreatorChannelConnection {
+export interface AffiliateCreatorChannelContact {
   accountBindingId: Scalars['ID']['output'];
   businessDeveloperId?: Maybe<Scalars['ID']['output']>;
   channel: AffiliateMessageChannel;
-  creatorContactPointId: Scalars['ID']['output'];
+  creatorEmail?: Maybe<Scalars['String']['output']>;
+  creatorPhone?: Maybe<Scalars['String']['output']>;
   creatorRelationshipId: Scalars['ID']['output'];
+  customAlias?: Maybe<Scalars['String']['output']>;
+  effectiveAlias?: Maybe<Scalars['String']['output']>;
   firstObservedAt: Scalars['DateTimeISO']['output'];
   id: Scalars['ID']['output'];
   lastInboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastObservedAt: Scalars['DateTimeISO']['output'];
   lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  source: AffiliateCreatorChannelConnectionSource;
-  status: AffiliateCreatorChannelConnectionStatus;
+  providerAlias?: Maybe<Scalars['String']['output']>;
+  source: AffiliateCreatorChannelContactSource;
+  status: AffiliateCreatorChannelContactStatus;
+  verifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
 
-export const AffiliateCreatorChannelConnectionSource = {
+export interface AffiliateCreatorChannelContactPage {
+  items: Array<AffiliateCreatorChannelContact>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateCreatorChannelContactPageInput {
+  accountBindingId?: InputMaybe<Scalars['ID']['input']>;
+  businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
+  channel?: InputMaybe<AffiliateMessageChannel>;
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  includeHistorical?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export const AffiliateCreatorChannelContactSource = {
   AgentAction: 'AGENT_ACTION',
   ChannelWebhook: 'CHANNEL_WEBHOOK',
   Import: 'IMPORT',
@@ -890,14 +925,15 @@ export const AffiliateCreatorChannelConnectionSource = {
   StaffInput: 'STAFF_INPUT'
 } as const;
 
-export type AffiliateCreatorChannelConnectionSource = typeof AffiliateCreatorChannelConnectionSource[keyof typeof AffiliateCreatorChannelConnectionSource];
-export const AffiliateCreatorChannelConnectionStatus = {
+export type AffiliateCreatorChannelContactSource = typeof AffiliateCreatorChannelContactSource[keyof typeof AffiliateCreatorChannelContactSource];
+export const AffiliateCreatorChannelContactStatus = {
   Active: 'ACTIVE',
   Historical: 'HISTORICAL',
+  Invalid: 'INVALID',
   Unresolved: 'UNRESOLVED'
 } as const;
 
-export type AffiliateCreatorChannelConnectionStatus = typeof AffiliateCreatorChannelConnectionStatus[keyof typeof AffiliateCreatorChannelConnectionStatus];
+export type AffiliateCreatorChannelContactStatus = typeof AffiliateCreatorChannelContactStatus[keyof typeof AffiliateCreatorChannelContactStatus];
 export interface AffiliateCreatorContactStateInput {
   /** CreatorRelationship is the business boundary for affiliate contact state. Do not pass raw channel or creator identity ids as the primary lookup. */
   creatorRelationshipId: Scalars['ID']['input'];
@@ -905,25 +941,16 @@ export interface AffiliateCreatorContactStateInput {
 }
 
 export interface AffiliateCreatorContactStatePayload {
+  businessDeveloper?: Maybe<AffiliateBusinessDeveloper>;
+  channelContacts: Array<AffiliateCreatorChannelContact>;
   creatorRelationship: AffiliateCreatorRelationship;
+  defaultOutboundChannel: AffiliateMessageChannel;
   emailAccounts: Array<EmailAccountBinding>;
   hasUsableEmailContact: Scalars['Boolean']['output'];
   hasUsableWhatsAppContact: Scalars['Boolean']['output'];
-  preferredChannel: AffiliateMessageChannel;
+  preferredEmailAccount?: Maybe<EmailAccountBinding>;
+  preferredWhatsAppAccount?: Maybe<WhatsAppAccountBinding>;
   whatsAppAccounts: Array<WhatsAppAccountBinding>;
-}
-
-/** Relationship-level email contact attached to one seller Outlook/Microsoft Graph account binding. */
-export interface AffiliateCreatorEmailContact {
-  contactPointId?: Maybe<Scalars['ID']['output']>;
-  displayName?: Maybe<Scalars['String']['output']>;
-  email: Scalars['String']['output'];
-  emailAccountBindingId: Scalars['ID']['output'];
-  firstLinkedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  source: WhatsAppCreatorContactSource;
-  status: EmailCreatorContactStatus;
-  verifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
 
 /** Marketplace creator identity and durable marketplace facts. Shop-specific relationship state lives elsewhere. */
@@ -1075,7 +1102,6 @@ export interface AffiliateCreatorRelationship {
   committedEventCursor?: Maybe<Scalars['Int']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
-  emailContacts: Array<AffiliateCreatorEmailContact>;
   id: Scalars['ID']['output'];
   lastAgentHandledAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastBlockedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -1092,7 +1118,6 @@ export interface AffiliateCreatorRelationship {
   stateUpdatedAt: Scalars['DateTimeISO']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
-  whatsappContacts: Array<AffiliateCreatorWhatsAppContact>;
   workSummary?: Maybe<AffiliateRelationshipWorkSummary>;
 }
 
@@ -1104,20 +1129,6 @@ export interface AffiliateCreatorRelationshipShopState {
   lifecycleStage: AffiliateLifecycleStage;
   shopId: Scalars['ID']['output'];
   tagIds: Array<Scalars['ID']['output']>;
-}
-
-/** Relationship-level WhatsApp contact attached to one seller WhatsApp account binding. */
-export interface AffiliateCreatorWhatsAppContact {
-  contactPointId?: Maybe<Scalars['ID']['output']>;
-  creatorPhone?: Maybe<Scalars['String']['output']>;
-  creatorWaJid?: Maybe<Scalars['String']['output']>;
-  displayName?: Maybe<Scalars['String']['output']>;
-  firstLinkedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lastMessageAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  source: WhatsAppCreatorContactSource;
-  status: WhatsAppCreatorContactStatus;
-  verifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
 }
 
 /** Structured affiliate decision thresholds. Campaign thresholds override shop-level thresholds for the same decision surface. */
@@ -1429,7 +1440,7 @@ export const AffiliateLifecycleEntityType = {
   AffiliateCampaign: 'AFFILIATE_CAMPAIGN',
   AffiliateCollaboration: 'AFFILIATE_COLLABORATION',
   AffiliateCollaborationRecord: 'AFFILIATE_COLLABORATION_RECORD',
-  AffiliateCreatorChannelConnection: 'AFFILIATE_CREATOR_CHANNEL_CONNECTION',
+  AffiliateCreatorChannelContact: 'AFFILIATE_CREATOR_CHANNEL_CONTACT',
   AffiliateCreatorIdentity: 'AFFILIATE_CREATOR_IDENTITY',
   AffiliateCreatorProtectionIntent: 'AFFILIATE_CREATOR_PROTECTION_INTENT',
   AffiliateCreatorRelationship: 'AFFILIATE_CREATOR_RELATIONSHIP',
@@ -1454,8 +1465,8 @@ export const AffiliateLifecycleEventType = {
   BusinessDeveloperCreated: 'BUSINESS_DEVELOPER_CREATED',
   BusinessDeveloperUpdated: 'BUSINESS_DEVELOPER_UPDATED',
   CandidateQualified: 'CANDIDATE_QUALIFIED',
-  ChannelConnectionCreated: 'CHANNEL_CONNECTION_CREATED',
-  ChannelConnectionUpdated: 'CHANNEL_CONNECTION_UPDATED',
+  ChannelContactCreated: 'CHANNEL_CONTACT_CREATED',
+  ChannelContactUpdated: 'CHANNEL_CONTACT_UPDATED',
   CollaborationClosed: 'COLLABORATION_CLOSED',
   CollaborationCreated: 'COLLABORATION_CREATED',
   ContentDetected: 'CONTENT_DETECTED',
@@ -1517,7 +1528,9 @@ export interface AffiliateMessageDelivery {
   baseCheckpointId?: Maybe<Scalars['String']['output']>;
   baseEventCursor?: Maybe<Scalars['Int']['output']>;
   candidateCheckpointId?: Maybe<Scalars['String']['output']>;
+  channelContactId?: Maybe<Scalars['ID']['output']>;
   channelSelectionSource: AffiliateDeliveryChannelSelectionSource;
+  contactSelectionSource: AffiliateContactSelectionSource;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
   creatorRelationshipId: Scalars['ID']['output'];
@@ -2636,7 +2649,6 @@ export interface CheckCreatorWhatsAppContactInput {
   creatorRelationshipId: Scalars['ID']['input'];
   persist?: InputMaybe<Scalars['Boolean']['input']>;
   shopId: Scalars['ID']['input'];
-  whatsappAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface CheckCreatorWhatsAppContactPayload {
@@ -4404,6 +4416,9 @@ export const EcomBiDatasetId = {
   AdsGmvProductDaily: 'ADS_GMV_PRODUCT_DAILY',
   AffiliateOrderExportLine: 'AFFILIATE_ORDER_EXPORT_LINE',
   CsDailySummary: 'CS_DAILY_SUMMARY',
+  FinanceIncomeExportLine: 'FINANCE_INCOME_EXPORT_LINE',
+  FinancePaymentExportLine: 'FINANCE_PAYMENT_EXPORT_LINE',
+  FinanceStatementDaily: 'FINANCE_STATEMENT_DAILY',
   OrderProductDaily: 'ORDER_PRODUCT_DAILY',
   OrderShopDaily: 'ORDER_SHOP_DAILY',
   OrderSkuDaily: 'ORDER_SKU_DAILY',
@@ -4438,10 +4453,12 @@ export const EcomBiDateRangeRequirement = {
 export type EcomBiDateRangeRequirement = typeof EcomBiDateRangeRequirement[keyof typeof EcomBiDateRangeRequirement];
 /** Allowed BI dimensions. Dataset metadata declares which are valid per dataset. */
 export const EcomBiDimension = {
+  AdjustmentReason: 'ADJUSTMENT_REASON',
   AdvertiserId: 'ADVERTISER_ID',
   AdvertiserName: 'ADVERTISER_NAME',
   AdvertiserTimezone: 'ADVERTISER_TIMEZONE',
   AffiliateOrderAttributionKey: 'AFFILIATE_ORDER_ATTRIBUTION_KEY',
+  BankAccountMasked: 'BANK_ACCOUNT_MASKED',
   BuyerMessage: 'BUYER_MESSAGE',
   BuyerUsername: 'BUYER_USERNAME',
   CampaignBudgetMode: 'CAMPAIGN_BUDGET_MODE',
@@ -4458,6 +4475,7 @@ export const EcomBiDimension = {
   CancelBy: 'CANCEL_BY',
   CancelReason: 'CANCEL_REASON',
   City: 'CITY',
+  CollectionMethods: 'COLLECTION_METHODS',
   CommissionModel: 'COMMISSION_MODEL',
   ContentId: 'CONTENT_ID',
   ContentType: 'CONTENT_TYPE',
@@ -4479,6 +4497,10 @@ export const EcomBiDimension = {
   DeliveryOptionType: 'DELIVERY_OPTION_TYPE',
   District: 'DISTRICT',
   Email: 'EMAIL',
+  FinanceLineKey: 'FINANCE_LINE_KEY',
+  FinanceOrderCreatedTime: 'FINANCE_ORDER_CREATED_TIME',
+  FinanceOrderDeliveryTime: 'FINANCE_ORDER_DELIVERY_TIME',
+  FinanceStatus: 'FINANCE_STATUS',
   FulfillmentType: 'FULFILLMENT_TYPE',
   FullyReturnedOrRefunded: 'FULLY_RETURNED_OR_REFUNDED',
   GmvModule: 'GMV_MODULE',
@@ -4486,6 +4508,7 @@ export const EcomBiDimension = {
   LineItemSkuType: 'LINE_ITEM_SKU_TYPE',
   NormalOrPreorder: 'NORMAL_OR_PREORDER',
   ObservedAt: 'OBSERVED_AT',
+  OrderAdjustmentId: 'ORDER_ADJUSTMENT_ID',
   OrderDeliveryTime: 'ORDER_DELIVERY_TIME',
   OrderId: 'ORDER_ID',
   OrderLineKey: 'ORDER_LINE_KEY',
@@ -4496,6 +4519,10 @@ export const EcomBiDimension = {
   PaidTime: 'PAID_TIME',
   PaymentMethod: 'PAYMENT_METHOD',
   PaymentTime: 'PAYMENT_TIME',
+  PayoutCompletionTime: 'PAYOUT_COMPLETION_TIME',
+  PayoutId: 'PAYOUT_ID',
+  PayoutInitiationTime: 'PAYOUT_INITIATION_TIME',
+  PayoutNotes: 'PAYOUT_NOTES',
   PhoneNumber: 'PHONE_NUMBER',
   Platform: 'PLATFORM',
   ProductBrandId: 'PRODUCT_BRAND_ID',
@@ -4507,11 +4534,13 @@ export const EcomBiDimension = {
   ProductName: 'PRODUCT_NAME',
   ProductStatus: 'PRODUCT_STATUS',
   Recipient: 'RECIPIENT',
+  RelatedOrderId: 'RELATED_ORDER_ID',
   RoiProtection: 'ROI_PROTECTION',
   RtsTime: 'RTS_TIME',
   SellerNote: 'SELLER_NOTE',
   SellerSku: 'SELLER_SKU',
   ShippedTime: 'SHIPPED_TIME',
+  ShippingDiscountMode: 'SHIPPING_DISCOUNT_MODE',
   ShippingInformation: 'SHIPPING_INFORMATION',
   ShippingProviderName: 'SHIPPING_PROVIDER_NAME',
   ShopAdsCommissionRate: 'SHOP_ADS_COMMISSION_RATE',
@@ -4527,6 +4556,7 @@ export const EcomBiDimension = {
   SourceCreativeIdType: 'SOURCE_CREATIVE_ID_TYPE',
   StandardCommissionRate: 'STANDARD_COMMISSION_RATE',
   State: 'STATE',
+  StatementId: 'STATEMENT_ID',
   StoreId: 'STORE_ID',
   StoreName: 'STORE_NAME',
   StreetName: 'STREET_NAME',
@@ -4535,6 +4565,7 @@ export const EcomBiDimension = {
   TimeCommissionPaid: 'TIME_COMMISSION_PAID',
   TimeCreated: 'TIME_CREATED',
   TrackingId: 'TRACKING_ID',
+  TransactionType: 'TRANSACTION_TYPE',
   Variation: 'VARIATION',
   VideoSource: 'VIDEO_SOURCE',
   WarehouseCode: 'WAREHOUSE_CODE',
@@ -4564,6 +4595,7 @@ export const EcomBiDimensionEntity = {
   Creative: 'CREATIVE',
   CustomerService: 'CUSTOMER_SERVICE',
   Date: 'DATE',
+  Finance: 'FINANCE',
   Order: 'ORDER',
   Product: 'PRODUCT',
   Shop: 'SHOP',
@@ -4635,6 +4667,7 @@ export const EcomBiMetric = {
   ActualCofundedCreatorBonus: 'ACTUAL_COFUNDED_CREATOR_BONUS',
   ActualCommissionBase: 'ACTUAL_COMMISSION_BASE',
   ActualCommissionPayment: 'ACTUAL_COMMISSION_PAYMENT',
+  ActualReturnShippingFeeAmount: 'ACTUAL_RETURN_SHIPPING_FEE_AMOUNT',
   ActualShopAdsCommissionPayment: 'ACTUAL_SHOP_ADS_COMMISSION_PAYMENT',
   AdClickRate: 'AD_CLICK_RATE',
   AdConversionRate: 'AD_CONVERSION_RATE',
@@ -4644,10 +4677,22 @@ export const EcomBiMetric = {
   AdVideoViewRate_50P: 'AD_VIDEO_VIEW_RATE_50P',
   AdVideoViewRate_75P: 'AD_VIDEO_VIEW_RATE_75P',
   AdVideoViewRate_100P: 'AD_VIDEO_VIEW_RATE_100P',
+  AffiliateCommissionAmount: 'AFFILIATE_COMMISSION_AMOUNT',
+  AffiliateCommissionDepositAmount: 'AFFILIATE_COMMISSION_DEPOSIT_AMOUNT',
+  AffiliateCommissionRefundAmount: 'AFFILIATE_COMMISSION_REFUND_AMOUNT',
+  AffiliatePartnerCommissionAmount: 'AFFILIATE_PARTNER_COMMISSION_AMOUNT',
+  AffiliatePartnerShopAdsCommissionAmount: 'AFFILIATE_PARTNER_SHOP_ADS_COMMISSION_AMOUNT',
+  AffiliateShopAdsCommissionAmount: 'AFFILIATE_SHOP_ADS_COMMISSION_AMOUNT',
   AvgFirstResponseSecs: 'AVG_FIRST_RESPONSE_SECS',
+  CampaignResourceFeeAmount: 'CAMPAIGN_RESOURCE_FEE_AMOUNT',
+  CampaignServiceFeeAmount: 'CAMPAIGN_SERVICE_FEE_AMOUNT',
   CancelledGmv: 'CANCELLED_GMV',
   CancelledOrderCount: 'CANCELLED_ORDER_COUNT',
   CancelledUnits: 'CANCELLED_UNITS',
+  ChargeablePackageWeight: 'CHARGEABLE_PACKAGE_WEIGHT',
+  CofundedCampaignPeriodFeeAmount: 'COFUNDED_CAMPAIGN_PERIOD_FEE_AMOUNT',
+  CofundedCampaignPeriodFeeTaxAmount: 'COFUNDED_CAMPAIGN_PERIOD_FEE_TAX_AMOUNT',
+  CofundedPromotionSellerFundedAmount: 'COFUNDED_PROMOTION_SELLER_FUNDED_AMOUNT',
   CompletedGmv: 'COMPLETED_GMV',
   CompletedOrderCount: 'COMPLETED_ORDER_COUNT',
   CompletedUnits: 'COMPLETED_UNITS',
@@ -4656,18 +4701,32 @@ export const EcomBiMetric = {
   CsGuidedGmv: 'CS_GUIDED_GMV',
   CsGuidedGmv_7DAverage: 'CS_GUIDED_GMV_7D_AVERAGE',
   CurrentBudgetAmount: 'CURRENT_BUDGET_AMOUNT',
+  CustomerPaymentAmount: 'CUSTOMER_PAYMENT_AMOUNT',
+  CustomerRefundAmount: 'CUSTOMER_REFUND_AMOUNT',
+  CustomerShippingBeforeDiscountsAmount: 'CUSTOMER_SHIPPING_BEFORE_DISCOUNTS_AMOUNT',
+  CustomerShippingFeeAmount: 'CUSTOMER_SHIPPING_FEE_AMOUNT',
+  DepositPfandAmount: 'DEPOSIT_PFAND_AMOUNT',
   EffectiveGmv: 'EFFECTIVE_GMV',
   EffectiveOrderCount: 'EFFECTIVE_ORDER_COUNT',
   EffectiveUnits: 'EFFECTIVE_UNITS',
+  EprPayOnBehalfFeeAmount: 'EPR_PAY_ON_BEHALF_FEE_AMOUNT',
   EscalateConversations: 'ESCALATE_CONVERSATIONS',
   EscalationRatio: 'ESCALATION_RATIO',
   EscalationResolved: 'ESCALATION_RESOLVED',
   EscalationResolveRate: 'ESCALATION_RESOLVE_RATE',
+  EstimatedChargeablePackageWeight: 'ESTIMATED_CHARGEABLE_PACKAGE_WEIGHT',
   EstimatedCofundedCreatorBonus: 'ESTIMATED_COFUNDED_CREATOR_BONUS',
   EstimatedCommissionBase: 'ESTIMATED_COMMISSION_BASE',
   EstimatedShopAdsCommissionPayment: 'ESTIMATED_SHOP_ADS_COMMISSION_PAYMENT',
   EstimatedStandardCommissionPayment: 'ESTIMATED_STANDARD_COMMISSION_PAYMENT',
+  FinanceAdjustmentAmount: 'FINANCE_ADJUSTMENT_AMOUNT',
+  FinanceFeesAmount: 'FINANCE_FEES_AMOUNT',
+  FinanceRevenueAmount: 'FINANCE_REVENUE_AMOUNT',
+  FinanceShippingAmount: 'FINANCE_SHIPPING_AMOUNT',
+  FinanceShippingFeeDiscountAmount: 'FINANCE_SHIPPING_FEE_DISCOUNT_AMOUNT',
   FirstResponseCount: 'FIRST_RESPONSE_COUNT',
+  FulfilledByTiktokShippingFeeAmount: 'FULFILLED_BY_TIKTOK_SHIPPING_FEE_AMOUNT',
+  GmvMaxAdFeeAmount: 'GMV_MAX_AD_FEE_AMOUNT',
   GrossGmv: 'GROSS_GMV',
   GrossOrderCount: 'GROSS_ORDER_COUNT',
   GrossRevenueAmount: 'GROSS_REVENUE_AMOUNT',
@@ -4675,7 +4734,10 @@ export const EcomBiMetric = {
   InboundMessages: 'INBOUND_MESSAGES',
   InTransitQuantity: 'IN_TRANSIT_QUANTITY',
   LockedQuantity: 'LOCKED_QUANTITY',
+  ManagedServicePlanPerOrderFeeAmount: 'MANAGED_SERVICE_PLAN_PER_ORDER_FEE_AMOUNT',
+  ManagedServicePlanSalesTaxAmount: 'MANAGED_SERVICE_PLAN_SALES_TAX_AMOUNT',
   NetCostAmount: 'NET_COST_AMOUNT',
+  NetSalesAmount: 'NET_SALES_AMOUNT',
   NewConversations: 'NEW_CONVERSATIONS',
   OfflineQuantity: 'OFFLINE_QUANTITY',
   Orders: 'ORDERS',
@@ -4685,30 +4747,58 @@ export const EcomBiMetric = {
   OutboundMessages: 'OUTBOUND_MESSAGES',
   PaymentAmount: 'PAYMENT_AMOUNT',
   PaymentPlatformDiscount: 'PAYMENT_PLATFORM_DISCOUNT',
+  PayoutAmount: 'PAYOUT_AMOUNT',
+  PayoutExchangeRate: 'PAYOUT_EXCHANGE_RATE',
+  PlatformCofundedVoucherDiscountsAmount: 'PLATFORM_COFUNDED_VOUCHER_DISCOUNTS_AMOUNT',
+  PlatformCofundedVoucherDiscountsRefundAmount: 'PLATFORM_COFUNDED_VOUCHER_DISCOUNTS_REFUND_AMOUNT',
+  PlatformDiscountsAmount: 'PLATFORM_DISCOUNTS_AMOUNT',
+  PlatformDiscountsRefundAmount: 'PLATFORM_DISCOUNTS_REFUND_AMOUNT',
   PriceAmount: 'PRICE_AMOUNT',
   ProductClicks: 'PRODUCT_CLICKS',
   ProductClickRate: 'PRODUCT_CLICK_RATE',
   ProductImpressions: 'PRODUCT_IMPRESSIONS',
   Quantity: 'QUANTITY',
   RatedSessions: 'RATED_SESSIONS',
+  RefundedCustomerShippingFeeAmount: 'REFUNDED_CUSTOMER_SHIPPING_FEE_AMOUNT',
+  RefundSellerDiscountsAmount: 'REFUND_SELLER_DISCOUNTS_AMOUNT',
+  RefundSubtotalBeforeSellerDiscountsAmount: 'REFUND_SUBTOTAL_BEFORE_SELLER_DISCOUNTS_AMOUNT',
   ReopenedConversations: 'REOPENED_CONVERSATIONS',
   RetailDeliveryFee: 'RETAIL_DELIVERY_FEE',
+  ReturnShippingFeeReimbursementAmount: 'RETURN_SHIPPING_FEE_REIMBURSEMENT_AMOUNT',
+  ReturnShippingLabelFeeAmount: 'RETURN_SHIPPING_LABEL_FEE_AMOUNT',
   RoasBid: 'ROAS_BID',
   Roi: 'ROI',
   SatisfactionRate: 'SATISFACTION_RATE',
   SatisfiedSessions: 'SATISFIED_SESSIONS',
+  SellerCofundedVoucherDiscountAmount: 'SELLER_COFUNDED_VOUCHER_DISCOUNT_AMOUNT',
+  SellerCofundedVoucherDiscountRefundAmount: 'SELLER_COFUNDED_VOUCHER_DISCOUNT_REFUND_AMOUNT',
+  SellerDiscountsAmount: 'SELLER_DISCOUNTS_AMOUNT',
+  SellerShippingFeeDiscountAmount: 'SELLER_SHIPPING_FEE_DISCOUNT_AMOUNT',
   ShippingFeeAfterDiscount: 'SHIPPING_FEE_AFTER_DISCOUNT',
   ShippingFeePlatformDiscount: 'SHIPPING_FEE_PLATFORM_DISCOUNT',
   ShippingFeeSellerDiscount: 'SHIPPING_FEE_SELLER_DISCOUNT',
+  ShippingSubsidyAmount: 'SHIPPING_SUBSIDY_AMOUNT',
   SkuPlatformDiscount: 'SKU_PLATFORM_DISCOUNT',
   SkuReturnQuantity: 'SKU_RETURN_QUANTITY',
   SkuSellerDiscount: 'SKU_SELLER_DISCOUNT',
   SkuSubtotalAfterDiscount: 'SKU_SUBTOTAL_AFTER_DISCOUNT',
   SkuSubtotalBeforeDiscount: 'SKU_SUBTOTAL_BEFORE_DISCOUNT',
   SkuUnitOriginalPrice: 'SKU_UNIT_ORIGINAL_PRICE',
+  SmartPromotionCampaignPeriodFeeAmount: 'SMART_PROMOTION_CAMPAIGN_PERIOD_FEE_AMOUNT',
+  SmartPromotionCampaignPeriodFeeTaxAmount: 'SMART_PROMOTION_CAMPAIGN_PERIOD_FEE_TAX_AMOUNT',
+  SmartPromotionFeeAmount: 'SMART_PROMOTION_FEE_AMOUNT',
+  SmartPromotionFeeTaxAmount: 'SMART_PROMOTION_FEE_TAX_AMOUNT',
   StockQuantity: 'STOCK_QUANTITY',
+  SubtotalBeforeDiscountsAmount: 'SUBTOTAL_BEFORE_DISCOUNTS_AMOUNT',
   SupportSessionCount: 'SUPPORT_SESSION_COUNT',
+  TaxAndDutyAmount: 'TAX_AND_DUTY_AMOUNT',
+  TiktokShippingFeeDiscountCustomerAmount: 'TIKTOK_SHIPPING_FEE_DISCOUNT_CUSTOMER_AMOUNT',
+  TiktokShopCommissionFeeAmount: 'TIKTOK_SHOP_COMMISSION_FEE_AMOUNT',
+  TiktokShopShippingFeeAmount: 'TIKTOK_SHOP_SHIPPING_FEE_AMOUNT',
+  TiktokShopShippingIncentiveAmount: 'TIKTOK_SHOP_SHIPPING_INCENTIVE_AMOUNT',
+  TiktokShopShippingIncentiveRefundAmount: 'TIKTOK_SHOP_SHIPPING_INCENTIVE_REFUND_AMOUNT',
   TotalInTransitQuantity: 'TOTAL_IN_TRANSIT_QUANTITY',
+  TotalSettlementAmount: 'TOTAL_SETTLEMENT_AMOUNT',
   TotalStockQuantity: 'TOTAL_STOCK_QUANTITY',
   WeightKg: 'WEIGHT_KG'
 } as const;
@@ -4775,7 +4865,7 @@ export interface EcomBiQueryInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
-  /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Required for Order and CS datasets. Usually omit for Ads so authorized advertiser stores without onboarded Shops remain included; when supplied to Ads, this restricts results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
+  /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Required for Order, Finance, and CS datasets. Usually omit for Ads so authorized advertiser stores without onboarded Shops remain included; when supplied to Ads, this restricts results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. */
   startDateGe?: InputMaybe<Scalars['String']['input']>;
@@ -5710,16 +5800,6 @@ export interface EmailAccountStatusCount {
   status: EmailAccountStatus;
 }
 
-/** Relationship-level status for a creator email contact */
-export const EmailCreatorContactStatus = {
-  Added: 'ADDED',
-  Invalid: 'INVALID',
-  Requested: 'REQUESTED',
-  Unknown: 'UNKNOWN',
-  Verified: 'VERIFIED'
-} as const;
-
-export type EmailCreatorContactStatus = typeof EmailCreatorContactStatus[keyof typeof EmailCreatorContactStatus];
 /** Mailbox ownership mode for email account bindings */
 export const EmailMailboxType = {
   Personal: 'PERSONAL',
@@ -6539,6 +6619,7 @@ export interface Mutation {
   revokeWhatsAppAccountBinding: WhatsAppAccountBinding;
   /** Send a human-authored affiliate creator message from the CreatorRelationship workspace. */
   sendAffiliateCreatorMessage: SendAffiliateCreatorMessagePayload;
+  setAffiliateBusinessDeveloperPreferredAccount: AffiliateBusinessDeveloper;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
   /** Attach or update a creator WhatsApp contact on an affiliate creator relationship. */
@@ -6569,6 +6650,7 @@ export interface Mutation {
   unassignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
   /** Unenroll from a product module */
   unenrollModule: MeResponse;
+  updateAffiliateCreatorChannelContact: AffiliateCreatorChannelContact;
   /** Update an existing run profile */
   updateRunProfile?: Maybe<RunProfile>;
   /** Update an existing shop */
@@ -6584,6 +6666,7 @@ export interface Mutation {
   writeAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
   /** Create or update an affiliate campaign. */
   writeAffiliateCampaign: AffiliateCampaign;
+  writeAffiliateCreatorChannelContact: AffiliateCreatorChannelContact;
   /** Create or update a campaign product setup row. */
   writeCampaignProduct: CampaignProduct;
   /** Create or update a concrete creator marketplace search run. This is platform/search audit state, not workflow planning state. */
@@ -7110,6 +7193,11 @@ export interface MutationSendAffiliateCreatorMessageArgs {
 }
 
 
+export interface MutationSetAffiliateBusinessDeveloperPreferredAccountArgs {
+  input: SetAffiliateBusinessDeveloperPreferredAccountInput;
+}
+
+
 export interface MutationSetAffiliateCreatorEmailArgs {
   input: SetCreatorEmailContactInput;
 }
@@ -7197,6 +7285,11 @@ export interface MutationUnenrollModuleArgs {
 }
 
 
+export interface MutationUpdateAffiliateCreatorChannelContactArgs {
+  input: UpdateAffiliateCreatorChannelContactInput;
+}
+
+
 export interface MutationUpdateRunProfileArgs {
   id: Scalars['ID']['input'];
   input: UpdateRunProfileInput;
@@ -7238,6 +7331,11 @@ export interface MutationWriteAffiliateBusinessDeveloperArgs {
 
 export interface MutationWriteAffiliateCampaignArgs {
   input: WriteAffiliateCampaignInput;
+}
+
+
+export interface MutationWriteAffiliateCreatorChannelContactArgs {
+  input: WriteAffiliateCreatorChannelContactInput;
 }
 
 
@@ -7739,7 +7837,7 @@ export interface Query {
   affiliateCollaborations: Array<AffiliateCollaboration>;
   /** Build the exact immutable event delta and current workspace for one checkpoint-based affiliate agent dispatch. */
   affiliateContextBuilder: AffiliateContextBuilderPayload;
-  affiliateCreatorChannelConnections: Array<AffiliateCreatorChannelConnection>;
+  affiliateCreatorChannelContacts: AffiliateCreatorChannelContactPage;
   /** Read relationship-level creator contact state, including WhatsApp/email contacts and available seller accounts. */
   affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
   /** Read merged relationship-level affiliate creator message history with channel labels. */
@@ -8028,8 +8126,8 @@ export interface QueryAffiliateContextBuilderArgs {
 }
 
 
-export interface QueryAffiliateCreatorChannelConnectionsArgs {
-  creatorRelationshipId: Scalars['ID']['input'];
+export interface QueryAffiliateCreatorChannelContactsArgs {
+  input: AffiliateCreatorChannelContactPageInput;
 }
 
 
@@ -8996,6 +9094,8 @@ export const SampleWorkStatus = {
 
 export type SampleWorkStatus = typeof SampleWorkStatus[keyof typeof SampleWorkStatus];
 export interface SendAffiliateCreatorMessageInput {
+  /** Staff-only exact BD-account-to-Creator contact route override. */
+  channelContactId?: InputMaybe<Scalars['ID']['input']>;
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
   emailSubject?: InputMaybe<Scalars['String']['input']>;
@@ -9020,6 +9120,12 @@ export const ServiceId = {
 } as const;
 
 export type ServiceId = typeof ServiceId[keyof typeof ServiceId];
+export interface SetAffiliateBusinessDeveloperPreferredAccountInput {
+  accountBindingId?: InputMaybe<Scalars['ID']['input']>;
+  businessDeveloperId: Scalars['ID']['input'];
+  channel: AffiliateMessageChannel;
+}
+
 export interface SetAffiliateRelationshipAiEngagementInput {
   creatorRelationshipId: Scalars['ID']['input'];
   status: AffiliateRelationshipAiEngagementStatus;
@@ -9028,24 +9134,15 @@ export interface SetAffiliateRelationshipAiEngagementInput {
 export interface SetCreatorEmailContactInput {
   /** CreatorRelationship is the business boundary for setting creator contact channels. */
   creatorRelationshipId: Scalars['ID']['input'];
-  displayName?: InputMaybe<Scalars['String']['input']>;
   email: Scalars['String']['input'];
-  emailAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
   shopId: Scalars['ID']['input'];
-  source?: InputMaybe<WhatsAppCreatorContactSource>;
-  status?: InputMaybe<EmailCreatorContactStatus>;
 }
 
 export interface SetCreatorWhatsAppContactInput {
-  creatorPhone?: InputMaybe<Scalars['String']['input']>;
+  creatorPhone: Scalars['String']['input'];
   /** CreatorRelationship is the business boundary for setting creator contact channels. */
   creatorRelationshipId: Scalars['ID']['input'];
-  creatorWaJid?: InputMaybe<Scalars['String']['input']>;
-  displayName?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
-  source?: InputMaybe<WhatsAppCreatorContactSource>;
-  status?: InputMaybe<WhatsAppCreatorContactStatus>;
-  whatsappAccountBindingId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 /** A connected e-commerce shop */
@@ -10166,6 +10263,12 @@ export interface UnrecognizedWmsInventoryGood {
   widthValue?: Maybe<Scalars['Float']['output']>;
 }
 
+export interface UpdateAffiliateCreatorChannelContactInput {
+  customAlias?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  status?: InputMaybe<AffiliateCreatorChannelContactStatus>;
+}
+
 /** Update notification payload */
 export interface UpdatePayload {
   version: Scalars['String']['output'];
@@ -10367,6 +10470,10 @@ export interface WhatsAppAccountBinding {
   lastDisconnectedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastError?: Maybe<Scalars['String']['output']>;
   lastQrAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  outboundSendBlockedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  outboundSendBlockedCode?: Maybe<Scalars['String']['output']>;
+  outboundSendBlockedReason?: Maybe<Scalars['String']['output']>;
+  outboundSendBlockedUntil?: Maybe<Scalars['DateTimeISO']['output']>;
   phoneNumber?: Maybe<Scalars['String']['output']>;
   profilePicUrl?: Maybe<Scalars['String']['output']>;
   provider: WhatsAppProvider;
@@ -10404,24 +10511,6 @@ export interface WhatsAppConnectorStatus {
   ready: Scalars['Boolean']['output'];
 }
 
-/** Source that attached a WhatsApp contact to a creator relationship */
-export const WhatsAppCreatorContactSource = {
-  AgentObserved: 'AGENT_OBSERVED',
-  Import: 'IMPORT',
-  Manual: 'MANUAL'
-} as const;
-
-export type WhatsAppCreatorContactSource = typeof WhatsAppCreatorContactSource[keyof typeof WhatsAppCreatorContactSource];
-/** Relationship-level status for a creator WhatsApp contact */
-export const WhatsAppCreatorContactStatus = {
-  Added: 'ADDED',
-  Invalid: 'INVALID',
-  Requested: 'REQUESTED',
-  Unknown: 'UNKNOWN',
-  Verified: 'VERIFIED'
-} as const;
-
-export type WhatsAppCreatorContactStatus = typeof WhatsAppCreatorContactStatus[keyof typeof WhatsAppCreatorContactStatus];
 /** Backend connector provider for WhatsApp account bindings */
 export const WhatsAppProvider = {
   EvolutionApi: 'EVOLUTION_API'
@@ -10549,6 +10638,14 @@ export interface WriteAffiliateCampaignInput {
   targetGmvCurrency?: InputMaybe<EcomProductSkuCurrency>;
   targetInviteCount?: InputMaybe<Scalars['Int']['input']>;
   targetOrderCount?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface WriteAffiliateCreatorChannelContactInput {
+  accountBindingId: Scalars['ID']['input'];
+  channel: AffiliateMessageChannel;
+  creatorAddress: Scalars['String']['input'];
+  creatorRelationshipId: Scalars['ID']['input'];
+  customAlias?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface WriteCampaignProductInput {

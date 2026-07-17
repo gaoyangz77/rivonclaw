@@ -70,8 +70,6 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   aiEngagementSource: types.optional(types.string, "ONBOARDING_DEFAULT"),
   operationalConfigRevision: types.optional(types.number, 1),
   shopStates: types.optional(types.array(AffiliateCreatorRelationshipShopStateModel), []),
-  whatsappContacts: types.optional(types.array(types.frozen<Record<string, any>>()), []),
-  emailContacts: types.optional(types.array(types.frozen<Record<string, any>>()), []),
   processingStatus: types.optional(types.string, "IDLE"),
   requiredAction: types.optional(types.string, "NO_ACTION"),
   processReasons: types.optional(types.array(types.string), []),
@@ -110,6 +108,8 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
   acceptingCreators: types.optional(types.boolean, true),
   agentAssistanceMode: types.optional(types.string, "AI_ASSISTED"),
   businessPrompt: types.maybeNull(types.string),
+  preferredWhatsAppAccountBindingId: types.maybeNull(types.string),
+  preferredEmailAccountBindingId: types.maybeNull(types.string),
   configRevision: types.optional(types.number, 1),
   archivedAt: types.maybeNull(types.string),
   createdAt: types.optional(types.string, nowIso),
@@ -123,13 +123,17 @@ export const AffiliateOperationalSettingsModel = types.model("AffiliateOperation
   newRelationshipAiEngagementDefault: types.optional(types.string, "PROTECTED"),
 });
 
-export const AffiliateCreatorChannelConnectionModel = types.model("AffiliateCreatorChannelConnection", {
+export const AffiliateCreatorChannelContactModel = types.model("AffiliateCreatorChannelContact", {
   id: types.identifier,
   creatorRelationshipId: types.string,
-  creatorContactPointId: types.string,
   channel: types.string,
   accountBindingId: types.string,
   businessDeveloperId: types.maybeNull(types.string),
+  creatorPhone: types.maybeNull(types.string),
+  creatorEmail: types.maybeNull(types.string),
+  customAlias: types.maybeNull(types.string),
+  providerAlias: types.maybeNull(types.string),
+  effectiveAlias: types.maybeNull(types.string),
   status: types.string,
   source: types.string,
   firstObservedAt: types.string,
@@ -338,7 +342,7 @@ export const AffiliateWorkspaceModel = types
     productSummaries: types.optional(types.array(AffiliateProductSummaryModel), []),
     businessDevelopers: types.optional(types.array(AffiliateBusinessDeveloperModel), []),
     operationalSettings: types.maybeNull(AffiliateOperationalSettingsModel),
-    creatorChannelConnections: types.optional(types.array(AffiliateCreatorChannelConnectionModel), []),
+    creatorChannelContacts: types.optional(types.array(AffiliateCreatorChannelContactModel), []),
     creatorProtectionIntents: types.optional(types.array(AffiliateCreatorProtectionIntentModel), []),
     whatsappAccounts: types.optional(types.array(AffiliateWhatsAppAccountModel), []),
     emailAccounts: types.optional(types.array(AffiliateEmailAccountModel), []),
@@ -699,9 +703,9 @@ export const AffiliateWorkspaceModel = types
       upsertById(self.businessDevelopers as any, developer as any);
     }
 
-    function upsertChannelConnection(connection: GQL.AffiliateCreatorChannelConnection | null | undefined): void {
-      if (!connection?.id) return;
-      upsertById(self.creatorChannelConnections as any, connection as any);
+    function upsertChannelContact(contact: GQL.AffiliateCreatorChannelContact | null | undefined): void {
+      if (!contact?.id) return;
+      upsertById(self.creatorChannelContacts as any, contact as any);
     }
 
     function upsertProtectionIntent(intent: GQL.AffiliateCreatorProtectionIntent | null | undefined): void {
@@ -744,9 +748,9 @@ export const AffiliateWorkspaceModel = types
       setAffiliateOperationalSettings(settings: GQL.AffiliateOperationalSettings | null | undefined) {
         self.operationalSettings = settings as any;
       },
-      replaceAffiliateCreatorChannelConnections(connections: GQL.AffiliateCreatorChannelConnection[]) {
-        self.creatorChannelConnections.clear();
-        for (const connection of connections) upsertChannelConnection(connection);
+      replaceAffiliateCreatorChannelContacts(contacts: GQL.AffiliateCreatorChannelContact[]) {
+        self.creatorChannelContacts.clear();
+        for (const contact of contacts) upsertChannelContact(contact);
       },
       replaceAffiliateCreatorProtectionIntents(intents: GQL.AffiliateCreatorProtectionIntent[]) {
         self.creatorProtectionIntents.clear();
@@ -781,7 +785,7 @@ export const AffiliateWorkspaceModel = types
         self.productSummaries.clear();
         self.businessDevelopers.clear();
         self.operationalSettings = null;
-        self.creatorChannelConnections.clear();
+        self.creatorChannelContacts.clear();
         self.creatorProtectionIntents.clear();
         self.whatsappAccounts.clear();
         self.emailAccounts.clear();
