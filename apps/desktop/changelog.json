@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.75",
+    "date": "2026-07-17",
+    "en": [
+      "Redesign the affiliate team workspace and improve WhatsApp reconnect recovery",
+      "Surface unavailable quoted context in Feishu conversations",
+      "Preserve nested cloud tool schemas in the desktop runtime"
+    ],
+    "zh": [
+      "重构达人团队工作台，并优化 WhatsApp 重连恢复体验",
+      "在飞书对话中展示不可用的引用上下文",
+      "保留桌面端运行时中的嵌套 cloud tool schema"
+    ]
+  },
+  {
     "version": "1.8.74",
     "date": "2026-07-16",
     "en": [
