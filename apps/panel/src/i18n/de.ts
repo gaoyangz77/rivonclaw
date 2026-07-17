@@ -2861,6 +2861,7 @@ export default {
       "processReasons": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "Creator-Nachricht braucht Antwort",
         "SAMPLE_PENDING_REVIEW": "Probenantrag wartet auf Prüfung",
+        "SAMPLE_AWAITING_PLATFORM_SHIPMENT": "Warten auf automatischen TikTok-FBT-Versand",
         "SAMPLE_AWAITING_SHIPMENT": "Probe wartet auf Versand",
         "CREATOR_ACTION_FOLLOW_UP_DUE": "Creator-Follow-up fällig",
         "STAFF_REVIEW_REQUESTED": "Mitarbeiterentscheidung nötig",

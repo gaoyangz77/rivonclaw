@@ -2861,6 +2861,7 @@ export default {
       "processReasons": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "Pesan kreator perlu dibalas",
         "SAMPLE_PENDING_REVIEW": "Permintaan sampel menunggu tinjauan",
+        "SAMPLE_AWAITING_PLATFORM_SHIPMENT": "Menunggu pengiriman otomatis TikTok FBT",
         "SAMPLE_AWAITING_SHIPMENT": "Sampel menunggu pengiriman",
         "CREATOR_ACTION_FOLLOW_UP_DUE": "Tindak lanjut kreator jatuh tempo",
         "STAFF_REVIEW_REQUESTED": "Perlu keputusan staf",

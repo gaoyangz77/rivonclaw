@@ -2861,6 +2861,7 @@ export default {
       "processReasons": {
         "CREATOR_MESSAGE_NEEDS_REPLY": "Messaggio creator da rispondere",
         "SAMPLE_PENDING_REVIEW": "Richiesta campione da rivedere",
+        "SAMPLE_AWAITING_PLATFORM_SHIPMENT": "In attesa della spedizione automatica TikTok FBT",
         "SAMPLE_AWAITING_SHIPMENT": "Campione in attesa di spedizione",
         "CREATOR_ACTION_FOLLOW_UP_DUE": "Follow-up creator dovuto",
         "STAFF_REVIEW_REQUESTED": "Decisione dello staff richiesta",

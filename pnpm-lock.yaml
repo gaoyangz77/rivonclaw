@@ -263,6 +263,9 @@ importers:
       adm-zip:
         specifier: ^0.5.16
         version: 0.5.16
+      pdfjs-dist:
+        specifier: 5.7.284
+        version: 5.7.284
     devDependencies:
       '@rivonclaw/core':
         specifier: workspace:*

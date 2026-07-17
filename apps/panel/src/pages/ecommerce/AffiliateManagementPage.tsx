@@ -6580,12 +6580,14 @@ function buildCollaborationWorkView(
       };
     case GQL.AffiliateCollaborationRequiredAction.ShipSample:
       return {
-        badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.staff"),
-        badgeTone: "attention",
+        badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingPlatform"),
+        badgeTone: "waiting",
         stage,
-        ownerLabel: t("ecommerce.affiliateWorkspace.labels.needsYourAction"),
-        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.SAMPLE_AWAITING_SHIPMENT"),
-        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.SHIP_SAMPLE"),
+        ownerLabel: t("ecommerce.affiliateWorkspace.labels.currentSituation"),
+        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.WAITING_PLATFORM"),
+        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_FBT_SHIPMENT", {
+          defaultValue: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_PLATFORM"),
+        }),
       };
     case GQL.AffiliateCollaborationRequiredAction.FollowUpCreator:
       return {
@@ -6629,6 +6631,22 @@ function buildCollaborationWorkView(
   }
 
   if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal) {
+    const awaitingFbtShipment = record.processReasons.some((reason) =>
+      reason === GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingPlatformShipment ||
+      reason === GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment
+    );
+    if (awaitingFbtShipment) {
+      return {
+        badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingPlatform"),
+        badgeTone: "waiting",
+        stage,
+        ownerLabel: t("ecommerce.affiliateWorkspace.labels.currentSituation"),
+        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.WAITING_PLATFORM"),
+        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_FBT_SHIPMENT", {
+          defaultValue: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_PLATFORM"),
+        }),
+      };
+    }
     return {
       badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingExternal", {
         defaultValue: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingCreator"),
