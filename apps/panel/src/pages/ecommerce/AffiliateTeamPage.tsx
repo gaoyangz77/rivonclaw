@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
-import { CheckIcon, ChevronRightIcon, CloseIcon, DownloadIcon, InfoIcon, RefreshIcon, UserIcon, UserPlusIcon } from "../../components/icons.js";
+import { ChannelsIcon, CheckIcon, ChevronRightIcon, CloseIcon, DownloadIcon, GlobeIcon, InfoIcon, RefreshIcon, UserIcon, UserPlusIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
@@ -35,6 +35,21 @@ export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
 
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
+type DeveloperDetailTab = "CHANNELS" | "SETTINGS";
+type TeamPageTab = "TEAM" | "SAFETY";
+type ChannelAccount = {
+  id: string;
+  businessDeveloperId?: string | null;
+  status: string;
+  displayName?: string | null;
+  phoneNumber?: string | null;
+  emailAddress?: string | null;
+  lastError?: string | null;
+};
+type PendingAccountTransfer = {
+  channel: "WHATSAPP" | "EMAIL";
+  account: ChannelAccount;
+};
 
 type DeveloperForm = {
   displayName: string;
@@ -63,17 +78,26 @@ const EMPTY_DEVELOPER: DeveloperForm = {
   businessPrompt: "",
 };
 
+function readTeamPageTab(): TeamPageTab {
+  return new URLSearchParams(window.location.search).get("view") === "safety" ? "SAFETY" : "TEAM";
+}
+
 export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const workspace = entityStore.affiliateWorkspace;
+  const [pageTab, setPageTab] = useState<TeamPageTab>(readTeamPageTab);
   const [developerPage, setDeveloperPage] = useState(0);
   const [developerSearch, setDeveloperSearch] = useState("");
   const [showArchivedDevelopers, setShowArchivedDevelopers] = useState(false);
   const [detailSummary, setDetailSummary] = useState<DeveloperSummary | null>(null);
+  const [detailTab, setDetailTab] = useState<DeveloperDetailTab>("CHANNELS");
   const [connectChannel, setConnectChannel] = useState<ConnectChannel>(null);
   const [reconnectWhatsAppAccountId, setReconnectWhatsAppAccountId] = useState<string | null>(null);
+  const [pendingAccountTransfer, setPendingAccountTransfer] = useState<PendingAccountTransfer | null>(null);
+  const [transferTargetId, setTransferTargetId] = useState("");
+  const [transferBusy, setTransferBusy] = useState(false);
   const [showUnassignedAccounts, setShowUnassignedAccounts] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingDeveloperId, setEditingDeveloperId] = useState<string | null>(null);
@@ -140,6 +164,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   useEffect(() => {
     setDeveloperPage(0);
   }, [deferredDeveloperSearch, showArchivedDevelopers]);
+  useEffect(() => {
+    const syncTabFromUrl = () => setPageTab(readTeamPageTab());
+    window.addEventListener("popstate", syncTabFromUrl);
+    return () => window.removeEventListener("popstate", syncTabFromUrl);
+  }, []);
 
   const [writeDeveloper, writeState] = useMutation<
     { writeAffiliateBusinessDeveloper: GQL.AffiliateBusinessDeveloper },
@@ -184,6 +213,14 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const detailEmail = detailDeveloper
     ? activeEmailAccounts.filter((account) => account.businessDeveloperId === detailDeveloper.id)
     : [];
+  const detailChannelCount = detailWhatsapp.length + detailEmail.length;
+  const detailHealthyChannelCount = [...detailWhatsapp, ...detailEmail]
+    .filter((account) => account.status.toLowerCase() === "connected").length;
+  const detailRegionLabel = detailDeveloper
+    ? detailDeveloper.regions.length > 0
+      ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ")
+      : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })
+    : "";
   const unassignedWhatsapp = activeWhatsappAccounts.filter((account) => !account.businessDeveloperId);
   const unassignedEmail = activeEmailAccounts.filter((account) => !account.businessDeveloperId);
   const totalChannelCount = activeWhatsappAccounts.length + activeEmailAccounts.length;
@@ -192,6 +229,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     { value: UNASSIGNED_ID, label: t("ecommerce.affiliateTeam.unassignedOwner") },
     ...activeDevelopers.map((developer) => ({ value: developer.id, label: developer.displayName })),
   ], [activeDevelopers, t]);
+  const transferOwnerOptions = useMemo(
+    () => ownerOptions.filter((option) => option.value !== detailDeveloper?.id),
+    [detailDeveloper?.id, ownerOptions],
+  );
   const protectionOwnerOptions = useMemo(() => [
     { value: UNASSIGNED_ID, label: t("ecommerce.affiliateTeam.protectionUnassigned") },
     ...activeDevelopers.map((developer) => ({ value: developer.id, label: developer.displayName })),
@@ -205,6 +246,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     detailSummary.creatorRelationshipCount
     + detailSummary.whatsappAccountCount
     + detailSummary.emailAccountCount > 0
+  ));
+  const detailFormDirty = Boolean(detailDeveloper && (
+    form.displayName.trim() !== detailDeveloper.displayName
+    || form.agentAssistanceMode !== detailDeveloper.agentAssistanceMode
+    || form.acceptingCreators !== detailDeveloper.acceptingCreators
+    || [...form.regions].sort().join("|") !== [...detailDeveloper.regions].sort().join("|")
+    || form.businessPrompt.trim() !== (detailDeveloper.businessPrompt?.trim() ?? "")
   ));
 
   useEffect(() => {
@@ -230,26 +278,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   }, [developerPageQuery, emailQuery, whatsappQuery, workspace]);
 
   function openDeveloperDetail(summary: DeveloperSummary) {
+    const developer = workspace.getBusinessDeveloper(summary.developer.id) ?? summary.developer;
     setDetailSummary(summary);
-    setConnectChannel(null);
-    setReconnectWhatsAppAccountId(null);
-  }
-
-  function beginCreateDeveloper() {
-    setEditingDeveloperId(null);
-    setForm(EMPTY_DEVELOPER);
-    setEditing(true);
-  }
-
-  function beginEditDeveloper(developer: {
-    id: string;
-    displayName: string;
-    regions: readonly string[];
-    acceptingCreators: boolean;
-    agentAssistanceMode: string;
-    businessPrompt?: string | null;
-  } | null) {
-    if (!developer) return;
     setEditingDeveloperId(developer.id);
     setForm({
       displayName: developer.displayName,
@@ -258,7 +288,28 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       agentAssistanceMode: developer.agentAssistanceMode as GQL.AffiliateAgentAssistanceMode,
       businessPrompt: developer.businessPrompt ?? "",
     });
+    setConnectChannel(null);
+    setReconnectWhatsAppAccountId(null);
+    setPendingAccountTransfer(null);
+    setTransferTargetId("");
+    setDetailTab("CHANNELS");
+  }
+
+  function closeDeveloperDetail() {
+    if (writeState.loading) return;
+    if (detailFormDirty && !window.confirm(t("ecommerce.affiliateTeam.unsavedChangesConfirm"))) return;
     setDetailSummary(null);
+    setEditingDeveloperId(null);
+    setConnectChannel(null);
+    setReconnectWhatsAppAccountId(null);
+    setPendingAccountTransfer(null);
+    setTransferTargetId("");
+    setDetailTab("CHANNELS");
+  }
+
+  function beginCreateDeveloper() {
+    setEditingDeveloperId(null);
+    setForm(EMPTY_DEVELOPER);
     setEditing(true);
   }
 
@@ -268,6 +319,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       showToast(t("ecommerce.affiliateTeam.nameRequired"), "error");
       return;
     }
+    const savingDetail = Boolean(detailSummary && editingDeveloper);
     try {
       const result = await writeDeveloper({
         variables: {
@@ -285,7 +337,19 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       if (!developer) throw new Error("AffiliateBusinessDeveloper was not returned");
       workspace.upsertAffiliateBusinessDeveloper(developer);
       setEditing(false);
-      setEditingDeveloperId(null);
+      if (savingDetail) {
+        setEditingDeveloperId(developer.id);
+        setForm({
+          displayName: developer.displayName,
+          regions: Array.from(developer.regions) as GQL.ShopRegion[],
+          acceptingCreators: developer.acceptingCreators,
+          agentAssistanceMode: developer.agentAssistanceMode,
+          businessPrompt: developer.businessPrompt ?? "",
+        });
+        setDetailSummary((current) => current ? { ...current, developer } : current);
+      } else {
+        setEditingDeveloperId(null);
+      }
       if (!editingDeveloper) setDeveloperPage(0);
       await Promise.all([developersQuery.refetch(), developerPageQuery.refetch()]);
       showToast(t("ecommerce.affiliateTeam.saved"), "success");
@@ -316,8 +380,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     }
   }
 
-  async function changeAccountOwner(channel: "WHATSAPP" | "EMAIL", accountId: string, nextOwner: string) {
-    if (!window.confirm(t("ecommerce.affiliateTeam.transferConfirm"))) return;
+  async function changeAccountOwner(channel: "WHATSAPP" | "EMAIL", accountId: string, nextOwner: string, confirmed = false): Promise<boolean> {
+    if (!confirmed && !window.confirm(t("ecommerce.affiliateTeam.transferConfirm"))) return false;
     try {
       if (channel === "WHATSAPP") {
         if (nextOwner === UNASSIGNED_ID) await unassignWhatsapp({ variables: { accountBindingId: accountId } });
@@ -328,8 +392,31 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       }
       await refreshChannelData();
       showToast(t("ecommerce.affiliateTeam.accountMoved"), "success");
+      return true;
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+      return false;
+    }
+  }
+
+  function beginAccountTransfer(channel: "WHATSAPP" | "EMAIL", account: ChannelAccount) {
+    setPendingAccountTransfer({ channel, account });
+    setTransferTargetId("");
+  }
+
+  async function confirmAccountTransfer() {
+    if (!pendingAccountTransfer || !transferTargetId) return;
+    setTransferBusy(true);
+    const moved = await changeAccountOwner(
+      pendingAccountTransfer.channel,
+      pendingAccountTransfer.account.id,
+      transferTargetId,
+      true,
+    );
+    setTransferBusy(false);
+    if (moved) {
+      setPendingAccountTransfer(null);
+      setTransferTargetId("");
     }
   }
 
@@ -484,8 +571,23 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setProtectionRows((rows) => rows.filter((row) => row.rowNumber !== rowNumber));
   }
 
+  function selectPageTab(nextTab: TeamPageTab, focusTab = false) {
+    if (nextTab !== pageTab) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("view", nextTab === "SAFETY" ? "safety" : "team");
+      const search = params.toString();
+      window.history.pushState(null, "", `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`);
+      setPageTab(nextTab);
+    }
+    if (focusTab) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(nextTab === "TEAM" ? "affiliate-team-tab-team" : "affiliate-team-tab-safety")?.focus();
+      });
+    }
+  }
+
   return (
-    <div className="affiliate-team-page">
+    <div className="page-enter affiliate-team-page">
       <header className="affiliate-team-header">
         <div className="affiliate-team-title-block">
           <span className="affiliate-team-eyebrow">{t("ecommerce.affiliateTeam.eyebrow")}</span>
@@ -498,12 +600,68 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           ])} disabled={loading}>
             <RefreshIcon /> {t("common.refresh")}
           </button>
-          <button className="btn btn-primary" type="button" onClick={beginCreateDeveloper}>
+          {pageTab === "TEAM" && <button className="btn btn-primary" type="button" onClick={beginCreateDeveloper}>
             <UserPlusIcon /> {t("ecommerce.affiliateTeam.addDeveloper")}
-          </button>
+          </button>}
         </div>
       </header>
 
+      <div className="affiliate-team-page-tabs" role="tablist" aria-label={t("ecommerce.affiliateTeam.pageTabsLabel")}>
+        <button
+          id="affiliate-team-tab-team"
+          className={`affiliate-team-page-tab ${pageTab === "TEAM" ? "is-active" : ""}`}
+          type="button"
+          role="tab"
+          aria-selected={pageTab === "TEAM"}
+          aria-controls="affiliate-team-panel-team"
+          tabIndex={pageTab === "TEAM" ? 0 : -1}
+          onClick={() => selectPageTab("TEAM")}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+              event.preventDefault();
+              selectPageTab("SAFETY", true);
+            }
+          }}
+        >
+          <span className="affiliate-team-page-tab-icon"><UserIcon /></span>
+          <span className="affiliate-team-page-tab-copy">
+            <strong>{t("ecommerce.affiliateTeam.teamOperationsTab")}</strong>
+            <small>{t("ecommerce.affiliateTeam.ownerCount", { count: activeDevelopers.length })} · {t("ecommerce.affiliateTeam.ownerChannelCount", { count: totalChannelCount })}</small>
+          </span>
+        </button>
+        <button
+          id="affiliate-team-tab-safety"
+          className={`affiliate-team-page-tab ${pageTab === "SAFETY" ? "is-active" : ""}`}
+          type="button"
+          role="tab"
+          aria-selected={pageTab === "SAFETY"}
+          aria-controls="affiliate-team-panel-safety"
+          tabIndex={pageTab === "SAFETY" ? 0 : -1}
+          onClick={() => selectPageTab("SAFETY")}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+              event.preventDefault();
+              selectPageTab("TEAM", true);
+            }
+          }}
+        >
+          <span className={`affiliate-team-page-tab-icon ${onboardingComplete ? "is-ready" : "needs-setup"}`}>
+            {onboardingComplete ? <CheckIcon /> : <InfoIcon />}
+          </span>
+          <span className="affiliate-team-page-tab-copy">
+            <strong>{t("ecommerce.affiliateTeam.safetyAndApprovalTab")}</strong>
+            <small>{t(onboardingComplete ? "ecommerce.affiliateTeam.setupReady" : "ecommerce.affiliateTeam.setupRequired")}</small>
+          </span>
+        </button>
+      </div>
+
+      <div
+        id="affiliate-team-panel-team"
+        className="affiliate-team-page-tab-panel"
+        role="tabpanel"
+        aria-labelledby="affiliate-team-tab-team"
+        hidden={pageTab !== "TEAM"}
+      >
       <section className="affiliate-team-overview" aria-label={t("ecommerce.affiliateTeam.operationsOverview")}>
         <div className={`affiliate-team-overview-status ${onboardingComplete ? "is-ready" : "needs-setup"}`}>
           <span className="affiliate-team-overview-icon">{onboardingComplete ? <CheckIcon /> : <InfoIcon />}</span>
@@ -515,111 +673,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         <div><span>{t("ecommerce.affiliateTeam.humanDevelopers")}</span><strong>{activeDevelopers.length}</strong></div>
         <div><span>{t("ecommerce.affiliateTeam.connectedChannels")}</span><strong>{totalChannelCount}</strong><small>{t("ecommerce.affiliateTeam.unassignedChannels", { count: unassignedChannelCount })}</small></div>
         <div><span>{t("ecommerce.affiliateTeam.protectedCreators")}</span><strong>{protectedCreatorCount}</strong><small>{t("ecommerce.affiliateTeam.appliedProtections", { count: appliedProtectionCount })}</small></div>
-      </section>
-
-      <section className="affiliate-team-policy-section">
-        <div className="affiliate-team-policy-heading">
-          <div>
-            <span className="affiliate-team-eyebrow">
-              {t("ecommerce.affiliateWorkspace.policies.title")}
-            </span>
-            <h2>
-              {t("ecommerce.affiliateTeam.globalApprovalPolicies", {
-                defaultValue: "Account-wide approval policies",
-              })}
-            </h2>
-          </div>
-          <p>
-            {t("ecommerce.affiliateTeam.globalApprovalPoliciesHint", {
-              defaultValue:
-                "Applies to every Affiliate shop under this seller account. SEND_MESSAGE rules review the exact draft before provider delivery.",
-            })}
-          </p>
-        </div>
-        <AffiliateApprovalPolicyPanel />
-      </section>
-
-      <section className={`affiliate-protection-boundary ${protectionManagerOpen ? "is-open" : ""}`}>
-        <div className="affiliate-protection-boundary-head">
-          <div className="affiliate-protection-boundary-title">
-            <span className="affiliate-protection-boundary-icon"><InfoIcon /></span>
-            <div>
-              <span>{t("ecommerce.affiliateTeam.protectionBoundary")}</span>
-              <h2>{t("ecommerce.affiliateTeam.onboardingTitle")}</h2>
-              <p>{t(onboardingComplete ? "ecommerce.affiliateTeam.protectionBoundaryReady" : "ecommerce.affiliateTeam.onboardingHint")}</p>
-            </div>
-          </div>
-          {onboardingComplete && (
-            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setShowProtectionManager((value) => !value)}>
-              {t(protectionManagerOpen ? "ecommerce.affiliateTeam.hideProtectionManager" : "ecommerce.affiliateTeam.showProtectionManager")}
-            </button>
-          )}
-        </div>
-
-        {protectionManagerOpen && (
-          <div className="affiliate-protection-console">
-            <div className="affiliate-protection-console-toolbar">
-              <div>
-                <strong>{t("ecommerce.affiliateTeam.addProtectionEntries")}</strong>
-                <span>{t("ecommerce.affiliateTeam.protectionEntryHint")}</span>
-              </div>
-              <div className="affiliate-onboarding-actions">
-                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
-                <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()}>
-                  <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
-                </button>
-                <button className="btn btn-secondary btn-sm" type="button" onClick={() => fileInputRef.current?.click()}>
-                  {t("ecommerce.affiliateTeam.importProtected")}
-                </button>
-              </div>
-            </div>
-            <div className="affiliate-protection-manual">
-              <label>
-                <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
-                <input value={manualCreator} onChange={(event) => setManualCreator(event.target.value)} placeholder={t("ecommerce.affiliateTeam.creatorIdentityPlaceholder")} />
-              </label>
-              <label>
-                <span>{t("ecommerce.affiliateTeam.assignProtectionDeveloper")}</span>
-                <Select value={manualDeveloperId} options={protectionOwnerOptions} onChange={setManualDeveloperId} />
-              </label>
-              <label>
-                <span>{t("ecommerce.affiliateTeam.note")}</span>
-                <input value={manualNote} onChange={(event) => setManualNote(event.target.value)} placeholder={t("ecommerce.affiliateTeam.notePlaceholder")} />
-              </label>
-              <button className="btn btn-secondary" type="button" onClick={addManualProtection}>{t("ecommerce.affiliateTeam.addProtectedCreator")}</button>
-            </div>
-            {protectionRows.length > 0 && (
-              <div className="affiliate-protection-preview">
-                <div className="affiliate-protection-preview-head">
-                  <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
-                  <button className="btn btn-primary btn-sm" type="button" onClick={submitProtectionRows} disabled={importState.loading || protectionRows.every((row) => row.error)}>
-                    {t("ecommerce.affiliateTeam.importValid", { count: protectionRows.filter((row) => !row.error).length })}
-                  </button>
-                </div>
-                {protectionRows.slice(0, 20).map((row) => (
-                  <div className={`affiliate-protection-row ${row.error ? "affiliate-protection-row-error" : ""}`} key={row.rowNumber}>
-                    <span>#{row.rowNumber}</span>
-                    <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
-                    <span>{row.businessDeveloperName || t("ecommerce.affiliateTeam.protectedOnly")}</span>
-                    <em>{row.error || t("ecommerce.affiliateTeam.ready")}</em>
-                    <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")}><CloseIcon /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!onboardingComplete && (
-              <div className="affiliate-onboarding-completion">
-                <label className="affiliate-onboarding-confirm">
-                  <input type="checkbox" checked={confirmedProtectionBoundary} onChange={(event) => setConfirmedProtectionBoundary(event.target.checked)} />
-                  <span>{t("ecommerce.affiliateTeam.confirmBoundary")}</span>
-                </label>
-                <button className="btn btn-primary" type="button" onClick={finishOnboarding} disabled={!confirmedProtectionBoundary || onboardingState.loading}>
-                  {t("ecommerce.affiliateTeam.completeSetup")}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </section>
 
       <section className="affiliate-team-responsibility">
@@ -770,23 +823,137 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         </div>
       </section>
 
+      </div>
+
+      <div
+        id="affiliate-team-panel-safety"
+        className="affiliate-team-page-tab-panel is-safety"
+        role="tabpanel"
+        aria-labelledby="affiliate-team-tab-safety"
+        hidden={pageTab !== "SAFETY"}
+      >
+      <section className={`affiliate-protection-boundary ${protectionManagerOpen ? "is-open" : ""}`}>
+        <div className="affiliate-protection-boundary-head">
+          <div className="affiliate-protection-boundary-title">
+            <span className="affiliate-protection-boundary-icon"><InfoIcon /></span>
+            <div>
+              <span>{t("ecommerce.affiliateTeam.protectionBoundary")}</span>
+              <h2>{t("ecommerce.affiliateTeam.onboardingTitle")}</h2>
+              <p>{t(onboardingComplete ? "ecommerce.affiliateTeam.protectionBoundaryReady" : "ecommerce.affiliateTeam.onboardingHint")}</p>
+            </div>
+          </div>
+          {onboardingComplete && (
+            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setShowProtectionManager((value) => !value)}>
+              {t(protectionManagerOpen ? "ecommerce.affiliateTeam.hideProtectionManager" : "ecommerce.affiliateTeam.showProtectionManager")}
+            </button>
+          )}
+        </div>
+
+        {protectionManagerOpen && (
+          <div className="affiliate-protection-console">
+            <div className="affiliate-protection-console-toolbar">
+              <div>
+                <strong>{t("ecommerce.affiliateTeam.addProtectionEntries")}</strong>
+                <span>{t("ecommerce.affiliateTeam.protectionEntryHint")}</span>
+              </div>
+              <div className="affiliate-onboarding-actions">
+                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()}>
+                  <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
+                </button>
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => fileInputRef.current?.click()}>
+                  {t("ecommerce.affiliateTeam.importProtected")}
+                </button>
+              </div>
+            </div>
+            <div className="affiliate-protection-manual">
+              <label>
+                <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
+                <input value={manualCreator} onChange={(event) => setManualCreator(event.target.value)} placeholder={t("ecommerce.affiliateTeam.creatorIdentityPlaceholder")} />
+              </label>
+              <label>
+                <span>{t("ecommerce.affiliateTeam.assignProtectionDeveloper")}</span>
+                <Select value={manualDeveloperId} options={protectionOwnerOptions} onChange={setManualDeveloperId} />
+              </label>
+              <label>
+                <span>{t("ecommerce.affiliateTeam.note")}</span>
+                <input value={manualNote} onChange={(event) => setManualNote(event.target.value)} placeholder={t("ecommerce.affiliateTeam.notePlaceholder")} />
+              </label>
+              <button className="btn btn-secondary" type="button" onClick={addManualProtection}>{t("ecommerce.affiliateTeam.addProtectedCreator")}</button>
+            </div>
+            {protectionRows.length > 0 && (
+              <div className="affiliate-protection-preview">
+                <div className="affiliate-protection-preview-head">
+                  <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
+                  <button className="btn btn-primary btn-sm" type="button" onClick={submitProtectionRows} disabled={importState.loading || protectionRows.every((row) => row.error)}>
+                    {t("ecommerce.affiliateTeam.importValid", { count: protectionRows.filter((row) => !row.error).length })}
+                  </button>
+                </div>
+                {protectionRows.slice(0, 20).map((row) => (
+                  <div className={`affiliate-protection-row ${row.error ? "affiliate-protection-row-error" : ""}`} key={row.rowNumber}>
+                    <span>#{row.rowNumber}</span>
+                    <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
+                    <span>{row.businessDeveloperName || t("ecommerce.affiliateTeam.protectedOnly")}</span>
+                    <em>{row.error || t("ecommerce.affiliateTeam.ready")}</em>
+                    <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")}><CloseIcon /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!onboardingComplete && (
+              <div className="affiliate-onboarding-completion">
+                <label className="affiliate-onboarding-confirm">
+                  <input type="checkbox" checked={confirmedProtectionBoundary} onChange={(event) => setConfirmedProtectionBoundary(event.target.checked)} />
+                  <span>{t("ecommerce.affiliateTeam.confirmBoundary")}</span>
+                </label>
+                <button className="btn btn-primary" type="button" onClick={finishOnboarding} disabled={!confirmedProtectionBoundary || onboardingState.loading}>
+                  {t("ecommerce.affiliateTeam.completeSetup")}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="affiliate-team-policy-section is-open">
+        <div className="affiliate-team-policy-heading">
+          <div>
+            <span className="affiliate-team-eyebrow">
+              {t("ecommerce.affiliateWorkspace.policies.title")}
+            </span>
+            <h2>
+              {t("ecommerce.affiliateTeam.globalApprovalPolicies", {
+                defaultValue: "Account-wide approval policies",
+              })}
+            </h2>
+          </div>
+          <div className="affiliate-team-policy-heading-aside">
+            <p>
+              {t("ecommerce.affiliateTeam.globalApprovalPoliciesHint", {
+                defaultValue:
+                  "Applies to every Affiliate shop under this seller account. SEND_MESSAGE rules review the exact draft before provider delivery.",
+              })}
+            </p>
+          </div>
+        </div>
+        <div className="affiliate-team-policy-content"><AffiliateApprovalPolicyPanel /></div>
+      </section>
+      </div>
+
       <Modal
         isOpen={Boolean(detailDeveloper && detailSummary)}
-        onClose={() => {
-          setDetailSummary(null);
-          setConnectChannel(null);
-          setReconnectWhatsAppAccountId(null);
-        }}
+        onClose={closeDeveloperDetail}
         title={detailDeveloper?.displayName ?? t("ecommerce.affiliateTeam.businessDeveloper")}
-        maxWidth={1120}
+        maxWidth={1180}
         className="affiliate-bd-detail-modal"
         closeLabel={t("common.close")}
+        preventBackdropClose={writeState.loading}
         portal
       >
         {detailDeveloper && detailSummary && <>
           <div className="affiliate-bd-command-header">
             <div className="affiliate-bd-command-identity">
-              <span className="affiliate-bd-command-avatar"><UserIcon /></span>
+              <span className="affiliate-bd-command-avatar"><UserIcon /><i aria-hidden="true" /></span>
               <div>
                 <div className="affiliate-bd-command-chips">
                   <span className={`affiliate-bd-availability ${detailDeveloper.acceptingCreators && !detailDeveloper.archivedAt ? "is-accepting" : "is-paused"}`}>
@@ -798,21 +965,64 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                   </span>
                   <span>{detailDeveloper.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? t("ecommerce.affiliateTeam.humanOnly") : t("ecommerce.affiliateTeam.aiAssisted")}</span>
                 </div>
-                <p>{detailDeveloper.regions.length > 0 ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ") : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })}</p>
+                <p><GlobeIcon />{detailRegionLabel}</p>
               </div>
             </div>
-            <div className="affiliate-bd-command-metric">
-              <span>{t("ecommerce.affiliateTeam.managedCreators", { defaultValue: "Managed creators" })}</span>
-              <strong>{detailSummary.creatorRelationshipCount}</strong>
+            <div className="affiliate-bd-command-metrics">
+              <div className="affiliate-bd-command-metric">
+                <span>{t("ecommerce.affiliateTeam.managedCreators", { defaultValue: "Managed creators" })}</span>
+                <strong>{detailSummary.creatorRelationshipCount}</strong>
+              </div>
+              <div className="affiliate-bd-command-metric">
+                <span>{t("ecommerce.affiliateTeam.connectedChannels")}</span>
+                <strong>{detailHealthyChannelCount}<small>/{detailChannelCount}</small></strong>
+              </div>
             </div>
           </div>
 
-          <div className="affiliate-bd-detail-scroll">
-            <section className="affiliate-bd-channel-command">
+          <div className="affiliate-bd-detail-tabs" role="tablist" aria-label={t("ecommerce.affiliateTeam.detailTabsLabel")}>
+            <button
+              id="affiliate-bd-tab-channels"
+              type="button"
+              role="tab"
+              aria-selected={detailTab === "CHANNELS"}
+              aria-controls="affiliate-bd-panel-channels"
+              className={`affiliate-bd-detail-tab ${detailTab === "CHANNELS" ? "is-active" : ""}`}
+              onClick={() => setDetailTab("CHANNELS")}
+            >
+              <ChannelsIcon />
+              <span>{t("ecommerce.affiliateTeam.channelsTab")}</span>
+              <small>{detailChannelCount}</small>
+            </button>
+            <button
+              id="affiliate-bd-tab-settings"
+              type="button"
+              role="tab"
+              aria-selected={detailTab === "SETTINGS"}
+              aria-controls="affiliate-bd-panel-settings"
+              className={`affiliate-bd-detail-tab ${detailTab === "SETTINGS" ? "is-active" : ""}`}
+              onClick={() => setDetailTab("SETTINGS")}
+            >
+              <UserIcon />
+              <span>{t("ecommerce.affiliateTeam.settingsTab")}</span>
+              {detailFormDirty && <i title={t("ecommerce.affiliateTeam.unsavedChanges")} aria-label={t("ecommerce.affiliateTeam.unsavedChanges")} />}
+            </button>
+          </div>
+
+          <div className={`affiliate-bd-detail-scroll is-${detailTab.toLowerCase()}`}>
+            {detailTab === "CHANNELS" && <section
+              id="affiliate-bd-panel-channels"
+              className="affiliate-bd-channel-command"
+              role="tabpanel"
+              aria-labelledby="affiliate-bd-tab-channels"
+            >
               <div className="affiliate-bd-command-section-head">
-                <div>
-                  <strong>{t("ecommerce.affiliateTeam.channels")}</strong>
-                  <span>{t("ecommerce.affiliateTeam.channelTransferHint", { defaultValue: "Transfer an account by choosing another BD in its owner field." })}</span>
+                <div className="affiliate-bd-section-title">
+                  <span className="affiliate-bd-section-icon"><ChannelsIcon /></span>
+                  <div>
+                    <strong>{t("ecommerce.affiliateTeam.channels")}</strong>
+                    <span>{t("ecommerce.affiliateTeam.channelTransferHint")}</span>
+                  </div>
                 </div>
                 <span>{detailSummary.whatsappAccountCount + detailSummary.emailAccountCount}</span>
               </div>
@@ -820,8 +1030,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 <ChannelWorkspaceCard
                   channel="WHATSAPP"
                   accounts={detailWhatsapp}
-                  ownerOptions={ownerOptions}
-                  onOwnerChange={changeAccountOwner}
+                  onTransfer={beginAccountTransfer}
                   canConnect={!detailDeveloper.archivedAt}
                   connecting={connectChannel === "WHATSAPP"}
                   onConnect={() => {
@@ -837,59 +1046,129 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 <ChannelWorkspaceCard
                   channel="EMAIL"
                   accounts={detailEmail}
-                  ownerOptions={ownerOptions}
-                  onOwnerChange={changeAccountOwner}
+                  onTransfer={beginAccountTransfer}
                   canConnect={!detailDeveloper.archivedAt}
                   connecting={connectChannel === "EMAIL"}
                   onConnect={() => setConnectChannel((value) => value === "EMAIL" ? null : "EMAIL")}
                   t={t}
                 />
               </div>
-              {connectChannel && <div className="affiliate-channel-connectors">
-                {connectChannel === "WHATSAPP"
-                  ? <AffiliateWhatsAppAccountPanel
-                      businessDeveloperId={detailDeveloper.id}
-                      showAccountList={false}
-                      reconnectBindingId={reconnectWhatsAppAccountId}
-                      onReconnectComplete={() => {
-                        setReconnectWhatsAppAccountId(null);
-                        setConnectChannel(null);
-                      }}
-                      onAccountsChanged={refreshChannelData}
-                    />
-                  : <AffiliateEmailAccountPanel businessDeveloperId={detailDeveloper.id} showAccountList={false} onAccountsChanged={refreshChannelData} />}
-              </div>}
-            </section>
+            </section>}
 
-            <section className="affiliate-bd-profile-section">
+            {detailTab === "SETTINGS" && <section
+              id="affiliate-bd-panel-settings"
+              className="affiliate-bd-profile-section"
+              role="tabpanel"
+              aria-labelledby="affiliate-bd-tab-settings"
+            >
               <div className="affiliate-bd-command-section-head">
-                <div>
-                  <strong>{t("ecommerce.affiliateTeam.detailOverview", { defaultValue: "Overview" })}</strong>
-                  <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
+                <div className="affiliate-bd-section-title">
+                  <span className="affiliate-bd-section-icon"><UserIcon /></span>
+                  <div>
+                    <strong>{t("ecommerce.affiliateTeam.detailOverview", { defaultValue: "Overview" })}</strong>
+                    <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
+                  </div>
                 </div>
               </div>
-              <div className="affiliate-bd-profile-grid">
-                <dl className="affiliate-bd-metadata">
-                  <div><dt>{t("ecommerce.affiliateTeam.workMode")}</dt><dd>{detailDeveloper.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? t("ecommerce.affiliateTeam.humanOnly") : t("ecommerce.affiliateTeam.aiAssisted")}</dd></div>
-                  <div><dt>{t("ecommerce.affiliateTeam.regions")}</dt><dd>{detailDeveloper.regions.length > 0 ? detailDeveloper.regions.map((region) => formatShopRegionLabel(region, t)).join(", ") : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })}</dd></div>
-                  <div><dt>{t("ecommerce.affiliateTeam.acceptingCreators")}</dt><dd>{t(detailDeveloper.acceptingCreators ? "common.yes" : "common.no")}</dd></div>
-                </dl>
-                <div className="affiliate-team-instructions">
-                  <span>{t("ecommerce.affiliateTeam.workingStyle")}</span>
-                  <p>{detailDeveloper.businessPrompt || t("ecommerce.affiliateTeam.noWorkingStyle", { defaultValue: "No additional working instructions." })}</p>
-                </div>
-              </div>
-            </section>
+              <DeveloperProfileEditor form={form} setForm={setForm} t={t} />
+            </section>}
           </div>
 
-          <div className="affiliate-bd-detail-footer">
-            {archiveBlocked && <span>{t("ecommerce.affiliateTeam.archiveBlockedHint", { defaultValue: "Move all creators and outreach accounts before archiving this BD." })}</span>}
+          {detailTab === "SETTINGS" && <div className="affiliate-bd-detail-footer">
+            {archiveBlocked && <span className="affiliate-bd-archive-note"><InfoIcon />{t("ecommerce.affiliateTeam.archiveBlockedHint", { defaultValue: "Move all creators and outreach accounts before archiving this BD." })}</span>}
             <div>
-              {!detailDeveloper.archivedAt && <button className="btn btn-secondary" type="button" onClick={() => beginEditDeveloper(detailDeveloper)}>{t("common.edit")}</button>}
               {!detailDeveloper.archivedAt && <button className="btn btn-danger" type="button" onClick={handleArchiveDeveloper} disabled={archiveState.loading || archiveBlocked}>{t("ecommerce.affiliateTeam.archive")}</button>}
+              {!detailDeveloper.archivedAt && <button className="btn btn-primary" type="button" onClick={saveDeveloper} disabled={writeState.loading || !form.displayName.trim() || !detailFormDirty}>{t("common.save")}</button>}
             </div>
+          </div>}
+        </>}
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(pendingAccountTransfer)}
+        onClose={() => {
+          if (transferBusy) return;
+          setPendingAccountTransfer(null);
+          setTransferTargetId("");
+        }}
+        title={pendingAccountTransfer
+          ? `${t("ecommerce.affiliateTeam.transferAccount")} · ${pendingAccountTransfer.channel === "WHATSAPP" ? "WhatsApp" : "Outlook"}`
+          : t("ecommerce.affiliateTeam.transferAccount")}
+        maxWidth={520}
+        className="affiliate-account-transfer-modal"
+        closeLabel={t("common.close")}
+        preventBackdropClose={transferBusy}
+        portal
+      >
+        {pendingAccountTransfer && <>
+          <div className="affiliate-account-transfer-content">
+            <div className={`affiliate-account-transfer-summary is-${pendingAccountTransfer.channel.toLowerCase()}`}>
+              <span className="affiliate-account-transfer-mark" aria-hidden="true">
+                {pendingAccountTransfer.channel === "WHATSAPP" ? "W" : "O"}
+              </span>
+              <div>
+                <small>{pendingAccountTransfer.channel === "WHATSAPP" ? "WhatsApp" : "Outlook"}</small>
+                <strong>{pendingAccountTransfer.account.displayName || pendingAccountTransfer.account.phoneNumber || pendingAccountTransfer.account.emailAddress || t("ecommerce.affiliateTeam.unnamedAccount")}</strong>
+                {(pendingAccountTransfer.account.phoneNumber || pendingAccountTransfer.account.emailAddress) && pendingAccountTransfer.account.displayName && (
+                  <span>{pendingAccountTransfer.account.phoneNumber || pendingAccountTransfer.account.emailAddress}</span>
+                )}
+              </div>
+            </div>
+            <label className="affiliate-account-transfer-target">
+              <span>{t("ecommerce.affiliateTeam.transferTarget")}</span>
+              <Select
+                value={transferTargetId}
+                onChange={setTransferTargetId}
+                options={transferOwnerOptions}
+                placeholder={t("ecommerce.affiliateTeam.transferTargetPlaceholder")}
+                ariaLabel={t("ecommerce.affiliateTeam.transferTarget")}
+                searchable
+                searchPlaceholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
+              />
+            </label>
+            <p className="affiliate-account-transfer-warning"><InfoIcon />{t("ecommerce.affiliateTeam.transferConfirm")}</p>
+          </div>
+          <div className="affiliate-account-transfer-footer">
+            <button className="btn btn-secondary" type="button" onClick={() => {
+              setPendingAccountTransfer(null);
+              setTransferTargetId("");
+            }} disabled={transferBusy}>{t("common.cancel")}</button>
+            <button className="btn btn-primary" type="button" onClick={confirmAccountTransfer} disabled={transferBusy || !transferTargetId}>
+              {t("ecommerce.affiliateTeam.confirmTransfer")}
+            </button>
           </div>
         </>}
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(connectChannel && detailDeveloper)}
+        onClose={() => {
+          setConnectChannel(null);
+          setReconnectWhatsAppAccountId(null);
+        }}
+        title={connectChannel === "WHATSAPP"
+          ? `${t("ecommerce.affiliateTeam.connectChannel")} · WhatsApp`
+          : `${t("ecommerce.affiliateTeam.connectChannel")} · Outlook`}
+        maxWidth={connectChannel === "WHATSAPP" ? 760 : 680}
+        className={`affiliate-channel-onboarding-modal ${connectChannel === "WHATSAPP" ? "is-whatsapp" : "is-email"}`}
+        closeLabel={t("common.close")}
+        portal
+      >
+        {detailDeveloper && connectChannel === "WHATSAPP" && <AffiliateWhatsAppAccountPanel
+          businessDeveloperId={detailDeveloper.id}
+          showAccountList={false}
+          reconnectBindingId={reconnectWhatsAppAccountId}
+          onReconnectComplete={() => {
+            setReconnectWhatsAppAccountId(null);
+            setConnectChannel(null);
+          }}
+          onAccountsChanged={refreshChannelData}
+        />}
+        {detailDeveloper && connectChannel === "EMAIL" && <AffiliateEmailAccountPanel
+          businessDeveloperId={detailDeveloper.id}
+          showAccountList={false}
+          onAccountsChanged={refreshChannelData}
+        />}
       </Modal>
 
       <Modal
@@ -948,8 +1227,25 @@ export function DeveloperEditor({ form, setForm, onCancel, onSave, saving, t }: 
     ]} /></label>
     <fieldset><legend>{t("ecommerce.affiliateTeam.regions")}</legend><div className="affiliate-region-grid">{SHOP_REGIONS.map((region) => <label key={region}><input type="checkbox" checked={form.regions.includes(region)} onChange={(event) => setForm({ ...form, regions: event.target.checked ? [...form.regions, region] : form.regions.filter((item) => item !== region) })} /><span>{formatShopRegionLabel(region, t)}</span></label>)}</div></fieldset>
     <label className="affiliate-developer-toggle"><input type="checkbox" checked={form.acceptingCreators} onChange={(event) => setForm({ ...form, acceptingCreators: event.target.checked })} /><span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span></label>
-    <label><span>{t("ecommerce.affiliateTeam.workingStyle")}</span><textarea className="input" rows={7} value={form.businessPrompt} onChange={(event) => setForm({ ...form, businessPrompt: event.target.value })} placeholder={t("ecommerce.affiliateTeam.workingStylePlaceholder")} /></label>
+    <label><span>{t("ecommerce.affiliateTeam.workingStyle")}</span><textarea className="input" rows={7} value={form.businessPrompt} onChange={(event) => setForm({ ...form, businessPrompt: event.target.value })} placeholder={t("ecommerce.affiliateTeam.workingStylePlaceholder")} /><small className="affiliate-bd-prompt-hint"><InfoIcon />{t("ecommerce.affiliateTeam.workingStylePlaceholder")}</small></label>
     <div className="affiliate-developer-editor-actions"><button className="btn btn-secondary" type="button" onClick={onCancel}>{t("common.cancel")}</button><button className="btn btn-primary" type="button" onClick={onSave} disabled={saving || !form.displayName.trim()}>{t("common.save")}</button></div>
+  </div>;
+}
+
+function DeveloperProfileEditor({ form, setForm, t }: {
+  form: DeveloperForm;
+  setForm: (form: DeveloperForm) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return <div className="affiliate-bd-inline-editor">
+    <label className="affiliate-bd-inline-name"><span>{t("ecommerce.affiliateTeam.name")}</span><input className="input" value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
+    <label><span>{t("ecommerce.affiliateTeam.workMode")}</span><Select value={form.agentAssistanceMode} onChange={(value) => setForm({ ...form, agentAssistanceMode: value as GQL.AffiliateAgentAssistanceMode })} options={[
+      { value: GQL.AffiliateAgentAssistanceMode.AiAssisted, label: t("ecommerce.affiliateTeam.aiAssisted") },
+      { value: GQL.AffiliateAgentAssistanceMode.HumanOnly, label: t("ecommerce.affiliateTeam.humanOnly") },
+    ]} /></label>
+    <label className="affiliate-bd-inline-toggle"><input type="checkbox" checked={form.acceptingCreators} onChange={(event) => setForm({ ...form, acceptingCreators: event.target.checked })} /><span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span></label>
+    <fieldset><legend>{t("ecommerce.affiliateTeam.regions")}</legend><div className="affiliate-region-grid">{SHOP_REGIONS.map((region) => <label key={region}><input type="checkbox" checked={form.regions.includes(region)} onChange={(event) => setForm({ ...form, regions: event.target.checked ? [...form.regions, region] : form.regions.filter((item) => item !== region) })} /><span>{formatShopRegionLabel(region, t)}</span></label>)}</div></fieldset>
+    <label className="affiliate-bd-inline-prompt"><span>{t("ecommerce.affiliateTeam.workingStyle")}</span><textarea className="input" rows={5} value={form.businessPrompt} onChange={(event) => setForm({ ...form, businessPrompt: event.target.value })} placeholder={t("ecommerce.affiliateTeam.workingStylePlaceholder")} /><small className="affiliate-bd-prompt-hint"><InfoIcon />{t("ecommerce.affiliateTeam.workingStylePlaceholder")}</small></label>
   </div>;
 }
 
@@ -960,11 +1256,12 @@ function ChannelCount({ total, unhealthy }: { total: number; unhealthy: number }
   </span>;
 }
 
-function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, onReconnect, t }: {
+function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, onTransfer, onReconnect, t }: {
   channel: "WHATSAPP" | "EMAIL";
-  accounts: Array<{ id: string; businessDeveloperId?: string | null; status: string; displayName?: string | null; phoneNumber?: string | null; emailAddress?: string | null; lastError?: string | null }>;
-  ownerOptions: Array<{ value: string; label: string }>;
-  onOwnerChange: (channel: "WHATSAPP" | "EMAIL", accountId: string, ownerId: string) => void;
+  accounts: ChannelAccount[];
+  ownerOptions?: Array<{ value: string; label: string }>;
+  onOwnerChange?: (channel: "WHATSAPP" | "EMAIL", accountId: string, ownerId: string) => void;
+  onTransfer?: (channel: "WHATSAPP" | "EMAIL", account: ChannelAccount) => void;
   onReconnect?: (accountId: string) => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
@@ -975,27 +1272,39 @@ function ChannelAccountRows({ channel, accounts, ownerOptions, onOwnerChange, on
       : t(`ecommerce.affiliateWorkspace.email.status.${account.status.toLowerCase()}`, { defaultValue: account.status });
     return <div className="affiliate-channel-row" key={account.id}>
       <span className="affiliate-channel-kind">{channel === "WHATSAPP" ? "WhatsApp" : "Outlook"}</span>
-      <div>
-        <strong>{account.displayName || address || t("ecommerce.affiliateTeam.unnamedAccount")}</strong>
-        {address && account.displayName && <small>{address}</small>}
-        {account.lastError && <small className="affiliate-channel-error-reason">{account.lastError}</small>}
+      <div className="affiliate-channel-account-identity">
+        <span className="affiliate-channel-account-avatar"><UserIcon /></span>
+        <div>
+          <strong>{account.displayName || address || t("ecommerce.affiliateTeam.unnamedAccount")}</strong>
+          {address && account.displayName && <small>{address}</small>}
+          {account.lastError && <small className="affiliate-channel-error-reason">{account.lastError}</small>}
+        </div>
       </div>
       <span className={`affiliate-channel-health ${account.status.toLowerCase()}`}>{statusLabel}</span>
-      {channel === "WHATSAPP" && account.status !== GQL.WhatsAppAccountStatus.Connected && account.status !== GQL.WhatsAppAccountStatus.Revoked && onReconnect && (
-        <button className="btn btn-primary btn-sm affiliate-channel-reconnect" type="button" onClick={() => onReconnect(account.id)}>
-          {t("ecommerce.affiliateTeam.reconnectChannel", { defaultValue: "Reconnect" })}
-        </button>
+      {(onTransfer || (channel === "WHATSAPP" && account.status !== GQL.WhatsAppAccountStatus.Connected && account.status !== GQL.WhatsAppAccountStatus.Revoked && onReconnect)) && (
+        <div className="affiliate-channel-row-actions">
+          {channel === "WHATSAPP" && account.status !== GQL.WhatsAppAccountStatus.Connected && account.status !== GQL.WhatsAppAccountStatus.Revoked && onReconnect && (
+            <button className="btn btn-primary btn-sm affiliate-channel-reconnect" type="button" onClick={() => onReconnect(account.id)}>
+              {t("ecommerce.affiliateTeam.reconnectChannel", { defaultValue: "Reconnect" })}
+            </button>
+          )}
+          {onTransfer && <button className="affiliate-channel-transfer-button" type="button" onClick={() => onTransfer(channel, account)}>
+            {t("ecommerce.affiliateTeam.transferAccount")}
+          </button>}
+        </div>
       )}
-      <Select value={account.businessDeveloperId ?? UNASSIGNED_ID} onChange={(value) => onOwnerChange(channel, account.id, value)} options={ownerOptions} />
+      {ownerOptions && onOwnerChange && <label className="affiliate-channel-owner-field">
+          <span>{t("ecommerce.affiliateTeam.assignDeveloper")}</span>
+          <Select value={account.businessDeveloperId ?? UNASSIGNED_ID} onChange={(value) => onOwnerChange(channel, account.id, value)} options={ownerOptions} />
+        </label>}
     </div>;
   })}</>;
 }
 
-function ChannelWorkspaceCard({ channel, accounts, ownerOptions, onOwnerChange, canConnect, connecting, onConnect, onReconnect, t }: {
+function ChannelWorkspaceCard({ channel, accounts, onTransfer, canConnect, connecting, onConnect, onReconnect, t }: {
   channel: "WHATSAPP" | "EMAIL";
-  accounts: Array<{ id: string; businessDeveloperId?: string | null; status: string; displayName?: string | null; phoneNumber?: string | null; emailAddress?: string | null; lastError?: string | null }>;
-  ownerOptions: Array<{ value: string; label: string }>;
-  onOwnerChange: (channel: "WHATSAPP" | "EMAIL", accountId: string, ownerId: string) => void;
+  accounts: ChannelAccount[];
+  onTransfer: (channel: "WHATSAPP" | "EMAIL", account: ChannelAccount) => void;
   canConnect: boolean;
   connecting: boolean;
   onConnect: () => void;
@@ -1004,7 +1313,7 @@ function ChannelWorkspaceCard({ channel, accounts, ownerOptions, onOwnerChange, 
 }) {
   const label = channel === "WHATSAPP" ? "WhatsApp" : "Outlook";
   const healthyCount = accounts.filter((account) => account.status.toLowerCase() === "connected").length;
-  return <section className={`affiliate-bd-channel-card is-${channel.toLowerCase()}`}>
+  return <section className={`affiliate-bd-channel-card is-${channel.toLowerCase()} ${connecting ? "is-expanded" : ""}`}>
     <header className="affiliate-bd-channel-card-head">
       <div className="affiliate-bd-channel-brand">
         <span aria-hidden="true">{channel === "WHATSAPP" ? "W" : "O"}</span>
@@ -1013,20 +1322,20 @@ function ChannelWorkspaceCard({ channel, accounts, ownerOptions, onOwnerChange, 
           <small>{channel === "WHATSAPP" ? t("ecommerce.affiliateTeam.whatsappAccounts") : t("ecommerce.affiliateTeam.emailAccounts")}</small>
         </div>
       </div>
-      <span className={`affiliate-bd-channel-signal ${healthyCount === accounts.length && accounts.length > 0 ? "is-healthy" : ""}`}>
-        {healthyCount}/{accounts.length}
-      </span>
+      <div className="affiliate-bd-channel-card-actions">
+        <span className={`affiliate-bd-channel-signal ${healthyCount === accounts.length && accounts.length > 0 ? "is-healthy" : ""}`}>
+          <i aria-hidden="true" />{healthyCount}/{accounts.length}
+        </span>
+        {canConnect && <button className={`btn btn-secondary btn-sm affiliate-channel-connect-button ${connecting ? "is-expanded" : ""}`} type="button" onClick={onConnect} aria-expanded={connecting}>
+          {connecting ? t("common.close") : t("ecommerce.affiliateTeam.connectChannel")}
+        </button>}
+      </div>
     </header>
     <div className="affiliate-bd-channel-card-body">
       {accounts.length > 0
-        ? <ChannelAccountRows channel={channel} accounts={accounts} ownerOptions={ownerOptions} onOwnerChange={onOwnerChange} onReconnect={onReconnect} t={t} />
+        ? <ChannelAccountRows channel={channel} accounts={accounts} onTransfer={onTransfer} onReconnect={onReconnect} t={t} />
         : <div className="affiliate-bd-channel-card-empty">{t("ecommerce.affiliateTeam.noChannels")}</div>}
     </div>
-    {canConnect && <footer>
-      <button className={`btn btn-sm ${connecting ? "btn-primary" : "btn-secondary"}`} type="button" onClick={onConnect} aria-expanded={connecting}>
-        {t("ecommerce.affiliateTeam.connectChannel")} · {label}
-      </button>
-    </footer>}
   </section>;
 }
 

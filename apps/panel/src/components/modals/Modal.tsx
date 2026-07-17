@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+const openModalStack: string[] = [];
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -38,6 +40,7 @@ export function Modal({
 
   useEffect(() => {
     if (!isOpen) return;
+    openModalStack.push(titleId);
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const content = contentRef.current;
@@ -46,6 +49,7 @@ export function Modal({
     );
     (focusable ?? content)?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
+      if (openModalStack.at(-1) !== titleId) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current();
@@ -71,9 +75,11 @@ export function Modal({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      const stackIndex = openModalStack.lastIndexOf(titleId);
+      if (stackIndex >= 0) openModalStack.splice(stackIndex, 1);
       previousFocus?.focus();
     };
-  }, [isOpen]);
+  }, [isOpen, titleId]);
 
   if (!isOpen) return null;
 
