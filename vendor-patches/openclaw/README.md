@@ -160,6 +160,17 @@ Removal: delete when `.openclaw-version` includes both upstream commits, or an
 equivalent implementation with identity-only reply-session CAS and
 abort-aware five-attempt outer retry behavior.
 
+### 0027 - Preserve failed Feishu quote context
+
+Retries transient and rate-limited quoted-message reads, makes terminal fetch
+failures diagnostic instead of collapsing them to `null`, and passes an
+explicit unavailable-quote marker to the agent so it cannot mistake the
+employee's reply for complete context. Successfully fetched quotes retain their
+existing behavior.
+
+Removal: upstream retries quoted-message reads, surfaces diagnostic failures,
+and preserves an explicit unavailable-quote marker in agent context.
+
 ## Dropped In v2026.6.11
 
 - `0005`: OpenClaw now owns system prompts through

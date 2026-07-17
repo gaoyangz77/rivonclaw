@@ -5,6 +5,11 @@ import { TOOL_SPECS_SYNC_QUERY } from "./init-queries.js";
 const log = createLogger("tool-specs-sync");
 
 const TOOL_SPECS_CACHE_TTL_MS = 5_000;
+const CS_RESPOND_ID_REQUIREMENT =
+  "Only call this tool when the escalation ID is explicitly available in the employee's " +
+  "message or visible quoted context. If the escalation ID is missing or the quoted context " +
+  "is unavailable, ask the employee for the escalation ID. Never guess, infer, try candidate " +
+  "IDs, or claim the escalation was handled.";
 
 export type SyncedToolSpec = Record<string, unknown> & { name: string };
 
@@ -44,6 +49,16 @@ function sha256(value: unknown): string {
   return createHash("sha256").update(stableStringify(value)).digest("hex");
 }
 
+function applyLocalToolDescriptionPolicy(spec: SyncedToolSpec): SyncedToolSpec {
+  if (spec.name !== "cs_respond") return spec;
+  const description = typeof spec.description === "string" ? spec.description.trim() : "";
+  if (description.includes(CS_RESPOND_ID_REQUIREMENT)) return spec;
+  return {
+    ...spec,
+    description: [description, CS_RESPOND_ID_REQUIREMENT].filter(Boolean).join(" "),
+  };
+}
+
 export function computeToolSpecsDigest(specs: readonly unknown[]): string {
   return sha256(specs);
 }
@@ -64,7 +79,7 @@ function normalizeToolSpecs(value: unknown): SyncedToolSpec[] {
     if (typeof spec.name !== "string" || spec.name.trim() === "") {
       throw new Error(`ToolSpecsSync returned a ToolSpec without a valid name at index ${index}`);
     }
-    return spec as SyncedToolSpec;
+    return applyLocalToolDescriptionPolicy(spec as SyncedToolSpec);
   });
 }
 
