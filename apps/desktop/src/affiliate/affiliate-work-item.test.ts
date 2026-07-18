@@ -492,6 +492,149 @@ describe("affiliate work item dispatch", () => {
     });
   });
 
+  it("does not redispatch the same work item version after a successful agent run", async () => {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([{
+      id: "shop-001",
+      userId: "user-001",
+      platform: "tiktok",
+      platformShopId: "platform-shop-001",
+      shopName: "Affiliate Test Shop",
+    }]);
+    const session = {
+      scopeKey: "affiliate-session-001",
+      handleWorkItem: vi.fn(async () => ({ runId: "run-affiliate-queue-001" })),
+      onRunCompleted: vi.fn(),
+    };
+    vi.spyOn(inbound as any, "getOrCreateSession").mockReturnValue(session);
+    const workItem = createSampleReviewWorkItem();
+
+    await inbound.handleWorkItem(workItem);
+    inbound.handleGatewayEvent({
+      payload: { runId: "run-affiliate-queue-001", state: "final" },
+    } as any);
+    await inbound.handleWorkItem(workItem);
+
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows the same work item version to retry after a gateway error", async () => {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([{
+      id: "shop-001",
+      userId: "user-001",
+      platform: "tiktok",
+      platformShopId: "platform-shop-001",
+      shopName: "Affiliate Test Shop",
+    }]);
+    const session = {
+      scopeKey: "affiliate-session-001",
+      handleWorkItem: vi.fn(async () => ({ runId: "run-affiliate-queue-001" })),
+      onRunCompleted: vi.fn(),
+    };
+    vi.spyOn(inbound as any, "getOrCreateSession").mockReturnValue(session);
+    const workItem = createSampleReviewWorkItem();
+
+    await inbound.handleWorkItem(workItem);
+    inbound.handleGatewayEvent({
+      payload: { runId: "run-affiliate-queue-001", state: "error" },
+    } as any);
+    await inbound.handleWorkItem(workItem);
+
+    expect(session.handleWorkItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("drains the next queued work item after active affiliate capacity is released", async () => {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([{
+      id: "shop-001",
+      userId: "user-001",
+      platform: "tiktok",
+      platformShopId: "platform-shop-001",
+      shopName: "Affiliate Test Shop",
+    }]);
+    const workItem = createSampleReviewWorkItem({ id: "relationship-queued" });
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [workItem] })),
+    });
+    (inbound as any).runIndex.set("run-active", "affiliate-session-active");
+    (inbound as any).sessions.set("affiliate-session-active", { onRunCompleted: vi.fn() });
+    const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
+
+    await inbound.handleWorkItem(workItem);
+    expect(dispatchSpy).not.toHaveBeenCalled();
+
+    inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
+    await waitForCondition(() => dispatchSpy.mock.calls.length === 1);
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      workItem,
+      "relationship-queued:SAMPLE_APPLICATION_DECISION",
+      workItem.versionAt,
+    );
+  });
+
+  it("drops queued work that became non-actionable before capacity was released", async () => {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([{
+      id: "shop-001",
+      userId: "user-001",
+      platform: "tiktok",
+      platformShopId: "platform-shop-001",
+      shopName: "Affiliate Test Shop",
+    }]);
+    const queuedWorkItem = createSampleReviewWorkItem({ id: "relationship-protected" });
+    const protectedWorkItem = createSampleReviewWorkItem({
+      id: "relationship-protected",
+      agentDispatchRecommended: false,
+      staffReviewRequired: true,
+      creatorRelationship: {
+        ...createSampleReviewWorkItem().creatorRelationship,
+        aiEngagementStatus: GQL.AffiliateRelationshipAiEngagementStatus.Protected,
+      },
+    });
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [protectedWorkItem] })),
+    });
+    (inbound as any).runIndex.set("run-active", "affiliate-session-active");
+    (inbound as any).sessions.set("affiliate-session-active", { onRunCompleted: vi.fn() });
+    const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
+
+    await inbound.handleWorkItem(queuedWorkItem);
+    inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
+    await waitForCondition(() => (inbound as any).pendingWorkItems.size === 0);
+
+    expect(dispatchSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps queued work without busy-looping when authoritative refresh fails", async () => {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([{
+      id: "shop-001",
+      userId: "user-001",
+      platform: "tiktok",
+      platformShopId: "platform-shop-001",
+      shopName: "Affiliate Test Shop",
+    }]);
+    const workItem = createSampleReviewWorkItem({ id: "relationship-refresh-failure" });
+    const graphqlFetch = vi.fn(async () => {
+      throw new Error("temporary backend failure");
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    (inbound as any).runIndex.set("run-active", "affiliate-session-active");
+    (inbound as any).sessions.set("affiliate-session-active", { onRunCompleted: vi.fn() });
+    const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
+
+    await inbound.handleWorkItem(workItem);
+    inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
+    await waitForCondition(() => graphqlFetch.mock.calls.length === 1);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
+    expect((inbound as any).pendingWorkItems.size).toBe(1);
+    expect(dispatchSpy).not.toHaveBeenCalled();
+  });
+
   it("fetches sample update workspace snapshots within the creator relationship boundary", async () => {
     const graphqlFetch = vi.fn(async (query: string, variables: unknown) => {
       if (query.includes("affiliateWorkspace")) {

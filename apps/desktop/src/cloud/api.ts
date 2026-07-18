@@ -176,6 +176,9 @@ function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Recor
     baseEventCursor: checkpoint.baseEventCursor,
     candidateCheckpointId: checkpoint.candidateCheckpointId,
     targetEventCursor: checkpoint.targetEventCursor,
+    relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
+    businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
+    businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
   };
 }
 

@@ -6,6 +6,9 @@ export interface ActiveAffiliateRunCheckpoint {
   baseEventCursor: number;
   candidateCheckpointId: string;
   targetEventCursor: number;
+  relationshipOperationalConfigRevision: number;
+  businessDeveloperIdSnapshot: string | null;
+  businessDeveloperConfigRevision: number | null;
 }
 
 const activeAffiliateRunCheckpoints = new Map<string, ActiveAffiliateRunCheckpoint>();

@@ -93,6 +93,9 @@ interface AffiliateRunCheckpoint {
   baseEventCursor: number;
   candidateCheckpointId: string;
   targetEventCursor: number;
+  relationshipOperationalConfigRevision: number;
+  businessDeveloperIdSnapshot: string | null;
+  businessDeveloperConfigRevision: number | null;
 }
 
 interface AffiliateResolvedDispatchContext {
@@ -292,6 +295,11 @@ export class AffiliateSession {
       baseCheckpointId,
       baseEventCursor,
       targetEventCursor: dispatchContext.checkpoint.targetEventCursor,
+      relationshipOperationalConfigRevision:
+        dispatchContext.checkpoint.relationshipOperationalConfigRevision,
+      businessDeveloperIdSnapshot: dispatchContext.checkpoint.businessDeveloperIdSnapshot ?? null,
+      businessDeveloperConfigRevision:
+        dispatchContext.checkpoint.businessDeveloperConfigRevision ?? null,
     });
     if (result.runId) {
       this.pendingRunCompletions.set(result.runId, workItem);
@@ -371,6 +379,9 @@ export class AffiliateSession {
     baseCheckpointId?: string | null;
     baseEventCursor?: number | null;
     targetEventCursor?: number | null;
+    relationshipOperationalConfigRevision?: number;
+    businessDeveloperIdSnapshot?: string | null;
+    businessDeveloperConfigRevision?: number | null;
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
     const runMode = params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING;
@@ -379,6 +390,9 @@ export class AffiliateSession {
       baseCheckpointId: params.baseCheckpointId,
       baseEventCursor: params.baseEventCursor,
       targetEventCursor: params.targetEventCursor,
+      relationshipOperationalConfigRevision: params.relationshipOperationalConfigRevision,
+      businessDeveloperIdSnapshot: params.businessDeveloperIdSnapshot,
+      businessDeveloperConfigRevision: params.businessDeveloperConfigRevision,
     });
     const resolvedModel = this.resolveCurrentSessionModel();
     this.logDispatchPromptContext(params);
@@ -391,6 +405,9 @@ export class AffiliateSession {
       baseEventCursor: checkpoint.baseEventCursor,
       candidateCheckpointId: checkpoint.candidateCheckpointId,
       targetEventCursor: checkpoint.targetEventCursor,
+      relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
+      businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
+      businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
     });
 
     let response: AffiliateDispatchResult | undefined;
@@ -423,6 +440,9 @@ export class AffiliateSession {
         baseEventCursor: checkpoint.baseEventCursor,
         candidateCheckpointId: checkpoint.candidateCheckpointId,
         targetEventCursor: checkpoint.targetEventCursor,
+        relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
+        businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
+        businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
       });
       log.info(`Affiliate agent run dispatched: runId=${response.runId} scope=${this.scopeKey}`);
     } else {
@@ -483,6 +503,9 @@ export class AffiliateSession {
       baseCheckpointId?: string | null;
       baseEventCursor?: number | null;
       targetEventCursor?: number | null;
+      relationshipOperationalConfigRevision?: number;
+      businessDeveloperIdSnapshot?: string | null;
+      businessDeveloperConfigRevision?: number | null;
     },
   ): Promise<AffiliateRunCheckpoint> {
     const committed =
@@ -525,7 +548,15 @@ export class AffiliateSession {
       },
     });
 
-    return { baseCheckpointId, baseEventCursor, candidateCheckpointId, targetEventCursor };
+    return {
+      baseCheckpointId,
+      baseEventCursor,
+      candidateCheckpointId,
+      targetEventCursor,
+      relationshipOperationalConfigRevision: requested.relationshipOperationalConfigRevision ?? 1,
+      businessDeveloperIdSnapshot: requested.businessDeveloperIdSnapshot ?? null,
+      businessDeveloperConfigRevision: requested.businessDeveloperConfigRevision ?? null,
+    };
   }
 
   private async finalizeSuccessfulRun(

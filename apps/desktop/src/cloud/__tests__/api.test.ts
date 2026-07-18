@@ -346,6 +346,9 @@ describe("cloud-graphql handler", () => {
       baseEventCursor: 7,
       candidateCheckpointId: "candidate-checkpoint-1",
       targetEventCursor: 9,
+      relationshipOperationalConfigRevision: 4,
+      businessDeveloperIdSnapshot: null,
+      businessDeveloperConfigRevision: null,
     });
 
     const mutation = `
@@ -368,6 +371,9 @@ describe("cloud-graphql handler", () => {
           operatorSummary: "Follow up.",
           baseCheckpointId: "agent-supplied-wrong-base",
           candidateCheckpointId: null,
+          relationshipOperationalConfigRevision: 99,
+          businessDeveloperIdSnapshot: "agent-supplied-wrong-bd",
+          businessDeveloperConfigRevision: 99,
           action: {
             type: "SEND_MESSAGE",
             messageIntent: {
@@ -388,6 +394,9 @@ describe("cloud-graphql handler", () => {
           baseEventCursor: 7,
           candidateCheckpointId: "candidate-checkpoint-1",
           targetEventCursor: 9,
+          relationshipOperationalConfigRevision: 4,
+          businessDeveloperIdSnapshot: null,
+          businessDeveloperConfigRevision: null,
         }),
       }),
     );
@@ -425,6 +434,9 @@ describe("cloud-graphql handler", () => {
       baseEventCursor: 7,
       candidateCheckpointId: "candidate-checkpoint-1",
       targetEventCursor: 9,
+      relationshipOperationalConfigRevision: 4,
+      businessDeveloperIdSnapshot: null,
+      businessDeveloperConfigRevision: null,
     });
 
     const mutation = `
