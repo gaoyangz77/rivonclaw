@@ -921,21 +921,10 @@ describe("affiliate work item dispatch", () => {
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(false);
   });
 
-  it("does not dispatch caught-up sample-review work items when the backend dispatch flag is false", async () => {
-    const sampleWorkItem = createSampleReviewWorkItem({
-      focusShopId: "shop-001",
-      focusPlatformShopId: "platform-shop-001",
-      routingShopIds: ["shop-001"],
-      routingPlatformShopIds: ["platform-shop-001"],
-      agentDispatchRecommended: false,
-      staffReviewRequired: true,
-    });
+  it("only catches up work items the backend recommends for Agent dispatch", async () => {
     const graphqlFetch = vi.fn(async (_query: string, variables: any) => {
       if (variables?.input?.agentDispatchRecommended === true) {
         return { affiliateWorkItems: [] };
-      }
-      if (variables?.input?.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision) {
-        return { affiliateWorkItems: [sampleWorkItem] };
       }
       throw new Error(`Unexpected GraphQL variables: ${JSON.stringify(variables)}`);
     });
@@ -964,15 +953,7 @@ describe("affiliate work item dispatch", () => {
         }),
       }),
     );
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("AffiliateWorkItems"),
-      expect.objectContaining({
-        input: expect.objectContaining({
-          processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-          workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
-        }),
-      }),
-    );
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall).toBeUndefined();
   });
@@ -1211,6 +1192,8 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("Status: NOT_PREFETCHED");
     expect(agentCall?.[1]?.message).toContain("call affiliate_predict_creator_product_fit");
     expect(agentCall?.[1]?.message).toContain("Prediction is an agent tool");
+    expect(agentCall?.[1]?.message).toContain("call ecom_get_product");
+    expect(agentCall?.[1]?.message).toContain("Do not ask the creator which product they mean");
   });
 
   it("does not auto-forward operator-reasoning assistant text even with a creator relationship id", async () => {
