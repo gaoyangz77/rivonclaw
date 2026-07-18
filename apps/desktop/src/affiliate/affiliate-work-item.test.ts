@@ -387,6 +387,11 @@ function withCheckpointContext(
       };
     }
     if (query.includes("AffiliateCreatorMessagePreflight")) {
+      expect(variables).toMatchObject({
+        input: {
+          limit: 20,
+        },
+      });
       return {
         affiliateCreatorMessageHistory: {
           items: options.preflightItems ?? [{
