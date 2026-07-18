@@ -29,6 +29,7 @@ const DELETION_MUTATION_MAP: Record<string, string> = {
 const TOOLSPECS_OP_NAME = "ToolSpecsSync";
 const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
 const AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME = "AffiliatePredictCreatorProductFit";
+const AFFILIATE_RELATIONSHIP_HISTORY_OP_NAME = "AffiliateRelationshipHistory";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
 
 function extractOperationName(query: string): string | null {
@@ -81,6 +82,36 @@ function sanitizeCloudGraphqlVariables(
   query: string,
   variables: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
+  if (
+    variables &&
+    (opName === AFFILIATE_RELATIONSHIP_HISTORY_OP_NAME || query.includes("affiliateRelationshipHistory"))
+  ) {
+    const input = asRecord(variables.input);
+    if (input) {
+      const normalizedInput = { ...input };
+      let changed = false;
+      for (const field of ["startAt", "endAt"] as const) {
+        const normalized = cleanOptionalAffiliateDateTime(input[field]);
+        if (normalized === undefined) {
+          if (field in normalizedInput) {
+            delete normalizedInput[field];
+            changed = true;
+          }
+        } else if (normalized !== input[field]) {
+          normalizedInput[field] = normalized;
+          changed = true;
+        }
+      }
+      if (changed) {
+        log.info("Normalized affiliate relationship history date range before proxying to backend");
+        return {
+          ...variables,
+          input: normalizedInput,
+        };
+      }
+    }
+  }
+
   if (variables && looksLikeAffiliatePredictCreatorProductFitVariables(opName, variables)) {
     const normalized = sanitizeAffiliatePredictCreatorProductFitVariables(variables);
     if (normalized !== variables) {

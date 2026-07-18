@@ -829,6 +829,53 @@ describe("cloud-graphql handler", () => {
     ]);
   });
 
+  it("drops empty optional date ranges from anonymous affiliate history queries", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      affiliateRelationshipHistory: {
+        messages: [],
+      },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const query = `
+      query($input: AffiliateRelationshipHistoryInput!) {
+        affiliateRelationshipHistory(input: $input) {
+          messages
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          startAt: null,
+          endAt: "",
+          limit: 20,
+          offset: 0,
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenCalledWith(query, {
+      input: {
+        shopId: "shop-1",
+        creatorRelationshipId: "relationship-1",
+        limit: 20,
+        offset: 0,
+      },
+    });
+  });
+
   it("drops stale action payloads from non-action affiliate resolve decisions", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
