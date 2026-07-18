@@ -73,6 +73,9 @@ export class AffiliateInbound {
   /** Work items waiting for local agent capacity. Keyed by semantic work item key. */
   private pendingWorkItems = new Map<string, AffiliateWorkItemPayload>();
 
+  /** Prevents concurrent queue drains from reserving the same local capacity. */
+  private workItemQueueDrainInProgress = false;
+
   /** Work item semantic key -> last dispatched backend state version. */
   private dispatchedWorkItemVersions = new Map<string, string>();
 
@@ -211,6 +214,12 @@ export class AffiliateInbound {
     const workVersion = this.runWorkItemVersions.get(payload.runId);
     if (workVersion) {
       this.inFlightWorkItemVersions.delete(`${workVersion.versionKey}:${workVersion.version}`);
+      if (
+        payload.state === "error" &&
+        this.dispatchedWorkItemVersions.get(workVersion.versionKey) === workVersion.version
+      ) {
+        this.dispatchedWorkItemVersions.delete(workVersion.versionKey);
+      }
       this.runWorkItemVersions.delete(payload.runId);
     }
     this.runIndex.delete(payload.runId);
@@ -369,6 +378,7 @@ export class AffiliateInbound {
       if (result.runId) {
         this.runIndex.set(result.runId, session.scopeKey);
         if (version) {
+          this.dispatchedWorkItemVersions.set(versionKey, version);
           this.runWorkItemVersions.set(result.runId, { versionKey, version });
           this.inFlightWorkItemVersions.add(`${versionKey}:${version}`);
         }
@@ -419,26 +429,106 @@ export class AffiliateInbound {
   }
 
   private drainWorkItemQueue(): void {
+    if (this.workItemQueueDrainInProgress) return;
+    this.workItemQueueDrainInProgress = true;
+    void this.drainWorkItemQueueLoop()
+      .catch((err) => {
+        log.error("Unexpected failure while draining queued affiliate work items:", err);
+        return false;
+      })
+      .then((allowImmediateRedrain) => {
+        this.workItemQueueDrainInProgress = false;
+        if (
+          allowImmediateRedrain &&
+          this.pendingWorkItems.size > 0 &&
+          this.runIndex.size + this.pendingDispatchCount < MAX_ACTIVE_AFFILIATE_AGENT_RUNS
+        ) {
+          this.drainWorkItemQueue();
+        }
+      });
+  }
+
+  private async drainWorkItemQueueLoop(): Promise<boolean> {
     while (
       this.pendingWorkItems.size > 0 &&
       this.runIndex.size + this.pendingDispatchCount < MAX_ACTIVE_AFFILIATE_AGENT_RUNS
     ) {
       const next = this.pendingWorkItems.entries().next().value as [string, AffiliateWorkItemPayload] | undefined;
-      if (!next) return;
+      if (!next) return true;
       const [versionKey, workItem] = next;
       this.pendingWorkItems.delete(versionKey);
-      const version = this.buildWorkItemVersion(workItem);
-      if (version && this.dispatchedWorkItemVersions.get(versionKey) === version) {
+
+      this.pendingDispatchCount += 1;
+      let authoritativeWorkItem: AffiliateWorkItemPayload | null;
+      try {
+        authoritativeWorkItem = await this.refreshQueuedWorkItem(workItem, versionKey);
+      } catch (err) {
+        this.pendingWorkItems.set(versionKey, workItem);
+        log.error(`Failed to refresh queued affiliate work item ${workItem.id}; leaving it queued:`, err);
+        return false;
+      } finally {
+        this.pendingDispatchCount = Math.max(0, this.pendingDispatchCount - 1);
+      }
+      if (!authoritativeWorkItem) continue;
+
+      const authoritativeVersionKey = this.buildWorkItemVersionKey(authoritativeWorkItem);
+      const version = this.buildWorkItemVersion(authoritativeWorkItem);
+      if (version && this.dispatchedWorkItemVersions.get(authoritativeVersionKey) === version) {
         log.info(
           `Skipping queued affiliate work item because version already dispatched: ` +
-          `id=${workItem.id} kind=${workItem.workKind} version=${version}`,
+          `id=${authoritativeWorkItem.id} kind=${authoritativeWorkItem.workKind} version=${version}`,
         );
         continue;
       }
-      void this.dispatchWorkItem(workItem, versionKey, version).catch((err) => {
-        log.error(`Failed to drain queued affiliate work item ${workItem.id}:`, err);
-      });
+      if (version && this.inFlightWorkItemVersions.has(`${authoritativeVersionKey}:${version}`)) {
+        log.info(
+          `Skipping queued affiliate work item because version is already in flight: ` +
+          `id=${authoritativeWorkItem.id} kind=${authoritativeWorkItem.workKind} version=${version}`,
+        );
+        continue;
+      }
+      await this.dispatchWorkItem(authoritativeWorkItem, authoritativeVersionKey, version);
     }
+    return true;
+  }
+
+  private async refreshQueuedWorkItem(
+    queuedWorkItem: AffiliateWorkItemPayload,
+    queuedVersionKey: string,
+  ): Promise<AffiliateWorkItemPayload | null> {
+    const authSession = getAuthSession();
+    if (!authSession) {
+      throw new Error("No auth session available for queued affiliate work refresh");
+    }
+    const shop = this.findRoutedShopContext(queuedWorkItem);
+    if (!shop) {
+      log.warn(
+        `Dropping queued affiliate work item because no routed shop remains: ` +
+        `id=${queuedWorkItem.id} kind=${queuedWorkItem.workKind}`,
+      );
+      return null;
+    }
+    const result = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+      AFFILIATE_WORK_ITEMS_QUERY,
+      {
+        input: {
+          shopId: shop.objectId,
+          creatorRelationshipId: queuedWorkItem.creatorRelationshipId,
+          limit: 10,
+        },
+      },
+    );
+    const authoritativeWorkItem = (result.affiliateWorkItems ?? []).find(
+      (candidate) => this.buildWorkItemVersionKey(candidate) === queuedVersionKey,
+    );
+    if (!authoritativeWorkItem || !shouldDispatchWorkItemToLocalAgent(authoritativeWorkItem)) {
+      log.info(
+        `Dropping queued affiliate work item that is no longer agent-actionable: ` +
+        `id=${queuedWorkItem.id} kind=${queuedWorkItem.workKind}`,
+      );
+      return null;
+    }
+    return authoritativeWorkItem;
   }
 
   private buildWorkItemVersionKey(workItem: AffiliateWorkItemPayload): string {
