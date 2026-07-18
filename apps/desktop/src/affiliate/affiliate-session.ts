@@ -48,6 +48,8 @@ const AGENT_RUNTIME_FAILURE_PATTERNS = [
 ];
 const AFFILIATE_CHECKPOINT_PLUGIN_ID = "rivonclaw-capability-manager";
 const AFFILIATE_CHECKPOINT_EXTENSION_NAMESPACE = "affiliateCheckpoint";
+/** TikTok Provider history rejects values above 20. Keep the pre-run safety gate portable. */
+const AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_LIMIT = 20;
 
 export interface AffiliateShopContext {
   /** Backend user id owning this affiliate shop. */
@@ -695,7 +697,7 @@ export class AffiliateSession {
           input: {
             shopId: workItem.focusShopId,
             creatorRelationshipId: workItem.creatorRelationshipId,
-            limit: 25,
+            limit: AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_LIMIT,
             ...(workItem.triggerChannel ? { channelFilter: [workItem.triggerChannel] } : {}),
           },
         },
