@@ -158,34 +158,18 @@ export class AffiliateInbound {
 
     this.catchUpInFlightShopIds.add(shop.objectId);
     try {
-      const [agentWorkResult, sampleReviewResult] = await Promise.all([
-        authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
-          AFFILIATE_WORK_ITEMS_QUERY,
-          {
-            input: {
-              shopId: shop.objectId,
-              processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-              agentDispatchRecommended: true,
-              limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
-            },
+      const agentWorkResult = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+        AFFILIATE_WORK_ITEMS_QUERY,
+        {
+          input: {
+            shopId: shop.objectId,
+            processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
+            agentDispatchRecommended: true,
+            limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
           },
-        ),
-        authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
-          AFFILIATE_WORK_ITEMS_QUERY,
-          {
-            input: {
-              shopId: shop.objectId,
-              processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-              workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
-              limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
-            },
-          },
-        ),
-      ]);
-      const workItems = uniqueWorkItems([
-        ...(agentWorkResult.affiliateWorkItems ?? []),
-        ...(sampleReviewResult.affiliateWorkItems ?? []),
-      ]);
+        },
+      );
+      const workItems = uniqueWorkItems(agentWorkResult.affiliateWorkItems ?? []);
       if (workItems.length > 0) {
         log.info(
           `Affiliate work catch-up fetched ${workItems.length} item(s): ` +
