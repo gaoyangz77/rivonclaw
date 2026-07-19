@@ -757,8 +757,12 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(agentCall?.[1]?.message).toContain("available when prediction evidence is useful");
     expect(agentCall?.[1]?.message).toContain(
-      "Sample Application Lookup: status=FOUND queriedAt=2026-05-11T00:01:00.000Z providerFreshnessKnown=false",
+      "Provider/Workspace Sample Application Lookup: status=FOUND queriedAt=2026-05-11T00:01:00.000Z providerFreshnessKnown=false",
     );
+    expect(agentCall?.[1]?.message).toContain(
+      "Creator-Reported Sample Information: statements in Provider message history are Creator reports",
+    );
+    expect(agentCall?.[1]?.message).toContain("## Current Authoritative Workspace Snapshot");
     expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
     expect(agentCall?.[1]?.message).toContain("## Assigned BD Outreach Routing");
     expect(agentCall?.[1]?.message).toContain("Maria WhatsApp");

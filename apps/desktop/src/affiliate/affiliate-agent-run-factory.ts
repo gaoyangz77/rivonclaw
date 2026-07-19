@@ -627,13 +627,14 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
     ...ambiguousCandidates.map((collaboration, index) =>
       `  ${index + 1}. contextCollaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
     ),
-    `- Related Sample Applications: ${relatedSamples.length}`,
+    `- Provider/Workspace-Confirmed Sample Applications: ${relatedSamples.length}`,
     ...relatedSamples.map((sample, index) =>
       `  ${index + 1}. ${sample.id} platform=${sample.platformApplicationId} status=${sample.sampleWorkStatus} product=${sample.productId ?? ""} contentCount=${sample.observedContentCount}`,
     ),
     sampleApplicationLookup
-      ? `- Sample Application Lookup: status=${sampleApplicationLookup.status} queriedAt=${sampleApplicationLookup.queriedAt} providerFreshnessKnown=${sampleApplicationLookup.providerFreshnessKnown} shopId=${sampleApplicationLookup.shopId ?? "(none)"} productIds=${sampleApplicationLookup.productIds.join(", ") || "(none)"}`
-      : "- Sample Application Lookup: (not reported)",
+      ? `- Provider/Workspace Sample Application Lookup: status=${sampleApplicationLookup.status} queriedAt=${sampleApplicationLookup.queriedAt} providerFreshnessKnown=${sampleApplicationLookup.providerFreshnessKnown} shopId=${sampleApplicationLookup.shopId ?? "(none)"} productIds=${sampleApplicationLookup.productIds.join(", ") || "(none)"}`
+      : "- Provider/Workspace Sample Application Lookup: (not reported)",
+    "- Creator-Reported Sample Information: statements in Provider message history are Creator reports; they are separate from the Provider/workspace-confirmed records above.",
     `- Missing Context: ${missingContext.length ? "" : "(none)"}`,
     ...missingContext.map(item => `  - ${item.severity} ${item.reason}: ${item.message}`),
   ];

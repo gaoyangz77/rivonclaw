@@ -484,6 +484,7 @@ export class AffiliateSession {
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
         `systemPromptChars=${this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING).length}`,
+        "promptContextVersion=affiliate-provenance-v1",
         `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
       ].join(" "),
     );
@@ -1159,9 +1160,10 @@ function renderAffiliateDispatchContext(
 ): string {
   const events = (context.events ?? []).map((event, index) => {
     const lifecycle = event.lifecycleEvent;
+    const provenance = affiliateEventProvenance(event.actorRole ?? null);
     return [
       `${index + 1}. cursor=${lifecycle?.relationshipSequence ?? "?"} type=${lifecycle?.eventType ?? event.type}`,
-      `   occurredAt=${event.occurredAt} actor=${event.actorRole ?? "UNKNOWN"}`,
+      `   occurredAt=${event.occurredAt} actor=${event.actorRole ?? "UNKNOWN"} provenance=${provenance}`,
       `   summary=${event.summary}`,
       ...(lifecycle?.displayPayloadJson
         ? [`   payload=${lifecycle.displayPayloadJson}`]
@@ -1206,14 +1208,31 @@ function renderAffiliateDispatchContext(
     "",
     ...renderAssignedOutreachAccounts(context, contactState),
     "",
-    "## Events Not Present In The Restored Checkpoint",
+    "## Historical Operational Events Not Present In The Restored Checkpoint",
+    "Provider observations are source events. AGENT and STAFF summaries are historical decisions or opinions, not current Provider/workspace facts.",
     ...(events.length ? events : ["(No new lifecycle events.)"]),
     "",
-    "## Current Workspace Snapshot",
+    "## Current Authoritative Workspace Snapshot",
     JSON.stringify(currentSnapshot, null, 2),
     "",
     "Use the event delta as the authoritative account of what changed after the restored checkpoint. Use the current snapshot for present facts. Resolve all simultaneously open agenda items that can be handled safely in one ordered action bundle.",
   ].join("\n");
+}
+
+function affiliateEventProvenance(
+  actorRole: GQL.AffiliateLifecycleActorRole | null,
+): "PROVIDER_OBSERVATION" | "HISTORICAL_AGENT_DECISION" | "HISTORICAL_STAFF_DECISION" | "SYSTEM_EVENT" {
+  switch (actorRole) {
+    case GQL.AffiliateLifecycleActorRole.Creator:
+    case GQL.AffiliateLifecycleActorRole.Platform:
+      return "PROVIDER_OBSERVATION";
+    case GQL.AffiliateLifecycleActorRole.Agent:
+      return "HISTORICAL_AGENT_DECISION";
+    case GQL.AffiliateLifecycleActorRole.Staff:
+      return "HISTORICAL_STAFF_DECISION";
+    default:
+      return "SYSTEM_EVENT";
+  }
 }
 
 function renderAssignedOutreachAccounts(
