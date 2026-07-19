@@ -775,6 +775,13 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           deliveredAt
           updatedAt
         }
+        sampleApplicationLookup {
+          status
+          queriedAt
+          providerFreshnessKnown
+          shopId
+          productIds
+        }
         pendingProposals {
           id
           type

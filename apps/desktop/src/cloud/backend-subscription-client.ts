@@ -599,6 +599,13 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             deliveredAt
             updatedAt
           }
+          sampleApplicationLookup {
+            status
+            queriedAt
+            providerFreshnessKnown
+            shopId
+            productIds
+          }
           pendingProposals {
             id
             type

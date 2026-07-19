@@ -184,16 +184,16 @@ export class AffiliateSession {
       "- Commercial Outcomes: attributed product content, orders, units sold, and GMV recorded through TikTok Shop Affiliate.",
       "- Communication Transports: TikTok Shop platform chat, WhatsApp, and Outlook email carry seller-creator messages; they are contact routes for the same TikTok Shop Affiliate relationship.",
       "- Workspace Objects: CreatorRelationship is the seller-level creator relationship; product cards identify candidate shop products; target collaborations, sample applications, and collaboration records represent progressively more specific commercial commitments and fulfillment state.",
+      "- Identity Semantics: an inbound message is bound to a CreatorRelationship and its matched TikTok creator identity. That establishes who the sender is; the message content itself establishes the sender's current business intent.",
       "",
       "## Channel Model",
       "- WhatsApp and Outlook email are direct affiliate outreach channels for non-China TikTok Shop creator communication.",
-      "- Reply on the latest inbound channel by default. Only set preferredChannel when the creator explicitly asks to switch channels.",
+      "- Reply on the latest inbound channel by default. preferredChannel requests an intentional channel override and remains subject to backend route validation.",
       "- Never send a second outbound Affiliate message before the creator has responded to the previous outbound turn. This safety boundary is cross-channel; do not switch channels to bypass it.",
       "- Proactive outreach with no inbound channel uses backend selection order WhatsApp, then Outlook email, then TikTok Shop platform chat.",
       "- A selected channel never falls back to another channel when unavailable or when sending fails.",
       "- Keep context at the seller-creator relationship level: WhatsApp, Outlook email, and platform chat are different channels for the same relationship, not separate memories.",
-      "- When the creator provides or corrects a WhatsApp number, use affiliate_set_creator_whatsapp. Use affiliate_check_creator_whatsapp when the number needs validation.",
-      "- When the creator provides or corrects an email address, use affiliate_set_creator_email.",
+      "- affiliate_set_creator_whatsapp and affiliate_set_creator_email update Creator-owned contact records; affiliate_check_creator_whatsapp validates a Creator WhatsApp number when needed.",
       "- Use affiliate_get_creator_contact_state to inspect current channel availability and affiliate_get_relationship_history for immutable relationship-level events across platform chat, WhatsApp, email, delivery attempts, proposal decisions, sample milestones, and lifecycle events. Use affiliate_get_workspace for current collaboration/sample/proposal state.",
       "- Treat provider route identifiers as transport provenance only. Do not use them as the workspace boundary or as primary keys for affiliate tools.",
       "",
@@ -218,21 +218,12 @@ export class AffiliateSession {
       "",
       "## Workflow Discipline",
       "- Desktop resolves a small affiliate workspace snapshot before dispatch when possible. Use it as the initial fact set.",
-      "- Call affiliate_get_workspace with creatorRelationshipId when a decision depends on dynamic facts not present in the injected snapshot, such as creator follower count, creator relation/tags, sample status, product context, approval policies, campaign setup, or pending proposals.",
-      "- If you need a variable fact to apply a merchant rule or make a decision, for example follower count, GMV, prior performance, sample cost, inventory, or fulfillment state, fetch the narrow current CreatorRelationship workspace with affiliate_get_workspace before deciding.",
+      "- affiliate_get_workspace provides current relationship, sample, product-reference, policy, and proposal state when you need more than the injected snapshot.",
       "- For every creator reply work item, first call affiliate_get_relationship_history with creatorRelationshipId to read the Provider-backed message history before drafting or sending. Do not rely on the content-free lifecycle projection or memory for message text.",
-      "- History attachmentRef values are short-lived and relationship-bound. Read an attachment only when its contents affect the decision; use affiliate_copy_message_attachment for byte-exact forwarding and affiliate_upload_draft_attachment for a locally generated file.",
-      "- Never place URLs, provider ids, object keys, base64, or raw HTML in SEND_MESSAGE parts. If an unreadable attachment affects the decision, resolve the work item as NEEDS_STAFF_REVIEW.",
+      "- History attachmentRef values are short-lived and relationship-bound. affiliate_read_message_attachment reads supported content, affiliate_copy_message_attachment stages exact Provider bytes, and affiliate_upload_draft_attachment stages a locally generated file.",
+      "- Never place URLs, provider ids, object keys, base64, or raw HTML in SEND_MESSAGE parts. Unsupported inbound attachment types are transferred to staff by desktop preflight before an Agent run.",
       "- Use affiliate_get_relationship_history for relationship-level audit events, previous proposal decisions, prior sample actions, creator communications, or past staff/agent outcomes. Do not use provider conversation routes as history keys. Use affiliate_get_workspace for current entity snapshots.",
-      "- Use affiliate_predict_creator_product_fit when a creator message or card mentions a candidate product and you need creator/product fit evidence before deciding whether to proceed, decline, create a target collaboration, or reply. The tool returns product summary, decision thresholds, and model prediction without confirming or binding the product to the collaboration.",
-      "- When Provider history contains a PRODUCT_CARD with a productId that is not already resolved in Backend Work Context, call ecom_get_product with the current Shop ID and that productId before drafting a reply. This resolves the authoritative workspace product details; it does not by itself confirm a collaboration commitment.",
-      "- Do not ask the creator to repeat or clarify which product they mean when a single PRODUCT_CARD already supplies a productId and ecom_get_product resolves it successfully. Ask only when lookup fails or multiple cards leave genuine ambiguity.",
-      "- If the latest provider history ends with a seller/agent outbound message and has no newer creator response, do not propose SEND_MESSAGE; leave the relationship waiting for the creator.",
-      "- A product card in a creator message identifies the candidate product once ecom_get_product resolves it, but it is candidate evidence only. Do not treat it as a confirmed collaboration commitment unless Backend Work Context has a sample application, target collaboration, or other binding context for that product.",
-      "- Treat creator messages as continuation work: understand the request, check relevant campaign/collaboration/sample state, then resolve the work item through affiliate_resolve_work_item.",
-      "- Treat sample application events as triage work: inspect creator value, product/sample policy, stock/fulfillment facts exposed by tools, then resolve the work item through affiliate_resolve_work_item.",
-      "- Treat collaboration events as lifecycle work: reconcile local state, decide whether follow-up is needed, and avoid duplicate outreach.",
-      "- Treat attributed order events as evidence for relation health/ROI; do not message the creator unless there is a clear business reason.",
+      "- ecom_get_product resolves product details for a known shop/product reference. affiliate_predict_creator_product_fit returns optional decision evidence; neither tool creates a collaboration commitment.",
       "- Use operatorSummary for staff-facing summaries. Keep it short: current fact, recommended/attempted action, proposal id if approval is required.",
       `- operatorSummary language: ${this.shop.staffLanguage ?? "English"}. Creator-facing messages should use the creator's language instead.`,
       "",
@@ -373,6 +364,14 @@ export class AffiliateSession {
 
     const runProfileId = this.shop.runProfileId ?? DEFAULT_AFFILIATE_RUN_PROFILE_ID;
     rootStore.toolCapability.setSessionRunProfile(this.scopeKey, runProfileId);
+    await openClawConnector.request("tool_register_session", {
+      sessionKey: this.scopeKey,
+      toolContext: {
+        kind: "AFFILIATE",
+        shopId: this.shop.objectId,
+        creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+      },
+    });
 
     this.gatewaySetupReady = true;
   }
@@ -820,10 +819,8 @@ export class AffiliateSession {
       "Read the provider-returned cross-channel context and handle the latest creator-side message. Do not use or request provider conversation/thread ids.",
       "If provider history is unavailable, do not guess from signal metadata and do not use a local-message fallback; call affiliate_resolve_work_item with NEEDS_STAFF_REVIEW, then output exactly NO_REPLY.",
       "If a reply is needed, call affiliate_resolve_work_item with REQUEST_ACTION, action.type SEND_MESSAGE, and ordered action.messageIntent.parts. A normal text reply uses [{kind: TEXT, text: <exact creator-facing reply>}].",
-      "Omit preferredChannel to reply through the trigger channel. Only override it when the creator explicitly asks to switch channels.",
+      "Omit preferredChannel to reply through the trigger channel. A supplied preferredChannel requests an intentional override and is validated by backend routing.",
       "After the structured action completes, is queued for approval, or fails delivery, output exactly NO_REPLY.",
-      "If the creator provides a WhatsApp number, use affiliate_set_creator_whatsapp before replying; if no creator-facing response is needed, resolve the work item with NO_ACTION_NEEDED, then output exactly NO_REPLY.",
-      "If the creator provides an email address, use affiliate_set_creator_email before replying; if no creator-facing response is needed, resolve the work item with NO_ACTION_NEEDED, then output exactly NO_REPLY.",
     ].join("\n");
   }
 
@@ -1012,7 +1009,7 @@ export class AffiliateSession {
         `- Scenario: ${scenario}`,
         "- Status: NOT_PREFETCHED",
         "- Cache IDs: (none)",
-        "- Prediction is an agent tool, not a deterministic pre-dispatch rule. Call affiliate_predict_creator_product_fit with creatorRelationshipId if prediction evidence is needed before choosing an action, then include the returned cacheId in predictionCacheIds. For sample review, pass scenario SAMPLE_REVIEW and the sample application ids when available.",
+        "- affiliate_predict_creator_product_fit is available as optional evidence. Its returned cacheId identifies the exact evidence snapshot used in a typed action; SAMPLE_REVIEW accepts the sample application ids when available.",
       ].join("\n"),
       predictionCacheIds: [],
     };

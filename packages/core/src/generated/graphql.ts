@@ -2088,6 +2088,23 @@ export const AffiliateResearchDepth = {
 } as const;
 
 export type AffiliateResearchDepth = typeof AffiliateResearchDepth[keyof typeof AffiliateResearchDepth];
+/** Explicit result of the current sample-application workspace lookup. ProviderFreshnessKnown=false means absence is not proof that TikTok never received an application. */
+export interface AffiliateSampleApplicationLookupContext {
+  productIds: Array<Scalars['String']['output']>;
+  providerFreshnessKnown: Scalars['Boolean']['output'];
+  queriedAt: Scalars['DateTimeISO']['output'];
+  shopId?: Maybe<Scalars['ID']['output']>;
+  status: AffiliateSampleApplicationLookupStatus;
+}
+
+/** What the current Affiliate workspace query established about sample applications; this does not imply Provider freshness unless explicitly stated. */
+export const AffiliateSampleApplicationLookupStatus = {
+  Found: 'FOUND',
+  NotFoundInWorkspace: 'NOT_FOUND_IN_WORKSPACE',
+  Unavailable: 'UNAVAILABLE'
+} as const;
+
+export type AffiliateSampleApplicationLookupStatus = typeof AffiliateSampleApplicationLookupStatus[keyof typeof AffiliateSampleApplicationLookupStatus];
 export const AffiliateSampleRejectReason = {
   NotMatch: 'NOT_MATCH',
   Offline: 'OFFLINE',
@@ -2179,6 +2196,7 @@ export interface AffiliateWorkContext {
   productContext?: Maybe<AffiliateWorkProductContext>;
   recommendedActionTypes: Array<ActionProposalType>;
   relatedSampleApplications: Array<SampleApplicationRecord>;
+  sampleApplicationLookup: AffiliateSampleApplicationLookupContext;
 }
 
 /** Backend-materialized affiliate work projection. Desktop should treat this as the current source of truth for dispatch/review, not reconstruct work from raw signals. */

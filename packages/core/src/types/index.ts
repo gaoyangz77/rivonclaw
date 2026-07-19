@@ -100,8 +100,22 @@ export type {
 
 export * from "./cs-skill-template.js";
 
-export type { CSSessionContext, CSToolArgs } from "./cs-session.js";
-export { registerCSSession, unregisterCSSession, getInjectedParams, resolveSessionContext } from "./cs-session.js";
+export {
+  registerCSSession,
+  registerToolSession,
+  unregisterCSSession,
+  unregisterToolSession,
+  getInjectedParams,
+  resolveSessionContext,
+  resolveToolSessionContext,
+} from "./cs-session.js";
+export type {
+  AffiliateSessionContext,
+  CSSessionContext,
+  CSToolArgs,
+  ToolSessionArgs,
+  ToolSessionContext,
+} from "./cs-session.js";
 
 export {
   tiktokTokenLifecycleSchema,
