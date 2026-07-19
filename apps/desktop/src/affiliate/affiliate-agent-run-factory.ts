@@ -35,8 +35,46 @@ export function buildAffiliateAgentRunRequest(
     case "CREATOR_FOLLOW_UP":
       return buildCreatorFollowUpRun(input);
     default:
-      return null;
+      return buildGeneralRelationshipRun(input);
   }
+}
+
+function buildGeneralRelationshipRun(input: AffiliateAgentRunFactoryInput): AffiliateAgentRunRequest {
+  const { workItem, platform } = input;
+  return {
+    message: [
+      "[Affiliate Work Item: Relationship Review]",
+      "",
+      renderWorkItemProjection(workItem),
+      "",
+      renderRequiredActionBundleInstruction(workItem),
+      "",
+      renderResolveActionPayloadTemplates(input),
+      "",
+      renderProposalDeltaSection(input),
+      "",
+      renderPredictionSection(input),
+      "",
+      renderDecisionThresholds(input.decisionThresholds, input.decisionThresholdSource),
+      "",
+      renderBusinessPrompt(input.businessPrompt),
+      "",
+      input.relationshipMessageUpdate
+        ?? "Checkpoint-bound relationship context was not available. Use affiliate_get_workspace before deciding.",
+      "",
+      "## Task",
+      "Review the open CreatorRelationship agenda using the complete backend context and decide the appropriate outcome.",
+      "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
+      renderResolveWorkItemToolContract(),
+      `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
+      "Use REQUEST_ACTION only when you can form a complete supported action payload. Use NO_ACTION_NEEDED when the open agenda requires no action, or NEEDS_STAFF_REVIEW when a human must handle it.",
+      renderPredictionCacheInstruction(input),
+      `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
+      "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",
+    ].join("\n"),
+    idempotencyKey: `affiliate:${platform}:work:${workItem.workKind}:${workItem.id}:${workItem.versionAt}`,
+    abortActive: false,
+  };
 }
 
 type AffiliateAgentRunKind = "SAMPLE_REVIEW" | "CREATOR_REPLY" | "CONTENT_FOLLOW_UP" | "CREATOR_FOLLOW_UP";
@@ -606,7 +644,7 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
       : "- Creator Relation: (none)",
     `- Creator Relation Shop Tags: ${shopStates.length ? "" : "(none)"}`,
     ...shopStates.map((state) =>
-      `  - shopId=${state.shopId} lifecycleStage=${state.lifecycleStage} tagIds=${state.tagIds.join(", ") || "(none)"}`,
+      `  - shopId=${state.shopId} tagIds=${state.tagIds.join(", ") || "(none)"}`,
     ),
     product
       ? `- Product Reference: ${product.productId}${product.title ? ` / ${product.title}` : ""} source=${product.source ?? ""} details=${product.title ? "HYDRATED" : "NOT_HYDRATED"}`

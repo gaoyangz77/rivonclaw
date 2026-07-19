@@ -346,7 +346,6 @@ export const AFFILIATE_WORKSPACE_QUERY = `
         }
         shopStates {
           shopId
-          lifecycleStage
           tagIds
           lastContactedAt
           lastInvitedAt
@@ -571,7 +570,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         pendingActionProposalId
         shopStates {
           shopId
-          lifecycleStage
           tagIds
           lastContactedAt
           lastInvitedAt
@@ -664,7 +662,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           blockedShopIds
           shopStates {
             shopId
-            lifecycleStage
             tagIds
             lastContactedAt
             lastInvitedAt

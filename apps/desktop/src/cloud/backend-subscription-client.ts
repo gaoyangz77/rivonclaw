@@ -400,7 +400,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           pendingActionProposalId
           shopStates {
             shopId
-            lifecycleStage
             tagIds
             lastContactedAt
             lastInvitedAt
@@ -493,7 +492,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             blockedShopIds
             shopStates {
               shopId
-              lifecycleStage
               tagIds
               lastContactedAt
               lastInvitedAt

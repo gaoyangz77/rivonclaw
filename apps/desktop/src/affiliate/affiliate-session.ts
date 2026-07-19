@@ -1477,7 +1477,7 @@ function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): stri
       `   blockedShopIds: ${(relation.blockedShopIds ?? []).join(", ") || "(none)"}`,
       `   shopStates: ${(relation.shopStates ?? []).length}`,
       ...(relation.shopStates ?? []).map((state) =>
-        `     - shopId=${state.shopId} lifecycleStage=${state.lifecycleStage} tagIds=${state.tagIds.join(", ") || "(none)"}`,
+        `     - shopId=${state.shopId} tagIds=${state.tagIds.join(", ") || "(none)"}`,
       ),
     ].join("\n"))
     : ["(none)"];
