@@ -117,13 +117,7 @@ function buildSampleReviewRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
       "Use the CreatorRelationship workspace as the business boundary. The sample application is one business target inside that relationship, not the owner of the work.",
-      "Use affiliate prediction and decision thresholds as non-binding evidence only. They may inform the recommendation, but they must not automatically determine approve/reject by themselves.",
-      "Base the sample review on the full available context: merchant instructions, relationship history, creator quality/risk, product/campaign facts, sample status, inventory/fulfillment constraints, and prediction evidence.",
-      "If the injected snapshot does not contain enough current sample, product, creator, or policy context, call affiliate_get_workspace with creatorRelationshipId before deciding.",
-      "If no prediction cache id is already listed below, call affiliate_predict_creator_product_fit with creatorRelationshipId before submitting a REVIEW_SAMPLE_APPLICATION action. Use scenario SAMPLE_REVIEW and include sampleApplicationRecordId/platformApplicationId when available. Use the returned prediction as evidence, and copy its cacheId into action.predictionCacheIds so backend can snapshot the exact evidence used.",
       "If you can form a concrete sample decision, use decision REQUEST_ACTION with action.type REVIEW_SAMPLE_APPLICATION.",
-      "If approval policy allows automatic execution, backend may execute it; if approval is required, backend will create an ActionProposal. Either way, the decision still comes from your full-context judgment.",
-      "Use NEEDS_STAFF_REVIEW only when the context is ambiguous or incomplete enough that no concrete APPROVE/REJECT action should be proposed.",
       renderPredictionCacheInstruction(input),
       `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
       "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",
@@ -164,17 +158,7 @@ function buildCreatorReplyRun(input: AffiliateAgentRunFactoryInput): AffiliateAg
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
-      "If the relationship message update includes Candidate Card Hints, call ecom_get_product with the current Shop ID and the card productId when Backend Work Context has not resolved that product. Treat the resolved card as candidate product identity, not as a confirmed collaboration commitment.",
-      "Do not ask the creator which product they mean when one PRODUCT_CARD supplies a productId and ecom_get_product resolves it. Ask only if lookup fails or multiple cards are genuinely ambiguous.",
-      "When a candidate productId is available and the decision depends on whether this creator/product is worth pursuing, call affiliate_predict_creator_product_fit with creatorRelationshipId before REQUEST_ACTION. Use its product summary, prediction, and decision thresholds as decision evidence.",
-      "If you decide to review a sample application and no prediction cache id is already listed below, call affiliate_predict_creator_product_fit with creatorRelationshipId and scenario SAMPLE_REVIEW first and copy the returned cacheId into action.predictionCacheIds.",
-      "When a candidate sample/application id is available and the creator is asking about application approval, rejection, shipment, or sample status, call affiliate_get_workspace with creatorRelationshipId plus the sample/application identity before replying.",
-      renderCreatorFacingMessageGuidance("reply"),
-      "If a sample application is already terminal (for example cancelled, expired, rejected, or fulfilled), do not propose a REVIEW_SAMPLE_APPLICATION action for it. You may still reply to the creator, but the reply must reflect the business decision and current evidence. Do not invite the creator to resubmit the same sample request unless the merchant context clearly supports continuing with that creator/product.",
-      "When the terminal sample state is seller/system rejection or cancellation, avoid passive wording such as \"the request is no longer active\" as the main explanation. Tell the creator plainly and politely that after review we are not moving forward with this sample/collaboration at this time, then add any appropriate future-facing note.",
-      "When prediction or merchant thresholds look weak, treat that as cautionary evidence rather than an automatic decline. Politely decline only when the full relationship, creator, product, sample, merchant, and channel context supports not proceeding; otherwise ask a clarifying question, defer, or request staff review.",
       "If a reply is needed, use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
-      "If the work item is relationship-level or marks collaboration context ambiguous, do not attach sample-review or collaboration-specific action fields unless Backend Work Context resolves a focus collaboration/sample. Prefer a clarifying SEND_MESSAGE or NEEDS_STAFF_REVIEW.",
       "If Backend Work Context recommends multiple actions, use input.actions as an ordered list instead of input.action so the backend can approve or execute the bundle together.",
       "If Work Bundle Kind is CREATOR_REPLY_WITH_SAMPLE_REVIEW, you must handle the sample review and the creator reply in the same REQUEST_ACTION input.actions bundle. Include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE unless the sample is already terminal or no creator-facing reply is appropriate.",
       renderPredictionCacheInstruction(input),
@@ -218,8 +202,6 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "You must complete this work item by calling affiliate_resolve_work_item exactly once.",
       renderResolveWorkItemToolContract(),
       `Set handledSignalAt to ${workItem.versionAt ?? "null"} so backend can ack this exact work boundary.`,
-      "If the follow-up depends on a candidate product from a prior creator card and Backend Work Context does not confirm the product, call affiliate_predict_creator_product_fit with creatorRelationshipId before recommending continued investment or asking the creator to proceed.",
-      renderCreatorFacingMessageGuidance("follow-up"),
       "If there is no newer creator response, use decision NO_ACTION_NEEDED and leave the relationship waiting; never switch channels to bypass this boundary.",
       "Only if a newer creator response exists and a reply is appropriate may you use decision REQUEST_ACTION with action.type SEND_MESSAGE.",
       renderPredictionCacheInstruction(input),
@@ -227,7 +209,6 @@ function buildCreatorFollowUpRun(input: AffiliateAgentRunFactoryInput): Affiliat
       "If no follow-up is needed, use decision NO_ACTION_NEEDED.",
       "Do not add raw provider route identifiers to SEND_MESSAGE. Backend delivery resolves the correct channel route from the creator relationship, shop scope, contact state, and action target.",
       `Use operatorSummary for the merchant/staff-facing rationale, and write it in ${input.staffLanguage ?? "English"}.`,
-      "Keep creator-facing TEXT parts concise and respectful. Do not threaten or over-pressure the creator.",
       "If the context is incomplete, use decision NEEDS_STAFF_REVIEW.",
       "If affiliate_resolve_work_item returns a validation/schema error, do not change the business decision to NEEDS_STAFF_REVIEW just to make the tool call pass. Fix the payload shape and retry the same intended decision.",
       "Do not write merchant/operator summaries as final assistant text. After affiliate_resolve_work_item succeeds, your final assistant response must be exactly NO_REPLY.",
@@ -252,8 +233,7 @@ function renderRequiredActionBundleInstruction(workItem: GQL.AffiliateWorkItem):
   const lines = [
     "## Required Action Bundle",
     `Backend recommends handling these platform action types together: ${recommendedActions.join(", ")}.`,
-    "If you choose REQUEST_ACTION, your input.actions array must include every recommended action type that is still applicable after checking current workspace facts.",
-    "Do not submit a partial action bundle just because one action is easier to fill.",
+    "For REQUEST_ACTION, input.actions contains the recommended action types that remain applicable after evaluating current workspace facts.",
     "Never submit an action with an empty typed intent object such as sampleReviewIntent: {} or messageIntent: {}.",
     "When REVIEW_SAMPLE_APPLICATION fields are provided below, copy sampleApplicationRecordId and platformApplicationId exactly, then choose sampleReviewDecision from the full workspace context.",
   ];
@@ -266,9 +246,7 @@ function renderRequiredActionBundleInstruction(workItem: GQL.AffiliateWorkItem):
     )
   ) {
     lines.push(
-      "This is a combined sample-review + creator-reply work item. A normal REQUEST_ACTION should include both REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE in one input.actions array so staff approves or rejects the complete business response together.",
-      "Only omit SEND_MESSAGE if, after reading the creator relationship history, you decide no creator-facing reply is appropriate; explain that omission in operatorSummary.",
-      "Only omit REVIEW_SAMPLE_APPLICATION if the sample application is already terminal or cannot be identified after using affiliate_get_workspace with creatorRelationshipId; explain that omission in operatorSummary.",
+      "This work item groups sample review and creator reply into one atomic business boundary. When both actions remain applicable, include REVIEW_SAMPLE_APPLICATION and SEND_MESSAGE in one input.actions array.",
     );
   }
 
@@ -289,27 +267,12 @@ function renderResolveWorkItemToolContract(): string {
     "When an action creates new collaboration context and no existing collaboration/sample target can identify the shop, put shopId on that action as the business shop scope. Do not use provider route ids for shop/channel routing.",
     "An action that only contains { type: ... } is always invalid. Do not call REQUEST_ACTION until every selected action has the required typed payload.",
     "For REVIEW_SAMPLE_APPLICATION, the action shape must be { type: REVIEW_SAMPLE_APPLICATION, predictionCacheIds: [...], sampleApplicationRecordId, platformApplicationId, sampleReviewDecision, rejectReason? }. Use sampleReviewDecision APPROVE or REJECT. Never send sampleReviewIntent: {}.",
-    "For SEND_MESSAGE, include type SEND_MESSAGE and messageIntent.parts with 1-10 ordered parts. A text reply is {kind: TEXT, text: ...}; an attachment must use a draftAssetId returned by a staging tool; platform cards use only their typed internal entity id. Omit preferredChannel to inherit the trigger channel. Set it only when the creator explicitly asks to switch. For proactive EMAIL with no existing thread, emailSubject is required. Never add URLs, provider ids, MinIO keys, base64, or raw HTML.",
-    "Use affiliate_read_message_attachment only when attachment contents affect the decision. Use affiliate_copy_message_attachment for exact forwarding without model download/re-upload, and affiliate_upload_draft_attachment for a file generated locally by an authorized tool.",
-    "PRODUCT_CARD, TARGET_COLLABORATION_CARD, and FREE_SAMPLE_CARD are PLATFORM_CHAT-only. TikTok ATTACHMENT is image-only. Email INLINE is image-only. If a required file cannot be understood, use NEEDS_STAFF_REVIEW.",
+    "For SEND_MESSAGE, include type SEND_MESSAGE and messageIntent.parts with 1-10 ordered parts. A text reply is {kind: TEXT, text: ...}; an attachment uses a draftAssetId returned by a staging tool; platform cards use only their typed internal entity id. Omitted preferredChannel inherits the trigger channel or backend proactive default; a supplied preferredChannel requests an intentional override and is still validated by backend routing. For proactive EMAIL with no existing thread, emailSubject is required. Never add URLs, provider ids, MinIO keys, base64, or raw HTML.",
+    "affiliate_read_message_attachment exposes supported attachment content, affiliate_copy_message_attachment stages exact Provider bytes without model download/re-upload, and affiliate_upload_draft_attachment stages a locally generated file from an authorized tool.",
+    "PRODUCT_CARD, TARGET_COLLABORATION_CARD, and FREE_SAMPLE_CARD are PLATFORM_CHAT-only. TikTok ATTACHMENT is image-only. Email INLINE is image-only. Unsupported inbound content is transferred to staff by the desktop preflight before an Agent run.",
     "The backend never falls back across channels. If the selected channel fails, stop after the tool result and output exactly NO_REPLY so staff can review the recorded failure.",
     "Omit optional fields that are unknown or not needed. Never send empty string for Date, ID, or object fields. Only set nextSellerActionAt for decision DEFERRED, and then it must be a valid ISO timestamp.",
   ].join("\n");
-}
-
-function renderCreatorFacingMessageGuidance(kind: "reply" | "follow-up"): string {
-  const opening =
-    kind === "follow-up"
-      ? "For creator follow-ups, first verify a newer creator response after the latest outbound turn. Only then use a concise progress-check posture tied to a confirmed milestone."
-      : "For creator messages, choose the posture that fits the visible work context: continue a visible conversation, open a new outreach thread, ask a concise clarification, or follow up on a confirmed collaboration milestone.";
-  return [
-    opening,
-    "Write creator-facing text from confirmed workspace facts and the intended business next step. Match tone to the relationship stage: warm introduction for first outreach, helpful clarification for ambiguous context, operational update for sample/status work, and gentle accountability for overdue content.",
-    "Write the final creator-facing message as polished, natural language that could be sent without editing. Use the creator's likely language when clear from context; otherwise use concise English.",
-    "For sample/content follow-ups, anchor the message in concrete facts such as the product/sample, approval, shipment, delivery, or content-pending milestone shown in the workspace, then ask for the next update or content plan.",
-    "If the available context is too thin to write a credible creator-facing message, choose NEEDS_STAFF_REVIEW and summarize exactly what context staff should check.",
-    "When context is thin but outreach still helps the business, use a low-risk opening or clarification that advances the relationship and stays anchored to the facts currently available.",
-  ].join(" ");
 }
 
 function renderProposalDeltaSection(input: AffiliateAgentRunFactoryInput): string {
@@ -325,7 +288,7 @@ function renderDecisionThresholds(
     return [
       "## Affiliate Decision Thresholds",
       "(none configured)",
-      "No default numeric sales threshold is configured for this shop or campaign. Do not invent one. Use merchant instructions, predicted sales units, and concrete workspace facts to decide.",
+      "No default numeric expected-sales threshold is configured for this shop or campaign.",
     ].join("\n");
   }
 
@@ -333,12 +296,7 @@ function renderDecisionThresholds(
     "## Affiliate Decision Thresholds",
     `- Source: ${source ?? "configured threshold"}`,
     `- minExpectedSalesUnits: ${minExpectedSalesUnits}`,
-    "Use this as merchant preference evidence when merchant instructions do not provide a more specific rule for the current product, campaign, or creator.",
-    "Do not convert this threshold into a deterministic approve/reject rule. A low or high forecast should shape your reasoning, not replace full-context BD judgment.",
-    "If expectedSalesUnits is below minExpectedSalesUnits, treat that as cautionary evidence and weigh it against relationship history, creator quality, product strategy, campaign goals, inventory/fulfillment facts, and explicit merchant instructions.",
-    "If expectedSalesUnits meets or exceeds minExpectedSalesUnits, treat that as supportive evidence for proceeding, still subject to risk tags, product/sample context, inventory/fulfillment facts, and approval policy.",
-    "For existing commitments that already require operational follow-up, use the threshold as background context; do not use it as the only reason to ignore an overdue creator follow-up.",
-    "This threshold is a decision aid, not creator-facing copy. If you mention it in operatorSummary, explain it plainly as the shop's minimum expected sales, never as a guaranteed sales outcome.",
+    "This is merchant-configured decision context, not an automatic approve/reject rule or a guaranteed outcome.",
   ].join("\n");
 }
 
@@ -347,8 +305,7 @@ function renderPredictionCacheInstruction(input: AffiliateAgentRunFactoryInput):
   if (cacheIds.length === 0) {
     return [
       "No affiliate prediction cache id was prefilled for this work item.",
-      "When a REQUEST_ACTION step needs prediction evidence, call affiliate_predict_creator_product_fit with creatorRelationshipId yourself and include the returned cacheId in action.predictionCacheIds.",
-      "This keeps prediction as an agent decision tool rather than a deterministic pre-dispatch rule.",
+      "affiliate_predict_creator_product_fit is available when prediction evidence is useful; a returned cacheId identifies the exact evidence snapshot and belongs in action.predictionCacheIds when used.",
     ].join(" ");
   }
   return [
@@ -371,7 +328,7 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
       "- type: REVIEW_SAMPLE_APPLICATION",
       cacheIds.length
         ? `- predictionCacheIds: ${JSON.stringify(cacheIds)}`
-        : "- predictionCacheIds: call affiliate_predict_creator_product_fit with creatorRelationshipId first, then include the returned cacheId",
+        : "- predictionCacheIds: required evidence-snapshot id; affiliate_predict_creator_product_fit can create the snapshot when none is already available",
       `- sampleApplicationRecordId: ${sample.id}`,
       `- platformApplicationId: ${sample.platformApplicationId}`,
       "- sampleReviewDecision: choose APPROVE or REJECT from full-context judgment.",
@@ -403,8 +360,6 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
       `- type: SEND_MESSAGE`,
       cacheIds.length ? `- predictionCacheIds: ${JSON.stringify(cacheIds)}` : "- predictionCacheIds: include only when available",
       "- messageIntent.parts: [{kind: TEXT, text: <complete creator-facing reply>}], ready to send verbatim after approval/execution",
-      "If full-context judgment supports declining a low-fit sample, the TEXT part may contain a polite final reply such as: \"Hi Maria, thank you for your interest in working with us. After reviewing this sample request, we are not moving forward with this collaboration at this time, but we appreciate your interest and hope there may be a better fit in the future.\"",
-      "Do not copy the example unless it exactly fits the current creator, language, and business context; write the current creator's actual message.",
     ].join("\n"));
   }
 
@@ -432,8 +387,7 @@ function renderResolveActionPayloadTemplates(input: AffiliateAgentRunFactoryInpu
         "- Use input.actions as an ordered array.",
         "- Include one complete REVIEW_SAMPLE_APPLICATION action when the sample is still actionable.",
         "- Include one complete SEND_MESSAGE action when a creator-facing reply is appropriate.",
-        "- Keep the sample decision and message consistent with each other and with the full relationship context.",
-        "- If the sample should be approved, send an approval/status reply; if it should be rejected, send a polite rejection/future-fit reply; if context is insufficient, use NEEDS_STAFF_REVIEW instead of a partial bundle.",
+        "- The sample decision and message are submitted under the same work boundary.",
       ].join("\n")
       : "",
   ].filter(Boolean).join("\n\n");
@@ -643,6 +597,7 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
   const relatedSamples = context.relatedSampleApplications ?? [];
   const activeCollaborations = context.activeCollaborations ?? [];
   const ambiguousCandidates = context.ambiguousCollaborationCandidates ?? [];
+  const sampleApplicationLookup = context.sampleApplicationLookup;
   const missingContext = context.missingContext ?? [];
   const shopStates = relation?.shopStates ?? [];
   return [
@@ -656,8 +611,8 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
       `  - shopId=${state.shopId} lifecycleStage=${state.lifecycleStage} tagIds=${state.tagIds.join(", ") || "(none)"}`,
     ),
     product
-      ? `- Product Context: ${product.productId}${product.title ? ` / ${product.title}` : ""} source=${product.source ?? ""}`
-      : "- Product Context: (unresolved)",
+      ? `- Product Reference: ${product.productId}${product.title ? ` / ${product.title}` : ""} source=${product.source ?? ""} details=${product.title ? "HYDRATED" : "NOT_HYDRATED"}`
+      : "- Product Reference: (unresolved)",
     context.affiliateCollaboration
       ? `- Affiliate Collaboration Offer: ${context.affiliateCollaboration.type} ${context.affiliateCollaboration.platformCollaborationId} status=${context.affiliateCollaboration.status}`
       : "- Affiliate Collaboration Offer: (none)",
@@ -672,15 +627,13 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
     ...ambiguousCandidates.map((collaboration, index) =>
       `  ${index + 1}. contextCollaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
     ),
-    ...(ambiguousCandidates.length
-      ? [
-          "- Ambiguity Instruction: do not assume the creator's message belongs to one collaboration unless platform-chat evidence or workspace facts clearly identify it. Ask a concise clarification question or request staff review when confidence is low.",
-        ]
-      : []),
     `- Related Sample Applications: ${relatedSamples.length}`,
     ...relatedSamples.map((sample, index) =>
       `  ${index + 1}. ${sample.id} platform=${sample.platformApplicationId} status=${sample.sampleWorkStatus} product=${sample.productId ?? ""} contentCount=${sample.observedContentCount}`,
     ),
+    sampleApplicationLookup
+      ? `- Sample Application Lookup: status=${sampleApplicationLookup.status} queriedAt=${sampleApplicationLookup.queriedAt} providerFreshnessKnown=${sampleApplicationLookup.providerFreshnessKnown} shopId=${sampleApplicationLookup.shopId ?? "(none)"} productIds=${sampleApplicationLookup.productIds.join(", ") || "(none)"}`
+      : "- Sample Application Lookup: (not reported)",
     `- Missing Context: ${missingContext.length ? "" : "(none)"}`,
     ...missingContext.map(item => `  - ${item.severity} ${item.reason}: ${item.message}`),
   ];
@@ -695,6 +648,9 @@ function renderCreatorBusinessContext(
     `  - Display Name: ${creator.nickname ?? creator.username ?? "(none)"}`,
     `  - Username: ${creator.username ?? "(none)"}`,
     `  - Commerce Platform: ${creator.platform}`,
+    `  - TikTok Creator Open ID: ${creator.creatorOpenId ?? "(unavailable)"}`,
+    `  - TikTok Messaging Identity: ${creator.creatorImId ?? "(unavailable)"}`,
+    "  - Identity Note: these fields identify the CreatorRelationship participant; they do not classify the intent of the current message.",
     `  - Follower Count: ${creator.followerCount ?? "(unavailable)"}`,
     `  - Creator Category IDs: ${creator.categoryIds?.join(", ") || "(unavailable)"}`,
     `  - Marketplace Commerce Snapshot: ${renderCreatorSnapshot(creator.marketplaceSnapshotJson)}`,

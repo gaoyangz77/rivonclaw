@@ -78,8 +78,22 @@ export type {
   ToolCallEnforcementResult,
 } from "./types/index.js";
 
-export type { CSSessionContext, CSToolArgs } from "./types/index.js";
-export { registerCSSession, unregisterCSSession, getInjectedParams, resolveSessionContext } from "./types/index.js";
+export {
+  registerCSSession,
+  registerToolSession,
+  unregisterCSSession,
+  unregisterToolSession,
+  getInjectedParams,
+  resolveSessionContext,
+  resolveToolSessionContext,
+} from "./types/index.js";
+export type {
+  AffiliateSessionContext,
+  CSSessionContext,
+  CSToolArgs,
+  ToolSessionArgs,
+  ToolSessionContext,
+} from "./types/index.js";
 
 export type {
   CatalogTool,

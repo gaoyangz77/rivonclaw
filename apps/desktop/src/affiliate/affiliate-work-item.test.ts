@@ -236,6 +236,13 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
         GQL.ActionProposalType.ReviewSampleApplication,
       ],
       relatedSampleApplications: [sampleApplicationRecord],
+      sampleApplicationLookup: {
+        status: GQL.AffiliateSampleApplicationLookupStatus.Found,
+        queriedAt: "2026-05-11T00:01:00.000Z",
+        providerFreshnessKnown: false,
+        shopId: "shop-001",
+        productIds: ["product-001"],
+      },
     },
     ...overrides,
   };
@@ -278,6 +285,13 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       focusCollaboration: collaboration,
       primarySampleApplication: null,
       relatedSampleApplications: [],
+      sampleApplicationLookup: {
+        status: GQL.AffiliateSampleApplicationLookupStatus.NotFoundInWorkspace,
+        queriedAt: "2026-05-11T00:01:00.000Z",
+        providerFreshnessKnown: false,
+        shopId: "shop-001",
+        productIds: ["product-001"],
+      },
       recommendedActionTypes: [
         GQL.ActionProposalType.SendMessage,
       ],
@@ -741,7 +755,10 @@ describe("affiliate work item dispatch", () => {
       model: "gpt-5-test",
     });
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
-    expect(agentCall?.[1]?.message).toContain("non-binding evidence");
+    expect(agentCall?.[1]?.message).toContain("available when prediction evidence is useful");
+    expect(agentCall?.[1]?.message).toContain(
+      "Sample Application Lookup: status=FOUND queriedAt=2026-05-11T00:01:00.000Z providerFreshnessKnown=false",
+    );
     expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
     expect(agentCall?.[1]?.message).toContain("## Assigned BD Outreach Routing");
     expect(agentCall?.[1]?.message).toContain("Maria WhatsApp");
@@ -749,6 +766,14 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("address=maria@example.com");
     expect(agentCall?.[1]?.message).not.toContain("Other BD WhatsApp");
     expect(agentCall?.[1]?.message).not.toContain("wa-bd-001");
+    expect(mockRpcRequest).toHaveBeenCalledWith("tool_register_session", {
+      sessionKey: "agent:main:affiliate:user-001:relationship-001",
+      toolContext: {
+        kind: "AFFILIATE",
+        shopId: "shop-001",
+        creatorRelationshipId: "relationship-001",
+      },
+    });
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
   });
 
@@ -1194,10 +1219,10 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("OPERATOR_REASONING");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("assistant output is internal/operator-facing");
     expect(agentCall?.[1]?.message).toContain("Status: NOT_PREFETCHED");
-    expect(agentCall?.[1]?.message).toContain("call affiliate_predict_creator_product_fit");
-    expect(agentCall?.[1]?.message).toContain("Prediction is an agent tool");
-    expect(agentCall?.[1]?.message).toContain("call ecom_get_product");
-    expect(agentCall?.[1]?.message).toContain("Do not ask the creator which product they mean");
+    expect(agentCall?.[1]?.message).toContain("available as optional evidence");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("ecom_get_product resolves product details");
+    expect(agentCall?.[1]?.message).not.toContain("call ecom_get_product");
+    expect(agentCall?.[1]?.message).not.toContain("Do not ask the creator which product they mean");
   });
 
   it("does not auto-forward operator-reasoning assistant text even with a creator relationship id", async () => {
@@ -1330,7 +1355,7 @@ describe("affiliate work item dispatch", () => {
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(agentCall?.[1]?.message).toContain("prediction-cache-from-snapshot");
-    expect(agentCall?.[1]?.message).toContain("non-binding evidence");
+    expect(agentCall?.[1]?.message).toContain("already has a persisted prediction snapshot");
   });
 
   it("dispatches sample review to the agent without prefetching prediction evidence", async () => {
@@ -1389,9 +1414,9 @@ describe("affiliate work item dispatch", () => {
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
-    expect(agentCall?.[1]?.message).toContain("call affiliate_predict_creator_product_fit with creatorRelationshipId before submitting a REVIEW_SAMPLE_APPLICATION action");
-    expect(agentCall?.[1]?.message).toContain("copy its cacheId into action.predictionCacheIds");
-    expect(agentCall?.[1]?.message).toContain("must not automatically determine approve/reject");
+    expect(agentCall?.[1]?.message).toContain("available when prediction evidence is useful");
+    expect(agentCall?.[1]?.message).toContain("identifies the exact evidence snapshot");
+    expect(agentCall?.[1]?.message).not.toContain("before submitting a REVIEW_SAMPLE_APPLICATION action");
   });
 
   it("renders relationship-level sample pending work as a sample review agent run", () => {
@@ -1407,7 +1432,7 @@ describe("affiliate work item dispatch", () => {
 
     expect(request?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(request?.message).toContain("Use the CreatorRelationship workspace as the business boundary");
-    expect(request?.message).toContain("non-binding evidence");
+    expect(request?.message).toContain("available when prediction evidence is useful");
   });
 
   it("does not build a sample review agent run when backend has already handled that work boundary", () => {
@@ -1471,6 +1496,10 @@ describe("affiliate work item dispatch", () => {
     });
 
     expect(request?.message).toContain("Display Name: Creator Name");
+    expect(request?.message).toContain("TikTok Creator Open ID: creator-open-001");
+    expect(request?.message).toContain(
+      "Identity Note: these fields identify the CreatorRelationship participant; they do not classify the intent of the current message.",
+    );
     expect(request?.message).toContain("Follower Count: 3454");
     expect(request?.message).toContain("Creator Category IDs: category-1, category-2");
     expect(request?.message).toContain('"ecVideoCount":17');
@@ -1520,7 +1549,7 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("Ambiguous Collaboration Candidates:");
     expect(request?.message).toContain("contextCollaborationRecordId=collab-ambiguous-001");
     expect(request?.message).toContain("contextCollaborationRecordId=collab-ambiguous-002");
-    expect(request?.message).toContain("Ambiguity Instruction");
+    expect(request?.message).not.toContain("Ambiguity Instruction");
     expect(request?.message).not.toContain("This collaboration is context under the CreatorRelationship");
   });
 
@@ -1904,7 +1933,7 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("must handle the sample review and the creator reply in the same REQUEST_ACTION");
   });
 
-  it("frames sample prediction as agent evidence instead of a deterministic decision rule", () => {
+  it("presents merchant prediction thresholds as context without prescribing a decision", () => {
     const request = buildAffiliateAgentRunRequest({
       workItem: createSampleReviewWorkItem(),
       platform: "tiktok",
@@ -1912,17 +1941,12 @@ describe("affiliate work item dispatch", () => {
       decisionThresholdSource: "shop default",
     });
 
+    expect(request?.message).toContain("- Source: shop default");
+    expect(request?.message).toContain("- minExpectedSalesUnits: 1");
     expect(request?.message).toContain(
-      "Use affiliate prediction and decision thresholds as non-binding evidence only.",
+      "merchant-configured decision context, not an automatic approve/reject rule",
     );
-    expect(request?.message).toContain(
-      "they must not automatically determine approve/reject by themselves",
-    );
-    expect(request?.message).toContain(
-      "Do not convert this threshold into a deterministic approve/reject rule.",
-    );
-    expect(request?.message).toContain(
-      "the decision still comes from your full-context judgment",
-    );
+    expect(request?.message).not.toContain("If expectedSalesUnits is below");
+    expect(request?.message).not.toContain("If expectedSalesUnits meets or exceeds");
   });
 });
