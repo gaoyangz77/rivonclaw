@@ -1845,6 +1845,64 @@ describe("affiliate work item dispatch", () => {
     });
   });
 
+  it("does not submit fallback failure after a structured resolution removes the work item", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("affiliateExpectedSalesPredictions")) {
+        return {
+          affiliateExpectedSalesPredictions: {
+            status: GQL.AffiliateExpectedSalesPredictionStatus.Ok,
+            requestId: "prediction-request-empty",
+            modelTag: "affiliate-expected-test",
+            modelType: "ridge",
+            trainedAt: null,
+            featureVersion: "v1",
+            predictions: [],
+          },
+        };
+      }
+      if (query.includes("AffiliateWorkItems")) {
+        return { affiliateWorkItems: [] };
+      }
+      if (query.includes("ResolveAffiliateWorkItem")) {
+        throw new Error("Fallback resolution must not run after the work item is gone");
+      }
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conversation-001",
+        creatorId: "creator-001",
+      },
+    );
+
+    await session.handleWorkItem(createCreatorReplyWorkItem());
+    session.onRunCompleted("run-affiliate-001");
+
+    await vi.waitFor(() => {
+      expect(graphqlFetch).toHaveBeenCalledWith(
+        expect.stringContaining("AffiliateWorkItems"),
+        expect.anything(),
+      );
+    });
+    expect(graphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("ResolveAffiliateWorkItem"),
+      expect.anything(),
+    );
+  });
+
   it("does not dispatch work items that are projection-only", async () => {
     const workItem = createSampleReviewWorkItem({
       agentDispatchRecommended: false,
