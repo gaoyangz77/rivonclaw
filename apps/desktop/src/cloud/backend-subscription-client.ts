@@ -475,12 +475,16 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         context {
           creatorProfile {
             id
+            platform
             creatorOpenId
             creatorImId
             username
             nickname
             avatarUrl
             followerCount
+            categoryIds
+            marketplaceSnapshotJson
+            aggregatedSignalsSnapshotJson
           }
           creatorRelation {
             id
@@ -728,11 +732,16 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         candidateCheckpointId
         creatorProfile {
           id
+          platform
           creatorOpenId
           creatorImId
           username
           nickname
           avatarUrl
+          followerCount
+          categoryIds
+          marketplaceSnapshotJson
+          aggregatedSignalsSnapshotJson
         }
         collaborationRecordId
         sourceWorkBoundary {

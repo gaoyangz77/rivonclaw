@@ -647,9 +647,7 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
   const shopStates = relation?.shopStates ?? [];
   return [
     `- Recommended Actions: ${(workItem.recommendedActionTypes ?? context.recommendedActionTypes ?? []).join(", ") || "(none)"}`,
-    creator
-      ? `- Creator Profile: ${creator.nickname ?? creator.username ?? "resolved"}`
-      : "- Creator Profile: (unresolved)",
+    ...renderCreatorBusinessContext(creator),
     relation
       ? `- Creator Relation: blocked=${relation.blocked} blockedShopIds=${relation.blockedShopIds.join(", ") || "(none)"}`
       : "- Creator Relation: (none)",
@@ -686,6 +684,44 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
     `- Missing Context: ${missingContext.length ? "" : "(none)"}`,
     ...missingContext.map(item => `  - ${item.severity} ${item.reason}: ${item.message}`),
   ];
+}
+
+function renderCreatorBusinessContext(
+  creator: GQL.AffiliateCreatorIdentity | null | undefined,
+): string[] {
+  if (!creator) return ["- Creator Profile: (unresolved)"];
+  return [
+    "- Creator Profile:",
+    `  - Display Name: ${creator.nickname ?? creator.username ?? "(none)"}`,
+    `  - Username: ${creator.username ?? "(none)"}`,
+    `  - Commerce Platform: ${creator.platform}`,
+    `  - Follower Count: ${creator.followerCount ?? "(unavailable)"}`,
+    `  - Creator Category IDs: ${creator.categoryIds?.join(", ") || "(unavailable)"}`,
+    `  - Marketplace Commerce Snapshot: ${renderCreatorSnapshot(creator.marketplaceSnapshotJson)}`,
+    `  - Aggregated Creator Signals: ${renderCreatorSnapshot(creator.aggregatedSignalsSnapshotJson)}`,
+  ];
+}
+
+function renderCreatorSnapshot(value: string | null | undefined): string {
+  if (!value?.trim()) return "(unavailable)";
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    const sanitized =
+      parsed != null && typeof parsed === "object" && !Array.isArray(parsed)
+        ? Object.fromEntries(
+            Object.entries(parsed).filter(
+              ([key]) => !["creatorOpenId", "profileTtUri", "avatar"].includes(key),
+            ),
+          )
+        : parsed;
+    const serialized = JSON.stringify(sanitized);
+    const maxChars = 12_000;
+    return serialized.length <= maxChars
+      ? serialized
+      : `${serialized.slice(0, maxChars)}…[snapshot truncated at ${maxChars} characters]`;
+  } catch {
+    return "(invalid stored snapshot)";
+  }
 }
 
 function renderBusinessPrompt(businessPrompt: string | null | undefined): string {
