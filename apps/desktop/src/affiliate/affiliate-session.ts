@@ -484,7 +484,7 @@ export class AffiliateSession {
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
         `systemPromptChars=${this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING).length}`,
-        "promptContextVersion=affiliate-provenance-v1",
+        "promptContextVersion=affiliate-provenance-v2",
         `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
       ].join(" "),
     );

@@ -778,7 +778,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         sampleApplicationLookup {
           status
           queriedAt
-          providerFreshnessKnown
           shopId
           productIds
         }
