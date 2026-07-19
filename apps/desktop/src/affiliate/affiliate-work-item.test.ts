@@ -237,9 +237,8 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       ],
       relatedSampleApplications: [sampleApplicationRecord],
       sampleApplicationLookup: {
-        status: GQL.AffiliateSampleApplicationLookupStatus.Found,
+        status: GQL.AffiliateSampleApplicationLookupStatus.ConfirmedPresent,
         queriedAt: "2026-05-11T00:01:00.000Z",
-        providerFreshnessKnown: false,
         shopId: "shop-001",
         productIds: ["product-001"],
       },
@@ -286,9 +285,8 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       primarySampleApplication: null,
       relatedSampleApplications: [],
       sampleApplicationLookup: {
-        status: GQL.AffiliateSampleApplicationLookupStatus.NotFoundInWorkspace,
+        status: GQL.AffiliateSampleApplicationLookupStatus.Unverified,
         queriedAt: "2026-05-11T00:01:00.000Z",
-        providerFreshnessKnown: false,
         shopId: "shop-001",
         productIds: ["product-001"],
       },
@@ -757,12 +755,14 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
     expect(agentCall?.[1]?.message).toContain("available when prediction evidence is useful");
     expect(agentCall?.[1]?.message).toContain(
-      "Provider/Workspace Sample Application Lookup: status=FOUND queriedAt=2026-05-11T00:01:00.000Z providerFreshnessKnown=false",
+      "Authoritative Sample Application State: CONFIRMED_PRESENT",
     );
     expect(agentCall?.[1]?.message).toContain(
-      "Creator-Reported Sample Information: statements in Provider message history are Creator reports",
+      "Creator-Reported Sample Claims: statements in Provider message history describe what the Creator reported",
     );
     expect(agentCall?.[1]?.message).toContain("## Current Authoritative Workspace Snapshot");
+    expect(agentCall?.[1]?.message).not.toContain("- Open Agenda Items:");
+    expect(agentCall?.[1]?.message).not.toContain("- Work Summary:");
     expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
     expect(agentCall?.[1]?.message).toContain("## Assigned BD Outreach Routing");
     expect(agentCall?.[1]?.message).toContain("Maria WhatsApp");

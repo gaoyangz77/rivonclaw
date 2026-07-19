@@ -602,7 +602,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           sampleApplicationLookup {
             status
             queriedAt
-            providerFreshnessKnown
             shopId
             productIds
           }

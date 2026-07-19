@@ -457,14 +457,12 @@ export function renderWorkItemProjection(workItem: GQL.AffiliateWorkItem): strin
     "",
     "## Creator Relationship",
     `- Workspace Relationship ID: ${workItem.creatorRelationshipId}`,
-    `- Open Agenda Items: ${JSON.stringify(relationship?.agendaItems ?? [])}`,
-    `- Work Summary: ${JSON.stringify(relationship?.workSummary ?? null)}`,
+    "- Operational Agenda, Work Summary, and Pending Proposals: represented only in the Current Authoritative Workspace Snapshot below.",
     `- Last Inbound At: ${relationship?.lastInboundAt ?? collaboration?.lastCreatorMessageAt ?? ""}`,
     `- Last Outbound At: ${relationship?.lastOutboundAt ?? ""}`,
     `- Last Agent Handled At: ${relationship?.lastAgentHandledAt ?? ""}`,
     `- Next Seller Action At: ${relationship?.workSummary?.nextActionAt ?? collaboration?.nextSellerActionAt ?? ""}`,
     `- Active Collaboration IDs: ${activeCollaborationIds.join(", ") || "(none)"}`,
-    `- Pending Proposal ID: ${relationship?.pendingActionProposalId ?? ""}`,
     "",
     "## Focus Business Target / Collaboration Context",
     ...(collaboration ? [
@@ -627,17 +625,30 @@ function renderResolvedContext(workItem: GQL.AffiliateWorkItem): string[] {
     ...ambiguousCandidates.map((collaboration, index) =>
       `  ${index + 1}. contextCollaborationRecordId=${collaboration.id} product=${collaboration.productId ?? ""} sample=${collaboration.sampleApplicationRecordId ?? ""} lifecycle=${collaboration.lifecycleStage} status=${collaboration.processingStatus}`,
     ),
-    `- Provider/Workspace-Confirmed Sample Applications: ${relatedSamples.length}`,
+    `- Authoritative Sample Application State: ${sampleApplicationLookup?.status ?? "UNVERIFIED"}`,
+    `- Authority Meaning: ${sampleApplicationAuthorityMeaning(sampleApplicationLookup?.status)}`,
+    `- Confirmed Provider/Workspace Sample Applications: ${relatedSamples.length}`,
     ...relatedSamples.map((sample, index) =>
       `  ${index + 1}. ${sample.id} platform=${sample.platformApplicationId} status=${sample.sampleWorkStatus} product=${sample.productId ?? ""} contentCount=${sample.observedContentCount}`,
     ),
     sampleApplicationLookup
-      ? `- Provider/Workspace Sample Application Lookup: status=${sampleApplicationLookup.status} queriedAt=${sampleApplicationLookup.queriedAt} providerFreshnessKnown=${sampleApplicationLookup.providerFreshnessKnown} shopId=${sampleApplicationLookup.shopId ?? "(none)"} productIds=${sampleApplicationLookup.productIds.join(", ") || "(none)"}`
-      : "- Provider/Workspace Sample Application Lookup: (not reported)",
-    "- Creator-Reported Sample Information: statements in Provider message history are Creator reports; they are separate from the Provider/workspace-confirmed records above.",
+      ? `- Sample Application Lookup Scope: observedAt=${sampleApplicationLookup.queriedAt} shopId=${sampleApplicationLookup.shopId ?? "(none)"} productIds=${sampleApplicationLookup.productIds.join(", ") || "(none)"}`
+      : "- Sample Application Lookup Scope: (not reported)",
+    "- Creator-Reported Sample Claims: statements in Provider message history describe what the Creator reported; they are not Provider/workspace confirmation.",
     `- Missing Context: ${missingContext.length ? "" : "(none)"}`,
     ...missingContext.map(item => `  - ${item.severity} ${item.reason}: ${item.message}`),
   ];
+}
+
+function sampleApplicationAuthorityMeaning(status: string | null | undefined): string {
+  switch (status) {
+    case "CONFIRMED_PRESENT":
+      return "one or more matching sample applications are established by Provider/workspace records.";
+    case "CONFIRMED_ABSENT":
+      return "a fresh Provider result established that no matching sample application exists.";
+    default:
+      return "neither the existence, absence, nor review state of a matching sample application is established by Provider/workspace facts.";
+  }
 }
 
 function renderCreatorBusinessContext(
@@ -654,8 +665,8 @@ function renderCreatorBusinessContext(
     "  - Identity Note: these fields identify the CreatorRelationship participant; they do not classify the intent of the current message.",
     `  - Follower Count: ${creator.followerCount ?? "(unavailable)"}`,
     `  - Creator Category IDs: ${creator.categoryIds?.join(", ") || "(unavailable)"}`,
-    `  - Marketplace Commerce Snapshot: ${renderCreatorSnapshot(creator.marketplaceSnapshotJson)}`,
-    `  - Aggregated Creator Signals: ${renderCreatorSnapshot(creator.aggregatedSignalsSnapshotJson)}`,
+    `  - Marketplace Commerce Summary: ${renderCreatorSnapshot(creator.marketplaceSnapshotJson)}`,
+    `  - Aggregated Creator Signals Summary: ${renderCreatorSnapshot(creator.aggregatedSignalsSnapshotJson)}`,
   ];
 }
 
@@ -663,16 +674,32 @@ function renderCreatorSnapshot(value: string | null | undefined): string {
   if (!value?.trim()) return "(unavailable)";
   try {
     const parsed = JSON.parse(value) as unknown;
-    const sanitized =
+    const summarized =
       parsed != null && typeof parsed === "object" && !Array.isArray(parsed)
-        ? Object.fromEntries(
-            Object.entries(parsed).filter(
-              ([key]) => !["creatorOpenId", "profileTtUri", "avatar"].includes(key),
-            ),
-          )
+        ? Object.fromEntries(Object.entries(parsed).filter(([key]) => [
+            "selectionRegion",
+            "brandCollaborationCount",
+            "unitsSold",
+            "unitsSoldRange",
+            "gmv",
+            "gmvRange",
+            "contentGmvDistribution",
+            "promotedProductNum",
+            "ecLiveCount",
+            "ecVideoCount",
+            "avgEcVideoPlayCount",
+            "avgCommissionRate",
+            "avgCommissionRateRange",
+            "pps",
+            "rating",
+            "ecVideoEngagementRate",
+            "postRate",
+            "creator_gmv_30d",
+            "creator_content_count_30d",
+          ].includes(key)))
         : parsed;
-    const serialized = JSON.stringify(sanitized);
-    const maxChars = 12_000;
+    const serialized = JSON.stringify(summarized);
+    const maxChars = 3_000;
     return serialized.length <= maxChars
       ? serialized
       : `${serialized.slice(0, maxChars)}…[snapshot truncated at ${maxChars} characters]`;

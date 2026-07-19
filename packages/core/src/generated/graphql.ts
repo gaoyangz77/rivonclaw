@@ -2088,20 +2088,19 @@ export const AffiliateResearchDepth = {
 } as const;
 
 export type AffiliateResearchDepth = typeof AffiliateResearchDepth[keyof typeof AffiliateResearchDepth];
-/** Explicit result of the current sample-application workspace lookup. ProviderFreshnessKnown=false means absence is not proof that TikTok never received an application. */
+/** Authority state of the current sample-application lookup. UNVERIFIED means neither presence nor absence has been established by Provider/workspace facts. */
 export interface AffiliateSampleApplicationLookupContext {
   productIds: Array<Scalars['String']['output']>;
-  providerFreshnessKnown: Scalars['Boolean']['output'];
   queriedAt: Scalars['DateTimeISO']['output'];
   shopId?: Maybe<Scalars['ID']['output']>;
   status: AffiliateSampleApplicationLookupStatus;
 }
 
-/** What the current Affiliate workspace query established about sample applications; this does not imply Provider freshness unless explicitly stated. */
+/** Authority state of matching sample applications: confirmed present, confirmed absent, or unverified. */
 export const AffiliateSampleApplicationLookupStatus = {
-  Found: 'FOUND',
-  NotFoundInWorkspace: 'NOT_FOUND_IN_WORKSPACE',
-  Unavailable: 'UNAVAILABLE'
+  ConfirmedAbsent: 'CONFIRMED_ABSENT',
+  ConfirmedPresent: 'CONFIRMED_PRESENT',
+  Unverified: 'UNVERIFIED'
 } as const;
 
 export type AffiliateSampleApplicationLookupStatus = typeof AffiliateSampleApplicationLookupStatus[keyof typeof AffiliateSampleApplicationLookupStatus];
