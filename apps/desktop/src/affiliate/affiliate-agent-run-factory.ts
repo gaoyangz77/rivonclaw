@@ -670,42 +670,52 @@ function renderCreatorBusinessContext(
   ];
 }
 
-function renderCreatorSnapshot(value: string | null | undefined): string {
-  if (!value?.trim()) return "(unavailable)";
+const CREATOR_SNAPSHOT_PROMPT_FIELDS = new Set([
+  "selectionRegion",
+  "brandCollaborationCount",
+  "unitsSold",
+  "unitsSoldRange",
+  "gmv",
+  "gmvRange",
+  "contentGmvDistribution",
+  "promotedProductNum",
+  "ecLiveCount",
+  "ecVideoCount",
+  "avgEcVideoPlayCount",
+  "avgCommissionRate",
+  "avgCommissionRateRange",
+  "pps",
+  "rating",
+  "ecVideoEngagementRate",
+  "postRate",
+  "creator_gmv_30d",
+  "creator_content_count_30d",
+]);
+
+export function summarizeCreatorSnapshotForPrompt(
+  value: string | null | undefined,
+): Record<string, unknown> | null {
+  if (!value?.trim()) return null;
   try {
     const parsed = JSON.parse(value) as unknown;
-    const summarized =
-      parsed != null && typeof parsed === "object" && !Array.isArray(parsed)
-        ? Object.fromEntries(Object.entries(parsed).filter(([key]) => [
-            "selectionRegion",
-            "brandCollaborationCount",
-            "unitsSold",
-            "unitsSoldRange",
-            "gmv",
-            "gmvRange",
-            "contentGmvDistribution",
-            "promotedProductNum",
-            "ecLiveCount",
-            "ecVideoCount",
-            "avgEcVideoPlayCount",
-            "avgCommissionRate",
-            "avgCommissionRateRange",
-            "pps",
-            "rating",
-            "ecVideoEngagementRate",
-            "postRate",
-            "creator_gmv_30d",
-            "creator_content_count_30d",
-          ].includes(key)))
-        : parsed;
-    const serialized = JSON.stringify(summarized);
-    const maxChars = 3_000;
-    return serialized.length <= maxChars
-      ? serialized
-      : `${serialized.slice(0, maxChars)}…[snapshot truncated at ${maxChars} characters]`;
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([key]) => CREATOR_SNAPSHOT_PROMPT_FIELDS.has(key)),
+    );
   } catch {
-    return "(invalid stored snapshot)";
+    return null;
   }
+}
+
+function renderCreatorSnapshot(value: string | null | undefined): string {
+  if (!value?.trim()) return "(unavailable)";
+  const summarized = summarizeCreatorSnapshotForPrompt(value);
+  if (!summarized) return "(invalid stored snapshot)";
+  const serialized = JSON.stringify(summarized);
+  const maxChars = 3_000;
+  return serialized.length <= maxChars
+    ? serialized
+    : `${serialized.slice(0, maxChars)}…[snapshot truncated at ${maxChars} characters]`;
 }
 
 function renderBusinessPrompt(businessPrompt: string | null | undefined): string {

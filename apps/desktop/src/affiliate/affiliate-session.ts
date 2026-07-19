@@ -27,7 +27,10 @@ import {
   type ResolveAffiliateWorkItemMutationResult,
 } from "../cloud/affiliate-queries.js";
 import type { StaffLanguage } from "../i18n/locale.js";
-import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
+import {
+  buildAffiliateAgentRunRequest,
+  summarizeCreatorSnapshotForPrompt,
+} from "./affiliate-agent-run-factory.js";
 import {
   registerActiveAffiliateRunCheckpoint,
   unregisterActiveAffiliateRunCheckpoint,
@@ -484,7 +487,7 @@ export class AffiliateSession {
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
         `systemPromptChars=${this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING).length}`,
-        "promptContextVersion=affiliate-provenance-v2",
+        "promptContextVersion=affiliate-provenance-v3",
         `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
       ].join(" "),
     );
@@ -1181,7 +1184,22 @@ function renderAffiliateDispatchContext(
     pendingProposals: (workspace.actionProposals ?? []).filter(
       (proposal) => proposal.status === GQL.ActionProposalStatus.Pending,
     ),
-    creatorProfiles: workspace.creatorProfiles ?? [],
+    creatorProfiles: (workspace.creatorProfiles ?? []).map((creator) => ({
+      id: creator.id,
+      platform: creator.platform,
+      creatorOpenId: creator.creatorOpenId ?? null,
+      creatorImId: creator.creatorImId ?? null,
+      username: creator.username ?? null,
+      nickname: creator.nickname ?? null,
+      followerCount: creator.followerCount ?? null,
+      categoryIds: creator.categoryIds ?? [],
+      marketplaceCommerceSummary: summarizeCreatorSnapshotForPrompt(
+        creator.marketplaceSnapshotJson,
+      ),
+      aggregatedSignalsSummary: summarizeCreatorSnapshotForPrompt(
+        creator.aggregatedSignalsSnapshotJson,
+      ),
+    })),
   };
   return [
     "[Affiliate Checkpoint-Bound Operational Context]",

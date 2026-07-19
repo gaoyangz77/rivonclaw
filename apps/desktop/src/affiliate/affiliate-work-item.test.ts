@@ -302,6 +302,7 @@ function withCheckpointContext(
   graphqlFetch: (query: string, variables?: unknown) => unknown | Promise<unknown>,
   options: {
     preflightItems?: GQL.AffiliateCreatorMessageHistoryItem[];
+    creatorProfiles?: GQL.AffiliateCreatorIdentity[];
   } = {},
 ): (query: string, variables?: unknown) => Promise<unknown> {
   return async (query, variables) => {
@@ -337,7 +338,7 @@ function withCheckpointContext(
             approvalPolicies: [],
             creatorRelations: [],
             creatorTags: [],
-            creatorProfiles: [],
+            creatorProfiles: options.creatorProfiles ?? [],
             campaigns: [],
             campaignProducts: [],
             affiliateCollaborations: [],
@@ -779,6 +780,65 @@ describe("affiliate work item dispatch", () => {
       },
     });
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
+  });
+
+  it("projects only prompt-safe creator commerce fields into the authoritative snapshot", async () => {
+    const creatorProfile = {
+      id: "creator-001",
+      platform: GQL.ShopPlatform.TiktokShop,
+      creatorOpenId: "creator-open-001",
+      creatorImId: "creator-im-001",
+      username: "creator_handle",
+      nickname: "Creator Name",
+      avatarUrl: "https://cdn.example.com/private-avatar.jpg",
+      followerCount: 3454,
+      categoryIds: ["category-1"],
+      marketplaceSnapshotJson: JSON.stringify({
+        gmv: { currency: "USD", amount: 1214.34 },
+        ecVideoCount: 17,
+        avatarUri: "https://cdn.example.com/raw-marketplace-avatar.jpg",
+        lowValueProviderField: "do-not-inject",
+      }),
+      aggregatedSignalsSnapshotJson: JSON.stringify({
+        creator_gmv_30d: 1214.34,
+        internalDebugRecord: "do-not-inject",
+      }),
+      createdAt: "2026-05-01T00:00:00.000Z",
+      updatedAt: "2026-05-02T00:00:00.000Z",
+    } as GQL.AffiliateCreatorIdentity;
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: withCheckpointContext(async (query: string) => {
+        throw new Error(`Unexpected GraphQL call: ${query}`);
+      }, { creatorProfiles: [creatorProfile] }),
+    });
+    const workItem = createSampleReviewWorkItem();
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+      },
+    );
+
+    await session.handleWorkItem(workItem);
+
+    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]?.message).toContain('"marketplaceCommerceSummary"');
+    expect(agentCall?.[1]?.message).toContain('"ecVideoCount": 17');
+    expect(agentCall?.[1]?.message).toContain('"creator_gmv_30d": 1214.34');
+    expect(agentCall?.[1]?.message).not.toContain("private-avatar.jpg");
+    expect(agentCall?.[1]?.message).not.toContain("raw-marketplace-avatar.jpg");
+    expect(agentCall?.[1]?.message).not.toContain("lowValueProviderField");
+    expect(agentCall?.[1]?.message).not.toContain("internalDebugRecord");
   });
 
   it("starts affiliate work runs from a brand-new checkpoint session when no checkpoint is committed", async () => {
