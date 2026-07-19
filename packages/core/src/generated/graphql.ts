@@ -1122,12 +1122,11 @@ export interface AffiliateCreatorRelationship {
   workSummary?: Maybe<AffiliateRelationshipWorkSummary>;
 }
 
-/** Embedded shop-specific lifecycle and tag state for a user-level creator relation. */
+/** Embedded shop membership, tags, and activity timestamps for a user-level creator relation. */
 export interface AffiliateCreatorRelationshipShopState {
   lastContactedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastInvitedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastQualifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  lifecycleStage: AffiliateLifecycleStage;
   shopId: Scalars['ID']['output'];
   tagIds: Array<Scalars['ID']['output']>;
 }
@@ -7900,7 +7899,7 @@ export interface Query {
   collaborationRecords: Array<AffiliateCollaborationRecord>;
   /** Read creator candidates discovered by search and qualification. Blocked creator relations are filtered out at read time. */
   creatorCandidates: Array<CreatorCandidate>;
-  /** Read user-scoped creator relations with embedded shop lifecycle state. Blocked creators are excluded unless explicitly requested by lifecycleStage=BLOCKED. */
+  /** Read user-scoped creator relationships for a shop. Commercial lifecycle belongs to collaboration records; protected creators are excluded unless blocked=true. */
   creatorRelationships: Array<AffiliateCreatorRelationship>;
   /** Read concrete creator marketplace search runs from Mongo state. */
   creatorSearchRuns: Array<CreatorSearchRun>;
@@ -8777,8 +8776,9 @@ export interface ReadCreatorCandidatesInput {
 }
 
 export interface ReadCreatorRelationsInput {
+  /** When true, return relationships protected for this shop; otherwise protected relationships are excluded. */
+  blocked?: InputMaybe<Scalars['Boolean']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
-  lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
   tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;

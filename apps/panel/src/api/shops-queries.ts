@@ -1020,7 +1020,6 @@ messageIntent {
           blockedShopIds
           shopStates {
             shopId
-            lifecycleStage
             tagIds
             lastContactedAt
             lastInvitedAt
@@ -1415,7 +1414,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
         }
         shopStates {
           shopId
-          lifecycleStage
           tagIds
           lastContactedAt
           lastInvitedAt
@@ -1567,7 +1565,6 @@ export const APPLY_CREATOR_TAG_MUTATION = gql`
         }
         shopStates {
         shopId
-        lifecycleStage
         tagIds
         lastContactedAt
         lastInvitedAt
@@ -1587,7 +1584,6 @@ export const REMOVE_CREATOR_TAG_MUTATION = gql`
       blockedShopIds
       shopStates {
         shopId
-        lifecycleStage
         tagIds
         lastContactedAt
         lastInvitedAt

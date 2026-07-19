@@ -53,7 +53,6 @@ export const AffiliateCreatorProfileModel = types.model("AffiliateCreatorProfile
 
 export const AffiliateCreatorRelationshipShopStateModel = types.model("AffiliateCreatorRelationshipShopState", {
   shopId: types.string,
-  lifecycleStage: types.optional(types.string, "DISCOVERED"),
   tagIds: types.optional(types.array(types.string), []),
   lastContactedAt: types.maybeNull(types.string),
   lastInvitedAt: types.maybeNull(types.string),

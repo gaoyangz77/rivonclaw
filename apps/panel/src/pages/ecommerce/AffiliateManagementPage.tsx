@@ -2406,7 +2406,7 @@ function CreatorRelationshipCard({
       defaultValue: latestRecord.processingStatus,
     })
     : t("ecommerce.affiliateWorkspace.creatorStable");
-  const lifecycleStage = item.shopState?.lifecycleStage ?? latestRecord?.lifecycleStage ?? null;
+  const lifecycleStage = latestRecord?.lifecycleStage ?? null;
   const lifecycleLabel = lifecycleStage
     ? t(`ecommerce.affiliateWorkspace.lifecycleStages.${lifecycleStage}`, { defaultValue: lifecycleStage })
     : t("ecommerce.affiliateWorkspace.creatorUnknownStage");
@@ -5113,6 +5113,10 @@ function CreatorRelationshipDetailModal({
   const management = item.managementItem ?? null;
   const blocked = Boolean(item.creatorRelation?.blocked);
   const shopStates = item.creatorRelation?.shopStates ?? (item.shopState ? [item.shopState] : []);
+  const relationshipShopName = (shopId: string) => {
+    const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
+    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
+  };
   const workItems = item.workItems ?? [];
   const primaryWorkItem = [...workItems].sort((left, right) =>
     new Date(right.stateUpdatedAt ?? 0).getTime() - new Date(left.stateUpdatedAt ?? 0).getTime(),
@@ -5607,9 +5611,7 @@ function CreatorRelationshipDetailModal({
                 <div className="affiliate-relationship-shop-state-list">
                   {shopStates.slice(0, 4).map((state) => (
                     <div className="affiliate-relationship-shop-state" key={state.shopId}>
-                      <strong>{t(`ecommerce.affiliateWorkspace.lifecycleStages.${state.lifecycleStage}`, {
-                        defaultValue: state.lifecycleStage,
-                      })}</strong>
+                      <strong>{relationshipShopName(state.shopId)}</strong>
                       <span>{state.lastContactedAt ? formatProposalTime(state.lastContactedAt) : t("ecommerce.affiliateWorkspace.noRecentContact")}</span>
                     </div>
                   ))}

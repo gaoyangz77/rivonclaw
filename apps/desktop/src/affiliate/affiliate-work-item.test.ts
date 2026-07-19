@@ -1978,6 +1978,23 @@ describe("affiliate work item dispatch", () => {
     expect(request).toBeNull();
   });
 
+  it("builds a generic relationship run for any other Agent-owned agenda", () => {
+    const workItem = createSampleReviewWorkItem({
+      agentDispatchRecommended: true,
+      workKind: GQL.AffiliateWorkKind.ManualReview,
+      workBundleKind: GQL.AffiliateWorkBundleKind.GeneralReview,
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
+      processReasons: [],
+      recommendedActionTypes: [],
+    });
+
+    const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+    expect(request?.message).toContain("[Affiliate Work Item: Relationship Review]");
+    expect(request?.message).toContain("Review the open CreatorRelationship agenda");
+    expect(request?.message).toContain("affiliate_resolve_work_item exactly once");
+  });
+
   it("renders creator follow-up work as a temporal actionable delta", () => {
     const workItem = createCreatorReplyWorkItem({
       workKind: GQL.AffiliateWorkKind.CreatorFollowUp,
