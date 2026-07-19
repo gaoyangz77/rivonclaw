@@ -646,12 +646,16 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       context {
         creatorProfile {
           id
+          platform
           creatorOpenId
           creatorImId
           username
           nickname
           avatarUrl
           followerCount
+          categoryIds
+          marketplaceSnapshotJson
+          aggregatedSignalsSnapshotJson
         }
         creatorRelation {
           id

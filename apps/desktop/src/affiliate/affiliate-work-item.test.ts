@@ -1021,6 +1021,10 @@ describe("affiliate work item dispatch", () => {
     expect(result.runMode).toBe("OPERATOR_REASONING");
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("OPERATOR_REASONING");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("## Affiliate Business Context");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Commerce Program: TikTok Shop Affiliate");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("TikTok shoppable video, TikTok LIVE");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Communication Transports: TikTok Shop platform chat, WhatsApp, and Outlook email");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_resolve_work_item");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Omit preferredChannel to reply on the trigger channel");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
@@ -1431,6 +1435,46 @@ describe("affiliate work item dispatch", () => {
     );
     expect(request?.message).toContain("Focus Collaboration Context: collab-001");
     expect(request?.message).not.toContain("Primary Collaboration Candidate");
+  });
+
+  it("projects the available creator commerce profile into the Agent work context", () => {
+    const base = createCreatorReplyWorkItem();
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({
+        context: {
+          ...base.context,
+          creatorProfile: {
+            id: "creator-001",
+            platform: GQL.ShopPlatform.TiktokShop,
+            creatorOpenId: "creator-open-001",
+            creatorImId: "creator-im-001",
+            username: "creator_handle",
+            nickname: "Creator Name",
+            avatarUrl: null,
+            followerCount: 3454,
+            categoryIds: ["category-1", "category-2"],
+            marketplaceSnapshotJson: JSON.stringify({
+              gmv: { currency: "USD", amount: 1214.34 },
+              ecVideoCount: 17,
+              avgEcVideoViewCount: 336,
+            }),
+            aggregatedSignalsSnapshotJson: JSON.stringify({
+              creator_gmv_30d: 1214.34,
+              creator_content_count_30d: 17,
+            }),
+            createdAt: "2026-05-01T00:00:00.000Z",
+            updatedAt: "2026-05-02T00:00:00.000Z",
+          },
+        },
+      }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain("Display Name: Creator Name");
+    expect(request?.message).toContain("Follower Count: 3454");
+    expect(request?.message).toContain("Creator Category IDs: category-1, category-2");
+    expect(request?.message).toContain('"ecVideoCount":17');
+    expect(request?.message).toContain('"creator_gmv_30d":1214.34');
   });
 
   it("keeps ambiguous relationship work unbound from an arbitrary focus collaboration", () => {
