@@ -679,6 +679,9 @@ export class AffiliateSession {
       },
     );
     const currentWorkItem = result.affiliateWorkItems[0];
+    if (currentWorkItem == null) {
+      return true;
+    }
     const handledUntil = parseOptionalDate(workItemHandledUntil(currentWorkItem));
     return handledUntil != null && handledUntil.getTime() >= boundary.getTime();
   }
