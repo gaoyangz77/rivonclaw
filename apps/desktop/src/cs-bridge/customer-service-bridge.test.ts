@@ -718,7 +718,7 @@ describe("affiliate message dispatch", () => {
         sessionKey: "agent:main:affiliate:user-001:relationship-SUB",
         idempotencyKey: expect.stringContaining("affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-SUB"),
         message: expect.stringContaining("[Agent Working Agenda]"),
-        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_history"),
+        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_timeline"),
       }),
     );
   });
@@ -752,11 +752,11 @@ describe("affiliate message dispatch", () => {
         sessionKey: "agent:main:affiliate:user-001:relationship-001",
         idempotencyKey: expect.stringContaining("affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-001"),
         message: expect.stringContaining("[Agent Working Agenda]"),
-        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_history"),
+        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_timeline"),
       }),
     );
     expect(mockGraphqlFetch.mock.calls.some(([query]) =>
-      typeof query === "string" && query.includes("affiliateRelationshipHistory"),
+      typeof query === "string" && query.includes("affiliateRelationshipTimeline"),
     )).toBe(false);
   });
 

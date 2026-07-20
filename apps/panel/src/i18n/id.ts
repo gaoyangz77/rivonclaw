@@ -1737,7 +1737,7 @@ export default {
         "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Dapatkan Relasi Kreator",
         "AFFILIATE_GET_COLLABORATION": "Dapatkan Kolaborasi",
         "AFFILIATE_GET_SAMPLE_APPLICATION": "Dapatkan Pengajuan Sampel",
-        "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Dapatkan Riwayat Relasi Kreator",
+        "AFFILIATE_GET_RELATIONSHIP_TIMELINE": "Dapatkan Linimasa Relasi Kreator",
         "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Daftar Kolaborasi Kreator",
         "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Daftar Pengajuan Sampel Kreator",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Baca Lampiran Pesan Kreator",

@@ -17,7 +17,7 @@ import {
   AFFILIATE_COLLABORATION_RECORDS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
   AFFILIATE_CREATORS_QUERY,
-  AFFILIATE_RELATIONSHIP_HISTORY_QUERY,
+  AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_POLICY_CONTEXT_QUERY,
   APPLY_CREATOR_TAG_MUTATION,
@@ -2934,7 +2934,7 @@ function sampleBelongsToCollaboration(
 type RelationshipTimelineEntryModel =
   {
     id: string;
-    type: "event";
+    type: "event" | "time-passed";
     time: string;
     kind: string;
     title: string;
@@ -2943,8 +2943,8 @@ type RelationshipTimelineEntryModel =
     sampleApplication?: GQL.SampleApplicationRecord | null;
   };
 
-function buildRelationshipHistoryTimelineEntries(
-  items: GQL.AffiliateRelationshipHistoryItem[],
+function buildRelationshipTimelineEntries(
+  items: GQL.AffiliateRelationshipTimelineItem[],
   sampleApplications: GQL.SampleApplicationRecord[],
   t: ReturnType<typeof useTranslation>["t"],
 ): RelationshipTimelineEntryModel[] {
@@ -2957,7 +2957,7 @@ function buildRelationshipHistoryTimelineEntries(
 
   return items
     .map((item) => {
-      const cardPayload = relationshipHistoryCardPayload(item);
+      const cardPayload = relationshipTimelineCardPayload(item);
       const sampleApplication = item.relatedIds.sampleApplicationRecordId
         ? sampleById.get(item.relatedIds.sampleApplicationRecordId) ?? null
         : cardPayload?.kind === "sample" && cardPayload.id
@@ -2965,29 +2965,35 @@ function buildRelationshipHistoryTimelineEntries(
           : null;
       return {
         id: item.id,
-        type: "event" as const,
+        type: item.kind === GQL.AffiliateRelationshipTimelineItemKind.TimePassed
+          ? "time-passed" as const
+          : "event" as const,
         time: item.occurredAt,
-        kind: relationshipHistoryKindLabel(item, t),
-        title: relationshipHistoryTitle(item, t),
-        detail: relationshipHistoryDetail(item, t),
+        kind: relationshipTimelineKindLabel(item, t),
+        title: relationshipTimelineTitle(item, t),
+        detail: relationshipTimelineDetail(item, t),
         cardPayload,
         sampleApplication,
       };
     });
 }
 
-function relationshipHistoryKindLabel(
-  item: GQL.AffiliateRelationshipHistoryItem,
+function relationshipTimelineKindLabel(
+  item: GQL.AffiliateRelationshipTimelineItem,
   t: ReturnType<typeof useTranslation>["t"],
 ): string {
-  const actorKey = relationshipHistoryActorRoleKey(item.actorRole ?? item.lifecycleEvent?.actorRole);
+  if (item.kind === GQL.AffiliateRelationshipTimelineItemKind.TimePassed) {
+    return t("ecommerce.affiliateWorkspace.timePassed", { defaultValue: "Time passed" });
+  }
+  const event = item.businessEvent ?? item.actionEvent;
+  const actorKey = relationshipHistoryActorRoleKey(item.actorRole ?? event?.actorRole);
   return t(`ecommerce.affiliateWorkspace.historyActors.${actorKey}`, {
     defaultValue: formatAffiliateEnumLabel(actorKey),
   });
 }
 
-function relationshipHistoryTitle(
-  item: GQL.AffiliateRelationshipHistoryItem,
+function relationshipTimelineTitle(
+  item: GQL.AffiliateRelationshipTimelineItem,
   t: ReturnType<typeof useTranslation>["t"],
 ): string {
   if (item.message) {
@@ -2999,16 +3005,23 @@ function relationshipHistoryTitle(
     const channel = relationshipMessageChannelLabel(item.message, t);
     return [channel, direction].filter(Boolean).join(" · ");
   }
-  if (item.lifecycleEvent) {
-    return t(`ecommerce.affiliateWorkspace.lifecycleEvents.${item.lifecycleEvent.eventType}`, {
-      defaultValue: formatAffiliateEnumLabel(item.lifecycleEvent.eventType),
+  if (item.timePassed) {
+    return t("ecommerce.affiliateWorkspace.timePassedDuration", {
+      defaultValue: "{{duration}} passed",
+      duration: relationshipTimelineDuration(item.timePassed.durationSeconds, t),
+    });
+  }
+  const event = item.businessEvent ?? item.actionEvent;
+  if (event) {
+    return t(`ecommerce.affiliateWorkspace.lifecycleEvents.${event.eventType}`, {
+      defaultValue: formatAffiliateEnumLabel(event.eventType),
     });
   }
   return item.summary;
 }
 
-function relationshipHistoryDetail(
-  item: GQL.AffiliateRelationshipHistoryItem,
+function relationshipTimelineDetail(
+  item: GQL.AffiliateRelationshipTimelineItem,
   t: ReturnType<typeof useTranslation>["t"],
 ): string {
   const lines: string[] = [];
@@ -3016,32 +3029,14 @@ function relationshipHistoryDetail(
   if (item.message?.textPreview && !parsePlatformCardPayload(item.message.textPreview)) {
     lines.push(item.message.textPreview);
   }
-  if (item.message?.deliveryStatus) {
-    const selection = item.message.channelSelectionSource
-      ? t(`ecommerce.affiliateWorkspace.deliverySelection.${item.message.channelSelectionSource}`, {
-          defaultValue: formatAffiliateEnumLabel(item.message.channelSelectionSource),
-        })
-      : "—";
-    lines.push(t("ecommerce.affiliateWorkspace.deliveryAudit", {
-      defaultValue: "{{selection}} · selected {{preferred}} · actual {{actual}} · {{status}}",
-      selection,
-      preferred: item.message.preferredChannel
-        ? formatAffiliateEnumLabel(item.message.preferredChannel)
-        : "—",
-      actual: item.message.actualChannel
-        ? formatAffiliateEnumLabel(item.message.actualChannel)
-        : "—",
-      status: formatAffiliateEnumLabel(item.message.deliveryStatus),
+  const event = item.businessEvent ?? item.actionEvent;
+  if (event?.displaySummary) lines.push(event.displaySummary);
+  if (item.timePassed) {
+    lines.push(t("ecommerce.affiliateWorkspace.timePassedHint", {
+      defaultValue: "Elapsed time between timeline items; filtered-out events may exist.",
     }));
   }
-  if (item.message?.errorMessage) {
-    lines.push(t("ecommerce.affiliateWorkspace.deliveryFailure", {
-      defaultValue: "Delivery failed: {{error}}",
-      error: item.message.errorMessage,
-    }));
-  }
-  if (item.lifecycleEvent?.displaySummary) lines.push(item.lifecycleEvent.displaySummary);
-  if (!lines.length && item.summary && !item.lifecycleEvent) lines.push(item.summary);
+  if (!lines.length && item.summary && !event) lines.push(item.summary);
   const facts = [
     item.relatedIds.productId
       ? t("ecommerce.affiliateWorkspace.productIdShort", {
@@ -3055,6 +3050,32 @@ function relationshipHistoryDetail(
   ].filter((fact): fact is string => Boolean(fact));
   if (facts.length) lines.push(facts.join(" · "));
   return [...new Set(lines)].join("\n");
+}
+
+function relationshipTimelineDuration(
+  durationSeconds: number,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const totalHours = Math.max(Math.floor(durationSeconds / 3600), 1);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  if (days > 0 && hours > 0) {
+    return t("ecommerce.affiliateWorkspace.timePassedDaysHours", {
+      defaultValue: "{{days}}d {{hours}}h",
+      days,
+      hours,
+    });
+  }
+  if (days > 0) {
+    return t("ecommerce.affiliateWorkspace.timePassedDays", {
+      defaultValue: "{{days}}d",
+      days,
+    });
+  }
+  return t("ecommerce.affiliateWorkspace.timePassedHours", {
+    defaultValue: "{{hours}}h",
+    hours: totalHours,
+  });
 }
 
 function relationshipHistoryActorRoleKey(role?: GQL.AffiliateLifecycleActorRole | null): string {
@@ -3074,7 +3095,7 @@ function relationshipHistoryActorRoleKey(role?: GQL.AffiliateLifecycleActorRole 
 }
 
 function relationshipMessageChannelLabel(
-  message: GQL.AffiliateRelationshipHistoryMessageSummary,
+  message: GQL.AffiliateRelationshipTimelineMessage,
   t: ReturnType<typeof useTranslation>["t"],
 ): string {
   if (message.channel === GQL.AffiliateMessageChannel.PlatformChat) {
@@ -3088,8 +3109,8 @@ function relationshipMessageChannelLabel(
     });
 }
 
-function relationshipHistoryCardPayload(
-  item: GQL.AffiliateRelationshipHistoryItem,
+function relationshipTimelineCardPayload(
+  item: GQL.AffiliateRelationshipTimelineItem,
 ): AffiliateCreatorMessageRawCardPayload | null {
   if (item.message?.textPreview) return parsePlatformCardPayload(item.message.textPreview);
   return null;
@@ -3100,6 +3121,17 @@ function RelationshipTimelineEntry({
 }: {
   entry: RelationshipTimelineEntryModel;
 }) {
+  if (entry.type === "time-passed") {
+    return (
+      <div className="affiliate-timeline-time-passed" key={entry.id}>
+        <span className="affiliate-timeline-time-passed-line" aria-hidden="true" />
+        <span className="affiliate-timeline-time-passed-label" title={entry.detail}>
+          {entry.title}
+        </span>
+        <span className="affiliate-timeline-time-passed-line" aria-hidden="true" />
+      </div>
+    );
+  }
   const samplePayload = entry.cardPayload?.kind === "sample" && entry.cardPayload.id
     ? {
       platformApplicationId: entry.cardPayload.id,
@@ -3484,16 +3516,16 @@ function mergeAffiliateCreatorMessageHistoryItems(
   return [...merged.values()];
 }
 
-function mergeAffiliateRelationshipHistoryPayload(
-  previous: { affiliateRelationshipHistory: GQL.AffiliateRelationshipHistoryPayload },
-  next: { affiliateRelationshipHistory: GQL.AffiliateRelationshipHistoryPayload },
-): { affiliateRelationshipHistory: GQL.AffiliateRelationshipHistoryPayload } {
+function mergeAffiliateRelationshipTimelinePayload(
+  previous: { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
+  next: { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
+): { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload } {
   return {
-    affiliateRelationshipHistory: {
-      ...next.affiliateRelationshipHistory,
+    affiliateRelationshipTimeline: {
+      ...next.affiliateRelationshipTimeline,
       items: mergeById([
-        ...previous.affiliateRelationshipHistory.items,
-        ...next.affiliateRelationshipHistory.items,
+        ...previous.affiliateRelationshipTimeline.items,
+        ...next.affiliateRelationshipTimeline.items,
       ]).sort((left, right) =>
         new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
       ),
@@ -5313,13 +5345,13 @@ function CreatorRelationshipDetailModal({
     }
   }
   const {
-    data: relationshipHistoryData,
-    loading: relationshipHistoryLoading,
-    fetchMore: fetchMoreRelationshipHistory,
+    data: relationshipTimelineData,
+    loading: relationshipTimelineLoading,
+    fetchMore: fetchMoreRelationshipTimeline,
   } = useQuery<
-    { affiliateRelationshipHistory: GQL.AffiliateRelationshipHistoryPayload },
-    { input: GQL.AffiliateRelationshipHistoryInput }
-  >(AFFILIATE_RELATIONSHIP_HISTORY_QUERY, {
+    { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
+    { input: GQL.AffiliateRelationshipTimelineInput }
+  >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
     variables: {
       input: {
         shopId: messageShopId ?? "",
@@ -5330,8 +5362,8 @@ function CreatorRelationshipDetailModal({
     fetchPolicy: "cache-and-network",
     skip: !relationshipId || !messageShopId,
   });
-  const relationshipHistory = relationshipHistoryData?.affiliateRelationshipHistory;
-  const canLoadOlderActivity = Boolean(relationshipHistory?.hasMore && relationshipHistory.nextOffset != null);
+  const relationshipTimeline = relationshipTimelineData?.affiliateRelationshipTimeline;
+  const canLoadOlderActivity = Boolean(relationshipTimeline?.hasOlder && relationshipTimeline.olderCursor);
   const relationshipSampleApplications = mergeById([
     ...workItems.flatMap((workItem) => [
       ...(workItem.primarySampleApplication ? [workItem.primarySampleApplication] : []),
@@ -5368,8 +5400,8 @@ function CreatorRelationshipDetailModal({
       const proposalRecordId = proposal.collaborationRecord?.id ?? proposal.collaborationRecordId ?? null;
       return proposalRecordId === record.id;
     });
-  const activityEntries = buildRelationshipHistoryTimelineEntries(
-    relationshipHistory?.items ?? [],
+  const activityEntries = buildRelationshipTimelineEntries(
+    relationshipTimeline?.items ?? [],
     relationshipSampleApplications,
     t,
   );
@@ -5433,20 +5465,20 @@ function CreatorRelationshipDetailModal({
   }
 
   function loadOlderActivity(): void {
-    if (!relationshipHistory?.hasMore || relationshipHistory.nextOffset == null || !relationshipId || !messageShopId) return;
+    if (!relationshipTimeline?.hasOlder || !relationshipTimeline.olderCursor || !relationshipId || !messageShopId) return;
     activityLoadedOlderRef.current = true;
-    void fetchMoreRelationshipHistory({
+    void fetchMoreRelationshipTimeline({
       variables: {
         input: {
           shopId: messageShopId,
           creatorRelationshipId: relationshipId,
           limit: AFFILIATE_TIMELINE_PAGE_SIZE,
-          offset: relationshipHistory.nextOffset,
+          cursor: relationshipTimeline.olderCursor,
         },
       },
       updateQuery: (previous, { fetchMoreResult }) => {
         if (!fetchMoreResult) return previous;
-        return mergeAffiliateRelationshipHistoryPayload(previous, fetchMoreResult);
+        return mergeAffiliateRelationshipTimelinePayload(previous, fetchMoreResult);
       },
     });
   }
@@ -5824,15 +5856,15 @@ function CreatorRelationshipDetailModal({
                     <button
                       className="btn btn-secondary affiliate-conversation-load-more"
                       type="button"
-                      disabled={relationshipHistoryLoading}
+                      disabled={relationshipTimelineLoading}
                       onClick={loadOlderActivity}
                     >
-                      {relationshipHistoryLoading
+                      {relationshipTimelineLoading
                         ? t("common.loading")
                         : t("ecommerce.affiliateWorkspace.activity.loadOlder")}
                     </button>
                   ) : null}
-                  {relationshipHistoryLoading && activityEntries.length === 0 ? (
+                  {relationshipTimelineLoading && activityEntries.length === 0 ? (
                     <div className="affiliate-proposal-empty">{t("common.loading")}</div>
                   ) : activityEntries.length > 0 ? (
                     activityEntries.map((entry) => (

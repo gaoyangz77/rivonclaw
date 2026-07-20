@@ -885,7 +885,7 @@ export interface AffiliateContextBuilderPayload {
   businessDeveloperConfigRevision?: Maybe<Scalars['Int']['output']>;
   businessDeveloperIdSnapshot?: Maybe<Scalars['ID']['output']>;
   creatorRelationship: AffiliateCreatorRelationship;
-  events: Array<AffiliateRelationshipHistoryItem>;
+  events: Array<AffiliateRelationshipTimelineItem>;
   relationshipOperationalConfigRevision: Scalars['Int']['output'];
   targetEventCursor: Scalars['Int']['output'];
   truncated: Scalars['Boolean']['output'];
@@ -1502,6 +1502,7 @@ export const AffiliateLifecycleEntityType = {
   AffiliateCreatorIdentity: 'AFFILIATE_CREATOR_IDENTITY',
   AffiliateCreatorProtectionIntent: 'AFFILIATE_CREATOR_PROTECTION_INTENT',
   AffiliateCreatorRelationship: 'AFFILIATE_CREATOR_RELATIONSHIP',
+  AffiliateMessageDelivery: 'AFFILIATE_MESSAGE_DELIVERY',
   CampaignProduct: 'CAMPAIGN_PRODUCT',
   CreatorCandidate: 'CREATOR_CANDIDATE',
   CreatorSearchRun: 'CREATOR_SEARCH_RUN',
@@ -1527,6 +1528,8 @@ export const AffiliateLifecycleEventType = {
   ChannelContactUpdated: 'CHANNEL_CONTACT_UPDATED',
   CollaborationClosed: 'COLLABORATION_CLOSED',
   CollaborationCreated: 'COLLABORATION_CREATED',
+  CollaborationFirstObserved: 'COLLABORATION_FIRST_OBSERVED',
+  CollaborationTerminalStateFirstObserved: 'COLLABORATION_TERMINAL_STATE_FIRST_OBSERVED',
   ContentDetected: 'CONTENT_DETECTED',
   CreatorProtectionIntentImported: 'CREATOR_PROTECTION_INTENT_IMPORTED',
   MessageReceived: 'MESSAGE_RECEIVED',
@@ -1545,8 +1548,10 @@ export const AffiliateLifecycleEventType = {
   RelationshipContactUpdated: 'RELATIONSHIP_CONTACT_UPDATED',
   SampleApplicationApproved: 'SAMPLE_APPLICATION_APPROVED',
   SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
+  SampleApplicationFirstObserved: 'SAMPLE_APPLICATION_FIRST_OBSERVED',
   SampleApplicationRejected: 'SAMPLE_APPLICATION_REJECTED',
   SampleApplicationSubmitted: 'SAMPLE_APPLICATION_SUBMITTED',
+  SampleApplicationTerminalStateFirstObserved: 'SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED',
   SampleDelivered: 'SAMPLE_DELIVERED',
   SampleDeliveryFailed: 'SAMPLE_DELIVERY_FAILED',
   SampleShipped: 'SAMPLE_SHIPPED',
@@ -1908,92 +1913,6 @@ export const AffiliateRelationshipAiEngagementStatus = {
 } as const;
 
 export type AffiliateRelationshipAiEngagementStatus = typeof AffiliateRelationshipAiEngagementStatus[keyof typeof AffiliateRelationshipAiEngagementStatus];
-export interface AffiliateRelationshipHistoryInput {
-  /** CreatorRelationship business boundary. Relationship history is merged across channels and affiliate operational collections. */
-  creatorRelationshipId: Scalars['ID']['input'];
-  endAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  shopId: Scalars['ID']['input'];
-  startAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  /** Optional event type filter. Empty or omitted means all supported relationship timeline events. */
-  types?: InputMaybe<Array<AffiliateRelationshipHistoryType>>;
-}
-
-export interface AffiliateRelationshipHistoryItem {
-  actorRole?: Maybe<AffiliateLifecycleActorRole>;
-  actorType?: Maybe<AffiliateLifecycleActorType>;
-  id: Scalars['ID']['output'];
-  lifecycleEvent?: Maybe<AffiliateRelationshipHistoryLifecycleEventSummary>;
-  message?: Maybe<AffiliateRelationshipHistoryMessageSummary>;
-  occurredAt: Scalars['DateTimeISO']['output'];
-  relatedIds: AffiliateRelationshipHistoryRelatedIds;
-  summary: Scalars['String']['output'];
-  type: AffiliateRelationshipHistoryType;
-}
-
-export interface AffiliateRelationshipHistoryLifecycleEventSummary {
-  actorRole?: Maybe<AffiliateLifecycleActorRole>;
-  decisionRelevant: Scalars['Boolean']['output'];
-  displayPayloadJson?: Maybe<Scalars['String']['output']>;
-  displaySummary?: Maybe<Scalars['String']['output']>;
-  entityId: Scalars['ID']['output'];
-  entityType: AffiliateLifecycleEntityType;
-  eventType: AffiliateLifecycleEventType;
-  fromStage?: Maybe<AffiliateLifecycleStage>;
-  lifecycleEventId: Scalars['ID']['output'];
-  relationshipSequence?: Maybe<Scalars['Int']['output']>;
-  toStage?: Maybe<AffiliateLifecycleStage>;
-}
-
-export interface AffiliateRelationshipHistoryMessageSummary {
-  accountLabel?: Maybe<Scalars['String']['output']>;
-  actualChannel?: Maybe<AffiliateMessageChannel>;
-  channel: AffiliateMessageChannel;
-  channelLabel?: Maybe<Scalars['String']['output']>;
-  channelSelectionSource?: Maybe<AffiliateDeliveryChannelSelectionSource>;
-  deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
-  direction?: Maybe<AffiliateCreatorMessageDirection>;
-  errorMessage?: Maybe<Scalars['String']['output']>;
-  messageRef?: Maybe<Scalars['String']['output']>;
-  messageType?: Maybe<Scalars['String']['output']>;
-  parts?: Maybe<Array<AffiliateHistoryPart>>;
-  preferredChannel?: Maybe<AffiliateMessageChannel>;
-  shopName?: Maybe<Scalars['String']['output']>;
-  subject?: Maybe<Scalars['String']['output']>;
-  textPreview?: Maybe<Scalars['String']['output']>;
-}
-
-export interface AffiliateRelationshipHistoryPayload {
-  creatorRelationship: AffiliateCreatorRelationship;
-  hasMore: Scalars['Boolean']['output'];
-  items: Array<AffiliateRelationshipHistoryItem>;
-  limit: Scalars['Int']['output'];
-  nextOffset?: Maybe<Scalars['Int']['output']>;
-  offset: Scalars['Int']['output'];
-}
-
-export interface AffiliateRelationshipHistoryRelatedIds {
-  actionProposalId?: Maybe<Scalars['ID']['output']>;
-  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
-  creatorId?: Maybe<Scalars['ID']['output']>;
-  lifecycleEventId?: Maybe<Scalars['ID']['output']>;
-  platformApplicationId?: Maybe<Scalars['String']['output']>;
-  productId?: Maybe<Scalars['String']['output']>;
-  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
-  shopId?: Maybe<Scalars['ID']['output']>;
-}
-
-/** CreatorRelationship event timeline type. Entity snapshots belong to workspace/detail APIs, not history. */
-export const AffiliateRelationshipHistoryType = {
-  EmailMessage: 'EMAIL_MESSAGE',
-  LifecycleEvent: 'LIFECYCLE_EVENT',
-  MessageDelivery: 'MESSAGE_DELIVERY',
-  PlatformChatMessage: 'PLATFORM_CHAT_MESSAGE',
-  WhatsappMessage: 'WHATSAPP_MESSAGE'
-} as const;
-
-export type AffiliateRelationshipHistoryType = typeof AffiliateRelationshipHistoryType[keyof typeof AffiliateRelationshipHistoryType];
 /** CreatorRelationship agenda owner state. This is relationship-level and should not encode sample or collaboration lifecycle details. */
 export const AffiliateRelationshipProcessingStatus = {
   AgentRequired: 'AGENT_REQUIRED',
@@ -2138,6 +2057,104 @@ export const AffiliateRelationshipSignalType = {
 } as const;
 
 export type AffiliateRelationshipSignalType = typeof AffiliateRelationshipSignalType[keyof typeof AffiliateRelationshipSignalType];
+export interface AffiliateRelationshipTimelineEvent {
+  actorRole?: Maybe<AffiliateLifecycleActorRole>;
+  decisionRelevant: Scalars['Boolean']['output'];
+  displaySummary?: Maybe<Scalars['String']['output']>;
+  entityId: Scalars['ID']['output'];
+  entityType: AffiliateLifecycleEntityType;
+  eventType: AffiliateLifecycleEventType;
+  fromStage?: Maybe<AffiliateLifecycleStage>;
+  lifecycleEventId: Scalars['ID']['output'];
+  relationshipSequence?: Maybe<Scalars['Int']['output']>;
+  toStage?: Maybe<AffiliateLifecycleStage>;
+}
+
+export interface AffiliateRelationshipTimelineInput {
+  after?: InputMaybe<Scalars['Int']['input']>;
+  /** Optional item/message/time anchor for reading a bounded window around one timeline point. */
+  anchor?: InputMaybe<AffiliateTimelineAnchorInput>;
+  before?: InputMaybe<Scalars['Int']['input']>;
+  /** Optional message-channel filter. It applies only to MESSAGE items. */
+  channels?: InputMaybe<Array<AffiliateMessageChannel>>;
+  /** CreatorRelationship business boundary. Messages and immutable relationship events are merged chronologically. */
+  creatorRelationshipId: Scalars['ID']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  endAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Optional lifecycle-event filter. It applies to BUSINESS_EVENT and ACTION_EVENT items. */
+  eventTypes?: InputMaybe<Array<AffiliateLifecycleEventType>>;
+  /** Optional multi-select category filter. Empty or omitted means all real item types. */
+  itemTypes?: InputMaybe<Array<AffiliateRelationshipTimelineItemType>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId: Scalars['ID']['input'];
+  startAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+}
+
+export interface AffiliateRelationshipTimelineItem {
+  actionEvent?: Maybe<AffiliateRelationshipTimelineEvent>;
+  actorRole?: Maybe<AffiliateLifecycleActorRole>;
+  actorType?: Maybe<AffiliateLifecycleActorType>;
+  businessEvent?: Maybe<AffiliateRelationshipTimelineEvent>;
+  id: Scalars['ID']['output'];
+  kind: AffiliateRelationshipTimelineItemKind;
+  message?: Maybe<AffiliateRelationshipTimelineMessage>;
+  occurredAt: Scalars['DateTimeISO']['output'];
+  relatedIds: AffiliateRelationshipTimelineRelatedIds;
+  summary: Scalars['String']['output'];
+  timePassed?: Maybe<AffiliateTimelineTimePassed>;
+}
+
+/** Returned timeline item kind, including response-only temporal markers. */
+export const AffiliateRelationshipTimelineItemKind = {
+  ActionEvent: 'ACTION_EVENT',
+  BusinessEvent: 'BUSINESS_EVENT',
+  Message: 'MESSAGE',
+  TimePassed: 'TIME_PASSED'
+} as const;
+
+export type AffiliateRelationshipTimelineItemKind = typeof AffiliateRelationshipTimelineItemKind[keyof typeof AffiliateRelationshipTimelineItemKind];
+/** Real item categories selectable in a CreatorRelationship timeline read. */
+export const AffiliateRelationshipTimelineItemType = {
+  ActionEvent: 'ACTION_EVENT',
+  BusinessEvent: 'BUSINESS_EVENT',
+  Message: 'MESSAGE'
+} as const;
+
+export type AffiliateRelationshipTimelineItemType = typeof AffiliateRelationshipTimelineItemType[keyof typeof AffiliateRelationshipTimelineItemType];
+export interface AffiliateRelationshipTimelineMessage {
+  accountLabel?: Maybe<Scalars['String']['output']>;
+  channel: AffiliateMessageChannel;
+  channelLabel?: Maybe<Scalars['String']['output']>;
+  direction?: Maybe<AffiliateCreatorMessageDirection>;
+  messageRef?: Maybe<Scalars['String']['output']>;
+  messageType?: Maybe<Scalars['String']['output']>;
+  parts?: Maybe<Array<AffiliateHistoryPart>>;
+  shopName?: Maybe<Scalars['String']['output']>;
+  subject?: Maybe<Scalars['String']['output']>;
+  textPreview?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateRelationshipTimelinePayload {
+  creatorRelationship: AffiliateCreatorRelationship;
+  hasOlder: Scalars['Boolean']['output'];
+  items: Array<AffiliateRelationshipTimelineItem>;
+  limit: Scalars['Int']['output'];
+  olderCursor?: Maybe<Scalars['String']['output']>;
+  readAt: Scalars['DateTimeISO']['output'];
+  realItemCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateRelationshipTimelineRelatedIds {
+  actionProposalId?: Maybe<Scalars['ID']['output']>;
+  collaborationRecordId?: Maybe<Scalars['ID']['output']>;
+  creatorId?: Maybe<Scalars['ID']['output']>;
+  lifecycleEventId?: Maybe<Scalars['ID']['output']>;
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  shopId?: Maybe<Scalars['ID']['output']>;
+}
+
 export interface AffiliateRelationshipWorkSummary {
   activeCollaborationCount: Scalars['Int']['output'];
   agentRequiredCount: Scalars['Int']['output'];
@@ -2245,6 +2262,26 @@ export const AffiliateStaffCollaborationResolutionAction = {
 } as const;
 
 export type AffiliateStaffCollaborationResolutionAction = typeof AffiliateStaffCollaborationResolutionAction[keyof typeof AffiliateStaffCollaborationResolutionAction];
+export interface AffiliateTimelineAnchorInput {
+  itemId?: InputMaybe<Scalars['ID']['input']>;
+  messageRef?: InputMaybe<Scalars['String']['input']>;
+  occurredAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+}
+
+export interface AffiliateTimelineTimePassed {
+  basis: AffiliateTimelineTimePassedBasis;
+  durationHuman: Scalars['String']['output'];
+  durationSeconds: Scalars['Float']['output'];
+  fromAt: Scalars['DateTimeISO']['output'];
+  toAt: Scalars['DateTimeISO']['output'];
+}
+
+export const AffiliateTimelineTimePassedBasis = {
+  BetweenReturnedItems: 'BETWEEN_RETURNED_ITEMS',
+  UntilCurrentRead: 'UNTIL_CURRENT_READ'
+} as const;
+
+export type AffiliateTimelineTimePassedBasis = typeof AffiliateTimelineTimePassedBasis[keyof typeof AffiliateTimelineTimePassedBasis];
 export interface AffiliateWhatsAppMessagesInput {
   /** CreatorRelationship business boundary. This legacy WhatsApp-only read path is still relationship-scoped and does not accept creator/profile fallback keys. */
   creatorRelationshipId: Scalars['ID']['input'];
@@ -8153,8 +8190,8 @@ export interface Query {
   affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatusPayload;
   /** Agent-facing expected-sales fit check for a candidate affiliate creator-product pair. This wraps affiliateExpectedSalesPredictions without mutating collaboration product context. */
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
-  /** Read a merged CreatorRelationship history timeline with lightweight typed summaries. */
-  affiliateRelationshipHistory: AffiliateRelationshipHistoryPayload;
+  /** Read a Provider-backed CreatorRelationship timeline ordered by business occurredAt. */
+  affiliateRelationshipTimeline: AffiliateRelationshipTimelinePayload;
   affiliateSampleApplicationState: AffiliateSampleApplicationStatePayload;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
@@ -8501,8 +8538,8 @@ export interface QueryAffiliatePredictCreatorProductFitArgs {
 }
 
 
-export interface QueryAffiliateRelationshipHistoryArgs {
-  input: AffiliateRelationshipHistoryInput;
+export interface QueryAffiliateRelationshipTimelineArgs {
+  input: AffiliateRelationshipTimelineInput;
 }
 
 
@@ -10377,7 +10414,7 @@ export const ToolId = {
   AffiliateGetCollaboration: 'AFFILIATE_GET_COLLABORATION',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetCreatorRelationship: 'AFFILIATE_GET_CREATOR_RELATIONSHIP',
-  AffiliateGetRelationshipHistory: 'AFFILIATE_GET_RELATIONSHIP_HISTORY',
+  AffiliateGetRelationshipTimeline: 'AFFILIATE_GET_RELATIONSHIP_TIMELINE',
   AffiliateGetSampleApplication: 'AFFILIATE_GET_SAMPLE_APPLICATION',
   AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
   AffiliateListCreatorSampleApplications: 'AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS',

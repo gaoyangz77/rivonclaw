@@ -29,7 +29,7 @@ const DELETION_MUTATION_MAP: Record<string, string> = {
 const TOOLSPECS_OP_NAME = "ToolSpecsSync";
 const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
 const AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME = "AffiliatePredictCreatorProductFit";
-const AFFILIATE_RELATIONSHIP_HISTORY_OP_NAME = "AffiliateRelationshipHistory";
+const AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME = "AffiliateRelationshipTimeline";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
 
 function extractOperationName(query: string): string | null {
@@ -84,7 +84,7 @@ function sanitizeCloudGraphqlVariables(
 ): Record<string, unknown> | undefined {
   if (
     variables &&
-    (opName === AFFILIATE_RELATIONSHIP_HISTORY_OP_NAME || query.includes("affiliateRelationshipHistory"))
+    (opName === AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME || query.includes("affiliateRelationshipTimeline"))
   ) {
     const input = asRecord(variables.input);
     if (input) {
@@ -103,7 +103,7 @@ function sanitizeCloudGraphqlVariables(
         }
       }
       if (changed) {
-        log.info("Normalized affiliate relationship history date range before proxying to backend");
+        log.info("Normalized affiliate relationship timeline date range before proxying to backend");
         return {
           ...variables,
           input: normalizedInput,

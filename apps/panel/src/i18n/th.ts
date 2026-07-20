@@ -1737,7 +1737,7 @@ export default {
         "AFFILIATE_GET_CREATOR_RELATIONSHIP": "ดูความสัมพันธ์กับครีเอเตอร์",
         "AFFILIATE_GET_COLLABORATION": "ดูความร่วมมือ",
         "AFFILIATE_GET_SAMPLE_APPLICATION": "ดูคำขอตัวอย่าง",
-        "AFFILIATE_GET_RELATIONSHIP_HISTORY": "ดูประวัติความสัมพันธ์ครีเอเตอร์",
+        "AFFILIATE_GET_RELATIONSHIP_TIMELINE": "ดูไทม์ไลน์ความสัมพันธ์ครีเอเตอร์",
         "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "แสดงความร่วมมือของครีเอเตอร์",
         "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "แสดงคำขอตัวอย่างของครีเอเตอร์",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "อ่านไฟล์แนบข้อความครีเอเตอร์",

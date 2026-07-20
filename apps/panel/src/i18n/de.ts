@@ -1737,7 +1737,7 @@ export default {
         "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Creator-Beziehung abrufen",
         "AFFILIATE_GET_COLLABORATION": "Zusammenarbeit abrufen",
         "AFFILIATE_GET_SAMPLE_APPLICATION": "Musterantrag abrufen",
-        "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Creator-Beziehungsverlauf abrufen",
+        "AFFILIATE_GET_RELATIONSHIP_TIMELINE": "Creator-Beziehungszeitleiste abrufen",
         "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Creator-Zusammenarbeiten auflisten",
         "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Creator-Musteranträge auflisten",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Creator-Nachrichtenanhang lesen",

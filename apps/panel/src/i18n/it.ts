@@ -1737,7 +1737,7 @@ export default {
         "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Ottieni relazione creator",
         "AFFILIATE_GET_COLLABORATION": "Ottieni collaborazione",
         "AFFILIATE_GET_SAMPLE_APPLICATION": "Ottieni richiesta campione",
-        "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Ottieni cronologia relazione creator",
+        "AFFILIATE_GET_RELATIONSHIP_TIMELINE": "Ottieni la timeline della relazione creator",
         "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Elenca collaborazioni creator",
         "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Elenca richieste campione creator",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Leggi allegato del messaggio del creator",
