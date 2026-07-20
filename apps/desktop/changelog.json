@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.76",
+    "date": "2026-07-20",
+    "en": [
+      "Add interactive Feishu escalation responses and recover merged-forward quoted cards",
+      "Unify affiliate relationship timelines and keep pending proposals out of agent context",
+      "Improve affiliate proposal revision dispatch and queued checkpoint recovery"
+    ],
+    "zh": [
+      "新增飞书升级的交互式响应，并恢复合并转发引用卡片",
+      "统一达人关系时间线，并将待处理 proposal 排除在 agent 上下文之外",
+      "优化达人 proposal 修改派发和队列 checkpoint 恢复"
+    ]
+  },
+  {
     "version": "1.8.75",
     "date": "2026-07-17",
     "en": [
