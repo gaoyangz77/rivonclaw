@@ -740,7 +740,7 @@ Business conversation / thread
 Provider API
   -> GraphQL on-the-fly read
   -> Desktop relationship chat pagination
-  -> Agent relationship history tool
+  -> Agent relationship timeline tool
 
 Provider API
   -> ecommerce.affiliate.history_core
@@ -756,7 +756,13 @@ MongoDB
   -> no platform/WhatsApp/email message document
 ```
 
-`affiliateCreatorMessageHistory` 与 `affiliate_get_relationship_history` 不读取 Mongo message collection。它们从 relationship 上的 technical routes 和 contacts 解析 provider，再在服务端分页、合并和隐藏 raw conversation id。
+`affiliateCreatorMessageHistory` 与 `affiliate_get_relationship_timeline` 不读取 Mongo message collection。它们从 relationship 上的 technical routes 和 contacts 解析 provider，再在服务端分页、合并和隐藏 raw conversation id。前者是 Panel 内部的纯消息读取面；Agent 只使用后者，并可通过 `itemTypes=[MESSAGE]` 请求纯消息视图。
+
+Relationship Timeline 将 Provider 消息、不可变商业事件和系统动作终态按业务 `occurredAt` 合并。它不返回 Sample、Collaboration、Delivery 或 Proposal 的可变快照。消息正文仍以 Provider 为在线 source of truth；MySQL Data Warehouse 可以长期保留正文用于分析，但不是 OLTP fallback。
+
+当相邻返回项目之间，或最新项目与当前读取之间存在显著时间间隔时，响应层动态插入 `TIME_PASSED`。该 marker 不落库、不参与分页数量、不触发 dispatch、也不推进 checkpoint。它只让时间经过变得显眼，不定义固定 freshness TTL；Agent 根据任务和可变状态自行决定是否调用具体 current-state 工具。
+
+Agent-facing item 只暴露 `occurredAt`。Mongo `createdAt` 仅表示系统写入时间，不进入 Agent 时间线。Provider 缺少可靠原始发生时间时，系统必须记录 `*_FIRST_OBSERVED`，不得把同步时间伪装成提交或状态变更时间。
 
 `ecommerce.affiliate.history_core` 负责持续归档；`ecommerce.affiliate.history_catchup` 是新店首次全量补齐入口。watermark 只表示历史 pipeline 已完成到哪个扫描边界，不替代 provider message id 的幂等键。
 
@@ -1401,7 +1407,7 @@ whatsappChatId=...
 因此 Agent 看到的聊天历史是这样的业务事实流：
 
 ```text
-CreatorRelationship history
+CreatorRelationship timeline
   message A: channel=WHATSAPP, shop=none, text=...
   message B: channel=PLATFORM_CHAT, shop=6号, text=...
   message C: channel=EMAIL, shop=none, text=...
@@ -2151,7 +2157,7 @@ Affiliate Agent context is intentionally split into two layers:
 
 Desktop must not prefetch Creator profiles, collaboration snapshots, product facts, predictions, proposal deltas, lifecycle-event deltas, contact accounts, or message bodies into a dispatch turn. The Agent reads facts on demand:
 
-- `affiliate_get_relationship_history`: Provider-backed communication plus relationship audit history.
+- `affiliate_get_relationship_timeline`: occurredAt-ordered Provider messages plus immutable business/action events. It returns every real item type by default and accepts a multi-select `itemTypes` filter. Response-only `TIME_PASSED` markers expose material elapsed time without deciding freshness for the Agent.
 - `affiliate_get_creator_relationship`: current Relationship、Creator profile 与 assigned BD；不返回任何 proposal。普通 `PENDING` proposal 只属于人工审批界面，`REVISION_REQUESTED` proposal 则作为下一次 dispatch 的直接原因，由对应 Agent Working Agenda item 携带审核意见和冻结草稿。
 - `affiliate_get_collaboration`: one explicitly identified current collaboration record and its linked sample records.
 - `affiliate_get_sample_application`: one explicitly identified current Mongo sample record.

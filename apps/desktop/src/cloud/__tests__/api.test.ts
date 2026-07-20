@@ -833,10 +833,10 @@ describe("cloud-graphql handler", () => {
     ]);
   });
 
-  it("drops empty optional date ranges from anonymous affiliate history queries", async () => {
+  it("drops empty optional date ranges from anonymous affiliate timeline queries", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
-      affiliateRelationshipHistory: {
-        messages: [],
+      affiliateRelationshipTimeline: {
+        items: [],
       },
     });
     const ctx = {
@@ -847,9 +847,9 @@ describe("cloud-graphql handler", () => {
     } as unknown as ApiContext;
 
     const query = `
-      query($input: AffiliateRelationshipHistoryInput!) {
-        affiliateRelationshipHistory(input: $input) {
-          messages
+      query AffiliateRelationshipTimeline($input: AffiliateRelationshipTimelineInput!) {
+        affiliateRelationshipTimeline(input: $input) {
+          items { id }
         }
       }
     `;
@@ -863,7 +863,6 @@ describe("cloud-graphql handler", () => {
           startAt: null,
           endAt: "",
           limit: 20,
-          offset: 0,
         },
       },
     });
@@ -875,7 +874,6 @@ describe("cloud-graphql handler", () => {
         shopId: "shop-1",
         creatorRelationshipId: "relationship-1",
         limit: 20,
-        offset: 0,
       },
     });
   });

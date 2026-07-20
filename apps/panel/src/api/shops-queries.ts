@@ -1617,16 +1617,17 @@ export const DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
   }
 `;
 
-export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = gql`
-  query AffiliateRelationshipHistory($input: AffiliateRelationshipHistoryInput!) {
-    affiliateRelationshipHistory(input: $input) {
+export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
+  query AffiliateRelationshipTimeline($input: AffiliateRelationshipTimelineInput!) {
+    affiliateRelationshipTimeline(input: $input) {
       limit
-      offset
-      hasMore
-      nextOffset
+      readAt
+      realItemCount
+      hasOlder
+      olderCursor
       items {
         id
-        type
+        kind
         occurredAt
         actorType
         actorRole
@@ -1666,17 +1667,12 @@ export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = gql`
             summary
           }
           messageType
-          deliveryStatus
-          preferredChannel
-          actualChannel
-          channelSelectionSource
-          errorMessage
           subject
           channelLabel
           shopName
           accountLabel
         }
-        lifecycleEvent {
+        businessEvent {
           lifecycleEventId
           eventType
           entityType
@@ -1685,6 +1681,23 @@ export const AFFILIATE_RELATIONSHIP_HISTORY_QUERY = gql`
           toStage
           actorRole
           displaySummary
+        }
+        actionEvent {
+          lifecycleEventId
+          eventType
+          entityType
+          entityId
+          fromStage
+          toStage
+          actorRole
+          displaySummary
+        }
+        timePassed {
+          fromAt
+          toAt
+          durationSeconds
+          durationHuman
+          basis
         }
       }
     }

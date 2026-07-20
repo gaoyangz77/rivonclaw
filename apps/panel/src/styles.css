@@ -22822,6 +22822,26 @@ html[lang="zh"] .acct-tool-chips {
   margin-top: 10px;
 }
 
+.affiliate-timeline-time-passed {
+  display: grid;
+  grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 3px 2px 7px;
+}
+
+.affiliate-timeline-time-passed-line {
+  height: 1px;
+  background: var(--color-border-light);
+}
+
+.affiliate-timeline-time-passed-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
 .affiliate-conversation-preview {
   display: flex;
   flex-direction: column;
