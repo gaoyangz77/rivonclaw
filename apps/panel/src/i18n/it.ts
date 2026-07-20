@@ -1734,8 +1734,12 @@ export default {
         "CS_START_SESSION": "Avvia sessione",
         "ECOM_LIST_SHOPS": "Elenco negozi",
         "ECOM_GET_SHOP": "Ottieni il negozio",
-        "AFFILIATE_GET_WORKSPACE": "Ottieni uno spazio di lavoro di affiliazione",
+        "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Ottieni relazione creator",
+        "AFFILIATE_GET_COLLABORATION": "Ottieni collaborazione",
+        "AFFILIATE_GET_SAMPLE_APPLICATION": "Ottieni richiesta campione",
         "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Ottieni cronologia relazione creator",
+        "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Elenca collaborazioni creator",
+        "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Elenca richieste campione creator",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Leggi allegato del messaggio del creator",
         "AFFILIATE_COPY_MESSAGE_ATTACHMENT": "Copia allegato del messaggio del creator",
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Carica allegato bozza affiliato",
@@ -2447,6 +2451,7 @@ export default {
       }
     },
     "affiliateWorkspace": {
+      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "In attesa dell'evasione FBT" },
       "title": "Gestione degli affiliati",
       "subtitle": "Esamina le azioni in sospeso dell'agente per il lavoro del ciclo di vita del creatore.",
       "creatorsTitle": "Creator collaboratori",
@@ -3077,6 +3082,7 @@ export default {
         "DEFAULT": "Rivedi questa collaborazione"
       },
       "collaborationWorkDescriptions": {
+        "WAITING_FBT_SHIPMENT": "La richiesta di campione è approvata e TikTok FBT gestisce automaticamente la spedizione. Il personale non deve organizzarla.",
         "PROPOSAL_REVISION_REQUESTED": "Lo staff ha richiesto una raccomandazione rivista. La nota di revisione sarà inclusa nella prossima esecuzione dell'agente."
       },
       "sampleWorkStatusDescriptions": {

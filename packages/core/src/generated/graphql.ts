@@ -727,12 +727,6 @@ export interface AffiliateCollaboration {
   userId: Scalars['ID']['output'];
 }
 
-/** Authoritative source used for an Affiliate Creator collaboration-history lookup. */
-export const AffiliateCollaborationHistorySource = {
-  TiktokShopProvider: 'TIKTOK_SHOP_PROVIDER'
-} as const;
-
-export type AffiliateCollaborationHistorySource = typeof AffiliateCollaborationHistorySource[keyof typeof AffiliateCollaborationHistorySource];
 /** One creator-product collaboration attempt. If a creator promotes the same product twice, create two collaborations. */
 export interface AffiliateCollaborationRecord {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
@@ -818,6 +812,14 @@ export const AffiliateCollaborationRecordProcessingStatus = {
 } as const;
 
 export type AffiliateCollaborationRecordProcessingStatus = typeof AffiliateCollaborationRecordProcessingStatus[keyof typeof AffiliateCollaborationRecordProcessingStatus];
+/** Current Mongo control-plane state for one relationship-owned collaboration record. */
+export interface AffiliateCollaborationRecordStatePayload {
+  collaboration: AffiliateCollaborationRecord;
+  linkedSampleApplications: Array<SampleApplicationRecord>;
+  observedAt: Scalars['DateTimeISO']['output'];
+  source: AffiliateProviderReadSource;
+}
+
 /** The next concrete business action required for a creator collaboration. NONE means the processing status is purely waiting or terminal. */
 export const AffiliateCollaborationRequiredAction = {
   FollowUpCreator: 'FOLLOW_UP_CREATOR',
@@ -945,18 +947,22 @@ export const AffiliateCreatorChannelContactStatus = {
 } as const;
 
 export type AffiliateCreatorChannelContactStatus = typeof AffiliateCreatorChannelContactStatus[keyof typeof AffiliateCreatorChannelContactStatus];
-/** Provider-backed TikTok Shop collaboration and sample history for the Creator in the current seller Relationship. */
-export interface AffiliateCreatorCollaborationHistoryPayload {
+/** One TikTok target collaboration returned for the Creator, including its full Provider detail when an ID is available. */
+export interface AffiliateCreatorCollaborationListItem {
+  collaboration: EcomTargetCollaboration;
+  detail?: Maybe<EcomTargetCollaborationDetail>;
+  detailFetched: Scalars['Boolean']['output'];
+}
+
+/** Provider-backed TikTok Shop target collaborations for one CreatorRelationship. */
+export interface AffiliateCreatorCollaborationListPayload {
+  complete: Scalars['Boolean']['output'];
   creatorOpenId: Scalars['String']['output'];
+  detailsComplete: Scalars['Boolean']['output'];
+  items: Array<AffiliateCreatorCollaborationListItem>;
   observedAt: Scalars['DateTimeISO']['output'];
   queriedTargetCollaborationStatuses: Array<Scalars['String']['output']>;
-  sampleApplications: Array<AffiliateCreatorSampleHistoryItem>;
-  sampleApplicationsComplete: Scalars['Boolean']['output'];
-  sampleFulfillmentsComplete: Scalars['Boolean']['output'];
-  source: AffiliateCollaborationHistorySource;
-  targetCollaborationDetailsComplete: Scalars['Boolean']['output'];
-  targetCollaborations: Array<AffiliateCreatorTargetCollaborationHistoryItem>;
-  targetCollaborationsComplete: Scalars['Boolean']['output'];
+  source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
 }
 
@@ -1156,18 +1162,31 @@ export interface AffiliateCreatorRelationshipShopState {
   tagIds: Array<Scalars['ID']['output']>;
 }
 
+/** Current relationship, Creator profile, and BD configuration for Agent reads. Proposals are intentionally excluded; revision requests arrive through the working agenda. */
+export interface AffiliateCreatorRelationshipStatePayload {
+  businessDeveloper?: Maybe<AffiliateBusinessDeveloper>;
+  creatorProfile?: Maybe<AffiliateCreatorIdentity>;
+  observedAt: Scalars['DateTimeISO']['output'];
+  relationship: AffiliateCreatorRelationship;
+  source: AffiliateProviderReadSource;
+}
+
 /** One TikTok sample application and, when requested, its Provider-backed fulfillment/content history. */
-export interface AffiliateCreatorSampleHistoryItem {
+export interface AffiliateCreatorSampleApplicationListItem {
   application: EcomSampleApplication;
   fulfillments: Array<EcomSampleFulfillment>;
   fulfillmentsFetched: Scalars['Boolean']['output'];
 }
 
-/** One TikTok target collaboration returned for the Creator, including its full Provider detail when an ID is available. */
-export interface AffiliateCreatorTargetCollaborationHistoryItem {
-  collaboration: EcomTargetCollaboration;
-  detail?: Maybe<EcomTargetCollaborationDetail>;
-  detailFetched: Scalars['Boolean']['output'];
+/** Provider-backed TikTok Shop sample applications for one CreatorRelationship. */
+export interface AffiliateCreatorSampleApplicationListPayload {
+  complete: Scalars['Boolean']['output'];
+  creatorOpenId: Scalars['String']['output'];
+  items: Array<AffiliateCreatorSampleApplicationListItem>;
+  observedAt: Scalars['DateTimeISO']['output'];
+  sampleFulfillmentsComplete: Scalars['Boolean']['output'];
+  source: AffiliateProviderReadSource;
+  username?: Maybe<Scalars['String']['output']>;
 }
 
 /** Structured affiliate decision thresholds. Campaign thresholds override shop-level thresholds for the same decision surface. */
@@ -1831,6 +1850,13 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
+/** Source and authority boundary for a specific Affiliate read operation. */
+export const AffiliateProviderReadSource = {
+  MongodbCurrentState: 'MONGODB_CURRENT_STATE',
+  TiktokShopProvider: 'TIKTOK_SHOP_PROVIDER'
+} as const;
+
+export type AffiliateProviderReadSource = typeof AffiliateProviderReadSource[keyof typeof AffiliateProviderReadSource];
 export interface AffiliateRelationshipAgendaItem {
   boundaryEventCursor?: Maybe<Scalars['Int']['output']>;
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
@@ -1840,6 +1866,8 @@ export interface AffiliateRelationshipAgendaItem {
   proposalId?: Maybe<Scalars['ID']['output']>;
   reasons: Array<AffiliateCollaborationRecordProcessReason>;
   requiredAction: AffiliateRelationshipRequiredAction;
+  /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
+  revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
   sourceType: AffiliateRelationshipAgendaSourceType;
@@ -2126,6 +2154,19 @@ export const AffiliateResearchDepth = {
 } as const;
 
 export type AffiliateResearchDepth = typeof AffiliateResearchDepth[keyof typeof AffiliateResearchDepth];
+/** Frozen revision source attached only to the Agent working agenda created by a staff revision request. */
+export interface AffiliateRevisionRequestedProposalContext {
+  decision?: Maybe<ActionProposalDecisionSnapshot>;
+  id: Scalars['ID']['output'];
+  messageIntent?: Maybe<ActionProposalMessageIntent>;
+  operatorSummary: Scalars['String']['output'];
+  sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
+  status: ActionProposalStatus;
+  steps: Array<ActionProposalStep>;
+  targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
+  type: ActionProposalType;
+}
+
 /** Authority state of the current sample-application lookup. UNVERIFIED means neither presence nor absence has been established by Provider/workspace facts. */
 export interface AffiliateSampleApplicationLookupContext {
   productIds: Array<Scalars['String']['output']>;
@@ -2142,6 +2183,14 @@ export const AffiliateSampleApplicationLookupStatus = {
 } as const;
 
 export type AffiliateSampleApplicationLookupStatus = typeof AffiliateSampleApplicationLookupStatus[keyof typeof AffiliateSampleApplicationLookupStatus];
+/** Current Mongo control-plane lookup for one sample application under a CreatorRelationship. */
+export interface AffiliateSampleApplicationStatePayload {
+  found: Scalars['Boolean']['output'];
+  observedAt: Scalars['DateTimeISO']['output'];
+  sampleApplication?: Maybe<SampleApplicationRecord>;
+  source: AffiliateProviderReadSource;
+}
+
 export const AffiliateSampleRejectReason = {
   NotMatch: 'NOT_MATCH',
   Offline: 'OFFLINE',
@@ -2240,6 +2289,8 @@ export interface AffiliateWorkContext {
 export interface AffiliateWorkItem {
   /** True when desktop should consider starting an affiliate agent run for this work item. */
   agentDispatchRecommended: Scalars['Boolean']['output'];
+  /** Current open Agent working agenda. Revision-requested proposals are attached only to the agenda item that caused the dispatch. */
+  agentWorkingAgendaItems: Array<AffiliateRelationshipAgendaItem>;
   businessDeveloperConfigRevision?: Maybe<Scalars['Int']['output']>;
   businessDeveloperIdSnapshot?: Maybe<Scalars['ID']['output']>;
   collaboration?: Maybe<AffiliateCollaborationRecord>;
@@ -8071,18 +8122,20 @@ export interface Query {
   affiliateBusinessDevelopers: Array<AffiliateBusinessDeveloper>;
   /** Read affiliate campaigns from Mongo state. */
   affiliateCampaigns: Array<AffiliateCampaign>;
+  affiliateCollaborationState: AffiliateCollaborationRecordStatePayload;
   /** Read platform-level affiliate collaborations, normalized across open and target collaborations. */
   affiliateCollaborations: Array<AffiliateCollaboration>;
   /** Prepare checkpoint metadata for one Affiliate Agent dispatch, optionally including legacy event/workspace projections. */
   affiliateContextBuilder: AffiliateContextBuilderPayload;
   affiliateCreatorChannelContacts: AffiliateCreatorChannelContactPage;
-  /** Read exhaustive seller-authorized TikTok target-collaboration and sample history for the Creator in one Relationship. */
-  affiliateCreatorCollaborationHistory: AffiliateCreatorCollaborationHistoryPayload;
+  affiliateCreatorCollaborationsForRelationship: AffiliateCreatorCollaborationListPayload;
   /** Read relationship-level creator contact state, including WhatsApp/email contacts and available seller accounts. */
   affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
   /** Read merged relationship-level affiliate creator message history with channel labels. */
   affiliateCreatorMessageHistory: AffiliateCreatorMessageHistoryPayload;
   affiliateCreatorProtectionIntents: Array<AffiliateCreatorProtectionIntent>;
+  affiliateCreatorRelationshipState: AffiliateCreatorRelationshipStatePayload;
+  affiliateCreatorSampleApplicationsForRelationship: AffiliateCreatorSampleApplicationListPayload;
   /** Read WhatsApp messages on demand from the bound provider for an affiliate creator relationship. */
   affiliateCreatorWhatsAppMessages: Array<AffiliateCreatorMessageHistoryItem>;
   /** Read shop-scoped cooperation creators with profile, relation tags, latest collaboration, and attention context. */
@@ -8102,11 +8155,12 @@ export interface Query {
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
   /** Read a merged CreatorRelationship history timeline with lightweight typed summaries. */
   affiliateRelationshipHistory: AffiliateRelationshipHistoryPayload;
+  affiliateSampleApplicationState: AffiliateSampleApplicationStatePayload;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
   affiliateWorkItems: Array<AffiliateWorkItem>;
-  /** Read compressed affiliate management workspace state from Mongo control-plane state. CreatorRelationship is the business boundary; shopId remains the entitlement/scope boundary. */
+  /** Legacy Panel query for aggregated Affiliate management state. It is not exposed as an Agent tool. */
   affiliateWorkspace: AffiliateWorkspacePayload;
   /** Read account- and shop-scoped billing entitlement decisions for the current user. */
   billingOverview: BillingOverview;
@@ -8356,6 +8410,13 @@ export interface QueryAffiliateCampaignsArgs {
 }
 
 
+export interface QueryAffiliateCollaborationStateArgs {
+  collaborationRecordId: Scalars['ID']['input'];
+  creatorRelationshipId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryAffiliateCollaborationsArgs {
   input: ReadAffiliateCollaborationsInput;
 }
@@ -8371,9 +8432,8 @@ export interface QueryAffiliateCreatorChannelContactsArgs {
 }
 
 
-export interface QueryAffiliateCreatorCollaborationHistoryArgs {
+export interface QueryAffiliateCreatorCollaborationsForRelationshipArgs {
   creatorRelationshipId: Scalars['ID']['input'];
-  includeSampleFulfillments?: InputMaybe<Scalars['Boolean']['input']>;
   shopId: Scalars['ID']['input'];
 }
 
@@ -8385,6 +8445,19 @@ export interface QueryAffiliateCreatorContactStateArgs {
 
 export interface QueryAffiliateCreatorMessageHistoryArgs {
   input: AffiliateCreatorMessageHistoryInput;
+}
+
+
+export interface QueryAffiliateCreatorRelationshipStateArgs {
+  creatorRelationshipId: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
+export interface QueryAffiliateCreatorSampleApplicationsForRelationshipArgs {
+  creatorRelationshipId: Scalars['ID']['input'];
+  includeFulfillments?: InputMaybe<Scalars['Boolean']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -8430,6 +8503,14 @@ export interface QueryAffiliatePredictCreatorProductFitArgs {
 
 export interface QueryAffiliateRelationshipHistoryArgs {
   input: AffiliateRelationshipHistoryInput;
+}
+
+
+export interface QueryAffiliateSampleApplicationStateArgs {
+  creatorRelationshipId: Scalars['ID']['input'];
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -10293,10 +10374,13 @@ export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
-  AffiliateGetCreatorCollaborationHistory: 'AFFILIATE_GET_CREATOR_COLLABORATION_HISTORY',
+  AffiliateGetCollaboration: 'AFFILIATE_GET_COLLABORATION',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
+  AffiliateGetCreatorRelationship: 'AFFILIATE_GET_CREATOR_RELATIONSHIP',
   AffiliateGetRelationshipHistory: 'AFFILIATE_GET_RELATIONSHIP_HISTORY',
-  AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
+  AffiliateGetSampleApplication: 'AFFILIATE_GET_SAMPLE_APPLICATION',
+  AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
+  AffiliateListCreatorSampleApplications: 'AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS',
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',

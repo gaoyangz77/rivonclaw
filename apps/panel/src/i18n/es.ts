@@ -1734,8 +1734,12 @@ export default {
         "CS_START_SESSION": "Iniciar sesión",
         "ECOM_LIST_SHOPS": "Listar tiendas",
         "ECOM_GET_SHOP": "Obtener tienda",
-        "AFFILIATE_GET_WORKSPACE": "Obtenga un espacio de trabajo para afiliados",
+        "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Obtener relación con el creador",
+        "AFFILIATE_GET_COLLABORATION": "Obtener colaboración",
+        "AFFILIATE_GET_SAMPLE_APPLICATION": "Obtener solicitud de muestra",
         "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Obtener historial de la relación del creador",
+        "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Listar colaboraciones del creador",
+        "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Listar solicitudes de muestra del creador",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Leer archivo adjunto del mensaje del creador",
         "AFFILIATE_COPY_MESSAGE_ATTACHMENT": "Copiar archivo adjunto del mensaje del creador",
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Subir archivo adjunto del borrador de afiliado",
@@ -2447,6 +2451,7 @@ export default {
       }
     },
     "affiliateWorkspace": {
+      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "Esperando el cumplimiento de FBT" },
       "title": "Gestión de afiliados",
       "subtitle": "Revisar las acciones pendientes de los agentes para el trabajo del ciclo de vida del creador.",
       "creatorsTitle": "Creadores colaboradores",
@@ -3077,6 +3082,7 @@ export default {
         "DEFAULT": "Revisar esta colaboración"
       },
       "collaborationWorkDescriptions": {
+        "WAITING_FBT_SHIPMENT": "La solicitud de muestra está aprobada y TikTok FBT realiza el envío automáticamente. El personal no necesita organizarlo.",
         "PROPOSAL_REVISION_REQUESTED": "El personal solicitó una recomendación revisada. La nota de revisión se incluirá en la próxima ejecución del agente."
       },
       "sampleWorkStatusDescriptions": {

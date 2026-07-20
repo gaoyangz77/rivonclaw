@@ -350,6 +350,70 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         collaborationRecordId
         workKind
         workBundleKind
+        agentWorkingAgendaItems {
+          key
+          owner
+          sourceType
+          status
+          workKind
+          requiredAction
+          shopId
+          collaborationRecordId
+          sampleApplicationRecordId
+          proposalId
+          reasons
+          nextActionAt
+          boundaryEventCursor
+          updatedAt
+          revisionRequestedProposal {
+            id
+            type
+            status
+            operatorSummary
+            decision { note decidedAt actorType actorId }
+            messageIntent {
+              creatorId
+              preferredChannel
+              emailSubject
+              parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
+            }
+            sampleReviewIntent { sampleApplicationRecordId platformApplicationId decision rejectReason }
+            targetCollaborationIntent {
+              name
+              message
+              endTime
+              hasFreeSample
+              isSampleApprovalExempt
+              creatorIds
+              creatorOpenIds
+              products { productId targetCommissionRateBps shopAdsCommissionRateBps }
+              sellerContactInfo { email phoneNumber whatsapp telegram line }
+            }
+            steps {
+              stepId
+              type
+              operatorSummary
+              messageIntent {
+                creatorId
+                preferredChannel
+                emailSubject
+                parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
+              }
+              sampleReviewIntent { sampleApplicationRecordId platformApplicationId decision rejectReason }
+              targetCollaborationIntent {
+                name
+                message
+                endTime
+                hasFreeSample
+                isSampleApprovalExempt
+                creatorIds
+                creatorOpenIds
+                products { productId targetCommissionRateBps shopAdsCommissionRateBps }
+                sellerContactInfo { email phoneNumber whatsapp telegram line }
+              }
+            }
+          }
+        }
         recommendedActionTypes
         agentDispatchRecommended
         staffReviewRequired
@@ -603,90 +667,12 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             shopId
             productIds
           }
-          pendingProposals {
-            id
-            type
-            status
-            operatorSummary
-            baseCheckpointId
-            candidateCheckpointId
-            creatorId
-            creatorRelationshipId
-            collaborationRecordId
-            sourceWorkBoundary {
-              subjectType
-              creatorRelationshipId
-              collaborationRecordId
-              workKind
-              workBundleKind
-              versionAt
-              triggerKind
-              triggerId
-              recommendedActionTypes
-            }
-            decision {
-              note
-              decidedAt
-              actorType
-              actorId
-            }
-            updatedAt
-          }
           missingContext {
             reason
             severity
             message
           }
           recommendedActionTypes
-        }
-        latestPendingProposal {
-          id
-          type
-          status
-          operatorSummary
-          steps {
-            stepId
-            type
-            operatorSummary
-          }
-          creatorId
-          creatorRelationshipId
-          collaborationRecordId
-          baseCheckpointId
-          candidateCheckpointId
-          sourceWorkBoundary {
-            subjectType
-            creatorRelationshipId
-            collaborationRecordId
-            workKind
-            workBundleKind
-            versionAt
-            triggerKind
-            triggerId
-            recommendedActionTypes
-          }
-          sampleReviewIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            decision
-            rejectReason
-          }
-          sampleShipmentIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            warehouseId
-            skuId
-            quantity
-          }
-          messageIntent {
-            creatorId
-            preferredChannel
-            emailSubject
-            subjectHash
-            subjectLength
-            parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
-          }
-          updatedAt
         }
       }
     }

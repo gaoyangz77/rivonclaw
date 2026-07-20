@@ -159,6 +159,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     collaborationRecordId: "collab-001",
     workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
+    agentWorkingAgendaItems: [],
     agentDispatchRecommended: true,
     staffReviewRequired: false,
     relationshipOperationalConfigRevision: 1,
@@ -756,7 +757,10 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).not.toContain("prediction");
     expect(agentCall?.[1]?.message).not.toContain("handledSignalAt");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_get_creator_collaboration_history");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_collaborations");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_sample_applications");
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("affiliate_get_workspace");
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("affiliate_get_creator_collaboration_history");
     expect(mockRpcRequest).toHaveBeenCalledWith("tool_register_session", {
       sessionKey: "agent:main:affiliate:user-001:relationship-001",
       toolContext: {
@@ -1512,6 +1516,59 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("Collaboration Record ID: collab-001");
     expect(request?.message).not.toContain("Lifecycle Stage");
     expect(request?.message).not.toContain("Backend Work Context");
+  });
+
+  it("renders a revision-requested proposal only from the dispatching working agenda", () => {
+    const base = createCreatorReplyWorkItem();
+    const revision = {
+      id: "proposal-revision-001",
+      type: GQL.ActionProposalType.SendMessage,
+      status: GQL.ActionProposalStatus.RevisionRequested,
+      operatorSummary: "Reply with the original formal wording",
+      decision: {
+        note: "Make the reply warmer and mention the creator's prior video.",
+        decidedAt: "2026-05-11T01:00:00.000Z",
+        actorType: "STAFF",
+        actorId: "user-001",
+      },
+      messageIntent: {
+        creatorId: "creator-001",
+        preferredChannel: null,
+        emailSubject: null,
+        parts: [{
+          kind: GQL.AffiliateMessagePartKind.Text,
+          text: "Thank you. Please send the draft when it is ready.",
+        }],
+      },
+      steps: [],
+    } as unknown as GQL.AffiliateRevisionRequestedProposalContext;
+    const pending = {
+      ...revision,
+      id: "unrelated-pending-proposal",
+      status: GQL.ActionProposalStatus.Pending,
+      operatorSummary: "This staff-only pending proposal must stay hidden.",
+    } as unknown as GQL.ActionProposal;
+    const agenda = {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      proposalId: revision.id,
+      revisionRequestedProposal: revision,
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({
+        agentWorkingAgendaItems: [agenda],
+        latestPendingProposal: pending,
+        context: {
+          ...base.context,
+          pendingProposals: [pending],
+        },
+      }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain("Dispatch Source: STAFF_PROPOSAL_REVISION_REQUEST");
+    expect(request?.message).toContain("Make the reply warmer");
+    expect(request?.message).toContain("Thank you. Please send the draft when it is ready.");
+    expect(request?.message).not.toContain("This staff-only pending proposal must stay hidden.");
   });
 
   it("does not inject the creator commerce profile into the Agent working agenda", () => {

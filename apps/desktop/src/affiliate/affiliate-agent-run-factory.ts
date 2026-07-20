@@ -46,11 +46,14 @@ export function buildAffiliateAgentRunRequest(
  * IDs below are only stable scopes/targets needed to call the authoritative tools.
  */
 export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): string {
-  const openAgentAgenda = (workItem.creatorRelationship?.agendaItems ?? []).filter(
+  const projectedAgentAgenda = workItem.agentWorkingAgendaItems ?? [];
+  const openAgentAgenda = projectedAgentAgenda.length > 0
+    ? projectedAgentAgenda
+    : (workItem.creatorRelationship?.agendaItems ?? []).filter(
     (item) =>
       item.owner === GQL.AffiliateRelationshipAgendaOwner.Agent &&
       item.status === GQL.AffiliateRelationshipAgendaItemStatus.Open,
-  );
+    );
   const agendaItems = openAgentAgenda.length > 0
     ? openAgentAgenda
     : [{
@@ -60,7 +63,8 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
         reasons: workItem.processReasons ?? [],
         collaborationRecordId: workItem.collaborationRecordId ?? null,
         sampleApplicationRecordId: workItem.sampleApplicationRecord?.id ?? null,
-        proposalId: workItem.latestPendingProposal?.id ?? null,
+        proposalId: null,
+        revisionRequestedProposal: null,
         nextActionAt: workItem.creatorRelationship?.workSummary?.nextActionAt ?? null,
       }];
 
@@ -86,11 +90,32 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     if (item.proposalId) {
       lines.push(`   Proposal ID: ${item.proposalId}`);
     }
+    if (item.revisionRequestedProposal) {
+      const revision = item.revisionRequestedProposal;
+      lines.push(
+        "   Dispatch Source: STAFF_PROPOSAL_REVISION_REQUEST",
+        `   Requested Changes: ${revision.decision?.note?.trim() || "(revision note missing)"}`,
+        `   Previous Proposal Type: ${revision.type}`,
+        `   Previous Proposal Summary: ${revision.operatorSummary}`,
+        `   Frozen Proposal To Revise: ${JSON.stringify(frozenRevisionIntent(revision))}`,
+      );
+    }
     if (item.nextActionAt) {
       lines.push(`   Due At: ${item.nextActionAt}`);
     }
   });
   return lines.join("\n");
+}
+
+function frozenRevisionIntent(
+  proposal: GQL.AffiliateRevisionRequestedProposalContext,
+): Record<string, unknown> {
+  return {
+    messageIntent: proposal.messageIntent ?? null,
+    targetCollaborationIntent: proposal.targetCollaborationIntent ?? null,
+    sampleReviewIntent: proposal.sampleReviewIntent ?? null,
+    steps: proposal.steps ?? [],
+  };
 }
 
 function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
