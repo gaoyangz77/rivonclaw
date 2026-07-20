@@ -25,7 +25,7 @@ CLAUDE.md
 CODEX.md
 ANTIGRAVITY.md
 tmp/
-tutorial/
+/video/
 !apps/panel/src/tutorial/
 !apps/panel/src/tutorial/**
 extensions-merchant/
