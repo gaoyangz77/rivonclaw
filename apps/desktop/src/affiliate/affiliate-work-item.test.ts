@@ -276,6 +276,22 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
       requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
       processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
+      agendaItems: [{
+        key: "relationship:relationship-001:REPLY_TO_CREATOR",
+        owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
+        sourceType: GQL.AffiliateRelationshipAgendaSourceType.Relationship,
+        status: GQL.AffiliateRelationshipAgendaItemStatus.Open,
+        workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
+        shopId: "shop-001",
+        collaborationRecordId: null,
+        sampleApplicationRecordId: null,
+        proposalId: null,
+        reasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
+        nextActionAt: null,
+        boundaryEventCursor: 1,
+        updatedAt: "2026-05-11T00:01:00.000Z",
+      }],
     },
     sampleApplicationRecord: null,
     context: {
@@ -653,29 +669,11 @@ describe("affiliate work item dispatch", () => {
     expect(dispatchSpy).not.toHaveBeenCalled();
   });
 
-  it("fetches sample update workspace snapshots within the creator relationship boundary", async () => {
-    const graphqlFetch = vi.fn(async (query: string, variables: unknown) => {
-      if (query.includes("affiliateWorkspace")) {
-        return {
-          affiliateWorkspace: {
-            sampleApplicationRecords: [],
-            collaborationRecords: [],
-            actionProposals: [],
-            approvalPolicies: [],
-            creatorRelations: [],
-            creatorTags: [],
-            creatorProfiles: [],
-            campaigns: [],
-            campaignProducts: [],
-            affiliateCollaborations: [],
-            searchRuns: [],
-            candidates: [],
-          },
-        };
-      }
-      throw new Error(`Unexpected GraphQL call: ${query} ${JSON.stringify(variables)}`);
-    });
-    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
+  it("fetches only checkpoint metadata before a work-item dispatch", async () => {
+    const graphqlFetch = vi.fn(withCheckpointContext(async (query: string) => {
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    }));
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
     const session = new AffiliateSession(
       {
         objectId: "shop-001",
@@ -697,25 +695,21 @@ describe("affiliate work item dispatch", () => {
       },
     );
 
-    await session.handleSampleApplicationUpdated({
-      applicationId: "platform-sample-001",
-      creatorRelationshipId: "relationship-001",
-      creatorId: "creator-001",
-      productId: "product-001",
-      status: "PENDING",
-      eventTime: "2026-05-11T00:01:00.000Z",
-    } as any);
+    await session.handleWorkItem(createSampleReviewWorkItem());
 
     expect(graphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("affiliateWorkspace"),
+      expect.stringContaining("affiliateContextBuilder"),
       expect.objectContaining({
         input: expect.objectContaining({
           shopId: "shop-001",
           creatorRelationshipId: "relationship-001",
-          platformApplicationId: "platform-sample-001",
+          includeWorkspace: false,
+          includeEventDelta: false,
+          limit: 1,
         }),
       }),
     );
+    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("affiliateWorkspace"))).toBe(false);
   });
 
   it("dispatches sample-review work items to the agent instead of resolving them in desktop", async () => {
@@ -753,24 +747,16 @@ describe("affiliate work item dispatch", () => {
       provider: "openai",
       model: "gpt-5-test",
     });
-    expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
-    expect(agentCall?.[1]?.message).toContain("available when prediction evidence is useful");
-    expect(agentCall?.[1]?.message).toContain(
-      "Authoritative Sample Application State: CONFIRMED_PRESENT",
-    );
-    expect(agentCall?.[1]?.message).toContain(
-      "Creator-Reported Sample Claims: statements in Provider message history describe what the Creator reported",
-    );
-    expect(agentCall?.[1]?.message).toContain("## Current Authoritative Workspace Snapshot");
-    expect(agentCall?.[1]?.message).not.toContain("- Open Agenda Items:");
-    expect(agentCall?.[1]?.message).not.toContain("- Work Summary:");
-    expect(agentCall?.[1]?.message).toContain("Keep creator outreach concise and warm.");
-    expect(agentCall?.[1]?.message).toContain("## Assigned BD Outreach Routing");
-    expect(agentCall?.[1]?.message).toContain("Maria WhatsApp");
-    expect(agentCall?.[1]?.message).toContain("phone=+1 555 0100");
-    expect(agentCall?.[1]?.message).toContain("address=maria@example.com");
-    expect(agentCall?.[1]?.message).not.toContain("Other BD WhatsApp");
-    expect(agentCall?.[1]?.message).not.toContain("wa-bd-001");
+    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
+    expect(agentCall?.[1]?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
+    expect(agentCall?.[1]?.message).toContain("Reasons: SAMPLE_PENDING_REVIEW");
+    expect(agentCall?.[1]?.message).toContain("Sample Application Record ID: sample-record-001");
+    expect(agentCall?.[1]?.message).not.toContain("Current Authoritative Workspace Snapshot");
+    expect(agentCall?.[1]?.message).not.toContain("Authoritative Sample Application State");
+    expect(agentCall?.[1]?.message).not.toContain("prediction");
+    expect(agentCall?.[1]?.message).not.toContain("handledSignalAt");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_get_creator_collaboration_history");
     expect(mockRpcRequest).toHaveBeenCalledWith("tool_register_session", {
       sessionKey: "agent:main:affiliate:user-001:relationship-001",
       toolContext: {
@@ -782,7 +768,7 @@ describe("affiliate work item dispatch", () => {
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
   });
 
-  it("projects only prompt-safe creator commerce fields into the authoritative snapshot", async () => {
+  it("does not inject creator commerce snapshots into the working agenda", async () => {
     const creatorProfile = {
       id: "creator-001",
       platform: GQL.ShopPlatform.TiktokShop,
@@ -832,9 +818,10 @@ describe("affiliate work item dispatch", () => {
     await session.handleWorkItem(workItem);
 
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
-    expect(agentCall?.[1]?.message).toContain('"marketplaceCommerceSummary"');
-    expect(agentCall?.[1]?.message).toContain('"ecVideoCount": 17');
-    expect(agentCall?.[1]?.message).toContain('"creator_gmv_30d": 1214.34');
+    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
+    expect(agentCall?.[1]?.message).not.toContain('"marketplaceCommerceSummary"');
+    expect(agentCall?.[1]?.message).not.toContain('"ecVideoCount": 17');
+    expect(agentCall?.[1]?.message).not.toContain('"creator_gmv_30d": 1214.34');
     expect(agentCall?.[1]?.message).not.toContain("private-avatar.jpg");
     expect(agentCall?.[1]?.message).not.toContain("raw-marketplace-avatar.jpg");
     expect(agentCall?.[1]?.message).not.toContain("lowValueProviderField");
@@ -1117,8 +1104,11 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_resolve_work_item");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Omit preferredChannel to reply on the trigger channel");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
-    expect(agentCall?.[1]?.message).toContain("Current Trigger Channel: WHATSAPP");
-    expect(agentCall?.[1]?.message).toContain("Current Signal ID: lifecycle-message-001");
+    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
+    expect(agentCall?.[1]?.message).toContain("Required Action: REPLY_TO_CREATOR");
+    expect(agentCall?.[1]?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_REPLY");
+    expect(agentCall?.[1]?.message).not.toContain("Current Trigger Channel");
+    expect(agentCall?.[1]?.message).not.toContain("lifecycle-message-001");
 
     expect(session.handleAgentEvent({
       runId: result.runId,
@@ -1282,9 +1272,10 @@ describe("affiliate work item dispatch", () => {
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("OPERATOR_REASONING");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("assistant output is internal/operator-facing");
-    expect(agentCall?.[1]?.message).toContain("Status: NOT_PREFETCHED");
-    expect(agentCall?.[1]?.message).toContain("available as optional evidence");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("ecom_get_product resolves product details");
+    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
+    expect(agentCall?.[1]?.message).not.toContain("Status: NOT_PREFETCHED");
+    expect(agentCall?.[1]?.message).not.toContain("Affiliate Prediction");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("ecom_get_product resolves a known product");
     expect(agentCall?.[1]?.message).not.toContain("call ecom_get_product");
     expect(agentCall?.[1]?.message).not.toContain("Do not ask the creator which product they mean");
   });
@@ -1417,9 +1408,9 @@ describe("affiliate work item dispatch", () => {
       expect.anything(),
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
-    expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
-    expect(agentCall?.[1]?.message).toContain("prediction-cache-from-snapshot");
-    expect(agentCall?.[1]?.message).toContain("already has a persisted prediction snapshot");
+    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
+    expect(agentCall?.[1]?.message).not.toContain("prediction-cache-from-snapshot");
+    expect(agentCall?.[1]?.message).not.toContain("persisted prediction snapshot");
   });
 
   it("dispatches sample review to the agent without prefetching prediction evidence", async () => {
@@ -1477,9 +1468,9 @@ describe("affiliate work item dispatch", () => {
       expect.anything(),
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
-    expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
-    expect(agentCall?.[1]?.message).toContain("available when prediction evidence is useful");
-    expect(agentCall?.[1]?.message).toContain("identifies the exact evidence snapshot");
+    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
+    expect(agentCall?.[1]?.message).not.toContain("prediction evidence");
+    expect(agentCall?.[1]?.message).not.toContain("evidence snapshot");
     expect(agentCall?.[1]?.message).not.toContain("before submitting a REVIEW_SAMPLE_APPLICATION action");
   });
 
@@ -1494,9 +1485,10 @@ describe("affiliate work item dispatch", () => {
 
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
 
-    expect(request?.message).toContain("[Affiliate Work Item: Sample Application Review]");
-    expect(request?.message).toContain("Use the CreatorRelationship workspace as the business boundary");
-    expect(request?.message).toContain("available when prediction evidence is useful");
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
+    expect(request?.message).toContain("Required Action: COMPLETE_COLLABORATION_TASK");
+    expect(request?.message).not.toContain("workspace");
   });
 
   it("does not build a sample review agent run when backend has already handled that work boundary", () => {
@@ -1509,24 +1501,20 @@ describe("affiliate work item dispatch", () => {
     expect(request).toBeNull();
   });
 
-  it("describes collaboration records as relationship context instead of the work owner", () => {
+  it("exposes only agenda target references instead of collaboration snapshots", () => {
     const request = buildAffiliateAgentRunRequest({
       workItem: createSampleReviewWorkItem(),
       platform: "tiktok",
     });
 
-    expect(request?.message).toContain("## Backend Relationship Work Projection");
-    expect(request?.message).toContain("Relationship Work Item ID: relationship-001");
+    expect(request?.message).toContain("[Agent Working Agenda]");
     expect(request?.message).toContain("Creator Relationship ID: relationship-001");
-    expect(request?.message).toContain("Focus Collaboration Context ID: collab-001");
-    expect(request?.message).toContain(
-      "This collaboration is context under the CreatorRelationship; it is not the work owner or Agent memory boundary.",
-    );
-    expect(request?.message).toContain("Focus Collaboration Context: collab-001");
-    expect(request?.message).not.toContain("Primary Collaboration Candidate");
+    expect(request?.message).toContain("Collaboration Record ID: collab-001");
+    expect(request?.message).not.toContain("Lifecycle Stage");
+    expect(request?.message).not.toContain("Backend Work Context");
   });
 
-  it("projects the available creator commerce profile into the Agent work context", () => {
+  it("does not inject the creator commerce profile into the Agent working agenda", () => {
     const base = createCreatorReplyWorkItem();
     const request = buildAffiliateAgentRunRequest({
       workItem: createCreatorReplyWorkItem({
@@ -1559,18 +1547,15 @@ describe("affiliate work item dispatch", () => {
       platform: "tiktok",
     });
 
-    expect(request?.message).toContain("Display Name: Creator Name");
-    expect(request?.message).toContain("TikTok Creator Open ID: creator-open-001");
-    expect(request?.message).toContain(
-      "Identity Note: these fields identify the CreatorRelationship participant; they do not classify the intent of the current message.",
-    );
-    expect(request?.message).toContain("Follower Count: 3454");
-    expect(request?.message).toContain("Creator Category IDs: category-1, category-2");
-    expect(request?.message).toContain('"ecVideoCount":17');
-    expect(request?.message).toContain('"creator_gmv_30d":1214.34');
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).not.toContain("Creator Name");
+    expect(request?.message).not.toContain("creator-open-001");
+    expect(request?.message).not.toContain("Follower Count");
+    expect(request?.message).not.toContain('"ecVideoCount":17');
+    expect(request?.message).not.toContain('"creator_gmv_30d":1214.34');
   });
 
-  it("keeps ambiguous relationship work unbound from an arbitrary focus collaboration", () => {
+  it("does not inject ambiguous collaboration candidates beyond the agenda", () => {
     const base = createCreatorReplyWorkItem();
     const firstCollaboration = {
       ...(base.collaboration as GQL.AffiliateCollaborationRecord),
@@ -1605,16 +1590,11 @@ describe("affiliate work item dispatch", () => {
       platform: "tiktok",
     });
 
-    expect(request?.message).toContain("Focus Collaboration Context ID: (none)");
-    expect(request?.message).toContain(
-      "(none: this creator relationship work item has no resolved focus collaboration context)",
-    );
-    expect(request?.message).toContain("Active Collaborations: 2");
-    expect(request?.message).toContain("Ambiguous Collaboration Candidates:");
-    expect(request?.message).toContain("contextCollaborationRecordId=collab-ambiguous-001");
-    expect(request?.message).toContain("contextCollaborationRecordId=collab-ambiguous-002");
-    expect(request?.message).not.toContain("Ambiguity Instruction");
-    expect(request?.message).not.toContain("This collaboration is context under the CreatorRelationship");
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).not.toContain("Active Collaborations");
+    expect(request?.message).not.toContain("Ambiguous Collaboration Candidates");
+    expect(request?.message).not.toContain("collab-ambiguous-001");
+    expect(request?.message).not.toContain("collab-ambiguous-002");
   });
 
   it("dispatches sample review to the agent even when prediction evidence was not prefetched", async () => {
@@ -1662,9 +1642,9 @@ describe("affiliate work item dispatch", () => {
       expect.anything(),
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
-    expect(agentCall?.[1]?.message).toContain("[Affiliate Work Item: Sample Application Review]");
-    expect(agentCall?.[1]?.message).toContain("Status: NOT_PREFETCHED");
-    expect(agentCall?.[1]?.message).toContain("No affiliate prediction cache id was prefilled");
+    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
+    expect(agentCall?.[1]?.message).not.toContain("Status: NOT_PREFETCHED");
+    expect(agentCall?.[1]?.message).not.toContain("prediction cache id");
   });
 
   it("does not ack work items when the gateway reports an agent run error", async () => {
@@ -1986,13 +1966,17 @@ describe("affiliate work item dispatch", () => {
       requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
       processReasons: [],
       recommendedActionTypes: [],
+      creatorRelationship: {
+        ...(createSampleReviewWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
+        agendaItems: [],
+      },
     });
 
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
 
-    expect(request?.message).toContain("[Affiliate Work Item: Relationship Review]");
-    expect(request?.message).toContain("Review the open CreatorRelationship agenda");
-    expect(request?.message).toContain("affiliate_resolve_work_item exactly once");
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).toContain("Work Kind: MANUAL_REVIEW");
+    expect(request?.message).not.toContain("affiliate_resolve_work_item");
   });
 
   it("renders creator follow-up work as a temporal actionable delta", () => {
@@ -2011,15 +1995,18 @@ describe("affiliate work item dispatch", () => {
         nextSellerActionAt: "2026-05-13T00:01:00.000Z",
       } as GQL.AffiliateCollaborationRecord,
       recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
+      creatorRelationship: {
+        ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
+        agendaItems: [],
+      },
     });
 
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
 
-    expect(request?.message).toContain("[Affiliate Work Item: Creator Follow-Up Due]");
-    expect(request?.message).toContain("## Backend Actionable Delta");
-    expect(request?.message).toContain("Sources: TEMPORAL");
-    expect(request?.message).toContain("Temporal Interpretation");
-    expect(request?.message).toContain("Set handledSignalAt to 2026-05-13T00:01:00.000Z");
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).toContain("Work Kind: CREATOR_FOLLOW_UP");
+    expect(request?.message).toContain("Reasons: CREATOR_ACTION_FOLLOW_UP_DUE");
+    expect(request?.message).not.toContain("handledSignalAt");
   });
 
   it("renders sample content follow-up work as its own temporal actionable delta", () => {
@@ -2038,14 +2025,19 @@ describe("affiliate work item dispatch", () => {
         nextSellerActionAt: "2026-05-14T00:01:00.000Z",
       } as GQL.AffiliateCollaborationRecord,
       recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
+      creatorRelationship: {
+        ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
+        agendaItems: [],
+      },
     });
 
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
 
     expect(request?.idempotencyKey).toContain("CONTENT_FOLLOW_UP");
-    expect(request?.message).toContain("[Affiliate Work Item: Creator Follow-Up Due]");
-    expect(request?.message).toContain("Sources: TEMPORAL");
-    expect(request?.message).toContain("Set handledSignalAt to 2026-05-14T00:01:00.000Z");
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).toContain("Work Kind: CONTENT_FOLLOW_UP");
+    expect(request?.message).toContain("Reasons: SAMPLE_CONTENT_FOLLOW_UP_DUE");
+    expect(request?.message).not.toContain("2026-05-14T00:01:00.000Z");
   });
 
   it("renders combined sample review and reply templates for bundled creator reply work", () => {
@@ -2059,32 +2051,29 @@ describe("affiliate work item dispatch", () => {
         GQL.ActionProposalType.ReviewSampleApplication,
       ],
       sampleApplicationRecord: createSampleReviewWorkItem().sampleApplicationRecord,
+      creatorRelationship: {
+        ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
+        agendaItems: [],
+      },
     });
 
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
 
-    expect(request?.message).toContain("CREATOR_REPLY_WITH_SAMPLE_REVIEW");
-    expect(request?.message).toContain("Combined bundle requirement");
-    expect(request?.message).toContain("\"type\": \"REVIEW_SAMPLE_APPLICATION\"");
-    expect(request?.message).toContain("SEND_MESSAGE required fields");
-    expect(request?.message).toContain("- type: SEND_MESSAGE");
-    expect(request?.message).toContain("Do not treat expected-sales evidence, threshold evidence, or this field list as a default decision.");
-    expect(request?.message).toContain("must handle the sample review and the creator reply in the same REQUEST_ACTION");
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_REPLY, SAMPLE_PENDING_REVIEW");
+    expect(request?.message).not.toContain("Combined bundle requirement");
+    expect(request?.message).not.toContain("REQUEST_ACTION");
   });
 
-  it("presents merchant prediction thresholds as context without prescribing a decision", () => {
+  it("does not inject merchant prediction thresholds into the working agenda", () => {
     const request = buildAffiliateAgentRunRequest({
       workItem: createSampleReviewWorkItem(),
       platform: "tiktok",
-      decisionThresholds: { minExpectedSalesUnits: 1 },
-      decisionThresholdSource: "shop default",
     });
 
-    expect(request?.message).toContain("- Source: shop default");
-    expect(request?.message).toContain("- minExpectedSalesUnits: 1");
-    expect(request?.message).toContain(
-      "merchant-configured decision context, not an automatic approve/reject rule",
-    );
+    expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).not.toContain("shop default");
+    expect(request?.message).not.toContain("minExpectedSalesUnits");
     expect(request?.message).not.toContain("If expectedSalesUnits is below");
     expect(request?.message).not.toContain("If expectedSalesUnits meets or exceeds");
   });

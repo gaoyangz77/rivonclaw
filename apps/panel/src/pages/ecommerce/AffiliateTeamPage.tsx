@@ -34,6 +34,10 @@ import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAcc
 const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
 export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
+export const PROTECTED_CREATOR_TEMPLATE_HEADERS = [
+  "creator_username",
+  "business_developer_name",
+] as const;
 
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
@@ -482,13 +486,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       const seen = new Set<string>();
       const parsed = rawRows.map((raw, index): ProtectionPreviewRow => {
         const row = normalizeSpreadsheetRow(raw);
-        const creatorOpenId = cleanCell(row.creator_open_id ?? row.creatoropenid);
-        const username = cleanCell(row.username ?? row.creator_username);
+        const creatorOpenId = null;
+        const username = cleanCell(row.creator_username ?? row.username);
         const developerName = cleanCell(
           row.business_developer_name ?? row.business_developer ?? row.bd,
         );
         const developer = developerName ? developersByName.get(developerName.toLowerCase()) : null;
-        const key = creatorOpenId ? `id:${creatorOpenId}` : username ? `username:${username.toLowerCase()}` : "";
+        const key = username ? `username:${username.toLowerCase()}` : "";
         let error: string | null = null;
         if (!key) error = t("ecommerce.affiliateTeam.missingCreatorIdentity");
         else if (seen.has(key)) error = t("ecommerce.affiliateTeam.duplicateCreator");
@@ -501,7 +505,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           username,
           businessDeveloperId: developer?.id ?? null,
           businessDeveloperName: developerName,
-          note: cleanCell(row.note),
+          note: null,
           error,
         };
       });
@@ -517,9 +521,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       showToast(t("ecommerce.affiliateTeam.missingCreatorIdentity"), "error");
       return;
     }
-    const isOpenId = /^\d+$/.test(identity);
     const duplicate = protectionRows.some((row) => (
-      isOpenId ? row.creatorOpenId === identity : row.username?.toLowerCase() === identity.toLowerCase()
+      row.username?.toLowerCase() === identity.toLowerCase()
     ));
     if (duplicate) {
       showToast(t("ecommerce.affiliateTeam.duplicateCreator"), "error");
@@ -529,8 +532,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setProtectionRows((rows) => [...rows, {
       rowNumber: rows.reduce((highest, row) => Math.max(highest, row.rowNumber), 1) + 1,
       platform: GQL.ShopPlatform.TiktokShop,
-      creatorOpenId: isOpenId ? identity : null,
-      username: isOpenId ? null : identity,
+      creatorOpenId: null,
+      username: identity,
       businessDeveloperId: developer?.id ?? null,
       businessDeveloperName: developer?.displayName ?? null,
       note: manualNote.trim() || null,
@@ -583,30 +586,20 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
   async function downloadTemplate() {
     const XLSX = await import("xlsx");
-    const worksheet = XLSX.utils.aoa_to_sheet([[
-      "platform",
-      "creator_open_id",
-      "username",
-      "business_developer_name",
-      "note",
-    ]]);
+    const worksheet = XLSX.utils.aoa_to_sheet([[...PROTECTED_CREATOR_TEMPLATE_HEADERS]]);
     worksheet["!cols"] = [
-      { wch: 18 },
-      { wch: 28 },
       { wch: 28 },
       { wch: 32 },
-      { wch: 48 },
     ];
+    worksheet["!autofilter"] = { ref: "A1:B1" };
     const instructions = XLSX.utils.aoa_to_sheet([
       [
         t("ecommerce.affiliateTeam.templateField"),
         t("ecommerce.affiliateTeam.templateRequirement"),
         t("ecommerce.affiliateTeam.templateInstructions"),
       ],
-      ["platform", t("ecommerce.affiliateTeam.templateRequired"), "TIKTOK_SHOP"],
-      ["creator_open_id / username", t("ecommerce.affiliateTeam.templateIdentityRequired"), t("ecommerce.affiliateTeam.templateIdentityHint")],
+      ["creator_username", t("ecommerce.affiliateTeam.templateRequired"), t("ecommerce.affiliateTeam.templateIdentityHint")],
       ["business_developer_name", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateDeveloperHint")],
-      ["note", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateNoteHint")],
     ]);
     instructions["!cols"] = [{ wch: 34 }, { wch: 24 }, { wch: 76 }];
     const workbook = XLSX.utils.book_new();

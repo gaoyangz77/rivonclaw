@@ -3,9 +3,6 @@ import { createLogger } from "@rivonclaw/logger";
 import {
   GQL,
   ScopeType,
-  type AffiliateOrderAttributedFrame,
-  type AffiliateSampleApplicationUpdatedFrame,
-  type AffiliateTargetCollaborationUpdatedFrame,
 } from "@rivonclaw/core";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
@@ -13,24 +10,17 @@ import { rootStore } from "../app/store/desktop-store.js";
 import { normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import {
-  AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
   AFFILIATE_CONTEXT_BUILDER_QUERY,
   AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
-  AFFILIATE_WORKSPACE_QUERY,
   RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
-  type AffiliateActionProposalDeltaQueryResult,
   type AffiliateContextBuilderQueryResult,
   type AffiliateCreatorMessagePreflightQueryResult,
   type AffiliateWorkItemsQueryResult,
-  type AffiliateWorkspaceQueryResult,
   type ResolveAffiliateWorkItemMutationResult,
 } from "../cloud/affiliate-queries.js";
 import type { StaffLanguage } from "../i18n/locale.js";
-import {
-  buildAffiliateAgentRunRequest,
-  summarizeCreatorSnapshotForPrompt,
-} from "./affiliate-agent-run-factory.js";
+import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 import {
   registerActiveAffiliateRunCheckpoint,
   unregisterActiveAffiliateRunCheckpoint,
@@ -105,7 +95,6 @@ interface AffiliateRunCheckpoint {
 
 interface AffiliateResolvedDispatchContext {
   checkpoint: GQL.AffiliateContextBuilderPayload;
-  contactState: GQL.AffiliateCreatorContactStatePayload;
 }
 
 interface AffiliateCreatorMessagePreflightResult {
@@ -167,7 +156,10 @@ export class AffiliateSession {
     return this.buildExtraSystemPrompt(AffiliateAgentRunMode.OPERATOR_REASONING);
   }
 
-  private buildExtraSystemPrompt(runMode: AffiliateAgentRunMode): string {
+  private buildExtraSystemPrompt(
+    runMode: AffiliateAgentRunMode,
+    businessDeveloperPrompt?: string | null,
+  ): string {
     return [
       "## Affiliate / Creator Management Agent",
       "",
@@ -186,7 +178,7 @@ export class AffiliateSession {
       "- Commerce Content Surfaces: TikTok shoppable video, TikTok LIVE, and the creator's TikTok Shop showcase.",
       "- Commercial Outcomes: attributed product content, orders, units sold, and GMV recorded through TikTok Shop Affiliate.",
       "- Communication Transports: TikTok Shop platform chat, WhatsApp, and Outlook email carry seller-creator messages; they are contact routes for the same TikTok Shop Affiliate relationship.",
-      "- Workspace Objects: CreatorRelationship is the seller-level creator relationship; product cards identify candidate shop products; target collaborations, sample applications, and collaboration records represent progressively more specific commercial commitments and fulfillment state.",
+      "- Domain Objects: CreatorRelationship is the seller-level creator relationship; product cards identify candidate shop products; target collaborations, sample applications, and collaboration records represent progressively more specific commercial commitments and fulfillment state.",
       "- Identity Semantics: an inbound message is bound to a CreatorRelationship and its matched TikTok creator identity. That establishes who the sender is; the message content itself establishes the sender's current business intent.",
       "",
       "## Channel Model",
@@ -220,25 +212,29 @@ export class AffiliateSession {
       "- Never put a platform sample application ID into campaignId. For sample events, use platformApplicationId or sampleApplicationRecordId.",
       "",
       "## Workflow Discipline",
-      "- Desktop resolves a small affiliate workspace snapshot before dispatch when possible. Use it as the initial fact set.",
-      "- affiliate_get_workspace provides current relationship, sample, product-reference, policy, and proposal state when you need more than the injected snapshot.",
+      "- A dispatch carries only the current Agent Working Agenda. It is a wake-up reason, not a business-fact snapshot.",
+      "- affiliate_get_workspace provides current relationship, sample, product-reference, policy, and proposal state when those facts are relevant.",
       "- For every creator reply work item, first call affiliate_get_relationship_history with creatorRelationshipId to read the Provider-backed message history before drafting or sending. Do not rely on the content-free lifecycle projection or memory for message text.",
       "- History attachmentRef values are short-lived and relationship-bound. affiliate_read_message_attachment reads supported content, affiliate_copy_message_attachment stages exact Provider bytes, and affiliate_upload_draft_attachment stages a locally generated file.",
       "- Never place URLs, provider ids, object keys, base64, or raw HTML in SEND_MESSAGE parts. Unsupported inbound attachment types are transferred to staff by desktop preflight before an Agent run.",
-      "- Use affiliate_get_relationship_history for relationship-level audit events, previous proposal decisions, prior sample actions, creator communications, or past staff/agent outcomes. Do not use provider conversation routes as history keys. Use affiliate_get_workspace for current entity snapshots.",
-      "- ecom_get_product resolves product details for a known shop/product reference. affiliate_predict_creator_product_fit returns optional decision evidence; neither tool creates a collaboration commitment.",
+      "- Use affiliate_get_relationship_history for relationship-level audit events, previous proposal decisions, prior sample actions, creator communications, or past staff/agent outcomes. Do not use provider conversation routes as history keys. Use affiliate_get_creator_collaboration_history for exhaustive TikTok target-collaboration/sample history and affiliate_get_workspace for current operational entity state.",
+      "- ecom_get_product resolves a known product; ecom_search_products searches the current shop catalog. affiliate_predict_creator_product_fit returns optional decision evidence. None of these read tools creates a collaboration commitment.",
       "- Use operatorSummary for staff-facing summaries. Keep it short: current fact, recommended/attempted action, proposal id if approval is required.",
       `- operatorSummary language: ${this.shop.staffLanguage ?? "English"}. Creator-facing messages should use the creator's language instead.`,
       "",
-      "## Current Affiliate Context",
-      `- Shop ID: ${this.affiliateContext.shopId}`,
-      `- Shop Name: ${this.shop.shopName}`,
-      `- Trigger Kind: ${this.affiliateContext.triggerKind}`,
-      ...(this.affiliateContext.creatorRelationshipId ? [`- Creator Relationship ID: ${this.affiliateContext.creatorRelationshipId}`] : []),
-      ...(this.affiliateContext.productId ? [`- Product ID: ${this.affiliateContext.productId}`] : []),
-      ...(this.affiliateContext.sampleApplicationId ? [`- Sample Application ID: ${this.affiliateContext.sampleApplicationId}`] : []),
-      ...(this.affiliateContext.collaborationRecordId ? [`- Related Collaboration Record ID: ${this.affiliateContext.collaborationRecordId}`] : []),
-      ...(this.affiliateContext.orderId ? [`- Order ID: ${this.affiliateContext.orderId}`] : []),
+      "## On-demand Affiliate Context",
+      "- The latest internal user turn contains only the current Agent Working Agenda: the reasons this run was dispatched.",
+      "- Do not infer Creator history, collaboration history, product facts, sample state, performance, contact routes, or proposal state from the agenda. Query the relevant tools when those facts matter to your decision.",
+      "- affiliate_get_relationship_history reads Provider-backed communication history and operational audit history for the current CreatorRelationship.",
+      "- affiliate_get_creator_collaboration_history exhausts seller-visible TikTok target-collaboration and sample-application history for the current Creator; request sample fulfillments only when content/fulfillment details matter.",
+      "- affiliate_get_workspace reads current Mongo operational state. ecom_get_product/ecom_search_products read current product facts. ecom_get_bi_catalog/ecom_get_bi_data read warehouse-backed historical performance and affiliate orders.",
+      "- Tool results, not the wake-up agenda, establish business facts. Respect each result's source, observation time, pagination, and coverage indicators.",
+      "",
+      "## Merchant Affiliate Instructions",
+      this.shop.businessPrompt?.trim() || "(none configured)",
+      "",
+      "## Assigned Business Developer Instructions",
+      businessDeveloperPrompt?.trim() || "(none configured)",
     ].join("\n");
   }
 
@@ -257,10 +253,6 @@ export class AffiliateSession {
     });
     if (!dispatchContext) return { runId: undefined };
 
-    let relationshipMessageUpdate = renderAffiliateDispatchContext(
-      dispatchContext.checkpoint,
-      dispatchContext.contactState,
-    );
     let generation: number | undefined;
     if (isCreatorReplyWorkItem(workItem)) {
       generation = this.beginCreatorMessageTakeover();
@@ -273,26 +265,12 @@ export class AffiliateSession {
         });
         return { runId: undefined };
       }
-      const messageUpdate = this.buildRelationshipMessageUpdateWorkPackage({
-        currentSignalId: workItem.triggerLifecycleEventId ?? workItemCurrentMessageId(workItem) ?? undefined,
-        currentChannel: workItem.triggerChannel ?? undefined,
-        eventTime: workItem.collaboration?.lastCreatorMessageAt ?? workItem.creatorRelationship?.lastInboundAt ?? undefined,
-      });
-      relationshipMessageUpdate = [relationshipMessageUpdate, messageUpdate].join("\n\n");
       if (generation !== this.dispatchGeneration) return { runId: undefined };
     }
 
-    const predictionContext = await this.resolvePredictionDispatchContext(workItem);
-    const thresholdContext = await this.resolveDecisionThresholdDispatchContext(workItem);
     const request = buildAffiliateAgentRunRequest({
       workItem,
       platform: this.platform,
-      relationshipMessageUpdate,
-      proposalDeltaSection: "## Proposal Delta\nIncluded in the checkpoint-bound operational event delta above.",
-      ...predictionContext,
-      ...thresholdContext,
-      businessPrompt: this.shop.businessPrompt,
-      staffLanguage: this.shop.staffLanguage,
     });
     if (!request) return { runId: undefined };
 
@@ -307,6 +285,7 @@ export class AffiliateSession {
       businessDeveloperIdSnapshot: dispatchContext.checkpoint.businessDeveloperIdSnapshot ?? null,
       businessDeveloperConfigRevision:
         dispatchContext.checkpoint.businessDeveloperConfigRevision ?? null,
+      businessDeveloperPrompt: dispatchContext.checkpoint.businessDeveloper?.businessPrompt ?? null,
     });
     if (result.runId) {
       this.pendingRunCompletions.set(result.runId, workItem);
@@ -397,6 +376,7 @@ export class AffiliateSession {
     relationshipOperationalConfigRevision?: number;
     businessDeveloperIdSnapshot?: string | null;
     businessDeveloperConfigRevision?: number | null;
+    businessDeveloperPrompt?: string | null;
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
     const runMode = params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING;
@@ -432,7 +412,7 @@ export class AffiliateSession {
         provider: resolvedModel.provider,
         model: resolvedModel.model,
         message: params.message,
-        extraSystemPrompt: this.buildExtraSystemPrompt(runMode),
+        extraSystemPrompt: this.buildExtraSystemPrompt(runMode, params.businessDeveloperPrompt),
         promptMode: "raw",
         idempotencyKey: params.idempotencyKey,
       });
@@ -474,6 +454,7 @@ export class AffiliateSession {
     message: string;
     idempotencyKey: string;
     runMode?: AffiliateAgentRunMode;
+    businessDeveloperPrompt?: string | null;
   }): void {
     log.info(
       [
@@ -486,8 +467,8 @@ export class AffiliateSession {
         `collaborationRecordId=${this.affiliateContext.collaborationRecordId ?? ""}`,
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
-        `systemPromptChars=${this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING).length}`,
-        "promptContextVersion=affiliate-provenance-v3",
+        `systemPromptChars=${this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING, params.businessDeveloperPrompt).length}`,
+        "promptContextVersion=affiliate-working-agenda-v1",
         `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
       ].join(" "),
     );
@@ -499,7 +480,7 @@ export class AffiliateSession {
       `idempotencyKey=${params.idempotencyKey}`,
       "",
       "## extraSystemPrompt",
-      this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING),
+      this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING, params.businessDeveloperPrompt),
       "",
       "## userMessage",
       params.message,
@@ -610,13 +591,21 @@ export class AffiliateSession {
     checkpointId: string | null;
     eventCursor: number;
   }> {
-    const workspace = await this.fetchWorkspace({
-      includePolicies: false,
-      limit: 1,
-    });
-    const relationship = workspace?.creatorRelations?.find(
-      item => item.id === this.affiliateContext.creatorRelationshipId,
+    const authSession = getAuthSession();
+    if (!authSession) {
+      return { checkpointId: null, eventCursor: 0 };
+    }
+    const result = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
+      AFFILIATE_WORK_ITEMS_QUERY,
+      {
+        input: {
+          shopId: this.affiliateContext.shopId,
+          creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+          limit: 1,
+        },
+      },
     );
+    const relationship = result.affiliateWorkItems[0]?.creatorRelationship;
     return {
       checkpointId: normalizeCheckpointId(relationship?.committedCheckpointId),
       eventCursor: relationship?.committedEventCursor ?? 0,
@@ -804,33 +793,6 @@ export class AffiliateSession {
     }
   }
 
-  private buildRelationshipMessageUpdateWorkPackage(params: {
-    currentSignalId?: string;
-    currentChannel?: GQL.AffiliateMessageChannel;
-    messageType?: string;
-    senderRole?: string;
-    eventTime?: string;
-  }): string {
-    return [
-      "[Affiliate Creator Message Update]",
-      `- Creator Relationship ID: ${this.affiliateContext.creatorRelationshipId}`,
-      ...(params.currentChannel ? [`- Current Trigger Channel: ${params.currentChannel}`] : []),
-      ...(params.currentSignalId ? [`- Current Signal ID: ${params.currentSignalId}`] : []),
-      ...(params.senderRole ? [`- Current Sender Role: ${params.senderRole}`] : []),
-      ...(params.messageType ? [`- Current Message Type: ${params.messageType}`] : []),
-      ...(params.eventTime ? [`- Event Time: ${params.eventTime}`] : []),
-      "",
-      "## Task",
-      "Message content is intentionally absent from this signal and is not mirrored in local storage.",
-      "Call affiliate_get_relationship_history with this creatorRelationshipId before deciding or replying. Use the trigger channel as channel provenance, not as a workspace key.",
-      "Read the provider-returned cross-channel context and handle the latest creator-side message. Do not use or request provider conversation/thread ids.",
-      "If provider history is unavailable, do not guess from signal metadata and do not use a local-message fallback; call affiliate_resolve_work_item with NEEDS_STAFF_REVIEW, then output exactly NO_REPLY.",
-      "If a reply is needed, call affiliate_resolve_work_item with REQUEST_ACTION, action.type SEND_MESSAGE, and ordered action.messageIntent.parts. A normal text reply uses [{kind: TEXT, text: <exact creator-facing reply>}].",
-      "Omit preferredChannel to reply through the trigger channel. A supplied preferredChannel requests an intentional override and is validated by backend routing.",
-      "After the structured action completes, is queued for approval, or fails delivery, output exactly NO_REPLY.",
-    ].join("\n");
-  }
-
   private async fetchDispatchContext(input: {
     workItem: GQL.AffiliateWorkItem;
     baseCheckpointId: string | null;
@@ -850,11 +812,9 @@ export class AffiliateSession {
             creatorRelationshipId: input.workItem.creatorRelationshipId,
             baseCheckpointId: input.baseCheckpointId,
             baseEventCursor: input.baseEventCursor,
-            limit: 1000,
-          },
-          contactInput: {
-            shopId: input.workItem.focusShopId,
-            creatorRelationshipId: input.workItem.creatorRelationshipId,
+            limit: 1,
+            includeWorkspace: false,
+            includeEventDelta: false,
           },
         },
       );
@@ -873,7 +833,6 @@ export class AffiliateSession {
       }
       return {
         checkpoint: context,
-        contactState: result.affiliateCreatorContactState,
       };
     } catch (err) {
       log.error(
@@ -884,221 +843,6 @@ export class AffiliateSession {
     }
   }
 
-  private async buildProposalDeltaSection(workItem: GQL.AffiliateWorkItem): Promise<string> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      log.warn("No auth session available, cannot fetch affiliate proposal delta");
-      return "## Proposal Events Since Last Work Boundary\n(unavailable: no auth session)";
-    }
-
-    try {
-      const since = workItemHandledUntil(workItem);
-      if (since == null) {
-        return [
-          "## Proposal Events Since Last Work Boundary",
-          "(none: this work item has no handled work boundary yet)",
-        ].join("\n");
-      }
-      const result = await authSession.graphqlFetch<AffiliateActionProposalDeltaQueryResult>(
-        AFFILIATE_ACTION_PROPOSAL_DELTA_QUERY,
-        {
-          input: {
-            shopId: workItem.focusShopId,
-            creatorRelationshipId: workItem.creatorRelationshipId,
-            since,
-            limit: 8,
-          },
-        },
-      );
-      return renderProposalDelta(result.affiliateActionProposalDelta ?? [], since);
-    } catch (err) {
-      log.warn(`Failed to fetch affiliate proposal delta for ${workItemSubjectLabel(workItem)}: ${String(err)}`);
-      return "## Proposal Events Since Last Work Boundary\n(unavailable: backend query failed)";
-    }
-  }
-
-  private async fetchWorkspace(params: {
-    includePolicies?: boolean;
-    campaignId?: string;
-    platformApplicationId?: string;
-    limit?: number;
-  }): Promise<GQL.AffiliateWorkspacePayload | null> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      log.warn("No auth session available, cannot fetch affiliate workspace");
-      return null;
-    }
-
-    try {
-      const result = await authSession.graphqlFetch<AffiliateWorkspaceQueryResult>(
-        AFFILIATE_WORKSPACE_QUERY,
-        {
-          input: {
-            shopId: this.affiliateContext.shopId,
-            creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
-            includePolicies: params.includePolicies ?? true,
-            campaignId: params.campaignId,
-            platformApplicationId: params.platformApplicationId,
-            limit: params.limit ?? 20,
-          },
-        },
-      );
-      return result.affiliateWorkspace;
-    } catch (err) {
-      log.warn(`Failed to fetch affiliate workspace for ${this.affiliateContext.shopId}: ${String(err)}`);
-      return null;
-    }
-  }
-
-  private async buildWorkspaceSnapshot(params: {
-    includePolicies?: boolean;
-    platformApplicationId?: string;
-    limit?: number;
-  }): Promise<string | undefined> {
-    const workspace = await this.fetchWorkspace(params);
-    if (!workspace) return undefined;
-    return renderWorkspaceSnapshot(workspace);
-  }
-
-  private async resolveDecisionThresholdDispatchContext(
-    workItem: GQL.AffiliateWorkItem,
-  ): Promise<AffiliateDecisionThresholdDispatchContext> {
-    const shopThresholds = this.shop.decisionThresholds ?? null;
-    const campaignId = workItem.context?.affiliateCollaboration?.campaignId ?? null;
-
-    if (campaignId) {
-      const workspace = await this.fetchWorkspace({
-        includePolicies: false,
-        campaignId,
-        limit: 1,
-      });
-      const campaign = workspace?.campaigns?.find(item => item.id === campaignId);
-      if (hasConfiguredDecisionThreshold(campaign?.decisionThresholds)) {
-        return {
-          decisionThresholds: campaign.decisionThresholds,
-          decisionThresholdSource: `campaign:${campaign.name || campaign.id}`,
-        };
-      }
-    }
-
-    return {
-      decisionThresholds: shopThresholds,
-      decisionThresholdSource: hasConfiguredDecisionThreshold(shopThresholds) ? "shop default" : null,
-    };
-  }
-
-  private async resolvePredictionDispatchContext(
-    workItem: GQL.AffiliateWorkItem,
-  ): Promise<AffiliatePredictionDispatchContext> {
-    const scenario = selectExpectedSalesPredictionScenario(workItem);
-    if (!scenario) {
-      return { predictionSection: "## Affiliate Prediction\n(not applicable for this work item)" };
-    }
-
-    const existingSnapshot = workItem.collaboration?.predictionSnapshots?.find(
-      snapshot => snapshot.status === GQL.AffiliatePredictionStatus.Ok,
-    );
-    if (existingSnapshot) {
-      const sourceCacheId =
-        typeof existingSnapshot.sourceCacheId === "string" &&
-        existingSnapshot.sourceCacheId.length > 0
-          ? existingSnapshot.sourceCacheId
-          : null;
-      return {
-        predictionSection: renderExpectedSalesPredictionSnapshotSection(existingSnapshot.scenario, existingSnapshot),
-        predictionCacheIds: sourceCacheId ? [sourceCacheId] : [],
-      };
-    }
-
-    return {
-      predictionSection: [
-        "## Affiliate Prediction",
-        `- Scenario: ${scenario}`,
-        "- Status: NOT_PREFETCHED",
-        "- Cache IDs: (none)",
-        "- affiliate_predict_creator_product_fit is available as optional evidence. Its returned cacheId identifies the exact evidence snapshot used in a typed action; SAMPLE_REVIEW accepts the sample application ids when available.",
-      ].join("\n"),
-      predictionCacheIds: [],
-    };
-  }
-
-  async handleSampleApplicationUpdated(frame: AffiliateSampleApplicationUpdatedFrame): Promise<AffiliateDispatchResult> {
-    const workspaceSnapshot = await this.buildWorkspaceSnapshot({
-      includePolicies: true,
-      platformApplicationId: frame.applicationId,
-      limit: 20,
-    });
-    return this.dispatch({
-      message: appendOptionalSection([
-        "[Affiliate Sample Application Updated]",
-        `Application ID: ${frame.applicationId}`,
-        `Product ID: ${frame.productId ?? ""}`,
-        `Status: ${frame.status}`,
-        `Event Time: ${frame.eventTime}`,
-        "",
-        "Use the injected workspace snapshot as the current backend fact set.",
-        ...(this.shop.businessPrompt?.trim()
-          ? ["", "## Merchant Affiliate Instructions", this.shop.businessPrompt.trim(), ""]
-          : []),
-        "If the matching sampleApplicationRecord is PENDING_REVIEW, resolve the work item through affiliate_resolve_work_item.",
-        `Use operatorSummary for staff-facing reasoning in ${this.shop.staffLanguage ?? "English"}. Creator-facing content belongs only in action.messageIntent.parts.`,
-        "Do not pass this platform application ID as campaignId.",
-      ].join("\n"), workspaceSnapshot),
-      idempotencyKey: `affiliate:${this.platform}:sample:${frame.applicationId}:${frame.status}:${frame.eventTime}`,
-    });
-  }
-
-  async handleTargetCollaborationUpdated(frame: AffiliateTargetCollaborationUpdatedFrame): Promise<AffiliateDispatchResult> {
-    return this.dispatch({
-      message: [
-        "[Affiliate Target Collaboration Updated]",
-        `Target Collaboration Platform ID: ${frame.collaborationId}`,
-        `Product ID: ${frame.productId ?? ""}`,
-        `Status: ${frame.status}`,
-        `Event Time: ${frame.eventTime}`,
-      ].join("\n"),
-      idempotencyKey: `affiliate:${this.platform}:target-collab:${frame.collaborationId}:${frame.status}:${frame.eventTime}`,
-    });
-  }
-
-  async handleOrderAttributed(frame: AffiliateOrderAttributedFrame): Promise<AffiliateDispatchResult> {
-    return this.dispatch({
-      message: [
-        "[Affiliate Order Attributed]",
-        `Order ID: ${frame.orderId}`,
-        `Product ID: ${frame.productId ?? ""}`,
-        `Event Time: ${frame.eventTime}`,
-      ].join("\n"),
-      idempotencyKey: `affiliate:${this.platform}:order-attributed:${frame.orderId}:${frame.eventTime}`,
-    });
-  }
-
-}
-
-interface AffiliatePredictionDispatchContext {
-  predictionSection?: string;
-  predictionCacheIds?: readonly string[];
-}
-
-interface AffiliateDecisionThresholdDispatchContext {
-  decisionThresholds?: GQL.AffiliateDecisionThresholds | null;
-  decisionThresholdSource?: string | null;
-}
-
-function hasConfiguredDecisionThreshold(
-  thresholds: GQL.AffiliateDecisionThresholds | null | undefined,
-): thresholds is GQL.AffiliateDecisionThresholds {
-  return typeof thresholds?.minExpectedSalesUnits === "number";
-}
-
-function selectExpectedSalesPredictionScenario(
-  workItem: GQL.AffiliateWorkItem,
-): GQL.AffiliateExpectedSalesPredictionScenario | null {
-  if (isCreatorReplyWorkItem(workItem) || isCreatorFollowUpWorkItem(workItem)) {
-    return GQL.AffiliateExpectedSalesPredictionScenario.TargetCollaborationPlanning;
-  }
-  if (isSampleReviewWorkItem(workItem)) return GQL.AffiliateExpectedSalesPredictionScenario.SampleReview;
-  return null;
 }
 
 function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
@@ -1106,10 +850,6 @@ function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
     workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.ReplyToCreator ||
     workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
   );
-}
-
-function workItemCurrentMessageId(workItem: GQL.AffiliateWorkItem): string | null {
-  return workItem.collaboration?.lastCreatorMessageId ?? null;
 }
 
 function workItemSubjectLabel(workItem: GQL.AffiliateWorkItem): string {
@@ -1138,260 +878,6 @@ function workItemHandledUntil(workItem: GQL.AffiliateWorkItem | null | undefined
   return workItem.collaboration?.workHandledUntil ?? null;
 }
 
-function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
-  return (
-    workItem.workKind === GQL.AffiliateWorkKind.SampleApplicationDecision ||
-    (
-      workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask &&
-      workItem.processReasons?.includes(GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview) === true
-    )
-  );
-}
-
-function isCreatorFollowUpWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
-  return (
-    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.FollowUpCreator ||
-    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.WaitCreatorResponse ||
-    workItem.workKind === GQL.AffiliateWorkKind.ContentFollowUp ||
-    workItem.workKind === GQL.AffiliateWorkKind.CreatorFollowUp
-  );
-}
-
-function renderAffiliateDispatchContext(
-  context: GQL.AffiliateContextBuilderPayload,
-  contactState: GQL.AffiliateCreatorContactStatePayload,
-): string {
-  const events = (context.events ?? []).map((event, index) => {
-    const lifecycle = event.lifecycleEvent;
-    const provenance = affiliateEventProvenance(event.actorRole ?? null);
-    return [
-      `${index + 1}. cursor=${lifecycle?.relationshipSequence ?? "?"} type=${lifecycle?.eventType ?? event.type}`,
-      `   occurredAt=${event.occurredAt} actor=${event.actorRole ?? "UNKNOWN"} provenance=${provenance}`,
-      `   summary=${event.summary}`,
-      ...(lifecycle?.displayPayloadJson
-        ? [`   payload=${lifecycle.displayPayloadJson}`]
-        : []),
-      `   refs=${JSON.stringify(event.relatedIds ?? {})}`,
-    ].join("\n");
-  });
-  const workspace = context.workspace;
-  const businessDeveloper = context.businessDeveloper;
-  const currentSnapshot = {
-    agendaItems: context.creatorRelationship.agendaItems ?? [],
-    workSummary: context.creatorRelationship.workSummary ?? null,
-    collaborations: workspace.collaborationRecords ?? [],
-    sampleApplications: workspace.sampleApplicationRecords ?? [],
-    pendingProposals: (workspace.actionProposals ?? []).filter(
-      (proposal) => proposal.status === GQL.ActionProposalStatus.Pending,
-    ),
-    creatorProfiles: (workspace.creatorProfiles ?? []).map((creator) => ({
-      id: creator.id,
-      platform: creator.platform,
-      creatorOpenId: creator.creatorOpenId ?? null,
-      creatorImId: creator.creatorImId ?? null,
-      username: creator.username ?? null,
-      nickname: creator.nickname ?? null,
-      followerCount: creator.followerCount ?? null,
-      categoryIds: creator.categoryIds ?? [],
-      marketplaceCommerceSummary: summarizeCreatorSnapshotForPrompt(
-        creator.marketplaceSnapshotJson,
-      ),
-      aggregatedSignalsSummary: summarizeCreatorSnapshotForPrompt(
-        creator.aggregatedSignalsSnapshotJson,
-      ),
-    })),
-  };
-  return [
-    "[Affiliate Checkpoint-Bound Operational Context]",
-    `Creator Relationship ID: ${context.creatorRelationship.id}`,
-    `Base Checkpoint ID: ${context.baseCheckpointId ?? "(brand new session)"}`,
-    `Base Event Cursor: ${context.baseEventCursor}`,
-    `Target Event Cursor: ${context.targetEventCursor}`,
-    `Relationship Operational Config Revision: ${context.relationshipOperationalConfigRevision}`,
-    `Business Developer Snapshot: ${context.businessDeveloperIdSnapshot ?? "(no human BD assigned)"}`,
-    `Business Developer Config Revision: ${context.businessDeveloperConfigRevision ?? "(none)"}`,
-    "",
-    "## Assigned Business Developer",
-    ...(businessDeveloper
-      ? [
-          `- Name: ${businessDeveloper.displayName}`,
-          `- Assistance Mode: ${businessDeveloper.agentAssistanceMode}`,
-          `- Regions: ${(businessDeveloper.regions ?? []).join(", ") || "(all)"}`,
-          `- Working Style: ${businessDeveloper.businessPrompt?.trim() || "(no additional instructions)"}`,
-        ]
-      : [
-          "- Owner: no human BD assigned",
-          "- Routing: apply merchant Affiliate instructions and AI routing rules to the current relationship facts.",
-        ]),
-    "",
-    ...renderAssignedOutreachAccounts(context, contactState),
-    "",
-    "## Historical Operational Events Not Present In The Restored Checkpoint",
-    "Provider observations are source events. AGENT and STAFF summaries are historical decisions or opinions, not current Provider/workspace facts.",
-    ...(events.length ? events : ["(No new lifecycle events.)"]),
-    "",
-    "## Current Authoritative Workspace Snapshot",
-    JSON.stringify(currentSnapshot, null, 2),
-    "",
-    "Use the event delta as the authoritative account of what changed after the restored checkpoint. Use the current snapshot for present facts. Resolve all simultaneously open agenda items that can be handled safely in one ordered action bundle.",
-  ].join("\n");
-}
-
-function affiliateEventProvenance(
-  actorRole: GQL.AffiliateLifecycleActorRole | null,
-): "PROVIDER_OBSERVATION" | "HISTORICAL_AGENT_DECISION" | "HISTORICAL_STAFF_DECISION" | "SYSTEM_EVENT" {
-  switch (actorRole) {
-    case GQL.AffiliateLifecycleActorRole.Creator:
-    case GQL.AffiliateLifecycleActorRole.Platform:
-      return "PROVIDER_OBSERVATION";
-    case GQL.AffiliateLifecycleActorRole.Agent:
-      return "HISTORICAL_AGENT_DECISION";
-    case GQL.AffiliateLifecycleActorRole.Staff:
-      return "HISTORICAL_STAFF_DECISION";
-    default:
-      return "SYSTEM_EVENT";
-  }
-}
-
-function renderAssignedOutreachAccounts(
-  context: GQL.AffiliateContextBuilderPayload,
-  contactState: GQL.AffiliateCreatorContactStatePayload,
-): string[] {
-  const businessDeveloperId = context.businessDeveloperIdSnapshot ?? null;
-  if (!businessDeveloperId) {
-    return [
-      "## Direct Outreach Routing",
-      "- No human BD is assigned to this Creator Relationship.",
-      "- WhatsApp and Email are unavailable. Use TikTok Shop platform chat only.",
-    ];
-  }
-  const whatsAppAccounts = (contactState.whatsAppAccounts ?? []).filter(
-    (account) => account.businessDeveloperId === businessDeveloperId,
-  );
-  const emailAccounts = (contactState.emailAccounts ?? []).filter(
-    (account) => account.businessDeveloperId === businessDeveloperId,
-  );
-  const preferredWhatsApp = contactState.preferredWhatsAppAccount?.businessDeveloperId === businessDeveloperId
-    && whatsAppAccounts.some((account) => account.id === contactState.preferredWhatsAppAccount?.id)
-    ? contactState.preferredWhatsAppAccount
-    : null;
-  const preferredEmail = contactState.preferredEmailAccount?.businessDeveloperId === businessDeveloperId
-    && emailAccounts.some((account) => account.id === contactState.preferredEmailAccount?.id)
-    ? contactState.preferredEmailAccount
-    : null;
-  const contacts = (contactState.channelContacts ?? []).filter(
-    (contact) => contact.businessDeveloperId === businessDeveloperId,
-  );
-  const contactLines = contacts.map((contact) => {
-    const address = contact.channel === GQL.AffiliateMessageChannel.Whatsapp
-      ? contact.creatorPhone ?? "(Provider-only WhatsApp identity)"
-      : contact.creatorEmail ?? "(unknown)";
-    return `- Creator ${contact.channel}: ${contact.effectiveAlias?.trim() || address}; address=${address}; status=${contact.status}`;
-  });
-
-  return [
-    "## Assigned BD Outreach Routing",
-    "The preferred sender identities below are safe to disclose when following the BD's working instructions. Backend routing remains authoritative.",
-    `- Default proactive channel: ${contactState.defaultOutboundChannel}`,
-    `- Usable creator WhatsApp route: ${contactState.hasUsableWhatsAppContact ? "yes" : "no"}`,
-    `- Usable creator email route: ${contactState.hasUsableEmailContact ? "yes" : "no"}`,
-    preferredWhatsApp
-      ? `- Preferred WhatsApp sender: ${preferredWhatsApp.displayName?.trim() || preferredWhatsApp.phoneNumber?.trim() || "(unnamed)"}; phone=${preferredWhatsApp.phoneNumber?.trim() || "(unknown)"}; status=${preferredWhatsApp.status}`
-      : "- Preferred WhatsApp sender: (none)",
-    `- Other assigned WhatsApp accounts: ${Math.max(whatsAppAccounts.length - (preferredWhatsApp ? 1 : 0), 0)}`,
-    preferredEmail
-      ? `- Preferred Email sender: ${preferredEmail.displayName?.trim() || preferredEmail.emailAddress}; address=${preferredEmail.sharedMailboxAddress?.trim() || preferredEmail.emailAddress}; mailboxType=${preferredEmail.mailboxType}; status=${preferredEmail.status}`
-      : "- Preferred Email sender: (none)",
-    `- Other assigned Email accounts: ${Math.max(emailAccounts.length - (preferredEmail ? 1 : 0), 0)}`,
-    "### Effective Creator Contacts Under This BD",
-    ...(contactLines.length ? contactLines : ["- (No direct-channel Creator contacts.)"]),
-    "Do not choose or pass seller account IDs. Contact tools use the BD preferred account when it is usable, otherwise another usable account assigned to the same BD; SEND_MESSAGE uses the exact trigger contact for replies and the backend default resolver for proactive outreach.",
-  ];
-}
-
-function renderExpectedSalesPredictionSnapshotSection(
-  scenario: GQL.AffiliateExpectedSalesPredictionScenario,
-  snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot,
-): string {
-  const output = snapshot.output ?? {};
-  const expectedSalesUnits = numberFromUnknown(output.expectedSalesUnits);
-  return [
-    "## Affiliate Prediction",
-    `- Scenario: ${scenario}`,
-    "- Status: ALREADY_CAPTURED_ON_COLLABORATION",
-    `- Captured At: ${snapshot.capturedAt ?? ""}`,
-    `- Predicted Expected Sales Units: ${formatMaybeNumber(expectedSalesUnits)}`,
-    `- Merchant Meaning: ${renderPredictionPlainMeaning(expectedSalesUnits)}`,
-    "- Caveat: expectedSalesUnits is a calibrated expected-value forecast, not a guaranteed result.",
-    "- Cache IDs: (none needed; this collaboration already has a persisted prediction snapshot)",
-  ].join("\n");
-}
-
-function formatMaybeNumber(value: number | null | undefined): string {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "";
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-function renderPredictionPlainMeaning(expectedSalesUnits: number | null | undefined): string {
-  if (typeof expectedSalesUnits !== "number" || !Number.isFinite(expectedSalesUnits)) {
-    return "No usable sales estimate is available for this creator/product pair.";
-  }
-  if (expectedSalesUnits <= 0) {
-    return "The expected-sales model estimates near-zero unit sales for this creator/product pair, after adjusting to the shop/account's historical outcome scale.";
-  }
-  if (expectedSalesUnits === 1) {
-    return "The expected-sales model estimates about 1 unit for this creator/product pair, after adjusting to the shop/account's historical outcome scale.";
-  }
-  return `The expected-sales model estimates about ${formatMaybeNumber(expectedSalesUnits)} units for this creator/product pair, after adjusting to the shop/account's historical outcome scale.`;
-}
-
-function numberFromUnknown(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  return null;
-}
-
-function appendOptionalSection(message: string, section?: string): string {
-  return section ? `${message}\n\n${section}` : message;
-}
-
-function renderProposalDelta(proposals: GQL.ActionProposal[], since: string | null | undefined): string {
-  const header = [
-    "## Proposal Events Since Last Work Boundary",
-    `Since: ${since ?? "(no prior work boundary; showing latest bounded proposal events)"}`,
-  ];
-  if (proposals.length === 0) {
-    return [...header, "(none)"].join("\n");
-  }
-  return [
-    ...header,
-    ...proposals.slice(0, 8).flatMap((proposal, index) => [
-      `${index + 1}. proposalId=${proposal.id} type=${proposal.type} status=${proposal.status} updatedAt=${proposal.updatedAt ?? ""}`,
-      `   operatorSummary=${proposal.operatorSummary ?? ""}`,
-      proposal.decision?.note ? `   decisionNote=${proposal.decision.note}` : "   decisionNote=(none)",
-      proposal.steps?.length
-        ? `   steps=${proposal.steps.map(step => `${step.type}:${step.operatorSummary ?? ""}`).join(" | ")}`
-        : "   steps=(none)",
-      `   messageParts=${renderProposalMessageParts(proposal.messageIntent)}`,
-      proposal.sampleReviewIntent
-        ? `   sampleReview=${proposal.sampleReviewIntent.decision} platformApplicationId=${proposal.sampleReviewIntent.platformApplicationId}`
-        : "   sampleReview=(none)",
-    ]),
-    "",
-    "Use this section only to understand draft actions that were already proposed, rejected, superseded, or executed after the last handled work boundary. Do not treat it as stable workspace state.",
-  ].join("\n");
-}
-
-function renderProposalMessageParts(intent: GQL.ActionProposalMessageIntent | null | undefined): string {
-  if (!intent?.parts?.length) return "(none or cleared)";
-  return intent.parts.map((part, index) => {
-    if (part.kind === "TEXT") return `${index}:TEXT:${part.text ?? `[cleared hash=${part.textHash ?? "n/a"}]`}`;
-    if (part.kind === "ATTACHMENT") {
-      return `${index}:ATTACHMENT:${part.fileName ?? "attachment"}:${part.mimeType ?? "unknown"}:${part.sizeBytes ?? "?"}`;
-    }
-    return `${index}:${part.kind}`;
-  }).join(" | ");
-}
-
 function parseOptionalDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -1400,109 +886,4 @@ function parseOptionalDate(value: string | null | undefined): Date | null {
 
 function normalizeCheckpointId(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function renderWorkspaceSnapshot(workspace: GQL.AffiliateWorkspacePayload): string {
-  const samples = workspace.sampleApplicationRecords ?? [];
-  const collaborations = workspace.collaborationRecords ?? [];
-  const proposals = workspace.actionProposals ?? [];
-  const policies = workspace.approvalPolicies ?? [];
-  const creatorRelations = workspace.creatorRelations ?? [];
-  const creatorTags = workspace.creatorTags ?? [];
-
-  const sampleLines = samples.length
-    ? samples.map((sample, index) => [
-      `${index + 1}. sampleApplicationRecordId: ${sample.id}`,
-      `   platformApplicationId: ${sample.platformApplicationId}`,
-      `   productId: ${sample.productId ?? ""}`,
-      `   sampleWorkStatus: ${sample.sampleWorkStatus}`,
-      `   observedContentCount: ${sample.observedContentCount}`,
-      `   latestObservedContentAt: ${sample.latestObservedContentAt ?? ""}`,
-      `   latestObservedContentId: ${sample.latestObservedContentId ?? ""}`,
-      `   latestObservedContentUrl: ${sample.latestObservedContentUrl ?? ""}`,
-      `   latestObservedContentFormat: ${sample.latestObservedContentFormat ?? ""}`,
-      `   latestObservedContentPaidOrderCount: ${sample.latestObservedContentPaidOrderCount ?? ""}`,
-      `   latestObservedContentViewCount: ${sample.latestObservedContentViewCount ?? ""}`,
-      `   updatedAt: ${sample.updatedAt}`,
-    ].join("\n"))
-    : ["(none)"];
-
-  const collaborationLines = collaborations.length
-    ? collaborations.map((collaboration, index) => [
-      `${index + 1}. collaborationRecordId: ${collaboration.id}`,
-      `   productId: ${collaboration.productId ?? ""}`,
-      `   sampleApplicationRecordId: ${collaboration.sampleApplicationRecordId ?? ""}`,
-      `   lifecycleStage: ${collaboration.lifecycleStage}`,
-      `   processingStatus: ${collaboration.processingStatus}`,
-      `   processReasons: ${(collaboration.processReasons ?? []).join(", ")}`,
-      `   lastCreatorMessageId: ${collaboration.lastCreatorMessageId ?? ""}`,
-      `   lastCreatorMessageAt: ${collaboration.lastCreatorMessageAt ?? ""}`,
-      `   lastSignalAt: ${collaboration.lastSignalAt ?? ""}`,
-      `   workHandledUntil: ${collaboration.workHandledUntil ?? ""}`,
-      `   nextSellerActionAt: ${collaboration.nextSellerActionAt ?? ""}`,
-    ].join("\n"))
-    : ["(none)"];
-
-  const proposalLines = proposals.length
-    ? proposals.map((proposal, index) => [
-      `${index + 1}. proposalId: ${proposal.id}`,
-      `   type: ${proposal.type}`,
-      `   status: ${proposal.status}`,
-      `   operatorSummary: ${proposal.operatorSummary}`,
-      `   collaborationRecordId: ${proposal.collaborationRecordId ?? ""}`,
-    ].join("\n"))
-    : ["(none)"];
-
-  const policyLines = policies.length
-    ? policies.map((policy, index) =>
-      [
-        `${index + 1}. ${policy.reason ?? policy.id} action=${policy.action} enabled=${policy.enabled}`,
-        `   creatorTagIds: ${(policy.creatorTagIds ?? []).join(", ") || "(any)"}`,
-        `   campaignIds: ${(policy.campaignIds ?? []).join(", ") || "(any)"}`,
-        `   productIds: ${(policy.productIds ?? []).join(", ") || "(any)"}`,
-      ].join("\n"),
-    )
-    : ["(none)"];
-
-  const creatorTagLines = creatorTags.length
-    ? creatorTags.map((tag, index) =>
-      `${index + 1}. tagId: ${tag.id} name=${tag.name} type=${tag.type} systemKey=${tag.systemKey ?? ""} sensitive=${tag.sensitive}`,
-    )
-    : ["(none)"];
-
-  const relationLines = creatorRelations.length
-    ? creatorRelations.map((relation, index) => [
-      `${index + 1}. creatorRelationshipId: ${relation.id}`,
-      `   blocked: ${relation.blocked}`,
-      `   blockedShopIds: ${(relation.blockedShopIds ?? []).join(", ") || "(none)"}`,
-      `   shopStates: ${(relation.shopStates ?? []).length}`,
-      ...(relation.shopStates ?? []).map((state) =>
-        `     - shopId=${state.shopId} tagIds=${state.tagIds.join(", ") || "(none)"}`,
-      ),
-    ].join("\n"))
-    : ["(none)"];
-
-  return [
-    "[Resolved Affiliate Workspace Snapshot]",
-    "",
-    "This snapshot was fetched by Desktop before dispatch. Prefer these IDs over guessing tool arguments.",
-    "",
-    "## Sample Application Records",
-    ...sampleLines,
-    "",
-    "## Creator Collaborations",
-    ...collaborationLines,
-    "",
-    "## Pending / Recent Action Proposals",
-    ...proposalLines,
-    "",
-    "## Creator Tags",
-    ...creatorTagLines,
-    "",
-    "## Creator Relations",
-    ...relationLines,
-    "",
-    "## Active Approval Policies",
-    ...policyLines,
-  ].join("\n");
 }

@@ -1841,6 +1841,7 @@ export default {
         // 达人管理
         AFFILIATE_GET_WORKSPACE: "获取达人工作区",
         AFFILIATE_GET_RELATIONSHIP_HISTORY: "获取达人关系历史",
+        AFFILIATE_GET_CREATOR_COLLABORATION_HISTORY: "获取达人合作历史",
         AFFILIATE_READ_MESSAGE_ATTACHMENT: "读取达人消息附件",
         AFFILIATE_COPY_MESSAGE_ATTACHMENT: "复制达人消息附件",
         AFFILIATE_UPLOAD_DRAFT_ATTACHMENT: "上传 Affiliate 草稿附件",

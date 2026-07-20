@@ -1916,6 +1916,7 @@ export default {
         // Affiliate Management
         AFFILIATE_GET_WORKSPACE: "Get Affiliate Workspace",
         AFFILIATE_GET_RELATIONSHIP_HISTORY: "Get Creator Relationship History",
+        AFFILIATE_GET_CREATOR_COLLABORATION_HISTORY: "Get Creator Collaboration History",
         AFFILIATE_READ_MESSAGE_ATTACHMENT: "Read Creator Message Attachment",
         AFFILIATE_COPY_MESSAGE_ATTACHMENT: "Copy Creator Message Attachment",
         AFFILIATE_UPLOAD_DRAFT_ATTACHMENT: "Upload Affiliate Draft Attachment",
