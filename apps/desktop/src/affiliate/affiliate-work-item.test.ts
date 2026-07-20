@@ -1175,6 +1175,73 @@ describe("affiliate work item dispatch", () => {
     );
   });
 
+  it("dispatches a staff-requested proposal revision without re-running inbound attachment preflight", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({
+      graphqlFetch: withCheckpointContext(graphqlFetch, {
+        preflightItems: [createPreflightMessage([{
+          kind: GQL.AffiliateHistoryPartKind.Attachment,
+          fileName: "old-creator-video.mp4",
+          mimeType: "video/mp4",
+          sizeBytes: 1024,
+          agentReadable: false,
+        }])],
+      }),
+    });
+    const base = createCreatorReplyWorkItem();
+    const revision = {
+      id: "proposal-revision-001",
+      type: GQL.ActionProposalType.SendMessage,
+      status: GQL.ActionProposalStatus.RevisionRequested,
+      operatorSummary: "Original reply proposal",
+      decision: {
+        note: "Make the reply shorter.",
+        decidedAt: "2026-05-11T01:00:00.000Z",
+        actorType: "STAFF",
+        actorId: "user-001",
+      },
+      messageIntent: {
+        creatorId: "creator-001",
+        preferredChannel: null,
+        emailSubject: null,
+        parts: [{
+          kind: GQL.AffiliateMessagePartKind.Text,
+          text: "Thank you. We will follow up soon.",
+        }],
+      },
+      steps: [],
+    } as unknown as GQL.AffiliateRevisionRequestedProposalContext;
+    const agenda = {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      proposalId: revision.id,
+      revisionRequestedProposal: revision,
+    };
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "message-revision-001",
+      },
+    );
+
+    await expect(session.handleWorkItem(createCreatorReplyWorkItem({
+      agentWorkingAgendaItems: [agenda],
+    }))).resolves.toMatchObject({ runId: expect.any(String) });
+    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(true);
+    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("AffiliateCreatorMessagePreflight"))).toBe(false);
+  });
+
   it("allows PDF creator attachments through the pre-run attachment gate", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);

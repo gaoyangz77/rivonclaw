@@ -254,7 +254,7 @@ export class AffiliateSession {
     if (!dispatchContext) return { runId: undefined };
 
     let generation: number | undefined;
-    if (isCreatorReplyWorkItem(workItem)) {
+    if (isCreatorReplyWorkItem(workItem) && !hasProposalRevisionAgenda(workItem)) {
       generation = this.beginCreatorMessageTakeover();
       const preflight = await this.preflightCreatorMessage(workItem);
       if (!preflight.safeForAgentRun) {
@@ -854,6 +854,12 @@ function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
     workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.ReplyToCreator ||
     workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
   );
+}
+
+function hasProposalRevisionAgenda(workItem: GQL.AffiliateWorkItem): boolean {
+  return (workItem.agentWorkingAgendaItems ?? []).some((item) => (
+    item.revisionRequestedProposal?.status === GQL.ActionProposalStatus.RevisionRequested
+  ));
 }
 
 function workItemSubjectLabel(workItem: GQL.AffiliateWorkItem): string {
