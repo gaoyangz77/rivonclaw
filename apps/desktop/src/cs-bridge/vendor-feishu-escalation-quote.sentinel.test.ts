@@ -41,4 +41,13 @@ describe("vendor patch 0027: explicit Feishu quote failures", () => {
     expect(patch).toContain("keeps root_id-only P2P replies as quote replies outside thread mode");
     expect(patch).not.toContain("cs_list_open_escalations");
   });
+
+  it("recovers escalation cards quoted through merged-forward messages", () => {
+    expect(patch).toContain("parseFeishuMergeForwardItems");
+    expect(patch).toContain(
+      "recovers interactive card content from a quoted merged-forward message",
+    );
+    expect(patch).toContain("Escalation ID: M1DG8V");
+    expect(patch).toContain("fails closed when a quoted merged-forward child cannot be parsed");
+  });
 });
