@@ -717,8 +717,8 @@ describe("affiliate message dispatch", () => {
       expect.objectContaining({
         sessionKey: "agent:main:affiliate:user-001:relationship-SUB",
         idempotencyKey: expect.stringContaining("affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-SUB"),
-        message: expect.stringContaining("[Affiliate Checkpoint-Bound Operational Context]"),
-        extraSystemPrompt: expect.stringContaining("affiliate_resolve_work_item"),
+        message: expect.stringContaining("[Agent Working Agenda]"),
+        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_history"),
       }),
     );
   });
@@ -751,8 +751,8 @@ describe("affiliate message dispatch", () => {
       expect.objectContaining({
         sessionKey: "agent:main:affiliate:user-001:relationship-001",
         idempotencyKey: expect.stringContaining("affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-001"),
-        message: expect.stringContaining("Call affiliate_get_relationship_history"),
-        extraSystemPrompt: expect.stringContaining("OPERATOR_REASONING"),
+        message: expect.stringContaining("[Agent Working Agenda]"),
+        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_history"),
       }),
     );
     expect(mockGraphqlFetch.mock.calls.some(([query]) =>

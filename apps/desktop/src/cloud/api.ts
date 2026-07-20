@@ -203,6 +203,7 @@ function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Recor
   if (!checkpoint) return input;
   return {
     ...input,
+    handledSignalAt: checkpoint.handledSignalAt,
     baseCheckpointId: checkpoint.baseCheckpointId,
     baseEventCursor: checkpoint.baseEventCursor,
     candidateCheckpointId: checkpoint.candidateCheckpointId,

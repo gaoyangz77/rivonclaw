@@ -4,6 +4,7 @@ export interface ActiveAffiliateRunCheckpoint {
   runId: string;
   baseCheckpointId: string | null;
   baseEventCursor: number;
+  handledSignalAt: string | null;
   candidateCheckpointId: string;
   targetEventCursor: number;
   relationshipOperationalConfigRevision: number;
