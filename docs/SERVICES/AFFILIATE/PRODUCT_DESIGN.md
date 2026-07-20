@@ -2105,7 +2105,7 @@ Dispatch lifecycle:
 1. `Dispatch Manager` reads the current `CreatorRelationship.committedCheckpointId`.
 2. If no committed checkpoint exists, it starts a brand new session.
 3. If a committed checkpoint exists, it restores / branches from that checkpoint before sending the dispatch prompt.
-4. `Context Builder` verifies the `(baseCheckpointId, baseEventCursor)` pair and returns immutable lifecycle events in the exact interval `(baseEventCursor, targetEventCursor]`, plus the current workspace snapshot.
+4. `Context Builder` verifies the `(baseCheckpointId, baseEventCursor)` pair and returns checkpoint metadata only. Desktop does not prefetch lifecycle events or a workspace snapshot for the prompt.
 5. Agent runs and submits typed actions or an action proposal.
 6. At the end of the Agent run, Desktop creates a `candidateCheckpointId` for the resulting session state.
 7. If actions are executed directly and succeed, backend atomically promotes `(candidateCheckpointId, targetEventCursor)` to `(committedCheckpointId, committedEventCursor)`.
@@ -2138,7 +2138,25 @@ The three core components integrate as follows:
 | --- | --- | --- |
 | `AffiliateOperationalStateReconciler` | Align MongoDB facts with platform state and derive collaboration state plus relationship agenda items. | Does not create or promote session checkpoints. Every decision-relevant fact is first recorded as an immutable lifecycle event. |
 | `AffiliateDispatchManager` | Decide whether to dispatch Agent, abort active runs, supersede stale proposals, and enforce one pending proposal per relationship. | Owns checkpoint contract: choose base checkpoint, require restore/brand-new session, persist candidate checkpoint, and promote only after successful execution. |
-| `AffiliateContextBuilder` | Build the context Agent needs for this run. | Validates the committed checkpoint/cursor pair and returns `(baseEventCursor, targetEventCursor]` plus current workspace state. |
+| `AffiliateContextBuilder` | Prepare the checkpoint boundary for this run. | Validates the committed checkpoint/cursor pair and returns the target cursor/config snapshots; it does not inject business history into the prompt. |
+
+#### Agent Prompt And On-demand Context
+
+Affiliate Agent context is intentionally split into two layers:
+
+- The system prompt contains stable business semantics, channel/action contracts, seller instructions, and the assigned BD instructions.
+- The latest internal user turn contains only `Agent Working Agenda`: open Agent-owned agenda items and the stable Relationship/shop/entity IDs needed to scope tool calls. It is a wake-up reason, not a fact snapshot.
+
+Desktop must not prefetch Creator profiles, collaboration snapshots, product facts, predictions, proposal deltas, lifecycle-event deltas, contact accounts, or message bodies into a dispatch turn. The Agent reads facts on demand:
+
+- `affiliate_get_relationship_history`: Provider-backed communication plus relationship audit history.
+- `affiliate_get_workspace`: current OLTP collaboration/sample/proposal/policy state.
+- `affiliate_get_creator_contact_state`: current Relationship/BD channel routes.
+- `affiliate_get_creator_collaboration_history`: exhaustive seller-visible TikTok target-collaboration history (`VALID`, `CANCELING`, `COMPLETED`, including full details) and all-status sample-application history; sample fulfillment/content detail is optional.
+- `ecom_get_product` / `ecom_search_products`: current shop product facts.
+- `ecom_get_bi_catalog` / `ecom_get_bi_data`: warehouse-backed affiliate orders and historical performance. TikTok's seller order search is seller-wide and cannot be claimed as an exhaustive Creator-filtered Provider query.
+
+All relationship/shop scope for the collaboration-history tool is injected from the Affiliate session. The Agent cannot provide a different shop, Relationship, or Creator provider ID.
 
 In short:
 

@@ -727,6 +727,12 @@ export interface AffiliateCollaboration {
   userId: Scalars['ID']['output'];
 }
 
+/** Authoritative source used for an Affiliate Creator collaboration-history lookup. */
+export const AffiliateCollaborationHistorySource = {
+  TiktokShopProvider: 'TIKTOK_SHOP_PROVIDER'
+} as const;
+
+export type AffiliateCollaborationHistorySource = typeof AffiliateCollaborationHistorySource[keyof typeof AffiliateCollaborationHistorySource];
 /** One creator-product collaboration attempt. If a creator promotes the same product twice, create two collaborations. */
 export interface AffiliateCollaborationRecord {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
@@ -861,6 +867,10 @@ export interface AffiliateContextBuilderInput {
   baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
   baseEventCursor?: InputMaybe<Scalars['Int']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
+  /** Internal Desktop optimization. False omits lifecycle event rendering from checkpoint preparation. */
+  includeEventDelta?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Internal Desktop optimization. False omits the current workspace snapshot from checkpoint preparation. */
+  includeWorkspace?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
 }
@@ -935,6 +945,21 @@ export const AffiliateCreatorChannelContactStatus = {
 } as const;
 
 export type AffiliateCreatorChannelContactStatus = typeof AffiliateCreatorChannelContactStatus[keyof typeof AffiliateCreatorChannelContactStatus];
+/** Provider-backed TikTok Shop collaboration and sample history for the Creator in the current seller Relationship. */
+export interface AffiliateCreatorCollaborationHistoryPayload {
+  creatorOpenId: Scalars['String']['output'];
+  observedAt: Scalars['DateTimeISO']['output'];
+  queriedTargetCollaborationStatuses: Array<Scalars['String']['output']>;
+  sampleApplications: Array<AffiliateCreatorSampleHistoryItem>;
+  sampleApplicationsComplete: Scalars['Boolean']['output'];
+  sampleFulfillmentsComplete: Scalars['Boolean']['output'];
+  source: AffiliateCollaborationHistorySource;
+  targetCollaborationDetailsComplete: Scalars['Boolean']['output'];
+  targetCollaborations: Array<AffiliateCreatorTargetCollaborationHistoryItem>;
+  targetCollaborationsComplete: Scalars['Boolean']['output'];
+  username?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateCreatorContactStateInput {
   /** CreatorRelationship is the business boundary for affiliate contact state. Do not pass raw channel or creator identity ids as the primary lookup. */
   creatorRelationshipId: Scalars['ID']['input'];
@@ -1129,6 +1154,20 @@ export interface AffiliateCreatorRelationshipShopState {
   lastQualifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   shopId: Scalars['ID']['output'];
   tagIds: Array<Scalars['ID']['output']>;
+}
+
+/** One TikTok sample application and, when requested, its Provider-backed fulfillment/content history. */
+export interface AffiliateCreatorSampleHistoryItem {
+  application: EcomSampleApplication;
+  fulfillments: Array<EcomSampleFulfillment>;
+  fulfillmentsFetched: Scalars['Boolean']['output'];
+}
+
+/** One TikTok target collaboration returned for the Creator, including its full Provider detail when an ID is available. */
+export interface AffiliateCreatorTargetCollaborationHistoryItem {
+  collaboration: EcomTargetCollaboration;
+  detail?: Maybe<EcomTargetCollaborationDetail>;
+  detailFetched: Scalars['Boolean']['output'];
 }
 
 /** Structured affiliate decision thresholds. Campaign thresholds override shop-level thresholds for the same decision surface. */
@@ -4349,6 +4388,57 @@ export interface DecideActionProposalInput {
   status: ActionProposalStatus;
 }
 
+/** Affiliate category chain */
+export interface EcomAffiliateCategoryChain {
+  id?: Maybe<Scalars['String']['output']>;
+  isLeaf?: Maybe<Scalars['Boolean']['output']>;
+  localName?: Maybe<Scalars['String']['output']>;
+  parentId?: Maybe<Scalars['String']['output']>;
+}
+
+/** Affiliate commission information */
+export interface EcomAffiliateCommission {
+  amount?: Maybe<Scalars['Float']['output']>;
+  currency?: Maybe<Scalars['String']['output']>;
+  effectiveTime?: Maybe<Scalars['Int']['output']>;
+  endTime?: Maybe<Scalars['Int']['output']>;
+  maximumAmount?: Maybe<Scalars['Float']['output']>;
+  minimumAmount?: Maybe<Scalars['Float']['output']>;
+  rate?: Maybe<Scalars['Int']['output']>;
+  shopAdsCommissionRate?: Maybe<Scalars['Int']['output']>;
+  startTime?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Affiliate product summary */
+export interface EcomAffiliateProduct {
+  categoryChains?: Maybe<Array<EcomAffiliateCategoryChain>>;
+  collaborationStatus?: Maybe<Scalars['String']['output']>;
+  commission?: Maybe<EcomAffiliateCommission>;
+  commissionEffectiveStatus?: Maybe<Scalars['String']['output']>;
+  detailLink?: Maybe<Scalars['String']['output']>;
+  hasInventory?: Maybe<Scalars['Boolean']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  imageUrl?: Maybe<Scalars['String']['output']>;
+  inventory?: Maybe<Scalars['Int']['output']>;
+  mainImageUrl?: Maybe<Scalars['String']['output']>;
+  originalPrice?: Maybe<EcomNumericMoneyRange>;
+  productId?: Maybe<Scalars['String']['output']>;
+  saleRegion?: Maybe<Scalars['String']['output']>;
+  salesPrice?: Maybe<EcomNumericMoneyRange>;
+  shop?: Maybe<EcomAffiliateShop>;
+  skuId?: Maybe<Scalars['String']['output']>;
+  skuImageUrl?: Maybe<Scalars['String']['output']>;
+  skuName?: Maybe<Scalars['String']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+  unitsSold?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Affiliate seller shop summary */
+export interface EcomAffiliateShop {
+  name?: Maybe<Scalars['String']['output']>;
+}
+
 /** Aftersale eligibility for an order */
 export interface EcomAftersaleEligibility {
   skuEligibility?: Maybe<Array<EcomAftersaleSkuEligibility>>;
@@ -5011,6 +5101,12 @@ export const EcomDocumentType = {
 } as const;
 
 export type EcomDocumentType = typeof EcomDocumentType[keyof typeof EcomDocumentType];
+/** Free sample rule */
+export interface EcomFreeSampleRule {
+  hasFreeSample?: Maybe<Scalars['Boolean']['output']>;
+  isSampleApprovalExempt?: Maybe<Scalars['Boolean']['output']>;
+}
+
 /** Image with dimensions */
 export interface EcomImage {
   height?: Maybe<Scalars['Int']['output']>;
@@ -5030,6 +5126,20 @@ export const EcomMessageType = {
 } as const;
 
 export type EcomMessageType = typeof EcomMessageType[keyof typeof EcomMessageType];
+/** Numeric money amount */
+export interface EcomNumericMoney {
+  amount?: Maybe<Scalars['Float']['output']>;
+  currency?: Maybe<Scalars['String']['output']>;
+}
+
+/** Numeric money range */
+export interface EcomNumericMoneyRange {
+  currency?: Maybe<Scalars['String']['output']>;
+  formattedRange?: Maybe<Scalars['String']['output']>;
+  maximumAmount?: Maybe<Scalars['Float']['output']>;
+  minimumAmount?: Maybe<Scalars['Float']['output']>;
+}
+
 /** Order */
 export interface EcomOrder {
   /** Platform buyer user ID */
@@ -5655,6 +5765,67 @@ export const EcomReturnTypeFilter = {
 } as const;
 
 export type EcomReturnTypeFilter = typeof EcomReturnTypeFilter[keyof typeof EcomReturnTypeFilter];
+/** Sample application */
+export interface EcomSampleApplication {
+  approveExpirationTime?: Maybe<Scalars['Int']['output']>;
+  availableQuantity?: Maybe<Scalars['Int']['output']>;
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  creator?: Maybe<EcomSampleApplicationCreator>;
+  disapprovableReasons?: Maybe<Array<Scalars['String']['output']>>;
+  fulfillmentStatus?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  isApprovable?: Maybe<Scalars['Boolean']['output']>;
+  orderId?: Maybe<Scalars['String']['output']>;
+  partnerName?: Maybe<Scalars['String']['output']>;
+  product?: Maybe<EcomAffiliateProduct>;
+  shipmentExpirationTime?: Maybe<Scalars['Int']['output']>;
+  status?: Maybe<Scalars['String']['output']>;
+  trackingNumber?: Maybe<Scalars['String']['output']>;
+}
+
+/** Sample application creator */
+export interface EcomSampleApplicationCreator {
+  avatarUrl?: Maybe<Scalars['String']['output']>;
+  contentCount?: Maybe<Scalars['Int']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  ecVideoView?: Maybe<Scalars['Int']['output']>;
+  followerCount?: Maybe<Scalars['Int']['output']>;
+  fulfillmentPercentage?: Maybe<Scalars['String']['output']>;
+  gmv?: Maybe<EcomNumericMoney>;
+  nickname?: Maybe<Scalars['String']['output']>;
+  username?: Maybe<Scalars['String']['output']>;
+}
+
+/** Sample fulfillment */
+export interface EcomSampleFulfillment {
+  content?: Maybe<EcomSampleFulfillmentContent>;
+  product?: Maybe<EcomAffiliateProduct>;
+}
+
+/** Sample fulfillment content */
+export interface EcomSampleFulfillmentContent {
+  commentCount?: Maybe<Scalars['Int']['output']>;
+  createTime?: Maybe<Scalars['Int']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  format?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  likeCount?: Maybe<Scalars['Int']['output']>;
+  liveEndTime?: Maybe<Scalars['Int']['output']>;
+  pageLink?: Maybe<Scalars['String']['output']>;
+  paidOrderCount?: Maybe<Scalars['Int']['output']>;
+  url?: Maybe<Scalars['String']['output']>;
+  viewCount?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Seller contact information */
+export interface EcomSellerContactInfo {
+  email?: Maybe<Scalars['String']['output']>;
+  line?: Maybe<Scalars['String']['output']>;
+  phoneNumber?: Maybe<Scalars['String']['output']>;
+  telegram?: Maybe<Scalars['String']['output']>;
+  whatsapp?: Maybe<Scalars['String']['output']>;
+}
+
 /** Shipping document URL */
 export interface EcomShippingDocument {
   /** URL of the document (label, packing slip, etc.) */
@@ -5717,6 +5888,54 @@ export const EcomSortOrder = {
 } as const;
 
 export type EcomSortOrder = typeof EcomSortOrder[keyof typeof EcomSortOrder];
+/** Target collaboration */
+export interface EcomTargetCollaboration {
+  contentCreatorCount?: Maybe<Scalars['Int']['output']>;
+  creatorInvitedCount?: Maybe<Scalars['Int']['output']>;
+  endTime?: Maybe<Scalars['Int']['output']>;
+  freeSampleRule?: Maybe<EcomFreeSampleRule>;
+  id?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  productCount?: Maybe<Scalars['Int']['output']>;
+  showcaseCreatorCount?: Maybe<Scalars['Int']['output']>;
+  startTime?: Maybe<Scalars['Int']['output']>;
+  type?: Maybe<Scalars['String']['output']>;
+  updateTime?: Maybe<Scalars['Int']['output']>;
+}
+
+/** Target collaboration creator */
+export interface EcomTargetCollaborationCreator {
+  avatar?: Maybe<EcomImage>;
+  collaborationStatus?: Maybe<Scalars['String']['output']>;
+  contentProductCount?: Maybe<Scalars['Int']['output']>;
+  creatorOpenId?: Maybe<Scalars['String']['output']>;
+  nickname?: Maybe<Scalars['String']['output']>;
+  productEffectiveStatus?: Maybe<Scalars['String']['output']>;
+  selectionRegion?: Maybe<Scalars['String']['output']>;
+  showcaseProductCount?: Maybe<Scalars['Int']['output']>;
+  username?: Maybe<Scalars['String']['output']>;
+}
+
+/** Target collaboration detail */
+export interface EcomTargetCollaborationDetail {
+  contentCreatorCount?: Maybe<Scalars['Int']['output']>;
+  creatorInvitedCount?: Maybe<Scalars['Int']['output']>;
+  creators?: Maybe<Array<EcomTargetCollaborationCreator>>;
+  endTime?: Maybe<Scalars['Int']['output']>;
+  freeSampleRule?: Maybe<EcomFreeSampleRule>;
+  id?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  productCount?: Maybe<Scalars['Int']['output']>;
+  products?: Maybe<Array<EcomAffiliateProduct>>;
+  sellerContactInfo?: Maybe<EcomSellerContactInfo>;
+  showcaseCreatorCount?: Maybe<Scalars['Int']['output']>;
+  startTime?: Maybe<Scalars['Int']['output']>;
+  type?: Maybe<Scalars['String']['output']>;
+  updateTime?: Maybe<Scalars['Int']['output']>;
+}
+
 /** Tracking event */
 export interface EcomTrackingEvent {
   description?: Maybe<Scalars['String']['output']>;
@@ -7854,9 +8073,11 @@ export interface Query {
   affiliateCampaigns: Array<AffiliateCampaign>;
   /** Read platform-level affiliate collaborations, normalized across open and target collaborations. */
   affiliateCollaborations: Array<AffiliateCollaboration>;
-  /** Build the exact immutable event delta and current workspace for one checkpoint-based affiliate agent dispatch. */
+  /** Prepare checkpoint metadata for one Affiliate Agent dispatch, optionally including legacy event/workspace projections. */
   affiliateContextBuilder: AffiliateContextBuilderPayload;
   affiliateCreatorChannelContacts: AffiliateCreatorChannelContactPage;
+  /** Read exhaustive seller-authorized TikTok target-collaboration and sample history for the Creator in one Relationship. */
+  affiliateCreatorCollaborationHistory: AffiliateCreatorCollaborationHistoryPayload;
   /** Read relationship-level creator contact state, including WhatsApp/email contacts and available seller accounts. */
   affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
   /** Read merged relationship-level affiliate creator message history with channel labels. */
@@ -8147,6 +8368,13 @@ export interface QueryAffiliateContextBuilderArgs {
 
 export interface QueryAffiliateCreatorChannelContactsArgs {
   input: AffiliateCreatorChannelContactPageInput;
+}
+
+
+export interface QueryAffiliateCreatorCollaborationHistoryArgs {
+  creatorRelationshipId: Scalars['ID']['input'];
+  includeSampleFulfillments?: InputMaybe<Scalars['Boolean']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -10065,6 +10293,7 @@ export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
+  AffiliateGetCreatorCollaborationHistory: 'AFFILIATE_GET_CREATOR_COLLABORATION_HISTORY',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetRelationshipHistory: 'AFFILIATE_GET_RELATIONSHIP_HISTORY',
   AffiliateGetWorkspace: 'AFFILIATE_GET_WORKSPACE',
