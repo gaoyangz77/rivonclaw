@@ -172,6 +172,7 @@ export class EcommerceRelayBridge {
   }
 
   updateLocale(locale: string | undefined): void {
+    this.opts.locale = locale;
     this.affiliateInbound.updateLocale(locale);
     this.syncFromCache();
   }
@@ -846,6 +847,7 @@ export class EcommerceRelayBridge {
 
     const session = new CustomerServiceSession(shop, csContext, {
       defaultRunProfileId: this.opts.defaultRunProfileId,
+      locale: () => this.opts.locale,
       onRunDispatched: (runId) => {
         this.pendingRuns.set(runId, { shopObjectId, conversationId: params.conversationId });
       },

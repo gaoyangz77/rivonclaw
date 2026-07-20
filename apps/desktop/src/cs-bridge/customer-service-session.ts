@@ -59,6 +59,7 @@ import {
   type CsAgentDispatchReason,
 } from "./cs-agent-dispatch-resolver.js";
 import { buildCustomerServiceSessionKey } from "./customer-service-agent.js";
+import { buildFeishuCsEscalationCard } from "./cs-escalation-card.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -328,6 +329,7 @@ export class CustomerServiceSession {
     readonly csContext: CSContext,
     private readonly opts?: {
       defaultRunProfileId?: string;
+      locale?: () => string | undefined;
       /** Called after a successful agent dispatch, so the Bridge can track the run globally. */
       onRunDispatched?: (runId: string) => void;
     },
@@ -1615,13 +1617,38 @@ export class CustomerServiceSession {
 
     let sendMessageId: string | undefined;
     try {
-      const sendResult = await openClawConnector.request("send", {
-        to: escalationRecipientId,
-        channel,
-        accountId: outboundAccountId,
-        message: lines.join("\n"),
-        idempotencyKey: params.idempotencyKey ?? `cs-escalate:${params.escalationId}`,
-      });
+      const idempotencyKey = params.idempotencyKey ?? `cs-escalate:${params.escalationId}`;
+      log.info(
+        `Sending escalation ${params.escalationId} for conv=${this.csContext.conversationId} via ${channel} ` +
+        `account=${outboundAccountId} to=${escalationRecipientId}`,
+      );
+      const sendResult = channel === "feishu"
+        ? await openClawConnector.request("message.action", {
+            channel: "feishu",
+            action: "send",
+            accountId: outboundAccountId,
+            params: {
+              to: escalationRecipientId,
+              card: buildFeishuCsEscalationCard({
+                escalationId: params.escalationId,
+                shop: this.shop.shopName,
+                conversationId: this.csContext.conversationId,
+                buyer: buyerNickname ?? this.csContext.buyerUserId,
+                orderId,
+                reason: params.reason,
+                context: params.context,
+                locale: this.opts?.locale?.(),
+              }),
+            },
+            idempotencyKey,
+          })
+        : await openClawConnector.request("send", {
+            to: escalationRecipientId,
+            channel,
+            accountId: outboundAccountId,
+            message: lines.join("\n"),
+            idempotencyKey,
+          });
       sendMessageId = typeof (sendResult as { messageId?: unknown } | undefined)?.messageId === "string"
         ? (sendResult as { messageId: string }).messageId
         : undefined;

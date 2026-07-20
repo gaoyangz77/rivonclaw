@@ -171,6 +171,16 @@ existing behavior.
 Removal: upstream retries quoted-message reads, surfaces diagnostic failures,
 and preserves an explicit unavailable-quote marker in agent context.
 
+### 0028 - Feishu business form cards
+
+Allows trusted Desktop Gateway clients to send raw Schema 2.0 cards and routes
+namespaced form callbacks through OpenClaw's interactive-handler registry. Form
+values and callback context are preserved, policy checks fail closed, and
+claimed business callbacks never become synthetic agent messages.
+
+Removal: upstream bundled Feishu supports trusted raw form-card sends and
+synchronous, policy-aware plugin interactive dispatch with complete form data.
+
 ## Dropped In v2026.6.11
 
 - `0005`: OpenClaw now owns system prompts through

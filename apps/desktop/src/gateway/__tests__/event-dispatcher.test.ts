@@ -18,10 +18,12 @@ function createDeps() {
       upsert: vi.fn(),
     },
     onRecipientSeen: vi.fn().mockReturnValue({ inserted: true, membershipChanged: false }),
+    onCsEscalationResponse: vi.fn(),
   } as unknown as GatewayEventDispatcherDeps & {
     broadcastEvent: ReturnType<typeof vi.fn>;
     chatSessions: { getByKey: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn> };
     onRecipientSeen: ReturnType<typeof vi.fn>;
+    onCsEscalationResponse: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -38,6 +40,28 @@ describe("createGatewayEventDispatcher", () => {
   beforeEach(() => {
     deps = createDeps();
     dispatch = createGatewayEventDispatcher(deps);
+  });
+
+  describe("plugin.rivonclaw.cs-escalation-response", () => {
+    it("routes the typed payload to the direct CS response processor", () => {
+      const payload = {
+        schemaVersion: 1,
+        callbackId: "callback-1",
+        accountId: "default",
+        operatorOpenId: "ou_operator",
+        chatId: "oc_chat",
+        messageId: "om_card",
+        escalationId: "M1DG8V",
+        decision: "Approve the full refund",
+        resolved: true,
+        submittedAt: 123,
+      };
+
+      dispatch(makeEvent("plugin.rivonclaw.cs-escalation-response", payload));
+
+      expect(deps.onCsEscalationResponse).toHaveBeenCalledWith(payload);
+      expect(deps.broadcastEvent).not.toHaveBeenCalled();
+    });
   });
 
   // ── mobile.session-reset ────────────────────────────────────────────────

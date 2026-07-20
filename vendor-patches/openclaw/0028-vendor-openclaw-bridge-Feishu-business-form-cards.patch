@@ -1,0 +1,1025 @@
+From acc737ba1829a110e2fa0526863c3e3e92a31c87 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 20 Jul 2026 03:09:21 -0700
+Subject: [PATCH] vendor(openclaw): bridge Feishu business form cards
+
+Why:
+- Desktop needs trusted raw form-card sends and complete form callbacks without dispatching an agent.
+
+Removal:
+- Drop when bundled Feishu supports policy-aware namespaced form callbacks and trusted raw Schema 2.0 sends.
+
+Tests:
+- apps/desktop/src/cs-bridge/vendor-feishu-business-form-card.sentinel.test.ts
+- apps/desktop/src/cs-bridge/cs-escalation-card.test.ts
+- extensions/rivonclaw-event-bridge/src/index.test.ts
+---
+ extensions/feishu/src/bot.card-action.test.ts | 217 ++++++++++++-
+ extensions/feishu/src/card-action.ts          | 287 ++++++++++++++++--
+ extensions/feishu/src/channel.test.ts         |  67 ++++
+ extensions/feishu/src/channel.ts              |  35 ++-
+ extensions/feishu/src/monitor.account.ts      |  56 +++-
+ .../src/monitor.card-action-form.test.ts      |  94 ++++++
+ 6 files changed, 720 insertions(+), 36 deletions(-)
+ create mode 100644 extensions/feishu/src/monitor.card-action-form.test.ts
+
+diff --git a/extensions/feishu/src/bot.card-action.test.ts b/extensions/feishu/src/bot.card-action.test.ts
+index 3d1457760e5..1d88d346847 100644
+--- a/extensions/feishu/src/bot.card-action.test.ts
++++ b/extensions/feishu/src/bot.card-action.test.ts
+@@ -19,10 +19,18 @@ import {
+   FEISHU_APPROVAL_REQUEST_ACTION,
+ } from "./card-ux-approval.js";
+ 
++const dispatchPluginInteractiveHandlerMock = vi.hoisted(() => vi.fn());
++const resolveFeishuRuntimeAccountMock = vi.hoisted(() => vi.fn());
++
++vi.mock("openclaw/plugin-sdk/plugin-runtime", async (importOriginal) => ({
++  ...(await importOriginal<typeof import("openclaw/plugin-sdk/plugin-runtime")>()),
++  dispatchPluginInteractiveHandler: dispatchPluginInteractiveHandlerMock,
++}));
++
+ // Mock account resolution
+ vi.mock("./accounts.js", () => ({
+   resolveFeishuAccount: vi.fn().mockReturnValue({ accountId: "mock-account" }),
+-  resolveFeishuRuntimeAccount: vi.fn().mockReturnValue({ accountId: "mock-account" }),
++  resolveFeishuRuntimeAccount: resolveFeishuRuntimeAccountMock,
+ }));
+ 
+ // Mock bot.js to verify handleFeishuMessage call
+@@ -122,6 +130,15 @@ describe("Feishu Card Action Handler", () => {
+       .mockReset()
+       .mockResolvedValue(undefined as never);
+     resetProcessedFeishuCardActionTokensForTests();
++    resolveFeishuRuntimeAccountMock.mockReset().mockReturnValue({
++      accountId: "mock-account",
++      config: { groupPolicy: "open", dmPolicy: "open", allowFrom: ["*"] },
++    });
++    dispatchPluginInteractiveHandlerMock.mockReset().mockResolvedValue({
++      matched: false,
++      handled: false,
++      duplicate: false,
++    });
+   });
+ 
+   function mockCallArg(
+@@ -195,6 +212,204 @@ describe("Feishu Card Action Handler", () => {
+     expect(message.typing_target_message_id).toBe("om_card_message");
+   });
+ 
++  it("dispatches namespaced form callbacks with form_value and never invokes the agent", async () => {
++    const handler = vi.fn().mockResolvedValue({
++      handled: true,
++      response: { toast: { type: "info", content: "Submitting" } },
++    });
++    dispatchPluginInteractiveHandlerMock.mockImplementationOnce(async (params) => {
++      await params.invoke({
++        registration: { handler },
++        namespace: "rivonclaw.cs",
++        payload: "respond",
++      });
++      return { matched: true, handled: true, duplicate: false };
++    });
++    const event = createCardActionEvent({
++      token: "business-1",
++      actionValue: { action: "rivonclaw.cs:respond", escalationId: "M1DG8V" },
++    });
++    event.action.tag = "form_submit";
++    event.action.form_name = "cs_escalation";
++    event.action.form_value = { decision: "Issue refund", resolution: "resolved" };
++    event.context.open_message_id = "om_form_card";
++
++    const response = await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(response).toEqual({ toast: { type: "info", content: "Submitting" } });
++    expect(handler).toHaveBeenCalledWith(
++      expect.objectContaining({
++        channel: "feishu",
++        accountId: "mock-account",
++        callbackId: "business-1",
++        conversationId: "chat1",
++        messageId: "om_form_card",
++        senderId: "u123",
++        interaction: expect.objectContaining({
++          namespace: "rivonclaw.cs",
++          payload: "respond",
++          formName: "cs_escalation",
++          formValue: { decision: "Issue refund", resolution: "resolved" },
++        }),
++      }),
++    );
++    expect(handleFeishuMessage).not.toHaveBeenCalled();
++  });
++
++  it("fails closed when a namespaced business handler is unavailable", async () => {
++    const event = createCardActionEvent({
++      token: "business-2",
++      actionValue: { action: "rivonclaw.cs:respond", unavailableText: "Try again later" },
++    });
++
++    const response = await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(response).toEqual({ toast: { type: "error", content: "Try again later" } });
++    expect(handleFeishuMessage).not.toHaveBeenCalled();
++  });
++
++  it("returns the card's failure toast when a business handler throws", async () => {
++    const handler = vi.fn().mockRejectedValue(new Error("bridge unavailable"));
++    dispatchPluginInteractiveHandlerMock.mockImplementationOnce(async (params) => {
++      await params.invoke({
++        registration: { handler },
++        namespace: "rivonclaw.cs",
++        payload: "respond",
++      });
++      return { matched: true, handled: true, duplicate: false };
++    });
++    const event = createCardActionEvent({
++      token: "business-handler-error",
++      actionValue: { action: "rivonclaw.cs:respond", failureText: "Please retry this card" },
++    });
++
++    const response = await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(response).toEqual({ toast: { type: "error", content: "Please retry this card" } });
++    expect(handleFeishuMessage).not.toHaveBeenCalled();
++  });
++
++  it("fails closed when business callback chat type cannot be resolved", async () => {
++    createFeishuClientMock.mockReturnValueOnce({
++      im: { chat: { get: vi.fn().mockRejectedValue(new Error("network")) } },
++    });
++    const event = createCardActionEvent({
++      token: "business-3",
++      actionValue: { action: "rivonclaw.cs:respond", unauthorizedText: "Not allowed" },
++    });
++
++    const response = await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(response).toEqual({ toast: { type: "error", content: "Not allowed" } });
++    expect(dispatchPluginInteractiveHandlerMock).not.toHaveBeenCalled();
++    expect(handleFeishuMessage).not.toHaveBeenCalled();
++  });
++
++  it("rejects unauthorized private-chat business callbacks without pairing or agent dispatch", async () => {
++    createFeishuClientMock.mockReturnValueOnce({
++      im: { chat: { get: vi.fn().mockResolvedValue({ code: 0, data: { chat_type: "p2p" } }) } },
++    });
++    resolveFeishuRuntimeAccountMock.mockReturnValue({
++      accountId: "mock-account",
++      config: { dmPolicy: "allowlist", allowFrom: ["someone-else"] },
++    });
++    const event = createCardActionEvent({
++      token: "business-dm-denied",
++      actionValue: { action: "rivonclaw.cs:respond", unauthorizedText: "Not allowed" },
++    });
++
++    const response = await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(response).toEqual({ toast: { type: "error", content: "Not allowed" } });
++    expect(dispatchPluginInteractiveHandlerMock).not.toHaveBeenCalled();
++    expect(handleFeishuMessage).not.toHaveBeenCalled();
++  });
++
++  it("deduplicates the same business callback token", async () => {
++    const handler = vi.fn().mockResolvedValue({ handled: true });
++    dispatchPluginInteractiveHandlerMock.mockImplementation(async (params) => {
++      await params.invoke({
++        registration: { handler },
++        namespace: "rivonclaw.cs",
++        payload: "respond",
++      });
++      return { matched: true, handled: true, duplicate: false };
++    });
++    const event = createCardActionEvent({
++      token: "business-duplicate",
++      actionValue: { action: "rivonclaw.cs:respond", processingText: "Processing" },
++    });
++
++    await handleFeishuCardAction({ cfg, event, runtime });
++    const duplicateResponse = await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(handler).toHaveBeenCalledTimes(1);
++    expect(duplicateResponse).toEqual({ toast: { type: "info", content: "Processing" } });
++    expect(handleFeishuMessage).not.toHaveBeenCalled();
++  });
++
++  it("honors group open policy and the global sender allowlist", async () => {
++    resolveFeishuRuntimeAccountMock.mockReturnValue({
++      accountId: "mock-account",
++      config: { groupPolicy: "open", groupSenderAllowFrom: ["u123"] },
++    });
++    dispatchPluginInteractiveHandlerMock.mockResolvedValue({
++      matched: true,
++      handled: true,
++      duplicate: false,
++    });
++    const event = createCardActionEvent({
++      token: "business-group-global",
++      actionValue: { action: "rivonclaw.cs:respond" },
++    });
++
++    await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(dispatchPluginInteractiveHandlerMock).toHaveBeenCalledOnce();
++  });
++
++  it("rejects group senders outside the configured allowlist", async () => {
++    resolveFeishuRuntimeAccountMock.mockReturnValue({
++      accountId: "mock-account",
++      config: { groupPolicy: "open", groupSenderAllowFrom: ["someone-else"] },
++    });
++    const event = createCardActionEvent({
++      token: "business-group-denied",
++      actionValue: { action: "rivonclaw.cs:respond", unauthorizedText: "Not allowed" },
++    });
++
++    const response = await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(response).toEqual({ toast: { type: "error", content: "Not allowed" } });
++    expect(dispatchPluginInteractiveHandlerMock).not.toHaveBeenCalled();
++    expect(handleFeishuMessage).not.toHaveBeenCalled();
++  });
++
++  it("lets a per-group sender allowlist override the global sender allowlist", async () => {
++    resolveFeishuRuntimeAccountMock.mockReturnValue({
++      accountId: "mock-account",
++      config: {
++        groupPolicy: "allowlist",
++        groupAllowFrom: ["chat1"],
++        groupSenderAllowFrom: ["someone-else"],
++        groups: { chat1: { allowFrom: ["u123"] } },
++      },
++    });
++    dispatchPluginInteractiveHandlerMock.mockResolvedValue({
++      matched: true,
++      handled: true,
++      duplicate: false,
++    });
++    const event = createCardActionEvent({
++      token: "business-group-override",
++      actionValue: { action: "rivonclaw.cs:respond" },
++    });
++
++    await handleFeishuCardAction({ cfg, event, runtime });
++
++    expect(dispatchPluginInteractiveHandlerMock).toHaveBeenCalledOnce();
++  });
++
+   it("handles card action with JSON object payload", async () => {
+     const event: FeishuCardActionEvent = {
+       operator: { open_id: "u123", user_id: "uid1", union_id: "un1" },
+diff --git a/extensions/feishu/src/card-action.ts b/extensions/feishu/src/card-action.ts
+index 9b0b032e198..e63c4997a21 100644
+--- a/extensions/feishu/src/card-action.ts
++++ b/extensions/feishu/src/card-action.ts
+@@ -4,6 +4,10 @@ import {
+   isFutureDateTimestampMs,
+   resolveExpiresAtMsFromDurationMs,
+ } from "openclaw/plugin-sdk/number-runtime";
++import {
++  dispatchPluginInteractiveHandler,
++  type PluginInteractiveRegistration,
++} from "openclaw/plugin-sdk/plugin-runtime";
+ import type { ClawdbotConfig, PluginRuntime, RuntimeEnv } from "../runtime-api.js";
+ import { resolveFeishuRuntimeAccount } from "./accounts.js";
+ import { handleFeishuMessage, type FeishuMessageEvent } from "./bot.js";
+@@ -15,6 +19,13 @@ import {
+   FEISHU_APPROVAL_REQUEST_ACTION,
+ } from "./card-ux-approval.js";
+ import { createFeishuClient } from "./client.js";
++import {
++  hasExplicitFeishuGroupConfig,
++  resolveFeishuDmIngressAccess,
++  resolveFeishuGroupConfig,
++  resolveFeishuGroupConversationIngressAccess,
++  resolveFeishuGroupSenderActivationIngressAccess,
++} from "./policy.js";
+ import { sendCardFeishu, sendMessageFeishu } from "./send.js";
+ 
+ export type FeishuCardActionEvent = {
+@@ -27,6 +38,9 @@ export type FeishuCardActionEvent = {
+   action: {
+     value: Record<string, unknown>;
+     tag: string;
++    name?: string;
++    form_name?: string;
++    form_value?: Record<string, unknown>;
+   };
+   open_message_id?: string;
+   context: {
+@@ -37,6 +51,38 @@ export type FeishuCardActionEvent = {
+   };
+ };
+ 
++type FeishuBusinessInteractiveHandlerResult = {
++  handled?: boolean;
++  response?: unknown;
++} | void;
++
++export type FeishuBusinessInteractiveHandlerContext = {
++  channel: "feishu";
++  accountId: string;
++  callbackId: string;
++  conversationId: string;
++  messageId?: string;
++  senderId: string;
++  auth: { isAuthorizedSender: true };
++  interaction: {
++    data: string;
++    namespace: string;
++    payload: string;
++    tag: string;
++    name?: string;
++    formName?: string;
++    value: Record<string, unknown>;
++    formValue?: Record<string, unknown>;
++  };
++  rawEvent: FeishuCardActionEvent;
++};
++
++type FeishuBusinessInteractiveRegistration = PluginInteractiveRegistration<
++  FeishuBusinessInteractiveHandlerContext,
++  "feishu",
++  FeishuBusinessInteractiveHandlerResult
++>;
++
+ const FEISHU_APPROVAL_CARD_TTL_MS = 5 * 60_000;
+ const FEISHU_CARD_ACTION_TOKEN_TTL_MS = 15 * 60_000;
+ const processedCardActionTokens = new Map<
+@@ -139,9 +185,8 @@ function buildSyntheticMessageEvent(
+   // card-action-c-* IDs are temporary callback tokens, not valid Feishu message IDs.
+   // Using them as reply targets causes "Invalid ids" errors from the streaming reply API.
+   const isTemporaryCardActionId = replyTargetMessageId?.startsWith("card-action-c-");
+-  const validReplyTargetId = replyTargetMessageId && !isTemporaryCardActionId
+-    ? replyTargetMessageId
+-    : undefined;
++  const validReplyTargetId =
++    replyTargetMessageId && !isTemporaryCardActionId ? replyTargetMessageId : undefined;
+   return {
+     sender: {
+       sender_id: {
+@@ -190,7 +235,7 @@ async function dispatchSyntheticCommand(params: {
+   });
+   await handleFeishuMessage({
+     cfg: params.cfg,
+-    event: buildSyntheticMessageEvent(params.event, params.command, resolvedChatType),
++    event: buildSyntheticMessageEvent(params.event, params.command, resolvedChatType ?? "p2p"),
+     botOpenId: params.botOpenId,
+     runtime: params.runtime,
+     channelRuntime: params.channelRuntime,
+@@ -271,7 +316,8 @@ async function resolveCardActionChatType(params: {
+   account: ReturnType<typeof resolveFeishuRuntimeAccount>;
+   chatType?: "p2p" | "group";
+   log: (message: string) => void;
+-}): Promise<"p2p" | "group"> {
++  failClosed?: boolean;
++}): Promise<"p2p" | "group" | undefined> {
+   const explicitChatType = normalizeResolvedCardActionChatType(params.chatType);
+   if (explicitChatType) {
+     return explicitChatType;
+@@ -279,7 +325,7 @@ async function resolveCardActionChatType(params: {
+ 
+   const chatId = params.event.context.chat_id?.trim();
+   if (!chatId) {
+-    return "p2p";
++    return params.failClosed ? undefined : "p2p";
+   }
+ 
+   const cacheKey = `${params.account.accountId}:${chatId}`;
+@@ -307,21 +353,167 @@ async function resolveCardActionChatType(params: {
+         return resolvedChatType;
+       }
+       params.log(
+-        `feishu[${params.account.accountId}]: card action missing chat type for chat; defaulting to p2p`,
++        `feishu[${params.account.accountId}]: card action missing chat type for chat${params.failClosed ? "" : "; defaulting to p2p"}`,
+       );
+     } else {
+       params.log(
+-        `feishu[${params.account.accountId}]: failed to resolve chat type: ${sanitizeLogValue(response.msg ?? "unknown error")}; defaulting to p2p`,
++        `feishu[${params.account.accountId}]: failed to resolve chat type: ${sanitizeLogValue(response.msg ?? "unknown error")}${params.failClosed ? "" : "; defaulting to p2p"}`,
+       );
+     }
+   } catch (err) {
+     const message = err instanceof Error ? err.message : "unknown";
+     params.log(
+-      `feishu[${params.account.accountId}]: failed to resolve chat type: ${sanitizeLogValue(message)}; defaulting to p2p`,
++      `feishu[${params.account.accountId}]: failed to resolve chat type: ${sanitizeLogValue(message)}${params.failClosed ? "" : "; defaulting to p2p"}`,
+     );
+   }
+ 
+-  return "p2p";
++  return params.failClosed ? undefined : "p2p";
++}
++
++function readBusinessAction(event: FeishuCardActionEvent): string | undefined {
++  const action = event.action.value.action;
++  if (typeof action !== "string") {
++    return undefined;
++  }
++  const trimmed = action.trim();
++  return /^[A-Za-z0-9._-]+:.+$/.test(trimmed) ? trimmed : undefined;
++}
++
++function readBusinessFeedback(
++  event: FeishuCardActionEvent,
++  key: "processingText" | "unauthorizedText" | "unavailableText" | "failureText",
++  fallback: string,
++): string {
++  const value = event.action.value[key];
++  return typeof value === "string" && value.trim() ? value.trim().slice(0, 200) : fallback;
++}
++
++function businessToast(
++  event: FeishuCardActionEvent,
++  type: "info" | "error",
++  key: "processingText" | "unauthorizedText" | "unavailableText" | "failureText",
++  fallback: string,
++): unknown {
++  return { toast: { type, content: readBusinessFeedback(event, key, fallback) } };
++}
++
++async function isBusinessCardActionAuthorized(params: {
++  cfg: ClawdbotConfig;
++  event: FeishuCardActionEvent;
++  account: ReturnType<typeof resolveFeishuRuntimeAccount>;
++  channelRuntime?: PluginRuntime["channel"];
++  log: (message: string) => void;
++}): Promise<boolean> {
++  const chatId = params.event.context.chat_id?.trim();
++  if (!chatId) {
++    return false;
++  }
++  const chatType = await resolveCardActionChatType({
++    event: params.event,
++    account: params.account,
++    log: params.log,
++    failClosed: true,
++  });
++  if (!chatType) {
++    return false;
++  }
++
++  if (chatType === "p2p") {
++    const readAllowFromStore = params.channelRuntime
++      ? () =>
++          params.channelRuntime!.pairing.readAllowFromStore({
++            channel: "feishu",
++            accountId: params.account.accountId,
++          })
++      : undefined;
++    const access = await resolveFeishuDmIngressAccess({
++      cfg: params.cfg,
++      accountId: params.account.accountId,
++      dmPolicy: params.account.config.dmPolicy ?? "pairing",
++      allowFrom: params.account.config.allowFrom ?? [],
++      ...(readAllowFromStore ? { readAllowFromStore } : {}),
++      senderOpenId: params.event.operator.open_id,
++      senderUserId: params.event.operator.user_id,
++      conversationId: chatId,
++      mayPair: false,
++    });
++    return access.ingress.admission === "dispatch";
++  }
++
++  const groupConfig = resolveFeishuGroupConfig({
++    cfg: params.account.config,
++    groupId: chatId,
++  });
++  const groupPolicy = groupConfig?.groupPolicy ?? params.account.config.groupPolicy ?? "allowlist";
++  const conversationAccess = await resolveFeishuGroupConversationIngressAccess({
++    cfg: params.cfg,
++    accountId: params.account.accountId,
++    chatId,
++    groupPolicy,
++    groupAllowFrom: params.account.config.groupAllowFrom ?? [],
++    groupExplicitlyConfigured: hasExplicitFeishuGroupConfig({
++      cfg: params.account.config,
++      groupId: chatId,
++    }),
++  });
++  if (conversationAccess.ingress.admission !== "dispatch") {
++    return false;
++  }
++  const senderAllowFrom =
++    (groupConfig?.allowFrom?.length ?? 0) > 0
++      ? groupConfig?.allowFrom
++      : (params.account.config.groupSenderAllowFrom ?? []);
++  const senderAccess = await resolveFeishuGroupSenderActivationIngressAccess({
++    cfg: params.cfg,
++    accountId: params.account.accountId,
++    chatId,
++    allowFrom: senderAllowFrom,
++    senderOpenId: params.event.operator.open_id,
++    senderUserId: params.event.operator.user_id,
++    requireMention: false,
++    mentionedBot: true,
++  });
++  return (
++    senderAccess.senderAccess.decision === "allow" && senderAccess.ingress.admission === "dispatch"
++  );
++}
++
++async function dispatchBusinessCardAction(params: {
++  action: string;
++  accountId: string;
++  event: FeishuCardActionEvent;
++}): Promise<{ matched: boolean; response?: unknown }> {
++  let response: unknown;
++  const result = await dispatchPluginInteractiveHandler<FeishuBusinessInteractiveRegistration>({
++    channel: "feishu",
++    data: params.action,
++    dedupeId: `${params.accountId}:${params.event.token}`,
++    invoke: async ({ registration, namespace, payload }) => {
++      const resolved = await registration.handler({
++        channel: "feishu",
++        accountId: params.accountId,
++        callbackId: params.event.token,
++        conversationId: params.event.context.chat_id!,
++        messageId: params.event.context.open_message_id ?? params.event.open_message_id,
++        senderId: params.event.operator.open_id,
++        auth: { isAuthorizedSender: true },
++        interaction: {
++          data: params.action,
++          namespace,
++          payload,
++          tag: params.event.action.tag,
++          name: params.event.action.name,
++          formName: params.event.action.form_name,
++          value: params.event.action.value,
++          formValue: params.event.action.form_value,
++        },
++        rawEvent: params.event,
++      });
++      response = resolved?.response;
++      return { handled: resolved?.handled ?? true };
++    },
++  });
++  return { matched: result.matched, ...(response !== undefined ? { response } : {}) };
+ }
+ 
+ async function sendInvalidInteractionNotice(params: {
+@@ -354,7 +546,7 @@ export async function handleFeishuCardAction(params: {
+   runtime?: RuntimeEnv;
+   channelRuntime?: PluginRuntime["channel"];
+   accountId?: string;
+-}): Promise<void> {
++}): Promise<unknown> {
+   const { cfg, event, runtime, accountId } = params;
+   const account = resolveFeishuRuntimeAccount({ cfg, accountId });
+   const log = runtime?.log ?? console.log;
+@@ -364,17 +556,66 @@ export async function handleFeishuCardAction(params: {
+     );
+     return;
+   }
+-  const decoded = decodeFeishuCardAction({ event });
++  const businessAction = readBusinessAction(event);
++  const decoded = businessAction ? undefined : decodeFeishuCardAction({ event });
+   const claimedToken = beginFeishuCardActionToken({
+     token: event.token,
+     accountId: account.accountId,
+   });
+   if (!claimedToken) {
+     log(`feishu[${account.accountId}]: skipping duplicate card action token ${event.token}`);
+-    return;
++    return businessAction
++      ? businessToast(event, "info", "processingText", "This request is already being processed.")
++      : undefined;
+   }
+ 
+   try {
++    if (businessAction) {
++      const authorized = await isBusinessCardActionAuthorized({
++        cfg,
++        event,
++        account,
++        channelRuntime: params.channelRuntime,
++        log,
++      });
++      if (!authorized) {
++        log(
++          `feishu[${account.accountId}]: rejected business card action ${businessAction} from ${event.operator.open_id}`,
++        );
++        completeFeishuCardActionToken({ token: event.token, accountId: account.accountId });
++        return businessToast(
++          event,
++          "error",
++          "unauthorizedText",
++          "You are not authorized to submit this card.",
++        );
++      }
++      const dispatched = await dispatchBusinessCardAction({
++        action: businessAction,
++        accountId: account.accountId,
++        event,
++      });
++      completeFeishuCardActionToken({ token: event.token, accountId: account.accountId });
++      if (!dispatched.matched) {
++        log(
++          `feishu[${account.accountId}]: no handler registered for business card action ${businessAction}`,
++        );
++        return businessToast(
++          event,
++          "error",
++          "unavailableText",
++          "This action is temporarily unavailable.",
++        );
++      }
++      return (
++        dispatched.response ??
++        businessToast(event, "info", "processingText", "Your response is being submitted.")
++      );
++    }
++
++    if (!decoded) {
++      throw new Error("Feishu card action decode unexpectedly missing");
++    }
+     if (decoded.kind === "invalid") {
+       log(
+         `feishu[${account.accountId}]: rejected card action from ${event.operator.open_id}: ${decoded.reason}`,
+@@ -432,12 +673,13 @@ export async function handleFeishuCardAction(params: {
+             prompt,
+             sessionKey: envelope.c?.s,
+             expiresAt,
+-            chatType: await resolveCardActionChatType({
+-              event,
+-              account,
+-              chatType: envelope.c?.t,
+-              log,
+-            }),
++            chatType:
++              (await resolveCardActionChatType({
++                event,
++                account,
++                chatType: envelope.c?.t,
++                log,
++              })) ?? "p2p",
+             confirmLabel: command === "/reset" ? "Reset" : "Confirm",
+           }),
+           accountId,
+@@ -512,6 +754,13 @@ export async function handleFeishuCardAction(params: {
+     });
+     completeFeishuCardActionToken({ token: event.token, accountId: account.accountId });
+   } catch (err) {
++    if (businessAction) {
++      releaseFeishuCardActionToken({ token: event.token, accountId: account.accountId });
++      log(
++        `feishu[${account.accountId}]: business card action ${businessAction} failed: ${sanitizeLogValue(err instanceof Error ? err.message : String(err))}`,
++      );
++      return businessToast(event, "error", "failureText", "Submission failed. Please try again.");
++    }
+     if (err instanceof FeishuRetryableCardActionError) {
+       releaseFeishuCardActionToken({ token: event.token, accountId: account.accountId });
+     } else {
+diff --git a/extensions/feishu/src/channel.test.ts b/extensions/feishu/src/channel.test.ts
+index c2a921a4df0..9fc12cd89ef 100644
+--- a/extensions/feishu/src/channel.test.ts
++++ b/extensions/feishu/src/channel.test.ts
+@@ -402,6 +402,73 @@ describe("feishuPlugin actions", () => {
+     expect(details.chatId).toBe("oc_group_1");
+   });
+ 
++  it("sends trusted raw Schema 2.0 cards without rewriting the payload", async () => {
++    const card = {
++      schema: "2.0",
++      body: {
++        elements: [{ tag: "form", name: "cs", elements: [{ tag: "input", name: "decision" }] }],
++      },
++    };
++    sendCardFeishuMock.mockResolvedValueOnce({ messageId: "om_form", chatId: "oc_group_1" });
++
++    const result = await feishuPlugin.actions?.handleAction?.({
++      action: "send",
++      params: { to: "chat:oc_group_1", card },
++      cfg,
++      accountId: "main",
++      gatewayClientScopes: ["operator.admin"],
++      toolContext: {},
++    } as never);
++
++    expect(sendCardFeishuMock).toHaveBeenCalledWith({
++      cfg,
++      to: "chat:oc_group_1",
++      card,
++      accountId: "main",
++      replyToMessageId: undefined,
++      replyInThread: false,
++    });
++    expect(resultDetails(result).messageId).toBe("om_form");
++  });
++
++  it.each([
++    ["non-admin", { card: { schema: "2.0", body: { elements: [{ tag: "markdown" }] } } }, []],
++    ["empty elements", { card: { schema: "2.0", body: { elements: [] } } }, ["operator.admin"]],
++    [
++      "wrong schema",
++      { card: { schema: "1.0", body: { elements: [{ tag: "markdown" }] } } },
++      ["operator.admin"],
++    ],
++    [
++      "raw card plus presentation",
++      {
++        card: { schema: "2.0", body: { elements: [{ tag: "markdown" }] } },
++        presentation: { blocks: [{ type: "text", text: "duplicate" }] },
++      },
++      ["operator.admin"],
++    ],
++    [
++      "raw card plus media",
++      {
++        card: { schema: "2.0", body: { elements: [{ tag: "markdown" }] } },
++        media: "/tmp/image.png",
++      },
++      ["operator.admin"],
++    ],
++  ])("rejects %s raw card sends", async (_label, extraParams, gatewayClientScopes) => {
++    await expect(
++      feishuPlugin.actions?.handleAction?.({
++        action: "send",
++        params: { to: "chat:oc_group_1", ...extraParams },
++        cfg,
++        accountId: "main",
++        gatewayClientScopes,
++        toolContext: {},
++      } as never),
++    ).rejects.toThrow();
++    expect(sendCardFeishuMock).not.toHaveBeenCalled();
++  });
++
+   it("renders presentation buttons as native Feishu card buttons", async () => {
+     sendCardFeishuMock.mockResolvedValueOnce({ messageId: "om_card", chatId: "oc_group_1" });
+ 
+diff --git a/extensions/feishu/src/channel.ts b/extensions/feishu/src/channel.ts
+index d1a700bc970..8a3c04a43be 100644
+--- a/extensions/feishu/src/channel.ts
++++ b/extensions/feishu/src/channel.ts
+@@ -133,6 +133,26 @@ function containsLegacyFeishuCardCommandValue(node: unknown): boolean {
+   return Object.values(node).some((value) => containsLegacyFeishuCardCommandValue(value));
+ }
+ 
++function readTrustedFeishuRawCard(
++  ctx: ChannelMessageActionContext,
++): Record<string, unknown> | undefined {
++  const raw = ctx.params.card;
++  if (raw === undefined) {
++    return undefined;
++  }
++  if (!ctx.gatewayClientScopes?.includes("operator.admin")) {
++    throw new Error("Feishu raw card sending requires operator.admin.");
++  }
++  if (!isRecord(raw) || raw.schema !== "2.0" || !isRecord(raw.body)) {
++    throw new Error("Feishu raw card must be a Schema 2.0 card object with a body.");
++  }
++  const elements = raw.body.elements;
++  if (!Array.isArray(elements) || elements.length === 0) {
++    throw new Error("Feishu raw card body.elements must be a non-empty array.");
++  }
++  return raw;
++}
++
+ const meta: ChannelMeta = {
+   id: "feishu",
+   label: "Feishu",
+@@ -781,9 +801,18 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
+             const text = readFirstString(ctx.params, ["text", "message"]);
+             const mediaUrl = readFeishuMediaParam(ctx.params);
+             const audioAsVoice = readBooleanParam(ctx.params, ["asVoice", "audioAsVoice"]);
+-            const card = presentation
+-              ? buildFeishuPresentationCard({ presentation, fallbackText: text })
+-              : undefined;
++            const rawCard = readTrustedFeishuRawCard(ctx);
++            if (rawCard && presentation) {
++              throw new Error(`Feishu ${ctx.action} does not support raw card with presentation.`);
++            }
++            if (rawCard && text) {
++              throw new Error(`Feishu ${ctx.action} does not support raw card with text/message.`);
++            }
++            const card =
++              rawCard ??
++              (presentation
++                ? buildFeishuPresentationCard({ presentation, fallbackText: text })
++                : undefined);
+             if (card && mediaUrl) {
+               throw new Error(`Feishu ${ctx.action} does not support card with media.`);
+             }
+diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
+index 09217c5084d..e9655270b91 100644
+--- a/extensions/feishu/src/monitor.account.ts
++++ b/extensions/feishu/src/monitor.account.ts
+@@ -207,7 +207,7 @@ function readFeishuIdentityField(
+   return firstString(value[field]);
+ }
+ 
+-function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEvent | null {
++export function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEvent | null {
+   if (!isRecord(value)) {
+     return null;
+   }
+@@ -218,7 +218,11 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+     return null;
+   }
+   const operatorUserId = operator.user_id;
+-  const token = readString(value.token);
++  // Schema 1 card callbacks carry `token`. Schema 2 callbacks arrive through
++  // EventDispatcher as a flattened v2 event and carry the callback identity in
++  // header.event_id instead. RequestHandle.parse() flattens that header, so the
++  // handler sees `event_id` at the top level.
++  const token = firstString(value.token, value.event_id);
+   const openId = firstString(
+     operator.open_id,
+     readFeishuIdentityField(operatorUserId, "open_id"),
+@@ -236,14 +240,24 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+     readFeishuIdentityField(operatorUserId, "union_id"),
+   );
+   const tag = readString(action.tag);
+-  const actionValue = action.value;
++  const actionName = firstString(action.name);
++  // Feishu Schema 2 form_submit callbacks may omit the button `value` even
++  // though it was present in the sent card. Preserve a namespaced business
++  // action encoded in the button name. Legacy actions still require value.
++  const actionValue = isRecord(action.value)
++    ? action.value
++    : actionName?.includes(":")
++      ? { action: actionName }
++      : undefined;
++  const formName = firstString(action.form_name);
++  const formValue = isRecord(action.form_value) ? action.form_value : undefined;
+   // Prefer context.open_message_id (original card message) over value.open_message_id
+   // which may be a temporary card-action-c-* ID that is not a valid Feishu message ID.
+   const openMessageId = firstString(context.open_message_id, value.open_message_id);
+   const contextOpenId = firstString(context.open_id, openId);
+   const contextUserId = firstString(context.user_id, userId);
+   const chatId = firstString(context.chat_id, context.open_chat_id);
+-  if (!token || !openId || !tag || !isRecord(actionValue)) {
++  if (!token || !openId || !tag || !actionValue) {
+     return null;
+   }
+   return {
+@@ -256,6 +270,9 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+     action: {
+       value: actionValue,
+       tag,
++      ...(actionName ? { name: actionName } : {}),
++      ...(formName ? { form_name: formName } : {}),
++      ...(formValue ? { form_value: formValue } : {}),
+     },
+     ...(openMessageId ? { open_message_id: openMessageId } : {}),
+     context: {
+@@ -267,6 +284,22 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+   };
+ }
+ 
++function summarizeCardActionPayloadShape(value: unknown): string {
++  if (!isRecord(value)) {
++    return `type=${Array.isArray(value) ? "array" : typeof value}`;
++  }
++  const keys = (record: Record<string, unknown>) => Object.keys(record).sort().join(",") || "-";
++  const action = isRecord(value.action) ? value.action : undefined;
++  const operator = isRecord(value.operator) ? value.operator : undefined;
++  const context = isRecord(value.context) ? value.context : undefined;
++  return [
++    `keys=${keys(value)}`,
++    `actionKeys=${action ? keys(action) : "-"}`,
++    `operatorKeys=${operator ? keys(operator) : "-"}`,
++    `contextKeys=${context ? keys(context) : "-"}`,
++  ].join(" ");
++}
++
+ function registerEventHandlers(
+   eventDispatcher: Lark.EventDispatcher,
+   context: RegisterEventHandlersContext,
+@@ -412,10 +445,13 @@ function registerEventHandlers(
+       try {
+         const event = parseFeishuCardActionEventPayload(data);
+         if (!event) {
+-          error(`feishu[${accountId}]: ignoring malformed card action payload`);
++          error(
++            `feishu[${accountId}]: ignoring malformed card action payload ` +
++              summarizeCardActionPayloadShape(data),
++          );
+           return;
+         }
+-        const promise = handleFeishuCardAction({
++        return await handleFeishuCardAction({
+           cfg,
+           event,
+           botOpenId: botOpenIds.get(accountId),
+@@ -423,15 +459,9 @@ function registerEventHandlers(
+           channelRuntime,
+           accountId,
+         });
+-        if (fireAndForget) {
+-          promise.catch((err: unknown) => {
+-            error(`feishu[${accountId}]: error handling card action: ${String(err)}`);
+-          });
+-        } else {
+-          await promise;
+-        }
+       } catch (err) {
+         error(`feishu[${accountId}]: error handling card action: ${String(err)}`);
++        return { toast: { type: "error", content: "Card action failed. Please try again." } };
+       }
+     },
+   });
+diff --git a/extensions/feishu/src/monitor.card-action-form.test.ts b/extensions/feishu/src/monitor.card-action-form.test.ts
+new file mode 100644
+index 00000000000..aa90fa3436d
+--- /dev/null
++++ b/extensions/feishu/src/monitor.card-action-form.test.ts
+@@ -0,0 +1,94 @@
++import { describe, expect, it } from "vitest";
++import { parseFeishuCardActionEventPayload } from "./monitor.account.js";
++
++describe("Feishu form card callback parsing", () => {
++  it("preserves form callback fields and message context", () => {
++    const parsed = parseFeishuCardActionEventPayload({
++      token: "callback-token",
++      operator: { open_id: "ou_operator", user_id: "user_operator" },
++      action: {
++        tag: "form_submit",
++        name: "submit-response",
++        form_name: "cs_escalation",
++        value: { action: "rivonclaw.cs:respond", escalationId: "M1DG8V" },
++        form_value: { decision: "Refund", resolution: "resolved" },
++      },
++      context: { chat_id: "oc_chat", open_message_id: "om_card" },
++    });
++
++    expect(parsed).toEqual(
++      expect.objectContaining({
++        token: "callback-token",
++        operator: expect.objectContaining({ open_id: "ou_operator", user_id: "user_operator" }),
++        action: {
++          tag: "form_submit",
++          name: "submit-response",
++          form_name: "cs_escalation",
++          value: { action: "rivonclaw.cs:respond", escalationId: "M1DG8V" },
++          form_value: { decision: "Refund", resolution: "resolved" },
++        },
++        open_message_id: "om_card",
++        context: expect.objectContaining({ chat_id: "oc_chat", open_message_id: "om_card" }),
++      }),
++    );
++  });
++
++  it("accepts Schema 2 callbacks that use the flattened header event_id", () => {
++    const parsed = parseFeishuCardActionEventPayload({
++      schema: "2.0",
++      event_id: "schema-2-event-id",
++      operator: { open_id: "ou_operator" },
++      action: {
++        tag: "form_submit",
++        value: { action: "rivonclaw.cs:respond", escalationId: "0B67JE" },
++        form_value: { decision: "Safe test response", resolution: "resolved" },
++      },
++      context: { open_chat_id: "oc_chat", open_message_id: "om_card" },
++    });
++
++    expect(parsed).toEqual(
++      expect.objectContaining({
++        token: "schema-2-event-id",
++        operator: expect.objectContaining({ open_id: "ou_operator" }),
++        action: expect.objectContaining({
++          tag: "form_submit",
++          form_value: { decision: "Safe test response", resolution: "resolved" },
++        }),
++        context: expect.objectContaining({ chat_id: "oc_chat", open_message_id: "om_card" }),
++      }),
++    );
++  });
++
++  it("recovers a namespaced business action from form_submit name when value is omitted", () => {
++    const parsed = parseFeishuCardActionEventPayload({
++      schema: "2.0",
++      event_id: "schema-2-form-event",
++      token: "schema-2-token",
++      operator: { open_id: "ou_operator" },
++      action: {
++        tag: "form_submit",
++        name: "rivonclaw.cs:respond:0B67JE",
++        form_value: { decision: "Safe test response", resolution: "resolved" },
++      },
++      context: { open_chat_id: "oc_chat", open_message_id: "om_card" },
++    });
++
++    expect(parsed?.action).toEqual({
++      tag: "form_submit",
++      name: "rivonclaw.cs:respond:0B67JE",
++      value: { action: "rivonclaw.cs:respond:0B67JE" },
++      form_value: { decision: "Safe test response", resolution: "resolved" },
++    });
++  });
++
++  it("does not invent a business action for ordinary form names", () => {
++    expect(
++      parseFeishuCardActionEventPayload({
++        token: "callback-token",
++        operator: { open_id: "ou_operator" },
++        action: { tag: "form_submit", name: "submit", form_value: { answer: "yes" } },
++        context: { open_chat_id: "oc_chat", open_message_id: "om_card" },
++      }),
++    ).toBeNull();
++  });
++});
+-- 
+2.50.1 (Apple Git-155)
+

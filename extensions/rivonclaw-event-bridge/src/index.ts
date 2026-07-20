@@ -20,6 +20,7 @@
 import { defineRivonClawPlugin } from "@rivonclaw/plugin-sdk";
 
 const RUN_SESSION_CLEANUP_DELAY_MS = 5 * 60_000;
+const CS_ESCALATION_RESPONSE_EVENT = "plugin.rivonclaw.cs-escalation-response";
 
 type AgentEventPayload = {
   runId: string;
@@ -39,6 +40,100 @@ type PendingInbound = {
 };
 
 type TimerHandle = ReturnType<typeof setTimeout>;
+
+type FeishuBusinessInteractionContext = {
+  channel?: unknown;
+  accountId?: unknown;
+  callbackId?: unknown;
+  conversationId?: unknown;
+  messageId?: unknown;
+  senderId?: unknown;
+  interaction?: {
+    payload?: unknown;
+    value?: Record<string, unknown>;
+    formValue?: Record<string, unknown>;
+  };
+};
+
+export type CsEscalationResponseEventPayload = {
+  schemaVersion: 1;
+  callbackId: string;
+  accountId: string;
+  operatorOpenId: string;
+  chatId: string;
+  messageId: string;
+  escalationId: string;
+  decision: string;
+  resolved: boolean;
+  submittedAt: number;
+};
+
+function readBoundedString(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, maxLength) : undefined;
+}
+
+function feedbackText(
+  value: Record<string, unknown> | undefined,
+  key: "processingText" | "failureText",
+  fallback: string,
+): string {
+  return readBoundedString(value?.[key], 200) ?? fallback;
+}
+
+export function parseCsEscalationResponseInteraction(
+  context: FeishuBusinessInteractionContext,
+  now = Date.now(),
+): CsEscalationResponseEventPayload | null {
+  const interactionPayload = readBoundedString(context.interaction?.payload, 256);
+  if (
+    context.channel !== "feishu" ||
+    (interactionPayload !== "respond" && !interactionPayload?.startsWith("respond:"))
+  ) return null;
+  const accountId = readBoundedString(context.accountId, 128);
+  const callbackId = readBoundedString(context.callbackId, 512);
+  const chatId = readBoundedString(context.conversationId, 256);
+  const messageId = readBoundedString(context.messageId, 256);
+  const operatorOpenId = readBoundedString(context.senderId, 256);
+  let escalationId = readBoundedString(context.interaction.value?.escalationId, 64);
+  if (!escalationId && interactionPayload?.startsWith("respond:")) {
+    try {
+      escalationId = readBoundedString(
+        decodeURIComponent(interactionPayload.slice("respond:".length)),
+        64,
+      );
+    } catch {
+      escalationId = undefined;
+    }
+  }
+  const decision = readBoundedString(context.interaction.formValue?.decision, 4_000);
+  const resolution = readBoundedString(context.interaction.formValue?.resolution, 32);
+  if (
+    !accountId ||
+    !callbackId ||
+    !chatId ||
+    !messageId ||
+    !operatorOpenId ||
+    !escalationId ||
+    !decision ||
+    (resolution !== "resolved" && resolution !== "unresolved")
+  ) {
+    return null;
+  }
+  return {
+    schemaVersion: 1,
+    callbackId,
+    accountId,
+    operatorOpenId,
+    chatId,
+    messageId,
+    escalationId,
+    decision,
+    resolved: resolution === "resolved",
+    submittedAt: now,
+  };
+}
 
 export function createRunSessionTracker(cleanupDelayMs = RUN_SESSION_CLEANUP_DELAY_MS) {
   const sessions = new Map<string, string>();
@@ -187,6 +282,55 @@ export default defineRivonClawPlugin({
         },
       );
     }
+
+    // Business callbacks are claimed before Feishu can turn them into
+    // synthetic user messages, so this path never dispatches an agent.
+    api.registerInteractiveHandler?.({
+      channel: "feishu",
+      namespace: "rivonclaw.cs",
+      handler: (rawContext: unknown) => {
+        const context = rawContext as FeishuBusinessInteractionContext;
+        const actionValue = context.interaction?.value;
+        const failure = feedbackText(
+          actionValue,
+          "failureText",
+          "Submission failed. Please try again.",
+        );
+        const payload = parseCsEscalationResponseInteraction(context);
+        if (!payload) {
+          api.logger.warn(
+            "[event-bridge] rejected malformed Feishu CS escalation response callback " +
+              `account=${readBoundedString(context.accountId, 128) ?? "unknown"} ` +
+              `callback=${readBoundedString(context.callbackId, 512) ?? "unknown"} ` +
+              `message=${readBoundedString(context.messageId, 256) ?? "unknown"}`,
+          );
+          return { handled: true, response: { toast: { type: "error", content: failure } } };
+        }
+        if (!gatewayBroadcast) {
+          api.logger.warn(
+            `[event-bridge] Feishu CS escalation callback unavailable account=${payload.accountId} message=${payload.messageId} escalation=${payload.escalationId}`,
+          );
+          return { handled: true, response: { toast: { type: "error", content: failure } } };
+        }
+        api.logger.info(
+          `[event-bridge] Feishu CS escalation callback callback=${payload.callbackId} account=${payload.accountId} message=${payload.messageId} escalation=${payload.escalationId} operator=${payload.operatorOpenId}`,
+        );
+        gatewayBroadcast(CS_ESCALATION_RESPONSE_EVENT, payload);
+        return {
+          handled: true,
+          response: {
+            toast: {
+              type: "info",
+              content: feedbackText(
+                actionValue,
+                "processingText",
+                "Your response is being submitted.",
+              ),
+            },
+          },
+        };
+      },
+    });
 
     // ── Build runId -> sessionKey map from llm_input hook ───────────
     api.on(
