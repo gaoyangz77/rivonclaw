@@ -656,6 +656,52 @@ describe("KeyUsageHistoryRepository", () => {
   });
 });
 
+describe("CsEscalationResponseHistoryRepository", () => {
+  it("persists channel-neutral feedback in chronological order and deduplicates callbacks", () => {
+    const first = {
+      ownerId: "user-1",
+      channelId: "feishu",
+      callbackId: "callback-1",
+      escalationId: "M1DG8V",
+      accountId: "account-1",
+      messageId: "message-1",
+      operatorId: "operator-1",
+      decision: "Ask the warehouse for an update",
+      resolved: false,
+      submittedAt: 100,
+      version: 2,
+    };
+    const second = {
+      ...first,
+      channelId: "telegram",
+      callbackId: "callback-2",
+      messageId: "message-2",
+      decision: "The replacement shipped; close the case",
+      resolved: true,
+      submittedAt: 200,
+      version: 3,
+    };
+
+    expect(storage.csEscalationResponseHistory.append(first)).toBe(true);
+    expect(storage.csEscalationResponseHistory.append(first)).toBe(false);
+    expect(storage.csEscalationResponseHistory.append(second)).toBe(true);
+    expect(storage.csEscalationResponseHistory.hasCallback("user-1", "feishu", "callback-1")).toBe(
+      true,
+    );
+    expect(
+      storage.csEscalationResponseHistory.hasCallback("user-1", "telegram", "callback-1"),
+    ).toBe(false);
+    expect(storage.csEscalationResponseHistory.countByEscalationId("user-1", "M1DG8V")).toBe(2);
+    expect(storage.csEscalationResponseHistory.listByEscalationId("user-1", "M1DG8V", 5)).toEqual([
+      first,
+      second,
+    ]);
+    expect(storage.csEscalationResponseHistory.listByEscalationId("user-1", "M1DG8V", 1)).toEqual([
+      second,
+    ]);
+  });
+});
+
 describe("Database", () => {
   it("should create storage with in-memory database", () => {
     expect(storage.db).toBeDefined();
@@ -684,6 +730,7 @@ describe("Database", () => {
     expect(byId.get(17)).toBe("add_pairing_id_to_mobile_pairings");
     expect(byId.get(18)).toBe("add_status_to_mobile_pairings");
     expect(byId.get(22)).toBe("add_tool_selections_table");
+    expect(byId.get(32)).toBe("add_cs_escalation_response_history");
   });
 
   it("should not re-apply migrations on second open", () => {

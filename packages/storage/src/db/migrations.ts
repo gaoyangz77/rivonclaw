@@ -409,4 +409,26 @@ export const migrations: Migration[] = [
       DELETE FROM settings WHERE key = 'session-state-cdp-enabled';
     `,
   },
+  {
+    id: 32,
+    name: "add_cs_escalation_response_history",
+    sql: `
+      CREATE TABLE IF NOT EXISTS cs_escalation_response_history (
+        owner_id TEXT NOT NULL,
+        channel_id TEXT NOT NULL,
+        callback_id TEXT NOT NULL,
+        escalation_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        message_id TEXT NOT NULL,
+        operator_id TEXT NOT NULL,
+        decision TEXT NOT NULL,
+        resolved INTEGER NOT NULL,
+        submitted_at INTEGER NOT NULL,
+        version INTEGER,
+        PRIMARY KEY (owner_id, channel_id, callback_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_cs_escalation_response_history_escalation
+        ON cs_escalation_response_history(owner_id, escalation_id, submitted_at DESC);
+    `,
+  },
 ];

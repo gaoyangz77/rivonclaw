@@ -105,10 +105,11 @@ onAction(rootStore, (call) => {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function createBridge(overrides?: Partial<{ defaultRunProfileId: string }>): CustomerServiceBridge {
+function createBridge(overrides?: Partial<{ defaultRunProfileId: string; locale: string }>): CustomerServiceBridge {
   return new CustomerServiceBridge({
     gatewayId: "test-gateway",
     defaultRunProfileId: overrides?.defaultRunProfileId ?? "CUSTOMER_SERVICE",
+    locale: overrides?.locale,
   });
 }
 
@@ -2570,6 +2571,35 @@ describe("escalate", () => {
         accountId: "acct_test123",
       }),
     );
+  });
+
+  it("sends a Feishu form card while leaving other channels on the text adapter", async () => {
+    seedShopWithEscalation({
+      escalationChannelId: "feishu:acct_feishu",
+      escalationRecipientId: "ou_manager",
+    });
+    const bridge = createBridge({ locale: "zh" });
+    bridge.setShopContext(escalationShop);
+
+    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const result = await session.escalate({ reason: defaultEscalateParams.reason });
+
+    expect(result.ok).toBe(true);
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "message.action",
+      expect.objectContaining({
+        channel: "feishu",
+        action: "send",
+        accountId: "acct_feishu",
+        params: expect.objectContaining({
+          to: "ou_manager",
+          card: expect.objectContaining({ schema: "2.0" }),
+        }),
+      }),
+    );
+    const request = mockRpcRequest.mock.calls.find((call) => call[0] === "message.action")?.[1];
+    expect(JSON.stringify(request?.params?.card)).toContain("客服升级请求");
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
   });
 
   it("handles cloud escalation-created events with a direct outbound send, not an agent run", async () => {

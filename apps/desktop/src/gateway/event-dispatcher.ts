@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
+import type { CsEscalationResponseGatewayPayload } from "../cs-bridge/feishu-escalation-response.js";
 
 const TELEGRAM_CHANNEL_ID = "telegram";
 const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
@@ -17,6 +18,7 @@ export interface GatewayEventDispatcherDeps {
     membershipChanged: boolean;
   };
   onSessionActivity?: (sessionKey: string) => void;
+  onCsEscalationResponse?: (payload: CsEscalationResponseGatewayPayload) => void | Promise<void>;
 }
 
 export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
@@ -39,9 +41,17 @@ function isInternalTelegramDebugAccount(input: { channelId?: string; channel?: s
  * Keeps main.ts clean by centralizing event dispatch logic.
  */
 export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): GatewayEventHandler {
-  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity } = deps;
+  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity, onCsEscalationResponse } = deps;
 
   return (evt: GatewayEventFrame): void => {
+    if (evt.event === "plugin.rivonclaw.cs-escalation-response") {
+      const payload = evt.payload as CsEscalationResponseGatewayPayload;
+      void Promise.resolve(onCsEscalationResponse?.(payload)).catch(() => {
+        // The processor owns detailed diagnostics and employee-facing fallback.
+      });
+      return;
+    }
+
     if (evt.event === "mobile.session-reset") {
       const payload = evt.payload as { sessionKey?: string } | undefined;
       if (payload?.sessionKey) {

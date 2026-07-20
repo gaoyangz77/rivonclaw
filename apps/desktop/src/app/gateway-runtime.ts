@@ -18,6 +18,7 @@ import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { ensurePackagedOpenClawRuntimeDepsStage } from "./openclaw-runtime-deps-stage.js";
+import { createFeishuEscalationResponseProcessor } from "../cs-bridge/feishu-escalation-response.js";
 
 const log = createLogger("gateway-runtime");
 
@@ -38,7 +39,9 @@ export interface SetupGatewayDeps {
 
 export interface GatewayRuntime {
   launcher: GatewayLauncher;
-  buildFullGatewayConfig: (port: number) => ReturnType<ReturnType<typeof createGatewayConfigBuilder>["buildFullGatewayConfig"]>;
+  buildFullGatewayConfig: (
+    port: number,
+  ) => ReturnType<ReturnType<typeof createGatewayConfigBuilder>["buildFullGatewayConfig"]>;
 }
 
 /**
@@ -47,9 +50,17 @@ export interface GatewayRuntime {
  */
 export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRuntime> {
   const {
-    storage, secretStore, locale, configPath, stateDir,
-    extensionsDir, sttCliPath, vendorDir, merchantExtensionPaths,
-    gatewayPort, broadcastEvent,
+    storage,
+    secretStore,
+    locale,
+    configPath,
+    stateDir,
+    extensionsDir,
+    sttCliPath,
+    vendorDir,
+    merchantExtensionPaths,
+    gatewayPort,
+    broadcastEvent,
   } = deps;
 
   // Force pre-compiled ESM extensions from dist-runtime/
@@ -61,8 +72,14 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
 
   // Build gateway config helpers (closures bound to current settings)
   const { buildFullGatewayConfig } = createGatewayConfigBuilder({
-    storage, secretStore, locale, configPath, stateDir, extensionsDir,
-    sttCliPath, vendorDir,
+    storage,
+    secretStore,
+    locale,
+    configPath,
+    stateDir,
+    extensionsDir,
+    sttCliPath,
+    vendorDir,
     merchantExtensionPaths,
     channelPluginEntries: () => rootStore.channelManager.buildPluginEntries(),
     channelConfigAccounts: () => rootStore.channelManager.buildConfigAccounts(),
@@ -86,6 +103,10 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   });
 
   // Create gateway event dispatcher — routes WS events to Panel SSE
+  const feishuCsResponseProcessor = createFeishuEscalationResponseProcessor(
+    () => storage.settings.get("locale") ?? locale,
+    storage.csEscalationResponseHistory,
+  );
   const dispatchGatewayEvent = createGatewayEventDispatcher({
     broadcastEvent,
     chatSessions: storage.chatSessions,
@@ -95,6 +116,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     onSessionActivity: (sessionKey) => {
       rootStore.llmManager.trackSessionActivity(sessionKey);
     },
+    onCsEscalationResponse: (payload) => feishuCsResponseProcessor.handle(payload),
   });
   const handleGatewayEvent: GatewayEventHandler = (evt) => {
     // CS bridge still needs the raw gateway stream for per-turn forwarding.
