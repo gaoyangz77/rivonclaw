@@ -17,4 +17,13 @@ describe("affiliate desktop GraphQL contracts", () => {
 
     expect(errors.map((error) => error.message)).toEqual([]);
   });
+
+  it("keeps checkpoint cursor fields in the authoritative work-item refresh query", () => {
+    const compactQuery = AFFILIATE_WORK_ITEMS_QUERY.replace(/\s+/g, " ");
+
+    expect(compactQuery).toContain("committedCheckpointId");
+    expect(compactQuery).toContain("committedEventCursor");
+    expect(compactQuery).toContain("lifecycleEventSequence");
+    expect(compactQuery).toContain("activeRunBaseEventCursor");
+  });
 });
