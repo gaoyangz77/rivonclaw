@@ -19,6 +19,11 @@ const EXTENSION_ROOTS = [
     mode: "strict",
   },
   {
+    label: "merchant",
+    dir: join(ROOT, "extensions-merchant"),
+    mode: "strict",
+  },
+  {
     label: "vendor",
     dir: join(ROOT, "vendor", "openclaw", "extensions"),
     mode: "vendor-runtime",
