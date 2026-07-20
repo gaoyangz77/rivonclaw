@@ -1734,8 +1734,12 @@ export default {
         "CS_START_SESSION": "Mulai Sesi",
         "ECOM_LIST_SHOPS": "Daftar Toko",
         "ECOM_GET_SHOP": "Dapatkan Toko",
-        "AFFILIATE_GET_WORKSPACE": "Dapatkan Ruang Kerja Afiliasi",
+        "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Dapatkan Relasi Kreator",
+        "AFFILIATE_GET_COLLABORATION": "Dapatkan Kolaborasi",
+        "AFFILIATE_GET_SAMPLE_APPLICATION": "Dapatkan Pengajuan Sampel",
         "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Dapatkan Riwayat Relasi Kreator",
+        "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Daftar Kolaborasi Kreator",
+        "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Daftar Pengajuan Sampel Kreator",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Baca Lampiran Pesan Kreator",
         "AFFILIATE_COPY_MESSAGE_ATTACHMENT": "Salin Lampiran Pesan Kreator",
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Unggah Lampiran Draf Afiliasi",
@@ -2447,6 +2451,7 @@ export default {
       }
     },
     "affiliateWorkspace": {
+      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "Menunggu pemenuhan FBT" },
       "title": "Manajemen Afiliasi",
       "subtitle": "Tinjau tindakan agen yang tertunda untuk pekerjaan siklus hidup pembuat konten.",
       "creatorsTitle": "Kreator kerja sama",
@@ -3077,6 +3082,7 @@ export default {
         "DEFAULT": "Tinjau kolaborasi ini"
       },
       "collaborationWorkDescriptions": {
+        "WAITING_FBT_SHIPMENT": "Pengajuan sampel telah disetujui dan TikTok FBT akan mengirimkannya secara otomatis. Staf tidak perlu mengatur pengiriman.",
         "PROPOSAL_REVISION_REQUESTED": "Staf meminta rekomendasi yang direvisi. Catatan revisi akan disertakan dalam eksekusi agen berikutnya."
       },
       "sampleWorkStatusDescriptions": {

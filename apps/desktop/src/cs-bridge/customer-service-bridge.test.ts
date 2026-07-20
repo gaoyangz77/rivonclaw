@@ -611,7 +611,7 @@ beforeEach(() => {
   rootStore.ingestGraphQLResponse({
     runProfiles: [
       { id: "CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
-      { id: "AFFILIATE_OPERATOR", name: "Affiliate Operator", userId: "", surfaceId: "Default", selectedToolIds: ["affiliate_get_workspace", "affiliate_resolve_work_item", "affiliate_decide_proposal"] },
+      { id: "AFFILIATE_OPERATOR", name: "Affiliate Operator", userId: "", surfaceId: "Default", selectedToolIds: ["affiliate_get_creator_relationship", "affiliate_resolve_work_item", "affiliate_decide_proposal"] },
       { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
     ],
     surfaces: [],

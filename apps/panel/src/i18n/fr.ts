@@ -1734,8 +1734,12 @@ export default {
         "CS_START_SESSION": "Démarrer la session",
         "ECOM_LIST_SHOPS": "Liste des magasins",
         "ECOM_GET_SHOP": "Obtenir la boutique",
-        "AFFILIATE_GET_WORKSPACE": "Obtenir un espace de travail d'affiliation",
+        "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Obtenir la relation créateur",
+        "AFFILIATE_GET_COLLABORATION": "Obtenir la collaboration",
+        "AFFILIATE_GET_SAMPLE_APPLICATION": "Obtenir la demande d'échantillon",
         "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Obtenir l'historique de la relation créateur",
+        "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Lister les collaborations du créateur",
+        "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Lister les demandes d'échantillon du créateur",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Lire la pièce jointe du message créateur",
         "AFFILIATE_COPY_MESSAGE_ATTACHMENT": "Copier la pièce jointe du message créateur",
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Téléverser la pièce jointe du brouillon d'affiliation",
@@ -2447,6 +2451,7 @@ export default {
       }
     },
     "affiliateWorkspace": {
+      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "En attente du traitement FBT" },
       "title": "Gestion des affiliations",
       "subtitle": "Examinez les actions d'agent en attente pour le travail du cycle de vie du créateur.",
       "creatorsTitle": "Créateurs partenaires",
@@ -3077,6 +3082,7 @@ export default {
         "DEFAULT": "Examiner cette collaboration"
       },
       "collaborationWorkDescriptions": {
+        "WAITING_FBT_SHIPMENT": "La demande d'échantillon est approuvée et TikTok FBT assure automatiquement l'expédition. Aucune expédition manuelle n'est requise.",
         "PROPOSAL_REVISION_REQUESTED": "L'équipe a demandé une recommandation révisée. La note de révision sera incluse dans la prochaine exécution de l'agent."
       },
       "sampleWorkStatusDescriptions": {

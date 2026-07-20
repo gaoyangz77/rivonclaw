@@ -1734,8 +1734,12 @@ export default {
         "CS_START_SESSION": "Sitzung starten",
         "ECOM_LIST_SHOPS": "Geschäfte auflisten",
         "ECOM_GET_SHOP": "Holen Sie sich Shop",
-        "AFFILIATE_GET_WORKSPACE": "Holen Sie sich Affiliate Workspace",
+        "AFFILIATE_GET_CREATOR_RELATIONSHIP": "Creator-Beziehung abrufen",
+        "AFFILIATE_GET_COLLABORATION": "Zusammenarbeit abrufen",
+        "AFFILIATE_GET_SAMPLE_APPLICATION": "Musterantrag abrufen",
         "AFFILIATE_GET_RELATIONSHIP_HISTORY": "Creator-Beziehungsverlauf abrufen",
+        "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "Creator-Zusammenarbeiten auflisten",
+        "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "Creator-Musteranträge auflisten",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "Creator-Nachrichtenanhang lesen",
         "AFFILIATE_COPY_MESSAGE_ATTACHMENT": "Creator-Nachrichtenanhang kopieren",
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Affiliate-Entwurfsanhang hochladen",
@@ -2447,6 +2451,7 @@ export default {
       }
     },
     "affiliateWorkspace": {
+      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "Auf FBT-Abwicklung warten" },
       "title": "Affiliate-Management",
       "subtitle": "Überprüfen Sie ausstehende Agentenaktionen für die Arbeit im Lebenszyklus des Erstellers.",
       "creatorsTitle": "Kooperations-Creator",
@@ -3077,6 +3082,7 @@ export default {
         "DEFAULT": "Diese Kooperation prüfen"
       },
       "collaborationWorkDescriptions": {
+        "WAITING_FBT_SHIPMENT": "Der Musterantrag ist genehmigt und TikTok FBT führt den Versand automatisch aus. Das Personal muss keinen Versand veranlassen.",
         "PROPOSAL_REVISION_REQUESTED": "Mitarbeiter haben eine überarbeitete Empfehlung angefordert. Die Notiz zur Überarbeitung wird im nächsten Agentenlauf berücksichtigt."
       },
       "sampleWorkStatusDescriptions": {

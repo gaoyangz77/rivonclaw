@@ -1734,8 +1734,12 @@ export default {
         "CS_START_SESSION": "เริ่มเซสชัน",
         "ECOM_LIST_SHOPS": "รายชื่อร้านค้า",
         "ECOM_GET_SHOP": "รับร้านค้า",
-        "AFFILIATE_GET_WORKSPACE": "รับพื้นที่ทำงานของ Affiliate",
+        "AFFILIATE_GET_CREATOR_RELATIONSHIP": "ดูความสัมพันธ์กับครีเอเตอร์",
+        "AFFILIATE_GET_COLLABORATION": "ดูความร่วมมือ",
+        "AFFILIATE_GET_SAMPLE_APPLICATION": "ดูคำขอตัวอย่าง",
         "AFFILIATE_GET_RELATIONSHIP_HISTORY": "ดูประวัติความสัมพันธ์ครีเอเตอร์",
+        "AFFILIATE_LIST_CREATOR_COLLABORATIONS": "แสดงความร่วมมือของครีเอเตอร์",
+        "AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS": "แสดงคำขอตัวอย่างของครีเอเตอร์",
         "AFFILIATE_READ_MESSAGE_ATTACHMENT": "อ่านไฟล์แนบข้อความครีเอเตอร์",
         "AFFILIATE_COPY_MESSAGE_ATTACHMENT": "คัดลอกไฟล์แนบข้อความครีเอเตอร์",
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "อัปโหลดไฟล์แนบร่าง Affiliate",
@@ -2447,6 +2451,7 @@ export default {
       }
     },
     "affiliateWorkspace": {
+      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "รอ FBT ดำเนินการ" },
       "title": "การจัดการพันธมิตร",
       "subtitle": "ตรวจสอบการดำเนินการของตัวแทนที่รอดำเนินการสำหรับงานวงจรชีวิตของผู้สร้าง",
       "creatorsTitle": "ครีเอเตอร์ที่ร่วมงาน",
@@ -3077,6 +3082,7 @@ export default {
         "DEFAULT": "ตรวจสอบการร่วมงานนี้"
       },
       "collaborationWorkDescriptions": {
+        "WAITING_FBT_SHIPMENT": "คำขอตัวอย่างได้รับอนุมัติแล้ว และ TikTok FBT จะจัดส่งให้โดยอัตโนมัติ พนักงานไม่ต้องจัดการการจัดส่ง",
         "PROPOSAL_REVISION_REQUESTED": "เจ้าหน้าที่ขอคำแนะนำฉบับแก้ไข หมายเหตุการแก้ไขจะถูกรวมในการทำงานครั้งถัดไปของ Agent"
       },
       "sampleWorkStatusDescriptions": {

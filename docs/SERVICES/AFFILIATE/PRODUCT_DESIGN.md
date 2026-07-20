@@ -135,7 +135,9 @@ send_creator_message({ emailThreadId: "em_...", message: "..." })
 这条规则适用于所有 Agent-facing tool：
 
 - `get_creator_chat_history`
-- `get_affiliate_workspace`
+- `get_creator_relationship`
+- `get_collaboration`
+- `get_sample_application`
 - `send_creator_message`
 - `resolve_affiliate_work`
 - `decide_action_proposal`
@@ -146,8 +148,8 @@ send_creator_message({ emailThreadId: "em_...", message: "..." })
 如果 tool schema 需要缩小范围，只能使用业务可读 filter，例如 `channelFilter`、`shopId`、`collaborationRecordId`、`sampleApplicationId`、时间范围、状态范围。
 如果 tool schema 出现 `conversationId`、`platformConversationId`、`whatsappChatId`、`emailThreadId`、`providerThreadId` 作为输入参数，默认视为设计错误。
 
-`affiliate_get_workspace` 也必须遵守同一规则：Agent 读取当前 Affiliate 工作空间时应传入 `creatorRelationshipId` 作为业务边界，`shopId` 只作为 entitlement 和店铺语境过滤。
-返回结果可以包含这个 relationship 下的 collaborations、sample applications、pending proposals、creator profile、policies 和 campaign/product facts；不能把 provider conversation route 作为 workspace owner。
+Agent 不提供任何聚合式工作区读取工具。当前状态必须通过明确的业务对象工具读取：`affiliate_get_creator_relationship`、`affiliate_get_collaboration`、`affiliate_get_sample_application`。Provider 全量检查分别使用 `affiliate_list_creator_collaborations` 和 `affiliate_list_creator_sample_applications`。
+这些工具都以 `creatorRelationshipId` 作为业务边界，`shopId` 只作为 entitlement 和店铺语境过滤。任何工具都不得顺带返回其他 Creator、无关 campaign，或 terminal proposal 的历史意见。
 
 #### Tool Output Contract
 
@@ -2140,7 +2142,7 @@ The three core components integrate as follows:
 | `AffiliateDispatchManager` | Decide whether to dispatch Agent, abort active runs, supersede stale proposals, and enforce one pending proposal per relationship. | Owns checkpoint contract: choose base checkpoint, require restore/brand-new session, persist candidate checkpoint, and promote only after successful execution. |
 | `AffiliateContextBuilder` | Prepare the checkpoint boundary for this run. | Validates the committed checkpoint/cursor pair and returns the target cursor/config snapshots; it does not inject business history into the prompt. |
 
-#### Agent Prompt And On-demand Context
+#### Agent Prompt And On-demand Reads
 
 Affiliate Agent context is intentionally split into two layers:
 
@@ -2150,13 +2152,16 @@ Affiliate Agent context is intentionally split into two layers:
 Desktop must not prefetch Creator profiles, collaboration snapshots, product facts, predictions, proposal deltas, lifecycle-event deltas, contact accounts, or message bodies into a dispatch turn. The Agent reads facts on demand:
 
 - `affiliate_get_relationship_history`: Provider-backed communication plus relationship audit history.
-- `affiliate_get_workspace`: current OLTP collaboration/sample/proposal/policy state.
+- `affiliate_get_creator_relationship`: current Relationship、Creator profile 与 assigned BD；不返回任何 proposal。普通 `PENDING` proposal 只属于人工审批界面，`REVISION_REQUESTED` proposal 则作为下一次 dispatch 的直接原因，由对应 Agent Working Agenda item 携带审核意见和冻结草稿。
+- `affiliate_get_collaboration`: one explicitly identified current collaboration record and its linked sample records.
+- `affiliate_get_sample_application`: one explicitly identified current Mongo sample record.
 - `affiliate_get_creator_contact_state`: current Relationship/BD channel routes.
-- `affiliate_get_creator_collaboration_history`: exhaustive seller-visible TikTok target-collaboration history (`VALID`, `CANCELING`, `COMPLETED`, including full details) and all-status sample-application history; sample fulfillment/content detail is optional.
+- `affiliate_list_creator_collaborations`: exhaustive seller-visible TikTok target collaborations (`VALID`, `CANCELING`, `COMPLETED`, including full details).
+- `affiliate_list_creator_sample_applications`: exhaustive seller-visible TikTok sample applications; `complete=true` and `items=[]` is authoritative Provider-visible absence. Sample fulfillment/content detail is optional.
 - `ecom_get_product` / `ecom_search_products`: current shop product facts.
 - `ecom_get_bi_catalog` / `ecom_get_bi_data`: warehouse-backed affiliate orders and historical performance. TikTok's seller order search is seller-wide and cannot be claimed as an exhaustive Creator-filtered Provider query.
 
-All relationship/shop scope for the collaboration-history tool is injected from the Affiliate session. The Agent cannot provide a different shop, Relationship, or Creator provider ID.
+All relationship/shop scope for Provider list tools is injected from the Affiliate session. The Agent cannot provide a different shop, Relationship, or Creator provider ID.
 
 In short:
 
