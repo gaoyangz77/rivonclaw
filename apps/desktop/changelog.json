@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.77",
+    "date": "2026-07-20",
+    "en": [
+      "Strengthen safeguards around merchant external imports"
+    ],
+    "zh": [
+      "加强商家外部导入流程的安全防护"
+    ]
+  },
+  {
     "version": "1.8.76",
     "date": "2026-07-20",
     "en": [
