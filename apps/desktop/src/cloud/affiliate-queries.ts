@@ -221,8 +221,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         lastAgentHandledAt
         committedCheckpointId
         committedCheckpointAt
+        committedEventCursor
+        lifecycleEventSequence
         activeRunId
         activeRunBaseCheckpointId
+        activeRunBaseEventCursor
         stateUpdatedAt
         activeCollaborationRecordIds
         pendingActionProposalId
