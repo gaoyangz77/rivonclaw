@@ -1,4 +1,4 @@
-From e306527b60952faa29c9cf29f205e11866cf4d79 Mon Sep 17 00:00:00 2001
+From a0e41c046584d0e47edd4f976c2f0224c4919b4d Mon Sep 17 00:00:00 2001
 From: Gaoyang Zhang <younglobalization@gmail.com>
 Date: Fri, 17 Jul 2026 01:45:19 -0700
 Subject: [PATCH] vendor(openclaw): surface failed Feishu quote reads
@@ -6,20 +6,21 @@ Subject: [PATCH] vendor(openclaw): surface failed Feishu quote reads
 Why:
 - quoted-message API, empty-response, and parse failures collapse to null, so agents mistake employee replies for complete context
 - quoted-message GETs should use bounded transient and rate-limit retries before exposing a terminal failure
+- merged-forward quotes return a non-JSON root plus interactive child cards, so selecting only the root loses escalation IDs
 
 Removal:
-- drop when upstream retries quoted-message reads, surfaces diagnostic failures, and preserves an explicit unavailable-quote marker in agent context
+- drop when upstream retries and diagnoses quoted-message reads, preserves an explicit unavailable-quote marker, and expands merged-forward interactive child content
 
 Tests:
 - extensions/feishu/src/send.test.ts
 - extensions/feishu/src/bot.test.ts
 - apps/desktop/src/cs-bridge/vendor-feishu-escalation-quote.sentinel.test.ts
 ---
- extensions/feishu/src/bot.test.ts  | 117 ++++++++++++++++
- extensions/feishu/src/bot.ts       |  43 ++++--
- extensions/feishu/src/send.test.ts | 128 +++++++++++++++++
- extensions/feishu/src/send.ts      | 218 ++++++++++++++++++++++++++---
- 4 files changed, 474 insertions(+), 32 deletions(-)
+ extensions/feishu/src/bot.test.ts  | 117 +++++++++++++
+ extensions/feishu/src/bot.ts       |  43 ++++-
+ extensions/feishu/src/send.test.ts | 202 ++++++++++++++++++++++
+ extensions/feishu/src/send.ts      | 268 ++++++++++++++++++++++++++---
+ 4 files changed, 598 insertions(+), 32 deletions(-)
 
 diff --git a/extensions/feishu/src/bot.test.ts b/extensions/feishu/src/bot.test.ts
 index 9b4de5274b0..3eb9f344018 100644
@@ -280,10 +281,91 @@ index 8b89cf21633..99d7d55fc89 100644
          },
          message: {
 diff --git a/extensions/feishu/src/send.test.ts b/extensions/feishu/src/send.test.ts
-index f5ef931f0d5..971946c1966 100644
+index f5ef931f0d5..a7729a05a7f 100644
 --- a/extensions/feishu/src/send.test.ts
 +++ b/extensions/feishu/src/send.test.ts
-@@ -544,6 +544,134 @@ describe("getMessageFeishu", () => {
+@@ -338,6 +338,80 @@ describe("getMessageFeishu", () => {
+     });
+   });
+ 
++  it("recovers interactive card content from a quoted merged-forward message", async () => {
++    mockClientGet.mockResolvedValueOnce({
++      code: 0,
++      data: {
++        items: [
++          {
++            message_id: "om_merged_parent",
++            chat_id: "oc_merged",
++            msg_type: "merge_forward",
++            body: { content: "Merged and Forwarded Messages" },
++          },
++          {
++            message_id: "om_escalation_one",
++            upper_message_id: "om_merged_parent",
++            msg_type: "interactive",
++            body: {
++              content: JSON.stringify({
++                elements: [{ tag: "markdown", content: "Escalation ID: M1DG8V" }],
++              }),
++            },
++          },
++          {
++            message_id: "om_escalation_two",
++            upper_message_id: "om_merged_parent",
++            msg_type: "interactive",
++            body: {
++              content: JSON.stringify({
++                elements: [{ tag: "markdown", content: "Escalation ID: ABC123" }],
++              }),
++            },
++          },
++        ],
++      },
++    });
++
++    await expect(
++      getMessageFeishu({ cfg: {} as ClawdbotConfig, messageId: "om_merged_parent" }),
++    ).resolves.toMatchObject({
++      messageId: "om_merged_parent",
++      chatId: "oc_merged",
++      contentType: "merge_forward",
++      content: "[Merged and Forwarded Messages]\n- Escalation ID: M1DG8V\n- Escalation ID: ABC123",
++    });
++  });
++
++  it("fails closed when a quoted merged-forward child cannot be parsed", async () => {
++    mockClientGet.mockResolvedValueOnce({
++      code: 0,
++      data: {
++        items: [
++          {
++            message_id: "om_merged_parent",
++            msg_type: "merge_forward",
++            body: { content: "Merged and Forwarded Messages" },
++          },
++          {
++            message_id: "om_bad_child",
++            upper_message_id: "om_merged_parent",
++            msg_type: "interactive",
++            body: { content: "not-json" },
++          },
++        ],
++      },
++    });
++
++    await expect(
++      getMessageFeishu({ cfg: {} as ClawdbotConfig, messageId: "om_merged_parent" }),
++    ).rejects.toMatchObject({
++      message: expect.stringContaining("om_bad_child"),
++      reason: "parse_error",
++      responseMessage: "message body content is not valid JSON",
++    });
++  });
++
+   it("falls through empty interactive card element arrays and locale variants", async () => {
+     mockClientGet.mockResolvedValueOnce({
+       code: 0,
+@@ -544,6 +618,134 @@ describe("getMessageFeishu", () => {
      });
    });
  
@@ -419,7 +501,7 @@ index f5ef931f0d5..971946c1966 100644
      mockClientList.mockResolvedValueOnce({
        code: 0,
 diff --git a/extensions/feishu/src/send.ts b/extensions/feishu/src/send.ts
-index 2da1319bead..a0998bc8f94 100644
+index 2da1319bead..cc9dd7629ad 100644
 --- a/extensions/feishu/src/send.ts
 +++ b/extensions/feishu/src/send.ts
 @@ -10,7 +10,7 @@ import { convertMarkdownTables } from "openclaw/plugin-sdk/text-chunking";
@@ -440,7 +522,15 @@ index 2da1319bead..a0998bc8f94 100644
  const FEISHU_CARD_TEMPLATES = new Set([
    "blue",
    "green",
-@@ -115,6 +117,73 @@ type FeishuGetMessageResponse = {
+@@ -98,6 +100,7 @@ type FeishuMessageSender = {
+ 
+ type FeishuMessageGetItem = {
+   message_id?: string;
++  upper_message_id?: string;
+   chat_id?: string;
+   chat_type?: FeishuChatType;
+   thread_id?: string;
+@@ -115,6 +118,73 @@ type FeishuGetMessageResponse = {
    };
  };
  
@@ -514,7 +604,7 @@ index 2da1319bead..a0998bc8f94 100644
  /** Send a direct message as a fallback when a reply target is unavailable. */
  async function sendFallbackDirect(
    client: FeishuCreateMessageClient,
-@@ -371,9 +440,29 @@ function parseFeishuMessageContent(rawContent: string, msgType: string): string
+@@ -371,9 +441,29 @@ function parseFeishuMessageContent(rawContent: string, msgType: string): string
  function parseFeishuMessageItem(
    item: FeishuMessageGetItem,
    fallbackMessageId?: string,
@@ -544,7 +634,60 @@ index 2da1319bead..a0998bc8f94 100644
  
    return {
      messageId: item.message_id ?? fallbackMessageId ?? "",
-@@ -403,8 +492,11 @@ export async function getMessageFeishu(params: {
+@@ -395,6 +485,52 @@ function parseFeishuMessageItem(
+   };
+ }
+ 
++function parseFeishuMergeForwardItems(params: {
++  items: FeishuMessageGetItem[];
++  messageId: string;
++}): FeishuMessageInfo {
++  const root =
++    params.items.find((item) => item.message_id === params.messageId) ??
++    params.items.find((item) => !item.upper_message_id) ??
++    params.items[0];
++  const children = params.items.filter((item) => item.upper_message_id);
++  if (!root || children.length === 0) {
++    throw new FeishuMessageFetchError({
++      messageId: params.messageId,
++      reason: "parse_error",
++      responseMessage: "merged-forward message contains no child messages",
++    });
++  }
++
++  const lines = ["[Merged and Forwarded Messages]"];
++  for (const child of children.slice(0, 50)) {
++    const parsedChild = parseFeishuMessageItem(child, undefined, true);
++    if (
++      !parsedChild.content.trim() ||
++      parsedChild.content === "[Text message]" ||
++      parsedChild.content === POST_FALLBACK_TEXT ||
++      parsedChild.content === INTERACTIVE_CARD_FALLBACK_TEXT
++    ) {
++      throw new FeishuMessageFetchError({
++        messageId: child.message_id ?? params.messageId,
++        reason: "parse_error",
++        responseMessage: `merged-forward child content could not be recovered (type=${parsedChild.contentType})`,
++      });
++    }
++    lines.push(`- ${parsedChild.content}`);
++  }
++  if (children.length > 50) {
++    lines.push(`... and ${children.length - 50} more messages`);
++  }
++
++  return {
++    ...parseFeishuMessageItem(root, params.messageId),
++    messageId: params.messageId,
++    content: lines.join("\n"),
++    contentType: "merge_forward",
++  };
++}
++
+ /**
+  * Get a message by its ID.
+  * Useful for fetching quoted/replied message content.
+@@ -403,8 +539,11 @@ export async function getMessageFeishu(params: {
    cfg: ClawdbotConfig;
    messageId: string;
    accountId?: string;
@@ -557,7 +700,7 @@ index 2da1319bead..a0998bc8f94 100644
    const account = resolveFeishuRuntimeAccount({ cfg, accountId });
    if (!account.configured) {
      throw new Error(`Feishu account "${account.accountId}" not configured`);
-@@ -412,31 +504,111 @@ export async function getMessageFeishu(params: {
+@@ -412,31 +551,114 @@ export async function getMessageFeishu(params: {
  
    const client = createFeishuClient(account);
  
@@ -627,7 +770,10 @@ index 2da1319bead..a0998bc8f94 100644
 -        : null;
 -    if (!item) {
 -      return null;
-+      const parsed = parseFeishuMessageItem(item, messageId, true);
++      const parsed =
++        item.msg_type === "merge_forward" && response.data?.items
++          ? parseFeishuMergeForwardItems({ items: response.data.items, messageId })
++          : parseFeishuMessageItem(item, messageId, true);
 +      if (
 +        !parsed.content.trim() ||
 +        parsed.content === "[Text message]" ||
