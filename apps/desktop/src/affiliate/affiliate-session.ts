@@ -279,6 +279,7 @@ export class AffiliateSession {
       runMode: AffiliateAgentRunMode.OPERATOR_REASONING,
       baseCheckpointId,
       baseEventCursor,
+      handledSignalAt: workItemBoundaryAt(workItem),
       targetEventCursor: dispatchContext.checkpoint.targetEventCursor,
       relationshipOperationalConfigRevision:
         dispatchContext.checkpoint.relationshipOperationalConfigRevision,
@@ -372,6 +373,7 @@ export class AffiliateSession {
     runMode?: AffiliateAgentRunMode;
     baseCheckpointId?: string | null;
     baseEventCursor?: number | null;
+    handledSignalAt?: string | null;
     targetEventCursor?: number | null;
     relationshipOperationalConfigRevision?: number;
     businessDeveloperIdSnapshot?: string | null;
@@ -398,6 +400,7 @@ export class AffiliateSession {
       runId: provisionalRunId,
       baseCheckpointId: checkpoint.baseCheckpointId,
       baseEventCursor: checkpoint.baseEventCursor,
+      handledSignalAt: params.handledSignalAt ?? null,
       candidateCheckpointId: checkpoint.candidateCheckpointId,
       targetEventCursor: checkpoint.targetEventCursor,
       relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
@@ -433,6 +436,7 @@ export class AffiliateSession {
         runId: response.runId,
         baseCheckpointId: checkpoint.baseCheckpointId,
         baseEventCursor: checkpoint.baseEventCursor,
+        handledSignalAt: params.handledSignalAt ?? null,
         candidateCheckpointId: checkpoint.candidateCheckpointId,
         targetEventCursor: checkpoint.targetEventCursor,
         relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
