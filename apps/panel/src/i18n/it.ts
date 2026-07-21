@@ -3240,6 +3240,8 @@ export default {
       "title": "Aggiungi negozio",
       "marketLabel": "Mercato/Regione",
       "marketPlaceholder": "Seleziona un mercato...",
+      "sellerTypeLabel": "Tipo di venditore",
+      "sellerTypePlaceholder": "Seleziona un tipo di venditore...",
       "platformLabel": "Piattaforma",
       "platformPlaceholder": "Seleziona una piattaforma...",
       "regionLabel": "Account regione/piattaforma",
@@ -3251,6 +3253,10 @@ export default {
       "tooltip": "Copia questo collegamento e aprilo nel browser in cui gestisci il tuo account venditore del negozio TikTok.",
       "noMatch": "Nessuna app della piattaforma disponibile per questa combinazione.",
       "multipleMatch": "Trovate più app per piattaforme: contatta l'assistenza."
+    },
+    "sellerType": {
+      "LOCAL": "Venditore locale",
+      "CROSS_BORDER": "Venditore transfrontaliero"
     },
     "market": {
       "US": "Stati Uniti",

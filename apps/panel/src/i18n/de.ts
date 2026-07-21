@@ -3240,6 +3240,8 @@ export default {
       "title": "Shop hinzufügen",
       "marketLabel": "Markt / Region",
       "marketPlaceholder": "Wählen Sie einen Markt aus...",
+      "sellerTypeLabel": "Verkäufertyp",
+      "sellerTypePlaceholder": "Wählen Sie einen Verkäufertyp aus...",
       "platformLabel": "Plattform",
       "platformPlaceholder": "Wählen Sie eine Plattform...",
       "regionLabel": "Regions-/Plattformkonto",
@@ -3251,6 +3253,10 @@ export default {
       "tooltip": "Kopieren Sie diesen Link und öffnen Sie ihn in dem Browser, in dem Sie Ihr TikTok Shop-Verkäuferkonto verwalten.",
       "noMatch": "Für diese Kombination ist keine Plattform-App verfügbar.",
       "multipleMatch": "Mehrere Plattform-Apps gefunden – wenden Sie sich an den Support."
+    },
+    "sellerType": {
+      "LOCAL": "Lokaler Verkäufer",
+      "CROSS_BORDER": "Grenzüberschreitender Verkäufer"
     },
     "market": {
       "US": "Vereinigte Staaten",

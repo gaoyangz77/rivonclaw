@@ -4275,6 +4275,8 @@ export default {
       title: "Add Shop",
       marketLabel: "Market / Region",
       marketPlaceholder: "Select a market...",
+      sellerTypeLabel: "Seller type",
+      sellerTypePlaceholder: "Select a seller type...",
       platformLabel: "Platform",
       platformPlaceholder: "Select a platform...",
       regionLabel: "Region / Platform Account",
@@ -4287,6 +4289,10 @@ export default {
         "Copy this link and open it in the browser where you manage your TikTok Shop seller account.",
       noMatch: "No platform app available for this combination.",
       multipleMatch: "Multiple platform apps found — contact support.",
+    },
+    sellerType: {
+      LOCAL: "Local seller",
+      CROSS_BORDER: "Cross-border seller",
     },
     market: {
       US: "United States",

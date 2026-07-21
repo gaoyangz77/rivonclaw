@@ -4043,6 +4043,8 @@ export default {
       title: "添加店铺",
       marketLabel: "地区 / 市场",
       marketPlaceholder: "选择地区...",
+      sellerTypeLabel: "卖家类型",
+      sellerTypePlaceholder: "选择卖家类型...",
       platformLabel: "平台",
       platformPlaceholder: "选择平台...",
       regionLabel: "地区 / 平台账号",
@@ -4054,6 +4056,10 @@ export default {
       tooltip: "复制此链接并在你管理 TikTok Shop 卖家账户的浏览器中打开。",
       noMatch: "此组合没有可用的平台应用。",
       multipleMatch: "发现多个平台应用 — 请联系技术支持。",
+    },
+    sellerType: {
+      LOCAL: "本土卖家",
+      CROSS_BORDER: "跨境卖家",
     },
     market: {
       US: "美国",

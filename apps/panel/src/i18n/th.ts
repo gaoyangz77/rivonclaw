@@ -3240,6 +3240,8 @@ export default {
       "title": "เพิ่มร้านค้า",
       "marketLabel": "ตลาด/ภูมิภาค",
       "marketPlaceholder": "เลือกตลาด...",
+      "sellerTypeLabel": "ประเภทผู้ขาย",
+      "sellerTypePlaceholder": "เลือกประเภทผู้ขาย...",
       "platformLabel": "แพลตฟอร์ม",
       "platformPlaceholder": "เลือกแพลตฟอร์ม...",
       "regionLabel": "บัญชีภูมิภาค / แพลตฟอร์ม",
@@ -3251,6 +3253,10 @@ export default {
       "tooltip": "คัดลอกลิงก์นี้และเปิดในเบราว์เซอร์ที่คุณจัดการบัญชีผู้ขายร้านค้า TikTok ของคุณ",
       "noMatch": "ไม่มีแอปแพลตฟอร์มสำหรับชุดค่าผสมนี้",
       "multipleMatch": "พบแอปแพลตฟอร์มหลายรายการ — ติดต่อฝ่ายสนับสนุน"
+    },
+    "sellerType": {
+      "LOCAL": "ผู้ขายในประเทศ",
+      "CROSS_BORDER": "ผู้ขายข้ามพรมแดน"
     },
     "market": {
       "US": "สหรัฐอเมริกา",

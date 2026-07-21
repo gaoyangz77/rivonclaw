@@ -3238,6 +3238,8 @@ export default {
       "title": "Tambahkan Toko",
       "marketLabel": "Pasar / Wilayah",
       "marketPlaceholder": "Pilih pasar...",
+      "sellerTypeLabel": "Jenis penjual",
+      "sellerTypePlaceholder": "Pilih jenis penjual...",
       "platformLabel": "Peron",
       "platformPlaceholder": "Pilih platform...",
       "regionLabel": "Akun Wilayah/Platform",
@@ -3249,6 +3251,10 @@ export default {
       "tooltip": "Salin tautan ini dan buka di browser tempat Anda mengelola akun penjual Toko TikTok Anda.",
       "noMatch": "Tidak ada aplikasi platform yang tersedia untuk kombinasi ini.",
       "multipleMatch": "Beberapa aplikasi platform ditemukan — hubungi dukungan."
+    },
+    "sellerType": {
+      "LOCAL": "Penjual lokal",
+      "CROSS_BORDER": "Penjual lintas batas"
     },
     "market": {
       "US": "Amerika Serikat",

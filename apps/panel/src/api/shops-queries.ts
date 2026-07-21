@@ -87,6 +87,7 @@ export const PLATFORM_APPS_QUERY = gql`
       id
       platform
       market
+      sellerType
       status
       label
       apiBaseUrl

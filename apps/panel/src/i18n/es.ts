@@ -3240,6 +3240,8 @@ export default {
       "title": "Agregar tienda",
       "marketLabel": "Mercado / Región",
       "marketPlaceholder": "Seleccione un mercado...",
+      "sellerTypeLabel": "Tipo de vendedor",
+      "sellerTypePlaceholder": "Seleccione un tipo de vendedor...",
       "platformLabel": "Plataforma",
       "platformPlaceholder": "Seleccione una plataforma...",
       "regionLabel": "Cuenta de región/plataforma",
@@ -3251,6 +3253,10 @@ export default {
       "tooltip": "Copie este enlace y ábralo en el navegador donde administra su cuenta de vendedor de la Tienda TikTok.",
       "noMatch": "No hay ninguna aplicación de plataforma disponible para esta combinación.",
       "multipleMatch": "Se encontraron varias aplicaciones de plataforma: comuníquese con el soporte."
+    },
+    "sellerType": {
+      "LOCAL": "Vendedor local",
+      "CROSS_BORDER": "Vendedor transfronterizo"
     },
     "market": {
       "US": "Estados Unidos",

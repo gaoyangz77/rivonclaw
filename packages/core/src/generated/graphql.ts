@@ -7710,7 +7710,7 @@ export interface PlanDetail {
   volume: Scalars['String']['output'];
 }
 
-/** ISV application credentials for a platform+market combination */
+/** ISV application credentials for a platform+market+seller type combination */
 export interface PlatformApp {
   apiBaseUrl: Scalars['String']['output'];
   authLinkUrl: Scalars['String']['output'];
@@ -7718,6 +7718,7 @@ export interface PlatformApp {
   label: Scalars['String']['output'];
   market: PlatformMarket;
   platform: PlatformType;
+  sellerType: PlatformSellerType;
   status: PlatformAppStatus;
 }
 
@@ -7730,6 +7731,7 @@ export interface PlatformAppSecretResult {
   id: Scalars['ID']['output'];
   market: PlatformMarket;
   platform: PlatformType;
+  sellerType: PlatformSellerType;
 }
 
 /** PlatformApp lifecycle status */
@@ -7766,6 +7768,13 @@ export const PlatformMarket = {
 } as const;
 
 export type PlatformMarket = typeof PlatformMarket[keyof typeof PlatformMarket];
+/** Seller account type supported by a platform application */
+export const PlatformSellerType = {
+  CrossBorder: 'CROSS_BORDER',
+  Local: 'LOCAL'
+} as const;
+
+export type PlatformSellerType = typeof PlatformSellerType[keyof typeof PlatformSellerType];
 /** Platform type identifier */
 export const PlatformType = {
   TiktokShop: 'TIKTOK_SHOP'
