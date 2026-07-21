@@ -639,13 +639,13 @@ export class AffiliateInbound {
           triggerId: base.creatorRelationshipId,
         };
       case GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask: {
-        const sampleTriggerId = collaboration?.platformSampleApplicationId;
+        const sampleTriggerId = workItem.sampleApplicationRecord?.id;
         if (!sampleTriggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          sampleApplicationId: sampleTriggerId,
+          sampleApplicationRecordId: sampleTriggerId,
         };
       }
       default:
@@ -676,13 +676,13 @@ export class AffiliateInbound {
         };
       case GQL.AffiliateWorkKind.SampleApplicationDecision:
       case GQL.AffiliateWorkKind.SampleShipment: {
-        const sampleTriggerId = collaboration?.platformSampleApplicationId;
+        const sampleTriggerId = workItem.sampleApplicationRecord?.id;
         if (!sampleTriggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          sampleApplicationId: sampleTriggerId,
+          sampleApplicationRecordId: sampleTriggerId,
         };
       }
       default:

@@ -320,7 +320,7 @@ const AFFILIATE_RELATIONSHIP_SIGNAL_SUBSCRIPTION = `
       creatorImId
       senderRole
       senderId
-      platformApplicationId
+      sampleApplicationRecordId
       platformTargetCollaborationId
       platformStatus
       platformFulfillmentStatus
@@ -359,7 +359,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           requiredAction
           shopId
           collaborationRecordId
-          platformApplicationId
+          sampleApplicationRecordId
           proposalId
           reasons
           nextActionAt
@@ -377,7 +377,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
               emailSubject
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
-            sampleReviewIntent { platformApplicationId decision rejectReason }
+            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason }
             targetCollaborationIntent {
               name
               message
@@ -399,7 +399,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
                 emailSubject
                 parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
               }
-              sampleReviewIntent { platformApplicationId decision rejectReason }
+              sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason }
               targetCollaborationIntent {
                 name
                 message
@@ -445,7 +445,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             requiredAction
             shopId
             collaborationRecordId
-            platformApplicationId
+            sampleApplicationRecordId
             proposalId
             reasons
             nextActionAt
@@ -477,8 +477,8 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           creatorId
           creatorOpenId
           productId
-          platformSampleApplicationId
-          platformSampleApplicationIds
+          sampleApplicationRecordId
+          sampleApplicationRecordIds
           platformSampleApplicationStatus
           platformSampleApplicationObservedAt
           affiliateCollaborationId
@@ -551,7 +551,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             creatorId
             creatorOpenId
             productId
-            platformSampleApplicationId
+            sampleApplicationRecordId
             affiliateCollaborationId
             collaborationType
             platformCollaborationId
@@ -576,7 +576,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             creatorId
             creatorOpenId
             productId
-            platformSampleApplicationId
+            sampleApplicationRecordId
             affiliateCollaborationId
             collaborationType
             platformCollaborationId

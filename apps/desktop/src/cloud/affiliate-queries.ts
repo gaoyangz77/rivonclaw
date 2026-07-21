@@ -141,7 +141,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         requiredAction
         shopId
         collaborationRecordId
-        platformApplicationId
+        sampleApplicationRecordId
         proposalId
         reasons
         nextActionAt
@@ -159,7 +159,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
             emailSubject
             parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
-          sampleReviewIntent { platformApplicationId decision rejectReason }
+          sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason }
           targetCollaborationIntent {
             name
             message
@@ -181,7 +181,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
               emailSubject
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
-            sampleReviewIntent { platformApplicationId decision rejectReason }
+            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason }
             targetCollaborationIntent {
               name
               message
@@ -248,8 +248,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         creatorId
         creatorOpenId
         productId
-        platformSampleApplicationId
-        platformSampleApplicationIds
+        sampleApplicationRecordId
+        sampleApplicationRecordIds
         platformSampleApplicationStatus
         platformSampleApplicationObservedAt
         affiliateCollaborationId
@@ -316,7 +316,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           creatorId
           creatorOpenId
           productId
-          platformSampleApplicationId
+          sampleApplicationRecordId
           affiliateCollaborationId
           collaborationType
           platformCollaborationId
@@ -341,7 +341,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           creatorId
           creatorOpenId
           productId
-          platformSampleApplicationId
+          sampleApplicationRecordId
           affiliateCollaborationId
           collaborationType
           platformCollaborationId

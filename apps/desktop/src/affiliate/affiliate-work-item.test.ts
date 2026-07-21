@@ -105,8 +105,8 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     creatorId: "creator-001",
     creatorImId: "creator-im-001",
     productId: "product-001",
-    platformSampleApplicationId: "platform-sample-001",
-    platformSampleApplicationIds: ["platform-sample-001"],
+    sampleApplicationRecordId: "sample-record-001",
+    sampleApplicationRecordIds: ["sample-record-001"],
     platformSampleApplicationStatus: "PENDING",
     lifecycleStage: "SAMPLE_PENDING",
     processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
@@ -136,6 +136,10 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     creatorId: "creator-001",
     productId: "product-001",
     sampleWorkStatus: GQL.SampleWorkStatus.RequestPendingReview,
+    firstObservedAt: "2026-05-11T00:00:00.000Z",
+    lastObservedAt: "2026-05-11T00:01:00.000Z",
+    lastSyncSource: GQL.AffiliateProjectionSyncSource.AirflowReconcile,
+    projectionRevision: 1,
     observedContentCount: 0,
     latestObservedContentAt: null,
     latestObservedContentId: null,
@@ -201,7 +205,6 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
         shopId: "shop-001",
         collaborationRecordId: "collab-001",
         sampleApplicationRecordId: "sample-record-001",
-        platformApplicationId: "platform-sample-001",
         proposalId: null,
         reasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
         nextActionAt: null,
@@ -693,7 +696,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -733,7 +736,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
@@ -754,7 +757,7 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
     expect(agentCall?.[1]?.message).toContain("Reasons: SAMPLE_PENDING_REVIEW");
-    expect(agentCall?.[1]?.message).toContain("TikTok Sample Application ID: platform-sample-001");
+    expect(agentCall?.[1]?.message).toContain("Sample Application Record ID: sample-record-001");
     expect(agentCall?.[1]?.message).not.toContain("Current Authoritative Workspace Snapshot");
     expect(agentCall?.[1]?.message).not.toContain("Authoritative Sample Application State");
     expect(agentCall?.[1]?.message).not.toContain("prediction");
@@ -763,7 +766,7 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_collaborations");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_sample_applications");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
-      "affiliate_get_sample_application reads one current TikTok sample application live",
+      "affiliate_get_collaboration and affiliate_get_sample_application read narrowly scoped Mongo operational records",
     );
     expect(agentCall?.[1]?.extraSystemPrompt).not.toContain(
       "affiliate_get_creator_relationship, affiliate_get_collaboration, and affiliate_get_sample_application read narrowly scoped current Mongo state",
@@ -868,7 +871,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
@@ -939,7 +942,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
@@ -990,7 +993,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "platform-sample-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
@@ -1520,7 +1523,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-with-snapshot",
         creatorId: "creator-001",
         productId: "product-001",
@@ -1580,7 +1583,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-sample-agent-001",
         creatorId: "creator-001",
         productId: "product-001",
@@ -1807,7 +1810,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
-        sampleApplicationId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",

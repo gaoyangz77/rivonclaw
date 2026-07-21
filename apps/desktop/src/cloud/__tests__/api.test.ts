@@ -513,7 +513,7 @@ describe("cloud-graphql handler", () => {
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
             predictionCacheIds: ["pred-1"],
-            platformApplicationId: "platform-app-1",
+            sampleApplicationRecordId: "sample-1",
             decision: "REJECT",
             rejectReason: "OTHER",
           },
@@ -532,7 +532,7 @@ describe("cloud-graphql handler", () => {
             type: "REVIEW_SAMPLE_APPLICATION",
             predictionCacheIds: ["pred-1"],
             sampleReviewIntent: {
-              platformApplicationId: "platform-app-1",
+              sampleApplicationRecordId: "sample-1",
               decision: "REJECT",
               rejectReason: "OTHER",
             },
@@ -576,7 +576,7 @@ describe("cloud-graphql handler", () => {
           operatorSummary: "Decline the sample.",
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
-            platformApplicationId: "platform-app-1",
+            sampleApplicationRecordId: "sample-1",
             sampleDecision: "DENIED",
           },
         },
@@ -593,7 +593,7 @@ describe("cloud-graphql handler", () => {
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
             sampleReviewIntent: {
-              platformApplicationId: "platform-app-1",
+              sampleApplicationRecordId: "sample-1",
               decision: "REJECT",
               rejectReason: "OTHER",
             },
