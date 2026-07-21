@@ -40,9 +40,7 @@ if (process.platform === "win32") {
         args = [...args];
         for (let i = 0; i < args.length; i++) {
           if (String(args[i]).toLowerCase() === "-command" && i + 1 < args.length) {
-            args[i + 1] =
-              "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; " +
-              args[i + 1];
+            args[i + 1] = "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; " + args[i + 1];
             break;
           }
         }
@@ -159,8 +157,8 @@ let pluginSdkPreloadSkipped = false;
 try {
   const entryDir = path.dirname(process.argv[1] || "");
   const candidates = [
-    path.join(entryDir, "dist", "plugin-sdk", "index.js"),   // production: vendor's original ESM
-    path.join(entryDir, "plugin-sdk", "index.js"),            // if entry is already in dist/
+    path.join(entryDir, "dist", "plugin-sdk", "index.js"), // production: vendor's original ESM
+    path.join(entryDir, "plugin-sdk", "index.js"), // if entry is already in dist/
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
@@ -183,12 +181,7 @@ try {
 }
 
 const origResolveFilename = Module._resolveFilename;
-Module._resolveFilename = function resolveWithPluginSdk(
-  request,
-  parent,
-  isMain,
-  options,
-) {
+Module._resolveFilename = function resolveWithPluginSdk(request, parent, isMain, options) {
   if (pluginSdkResolvedPath) {
     if (request === "openclaw/plugin-sdk") {
       return pluginSdkResolvedPath;
@@ -222,12 +215,7 @@ Module._load = function timedLoad(request, parent, isMain) {
   if (!pluginSdkPreloadSkipped && /plugin-sdk[/\\]index\.js$/.test(request)) {
     pluginSdkPreloadSkipped = true;
     try {
-      pluginSdkResolvedPath = origResolveFilename.call(
-        Module,
-        request,
-        parent,
-        isMain,
-      );
+      pluginSdkResolvedPath = origResolveFilename.call(Module, request, parent, isMain);
       pluginSdkDir = path.dirname(pluginSdkResolvedPath);
       logPhaseV(`plugin-sdk loading into require.cache: ${pluginSdkResolvedPath}`);
     } catch {
@@ -241,8 +229,7 @@ Module._load = function timedLoad(request, parent, isMain) {
   requireTotalMs += dur;
 
   if (dur > 100) {
-    const shortReq =
-      request.length > 60 ? "..." + request.slice(-57) : request;
+    const shortReq = request.length > 60 ? "..." + request.slice(-57) : request;
     logPhaseV(`require("${shortReq}") took ${dur.toFixed(0)}ms`);
   }
   return result;
@@ -250,9 +237,7 @@ Module._load = function timedLoad(request, parent, isMain) {
 
 // Log when the event loop starts processing (= all top-level ESM code done).
 setImmediate(() => {
-  logPhase(
-    `event loop started (${requireCount} requires/${requireTotalMs.toFixed(0)}ms)`,
-  );
+  logPhase(`event loop started (${requireCount} requires/${requireTotalMs.toFixed(0)}ms)`);
 });
 
 // Log when the gateway starts listening (detect via stdout write)
@@ -285,16 +270,14 @@ process.on("exit", () => {
 // Desktop consumes these internal lines without writing them to the user log.
 // When OpenClaw emits a liveness warning, Desktop writes one bounded burst with
 // the preceding 60 seconds and following 20 seconds of samples.
-const performanceSamplerOwnerPid = process.env.RIVONCLAW_PERF_SAMPLER_OWNER_PID;
-const ownsPerformanceSampler =
-  !performanceSamplerOwnerPid || performanceSamplerOwnerPid === String(process.pid);
-if (!performanceSamplerOwnerPid) {
-  // Descendants inherit this marker and skip sampling, keeping the Desktop
-  // ring buffer scoped to the root Gateway process.
-  process.env.RIVONCLAW_PERF_SAMPLER_OWNER_PID = String(process.pid);
-}
+// OpenClaw can retain a lightweight CLI wrapper while the actual Gateway runs
+// in another Node process. Sample every process whose argv identifies it as a
+// Gateway, and include process identity on every record. Desktop correlates a
+// liveness warning with the exact PID that produced it. Generic tool children
+// skip this block so their stderr and execution cost remain untouched.
+const isGatewayProcess = process.argv.some((arg) => /(?:^|[/\\])openclaw|\bgateway\b/i.test(arg));
 
-if (ownsPerformanceSampler) {
+if (isGatewayProcess) {
   try {
     const {
       constants: perfConstants,
@@ -302,7 +285,13 @@ if (ownsPerformanceSampler) {
       performance: perf,
       PerformanceObserver,
     } = require("perf_hooks");
+    const inspector = require("inspector");
+    const v8 = require("v8");
+    const { isMainThread, threadId } = require("worker_threads");
     const samplePrefix = "[desktop-perf-sample] ";
+    const triggerPrefix = "[desktop-perf-trigger] ";
+    const profilePrefix = "[desktop-perf-profile] ";
+    const livenessMarker = "[diagnostic] liveness warning:";
     const configuredInterval = Number(process.env.RIVONCLAW_PERF_SAMPLE_INTERVAL_MS);
     const sampleIntervalMs = Number.isFinite(configuredInterval)
       ? Math.max(50, configuredInterval)
@@ -311,7 +300,27 @@ if (ownsPerformanceSampler) {
     let lastWallAt = performance.now();
     let lastCpuUsage = process.cpuUsage();
     let lastEventLoopUtilization = perf.eventLoopUtilization();
+    let lastResourceUsage = process.resourceUsage();
     let gcWindow = createGcWindow();
+    let profileActive = false;
+
+    const processIdentity = {
+      pid: process.pid,
+      ppid: process.ppid,
+      threadId,
+      isMainThread,
+      role: inferProcessRole(),
+      title: process.title,
+      execPath: process.execPath,
+      argv: process.argv.slice(0, 8),
+    };
+
+    function inferProcessRole() {
+      const args = process.argv.join(" ");
+      if (/\bgateway\b/i.test(args)) return "gateway";
+      if (/\bnode-host\b/i.test(args)) return "node-host";
+      return "openclaw";
+    }
 
     function createGcWindow() {
       return {
@@ -331,6 +340,127 @@ if (ownsPerformanceSampler) {
       const factor = 10 ** digits;
       return Math.round(value * factor) / factor;
     }
+
+    function deltaMetric(current, previous, key) {
+      return Math.max(0, (Number(current[key]) || 0) - (Number(previous[key]) || 0));
+    }
+
+    function countActiveResources() {
+      const resources = {};
+      try {
+        for (const name of process.getActiveResourcesInfo?.() ?? []) {
+          resources[name] = (resources[name] ?? 0) + 1;
+        }
+      } catch {}
+      return resources;
+    }
+
+    function writeDiagnostic(prefix, payload) {
+      originalStderrWrite(`${prefix}${JSON.stringify(payload)}\n`);
+    }
+
+    function startCpuProfile() {
+      if (profileActive || !isMainThread) return;
+      profileActive = true;
+      const startedAt = Date.now();
+      const configuredDuration = Number(process.env.RIVONCLAW_PERF_CPU_PROFILE_MS);
+      const durationMs = Number.isFinite(configuredDuration)
+        ? Math.min(30_000, Math.max(1_000, configuredDuration))
+        : 10_000;
+      const session = new inspector.Session();
+
+      const finishWithError = (error) => {
+        try {
+          session.disconnect();
+        } catch {}
+        profileActive = false;
+        writeDiagnostic(profilePrefix, {
+          pid: process.pid,
+          startedAt,
+          durationMs: Date.now() - startedAt,
+          sampleCount: 0,
+          timeDeltaUs: 0,
+          top: [],
+          error: String(error?.message ?? error).slice(0, 500),
+        });
+      };
+
+      try {
+        session.connect();
+        session.post("Profiler.enable", (enableError) => {
+          if (enableError) return finishWithError(enableError);
+          session.post("Profiler.start", (startError) => {
+            if (startError) return finishWithError(startError);
+            const timer = setTimeout(() => {
+              session.post("Profiler.stop", (stopError, result) => {
+                if (stopError || !result?.profile) {
+                  finishWithError(stopError ?? new Error("CPU profile returned no data"));
+                  return;
+                }
+                const profile = result.profile;
+                const nodes = new Map(profile.nodes.map((node) => [node.id, node]));
+                const totals = new Map();
+                let timeDeltaUs = 0;
+                for (let index = 0; index < (profile.samples?.length ?? 0); index++) {
+                  const nodeId = profile.samples[index];
+                  const deltaUs = Number(profile.timeDeltas?.[index]) || 0;
+                  timeDeltaUs += deltaUs;
+                  const current = totals.get(nodeId) ?? { sampleCount: 0, timeDeltaUs: 0 };
+                  current.sampleCount++;
+                  current.timeDeltaUs += deltaUs;
+                  totals.set(nodeId, current);
+                }
+                const top = [...totals.entries()]
+                  .map(([nodeId, total]) => {
+                    const callFrame = nodes.get(nodeId)?.callFrame ?? {};
+                    return {
+                      functionName: String(callFrame.functionName || "(anonymous)").slice(0, 180),
+                      url: String(callFrame.url || "").slice(-300),
+                      lineNumber: Number(callFrame.lineNumber ?? -1) + 1,
+                      selfMs: roundMetric(total.timeDeltaUs / 1_000),
+                      sampleCount: total.sampleCount,
+                    };
+                  })
+                  .sort((a, b) => b.selfMs - a.selfMs)
+                  .slice(0, 25);
+                try {
+                  session.disconnect();
+                } catch {}
+                profileActive = false;
+                writeDiagnostic(profilePrefix, {
+                  pid: process.pid,
+                  startedAt,
+                  durationMs: Date.now() - startedAt,
+                  sampleCount: profile.samples?.length ?? 0,
+                  timeDeltaUs,
+                  top,
+                });
+              });
+            }, durationMs);
+            timer.unref?.();
+          });
+        });
+      } catch (error) {
+        finishWithError(error);
+      }
+    }
+
+    // Attribute liveness warnings to the process that actually emitted them.
+    // This wrapper writes a compact internal trigger before preserving the
+    // original warning unchanged for the normal Gateway log.
+    const originalStderrWrite = process.stderr.write.bind(process.stderr);
+    process.stderr.write = function diagnosticStderrWrite(chunk, ...args) {
+      const text = typeof chunk === "string" ? chunk : (chunk?.toString?.() ?? "");
+      if (text.includes(livenessMarker)) {
+        writeDiagnostic(triggerPrefix, {
+          ts: Date.now(),
+          ...processIdentity,
+          warning: text.slice(0, 4_000),
+        });
+        startCpuProfile();
+      }
+      return originalStderrWrite(chunk, ...args);
+    };
 
     const gcObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
@@ -361,9 +491,12 @@ if (ownsPerformanceSampler) {
         lastEventLoopUtilization,
       ).utilization;
       const memory = process.memoryUsage();
+      const heap = v8.getHeapStatistics();
+      const resourceUsage = process.resourceUsage();
       const sample = {
         ts: Date.now(),
         intervalMs: roundMetric(intervalMs),
+        process: processIdentity,
         cpu: {
           userMs: roundMetric(cpuUsage.user / 1_000),
           systemMs: roundMetric(cpuUsage.system / 1_000),
@@ -376,6 +509,7 @@ if (ownsPerformanceSampler) {
         },
         memory: {
           rssBytes: memory.rss,
+          heapTotalBytes: memory.heapTotal,
           heapUsedBytes: memory.heapUsed,
           externalBytes: memory.external,
           arrayBuffersBytes: memory.arrayBuffers ?? 0,
@@ -385,11 +519,43 @@ if (ownsPerformanceSampler) {
           totalMs: roundMetric(gcWindow.totalMs),
           maxMs: roundMetric(gcWindow.maxMs),
         },
+        heap: {
+          totalHeapSizeBytes: heap.total_heap_size,
+          totalAvailableSizeBytes: heap.total_available_size,
+          heapSizeLimitBytes: heap.heap_size_limit,
+          mallocedMemoryBytes: heap.malloced_memory,
+          peakMallocedMemoryBytes: heap.peak_malloced_memory,
+          nativeContexts: heap.number_of_native_contexts,
+          detachedContexts: heap.number_of_detached_contexts,
+        },
+        resource: {
+          maxRssBytes: resourceUsage.maxRSS * 1_024,
+          minorPageFaultDelta: deltaMetric(resourceUsage, lastResourceUsage, "minorPageFault"),
+          majorPageFaultDelta: deltaMetric(resourceUsage, lastResourceUsage, "majorPageFault"),
+          fsReadDelta: deltaMetric(resourceUsage, lastResourceUsage, "fsRead"),
+          fsWriteDelta: deltaMetric(resourceUsage, lastResourceUsage, "fsWrite"),
+          voluntaryContextSwitchDelta: deltaMetric(
+            resourceUsage,
+            lastResourceUsage,
+            "voluntaryContextSwitches",
+          ),
+          involuntaryContextSwitchDelta: deltaMetric(
+            resourceUsage,
+            lastResourceUsage,
+            "involuntaryContextSwitches",
+          ),
+        },
+        activity: {
+          activeHandles: process._getActiveHandles?.().length ?? 0,
+          activeRequests: process._getActiveRequests?.().length ?? 0,
+          resources: countActiveResources(),
+        },
       };
 
       lastWallAt = now;
       lastCpuUsage = process.cpuUsage();
       lastEventLoopUtilization = currentEventLoopUtilization;
+      lastResourceUsage = resourceUsage;
       gcWindow = createGcWindow();
       eventLoopDelay.reset();
       process.stderr.write(`${samplePrefix}${JSON.stringify(sample)}\n`);
