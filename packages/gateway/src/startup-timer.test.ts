@@ -38,7 +38,7 @@ describe("startup-timer preload", () => {
     const preloadPath = resolve(here, "startup-timer.cjs");
     const result = spawnSync(
       process.execPath,
-      ["--require", preloadPath, "-e", "setTimeout(() => {}, 130)"],
+      ["--require", preloadPath, "-e", "setTimeout(() => {}, 130)", "gateway"],
       {
         cwd: repoRoot,
         env: {
@@ -59,6 +59,11 @@ describe("startup-timer preload", () => {
       expect.objectContaining({
         ts: expect.any(Number),
         intervalMs: expect.any(Number),
+        process: expect.objectContaining({
+          pid: expect.any(Number),
+          ppid: expect.any(Number),
+          role: "gateway",
+        }),
         cpu: expect.objectContaining({ coreRatio: expect.any(Number) }),
         eventLoop: expect.objectContaining({ p99Ms: expect.any(Number) }),
         memory: expect.objectContaining({ heapUsedBytes: expect.any(Number) }),
@@ -67,11 +72,11 @@ describe("startup-timer preload", () => {
     );
   });
 
-  it("does not sample gateway descendant processes", () => {
+  it("samples each gateway process even when it inherits the former owner marker", () => {
     const preloadPath = resolve(here, "startup-timer.cjs");
     const result = spawnSync(
       process.execPath,
-      ["--require", preloadPath, "-e", "setTimeout(() => {}, 130)"],
+      ["--require", preloadPath, "-e", "setTimeout(() => {}, 130)", "gateway"],
       {
         cwd: repoRoot,
         env: {
@@ -85,7 +90,53 @@ describe("startup-timer preload", () => {
     );
 
     expect(result.status, result.stderr || result.stdout).toBe(0);
-    expect(result.stderr).not.toContain("[desktop-perf-sample] ");
+    expect(result.stderr).toContain("[desktop-perf-sample] ");
+  });
+
+  it("attributes liveness warnings to the emitting PID and captures a CPU profile", () => {
+    const preloadPath = resolve(here, "startup-timer.cjs");
+    const warning =
+      "[diagnostic] liveness warning: reasons=cpu eventLoopDelayP99Ms=1 " +
+      "eventLoopDelayMaxMs=2 eventLoopUtilization=0.5 cpuCoreRatio=1 active=1 waiting=0 queued=0";
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--require",
+        preloadPath,
+        "-e",
+        `process.stderr.write(${JSON.stringify(`${warning}\n`)});setTimeout(()=>{},1200)`,
+        "gateway",
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          RIVONCLAW_PERF_SAMPLE_INTERVAL_MS: "50",
+          RIVONCLAW_PERF_CPU_PROFILE_MS: "1000",
+        },
+        encoding: "utf8",
+        timeout: 5_000,
+      },
+    );
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    const triggerLine = result.stderr
+      .split("\n")
+      .find((entry) => entry.startsWith("[desktop-perf-trigger] "));
+    const profileLine = result.stderr
+      .split("\n")
+      .find((entry) => entry.startsWith("[desktop-perf-profile] "));
+    expect(triggerLine).toBeTruthy();
+    expect(profileLine).toBeTruthy();
+    expect(JSON.parse(triggerLine!.slice("[desktop-perf-trigger] ".length))).toEqual(
+      expect.objectContaining({
+        pid: expect.any(Number),
+        warning: expect.stringContaining("reasons=cpu"),
+      }),
+    );
+    expect(JSON.parse(profileLine!.slice("[desktop-perf-profile] ".length))).toEqual(
+      expect.objectContaining({ pid: expect.any(Number), sampleCount: expect.any(Number) }),
+    );
   });
 
   it("provides a vendor-dist __dirname fallback for bundled OpenClaw ESM chunks", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "node:events";
-import { calculateBackoff, GatewayLauncher } from "./launcher.js";
+import { calculateBackoff, createLineReader, GatewayLauncher } from "./launcher.js";
 import type { GatewayLaunchOptions } from "./types.js";
 
 // ─── calculateBackoff tests ────────────────────────────────────────────────
@@ -27,6 +27,21 @@ describe("calculateBackoff", () => {
     expect(calculateBackoff(3, 500, 5000)).toBe(2000);
     expect(calculateBackoff(4, 500, 5000)).toBe(4000);
     expect(calculateBackoff(5, 500, 5000)).toBe(5000);
+  });
+});
+
+describe("createLineReader", () => {
+  it("reassembles split UTF-8 and JSON lines", () => {
+    const lines: string[] = [];
+    const reader = createLineReader((line) => lines.push(line));
+    const payload = Buffer.from('[desktop-perf-profile] {"name":"网关","value":1}\nnext');
+
+    reader.push(payload.subarray(0, 30));
+    reader.push(payload.subarray(30, 38));
+    reader.push(payload.subarray(38));
+    reader.end();
+
+    expect(lines).toEqual(['[desktop-perf-profile] {"name":"网关","value":1}', "next"]);
   });
 });
 
@@ -75,7 +90,7 @@ vi.mock("../utils/cli-utils.js", () => ({
 function createLauncher(overrides?: Partial<GatewayLaunchOptions>): GatewayLauncher {
   return new GatewayLauncher({
     entryPath: "/fake/openclaw.mjs",
-    initialBackoffMs: 10,  // fast for tests
+    initialBackoffMs: 10, // fast for tests
     maxBackoffMs: 100,
     healthyThresholdMs: 50,
     ...overrides,
@@ -212,8 +227,6 @@ describe("GatewayLauncher", () => {
       );
     });
 
-
-
     it("is a no-op when already running", async () => {
       const { spawn } = await import("node:child_process");
 
@@ -242,10 +255,9 @@ describe("GatewayLauncher", () => {
       expect(launcher.getStatus().state).toBe("stopped");
       if (process.platform === "win32") {
         // On Windows, killProcessTree uses taskkill instead of proc.kill
-        expect(mockExecSync).toHaveBeenCalledWith(
-          `taskkill /T /F /PID ${mockChild.pid}`,
-          { stdio: "ignore" },
-        );
+        expect(mockExecSync).toHaveBeenCalledWith(`taskkill /T /F /PID ${mockChild.pid}`, {
+          stdio: "ignore",
+        });
       } else {
         expect(mockChild.killSignals).toContain("SIGTERM");
       }
@@ -261,18 +273,21 @@ describe("GatewayLauncher", () => {
   // ── Reload (SIGUSR1) ──
 
   describe("reload()", () => {
-    it.skipIf(process.platform === "win32")("sends SIGUSR1 when the gateway is running", async () => {
-      const launcher = createLauncher();
-      await launcher.start();
+    it.skipIf(process.platform === "win32")(
+      "sends SIGUSR1 when the gateway is running",
+      async () => {
+        const launcher = createLauncher();
+        await launcher.start();
 
-      // Advance past the startup grace period so reload is not skipped
-      vi.advanceTimersByTime(15_000);
+        // Advance past the startup grace period so reload is not skipped
+        vi.advanceTimersByTime(15_000);
 
-      await launcher.reload();
+        await launcher.reload();
 
-      expect(mockChild.killSignals).toContain("SIGUSR1");
-      expect(launcher.getStatus().state).toBe("running");
-    });
+        expect(mockChild.killSignals).toContain("SIGUSR1");
+        expect(launcher.getStatus().state).toBe("running");
+      },
+    );
 
     it("skips reload during startup grace period", async () => {
       const { spawn } = await import("node:child_process");
@@ -289,18 +304,21 @@ describe("GatewayLauncher", () => {
       expect(mockChild.killSignals).toHaveLength(0);
     });
 
-    it.skipIf(process.platform === "win32")("sends SIGUSR1 after startup grace period", async () => {
-      const launcher = createLauncher();
-      await launcher.start();
+    it.skipIf(process.platform === "win32")(
+      "sends SIGUSR1 after startup grace period",
+      async () => {
+        const launcher = createLauncher();
+        await launcher.start();
 
-      // Advance past the 15s startup grace period
-      vi.advanceTimersByTime(15_000);
+        // Advance past the 15s startup grace period
+        vi.advanceTimersByTime(15_000);
 
-      await launcher.reload();
+        await launcher.reload();
 
-      expect(mockChild.killSignals).toContain("SIGUSR1");
-      expect(launcher.getStatus().state).toBe("running");
-    });
+        expect(mockChild.killSignals).toContain("SIGUSR1");
+        expect(launcher.getStatus().state).toBe("running");
+      },
+    );
 
     it("falls back to stop+start when the gateway is stopped", async () => {
       const { spawn } = await import("node:child_process");

@@ -1,27 +1,18 @@
 import { spawn, execSync } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
-import {
-  existsSync,
-  readFileSync,
-  mkdirSync,
-  cpSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, mkdirSync, cpSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 import { DEFAULTS } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
-import type {
-  GatewayLaunchOptions,
-  GatewayState,
-  GatewayStatus,
-  GatewayEvents,
-} from "./types.js";
+import type { GatewayLaunchOptions, GatewayState, GatewayStatus, GatewayEvents } from "./types.js";
 import {
   GatewayPerformanceCapture,
   type GatewayPerformanceBurst,
 } from "./gateway-performance-capture.js";
+import { captureGatewayProcessTree } from "./gateway-process-tree.js";
 import { enrichedPath } from "../utils/cli-utils.js";
 
 const log = createLogger("gateway");
@@ -31,6 +22,34 @@ const DEFAULT_MAX_BACKOFF_MS = DEFAULTS.gateway.maxBackoffMs;
 const DEFAULT_HEALTHY_THRESHOLD_MS = DEFAULTS.gateway.healthyThresholdMs;
 /** Skip reload if the gateway was spawned less than this many ms ago. */
 const STARTUP_GRACE_MS = DEFAULTS.gateway.startupGraceMs;
+
+export function createLineReader(onLine: (line: string) => void): {
+  push: (data: Buffer) => void;
+  end: () => void;
+} {
+  const decoder = new StringDecoder("utf8");
+  let pending = "";
+
+  const drain = (text: string, flush: boolean) => {
+    pending += text;
+    let newline = pending.indexOf("\n");
+    while (newline >= 0) {
+      const line = pending.slice(0, newline).replace(/\r$/, "");
+      pending = pending.slice(newline + 1);
+      if (line) onLine(line);
+      newline = pending.indexOf("\n");
+    }
+    if (flush && pending) {
+      onLine(pending.replace(/\r$/, ""));
+      pending = "";
+    }
+  };
+
+  return {
+    push: (data) => drain(decoder.write(data), false),
+    end: () => drain(decoder.end(), true),
+  };
+}
 
 /**
  * Calculate exponential backoff delay.
@@ -72,8 +91,17 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     },
     onSamplerReady: (sample) => {
       log.debug(
-        `[gateway-perf] sampler active pid=${this.process?.pid ?? "unknown"} intervalMs=${sample.intervalMs}`,
+        `[gateway-perf] sampler active pid=${sample.process?.pid ?? "unknown"} ` +
+          `ppid=${sample.process?.ppid ?? "unknown"} role=${sample.process?.role ?? "unknown"} ` +
+          `intervalMs=${sample.intervalMs}`,
       );
+    },
+    onTrigger: (trigger) => {
+      captureGatewayProcessTree({
+        rootPid: this.process?.pid,
+        targetPid: trigger.pid,
+        callback: (snapshot) => this.performanceCapture.attachProcessTree(snapshot),
+      });
     },
   });
 
@@ -85,8 +113,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       maxRestarts: options.maxRestarts ?? 0,
       initialBackoffMs: options.initialBackoffMs ?? DEFAULT_INITIAL_BACKOFF_MS,
       maxBackoffMs: options.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS,
-      healthyThresholdMs:
-        options.healthyThresholdMs ?? DEFAULT_HEALTHY_THRESHOLD_MS,
+      healthyThresholdMs: options.healthyThresholdMs ?? DEFAULT_HEALTHY_THRESHOLD_MS,
     };
   }
 
@@ -135,13 +162,9 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     // If the gateway was spawned very recently, it's still initializing and
     // will read the latest config file when it finishes starting up.
     // Skip the reload to avoid killing a process that hasn't started listening.
-    const uptime = this.lastStartedAt
-      ? Date.now() - this.lastStartedAt.getTime()
-      : 0;
+    const uptime = this.lastStartedAt ? Date.now() - this.lastStartedAt.getTime() : 0;
     if (uptime < STARTUP_GRACE_MS) {
-      log.info(
-        `Gateway started ${uptime}ms ago, skipping reload (config already on disk)`,
-      );
+      log.info(`Gateway started ${uptime}ms ago, skipping reload (config already on disk)`);
       return;
     }
 
@@ -252,11 +275,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     delete env.NODE_COMPILE_CACHE;
     if (this.options.stateDir) {
       const userCacheDir = join(this.options.stateDir, "compile-cache");
-      const shippedCacheDir = join(
-        dirname(this.options.entryPath),
-        "dist",
-        "compile-cache",
-      );
+      const shippedCacheDir = join(dirname(this.options.entryPath), "dist", "compile-cache");
       const shippedVersionFile = join(shippedCacheDir, ".version");
 
       // Seed from shipped pre-warmed cache if version changed (new install/update)
@@ -264,18 +283,14 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
         try {
           const shippedVer = readFileSync(shippedVersionFile, "utf-8").trim();
           const userVerFile = join(userCacheDir, ".version");
-          const userVer = existsSync(userVerFile)
-            ? readFileSync(userVerFile, "utf-8").trim()
-            : "";
+          const userVer = existsSync(userVerFile) ? readFileSync(userVerFile, "utf-8").trim() : "";
           if (shippedVer !== userVer) {
             mkdirSync(userCacheDir, { recursive: true });
             cpSync(shippedCacheDir, userCacheDir, {
               recursive: true,
               force: true,
             });
-            log.info(
-              `Seeded compile cache from shipped cache (version: ${shippedVer})`,
-            );
+            log.info(`Seeded compile cache from shipped cache (version: ${shippedVer})`);
           }
         } catch (err) {
           log.warn("Compile cache seeding failed:", err);
@@ -334,7 +349,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
 
     log.debug(
       `[spawn:3] preload done, spawning: bin=${this.options.nodeBin}, ` +
-      `entry=${this.options.entryPath}, cwd=${this.options.stateDir ?? "(none)"}`,
+        `entry=${this.options.entryPath}, cwd=${this.options.stateDir ?? "(none)"}`,
     );
 
     const spawnTs = performance.now();
@@ -379,54 +394,47 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
       if (!hasOutput && this.process === child && !this.stopRequested) {
         log.error(
           `Gateway PID ${child.pid} produced no stdout/stderr after 15s. ` +
-          `This usually means ELECTRON_RUN_AS_NODE is not working or the ` +
-          `V8 compile cache is corrupt. Check NODE_COMPILE_CACHE and NODE_OPTIONS env vars.`,
+            `This usually means ELECTRON_RUN_AS_NODE is not working or the ` +
+            `V8 compile cache is corrupt. Check NODE_COMPILE_CACHE and NODE_OPTIONS env vars.`,
         );
       }
     }, 15_000);
 
-    child.stdout?.on("data", (data: Buffer) => {
+    const stdoutLines = createLineReader((line) => {
       hasOutput = true;
-      const lines = data.toString().trim().split("\n");
-      for (const line of lines) {
-        log.info(`[gateway stdout] ${line}`);
-        if (
-          !readyEmitted &&
-          (line.includes("listening on") || line.includes("http server listening"))
-        ) {
-          readyEmitted = true;
-          const elapsed = ((performance.now() - spawnTs) / 1000).toFixed(1);
-          log.info(`Gateway ready in ${elapsed}s (spawn → listening)`);
-          this.emit("ready");
-        }
+      log.info(`[gateway stdout] ${line}`);
+      if (
+        !readyEmitted &&
+        (line.includes("listening on") || line.includes("http server listening"))
+      ) {
+        readyEmitted = true;
+        const elapsed = ((performance.now() - spawnTs) / 1000).toFixed(1);
+        log.info(`Gateway ready in ${elapsed}s (spawn → listening)`);
+        this.emit("ready");
       }
     });
+    child.stdout?.on("data", (data: Buffer) => stdoutLines.push(data));
 
     // Substrings that identify known harmless gateway warnings:
     // - "closed before connect": caused by EasyClaw's WS readiness probe
     //   (openclaw-connector opens a throwaway WebSocket and immediately closes it)
     // - "dangerouslyDisableDeviceAuth": intentionally set by EasyClaw since the
     //   gateway only listens on localhost and Desktop provides its own auth layer
-    const HARMLESS_WARN_PATTERNS = [
-      "closed before connect",
-      "dangerouslyDisableDeviceAuth",
-    ];
+    const HARMLESS_WARN_PATTERNS = ["closed before connect", "dangerouslyDisableDeviceAuth"];
 
-    child.stderr?.on("data", (data: Buffer) => {
+    const stderrLines = createLineReader((line) => {
       hasOutput = true;
-      const lines = data.toString().trim().split("\n");
-      for (const line of lines) {
-        if (this.performanceCapture.consumeStderrLine(line)) continue;
-        if (
-          line.startsWith("[startup-timer]") ||
-          HARMLESS_WARN_PATTERNS.some((p) => line.includes(p))
-        ) {
-          log.debug(`[gateway stderr] ${line}`);
-        } else {
-          log.warn(`[gateway stderr] ${line}`);
-        }
+      if (this.performanceCapture.consumeStderrLine(line)) return;
+      if (
+        line.startsWith("[startup-timer]") ||
+        HARMLESS_WARN_PATTERNS.some((p) => line.includes(p))
+      ) {
+        log.debug(`[gateway stderr] ${line}`);
+      } else {
+        log.warn(`[gateway stderr] ${line}`);
       }
     });
+    child.stderr?.on("data", (data: Buffer) => stderrLines.push(data));
 
     child.on("error", (err: Error) => {
       this.lastError = err.message;
@@ -436,13 +444,13 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
 
     child.on("exit", (code, signal) => {
       clearTimeout(noOutputTimer);
+      stdoutLines.end();
+      stderrLines.end();
       this.performanceCapture.flushOnGatewayExit();
       const prevState = this.state;
       this.process = null;
 
-      log.info(
-        `Gateway process exited (code=${code}, signal=${signal}, state=${prevState})`,
-      );
+      log.info(`Gateway process exited (code=${code}, signal=${signal}, state=${prevState})`);
 
       this.emit("stopped", code, signal);
 
@@ -461,10 +469,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
     this.restartCount++;
 
     // Check if we've exceeded max restarts
-    if (
-      this.options.maxRestarts > 0 &&
-      this.restartCount > this.options.maxRestarts
-    ) {
+    if (this.options.maxRestarts > 0 && this.restartCount > this.options.maxRestarts) {
       const msg = `Gateway exceeded max restarts (${this.options.maxRestarts})`;
       log.error(msg);
       this.lastError = msg;
@@ -474,15 +479,11 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
     }
 
     // If the process ran long enough, reset backoff
-    const runDuration = this.lastStartedAt
-      ? Date.now() - this.lastStartedAt.getTime()
-      : 0;
+    const runDuration = this.lastStartedAt ? Date.now() - this.lastStartedAt.getTime() : 0;
 
     let effectiveAttempt = this.restartCount;
     if (runDuration >= this.options.healthyThresholdMs) {
-      log.debug(
-        "Gateway ran long enough to be considered healthy, resetting backoff",
-      );
+      log.debug("Gateway ran long enough to be considered healthy, resetting backoff");
       effectiveAttempt = 1;
       this.restartCount = 1;
     }
@@ -493,9 +494,7 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
       this.options.maxBackoffMs,
     );
 
-    log.info(
-      `Restarting gateway in ${delay}ms (attempt ${this.restartCount})`,
-    );
+    log.info(`Restarting gateway in ${delay}ms (attempt ${this.restartCount})`);
 
     this.emit("restarting", this.restartCount, delay);
 
@@ -512,7 +511,11 @@ const ow=process.stdout.write;process.stdout.write=function(c,...a){const s=Stri
    * On Unix, sends the signal to the process group via negative PID.
    * On Windows, uses `taskkill /T /F /PID` since negative PIDs don't work.
    */
-  private killProcessTree(proc: ChildProcess, pid: number | undefined, signal: NodeJS.Signals): void {
+  private killProcessTree(
+    proc: ChildProcess,
+    pid: number | undefined,
+    signal: NodeJS.Signals,
+  ): void {
     if (!pid) {
       proc.kill(signal);
       return;
