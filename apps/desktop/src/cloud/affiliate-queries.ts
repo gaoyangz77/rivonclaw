@@ -44,7 +44,6 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
         expectedSalesUnits
         expectedSalesPercentile
         subject {
-          sampleApplicationRecordId
           platformApplicationId
           creatorId
           creatorOpenId
@@ -53,7 +52,6 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
           productId
         }
         resolvedContext {
-          sampleApplicationRecordId
           platformApplicationId
           creatorId
           creatorOpenId
@@ -143,7 +141,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         requiredAction
         shopId
         collaborationRecordId
-        sampleApplicationRecordId
+        platformApplicationId
         proposalId
         reasons
         nextActionAt
@@ -161,7 +159,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
             emailSubject
             parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
-          sampleReviewIntent { sampleApplicationRecordId platformApplicationId decision rejectReason }
+          sampleReviewIntent { platformApplicationId decision rejectReason }
           targetCollaborationIntent {
             name
             message
@@ -183,7 +181,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
               emailSubject
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
-            sampleReviewIntent { sampleApplicationRecordId platformApplicationId decision rejectReason }
+            sampleReviewIntent { platformApplicationId decision rejectReason }
             targetCollaborationIntent {
               name
               message
@@ -250,7 +248,10 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         creatorId
         creatorOpenId
         productId
-        sampleApplicationRecordId
+        platformSampleApplicationId
+        platformSampleApplicationIds
+        platformSampleApplicationStatus
+        platformSampleApplicationObservedAt
         affiliateCollaborationId
         collaborationType
         platformCollaborationId
@@ -274,33 +275,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           predictedAt
           capturedAt
         }
-      }
-      sampleApplicationRecord {
-        id
-        userId
-        shopId
-        platformApplicationId
-        creatorId
-        creatorOpenId
-        productId
-        affiliateCollaborationId
-        collaborationType
-        platformCollaborationId
-        platformOpenCollaborationId
-        platformTargetCollaborationId
-        sampleWorkStatus
-        trackingNumber
-        carrier
-        observedContentCount
-        latestObservedContentAt
-        latestObservedContentId
-        latestObservedContentUrl
-        latestObservedContentFormat
-        latestObservedContentPaidOrderCount
-        latestObservedContentViewCount
-        shippedAt
-        deliveredAt
-        updatedAt
       }
       context {
         creatorProfile {
@@ -342,7 +316,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           creatorId
           creatorOpenId
           productId
-          sampleApplicationRecordId
+          platformSampleApplicationId
           affiliateCollaborationId
           collaborationType
           platformCollaborationId
@@ -367,7 +341,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           creatorId
           creatorOpenId
           productId
-          sampleApplicationRecordId
+          platformSampleApplicationId
           affiliateCollaborationId
           collaborationType
           platformCollaborationId

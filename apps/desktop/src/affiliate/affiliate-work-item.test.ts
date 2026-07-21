@@ -105,7 +105,9 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     creatorId: "creator-001",
     creatorImId: "creator-im-001",
     productId: "product-001",
-    sampleApplicationRecordId: "sample-record-001",
+    platformSampleApplicationId: "platform-sample-001",
+    platformSampleApplicationIds: ["platform-sample-001"],
+    platformSampleApplicationStatus: "PENDING",
     lifecycleStage: "SAMPLE_PENDING",
     processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
@@ -199,6 +201,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
         shopId: "shop-001",
         collaborationRecordId: "collab-001",
         sampleApplicationRecordId: "sample-record-001",
+        platformApplicationId: "platform-sample-001",
         proposalId: null,
         reasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
         nextActionAt: null,
@@ -751,7 +754,7 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
     expect(agentCall?.[1]?.message).toContain("Reasons: SAMPLE_PENDING_REVIEW");
-    expect(agentCall?.[1]?.message).toContain("Sample Application Record ID: sample-record-001");
+    expect(agentCall?.[1]?.message).toContain("TikTok Sample Application ID: platform-sample-001");
     expect(agentCall?.[1]?.message).not.toContain("Current Authoritative Workspace Snapshot");
     expect(agentCall?.[1]?.message).not.toContain("Authoritative Sample Application State");
     expect(agentCall?.[1]?.message).not.toContain("prediction");

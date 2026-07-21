@@ -1713,21 +1713,23 @@ CreatorRelationship
 
 ## SampleApplication
 
-`SampleApplication` 保留，但在业务语义上属于某条 `CollaborationRecord`。
+`SampleApplication` 是 TikTok Provider entity，不在 MongoDB 维护第二份业务状态。
+Agent 查询、proposal 创建、人工批准和最终执行都必须用 `platformApplicationId`
+实时读取 TikTok；MongoDB 不提供 sample state fallback。
 
-实现上可以是嵌入对象，也可以继续是独立 collection。产品语义上应通过 `collaboration.sampleApplication` 暴露。
+`CollaborationRecord` 只保留驱动 workflow 所需的轻量投影：
 
-建议字段：
+- `platformSampleApplicationId`
+- `platformSampleApplicationIds[]`
+- `platformSampleApplicationStatus?`
+- `platformSampleFulfillmentStatus?`
+- `platformSampleApplicationObservedAt?`
+- `processReasons[]`
+- `nextSellerActionAt?`
 
-- `sampleApplicationRecordId`
-- `platformApplicationId`
-- `platformStatus`
-- `workStatus`
-- `decision?`
-- `rejectReason?`
-- `order?`
-- `contentFulfillment?`
-- `updatedAt`
+这些字段表达“系统最后观察到什么、为什么存在当前 agenda”，不代表平台实体的
+完整或当前状态。MySQL Data Warehouse 可以保留完整历史供分析，但不能参与 OLTP
+业务判断或发送/审批执行。
 
 ### Order
 
@@ -1757,7 +1759,7 @@ sampleApplication.order
 - Agent delivery records
 - Human manual delivery records
 
-这些消息应在 Agent workspace 中以 relationship-level history 呈现。
+这些消息应通过 relationship-level timeline 工具按需呈现给 Agent。
 当需要更多上下文时，Agent 应通过工具查询更长消息历史，而不是依赖固定注入。
 
 ### 静态上下文与动态工具
@@ -1819,7 +1821,7 @@ ActionProposal
   steps:
     - type: REVIEW_SAMPLE_APPLICATION
       collaborationRecordId
-      sampleApplicationRecordId
+      platformApplicationId
       decision: REJECT
     - type: SEND_MESSAGE
       channelPreference: WHATSAPP
@@ -1857,7 +1859,7 @@ ActionProposal
 - `creatorRelationshipId`
 - `shopId?`
 - `collaborationRecordId?`
-- `sampleApplicationRecordId?`
+- `platformApplicationId?`
 - `proposalId?`
 - `actorType`
 - `actionType`
@@ -1884,7 +1886,7 @@ CreatorRelationship {
     sourceType: "RELATIONSHIP" | "COLLABORATION"
     workKind: AffiliateWorkKind
     collaborationRecordId?: string
-    sampleApplicationRecordId?: string
+    platformApplicationId?: string
     proposalId?: string
     reasons: ProcessReason[]
     nextActionAt?: Date

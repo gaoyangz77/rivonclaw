@@ -69,31 +69,10 @@ function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): vo
     log.warn(`Skipping incomplete affiliate collaboration snapshot from work item: id=${workItem.collaboration.id}`);
   }
 
-  if (isCompleteSampleApplicationRecord(workItem.sampleApplicationRecord)) {
-    workspace.upsertAffiliateSampleApplicationRecord(workItem.sampleApplicationRecord as any);
-  } else if (workItem.sampleApplicationRecord?.id) {
-    log.warn(`Skipping incomplete affiliate sample snapshot from work item: id=${workItem.sampleApplicationRecord.id}`);
-  }
-
   workspace.upsertAffiliateCreatorRelationship(
     (workItem.creatorRelationship ?? workItem.context?.creatorRelation) as any,
   );
   workspace.upsertAffiliateCreatorProfile(workItem.context?.creatorProfile as any);
-
-  const primarySample = workItem.context?.primarySampleApplication;
-  if (isCompleteSampleApplicationRecord(primarySample)) {
-    workspace.upsertAffiliateSampleApplicationRecord(primarySample as any);
-  } else if (primarySample?.id) {
-    log.warn(`Skipping incomplete primary affiliate sample snapshot from work item: id=${primarySample.id}`);
-  }
-
-  for (const sample of workItem.context?.relatedSampleApplications ?? []) {
-    if (isCompleteSampleApplicationRecord(sample)) {
-      workspace.upsertAffiliateSampleApplicationRecord(sample as any);
-    } else if (sample?.id) {
-      log.warn(`Skipping incomplete related affiliate sample snapshot from work item: id=${sample.id}`);
-    }
-  }
 
   const productSummary = (workItem.context?.productContext as any)?.productSummary;
   if (productSummary) {
@@ -118,20 +97,6 @@ function isCompleteCollaborationRecord(record: AffiliateWorkItemPayload["collabo
     && hasString((record as any).stateUpdatedAt)
     && hasString((record as any).startedAt)
     && hasString((record as any).createdAt)
-    && hasString(record.updatedAt),
-  );
-}
-
-function isCompleteSampleApplicationRecord(
-  record: AffiliateWorkItemPayload["sampleApplicationRecord"],
-): boolean {
-  return Boolean(
-    record
-    && hasString(record.id)
-    && hasString(record.userId)
-    && hasString(record.shopId)
-    && hasString(record.platformApplicationId)
-    && hasString(record.sampleWorkStatus)
     && hasString(record.updatedAt),
   );
 }
