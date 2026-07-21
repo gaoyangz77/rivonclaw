@@ -616,7 +616,6 @@ export class AffiliateInbound {
     workItem: AffiliateWorkItemPayload,
   ): AffiliateContext | null {
     const collaboration = workItem.collaboration;
-    const sample = workItem.sampleApplicationRecord;
     const relationship = workItem.creatorRelationship ?? workItem.context?.creatorRelation ?? null;
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
     if (!creatorRelationshipId) return null;
@@ -627,7 +626,7 @@ export class AffiliateInbound {
       creatorImUserId: collaboration?.creatorImId ?? undefined,
       creatorId: collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
       creatorRelationshipId,
-      productId: collaboration?.productId ?? sample?.productId ?? undefined,
+      productId: collaboration?.productId ?? undefined,
       collaborationRecordId: workItem.collaborationRecordId ?? undefined,
     };
 
@@ -640,13 +639,13 @@ export class AffiliateInbound {
           triggerId: base.creatorRelationshipId,
         };
       case GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask: {
-        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration?.sampleApplicationRecordId;
+        const sampleTriggerId = collaboration?.platformSampleApplicationId;
         if (!sampleTriggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
+          sampleApplicationId: sampleTriggerId,
         };
       }
       default:
@@ -668,7 +667,6 @@ export class AffiliateInbound {
     workItem: AffiliateWorkItemPayload,
   ): AffiliateContext | null {
     const collaboration = workItem.collaboration;
-    const sample = workItem.sampleApplicationRecord;
     switch (workItem.workKind) {
       case GQL.AffiliateWorkKind.InboundMessageTriage:
         return {
@@ -678,13 +676,13 @@ export class AffiliateInbound {
         };
       case GQL.AffiliateWorkKind.SampleApplicationDecision:
       case GQL.AffiliateWorkKind.SampleShipment: {
-        const sampleTriggerId = sample?.platformApplicationId ?? sample?.id ?? collaboration?.sampleApplicationRecordId;
+        const sampleTriggerId = collaboration?.platformSampleApplicationId;
         if (!sampleTriggerId) return null;
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
           triggerId: sampleTriggerId,
-          sampleApplicationId: sample?.platformApplicationId ?? sample?.id ?? undefined,
+          sampleApplicationId: sampleTriggerId,
         };
       }
       default:

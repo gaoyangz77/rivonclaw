@@ -175,20 +175,23 @@ export interface ActionProposalSampleReviewIntent {
   decision: AffiliateSampleReviewDecision;
   platformApplicationId: Scalars['String']['output'];
   rejectReason?: Maybe<AffiliateSampleRejectReason>;
-  sampleApplicationRecordId: Scalars['ID']['output'];
+  /** @deprecated Use platformApplicationId. */
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
 
 export interface ActionProposalSampleReviewIntentInput {
   decision: AffiliateSampleReviewDecision;
   platformApplicationId: Scalars['String']['input'];
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
-  sampleApplicationRecordId: Scalars['ID']['input'];
+  /** @deprecated Use platformApplicationId. */
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ActionProposalSampleShipmentIntent {
-  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  platformApplicationId: Scalars['String']['output'];
   quantity?: Maybe<Scalars['Int']['output']>;
-  sampleApplicationRecordId: Scalars['ID']['output'];
+  /** @deprecated Use platformApplicationId. */
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   skuId?: Maybe<Scalars['String']['output']>;
   warehouseId?: Maybe<Scalars['ID']['output']>;
 }
@@ -745,12 +748,19 @@ export interface AffiliateCollaborationRecord {
   lifecycleStage: AffiliateLifecycleStage;
   nextSellerActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
+  platformSampleApplicationId?: Maybe<Scalars['String']['output']>;
+  platformSampleApplicationIds: Array<Scalars['String']['output']>;
+  platformSampleApplicationObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  platformSampleApplicationStatus?: Maybe<Scalars['String']['output']>;
+  platformSampleFulfillmentStatus?: Maybe<Scalars['String']['output']>;
   predictionSnapshots: Array<AffiliateCollaborationRecordPredictionSnapshot>;
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
   processingStatus: AffiliateCollaborationRecordProcessingStatus;
   productId?: Maybe<Scalars['String']['output']>;
   requiredAction: AffiliateCollaborationRequiredAction;
+  /** @deprecated Sample applications are no longer materialized in MongoDB. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  /** @deprecated Use Provider-backed sample application queries. */
   sampleApplicationRecords: Array<SampleApplicationRecord>;
   shopId: Scalars['ID']['output'];
   startedAt: Scalars['DateTimeISO']['output'];
@@ -1076,7 +1086,7 @@ export interface AffiliateCreatorProductFitInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** TikTok Shop product id to evaluate as a candidate collaboration product. This does not bind the product to any collaboration record. */
   productId: Scalars['String']['input'];
-  /** Backend SampleApplicationRecord id when the prediction evidence is for a concrete sample review. */
+  /** Deprecated and ignored. Use platformApplicationId. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Prediction scenario. Defaults to TARGET_COLLABORATION_PLANNING for creator-product fit checks from affiliate chat. */
   scenario?: InputMaybe<AffiliateExpectedSalesPredictionScenario>;
@@ -1336,6 +1346,7 @@ export interface AffiliateExpectedSalesPredictionSubjectInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   platformCollaborationId?: InputMaybe<Scalars['String']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
+  /** Deprecated and ignored. Use platformApplicationId. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
 }
 
@@ -1358,6 +1369,7 @@ export interface AffiliateExpectedSalesResolvedContext {
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
   productTitle?: Maybe<Scalars['String']['output']>;
+  /** @deprecated Use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId: Scalars['ID']['output'];
   skuId?: Maybe<Scalars['String']['output']>;
@@ -1399,6 +1411,7 @@ export interface AffiliateExpectedSalesSubjectRef {
   platformApplicationId?: Maybe<Scalars['String']['output']>;
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
+  /** @deprecated Use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
 
@@ -1868,11 +1881,13 @@ export interface AffiliateRelationshipAgendaItem {
   key: Scalars['String']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   owner: AffiliateRelationshipAgendaOwner;
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
   proposalId?: Maybe<Scalars['ID']['output']>;
   reasons: Array<AffiliateCollaborationRecordProcessReason>;
   requiredAction: AffiliateRelationshipRequiredAction;
   /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
+  /** @deprecated Sample applications are Provider-backed; use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
   sourceType: AffiliateRelationshipAgendaSourceType;
@@ -2151,6 +2166,7 @@ export interface AffiliateRelationshipTimelineRelatedIds {
   lifecycleEventId?: Maybe<Scalars['ID']['output']>;
   platformApplicationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
+  /** @deprecated Use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
 }
@@ -2448,6 +2464,7 @@ export interface AffiliateWorkspaceInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
   proposalStatus?: InputMaybe<ActionProposalStatus>;
+  /** Deprecated and ignored. Use platformApplicationId. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   shopId: Scalars['ID']['input'];
 }
@@ -8546,7 +8563,6 @@ export interface QueryAffiliateRelationshipTimelineArgs {
 export interface QueryAffiliateSampleApplicationStateArgs {
   creatorRelationshipId: Scalars['ID']['input'];
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
-  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   shopId: Scalars['ID']['input'];
 }
 
@@ -9280,6 +9296,8 @@ export interface RequestAffiliateActionInput {
   operatorSummary: Scalars['String']['input'];
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Deprecated and ignored. Use platformApplicationId. */
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   shopId: Scalars['ID']['input'];
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
@@ -9303,7 +9321,7 @@ export interface ResolveAffiliateCollaborationStaffActionPayload {
   collaborationRecord: AffiliateCollaborationRecord;
 }
 
-/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + platformApplicationId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
+/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> platformApplicationId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   /** Optional action-specific collaboration target inside the CreatorRelationship. Use this when a bundled relationship action targets a specific collaboration record; the top-level collaborationRecordId remains only a fallback focus. */
@@ -9312,14 +9330,12 @@ export interface ResolveAffiliateWorkItemActionInput {
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with sampleApplicationRecordId and sampleReviewDecision when sampleReviewIntent is omitted. */
+  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with sampleReviewDecision when sampleReviewIntent is omitted. */
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with platformApplicationId and sampleReviewDecision when sampleReviewIntent is omitted. */
-  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE or REJECT. Backend normalizes this into sampleReviewIntent.decision. */
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */

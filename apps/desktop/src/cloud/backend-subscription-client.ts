@@ -359,7 +359,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           requiredAction
           shopId
           collaborationRecordId
-          sampleApplicationRecordId
+          platformApplicationId
           proposalId
           reasons
           nextActionAt
@@ -377,7 +377,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
               emailSubject
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
-            sampleReviewIntent { sampleApplicationRecordId platformApplicationId decision rejectReason }
+            sampleReviewIntent { platformApplicationId decision rejectReason }
             targetCollaborationIntent {
               name
               message
@@ -399,7 +399,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
                 emailSubject
                 parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
               }
-              sampleReviewIntent { sampleApplicationRecordId platformApplicationId decision rejectReason }
+              sampleReviewIntent { platformApplicationId decision rejectReason }
               targetCollaborationIntent {
                 name
                 message
@@ -445,7 +445,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             requiredAction
             shopId
             collaborationRecordId
-            sampleApplicationRecordId
+            platformApplicationId
             proposalId
             reasons
             nextActionAt
@@ -477,7 +477,10 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           creatorId
           creatorOpenId
           productId
-          sampleApplicationRecordId
+          platformSampleApplicationId
+          platformSampleApplicationIds
+          platformSampleApplicationStatus
+          platformSampleApplicationObservedAt
           affiliateCollaborationId
           collaborationType
           platformCollaborationId
@@ -507,33 +510,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             predictedAt
             capturedAt
           }
-        }
-        sampleApplicationRecord {
-          id
-          userId
-          shopId
-          platformApplicationId
-          creatorId
-          creatorOpenId
-          productId
-          affiliateCollaborationId
-          collaborationType
-          platformCollaborationId
-          platformOpenCollaborationId
-          platformTargetCollaborationId
-          sampleWorkStatus
-          trackingNumber
-          carrier
-          observedContentCount
-          latestObservedContentAt
-          latestObservedContentId
-          latestObservedContentUrl
-          latestObservedContentFormat
-          latestObservedContentPaidOrderCount
-          latestObservedContentViewCount
-          shippedAt
-          deliveredAt
-          updatedAt
         }
         context {
           creatorProfile {
@@ -575,7 +551,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             creatorId
             creatorOpenId
             productId
-            sampleApplicationRecordId
+            platformSampleApplicationId
             affiliateCollaborationId
             collaborationType
             platformCollaborationId
@@ -600,7 +576,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             creatorId
             creatorOpenId
             productId
-            sampleApplicationRecordId
+            platformSampleApplicationId
             affiliateCollaborationId
             collaborationType
             platformCollaborationId
@@ -695,13 +671,11 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           type
           operatorSummary
           sampleReviewIntent {
-            sampleApplicationRecordId
             platformApplicationId
             decision
             rejectReason
           }
           sampleShipmentIntent {
-            sampleApplicationRecordId
             platformApplicationId
             warehouseId
             skuId
@@ -761,13 +735,11 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           actorId
         }
         sampleReviewIntent {
-          sampleApplicationRecordId
           platformApplicationId
           decision
           rejectReason
         }
         sampleShipmentIntent {
-          sampleApplicationRecordId
           platformApplicationId
           warehouseId
           skuId
