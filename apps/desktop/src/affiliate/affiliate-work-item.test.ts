@@ -762,6 +762,12 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_collaborations");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_sample_applications");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "affiliate_get_sample_application reads one current TikTok sample application live",
+    );
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain(
+      "affiliate_get_creator_relationship, affiliate_get_collaboration, and affiliate_get_sample_application read narrowly scoped current Mongo state",
+    );
     expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("affiliate_get_workspace");
     expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("affiliate_get_creator_collaboration_history");
     expect(mockRpcRequest).toHaveBeenCalledWith("tool_register_session", {
