@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.78",
+    "date": "2026-07-21",
+    "en": [
+      "Capture gateway performance diagnostics for faster startup troubleshooting"
+    ],
+    "zh": [
+      "新增 gateway 性能诊断采集，帮助更快排查启动问题"
+    ]
+  },
+  {
     "version": "1.8.77",
     "date": "2026-07-20",
     "en": [
