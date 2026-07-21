@@ -187,7 +187,7 @@ function sanitizeCloudGraphqlVariables(
       "This is a tool payload schema error, not a business reason for NEEDS_STAFF_REVIEW. " +
       "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
       "For SEND_MESSAGE use action.messageIntent.parts with 1-10 ordered structured parts; never send messageIntent: {}. " +
-      "For REVIEW_SAMPLE_APPLICATION use action.platformApplicationId, action.sampleReviewDecision, and optional action.rejectReason.";
+      "For REVIEW_SAMPLE_APPLICATION use action.sampleApplicationRecordId, action.sampleReviewDecision, and optional action.rejectReason.";
     throw new Error(
       `${reason} raw=${describeAffiliateResolveActionShape(actionLike)} normalized=${describeAffiliateResolveActionShape(normalizedActions)} ${describeAffiliateResolveActionRepairHint(context)}`,
     );
@@ -289,7 +289,7 @@ function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, un
 
 interface AffiliateResolveActionContext {
   collaborationRecordId?: string;
-  platformApplicationId?: string;
+  sampleApplicationRecordId?: string;
   predictionCacheIds?: string[];
 }
 
@@ -307,8 +307,8 @@ function buildAffiliateResolveActionContext(input: Record<string, unknown>): Aff
     : null;
   if (!collaboration) return context;
 
-  if (collaboration.platformSampleApplicationId) {
-    context.platformApplicationId = collaboration.platformSampleApplicationId;
+  if (collaboration.sampleApplicationRecordId) {
+    context.sampleApplicationRecordId = collaboration.sampleApplicationRecordId;
   }
 
   return context;
@@ -348,10 +348,10 @@ function normalizeAffiliateSampleReviewAction(
     return pickAffiliateActionFields(action, "sampleReviewIntent", existingIntent);
   }
 
-  const platformApplicationId = firstNonEmptyString(
-    existingIntent?.platformApplicationId,
-    action.platformApplicationId,
-    context?.platformApplicationId,
+  const sampleApplicationRecordId = firstNonEmptyString(
+    existingIntent?.sampleApplicationRecordId,
+    action.sampleApplicationRecordId,
+    context?.sampleApplicationRecordId,
   );
   const decision = firstNormalizedSampleReviewDecision(
     existingIntent?.decision ??
@@ -369,14 +369,14 @@ function normalizeAffiliateSampleReviewAction(
     action.reject_reason,
   );
   if (
-    !platformApplicationId ||
+    !sampleApplicationRecordId ||
     !decision
   ) {
     return action;
   }
 
   const sampleReviewIntent: Record<string, unknown> = {
-    platformApplicationId,
+    sampleApplicationRecordId,
     decision,
   };
   if (hasNonEmptyString(rejectReason)) {
@@ -478,7 +478,7 @@ function isInvalidAffiliateResolveAction(value: unknown): boolean {
     case "REVIEW_SAMPLE_APPLICATION": {
       const sampleReviewIntent = asRecord(action.sampleReviewIntent);
       return (
-        !hasNonEmptyString(sampleReviewIntent?.platformApplicationId) ||
+        !hasNonEmptyString(sampleReviewIntent?.sampleApplicationRecordId) ||
         !["APPROVE", "REJECT"].includes(String(sampleReviewIntent?.decision ?? ""))
       );
     }
@@ -575,7 +575,7 @@ function describeAffiliateResolveActionShape(actions: unknown[]): string {
       ]) : undefined,
       sampleReviewIntentFields: sampleReviewIntent ? Object.keys(sampleReviewIntent).sort() : [],
       sampleReviewIntentPreview: sampleReviewIntent ? scalarPreview(sampleReviewIntent, [
-        "platformApplicationId",
+        "sampleApplicationRecordId",
         "decision",
         "reviewDecision",
         "sampleDecision",
@@ -608,12 +608,12 @@ function scalarPreview(record: Record<string, unknown>, keys: string[]): Record<
 
 function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActionContext): string {
   const hints: string[] = [];
-  if (context.platformApplicationId) {
+  if (context.sampleApplicationRecordId) {
     hints.push(
       [
         "reviewSampleRequiredFields={type:REVIEW_SAMPLE_APPLICATION",
         context.predictionCacheIds?.length ? `predictionCacheIds:${JSON.stringify(context.predictionCacheIds)}` : null,
-        `platformApplicationId:${context.platformApplicationId}`,
+        `sampleApplicationRecordId:${context.sampleApplicationRecordId}`,
         "sampleReviewDecision:APPROVE|REJECT",
         "rejectReason:required-only-for-REJECT}",
       ].filter(Boolean).join(" "),

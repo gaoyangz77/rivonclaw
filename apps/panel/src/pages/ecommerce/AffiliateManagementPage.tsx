@@ -20,6 +20,7 @@ import {
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   AFFILIATE_POLICY_CONTEXT_QUERY,
+  AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY,
   APPLY_CREATOR_TAG_MUTATION,
   ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
   DECIDE_ACTION_PROPOSAL_MUTATION,
@@ -2043,6 +2044,16 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     skip: !user || !selectedShopId,
   });
 
+  const { data: projectionHealthData, refetch: refetchProjectionHealth } = useQuery<
+    { affiliateOperationalProjectionHealth: GQL.AffiliateOperationalProjectionHealthPayload },
+    { shopId: string }
+  >(AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY, {
+    variables: { shopId: selectedShopId },
+    fetchPolicy: "cache-and-network",
+    skip: !user || !selectedShopId,
+  });
+  const projectionHealth = projectionHealthData?.affiliateOperationalProjectionHealth;
+
   const tagOptions = useMemo(() => {
     const tags = policyContextData?.creatorTags ?? [];
     return [
@@ -2238,6 +2249,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
             onClick={() => {
               void refetch();
               void refetchRelationshipWork();
+              void refetchProjectionHealth();
             }}
             disabled={(loading || relationshipWorkLoading) || !selectedShopId}
           >
@@ -2247,6 +2259,25 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           </button>
         </div>
       </div>
+
+      {projectionHealth && !projectionHealth.ready ? (
+        <div className="affiliate-projection-health-banner" role="status">
+          <strong>{t("ecommerce.affiliateWorkspace.projectionSyncing", { defaultValue: "Affiliate data is syncing" })}</strong>
+          <span>
+            {projectionHealth.datasets.map((dataset) => `${dataset.dataset}: ${dataset.status}`).join(" · ")}
+          </span>
+        </div>
+      ) : projectionHealth?.ready ? (
+        <div className="affiliate-projection-health-meta">
+          {t("ecommerce.affiliateWorkspace.projectionLastSynced", { defaultValue: "Operational data last synced" })}: {formatDate(
+            projectionHealth.datasets
+              .map((dataset) => dataset.lastSuccessfulSyncAt)
+              .filter((value): value is string => Boolean(value))
+              .sort()
+              .at(0) ?? null,
+          )}
+        </div>
+      ) : null}
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head affiliate-creators-panel-head">

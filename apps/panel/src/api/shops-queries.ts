@@ -2494,3 +2494,21 @@ export const SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION = gql`
     }
   }
 `;
+
+export const AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY = gql`
+  query AffiliateOperationalProjectionHealth($shopId: ID!) {
+    affiliateOperationalProjectionHealth(shopId: $shopId) {
+      shopId
+      ready
+      datasets {
+        dataset
+        status
+        ready
+        complete
+        stale
+        lastSuccessfulSyncAt
+        reason
+      }
+    }
+  }
+`;

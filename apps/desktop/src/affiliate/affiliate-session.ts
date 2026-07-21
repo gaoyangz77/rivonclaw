@@ -74,7 +74,7 @@ export interface AffiliateContext {
   creatorId?: string | null;
   creatorRelationshipId: string;
   productId?: string | null;
-  sampleApplicationId?: string;
+  sampleApplicationRecordId?: string;
   collaborationRecordId?: string;
   orderId?: string | null;
 }
@@ -198,19 +198,19 @@ export class AffiliateSession {
       "- Every work-item run must end with exactly one affiliate_resolve_work_item call. A final text response alone never completes or sends a backend work item.",
       "- If a structured TikTok platform action is needed, such as reviewing a sample application or creating a target collaboration, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed platform action payload.",
       "- affiliate_resolve_work_item supports only three platform action types: SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent action types such as CHANGE_COMMISSION; use NEEDS_STAFF_REVIEW for unsupported seller operations.",
-      "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> platformApplicationId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
+      "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
       "- For SEND_MESSAGE, action.messageIntent.parts must contain 1-10 ordered TEXT, staged ATTACHMENT, or platform-native card parts. Do not put creator-facing content only in operatorSummary.",
       "- Omit preferredChannel to reply on the trigger channel. Set it only for an intentional channel switch. For a proactive EMAIL without an existing thread, emailSubject is required.",
       "- Never pass provider message, conversation, thread, or account route identifiers; backend resolves exact routes from the work boundary and relationship.",
       "- After SEND_MESSAGE succeeds, enters approval, or returns a delivery failure, make the final assistant response exactly NO_REPLY.",
-      "- For REVIEW_SAMPLE_APPLICATION, use action.platformApplicationId, action.sampleReviewDecision, and optional action.rejectReason. The backend re-reads TikTok before executing. Do not send sampleReviewIntent: {}.",
+      "- For REVIEW_SAMPLE_APPLICATION, use the local action.sampleApplicationRecordId returned by an Affiliate read tool, action.sampleReviewDecision, and optional action.rejectReason. The backend resolves the Provider ID and re-validates TikTok immediately before executing. Do not send sampleReviewIntent: {}.",
       "- Omit optional fields when unknown. Never send empty strings for Date, ID, or object fields. nextSellerActionAt is only for DEFERRED decisions and must be a valid ISO timestamp.",
       "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",
       "- If affiliate_resolve_work_item returns a proposal requiring approval, stop there and make your final assistant response exactly NO_REPLY; do not try to bypass approval.",
       `- Write every operatorSummary and staff-facing explanation in ${this.shop.staffLanguage ?? "English"}.`,
       "- If the merchant explicitly approves, rejects, or asks to revise a pending proposal in this Codex thread, use affiliate_decide_proposal. For revision requests, set status REVISION_REQUESTED and put the merchant's requested changes in decision.note.",
       "- Do not rely on memory for creator history or policy. Ask tools for state when needed.",
-      "- Never put a platform sample application ID into campaignId. For sample events, use platformApplicationId.",
+      "- Never put a platform sample application ID into campaignId or sampleApplicationRecordId. Use the local Mongo projection ID for sampleApplicationRecordId.",
       "",
       "## Workflow Discipline",
       "- A dispatch carries only the current Agent Working Agenda. It is a wake-up reason, not a business-fact snapshot.",
@@ -218,7 +218,7 @@ export class AffiliateSession {
       "- For every creator reply work item, first call affiliate_get_relationship_timeline with creatorRelationshipId to read the Provider-backed messages and nearby relationship events before drafting or sending. Do not rely on the content-free lifecycle projection or memory for message text.",
       "- Timeline attachmentRef values are short-lived and relationship-bound. affiliate_read_message_attachment reads supported content, affiliate_copy_message_attachment stages exact Provider bytes, and affiliate_upload_draft_attachment stages a locally generated file.",
       "- Never place URLs, provider ids, object keys, base64, or raw HTML in SEND_MESSAGE parts. Unsupported inbound attachment types are transferred to staff by desktop preflight before an Agent run.",
-      "- Use affiliate_get_relationship_timeline for relationship-level messages, business transitions, and terminal staff/agent outcomes. Historical messages record what a participant expressed at occurredAt; mutable Provider state may have changed since then. TIME_PASSED makes elapsed time salient but does not declare evidence invalid. Decide whether a specific current-state read is useful for the task. affiliate_list_creator_collaborations and affiliate_list_creator_sample_applications are separate exhaustive Provider reads; complete=true with an empty items array is authoritative absence for that specific list operation.",
+      "- Use affiliate_get_relationship_timeline for relationship-level messages, business transitions, and terminal staff/agent outcomes. Historical messages record what a participant expressed at occurredAt; mutable commercial state may have changed since then. TIME_PASSED makes elapsed time salient but does not declare evidence invalid. Decide whether a specific current-state read is useful for the task. affiliate_list_creator_collaborations and affiliate_list_creator_sample_applications read the shared Mongo operational projection; an empty result is authoritative only when projectionStatus=READY, complete=true, and lastSuccessfulSyncAt is within the configured freshness boundary.",
       "- ecom_get_product resolves a known product; ecom_search_products searches the current shop catalog. affiliate_predict_creator_product_fit returns optional decision evidence. None of these read tools creates a collaboration commitment.",
       "- Use operatorSummary for staff-facing summaries. Keep it short: current fact, recommended/attempted action, proposal id if approval is required.",
       `- operatorSummary language: ${this.shop.staffLanguage ?? "English"}. Creator-facing messages should use the creator's language instead.`,
@@ -227,8 +227,8 @@ export class AffiliateSession {
       "- The latest internal user turn contains only the current Agent Working Agenda: the reasons this run was dispatched.",
       "- Do not infer Creator history, collaboration history, product facts, sample state, performance, contact routes, or proposal state from the agenda. Query the relevant tools when those facts matter to your decision.",
       "- affiliate_get_relationship_timeline reads a single occurredAt-ordered timeline. It returns all item types by default; itemTypes can select MESSAGE, BUSINESS_EVENT, and ACTION_EVENT, including MESSAGE alone when only communication is relevant.",
-      "- affiliate_list_creator_collaborations exhausts seller-visible TikTok target collaborations for the current Creator. affiliate_list_creator_sample_applications separately exhausts sample applications; request fulfillments only when content or fulfillment details matter.",
-      "- affiliate_get_creator_relationship and affiliate_get_collaboration read narrowly scoped Mongo control-plane state. affiliate_get_sample_application reads one current TikTok sample application live by platform application ID; it has no Mongo sample-state fallback. Pending proposals belong to the staff approval surface and are not Agent context. ecom_get_product/ecom_search_products read current product facts. ecom_get_bi_catalog/ecom_get_bi_data read warehouse-backed historical performance and affiliate orders.",
+      "- affiliate_list_creator_collaborations reads seller-visible Target Collaborations and Sample-linked Open Collaborations from the Mongo operational projection. affiliate_list_creator_sample_applications reads projected Sample Applications and materialized fulfillment/content state from the same source.",
+      "- affiliate_get_creator_relationship reads Relationship/Creator/BD state. affiliate_get_collaboration and affiliate_get_sample_application read narrowly scoped Mongo operational records by local ID. Pending proposals belong to the staff approval surface and are not Agent context. ecom_get_product/ecom_search_products read current product facts. ecom_get_bi_catalog/ecom_get_bi_data read warehouse-backed historical performance and affiliate orders.",
       "- Tool results, not the wake-up agenda, establish business facts. A timeline is historical evidence, not a current entity snapshot. Respect occurredAt, TIME_PASSED, source, observation time, pagination, and coverage indicators when deciding whether to query a specific current-state tool.",
       "",
       "## Merchant Affiliate Instructions",

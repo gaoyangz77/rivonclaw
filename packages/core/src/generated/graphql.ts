@@ -173,25 +173,28 @@ export interface ActionProposalPolicySnapshot {
 
 export interface ActionProposalSampleReviewIntent {
   decision: AffiliateSampleReviewDecision;
-  platformApplicationId: Scalars['String']['output'];
+  lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Frozen provider audit id resolved by Backend; callers must not supply it. */
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
+  projectionRevision?: Maybe<Scalars['Int']['output']>;
   rejectReason?: Maybe<AffiliateSampleRejectReason>;
-  /** @deprecated Use platformApplicationId. */
-  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  sampleApplicationRecordId: Scalars['ID']['output'];
 }
 
 export interface ActionProposalSampleReviewIntentInput {
   decision: AffiliateSampleReviewDecision;
-  platformApplicationId: Scalars['String']['input'];
+  lastObservedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Frozen provider audit id resolved by Backend; callers must not supply it. */
+  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  projectionRevision?: InputMaybe<Scalars['Int']['input']>;
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
-  /** @deprecated Use platformApplicationId. */
-  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
+  sampleApplicationRecordId: Scalars['ID']['input'];
 }
 
 export interface ActionProposalSampleShipmentIntent {
-  platformApplicationId: Scalars['String']['output'];
+  platformApplicationId?: Maybe<Scalars['String']['output']>;
   quantity?: Maybe<Scalars['Int']['output']>;
-  /** @deprecated Use platformApplicationId. */
-  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  sampleApplicationRecordId: Scalars['ID']['output'];
   skuId?: Maybe<Scalars['String']['output']>;
   warehouseId?: Maybe<Scalars['ID']['output']>;
 }
@@ -719,10 +722,14 @@ export interface AffiliateCollaboration {
   creatorIds: Array<Scalars['ID']['output']>;
   creatorOpenIds: Array<Scalars['String']['output']>;
   effectiveTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  firstObservedAt: Scalars['DateTimeISO']['output'];
   id: Scalars['ID']['output'];
+  lastObservedAt: Scalars['DateTimeISO']['output'];
+  lastSyncSource: AffiliateProjectionSyncSource;
   platformCollaborationId: Scalars['String']['output'];
   platformUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   productIds: Array<Scalars['String']['output']>;
+  projectionRevision: Scalars['Int']['output'];
   shopId: Scalars['ID']['output'];
   status: AffiliateCollaborationStatus;
   type: AffiliateCollaborationType;
@@ -748,8 +755,6 @@ export interface AffiliateCollaborationRecord {
   lifecycleStage: AffiliateLifecycleStage;
   nextSellerActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
-  platformSampleApplicationId?: Maybe<Scalars['String']['output']>;
-  platformSampleApplicationIds: Array<Scalars['String']['output']>;
   platformSampleApplicationObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   platformSampleApplicationStatus?: Maybe<Scalars['String']['output']>;
   platformSampleFulfillmentStatus?: Maybe<Scalars['String']['output']>;
@@ -758,9 +763,8 @@ export interface AffiliateCollaborationRecord {
   processingStatus: AffiliateCollaborationRecordProcessingStatus;
   productId?: Maybe<Scalars['String']['output']>;
   requiredAction: AffiliateCollaborationRequiredAction;
-  /** @deprecated Sample applications are no longer materialized in MongoDB. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
-  /** @deprecated Use Provider-backed sample application queries. */
+  sampleApplicationRecordIds: Array<Scalars['ID']['output']>;
   sampleApplicationRecords: Array<SampleApplicationRecord>;
   shopId: Scalars['ID']['output'];
   startedAt: Scalars['DateTimeISO']['output'];
@@ -801,6 +805,7 @@ export const AffiliateCollaborationRecordProcessReason = {
   IdentityResolution: 'IDENTITY_RESOLUTION',
   MessageDeliveryFailed: 'MESSAGE_DELIVERY_FAILED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
+  PlatformStateSync: 'PLATFORM_STATE_SYNC',
   ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
   SampleAwaitingPlatformShipment: 'SAMPLE_AWAITING_PLATFORM_SHIPMENT',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
@@ -825,8 +830,13 @@ export type AffiliateCollaborationRecordProcessingStatus = typeof AffiliateColla
 /** Current Mongo control-plane state for one relationship-owned collaboration record. */
 export interface AffiliateCollaborationRecordStatePayload {
   collaboration: AffiliateCollaborationRecord;
+  complete: Scalars['Boolean']['output'];
+  lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Sample Applications linked from the Mongo operational projection. */
   linkedSampleApplications: Array<SampleApplicationRecord>;
   observedAt: Scalars['DateTimeISO']['output'];
+  projectionStatus: AffiliateOperationalProjectionStatus;
+  readAt: Scalars['DateTimeISO']['output'];
   source: AffiliateProviderReadSource;
 }
 
@@ -957,21 +967,14 @@ export const AffiliateCreatorChannelContactStatus = {
 } as const;
 
 export type AffiliateCreatorChannelContactStatus = typeof AffiliateCreatorChannelContactStatus[keyof typeof AffiliateCreatorChannelContactStatus];
-/** One TikTok target collaboration returned for the Creator, including its full Provider detail when an ID is available. */
-export interface AffiliateCreatorCollaborationListItem {
-  collaboration: EcomTargetCollaboration;
-  detail?: Maybe<EcomTargetCollaborationDetail>;
-  detailFetched: Scalars['Boolean']['output'];
-}
-
-/** Provider-backed TikTok Shop target collaborations for one CreatorRelationship. */
+/** Mongo operational Collaboration projection for one CreatorRelationship. */
 export interface AffiliateCreatorCollaborationListPayload {
   complete: Scalars['Boolean']['output'];
   creatorOpenId: Scalars['String']['output'];
-  detailsComplete: Scalars['Boolean']['output'];
-  items: Array<AffiliateCreatorCollaborationListItem>;
-  observedAt: Scalars['DateTimeISO']['output'];
-  queriedTargetCollaborationStatuses: Array<Scalars['String']['output']>;
+  items: Array<AffiliateCollaboration>;
+  lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  projectionStatus: AffiliateOperationalProjectionStatus;
+  readAt: Scalars['DateTimeISO']['output'];
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
 }
@@ -1086,7 +1089,7 @@ export interface AffiliateCreatorProductFitInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** TikTok Shop product id to evaluate as a candidate collaboration product. This does not bind the product to any collaboration record. */
   productId: Scalars['String']['input'];
-  /** Deprecated and ignored. Use platformApplicationId. */
+  /** Backend SampleApplicationRecord id when the prediction evidence is for a concrete sample review. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Prediction scenario. Defaults to TARGET_COLLABORATION_PLANNING for creator-product fit checks from affiliate chat. */
   scenario?: InputMaybe<AffiliateExpectedSalesPredictionScenario>;
@@ -1181,20 +1184,14 @@ export interface AffiliateCreatorRelationshipStatePayload {
   source: AffiliateProviderReadSource;
 }
 
-/** One TikTok sample application and, when requested, its Provider-backed fulfillment/content history. */
-export interface AffiliateCreatorSampleApplicationListItem {
-  application: EcomSampleApplication;
-  fulfillments: Array<EcomSampleFulfillment>;
-  fulfillmentsFetched: Scalars['Boolean']['output'];
-}
-
-/** Provider-backed TikTok Shop sample applications for one CreatorRelationship. */
+/** Mongo operational Sample Application projection for one CreatorRelationship. */
 export interface AffiliateCreatorSampleApplicationListPayload {
   complete: Scalars['Boolean']['output'];
   creatorOpenId: Scalars['String']['output'];
-  items: Array<AffiliateCreatorSampleApplicationListItem>;
-  observedAt: Scalars['DateTimeISO']['output'];
-  sampleFulfillmentsComplete: Scalars['Boolean']['output'];
+  items: Array<SampleApplicationRecord>;
+  lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  projectionStatus: AffiliateOperationalProjectionStatus;
+  readAt: Scalars['DateTimeISO']['output'];
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
 }
@@ -1346,7 +1343,6 @@ export interface AffiliateExpectedSalesPredictionSubjectInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   platformCollaborationId?: InputMaybe<Scalars['String']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
-  /** Deprecated and ignored. Use platformApplicationId. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
 }
 
@@ -1369,7 +1365,6 @@ export interface AffiliateExpectedSalesResolvedContext {
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
   productTitle?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId: Scalars['ID']['output'];
   skuId?: Maybe<Scalars['String']['output']>;
@@ -1411,7 +1406,6 @@ export interface AffiliateExpectedSalesSubjectRef {
   platformApplicationId?: Maybe<Scalars['String']['output']>;
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
 
@@ -1563,6 +1557,7 @@ export const AffiliateLifecycleEventType = {
   SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
   SampleApplicationFirstObserved: 'SAMPLE_APPLICATION_FIRST_OBSERVED',
   SampleApplicationRejected: 'SAMPLE_APPLICATION_REJECTED',
+  SampleApplicationStateObserved: 'SAMPLE_APPLICATION_STATE_OBSERVED',
   SampleApplicationSubmitted: 'SAMPLE_APPLICATION_SUBMITTED',
   SampleApplicationTerminalStateFirstObserved: 'SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED',
   SampleDelivered: 'SAMPLE_DELIVERED',
@@ -1733,6 +1728,36 @@ export const AffiliateModelUsageScope = {
 } as const;
 
 export type AffiliateModelUsageScope = typeof AffiliateModelUsageScope[keyof typeof AffiliateModelUsageScope];
+export const AffiliateOperationalProjectionDataset = {
+  Collaborations: 'COLLABORATIONS',
+  SampleApplications: 'SAMPLE_APPLICATIONS'
+} as const;
+
+export type AffiliateOperationalProjectionDataset = typeof AffiliateOperationalProjectionDataset[keyof typeof AffiliateOperationalProjectionDataset];
+export interface AffiliateOperationalProjectionHealthPayload {
+  datasets: Array<AffiliateOperationalProjectionReadiness>;
+  ready: Scalars['Boolean']['output'];
+  shopId: Scalars['ID']['output'];
+}
+
+/** Readiness and freshness of one shop-level Affiliate operational projection. */
+export interface AffiliateOperationalProjectionReadiness {
+  complete: Scalars['Boolean']['output'];
+  dataset: AffiliateOperationalProjectionDataset;
+  lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  ready: Scalars['Boolean']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  stale: Scalars['Boolean']['output'];
+  status: AffiliateOperationalProjectionStatus;
+}
+
+export const AffiliateOperationalProjectionStatus = {
+  Bootstrapping: 'BOOTSTRAPPING',
+  Degraded: 'DEGRADED',
+  Ready: 'READY'
+} as const;
+
+export type AffiliateOperationalProjectionStatus = typeof AffiliateOperationalProjectionStatus[keyof typeof AffiliateOperationalProjectionStatus];
 export interface AffiliateOperationalSettings {
   id: Scalars['ID']['output'];
   newRelationshipAiEngagementDefault: AffiliateRelationshipAiEngagementStatus;
@@ -1868,10 +1893,18 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
+export const AffiliateProjectionSyncSource = {
+  AirflowBootstrap: 'AIRFLOW_BOOTSTRAP',
+  AirflowReconcile: 'AIRFLOW_RECONCILE',
+  PlatformAction: 'PLATFORM_ACTION',
+  Webhook: 'WEBHOOK'
+} as const;
+
+export type AffiliateProjectionSyncSource = typeof AffiliateProjectionSyncSource[keyof typeof AffiliateProjectionSyncSource];
 /** Source and authority boundary for a specific Affiliate read operation. */
 export const AffiliateProviderReadSource = {
   MongodbCurrentState: 'MONGODB_CURRENT_STATE',
-  TiktokShopProvider: 'TIKTOK_SHOP_PROVIDER'
+  MongodbOperationalProjection: 'MONGODB_OPERATIONAL_PROJECTION'
 } as const;
 
 export type AffiliateProviderReadSource = typeof AffiliateProviderReadSource[keyof typeof AffiliateProviderReadSource];
@@ -1881,13 +1914,11 @@ export interface AffiliateRelationshipAgendaItem {
   key: Scalars['String']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   owner: AffiliateRelationshipAgendaOwner;
-  platformApplicationId?: Maybe<Scalars['String']['output']>;
   proposalId?: Maybe<Scalars['ID']['output']>;
   reasons: Array<AffiliateCollaborationRecordProcessReason>;
   requiredAction: AffiliateRelationshipRequiredAction;
   /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
-  /** @deprecated Sample applications are Provider-backed; use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
   sourceType: AffiliateRelationshipAgendaSourceType;
@@ -2058,6 +2089,7 @@ export interface AffiliateRelationshipSignal {
 export const AffiliateRelationshipSignalSource = {
   Airflow: 'AIRFLOW',
   Manual: 'MANUAL',
+  PlatformAction: 'PLATFORM_ACTION',
   Webhook: 'WEBHOOK'
 } as const;
 
@@ -2164,9 +2196,9 @@ export interface AffiliateRelationshipTimelineRelatedIds {
   collaborationRecordId?: Maybe<Scalars['ID']['output']>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   lifecycleEventId?: Maybe<Scalars['ID']['output']>;
+  /** Provider audit id when an event originated from TikTok. */
   platformApplicationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use platformApplicationId. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
 }
@@ -2218,8 +2250,12 @@ export const AffiliateSampleApplicationLookupStatus = {
 export type AffiliateSampleApplicationLookupStatus = typeof AffiliateSampleApplicationLookupStatus[keyof typeof AffiliateSampleApplicationLookupStatus];
 /** Current Mongo control-plane lookup for one sample application under a CreatorRelationship. */
 export interface AffiliateSampleApplicationStatePayload {
+  complete: Scalars['Boolean']['output'];
   found: Scalars['Boolean']['output'];
+  lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   observedAt: Scalars['DateTimeISO']['output'];
+  projectionStatus: AffiliateOperationalProjectionStatus;
+  readAt: Scalars['DateTimeISO']['output'];
   sampleApplication?: Maybe<SampleApplicationRecord>;
   source: AffiliateProviderReadSource;
 }
@@ -2461,10 +2497,9 @@ export interface AffiliateWorkspaceInput {
   includePolicies?: InputMaybe<Scalars['Boolean']['input']>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars['Int']['input']>;
-  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
   proposalStatus?: InputMaybe<ActionProposalStatus>;
-  /** Deprecated and ignored. Use platformApplicationId. */
+  /** Optional local Mongo Sample Application projection focus. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   shopId: Scalars['ID']['input'];
 }
@@ -4493,57 +4528,6 @@ export interface DecideActionProposalInput {
   status: ActionProposalStatus;
 }
 
-/** Affiliate category chain */
-export interface EcomAffiliateCategoryChain {
-  id?: Maybe<Scalars['String']['output']>;
-  isLeaf?: Maybe<Scalars['Boolean']['output']>;
-  localName?: Maybe<Scalars['String']['output']>;
-  parentId?: Maybe<Scalars['String']['output']>;
-}
-
-/** Affiliate commission information */
-export interface EcomAffiliateCommission {
-  amount?: Maybe<Scalars['Float']['output']>;
-  currency?: Maybe<Scalars['String']['output']>;
-  effectiveTime?: Maybe<Scalars['Int']['output']>;
-  endTime?: Maybe<Scalars['Int']['output']>;
-  maximumAmount?: Maybe<Scalars['Float']['output']>;
-  minimumAmount?: Maybe<Scalars['Float']['output']>;
-  rate?: Maybe<Scalars['Int']['output']>;
-  shopAdsCommissionRate?: Maybe<Scalars['Int']['output']>;
-  startTime?: Maybe<Scalars['Int']['output']>;
-}
-
-/** Affiliate product summary */
-export interface EcomAffiliateProduct {
-  categoryChains?: Maybe<Array<EcomAffiliateCategoryChain>>;
-  collaborationStatus?: Maybe<Scalars['String']['output']>;
-  commission?: Maybe<EcomAffiliateCommission>;
-  commissionEffectiveStatus?: Maybe<Scalars['String']['output']>;
-  detailLink?: Maybe<Scalars['String']['output']>;
-  hasInventory?: Maybe<Scalars['Boolean']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  imageUrl?: Maybe<Scalars['String']['output']>;
-  inventory?: Maybe<Scalars['Int']['output']>;
-  mainImageUrl?: Maybe<Scalars['String']['output']>;
-  originalPrice?: Maybe<EcomNumericMoneyRange>;
-  productId?: Maybe<Scalars['String']['output']>;
-  saleRegion?: Maybe<Scalars['String']['output']>;
-  salesPrice?: Maybe<EcomNumericMoneyRange>;
-  shop?: Maybe<EcomAffiliateShop>;
-  skuId?: Maybe<Scalars['String']['output']>;
-  skuImageUrl?: Maybe<Scalars['String']['output']>;
-  skuName?: Maybe<Scalars['String']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
-  title?: Maybe<Scalars['String']['output']>;
-  unitsSold?: Maybe<Scalars['Int']['output']>;
-}
-
-/** Affiliate seller shop summary */
-export interface EcomAffiliateShop {
-  name?: Maybe<Scalars['String']['output']>;
-}
-
 /** Aftersale eligibility for an order */
 export interface EcomAftersaleEligibility {
   skuEligibility?: Maybe<Array<EcomAftersaleSkuEligibility>>;
@@ -5206,12 +5190,6 @@ export const EcomDocumentType = {
 } as const;
 
 export type EcomDocumentType = typeof EcomDocumentType[keyof typeof EcomDocumentType];
-/** Free sample rule */
-export interface EcomFreeSampleRule {
-  hasFreeSample?: Maybe<Scalars['Boolean']['output']>;
-  isSampleApprovalExempt?: Maybe<Scalars['Boolean']['output']>;
-}
-
 /** Image with dimensions */
 export interface EcomImage {
   height?: Maybe<Scalars['Int']['output']>;
@@ -5231,20 +5209,6 @@ export const EcomMessageType = {
 } as const;
 
 export type EcomMessageType = typeof EcomMessageType[keyof typeof EcomMessageType];
-/** Numeric money amount */
-export interface EcomNumericMoney {
-  amount?: Maybe<Scalars['Float']['output']>;
-  currency?: Maybe<Scalars['String']['output']>;
-}
-
-/** Numeric money range */
-export interface EcomNumericMoneyRange {
-  currency?: Maybe<Scalars['String']['output']>;
-  formattedRange?: Maybe<Scalars['String']['output']>;
-  maximumAmount?: Maybe<Scalars['Float']['output']>;
-  minimumAmount?: Maybe<Scalars['Float']['output']>;
-}
-
 /** Order */
 export interface EcomOrder {
   /** Platform buyer user ID */
@@ -5870,67 +5834,6 @@ export const EcomReturnTypeFilter = {
 } as const;
 
 export type EcomReturnTypeFilter = typeof EcomReturnTypeFilter[keyof typeof EcomReturnTypeFilter];
-/** Sample application */
-export interface EcomSampleApplication {
-  approveExpirationTime?: Maybe<Scalars['Int']['output']>;
-  availableQuantity?: Maybe<Scalars['Int']['output']>;
-  commissionRate?: Maybe<Scalars['Float']['output']>;
-  creator?: Maybe<EcomSampleApplicationCreator>;
-  disapprovableReasons?: Maybe<Array<Scalars['String']['output']>>;
-  fulfillmentStatus?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  isApprovable?: Maybe<Scalars['Boolean']['output']>;
-  orderId?: Maybe<Scalars['String']['output']>;
-  partnerName?: Maybe<Scalars['String']['output']>;
-  product?: Maybe<EcomAffiliateProduct>;
-  shipmentExpirationTime?: Maybe<Scalars['Int']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
-  trackingNumber?: Maybe<Scalars['String']['output']>;
-}
-
-/** Sample application creator */
-export interface EcomSampleApplicationCreator {
-  avatarUrl?: Maybe<Scalars['String']['output']>;
-  contentCount?: Maybe<Scalars['Int']['output']>;
-  creatorOpenId?: Maybe<Scalars['String']['output']>;
-  ecVideoView?: Maybe<Scalars['Int']['output']>;
-  followerCount?: Maybe<Scalars['Int']['output']>;
-  fulfillmentPercentage?: Maybe<Scalars['String']['output']>;
-  gmv?: Maybe<EcomNumericMoney>;
-  nickname?: Maybe<Scalars['String']['output']>;
-  username?: Maybe<Scalars['String']['output']>;
-}
-
-/** Sample fulfillment */
-export interface EcomSampleFulfillment {
-  content?: Maybe<EcomSampleFulfillmentContent>;
-  product?: Maybe<EcomAffiliateProduct>;
-}
-
-/** Sample fulfillment content */
-export interface EcomSampleFulfillmentContent {
-  commentCount?: Maybe<Scalars['Int']['output']>;
-  createTime?: Maybe<Scalars['Int']['output']>;
-  description?: Maybe<Scalars['String']['output']>;
-  format?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  likeCount?: Maybe<Scalars['Int']['output']>;
-  liveEndTime?: Maybe<Scalars['Int']['output']>;
-  pageLink?: Maybe<Scalars['String']['output']>;
-  paidOrderCount?: Maybe<Scalars['Int']['output']>;
-  url?: Maybe<Scalars['String']['output']>;
-  viewCount?: Maybe<Scalars['Int']['output']>;
-}
-
-/** Seller contact information */
-export interface EcomSellerContactInfo {
-  email?: Maybe<Scalars['String']['output']>;
-  line?: Maybe<Scalars['String']['output']>;
-  phoneNumber?: Maybe<Scalars['String']['output']>;
-  telegram?: Maybe<Scalars['String']['output']>;
-  whatsapp?: Maybe<Scalars['String']['output']>;
-}
-
 /** Shipping document URL */
 export interface EcomShippingDocument {
   /** URL of the document (label, packing slip, etc.) */
@@ -5993,54 +5896,6 @@ export const EcomSortOrder = {
 } as const;
 
 export type EcomSortOrder = typeof EcomSortOrder[keyof typeof EcomSortOrder];
-/** Target collaboration */
-export interface EcomTargetCollaboration {
-  contentCreatorCount?: Maybe<Scalars['Int']['output']>;
-  creatorInvitedCount?: Maybe<Scalars['Int']['output']>;
-  endTime?: Maybe<Scalars['Int']['output']>;
-  freeSampleRule?: Maybe<EcomFreeSampleRule>;
-  id?: Maybe<Scalars['String']['output']>;
-  message?: Maybe<Scalars['String']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-  productCount?: Maybe<Scalars['Int']['output']>;
-  showcaseCreatorCount?: Maybe<Scalars['Int']['output']>;
-  startTime?: Maybe<Scalars['Int']['output']>;
-  type?: Maybe<Scalars['String']['output']>;
-  updateTime?: Maybe<Scalars['Int']['output']>;
-}
-
-/** Target collaboration creator */
-export interface EcomTargetCollaborationCreator {
-  avatar?: Maybe<EcomImage>;
-  collaborationStatus?: Maybe<Scalars['String']['output']>;
-  contentProductCount?: Maybe<Scalars['Int']['output']>;
-  creatorOpenId?: Maybe<Scalars['String']['output']>;
-  nickname?: Maybe<Scalars['String']['output']>;
-  productEffectiveStatus?: Maybe<Scalars['String']['output']>;
-  selectionRegion?: Maybe<Scalars['String']['output']>;
-  showcaseProductCount?: Maybe<Scalars['Int']['output']>;
-  username?: Maybe<Scalars['String']['output']>;
-}
-
-/** Target collaboration detail */
-export interface EcomTargetCollaborationDetail {
-  contentCreatorCount?: Maybe<Scalars['Int']['output']>;
-  creatorInvitedCount?: Maybe<Scalars['Int']['output']>;
-  creators?: Maybe<Array<EcomTargetCollaborationCreator>>;
-  endTime?: Maybe<Scalars['Int']['output']>;
-  freeSampleRule?: Maybe<EcomFreeSampleRule>;
-  id?: Maybe<Scalars['String']['output']>;
-  message?: Maybe<Scalars['String']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-  productCount?: Maybe<Scalars['Int']['output']>;
-  products?: Maybe<Array<EcomAffiliateProduct>>;
-  sellerContactInfo?: Maybe<EcomSellerContactInfo>;
-  showcaseCreatorCount?: Maybe<Scalars['Int']['output']>;
-  startTime?: Maybe<Scalars['Int']['output']>;
-  type?: Maybe<Scalars['String']['output']>;
-  updateTime?: Maybe<Scalars['Int']['output']>;
-}
-
 /** Tracking event */
 export interface EcomTrackingEvent {
   description?: Maybe<Scalars['String']['output']>;
@@ -8202,6 +8057,8 @@ export interface Query {
   affiliateMlInsightSummaries: Array<AffiliateMlModelEfficiencySummary>;
   /** Read latest affiliate ML evaluation summary generated by telemetry training jobs for the current user or one shop. */
   affiliateMlInsights: AffiliateMlInsightsPayload;
+  /** Read shop-level Affiliate Collaboration and Sample Application projection readiness. */
+  affiliateOperationalProjectionHealth: AffiliateOperationalProjectionHealthPayload;
   affiliateOperationalSettings: AffiliateOperationalSettings;
   /** Summarize seller-level affiliate outreach delivery and inbound message health across WhatsApp and Outlook. */
   affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatusPayload;
@@ -8545,6 +8402,11 @@ export interface QueryAffiliateMlInsightsArgs {
 }
 
 
+export interface QueryAffiliateOperationalProjectionHealthArgs {
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryAffiliateOutreachOperationalStatusArgs {
   input: AffiliateOutreachOperationalStatusInput;
 }
@@ -8562,7 +8424,7 @@ export interface QueryAffiliateRelationshipTimelineArgs {
 
 export interface QueryAffiliateSampleApplicationStateArgs {
   creatorRelationshipId: Scalars['ID']['input'];
-  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
+  sampleApplicationRecordId: Scalars['ID']['input'];
   shopId: Scalars['ID']['input'];
 }
 
@@ -9296,8 +9158,6 @@ export interface RequestAffiliateActionInput {
   operatorSummary: Scalars['String']['input'];
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Deprecated and ignored. Use platformApplicationId. */
-  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   shopId: Scalars['ID']['input'];
   targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
@@ -9321,7 +9181,7 @@ export interface ResolveAffiliateCollaborationStaffActionPayload {
   collaborationRecord: AffiliateCollaborationRecord;
 }
 
-/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> platformApplicationId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
+/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
   campaignId?: InputMaybe<Scalars['ID']['input']>;
   /** Optional action-specific collaboration target inside the CreatorRelationship. Use this when a bundled relationship action targets a specific collaboration record; the top-level collaborationRecordId remains only a fallback focus. */
@@ -9330,12 +9190,12 @@ export interface ResolveAffiliateWorkItemActionInput {
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
-  /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Required with sampleReviewDecision when sampleReviewIntent is omitted. */
-  platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
+  /** Agent-facing local Mongo projection id for REVIEW_SAMPLE_APPLICATION. Required with sampleReviewDecision when sampleReviewIntent is omitted. */
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE or REJECT. Backend normalizes this into sampleReviewIntent.decision. */
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
@@ -9436,8 +9296,13 @@ export interface SampleApplicationRecord {
   collaborationType?: Maybe<AffiliateCollaborationType>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   creatorOpenId?: Maybe<Scalars['String']['output']>;
+  creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
   deliveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  firstObservedAt: Scalars['DateTimeISO']['output'];
   id: Scalars['ID']['output'];
+  lastNotificationId?: Maybe<Scalars['String']['output']>;
+  lastObservedAt: Scalars['DateTimeISO']['output'];
+  lastSyncSource: AffiliateProjectionSyncSource;
   latestObservedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
   latestObservedContentFormat?: Maybe<Scalars['String']['output']>;
   latestObservedContentId?: Maybe<Scalars['String']['output']>;
@@ -9448,9 +9313,13 @@ export interface SampleApplicationRecord {
   order?: Maybe<SampleApplicationOrderRecord>;
   platformApplicationId: Scalars['String']['output'];
   platformCollaborationId?: Maybe<Scalars['String']['output']>;
+  platformFulfillmentStatus?: Maybe<Scalars['String']['output']>;
   platformOpenCollaborationId?: Maybe<Scalars['String']['output']>;
+  platformStatus?: Maybe<Scalars['String']['output']>;
   platformTargetCollaborationId?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
+  projectionRevision: Scalars['Int']['output'];
+  providerEventAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** RivonClaw-owned sample lifecycle state optimized for agent and operator understanding. */
   sampleWorkStatus: SampleWorkStatus;
   shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;

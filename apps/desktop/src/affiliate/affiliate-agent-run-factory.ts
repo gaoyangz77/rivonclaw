@@ -18,7 +18,7 @@ export function buildAffiliateAgentRunRequest(
   if (!workItem.agentDispatchRecommended) return null;
 
   const idempotencySuffix = isSampleReviewWorkItem(workItem)
-    ? workItem.collaboration?.platformSampleApplicationId ??
+    ? workItem.sampleApplicationRecord?.id ??
       workItem.collaborationRecordId ??
       workItem.creatorRelationshipId
     : workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
@@ -61,7 +61,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
         requiredAction: workItem.requiredAction,
         reasons: workItem.processReasons ?? [],
         collaborationRecordId: workItem.collaborationRecordId ?? null,
-        platformApplicationId: workItem.collaboration?.platformSampleApplicationId ?? null,
+        sampleApplicationRecordId: workItem.sampleApplicationRecord?.id ?? null,
         proposalId: null,
         revisionRequestedProposal: null,
         nextActionAt: workItem.creatorRelationship?.workSummary?.nextActionAt ?? null,
@@ -83,8 +83,8 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     if (item.collaborationRecordId) {
       lines.push(`   Collaboration Record ID: ${item.collaborationRecordId}`);
     }
-    if (item.platformApplicationId) {
-      lines.push(`   TikTok Sample Application ID: ${item.platformApplicationId}`);
+    if (item.sampleApplicationRecordId) {
+      lines.push(`   Sample Application Record ID: ${item.sampleApplicationRecordId}`);
     }
     if (item.proposalId) {
       lines.push(`   Proposal ID: ${item.proposalId}`);

@@ -17442,6 +17442,27 @@ html[lang="zh"] .acct-tool-chips {
   gap: 16px;
 }
 
+.affiliate-projection-health-banner,
+.affiliate-projection-health-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.affiliate-projection-health-banner {
+  border: 1px solid color-mix(in srgb, var(--warning-color, #c17b16) 35%, transparent);
+  background: color-mix(in srgb, var(--warning-color, #c17b16) 9%, transparent);
+}
+
+.affiliate-projection-health-meta {
+  justify-content: flex-end;
+  color: var(--text-secondary);
+}
+
 .affiliate-workbench-controls {
   display: flex;
   align-items: center;
