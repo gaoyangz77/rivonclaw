@@ -955,6 +955,60 @@ describe("affiliate work item dispatch", () => {
     }));
   });
 
+  it("resets and continues when the committed checkpoint no longer exists locally", async () => {
+    const workItem = createSampleReviewWorkItem({
+      creatorRelationship: {
+        ...(createSampleReviewWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
+        committedCheckpointId: "checkpoint-missing-001",
+      },
+    });
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "sessions.compaction.restore") {
+        throw new Error("checkpoint not found: checkpoint-missing-001");
+      }
+      if (method === "agent") return { runId: "run-after-reset-001" };
+      return {};
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "platform-sample-001",
+        sampleApplicationId: "platform-sample-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+
+    expect(result.runId).toBe("run-after-reset-001");
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.compaction.restore", {
+      key: "agent:main:affiliate:user-001:relationship-001",
+      checkpointId: "checkpoint-missing-001",
+    });
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.reset", {
+      key: "agent:main:affiliate:user-001:relationship-001",
+      reason: "new",
+    });
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.pluginPatch", expect.objectContaining({
+      value: expect.objectContaining({
+        baseCheckpointId: "checkpoint-missing-001",
+      }),
+    }));
+  });
+
   it.each([
     {
       name: "the checkpoint and event cursor base is stale",
