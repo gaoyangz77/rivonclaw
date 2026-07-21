@@ -41,6 +41,7 @@ const AGENT_RUNTIME_FAILURE_PATTERNS = [
 ];
 const AFFILIATE_CHECKPOINT_PLUGIN_ID = "rivonclaw-capability-manager";
 const AFFILIATE_CHECKPOINT_EXTENSION_NAMESPACE = "affiliateCheckpoint";
+const MISSING_SESSION_CHECKPOINT_PATTERN = /checkpoint not found/i;
 /** TikTok Provider history rejects values above 20. Keep the pre-run safety gate portable. */
 const AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_LIMIT = 20;
 
@@ -526,10 +527,22 @@ export class AffiliateSession {
     });
 
     if (baseCheckpointId) {
-      await openClawConnector.request("sessions.compaction.restore", {
-        key: this.scopeKey,
-        checkpointId: baseCheckpointId,
-      });
+      try {
+        await openClawConnector.request("sessions.compaction.restore", {
+          key: this.scopeKey,
+          checkpointId: baseCheckpointId,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!MISSING_SESSION_CHECKPOINT_PATTERN.test(message)) throw error;
+        log.warn(
+          `Affiliate committed checkpoint is unavailable locally; resetting the session before dispatch: scope=${this.scopeKey} checkpointId=${baseCheckpointId}`,
+        );
+        await openClawConnector.request("sessions.reset", {
+          key: this.scopeKey,
+          reason: "new",
+        });
+      }
     } else {
       await openClawConnector.request("sessions.reset", {
         key: this.scopeKey,
