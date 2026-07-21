@@ -263,6 +263,7 @@ export const INIT_PLATFORM_APPS_QUERY = `
       id
       platform
       market
+      sellerType
       status
       label
       apiBaseUrl

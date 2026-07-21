@@ -37,6 +37,7 @@ export function ConnectShopModal({
   const { t } = useTranslation();
 
   const [selectedMarket, setSelectedMarket] = useState<string>("");
+  const [selectedSellerType, setSelectedSellerType] = useState<string>("");
   const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const prevOpenRef = useRef(false);
 
@@ -53,6 +54,7 @@ export function ConnectShopModal({
         ? "US"
         : (markets[0] ?? "");
       setSelectedMarket(preferredMarket);
+      setSelectedSellerType("");
       setSelectedPlatform("");
     }
     prevOpenRef.current = isOpen;
@@ -62,7 +64,33 @@ export function ConnectShopModal({
     ? platformAppsForOnboardingMarket(platformApps, selectedMarket)
     : [];
 
-  const availablePlatforms = [...new Set(matchingAppsForMarket.map((app) => app.platform))];
+  const availableSellerTypes = [
+    ...new Set(matchingAppsForMarket.map((app) => app.sellerType)),
+  ].sort((left, right) => {
+    if (left === "LOCAL") return -1;
+    if (right === "LOCAL") return 1;
+    return left.localeCompare(right);
+  });
+  const availableSellerTypesSignature = availableSellerTypes.join("\u0001");
+
+  useEffect(() => {
+    const sellerTypes = availableSellerTypesSignature
+      ? availableSellerTypesSignature.split("\u0001")
+      : [];
+    if (!selectedMarket || sellerTypes.length === 0) {
+      if (selectedSellerType) setSelectedSellerType("");
+      return;
+    }
+    if (!selectedSellerType || !sellerTypes.includes(selectedSellerType)) {
+      setSelectedSellerType(sellerTypes[0]);
+    }
+  }, [availableSellerTypesSignature, selectedMarket, selectedSellerType]);
+
+  const matchingAppsForSellerType = selectedSellerType
+    ? matchingAppsForMarket.filter((app) => app.sellerType === selectedSellerType)
+    : [];
+
+  const availablePlatforms = [...new Set(matchingAppsForSellerType.map((app) => app.platform))];
   const availablePlatformsSignature = availablePlatforms.join("\u0001");
 
   // Keep platform selection in sync with the currently selected market.
@@ -81,13 +109,13 @@ export function ConnectShopModal({
     }
   }, [availablePlatformsSignature, selectedMarket, selectedPlatform]);
 
-  const matchedApps = selectedMarket && selectedPlatform
-    ? matchingAppsForMarket.filter((app) => app.platform === selectedPlatform)
+  const matchedApps = selectedMarket && selectedSellerType && selectedPlatform
+    ? matchingAppsForSellerType.filter((app) => app.platform === selectedPlatform)
     : [];
 
   const selectedPlatformAppId = matchedApps.length === 1 ? matchedApps[0].id : "";
 
-  const matchError = !selectedMarket || !selectedPlatform
+  const matchError = !selectedMarket || !selectedSellerType || !selectedPlatform
     ? null
     : matchedApps.length === 0
       ? t("ecommerce.addShopModal.noMatch")
@@ -129,6 +157,23 @@ export function ConnectShopModal({
                   }))}
                 />
               )}
+            </div>
+            <div>
+              <label className="form-label-block">
+                {t("ecommerce.addShopModal.sellerTypeLabel")} <span className="required">*</span>
+              </label>
+              <Select
+                value={selectedSellerType}
+                onChange={(v) => setSelectedSellerType(v)}
+                className="input-full"
+                ariaLabel={t("ecommerce.addShopModal.sellerTypeLabel")}
+                placeholder={t("ecommerce.addShopModal.sellerTypePlaceholder")}
+                disabled={!selectedMarket}
+                options={availableSellerTypes.map((sellerType) => ({
+                  value: sellerType,
+                  label: t(`ecommerce.sellerType.${sellerType}`, { defaultValue: sellerType }),
+                }))}
+              />
             </div>
             <div>
               <label className="form-label-block">

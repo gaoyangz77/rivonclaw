@@ -4,6 +4,7 @@ export const PlatformAppModel = types.model("PlatformApp", {
   id: types.identifier,
   platform: types.string,
   market: types.string,
+  sellerType: types.string,
   status: types.string,
   label: types.string,
   apiBaseUrl: types.string,
