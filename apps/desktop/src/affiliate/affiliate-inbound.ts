@@ -38,6 +38,8 @@ const MAX_QUEUED_AFFILIATE_WORK_ITEMS = parseOptionalPositiveInteger(
 const AFFILIATE_WORK_CATCH_UP_LIMIT = parseOptionalPositiveInteger(
   process.env.RIVONCLAW_AFFILIATE_WORK_CATCH_UP_LIMIT,
 ) ?? 20;
+const AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV =
+  "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS";
 
 export interface AffiliateShopSource {
   id: string;
@@ -149,6 +151,14 @@ export class AffiliateInbound {
   }
 
   async catchUpCurrentWorkItems(): Promise<void> {
+    const controlledRelationshipIds = getControlledLiveTestRelationshipIds();
+    if (controlledRelationshipIds) {
+      log.warn(
+        `Skipping Affiliate startup catch-up because an exact live-test cohort is active: ` +
+        `relationships=${controlledRelationshipIds.size}`,
+      );
+      return;
+    }
     await Promise.all([...this.shopContexts.values()].map((shop) => this.catchUpShopWorkItems(shop)));
   }
 
@@ -307,6 +317,17 @@ export class AffiliateInbound {
   }
 
   async handleWorkItem(workItem: AffiliateWorkItemPayload): Promise<boolean> {
+    const controlledRelationshipIds = getControlledLiveTestRelationshipIds();
+    if (
+      controlledRelationshipIds &&
+      !controlledRelationshipIds.has(workItem.creatorRelationshipId)
+    ) {
+      log.warn(
+        `Ignoring Affiliate work item outside the exact live-test cohort: ` +
+        `relationship=${workItem.creatorRelationshipId} kind=${workItem.workKind}`,
+      );
+      return true;
+    }
     const shouldDispatchToLocalAgent = shouldDispatchWorkItemToLocalAgent(workItem);
     if (!shouldDispatchToLocalAgent) {
       log.info(`Ignoring affiliate work item that is not locally agent-actionable: id=${workItem.id} kind=${workItem.workKind}`);
@@ -708,6 +729,16 @@ export class AffiliateInbound {
       a.staffLanguage === b.staffLanguage
     );
   }
+}
+
+function getControlledLiveTestRelationshipIds(): Set<string> | null {
+  const raw = process.env[AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV]?.trim();
+  if (!raw) return null;
+  const relationshipIds = raw
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return relationshipIds.length > 0 ? new Set(relationshipIds) : null;
 }
 
 function parseOptionalPositiveInteger(value: string | undefined): number | undefined {
