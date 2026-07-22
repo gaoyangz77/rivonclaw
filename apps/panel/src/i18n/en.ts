@@ -4275,6 +4275,7 @@ export default {
       title: "Add Shop",
       marketLabel: "Market / Region",
       marketPlaceholder: "Select a market...",
+      marketSearchPlaceholder: "Search by market code or name...",
       sellerTypeLabel: "Seller type",
       sellerTypePlaceholder: "Select a seller type...",
       platformLabel: "Platform",

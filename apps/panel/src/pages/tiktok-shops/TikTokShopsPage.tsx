@@ -7,8 +7,8 @@ import { useTikTokShopData } from "./hooks/useTikTokShopData.js";
 import { useTikTokOAuthFlow } from "./hooks/useTikTokOAuthFlow.js";
 import { useTikTokShopDetail } from "./hooks/useTikTokShopDetail.js";
 import { TikTokShopsList } from "./components/TikTokShopsList.js";
-import { TikTokShopConnectModal } from "./components/TikTokShopConnectModal.js";
 import { TikTokShopDetailModal } from "./components/TikTokShopDetailModal.js";
+import { ConnectShopModal } from "../../components/ecommerce/ConnectShopModal.js";
 
 export const TikTokShopsPage = observer(function TikTokShopsPage() {
   const { t } = useTranslation();
@@ -27,8 +27,6 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
     oauthWaiting,
     connectModalOpen,
     setConnectModalOpen,
-    selectedPlatformAppId,
-    setSelectedPlatformAppId,
     cleanupOAuthWait,
     handleConnectShop,
     handleReauthorize,
@@ -109,14 +107,17 @@ export const TikTokShopsPage = observer(function TikTokShopsPage() {
         onDelete={setConfirmDeleteShopId}
       />
 
-      <TikTokShopConnectModal
+      <ConnectShopModal
         isOpen={connectModalOpen}
         onClose={() => setConnectModalOpen(false)}
         platformApps={platformApps}
-        selectedPlatformAppId={selectedPlatformAppId}
-        onPlatformAppChange={setSelectedPlatformAppId}
-        onConnect={handleConnectShop}
         oauthLoading={oauthLoading}
+        oauthWaiting={false}
+        oauthAuthUrl={null}
+        linkCopied={false}
+        onConnectShop={handleConnectShop}
+        onCopyAuthUrl={() => {}}
+        onCancelOAuth={() => setConnectModalOpen(false)}
       />
 
       <TikTokShopDetailModal

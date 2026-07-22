@@ -3240,6 +3240,7 @@ export default {
       "title": "Aggiungi negozio",
       "marketLabel": "Mercato/Regione",
       "marketPlaceholder": "Seleziona un mercato...",
+      "marketSearchPlaceholder": "Cerca per codice o nome del mercato...",
       "sellerTypeLabel": "Tipo di venditore",
       "sellerTypePlaceholder": "Seleziona un tipo di venditore...",
       "platformLabel": "Piattaforma",

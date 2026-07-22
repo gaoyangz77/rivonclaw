@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Select } from "./Select.js";
 
@@ -27,6 +27,26 @@ describe("Select", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Select/i }));
     expect(screen.getByPlaceholderText("搜索店铺")).toBeTruthy();
+  });
+
+  it("focuses searchable dropdowns without scrolling the page", async () => {
+    const focusSpy = vi.spyOn(HTMLInputElement.prototype, "focus");
+    render(
+      <Select
+        value=""
+        onChange={() => {}}
+        options={[{ value: "MX", label: "墨西哥" }]}
+        placeholder="选择地区"
+        searchable
+        searchPlaceholder="搜索地区代码或名称"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /选择地区/i }));
+
+    await waitFor(() => {
+      expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    });
   });
 
   it("caps dropdown height and preserves a viewport gutter", () => {

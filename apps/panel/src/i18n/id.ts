@@ -3238,6 +3238,7 @@ export default {
       "title": "Tambahkan Toko",
       "marketLabel": "Pasar / Wilayah",
       "marketPlaceholder": "Pilih pasar...",
+      "marketSearchPlaceholder": "Cari kode atau nama pasar...",
       "sellerTypeLabel": "Jenis penjual",
       "sellerTypePlaceholder": "Pilih jenis penjual...",
       "platformLabel": "Peron",

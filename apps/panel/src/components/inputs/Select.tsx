@@ -97,7 +97,7 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
 
     // Auto-focus the search input when opening a searchable dropdown
     if (searchable) {
-      requestAnimationFrame(() => searchRef.current?.focus());
+      requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }));
     }
 
     function handleClickOutside(e: MouseEvent) {
