@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.79",
+    "date": "2026-07-21",
+    "en": [
+      "Refine store onboarding selection for a clearer setup flow"
+    ],
+    "zh": [
+      "优化店铺 onboarding 选择流程，让配置更清晰顺畅"
+    ]
+  },
+  {
     "version": "1.8.78",
     "date": "2026-07-21",
     "en": [
