@@ -475,6 +475,7 @@ function createPreflightMessage(
 describe("affiliate work item dispatch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     __clearActiveAffiliateRunCheckpointsForTests();
     mockGetAuthSession.mockReturnValue({
       graphqlFetch: vi.fn(withCheckpointContext(async (query: string) => {
@@ -1102,6 +1103,45 @@ describe("affiliate work item dispatch", () => {
     expect(graphqlFetch).toHaveBeenCalledTimes(1);
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall).toBeUndefined();
+  });
+
+  it("skips startup catch-up while an exact Affiliate live-test cohort is active", async () => {
+    vi.stubEnv(
+      "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS",
+      "relationship-001,relationship-002",
+    );
+    const graphqlFetch = vi.fn(async () => ({ affiliateWorkItems: [] }));
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+    ]);
+
+    await inbound.catchUpCurrentWorkItems();
+
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
+  });
+
+  it("ignores subscription work outside an exact Affiliate live-test cohort", async () => {
+    vi.stubEnv(
+      "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS",
+      "relationship-allowed",
+    );
+    const inbound = new AffiliateInbound("en");
+    const result = await inbound.handleWorkItem(createSampleReviewWorkItem({
+      creatorRelationshipId: "relationship-outside-cohort",
+    }));
+
+    expect(result).toBe(true);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 
   it("uses the signed-in user id for caught-up affiliate work when shop context has no owner id", () => {
