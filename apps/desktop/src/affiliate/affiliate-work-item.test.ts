@@ -1136,6 +1136,35 @@ describe("affiliate work item dispatch", () => {
     expect(context?.userId).toBe("user-001");
   });
 
+  it("uses the agenda sample record as the stable trigger when the top-level snapshot is omitted", () => {
+    const workItem = createSampleReviewWorkItem({
+      sampleApplicationRecord: null,
+      context: {
+        ...createSampleReviewWorkItem().context,
+        primarySampleApplication: null,
+      },
+    });
+    const inbound = new AffiliateInbound("en");
+    const context = (inbound as any).buildContextFromWorkItem(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      workItem,
+    ) as { triggerId?: string; sampleApplicationRecordId?: string } | null;
+
+    expect(context).toMatchObject({
+      triggerId: "sample-record-001",
+      sampleApplicationRecordId: "sample-record-001",
+    });
+    expect(buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })?.idempotencyKey)
+      .toContain("sample-record-001");
+  });
+
   it("dispatches creator replies as internal work with a structured SEND_MESSAGE contract", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
