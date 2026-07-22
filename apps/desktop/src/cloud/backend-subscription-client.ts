@@ -439,7 +439,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             key
             owner
             sourceType
-            status
             workKind
             requiredAction
             shopId
