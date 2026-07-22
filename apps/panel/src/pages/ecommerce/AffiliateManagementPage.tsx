@@ -2053,6 +2053,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     skip: !user || !selectedShopId,
   });
   const projectionHealth = projectionHealthData?.affiliateOperationalProjectionHealth;
+  const projectionHistoryIncomplete = projectionHealth?.datasets.some(
+    (dataset) => !dataset.complete,
+  ) ?? false;
 
   const tagOptions = useMemo(() => {
     const tags = policyContextData?.creatorTags ?? [];
@@ -2268,14 +2271,31 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           </span>
         </div>
       ) : projectionHealth?.ready ? (
-        <div className="affiliate-projection-health-meta">
-          {t("ecommerce.affiliateWorkspace.projectionLastSynced", { defaultValue: "Operational data last synced" })}: {formatDate(
-            projectionHealth.datasets
-              .map((dataset) => dataset.lastSuccessfulSyncAt)
-              .filter((value): value is string => Boolean(value))
-              .sort()
-              .at(0) ?? null,
-          )}
+        <div className={projectionHistoryIncomplete
+          ? "affiliate-projection-health-banner"
+          : "affiliate-projection-health-meta"}
+        >
+          <strong>
+            {projectionHistoryIncomplete
+              ? t("ecommerce.affiliateWorkspace.projectionHistorySyncing", {
+                  defaultValue: "Current Affiliate data is ready; historical coverage is still syncing",
+                })
+              : t("ecommerce.affiliateWorkspace.projectionCurrentReady", {
+                  defaultValue: "Affiliate operational data is ready",
+                })}
+          </strong>
+          <span>
+            {t("ecommerce.affiliateWorkspace.projectionLastSynced", { defaultValue: "Operational data last synced" })}: {formatDate(
+              projectionHealth.datasets
+                .map((dataset) => dataset.lastHeadSyncAt ?? dataset.lastSuccessfulSyncAt)
+                .filter((value): value is string => Boolean(value))
+                .sort()
+                .at(0) ?? null,
+            )}
+            {projectionHistoryIncomplete
+              ? ` · ${projectionHealth.datasets.map((dataset) => `${dataset.dataset}: ${dataset.historyStatus}`).join(" · ")}`
+              : ""}
+          </span>
         </div>
       ) : null}
 

@@ -2504,10 +2504,17 @@ export const AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY = gql`
       datasets {
         dataset
         status
+        currentStatus
+        historyStatus
         ready
         complete
         stale
         lastSuccessfulSyncAt
+        lastHeadSyncAt
+        lastHistorySyncAt
+        historyCutoffAt
+        oldestCoveredAt
+        providerWindowLimited
         reason
       }
     }
