@@ -354,7 +354,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           key
           owner
           sourceType
-          status
           workKind
           requiredAction
           shopId
@@ -461,7 +460,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           }
           stateUpdatedAt
           activeCollaborationRecordIds
-          pendingActionProposalId
           shopStates {
             shopId
             tagIds

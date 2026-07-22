@@ -136,7 +136,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         key
         owner
         sourceType
-        status
         workKind
         requiredAction
         shopId
@@ -226,7 +225,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         activeRunBaseEventCursor
         stateUpdatedAt
         activeCollaborationRecordIds
-        pendingActionProposalId
         shopStates {
           shopId
           tagIds

@@ -50,7 +50,7 @@ export interface ActionProposal {
   creatorId?: Maybe<Scalars['ID']['output']>;
   /** Best-known creator identity for staff review display. This is a profile projection, not proposal execution input. */
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
-  /** Relationship workspace that owns this proposal. A relationship can have at most one pending proposal. */
+  /** Relationship workspace that owns this proposal. A relationship can have at most one blocking PENDING or transient APPROVED proposal. */
   creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
   creatorRelationshipId: Scalars['ID']['output'];
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
@@ -237,7 +237,6 @@ export const ActionProposalStatus = {
   Executed: 'EXECUTED',
   ExecutionFailed: 'EXECUTION_FAILED',
   Expired: 'EXPIRED',
-  Modified: 'MODIFIED',
   Pending: 'PENDING',
   Rejected: 'REJECTED',
   RevisionRequested: 'REVISION_REQUESTED',
@@ -806,7 +805,6 @@ export const AffiliateCollaborationRecordProcessReason = {
   MessageDeliveryFailed: 'MESSAGE_DELIVERY_FAILED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
   PlatformStateSync: 'PLATFORM_STATE_SYNC',
-  ProposalWaitingApproval: 'PROPOSAL_WAITING_APPROVAL',
   SampleAwaitingPlatformShipment: 'SAMPLE_AWAITING_PLATFORM_SHIPMENT',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SampleContentFollowUpDue: 'SAMPLE_CONTENT_FOLLOW_UP_DUE',
@@ -854,7 +852,6 @@ export const AffiliateCollaborationRequiredAction = {
   None: 'NONE',
   ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
   RespondToCreator: 'RESPOND_TO_CREATOR',
-  ReviewActionProposal: 'REVIEW_ACTION_PROPOSAL',
   ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
   ReviewCollaboration: 'REVIEW_COLLABORATION',
   ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
@@ -1173,7 +1170,6 @@ export interface AffiliateCreatorRelationship {
   lastPlatformSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lifecycleEventSequence?: Maybe<Scalars['Int']['output']>;
   operationalConfigRevision: Scalars['Int']['output'];
-  pendingActionProposalId?: Maybe<Scalars['ID']['output']>;
   protectionIntentId?: Maybe<Scalars['ID']['output']>;
   shopStates: Array<AffiliateCreatorRelationshipShopState>;
   stateUpdatedAt: Scalars['DateTimeISO']['output'];
@@ -1754,6 +1750,7 @@ export const AffiliateModelUsageScope = {
 export type AffiliateModelUsageScope = typeof AffiliateModelUsageScope[keyof typeof AffiliateModelUsageScope];
 export const AffiliateOperationalProjectionDataset = {
   Collaborations: 'COLLABORATIONS',
+  Messages: 'MESSAGES',
   SampleApplications: 'SAMPLE_APPLICATIONS'
 } as const;
 
@@ -1956,17 +1953,10 @@ export interface AffiliateRelationshipAgendaItem {
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
   sourceType: AffiliateRelationshipAgendaSourceType;
-  status: AffiliateRelationshipAgendaItemStatus;
   updatedAt: Scalars['DateTimeISO']['output'];
   workKind: AffiliateWorkKind;
 }
 
-export const AffiliateRelationshipAgendaItemStatus = {
-  Open: 'OPEN',
-  Resolved: 'RESOLVED'
-} as const;
-
-export type AffiliateRelationshipAgendaItemStatus = typeof AffiliateRelationshipAgendaItemStatus[keyof typeof AffiliateRelationshipAgendaItemStatus];
 export const AffiliateRelationshipAgendaOwner = {
   Agent: 'AGENT',
   External: 'EXTERNAL',
@@ -2009,7 +1999,6 @@ export const AffiliateRelationshipRequiredAction = {
   NoAction: 'NO_ACTION',
   ReplyToCreator: 'REPLY_TO_CREATOR',
   ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
-  ReviewActionProposal: 'REVIEW_ACTION_PROPOSAL',
   ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
   ReviewAmbiguousContext: 'REVIEW_AMBIGUOUS_CONTEXT',
   ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
@@ -2385,7 +2374,6 @@ export interface AffiliateWhatsAppMessagesInput {
 
 /** Record-level merged work bundle kind consumed by the affiliate agent-run factory. */
 export const AffiliateWorkBundleKind = {
-  ApprovalReviewOnly: 'APPROVAL_REVIEW_ONLY',
   ContentFollowUp: 'CONTENT_FOLLOW_UP',
   CreatorFollowUp: 'CREATOR_FOLLOW_UP',
   CreatorReplyOnly: 'CREATOR_REPLY_ONLY',
@@ -2408,7 +2396,6 @@ export interface AffiliateWorkContext {
   creatorRelation?: Maybe<AffiliateCreatorRelationship>;
   focusCollaboration?: Maybe<AffiliateCollaborationRecord>;
   missingContext: Array<AffiliateWorkMissingContext>;
-  pendingProposals: Array<ActionProposal>;
   primarySampleApplication?: Maybe<SampleApplicationRecord>;
   productContext?: Maybe<AffiliateWorkProductContext>;
   recommendedActionTypes: Array<ActionProposalType>;
@@ -2420,7 +2407,7 @@ export interface AffiliateWorkContext {
 export interface AffiliateWorkItem {
   /** True when desktop should consider starting an affiliate agent run for this work item. */
   agentDispatchRecommended: Scalars['Boolean']['output'];
-  /** Current open Agent working agenda. Revision-requested proposals are attached only to the agenda item that caused the dispatch. */
+  /** Current Agent working agenda. Revision-requested proposals are attached only to the agenda item that caused the dispatch. */
   agentWorkingAgendaItems: Array<AffiliateRelationshipAgendaItem>;
   businessDeveloperConfigRevision?: Maybe<Scalars['Int']['output']>;
   businessDeveloperIdSnapshot?: Maybe<Scalars['ID']['output']>;
@@ -2437,7 +2424,6 @@ export interface AffiliateWorkItem {
   focusShopId: Scalars['ID']['output'];
   /** Stable work-item ID. Relationship-level work items use the CreatorRelationship ID. */
   id: Scalars['ID']['output'];
-  latestPendingProposal?: Maybe<ActionProposal>;
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
   processingStatus: AffiliateRelationshipProcessingStatus;
   recommendedActionTypes: Array<ActionProposalType>;
@@ -2483,7 +2469,6 @@ export const AffiliateWorkItemSubjectType = {
 export type AffiliateWorkItemSubjectType = typeof AffiliateWorkItemSubjectType[keyof typeof AffiliateWorkItemSubjectType];
 /** Backend-derived affiliate work item kind consumed by desktop agent-run factories and review UI. */
 export const AffiliateWorkKind = {
-  ApprovalReview: 'APPROVAL_REVIEW',
   ContentFollowUp: 'CONTENT_FOLLOW_UP',
   CreatorFollowUp: 'CREATOR_FOLLOW_UP',
   IdentityResolution: 'IDENTITY_RESOLUTION',
