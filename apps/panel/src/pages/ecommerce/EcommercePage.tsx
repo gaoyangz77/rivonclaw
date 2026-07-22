@@ -10,7 +10,7 @@ import { useOAuthFlow } from "./hooks/useOAuthFlow.js";
 import { useEscalation } from "./hooks/useEscalation.js";
 import { useDeviceBinding } from "./hooks/useDeviceBinding.js";
 import { ShopTable } from "./components/ShopTable.js";
-import { ConnectShopModal } from "./components/ConnectShopModal.js";
+import { ConnectShopModal } from "../../components/ecommerce/ConnectShopModal.js";
 import { ShopDrawer } from "./components/ShopDrawer.js";
 
 export interface UnpaidReachoutStageDraft {
@@ -239,7 +239,7 @@ export const EcommercePage = observer(function EcommercePage() {
 
   async function handleReauthorize(shopId: string) {
     const shop = shops.find((s) => s.id === shopId);
-    const appId = shop?.platformAppId || (platformApps.length > 0 ? platformApps[0].id : "");
+    const appId = shop?.platformAppId ?? "";
     if (!appId) {
       showToast(t("ecommerce.oauthFailed"), "error");
       return;

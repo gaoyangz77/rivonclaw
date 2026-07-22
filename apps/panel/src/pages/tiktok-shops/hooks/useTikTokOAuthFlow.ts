@@ -17,7 +17,6 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthWaiting, setOauthWaiting] = useState(false);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
-  const [selectedPlatformAppId, setSelectedPlatformAppId] = useState<string>("");
 
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unsubscribeOAuthRef = useRef<(() => void) | null>(null);
@@ -41,14 +40,6 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
       if (unsubscribeOAuthRef.current) unsubscribeOAuthRef.current();
     };
   }, []);
-
-  // Auto-select first platform app when list loads
-  const platformApps = entityStore.platformApps;
-  useEffect(() => {
-    if (platformApps.length > 0 && !selectedPlatformAppId) {
-      setSelectedPlatformAppId(platformApps[0].id);
-    }
-  }, [platformApps, selectedPlatformAppId]);
 
   function handleError(err: unknown, fallbackKey: string) {
     if (hasUpgradeRequired(err)) {
@@ -83,12 +74,12 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
     }, OAUTH_TIMEOUT_MS);
   }
 
-  async function handleConnectShop() {
-    if (!selectedPlatformAppId) return;
+  async function handleConnectShop(platformAppId: string) {
+    if (!platformAppId) return;
     setOauthLoading(true);
     setUpgradePrompt(false);
     try {
-      const { authUrl } = await entityStore.initiateTikTokOAuth(selectedPlatformAppId);
+      const { authUrl } = await entityStore.initiateTikTokOAuth(platformAppId);
       setConnectModalOpen(false);
       startOAuthSSEListener();
       setOauthWaiting(true);
@@ -103,7 +94,7 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
   async function handleReauthorize(shopId: string) {
     const shops = entityStore.shops;
     const shop = shops.find((s) => s.id === shopId);
-    const appId = shop?.platformAppId || (platformApps.length > 0 ? platformApps[0].id : "");
+    const appId = shop?.platformAppId ?? "";
     if (!appId) {
       showToast(t("tiktokShops.oauthFailed"), "error");
       return;
@@ -128,8 +119,6 @@ export function useTikTokOAuthFlow({ setUpgradePrompt }: UseTikTokOAuthFlowParam
     oauthWaiting,
     connectModalOpen,
     setConnectModalOpen,
-    selectedPlatformAppId,
-    setSelectedPlatformAppId,
     cleanupOAuthWait,
     handleConnectShop,
     handleReauthorize,

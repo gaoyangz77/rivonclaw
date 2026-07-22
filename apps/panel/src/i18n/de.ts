@@ -3240,6 +3240,7 @@ export default {
       "title": "Shop hinzufügen",
       "marketLabel": "Markt / Region",
       "marketPlaceholder": "Wählen Sie einen Markt aus...",
+      "marketSearchPlaceholder": "Nach Marktcode oder Namen suchen...",
       "sellerTypeLabel": "Verkäufertyp",
       "sellerTypePlaceholder": "Wählen Sie einen Verkäufertyp aus...",
       "platformLabel": "Plattform",

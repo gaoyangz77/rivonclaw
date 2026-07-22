@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "../../../components/modals/Modal.js";
-import { Select } from "../../../components/inputs/Select.js";
-import { CopyIcon, CheckIcon, InfoIcon } from "../../../components/icons.js";
+import { Modal } from "../modals/Modal.js";
+import { Select } from "../inputs/Select.js";
+import { CopyIcon, CheckIcon, InfoIcon } from "../icons.js";
+import { GQL } from "@rivonclaw/core";
 import type { PlatformApp } from "@rivonclaw/core/models";
 import {
-  SHOP_ONBOARDING_MARKETS,
-  platformAppsForOnboardingMarket,
-} from "../shop-onboarding-markets.js";
+  onboardingMarkets,
+  onboardingPlatforms,
+  onboardingSellerTypes,
+  platformAppsForOnboardingSelection,
+} from "../../lib/shop-onboarding-options.js";
 
 interface ConnectShopModalProps {
   isOpen: boolean;
@@ -36,82 +39,41 @@ export function ConnectShopModal({
 }: ConnectShopModalProps) {
   const { t } = useTranslation();
 
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const [selectedMarket, setSelectedMarket] = useState<string>("");
   const [selectedSellerType, setSelectedSellerType] = useState<string>("");
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const prevOpenRef = useRef(false);
 
-  const availableMarkets = SHOP_ONBOARDING_MARKETS.filter(
-    (market) => platformAppsForOnboardingMarket(platformApps, market).length > 0,
+  const availablePlatforms = onboardingPlatforms(platformApps);
+  const availableMarkets = onboardingMarkets(platformApps, selectedPlatform);
+  const availableSellerTypes = onboardingSellerTypes(
+    platformApps,
+    selectedPlatform,
+    selectedMarket,
   );
-  const availableMarketsSignature = availableMarkets.join("\u0001");
+  const preferredPlatform = availablePlatforms.includes(GQL.PlatformType.TiktokShop)
+    ? GQL.PlatformType.TiktokShop
+    : (availablePlatforms[0] ?? "");
 
-  // Auto-select the preferred market when the modal opens.
+  // TikTok Shop is the primary onboarding platform; market remains explicit.
   useEffect(() => {
     if (isOpen && !prevOpenRef.current) {
-      const markets = availableMarketsSignature ? availableMarketsSignature.split("\u0001") : [];
-      const preferredMarket = markets.includes("US")
-        ? "US"
-        : (markets[0] ?? "");
-      setSelectedMarket(preferredMarket);
+      setSelectedPlatform(preferredPlatform);
+      setSelectedMarket("");
       setSelectedSellerType("");
-      setSelectedPlatform("");
+    } else if (isOpen && !selectedPlatform && preferredPlatform) {
+      // PlatformApps may finish loading after the modal opens.
+      setSelectedPlatform(preferredPlatform);
     }
     prevOpenRef.current = isOpen;
-  }, [availableMarketsSignature, isOpen]);
+  }, [isOpen, preferredPlatform, selectedPlatform]);
 
-  const matchingAppsForMarket = selectedMarket
-    ? platformAppsForOnboardingMarket(platformApps, selectedMarket)
-    : [];
-
-  const availableSellerTypes = [
-    ...new Set(matchingAppsForMarket.map((app) => app.sellerType)),
-  ].sort((left, right) => {
-    if (left === "LOCAL") return -1;
-    if (right === "LOCAL") return 1;
-    return left.localeCompare(right);
-  });
-  const availableSellerTypesSignature = availableSellerTypes.join("\u0001");
-
-  useEffect(() => {
-    const sellerTypes = availableSellerTypesSignature
-      ? availableSellerTypesSignature.split("\u0001")
-      : [];
-    if (!selectedMarket || sellerTypes.length === 0) {
-      if (selectedSellerType) setSelectedSellerType("");
-      return;
-    }
-    if (!selectedSellerType || !sellerTypes.includes(selectedSellerType)) {
-      setSelectedSellerType(sellerTypes[0]);
-    }
-  }, [availableSellerTypesSignature, selectedMarket, selectedSellerType]);
-
-  const matchingAppsForSellerType = selectedSellerType
-    ? matchingAppsForMarket.filter((app) => app.sellerType === selectedSellerType)
-    : [];
-
-  const availablePlatforms = [...new Set(matchingAppsForSellerType.map((app) => app.platform))];
-  const availablePlatformsSignature = availablePlatforms.join("\u0001");
-
-  // Keep platform selection in sync with the currently selected market.
-  useEffect(() => {
-    const platforms = availablePlatformsSignature ? availablePlatformsSignature.split("\u0001") : [];
-    if (!selectedMarket) {
-      if (selectedPlatform) setSelectedPlatform("");
-      return;
-    }
-    if (platforms.length === 0) {
-      if (selectedPlatform) setSelectedPlatform("");
-      return;
-    }
-    if (!selectedPlatform || !platforms.includes(selectedPlatform)) {
-      setSelectedPlatform(platforms[0]);
-    }
-  }, [availablePlatformsSignature, selectedMarket, selectedPlatform]);
-
-  const matchedApps = selectedMarket && selectedSellerType && selectedPlatform
-    ? matchingAppsForSellerType.filter((app) => app.platform === selectedPlatform)
-    : [];
+  const matchedApps = platformAppsForOnboardingSelection(
+    platformApps,
+    selectedPlatform,
+    selectedMarket,
+    selectedSellerType,
+  );
 
   const selectedPlatformAppId = matchedApps.length === 1 ? matchedApps[0].id : "";
 
@@ -140,23 +102,54 @@ export function ConnectShopModal({
           <>
             <div>
               <label className="form-label-block">
-                {t("ecommerce.addShopModal.marketLabel")} <span className="required">*</span>
+                {t("ecommerce.addShopModal.platformLabel")} <span className="required">*</span>
               </label>
               {platformApps.length === 0 ? (
                 <div className="form-hint">{t("tiktokShops.noPlatformApps")}</div>
               ) : (
                 <Select
-                  value={selectedMarket}
-                  onChange={(v) => setSelectedMarket(v)}
+                  value={selectedPlatform}
+                  onChange={(value) => {
+                    setSelectedPlatform(value);
+                    setSelectedMarket("");
+                    setSelectedSellerType("");
+                  }}
                   className="input-full"
-                  ariaLabel={t("ecommerce.addShopModal.marketLabel")}
-                  placeholder={t("ecommerce.addShopModal.marketPlaceholder")}
-                  options={availableMarkets.map((market) => ({
-                    value: market,
-                    label: t(`ecommerce.market.${market}`, { defaultValue: market }),
+                  ariaLabel={t("ecommerce.addShopModal.platformLabel")}
+                  placeholder={t("ecommerce.addShopModal.platformPlaceholder")}
+                  options={availablePlatforms.map((platform) => ({
+                    value: platform,
+                    label: t(`ecommerce.platform.${platform}`, { defaultValue: platform }),
                   }))}
                 />
               )}
+            </div>
+            <div>
+              <label className="form-label-block">
+                {t("ecommerce.addShopModal.marketLabel")} <span className="required">*</span>
+              </label>
+              <Select
+                value={selectedMarket}
+                onChange={(value) => {
+                  setSelectedMarket(value);
+                  const sellerTypes = onboardingSellerTypes(
+                    platformApps,
+                    selectedPlatform,
+                    value,
+                  );
+                  setSelectedSellerType(sellerTypes[0] ?? "");
+                }}
+                className="input-full"
+                ariaLabel={t("ecommerce.addShopModal.marketLabel")}
+                placeholder={t("ecommerce.addShopModal.marketPlaceholder")}
+                searchable
+                searchPlaceholder={t("ecommerce.addShopModal.marketSearchPlaceholder")}
+                disabled={!selectedPlatform}
+                options={availableMarkets.map((market) => ({
+                  value: market,
+                  label: t(`ecommerce.market.${market}`, { defaultValue: market }),
+                }))}
+              />
             </div>
             <div>
               <label className="form-label-block">
@@ -164,31 +157,14 @@ export function ConnectShopModal({
               </label>
               <Select
                 value={selectedSellerType}
-                onChange={(v) => setSelectedSellerType(v)}
+                onChange={setSelectedSellerType}
                 className="input-full"
                 ariaLabel={t("ecommerce.addShopModal.sellerTypeLabel")}
                 placeholder={t("ecommerce.addShopModal.sellerTypePlaceholder")}
-                disabled={!selectedMarket}
+                disabled={!selectedPlatform || !selectedMarket}
                 options={availableSellerTypes.map((sellerType) => ({
                   value: sellerType,
                   label: t(`ecommerce.sellerType.${sellerType}`, { defaultValue: sellerType }),
-                }))}
-              />
-            </div>
-            <div>
-              <label className="form-label-block">
-                {t("ecommerce.addShopModal.platformLabel")} <span className="required">*</span>
-              </label>
-              <Select
-                value={selectedPlatform}
-                onChange={(v) => setSelectedPlatform(v)}
-                className="input-full"
-                ariaLabel={t("ecommerce.addShopModal.platformLabel")}
-                placeholder={t("ecommerce.addShopModal.platformPlaceholder")}
-                disabled={!selectedMarket}
-                options={availablePlatforms.map((platform) => ({
-                  value: platform,
-                  label: t(`ecommerce.platform.${platform}`, { defaultValue: platform }),
                 }))}
               />
             </div>

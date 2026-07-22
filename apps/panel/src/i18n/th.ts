@@ -3240,6 +3240,7 @@ export default {
       "title": "เพิ่มร้านค้า",
       "marketLabel": "ตลาด/ภูมิภาค",
       "marketPlaceholder": "เลือกตลาด...",
+      "marketSearchPlaceholder": "ค้นหาด้วยรหัสหรือชื่อตลาด...",
       "sellerTypeLabel": "ประเภทผู้ขาย",
       "sellerTypePlaceholder": "เลือกประเภทผู้ขาย...",
       "platformLabel": "แพลตฟอร์ม",

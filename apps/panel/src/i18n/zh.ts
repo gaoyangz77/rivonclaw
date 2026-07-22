@@ -4043,6 +4043,7 @@ export default {
       title: "添加店铺",
       marketLabel: "地区 / 市场",
       marketPlaceholder: "选择地区...",
+      marketSearchPlaceholder: "搜索地区代码或名称...",
       sellerTypeLabel: "卖家类型",
       sellerTypePlaceholder: "选择卖家类型...",
       platformLabel: "平台",
