@@ -18,7 +18,7 @@ export function buildAffiliateAgentRunRequest(
   if (!workItem.agentDispatchRecommended) return null;
 
   const idempotencySuffix = isSampleReviewWorkItem(workItem)
-    ? workItem.sampleApplicationRecord?.id ??
+    ? resolveSampleApplicationRecordId(workItem) ??
       workItem.collaborationRecordId ??
       workItem.creatorRelationshipId
     : workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
@@ -38,6 +38,19 @@ export function buildAffiliateAgentRunRequest(
     ].filter(Boolean).join(":"),
     abortActive: false,
   };
+}
+
+export function resolveSampleApplicationRecordId(
+  workItem: GQL.AffiliateWorkItem,
+): string | null {
+  return workItem.sampleApplicationRecord?.id ??
+    workItem.context?.primarySampleApplication?.id ??
+    workItem.agentWorkingAgendaItems?.find((item) => item.sampleApplicationRecordId)
+      ?.sampleApplicationRecordId ??
+    workItem.creatorRelationship?.agendaItems?.find((item) => item.sampleApplicationRecordId)
+      ?.sampleApplicationRecordId ??
+    workItem.collaboration?.sampleApplicationRecordId ??
+    null;
 }
 
 /**

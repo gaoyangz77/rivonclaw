@@ -25,6 +25,7 @@ import {
 } from "../cloud/affiliate-queries.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
+import { resolveSampleApplicationRecordId } from "./affiliate-agent-run-factory.js";
 
 const log = createLogger("affiliate-inbound");
 const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
@@ -639,7 +640,7 @@ export class AffiliateInbound {
           triggerId: base.creatorRelationshipId,
         };
       case GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask: {
-        const sampleTriggerId = workItem.sampleApplicationRecord?.id;
+        const sampleTriggerId = resolveSampleApplicationRecordId(workItem);
         if (!sampleTriggerId) return null;
         return {
           ...base,
@@ -676,7 +677,7 @@ export class AffiliateInbound {
         };
       case GQL.AffiliateWorkKind.SampleApplicationDecision:
       case GQL.AffiliateWorkKind.SampleShipment: {
-        const sampleTriggerId = workItem.sampleApplicationRecord?.id;
+        const sampleTriggerId = resolveSampleApplicationRecordId(workItem);
         if (!sampleTriggerId) return null;
         return {
           ...base,
