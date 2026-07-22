@@ -1840,6 +1840,7 @@ export default {
         ECOM_GET_CONVERSATION_MESSAGES: "Get Messages",
         ECOM_GET_CONVERSATION_DETAILS: "Get Conversation Details",
         ECOM_GET_CS_PERFORMANCE: "CS Performance",
+        ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Get Unpaid Order Evaluation",
         ECOM_SEARCH_CS_SESSIONS: "Search CS Sessions",
         ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED: "Set Conversation AI",
         // E-commerce Ops — Orders

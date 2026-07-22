@@ -1765,6 +1765,7 @@ export default {
         ECOM_GET_CONVERSATION_MESSAGES: "获取会话消息",
         ECOM_GET_CONVERSATION_DETAILS: "获取会话详情",
         ECOM_GET_CS_PERFORMANCE: "客服绩效",
+        ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "获取未付款订单评估",
         ECOM_SEARCH_CS_SESSIONS: "搜索客服会话",
         ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED: "设置会话 AI",
         // 电商运营 — 订单

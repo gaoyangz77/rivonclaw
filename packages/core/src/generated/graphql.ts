@@ -2535,17 +2535,20 @@ export interface AgentCsSettingsInput {
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
   /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
+  /** Optimistic concurrency token for an active configuration experiment. Required when disabling reachout/evaluation would stop that experiment. */
+  expectedConfigExperimentId?: InputMaybe<Scalars['ID']['input']>;
+  /** Optimistic concurrency token for an active holdout experiment. Required when a requested settings change can replace or stop that experiment. */
+  expectedHoldoutExperimentId?: InputMaybe<Scalars['ID']['input']>;
   /** Review optimization settings. Omit or pass null to keep. */
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
   /** Nested configuration optimization within holdout Treatment traffic. Variant A is always the current production configuration. */
   unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
+  /** Unpaid-order evaluation patch. Omit/null to keep. Read the current evaluation first and pass the active experiment IDs when changing it. */
   unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Unpaid-order holdout experiment patch. Omit/null to keep. */
-  unpaidOrderReachoutExperiment?: InputMaybe<UnpaidOrderReachoutExperimentInput>;
   /** Full replacement for unpaid-order reminder stages. Omit/null to keep. Maximum 3 stages. */
   unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
 }
@@ -4505,16 +4508,21 @@ export interface CustomerServiceSettingsInput {
   escalationChannelId?: InputMaybe<Scalars['String']['input']>;
   /** Escalation recipient ID. Omit or pass null to keep, empty string to clear. */
   escalationRecipientId?: InputMaybe<Scalars['String']['input']>;
+  /** Optimistic concurrency token for an active configuration experiment. Required when disabling reachout/evaluation would stop that experiment. */
+  expectedConfigExperimentId?: InputMaybe<Scalars['ID']['input']>;
+  /** Optimistic concurrency token for an active holdout experiment. Required when a requested settings change can replace or stop that experiment. */
+  expectedHoldoutExperimentId?: InputMaybe<Scalars['ID']['input']>;
   /** Review optimization settings. Omit or pass null to keep. */
   reviewOptimization?: InputMaybe<ReviewOptimizationSettingsInput>;
   /** RunProfile ID for CS. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
   /** Nested configuration optimization within holdout Treatment traffic. Variant A is always the current production configuration. */
   unpaidOrderConfigExperiment?: InputMaybe<AgentUnpaidOrderConfigExperimentInput>;
+  /** Unpaid-order evaluation patch. Omit/null to keep. Read the current evaluation first and pass the active experiment IDs when changing it. */
   unpaidOrderEvaluation?: InputMaybe<AgentUnpaidOrderEvaluationInput>;
   /** Unpaid-order proactive reachout flag. Omit or pass null to keep, true/false to set. */
   unpaidOrderReachoutEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Unpaid-order holdout experiment patch. Omit/null to keep. */
+  /** Backend/internal holdout settings patch. Agent callers must use unpaidOrderEvaluation instead. */
   unpaidOrderReachoutExperiment?: InputMaybe<UnpaidOrderReachoutExperimentInput>;
   /** Full replacement for unpaid-order reminder stages. Omit/null to keep. Maximum 3 stages. */
   unpaidOrderReachoutStages?: InputMaybe<Array<UnpaidOrderReachoutStageInput>>;
@@ -10356,6 +10364,7 @@ export const ToolId = {
   EcomGetConversations: 'ECOM_GET_CONVERSATIONS',
   EcomGetConversationMessages: 'ECOM_GET_CONVERSATION_MESSAGES',
   EcomGetCsPerformance: 'ECOM_GET_CS_PERFORMANCE',
+  EcomGetCsUnpaidOrderEvaluation: 'ECOM_GET_CS_UNPAID_ORDER_EVALUATION',
   EcomGetFulfillmentTracking: 'ECOM_GET_FULFILLMENT_TRACKING',
   EcomGetInventoryAnalysis: 'ECOM_GET_INVENTORY_ANALYSIS',
   EcomGetOrder: 'ECOM_GET_ORDER',
