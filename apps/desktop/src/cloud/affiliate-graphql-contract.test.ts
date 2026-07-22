@@ -26,4 +26,10 @@ describe("affiliate desktop GraphQL contracts", () => {
     expect(compactQuery).toContain("lifecycleEventSequence");
     expect(compactQuery).toContain("activeRunBaseEventCursor");
   });
+
+  it("does not query the removed relationship agenda status field", () => {
+    const compactSubscription = AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION.replace(/\s+/g, " ");
+
+    expect(compactSubscription).not.toMatch(/agendaItems \{[^}]*\bstatus\b/);
+  });
 });
