@@ -62,10 +62,8 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
   const openAgentAgenda = projectedAgentAgenda.length > 0
     ? projectedAgentAgenda
     : (workItem.creatorRelationship?.agendaItems ?? []).filter(
-    (item) =>
-      item.owner === GQL.AffiliateRelationshipAgendaOwner.Agent &&
-      item.status === GQL.AffiliateRelationshipAgendaItemStatus.Open,
-    );
+        (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.Agent,
+      );
   const agendaItems = openAgentAgenda.length > 0
     ? openAgentAgenda
     : [{

@@ -202,8 +202,6 @@ function ingestAffiliateWorkItemIntoWorkspace(
   workspace.upsertAffiliateCollaborationRecord?.(context.focusCollaboration ?? null);
   for (const record of context.activeCollaborations ?? []) workspace.upsertAffiliateCollaborationRecord?.(record);
   for (const record of context.ambiguousCollaborationCandidates ?? []) workspace.upsertAffiliateCollaborationRecord?.(record);
-  workspace.upsertAffiliateActionProposal?.(workItem.latestPendingProposal ?? null);
-  for (const proposal of context.pendingProposals ?? []) workspace.upsertAffiliateActionProposal?.(proposal);
   workspace.upsertAffiliateSampleApplicationRecord?.(workItem.sampleApplicationRecord ?? null);
   workspace.upsertAffiliateSampleApplicationRecord?.(context.primarySampleApplication ?? null);
   for (const sample of context.relatedSampleApplications ?? []) workspace.upsertAffiliateSampleApplicationRecord?.(sample);
@@ -247,7 +245,6 @@ const PROPOSAL_FILTERS = [
   GQL.ActionProposalStatus.RevisionRequested,
   GQL.ActionProposalStatus.Superseded,
   GQL.ActionProposalStatus.Expired,
-  GQL.ActionProposalStatus.Modified,
 ] as const;
 
 type ProposalFilter = (typeof PROPOSAL_FILTERS)[number];
@@ -1918,11 +1915,6 @@ function collaborationRecordMatchesHistoryStatusFilter(
 }
 
 function isAffiliateStaffHandlingWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
-  const hasPendingProposal =
-    workItem.latestPendingProposal?.status === GQL.ActionProposalStatus.Pending ||
-    (workItem.context.pendingProposals ?? []).some((proposal) => proposal.status === GQL.ActionProposalStatus.Pending);
-  if (hasPendingProposal) return false;
-  if (workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.ReviewActionProposal) return false;
   if (workItem.staffReviewRequired) return true;
   if (workItem.processingStatus === GQL.AffiliateRelationshipProcessingStatus.StaffRequired) return true;
   switch (workItem.requiredAction) {
@@ -4628,8 +4620,8 @@ function relationshipWorkItemFromProposal(
     creatorOpenId: focusCollaboration?.creatorOpenId ?? null,
     creatorImId: focusCollaboration?.creatorImId ?? null,
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.StaffRequired,
-    requiredAction: GQL.AffiliateRelationshipRequiredAction.ReviewActionProposal,
-    processReasons: focusCollaboration?.processReasons ?? [GQL.AffiliateCollaborationRecordProcessReason.ProposalWaitingApproval],
+    requiredAction: GQL.AffiliateRelationshipRequiredAction.NoAction,
+    processReasons: focusCollaboration?.processReasons ?? [],
     lastInboundAt: focusCollaboration?.lastCreatorMessageAt ?? null,
     lastOutboundAt: relationship?.lastOutboundAt ?? null,
     nextSellerActionAt: relationship?.nextSellerActionAt ?? focusCollaboration?.nextSellerActionAt ?? null,
@@ -4659,14 +4651,7 @@ function relationshipWorkItemFromWorkItem(
   const projectionCollaborations = (projection?.collaborationRecords ?? []) as GQL.AffiliateCollaborationRecord[];
   const projectionPendingProposals = ((projection?.actionProposals ?? []) as GQL.ActionProposal[])
     .filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending);
-  const pendingProposals = mergeById([
-    ...(context.pendingProposals?.length
-      ? context.pendingProposals
-      : workItem.latestPendingProposal
-        ? [workItem.latestPendingProposal]
-        : []),
-    ...projectionPendingProposals,
-  ]);
+  const pendingProposals = mergeById(projectionPendingProposals);
   const projectedFocusCollaboration = projection?.creatorRelationship?.focusCollaborationRecordId
     ? projectionCollaborations.find((record) => record.id === projection.creatorRelationship.focusCollaborationRecordId)
     : null;
@@ -4716,7 +4701,7 @@ function relationshipWorkItemFromWorkItem(
     ambiguousCollaborations: context.ambiguousCollaborationCandidates ?? [],
     focusCollaboration,
     pendingProposals,
-    focusedProposal: workItem.latestPendingProposal ?? pendingProposals[0] ?? null,
+    focusedProposal: pendingProposals[0] ?? null,
     productContext: context.productContext ?? productContextFromProjection(projection),
     primarySampleApplication: context.primarySampleApplication ?? workItem.sampleApplicationRecord ?? sampleApplications[0] ?? null,
     relatedSampleApplications: sampleApplications,
@@ -4819,8 +4804,6 @@ function relationshipRequiredActionFromCollaboration(
       return GQL.AffiliateRelationshipRequiredAction.ReviewAgentFailure;
     case GQL.AffiliateCollaborationRequiredAction.ResolveCreatorIdentity:
       return GQL.AffiliateRelationshipRequiredAction.ResolveCreatorIdentity;
-    case GQL.AffiliateCollaborationRequiredAction.ReviewActionProposal:
-      return GQL.AffiliateRelationshipRequiredAction.ReviewActionProposal;
     case GQL.AffiliateCollaborationRequiredAction.ReviewCollaboration:
       return GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask;
     case GQL.AffiliateCollaborationRequiredAction.None:
@@ -6629,11 +6612,7 @@ function buildCollaborationWorkView(
     };
   }
 
-  if (
-    proposalPending ||
-    record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired ||
-    record.requiredAction === GQL.AffiliateCollaborationRequiredAction.ReviewActionProposal
-  ) {
+  if (proposalPending) {
     return {
       badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.approval"),
       badgeTone: "attention",

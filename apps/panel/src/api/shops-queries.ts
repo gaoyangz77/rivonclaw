@@ -816,184 +816,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
         trackingNumber
         updatedAt
       }
-      latestPendingProposal {
-        id
-        userId
-        shopId
-        campaignId
-        creatorId
-        collaborationRecordId
-        type
-        status
-        operatorSummary
-        predictionCacheIds
-        steps {
-          stepId
-          type
-          operatorSummary
-          predictionCacheIds
-messageIntent {
-          creatorId
-          creatorOpenId
-          preferredChannel
-          emailSubject
-          subjectHash
-          subjectLength
-          parts {
-            kind
-            text
-            textHash
-            textLength
-            draftAssetId
-            caption
-            captionHash
-            captionLength
-            emailDisposition
-            fileName
-            mimeType
-            sizeBytes
-            sha256
-            productId
-            targetCollaborationId
-            sampleApplicationId
-          }
-        }
-          sampleReviewIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            decision
-            rejectReason
-          }
-          sampleShipmentIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            warehouseId
-            skuId
-            quantity
-          }
-        }
-        createdAt
-        updatedAt
-        expiresAt
-        policySnapshot {
-          action
-          requiresApproval
-          matchedPolicyIds
-          reasons
-        }
-        decision {
-          decidedAt
-          note
-          actorType
-          actorId
-        }
-messageIntent {
-          creatorId
-          creatorOpenId
-          preferredChannel
-          emailSubject
-          subjectHash
-          subjectLength
-          parts {
-            kind
-            text
-            textHash
-            textLength
-            draftAssetId
-            caption
-            captionHash
-            captionLength
-            emailDisposition
-            fileName
-            mimeType
-            sizeBytes
-            sha256
-            productId
-            targetCollaborationId
-            sampleApplicationId
-          }
-        }
-        sampleReviewIntent {
-          sampleApplicationRecordId
-          platformApplicationId
-          decision
-          rejectReason
-        }
-        sampleShipmentIntent {
-          sampleApplicationRecordId
-          platformApplicationId
-          warehouseId
-          skuId
-          quantity
-        }
-        targetCollaborationIntent {
-          name
-          message
-          endTime
-          hasFreeSample
-          isSampleApprovalExempt
-          creatorIds
-          creatorOpenIds
-          products {
-            productId
-            targetCommissionRateBps
-            shopAdsCommissionRateBps
-          }
-          sellerContactInfo {
-            email
-            phoneNumber
-            whatsapp
-            telegram
-            line
-          }
-        }
-        creatorTagIntent {
-          creatorId
-          tagId
-        }
-        blockCreatorIntent {
-          creatorId
-          reason
-        }
-        campaignProductUpdateIntent {
-          campaignId
-          campaignProductId
-          productId
-          commissionRate
-          maxCommissionRate
-          sampleOfferMode
-          sampleQuota
-          sampleUnitCostAmount
-          sampleUnitCostCurrency
-          promotionPriority
-        }
-        approvalPolicyUpdateIntent {
-          policyId
-          action
-          creatorTagIds
-          campaignIds
-          productIds
-          reason
-          enabled
-        }
-        candidateDecisionIntent {
-          candidateIds
-          status
-          rationale
-        }
-        executionResult {
-          platformObjectId
-          domainObjectId
-          lifecycleEventIds
-          executedAt
-          errorMessage
-          deliveryId
-          deliveryStatus
-          preferredChannel
-          actualChannel
-          channelSelectionSource
-        }
-      }
       context {
         creatorProfile {
           id
@@ -1108,50 +930,6 @@ messageIntent {
           endedAt
           createdAt
           updatedAt
-        }
-        pendingProposals {
-          id
-          userId
-          shopId
-          campaignId
-          creatorId
-          collaborationRecordId
-          type
-          status
-          operatorSummary
-          updatedAt
-messageIntent {
-              creatorId
-              creatorOpenId
-              preferredChannel
-              emailSubject
-              subjectHash
-              subjectLength
-              parts {
-                kind
-                text
-                textHash
-                textLength
-                draftAssetId
-                caption
-                captionHash
-                captionLength
-                emailDisposition
-                fileName
-                mimeType
-                sizeBytes
-                sha256
-                productId
-                targetCollaborationId
-                sampleApplicationId
-              }
-            }
-          sampleReviewIntent {
-            sampleApplicationRecordId
-            platformApplicationId
-            decision
-            rejectReason
-          }
         }
         primarySampleApplication {
           id
@@ -1371,7 +1149,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
       lastInteractionAt
       shopState {
         shopId
-        lifecycleStage
         tagIds
         lastContactedAt
         lastInvitedAt
@@ -1394,7 +1171,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           key
           owner
           sourceType
-          status
           workKind
           requiredAction
           shopId
@@ -1545,7 +1321,6 @@ export const APPLY_CREATOR_TAG_MUTATION = gql`
           key
           owner
           sourceType
-          status
           workKind
           requiredAction
           shopId
@@ -1754,7 +1529,6 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
     decideActionProposal(input: $input) {
       id
       userId
-      shopId
       campaignId
       creatorId
       collaborationRecordId

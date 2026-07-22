@@ -194,12 +194,10 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       lastPlatformSyncedAt: null,
       stateUpdatedAt: "2026-05-11T00:01:00.000Z",
       activeCollaborationRecordIds: ["collab-001"],
-      pendingActionProposalId: null,
       agendaItems: [{
         key: "collaboration:collab-001:COMPLETE_COLLABORATION_TASK",
         owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
         sourceType: GQL.AffiliateRelationshipAgendaSourceType.Collaboration,
-        status: GQL.AffiliateRelationshipAgendaItemStatus.Open,
         workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
         requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
         shopId: "shop-001",
@@ -227,7 +225,6 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       updatedAt: "2026-05-11T00:01:00.000Z",
     },
     sampleApplicationRecord,
-    latestPendingProposal: null,
     context: {
       activeCollaborations: [collaboration],
       affiliateCollaboration: null,
@@ -236,7 +233,6 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       creatorRelation: null,
       focusCollaboration: collaboration,
       missingContext: [],
-      pendingProposals: [],
       primarySampleApplication: sampleApplicationRecord,
       productContext: null,
       recommendedActionTypes: [
@@ -287,7 +283,6 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
         key: "relationship:relationship-001:REPLY_TO_CREATOR",
         owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
         sourceType: GQL.AffiliateRelationshipAgendaSourceType.Relationship,
-        status: GQL.AffiliateRelationshipAgendaItemStatus.Open,
         workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
         requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
         shopId: "shop-001",
@@ -1744,12 +1739,6 @@ describe("affiliate work item dispatch", () => {
       },
       steps: [],
     } as unknown as GQL.AffiliateRevisionRequestedProposalContext;
-    const pending = {
-      ...revision,
-      id: "unrelated-pending-proposal",
-      status: GQL.ActionProposalStatus.Pending,
-      operatorSummary: "This staff-only pending proposal must stay hidden.",
-    } as unknown as GQL.ActionProposal;
     const agenda = {
       ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
       proposalId: revision.id,
@@ -1758,11 +1747,6 @@ describe("affiliate work item dispatch", () => {
     const request = buildAffiliateAgentRunRequest({
       workItem: createCreatorReplyWorkItem({
         agentWorkingAgendaItems: [agenda],
-        latestPendingProposal: pending,
-        context: {
-          ...base.context,
-          pendingProposals: [pending],
-        },
       }),
       platform: "tiktok",
     });
@@ -2209,7 +2193,7 @@ describe("affiliate work item dispatch", () => {
   it("does not dispatch work items that are projection-only", async () => {
     const workItem = createSampleReviewWorkItem({
       agentDispatchRecommended: false,
-      workKind: GQL.AffiliateWorkKind.ApprovalReview,
+      workKind: GQL.AffiliateWorkKind.ManualReview,
       processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
     });
 

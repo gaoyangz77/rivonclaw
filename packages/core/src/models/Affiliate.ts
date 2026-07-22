@@ -92,7 +92,6 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   lastPlatformSyncedAt: types.maybeNull(types.string),
   stateUpdatedAt: types.optional(types.string, nowIso),
   activeCollaborationRecordIds: types.optional(types.array(types.string), []),
-  pendingActionProposalId: types.maybeNull(types.string),
   blocked: types.optional(types.boolean, false),
   blockedShopIds: types.optional(types.array(types.string), []),
   createdAt: types.optional(types.string, nowIso),
@@ -542,11 +541,8 @@ export const AffiliateWorkspaceModel = types
         .map((productId) => self.getProductSummary(productId))
         .filter((product): product is NonNullable<typeof product> => Boolean(product));
       const actionProposals = self.proposalsForRelationship(creatorRelationshipId);
-      const pendingActionProposal = (
-        creatorRelationship.pendingActionProposalId
-          ? self.getActionProposal(creatorRelationship.pendingActionProposalId)
-          : null
-      ) ?? actionProposals.find((proposal) => proposal.status === "PENDING") ?? null;
+      const pendingActionProposal =
+        actionProposals.find((proposal) => proposal.status === "PENDING") ?? null;
       return {
         creatorRelationship,
         creatorProfile,

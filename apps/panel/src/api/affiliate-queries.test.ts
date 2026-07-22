@@ -1,4 +1,6 @@
-import { print } from "graphql";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { buildSchema, print, validate } from "graphql";
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
@@ -15,6 +17,26 @@ function queryText(document: Parameters<typeof print>[0]): string {
 }
 
 describe("affiliate workspace GraphQL contracts", () => {
+  it("keeps every Affiliate workspace operation valid against the backend schema", () => {
+    const schema = buildSchema(
+      readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"),
+    );
+    const operations = {
+      workItems: AFFILIATE_WORK_ITEMS_QUERY,
+      proposals: AFFILIATE_ACTION_PROPOSALS_QUERY,
+      contacts: AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
+      collaborations: AFFILIATE_COLLABORATION_RECORDS_QUERY,
+      creators: AFFILIATE_CREATORS_QUERY,
+      decideProposal: DECIDE_ACTION_PROPOSAL_MUTATION,
+      preferredAccount: SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
+    };
+    expect(
+      Object.entries(operations).flatMap(([operation, document]) =>
+        validate(schema, document).map((error) => ({ operation, message: error.message })),
+      ),
+    ).toEqual([]);
+  });
+
   it("loads creator relationship roster from the creator relationship API", () => {
     const query = queryText(AFFILIATE_CREATORS_QUERY);
 
@@ -55,7 +77,7 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorRelation");
     expect(query).toContain("focusCollaboration");
     expect(query).toContain("activeCollaborations");
-    expect(query).toContain("latestPendingProposal");
+    expect(query).not.toContain("latestPendingProposal");
   });
 
   it("decides proposals at creator relationship granularity", () => {
