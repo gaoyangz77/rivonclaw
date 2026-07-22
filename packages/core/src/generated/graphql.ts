@@ -831,11 +831,19 @@ export type AffiliateCollaborationRecordProcessingStatus = typeof AffiliateColla
 export interface AffiliateCollaborationRecordStatePayload {
   collaboration: AffiliateCollaborationRecord;
   complete: Scalars['Boolean']['output'];
+  coverageComplete: Scalars['Boolean']['output'];
+  currentStatus: AffiliateOperationalProjectionStatus;
+  historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  historyStatus: AffiliateOperationalProjectionStatus;
+  lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Sample Applications linked from the Mongo operational projection. */
   linkedSampleApplications: Array<SampleApplicationRecord>;
   observedAt: Scalars['DateTimeISO']['output'];
+  oldestCoveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
   projectionStatus: AffiliateOperationalProjectionStatus;
+  providerWindowLimited: Scalars['Boolean']['output'];
   readAt: Scalars['DateTimeISO']['output'];
   source: AffiliateProviderReadSource;
 }
@@ -970,10 +978,18 @@ export type AffiliateCreatorChannelContactStatus = typeof AffiliateCreatorChanne
 /** Mongo operational Collaboration projection for one CreatorRelationship. */
 export interface AffiliateCreatorCollaborationListPayload {
   complete: Scalars['Boolean']['output'];
+  coverageComplete: Scalars['Boolean']['output'];
   creatorOpenId: Scalars['String']['output'];
+  currentStatus: AffiliateOperationalProjectionStatus;
+  historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  historyStatus: AffiliateOperationalProjectionStatus;
   items: Array<AffiliateCollaboration>;
+  lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  oldestCoveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
   projectionStatus: AffiliateOperationalProjectionStatus;
+  providerWindowLimited: Scalars['Boolean']['output'];
   readAt: Scalars['DateTimeISO']['output'];
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
@@ -1187,10 +1203,18 @@ export interface AffiliateCreatorRelationshipStatePayload {
 /** Mongo operational Sample Application projection for one CreatorRelationship. */
 export interface AffiliateCreatorSampleApplicationListPayload {
   complete: Scalars['Boolean']['output'];
+  coverageComplete: Scalars['Boolean']['output'];
   creatorOpenId: Scalars['String']['output'];
+  currentStatus: AffiliateOperationalProjectionStatus;
+  historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  historyStatus: AffiliateOperationalProjectionStatus;
   items: Array<SampleApplicationRecord>;
+  lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  oldestCoveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
   projectionStatus: AffiliateOperationalProjectionStatus;
+  providerWindowLimited: Scalars['Boolean']['output'];
   readAt: Scalars['DateTimeISO']['output'];
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
@@ -1743,8 +1767,15 @@ export interface AffiliateOperationalProjectionHealthPayload {
 /** Readiness and freshness of one shop-level Affiliate operational projection. */
 export interface AffiliateOperationalProjectionReadiness {
   complete: Scalars['Boolean']['output'];
+  currentStatus: AffiliateOperationalProjectionStatus;
   dataset: AffiliateOperationalProjectionDataset;
+  historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  historyStatus: AffiliateOperationalProjectionStatus;
+  lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  oldestCoveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  providerWindowLimited: Scalars['Boolean']['output'];
   ready: Scalars['Boolean']['output'];
   reason?: Maybe<Scalars['String']['output']>;
   stale: Scalars['Boolean']['output'];
@@ -1754,7 +1785,10 @@ export interface AffiliateOperationalProjectionReadiness {
 export const AffiliateOperationalProjectionStatus = {
   Bootstrapping: 'BOOTSTRAPPING',
   Degraded: 'DEGRADED',
-  Ready: 'READY'
+  NotStarted: 'NOT_STARTED',
+  ProviderWindowLimited: 'PROVIDER_WINDOW_LIMITED',
+  Ready: 'READY',
+  Syncing: 'SYNCING'
 } as const;
 
 export type AffiliateOperationalProjectionStatus = typeof AffiliateOperationalProjectionStatus[keyof typeof AffiliateOperationalProjectionStatus];
@@ -2251,10 +2285,18 @@ export type AffiliateSampleApplicationLookupStatus = typeof AffiliateSampleAppli
 /** Current Mongo control-plane lookup for one sample application under a CreatorRelationship. */
 export interface AffiliateSampleApplicationStatePayload {
   complete: Scalars['Boolean']['output'];
+  coverageComplete: Scalars['Boolean']['output'];
+  currentStatus: AffiliateOperationalProjectionStatus;
   found: Scalars['Boolean']['output'];
+  historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  historyStatus: AffiliateOperationalProjectionStatus;
+  lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   observedAt: Scalars['DateTimeISO']['output'];
+  oldestCoveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
   projectionStatus: AffiliateOperationalProjectionStatus;
+  providerWindowLimited: Scalars['Boolean']['output'];
   readAt: Scalars['DateTimeISO']['output'];
   sampleApplication?: Maybe<SampleApplicationRecord>;
   source: AffiliateProviderReadSource;
