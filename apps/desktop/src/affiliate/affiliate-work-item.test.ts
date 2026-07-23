@@ -167,6 +167,8 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
     agentWorkingAgendaItems: [],
     agentDispatchRecommended: true,
+    creatorProtected: false,
+    agentEligibilityReason: GQL.AffiliateAgentEligibilityReason.Eligible,
     staffReviewRequired: false,
     relationshipOperationalConfigRevision: 1,
     businessDeveloperIdSnapshot: null,
@@ -183,8 +185,6 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       id: "relationship-001",
       userId: "user-001",
       creatorId: "creator-001",
-      aiEngagementStatus: GQL.AffiliateRelationshipAiEngagementStatus.Enabled,
-      aiEngagementSource: GQL.AffiliateRelationshipAiEngagementSource.Staff,
       operationalConfigRevision: 1,
       shopStates: [],
       lastInboundAt: null,
@@ -624,11 +624,9 @@ describe("affiliate work item dispatch", () => {
     const protectedWorkItem = createSampleReviewWorkItem({
       id: "relationship-protected",
       agentDispatchRecommended: false,
-      staffReviewRequired: true,
-      creatorRelationship: {
-        ...createSampleReviewWorkItem().creatorRelationship,
-        aiEngagementStatus: GQL.AffiliateRelationshipAiEngagementStatus.Protected,
-      },
+      creatorProtected: true,
+      agentEligibilityReason: GQL.AffiliateAgentEligibilityReason.CreatorProtected,
+      staffReviewRequired: false,
     });
     mockGetAuthSession.mockReturnValue({
       graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [protectedWorkItem] })),

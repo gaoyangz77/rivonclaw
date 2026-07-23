@@ -26438,3 +26438,112 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--text-secondary);
   font-size: 12px;
 }
+.affiliate-protection-directory {
+  margin-top: 18px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 18px;
+}
+
+.affiliate-protection-directory-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.affiliate-protection-directory-head > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.affiliate-protection-directory-head span,
+.affiliate-protection-directory-row span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.affiliate-protection-directory-head input {
+  width: min(360px, 100%);
+}
+
+.affiliate-protection-directory-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 160px 170px;
+  gap: 8px;
+  min-width: min(620px, 100%);
+}
+
+.affiliate-protection-directory-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.affiliate-protection-directory-counts span {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.affiliate-protection-directory-list {
+  display: grid;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.affiliate-protection-directory-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 1fr) minmax(140px, 1fr) 110px auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 62px;
+  padding: 10px 14px;
+  background: var(--surface-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.affiliate-protection-directory-row:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-protection-directory-row > div {
+  display: grid;
+  gap: 3px;
+}
+
+.affiliate-relationship-protection-control {
+  display: grid;
+  gap: 8px;
+}
+
+.affiliate-relationship-protection-banner {
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--warning-color, #c17b16) 35%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--warning-color, #c17b16) 9%, transparent);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .affiliate-protection-directory-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .affiliate-protection-directory-row {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-protection-directory-filters {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+}
