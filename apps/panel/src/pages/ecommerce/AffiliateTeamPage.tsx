@@ -13,7 +13,7 @@ import {
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_BUSINESS_DEVELOPER_PAGE_QUERY,
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
-  AFFILIATE_CREATOR_PROTECTION_INTENTS_QUERY,
+  AFFILIATE_CREATOR_PROTECTIONS_QUERY,
   AFFILIATE_OPERATIONAL_SETTINGS_QUERY,
   ARCHIVE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
   ASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION,
@@ -21,6 +21,7 @@ import {
   COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION,
   EMAIL_ACCOUNT_BINDINGS_QUERY,
   IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION,
+  REMOVE_AFFILIATE_CREATOR_PROTECTION_MUTATION,
   SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
   UNASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION,
   UNASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION,
@@ -33,10 +34,11 @@ import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAcc
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
+const PROTECTION_PAGE_SIZE = 25;
 export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
 export const PROTECTED_CREATOR_TEMPLATE_HEADERS = [
   "creator_username",
-  "business_developer_name",
+  "bd_name",
 ] as const;
 
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
@@ -114,8 +116,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [manualNote, setManualNote] = useState("");
   const [confirmedProtectionBoundary, setConfirmedProtectionBoundary] = useState(false);
   const [showProtectionManager, setShowProtectionManager] = useState(false);
+  const [protectionPage, setProtectionPage] = useState(0);
+  const [protectionSearch, setProtectionSearch] = useState("");
+  const [protectionDeveloperId, setProtectionDeveloperId] = useState("");
+  const [protectionResolution, setProtectionResolution] = useState<"" | GQL.AffiliateCreatorProtectionResolution>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deferredDeveloperSearch = useDeferredValue(developerSearch.trim());
+  const deferredProtectionSearch = useDeferredValue(protectionSearch.trim());
 
   const developersQuery = useQuery<{ affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[] }>(
     AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
@@ -139,10 +146,21 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     AFFILIATE_OPERATIONAL_SETTINGS_QUERY,
     { fetchPolicy: "cache-and-network" },
   );
-  const protectionQuery = useQuery<{ affiliateCreatorProtectionIntents: GQL.AffiliateCreatorProtectionIntent[] }>(
-    AFFILIATE_CREATOR_PROTECTION_INTENTS_QUERY,
-    { fetchPolicy: "cache-and-network" },
-  );
+  const protectionQuery = useQuery<
+    { affiliateCreatorProtections: GQL.AffiliateCreatorProtectionPage },
+    { input: GQL.AffiliateCreatorProtectionPageInput }
+  >(AFFILIATE_CREATOR_PROTECTIONS_QUERY, {
+    variables: {
+      input: {
+        offset: protectionPage * PROTECTION_PAGE_SIZE,
+        limit: PROTECTION_PAGE_SIZE,
+        search: deferredProtectionSearch || null,
+        businessDeveloperId: protectionDeveloperId || null,
+        resolution: protectionResolution || null,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+  });
   const whatsappQuery = useQuery<{ whatsAppAccountBindings: GQL.WhatsAppAccountBinding[] }>(
     WHATSAPP_ACCOUNT_BINDINGS_QUERY,
     { fetchPolicy: "cache-and-network" },
@@ -173,9 +191,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   useEffect(() => {
     if (settingsQuery.data) workspace.setAffiliateOperationalSettings(settingsQuery.data.affiliateOperationalSettings);
   }, [settingsQuery.data, workspace]);
-  useEffect(() => {
-    if (protectionQuery.data) workspace.replaceAffiliateCreatorProtectionIntents(protectionQuery.data.affiliateCreatorProtectionIntents);
-  }, [protectionQuery.data, workspace]);
+  useEffect(() => setProtectionPage(0), [deferredProtectionSearch, protectionDeveloperId, protectionResolution]);
   useEffect(() => {
     if (whatsappQuery.data) workspace.replaceAffiliateWhatsAppAccounts(whatsappQuery.data.whatsAppAccountBindings);
   }, [whatsappQuery.data, workspace]);
@@ -208,9 +224,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     { input: GQL.SetAffiliateBusinessDeveloperPreferredAccountInput }
   >(SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION);
   const [importProtections, importState] = useMutation<
-    { importAffiliateCreatorProtections: GQL.AffiliateCreatorProtectionIntent[] },
+    { importAffiliateCreatorProtections: GQL.ImportAffiliateCreatorProtectionsPayload },
     { input: GQL.ImportAffiliateCreatorProtectionsInput }
   >(IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION);
+  const [removeProtection, removeProtectionState] = useMutation<
+    { removeAffiliateCreatorProtection: GQL.AffiliateCreatorProtectionRemovalPayload },
+    { id: string }
+  >(REMOVE_AFFILIATE_CREATOR_PROTECTION_MUTATION);
   const [completeOnboarding, onboardingState] = useMutation<{
     completeAffiliateOperationalOnboarding: GQL.AffiliateOperationalSettings;
   }>(COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION);
@@ -265,8 +285,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   ], [activeDevelopers, t]);
   const loading = developersQuery.loading || developerPageQuery.loading || settingsQuery.loading || whatsappQuery.loading || emailQuery.loading;
   const onboardingComplete = Boolean(workspace.operationalSettings?.onboardingCompletedAt);
-  const protectedCreatorCount = workspace.creatorProtectionIntents.length;
-  const appliedProtectionCount = workspace.creatorProtectionIntents.filter((intent) => intent.appliedAt).length;
+  const protectionData = protectionQuery.data?.affiliateCreatorProtections;
+  const protectedCreatorCount = (protectionData?.resolvedCount ?? 0) + (protectionData?.unresolvedCount ?? 0);
+  const appliedProtectionCount = protectionData?.resolvedCount ?? 0;
+  const protectionTotalPages = Math.max(1, Math.ceil((protectionData?.totalCount ?? 0) / PROTECTION_PAGE_SIZE));
   const protectionManagerOpen = !onboardingComplete || showProtectionManager;
   const archiveBlocked = Boolean(detailSummary && (
     detailSummary.creatorRelationshipCount
@@ -489,7 +511,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         const creatorOpenId = null;
         const username = cleanCell(row.creator_username ?? row.username);
         const developerName = cleanCell(
-          row.business_developer_name ?? row.business_developer ?? row.bd,
+          row.bd_name ?? row.business_developer_name ?? row.business_developer ?? row.bd,
         );
         const developer = developerName ? developersByName.get(developerName.toLowerCase()) : null;
         const key = username ? `username:${username.toLowerCase()}` : "";
@@ -561,10 +583,26 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           },
         },
       });
-      workspace.replaceAffiliateCreatorProtectionIntents(result.data?.importAffiliateCreatorProtections ?? []);
       setProtectionRows([]);
       await protectionQuery.refetch();
-      showToast(t("ecommerce.affiliateTeam.protectionsImported", { count: validRows.length }), "success");
+      const imported = (result.data?.importAffiliateCreatorProtections.createdCount ?? 0)
+        + (result.data?.importAffiliateCreatorProtections.updatedCount ?? 0);
+      showToast(t("ecommerce.affiliateTeam.protectionsImported", { count: imported }), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
+  async function removePersistedProtection(protection: GQL.AffiliateCreatorProtection) {
+    const creator = protection.username ? `@${protection.username}` : protection.creatorOpenId ?? protection.id;
+    if (!window.confirm(t("ecommerce.affiliateTeam.removeProtectionConfirm", {
+      creator,
+      defaultValue: `Remove protection for ${creator}? Existing work may become eligible for AI immediately.`,
+    }))) return;
+    try {
+      await removeProtection({ variables: { id: protection.id } });
+      await protectionQuery.refetch();
+      showToast(t("ecommerce.affiliateTeam.protectionRemoved", { defaultValue: "Protection removed" }), "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
@@ -599,7 +637,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         t("ecommerce.affiliateTeam.templateInstructions"),
       ],
       ["creator_username", t("ecommerce.affiliateTeam.templateRequired"), t("ecommerce.affiliateTeam.templateIdentityHint")],
-      ["business_developer_name", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateDeveloperHint")],
+      ["bd_name", t("ecommerce.affiliateTeam.templateOptional"), t("ecommerce.affiliateTeam.templateDeveloperHint")],
     ]);
     instructions["!cols"] = [{ wch: 34 }, { wch: 24 }, { wch: 76 }];
     const workbook = XLSX.utils.book_new();
@@ -954,6 +992,94 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             )}
           </div>
         )}
+        <div className="affiliate-protection-directory">
+          <div className="affiliate-protection-directory-head">
+            <div>
+              <strong>{t("ecommerce.affiliateTeam.protectedCreators")}</strong>
+              <span>{t("ecommerce.affiliateTeam.protectionDirectorySummary", {
+                resolved: protectionData?.resolvedCount ?? 0,
+                unresolved: protectionData?.unresolvedCount ?? 0,
+                defaultValue: `${protectionData?.resolvedCount ?? 0} matched · ${protectionData?.unresolvedCount ?? 0} waiting for identity`,
+              })}</span>
+            </div>
+            <div className="affiliate-protection-directory-filters">
+              <input
+                value={protectionSearch}
+                onChange={(event) => setProtectionSearch(event.target.value)}
+                placeholder={t("ecommerce.affiliateTeam.searchProtectedCreators", { defaultValue: "Search username or OpenID" })}
+              />
+              <Select
+                value={protectionDeveloperId}
+                onChange={setProtectionDeveloperId}
+                options={[
+                  { value: "", label: t("ecommerce.affiliateTeam.allDevelopers", { defaultValue: "All BD" }) },
+                  ...activeDevelopers.map((developer) => ({ value: developer.id, label: developer.displayName })),
+                ]}
+              />
+              <Select
+                value={protectionResolution}
+                onChange={(value) => setProtectionResolution(value as "" | GQL.AffiliateCreatorProtectionResolution)}
+                options={[
+                  { value: "", label: t("common.all", { defaultValue: "All" }) },
+                  { value: GQL.AffiliateCreatorProtectionResolution.Resolved, label: t("ecommerce.affiliateTeam.protectionResolved", { defaultValue: "Matched Creator" }) },
+                  { value: GQL.AffiliateCreatorProtectionResolution.Unresolved, label: t("ecommerce.affiliateTeam.protectionUnresolved", { defaultValue: "Waiting for Creator identity" }) },
+                ]}
+              />
+            </div>
+          </div>
+          <div className="affiliate-protection-directory-counts">
+            {(protectionData?.businessDeveloperCounts ?? []).map((entry) => (
+              <span key={entry.businessDeveloperId ?? UNASSIGNED_ID}>
+                {entry.businessDeveloperId
+                  ? workspace.getBusinessDeveloper(entry.businessDeveloperId)?.displayName ?? entry.businessDeveloperId
+                  : t("ecommerce.affiliateTeam.protectedOnly")}: {entry.count}
+              </span>
+            ))}
+          </div>
+          <div className="affiliate-protection-directory-list">
+            {(protectionData?.items ?? []).map((protection) => {
+              const developer = protection.businessDeveloperId
+                ? workspace.getBusinessDeveloper(protection.businessDeveloperId)
+                : null;
+              return (
+                <div className="affiliate-protection-directory-row" key={protection.id}>
+                  <div>
+                    <strong>{protection.username ? `@${protection.username}` : protection.creatorOpenId ?? protection.id}</strong>
+                    <span>{protection.creatorId
+                      ? t("ecommerce.affiliateTeam.protectionResolved", { defaultValue: "Matched Creator" })
+                      : t("ecommerce.affiliateTeam.protectionUnresolved", { defaultValue: "Waiting for Creator identity" })}</span>
+                  </div>
+                  <div>
+                    <span>{developer?.displayName ?? t("ecommerce.affiliateTeam.protectedOnly")}</span>
+                    <span>{protection.source}</span>
+                  </div>
+                  <span>{protection.note || "—"}</span>
+                  <span>{new Date(protection.updatedAt).toLocaleDateString()}</span>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    type="button"
+                    disabled={removeProtectionState.loading}
+                    onClick={() => void removePersistedProtection(protection)}
+                  >
+                    {t("ecommerce.affiliateTeam.removeProtection", { defaultValue: "Remove protection" })}
+                  </button>
+                </div>
+              );
+            })}
+            {!protectionQuery.loading && (protectionData?.items.length ?? 0) === 0 && (
+              <div className="affiliate-empty-state compact">
+                <p>{t("ecommerce.affiliateTeam.noProtectedCreators", { defaultValue: "No protected Creators match this search." })}</p>
+              </div>
+            )}
+          </div>
+          {protectionTotalPages > 1 && (
+            <div className="affiliate-pagination">
+              <button className="btn btn-secondary btn-sm" type="button" disabled={protectionPage === 0} onClick={() => setProtectionPage((page) => Math.max(0, page - 1))}>‹</button>
+              <span>{protectionPage + 1} / {protectionTotalPages}</span>
+              <button className="btn btn-secondary btn-sm" type="button" disabled={protectionPage + 1 >= protectionTotalPages} onClick={() => setProtectionPage((page) => page + 1)}>›</button>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="affiliate-team-policy-section is-open">

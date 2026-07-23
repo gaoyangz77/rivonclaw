@@ -21,7 +21,6 @@ describe("AffiliateWorkspaceModel", () => {
       id: "settings-1",
       userId: "user-1",
       onboardingCompletedAt: "2026-07-12T00:00:00.000Z",
-      newRelationshipAiEngagementDefault: "ENABLED",
     } as any);
     workspace.replaceAffiliateWhatsAppAccounts([{
       id: "wa-1",
@@ -45,7 +44,7 @@ describe("AffiliateWorkspaceModel", () => {
     }] as any);
 
     expect(workspace.getBusinessDeveloper("bd-1")?.businessPrompt).toBe("Keep outreach concise.");
-    expect(workspace.operationalSettings?.newRelationshipAiEngagementDefault).toBe("ENABLED");
+    expect(workspace.operationalSettings?.onboardingCompletedAt).toBe("2026-07-12T00:00:00.000Z");
     expect(workspace.whatsappAccountsForBusinessDeveloper("bd-1").map((account) => account.id)).toEqual(["wa-1"]);
     expect(workspace.emailAccountsForBusinessDeveloper(null).map((account) => account.id)).toEqual(["email-1"]);
   });

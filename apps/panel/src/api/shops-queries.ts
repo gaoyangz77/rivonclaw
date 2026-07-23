@@ -768,6 +768,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
       workKind
       workBundleKind
       agentDispatchRecommended
+      creatorProtected
+      agentEligibilityReason
       staffReviewRequired
       recommendedActionTypes
       versionAt
@@ -835,9 +837,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           id
           creatorId
           businessDeveloperId
-          protectionIntentId
-          aiEngagementStatus
-          aiEngagementSource
           operationalConfigRevision
           blocked
           blockedShopIds
@@ -1158,9 +1157,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
         id
         creatorId
         businessDeveloperId
-        protectionIntentId
-        aiEngagementStatus
-        aiEngagementSource
         operationalConfigRevision
         blocked
         blockedShopIds
@@ -2086,25 +2082,36 @@ export const AFFILIATE_OPERATIONAL_SETTINGS_QUERY = gql`
       id
       userId
       onboardingCompletedAt
-      newRelationshipAiEngagementDefault
     }
   }
 `;
 
-export const AFFILIATE_CREATOR_PROTECTION_INTENTS_QUERY = gql`
-  query AffiliateCreatorProtectionIntents {
-    affiliateCreatorProtectionIntents {
-      id
-      platform
-      matchType
-      matchValue
-      businessDeveloperId
-      importBatchId
-      note
-      appliedCreatorRelationshipId
-      appliedAt
-      createdAt
-      updatedAt
+export const AFFILIATE_CREATOR_PROTECTIONS_QUERY = gql`
+  query AffiliateCreatorProtections($input: AffiliateCreatorProtectionPageInput!) {
+    affiliateCreatorProtections(input: $input) {
+      items {
+        id
+        userId
+        platform
+        creatorId
+        creatorOpenId
+        username
+        businessDeveloperId
+        importBatchId
+        note
+        source
+        createdAt
+        updatedAt
+      }
+      totalCount
+      resolvedCount
+      unresolvedCount
+      businessDeveloperCounts {
+        businessDeveloperId
+        count
+      }
+      offset
+      limit
     }
   }
 `;
@@ -2204,17 +2211,11 @@ export const UNASSIGN_AFFILIATE_EMAIL_ACCOUNT_MUTATION = gql`
 export const IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION = gql`
   mutation ImportAffiliateCreatorProtections($input: ImportAffiliateCreatorProtectionsInput!) {
     importAffiliateCreatorProtections(input: $input) {
-      id
-      platform
-      matchType
-      matchValue
-      businessDeveloperId
-      importBatchId
-      note
-      appliedCreatorRelationshipId
-      appliedAt
-      createdAt
-      updatedAt
+      createdCount
+      updatedCount
+      resolvedCount
+      unresolvedCount
+      rejectedRows { index reason }
     }
   }
 `;
@@ -2225,7 +2226,6 @@ export const COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION = gql`
       id
       userId
       onboardingCompletedAt
-      newRelationshipAiEngagementDefault
     }
   }
 `;
@@ -2235,8 +2235,6 @@ export const ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
     assignAffiliateBusinessDeveloper(input: $input) {
       id
       businessDeveloperId
-      aiEngagementStatus
-      aiEngagementSource
       operationalConfigRevision
       updatedAt
     }
@@ -2248,24 +2246,48 @@ export const UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
     unassignAffiliateBusinessDeveloper(creatorRelationshipId: $creatorRelationshipId) {
       id
       businessDeveloperId
-      aiEngagementStatus
-      aiEngagementSource
       operationalConfigRevision
       updatedAt
     }
   }
 `;
 
-export const SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION = gql`
-  mutation SetAffiliateRelationshipAiEngagement($input: SetAffiliateRelationshipAiEngagementInput!) {
-    setAffiliateRelationshipAiEngagement(input: $input) {
+export const PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION = gql`
+  mutation ProtectAffiliateCreatorRelationship($input: ProtectAffiliateCreatorRelationshipInput!) {
+    protectAffiliateCreatorRelationship(input: $input) {
       id
+      userId
+      platform
+      creatorId
+      creatorOpenId
+      username
       businessDeveloperId
-      protectionIntentId
-      aiEngagementStatus
-      aiEngagementSource
-      operationalConfigRevision
+      note
+      source
+      createdAt
       updatedAt
+    }
+  }
+`;
+
+export const REMOVE_AFFILIATE_CREATOR_PROTECTION_MUTATION = gql`
+  mutation RemoveAffiliateCreatorProtection($id: ID!) {
+    removeAffiliateCreatorProtection(id: $id) {
+      removedId
+      creatorId
+      creatorRelationshipId
+      redispatchScheduled
+    }
+  }
+`;
+
+export const REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION = gql`
+  mutation RemoveAffiliateCreatorRelationshipProtection($creatorRelationshipId: ID!) {
+    removeAffiliateCreatorRelationshipProtection(creatorRelationshipId: $creatorRelationshipId) {
+      removedId
+      creatorId
+      creatorRelationshipId
+      redispatchScheduled
     }
   }
 `;

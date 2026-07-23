@@ -197,6 +197,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       }
       recommendedActionTypes
       agentDispatchRecommended
+      creatorProtected
+      agentEligibilityReason
       staffReviewRequired
       processingStatus
       versionAt
@@ -206,8 +208,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         id
         creatorId
         businessDeveloperId
-        aiEngagementStatus
-        aiEngagementSource
         operationalConfigRevision
         blocked
         blockedShopIds

@@ -16,6 +16,7 @@ import {
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_COLLABORATION_RECORDS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
+  AFFILIATE_CREATOR_PROTECTIONS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
@@ -26,7 +27,8 @@ import {
   DECIDE_ACTION_PROPOSAL_MUTATION,
   REMOVE_CREATOR_TAG_MUTATION,
   SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
-  SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION,
+  PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
+  REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION,
   UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
 } from "../../api/shops-queries.js";
 import { creatorTagLabel } from "./affiliate-tag-labels.js";
@@ -5189,9 +5191,16 @@ function CreatorRelationshipDetailModal({
   )[0] ?? null;
   const relationshipId = item.creatorRelation?.id ?? primaryWorkItem?.relationshipId ?? null;
   const [relationshipOwnerId, setRelationshipOwnerId] = useState(item.creatorRelation?.businessDeveloperId ?? "__AI_TEAM__");
-  const [relationshipAiStatus, setRelationshipAiStatus] = useState<GQL.AffiliateRelationshipAiEngagementStatus>(
-    item.creatorRelation?.aiEngagementStatus ?? GQL.AffiliateRelationshipAiEngagementStatus.Protected,
-  );
+  const relationshipCreatorId = item.creatorRelation?.creatorId ?? item.creatorId;
+  const protectionQuery = useQuery<
+    { affiliateCreatorProtections: GQL.AffiliateCreatorProtectionPage },
+    { input: GQL.AffiliateCreatorProtectionPageInput }
+  >(AFFILIATE_CREATOR_PROTECTIONS_QUERY, {
+    variables: { input: { creatorId: relationshipCreatorId, offset: 0, limit: 1 } },
+    skip: !relationshipCreatorId,
+    fetchPolicy: "cache-and-network",
+  });
+  const relationshipProtection = protectionQuery.data?.affiliateCreatorProtections.items[0] ?? null;
   const { data: developerData } = useQuery<{ affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[] }>(
     AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
     { variables: { includeArchived: false }, fetchPolicy: "cache-and-network" },
@@ -5201,7 +5210,8 @@ function CreatorRelationshipDetailModal({
   }, [affiliateWorkspace, developerData]);
   const [assignDeveloper, assignDeveloperState] = useMutation(ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
   const [unassignDeveloper, unassignDeveloperState] = useMutation(UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
-  const [setAiEngagement, setAiEngagementState] = useMutation(SET_AFFILIATE_RELATIONSHIP_AI_ENGAGEMENT_MUTATION);
+  const [protectRelationship, protectRelationshipState] = useMutation(PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION);
+  const [removeRelationshipProtection, removeRelationshipProtectionState] = useMutation(REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION);
   const ownerOptions = [
     { value: "__AI_TEAM__", label: t("ecommerce.affiliateTeam.aiTeam") },
     ...affiliateWorkspace.businessDevelopers
@@ -5211,12 +5221,13 @@ function CreatorRelationshipDetailModal({
   const relationshipOwner = relationshipOwnerId === "__AI_TEAM__"
     ? null
     : affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId);
-  const effectiveAiLabel = relationshipAiStatus === GQL.AffiliateRelationshipAiEngagementStatus.Protected
+  const effectiveAiLabel = relationshipProtection
     ? t("ecommerce.affiliateWorkspace.relationshipProtected")
     : relationshipOwner?.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly
       ? t("ecommerce.affiliateTeam.humanOnly")
       : t("ecommerce.affiliateTeam.aiAssisted");
-  const ownershipBusy = assignDeveloperState.loading || unassignDeveloperState.loading || setAiEngagementState.loading;
+  const ownershipBusy = assignDeveloperState.loading || unassignDeveloperState.loading
+    || protectRelationshipState.loading || removeRelationshipProtectionState.loading;
   const messageShopId = primaryWorkItem?.shopId ?? item.shopState?.shopId ?? shopStates[0]?.shopId ?? null;
   const [sendAffiliateCreatorMessage] = useMutation<
     { sendAffiliateCreatorMessage: GQL.SendAffiliateCreatorMessagePayload },
@@ -5534,14 +5545,23 @@ function CreatorRelationshipDetailModal({
     }
   }
 
-  async function updateRelationshipAiStatus(nextStatus: string): Promise<void> {
-    if (!relationshipId || ownershipBusy || nextStatus === relationshipAiStatus) return;
-    if (!window.confirm(t("ecommerce.affiliateWorkspace.relationshipAiChangeConfirm"))) return;
+  async function toggleRelationshipProtection(): Promise<void> {
+    if (!relationshipId || ownershipBusy) return;
+    if (!window.confirm(t("ecommerce.affiliateWorkspace.relationshipProtectionChangeConfirm"))) return;
     try {
-      const result = await setAiEngagement({ variables: { input: { creatorRelationshipId: relationshipId, status: nextStatus } } });
-      const relationship = (result.data as any)?.setAffiliateRelationshipAiEngagement;
-      if (relationship) affiliateWorkspace.upsertAffiliateCreatorRelationship(relationship);
-      setRelationshipAiStatus(nextStatus as GQL.AffiliateRelationshipAiEngagementStatus);
+      if (relationshipProtection) {
+        await removeRelationshipProtection({ variables: { creatorRelationshipId: relationshipId } });
+      } else {
+        await protectRelationship({
+          variables: {
+            input: {
+              creatorRelationshipId: relationshipId,
+              businessDeveloperId: relationshipOwnerId === "__AI_TEAM__" ? null : relationshipOwnerId,
+            },
+          },
+        });
+      }
+      await protectionQuery.refetch();
       showToast(t("ecommerce.affiliateTeam.saved"), "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
@@ -5633,18 +5653,23 @@ function CreatorRelationshipDetailModal({
                   disabled={!relationshipId || ownershipBusy}
                 />
               </label>
-              <label>
+              <div className="affiliate-relationship-protection-control">
                 <span>{t("ecommerce.affiliateWorkspace.relationshipAiParticipation")}</span>
-                <Select
-                  value={relationshipAiStatus}
-                  onChange={(value) => void updateRelationshipAiStatus(value)}
-                  options={[
-                    { value: GQL.AffiliateRelationshipAiEngagementStatus.Enabled, label: t("ecommerce.affiliateWorkspace.relationshipAiEnabled") },
-                    { value: GQL.AffiliateRelationshipAiEngagementStatus.Protected, label: t("ecommerce.affiliateWorkspace.relationshipProtected") },
-                  ]}
+                <strong>{relationshipProtection
+                  ? t("ecommerce.affiliateWorkspace.relationshipProtected")
+                  : t("ecommerce.affiliateWorkspace.relationshipAiEnabled")}</strong>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  type="button"
+                  onClick={() => void toggleRelationshipProtection()}
                   disabled={!relationshipId || ownershipBusy}
-                />
-              </label>
+                >
+                  {relationshipProtection
+                    ? t("ecommerce.affiliateTeam.removeProtection", { defaultValue: "Remove protection" })
+                    : t("ecommerce.affiliateTeam.addProtectedCreator")}
+                </button>
+                {relationshipProtection?.note ? <small>{relationshipProtection.note}</small> : null}
+              </div>
               {relationshipOwner?.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly ? (
                 <small>{t("ecommerce.affiliateWorkspace.relationshipHumanOnlyHint", { name: relationshipOwner.displayName })}</small>
               ) : null}
@@ -5653,6 +5678,13 @@ function CreatorRelationshipDetailModal({
               <div className="affiliate-relationship-work-side-card-head">
                 <span>{t("ecommerce.affiliateWorkspace.relationshipCurrentDecision")}</span>
               </div>
+              {relationshipProtection ? (
+                <div className="affiliate-relationship-protection-banner">
+                  {t("ecommerce.affiliateWorkspace.protectionDispatchBlocked", {
+                    defaultValue: "This Creator is protected. The work remains visible for staff, but AI dispatch is blocked.",
+                  })}
+                </div>
+              ) : null}
               <RelationshipStatusBadge display={relationshipStatusDisplay} tone={relationshipTone} compact />
               <div className="affiliate-relationship-work-side-facts">
                 <SampleApplicationFact
