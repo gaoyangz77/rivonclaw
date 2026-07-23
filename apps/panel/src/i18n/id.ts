@@ -2872,7 +2872,6 @@ export default {
         "SAMPLE_AWAITING_SHIPMENT": "Sampel menunggu pengiriman",
         "CREATOR_ACTION_FOLLOW_UP_DUE": "Tindak lanjut kreator jatuh tempo",
         "STAFF_REVIEW_REQUESTED": "Perlu keputusan staf",
-        "WORK_DEFERRED": "Pekerjaan ditunda",
         "AGENT_RUN_FAILED": "Jalankan agen gagal",
         "TARGET_COLLABORATION_ACCEPTED": "Kolaborasi target diterima",
         "CONTENT_PUBLISHED": "Konten dipublikasikan",

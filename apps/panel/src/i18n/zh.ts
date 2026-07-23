@@ -3610,7 +3610,6 @@ export default {
         SAMPLE_CONTENT_FOLLOW_UP_DUE: "样品内容待跟进",
         CREATOR_ACTION_FOLLOW_UP_DUE: "达人待跟进",
         STAFF_REVIEW_REQUESTED: "需要人工判断下一步",
-        WORK_DEFERRED: "已延后处理",
         AGENT_RUN_FAILED: "Agent 处理失败",
         TARGET_COLLABORATION_ACCEPTED: "定向合作已接受",
         CONTENT_PUBLISHED: "内容已发布",

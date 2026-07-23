@@ -3807,7 +3807,6 @@ export default {
         SAMPLE_CONTENT_FOLLOW_UP_DUE: "Sample content follow-up due",
         CREATOR_ACTION_FOLLOW_UP_DUE: "Creator follow-up due",
         STAFF_REVIEW_REQUESTED: "Needs staff decision",
-        WORK_DEFERRED: "Work deferred",
         AGENT_RUN_FAILED: "Agent run failed",
         TARGET_COLLABORATION_ACCEPTED: "Target collaboration accepted",
         CONTENT_PUBLISHED: "Content published",
