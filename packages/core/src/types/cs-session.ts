@@ -33,6 +33,12 @@ export interface AffiliateSessionContext {
   readonly kind: "AFFILIATE";
   readonly shopId: string;
   readonly creatorRelationshipId: string;
+  /** Canonical backend AffiliateCreatorIdentity id for this Relationship. */
+  readonly creatorId?: string;
+  /** TikTok creator_open_id matched to this Relationship. */
+  readonly creatorOpenId?: string;
+  /** TikTok username matched to this Relationship; informational run context. */
+  readonly creatorUsername?: string;
   readonly runId?: string;
 }
 

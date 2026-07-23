@@ -613,6 +613,7 @@ export class AffiliateInbound {
     const existing = this.sessions.get(sessionKey);
     if (existing) {
       existing.updateShopContext(shop);
+      existing.updateAffiliateContext(params);
       return existing;
     }
 
@@ -639,14 +640,17 @@ export class AffiliateInbound {
   ): AffiliateContext | null {
     const collaboration = workItem.collaboration;
     const relationship = workItem.creatorRelationship ?? workItem.context?.creatorRelation ?? null;
+    const creatorProfile = workItem.context?.creatorProfile ?? null;
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
     if (!creatorRelationshipId) return null;
     const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
       userId: this.resolveWorkItemUserId(shop, workItem),
       shopId: shop.objectId,
       platformShopId: shop.platformShopId,
-      creatorImUserId: collaboration?.creatorImId ?? undefined,
-      creatorId: collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
+      creatorImUserId: creatorProfile?.creatorImId ?? collaboration?.creatorImId ?? undefined,
+      creatorId: creatorProfile?.id ?? collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
+      creatorOpenId: creatorProfile?.creatorOpenId ?? undefined,
+      creatorUsername: creatorProfile?.username ?? undefined,
       creatorRelationshipId,
       productId: collaboration?.productId ?? undefined,
       collaborationRecordId: workItem.collaborationRecordId ?? undefined,
