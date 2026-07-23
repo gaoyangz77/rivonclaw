@@ -227,6 +227,8 @@ export interface ActionProposalSourceWorkBoundary {
   triggerId?: Maybe<Scalars['String']['output']>;
   triggerKind?: Maybe<Scalars['String']['output']>;
   triggerLifecycleEventId?: Maybe<Scalars['ID']['output']>;
+  /** Shop that produced the primary agenda event. This is provenance only; each proposal step carries its own execution shopId. */
+  triggerShopId?: Maybe<Scalars['ID']['output']>;
   versionAt: Scalars['DateTimeISO']['output'];
   workBundleKind: AffiliateWorkBundleKind;
   workKind: AffiliateWorkKind;
