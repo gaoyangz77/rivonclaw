@@ -7,8 +7,11 @@ import {
   getOllamaOpenAiBaseUrl,
 } from "@rivonclaw/core";
 import {
+  AFFILIATE_AGENT_ID,
+  AFFILIATE_WORKFLOW_SKILL_SLUG,
   CUSTOMER_SERVICE_AGENT_ID,
   DEFAULT_AGENT_ID,
+  resolveAffiliateAgentWorkspaceDir,
   resolveUserSkillsDir,
 } from "@rivonclaw/core/node";
 import { buildExtraProviderConfigs, writeGatewayConfig } from "@rivonclaw/gateway";
@@ -125,22 +128,53 @@ type CustomProviderModel = {
   maxTokens?: number;
 };
 
-const CLOUD_MODEL_RUNTIME_LIMITS = new Map(
-  [
-    ...(getProviderMeta("openai-codex")?.fallbackModels ?? []).map((model) => [
-      model.modelId,
-      {
-        contextWindow: model.contextWindow,
-        contextTokens: model.contextTokens,
-        maxTokens: model.maxTokens,
+type ManagedGatewayAgents = NonNullable<Parameters<typeof writeGatewayConfig>[0]["managedAgents"]>;
+
+export function buildManagedGatewayAgents(stateDir: string): ManagedGatewayAgents {
+  return [
+    { id: DEFAULT_AGENT_ID, default: true },
+    {
+      id: CUSTOMER_SERVICE_AGENT_ID,
+      workspace: join(stateDir, "workspace-customer-service"),
+      contextTokens: null,
+      thinkingDefault: "low",
+      reasoningDefault: "off",
+    },
+    {
+      id: AFFILIATE_AGENT_ID,
+      workspace: resolveAffiliateAgentWorkspaceDir({
+        ...process.env,
+        OPENCLAW_STATE_DIR: stateDir,
+      }),
+      skills: [AFFILIATE_WORKFLOW_SKILL_SLUG],
+      contextTokens: null,
+      thinkingDefault: "low",
+      reasoningDefault: "off",
+      tools: {
+        deny: ["write", "edit", "exec", "bash", "process", "apply_patch"],
+        fs: { workspaceOnly: true },
       },
-    ] as const),
-    [
-      "rivonclaw-flagship",
-      { contextWindow: 372_000, contextTokens: 244_000, maxTokens: 128_000 },
-    ] as const,
-  ],
-);
+    },
+  ];
+}
+
+const CLOUD_MODEL_RUNTIME_LIMITS = new Map([
+  ...(getProviderMeta("openai-codex")?.fallbackModels ?? []).map(
+    (model) =>
+      [
+        model.modelId,
+        {
+          contextWindow: model.contextWindow,
+          contextTokens: model.contextTokens,
+          maxTokens: model.maxTokens,
+        },
+      ] as const,
+  ),
+  [
+    "rivonclaw-flagship",
+    { contextWindow: 372_000, contextTokens: 244_000, maxTokens: 128_000 },
+  ] as const,
+]);
 
 export function buildCustomProviderOverridesFromKeys(
   allKeys: ProviderKeyLike[],
@@ -487,16 +521,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
       agentWorkspace: join(stateDir, "workspace"),
-      managedAgents: [
-        { id: DEFAULT_AGENT_ID, default: true },
-        {
-          id: CUSTOMER_SERVICE_AGENT_ID,
-          workspace: join(stateDir, "workspace-customer-service"),
-          contextTokens: null,
-          thinkingDefault: "low",
-          reasoningDefault: "off",
-        },
-      ],
+      managedAgents: buildManagedGatewayAgents(stateDir),
       extraSkillDirs: [resolveUserSkillsDir()],
       // Keep the default OpenClaw profile unrestricted, and use alsoAllow only
       // as an optional plugin discovery hint. `tools.allow` is a hard runtime

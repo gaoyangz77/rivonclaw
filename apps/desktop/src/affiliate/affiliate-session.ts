@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
-import {
-  GQL,
-  ScopeType,
-} from "@rivonclaw/core";
+import { GQL, ScopeType } from "@rivonclaw/core";
+import { AFFILIATE_AGENT_ID } from "@rivonclaw/core/node";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { rootStore } from "../app/store/desktop-store.js";
@@ -25,12 +23,14 @@ import {
   registerActiveAffiliateRunCheckpoint,
   unregisterActiveAffiliateRunCheckpoint,
 } from "./affiliate-run-checkpoints.js";
+import { buildAffiliateWorkflowSkillCatalog } from "./affiliate-workflow-skill.js";
 
 const log = createLogger("affiliate-session");
 
 export const DEFAULT_AFFILIATE_RUN_PROFILE_ID = "AFFILIATE_OPERATOR";
 const DEBUG_AFFILIATE_PROMPT =
-  process.env.DEBUG_AFFILIATE_PROMPT === "1" || process.env.RIVONCLAW_DEBUG_AFFILIATE_PROMPT === "1";
+  process.env.DEBUG_AFFILIATE_PROMPT === "1" ||
+  process.env.RIVONCLAW_DEBUG_AFFILIATE_PROMPT === "1";
 const AGENT_RUNTIME_FAILURE_PATTERNS = [
   /resourceexhausted/i,
   /worker local total request limit/i,
@@ -160,7 +160,7 @@ export class AffiliateSession {
     if (!context.creatorRelationshipId) {
       throw new Error("creatorRelationshipId is required for affiliate agent sessions");
     }
-    return `agent:main:affiliate:${context.userId}:${context.creatorRelationshipId}`;
+    return `agent:${AFFILIATE_AGENT_ID}:affiliate:${context.userId}:${context.creatorRelationshipId}`;
   }
 
   get extraSystemPrompt(): string {
@@ -170,6 +170,7 @@ export class AffiliateSession {
   private buildExtraSystemPrompt(
     runMode: AffiliateAgentRunMode,
     businessDeveloperPrompt?: string | null,
+    workflowSkillCatalog?: string,
   ): string {
     return [
       "## Affiliate / Creator Management Agent",
@@ -185,61 +186,23 @@ export class AffiliateSession {
       "## Affiliate Business Context",
       `- Commerce Platform: ${this.platform}`,
       "- Commerce Program: TikTok Shop Affiliate for the current seller account.",
-      "- Commercial Relationship: the seller makes shop products available for creator promotion; creators may earn attributed commission, and some collaborations may include a product sample or a seller-created target collaboration.",
-      "- Commerce Content Surfaces: TikTok shoppable video, TikTok LIVE, and the creator's TikTok Shop showcase.",
-      "- Commercial Outcomes: attributed product content, orders, units sold, and GMV recorded through TikTok Shop Affiliate.",
-      "- Communication Transports: TikTok Shop platform chat, WhatsApp, and Outlook email carry seller-creator messages; they are contact routes for the same TikTok Shop Affiliate relationship.",
-      "- Domain Objects: CreatorRelationship is the seller-level creator relationship; product cards identify candidate shop products; target collaborations, sample applications, and collaboration records represent progressively more specific commercial commitments and fulfillment state.",
-      "- Identity Semantics: an inbound message is bound to a CreatorRelationship and its matched TikTok creator identity. That establishes who the sender is; the message content itself establishes the sender's current business intent.",
-      "",
-      "## Channel Model",
-      "- WhatsApp and Outlook email are direct affiliate outreach channels for non-China TikTok Shop creator communication.",
+      "- TikTok Shop platform chat, WhatsApp, and Outlook email are communication routes for one seller-creator Relationship.",
       "- Reply on the latest inbound channel by default. preferredChannel requests an intentional channel override and remains subject to backend route validation.",
       "- Never send a second outbound Affiliate message before the creator has responded to the previous outbound turn. This safety boundary is cross-channel; do not switch channels to bypass it.",
-      "- Proactive outreach with no inbound channel uses backend selection order WhatsApp, then Outlook email, then TikTok Shop platform chat.",
       "- A selected channel never falls back to another channel when unavailable or when sending fails.",
-      "- Keep context at the seller-creator relationship level: WhatsApp, Outlook email, and platform chat are different channels for the same relationship, not separate memories.",
-      "- affiliate_set_creator_whatsapp and affiliate_set_creator_email update Creator-owned contact records; affiliate_check_creator_whatsapp validates a Creator WhatsApp number when needed.",
-      "- Use affiliate_get_creator_contact_state to inspect current channel availability and affiliate_get_relationship_timeline for Provider-backed messages merged chronologically with immutable business and action events.",
-      "- Treat provider route identifiers as transport provenance only. Do not use them as the CreatorRelationship boundary or as primary keys for affiliate tools.",
       "",
-      "## Operating Model",
-      "- Use backend affiliate tools as the source of truth for campaigns, creator lifecycle state, tags, approval policies, and action execution.",
+      "## Static Resolution Contract",
       "- Every work-item run must end with exactly one affiliate_resolve_work_item call. A final text response alone never completes or sends a backend work item.",
-      "- If a structured TikTok platform action is needed, such as reviewing a sample application or creating a target collaboration, use affiliate_resolve_work_item with decision REQUEST_ACTION and a typed platform action payload.",
       "- affiliate_resolve_work_item supports only three platform action types: SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent action types such as CHANGE_COMMISSION; use NEEDS_STAFF_REVIEW for unsupported seller operations.",
       "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
-      "- For SEND_MESSAGE, action.messageIntent.parts must contain 1-10 ordered TEXT, staged ATTACHMENT, or platform-native card parts. Do not put creator-facing content only in operatorSummary.",
-      "- Omit preferredChannel to reply on the trigger channel. Set it only for an intentional channel switch. For a proactive EMAIL without an existing thread, emailSubject is required.",
       "- Never pass provider message, conversation, thread, or account route identifiers; backend resolves exact routes from the work boundary and relationship.",
-      "- After SEND_MESSAGE succeeds, enters approval, or returns a delivery failure, make the final assistant response exactly NO_REPLY.",
       "- For REVIEW_SAMPLE_APPLICATION, use the local action.sampleApplicationRecordId returned by an Affiliate read tool, action.sampleReviewDecision, and optional action.rejectReason. The backend resolves the Provider ID and re-validates TikTok immediately before executing. Do not send sampleReviewIntent: {}.",
       "- Omit optional fields when unknown. Never send empty strings for Date, ID, or object fields. nextSellerActionAt is only for DEFERRED decisions and must be a valid ISO timestamp.",
-      "- If no platform action is needed, use affiliate_resolve_work_item with decision NO_ACTION_NEEDED, NEEDS_STAFF_REVIEW, or DEFERRED.",
       "- If affiliate_resolve_work_item returns a proposal requiring approval, stop there and make your final assistant response exactly NO_REPLY; do not try to bypass approval.",
       `- Write every operatorSummary and staff-facing explanation in ${this.shop.staffLanguage ?? "English"}.`,
-      "- If the merchant explicitly approves, rejects, or asks to revise a pending proposal in this Codex thread, use affiliate_decide_proposal. For revision requests, set status REVISION_REQUESTED and put the merchant's requested changes in decision.note.",
-      "- Do not rely on memory for creator history or policy. Ask tools for state when needed.",
-      "- Never put a platform sample application ID into campaignId or sampleApplicationRecordId. Use the local Mongo projection ID for sampleApplicationRecordId.",
+      "- After resolving, make the final assistant response exactly NO_REPLY.",
       "",
-      "## Workflow Discipline",
-      "- A dispatch carries only the current Agent Working Agenda. It is a wake-up reason, not a business-fact snapshot.",
-      "- affiliate_get_creator_relationship reads current Relationship, Creator profile, and assigned BD state. It never returns proposals. A staff-requested proposal revision is included directly in the Agent Working Agenda that caused that run.",
-      "- For every creator reply work item, first call affiliate_get_relationship_timeline to read the Provider-backed messages and nearby relationship events before drafting or sending. The current shop and CreatorRelationship are injected by the run context. Do not rely on the content-free lifecycle projection or memory for message text.",
-      "- Timeline attachmentRef values are short-lived and relationship-bound. affiliate_read_message_attachment reads supported content, affiliate_copy_message_attachment stages exact Provider bytes, and affiliate_upload_draft_attachment stages a locally generated file.",
-      "- Never place URLs, provider ids, object keys, base64, or raw HTML in SEND_MESSAGE parts. Unsupported inbound attachment types are transferred to staff by desktop preflight before an Agent run.",
-      "- Use affiliate_get_relationship_timeline for relationship-level messages, business transitions, and terminal staff/agent outcomes. Historical messages record what a participant expressed at occurredAt; mutable commercial state may have changed since then. TIME_PASSED makes elapsed time salient but does not declare evidence invalid. Decide whether a specific current-state read is useful for the task. affiliate_list_creator_collaborations and affiliate_list_creator_sample_applications read the shared Mongo operational projection. currentStatus=READY with a fresh lastHeadSyncAt establishes current-state readiness; historyStatus, historyCutoffAt, oldestCoveredAt, coverageComplete, and providerWindowLimited separately disclose historical coverage. An empty historical result outside that coverage is not an authoritative absence.",
-      "- ecom_get_product resolves a known product; ecom_search_products searches the current shop catalog. affiliate_predict_creator_product_fit returns optional decision evidence. None of these read tools creates a collaboration commitment.",
-      "- Use operatorSummary for staff-facing summaries. Keep it short: current fact, recommended/attempted action, proposal id if approval is required.",
-      `- operatorSummary language: ${this.shop.staffLanguage ?? "English"}. Creator-facing messages should use the creator's language instead.`,
-      "",
-      "## On-demand Affiliate Reads",
-      "- The latest internal user turn contains trusted Bound Affiliate Run Context identity plus the current Agent Working Agenda: the reasons this run was dispatched.",
-      "- Do not infer Creator history, collaboration history, product facts, sample state, performance, contact routes, or proposal state from the agenda. Query the relevant tools when those facts matter to your decision.",
-      "- affiliate_get_relationship_timeline reads a single occurredAt-ordered timeline. It returns all item types by default; itemTypes can select MESSAGE, BUSINESS_EVENT, and ACTION_EVENT, including MESSAGE alone when only communication is relevant.",
-      "- affiliate_list_creator_collaborations reads seller-visible Target Collaborations and Sample-linked Open Collaborations from the Mongo operational projection. affiliate_list_creator_sample_applications reads projected Sample Applications and materialized fulfillment/content state from the same source.",
-      "- affiliate_get_creator_relationship reads Relationship/Creator/BD state. affiliate_get_collaboration and affiliate_get_sample_application read narrowly scoped Mongo operational records by local ID. Pending proposals belong to the staff approval surface and are not Agent context. ecom_get_product/ecom_search_products read current product facts. ecom_get_bi_catalog/ecom_get_bi_data read warehouse-backed historical performance and affiliate orders.",
-      "- Tool results, not the wake-up agenda, establish business facts. A timeline is historical evidence, not a current entity snapshot. Respect occurredAt, TIME_PASSED, source, observation time, pagination, and coverage indicators when deciding whether to query a specific current-state tool.",
+      workflowSkillCatalog?.trim() || "",
       "",
       "## Merchant Affiliate Instructions",
       this.shop.businessPrompt?.trim() || "(none configured)",
@@ -255,7 +218,9 @@ export class AffiliateSession {
       return { runId: undefined };
     }
 
-    const baseCheckpointId = normalizeCheckpointId(workItem.creatorRelationship?.committedCheckpointId);
+    const baseCheckpointId = normalizeCheckpointId(
+      workItem.creatorRelationship?.committedCheckpointId,
+    );
     const baseEventCursor = workItem.creatorRelationship?.committedEventCursor ?? 0;
     const dispatchContext = await this.fetchDispatchContext({
       workItem,
@@ -316,8 +281,8 @@ export class AffiliateSession {
       if (workItem != null) this.pendingRunCompletions.delete(runId);
       log.warn(
         `Affiliate agent run ended with gateway error; leaving work item unacked for retry: ` +
-        `runId=${runId} subject=${workItem ? workItemSubjectLabel(workItem) : "(creator-outreach)"} ` +
-        `runtimeFailed=${runtimeFailed}`,
+          `runId=${runId} subject=${workItem ? workItemSubjectLabel(workItem) : "(creator-outreach)"} ` +
+          `runtimeFailed=${runtimeFailed}`,
       );
       return;
     }
@@ -343,14 +308,12 @@ export class AffiliateSession {
 
   private isRuntimeFailureAgentEvent(stream: string, data: Record<string, unknown>): boolean {
     if (stream === "lifecycle" && data.phase === "error") return true;
-    const text = [
-      data.text,
-      data.message,
-      data.error,
-      data.reason,
-      data.rawError,
-    ].filter((value): value is string => typeof value === "string");
-    return text.some((value) => AGENT_RUNTIME_FAILURE_PATTERNS.some((pattern) => pattern.test(value)));
+    const text = [data.text, data.message, data.error, data.reason, data.rawError].filter(
+      (value): value is string => typeof value === "string",
+    );
+    return text.some((value) =>
+      AGENT_RUNTIME_FAILURE_PATTERNS.some((pattern) => pattern.test(value)),
+    );
   }
 
   private async setup(): Promise<void> {
@@ -364,9 +327,7 @@ export class AffiliateSession {
         kind: "AFFILIATE",
         shopId: this.shop.objectId,
         creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
-        ...(this.affiliateContext.creatorId
-          ? { creatorId: this.affiliateContext.creatorId }
-          : {}),
+        ...(this.affiliateContext.creatorId ? { creatorId: this.affiliateContext.creatorId } : {}),
         ...(this.affiliateContext.creatorOpenId
           ? { creatorOpenId: this.affiliateContext.creatorOpenId }
           : {}),
@@ -412,7 +373,13 @@ export class AffiliateSession {
       businessDeveloperConfigRevision: params.businessDeveloperConfigRevision,
     });
     const resolvedModel = this.resolveCurrentSessionModel();
-    this.logDispatchPromptContext(params);
+    const workflowSkillCatalog = await buildAffiliateWorkflowSkillCatalog();
+    const systemPrompt = this.buildExtraSystemPrompt(
+      runMode,
+      params.businessDeveloperPrompt,
+      workflowSkillCatalog,
+    );
+    this.logDispatchPromptContext(params, systemPrompt);
     const provisionalRunId = params.idempotencyKey;
     registerActiveAffiliateRunCheckpoint({
       creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
@@ -435,7 +402,7 @@ export class AffiliateSession {
         provider: resolvedModel.provider,
         model: resolvedModel.model,
         message: params.message,
-        extraSystemPrompt: this.buildExtraSystemPrompt(runMode, params.businessDeveloperPrompt),
+        extraSystemPrompt: systemPrompt,
         promptMode: "raw",
         idempotencyKey: params.idempotencyKey,
       });
@@ -474,12 +441,15 @@ export class AffiliateSession {
     return { runId: response?.runId, runMode };
   }
 
-  private logDispatchPromptContext(params: {
-    message: string;
-    idempotencyKey: string;
-    runMode?: AffiliateAgentRunMode;
-    businessDeveloperPrompt?: string | null;
-  }): void {
+  private logDispatchPromptContext(
+    params: {
+      message: string;
+      idempotencyKey: string;
+      runMode?: AffiliateAgentRunMode;
+      businessDeveloperPrompt?: string | null;
+    },
+    systemPrompt: string,
+  ): void {
     log.info(
       [
         "Affiliate dispatch prompt context",
@@ -491,51 +461,55 @@ export class AffiliateSession {
         `collaborationRecordId=${this.affiliateContext.collaborationRecordId ?? ""}`,
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
-        `systemPromptChars=${this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING, params.businessDeveloperPrompt).length}`,
+        `systemPromptChars=${systemPrompt.length}`,
         "promptContextVersion=affiliate-working-agenda-v1",
         `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
       ].join(" "),
     );
 
     if (!DEBUG_AFFILIATE_PROMPT) return;
-    log.info([
-      "[Affiliate Dispatch Full Prompt]",
-      `scope=${this.scopeKey}`,
-      `idempotencyKey=${params.idempotencyKey}`,
-      "",
-      "## extraSystemPrompt",
-      this.buildExtraSystemPrompt(params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING, params.businessDeveloperPrompt),
-      "",
-      "## userMessage",
-      params.message,
-      "[/Affiliate Dispatch Full Prompt]",
-    ].join("\n"));
+    log.info(
+      [
+        "[Affiliate Dispatch Full Prompt]",
+        `scope=${this.scopeKey}`,
+        `idempotencyKey=${params.idempotencyKey}`,
+        "",
+        "## extraSystemPrompt",
+        systemPrompt,
+        "",
+        "## userMessage",
+        params.message,
+        "[/Affiliate Dispatch Full Prompt]",
+      ].join("\n"),
+    );
   }
 
   private abortActiveRun(): void {
     const previousRunId = this.activeRunId;
     if (!previousRunId) return;
-    void openClawConnector.request("chat.abort", { sessionKey: this.scopeKey })
-      .catch((err: unknown) => log.warn(`Failed to abort affiliate run ${previousRunId}: ${String(err)}`));
+    void openClawConnector
+      .request("chat.abort", { sessionKey: this.scopeKey })
+      .catch((err: unknown) =>
+        log.warn(`Failed to abort affiliate run ${previousRunId}: ${String(err)}`),
+      );
   }
 
-  private async prepareRunCheckpoint(
-    requested: {
-      baseCheckpointId?: string | null;
-      baseEventCursor?: number | null;
-      targetEventCursor?: number | null;
-      relationshipOperationalConfigRevision?: number;
-      businessDeveloperIdSnapshot?: string | null;
-      businessDeveloperConfigRevision?: number | null;
-    },
-  ): Promise<AffiliateRunCheckpoint> {
+  private async prepareRunCheckpoint(requested: {
+    baseCheckpointId?: string | null;
+    baseEventCursor?: number | null;
+    targetEventCursor?: number | null;
+    relationshipOperationalConfigRevision?: number;
+    businessDeveloperIdSnapshot?: string | null;
+    businessDeveloperConfigRevision?: number | null;
+  }): Promise<AffiliateRunCheckpoint> {
     const committed =
       requested.baseCheckpointId === undefined || requested.baseEventCursor === undefined
         ? await this.resolveRelationshipCommittedCheckpoint()
         : null;
-    const baseCheckpointId = requested.baseCheckpointId === undefined
-      ? committed?.checkpointId ?? null
-      : normalizeCheckpointId(requested.baseCheckpointId);
+    const baseCheckpointId =
+      requested.baseCheckpointId === undefined
+        ? (committed?.checkpointId ?? null)
+        : normalizeCheckpointId(requested.baseCheckpointId);
     const baseEventCursor = requested.baseEventCursor ?? committed?.eventCursor ?? 0;
     const targetEventCursor = requested.targetEventCursor ?? baseEventCursor;
     const candidateCheckpointId = randomUUID();
@@ -648,7 +622,10 @@ export class AffiliateSession {
     };
   }
 
-  private async completeWorkItemIfUnresolved(runId: string, workItem: GQL.AffiliateWorkItem): Promise<void> {
+  private async completeWorkItemIfUnresolved(
+    runId: string,
+    workItem: GQL.AffiliateWorkItem,
+  ): Promise<void> {
     const authSession = getAuthSession();
     if (!authSession) {
       log.warn(`No auth session available, cannot complete affiliate work item for run ${runId}`);
@@ -659,7 +636,7 @@ export class AffiliateSession {
       if (await this.isWorkItemResolvedOrNoLongerDispatchable(workItem)) {
         log.info(
           `Affiliate work item already resolved or gated after the agent tool call; skipping fallback completion: ` +
-          `runId=${runId} subject=${workItemSubjectLabel(workItem)}`,
+            `runId=${runId} subject=${workItemSubjectLabel(workItem)}`,
         );
         return;
       }
@@ -682,15 +659,17 @@ export class AffiliateSession {
       const payload = result.resolveAffiliateWorkItem;
       log.info(
         `Affiliate work item completion callback: runId=${runId} ` +
-        `subject=${workItemSubjectLabel(workItem)} decision=${payload.decision} ` +
-        `stale=${payload.stale} status=${payload.collaborationRecord?.processingStatus ?? ""}`,
+          `subject=${workItemSubjectLabel(workItem)} decision=${payload.decision} ` +
+          `stale=${payload.stale} status=${payload.collaborationRecord?.processingStatus ?? ""}`,
       );
     } catch (err) {
       log.error(`Failed to complete unresolved affiliate work item for run ${runId}:`, err);
     }
   }
 
-  private async isWorkItemResolvedOrNoLongerDispatchable(workItem: GQL.AffiliateWorkItem): Promise<boolean> {
+  private async isWorkItemResolvedOrNoLongerDispatchable(
+    workItem: GQL.AffiliateWorkItem,
+  ): Promise<boolean> {
     const boundary = parseOptionalDate(workItemBoundaryAt(workItem));
     if (!boundary) return false;
 
@@ -731,7 +710,8 @@ export class AffiliateSession {
     if (!authSession) {
       return {
         safeForAgentRun: false,
-        operatorSummary: "Creator message was routed to staff before Agent run because no authenticated Provider-history session was available.",
+        operatorSummary:
+          "Creator message was routed to staff before Agent run because no authenticated Provider-history session was available.",
       };
     }
 
@@ -753,25 +733,29 @@ export class AffiliateSession {
       const currentMessage = result.affiliateCreatorMessageHistory.items.find((item) => {
         if (item.direction !== GQL.AffiliateCreatorMessageDirection.Creator) return false;
         const occurredAt = parseOptionalDate(item.createdAt);
-        return expectedInboundAt == null || (
-          occurredAt != null && occurredAt.getTime() >= expectedInboundAt.getTime() - 30_000
+        return (
+          expectedInboundAt == null ||
+          (occurredAt != null && occurredAt.getTime() >= expectedInboundAt.getTime() - 30_000)
         );
       });
       if (!currentMessage || currentMessage.parts.length === 0) {
         return {
           safeForAgentRun: false,
-          operatorSummary: "Creator message was routed to staff before Agent run because the current Provider-backed message could not be materialized safely.",
+          operatorSummary:
+            "Creator message was routed to staff before Agent run because the current Provider-backed message could not be materialized safely.",
         };
       }
 
-      const unsupported = currentMessage.parts.filter((part) => (
-        part.kind === GQL.AffiliateHistoryPartKind.Unknown ||
-        (part.kind === GQL.AffiliateHistoryPartKind.Attachment && part.agentReadable !== true)
-      ));
+      const unsupported = currentMessage.parts.filter(
+        (part) =>
+          part.kind === GQL.AffiliateHistoryPartKind.Unknown ||
+          (part.kind === GQL.AffiliateHistoryPartKind.Attachment && part.agentReadable !== true),
+      );
       if (unsupported.length > 0) {
-        const labels = unsupported.map((part) => (
-          part.fileName ?? part.mimeType ?? part.providerType ?? part.summary ?? part.kind
-        ));
+        const labels = unsupported.map(
+          (part) =>
+            part.fileName ?? part.mimeType ?? part.providerType ?? part.summary ?? part.kind,
+        );
         return {
           safeForAgentRun: false,
           operatorSummary: `Creator message was routed to staff before Agent run because it contains unsupported content: ${labels.join(", ")}.`,
@@ -782,10 +766,14 @@ export class AffiliateSession {
         operatorSummary: "Creator message parts passed the Agent-readable attachment preflight.",
       };
     } catch (error) {
-      log.warn("Affiliate creator message preflight failed; routing work to staff before Agent run", error);
+      log.warn(
+        "Affiliate creator message preflight failed; routing work to staff before Agent run",
+        error,
+      );
       return {
         safeForAgentRun: false,
-        operatorSummary: "Creator message was routed to staff before Agent run because Provider-backed attachment preflight was unavailable.",
+        operatorSummary:
+          "Creator message was routed to staff before Agent run because Provider-backed attachment preflight was unavailable.",
       };
     }
   }
@@ -797,7 +785,9 @@ export class AffiliateSession {
   }): Promise<void> {
     const authSession = getAuthSession();
     if (!authSession) {
-      throw new Error(`Cannot transfer unsupported Affiliate message to staff without an auth session: ${input.workItem.id}`);
+      throw new Error(
+        `Cannot transfer unsupported Affiliate message to staff without an auth session: ${input.workItem.id}`,
+      );
     }
     try {
       const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
@@ -824,10 +814,13 @@ export class AffiliateSession {
       );
       log.info(
         `Affiliate creator message preflight resolved without Agent run: ` +
-        `workItem=${input.workItem.id} stale=${result.resolveAffiliateWorkItem.stale}`,
+          `workItem=${input.workItem.id} stale=${result.resolveAffiliateWorkItem.stale}`,
       );
     } catch (error) {
-      log.error(`Failed to transfer unsupported Affiliate message to staff: ${input.workItem.id}`, error);
+      log.error(
+        `Failed to transfer unsupported Affiliate message to staff: ${input.workItem.id}`,
+        error,
+      );
       throw error;
     }
   }
@@ -881,7 +874,6 @@ export class AffiliateSession {
       return null;
     }
   }
-
 }
 
 function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
@@ -892,9 +884,9 @@ function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
 }
 
 function hasProposalRevisionAgenda(workItem: GQL.AffiliateWorkItem): boolean {
-  return (workItem.agentWorkingAgendaItems ?? []).some((item) => (
-    item.revisionRequestedProposal?.status === GQL.ActionProposalStatus.RevisionRequested
-  ));
+  return (workItem.agentWorkingAgendaItems ?? []).some(
+    (item) => item.revisionRequestedProposal?.status === GQL.ActionProposalStatus.RevisionRequested,
+  );
 }
 
 function workItemSubjectLabel(workItem: GQL.AffiliateWorkItem): string {

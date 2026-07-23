@@ -103,7 +103,7 @@ export const DEFAULT_SESSION_KEY = "agent:main:main";
 const HIDDEN_SESSION_KEY_PATTERNS: string[] = [
   ":openai-user:rivonclaw-", // Internal API sessions (rule compilation LLM calls)
   ":cs:", // Customer Service sessions (e.g. agent:main:cs:tiktok:{id})
-  ":affiliate:", // Affiliate dispatch sessions (e.g. agent:main:affiliate:tiktok:{id})
+  ":affiliate:", // Affiliate dispatch sessions (e.g. agent:affiliate:affiliate:{userId}:{relationshipId})
   ":telegram:rivonclaw-support:", // RivonClaw operator debug sessions
 ];
 

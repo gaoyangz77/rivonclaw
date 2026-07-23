@@ -118,7 +118,7 @@ describe("createGatewayEventDispatcher", () => {
       }));
       dispatch(makeEvent("plugin.rivonclaw.chat-mirror", {
         runId: "run-affiliate",
-        sessionKey: "agent:main:affiliate:tiktok:conv-2",
+        sessionKey: "agent:affiliate:affiliate:tiktok:conv-2",
         stream: "assistant",
         data: { text: "internal affiliate run" },
       }));
@@ -243,7 +243,7 @@ describe("createGatewayEventDispatcher", () => {
 
     it("does NOT push service session inbound messages to Webchat SSE", () => {
       dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
-        sessionKey: "agent:main:affiliate:tiktok:conv-1",
+        sessionKey: "agent:affiliate:affiliate:tiktok:conv-1",
         message: "[Affiliate Backend Signal]",
       }));
 

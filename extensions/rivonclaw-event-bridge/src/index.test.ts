@@ -82,7 +82,9 @@ describe("createRunSessionTracker", () => {
 
 describe("shouldMirrorExternalSession", () => {
   it("does not mirror background affiliate sessions into webchat", () => {
-    expect(shouldMirrorExternalSession("agent:main:affiliate:tiktok:target_collaboration:collab-1")).toBe(false);
+    expect(shouldMirrorExternalSession("agent:affiliate:affiliate:user-1:relationship-1")).toBe(
+      false,
+    );
   });
 
   it("still mirrors real external chat channels", () => {

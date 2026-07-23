@@ -624,6 +624,17 @@ export interface WriteGatewayConfigOptions {
     id: string;
     default?: boolean;
     workspace?: string;
+    /** Explicit workspace-local Skill allowlist for this managed agent. */
+    skills?: string[];
+    /** Per-agent tool restrictions written through to OpenClaw. */
+    tools?: {
+      allow?: string[];
+      alsoAllow?: string[];
+      deny?: string[];
+      fs?: {
+        workspaceOnly?: boolean;
+      };
+    };
     /** Set to null to remove a previously managed per-agent cap. */
     contextTokens?: number | null;
     thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive" | "max";

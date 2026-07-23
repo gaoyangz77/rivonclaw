@@ -340,7 +340,7 @@ describe("cloud-graphql handler", () => {
     } as unknown as ApiContext;
     registerActiveAffiliateRunCheckpoint({
       creatorRelationshipId: "relationship-1",
-      sessionKey: "agent:main:affiliate:user-1:relationship-1",
+      sessionKey: "agent:affiliate:affiliate:user-1:relationship-1",
       runId: "run-checkpoint-1",
       baseCheckpointId: null,
       baseEventCursor: 7,
@@ -406,7 +406,7 @@ describe("cloud-graphql handler", () => {
     expect(mockOpenClawRequest).toHaveBeenCalledWith(
       "sessions.checkpoint.create",
       expect.objectContaining({
-        key: "agent:main:affiliate:user-1:relationship-1",
+        key: "agent:affiliate:affiliate:user-1:relationship-1",
         checkpointId: "candidate-checkpoint-1",
       }),
     );
@@ -431,7 +431,7 @@ describe("cloud-graphql handler", () => {
     } as unknown as ApiContext;
     registerActiveAffiliateRunCheckpoint({
       creatorRelationshipId: "relationship-1",
-      sessionKey: "agent:main:affiliate:user-1:relationship-1",
+      sessionKey: "agent:affiliate:affiliate:user-1:relationship-1",
       runId: "run-checkpoint-1",
       baseCheckpointId: null,
       baseEventCursor: 7,

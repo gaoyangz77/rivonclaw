@@ -5,10 +5,22 @@ import { createHash } from "node:crypto";
 import AdmZip from "adm-zip";
 import { formatError, getApiBaseUrl, routeFirstPartyUrl } from "@rivonclaw/core";
 import { API } from "@rivonclaw/core/api-contract";
+import {
+  AFFILIATE_WORKFLOW_SKILL_SLUG,
+  resolveAffiliateAgentSkillsDir,
+  resolveUserSkillsDir,
+} from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
-import { sendJson, parseBody, proxiedFetch, parseSkillFrontmatter, invalidateSkillsSnapshot, getUserSkillsDir } from "../infra/api/route-utils.js";
+import {
+  sendJson,
+  parseBody,
+  proxiedFetch,
+  parseSkillFrontmatter,
+  invalidateSkillsSnapshot,
+  getUserSkillsDir,
+} from "../infra/api/route-utils.js";
 
 const log = createLogger("skills-routes");
 
@@ -27,6 +39,16 @@ function parseHttpUrl(value: string): string | null {
 
 function isSafeSlug(value: string): boolean {
   return Boolean(value) && !value.includes("..") && !value.includes("/") && !value.includes("\\");
+}
+
+function isSafeOfficialZipEntry(entryName: string, localSlug: string): boolean {
+  const normalized = entryName.replace(/\\/g, "/");
+  if (normalized.startsWith("/")) return false;
+  const segments = normalized.split("/").filter(Boolean);
+  return (
+    segments[0] === localSlug &&
+    segments.every((segment) => segment !== "." && segment !== "..")
+  );
 }
 
 interface InstalledSkillSnapshot {
@@ -66,6 +88,59 @@ export interface OfficialPresetSkillSyncResult {
 
 export type OfficialPresetSkillSyncMode = "safe" | "force";
 
+/**
+ * Official presets normally belong to the main agent. The Affiliate workflow is
+ * the sole path exception and is installed into the dedicated Affiliate
+ * workspace so the restricted read tool can reach it without gaining access to
+ * main-agent files.
+ */
+export function resolveOfficialPresetSkillInstallRoot(
+  localSlug: string,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return localSlug === AFFILIATE_WORKFLOW_SKILL_SLUG
+    ? resolveAffiliateAgentSkillsDir(env)
+    : resolveUserSkillsDir(env);
+}
+
+async function readInstalledSkill(
+  skillsDir: string,
+  slug: string,
+): Promise<InstalledSkillSnapshot | undefined> {
+  const entryPath = join(skillsDir, slug);
+  try {
+    if (!(await fs.stat(entryPath)).isDirectory()) return undefined;
+  } catch {
+    return undefined;
+  }
+
+  let fmMeta: { name?: string; description?: string; author?: string; version?: string } = {};
+  let sha256: string | undefined;
+  try {
+    const content = await fs.readFile(join(entryPath, "SKILL.md"), "utf-8");
+    sha256 = hashSkillContent(content);
+    fmMeta = parseSkillFrontmatter(content);
+  } catch {
+    /* SKILL.md missing or unreadable */
+  }
+
+  let installMeta: { name?: string; description?: string; author?: string; version?: string } = {};
+  try {
+    installMeta = JSON.parse(await fs.readFile(join(entryPath, "_meta.json"), "utf-8"));
+  } catch {
+    /* _meta.json missing */
+  }
+
+  return {
+    slug,
+    name: installMeta.name || fmMeta.name || slug,
+    description: installMeta.description || fmMeta.description,
+    author: installMeta.author || fmMeta.author,
+    version: installMeta.version || fmMeta.version,
+    sha256,
+  };
+}
+
 async function readInstalledSkills(): Promise<InstalledSkillSnapshot[]> {
   const skillsDir = getUserSkillsDir();
   let entries: string[];
@@ -77,31 +152,8 @@ async function readInstalledSkills(): Promise<InstalledSkillSnapshot[]> {
 
   const skills: InstalledSkillSnapshot[] = [];
   for (const entry of entries) {
-    const entryPath = join(skillsDir, entry);
-    const stat = await fs.stat(entryPath);
-    if (!stat.isDirectory()) continue;
-
-    let fmMeta: { name?: string; description?: string; author?: string; version?: string } = {};
-    let sha256: string | undefined;
-    try {
-      const content = await fs.readFile(join(entryPath, "SKILL.md"), "utf-8");
-      sha256 = hashSkillContent(content);
-      fmMeta = parseSkillFrontmatter(content);
-    } catch { /* SKILL.md missing or unreadable */ }
-
-    let installMeta: { name?: string; description?: string; author?: string; version?: string } = {};
-    try {
-      installMeta = JSON.parse(await fs.readFile(join(entryPath, "_meta.json"), "utf-8"));
-    } catch { /* _meta.json missing */ }
-
-    skills.push({
-      slug: entry,
-      name: installMeta.name || fmMeta.name || entry,
-      description: installMeta.description || fmMeta.description,
-      author: installMeta.author || fmMeta.author,
-      version: installMeta.version || fmMeta.version,
-      sha256,
-    });
+    const skill = await readInstalledSkill(skillsDir, entry);
+    if (skill) skills.push(skill);
   }
   return skills;
 }
@@ -127,8 +179,12 @@ function normalizeOfficialPresetManifest(raw: unknown): OfficialPresetSkillManif
 
 type OfficialPresetSkillSyncContext = Pick<ApiContext, "proxyRouterPort">;
 
-async function fetchOfficialPresetManifest(ctx: OfficialPresetSkillSyncContext): Promise<OfficialPresetSkillManifest> {
-  const manifestUrl = routeFirstPartyUrl("https://www.rivonclaw.com/skills/manifest.json").toString();
+async function fetchOfficialPresetManifest(
+  ctx: OfficialPresetSkillSyncContext,
+): Promise<OfficialPresetSkillManifest> {
+  const manifestUrl = routeFirstPartyUrl(
+    "https://www.rivonclaw.com/skills/manifest.json",
+  ).toString();
   const response = await proxiedFetch(ctx.proxyRouterPort, manifestUrl, {
     headers: { "Cache-Control": "no-cache" },
     signal: AbortSignal.timeout(30_000),
@@ -143,6 +199,7 @@ async function fetchOfficialPresetManifest(ctx: OfficialPresetSkillSyncContext):
 async function installOfficialPresetZip(
   ctx: OfficialPresetSkillSyncContext,
   item: OfficialPresetSkillManifestItem,
+  skillsDir: string,
 ): Promise<void> {
   const localSlug = item.localSlug || item.slug;
   if (!isSafeSlug(localSlug)) {
@@ -161,7 +218,6 @@ async function installOfficialPresetZip(
     throw new Error(`ZIP returned ${response.status}: ${errText}`);
   }
 
-  const skillsDir = getUserSkillsDir();
   await fs.mkdir(skillsDir, { recursive: true });
   const tempDir = join(skillsDir, `.official-preset-${localSlug}-${Date.now()}`);
   await fs.rm(tempDir, { recursive: true, force: true });
@@ -170,8 +226,7 @@ async function installOfficialPresetZip(
   try {
     const zip = new AdmZip(Buffer.from(await response.arrayBuffer()));
     for (const entry of zip.getEntries()) {
-      const entryName = entry.entryName.replace(/\\/g, "/");
-      if (!entryName.startsWith(`${localSlug}/`)) {
+      if (!isSafeOfficialZipEntry(entry.entryName, localSlug)) {
         throw new Error(`ZIP for ${localSlug} contains unexpected entry: ${entry.entryName}`);
       }
     }
@@ -218,7 +273,11 @@ const installed: EndpointHandler = async (_req, res, _url, _params, _ctx) => {
 // ── POST /api/skills/install ──
 
 const install: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const body = (await parseBody(req)) as { slug?: string; lang?: string; meta?: { name?: string; description?: string; author?: string; version?: string } };
+  const body = (await parseBody(req)) as {
+    slug?: string;
+    lang?: string;
+    meta?: { name?: string; description?: string; author?: string; version?: string };
+  };
   if (!body.slug) {
     sendJson(res, 400, { error: "Missing required field: slug" });
     return;
@@ -326,17 +385,19 @@ export async function syncOfficialPresetSkills(
 
   try {
     const manifest = await fetchOfficialPresetManifest(ctx);
-    const installedSkills = await readInstalledSkills();
-    const localBySlug = new Map(installedSkills.map((skill) => [skill.slug, skill]));
     let wroteAny = false;
 
     for (const item of manifest.skills) {
       const localSlug = item.localSlug || item.slug;
-      const localSkill = localBySlug.get(localSlug);
+      const skillsDir = resolveOfficialPresetSkillInstallRoot(localSlug);
+      const localSkill = await readInstalledSkill(skillsDir, localSlug);
       const shouldInstall = !localSkill;
       const localVersion = localSkill?.version?.trim();
       const shouldSkipCustom = Boolean(localSkill) && !localVersion && mode !== "force";
-      const shouldUpdate = Boolean(localSkill) && !shouldSkipCustom && (mode === "force" || localVersion !== item.version);
+      const shouldUpdate =
+        Boolean(localSkill) &&
+        !shouldSkipCustom &&
+        (mode === "force" || localVersion !== item.version);
 
       if (shouldSkipCustom) {
         result.skippedCustom += 1;
@@ -349,7 +410,7 @@ export async function syncOfficialPresetSkills(
       }
 
       try {
-        await installOfficialPresetZip(ctx, item);
+        await installOfficialPresetZip(ctx, item, skillsDir);
         wroteAny = true;
         if (shouldInstall) result.installed += 1;
         if (shouldUpdate) result.updated += 1;
@@ -366,7 +427,7 @@ export async function syncOfficialPresetSkills(
   } catch (err: unknown) {
     throw Object.assign(new Error(formatError(err)), { result });
   }
-};
+}
 
 // ── POST /api/skills/sync-official-presets ──
 
@@ -378,9 +439,10 @@ const syncOfficialPresets: EndpointHandler = async (req, res, _url, _params, ctx
     const result = await syncOfficialPresetSkills(ctx, mode);
     sendJson(res, 200, { ok: result.failed === 0, result });
   } catch (err: unknown) {
-    const result = err && typeof err === "object" && "result" in err
-      ? (err as { result?: OfficialPresetSkillSyncResult }).result
-      : undefined;
+    const result =
+      err && typeof err === "object" && "result" in err
+        ? (err as { result?: OfficialPresetSkillSyncResult }).result
+        : undefined;
     sendJson(res, 200, {
       ok: false,
       error: formatError(err),
@@ -423,9 +485,8 @@ const deleteSkill: EndpointHandler = async (req, res, _url, _params, _ctx) => {
 const openFolder: EndpointHandler = async (_req, res, _url, _params, _ctx) => {
   const skillsDir = getUserSkillsDir();
   await fs.mkdir(skillsDir, { recursive: true });
-  const cmd = process.platform === "darwin" ? "open"
-    : process.platform === "win32" ? "explorer"
-    : "xdg-open";
+  const cmd =
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
   execFile(cmd, [skillsDir], (err) => {
     if (err) {
       sendJson(res, 500, { error: err.message });

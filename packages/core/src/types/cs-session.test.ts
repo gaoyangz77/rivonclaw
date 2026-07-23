@@ -8,7 +8,7 @@ import {
   unregisterToolSession,
 } from "./cs-session.js";
 
-const SESSION_KEY = "agent:main:affiliate:user:relationship";
+const SESSION_KEY = "agent:affiliate:affiliate:user:relationship";
 
 afterEach(() => unregisterToolSession(SESSION_KEY));
 

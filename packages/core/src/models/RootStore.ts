@@ -24,6 +24,7 @@ import {
 
 const SYSTEM_RUN_PROFILE_TOOL_AUGMENTATIONS: Partial<Record<SystemRunProfileId, string[]>> = {
   [SystemRunProfile.CustomerService]: ["image"],
+  [SystemRunProfile.AffiliateOperator]: ["read"],
 };
 
 const SYSTEM_SURFACE_TOOL_AUGMENTATIONS: Partial<Record<SystemSurfaceId, string[]>> = {
@@ -67,9 +68,10 @@ function findShopByObjectOrPlatformId(
   shopId: string | null | undefined,
   platformShopId: string | null | undefined,
 ): RootShopInstance | undefined {
-  return shops.find((shop) =>
-    (!!shopId && shop.id === shopId) ||
-    (!!platformShopId && shop.platformShopId === platformShopId),
+  return shops.find(
+    (shop) =>
+      (!!shopId && shop.id === shopId) ||
+      (!!platformShopId && shop.platformShopId === platformShopId),
   );
 }
 
@@ -168,7 +170,9 @@ export const RootStoreModel = types
         .map((spec) => spec.id);
     },
     getChannelAccount(channelId: string, accountId: string) {
-      return self.channelAccounts.find((a) => a.channelId === channelId && a.accountId === accountId);
+      return self.channelAccounts.find(
+        (a) => a.channelId === channelId && a.accountId === accountId,
+      );
     },
     getMobilePairing(id: string) {
       return self.mobilePairings.find((p) => p.id === id);
@@ -248,7 +252,13 @@ export const RootStoreModel = types
         }
       }
       const derivedSurfaces = self.getDerivedSurfaces();
-      const profiles: { id: string; name: string; selectedToolIds: string[]; surfaceId: string; userId: string }[] = [];
+      const profiles: {
+        id: string;
+        name: string;
+        selectedToolIds: string[];
+        surfaceId: string;
+        userId: string;
+      }[] = [];
       for (const [name, toolIds] of profileMap) {
         const runProfileId = name as SystemRunProfileId;
         const augmentedToolIds = dedupeToolIds([
@@ -272,7 +282,12 @@ export const RootStoreModel = types
     },
     /** Pass-through to toolCapability.allSurfaces (backward compatibility). */
     get allSurfaces() {
-      const defaultSurface = { id: "Default", name: "Default", allowedToolIds: [] as string[], userId: "" };
+      const defaultSurface = {
+        id: "Default",
+        name: "Default",
+        allowedToolIds: [] as string[],
+        userId: "",
+      };
       return [
         defaultSurface,
         ...self.getDerivedSurfaces(),

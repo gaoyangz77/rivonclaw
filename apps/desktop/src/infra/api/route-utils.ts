@@ -1,8 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
-import { resolveUserSkillsDir, resolveAgentSessionsDir } from "@rivonclaw/core/node";
+import {
+  DEFAULT_AGENT_ID,
+  resolveAgentSessionsDir,
+  resolveOpenClawStateDir,
+  resolveUserSkillsDir,
+} from "@rivonclaw/core/node";
 import { proxyNetwork } from "../proxy/proxy-aware-network.js";
 
 const log = createLogger("panel-server");
@@ -42,7 +47,11 @@ export function parseBody(req: IncomingMessage): Promise<unknown> {
  * The port parameter is kept for call-site compatibility but is ignored —
  * proxyNetwork manages the proxy-router port centrally.
  */
-export async function proxiedFetch(proxyRouterPort: number, url: string | URL, init?: RequestInit): Promise<Response> {
+export async function proxiedFetch(
+  proxyRouterPort: number,
+  url: string | URL,
+  init?: RequestInit,
+): Promise<Response> {
   return proxyNetwork.fetch(url, init);
 }
 
@@ -50,7 +59,12 @@ export async function proxiedFetch(proxyRouterPort: number, url: string | URL, i
  * Parse YAML frontmatter from a SKILL.md file.
  * Extracts name, description, author, version from between --- delimiters.
  */
-export function parseSkillFrontmatter(content: string): { name?: string; description?: string; author?: string; version?: string } {
+export function parseSkillFrontmatter(content: string): {
+  name?: string;
+  description?: string;
+  author?: string;
+  version?: string;
+} {
   const lines = content.split("\n");
   let fmStart = -1;
   let fmEnd = -1;
@@ -86,19 +100,36 @@ export function parseSkillFrontmatter(content: string): { name?: string; descrip
  */
 export function invalidateSkillsSnapshot(): void {
   try {
-    const storePath = join(resolveAgentSessionsDir(), "sessions.json");
-    if (!existsSync(storePath)) return;
-    const store = JSON.parse(readFileSync(storePath, "utf-8")) as Record<string, Record<string, unknown>>;
-    let changed = false;
-    for (const entry of Object.values(store)) {
-      if (entry.skillsSnapshot) {
-        delete entry.skillsSnapshot;
-        changed = true;
+    const agentsRoot = join(resolveOpenClawStateDir(), "agents");
+    const agentIds = new Set<string>([DEFAULT_AGENT_ID]);
+    if (existsSync(agentsRoot)) {
+      for (const entry of readdirSync(agentsRoot, { withFileTypes: true })) {
+        if (entry.isDirectory()) agentIds.add(entry.name);
       }
     }
-    if (changed) {
-      writeFileSync(storePath, JSON.stringify(store, null, 2), "utf-8");
-      log.info("Cleared cached skillsSnapshot from session store");
+
+    let changedStores = 0;
+    for (const agentId of agentIds) {
+      const storePath = join(resolveAgentSessionsDir(process.env, agentId), "sessions.json");
+      if (!existsSync(storePath)) continue;
+      const store = JSON.parse(readFileSync(storePath, "utf-8")) as Record<
+        string,
+        Record<string, unknown>
+      >;
+      let changed = false;
+      for (const entry of Object.values(store)) {
+        if (entry.skillsSnapshot) {
+          delete entry.skillsSnapshot;
+          changed = true;
+        }
+      }
+      if (changed) {
+        writeFileSync(storePath, JSON.stringify(store, null, 2), "utf-8");
+        changedStores += 1;
+      }
+    }
+    if (changedStores > 0) {
+      log.info(`Cleared cached skillsSnapshot from ${changedStores} agent session store(s)`);
     }
   } catch (err) {
     log.warn("Failed to invalidate skills snapshot:", err);

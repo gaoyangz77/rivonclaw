@@ -9,23 +9,17 @@ export function resolveRivonClawHome(
 }
 
 /** Resolve the SQLite database path. */
-export function resolveDbPath(
-  env: Record<string, string | undefined> = process.env,
-): string {
+export function resolveDbPath(env: Record<string, string | undefined> = process.env): string {
   return env.RIVONCLAW_DB_PATH?.trim() || join(resolveRivonClawHome(env), "db.sqlite");
 }
 
 /** Resolve the log directory. */
-export function resolveLogDir(
-  env: Record<string, string | undefined> = process.env,
-): string {
+export function resolveLogDir(env: Record<string, string | undefined> = process.env): string {
   return env.RIVONCLAW_LOG_DIR?.trim() || join(resolveRivonClawHome(env), "logs");
 }
 
 /** Resolve the secrets directory. */
-export function resolveSecretsDir(
-  env: Record<string, string | undefined> = process.env,
-): string {
+export function resolveSecretsDir(env: Record<string, string | undefined> = process.env): string {
   return env.RIVONCLAW_SECRETS_DIR?.trim() || join(resolveRivonClawHome(env), "secrets");
 }
 
@@ -44,16 +38,12 @@ export function resolveOpenClawConfigPath(
 }
 
 /** Resolve the media base directory (under OpenClaw state). */
-export function resolveMediaDir(
-  env: Record<string, string | undefined> = process.env,
-): string {
+export function resolveMediaDir(env: Record<string, string | undefined> = process.env): string {
   return join(resolveOpenClawStateDir(env), "media");
 }
 
 /** Resolve the Chrome CDP wrapper data directory. */
-export function resolveCdpDataDir(
-  env: Record<string, string | undefined> = process.env,
-): string {
+export function resolveCdpDataDir(env: Record<string, string | undefined> = process.env): string {
   return join(resolveRivonClawHome(env), "chrome-cdp");
 }
 
@@ -97,6 +87,33 @@ export const DEFAULT_AGENT_ID = "main";
 
 /** RivonClaw-managed agent dedicated to external customer-service sessions. */
 export const CUSTOMER_SERVICE_AGENT_ID = "customer-service";
+
+/** RivonClaw-managed agent dedicated to Affiliate creator-management sessions. */
+export const AFFILIATE_AGENT_ID = "affiliate";
+
+/** Official workflow skill installed only into the Affiliate agent workspace. */
+export const AFFILIATE_WORKFLOW_SKILL_SLUG = "affiliate-workflow";
+
+/** Resolve the dedicated Affiliate agent workspace. */
+export function resolveAffiliateAgentWorkspaceDir(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(resolveOpenClawStateDir(env), "workspace-affiliate");
+}
+
+/** Resolve the workspace-local skills directory for the Affiliate agent. */
+export function resolveAffiliateAgentSkillsDir(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(resolveAffiliateAgentWorkspaceDir(env), "skills");
+}
+
+/** Resolve the canonical Affiliate workflow skill root. */
+export function resolveAffiliateWorkflowSkillDir(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(resolveAffiliateAgentSkillsDir(env), AFFILIATE_WORKFLOW_SKILL_SLUG);
+}
 
 /** Resolve the main agent config directory (models.json, auth-profiles.json). */
 export function resolveAgentConfigDir(

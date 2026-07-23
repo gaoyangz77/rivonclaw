@@ -52,6 +52,23 @@ vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: (...args: unknown[]) => mockReadFullModelCatalog(...args),
 }));
 
+vi.mock("../affiliate/affiliate-workflow-skill.js", () => ({
+  buildAffiliateWorkflowSkillCatalog: vi
+    .fn()
+    .mockResolvedValue(
+      [
+        "## Skills",
+        "<available_skills>",
+        "<skill>",
+        "<name>affiliate-workflow</name>",
+        "<version>1.0.0</version>",
+        "<location>/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md</location>",
+        "</skill>",
+        "</available_skills>",
+      ].join("\n"),
+    ),
+}));
+
 const mockEmitCsTelemetry = vi.fn();
 const mockEmitCsError = vi.fn();
 vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
@@ -94,18 +111,24 @@ import { applySnapshot, onAction } from "mobx-state-tree";
 
 // Track setSessionRunProfile calls via MST's onAction middleware (no spy mutation needed)
 const setSessionRunProfileCalls: Array<{ sessionKey: string; runProfileId: string | null }> = [];
-onAction(rootStore, (call) => {
-  if (call.name === "setSessionRunProfile") {
-    setSessionRunProfileCalls.push({
-      sessionKey: call.args?.[0] as string,
-      runProfileId: call.args?.[1] as string | null ?? null,
-    });
-  }
-}, true); // true = attach to subtree (captures actions on child models)
+onAction(
+  rootStore,
+  (call) => {
+    if (call.name === "setSessionRunProfile") {
+      setSessionRunProfileCalls.push({
+        sessionKey: call.args?.[0] as string,
+        runProfileId: (call.args?.[1] as string | null) ?? null,
+      });
+    }
+  },
+  true,
+); // true = attach to subtree (captures actions on child models)
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function createBridge(overrides?: Partial<{ defaultRunProfileId: string; locale: string }>): CustomerServiceBridge {
+function createBridge(
+  overrides?: Partial<{ defaultRunProfileId: string; locale: string }>,
+): CustomerServiceBridge {
   return new CustomerServiceBridge({
     gatewayId: "test-gateway",
     defaultRunProfileId: overrides?.defaultRunProfileId ?? "CUSTOMER_SERVICE",
@@ -122,10 +145,7 @@ const defaultShop: CSShopContext = {
   runProfileId: "CUSTOMER_SERVICE",
 };
 
-function buildAffiliateRelationshipWorkItem(
-  creatorRelationshipId: string,
-  userId = "user-001",
-) {
+function buildAffiliateRelationshipWorkItem(creatorRelationshipId: string, userId = "user-001") {
   const creatorRelationship = {
     id: creatorRelationshipId,
     userId,
@@ -274,14 +294,16 @@ function buildTestConversationDeltaResult(currentMessageId: unknown): {
   return {
     ecommerceGetConversationMessageDelta: {
       items: frame
-        ? [{
-          messageId: frame.messageId,
-          index: "1",
-          type: frame.messageType,
-          text: deltaTextFromFrame(frame),
-          createTime: frame.createTime,
-          sender: { role: frame.senderRole, nickname: "Buyer" },
-        }]
+        ? [
+            {
+              messageId: frame.messageId,
+              index: "1",
+              type: frame.messageType,
+              text: deltaTextFromFrame(frame),
+              createTime: frame.createTime,
+              sender: { role: frame.senderRole, nickname: "Buyer" },
+            },
+          ]
         : [],
       meta: {
         completeness: frame ? "COMPLETE" : "CURRENT_MESSAGE_NOT_FOUND",
@@ -297,7 +319,9 @@ function buildTestConversationDeltaResult(currentMessageId: unknown): {
   };
 }
 
-function createAffiliateFrame(overrides?: Partial<AffiliateNewMessageFrame>): AffiliateNewMessageFrame {
+function createAffiliateFrame(
+  overrides?: Partial<AffiliateNewMessageFrame>,
+): AffiliateNewMessageFrame {
   return {
     type: "affiliate_tiktok_new_message",
     shopId: "tiktok-shop-456",
@@ -341,28 +365,30 @@ async function triggerMessage(
     : undefined;
   if (shop && !existingShop) {
     rootStore.ingestGraphQLResponse({
-      shops: [{
-        id: shop.objectId,
-        platform: shop.platform ?? "TIKTOK_SHOP",
-        platformShopId: shop.platformShopId,
-        shopName: shop.shopName,
-        services: {
-          customerService: {
-            enabled: true,
-            csDeviceId: "test-gateway",
-            businessPrompt: shop.systemPrompt,
-            platformSystemPrompt: shop.systemPrompt,
-            runProfileId: shop.runProfileId ?? null,
-            csProviderOverride: shop.csProviderOverride ?? null,
-            csModelOverride: shop.csModelOverride ?? null,
-          },
-          affiliateService: {
-            enabled: false,
-            csDeviceId: null,
-            runProfileId: null,
+      shops: [
+        {
+          id: shop.objectId,
+          platform: shop.platform ?? "TIKTOK_SHOP",
+          platformShopId: shop.platformShopId,
+          shopName: shop.shopName,
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              businessPrompt: shop.systemPrompt,
+              platformSystemPrompt: shop.systemPrompt,
+              runProfileId: shop.runProfileId ?? null,
+              csProviderOverride: shop.csProviderOverride ?? null,
+              csModelOverride: shop.csModelOverride ?? null,
+            },
+            affiliateService: {
+              enabled: false,
+              csDeviceId: null,
+              runProfileId: null,
+            },
           },
         },
-      }],
+      ],
     });
   }
   await bridge.handleCsConversationSignal({
@@ -400,13 +426,15 @@ async function triggerAffiliateSampleEvent(
 }
 
 function seedAffiliateShopContext(bridge: CustomerServiceBridge): void {
-  (bridge as any).affiliateInbound.syncFromShops([{
-    id: defaultShop.objectId,
-    userId: defaultShop.userId,
-    platformShopId: defaultShop.platformShopId,
-    shopName: defaultShop.shopName,
-    platform: "TIKTOK_SHOP",
-  }]);
+  (bridge as any).affiliateInbound.syncFromShops([
+    {
+      id: defaultShop.objectId,
+      userId: defaultShop.userId,
+      platformShopId: defaultShop.platformShopId,
+      shopName: defaultShop.shopName,
+      platform: "TIKTOK_SHOP",
+    },
+  ]);
 }
 
 function seedAffiliateShopInCache(overrides: Partial<CSShopContext> = {}): void {
@@ -414,27 +442,29 @@ function seedAffiliateShopInCache(overrides: Partial<CSShopContext> = {}): void 
     ? overrides.userId
     : defaultShop.userId;
   rootStore.ingestGraphQLResponse({
-    shops: [{
-      id: defaultShop.objectId,
-      userId,
-      platform: "TIKTOK_SHOP",
-      platformShopId: defaultShop.platformShopId,
-      shopName: defaultShop.shopName,
-      services: {
-        customerService: {
-          enabled: false,
-          csDeviceId: null,
-          businessPrompt: null,
-          runProfileId: null,
-          platformSystemPrompt: null,
-        },
-        affiliateService: {
-          enabled: true,
-          csDeviceId: "test-gateway",
-          runProfileId: "AFFILIATE_OPERATOR",
+    shops: [
+      {
+        id: defaultShop.objectId,
+        userId,
+        platform: "TIKTOK_SHOP",
+        platformShopId: defaultShop.platformShopId,
+        shopName: defaultShop.shopName,
+        services: {
+          customerService: {
+            enabled: false,
+            csDeviceId: null,
+            businessPrompt: null,
+            runProfileId: null,
+            platformSystemPrompt: null,
+          },
+          affiliateService: {
+            enabled: true,
+            csDeviceId: "test-gateway",
+            runProfileId: "AFFILIATE_OPERATOR",
+          },
         },
       },
-    }],
+    ],
   });
 }
 
@@ -517,15 +547,18 @@ beforeEach(() => {
     if (query.includes("AffiliateCreatorMessagePreflight")) {
       return {
         affiliateCreatorMessageHistory: {
-          items: [{
-            channel: variables?.input?.channelFilter?.[0] ?? GQL.AffiliateMessageChannel.PlatformChat,
-            direction: GQL.AffiliateCreatorMessageDirection.Creator,
-            messageRef: "message-ref-test",
-            parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
-            messageType: "TEXT",
-            createdAt: "2026-07-01T12:00:00.000Z",
-            source: "TEST",
-          }],
+          items: [
+            {
+              channel:
+                variables?.input?.channelFilter?.[0] ?? GQL.AffiliateMessageChannel.PlatformChat,
+              direction: GQL.AffiliateCreatorMessageDirection.Creator,
+              messageRef: "message-ref-test",
+              parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
+              messageType: "TEXT",
+              createdAt: "2026-07-01T12:00:00.000Z",
+              source: "TEST",
+            },
+          ],
         },
       };
     }
@@ -535,29 +568,33 @@ beforeEach(() => {
     if (query.includes("affiliateWorkspace")) {
       return {
         affiliateWorkspace: {
-          sampleApplicationRecords: [{
-            id: "sample-record-001",
-            platformApplicationId: variables?.input?.platformApplicationId ?? "sample-app-001",
-            creatorId: null,
-            productId: "product-SUB",
-            sampleWorkStatus: "REQUEST_PENDING_REVIEW",
-            observedContentCount: 0,
-            latestObservedContentAt: null,
-            latestObservedContentId: null,
-            latestObservedContentUrl: null,
-            latestObservedContentFormat: null,
-            latestObservedContentPaidOrderCount: null,
-            latestObservedContentViewCount: null,
-            updatedAt: "2026-05-08T10:01:00.000Z",
-          }],
+          sampleApplicationRecords: [
+            {
+              id: "sample-record-001",
+              platformApplicationId: variables?.input?.platformApplicationId ?? "sample-app-001",
+              creatorId: null,
+              productId: "product-SUB",
+              sampleWorkStatus: "REQUEST_PENDING_REVIEW",
+              observedContentCount: 0,
+              latestObservedContentAt: null,
+              latestObservedContentId: null,
+              latestObservedContentUrl: null,
+              latestObservedContentFormat: null,
+              latestObservedContentPaidOrderCount: null,
+              latestObservedContentViewCount: null,
+              updatedAt: "2026-05-08T10:01:00.000Z",
+            },
+          ],
           collaborationRecords: [],
           actionProposals: [],
-          approvalPolicies: [{
-            id: "policy-001",
-            reason: "Require approval for affiliate actions",
-            action: "SEND_MESSAGE",
-            enabled: true,
-          }],
+          approvalPolicies: [
+            {
+              id: "policy-001",
+              reason: "Require approval for affiliate actions",
+              action: "SEND_MESSAGE",
+              enabled: true,
+            },
+          ],
         },
       };
     }
@@ -593,7 +630,7 @@ beforeEach(() => {
     } as any,
     secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
     getRpcClient: () => mockEnsureRpcReady() as any,
-    toMstSnapshot: async () => ({} as any),
+    toMstSnapshot: async () => ({}) as any,
     allKeysToMstSnapshots: async () => [],
     syncActiveKey: async () => {},
     syncAllAuthProfiles: async () => {},
@@ -608,9 +645,31 @@ beforeEach(() => {
   // Reset MST store, then seed RunProfiles so toolCapability.allRunProfiles returns test data
   rootStore.ingestGraphQLResponse({
     runProfiles: [
-      { id: "CUSTOMER_SERVICE", name: "TikTok CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_A", "TOOL_B"] },
-      { id: "AFFILIATE_OPERATOR", name: "Affiliate Operator", userId: "", surfaceId: "Default", selectedToolIds: ["affiliate_get_creator_relationship", "affiliate_resolve_work_item", "affiliate_decide_proposal"] },
-      { id: "FALLBACK_CS", name: "Fallback CS", userId: "", surfaceId: "Default", selectedToolIds: ["TOOL_C"] },
+      {
+        id: "CUSTOMER_SERVICE",
+        name: "TikTok CS",
+        userId: "",
+        surfaceId: "Default",
+        selectedToolIds: ["TOOL_A", "TOOL_B"],
+      },
+      {
+        id: "AFFILIATE_OPERATOR",
+        name: "Affiliate Operator",
+        userId: "",
+        surfaceId: "Default",
+        selectedToolIds: [
+          "affiliate_get_creator_relationship",
+          "affiliate_resolve_work_item",
+          "affiliate_decide_proposal",
+        ],
+      },
+      {
+        id: "FALLBACK_CS",
+        name: "Fallback CS",
+        userId: "",
+        surfaceId: "Default",
+        selectedToolIds: ["TOOL_C"],
+      },
     ],
     surfaces: [],
     toolSpecs: [],
@@ -689,7 +748,7 @@ describe("affiliate message dispatch", () => {
     } as any);
 
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:affiliate:user-001:relationship-SUB",
+      sessionKey: "agent:affiliate:affiliate:user-001:relationship-SUB",
       runProfileId: "AFFILIATE_OPERATOR",
     });
     expect(mockGraphqlFetch).toHaveBeenCalledWith(
@@ -713,10 +772,14 @@ describe("affiliate message dispatch", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "agent:main:affiliate:user-001:relationship-SUB",
-        idempotencyKey: expect.stringContaining("affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-SUB"),
+        sessionKey: "agent:affiliate:affiliate:user-001:relationship-SUB",
+        idempotencyKey: expect.stringContaining(
+          "affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-SUB",
+        ),
         message: expect.stringContaining("[Agent Working Agenda]"),
-        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_timeline"),
+        extraSystemPrompt: expect.stringContaining(
+          "/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md",
+        ),
       }),
     );
   });
@@ -741,21 +804,27 @@ describe("affiliate message dispatch", () => {
     } as any);
 
     expect(setSessionRunProfileCalls).toContainEqual({
-      sessionKey: "agent:main:affiliate:user-001:relationship-001",
+      sessionKey: "agent:affiliate:affiliate:user-001:relationship-001",
       runProfileId: "AFFILIATE_OPERATOR",
     });
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "agent:main:affiliate:user-001:relationship-001",
-        idempotencyKey: expect.stringContaining("affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-001"),
+        sessionKey: "agent:affiliate:affiliate:user-001:relationship-001",
+        idempotencyKey: expect.stringContaining(
+          "affiliate:tiktok:work:INBOUND_MESSAGE_TRIAGE:relationship-001",
+        ),
         message: expect.stringContaining("[Agent Working Agenda]"),
-        extraSystemPrompt: expect.stringContaining("affiliate_get_relationship_timeline"),
+        extraSystemPrompt: expect.stringContaining(
+          "/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md",
+        ),
       }),
     );
-    expect(mockGraphqlFetch.mock.calls.some(([query]) =>
-      typeof query === "string" && query.includes("affiliateRelationshipTimeline"),
-    )).toBe(false);
+    expect(
+      mockGraphqlFetch.mock.calls.some(
+        ([query]) => typeof query === "string" && query.includes("affiliateRelationshipTimeline"),
+      ),
+    ).toBe(false);
   });
 
   it("uses the backend relationship owner when cached shop context omits a user id", async () => {
@@ -764,10 +833,7 @@ describe("affiliate message dispatch", () => {
     mockRpcRequest.mockResolvedValue({ runId: "run-aff-signal-user" });
     mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
       const creatorRelationshipId = variables?.input?.creatorRelationshipId;
-      const workItem = buildAffiliateRelationshipWorkItem(
-        creatorRelationshipId,
-        "signal-user-007",
-      );
+      const workItem = buildAffiliateRelationshipWorkItem(creatorRelationshipId, "signal-user-007");
       if (query.includes("affiliateWorkItems")) {
         return { affiliateWorkItems: [workItem] };
       }
@@ -802,15 +868,17 @@ describe("affiliate message dispatch", () => {
       if (query.includes("AffiliateCreatorMessagePreflight")) {
         return {
           affiliateCreatorMessageHistory: {
-            items: [{
-              channel: GQL.AffiliateMessageChannel.Whatsapp,
-              direction: GQL.AffiliateCreatorMessageDirection.Creator,
-              messageRef: "message-ref-signal-user",
-              parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
-              messageType: "TEXT",
-              createdAt: "2026-07-01T12:05:00.000Z",
-              source: "TEST",
-            }],
+            items: [
+              {
+                channel: GQL.AffiliateMessageChannel.Whatsapp,
+                direction: GQL.AffiliateCreatorMessageDirection.Creator,
+                messageRef: "message-ref-signal-user",
+                parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
+                messageType: "TEXT",
+                createdAt: "2026-07-01T12:05:00.000Z",
+                source: "TEST",
+              },
+            ],
           },
         };
       }
@@ -835,7 +903,7 @@ describe("affiliate message dispatch", () => {
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
       expect.objectContaining({
-        sessionKey: "agent:main:affiliate:signal-user-007:relationship-SIGNAL-USER",
+        sessionKey: "agent:affiliate:affiliate:signal-user-007:relationship-SIGNAL-USER",
       }),
     );
   });
@@ -1032,10 +1100,13 @@ describe("image attachment extraction", () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "image/jpeg" }),
-      arrayBuffer: () => Promise.resolve(fakeImageBuffer.buffer.slice(
-        fakeImageBuffer.byteOffset,
-        fakeImageBuffer.byteOffset + fakeImageBuffer.byteLength,
-      )),
+      arrayBuffer: () =>
+        Promise.resolve(
+          fakeImageBuffer.buffer.slice(
+            fakeImageBuffer.byteOffset,
+            fakeImageBuffer.byteOffset + fakeImageBuffer.byteLength,
+          ),
+        ),
     });
     vi.stubGlobal("fetch", mockFetch);
     mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
@@ -1045,14 +1116,16 @@ describe("image attachment extraction", () => {
       if (query.includes("ecommerceGetConversationMessageDelta")) {
         return {
           ecommerceGetConversationMessageDelta: {
-            items: [{
-              messageId: variables?.currentMessageId ?? "msg-image",
-              index: "1779000000000001",
-              type: "IMAGE",
-              text: imageUrl,
-              createTime: 1779000001,
-              sender: { role: "BUYER", nickname: "Alice" },
-            }],
+            items: [
+              {
+                messageId: variables?.currentMessageId ?? "msg-image",
+                index: "1779000000000001",
+                type: "IMAGE",
+                text: imageUrl,
+                createTime: 1779000001,
+                sender: { role: "BUYER", nickname: "Alice" },
+              },
+            ],
             meta: {
               completeness: "COMPLETE",
               anchorMatchType: "PLATFORM_MESSAGE_ID",
@@ -1114,10 +1187,13 @@ describe("image attachment extraction", () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "image/png" }),
-      arrayBuffer: () => Promise.resolve(rawImageBuffer.buffer.slice(
-        rawImageBuffer.byteOffset,
-        rawImageBuffer.byteOffset + rawImageBuffer.byteLength,
-      )),
+      arrayBuffer: () =>
+        Promise.resolve(
+          rawImageBuffer.buffer.slice(
+            rawImageBuffer.byteOffset,
+            rawImageBuffer.byteOffset + rawImageBuffer.byteLength,
+          ),
+        ),
     });
     vi.stubGlobal("fetch", mockFetch);
     mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
@@ -1127,14 +1203,16 @@ describe("image attachment extraction", () => {
       if (query.includes("ecommerceGetConversationMessageDelta")) {
         return {
           ecommerceGetConversationMessageDelta: {
-            items: [{
-              messageId: variables?.currentMessageId ?? "msg-image",
-              index: "1779000000000001",
-              type: "IMAGE",
-              text: imageUrl,
-              createTime: 1779000001,
-              sender: { role: "BUYER", nickname: "Alice" },
-            }],
+            items: [
+              {
+                messageId: variables?.currentMessageId ?? "msg-image",
+                index: "1779000000000001",
+                type: "IMAGE",
+                text: imageUrl,
+                createTime: 1779000001,
+                sender: { role: "BUYER", nickname: "Alice" },
+              },
+            ],
             meta: {
               completeness: "COMPLETE",
               anchorMatchType: "PLATFORM_MESSAGE_ID",
@@ -1176,7 +1254,6 @@ describe("image attachment extraction", () => {
 
     vi.unstubAllGlobals();
   });
-
 });
 
 // ─── 4. CS RunProfile setup ─────────────────────────────────────────────────
@@ -1203,10 +1280,7 @@ describe("CS RunProfile setup", () => {
 
     // Bridge no longer validates profile existence — it stores the ID and lets the model
     // resolve at effective-tools query time (returning empty tools if not found).
-    expect(mockRpcRequest).toHaveBeenCalledWith(
-      "cs_register_session",
-      expect.anything(),
-    );
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
@@ -1233,7 +1307,10 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-1" }));
 
-    rootStore.toolCapability.setSessionRunProfile("agent:customer-service:cs:tiktok:mongo-id-123:conv-789", null);
+    rootStore.toolCapability.setSessionRunProfile(
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
+      null,
+    );
     setSessionRunProfileCalls.length = 0;
     mockRpcRequest.mockClear();
 
@@ -1270,10 +1347,13 @@ describe("session registration", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    await triggerMessage(bridge, createFrame({
-      conversationId: "conv-100",
-      imUserId: "buyer-200",
-    }));
+    await triggerMessage(
+      bridge,
+      createFrame({
+        conversationId: "conv-100",
+        imUserId: "buyer-200",
+      }),
+    );
 
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
       sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-100",
@@ -1310,15 +1390,19 @@ describe("session registration", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } } };
-      }
-      if (query.includes("ecommerceGetOrders")) {
-        return { ecommerceGetOrders: [{ orderId: "order-555", createTime: 1700000000 }] };
-      }
-      return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-    });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return {
+            ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } },
+          };
+        }
+        if (query.includes("ecommerceGetOrders")) {
+          return { ecommerceGetOrders: [{ orderId: "order-555", createTime: 1700000000 }] };
+        }
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      },
+    );
 
     await triggerMessage(bridge, createFrame());
 
@@ -1372,10 +1456,13 @@ describe("agent dispatch", () => {
       systemPrompt: "Custom shop prompt for testing.",
     });
 
-    await triggerMessage(bridge, createFrame({
-      conversationId: "conv-prompt",
-      imUserId: "buyer-prompt",
-    }));
+    await triggerMessage(
+      bridge,
+      createFrame({
+        conversationId: "conv-prompt",
+        imUserId: "buyer-prompt",
+      }),
+    );
 
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     expect(agentCall).toBeDefined();
@@ -1385,7 +1472,9 @@ describe("agent dispatch", () => {
     expect(prompt).toContain("conv-prompt");
     expect(prompt).toContain("buyer-prompt");
     expect(prompt).toContain("mongo-id-123");
-    expect(prompt).toContain("Reply in the buyer's language. Avoid Markdown styling; short hyphen bullets are OK.");
+    expect(prompt).toContain(
+      "Reply in the buyer's language. Avoid Markdown styling; short hyphen bullets are OK.",
+    );
     expect(prompt).toContain("highest-priority");
     expect(prompt).toContain("overrides general customer-service and store instructions");
   });
@@ -1399,7 +1488,8 @@ describe("agent dispatch", () => {
     });
 
     await session.dispatchCatchUp({
-      operatorInstruction: "This refund request looks unreasonable. Review carefully and do not promise compensation unless the evidence supports it.",
+      operatorInstruction:
+        "This refund request looks unreasonable. Review carefully and do not promise compensation unless the evidence supports it.",
     });
 
     const agentCall = mockRpcRequest.mock.calls.findLast((c: any[]) => c[0] === "agent");
@@ -1465,14 +1555,16 @@ describe("agent dispatch", () => {
         });
         return {
           ecommerceGetConversationMessageDelta: {
-            items: [{
-              messageId: "msg-current",
-              index: "1779000000000001",
-              type: "TEXT",
-              text: "Where is my order?",
-              createTime: 1779000001,
-              sender: { role: "BUYER", nickname: "Alice" },
-            }],
+            items: [
+              {
+                messageId: "msg-current",
+                index: "1779000000000001",
+                type: "TEXT",
+                text: "Where is my order?",
+                createTime: 1779000001,
+                sender: { role: "BUYER", nickname: "Alice" },
+              },
+            ],
             meta: {
               completeness: "COMPLETE",
               anchorMatchType: "PLATFORM_MESSAGE_ID",
@@ -1506,21 +1598,23 @@ describe("agent dispatch", () => {
   it("handleCsConversationSignal passes operator instruction into catch-up dispatch", async () => {
     const bridge = createBridge();
     rootStore.ingestGraphQLResponse({
-      shops: [{
-        id: defaultShop.objectId,
-        platform: "TIKTOK_SHOP",
-        platformShopId: defaultShop.platformShopId,
-        shopName: defaultShop.shopName,
-        services: {
-          customerService: {
-            enabled: true,
-            csDeviceId: "test-gateway",
-            businessPrompt: defaultShop.systemPrompt,
-            runProfileId: defaultShop.runProfileId,
-            platformSystemPrompt: "PLATFORM CS PROMPT",
+      shops: [
+        {
+          id: defaultShop.objectId,
+          platform: "TIKTOK_SHOP",
+          platformShopId: defaultShop.platformShopId,
+          shopName: defaultShop.shopName,
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              businessPrompt: defaultShop.systemPrompt,
+              runProfileId: defaultShop.runProfileId,
+              platformSystemPrompt: "PLATFORM CS PROMPT",
+            },
           },
         },
-      }],
+      ],
     });
 
     await bridge.handleCsConversationSignal({
@@ -1561,15 +1655,19 @@ describe("agent dispatch", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } } };
-      }
-      if (query.includes("ecommerceGetOrders")) {
-        return { ecommerceGetOrders: [{ orderId: "order-in-prompt", createTime: 1700000000 }] };
-      }
-      return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-    });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return {
+            ecommerceGetConversationDetails: { buyer: { userId: "buyer-001", nickname: "Buyer" } },
+          };
+        }
+        if (query.includes("ecommerceGetOrders")) {
+          return { ecommerceGetOrders: [{ orderId: "order-in-prompt", createTime: 1700000000 }] };
+        }
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+      },
+    );
 
     await triggerMessage(bridge, createFrame());
 
@@ -2003,20 +2101,60 @@ describe("reactive entity cache sync", () => {
     rootStore.ingestGraphQLResponse({
       shops: [
         {
-          id: "shop-1", platform: "TIKTOK_SHOP", platformShopId: "ps-1", shopName: "Eligible",
-          services: { customerService: { enabled: true, csDeviceId: "test-gateway", businessPrompt: "prompt-1", platformSystemPrompt: "PLATFORM CS PROMPT" } },
+          id: "shop-1",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-1",
+          shopName: "Eligible",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              businessPrompt: "prompt-1",
+              platformSystemPrompt: "PLATFORM CS PROMPT",
+            },
+          },
         },
         {
-          id: "shop-2", platform: "TIKTOK_SHOP", platformShopId: "ps-2", shopName: "Disabled",
-          services: { customerService: { enabled: false, csDeviceId: "test-gateway", businessPrompt: "prompt-2", platformSystemPrompt: "PLATFORM CS PROMPT" } },
+          id: "shop-2",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-2",
+          shopName: "Disabled",
+          services: {
+            customerService: {
+              enabled: false,
+              csDeviceId: "test-gateway",
+              businessPrompt: "prompt-2",
+              platformSystemPrompt: "PLATFORM CS PROMPT",
+            },
+          },
         },
         {
-          id: "shop-3", platform: "SHOPEE_STORE", platformShopId: "ps-3", shopName: "Other Device",
-          services: { customerService: { enabled: true, csDeviceId: "other-device", businessPrompt: "prompt-3", platformSystemPrompt: "PLATFORM CS PROMPT" } },
+          id: "shop-3",
+          platform: "SHOPEE_STORE",
+          platformShopId: "ps-3",
+          shopName: "Other Device",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "other-device",
+              businessPrompt: "prompt-3",
+              platformSystemPrompt: "PLATFORM CS PROMPT",
+            },
+          },
         },
         {
-          id: "shop-4", platform: "TIKTOK_SHOP", platformShopId: "ps-4", shopName: "Also Eligible",
-          services: { customerService: { enabled: true, csDeviceId: "test-gateway", businessPrompt: "prompt-4", platformSystemPrompt: "PLATFORM CS PROMPT" } },
+          id: "shop-4",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "ps-4",
+          shopName: "Also Eligible",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              businessPrompt: "prompt-4",
+              platformSystemPrompt: "PLATFORM CS PROMPT",
+            },
+          },
         },
       ],
     });
@@ -2059,36 +2197,42 @@ describe("CS session lifecycle", () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    await triggerMessage(bridge, createFrame({
-      conversationId: "conv-lifecycle",
-      imUserId: "buyer-lifecycle",
-    }));
+    await triggerMessage(
+      bridge,
+      createFrame({
+        conversationId: "conv-lifecycle",
+        imUserId: "buyer-lifecycle",
+      }),
+    );
 
     // graphqlFetch should have been called with the session creation mutation
-    expect(mockGraphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("csGetOrCreateSession"),
-      {
-        shopId: "mongo-id-123",
-        conversationId: "conv-lifecycle",
-      },
-    );
+    expect(mockGraphqlFetch).toHaveBeenCalledWith(expect.stringContaining("csGetOrCreateSession"), {
+      shopId: "mongo-id-123",
+      conversationId: "conv-lifecycle",
+    });
   });
 
   it("reuses the backend session marker for later buyer messages in the same conversation", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
 
-    await triggerMessage(bridge, createFrame({
-      conversationId: "conv-reopened",
-      messageId: "msg-before-end",
-    }));
-    await triggerMessage(bridge, createFrame({
-      conversationId: "conv-reopened",
-      messageId: "msg-after-end",
-    }));
+    await triggerMessage(
+      bridge,
+      createFrame({
+        conversationId: "conv-reopened",
+        messageId: "msg-before-end",
+      }),
+    );
+    await triggerMessage(
+      bridge,
+      createFrame({
+        conversationId: "conv-reopened",
+        messageId: "msg-after-end",
+      }),
+    );
 
-    const sessionCalls = mockGraphqlFetch.mock.calls.filter(([query]) =>
-      typeof query === "string" && query.includes("csGetOrCreateSession"),
+    const sessionCalls = mockGraphqlFetch.mock.calls.filter(
+      ([query]) => typeof query === "string" && query.includes("csGetOrCreateSession"),
     );
     expect(sessionCalls).toHaveLength(1);
     expect(sessionCalls[0]).toEqual([
@@ -2126,7 +2270,6 @@ describe("CS session lifecycle", () => {
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
     expect(mockGraphqlFetch).not.toHaveBeenCalled();
   });
-
 });
 
 // ─── 10. Admin directive dispatch ────────────────────────────────────────────
@@ -2143,7 +2286,10 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
   /** Helper: create a session with a pre-existing escalation. */
   async function setupSessionWithEscalation(bridge: ReturnType<typeof createBridge>) {
     bridge.setShopContext(defaultShop);
-    const session = await bridge.getOrCreateSession(defaultDirectiveParams.shopId, defaultDirectiveParams);
+    const session = await bridge.getOrCreateSession(
+      defaultDirectiveParams.shopId,
+      defaultDirectiveParams,
+    );
     // Simulate a prior cs_escalate by adding an escalation record
     const esc = session.addEscalation({ reason: "Refund exceeds limit" });
     return { session, escalationId: esc.id };
@@ -2154,7 +2300,11 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-001" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "Process refund", resolved: true });
+    session.resolveEscalation(escalationId, {
+      decision: "approved",
+      instructions: "Process refund",
+      resolved: true,
+    });
     const result = await session.dispatchEscalationResolved(escalationId);
 
     expect(result.runId).toBe("run-esc-001");
@@ -2171,34 +2321,56 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const bridge = createBridge();
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
 
-    session.resolveEscalation(escalationId, { decision: "rejected", instructions: "Offer store credit", resolved: true });
-
-    const esc = session.escalations.get(escalationId);
-    expect(esc?.result).toEqual(expect.objectContaining({
+    session.resolveEscalation(escalationId, {
       decision: "rejected",
       instructions: "Offer store credit",
       resolved: true,
-    }));
+    });
+
+    const esc = session.escalations.get(escalationId);
+    expect(esc?.result).toEqual(
+      expect.objectContaining({
+        decision: "rejected",
+        instructions: "Offer store credit",
+        resolved: true,
+      }),
+    );
     expect(esc?.result?.resolvedAt).toBeGreaterThan(0);
   });
 
   it("throws when resolving non-existent escalation", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
-    const session = await bridge.getOrCreateSession(defaultDirectiveParams.shopId, defaultDirectiveParams);
+    const session = await bridge.getOrCreateSession(
+      defaultDirectiveParams.shopId,
+      defaultDirectiveParams,
+    );
 
-    expect(() => session.resolveEscalation("esc_nonexistent", { decision: "approved", instructions: "go", resolved: true }))
-      .toThrow("Escalation esc_nonexistent not found");
+    expect(() =>
+      session.resolveEscalation("esc_nonexistent", {
+        decision: "approved",
+        instructions: "go",
+        resolved: true,
+      }),
+    ).toThrow("Escalation esc_nonexistent not found");
   });
 
   it("allows overwriting previous resolution", async () => {
     const bridge = createBridge();
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
 
-    session.resolveEscalation(escalationId, { decision: "checking warehouse", instructions: "hold on", resolved: false });
+    session.resolveEscalation(escalationId, {
+      decision: "checking warehouse",
+      instructions: "hold on",
+      resolved: false,
+    });
     const firstResolvedAt = session.escalations.get(escalationId)!.result!.resolvedAt;
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "ship replacement", resolved: true });
+    session.resolveEscalation(escalationId, {
+      decision: "approved",
+      instructions: "ship replacement",
+      resolved: true,
+    });
     const esc = session.escalations.get(escalationId)!;
 
     expect(esc.result!.decision).toBe("approved");
@@ -2212,7 +2384,11 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-002" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go", resolved: true });
+    session.resolveEscalation(escalationId, {
+      decision: "approved",
+      instructions: "go",
+      resolved: true,
+    });
     await session.dispatchEscalationResolved(escalationId);
 
     const callOrder = mockRpcRequest.mock.calls.map((c: any[]) => c[0]);
@@ -2224,7 +2400,11 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-003" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go", resolved: true });
+    session.resolveEscalation(escalationId, {
+      decision: "approved",
+      instructions: "go",
+      resolved: true,
+    });
     await session.dispatchEscalationResolved(escalationId);
 
     // Simulate agent events: assistant text + lifecycle end (per-turn forwarding)
@@ -2261,7 +2441,11 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-004" });
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "go", resolved: true });
+    session.resolveEscalation(escalationId, {
+      decision: "approved",
+      instructions: "go",
+      resolved: true,
+    });
     await session.dispatchEscalationResolved(escalationId);
 
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
@@ -2274,7 +2458,11 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     // Test in-progress message
     const { session: session1, escalationId: eid1 } = await setupSessionWithEscalation(bridge);
     mockRpcRequest.mockResolvedValue({ runId: "run-esc-ip-001" });
-    session1.resolveEscalation(eid1, { decision: "checking", instructions: "hold", resolved: false });
+    session1.resolveEscalation(eid1, {
+      decision: "checking",
+      instructions: "hold",
+      resolved: false,
+    });
     await session1.dispatchEscalationResolved(eid1);
 
     const inProgressCall = mockRpcRequest.mock.calls.find(
@@ -2295,7 +2483,9 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
       (c: any[]) => c[0] === "agent" && c[1].message.includes(eid2),
     );
     expect(resolvedCall![1].message).toContain("has been resolved");
-    expect(resolvedCall![1].message).toContain("overrides general customer-service and store guidance");
+    expect(resolvedCall![1].message).toContain(
+      "overrides general customer-service and store guidance",
+    );
     expect(resolvedCall![1].message).not.toContain("sent an update");
   });
 
@@ -2308,7 +2498,11 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     expect(escalation.result).toBeUndefined();
 
     // Verify the status derivation logic matches route handler
-    const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
+    const status = escalation.result?.resolved
+      ? "resolved"
+      : escalation.result
+        ? "in_progress"
+        : "pending";
     expect(status).toBe("pending");
     const guidance = !escalation.result?.resolved
       ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
@@ -2320,10 +2514,18 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const bridge = createBridge();
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
 
-    session.resolveEscalation(escalationId, { decision: "checking warehouse", instructions: "hold on", resolved: false });
+    session.resolveEscalation(escalationId, {
+      decision: "checking warehouse",
+      instructions: "hold on",
+      resolved: false,
+    });
     const escalation = session.escalations.get(escalationId)!;
 
-    const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
+    const status = escalation.result?.resolved
+      ? "resolved"
+      : escalation.result
+        ? "in_progress"
+        : "pending";
     expect(status).toBe("in_progress");
     const guidance = !escalation.result?.resolved
       ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
@@ -2335,10 +2537,18 @@ describe("escalation lifecycle (resolve + dispatch)", () => {
     const bridge = createBridge();
     const { session, escalationId } = await setupSessionWithEscalation(bridge);
 
-    session.resolveEscalation(escalationId, { decision: "approved", instructions: "refund issued", resolved: true });
+    session.resolveEscalation(escalationId, {
+      decision: "approved",
+      instructions: "refund issued",
+      resolved: true,
+    });
     const escalation = session.escalations.get(escalationId)!;
 
-    const status = escalation.result?.resolved ? "resolved" : escalation.result ? "in_progress" : "pending";
+    const status = escalation.result?.resolved
+      ? "resolved"
+      : escalation.result
+        ? "in_progress"
+        : "pending";
     expect(status).toBe("resolved");
     const guidance = !escalation.result?.resolved
       ? "This escalation is still being processed. Continue to reassure the buyer and avoid making commitments. If the buyer is pressing, you may cs_escalate again to follow up with the manager."
@@ -2382,23 +2592,25 @@ describe("multi-provider model override", () => {
 
     // Seed shop in MST store with CS overrides (LLM manager reads from here)
     rootStore.ingestGraphQLResponse({
-      shops: [{
-        id: "mongo-id-123",
-        platform: "TIKTOK_SHOP",
-        platformShopId: "tiktok-shop-456",
-        shopName: "Test Shop",
-        services: {
-          customerService: {
-            enabled: true,
-            csDeviceId: "test-gateway",
-            businessPrompt: "You are a CS assistant.",
-            platformSystemPrompt: "You are a CS assistant.",
-            csProviderOverride: overrides?.csProviderOverride ?? null,
-            csModelOverride: overrides?.csModelOverride ?? null,
-            runProfileId: "CUSTOMER_SERVICE",
+      shops: [
+        {
+          id: "mongo-id-123",
+          platform: "TIKTOK_SHOP",
+          platformShopId: "tiktok-shop-456",
+          shopName: "Test Shop",
+          services: {
+            customerService: {
+              enabled: true,
+              csDeviceId: "test-gateway",
+              businessPrompt: "You are a CS assistant.",
+              platformSystemPrompt: "You are a CS assistant.",
+              csProviderOverride: overrides?.csProviderOverride ?? null,
+              csModelOverride: overrides?.csModelOverride ?? null,
+              runProfileId: "CUSTOMER_SERVICE",
+            },
           },
         },
-      }],
+      ],
     });
   }
 
@@ -2535,12 +2747,14 @@ function seedShopWithEscalation(overrides?: {
             csDeviceId: null,
             csProviderOverride: null,
             csModelOverride: null,
-            escalationChannelId: overrides?.escalationChannelId !== undefined
-              ? overrides.escalationChannelId
-              : "telegram:acct_test123",
-            escalationRecipientId: overrides?.escalationRecipientId !== undefined
-              ? overrides.escalationRecipientId
-              : "987654321",
+            escalationChannelId:
+              overrides?.escalationChannelId !== undefined
+                ? overrides.escalationChannelId
+                : "telegram:acct_test123",
+            escalationRecipientId:
+              overrides?.escalationRecipientId !== undefined
+                ? overrides.escalationRecipientId
+                : "987654321",
             runProfileId: null,
           },
         },
@@ -2555,7 +2769,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     const result = await session.escalate({ reason: defaultEscalateParams.reason });
 
     expect(result.ok).toBe(true);
@@ -2578,7 +2795,10 @@ describe("escalate", () => {
     const bridge = createBridge({ locale: "zh" });
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     const result = await session.escalate({ reason: defaultEscalateParams.reason });
 
     expect(result.ok).toBe(true);
@@ -2645,7 +2865,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     await session.escalate({ reason: defaultEscalateParams.reason });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
@@ -2662,7 +2885,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, { ...defaultEscalateParams, orderId: "order-esc-999" });
+    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, {
+      ...defaultEscalateParams,
+      orderId: "order-esc-999",
+    });
     await session.escalate({ reason: defaultEscalateParams.reason });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
@@ -2676,8 +2902,14 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
-    await session.escalate({ reason: defaultEscalateParams.reason, context: "Buyer has been waiting 3 days" });
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
+    await session.escalate({
+      reason: defaultEscalateParams.reason,
+      context: "Buyer has been waiting 3 days",
+    });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
     expect(sendCall).toBeDefined();
@@ -2690,7 +2922,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session1 = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session1 = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     const result = await session1.escalate({ reason: defaultEscalateParams.reason });
 
     expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
@@ -2702,7 +2937,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session2 = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session2 = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     const result = await session2.escalate({ reason: defaultEscalateParams.reason });
 
     expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
@@ -2714,7 +2952,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session3 = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session3 = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     const result = await session3.escalate({ reason: defaultEscalateParams.reason });
 
     expect(result).toEqual({ ok: false, error: "Escalation routing not configured" });
@@ -2727,8 +2968,13 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
-    await expect(session.escalate({ reason: defaultEscalateParams.reason })).rejects.toThrow("OpenClawConnector: RPC client not connected");
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
+    await expect(session.escalate({ reason: defaultEscalateParams.reason })).rejects.toThrow(
+      "OpenClawConnector: RPC client not connected",
+    );
   });
 
   it("send RPC is called with correct idempotencyKey format", async () => {
@@ -2736,7 +2982,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     await session.escalate({ reason: defaultEscalateParams.reason });
 
     const sendCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "send");
@@ -2749,7 +2998,10 @@ describe("escalate", () => {
     const bridge = createBridge();
     bridge.setShopContext(escalationShop);
 
-    const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
     await session.escalate({ reason: defaultEscalateParams.reason });
 
     expect(mockRpcRequest).toHaveBeenCalledWith(
@@ -2775,7 +3027,10 @@ describe("escalate", () => {
       const bridge = createBridge();
       bridge.setShopContext(escalationShop);
 
-      const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+      const session = await bridge.getOrCreateSession(
+        defaultEscalateParams.shopId,
+        defaultEscalateParams,
+      );
       const result = await session.escalate({ reason: defaultEscalateParams.reason });
 
       expect(result.ok).toBe(true);
@@ -2808,7 +3063,10 @@ describe("escalate", () => {
       const bridge = createBridge();
       bridge.setShopContext(escalationShop);
 
-      const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+      const session = await bridge.getOrCreateSession(
+        defaultEscalateParams.shopId,
+        defaultEscalateParams,
+      );
       const firstResult = await session.escalate({ reason: defaultEscalateParams.reason });
       expect(firstResult.ok).toBe(true);
 
@@ -2858,14 +3116,22 @@ describe("escalate", () => {
       });
       const bridge = createBridge();
       bridge.setShopContext(escalationShop);
-      const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+      const session = await bridge.getOrCreateSession(
+        defaultEscalateParams.shopId,
+        defaultEscalateParams,
+      );
 
       rootStore.channelManager.recordRecipientSeen({
         channelId: "openclaw-weixin",
         accountId: "acct_test123",
         recipientId: "manager@im.wechat",
       });
-      expect(rootStore.channelManager.hasWeixinContextTokenForRecipient("acct_test123", "manager@im.wechat")).toBe(false);
+      expect(
+        rootStore.channelManager.hasWeixinContextTokenForRecipient(
+          "acct_test123",
+          "manager@im.wechat",
+        ),
+      ).toBe(false);
 
       const accountsDir = join(tmpStateDir, "openclaw-weixin", "accounts");
       mkdirSync(accountsDir, { recursive: true });
@@ -2875,7 +3141,12 @@ describe("escalate", () => {
       );
 
       await vi.advanceTimersByTimeAsync(100);
-      expect(rootStore.channelManager.getWeixinContextTokenForRecipient("acct_test123", "manager@im.wechat")).toBe("context-token");
+      expect(
+        rootStore.channelManager.getWeixinContextTokenForRecipient(
+          "acct_test123",
+          "manager@im.wechat",
+        ),
+      ).toBe("context-token");
 
       const result = await session.escalate({ reason: defaultEscalateParams.reason });
       expect(result.ok).toBe(true);
@@ -2890,8 +3161,19 @@ describe("escalate", () => {
     } finally {
       rootStore.channelManager.setEnv({
         storage: {
-          channelAccounts: { list: () => [], get: () => undefined, upsert: vi.fn(), delete: vi.fn() },
-          channelRecipients: { ensureExists: vi.fn(), getRecipientMeta: () => ({}), setLabel: vi.fn(), delete: vi.fn(), setOwner: vi.fn() },
+          channelAccounts: {
+            list: () => [],
+            get: () => undefined,
+            upsert: vi.fn(),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+          },
           mobilePairings: { getAllPairings: () => [] },
           settings: { get: () => "1", set: vi.fn() },
         } as any,
@@ -2930,7 +3212,10 @@ describe("escalate", () => {
       const bridge = createBridge();
       bridge.setShopContext(escalationShop);
 
-      const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+      const session = await bridge.getOrCreateSession(
+        defaultEscalateParams.shopId,
+        defaultEscalateParams,
+      );
       const result = await session.escalate({ reason: defaultEscalateParams.reason });
 
       expect(result.ok).toBe(true);
@@ -2974,7 +3259,10 @@ describe("escalate", () => {
       const bridge = createBridge();
       bridge.setShopContext(escalationShop);
 
-      const session = await bridge.getOrCreateSession(defaultEscalateParams.shopId, defaultEscalateParams);
+      const session = await bridge.getOrCreateSession(
+        defaultEscalateParams.shopId,
+        defaultEscalateParams,
+      );
       const result = await session.escalate({ reason: defaultEscalateParams.reason });
 
       expect(result.ok).toBe(true);
@@ -3022,7 +3310,9 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     });
 
     return {
-      get pendingCount() { return agentResolvers.length; },
+      get pendingCount() {
+        return agentResolvers.length;
+      },
       /** Resolve the oldest pending agent RPC. */
       resolveNext(runId: string) {
         const resolve = agentResolvers.shift();
@@ -3113,9 +3403,12 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     // Second message should trigger abort
     await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("chat.abort", expect.objectContaining({
-      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
-    }));
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "chat.abort",
+      expect.objectContaining({
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
+      }),
+    );
   });
 
   it("aborted run error event does not auto-forward", async () => {
@@ -3151,9 +3444,13 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     await triggerMessage(bridge, createFrame({ messageId: "msg-only" }));
 
     // Should dispatch agent
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.objectContaining({
-      message: expect.stringContaining("Hello"),
-    }), 120000);
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "agent",
+      expect.objectContaining({
+        message: expect.stringContaining("Hello"),
+      }),
+      120000,
+    );
 
     // No abort should have been called
     expect(mockRpcRequest).not.toHaveBeenCalledWith("chat.abort", expect.anything());
@@ -3296,9 +3593,12 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     ctrl.resolveNext("run-B");
     await promiseB;
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("chat.abort", expect.objectContaining({
-      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-cloud-rapid",
-    }));
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "chat.abort",
+      expect.objectContaining({
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-cloud-rapid",
+      }),
+    );
 
     bridge.onGatewayEvent({
       event: "agent",
@@ -3329,13 +3629,16 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     );
     expect(forwardCalls).toHaveLength(1);
     expect(forwardCalls[0][1].content).toContain("Latest cloud response");
-    expect(mockEmitCsTelemetry).toHaveBeenCalledWith("cs.message", expect.objectContaining({
-      direction: "inbound",
-      messageId: "msg-B",
-      contentLength: "Latest buyer message".length,
-      runId: "run-B",
-      source: "backend_subscription",
-    }));
+    expect(mockEmitCsTelemetry).toHaveBeenCalledWith(
+      "cs.message",
+      expect.objectContaining({
+        direction: "inbound",
+        messageId: "msg-B",
+        contentLength: "Latest buyer message".length,
+        runId: "run-B",
+        source: "backend_subscription",
+      }),
+    );
   });
 
   it("cloud catch-up snapshots: coalesces buyer messages during the quiet window", async () => {
@@ -3385,9 +3688,11 @@ describe("rapid buyer messages (abort + redispatch)", () => {
 
       const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
       expect(agentCalls).toHaveLength(1);
-      expect(agentCalls[0][1]).toEqual(expect.objectContaining({
-        idempotencyKey: "cs-start:conv-cloud-quiet:msg-quiet-b",
-      }));
+      expect(agentCalls[0][1]).toEqual(
+        expect.objectContaining({
+          idempotencyKey: "cs-start:conv-cloud-quiet:msg-quiet-b",
+        }),
+      );
       expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "chat.abort")).toHaveLength(0);
     } finally {
       vi.useRealTimers();
@@ -3466,28 +3771,30 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     try {
       const bridge = createBridge();
       rootStore.ingestGraphQLResponse({
-        shops: [{
-          id: defaultShop.objectId,
-          platform: defaultShop.platform ?? "TIKTOK_SHOP",
-          platformShopId: defaultShop.platformShopId,
-          shopName: defaultShop.shopName,
-          services: {
-            customerService: {
-              enabled: true,
-              csDeviceId: "test-gateway",
-              businessPrompt: defaultShop.systemPrompt,
-              platformSystemPrompt: defaultShop.systemPrompt,
-              runProfileId: defaultShop.runProfileId ?? null,
-              csProviderOverride: null,
-              csModelOverride: null,
-            },
-            affiliateService: {
-              enabled: false,
-              csDeviceId: null,
-              runProfileId: null,
+        shops: [
+          {
+            id: defaultShop.objectId,
+            platform: defaultShop.platform ?? "TIKTOK_SHOP",
+            platformShopId: defaultShop.platformShopId,
+            shopName: defaultShop.shopName,
+            services: {
+              customerService: {
+                enabled: true,
+                csDeviceId: "test-gateway",
+                businessPrompt: defaultShop.systemPrompt,
+                platformSystemPrompt: defaultShop.systemPrompt,
+                runProfileId: defaultShop.runProfileId ?? null,
+                csProviderOverride: null,
+                csModelOverride: null,
+              },
+              affiliateService: {
+                enabled: false,
+                csDeviceId: null,
+                runProfileId: null,
+              },
             },
           },
-        }],
+        ],
       });
       bridge.syncFromCache();
       mockRpcRequest.mockImplementation((method: string, params?: any) => {
@@ -3541,9 +3848,11 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       });
       const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
       expect(agentCalls).toHaveLength(1);
-      expect(agentCalls[0][1]).toEqual(expect.objectContaining({
-        idempotencyKey: "cs-retry:conv-airflow-backlog:msg-airflow-latest:1780275620000",
-      }));
+      expect(agentCalls[0][1]).toEqual(
+        expect.objectContaining({
+          idempotencyKey: "cs-retry:conv-airflow-backlog:msg-airflow-latest:1780275620000",
+        }),
+      );
       expect(mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "chat.abort")).toHaveLength(0);
     } finally {
       if (previousWindow === undefined) {
@@ -3580,7 +3889,8 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     };
 
     await session.dispatchCatchUp(options);
-    const firstRunId = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent")?.[1].idempotencyKey;
+    const firstRunId = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent")?.[1]
+      .idempotencyKey;
     expect(firstRunId).toBe("cs-retry:conv-airflow-retry:msg-airflow-retry:1780275600000");
 
     bridge.onGatewayEvent({
@@ -3595,12 +3905,17 @@ describe("rapid buyer messages (abort + redispatch)", () => {
 
     const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
     expect(agentCalls).toHaveLength(2);
-    expect(agentCalls[1][1].idempotencyKey).toBe("cs-retry:conv-airflow-retry:msg-airflow-retry:1780279200000");
+    expect(agentCalls[1][1].idempotencyKey).toBe(
+      "cs-retry:conv-airflow-retry:msg-airflow-retry:1780279200000",
+    );
     expect(agentCalls[1][1].idempotencyKey).not.toBe(agentCalls[0][1].idempotencyKey);
-    expect(mockEmitCsError).toHaveBeenCalledWith("run_error", expect.objectContaining({
-      reason: "final_no_text",
-      runId: firstRunId,
-    }));
+    expect(mockEmitCsError).toHaveBeenCalledWith(
+      "run_error",
+      expect.objectContaining({
+        reason: "final_no_text",
+        runId: firstRunId,
+      }),
+    );
   });
 
   it("cloud catch-up snapshots: newer buyer message wins while the older delta fetch is pending", async () => {
@@ -3613,18 +3928,23 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       }
       if (query.includes("ecommerceGetConversationMessageDelta")) {
         if (variables?.currentMessageId === "msg-A") {
-          await new Promise<void>((resolve) => { releaseFirstDelta = resolve; });
+          await new Promise<void>((resolve) => {
+            releaseFirstDelta = resolve;
+          });
         }
         return {
           ecommerceGetConversationMessageDelta: {
-            items: [{
-              messageId: variables?.currentMessageId,
-              index: variables?.currentMessageId === "msg-A" ? "1" : "2",
-              type: "TEXT",
-              text: variables?.currentMessageId === "msg-A" ? "First duplicate" : "Second duplicate",
-              createTime: variables?.currentMessageId === "msg-A" ? 100 : 101,
-              sender: { role: "BUYER", nickname: "Alice" },
-            }],
+            items: [
+              {
+                messageId: variables?.currentMessageId,
+                index: variables?.currentMessageId === "msg-A" ? "1" : "2",
+                type: "TEXT",
+                text:
+                  variables?.currentMessageId === "msg-A" ? "First duplicate" : "Second duplicate",
+                createTime: variables?.currentMessageId === "msg-A" ? 100 : 101,
+                sender: { role: "BUYER", nickname: "Alice" },
+              },
+            ],
             meta: {
               completeness: "COMPLETE",
               anchorMatchType: "PLATFORM_MESSAGE_ID",
@@ -3676,11 +3996,17 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     mockRpcRequest.mockResolvedValue({ runId: "run-1" });
 
     // First message dispatches normally
-    await triggerMessage(bridge, createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "First" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "First" }) }),
+    );
 
     // Second message aborts first and dispatches with notice
     mockRpcRequest.mockResolvedValue({ runId: "run-2" });
-    await triggerMessage(bridge, createFrame({ messageId: "msg-2", content: JSON.stringify({ content: "Second" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-2", content: JSON.stringify({ content: "Second" }) }),
+    );
 
     const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
     const lastAgentCall = agentCalls[agentCalls.length - 1];
@@ -3697,13 +4023,22 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     bridge.setShopContext(defaultShop);
     mockRpcRequest.mockResolvedValue({ runId: "run-1" });
 
-    await triggerMessage(bridge, createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "First" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "First" }) }),
+    );
 
     mockRpcRequest.mockResolvedValue({ runId: "run-2" });
-    await triggerMessage(bridge, createFrame({ messageId: "msg-2", content: JSON.stringify({ content: "Second" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-2", content: JSON.stringify({ content: "Second" }) }),
+    );
 
     mockRpcRequest.mockResolvedValue({ runId: "run-3" });
-    await triggerMessage(bridge, createFrame({ messageId: "msg-3", content: JSON.stringify({ content: "Third" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-3", content: JSON.stringify({ content: "Third" }) }),
+    );
 
     const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
     const lastAgentCall = agentCalls[agentCalls.length - 1];
@@ -3719,11 +4054,17 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     mockRpcRequest.mockResolvedValue({ runId: "run-1" });
 
     // First message
-    await triggerMessage(bridge, createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "First" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "First" }) }),
+    );
 
     // Second message aborts first (undeliveredCount = 1)
     mockRpcRequest.mockResolvedValue({ runId: "run-2" });
-    await triggerMessage(bridge, createFrame({ messageId: "msg-2", content: JSON.stringify({ content: "Second" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-2", content: JSON.stringify({ content: "Second" }) }),
+    );
 
     // Simulate successful delivery for run-2 via agent events (per-turn forwarding)
     bridge.onGatewayEvent({
@@ -3744,7 +4085,10 @@ describe("rapid buyer messages (abort + redispatch)", () => {
 
     // Third message — should NOT have undelivered notice (count was reset)
     mockRpcRequest.mockResolvedValue({ runId: "run-3" });
-    await triggerMessage(bridge, createFrame({ messageId: "msg-3", content: JSON.stringify({ content: "Third" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-3", content: JSON.stringify({ content: "Third" }) }),
+    );
 
     const agentCalls = mockRpcRequest.mock.calls.filter((c: any[]) => c[0] === "agent");
     const lastAgentCall = agentCalls[agentCalls.length - 1];
@@ -3761,7 +4105,10 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     bridge.setShopContext(defaultShop);
     mockRpcRequest.mockResolvedValue({ runId: "run-1" });
 
-    await triggerMessage(bridge, createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "Hello" }) }));
+    await triggerMessage(
+      bridge,
+      createFrame({ messageId: "msg-1", content: JSON.stringify({ content: "Hello" }) }),
+    );
 
     const agentCall = mockRpcRequest.mock.calls.find((c: any[]) => c[0] === "agent");
     const message = agentCall![1].message as string;
@@ -4361,23 +4708,25 @@ describe("terminal guarantee (error/timeout)", () => {
    */
   function failFirstNSends(n: number): void {
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceSendMessage")) {
-        sendCount++;
-        if (sendCount <= n) throw new Error("simulated delivery failure");
-        return { ecommerceSendMessage: { messageId: "ok" } };
-      }
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("ecommerceGetConversationMessageDelta")) {
-        return buildTestConversationDeltaResult(variables?.currentMessageId);
-      }
-      return {};
-    });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceSendMessage")) {
+          sendCount++;
+          if (sendCount <= n) throw new Error("simulated delivery failure");
+          return { ecommerceSendMessage: { messageId: "ok" } };
+        }
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return { ecommerceGetConversationDetails: { buyer: null } };
+        }
+        if (query.includes("csGetOrCreateSession")) {
+          return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+        }
+        if (query.includes("ecommerceGetConversationMessageDelta")) {
+          return buildTestConversationDeltaResult(variables?.currentMessageId);
+        }
+        return {};
+      },
+    );
   }
 
   it("forward rejects → silent drop (cron sweep handles recovery, no boilerplate to buyer)", async () => {
@@ -4411,21 +4760,23 @@ describe("terminal guarantee (error/timeout)", () => {
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-fwd-sensitive");
 
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceSendMessage")) {
-        throw new Error("TikTok API error 45101006: hit sensitive");
-      }
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("ecommerceGetConversationMessageDelta")) {
-        return buildTestConversationDeltaResult(variables?.currentMessageId);
-      }
-      return {};
-    });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceSendMessage")) {
+          throw new Error("TikTok API error 45101006: hit sensitive");
+        }
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return { ecommerceGetConversationDetails: { buyer: null } };
+        }
+        if (query.includes("csGetOrCreateSession")) {
+          return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+        }
+        if (query.includes("ecommerceGetConversationMessageDelta")) {
+          return buildTestConversationDeltaResult(variables?.currentMessageId);
+        }
+        return {};
+      },
+    );
 
     agentEvent(bridge, "run-fwd-sensitive", "assistant", { text: "Refund details" });
     agentEvent(bridge, "run-fwd-sensitive", "lifecycle", { phase: "end" });
@@ -4456,29 +4807,33 @@ describe("terminal guarantee (error/timeout)", () => {
     });
 
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceSendMessage")) {
-        sendCount++;
-        if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
-        return { ecommerceSendMessage: { messageId: "ok" } };
-      }
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("ecommerceGetConversationMessageDelta")) {
-        return buildTestConversationDeltaResult(variables?.currentMessageId);
-      }
-      return {};
-    });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceSendMessage")) {
+          sendCount++;
+          if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
+          return { ecommerceSendMessage: { messageId: "ok" } };
+        }
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return { ecommerceGetConversationDetails: { buyer: null } };
+        }
+        if (query.includes("csGetOrCreateSession")) {
+          return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+        }
+        if (query.includes("ecommerceGetConversationMessageDelta")) {
+          return buildTestConversationDeltaResult(variables?.currentMessageId);
+        }
+        return {};
+      },
+    );
 
     await triggerMessage(bridge, createFrame());
     const session = (bridge as any).sessions.get("conv-789");
     expect(session.getDebugRoundCount()).toBe(1);
 
-    agentEvent(bridge, "run-fwd-sensitive", "assistant", { text: "Contact PayPal dispute and block the card." });
+    agentEvent(bridge, "run-fwd-sensitive", "assistant", {
+      text: "Contact PayPal dispute and block the card.",
+    });
     agentEvent(bridge, "run-fwd-sensitive", "lifecycle", { phase: "end" });
     await new Promise((r) => setTimeout(r, 50));
     chatFinal(bridge, "run-fwd-sensitive");
@@ -4490,7 +4845,9 @@ describe("terminal guarantee (error/timeout)", () => {
     expect(dispatchMessages[1]).toContain("Rephrase the same meaning");
     expect(dispatchMessages[1]).toContain("Contact PayPal dispute and block the card.");
 
-    agentEvent(bridge, "run-fwd-sensitive-rewrite", "assistant", { text: "Please contact PayPal directly for help with the pending payment." });
+    agentEvent(bridge, "run-fwd-sensitive-rewrite", "assistant", {
+      text: "Please contact PayPal directly for help with the pending payment.",
+    });
     agentEvent(bridge, "run-fwd-sensitive-rewrite", "lifecycle", { phase: "end" });
     await new Promise((r) => setTimeout(r, 50));
     expect(session.getDebugRoundCount()).toBe(1);
@@ -4517,21 +4874,23 @@ describe("terminal guarantee (error/timeout)", () => {
       return { ok: true };
     });
 
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceSendMessage")) {
-        throw new Error("TikTok API error 45101006: hit sensitive");
-      }
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("ecommerceGetConversationMessageDelta")) {
-        return buildTestConversationDeltaResult(variables?.currentMessageId);
-      }
-      return {};
-    });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceSendMessage")) {
+          throw new Error("TikTok API error 45101006: hit sensitive");
+        }
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return { ecommerceGetConversationDetails: { buyer: null } };
+        }
+        if (query.includes("csGetOrCreateSession")) {
+          return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+        }
+        if (query.includes("ecommerceGetConversationMessageDelta")) {
+          return buildTestConversationDeltaResult(variables?.currentMessageId);
+        }
+        return {};
+      },
+    );
 
     await triggerMessage(bridge, createFrame());
 
@@ -4567,23 +4926,25 @@ describe("terminal guarantee (error/timeout)", () => {
     });
 
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceSendMessage")) {
-        sendCount++;
-        if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
-        return { ecommerceSendMessage: { messageId: `ok-${sendCount}` } };
-      }
-      if (query.includes("ecommerceGetConversationMessageDelta")) {
-        return buildTestConversationDeltaResult(variables?.currentMessageId);
-      }
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      return {};
-    });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceSendMessage")) {
+          sendCount++;
+          if (sendCount === 1) throw new Error("TikTok API error 45101006: hit sensitive");
+          return { ecommerceSendMessage: { messageId: `ok-${sendCount}` } };
+        }
+        if (query.includes("ecommerceGetConversationMessageDelta")) {
+          return buildTestConversationDeltaResult(variables?.currentMessageId);
+        }
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return { ecommerceGetConversationDetails: { buyer: null } };
+        }
+        if (query.includes("csGetOrCreateSession")) {
+          return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+        }
+        return {};
+      },
+    );
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-sensitive" }));
     const session = (bridge as any).sessions.get("conv-789");
@@ -4592,14 +4953,21 @@ describe("terminal guarantee (error/timeout)", () => {
     agentEvent(bridge, "run-sensitive-original", "lifecycle", { phase: "end" });
     await waitForCondition(() => agentDispatchCount === 2);
 
-    await triggerMessage(bridge, createFrame({
-      messageId: "msg-newer",
-      content: JSON.stringify({ content: "Actually, I have a new question" }),
-    }));
+    await triggerMessage(
+      bridge,
+      createFrame({
+        messageId: "msg-newer",
+        content: JSON.stringify({ content: "Actually, I have a new question" }),
+      }),
+    );
     expect(agentDispatchCount).toBe(3);
 
     resolveRecoveryDispatch?.({ runId: "run-sensitive-recovery" });
-    await waitForCondition(() => mockRpcRequest.mock.calls.some((c: any[]) => c[1]?.message?.includes("Actually, I have a new question")));
+    await waitForCondition(() =>
+      mockRpcRequest.mock.calls.some((c: any[]) =>
+        c[1]?.message?.includes("Actually, I have a new question"),
+      ),
+    );
     await waitForCondition(() => (bridge as any).pendingRuns.has("run-sensitive-recovery"));
 
     agentEvent(bridge, "run-sensitive-recovery", "assistant", { text: "Stale recovery reply" });
@@ -4608,7 +4976,9 @@ describe("terminal guarantee (error/timeout)", () => {
     await new Promise((r) => setTimeout(r, 30));
     expect(session.getDebugRoundCount()).toBe(1);
 
-    agentEvent(bridge, "run-newer-buyer-message", "assistant", { text: "Fresh reply for the newer message" });
+    agentEvent(bridge, "run-newer-buyer-message", "assistant", {
+      text: "Fresh reply for the newer message",
+    });
     agentEvent(bridge, "run-newer-buyer-message", "lifecycle", { phase: "end" });
     await new Promise((r) => setTimeout(r, 30));
 
@@ -4689,26 +5059,30 @@ describe("terminal guarantee (error/timeout)", () => {
     // Make the first send hang, then reject after a delay
     let rejectSend!: (err: Error) => void;
     let sendCount = 0;
-    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, unknown>) => {
-      if (query.includes("ecommerceSendMessage")) {
-        sendCount++;
-        if (sendCount === 1) {
-          // First send: return a promise we control
-          return new Promise((_resolve, reject) => { rejectSend = reject; });
+    mockGraphqlFetch.mockImplementation(
+      async (query: string, variables?: Record<string, unknown>) => {
+        if (query.includes("ecommerceSendMessage")) {
+          sendCount++;
+          if (sendCount === 1) {
+            // First send: return a promise we control
+            return new Promise((_resolve, reject) => {
+              rejectSend = reject;
+            });
+          }
+          return { ecommerceSendMessage: { messageId: "ok" } };
         }
-        return { ecommerceSendMessage: { messageId: "ok" } };
-      }
-      if (query.includes("ecommerceGetConversationDetails")) {
-        return { ecommerceGetConversationDetails: { buyer: null } };
-      }
-      if (query.includes("csGetOrCreateSession")) {
-        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
-      }
-      if (query.includes("ecommerceGetConversationMessageDelta")) {
-        return buildTestConversationDeltaResult(variables?.currentMessageId);
-      }
-      return {};
-    });
+        if (query.includes("ecommerceGetConversationDetails")) {
+          return { ecommerceGetConversationDetails: { buyer: null } };
+        }
+        if (query.includes("csGetOrCreateSession")) {
+          return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+        }
+        if (query.includes("ecommerceGetConversationMessageDelta")) {
+          return buildTestConversationDeltaResult(variables?.currentMessageId);
+        }
+        return {};
+      },
+    );
 
     // Agent produces text, lifecycle ends → flushTurnText starts send (hangs)
     agentEvent(bridge, "run-abort-race", "assistant", { text: "Stale answer" });
@@ -4725,7 +5099,7 @@ describe("terminal guarantee (error/timeout)", () => {
     const texts = await getForwardedTexts();
     // Only the original failed attempt; NO fallback (run was aborted)
     expect(texts).toHaveLength(1);
-    expect(texts[0]).toBe("Stale answer");  // attempted but failed, no fallback
+    expect(texts[0]).toBe("Stale answer"); // attempted but failed, no fallback
   });
 });
 

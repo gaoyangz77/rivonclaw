@@ -346,7 +346,7 @@ describe("ChatRunStateModel", () => {
     it("picks most recent external run when no local run", () => {
       const now = Date.now();
       vi.spyOn(Date, "now")
-        .mockReturnValueOnce(now)       // ext1 startedAt
+        .mockReturnValueOnce(now) // ext1 startedAt
         .mockReturnValueOnce(now + 100); // ext2 startedAt
       const rs = createRunState();
       rs.beginExternalRun("ext1", "s1", "wechat");
@@ -850,8 +850,8 @@ describe("isHiddenSession", () => {
   });
 
   it("hides affiliate dispatch sessions", () => {
-    expect(isHiddenSession("agent:main:affiliate:tiktok:6a3a80f0c3e0e28fd3a8598b")).toBe(true);
-    expect(isHiddenSession("agent:main:affiliate:tiktok:sample_application:sample-app-001")).toBe(true);
+    expect(isHiddenSession("agent:affiliate:affiliate:user-1:relationship-1")).toBe(true);
+    expect(isHiddenSession("agent:affiliate:affiliate:user-1:relationship-2")).toBe(true);
   });
 
   it("hides internal API sessions", () => {
@@ -877,7 +877,9 @@ describe("inferSessionChannelFromKey", () => {
   });
 
   it("does not treat internal or panel session segments as channels", () => {
-    expect(inferSessionChannelFromKey("agent:main:affiliate:tiktok:conv123")).toBeUndefined();
+    expect(
+      inferSessionChannelFromKey("agent:affiliate:affiliate:user-1:relationship-1"),
+    ).toBeUndefined();
     expect(inferSessionChannelFromKey("agent:main:cs:tiktok:conv123")).toBeUndefined();
     expect(inferSessionChannelFromKey("agent:main:panel-abc123")).toBeUndefined();
     expect(inferSessionChannelFromKey("agent:main:main")).toBeUndefined();
@@ -905,34 +907,37 @@ describe("ChatStore.sessionList hides internal service sessions", () => {
     // Add a normal session + internal service sessions
     store.getOrCreateSession("agent:main:telegram:user1");
     store.getOrCreateSession("agent:main:cs:tiktok:conv123");
-    store.getOrCreateSession("agent:main:affiliate:tiktok:6a3a80f0c3e0e28fd3a8598b");
+    store.getOrCreateSession("agent:affiliate:affiliate:user-1:relationship-1");
     store.getOrCreateSession("agent:main:main");
 
     const keys = store.sessionList.map((s) => s.key);
     expect(keys).toContain("agent:main:telegram:user1");
     expect(keys).toContain("agent:main:main");
     expect(keys).not.toContain("agent:main:cs:tiktok:conv123");
-    expect(keys).not.toContain("agent:main:affiliate:tiktok:6a3a80f0c3e0e28fd3a8598b");
+    expect(keys).not.toContain("agent:affiliate:affiliate:user-1:relationship-1");
   });
 
   it("internal service sessions marked unread still do not appear in sessionList", () => {
     const store = createChatStore();
     const csSession = store.getOrCreateSession("agent:main:cs:shopee:conv789");
-    const affiliateSession = store.getOrCreateSession("agent:main:affiliate:tiktok:sample_application:sample-app-001");
+    const affiliateSession = store.getOrCreateSession(
+      "agent:affiliate:affiliate:user-1:relationship-2",
+    );
     csSession.setUnread(true);
     affiliateSession.setUnread(true);
 
     const keys = store.sessionList.map((s) => s.key);
     expect(keys).not.toContain("agent:main:cs:shopee:conv789");
-    expect(keys).not.toContain("agent:main:affiliate:tiktok:sample_application:sample-app-001");
+    expect(keys).not.toContain("agent:affiliate:affiliate:user-1:relationship-2");
   });
 
   it("exposes inferred channel metadata for plugin-created Feishu sessions", () => {
     const store = createChatStore();
     store.getOrCreateSession("agent:main:feishu:default:direct:ou_456");
 
-    expect(store.sessionList.find((s) => s.key === "agent:main:feishu:default:direct:ou_456")?.channel)
-      .toBe("feishu");
+    expect(
+      store.sessionList.find((s) => s.key === "agent:main:feishu:default:direct:ou_456")?.channel,
+    ).toBe("feishu");
   });
 });
 
@@ -940,19 +945,23 @@ describe("ChatStore.setSessions reconciliation", () => {
   it("hydrates custom titles from local session metadata", () => {
     const store = createChatStore();
 
-    store.setSessions([
-      {
-        key: "agent:main:panel-renamed",
-        customTitle: "手动改名",
-        panelTitle: "自动标题",
-        updatedAt: 2,
-      },
-    ], { pruneMissing: false });
+    store.setSessions(
+      [
+        {
+          key: "agent:main:panel-renamed",
+          customTitle: "手动改名",
+          panelTitle: "自动标题",
+          updatedAt: 2,
+        },
+      ],
+      { pruneMissing: false },
+    );
 
     const session = store.sessions.get("agent:main:panel-renamed");
     expect(session?.customTitle).toBe("手动改名");
-    expect(store.sessionList.find((s) => s.key === "agent:main:panel-renamed")?.customTitle)
-      .toBe("手动改名");
+    expect(store.sessionList.find((s) => s.key === "agent:main:panel-renamed")?.customTitle).toBe(
+      "手动改名",
+    );
   });
 
   it("preserves existing tabs during non-pruning refreshes", () => {
@@ -962,9 +971,9 @@ describe("ChatStore.setSessions reconciliation", () => {
     store.getOrCreateSession("agent:main:panel-current");
     store.setActiveSessionKey("agent:main:panel-current");
 
-    store.setSessions([
-      { key: "agent:main:panel-current", isLocal: false, updatedAt: 2 },
-    ], { pruneMissing: false });
+    store.setSessions([{ key: "agent:main:panel-current", isLocal: false, updatedAt: 2 }], {
+      pruneMissing: false,
+    });
 
     const keys = store.sessionList.map((s) => s.key);
     expect(keys).toContain("agent:main:main");
@@ -978,9 +987,7 @@ describe("ChatStore.setSessions reconciliation", () => {
     store.getOrCreateSession("agent:main:panel-current");
     store.setActiveSessionKey("agent:main:panel-current");
 
-    store.setSessions([
-      { key: "agent:main:panel-current", isLocal: false, updatedAt: 2 },
-    ]);
+    store.setSessions([{ key: "agent:main:panel-current", isLocal: false, updatedAt: 2 }]);
 
     const keys = store.sessionList.map((s) => s.key);
     expect(keys).toContain("agent:main:main");
