@@ -5,7 +5,10 @@ import { writeGatewayConfig } from "@rivonclaw/gateway";
 import { describe, expect, it } from "vitest";
 import {
   buildCustomProviderOverridesFromKeys,
+  createGatewayConfigBuilder,
   DEFAULT_GATEWAY_TOOL_ALLOWLIST,
+  IMAGE_GENERATION_MODEL_REF,
+  IMAGE_GENERATION_TIMEOUT_MS,
   normalizeGeminiOAuthModelId,
   RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS,
 } from "./config-builder.js";
@@ -185,5 +188,89 @@ describe("gateway config builder", () => {
         maxTokens: 128_000,
       },
     ]);
+  });
+
+  it("routes image generation through the RivonClaw backend for the active cloud key", async () => {
+    const cloudKey = {
+      id: "cloud-rivonclaw-pro",
+      provider: "rivonclaw-pro",
+      authType: "custom",
+      isDefault: true,
+      model: "rivonclaw-flagship",
+      baseUrl: "https://api.rivonclaw.com/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify(["rivonclaw-flagship"]),
+    };
+    const storage = {
+      providerKeys: {
+        getActive: () => cloudKey,
+        getAll: () => [cloudKey],
+        getByProvider: (provider: string) => (provider === cloudKey.provider ? [cloudKey] : []),
+      },
+      settings: { get: () => undefined },
+      channelAccounts: { list: () => [], get: () => undefined },
+      channelRecipients: { getOwners: () => [] },
+    };
+    const builder = createGatewayConfigBuilder({
+      storage: storage as never,
+      secretStore: { get: async () => null } as never,
+      locale: "en",
+      configPath: "/tmp/openclaw.json",
+      stateDir: "/tmp/openclaw",
+      extensionsDir: "/tmp/extensions",
+      sttCliPath: "/tmp/stt.js",
+      channelPluginEntries: () => ({}),
+      channelConfigAccounts: () => [],
+    });
+
+    const config = await builder.buildFullGatewayConfig(18789);
+    expect(config.imageGenerationModel).toEqual({
+      primary: IMAGE_GENERATION_MODEL_REF,
+      timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+    });
+    expect(config.extraProviders?.openai).toMatchObject({
+      baseUrl: "https://api.rivonclaw.com/llm/v1",
+      api: "openai-completions",
+      timeoutSeconds: 300,
+      models: [{ id: "gpt-image-2", name: "GPT Image 2" }],
+    });
+  });
+
+  it("uses native Codex OAuth for image generation without a cloud provider override", async () => {
+    const codexKey = {
+      id: "codex-oauth",
+      provider: "openai-codex",
+      authType: "oauth",
+      isDefault: true,
+      model: "gpt-5.6-terra",
+    };
+    const storage = {
+      providerKeys: {
+        getActive: () => codexKey,
+        getAll: () => [codexKey],
+        getByProvider: (provider: string) => (provider === codexKey.provider ? [codexKey] : []),
+      },
+      settings: { get: () => undefined },
+      channelAccounts: { list: () => [], get: () => undefined },
+      channelRecipients: { getOwners: () => [] },
+    };
+    const builder = createGatewayConfigBuilder({
+      storage: storage as never,
+      secretStore: { get: async () => null } as never,
+      locale: "en",
+      configPath: "/tmp/openclaw.json",
+      stateDir: "/tmp/openclaw",
+      extensionsDir: "/tmp/extensions",
+      sttCliPath: "/tmp/stt.js",
+      channelPluginEntries: () => ({}),
+      channelConfigAccounts: () => [],
+    });
+
+    const config = await builder.buildFullGatewayConfig(18789);
+    expect(config.imageGenerationModel).toEqual({
+      primary: IMAGE_GENERATION_MODEL_REF,
+      timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+    });
+    expect(config.extraProviders?.openai).toBeUndefined();
   });
 });

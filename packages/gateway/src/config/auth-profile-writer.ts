@@ -240,6 +240,7 @@ export async function syncAllAuthProfiles(
         isDefault: boolean;
         authType?: string;
       }>;
+      getActive?(): { id: string; provider: string } | null | undefined;
     };
   },
   secretStore: { get(key: string): Promise<string | null> },
@@ -309,6 +310,19 @@ export async function syncAllAuthProfiles(
             projectId: cred.projectId,
           };
           store.order![oauthProvider] = [profileId];
+          if (key.provider === "openai-codex") {
+            const imageProfileId = `openai:${cred.email ?? "default"}-image`;
+            store.profiles[imageProfileId] = {
+              type: "oauth",
+              provider: "openai",
+              access: cred.access,
+              refresh: cred.refresh,
+              expires: cred.expires,
+              email: cred.email,
+              projectId: cred.projectId,
+            };
+            store.order!.openai = [imageProfileId];
+          }
         } catch {
           log.warn(`Failed to parse OAuth credential for ${key.provider} (key ${key.id})`);
         }
@@ -349,6 +363,23 @@ export async function syncAllAuthProfiles(
         };
         store.order![gwProvider] = [profileId];
       }
+    }
+  }
+
+  // OpenClaw's OpenAI image provider is intentionally named "openai". When
+  // RivonClaw cloud is the active LLM, give that provider a short-lived alias
+  // to the same managed cloud key so image requests use the backend proxy.
+  const activeKey = storage.providerKeys.getActive?.() ?? allKeys.find((key) => key.isDefault);
+  if (activeKey?.provider === "rivonclaw-pro") {
+    const apiKey = await secretStore.get(`provider-key-${activeKey.id}`);
+    if (apiKey) {
+      const profileId = "openai:rivonclaw-pro-image";
+      store.profiles[profileId] = {
+        type: "api_key",
+        provider: "openai",
+        key: apiKey,
+      };
+      store.order!.openai = [profileId];
     }
   }
 
@@ -396,9 +427,13 @@ export async function syncBackOAuthCredentials(
     // Find the matching OAuth profile in the authoritative store.
     const gwProvider = resolveGatewayProvider(key.provider as LLMProvider);
     const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
-    const matchingProfile = Object.values(store.profiles).find(
-      (p) => p.type === "oauth" && p.provider === oauthProvider,
-    ) as OAuthProfile | undefined;
+    const matchingProviders =
+      key.provider === "openai-codex"
+        ? new Set([oauthProvider, "openai"])
+        : new Set([oauthProvider]);
+    const matchingProfile = Object.values(store.profiles)
+      .filter((p): p is OAuthProfile => p.type === "oauth" && matchingProviders.has(p.provider))
+      .sort((a, b) => b.expires - a.expires)[0];
 
     if (!matchingProfile) continue;
 
