@@ -1,6 +1,10 @@
 import { types, getRoot, applySnapshot, type Instance } from "mobx-state-tree";
 import { ScopeType, TRUSTED_SCOPE_TYPES } from "../types/index.js";
-import type { CatalogTool, SurfaceAvailabilityResult, ToolCapabilityResult } from "../types/index.js";
+import type {
+  CatalogTool,
+  SurfaceAvailabilityResult,
+  ToolCapabilityResult,
+} from "../types/index.js";
 
 // ── Nested models ──────────────────────────────────────────────────────────
 
@@ -30,9 +34,7 @@ function toolIdInSet(toolId: string, idSet: Set<string>): boolean {
 
 function applyScopeToolExclusions(scopeType: ScopeType, toolIds: string[]): string[] {
   if (scopeType !== ScopeType.CS_SESSION) return toolIds;
-  return toolIds.filter(
-    (toolId) => !CUSTOMER_SERVICE_DISABLED_TOOL_IDS.has(toolId.toUpperCase()),
-  );
+  return toolIds.filter((toolId) => !CUSTOMER_SERVICE_DISABLED_TOOL_IDS.has(toolId.toUpperCase()));
 }
 
 // ── Available tool shape for Panel UI ──────────────────────────────────────
@@ -124,12 +126,23 @@ export const ToolCapabilityModel = types
 
     return {
       /** Derived surfaces from entitled/client tools (system surfaces). */
-      getDerivedSurfaces(): Array<{ id: string; name: string; allowedToolIds: string[]; userId: string }> {
+      getDerivedSurfaces(): Array<{
+        id: string;
+        name: string;
+        allowedToolIds: string[];
+        userId: string;
+      }> {
         return root().getDerivedSurfaces();
       },
 
       /** Derived run profiles from entitled/client tools (system profiles). */
-      getDerivedRunProfiles(): Array<{ id: string; name: string; selectedToolIds: string[]; surfaceId: string; userId: string }> {
+      getDerivedRunProfiles(): Array<{
+        id: string;
+        name: string;
+        selectedToolIds: string[];
+        surfaceId: string;
+        userId: string;
+      }> {
         return root().getDerivedRunProfiles();
       },
 
@@ -148,7 +161,10 @@ export const ToolCapabilityModel = types
 
         // Derived from entitled/client tools
         const derivedSurfaces = root().getDerivedSurfaces() as Array<{
-          id: string; name: string; allowedToolIds: string[]; userId: string;
+          id: string;
+          name: string;
+          allowedToolIds: string[];
+          userId: string;
         }>;
         const systemSurfaces: SurfaceInfo[] = derivedSurfaces.map(
           (s: { id: string; name: string; allowedToolIds: string[]; userId: string }) => ({
@@ -161,15 +177,13 @@ export const ToolCapabilityModel = types
         );
 
         // User-created from MST store
-        const userSurfaces: SurfaceInfo[] = root().surfaces.map(
-          (s: any) => ({
-            id: s.id,
-            name: s.name,
-            userId: s.userId ?? "",
-            // User surfaces: strict — only what they selected
-            resolvedToolIds: [...s.allowedToolIds],
-          }),
-        );
+        const userSurfaces: SurfaceInfo[] = root().surfaces.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          userId: s.userId ?? "",
+          // User surfaces: strict — only what they selected
+          resolvedToolIds: [...s.allowedToolIds],
+        }));
 
         return [defaultSurface, ...systemSurfaces, ...userSurfaces];
       },
@@ -177,10 +191,20 @@ export const ToolCapabilityModel = types
       /** All run profiles: derived from tools + user-created from MST store. */
       get allRunProfiles(): RunProfileInfo[] {
         const derivedProfiles = root().getDerivedRunProfiles() as Array<{
-          id: string; name: string; selectedToolIds: string[]; surfaceId: string; userId: string;
+          id: string;
+          name: string;
+          selectedToolIds: string[];
+          surfaceId: string;
+          userId: string;
         }>;
         const systemProfiles: RunProfileInfo[] = derivedProfiles.map(
-          (p: { id: string; name: string; selectedToolIds: string[]; surfaceId: string; userId: string }) => ({
+          (p: {
+            id: string;
+            name: string;
+            selectedToolIds: string[];
+            surfaceId: string;
+            userId: string;
+          }) => ({
             id: p.id,
             name: p.name,
             userId: p.userId ?? "",
@@ -189,15 +213,13 @@ export const ToolCapabilityModel = types
           }),
         );
 
-        const userProfiles: RunProfileInfo[] = root().runProfiles.map(
-          (p: any) => ({
-            id: p.id,
-            name: p.name,
-            userId: p.userId ?? "",
-            surfaceId: p.surfaceId ?? "Default",
-            selectedToolIds: [...p.selectedToolIds],
-          }),
-        );
+        const userProfiles: RunProfileInfo[] = root().runProfiles.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          userId: p.userId ?? "",
+          surfaceId: p.surfaceId ?? "Default",
+          selectedToolIds: [...p.selectedToolIds],
+        }));
 
         return [...systemProfiles, ...userProfiles];
       },
@@ -220,7 +242,9 @@ export const ToolCapabilityModel = types
   }))
   .views((self) => ({
     /** Compute surface availability — Layer 1 + Layer 2 filtering. */
-    computeSurfaceAvailability(surface: { id: string; allowedToolIds: string[]; userId?: string | null } | null): SurfaceAvailabilityResult {
+    computeSurfaceAvailability(
+      surface: { id: string; allowedToolIds: string[]; userId?: string | null } | null,
+    ): SurfaceAvailabilityResult {
       const allAvailable = self.allAvailableToolIds;
 
       if (!surface) {
@@ -278,13 +302,19 @@ export const ToolCapabilityModel = types
       const surfaceId = profile.surfaceId || "Default";
       const surfaceInfo = self.surfacesById.get(surfaceId);
       const surface = surfaceInfo
-        ? { id: surfaceInfo.id, allowedToolIds: surfaceInfo.resolvedToolIds, userId: surfaceInfo.userId || null }
+        ? {
+            id: surfaceInfo.id,
+            allowedToolIds: surfaceInfo.resolvedToolIds,
+            userId: surfaceInfo.userId || null,
+          }
         : null;
 
       const availability = self.computeSurfaceAvailability(surface);
       const availableSet = new Set(availability.availableToolIds);
 
-      const effectiveToolIds = profile.selectedToolIds.filter((id: string) => toolIdInSet(id, availableSet));
+      const effectiveToolIds = profile.selectedToolIds.filter((id: string) =>
+        toolIdInSet(id, availableSet),
+      );
 
       return {
         allAvailableToolIds: availability.allAvailableToolIds,

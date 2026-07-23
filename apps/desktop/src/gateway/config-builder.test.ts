@@ -5,6 +5,7 @@ import { writeGatewayConfig } from "@rivonclaw/gateway";
 import { describe, expect, it } from "vitest";
 import {
   buildCustomProviderOverridesFromKeys,
+  buildManagedGatewayAgents,
   createGatewayConfigBuilder,
   DEFAULT_GATEWAY_TOOL_ALLOWLIST,
   IMAGE_GENERATION_MODEL_REF,
@@ -14,6 +15,27 @@ import {
 } from "./config-builder.js";
 
 describe("gateway config builder", () => {
+  it("isolates the Affiliate agent without restricting the main agent", () => {
+    const agents = buildManagedGatewayAgents("/tmp/rivonclaw-openclaw");
+    const main = agents.find((agent) => agent.id === "main");
+    const affiliate = agents.find((agent) => agent.id === "affiliate");
+
+    expect(main).toEqual({ id: "main", default: true });
+    expect(main).not.toHaveProperty("tools");
+    expect(affiliate).toEqual({
+      id: "affiliate",
+      workspace: "/tmp/rivonclaw-openclaw/workspace-affiliate",
+      skills: ["affiliate-workflow"],
+      contextTokens: null,
+      thinkingDefault: "low",
+      reasoningDefault: "off",
+      tools: {
+        deny: ["write", "edit", "exec", "bash", "process", "apply_patch"],
+        fs: { workspaceOnly: true },
+      },
+    });
+  });
+
   it("does not enable the OpenClaw pdf tool by default", () => {
     expect(DEFAULT_GATEWAY_TOOL_ALLOWLIST).not.toContain("pdf");
   });

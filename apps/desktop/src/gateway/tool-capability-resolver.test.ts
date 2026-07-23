@@ -40,7 +40,9 @@ describe("parseScopeType", () => {
   });
 
   it("returns AFFILIATE_SESSION for affiliate session", () => {
-    expect(parseScopeType("agent:main:affiliate:tiktok:conv123")).toBe(ScopeType.AFFILIATE_SESSION);
+    expect(parseScopeType("agent:affiliate:affiliate:tiktok:conv123")).toBe(
+      ScopeType.AFFILIATE_SESSION,
+    );
   });
 
   it("defaults to CHAT_SESSION for unrecognized format", () => {
@@ -92,8 +94,24 @@ function seedTestStore(): void {
   // Seed MST store with mock entitled tools
   rootStore.ingestGraphQLResponse({
     toolSpecs: [
-      { id: "entitled_tool_1", name: "entitled_tool_1", displayName: "entitled_tool_1", description: "", category: "", operationType: "query", parameters: [] },
-      { id: "entitled_tool_2", name: "entitled_tool_2", displayName: "entitled_tool_2", description: "", category: "", operationType: "query", parameters: [] },
+      {
+        id: "entitled_tool_1",
+        name: "entitled_tool_1",
+        displayName: "entitled_tool_1",
+        description: "",
+        category: "",
+        operationType: "query",
+        parameters: [],
+      },
+      {
+        id: "entitled_tool_2",
+        name: "entitled_tool_2",
+        displayName: "entitled_tool_2",
+        description: "",
+        category: "",
+        operationType: "query",
+        parameters: [],
+      },
       {
         id: "cs_lookup",
         name: "cs_lookup",
@@ -105,15 +123,51 @@ function seedTestStore(): void {
         runProfiles: ["CUSTOMER_SERVICE"],
         parameters: [],
       },
+      {
+        id: "affiliate_lookup",
+        name: "affiliate_lookup",
+        displayName: "affiliate_lookup",
+        description: "",
+        category: "",
+        operationType: "query",
+        surfaces: ["ECOMMERCE_SELLER"],
+        runProfiles: ["AFFILIATE_OPERATOR"],
+        parameters: [],
+      },
     ],
     // Seed RunProfiles for use in tests
     runProfiles: [
-      { id: "profile-entitled-1", name: "Entitled 1", selectedToolIds: ["entitled_tool_1"], surfaceId: "" },
-      { id: "profile-entitled-2", name: "Entitled 2", selectedToolIds: ["entitled_tool_2"], surfaceId: "" },
+      {
+        id: "profile-entitled-1",
+        name: "Entitled 1",
+        selectedToolIds: ["entitled_tool_1"],
+        surfaceId: "",
+      },
+      {
+        id: "profile-entitled-2",
+        name: "Entitled 2",
+        selectedToolIds: ["entitled_tool_2"],
+        surfaceId: "",
+      },
       { id: "profile-ext", name: "Extension", selectedToolIds: ["custom_ext_tool"], surfaceId: "" },
-      { id: "profile-both", name: "Both Entitled", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "" },
-      { id: "profile-restricted", name: "Restricted", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "restricted-surface" },
-      { id: "profile-cs-restricted", name: "CS Restricted", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "cs-surface" },
+      {
+        id: "profile-both",
+        name: "Both Entitled",
+        selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+        surfaceId: "",
+      },
+      {
+        id: "profile-restricted",
+        name: "Restricted",
+        selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+        surfaceId: "restricted-surface",
+      },
+      {
+        id: "profile-cs-restricted",
+        name: "CS Restricted",
+        selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+        surfaceId: "cs-surface",
+      },
     ],
   });
 
@@ -142,7 +196,10 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   // ── Trusted scopes ──
 
   it("trusted scope + no RunProfile + no default → system + extension tools", () => {
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:main",
+    );
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
     // Should not include entitled tools without a RunProfile
     expect(result).not.toContain("entitled_tool_1");
@@ -151,21 +208,30 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
 
   it("trusted scope + no RunProfile + has default → system + default's tools", () => {
     setDefaultRunProfile("profile-entitled-1");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:main",
+    );
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_1"]));
     expect(result).not.toContain("entitled_tool_2");
   });
 
   it("trusted scope + has RunProfile → system + profile's tools", () => {
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-ext");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-abc",
+    );
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
   });
 
   it("trusted scope + RunProfile overrides default", () => {
     setDefaultRunProfile("profile-entitled-1");
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-entitled-2");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-abc",
+    );
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_2"]));
     expect(result).not.toContain("entitled_tool_1");
   });
@@ -176,14 +242,23 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     // Create a user surface that only allows entitled_tool_1
     rootStore.ingestGraphQLResponse({
       surfaces: [
-        { id: "restricted-surface", name: "Restricted", allowedToolIds: ["entitled_tool_1"], userId: "user1", ...SURFACE_TIMESTAMPS },
+        {
+          id: "restricted-surface",
+          name: "Restricted",
+          allowedToolIds: ["entitled_tool_1"],
+          userId: "user1",
+          ...SURFACE_TIMESTAMPS,
+        },
       ],
     });
 
     // Use profile-restricted which selects entitled_tool_1 AND entitled_tool_2, surfaceId = "restricted-surface"
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-restricted");
 
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-abc",
+    );
     // entitled_tool_1 passes (in surface AND in profile)
     expect(result).toContain("entitled_tool_1");
     // entitled_tool_2 blocked by surface (NOT in surface's allowedToolIds)
@@ -195,14 +270,26 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   it("CS_SESSION RunProfile respects surface restriction", () => {
     rootStore.ingestGraphQLResponse({
       surfaces: [
-        { id: "cs-surface", name: "CS Surface", allowedToolIds: ["entitled_tool_1"], userId: "user1", ...SURFACE_TIMESTAMPS },
+        {
+          id: "cs-surface",
+          name: "CS Surface",
+          allowedToolIds: ["entitled_tool_1"],
+          userId: "user1",
+          ...SURFACE_TIMESTAMPS,
+        },
       ],
     });
 
     // Use profile-cs-restricted which selects entitled_tool_1 AND entitled_tool_2, surfaceId = "cs-surface"
-    rootStore.toolCapability.setSessionRunProfile("cs:tiktok:conv-surface", "profile-cs-restricted");
+    rootStore.toolCapability.setSessionRunProfile(
+      "cs:tiktok:conv-surface",
+      "profile-cs-restricted",
+    );
 
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv-surface");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CS_SESSION,
+      "cs:tiktok:conv-surface",
+    );
     // Only entitled_tool_1 passes surface + profile intersection
     expect(result).toEqual(["entitled_tool_1"]);
   });
@@ -211,7 +298,10 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
 
   it("CS_SESSION + has RunProfile → strictly profile tools, no system tools", () => {
     rootStore.toolCapability.setSessionRunProfile("cs:tiktok:conv1", "profile-entitled-1");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv1");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CS_SESSION,
+      "cs:tiktok:conv1",
+    );
     expect(result).toEqual(["entitled_tool_1"]);
     expect(result).not.toContain("read");
     expect(result).not.toContain("write");
@@ -222,6 +312,16 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     const result = rootStore.toolCapability.computeEffectiveTools("CUSTOMER_SERVICE");
     expect(result.runProfileSelectedToolIds).toContain("image");
     expect(result.effectiveToolIds).toContain("image");
+  });
+
+  it("Affiliate system run profile adds read without adding filesystem writes", () => {
+    const result = rootStore.toolCapability.computeEffectiveTools("AFFILIATE_OPERATOR");
+    expect(result.runProfileSelectedToolIds).toEqual(
+      expect.arrayContaining(["affiliate_lookup", "read"]),
+    );
+    expect(result.effectiveToolIds).toEqual(expect.arrayContaining(["affiliate_lookup", "read"]));
+    expect(result.effectiveToolIds).not.toContain("write");
+    expect(result.effectiveToolIds).not.toContain("exec");
   });
 
   it("enables image generation for chat while keeping it outside customer service", () => {
@@ -279,13 +379,19 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   });
 
   it("CS_SESSION + no RunProfile → empty (defense-in-depth)", () => {
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv2");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CS_SESSION,
+      "cs:tiktok:conv2",
+    );
     expect(result).toEqual([]);
   });
 
   it("CS_SESSION ignores default RunProfile", () => {
     setDefaultRunProfile("profile-entitled-1");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "cs:tiktok:conv3");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CS_SESSION,
+      "cs:tiktok:conv3",
+    );
     expect(result).toEqual([]);
   });
 
@@ -293,14 +399,17 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     setDefaultRunProfile("profile-entitled-1");
     const empty = rootStore.toolCapability.getEffectiveToolsForScope(
       ScopeType.AFFILIATE_SESSION,
-      "agent:main:affiliate:tiktok:conv1",
+      "agent:affiliate:affiliate:tiktok:conv1",
     );
     expect(empty).toEqual([]);
 
-    rootStore.toolCapability.setSessionRunProfile("agent:main:affiliate:tiktok:conv1", "profile-entitled-2");
+    rootStore.toolCapability.setSessionRunProfile(
+      "agent:affiliate:affiliate:tiktok:conv1",
+      "profile-entitled-2",
+    );
     const result = rootStore.toolCapability.getEffectiveToolsForScope(
       ScopeType.AFFILIATE_SESSION,
-      "agent:main:affiliate:tiktok:conv1",
+      "agent:affiliate:affiliate:tiktok:conv1",
     );
     expect(result).toEqual(["entitled_tool_2"]);
     expect(result).not.toContain("read");
@@ -309,7 +418,10 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
   // ── UNKNOWN scope ──
 
   it("UNKNOWN scope + no RunProfile → empty", () => {
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.UNKNOWN, "random:key");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.UNKNOWN,
+      "random:key",
+    );
     expect(result).toEqual([]);
   });
 
@@ -331,7 +443,10 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", "profile-entitled-2");
 
     // With session profile: entitled_tool_2
-    let result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    let result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-abc",
+    );
     expect(result).toEqual(expect.arrayContaining(["entitled_tool_2"]));
     expect(result).not.toContain("entitled_tool_1");
 
@@ -339,7 +454,10 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", null);
 
     // Should fall back to default: entitled_tool_1
-    result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-abc",
+    );
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "entitled_tool_1"]));
     expect(result).not.toContain("entitled_tool_2");
   });
@@ -350,7 +468,10 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     // Clear session profile, no default set
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-abc", null);
 
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-abc");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-abc",
+    );
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
     expect(result).not.toContain("entitled_tool_2");
   });
@@ -369,7 +490,13 @@ describe("Map-indexed views", () => {
   it("surfacesById contains Default + system + user surfaces", () => {
     rootStore.ingestGraphQLResponse({
       surfaces: [
-        { id: "user-surface", name: "User", allowedToolIds: ["entitled_tool_1"], userId: "u1", ...SURFACE_TIMESTAMPS },
+        {
+          id: "user-surface",
+          name: "User",
+          allowedToolIds: ["entitled_tool_1"],
+          userId: "u1",
+          ...SURFACE_TIMESTAMPS,
+        },
       ],
     });
     const map = rootStore.toolCapability.surfacesById;
@@ -400,14 +527,20 @@ describe("deleted entity fallback", () => {
 
   it("session references deleted RunProfile → empty effectiveToolIds", () => {
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "nonexistent-profile");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CS_SESSION, "agent:main:panel-x");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CS_SESSION,
+      "agent:main:panel-x",
+    );
     // CS_SESSION (untrusted) + deleted profile → no tools
     expect(result).toEqual([]);
   });
 
   it("session references deleted RunProfile (trusted scope) → system tools only", () => {
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "nonexistent-profile");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-x");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-x",
+    );
     // Trusted scope + deleted profile → computeEffectiveTools returns empty, but system tools merged back
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec"]));
     expect(result).not.toContain("entitled_tool_1");
@@ -417,11 +550,19 @@ describe("deleted entity fallback", () => {
     // Create a profile that references a non-existent surface
     rootStore.ingestGraphQLResponse({
       runProfiles: [
-        { id: "profile-ghost-surface", name: "Ghost", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "deleted-surface" },
+        {
+          id: "profile-ghost-surface",
+          name: "Ghost",
+          selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+          surfaceId: "deleted-surface",
+        },
       ],
     });
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "profile-ghost-surface");
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-x");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-x",
+    );
     // Surface not found → unrestricted → both entitled tools pass through
     expect(result).toContain("entitled_tool_1");
     expect(result).toContain("entitled_tool_2");
@@ -442,7 +583,7 @@ describe("computeSurfaceAvailability — system vs user surface", () => {
     const result = rootStore.toolCapability.computeSurfaceAvailability({
       id: "sys-surface",
       allowedToolIds: ["entitled_tool_1"],
-      userId: "",  // system surface
+      userId: "", // system surface
     });
     // System tools pass through even though not in allowedToolIds
     expect(result.availableToolIds).toContain("read");
@@ -458,7 +599,7 @@ describe("computeSurfaceAvailability — system vs user surface", () => {
     const result = rootStore.toolCapability.computeSurfaceAvailability({
       id: "user-surface",
       allowedToolIds: ["entitled_tool_1"],
-      userId: "user1",  // user surface — strict
+      userId: "user1", // user surface — strict
     });
     // Only explicitly allowed tools pass
     expect(result.availableToolIds).toEqual(["entitled_tool_1"]);
@@ -487,15 +628,29 @@ describe("default profile + Surface filtering", () => {
     // Surface allows only entitled_tool_1
     rootStore.ingestGraphQLResponse({
       surfaces: [
-        { id: "default-surface", name: "Default Restricted", allowedToolIds: ["entitled_tool_1"], userId: "u1", ...SURFACE_TIMESTAMPS },
+        {
+          id: "default-surface",
+          name: "Default Restricted",
+          allowedToolIds: ["entitled_tool_1"],
+          userId: "u1",
+          ...SURFACE_TIMESTAMPS,
+        },
       ],
       runProfiles: [
-        { id: "profile-default-restricted", name: "Default Restricted", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "default-surface" },
+        {
+          id: "profile-default-restricted",
+          name: "Default Restricted",
+          selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+          surfaceId: "default-surface",
+        },
       ],
     });
     setDefaultRunProfile("profile-default-restricted");
 
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:main");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:main",
+    );
     // entitled_tool_1 passes surface + profile
     expect(result).toContain("entitled_tool_1");
     // entitled_tool_2 blocked by surface
@@ -507,19 +662,44 @@ describe("default profile + Surface filtering", () => {
   it("session profile overrides default, each with own surface", () => {
     rootStore.ingestGraphQLResponse({
       surfaces: [
-        { id: "broad-surface", name: "Broad", allowedToolIds: ["entitled_tool_1", "entitled_tool_2"], userId: "u1", ...SURFACE_TIMESTAMPS },
-        { id: "narrow-surface", name: "Narrow", allowedToolIds: ["entitled_tool_2"], userId: "u1", ...SURFACE_TIMESTAMPS },
+        {
+          id: "broad-surface",
+          name: "Broad",
+          allowedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+          userId: "u1",
+          ...SURFACE_TIMESTAMPS,
+        },
+        {
+          id: "narrow-surface",
+          name: "Narrow",
+          allowedToolIds: ["entitled_tool_2"],
+          userId: "u1",
+          ...SURFACE_TIMESTAMPS,
+        },
       ],
       runProfiles: [
-        { id: "profile-broad", name: "Broad", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "broad-surface" },
-        { id: "profile-narrow", name: "Narrow", selectedToolIds: ["entitled_tool_1", "entitled_tool_2"], surfaceId: "narrow-surface" },
+        {
+          id: "profile-broad",
+          name: "Broad",
+          selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+          surfaceId: "broad-surface",
+        },
+        {
+          id: "profile-narrow",
+          name: "Narrow",
+          selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
+          surfaceId: "narrow-surface",
+        },
       ],
     });
 
     setDefaultRunProfile("profile-broad");
     rootStore.toolCapability.setSessionRunProfile("agent:main:panel-x", "profile-narrow");
 
-    const result = rootStore.toolCapability.getEffectiveToolsForScope(ScopeType.CHAT_SESSION, "agent:main:panel-x");
+    const result = rootStore.toolCapability.getEffectiveToolsForScope(
+      ScopeType.CHAT_SESSION,
+      "agent:main:panel-x",
+    );
     // Session profile's narrow surface only allows entitled_tool_2
     expect(result).toContain("entitled_tool_2");
     expect(result).not.toContain("entitled_tool_1");
@@ -538,28 +718,37 @@ describe("ToolCapabilityModel.init", () => {
   });
 
   it("classifies core tools as system tools", () => {
-    rootStore.toolCapability.init([
-      { id: "read", source: "core" },
-      { id: "write", source: "core" },
-    ], OUR_PLUGIN_IDS);
+    rootStore.toolCapability.init(
+      [
+        { id: "read", source: "core" },
+        { id: "write", source: "core" },
+      ],
+      OUR_PLUGIN_IDS,
+    );
     expect(rootStore.toolCapability.systemToolIds).toEqual(["read", "write"]);
   });
 
   it("excludes OUR_PLUGIN_IDS plugin tools from custom extensions", () => {
-    rootStore.toolCapability.init([
-      { id: "read", source: "core" },
-      { id: "infra_tool", source: "plugin", pluginId: "rivonclaw-capability-manager" },
-    ], OUR_PLUGIN_IDS);
+    rootStore.toolCapability.init(
+      [
+        { id: "read", source: "core" },
+        { id: "infra_tool", source: "plugin", pluginId: "rivonclaw-capability-manager" },
+      ],
+      OUR_PLUGIN_IDS,
+    );
     const all = rootStore.toolCapability.allAvailableToolIds;
     expect(all).toContain("read");
     expect(all).not.toContain("infra_tool");
   });
 
   it("includes non-OUR_PLUGIN_IDS plugin tools as custom extensions", () => {
-    rootStore.toolCapability.init([
-      { id: "read", source: "core" },
-      { id: "my_tool", source: "plugin", pluginId: "my-custom-plugin" },
-    ], OUR_PLUGIN_IDS);
+    rootStore.toolCapability.init(
+      [
+        { id: "read", source: "core" },
+        { id: "my_tool", source: "plugin", pluginId: "my-custom-plugin" },
+      ],
+      OUR_PLUGIN_IDS,
+    );
     const all = rootStore.toolCapability.allAvailableToolIds;
     expect(all).toContain("my_tool");
   });

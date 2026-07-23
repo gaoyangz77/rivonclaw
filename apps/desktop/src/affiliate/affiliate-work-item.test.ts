@@ -29,6 +29,23 @@ vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: vi.fn().mockResolvedValue({}),
 }));
 
+vi.mock("./affiliate-workflow-skill.js", () => ({
+  buildAffiliateWorkflowSkillCatalog: vi
+    .fn()
+    .mockResolvedValue(
+      [
+        "## Skills",
+        "<available_skills>",
+        "<skill>",
+        "<name>affiliate-workflow</name>",
+        "<version>1.0.0</version>",
+        "<location>/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md</location>",
+        "</skill>",
+        "</available_skills>",
+      ].join("\n"),
+    ),
+}));
+
 import { AffiliateSession, AffiliateTriggerKind } from "./affiliate-session.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 import { AffiliateInbound } from "./affiliate-inbound.js";
@@ -49,7 +66,7 @@ describe("affiliate session identity", () => {
         triggerId: "conv-1",
         creatorRelationshipId: "rel-1",
       }),
-    ).toBe("agent:main:affiliate:user-1:rel-1");
+    ).toBe("agent:affiliate:affiliate:user-1:rel-1");
     expect(
       AffiliateSession.buildScopeKey("whatsapp", {
         userId: "user-1",
@@ -59,7 +76,7 @@ describe("affiliate session identity", () => {
         triggerId: "wa-message-1",
         creatorRelationshipId: "rel-1",
       }),
-    ).toBe("agent:main:affiliate:user-1:rel-1");
+    ).toBe("agent:affiliate:affiliate:user-1:rel-1");
   });
 
   it("rejects affiliate session keys without a user id", () => {
@@ -133,7 +150,9 @@ async function waitForCondition(predicate: () => boolean, timeoutMs = 500): Prom
   }
 }
 
-function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = {}): GQL.AffiliateWorkItem {
+function createSampleReviewWorkItem(
+  overrides: Partial<GQL.AffiliateWorkItem> = {},
+): GQL.AffiliateWorkItem {
   const collaboration = {
     id: "collab-001",
     userId: "user-001",
@@ -212,9 +231,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
-    recommendedActionTypes: [
-      GQL.ActionProposalType.ReviewSampleApplication,
-    ],
+    recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
     versionAt: "2026-05-11T00:01:00.000Z",
     collaboration,
     creatorRelationship: {
@@ -230,21 +247,23 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       lastPlatformSyncedAt: null,
       stateUpdatedAt: "2026-05-11T00:01:00.000Z",
       activeCollaborationRecordIds: ["collab-001"],
-      agendaItems: [{
-        key: "collaboration:collab-001:COMPLETE_COLLABORATION_TASK",
-        owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
-        sourceType: GQL.AffiliateRelationshipAgendaSourceType.Collaboration,
-        workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
-        requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
-        shopId: "shop-001",
-        collaborationRecordId: "collab-001",
-        sampleApplicationRecordId: "sample-record-001",
-        proposalId: null,
-        reasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
-        nextActionAt: null,
-        boundaryEventCursor: 1,
-        updatedAt: "2026-05-11T00:01:00.000Z",
-      }],
+      agendaItems: [
+        {
+          key: "collaboration:collab-001:COMPLETE_COLLABORATION_TASK",
+          owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
+          sourceType: GQL.AffiliateRelationshipAgendaSourceType.Collaboration,
+          workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+          requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
+          shopId: "shop-001",
+          collaborationRecordId: "collab-001",
+          sampleApplicationRecordId: "sample-record-001",
+          proposalId: null,
+          reasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+          nextActionAt: null,
+          boundaryEventCursor: 1,
+          updatedAt: "2026-05-11T00:01:00.000Z",
+        },
+      ],
       workSummary: {
         agentRequiredCount: 1,
         staffRequiredCount: 0,
@@ -271,9 +290,7 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
       missingContext: [],
       primarySampleApplication: sampleApplicationRecord,
       productContext: null,
-      recommendedActionTypes: [
-        GQL.ActionProposalType.ReviewSampleApplication,
-      ],
+      recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
       relatedSampleApplications: [sampleApplicationRecord],
       sampleApplicationLookup: {
         status: GQL.AffiliateSampleApplicationLookupStatus.ConfirmedPresent,
@@ -286,7 +303,9 @@ function createSampleReviewWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
   };
 }
 
-function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = {}): GQL.AffiliateWorkItem {
+function createCreatorReplyWorkItem(
+  overrides: Partial<GQL.AffiliateWorkItem> = {},
+): GQL.AffiliateWorkItem {
   const base = createSampleReviewWorkItem();
   const collaboration: GQL.AffiliateCollaborationRecord = {
     ...(base.collaboration as GQL.AffiliateCollaborationRecord),
@@ -306,30 +325,30 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
     processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
-    recommendedActionTypes: [
-      GQL.ActionProposalType.SendMessage,
-    ],
+    recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
     collaboration,
     creatorRelationship: {
       ...base.creatorRelationship,
       processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
       requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
       processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
-      agendaItems: [{
-        key: "relationship:relationship-001:REPLY_TO_CREATOR",
-        owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
-        sourceType: GQL.AffiliateRelationshipAgendaSourceType.Relationship,
-        workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
-        requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
-        shopId: "shop-001",
-        collaborationRecordId: null,
-        sampleApplicationRecordId: null,
-        proposalId: null,
-        reasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
-        nextActionAt: null,
-        boundaryEventCursor: 1,
-        updatedAt: "2026-05-11T00:01:00.000Z",
-      }],
+      agendaItems: [
+        {
+          key: "relationship:relationship-001:REPLY_TO_CREATOR",
+          owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
+          sourceType: GQL.AffiliateRelationshipAgendaSourceType.Relationship,
+          workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
+          requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
+          shopId: "shop-001",
+          collaborationRecordId: null,
+          sampleApplicationRecordId: null,
+          proposalId: null,
+          reasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
+          nextActionAt: null,
+          boundaryEventCursor: 1,
+          updatedAt: "2026-05-11T00:01:00.000Z",
+        },
+      ],
     },
     sampleApplicationRecord: null,
     context: {
@@ -344,9 +363,7 @@ function createCreatorReplyWorkItem(overrides: Partial<GQL.AffiliateWorkItem> = 
         shopId: "shop-001",
         productIds: ["product-001"],
       },
-      recommendedActionTypes: [
-        GQL.ActionProposalType.SendMessage,
-      ],
+      recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
     },
     ...overrides,
   } as GQL.AffiliateWorkItem;
@@ -461,21 +478,23 @@ function withCheckpointContext(
       });
       return {
         affiliateCreatorMessageHistory: {
-          items: options.preflightItems ?? [{
-            channel: GQL.AffiliateMessageChannel.Whatsapp,
-            direction: GQL.AffiliateCreatorMessageDirection.Creator,
-            messageRef: "message-ref-001",
-            parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
-            messageType: "TEXT",
-            deliveryStatus: null,
-            createdAt: "2026-05-11T00:01:00.000Z",
-            subject: null,
-            channelLabel: "WhatsApp",
-            shopId: "shop-001",
-            shopName: "Affiliate Test Shop",
-            accountLabel: "Maria WhatsApp",
-            source: "WHATSAPP",
-          }],
+          items: options.preflightItems ?? [
+            {
+              channel: GQL.AffiliateMessageChannel.Whatsapp,
+              direction: GQL.AffiliateCreatorMessageDirection.Creator,
+              messageRef: "message-ref-001",
+              parts: [{ kind: GQL.AffiliateHistoryPartKind.Text }],
+              messageType: "TEXT",
+              deliveryStatus: null,
+              createdAt: "2026-05-11T00:01:00.000Z",
+              subject: null,
+              channelLabel: "WhatsApp",
+              shopId: "shop-001",
+              shopName: "Affiliate Test Shop",
+              accountLabel: "Maria WhatsApp",
+              source: "WHATSAPP",
+            },
+          ],
         },
       };
     }
@@ -509,28 +528,30 @@ describe("affiliate work item dispatch", () => {
     vi.unstubAllEnvs();
     __clearActiveAffiliateRunCheckpointsForTests();
     mockGetAuthSession.mockReturnValue({
-      graphqlFetch: vi.fn(withCheckpointContext(async (query: string) => {
-        if (query.includes("affiliateWorkItems")) return { affiliateWorkItems: [] };
-        if (query.includes("affiliateWorkspace")) {
-          return {
-            affiliateWorkspace: {
-              sampleApplicationRecords: [],
-              collaborationRecords: [],
-              actionProposals: [],
-              approvalPolicies: [],
-              creatorRelations: [],
-              creatorTags: [],
-              creatorProfiles: [],
-              campaigns: [],
-              campaignProducts: [],
-              affiliateCollaborations: [],
-              searchRuns: [],
-              candidates: [],
-            },
-          };
-        }
-        throw new Error(`Unexpected GraphQL call: ${query}`);
-      })),
+      graphqlFetch: vi.fn(
+        withCheckpointContext(async (query: string) => {
+          if (query.includes("affiliateWorkItems")) return { affiliateWorkItems: [] };
+          if (query.includes("affiliateWorkspace")) {
+            return {
+              affiliateWorkspace: {
+                sampleApplicationRecords: [],
+                collaborationRecords: [],
+                actionProposals: [],
+                approvalPolicies: [],
+                creatorRelations: [],
+                creatorTags: [],
+                creatorProfiles: [],
+                campaigns: [],
+                campaignProducts: [],
+                affiliateCollaborations: [],
+                searchRuns: [],
+                candidates: [],
+              },
+            };
+          }
+          throw new Error(`Unexpected GraphQL call: ${query}`);
+        }),
+      ),
     });
     mockRpcRequest.mockResolvedValue({ runId: "run-affiliate-001" });
     initLLMProviderManagerEnv({
@@ -544,7 +565,7 @@ describe("affiliate work item dispatch", () => {
         },
       } as any,
       secretStore: {} as any,
-      getRpcClient: () => ({ request: (...args: unknown[]) => mockRpcRequest(...args) } as any),
+      getRpcClient: () => ({ request: (...args: unknown[]) => mockRpcRequest(...args) }) as any,
       toMstSnapshot: vi.fn(),
       allKeysToMstSnapshots: vi.fn(),
       syncActiveKey: vi.fn(),
@@ -567,13 +588,15 @@ describe("affiliate work item dispatch", () => {
 
   it("does not redispatch the same work item version after a successful agent run", async () => {
     const inbound = new AffiliateInbound("en");
-    inbound.syncFromShops([{
-      id: "shop-001",
-      userId: "user-001",
-      platform: "tiktok",
-      platformShopId: "platform-shop-001",
-      shopName: "Affiliate Test Shop",
-    }]);
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+    ]);
     const session = {
       scopeKey: "affiliate-session-001",
       handleWorkItem: vi.fn(async () => ({ runId: "run-affiliate-queue-001" })),
@@ -593,13 +616,15 @@ describe("affiliate work item dispatch", () => {
 
   it("allows the same work item version to retry after a gateway error", async () => {
     const inbound = new AffiliateInbound("en");
-    inbound.syncFromShops([{
-      id: "shop-001",
-      userId: "user-001",
-      platform: "tiktok",
-      platformShopId: "platform-shop-001",
-      shopName: "Affiliate Test Shop",
-    }]);
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+    ]);
     const session = {
       scopeKey: "affiliate-session-001",
       handleWorkItem: vi.fn(async () => ({ runId: "run-affiliate-queue-001" })),
@@ -619,13 +644,15 @@ describe("affiliate work item dispatch", () => {
 
   it("drains the next queued work item after active affiliate capacity is released", async () => {
     const inbound = new AffiliateInbound("en");
-    inbound.syncFromShops([{
-      id: "shop-001",
-      userId: "user-001",
-      platform: "tiktok",
-      platformShopId: "platform-shop-001",
-      shopName: "Affiliate Test Shop",
-    }]);
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+    ]);
     const workItem = createSampleReviewWorkItem({ id: "relationship-queued" });
     mockGetAuthSession.mockReturnValue({
       graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [workItem] })),
@@ -649,13 +676,15 @@ describe("affiliate work item dispatch", () => {
 
   it("drops queued work that became non-actionable before capacity was released", async () => {
     const inbound = new AffiliateInbound("en");
-    inbound.syncFromShops([{
-      id: "shop-001",
-      userId: "user-001",
-      platform: "tiktok",
-      platformShopId: "platform-shop-001",
-      shopName: "Affiliate Test Shop",
-    }]);
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+    ]);
     const queuedWorkItem = createSampleReviewWorkItem({ id: "relationship-protected" });
     const protectedWorkItem = createSampleReviewWorkItem({
       id: "relationship-protected",
@@ -680,13 +709,15 @@ describe("affiliate work item dispatch", () => {
 
   it("keeps queued work without busy-looping when authoritative refresh fails", async () => {
     const inbound = new AffiliateInbound("en");
-    inbound.syncFromShops([{
-      id: "shop-001",
-      userId: "user-001",
-      platform: "tiktok",
-      platformShopId: "platform-shop-001",
-      shopName: "Affiliate Test Shop",
-    }]);
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+    ]);
     const workItem = createSampleReviewWorkItem({ id: "relationship-refresh-failure" });
     const graphqlFetch = vi.fn(async () => {
       throw new Error("temporary backend failure");
@@ -707,9 +738,11 @@ describe("affiliate work item dispatch", () => {
   });
 
   it("fetches only checkpoint metadata before a work-item dispatch", async () => {
-    const graphqlFetch = vi.fn(withCheckpointContext(async (query: string) => {
-      throw new Error(`Unexpected GraphQL call: ${query}`);
-    }));
+    const graphqlFetch = vi.fn(
+      withCheckpointContext(async (query: string) => {
+        throw new Error(`Unexpected GraphQL call: ${query}`);
+      }),
+    );
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
     const session = new AffiliateSession(
       {
@@ -746,7 +779,9 @@ describe("affiliate work item dispatch", () => {
         }),
       }),
     );
-    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("affiliateWorkspace"))).toBe(false);
+    expect(
+      graphqlFetch.mock.calls.some(([query]) => String(query).includes("affiliateWorkspace")),
+    ).toBe(false);
   });
 
   it("dispatches sample-review work items to the agent instead of resolving them in desktop", async () => {
@@ -795,18 +830,19 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).not.toContain("prediction");
     expect(agentCall?.[1]?.message).not.toContain("handledSignalAt");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_collaborations");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_list_creator_sample_applications");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
-      "affiliate_get_collaboration and affiliate_get_sample_application read narrowly scoped Mongo operational records",
+      "/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md",
     );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("<name>affiliate-workflow</name>");
     expect(agentCall?.[1]?.extraSystemPrompt).not.toContain(
-      "affiliate_get_creator_relationship, affiliate_get_collaboration, and affiliate_get_sample_application read narrowly scoped current Mongo state",
+      "affiliate_list_creator_collaborations",
     );
     expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("affiliate_get_workspace");
-    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("affiliate_get_creator_collaboration_history");
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain(
+      "affiliate_get_creator_collaboration_history",
+    );
     expect(mockRpcRequest).toHaveBeenCalledWith("tool_register_session", {
-      sessionKey: "agent:main:affiliate:user-001:relationship-001",
+      sessionKey: "agent:affiliate:affiliate:user-001:relationship-001",
       toolContext: {
         kind: "AFFILIATE",
         shopId: "shop-001",
@@ -844,9 +880,12 @@ describe("affiliate work item dispatch", () => {
       updatedAt: "2026-05-02T00:00:00.000Z",
     } as GQL.AffiliateCreatorIdentity;
     mockGetAuthSession.mockReturnValue({
-      graphqlFetch: withCheckpointContext(async (query: string) => {
-        throw new Error(`Unexpected GraphQL call: ${query}`);
-      }, { creatorProfiles: [creatorProfile] }),
+      graphqlFetch: withCheckpointContext(
+        async (query: string) => {
+          throw new Error(`Unexpected GraphQL call: ${query}`);
+        },
+        { creatorProfiles: [creatorProfile] },
+      ),
     });
     const workItem = createSampleReviewWorkItem();
     const session = new AffiliateSession(
@@ -886,7 +925,8 @@ describe("affiliate work item dispatch", () => {
       | undefined;
     mockRpcRequest.mockImplementation(async (method: string) => {
       if (method === "agent") {
-        activeCheckpointSeenDuringAgentRequest = getActiveAffiliateRunCheckpoint("relationship-001");
+        activeCheckpointSeenDuringAgentRequest =
+          getActiveAffiliateRunCheckpoint("relationship-001");
         return { runId: "run-affiliate-001" };
       }
       return { runId: "run-affiliate-001" };
@@ -916,43 +956,56 @@ describe("affiliate work item dispatch", () => {
     const result = await session.handleWorkItem(workItem);
 
     expect(result.runId).toBe("run-affiliate-001");
-    expect(activeCheckpointSeenDuringAgentRequest).toEqual(expect.objectContaining({
-      creatorRelationshipId: "relationship-001",
-      sessionKey: "agent:main:affiliate:user-001:relationship-001",
-      runId: expect.any(String),
-      baseCheckpointId: null,
-      candidateCheckpointId: expect.any(String),
-    }));
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.create", expect.objectContaining({
-      key: "agent:main:affiliate:user-001:relationship-001",
-    }));
+    expect(activeCheckpointSeenDuringAgentRequest).toEqual(
+      expect.objectContaining({
+        creatorRelationshipId: "relationship-001",
+        sessionKey: "agent:affiliate:affiliate:user-001:relationship-001",
+        runId: expect.any(String),
+        baseCheckpointId: null,
+        candidateCheckpointId: expect.any(String),
+      }),
+    );
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "sessions.create",
+      expect.objectContaining({
+        key: "agent:affiliate:affiliate:user-001:relationship-001",
+      }),
+    );
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.reset", {
-      key: "agent:main:affiliate:user-001:relationship-001",
+      key: "agent:affiliate:affiliate:user-001:relationship-001",
       reason: "new",
     });
-    const pluginPatchCall = mockRpcRequest.mock.calls.find((call) => call[0] === "sessions.pluginPatch");
-    expect(pluginPatchCall?.[1]).toEqual(expect.objectContaining({
-      key: "agent:main:affiliate:user-001:relationship-001",
-      pluginId: "rivonclaw-capability-manager",
-      namespace: "affiliateCheckpoint",
-      value: {
-        baseCheckpointId: null,
-        baseEventCursor: 0,
-        candidateCheckpointId: expect.any(String),
-        targetEventCursor: 1,
-      },
-    }));
+    const pluginPatchCall = mockRpcRequest.mock.calls.find(
+      (call) => call[0] === "sessions.pluginPatch",
+    );
+    expect(pluginPatchCall?.[1]).toEqual(
+      expect.objectContaining({
+        key: "agent:affiliate:affiliate:user-001:relationship-001",
+        pluginId: "rivonclaw-capability-manager",
+        namespace: "affiliateCheckpoint",
+        value: {
+          baseCheckpointId: null,
+          baseEventCursor: 0,
+          candidateCheckpointId: expect.any(String),
+          targetEventCursor: 1,
+        },
+      }),
+    );
 
     session.onRunCompleted("run-affiliate-001");
 
     await waitForCondition(() =>
       mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.checkpoint.create"),
     );
-    const checkpointCall = mockRpcRequest.mock.calls.find((call) => call[0] === "sessions.checkpoint.create");
-    expect(checkpointCall?.[1]).toEqual(expect.objectContaining({
-      key: "agent:main:affiliate:user-001:relationship-001",
-      checkpointId: pluginPatchCall?.[1]?.value?.candidateCheckpointId,
-    }));
+    const checkpointCall = mockRpcRequest.mock.calls.find(
+      (call) => call[0] === "sessions.checkpoint.create",
+    );
+    expect(checkpointCall?.[1]).toEqual(
+      expect.objectContaining({
+        key: "agent:affiliate:affiliate:user-001:relationship-001",
+        checkpointId: pluginPatchCall?.[1]?.value?.candidateCheckpointId,
+      }),
+    );
   });
 
   it("restores affiliate work runs from the committed relationship checkpoint", async () => {
@@ -987,16 +1040,19 @@ describe("affiliate work item dispatch", () => {
     await session.handleWorkItem(workItem);
 
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.compaction.restore", {
-      key: "agent:main:affiliate:user-001:relationship-001",
+      key: "agent:affiliate:affiliate:user-001:relationship-001",
       checkpointId: "checkpoint-committed-001",
     });
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.reset")).toBe(false);
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.pluginPatch", expect.objectContaining({
-      value: expect.objectContaining({
-        baseCheckpointId: "checkpoint-committed-001",
-        candidateCheckpointId: expect.any(String),
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "sessions.pluginPatch",
+      expect.objectContaining({
+        value: expect.objectContaining({
+          baseCheckpointId: "checkpoint-committed-001",
+          candidateCheckpointId: expect.any(String),
+        }),
       }),
-    }));
+    );
   });
 
   it("resets and continues when the committed checkpoint no longer exists locally", async () => {
@@ -1039,18 +1095,21 @@ describe("affiliate work item dispatch", () => {
 
     expect(result.runId).toBe("run-after-reset-001");
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.compaction.restore", {
-      key: "agent:main:affiliate:user-001:relationship-001",
+      key: "agent:affiliate:affiliate:user-001:relationship-001",
       checkpointId: "checkpoint-missing-001",
     });
     expect(mockRpcRequest).toHaveBeenCalledWith("sessions.reset", {
-      key: "agent:main:affiliate:user-001:relationship-001",
+      key: "agent:affiliate:affiliate:user-001:relationship-001",
       reason: "new",
     });
-    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.pluginPatch", expect.objectContaining({
-      value: expect.objectContaining({
-        baseCheckpointId: "checkpoint-missing-001",
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "sessions.pluginPatch",
+      expect.objectContaining({
+        value: expect.objectContaining({
+          baseCheckpointId: "checkpoint-missing-001",
+        }),
       }),
-    }));
+    );
   });
 
   it.each([
@@ -1165,14 +1224,13 @@ describe("affiliate work item dispatch", () => {
   });
 
   it("ignores subscription work outside an exact Affiliate live-test cohort", async () => {
-    vi.stubEnv(
-      "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS",
-      "relationship-allowed",
-    );
+    vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", "relationship-allowed");
     const inbound = new AffiliateInbound("en");
-    const result = await inbound.handleWorkItem(createSampleReviewWorkItem({
-      creatorRelationshipId: "relationship-outside-cohort",
-    }));
+    const result = await inbound.handleWorkItem(
+      createSampleReviewWorkItem({
+        creatorRelationshipId: "relationship-outside-cohort",
+      }),
+    );
 
     expect(result).toBe(true);
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
@@ -1235,8 +1293,9 @@ describe("affiliate work item dispatch", () => {
       triggerId: "sample-record-001",
       sampleApplicationRecordId: "sample-record-001",
     });
-    expect(buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })?.idempotencyKey)
-      .toContain("sample-record-001");
+    expect(
+      buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })?.idempotencyKey,
+    ).toContain("sample-record-001");
   });
 
   it("dispatches creator replies as internal work with a structured SEND_MESSAGE contract", async () => {
@@ -1272,23 +1331,34 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("OPERATOR_REASONING");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("## Affiliate Business Context");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Commerce Program: TikTok Shop Affiliate");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("TikTok shoppable video, TikTok LIVE");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Communication Transports: TikTok Shop platform chat, WhatsApp, and Outlook email");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "TikTok Shop platform chat, WhatsApp, and Outlook email",
+    );
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_resolve_work_item");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Omit preferredChannel to reply on the trigger channel");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("final assistant response exactly NO_REPLY");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md",
+    );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "final assistant response exactly NO_REPLY",
+    );
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Required Action: REPLY_TO_CREATOR");
     expect(agentCall?.[1]?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_REPLY");
     expect(agentCall?.[1]?.message).not.toContain("Current Trigger Channel");
     expect(agentCall?.[1]?.message).not.toContain("lifecycle-message-001");
 
-    expect(session.handleAgentEvent({
-      runId: result.runId,
-      stream: "assistant",
-      data: { text: "This text must remain internal and must not be forwarded." },
-    })).toBe(false);
-    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText"))).toBe(false);
+    expect(
+      session.handleAgentEvent({
+        runId: result.runId,
+        stream: "assistant",
+        data: { text: "This text must remain internal and must not be forwarded." },
+      }),
+    ).toBe(false);
+    expect(
+      graphqlFetch.mock.calls.some(([query]) =>
+        String(query).includes("DeliverAffiliateCreatorText"),
+      ),
+    ).toBe(false);
   });
 
   it("routes unreadable creator attachments to staff before creating an Agent run", async () => {
@@ -1310,13 +1380,17 @@ describe("affiliate work item dispatch", () => {
     });
     mockGetAuthSession.mockReturnValue({
       graphqlFetch: withCheckpointContext(graphqlFetch, {
-        preflightItems: [createPreflightMessage([{
-          kind: GQL.AffiliateHistoryPartKind.Attachment,
-          fileName: "creator-video.mp4",
-          mimeType: "video/mp4",
-          sizeBytes: 1024,
-          agentReadable: false,
-        }])],
+        preflightItems: [
+          createPreflightMessage([
+            {
+              kind: GQL.AffiliateHistoryPartKind.Attachment,
+              fileName: "creator-video.mp4",
+              mimeType: "video/mp4",
+              sizeBytes: 1024,
+              agentReadable: false,
+            },
+          ]),
+        ],
       }),
     });
     const session = new AffiliateSession(
@@ -1336,7 +1410,9 @@ describe("affiliate work item dispatch", () => {
       },
     );
 
-    await expect(session.handleWorkItem(createCreatorReplyWorkItem())).resolves.toEqual({ runId: undefined });
+    await expect(session.handleWorkItem(createCreatorReplyWorkItem())).resolves.toEqual({
+      runId: undefined,
+    });
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(false);
     expect(graphqlFetch).toHaveBeenCalledWith(
       expect.stringContaining("ResolveAffiliateWorkItem"),
@@ -1350,13 +1426,17 @@ describe("affiliate work item dispatch", () => {
     });
     mockGetAuthSession.mockReturnValue({
       graphqlFetch: withCheckpointContext(graphqlFetch, {
-        preflightItems: [createPreflightMessage([{
-          kind: GQL.AffiliateHistoryPartKind.Attachment,
-          fileName: "old-creator-video.mp4",
-          mimeType: "video/mp4",
-          sizeBytes: 1024,
-          agentReadable: false,
-        }])],
+        preflightItems: [
+          createPreflightMessage([
+            {
+              kind: GQL.AffiliateHistoryPartKind.Attachment,
+              fileName: "old-creator-video.mp4",
+              mimeType: "video/mp4",
+              sizeBytes: 1024,
+              agentReadable: false,
+            },
+          ]),
+        ],
       }),
     });
     const base = createCreatorReplyWorkItem();
@@ -1375,10 +1455,12 @@ describe("affiliate work item dispatch", () => {
         creatorId: "creator-001",
         preferredChannel: null,
         emailSubject: null,
-        parts: [{
-          kind: GQL.AffiliateMessagePartKind.Text,
-          text: "Thank you. We will follow up soon.",
-        }],
+        parts: [
+          {
+            kind: GQL.AffiliateMessagePartKind.Text,
+            text: "Thank you. We will follow up soon.",
+          },
+        ],
       },
       steps: [],
     } as unknown as GQL.AffiliateRevisionRequestedProposalContext;
@@ -1404,11 +1486,19 @@ describe("affiliate work item dispatch", () => {
       },
     );
 
-    await expect(session.handleWorkItem(createCreatorReplyWorkItem({
-      agentWorkingAgendaItems: [agenda],
-    }))).resolves.toMatchObject({ runId: expect.any(String) });
+    await expect(
+      session.handleWorkItem(
+        createCreatorReplyWorkItem({
+          agentWorkingAgendaItems: [agenda],
+        }),
+      ),
+    ).resolves.toMatchObject({ runId: expect.any(String) });
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(true);
-    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("AffiliateCreatorMessagePreflight"))).toBe(false);
+    expect(
+      graphqlFetch.mock.calls.some(([query]) =>
+        String(query).includes("AffiliateCreatorMessagePreflight"),
+      ),
+    ).toBe(false);
   });
 
   it("allows PDF creator attachments through the pre-run attachment gate", async () => {
@@ -1417,13 +1507,17 @@ describe("affiliate work item dispatch", () => {
     });
     mockGetAuthSession.mockReturnValue({
       graphqlFetch: withCheckpointContext(graphqlFetch, {
-        preflightItems: [createPreflightMessage([{
-          kind: GQL.AffiliateHistoryPartKind.Attachment,
-          fileName: "creator-brief.pdf",
-          mimeType: "application/pdf",
-          sizeBytes: 2048,
-          agentReadable: true,
-        }])],
+        preflightItems: [
+          createPreflightMessage([
+            {
+              kind: GQL.AffiliateHistoryPartKind.Attachment,
+              fileName: "creator-brief.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 2048,
+              agentReadable: true,
+            },
+          ]),
+        ],
       }),
     });
     const session = new AffiliateSession(
@@ -1450,22 +1544,25 @@ describe("affiliate work item dispatch", () => {
   });
 
   it("does not create creator-outreach sessions without a creator relationship id", () => {
-    expect(() => new AffiliateSession(
-      {
-        objectId: "shop-001",
-        userId: "user-001",
-        platformShopId: "platform-shop-001",
-        shopName: "Affiliate Test Shop",
-        platform: "tiktok",
-        runProfileId: "AFFILIATE_OPERATOR",
-      },
-      {
-        shopId: "shop-001",
-        platformShopId: "platform-shop-001",
-        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
-        triggerId: "conversation-001",
-      } as any,
-    )).toThrow("creatorRelationshipId is required");
+    expect(
+      () =>
+        new AffiliateSession(
+          {
+            objectId: "shop-001",
+            userId: "user-001",
+            platformShopId: "platform-shop-001",
+            shopName: "Affiliate Test Shop",
+            platform: "tiktok",
+            runProfileId: "AFFILIATE_OPERATOR",
+          },
+          {
+            shopId: "shop-001",
+            platformShopId: "platform-shop-001",
+            triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+            triggerId: "conversation-001",
+          } as any,
+        ),
+    ).toThrow("creatorRelationshipId is required");
   });
 
   it("does not prefetch expected-sales prediction before dispatching affiliate work", async () => {
@@ -1511,11 +1608,16 @@ describe("affiliate work item dispatch", () => {
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("OPERATOR_REASONING");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("assistant output is internal/operator-facing");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "assistant output is internal/operator-facing",
+    );
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).not.toContain("Status: NOT_PREFETCHED");
     expect(agentCall?.[1]?.message).not.toContain("Affiliate Prediction");
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain("ecom_get_product resolves a known product");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("<name>affiliate-workflow</name>");
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain(
+      "ecom_get_product resolves a known product",
+    );
     expect(agentCall?.[1]?.message).not.toContain("call ecom_get_product");
     expect(agentCall?.[1]?.message).not.toContain("Do not ask the creator which product they mean");
   });
@@ -1561,19 +1663,27 @@ describe("affiliate work item dispatch", () => {
       runMode: "OPERATOR_REASONING",
     });
 
-    expect(session.handleAgentEvent({
-      runId: result.runId,
-      stream: "assistant",
-      data: { text: "Internal operator summary that must never be sent." },
-    })).toBe(false);
-    expect(session.handleAgentEvent({
-      runId: result.runId,
-      stream: "lifecycle",
-      data: { phase: "end" },
-    })).toBe(false);
+    expect(
+      session.handleAgentEvent({
+        runId: result.runId,
+        stream: "assistant",
+        data: { text: "Internal operator summary that must never be sent." },
+      }),
+    ).toBe(false);
+    expect(
+      session.handleAgentEvent({
+        runId: result.runId,
+        stream: "lifecycle",
+        data: { phase: "end" },
+      }),
+    ).toBe(false);
     await Promise.resolve();
 
-    expect(graphqlFetch.mock.calls.some(([query]) => String(query).includes("DeliverAffiliateCreatorText"))).toBe(false);
+    expect(
+      graphqlFetch.mock.calls.some(([query]) =>
+        String(query).includes("DeliverAffiliateCreatorText"),
+      ),
+    ).toBe(false);
   });
 
   it("passes collaboration prediction snapshot cache ids into the sample review agent run", async () => {
@@ -1588,26 +1698,28 @@ describe("affiliate work item dispatch", () => {
         ...(createSampleReviewWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
         id: "collab-with-snapshot",
         lastSignalAt: "2026-05-11T00:01:00.000Z",
-        predictionSnapshots: [{
-          sourceCacheId: "prediction-cache-from-snapshot",
-          predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
-          captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
-          scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
-          subject: {
-            sampleApplicationRecordId: "sample-record-001",
-            platformApplicationId: "platform-sample-001",
-            creatorId: "creator-001",
-            productId: "product-001",
+        predictionSnapshots: [
+          {
+            sourceCacheId: "prediction-cache-from-snapshot",
+            predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
+            captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
+            scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
+            subject: {
+              sampleApplicationRecordId: "sample-record-001",
+              platformApplicationId: "platform-sample-001",
+              creatorId: "creator-001",
+              productId: "product-001",
+            },
+            status: GQL.AffiliatePredictionStatus.Ok,
+            output: { expectedSalesUnits: 0 },
+            model: {},
+            diagnostics: {},
+            predictedAt: "2026-05-11T00:00:00.000Z",
+            capturedAt: "2026-05-11T00:00:01.000Z",
+            resolvedContext: null,
+            message: null,
           },
-          status: GQL.AffiliatePredictionStatus.Ok,
-          output: { expectedSalesUnits: 0 },
-          model: {},
-          diagnostics: {},
-          predictedAt: "2026-05-11T00:00:00.000Z",
-          capturedAt: "2026-05-11T00:00:01.000Z",
-          resolvedContext: null,
-          message: null,
-        }],
+        ],
       },
     });
     const session = new AffiliateSession(
@@ -1711,7 +1823,9 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).not.toContain("prediction evidence");
     expect(agentCall?.[1]?.message).not.toContain("evidence snapshot");
-    expect(agentCall?.[1]?.message).not.toContain("before submitting a REVIEW_SAMPLE_APPLICATION action");
+    expect(agentCall?.[1]?.message).not.toContain(
+      "before submitting a REVIEW_SAMPLE_APPLICATION action",
+    );
   });
 
   it("renders relationship-level sample pending work as a sample review agent run", () => {
@@ -1771,10 +1885,12 @@ describe("affiliate work item dispatch", () => {
         creatorId: "creator-001",
         preferredChannel: null,
         emailSubject: null,
-        parts: [{
-          kind: GQL.AffiliateMessagePartKind.Text,
-          text: "Thank you. Please send the draft when it is ready.",
-        }],
+        parts: [
+          {
+            kind: GQL.AffiliateMessagePartKind.Text,
+            text: "Thank you. Please send the draft when it is ready.",
+          },
+        ],
       },
       steps: [],
     } as unknown as GQL.AffiliateRevisionRequestedProposalContext;
@@ -1992,11 +2108,13 @@ describe("affiliate work item dispatch", () => {
 
     const result = await session.handleWorkItem(workItem);
     expect(result.runId).toBe("run-affiliate-001");
-    expect(session.handleAgentEvent({
-      runId: "run-affiliate-001",
-      stream: "assistant",
-      data: { text: "ResourceExhausted: Worker local total request limit reached (24/16)" },
-    })).toBe(false);
+    expect(
+      session.handleAgentEvent({
+        runId: "run-affiliate-001",
+        stream: "assistant",
+        data: { text: "ResourceExhausted: Worker local total request limit reached (24/16)" },
+      }),
+    ).toBe(false);
 
     mockGetAuthSession.mockClear();
     session.onRunCompleted("run-affiliate-001");
@@ -2418,9 +2536,7 @@ describe("affiliate work item dispatch", () => {
         GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply,
         GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
       ],
-      recommendedActionTypes: [
-        GQL.ActionProposalType.ReviewSampleApplication,
-      ],
+      recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
       sampleApplicationRecord: createSampleReviewWorkItem().sampleApplicationRecord,
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
@@ -2431,7 +2547,9 @@ describe("affiliate work item dispatch", () => {
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
 
     expect(request?.message).toContain("[Agent Working Agenda]");
-    expect(request?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_REPLY, SAMPLE_PENDING_REVIEW");
+    expect(request?.message).toContain(
+      "Reasons: CREATOR_MESSAGE_NEEDS_REPLY, SAMPLE_PENDING_REVIEW",
+    );
     expect(request?.message).not.toContain("Combined bundle requirement");
     expect(request?.message).not.toContain("REQUEST_ACTION");
   });

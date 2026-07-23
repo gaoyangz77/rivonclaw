@@ -22,6 +22,11 @@ export {
   resolveCredentialsDir,
   DEFAULT_AGENT_ID,
   CUSTOMER_SERVICE_AGENT_ID,
+  AFFILIATE_AGENT_ID,
+  AFFILIATE_WORKFLOW_SKILL_SLUG,
+  resolveAffiliateAgentWorkspaceDir,
+  resolveAffiliateAgentSkillsDir,
+  resolveAffiliateWorkflowSkillDir,
   resolveAgentConfigDir,
   resolveAgentSessionsDir,
 } from "./node-utils/paths.js";

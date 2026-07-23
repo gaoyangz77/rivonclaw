@@ -762,6 +762,15 @@ describe("config-writer", () => {
           thinkingDefault: "off" as const,
           reasoningDefault: "off" as const,
         },
+        {
+          id: "affiliate",
+          workspace: "/state/workspace-affiliate",
+          skills: ["affiliate-workflow"],
+          tools: {
+            deny: ["write", "edit", "exec"],
+            fs: { workspaceOnly: true },
+          },
+        },
       ];
       writeGatewayConfig({ configPath, managedAgents });
       writeGatewayConfig({ configPath, managedAgents });
@@ -776,6 +785,15 @@ describe("config-writer", () => {
           contextTokens: 100_000,
           thinkingDefault: "off",
           reasoningDefault: "off",
+        },
+        {
+          id: "affiliate",
+          workspace: "/state/workspace-affiliate",
+          skills: ["affiliate-workflow"],
+          tools: {
+            deny: ["write", "edit", "exec"],
+            fs: { workspaceOnly: true },
+          },
         },
       ]);
     });

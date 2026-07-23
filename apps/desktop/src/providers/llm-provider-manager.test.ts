@@ -255,7 +255,7 @@ describe("LLMProviderManager", () => {
       getLastSystemProxy: () => null,
     });
 
-    const resolved = rootStore.llmManager.resolveModelForDispatch("agent:main:affiliate:test");
+    const resolved = rootStore.llmManager.resolveModelForDispatch("agent:affiliate:affiliate:test");
 
     expect(resolved).toEqual({
       provider: "google-gemini-cli",
