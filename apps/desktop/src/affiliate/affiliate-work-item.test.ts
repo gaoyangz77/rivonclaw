@@ -85,6 +85,42 @@ describe("affiliate session identity", () => {
       } as any),
     ).toThrow("creatorRelationshipId is required");
   });
+
+  it("derives trusted Creator identity constants from the dispatched work item profile", () => {
+    const inbound = new AffiliateInbound("en");
+    const base = createSampleReviewWorkItem();
+    const workItem = createSampleReviewWorkItem({
+      context: {
+        ...base.context,
+        creatorProfile: {
+          id: "creator-canonical-001",
+          platform: GQL.ShopPlatform.TiktokShop,
+          creatorOpenId: "creator-open-001",
+          creatorImId: "creator-im-profile-001",
+          username: "creator_handle",
+        } as GQL.AffiliateCreatorIdentity,
+      },
+    });
+
+    const context = (inbound as any).buildContextFromWorkItem(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+      workItem,
+    );
+
+    expect(context).toMatchObject({
+      shopId: "shop-001",
+      creatorRelationshipId: "relationship-001",
+      creatorId: "creator-canonical-001",
+      creatorOpenId: "creator-open-001",
+      creatorUsername: "creator_handle",
+      creatorImUserId: "creator-im-profile-001",
+    });
+  });
 });
 
 async function waitForCondition(predicate: () => boolean, timeoutMs = 500): Promise<void> {
@@ -733,6 +769,8 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         collaborationRecordId: "collab-001",
         creatorId: "creator-001",
+        creatorOpenId: "creator-open-001",
+        creatorUsername: "creator_handle",
         productId: "product-001",
       },
     );
@@ -773,6 +811,9 @@ describe("affiliate work item dispatch", () => {
         kind: "AFFILIATE",
         shopId: "shop-001",
         creatorRelationshipId: "relationship-001",
+        creatorId: "creator-001",
+        creatorOpenId: "creator-open-001",
+        creatorUsername: "creator_handle",
       },
     });
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
@@ -1755,7 +1796,7 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).not.toContain("This staff-only pending proposal must stay hidden.");
   });
 
-  it("does not inject the creator commerce profile into the Agent working agenda", () => {
+  it("injects only trusted Creator identity constants, not commerce snapshots, into the run context", () => {
     const base = createCreatorReplyWorkItem();
     const request = buildAffiliateAgentRunRequest({
       workItem: createCreatorReplyWorkItem({
@@ -1788,9 +1829,15 @@ describe("affiliate work item dispatch", () => {
       platform: "tiktok",
     });
 
+    expect(request?.message).toContain("[Bound Affiliate Run Context]");
     expect(request?.message).toContain("[Agent Working Agenda]");
+    expect(request?.message).toContain("Creator ID: creator-001");
+    expect(request?.message).toContain("TikTok Creator Open ID: creator-open-001");
+    expect(request?.message).toContain("TikTok Creator Username: creator_handle");
+    expect(request?.message).toContain(
+      "Relationship-scoped tools inject them automatically; do not copy or invent them",
+    );
     expect(request?.message).not.toContain("Creator Name");
-    expect(request?.message).not.toContain("creator-open-001");
     expect(request?.message).not.toContain("Follower Count");
     expect(request?.message).not.toContain('"ecVideoCount":17');
     expect(request?.message).not.toContain('"creator_gmv_30d":1214.34');

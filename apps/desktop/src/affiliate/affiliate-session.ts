@@ -72,6 +72,8 @@ export interface AffiliateContext {
   triggerId: string;
   creatorImUserId?: string;
   creatorId?: string | null;
+  creatorOpenId?: string | null;
+  creatorUsername?: string | null;
   creatorRelationshipId: string;
   productId?: string | null;
   sampleApplicationRecordId?: string;
@@ -140,7 +142,15 @@ export class AffiliateSession {
   readonly affiliateContext: AffiliateContext;
 
   updateShopContext(shop: AffiliateShopContext): void {
+    if (this.shop.objectId !== shop.objectId) {
+      this.gatewaySetupReady = false;
+    }
     this.shop = shop;
+  }
+
+  updateAffiliateContext(context: AffiliateContext): void {
+    Object.assign(this.affiliateContext, context);
+    this.gatewaySetupReady = false;
   }
 
   static buildScopeKey(_platform: string, context: AffiliateContext): string {
@@ -215,7 +225,7 @@ export class AffiliateSession {
       "## Workflow Discipline",
       "- A dispatch carries only the current Agent Working Agenda. It is a wake-up reason, not a business-fact snapshot.",
       "- affiliate_get_creator_relationship reads current Relationship, Creator profile, and assigned BD state. It never returns proposals. A staff-requested proposal revision is included directly in the Agent Working Agenda that caused that run.",
-      "- For every creator reply work item, first call affiliate_get_relationship_timeline with creatorRelationshipId to read the Provider-backed messages and nearby relationship events before drafting or sending. Do not rely on the content-free lifecycle projection or memory for message text.",
+      "- For every creator reply work item, first call affiliate_get_relationship_timeline to read the Provider-backed messages and nearby relationship events before drafting or sending. The current shop and CreatorRelationship are injected by the run context. Do not rely on the content-free lifecycle projection or memory for message text.",
       "- Timeline attachmentRef values are short-lived and relationship-bound. affiliate_read_message_attachment reads supported content, affiliate_copy_message_attachment stages exact Provider bytes, and affiliate_upload_draft_attachment stages a locally generated file.",
       "- Never place URLs, provider ids, object keys, base64, or raw HTML in SEND_MESSAGE parts. Unsupported inbound attachment types are transferred to staff by desktop preflight before an Agent run.",
       "- Use affiliate_get_relationship_timeline for relationship-level messages, business transitions, and terminal staff/agent outcomes. Historical messages record what a participant expressed at occurredAt; mutable commercial state may have changed since then. TIME_PASSED makes elapsed time salient but does not declare evidence invalid. Decide whether a specific current-state read is useful for the task. affiliate_list_creator_collaborations and affiliate_list_creator_sample_applications read the shared Mongo operational projection. currentStatus=READY with a fresh lastHeadSyncAt establishes current-state readiness; historyStatus, historyCutoffAt, oldestCoveredAt, coverageComplete, and providerWindowLimited separately disclose historical coverage. An empty historical result outside that coverage is not an authoritative absence.",
@@ -224,7 +234,7 @@ export class AffiliateSession {
       `- operatorSummary language: ${this.shop.staffLanguage ?? "English"}. Creator-facing messages should use the creator's language instead.`,
       "",
       "## On-demand Affiliate Reads",
-      "- The latest internal user turn contains only the current Agent Working Agenda: the reasons this run was dispatched.",
+      "- The latest internal user turn contains trusted Bound Affiliate Run Context identity plus the current Agent Working Agenda: the reasons this run was dispatched.",
       "- Do not infer Creator history, collaboration history, product facts, sample state, performance, contact routes, or proposal state from the agenda. Query the relevant tools when those facts matter to your decision.",
       "- affiliate_get_relationship_timeline reads a single occurredAt-ordered timeline. It returns all item types by default; itemTypes can select MESSAGE, BUSINESS_EVENT, and ACTION_EVENT, including MESSAGE alone when only communication is relevant.",
       "- affiliate_list_creator_collaborations reads seller-visible Target Collaborations and Sample-linked Open Collaborations from the Mongo operational projection. affiliate_list_creator_sample_applications reads projected Sample Applications and materialized fulfillment/content state from the same source.",
@@ -354,6 +364,15 @@ export class AffiliateSession {
         kind: "AFFILIATE",
         shopId: this.shop.objectId,
         creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+        ...(this.affiliateContext.creatorId
+          ? { creatorId: this.affiliateContext.creatorId }
+          : {}),
+        ...(this.affiliateContext.creatorOpenId
+          ? { creatorOpenId: this.affiliateContext.creatorOpenId }
+          : {}),
+        ...(this.affiliateContext.creatorUsername
+          ? { creatorUsername: this.affiliateContext.creatorUsername }
+          : {}),
       },
     });
 

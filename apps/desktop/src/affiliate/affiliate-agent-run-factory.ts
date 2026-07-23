@@ -58,6 +58,8 @@ export function resolveSampleApplicationRecordId(
  * IDs below are only stable scopes/targets needed to call the authoritative tools.
  */
 export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): string {
+  const creatorProfile = workItem.context?.creatorProfile ?? null;
+  const creatorId = creatorProfile?.id ?? workItem.creatorRelationship?.creatorId ?? null;
   const projectedAgentAgenda = workItem.agentWorkingAgendaItems ?? [];
   const openAgentAgenda = projectedAgentAgenda.length > 0
     ? projectedAgentAgenda
@@ -79,9 +81,15 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       }];
 
   const lines = [
-    "[Agent Working Agenda]",
-    `Creator Relationship ID: ${workItem.creatorRelationshipId}`,
+    "[Bound Affiliate Run Context]",
     `Shop ID: ${workItem.focusShopId}`,
+    `Creator Relationship ID: ${workItem.creatorRelationshipId}`,
+    `Creator ID: ${creatorId ?? "(unavailable)"}`,
+    `TikTok Creator Open ID: ${creatorProfile?.creatorOpenId ?? "(unavailable)"}`,
+    `TikTok Creator Username: ${creatorProfile?.username ?? "(unavailable)"}`,
+    "These are trusted run constants. Relationship-scoped tools inject them automatically; do not copy or invent them in tool arguments.",
+    "",
+    "[Agent Working Agenda]",
   ];
   agendaItems.forEach((item, index) => {
     lines.push(
