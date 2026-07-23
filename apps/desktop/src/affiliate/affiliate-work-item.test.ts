@@ -138,6 +138,34 @@ describe("affiliate session identity", () => {
       creatorImUserId: "creator-im-profile-001",
     });
   });
+
+  it("refuses to route a work item through a different shop from its exact focus shop", () => {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Wrong Shop",
+      },
+    ]);
+    const workItem = createSampleReviewWorkItem({
+      focusShopId: "shop-002",
+      focusPlatformShopId: "platform-shop-002",
+      routingShopIds: ["shop-001", "shop-002"],
+      routingPlatformShopIds: ["platform-shop-001", "platform-shop-002"],
+    });
+    const wrongShop = {
+      objectId: "shop-001",
+      userId: "user-001",
+      platformShopId: "platform-shop-001",
+      shopName: "Wrong Shop",
+    };
+
+    expect((inbound as any).findRoutedShopContext(workItem)).toBeUndefined();
+    expect((inbound as any).buildContextFromWorkItem(wrongShop, workItem)).toBeNull();
+  });
 });
 
 async function waitForCondition(predicate: () => boolean, timeoutMs = 500): Promise<void> {
@@ -669,7 +697,7 @@ describe("affiliate work item dispatch", () => {
 
     expect(dispatchSpy).toHaveBeenCalledWith(
       workItem,
-      "relationship-queued:SAMPLE_APPLICATION_DECISION",
+      "relationship-queued:shop-001:SAMPLE_APPLICATION_DECISION",
       workItem.versionAt,
     );
   });

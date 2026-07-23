@@ -984,7 +984,7 @@ export const AffiliateCreatorChannelContactStatus = {
 } as const;
 
 export type AffiliateCreatorChannelContactStatus = typeof AffiliateCreatorChannelContactStatus[keyof typeof AffiliateCreatorChannelContactStatus];
-/** Mongo operational Collaboration projection for one CreatorRelationship. */
+/** Mongo operational creator-product Collaboration records for one CreatorRelationship. */
 export interface AffiliateCreatorCollaborationListPayload {
   complete: Scalars['Boolean']['output'];
   coverageComplete: Scalars['Boolean']['output'];
@@ -992,7 +992,7 @@ export interface AffiliateCreatorCollaborationListPayload {
   currentStatus: AffiliateOperationalProjectionStatus;
   historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
   historyStatus: AffiliateOperationalProjectionStatus;
-  items: Array<AffiliateCollaboration>;
+  items: Array<AffiliateCollaborationRecord>;
   lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -1522,6 +1522,7 @@ export interface AffiliateHistoryPart {
   mimeType?: Maybe<Scalars['String']['output']>;
   productId?: Maybe<Scalars['String']['output']>;
   providerType?: Maybe<Scalars['String']['output']>;
+  /** Relationship-owned Mongo SampleApplicationRecord ID for a FREE_SAMPLE_CARD. This is never a TikTok Provider application ID; use it with affiliate_get_sample_application. */
   sampleApplicationId?: Maybe<Scalars['ID']['output']>;
   sizeBytes?: Maybe<Scalars['Int']['output']>;
   summary?: Maybe<Scalars['String']['output']>;
@@ -9296,12 +9297,21 @@ export interface ResolveAffiliateCollaborationStaffActionPayload {
   collaborationRecord: AffiliateCollaborationRecord;
 }
 
+/** Agent-authored Target Collaboration details. Creator identity is injected from the trusted Affiliate run context. */
+export interface ResolveAffiliateTargetCollaborationIntentInput {
+  endTime: Scalars['DateTimeISO']['input'];
+  hasFreeSample: Scalars['Boolean']['input'];
+  isSampleApprovalExempt: Scalars['Boolean']['input'];
+  message?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  products: Array<ActionProposalTargetCollaborationProductIntentInput>;
+  sellerContactInfo: ActionProposalSellerContactInfoIntentInput;
+}
+
 /** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
-  campaignId?: InputMaybe<Scalars['ID']['input']>;
   /** Optional action-specific collaboration target inside the CreatorRelationship. Use this when a bundled relationship action targets a specific collaboration record; the top-level collaborationRecordId remains only a fallback focus. */
   collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
@@ -9315,10 +9325,8 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
-  /** Optional action-specific business shop scope inside the CreatorRelationship. Use this for actions that create new collaboration context and therefore cannot be scoped by an existing collaboration or sample target. */
-  shopId?: InputMaybe<Scalars['ID']['input']>;
-  /** Required only when type is CREATE_TARGET_COLLABORATION. Do not populate this for SEND_MESSAGE or REVIEW_SAMPLE_APPLICATION. */
-  targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
+  /** Required only when type is CREATE_TARGET_COLLABORATION. Creator identity and shop are injected from the trusted run context. */
+  targetCollaborationIntent?: InputMaybe<ResolveAffiliateTargetCollaborationIntentInput>;
   /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Unsupported seller operations such as commission changes must use NEEDS_STAFF_REVIEW instead of a made-up action type. */
   type: ActionProposalType;
 }
@@ -10401,6 +10409,14 @@ export interface ToolContextBinding {
   paramName: Scalars['String']['output'];
 }
 
+/** Agent data boundary: current CreatorRelationship, current run shop, or seller-wide. */
+export const ToolDataScope = {
+  CreatorRelationship: 'CREATOR_RELATIONSHIP',
+  CurrentShop: 'CURRENT_SHOP',
+  SellerWide: 'SELLER_WIDE'
+} as const;
+
+export type ToolDataScope = typeof ToolDataScope[keyof typeof ToolDataScope];
 /** Unique tool identifier */
 export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
@@ -10409,6 +10425,7 @@ export const ToolId = {
   AffiliateGetCollaboration: 'AFFILIATE_GET_COLLABORATION',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetCreatorRelationship: 'AFFILIATE_GET_CREATOR_RELATIONSHIP',
+  AffiliateGetProduct: 'AFFILIATE_GET_PRODUCT',
   AffiliateGetRelationshipTimeline: 'AFFILIATE_GET_RELATIONSHIP_TIMELINE',
   AffiliateGetSampleApplication: 'AFFILIATE_GET_SAMPLE_APPLICATION',
   AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
@@ -10418,6 +10435,7 @@ export const ToolId = {
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
   AffiliateReadMessageAttachment: 'AFFILIATE_READ_MESSAGE_ATTACHMENT',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
+  AffiliateSearchProducts: 'AFFILIATE_SEARCH_PRODUCTS',
   AffiliateSetCreatorEmail: 'AFFILIATE_SET_CREATOR_EMAIL',
   AffiliateSetCreatorWhatsapp: 'AFFILIATE_SET_CREATOR_WHATSAPP',
   AffiliateUploadDraftAttachment: 'AFFILIATE_UPLOAD_DRAFT_ATTACHMENT',
@@ -10506,6 +10524,8 @@ export interface ToolParamSpec {
 export interface ToolSpec {
   category: ToolCategory;
   contextBindings?: Maybe<Array<ToolContextBinding>>;
+  /** Declared Agent data boundary for scoped tools */
+  dataScope?: Maybe<ToolDataScope>;
   description: Scalars['String']['output'];
   displayName: Scalars['String']['output'];
   /** GraphQL operation string (null for REST tools) */

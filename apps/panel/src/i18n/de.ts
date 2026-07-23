@@ -1685,6 +1685,8 @@ export default {
         "ECOM_GET_SHIPPING_DOCUMENT": "Holen Sie sich den Versandbeleg",
         "ECOM_GET_PRODUCT": "Holen Sie sich das Produkt",
         "ECOM_SEARCH_PRODUCTS": "Produkte suchen",
+        "AFFILIATE_GET_PRODUCT": "Affiliate-Produkt abrufen",
+        "AFFILIATE_SEARCH_PRODUCTS": "Affiliate-Produkte suchen",
         "ECOM_GET_INVENTORY_ANALYSIS": "Erhalten Sie eine Bestandsanalyse",
         "ECOM_GET_SHOP_SKU_PERFORMANCE_LIST": "Holen Sie sich die Leistungsliste von Shop SKU",
         "ECOM_GET_BI_CATALOG": "BI-Katalog abrufen",

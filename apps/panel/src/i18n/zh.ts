@@ -1781,6 +1781,8 @@ export default {
         // 电商运营 — 商品
         ECOM_GET_PRODUCT: "获取商品",
         ECOM_SEARCH_PRODUCTS: "搜索商品",
+        AFFILIATE_GET_PRODUCT: "获取 Affiliate 商品",
+        AFFILIATE_SEARCH_PRODUCTS: "搜索 Affiliate 商品",
         ECOM_GET_INVENTORY_ANALYSIS: "获取库存分析",
         ECOM_GET_SHOP_SKU_PERFORMANCE_LIST: "获取店铺 SKU 绩效列表",
         ECOM_GET_OPERATION_REPORT: "获取运营报表",

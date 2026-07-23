@@ -142,6 +142,11 @@ export class AffiliateSession {
   readonly affiliateContext: AffiliateContext;
 
   updateShopContext(shop: AffiliateShopContext): void {
+    if (this.activeRunId && this.shop.objectId !== shop.objectId) {
+      throw new Error(
+        "Cannot change Affiliate focus shop while a Relationship run is active",
+      );
+    }
     if (this.shop.objectId !== shop.objectId) {
       this.gatewaySetupReady = false;
     }
@@ -149,6 +154,11 @@ export class AffiliateSession {
   }
 
   updateAffiliateContext(context: AffiliateContext): void {
+    if (this.activeRunId && this.affiliateContext.shopId !== context.shopId) {
+      throw new Error(
+        "Cannot change Affiliate run shop context while a Relationship run is active",
+      );
+    }
     Object.assign(this.affiliateContext, context);
     this.gatewaySetupReady = false;
   }
