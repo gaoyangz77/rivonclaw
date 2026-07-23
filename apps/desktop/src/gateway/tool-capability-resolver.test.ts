@@ -224,7 +224,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
     expect(result.effectiveToolIds).toContain("image");
   });
 
-  it("globally excludes image generation until the product supports configuring it", () => {
+  it("enables image generation for chat while keeping it outside customer service", () => {
     rootStore.ingestGraphQLResponse({
       runProfiles: [
         {
@@ -248,8 +248,8 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
       "profile-cs-with-image-generation",
     );
 
-    expect(rootStore.toolCapability.allAvailableToolIds).not.toContain("image_generate");
-    expect(rootStore.toolCapability.extensionToolIds).not.toContain("image_generate");
+    expect(rootStore.toolCapability.allAvailableToolIds).toContain("image_generate");
+    expect(rootStore.toolCapability.extensionToolIds).toContain("image_generate");
 
     const result = rootStore.toolCapability.getEffectiveToolsForScope(
       ScopeType.CS_SESSION,
@@ -268,7 +268,7 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
       "agent:main:panel-image-generation",
     );
     expect(chatResult).toContain("image");
-    expect(chatResult).not.toContain("image_generate");
+    expect(chatResult).toContain("image_generate");
   });
 
   it("CS system run profile stays attached to ecommerce seller surface", () => {

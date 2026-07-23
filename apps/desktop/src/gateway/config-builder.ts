@@ -47,6 +47,9 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools", "rivoncl
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
 export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 135;
+export const IMAGE_GENERATION_MODEL_REF = "openai/gpt-image-2";
+export const IMAGE_GENERATION_TIMEOUT_MS = 300_000;
+const OPENAI_IMAGE_PROVIDER_ID = "openai";
 const TEXT_AND_IMAGE_INPUT: GatewayInputModality[] = ["text", "image"];
 const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 type RawCustomModel =
@@ -314,6 +317,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     overrides?: { toolAllowlist?: string[]; toolAlsoAllowlist?: string[] },
   ): Promise<Parameters<typeof writeGatewayConfig>[0]> {
     const activeKey = storage.providerKeys.getActive();
+    const cloudImageRouteActive = activeKey?.provider === RIVONCLAW_CLOUD_PROVIDER_ID;
+    const codexImageRouteActive =
+      activeKey?.provider === "openai-codex" && activeKey.authType === "oauth";
+    const openAiImageRouteActive = activeKey?.provider === "openai";
     const curRegion = storage.settings.get("region") ?? (locale === "zh" ? "cn" : "us");
     const curModel = activeKey
       ? resolveModelConfig({
@@ -366,6 +373,22 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     const effectiveWebSearchEnabled = curWebSearchEnabled && wsKeyExists;
     const effectiveEmbeddingEnabled =
       curEmbeddingEnabled && (curEmbeddingProvider === "ollama" || embKeyExists);
+
+    const customProviderOverrides = buildCustomProviderOverrides();
+    if (cloudImageRouteActive && activeKey?.baseUrl) {
+      customProviderOverrides[OPENAI_IMAGE_PROVIDER_ID] = {
+        baseUrl: activeKey.baseUrl,
+        api: "openai-completions",
+        timeoutSeconds: IMAGE_GENERATION_TIMEOUT_MS / 1000,
+        models: [
+          {
+            id: "gpt-image-2",
+            name: "GPT Image 2",
+            input: TEXT_AND_IMAGE_INPUT,
+          },
+        ],
+      };
+    }
 
     return {
       configPath,
@@ -432,6 +455,13 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       discovery: { mdns: { mode: "off" as const } },
       skipBootstrap: false,
       defaultModel: curModel ? resolveGeminiOAuthModel(curModel.provider, curModel.modelId) : null,
+      imageGenerationModel:
+        cloudImageRouteActive || codexImageRouteActive || openAiImageRouteActive
+          ? {
+              primary: IMAGE_GENERATION_MODEL_REF,
+              timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+            }
+          : null,
       stt: {
         enabled: curSttEnabled,
         provider: curSttProvider,
@@ -450,9 +480,9 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       },
       extraProviders: {
         ...filterConfiguredExtraProviders(allExtraProviders),
-        ...buildCustomProviderOverrides(),
+        ...customProviderOverrides,
       },
-      managedProviderKeys: Object.keys(allExtraProviders),
+      managedProviderKeys: [...Object.keys(allExtraProviders), OPENAI_IMAGE_PROVIDER_ID],
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,

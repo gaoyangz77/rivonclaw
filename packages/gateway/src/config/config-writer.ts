@@ -554,6 +554,11 @@ export interface WriteGatewayConfigOptions {
   gatewayToken?: string;
   /** Default model configuration (provider + model ID). Use null to clear a stale default. */
   defaultModel?: { provider: string; modelId: string } | null;
+  /** Image generation model configuration. Use null to clear a stale route. */
+  imageGenerationModel?: {
+    primary: string;
+    timeoutMs?: number;
+  } | null;
   /** Plugin configuration object for OpenClaw. */
   plugins?: {
     allow?: string[];
@@ -892,6 +897,33 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ...existingDefaults,
         model: nextModel,
       },
+    };
+  }
+
+  // Image generation model selection → agents.defaults.imageGenerationModel.
+  if (options.imageGenerationModel !== undefined) {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    const nextDefaults = { ...existingDefaults };
+    if (options.imageGenerationModel === null) {
+      delete nextDefaults.imageGenerationModel;
+    } else {
+      nextDefaults.imageGenerationModel = {
+        primary: options.imageGenerationModel.primary,
+        ...(options.imageGenerationModel.timeoutMs !== undefined
+          ? { timeoutMs: options.imageGenerationModel.timeoutMs }
+          : {}),
+      };
+    }
+    config.agents = {
+      ...existingAgents,
+      defaults: nextDefaults,
     };
   }
 
@@ -1560,34 +1592,37 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   }
 
   // Extra providers → models.providers (for providers not built into OpenClaw)
-  if (options.extraProviders !== undefined && Object.keys(options.extraProviders).length > 0) {
-    const existingModels =
-      typeof config.models === "object" && config.models !== null
-        ? (config.models as Record<string, unknown>)
-        : {};
-    const existingProviders =
-      typeof existingModels.providers === "object" && existingModels.providers !== null
-        ? { ...(existingModels.providers as Record<string, unknown>) }
-        : {};
-    // Remove stale managed providers that are no longer in extraProviders
-    // (e.g. user deleted their API key). Without this, stale providers with
-    // models but no apiKey persist from previous configs and cause Pi SDK to
-    // reject the entire models.json.
-    if (options.managedProviderKeys) {
-      for (const key of options.managedProviderKeys) {
-        if (!(key in options.extraProviders)) {
-          delete existingProviders[key];
+  if (options.extraProviders !== undefined) {
+    const hasExistingModels = typeof config.models === "object" && config.models !== null;
+    const hasExtraProviders = Object.keys(options.extraProviders).length > 0;
+    if (!hasExistingModels && !hasExtraProviders) {
+      // Nothing to add or clean.
+    } else {
+      const existingModels = hasExistingModels ? (config.models as Record<string, unknown>) : {};
+      const existingProviders =
+        typeof existingModels.providers === "object" && existingModels.providers !== null
+          ? { ...(existingModels.providers as Record<string, unknown>) }
+          : {};
+      // Remove stale managed providers that are no longer in extraProviders
+      // (e.g. user deleted their API key). Without this, stale providers with
+      // models but no apiKey persist from previous configs and cause Pi SDK to
+      // reject the entire models.json.
+      if (options.managedProviderKeys) {
+        for (const key of options.managedProviderKeys) {
+          if (!(key in options.extraProviders)) {
+            delete existingProviders[key];
+          }
         }
       }
+      config.models = {
+        ...existingModels,
+        mode: existingModels.mode ?? "merge",
+        providers: {
+          ...existingProviders,
+          ...options.extraProviders,
+        },
+      };
     }
-    config.models = {
-      ...existingModels,
-      mode: existingModels.mode ?? "merge",
-      providers: {
-        ...existingProviders,
-        ...options.extraProviders,
-      },
-    };
   }
 
   // Local provider overrides → models.providers (e.g. Ollama with dynamic models)

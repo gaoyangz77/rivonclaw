@@ -1434,6 +1434,55 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.models).toBeUndefined();
     });
+
+    it("cleans a stale managed image provider even when no extra providers remain", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          models: {
+            mode: "merge",
+            providers: {
+              openai: { baseUrl: "https://api.rivonclaw.com/llm/v1", models: [] },
+              existing: { baseUrl: "https://example.test/v1", models: [] },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        extraProviders: {},
+        managedProviderKeys: ["openai"],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.models.providers.openai).toBeUndefined();
+      expect(config.models.providers.existing).toBeDefined();
+    });
+  });
+
+  describe("writeGatewayConfig - image generation model", () => {
+    it("writes and clears the managed image generation route", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        imageGenerationModel: {
+          primary: "openai/gpt-image-2",
+          timeoutMs: 300_000,
+        },
+      });
+
+      let config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.imageGenerationModel).toEqual({
+        primary: "openai/gpt-image-2",
+        timeoutMs: 300_000,
+      });
+
+      writeGatewayConfig({ configPath, imageGenerationModel: null });
+      config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.imageGenerationModel).toBeUndefined();
+    });
   });
 
   describe("buildExtraProviderConfigs", () => {

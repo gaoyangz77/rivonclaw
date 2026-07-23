@@ -13,11 +13,7 @@ const SessionProfileModel = types.model("SessionProfile", {
 
 const SESSION_PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_PROFILE_CLEANUP_THRESHOLD = 100;
-// Product gate: hide image generation everywhere until Desktop can configure its model and credentials.
-// Remove IMAGE_GENERATE from this set when that UI and runtime support ships.
-const PRODUCT_DISABLED_TOOL_IDS = new Set(["IMAGE_GENERATE"]);
 // Scope gate: image generation is intentionally outside the customer-service agent's role.
-// Keep this restriction even after image generation becomes available to general-purpose agents.
 const CUSTOMER_SERVICE_DISABLED_TOOL_IDS = new Set(["IMAGE_GENERATE"]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -30,14 +26,6 @@ export function toolIdMatch(a: string, b: string): boolean {
 /** Check if a tool ID is in a set (case-insensitive). */
 function toolIdInSet(toolId: string, idSet: Set<string>): boolean {
   return idSet.has(toolId) || idSet.has(toolId.toUpperCase());
-}
-
-function isProductToolEnabled(toolId: string): boolean {
-  return !PRODUCT_DISABLED_TOOL_IDS.has(toolId.toUpperCase());
-}
-
-function applyProductToolExclusions(toolIds: string[]): string[] {
-  return toolIds.filter(isProductToolEnabled);
 }
 
 function applyScopeToolExclusions(scopeType: ScopeType, toolIds: string[]): string[] {
@@ -105,10 +93,7 @@ export const ToolCapabilityModel = types
 
       /** All available tool IDs = system + extension + entitled + client */
       get allAvailableToolIds(): string[] {
-        return applyProductToolExclusions([
-          ...root().allTools.map((t: any) => t.id),
-          ...self.extensionToolIds,
-        ]);
+        return [...root().allTools.map((t: any) => t.id), ...self.extensionToolIds];
       },
 
       /**
@@ -119,15 +104,13 @@ export const ToolCapabilityModel = types
        * checks, so the agent can still use them.
        */
       get toolList(): AvailableTool[] {
-        return root().allTools
-          .filter((t: any) => isProductToolEnabled(t.id))
-          .map((t: any) => ({
-            id: t.id,
-            displayName: t.displayName,
-            description: t.description || "",
-            category: t.category,
-            source: (t.source || "entitled") as AvailableTool["source"],
-          }));
+        return root().allTools.map((t: any) => ({
+          id: t.id,
+          displayName: t.displayName,
+          description: t.description || "",
+          category: t.category,
+          source: (t.source || "entitled") as AvailableTool["source"],
+        }));
       },
 
       /** Alias used by Panel components. */
@@ -367,7 +350,6 @@ export const ToolCapabilityModel = types
       const extensionsFromCatalog: string[] = [];
 
       for (const tool of catalogTools) {
-        if (!isProductToolEnabled(tool.id)) continue;
         if (tool.source === "core") {
           coreFromCatalog.push(tool.id);
         } else if (tool.source === "plugin") {

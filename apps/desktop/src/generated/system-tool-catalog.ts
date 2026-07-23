@@ -63,6 +63,7 @@ export const SYSTEM_TOOL_CATALOG: SystemToolEntry[] = [
 
   // ── Media ──
   { id: "image", label: "image", description: "Image understanding", section: "media", sectionLabel: "Media" },
+  { id: "image_generate", label: "image_generate", description: "Create or edit images", section: "media", sectionLabel: "Media" },
   { id: "tts", label: "tts", description: "Text-to-speech conversion", section: "media", sectionLabel: "Media" },
 ];
 

@@ -650,4 +650,80 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
     expect(profile.provider).toBe("openai");
     expect(profile.access).toBe("test-access-token");
   });
+
+  it("aliases Codex OAuth as openai for the image generation provider", async () => {
+    const mockStorage = {
+      providerKeys: {
+        getAll: () => [
+          {
+            id: "codex-oauth-key",
+            provider: "openai-codex",
+            isDefault: true,
+            authType: "oauth",
+          },
+        ],
+      },
+    };
+    const mockSecretStore = {
+      get: async (key: string) =>
+        key === "oauth-cred-codex-oauth-key"
+          ? JSON.stringify({
+              access: "codex-access",
+              refresh: "codex-refresh",
+              expires: Date.now() + 3600_000,
+              email: "codex@example.com",
+            })
+          : null,
+    };
+
+    await syncAllAuthProfiles(stateDir, mockStorage, mockSecretStore);
+
+    const store = readJsonFile(resolveAuthProfilePath(stateDir)) as {
+      profiles: Record<string, Record<string, unknown>>;
+      order: Record<string, string[]>;
+    };
+    expect(store.profiles["openai-codex:codex@example.com"]).toMatchObject({
+      type: "oauth",
+      provider: "openai-codex",
+      access: "codex-access",
+    });
+    expect(store.profiles["openai:codex@example.com-image"]).toMatchObject({
+      type: "oauth",
+      provider: "openai",
+      access: "codex-access",
+    });
+    expect(store.order.openai).toEqual(["openai:codex@example.com-image"]);
+  });
+
+  it("prefers the active RivonClaw cloud key for the openai image provider alias", async () => {
+    const cloudKey = {
+      id: "cloud-rivonclaw-pro",
+      provider: "rivonclaw-pro",
+      isDefault: true,
+      authType: "custom",
+    };
+    const mockStorage = {
+      providerKeys: {
+        getAll: () => [cloudKey],
+        getActive: () => cloudKey,
+      },
+    };
+    const mockSecretStore = {
+      get: async (key: string) =>
+        key === "provider-key-cloud-rivonclaw-pro" ? "rcllm_cloud_key" : null,
+    };
+
+    await syncAllAuthProfiles(stateDir, mockStorage, mockSecretStore);
+
+    const store = readJsonFile(resolveAuthProfilePath(stateDir)) as {
+      profiles: Record<string, Record<string, unknown>>;
+      order: Record<string, string[]>;
+    };
+    expect(store.profiles["openai:rivonclaw-pro-image"]).toEqual({
+      type: "api_key",
+      provider: "openai",
+      key: "rcllm_cloud_key",
+    });
+    expect(store.order.openai).toEqual(["openai:rivonclaw-pro-image"]);
+  });
 });
