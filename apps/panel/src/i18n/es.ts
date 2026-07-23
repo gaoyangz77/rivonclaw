@@ -2872,7 +2872,6 @@ export default {
         "SAMPLE_AWAITING_SHIPMENT": "Muestra esperando envío",
         "CREATOR_ACTION_FOLLOW_UP_DUE": "Seguimiento del creador pendiente",
         "STAFF_REVIEW_REQUESTED": "Necesita decisión del personal",
-        "WORK_DEFERRED": "Trabajo pospuesto",
         "AGENT_RUN_FAILED": "Ejecución del agente fallida",
         "TARGET_COLLABORATION_ACCEPTED": "Colaboración objetivo aceptada",
         "CONTENT_PUBLISHED": "Contenido publicado",

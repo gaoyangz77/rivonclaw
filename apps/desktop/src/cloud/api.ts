@@ -143,9 +143,7 @@ function sanitizeCloudGraphqlVariables(
       ...inputWithCheckpoint,
       action: undefined,
       actions: undefined,
-      nextSellerActionAt: input.decision === "DEFERRED"
-        ? cleanOptionalAffiliateDateTime(input.nextSellerActionAt)
-        : undefined,
+      nextSellerActionAt: undefined,
     });
     if (normalizedInput !== input) {
       log.info("Normalized non-action affiliate resolve work item payload before proxying to backend");

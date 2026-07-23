@@ -178,7 +178,8 @@ export interface ActionProposalSampleReviewIntent {
   platformApplicationId?: Maybe<Scalars['String']['output']>;
   projectionRevision?: Maybe<Scalars['Int']['output']>;
   rejectReason?: Maybe<AffiliateSampleRejectReason>;
-  sampleApplicationRecordId: Scalars['ID']['output'];
+  /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
+  sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
 
 export interface ActionProposalSampleReviewIntentInput {
@@ -188,7 +189,8 @@ export interface ActionProposalSampleReviewIntentInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   projectionRevision?: InputMaybe<Scalars['Int']['input']>;
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
-  sampleApplicationRecordId: Scalars['ID']['input'];
+  /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
+  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ActionProposalSampleShipmentIntent {
@@ -608,6 +610,7 @@ export const AffiliateAgentAssistanceMode = {
 export type AffiliateAgentAssistanceMode = typeof AffiliateAgentAssistanceMode[keyof typeof AffiliateAgentAssistanceMode];
 export const AffiliateAgentEligibilityReason = {
   AffiliateOnboardingIncomplete: 'AFFILIATE_ONBOARDING_INCOMPLETE',
+  AwaitingCreatorResponse: 'AWAITING_CREATOR_RESPONSE',
   BusinessDeveloperArchived: 'BUSINESS_DEVELOPER_ARCHIVED',
   BusinessDeveloperHumanOnly: 'BUSINESS_DEVELOPER_HUMAN_ONLY',
   CreatorProtected: 'CREATOR_PROTECTED',
@@ -825,8 +828,7 @@ export const AffiliateCollaborationRecordProcessReason = {
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
   StaffReviewRequested: 'STAFF_REVIEW_REQUESTED',
   TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
-  UserLevelBlocked: 'USER_LEVEL_BLOCKED',
-  WorkDeferred: 'WORK_DEFERRED'
+  UserLevelBlocked: 'USER_LEVEL_BLOCKED'
 } as const;
 
 export type AffiliateCollaborationRecordProcessReason = typeof AffiliateCollaborationRecordProcessReason[keyof typeof AffiliateCollaborationRecordProcessReason];
@@ -2515,7 +2517,6 @@ export interface AffiliateWorkItemChanged {
 
 /** Terminal decision for an agent-dispatched affiliate work item. */
 export const AffiliateWorkItemResolutionDecision = {
-  Deferred: 'DEFERRED',
   FailedOrIncomplete: 'FAILED_OR_INCOMPLETE',
   NeedsStaffReview: 'NEEDS_STAFF_REVIEW',
   NoActionNeeded: 'NO_ACTION_NEEDED',
@@ -9365,8 +9366,6 @@ export interface ResolveAffiliateWorkItemInput {
   decision: AffiliateWorkItemResolutionDecision;
   /** The relationship work boundary timestamp that this decision handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  /** Only set when decision is DEFERRED. Omit for all other decisions; never pass an empty string. */
-  nextSellerActionAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   operatorSummary: Scalars['String']['input'];
   relationshipOperationalConfigRevision?: InputMaybe<Scalars['Int']['input']>;
   /** Latest event cursor included in this agent run context. */
