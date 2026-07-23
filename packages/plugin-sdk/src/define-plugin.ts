@@ -13,6 +13,15 @@
  */
 export type ToolVisibility = "managed" | "always";
 
+export type PluginToolContext = {
+  config?: Record<string, unknown>;
+  workspaceDir?: string;
+  agentDir?: string;
+  agentId?: string;
+  sessionKey?: string;
+  fsPolicy?: { workspaceOnly: boolean };
+};
+
 // Minimal OpenClaw plugin API types (inline to avoid vendor dependency)
 export type PluginApi = {
   id: string;
@@ -20,7 +29,7 @@ export type PluginApi = {
   pluginConfig?: Record<string, unknown>;
   on(event: string, handler: (...args: any[]) => any, opts?: { priority?: number }): void;
   registerTool?(
-    tool: ToolDefinition | ((ctx: { config?: Record<string, unknown> }) => unknown),
+    tool: ToolDefinition | ((ctx: PluginToolContext) => unknown),
     opts?: { name?: string; names?: string[]; optional?: boolean },
   ): void;
   registerGatewayMethod?(name: string, handler: (args: {

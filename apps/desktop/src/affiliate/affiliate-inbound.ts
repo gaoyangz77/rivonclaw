@@ -538,7 +538,7 @@ export class AffiliateInbound {
   }
 
   private buildWorkItemVersionKey(workItem: AffiliateWorkItemPayload): string {
-    return `${workItem.id}:${workItem.workKind}`;
+    return `${workItem.id}:${workItem.focusShopId}:${workItem.workKind}`;
   }
 
   private buildWorkItemVersion(workItem: AffiliateWorkItemPayload): string {
@@ -623,15 +623,11 @@ export class AffiliateInbound {
   }
 
   private findRoutedShopContext(workItem: AffiliateWorkItemPayload): AffiliateShopContext | undefined {
-    const platformShopIds = uniqueNonEmpty([
-      ...(workItem.routingPlatformShopIds ?? []),
-      workItem.focusPlatformShopId,
-    ]);
-    for (const platformShopId of platformShopIds) {
-      const shop = this.shopContexts.get(platformShopId);
-      if (shop) return shop;
-    }
-    return undefined;
+    const focusPlatformShopId = workItem.focusPlatformShopId?.trim();
+    if (!focusPlatformShopId) return undefined;
+    const shop = this.shopContexts.get(focusPlatformShopId);
+    if (!shop || shop.objectId !== workItem.focusShopId) return undefined;
+    return shop;
   }
 
   private buildContextFromWorkItem(
@@ -643,10 +639,13 @@ export class AffiliateInbound {
     const creatorProfile = workItem.context?.creatorProfile ?? null;
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
     if (!creatorRelationshipId) return null;
+    if (shop.objectId !== workItem.focusShopId || shop.platformShopId !== workItem.focusPlatformShopId) {
+      return null;
+    }
     const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
       userId: this.resolveWorkItemUserId(shop, workItem),
-      shopId: shop.objectId,
-      platformShopId: shop.platformShopId,
+      shopId: workItem.focusShopId,
+      platformShopId: workItem.focusPlatformShopId,
       creatorImUserId: creatorProfile?.creatorImId ?? collaboration?.creatorImId ?? undefined,
       creatorId: creatorProfile?.id ?? collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
       creatorOpenId: creatorProfile?.creatorOpenId ?? undefined,
@@ -692,7 +691,6 @@ export class AffiliateInbound {
     base: Omit<AffiliateContext, "triggerKind" | "triggerId">,
     workItem: AffiliateWorkItemPayload,
   ): AffiliateContext | null {
-    const collaboration = workItem.collaboration;
     switch (workItem.workKind) {
       case GQL.AffiliateWorkKind.InboundMessageTriage:
         return {
@@ -773,8 +771,4 @@ function uniqueWorkItems(workItems: AffiliateWorkItemPayload[]): AffiliateWorkIt
 
 function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {
   return localeToStaffLanguage(locale);
-}
-
-function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
-  return [...new Set(values.filter((value): value is string => typeof value === "string" && value.length > 0))];
 }

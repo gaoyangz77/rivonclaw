@@ -4,6 +4,7 @@ export const TOOL_SPECS_SYNC_QUERY = `
       id
       name
       category
+      dataScope
       displayName
       description
       supportsPersistResult

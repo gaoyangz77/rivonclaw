@@ -38,6 +38,7 @@ export const ToolModel = types
     resultSchema: types.maybeNull(types.string),
     resultMode: types.optional(types.string, "JSON"),
     category: types.string,
+    dataScope: types.maybeNull(types.string),
     source: types.optional(types.string, "entitled"),
     operationType: types.optional(types.string, ""),
     graphqlOperation: types.maybeNull(types.string),

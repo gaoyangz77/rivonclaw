@@ -1685,6 +1685,8 @@ export default {
         "ECOM_GET_SHIPPING_DOCUMENT": "Dapatkan Dokumen Pengiriman",
         "ECOM_GET_PRODUCT": "Dapatkan Produk",
         "ECOM_SEARCH_PRODUCTS": "Cari Produk",
+        "AFFILIATE_GET_PRODUCT": "Dapatkan Produk Affiliate",
+        "AFFILIATE_SEARCH_PRODUCTS": "Cari Produk Affiliate",
         "ECOM_GET_INVENTORY_ANALYSIS": "Dapatkan Analisis Inventaris",
         "ECOM_GET_SHOP_SKU_PERFORMANCE_LIST": "Dapatkan Daftar Kinerja Toko SKU",
         "ECOM_GET_BI_CATALOG": "Dapatkan Katalog BI",
