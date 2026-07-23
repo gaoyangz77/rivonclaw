@@ -637,9 +637,9 @@ export class AffiliateSession {
     }
 
     try {
-      if (await this.isWorkItemAlreadyHandled(workItem)) {
+      if (await this.isWorkItemResolvedOrNoLongerDispatchable(workItem)) {
         log.info(
-          `Affiliate work item already resolved by agent tool call; skipping fallback completion: ` +
+          `Affiliate work item already resolved or gated after the agent tool call; skipping fallback completion: ` +
           `runId=${runId} subject=${workItemSubjectLabel(workItem)}`,
         );
         return;
@@ -671,7 +671,7 @@ export class AffiliateSession {
     }
   }
 
-  private async isWorkItemAlreadyHandled(workItem: GQL.AffiliateWorkItem): Promise<boolean> {
+  private async isWorkItemResolvedOrNoLongerDispatchable(workItem: GQL.AffiliateWorkItem): Promise<boolean> {
     const boundary = parseOptionalDate(workItemBoundaryAt(workItem));
     if (!boundary) return false;
 
@@ -690,6 +690,9 @@ export class AffiliateSession {
     );
     const currentWorkItem = result.affiliateWorkItems[0];
     if (currentWorkItem == null) {
+      return true;
+    }
+    if (currentWorkItem.agentDispatchRecommended === false) {
       return true;
     }
     const handledUntil = parseOptionalDate(workItemHandledUntil(currentWorkItem));

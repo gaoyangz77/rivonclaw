@@ -2040,6 +2040,89 @@ describe("affiliate work item dispatch", () => {
     );
   });
 
+  it("does not mark a run failed when a pending proposal gates the unchanged source agenda", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("affiliateExpectedSalesPredictions")) {
+        return {
+          affiliateExpectedSalesPredictions: {
+            status: GQL.AffiliateExpectedSalesPredictionStatus.Ok,
+            requestId: "prediction-request-empty",
+            modelTag: "affiliate-expected-test",
+            modelType: "ridge",
+            trainedAt: null,
+            featureVersion: "v1",
+            predictions: [],
+          },
+        };
+      }
+      if (query.includes("AffiliateWorkItems")) {
+        return {
+          affiliateWorkItems: [
+            {
+              id: "work-collab-001",
+              collaborationRecordId: "collab-001",
+              versionAt: "2026-05-11T00:01:00.000Z",
+              agentDispatchRecommended: false,
+              creatorRelationship: {
+                id: "relationship-001",
+                lastAgentHandledAt: null,
+              },
+              collaboration: {
+                id: "collab-001",
+                workHandledUntil: null,
+              },
+            },
+          ],
+        };
+      }
+      throw new Error(`Unexpected GraphQL call: ${query}`);
+    });
+    mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
+    const workItem = createCreatorReplyWorkItem({
+      versionAt: "2026-05-11T00:01:00.000Z",
+      collaboration: {
+        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
+        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      },
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "conversation-001",
+        collaborationRecordId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const result = await session.handleWorkItem(workItem);
+    expect(result.runId).toBe("run-affiliate-001");
+
+    session.onRunCompleted("run-affiliate-001");
+
+    await vi.waitFor(() => {
+      expect(graphqlFetch).toHaveBeenCalledWith(
+        expect.stringContaining("AffiliateWorkItems"),
+        expect.anything(),
+      );
+    });
+    expect(graphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("ResolveAffiliateWorkItem"),
+      expect.anything(),
+    );
+  });
+
   it("does not treat a handled collaboration as a handled relationship work boundary", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       if (query.includes("affiliateExpectedSalesPredictions")) {
