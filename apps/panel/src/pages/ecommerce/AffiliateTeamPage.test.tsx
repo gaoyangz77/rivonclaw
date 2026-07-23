@@ -40,7 +40,7 @@ describe("Affiliate protected creator import template", () => {
   it("only exposes creator username and optional BD display name", () => {
     expect(PROTECTED_CREATOR_TEMPLATE_HEADERS).toEqual([
       "creator_username",
-      "business_developer_name",
+      "bd_name",
     ]);
     expect(PROTECTED_CREATOR_TEMPLATE_HEADERS).not.toContain("platform");
     expect(PROTECTED_CREATOR_TEMPLATE_HEADERS).not.toContain("creator_open_id");

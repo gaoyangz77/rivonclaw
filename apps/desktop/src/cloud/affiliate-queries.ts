@@ -118,8 +118,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
   query AffiliateWorkItems($input: ReadAffiliateWorkItemsInput) {
     affiliateWorkItems(input: $input) {
       id
-      focusShopId
-      focusPlatformShopId
+      triggerShopId
+      triggerPlatformShopId
       routingShopIds
       routingPlatformShopIds
       subjectType

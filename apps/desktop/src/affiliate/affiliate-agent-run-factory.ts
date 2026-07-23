@@ -82,12 +82,12 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
 
   const lines = [
     "[Bound Affiliate Run Context]",
-    `Shop ID: ${workItem.focusShopId}`,
+    `Trigger Shop ID: ${workItem.triggerShopId}`,
     `Creator Relationship ID: ${workItem.creatorRelationshipId}`,
     `Creator ID: ${creatorId ?? "(unavailable)"}`,
     `TikTok Creator Open ID: ${creatorProfile?.creatorOpenId ?? "(unavailable)"}`,
     `TikTok Creator Username: ${creatorProfile?.username ?? "(unavailable)"}`,
-    "These are trusted run constants. Relationship-scoped tools inject them automatically; do not copy or invent them in tool arguments.",
+    "The Creator Relationship and Creator identity are trusted run constants. The trigger shop is event provenance only; it does not limit relationship history or force every action to use that shop.",
     "",
     "[Agent Working Agenda]",
   ];

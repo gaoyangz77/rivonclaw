@@ -366,7 +366,7 @@ export class AffiliateInbound {
     const shop = this.findRoutedShopContext(workItem);
     if (!shop) {
       log.error(
-        `No affiliate shop context for work item routes ${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.focusPlatformShopId}, dropping work item`,
+        `No affiliate shop context for work item routes ${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.triggerPlatformShopId}, dropping work item`,
       );
       return false;
     }
@@ -538,7 +538,7 @@ export class AffiliateInbound {
   }
 
   private buildWorkItemVersionKey(workItem: AffiliateWorkItemPayload): string {
-    return `${workItem.id}:${workItem.focusShopId}:${workItem.workKind}`;
+    return `${workItem.id}:${workItem.triggerShopId}:${workItem.workKind}`;
   }
 
   private buildWorkItemVersion(workItem: AffiliateWorkItemPayload): string {
@@ -623,10 +623,10 @@ export class AffiliateInbound {
   }
 
   private findRoutedShopContext(workItem: AffiliateWorkItemPayload): AffiliateShopContext | undefined {
-    const focusPlatformShopId = workItem.focusPlatformShopId?.trim();
-    if (!focusPlatformShopId) return undefined;
-    const shop = this.shopContexts.get(focusPlatformShopId);
-    if (!shop || shop.objectId !== workItem.focusShopId) return undefined;
+    const triggerPlatformShopId = workItem.triggerPlatformShopId?.trim();
+    if (!triggerPlatformShopId) return undefined;
+    const shop = this.shopContexts.get(triggerPlatformShopId);
+    if (!shop || shop.objectId !== workItem.triggerShopId) return undefined;
     return shop;
   }
 
@@ -639,13 +639,13 @@ export class AffiliateInbound {
     const creatorProfile = workItem.context?.creatorProfile ?? null;
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
     if (!creatorRelationshipId) return null;
-    if (shop.objectId !== workItem.focusShopId || shop.platformShopId !== workItem.focusPlatformShopId) {
+    if (shop.objectId !== workItem.triggerShopId || shop.platformShopId !== workItem.triggerPlatformShopId) {
       return null;
     }
     const base: Omit<AffiliateContext, "triggerKind" | "triggerId"> = {
       userId: this.resolveWorkItemUserId(shop, workItem),
-      shopId: workItem.focusShopId,
-      platformShopId: workItem.focusPlatformShopId,
+      shopId: workItem.triggerShopId,
+      platformShopId: workItem.triggerPlatformShopId,
       creatorImUserId: creatorProfile?.creatorImId ?? collaboration?.creatorImId ?? undefined,
       creatorId: creatorProfile?.id ?? collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
       creatorOpenId: creatorProfile?.creatorOpenId ?? undefined,

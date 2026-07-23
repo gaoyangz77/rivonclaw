@@ -9,8 +9,8 @@ function findWorkItemShopForDevice(workItem: AffiliateWorkItemPayload, deviceId:
   const shopKeys = uniqueShopKeys([
     ...(workItem.routingShopIds ?? []),
     ...(workItem.routingPlatformShopIds ?? []),
-    workItem.focusShopId,
-    workItem.focusPlatformShopId,
+    workItem.triggerShopId,
+    workItem.triggerPlatformShopId,
   ]);
   for (const shopKey of shopKeys) {
     const shop = rootStore.findShopByObjectOrPlatformId(shopKey, shopKey);
@@ -27,7 +27,7 @@ export async function handleAffiliateWorkItemChanged(
   workItem: AffiliateWorkItemPayload,
 ): Promise<void> {
   log.info(
-    `Affiliate work item received: kind=${workItem.workKind} routes=${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.focusPlatformShopId} ` +
+    `Affiliate work item received: kind=${workItem.workKind} routes=${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.triggerPlatformShopId} ` +
     `collaboration=${workItem.collaborationRecordId} status=${workItem.processingStatus}`,
   );
 
