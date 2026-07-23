@@ -4684,7 +4684,7 @@ function relationshipWorkItemFromWorkItem(
   ]);
   return {
     relationshipId: workItem.creatorRelationshipId,
-    shopId: workItem.focusShopId,
+    shopId: workItem.triggerShopId,
     creatorId: relationship?.creatorId ?? focusCollaboration?.creatorId ?? null,
     creatorOpenId: focusCollaboration?.creatorOpenId ?? null,
     creatorImId: focusCollaboration?.creatorImId ?? null,
@@ -5313,13 +5313,12 @@ function CreatorRelationshipDetailModal({
   >(AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY, {
     variables: {
       input: {
-        shopId: messageShopId ?? "",
         creatorRelationshipId: relationshipId ?? "",
         limit: AFFILIATE_TIMELINE_PAGE_SIZE,
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !messageShopId,
+    skip: !relationshipId,
   });
   const conversationHistory = messageHistoryData?.affiliateCreatorMessageHistory;
   const conversationMessages = conversationHistory?.items ?? [];
@@ -5399,13 +5398,12 @@ function CreatorRelationshipDetailModal({
   >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
     variables: {
       input: {
-        shopId: messageShopId ?? "",
         creatorRelationshipId: relationshipId ?? "",
         limit: AFFILIATE_TIMELINE_PAGE_SIZE,
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !relationshipId || !messageShopId,
+    skip: !relationshipId,
   });
   const relationshipTimeline = relationshipTimelineData?.affiliateRelationshipTimeline;
   const canLoadOlderActivity = Boolean(relationshipTimeline?.hasOlder && relationshipTimeline.olderCursor);
@@ -5484,11 +5482,10 @@ function CreatorRelationshipDetailModal({
   ];
 
   function loadOlderConversationMessages(): void {
-    if (!conversationHistory?.hasMore || conversationHistory.nextOffset == null || !relationshipId || !messageShopId) return;
+    if (!conversationHistory?.hasMore || conversationHistory.nextOffset == null || !relationshipId) return;
     void fetchMoreConversationMessages({
       variables: {
         input: {
-          shopId: messageShopId,
           creatorRelationshipId: relationshipId,
           limit: AFFILIATE_TIMELINE_PAGE_SIZE,
           offset: conversationHistory.nextOffset,
@@ -5510,12 +5507,11 @@ function CreatorRelationshipDetailModal({
   }
 
   function loadOlderActivity(): void {
-    if (!relationshipTimeline?.hasOlder || !relationshipTimeline.olderCursor || !relationshipId || !messageShopId) return;
+    if (!relationshipTimeline?.hasOlder || !relationshipTimeline.olderCursor || !relationshipId) return;
     activityLoadedOlderRef.current = true;
     void fetchMoreRelationshipTimeline({
       variables: {
         input: {
-          shopId: messageShopId,
           creatorRelationshipId: relationshipId,
           limit: AFFILIATE_TIMELINE_PAGE_SIZE,
           cursor: relationshipTimeline.olderCursor,

@@ -984,7 +984,7 @@ export const AffiliateCreatorChannelContactStatus = {
 } as const;
 
 export type AffiliateCreatorChannelContactStatus = typeof AffiliateCreatorChannelContactStatus[keyof typeof AffiliateCreatorChannelContactStatus];
-/** Mongo operational creator-product Collaboration records for one CreatorRelationship. */
+/** Mongo operational creator-product Collaboration records for one CreatorRelationship across the seller's authorized shops. */
 export interface AffiliateCreatorCollaborationListPayload {
   complete: Scalars['Boolean']['output'];
   coverageComplete: Scalars['Boolean']['output'];
@@ -1000,6 +1000,7 @@ export interface AffiliateCreatorCollaborationListPayload {
   projectionStatus: AffiliateOperationalProjectionStatus;
   providerWindowLimited: Scalars['Boolean']['output'];
   readAt: Scalars['DateTimeISO']['output'];
+  shopCoverage: Array<AffiliateOperationalProjectionShopCoverage>;
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
 }
@@ -1007,7 +1008,6 @@ export interface AffiliateCreatorCollaborationListPayload {
 export interface AffiliateCreatorContactStateInput {
   /** CreatorRelationship is the business boundary for affiliate contact state. Do not pass raw channel or creator identity ids as the primary lookup. */
   creatorRelationshipId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 export interface AffiliateCreatorContactStatePayload {
@@ -1073,7 +1073,6 @@ export interface AffiliateCreatorMessageHistoryInput {
   creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
-  shopId: Scalars['ID']['input'];
 }
 
 /** Relationship-level affiliate creator message with channel labels across platform chat, WhatsApp, Outlook email, and delivery records. */
@@ -1248,7 +1247,7 @@ export interface AffiliateCreatorRelationshipStatePayload {
   source: AffiliateProviderReadSource;
 }
 
-/** Mongo operational Sample Application projection for one CreatorRelationship. */
+/** Mongo operational Sample Application projection for one CreatorRelationship across the seller's authorized shops. */
 export interface AffiliateCreatorSampleApplicationListPayload {
   complete: Scalars['Boolean']['output'];
   coverageComplete: Scalars['Boolean']['output'];
@@ -1264,6 +1263,7 @@ export interface AffiliateCreatorSampleApplicationListPayload {
   projectionStatus: AffiliateOperationalProjectionStatus;
   providerWindowLimited: Scalars['Boolean']['output'];
   readAt: Scalars['DateTimeISO']['output'];
+  shopCoverage: Array<AffiliateOperationalProjectionShopCoverage>;
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
 }
@@ -1832,6 +1832,25 @@ export interface AffiliateOperationalProjectionReadiness {
   status: AffiliateOperationalProjectionStatus;
 }
 
+/** Per-shop readiness and historical coverage for one CreatorRelationship operational dataset. */
+export interface AffiliateOperationalProjectionShopCoverage {
+  complete: Scalars['Boolean']['output'];
+  currentStatus: AffiliateOperationalProjectionStatus;
+  historyCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  historyStatus: AffiliateOperationalProjectionStatus;
+  lastHeadSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastHistorySyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastSuccessfulSyncAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  oldestCoveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  platformShopId: Scalars['String']['output'];
+  projectionStatus: AffiliateOperationalProjectionStatus;
+  providerWindowLimited: Scalars['Boolean']['output'];
+  ready: Scalars['Boolean']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
+}
+
 export const AffiliateOperationalProjectionStatus = {
   Bootstrapping: 'BOOTSTRAPPING',
   Degraded: 'DEGRADED',
@@ -2195,7 +2214,8 @@ export interface AffiliateRelationshipTimelineInput {
   /** Optional multi-select category filter. Empty or omitted means all real item types. */
   itemTypes?: InputMaybe<Array<AffiliateRelationshipTimelineItemType>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
-  shopId: Scalars['ID']['input'];
+  /** Optional authorized shop filter. Omitted means the complete cross-shop CreatorRelationship timeline. */
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   startAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
 }
 
@@ -2408,7 +2428,6 @@ export interface AffiliateWhatsAppMessagesInput {
   /** CreatorRelationship business boundary. This legacy WhatsApp-only read path is still relationship-scoped and does not accept creator/profile fallback keys. */
   creatorRelationshipId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
-  shopId: Scalars['ID']['input'];
 }
 
 /** Record-level merged work bundle kind consumed by the affiliate agent-run factory. */
@@ -2459,10 +2478,6 @@ export interface AffiliateWorkItem {
   creatorRelationship: AffiliateCreatorRelationship;
   /** Primary CreatorRelationship workspace ID for this work item. Agent sessions, proposals, and action history should be anchored here. */
   creatorRelationshipId: Scalars['ID']['output'];
-  /** Default platform shop context for the focused action/collaboration. This is not the work item owner. */
-  focusPlatformShopId: Scalars['String']['output'];
-  /** Default shop context for the focused action/collaboration. This is not the work item owner. */
-  focusShopId: Scalars['ID']['output'];
   /** Stable work-item ID. Relationship-level work items use the CreatorRelationship ID. */
   id: Scalars['ID']['output'];
   processReasons: Array<AffiliateCollaborationRecordProcessReason>;
@@ -2481,6 +2496,10 @@ export interface AffiliateWorkItem {
   subjectType: AffiliateWorkItemSubjectType;
   triggerChannel?: Maybe<AffiliateMessageChannel>;
   triggerLifecycleEventId?: Maybe<Scalars['ID']['output']>;
+  /** Platform shop that produced the primary agenda event for this dispatch. It is provenance only. */
+  triggerPlatformShopId: Scalars['String']['output'];
+  /** Shop that produced the primary agenda event for this dispatch. It is provenance only, not the Relationship read boundary or a universal action destination. */
+  triggerShopId: Scalars['ID']['output'];
   /** Projection version timestamp. Desktop can use this for idempotent upsert. */
   versionAt: Scalars['DateTimeISO']['output'];
   workBundleKind: AffiliateWorkBundleKind;
@@ -2917,7 +2936,6 @@ export interface CheckCreatorWhatsAppContactInput {
   /** CreatorRelationship is the business boundary for validating and optionally saving creator contact channels. */
   creatorRelationshipId: Scalars['ID']['input'];
   persist?: InputMaybe<Scalars['Boolean']['input']>;
-  shopId: Scalars['ID']['input'];
 }
 
 export interface CheckCreatorWhatsAppContactPayload {
@@ -8435,7 +8453,6 @@ export interface QueryAffiliateCampaignsArgs {
 export interface QueryAffiliateCollaborationStateArgs {
   collaborationRecordId: Scalars['ID']['input'];
   creatorRelationshipId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 
@@ -8456,7 +8473,6 @@ export interface QueryAffiliateCreatorChannelContactsArgs {
 
 export interface QueryAffiliateCreatorCollaborationsForRelationshipArgs {
   creatorRelationshipId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 
@@ -8477,14 +8493,12 @@ export interface QueryAffiliateCreatorProtectionsArgs {
 
 export interface QueryAffiliateCreatorRelationshipStateArgs {
   creatorRelationshipId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 
 export interface QueryAffiliateCreatorSampleApplicationsForRelationshipArgs {
   creatorRelationshipId: Scalars['ID']['input'];
   includeFulfillments?: InputMaybe<Scalars['Boolean']['input']>;
-  shopId: Scalars['ID']['input'];
 }
 
 
@@ -8541,7 +8555,6 @@ export interface QueryAffiliateRelationshipTimelineArgs {
 export interface QueryAffiliateSampleApplicationStateArgs {
   creatorRelationshipId: Scalars['ID']['input'];
   sampleApplicationRecordId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 
@@ -9306,6 +9319,8 @@ export interface ResolveAffiliateTargetCollaborationIntentInput {
   name: Scalars['String']['input'];
   products: Array<ActionProposalTargetCollaborationProductIntentInput>;
   sellerContactInfo: ActionProposalSellerContactInfoIntentInput;
+  /** Authorized seller shop that should own the new Target Collaboration. This is selected explicitly and is not forced to the trigger shop. */
+  shopId: Scalars['ID']['input'];
 }
 
 /** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
@@ -9352,10 +9367,10 @@ export interface ResolveAffiliateWorkItemInput {
   nextSellerActionAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   operatorSummary: Scalars['String']['input'];
   relationshipOperationalConfigRevision?: InputMaybe<Scalars['Int']['input']>;
-  /** Optional platform-action shop scope. The work item itself is owned by creatorRelationshipId; backend derives a shop from the focused action/collaboration/relationship when omitted. */
-  shopId?: InputMaybe<Scalars['ID']['input']>;
   /** Latest event cursor included in this agent run context. */
   targetEventCursor?: InputMaybe<Scalars['Int']['input']>;
+  /** Trusted trigger-shop provenance. Backend derives each action destination from its relationship-owned record or explicit authorized target shop; this value is not a read boundary. */
+  triggerShopId: Scalars['ID']['input'];
 }
 
 export interface ResolveAffiliateWorkItemMessageIntentInput {
@@ -9504,14 +9519,12 @@ export interface SetCreatorEmailContactInput {
   /** CreatorRelationship is the business boundary for setting creator contact channels. */
   creatorRelationshipId: Scalars['ID']['input'];
   email: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 export interface SetCreatorWhatsAppContactInput {
   creatorPhone: Scalars['String']['input'];
   /** CreatorRelationship is the business boundary for setting creator contact channels. */
   creatorRelationshipId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 /** A connected e-commerce shop */
@@ -10409,10 +10422,10 @@ export interface ToolContextBinding {
   paramName: Scalars['String']['output'];
 }
 
-/** Agent data boundary: current CreatorRelationship, current run shop, or seller-wide. */
+/** Agent data boundary: current CreatorRelationship, the authenticated seller's product catalog, or unrestricted seller-wide data. */
 export const ToolDataScope = {
   CreatorRelationship: 'CREATOR_RELATIONSHIP',
-  CurrentShop: 'CURRENT_SHOP',
+  SellerCatalog: 'SELLER_CATALOG',
   SellerWide: 'SELLER_WIDE'
 } as const;
 
@@ -10431,6 +10444,7 @@ export const ToolId = {
   AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
   AffiliateListCreatorSampleApplications: 'AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS',
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
+  AffiliateListShops: 'AFFILIATE_LIST_SHOPS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
   AffiliateReadMessageAttachment: 'AFFILIATE_READ_MESSAGE_ATTACHMENT',

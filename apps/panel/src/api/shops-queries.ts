@@ -757,9 +757,9 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
     affiliateWorkItems(input: $input) {
       id
       subjectType
-      focusShopId
+      triggerShopId
       collaborationRecordId
-      focusPlatformShopId
+      triggerPlatformShopId
       routingShopIds
       routingPlatformShopIds
       processingStatus

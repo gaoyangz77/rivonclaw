@@ -341,8 +341,8 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
     affiliateWorkItemChanged {
       workItem {
         id
-        focusShopId
-        focusPlatformShopId
+        triggerShopId
+        triggerPlatformShopId
         routingShopIds
         routingPlatformShopIds
         subjectType

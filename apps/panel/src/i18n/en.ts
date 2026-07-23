@@ -1858,6 +1858,7 @@ export default {
         ECOM_SEARCH_PRODUCTS: "Search Products",
         AFFILIATE_GET_PRODUCT: "Get Affiliate Product",
         AFFILIATE_SEARCH_PRODUCTS: "Search Affiliate Products",
+        AFFILIATE_LIST_SHOPS: "List Affiliate Shops",
         ECOM_GET_INVENTORY_ANALYSIS: "Get Inventory Analysis",
         ECOM_GET_SHOP_SKU_PERFORMANCE_LIST: "Get Shop SKU Performance List",
         ECOM_GET_OPERATION_REPORT: "Get Operation Report",

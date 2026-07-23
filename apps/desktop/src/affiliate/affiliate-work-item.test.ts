@@ -79,6 +79,55 @@ describe("affiliate session identity", () => {
     ).toBe("agent:affiliate:affiliate:user-1:rel-1");
   });
 
+  it("accepts a later trigger from another seller shop in the same Relationship session", () => {
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-1",
+        userId: "user-1",
+        platformShopId: "platform-shop-1",
+        shopName: "Shop 1",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        userId: "user-1",
+        shopId: "shop-1",
+        platformShopId: "platform-shop-1",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "message-1",
+        creatorRelationshipId: "rel-1",
+      },
+    );
+    (session as any).activeRunId = "run-in-progress";
+
+    expect(() => {
+      session.updateShopContext({
+        objectId: "shop-2",
+        userId: "user-1",
+        platformShopId: "platform-shop-2",
+        shopName: "Shop 2",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      });
+      session.updateAffiliateContext({
+        userId: "user-1",
+        shopId: "shop-2",
+        platformShopId: "platform-shop-2",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-2",
+        creatorRelationshipId: "rel-1",
+      });
+    }).not.toThrow();
+
+    expect(session.scopeKey).toBe("agent:affiliate:affiliate:user-1:rel-1");
+    expect(session.affiliateContext).toMatchObject({
+      shopId: "shop-2",
+      platformShopId: "platform-shop-2",
+      creatorRelationshipId: "rel-1",
+    });
+    expect((session as any).shop.objectId).toBe("shop-2");
+  });
+
   it("rejects affiliate session keys without a user id", () => {
     expect(() =>
       AffiliateSession.buildScopeKey("tiktok", {
@@ -139,7 +188,7 @@ describe("affiliate session identity", () => {
     });
   });
 
-  it("refuses to route a work item through a different shop from its exact focus shop", () => {
+  it("refuses to route a work item through a shop other than its trigger shop", () => {
     const inbound = new AffiliateInbound("en");
     inbound.syncFromShops([
       {
@@ -151,8 +200,8 @@ describe("affiliate session identity", () => {
       },
     ]);
     const workItem = createSampleReviewWorkItem({
-      focusShopId: "shop-002",
-      focusPlatformShopId: "platform-shop-002",
+      triggerShopId: "shop-002",
+      triggerPlatformShopId: "platform-shop-002",
       routingShopIds: ["shop-001", "shop-002"],
       routingPlatformShopIds: ["platform-shop-001", "platform-shop-002"],
     });
@@ -239,8 +288,8 @@ function createSampleReviewWorkItem(
 
   return {
     id: "relationship-001",
-    focusShopId: "shop-001",
-    focusPlatformShopId: "platform-shop-001",
+    triggerShopId: "shop-001",
+    triggerPlatformShopId: "platform-shop-001",
     routingShopIds: ["shop-001"],
     routingPlatformShopIds: ["platform-shop-001"],
     subjectType: GQL.AffiliateWorkItemSubjectType.CreatorRelationship,
@@ -1275,8 +1324,8 @@ describe("affiliate work item dispatch", () => {
       defaultRunProfileId: null,
     });
     const workItem = createSampleReviewWorkItem({
-      focusShopId: "shop-001",
-      focusPlatformShopId: "platform-shop-001",
+      triggerShopId: "shop-001",
+      triggerPlatformShopId: "platform-shop-001",
       routingShopIds: ["shop-001"],
       routingPlatformShopIds: ["platform-shop-001"],
       agentDispatchRecommended: true,
@@ -1979,7 +2028,10 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("TikTok Creator Open ID: creator-open-001");
     expect(request?.message).toContain("TikTok Creator Username: creator_handle");
     expect(request?.message).toContain(
-      "Relationship-scoped tools inject them automatically; do not copy or invent them",
+      "The Creator Relationship and Creator identity are trusted run constants",
+    );
+    expect(request?.message).toContain(
+      "The trigger shop is event provenance only",
     );
     expect(request?.message).not.toContain("Creator Name");
     expect(request?.message).not.toContain("Follower Count");

@@ -142,11 +142,6 @@ export class AffiliateSession {
   readonly affiliateContext: AffiliateContext;
 
   updateShopContext(shop: AffiliateShopContext): void {
-    if (this.activeRunId && this.shop.objectId !== shop.objectId) {
-      throw new Error(
-        "Cannot change Affiliate focus shop while a Relationship run is active",
-      );
-    }
     if (this.shop.objectId !== shop.objectId) {
       this.gatewaySetupReady = false;
     }
@@ -154,11 +149,6 @@ export class AffiliateSession {
   }
 
   updateAffiliateContext(context: AffiliateContext): void {
-    if (this.activeRunId && this.affiliateContext.shopId !== context.shopId) {
-      throw new Error(
-        "Cannot change Affiliate run shop context while a Relationship run is active",
-      );
-    }
     Object.assign(this.affiliateContext, context);
     this.gatewaySetupReady = false;
   }
@@ -655,6 +645,7 @@ export class AffiliateSession {
         RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
         {
           input: {
+            triggerShopId: workItem.triggerShopId,
             creatorRelationshipId: workItem.creatorRelationshipId,
             handledSignalAt: workItemBoundaryAt(workItem),
             baseCheckpointId: this.runCheckpoints.get(runId)?.baseCheckpointId ?? null,
@@ -730,7 +721,6 @@ export class AffiliateSession {
         AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY,
         {
           input: {
-            shopId: workItem.focusShopId,
             creatorRelationshipId: workItem.creatorRelationshipId,
             limit: AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_LIMIT,
             ...(workItem.triggerChannel ? { channelFilter: [workItem.triggerChannel] } : {}),
@@ -804,7 +794,7 @@ export class AffiliateSession {
         RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
         {
           input: {
-            shopId: input.workItem.focusShopId,
+            triggerShopId: input.workItem.triggerShopId,
             creatorRelationshipId: input.workItem.creatorRelationshipId,
             collaborationRecordId: input.workItem.collaborationRecordId ?? undefined,
             handledSignalAt: workItemBoundaryAt(input.workItem),
@@ -850,7 +840,7 @@ export class AffiliateSession {
         AFFILIATE_CONTEXT_BUILDER_QUERY,
         {
           input: {
-            shopId: input.workItem.focusShopId,
+            shopId: input.workItem.triggerShopId,
             creatorRelationshipId: input.workItem.creatorRelationshipId,
             baseCheckpointId: input.baseCheckpointId,
             baseEventCursor: input.baseEventCursor,

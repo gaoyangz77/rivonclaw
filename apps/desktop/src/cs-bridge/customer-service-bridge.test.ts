@@ -180,8 +180,8 @@ function buildAffiliateRelationshipWorkItem(creatorRelationshipId: string, userI
   };
   return {
     id: creatorRelationshipId,
-    focusShopId: defaultShop.objectId,
-    focusPlatformShopId: defaultShop.platformShopId,
+    triggerShopId: defaultShop.objectId,
+    triggerPlatformShopId: defaultShop.platformShopId,
     routingShopIds: [defaultShop.objectId],
     routingPlatformShopIds: [defaultShop.platformShopId],
     subjectType: GQL.AffiliateWorkItemSubjectType.CreatorRelationship,
