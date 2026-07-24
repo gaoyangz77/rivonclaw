@@ -20,6 +20,7 @@ import {
   ASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION,
   COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION,
   EMAIL_ACCOUNT_BINDINGS_QUERY,
+  ENSURE_AFFILIATE_BUSINESS_DEVELOPERS_MUTATION,
   IMPORT_AFFILIATE_CREATOR_PROTECTIONS_MUTATION,
   REMOVE_AFFILIATE_CREATOR_PROTECTION_MUTATION,
   SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
@@ -31,7 +32,12 @@ import {
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
-import { buildAffiliateProtectionImportBatches } from "./affiliate-protection-import.js";
+import {
+  buildAffiliateDeveloperProvisionBatches,
+  buildAffiliateProtectionDeveloperResolutionSeeds,
+  buildAffiliateProtectionImportBatches,
+  normalizeAffiliateBusinessDeveloperName,
+} from "./affiliate-protection-import.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
@@ -77,11 +83,36 @@ type ProtectionPreviewRow = {
   businessDeveloperName: string | null;
   note: string | null;
   error: string | null;
+  excluded?: boolean;
 };
 
 type ProtectionImportProgress = {
   completed: number;
   total: number;
+};
+
+type ProtectionImportPhase =
+  | "IDLE"
+  | "PARSING"
+  | "AWAITING_CONFIRMATION"
+  | "PROVISIONING_BDS"
+  | "IMPORTING_PROTECTIONS"
+  | "COMPLETED"
+  | "PARTIAL_FAILED";
+
+type BusinessDeveloperResolution = "CREATE" | "RESTORE" | "MAP" | "UNASSIGNED" | "EXCLUDE" | "";
+
+type BusinessDeveloperResolutionGroup = {
+  clientKey: string;
+  sourceName: string;
+  normalizedSourceName: string;
+  proposedName: string;
+  rowNumbers: number[];
+  archivedDeveloperId: string | null;
+  resolution: BusinessDeveloperResolution;
+  mappedDeveloperId: string;
+  mapSearch: string;
+  error: string | null;
 };
 
 const EMPTY_DEVELOPER: DeveloperForm = {
@@ -118,6 +149,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [form, setForm] = useState<DeveloperForm>(EMPTY_DEVELOPER);
   const [protectionRows, setProtectionRows] = useState<ProtectionPreviewRow[]>([]);
   const [protectionImportProgress, setProtectionImportProgress] = useState<ProtectionImportProgress | null>(null);
+  const [protectionImportPhase, setProtectionImportPhase] = useState<ProtectionImportPhase>("IDLE");
+  const [protectionImportOperationId, setProtectionImportOperationId] = useState<string | null>(null);
+  const [developerProvisionRevision, setDeveloperProvisionRevision] = useState(0);
+  const [developerResolutionGroups, setDeveloperResolutionGroups] = useState<BusinessDeveloperResolutionGroup[]>([]);
+  const [developerResolutionOpen, setDeveloperResolutionOpen] = useState(false);
   const [manualCreator, setManualCreator] = useState("");
   const [manualDeveloperId, setManualDeveloperId] = useState(UNASSIGNED_ID);
   const [manualNote, setManualNote] = useState("");
@@ -218,6 +254,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     { writeAffiliateBusinessDeveloper: GQL.AffiliateBusinessDeveloper },
     { input: GQL.WriteAffiliateBusinessDeveloperInput }
   >(WRITE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
+  const [ensureDevelopers, ensureDevelopersState] = useMutation<
+    { ensureAffiliateBusinessDevelopers: GQL.EnsureAffiliateBusinessDevelopersPayload },
+    { input: GQL.EnsureAffiliateBusinessDevelopersInput }
+  >(ENSURE_AFFILIATE_BUSINESS_DEVELOPERS_MUTATION);
   const [archiveDeveloper, archiveState] = useMutation<
     { archiveAffiliateBusinessDeveloper: GQL.AffiliateBusinessDeveloper },
     { id: string }
@@ -241,7 +281,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [completeOnboarding, onboardingState] = useMutation<{
     completeAffiliateOperationalOnboarding: GQL.AffiliateOperationalSettings;
   }>(COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION);
-  const protectionImportBusy = importState.loading || protectionImportProgress !== null;
+  const protectionImportBusy = (
+    importState.loading ||
+    ensureDevelopersState.loading ||
+    protectionImportProgress !== null
+  );
 
   const activeDevelopers = workspace.businessDevelopers.filter((developer) => !developer.archivedAt);
   const developerPageData = developerPageQuery.data?.affiliateBusinessDeveloperPage;
@@ -310,6 +354,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     || [...form.regions].sort().join("|") !== [...detailDeveloper.regions].sort().join("|")
     || form.businessPrompt.trim() !== (detailDeveloper.businessPrompt?.trim() ?? "")
   ));
+  const detailNeedsProfileConfirmation = (
+    detailDeveloper?.profileStatus === GQL.AffiliateBusinessDeveloperProfileStatus.NeedsConfiguration
+  );
 
   useEffect(() => {
     if (developerPage > 0 && developerPage >= developerTotalPages) {
@@ -506,13 +553,21 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    setProtectionImportPhase("PARSING");
     try {
+      const developerResult = await developersQuery.refetch({ includeArchived: true });
+      const authoritativeDevelopers = developerResult.data?.affiliateBusinessDevelopers ?? [];
+      workspace.replaceAffiliateBusinessDevelopers(authoritativeDevelopers);
       const XLSX = await import("xlsx");
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0] ?? ""];
       if (!sheet) throw new Error(t("ecommerce.affiliateTeam.emptySpreadsheet"));
       const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-      const developersByName = new Map(activeDevelopers.map((developer) => [developer.displayName.trim().toLowerCase(), developer]));
+      const activeDevelopersByName = new Map(
+        authoritativeDevelopers
+          .filter((developer) => !developer.archivedAt)
+          .map((developer) => [developer.normalizedDisplayName, developer]),
+      );
       const seen = new Set<string>();
       const parsed = rawRows.map((raw, index): ProtectionPreviewRow => {
         const row = normalizeSpreadsheetRow(raw);
@@ -521,12 +576,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         const developerName = cleanCell(
           row.bd_name ?? row.business_developer_name ?? row.business_developer ?? row.bd,
         );
-        const developer = developerName ? developersByName.get(developerName.toLowerCase()) : null;
+        const normalizedDeveloperName = developerName
+          ? normalizeAffiliateBusinessDeveloperName(developerName)
+          : "";
+        const developer = normalizedDeveloperName
+          ? activeDevelopersByName.get(normalizedDeveloperName)
+          : null;
         const key = username ? `username:${username.toLowerCase()}` : "";
         let error: string | null = null;
         if (!key) error = t("ecommerce.affiliateTeam.missingCreatorIdentity");
         else if (seen.has(key)) error = t("ecommerce.affiliateTeam.duplicateCreator");
-        else if (developerName && !developer) error = t("ecommerce.affiliateTeam.unknownDeveloper", { name: developerName });
         if (key) seen.add(key);
         return {
           rowNumber: index + 2,
@@ -539,8 +598,24 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           error,
         };
       });
+      const groups: BusinessDeveloperResolutionGroup[] =
+        buildAffiliateProtectionDeveloperResolutionSeeds(parsed, authoritativeDevelopers)
+        .map((seed) => ({
+          ...seed,
+          resolution: seed.defaultResolution,
+          mappedDeveloperId: "",
+          mapSearch: "",
+          error: null,
+        }));
+      const operationId = globalThis.crypto?.randomUUID?.() ?? `import-${Date.now()}`;
       setProtectionRows(parsed);
+      setProtectionImportOperationId(operationId);
+      setDeveloperProvisionRevision(0);
+      setDeveloperResolutionGroups(groups);
+      setDeveloperResolutionOpen(groups.length > 0);
+      setProtectionImportPhase(groups.length > 0 ? "AWAITING_CONFIRMATION" : "IDLE");
     } catch (error) {
+      setProtectionImportPhase("IDLE");
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
   }
@@ -573,10 +648,172 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setManualNote("");
   }
 
+  function updateDeveloperResolutionGroup(
+    clientKey: string,
+    patch: Partial<BusinessDeveloperResolutionGroup>,
+  ) {
+    setDeveloperResolutionGroups((groups) => groups.map((group) => (
+      group.clientKey === clientKey
+        ? { ...group, ...patch, error: patch.error ?? null }
+        : group
+    )));
+  }
+
+  async function confirmDeveloperResolutions() {
+    const unresolved = developerResolutionGroups.some((group) => (
+      !group.resolution ||
+      (group.resolution === "MAP" && !group.mappedDeveloperId)
+    ));
+    if (unresolved || !protectionImportOperationId) return;
+
+    const provisionTargets = new Map<string, {
+      clientKey: string;
+      displayName: string;
+      action: GQL.AffiliateBusinessDeveloperProvisionAction;
+      groupKeys: string[];
+    }>();
+    const targetKeyByGroup = new Map<string, string>();
+    for (const group of developerResolutionGroups) {
+      if (group.resolution !== "CREATE" && group.resolution !== "RESTORE") continue;
+      const normalizedTargetName = normalizeAffiliateBusinessDeveloperName(group.proposedName);
+      const existing = provisionTargets.get(normalizedTargetName);
+      const action = group.resolution === "RESTORE"
+        ? GQL.AffiliateBusinessDeveloperProvisionAction.RestoreArchived
+        : GQL.AffiliateBusinessDeveloperProvisionAction.CreateIfMissing;
+      if (existing && existing.action !== action) {
+        updateDeveloperResolutionGroup(group.clientKey, {
+          error: t("ecommerce.affiliateTeam.conflictingDeveloperResolution"),
+        });
+        return;
+      }
+      const target = existing ?? {
+        clientKey: group.clientKey,
+        displayName: group.proposedName,
+        action,
+        groupKeys: [],
+      };
+      target.groupKeys.push(group.clientKey);
+      provisionTargets.set(normalizedTargetName, target);
+      targetKeyByGroup.set(group.clientKey, target.clientKey);
+    }
+
+    setProtectionImportPhase("PROVISIONING_BDS");
+    try {
+      const targets = [...provisionTargets.values()];
+      const provisionResults: GQL.AffiliateBusinessDeveloperProvisionResult[] = [];
+      const operationBaseKey = developerProvisionRevision === 0
+        ? `${protectionImportOperationId}:business-developers`
+        : `${protectionImportOperationId}:business-developers:revision-${developerProvisionRevision}`;
+      const targetBatches = buildAffiliateDeveloperProvisionBatches(targets);
+      for (const [batchIndex, batch] of targetBatches.entries()) {
+        const result = await ensureDevelopers({
+          variables: {
+            input: {
+              idempotencyKey: targetBatches.length === 1
+                ? operationBaseKey
+                : `${operationBaseKey}:batch-${batchIndex + 1}`,
+              entries: batch.map((target) => ({
+                clientKey: target.clientKey,
+                displayName: target.displayName,
+                action: target.action,
+              })),
+            },
+          },
+        });
+        const payload = result.data?.ensureAffiliateBusinessDevelopers;
+        if (!payload?.completed) throw new Error(t("ecommerce.updateFailed"));
+        provisionResults.push(...payload.results);
+      }
+      const provisionResultByKey = new Map(
+        provisionResults.map((item) => [item.clientKey, item]),
+      );
+      const rejectedGroups = new Map<string, { message: string; errorCode: string | null }>();
+      for (const target of targets) {
+        const provisioned = provisionResultByKey.get(target.clientKey);
+        if (!provisioned?.developer || provisioned.disposition === GQL.AffiliateBusinessDeveloperProvisionDisposition.Rejected) {
+          const reason = provisioned?.errorMessage ?? t("ecommerce.updateFailed");
+          target.groupKeys.forEach((groupKey) => rejectedGroups.set(groupKey, {
+            message: reason,
+            errorCode: provisioned?.errorCode ?? null,
+          }));
+        } else {
+          workspace.upsertAffiliateBusinessDeveloper(provisioned.developer);
+        }
+      }
+      if (rejectedGroups.size > 0) {
+        setDeveloperResolutionGroups((groups) => groups.map((group) => {
+          const rejection = rejectedGroups.get(group.clientKey);
+          if (!rejection) return group;
+          return {
+            ...group,
+            archivedDeveloperId: rejection.errorCode === "ARCHIVED_CONFLICT"
+              ? group.archivedDeveloperId ?? "archived-conflict"
+              : group.archivedDeveloperId,
+            resolution: rejection.errorCode === "ARCHIVED_CONFLICT" ? "" : group.resolution,
+            error: rejection.message,
+          };
+        }));
+        setDeveloperProvisionRevision((revision) => revision + 1);
+        setProtectionImportPhase("AWAITING_CONFIRMATION");
+        return;
+      }
+
+      const groupBySourceName = new Map(
+        developerResolutionGroups.map((group) => [group.normalizedSourceName, group]),
+      );
+      const resolvedRows = protectionRows.map((row): ProtectionPreviewRow => {
+        if (!row.businessDeveloperName || row.businessDeveloperId || row.error) return row;
+        const group = groupBySourceName.get(
+          normalizeAffiliateBusinessDeveloperName(row.businessDeveloperName),
+        );
+        if (!group) return row;
+        if (group.resolution === "EXCLUDE") {
+          return { ...row, excluded: true, businessDeveloperId: null };
+        }
+        if (group.resolution === "UNASSIGNED") {
+          return {
+            ...row,
+            businessDeveloperId: null,
+            businessDeveloperName: null,
+          };
+        }
+        if (group.resolution === "MAP") {
+          const mapped = activeDevelopers.find((developer) => developer.id === group.mappedDeveloperId);
+          return {
+            ...row,
+            businessDeveloperId: group.mappedDeveloperId,
+            businessDeveloperName: mapped?.displayName ?? row.businessDeveloperName,
+          };
+        }
+        const targetKey = targetKeyByGroup.get(group.clientKey);
+        const provisioned = targetKey ? provisionResultByKey.get(targetKey) : null;
+        return {
+          ...row,
+          businessDeveloperId: provisioned?.developer?.id ?? null,
+          businessDeveloperName: provisioned?.developer?.displayName ?? row.businessDeveloperName,
+        };
+      });
+      setProtectionRows(resolvedRows);
+      setDeveloperResolutionOpen(false);
+      await Promise.all([developersQuery.refetch(), developerPageQuery.refetch()]);
+      await submitResolvedProtectionRows(resolvedRows, protectionImportOperationId);
+    } catch (error) {
+      setProtectionImportPhase("AWAITING_CONFIRMATION");
+      showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
   async function submitProtectionRows() {
-    const validRows = protectionRows.filter((row) => !row.error);
+    const operationId = protectionImportOperationId
+      ?? globalThis.crypto?.randomUUID?.()
+      ?? `import-${Date.now()}`;
+    if (!protectionImportOperationId) setProtectionImportOperationId(operationId);
+    await submitResolvedProtectionRows(protectionRows, operationId);
+  }
+
+  async function submitResolvedProtectionRows(rows: ProtectionPreviewRow[], importBatchId: string) {
+    const validRows = rows.filter((row) => !row.error && !row.excluded);
     if (!validRows.length) return;
-    const importBatchId = globalThis.crypto?.randomUUID?.() ?? `import-${Date.now()}`;
     const entries: GQL.ImportAffiliateCreatorProtectionEntryInput[] = validRows.map((row) => ({
       platform: row.platform,
       creatorOpenId: row.creatorOpenId,
@@ -592,10 +829,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       return;
     }
     const attemptedRowNumbers = new Set(validRows.map((row) => row.rowNumber));
+    const completedRowNumbers = new Set<number>();
     const rejectedRows = new Map<number, string>();
-    const invalidRowCount = protectionRows.length - validRows.length;
+    const invalidRowCount = rows.length - validRows.length;
     let importedCount = 0;
     let completedCount = 0;
+    setProtectionImportPhase("IMPORTING_PROTECTIONS");
     setProtectionImportProgress({ completed: 0, total: validRows.length });
     try {
       for (const batch of batches) {
@@ -614,6 +853,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           const sourceRow = validRows[batch.startIndex + rejected.index];
           if (sourceRow) rejectedRows.set(sourceRow.rowNumber, rejected.reason);
         }
+        for (let index = 0; index < batch.entries.length; index += 1) {
+          const sourceRow = validRows[batch.startIndex + index];
+          if (sourceRow && !rejectedRows.has(sourceRow.rowNumber)) {
+            completedRowNumbers.add(sourceRow.rowNumber);
+          }
+        }
         completedCount += batch.entries.length;
         setProtectionImportProgress({
           completed: completedCount,
@@ -630,8 +875,14 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         t("ecommerce.affiliateTeam.protectionsImported", { count: importedCount }),
         rejectedRows.size > 0 || invalidRowCount > 0 ? "warning" : "success",
       );
+      setProtectionImportPhase("COMPLETED");
     } catch (error) {
       const reason = error instanceof Error ? error.message : t("ecommerce.updateFailed");
+      setProtectionRows((currentRows) => currentRows.flatMap((row) => {
+        if (completedRowNumbers.has(row.rowNumber)) return [];
+        const rejection = rejectedRows.get(row.rowNumber);
+        return rejection ? [{ ...row, error: rejection }] : [row];
+      }));
       showToast(
         completedCount > 0
           ? t("ecommerce.affiliateTeam.protectionImportPartialFailure", {
@@ -642,6 +893,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           : reason,
         "error",
       );
+      setProtectionImportPhase("PARTIAL_FAILED");
     } finally {
       setProtectionImportProgress(null);
     }
@@ -702,6 +954,17 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
   function removeProtectionRow(rowNumber: number) {
     setProtectionRows((rows) => rows.filter((row) => row.rowNumber !== rowNumber));
+    const remainingGroups = developerResolutionGroups
+      .map((group) => ({
+        ...group,
+        rowNumbers: group.rowNumbers.filter((candidate) => candidate !== rowNumber),
+      }))
+      .filter((group) => group.rowNumbers.length > 0);
+    setDeveloperResolutionGroups(remainingGroups);
+    if (protectionImportPhase === "AWAITING_CONFIRMATION" && remainingGroups.length === 0) {
+      setDeveloperResolutionOpen(false);
+      setProtectionImportPhase("IDLE");
+    }
   }
 
   function selectPageTab(nextTab: TeamPageTab, focusTab = false) {
@@ -886,7 +1149,14 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                             <div className="affiliate-bd-identity">
                               <span className="affiliate-bd-avatar"><UserIcon /></span>
                               <span>
-                                <strong>{developer.displayName}</strong>
+                                <strong>
+                                  {developer.displayName}
+                                  {developer.profileStatus === GQL.AffiliateBusinessDeveloperProfileStatus.NeedsConfiguration && (
+                                    <span className="affiliate-bd-profile-status">
+                                      {t("ecommerce.affiliateTeam.profileNeedsConfiguration")}
+                                    </span>
+                                  )}
+                                </strong>
                                 <small>{developer.regions.length > 0 ? developer.regions.map((region) => formatShopRegionLabel(region, t)).join(", ") : t("ecommerce.affiliateTeam.allRegions", { defaultValue: "All regions" })}</small>
                               </span>
                             </div>
@@ -1017,19 +1287,40 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             {protectionRows.length > 0 && (
               <div className="affiliate-protection-preview">
                 <div className="affiliate-protection-preview-head">
-                  <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
-                  <button className="btn btn-primary btn-sm" type="button" onClick={submitProtectionRows} disabled={protectionImportBusy || protectionRows.every((row) => row.error)}>
+                  <div>
+                    <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
+                    {protectionImportPhase === "AWAITING_CONFIRMATION" && (
+                      <span>{t("ecommerce.affiliateTeam.developerResolutionRequired")}</span>
+                    )}
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    type="button"
+                    onClick={protectionImportPhase === "AWAITING_CONFIRMATION"
+                      ? () => setDeveloperResolutionOpen(true)
+                      : submitProtectionRows}
+                    disabled={
+                      protectionImportBusy ||
+                      protectionRows.every((row) => row.error || row.excluded)
+                    }
+                  >
                     {protectionImportProgress
                       ? t("ecommerce.affiliateTeam.protectionImportProgress", protectionImportProgress)
-                      : t("ecommerce.affiliateTeam.importValid", { count: protectionRows.filter((row) => !row.error).length })}
+                      : protectionImportPhase === "AWAITING_CONFIRMATION"
+                        ? t("ecommerce.affiliateTeam.resolveDevelopers")
+                      : t("ecommerce.affiliateTeam.importValid", {
+                        count: protectionRows.filter((row) => !row.error && !row.excluded).length,
+                      })}
                   </button>
                 </div>
                 {protectionRows.slice(0, 20).map((row) => (
-                  <div className={`affiliate-protection-row ${row.error ? "affiliate-protection-row-error" : ""}`} key={row.rowNumber}>
+                  <div className={`affiliate-protection-row ${row.error ? "affiliate-protection-row-error" : ""} ${row.excluded ? "is-excluded" : ""}`} key={row.rowNumber}>
                     <span>#{row.rowNumber}</span>
                     <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
                     <span>{row.businessDeveloperName || t("ecommerce.affiliateTeam.protectedOnly")}</span>
-                    <em>{row.error || t("ecommerce.affiliateTeam.ready")}</em>
+                    <em>{row.error || (row.excluded
+                      ? t("ecommerce.affiliateTeam.excludedFromImport")
+                      : t("ecommerce.affiliateTeam.ready"))}</em>
                     <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")} disabled={protectionImportBusy}><CloseIcon /></button>
                   </div>
                 ))}
@@ -1164,6 +1455,171 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       </div>
 
       <Modal
+        isOpen={developerResolutionOpen}
+        onClose={() => {
+          if (ensureDevelopersState.loading) return;
+          setDeveloperResolutionOpen(false);
+        }}
+        title={t("ecommerce.affiliateTeam.resolveDeveloperTitle")}
+        maxWidth={780}
+        className="affiliate-protection-developer-modal"
+        closeLabel={t("common.close")}
+        preventBackdropClose={ensureDevelopersState.loading}
+        portal
+      >
+        <div className="affiliate-protection-developer-intro">
+          <span className="affiliate-protection-developer-intro-icon"><UserPlusIcon /></span>
+          <div>
+            <strong>{t("ecommerce.affiliateTeam.resolveDeveloperSummary", {
+              count: developerResolutionGroups.length,
+            })}</strong>
+            <p>{t("ecommerce.affiliateTeam.resolveDeveloperHint")}</p>
+          </div>
+        </div>
+
+        <div className="affiliate-protection-developer-list">
+          {developerResolutionGroups.map((group) => {
+            const mappingOptions = activeDevelopers.filter((developer) => (
+              !group.mapSearch ||
+              developer.displayName.toLocaleLowerCase().includes(group.mapSearch.toLocaleLowerCase())
+            ));
+            return (
+              <section
+                className={`affiliate-protection-developer-card ${group.error ? "has-error" : ""}`}
+                key={group.clientKey}
+              >
+                <div className="affiliate-protection-developer-card-head">
+                  <div>
+                    <span>{group.archivedDeveloperId
+                      ? t("ecommerce.affiliateTeam.archivedDeveloperFound")
+                      : t("ecommerce.affiliateTeam.missingDeveloperFound")}</span>
+                    <strong>{group.sourceName}</strong>
+                  </div>
+                  <span>{t("ecommerce.affiliateTeam.affectedCreatorRows", {
+                    count: group.rowNumbers.length,
+                  })}</span>
+                </div>
+
+                <label className="affiliate-protection-developer-action">
+                  <span>{t("ecommerce.affiliateTeam.importDecision")}</span>
+                  <select
+                    value={group.resolution}
+                    onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                      resolution: event.target.value as BusinessDeveloperResolution,
+                      mappedDeveloperId: "",
+                      mapSearch: "",
+                    })}
+                    disabled={ensureDevelopersState.loading}
+                  >
+                    <option value="">{t("ecommerce.affiliateTeam.chooseImportDecision")}</option>
+                    {!group.archivedDeveloperId && (
+                      <option value="CREATE">{t("ecommerce.affiliateTeam.createDeveloper")}</option>
+                    )}
+                    {group.archivedDeveloperId && (
+                      <option value="RESTORE">{t("ecommerce.affiliateTeam.restoreDeveloper")}</option>
+                    )}
+                    <option value="MAP">{t("ecommerce.affiliateTeam.mapDeveloper")}</option>
+                    <option value="UNASSIGNED">{t("ecommerce.affiliateTeam.importProtectionOnly")}</option>
+                    <option value="EXCLUDE">{t("ecommerce.affiliateTeam.excludeAffectedRows")}</option>
+                  </select>
+                </label>
+
+                {group.resolution === "CREATE" && (
+                  <label className="affiliate-protection-developer-name">
+                    <span>{t("ecommerce.affiliateTeam.newDeveloperName")}</span>
+                    <input
+                      value={group.proposedName}
+                      onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                        proposedName: event.target.value,
+                      })}
+                      disabled={ensureDevelopersState.loading}
+                    />
+                    <small>{t("ecommerce.affiliateTeam.safeDeveloperDefaults")}</small>
+                  </label>
+                )}
+
+                {group.resolution === "RESTORE" && (
+                  <div className="affiliate-protection-developer-safety-note">
+                    <InfoIcon />
+                    <span>{t("ecommerce.affiliateTeam.restoreDeveloperSafety")}</span>
+                  </div>
+                )}
+
+                {group.resolution === "MAP" && (
+                  <div className="affiliate-protection-developer-map">
+                    <label>
+                      <span>{t("ecommerce.affiliateTeam.searchExistingDeveloper")}</span>
+                      <input
+                        type="search"
+                        value={group.mapSearch}
+                        onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                          mapSearch: event.target.value,
+                        })}
+                        placeholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
+                        disabled={ensureDevelopersState.loading}
+                      />
+                    </label>
+                    <select
+                      value={group.mappedDeveloperId}
+                      onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                        mappedDeveloperId: event.target.value,
+                      })}
+                      disabled={ensureDevelopersState.loading}
+                    >
+                      <option value="">{t("ecommerce.affiliateTeam.selectExistingDeveloper")}</option>
+                      {mappingOptions.map((developer) => (
+                        <option value={developer.id} key={developer.id}>{developer.displayName}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {group.error && <p className="affiliate-protection-developer-error">{group.error}</p>}
+              </section>
+            );
+          })}
+        </div>
+
+        <div className="affiliate-protection-developer-footer">
+          <div>
+            <strong>{t("ecommerce.affiliateTeam.importDecisionSummary", {
+              create: developerResolutionGroups.filter((group) => group.resolution === "CREATE").length,
+              restore: developerResolutionGroups.filter((group) => group.resolution === "RESTORE").length,
+              unassigned: developerResolutionGroups.filter((group) => group.resolution === "UNASSIGNED").length,
+            })}</strong>
+            <span>{t("ecommerce.affiliateTeam.noSilentSkip")}</span>
+          </div>
+          <div>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => setDeveloperResolutionOpen(false)}
+              disabled={ensureDevelopersState.loading}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => void confirmDeveloperResolutions()}
+              disabled={
+                ensureDevelopersState.loading ||
+                developerResolutionGroups.some((group) => (
+                  !group.resolution ||
+                  (group.resolution === "MAP" && !group.mappedDeveloperId) ||
+                  (group.resolution === "CREATE" && !group.proposedName.trim())
+                ))
+              }
+            >
+              {ensureDevelopersState.loading
+                ? t("ecommerce.affiliateTeam.provisioningDevelopers")
+                : t("ecommerce.affiliateTeam.confirmDevelopersAndImport")}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         isOpen={Boolean(detailDeveloper && detailSummary)}
         onClose={closeDeveloperDetail}
         title={detailDeveloper?.displayName ?? t("ecommerce.affiliateTeam.businessDeveloper")}
@@ -1202,6 +1658,19 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </div>
             </div>
           </div>
+
+          {detailDeveloper.profileStatus === GQL.AffiliateBusinessDeveloperProfileStatus.NeedsConfiguration && (
+            <div className="affiliate-bd-profile-review-banner">
+              <InfoIcon />
+              <div>
+                <strong>{t("ecommerce.affiliateTeam.profileNeedsConfiguration")}</strong>
+                <span>{t("ecommerce.affiliateTeam.profileNeedsConfigurationHint")}</span>
+              </div>
+              <button className="btn btn-secondary btn-sm" type="button" onClick={() => setDetailTab("SETTINGS")}>
+                {t("ecommerce.affiliateTeam.reviewDeveloperProfile")}
+              </button>
+            </div>
+          )}
 
           <div className="affiliate-bd-detail-tabs" role="tablist" aria-label={t("ecommerce.affiliateTeam.detailTabsLabel")}>
             <button
@@ -1345,7 +1814,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             {archiveBlocked && <span className="affiliate-bd-archive-note"><InfoIcon />{t("ecommerce.affiliateTeam.archiveBlockedHint", { defaultValue: "Move all creators and outreach accounts before archiving this BD." })}</span>}
             <div>
               {!detailDeveloper.archivedAt && <button className="btn btn-danger" type="button" onClick={handleArchiveDeveloper} disabled={archiveState.loading || archiveBlocked}>{t("ecommerce.affiliateTeam.archive")}</button>}
-              {!detailDeveloper.archivedAt && <button className="btn btn-primary" type="button" onClick={saveDeveloper} disabled={writeState.loading || !form.displayName.trim() || !detailFormDirty}>{t("common.save")}</button>}
+              {!detailDeveloper.archivedAt && <button
+                className="btn btn-primary"
+                type="button"
+                onClick={saveDeveloper}
+                disabled={
+                  writeState.loading ||
+                  !form.displayName.trim() ||
+                  (!detailFormDirty && !detailNeedsProfileConfirmation)
+                }
+              >{t("common.save")}</button>}
             </div>
           </div>}
         </>}

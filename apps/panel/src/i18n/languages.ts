@@ -50,15 +50,42 @@ function mergeTranslationResources<T extends TranslationResourceRecord>(
   ) as T;
 }
 
+const AFFILIATE_TIMELINE_TRANSLATIONS = {
+  de: {
+    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Bewertung unbezahlter Bestellungen abrufen", AFFILIATE_LIST_SHOPS: "Affiliate-Shops auflisten" } } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Verstrichene Zeit", timePassedDuration: "{{duration}} vergangen", timePassedDaysHours: "{{days}} T {{hours}} Std.", timePassedDays: "{{days}} T", timePassedHours: "{{hours}} Std.", timePassedHint: "Verstrichene Zeit zwischen Zeitleisteneinträgen; ausgefilterte Ereignisse können dazwischen liegen." } },
+  },
+  es: {
+    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtener evaluación de pedidos impagados", AFFILIATE_LIST_SHOPS: "Listar tiendas de afiliados" } } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Tiempo transcurrido", timePassedDuration: "Han pasado {{duration}}", timePassedDaysHours: "{{days}} d {{hours}} h", timePassedDays: "{{days}} d", timePassedHours: "{{hours}} h", timePassedHint: "Tiempo transcurrido entre elementos de la cronología; puede haber eventos filtrados." } },
+  },
+  fr: {
+    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtenir l’évaluation des commandes impayées", AFFILIATE_LIST_SHOPS: "Lister les boutiques Affiliate" } } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Temps écoulé", timePassedDuration: "{{duration}} écoulé", timePassedDaysHours: "{{days}} j {{hours}} h", timePassedDays: "{{days}} j", timePassedHours: "{{hours}} h", timePassedHint: "Temps écoulé entre les éléments de la chronologie ; des événements filtrés peuvent exister." } },
+  },
+  id: {
+    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Dapatkan evaluasi pesanan belum dibayar", AFFILIATE_LIST_SHOPS: "Daftar toko Affiliate" } } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Waktu berlalu", timePassedDuration: "{{duration}} berlalu", timePassedDaysHours: "{{days}} h {{hours}} j", timePassedDays: "{{days}} h", timePassedHours: "{{hours}} j", timePassedHint: "Waktu antara item linimasa; peristiwa yang difilter mungkin ada di antaranya." } },
+  },
+  it: {
+    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Ottieni valutazione ordini non pagati", AFFILIATE_LIST_SHOPS: "Elenca negozi Affiliate" } } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Tempo trascorso", timePassedDuration: "Trascorsi {{duration}}", timePassedDaysHours: "{{days}} g {{hours}} h", timePassedDays: "{{days}} g", timePassedHours: "{{hours}} h", timePassedHint: "Tempo trascorso tra gli elementi della cronologia; potrebbero esserci eventi filtrati." } },
+  },
+  th: {
+    tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "ดูการประเมินคำสั่งซื้อที่ยังไม่ชำระ", AFFILIATE_LIST_SHOPS: "แสดงร้านค้า Affiliate" } } },
+    ecommerce: { affiliateWorkspace: { timePassed: "เวลาที่ผ่านไป", timePassedDuration: "ผ่านไป {{duration}}", timePassedDaysHours: "{{days}} วัน {{hours}} ชม.", timePassedDays: "{{days}} วัน", timePassedHours: "{{hours}} ชม.", timePassedHint: "เวลาระหว่างรายการบนไทม์ไลน์ อาจมีเหตุการณ์ที่ถูกกรองออกอยู่ระหว่างนั้น" } },
+  },
+} as const;
+
 export const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
   { code: "en", label: "English", resource: mergeTranslationResources(en, AFFILIATE_TEAM_TRANSLATIONS.en, AFFILIATE_CHANNEL_TRANSLATIONS.en) },
   { code: "zh", label: "中文", resource: mergeTranslationResources(zh, AFFILIATE_TEAM_TRANSLATIONS.zh, AFFILIATE_CHANNEL_TRANSLATIONS.zh) },
-  { code: "de", label: "Deutsch", resource: mergeTranslationResources(de, LEGACY_I18N_BACKFILL.de, RECENT_TRANSLATIONS.de, AFFILIATE_TEAM_TRANSLATIONS.de, AFFILIATE_CHANNEL_TRANSLATIONS.de) },
-  { code: "es", label: "Español", resource: mergeTranslationResources(es, LEGACY_I18N_BACKFILL.es, RECENT_TRANSLATIONS.es, AFFILIATE_TEAM_TRANSLATIONS.es, AFFILIATE_CHANNEL_TRANSLATIONS.es) },
-  { code: "fr", label: "Français", resource: mergeTranslationResources(fr, LEGACY_I18N_BACKFILL.fr, RECENT_TRANSLATIONS.fr, AFFILIATE_TEAM_TRANSLATIONS.fr, AFFILIATE_CHANNEL_TRANSLATIONS.fr) },
-  { code: "id", label: "Bahasa Indonesia", resource: mergeTranslationResources(id, LEGACY_I18N_BACKFILL.id, RECENT_TRANSLATIONS.id, AFFILIATE_TEAM_TRANSLATIONS.id, AFFILIATE_CHANNEL_TRANSLATIONS.id) },
-  { code: "it", label: "Italiano", resource: mergeTranslationResources(it, LEGACY_I18N_BACKFILL.it, RECENT_TRANSLATIONS.it, AFFILIATE_TEAM_TRANSLATIONS.it, AFFILIATE_CHANNEL_TRANSLATIONS.it) },
-  { code: "th", label: "ไทย", resource: mergeTranslationResources(th, LEGACY_I18N_BACKFILL.th, RECENT_TRANSLATIONS.th, AFFILIATE_TEAM_TRANSLATIONS.th, AFFILIATE_CHANNEL_TRANSLATIONS.th) },
+  { code: "de", label: "Deutsch", resource: mergeTranslationResources(de, LEGACY_I18N_BACKFILL.de, RECENT_TRANSLATIONS.de, AFFILIATE_TIMELINE_TRANSLATIONS.de, AFFILIATE_TEAM_TRANSLATIONS.de, AFFILIATE_CHANNEL_TRANSLATIONS.de) },
+  { code: "es", label: "Español", resource: mergeTranslationResources(es, LEGACY_I18N_BACKFILL.es, RECENT_TRANSLATIONS.es, AFFILIATE_TIMELINE_TRANSLATIONS.es, AFFILIATE_TEAM_TRANSLATIONS.es, AFFILIATE_CHANNEL_TRANSLATIONS.es) },
+  { code: "fr", label: "Français", resource: mergeTranslationResources(fr, LEGACY_I18N_BACKFILL.fr, RECENT_TRANSLATIONS.fr, AFFILIATE_TIMELINE_TRANSLATIONS.fr, AFFILIATE_TEAM_TRANSLATIONS.fr, AFFILIATE_CHANNEL_TRANSLATIONS.fr) },
+  { code: "id", label: "Bahasa Indonesia", resource: mergeTranslationResources(id, LEGACY_I18N_BACKFILL.id, RECENT_TRANSLATIONS.id, AFFILIATE_TIMELINE_TRANSLATIONS.id, AFFILIATE_TEAM_TRANSLATIONS.id, AFFILIATE_CHANNEL_TRANSLATIONS.id) },
+  { code: "it", label: "Italiano", resource: mergeTranslationResources(it, LEGACY_I18N_BACKFILL.it, RECENT_TRANSLATIONS.it, AFFILIATE_TIMELINE_TRANSLATIONS.it, AFFILIATE_TEAM_TRANSLATIONS.it, AFFILIATE_CHANNEL_TRANSLATIONS.it) },
+  { code: "th", label: "ไทย", resource: mergeTranslationResources(th, LEGACY_I18N_BACKFILL.th, RECENT_TRANSLATIONS.th, AFFILIATE_TIMELINE_TRANSLATIONS.th, AFFILIATE_TEAM_TRANSLATIONS.th, AFFILIATE_CHANNEL_TRANSLATIONS.th) },
 ] as const;
 
 export const SUPPORTED_LANGUAGE_CODES: readonly SupportedLanguageCode[] = LANGUAGE_OPTIONS.map((language) => language.code);

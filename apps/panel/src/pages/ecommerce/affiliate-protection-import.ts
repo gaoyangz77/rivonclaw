@@ -2,6 +2,7 @@ import type { GQL } from "@rivonclaw/core";
 
 export const AFFILIATE_PROTECTION_IMPORT_MAX_ENTRIES = 200;
 export const AFFILIATE_PROTECTION_IMPORT_MAX_VARIABLE_BYTES = 48 * 1024;
+export const AFFILIATE_DEVELOPER_PROVISION_MAX_ENTRIES = 100;
 
 export type AffiliateProtectionImportEntry = GQL.ImportAffiliateCreatorProtectionEntryInput;
 
@@ -9,6 +10,74 @@ export type AffiliateProtectionImportBatch = {
   entries: AffiliateProtectionImportEntry[];
   startIndex: number;
 };
+
+export function buildAffiliateDeveloperProvisionBatches<T>(
+  entries: T[],
+  maxEntries = AFFILIATE_DEVELOPER_PROVISION_MAX_ENTRIES,
+): T[][] {
+  if (!Number.isInteger(maxEntries) || maxEntries < 1) {
+    throw new Error("Affiliate developer provision maxEntries must be a positive integer.");
+  }
+  return Array.from(
+    { length: Math.ceil(entries.length / maxEntries) },
+    (_, index) => entries.slice(index * maxEntries, (index + 1) * maxEntries),
+  );
+}
+
+export function normalizeAffiliateBusinessDeveloperName(value: string): string {
+  return value.normalize("NFKC").trim().replace(/\s+/gu, " ").toLowerCase();
+}
+
+export type AffiliateProtectionDeveloperResolutionSeed = {
+  clientKey: string;
+  sourceName: string;
+  normalizedSourceName: string;
+  proposedName: string;
+  rowNumbers: number[];
+  archivedDeveloperId: string | null;
+  defaultResolution: "CREATE" | "";
+};
+
+export function buildAffiliateProtectionDeveloperResolutionSeeds(
+  rows: Array<{
+    rowNumber: number;
+    businessDeveloperName: string | null;
+    businessDeveloperId: string | null;
+    error: string | null;
+  }>,
+  developers: Array<{
+    id: string;
+    normalizedDisplayName: string;
+    archivedAt?: unknown;
+  }>,
+): AffiliateProtectionDeveloperResolutionSeed[] {
+  const archivedByName = new Map(
+    developers
+      .filter((developer) => Boolean(developer.archivedAt))
+      .map((developer) => [developer.normalizedDisplayName, developer]),
+  );
+  const grouped = new Map<string, AffiliateProtectionDeveloperResolutionSeed>();
+  for (const row of rows) {
+    if (!row.businessDeveloperName || row.businessDeveloperId || row.error) continue;
+    const normalizedSourceName = normalizeAffiliateBusinessDeveloperName(row.businessDeveloperName);
+    const existing = grouped.get(normalizedSourceName);
+    if (existing) {
+      existing.rowNumbers.push(row.rowNumber);
+      continue;
+    }
+    const archived = archivedByName.get(normalizedSourceName);
+    grouped.set(normalizedSourceName, {
+      clientKey: `bd-${grouped.size + 1}`,
+      sourceName: row.businessDeveloperName,
+      normalizedSourceName,
+      proposedName: row.businessDeveloperName,
+      rowNumbers: [row.rowNumber],
+      archivedDeveloperId: archived?.id ?? null,
+      defaultResolution: archived ? "" : "CREATE",
+    });
+  }
+  return [...grouped.values()];
+}
 
 const textEncoder = new TextEncoder();
 
