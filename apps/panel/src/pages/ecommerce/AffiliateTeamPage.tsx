@@ -1435,41 +1435,52 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </span>
             ))}
           </div>
-          <div className="affiliate-protection-directory-list">
-            {(protectionData?.items ?? []).map((protection) => {
-              const developer = protection.businessDeveloperId
-                ? workspace.getBusinessDeveloper(protection.businessDeveloperId)
-                : null;
-              return (
-                <div className="affiliate-protection-directory-row" key={protection.id}>
-                  <div>
-                    <strong>{protection.username ? `@${protection.username}` : protection.creatorOpenId ?? protection.id}</strong>
-                    <span>{protection.creatorId
-                      ? t("ecommerce.affiliateTeam.protectionResolved", { defaultValue: "Matched Creator" })
-                      : t("ecommerce.affiliateTeam.protectionUnresolved", { defaultValue: "Waiting for Creator identity" })}</span>
+          <div className="affiliate-protection-directory-table">
+            <div className="affiliate-protection-directory-table-head" aria-hidden="true">
+              <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
+              <span>{t("ecommerce.affiliateTeam.businessDeveloper")}</span>
+              <span>{t("ecommerce.affiliateTeam.note")}</span>
+              <span>{t("ecommerce.affiliateTeam.protectionUpdatedAt", { defaultValue: "Updated" })}</span>
+              <span className="sr-only">{t("common.actions", { defaultValue: "Actions" })}</span>
+            </div>
+            <div className="affiliate-protection-directory-list">
+              {(protectionData?.items ?? []).map((protection) => {
+                const developer = protection.businessDeveloperId
+                  ? workspace.getBusinessDeveloper(protection.businessDeveloperId)
+                  : null;
+                return (
+                  <div className="affiliate-protection-directory-row" key={protection.id}>
+                    <div className="affiliate-protection-directory-creator">
+                      <strong>{protection.username ? `@${protection.username}` : protection.creatorOpenId ?? protection.id}</strong>
+                      <span className={`affiliate-protection-directory-status ${protection.creatorId ? "is-resolved" : "is-unresolved"}`}>
+                        {protection.creatorId
+                          ? t("ecommerce.affiliateTeam.protectionResolved", { defaultValue: "Matched Creator" })
+                          : t("ecommerce.affiliateTeam.protectionUnresolved", { defaultValue: "Waiting for Creator identity" })}
+                      </span>
+                    </div>
+                    <div className="affiliate-protection-directory-owner">
+                      <strong>{developer?.displayName ?? t("ecommerce.affiliateTeam.protectedOnly")}</strong>
+                      <span>{protection.source}</span>
+                    </div>
+                    <span className="affiliate-protection-directory-note">{protection.note || "—"}</span>
+                    <span className="affiliate-protection-directory-date">{new Date(protection.updatedAt).toLocaleDateString()}</span>
+                    <button
+                      className="btn btn-secondary btn-sm affiliate-protection-directory-action"
+                      type="button"
+                      disabled={removeProtectionState.loading}
+                      onClick={() => void removePersistedProtection(protection)}
+                    >
+                      {t("ecommerce.affiliateTeam.removeProtection", { defaultValue: "Remove protection" })}
+                    </button>
                   </div>
-                  <div>
-                    <span>{developer?.displayName ?? t("ecommerce.affiliateTeam.protectedOnly")}</span>
-                    <span>{protection.source}</span>
-                  </div>
-                  <span>{protection.note || "—"}</span>
-                  <span>{new Date(protection.updatedAt).toLocaleDateString()}</span>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    type="button"
-                    disabled={removeProtectionState.loading}
-                    onClick={() => void removePersistedProtection(protection)}
-                  >
-                    {t("ecommerce.affiliateTeam.removeProtection", { defaultValue: "Remove protection" })}
-                  </button>
+                );
+              })}
+              {!protectionQuery.loading && (protectionData?.items.length ?? 0) === 0 && (
+                <div className="affiliate-empty-state compact">
+                  <p>{t("ecommerce.affiliateTeam.noProtectedCreators", { defaultValue: "No protected Creators match this search." })}</p>
                 </div>
-              );
-            })}
-            {!protectionQuery.loading && (protectionData?.items.length ?? 0) === 0 && (
-              <div className="affiliate-empty-state compact">
-                <p>{t("ecommerce.affiliateTeam.noProtectedCreators", { defaultValue: "No protected Creators match this search." })}</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           {protectionTotalPages > 1 && (
             <div className="affiliate-pagination">
