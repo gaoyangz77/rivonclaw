@@ -24786,6 +24786,57 @@ html[lang="zh"] .acct-tool-chips {
   height: 15px;
 }
 
+.affiliate-protection-template-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 24%, var(--border-color));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent-color) 5%, var(--surface-primary));
+}
+
+.affiliate-protection-template-card-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent-color) 12%, var(--surface-primary));
+  color: var(--accent-color);
+}
+
+.affiliate-protection-template-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.affiliate-protection-template-card strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.affiliate-protection-template-card p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.affiliate-protection-template-card .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.affiliate-protection-template-card .btn svg {
+  width: 15px;
+  height: 15px;
+}
+
 .affiliate-protection-dropzone {
   min-height: 300px;
   padding: 36px 28px;
@@ -24846,24 +24897,6 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-protection-dropzone small {
   color: var(--text-muted);
   font-size: 10.5px;
-}
-
-.affiliate-protection-template-link {
-  width: fit-content;
-  margin: -5px auto 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 0;
-  background: transparent;
-  color: var(--accent-color);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.affiliate-protection-template-link svg {
-  width: 14px;
 }
 
 .affiliate-protection-manual-card {
@@ -27188,6 +27221,13 @@ html[lang="zh"] .acct-tool-chips {
   }
   .affiliate-protection-import-mode {
     width: 100%;
+  }
+  .affiliate-protection-template-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .affiliate-protection-template-card .btn {
+    grid-column: 1 / -1;
+    justify-content: center;
   }
   .affiliate-protection-dropzone {
     min-height: 260px;

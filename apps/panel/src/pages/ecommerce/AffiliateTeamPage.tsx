@@ -1385,9 +1385,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             </div>
           </div>
           <div className="affiliate-protection-boundary-actions">
-            <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()} disabled={protectionImportBusy}>
-              <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
-            </button>
             <button className="btn btn-primary btn-sm" type="button" onClick={openProtectionImport} disabled={protectionImportBusy}>
               <UserPlusIcon /> {t("ecommerce.affiliateTeam.importProtected")}
             </button>
@@ -1598,6 +1595,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             {protectionComposerMode === "FILE" ? (
               <>
                 <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
+                <div className="affiliate-protection-template-card">
+                  <span className="affiliate-protection-template-card-icon"><DownloadIcon /></span>
+                  <div>
+                    <strong>{t("ecommerce.affiliateTeam.protectionTemplateTitle")}</strong>
+                    <p>{t("ecommerce.affiliateTeam.protectionTemplateHint")}</p>
+                  </div>
+                  <button className="btn btn-secondary" type="button" onClick={() => void downloadTemplate()} disabled={protectionImportBusy}>
+                    <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
+                  </button>
+                </div>
                 <div
                   className={`affiliate-protection-dropzone ${protectionDragActive ? "is-dragging" : ""} ${protectionImportPhase === "PARSING" ? "is-busy" : ""}`}
                   onDragEnter={(event) => {
@@ -1624,9 +1631,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                   </button>
                   <small>.xlsx · .xls · .csv</small>
                 </div>
-                <button className="affiliate-protection-template-link" type="button" onClick={() => void downloadTemplate()}>
-                  <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
-                </button>
               </>
             ) : (
               <div className="affiliate-protection-manual-card">
