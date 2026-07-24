@@ -782,7 +782,8 @@ QUEUED
 - Work item 需要 owner。
 - Proposal 需要 owner。
 - Action history 需要归属。
-- 系统想知道当前是 `AGENT_REQUIRED`、`STAFF_REQUIRED`、`EXTERNAL_REQUIRED` 还是 `IDLE`。
+- 系统想知道当前 Relationship 是 `AGENT_REQUIRED`、`STAFF_REQUIRED`、
+  `EXTERNAL_WAITING` 还是 `IDLE`。Collaboration 不拥有 `STAFF_REQUIRED`。
 
 这些业务问题的答案只能来自 `CreatorRelationship`。
 
@@ -1776,7 +1777,8 @@ sampleApplication.order
 - Order / tracking detail
 - Latest platform collaboration state
 - Action history
-- Pending or superseded proposals
+- Terminal proposal/action history；`PENDING` proposal 不作为 Agent 动态读取上下文，
+  `REVISION_REQUESTED` 只通过本次 Agent Working Agenda 披露
 
 ## ActionProposal
 
@@ -1785,10 +1787,18 @@ sampleApplication.order
 核心规则：
 
 - `creatorRelationshipId` 必填。
-- 一个 `CreatorRelationship` 同一时间最多只能有一个 active pending proposal。
+- 一个 `CreatorRelationship` 同一时间最多只能有一个 blocking `PENDING` 或短暂
+  `APPROVED` proposal。
 - 一个 proposal 可以包含多个 action step。
 - action step 通过明确 target refs 指向 collaboration、sample application、product、channel 或 platform object。
 - 当 relationship 收到新的关键进展时，旧 pending proposal 应被自动 supersede。
+- Proposal 创建本身不修改、删除、完成或转移任何 agenda item；存在 blocking proposal
+  时，relationship 不重复 dispatch。
+- Proposal 的人工决策来源可以是全局 approval policy、Agent 对一个具体支持 action
+  bundle 的结构化 review request，或两者同时命中。Agent-requested review 仍必须携带
+  可执行的 typed action，不得成为把普通业务判断转交给 Staff 的逃生口。
+- Collaboration 不拥有 `STAFF_REQUIRED` 状态。系统确定性的身份歧义、不可理解附件、
+  路由冲突或执行失败只在 Relationship agenda 上形成 Staff recovery work。
 
 ### 为什么最多一个 pending proposal
 

@@ -725,6 +725,11 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           matchedPolicyIds
           reasons
         }
+        reviewSource
+        humanReviewRequest {
+          reason
+          question
+        }
         decision {
           note
           decidedAt

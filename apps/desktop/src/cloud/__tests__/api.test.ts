@@ -874,7 +874,7 @@ describe("cloud-graphql handler", () => {
   it("drops stale action payloads from non-action affiliate resolve decisions", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
-        decision: "NEEDS_STAFF_REVIEW",
+        decision: "NO_ACTION_NEEDED",
         stale: false,
       },
     });
@@ -899,7 +899,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           creatorRelationshipId: "relationship-1",
-          decision: "NEEDS_STAFF_REVIEW",
+          decision: "NO_ACTION_NEEDED",
           operatorSummary: "Staff should review this sample manually.",
           action: {
             type: "SEND_MESSAGE",
@@ -918,7 +918,7 @@ describe("cloud-graphql handler", () => {
     const sentInput = (graphqlFetch.mock.calls[0]?.[1] as { input?: Record<string, unknown> } | undefined)?.input;
     expect(sentInput).toEqual({
       creatorRelationshipId: "relationship-1",
-      decision: "NEEDS_STAFF_REVIEW",
+      decision: "NO_ACTION_NEEDED",
       operatorSummary: "Staff should review this sample manually.",
     });
   });
