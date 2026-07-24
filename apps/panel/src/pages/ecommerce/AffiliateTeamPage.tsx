@@ -31,6 +31,7 @@ import {
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
+import { buildAffiliateProtectionImportBatches } from "./affiliate-protection-import.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
@@ -78,6 +79,11 @@ type ProtectionPreviewRow = {
   error: string | null;
 };
 
+type ProtectionImportProgress = {
+  completed: number;
+  total: number;
+};
+
 const EMPTY_DEVELOPER: DeveloperForm = {
   displayName: "",
   regions: [],
@@ -111,6 +117,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [editingDeveloperId, setEditingDeveloperId] = useState<string | null>(null);
   const [form, setForm] = useState<DeveloperForm>(EMPTY_DEVELOPER);
   const [protectionRows, setProtectionRows] = useState<ProtectionPreviewRow[]>([]);
+  const [protectionImportProgress, setProtectionImportProgress] = useState<ProtectionImportProgress | null>(null);
   const [manualCreator, setManualCreator] = useState("");
   const [manualDeveloperId, setManualDeveloperId] = useState(UNASSIGNED_ID);
   const [manualNote, setManualNote] = useState("");
@@ -234,6 +241,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [completeOnboarding, onboardingState] = useMutation<{
     completeAffiliateOperationalOnboarding: GQL.AffiliateOperationalSettings;
   }>(COMPLETE_AFFILIATE_OPERATIONAL_ONBOARDING_MUTATION);
+  const protectionImportBusy = importState.loading || protectionImportProgress !== null;
 
   const activeDevelopers = workspace.businessDevelopers.filter((developer) => !developer.archivedAt);
   const developerPageData = developerPageQuery.data?.affiliateBusinessDeveloperPage;
@@ -568,28 +576,74 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   async function submitProtectionRows() {
     const validRows = protectionRows.filter((row) => !row.error);
     if (!validRows.length) return;
+    const importBatchId = globalThis.crypto?.randomUUID?.() ?? `import-${Date.now()}`;
+    const entries: GQL.ImportAffiliateCreatorProtectionEntryInput[] = validRows.map((row) => ({
+      platform: row.platform,
+      creatorOpenId: row.creatorOpenId,
+      username: row.username,
+      businessDeveloperId: row.businessDeveloperId,
+      note: row.note,
+    }));
+    let batches: ReturnType<typeof buildAffiliateProtectionImportBatches>;
     try {
-      const result = await importProtections({
-        variables: {
-          input: {
-            importBatchId: globalThis.crypto?.randomUUID?.() ?? `import-${Date.now()}`,
-            entries: validRows.map((row) => ({
-              platform: row.platform,
-              creatorOpenId: row.creatorOpenId,
-              username: row.username,
-              businessDeveloperId: row.businessDeveloperId,
-              note: row.note,
-            })),
-          },
-        },
-      });
-      setProtectionRows([]);
-      await protectionQuery.refetch();
-      const imported = (result.data?.importAffiliateCreatorProtections.createdCount ?? 0)
-        + (result.data?.importAffiliateCreatorProtections.updatedCount ?? 0);
-      showToast(t("ecommerce.affiliateTeam.protectionsImported", { count: imported }), "success");
+      batches = buildAffiliateProtectionImportBatches(entries, importBatchId);
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+      return;
+    }
+    const attemptedRowNumbers = new Set(validRows.map((row) => row.rowNumber));
+    const rejectedRows = new Map<number, string>();
+    const invalidRowCount = protectionRows.length - validRows.length;
+    let importedCount = 0;
+    let completedCount = 0;
+    setProtectionImportProgress({ completed: 0, total: validRows.length });
+    try {
+      for (const batch of batches) {
+        const result = await importProtections({
+          variables: {
+            input: {
+              importBatchId,
+              entries: batch.entries,
+            },
+          },
+        });
+        const payload = result.data?.importAffiliateCreatorProtections;
+        if (!payload) throw new Error(t("ecommerce.updateFailed"));
+        importedCount += payload.createdCount + payload.updatedCount;
+        for (const rejected of payload.rejectedRows) {
+          const sourceRow = validRows[batch.startIndex + rejected.index];
+          if (sourceRow) rejectedRows.set(sourceRow.rowNumber, rejected.reason);
+        }
+        completedCount += batch.entries.length;
+        setProtectionImportProgress({
+          completed: completedCount,
+          total: validRows.length,
+        });
+      }
+      setProtectionRows((currentRows) => currentRows.flatMap((row) => {
+        if (!attemptedRowNumbers.has(row.rowNumber)) return [row];
+        const rejection = rejectedRows.get(row.rowNumber);
+        return rejection ? [{ ...row, error: rejection }] : [];
+      }));
+      await protectionQuery.refetch();
+      showToast(
+        t("ecommerce.affiliateTeam.protectionsImported", { count: importedCount }),
+        rejectedRows.size > 0 || invalidRowCount > 0 ? "warning" : "success",
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : t("ecommerce.updateFailed");
+      showToast(
+        completedCount > 0
+          ? t("ecommerce.affiliateTeam.protectionImportPartialFailure", {
+            completed: completedCount,
+            total: validRows.length,
+            reason,
+          })
+          : reason,
+        "error",
+      );
+    } finally {
+      setProtectionImportProgress(null);
     }
   }
 
@@ -937,10 +991,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </div>
               <div className="affiliate-onboarding-actions">
                 <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
-                <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()}>
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()} disabled={protectionImportBusy}>
                   <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
                 </button>
-                <button className="btn btn-secondary btn-sm" type="button" onClick={() => fileInputRef.current?.click()}>
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => fileInputRef.current?.click()} disabled={protectionImportBusy}>
                   {t("ecommerce.affiliateTeam.importProtected")}
                 </button>
               </div>
@@ -964,8 +1018,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               <div className="affiliate-protection-preview">
                 <div className="affiliate-protection-preview-head">
                   <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
-                  <button className="btn btn-primary btn-sm" type="button" onClick={submitProtectionRows} disabled={importState.loading || protectionRows.every((row) => row.error)}>
-                    {t("ecommerce.affiliateTeam.importValid", { count: protectionRows.filter((row) => !row.error).length })}
+                  <button className="btn btn-primary btn-sm" type="button" onClick={submitProtectionRows} disabled={protectionImportBusy || protectionRows.every((row) => row.error)}>
+                    {protectionImportProgress
+                      ? t("ecommerce.affiliateTeam.protectionImportProgress", protectionImportProgress)
+                      : t("ecommerce.affiliateTeam.importValid", { count: protectionRows.filter((row) => !row.error).length })}
                   </button>
                 </div>
                 {protectionRows.slice(0, 20).map((row) => (
@@ -974,7 +1030,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                     <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
                     <span>{row.businessDeveloperName || t("ecommerce.affiliateTeam.protectedOnly")}</span>
                     <em>{row.error || t("ecommerce.affiliateTeam.ready")}</em>
-                    <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")}><CloseIcon /></button>
+                    <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")} disabled={protectionImportBusy}><CloseIcon /></button>
                   </div>
                 ))}
               </div>
