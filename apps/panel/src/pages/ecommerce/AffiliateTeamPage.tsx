@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -55,7 +55,7 @@ export const PROTECTED_CREATOR_TEMPLATE_HEADERS = [
 type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
 type DeveloperDetailTab = "CHANNELS" | "SETTINGS";
-type TeamPageTab = "TEAM" | "SAFETY";
+type TeamPageTab = "TEAM" | "ASSIGNMENTS" | "SAFETY";
 type ProtectionImportView = "ADD" | "RESOLVE" | "PREVIEW";
 type ProtectionComposerMode = "FILE" | "MANUAL";
 type ChannelAccount = {
@@ -132,7 +132,10 @@ const EMPTY_DEVELOPER: DeveloperForm = {
 };
 
 function readTeamPageTab(): TeamPageTab {
-  return new URLSearchParams(window.location.search).get("view") === "safety" ? "SAFETY" : "TEAM";
+  const view = new URLSearchParams(window.location.search).get("view");
+  if (view === "assignments") return "ASSIGNMENTS";
+  if (view === "safety") return "SAFETY";
+  return "TEAM";
 }
 
 export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
@@ -1095,17 +1098,45 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   function selectPageTab(nextTab: TeamPageTab, focusTab = false) {
     if (nextTab !== pageTab) {
       const params = new URLSearchParams(window.location.search);
-      params.set("view", nextTab === "SAFETY" ? "safety" : "team");
+      params.set("view", nextTab === "ASSIGNMENTS" ? "assignments" : nextTab === "SAFETY" ? "safety" : "team");
       const search = params.toString();
       window.history.pushState(null, "", `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`);
       setPageTab(nextTab);
     }
     if (focusTab) {
       window.requestAnimationFrame(() => {
-        document.getElementById(nextTab === "TEAM" ? "affiliate-team-tab-team" : "affiliate-team-tab-safety")?.focus();
+        document.getElementById(`affiliate-team-tab-${nextTab.toLowerCase()}`)?.focus();
       });
     }
   }
+
+  const pageTabs: Array<{
+    id: TeamPageTab;
+    label: string;
+    summary: string;
+    icon: ReactNode;
+    iconClassName?: string;
+  }> = [
+    {
+      id: "TEAM",
+      label: t("ecommerce.affiliateTeam.teamOperationsTab"),
+      summary: `${t("ecommerce.affiliateTeam.ownerCount", { count: activeDevelopers.length })} · ${t("ecommerce.affiliateTeam.ownerChannelCount", { count: totalChannelCount })}`,
+      icon: <UserIcon />,
+    },
+    {
+      id: "ASSIGNMENTS",
+      label: t("ecommerce.affiliateTeam.creatorAssignmentsTab"),
+      summary: `${t("ecommerce.affiliateTeam.protectedCreators")} ${protectedCreatorCount} · ${t("ecommerce.affiliateTeam.appliedProtections", { count: appliedProtectionCount })}`,
+      icon: <UserPlusIcon />,
+    },
+    {
+      id: "SAFETY",
+      label: t("ecommerce.affiliateTeam.safetyAndApprovalTab"),
+      summary: t(onboardingComplete ? "ecommerce.affiliateTeam.setupReady" : "ecommerce.affiliateTeam.setupRequired"),
+      icon: onboardingComplete ? <CheckIcon /> : <InfoIcon />,
+      iconClassName: onboardingComplete ? "is-ready" : "needs-setup",
+    },
+  ];
 
   return (
     <div className="page-enter affiliate-team-page">
@@ -1128,52 +1159,35 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       </header>
 
       <div className="affiliate-team-page-tabs" role="tablist" aria-label={t("ecommerce.affiliateTeam.pageTabsLabel")}>
-        <button
-          id="affiliate-team-tab-team"
-          className={`affiliate-team-page-tab ${pageTab === "TEAM" ? "is-active" : ""}`}
-          type="button"
-          role="tab"
-          aria-selected={pageTab === "TEAM"}
-          aria-controls="affiliate-team-panel-team"
-          tabIndex={pageTab === "TEAM" ? 0 : -1}
-          onClick={() => selectPageTab("TEAM")}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-              event.preventDefault();
-              selectPageTab("SAFETY", true);
-            }
-          }}
-        >
-          <span className="affiliate-team-page-tab-icon"><UserIcon /></span>
-          <span className="affiliate-team-page-tab-copy">
-            <strong>{t("ecommerce.affiliateTeam.teamOperationsTab")}</strong>
-            <small>{t("ecommerce.affiliateTeam.ownerCount", { count: activeDevelopers.length })} · {t("ecommerce.affiliateTeam.ownerChannelCount", { count: totalChannelCount })}</small>
-          </span>
-        </button>
-        <button
-          id="affiliate-team-tab-safety"
-          className={`affiliate-team-page-tab ${pageTab === "SAFETY" ? "is-active" : ""}`}
-          type="button"
-          role="tab"
-          aria-selected={pageTab === "SAFETY"}
-          aria-controls="affiliate-team-panel-safety"
-          tabIndex={pageTab === "SAFETY" ? 0 : -1}
-          onClick={() => selectPageTab("SAFETY")}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-              event.preventDefault();
-              selectPageTab("TEAM", true);
-            }
-          }}
-        >
-          <span className={`affiliate-team-page-tab-icon ${onboardingComplete ? "is-ready" : "needs-setup"}`}>
-            {onboardingComplete ? <CheckIcon /> : <InfoIcon />}
-          </span>
-          <span className="affiliate-team-page-tab-copy">
-            <strong>{t("ecommerce.affiliateTeam.safetyAndApprovalTab")}</strong>
-            <small>{t(onboardingComplete ? "ecommerce.affiliateTeam.setupReady" : "ecommerce.affiliateTeam.setupRequired")}</small>
-          </span>
-        </button>
+        {pageTabs.map((tab, index) => (
+          <button
+            id={`affiliate-team-tab-${tab.id.toLowerCase()}`}
+            className={`affiliate-team-page-tab ${pageTab === tab.id ? "is-active" : ""}`}
+            type="button"
+            role="tab"
+            aria-selected={pageTab === tab.id}
+            aria-controls={`affiliate-team-panel-${tab.id.toLowerCase()}`}
+            tabIndex={pageTab === tab.id ? 0 : -1}
+            onClick={() => selectPageTab(tab.id)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                event.preventDefault();
+                const direction = event.key === "ArrowRight" ? 1 : -1;
+                const nextIndex = (index + direction + pageTabs.length) % pageTabs.length;
+                selectPageTab(pageTabs[nextIndex]!.id, true);
+              } else if (event.key === "Home" || event.key === "End") {
+                event.preventDefault();
+                selectPageTab(pageTabs[event.key === "Home" ? 0 : pageTabs.length - 1]!.id, true);
+              }
+            }}
+          >
+            <span className={`affiliate-team-page-tab-icon ${tab.iconClassName ?? ""}`}>{tab.icon}</span>
+            <span className="affiliate-team-page-tab-copy">
+              <strong>{tab.label}</strong>
+              <small>{tab.summary}</small>
+            </span>
+          </button>
+        ))}
       </div>
 
       <div
@@ -1354,11 +1368,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       </div>
 
       <div
-        id="affiliate-team-panel-safety"
-        className="affiliate-team-page-tab-panel is-safety"
+        id="affiliate-team-panel-assignments"
+        className="affiliate-team-page-tab-panel is-assignments"
         role="tabpanel"
-        aria-labelledby="affiliate-team-tab-safety"
-        hidden={pageTab !== "SAFETY"}
+        aria-labelledby="affiliate-team-tab-assignments"
+        hidden={pageTab !== "ASSIGNMENTS"}
       >
       <section className="affiliate-protection-boundary">
         <div className="affiliate-protection-boundary-head">
@@ -1492,6 +1506,15 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         </div>
       </section>
 
+      </div>
+
+      <div
+        id="affiliate-team-panel-safety"
+        className="affiliate-team-page-tab-panel is-safety"
+        role="tabpanel"
+        aria-labelledby="affiliate-team-tab-safety"
+        hidden={pageTab !== "SAFETY"}
+      >
       <section className="affiliate-team-policy-section is-open">
         <div className="affiliate-team-policy-heading">
           <div>

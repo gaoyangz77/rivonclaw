@@ -23912,7 +23912,7 @@ html[lang="zh"] .acct-tool-chips {
   margin-top: 22px;
   padding: 4px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   border: 1px solid color-mix(in srgb, var(--border-color) 84%, transparent);
   border-radius: 14px;
@@ -27212,8 +27212,8 @@ html[lang="zh"] .acct-tool-chips {
     gap: 4px;
   }
   .affiliate-team-page-tab {
-    min-height: 58px;
-    padding: 8px 10px;
+    min-height: 54px;
+    padding: 8px;
     gap: 8px;
   }
   .affiliate-team-page-tab-icon {
@@ -27223,10 +27223,10 @@ html[lang="zh"] .acct-tool-chips {
     border-radius: 8px;
   }
   .affiliate-team-page-tab-copy strong {
-    font-size: 12.5px;
+    font-size: 12px;
   }
   .affiliate-team-page-tab-copy small {
-    font-size: 10.5px;
+    display: none;
   }
   .affiliate-team-overview {
     grid-template-columns: 1fr;
