@@ -1443,12 +1443,12 @@ describe("affiliate work item dispatch", () => {
       if (query.includes("ResolveAffiliateWorkItem")) {
         expect(variables?.input).toMatchObject({
           creatorRelationshipId: "relationship-001",
-          decision: "NEEDS_STAFF_REVIEW",
+          decision: "FAILED_OR_INCOMPLETE",
         });
         expect(variables?.input?.operatorSummary).toContain("creator-video.mp4");
         return {
           resolveAffiliateWorkItem: {
-            decision: "NEEDS_STAFF_REVIEW",
+            decision: "FAILED_OR_INCOMPLETE",
             stale: false,
           },
         };
@@ -2520,7 +2520,7 @@ describe("affiliate work item dispatch", () => {
     const workItem = createSampleReviewWorkItem({
       agentDispatchRecommended: false,
       workKind: GQL.AffiliateWorkKind.ManualReview,
-      processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
+      processingStatus: GQL.AffiliateRelationshipProcessingStatus.StaffRequired,
     });
 
     const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });

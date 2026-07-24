@@ -636,6 +636,11 @@ messageIntent {
         matchedPolicyIds
         reasons
       }
+      reviewSource
+      humanReviewRequest {
+        reason
+        question
+      }
       decision {
         decidedAt
         note
@@ -1245,6 +1250,11 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           reasons
           action
         }
+        reviewSource
+        humanReviewRequest {
+          reason
+          question
+        }
 messageIntent {
           creatorId
           creatorOpenId
@@ -1598,6 +1608,11 @@ messageIntent {
         matchedPolicyIds
         reasons
       }
+      reviewSource
+      humanReviewRequest {
+        reason
+        question
+      }
       decision {
         decidedAt
         note
@@ -1709,22 +1724,6 @@ messageIntent {
         preferredChannel
         actualChannel
         channelSelectionSource
-      }
-    }
-  }
-`;
-
-export const RESOLVE_AFFILIATE_COLLABORATION_STAFF_ACTION_MUTATION = gql`
-  mutation ResolveAffiliateCollaborationStaffAction($input: ResolveAffiliateCollaborationStaffActionInput!) {
-    resolveAffiliateCollaborationStaffAction(input: $input) {
-      collaborationRecord {
-        id
-        processingStatus
-        requiredAction
-        processReasons
-        nextSellerActionAt
-        stateUpdatedAt
-        workHandledUntil
       }
     }
   }

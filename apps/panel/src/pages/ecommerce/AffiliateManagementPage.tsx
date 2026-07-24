@@ -105,7 +105,6 @@ type StagedAffiliateAttachment = {
 const HISTORY_STATUS_FILTERS = [
   "ALL",
   GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
-  GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired,
   GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal,
   GQL.AffiliateCollaborationRecordProcessingStatus.Idle,
 ] as const;
@@ -4173,6 +4172,16 @@ function ActionProposalCard({
             {proposal.operatorSummary ? (
               <div className="affiliate-card-section-copy affiliate-proposal-row-summary">{proposal.operatorSummary}</div>
             ) : null}
+            {proposal.humanReviewRequest ? (
+              <div className="affiliate-card-section affiliate-card-section-primary">
+                <div className="affiliate-card-section-label">
+                  {t("ecommerce.affiliateWorkspace.labels.needsYourAction")}
+                </div>
+                <div className="affiliate-card-section-copy">
+                  {proposal.humanReviewRequest.question}
+                </div>
+              </div>
+            ) : null}
             <div className="affiliate-proposal-row-context">
               <ProposalPredictionComparison
                 proposal={proposal}
@@ -4274,6 +4283,11 @@ function ActionProposalCard({
           <div className="affiliate-card-section-title">{recommendationTitle}</div>
           {proposal.operatorSummary ? (
             <div className="affiliate-card-section-copy">{proposal.operatorSummary}</div>
+          ) : null}
+          {proposal.humanReviewRequest ? (
+            <div className="affiliate-card-section-copy">
+              {proposal.humanReviewRequest.question}
+            </div>
           ) : null}
           {isCompact ? (
             <div className="affiliate-card-section-footline">
@@ -4768,8 +4782,6 @@ function relationshipProcessingStatusFromCollaboration(
   switch (status) {
     case GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired:
       return GQL.AffiliateRelationshipProcessingStatus.AgentRequired;
-    case GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired:
-      return GQL.AffiliateRelationshipProcessingStatus.StaffRequired;
     case GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal:
       return GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting;
     case GQL.AffiliateCollaborationRecordProcessingStatus.Idle:
@@ -4802,12 +4814,6 @@ function relationshipRequiredActionFromCollaboration(
       return GQL.AffiliateRelationshipRequiredAction.ShipSample;
     case GQL.AffiliateCollaborationRequiredAction.FollowUpCreator:
       return GQL.AffiliateRelationshipRequiredAction.FollowUpCreator;
-    case GQL.AffiliateCollaborationRequiredAction.ReviewAgentFailure:
-      return GQL.AffiliateRelationshipRequiredAction.ReviewAgentFailure;
-    case GQL.AffiliateCollaborationRequiredAction.ResolveCreatorIdentity:
-      return GQL.AffiliateRelationshipRequiredAction.ResolveCreatorIdentity;
-    case GQL.AffiliateCollaborationRequiredAction.ReviewCollaboration:
-      return GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask;
     case GQL.AffiliateCollaborationRequiredAction.None:
     default:
       return GQL.AffiliateRelationshipRequiredAction.NoAction;
@@ -4918,7 +4924,6 @@ function collaborationStatusTone(
   status: GQL.AffiliateCollaborationRecordProcessingStatus,
 ): CollaborationWorkViewModel["badgeTone"] {
   if (status === GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired) return "attention";
-  if (status === GQL.AffiliateCollaborationRecordProcessingStatus.StaffRequired) return "blocked";
   if (status === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal) return "waiting";
   return "done";
 }
@@ -6690,33 +6695,6 @@ function buildCollaborationWorkView(
         title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.CREATOR_ACTION_FOLLOW_UP_DUE"),
         description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.FOLLOW_UP_CREATOR"),
       };
-    case GQL.AffiliateCollaborationRequiredAction.ReviewAgentFailure:
-      return {
-        badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.staff"),
-        badgeTone: "attention",
-        stage,
-        ownerLabel: t("ecommerce.affiliateWorkspace.labels.needsYourAction"),
-        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.AGENT_RUN_FAILED"),
-        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.REVIEW_AGENT_FAILURE"),
-      };
-    case GQL.AffiliateCollaborationRequiredAction.ResolveCreatorIdentity:
-      return {
-        badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.staff"),
-        badgeTone: "attention",
-        stage,
-        ownerLabel: t("ecommerce.affiliateWorkspace.labels.needsYourAction"),
-        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.CREATOR_IDENTITY_UNRESOLVED"),
-        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.RESOLVE_CREATOR_IDENTITY"),
-      };
-    case GQL.AffiliateCollaborationRequiredAction.ReviewCollaboration:
-      return {
-        badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.staff"),
-        badgeTone: "attention",
-        stage,
-        ownerLabel: t("ecommerce.affiliateWorkspace.labels.needsYourAction"),
-        title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.STAFF_REVIEW_REQUESTED"),
-        description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.REVIEW_COLLABORATION"),
-      };
     case GQL.AffiliateCollaborationRequiredAction.None:
     default:
       break;
@@ -6791,7 +6769,7 @@ function renderCollaborationWorkTitle({
     GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue,
     GQL.AffiliateCollaborationRecordProcessReason.IdentityResolution,
     GQL.AffiliateCollaborationRecordProcessReason.AgentRunFailed,
-    GQL.AffiliateCollaborationRecordProcessReason.StaffReviewRequested,
+    GQL.AffiliateCollaborationRecordProcessReason.ProposalRevisionRequested,
   ];
   const reason = priority.find((candidate) => processReasons.includes(candidate));
   if (reason) {

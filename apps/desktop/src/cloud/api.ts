@@ -182,7 +182,7 @@ function sanitizeCloudGraphqlVariables(
     const reason =
       "Desktop blocked an invalid affiliate action payload before sending it to backend. " +
       "The agent attempted REQUEST_ACTION but omitted required typed action fields. " +
-      "This is a tool payload schema error, not a business reason for NEEDS_STAFF_REVIEW. " +
+      "This is a tool payload schema error, not a reason to request human review. " +
       "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
       "For SEND_MESSAGE use action.messageIntent.parts with 1-10 ordered structured parts; never send messageIntent: {}. " +
       "For REVIEW_SAMPLE_APPLICATION use action.sampleApplicationRecordId, action.sampleReviewDecision, and optional action.rejectReason.";

@@ -58,6 +58,7 @@ export interface ActionProposal {
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
   expiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
   focusShopId: Scalars['ID']['output'];
+  humanReviewRequest?: Maybe<ActionProposalHumanReviewRequest>;
   id: Scalars['ID']['output'];
   messageIntent?: Maybe<ActionProposalMessageIntent>;
   /** Staff-facing proposal summary. Pending creator-facing content lives in ordered messageIntent.parts and is cleared at terminal state. */
@@ -67,6 +68,7 @@ export interface ActionProposal {
   predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
   /** Best-known related product summary for staff review display. Proposal execution still uses frozen proposal fields. */
   productSummary?: Maybe<EcomProductSummary>;
+  reviewSource: AffiliateProposalReviewSource;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
   sourceWorkBoundary?: Maybe<ActionProposalSourceWorkBoundary>;
@@ -152,6 +154,11 @@ export interface ActionProposalExecutionResultSnapshot {
   lifecycleEventIds: Array<Scalars['ID']['output']>;
   platformObjectId?: Maybe<Scalars['String']['output']>;
   preferredChannel?: Maybe<AffiliateMessageChannel>;
+}
+
+export interface ActionProposalHumanReviewRequest {
+  question: Scalars['String']['output'];
+  reason: AffiliateHumanReviewReason;
 }
 
 export interface ActionProposalMessageIntent {
@@ -822,11 +829,11 @@ export const AffiliateCollaborationRecordProcessReason = {
   MessageDeliveryFailed: 'MESSAGE_DELIVERY_FAILED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
   PlatformStateSync: 'PLATFORM_STATE_SYNC',
+  ProposalRevisionRequested: 'PROPOSAL_REVISION_REQUESTED',
   SampleAwaitingPlatformShipment: 'SAMPLE_AWAITING_PLATFORM_SHIPMENT',
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SampleContentFollowUpDue: 'SAMPLE_CONTENT_FOLLOW_UP_DUE',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
-  StaffReviewRequested: 'STAFF_REVIEW_REQUESTED',
   TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
   UserLevelBlocked: 'USER_LEVEL_BLOCKED'
 } as const;
@@ -836,7 +843,6 @@ export type AffiliateCollaborationRecordProcessReason = typeof AffiliateCollabor
 export const AffiliateCollaborationRecordProcessingStatus = {
   AgentRequired: 'AGENT_REQUIRED',
   Idle: 'IDLE',
-  StaffRequired: 'STAFF_REQUIRED',
   WaitingExternal: 'WAITING_EXTERNAL'
 } as const;
 
@@ -866,10 +872,7 @@ export interface AffiliateCollaborationRecordStatePayload {
 export const AffiliateCollaborationRequiredAction = {
   FollowUpCreator: 'FOLLOW_UP_CREATOR',
   None: 'NONE',
-  ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
   RespondToCreator: 'RESPOND_TO_CREATOR',
-  ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
-  ReviewCollaboration: 'REVIEW_COLLABORATION',
   ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
   ShipSample: 'SHIP_SAMPLE'
 } as const;
@@ -1557,6 +1560,22 @@ export interface AffiliateHumanBaselinePrediction {
   wouldApprove?: Maybe<Scalars['Boolean']['output']>;
 }
 
+/** Structured reason an Agent asks a human to review its concrete proposed action bundle. */
+export const AffiliateHumanReviewReason = {
+  ConflictingAuthoritativeFacts: 'CONFLICTING_AUTHORITATIVE_FACTS',
+  MissingRequiredContext: 'MISSING_REQUIRED_CONTEXT',
+  StaffOnlyAuthority: 'STAFF_ONLY_AUTHORITY',
+  UncertainBusinessJudgment: 'UNCERTAIN_BUSINESS_JUDGMENT'
+} as const;
+
+export type AffiliateHumanReviewReason = typeof AffiliateHumanReviewReason[keyof typeof AffiliateHumanReviewReason];
+export interface AffiliateHumanReviewRequestInput {
+  /** One concise, decision-ready question for the reviewer. Do not use this to hand off ordinary Affiliate work. */
+  question: Scalars['String']['input'];
+  /** Why a human decision is required for this concrete proposed action bundle. */
+  reason: AffiliateHumanReviewReason;
+}
+
 export const AffiliateLifecycleActorRole = {
   Agent: 'AGENT',
   Creator: 'CREATOR',
@@ -2007,6 +2026,14 @@ export const AffiliateProjectionSyncSource = {
 } as const;
 
 export type AffiliateProjectionSyncSource = typeof AffiliateProjectionSyncSource[keyof typeof AffiliateProjectionSyncSource];
+/** Why an Affiliate action proposal requires a human decision. */
+export const AffiliateProposalReviewSource = {
+  AgentRequested: 'AGENT_REQUESTED',
+  Policy: 'POLICY',
+  PolicyAndAgentRequested: 'POLICY_AND_AGENT_REQUESTED'
+} as const;
+
+export type AffiliateProposalReviewSource = typeof AffiliateProposalReviewSource[keyof typeof AffiliateProposalReviewSource];
 /** Source and authority boundary for a specific Affiliate read operation. */
 export const AffiliateProviderReadSource = {
   MongodbCurrentState: 'MONGODB_CURRENT_STATE',
@@ -2402,12 +2429,6 @@ export interface AffiliateServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
-/** Staff-facing terminal action for manually handling an affiliate collaboration work item. */
-export const AffiliateStaffCollaborationResolutionAction = {
-  MarkHandled: 'MARK_HANDLED'
-} as const;
-
-export type AffiliateStaffCollaborationResolutionAction = typeof AffiliateStaffCollaborationResolutionAction[keyof typeof AffiliateStaffCollaborationResolutionAction];
 export interface AffiliateTimelineAnchorInput {
   itemId?: InputMaybe<Scalars['ID']['input']>;
   messageRef?: InputMaybe<Scalars['String']['input']>;
@@ -2518,7 +2539,6 @@ export interface AffiliateWorkItemChanged {
 /** Terminal decision for an agent-dispatched affiliate work item. */
 export const AffiliateWorkItemResolutionDecision = {
   FailedOrIncomplete: 'FAILED_OR_INCOMPLETE',
-  NeedsStaffReview: 'NEEDS_STAFF_REVIEW',
   NoActionNeeded: 'NO_ACTION_NEEDED',
   RequestAction: 'REQUEST_ACTION'
 } as const;
@@ -6913,8 +6933,6 @@ export interface Mutation {
   requestClientLogUpload: ClientLogUploadRequestPayload;
   /** Request/create TikTok GMV Max exclusive authorization for an advertiser-store access row. */
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
-  /** Resolve staff-facing affiliate collaboration work after a human handled it outside the agent proposal flow. */
-  resolveAffiliateCollaborationStaffAction: ResolveAffiliateCollaborationStaffActionPayload;
   /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the relationship work boundary and update relationship/collaboration state as needed. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
@@ -7484,11 +7502,6 @@ export interface MutationRequestClientLogUploadArgs {
 export interface MutationRequestTikTokGmvMaxAuthorizationArgs {
   adsAdvertiserId: Scalars['ID']['input'];
   adsStoreAccessId: Scalars['ID']['input'];
-}
-
-
-export interface MutationResolveAffiliateCollaborationStaffActionArgs {
-  input: ResolveAffiliateCollaborationStaffActionInput;
 }
 
 
@@ -9302,17 +9315,6 @@ export interface RequestAffiliateActionPayload {
   proposal?: Maybe<ActionProposal>;
 }
 
-export interface ResolveAffiliateCollaborationStaffActionInput {
-  action: AffiliateStaffCollaborationResolutionAction;
-  collaborationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['ID']['input'];
-}
-
-export interface ResolveAffiliateCollaborationStaffActionPayload {
-  collaborationRecord: AffiliateCollaborationRecord;
-}
-
 /** Agent-authored Target Collaboration details. Creator identity is injected from the trusted Affiliate run context. */
 export interface ResolveAffiliateTargetCollaborationIntentInput {
   endTime: Scalars['DateTimeISO']['input'];
@@ -9345,7 +9347,7 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
   /** Required only when type is CREATE_TARGET_COLLABORATION. Creator identity and shop are injected from the trusted run context. */
   targetCollaborationIntent?: InputMaybe<ResolveAffiliateTargetCollaborationIntentInput>;
-  /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Unsupported seller operations such as commission changes must use NEEDS_STAFF_REVIEW instead of a made-up action type. */
+  /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent unsupported seller operations. */
   type: ActionProposalType;
 }
 
@@ -9366,6 +9368,8 @@ export interface ResolveAffiliateWorkItemInput {
   decision: AffiliateWorkItemResolutionDecision;
   /** The relationship work boundary timestamp that this decision handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
+  /** Optional Agent-requested review of the concrete action bundle. Presence forces an ActionProposal even when no approval policy matches. It never changes Collaboration or Relationship agenda ownership. */
+  humanReviewRequest?: InputMaybe<AffiliateHumanReviewRequestInput>;
   operatorSummary: Scalars['String']['input'];
   relationshipOperationalConfigRevision?: InputMaybe<Scalars['Int']['input']>;
   /** Latest event cursor included in this agent run context. */
