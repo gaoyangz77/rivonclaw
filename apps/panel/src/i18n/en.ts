@@ -24,7 +24,7 @@ export default {
     yes: "Yes",
     no: "No",
     none: "None",
-    brandName: "RivonClaw",
+    brandName: "TK Copilot",
     language: "Language",
     help: "Help",
     website: "Website",
@@ -157,7 +157,7 @@ export default {
     expandMessage: "Show more",
     collapseMessage: "Show less",
     newSession: "New Chat",
-    newSessionTitle: "RivonClaw",
+    newSessionTitle: "TK Copilot",
     sessionMain: "Main",
     sessionUntitled: "Untitled",
     resetConfirm: "Clear all messages in this session? The history will be archived.",
@@ -329,6 +329,7 @@ export default {
     tabCustom: "Custom",
     noProviders: "No providers configured yet. Add one below.",
     configuredTitle: "Configured Providers",
+    "label_rivonclaw-pro": "TK Copilot AI",
     label_openai: "OpenAI",
     label_anthropic: "Anthropic",
     label_claude: "Claude (Subscription)",
@@ -1092,14 +1093,14 @@ export default {
     },
     autoLaunch: {
       title: "Startup",
-      toggle: "Start RivonClaw on login",
-      hint: "Automatically launch RivonClaw when you log in to your computer.",
+      toggle: "Start TK Copilot on login",
+      hint: "Automatically launch TK Copilot when you log in to your computer.",
       failedToSave: "Failed to save startup setting: ",
     },
     telemetry: {
       title: "Telemetry & Privacy",
       description:
-        "Help us improve RivonClaw by sharing anonymous usage statistics. Your privacy is important to us.",
+        "Help us improve TK Copilot by sharing anonymous usage statistics. Your privacy is important to us.",
       toggle: "Send anonymous usage statistics",
       whatWeCollect: "What we collect",
       whatWeDontCollect: "What we don't collect",
@@ -1120,7 +1121,7 @@ export default {
       failedToLoad: "Failed to load telemetry settings: ",
       failedToSave: "Failed to save telemetry settings: ",
       consent: {
-        title: "Help Improve RivonClaw",
+        title: "Help Improve TK Copilot",
         description:
           "We collect anonymous usage statistics to improve the product. No personal data, conversation content, or API keys are ever collected.",
         collectLabel: "What we collect:",
@@ -1161,13 +1162,13 @@ export default {
     dataDir: {
       title: "Data Directory",
       label: "OpenClaw state directory",
-      hint: "The directory where agent memory, documents, and skills are stored. Changes take effect after restarting RivonClaw.",
+      hint: "The directory where agent memory, documents, and skills are stored. Changes take effect after restarting TK Copilot.",
       default: "Default",
       custom: "Custom",
       current: "Current",
       change: "Change",
       reset: "Reset to default",
-      restartNotice: "Restart RivonClaw for the change to take effect.",
+      restartNotice: "Restart TK Copilot for the change to take effect.",
       failedToLoad: "Failed to load data directory settings: ",
       failedToSave: "Failed to save data directory: ",
       failedToReset: "Failed to reset data directory: ",
@@ -1196,7 +1197,7 @@ export default {
     kicker: "E-commerce workspace",
     accountTitle: "Start with your seller account",
     accountDesc:
-      "Create a RivonClaw account to connect shops, activate trials, and sync your ecommerce workspace. Already have an account? Sign in and continue where you left off.",
+      "Create a TK Copilot account to connect shops, activate trials, and sync your ecommerce workspace. Already have an account? Sign in and continue where you left off.",
     createAccountTitle: "New user registration",
     createAccountDesc:
       "Create an account, enter an invite code if you have one, then connect your first eligible shop.",
@@ -1205,7 +1206,7 @@ export default {
   },
   onboarding: {
     skipSetup: "Skip setup",
-    welcomeTitle: "Welcome to RivonClaw",
+    welcomeTitle: "Welcome to TK Copilot",
     welcomeDesc: "Let's get your AI agent set up. First, configure your LLM provider.",
     providerLabel: "Provider",
     modelLabel: "Model",
@@ -1564,9 +1565,9 @@ export default {
     title: "Billing & Subscription",
     description: "Review account entitlements, shop service subscriptions, and payment records.",
     accountLlm: "Account LLM",
-    accountAi: "RivonClaw AI",
+    accountAi: "TK Copilot AI",
     accountAiDescription:
-      "RivonClaw's cloud LLM service. You can subscribe to use our hosted models, or keep using your own OpenAI, Gemini, or Anthropic provider.",
+      "TK Copilot's cloud LLM service. You can subscribe to use our hosted models, or keep using your own OpenAI, Gemini, or Anthropic provider.",
     shopServices: "Shop Service Subscriptions",
     planDefinitions: "Plan Definitions",
     planDefinitionsUnavailable: "Plan definitions are not available from the backend yet.",
@@ -1603,10 +1604,10 @@ export default {
     customerServiceUpgrade: "Subscribe to AI Customer Service: {{price}} per shop.",
     usageUsedPercent: "{{percent}} used",
     usageRemainingPercent: "{{percent}} remaining",
-    cloudQuotaExhaustedTitle: "RivonClaw AI tokens exhausted",
+    cloudQuotaExhaustedTitle: "TK Copilot AI tokens exhausted",
     cloudQuotaExhaustedBody:
       "Your five-hour or weekly cloud LLM quota has been used up. To avoid business interruption, upgrade your plan or add another LLM key.",
-    cloudQuotaLowTitle: "RivonClaw AI tokens almost exhausted",
+    cloudQuotaLowTitle: "TK Copilot AI tokens almost exhausted",
     cloudQuotaLowBody:
       "Your cloud LLM quota has 5% or less remaining. To avoid business interruption, upgrade your plan or add another LLM key.",
     openBilling: "Billing",
@@ -1661,9 +1662,9 @@ export default {
     noEnabledShopServices: "No service needed.",
     noStandaloneShopServices: "No standalone site services.",
     planNames: {
-      RIVONCLAW_AI_PLUS: "RivonClaw AI Plus",
-      RIVONCLAW_AI_PRO: "RivonClaw AI Pro",
-      RIVONCLAW_AI_MAX: "RivonClaw AI Max",
+      RIVONCLAW_AI_PLUS: "TK Copilot AI Plus",
+      RIVONCLAW_AI_PRO: "TK Copilot AI Pro",
+      RIVONCLAW_AI_MAX: "TK Copilot AI Max",
       ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY: "AI Customer Service Unlimited",
     },
     planDescriptions: {
@@ -1689,7 +1690,7 @@ export default {
     },
     enums: {
       product: {
-        LLM_USAGE: "RivonClaw AI",
+        LLM_USAGE: "TK Copilot AI",
         ECOM_CUSTOMER_SERVICE: "AI Customer Service",
         ECOM_INVENTORY: "Inventory Management",
         ECOM_AFFILIATE: "Affiliate Management",
@@ -2058,7 +2059,7 @@ export default {
       hint: "When enabled, a tutorial bubble appears on each page to guide you through the features.",
       welcomeTitle: "Welcome to Settings",
       welcomeBody:
-        "This page lets you customize how EasyClaw behaves. Each section controls a different aspect of the app. Let's walk through every option.",
+        "This page lets you customize how TK Copilot behaves. Each section controls a different aspect of the app. Let's walk through every option.",
       agentSectionTitle: "Agent Settings",
       agentSectionBody:
         "These settings control how your AI agent processes conversations and interacts with browsers. Changes take effect immediately.",
@@ -2094,10 +2095,10 @@ export default {
         "Controls whether the tutorial bubble appears on each page. When enabled, you will see a small help icon on every page that launches a guided walkthrough of that page's features. This is the feature you are using right now! Disable it once you are familiar with the app.",
       autoLaunchTitle: "Auto-Launch",
       autoLaunchBody:
-        "Controls whether EasyClaw starts automatically when your computer boots up.\n\nWhen enabled, the app launches in the background as soon as you log into your operating system. Your agent will be ready and listening immediately — convenient if you rely on it daily for customer service or automation.\n\nWhen disabled, you need to manually start the app each time. Disable this if you only use the agent occasionally or want faster system startup.",
+        "Controls whether TK Copilot starts automatically when your computer boots up.\n\nWhen enabled, the app launches in the background as soon as you log into your operating system. Your agent will be ready and listening immediately — convenient if you rely on it daily for customer service or automation.\n\nWhen disabled, you need to manually start the app each time. Disable this if you only use the agent occasionally or want faster system startup.",
       dataDirTitle: "Data Directory",
       dataDirBody:
-        "Shows where EasyClaw stores all its data — the SQLite database, configuration files, logs, and cached content. The current path is displayed along with a badge indicating whether it is the default location or a custom override.\n\nChanging this moves your data to a different location. Useful if you want to store data on an external drive, an encrypted volume, or a location with more disk space.",
+        "Shows where TK Copilot stores all its data — the SQLite database, configuration files, logs, and cached content. The current path is displayed along with a badge indicating whether it is the default location or a custom override.\n\nChanging this moves your data to a different location. Useful if you want to store data on an external drive, an encrypted volume, or a location with more disk space.",
       dataDirActionsTitle: "Change / Reset Directory",
       dataDirActionsBody:
         "Click 'Change' to select a new directory for app data. Click 'Reset' (only visible when using a custom path) to revert to the default location. Either action requires an app restart to take effect — you will see a notice reminding you to restart.",
@@ -2432,7 +2433,7 @@ export default {
         "Click this button to open the credential configuration dialog. You will need your WeCom API credentials to set up the connection. Let's take a look inside.",
       invitationCodeTitle: "Invitation Code",
       invitationCodeBody:
-        "Your panel access token, provided during onboarding. This authenticates your EasyClaw instance with the cloud service. If you have already saved one, this field can be left empty on subsequent edits.",
+        "Your panel access token, provided during onboarding. This authenticates your TK Copilot instance with the cloud service. If you have already saved one, this field can be left empty on subsequent edits.",
       wecomFieldsTitle: "WeCom API Credentials",
       wecomFieldsBody:
         "Four fields from your WeCom admin console: Corp ID (your enterprise identifier), App Secret (API authentication key), Token and Encoding AES Key (for webhook callback verification). You can find these in the WeCom customer service management console under callback configuration.",
@@ -2461,7 +2462,7 @@ export default {
         "This card shows your identity and subscription at a glance — avatar, name, email, plan badge, membership date, validity period, and LLM usage quotas.",
       identityTitle: "Your Identity",
       identityBody:
-        "Your avatar (generated from your name initial), display name, and email address. The email is the one you used to sign up or log in to EasyClaw.",
+        "Your avatar (generated from your name initial), display name, and email address. The email is the one you used to sign up or log in to TK Copilot.",
       logoutTitle: "Log Out",
       logoutBody:
         "Click this button to sign out of your account. You will be redirected to the home page. Features that require authentication will not be accessible until you log in again.",
@@ -2470,7 +2471,7 @@ export default {
         "Shows which subscription plan you are on (e.g., Free, Pro, Enterprise). Your plan determines the features, tool access, and usage limits available to you.",
       memberSinceTitle: "Member Since",
       memberSinceBody:
-        "The date when your account was created. This helps you track how long you have been using EasyClaw.",
+        "The date when your account was created. This helps you track how long you have been using TK Copilot.",
       validUntilTitle: "Valid Until",
       validUntilBody:
         "The expiration date of your current subscription. Keep an eye on this to avoid service interruption. If no subscription is active, a dash is shown.",
@@ -2524,7 +2525,7 @@ export default {
         "These chips show which tools are selected in this run profile. If a tool is no longer in the parent surface's allowed list, it appears with a warning icon — it will be ignored at runtime until the surface is updated.",
       modulesSectionTitle: "Feature Modules",
       modulesSectionBody:
-        "Modules are optional feature packs that extend EasyClaw with specialized capabilities. Each module unlocks additional tools, pages, and integrations tailored to a specific workflow. Enable or disable modules here to customize your workspace.",
+        "Modules are optional feature packs that extend TK Copilot with specialized capabilities. Each module unlocks additional tools, pages, and integrations tailored to a specific workflow. Enable or disable modules here to customize your workspace.",
       moduleItemTitle: "Module Toggle",
       moduleItemBody:
         "Each module card shows its name, description, and a toggle switch. Flip the toggle on to enroll in the module — this activates its tools and UI sections across the app. Flip it off to unenroll and hide module-specific features. Changes take effect immediately.",
@@ -2832,7 +2833,7 @@ export default {
     needsAttention: "Needs attention",
     adsReadyShops: "Ads-ready shops",
     authSeparationHint:
-      "TikTok Ads access is granted through Business/Ads Manager. EasyClaw only manages stores that are also authorized as TikTok Shops.",
+      "TikTok Ads access is granted through Business/Ads Manager. TK Copilot only manages stores that are also authorized as TikTok Shops.",
     businessAccountHint:
       "After connecting ad accounts, review which authorized shops are covered by advertising access.",
     advertiserTableTitle: "Advertising Accounts",
@@ -2855,7 +2856,7 @@ export default {
     currentGmvMaxAccount: "Current GMV Max",
     gmvMaxAvailable: "GMV Max available",
     currentGmvMaxUnknown: "Current authorized account pending sync",
-    unonboardedStoreCount: "{{count}} ad-account shop(s) are not connected in EasyClaw",
+    unonboardedStoreCount: "{{count}} ad-account shop(s) are not connected in TK Copilot",
     noShops: "No shops connected yet.",
     loadFailed: "Failed to load Ads management data.",
     oauthModalTitle: "Connect TikTok Ads",
@@ -3364,7 +3365,7 @@ export default {
       jumpToPage: "Go to",
       markStaffHandled: "Handled on platform",
       staffActionHandled: "Marked as handled",
-      staffActionHandledNote: "Staff handled this affiliate collaboration work outside RivonClaw.",
+      staffActionHandledNote: "Staff handled this affiliate collaboration work outside TK Copilot.",
       mlInsightsTitle: "Affiliate Intelligence",
       mlInsightsHint:
         "See where the model can discover more productive creators and how it compares with historical staff selection.",
@@ -4846,7 +4847,7 @@ export default {
     upgradeRequired: "This feature requires a subscription. Please upgrade your plan.",
     llmUnavailableTitle: "AI model unavailable",
     llmUnavailableBody:
-      "No active AI model key is available. Renew RivonClaw AI, or add and activate an API key in Models.",
+      "No active AI model key is available. Renew TK Copilot AI, or add and activate an API key in Models.",
     customerServiceRoutingUnavailableTitle:
       "AI customer service escalation is unavailable on this device",
     customerServiceRoutingUnavailableBody:

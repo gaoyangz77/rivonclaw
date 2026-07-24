@@ -1,10 +1,10 @@
-; Custom NSIS macros for RivonClaw installer (included via electron-builder).
+; Custom NSIS macros for TK Copilot installer (included via electron-builder).
 ;
-; The gateway child process runs as RivonClaw.exe (with ELECTRON_RUN_AS_NODE=1,
+; The gateway child process runs as TK Copilot.exe (with ELECTRON_RUN_AS_NODE=1,
 ; detached=true) and can survive after the user quits the main Electron app.
 ; When the user manually reinstalls/upgrades, the default NSIS logic detects
 ; orphaned processes or the old uninstaller fails due to file locks, showing
-; a blocking "RivonClaw cannot be closed" dialog.
+; a blocking "TK Copilot cannot be closed" dialog.
 ;
 ; We use four hooks to prevent this:
 ;   1. customInit            — kill processes + nuke old uninstaller registry
@@ -15,9 +15,11 @@
 ;   6. customUnInstall       — remove the user-level CLI shim
 
 ; ---------------------------------------------------------------------------
-; Shared helper: kill all RivonClaw-related processes
+; Shared helper: kill current and pre-rebrand processes
 ; ---------------------------------------------------------------------------
 !macro _killRivonClawProcesses
+  nsExec::ExecToLog 'taskkill /f /im "TK Copilot.exe"'
+  Pop $0
   nsExec::ExecToLog 'taskkill /f /im RivonClaw.exe'
   Pop $0
   ; Also kill pre-rebrand EasyClaw processes (upgrade from old version).
@@ -44,9 +46,9 @@
   FileWrite $0 "@echo off$\r$\n"
   FileWrite $0 "setlocal$\r$\n"
   FileWrite $0 "set $\"ELECTRON_RUN_AS_NODE=1$\"$\r$\n"
-  FileWrite $0 "set $\"RIVONCLAW_ELECTRON_BIN=$INSTDIR\RivonClaw.exe$\"$\r$\n"
+  FileWrite $0 "set $\"RIVONCLAW_ELECTRON_BIN=$INSTDIR\TK Copilot.exe$\"$\r$\n"
   FileWrite $0 "set $\"RIVONCLAW_DESKTOP_USER_DATA=$APPDATA\@easyclaw\desktop$\"$\r$\n"
-  FileWrite $0 "$\"$INSTDIR\RivonClaw.exe$\" $\"$INSTDIR\resources\cli\openclaw-launcher.cjs$\" %*$\r$\n"
+  FileWrite $0 "$\"$INSTDIR\TK Copilot.exe$\" $\"$INSTDIR\resources\cli\openclaw-launcher.cjs$\" %*$\r$\n"
   FileWrite $0 "exit /b %ERRORLEVEL%$\r$\n"
   FileClose $0
 
@@ -116,6 +118,12 @@
 ; ---------------------------------------------------------------------------
 !macro customInstall
   !insertmacro _installOpenClawCliShim
+  ; electron-builder creates the new TK Copilot shortcuts. Remove shortcuts
+  ; left by the two historical display names after a successful upgrade.
+  Delete "$DESKTOP\RivonClaw.lnk"
+  Delete "$DESKTOP\EasyClaw.lnk"
+  Delete "$SMPROGRAMS\RivonClaw.lnk"
+  Delete "$SMPROGRAMS\EasyClaw.lnk"
 !macroend
 
 ; ---------------------------------------------------------------------------
@@ -154,4 +162,8 @@
 !macro customUnInstall
   SetShellVarContext current
   Delete "$LOCALAPPDATA\RivonClaw\bin\openclaw.cmd"
+  Delete "$DESKTOP\RivonClaw.lnk"
+  Delete "$DESKTOP\EasyClaw.lnk"
+  Delete "$SMPROGRAMS\RivonClaw.lnk"
+  Delete "$SMPROGRAMS\EasyClaw.lnk"
 !macroend

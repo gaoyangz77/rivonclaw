@@ -25,7 +25,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "Restart Gateway",
     checkForUpdates: "Check for Updates",
     updateAvailable: "Update Available: v{{version}}",
-    quit: "Quit RivonClaw",
+    quit: "Quit TK Copilot",
   },
   zh: {
     state: {
@@ -38,7 +38,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "重启网关",
     checkForUpdates: "检查更新",
     updateAvailable: "有新版本: v{{version}}",
-    quit: "退出爪爪",
+    quit: "退出 TK匠",
   },
   de: {
     state: {
@@ -51,7 +51,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "Gateway neu starten",
     checkForUpdates: "Nach Updates suchen",
     updateAvailable: "Update verfügbar: v{{version}}",
-    quit: "RivonClaw beenden",
+    quit: "TK Copilot beenden",
   },
   es: {
     state: {
@@ -64,7 +64,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "Reiniciar gateway",
     checkForUpdates: "Buscar actualizaciones",
     updateAvailable: "Actualización disponible: v{{version}}",
-    quit: "Salir de RivonClaw",
+    quit: "Salir de TK Copilot",
   },
   fr: {
     state: {
@@ -77,7 +77,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "Redémarrer le gateway",
     checkForUpdates: "Rechercher des mises à jour",
     updateAvailable: "Mise à jour disponible : v{{version}}",
-    quit: "Quitter RivonClaw",
+    quit: "Quitter TK Copilot",
   },
   id: {
     state: {
@@ -90,7 +90,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "Mulai ulang Gateway",
     checkForUpdates: "Periksa pembaruan",
     updateAvailable: "Pembaruan tersedia: v{{version}}",
-    quit: "Keluar dari RivonClaw",
+    quit: "Keluar dari TK Copilot",
   },
   it: {
     state: {
@@ -103,7 +103,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "Riavvia gateway",
     checkForUpdates: "Controlla aggiornamenti",
     updateAvailable: "Aggiornamento disponibile: v{{version}}",
-    quit: "Esci da RivonClaw",
+    quit: "Esci da TK Copilot",
   },
   th: {
     state: {
@@ -116,7 +116,7 @@ const LABELS: Record<string, TrayLabels> = {
     restartGateway: "รีสตาร์ท Gateway",
     checkForUpdates: "ตรวจหาการอัปเดต",
     updateAvailable: "มีอัปเดต: v{{version}}",
-    quit: "ออกจาก RivonClaw",
+    quit: "ออกจาก TK Copilot",
   },
 };
 

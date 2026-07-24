@@ -267,7 +267,11 @@ export const ProvidersPage = observer(function ProvidersPage() {
                           {k.provider === "rivonclaw-pro" && (
                             <span className="provider-crown" aria-label="Premium">👑</span>
                           )}
-                          {k.authType === "custom" ? k.label : t(`providers.label_${k.provider}`)}
+                          {k.provider === "rivonclaw-pro"
+                            ? t("providers.label_rivonclaw-pro")
+                            : k.authType === "custom"
+                              ? k.label
+                              : t(`providers.label_${k.provider}`)}
                         </strong>
                         {k.provider !== "rivonclaw-pro" && (
                           <span className="badge badge-muted">
@@ -303,7 +307,11 @@ export const ProvidersPage = observer(function ProvidersPage() {
                     )}
                   </div>
                   <div className="key-details">
-                        {editingLabelId === k.id ? (
+                        {k.provider === "rivonclaw-pro" ? (
+                          <span className="key-label">
+                            {t("providers.label_rivonclaw-pro")}
+                          </span>
+                        ) : editingLabelId === k.id ? (
                           <input
                             className="key-label-input"
                             value={editLabelValue}

@@ -146,7 +146,7 @@ describe("panel-server API", () => {
       storage.providerKeys.create({
         id: "cloud-catalog-test",
         provider: "rivonclaw-pro",
-        label: "RivonClaw AI",
+        label: "TK Copilot AI",
         model: "rivonclaw-flagship",
         isDefault: true,
         authType: "custom",

@@ -8,7 +8,7 @@ export const LEGACY_I18N_BACKFILL = {
       "adsReadyShops": "Anzeigenbereite Shops",
       "advertiserTableSubtitle": "Verbinden Sie TikTok Business oder Ads Manager, dann synchronisiert Airflow Kampagnen-, Anzeigengruppen-, Anzeigen- und GMV Max-Berichtsdaten dieser Werbetreibenden.",
       "advertiserTableTitle": "Werbekonten",
-      "authSeparationHint": "Der Zugriff auf TikTok Ads wird über den Business/Ads Manager gewährt. EasyClaw verwaltet nur Shops, die auch als TikTok Shops autorisiert sind.",
+      "authSeparationHint": "Der Zugriff auf TikTok Ads wird über den Business/Ads Manager gewährt. TK Copilot verwaltet nur Shops, die auch als TikTok Shops autorisiert sind.",
       "authStatus": {
         "AUTHORIZED": "Autorisiert",
         "DISCONNECTED": "Getrennt",
@@ -17,7 +17,7 @@ export const LEGACY_I18N_BACKFILL = {
       },
       "authorizedAdvertisers": "Autorisiert",
       "needsAttention": "Benötigt Aufmerksamkeit",
-      "businessAccountHint": "Die TikTok Ads-Autorisierung gewährt Werbetreibenden Zugriff. Die Store-Abdeckung ist nur dann umsetzbar, wenn ein für den Werbetreibenden sichtbarer Store einem von EasyClaw autorisierten Shop zugeordnet ist.",
+      "businessAccountHint": "Die TikTok Ads-Autorisierung gewährt Werbetreibenden Zugriff. Die Store-Abdeckung ist nur dann umsetzbar, wenn ein für den Werbetreibenden sichtbarer Store einem von TK Copilot autorisierten Shop zugeordnet ist.",
       "columns": {
         "actions": "Aktionen",
         "advertiserId": "Werbetreibenden-ID",
@@ -83,7 +83,7 @@ export const LEGACY_I18N_BACKFILL = {
       "subtitle": "Verbinden Sie den TikTok Business-Zugang und überprüfen Sie, welche autorisierten Shops von diesen Werbekonten abgedeckt werden.",
       "title": "TikTok-Anzeigenverwaltung",
       "totalAdvertisers": "Werbekonten",
-      "unonboardedStoreCount": "Für Werbetreibende sichtbare {{count}}-Shops sind nicht in EasyClaw integriert",
+      "unonboardedStoreCount": "Für Werbetreibende sichtbare {{count}}-Shops sind nicht in TK Copilot integriert",
       "waitingAuth": "Warten auf die Autorisierung für TikTok Ads..."
     },
     "common": {
@@ -320,11 +320,11 @@ export const LEGACY_I18N_BACKFILL = {
         "actionsTitle": "Verbinden und aktualisieren",
         "advertisersBody": "Jede Zeile ist ein Werbetreibender, der über die TikTok Business-Autorisierung verfügbar ist, einschließlich Rolle, Token-Status und sichtbarer Store-Anzahl.",
         "advertisersTitle": "Werbekonten",
-        "shopCoverageBody": "Nur Shops, die bereits in EasyClaw autorisiert sind, werden strafbar. Für Werbetreibende sichtbare Shops, die nicht integriert sind, dienen weiterhin der Information.",
+        "shopCoverageBody": "Nur Shops, die bereits in TK Copilot autorisiert sind, werden strafbar. Für Werbetreibende sichtbare Shops, die nicht integriert sind, dienen weiterhin der Information.",
         "shopCoverageTitle": "Verwaltete Shop-Abdeckung",
-        "summaryBody": "Diese Zähler trennen autorisierte Werbetreibende von Shops, die tatsächlich in EasyClaw verwaltet werden können.",
+        "summaryBody": "Diese Zähler trennen autorisierte Werbetreibende von Shops, die tatsächlich in TK Copilot verwaltet werden können.",
         "summaryTitle": "Zusammenfassung der Abdeckung",
-        "welcomeBody": "Diese Seite verbindet den TikTok Business-Zugang und zeigt, welche von EasyClaw autorisierten Shops durch für Werbetreibende sichtbare Shops abgedeckt sind.",
+        "welcomeBody": "Diese Seite verbindet den TikTok Business-Zugang und zeigt, welche von TK Copilot autorisierten Shops durch für Werbetreibende sichtbare Shops abgedeckt sind.",
         "welcomeTitle": "TikTok-Anzeigen"
       },
       "billing": {
@@ -416,7 +416,7 @@ export const LEGACY_I18N_BACKFILL = {
       "adsReadyShops": "Tiendas listas para anuncios",
       "advertiserTableSubtitle": "Conecte TikTok Business o Ads Manager y luego Airflow sincroniza los datos de informes de campañas, grupos de anuncios, anuncios y GMV Max de estos anunciantes.",
       "advertiserTableTitle": "Cuentas publicitarias",
-      "authSeparationHint": "El acceso a TikTok Ads se otorga a través de Business/Ads Manager. EasyClaw sólo gestiona tiendas que también estén autorizadas como TikTok Shops.",
+      "authSeparationHint": "El acceso a TikTok Ads se otorga a través de Business/Ads Manager. TK Copilot sólo gestiona tiendas que también estén autorizadas como TikTok Shops.",
       "authStatus": {
         "AUTHORIZED": "Autorizado",
         "DISCONNECTED": "Desconectado",
@@ -425,7 +425,7 @@ export const LEGACY_I18N_BACKFILL = {
       },
       "authorizedAdvertisers": "Autorizado",
       "needsAttention": "Requiere atención",
-      "businessAccountHint": "La autorización de TikTok Ads otorga acceso al anunciante. La cobertura de la tienda es procesable solo cuando una tienda visible para el anunciante se asigna a una tienda autorizada por EasyClaw.",
+      "businessAccountHint": "La autorización de TikTok Ads otorga acceso al anunciante. La cobertura de la tienda es procesable solo cuando una tienda visible para el anunciante se asigna a una tienda autorizada por TK Copilot.",
       "columns": {
         "actions": "Comportamiento",
         "advertiserId": "ID de anunciante",
@@ -491,7 +491,7 @@ export const LEGACY_I18N_BACKFILL = {
       "subtitle": "Conecte el acceso a TikTok Business y verifique qué tiendas autorizadas están cubiertas por esas cuentas publicitarias.",
       "title": "Gestión de anuncios de TikTok",
       "totalAdvertisers": "Cuentas publicitarias",
-      "unonboardedStoreCount": "Las tiendas {{count}} visibles para el anunciante no están incorporadas en EasyClaw",
+      "unonboardedStoreCount": "Las tiendas {{count}} visibles para el anunciante no están incorporadas en TK Copilot",
       "waitingAuth": "Esperando autorización de TikTok Ads..."
     },
     "common": {
@@ -728,11 +728,11 @@ export const LEGACY_I18N_BACKFILL = {
         "actionsTitle": "Conectar y actualizar",
         "advertisersBody": "Cada fila es un anunciante disponible a través de la autorización de TikTok Business, incluida la función, el estado del token y el recuento de tiendas visibles.",
         "advertisersTitle": "Cuentas publicitarias",
-        "shopCoverageBody": "Sólo los comercios ya autorizados en EasyClaw pasan a ser procesables. Las tiendas visibles para los anunciantes que no están incorporadas siguen siendo informativas.",
+        "shopCoverageBody": "Sólo los comercios ya autorizados en TK Copilot pasan a ser procesables. Las tiendas visibles para los anunciantes que no están incorporadas siguen siendo informativas.",
         "shopCoverageTitle": "Cobertura de tienda administrada",
-        "summaryBody": "Estos contadores separan a los anunciantes autorizados de las tiendas que realmente se pueden gestionar en EasyClaw.",
+        "summaryBody": "Estos contadores separan a los anunciantes autorizados de las tiendas que realmente se pueden gestionar en TK Copilot.",
         "summaryTitle": "Resumen de cobertura",
-        "welcomeBody": "Esta página conecta el acceso a TikTok Business y muestra qué tiendas autorizadas por EasyClaw están cubiertas por tiendas visibles para los anunciantes.",
+        "welcomeBody": "Esta página conecta el acceso a TikTok Business y muestra qué tiendas autorizadas por TK Copilot están cubiertas por tiendas visibles para los anunciantes.",
         "welcomeTitle": "Anuncios de TikTok"
       },
       "billing": {
@@ -824,7 +824,7 @@ export const LEGACY_I18N_BACKFILL = {
       "adsReadyShops": "Boutiques prêtes pour la publicité",
       "advertiserTableSubtitle": "Connectez TikTok Business ou Ads Manager, puis Airflow synchronise les données de campagne, de groupe d'annonces, d'annonces et de rapport GMV Max de ces annonceurs.",
       "advertiserTableTitle": "Comptes publicitaires",
-      "authSeparationHint": "L’accès à TikTok Ads est accordé via Business/Ads Manager. EasyClaw gère uniquement les magasins également autorisés en tant que boutiques TikTok.",
+      "authSeparationHint": "L’accès à TikTok Ads est accordé via Business/Ads Manager. TK Copilot gère uniquement les magasins également autorisés en tant que boutiques TikTok.",
       "authStatus": {
         "AUTHORIZED": "Autorisé",
         "DISCONNECTED": "Déconnecté",
@@ -833,7 +833,7 @@ export const LEGACY_I18N_BACKFILL = {
       },
       "authorizedAdvertisers": "Autorisé",
       "needsAttention": "À traiter",
-      "businessAccountHint": "L’autorisation TikTok Ads accorde l’accès aux annonceurs. La couverture du magasin n'est exploitable que lorsqu'un magasin visible par l'annonceur correspond à un magasin autorisé par EasyClaw.",
+      "businessAccountHint": "L’autorisation TikTok Ads accorde l’accès aux annonceurs. La couverture du magasin n'est exploitable que lorsqu'un magasin visible par l'annonceur correspond à un magasin autorisé par TK Copilot.",
       "columns": {
         "actions": "Actes",
         "advertiserId": "Numéro d'annonceur",
@@ -899,7 +899,7 @@ export const LEGACY_I18N_BACKFILL = {
       "subtitle": "Connectez l'accès TikTok Business et vérifiez quels magasins autorisés sont couverts par ces comptes publicitaires.",
       "title": "Gestion des publicités TikTok",
       "totalAdvertisers": "Comptes publicitaires",
-      "unonboardedStoreCount": "Les magasins {{count}} visibles par les annonceurs ne sont pas intégrés dans EasyClaw",
+      "unonboardedStoreCount": "Les magasins {{count}} visibles par les annonceurs ne sont pas intégrés dans TK Copilot",
       "waitingAuth": "En attente de l'autorisation de TikTok Ads..."
     },
     "common": {
@@ -1136,11 +1136,11 @@ export const LEGACY_I18N_BACKFILL = {
         "actionsTitle": "Connectez-vous et actualisez",
         "advertisersBody": "Chaque ligne correspond à un annonceur disponible via l'autorisation TikTok Business, y compris le rôle, le statut du jeton et le nombre de magasins visibles.",
         "advertisersTitle": "Comptes publicitaires",
-        "shopCoverageBody": "Seules les boutiques déjà autorisées dans EasyClaw deviennent exploitables. Les magasins visibles par les annonceurs qui ne sont pas intégrés restent informatifs.",
+        "shopCoverageBody": "Seules les boutiques déjà autorisées dans TK Copilot deviennent exploitables. Les magasins visibles par les annonceurs qui ne sont pas intégrés restent informatifs.",
         "shopCoverageTitle": "Couverture gérée de la boutique",
-        "summaryBody": "Ces compteurs séparent les annonceurs autorisés des boutiques qui peuvent réellement être gérées dans EasyClaw.",
+        "summaryBody": "Ces compteurs séparent les annonceurs autorisés des boutiques qui peuvent réellement être gérées dans TK Copilot.",
         "summaryTitle": "Résumé de la couverture",
-        "welcomeBody": "Cette page connecte l'accès à TikTok Business et indique quelles boutiques autorisées EasyClaw sont couvertes par les boutiques visibles par les annonceurs.",
+        "welcomeBody": "Cette page connecte l'accès à TikTok Business et indique quelles boutiques autorisées TK Copilot sont couvertes par les boutiques visibles par les annonceurs.",
         "welcomeTitle": "Publicités TikTok"
       },
       "billing": {
@@ -1232,7 +1232,7 @@ export const LEGACY_I18N_BACKFILL = {
       "adsReadyShops": "Toko yang siap beriklan",
       "advertiserTableSubtitle": "Hubungkan TikTok Business atau Manajer Iklan, lalu Airflow menyinkronkan kampanye, grup iklan, iklan, dan data pelaporan GMV Max dari pengiklan ini.",
       "advertiserTableTitle": "Akun Periklanan",
-      "authSeparationHint": "Akses Iklan TikTok diberikan melalui Manajer Bisnis/Iklan. EasyClaw hanya mengelola toko yang juga resmi sebagai Toko TikTok.",
+      "authSeparationHint": "Akses Iklan TikTok diberikan melalui Manajer Bisnis/Iklan. TK Copilot hanya mengelola toko yang juga resmi sebagai Toko TikTok.",
       "authStatus": {
         "AUTHORIZED": "Resmi",
         "DISCONNECTED": "Terputus",
@@ -1241,7 +1241,7 @@ export const LEGACY_I18N_BACKFILL = {
       },
       "authorizedAdvertisers": "Resmi",
       "needsAttention": "Perlu perhatian",
-      "businessAccountHint": "Otorisasi Iklan TikTok memberikan akses kepada pengiklan. Cakupan toko hanya dapat ditindaklanjuti ketika toko yang terlihat oleh pengiklan dipetakan kembali ke toko resmi EasyClaw.",
+      "businessAccountHint": "Otorisasi Iklan TikTok memberikan akses kepada pengiklan. Cakupan toko hanya dapat ditindaklanjuti ketika toko yang terlihat oleh pengiklan dipetakan kembali ke toko resmi TK Copilot.",
       "columns": {
         "actions": "Tindakan",
         "advertiserId": "ID Pengiklan",
@@ -1307,7 +1307,7 @@ export const LEGACY_I18N_BACKFILL = {
       "subtitle": "Hubungkan akses TikTok Business dan verifikasi toko resmi mana yang dicakup oleh akun iklan tersebut.",
       "title": "Manajemen Iklan TikTok",
       "totalAdvertisers": "Akun iklan",
-      "unonboardedStoreCount": "Toko {{count}} yang terlihat oleh pengiklan tidak disertakan di EasyClaw",
+      "unonboardedStoreCount": "Toko {{count}} yang terlihat oleh pengiklan tidak disertakan di TK Copilot",
       "waitingAuth": "Menunggu otorisasi Iklan TikTok..."
     },
     "common": {
@@ -1544,11 +1544,11 @@ export const LEGACY_I18N_BACKFILL = {
         "actionsTitle": "Hubungkan dan Segarkan",
         "advertisersBody": "Setiap baris adalah pengiklan yang tersedia melalui otorisasi TikTok Business, termasuk peran, status token, dan jumlah toko yang terlihat.",
         "advertisersTitle": "Akun Periklanan",
-        "shopCoverageBody": "Hanya toko yang sudah diotorisasi di EasyClaw yang dapat ditindaklanjuti. Toko yang terlihat oleh pengiklan yang tidak disertakan tetap bersifat informatif.",
+        "shopCoverageBody": "Hanya toko yang sudah diotorisasi di TK Copilot yang dapat ditindaklanjuti. Toko yang terlihat oleh pengiklan yang tidak disertakan tetap bersifat informatif.",
         "shopCoverageTitle": "Cakupan Toko Terkelola",
-        "summaryBody": "Penghitung ini memisahkan pengiklan resmi dari toko yang sebenarnya dapat dikelola di EasyClaw.",
+        "summaryBody": "Penghitung ini memisahkan pengiklan resmi dari toko yang sebenarnya dapat dikelola di TK Copilot.",
         "summaryTitle": "Ringkasan Cakupan",
-        "welcomeBody": "Halaman ini menghubungkan akses TikTok Business dan menunjukkan toko resmi EasyClaw mana yang dicakup oleh toko yang terlihat oleh pengiklan.",
+        "welcomeBody": "Halaman ini menghubungkan akses TikTok Business dan menunjukkan toko resmi TK Copilot mana yang dicakup oleh toko yang terlihat oleh pengiklan.",
         "welcomeTitle": "Iklan TikTok"
       },
       "billing": {
@@ -1640,7 +1640,7 @@ export const LEGACY_I18N_BACKFILL = {
       "adsReadyShops": "Negozi pronti per gli annunci",
       "advertiserTableSubtitle": "Collega TikTok Business o Gestione annunci, quindi Airflow sincronizza i dati della campagna, del gruppo di annunci, dell'annuncio e dei rapporti GMV Max di questi inserzionisti.",
       "advertiserTableTitle": "Conti pubblicitari",
-      "authSeparationHint": "L'accesso a TikTok Ads viene concesso tramite Business/Ads Manager. EasyClaw gestisce solo negozi autorizzati anche come TikTok Shops.",
+      "authSeparationHint": "L'accesso a TikTok Ads viene concesso tramite Business/Ads Manager. TK Copilot gestisce solo negozi autorizzati anche come TikTok Shops.",
       "authStatus": {
         "AUTHORIZED": "Autorizzato",
         "DISCONNECTED": "Disconnesso",
@@ -1649,7 +1649,7 @@ export const LEGACY_I18N_BACKFILL = {
       },
       "authorizedAdvertisers": "Autorizzato",
       "needsAttention": "Richiede attenzione",
-      "businessAccountHint": "L'autorizzazione di TikTok Ads garantisce l'accesso all'inserzionista. La copertura del negozio è utilizzabile solo quando un negozio visibile dall'inserzionista corrisponde a un negozio autorizzato da EasyClaw.",
+      "businessAccountHint": "L'autorizzazione di TikTok Ads garantisce l'accesso all'inserzionista. La copertura del negozio è utilizzabile solo quando un negozio visibile dall'inserzionista corrisponde a un negozio autorizzato da TK Copilot.",
       "columns": {
         "actions": "Azioni",
         "advertiserId": "ID inserzionista",
@@ -1715,7 +1715,7 @@ export const LEGACY_I18N_BACKFILL = {
       "subtitle": "Connetti l'accesso a TikTok Business e verifica quali negozi autorizzati sono coperti da tali account pubblicitari.",
       "title": "Gestione degli annunci TikTok",
       "totalAdvertisers": "Account pubblicitari",
-      "unonboardedStoreCount": "I negozi {{count}} visibili agli inserzionisti non sono integrati in EasyClaw",
+      "unonboardedStoreCount": "I negozi {{count}} visibili agli inserzionisti non sono integrati in TK Copilot",
       "waitingAuth": "In attesa dell'autorizzazione per TikTok Ads..."
     },
     "common": {
@@ -1952,11 +1952,11 @@ export const LEGACY_I18N_BACKFILL = {
         "actionsTitle": "Connetti e aggiorna",
         "advertisersBody": "Ogni riga rappresenta un inserzionista disponibile tramite l'autorizzazione TikTok Business, inclusi ruolo, stato del token e conteggio dei negozi visibili.",
         "advertisersTitle": "Conti pubblicitari",
-        "shopCoverageBody": "Solo i negozi già autorizzati in EasyClaw diventano perseguibili. I negozi visibili agli inserzionisti che non sono stati inseriti rimangono informativi.",
+        "shopCoverageBody": "Solo i negozi già autorizzati in TK Copilot diventano perseguibili. I negozi visibili agli inserzionisti che non sono stati inseriti rimangono informativi.",
         "shopCoverageTitle": "Copertura del negozio gestito",
-        "summaryBody": "Questi contatori separano gli inserzionisti autorizzati dai negozi che possono effettivamente essere gestiti in EasyClaw.",
+        "summaryBody": "Questi contatori separano gli inserzionisti autorizzati dai negozi che possono effettivamente essere gestiti in TK Copilot.",
         "summaryTitle": "Riepilogo della copertura",
-        "welcomeBody": "Questa pagina collega l'accesso a TikTok Business e mostra quali negozi autorizzati EasyClaw sono coperti dai negozi visibili agli inserzionisti.",
+        "welcomeBody": "Questa pagina collega l'accesso a TikTok Business e mostra quali negozi autorizzati TK Copilot sono coperti dai negozi visibili agli inserzionisti.",
         "welcomeTitle": "Annunci TikTok"
       },
       "billing": {
@@ -2048,7 +2048,7 @@ export const LEGACY_I18N_BACKFILL = {
       "adsReadyShops": "ร้านค้าพร้อมโฆษณา",
       "advertiserTableSubtitle": "เชื่อมต่อ TikTok Business หรือตัวจัดการโฆษณา จากนั้น Airflow จะซิงค์แคมเปญ กลุ่มโฆษณา โฆษณา และข้อมูลการรายงาน GMV Max จากผู้ลงโฆษณาเหล่านี้",
       "advertiserTableTitle": "บัญชีโฆษณา",
-      "authSeparationHint": "การเข้าถึงโฆษณา TikTok ได้รับอนุญาตผ่านตัวจัดการธุรกิจ/โฆษณา EasyClaw จัดการเฉพาะร้านค้าที่ได้รับอนุญาตเป็น TikTok Shops เท่านั้น",
+      "authSeparationHint": "การเข้าถึงโฆษณา TikTok ได้รับอนุญาตผ่านตัวจัดการธุรกิจ/โฆษณา TK Copilot จัดการเฉพาะร้านค้าที่ได้รับอนุญาตเป็น TikTok Shops เท่านั้น",
       "authStatus": {
         "AUTHORIZED": "ได้รับอนุญาต",
         "DISCONNECTED": "ตัดการเชื่อมต่อแล้ว",
@@ -2057,7 +2057,7 @@ export const LEGACY_I18N_BACKFILL = {
       },
       "authorizedAdvertisers": "ได้รับอนุญาต",
       "needsAttention": "ต้องตรวจสอบ",
-      "businessAccountHint": "การอนุญาตโฆษณา TikTok ให้สิทธิ์การเข้าถึงแก่ผู้ลงโฆษณา ความครอบคลุมของร้านค้าจะดำเนินการได้ก็ต่อเมื่อร้านค้าที่ผู้ลงโฆษณามองเห็นได้แม็ปกลับไปยังร้านค้าที่ได้รับอนุญาตจาก EasyClaw เท่านั้น",
+      "businessAccountHint": "การอนุญาตโฆษณา TikTok ให้สิทธิ์การเข้าถึงแก่ผู้ลงโฆษณา ความครอบคลุมของร้านค้าจะดำเนินการได้ก็ต่อเมื่อร้านค้าที่ผู้ลงโฆษณามองเห็นได้แม็ปกลับไปยังร้านค้าที่ได้รับอนุญาตจาก TK Copilot เท่านั้น",
       "columns": {
         "actions": "การดำเนินการ",
         "advertiserId": "รหัสผู้ลงโฆษณา",
@@ -2123,7 +2123,7 @@ export const LEGACY_I18N_BACKFILL = {
       "subtitle": "เชื่อมต่อการเข้าถึง TikTok Business และตรวจสอบว่าร้านค้าที่ได้รับอนุญาตแห่งใดอยู่ภายใต้บัญชีโฆษณาเหล่านั้น",
       "title": "การจัดการโฆษณา TikTok",
       "totalAdvertisers": "บัญชีโฆษณา",
-      "unonboardedStoreCount": "ร้านค้าที่ผู้ลงโฆษณามองเห็น {{count}} ไม่ได้เปิดใช้งานใน EasyClaw",
+      "unonboardedStoreCount": "ร้านค้าที่ผู้ลงโฆษณามองเห็น {{count}} ไม่ได้เปิดใช้งานใน TK Copilot",
       "waitingAuth": "กำลังรอการอนุญาตโฆษณา TikTok..."
     },
     "common": {
@@ -2360,11 +2360,11 @@ export const LEGACY_I18N_BACKFILL = {
         "actionsTitle": "เชื่อมต่อและรีเฟรช",
         "advertisersBody": "แต่ละแถวคือผู้ลงโฆษณาที่พร้อมให้บริการผ่านการอนุญาตของ TikTok Business รวมถึงบทบาท สถานะโทเค็น และจำนวนร้านค้าที่มองเห็นได้",
         "advertisersTitle": "บัญชีโฆษณา",
-        "shopCoverageBody": "เฉพาะร้านค้าที่ได้รับอนุญาตใน EasyClaw เท่านั้นที่สามารถดำเนินการได้ ร้านค้าที่ผู้ลงโฆษณามองเห็นได้ซึ่งไม่ได้เริ่มต้นระบบจะยังคงให้ข้อมูลอยู่",
+        "shopCoverageBody": "เฉพาะร้านค้าที่ได้รับอนุญาตใน TK Copilot เท่านั้นที่สามารถดำเนินการได้ ร้านค้าที่ผู้ลงโฆษณามองเห็นได้ซึ่งไม่ได้เริ่มต้นระบบจะยังคงให้ข้อมูลอยู่",
         "shopCoverageTitle": "ครอบคลุมร้านค้าที่ได้รับการจัดการ",
-        "summaryBody": "ตัวนับเหล่านี้จะแยกผู้โฆษณาที่ได้รับอนุญาตออกจากร้านค้าที่สามารถจัดการได้ใน EasyClaw",
+        "summaryBody": "ตัวนับเหล่านี้จะแยกผู้โฆษณาที่ได้รับอนุญาตออกจากร้านค้าที่สามารถจัดการได้ใน TK Copilot",
         "summaryTitle": "สรุปความคุ้มครอง",
-        "welcomeBody": "หน้านี้เชื่อมโยงการเข้าถึง TikTok Business และแสดงให้เห็นว่าร้านค้าที่ได้รับอนุญาตจาก EasyClaw แห่งใดบ้างที่อยู่ภายใต้ร้านค้าที่ผู้ลงโฆษณามองเห็นได้",
+        "welcomeBody": "หน้านี้เชื่อมโยงการเข้าถึง TikTok Business และแสดงให้เห็นว่าร้านค้าที่ได้รับอนุญาตจาก TK Copilot แห่งใดบ้างที่อยู่ภายใต้ร้านค้าที่ผู้ลงโฆษณามองเห็นได้",
         "welcomeTitle": "โฆษณาติ๊กต๊อก"
       },
       "billing": {

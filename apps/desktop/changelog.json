@@ -87,12 +87,12 @@
     "en": [
       "Refine shop collection hierarchy and clarify supported shop account coverage",
       "Improve affiliate team channels, BD agent context, and on-demand provider history",
-      "Localize RivonClaw help content and recover reply-session initialization conflicts"
+      "Localize TK Copilot help content and recover reply-session initialization conflicts"
     ],
     "zh": [
       "优化店铺 collection 层级，并明确支持的店铺账号覆盖范围",
       "改进达人团队渠道、BD agent 上下文和按需加载的 provider 历史",
-      "本地化 RivonClaw 帮助内容，并修复回复会话初始化冲突"
+      "本地化 TK匠 帮助内容，并修复回复会话初始化冲突"
     ]
   },
   {
@@ -631,13 +631,13 @@
     "version": "1.8.29",
     "date": "2026-06-03",
     "en": [
-      "Fix RivonClaw cloud model vision inputs so image-aware requests are routed with the expected payload shape",
-      "Keep desktop cloud-model calls aligned with the latest vision-capable RivonClaw API contract",
+      "Fix TK Copilot cloud model vision inputs so image-aware requests are routed with the expected payload shape",
+      "Keep desktop cloud-model calls aligned with the latest vision-capable TK Copilot API contract",
       "Refresh signed desktop release metadata for the production updater rollout"
     ],
     "zh": [
-      "修复 RivonClaw 云模型 vision input，确保带图片请求使用符合预期的 payload 结构",
-      "让桌面端云模型调用匹配最新支持视觉能力的 RivonClaw API 契约",
+      "修复 TK匠 云模型 vision input，确保带图片请求使用符合预期的 payload 结构",
+      "让桌面端云模型调用匹配最新支持视觉能力的 TK匠 API 契约",
       "刷新签名桌面发布元数据，用于 production updater 推送"
     ]
   },
@@ -731,12 +731,12 @@
     "en": [
       "Add server-driven desktop log upload so support can request current logs from signed-in clients when troubleshooting",
       "Expand panel tutorial coverage across billing, ecommerce, customer service, affiliate, and settings workflows",
-      "Refresh the desktop app description around RivonClaw as the AI Shop Manager for sellers"
+      "Refresh the desktop app description around TK Copilot as the AI Shop Manager for sellers"
     ],
     "zh": [
       "新增由服务端触发的桌面端日志上传能力，便于支持排查时请求已登录客户端上传当前日志",
       "扩展面板教程覆盖范围，补齐账单、电商、客服、达人协作和设置流程引导",
-      "更新桌面端应用描述，将 RivonClaw 定位为面向卖家的 AI Shop Manager"
+      "更新桌面端应用描述，将 TK匠 定位为面向卖家的 AI Shop Manager"
     ]
   },
   {
@@ -757,12 +757,12 @@
     "version": "1.8.20",
     "date": "2026-05-29",
     "en": [
-      "Improve first-party domain routing so desktop clients test the real RivonClaw API path before switching to the China relay",
+      "Improve first-party domain routing so desktop clients test the real TK Copilot API path before switching to the China relay",
       "Harden proxy-aware network handling with better redirect, loopback, and first-party domain coverage",
       "Keep release and update traffic on the correct global or relay endpoint based on runtime connectivity"
     ],
     "zh": [
-      "优化首方域名路由，桌面端会先验证真实 RivonClaw API 路径再切换到中国 relay",
+      "优化首方域名路由，桌面端会先验证真实 TK匠 API 路径再切换到中国 relay",
       "加固代理网络处理，补强重定向、本地回环地址和首方域名覆盖",
       "根据运行时连通性保持发布与更新流量走正确的全球或 relay 端点"
     ]
@@ -870,12 +870,12 @@
     "date": "2026-05-07",
     "en": [
       "Add cloud customer service and ecommerce relay flows to support online service handoff, signal routing, and creator-commerce workflows",
-      "Improve desktop stability by centralizing OpenClaw config writes and explicitly materializing RivonClaw plugin tools",
+      "Improve desktop stability by centralizing OpenClaw config writes and explicitly materializing TK Copilot plugin tools",
       "Fix multiple chat and account sync issues, including WeChat account state/recipient handling and codex model catalog updates"
     ],
     "zh": [
       "补上云端客服与电商 relay 流程，支持线上客服接管、信号转发和达人电商协作链路",
-      "加强桌面端稳定性，统一 OpenClaw 配置写入流程，并补齐 RivonClaw 插件工具加载",
+      "加强桌面端稳定性，统一 OpenClaw 配置写入流程，并补齐 TK匠 插件工具加载",
       "修复多项聊天与账号同步问题，包括微信账号状态、消息接收方识别，以及 Codex 模型列表更新"
     ]
   },
@@ -1217,14 +1217,14 @@
     "version": "1.7.3",
     "date": "2026-03-20",
     "en": [
-      "Auto-provision RivonClaw AI provider for Pro Plan users",
+      "Auto-provision TK Copilot AI provider for Pro Plan users",
       "Upgrade OpenClaw engine to v2026.3.13-1",
       "Restore skill page features (install, update, delete, refresh) lost during UI migration",
       "Fix startup delay: preload plugin-sdk to avoid 60s jiti babel transform",
       "Fix vendor build: plugin-sdk bundle and CI packaging"
     ],
     "zh": [
-      "Pro Plan 用户自动配置 RivonClaw AI 模型服务",
+      "Pro Plan 用户自动配置 TK匠 AI 模型服务",
       "升级 OpenClaw 引擎至 v2026.3.13-1",
       "修复界面迁移后技能页面缺失的安装、更新、删除、刷新功能",
       "修复启动延迟：预加载插件 SDK 避免 60 秒编译等待",
@@ -1283,7 +1283,7 @@
     "version": "1.7.0",
     "date": "2026-03-17",
     "en": [
-      "Rebrand to RivonClaw with automatic data migration from EasyClaw",
+      "Rebrand to TK Copilot with automatic data migration from TK Copilot",
       "First-launch system dependencies provisioner with China mirror support",
       "Hybrid OAuth flow for Gemini and OpenAI Codex subscriptions",
       "Display tool call arguments in collapsible chat panels",
@@ -1293,7 +1293,7 @@
       "Numerous CI, packaging, and stability fixes"
     ],
     "zh": [
-      "品牌升级为 RivonClaw，自动迁移 EasyClaw 数据",
+      "品牌升级为 TK匠，自动迁移 TK匠 数据",
       "首次启动自动安装系统依赖，支持国内镜像加速",
       "新增 Gemini 和 OpenAI Codex 订阅的混合 OAuth 登录",
       "聊天中可展开查看工具调用参数",
@@ -1343,7 +1343,7 @@
     "en": [
       "Fix proxy configuration not applying correctly to all network requests",
       "Fix OAuth token acquisition failing in packaged builds",
-      "Fix usage statistics not matching between RivonClaw and gateway providers",
+      "Fix usage statistics not matching between TK Copilot and gateway providers",
       "Fix dev-only files being included in extensions package"
     ],
     "zh": [
@@ -1603,14 +1603,14 @@
     "en": [
       "Auto-launch on login (start on boot) setting",
       "Smarter auto-updater with install-in-progress guard",
-      "New extensions: providers tool and RivonClaw tools",
+      "New extensions: providers tool and TK Copilot tools",
       "Fix truncated chat bubbles and auto-scroll after send",
       "Upgrade OpenClaw engine to v2026.2.23"
     ],
     "zh": [
       "支持开机自启动设置",
       "更智能的自动更新，安装过程中防止重复启动",
-      "新增扩展：服务商管理工具和 RivonClaw 工具集",
+      "新增扩展：服务商管理工具和 TK匠 工具集",
       "修复聊天气泡截断和发送后自动滚动问题",
       "升级 OpenClaw 引擎至 v2026.2.23"
     ]

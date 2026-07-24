@@ -417,7 +417,7 @@ async function installNodeWindowsFromChinaMirror(
     "  $sourceNode = Join-Path $sourceDir 'node.exe'",
     '  if (-not (Test-Path -LiteralPath $sourceNode)) { throw "Downloaded Node archive has an unexpected layout" }',
     "  if (Test-Path -LiteralPath $installDir) {",
-    '    if (-not (Test-Path -LiteralPath $managedMarker)) { throw "Node target directory already exists and is not managed by RivonClaw: $installDir" }',
+    '    if (-not (Test-Path -LiteralPath $managedMarker)) { throw "Node target directory already exists and is not managed by TK Copilot: $installDir" }',
     "    $backupDir = Join-Path $programsDir ('RivonClaw-node-backup-' + [IO.Path]::GetRandomFileName())",
     "    Move-Item -LiteralPath $installDir -Destination $backupDir",
     "  }",

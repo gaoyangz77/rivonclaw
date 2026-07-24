@@ -1,5 +1,5 @@
 appId: com.easyclaw.desktop
-productName: RivonClaw
+productName: TK Copilot
 
 directories:
   output: release
@@ -116,7 +116,7 @@ mac:
   signIgnore:
     - "extensions-merchant"
   notarize: false
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  artifactName: "TK-Copilot-${version}-${arch}.${ext}"
 dmg:
   background: build/dmg-background.png
   iconSize: 80

@@ -1693,7 +1693,7 @@ describe("cloud-graphql handler", () => {
         {
           id: "cloud-rivonclaw-pro",
           provider: "rivonclaw-pro",
-          label: "RivonClaw AI",
+          label: "TK Copilot AI",
           model: "gpt-5.5",
           isDefault: true,
           authType: "custom",

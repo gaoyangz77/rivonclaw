@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "main": "dist/main.cjs",
-  "author": "RivonClaw",
+  "author": "RIVON LLC",
   "homepage": "https://www.rivonclaw.com",
   "description": "The AI Shop Manager for Sellers",
   "scripts": {

@@ -7,7 +7,7 @@ extends: electron-builder.yml
 linux:
   icon: build/icon
   category: Utility
-  maintainer: RivonClaw
+  maintainer: RIVON LLC
   target:
     - target: AppImage
       arch:
@@ -17,10 +17,10 @@ linux:
         - x64
 
 appImage:
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  artifactName: "TK-Copilot-${version}-${arch}.${ext}"
 
 deb:
-  artifactName: "${productName}_${version}_${arch}.${ext}"
+  artifactName: "TK-Copilot_${version}_${arch}.${ext}"
   depends:
     - libgtk-3-0
     - libnotify4
