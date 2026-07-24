@@ -1,8 +1,15 @@
-import { routeFirstPartyUrl } from "@rivonclaw/core";
+import { getFirstPartyDomainRoute } from "@rivonclaw/core";
+
+const GLOBAL_WEBSITE_ORIGIN = "https://www.tkcopilot.com";
+const CN_WEBSITE_ORIGIN = "https://www.tkjiang.cn";
 
 function firstPartyWebUrl(path: string): string {
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-    return routeFirstPartyUrl(`https://www.rivonclaw.com${normalizedPath}`).toString();
+    const origin =
+        getFirstPartyDomainRoute() === "cn-relay"
+            ? CN_WEBSITE_ORIGIN
+            : GLOBAL_WEBSITE_ORIGIN;
+    return new URL(normalizedPath, origin).toString();
 }
 
 /**
