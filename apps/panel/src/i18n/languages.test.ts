@@ -20,7 +20,9 @@ function flattenValues(value: unknown, prefix = ""): Record<string, string> {
 
   return Object.assign(
     {},
-    ...Object.entries(value).map(([key, child]) => flattenValues(child, prefix ? `${prefix}.${key}` : key)),
+    ...Object.entries(value).map(([key, child]) =>
+      flattenValues(child, prefix ? `${prefix}.${key}` : key),
+    ),
   );
 }
 
@@ -63,6 +65,19 @@ describe("panel i18n resources", () => {
           interpolationVariables(languageValues[key] ?? ""),
           `${language.code} ${key} interpolation variables`,
         ).toEqual(interpolationVariables(baseValue));
+      }
+    }
+  });
+
+  it("uses only the customer-facing TK brand", () => {
+    for (const language of LANGUAGE_OPTIONS) {
+      const values = flattenValues(language.resource);
+      expect(values["common.brandName"]).toBe(language.code === "zh" ? "TK匠" : "TK Copilot");
+      expect(values["providers.label_rivonclaw-pro"]).toBe(
+        language.code === "zh" ? "TK匠 AI" : "TK Copilot AI",
+      );
+      for (const [key, value] of Object.entries(values)) {
+        expect(value, `${language.code} ${key}`).not.toMatch(/RivonClaw|EasyClaw|爪爪|TKå|�/);
       }
     }
   });

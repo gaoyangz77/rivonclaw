@@ -24,7 +24,7 @@ export default {
     yes: "是",
     no: "否",
     none: "无",
-    brandName: "爪爪",
+    brandName: "TK匠",
     language: "语言",
     help: "帮助",
     website: "官网",
@@ -145,7 +145,7 @@ export default {
     expandMessage: "展开全文",
     collapseMessage: "收起",
     newSession: "新对话",
-    newSessionTitle: "爪爪",
+    newSessionTitle: "TK匠",
     sessionMain: "主对话",
     sessionUntitled: "未命名",
     resetConfirm: "清空当前会话的所有消息？聊天记录将被归档。",
@@ -310,6 +310,7 @@ export default {
     tabCustom: "自定义",
     noProviders: "暂无已配置的提供商，请在下方添加。",
     configuredTitle: "已配置的提供商",
+    "label_rivonclaw-pro": "TK匠 AI",
     label_openai: "OpenAI",
     label_anthropic: "Anthropic",
     label_claude: "Claude（订阅）",
@@ -1039,13 +1040,13 @@ export default {
     },
     autoLaunch: {
       title: "启动",
-      toggle: "登录时自动启动 RivonClaw",
+      toggle: "登录时自动启动 TK匠",
       hint: "",
       failedToSave: "保存启动设置失败：",
     },
     telemetry: {
       title: "遥测与隐私",
-      description: "通过分享匿名使用统计数据帮助我们改进爪爪。我们重视您的隐私。",
+      description: "通过分享匿名使用统计数据帮助我们改进TK匠。我们重视您的隐私。",
       toggle: "发送匿名使用统计数据",
       whatWeCollect: "我们收集的数据",
       whatWeDontCollect: "我们不收集的数据",
@@ -1066,7 +1067,7 @@ export default {
       failedToLoad: "加载遥测设置失败：",
       failedToSave: "保存遥测设置失败：",
       consent: {
-        title: "帮助改进爪爪",
+        title: "帮助改进TK匠",
         description: "我们收集匿名使用统计数据以改进产品。绝不收集个人信息、对话内容或 API 密钥。",
         collectLabel: "收集内容：",
         items: "应用生命周期、功能使用情况、错误报告、运行统计",
@@ -1105,13 +1106,13 @@ export default {
     dataDir: {
       title: "数据目录",
       label: "OpenClaw 状态目录",
-      hint: "Agent 记忆、文档和技能的存储目录。修改后需重启 RivonClaw 生效。",
+      hint: "Agent 记忆、文档和技能的存储目录。修改后需重启 TK匠 生效。",
       default: "默认",
       custom: "自定义",
       current: "当前",
       change: "修改",
       reset: "恢复默认",
-      restartNotice: "请重启 RivonClaw 以使更改生效。",
+      restartNotice: "请重启 TK匠 以使更改生效。",
       failedToLoad: "加载数据目录设置失败：",
       failedToSave: "保存数据目录失败：",
       failedToReset: "重置数据目录失败：",
@@ -1140,7 +1141,7 @@ export default {
     kicker: "电商工作台",
     accountTitle: "从卖家账号开始",
     accountDesc:
-      "创建 RivonClaw 账号后即可连接店铺、领取符合条件的试用，并同步你的电商工作台。已有账号可以直接登录继续使用。",
+      "创建 TK匠 账号后即可连接店铺、领取符合条件的试用，并同步你的电商工作台。已有账号可以直接登录继续使用。",
     createAccountTitle: "新用户注册",
     createAccountDesc: "创建账号，如有邀请码可填写，然后连接第一家符合条件的店铺。",
     loginTitle: "老用户登录",
@@ -1148,7 +1149,7 @@ export default {
   },
   onboarding: {
     skipSetup: "跳过设置",
-    welcomeTitle: "欢迎使用爪爪",
+    welcomeTitle: "欢迎使用TK匠",
     welcomeDesc: "让我们来设置你的 AI 代理。首先，配置你的 LLM 提供商。",
     providerLabel: "提供商",
     modelLabel: "模型",
@@ -1498,9 +1499,9 @@ export default {
     title: "计费与订阅",
     description: "查看账户权益、店铺服务订阅状态和支付记录。",
     accountLlm: "账户 LLM",
-    accountAi: "RivonClaw AI",
+    accountAi: "TK匠 AI",
     accountAiDescription:
-      "RivonClaw 提供的云端 LLM 服务。你可以订阅并使用我们托管的模型，也可以继续使用自己的 OpenAI、Gemini 或 Anthropic provider。",
+      "TK匠 提供的云端 LLM 服务。你可以订阅并使用我们托管的模型，也可以继续使用自己的 OpenAI、Gemini 或 Anthropic provider。",
     shopServices: "店铺服务订阅",
     planDefinitions: "方案定义",
     planDefinitionsUnavailable: "后端尚未返回方案定义。",
@@ -1537,10 +1538,10 @@ export default {
     customerServiceUpgrade: "开通 AI 智能客服：每店铺 {{price}}。",
     usageUsedPercent: "已用 {{percent}}",
     usageRemainingPercent: "剩余 {{percent}}",
-    cloudQuotaExhaustedTitle: "RivonClaw AI token 已耗尽",
+    cloudQuotaExhaustedTitle: "TK匠 AI token 已耗尽",
     cloudQuotaExhaustedBody:
       "当前五小时或每周云端 LLM 额度已经用完。为避免影响业务，请升级套餐或添加新的 LLM 密钥。",
-    cloudQuotaLowTitle: "RivonClaw AI token 即将耗尽",
+    cloudQuotaLowTitle: "TK匠 AI token 即将耗尽",
     cloudQuotaLowBody:
       "当前云端 LLM 额度剩余不足 5%。为避免影响业务，请升级套餐或添加新的 LLM 密钥。",
     openBilling: "前往账单",
@@ -1592,9 +1593,9 @@ export default {
     noEnabledShopServices: "暂无需要订阅的店铺服务。",
     noStandaloneShopServices: "无独立站点服务。",
     planNames: {
-      RIVONCLAW_AI_PLUS: "RivonClaw AI Plus",
-      RIVONCLAW_AI_PRO: "RivonClaw AI Pro",
-      RIVONCLAW_AI_MAX: "RivonClaw AI Max",
+      RIVONCLAW_AI_PLUS: "TK匠 AI Plus",
+      RIVONCLAW_AI_PRO: "TK匠 AI Pro",
+      RIVONCLAW_AI_MAX: "TK匠 AI Max",
       ECOM_CUSTOMER_SERVICE_UNLIMITED_MONTHLY: "AI 智能客服无限版",
     },
     planDescriptions: {
@@ -1620,7 +1621,7 @@ export default {
     },
     enums: {
       product: {
-        LLM_USAGE: "RivonClaw AI",
+        LLM_USAGE: "TK匠 AI",
         ECOM_CUSTOMER_SERVICE: "AI 智能客服",
         ECOM_INVENTORY: "库存管理",
         ECOM_AFFILIATE: "达人管理",
@@ -1981,7 +1982,7 @@ export default {
       hint: "开启后，每个页面会出现一个教程气泡，引导你了解各项功能。",
       welcomeTitle: "欢迎来到设置页面",
       welcomeBody:
-        "在这里你可以自定义 EasyClaw 的各项行为。每个部分控制应用的不同方面，让我们逐一了解每个选项。",
+        "在这里你可以自定义 TK匠 的各项行为。每个部分控制应用的不同方面，让我们逐一了解每个选项。",
       agentSectionTitle: "Agent 设置",
       agentSectionBody: "这些设置控制 AI Agent 如何处理对话以及如何与浏览器交互。更改会立即生效。",
       dmScopeTitle: "私聊会话隔离范围",
@@ -2016,10 +2017,10 @@ export default {
         "控制是否在每个页面显示教程气泡。开启后，每个页面都会出现一个小帮助图标，点击后会启动该页面功能的引导介绍。你正在使用的就是这个功能！熟悉应用后可以关闭。",
       autoLaunchTitle: "开机自启",
       autoLaunchBody:
-        "控制 EasyClaw 是否在电脑启动时自动运行。\n\n开启后，应用会在你登录操作系统后立即在后台启动。你的 Agent 会立即准备好并开始监听——如果你每天都依赖它处理客服或自动化任务，这非常方便。\n\n关闭后，你需要每次手动启动应用。如果你只是偶尔使用 Agent 或想要更快的系统启动速度，可以关闭此选项。",
+        "控制 TK匠 是否在电脑启动时自动运行。\n\n开启后，应用会在你登录操作系统后立即在后台启动。你的 Agent 会立即准备好并开始监听——如果你每天都依赖它处理客服或自动化任务，这非常方便。\n\n关闭后，你需要每次手动启动应用。如果你只是偶尔使用 Agent 或想要更快的系统启动速度，可以关闭此选项。",
       dataDirTitle: "数据目录",
       dataDirBody:
-        "显示 EasyClaw 存储所有数据的位置——包括 SQLite 数据库、配置文件、日志和缓存内容。当前路径旁的标签表明是默认位置还是自定义路径。\n\n更改此路径会将数据移动到新位置。当你需要将数据存储在外置硬盘、加密分区或磁盘空间更大的位置时很有用。",
+        "显示 TK匠 存储所有数据的位置——包括 SQLite 数据库、配置文件、日志和缓存内容。当前路径旁的标签表明是默认位置还是自定义路径。\n\n更改此路径会将数据移动到新位置。当你需要将数据存储在外置硬盘、加密分区或磁盘空间更大的位置时很有用。",
       dataDirActionsTitle: "更改 / 重置目录",
       dataDirActionsBody:
         "点击「更改」选择新的数据存储目录。点击「重置」（仅在使用自定义路径时显示）恢复到默认位置。任一操作都需要重启应用才能生效——你会看到提示。",
@@ -2332,7 +2333,7 @@ export default {
         "点击此按钮打开凭据配置对话框。你需要企业微信的 API 凭据来建立连接。让我们看看里面的内容。",
       invitationCodeTitle: "邀请码",
       invitationCodeBody:
-        "你的面板访问令牌，在入驻时提供。用于将你的 EasyClaw 实例与云服务进行身份验证。如果之前已保存过，后续编辑时此字段可以留空。",
+        "你的面板访问令牌，在入驻时提供。用于将你的 TK匠 实例与云服务进行身份验证。如果之前已保存过，后续编辑时此字段可以留空。",
       wecomFieldsTitle: "企业微信 API 凭据",
       wecomFieldsBody:
         "来自企业微信管理后台的四个字段：企业 ID（你的企业标识）、应用密钥（API 认证密钥）、Token 和 EncodingAESKey（用于回调验证）。你可以在企业微信客服管理后台的回调配置中找到这些信息。",
@@ -2361,7 +2362,7 @@ export default {
         "这张卡片一览你的身份和订阅信息——头像、姓名、邮箱、计划标识、注册时间、有效期以及 LLM 使用配额。",
       identityTitle: "你的身份",
       identityBody:
-        "你的头像（根据姓名首字母生成）、显示名称和邮箱地址。邮箱是你注册或登录 EasyClaw 时使用的地址。",
+        "你的头像（根据姓名首字母生成）、显示名称和邮箱地址。邮箱是你注册或登录 TK匠 时使用的地址。",
       logoutTitle: "退出登录",
       logoutBody:
         "点击此按钮退出当前账户。你将被重定向到首页。需要身份验证的功能在重新登录前将无法访问。",
@@ -2369,7 +2370,7 @@ export default {
       planBody:
         "显示你所在的订阅计划（如免费版、专业版、企业版）。你的计划决定了可用的功能、工具权限和使用限制。",
       memberSinceTitle: "注册时间",
-      memberSinceBody: "你的账户创建日期。帮助你了解使用 EasyClaw 的时长。",
+      memberSinceBody: "你的账户创建日期。帮助你了解使用 TK匠 的时长。",
       validUntilTitle: "有效期至",
       validUntilBody:
         "当前订阅的到期日期。请关注此日期以避免服务中断。如果没有活跃订阅，会显示一个横杠。",
@@ -2422,7 +2423,7 @@ export default {
         "这些标签显示此运行配置中选择的工具。如果某个工具不再在父场景的允许列表中，会显示警告图标——在场景更新前，该工具在运行时会被忽略。",
       modulesSectionTitle: "功能模块",
       modulesSectionBody:
-        "模块是可选的功能扩展包，为 EasyClaw 添加特定领域的专业能力。每个模块会解锁额外的工具、页面和集成，服务于特定的工作流程。在此处启用或禁用模块来定制你的工作空间。",
+        "模块是可选的功能扩展包，为 TK匠 添加特定领域的专业能力。每个模块会解锁额外的工具、页面和集成，服务于特定的工作流程。在此处启用或禁用模块来定制你的工作空间。",
       moduleItemTitle: "模块开关",
       moduleItemBody:
         "每张模块卡片显示模块名称、描述和一个开关。打开开关即可加入该模块——这会在整个应用中激活其工具和界面。关闭开关则退出模块并隐藏相关功能。更改会立即生效。",
@@ -2686,7 +2687,7 @@ export default {
     needsAttention: "需要处理",
     adsReadyShops: "广告就绪店铺",
     authSeparationHint:
-      "TikTok Ads 能力通过 Business/Ads Manager 授权。EasyClaw 只管理同时已授权为 TikTok Shop 的店铺。",
+      "TikTok Ads 能力通过 Business/Ads Manager 授权。TK匠 只管理同时已授权为 TikTok Shop 的店铺。",
     businessAccountHint: "连接广告账户后，可以查看哪些已授权店铺已被广告账户覆盖。",
     advertiserTableTitle: "广告账户",
     advertiserTableSubtitle:
@@ -2706,7 +2707,7 @@ export default {
     currentGmvMaxAccount: "当前 GMV MAX",
     gmvMaxAvailable: "GMV MAX 可用",
     currentGmvMaxUnknown: "当前授权账户待同步",
-    unonboardedStoreCount: "{{count}} 个广告账户可识别的店铺尚未连接到 EasyClaw",
+    unonboardedStoreCount: "{{count}} 个广告账户可识别的店铺尚未连接到 TK匠",
     noShops: "尚未连接店铺。",
     loadFailed: "加载 Ads 管理数据失败。",
     oauthModalTitle: "连接 TikTok Ads",
@@ -4584,7 +4585,7 @@ export default {
     upgradeRequired: "此功能需要订阅。请升级你的套餐。",
     llmUnavailableTitle: "AI 模型不可用",
     llmUnavailableBody:
-      "当前没有可用的 AI 模型密钥。请续订 RivonClaw AI，或在模型设置中添加并启用 API 密钥。",
+      "当前没有可用的 AI 模型密钥。请续订 TK匠 AI，或在模型设置中添加并启用 API 密钥。",
     customerServiceRoutingUnavailableTitle: "当前设备上的 AI 客服升级不可用",
     customerServiceRoutingUnavailableBody:
       "以下店铺已选择本机作为客服接收设备，但升级接收渠道不可用。基础 AI 客服不受影响；请重新选择存在的升级渠道，或完成微信消息凭证确认。",

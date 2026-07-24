@@ -64,12 +64,12 @@ export interface LLMProviderManagerEnv {
 }
 
 const CLOUD_PROVIDER_ID = "rivonclaw-pro";
-const CLOUD_KEY_LABEL = "RivonClaw AI";
+const CLOUD_KEY_LABEL = "TK Copilot AI";
 const CLOUD_DEFAULT_MODEL_ID = "rivonclaw-flagship";
 const GEMINI_OAUTH_PROVIDER_ID = "gemini";
 const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 const NO_ACTIVE_LLM_PROVIDER_ERROR =
-  "No active LLM provider is configured. Renew RivonClaw AI or add and activate an API key in Models.";
+  "No active LLM provider is configured. Renew TK Copilot AI or add and activate an API key in Models.";
 
 interface CloudModel {
   id: string;
@@ -527,10 +527,7 @@ export const LLMProviderManagerModel = types
        */
       resolveModelForDispatch(sessionKey: string, scope?: ModelScope): SessionModelOverride {
         const sessionOverride = self.sessionOverrides.get(sessionKey);
-        if (
-          sessionOverride &&
-          isModelAvailable(sessionOverride.provider, sessionOverride.model)
-        ) {
+        if (sessionOverride && isModelAvailable(sessionOverride.provider, sessionOverride.model)) {
           return splitModelRef(resolveModelRef(sessionOverride.provider, sessionOverride.model));
         }
 

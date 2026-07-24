@@ -14,15 +14,15 @@ win:
         - x64
 
 portable:
-  artifactName: "${productName}-${version}-portable.${ext}"
+  artifactName: "TK-Copilot-${version}-portable.${ext}"
 
 nsis:
-  artifactName: "${productName}.Setup.${version}.${ext}"
+  artifactName: "TK-Copilot.Setup.${version}.${ext}"
   include: "installer.nsh"
   oneClick: false
   allowToChangeInstallationDirectory: true
   installerSidebar: build/installerSidebar.png
-  uninstallDisplayName: "RivonClaw"
+  uninstallDisplayName: "TK Copilot"
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: "RivonClaw"
+  shortcutName: "TK Copilot"

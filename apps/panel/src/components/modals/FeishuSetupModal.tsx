@@ -20,8 +20,8 @@ function copy(language: string) {
     eyebrow: zh ? "官方扫码创建" : "Official QR setup",
     heading: zh ? "用飞书客户端扫码，一键创建机器人" : "Scan in Feishu/Lark to create the bot",
     body: zh
-      ? "RivonClaw 已内置飞书官方 OpenClaw 插件和安装环境。扫码完成后，我们会自动保存机器人凭证、启用官方插件，并刷新通道状态。"
-      : "RivonClaw includes the official Feishu/Lark OpenClaw plugin and setup runtime. After scanning, it saves the bot credentials, enables the plugin, and refreshes channel status.",
+      ? "TK匠已内置飞书官方 OpenClaw 插件和安装环境。扫码完成后，我们会自动保存机器人凭证、启用官方插件，并刷新通道状态。"
+      : "TK Copilot includes the official Feishu/Lark OpenClaw plugin and setup runtime. After scanning, it saves the bot credentials, enables the plugin, and refreshes channel status.",
     starting: zh ? "正在生成飞书二维码..." : "Generating Feishu/Lark QR code...",
     refreshing: zh ? "正在刷新二维码..." : "Refreshing QR code...",
     waiting: zh ? "等待扫码确认" : "Waiting for scan",
@@ -133,9 +133,8 @@ export function FeishuSetupModal({
 
           if (result.status === "expired") break;
 
-          const fallback = result.status === "denied"
-            ? textRef.current.denied
-            : textRef.current.failed;
+          const fallback =
+            result.status === "denied" ? textRef.current.denied : textRef.current.failed;
           setErrorMessage(result.message || fallback);
           setPhase("error");
           return;
@@ -188,7 +187,9 @@ export function FeishuSetupModal({
         {errorMessage && <div className="modal-error-box">{errorMessage}</div>}
 
         {(phase === "starting" || phase === "refreshing") && !qrImageUrl && (
-          <div className="centered-muted">{phase === "refreshing" ? text.refreshing : text.starting}</div>
+          <div className="centered-muted">
+            {phase === "refreshing" ? text.refreshing : text.starting}
+          </div>
         )}
 
         {(phase === "scanning" || phase === "refreshing") && qrImageUrl && (

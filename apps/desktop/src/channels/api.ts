@@ -38,7 +38,9 @@ function normalizeQrAccountKey(accountId?: string): string {
 
 function shortSessionKey(sessionKey?: string): string {
   if (!sessionKey) return "none";
-  return sessionKey.length <= 12 ? sessionKey : `${sessionKey.slice(0, 8)}...${sessionKey.slice(-4)}`;
+  return sessionKey.length <= 12
+    ? sessionKey
+    : `${sessionKey.slice(0, 8)}...${sessionKey.slice(-4)}`;
 }
 
 function shortQrMessage(message?: string): string {
@@ -55,7 +57,10 @@ function clearWeixinQrStartCache(sessionKey?: string): void {
 }
 
 /** Extract channelManager or send 503 and return null. */
-function requireChannelManager(ctx: ApiContext, res: ServerResponse): ChannelManagerInstance | null {
+function requireChannelManager(
+  ctx: ApiContext,
+  res: ServerResponse,
+): ChannelManagerInstance | null {
   if (!ctx.channelManager) {
     sendJson(res, 503, { error: "Channel manager not available" });
     return null;
@@ -64,14 +69,14 @@ function requireChannelManager(ctx: ApiContext, res: ServerResponse): ChannelMan
 }
 
 const APPROVAL_MESSAGES = {
-  zh: "✅ [RivonClaw] 您的访问已获批准！现在可以开始和我对话了。",
-  en: "✅ [RivonClaw] Your access has been approved! You can start chatting now.",
-  de: "✅ [RivonClaw] Ihr Zugriff wurde genehmigt! Sie können jetzt mit mir chatten.",
-  es: "✅ [RivonClaw] ¡Tu acceso ha sido aprobado! Ya puedes empezar a chatear conmigo.",
-  fr: "✅ [RivonClaw] Votre accès a été approuvé ! Vous pouvez maintenant discuter avec moi.",
-  id: "✅ [RivonClaw] Akses Anda telah disetujui! Anda bisa mulai mengobrol dengan saya sekarang.",
-  it: "✅ [RivonClaw] Il tuo accesso è stato approvato! Ora puoi iniziare a chattare con me.",
-  th: "✅ [RivonClaw] อนุมัติการเข้าถึงของคุณแล้ว! คุณสามารถเริ่มแชตกับฉันได้เลย",
+  zh: "✅ [TK匠] 您的访问已获批准！现在可以开始和我对话了。",
+  en: "✅ [TK Copilot] Your access has been approved! You can start chatting now.",
+  de: "✅ [TK Copilot] Ihr Zugriff wurde genehmigt! Sie können jetzt mit mir chatten.",
+  es: "✅ [TK Copilot] ¡Tu acceso ha sido aprobado! Ya puedes empezar a chatear conmigo.",
+  fr: "✅ [TK Copilot] Votre accès a été approuvé ! Vous pouvez maintenant discuter avec moi.",
+  id: "✅ [TK Copilot] Akses Anda telah disetujui! Anda bisa mulai mengobrol dengan saya sekarang.",
+  it: "✅ [TK Copilot] Il tuo accesso è stato approvato! Ora puoi iniziare a chattare con me.",
+  th: "✅ [TK Copilot] อนุมัติการเข้าถึงของคุณแล้ว! คุณสามารถเริ่มแชตกับฉันได้เลย",
 };
 
 // ── GET /api/channels/status ──
@@ -91,7 +96,9 @@ const channelsStatus: EndpointHandler = async (req, res, url, _params, ctx: ApiC
   try {
     const probe = url.searchParams.get("probe") === "true";
     const probeTimeoutMs = DEFAULTS.desktop.channelProbeTimeoutMs;
-    const clientTimeoutMs = probe ? DEFAULTS.polling.channelProbeClientTimeoutMs : DEFAULTS.desktop.channelClientTimeoutMs;
+    const clientTimeoutMs = probe
+      ? DEFAULTS.polling.channelProbeClientTimeoutMs
+      : DEFAULTS.desktop.channelClientTimeoutMs;
 
     const snapshot = await cm.getChannelStatus(rpcClient, probe, probeTimeoutMs, clientTimeoutMs);
     sendJson(res, 200, { snapshot });
@@ -114,7 +121,12 @@ const getAccount: EndpointHandler = async (_req, res, _url, params, ctx: ApiCont
       sendJson(res, 404, { error: "Channel account not found" });
       return;
     }
-    sendJson(res, 200, { channelId: account.channelId, accountId: account.accountId, name: account.name, config: account.config });
+    sendJson(res, 200, {
+      channelId: account.channelId,
+      accountId: account.accountId,
+      name: account.name,
+      config: account.config,
+    });
   } catch (err) {
     log.error("Failed to get channel account:", err);
     sendJson(res, 500, { error: String(err) });
@@ -242,13 +254,13 @@ const qrLoginStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   try {
     const now = Date.now();
     if (
-      weixinQrStartCache
-      && weixinQrStartCache.accountKey === accountKey
-      && weixinQrStartCache.expiresAt > now
+      weixinQrStartCache &&
+      weixinQrStartCache.accountKey === accountKey &&
+      weixinQrStartCache.expiresAt > now
     ) {
       log.info(
-        `Weixin QR login start reused: account=${accountKey || "new"} `
-        + `sessionKey=${shortSessionKey(weixinQrStartCache.result.sessionKey)}`,
+        `Weixin QR login start reused: account=${accountKey || "new"} ` +
+          `sessionKey=${shortSessionKey(weixinQrStartCache.result.sessionKey)}`,
       );
       sendJson(res, 200, weixinQrStartCache.result);
       return;
@@ -260,7 +272,9 @@ const qrLoginStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       log.info(`Weixin QR login start joined in-flight request: account=${accountKey || "new"}`);
       result = await inFlight;
     } else {
-      const promise = Promise.resolve(cm.startQrLogin(rpcClient, body.accountId) as PromiseLike<WeixinQrStartResult>);
+      const promise = Promise.resolve(
+        cm.startQrLogin(rpcClient, body.accountId) as PromiseLike<WeixinQrStartResult>,
+      );
       weixinQrStartInFlight.set(accountKey, promise);
       try {
         result = await promise;
@@ -272,9 +286,9 @@ const qrLoginStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     }
 
     log.info(
-      `Weixin QR login start: account=${accountKey || "new"} `
-      + `connected=${Boolean(result.connected)} hasQr=${Boolean(result.qrDataUrl)} `
-      + `sessionKey=${shortSessionKey(result.sessionKey)}`,
+      `Weixin QR login start: account=${accountKey || "new"} ` +
+        `connected=${Boolean(result.connected)} hasQr=${Boolean(result.qrDataUrl)} ` +
+        `sessionKey=${shortSessionKey(result.sessionKey)}`,
     );
     if (!result.connected && result.qrDataUrl && result.sessionKey) {
       weixinQrStartCache = {
@@ -306,14 +320,18 @@ const qrLoginWait: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
     return;
   }
 
-  const body = (await parseBody(req)) as { accountId?: string; timeoutMs?: number; sessionKey?: string };
+  const body = (await parseBody(req)) as {
+    accountId?: string;
+    timeoutMs?: number;
+    sessionKey?: string;
+  };
 
   try {
     const result = await cm.waitQrLogin(rpcClient, body.accountId, body.timeoutMs, body.sessionKey);
     log.info(
-      `Weixin QR login wait: account=${normalizeQrAccountKey(body.accountId) || "new"} `
-      + `connected=${Boolean(result.connected)} sessionKey=${shortSessionKey(body.sessionKey)} `
-      + `accountId=${result.accountId ?? "none"} message=${shortQrMessage(result.message)}`,
+      `Weixin QR login wait: account=${normalizeQrAccountKey(body.accountId) || "new"} ` +
+        `connected=${Boolean(result.connected)} sessionKey=${shortSessionKey(body.sessionKey)} ` +
+        `accountId=${result.accountId ?? "none"} message=${shortQrMessage(result.message)}`,
     );
     clearWeixinQrStartCache(body.sessionKey);
     sendJson(res, 200, result);
@@ -464,16 +482,22 @@ const approve: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext
   }
 
   try {
-    const result = await cm.approvePairing({ channelId: body.channelId, accountId: body.accountId, code: body.code });
+    const result = await cm.approvePairing({
+      channelId: body.channelId,
+      accountId: body.accountId,
+      code: body.code,
+    });
 
     sendJson(res, 200, { ok: true, id: result.recipientId, entry: result.entry });
 
     // Fire-and-forget confirmation message
     const locale = normalizeAppLocale(body.locale);
     const confirmMsg = APPROVAL_MESSAGES[locale];
-    const boundFetch = (fetchUrl: string | URL, init?: RequestInit) => proxiedFetch(ctx.proxyRouterPort, fetchUrl, init);
-    sendChannelMessage(body.channelId, result.recipientId, confirmMsg, boundFetch).then(ok => {
-      if (ok) log.info(`Sent approval confirmation to ${body.channelId} user ${result.recipientId}`);
+    const boundFetch = (fetchUrl: string | URL, init?: RequestInit) =>
+      proxiedFetch(ctx.proxyRouterPort, fetchUrl, init);
+    sendChannelMessage(body.channelId, result.recipientId, confirmMsg, boundFetch).then((ok) => {
+      if (ok)
+        log.info(`Sent approval confirmation to ${body.channelId} user ${result.recipientId}`);
     });
   } catch (err: any) {
     if (err.message === "Pairing code not found or expired") {

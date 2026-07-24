@@ -11,49 +11,55 @@ const log = createLogger("pairing-notifier");
 
 interface PairingStore {
   version: number;
-  requests: Array<{ id: string; code: string; createdAt: string; lastSeenAt: string; meta?: Record<string, string> }>;
+  requests: Array<{
+    id: string;
+    code: string;
+    createdAt: string;
+    lastSeenAt: string;
+    meta?: Record<string, string>;
+  }>;
 }
 
 const PAIRING_MESSAGES = {
   zh: [
-    "💡 [RivonClaw] 您的配对请求已收到。",
+    "💡 [TK匠] 您的配对请求已收到。",
     "",
     "请前往管理面板 → 通道，展开对应通道账号并点击「批准」完成配对。",
   ].join("\n"),
   en: [
-    "💡 [RivonClaw] Your pairing request has been received.",
+    "💡 [TK Copilot] Your pairing request has been received.",
     "",
-    "Please go to the panel → Channels, expand the matching channel account, and click \"Approve\".",
+    'Please go to the panel → Channels, expand the matching channel account, and click "Approve".',
   ].join("\n"),
   de: [
-    "💡 [RivonClaw] Ihre Kopplungsanfrage wurde empfangen.",
+    "💡 [TK Copilot] Ihre Kopplungsanfrage wurde empfangen.",
     "",
-    "Bitte öffnen Sie das Panel → Kanäle, erweitern Sie das passende Kanalkonto und klicken Sie auf \"Genehmigen\".",
+    'Bitte öffnen Sie das Panel → Kanäle, erweitern Sie das passende Kanalkonto und klicken Sie auf "Genehmigen".',
   ].join("\n"),
   es: [
-    "💡 [RivonClaw] Hemos recibido tu solicitud de vinculación.",
+    "💡 [TK Copilot] Hemos recibido tu solicitud de vinculación.",
     "",
-    "Ve al panel → Canales, despliega la cuenta de canal correspondiente y haz clic en \"Aprobar\".",
+    'Ve al panel → Canales, despliega la cuenta de canal correspondiente y haz clic en "Aprobar".',
   ].join("\n"),
   fr: [
-    "💡 [RivonClaw] Votre demande d'association a bien été reçue.",
+    "💡 [TK Copilot] Votre demande d'association a bien été reçue.",
     "",
-    "Allez dans le panneau → Canaux, ouvrez le compte de canal correspondant, puis cliquez sur \"Approuver\".",
+    'Allez dans le panneau → Canaux, ouvrez le compte de canal correspondant, puis cliquez sur "Approuver".',
   ].join("\n"),
   id: [
-    "💡 [RivonClaw] Permintaan pemasangan Anda telah diterima.",
+    "💡 [TK Copilot] Permintaan pemasangan Anda telah diterima.",
     "",
-    "Buka panel → Channels, perluas akun channel yang sesuai, lalu klik \"Approve\".",
+    'Buka panel → Channels, perluas akun channel yang sesuai, lalu klik "Approve".',
   ].join("\n"),
   it: [
-    "💡 [RivonClaw] La tua richiesta di associazione è stata ricevuta.",
+    "💡 [TK Copilot] La tua richiesta di associazione è stata ricevuta.",
     "",
-    "Vai al pannello → Canali, espandi l'account canale corretto e fai clic su \"Approva\".",
+    'Vai al pannello → Canali, espandi l\'account canale corretto e fai clic su "Approva".',
   ].join("\n"),
   th: [
-    "💡 [RivonClaw] ได้รับคำขอจับคู่ของคุณแล้ว",
+    "💡 [TK Copilot] ได้รับคำขอจับคู่ของคุณแล้ว",
     "",
-    "ไปที่แผงควบคุม → Channels เปิดบัญชีช่องทางที่ตรงกัน แล้วคลิก \"Approve\"",
+    'ไปที่แผงควบคุม → Channels เปิดบัญชีช่องทางที่ตรงกัน แล้วคลิก "Approve"',
   ].join("\n"),
 };
 
@@ -82,9 +88,13 @@ export function startPairingNotifier(
               if (req.code) knownCodes.add(req.code);
             }
           }
-        } catch { /* per-file errors */ }
+        } catch {
+          /* per-file errors */
+        }
       }
-    } catch { /* directory may not exist */ }
+    } catch {
+      /* directory may not exist */
+    }
   }
 
   async function checkForNewRequests() {
@@ -106,7 +116,8 @@ export function startPairingNotifier(
 
           const message = PAIRING_MESSAGES[getSystemLocale()];
           log.info(`Sending pairing follow-up to ${channelId} user ${req.id}`);
-          const boundFetch = (url: string | URL, init?: RequestInit) => proxiedFetch(proxyRouterPort, url, init);
+          const boundFetch = (url: string | URL, init?: RequestInit) =>
+            proxiedFetch(proxyRouterPort, url, init);
           sendChannelMessage(channelId, req.id, message, boundFetch);
           // Shared SSE event name with gateway event-dispatcher's
           // `rivonclaw.recipient-seen` path. Payload `{ channelId }` stays

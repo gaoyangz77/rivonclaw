@@ -41,7 +41,7 @@ async function waitFor(condition, timeoutMs, intervalMs = 250) {
 async function main() {
   const executablePath = process.argv[2];
   if (!executablePath) {
-    throw new Error("Usage: node prod-model-switch-check.mjs <RivonClaw.exe>");
+    throw new Error('Usage: node prod-model-switch-check.mjs <"TK Copilot.exe">');
   }
   const initialReadyBudgetSeconds = Number(
     process.env.RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS ??

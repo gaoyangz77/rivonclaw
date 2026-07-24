@@ -43,17 +43,14 @@ describe("queryCheckUpdate", () => {
   });
 
   it("returns null when backend says no update", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      jsonResponse(200, { data: { checkUpdate: null } }),
-    );
+    const mockFetch = vi.fn().mockResolvedValue(jsonResponse(200, { data: { checkUpdate: null } }));
     const result = await queryCheckUpdate("en", "2.0.0", mockFetch);
     expect(result).toBeNull();
   });
 
   it("throws on HTTP non-2xx", async () => {
     const mockFetch = vi.fn().mockResolvedValue(jsonResponse(500, {}));
-    await expect(queryCheckUpdate("en", "1.0.0", mockFetch))
-      .rejects.toThrow("HTTP 500");
+    await expect(queryCheckUpdate("en", "1.0.0", mockFetch)).rejects.toThrow("HTTP 500");
   });
 
   it("throws on GraphQL 200 + errors", async () => {
@@ -63,8 +60,9 @@ describe("queryCheckUpdate", () => {
         errors: [{ message: "Internal server error" }],
       }),
     );
-    await expect(queryCheckUpdate("en", "1.0.0", mockFetch))
-      .rejects.toThrow("GraphQL errors: Internal server error");
+    await expect(queryCheckUpdate("en", "1.0.0", mockFetch)).rejects.toThrow(
+      "GraphQL errors: Internal server error",
+    );
   });
 
   it("throws on GraphQL 200 + errors even when data is present", async () => {
@@ -74,14 +72,14 @@ describe("queryCheckUpdate", () => {
         errors: [{ message: "partial failure" }],
       }),
     );
-    await expect(queryCheckUpdate("en", "1.0.0", mockFetch))
-      .rejects.toThrow("GraphQL errors: partial failure");
+    await expect(queryCheckUpdate("en", "1.0.0", mockFetch)).rejects.toThrow(
+      "GraphQL errors: partial failure",
+    );
   });
 
   it("throws on network error", async () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
-    await expect(queryCheckUpdate("en", "1.0.0", mockFetch))
-      .rejects.toThrow("ECONNREFUSED");
+    await expect(queryCheckUpdate("en", "1.0.0", mockFetch)).rejects.toThrow("ECONNREFUSED");
   });
 });
 
@@ -96,6 +94,7 @@ describe("queryCheckUpdate", () => {
    No CDN HEAD check — the backend operator is trusted.                   */
 
 import { isNewerVersion } from "@rivonclaw/updater";
+import { resolveReleaseAssetNameFor } from "../src/updater/artifact-names.js";
 
 /**
  * Replicates processUpdatePayload's decision logic.
@@ -119,26 +118,24 @@ function simulateResolveDownloadUrl(
   arch: string,
   updateFeedUrl: string,
 ): string | null {
-  switch (platform) {
-    case "darwin":
-      return `${updateFeedUrl}/RivonClaw-${version}-${arch === "arm64" ? "arm64" : "x64"}.dmg`;
-    case "win32":
-      return `${updateFeedUrl}/RivonClaw.Setup.${version}.exe`;
-    case "linux":
-      return `${updateFeedUrl}/RivonClaw-${version}-${arch === "arm64" ? "arm64" : "x86_64"}.AppImage`;
-    default:
-      return null;
-  }
+  const assetName = resolveReleaseAssetNameFor(version, platform, arch as NodeJS.Architecture);
+  return assetName ? `${updateFeedUrl}/${assetName}` : null;
 }
 
 describe("processUpdatePayload logic", () => {
   it("rejects and clears when version is not newer", () => {
-    const result = simulateProcessUpdatePayload("2.0.0", { version: "1.0.0", downloadUrl: "https://cdn/f" });
+    const result = simulateProcessUpdatePayload("2.0.0", {
+      version: "1.0.0",
+      downloadUrl: "https://cdn/f",
+    });
     expect(result).toEqual({ accepted: false, cleared: true });
   });
 
   it("rejects and clears when version is equal", () => {
-    const result = simulateProcessUpdatePayload("1.0.0", { version: "1.0.0", downloadUrl: "https://cdn/f" });
+    const result = simulateProcessUpdatePayload("1.0.0", {
+      version: "1.0.0",
+      downloadUrl: "https://cdn/f",
+    });
     expect(result).toEqual({ accepted: false, cleared: true });
   });
 
@@ -148,23 +145,41 @@ describe("processUpdatePayload logic", () => {
   });
 
   it("accepts when version is newer and downloadUrl is present", () => {
-    const result = simulateProcessUpdatePayload("1.0.0", { version: "2.0.0", downloadUrl: "https://cdn/v2.dmg" });
+    const result = simulateProcessUpdatePayload("1.0.0", {
+      version: "2.0.0",
+      downloadUrl: "https://cdn/v2.dmg",
+    });
     expect(result).toEqual({ accepted: true, cleared: false });
   });
 
   it("builds the macOS arm64 download URL from the version", () => {
-    const result = simulateResolveDownloadUrl("2.0.0", "darwin", "arm64", "https://www.rivonclaw.com/releases");
-    expect(result).toBe("https://www.rivonclaw.com/releases/RivonClaw-2.0.0-arm64.dmg");
+    const result = simulateResolveDownloadUrl(
+      "2.0.0",
+      "darwin",
+      "arm64",
+      "https://www.rivonclaw.com/releases",
+    );
+    expect(result).toBe("https://www.rivonclaw.com/releases/TK-Copilot-2.0.0-arm64.dmg");
   });
 
   it("builds the Windows download URL from the version", () => {
-    const result = simulateResolveDownloadUrl("2.0.0", "win32", "x64", "https://www.rivonclaw.com/releases");
-    expect(result).toBe("https://www.rivonclaw.com/releases/RivonClaw.Setup.2.0.0.exe");
+    const result = simulateResolveDownloadUrl(
+      "2.0.0",
+      "win32",
+      "x64",
+      "https://www.rivonclaw.com/releases",
+    );
+    expect(result).toBe("https://www.rivonclaw.com/releases/TK-Copilot.Setup.2.0.0.exe");
   });
 
   it("builds the Linux x64 download URL from the version", () => {
-    const result = simulateResolveDownloadUrl("2.0.0", "linux", "x64", "https://www.rivonclaw.com/releases");
-    expect(result).toBe("https://www.rivonclaw.com/releases/RivonClaw-2.0.0-x86_64.AppImage");
+    const result = simulateResolveDownloadUrl(
+      "2.0.0",
+      "linux",
+      "x64",
+      "https://www.rivonclaw.com/releases",
+    );
+    expect(result).toBe("https://www.rivonclaw.com/releases/TK-Copilot-2.0.0-x86_64.AppImage");
   });
 });
 
@@ -191,9 +206,7 @@ describe("getReleaseFeedUrl", () => {
 
 describe("check-then-process flow", () => {
   it("clears state when queryCheckUpdate returns null", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      jsonResponse(200, { data: { checkUpdate: null } }),
-    );
+    const mockFetch = vi.fn().mockResolvedValue(jsonResponse(200, { data: { checkUpdate: null } }));
     const payload = await queryCheckUpdate("en", "2.0.0", mockFetch);
 
     // Simulate the caller logic from main.ts
@@ -217,11 +230,10 @@ describe("check-then-process flow", () => {
   });
 
   it("does not clear state when query throws — error bubbles to caller", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      jsonResponse(200, { errors: [{ message: "boom" }] }),
-    );
-    await expect(queryCheckUpdate("en", "1.0.0", mockFetch))
-      .rejects.toThrow("GraphQL errors");
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { errors: [{ message: "boom" }] }));
+    await expect(queryCheckUpdate("en", "1.0.0", mockFetch)).rejects.toThrow("GraphQL errors");
   });
 
   it("manual check still accepts payloads without downloadUrl", async () => {

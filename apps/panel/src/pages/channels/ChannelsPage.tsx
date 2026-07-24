@@ -1,7 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
-import { getChannelAccountConfig, trackEvent, type ChannelAccountSnapshot } from "../../api/index.js";
+import {
+  getChannelAccountConfig,
+  trackEvent,
+  type ChannelAccountSnapshot,
+} from "../../api/index.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { pollGatewayReady } from "./poll-gateway.js";
 import { AddChannelAccountModal } from "../../components/modals/AddChannelAccountModal.js";
@@ -20,11 +24,8 @@ import { FeishuSetupModal } from "../../components/modals/FeishuSetupModal.js";
 export const ChannelsPage = observer(function ChannelsPage() {
   const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
-  const {
-    snapshot, loading, error, refreshing,
-    loadChannelStatus,
-    handleRefresh,
-  } = useChannelsData();
+  const { snapshot, loading, error, refreshing, loadChannelStatus, handleRefresh } =
+    useChannelsData();
 
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -32,10 +33,16 @@ export const ChannelsPage = observer(function ChannelsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string>("");
   const [selectedChannelLabel, setSelectedChannelLabel] = useState<string>("");
-  const [editingAccount, setEditingAccount] = useState<{ accountId: string; name?: string; config: Record<string, unknown> } | undefined>(undefined);
+  const [editingAccount, setEditingAccount] = useState<
+    { accountId: string; name?: string; config: Record<string, unknown> } | undefined
+  >(undefined);
 
   // Delete confirm dialog state
-  const [deleteConfirm, setDeleteConfirm] = useState<{ channelId: string; accountId: string; label: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    channelId: string;
+    accountId: string;
+    label: string;
+  } | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
   // Mobile binding modal
@@ -95,7 +102,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
       return;
     }
 
-    const knownChannel = KNOWN_CHANNELS.find(c => c.id === selectedDropdownChannel);
+    const knownChannel = KNOWN_CHANNELS.find((c) => c.id === selectedDropdownChannel);
     const label = knownChannel ? t(knownChannel.labelKey) : selectedDropdownChannel;
 
     setSelectedChannelId(selectedDropdownChannel);
@@ -108,8 +115,10 @@ export const ChannelsPage = observer(function ChannelsPage() {
   }
 
   async function handleEditAccount(channelId: string, account: ChannelAccountSnapshot) {
-    const knownChannel = KNOWN_CHANNELS.find(c => c.id === channelId);
-    const label = knownChannel ? t(knownChannel.labelKey) : snapshot?.channelLabels[channelId] || channelId;
+    const knownChannel = KNOWN_CHANNELS.find((c) => c.id === channelId);
+    const label = knownChannel
+      ? t(knownChannel.labelKey)
+      : snapshot?.channelLabels[channelId] || channelId;
 
     setSelectedChannelId(channelId);
     setSelectedChannelLabel(label);
@@ -151,7 +160,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
     if (channelId === "mobile") {
       label = t("nav.mobile");
     } else {
-      const known = KNOWN_CHANNELS.find(c => c.id === channelId);
+      const known = KNOWN_CHANNELS.find((c) => c.id === channelId);
       if (known) label = t(known.labelKey);
     }
     setDeleteConfirm({ channelId, accountId, label });
@@ -189,7 +198,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
   }
 
   function handleFeishuManualSetup() {
-    const knownChannel = KNOWN_CHANNELS.find(c => c.id === "feishu");
+    const knownChannel = KNOWN_CHANNELS.find((c) => c.id === "feishu");
     setFeishuSetupOpen(false);
     setSelectedChannelId("feishu");
     setSelectedChannelLabel(knownChannel ? t(knownChannel.labelKey) : "Feishu");
@@ -205,9 +214,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
     return (
       <div>
         <h1>{t("channels.title")}</h1>
-        <div className="centered-muted">
-          {t("channels.loading")}
-        </div>
+        <div className="centered-muted">{t("channels.loading")}</div>
       </div>
     );
   }
@@ -219,9 +226,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
       return (
         <div>
           <h1>{t("channels.title")}</h1>
-          <div className="centered-muted">
-            {t("channels.connectingToGateway")}
-          </div>
+          <div className="centered-muted">{t("channels.connectingToGateway")}</div>
         </div>
       );
     }
@@ -246,9 +251,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
     return (
       <div>
         <h1>{t("channels.title")}</h1>
-        <div className="centered-muted">
-          {t("channels.gatewayNotConnected")}
-        </div>
+        <div className="centered-muted">{t("channels.gatewayNotConnected")}</div>
       </div>
     );
   }
@@ -269,34 +272,28 @@ export const ChannelsPage = observer(function ChannelsPage() {
       <div className="channel-header">
         <div className="channel-title-row">
           <h1 className="channel-title">{t("channels.title")}</h1>
-          <button
-            className="btn btn-secondary"
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
+          <button className="btn btn-secondary" onClick={handleRefresh} disabled={refreshing}>
             {refreshing ? t("channels.refreshing") : `\u21bb ${t("channels.refreshButton")}`}
           </button>
         </div>
-        <p className="channel-subtitle">
-          {t("channels.statusSubtitle")}
-        </p>
+        <p className="channel-subtitle">{t("channels.statusSubtitle")}</p>
       </div>
 
       {/* Add Account Section */}
       <div className="section-card channel-add-section">
         <h3>{t("channels.addAccount")}</h3>
-        <div className={`channel-selector-col${selectedDropdownChannel === "mobile" ? " channel-selector-col--mobile" : ""}`}>
+        <div
+          className={`channel-selector-col${selectedDropdownChannel === "mobile" ? " channel-selector-col--mobile" : ""}`}
+        >
           {/* Left column: selector row + tooltip */}
           <div className="channel-selector-right">
             <div className="channel-selector-row">
-              <label className="channel-selector-label">
-                {t("channels.selectChannelType")}
-              </label>
+              <label className="channel-selector-label">{t("channels.selectChannelType")}</label>
               <Select
                 value={selectedDropdownChannel}
                 onChange={setSelectedDropdownChannel}
                 placeholder={t("channels.selectChannel")}
-                options={visibleChannels.map(ch => ({
+                options={visibleChannels.map((ch) => ({
                   value: ch.id,
                   label: t(ch.labelKey),
                 }))}
@@ -314,56 +311,54 @@ export const ChannelsPage = observer(function ChannelsPage() {
             {/* Tooltip for mobile or other channels */}
             {selectedDropdownChannel === "mobile" && (
               <div className="channel-info-box">
-                <div className="channel-info-title">
-                  {t("mobile.installHint")}
-                </div>
+                <div className="channel-info-title">{t("mobile.installHint")}</div>
               </div>
             )}
-            {selectedDropdownChannel && selectedDropdownChannel !== "mobile" && (() => {
-              const selected = KNOWN_CHANNELS.find(ch => ch.id === selectedDropdownChannel);
-              if (!selected) return null;
-              if (selected.id === "feishu") {
-                const zh = i18n.language.toLowerCase().startsWith("zh");
+            {selectedDropdownChannel &&
+              selectedDropdownChannel !== "mobile" &&
+              (() => {
+                const selected = KNOWN_CHANNELS.find((ch) => ch.id === selectedDropdownChannel);
+                if (!selected) return null;
+                if (selected.id === "feishu") {
+                  const zh = i18n.language.toLowerCase().startsWith("zh");
+                  return (
+                    <div className="channel-info-box feishu-channel-onboarding">
+                      <div className="channel-info-title">
+                        {zh
+                          ? "推荐扫码自动创建飞书机器人"
+                          : "Recommended: create the Feishu/Lark bot by scanning"}
+                      </div>
+                      <div className="channel-info-copy">
+                        {zh
+                          ? "TK匠已内置官方 OpenClaw 飞书插件。连接后会自动保存凭证并启用通道。"
+                          : "TK Copilot includes the official OpenClaw Feishu/Lark plugin. After connecting, it saves credentials and enables the channel."}
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div className="channel-info-box feishu-channel-onboarding">
-                    <div className="channel-info-title">
-                      {zh ? "推荐扫码自动创建飞书机器人" : "Recommended: create the Feishu/Lark bot by scanning"}
-                    </div>
-                    <div className="channel-info-copy">
-                      {zh
-                        ? "RivonClaw 已内置官方 OpenClaw 飞书插件。连接后会自动保存凭证并启用通道。"
-                        : "RivonClaw includes the official OpenClaw Feishu/Lark plugin. After connecting, it saves credentials and enables the channel."}
-                    </div>
+                  <div className="channel-info-box">
+                    <div className="channel-info-title">{t(selected.tooltip)}</div>
+                    {selected.tutorialUrl && (
+                      <div>
+                        <a
+                          href={selected.tutorialUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium"
+                        >
+                          {t("channels.viewTutorial")} &rarr;
+                        </a>
+                      </div>
+                    )}
                   </div>
                 );
-              }
-
-              return (
-                <div className="channel-info-box">
-                  <div className="channel-info-title">
-                    {t(selected.tooltip)}
-                  </div>
-                  {selected.tutorialUrl && (
-                    <div>
-                      <a
-                        href={selected.tutorialUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium"
-                      >
-                        {t("channels.viewTutorial")} &rarr;
-                      </a>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+              })()}
           </div>
 
           {/* QR code (right side, only when mobile is selected) */}
-          {selectedDropdownChannel === "mobile" && (
-            <MobileQrInlineFlow />
-          )}
+          {selectedDropdownChannel === "mobile" && <MobileQrInlineFlow />}
         </div>
       </div>
 
@@ -403,10 +398,9 @@ export const ChannelsPage = observer(function ChannelsPage() {
         isOpen={feishuSetupOpen}
         onClose={() => setFeishuSetupOpen(false)}
         onSuccess={() => {
-          void pollGatewayReady(
-            () => loadChannelStatus(true, { probe: false }),
-            { maxRetries: 30 },
-          );
+          void pollGatewayReady(() => loadChannelStatus(true, { probe: false }), {
+            maxRetries: 30,
+          });
         }}
         onManualSetup={handleFeishuManualSetup}
       />
@@ -417,10 +411,9 @@ export const ChannelsPage = observer(function ChannelsPage() {
           channelId={qrLoginChannelId}
           onClose={() => setQrLoginChannelId(null)}
           onSuccess={() => {
-            void pollGatewayReady(
-              () => loadChannelStatus(true, { probe: false }),
-              { maxRetries: 30 },
-            );
+            void pollGatewayReady(() => loadChannelStatus(true, { probe: false }), {
+              maxRetries: 30,
+            });
           }}
         />
       )}
@@ -430,7 +423,9 @@ export const ChannelsPage = observer(function ChannelsPage() {
         isOpen={!!deleteConfirm}
         onCancel={() => setDeleteConfirm(null)}
         onConfirm={confirmDelete}
-        title={deleteConfirm ? t("channels.deleteConfirmTitle", { channel: deleteConfirm.label }) : ""}
+        title={
+          deleteConfirm ? t("channels.deleteConfirmTitle", { channel: deleteConfirm.label }) : ""
+        }
         message={t("channels.deleteConfirmMessage")}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}

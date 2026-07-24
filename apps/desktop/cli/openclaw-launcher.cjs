@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const PRODUCT_NAME = "RivonClaw";
+const PRODUCT_NAME = "TK Copilot";
 const ENTRY_FILE = "openclaw.mjs";
 
 function fail(message, cause) {

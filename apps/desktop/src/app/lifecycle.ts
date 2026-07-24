@@ -44,14 +44,20 @@ export function checkUpdateBlocked(): boolean {
         return true;
       }
       // Marker is stale (>5 min) — installation probably failed, clean up.
-      try { unlinkSync(UPDATE_MARKER); } catch { }
+      try {
+        unlinkSync(UPDATE_MARKER);
+      } catch {}
     } else {
       // Version matches (new app) or empty marker — installation complete, clean up.
-      try { unlinkSync(UPDATE_MARKER); } catch { }
+      try {
+        unlinkSync(UPDATE_MARKER);
+      } catch {}
     }
   } catch {
     // Malformed marker — clean up.
-    try { unlinkSync(UPDATE_MARKER); } catch { }
+    try {
+      unlinkSync(UPDATE_MARKER);
+    } catch {}
   }
 
   return false;
@@ -84,11 +90,13 @@ const HEARTBEAT_PATH = resolveHeartbeatPath();
 export function writeHeartbeat(): void {
   try {
     writeFileSync(HEARTBEAT_PATH, JSON.stringify({ pid: process.pid, ts: Date.now() }));
-  } catch { }
+  } catch {}
 }
 
 export function removeHeartbeat(): void {
-  try { unlinkSync(HEARTBEAT_PATH); } catch { }
+  try {
+    unlinkSync(HEARTBEAT_PATH);
+  } catch {}
 }
 
 /**
@@ -122,16 +130,19 @@ export function acquireSingleInstanceLock(): boolean {
         isStale = false;
       }
     }
-  } catch { }
+  } catch {}
 
   if (isStale) {
     let killedStale = false;
     try {
       if (process.platform === "win32") {
-        const out = execSync('wmic process where "name=\'RivonClaw.exe\'" get ProcessId 2>nul', {
-          encoding: "utf-8",
-          timeout: 3000,
-        }).trim();
+        const out = execSync(
+          "wmic process where \"name='TK Copilot.exe' or name='RivonClaw.exe' or name='EasyClaw.exe'\" get ProcessId 2>nul",
+          {
+            encoding: "utf-8",
+            timeout: 3000,
+          },
+        ).trim();
         const pids = out
           .split("\n")
           .slice(1)
@@ -141,13 +152,16 @@ export function acquireSingleInstanceLock(): boolean {
           try {
             process.kill(pid, "SIGKILL");
             killedStale = true;
-          } catch { }
+          } catch {}
         }
       } else {
-        const out = execSync("pgrep -x RivonClaw 2>/dev/null || true", {
-          encoding: "utf-8",
-          timeout: 3000,
-        }).trim();
+        const out = execSync(
+          "pgrep -x 'TK Copilot' 2>/dev/null; pgrep -x RivonClaw 2>/dev/null; pgrep -x EasyClaw 2>/dev/null; true",
+          {
+            encoding: "utf-8",
+            timeout: 3000,
+          },
+        ).trim();
         const pids = out
           .split("\n")
           .filter(Boolean)
@@ -157,10 +171,10 @@ export function acquireSingleInstanceLock(): boolean {
           try {
             process.kill(pid, "SIGKILL");
             killedStale = true;
-          } catch { }
+          } catch {}
         }
       }
-    } catch { }
+    } catch {}
 
     if (killedStale) {
       removeHeartbeat();

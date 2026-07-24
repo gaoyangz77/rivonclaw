@@ -19,9 +19,23 @@ import {
   startHybridCodexOAuthFlow,
   startHybridGeminiOAuthFlow,
 } from "@rivonclaw/gateway";
-import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
+import type {
+  OAuthFlowResult,
+  AcquiredOAuthCredentials,
+  AcquiredCodexOAuthCredentials,
+} from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
-import { parseProxyUrl, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort, DEFAULTS, isReauthSupportedProvider, getFirstPartyDomainRoute, getTelegramDebugRelayApiRoot, type LLMProvider } from "@rivonclaw/core";
+import {
+  parseProxyUrl,
+  resolveGatewayPort,
+  resolvePanelPort,
+  resolveProxyRouterPort,
+  DEFAULTS,
+  isReauthSupportedProvider,
+  getFirstPartyDomainRoute,
+  getTelegramDebugRelayApiRoot,
+  type LLMProvider,
+} from "@rivonclaw/core";
 import type { GQL } from "@rivonclaw/core";
 import { resolveRivonClawHome, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
@@ -41,17 +55,31 @@ import { buildTrayMenu } from "../tray/tray-menu.js";
 import { startPanelServer, broadcastEvent } from "./panel-server.js";
 import { SttManager } from "../stt/stt-manager.js";
 import { createCdpManager } from "../infra/browser/cdp-manager.js";
-import { resolveProxyRouterConfigPath, detectSystemProxy, writeProxyRouterConfig, buildProxyEnv, writeProxySetupModule } from "../infra/proxy/proxy-manager.js";
+import {
+  resolveProxyRouterConfigPath,
+  detectSystemProxy,
+  writeProxyRouterConfig,
+  buildProxyEnv,
+  writeProxySetupModule,
+} from "../infra/proxy/proxy-manager.js";
 import { createAutoUpdater } from "../updater/auto-updater.js";
 import { queryCheckUpdate, type UpdatePayload } from "../cloud/backend-subscription-client.js";
 import { isNewerVersion } from "@rivonclaw/updater";
-import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch } from "../gateway/startup-utils.js";
+import {
+  resetDevicePairing,
+  cleanupGatewayLock,
+  applyAutoLaunch,
+} from "../gateway/startup-utils.js";
 import { initTelemetry } from "../telemetry/telemetry-init.js";
 import { setCsTelemetryClient } from "../telemetry/cs-telemetry-ref.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "../providers/provider-key-utils.js";
 import { syncActiveKey } from "../providers/provider-validator.js";
 import { reaction } from "mobx";
-import { rootStore, initLLMProviderManagerEnv, initChannelManagerEnv } from "./store/desktop-store.js";
+import {
+  rootStore,
+  initLLMProviderManagerEnv,
+  initChannelManagerEnv,
+} from "./store/desktop-store.js";
 import { runtimeStatusStore } from "./store/runtime-status-store.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
@@ -60,7 +88,11 @@ import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
 import { stageMerchantExtensionsForCloudTools } from "../gateway/cloud-tools-extension-stage.js";
 import { reloadCloudToolsFromSpecs } from "../gateway/cloud-tools-runtime.js";
-import { configureAgentToolingReadiness, ensureAgentToolingReady, resetAgentToolingReadiness } from "../gateway/agent-tooling-readiness.js";
+import {
+  configureAgentToolingReadiness,
+  ensureAgentToolingReady,
+  resetAgentToolingReadiness,
+} from "../gateway/agent-tooling-readiness.js";
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
 import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
@@ -94,8 +126,11 @@ import {
 } from "../cloud/tool-specs-sync.js";
 import { refreshShopLifecycle } from "./shop-lifecycle.js";
 import { syncOfficialPresetSkills } from "../skills/api.js";
+import { configureDesktopBrandCompatibility } from "./brand-migration.js";
 
 const log = createLogger("desktop");
+
+configureDesktopBrandCompatibility();
 
 // Late-bound: actual panel port is determined after startPanelServer() resolves.
 // PANEL_DEV_URL overrides dynamic allocation entirely (Vite dev server).
@@ -105,7 +140,10 @@ let PANEL_URL = process.env.PANEL_DEV_URL || "";
 // In dev: resolve relative to the bundled output (apps/desktop/dist/) → packages/gateway/dist/.
 const sttCliPath = app.isPackaged
   ? join(process.resourcesPath, "volcengine-stt-cli.mjs")
-  : resolve(dirname(fileURLToPath(import.meta.url)), "../../../packages/gateway/dist/volcengine-stt-cli.mjs");
+  : resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../packages/gateway/dist/volcengine-stt-cli.mjs",
+    );
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
@@ -179,7 +217,7 @@ app.whenReady().then(async () => {
 
   Menu.setApplicationMenu(null);
   enableFileLogging();
-  log.info(`RivonClaw desktop starting (build: ${__BUILD_TIMESTAMP__})`);
+  log.info(`TK Copilot desktop starting (build: ${__BUILD_TIMESTAMP__})`);
 
   // Show dock icon immediately. LSUIElement=true in Info.plist hides it by default
   // (which also prevents child processes like the gateway from showing dock icons).
@@ -227,7 +265,9 @@ app.whenReady().then(async () => {
 
   // Initialize auth session manager and backend subscription client
   const { authSession, backendSubscription } = await setupAuth({
-    secretStore, locale, deviceId,
+    secretStore,
+    locale,
+    deviceId,
     appVersion: app.getVersion(),
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),
     broadcastEvent,
@@ -283,15 +323,20 @@ app.whenReady().then(async () => {
     if (existsSync(standaloneConfig) && !existsSync(defaultStateDir)) {
       const { response } = await dialog.showMessageBox({
         type: "question",
-        buttons: [locale === "zh" ? "使用现有数据" : "Use existing data", locale === "zh" ? "全新开始" : "Start fresh"],
+        buttons: [
+          locale === "zh" ? "使用现有数据" : "Use existing data",
+          locale === "zh" ? "全新开始" : "Start fresh",
+        ],
         defaultId: 0,
         title: brandName(locale),
-        message: locale === "zh"
-          ? "检测到本地已安装的 OpenClaw"
-          : "Existing OpenClaw installation detected",
-        detail: locale === "zh"
-          ? `发现 ${standaloneDir} 中的 OpenClaw 数据（包括 Agent 记忆和文档）。\n是否让 ${brandName(locale)} 直接使用这些数据？`
-          : `Found OpenClaw data at ${standaloneDir} (including agent memory and documents).\nWould you like ${brandName(locale)} to use this existing data?`,
+        message:
+          locale === "zh"
+            ? "检测到本地已安装的 OpenClaw"
+            : "Existing OpenClaw installation detected",
+        detail:
+          locale === "zh"
+            ? `发现 ${standaloneDir} 中的 OpenClaw 数据（包括 Agent 记忆和文档）。\n是否让 ${brandName(locale)} 直接使用这些数据？`
+            : `Found OpenClaw data at ${standaloneDir} (including agent memory and documents).\nWould you like ${brandName(locale)} to use this existing data?`,
       });
       if (response === 0) {
         storage.settings.set("openclaw_state_dir_override", standaloneDir);
@@ -357,15 +402,17 @@ app.whenReady().then(async () => {
   proxyNetwork.setProxyRouterPort(actualProxyRouterPort);
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
 
-  await detectAndApplyFirstPartyDomainRoute((url, init) => (
-    proxyNetwork.fetch(url, init, { firstPartyFailover: false })
-  ));
+  await detectAndApplyFirstPartyDomainRoute((url, init) =>
+    proxyNetwork.fetch(url, init, { firstPartyFailover: false }),
+  );
 
   // Initialize telemetry after proxy-router and domain routing are ready, so
   // telemetry uses the same network path and first-party domain route as API.
-  ({ client: telemetryClient, csClient: csTelemetryClient, heartbeatTimer } = initTelemetry(
-    storage, deviceId, locale, (url, init) => proxyNetwork.fetch(url, init),
-  ));
+  ({
+    client: telemetryClient,
+    csClient: csTelemetryClient,
+    heartbeatTimer,
+  } = initTelemetry(storage, deviceId, locale, (url, init) => proxyNetwork.fetch(url, init)));
 
   // Bridge MST user identity -> telemetry clients. The CS stream attributes
   // every row by userId; identity changes must propagate to BOTH clients.
@@ -395,28 +442,29 @@ app.whenReady().then(async () => {
   // Public subscriptions may connect immediately; authenticated subscriptions
   // are enabled only after auth bootstrap validates or refreshes the token.
   let subscriptionReconnectShopRefresh: Promise<void> | null = null;
-  backendSubscription.connect(
-    () => authSession.getAccessToken(),
-    {
-      refreshAuth: () => authSession.refresh({ clearOnInvalid: false }).then(() => undefined),
-      onConnectedAfterRetry: () => {
-        if (!authSession.getAccessToken()) return;
-        if (subscriptionReconnectShopRefresh) return subscriptionReconnectShopRefresh;
+  backendSubscription.connect(() => authSession.getAccessToken(), {
+    refreshAuth: () => authSession.refresh({ clearOnInvalid: false }).then(() => undefined),
+    onConnectedAfterRetry: () => {
+      if (!authSession.getAccessToken()) return;
+      if (subscriptionReconnectShopRefresh) return subscriptionReconnectShopRefresh;
 
-        subscriptionReconnectShopRefresh = (async () => {
-          try {
-            await refreshShopLifecycle({
-              graphqlFetch: (query) => authSession.graphqlFetch(query, undefined, { clearOnInvalidRefresh: false }),
-            }, "backend_subscription_reconnect");
-          } finally {
-            subscriptionReconnectShopRefresh = null;
-          }
-        })();
+      subscriptionReconnectShopRefresh = (async () => {
+        try {
+          await refreshShopLifecycle(
+            {
+              graphqlFetch: (query) =>
+                authSession.graphqlFetch(query, undefined, { clearOnInvalidRefresh: false }),
+            },
+            "backend_subscription_reconnect",
+          );
+        } finally {
+          subscriptionReconnectShopRefresh = null;
+        }
+      })();
 
-        return subscriptionReconnectShopRefresh;
-      },
+      return subscriptionReconnectShopRefresh;
     },
-  );
+  });
   reaction(
     () => rootStore.getCustomerServiceShopIdsForDevice(deviceId).join("\0"),
     () => {
@@ -517,7 +565,8 @@ app.whenReady().then(async () => {
   ): { flowId: string; flow: PendingOAuthFlow } | undefined {
     let best: { flowId: string; flow: PendingOAuthFlow } | undefined;
     for (const [flowId, flow] of flows) {
-      if (flow.provider !== provider || (flow.status !== "pending" && flow.status !== "completed")) continue;
+      if (flow.provider !== provider || (flow.status !== "pending" && flow.status !== "completed"))
+        continue;
       if (!best || flow._createdAt > best.flow._createdAt) {
         best = { flowId, flow };
       }
@@ -549,9 +598,17 @@ app.whenReady().then(async () => {
   if (!process.env.OPENCLAW_ALLOW_MULTI_GATEWAY) {
     try {
       if (process.platform === "win32") {
-        try { execSync("taskkill /f /im openclaw-gateway.exe 2>nul & taskkill /f /im openclaw.exe 2>nul & exit /b 0", { stdio: "ignore", shell: "cmd.exe" }); } catch { }
+        try {
+          execSync(
+            "taskkill /f /im openclaw-gateway.exe 2>nul & taskkill /f /im openclaw.exe 2>nul & exit /b 0",
+            { stdio: "ignore", shell: "cmd.exe" },
+          );
+        } catch {}
       } else {
-        execSync("killall -9 openclaw-gateway 2>/dev/null || true; killall -9 openclaw 2>/dev/null || true", { stdio: "ignore" });
+        execSync(
+          "killall -9 openclaw-gateway 2>/dev/null || true; killall -9 openclaw 2>/dev/null || true",
+          { stdio: "ignore" },
+        );
       }
       log.info("Cleaned up existing openclaw processes");
     } catch (err) {
@@ -602,14 +659,18 @@ app.whenReady().then(async () => {
   });
 
   // Setup gateway: launcher, config builder, event dispatcher, connection deps
-  const {
-    launcher,
-    buildFullGatewayConfig,
-  } = await setupGateway({
-    storage, secretStore, locale, configPath, stateDir,
-    extensionsDir, sttCliPath, vendorDir,
+  const { launcher, buildFullGatewayConfig } = await setupGateway({
+    storage,
+    secretStore,
+    locale,
+    configPath,
+    stateDir,
+    extensionsDir,
+    sttCliPath,
+    vendorDir,
     merchantExtensionPaths: () => merchantExtensionPaths,
-    gatewayPort: actualGatewayPort, broadcastEvent,
+    gatewayPort: actualGatewayPort,
+    broadcastEvent,
   });
 
   let telegramDebugProxySyncQueue: Promise<void> = Promise.resolve();
@@ -627,10 +688,14 @@ app.whenReady().then(async () => {
           apiRoot,
           proxyToken,
           deviceId,
-          fetchFn: ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
+          fetchFn: ((url: string | URL, init?: RequestInit) =>
+            proxyNetwork.fetch(url, init)) as typeof fetch,
         });
       } catch (err) {
-        log.warn("Failed to fetch Telegram debug operator allowlist from relay; keeping cached allowlist:", err);
+        log.warn(
+          "Failed to fetch Telegram debug operator allowlist from relay; keeping cached allowlist:",
+          err,
+        );
       }
     }
     const writeConfigBeforeRuntimeStart = currentState !== "running";
@@ -672,7 +737,9 @@ app.whenReady().then(async () => {
       });
   }
 
-  async function pushCurrentCloudToolsToGateway(rpc = openClawConnector.ensureRpcReady()): Promise<void> {
+  async function pushCurrentCloudToolsToGateway(
+    rpc = openClawConnector.ensureRpcReady(),
+  ): Promise<void> {
     const toolSpecs = getEntitledToolSpecsSnapshot();
     const digest = computeToolSpecsDigest(toolSpecs);
     const result = await reloadCloudToolsFromSpecs({
@@ -732,10 +799,7 @@ app.whenReady().then(async () => {
     log.info(`Gateway restarted after ToolSpecs refresh (${params.reason})`);
   }
 
-  function queueToolSpecsRefresh(params: {
-    reason: string;
-    forceGatewayRestart?: boolean;
-  }): void {
+  function queueToolSpecsRefresh(params: { reason: string; forceGatewayRestart?: boolean }): void {
     toolSpecsRefreshQueue = toolSpecsRefreshQueue
       .then(() => refreshToolSpecsFromBackend(params))
       .catch((err: unknown) => {
@@ -745,7 +809,10 @@ app.whenReady().then(async () => {
 
   async function refreshPresetSkillsFromManifest(reason: string): Promise<void> {
     if (!authSession.getAccessToken()) return;
-    const result = await syncOfficialPresetSkills({ proxyRouterPort: actualProxyRouterPort }, "safe");
+    const result = await syncOfficialPresetSkills(
+      { proxyRouterPort: actualProxyRouterPort },
+      "safe",
+    );
     const message = `Synced official preset skills (${reason}): installed=${result.installed} updated=${result.updated} current=${result.current} skippedCustom=${result.skippedCustom} failed=${result.failed}`;
     if (result.failed > 0) {
       log.warn(message);
@@ -763,7 +830,8 @@ app.whenReady().then(async () => {
   }
 
   backendSubscription.subscribeToToolSpecsChanged((payload) => {
-    const forceGatewayRestart = payload.changeType === "hard" && payload.reason !== "subscription_initial_sync";
+    const forceGatewayRestart =
+      payload.changeType === "hard" && payload.reason !== "subscription_initial_sync";
     log.info(
       `Received ToolSpecs changed signal revision=${payload.revision} digest=${payload.digest?.slice(0, 12) ?? "unknown"} changeType=${payload.changeType ?? "unknown"} reason=${payload.reason ?? "unknown"}`,
     );
@@ -787,7 +855,10 @@ app.whenReady().then(async () => {
       try {
         await refreshPresetSkillsFromManifest(`auth:${action}`);
       } catch (err) {
-        log.warn("Failed to sync official preset skills before enabling authenticated subscriptions:", err);
+        log.warn(
+          "Failed to sync official preset skills before enabling authenticated subscriptions:",
+          err,
+        );
       }
       backendSubscription.enableAuthenticatedSubscriptions({ forceReconnect: true });
     } else {
@@ -828,78 +899,83 @@ app.whenReady().then(async () => {
     currentState = state;
     tray.setImage(createTrayIcon(state));
     tray.setContextMenu(
-      buildTrayMenu(state, {
-        onOpenPanel: () => {
-          if (mainWindow && !mainWindow.webContents.getURL()) {
-            mainWindow.loadURL(PANEL_URL);
-          }
-          showMainWindow(mainWindow);
-        },
-        onRestartGateway: async () => {
-          await launcher.stop();
-          await launcher.start();
-        },
-        onCheckForUpdates: async () => {
-          try {
-            const payload = await queryCheckUpdate(
-              locale, app.getVersion(),
-              (url, init) => proxyNetwork.fetch(url, init),
-            );
-            let accepted = false;
-            if (payload) {
-              accepted = await processUpdatePayload(payload);
-            } else {
-              clearUpdateBanner();
+      buildTrayMenu(
+        state,
+        {
+          onOpenPanel: () => {
+            if (mainWindow && !mainWindow.webContents.getURL()) {
+              mainWindow.loadURL(PANEL_URL);
             }
-            const isZh = systemLocale === "zh";
-            if (accepted) {
-              const updateInfo = updater.getLatestInfo()!;
-              const { response } = await dialog.showMessageBox({
-                type: "info",
-                title: isZh ? "发现新版本" : "Update Available",
-                message: isZh
-                  ? `新版本 v${updateInfo.version} 已发布，当前版本为 v${app.getVersion()}。`
-                  : `A new version v${updateInfo.version} is available. You are currently on v${app.getVersion()}.`,
-                buttons: isZh ? ["下载", "稍后"] : ["Download", "Later"],
-              });
-              if (response === 0) {
-                showMainWindow(mainWindow);
-                updater.download().catch((e: unknown) => log.error("Update download failed:", e));
+            showMainWindow(mainWindow);
+          },
+          onRestartGateway: async () => {
+            await launcher.stop();
+            await launcher.start();
+          },
+          onCheckForUpdates: async () => {
+            try {
+              const payload = await queryCheckUpdate(locale, app.getVersion(), (url, init) =>
+                proxyNetwork.fetch(url, init),
+              );
+              let accepted = false;
+              if (payload) {
+                accepted = await processUpdatePayload(payload);
+              } else {
+                clearUpdateBanner();
               }
-            } else {
+              const isZh = systemLocale === "zh";
+              if (accepted) {
+                const updateInfo = updater.getLatestInfo()!;
+                const { response } = await dialog.showMessageBox({
+                  type: "info",
+                  title: isZh ? "发现新版本" : "Update Available",
+                  message: isZh
+                    ? `新版本 v${updateInfo.version} 已发布，当前版本为 v${app.getVersion()}。`
+                    : `A new version v${updateInfo.version} is available. You are currently on v${app.getVersion()}.`,
+                  buttons: isZh ? ["下载", "稍后"] : ["Download", "Later"],
+                });
+                if (response === 0) {
+                  showMainWindow(mainWindow);
+                  updater.download().catch((e: unknown) => log.error("Update download failed:", e));
+                }
+              } else {
+                dialog.showMessageBox({
+                  type: "info",
+                  title: isZh ? "检查更新" : "Check for Updates",
+                  message: isZh
+                    ? `当前版本 v${app.getVersion()} 已是最新。`
+                    : `v${app.getVersion()} is already the latest version.`,
+                  buttons: isZh ? ["好"] : ["OK"],
+                });
+              }
+            } catch (err) {
+              log.warn("Manual update check failed:", err);
+              const isZh = systemLocale === "zh";
               dialog.showMessageBox({
-                type: "info",
+                type: "error",
                 title: isZh ? "检查更新" : "Check for Updates",
                 message: isZh
-                  ? `当前版本 v${app.getVersion()} 已是最新。`
-                  : `v${app.getVersion()} is already the latest version.`,
+                  ? "检查更新失败，请稍后重试。"
+                  : "Failed to check for updates. Please try again later.",
                 buttons: isZh ? ["好"] : ["OK"],
               });
             }
-          } catch (err) {
-            log.warn("Manual update check failed:", err);
-            const isZh = systemLocale === "zh";
-            dialog.showMessageBox({
-              type: "error",
-              title: isZh ? "检查更新" : "Check for Updates",
-              message: isZh ? "检查更新失败，请稍后重试。" : "Failed to check for updates. Please try again later.",
-              buttons: isZh ? ["好"] : ["OK"],
-            });
-          }
+          },
+          onQuit: () => {
+            app.quit();
+          },
+          updateInfo: updater.getLatestInfo()
+            ? {
+                latestVersion: updater.getLatestInfo()!.version,
+                onDownload: () => {
+                  showMainWindow(mainWindow);
+                  updater.download().catch((e: unknown) => log.error("Update download failed:", e));
+                },
+              }
+            : undefined,
         },
-        onQuit: () => {
-          app.quit();
-        },
-        updateInfo: updater.getLatestInfo()
-          ? {
-            latestVersion: updater.getLatestInfo()!.version,
-            onDownload: () => {
-              showMainWindow(mainWindow);
-              updater.download().catch((e: unknown) => log.error("Update download failed:", e));
-            },
-          }
-          : undefined,
-      }, systemLocale),
+        systemLocale,
+      ),
     );
   }
 
@@ -925,9 +1001,13 @@ app.whenReady().then(async () => {
     systemLocale,
     getMainWindow: () => mainWindow,
     showMainWindow: () => showMainWindow(mainWindow),
-    setIsQuitting: (v) => { isQuitting = v; },
+    setIsQuitting: (v) => {
+      isQuitting = v;
+    },
     updateTray: () => updateTray(currentState),
-    telemetryTrack: telemetryClient ? (event, meta) => telemetryClient!.track(event, meta) : undefined,
+    telemetryTrack: telemetryClient
+      ? (event, meta) => telemetryClient!.track(event, meta)
+      : undefined,
   });
 
   updateTray("stopped");
@@ -978,13 +1058,17 @@ app.whenReady().then(async () => {
     });
 
   // Real-time update push via GraphQL subscription
-  backendSubscription.subscribeToUpdates(app.getVersion(), (payload) => {
-    log.info(`Server pushed update: v${payload.version}`);
-    processUpdatePayload(payload);
-  }, () => {
-    log.info("Server dismissed update — clearing banner");
-    clearUpdateBanner();
-  });
+  backendSubscription.subscribeToUpdates(
+    app.getVersion(),
+    (payload) => {
+      log.info(`Server pushed update: v${payload.version}`);
+      processUpdatePayload(payload);
+    },
+    () => {
+      log.info("Server dismissed update — clearing banner");
+      clearUpdateBanner();
+    },
+  );
 
   // Create main panel window (hidden initially, loaded when gateway starts)
   const isDev = !!process.env.PANEL_DEV_URL;
@@ -1043,14 +1127,10 @@ app.whenReady().then(async () => {
 
     const menuItems: Electron.MenuItemConstructorOptions[] = [];
     if (isEditable) {
-      menuItems.push(
-        { label: "Cut", role: "cut", enabled: editFlags.canCut },
-      );
+      menuItems.push({ label: "Cut", role: "cut", enabled: editFlags.canCut });
     }
     if (selectionText || isEditable) {
-      menuItems.push(
-        { label: "Copy", role: "copy", enabled: editFlags.canCopy },
-      );
+      menuItems.push({ label: "Copy", role: "copy", enabled: editFlags.canCopy });
     }
     if (isEditable) {
       menuItems.push(
@@ -1119,7 +1199,6 @@ app.whenReady().then(async () => {
     // on the next connect. (Also covered by onRpcDisconnected, but the
     // process-death path may not fire onClose if the socket is already dead.)
     stopCsBridge();
-
   });
 
   launcher.on("restarting", (attempt, delayMs) => {
@@ -1182,7 +1261,9 @@ app.whenReady().then(async () => {
   });
 
   // Initialize STT manager
-  const sttManager = new SttManager(storage, secretStore, (url, init) => proxyNetwork.fetch(url, init));
+  const sttManager = new SttManager(storage, secretStore, (url, init) =>
+    proxyNetwork.fetch(url, init),
+  );
   await sttManager.initialize();
 
   // Late-bound config handler refs — configHandlers is created after gateway setup,
@@ -1352,11 +1433,14 @@ app.whenReady().then(async () => {
       const flowId = randomUUID();
 
       if (provider === "openai-codex") {
-        const hybrid = await startHybridCodexOAuthFlow({
-          openUrl: (url) => shell.openExternal(url),
-          onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
-          proxyUrl: proxyRouterUrl,
-        }, vendorDir);
+        const hybrid = await startHybridCodexOAuthFlow(
+          {
+            openUrl: (url) => shell.openExternal(url),
+            onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
+            proxyUrl: proxyRouterUrl,
+          },
+          vendorDir,
+        );
 
         const flow: PendingOAuthFlow = {
           provider,
@@ -1386,7 +1470,13 @@ app.whenReady().then(async () => {
 
         pendingOAuthFlows.set(flowId, flow);
         log.info(`Codex hybrid OAuth started, flowId=${flowId}`);
-        return { email: undefined, tokenPreview: "", manualMode: true, authUrl: hybrid.authUrl, flowId };
+        return {
+          email: undefined,
+          tokenPreview: "",
+          manualMode: true,
+          authUrl: hybrid.authUrl,
+          flowId,
+        };
       }
 
       // Gemini OAuth
@@ -1427,7 +1517,13 @@ app.whenReady().then(async () => {
 
       pendingOAuthFlows.set(flowId, flow);
       log.info(`Gemini hybrid OAuth started, flowId=${flowId}`);
-      return { email: undefined, tokenPreview: "", manualMode: true, authUrl: hybrid.authUrl, flowId };
+      return {
+        email: undefined,
+        tokenPreview: "",
+        manualMode: true,
+        authUrl: hybrid.authUrl,
+        flowId,
+      };
     },
     onOAuthManualComplete: async (provider: string, callbackUrl: string) => {
       const picked = findLatestManualCompletableFlow(pendingOAuthFlows, provider);
@@ -1452,7 +1548,10 @@ app.whenReady().then(async () => {
         }
         if (flow.status !== "pending") {
           // Auto-callback already completed — return its result
-          return { email: (flow.creds as any)?.email, tokenPreview: (flow.creds as any)?.tokenPreview ?? "" };
+          return {
+            email: (flow.creds as any)?.email,
+            tokenPreview: (flow.creds as any)?.tokenPreview ?? "",
+          };
         }
         flow.resolveManualInput(callbackUrl);
         // Wait for the vendor flow to complete with the manual input
@@ -1460,7 +1559,10 @@ app.whenReady().then(async () => {
         flow.status = "completed";
         flow.creds = creds;
         log.info(`Codex OAuth manual-completed for flow ${flowId}`);
-        return { email: (creds as AcquiredCodexOAuthCredentials).email, tokenPreview: (creds as AcquiredCodexOAuthCredentials).tokenPreview };
+        return {
+          email: (creds as AcquiredCodexOAuthCredentials).email,
+          tokenPreview: (creds as AcquiredCodexOAuthCredentials).tokenPreview,
+        };
       }
 
       // Gemini: use existing completeManualOAuthFlow
@@ -1472,10 +1574,15 @@ app.whenReady().then(async () => {
       const acquired = await completeManualOAuthFlow(callbackUrl, flow.verifier, proxyRouterUrl);
       flow.status = "completed";
       flow.creds = acquired;
-      log.info(`Gemini OAuth manual-completed for flow ${flowId}, email=${acquired.email ?? "(none)"}`);
+      log.info(
+        `Gemini OAuth manual-completed for flow ${flowId}, email=${acquired.email ?? "(none)"}`,
+      );
       return { email: acquired.email, tokenPreview: acquired.tokenPreview };
     },
-    onOAuthSave: async (provider: string, options: { proxyUrl?: string; label?: string; model?: string }): Promise<OAuthFlowResult> => {
+    onOAuthSave: async (
+      provider: string,
+      options: { proxyUrl?: string; label?: string; model?: string },
+    ): Promise<OAuthFlowResult> => {
       // Find the MOST RECENT completed flow for this provider. Map iteration
       // is insertion-ordered, so a plain break-on-first-match would pick the
       // oldest — which can be a stale, abandoned flow still in the 10-min
@@ -1498,7 +1605,8 @@ app.whenReady().then(async () => {
         }
       }
 
-      const validationProxy = options.proxyUrl?.trim() || `http://127.0.0.1:${actualProxyRouterPort}`;
+      const validationProxy =
+        options.proxyUrl?.trim() || `http://127.0.0.1:${actualProxyRouterPort}`;
       let result: OAuthFlowResult;
       let activeProvider: string;
 
@@ -1511,12 +1619,17 @@ app.whenReady().then(async () => {
           model: options.model,
           // Narrow cast: `typeof fetch` accepts `Request` objects, but our
           // gateway helpers only ever pass string URLs. Safe at this seam.
-          fetchFn: ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
+          fetchFn: ((url: string | URL, init?: RequestInit) =>
+            proxyNetwork.fetch(url, init)) as typeof fetch,
         });
         activeProvider = "openai-codex";
       } else {
         const geminiCreds = creds as AcquiredOAuthCredentials;
-        const validation = await validateGeminiAccessToken(geminiCreds.credentials.access, validationProxy, geminiCreds.credentials.projectId);
+        const validation = await validateGeminiAccessToken(
+          geminiCreds.credentials.access,
+          validationProxy,
+          geminiCreds.credentials.projectId,
+        );
         if (!validation.valid) {
           throw new Error(validation.error || "Token validation failed");
         }
@@ -1568,7 +1681,9 @@ app.whenReady().then(async () => {
         throw new Error(`Provider key ${keyId} not found`);
       }
       if (entry.authType !== "oauth" || !isReauthSupportedProvider(entry.provider as LLMProvider)) {
-        throw new Error("Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)");
+        throw new Error(
+          "Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)",
+        );
       }
 
       // Find the MOST RECENT completed flow for this provider — see the note
@@ -1594,7 +1709,8 @@ app.whenReady().then(async () => {
           keyId,
           codexCreds.credentials,
           secretStore,
-          ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
+          ((url: string | URL, init?: RequestInit) =>
+            proxyNetwork.fetch(url, init)) as typeof fetch,
         ));
       } else {
         const geminiCreds = flow.creds as AcquiredOAuthCredentials;
@@ -1609,7 +1725,11 @@ app.whenReady().then(async () => {
         if (!validation.valid) {
           throw new Error(validation.error || "Token validation failed");
         }
-        ({ oauthExpiresAt } = await refreshGeminiOAuthCredentials(keyId, geminiCreds.credentials, secretStore));
+        ({ oauthExpiresAt } = await refreshGeminiOAuthCredentials(
+          keyId,
+          geminiCreds.credentials,
+          secretStore,
+        ));
         // Gemini refresh tokens are opaque — `idTokenCaptureFailed` stays false.
       }
 
@@ -1692,7 +1812,6 @@ app.whenReady().then(async () => {
   // Quote the path — Windows usernames with spaces break unquoted --require
   const gatewayNodeOptions = `--require "${proxySetupPath.replaceAll("\\", "/")}"`;
 
-
   /**
    * Build the complete proxy env including NODE_OPTIONS.
    * Centralised so every restart path gets --require proxy-setup.cjs.
@@ -1731,7 +1850,13 @@ app.whenReady().then(async () => {
   initLLMProviderManagerEnv({
     storage,
     secretStore,
-    getRpcClient: () => { try { return openClawConnector.ensureRpcReady(); } catch { return null; } },
+    getRpcClient: () => {
+      try {
+        return openClawConnector.ensureRpcReady();
+      } catch {
+        return null;
+      }
+    },
     toMstSnapshot,
     allKeysToMstSnapshots,
     syncActiveKey,
@@ -1740,9 +1865,15 @@ app.whenReady().then(async () => {
     writeDefaultModelToConfig: (gwProvider: string, modelId: string) => {
       const configPath = resolveOpenClawConfigPath();
       mutateDesktopOpenClawConfig(configPath, "default model", (config) => {
-        const agents = (typeof config.agents === "object" && config.agents !== null ? config.agents : {}) as Record<string, unknown>;
-        const defaults = (typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}) as Record<string, unknown>;
-        const model = (typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}) as Record<string, unknown>;
+        const agents = (
+          typeof config.agents === "object" && config.agents !== null ? config.agents : {}
+        ) as Record<string, unknown>;
+        const defaults = (
+          typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}
+        ) as Record<string, unknown>;
+        const model = (
+          typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}
+        ) as Record<string, unknown>;
         model.primary = `${gwProvider}/${modelId}`;
         defaults.model = model;
         agents.defaults = defaults;
@@ -1772,7 +1903,10 @@ app.whenReady().then(async () => {
 
     // 1. Start Mobile Sync engines for all active pairings (skip stale)
     const allPairings = storage.mobilePairings.getAllPairings();
-    const stalePairings: Array<{ pairingId: string | undefined; mobileDeviceId: string | undefined }> = [];
+    const stalePairings: Array<{
+      pairingId: string | undefined;
+      mobileDeviceId: string | undefined;
+    }> = [];
     for (const pairing of allPairings) {
       if (pairing.status === "stale") {
         stalePairings.push({
@@ -1787,23 +1921,32 @@ app.whenReady().then(async () => {
         );
         continue;
       }
-      rpc.request("mobile_chat_start_sync", {
-        pairingId: pairing.pairingId,
-        accessToken: pairing.accessToken,
-        relayUrl: pairing.relayUrl,
-        desktopDeviceId: pairing.deviceId,
-        mobileDeviceId: pairing.mobileDeviceId || pairing.id,
-      }).catch((e: unknown) => log.error(`Failed to start Mobile Sync for ${pairing.pairingId || pairing.mobileDeviceId || pairing.id}:`, e));
+      rpc
+        .request("mobile_chat_start_sync", {
+          pairingId: pairing.pairingId,
+          accessToken: pairing.accessToken,
+          relayUrl: pairing.relayUrl,
+          desktopDeviceId: pairing.deviceId,
+          mobileDeviceId: pairing.mobileDeviceId || pairing.id,
+        })
+        .catch((e: unknown) =>
+          log.error(
+            `Failed to start Mobile Sync for ${pairing.pairingId || pairing.mobileDeviceId || pairing.id}:`,
+            e,
+          ),
+        );
     }
 
     // Register stale pairings so the mobile channel stays visible in Panel
     if (stalePairings.length > 0) {
-      rpc.request("mobile_chat_register_stale", { pairings: stalePairings })
+      rpc
+        .request("mobile_chat_register_stale", { pairings: stalePairings })
         .catch((e: unknown) => log.error("Failed to register stale mobile pairings:", e));
     }
 
     // 2. Initialize event bridge plugin so it captures the gateway broadcast function
-    rpc.request("event_bridge_init", {})
+    rpc
+      .request("event_bridge_init", {})
       .catch((e: unknown) => log.debug("Event bridge init (may not be loaded):", e));
 
     // 3. Initialize gateway-dependent Desktop state. Agent-related business
@@ -1825,14 +1968,14 @@ app.whenReady().then(async () => {
           },
           {
             name: "cs-bridge",
-            run: () => tryStartCsBridge(deviceId ?? "unknown", storage.settings.get("locale") ?? locale),
+            run: () =>
+              tryStartCsBridge(deviceId ?? "unknown", storage.settings.get("locale") ?? locale),
           },
         ],
       });
     })().catch((err: unknown) => {
       log.error("Gateway startup blocked because agent tooling is unavailable:", err);
     });
-
   });
 
   // ── Register onRpcDisconnected callback ────────────────────────────────────
@@ -1852,8 +1995,10 @@ app.whenReady().then(async () => {
   ])
     .then(([, secretEnv]) => {
       // Debug: Log which API keys are configured (without showing values)
-      const configuredKeys = Object.keys(secretEnv).filter(k => k.endsWith('_API_KEY') || k.endsWith('_OAUTH_TOKEN'));
-      log.info(`Initial API keys: ${configuredKeys.join(', ') || '(none)'}`);
+      const configuredKeys = Object.keys(secretEnv).filter(
+        (k) => k.endsWith("_API_KEY") || k.endsWith("_OAUTH_TOKEN"),
+      );
+      log.info(`Initial API keys: ${configuredKeys.join(", ") || "(none)"}`);
       log.info(`Proxy router: http://127.0.0.1:${actualProxyRouterPort} (dynamic routing enabled)`);
 
       // Set env vars: API keys + proxy (incl. NODE_OPTIONS) + Desktop API bridge.
@@ -1890,7 +2035,7 @@ app.whenReady().then(async () => {
     }
   }, 30_000);
 
-  log.info("RivonClaw desktop ready");
+  log.info("TK Copilot desktop ready");
 
   // Register full cleanup for auto-updater — defined here (after all timers)
   // so the closure has access to every dependency. The auto-updater calls this
@@ -1924,10 +2069,7 @@ app.whenReady().then(async () => {
       log.info("CS telemetry client shut down gracefully");
     }
 
-    await Promise.all([
-      launcher.stop(),
-      proxyRouter.stop(),
-    ]);
+    await Promise.all([launcher.stop(), proxyRouter.stop()]);
 
     cleanupGatewayLock(configPath);
     clearAllAuthProfiles(stateDir);
@@ -1950,7 +2092,7 @@ app.whenReady().then(async () => {
     isQuitting = true;
 
     if (cleanupDone) return; // Already cleaned up (e.g. by auto-updater), let the quit proceed
-    event.preventDefault();  // Pause quit until async cleanup finishes
+    event.preventDefault(); // Pause quit until async cleanup finishes
 
     // Stop all periodic timers so they don't keep the event loop alive
     clearInterval(proxyPollTimer);
@@ -1981,10 +2123,7 @@ app.whenReady().then(async () => {
       }
 
       // Kill gateway and proxy router.
-      await Promise.all([
-        launcher.stop(),
-        proxyRouter.stop(),
-      ]);
+      await Promise.all([launcher.stop(), proxyRouter.stop()]);
 
       // Clear sensitive API keys from disk before quitting
       clearAllAuthProfiles(stateDir);

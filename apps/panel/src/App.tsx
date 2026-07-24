@@ -5,16 +5,29 @@ import { Layout } from "./layout/Layout.js";
 import { VALID_PATHS, ROUTE_MAP } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
-import { AnnouncementModal, type ActiveAnnouncement, type ActiveAnnouncementAction } from "./components/modals/AnnouncementModal.js";
+import {
+  AnnouncementModal,
+  type ActiveAnnouncement,
+  type ActiveAnnouncementAction,
+} from "./components/modals/AnnouncementModal.js";
 import { TutorialProvider, TutorialBubble, TutorialOverlay } from "./tutorial/index.js";
 import { RecordingHighlightLayer } from "./tutorial/components/RecordingHighlightLayer.js";
-import { fetchSettings, fetchChangelog, fetchUpdateInfo, trackEvent, updateSettings } from "./api/index.js";
+import {
+  fetchSettings,
+  fetchChangelog,
+  fetchUpdateInfo,
+  trackEvent,
+  updateSettings,
+} from "./api/index.js";
 import type { ChangelogEntry } from "./api/index.js";
 import { fetchJson } from "./api/client.js";
 import { entityStore } from "./store/entity-store.js";
 import { useRuntimeStatus } from "./store/RuntimeStatusProvider.js";
 import { getClient } from "./api/apollo-client.js";
-import { ACTIVE_ANNOUNCEMENTS_QUERY, RECORD_ANNOUNCEMENT_EVENT_MUTATION } from "./api/announcement-queries.js";
+import {
+  ACTIVE_ANNOUNCEMENTS_QUERY,
+  RECORD_ANNOUNCEMENT_EVENT_MUTATION,
+} from "./api/announcement-queries.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { normalizeLanguageCode } from "./i18n/languages.js";
 
@@ -38,7 +51,8 @@ export const App = observer(function App() {
   // Sync <html lang="..."> so CSS :lang() / [lang] selectors work
   useEffect(() => {
     document.documentElement.lang = i18n.language;
-  }, [i18n.language]);
+    document.title = t("common.brandName");
+  }, [i18n.language, t]);
 
   useEffect(() => {
     if (!runtimeStatus.snapshotReceived) return;
@@ -107,7 +121,9 @@ export const App = observer(function App() {
         return;
       }
 
-      const session = await fetchJson<{ authenticated: boolean; tokenPresent?: boolean }>(clientPath(API["auth.session"])).catch(() => null);
+      const session = await fetchJson<{ authenticated: boolean; tokenPresent?: boolean }>(
+        clientPath(API["auth.session"]),
+      ).catch(() => null);
       if (session?.authenticated || session?.tokenPresent) {
         updateSettings({ [WELCOME_PAGE_COMPLETED_KEY]: "1" }).catch(() => {});
         setShowWelcome(false);
@@ -136,8 +152,12 @@ export const App = observer(function App() {
           setShowWhatsNew(true);
         }
       })
-      .catch(() => { });
-  }, [showWelcome, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.whatsNewLastSeenVersion]);
+      .catch(() => {});
+  }, [
+    showWelcome,
+    runtimeStatus.snapshotReceived,
+    runtimeStatus.appSettings.whatsNewLastSeenVersion,
+  ]);
 
   // Show telemetry consent dialog on first launch (after the welcome page).
   // Gate on snapshotReceived so we don't flash the modal based on the MST
@@ -148,7 +168,11 @@ export const App = observer(function App() {
     if (!runtimeStatus.appSettings.telemetryConsentShown) {
       setShowTelemetryConsent(true);
     }
-  }, [showWelcome, runtimeStatus.snapshotReceived, runtimeStatus.appSettings.telemetryConsentShown]);
+  }, [
+    showWelcome,
+    runtimeStatus.snapshotReceived,
+    runtimeStatus.appSettings.telemetryConsentShown,
+  ]);
 
   useEffect(() => {
     if (showWelcome !== false) return;
@@ -180,7 +204,13 @@ export const App = observer(function App() {
     return () => {
       cancelled = true;
     };
-  }, [showWelcome, runtimeStatus.snapshotReceived, runtimeStatus.deviceId, entityStore.currentUser?.userId, i18n.language]);
+  }, [
+    showWelcome,
+    runtimeStatus.snapshotReceived,
+    runtimeStatus.deviceId,
+    entityStore.currentUser?.userId,
+    i18n.language,
+  ]);
 
   useEffect(() => {
     if (!activeAnnouncement) return;
@@ -207,7 +237,10 @@ export const App = observer(function App() {
     navigate("/");
   }
 
-  async function recordAnnouncementEvent(key: string, eventType: "DISMISS" | "PRIMARY_CLICK" | "SECONDARY_CLICK") {
+  async function recordAnnouncementEvent(
+    key: string,
+    eventType: "DISMISS" | "PRIMARY_CLICK" | "SECONDARY_CLICK",
+  ) {
     const updateInfo = await fetchUpdateInfo().catch(() => ({ currentVersion: null }));
     await getClient().mutate({
       mutation: RECORD_ANNOUNCEMENT_EVENT_MUTATION,
@@ -253,18 +286,26 @@ export const App = observer(function App() {
     }
   }
 
-  function handleAnnouncementAction(action: ActiveAnnouncementAction, eventType: "PRIMARY_CLICK" | "SECONDARY_CLICK") {
+  function handleAnnouncementAction(
+    action: ActiveAnnouncementAction,
+    eventType: "PRIMARY_CLICK" | "SECONDARY_CLICK",
+  ) {
     const announcement = activeAnnouncement;
     setActiveAnnouncement(null);
     if (announcement) {
-      trackEvent(eventType === "PRIMARY_CLICK" ? "announcement.primary_click" : "announcement.secondary_click", {
-        key: announcement.key,
-        surface: announcement.surface,
-        category: announcement.category,
-        templateFormat: announcement.template.format,
-        actionType: action.type,
-        actionRole: action.role,
-      });
+      trackEvent(
+        eventType === "PRIMARY_CLICK"
+          ? "announcement.primary_click"
+          : "announcement.secondary_click",
+        {
+          key: announcement.key,
+          surface: announcement.surface,
+          category: announcement.category,
+          templateFormat: announcement.template.format,
+          actionType: action.type,
+          actionRole: action.role,
+        },
+      );
       if (entityStore.currentUser || runtimeStatus.deviceId) {
         recordAnnouncementEvent(announcement.key, eventType).catch(() => {});
       }
@@ -277,11 +318,7 @@ export const App = observer(function App() {
   }
 
   if (showWelcome === null) {
-    return (
-      <div className="app-loading">
-        {t("common.loading")}
-      </div>
-    );
+    return <div className="app-loading">{t("common.loading")}</div>;
   }
 
   if (showWelcome) {
@@ -294,9 +331,8 @@ export const App = observer(function App() {
   const currentRoute = ROUTE_MAP.get(currentPath);
   const isKeepMounted = currentRoute?.keepMounted;
   const isAccount = currentPath === "/account/profile";
-  const StandardPage = currentRoute?.component && !isKeepMounted && !isAccount
-    ? currentRoute.component
-    : null;
+  const StandardPage =
+    currentRoute?.component && !isKeepMounted && !isAccount ? currentRoute.component : null;
 
   return (
     <TutorialProvider currentPath={currentPath}>
@@ -307,10 +343,11 @@ export const App = observer(function App() {
           <ChatComponent onAgentNameChange={setAgentName} />
         </div>
         {currentPath === "/connections/channels" && <ChannelsComponent />}
-        {isAccount && (() => {
-          const AccountComponent = currentRoute!.component;
-          return <AccountComponent onNavigate={navigate} />;
-        })()}
+        {isAccount &&
+          (() => {
+            const AccountComponent = currentRoute!.component;
+            return <AccountComponent onNavigate={navigate} />;
+          })()}
         {StandardPage && <StandardPage />}
         <WhatsNewModal
           isOpen={showWhatsNew}

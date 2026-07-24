@@ -25,6 +25,7 @@ import { homedir } from "node:os";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { resolveUpdateMarkerPath, resolveRivonClawHome } from "@rivonclaw/core/node";
+import { resolveMacUpdateZipAssetName, resolveReleaseAssetNameFor } from "./artifact-names.js";
 
 const log = createLogger("auto-updater");
 
@@ -86,22 +87,32 @@ function ensureBlockmapConsistency(cacheDir: string): void {
   if (process.platform === "win32") {
     if (existsSync(blockmapPath)) {
       log.info("Clearing cached Windows blockmap so updater downloads the feed blockmap");
-      try { unlinkSync(blockmapPath); } catch {}
+      try {
+        unlinkSync(blockmapPath);
+      } catch {}
     }
-    try { unlinkSync(markerPath); } catch {}
+    try {
+      unlinkSync(markerPath);
+    } catch {}
     return;
   }
   try {
     const markerVersion = readFileSync(markerPath, "utf-8").trim();
     if (markerVersion === app.getVersion()) return; // consistent
-    log.info(`Blockmap cache stale (marker: ${markerVersion}, running: ${app.getVersion()}), clearing`);
+    log.info(
+      `Blockmap cache stale (marker: ${markerVersion}, running: ${app.getVersion()}), clearing`,
+    );
   } catch {
     // No marker → blockmap may be stale (e.g. first run after manual install)
     if (!existsSync(blockmapPath)) return; // nothing to clear
     log.info(`No blockmap version marker, clearing potentially stale blockmap`);
   }
-  try { unlinkSync(blockmapPath); } catch {}
-  try { unlinkSync(markerPath); } catch {}
+  try {
+    unlinkSync(blockmapPath);
+  } catch {}
+  try {
+    unlinkSync(markerPath);
+  } catch {}
 }
 
 function writeBlockmapVersion(cacheDir: string, version: string): void {
@@ -113,11 +124,6 @@ function writeBlockmapVersion(cacheDir: string, version: string): void {
 
 const MAC_UPDATE_ZIP_FILE_NAME = "update.zip";
 const MAC_UPDATE_ZIP_VERSION_FILE_NAME = "update-zip-version";
-
-function resolveMacZipAssetName(version: string): string {
-  const arch = process.arch === "arm64" ? "arm64" : "x64";
-  return `RivonClaw-${version}-${arch}.zip`;
-}
 
 function readCacheVersion(cacheDir: string, fileName: string): string | null {
   try {
@@ -174,7 +180,7 @@ async function ensureMacPreviousUpdateZipCached(
   if (hasMacUpdateZipForCurrentVersion(cacheDir)) return;
 
   const version = app.getVersion();
-  const assetName = resolveMacZipAssetName(version);
+  const assetName = resolveMacUpdateZipAssetName(version, process.arch);
   const sourceUrl = `${updateFeedUrl}/${assetName}`;
   const destinationPath = join(cacheDir, MAC_UPDATE_ZIP_FILE_NAME);
   const tempPath = join(cacheDir, `.${assetName}.${Date.now()}.tmp`);
@@ -211,20 +217,7 @@ type ClientUpdatePayload = GQL.UpdatePayload & {
 };
 
 function resolveReleaseAssetName(version: string): string | null {
-  switch (process.platform) {
-    case "darwin": {
-      const arch = process.arch === "arm64" ? "arm64" : "x64";
-      return `RivonClaw-${version}-${arch}.dmg`;
-    }
-    case "win32":
-      return `RivonClaw.Setup.${version}.exe`;
-    case "linux": {
-      const arch = process.arch === "arm64" ? "arm64" : "x86_64";
-      return `RivonClaw-${version}-${arch}.AppImage`;
-    }
-    default:
-      return null;
-  }
+  return resolveReleaseAssetNameFor(version, process.platform, process.arch);
 }
 
 function resolveUpdateDownloadUrl(updateFeedUrl: string, version: string): string | null {
@@ -240,7 +233,8 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
 
   // Configure update feed URL (staging/production resolved centrally).
   const updateFeedUrl = getReleaseFeedUrl(deps.locale);
-  if (process.env.UPDATE_FROM_STAGING === "1") log.info("Using staging update feed: " + updateFeedUrl);
+  if (process.env.UPDATE_FROM_STAGING === "1")
+    log.info("Using staging update feed: " + updateFeedUrl);
   autoUpdater.setFeedURL({
     provider: "generic",
     url: updateFeedUrl,
@@ -278,7 +272,8 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
   autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
     // electron-updater's NsisUpdater exposes the downloaded file path via
     // a protected getter.  We read it at runtime to spawn the installer ourselves.
-    const installerPath = (autoUpdater as unknown as { installerPath: string | null }).installerPath ?? "";
+    const installerPath =
+      (autoUpdater as unknown as { installerPath: string | null }).installerPath ?? "";
     updateDownloadState = { status: "ready", filePath: installerPath };
     deps.getMainWindow()?.setProgressBar(-1);
     log.info(`Update v${info.version} downloaded and verified`);
@@ -325,9 +320,7 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
       updateDownloadState.status === "downloading" ||
       updateDownloadState.status === "verifying"
     ) {
-      log.info(
-        `Update download already ${updateDownloadState.status}, ignoring duplicate request`,
-      );
+      log.info(`Update download already ${updateDownloadState.status}, ignoring duplicate request`);
       return;
     }
     if (updateDownloadState.status === "ready") {

@@ -66,7 +66,7 @@ describe("LLMProviderManager", () => {
     let entry: ProviderKeyEntry = {
       id: "key-default",
       provider: "rivonclaw-pro",
-      label: "RivonClaw AI",
+      label: "TK Copilot AI",
       model: "gpt-5.1",
       isDefault: true,
       authType: "custom",
@@ -145,7 +145,7 @@ describe("LLMProviderManager", () => {
     let entry: ProviderKeyEntry = {
       id: "cloud-rivonclaw-pro",
       provider: "rivonclaw-pro",
-      label: "RivonClaw AI",
+      label: "TK Copilot AI",
       model: "gpt-5.6-terra",
       isDefault: true,
       authType: "custom",
@@ -269,7 +269,7 @@ describe("LLMProviderManager", () => {
     let entry: ProviderKeyEntry = {
       id: "key-default",
       provider: "rivonclaw-pro",
-      label: "RivonClaw AI",
+      label: "TK Copilot AI",
       model: "gpt-5.4",
       isDefault: true,
       authType: "custom",
@@ -330,7 +330,7 @@ describe("LLMProviderManager", () => {
     const entry: ProviderKeyEntry = {
       id: "key-default",
       provider: "rivonclaw-pro",
-      label: "RivonClaw AI",
+      label: "TK Copilot AI",
       model: "gpt-5.5",
       isDefault: true,
       authType: "custom",
@@ -404,7 +404,7 @@ describe("LLMProviderManager", () => {
       {
         id: "key-pro",
         provider: "rivonclaw-pro",
-        label: "RivonClaw AI",
+        label: "TK Copilot AI",
         model: "gpt-5.4",
         isDefault: false,
         authType: "custom",
@@ -563,7 +563,7 @@ describe("LLMProviderManager", () => {
 
     expect(keys[0]).toMatchObject({
       provider: "rivonclaw-pro",
-      label: "RivonClaw AI",
+      label: "TK Copilot AI",
       model: "rivonclaw-flagship",
       isDefault: true,
       inputModalities: ["text", "image"],
@@ -717,7 +717,7 @@ describe("LLMProviderManager", () => {
     expect(proxyFetch.mock.calls[1]?.[1]?.headers).toEqual({
       Authorization: "Bearer rcllm_test_fresh_cloud_token_2",
     });
-    expect(entry.label).toBe("RivonClaw AI");
+    expect(entry.label).toBe("TK Copilot AI");
     expect(entry.model).toBe("rivonclaw-flagship");
     expect(entry.customModelsJson).toBe(
       JSON.stringify([
@@ -747,7 +747,7 @@ describe("LLMProviderManager", () => {
     let entry: ProviderKeyEntry = {
       id: "cloud-rivonclaw-pro",
       provider: "rivonclaw-pro",
-      label: "RivonClaw AI",
+      label: "TK Copilot AI",
       model: "rivonclaw-flagship",
       isDefault: true,
       authType: "custom",
@@ -843,7 +843,7 @@ describe("LLMProviderManager", () => {
       {
         id: "cloud-rivonclaw-pro",
         provider: "rivonclaw-pro",
-        label: "RivonClaw AI",
+        label: "TK Copilot AI",
         model: "gpt-5.1",
         isDefault: true,
         authType: "custom",
@@ -903,7 +903,7 @@ describe("LLMProviderManager", () => {
       restartGateway: async () => {},
       graphqlFetch: vi
         .fn()
-        .mockRejectedValue(new Error("Requires active RivonClaw AI subscription")),
+        .mockRejectedValue(new Error("Requires active TK Copilot AI subscription")),
       proxyFetch: vi.fn() as any,
       stateDir: "/tmp/rivonclaw-llm-manager-test",
       getLastSystemProxy: () => null,
@@ -947,7 +947,7 @@ describe("LLMProviderManager", () => {
       {
         id: "key-pro",
         provider: "rivonclaw-pro",
-        label: "RivonClaw AI",
+        label: "TK Copilot AI",
         model: "gpt-5.4",
         isDefault: false,
         authType: "custom",

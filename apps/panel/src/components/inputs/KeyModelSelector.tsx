@@ -261,7 +261,9 @@ export function KeyModelSelector({
                   onClick={() => setHoveredProvider(key.provider)}
                 >
                   <span className="key-model-selector-key-label">
-                    {key.label || t(`providers.label_${key.provider}`, { defaultValue: key.provider })}
+                    {key.provider === "rivonclaw-pro"
+                      ? t("providers.label_rivonclaw-pro")
+                      : key.label || t(`providers.label_${key.provider}`, { defaultValue: key.provider })}
                   </span>
                   {key.isDefault && (
                     <span className="key-model-selector-key-badge">
