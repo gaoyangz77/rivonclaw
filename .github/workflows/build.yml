@@ -725,7 +725,7 @@ jobs:
 
           # Create the draft release with release notes and all artifacts
           gh release create "$TAG" \
-            --title "RivonClaw $TAG" \
+            --title "TK Copilot $TAG" \
             --notes-file /tmp/release-notes.md \
             --draft \
             artifacts/windows/* \

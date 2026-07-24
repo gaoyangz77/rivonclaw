@@ -240,7 +240,7 @@ if [ -z "$VERSION" ]; then
 fi
 [ "$VERSION" = "0.0.0" ] && error "Version is 0.0.0. Pass a version: ./scripts/test-local.sh 1.2.8"
 
-info "Test pipeline for RivonClaw v$VERSION"
+info "Test pipeline for TK Copilot v$VERSION"
 info "Platform: $(uname -s) ($(uname -m))"
 
 # ---- Determine platform ----
