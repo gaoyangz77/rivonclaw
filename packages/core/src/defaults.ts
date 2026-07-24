@@ -97,7 +97,7 @@ export const DEFAULTS = {
     showAgentEvents: false,
     preserveToolEvents: false,
     tutorialEnabled: true,
-    showAgentName: true,
+    showAgentName: false,
   },
 
   chat: {

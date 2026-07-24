@@ -69,7 +69,6 @@ export const App = observer(function App() {
   const [activeAnnouncement, setActiveAnnouncement] = useState<ActiveAnnouncement | null>(null);
   const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>([]);
   const [currentVersion, setCurrentVersion] = useState("");
-  const [agentName, setAgentName] = useState<string | null>(null);
   const impressedAnnouncementKeys = useRef(new Set<string>());
 
   // Keep state in sync when user presses browser Back / Forward
@@ -336,11 +335,11 @@ export const App = observer(function App() {
 
   return (
     <TutorialProvider currentPath={currentPath}>
-      <Layout currentPath={currentPath} onNavigate={navigate} agentName={agentName}>
+      <Layout currentPath={currentPath} onNavigate={navigate}>
         {/* Keep ChatPage always mounted so its WebSocket connection and pending
             message state survive navigation to other pages (e.g. ProvidersPage). */}
         <div className={currentPath === "/" ? "contents-toggle" : "hidden-toggle"}>
-          <ChatComponent onAgentNameChange={setAgentName} />
+          <ChatComponent />
         </div>
         {currentPath === "/connections/channels" && <ChannelsComponent />}
         {isAccount &&

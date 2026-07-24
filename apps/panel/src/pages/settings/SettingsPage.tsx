@@ -28,7 +28,6 @@ export const SettingsPage = observer(function SettingsPage() {
 
   return (
     <div className="page-enter">
-
       <h1>{t("settings.title")}</h1>
       <p className="page-description">{t("settings.description")}</p>
 
@@ -53,12 +52,10 @@ export const SettingsPage = observer(function SettingsPage() {
       <AppSettingsSection
         accentColor={appearance.accentColor}
         privacyMode={toggles.privacyMode}
-        showAgentName={appearance.showAgentName}
         saving={toggles.saving}
         settingsReady={toggles.settingsReady}
         handleAccentColorChange={appearance.handleAccentColorChange}
         handleTogglePrivacyMode={toggles.handleTogglePrivacyMode}
-        handleToggleShowAgentName={appearance.handleToggleShowAgentName}
       />
 
       <TutorialSection
@@ -108,7 +105,10 @@ export const SettingsPage = observer(function SettingsPage() {
 
       <ConfirmDialog
         isOpen={toggles.cdpConfirmOpen}
-        onConfirm={() => { toggles.setCdpConfirmOpen(false); toggles.applyBrowserMode("cdp"); }}
+        onConfirm={() => {
+          toggles.setCdpConfirmOpen(false);
+          toggles.applyBrowserMode("cdp");
+        }}
         onCancel={() => toggles.setCdpConfirmOpen(false)}
         title={t("settings.browser.cdpConfirmTitle")}
         message={t("settings.browser.cdpConfirm")}

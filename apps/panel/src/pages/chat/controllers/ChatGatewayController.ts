@@ -132,7 +132,6 @@ export class ChatGatewayController {
   private fetchLimit = FETCH_BATCH;
   private cancelled = false;
   private tFn: TFunction | null = null;
-  private onAgentNameChange: ((name: string | null) => void) | null = null;
   // Timer maps — timers are side effects that don't belong in MST
   private finalFallbackTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private lifecycleErrors = new Map<string, string>();
@@ -165,10 +164,6 @@ export class ChatGatewayController {
 
   setTranslation(t: TFunction): void {
     this.tFn = t;
-  }
-
-  setOnAgentNameChange(fn: ((name: string | null) => void) | null): void {
-    this.onAgentNameChange = fn;
   }
 
   private t(key: string, opts?: Record<string, unknown>): string {
@@ -525,7 +520,6 @@ export class ChatGatewayController {
       .then((res) => {
         if (!this.cancelled && res?.name) {
           this.store.setAgentName(res.name);
-          this.onAgentNameChange?.(res.name);
         }
       })
       .catch(() => {});
@@ -1389,11 +1383,13 @@ export class ChatGatewayController {
     const ttlMs = options?.includeDerivedTitles
       ? SESSION_DERIVED_METADATA_TTL_MS
       : SESSION_METADATA_TTL_MS;
-    if (!session.beginMetadataHydration({
-      includeDerivedTitles: options?.includeDerivedTitles,
-      force: options?.force,
-      ttlMs,
-    })) {
+    if (
+      !session.beginMetadataHydration({
+        includeDerivedTitles: options?.includeDerivedTitles,
+        force: options?.force,
+        ttlMs,
+      })
+    ) {
       return;
     }
     const result = await this.requestSessionDescribe({
@@ -1694,11 +1690,13 @@ export class ChatGatewayController {
       promise = setRunProfileForScope(scopeKey, profileId);
     }
     this.pendingRunProfileUpdates.set(scopeKey, promise);
-    promise.finally(() => {
-      if (this.pendingRunProfileUpdates.get(scopeKey) === promise) {
-        this.pendingRunProfileUpdates.delete(scopeKey);
-      }
-    }).catch(() => {});
+    promise
+      .finally(() => {
+        if (this.pendingRunProfileUpdates.get(scopeKey) === promise) {
+          this.pendingRunProfileUpdates.delete(scopeKey);
+        }
+      })
+      .catch(() => {});
     return promise;
   }
 

@@ -66,8 +66,8 @@ export const AppSettingsModel = types.model("AppSettings", {
   panelTheme: types.optional(types.string, "system"),
   /** User's accent color name (e.g. "blue"). */
   panelAccent: types.optional(types.string, "blue"),
-  /** Show agent name in sidebar brand (isNotFalse → absent = true). */
-  showAgentName: types.optional(types.boolean, true),
+  /** Deprecated compatibility setting. The sidebar always shows the product brand. */
+  showAgentName: types.optional(types.boolean, false),
   /** Tutorial bubble enabled (isNotFalse → absent = true). */
   tutorialEnabled: types.optional(types.boolean, true),
   /** Whether the chat examples panel is collapsed ("1" collapsed / "0" expanded). */
