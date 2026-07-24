@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -36,12 +36,16 @@ import {
   buildAffiliateDeveloperProvisionBatches,
   buildAffiliateProtectionDeveloperResolutionSeeds,
   buildAffiliateProtectionImportBatches,
+  classifyAffiliateProtectionPreviewRow,
   normalizeAffiliateBusinessDeveloperName,
+  summarizeAffiliateProtectionAssignments,
 } from "./affiliate-protection-import.js";
 
 const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
 const PROTECTION_PAGE_SIZE = 25;
+const PROTECTION_PREVIEW_PAGE_SIZE = 50;
+const PROTECTION_IMPORT_BATCH_TIMEOUT_MS = 90_000;
 export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
 export const PROTECTED_CREATOR_TEMPLATE_HEADERS = [
   "creator_username",
@@ -52,6 +56,8 @@ type DeveloperSummary = GQL.AffiliateBusinessDeveloperSummary;
 type ConnectChannel = "WHATSAPP" | "EMAIL" | null;
 type DeveloperDetailTab = "CHANNELS" | "SETTINGS";
 type TeamPageTab = "TEAM" | "SAFETY";
+type ProtectionImportView = "ADD" | "RESOLVE" | "PREVIEW";
+type ProtectionComposerMode = "FILE" | "MANUAL";
 type ChannelAccount = {
   id: string;
   businessDeveloperId?: string | null;
@@ -89,6 +95,8 @@ type ProtectionPreviewRow = {
 type ProtectionImportProgress = {
   completed: number;
   total: number;
+  batch: number;
+  totalBatches: number;
 };
 
 type ProtectionImportPhase =
@@ -153,12 +161,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [protectionImportOperationId, setProtectionImportOperationId] = useState<string | null>(null);
   const [developerProvisionRevision, setDeveloperProvisionRevision] = useState(0);
   const [developerResolutionGroups, setDeveloperResolutionGroups] = useState<BusinessDeveloperResolutionGroup[]>([]);
-  const [developerResolutionOpen, setDeveloperResolutionOpen] = useState(false);
+  const [protectionImportOpen, setProtectionImportOpen] = useState(false);
+  const [protectionImportView, setProtectionImportView] = useState<ProtectionImportView>("ADD");
+  const [protectionComposerMode, setProtectionComposerMode] = useState<ProtectionComposerMode>("FILE");
+  const [protectionImportFileName, setProtectionImportFileName] = useState("");
+  const [protectionDragActive, setProtectionDragActive] = useState(false);
+  const [protectionPreviewPage, setProtectionPreviewPage] = useState(0);
   const [manualCreator, setManualCreator] = useState("");
   const [manualDeveloperId, setManualDeveloperId] = useState(UNASSIGNED_ID);
   const [manualNote, setManualNote] = useState("");
   const [confirmedProtectionBoundary, setConfirmedProtectionBoundary] = useState(false);
-  const [showProtectionManager, setShowProtectionManager] = useState(false);
   const [protectionPage, setProtectionPage] = useState(0);
   const [protectionSearch, setProtectionSearch] = useState("");
   const [protectionDeveloperId, setProtectionDeveloperId] = useState("");
@@ -341,7 +353,29 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const protectedCreatorCount = (protectionData?.resolvedCount ?? 0) + (protectionData?.unresolvedCount ?? 0);
   const appliedProtectionCount = protectionData?.resolvedCount ?? 0;
   const protectionTotalPages = Math.max(1, Math.ceil((protectionData?.totalCount ?? 0) / PROTECTION_PAGE_SIZE));
-  const protectionManagerOpen = !onboardingComplete || showProtectionManager;
+  const protectionPreviewTotalPages = Math.max(
+    1,
+    Math.ceil(protectionRows.length / PROTECTION_PREVIEW_PAGE_SIZE),
+  );
+  const visibleProtectionRows = protectionRows.slice(
+    protectionPreviewPage * PROTECTION_PREVIEW_PAGE_SIZE,
+    (protectionPreviewPage + 1) * PROTECTION_PREVIEW_PAGE_SIZE,
+  );
+  const protectionPreviewCounts = protectionRows.reduce((counts, row) => {
+    const disposition = classifyAffiliateProtectionPreviewRow(row);
+    counts[disposition] += 1;
+    return counts;
+  }, {
+    ERROR: 0,
+    EXCLUDED: 0,
+    NEEDS_DEVELOPER_DECISION: 0,
+    ASSIGNED: 0,
+    PROTECTION_ONLY: 0,
+  });
+  const protectionAssignmentSummary = useMemo(
+    () => summarizeAffiliateProtectionAssignments(protectionRows),
+    [protectionRows],
+  );
   const archiveBlocked = Boolean(detailSummary && (
     detailSummary.creatorRelationshipCount
     + detailSummary.whatsappAccountCount
@@ -363,6 +397,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       setDeveloperPage(developerTotalPages - 1);
     }
   }, [developerPage, developerTotalPages]);
+
+  useEffect(() => {
+    if (protectionPreviewPage > 0 && protectionPreviewPage >= protectionPreviewTotalPages) {
+      setProtectionPreviewPage(protectionPreviewTotalPages - 1);
+    }
+  }, [protectionPreviewPage, protectionPreviewTotalPages]);
 
   const refreshChannelData = useCallback(async () => {
     const [whatsappResult, emailResult, pageResult] = await Promise.all([
@@ -549,11 +589,37 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     }
   }
 
-  async function handleProtectionFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  function resetProtectionImportDraft() {
+    setProtectionRows([]);
+    setProtectionImportProgress(null);
+    setProtectionImportPhase("IDLE");
+    setProtectionImportOperationId(null);
+    setDeveloperProvisionRevision(0);
+    setDeveloperResolutionGroups([]);
+    setProtectionImportFileName("");
+    setProtectionPreviewPage(0);
+    setManualCreator("");
+    setManualDeveloperId(UNASSIGNED_ID);
+    setManualNote("");
+  }
+
+  function openProtectionImport() {
+    resetProtectionImportDraft();
+    setProtectionComposerMode("FILE");
+    setProtectionImportView("ADD");
+    setProtectionImportOpen(true);
+  }
+
+  function closeProtectionImport() {
+    if (protectionImportBusy) return;
+    setProtectionImportOpen(false);
+    setProtectionDragActive(false);
+    resetProtectionImportDraft();
+  }
+
+  async function processProtectionFile(file: File) {
     setProtectionImportPhase("PARSING");
+    setProtectionImportFileName(file.name);
     try {
       const developerResult = await developersQuery.refetch({ includeArchived: true });
       const authoritativeDevelopers = developerResult.data?.affiliateBusinessDevelopers ?? [];
@@ -612,12 +678,28 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       setProtectionImportOperationId(operationId);
       setDeveloperProvisionRevision(0);
       setDeveloperResolutionGroups(groups);
-      setDeveloperResolutionOpen(groups.length > 0);
-      setProtectionImportPhase(groups.length > 0 ? "AWAITING_CONFIRMATION" : "IDLE");
+      setProtectionPreviewPage(0);
+      setProtectionImportView("RESOLVE");
+      setProtectionImportPhase("AWAITING_CONFIRMATION");
     } catch (error) {
       setProtectionImportPhase("IDLE");
+      setProtectionImportFileName("");
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
+  }
+
+  function handleProtectionFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) void processProtectionFile(file);
+  }
+
+  function handleProtectionDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setProtectionDragActive(false);
+    if (protectionImportBusy) return;
+    const file = event.dataTransfer.files?.[0];
+    if (file) void processProtectionFile(file);
   }
 
   function addManualProtection() {
@@ -646,6 +728,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     }]);
     setManualCreator("");
     setManualNote("");
+    setProtectionImportFileName("");
+    setProtectionImportView("PREVIEW");
+    setProtectionPreviewPage(0);
   }
 
   function updateDeveloperResolutionGroup(
@@ -665,6 +750,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       (group.resolution === "MAP" && !group.mappedDeveloperId)
     ));
     if (unresolved || !protectionImportOperationId) return;
+    if (developerResolutionGroups.length === 0) {
+      setProtectionImportView("PREVIEW");
+      setProtectionPreviewPage(0);
+      setProtectionImportPhase("IDLE");
+      return;
+    }
 
     const provisionTargets = new Map<string, {
       clientKey: string;
@@ -794,9 +885,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         };
       });
       setProtectionRows(resolvedRows);
-      setDeveloperResolutionOpen(false);
+      setProtectionImportView("PREVIEW");
+      setProtectionPreviewPage(0);
+      setProtectionImportPhase("IDLE");
       await Promise.all([developersQuery.refetch(), developerPageQuery.refetch()]);
-      await submitResolvedProtectionRows(resolvedRows, protectionImportOperationId);
     } catch (error) {
       setProtectionImportPhase("AWAITING_CONFIRMATION");
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
@@ -835,17 +927,45 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     let importedCount = 0;
     let completedCount = 0;
     setProtectionImportPhase("IMPORTING_PROTECTIONS");
-    setProtectionImportProgress({ completed: 0, total: validRows.length });
+    setProtectionImportProgress({
+      completed: 0,
+      total: validRows.length,
+      batch: 1,
+      totalBatches: batches.length,
+    });
     try {
-      for (const batch of batches) {
-        const result = await importProtections({
-          variables: {
-            input: {
-              importBatchId,
-              entries: batch.entries,
+      for (const [batchIndex, batch] of batches.entries()) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(
+          () => controller.abort(),
+          PROTECTION_IMPORT_BATCH_TIMEOUT_MS,
+        );
+        let result: Awaited<ReturnType<typeof importProtections>>;
+        try {
+          result = await importProtections({
+            variables: {
+              input: {
+                importBatchId,
+                entries: batch.entries,
+              },
             },
-          },
-        });
+            context: {
+              fetchOptions: {
+                signal: controller.signal,
+              },
+            },
+          });
+        } catch (error) {
+          if (controller.signal.aborted) {
+            throw new Error(t("ecommerce.affiliateTeam.protectionImportBatchTimeout", {
+              batch: batchIndex + 1,
+              total: batches.length,
+            }));
+          }
+          throw error;
+        } finally {
+          window.clearTimeout(timeout);
+        }
         const payload = result.data?.importAffiliateCreatorProtections;
         if (!payload) throw new Error(t("ecommerce.updateFailed"));
         importedCount += payload.createdCount + payload.updatedCount;
@@ -863,6 +983,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         setProtectionImportProgress({
           completed: completedCount,
           total: validRows.length,
+          batch: Math.min(batchIndex + 2, batches.length),
+          totalBatches: batches.length,
         });
       }
       setProtectionRows((currentRows) => currentRows.flatMap((row) => {
@@ -876,6 +998,10 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         rejectedRows.size > 0 || invalidRowCount > 0 ? "warning" : "success",
       );
       setProtectionImportPhase("COMPLETED");
+      if (rejectedRows.size === 0 && invalidRowCount === 0) {
+        setProtectionImportOpen(false);
+        resetProtectionImportDraft();
+      }
     } catch (error) {
       const reason = error instanceof Error ? error.message : t("ecommerce.updateFailed");
       setProtectionRows((currentRows) => currentRows.flatMap((row) => {
@@ -921,7 +1047,6 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       if (result.data?.completeAffiliateOperationalOnboarding) {
         workspace.setAffiliateOperationalSettings(result.data.completeAffiliateOperationalOnboarding);
       }
-      setShowProtectionManager(false);
       showToast(t("ecommerce.affiliateTeam.onboardingCompleted"), "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
@@ -962,8 +1087,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       .filter((group) => group.rowNumbers.length > 0);
     setDeveloperResolutionGroups(remainingGroups);
     if (protectionImportPhase === "AWAITING_CONFIRMATION" && remainingGroups.length === 0) {
-      setDeveloperResolutionOpen(false);
       setProtectionImportPhase("IDLE");
+      setProtectionImportView("PREVIEW");
     }
   }
 
@@ -1235,7 +1360,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         aria-labelledby="affiliate-team-tab-safety"
         hidden={pageTab !== "SAFETY"}
       >
-      <section className={`affiliate-protection-boundary ${protectionManagerOpen ? "is-open" : ""}`}>
+      <section className="affiliate-protection-boundary">
         <div className="affiliate-protection-boundary-head">
           <div className="affiliate-protection-boundary-title">
             <span className="affiliate-protection-boundary-icon"><InfoIcon /></span>
@@ -1245,98 +1370,25 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               <p>{t(onboardingComplete ? "ecommerce.affiliateTeam.protectionBoundaryReady" : "ecommerce.affiliateTeam.onboardingHint")}</p>
             </div>
           </div>
-          {onboardingComplete && (
-            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setShowProtectionManager((value) => !value)}>
-              {t(protectionManagerOpen ? "ecommerce.affiliateTeam.hideProtectionManager" : "ecommerce.affiliateTeam.showProtectionManager")}
+          <div className="affiliate-protection-boundary-actions">
+            <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()} disabled={protectionImportBusy}>
+              <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
             </button>
-          )}
+            <button className="btn btn-primary btn-sm" type="button" onClick={openProtectionImport} disabled={protectionImportBusy}>
+              <UserPlusIcon /> {t("ecommerce.affiliateTeam.importProtected")}
+            </button>
+          </div>
         </div>
 
-        {protectionManagerOpen && (
-          <div className="affiliate-protection-console">
-            <div className="affiliate-protection-console-toolbar">
-              <div>
-                <strong>{t("ecommerce.affiliateTeam.addProtectionEntries")}</strong>
-                <span>{t("ecommerce.affiliateTeam.protectionEntryHint")}</span>
-              </div>
-              <div className="affiliate-onboarding-actions">
-                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
-                <button className="btn btn-secondary btn-sm" type="button" onClick={() => void downloadTemplate()} disabled={protectionImportBusy}>
-                  <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
-                </button>
-                <button className="btn btn-secondary btn-sm" type="button" onClick={() => fileInputRef.current?.click()} disabled={protectionImportBusy}>
-                  {t("ecommerce.affiliateTeam.importProtected")}
-                </button>
-              </div>
-            </div>
-            <div className="affiliate-protection-manual">
-              <label>
-                <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
-                <input value={manualCreator} onChange={(event) => setManualCreator(event.target.value)} placeholder={t("ecommerce.affiliateTeam.creatorIdentityPlaceholder")} />
-              </label>
-              <label>
-                <span>{t("ecommerce.affiliateTeam.assignProtectionDeveloper")}</span>
-                <Select value={manualDeveloperId} options={protectionOwnerOptions} onChange={setManualDeveloperId} />
-              </label>
-              <label>
-                <span>{t("ecommerce.affiliateTeam.note")}</span>
-                <input value={manualNote} onChange={(event) => setManualNote(event.target.value)} placeholder={t("ecommerce.affiliateTeam.notePlaceholder")} />
-              </label>
-              <button className="btn btn-secondary" type="button" onClick={addManualProtection}>{t("ecommerce.affiliateTeam.addProtectedCreator")}</button>
-            </div>
-            {protectionRows.length > 0 && (
-              <div className="affiliate-protection-preview">
-                <div className="affiliate-protection-preview-head">
-                  <div>
-                    <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
-                    {protectionImportPhase === "AWAITING_CONFIRMATION" && (
-                      <span>{t("ecommerce.affiliateTeam.developerResolutionRequired")}</span>
-                    )}
-                  </div>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    type="button"
-                    onClick={protectionImportPhase === "AWAITING_CONFIRMATION"
-                      ? () => setDeveloperResolutionOpen(true)
-                      : submitProtectionRows}
-                    disabled={
-                      protectionImportBusy ||
-                      protectionRows.every((row) => row.error || row.excluded)
-                    }
-                  >
-                    {protectionImportProgress
-                      ? t("ecommerce.affiliateTeam.protectionImportProgress", protectionImportProgress)
-                      : protectionImportPhase === "AWAITING_CONFIRMATION"
-                        ? t("ecommerce.affiliateTeam.resolveDevelopers")
-                      : t("ecommerce.affiliateTeam.importValid", {
-                        count: protectionRows.filter((row) => !row.error && !row.excluded).length,
-                      })}
-                  </button>
-                </div>
-                {protectionRows.slice(0, 20).map((row) => (
-                  <div className={`affiliate-protection-row ${row.error ? "affiliate-protection-row-error" : ""} ${row.excluded ? "is-excluded" : ""}`} key={row.rowNumber}>
-                    <span>#{row.rowNumber}</span>
-                    <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
-                    <span>{row.businessDeveloperName || t("ecommerce.affiliateTeam.protectedOnly")}</span>
-                    <em>{row.error || (row.excluded
-                      ? t("ecommerce.affiliateTeam.excludedFromImport")
-                      : t("ecommerce.affiliateTeam.ready"))}</em>
-                    <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")} disabled={protectionImportBusy}><CloseIcon /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!onboardingComplete && (
-              <div className="affiliate-onboarding-completion">
-                <label className="affiliate-onboarding-confirm">
-                  <input type="checkbox" checked={confirmedProtectionBoundary} onChange={(event) => setConfirmedProtectionBoundary(event.target.checked)} />
-                  <span>{t("ecommerce.affiliateTeam.confirmBoundary")}</span>
-                </label>
-                <button className="btn btn-primary" type="button" onClick={finishOnboarding} disabled={!confirmedProtectionBoundary || onboardingState.loading}>
-                  {t("ecommerce.affiliateTeam.completeSetup")}
-                </button>
-              </div>
-            )}
+        {!onboardingComplete && (
+          <div className="affiliate-onboarding-completion">
+            <label className="affiliate-onboarding-confirm">
+              <input type="checkbox" checked={confirmedProtectionBoundary} onChange={(event) => setConfirmedProtectionBoundary(event.target.checked)} />
+              <span>{t("ecommerce.affiliateTeam.confirmBoundary")}</span>
+            </label>
+            <button className="btn btn-primary" type="button" onClick={finishOnboarding} disabled={!confirmedProtectionBoundary || onboardingState.loading}>
+              {t("ecommerce.affiliateTeam.completeSetup")}
+            </button>
           </div>
         )}
         <div className="affiliate-protection-directory">
@@ -1455,168 +1507,451 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       </div>
 
       <Modal
-        isOpen={developerResolutionOpen}
-        onClose={() => {
-          if (ensureDevelopersState.loading) return;
-          setDeveloperResolutionOpen(false);
-        }}
-        title={t("ecommerce.affiliateTeam.resolveDeveloperTitle")}
-        maxWidth={780}
-        className="affiliate-protection-developer-modal"
+        isOpen={protectionImportOpen}
+        onClose={closeProtectionImport}
+        title={t("ecommerce.affiliateTeam.protectionImportModalTitle")}
+        maxWidth={1080}
+        className="affiliate-protection-import-modal"
         closeLabel={t("common.close")}
-        preventBackdropClose={ensureDevelopersState.loading}
+        preventBackdropClose={protectionImportBusy}
         portal
       >
-        <div className="affiliate-protection-developer-intro">
-          <span className="affiliate-protection-developer-intro-icon"><UserPlusIcon /></span>
-          <div>
-            <strong>{t("ecommerce.affiliateTeam.resolveDeveloperSummary", {
-              count: developerResolutionGroups.length,
-            })}</strong>
-            <p>{t("ecommerce.affiliateTeam.resolveDeveloperHint")}</p>
-          </div>
-        </div>
-
-        <div className="affiliate-protection-developer-list">
-          {developerResolutionGroups.map((group) => {
-            const mappingOptions = activeDevelopers.filter((developer) => (
-              !group.mapSearch ||
-              developer.displayName.toLocaleLowerCase().includes(group.mapSearch.toLocaleLowerCase())
-            ));
+        <div className="affiliate-protection-import-steps" aria-label={t("ecommerce.affiliateTeam.protectionImportSteps")}>
+          {([
+            ["ADD", t("ecommerce.affiliateTeam.protectionImportStepAdd")],
+            ["RESOLVE", t("ecommerce.affiliateTeam.protectionImportStepResolve")],
+            ["PREVIEW", t("ecommerce.affiliateTeam.protectionImportStepReview")],
+          ] as const).map(([view, label], index) => {
+            const currentIndex = protectionImportView === "ADD" ? 0 : protectionImportView === "RESOLVE" ? 1 : 2;
+            const completed = index < currentIndex;
             return (
-              <section
-                className={`affiliate-protection-developer-card ${group.error ? "has-error" : ""}`}
-                key={group.clientKey}
+              <div
+                className={`affiliate-protection-import-step ${view === protectionImportView ? "is-active" : ""} ${completed ? "is-complete" : ""}`}
+                key={view}
               >
-                <div className="affiliate-protection-developer-card-head">
-                  <div>
-                    <span>{group.archivedDeveloperId
-                      ? t("ecommerce.affiliateTeam.archivedDeveloperFound")
-                      : t("ecommerce.affiliateTeam.missingDeveloperFound")}</span>
-                    <strong>{group.sourceName}</strong>
-                  </div>
-                  <span>{t("ecommerce.affiliateTeam.affectedCreatorRows", {
-                    count: group.rowNumbers.length,
-                  })}</span>
-                </div>
-
-                <label className="affiliate-protection-developer-action">
-                  <span>{t("ecommerce.affiliateTeam.importDecision")}</span>
-                  <select
-                    value={group.resolution}
-                    onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
-                      resolution: event.target.value as BusinessDeveloperResolution,
-                      mappedDeveloperId: "",
-                      mapSearch: "",
-                    })}
-                    disabled={ensureDevelopersState.loading}
-                  >
-                    <option value="">{t("ecommerce.affiliateTeam.chooseImportDecision")}</option>
-                    {!group.archivedDeveloperId && (
-                      <option value="CREATE">{t("ecommerce.affiliateTeam.createDeveloper")}</option>
-                    )}
-                    {group.archivedDeveloperId && (
-                      <option value="RESTORE">{t("ecommerce.affiliateTeam.restoreDeveloper")}</option>
-                    )}
-                    <option value="MAP">{t("ecommerce.affiliateTeam.mapDeveloper")}</option>
-                    <option value="UNASSIGNED">{t("ecommerce.affiliateTeam.importProtectionOnly")}</option>
-                    <option value="EXCLUDE">{t("ecommerce.affiliateTeam.excludeAffectedRows")}</option>
-                  </select>
-                </label>
-
-                {group.resolution === "CREATE" && (
-                  <label className="affiliate-protection-developer-name">
-                    <span>{t("ecommerce.affiliateTeam.newDeveloperName")}</span>
-                    <input
-                      value={group.proposedName}
-                      onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
-                        proposedName: event.target.value,
-                      })}
-                      disabled={ensureDevelopersState.loading}
-                    />
-                    <small>{t("ecommerce.affiliateTeam.safeDeveloperDefaults")}</small>
-                  </label>
-                )}
-
-                {group.resolution === "RESTORE" && (
-                  <div className="affiliate-protection-developer-safety-note">
-                    <InfoIcon />
-                    <span>{t("ecommerce.affiliateTeam.restoreDeveloperSafety")}</span>
-                  </div>
-                )}
-
-                {group.resolution === "MAP" && (
-                  <div className="affiliate-protection-developer-map">
-                    <label>
-                      <span>{t("ecommerce.affiliateTeam.searchExistingDeveloper")}</span>
-                      <input
-                        type="search"
-                        value={group.mapSearch}
-                        onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
-                          mapSearch: event.target.value,
-                        })}
-                        placeholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
-                        disabled={ensureDevelopersState.loading}
-                      />
-                    </label>
-                    <select
-                      value={group.mappedDeveloperId}
-                      onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
-                        mappedDeveloperId: event.target.value,
-                      })}
-                      disabled={ensureDevelopersState.loading}
-                    >
-                      <option value="">{t("ecommerce.affiliateTeam.selectExistingDeveloper")}</option>
-                      {mappingOptions.map((developer) => (
-                        <option value={developer.id} key={developer.id}>{developer.displayName}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {group.error && <p className="affiliate-protection-developer-error">{group.error}</p>}
-              </section>
+                <span>{completed ? <CheckIcon /> : index + 1}</span>
+                <strong>{label}</strong>
+              </div>
             );
           })}
         </div>
 
-        <div className="affiliate-protection-developer-footer">
-          <div>
-            <strong>{t("ecommerce.affiliateTeam.importDecisionSummary", {
-              create: developerResolutionGroups.filter((group) => group.resolution === "CREATE").length,
-              restore: developerResolutionGroups.filter((group) => group.resolution === "RESTORE").length,
-              unassigned: developerResolutionGroups.filter((group) => group.resolution === "UNASSIGNED").length,
-            })}</strong>
-            <span>{t("ecommerce.affiliateTeam.noSilentSkip")}</span>
+        {protectionImportView === "ADD" && (
+          <div className="affiliate-protection-import-body is-add">
+            <div className="affiliate-protection-import-mode" role="tablist" aria-label={t("ecommerce.affiliateTeam.protectionImportMethod")}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={protectionComposerMode === "FILE"}
+                className={protectionComposerMode === "FILE" ? "is-active" : ""}
+                onClick={() => setProtectionComposerMode("FILE")}
+              >
+                <DownloadIcon />
+                {t("ecommerce.affiliateTeam.protectionImportExcelTab")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={protectionComposerMode === "MANUAL"}
+                className={protectionComposerMode === "MANUAL" ? "is-active" : ""}
+                onClick={() => setProtectionComposerMode("MANUAL")}
+              >
+                <UserPlusIcon />
+                {t("ecommerce.affiliateTeam.protectionImportManualTab")}
+              </button>
+            </div>
+
+            {protectionComposerMode === "FILE" ? (
+              <>
+                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleProtectionFile} />
+                <div
+                  className={`affiliate-protection-dropzone ${protectionDragActive ? "is-dragging" : ""} ${protectionImportPhase === "PARSING" ? "is-busy" : ""}`}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    if (!protectionImportBusy) setProtectionDragActive(true);
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDragLeave={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                      setProtectionDragActive(false);
+                    }
+                  }}
+                  onDrop={handleProtectionDrop}
+                >
+                  <span className="affiliate-protection-dropzone-icon"><DownloadIcon /></span>
+                  <div>
+                    <h3>{protectionImportPhase === "PARSING"
+                      ? t("ecommerce.affiliateTeam.protectionImportParsing")
+                      : t("ecommerce.affiliateTeam.protectionImportDropTitle")}</h3>
+                    <p>{t("ecommerce.affiliateTeam.protectionImportDropHint")}</p>
+                  </div>
+                  <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()} disabled={protectionImportBusy}>
+                    {t("ecommerce.affiliateTeam.protectionImportChooseFile")}
+                  </button>
+                  <small>.xlsx · .xls · .csv</small>
+                </div>
+                <button className="affiliate-protection-template-link" type="button" onClick={() => void downloadTemplate()}>
+                  <DownloadIcon /> {t("ecommerce.affiliateTeam.downloadTemplate")}
+                </button>
+              </>
+            ) : (
+              <div className="affiliate-protection-manual-card">
+                <div>
+                  <h3>{t("ecommerce.affiliateTeam.addProtectionEntries")}</h3>
+                  <p>{t("ecommerce.affiliateTeam.protectionEntryHint")}</p>
+                </div>
+                <div className="affiliate-protection-manual">
+                  <label>
+                    <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
+                    <input value={manualCreator} onChange={(event) => setManualCreator(event.target.value)} placeholder={t("ecommerce.affiliateTeam.creatorIdentityPlaceholder")} />
+                  </label>
+                  <label>
+                    <span>{t("ecommerce.affiliateTeam.assignProtectionDeveloper")}</span>
+                    <Select value={manualDeveloperId} options={protectionOwnerOptions} onChange={setManualDeveloperId} />
+                  </label>
+                  <label>
+                    <span>{t("ecommerce.affiliateTeam.note")}</span>
+                    <input value={manualNote} onChange={(event) => setManualNote(event.target.value)} placeholder={t("ecommerce.affiliateTeam.notePlaceholder")} />
+                  </label>
+                </div>
+                <div className="affiliate-protection-manual-actions">
+                  <button className="btn btn-primary" type="button" onClick={addManualProtection}>
+                    <UserPlusIcon /> {t("ecommerce.affiliateTeam.addProtectedCreator")}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <div>
-            <button
-              className="btn btn-secondary"
-              type="button"
-              onClick={() => setDeveloperResolutionOpen(false)}
-              disabled={ensureDevelopersState.loading}
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={() => void confirmDeveloperResolutions()}
-              disabled={
-                ensureDevelopersState.loading ||
-                developerResolutionGroups.some((group) => (
-                  !group.resolution ||
-                  (group.resolution === "MAP" && !group.mappedDeveloperId) ||
-                  (group.resolution === "CREATE" && !group.proposedName.trim())
-                ))
-              }
-            >
-              {ensureDevelopersState.loading
-                ? t("ecommerce.affiliateTeam.provisioningDevelopers")
-                : t("ecommerce.affiliateTeam.confirmDevelopersAndImport")}
-            </button>
+        )}
+
+        {protectionImportView === "RESOLVE" && (
+          <div className="affiliate-protection-import-body is-resolve">
+            <div className="affiliate-protection-developer-intro">
+              <span className="affiliate-protection-developer-intro-icon"><UserPlusIcon /></span>
+              <div>
+                <strong>{developerResolutionGroups.length > 0
+                  ? t("ecommerce.affiliateTeam.resolveDeveloperSummary", {
+                    count: developerResolutionGroups.length,
+                  })
+                  : t("ecommerce.affiliateTeam.confirmMatchedDevelopersTitle")}</strong>
+                <p>{developerResolutionGroups.length > 0
+                  ? t("ecommerce.affiliateTeam.resolveDeveloperHint")
+                  : t("ecommerce.affiliateTeam.confirmMatchedDevelopersHint")}</p>
+              </div>
+            </div>
+
+            <div className="affiliate-protection-confirmation-summary">
+              <div>
+                <span>{t("ecommerce.affiliateTeam.protectionPreviewAssigned")}</span>
+                <strong>{protectionAssignmentSummary.assignedRowCount}</strong>
+              </div>
+              <div>
+                <span>{t("ecommerce.affiliateTeam.protectionPreviewOnly")}</span>
+                <strong>{protectionAssignmentSummary.protectionOnlyRowCount}</strong>
+              </div>
+              <div className={protectionAssignmentSummary.attentionRowCount > 0 ? "has-attention" : ""}>
+                <span>{t("ecommerce.affiliateTeam.protectionPreviewAttention")}</span>
+                <strong>{protectionAssignmentSummary.attentionRowCount}</strong>
+              </div>
+            </div>
+
+            {protectionAssignmentSummary.assigned.length > 0 && (
+              <section className="affiliate-protection-matched-developers">
+                <div className="affiliate-protection-matched-developers-head">
+                  <div>
+                    <strong>{t("ecommerce.affiliateTeam.matchedDevelopers")}</strong>
+                    <span>{t("ecommerce.affiliateTeam.matchedDevelopersHint")}</span>
+                  </div>
+                  <span>{t("ecommerce.affiliateTeam.matchedDeveloperCount", {
+                    count: protectionAssignmentSummary.assigned.length,
+                  })}</span>
+                </div>
+                <div className="affiliate-protection-matched-developer-list">
+                  {protectionAssignmentSummary.assigned.map((assignment) => (
+                    <div key={assignment.businessDeveloperId}>
+                      <span className="affiliate-protection-matched-avatar">
+                        {assignment.businessDeveloperName.slice(0, 1).toLocaleUpperCase()}
+                      </span>
+                      <strong>{assignment.businessDeveloperName}</strong>
+                      <span>{t("ecommerce.affiliateTeam.affectedCreatorRows", {
+                        count: assignment.rowCount,
+                      })}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {developerResolutionGroups.length > 0 && <div className="affiliate-protection-developer-list">
+              {developerResolutionGroups.map((group) => {
+                const mappingOptions = activeDevelopers.filter((developer) => (
+                  !group.mapSearch ||
+                  developer.displayName.toLocaleLowerCase().includes(group.mapSearch.toLocaleLowerCase())
+                ));
+                return (
+                  <section
+                    className={`affiliate-protection-developer-card ${group.error ? "has-error" : ""}`}
+                    key={group.clientKey}
+                  >
+                    <div className="affiliate-protection-developer-card-head">
+                      <div>
+                        <span>{group.archivedDeveloperId
+                          ? t("ecommerce.affiliateTeam.archivedDeveloperFound")
+                          : t("ecommerce.affiliateTeam.missingDeveloperFound")}</span>
+                        <strong>{group.sourceName}</strong>
+                      </div>
+                      <span>{t("ecommerce.affiliateTeam.affectedCreatorRows", {
+                        count: group.rowNumbers.length,
+                      })}</span>
+                    </div>
+
+                    <label className="affiliate-protection-developer-action">
+                      <span>{t("ecommerce.affiliateTeam.importDecision")}</span>
+                      <select
+                        value={group.resolution}
+                        onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                          resolution: event.target.value as BusinessDeveloperResolution,
+                          mappedDeveloperId: "",
+                          mapSearch: "",
+                        })}
+                        disabled={ensureDevelopersState.loading}
+                      >
+                        <option value="">{t("ecommerce.affiliateTeam.chooseImportDecision")}</option>
+                        {!group.archivedDeveloperId && (
+                          <option value="CREATE">{t("ecommerce.affiliateTeam.createDeveloper")}</option>
+                        )}
+                        {group.archivedDeveloperId && (
+                          <option value="RESTORE">{t("ecommerce.affiliateTeam.restoreDeveloper")}</option>
+                        )}
+                        <option value="MAP">{t("ecommerce.affiliateTeam.mapDeveloper")}</option>
+                        <option value="UNASSIGNED">{t("ecommerce.affiliateTeam.importProtectionOnly")}</option>
+                        <option value="EXCLUDE">{t("ecommerce.affiliateTeam.excludeAffectedRows")}</option>
+                      </select>
+                    </label>
+
+                    {group.resolution === "CREATE" && (
+                      <label className="affiliate-protection-developer-name">
+                        <span>{t("ecommerce.affiliateTeam.newDeveloperName")}</span>
+                        <input
+                          value={group.proposedName}
+                          onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                            proposedName: event.target.value,
+                          })}
+                          disabled={ensureDevelopersState.loading}
+                        />
+                        <small>{t("ecommerce.affiliateTeam.safeDeveloperDefaults")}</small>
+                      </label>
+                    )}
+
+                    {group.resolution === "RESTORE" && (
+                      <div className="affiliate-protection-developer-safety-note">
+                        <InfoIcon />
+                        <span>{t("ecommerce.affiliateTeam.restoreDeveloperSafety")}</span>
+                      </div>
+                    )}
+
+                    {group.resolution === "MAP" && (
+                      <div className="affiliate-protection-developer-map">
+                        <label>
+                          <span>{t("ecommerce.affiliateTeam.searchExistingDeveloper")}</span>
+                          <input
+                            type="search"
+                            value={group.mapSearch}
+                            onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                              mapSearch: event.target.value,
+                            })}
+                            placeholder={t("ecommerce.affiliateTeam.ownerSearchPlaceholder")}
+                            disabled={ensureDevelopersState.loading}
+                          />
+                        </label>
+                        <select
+                          value={group.mappedDeveloperId}
+                          onChange={(event) => updateDeveloperResolutionGroup(group.clientKey, {
+                            mappedDeveloperId: event.target.value,
+                          })}
+                          disabled={ensureDevelopersState.loading}
+                        >
+                          <option value="">{t("ecommerce.affiliateTeam.selectExistingDeveloper")}</option>
+                          {mappingOptions.map((developer) => (
+                            <option value={developer.id} key={developer.id}>{developer.displayName}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {group.error && <p className="affiliate-protection-developer-error">{group.error}</p>}
+                  </section>
+                );
+              })}
+            </div>}
+
+            <div className="affiliate-protection-developer-footer">
+              <div>
+                <strong>{developerResolutionGroups.length > 0
+                  ? t("ecommerce.affiliateTeam.importDecisionSummary", {
+                    create: developerResolutionGroups.filter((group) => group.resolution === "CREATE").length,
+                    restore: developerResolutionGroups.filter((group) => group.resolution === "RESTORE").length,
+                    unassigned: developerResolutionGroups.filter((group) => group.resolution === "UNASSIGNED").length,
+                  })
+                  : t("ecommerce.affiliateTeam.confirmedAssignmentSummary", {
+                    assigned: protectionAssignmentSummary.assignedRowCount,
+                    unassigned: protectionAssignmentSummary.protectionOnlyRowCount,
+                  })}</strong>
+                <span>{developerResolutionGroups.length > 0
+                  ? t("ecommerce.affiliateTeam.noSilentSkip")
+                  : t("ecommerce.affiliateTeam.confirmationRequiredBeforeImport")}</span>
+              </div>
+              <div>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => setProtectionImportView("ADD")}
+                  disabled={ensureDevelopersState.loading}
+                >
+                  {t("common.back", { defaultValue: "Back" })}
+                </button>
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={() => void confirmDeveloperResolutions()}
+                  disabled={
+                    ensureDevelopersState.loading ||
+                    developerResolutionGroups.some((group) => (
+                      !group.resolution ||
+                      (group.resolution === "MAP" && !group.mappedDeveloperId) ||
+                      (group.resolution === "CREATE" && !group.proposedName.trim())
+                    ))
+                  }
+                >
+                  {ensureDevelopersState.loading
+                    ? t("ecommerce.affiliateTeam.provisioningDevelopers")
+                    : developerResolutionGroups.length > 0
+                      ? t("ecommerce.affiliateTeam.resolveAndReview")
+                      : t("ecommerce.affiliateTeam.confirmAssignmentsAndReview")}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {protectionImportView === "PREVIEW" && (
+          <div className="affiliate-protection-import-body is-preview">
+            <div className="affiliate-protection-preview-toolbar">
+              <div>
+                <strong>{t("ecommerce.affiliateTeam.importPreview")}</strong>
+                <span>{protectionImportFileName || t("ecommerce.affiliateTeam.protectionImportManualSource")}</span>
+              </div>
+              <button className="btn btn-secondary btn-sm" type="button" onClick={() => {
+                setProtectionComposerMode(protectionImportFileName ? "FILE" : "MANUAL");
+                setProtectionImportView("ADD");
+              }} disabled={protectionImportBusy}>
+                {t("ecommerce.affiliateTeam.protectionImportContinueAdding")}
+              </button>
+            </div>
+
+            <div className="affiliate-protection-preview-summary">
+              <div><span>{t("ecommerce.affiliateTeam.protectionPreviewTotal")}</span><strong>{protectionRows.length}</strong></div>
+              <div><span>{t("ecommerce.affiliateTeam.protectionPreviewAssigned")}</span><strong>{protectionPreviewCounts.ASSIGNED}</strong></div>
+              <div><span>{t("ecommerce.affiliateTeam.protectionPreviewOnly")}</span><strong>{protectionPreviewCounts.PROTECTION_ONLY}</strong></div>
+              <div className={protectionPreviewCounts.ERROR + protectionPreviewCounts.EXCLUDED + protectionPreviewCounts.NEEDS_DEVELOPER_DECISION > 0 ? "has-attention" : ""}>
+                <span>{t("ecommerce.affiliateTeam.protectionPreviewAttention")}</span>
+                <strong>{protectionPreviewCounts.ERROR + protectionPreviewCounts.EXCLUDED + protectionPreviewCounts.NEEDS_DEVELOPER_DECISION}</strong>
+              </div>
+            </div>
+
+            <div className="affiliate-protection-preview-table">
+              <div className="affiliate-protection-preview-table-head">
+                <span>{t("ecommerce.affiliateTeam.protectionPreviewRow")}</span>
+                <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
+                <span>{t("ecommerce.affiliateTeam.assignDeveloper")}</span>
+                <span>{t("ecommerce.affiliateTeam.protectionPreviewOutcome")}</span>
+                <span />
+              </div>
+              <div className="affiliate-protection-preview-table-body">
+                {visibleProtectionRows.map((row) => {
+                  const disposition = classifyAffiliateProtectionPreviewRow(row);
+                  const statusLabel = disposition === "ERROR"
+                    ? row.error
+                    : disposition === "EXCLUDED"
+                      ? t("ecommerce.affiliateTeam.excludedFromImport")
+                      : disposition === "NEEDS_DEVELOPER_DECISION"
+                        ? t("ecommerce.affiliateTeam.protectionImportNeedsDecision")
+                        : disposition === "ASSIGNED"
+                          ? t("ecommerce.affiliateTeam.protectionImportAssigned", {
+                            name: row.businessDeveloperName,
+                          })
+                          : t("ecommerce.affiliateTeam.protectionImportUnassigned");
+                  return (
+                    <div className="affiliate-protection-preview-table-row" key={row.rowNumber}>
+                      <span>#{row.rowNumber}</span>
+                      <strong>{row.username ? `@${row.username}` : row.creatorOpenId}</strong>
+                      <span>{row.businessDeveloperName || "—"}</span>
+                      <em className={`is-${disposition.toLowerCase().replaceAll("_", "-")}`}>{statusLabel}</em>
+                      <button className="affiliate-protection-remove" type="button" onClick={() => removeProtectionRow(row.rowNumber)} title={t("ecommerce.affiliateTeam.removePreviewRow")} aria-label={t("ecommerce.affiliateTeam.removePreviewRow")} disabled={protectionImportBusy}><CloseIcon /></button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="affiliate-protection-preview-footer">
+              <span>{t("ecommerce.affiliateTeam.protectionPreviewRange", {
+                from: protectionRows.length === 0 ? 0 : protectionPreviewPage * PROTECTION_PREVIEW_PAGE_SIZE + 1,
+                to: Math.min((protectionPreviewPage + 1) * PROTECTION_PREVIEW_PAGE_SIZE, protectionRows.length),
+                total: protectionRows.length,
+              })}</span>
+              <div className="affiliate-pagination">
+                <button className="btn btn-secondary btn-sm" type="button" disabled={protectionPreviewPage === 0} onClick={() => setProtectionPreviewPage((page) => Math.max(0, page - 1))}>‹</button>
+                <span>{protectionPreviewPage + 1} / {protectionPreviewTotalPages}</span>
+                <button className="btn btn-secondary btn-sm" type="button" disabled={protectionPreviewPage + 1 >= protectionPreviewTotalPages} onClick={() => setProtectionPreviewPage((page) => page + 1)}>›</button>
+              </div>
+            </div>
+
+            {protectionImportProgress && (
+              <div className="affiliate-protection-import-live-progress" aria-live="polite">
+                <div>
+                  <strong>{t("ecommerce.affiliateTeam.protectionImportBatchProgress", protectionImportProgress)}</strong>
+                  <span>{Math.round(
+                    (protectionImportProgress.completed / protectionImportProgress.total) * 100,
+                  )}%</span>
+                </div>
+                <span>
+                  <i style={{
+                    width: `${Math.max(
+                      2,
+                      (protectionImportProgress.completed / protectionImportProgress.total) * 100,
+                    )}%`,
+                  }} />
+                </span>
+              </div>
+            )}
+
+            <div className="affiliate-protection-import-footer">
+              <button className="btn btn-secondary" type="button" onClick={closeProtectionImport} disabled={protectionImportBusy}>
+                {t("common.cancel")}
+              </button>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={protectionImportPhase === "AWAITING_CONFIRMATION"
+                  ? () => setProtectionImportView("RESOLVE")
+                  : submitProtectionRows}
+                disabled={
+                  protectionImportBusy ||
+                  protectionRows.every((row) => row.error || row.excluded)
+                }
+              >
+                {protectionImportProgress
+                  ? t("ecommerce.affiliateTeam.protectionImportBatchProgress", protectionImportProgress)
+                  : protectionImportPhase === "AWAITING_CONFIRMATION"
+                    ? t("ecommerce.affiliateTeam.resolveDevelopers")
+                    : t("ecommerce.affiliateTeam.importValid", {
+                      count: protectionRows.filter((row) => !row.error && !row.excluded).length,
+                    })}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal
