@@ -4,23 +4,19 @@ import { ToggleSwitch } from "./ToggleSwitch.js";
 interface AppSettingsSectionProps {
   accentColor: string;
   privacyMode: boolean;
-  showAgentName: boolean;
   saving: boolean;
   settingsReady: boolean;
   handleAccentColorChange: (color: string) => void;
   handleTogglePrivacyMode: (enabled: boolean) => void;
-  handleToggleShowAgentName: (enabled: boolean) => void;
 }
 
 export function AppSettingsSection({
   accentColor,
   privacyMode,
-  showAgentName,
   saving,
   settingsReady,
   handleAccentColorChange,
   handleTogglePrivacyMode,
-  handleToggleShowAgentName,
 }: AppSettingsSectionProps) {
   const { t } = useTranslation();
 
@@ -29,9 +25,7 @@ export function AppSettingsSection({
       <h3>{t("settings.app.title")}</h3>
 
       <div>
-        <label className="form-label-block">
-          {t("settings.app.accentColor")}
-        </label>
+        <label className="form-label-block">{t("settings.app.accentColor")}</label>
         <div className="accent-color-picker">
           <button
             className={`accent-color-swatch accent-color-swatch-blue${accentColor === "blue" ? " accent-color-swatch-active" : ""}`}
@@ -84,21 +78,13 @@ export function AppSettingsSection({
       <div className="settings-toggle-card">
         <div className="settings-toggle-label">
           <span>{t("settings.app.privacyMode")}</span>
-          <ToggleSwitch checked={privacyMode} onChange={handleTogglePrivacyMode} disabled={saving || !settingsReady} />
+          <ToggleSwitch
+            checked={privacyMode}
+            onChange={handleTogglePrivacyMode}
+            disabled={saving || !settingsReady}
+          />
         </div>
-        <div className="form-hint">
-          {t("settings.app.privacyModeHint")}
-        </div>
-      </div>
-
-      <div className="settings-toggle-card">
-        <div className="settings-toggle-label">
-          <span>{t("settings.app.showAgentName")}</span>
-          <ToggleSwitch checked={showAgentName} onChange={handleToggleShowAgentName} />
-        </div>
-        <div className="form-hint">
-          {t("settings.app.showAgentNameHint")}
-        </div>
+        <div className="form-hint">{t("settings.app.privacyModeHint")}</div>
       </div>
     </div>
   );

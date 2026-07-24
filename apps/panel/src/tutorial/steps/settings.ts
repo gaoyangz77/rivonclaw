@@ -1,4 +1,4 @@
-import type { TutorialStep } from "../types.js"
+import type { TutorialStep } from "../types.js";
 
 export const settingsSteps: TutorialStep[] = [
   // --- Welcome ---
@@ -59,12 +59,6 @@ export const settingsSteps: TutorialStep[] = [
     bodyKey: "tutorial.settings.privacyModeBody",
     placement: "bottom",
   },
-  {
-    target: ".settings-section-app .settings-toggle-card:nth-of-type(2)",
-    titleKey: "tutorial.settings.showAgentNameTitle",
-    bodyKey: "tutorial.settings.showAgentNameBody",
-    placement: "bottom",
-  },
   // --- Tutorial Section ---
   {
     target: ".settings-section-tutorial .settings-toggle-card",
@@ -119,4 +113,4 @@ export const settingsSteps: TutorialStep[] = [
     bodyKey: "tutorial.settings.diagnosticsBody",
     placement: "top",
   },
-]
+];

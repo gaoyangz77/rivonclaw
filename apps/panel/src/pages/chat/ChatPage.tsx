@@ -22,11 +22,7 @@ import "./ChatPage.css";
  * Inner component that consumes the ChatStore + ChatGatewayController
  * and composes all sub-components. Wrapped with observer() for MobX reactivity.
  */
-const ChatPageInner = observer(function ChatPageInner({
-  onAgentNameChange,
-}: {
-  onAgentNameChange?: (name: string | null) => void;
-}) {
+const ChatPageInner = observer(function ChatPageInner() {
   const { t } = useTranslation();
   const store = useChatStore();
   const controller = useChatController();
@@ -35,11 +31,9 @@ const ChatPageInner = observer(function ChatPageInner({
   const runProfiles = entityStore.allRunProfiles;
 
   // --- Wire translation + callbacks into controller (via effects, not render) ---
-  useEffect(() => { controller.setTranslation(t); }, [controller, t]);
   useEffect(() => {
-    controller.setOnAgentNameChange(onAgentNameChange ?? null);
-  }, [controller, onAgentNameChange]);
-
+    controller.setTranslation(t);
+  }, [controller, t]);
   // Chat display settings
   const showAgentEvents = runtimeStatus.appSettings.chatShowAgentEvents;
   const preserveToolEvents = runtimeStatus.appSettings.chatPreserveToolEvents;
@@ -208,7 +202,9 @@ const ChatPageInner = observer(function ChatPageInner({
   const isStreaming = runId !== null;
   const totalTokens = session.totalTokens;
   const contextWindow = modelControls.activeModel?.contextWindow ?? session.contextTokens ?? null;
-  const sessionsWithRecipientAliases = entityStore.sessionTabsWithRecipientAliases(store.sessionList);
+  const sessionsWithRecipientAliases = entityStore.sessionTabsWithRecipientAliases(
+    store.sessionList,
+  );
 
   return (
     <div className="chat-container">
@@ -248,7 +244,16 @@ const ChatPageInner = observer(function ChatPageInner({
         )}
         {showScrollBtn && (
           <button className="chat-scroll-bottom" onClick={scrollToBottom}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
@@ -334,7 +339,9 @@ const ChatPageInner = observer(function ChatPageInner({
               <button
                 className="btn btn-primary"
                 disabled={!examples.editingExampleDraft.trim()}
-                onClick={() => examples.saveExample(examples.editingExample!, examples.editingExampleDraft)}
+                onClick={() =>
+                  examples.saveExample(examples.editingExample!, examples.editingExampleDraft)
+                }
               >
                 {t("common.save")}
               </button>
@@ -352,11 +359,11 @@ const ChatPageInner = observer(function ChatPageInner({
  * controller are available to all descendants. Since ChatPage is keep-mounted,
  * the provider (and its controller) persists across route switches.
  */
-export const ChatPage = function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: string | null) => void }) {
+export const ChatPage = function ChatPage() {
   return (
     <ChatStoreProvider>
       <ChatPreferenceStoreProvider>
-        <ChatPageInner onAgentNameChange={onAgentNameChange} />
+        <ChatPageInner />
       </ChatPreferenceStoreProvider>
     </ChatStoreProvider>
   );

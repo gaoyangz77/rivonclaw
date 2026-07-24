@@ -161,8 +161,9 @@ describe("AppSettings — Panel UI preferences", () => {
     expect(s.telemetryConsentShown).toBe(false);
     expect(s.chatExamplesCollapsed).toBe(false);
     expect(s.sidebarCollapsed).toBe(false);
+    // The legacy agent-name setting now defaults off; the sidebar always brands itself.
+    expect(s.showAgentName).toBe(false);
     // Opt-out (absent = true)
-    expect(s.showAgentName).toBe(true);
     expect(s.tutorialEnabled).toBe(true);
     // String defaults
     expect(s.whatsNewLastSeenVersion).toBe("");
@@ -171,7 +172,7 @@ describe("AppSettings — Panel UI preferences", () => {
     expect(s.chatTabOrder).toBe("");
   });
 
-  it("telemetry_consent_shown is true only when value is \"1\"", () => {
+  it('telemetry_consent_shown is true only when value is "1"', () => {
     store.loadAppSettings({ telemetry_consent_shown: "1" });
     expect(store.appSettings.telemetryConsentShown).toBe(true);
 
@@ -182,7 +183,7 @@ describe("AppSettings — Panel UI preferences", () => {
     expect(store.appSettings.telemetryConsentShown).toBe(false);
   });
 
-  it("panel_theme coerces invalid values to \"system\"", () => {
+  it('panel_theme coerces invalid values to "system"', () => {
     store.loadAppSettings({ panel_theme: "light" });
     expect(store.appSettings.panelTheme).toBe("light");
 
@@ -193,7 +194,7 @@ describe("AppSettings — Panel UI preferences", () => {
     expect(store.appSettings.panelTheme).toBe("system");
   });
 
-  it("panel_accent falls back to \"blue\" for empty strings", () => {
+  it('panel_accent falls back to "blue" for empty strings', () => {
     store.loadAppSettings({ panel_accent: "purple" });
     expect(store.appSettings.panelAccent).toBe("purple");
 
@@ -201,7 +202,7 @@ describe("AppSettings — Panel UI preferences", () => {
     expect(store.appSettings.panelAccent).toBe("blue");
   });
 
-  it("show_agent_name and tutorial_enabled are isNotFalse (opt-out)", () => {
+  it("retains legacy show_agent_name values for compatibility without controlling the sidebar", () => {
     store.loadAppSettings({ show_agent_name: "false", tutorial_enabled: "false" });
     expect(store.appSettings.showAgentName).toBe(false);
     expect(store.appSettings.tutorialEnabled).toBe(false);
@@ -212,7 +213,7 @@ describe("AppSettings — Panel UI preferences", () => {
     expect(store.appSettings.tutorialEnabled).toBe(true);
   });
 
-  it("chat_examples_collapsed uses \"1\" encoding", () => {
+  it('chat_examples_collapsed uses "1" encoding', () => {
     store.loadAppSettings({ chat_examples_collapsed: "1" });
     expect(store.appSettings.chatExamplesCollapsed).toBe(true);
 

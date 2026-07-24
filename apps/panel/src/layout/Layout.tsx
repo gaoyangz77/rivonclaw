@@ -14,21 +14,16 @@ import { getUserInitial } from "../lib/user-manager.js";
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
 const SIDEBAR_DEFAULT = 200;
-const COLLAPSIBLE_NAV_GROUP_KEYS = new Set([
-  "nav.group.automation",
-  "nav.group.connections",
-]);
+const COLLAPSIBLE_NAV_GROUP_KEYS = new Set(["nav.group.automation", "nav.group.connections"]);
 
 export const Layout = observer(function Layout({
   children,
   currentPath,
   onNavigate,
-  agentName,
 }: {
   children: ReactNode;
   currentPath: string;
   onNavigate: (path: string) => void;
-  agentName?: string | null;
 }) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
@@ -43,10 +38,8 @@ export const Layout = observer(function Layout({
   );
   const [collapsedNavParents, setCollapsedNavParents] = useState<Set<string>>(() => new Set());
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
-  // Sidebar-collapsed and show-agent-name are MST-backed (SSE-synced) —
-  // read reactively; the `observer()` wrapper below handles re-renders.
+  // Sidebar collapse is MST-backed (SSE-synced); observer() handles re-renders.
   const collapsed = runtimeStatus.appSettings.sidebarCollapsed;
-  const showAgentName = runtimeStatus.appSettings.showAgentName;
   const isDragging = useRef(false);
 
   function handleToggleCollapse() {
@@ -82,17 +75,16 @@ export const Layout = observer(function Layout({
     };
   }, []);
 
-  const navRoutes = ROUTES.filter(r =>
-    r.navLabelKey &&
-    !r.navHidden &&
-    (!r.navAuthOnly || !!user)
+  const navRoutes = ROUTES.filter(
+    (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user),
   );
 
   useEffect(() => {
-    const activeRoute = navRoutes.find((route) => (
-      currentPath === route.path ||
-      (route.navGroupOnly ? currentPath.startsWith(`${route.path}/`) : false)
-    ));
+    const activeRoute = navRoutes.find(
+      (route) =>
+        currentPath === route.path ||
+        (route.navGroupOnly ? currentPath.startsWith(`${route.path}/`) : false),
+    );
     const activeGroupKey = activeRoute?.navGroupKey;
     if (!activeGroupKey || !COLLAPSIBLE_NAV_GROUP_KEYS.has(activeGroupKey)) return;
     setCollapsedNavGroups((current) => {
@@ -104,12 +96,11 @@ export const Layout = observer(function Layout({
   }, [currentPath, navRoutes]);
 
   useEffect(() => {
-    const activeParentPath = navRoutes.find((route) => (
-      route.navGroupOnly && (
-        currentPath === route.path ||
-        currentPath.startsWith(`${route.path}/`)
-      )
-    ))?.path;
+    const activeParentPath = navRoutes.find(
+      (route) =>
+        route.navGroupOnly &&
+        (currentPath === route.path || currentPath.startsWith(`${route.path}/`)),
+    )?.path;
     if (!activeParentPath) return;
     setCollapsedNavParents((current) => {
       if (!current.has(activeParentPath)) return current;
@@ -167,18 +158,11 @@ export const Layout = observer(function Layout({
 
   return (
     <div className="layout-root">
-      <GlobalBannerStack
-        onNavigate={onNavigate}
-        onCurrentVersionChange={setCurrentVersion}
-      />
+      <GlobalBannerStack onNavigate={onNavigate} onCurrentVersionChange={setCurrentVersion} />
       <div className="layout-body">
         <nav
           className={`sidebar${collapsed ? " sidebar-collapsed" : ""}`}
-          style={
-            collapsed
-              ? undefined
-              : { width: sidebarWidth, minWidth: sidebarWidth }
-          }
+          style={collapsed ? undefined : { width: sidebarWidth, minWidth: sidebarWidth }}
         >
           <button
             className="sidebar-collapse-toggle"
@@ -191,34 +175,27 @@ export const Layout = observer(function Layout({
             <img src="/icon.png" alt="" className="sidebar-brand-logo" />
             {!collapsed && (
               <>
-                <span className="sidebar-brand-text">
-                  {showAgentName && agentName && agentName !== "Assistant"
-                    ? agentName
-                    : t("common.brandName")}
-                </span>
-                {currentVersion && (
-                  <span className="sidebar-version">v{currentVersion}</span>
-                )}
+                <span className="sidebar-brand-text">{t("common.brandName")}</span>
+                {currentVersion && <span className="sidebar-version">v{currentVersion}</span>}
               </>
             )}
           </h2>
           <ul className="nav-list">
             {navRoutes.map((route) => {
-              const isGroupCollapsed = !collapsed && Boolean(
-                route.navGroupKey && collapsedNavGroups.has(route.navGroupKey),
-              );
-              const isParentCollapsed = !collapsed && Boolean(
-                route.parentPath && collapsedNavParents.has(route.parentPath),
-              );
+              const isGroupCollapsed =
+                !collapsed &&
+                Boolean(route.navGroupKey && collapsedNavGroups.has(route.navGroupKey));
+              const isParentCollapsed =
+                !collapsed &&
+                Boolean(route.parentPath && collapsedNavParents.has(route.parentPath));
               if (isParentCollapsed) return null;
               if (collapsed && route.navGroupOnly) return null;
-              const active = currentPath === route.path || (
-                route.navGroupOnly
-                  ? currentPath.startsWith(`${route.path}/`)
-                  : false
-              );
+              const active =
+                currentPath === route.path ||
+                (route.navGroupOnly ? currentPath.startsWith(`${route.path}/`) : false);
               const isSubItem = Boolean(route.parentPath);
-              const startsGroup = !collapsed && route.navGroupKey && route.navGroupKey !== currentNavGroupKey;
+              const startsGroup =
+                !collapsed && route.navGroupKey && route.navGroupKey !== currentNavGroupKey;
               currentNavGroupKey = route.navGroupKey;
               return (
                 <Fragment key={route.path}>
@@ -241,54 +218,49 @@ export const Layout = observer(function Layout({
                       )}
                     </li>
                   )}
-                  {isGroupCollapsed ? null : <li>
-                    {route.navGroupOnly ? (
-                      collapsed ? null : (
+                  {isGroupCollapsed ? null : (
+                    <li>
+                      {route.navGroupOnly ? (
+                        collapsed ? null : (
+                          <button
+                            className={`nav-section-toggle${active ? " nav-section-active" : ""}`}
+                            type="button"
+                            onClick={() => toggleNavParent(route.path)}
+                            aria-expanded={!collapsedNavParents.has(route.path)}
+                            title={getNavTitle(route)}
+                          >
+                            <span className="nav-section-label">{t(route.navLabelKey!)}</span>
+                            <ChevronRightIcon
+                              className={`nav-section-chevron${collapsedNavParents.has(route.path) ? "" : " nav-section-chevron-open"}`}
+                            />
+                          </button>
+                        )
+                      ) : (
                         <button
-                          className={`nav-section-toggle${active ? " nav-section-active" : ""}`}
-                          type="button"
-                          onClick={() => toggleNavParent(route.path)}
-                          aria-expanded={!collapsedNavParents.has(route.path)}
+                          className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
+                          onClick={() => {
+                            if (route.authRequired && authChecking) return;
+                            if (route.authRequired && !user) {
+                              setPendingAuthPath(route.path);
+                              setAuthModalOpen(true);
+                            } else {
+                              onNavigate(route.path);
+                            }
+                          }}
                           title={getNavTitle(route)}
                         >
-                          <span className="nav-section-label">{t(route.navLabelKey!)}</span>
-                          <ChevronRightIcon
-                            className={`nav-section-chevron${collapsedNavParents.has(route.path) ? "" : " nav-section-chevron-open"}`}
-                          />
+                          <span className="nav-icon">{renderNavIcon(route)}</span>
+                          {!collapsed && <span className="nav-label">{t(route.navLabelKey!)}</span>}
                         </button>
-                      )
-                    ) : (
-                      <button
-                        className={`nav-btn ${isSubItem ? "nav-subitem" : ""} ${active ? "nav-active" : "nav-item"}`}
-                        onClick={() => {
-                          if (route.authRequired && authChecking) return;
-                          if (route.authRequired && !user) {
-                            setPendingAuthPath(route.path);
-                            setAuthModalOpen(true);
-                          } else {
-                            onNavigate(route.path);
-                          }
-                        }}
-                        title={getNavTitle(route)}
-                      >
-                        <span className="nav-icon">{renderNavIcon(route)}</span>
-                        {!collapsed && (
-                          <span className="nav-label">{t(route.navLabelKey!)}</span>
-                        )}
-                      </button>
-                    )}
-                  </li>}
+                      )}
+                    </li>
+                  )}
                 </Fragment>
               );
             })}
           </ul>
           <BottomActions collapsed={collapsed} />
-          {!collapsed && (
-            <div
-              className="sidebar-resize-handle"
-              onMouseDown={handleMouseDown}
-            />
-          )}
+          {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />}
         </nav>
         <div className="main-content">
           <main>{children}</main>
@@ -296,8 +268,13 @@ export const Layout = observer(function Layout({
       </div>
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => { setAuthModalOpen(false); setPendingAuthPath(null); }}
-        onSuccess={() => { if (pendingAuthPath) onNavigate(pendingAuthPath); }}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setPendingAuthPath(null);
+        }}
+        onSuccess={() => {
+          if (pendingAuthPath) onNavigate(pendingAuthPath);
+        }}
       />
     </div>
   );
