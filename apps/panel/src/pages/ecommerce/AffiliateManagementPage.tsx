@@ -119,6 +119,18 @@ const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_LIMIT = 200;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
 const ALL_CREATOR_TAGS_FILTER = "__ALL_CREATOR_TAGS__";
+const PROJECTION_DATASET_I18N_KEY: Record<string, string> = {
+  COLLABORATIONS: "ecommerce.affiliateWorkspace.projectionDataset.COLLABORATIONS",
+  SAMPLE_APPLICATIONS: "ecommerce.affiliateWorkspace.projectionDataset.SAMPLE_APPLICATIONS",
+};
+const PROJECTION_STATUS_I18N_KEY: Record<string, string> = {
+  NOT_STARTED: "ecommerce.affiliateWorkspace.projectionStatus.NOT_STARTED",
+  SYNCING: "ecommerce.affiliateWorkspace.projectionStatus.SYNCING",
+  READY: "ecommerce.affiliateWorkspace.projectionStatus.READY",
+  DEGRADED: "ecommerce.affiliateWorkspace.projectionStatus.DEGRADED",
+  BOOTSTRAPPING: "ecommerce.affiliateWorkspace.projectionStatus.BOOTSTRAPPING",
+  PROVIDER_WINDOW_LIMITED: "ecommerce.affiliateWorkspace.projectionStatus.PROVIDER_WINDOW_LIMITED",
+};
 type AffiliateCreatorManagementItem = GQL.AffiliateCreatorManagementItem;
 type CollaborationWorkViewModel = {
   badge: string;
@@ -2049,6 +2061,14 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const projectionHistoryIncomplete = projectionHealth?.datasets.some(
     (dataset) => !dataset.complete,
   ) ?? false;
+  const projectionDatasetLabel = (dataset: string) => t(
+    PROJECTION_DATASET_I18N_KEY[dataset] ?? dataset,
+    { defaultValue: dataset },
+  );
+  const projectionStatusLabel = (status: string) => t(
+    PROJECTION_STATUS_I18N_KEY[status] ?? status,
+    { defaultValue: status },
+  );
 
   const tagOptions = useMemo(() => {
     const tags = policyContextData?.creatorTags ?? [];
@@ -2258,9 +2278,11 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
       {projectionHealth && !projectionHealth.ready ? (
         <div className="affiliate-projection-health-banner" role="status">
-          <strong>{t("ecommerce.affiliateWorkspace.projectionSyncing", { defaultValue: "Affiliate data is syncing" })}</strong>
+          <strong>{t("ecommerce.affiliateWorkspace.projectionSyncing")}</strong>
           <span>
-            {projectionHealth.datasets.map((dataset) => `${dataset.dataset}: ${dataset.status}`).join(" · ")}
+            {projectionHealth.datasets.map((dataset) => (
+              `${projectionDatasetLabel(dataset.dataset)}: ${projectionStatusLabel(dataset.status)}`
+            )).join(" · ")}
           </span>
         </div>
       ) : projectionHealth?.ready ? (
@@ -2270,15 +2292,11 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
         >
           <strong>
             {projectionHistoryIncomplete
-              ? t("ecommerce.affiliateWorkspace.projectionHistorySyncing", {
-                  defaultValue: "Current Affiliate data is ready; historical coverage is still syncing",
-                })
-              : t("ecommerce.affiliateWorkspace.projectionCurrentReady", {
-                  defaultValue: "Affiliate operational data is ready",
-                })}
+                ? t("ecommerce.affiliateWorkspace.projectionHistorySyncing")
+              : t("ecommerce.affiliateWorkspace.projectionCurrentReady")}
           </strong>
           <span>
-            {t("ecommerce.affiliateWorkspace.projectionLastSynced", { defaultValue: "Operational data last synced" })}: {formatDate(
+            {t("ecommerce.affiliateWorkspace.projectionLastSynced")}: {formatDate(
               projectionHealth.datasets
                 .map((dataset) => dataset.lastHeadSyncAt ?? dataset.lastSuccessfulSyncAt)
                 .filter((value): value is string => Boolean(value))
@@ -2286,7 +2304,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                 .at(0) ?? null,
             )}
             {projectionHistoryIncomplete
-              ? ` · ${projectionHealth.datasets.map((dataset) => `${dataset.dataset}: ${dataset.historyStatus}`).join(" · ")}`
+              ? ` · ${projectionHealth.datasets.map((dataset) => (
+                `${projectionDatasetLabel(dataset.dataset)}: ${projectionStatusLabel(dataset.historyStatus)}`
+              )).join(" · ")}`
               : ""}
           </span>
         </div>
