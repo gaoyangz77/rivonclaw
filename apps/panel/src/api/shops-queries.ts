@@ -501,9 +501,6 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         username
         nickname
         avatarUrl
-        followerCount
-        categoryIds
-        marketplaceSnapshotJson
         createdAt
         updatedAt
       }
@@ -832,9 +829,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           username
           nickname
           avatarUrl
-          followerCount
-          categoryIds
-          marketplaceSnapshotJson
           createdAt
           updatedAt
         }
@@ -1004,7 +998,6 @@ export const AFFILIATE_COLLABORATION_RECORDS_QUERY = gql`
         nickname
         username
         avatarUrl
-        followerCount
       }
       creatorOpenId
       productId
@@ -1207,9 +1200,59 @@ export const AFFILIATE_CREATORS_QUERY = gql`
         username
         nickname
         avatarUrl
-        followerCount
-        categoryIds
-        marketplaceSnapshotJson
+        bioDescription
+        profileTtUri
+        firstObservedAt
+        lastObservedAt
+        currentPerformance {
+          id
+          market
+          observedAt
+          sourceType
+          preciseDataAuthorized
+          followerCount
+          categoryIds
+          gmv {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+            window
+            precision
+          }
+          videoGmv {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+            window
+            precision
+          }
+          liveGmv {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+            window
+            precision
+          }
+          gpm {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+            window
+            precision
+          }
+          unitsSold
+          videoCount
+          liveCount
+          averageVideoViews
+          engagementRate
+          pps
+          ratingScore
+          contentWindow
+        }
         updatedAt
       }
       latestCollaborationRecord {

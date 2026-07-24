@@ -616,7 +616,9 @@ export const AffiliateAgentAssistanceMode = {
 
 export type AffiliateAgentAssistanceMode = typeof AffiliateAgentAssistanceMode[keyof typeof AffiliateAgentAssistanceMode];
 export const AffiliateAgentEligibilityReason = {
+  AffiliateDeviceUnassigned: 'AFFILIATE_DEVICE_UNASSIGNED',
   AffiliateOnboardingIncomplete: 'AFFILIATE_ONBOARDING_INCOMPLETE',
+  AffiliateServiceDisabled: 'AFFILIATE_SERVICE_DISABLED',
   AwaitingCreatorResponse: 'AWAITING_CREATOR_RESPONSE',
   BusinessDeveloperArchived: 'BUSINESS_DEVELOPER_ARCHIVED',
   BusinessDeveloperHumanOnly: 'BUSINESS_DEVELOPER_HUMAN_ONLY',
@@ -1072,21 +1074,20 @@ export interface AffiliateCreatorContactStatePayload {
   whatsAppAccounts: Array<WhatsAppAccountBinding>;
 }
 
-/** Marketplace creator identity and durable marketplace facts. Shop-specific relationship state lives elsewhere. */
+/** Platform Creator identity and display profile. Dynamic performance is exposed separately by market. */
 export interface AffiliateCreatorIdentity {
-  /** Aggregated, privacy-safe creator signals produced by RivonClaw. Not merchant-private raw history. */
-  aggregatedSignalsSnapshotJson?: Maybe<Scalars['String']['output']>;
   avatarUrl?: Maybe<Scalars['String']['output']>;
-  categoryIds: Array<Scalars['String']['output']>;
+  bioDescription?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
   creatorImId?: Maybe<Scalars['String']['output']>;
   creatorOpenId?: Maybe<Scalars['String']['output']>;
-  followerCount?: Maybe<Scalars['Int']['output']>;
+  currentPerformance: Array<AffiliateCreatorPerformanceCurrent>;
+  firstObservedAt: Scalars['DateTimeISO']['output'];
   id: Scalars['ID']['output'];
-  /** Latest TikTok marketplace creator profile snapshot used for staff-facing display. This is read-only context and may omit private metrics if the creator has not authorized sharing. */
-  marketplaceSnapshotJson?: Maybe<Scalars['String']['output']>;
+  lastObservedAt: Scalars['DateTimeISO']['output'];
   nickname?: Maybe<Scalars['String']['output']>;
   platform: ShopPlatform;
+  profileTtUri?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   username?: Maybe<Scalars['String']['output']>;
 }
@@ -1151,6 +1152,39 @@ export interface AffiliateCreatorMessageHistoryPayload {
   offset: Scalars['Int']['output'];
 }
 
+/** Latest typed Creator Performance projection for one market. */
+export interface AffiliateCreatorPerformanceCurrent {
+  averageVideoViews?: Maybe<Scalars['Float']['output']>;
+  categoryIds: Array<Scalars['String']['output']>;
+  contentWindow?: Maybe<Scalars['String']['output']>;
+  engagementRate?: Maybe<Scalars['Float']['output']>;
+  followerCount?: Maybe<Scalars['Int']['output']>;
+  gmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
+  gpm?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
+  id: Scalars['ID']['output'];
+  liveCount?: Maybe<Scalars['Int']['output']>;
+  liveGmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
+  market: Scalars['String']['output'];
+  observedAt: Scalars['DateTimeISO']['output'];
+  pps?: Maybe<Scalars['Float']['output']>;
+  preciseDataAuthorized: Scalars['Boolean']['output'];
+  ratingScore?: Maybe<Scalars['Float']['output']>;
+  sourceType: Scalars['String']['output'];
+  unitsSold?: Maybe<Scalars['Int']['output']>;
+  videoCount?: Maybe<Scalars['Int']['output']>;
+  videoGmv?: Maybe<AffiliateCreatorPerformanceMoneyMetric>;
+}
+
+/** Market-scoped Creator Performance money metric with explicit window and precision. */
+export interface AffiliateCreatorPerformanceMoneyMetric {
+  amount?: Maybe<Scalars['Float']['output']>;
+  currency?: Maybe<Scalars['String']['output']>;
+  maximumAmount?: Maybe<Scalars['Float']['output']>;
+  minimumAmount?: Maybe<Scalars['Float']['output']>;
+  precision: Scalars['String']['output'];
+  window: Scalars['String']['output'];
+}
+
 export interface AffiliateCreatorProductFitInput {
   /** Optional Backend AffiliateCreatorIdentity id. When omitted, backend derives it from creatorRelationshipId. */
   creatorId?: InputMaybe<Scalars['ID']['input']>;
@@ -1158,13 +1192,13 @@ export interface AffiliateCreatorProductFitInput {
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   /** CreatorRelationship is the business boundary for this prediction evidence request. The prediction is evidence for the relationship-scoped Desktop Agent, not a standalone backend decision. */
   creatorRelationshipId: Scalars['ID']['input'];
-  /** TikTok Shop sample application id when the prediction evidence is for a concrete sample review. */
+  /** Optional TikTok Shop sample application id. Omit it when sampleApplicationRecordId is available; Backend resolves and validates the Provider id. */
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   /** TikTok Shop product id to evaluate as a candidate collaboration product. This does not bind the product to any collaboration record. */
   productId: Scalars['String']['input'];
   /** Backend SampleApplicationRecord id when the prediction evidence is for a concrete sample review. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  /** Prediction scenario. Defaults to TARGET_COLLABORATION_PLANNING for creator-product fit checks from affiliate chat. */
+  /** Prediction scenario. Defaults to CREATOR_PROSPECTING for creator-product fit checks from affiliate chat. */
   scenario?: InputMaybe<AffiliateExpectedSalesPredictionScenario>;
   shopId: Scalars['ID']['input'];
 }
@@ -1370,6 +1404,11 @@ export const AffiliateEmailAttachmentDisposition = {
 } as const;
 
 export type AffiliateEmailAttachmentDisposition = typeof AffiliateEmailAttachmentDisposition[keyof typeof AffiliateEmailAttachmentDisposition];
+export interface AffiliateExpectedSalesMissingField {
+  field: Scalars['String']['output'];
+  reason: Scalars['String']['output'];
+}
+
 export interface AffiliateExpectedSalesModelVersion {
   bentomlTag?: Maybe<Scalars['String']['output']>;
   featureVersion?: Maybe<Scalars['String']['output']>;
@@ -1441,14 +1480,17 @@ export interface AffiliateExpectedSalesPredictionQuality {
 
 export const AffiliateExpectedSalesPredictionScenario = {
   CreatorProspecting: 'CREATOR_PROSPECTING',
-  SampleReview: 'SAMPLE_REVIEW',
-  TargetCollaborationPlanning: 'TARGET_COLLABORATION_PLANNING'
+  SampleReview: 'SAMPLE_REVIEW'
 } as const;
 
 export type AffiliateExpectedSalesPredictionScenario = typeof AffiliateExpectedSalesPredictionScenario[keyof typeof AffiliateExpectedSalesPredictionScenario];
 export const AffiliateExpectedSalesPredictionStatus = {
+  DataNotReady: 'DATA_NOT_READY',
+  FeatureContractError: 'FEATURE_CONTRACT_ERROR',
+  FeatureVersionMismatch: 'FEATURE_VERSION_MISMATCH',
   InvalidInput: 'INVALID_INPUT',
   ModelNotAvailable: 'MODEL_NOT_AVAILABLE',
+  ModelUpgrading: 'MODEL_UPGRADING',
   Ok: 'OK',
   Partial: 'PARTIAL',
   ServiceUnavailable: 'SERVICE_UNAVAILABLE'
@@ -1495,10 +1537,14 @@ export interface AffiliateExpectedSalesResolvedContext {
 export interface AffiliateExpectedSalesSubjectPrediction {
   /** Short-lived backend cache id for promoting this exact prediction into a persisted affiliate decision snapshot. */
   cacheId?: Maybe<Scalars['ID']['output']>;
+  contractName?: Maybe<Scalars['String']['output']>;
+  contractVersion?: Maybe<Scalars['String']['output']>;
   expectedSalesPercentile?: Maybe<Scalars['Float']['output']>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  featureAsOf?: Maybe<Scalars['DateTimeISO']['output']>;
   humanBaseline?: Maybe<AffiliateHumanBaselinePrediction>;
   message?: Maybe<Scalars['String']['output']>;
+  missingFields?: Maybe<Array<AffiliateExpectedSalesMissingField>>;
   predictionBucket?: Maybe<AffiliateExpectedSalesPredictionBucket>;
   predictionInterval?: Maybe<AffiliateExpectedSalesPredictionInterval>;
   predictionQuality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
@@ -1511,6 +1557,9 @@ export interface AffiliateExpectedSalesSubjectPrediction {
 }
 
 export const AffiliateExpectedSalesSubjectPredictionStatus = {
+  DataNotReady: 'DATA_NOT_READY',
+  FeatureContractError: 'FEATURE_CONTRACT_ERROR',
+  FeatureVersionMismatch: 'FEATURE_VERSION_MISMATCH',
   InvalidContext: 'INVALID_CONTEXT',
   Ok: 'OK',
   PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
@@ -2172,8 +2221,14 @@ export interface AffiliateRelationshipSignal {
   contentViewCount?: Maybe<Scalars['Float']['output']>;
   /** Best-known creator avatar URL carried by platform sync when available. */
   creatorAvatarUrl?: Maybe<Scalars['String']['output']>;
+  /** Sample Application 30-day content count. */
+  creatorContentCount30d?: Maybe<Scalars['Int']['output']>;
   /** Best-known creator follower count carried by platform sync when available. */
   creatorFollowerCount?: Maybe<Scalars['Float']['output']>;
+  /** Sample Application 30-day GMV amount. */
+  creatorGmv30dAmount?: Maybe<Scalars['String']['output']>;
+  /** ISO 4217 currency for the Sample Application 30-day GMV. */
+  creatorGmv30dCurrency?: Maybe<Scalars['String']['output']>;
   /** Creator IM user ID when available from the platform event. */
   creatorImId?: Maybe<Scalars['String']['output']>;
   /** Best-known creator display nickname carried by platform sync when available. */
@@ -8111,8 +8166,14 @@ export interface PublishAffiliateRelationshipSignalInput {
   conversationId?: InputMaybe<Scalars['String']['input']>;
   /** Best-known creator avatar URL from platform sync. */
   creatorAvatarUrl?: InputMaybe<Scalars['String']['input']>;
+  /** Sample Application 30-day content count. */
+  creatorContentCount30d?: InputMaybe<Scalars['Int']['input']>;
   /** Best-known creator follower count from platform sync. */
   creatorFollowerCount?: InputMaybe<Scalars['Float']['input']>;
+  /** Sample Application 30-day GMV amount. */
+  creatorGmv30dAmount?: InputMaybe<Scalars['String']['input']>;
+  /** ISO 4217 currency for the Sample Application 30-day GMV. */
+  creatorGmv30dCurrency?: InputMaybe<Scalars['String']['input']>;
   /** Creator IM user ID if available. */
   creatorImId?: InputMaybe<Scalars['String']['input']>;
   /** Best-known creator display nickname from platform sync. */
