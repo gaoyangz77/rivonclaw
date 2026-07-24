@@ -2032,10 +2032,14 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     id
     userId
     displayName
+    normalizedDisplayName
     regions
     acceptingCreators
     agentAssistanceMode
     businessPrompt
+    profileStatus
+    provisioningSource
+    profileConfirmedAt
     preferredWhatsAppAccountBindingId
     preferredEmailAccountBindingId
     configRevision
@@ -2120,6 +2124,27 @@ export const WRITE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
   mutation WriteAffiliateBusinessDeveloper($input: WriteAffiliateBusinessDeveloperInput!) {
     writeAffiliateBusinessDeveloper(input: $input) {
       ...AffiliateBusinessDeveloperFields
+    }
+  }
+`;
+
+export const ENSURE_AFFILIATE_BUSINESS_DEVELOPERS_MUTATION = gql`
+  ${AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT}
+  mutation EnsureAffiliateBusinessDevelopers($input: EnsureAffiliateBusinessDevelopersInput!) {
+    ensureAffiliateBusinessDevelopers(input: $input) {
+      idempotencyKey
+      completed
+      results {
+        clientKey
+        requestedDisplayName
+        normalizedDisplayName
+        disposition
+        developer {
+          ...AffiliateBusinessDeveloperFields
+        }
+        errorCode
+        errorMessage
+      }
     }
   }
 `;

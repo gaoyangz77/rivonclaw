@@ -4,7 +4,10 @@ import {
   AFFILIATE_PROTECTION_IMPORT_MAX_ENTRIES,
   AFFILIATE_PROTECTION_IMPORT_MAX_VARIABLE_BYTES,
   affiliateProtectionImportVariablesByteLength,
+  buildAffiliateDeveloperProvisionBatches,
+  buildAffiliateProtectionDeveloperResolutionSeeds,
   buildAffiliateProtectionImportBatches,
+  normalizeAffiliateBusinessDeveloperName,
   type AffiliateProtectionImportEntry,
 } from "./affiliate-protection-import.js";
 
@@ -19,8 +22,72 @@ function entry(index: number, note: string | null = null): AffiliateProtectionIm
 }
 
 describe("Affiliate protected creator import batching", () => {
+  it("keeps BD provisioning requests within the backend 100-name limit", () => {
+    const batches = buildAffiliateDeveloperProvisionBatches(
+      Array.from({ length: 205 }, (_, index) => `bd-${index}`),
+    );
+    expect(batches.map((batch) => batch.length)).toEqual([100, 100, 5]);
+    expect(batches.flat()).toHaveLength(205);
+  });
+
+  it("normalizes and groups unresolved BD names while keeping blank names protection-only", () => {
+    expect(normalizeAffiliateBusinessDeveloperName("  Ａｌｉｃｅ   Smith ")).toBe("alice smith");
+    const groups = buildAffiliateProtectionDeveloperResolutionSeeds([
+      {
+        rowNumber: 2,
+        businessDeveloperName: "Alice",
+        businessDeveloperId: null,
+        error: null,
+      },
+      {
+        rowNumber: 3,
+        businessDeveloperName: "  Ａｌｉｃｅ ",
+        businessDeveloperId: null,
+        error: null,
+      },
+      {
+        rowNumber: 4,
+        businessDeveloperName: "Archived BD",
+        businessDeveloperId: null,
+        error: null,
+      },
+      {
+        rowNumber: 5,
+        businessDeveloperName: null,
+        businessDeveloperId: null,
+        error: null,
+      },
+      {
+        rowNumber: 6,
+        businessDeveloperName: "Invalid row BD",
+        businessDeveloperId: null,
+        error: "Missing creator",
+      },
+    ], [{
+      id: "archived-id",
+      normalizedDisplayName: "archived bd",
+      archivedAt: "2026-07-24",
+    }]);
+
+    expect(groups).toEqual([
+      expect.objectContaining({
+        sourceName: "Alice",
+        normalizedSourceName: "alice",
+        rowNumbers: [2, 3],
+        archivedDeveloperId: null,
+        defaultResolution: "CREATE",
+      }),
+      expect.objectContaining({
+        sourceName: "Archived BD",
+        rowNumbers: [4],
+        archivedDeveloperId: "archived-id",
+        defaultResolution: "",
+      }),
+    ]);
+  });
+
   it("splits a customer-scale workbook into ordered requests below the GraphQL proxy limit", () => {
-    const entries = Array.from({ length: 3_061 }, (_, index) => entry(index));
+    const entries = Array.from({ length: 3_062 }, (_, index) => entry(index));
     const importBatchId = "customer-scale-batch";
     const batches = buildAffiliateProtectionImportBatches(entries, importBatchId);
 

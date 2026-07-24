@@ -665,8 +665,12 @@ export interface AffiliateBusinessDeveloper {
   createdAt: Scalars['DateTimeISO']['output'];
   displayName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  normalizedDisplayName: Scalars['String']['output'];
   preferredEmailAccountBindingId?: Maybe<Scalars['ID']['output']>;
   preferredWhatsAppAccountBindingId?: Maybe<Scalars['ID']['output']>;
+  profileConfirmedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  profileStatus: AffiliateBusinessDeveloperProfileStatus;
+  provisioningSource: AffiliateBusinessDeveloperProvisioningSource;
   regions: Array<ShopRegion>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
@@ -686,6 +690,44 @@ export interface AffiliateBusinessDeveloperPageInput {
   search?: InputMaybe<Scalars['String']['input']>;
 }
 
+/** Whether an imported Affiliate business developer profile has been reviewed by staff. */
+export const AffiliateBusinessDeveloperProfileStatus = {
+  NeedsConfiguration: 'NEEDS_CONFIGURATION',
+  Ready: 'READY'
+} as const;
+
+export type AffiliateBusinessDeveloperProfileStatus = typeof AffiliateBusinessDeveloperProfileStatus[keyof typeof AffiliateBusinessDeveloperProfileStatus];
+export const AffiliateBusinessDeveloperProvisionAction = {
+  CreateIfMissing: 'CREATE_IF_MISSING',
+  RestoreArchived: 'RESTORE_ARCHIVED'
+} as const;
+
+export type AffiliateBusinessDeveloperProvisionAction = typeof AffiliateBusinessDeveloperProvisionAction[keyof typeof AffiliateBusinessDeveloperProvisionAction];
+export const AffiliateBusinessDeveloperProvisionDisposition = {
+  Created: 'CREATED',
+  Existing: 'EXISTING',
+  Rejected: 'REJECTED',
+  Restored: 'RESTORED'
+} as const;
+
+export type AffiliateBusinessDeveloperProvisionDisposition = typeof AffiliateBusinessDeveloperProvisionDisposition[keyof typeof AffiliateBusinessDeveloperProvisionDisposition];
+export interface AffiliateBusinessDeveloperProvisionResult {
+  clientKey: Scalars['String']['output'];
+  developer?: Maybe<AffiliateBusinessDeveloper>;
+  disposition: AffiliateBusinessDeveloperProvisionDisposition;
+  errorCode?: Maybe<Scalars['String']['output']>;
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  normalizedDisplayName: Scalars['String']['output'];
+  requestedDisplayName: Scalars['String']['output'];
+}
+
+/** How the Affiliate business developer profile was first provisioned. */
+export const AffiliateBusinessDeveloperProvisioningSource = {
+  Manual: 'MANUAL',
+  ProtectionImport: 'PROTECTION_IMPORT'
+} as const;
+
+export type AffiliateBusinessDeveloperProvisioningSource = typeof AffiliateBusinessDeveloperProvisioningSource[keyof typeof AffiliateBusinessDeveloperProvisioningSource];
 export interface AffiliateBusinessDeveloperSummary {
   creatorRelationshipCount: Scalars['Int']['output'];
   developer: AffiliateBusinessDeveloper;
@@ -1625,6 +1667,7 @@ export const AffiliateLifecycleEventType = {
   BdAccountUnbound: 'BD_ACCOUNT_UNBOUND',
   BusinessDeveloperArchived: 'BUSINESS_DEVELOPER_ARCHIVED',
   BusinessDeveloperCreated: 'BUSINESS_DEVELOPER_CREATED',
+  BusinessDeveloperRestored: 'BUSINESS_DEVELOPER_RESTORED',
   BusinessDeveloperUpdated: 'BUSINESS_DEVELOPER_UPDATED',
   CandidateQualified: 'CANDIDATE_QUALIFIED',
   ChannelContactCreated: 'CHANNEL_CONTACT_CREATED',
@@ -6128,6 +6171,23 @@ export const EmailProvider = {
 } as const;
 
 export type EmailProvider = typeof EmailProvider[keyof typeof EmailProvider];
+export interface EnsureAffiliateBusinessDeveloperEntryInput {
+  action: AffiliateBusinessDeveloperProvisionAction;
+  clientKey: Scalars['String']['input'];
+  displayName: Scalars['String']['input'];
+}
+
+export interface EnsureAffiliateBusinessDevelopersInput {
+  entries: Array<EnsureAffiliateBusinessDeveloperEntryInput>;
+  idempotencyKey: Scalars['String']['input'];
+}
+
+export interface EnsureAffiliateBusinessDevelopersPayload {
+  completed: Scalars['Boolean']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  results: Array<AffiliateBusinessDeveloperProvisionResult>;
+}
+
 export const EntitlementDecisionCode = {
   Allowed: 'ALLOWED',
   FeatureDisabled: 'FEATURE_DISABLED',
@@ -6881,6 +6941,7 @@ export interface Mutation {
   ecommerceUpdateShop: EcommerceUpdateShopResult;
   /** Enroll in a product module */
   enrollModule: MeResponse;
+  ensureAffiliateBusinessDevelopers: EnsureAffiliateBusinessDevelopersPayload;
   /** Generate or retrieve a cached proxy URL for an external image/video URL. Requires login. */
   genOrGetCachedProxyUrl: MediaCachedProxy;
   /** Generate a 6-character pairing code for QR display */
@@ -7368,6 +7429,11 @@ export interface MutationEcommerceUpdateShopArgs {
 
 export interface MutationEnrollModuleArgs {
   moduleId: ModuleId;
+}
+
+
+export interface MutationEnsureAffiliateBusinessDevelopersArgs {
+  input: EnsureAffiliateBusinessDevelopersInput;
 }
 
 
