@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.80",
+    "date": "2026-07-24",
+    "en": [
+      "Refine affiliate team workflows and protected creator imports",
+      "Route desktop website links to the new TK domains"
+    ],
+    "zh": [
+      "优化达人团队工作流和受保护达人导入流程",
+      "将桌面端官网链接切换至新的 TK 域名"
+    ]
+  },
+  {
     "version": "1.8.79",
     "date": "2026-07-21",
     "en": [
