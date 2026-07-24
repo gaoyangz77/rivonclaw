@@ -104,7 +104,10 @@ fi
 
 # ---- Publish the newest draft release ----
 info "Publishing draft release id=$NEWEST_DRAFT_ID for $TAG..."
-jq -n --arg body "$(cat "$RELEASE_NOTES_FILE")" '{ draft: false, make_latest: "true", body: $body }' \
+jq -n \
+  --arg name "TK Copilot $TAG" \
+  --arg body "$(cat "$RELEASE_NOTES_FILE")" \
+  '{ draft: false, make_latest: "true", name: $name, body: $body }' \
   | gh api -X PATCH "repos/gaoyangz77/rivonclaw/releases/$NEWEST_DRAFT_ID" --input - >/dev/null
 
 # ---- Final verification ----
@@ -115,9 +118,11 @@ FINAL_PUBLIC_COUNT=$(echo "$FINAL_JSON" | jq '[.[] | select(.draft == false)] | 
 FINAL_PUBLIC_ID=$(echo "$FINAL_JSON" | jq -r '[.[] | select(.draft == false)] | first | .id')
 FINAL_PUBLIC_URL=$(echo "$FINAL_JSON" | jq -r '[.[] | select(.draft == false)] | first | .html_url')
 FINAL_PUBLIC_ASSET_COUNT=$(echo "$FINAL_JSON" | jq '[.[] | select(.draft == false)] | first | .assets | length')
+FINAL_PUBLIC_NAME=$(echo "$FINAL_JSON" | jq -r '[.[] | select(.draft == false)] | first | .name')
 
 [ "$FINAL_PUBLIC_ID" = "$NEWEST_DRAFT_ID" ] || error "Published release id ($FINAL_PUBLIC_ID) does not match selected draft id ($NEWEST_DRAFT_ID)"
 [ "$FINAL_PUBLIC_ASSET_COUNT" -ge "$EXPECTED_ARTIFACTS" ] || error "Published release has only $FINAL_PUBLIC_ASSET_COUNT artifacts; expected at least $EXPECTED_ARTIFACTS"
+[ "$FINAL_PUBLIC_NAME" = "TK Copilot $TAG" ] || error "Published release name is '$FINAL_PUBLIC_NAME', expected 'TK Copilot $TAG'"
 
 info "==============================================="
 info "  Release $TAG published!"
