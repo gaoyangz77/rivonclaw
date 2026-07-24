@@ -283,10 +283,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           username
           nickname
           avatarUrl
-          followerCount
-          categoryIds
-          marketplaceSnapshotJson
-          aggregatedSignalsSnapshotJson
         }
         creatorRelation {
           id

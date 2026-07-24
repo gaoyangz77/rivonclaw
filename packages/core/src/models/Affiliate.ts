@@ -43,10 +43,6 @@ export const AffiliateCreatorProfileModel = types.model("AffiliateCreatorProfile
   username: types.maybeNull(types.string),
   nickname: types.maybeNull(types.string),
   avatarUrl: types.maybeNull(types.string),
-  followerCount: types.maybeNull(types.number),
-  categoryIds: types.optional(types.array(types.string), []),
-  marketplaceSnapshotJson: types.maybeNull(types.string),
-  aggregatedSignalsSnapshotJson: types.maybeNull(types.string),
   createdAt: types.optional(types.string, nowIso),
   updatedAt: types.optional(types.string, nowIso),
 });

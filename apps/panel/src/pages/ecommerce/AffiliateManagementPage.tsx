@@ -2474,7 +2474,9 @@ function CreatorRelationshipCard({
   const lifecycleLabel = lifecycleStage
     ? t(`ecommerce.affiliateWorkspace.lifecycleStages.${lifecycleStage}`, { defaultValue: lifecycleStage })
     : t("ecommerce.affiliateWorkspace.creatorUnknownStage");
-  const followerCount = profile ? formatCount(profile.followerCount) : null;
+  const followerCount = profile
+    ? formatCount(latestCreatorPerformance(profile)?.followerCount)
+    : null;
   const relationshipDetail = relationshipDetailFromManagementItem(item, workItems ?? []);
 
   return (
@@ -5200,9 +5202,9 @@ function CreatorRelationshipDetailModal({
     : item.creatorId;
   const handle = profile ? creatorTikTokHandle(profile) : null;
   const platformId = profile ? creatorPlatformIdentity(profile) : null;
-  const marketplace = profile ? parseMarketplaceCreatorSnapshot(profile.marketplaceSnapshotJson) : null;
-  const marketplaceBio = readMarketplaceCreatorBio(marketplace);
-  const marketplaceMetrics = profile ? buildMarketplaceMetricRows(marketplace, t) : [];
+  const performance = profile ? latestCreatorPerformance(profile) : null;
+  const marketplaceBio = profile?.bioDescription?.trim() || null;
+  const marketplaceMetrics = buildMarketplaceMetricRows(performance, t);
   const management = item.managementItem ?? null;
   const blocked = Boolean(item.creatorRelation?.blocked);
   const shopStates = item.creatorRelation?.shopStates ?? (item.shopState ? [item.shopState] : []);
@@ -5993,11 +5995,12 @@ function CreatorDetailModal({
   const name = creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"));
   const handle = creatorTikTokHandle(profile);
   const platformId = creatorPlatformIdentity(profile);
-  const marketplace = parseMarketplaceCreatorSnapshot(profile.marketplaceSnapshotJson);
-  const marketplaceBio = readMarketplaceCreatorBio(marketplace);
-  const marketplaceMetrics = buildMarketplaceMetricRows(marketplace, t);
-  const categorySummary = profile.categoryIds?.length
-    ? profile.categoryIds.slice(0, 8).join(", ")
+  const performance = latestCreatorPerformance(profile);
+  const marketplaceBio = profile.bioDescription?.trim() || null;
+  const marketplaceMetrics = buildMarketplaceMetricRows(performance, t);
+  const categoryIds = performance?.categoryIds ?? [];
+  const categorySummary = categoryIds?.length
+    ? categoryIds.slice(0, 8).join(", ")
     : null;
 
   return (
@@ -6029,7 +6032,7 @@ function CreatorDetailModal({
         <div className="affiliate-creator-detail-grid">
           <CreatorDetailMetric
             label={t("ecommerce.affiliateWorkspace.creatorDetail.followers")}
-            value={formatCount(profile.followerCount)}
+            value={formatCount(performance?.followerCount)}
           />
           <CreatorDetailMetric
             label={t("ecommerce.affiliateWorkspace.creatorDetail.platform")}
@@ -6037,7 +6040,11 @@ function CreatorDetailModal({
           />
           <CreatorDetailMetric
             label={t("ecommerce.affiliateWorkspace.creatorDetail.lastUpdated")}
-            value={profile.updatedAt ? formatProposalTime(profile.updatedAt) : null}
+            value={performance?.observedAt
+              ? formatProposalTime(performance.observedAt)
+              : profile.lastObservedAt
+                ? formatProposalTime(profile.lastObservedAt)
+                : null}
           />
         </div>
 
@@ -6106,100 +6113,82 @@ function CreatorDetailModal({
   );
 }
 
-type MarketplaceCreatorSnapshot = Record<string, unknown>;
-
-function parseMarketplaceCreatorSnapshot(value: string | null | undefined): MarketplaceCreatorSnapshot | null {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as MarketplaceCreatorSnapshot) : null;
-  } catch {
-    return null;
-  }
-}
-
-function readMarketplaceCreatorBio(snapshot: MarketplaceCreatorSnapshot | null): string | null {
-  if (!snapshot) return null;
-  return readString(snapshot, "bioDescription") ?? readString(snapshot, "bio_description");
+function latestCreatorPerformance(
+  profile: GQL.AffiliateCreatorIdentity,
+): GQL.AffiliateCreatorPerformanceCurrent | null {
+  const projections = profile.currentPerformance ?? [];
+  return [...projections].sort(
+    (left, right) =>
+      new Date(right.observedAt).getTime() - new Date(left.observedAt).getTime(),
+  )[0] ?? null;
 }
 
 function buildMarketplaceMetricRows(
-  snapshot: MarketplaceCreatorSnapshot | null,
+  performance: GQL.AffiliateCreatorPerformanceCurrent | null,
   t: ReturnType<typeof useTranslation>["t"],
 ): Array<{ label: string; value: string }> {
-  if (!snapshot) return [];
+  if (!performance) return [];
   const rows: Array<{ label: string; value: string | null }> = [
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.totalGmv"),
-      value: readMoneyOrRange(snapshot, "gmv", "gmvRange"),
+      value: formatPerformanceMoney(performance.gmv),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.videoGmv"),
-      value: readMoneyOrRange(snapshot, "videoGmv", "videoGmvRange"),
+      value: formatPerformanceMoney(performance.videoGmv),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.liveGmv"),
-      value: readMoneyOrRange(snapshot, "liveGmv", "liveGmvRange"),
+      value: formatPerformanceMoney(performance.liveGmv),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.gpm"),
-      value: readMoneyOrRange(snapshot, "gpm", "gpmRange"),
+      value: formatPerformanceMoney(performance.gpm),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.unitsSold"),
-      value: readCountOrRange(snapshot, "unitsSold", "unitsSoldRange"),
-    },
-    {
-      label: t("ecommerce.affiliateWorkspace.creatorDetail.promotedProducts"),
-      value: formatCount(readNumber(snapshot, "promotedProductNum")),
+      value: formatCount(performance.unitsSold),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.ecVideos"),
-      value: formatCount(readNumber(snapshot, "ecVideoCount")),
+      value: formatCount(performance.videoCount),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.ecLives"),
-      value: formatCount(readNumber(snapshot, "ecLiveCount")),
+      value: formatCount(performance.liveCount),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.avgVideoViews"),
-      value: formatCount(readNumber(snapshot, "avgEcVideoViewCount") ?? readNumber(snapshot, "avgEcVideoPlayCount")),
+      value: formatCount(performance.averageVideoViews),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.rating"),
-      value: readString(snapshot, "rating"),
+      value: performance.ratingScore == null ? null : String(performance.ratingScore),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.pps"),
-      value: readString(snapshot, "pps"),
+      value: performance.pps == null ? null : String(performance.pps),
     },
     {
       label: t("ecommerce.affiliateWorkspace.creatorDetail.postRate"),
-      value: formatScaledPercent(readString(snapshot, "postRate")),
+      value: formatPerformanceRate(performance.engagementRate),
     },
   ];
   return rows.filter((row): row is { label: string; value: string } => Boolean(row.value));
 }
 
-function readMoneyOrRange(
-  snapshot: MarketplaceCreatorSnapshot,
-  moneyKey: string,
-  rangeKey: string,
+function formatPerformanceMoney(
+  metric: GQL.AffiliateCreatorPerformanceMoneyMetric | null | undefined,
 ): string | null {
-  const money = readObject(snapshot, moneyKey);
-  const amount = readString(money, "amount");
-  const currency = readString(money, "currency");
-  if (amount) return formatCreatorMoney(amount, currency);
-
-  const range = readObject(snapshot, rangeKey);
-  const formattedRange = readString(range, "formattedRange") ?? readString(range, "formatted_range");
-  if (formattedRange) return formattedRange;
-  const min = readString(range, "minimumAmount") ?? readString(range, "minimum_amount");
-  const max = readString(range, "maximumAmount") ?? readString(range, "maximum_amount");
-    const rangeCurrency = readString(range, "currency");
-    if (min && max) {
-    const minText = formatCreatorMoney(min, rangeCurrency) ?? min;
-    const maxText = formatCreatorMoney(max, rangeCurrency) ?? max;
+  if (!metric) return null;
+  if (metric.amount != null) {
+    return formatCreatorMoney(String(metric.amount), metric.currency);
+  }
+  if (metric.minimumAmount != null && metric.maximumAmount != null) {
+    const minText = formatCreatorMoney(String(metric.minimumAmount), metric.currency)
+      ?? String(metric.minimumAmount);
+    const maxText = formatCreatorMoney(String(metric.maximumAmount), metric.currency)
+      ?? String(metric.maximumAmount);
     return `${minText} - ${maxText}`;
   }
   return null;
@@ -6220,52 +6209,10 @@ function formatCreatorMoney(amount: string | null | undefined, currency?: string
   }
 }
 
-function readCountOrRange(
-  snapshot: MarketplaceCreatorSnapshot,
-  countKey: string,
-  rangeKey: string,
-): string | null {
-  const count = readNumber(snapshot, countKey);
-  if (count != null) return formatCount(count);
-  const range = readObject(snapshot, rangeKey);
-  const formattedRange = readString(range, "formattedRange") ?? readString(range, "formatted_range");
-  if (formattedRange) return formattedRange;
-  const min = readNumber(range, "minimumAmount") ?? readNumber(range, "minimum_amount");
-  const max = readNumber(range, "maximumAmount") ?? readNumber(range, "maximum_amount");
-  if (min != null && max != null) return `${formatCount(min)} - ${formatCount(max)}`;
-  return null;
-}
-
-function readObject(value: unknown, key: string): MarketplaceCreatorSnapshot | null {
-  if (!value || typeof value !== "object") return null;
-  const child = (value as Record<string, unknown>)[key];
-  return child && typeof child === "object" ? (child as MarketplaceCreatorSnapshot) : null;
-}
-
-function readString(value: unknown, key: string): string | null {
-  if (!value || typeof value !== "object") return null;
-  const child = (value as Record<string, unknown>)[key];
-  if (typeof child === "string" && child.trim()) return child.trim();
-  if (typeof child === "number" && Number.isFinite(child)) return String(child);
-  return null;
-}
-
-function readNumber(value: unknown, key: string): number | null {
-  if (!value || typeof value !== "object") return null;
-  const child = (value as Record<string, unknown>)[key];
-  if (typeof child === "number" && Number.isFinite(child)) return child;
-  if (typeof child === "string") {
-    const parsed = Number(child);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
-function formatScaledPercent(value: string | null): string | null {
-  if (!value) return null;
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return value;
-  return `${(numeric / 100).toFixed(1)}%`;
+function formatPerformanceRate(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  const percentage = value <= 1 ? value * 100 : value;
+  return `${percentage.toFixed(1)}%`;
 }
 
 function CreatorDetailMetric({ label, value }: { label: string; value?: string | null }) {

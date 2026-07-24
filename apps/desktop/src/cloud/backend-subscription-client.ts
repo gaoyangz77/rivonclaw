@@ -517,10 +517,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             username
             nickname
             avatarUrl
-            followerCount
-            categoryIds
-            marketplaceSnapshotJson
-            aggregatedSignalsSnapshotJson
           }
           creatorRelation {
             id
@@ -699,10 +695,6 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           username
           nickname
           avatarUrl
-          followerCount
-          categoryIds
-          marketplaceSnapshotJson
-          aggregatedSignalsSnapshotJson
         }
         collaborationRecordId
         sourceWorkBoundary {
