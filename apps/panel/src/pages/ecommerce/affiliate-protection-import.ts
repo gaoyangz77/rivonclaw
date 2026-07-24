@@ -11,6 +11,86 @@ export type AffiliateProtectionImportBatch = {
   startIndex: number;
 };
 
+export type AffiliateProtectionPreviewDisposition =
+  | "ERROR"
+  | "EXCLUDED"
+  | "NEEDS_DEVELOPER_DECISION"
+  | "ASSIGNED"
+  | "PROTECTION_ONLY";
+
+export type AffiliateProtectionAssignmentSummary = {
+  assigned: Array<{
+    businessDeveloperId: string;
+    businessDeveloperName: string;
+    rowCount: number;
+  }>;
+  assignedRowCount: number;
+  protectionOnlyRowCount: number;
+  attentionRowCount: number;
+};
+
+export function classifyAffiliateProtectionPreviewRow(row: {
+  error: string | null;
+  excluded?: boolean;
+  businessDeveloperId: string | null;
+  businessDeveloperName: string | null;
+}): AffiliateProtectionPreviewDisposition {
+  if (row.error) return "ERROR";
+  if (row.excluded) return "EXCLUDED";
+  if (row.businessDeveloperId) return "ASSIGNED";
+  if (row.businessDeveloperName) return "NEEDS_DEVELOPER_DECISION";
+  return "PROTECTION_ONLY";
+}
+
+export function summarizeAffiliateProtectionAssignments(
+  rows: Array<{
+    error: string | null;
+    excluded?: boolean;
+    businessDeveloperId: string | null;
+    businessDeveloperName: string | null;
+  }>,
+): AffiliateProtectionAssignmentSummary {
+  const assignedByDeveloper = new Map<string, {
+    businessDeveloperId: string;
+    businessDeveloperName: string;
+    rowCount: number;
+  }>();
+  let assignedRowCount = 0;
+  let protectionOnlyRowCount = 0;
+  let attentionRowCount = 0;
+
+  for (const row of rows) {
+    const disposition = classifyAffiliateProtectionPreviewRow(row);
+    if (disposition === "ASSIGNED" && row.businessDeveloperId) {
+      assignedRowCount += 1;
+      const existing = assignedByDeveloper.get(row.businessDeveloperId);
+      if (existing) {
+        existing.rowCount += 1;
+      } else {
+        assignedByDeveloper.set(row.businessDeveloperId, {
+          businessDeveloperId: row.businessDeveloperId,
+          businessDeveloperName: row.businessDeveloperName ?? row.businessDeveloperId,
+          rowCount: 1,
+        });
+      }
+    } else if (disposition === "PROTECTION_ONLY") {
+      protectionOnlyRowCount += 1;
+    } else {
+      attentionRowCount += 1;
+    }
+  }
+
+  return {
+    assigned: [...assignedByDeveloper.values()].sort((left, right) => (
+      right.rowCount - left.rowCount ||
+      left.businessDeveloperName.localeCompare(right.businessDeveloperName)
+    )),
+    assignedRowCount,
+    protectionOnlyRowCount,
+    attentionRowCount,
+  };
+}
+
 export function buildAffiliateDeveloperProvisionBatches<T>(
   entries: T[],
   maxEntries = AFFILIATE_DEVELOPER_PROVISION_MAX_ENTRIES,

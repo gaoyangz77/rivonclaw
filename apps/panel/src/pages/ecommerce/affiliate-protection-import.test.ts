@@ -7,7 +7,9 @@ import {
   buildAffiliateDeveloperProvisionBatches,
   buildAffiliateProtectionDeveloperResolutionSeeds,
   buildAffiliateProtectionImportBatches,
+  classifyAffiliateProtectionPreviewRow,
   normalizeAffiliateBusinessDeveloperName,
+  summarizeAffiliateProtectionAssignments,
   type AffiliateProtectionImportEntry,
 } from "./affiliate-protection-import.js";
 
@@ -22,6 +24,81 @@ function entry(index: number, note: string | null = null): AffiliateProtectionIm
 }
 
 describe("Affiliate protected creator import batching", () => {
+  it("describes the actual import outcome instead of marking every valid row ready", () => {
+    expect(classifyAffiliateProtectionPreviewRow({
+      error: "Missing creator",
+      businessDeveloperId: null,
+      businessDeveloperName: null,
+    })).toBe("ERROR");
+    expect(classifyAffiliateProtectionPreviewRow({
+      error: null,
+      excluded: true,
+      businessDeveloperId: null,
+      businessDeveloperName: "Skipped BD",
+    })).toBe("EXCLUDED");
+    expect(classifyAffiliateProtectionPreviewRow({
+      error: null,
+      businessDeveloperId: null,
+      businessDeveloperName: "Unknown BD",
+    })).toBe("NEEDS_DEVELOPER_DECISION");
+    expect(classifyAffiliateProtectionPreviewRow({
+      error: null,
+      businessDeveloperId: "bd-1",
+      businessDeveloperName: "Alice",
+    })).toBe("ASSIGNED");
+    expect(classifyAffiliateProtectionPreviewRow({
+      error: null,
+      businessDeveloperId: null,
+      businessDeveloperName: null,
+    })).toBe("PROTECTION_ONLY");
+  });
+
+  it("summarizes matched BD assignments before the user confirms them", () => {
+    expect(summarizeAffiliateProtectionAssignments([
+      {
+        error: null,
+        businessDeveloperId: "bd-lin",
+        businessDeveloperName: "林",
+      },
+      {
+        error: null,
+        businessDeveloperId: "bd-lin",
+        businessDeveloperName: "林",
+      },
+      {
+        error: null,
+        businessDeveloperId: "bd-chen",
+        businessDeveloperName: "陈",
+      },
+      {
+        error: null,
+        businessDeveloperId: null,
+        businessDeveloperName: null,
+      },
+      {
+        error: "Missing creator",
+        businessDeveloperId: null,
+        businessDeveloperName: null,
+      },
+    ])).toEqual({
+      assigned: [
+        {
+          businessDeveloperId: "bd-lin",
+          businessDeveloperName: "林",
+          rowCount: 2,
+        },
+        {
+          businessDeveloperId: "bd-chen",
+          businessDeveloperName: "陈",
+          rowCount: 1,
+        },
+      ],
+      assignedRowCount: 3,
+      protectionOnlyRowCount: 1,
+      attentionRowCount: 1,
+    });
+  });
+
   it("keeps BD provisioning requests within the backend 100-name limit", () => {
     const batches = buildAffiliateDeveloperProvisionBatches(
       Array.from({ length: 205 }, (_, index) => `bd-${index}`),
