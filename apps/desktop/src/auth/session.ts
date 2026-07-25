@@ -9,6 +9,7 @@ import {
   REGISTER_MUTATION,
   REQUEST_CAPTCHA_MUTATION,
 } from "../cloud/auth-queries.js";
+import type { MarketingAttribution } from "../attribution/marketing-attribution.js";
 
 const log = createLogger("auth-session");
 
@@ -279,7 +280,15 @@ export class AuthSessionManager {
   }
 
   /** Register with email/password credentials. Desktop calls Cloud, stores tokens, returns user. */
-  async registerWithCredentials(input: { email: string; password: string; name?: string; captchaToken?: string; captchaAnswer?: string; inviteCode?: string | null }): Promise<GQL.MeResponse> {
+  async registerWithCredentials(input: {
+    email: string;
+    password: string;
+    name?: string;
+    captchaToken?: string;
+    captchaAnswer?: string;
+    inviteCode?: string | null;
+    attribution?: MarketingAttribution;
+  }): Promise<GQL.MeResponse> {
     const data = await this.graphqlFetch<{ register: GQL.AuthPayload }>(REGISTER_MUTATION, { input });
     await this.storeTokens(data.register.accessToken, data.register.refreshToken);
     await this.setUser(data.register.user);

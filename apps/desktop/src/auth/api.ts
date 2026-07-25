@@ -4,6 +4,10 @@ import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry
 import type { ApiContext } from "../app/api-context.js";
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import { rootStore } from "../app/store/desktop-store.js";
+import {
+  clearStoredMarketingAttribution,
+  readStoredMarketingAttribution,
+} from "../attribution/marketing-attribution.js";
 
 const log = createLogger("auth-api");
 
@@ -113,7 +117,12 @@ const register: EndpointHandler = async (req, res, _url, _params, ctx: ApiContex
     return;
   }
   try {
-    await ctx.authSession.registerWithCredentials(body);
+    const attribution = readStoredMarketingAttribution(ctx.storage.settings);
+    await ctx.authSession.registerWithCredentials({
+      ...body,
+      ...(attribution ? { attribution } : {}),
+    });
+    clearStoredMarketingAttribution(ctx.storage.settings);
     await ctx.onAuthChange?.("register");
     sendJson(res, 200, { ok: true });
   } catch (err) {

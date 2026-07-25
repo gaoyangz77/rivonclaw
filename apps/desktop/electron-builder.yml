@@ -1,6 +1,11 @@
 appId: com.easyclaw.desktop
 productName: TK Copilot
 
+protocols:
+  - name: TK Copilot Marketing Attribution
+    schemes:
+      - tkcopilot
+
 directories:
   output: release
 
