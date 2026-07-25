@@ -392,7 +392,9 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
 
     // Build the full set of extra providers (all built-in non-OpenClaw providers).
     // filterConfiguredExtraProviders narrows to those with API keys;
-    // managedProviderKeys tells config-writer which stale entries to clean from old configs.
+    // managedProviderKeys only cleans RivonClaw-owned entries in openclaw.json.
+    // Do not write agent models.json here: OpenClaw owns its locked, atomic
+    // reconciliation and preserves unrelated user providers in merge mode.
     const allExtraProviders = buildExtraProviderConfigs();
 
     // Only reference apiKey env var if key exists in keychain

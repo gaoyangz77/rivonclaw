@@ -1,0 +1,319 @@
+From f00c9da57795d00013fd9d5417e22c565aab11bc Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Sat, 25 Jul 2026 01:26:48 -0700
+Subject: [PATCH] vendor(openclaw): rotate sessions after compaction failure
+
+Why:
+- Unrecoverable compaction failures otherwise keep routing every later turn into the same broken transcript.
+- RivonClaw needs to preserve the failed transcript while moving the route to a clean successor session.
+
+Removal:
+- Drop when upstream provides equivalent bounded successor-session recovery after compaction failures.
+
+Tests:
+- apps/desktop/src/gateway/vendor-compaction-session-recovery.sentinel.test.ts
+---
+ .../reply/agent-runner-execution.test.ts      | 21 ++++--
+ .../reply/agent-runner-execution.ts           | 26 ++++++--
+ .../reply/agent-runner.media-paths.test.ts    |  2 +
+ .../agent-runner.misc.runreplyagent.test.ts   | 65 +++++++++++++++++++
+ src/auto-reply/reply/agent-runner.ts          |  7 ++
+ 5 files changed, 111 insertions(+), 10 deletions(-)
+
+diff --git a/src/auto-reply/reply/agent-runner-execution.test.ts b/src/auto-reply/reply/agent-runner-execution.test.ts
+index 3e37a086d93..32c285f12d6 100644
+--- a/src/auto-reply/reply/agent-runner-execution.test.ts
++++ b/src/auto-reply/reply/agent-runner-execution.test.ts
+@@ -535,6 +535,7 @@ function createMinimalRunAgentTurnParams(overrides?: {
+     shouldEmitToolResult: () => true,
+     shouldEmitToolOutput: () => false,
+     pendingToolTasks: new Set<Promise<void>>(),
++    resetSessionAfterCompactionFailure: async () => false,
+     resetSessionAfterRoleOrderingConflict: async () => false,
+     isHeartbeat: false,
+     sessionKey: "main",
+@@ -6738,7 +6739,7 @@ describe("runAgentTurnWithFallback", () => {
+     }
+   });
+ 
+-  it("preserves the active session when embedded overflow recovery fails", async () => {
++  it("rotates to a successor session when embedded overflow recovery fails", async () => {
+     state.isContextOverflowErrorMock.mockReturnValue(true);
+     state.runEmbeddedAgentMock.mockResolvedValueOnce({
+       payloads: [],
+@@ -6752,6 +6753,7 @@ describe("runAgentTurnWithFallback", () => {
+     const activeSessionEntry = { sessionId: "session", updatedAt: 1 } as SessionEntry;
+     const activeSessionStore = { "agent:main:main": activeSessionEntry };
+     const { replyOperation, failMock, updateSessionIdMock } = createMockReplyOperation();
++    const resetSessionAfterCompactionFailure = vi.fn(async () => true);
+     const runAgentTurnWithFallback = await getRunAgentTurnWithFallback();
+     const result = await runAgentTurnWithFallback({
+       ...createMinimalRunAgentTurnParams({
+@@ -6765,11 +6767,12 @@ describe("runAgentTurnWithFallback", () => {
+       getActiveSessionEntry: () => activeSessionEntry,
+       activeSessionStore,
+       storePath: "/tmp/sessions.json",
++      resetSessionAfterCompactionFailure,
+     });
+ 
+     expect(result.kind).toBe("final");
+     if (result.kind === "final") {
+-      expect(result.payload.text).toContain("kept this conversation mapped to the current session");
++      expect(result.payload.text).toContain("I've reset our conversation to start fresh");
+       expect(result.payload.text).toContain("reserveTokensFloor");
+       expectRecordFields(requireRecord(getReplyPayloadMetadata(result.payload), "reply metadata"), {
+         deliverDespiteSourceReplySuppression: true,
+@@ -6781,12 +6784,15 @@ describe("runAgentTurnWithFallback", () => {
+         message: "400 The prompt is too long: 203557, model maximum context length: 196607",
+       }),
+     );
++    expect(resetSessionAfterCompactionFailure).toHaveBeenCalledWith(
++      "400 The prompt is too long: 203557, model maximum context length: 196607",
++    );
+     expect(activeSessionStore["agent:main:main"]?.sessionId).toBe("session");
+     expect(updateSessionIdMock).not.toHaveBeenCalled();
+     expect(state.updateSessionStoreMock).not.toHaveBeenCalled();
+   });
+ 
+-  it("preserves the active session when compaction failure is thrown before reply", async () => {
++  it("rotates to a successor session when compaction failure is thrown before reply", async () => {
+     state.isCompactionFailureErrorMock.mockReturnValue(true);
+     state.runEmbeddedAgentMock.mockRejectedValueOnce(
+       new Error("Auto-compaction failed: nothing to compact"),
+@@ -6795,6 +6801,7 @@ describe("runAgentTurnWithFallback", () => {
+     const activeSessionEntry = { sessionId: "session", updatedAt: 1 } as SessionEntry;
+     const activeSessionStore = { "agent:main:main": activeSessionEntry };
+     const { replyOperation, failMock, updateSessionIdMock } = createMockReplyOperation();
++    const resetSessionAfterCompactionFailure = vi.fn(async () => true);
+     const runAgentTurnWithFallback = await getRunAgentTurnWithFallback();
+     const result = await runAgentTurnWithFallback({
+       ...createMinimalRunAgentTurnParams({
+@@ -6808,11 +6815,14 @@ describe("runAgentTurnWithFallback", () => {
+       getActiveSessionEntry: () => activeSessionEntry,
+       activeSessionStore,
+       storePath: "/tmp/sessions.json",
++      resetSessionAfterCompactionFailure,
+     });
+ 
+     expect(result.kind).toBe("final");
+     if (result.kind === "final") {
+-      expect(result.payload.text).toContain("kept this conversation mapped to the current session");
++      expect(result.payload.text).toContain(
++        "Context limit exceeded during compaction. I've reset our conversation",
++      );
+       expect(result.payload.text).toContain("reserveTokensFloor");
+       expectRecordFields(requireRecord(getReplyPayloadMetadata(result.payload), "reply metadata"), {
+         deliverDespiteSourceReplySuppression: true,
+@@ -6822,6 +6832,9 @@ describe("runAgentTurnWithFallback", () => {
+       "run_failed",
+       expect.objectContaining({ message: "Auto-compaction failed: nothing to compact" }),
+     );
++    expect(resetSessionAfterCompactionFailure).toHaveBeenCalledWith(
++      "Auto-compaction failed: nothing to compact",
++    );
+     expect(activeSessionStore["agent:main:main"]?.sessionId).toBe("session");
+     expect(updateSessionIdMock).not.toHaveBeenCalled();
+     expect(state.updateSessionStoreMock).not.toHaveBeenCalled();
+diff --git a/src/auto-reply/reply/agent-runner-execution.ts b/src/auto-reply/reply/agent-runner-execution.ts
+index 42f2089d208..b6860928f21 100644
+--- a/src/auto-reply/reply/agent-runner-execution.ts
++++ b/src/auto-reply/reply/agent-runner-execution.ts
+@@ -1583,6 +1583,7 @@ export async function runAgentTurnWithFallback(params: {
+   shouldEmitToolResult: () => boolean;
+   shouldEmitToolOutput: () => boolean;
+   pendingToolTasks: Set<Promise<void>>;
++  resetSessionAfterCompactionFailure: (reason: string) => Promise<boolean>;
+   resetSessionAfterRoleOrderingConflict: (reason: string) => Promise<boolean>;
+   isHeartbeat: boolean;
+   sessionKey?: string;
+@@ -1774,6 +1775,7 @@ export async function runAgentTurnWithFallback(params: {
+   let attemptedRuntimeModel = fallbackModel;
+   let fallbackAttempts: RuntimeFallbackAttempt[] = [];
+   let fallbackExhausted = false;
++  let didResetAfterCompactionFailure = false;
+   let pendingLifecycleTerminal:
+     | {
+         provider: string;
+@@ -2959,8 +2961,8 @@ export async function runAgentTurnWithFallback(params: {
+       }
+ 
+       // Some embedded runs surface context overflow as an error payload instead of throwing.
+-      // Preserve the active session mapping and surface explicit guidance instead
+-      // of silently rotating the session key to a new session id.
++      // Rotate the route to a clean successor so later turns do not repeatedly
++      // enter the same unrecoverable transcript. The failed transcript remains on disk.
+       const embeddedError = runResult.meta?.error;
+       const deferredLifecycleError = settledLifecycleTerminal?.getDeferredError();
+       const userFacingErrorPayload = runResult.payloads?.find(
+@@ -2990,15 +2992,21 @@ export async function runAgentTurnWithFallback(params: {
+       };
+       if (embeddedError && isContextOverflowError(embeddedError.message)) {
+         emitSettledLifecycleError(new Error(terminalErrorMessage ?? "Agent run failed"));
++        const didReset =
++          !didResetAfterCompactionFailure &&
++          (await params.resetSessionAfterCompactionFailure(embeddedError.message));
++        didResetAfterCompactionFailure ||= didReset;
+         defaultRuntime.error(
+-          `Auto-compaction failed (${embeddedError.message}). Preserving existing session mapping for ${params.sessionKey ?? params.followupRun.run.sessionId}.`,
++          didReset
++            ? `Auto-compaction failed (${embeddedError.message}). Rotated ${params.sessionKey ?? params.followupRun.run.sessionId} to a clean successor session.`
++            : `Auto-compaction failed (${embeddedError.message}). Preserving existing session mapping for ${params.sessionKey ?? params.followupRun.run.sessionId} because successor rotation was unavailable.`,
+         );
+         params.replyOperation?.fail("run_failed", embeddedError);
+         return {
+           kind: "final",
+           payload: markAgentRunFailureReplyPayload({
+             text: buildContextOverflowRecoveryText({
+-              preserveSessionMapping: true,
++              preserveSessionMapping: !didReset,
+               cfg: runtimeConfig,
+               agentId: params.followupRun.run.agentId,
+               primaryProvider: params.followupRun.run.provider,
+@@ -3171,8 +3179,14 @@ export async function runAgentTurnWithFallback(params: {
+ 
+       if (isCompactionFailure) {
+         takePendingLifecycleTerminal()?.emit("error", err);
++        const didReset =
++          !didResetAfterCompactionFailure &&
++          (await params.resetSessionAfterCompactionFailure(message));
++        didResetAfterCompactionFailure ||= didReset;
+         defaultRuntime.error(
+-          `Auto-compaction failed (${message}). Preserving existing session mapping for ${params.sessionKey ?? params.followupRun.run.sessionId}.`,
++          didReset
++            ? `Auto-compaction failed (${message}). Rotated ${params.sessionKey ?? params.followupRun.run.sessionId} to a clean successor session.`
++            : `Auto-compaction failed (${message}). Preserving existing session mapping for ${params.sessionKey ?? params.followupRun.run.sessionId} because successor rotation was unavailable.`,
+         );
+         params.replyOperation?.fail("run_failed", err);
+         return {
+@@ -3180,7 +3194,7 @@ export async function runAgentTurnWithFallback(params: {
+           payload: markAgentRunFailureReplyPayload({
+             text: buildContextOverflowRecoveryText({
+               duringCompaction: true,
+-              preserveSessionMapping: true,
++              preserveSessionMapping: !didReset,
+               cfg: runtimeConfig,
+               agentId: params.followupRun.run.agentId,
+               primaryProvider: params.followupRun.run.provider,
+diff --git a/src/auto-reply/reply/agent-runner.media-paths.test.ts b/src/auto-reply/reply/agent-runner.media-paths.test.ts
+index 86ddd72fe08..9bee22da203 100644
+--- a/src/auto-reply/reply/agent-runner.media-paths.test.ts
++++ b/src/auto-reply/reply/agent-runner.media-paths.test.ts
+@@ -549,6 +549,7 @@ describe("runReplyAgent media path normalization", () => {
+       shouldEmitToolResult: () => false,
+       shouldEmitToolOutput: () => false,
+       pendingToolTasks: new Set(),
++      resetSessionAfterCompactionFailure: async () => false,
+       resetSessionAfterRoleOrderingConflict: async () => false,
+       isHeartbeat: false,
+       sessionKey: "main",
+@@ -615,6 +616,7 @@ describe("runReplyAgent media path normalization", () => {
+       shouldEmitToolResult: () => false,
+       shouldEmitToolOutput: () => false,
+       pendingToolTasks: new Set(),
++      resetSessionAfterCompactionFailure: async () => false,
+       resetSessionAfterRoleOrderingConflict: async () => false,
+       isHeartbeat: false,
+       sessionKey: "main",
+diff --git a/src/auto-reply/reply/agent-runner.misc.runreplyagent.test.ts b/src/auto-reply/reply/agent-runner.misc.runreplyagent.test.ts
+index 8fdca0230d8..fafc1603a3b 100644
+--- a/src/auto-reply/reply/agent-runner.misc.runreplyagent.test.ts
++++ b/src/auto-reply/reply/agent-runner.misc.runreplyagent.test.ts
+@@ -489,6 +489,71 @@ describe("runReplyAgent auto-compaction token update", () => {
+     expectReplyText(result, "⚠️ Gateway is restarting. Please wait a few seconds and try again.");
+   });
+ 
++  it("rotates an unrecoverable compaction session while preserving its transcript", async () => {
++    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-compaction-successor-"));
++    const storePath = path.join(tmp, "sessions.json");
++    const sessionFile = path.join(tmp, "session.jsonl");
++    const sessionKey = "main";
++    const sessionEntry = {
++      sessionId: "session",
++      sessionFile,
++      updatedAt: Date.now(),
++      totalTokens: 50_000,
++    };
++    await seedSessionStore({ storePath, sessionKey, entry: sessionEntry });
++    await fs.writeFile(sessionFile, '{"type":"message","message":{"role":"user"}}\n', "utf-8");
++    runEmbeddedAgentMock.mockResolvedValueOnce({
++      payloads: [],
++      meta: {
++        error: {
++          message: "400 The prompt is too long: 203557, model maximum context length: 196607",
++        },
++      },
++    });
++
++    const { typing, sessionCtx, resolvedQueue, followupRun } = createBaseRun({
++      storePath,
++      sessionEntry,
++      sessionFile,
++    });
++    const sessionStore = { [sessionKey]: sessionEntry };
++    const result = await runReplyAgent({
++      commandBody: "hello",
++      followupRun,
++      queueKey: sessionKey,
++      resolvedQueue,
++      shouldSteer: false,
++      shouldFollowup: false,
++      isActive: false,
++      isStreaming: false,
++      typing,
++      sessionCtx,
++      sessionEntry,
++      sessionStore,
++      sessionKey,
++      storePath,
++      defaultModel: "anthropic/claude-opus-4-6",
++      agentCfgContextTokens: 200_000,
++      resolvedVerboseLevel: "off",
++      isNewSession: false,
++      blockStreamingEnabled: false,
++      resolvedBlockStreamingBreak: "message_end",
++      shouldInjectGroupIntro: false,
++      typingMode: "instant",
++    });
++
++    expect(requireRecord(result, "reply result").text).toContain(
++      "I've reset our conversation to start fresh",
++    );
++    const stored = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
++      string,
++      { sessionId?: string; sessionFile?: string }
++    >;
++    expect(stored[sessionKey]?.sessionId).not.toBe("session");
++    expect(stored[sessionKey]?.sessionFile).not.toBe(sessionFile);
++    expect(await fs.readFile(sessionFile, "utf-8")).toContain('"role":"user"');
++  });
++
+   it("starts queued followup drain only after clearing the active reply operation", async () => {
+     const sessionKey = "main";
+     const sessionEntry = {
+diff --git a/src/auto-reply/reply/agent-runner.ts b/src/auto-reply/reply/agent-runner.ts
+index 43825221ff8..2065cc3eda5 100644
+--- a/src/auto-reply/reply/agent-runner.ts
++++ b/src/auto-reply/reply/agent-runner.ts
+@@ -1715,6 +1715,12 @@ export async function runReplyAgent(params: {
+           activeIsNewSession = true;
+         },
+       });
++    const resetSessionAfterCompactionFailure = async (reason: string): Promise<boolean> =>
++      resetSession({
++        failureLabel: "compaction failure",
++        buildLogMessage: (nextSessionId) =>
++          `Auto-compaction failed (${reason}). Rotating session ${sessionKey} -> ${nextSessionId}; the failed transcript remains available.`,
++      });
+     const resetSessionAfterRoleOrderingConflict = async (reason: string): Promise<boolean> =>
+       resetSession({
+         failureLabel: "role ordering conflict",
+@@ -1744,6 +1750,7 @@ export async function runReplyAgent(params: {
+         shouldEmitToolResult,
+         shouldEmitToolOutput,
+         pendingToolTasks,
++        resetSessionAfterCompactionFailure,
+         resetSessionAfterRoleOrderingConflict,
+         isHeartbeat,
+         sessionKey,
+-- 
+2.50.1 (Apple Git-155)

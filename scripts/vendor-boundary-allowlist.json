@@ -95,6 +95,26 @@
       "file": "apps/desktop/src/gateway/vendor-pi-compat-behavior.test.ts",
       "vendorPath": "vendor/openclaw/src/agents/pi-auth-credentials.js",
       "reason": "Behavioral guard — mocks transitive vendor dependency for pi-model-discovery behavioral test (vendor patch 0008)"
+    },
+    {
+      "file": "apps/desktop/src/gateway/vendor-models-cache-reconciliation.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/models-config.plan.ts",
+      "reason": "Lifecycle guard — verifies merge-mode planning is retained for safe managed-provider cache reconciliation"
+    },
+    {
+      "file": "apps/desktop/src/gateway/vendor-models-cache-reconciliation.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/models-config.ts",
+      "reason": "Lifecycle guard — verifies models.json refresh remains locked, atomic, and retryable after failure"
+    },
+    {
+      "file": "apps/desktop/src/gateway/vendor-models-cache-reconciliation.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/models-config.merge.ts",
+      "reason": "Lifecycle guard — verifies unrelated self-contained user providers survive managed-provider refreshes"
+    },
+    {
+      "file": "apps/desktop/src/gateway/vendor-models-cache-reconciliation.test.ts",
+      "vendorPath": "vendor/openclaw/src/gateway/server-startup-post-attach.ts",
+      "reason": "Lifecycle guard — verifies models.json reconciliation failures cannot block Gateway startup"
     }
   ],
   "allowlist": [
