@@ -86,8 +86,8 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     `Creator Relationship ID: ${workItem.creatorRelationshipId}`,
     `Creator ID: ${creatorId ?? "(unavailable)"}`,
     `TikTok Creator Open ID: ${creatorProfile?.creatorOpenId ?? "(unavailable)"}`,
-    `TikTok Creator Username: ${creatorProfile?.username ?? "(unavailable)"}`,
-    "The Creator Relationship and Creator identity are trusted run constants. The trigger shop is event provenance only; it does not limit relationship history or force every action to use that shop.",
+    "The Creator Relationship and Creator identity are trusted run constants, not a Creator profile snapshot. Read profile or performance facts only through affiliate_get_creator_profile.",
+    "The trigger shop is event provenance only; it does not limit relationship history or force every action to use that shop.",
     "",
     "[Agent Working Agenda]",
   ];

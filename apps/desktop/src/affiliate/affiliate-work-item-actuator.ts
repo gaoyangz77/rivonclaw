@@ -72,7 +72,6 @@ function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): vo
   workspace.upsertAffiliateCreatorRelationship(
     (workItem.creatorRelationship ?? workItem.context?.creatorRelation) as any,
   );
-  workspace.upsertAffiliateCreatorProfile(workItem.context?.creatorProfile as any);
 
   const productSummary = (workItem.context?.productContext as any)?.productSummary;
   if (productSummary) {

@@ -73,7 +73,6 @@ export interface AffiliateContext {
   creatorImUserId?: string;
   creatorId?: string | null;
   creatorOpenId?: string | null;
-  creatorUsername?: string | null;
   creatorRelationshipId: string;
   productId?: string | null;
   sampleApplicationRecordId?: string;
@@ -332,9 +331,6 @@ export class AffiliateSession {
         ...(this.affiliateContext.creatorId ? { creatorId: this.affiliateContext.creatorId } : {}),
         ...(this.affiliateContext.creatorOpenId
           ? { creatorOpenId: this.affiliateContext.creatorOpenId }
-          : {}),
-        ...(this.affiliateContext.creatorUsername
-          ? { creatorUsername: this.affiliateContext.creatorUsername }
           : {}),
       },
     });
