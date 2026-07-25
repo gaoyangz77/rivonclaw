@@ -3125,7 +3125,7 @@ export default {
       relationshipWorkLastOutbound: "最近商家回复",
       relationshipWorkContext: "记录上下文",
       relationshipWorkAmbiguousCollaborations: "可能关联的合作",
-      relationshipWorkNoCollaborations: "这条合作记录暂未关联具体商品合作。",
+      relationshipWorkNoCollaborations: "该达人在此店铺暂无合作记录。",
       relationshipWorkNoPendingProposals: "这条合作记录暂无待审批提案。",
       relationshipWorkActiveTitle: "{{count}} 个活跃合作",
       relationshipConversationTitle: "达人关系对话",
