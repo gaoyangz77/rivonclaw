@@ -1541,10 +1541,10 @@ describe("config-writer", () => {
       expect(glm45v?.input).toEqual(["text", "image"]);
       const doubao18 = configs.volcengine.models.find((m) => m.id === "doubao-seed-1-8-251228");
       expect(doubao18?.input).toEqual(["text", "image"]);
-      const doubaoLite = configs.volcengine.models.find(
-        (m) => m.id === "doubao-seed-1-6-lite-251015",
+      const doubao20Lite = configs.volcengine.models.find(
+        (m) => m.id === "doubao-seed-2-0-lite-260215",
       );
-      expect(doubaoLite?.input).toEqual(["text", "image"]);
+      expect(doubao20Lite?.input).toEqual(["text", "image"]);
       // qwen-coding vision models
       const qwen35plus = configs["qwen-coding"].models.find((m) => m.id === "qwen3.5-plus");
       expect(qwen35plus?.input).toEqual(["text", "image"]);
@@ -1568,6 +1568,34 @@ describe("config-writer", () => {
     it("does not override the built-in openai-codex provider", () => {
       const configs = buildExtraProviderConfigs();
       expect(configs["openai-codex"]).toBeUndefined();
+    });
+
+    it("preserves Volcengine native, effective input, and output limits", () => {
+      const configs = buildExtraProviderConfigs();
+      const doubao20Pro = configs.volcengine.models.find(
+        (m) => m.id === "doubao-seed-2-0-pro-260215",
+      );
+      expect(doubao20Pro).toMatchObject({
+        contextWindow: 256000,
+        contextTokens: 224000,
+        maxTokens: 128000,
+      });
+
+      const doubao18 = configs.volcengine.models.find((m) => m.id === "doubao-seed-1-8-251228");
+      expect(doubao18).toMatchObject({
+        contextWindow: 256000,
+        contextTokens: 224000,
+        maxTokens: 32000,
+      });
+
+      const arkCodeLatest = configs["volcengine-coding"].models.find(
+        (m) => m.id === "ark-code-latest",
+      );
+      expect(arkCodeLatest).toMatchObject({
+        contextWindow: 256000,
+        maxTokens: 32000,
+      });
+      expect(arkCodeLatest).not.toHaveProperty("contextTokens");
     });
   });
 
@@ -1886,9 +1914,17 @@ describe("config-writer", () => {
         extraSkillDirs: ["/tmp/skills"],
         skipBootstrap: true,
         browserMode: "standalone",
+        extraProviders: {
+          volcengine: buildExtraProviderConfigs().volcengine,
+        },
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.models.providers.volcengine.models[0]).toMatchObject({
+        contextWindow: 256000,
+        contextTokens: 224000,
+        maxTokens: 128000,
+      });
       const result = OpenClawSchema.safeParse(config);
       if (!result.success) {
         const messages = result.error.issues

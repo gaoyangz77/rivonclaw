@@ -926,7 +926,8 @@ export const LLMProviderManagerModel = types
         }
 
         // The provider definition and possibly its active model changed. Rewrite
-        // the full config so gateway models.json drops stale catalog entries.
+        // the authoritative config; OpenClaw safely reconciles agent models.json
+        // through its locked, atomic planner on reload/startup.
         yield syncAuthProxyAndConfig();
 
         return updated;

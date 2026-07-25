@@ -181,6 +181,17 @@ claimed business callbacks never become synthetic agent messages.
 Removal: upstream bundled Feishu supports trusted raw form-card sends and
 synchronous, policy-aware plugin interactive dispatch with complete form data.
 
+### 0029 - Compaction-failure successor session
+
+Rotates the active route to a clean successor session after an unrecoverable
+automatic compaction or context-overflow failure. The failed transcript remains
+available on disk, while the next user turn no longer re-enters the same broken
+session. If the session store cannot be rotated, OpenClaw retains its upstream
+preserved-session behavior.
+
+Removal: upstream provides equivalent bounded recovery that preserves the failed
+transcript without repeatedly routing later turns into it.
+
 ## Dropped In v2026.6.11
 
 - `0005`: OpenClaw now owns system prompts through

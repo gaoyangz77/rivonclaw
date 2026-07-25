@@ -431,6 +431,7 @@ export function buildExtraProviderConfigs(): Record<
       input: Array<"text" | "image">;
       cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
       contextWindow: number;
+      contextTokens?: number;
       maxTokens: number;
     }>;
   }
@@ -447,6 +448,7 @@ export function buildExtraProviderConfigs(): Record<
         input: Array<"text" | "image">;
         cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
         contextWindow: number;
+        contextTokens?: number;
         maxTokens: number;
       }>;
     }
@@ -474,6 +476,7 @@ export function buildExtraProviderConfigs(): Record<
         input: (m.supportsVision ? ["text", "image"] : ["text"]) as Array<"text" | "image">,
         cost: m.cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: m.contextWindow ?? 128000,
+        ...(m.contextTokens === undefined ? {} : { contextTokens: m.contextTokens }),
         maxTokens: m.maxTokens ?? 8192,
       })),
     };
@@ -1616,8 +1619,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           : {};
       // Remove stale managed providers that are no longer in extraProviders
       // (e.g. user deleted their API key). Without this, stale providers with
-      // models but no apiKey persist from previous configs and cause Pi SDK to
-      // reject the entire models.json.
+      // models but no apiKey persist in the authoritative config. Agent-local
+      // models.json remains OpenClaw-owned and is reconciled atomically.
       if (options.managedProviderKeys) {
         for (const key of options.managedProviderKeys) {
           if (!(key in options.extraProviders)) {

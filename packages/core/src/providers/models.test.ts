@@ -55,6 +55,26 @@ describe("PROVIDERS extraModels", () => {
       expect(model.maxTokens!).toBeLessThanOrEqual(model.contextWindow!);
     }
   });
+
+  it("uses Volcengine's published context and output limits", () => {
+    const models = PROVIDERS.volcengine.extraModels ?? [];
+    const seed20Ids = new Set([
+      "doubao-seed-2-0-pro-260215",
+      "doubao-seed-2-0-code-preview-260215",
+      "doubao-seed-2-0-lite-260215",
+      "doubao-seed-2-0-mini-260215",
+    ]);
+
+    for (const model of models) {
+      expect(model.contextWindow, `${model.modelId} contextWindow`).toBe(256000);
+      expect(model.contextTokens, `${model.modelId} contextTokens`).toBe(224000);
+      expect(model.maxTokens, `${model.modelId} maxTokens`).toBe(
+        seed20Ids.has(model.modelId) ? 128000 : 32000,
+      );
+    }
+
+    expect(models.some((model) => model.modelId === "doubao-seed-1-6-lite-251015")).toBe(false);
+  });
 });
 
 describe("KNOWN_MODELS (before initKnownModels)", () => {
