@@ -1213,6 +1213,31 @@ export interface AffiliateCreatorProductFitPayload {
   productSummary?: Maybe<EcomProductSummary>;
 }
 
+/** Whether Creator profile data was already fresh, refreshed on demand, or returned stale after a failed refresh. */
+export const AffiliateCreatorProfileFreshnessStatus = {
+  Fresh: 'FRESH',
+  Refreshed: 'REFRESHED',
+  StaleRefreshFailed: 'STALE_REFRESH_FAILED'
+} as const;
+
+export type AffiliateCreatorProfileFreshnessStatus = typeof AffiliateCreatorProfileFreshnessStatus[keyof typeof AffiliateCreatorProfileFreshnessStatus];
+export interface AffiliateCreatorProfileInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  market: Scalars['String']['input'];
+  preferredShopId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface AffiliateCreatorProfilePayload {
+  creator: AffiliateCreatorIdentity;
+  dataUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  freshnessStatus: AffiliateCreatorProfileFreshnessStatus;
+  performance?: Maybe<AffiliateCreatorPerformanceCurrent>;
+  refreshAttemptedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  refreshErrorCode?: Maybe<Scalars['String']['output']>;
+  refreshErrorMessage?: Maybe<Scalars['String']['output']>;
+  refreshShopId?: Maybe<Scalars['ID']['output']>;
+}
+
 export interface AffiliateCreatorProtection {
   businessDeveloperId?: Maybe<Scalars['ID']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
@@ -1325,6 +1350,11 @@ export interface AffiliateCreatorRelationshipShopState {
 export interface AffiliateCreatorRelationshipStatePayload {
   businessDeveloper?: Maybe<AffiliateBusinessDeveloper>;
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
+  creatorProfileDataUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  creatorProfileFreshnessStatus?: Maybe<AffiliateCreatorProfileFreshnessStatus>;
+  creatorProfileRefreshAttemptedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  creatorProfileRefreshErrorCode?: Maybe<Scalars['String']['output']>;
+  creatorProfileRefreshErrorMessage?: Maybe<Scalars['String']['output']>;
   observedAt: Scalars['DateTimeISO']['output'];
   relationship: AffiliateCreatorRelationship;
   source: AffiliateProviderReadSource;
@@ -8314,6 +8344,8 @@ export interface Query {
   affiliateCreatorContactState: AffiliateCreatorContactStatePayload;
   /** Read merged relationship-level affiliate creator message history with channel labels. */
   affiliateCreatorMessageHistory: AffiliateCreatorMessageHistoryPayload;
+  /** Read a Creator profile and refresh market data when it is older than seven days. Refresh uses only the authenticated user's authorized same-market shops. */
+  affiliateCreatorProfile: AffiliateCreatorProfilePayload;
   affiliateCreatorProtections: AffiliateCreatorProtectionPage;
   affiliateCreatorRelationshipState: AffiliateCreatorRelationshipStatePayload;
   affiliateCreatorSampleApplicationsForRelationship: AffiliateCreatorSampleApplicationListPayload;
@@ -8626,6 +8658,11 @@ export interface QueryAffiliateCreatorContactStateArgs {
 
 export interface QueryAffiliateCreatorMessageHistoryArgs {
   input: AffiliateCreatorMessageHistoryInput;
+}
+
+
+export interface QueryAffiliateCreatorProfileArgs {
+  input: AffiliateCreatorProfileInput;
 }
 
 
