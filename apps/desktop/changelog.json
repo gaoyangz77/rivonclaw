@@ -1,15 +1,5 @@
 [
   {
-    "version": "1.8.81",
-    "date": "2026-07-25",
-    "en": [
-      "Preserve first-party campaign attribution from the website through desktop registration"
-    ],
-    "zh": [
-      "将官网的一方营销归因信息延续至桌面端注册流程"
-    ]
-  },
-  {
     "version": "1.8.80",
     "date": "2026-07-24",
     "en": [
