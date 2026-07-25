@@ -649,7 +649,6 @@ export class AffiliateInbound {
       creatorImUserId: creatorProfile?.creatorImId ?? collaboration?.creatorImId ?? undefined,
       creatorId: creatorProfile?.id ?? collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
       creatorOpenId: creatorProfile?.creatorOpenId ?? undefined,
-      creatorUsername: creatorProfile?.username ?? undefined,
       creatorRelationshipId,
       productId: collaboration?.productId ?? undefined,
       collaborationRecordId: workItem.collaborationRecordId ?? undefined,

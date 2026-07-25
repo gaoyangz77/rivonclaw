@@ -183,7 +183,6 @@ describe("affiliate session identity", () => {
       creatorRelationshipId: "relationship-001",
       creatorId: "creator-canonical-001",
       creatorOpenId: "creator-open-001",
-      creatorUsername: "creator_handle",
       creatorImUserId: "creator-im-profile-001",
     });
   });
@@ -882,7 +881,6 @@ describe("affiliate work item dispatch", () => {
         collaborationRecordId: "collab-001",
         creatorId: "creator-001",
         creatorOpenId: "creator-open-001",
-        creatorUsername: "creator_handle",
         productId: "product-001",
       },
     );
@@ -926,7 +924,6 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         creatorId: "creator-001",
         creatorOpenId: "creator-open-001",
-        creatorUsername: "creator_handle",
       },
     });
     expect(mockRpcRequest.mock.calls.some((call) => call[0] === "sessions.patch")).toBe(false);
@@ -2069,9 +2066,11 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("[Agent Working Agenda]");
     expect(request?.message).toContain("Creator ID: creator-001");
     expect(request?.message).toContain("TikTok Creator Open ID: creator-open-001");
-    expect(request?.message).toContain("TikTok Creator Username: creator_handle");
     expect(request?.message).toContain(
       "The Creator Relationship and Creator identity are trusted run constants",
+    );
+    expect(request?.message).toContain(
+      "Read profile or performance facts only through affiliate_get_creator_profile",
     );
     expect(request?.message).toContain(
       "The trigger shop is event provenance only",

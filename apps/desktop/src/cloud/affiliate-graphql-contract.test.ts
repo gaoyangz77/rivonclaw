@@ -32,4 +32,17 @@ describe("affiliate desktop GraphQL contracts", () => {
 
     expect(compactSubscription).not.toMatch(/agendaItems \{[^}]*\bstatus\b/);
   });
+
+  it.each([
+    ["affiliate work-items query", AFFILIATE_WORK_ITEMS_QUERY],
+    ["affiliate work-item subscription", AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION],
+  ])("keeps %s Creator data limited to trusted identity constants", (_name, source) => {
+    const selections = [...source.matchAll(/creatorProfile\s*\{([^}]*)\}/g)]
+      .map((match) => match[1]);
+
+    expect(selections.length).toBeGreaterThan(0);
+    for (const selection of selections) {
+      expect(selection).not.toMatch(/\b(username|nickname|avatarUrl|currentPerformance)\b/);
+    }
+  });
 });

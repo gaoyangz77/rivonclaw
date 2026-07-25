@@ -514,9 +514,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             platform
             creatorOpenId
             creatorImId
-            username
-            nickname
-            avatarUrl
           }
           creatorRelation {
             id
@@ -692,9 +689,6 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           platform
           creatorOpenId
           creatorImId
-          username
-          nickname
-          avatarUrl
         }
         collaborationRecordId
         sourceWorkBoundary {

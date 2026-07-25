@@ -280,9 +280,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           platform
           creatorOpenId
           creatorImId
-          username
-          nickname
-          avatarUrl
         }
         creatorRelation {
           id
