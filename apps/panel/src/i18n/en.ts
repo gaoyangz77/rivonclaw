@@ -3297,7 +3297,7 @@ export default {
       relationshipWorkContext: "Record context",
       relationshipWorkAmbiguousCollaborations: "Ambiguous collaboration candidates",
       relationshipWorkNoCollaborations:
-        "This collaboration record does not have a linked product collaboration yet.",
+        "No collaboration records are available for this creator in this shop yet.",
       relationshipWorkNoPendingProposals: "No pending proposals on this collaboration record.",
       relationshipWorkActiveTitle: "{{count}} active collaboration(s)",
       relationshipConversationTitle: "Relationship conversation",
