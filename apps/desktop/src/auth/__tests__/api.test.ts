@@ -5,6 +5,7 @@ import type { ApiContext } from "../../app/api-context.js";
 import { RouteRegistry } from "../../infra/api/route-registry.js";
 import { rootStore } from "../../app/store/desktop-store.js";
 import { registerAuthHandlers } from "../api.js";
+import { MARKETING_ATTRIBUTION_STORAGE_KEY } from "../../attribution/marketing-attribution.js";
 
 // ---------------------------------------------------------------------------
 // Test registry — mimics production dispatch
@@ -76,6 +77,20 @@ const mockUser = {
   entitlementKeys: [],
   defaultRunProfileId: null,
 };
+
+function makeStorage(marketingAttribution?: unknown) {
+  const values = new Map<string, string>();
+  if (marketingAttribution) {
+    values.set(MARKETING_ATTRIBUTION_STORAGE_KEY, JSON.stringify(marketingAttribution));
+  }
+  return {
+    settings: {
+      get: vi.fn((key: string) => values.get(key)),
+      set: vi.fn((key: string, value: string) => values.set(key, value)),
+      delete: vi.fn((key: string) => values.delete(key)),
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Tests: POST /api/auth/login
@@ -191,6 +206,7 @@ describe("POST /api/auth/register", () => {
       authSession: {
         registerWithCredentials: vi.fn().mockResolvedValue(mockUser),
       },
+      storage: makeStorage(),
       onAuthChange,
     } as unknown as ApiContext;
 
@@ -224,6 +240,7 @@ describe("POST /api/auth/register", () => {
       authSession: {
         registerWithCredentials: vi.fn().mockRejectedValue(new Error("Email already exists")),
       },
+      storage: makeStorage(),
     } as unknown as ApiContext;
 
     const { handled, res } = await dispatch("POST", "/api/auth/register", ctx, { email: "dup@example.com", password: "pass" });
@@ -231,6 +248,48 @@ describe("POST /api/auth/register", () => {
     expect(handled).toBe(true);
     expect(res._status).toBe(400);
     expect(res._body).toEqual({ error: "Email already exists" });
+  });
+
+  it("forwards validated desktop attribution once and clears it after registration", async () => {
+    const attribution = {
+      version: 1,
+      attributionId: "7c3387df-b4a9-4d79-b721-fc46683bd4a7",
+      firstTouch: {
+        source: "tiktok",
+        medium: "organic_social",
+        campaign: "cs_launch_01",
+        landingPage: "/",
+        capturedAt: new Date().toISOString(),
+      },
+      lastTouch: {
+        source: "tiktok",
+        medium: "organic_social",
+        campaign: "cs_launch_01",
+        landingPage: "/",
+        capturedAt: new Date().toISOString(),
+      },
+    };
+    const storage = makeStorage(attribution);
+    const ctx = {
+      authSession: {
+        registerWithCredentials: vi.fn().mockResolvedValue(mockUser),
+      },
+      storage,
+      onAuthChange,
+    } as unknown as ApiContext;
+
+    const { res } = await dispatch("POST", "/api/auth/register", ctx, {
+      email: "new@example.com",
+      password: "securepass",
+    });
+
+    expect(res._status).toBe(200);
+    expect(ctx.authSession!.registerWithCredentials).toHaveBeenCalledWith({
+      email: "new@example.com",
+      password: "securepass",
+      attribution,
+    });
+    expect(storage.settings.delete).toHaveBeenCalledWith(MARKETING_ATTRIBUTION_STORAGE_KEY);
   });
 });
 

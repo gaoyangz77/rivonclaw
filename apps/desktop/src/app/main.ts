@@ -127,6 +127,11 @@ import {
 import { refreshShopLifecycle } from "./shop-lifecycle.js";
 import { syncOfficialPresetSkills } from "../skills/api.js";
 import { configureDesktopBrandCompatibility } from "./brand-migration.js";
+import {
+  MARKETING_ATTRIBUTION_SCHEME,
+  findMarketingAttributionDeepLink,
+  persistMarketingAttributionDeepLink,
+} from "../attribution/marketing-attribution.js";
 
 const log = createLogger("desktop");
 
@@ -149,6 +154,32 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let lastSystemProxy: string | null = null;
 const desktopApiToken = randomUUID();
+let marketingAttributionSettings:
+  | {
+      set(key: string, value: string): void;
+      get(key: string): string | undefined;
+      delete(key: string): boolean;
+    }
+  | null = null;
+const pendingMarketingAttributionUrls: string[] = [];
+
+function acceptMarketingAttributionUrl(rawUrl: string): void {
+  if (!rawUrl) return;
+  if (!marketingAttributionSettings) {
+    pendingMarketingAttributionUrls.push(rawUrl);
+    return;
+  }
+  if (persistMarketingAttributionDeepLink(marketingAttributionSettings, rawUrl)) {
+    log.info("Captured first-party marketing attribution from desktop deep link");
+  } else {
+    log.warn("Ignored invalid marketing attribution deep link");
+  }
+}
+
+function acceptMarketingAttributionArgs(args: string[]): void {
+  const rawUrl = findMarketingAttributionDeepLink(args);
+  if (rawUrl) acceptMarketingAttributionUrl(rawUrl);
+}
 
 // Check if a pending auto-update blocks this launch
 const _updateBlocked = checkUpdateBlocked();
@@ -162,8 +193,16 @@ if (!acquireSingleInstanceLock()) {
 // Lock acquired — start heartbeat so future instances can detect us as healthy
 const singleInstanceHeartbeat = startHeartbeatInterval();
 
-app.on("second-instance", () => {
+app.on("second-instance", (_event, commandLine) => {
   log.warn("Attempted to start second instance - showing existing window");
+  acceptMarketingAttributionArgs(commandLine);
+  if (mainWindow?.isMinimized()) mainWindow.restore();
+  showMainWindow(mainWindow);
+});
+
+app.on("open-url", (event, rawUrl) => {
+  event.preventDefault();
+  acceptMarketingAttributionUrl(rawUrl);
   if (mainWindow?.isMinimized()) mainWindow.restore();
   showMainWindow(mainWindow);
 });
@@ -218,6 +257,13 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
   enableFileLogging();
   log.info(`TK Copilot desktop starting (build: ${__BUILD_TIMESTAMP__})`);
+  if (process.defaultApp && process.argv[1]) {
+    app.setAsDefaultProtocolClient(MARKETING_ATTRIBUTION_SCHEME, process.execPath, [
+      resolve(process.argv[1]),
+    ]);
+  } else {
+    app.setAsDefaultProtocolClient(MARKETING_ATTRIBUTION_SCHEME);
+  }
 
   // Show dock icon immediately. LSUIElement=true in Info.plist hides it by default
   // (which also prevents child processes like the gateway from showing dock icons).
@@ -243,6 +289,11 @@ app.whenReady().then(async () => {
   const storage = createStorage();
   setStorageRef(storage);
   setProviderKeysStore(storage.providerKeys);
+  marketingAttributionSettings = storage.settings;
+  acceptMarketingAttributionArgs(process.argv);
+  while (pendingMarketingAttributionUrls.length > 0) {
+    acceptMarketingAttributionUrl(pendingMarketingAttributionUrls.shift() ?? "");
+  }
   const secretStore = createSecretStore();
 
   // Load provider keys into MST store (before panel server starts, so SSE
