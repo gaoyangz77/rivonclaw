@@ -22555,7 +22555,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-collaboration-detail-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   flex: 0 0 auto;
   padding: 10px;
@@ -23496,6 +23496,86 @@ html[lang="zh"] .acct-tool-chips {
   white-space: pre-wrap;
 }
 
+.affiliate-creator-market-pill {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.4;
+}
+
+.affiliate-creator-profile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px;
+}
+
+.affiliate-creator-profile-panel-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 8% 5%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 38%),
+    var(--color-bg);
+}
+
+.affiliate-creator-profile-freshness {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.affiliate-creator-freshness-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--color-success) 28%, var(--color-border-light));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 9%, var(--color-bg));
+  color: var(--color-success);
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.affiliate-creator-freshness-badge.warning {
+  border-color: color-mix(in srgb, var(--color-warning) 34%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-bg));
+  color: var(--color-warning);
+}
+
+.affiliate-creator-profile-fact-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+.affiliate-creator-profile-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 35%, var(--color-border-light));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg));
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.affiliate-creator-profile-warning strong {
+  color: var(--color-text);
+}
+
 @media (max-width: 640px) {
   .affiliate-creator-detail-grid {
     grid-template-columns: 1fr;
@@ -23504,6 +23584,12 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-creator-detail-id-row {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  .affiliate-creator-profile-panel-hero,
+  .affiliate-creator-profile-freshness {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

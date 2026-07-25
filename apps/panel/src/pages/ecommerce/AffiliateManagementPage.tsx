@@ -16,6 +16,7 @@ import {
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
   AFFILIATE_COLLABORATION_RECORDS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
+  AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_CREATOR_PROTECTIONS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
@@ -116,8 +117,8 @@ type HistoryStatusFilter = (typeof HISTORY_STATUS_FILTERS)[number];
 type HistorySubStatusFilter = string;
 const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
-const AFFILIATE_CREATORS_LIMIT = 200;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
+const AFFILIATE_WORK_ITEMS_LIMIT = 200;
 const ALL_CREATOR_TAGS_FILTER = "__ALL_CREATOR_TAGS__";
 const PROJECTION_DATASET_I18N_KEY: Record<string, string> = {
   COLLABORATIONS: "ecommerce.affiliateWorkspace.projectionDataset.COLLABORATIONS",
@@ -725,6 +726,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       {selectedRelationship ? (
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
+          selectedShopId={selectedShopId}
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
@@ -901,6 +903,7 @@ export const AffiliateStaffHandlingPage = observer(function AffiliateStaffHandli
       {selectedRelationship ? (
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
+          selectedShopId={selectedShopId}
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
@@ -1952,43 +1955,6 @@ function compareStaffHandlingItems(
   return normalizedRight - normalizedLeft;
 }
 
-function filterCreatorItems(items: AffiliateCreatorManagementItem[], search: string): AffiliateCreatorManagementItem[] {
-  const query = search.trim().toLowerCase();
-  if (!query) return items;
-  return items.filter((item) => creatorManagementSearchText(item).includes(query));
-}
-
-function creatorManagementSearchText(item: AffiliateCreatorManagementItem): string {
-  const profile = item.creatorProfile;
-  const record = item.latestCollaborationRecord;
-  const proposal = item.latestPendingProposal;
-  const sample = item.latestSampleApplicationRecord;
-  const values = [
-    item.creatorId,
-    profile?.id,
-    profile?.nickname,
-    profile?.username,
-    profile?.creatorOpenId,
-    profile?.creatorImId,
-    record?.id,
-    record?.creatorOpenId,
-    record?.creatorImId,
-    record?.productId,
-    record?.platformCollaborationId,
-    proposal?.id,
-    proposal?.operatorSummary,
-    ...(proposal?.messageIntent?.parts.flatMap((part) => [part.text, part.productId, part.fileName]) ?? []),
-    sample?.id,
-    sample?.platformApplicationId,
-    sample?.productId,
-    ...item.tags.map((tag) => tag.name),
-  ];
-  return values
-    .filter((value): value is string => typeof value === "string" && value.length > 0)
-    .join(" ")
-    .toLowerCase();
-}
-
 function AffiliateLoadingState() {
   const { t } = useTranslation();
   return (
@@ -2011,6 +1977,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const [selectedTagId, setSelectedTagId] = useState(ALL_CREATOR_TAGS_FILTER);
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
   const [creatorSearch, setCreatorSearch] = useState("");
+  const [debouncedCreatorSearch, setDebouncedCreatorSearch] = useState("");
   const [creatorPage, setCreatorPage] = useState(1);
   const [creatorPageInput, setCreatorPageInput] = useState("1");
   const [selectedRelationship, setSelectedRelationship] = useState<CreatorRelationshipDetailItem | null>(null);
@@ -2085,8 +2052,15 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     }
   }, [selectedTagId, tagOptions]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedCreatorSearch(creatorSearch.trim());
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [creatorSearch]);
+
   const { data, loading, refetch } = useQuery<
-    { affiliateCreators: AffiliateCreatorManagementItem[] },
+    { affiliateCreators: GQL.AffiliateCreatorManagementPage },
     { input: GQL.ReadAffiliateCreatorsInput }
   >(AFFILIATE_CREATORS_QUERY, {
     variables: {
@@ -2094,7 +2068,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
         shopId: selectedShopId,
         tagIds: selectedTagId === ALL_CREATOR_TAGS_FILTER ? undefined : [selectedTagId],
         needsAttentionOnly,
-        limit: AFFILIATE_CREATORS_LIMIT,
+        search: debouncedCreatorSearch || undefined,
+        offset: (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE,
+        limit: AFFILIATE_CREATORS_PAGE_SIZE,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -2111,7 +2087,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     variables: {
       input: {
         shopId: selectedShopId,
-        limit: AFFILIATE_CREATORS_LIMIT,
+        limit: AFFILIATE_WORK_ITEMS_LIMIT,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -2149,7 +2125,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     );
   }, [entityStore.affiliateWorkspace, relationshipWorkData?.affiliateWorkItems]);
 
-  const creatorItems = data?.affiliateCreators ?? [];
+  const creatorPageResult = data?.affiliateCreators;
+  const creatorItems = creatorPageResult?.items ?? [];
+  const totalCreatorCount = creatorPageResult?.totalCount ?? 0;
   const relationshipWorkItems = useMemo(
     () => (relationshipWorkData?.affiliateWorkItems ?? []).map((workItem) =>
       relationshipWorkItemFromWorkItem(workItem, entityStore.affiliateWorkspace)),
@@ -2166,24 +2144,16 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     }
     return grouped;
   }, [relationshipWorkItems]);
-  const visibleCreatorItems = useMemo(
-    () => filterCreatorItems(creatorItems, creatorSearch),
-    [creatorItems, creatorSearch],
-  );
   const allTags = policyContextData?.creatorTags ?? [];
-  const creatorPageCount = Math.max(1, Math.ceil(visibleCreatorItems.length / AFFILIATE_CREATORS_PAGE_SIZE));
-  const pagedVisibleCreatorItems = useMemo(() => {
-    const start = (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE;
-    return visibleCreatorItems.slice(start, start + AFFILIATE_CREATORS_PAGE_SIZE);
-  }, [creatorPage, visibleCreatorItems]);
-  const creatorPageStart = visibleCreatorItems.length === 0
+  const creatorPageCount = Math.max(1, Math.ceil(totalCreatorCount / AFFILIATE_CREATORS_PAGE_SIZE));
+  const creatorPageStart = totalCreatorCount === 0
     ? 0
     : (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE + 1;
-  const creatorPageEnd = Math.min(creatorPage * AFFILIATE_CREATORS_PAGE_SIZE, visibleCreatorItems.length);
+  const creatorPageEnd = Math.min(creatorPage * AFFILIATE_CREATORS_PAGE_SIZE, totalCreatorCount);
 
   useEffect(() => {
     setCreatorPage(1);
-  }, [creatorSearch, needsAttentionOnly, selectedShopId, selectedTagId]);
+  }, [debouncedCreatorSearch, needsAttentionOnly, selectedShopId, selectedTagId]);
 
   useEffect(() => {
     setCreatorPage((page) => Math.min(page, creatorPageCount));
@@ -2354,15 +2324,15 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           </div>
         </div>
 
-        {loading && visibleCreatorItems.length === 0 ? (
+        {loading && creatorItems.length === 0 ? (
           <AffiliateLoadingState />
-        ) : visibleCreatorItems.length === 0 ? (
+        ) : creatorItems.length === 0 ? (
           <div className="affiliate-proposal-empty">
             {t("ecommerce.affiliateWorkspace.emptyCreators")}
           </div>
         ) : (
           <div className="affiliate-creator-roster">
-            {pagedVisibleCreatorItems.map((item) => (
+            {creatorItems.map((item) => (
               <CreatorRelationshipCard
                 key={item.creatorId}
                 item={item}
@@ -2373,13 +2343,13 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                 onUpdateTag={(creatorId, tagId, mode) => void updateCreatorTag(creatorId, tagId, mode)}
               />
             ))}
-            {visibleCreatorItems.length > AFFILIATE_CREATORS_PAGE_SIZE ? (
+            {totalCreatorCount > AFFILIATE_CREATORS_PAGE_SIZE ? (
               <div className="affiliate-collaboration-pagination affiliate-creator-pagination" aria-label={t("ecommerce.affiliateWorkspace.pagination")}>
                 <span className="affiliate-collaboration-pagination-summary">
                   {t("ecommerce.affiliateWorkspace.pageSummary", {
                     start: creatorPageStart,
                     end: creatorPageEnd,
-                    total: visibleCreatorItems.length,
+                    total: totalCreatorCount,
                     page: creatorPage,
                     pages: creatorPageCount,
                   })}
@@ -2434,6 +2404,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
       {selectedRelationship ? (
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
+          selectedShopId={selectedShopId}
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
@@ -2473,10 +2444,8 @@ function CreatorRelationshipCard({
   const lifecycleStage = latestRecord?.lifecycleStage ?? null;
   const lifecycleLabel = lifecycleStage
     ? t(`ecommerce.affiliateWorkspace.lifecycleStages.${lifecycleStage}`, { defaultValue: lifecycleStage })
-    : t("ecommerce.affiliateWorkspace.creatorUnknownStage");
-  const followerCount = profile
-    ? formatCount(latestCreatorPerformance(profile)?.followerCount)
-    : null;
+    : t("ecommerce.affiliateWorkspace.creatorNotInCollaboration");
+  const followerCount = formatCount(item.creatorPerformance?.followerCount);
   const relationshipDetail = relationshipDetailFromManagementItem(item, workItems ?? []);
 
   return (
@@ -2511,6 +2480,7 @@ function CreatorRelationshipCard({
           <div className="affiliate-creator-row-meta">
             <CreatorPlatformId handle={handle} platformId={platformId} />
             {followerCount ? <span>{followerCount}</span> : null}
+            {item.market ? <span className="affiliate-creator-market-pill">{item.market}</span> : null}
             <span>{t("ecommerce.affiliateWorkspace.creatorActiveCollaborations", { count: item.activeCollaborationCount })}</span>
           </div>
           <div className="affiliate-creator-tag-list">
@@ -3552,6 +3522,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
       {selectedRelationship ? (
         <CreatorRelationshipDetailModal
           item={selectedRelationship}
+          selectedShopId={selectedShopId}
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
@@ -5177,17 +5148,18 @@ function CreatorAvatarImage({
 
 function CreatorRelationshipDetailModal({
   item,
+  selectedShopId,
   onClose,
 }: {
   item: CreatorRelationshipDetailItem;
+  selectedShopId: string;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const affiliateWorkspace = entityStore.affiliateWorkspace;
-  const [activeTab, setActiveTab] = useState<"overview" | "conversation" | "collaborations" | "activity">("overview");
-  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
+  const [activeTab, setActiveTab] = useState<"profile" | "overview" | "conversation" | "collaborations" | "activity">("overview");
   const [composerText, setComposerText] = useState("");
   const [composerChannel, setComposerChannel] = useState<"AUTO" | GQL.AffiliateMessageChannel>("AUTO");
   const [composerSubject, setComposerSubject] = useState("");
@@ -5196,27 +5168,47 @@ function CreatorRelationshipDetailModal({
   const [sendingMessage, setSendingMessage] = useState(false);
   const activityBottomRef = useRef<HTMLDivElement | null>(null);
   const activityLoadedOlderRef = useRef(false);
-  const profile = item.creatorProfile ?? null;
+  const fallbackProfile = item.creatorProfile ?? null;
+  const management = item.managementItem ?? null;
+  const workItems = item.workItems ?? [];
+  const primaryWorkItem = [...workItems].sort((left, right) =>
+    new Date(right.stateUpdatedAt ?? 0).getTime() - new Date(left.stateUpdatedAt ?? 0).getTime(),
+  )[0] ?? null;
+  const relationshipId = item.creatorRelation?.id ?? primaryWorkItem?.relationshipId ?? null;
+  const {
+    data: creatorProfileData,
+    loading: creatorProfileLoading,
+    refetch: refetchCreatorProfile,
+  } = useQuery<
+    { affiliateCreatorProfile: GQL.AffiliateCreatorProfilePayload },
+    { input: GQL.AffiliateCreatorProfileInput }
+  >(AFFILIATE_CREATOR_PROFILE_QUERY, {
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        preferredShopId: selectedShopId,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId || !selectedShopId,
+  });
+  const authoritativeProfile = creatorProfileData?.affiliateCreatorProfile ?? null;
+  const profile = authoritativeProfile?.creator ?? fallbackProfile;
   const name = profile
     ? creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"))
     : item.creatorId;
   const handle = profile ? creatorTikTokHandle(profile) : null;
   const platformId = profile ? creatorPlatformIdentity(profile) : null;
-  const performance = profile ? latestCreatorPerformance(profile) : null;
+  const performance = authoritativeProfile?.performance
+    ?? management?.creatorPerformance
+    ?? (profile ? latestCreatorPerformance(profile) : null);
   const marketplaceBio = profile?.bioDescription?.trim() || null;
-  const marketplaceMetrics = buildMarketplaceMetricRows(performance, t);
-  const management = item.managementItem ?? null;
   const blocked = Boolean(item.creatorRelation?.blocked);
   const shopStates = item.creatorRelation?.shopStates ?? (item.shopState ? [item.shopState] : []);
   const relationshipShopName = (shopId: string) => {
     const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
     return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
   };
-  const workItems = item.workItems ?? [];
-  const primaryWorkItem = [...workItems].sort((left, right) =>
-    new Date(right.stateUpdatedAt ?? 0).getTime() - new Date(left.stateUpdatedAt ?? 0).getTime(),
-  )[0] ?? null;
-  const relationshipId = item.creatorRelation?.id ?? primaryWorkItem?.relationshipId ?? null;
   const [relationshipOwnerId, setRelationshipOwnerId] = useState(item.creatorRelation?.businessDeveloperId ?? "__AI_TEAM__");
   const relationshipCreatorId = item.creatorRelation?.creatorId ?? item.creatorId;
   const protectionQuery = useQuery<
@@ -5487,6 +5479,11 @@ function CreatorRelationshipDetailModal({
   }, [activeTab, activityEntries.length]);
   const tabItems = [
     {
+      id: "profile" as const,
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelProfile", { defaultValue: "Creator profile" }),
+      count: performance ? 1 : 0,
+    },
+    {
       id: "overview" as const,
       label: t("ecommerce.affiliateWorkspace.relationshipPanelCurrentWork"),
       count: visiblePendingProposals.length || (primaryWorkItem ? 1 : 0),
@@ -5636,7 +5633,7 @@ function CreatorRelationshipDetailModal({
                   <button
                     className="affiliate-inline-link-button"
                     type="button"
-                    onClick={() => setShowCreatorProfile(true)}
+                    onClick={() => setActiveTab("profile")}
                   >
                     {t("ecommerce.affiliateWorkspace.openCreatorDetail")}
                   </button>
@@ -5645,7 +5642,14 @@ function CreatorRelationshipDetailModal({
               <strong>{name}</strong>
               <div className="affiliate-relationship-work-side-meta">
                 {handle ? <span>{handle}</span> : null}
-                {marketplaceMetrics[0] ? <span>{marketplaceMetrics[0].value}</span> : null}
+                <span>
+                  {t("ecommerce.affiliateWorkspace.creatorDetail.followers")}: {formatCount(performance?.followerCount)}
+                </span>
+                {authoritativeProfile?.market ?? management?.market ? (
+                  <span className="affiliate-creator-market-pill">
+                    {authoritativeProfile?.market ?? management?.market}
+                  </span>
+                ) : null}
               </div>
               {marketplaceBio ? (
                 <p className="affiliate-relationship-creator-bio">
@@ -5762,6 +5766,15 @@ function CreatorRelationshipDetailModal({
               ))}
             </div>
             <div className="affiliate-collaboration-tab-panel">
+              {activeTab === "profile" ? (
+                <CreatorProfilePanel
+                  profile={profile}
+                  performance={performance}
+                  payload={authoritativeProfile}
+                  loading={creatorProfileLoading}
+                  onRefresh={() => void refetchCreatorProfile()}
+                />
+              ) : null}
               {activeTab === "overview" ? (
                 <div className="affiliate-relationship-work-overview-panel">
                   {visiblePendingProposals.length === 0 ? (
@@ -5974,28 +5987,38 @@ function CreatorRelationshipDetailModal({
           </section>
         </div>
       </div>
-      {showCreatorProfile && profile ? (
-        <CreatorDetailModal
-          profile={profile}
-          onClose={() => setShowCreatorProfile(false)}
-        />
-      ) : null}
     </div>
   );
 }
 
-function CreatorDetailModal({
+function CreatorProfilePanel({
   profile,
-  onClose,
+  performance,
+  payload,
+  loading,
+  onRefresh,
 }: {
-  profile: GQL.AffiliateCreatorIdentity;
-  onClose: () => void;
+  profile: GQL.AffiliateCreatorIdentity | null;
+  performance: GQL.AffiliateCreatorPerformanceCurrent | null;
+  payload: GQL.AffiliateCreatorProfilePayload | null;
+  loading: boolean;
+  onRefresh: () => void;
 }) {
   const { t } = useTranslation();
+  if (!profile) {
+    return (
+      <div className="affiliate-proposal-empty">
+        {loading
+          ? t("common.loading")
+          : t("ecommerce.affiliateWorkspace.creatorDetail.profileUnavailable", {
+              defaultValue: "Creator profile is not available yet.",
+            })}
+      </div>
+    );
+  }
   const name = creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"));
   const handle = creatorTikTokHandle(profile);
   const platformId = creatorPlatformIdentity(profile);
-  const performance = latestCreatorPerformance(profile);
   const marketplaceBio = profile.bioDescription?.trim() || null;
   const marketplaceMetrics = buildMarketplaceMetricRows(performance, t);
   const categoryIds = performance?.categoryIds ?? [];
@@ -6003,15 +6026,16 @@ function CreatorDetailModal({
     ? categoryIds.slice(0, 8).join(", ")
     : null;
 
+  const freshnessLabel = payload
+    ? t(`ecommerce.affiliateWorkspace.creatorDetail.freshness.${payload.freshnessStatus}`, {
+        defaultValue: formatAffiliateEnumLabel(payload.freshnessStatus),
+      })
+    : t("ecommerce.affiliateWorkspace.creatorDetail.cachedData", { defaultValue: "Cached data" });
+
   return (
-    <div className="modal-backdrop affiliate-creator-detail-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="modal-content affiliate-creator-detail-modal"
-        role="dialog"
-        aria-modal="true"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="modal-header affiliate-creator-detail-header">
+    <div className="affiliate-creator-profile-panel">
+      <div className="affiliate-creator-profile-panel-hero">
+        <div className="affiliate-creator-detail-header">
           <div className="affiliate-creator-detail-identity">
             <CreatorAvatarImage
               avatarUrl={profile.avatarUrl}
@@ -6024,12 +6048,20 @@ function CreatorDetailModal({
               {handle ? <p>{handle}</p> : null}
             </div>
           </div>
-          <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
-            ×
+        </div>
+        <div className="affiliate-creator-profile-freshness">
+          <span className={`affiliate-creator-freshness-badge${payload?.refreshErrorCode ? " warning" : ""}`}>
+            {freshnessLabel}
+          </span>
+          <button className="btn btn-secondary btn-sm" type="button" disabled={loading} onClick={onRefresh}>
+            {loading
+              ? t("common.loading")
+              : t("ecommerce.affiliateWorkspace.creatorDetail.refresh", { defaultValue: "Refresh profile" })}
           </button>
         </div>
+      </div>
 
-        <div className="affiliate-creator-detail-grid">
+        <div className="affiliate-creator-detail-grid affiliate-creator-profile-fact-grid">
           <CreatorDetailMetric
             label={t("ecommerce.affiliateWorkspace.creatorDetail.followers")}
             value={formatCount(performance?.followerCount)}
@@ -6046,7 +6078,32 @@ function CreatorDetailModal({
                 ? formatProposalTime(profile.lastObservedAt)
                 : null}
           />
+          <CreatorDetailMetric
+            label={t("ecommerce.affiliateWorkspace.creatorDetail.market", { defaultValue: "Market" })}
+            value={payload?.market ?? performance?.market}
+          />
+          <CreatorDetailMetric
+            label={t("ecommerce.affiliateWorkspace.creatorDetail.source", { defaultValue: "Data source" })}
+            value={performance?.sourceType
+              ? formatAffiliateEnumLabel(performance.sourceType)
+              : null}
+          />
+          <CreatorDetailMetric
+            label={t("ecommerce.affiliateWorkspace.creatorDetail.preciseData", { defaultValue: "Precise data" })}
+            value={performance
+              ? performance.preciseDataAuthorized
+                ? t("common.yes")
+                : t("common.no")
+              : null}
+          />
         </div>
+
+        {payload?.refreshErrorMessage ? (
+          <div className="affiliate-creator-profile-warning">
+            <strong>{t("ecommerce.affiliateWorkspace.creatorDetail.refreshFailed", { defaultValue: "Refresh failed" })}</strong>
+            <span>{payload.refreshErrorMessage}</span>
+          </div>
+        ) : null}
 
         <div className="affiliate-creator-detail-section">
           <div className="affiliate-card-section-label">
@@ -6095,6 +6152,22 @@ function CreatorDetailModal({
                 copiedMessageKey="ecommerce.affiliateWorkspace.creatorPlatformIdCopied"
               />
             ) : null}
+            {profile.creatorImId ? (
+              <CreatorDetailCopyRow
+                label={t("ecommerce.affiliateWorkspace.creatorDetail.creatorImId", { defaultValue: "Creator IM ID" })}
+                value={profile.creatorImId}
+                copyLabelKey="ecommerce.affiliateWorkspace.copyCreatorPlatformId"
+                copiedMessageKey="ecommerce.affiliateWorkspace.creatorPlatformIdCopied"
+              />
+            ) : null}
+            {profile.profileTtUri ? (
+              <CreatorDetailCopyRow
+                label={t("ecommerce.affiliateWorkspace.creatorDetail.profileUri", { defaultValue: "Profile URI" })}
+                value={profile.profileTtUri}
+                copyLabelKey="ecommerce.affiliateWorkspace.copyCreatorPlatformId"
+                copiedMessageKey="ecommerce.affiliateWorkspace.creatorPlatformIdCopied"
+              />
+            ) : null}
           </div>
         </div>
 
@@ -6108,7 +6181,6 @@ function CreatorDetailModal({
               : t("ecommerce.affiliateWorkspace.creatorDetail.noSignals")}
           </div>
         </div>
-      </div>
     </div>
   );
 }
