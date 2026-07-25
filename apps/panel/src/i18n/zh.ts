@@ -1845,6 +1845,7 @@ export default {
         ECOM_GET_SHOP: "获取店铺",
         // 达人管理
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "获取达人关系",
+        AFFILIATE_GET_CREATOR_PROFILE: "获取达人资料",
         AFFILIATE_GET_COLLABORATION: "获取单个合作",
         AFFILIATE_GET_SAMPLE_APPLICATION: "获取单个样品申请",
         AFFILIATE_GET_RELATIONSHIP_TIMELINE: "获取达人关系时间线",
