@@ -1092,20 +1092,31 @@ export interface AffiliateCreatorIdentity {
   username?: Maybe<Scalars['String']['output']>;
 }
 
-/** Shop-scoped creator management row for creators with materialized affiliate collaboration records. */
+/** Shop-scoped Creator relationship row with market-specific profile, work, proposal, and sample context. */
 export interface AffiliateCreatorManagementItem {
   activeCollaborationCount: Scalars['Int']['output'];
   creatorId: Scalars['ID']['output'];
+  creatorPerformance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
   creatorRelation?: Maybe<AffiliateCreatorRelationship>;
   lastInteractionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   latestCollaborationRecord?: Maybe<AffiliateCollaborationRecord>;
   latestPendingProposal?: Maybe<ActionProposal>;
   latestSampleApplicationRecord?: Maybe<SampleApplicationRecord>;
+  market?: Maybe<Scalars['String']['output']>;
   needsAttention: Scalars['Boolean']['output'];
   shopState?: Maybe<AffiliateCreatorRelationshipShopState>;
   tagIds: Array<Scalars['ID']['output']>;
   tags: Array<CreatorTag>;
+}
+
+/** Server-paginated, shop-scoped Creator relationship management page. */
+export interface AffiliateCreatorManagementPage {
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<AffiliateCreatorManagementItem>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
 }
 
 /** Direction of an observed affiliate IM message. */
@@ -8345,8 +8356,8 @@ export interface Query {
   affiliateCreatorSampleApplicationsForRelationship: AffiliateCreatorSampleApplicationListPayload;
   /** Read WhatsApp messages on demand from the bound provider for an affiliate creator relationship. */
   affiliateCreatorWhatsAppMessages: Array<AffiliateCreatorMessageHistoryItem>;
-  /** Read shop-scoped cooperation creators with profile, relation tags, latest collaboration, and attention context. */
-  affiliateCreators: Array<AffiliateCreatorManagementItem>;
+  /** Read a server-paginated shop-scoped Creator relationship page with profile, tags, latest collaboration, and attention context. */
+  affiliateCreators: AffiliateCreatorManagementPage;
   /** List seller-level Outlook/Microsoft Graph email account bindings available to affiliate workflows. */
   affiliateEmailAccounts: Array<EmailAccountBinding>;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
@@ -9278,6 +9289,8 @@ export interface ReadAffiliateCreatorsInput {
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   needsAttentionOnly?: InputMaybe<Scalars['Boolean']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
   tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }

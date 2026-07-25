@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
+  AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_COLLABORATION_RECORDS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
@@ -27,6 +28,7 @@ describe("affiliate workspace GraphQL contracts", () => {
       contacts: AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
       collaborations: AFFILIATE_COLLABORATION_RECORDS_QUERY,
       creators: AFFILIATE_CREATORS_QUERY,
+      creatorProfile: AFFILIATE_CREATOR_PROFILE_QUERY,
       decideProposal: DECIDE_ACTION_PROPOSAL_MUTATION,
       preferredAccount: SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
     };
@@ -45,6 +47,18 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorProfile");
     expect(query).toContain("latestCollaborationRecord");
     expect(query).toContain("latestPendingProposal");
+    expect(query).toContain("totalCount");
+    expect(query).toContain("creatorPerformance");
+  });
+
+  it("loads the authoritative market-scoped Creator profile through one query", () => {
+    const query = queryText(AFFILIATE_CREATOR_PROFILE_QUERY);
+
+    expect(query).toContain("affiliateCreatorProfile(input: $input)");
+    expect(query).toContain("freshnessStatus");
+    expect(query).toContain("market");
+    expect(query).toContain("performance");
+    expect(query).toContain("refreshErrorCode");
   });
 
   it("loads approval proposals with relationship and collaboration focus context", () => {

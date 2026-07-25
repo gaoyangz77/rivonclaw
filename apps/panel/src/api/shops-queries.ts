@@ -1130,7 +1130,62 @@ export const AFFILIATE_POLICY_CONTEXT_QUERY = gql`
 export const AFFILIATE_CREATORS_QUERY = gql`
   query AffiliateCreators($input: ReadAffiliateCreatorsInput!) {
     affiliateCreators(input: $input) {
+      totalCount
+      offset
+      limit
+      hasMore
+      items {
       creatorId
+      market
+      creatorPerformance {
+        id
+        market
+        observedAt
+        sourceType
+        preciseDataAuthorized
+        followerCount
+        categoryIds
+        gmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        videoGmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        liveGmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        gpm {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        unitsSold
+        videoCount
+        liveCount
+        averageVideoViews
+        engagementRate
+        pps
+        ratingScore
+        contentWindow
+      }
       tagIds
       tags {
         id
@@ -1204,55 +1259,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
         profileTtUri
         firstObservedAt
         lastObservedAt
-        currentPerformance {
-          id
-          market
-          observedAt
-          sourceType
-          preciseDataAuthorized
-          followerCount
-          categoryIds
-          gmv {
-            amount
-            currency
-            minimumAmount
-            maximumAmount
-            window
-            precision
-          }
-          videoGmv {
-            amount
-            currency
-            minimumAmount
-            maximumAmount
-            window
-            precision
-          }
-          liveGmv {
-            amount
-            currency
-            minimumAmount
-            maximumAmount
-            window
-            precision
-          }
-          gpm {
-            amount
-            currency
-            minimumAmount
-            maximumAmount
-            window
-            precision
-          }
-          unitsSold
-          videoCount
-          liveCount
-          averageVideoViews
-          engagementRate
-          pps
-          ratingScore
-          contentWindow
-        }
         updatedAt
       }
       latestCollaborationRecord {
@@ -1351,6 +1357,84 @@ messageIntent {
         observedContentCount
         latestObservedContentAt
         updatedAt
+      }
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_CREATOR_PROFILE_QUERY = gql`
+  query AffiliateCreatorProfile($input: AffiliateCreatorProfileInput!) {
+    affiliateCreatorProfile(input: $input) {
+      freshnessStatus
+      market
+      dataUpdatedAt
+      refreshAttemptedAt
+      refreshShopId
+      refreshErrorCode
+      refreshErrorMessage
+      creator {
+        id
+        platform
+        creatorOpenId
+        creatorImId
+        username
+        nickname
+        avatarUrl
+        bioDescription
+        profileTtUri
+        firstObservedAt
+        lastObservedAt
+        updatedAt
+      }
+      performance {
+        id
+        market
+        observedAt
+        sourceType
+        preciseDataAuthorized
+        followerCount
+        categoryIds
+        gmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        videoGmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        liveGmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        gpm {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        unitsSold
+        videoCount
+        liveCount
+        averageVideoViews
+        engagementRate
+        pps
+        ratingScore
+        contentWindow
       }
     }
   }
