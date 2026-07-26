@@ -243,7 +243,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               ? Number(form.minimumExpectedSales)
               : null,
             marketplaceSearchFilters: {
-              pageSize: 100,
+              pageSize: 20,
               region: selectedShop?.region ?? null,
               keyword: form.searchKeyword.trim() || null,
               followerDemographics: {
