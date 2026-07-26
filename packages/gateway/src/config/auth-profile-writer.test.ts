@@ -289,6 +289,54 @@ describe("syncAllAuthProfiles", () => {
     expect(profiles["openai:active"].key).toBe("sk-openai-default");
   });
 
+  it("keeps OpenAI API-key and Codex OAuth transports under unified openai", async () => {
+    const mockStorage = {
+      providerKeys: {
+        getAll: () => [
+          { id: "openai-key", provider: "openai", isDefault: false },
+          {
+            id: "codex-oauth",
+            provider: "openai-codex",
+            isDefault: true,
+            authType: "oauth",
+          },
+        ],
+      },
+    };
+    const mockSecretStore = {
+      get: async (key: string) => {
+        if (key === "provider-key-openai-key") return "sk-openai";
+        if (key === "oauth-cred-codex-oauth") {
+          return JSON.stringify({
+            access: "codex-access",
+            refresh: "codex-refresh",
+            expires: Date.now() + 3600_000,
+            email: "codex@example.com",
+          });
+        }
+        return null;
+      },
+    };
+
+    await syncAllAuthProfiles(stateDir, mockStorage, mockSecretStore);
+
+    const store = readJsonFile(resolveAuthProfilePath(stateDir)) as {
+      profiles: Record<string, Record<string, unknown>>;
+      order: Record<string, string[]>;
+    };
+    expect(store.profiles["openai:active"]).toMatchObject({
+      type: "api_key",
+      provider: "openai",
+      key: "sk-openai",
+    });
+    expect(store.profiles["openai:codex@example.com"]).toMatchObject({
+      type: "oauth",
+      provider: "openai",
+      access: "codex-access",
+    });
+    expect(store.order.openai).toEqual(["openai:codex@example.com", "openai:active"]);
+  });
+
   it("skips keys not found in secret store", async () => {
     const mockStorage = {
       providerKeys: {
@@ -651,7 +699,7 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
     expect(profile.access).toBe("test-access-token");
   });
 
-  it("aliases Codex OAuth as openai for the image generation provider", async () => {
+  it("writes Codex OAuth directly under OpenClaw's unified openai provider", async () => {
     const mockStorage = {
       providerKeys: {
         getAll: () => [
@@ -682,17 +730,13 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
       profiles: Record<string, Record<string, unknown>>;
       order: Record<string, string[]>;
     };
-    expect(store.profiles["openai-codex:codex@example.com"]).toMatchObject({
-      type: "oauth",
-      provider: "openai-codex",
-      access: "codex-access",
-    });
-    expect(store.profiles["openai:codex@example.com-image"]).toMatchObject({
+    expect(store.profiles["openai:codex@example.com"]).toMatchObject({
       type: "oauth",
       provider: "openai",
       access: "codex-access",
     });
-    expect(store.order.openai).toEqual(["openai:codex@example.com-image"]);
+    expect(Object.keys(store.profiles)).toEqual(["openai:codex@example.com"]);
+    expect(store.order.openai).toEqual(["openai:codex@example.com"]);
   });
 
   it("prefers the active RivonClaw cloud key for the openai image provider alias", async () => {

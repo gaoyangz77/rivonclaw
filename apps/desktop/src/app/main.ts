@@ -557,7 +557,7 @@ app.whenReady().then(async () => {
   }
 
   // Boot migrations — phase B (post-config, pre-gateway-write).
-  await runPostConfigMigrations(configPath);
+  await runPostConfigMigrations(configPath, stateDir);
 
   // In packaged app, plugins/extensions live in Resources/.
   // In dev, config-writer auto-resolves via monorepo root.

@@ -55,20 +55,16 @@ const LOCAL_CONTEXT_OVERRIDES: Record<string, { contextWindow?: number; contextT
     "openai/gpt-5.4": { contextWindow: 272_000 },
     "openai/gpt-5.4-pro": { contextWindow: 1_050_000 },
     "openai/gpt-5.4-mini": { contextWindow: 400_000 },
-    // Codex subscription routes expose a larger native window than the effective
-    // runtime budget OpenClaw uses for compaction and prompt assembly.
-    "openai-codex/gpt-5.6-terra": { contextWindow: 372_000, contextTokens: 244_000 },
-    "openai-codex/gpt-5.6-luna": { contextWindow: 372_000, contextTokens: 244_000 },
-    "openai-codex/gpt-5.6-sol": { contextWindow: 372_000, contextTokens: 244_000 },
+    // OpenClaw exposes ChatGPT/Codex OAuth models under the unified `openai`
+    // provider. GPT-5.6 may arrive through live discovery before the pinned
+    // vendor catalog knows its effective runtime input budget.
+    "openai/gpt-5.6-terra": { contextWindow: 372_000, contextTokens: 244_000 },
+    "openai/gpt-5.6-luna": { contextWindow: 372_000, contextTokens: 244_000 },
+    "openai/gpt-5.6-sol": { contextWindow: 372_000, contextTokens: 244_000 },
     "rivonclaw-pro/rivonclaw-flagship": {
       contextWindow: 372_000,
       contextTokens: 244_000,
     },
-    "openai-codex/gpt-5.5": { contextWindow: 400_000, contextTokens: 272_000 },
-    "openai-codex/gpt-5.5-pro": { contextWindow: 1_000_000, contextTokens: 272_000 },
-    "openai-codex/gpt-5.4": { contextWindow: 1_050_000, contextTokens: 272_000 },
-    "openai-codex/gpt-5.4-pro": { contextWindow: 1_050_000, contextTokens: 272_000 },
-    "openai-codex/gpt-5.4-mini": { contextWindow: 400_000, contextTokens: 272_000 },
   };
 
 export function applyCatalogContextMetadata(
@@ -160,7 +156,8 @@ export function readGatewayModelCatalog(
 
 /** Maps vendor provider names to our provider names where they differ. */
 const VENDOR_PROVIDER_ALIASES: Record<string, string> = {
-  codex: "openai-codex",
+  codex: "openai",
+  "openai-codex": "openai",
 };
 
 /**
@@ -220,11 +217,23 @@ export function normalizeCatalog(
   modelIdAliases: Record<string, string> = {},
 ): Record<string, CatalogModelEntry[]> {
   const result: Record<string, CatalogModelEntry[]> = {};
+  const canonicalProviders = new Set(
+    Object.entries(catalog)
+      .filter(
+        ([provider, entries]) =>
+          VENDOR_PROVIDER_ALIASES[provider] === undefined && entries.length > 0,
+      )
+      .map(([provider]) => provider),
+  );
 
   for (const [provider, entries] of Object.entries(catalog)) {
     const mapped = VENDOR_PROVIDER_ALIASES[provider] ?? provider;
 
     if (entries.length === 0) continue;
+    // A current canonical catalog (especially live OAuth discovery) is
+    // authoritative. Do not let stale pre-unification models.json rows
+    // re-advertise account-ineligible Codex model IDs.
+    if (mapped !== provider && canonicalProviders.has(mapped)) continue;
 
     const normalized = normalizeEntries(entries, modelIdAliases).map((entry) =>
       applyCatalogContextMetadata(mapped, entry),
@@ -352,7 +361,7 @@ export async function readVendorModelCatalog(
     }
 
     vendorCatalogCache = mergePluginModelCatalog(result);
-    return result;
+    return vendorCatalogCache;
   } catch {
     vendorCatalogCache = mergePluginModelCatalog({});
     return vendorCatalogCache;

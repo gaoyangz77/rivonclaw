@@ -21,6 +21,8 @@ const log = createLogger("boot-migrations");
  * │ 1  │ migrateWeixinAccountKeys      │ postConfig   │ v1.7.14    │ v1.9.0       │
  * │ 2  │ migrateFeishuBotName          │ postConfig   │ v1.7.14    │ v1.9.0       │
  * │ 3  │ migrateDeprecatedPluginIds    │ postConfig   │ v1.8.9     │ v2.0.0       │
+ * │ 4  │ migrateLegacyOpenClawConfig   │ postConfig   │ v1.8.10    │ v2.0.0       │
+ * │ 5  │ migrateOpenAIProviderRefs      │ postConfig   │ v1.8.81    │ v2.0.0       │
  *
  * When removing a migration:
  *   1. Delete the corresponding entry from the phase body below.
@@ -38,7 +40,7 @@ const log = createLogger("boot-migrations");
 // channel-config-writer). Gateway subprocesses read but never write it.
 // If that ever changes, move the stale-gateway-killall in main.ts to run
 // BEFORE this phase — otherwise a stale gateway could race the migration.
-export async function runPostConfigMigrations(configPath: string): Promise<void> {
+export async function runPostConfigMigrations(configPath: string, stateDir: string): Promise<void> {
   // [1] v1.7.14 · remove after v1.9.0
   // Canonicalize WeChat account keys and local state sidecars from the plugin's
   // raw `xxx@im.bot` form to the canonical dash form `xxx-im-bot`. Paired
@@ -68,6 +70,14 @@ export async function runPostConfigMigrations(configPath: string): Promise<void>
   // gateway config write so startup remains schema-compatible.
   const { migrateLegacyOpenClawConfig } = await import("./legacy-openclaw-config-migration.js");
   migrateLegacyOpenClawConfig(configPath);
+
+  // [5] v1.8.81 - remove after v2.0.0
+  // OpenClaw's OpenAI plugin unified API-key and ChatGPT/Codex OAuth models
+  // under runtime provider `openai`. Rewrite legacy session overrides before
+  // the gateway starts; generated models.json remains gateway-owned.
+  const { migrateLegacyOpenAISessionProviders } =
+    await import("./legacy-openclaw-config-migration.js");
+  migrateLegacyOpenAISessionProviders(stateDir);
 
   log.debug("post-config migrations complete");
 }

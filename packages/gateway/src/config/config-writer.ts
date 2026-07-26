@@ -326,7 +326,11 @@ const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
 ]);
 
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
-const RIVONCLAW_CLOUD_COMPACTION_MODEL = "rivonclaw-pro/gpt-5.6-luna";
+const RIVONCLAW_CLOUD_COMPACTION_MODEL = "rivonclaw-pro/rivonclaw-flagship";
+const LEGACY_RIVONCLAW_CLOUD_COMPACTION_MODELS = new Set([
+  "rivonclaw-pro/gpt-5.6-luna",
+  RIVONCLAW_CLOUD_COMPACTION_MODEL,
+]);
 const DEFAULT_COMPACTION_MAX_HISTORY_SHARE = 0.35;
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
@@ -454,14 +458,7 @@ export function buildExtraProviderConfigs(): Record<
     }
   > = {};
 
-  // OpenClaw/pi-ai already ships a native openai-codex provider with the
-  // correct ChatGPT subscription endpoint (chatgpt.com/backend-api). If we
-  // inject our own config for it here, we override that built-in provider and
-  // accidentally force Codex OAuth traffic onto the API platform endpoint.
-  const BUILTIN_PROVIDER_OVERRIDES = new Set(["openai-codex"]);
-
   for (const provider of ALL_PROVIDERS) {
-    if (BUILTIN_PROVIDER_OVERRIDES.has(provider)) continue;
     const meta = getProviderMeta(provider);
     const models = meta?.extraModels;
     if (!models || models.length === 0) continue;
@@ -1111,13 +1108,16 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       : undefined;
     const existingCompactionModel =
       typeof existingCompaction.model === "string" ? existingCompaction.model.trim() : "";
+    const hasManagedCloudCompactionModel =
+      LEGACY_RIVONCLAW_CLOUD_COMPACTION_MODELS.has(existingCompactionModel);
     const shouldRemoveManagedCloudCompactionModel =
       options.defaultModel !== undefined &&
       defaultGatewayProvider !== RIVONCLAW_CLOUD_PROVIDER_ID &&
-      existingCompactionModel === RIVONCLAW_CLOUD_COMPACTION_MODEL;
+      hasManagedCloudCompactionModel;
     const compactionModel = shouldRemoveManagedCloudCompactionModel
       ? undefined
-      : defaultGatewayProvider === RIVONCLAW_CLOUD_PROVIDER_ID && !existingCompactionModel
+      : defaultGatewayProvider === RIVONCLAW_CLOUD_PROVIDER_ID &&
+          (!existingCompactionModel || hasManagedCloudCompactionModel)
         ? RIVONCLAW_CLOUD_COMPACTION_MODEL
         : existingCompaction.model;
     const nextCompaction: Record<string, unknown> = {

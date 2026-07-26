@@ -658,6 +658,17 @@ describe("config-writer", () => {
       expect(config.agents.defaults.model.primary).toBe("deepseek/deepseek-chat");
     });
 
+    it("writes Codex subscription models under OpenClaw's unified openai provider", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        defaultModel: { provider: "openai-codex", modelId: "gpt-5.5" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.model.primary).toBe("openai/gpt-5.5");
+    });
+
     it("preserves existing agents fields when updating default model", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
@@ -1565,7 +1576,7 @@ describe("config-writer", () => {
       expect(glm45?.input).toEqual(["text"]);
     });
 
-    it("does not override the built-in openai-codex provider", () => {
+    it("does not create a legacy openai-codex provider override", () => {
       const configs = buildExtraProviderConfigs();
       expect(configs["openai-codex"]).toBeUndefined();
     });
@@ -2174,20 +2185,42 @@ describe("config-writer", () => {
       expect(config.agents.defaults.compaction.model).toBeUndefined();
     });
 
-    it("uses Luna for cloud compaction without changing the primary model", () => {
+    it("uses Flagship for cloud compaction without changing the primary model", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({
         configPath,
         gatewayPort: 18789,
-        defaultModel: { provider: "rivonclaw-pro", modelId: "gpt-5.6-terra" },
+        defaultModel: { provider: "rivonclaw-pro", modelId: "rivonclaw-flagship" },
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.defaults.model.primary).toBe("rivonclaw-pro/gpt-5.6-terra");
-      expect(config.agents.defaults.compaction.model).toBe("rivonclaw-pro/gpt-5.6-luna");
+      expect(config.agents.defaults.model.primary).toBe("rivonclaw-pro/rivonclaw-flagship");
+      expect(config.agents.defaults.compaction.model).toBe("rivonclaw-pro/rivonclaw-flagship");
     });
 
-    it("removes the managed Luna compaction model when leaving the cloud provider", () => {
+    it("migrates the managed Luna compaction model to Flagship", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              compaction: { model: "rivonclaw-pro/gpt-5.6-luna" },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        defaultModel: { provider: "rivonclaw-pro", modelId: "rivonclaw-flagship" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.compaction.model).toBe("rivonclaw-pro/rivonclaw-flagship");
+    });
+
+    it("removes a legacy managed cloud compaction model when leaving the cloud provider", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,

@@ -55,7 +55,7 @@ describe("normalizeCatalog", () => {
     expect(result["zhipu-coding"]!.length).toBe(2);
   });
 
-  it("should merge OpenClaw codex catalog models into openai-codex", () => {
+  it("should merge legacy Codex provider names into unified openai", () => {
     const catalog = {
       codex: [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.4-mini", "GPT-5.4 Mini")],
       "openai-codex": [entry("gpt-5.5", "GPT-5.5"), entry("gpt-5.4-mini", "GPT-5.4 Mini")],
@@ -64,7 +64,20 @@ describe("normalizeCatalog", () => {
     const result = normalizeCatalog(catalog);
 
     expect(result.codex).toBeUndefined();
-    expect(result["openai-codex"]!.map((m) => m.id)).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
+    expect(result["openai-codex"]).toBeUndefined();
+    expect(result.openai!.map((m) => m.id)).toEqual(["gpt-5.5", "gpt-5.4-mini"]);
+  });
+
+  it("should prefer the canonical live OpenAI catalog over stale Codex rows", () => {
+    const result = normalizeCatalog({
+      openai: [entry("gpt-live", "GPT Live")],
+      "openai-codex": [entry("gpt-stale", "GPT Stale")],
+      codex: [entry("gpt-also-stale", "GPT Also Stale")],
+    });
+
+    expect(result.openai!.map((model) => model.id)).toEqual(["gpt-live"]);
+    expect(result["openai-codex"]).toBeUndefined();
+    expect(result.codex).toBeUndefined();
   });
 
   it("should keep codex-cli separate because it uses a different runtime", () => {
@@ -75,7 +88,7 @@ describe("normalizeCatalog", () => {
     const result = normalizeCatalog(catalog);
 
     expect(result["codex-cli"]!.map((m) => m.id)).toEqual(["gpt-5.5"]);
-    expect(result["openai-codex"]).toBeUndefined();
+    expect(result.openai).toBeUndefined();
   });
 
   it("should sort models in reverse alphabetical order by ID", () => {
@@ -165,21 +178,25 @@ describe("normalizeCatalog", () => {
       id: "gpt-5.4",
       contextWindow: 272_000,
     });
-    expect(result["openai-codex"]![0]).toMatchObject({
+    expect(result.openai![0]).toMatchObject({
       id: "gpt-5.4",
-      contextWindow: 1_050_000,
-      contextTokens: 272_000,
+      contextWindow: 272_000,
     });
   });
 
-  it("should use the Codex subscription context window for GPT-5.5", () => {
+  it("should preserve vendor context metadata for unified OpenAI GPT-5.5", () => {
     const result = normalizeCatalog({
-      codex: [entry("gpt-5.5", "GPT-5.5", { contextWindow: 1_050_000 })],
+      codex: [
+        entry("gpt-5.5", "GPT-5.5", {
+          contextWindow: 1_000_000,
+          contextTokens: 272_000,
+        }),
+      ],
     });
 
-    expect(result["openai-codex"]![0]).toMatchObject({
+    expect(result.openai![0]).toMatchObject({
       id: "gpt-5.5",
-      contextWindow: 400_000,
+      contextWindow: 1_000_000,
       contextTokens: 272_000,
     });
   });
@@ -189,7 +206,7 @@ describe("normalizeCatalog", () => {
       codex: [entry("gpt-5.6-terra", "GPT-5.6 Terra", { contextWindow: 128_000 })],
     });
 
-    expect(result["openai-codex"]![0]).toMatchObject({
+    expect(result.openai![0]).toMatchObject({
       id: "gpt-5.6-terra",
       contextWindow: 372_000,
       contextTokens: 244_000,
@@ -300,8 +317,9 @@ describe("readFullModelCatalog", () => {
     for (const provider of ALL_PROVIDERS) {
       const meta = getProviderMeta(provider);
       if (!meta?.extraModels && !meta?.fallbackModels) continue;
-      expect(result[provider]).toBeDefined();
-      expect(result[provider]!.length).toBeGreaterThan(0);
+      const runtimeProvider = meta.catalogProvider ?? provider;
+      expect(result[runtimeProvider]).toBeDefined();
+      expect(result[runtimeProvider]!.length).toBeGreaterThan(0);
     }
   });
 
@@ -335,7 +353,7 @@ describe("readFullModelCatalog", () => {
 
     // Gateway provider
     expect(result.openai).toBeDefined();
-    expect(result.openai![0].id).toBe("gpt-4o");
+    expect(result.openai!.map((model) => model.id)).toContain("gpt-4o");
 
     // Local supplemental provider
     expect(result.volcengine).toBeDefined();
@@ -351,11 +369,7 @@ describe("readFullModelCatalog", () => {
     expect(KNOWN_MODELS.volcengine).toBeDefined();
     expect(KNOWN_MODELS.volcengine!.length).toBeGreaterThan(0);
     expect(KNOWN_MODELS["openai-codex"]).toBeDefined();
-    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual([
-      "gpt-5.6-terra",
-      "gpt-5.6-sol",
-      "gpt-5.6-luna",
-    ]);
+    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual(["gpt-5.5"]);
   });
 
   it("should populate KNOWN_MODELS with gateway models", async () => {
@@ -380,7 +394,7 @@ describe("readFullModelCatalog", () => {
     const { KNOWN_MODELS } = await import("@rivonclaw/core");
     expect(KNOWN_MODELS.openai).toBeDefined();
     expect(KNOWN_MODELS.openai!.length).toBeGreaterThan(0);
-    expect(KNOWN_MODELS.openai![0].modelId).toBe("gpt-4o");
+    expect(KNOWN_MODELS.openai!.map((model) => model.modelId)).toContain("gpt-4o");
     expect(KNOWN_MODELS.anthropic).toBeDefined();
   });
 
@@ -436,13 +450,10 @@ describe("readFullModelCatalog", () => {
     // zhipu-coding should have fewer models than zhipu (6 vs 12)
     expect(result["zhipu-coding"]!.length).toBeLessThan(result.zhipu!.length);
 
-    // openai-codex is fallback-only and should keep its own list instead of inheriting openai.
-    expect(result["openai-codex"]).toBeDefined();
-    expect(result["openai-codex"]!.map((m) => m.id)).toEqual([
-      "gpt-5.6-terra",
-      "gpt-5.6-sol",
-      "gpt-5.6-luna",
-    ]);
+    // Legacy/product-level Codex rows normalize into the runtime catalog.
+    // The product plan reads this through catalogProvider: "openai".
+    expect(result["openai-codex"]).toBeUndefined();
+    expect(result.openai!.map((m) => m.id)).toContain("gpt-5.5");
   });
 
   it("should supplement (not replace) gateway models with extraModels", async () => {
@@ -495,7 +506,7 @@ describe("readFullModelCatalog", () => {
     expect(matchingIds).toHaveLength(1);
   });
 
-  it("should supplement openai-codex gateway models with fallback models", async () => {
+  it("should migrate legacy openai-codex gateway models into unified openai", async () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
@@ -510,15 +521,14 @@ describe("readFullModelCatalog", () => {
     );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
-    const ids = result["openai-codex"]!.map((m) => m.id);
+    const ids = result.openai!.map((m) => m.id);
 
     expect(ids).toContain("vendor-only-codex");
-    expect(ids).toContain("gpt-5.6-terra");
-    expect(ids).toContain("gpt-5.6-luna");
-    expect(ids).toContain("gpt-5.6-sol");
+    expect(ids).toContain("gpt-5.5");
+    expect(result["openai-codex"]).toBeUndefined();
   });
 
-  it("should expose upstream codex models under openai-codex even when openai-codex is empty", async () => {
+  it("should expose upstream Codex models under unified openai", async () => {
     mocks.existsSync.mockImplementation((p: string) =>
       String(p).includes(join("agents", "main", "agent", "models.json")),
     );
@@ -539,13 +549,12 @@ describe("readFullModelCatalog", () => {
     );
 
     const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
-    const ids = result["openai-codex"]!.map((m) => m.id);
+    const ids = result.openai!.map((m) => m.id);
 
     expect(result.codex).toBeUndefined();
+    expect(result["openai-codex"]).toBeUndefined();
     expect(ids).toContain("gpt-upstream-latest");
     expect(ids).toContain("gpt-upstream-mini");
-    expect(ids).toContain("gpt-5.6-terra");
-    expect(ids).toContain("gpt-5.6-luna");
-    expect(ids).toContain("gpt-5.6-sol");
+    expect(ids).toContain("gpt-5.5");
   });
 });

@@ -259,20 +259,38 @@ export async function syncAllAuthProfiles(
 
   const allKeys = storage.providerKeys.getAll();
 
-  // Group keys by gateway provider, preferring the isDefault key for each provider.
-  // This ensures ALL providers with keys get written (not just the active/default one),
-  // so OpenClaw can use any provider when sessions.patch switches models.
-  const keysByProvider = new Map<string, (typeof allKeys)[0]>();
+  // Keep one configured key per product provider. Multiple product providers
+  // may share one OpenClaw runtime provider (notably OpenAI API keys and Codex
+  // OAuth), so grouping by runtime provider here would silently discard one
+  // valid auth transport.
+  const keysByProductProvider = new Map<string, (typeof allKeys)[0]>();
   for (const k of allKeys) {
-    const gwProvider =
-      k.authType === "custom" ? k.provider : resolveGatewayProvider(k.provider as LLMProvider);
-    const existing = keysByProvider.get(gwProvider);
+    const existing = keysByProductProvider.get(k.provider);
     if (!existing || k.isDefault) {
-      keysByProvider.set(gwProvider, k);
+      keysByProductProvider.set(k.provider, k);
     }
   }
 
-  for (const key of keysByProvider.values()) {
+  function addOrderedProfile(
+    profileId: string,
+    profile: AuthProfileCredential,
+    isDefault: boolean,
+  ): void {
+    store.profiles[profileId] = profile;
+    const existingOrder = (store.order![profile.provider] ?? []).filter(
+      (existingId) => existingId !== profileId,
+    );
+    store.order![profile.provider] = isDefault
+      ? [profileId, ...existingOrder]
+      : [...existingOrder, profileId];
+  }
+
+  // Write the globally active key last so it wins any unavoidable profile-id
+  // collision and is first in the runtime provider's auth order.
+  const selectedKeys = [...keysByProductProvider.values()].sort(
+    (left, right) => Number(left.isDefault) - Number(right.isDefault),
+  );
+  for (const key of selectedKeys) {
     // Custom providers use their slug directly (registered in extraProviders under that slug).
     // Built-in providers resolve via the gateway provider map.
     const gwProvider =
@@ -300,29 +318,19 @@ export async function syncAllAuthProfiles(
           // OAuth tokens only work with the Bearer auth path.
           const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
           const profileId = `${oauthProvider}:${cred.email ?? "default"}`;
-          store.profiles[profileId] = {
-            type: "oauth",
-            provider: oauthProvider,
-            access: cred.access,
-            refresh: cred.refresh,
-            expires: cred.expires,
-            email: cred.email,
-            projectId: cred.projectId,
-          };
-          store.order![oauthProvider] = [profileId];
-          if (key.provider === "openai-codex") {
-            const imageProfileId = `openai:${cred.email ?? "default"}-image`;
-            store.profiles[imageProfileId] = {
+          addOrderedProfile(
+            profileId,
+            {
               type: "oauth",
-              provider: "openai",
+              provider: oauthProvider,
               access: cred.access,
               refresh: cred.refresh,
               expires: cred.expires,
               email: cred.email,
               projectId: cred.projectId,
-            };
-            store.order!.openai = [imageProfileId];
-          }
+            },
+            key.isDefault,
+          );
         } catch {
           log.warn(`Failed to parse OAuth credential for ${key.provider} (key ${key.id})`);
         }
@@ -331,13 +339,17 @@ export async function syncAllAuthProfiles(
         // stores a bare token in provider-key-{id}). Write as api_key type — works the same way.
         const apiKey = await secretStore.get(`provider-key-${key.id}`);
         if (apiKey) {
-          const profileId = `${gwProvider}:active`;
-          store.profiles[profileId] = {
-            type: "api_key",
-            provider: gwProvider,
-            key: apiKey,
-          };
-          store.order![gwProvider] = [profileId];
+          const profileId =
+            key.provider === gwProvider ? `${gwProvider}:active` : `${gwProvider}:${key.provider}`;
+          addOrderedProfile(
+            profileId,
+            {
+              type: "api_key",
+              provider: gwProvider,
+              key: apiKey,
+            },
+            key.isDefault,
+          );
         }
       }
     } else if (key.authType === "local") {
@@ -345,23 +357,29 @@ export async function syncAllAuthProfiles(
       const realKey = await secretStore.get(`provider-key-${key.id}`);
       const apiKey = realKey ?? key.provider;
       const profileId = `${gwProvider}:active`;
-      store.profiles[profileId] = {
-        type: "api_key",
-        provider: gwProvider,
-        key: apiKey,
-      };
-      store.order![gwProvider] = [profileId];
+      addOrderedProfile(
+        profileId,
+        {
+          type: "api_key",
+          provider: gwProvider,
+          key: apiKey,
+        },
+        key.isDefault,
+      );
     } else {
       // API key entry: existing behavior
       const apiKey = await secretStore.get(`provider-key-${key.id}`);
       if (apiKey) {
         const profileId = `${gwProvider}:active`;
-        store.profiles[profileId] = {
-          type: "api_key",
-          provider: gwProvider,
-          key: apiKey,
-        };
-        store.order![gwProvider] = [profileId];
+        addOrderedProfile(
+          profileId,
+          {
+            type: "api_key",
+            provider: gwProvider,
+            key: apiKey,
+          },
+          key.isDefault,
+        );
       }
     }
   }
@@ -427,12 +445,8 @@ export async function syncBackOAuthCredentials(
     // Find the matching OAuth profile in the authoritative store.
     const gwProvider = resolveGatewayProvider(key.provider as LLMProvider);
     const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
-    const matchingProviders =
-      key.provider === "openai-codex"
-        ? new Set([oauthProvider, "openai"])
-        : new Set([oauthProvider]);
     const matchingProfile = Object.values(store.profiles)
-      .filter((p): p is OAuthProfile => p.type === "oauth" && matchingProviders.has(p.provider))
+      .filter((p): p is OAuthProfile => p.type === "oauth" && p.provider === oauthProvider)
       .sort((a, b) => b.expires - a.expires)[0];
 
     if (!matchingProfile) continue;

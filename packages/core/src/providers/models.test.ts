@@ -148,9 +148,7 @@ describe("initKnownModels", () => {
     const models = getModelsForProvider("openai-codex");
 
     expect(models[0].modelId).toBe("gpt-upstream-latest");
-    expect(models.map((m) => m.modelId)).toContain("gpt-5.6-terra");
-    expect(models.map((m) => m.modelId)).toContain("gpt-5.6-luna");
-    expect(models.map((m) => m.modelId)).toContain("gpt-5.6-sol");
+    expect(models.map((m) => m.modelId)).toContain("gpt-5.5");
   });
 
   it("should ignore unknown providers", () => {
@@ -278,7 +276,7 @@ describe("getModelsForProvider", () => {
     const models = getModelsForProvider("openai-codex");
     const ids = models.map((m) => m.modelId);
 
-    expect(ids).toEqual(["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol"]);
+    expect(ids).toEqual(["gpt-5.5"]);
   });
 
   it("should return empty array for providers with no models", () => {
@@ -388,8 +386,11 @@ describe("resolveGatewayProvider", () => {
     expect(resolveGatewayProvider("gemini")).toBe("google");
   });
 
-  it("should keep standalone subscription plans as-is", () => {
-    expect(resolveGatewayProvider("openai-codex")).toBe("openai-codex");
+  it("should map Codex subscription auth to OpenClaw's unified OpenAI provider", () => {
+    expect(resolveGatewayProvider("openai-codex")).toBe("openai");
+  });
+
+  it("should keep subscription plans with their own runtime models as-is", () => {
     expect(resolveGatewayProvider("zhipu-coding")).toBe("zhipu-coding");
     expect(resolveGatewayProvider("moonshot-coding")).toBe("moonshot-coding");
   });
@@ -401,10 +402,10 @@ describe("openai-codex defaults", () => {
 
     const model = getDefaultModelForProvider("openai-codex");
     expect(model).toBeDefined();
-    expect(model!.modelId).toBe("gpt-5.6-terra");
+    expect(model!.modelId).toBe("gpt-5.5");
   });
 
-  it("should prefer Terra when it is available as a local fallback", () => {
+  it("should prefer the static Codex fallback over unrelated catalog rows", () => {
     initKnownModels({
       "openai-codex": [
         { id: "gpt-upstream-latest", name: "GPT Upstream Latest" },
@@ -415,6 +416,6 @@ describe("openai-codex defaults", () => {
     const model = getDefaultModelForProvider("openai-codex");
 
     expect(model).toBeDefined();
-    expect(model!.modelId).toBe("gpt-5.6-terra");
+    expect(model!.modelId).toBe("gpt-5.5");
   });
 });
