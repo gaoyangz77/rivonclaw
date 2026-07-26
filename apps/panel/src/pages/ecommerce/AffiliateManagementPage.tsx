@@ -2000,7 +2000,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
   }));
   function shopLabel(shopId: string): string {
-    const shop = affiliateShops.find((candidate) => candidate.id === shopId);
+    const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
     return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
   }
 
@@ -2338,6 +2338,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                 item={item}
                 workItems={workItemsByCreatorId.get(item.creatorId) ?? []}
                 allTags={allTags}
+                shopLabel={shopLabel}
                 updatingTagKey={updatingTagKey}
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
                 onUpdateTag={(creatorId, tagId, mode) => void updateCreatorTag(creatorId, tagId, mode)}
@@ -2416,6 +2417,7 @@ function CreatorRelationshipCard({
   item,
   workItems,
   allTags,
+  shopLabel,
   updatingTagKey,
   onOpenRelationship,
   onUpdateTag,
@@ -2423,6 +2425,7 @@ function CreatorRelationshipCard({
   item: AffiliateCreatorManagementItem;
   workItems?: CreatorRelationshipWorkItem[];
   allTags: GQL.CreatorTag[];
+  shopLabel: (shopId: string) => string;
   updatingTagKey: string | null;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
   onUpdateTag: (creatorId: string, tagId: string, mode: "apply" | "remove") => void;
@@ -2445,6 +2448,35 @@ function CreatorRelationshipCard({
   const lifecycleLabel = lifecycleStage
     ? t(`ecommerce.affiliateWorkspace.lifecycleStages.${lifecycleStage}`, { defaultValue: lifecycleStage })
     : t("ecommerce.affiliateWorkspace.creatorNotInCollaboration");
+  const pendingProposal = item.latestPendingProposal;
+  const nextAction = pendingProposal
+    ? renderProposalRecommendationTitle(pendingProposal, t)
+    : latestRecord?.requiredAction && !isNoRequiredAction(latestRecord.requiredAction)
+      ? t(`ecommerce.affiliateWorkspace.requiredActions.${latestRecord.requiredAction}`, {
+        defaultValue: formatAffiliateEnumLabel(latestRecord.requiredAction),
+      })
+      : latestStatus;
+  const nextActionContext = pendingProposal
+    ? t("ecommerce.affiliateWorkspace.creatorPendingProposal")
+    : latestRecord?.productId
+      ? t("ecommerce.affiliateWorkspace.productContextConfirmed")
+      : null;
+  const sampleStatus = item.latestSampleApplicationRecord?.sampleWorkStatus ?? null;
+  const sampleStatusLabel = sampleStatus
+    ? t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${sampleStatus}`, {
+      defaultValue: formatAffiliateEnumLabel(sampleStatus),
+    })
+    : "—";
+  const sampleStatusDescription = sampleStatus
+    ? t(`ecommerce.affiliateWorkspace.sampleWorkStatusDescriptions.${sampleStatus}`, {
+      defaultValue: t("ecommerce.affiliateWorkspace.sampleWorkStatusDescriptions.DEFAULT"),
+    })
+    : null;
+  const relationshipShopIds = Array.from(new Set([
+    ...(item.creatorRelation?.shopStates ?? []).map((state) => state.shopId),
+    item.shopState?.shopId,
+    latestRecord?.shopId,
+  ].filter((shopId): shopId is string => Boolean(shopId))));
   const followerCount = formatCount(item.creatorPerformance?.followerCount);
   const relationshipDetail = relationshipDetailFromManagementItem(item, workItems ?? []);
 
@@ -2479,10 +2511,29 @@ function CreatorRelationshipCard({
           </div>
           <div className="affiliate-creator-row-meta">
             <CreatorPlatformId handle={handle} platformId={platformId} />
-            {followerCount ? <span>{followerCount}</span> : null}
+            <span>
+              {followerCount
+                ? t("ecommerce.affiliateWorkspace.creatorFollowerCount", {
+                  value: followerCount,
+                  defaultValue: "{{value}} followers",
+                })
+                : t("ecommerce.affiliateWorkspace.creatorFollowerDataPending")}
+            </span>
             {item.market ? <span className="affiliate-creator-market-pill">{item.market}</span> : null}
             <span>{t("ecommerce.affiliateWorkspace.creatorActiveCollaborations", { count: item.activeCollaborationCount })}</span>
           </div>
+          {relationshipShopIds.length ? (
+            <div className="affiliate-creator-shop-list">
+              <span className="affiliate-creator-shop-label">
+                {t("ecommerce.affiliateWorkspace.creatorCooperationShops")}
+              </span>
+              {relationshipShopIds.map((shopId) => (
+                <span className="affiliate-creator-shop-pill" key={shopId}>
+                  {shopLabel(shopId)}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <div className="affiliate-creator-tag-list">
             {item.tags.length ? item.tags.map((tag) => {
               const updateKey = `remove:${item.creatorId}:${tag.id}`;
@@ -2528,28 +2579,27 @@ function CreatorRelationshipCard({
       </div>
 
       <div className="affiliate-creator-work-summary">
-        <div className="affiliate-creator-work-summary-item">
-          <span>{t("ecommerce.affiliateWorkspace.creatorLatestWork")}</span>
-          <strong>{latestStatus}</strong>
-          {latestRecord?.productId ? <small>{t("ecommerce.affiliateWorkspace.productContextConfirmed")}</small> : null}
+        <div className="affiliate-creator-work-summary-item affiliate-creator-work-summary-item-primary">
+          <span>{t("ecommerce.affiliateWorkspace.labels.nextStep")}</span>
+          <strong>{nextAction}</strong>
+          {nextActionContext ? <small>{nextActionContext}</small> : null}
         </div>
         <div className="affiliate-creator-work-summary-item">
           <span>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</span>
           <strong>{lifecycleLabel}</strong>
-          {item.lastInteractionAt ? (
-            <small>{t("ecommerce.affiliateWorkspace.creatorLastInteraction")}: {formatProposalTime(item.lastInteractionAt)}</small>
-          ) : null}
-        </div>
-        <div className="affiliate-creator-work-summary-item">
-          <span>{t("ecommerce.affiliateWorkspace.creatorPendingProposal")}</span>
-          <strong>{item.latestPendingProposal?.operatorSummary ?? "—"}</strong>
+          <small>{t("ecommerce.affiliateWorkspace.creatorActiveCollaborations", { count: item.activeCollaborationCount })}</small>
         </div>
         <div className="affiliate-creator-work-summary-item">
           <span>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</span>
-          <strong>{item.latestSampleApplicationRecord?.sampleWorkStatus ?? "—"}</strong>
+          <strong>{sampleStatusLabel}</strong>
+          {sampleStatusDescription ? <small>{sampleStatusDescription}</small> : null}
           {item.latestSampleApplicationRecord?.observedContentCount ? (
             <small>{formatCount(item.latestSampleApplicationRecord.observedContentCount)}</small>
           ) : null}
+        </div>
+        <div className="affiliate-creator-work-summary-item">
+          <span>{t("ecommerce.affiliateWorkspace.creatorLastInteraction")}</span>
+          <strong>{item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}</strong>
         </div>
       </div>
     </article>
