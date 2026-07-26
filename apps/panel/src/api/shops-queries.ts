@@ -11,6 +11,8 @@ export const SHOP_FIELDS_FRAGMENT = gql`
     alias
     authStatus
     region
+    timezone
+    timezoneSource
     accessTokenExpiresAt
     refreshTokenExpiresAt
     services {
@@ -198,6 +200,177 @@ export const ECOMMERCE_GET_PRODUCT_QUERY = gql`
           backorderQuantity
         }
       }
+    }
+  }
+`;
+
+export const ECOMMERCE_SEARCH_PRODUCTS_QUERY = gql`
+  query EcommerceSearchProducts($shopId: String!, $status: EcomProductStatus, $limit: Int) {
+    ecommerceSearchProducts(shopId: $shopId, status: $status, limit: $limit) {
+      productId
+      title
+      coverImage
+      status
+      priceMin
+      priceMax
+    }
+  }
+`;
+
+const AFFILIATE_CAMPAIGN_FIELDS = gql`
+  fragment AffiliateCampaignFields on AffiliateCampaign {
+    id
+    userId
+    shopId
+    name
+    status
+    primaryProductId
+    market
+    resolvedTimeZone
+    dailyOutreachTarget
+    minimumFollowerCount
+    minimumExpectedSalesUnits
+    marketplaceSearchFilters
+    messageTemplateText
+    messageTemplateSource
+    templateVersion
+    templateTextHash
+    configRevision
+    needsReconfiguration
+    nextTickAt
+    activatedAt
+    pausedAt
+    completedAt
+    createdAt
+    updatedAt
+  }
+`;
+
+const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
+  fragment AffiliateCampaignExecutionFields on AffiliateCampaignDailyExecution {
+    id
+    campaignId
+    shopId
+    market
+    timezone
+    marketLocalDate
+    configRevision
+    templateVersion
+    requestedTarget
+    allocatedTarget
+    status
+    counters {
+      scanned
+      evaluated
+      qualified
+      selected
+      reserved
+      submitted
+      sent
+      replied
+      failed
+    }
+    nextTickAt
+    stopReason
+    underDeliveryReason
+    createdAt
+    updatedAt
+  }
+`;
+
+export const AFFILIATE_CAMPAIGNS_QUERY = gql`
+  ${AFFILIATE_CAMPAIGN_FIELDS}
+  query AffiliateCampaigns($input: ReadAffiliateCampaignsInput!) {
+    affiliateCampaigns(input: $input) {
+      ...AffiliateCampaignFields
+    }
+  }
+`;
+
+export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
+  ${AFFILIATE_CAMPAIGN_EXECUTION_FIELDS}
+  query AffiliateCampaignSummary($campaignId: ID!) {
+    affiliateCampaignSummary(campaignId: $campaignId) {
+      campaignId
+      totalCreators
+      counters {
+        scanned
+        evaluated
+        qualified
+        selected
+        reserved
+        submitted
+        sent
+        replied
+        failed
+      }
+      latestExecution {
+        ...AffiliateCampaignExecutionFields
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY = gql`
+  ${AFFILIATE_CAMPAIGN_EXECUTION_FIELDS}
+  query AffiliateCampaignDailyExecutions($input: ReadAffiliateCampaignDailyExecutionsInput!) {
+    affiliateCampaignDailyExecutions(input: $input) {
+      ...AffiliateCampaignExecutionFields
+    }
+  }
+`;
+
+export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
+  query AffiliateCampaignCreatorStates($input: ReadAffiliateCampaignCreatorStatesInput!) {
+    affiliateCampaignCreatorStates(input: $input) {
+      nextCursor
+      items {
+        id
+        campaignId
+        shopId
+        creatorId
+        market
+        status
+        firstSeenAt
+        lastSeenAt
+        searchOccurrenceCount
+        expectedSalesUnits
+        followerCount
+        efficiencyScore
+        decisionReason
+        scheduledAt
+        reachedOutAt
+        repliedAt
+      }
+    }
+  }
+`;
+
+export const WRITE_AFFILIATE_CAMPAIGN_MUTATION = gql`
+  ${AFFILIATE_CAMPAIGN_FIELDS}
+  mutation WriteAffiliateCampaign($input: WriteAffiliateCampaignInput!) {
+    writeAffiliateCampaign(input: $input) {
+      ...AffiliateCampaignFields
+    }
+  }
+`;
+
+export const SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION = gql`
+  ${AFFILIATE_CAMPAIGN_FIELDS}
+  mutation SetAffiliateCampaignStatus($input: SetAffiliateCampaignStatusInput!) {
+    setAffiliateCampaignStatus(input: $input) {
+      ...AffiliateCampaignFields
+    }
+  }
+`;
+
+export const GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION = gql`
+  mutation GenerateAffiliateCampaignMessageTemplate(
+    $input: GenerateAffiliateCampaignMessageTemplateInput!
+  ) {
+    generateAffiliateCampaignMessageTemplate(input: $input) {
+      text
+      source
     }
   }
 `;

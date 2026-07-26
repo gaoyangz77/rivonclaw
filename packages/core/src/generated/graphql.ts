@@ -741,37 +741,130 @@ export interface AffiliateBusinessDeveloperSummary {
 
 /** One affiliate campaign objective owned by a TikTok seller shop. */
 export interface AffiliateCampaign {
+  activatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
-  decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
+  dailyOutreachTarget: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
+  market: ShopRegion;
+  marketplaceSearchFilters: Scalars['JSONObject']['output'];
+  messageTemplateSource: AffiliateCampaignMessageTemplateSource;
+  messageTemplateText: Scalars['String']['output'];
+  minimumExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  minimumFollowerCount: Scalars['Int']['output'];
   name: Scalars['String']['output'];
-  objectiveType: AffiliateCampaignObjectiveType;
-  personalizationMode: AffiliateOutreachPersonalizationMode;
-  researchDepth: AffiliateResearchDepth;
+  needsReconfiguration: Scalars['Boolean']['output'];
+  nextTickAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  pausedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  primaryProductId: Scalars['String']['output'];
+  resolvedTimeZone: Scalars['String']['output'];
   shopId: Scalars['ID']['output'];
   status: AffiliateCampaignStatus;
-  targetContentCount?: Maybe<Scalars['Int']['output']>;
-  targetCreatorCount?: Maybe<Scalars['Int']['output']>;
-  targetGmvAmount?: Maybe<Scalars['Float']['output']>;
-  targetGmvCurrency?: Maybe<EcomProductSkuCurrency>;
-  targetInviteCount?: Maybe<Scalars['Int']['output']>;
-  targetOrderCount?: Maybe<Scalars['Int']['output']>;
+  templateTextHash: Scalars['String']['output'];
+  templateVersion: Scalars['Int']['output'];
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
 }
 
-/** Primary business objective that guides affiliate campaign skills and reporting. */
-export const AffiliateCampaignObjectiveType = {
-  ContentCount: 'CONTENT_COUNT',
-  CreatorCount: 'CREATOR_COUNT',
-  Gmv: 'GMV',
-  InviteCount: 'INVITE_COUNT',
-  OrderCount: 'ORDER_COUNT',
-  ProductLaunch: 'PRODUCT_LAUNCH',
-  RelationshipMaintenance: 'RELATIONSHIP_MAINTENANCE'
+export interface AffiliateCampaignCreatorState {
+  campaignId: Scalars['ID']['output'];
+  creatorId: Scalars['ID']['output'];
+  decisionReason?: Maybe<Scalars['String']['output']>;
+  efficiencyScore?: Maybe<Scalars['Float']['output']>;
+  expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  firstSeenAt: Scalars['DateTimeISO']['output'];
+  followerCount?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+  lastSeenAt: Scalars['DateTimeISO']['output'];
+  market: Scalars['String']['output'];
+  reachedOutAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  repliedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  scheduledAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  searchOccurrenceCount: Scalars['Int']['output'];
+  shopId: Scalars['ID']['output'];
+  status: AffiliateCampaignCreatorStateStatus;
+}
+
+export interface AffiliateCampaignCreatorStatePage {
+  items: Array<AffiliateCampaignCreatorState>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
+export const AffiliateCampaignCreatorStateStatus = {
+  Cancelled: 'CANCELLED',
+  Deferred: 'DEFERRED',
+  Discovered: 'DISCOVERED',
+  Disqualified: 'DISQUALIFIED',
+  EvaluationPending: 'EVALUATION_PENDING',
+  Failed: 'FAILED',
+  Ignored: 'IGNORED',
+  QualifiedNotSelected: 'QUALIFIED_NOT_SELECTED',
+  ReachedOut: 'REACHED_OUT',
+  Replied: 'REPLIED',
+  Reserved: 'RESERVED',
+  Scheduled: 'SCHEDULED',
+  Selected: 'SELECTED',
+  Submitted: 'SUBMITTED'
 } as const;
 
-export type AffiliateCampaignObjectiveType = typeof AffiliateCampaignObjectiveType[keyof typeof AffiliateCampaignObjectiveType];
+export type AffiliateCampaignCreatorStateStatus = typeof AffiliateCampaignCreatorStateStatus[keyof typeof AffiliateCampaignCreatorStateStatus];
+export interface AffiliateCampaignDailyExecution {
+  allocatedTarget: Scalars['Int']['output'];
+  campaignId: Scalars['ID']['output'];
+  configRevision: Scalars['Int']['output'];
+  counters: AffiliateCampaignExecutionCounters;
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  market: Scalars['String']['output'];
+  marketLocalDate: Scalars['String']['output'];
+  nextTickAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  requestedTarget: Scalars['Int']['output'];
+  shopId: Scalars['ID']['output'];
+  status: AffiliateCampaignDailyExecutionStatus;
+  stopReason?: Maybe<Scalars['String']['output']>;
+  templateVersion: Scalars['Int']['output'];
+  timezone: Scalars['String']['output'];
+  underDeliveryReason?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+export const AffiliateCampaignDailyExecutionStatus = {
+  Cancelled: 'CANCELLED',
+  Completed: 'COMPLETED',
+  Discovering: 'DISCOVERING',
+  Failed: 'FAILED',
+  Partial: 'PARTIAL',
+  Paused: 'PAUSED',
+  Planned: 'PLANNED',
+  Scheduling: 'SCHEDULING',
+  Sending: 'SENDING'
+} as const;
+
+export type AffiliateCampaignDailyExecutionStatus = typeof AffiliateCampaignDailyExecutionStatus[keyof typeof AffiliateCampaignDailyExecutionStatus];
+export interface AffiliateCampaignExecutionCounters {
+  evaluated: Scalars['Int']['output'];
+  failed: Scalars['Int']['output'];
+  qualified: Scalars['Int']['output'];
+  replied: Scalars['Int']['output'];
+  reserved: Scalars['Int']['output'];
+  scanned: Scalars['Int']['output'];
+  selected: Scalars['Int']['output'];
+  sent: Scalars['Int']['output'];
+  submitted: Scalars['Int']['output'];
+}
+
+export const AffiliateCampaignMessageTemplateSource = {
+  AiGenerated: 'AI_GENERATED',
+  UserAuthored: 'USER_AUTHORED'
+} as const;
+
+export type AffiliateCampaignMessageTemplateSource = typeof AffiliateCampaignMessageTemplateSource[keyof typeof AffiliateCampaignMessageTemplateSource];
+export interface AffiliateCampaignMessageTemplateSuggestion {
+  source: AffiliateCampaignMessageTemplateSource;
+  text: Scalars['String']['output'];
+}
+
 export const AffiliateCampaignStatus = {
   Active: 'ACTIVE',
   Archived: 'ARCHIVED',
@@ -781,6 +874,13 @@ export const AffiliateCampaignStatus = {
 } as const;
 
 export type AffiliateCampaignStatus = typeof AffiliateCampaignStatus[keyof typeof AffiliateCampaignStatus];
+export interface AffiliateCampaignSummary {
+  campaignId: Scalars['ID']['output'];
+  counters: AffiliateCampaignExecutionCounters;
+  latestExecution?: Maybe<AffiliateCampaignDailyExecution>;
+  totalCreators: Scalars['Int']['output'];
+}
+
 /** Platform-level affiliate collaboration, normalized across TikTok open and target collaborations. */
 export interface AffiliateCollaboration {
   campaignId?: Maybe<Scalars['ID']['output']>;
@@ -1417,6 +1517,7 @@ export type AffiliateDeliveryPartStatus = typeof AffiliateDeliveryPartStatus[key
 /** Source of an affiliate creator-facing message delivery */
 export const AffiliateDeliverySource = {
   AgentAction: 'AGENT_ACTION',
+  CampaignFirstTouch: 'CAMPAIGN_FIRST_TOUCH',
   HumanManual: 'HUMAN_MANUAL',
   System: 'SYSTEM'
 } as const;
@@ -1821,6 +1922,9 @@ export interface AffiliateMessageDelivery {
   actualChannel?: Maybe<AffiliateMessageChannel>;
   baseCheckpointId?: Maybe<Scalars['String']['output']>;
   baseEventCursor?: Maybe<Scalars['Int']['output']>;
+  campaignCreatorStateId?: Maybe<Scalars['ID']['output']>;
+  campaignDailyExecutionId?: Maybe<Scalars['ID']['output']>;
+  campaignId?: Maybe<Scalars['ID']['output']>;
   candidateCheckpointId?: Maybe<Scalars['String']['output']>;
   channelContactId?: Maybe<Scalars['ID']['output']>;
   channelSelectionSource: AffiliateDeliveryChannelSelectionSource;
@@ -1843,6 +1947,7 @@ export interface AffiliateMessageDelivery {
   source: AffiliateDeliverySource;
   status: AffiliateDeliveryStatus;
   targetEventCursor?: Maybe<Scalars['Int']['output']>;
+  templateVersion?: Maybe<Scalars['Int']['output']>;
   textHash?: Maybe<Scalars['String']['output']>;
   textLength?: Maybe<Scalars['Int']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -2118,14 +2223,6 @@ export interface AffiliateOutreachOperationalStatusPayload {
   whatsappAccountsUsingUnavailableProxyCount: Scalars['Int']['output'];
 }
 
-/** How customized affiliate outreach copy should be for this campaign. */
-export const AffiliateOutreachPersonalizationMode = {
-  Deep: 'DEEP',
-  Light: 'LIGHT',
-  Template: 'TEMPLATE'
-} as const;
-
-export type AffiliateOutreachPersonalizationMode = typeof AffiliateOutreachPersonalizationMode[keyof typeof AffiliateOutreachPersonalizationMode];
 export const AffiliatePredictionCaptureMode = {
   PromotedFromCache: 'PROMOTED_FROM_CACHE',
   QueryCache: 'QUERY_CACHE'
@@ -2457,14 +2554,6 @@ export interface AffiliateRelationshipWorkSummary {
   staffRequiredCount: Scalars['Int']['output'];
 }
 
-/** How much creator research the desktop skill should spend before acting. */
-export const AffiliateResearchDepth = {
-  Balanced: 'BALANCED',
-  Broad: 'BROAD',
-  Deep: 'DEEP'
-} as const;
-
-export type AffiliateResearchDepth = typeof AffiliateResearchDepth[keyof typeof AffiliateResearchDepth];
 /** Frozen revision source attached only to the Agent working agenda created by a staff revision request. */
 export interface AffiliateRevisionRequestedProposalContext {
   decision?: Maybe<ActionProposalDecisionSnapshot>;
@@ -3250,8 +3339,6 @@ export interface CreatorCandidate {
   score?: Maybe<Scalars['Float']['output']>;
   shopId: Scalars['ID']['output'];
   sourceSearchRunId?: Maybe<Scalars['ID']['output']>;
-  /** Raw source evidence for agent/debug display only. Backend execution must not depend on this field. */
-  sourceSnapshotJson?: Maybe<Scalars['String']['output']>;
   sourceType: CreatorCandidateSourceType;
   status: CreatorCandidateStatus;
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -3419,8 +3506,6 @@ export interface CreatorSearchRun {
   id: Scalars['ID']['output'];
   nextPageToken?: Maybe<Scalars['String']['output']>;
   platformRequestId?: Maybe<Scalars['String']['output']>;
-  /** Raw platform response for agent/debug display only. Backend execution must not depend on this field. */
-  rawResponseSnapshotJson?: Maybe<Scalars['String']['output']>;
   requestedByActorId?: Maybe<Scalars['String']['output']>;
   requestedByActorType?: Maybe<AffiliateLifecycleActorType>;
   requestedByRunId?: Maybe<Scalars['String']['output']>;
@@ -6399,6 +6484,12 @@ export const ExperimentVariantAction = {
 } as const;
 
 export type ExperimentVariantAction = typeof ExperimentVariantAction[keyof typeof ExperimentVariantAction];
+export interface GenerateAffiliateCampaignMessageTemplateInput {
+  guidance?: InputMaybe<Scalars['String']['input']>;
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
 export interface GeneratePairingResult {
   code: Scalars['String']['output'];
   qrUrl?: Maybe<Scalars['String']['output']>;
@@ -6815,6 +6906,26 @@ export interface LoginInput {
   password: Scalars['String']['input'];
 }
 
+/** Anonymous first-party attribution captured by the public website and transferred through the desktop deep link. */
+export interface MarketingAttributionInput {
+  attributionId: Scalars['String']['input'];
+  firstTouch: MarketingTouchInput;
+  lastTouch: MarketingTouchInput;
+  version: Scalars['Int']['input'];
+}
+
+/** Normalized first- or last-touch marketing campaign. */
+export interface MarketingTouchInput {
+  campaign?: InputMaybe<Scalars['String']['input']>;
+  capturedAt: Scalars['String']['input'];
+  content?: InputMaybe<Scalars['String']['input']>;
+  landingPage: Scalars['String']['input'];
+  medium: Scalars['String']['input'];
+  referrerDomain?: InputMaybe<Scalars['String']['input']>;
+  source: Scalars['String']['input'];
+  term?: InputMaybe<Scalars['String']['input']>;
+}
+
 /** Current user profile */
 export interface MeResponse {
   agent?: Maybe<UserAgentProfile>;
@@ -7034,6 +7145,8 @@ export interface Mutation {
   ensureAffiliateBusinessDevelopers: EnsureAffiliateBusinessDevelopersPayload;
   /** Generate or retrieve a cached proxy URL for an external image/video URL. Requires login. */
   genOrGetCachedProxyUrl: MediaCachedProxy;
+  /** Create one reviewable first-touch template suggestion. The result is never saved or activated automatically. */
+  generateAffiliateCampaignMessageTemplate: AffiliateCampaignMessageTemplateSuggestion;
   /** Generate a 6-character pairing code for QR display */
   generatePairingCode: GeneratePairingResult;
   /** Admin-only: grant complimentary service time. Stripe subscriptions are extended through Stripe trial_end; prepaid/manual subscriptions are extended locally. */
@@ -7095,6 +7208,8 @@ export interface Mutation {
   /** Send a human-authored affiliate creator message from the CreatorRelationship workspace. */
   sendAffiliateCreatorMessage: SendAffiliateCreatorMessagePayload;
   setAffiliateBusinessDeveloperPreferredAccount: AffiliateBusinessDeveloper;
+  /** Activate, pause, complete, or archive an Affiliate Campaign. */
+  setAffiliateCampaignStatus: AffiliateCampaign;
   /** Attach or update a creator email contact on an affiliate creator relationship. */
   setAffiliateCreatorEmail: AffiliateCreatorRelationship;
   /** Attach or update a creator WhatsApp contact on an affiliate creator relationship. */
@@ -7532,6 +7647,11 @@ export interface MutationGenOrGetCachedProxyUrlArgs {
 }
 
 
+export interface MutationGenerateAffiliateCampaignMessageTemplateArgs {
+  input: GenerateAffiliateCampaignMessageTemplateInput;
+}
+
+
 export interface MutationGeneratePairingCodeArgs {
   desktopDeviceId: Scalars['String']['input'];
 }
@@ -7684,6 +7804,11 @@ export interface MutationSendAffiliateCreatorMessageArgs {
 
 export interface MutationSetAffiliateBusinessDeveloperPreferredAccountArgs {
   input: SetAffiliateBusinessDeveloperPreferredAccountInput;
+}
+
+
+export interface MutationSetAffiliateCampaignStatusArgs {
+  input: SetAffiliateCampaignStatusInput;
 }
 
 
@@ -8336,6 +8461,12 @@ export interface Query {
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
   affiliateBusinessDevelopers: Array<AffiliateBusinessDeveloper>;
+  /** Cursor-paginated Creator funnel states for one owned Campaign. */
+  affiliateCampaignCreatorStates: AffiliateCampaignCreatorStatePage;
+  /** Read recent daily execution records for one owned Campaign. */
+  affiliateCampaignDailyExecutions: Array<AffiliateCampaignDailyExecution>;
+  /** Read operational funnel totals and the latest execution for one Campaign. */
+  affiliateCampaignSummary: AffiliateCampaignSummary;
   /** Read affiliate campaigns from Mongo state. */
   affiliateCampaigns: Array<AffiliateCampaign>;
   affiliateCollaborationState: AffiliateCollaborationRecordStatePayload;
@@ -8622,6 +8753,21 @@ export interface QueryAffiliateBusinessDeveloperPageArgs {
 
 export interface QueryAffiliateBusinessDevelopersArgs {
   includeArchived?: InputMaybe<Scalars['Boolean']['input']>;
+}
+
+
+export interface QueryAffiliateCampaignCreatorStatesArgs {
+  input: ReadAffiliateCampaignCreatorStatesInput;
+}
+
+
+export interface QueryAffiliateCampaignDailyExecutionsArgs {
+  input: ReadAffiliateCampaignDailyExecutionsInput;
+}
+
+
+export interface QueryAffiliateCampaignSummaryArgs {
+  campaignId: Scalars['ID']['input'];
 }
 
 
@@ -9250,6 +9396,18 @@ export interface ReadAffiliateApprovalPoliciesInput {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
+export interface ReadAffiliateCampaignCreatorStatesInput {
+  campaignId: Scalars['ID']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  status?: InputMaybe<AffiliateCampaignCreatorStateStatus>;
+}
+
+export interface ReadAffiliateCampaignDailyExecutionsInput {
+  campaignId: Scalars['ID']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}
+
 export interface ReadAffiliateCampaignsInput {
   id?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -9445,6 +9603,8 @@ export interface RefundPaymentGraphqlInput {
 
 /** Registration input */
 export interface RegisterInput {
+  /** Optional anonymous website-to-desktop acquisition attribution. */
+  attribution?: InputMaybe<MarketingAttributionInput>;
   captchaAnswer: Scalars['String']['input'];
   captchaToken: Scalars['String']['input'];
   email: Scalars['String']['input'];
@@ -9689,6 +9849,11 @@ export interface SetAffiliateBusinessDeveloperPreferredAccountInput {
   accountBindingId?: InputMaybe<Scalars['ID']['input']>;
   businessDeveloperId: Scalars['ID']['input'];
   channel: AffiliateMessageChannel;
+}
+
+export interface SetAffiliateCampaignStatusInput {
+  campaignId: Scalars['ID']['input'];
+  status: AffiliateCampaignStatus;
 }
 
 export interface SetCreatorEmailContactInput {
@@ -11201,20 +11366,17 @@ export interface WriteAffiliateBusinessDeveloperInput {
 }
 
 export interface WriteAffiliateCampaignInput {
-  decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
+  dailyOutreachTarget: Scalars['Int']['input'];
   id?: InputMaybe<Scalars['ID']['input']>;
+  marketplaceSearchFilters: CreatorMarketplaceSearchParamsInput;
+  messageTemplateSource: AffiliateCampaignMessageTemplateSource;
+  messageTemplateText: Scalars['String']['input'];
+  minimumExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
+  minimumFollowerCount: Scalars['Int']['input'];
   name: Scalars['String']['input'];
-  objectiveType?: InputMaybe<AffiliateCampaignObjectiveType>;
-  personalizationMode?: InputMaybe<AffiliateOutreachPersonalizationMode>;
-  researchDepth?: InputMaybe<AffiliateResearchDepth>;
+  primaryProductId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCampaignStatus>;
-  targetContentCount?: InputMaybe<Scalars['Int']['input']>;
-  targetCreatorCount?: InputMaybe<Scalars['Int']['input']>;
-  targetGmvAmount?: InputMaybe<Scalars['Float']['input']>;
-  targetGmvCurrency?: InputMaybe<EcomProductSkuCurrency>;
-  targetInviteCount?: InputMaybe<Scalars['Int']['input']>;
-  targetOrderCount?: InputMaybe<Scalars['Int']['input']>;
 }
 
 export interface WriteAffiliateCreatorChannelContactInput {
@@ -11248,7 +11410,6 @@ export interface WriteCreatorSearchRunInput {
   id?: InputMaybe<Scalars['ID']['input']>;
   nextPageToken?: InputMaybe<Scalars['String']['input']>;
   platformRequestId?: InputMaybe<Scalars['String']['input']>;
-  rawResponseSnapshotJson?: InputMaybe<Scalars['String']['input']>;
   requestedByActorId?: InputMaybe<Scalars['String']['input']>;
   requestedByActorType?: InputMaybe<AffiliateLifecycleActorType>;
   requestedByRunId?: InputMaybe<Scalars['String']['input']>;
