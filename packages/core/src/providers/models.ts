@@ -192,38 +192,24 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         apiKeyUrl: "https://platform.openai.com/api-keys",
         envVar: "OPENAI_CODEX_API_KEY",
         oauth: true,
-        catalogProvider: "openai-codex",
-        api: "openai-codex-responses",
-        validationModel: "gpt-5.6-luna",
-        preferredModel: "gpt-5.6-terra",
-        // OpenClaw separates native contextWindow from the default runtime
-        // contextTokens budget used for compaction on Codex subscription routes.
+        // OpenClaw's OpenAI plugin owns both API-key and ChatGPT/Codex OAuth
+        // transports under the runtime provider id `openai`. Keep
+        // `openai-codex` only as our product/storage id.
+        catalogProvider: "openai",
+        api: "openai-chatgpt-responses",
+        validationModel: "gpt-5.5",
+        preferredModel: "gpt-5.5",
+        // GPT-5.5 is the plugin's static Codex fallback. Newer account-specific
+        // models (including GPT-5.6 variants) come from live OAuth discovery,
+        // so we must not advertise them to accounts that do not expose them.
         fallbackModels: [
           {
             provider: "openai-codex",
-            modelId: "gpt-5.6-terra",
-            displayName: "GPT-5.6 Terra",
+            modelId: "gpt-5.5",
+            displayName: "GPT-5.5",
             supportsVision: true,
-            contextWindow: 372000,
-            contextTokens: 244000,
-            maxTokens: 128000,
-          },
-          {
-            provider: "openai-codex",
-            modelId: "gpt-5.6-luna",
-            displayName: "GPT-5.6 Luna",
-            supportsVision: true,
-            contextWindow: 372000,
-            contextTokens: 244000,
-            maxTokens: 128000,
-          },
-          {
-            provider: "openai-codex",
-            modelId: "gpt-5.6-sol",
-            displayName: "GPT-5.6 Sol",
-            supportsVision: true,
-            contextWindow: 372000,
-            contextTokens: 244000,
+            contextWindow: 400000,
+            contextTokens: 272000,
             maxTokens: 128000,
           },
         ],
@@ -1125,9 +1111,9 @@ export function getProviderMeta(provider: LLMProvider): ResolvedProviderMeta | u
  * Resolve the gateway provider name for a given provider ID.
  *
  * Subscription plans that have their own `extraModels` are registered as
- * separate providers in the gateway and keep their own name. Plans that map
- * directly to a built-in catalog provider (for example `openai-codex`) also
- * keep their own gateway identity. Other plans share the parent provider.
+ * separate providers in the gateway and keep their own name. Other plans
+ * share the parent provider, including plans whose catalog is owned by that
+ * parent (for example the `openai-codex` product plan uses runtime `openai`).
  */
 export function resolveGatewayProvider(provider: LLMProvider): string {
   const parent = _parentMap.get(provider);

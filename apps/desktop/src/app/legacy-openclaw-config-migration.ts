@@ -1,4 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+  type Dirent,
+} from "node:fs";
+import { join } from "node:path";
 import { createLogger } from "@rivonclaw/logger";
 import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
@@ -66,6 +76,78 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
   return next;
 }
 
+function rewriteLegacyOpenAIProviderRefs(value: unknown): {
+  value: unknown;
+  changed: number;
+} {
+  if (typeof value === "string") {
+    if (value === "openai-codex") {
+      return { value: "openai", changed: 1 };
+    }
+    if (value.startsWith("openai-codex/")) {
+      return { value: `openai/${value.slice("openai-codex/".length)}`, changed: 1 };
+    }
+    return { value, changed: 0 };
+  }
+
+  if (Array.isArray(value)) {
+    let changed = 0;
+    const next = value.map((entry) => {
+      const migrated = rewriteLegacyOpenAIProviderRefs(entry);
+      changed += migrated.changed;
+      return migrated.value;
+    });
+    return { value: changed > 0 ? next : value, changed };
+  }
+
+  if (!isRecord(value)) return { value, changed: 0 };
+
+  let changed = 0;
+  const next: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    const migratedKey = key.startsWith("openai-codex/")
+      ? `openai/${key.slice("openai-codex/".length)}`
+      : key;
+    if (migratedKey !== key) changed += 1;
+
+    const migratedEntry = rewriteLegacyOpenAIProviderRefs(entry);
+    changed += migratedEntry.changed;
+
+    // If both canonical and legacy keys exist, preserve the canonical value.
+    if (!(migratedKey in next) || migratedKey === key) {
+      next[migratedKey] = migratedEntry.value;
+    }
+  }
+  return { value: changed > 0 ? next : value, changed };
+}
+
+function rewriteLegacyOpenAISessionStore(value: unknown): {
+  value: unknown;
+  changed: number;
+} {
+  if (!isRecord(value)) return { value, changed: 0 };
+
+  let changed = 0;
+  const nextStore: Record<string, unknown> = { ...value };
+  for (const [sessionKey, rawEntry] of Object.entries(value)) {
+    if (!isRecord(rawEntry)) continue;
+
+    let nextEntry: Record<string, unknown> | undefined;
+    for (const field of ["providerOverride", "modelProvider", "model", "modelOverride"]) {
+      const current = rawEntry[field];
+      if (typeof current !== "string") continue;
+      const migrated = rewriteLegacyOpenAIProviderRefs(current);
+      if (migrated.changed === 0) continue;
+      nextEntry ??= { ...rawEntry };
+      nextEntry[field] = migrated.value;
+      changed += migrated.changed;
+    }
+    if (nextEntry) nextStore[sessionKey] = nextEntry;
+  }
+
+  return { value: changed > 0 ? nextStore : value, changed };
+}
+
 function mergePluginWebSearchConfig(
   config: Record<string, unknown>,
   pluginId: string,
@@ -88,7 +170,9 @@ function pruneLegacyPluginLoadPaths(value: unknown): { value: unknown; changed: 
   const next = value.filter((entry) => {
     if (typeof entry !== "string") return true;
     const normalized = entry.replace(/\\/g, "/");
-    return !REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) => normalized.includes(hint.replace(/\\/g, "/")));
+    return !REMOVED_PLUGIN_LOAD_PATH_HINTS.some((hint) =>
+      normalized.includes(hint.replace(/\\/g, "/")),
+    );
   });
   return { value: next, changed: next.length !== value.length };
 }
@@ -124,6 +208,13 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
   if (defaults && Object.prototype.hasOwnProperty.call(defaults, "llm")) {
     delete defaults.llm;
     touched.push("agents.defaults.llm");
+  }
+  if (isRecord(agents)) {
+    const migratedAgents = rewriteLegacyOpenAIProviderRefs(agents);
+    if (migratedAgents.changed > 0) {
+      config.agents = migratedAgents.value;
+      touched.push("agents openai-codex model references");
+    }
   }
 
   const plugins = config.plugins;
@@ -170,7 +261,6 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
           touched.push(`plugins.entries.${pluginId}`);
           continue;
         }
-
       }
     }
   }
@@ -199,5 +289,67 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
   if (touched.length === 0) return;
 
   writeDesktopOpenClawConfig(configPath, config, "legacy openclaw config migration");
-  log.info(`removed legacy OpenClaw config keys in ${configPath}: ${[...new Set(touched)].join(", ")}`);
+  log.info(
+    `removed legacy OpenClaw config keys in ${configPath}: ${[...new Set(touched)].join(", ")}`,
+  );
+}
+
+/**
+ * OpenClaw now owns ChatGPT/Codex OAuth under runtime provider `openai`.
+ * Migrate only the small session index files that can carry active model
+ * overrides. Transcript JSONL files and generated models.json stay untouched.
+ */
+export function migrateLegacyOpenAISessionProviders(stateDir: string): void {
+  const agentsDir = join(stateDir, "agents");
+  if (!existsSync(agentsDir)) return;
+
+  let agents: Dirent[];
+  try {
+    agents = readdirSync(agentsDir, { withFileTypes: true });
+  } catch (err) {
+    log.warn(`failed to list ${agentsDir} - skipping OpenAI session provider migration:`, err);
+    return;
+  }
+
+  let changedStores = 0;
+  for (const agent of agents) {
+    if (!agent.isDirectory()) continue;
+
+    const storePath = join(agentsDir, agent.name, "sessions", "sessions.json");
+    if (!existsSync(storePath)) continue;
+
+    let store: unknown;
+    try {
+      store = JSON.parse(readFileSync(storePath, "utf-8")) as unknown;
+    } catch (err) {
+      log.warn(`failed to parse ${storePath} - skipping OpenAI session provider migration:`, err);
+      continue;
+    }
+
+    const migrated = rewriteLegacyOpenAISessionStore(store);
+    if (migrated.changed === 0) continue;
+
+    const tempPath = `${storePath}.${process.pid}.provider-migration.tmp`;
+    try {
+      writeFileSync(tempPath, JSON.stringify(migrated.value, null, 2), {
+        encoding: "utf-8",
+        mode: statSync(storePath).mode,
+      });
+      renameSync(tempPath, storePath);
+      changedStores += 1;
+    } catch (err) {
+      if (existsSync(tempPath)) {
+        try {
+          unlinkSync(tempPath);
+        } catch {
+          // Best effort cleanup; preserve the original sessions.json.
+        }
+      }
+      log.warn(`failed to migrate OpenAI provider references in ${storePath}:`, err);
+    }
+  }
+
+  if (changedStores > 0) {
+    log.info(`migrated OpenAI provider references in ${changedStores} session store(s)`);
+  }
 }

@@ -158,18 +158,18 @@ export function buildManagedGatewayAgents(stateDir: string): ManagedGatewayAgent
   ];
 }
 
-const CLOUD_MODEL_RUNTIME_LIMITS = new Map([
-  ...(getProviderMeta("openai-codex")?.fallbackModels ?? []).map(
-    (model) =>
-      [
-        model.modelId,
-        {
-          contextWindow: model.contextWindow,
-          contextTokens: model.contextTokens,
-          maxTokens: model.maxTokens,
-        },
-      ] as const,
-  ),
+const CLOUD_MODEL_RUNTIME_LIMITS = new Map<
+  string,
+  { contextWindow: number; contextTokens: number; maxTokens: number }
+>([
+  // Compatibility for cloud catalogs persisted before the three public model
+  // names were unified as rivonclaw-flagship.
+  [
+    "gpt-5.6-terra",
+    { contextWindow: 372_000, contextTokens: 244_000, maxTokens: 128_000 },
+  ] as const,
+  ["gpt-5.6-luna", { contextWindow: 372_000, contextTokens: 244_000, maxTokens: 128_000 }] as const,
+  ["gpt-5.6-sol", { contextWindow: 372_000, contextTokens: 244_000, maxTokens: 128_000 }] as const,
   [
     "rivonclaw-flagship",
     { contextWindow: 372_000, contextTokens: 244_000, maxTokens: 128_000 },
