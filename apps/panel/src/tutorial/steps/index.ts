@@ -13,6 +13,7 @@ import { ecommerceSteps } from "./ecommerce.js"
 import { adsManagementSteps } from "./adsManagement.js"
 import { ecommerceCustomerServiceSteps } from "./ecommerceCustomerService.js"
 import { ecommerceAffiliateSteps } from "./ecommerceAffiliate.js"
+import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js"
 import { inventoryManagementSteps } from "./inventoryManagement.js"
 
 const stepRegistry: Record<string, TutorialStep[]> = {
@@ -29,6 +30,7 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/affiliate/creators": ecommerceAffiliateSteps,
   "/commerce/affiliate/intelligence": ecommerceAffiliateSteps,
   "/commerce/affiliate/team": ecommerceAffiliateSteps,
+  "/commerce/affiliate/campaigns": ecommerceAffiliateCampaignSteps,
   "/commerce/ads": adsManagementSteps,
   "/commerce/inventory": inventoryManagementSteps,
   "/automation/skills": skillsSteps,

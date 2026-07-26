@@ -27,6 +27,7 @@ import {
   AffiliateNeedsAttentionPage,
 } from "./pages/ecommerce/AffiliateManagementPage.js";
 import { AffiliateTeamPage } from "./pages/ecommerce/AffiliateTeamPage.js";
+import { AffiliateCampaignPage } from "./pages/ecommerce/AffiliateCampaignPage.js";
 import {
   CustomerServiceConversationsPage,
   CustomerServiceEscalationQueuePage,
@@ -81,6 +82,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true },
   { path: "/commerce/affiliate/creators", pageKey: "ecommerce-affiliate-creators", component: AffiliateCreatorsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateCreators", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/team", pageKey: "ecommerce-affiliate-team", component: AffiliateTeamPage, icon: <ChannelsIcon />, navLabelKey: "nav.affiliateTeam", authRequired: true, parentPath: "/commerce/affiliate" },
+  { path: "/commerce/affiliate/campaigns", pageKey: "ecommerce-affiliate-campaigns", component: AffiliateCampaignPage, icon: <AdsIcon />, navLabelKey: "nav.affiliateCampaigns", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate" },
   { path: "/commerce/affiliate/intelligence", pageKey: "ecommerce-affiliate-intelligence", component: AffiliateIntelligencePage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateIntelligence", authRequired: true, parentPath: "/commerce/affiliate" },
