@@ -15,9 +15,11 @@ import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import {
   AFFILIATE_CAMPAIGNS_QUERY,
+  AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
+  AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
   ECOMMERCE_SEARCH_PRODUCTS_QUERY,
   GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION,
   SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION,
@@ -31,9 +33,31 @@ type CampaignForm = {
   name: string;
   dailyTarget: string;
   minimumFollowers: string;
+  maximumFollowers: string;
   minimumExpectedSales: string;
   commissionRate: string;
   searchKeyword: string;
+  strategy: GQL.AffiliateCampaignSelectionStrategy;
+  ageRanges: GQL.CreatorSearchFollowerAgeRange[];
+  audienceGender: GQL.CreatorSearchFollowerGender | "";
+  audienceGenderMinimum: string;
+  gmvRanges: GQL.AffiliateMarketplaceGmvRange[];
+  unitsSoldRanges: GQL.AffiliateMarketplaceUnitsSoldRange[];
+  languages: string[];
+  creatorLevels: string[];
+  categoryPros: string[];
+  categoryIds: string;
+  averageVideoViews: string;
+  averageShoppableVideoViews: string;
+  averageEngagementRate: string;
+  averageShoppableEngagementRate: string;
+  averageLiveViewers: string;
+  averageShoppableLiveViewers: string;
+  averageCommissionRate: string;
+  postRate: string;
+  creatorAgencyStatus: string;
+  fastGrowingOnly: boolean;
+  notInvitedLast90Days: boolean;
   templateText: string;
   templateSource: GQL.AffiliateCampaignMessageTemplateSource;
 };
@@ -44,9 +68,31 @@ const emptyForm: CampaignForm = {
   name: "",
   dailyTarget: "100",
   minimumFollowers: "1000",
+  maximumFollowers: "",
   minimumExpectedSales: "",
   commissionRate: "10",
   searchKeyword: "",
+  strategy: GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
+  ageRanges: [],
+  audienceGender: "",
+  audienceGenderMinimum: "",
+  gmvRanges: [],
+  unitsSoldRanges: [],
+  languages: [],
+  creatorLevels: [],
+  categoryPros: [],
+  categoryIds: "",
+  averageVideoViews: "",
+  averageShoppableVideoViews: "",
+  averageEngagementRate: "",
+  averageShoppableEngagementRate: "",
+  averageLiveViewers: "",
+  averageShoppableLiveViewers: "",
+  averageCommissionRate: "",
+  postRate: "",
+  creatorAgencyStatus: "",
+  fastGrowingOnly: false,
+  notInvitedLast90Days: false,
   templateText: "",
   templateSource: GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
 };
@@ -120,6 +166,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       skip: !form.shopId,
     },
   );
+  const capabilitiesQuery = useQuery<{
+    affiliateMarketplaceCreatorRuleCapabilities:
+      GQL.AffiliateMarketplaceCreatorRuleCapabilities;
+  }>(AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY, {
+    variables: { shopId: form.shopId },
+    skip: !form.shopId,
+    fetchPolicy: "cache-and-network",
+  });
   const summaryQuery = useQuery<{ affiliateCampaignSummary: GQL.AffiliateCampaignSummary }>(
     AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
     {
@@ -144,6 +198,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         ...(stateStatus ? { status: stateStatus } : {}),
       },
     },
+    skip: !selectedCampaignId,
+  });
+  const selectionReadinessQuery = useQuery<{
+    affiliateCampaignSelectionReadiness: GQL.AffiliateCampaignSelectionReadiness;
+  }>(AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY, {
+    variables: { campaignId: selectedCampaignId },
     skip: !selectedCampaignId,
   });
 
@@ -173,6 +233,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
   const products = productsQuery.data?.ecommerceSearchProducts ?? [];
   const selectedProduct = products.find((product) => product.productId === form.productId);
+  const capabilities =
+    capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
+  const selectionReadiness =
+    selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
 
   useEffect(() => {
     if (
@@ -214,23 +278,60 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const openEdit = (campaign: GQL.AffiliateCampaign) => {
-    const filters =
-      campaign.marketplaceSearchFilters &&
-      typeof campaign.marketplaceSearchFilters === "object"
-        ? campaign.marketplaceSearchFilters as Record<string, unknown>
-        : {};
+    const rules = campaign.discoveryRules;
     setForm({
       shopId: campaign.shopId,
       productId: campaign.primaryProductId,
       name: campaign.name,
       dailyTarget: String(campaign.dailyOutreachTarget),
-      minimumFollowers: String(campaign.minimumFollowerCount),
-      minimumExpectedSales:
-        campaign.minimumExpectedSalesUnits == null
+      minimumFollowers:
+        rules.followerCount?.minimum == null
           ? ""
-          : String(campaign.minimumExpectedSalesUnits),
+          : String(rules.followerCount.minimum),
+      maximumFollowers:
+        rules.followerCount?.maximum == null
+          ? ""
+          : String(rules.followerCount.maximum),
+      minimumExpectedSales:
+        campaign.selectionPolicy.minimumExpectedSalesUnits == null
+          ? ""
+          : String(campaign.selectionPolicy.minimumExpectedSalesUnits),
       commissionRate: String(campaignCommissionRate(campaign)),
-      searchKeyword: typeof filters.keyword === "string" ? filters.keyword : "",
+      searchKeyword: rules.keyword ?? "",
+      strategy: campaign.selectionPolicy.strategy,
+      ageRanges: rules.audience?.ageRanges ?? [],
+      audienceGender: rules.audience?.genderDistribution?.gender ?? "",
+      audienceGenderMinimum:
+        rules.audience?.genderDistribution?.minimumPercentage == null
+          ? ""
+          : String(rules.audience.genderDistribution.minimumPercentage),
+      gmvRanges: rules.salesPerformance30d?.gmvRanges ?? [],
+      unitsSoldRanges: rules.salesPerformance30d?.unitsSoldRanges ?? [],
+      languages: rules.marketSpecific?.languages ?? [],
+      creatorLevels: rules.marketSpecific?.creatorLevels ?? [],
+      categoryPros: rules.marketSpecific?.categoryPros ?? [],
+      categoryIds: (rules.categories ?? [])
+        .map((category) => category.parentCategoryId)
+        .join(", "),
+      averageVideoViews: rules.contentPerformance30d?.averageVideoViews ?? "",
+      averageShoppableVideoViews:
+        rules.contentPerformance30d?.averageShoppableVideoViews ?? "",
+      averageEngagementRate:
+        rules.contentPerformance30d?.averageEngagementRate ?? "",
+      averageShoppableEngagementRate:
+        rules.contentPerformance30d?.averageShoppableEngagementRate ?? "",
+      averageLiveViewers: rules.contentPerformance30d?.averageLiveViewers ?? "",
+      averageShoppableLiveViewers:
+        rules.contentPerformance30d?.averageShoppableLiveViewers ?? "",
+      averageCommissionRate:
+        rules.affiliatePerformance30d?.averageCommissionRate ?? "",
+      postRate: rules.affiliatePerformance30d?.postRate ?? "",
+      creatorAgencyStatus:
+        rules.affiliatePerformance30d?.creatorAgencyStatus ?? "",
+      fastGrowingOnly:
+        rules.affiliatePerformance30d?.fastGrowingOnly ?? false,
+      notInvitedLast90Days:
+        rules.affiliatePerformance30d?.notInvitedLast90Days ?? false,
       templateText: campaign.messageTemplateText,
       templateSource: campaign.messageTemplateSource,
     });
@@ -253,7 +354,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       (
         Number(form.dailyTarget) < 1 ||
         Number(form.dailyTarget) > 10_000 ||
-        Number(form.minimumFollowers) < 1 ||
+        (form.minimumFollowers !== "" && Number(form.minimumFollowers) < 0) ||
+        (form.maximumFollowers !== "" && Number(form.maximumFollowers) < 0) ||
+        (
+          form.minimumFollowers !== "" &&
+          form.maximumFollowers !== "" &&
+          Number(form.minimumFollowers) > Number(form.maximumFollowers)
+        ) ||
         Number(form.commissionRate) < 0 ||
         Number(form.commissionRate) > 100 ||
         (form.minimumExpectedSales && Number(form.minimumExpectedSales) < 0)
@@ -283,18 +390,71 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         name: form.name.trim(),
         primaryProductId: form.productId,
         dailyOutreachTarget: Number(form.dailyTarget),
-        minimumFollowerCount: Number(form.minimumFollowers),
-        minimumExpectedSalesUnits: form.minimumExpectedSales
-          ? Number(form.minimumExpectedSales)
-          : null,
         commissionRatePercent: Number(form.commissionRate),
-        marketplaceSearchFilters: {
-          pageSize: 20,
-          region: selectedShop?.region ?? null,
+        discoveryRules: {
           keyword: form.searchKeyword.trim() || null,
-          followerDemographics: {
-            minFollowerCount: Number(form.minimumFollowers),
+          followerCount: {
+            minimum: form.minimumFollowers === ""
+              ? null
+              : Number(form.minimumFollowers),
+            maximum: form.maximumFollowers === ""
+              ? null
+              : Number(form.maximumFollowers),
           },
+          audience: {
+            ageRanges: form.ageRanges,
+            genderDistribution: form.audienceGender
+              ? {
+                  gender: form.audienceGender,
+                  minimumPercentage: Number(form.audienceGenderMinimum || 0),
+                }
+              : null,
+          },
+          salesPerformance30d: {
+            gmvRanges: form.gmvRanges,
+            unitsSoldRanges: form.unitsSoldRanges,
+          },
+          categories: splitCsv(form.categoryIds).map((parentCategoryId) => ({
+            parentCategoryId,
+            childCategoryIds: [],
+          })),
+          contentPerformance30d: {
+            averageVideoViews: form.averageVideoViews || null,
+            averageShoppableVideoViews:
+              form.averageShoppableVideoViews || null,
+            averageEngagementRate: form.averageEngagementRate || null,
+            averageShoppableEngagementRate:
+              form.averageShoppableEngagementRate || null,
+            averageLiveViewers: form.averageLiveViewers || null,
+            averageShoppableLiveViewers:
+              form.averageShoppableLiveViewers || null,
+          },
+          affiliatePerformance30d: {
+            averageCommissionRate: form.averageCommissionRate || null,
+            postRate: form.postRate || null,
+            creatorAgencyStatus: form.creatorAgencyStatus || null,
+            fastGrowingOnly: form.fastGrowingOnly,
+            notInvitedLast90Days: form.notInvitedLast90Days,
+          },
+          marketSpecific: {
+            languages: form.languages,
+            creatorLevels: form.creatorLevels,
+            categoryPros: form.categoryPros,
+          },
+        },
+        selectionPolicy: {
+          strategy: form.strategy,
+          ranking:
+            form.strategy ===
+            GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules
+              ? GQL.AffiliateCampaignSelectionRanking.ProviderOrder
+              : GQL.AffiliateCampaignSelectionRanking.ExpectedSalesPerFollower,
+          minimumExpectedSalesUnits:
+            form.strategy ===
+              GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 &&
+            form.minimumExpectedSales
+              ? Number(form.minimumExpectedSales)
+              : null,
         },
         messageTemplateText: form.templateText.trim(),
         messageTemplateSource: form.templateSource,
@@ -536,17 +696,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <small>{t("ecommerce.affiliateCampaign.messagesPerDayShort")}</small>
                       </td>
                       <td>
-                        <strong>
-                          {t("ecommerce.affiliateCampaign.minimumFollowersCompact", {
-                            value: formatNumber(campaign.minimumFollowerCount),
-                          })}
-                        </strong>
+                        <strong>{campaignStrategyLabel(campaign.selectionPolicy.strategy, t)}</strong>
                         <small>
-                          {campaign.minimumExpectedSalesUnits == null
-                            ? t("ecommerce.affiliateCampaign.noExpectedSalesFloor")
-                            : t("ecommerce.affiliateCampaign.expectedSalesFloor", {
-                              count: campaign.minimumExpectedSalesUnits,
-                            })}
+                          {campaignRuleSummary(campaign, t)}
                         </small>
                       </td>
                       <td>
@@ -662,12 +814,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <strong>{selectedCampaign.primaryProductId}</strong>
               </div>
               <div>
-                <span>{t("ecommerce.affiliateCampaign.minimumFollowers")}</span>
-                <strong>{formatNumber(selectedCampaign.minimumFollowerCount)}</strong>
+                <span>{t("ecommerce.affiliateCampaign.selectionStrategy")}</span>
+                <strong>
+                  {campaignStrategyLabel(selectedCampaign.selectionPolicy.strategy, t)}
+                </strong>
               </div>
               <div>
-                <span>{t("ecommerce.affiliateCampaign.minimumExpectedSales")}</span>
-                <strong>{selectedCampaign.minimumExpectedSalesUnits ?? "—"}</strong>
+                <span>{t("ecommerce.affiliateCampaign.selectionReadiness")}</span>
+                <strong>
+                  {selectionReadiness?.ready
+                    ? t("ecommerce.affiliateCampaign.ready")
+                    : selectionReadiness?.message ||
+                      t("ecommerce.affiliateCampaign.checkingReadiness")}
+                </strong>
               </div>
               <div>
                 <span>{t("ecommerce.affiliateCampaign.commissionRate")}</span>
@@ -787,7 +946,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <Select
                     value={form.shopId}
                     onChange={(shopId) =>
-                      setForm((current) => ({ ...current, shopId, productId: "" }))}
+                      setForm((current) => ({
+                        ...current,
+                        shopId,
+                        productId: "",
+                        ageRanges: [],
+                        audienceGender: "",
+                        audienceGenderMinimum: "",
+                        gmvRanges: [],
+                        unitsSoldRanges: [],
+                        languages: [],
+                        creatorLevels: [],
+                        categoryPros: [],
+                      }))}
                     options={shopOptions}
                     searchable
                     disabled={Boolean(editingCampaignId)}
@@ -833,6 +1004,53 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <p>{t("ecommerce.affiliateCampaign.stepTargetDescription")}</p>
               </section>
               <section className="affiliate-campaign-wizard-fields">
+                <div className="affiliate-campaign-strategy-picker">
+                  <button
+                    type="button"
+                    data-selected={
+                      form.strategy ===
+                      GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ||
+                      undefined
+                    }
+                    onClick={() =>
+                      updateForm(
+                        "strategy",
+                        GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
+                      )}
+                  >
+                    <span>{t("ecommerce.affiliateCampaign.strategyRuleKicker")}</span>
+                    <strong>{t("ecommerce.affiliateCampaign.strategyRuleTitle")}</strong>
+                    <small>{t("ecommerce.affiliateCampaign.strategyRuleDescription")}</small>
+                    <i>{t("ecommerce.affiliateCampaign.strategyRuleOrder")}</i>
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    data-selected={
+                      form.strategy ===
+                      GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 ||
+                      undefined
+                    }
+                  >
+                    <span>{t("ecommerce.affiliateCampaign.strategyMlKicker")}</span>
+                    <strong>{t("ecommerce.affiliateCampaign.strategyMlTitle")}</strong>
+                    <small>{t("ecommerce.affiliateCampaign.strategyMlDescription")}</small>
+                    <i>{t("ecommerce.affiliateCampaign.strategyMlUnavailable")}</i>
+                  </button>
+                </div>
+                <div className="affiliate-campaign-capability-note">
+                  <strong>
+                    {capabilitiesQuery.loading
+                      ? t("ecommerce.affiliateCampaign.loadingCapabilities")
+                      : capabilities
+                        ? t("ecommerce.affiliateCampaign.providerRulesReady", {
+                            market: capabilities.market,
+                          })
+                        : t("ecommerce.affiliateCampaign.providerRulesUnavailable")}
+                  </strong>
+                  <small>{t("ecommerce.affiliateCampaign.providerRulesAuthority")}</small>
+                </div>
                 <div className="affiliate-campaign-field-pair">
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.dailyTarget")}</span>
@@ -849,7 +1067,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <span>{t("ecommerce.affiliateCampaign.minimumFollowers")}</span>
                     <input
                       type="number"
-                      min={1}
+                      min={0}
                       value={form.minimumFollowers}
                       onChange={(event) => updateForm("minimumFollowers", event.target.value)}
                     />
@@ -858,13 +1076,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
                 <div className="affiliate-campaign-field-pair">
                   <label>
-                    <span>{t("ecommerce.affiliateCampaign.minimumExpectedSalesOptional")}</span>
+                    <span>{t("ecommerce.affiliateCampaign.maximumFollowers")}</span>
                     <input
                       type="number"
                       min={0}
-                      step="0.01"
-                      value={form.minimumExpectedSales}
-                      onChange={(event) => updateForm("minimumExpectedSales", event.target.value)}
+                      value={form.maximumFollowers}
+                      onChange={(event) => updateForm("maximumFollowers", event.target.value)}
                       placeholder={t("ecommerce.affiliateCampaign.noMinimum")}
                     />
                   </label>
@@ -891,6 +1108,185 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     />
                   </label>
                 </div>
+                <details className="affiliate-campaign-advanced-rules">
+                  <summary>
+                    <span>{t("ecommerce.affiliateCampaign.advancedProviderRules")}</span>
+                    <small>{t("ecommerce.affiliateCampaign.advancedProviderRulesHint")}</small>
+                  </summary>
+                  <div className="affiliate-campaign-rule-block">
+                    <strong>{t("ecommerce.affiliateCampaign.audienceRules")}</strong>
+                    <div className="affiliate-campaign-chip-grid">
+                      {(capabilities?.ageRanges ?? []).map((value) => (
+                        <button
+                          type="button"
+                          key={value}
+                          data-selected={form.ageRanges.includes(value) || undefined}
+                          onClick={() =>
+                            updateForm("ageRanges", toggleValue(form.ageRanges, value))}
+                        >
+                          {marketplaceEnumLabel(value)}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="affiliate-campaign-field-pair">
+                      <label>
+                        <span>{t("ecommerce.affiliateCampaign.audienceGender")}</span>
+                        <Select
+                          value={form.audienceGender}
+                          onChange={(value) =>
+                            updateForm(
+                              "audienceGender",
+                              value as GQL.CreatorSearchFollowerGender | "",
+                            )}
+                          options={[
+                            { value: "", label: t("ecommerce.affiliateCampaign.noMinimum") },
+                            ...(capabilities?.genders ?? []).map((value) => ({
+                              value,
+                              label: marketplaceEnumLabel(value),
+                            })),
+                          ]}
+                        />
+                      </label>
+                      <label>
+                        <span>{t("ecommerce.affiliateCampaign.minimumAudienceShare")}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          disabled={!form.audienceGender}
+                          value={form.audienceGenderMinimum}
+                          onChange={(event) =>
+                            updateForm("audienceGenderMinimum", event.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <RuleChipSection
+                    title={t("ecommerce.affiliateCampaign.gmv30d")}
+                    values={capabilities?.gmvRanges ?? []}
+                    selected={form.gmvRanges}
+                    onToggle={(value) =>
+                      updateForm("gmvRanges", toggleValue(form.gmvRanges, value))}
+                  />
+                  <RuleChipSection
+                    title={t("ecommerce.affiliateCampaign.units30d")}
+                    values={capabilities?.unitsSoldRanges ?? []}
+                    selected={form.unitsSoldRanges}
+                    onToggle={(value) =>
+                      updateForm(
+                        "unitsSoldRanges",
+                        toggleValue(form.unitsSoldRanges, value),
+                      )}
+                  />
+                  <RuleChipSection
+                    title={t("ecommerce.affiliateCampaign.languages")}
+                    values={capabilities?.languages ?? []}
+                    selected={form.languages}
+                    onToggle={(value) =>
+                      updateForm("languages", toggleValue(form.languages, value))}
+                  />
+                  <RuleChipSection
+                    title={t("ecommerce.affiliateCampaign.creatorLevels")}
+                    values={capabilities?.creatorLevels ?? []}
+                    selected={form.creatorLevels}
+                    onToggle={(value) =>
+                      updateForm(
+                        "creatorLevels",
+                        toggleValue(form.creatorLevels, value),
+                      )}
+                  />
+                  <RuleChipSection
+                    title={t("ecommerce.affiliateCampaign.categoryPros")}
+                    values={capabilities?.categoryPros ?? []}
+                    selected={form.categoryPros}
+                    onToggle={(value) =>
+                      updateForm("categoryPros", toggleValue(form.categoryPros, value))}
+                  />
+                  <div className="affiliate-campaign-rule-block">
+                    <label>
+                      <span>{t("ecommerce.affiliateCampaign.categoryIds")}</span>
+                      <input
+                        value={form.categoryIds}
+                        onChange={(event) => updateForm("categoryIds", event.target.value)}
+                        placeholder={t("ecommerce.affiliateCampaign.categoryIdsHint")}
+                      />
+                    </label>
+                    <div className="affiliate-campaign-field-pair">
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.averageVideoViews")}
+                        value={form.averageVideoViews}
+                        onChange={(value) => updateForm("averageVideoViews", value)}
+                      />
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.averageEngagementRate")}
+                        value={form.averageEngagementRate}
+                        onChange={(value) => updateForm("averageEngagementRate", value)}
+                      />
+                    </div>
+                    <div className="affiliate-campaign-field-pair">
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.averageShoppableVideoViews")}
+                        value={form.averageShoppableVideoViews}
+                        onChange={(value) =>
+                          updateForm("averageShoppableVideoViews", value)}
+                      />
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.averageShoppableEngagementRate")}
+                        value={form.averageShoppableEngagementRate}
+                        onChange={(value) =>
+                          updateForm("averageShoppableEngagementRate", value)}
+                      />
+                    </div>
+                    <div className="affiliate-campaign-field-pair">
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.averageLiveViewers")}
+                        value={form.averageLiveViewers}
+                        onChange={(value) => updateForm("averageLiveViewers", value)}
+                      />
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.averageShoppableLiveViewers")}
+                        value={form.averageShoppableLiveViewers}
+                        onChange={(value) =>
+                          updateForm("averageShoppableLiveViewers", value)}
+                      />
+                    </div>
+                    <div className="affiliate-campaign-field-pair">
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.averageCommissionRate")}
+                        value={form.averageCommissionRate}
+                        onChange={(value) => updateForm("averageCommissionRate", value)}
+                      />
+                      <RuleTextInput
+                        label={t("ecommerce.affiliateCampaign.postRate")}
+                        value={form.postRate}
+                        onChange={(value) => updateForm("postRate", value)}
+                      />
+                    </div>
+                    <RuleTextInput
+                      label={t("ecommerce.affiliateCampaign.creatorAgencyStatus")}
+                      value={form.creatorAgencyStatus}
+                      onChange={(value) => updateForm("creatorAgencyStatus", value)}
+                    />
+                    <label className="affiliate-campaign-check-rule">
+                      <input
+                        type="checkbox"
+                        checked={form.fastGrowingOnly}
+                        onChange={(event) =>
+                          updateForm("fastGrowingOnly", event.target.checked)}
+                      />
+                      <span>{t("ecommerce.affiliateCampaign.fastGrowingOnly")}</span>
+                    </label>
+                    <label className="affiliate-campaign-check-rule">
+                      <input
+                        type="checkbox"
+                        checked={form.notInvitedLast90Days}
+                        onChange={(event) =>
+                          updateForm("notInvitedLast90Days", event.target.checked)}
+                      />
+                      <span>{t("ecommerce.affiliateCampaign.notInvitedLast90Days")}</span>
+                    </label>
+                  </div>
+                </details>
                 <div className="affiliate-campaign-allocation-preview">
                   <span>{t("ecommerce.affiliateCampaign.allocationPreview")}</span>
                   <strong>
@@ -980,6 +1376,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   value={t("ecommerce.affiliateCampaign.messagesPerDay", {
                     count: Number(form.dailyTarget),
                   })}
+                />
+                <ConfirmationItem
+                  title={t("ecommerce.affiliateCampaign.selectionStrategy")}
+                  value={campaignStrategyLabel(form.strategy, t)}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.commissionRate")}
@@ -1117,24 +1517,44 @@ function CampaignCreatorStateRow({
         <small>{formatDecisionReason(state.decisionReason)}</small>
       </td>
       <td>
-        <strong>
-          {t("ecommerce.affiliateCampaign.expectedSalesCompact", {
-            count: formatOptionalNumber(state.expectedSalesUnits),
-          })}
-        </strong>
-        <small>
-          {t("ecommerce.affiliateCampaign.followerAndEfficiency", {
-            followers: followers == null ? "—" : formatNumber(followers),
-            score: formatScore(state.efficiencyScore),
-          })}
-        </small>
-        <small>
-          {performance
-            ? t("ecommerce.affiliateCampaign.performanceAsOf", {
-              date: formatDateTime(performance.observedAt),
-            })
-            : t("ecommerce.affiliateCampaign.performancePending")}
-        </small>
+        {state.selectionStrategy ===
+        GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ? (
+          <>
+            <strong>{t("ecommerce.affiliateCampaign.providerOrderEvidence")}</strong>
+            <small>
+              {t("ecommerce.affiliateCampaign.providerRank", {
+                rank: state.providerOrdinal ?? "—",
+                page: (state.providerPageSequence ?? 0) + 1,
+              })}
+            </small>
+            <small>
+              {t("ecommerce.affiliateCampaign.ruleFilterResult", {
+                result: marketplaceEnumLabel(state.filterResult ?? "NOT_EVALUATED"),
+              })}
+            </small>
+          </>
+        ) : (
+          <>
+            <strong>
+              {t("ecommerce.affiliateCampaign.expectedSalesCompact", {
+                count: formatOptionalNumber(state.expectedSalesUnits),
+              })}
+            </strong>
+            <small>
+              {t("ecommerce.affiliateCampaign.followerAndEfficiency", {
+                followers: followers == null ? "—" : formatNumber(followers),
+                score: formatScore(state.efficiencyScore),
+              })}
+            </small>
+            <small>
+              {performance
+                ? t("ecommerce.affiliateCampaign.performanceAsOf", {
+                    date: formatDateTime(performance.observedAt),
+                  })
+                : t("ecommerce.affiliateCampaign.performancePending")}
+            </small>
+          </>
+        )}
       </td>
       <td>
         <strong>
@@ -1163,6 +1583,54 @@ function CampaignCreatorStateRow({
   );
 }
 
+function RuleChipSection<T extends string>({
+  title,
+  values,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  values: readonly T[];
+  selected: readonly T[];
+  onToggle: (value: T) => void;
+}) {
+  if (!values.length) return null;
+  return (
+    <div className="affiliate-campaign-rule-block">
+      <strong>{title}</strong>
+      <div className="affiliate-campaign-chip-grid">
+        {values.map((value) => (
+          <button
+            type="button"
+            key={value}
+            data-selected={selected.includes(value) || undefined}
+            onClick={() => onToggle(value)}
+          >
+            {marketplaceEnumLabel(value)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RuleTextInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label>
+      <span>{label}</span>
+      <input value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+
 function CampaignMetric({
   label,
   value,
@@ -1179,6 +1647,64 @@ function CampaignMetric({
       <small>{detail}</small>
     </div>
   );
+}
+
+function toggleValue<T extends string>(values: readonly T[], value: T): T[] {
+  return values.includes(value)
+    ? values.filter((item) => item !== value)
+    : [...values, value];
+}
+
+function splitCsv(value: string): string[] {
+  return [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))];
+}
+
+function marketplaceEnumLabel(value: string): string {
+  return value
+    .replace(/^(AGE_RANGE_|GMV_RANGE_|UNITS_SOLD_RANGE_)/, "")
+    .replace(/_AND_ABOVE$/, "+")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function campaignStrategyLabel(
+  strategy: GQL.AffiliateCampaignSelectionStrategy,
+  t: (key: string) => string,
+): string {
+  return strategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules
+    ? t("ecommerce.affiliateCampaign.strategyRuleTitle")
+    : t("ecommerce.affiliateCampaign.strategyMlTitle");
+}
+
+function campaignRuleSummary(
+  campaign: GQL.AffiliateCampaign,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (
+    campaign.selectionPolicy.strategy ===
+    GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3
+  ) {
+    return campaign.selectionPolicy.minimumExpectedSalesUnits == null
+      ? t("ecommerce.affiliateCampaign.noExpectedSalesFloor")
+      : t("ecommerce.affiliateCampaign.expectedSalesFloor", {
+          count: campaign.selectionPolicy.minimumExpectedSalesUnits,
+        });
+  }
+  const minimum = campaign.discoveryRules.followerCount?.minimum;
+  const maximum = campaign.discoveryRules.followerCount?.maximum;
+  if (minimum != null && maximum != null) {
+    return t("ecommerce.affiliateCampaign.followerRangeCompact", {
+      minimum: formatNumber(minimum),
+      maximum: formatNumber(maximum),
+    });
+  }
+  if (minimum != null) {
+    return t("ecommerce.affiliateCampaign.minimumFollowersCompact", {
+      value: formatNumber(minimum),
+    });
+  }
+  return t("ecommerce.affiliateCampaign.providerOrderNoFollowerFloor");
 }
 
 function CampaignFunnel({
