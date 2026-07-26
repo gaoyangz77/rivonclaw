@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import AdmZip from "adm-zip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -23,7 +24,7 @@ function skillZip(localSlug: string, version: string, body = "content"): Buffer 
   return zip.toBuffer();
 }
 
-function manifest(version: string) {
+function manifest(version: string, sha256?: string) {
   return {
     schemaVersion: 1,
     skills: [
@@ -31,6 +32,7 @@ function manifest(version: string) {
         slug: "official-foo",
         localSlug: "preset-foo",
         version,
+        ...(sha256 ? { sha256 } : {}),
         downloadUrl: "https://www.rivonclaw.com/skills/official-foo.zip",
       },
     ],
@@ -198,5 +200,48 @@ describe("syncOfficialPresetSkills", () => {
       failed: 1,
     });
     await expect(readFile(join(stateDir, "outside.txt"), "utf-8")).rejects.toThrow();
+  });
+
+  it("verifies a manifest ZIP digest before extraction", async () => {
+    const bytes = skillZip("preset-foo", currentVersion, "verified content");
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    mocks.fetch.mockImplementation(async (url: string | URL) => {
+      const href = url.toString();
+      if (href.endsWith("/skills/manifest.json")) {
+        return new Response(JSON.stringify(manifest(currentVersion, digest)), { status: 200 });
+      }
+      if (href.endsWith("/skills/official-foo.zip")) {
+        return new Response(new Uint8Array(bytes), { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    const { syncOfficialPresetSkills } = await import("./api.js");
+    await expect(syncOfficialPresetSkills({ proxyRouterPort: 0 }, "safe")).resolves.toMatchObject({
+      installed: 1,
+      failed: 0,
+    });
+  });
+
+  it("rejects a downloaded ZIP whose digest does not match the manifest", async () => {
+    mocks.fetch.mockImplementation(async (url: string | URL) => {
+      const href = url.toString();
+      if (href.endsWith("/skills/manifest.json")) {
+        return new Response(JSON.stringify(manifest(currentVersion, "0".repeat(64))), {
+          status: 200,
+        });
+      }
+      return new Response(
+        new Uint8Array(skillZip("preset-foo", currentVersion, "tampered content")),
+        { status: 200 },
+      );
+    });
+
+    const { syncOfficialPresetSkills } = await import("./api.js");
+    await expect(syncOfficialPresetSkills({ proxyRouterPort: 0 }, "safe")).resolves.toMatchObject({
+      installed: 0,
+      failed: 1,
+    });
+    await expect(readFile(join(stateDir, "skills", "preset-foo", "SKILL.md"))).rejects.toThrow();
   });
 });

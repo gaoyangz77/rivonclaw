@@ -67,6 +67,7 @@ interface OfficialPresetSkillManifestItem {
   displayName?: string;
   description?: string;
   version: string;
+  sha256?: string;
   contentKind?: string;
   zipFileName?: string;
   downloadUrl: string;
@@ -171,7 +172,8 @@ function normalizeOfficialPresetManifest(raw: unknown): OfficialPresetSkillManif
         item &&
         typeof item.slug === "string" &&
         typeof item.version === "string" &&
-        typeof item.downloadUrl === "string",
+        typeof item.downloadUrl === "string" &&
+        (item.sha256 === undefined || /^[a-f0-9]{64}$/i.test(item.sha256)),
       );
     }),
   };
@@ -224,7 +226,16 @@ async function installOfficialPresetZip(
   await fs.mkdir(tempDir, { recursive: true });
 
   try {
-    const zip = new AdmZip(Buffer.from(await response.arrayBuffer()));
+    const zipBytes = Buffer.from(await response.arrayBuffer());
+    if (item.sha256) {
+      const actualSha256 = createHash("sha256").update(zipBytes).digest("hex");
+      if (actualSha256.toLowerCase() !== item.sha256.toLowerCase()) {
+        throw new Error(
+          `ZIP digest mismatch for ${localSlug}: expected ${item.sha256}, received ${actualSha256}`,
+        );
+      }
+    }
+    const zip = new AdmZip(zipBytes);
     for (const entry of zip.getEntries()) {
       if (!isSafeOfficialZipEntry(entry.entryName, localSlug)) {
         throw new Error(`ZIP for ${localSlug} contains unexpected entry: ${entry.entryName}`);
