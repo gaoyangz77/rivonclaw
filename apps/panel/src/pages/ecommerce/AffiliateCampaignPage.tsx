@@ -20,10 +20,11 @@ import {
   AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
-  ECOMMERCE_SEARCH_PRODUCTS_QUERY,
   GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION,
+  RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION,
   SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION,
   SHOPS_QUERY,
+  SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_KEYWORDS_MUTATION,
   WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "../../api/shops-queries.js";
 
@@ -37,6 +38,8 @@ type CampaignForm = {
   minimumExpectedSales: string;
   commissionRate: string;
   searchKeyword: string;
+  searchKeywordSource: GQL.AffiliateCampaignSearchKeywordSource;
+  searchKeywordSuggestionVersion: number | null;
   strategy: GQL.AffiliateCampaignSelectionStrategy;
   ageRanges: GQL.CreatorSearchFollowerAgeRange[];
   audienceGender: GQL.CreatorSearchFollowerGender | "";
@@ -72,6 +75,8 @@ const emptyForm: CampaignForm = {
   minimumExpectedSales: "",
   commissionRate: "10",
   searchKeyword: "",
+  searchKeywordSource: GQL.AffiliateCampaignSearchKeywordSource.UserAuthored,
+  searchKeywordSuggestionVersion: null,
   strategy: GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
   ageRanges: [],
   audienceGender: "",
@@ -147,6 +152,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [stateStatus, setStateStatus] = useState("");
+  const [productPreview, setProductPreview] =
+    useState<GQL.AffiliateCampaignProductPreview | null>(null);
+  const [keywordSuggestions, setKeywordSuggestions] = useState<
+    GQL.AffiliateCampaignSearchKeywordSuggestion[]
+  >([]);
 
   const campaignsQuery = useQuery<{ affiliateCampaigns: GQL.AffiliateCampaign[] }>(
     AFFILIATE_CAMPAIGNS_QUERY,
@@ -155,17 +165,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const shopsQuery = useQuery<{ shops: GQL.Shop[] }>(SHOPS_QUERY, {
     fetchPolicy: "cache-and-network",
   });
-  const productsQuery = useQuery<{ ecommerceSearchProducts: GQL.EcomProductSummary[] }>(
-    ECOMMERCE_SEARCH_PRODUCTS_QUERY,
-    {
-      variables: {
-        shopId: form.shopId,
-        status: GQL.EcomProductStatus.Activate,
-        limit: 200,
-      },
-      skip: !form.shopId,
-    },
-  );
   const capabilitiesQuery = useQuery<{
     affiliateMarketplaceCreatorRuleCapabilities:
       GQL.AffiliateMarketplaceCreatorRuleCapabilities;
@@ -219,6 +218,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { generateAffiliateCampaignMessageTemplate: GQL.AffiliateCampaignMessageTemplateSuggestion },
     { input: GQL.GenerateAffiliateCampaignMessageTemplateInput }
   >(GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION);
+  const [resolveProduct, resolveProductState] = useMutation<
+    { resolveAffiliateCampaignProduct: GQL.AffiliateCampaignProductPreview },
+    { input: GQL.ResolveAffiliateCampaignProductInput }
+  >(RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION);
+  const [suggestKeywords, suggestKeywordsState] = useMutation<
+    { suggestAffiliateCampaignSearchKeywords: GQL.AffiliateCampaignSearchKeywordSuggestions },
+    { input: GQL.SuggestAffiliateCampaignSearchKeywordsInput }
+  >(SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_KEYWORDS_MUTATION);
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
   const selectedCampaign =
@@ -231,8 +238,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       shop.authStatus === GQL.ShopAuthStatus.Authorized,
   );
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
-  const products = productsQuery.data?.ecommerceSearchProducts ?? [];
-  const selectedProduct = products.find((product) => product.productId === form.productId);
   const capabilities =
     capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
   const selectionReadiness =
@@ -257,11 +262,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     label: shop.shopName,
     description: `${shop.region ?? "—"} · ${shop.timezone}`,
   }));
-  const productOptions = products.map((product) => ({
-    value: product.productId,
-    label: product.title || product.productId,
-    description: [product.priceMin, product.priceMax].filter(Boolean).join(" – "),
-  }));
   const stateOptions = [
     { value: "", label: t("ecommerce.affiliateCampaign.allStates") },
     ...stateStatusOptions.map((status) => ({
@@ -272,6 +272,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const openCreate = () => {
     setForm(emptyForm);
+    setProductPreview(null);
+    setKeywordSuggestions([]);
     setEditingCampaignId("");
     setWizardStep(1);
     setWizardOpen(true);
@@ -298,6 +300,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           : String(campaign.selectionPolicy.minimumExpectedSalesUnits),
       commissionRate: String(campaignCommissionRate(campaign)),
       searchKeyword: rules.keyword ?? "",
+      searchKeywordSource:
+        campaign.searchKeywordSource ??
+        GQL.AffiliateCampaignSearchKeywordSource.UserAuthored,
+      searchKeywordSuggestionVersion:
+        campaign.searchKeywordSuggestionVersion ?? null,
       strategy: campaign.selectionPolicy.strategy,
       ageRanges: rules.audience?.ageRanges ?? [],
       audienceGender: rules.audience?.genderDistribution?.gender ?? "",
@@ -336,6 +343,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       templateSource: campaign.messageTemplateSource,
     });
     setEditingCampaignId(campaign.id);
+    setProductPreview(null);
+    setKeywordSuggestions([]);
     setWizardStep(1);
     setWizardOpen(true);
   };
@@ -345,7 +354,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const validateStep = () => {
-    if (wizardStep === 1 && (!form.shopId || !form.productId || !form.name.trim())) {
+    if (
+      wizardStep === 1 &&
+      (!form.shopId ||
+        !form.productId ||
+        !form.name.trim() ||
+        productPreview?.productId !== form.productId)
+    ) {
       showToast(t("ecommerce.affiliateCampaign.completeShopProduct"), "error");
       return false;
     }
@@ -381,14 +396,62 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setWizardStep((step) => Math.min(4, step + 1));
   };
 
+  const fetchProduct = async () => {
+    if (!form.shopId || !form.productId.trim()) {
+      showToast(t("ecommerce.affiliateCampaign.completeShopProduct"), "error");
+      return;
+    }
+    try {
+      const result = await resolveProduct({
+        variables: {
+          input: { shopId: form.shopId, productId: form.productId.trim() },
+        },
+      });
+      const preview = result.data?.resolveAffiliateCampaignProduct;
+      if (!preview) throw new Error(t("ecommerce.affiliateCampaign.productFetchFailed"));
+      setForm((current) => ({ ...current, productId: preview.productId }));
+      setProductPreview(preview);
+      setKeywordSuggestions([]);
+      showToast(t("ecommerce.affiliateCampaign.productFetched"), "success");
+    } catch (error) {
+      setProductPreview(null);
+      showToast(error instanceof Error ? error.message : String(error), "error");
+    }
+  };
+
+  const generateKeywordSuggestions = async () => {
+    if (!productPreview) return;
+    try {
+      const result = await suggestKeywords({
+        variables: {
+          input: {
+            shopId: form.shopId,
+            productId: productPreview.productId,
+            expectedProductSnapshotHash: productPreview.snapshotHash,
+          },
+        },
+      });
+      const payload = result.data?.suggestAffiliateCampaignSearchKeywords;
+      if (!payload) throw new Error(t("ecommerce.affiliateCampaign.keywordSuggestionFailed"));
+      setKeywordSuggestions(payload.suggestions);
+      showToast(t("ecommerce.affiliateCampaign.keywordSuggestionsReady"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
+    }
+  };
+
   const createCampaign = async () => {
     if (!validateStep()) return;
+    if (!productPreview) return;
     try {
       const campaignInput = {
         ...(editingCampaignId ? { id: editingCampaignId } : {}),
         shopId: form.shopId,
         name: form.name.trim(),
         primaryProductId: form.productId,
+        expectedProductSnapshotHash: productPreview.snapshotHash,
+        searchKeywordSource: form.searchKeywordSource,
+        searchKeywordSuggestionVersion: form.searchKeywordSuggestionVersion,
         dailyOutreachTarget: Number(form.dailyTarget),
         commissionRatePercent: Number(form.commissionRate),
         discoveryRules: {
@@ -945,7 +1008,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <span>{t("ecommerce.affiliateCampaign.shop")}</span>
                   <Select
                     value={form.shopId}
-                    onChange={(shopId) =>
+                    onChange={(shopId) => {
                       setForm((current) => ({
                         ...current,
                         shopId,
@@ -958,7 +1021,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         languages: [],
                         creatorLevels: [],
                         categoryPros: [],
-                      }))}
+                      }));
+                      setProductPreview(null);
+                      setKeywordSuggestions([]);
+                    }}
                     options={shopOptions}
                     searchable
                     disabled={Boolean(editingCampaignId)}
@@ -966,22 +1032,57 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     placeholder={t("ecommerce.affiliateCampaign.selectShop")}
                   />
                 </label>
-                <label>
+                <div className="affiliate-campaign-product-fetch">
                   <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
-                  <Select
-                    value={form.productId}
-                    onChange={(productId) => updateForm("productId", productId)}
-                    options={productOptions}
-                    searchable
-                    disabled={!form.shopId || productsQuery.loading}
-                    searchPlaceholder={t("ecommerce.affiliateCampaign.searchProduct")}
-                    placeholder={
-                      productsQuery.loading
-                        ? t("common.loading")
-                        : t("ecommerce.affiliateCampaign.selectProduct")
-                    }
-                  />
-                </label>
+                  <div className="affiliate-campaign-product-fetch-row">
+                    <input
+                      value={form.productId}
+                      disabled={!form.shopId}
+                      onChange={(event) => {
+                        updateForm("productId", event.target.value.trim());
+                        setProductPreview(null);
+                        setKeywordSuggestions([]);
+                      }}
+                      placeholder={t("ecommerce.affiliateCampaign.productIdPlaceholder")}
+                    />
+                    <button
+                      type="button"
+                      className="affiliate-campaign-fetch-button"
+                      disabled={!form.shopId || !form.productId.trim() || resolveProductState.loading}
+                      onClick={fetchProduct}
+                    >
+                      {resolveProductState.loading
+                        ? t("ecommerce.affiliateCampaign.fetchingProduct")
+                        : t("ecommerce.affiliateCampaign.fetchProduct")}
+                    </button>
+                  </div>
+                  <small>{t("ecommerce.affiliateCampaign.productFetchHint")}</small>
+                </div>
+                {productPreview && (
+                  <article className="affiliate-campaign-product-preview">
+                    {productPreview.coverImage ? (
+                      <img src={productPreview.coverImage} alt="" />
+                    ) : (
+                      <div className="affiliate-campaign-product-preview-placeholder">
+                        <ShopIcon />
+                      </div>
+                    )}
+                    <div>
+                      <span>{t("ecommerce.affiliateCampaign.productVerified")}</span>
+                      <strong>{productPreview.title}</strong>
+                      <p>{productPreview.categoryPathNames.join(" / ")}</p>
+                      <small>
+                        ${productPreview.minimumPriceUsdAmount.toFixed(2)}
+                        {productPreview.maximumPriceUsdAmount !==
+                          productPreview.minimumPriceUsdAmount &&
+                          ` – $${productPreview.maximumPriceUsdAmount.toFixed(2)}`}
+                        {" · "}
+                        {productPreview.brandName || t("ecommerce.affiliateCampaign.noBrand")}
+                      </small>
+                    </div>
+                    <i>{productPreview.status ?? "—"}</i>
+                  </article>
+                )}
                 {selectedShop && (
                   <div className="affiliate-campaign-derived-context">
                     <ShopIcon />
@@ -1101,13 +1202,60 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <div className="affiliate-campaign-field-pair">
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.marketplaceKeyword")}</span>
-                    <input
-                      value={form.searchKeyword}
-                      onChange={(event) => updateForm("searchKeyword", event.target.value)}
-                      placeholder={t("ecommerce.affiliateCampaign.keywordPlaceholder")}
-                    />
+                    <div className="affiliate-campaign-keyword-input-row">
+                      <input
+                        value={form.searchKeyword}
+                        onChange={(event) => {
+                          updateForm("searchKeyword", event.target.value);
+                          updateForm(
+                            "searchKeywordSource",
+                            GQL.AffiliateCampaignSearchKeywordSource.UserAuthored,
+                          );
+                          updateForm("searchKeywordSuggestionVersion", null);
+                        }}
+                        placeholder={t("ecommerce.affiliateCampaign.keywordPlaceholder")}
+                      />
+                      <button
+                        type="button"
+                        disabled={!productPreview || suggestKeywordsState.loading}
+                        onClick={generateKeywordSuggestions}
+                      >
+                        {suggestKeywordsState.loading
+                          ? t("ecommerce.affiliateCampaign.generating")
+                          : t("ecommerce.affiliateCampaign.suggestKeywords")}
+                      </button>
+                    </div>
+                    <small>{t("ecommerce.affiliateCampaign.keywordAiHint")}</small>
                   </label>
                 </div>
+                {keywordSuggestions.length > 0 && (
+                  <div className="affiliate-campaign-keyword-suggestions">
+                    <span>{t("ecommerce.affiliateCampaign.keywordSuggestions")}</span>
+                    {keywordSuggestions.map((suggestion) => (
+                      <button
+                        type="button"
+                        key={suggestion.keyword}
+                        data-selected={
+                          (form.searchKeyword === suggestion.keyword &&
+                            form.searchKeywordSource ===
+                              GQL.AffiliateCampaignSearchKeywordSource.AiSuggested) ||
+                          undefined
+                        }
+                        onClick={() => {
+                          updateForm("searchKeyword", suggestion.keyword);
+                          updateForm(
+                            "searchKeywordSource",
+                            GQL.AffiliateCampaignSearchKeywordSource.AiSuggested,
+                          );
+                          updateForm("searchKeywordSuggestionVersion", 1);
+                        }}
+                      >
+                        <strong>{suggestion.keyword}</strong>
+                        <small>{suggestion.rationale}</small>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <details className="affiliate-campaign-advanced-rules">
                   <summary>
                     <span>{t("ecommerce.affiliateCampaign.advancedProviderRules")}</span>
@@ -1350,7 +1498,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <p>
                     {renderAffiliateCampaignTemplatePreview(
                       form.templateText,
-                      selectedProduct?.title || t("ecommerce.affiliateCampaign.previewProduct"),
+                      productPreview?.title || t("ecommerce.affiliateCampaign.previewProduct"),
                       selectedShop?.shopName || t("ecommerce.affiliateCampaign.previewShop"),
                     ) || t("ecommerce.affiliateCampaign.previewEmpty")}
                   </p>
@@ -1369,7 +1517,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <div className="affiliate-campaign-confirm-grid">
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.shopAndProduct")}
-                  value={`${selectedShop?.shopName ?? "—"} · ${selectedProduct?.title ?? form.productId}`}
+                  value={`${selectedShop?.shopName ?? "—"} · ${productPreview?.title ?? form.productId}`}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.dailyTarget")}
