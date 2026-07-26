@@ -17740,6 +17740,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-creator-row-title,
 .affiliate-creator-row-meta,
+.affiliate-creator-shop-list,
 .affiliate-creator-tag-list {
   display: flex;
   align-items: center;
@@ -17751,6 +17752,31 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-creator-row-meta {
   color: var(--color-text-muted);
   font-size: 12px;
+}
+
+.affiliate-creator-shop-list {
+  gap: 5px;
+}
+
+.affiliate-creator-shop-label {
+  margin-right: 2px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.affiliate-creator-shop-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .affiliate-creator-tag-select-wrap {
@@ -17843,6 +17869,15 @@ html[lang="zh"] .acct-tool-chips {
   text-align: left;
 }
 
+.affiliate-creator-work-summary-item-primary {
+  border-color: color-mix(in srgb, var(--color-primary) 25%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+}
+
+.affiliate-creator-work-summary-item-primary > span {
+  color: color-mix(in srgb, var(--color-primary) 76%, var(--color-text-muted));
+}
+
 .affiliate-creator-work-summary-button {
   cursor: pointer;
   transition:
@@ -17879,6 +17914,13 @@ html[lang="zh"] .acct-tool-chips {
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.affiliate-creator-work-summary small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .affiliate-relationship-card {

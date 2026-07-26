@@ -3229,10 +3229,10 @@ export default {
       subtitle: "Review pending agent actions for creator lifecycle work.",
       creatorsTitle: "Cooperation creators",
       creatorsSubtitle:
-        "Manage creators who already entered this shop's affiliate workflow, including labels used by approval policy.",
+        "Review creators with an established business relationship in this shop, maintain labels, and handle current work.",
       creatorsPanelTitle: "Shop creator pool",
       creatorsPanelHint:
-        "Only creators with materialized collaboration records in this shop are shown.",
+        "Shows creators with a relationship, conversation, or collaboration record in this shop.",
       creatorTagFilter: "Tag filter",
       allCreatorTagsFilter: "All tags",
       creatorAttentionOnly: "Needs attention only",
@@ -3245,6 +3245,9 @@ export default {
       creatorLatestWork: "Latest work",
       creatorLastInteraction: "Last interaction",
       creatorActiveCollaborations: "{{count}} active collaboration(s)",
+      creatorCooperationShops: "Collaboration shops",
+      creatorFollowerCount: "{{value}} followers",
+      creatorFollowerDataPending: "Follower data pending",
       creatorNeedsAttention: "Needs attention",
       creatorStable: "On track",
       creatorPendingProposal: "Pending proposal",
