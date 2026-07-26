@@ -230,6 +230,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     dailyOutreachTarget
     minimumFollowerCount
     minimumExpectedSalesUnits
+    commissionRatePercent
     marketplaceSearchFilters
     messageTemplateText
     messageTemplateSource

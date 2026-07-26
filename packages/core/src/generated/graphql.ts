@@ -748,6 +748,7 @@ export interface AffiliateCampaign {
   dailyOutreachTarget: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
   market: ShopRegion;
+  commissionRatePercent: Scalars['Float']['output'];
   marketplaceSearchFilters: Scalars['JSONObject']['output'];
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
   messageTemplateText: Scalars['String']['output'];
@@ -11366,6 +11367,7 @@ export interface WriteAffiliateBusinessDeveloperInput {
 }
 
 export interface WriteAffiliateCampaignInput {
+  commissionRatePercent: Scalars['Float']['input'];
   dailyOutreachTarget: Scalars['Int']['input'];
   id?: InputMaybe<Scalars['ID']['input']>;
   marketplaceSearchFilters: CreatorMarketplaceSearchParamsInput;

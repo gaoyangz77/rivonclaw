@@ -32,6 +32,7 @@ type CampaignForm = {
   dailyTarget: string;
   minimumFollowers: string;
   minimumExpectedSales: string;
+  commissionRate: string;
   searchKeyword: string;
   templateText: string;
   templateSource: GQL.AffiliateCampaignMessageTemplateSource;
@@ -44,6 +45,7 @@ const emptyForm: CampaignForm = {
   dailyTarget: "100",
   minimumFollowers: "1000",
   minimumExpectedSales: "",
+  commissionRate: "10",
   searchKeyword: "",
   templateText: "",
   templateSource: GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
@@ -185,6 +187,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         campaign.minimumExpectedSalesUnits == null
           ? ""
           : String(campaign.minimumExpectedSalesUnits),
+      commissionRate: String(campaignCommissionRate(campaign)),
       searchKeyword: typeof filters.keyword === "string" ? filters.keyword : "",
       templateText: campaign.messageTemplateText,
       templateSource: campaign.messageTemplateSource,
@@ -209,6 +212,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         Number(form.dailyTarget) < 1 ||
         Number(form.dailyTarget) > 10_000 ||
         Number(form.minimumFollowers) < 1 ||
+        Number(form.commissionRate) < 0 ||
+        Number(form.commissionRate) > 100 ||
         (form.minimumExpectedSales && Number(form.minimumExpectedSales) < 0)
       )
     ) {
@@ -230,33 +235,35 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const createCampaign = async () => {
     if (!validateStep()) return;
     try {
+      const campaignInput = {
+        ...(editingCampaignId ? { id: editingCampaignId } : {}),
+        shopId: form.shopId,
+        name: form.name.trim(),
+        primaryProductId: form.productId,
+        dailyOutreachTarget: Number(form.dailyTarget),
+        minimumFollowerCount: Number(form.minimumFollowers),
+        minimumExpectedSalesUnits: form.minimumExpectedSales
+          ? Number(form.minimumExpectedSales)
+          : null,
+        commissionRatePercent: Number(form.commissionRate),
+        marketplaceSearchFilters: {
+          pageSize: 20,
+          region: selectedShop?.region ?? null,
+          keyword: form.searchKeyword.trim() || null,
+          followerDemographics: {
+            minFollowerCount: Number(form.minimumFollowers),
+          },
+        },
+        messageTemplateText: form.templateText.trim(),
+        messageTemplateSource: form.templateSource,
+        status:
+          selectedCampaign?.id === editingCampaignId
+            ? selectedCampaign.status
+            : GQL.AffiliateCampaignStatus.Active,
+      } as GQL.WriteAffiliateCampaignInput & { commissionRatePercent: number };
       const result = await writeCampaign({
         variables: {
-          input: {
-            ...(editingCampaignId ? { id: editingCampaignId } : {}),
-            shopId: form.shopId,
-            name: form.name.trim(),
-            primaryProductId: form.productId,
-            dailyOutreachTarget: Number(form.dailyTarget),
-            minimumFollowerCount: Number(form.minimumFollowers),
-            minimumExpectedSalesUnits: form.minimumExpectedSales
-              ? Number(form.minimumExpectedSales)
-              : null,
-            marketplaceSearchFilters: {
-              pageSize: 20,
-              region: selectedShop?.region ?? null,
-              keyword: form.searchKeyword.trim() || null,
-              followerDemographics: {
-                minFollowerCount: Number(form.minimumFollowers),
-              },
-            },
-            messageTemplateText: form.templateText.trim(),
-            messageTemplateSource: form.templateSource,
-            status:
-              selectedCampaign?.id === editingCampaignId
-                ? selectedCampaign.status
-                : GQL.AffiliateCampaignStatus.Active,
-          },
+          input: campaignInput,
         },
       });
       const created = result.data?.writeAffiliateCampaign;
@@ -525,6 +532,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <span>{t("ecommerce.affiliateCampaign.minimumExpectedSales")}</span>
                   <strong>{selectedCampaign.minimumExpectedSalesUnits ?? "—"}</strong>
                 </div>
+                <div>
+                  <span>{t("ecommerce.affiliateCampaign.commissionRate")}</span>
+                  <strong>{campaignCommissionRate(selectedCampaign)}%</strong>
+                </div>
                 <div className="affiliate-campaign-template-readout">
                   <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
                   <p>{selectedCampaign.messageTemplateText}</p>
@@ -729,6 +740,20 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     />
                   </label>
                   <label>
+                    <span>{t("ecommerce.affiliateCampaign.commissionRate")}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      value={form.commissionRate}
+                      onChange={(event) => updateForm("commissionRate", event.target.value)}
+                    />
+                    <small>{t("ecommerce.affiliateCampaign.commissionRateHint")}</small>
+                  </label>
+                </div>
+                <div className="affiliate-campaign-field-pair">
+                  <label>
                     <span>{t("ecommerce.affiliateCampaign.marketplaceKeyword")}</span>
                     <input
                       value={form.searchKeyword}
@@ -826,6 +851,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   value={t("ecommerce.affiliateCampaign.messagesPerDay", {
                     count: Number(form.dailyTarget),
                   })}
+                />
+                <ConfirmationItem
+                  title={t("ecommerce.affiliateCampaign.commissionRate")}
+                  value={`${form.commissionRate}%`}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.sendingWindow")}
@@ -1002,6 +1031,14 @@ function executionStatusLabel(
   t: (key: string) => string,
 ) {
   return t(`ecommerce.affiliateCampaign.executionStatus.${status.toLowerCase()}`);
+}
+
+function campaignCommissionRate(campaign: GQL.AffiliateCampaign): number {
+  const value = Number(
+    (campaign as GQL.AffiliateCampaign & { commissionRatePercent?: number })
+      .commissionRatePercent,
+  );
+  return Number.isFinite(value) ? value : 10;
 }
 
 export function estimateCampaignCadence(target: number, submitted: number) {
