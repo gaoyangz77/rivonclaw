@@ -228,10 +228,36 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     market
     resolvedTimeZone
     dailyOutreachTarget
-    minimumFollowerCount
-    minimumExpectedSalesUnits
     commissionRatePercent
-    marketplaceSearchFilters
+    discoveryRules {
+      keyword
+      followerCount { minimum maximum }
+      audience {
+        ageRanges
+        genderDistribution { gender minimumPercentage }
+      }
+      salesPerformance30d { gmvRanges unitsSoldRanges }
+      categories { parentCategoryId childCategoryIds }
+      contentPerformance30d {
+        averageVideoViews
+        averageShoppableVideoViews
+        averageEngagementRate
+        averageShoppableEngagementRate
+        averageLiveViewers
+        averageShoppableLiveViewers
+      }
+      affiliatePerformance30d {
+        averageCommissionRate
+        postRate
+        creatorAgencyStatus
+        fastGrowingOnly
+        notInvitedLast90Days
+      }
+      marketSpecific { languages creatorLevels categoryPros }
+    }
+    selectionPolicy { strategy ranking minimumExpectedSalesUnits }
+    rulesHash
+    capabilityHash
     messageTemplateText
     messageTemplateSource
     templateVersion
@@ -257,9 +283,16 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
     marketLocalDate
     configRevision
     templateVersion
+    selectionStrategy
+    rulesHash
+    capabilityHash
+    modelVersion
     requestedTarget
     allocatedTarget
     status
+    pageCursor
+    providerSearchKey
+    pageSequence
     counters {
       scanned
       evaluated
@@ -339,6 +372,12 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         followerCount
         efficiencyScore
         decisionReason
+        selectionStrategy
+        predictionStatus
+        filterResult
+        decisionReasonCodes
+        providerOrdinal
+        providerPageSequence
         scheduledAt
         reachedOutAt
         repliedAt
@@ -376,6 +415,37 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
           }
         }
       }
+    }
+  }
+`;
+
+export const AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY = gql`
+  query AffiliateMarketplaceCreatorRuleCapabilities($shopId: ID!) {
+    affiliateMarketplaceCreatorRuleCapabilities(shopId: $shopId) {
+      shopId
+      market
+      apiVersion
+      ageRanges
+      genders
+      gmvRanges
+      unitsSoldRanges
+      languages
+      creatorLevels
+      categoryPros
+      fetchedAt
+      capabilityHash
+    }
+  }
+`;
+
+export const AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY = gql`
+  query AffiliateCampaignSelectionReadiness($campaignId: ID!) {
+    affiliateCampaignSelectionReadiness(campaignId: $campaignId) {
+      campaignId
+      strategy
+      ready
+      reasonCode
+      message
     }
   }
 `;
