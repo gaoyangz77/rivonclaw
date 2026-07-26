@@ -4,6 +4,7 @@ import { buildSchema, print, validate } from "graphql";
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
+  AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_COLLABORATION_RECORDS_QUERY,
@@ -29,6 +30,7 @@ describe("affiliate workspace GraphQL contracts", () => {
       collaborations: AFFILIATE_COLLABORATION_RECORDS_QUERY,
       creators: AFFILIATE_CREATORS_QUERY,
       creatorProfile: AFFILIATE_CREATOR_PROFILE_QUERY,
+      campaignCreatorStates: AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
       decideProposal: DECIDE_ACTION_PROPOSAL_MUTATION,
       preferredAccount: SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
     };
@@ -59,6 +61,16 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("market");
     expect(query).toContain("performance");
     expect(query).toContain("refreshErrorCode");
+  });
+
+  it("loads campaign decisions with batched Creator profile, performance, and relationship context", () => {
+    const query = queryText(AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY);
+
+    expect(query).toContain("affiliateCampaignCreatorStates(input: $input)");
+    expect(query).toContain("creatorProfile");
+    expect(query).toContain("creatorPerformance");
+    expect(query).toContain("creatorRelationship");
+    expect(query).toContain("activeCollaborationRecordIds");
   });
 
   it("loads approval proposals with relationship and collaboration focus context", () => {
