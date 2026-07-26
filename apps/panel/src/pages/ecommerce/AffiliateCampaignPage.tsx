@@ -53,6 +53,45 @@ const emptyForm: CampaignForm = {
 
 const stateStatusOptions = Object.values(GQL.AffiliateCampaignCreatorStateStatus);
 
+type CampaignCreatorProfile = Pick<
+  GQL.AffiliateCreatorIdentity,
+  | "id"
+  | "platform"
+  | "creatorOpenId"
+  | "username"
+  | "nickname"
+  | "avatarUrl"
+  | "bioDescription"
+  | "lastObservedAt"
+>;
+
+type CampaignCreatorPerformance = Pick<
+  GQL.AffiliateCreatorPerformanceCurrent,
+  "market" | "observedAt" | "sourceType" | "followerCount" | "categoryIds"
+>;
+
+type CampaignCreatorRelationship = Pick<
+  GQL.AffiliateCreatorRelationship,
+  | "id"
+  | "shopStates"
+  | "lastInboundAt"
+  | "lastOutboundAt"
+  | "activeCollaborationRecordIds"
+  | "blocked"
+  | "workSummary"
+>;
+
+type CampaignCreatorState = GQL.AffiliateCampaignCreatorState & {
+  creatorProfile?: CampaignCreatorProfile | null;
+  creatorPerformance?: CampaignCreatorPerformance | null;
+  creatorRelationship?: CampaignCreatorRelationship | null;
+};
+
+type CampaignCreatorStatePage = {
+  items: CampaignCreatorState[];
+  nextCursor?: string | null;
+};
+
 export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -96,7 +135,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     skip: !selectedCampaignId,
   });
   const creatorStatesQuery = useQuery<{
-    affiliateCampaignCreatorStates: GQL.AffiliateCampaignCreatorStatePage;
+    affiliateCampaignCreatorStates: CampaignCreatorStatePage;
   }>(AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY, {
     variables: {
       input: {
@@ -123,7 +162,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
   const selectedCampaign =
-    campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? campaigns[0];
+    campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
   const summary = summaryQuery.data?.affiliateCampaignSummary;
   const latestExecution = summary?.latestExecution;
   const shops = (shopsQuery.data?.shops ?? []).filter(
@@ -136,15 +175,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const selectedProduct = products.find((product) => product.productId === form.productId);
 
   useEffect(() => {
-    if (!selectedCampaignId && campaigns[0]) setSelectedCampaignId(campaigns[0].id);
     if (
       selectedCampaignId &&
       campaigns.length > 0 &&
       !campaigns.some((campaign) => campaign.id === selectedCampaignId)
     ) {
-      setSelectedCampaignId(campaigns[0]!.id);
+      setSelectedCampaignId("");
     }
   }, [campaigns, selectedCampaignId]);
+
+  useEffect(() => {
+    setStateStatus("");
+  }, [selectedCampaignId]);
 
   const shopOptions = shops.map((shop) => ({
     value: shop.id,
@@ -335,12 +377,34 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const activeCount = campaigns.filter(
     (campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active,
   ).length;
-  const todaySent = campaigns.reduce(
-    (sum, campaign) =>
-      sum +
-      (campaign.id === selectedCampaignId ? (summary?.counters.sent ?? 0) : 0),
-    0,
-  );
+  const dailyTargetTotal = campaigns
+    .filter((campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active)
+    .reduce((sum, campaign) => sum + campaign.dailyOutreachTarget, 0);
+
+  const loadMoreCreatorStates = async () => {
+    const nextCursor =
+      creatorStatesQuery.data?.affiliateCampaignCreatorStates.nextCursor;
+    if (!nextCursor) return;
+    await creatorStatesQuery.fetchMore({
+      variables: {
+        input: {
+          campaignId: selectedCampaignId,
+          limit: 50,
+          cursor: nextCursor,
+          ...(stateStatus ? { status: stateStatus } : {}),
+        },
+      },
+      updateQuery: (previous, { fetchMoreResult }) => ({
+        affiliateCampaignCreatorStates: {
+          ...fetchMoreResult.affiliateCampaignCreatorStates,
+          items: [
+            ...previous.affiliateCampaignCreatorStates.items,
+            ...fetchMoreResult.affiliateCampaignCreatorStates.items,
+          ],
+        },
+      }),
+    });
+  };
 
   return (
     <div className="affiliate-campaign-page">
@@ -380,9 +444,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           detail={t("ecommerce.affiliateCampaign.totalCampaigns", { count: campaigns.length })}
         />
         <CampaignMetric
-          label={t("ecommerce.affiliateCampaign.todaySent")}
-          value={todaySent}
-          detail={t("ecommerce.affiliateCampaign.tiktokOnly")}
+          label={t("ecommerce.affiliateCampaign.dailyTargetTotal")}
+          value={dailyTargetTotal}
+          detail={t("ecommerce.affiliateCampaign.acrossActiveCampaigns")}
         />
         <CampaignMetric
           label={t("ecommerce.affiliateCampaign.agentCost")}
@@ -408,219 +472,284 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           </div>
         </section>
       ) : (
-        <div className="affiliate-campaign-workspace">
-          <aside className="affiliate-campaign-rail">
-            <div className="affiliate-campaign-rail-heading">
+        <section className="affiliate-campaign-directory">
+          <header className="affiliate-campaign-directory-header">
+            <div>
               <span>{t("ecommerce.affiliateCampaign.portfolio")}</span>
-              <strong>{campaigns.length}</strong>
+              <h2>{t("ecommerce.affiliateCampaign.campaignTableTitle")}</h2>
+              <p>{t("ecommerce.affiliateCampaign.campaignTableDescription")}</p>
             </div>
-            {campaigns.map((campaign) => (
-              <button
-                key={campaign.id}
-                type="button"
-                className="affiliate-campaign-rail-card"
-                data-active={campaign.id === selectedCampaign?.id || undefined}
-                onClick={() => setSelectedCampaignId(campaign.id)}
-              >
-                <span className={`affiliate-campaign-status-dot is-${campaign.status.toLowerCase()}`} />
-                <span>
-                  <strong>{campaign.name}</strong>
-                  <small>
-                    {campaign.market} · {campaign.dailyOutreachTarget}/
-                    {t("ecommerce.affiliateCampaign.day")}
-                  </small>
-                </span>
-                <ChevronRightIcon />
-              </button>
-            ))}
-          </aside>
+            <strong>{campaigns.length}</strong>
+          </header>
+          <div className="affiliate-campaign-directory-table-wrap">
+            <table className="affiliate-campaign-directory-table">
+              <thead>
+                <tr>
+                  <th>{t("ecommerce.affiliateCampaign.campaign")}</th>
+                  <th>{t("ecommerce.affiliateCampaign.shopAndMarket")}</th>
+                  <th>{t("ecommerce.affiliateCampaign.statusLabel")}</th>
+                  <th>{t("ecommerce.affiliateCampaign.dailyTarget")}</th>
+                  <th>{t("ecommerce.affiliateCampaign.selectionBoundary")}</th>
+                  <th>{t("ecommerce.affiliateCampaign.nextActivity")}</th>
+                  <th aria-label={t("ecommerce.affiliateCampaign.openDetail")} />
+                </tr>
+              </thead>
+              <tbody>
+                {campaigns.map((campaign) => {
+                  const campaignShop = shops.find((shop) => shop.id === campaign.shopId);
+                  return (
+                    <tr
+                      key={campaign.id}
+                      tabIndex={0}
+                      onClick={() => setSelectedCampaignId(campaign.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedCampaignId(campaign.id);
+                        }
+                      }}
+                    >
+                      <td>
+                        <div className="affiliate-campaign-directory-name">
+                          <span className={`affiliate-campaign-status-dot is-${campaign.status.toLowerCase()}`} />
+                          <div>
+                            <strong>{campaign.name}</strong>
+                            <small>
+                              {t("ecommerce.affiliateCampaign.templateVersion", {
+                                version: campaign.templateVersion,
+                              })} · {formatDateTime(campaign.updatedAt)}
+                            </small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>{campaignShop?.shopName || campaign.shopId}</strong>
+                        <small>{campaign.market} · {campaign.resolvedTimeZone}</small>
+                      </td>
+                      <td>
+                        <span className={`affiliate-campaign-status is-${campaign.status.toLowerCase()}`}>
+                          {campaignStatusLabel(campaign.status, t)}
+                        </span>
+                      </td>
+                      <td>
+                        <strong>{formatNumber(campaign.dailyOutreachTarget)}</strong>
+                        <small>{t("ecommerce.affiliateCampaign.messagesPerDayShort")}</small>
+                      </td>
+                      <td>
+                        <strong>
+                          {t("ecommerce.affiliateCampaign.minimumFollowersCompact", {
+                            value: formatNumber(campaign.minimumFollowerCount),
+                          })}
+                        </strong>
+                        <small>
+                          {campaign.minimumExpectedSalesUnits == null
+                            ? t("ecommerce.affiliateCampaign.noExpectedSalesFloor")
+                            : t("ecommerce.affiliateCampaign.expectedSalesFloor", {
+                              count: campaign.minimumExpectedSalesUnits,
+                            })}
+                        </small>
+                      </td>
+                      <td>
+                        <strong>
+                          {campaign.nextTickAt
+                            ? formatDateTime(campaign.nextTickAt)
+                            : t("ecommerce.affiliateCampaign.waitingForWindow")}
+                        </strong>
+                        <small>08:00–22:00</small>
+                      </td>
+                      <td><ChevronRightIcon /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
-          {selectedCampaign && (
-            <main className="affiliate-campaign-detail">
-              <header className="affiliate-campaign-detail-header">
-                <div>
-                  <div className="affiliate-campaign-title-line">
-                    <h2>{selectedCampaign.name}</h2>
-                    <span className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}>
-                      {campaignStatusLabel(selectedCampaign.status, t)}
-                    </span>
-                  </div>
-                  <p>
-                    {selectedCampaign.market} · {selectedCampaign.resolvedTimeZone} ·{" "}
+      <Modal
+        isOpen={Boolean(selectedCampaign)}
+        onClose={() => setSelectedCampaignId("")}
+        title={selectedCampaign?.name ?? t("ecommerce.affiliateCampaign.detailTitle")}
+        maxWidth={1480}
+        portal
+        className="affiliate-campaign-detail-modal"
+      >
+        {selectedCampaign && (
+          <div className="affiliate-campaign-detail-modal-body">
+            <header className="affiliate-campaign-detail-header">
+              <div>
+                <div className="affiliate-campaign-title-line">
+                  <span className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}>
+                    {campaignStatusLabel(selectedCampaign.status, t)}
+                  </span>
+                  <span>{selectedCampaign.market} · {selectedCampaign.resolvedTimeZone}</span>
+                  <span>
                     {t("ecommerce.affiliateCampaign.templateVersion", {
                       version: selectedCampaign.templateVersion,
                     })}
-                  </p>
+                  </span>
                 </div>
-                {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived &&
-                  selectedCampaign.status !== GQL.AffiliateCampaignStatus.Completed && (
-                  <div className="affiliate-campaign-detail-actions">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => openEdit(selectedCampaign)}
-                    >
-                      {t("ecommerce.affiliateCampaign.edit")}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      disabled={statusMutationState.loading}
-                      onClick={() => void changeStatus(selectedCampaign)}
-                    >
-                      {selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
-                        ? t("ecommerce.affiliateCampaign.pause")
-                        : t("ecommerce.affiliateCampaign.resume")}
-                    </button>
-                  </div>
-                )}
-              </header>
+                <p>{t("ecommerce.affiliateCampaign.detailDescription")}</p>
+              </div>
+              {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived &&
+                selectedCampaign.status !== GQL.AffiliateCampaignStatus.Completed && (
+                <div className="affiliate-campaign-detail-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => openEdit(selectedCampaign)}
+                  >
+                    {t("ecommerce.affiliateCampaign.edit")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={statusMutationState.loading}
+                    onClick={() => void changeStatus(selectedCampaign)}
+                  >
+                    {selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
+                      ? t("ecommerce.affiliateCampaign.pause")
+                      : t("ecommerce.affiliateCampaign.resume")}
+                  </button>
+                </div>
+              )}
+            </header>
 
-              <section className="affiliate-campaign-today">
-                <div className="affiliate-campaign-today-copy">
-                  <span>{t("ecommerce.affiliateCampaign.todayExecution")}</span>
-                  <strong>
-                    {latestExecution
-                      ? executionStatusLabel(latestExecution.status, t)
-                      : t("ecommerce.affiliateCampaign.notStarted")}
-                  </strong>
-                  <small>
-                    {latestExecution?.nextTickAt
-                      ? t("ecommerce.affiliateCampaign.nextSend", {
-                          time: formatDateTime(latestExecution.nextTickAt),
-                        })
-                      : latestExecution?.underDeliveryReason ||
-                        t("ecommerce.affiliateCampaign.waitingForWindow")}
-                  </small>
-                </div>
-                <div className="affiliate-campaign-cadence">
-                  <span>{t("ecommerce.affiliateCampaign.cadence")}</span>
-                  <strong>
-                    {estimateCampaignCadence(
-                      selectedCampaign.dailyOutreachTarget,
-                      latestExecution?.counters.submitted ?? 0,
-                    )}
-                  </strong>
-                  <small>{t("ecommerce.affiliateCampaign.dynamicJitter")}</small>
-                </div>
-                <div className="affiliate-campaign-quota">
-                  <span>{t("ecommerce.affiliateCampaign.allocatedQuota")}</span>
-                  <strong>
-                    {latestExecution?.allocatedTarget ?? selectedCampaign.dailyOutreachTarget}
-                  </strong>
-                  <small>
-                    {t("ecommerce.affiliateCampaign.shopDailyCap", { count: 10_000 })}
-                  </small>
-                </div>
-              </section>
+            <section className="affiliate-campaign-today">
+              <div className="affiliate-campaign-today-copy">
+                <span>{t("ecommerce.affiliateCampaign.todayExecution")}</span>
+                <strong>
+                  {latestExecution
+                    ? executionStatusLabel(latestExecution.status, t)
+                    : t("ecommerce.affiliateCampaign.notStarted")}
+                </strong>
+                <small>
+                  {latestExecution?.nextTickAt
+                    ? t("ecommerce.affiliateCampaign.nextSend", {
+                      time: formatDateTime(latestExecution.nextTickAt),
+                    })
+                    : latestExecution?.underDeliveryReason ||
+                      t("ecommerce.affiliateCampaign.waitingForWindow")}
+                </small>
+              </div>
+              <div className="affiliate-campaign-cadence">
+                <span>{t("ecommerce.affiliateCampaign.cadence")}</span>
+                <strong>
+                  {estimateCampaignCadence(
+                    selectedCampaign.dailyOutreachTarget,
+                    latestExecution?.counters.submitted ?? 0,
+                  )}
+                </strong>
+                <small>{t("ecommerce.affiliateCampaign.dynamicJitter")}</small>
+              </div>
+              <div className="affiliate-campaign-quota">
+                <span>{t("ecommerce.affiliateCampaign.allocatedQuota")}</span>
+                <strong>
+                  {latestExecution?.allocatedTarget ?? selectedCampaign.dailyOutreachTarget}
+                </strong>
+                <small>
+                  {t("ecommerce.affiliateCampaign.shopDailyCap", { count: 10_000 })}
+                </small>
+              </div>
+            </section>
 
-              <CampaignFunnel
-                counters={summary?.counters}
-                t={t}
-              />
+            <CampaignFunnel counters={summary?.counters} t={t} />
 
-              <section className="affiliate-campaign-configuration">
+            <section className="affiliate-campaign-configuration">
+              <div>
+                <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
+                <strong>{selectedCampaign.primaryProductId}</strong>
+              </div>
+              <div>
+                <span>{t("ecommerce.affiliateCampaign.minimumFollowers")}</span>
+                <strong>{formatNumber(selectedCampaign.minimumFollowerCount)}</strong>
+              </div>
+              <div>
+                <span>{t("ecommerce.affiliateCampaign.minimumExpectedSales")}</span>
+                <strong>{selectedCampaign.minimumExpectedSalesUnits ?? "—"}</strong>
+              </div>
+              <div>
+                <span>{t("ecommerce.affiliateCampaign.commissionRate")}</span>
+                <strong>{campaignCommissionRate(selectedCampaign)}%</strong>
+              </div>
+              <div className="affiliate-campaign-template-readout">
+                <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
+                <p>{selectedCampaign.messageTemplateText}</p>
+              </div>
+            </section>
+
+            <section className="affiliate-campaign-state-panel">
+              <div className="affiliate-campaign-section-heading">
                 <div>
-                  <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
-                  <strong>{selectedCampaign.primaryProductId}</strong>
+                  <span>{t("ecommerce.affiliateCampaign.creatorPipeline")}</span>
+                  <h3>{t("ecommerce.affiliateCampaign.creatorStates")}</h3>
+                  <p>{t("ecommerce.affiliateCampaign.creatorStatesDescription")}</p>
                 </div>
-                <div>
-                  <span>{t("ecommerce.affiliateCampaign.minimumFollowers")}</span>
-                  <strong>{formatNumber(selectedCampaign.minimumFollowerCount)}</strong>
-                </div>
-                <div>
-                  <span>{t("ecommerce.affiliateCampaign.minimumExpectedSales")}</span>
-                  <strong>{selectedCampaign.minimumExpectedSalesUnits ?? "—"}</strong>
-                </div>
-                <div>
-                  <span>{t("ecommerce.affiliateCampaign.commissionRate")}</span>
-                  <strong>{campaignCommissionRate(selectedCampaign)}%</strong>
-                </div>
-                <div className="affiliate-campaign-template-readout">
-                  <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
-                  <p>{selectedCampaign.messageTemplateText}</p>
-                </div>
-              </section>
-
-              <section className="affiliate-campaign-state-panel">
-                <div className="affiliate-campaign-section-heading">
-                  <div>
-                    <span>{t("ecommerce.affiliateCampaign.creatorPipeline")}</span>
-                    <h3>{t("ecommerce.affiliateCampaign.creatorStates")}</h3>
-                  </div>
-                  <Select
-                    value={stateStatus}
-                    onChange={setStateStatus}
-                    options={stateOptions}
-                    ariaLabel={t("ecommerce.affiliateCampaign.filterState")}
-                  />
-                </div>
-                <div className="affiliate-campaign-state-table-wrap">
-                  <table className="affiliate-campaign-state-table">
-                    <thead>
-                      <tr>
-                        <th>{t("ecommerce.affiliateCampaign.creator")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.state")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.expectedSales")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.followers")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.efficiency")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.reason")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(creatorStatesQuery.data?.affiliateCampaignCreatorStates.items ?? []).map(
-                        (state) => (
-                          <tr key={state.id}>
-                            <td>
-                              <strong>{shortId(state.creatorId)}</strong>
-                              <small>
-                                {t("ecommerce.affiliateCampaign.seenTimes", {
-                                  count: state.searchOccurrenceCount,
-                                })}
-                              </small>
-                            </td>
-                            <td>
-                              <span className={`affiliate-campaign-state-pill is-${state.status.toLowerCase()}`}>
-                                {campaignStateLabel(state.status, t)}
-                              </span>
-                            </td>
-                            <td>{formatOptionalNumber(state.expectedSalesUnits)}</td>
-                            <td>{formatOptionalNumber(state.followerCount)}</td>
-                            <td>{formatScore(state.efficiencyScore)}</td>
-                            <td>{state.decisionReason || "—"}</td>
-                          </tr>
-                        ),
-                      )}
-                    </tbody>
-                  </table>
-                  {!creatorStatesQuery.loading &&
-                    !(creatorStatesQuery.data?.affiliateCampaignCreatorStates.items.length) && (
-                      <div className="affiliate-campaign-table-empty">
-                        {t("ecommerce.affiliateCampaign.noCreatorStates")}
-                      </div>
-                    )}
-                </div>
-              </section>
-
-              {(executionsQuery.data?.affiliateCampaignDailyExecutions.length ?? 0) > 1 && (
-                <section className="affiliate-campaign-history-strip">
-                  <span>{t("ecommerce.affiliateCampaign.recentExecutions")}</span>
-                  <div>
-                    {executionsQuery.data!.affiliateCampaignDailyExecutions.slice(0, 7).map(
-                      (execution) => (
-                        <article key={execution.id}>
-                          <strong>{execution.marketLocalDate}</strong>
-                          <small>{execution.counters.sent}/{execution.allocatedTarget}</small>
-                        </article>
+                <Select
+                  value={stateStatus}
+                  onChange={setStateStatus}
+                  options={stateOptions}
+                  ariaLabel={t("ecommerce.affiliateCampaign.filterState")}
+                />
+              </div>
+              <div className="affiliate-campaign-state-table-wrap">
+                <table className="affiliate-campaign-state-table">
+                  <thead>
+                    <tr>
+                      <th>{t("ecommerce.affiliateCampaign.creator")}</th>
+                      <th>{t("ecommerce.affiliateCampaign.outreachDisposition")}</th>
+                      <th>{t("ecommerce.affiliateCampaign.state")}</th>
+                      <th>{t("ecommerce.affiliateCampaign.modelEvidence")}</th>
+                      <th>{t("ecommerce.affiliateCampaign.relationship")}</th>
+                      <th>{t("ecommerce.affiliateCampaign.lastActivity")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(creatorStatesQuery.data?.affiliateCampaignCreatorStates.items ?? []).map(
+                      (state) => (
+                        <CampaignCreatorStateRow key={state.id} state={state} t={t} />
                       ),
                     )}
-                  </div>
-                </section>
+                  </tbody>
+                </table>
+                {!creatorStatesQuery.loading &&
+                  !(creatorStatesQuery.data?.affiliateCampaignCreatorStates.items.length) && (
+                    <div className="affiliate-campaign-table-empty">
+                      {t("ecommerce.affiliateCampaign.noCreatorStates")}
+                    </div>
+                  )}
+              </div>
+              {creatorStatesQuery.data?.affiliateCampaignCreatorStates.nextCursor && (
+                <button
+                  type="button"
+                  className="btn btn-secondary affiliate-campaign-load-more"
+                  disabled={creatorStatesQuery.loading}
+                  onClick={() => void loadMoreCreatorStates()}
+                >
+                  {t("ecommerce.affiliateCampaign.loadMoreCreators")}
+                </button>
               )}
-            </main>
-          )}
-        </div>
-      )}
+            </section>
+
+            {(executionsQuery.data?.affiliateCampaignDailyExecutions.length ?? 0) > 1 && (
+              <section className="affiliate-campaign-history-strip">
+                <span>{t("ecommerce.affiliateCampaign.recentExecutions")}</span>
+                <div>
+                  {executionsQuery.data!.affiliateCampaignDailyExecutions.slice(0, 7).map(
+                    (execution) => (
+                      <article key={execution.id}>
+                        <strong>{execution.marketLocalDate}</strong>
+                        <small>{execution.counters.sent}/{execution.allocatedTarget}</small>
+                      </article>
+                    ),
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+      </Modal>
 
       <Modal
         isOpen={wizardOpen}
@@ -920,6 +1049,120 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   );
 });
 
+function CampaignCreatorStateRow({
+  state,
+  t,
+}: {
+  state: CampaignCreatorState;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const profile = state.creatorProfile;
+  const performance = state.creatorPerformance;
+  const relationship = state.creatorRelationship;
+  const displayName =
+    profile?.nickname?.trim() ||
+    profile?.username?.trim() ||
+    t("ecommerce.affiliateCampaign.profilePending");
+  const handle = profile?.username
+    ? `@${profile.username.replace(/^@/, "")}`
+    : shortId(profile?.creatorOpenId || state.creatorId);
+  const followers = performance?.followerCount ?? state.followerCount;
+  const relationshipActivity =
+    relationship?.lastInboundAt || relationship?.lastOutboundAt || null;
+  const lastActivity =
+    state.repliedAt ||
+    state.reachedOutAt ||
+    state.scheduledAt ||
+    relationshipActivity ||
+    state.lastSeenAt;
+  const disposition = campaignOutreachDisposition(state.status);
+
+  return (
+    <tr>
+      <td>
+        <div className="affiliate-campaign-creator-cell">
+          <div className="affiliate-campaign-creator-avatar">
+            {profile?.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="" />
+            ) : (
+              <span>{displayName.slice(0, 1).toUpperCase()}</span>
+            )}
+          </div>
+          <div>
+            <strong>{displayName}</strong>
+            <small>{handle} · {state.market}</small>
+            <p title={profile?.bioDescription ?? undefined}>
+              {profile?.bioDescription ||
+                t("ecommerce.affiliateCampaign.profileObserved", {
+                  count: state.searchOccurrenceCount,
+                })}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td>
+        <span className={`affiliate-campaign-disposition is-${disposition}`}>
+          {t(`ecommerce.affiliateCampaign.disposition.${disposition}`)}
+        </span>
+        <small>
+          {state.reachedOutAt
+            ? formatDateTime(state.reachedOutAt)
+            : t("ecommerce.affiliateCampaign.notSent")}
+        </small>
+      </td>
+      <td>
+        <span className={`affiliate-campaign-state-pill is-${state.status.toLowerCase()}`}>
+          {campaignStateLabel(state.status, t)}
+        </span>
+        <small>{formatDecisionReason(state.decisionReason)}</small>
+      </td>
+      <td>
+        <strong>
+          {t("ecommerce.affiliateCampaign.expectedSalesCompact", {
+            count: formatOptionalNumber(state.expectedSalesUnits),
+          })}
+        </strong>
+        <small>
+          {t("ecommerce.affiliateCampaign.followerAndEfficiency", {
+            followers: followers == null ? "—" : formatNumber(followers),
+            score: formatScore(state.efficiencyScore),
+          })}
+        </small>
+        <small>
+          {performance
+            ? t("ecommerce.affiliateCampaign.performanceAsOf", {
+              date: formatDateTime(performance.observedAt),
+            })
+            : t("ecommerce.affiliateCampaign.performancePending")}
+        </small>
+      </td>
+      <td>
+        <strong>
+          {relationship
+            ? t("ecommerce.affiliateCampaign.relationshipEstablished")
+            : t("ecommerce.affiliateCampaign.profileOnly")}
+        </strong>
+        <small>
+          {relationship
+            ? t("ecommerce.affiliateCampaign.relationshipSummary", {
+              shops: relationship.shopStates.length,
+              collaborations: relationship.activeCollaborationRecordIds.length,
+            })
+            : t("ecommerce.affiliateCampaign.relationshipAfterOutreach")}
+        </small>
+      </td>
+      <td>
+        <strong>{formatDateTime(lastActivity)}</strong>
+        <small>
+          {t("ecommerce.affiliateCampaign.seenTimes", {
+            count: state.searchOccurrenceCount,
+          })}
+        </small>
+      </td>
+    </tr>
+  );
+}
+
 function CampaignMetric({
   label,
   value,
@@ -1070,6 +1313,32 @@ function formatDateTime(value: string) {
 
 function shortId(value: string) {
   return value.length > 14 ? `${value.slice(0, 7)}…${value.slice(-5)}` : value;
+}
+
+function campaignOutreachDisposition(status: string): "reached" | "hold" | "not_reached" {
+  if (
+    status === GQL.AffiliateCampaignCreatorStateStatus.ReachedOut ||
+    status === GQL.AffiliateCampaignCreatorStateStatus.Replied
+  ) {
+    return "reached";
+  }
+  if (
+    status === GQL.AffiliateCampaignCreatorStateStatus.Disqualified ||
+    status === GQL.AffiliateCampaignCreatorStateStatus.Ignored ||
+    status === GQL.AffiliateCampaignCreatorStateStatus.Cancelled ||
+    status === GQL.AffiliateCampaignCreatorStateStatus.Failed
+  ) {
+    return "not_reached";
+  }
+  return "hold";
+}
+
+function formatDecisionReason(value?: string | null) {
+  if (!value) return "—";
+  return value
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (character) => character.toUpperCase());
 }
 
 export function renderAffiliateCampaignTemplatePreview(

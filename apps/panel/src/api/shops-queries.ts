@@ -342,6 +342,39 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         scheduledAt
         reachedOutAt
         repliedAt
+        creatorProfile {
+          id
+          platform
+          creatorOpenId
+          username
+          nickname
+          avatarUrl
+          bioDescription
+          lastObservedAt
+        }
+        creatorPerformance {
+          market
+          observedAt
+          sourceType
+          followerCount
+          categoryIds
+        }
+        creatorRelationship {
+          id
+          shopStates {
+            shopId
+          }
+          lastInboundAt
+          lastOutboundAt
+          activeCollaborationRecordIds
+          blocked
+          workSummary {
+            agentRequiredCount
+            staffRequiredCount
+            externalWaitingCount
+            activeCollaborationCount
+          }
+        }
       }
     }
   }
