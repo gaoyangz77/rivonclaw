@@ -225,6 +225,10 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     name
     status
     primaryProductId
+    productSnapshotId
+    productSnapshotHash
+    searchKeywordSource
+    searchKeywordSuggestionVersion
     market
     resolvedTimeZone
     dailyOutreachTarget
@@ -475,6 +479,44 @@ export const GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION = gql`
     generateAffiliateCampaignMessageTemplate(input: $input) {
       text
       source
+    }
+  }
+`;
+
+export const RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION = gql`
+  mutation ResolveAffiliateCampaignProduct($input: ResolveAffiliateCampaignProductInput!) {
+    resolveAffiliateCampaignProduct(input: $input) {
+      productId
+      title
+      description
+      status
+      coverImage
+      originalCurrency
+      minimumPriceUsdAmount
+      maximumPriceUsdAmount
+      categoryLeafId
+      categoryLeafName
+      categoryPathIds
+      categoryPathNames
+      brandId
+      brandName
+      observedAt
+      snapshotHash
+    }
+  }
+`;
+
+export const SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_KEYWORDS_MUTATION = gql`
+  mutation SuggestAffiliateCampaignSearchKeywords(
+    $input: SuggestAffiliateCampaignSearchKeywordsInput!
+  ) {
+    suggestAffiliateCampaignSearchKeywords(input: $input) {
+      suggestionVersion
+      productSnapshotHash
+      suggestions {
+        keyword
+        rationale
+      }
     }
   }
 `;
