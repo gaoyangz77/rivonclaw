@@ -6485,6 +6485,190 @@ export const ExperimentVariantAction = {
 } as const;
 
 export type ExperimentVariantAction = typeof ExperimentVariantAction[keyof typeof ExperimentVariantAction];
+export interface ExpertConversation {
+  createdAt: Scalars['DateTimeISO']['output'];
+  deletedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  id: Scalars['ID']['output'];
+  lastMessageAt: Scalars['DateTimeISO']['output'];
+  purgeAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: ExpertConversationStatus;
+  summary?: Maybe<Scalars['String']['output']>;
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
+}
+
+export interface ExpertConversationDetail {
+  conversation: ExpertConversation;
+  messages: Array<ExpertMessage>;
+  recommendations: Array<ExpertRecommendation>;
+}
+
+export interface ExpertConversationPage {
+  items: Array<ExpertConversation>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
+export const ExpertConversationStatus = {
+  Active: 'ACTIVE',
+  Archived: 'ARCHIVED',
+  Deleted: 'DELETED'
+} as const;
+
+export type ExpertConversationStatus = typeof ExpertConversationStatus[keyof typeof ExpertConversationStatus];
+export interface ExpertDispatchResult {
+  run: ExpertRun;
+}
+
+export interface ExpertKnowledgeRelease {
+  artifactDigest: Scalars['String']['output'];
+  artifactUrl: Scalars['String']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  evaluationSummary?: Maybe<Scalars['JSONObject']['output']>;
+  id: Scalars['ID']['output'];
+  publishedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  releaseNotes?: Maybe<Scalars['String']['output']>;
+  sourceCommit?: Maybe<Scalars['String']['output']>;
+  status: ExpertKnowledgeReleaseStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  version: Scalars['String']['output'];
+}
+
+export const ExpertKnowledgeReleaseStatus = {
+  Candidate: 'CANDIDATE',
+  Retired: 'RETIRED',
+  Stable: 'STABLE'
+} as const;
+
+export type ExpertKnowledgeReleaseStatus = typeof ExpertKnowledgeReleaseStatus[keyof typeof ExpertKnowledgeReleaseStatus];
+export interface ExpertMessage {
+  content: Scalars['String']['output'];
+  conversationId: Scalars['String']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  expertRunId?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  role: ExpertMessageRole;
+  structuredPayload?: Maybe<Scalars['JSONObject']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
+}
+
+export const ExpertMessageRole = {
+  Assistant: 'ASSISTANT',
+  System: 'SYSTEM',
+  User: 'USER'
+} as const;
+
+export type ExpertMessageRole = typeof ExpertMessageRole[keyof typeof ExpertMessageRole];
+export interface ExpertProfile {
+  capitalBand?: Maybe<Scalars['String']['output']>;
+  constraints: Array<Scalars['String']['output']>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  experience?: Maybe<Scalars['String']['output']>;
+  goals: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  locale: Scalars['String']['output'];
+  profileVersion: Scalars['Float']['output'];
+  sellerTypes: Array<ExpertSellerType>;
+  stage: Scalars['String']['output'];
+  targetMarkets: Array<Scalars['String']['output']>;
+  targetTimeline?: Maybe<Scalars['String']['output']>;
+  teamCapacity?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
+}
+
+export interface ExpertRecommendation {
+  assumptions: Array<Scalars['String']['output']>;
+  conversationId: Scalars['String']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  expertRunId: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  recommendation: Scalars['String']['output'];
+  risks: Array<Scalars['String']['output']>;
+  topic: Scalars['String']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['String']['output'];
+  validationSteps: Array<Scalars['String']['output']>;
+}
+
+export interface ExpertRun {
+  artifactDigest: Scalars['String']['output'];
+  completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  conversationId: Scalars['String']['output'];
+  createdAt: Scalars['DateTimeISO']['output'];
+  failureCode?: Maybe<Scalars['String']['output']>;
+  failureMessage?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  inputTokens: Scalars['Int']['output'];
+  knowledgeReleaseId?: Maybe<Scalars['String']['output']>;
+  modelAlias: Scalars['String']['output'];
+  nextEventSequence: Scalars['Int']['output'];
+  outputTokens: Scalars['Int']['output'];
+  skillVersion: Scalars['String']['output'];
+  startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: ExpertRunStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  upstreamModel: Scalars['String']['output'];
+  usageMode: ExpertUsageMode;
+  userId: Scalars['String']['output'];
+}
+
+export interface ExpertRunEvent {
+  errorCode?: Maybe<Scalars['String']['output']>;
+  occurredAt: Scalars['DateTimeISO']['output'];
+  recommendationId?: Maybe<Scalars['String']['output']>;
+  runId: Scalars['ID']['output'];
+  sequence: Scalars['Int']['output'];
+  text?: Maybe<Scalars['String']['output']>;
+  toolName?: Maybe<Scalars['String']['output']>;
+  type: ExpertRunEventType;
+}
+
+export const ExpertRunEventType = {
+  AnswerDelta: 'ANSWER_DELTA',
+  Cancelled: 'CANCELLED',
+  Completed: 'COMPLETED',
+  Failed: 'FAILED',
+  RecommendationCommitted: 'RECOMMENDATION_COMMITTED',
+  Started: 'STARTED',
+  ToolCompleted: 'TOOL_COMPLETED',
+  ToolStarted: 'TOOL_STARTED'
+} as const;
+
+export type ExpertRunEventType = typeof ExpertRunEventType[keyof typeof ExpertRunEventType];
+export const ExpertRunStatus = {
+  Cancelled: 'CANCELLED',
+  Completed: 'COMPLETED',
+  Failed: 'FAILED',
+  Queued: 'QUEUED',
+  Running: 'RUNNING'
+} as const;
+
+export type ExpertRunStatus = typeof ExpertRunStatus[keyof typeof ExpertRunStatus];
+export const ExpertSellerType = {
+  CrossBorder: 'CROSS_BORDER',
+  Local: 'LOCAL'
+} as const;
+
+export type ExpertSellerType = typeof ExpertSellerType[keyof typeof ExpertSellerType];
+export const ExpertUsageMode = {
+  FreeDaily: 'FREE_DAILY',
+  LlmSubscription: 'LLM_SUBSCRIPTION'
+} as const;
+
+export type ExpertUsageMode = typeof ExpertUsageMode[keyof typeof ExpertUsageMode];
+export interface ExpertUsageStatus {
+  fiveHourTokenRemaining?: Maybe<Scalars['Int']['output']>;
+  freeLimit?: Maybe<Scalars['Int']['output']>;
+  freeRemaining?: Maybe<Scalars['Int']['output']>;
+  freeUsed?: Maybe<Scalars['Int']['output']>;
+  mode: ExpertUsageMode;
+  resetsAt: Scalars['DateTimeISO']['output'];
+  weeklyTokenRemaining?: Maybe<Scalars['Int']['output']>;
+}
+
 export interface GenerateAffiliateCampaignMessageTemplateInput {
   guidance?: InputMaybe<Scalars['String']['input']>;
   productId: Scalars['String']['input'];
@@ -7031,6 +7215,7 @@ export const ModuleId = {
 
 export type ModuleId = typeof ModuleId[keyof typeof ModuleId];
 export interface Mutation {
+  activateExpertKnowledgeRelease: ExpertKnowledgeRelease;
   /** Admin-only: probe the target user's currently online desktop clients. The backend publishes a short-lived request over GraphQL subscriptions and returns devices that respond before timeoutMs. */
   adminProbeUserDevices: AdminUserDevicesProbeResult;
   /** Admin-only: request a selected online desktop device to upload its current local log. Call adminProbeUserDevices first and pass one returned deviceId. */
@@ -7051,6 +7236,7 @@ export interface Mutation {
   assignOnboardingTrialWindow: BillingSubscription;
   /** Cancel an active subscription at the end of its current billing period. */
   cancelBillingSubscriptionAtPeriodEnd: BillingSubscription;
+  cancelExpertRun: ExpertRun;
   /** Check a creator phone number through Evolution API and optionally persist the result. */
   checkAffiliateCreatorWhatsApp: CheckCreatorWhatsAppContactPayload;
   completeAffiliateOperationalOnboarding: AffiliateOperationalSettings;
@@ -7060,6 +7246,7 @@ export interface Mutation {
   completeTikTokAdsOAuth: CompleteTikTokAdsOAuthResponse;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
+  createExpertConversation: ExpertConversation;
   /** Create an additional original LLM proxy API key for the current user. Requires an active RivonClaw AI subscription. Most clients should use provisionLlmApiKey instead. */
   createLlmApiKey: CreatedLlmApiKeyPayload;
   /** Create a payment through Stripe or Lakala. */
@@ -7105,6 +7292,7 @@ export interface Mutation {
   decideActionProposal: ActionProposal;
   /** Delete an affiliate approval interception policy. */
   deleteAffiliateApprovalPolicy: Scalars['Boolean']['output'];
+  deleteExpertConversation: Scalars['Boolean']['output'];
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
   /** Disconnect a shop (soft delete) */
@@ -7113,6 +7301,7 @@ export interface Mutation {
   deleteSurface: Scalars['Boolean']['output'];
   /** Disconnect one advertising account for the authenticated user. */
   disconnectAdsAdvertiser: Scalars['Boolean']['output'];
+  dispatchExpertMessage: ExpertDispatchResult;
   ecommerceApplyCSUnpaidOrderConfigVariantToBase: CsUnpaidOrderEvaluationView;
   /** Approve a cancellation request. Returns true on success. */
   ecommerceApproveCancellation: Scalars['Boolean']['output'];
@@ -7184,6 +7373,7 @@ export interface Mutation {
   refundPayment: Payment;
   /** Register a new user account */
   register: AuthPayload;
+  registerExpertKnowledgeRelease: ExpertKnowledgeRelease;
   removeAffiliateCreatorProtection: AffiliateCreatorProtectionRemovalPayload;
   removeAffiliateCreatorRelationshipProtection: AffiliateCreatorProtectionRemovalPayload;
   /** Remove a shop-scoped tag from a user-level creator relation. */
@@ -7249,8 +7439,17 @@ export interface Mutation {
   updateSurface?: Maybe<Surface>;
   /** Update a user-owned WhatsApp egress proxy. */
   updateWhatsAppProxy: WhatsAppProxy;
+  upsertExpertProfile: ExpertProfile;
   /** Verify a pairing code from mobile and create relay token */
   verifyPairingCode: VerifyPairingResult;
+  /** Log in from a browser and store the rotating refresh token in an HttpOnly cookie */
+  webLogin: WebAuthPayload;
+  /** Revoke and clear the browser refresh cookie */
+  webLogout: Scalars['Boolean']['output'];
+  /** Rotate the browser refresh cookie and return a new in-memory access token */
+  webRefresh: WebAuthPayload;
+  /** Register in a browser and store the rotating refresh token in an HttpOnly cookie */
+  webRegister: WebAuthPayload;
   /** Create or update an affiliate approval interception policy. */
   writeAffiliateApprovalPolicy: AffiliateApprovalPolicy;
   writeAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
@@ -7273,6 +7472,11 @@ export interface Mutation {
   writeWarehouses: Array<Warehouse>;
   /** Write WMS accounts in batch. New accounts and endpoint/apiToken changes automatically sync warehouses. apiToken is write-only. */
   writeWmsAccounts: Array<WriteWmsAccountPayload>;
+}
+
+
+export interface MutationActivateExpertKnowledgeReleaseArgs {
+  releaseId: Scalars['ID']['input'];
 }
 
 
@@ -7344,6 +7548,11 @@ export interface MutationAssignOnboardingTrialWindowArgs {
 
 export interface MutationCancelBillingSubscriptionAtPeriodEndArgs {
   input: CancelBillingSubscriptionInput;
+}
+
+
+export interface MutationCancelExpertRunArgs {
+  runId: Scalars['ID']['input'];
 }
 
 
@@ -7497,6 +7706,11 @@ export interface MutationDeleteAffiliateApprovalPolicyArgs {
 }
 
 
+export interface MutationDeleteExpertConversationArgs {
+  id: Scalars['ID']['input'];
+}
+
+
 export interface MutationDeleteRunProfileArgs {
   id: Scalars['ID']['input'];
 }
@@ -7514,6 +7728,13 @@ export interface MutationDeleteSurfaceArgs {
 
 export interface MutationDisconnectAdsAdvertiserArgs {
   id: Scalars['ID']['input'];
+}
+
+
+export interface MutationDispatchExpertMessageArgs {
+  conversationId: Scalars['ID']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  text: Scalars['String']['input'];
 }
 
 
@@ -7739,6 +7960,11 @@ export interface MutationRegisterArgs {
 }
 
 
+export interface MutationRegisterExpertKnowledgeReleaseArgs {
+  input: RegisterExpertKnowledgeReleaseInput;
+}
+
+
 export interface MutationRemoveAffiliateCreatorProtectionArgs {
   id: Scalars['ID']['input'];
 }
@@ -7923,9 +8149,24 @@ export interface MutationUpdateWhatsAppProxyArgs {
 }
 
 
+export interface MutationUpsertExpertProfileArgs {
+  input: UpsertExpertProfileInput;
+}
+
+
 export interface MutationVerifyPairingCodeArgs {
   mobileDeviceId: Scalars['String']['input'];
   pairingCode: Scalars['String']['input'];
+}
+
+
+export interface MutationWebLoginArgs {
+  input: LoginInput;
+}
+
+
+export interface MutationWebRegisterArgs {
+  input: RegisterInput;
 }
 
 
@@ -8440,6 +8681,7 @@ export interface Query {
   actionProposals: Array<ActionProposal>;
   /** Read server-driven announcements for the current user, surface, app version, and locale. */
   activeAnnouncements: Array<ActiveAnnouncement>;
+  activeExpertKnowledgeRelease?: Maybe<ExpertKnowledgeRelease>;
   /** Admin-only: list uploaded client log files for a customer, optionally narrowed to one device. */
   adminClientLogFiles: Array<AdminClientLogFile>;
   /** Admin-only: read the current Telegram debugging-channel target from the relay and resolve it back to the RivonClaw account/device when possible. */
@@ -8602,6 +8844,10 @@ export interface Query {
   /** List Outlook/Microsoft Graph email account bindings for the authenticated seller. */
   emailAccountBindings: Array<EmailAccountBinding>;
   experimentGetAnalytics: ExperimentAnalyticsView;
+  expertConversation: ExpertConversationDetail;
+  expertConversations: ExpertConversationPage;
+  expertProfile?: Maybe<ExpertProfile>;
+  expertUsageStatus: ExpertUsageStatus;
   /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
   getEcommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Query typed warehouse-backed ecommerce BI data. */
@@ -9222,6 +9468,17 @@ export interface QueryExperimentGetAnalyticsArgs {
 }
 
 
+export interface QueryExpertConversationArgs {
+  id: Scalars['ID']['input'];
+}
+
+
+export interface QueryExpertConversationsArgs {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
+}
+
+
 export interface QueryGetEcommerceBiDataArgs {
   input: EcomBiQueryInput;
 }
@@ -9600,6 +9857,14 @@ export interface RefundPaymentGraphqlInput {
   paymentId: Scalars['ID']['input'];
   /** Optional caller-supplied refund order ID. Must be unique per provider refund. */
   refundOrderId?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface RegisterExpertKnowledgeReleaseInput {
+  artifactDigest: Scalars['String']['input'];
+  artifactUrl: Scalars['String']['input'];
+  releaseNotes?: InputMaybe<Scalars['String']['input']>;
+  sourceCommit?: InputMaybe<Scalars['String']['input']>;
+  version: Scalars['String']['input'];
 }
 
 /** Registration input */
@@ -10163,6 +10428,7 @@ export interface Subscription {
   csEscalationEvent: CsEscalationEventDelivery;
   /** Desktop subscription: receives short-lived admin presence probes for the authenticated user. */
   devicePresenceProbeRequested: AdminDevicePresenceProbeRequest;
+  expertRunEvents: ExpertRunEvent;
   /** Fires when an OAuth flow completes (e.g. TikTok shop authorization) */
   oauthComplete: OAuthCompletePayload;
   /** Signals that official preset skills changed; clients should re-run preset skill sync. */
@@ -10207,6 +10473,12 @@ export interface SubscriptionCsConversationSignalArgs {
 
 export interface SubscriptionCsEscalationEventArgs {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+
+export interface SubscriptionExpertRunEventsArgs {
+  afterSequence?: Scalars['Int']['input'];
+  runId: Scalars['ID']['input'];
 }
 
 
@@ -11054,6 +11326,19 @@ export interface UpdateWhatsAppProxyInput {
   username?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface UpsertExpertProfileInput {
+  capitalBand?: InputMaybe<Scalars['String']['input']>;
+  constraints: Array<Scalars['String']['input']>;
+  experience?: InputMaybe<Scalars['String']['input']>;
+  goals: Array<Scalars['String']['input']>;
+  locale: Scalars['String']['input'];
+  sellerTypes: Array<ExpertSellerType>;
+  stage: Scalars['String']['input'];
+  targetMarkets: Array<Scalars['String']['input']>;
+  targetTimeline?: InputMaybe<Scalars['String']['input']>;
+  teamCapacity?: InputMaybe<Scalars['String']['input']>;
+}
+
 export const UsageLimitWindow = {
   FiveHours: 'FIVE_HOURS',
   GrantLifetime: 'GRANT_LIFETIME',
@@ -11200,6 +11485,12 @@ export const WarehouseType = {
 } as const;
 
 export type WarehouseType = typeof WarehouseType[keyof typeof WarehouseType];
+/** Browser authentication response; refresh token stays in HttpOnly cookie */
+export interface WebAuthPayload {
+  accessToken: Scalars['String']['output'];
+  user: MeResponse;
+}
+
 /** Seller-level WhatsApp linked-device account binding */
 export interface WhatsAppAccountBinding {
   businessDeveloperAssignedAt?: Maybe<Scalars['DateTimeISO']['output']>;
