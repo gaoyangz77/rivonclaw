@@ -742,13 +742,13 @@ export interface AffiliateBusinessDeveloperSummary {
 /** One affiliate campaign objective owned by a TikTok seller shop. */
 export interface AffiliateCampaign {
   activatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  commissionRatePercent: Scalars['Float']['output'];
   completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
   dailyOutreachTarget: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
   market: ShopRegion;
-  commissionRatePercent: Scalars['Float']['output'];
   marketplaceSearchFilters: Scalars['JSONObject']['output'];
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
   messageTemplateText: Scalars['String']['output'];
@@ -771,6 +771,9 @@ export interface AffiliateCampaign {
 export interface AffiliateCampaignCreatorState {
   campaignId: Scalars['ID']['output'];
   creatorId: Scalars['ID']['output'];
+  creatorPerformance?: Maybe<AffiliateCreatorPerformanceCurrent>;
+  creatorProfile?: Maybe<AffiliateCreatorIdentity>;
+  creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
   decisionReason?: Maybe<Scalars['String']['output']>;
   efficiencyScore?: Maybe<Scalars['Float']['output']>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
@@ -1617,6 +1620,7 @@ export interface AffiliateExpectedSalesPredictionQuality {
 
 export const AffiliateExpectedSalesPredictionScenario = {
   CreatorProspecting: 'CREATOR_PROSPECTING',
+  RelationshipProductIntent: 'RELATIONSHIP_PRODUCT_INTENT',
   SampleReview: 'SAMPLE_REVIEW'
 } as const;
 
@@ -1698,6 +1702,7 @@ export const AffiliateExpectedSalesSubjectPredictionStatus = {
   FeatureContractError: 'FEATURE_CONTRACT_ERROR',
   FeatureVersionMismatch: 'FEATURE_VERSION_MISMATCH',
   InvalidContext: 'INVALID_CONTEXT',
+  ModelUpgrading: 'MODEL_UPGRADING',
   Ok: 'OK',
   PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
   ServiceError: 'SERVICE_ERROR'
