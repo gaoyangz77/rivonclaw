@@ -143,6 +143,19 @@ type CampaignCreatorStatePage = {
   nextCursor?: string | null;
 };
 
+const CAMPAIGNS_PER_PAGE = 20;
+
+export function paginateCampaigns<T>(
+  items: readonly T[],
+  page: number,
+  pageSize = CAMPAIGNS_PER_PAGE,
+): T[] {
+  const safePageSize = Math.max(1, Math.trunc(pageSize));
+  const safePage = Math.max(1, Math.trunc(page));
+  const start = (safePage - 1) * safePageSize;
+  return items.slice(start, start + safePageSize);
+}
+
 export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -151,6 +164,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [form, setForm] = useState<CampaignForm>(emptyForm);
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
+  const [campaignPage, setCampaignPage] = useState(1);
   const [stateStatus, setStateStatus] = useState("");
   const [productPreview, setProductPreview] =
     useState<GQL.AffiliateCampaignProductPreview | null>(null);
@@ -160,7 +174,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const campaignsQuery = useQuery<{ affiliateCampaigns: GQL.AffiliateCampaign[] }>(
     AFFILIATE_CAMPAIGNS_QUERY,
-    { variables: { input: { limit: 100 } }, fetchPolicy: "cache-and-network" },
+    { variables: { input: { limit: 500 } }, fetchPolicy: "cache-and-network" },
   );
   const shopsQuery = useQuery<{ shops: GQL.Shop[] }>(SHOPS_QUERY, {
     fetchPolicy: "cache-and-network",
@@ -228,6 +242,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   >(SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_KEYWORDS_MUTATION);
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
+  const campaignPageCount = Math.max(1, Math.ceil(campaigns.length / CAMPAIGNS_PER_PAGE));
+  const campaignPageStart = (campaignPage - 1) * CAMPAIGNS_PER_PAGE;
+  const visibleCampaigns = paginateCampaigns(campaigns, campaignPage);
   const selectedCampaign =
     campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
   const summary = summaryQuery.data?.affiliateCampaignSummary;
@@ -256,6 +273,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   useEffect(() => {
     setStateStatus("");
   }, [selectedCampaignId]);
+
+  useEffect(() => {
+    setCampaignPage((currentPage) => Math.min(currentPage, campaignPageCount));
+  }, [campaignPageCount]);
 
   const shopOptions = shops.map((shop) => ({
     value: shop.id,
@@ -632,7 +653,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   return (
     <div className="affiliate-campaign-page">
       <header className="affiliate-campaign-hero">
-        <div>
+        <div className="affiliate-campaign-hero-copy">
           <span className="affiliate-campaign-eyebrow">
             {t("ecommerce.affiliateCampaign.eyebrow")}
           </span>
@@ -655,11 +676,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
       <section className="affiliate-campaign-command-strip">
         <div className="affiliate-campaign-window">
-          <span>{t("ecommerce.affiliateCampaign.sendingWindow")}</span>
-          <strong>08:00</strong>
-          <div aria-hidden="true"><i /><i /></div>
-          <strong>22:00</strong>
-          <small>{t("ecommerce.affiliateCampaign.localTime")}</small>
+          <div className="affiliate-campaign-window-copy">
+            <span>{t("ecommerce.affiliateCampaign.sendingWindow")}</span>
+            <small>{t("ecommerce.affiliateCampaign.localTime")}</small>
+          </div>
+          <div className="affiliate-campaign-window-range">
+            <strong>08:00</strong>
+            <div aria-hidden="true"><i /><i /></div>
+            <strong>22:00</strong>
+          </div>
         </div>
         <CampaignMetric
           label={t("ecommerce.affiliateCampaign.activeCampaigns")}
@@ -702,10 +727,22 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <h2>{t("ecommerce.affiliateCampaign.campaignTableTitle")}</h2>
               <p>{t("ecommerce.affiliateCampaign.campaignTableDescription")}</p>
             </div>
-            <strong>{campaigns.length}</strong>
+            <div className="affiliate-campaign-directory-count">
+              <strong>{formatNumber(campaigns.length)}</strong>
+              <span>{t("ecommerce.affiliateCampaign.campaignCountLabel")}</span>
+            </div>
           </header>
           <div className="affiliate-campaign-directory-table-wrap">
             <table className="affiliate-campaign-directory-table">
+              <colgroup>
+                <col className="affiliate-campaign-col-name" />
+                <col className="affiliate-campaign-col-shop" />
+                <col className="affiliate-campaign-col-status" />
+                <col className="affiliate-campaign-col-target" />
+                <col className="affiliate-campaign-col-boundary" />
+                <col className="affiliate-campaign-col-next" />
+                <col className="affiliate-campaign-col-open" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>{t("ecommerce.affiliateCampaign.campaign")}</th>
@@ -718,7 +755,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.map((campaign) => {
+                {visibleCampaigns.map((campaign) => {
                   const campaignShop = shops.find((shop) => shop.id === campaign.shopId);
                   return (
                     <tr
@@ -746,8 +783,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </div>
                       </td>
                       <td>
-                        <strong>{campaignShop?.shopName || campaign.shopId}</strong>
-                        <small>{campaign.market} · {campaign.resolvedTimeZone}</small>
+                        <div className="affiliate-campaign-directory-shop">
+                          <strong>{campaignShop?.shopName || campaign.shopId}</strong>
+                          <small>{campaign.market}</small>
+                        </div>
                       </td>
                       <td>
                         <span className={`affiliate-campaign-status is-${campaign.status.toLowerCase()}`}>
@@ -765,12 +804,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </small>
                       </td>
                       <td>
-                        <strong>
+                        <div className="affiliate-campaign-next-activity">
+                          <strong>
                           {campaign.nextTickAt
                             ? formatDateTime(campaign.nextTickAt)
                             : t("ecommerce.affiliateCampaign.waitingForWindow")}
-                        </strong>
-                        <small>08:00–22:00</small>
+                          </strong>
+                          <small>08:00–22:00 · {campaign.market}</small>
+                        </div>
                       </td>
                       <td><ChevronRightIcon /></td>
                     </tr>
@@ -779,6 +820,43 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </tbody>
             </table>
           </div>
+          <footer className="affiliate-campaign-directory-pagination">
+            <span>
+              {t("ecommerce.affiliateCampaign.paginationSummary", {
+                from: campaigns.length === 0 ? 0 : campaignPageStart + 1,
+                to: Math.min(campaignPageStart + CAMPAIGNS_PER_PAGE, campaigns.length),
+                total: campaigns.length,
+              })}
+            </span>
+            <div>
+              <button
+                type="button"
+                className="affiliate-campaign-page-button is-direction"
+                aria-label={t("ecommerce.affiliateCampaign.previousPage")}
+                disabled={campaignPage <= 1}
+                onClick={() => setCampaignPage((page) => Math.max(1, page - 1))}
+              >
+                <ChevronRightIcon />
+              </button>
+              <span>
+                {t("ecommerce.affiliateCampaign.pageOf", {
+                  page: campaignPage,
+                  total: campaignPageCount,
+                })}
+              </span>
+              <button
+                type="button"
+                className="affiliate-campaign-page-button is-direction"
+                aria-label={t("ecommerce.affiliateCampaign.nextPage")}
+                disabled={campaignPage >= campaignPageCount}
+                onClick={() =>
+                  setCampaignPage((page) => Math.min(campaignPageCount, page + 1))
+                }
+              >
+                <ChevronRightIcon />
+              </button>
+            </div>
+          </footer>
         </section>
       )}
 

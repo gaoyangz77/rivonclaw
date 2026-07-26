@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   estimateCampaignCadence,
+  paginateCampaigns,
   renderAffiliateCampaignTemplatePreview,
 } from "./AffiliateCampaignPage.js";
 
@@ -19,5 +20,13 @@ describe("Affiliate Campaign presentation contracts", () => {
         "Rivon",
       ),
     ).toBe("Hi Alex, feature Summer Bag from Rivon.");
+  });
+
+  it("paginates the campaign directory in stable twenty-row pages", () => {
+    const campaigns = Array.from({ length: 45 }, (_, index) => `campaign-${index + 1}`);
+
+    expect(paginateCampaigns(campaigns, 1)).toEqual(campaigns.slice(0, 20));
+    expect(paginateCampaigns(campaigns, 2)).toEqual(campaigns.slice(20, 40));
+    expect(paginateCampaigns(campaigns, 3)).toEqual(campaigns.slice(40, 45));
   });
 });
