@@ -29533,6 +29533,30 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 11px;
 }
 
+.affiliate-campaign-directory-tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.affiliate-campaign-directory-status-filter {
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.affiliate-campaign-directory-status-filter > span {
+  color: var(--campaign-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.affiliate-campaign-directory-status-filter .custom-select-trigger {
+  min-height: 38px;
+  border-radius: 12px;
+  background: var(--campaign-paper);
+}
+
 .affiliate-campaign-directory-table-wrap {
   overflow-x: auto;
 }
@@ -29598,6 +29622,21 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-directory-table tbody tr:focus-visible {
   background: var(--color-primary-light);
   box-shadow: inset 3px 0 0 var(--campaign-green);
+}
+
+.affiliate-campaign-directory-table tbody tr.affiliate-campaign-directory-empty-row {
+  cursor: default;
+}
+
+.affiliate-campaign-directory-table tbody tr.affiliate-campaign-directory-empty-row:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+.affiliate-campaign-directory-empty-row td {
+  height: 120px;
+  color: var(--campaign-muted);
+  text-align: center;
 }
 
 .affiliate-campaign-directory-table td > strong,
@@ -30073,6 +30112,12 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-campaign-directory-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .affiliate-campaign-directory-tools {
+    width: 100%;
+  }
+  .affiliate-campaign-directory-status-filter {
+    flex: 1;
   }
   .affiliate-campaign-detail-modal.modal-content {
     height: calc(100dvh - 16px);

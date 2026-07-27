@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   campaignErrorMessage,
   campaignShopDisplayName,
+  DEFAULT_CAMPAIGN_STATUS_FILTER,
   estimateCampaignCadence,
   isEnglishCampaignSearchPhrase,
   paginateCampaigns,
@@ -9,6 +10,10 @@ import {
 } from "./AffiliateCampaignPage.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
+  it("defaults the campaign directory to active campaigns", () => {
+    expect(DEFAULT_CAMPAIGN_STATUS_FILTER).toBe("ACTIVE");
+  });
+
   it("reports the average target rate over the twelve-hour paced window", () => {
     expect(estimateCampaignCadence(100, 0)).toBe("8.3");
     expect(estimateCampaignCadence(100, 50)).toBe("4.2");
