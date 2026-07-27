@@ -167,7 +167,18 @@ type CampaignCreatorStatePage = {
 };
 
 const CAMPAIGNS_PER_PAGE = 20;
-export const DEFAULT_CAMPAIGN_STATUS_FILTER = GQL.AffiliateCampaignStatus.Active;
+const CAMPAIGN_STATUS_FILTER_OPTIONS: GQL.AffiliateCampaignStatus[] = [
+  GQL.AffiliateCampaignStatus.Active,
+  GQL.AffiliateCampaignStatus.Paused,
+  GQL.AffiliateCampaignStatus.Draft,
+  GQL.AffiliateCampaignStatus.Completed,
+  GQL.AffiliateCampaignStatus.Archived,
+];
+export const DEFAULT_CAMPAIGN_STATUS_FILTERS: GQL.AffiliateCampaignStatus[] = [
+  GQL.AffiliateCampaignStatus.Active,
+  GQL.AffiliateCampaignStatus.Paused,
+  GQL.AffiliateCampaignStatus.Draft,
+];
 
 export function paginateCampaigns<T>(
   items: readonly T[],
@@ -189,9 +200,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [campaignPage, setCampaignPage] = useState(1);
-  const [campaignStatusFilter, setCampaignStatusFilter] = useState<
-    GQL.AffiliateCampaignStatus | ""
-  >(DEFAULT_CAMPAIGN_STATUS_FILTER);
+  const [campaignStatusFilters, setCampaignStatusFilters] = useState<GQL.AffiliateCampaignStatus[]>(
+    () => [...DEFAULT_CAMPAIGN_STATUS_FILTERS],
+  );
   const [stateStatus, setStateStatus] = useState("");
   const [generatingSearchGroups, setGeneratingSearchGroups] = useState(false);
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
@@ -213,7 +224,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       variables: {
         input: {
           limit: 500,
-          ...(campaignStatusFilter ? { status: campaignStatusFilter } : {}),
+          statuses: campaignStatusFilters,
         },
       },
       fetchPolicy: "cache-and-network",
@@ -310,7 +321,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   useEffect(() => {
     setCampaignPage(1);
-  }, [campaignStatusFilter]);
+  }, [campaignStatusFilters]);
+
+  const toggleCampaignStatusFilter = (status: GQL.AffiliateCampaignStatus) => {
+    setCampaignStatusFilters((current) => {
+      if (current.includes(status)) {
+        return current.length === 1
+          ? current
+          : current.filter((selectedStatus) => selectedStatus !== status);
+      }
+      const next = new Set([...current, status]);
+      return CAMPAIGN_STATUS_FILTER_OPTIONS.filter((option) => next.has(option));
+    });
+  };
 
   useEffect(() => {
     if (
@@ -896,42 +919,30 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <p>{t("ecommerce.affiliateCampaign.campaignTableDescription")}</p>
             </div>
             <div className="affiliate-campaign-directory-tools">
-              <label className="affiliate-campaign-directory-status-filter">
-                <span>{t("ecommerce.affiliateCampaign.statusFilter")}</span>
-                <Select
-                  value={campaignStatusFilter}
-                  onChange={(value) =>
-                    setCampaignStatusFilter(value as GQL.AffiliateCampaignStatus | "")
-                  }
-                  ariaLabel={t("ecommerce.affiliateCampaign.statusFilter")}
-                  options={[
-                    {
-                      value: GQL.AffiliateCampaignStatus.Active,
-                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Active, t),
-                    },
-                    {
-                      value: GQL.AffiliateCampaignStatus.Paused,
-                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Paused, t),
-                    },
-                    {
-                      value: GQL.AffiliateCampaignStatus.Draft,
-                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Draft, t),
-                    },
-                    {
-                      value: GQL.AffiliateCampaignStatus.Completed,
-                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Completed, t),
-                    },
-                    {
-                      value: GQL.AffiliateCampaignStatus.Archived,
-                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Archived, t),
-                    },
-                    {
-                      value: "",
-                      label: t("ecommerce.affiliateCampaign.allStatuses"),
-                    },
-                  ]}
-                />
-              </label>
+              <fieldset
+                className="affiliate-campaign-directory-status-filter"
+                aria-label={t("ecommerce.affiliateCampaign.statusFilter")}
+              >
+                <legend>{t("ecommerce.affiliateCampaign.statusFilter")}</legend>
+                <div className="affiliate-campaign-status-options">
+                  {CAMPAIGN_STATUS_FILTER_OPTIONS.map((status) => {
+                    const checked = campaignStatusFilters.includes(status);
+                    return (
+                      <label
+                        key={status}
+                        className={`affiliate-campaign-status-option${checked ? " affiliate-campaign-status-option-selected" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleCampaignStatusFilter(status)}
+                        />
+                        <span>{campaignStatusLabel(status, t)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
               <div className="affiliate-campaign-directory-count">
                 <strong>{formatNumber(campaigns.length)}</strong>
                 <span>{t("ecommerce.affiliateCampaign.campaignCountLabel")}</span>

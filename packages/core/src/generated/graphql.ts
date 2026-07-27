@@ -10158,6 +10158,7 @@ export interface ReadAffiliateCampaignsInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<AffiliateCampaignStatus>;
+  statuses?: InputMaybe<Array<AffiliateCampaignStatus>>;
 }
 
 export interface ReadAffiliateCollaborationRecordsInput {
