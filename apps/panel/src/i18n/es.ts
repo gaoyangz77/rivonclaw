@@ -55,6 +55,7 @@ export default {
     "tiktokShops": "Tiendas TikTok",
     "ecommerce": "Tiendas",
     "shopManagement": "Tiendas",
+    "shopAnalytics": "Análisis de tiendas",
     "adsManagement": "Anuncios",
     "inventoryManagement": "Inventario",
     "customerService": "Servicio al cliente",
@@ -1786,6 +1787,99 @@ export default {
       }
     }
   },
+  "shopAnalytics": {
+    "loadingPage": "Cargando análisis de tiendas…",
+    "signInTitle": "Inicia sesión para ver los análisis de tiendas",
+    "signInBody": "Los datos SPS solo están disponibles para las tiendas de tu cuenta actual.",
+    "eyebrow": "RENDIMIENTO DE TIENDAS",
+    "title": "El estado SPS de todas tus tiendas en una sola vista.",
+    "subtitle": "Compara tiendas por mercado, sigue la tendencia en vivo de TikTok y pasa de la puntuación al diagnóstico sin salir de la página.",
+    "liveApi": "API en vivo · caché de 5 min",
+    "refresh": "Actualizar",
+    "refreshing": "Actualizando…",
+    "metricSelectorAria": "Métrica SPS",
+    "diagnosisLens": "ENFOQUE DE DIAGNÓSTICO",
+    "metrics": {
+      "OTDR": "Tasa de entrega puntual",
+      "NRR": "Tasa de reseñas negativas",
+      "NBFR": "Tasa de comentarios negativos de compradores",
+      "SFCR": "Tasa de cancelación por culpa del vendedor",
+      "AHT": "Tiempo medio de gestión",
+      "IM_DSAT": "Tasa de insatisfacción en mensajería"
+    },
+    "summary": {
+      "markets": "Mercados",
+      "marketsHint": "Agrupados a partir de tus tiendas conectadas",
+      "liveShops": "Tiendas con SPS en vivo",
+      "liveShopsHint": "Tiendas de EE. UU. autorizadas con permiso SPS",
+      "averageSps": "SPS promedio",
+      "averageSpsHint": "Puntuación actual, no un promedio histórico",
+      "lastObserved": "Última observación",
+      "trendWindow": "Ventana de tendencia de {{days}} días"
+    },
+    "timeline": {
+      "title": "Acerca de esta cronología",
+      "body": "La API para partners de TikTok devuelve como máximo 90 días de tendencia. Las líneas son observaciones de la plataforma obtenidas bajo demanda, no instantáneas del almacén ni un historial de 12 meses."
+    },
+    "market": {
+      "oneShop": "1 tienda",
+      "shops": "{{count}} tiendas",
+      "live": "TikTok SPS en vivo",
+      "unavailable": "API de TikTok no disponible"
+    },
+    "chart": {
+      "trendByShop": "Tendencia por tienda",
+      "latestObservations": "Últimas {{days}} observaciones diarias",
+      "unsupportedTitle": "SPS no está disponible en este mercado",
+      "autoScale": "Eje Y ajustado automáticamente al rango visible",
+      "seriesAria": "Series del gráfico",
+      "noTrendTitle": "No se devolvieron puntos de tendencia",
+      "noTrendBody": "Revisa el estado de la tienda y actualiza cuando los datos SPS de TikTok estén disponibles.",
+      "usOnlyTitle": "Cobertura actual de la API: solo Estados Unidos",
+      "unsupportedBody": "Estas tiendas se muestran para dar visibilidad. No se infieren puntuaciones ni diagnósticos para regiones no compatibles."
+    },
+    "availability": {
+      "AVAILABLE": "En vivo",
+      "MISSING_SCOPE": "Permiso necesario",
+      "NOT_AUTHORIZED": "Volver a conectar",
+      "UNSUPPORTED_REGION": "Región no compatible",
+      "UNSUPPORTED_PLATFORM": "Plataforma no compatible",
+      "PLATFORM_ERROR": "No disponible temporalmente"
+    },
+    "unavailableReasons": {
+      "AVAILABLE": "",
+      "MISSING_SCOPE": "A la autorización de la tienda le falta el permiso SPS requerido.",
+      "NOT_AUTHORIZED": "Vuelve a conectar esta tienda para cargar los datos SPS.",
+      "UNSUPPORTED_REGION": "TikTok actualmente solo ofrece las API de SPS para tiendas de Estados Unidos.",
+      "UNSUPPORTED_PLATFORM": "TikTok SPS solo está disponible para conexiones de TikTok Shop.",
+      "PLATFORM_ERROR": "Los datos SPS de TikTok no están disponibles temporalmente. Inténtalo de nuevo más tarde."
+    },
+    "shop": {
+      "noTopIssue": "No hay problemas principales marcados",
+      "currentTier": "Nivel actual",
+      "defaultCategory": "TikTok Shop",
+      "aheadOfPeers": "Por delante del {{percent}} % de tiendas similares",
+      "observed": "Observado el {{date}}",
+      "metricValue": "Valor de la métrica",
+      "metricScore": "Puntuación de la métrica",
+      "status": "Estado",
+      "topIssues": "Problemas principales",
+      "diagnosis": "Diagnóstico",
+      "method": "Cálculo de la métrica y referencias",
+      "numerator": "Numerador",
+      "denominator": "Denominador",
+      "excellentThreshold": "Umbral excelente",
+      "poorThreshold": "Umbral deficiente",
+      "range": "Rango"
+    },
+    "states": {
+      "loading": "Cargando diagnósticos SPS en vivo…",
+      "errorTitle": "No se pudieron cargar los análisis de tiendas",
+      "retry": "Intentar de nuevo",
+      "noShopsTitle": "No se encontraron tiendas de TikTok",
+      "noShopsBody": "Conecta una TikTok Shop para empezar a supervisar el Shop Performance Score."
+    }
+  },
   "tutorial": {
     "bubble": {
       "tooltip": "Tutorial de página"
@@ -1796,6 +1890,14 @@ export default {
       "done": "hecho",
       "close": "Cerrar",
       "stepOf": "{{current}} / {{total}}"
+    },
+    "shopAnalytics": {
+      "welcomeTitle": "Análisis de rendimiento de tiendas",
+      "welcomeBody": "Compara el estado SPS actual por mercado y tienda en una sola página.",
+      "metricsTitle": "Seleccionar métrica de diagnóstico",
+      "metricsBody": "Cambiar la métrica SPS actualiza todos los gráficos y diagnósticos.",
+      "trendTitle": "Comparar tendencias de tiendas",
+      "trendBody": "Cada línea representa una tienda. TikTok devuelve como máximo 90 observaciones diarias."
     },
     "providers": {
       "welcomeTitle": "Bienvenido a Modelos",
