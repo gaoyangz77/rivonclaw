@@ -7,9 +7,9 @@ import {
 
 describe("Affiliate Campaign presentation contracts", () => {
   it("reports the average target rate over the twelve-hour paced window", () => {
-    expect(estimateCampaignCadence(100, 0)).toBe("≈ 8.3 / hr");
-    expect(estimateCampaignCadence(100, 50)).toBe("≈ 4.2 / hr");
-    expect(estimateCampaignCadence(1, 0)).toBe("≈ 0.1 / hr");
+    expect(estimateCampaignCadence(100, 0)).toBe("8.3");
+    expect(estimateCampaignCadence(100, 50)).toBe("4.2");
+    expect(estimateCampaignCadence(1, 0)).toBe("0.1");
   });
 
   it("renders only the supported first-touch template variables", () => {

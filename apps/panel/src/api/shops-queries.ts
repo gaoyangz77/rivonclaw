@@ -244,7 +244,14 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
       observedAt
       snapshotHash
     }
-    searchPhrases { key text source suggestionVersion }
+    searchPhrases {
+      key
+      text
+      source
+      explanation
+      explanationLocale
+      suggestionVersion
+    }
     market
     resolvedTimeZone
     dailyOutreachTarget
@@ -555,7 +562,8 @@ export const SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION = gql`
       productSnapshotHash
       suggestions {
         text
-        rationale
+        explanation
+        explanationLocale
       }
     }
   }
