@@ -5,6 +5,7 @@ import {
   LOCAL_PROVIDER_IDS,
   getProviderMeta,
   getOllamaOpenAiBaseUrl,
+  TEMPORARY_OPENAI_CODEX_MODELS,
 } from "@rivonclaw/core";
 import {
   AFFILIATE_AGENT_ID,
@@ -53,6 +54,8 @@ export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 135;
 export const IMAGE_GENERATION_MODEL_REF = "openai/gpt-image-2";
 export const IMAGE_GENERATION_TIMEOUT_MS = 300_000;
 const OPENAI_IMAGE_PROVIDER_ID = "openai";
+const OPENAI_CODEX_RESPONSES_BASE_URL = "https://chatgpt.com/backend-api/codex";
+const OPENAI_CODEX_RESPONSES_API = "openai-chatgpt-responses";
 const TEXT_AND_IMAGE_INPUT: GatewayInputModality[] = ["text", "image"];
 const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 type RawCustomModel =
@@ -129,6 +132,43 @@ type CustomProviderModel = {
 };
 
 type ManagedGatewayAgents = NonNullable<Parameters<typeof writeGatewayConfig>[0]["managedAgents"]>;
+type ExtraProviderConfig = NonNullable<
+  Parameters<typeof writeGatewayConfig>[0]["extraProviders"]
+>[string];
+
+const TEMPORARY_OPENAI_CODEX_PROVIDER_MODELS: ExtraProviderConfig["models"] =
+  TEMPORARY_OPENAI_CODEX_MODELS.map((model) => ({
+    id: model.modelId,
+    name: model.displayName,
+    api: OPENAI_CODEX_RESPONSES_API,
+    baseUrl: OPENAI_CODEX_RESPONSES_BASE_URL,
+    reasoning: true,
+    input: model.supportsVision ? TEXT_AND_IMAGE_INPUT : ["text"],
+    ...(model.cost ? { cost: model.cost } : {}),
+    ...(model.contextWindow ? { contextWindow: model.contextWindow } : {}),
+    ...(model.contextTokens ? { contextTokens: model.contextTokens } : {}),
+    ...(model.maxTokens ? { maxTokens: model.maxTokens } : {}),
+  }));
+
+/**
+ * TEMPORARY: remove after the pinned OpenClaw OpenAI manifest contains all
+ * four GPT-5.6 IDs. The override is deliberately scoped to an active Codex
+ * OAuth key so it can never change the official OpenAI API-key transport.
+ */
+export function buildTemporaryOpenAICodexProviderOverride(
+  activeKey: Pick<ProviderKeyLike, "provider" | "authType"> | undefined,
+): Record<string, ExtraProviderConfig> {
+  if (activeKey?.provider !== "openai-codex" || activeKey.authType !== "oauth") {
+    return {};
+  }
+  return {
+    openai: {
+      baseUrl: OPENAI_CODEX_RESPONSES_BASE_URL,
+      api: OPENAI_CODEX_RESPONSES_API,
+      models: TEMPORARY_OPENAI_CODEX_PROVIDER_MODELS,
+    },
+  };
+}
 
 export function buildManagedGatewayAgents(stateDir: string): ManagedGatewayAgents {
   return [
@@ -282,20 +322,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     };
   }
 
-  /** Only include extra providers that the user has configured (has a provider key in DB).
-   *  Unconfigured providers have no API key, causing Pi SDK's validateConfig to reject
-   *  the entire models.json — which silently drops ALL custom models from the catalog. */
-  function filterConfiguredExtraProviders<T>(providers: Record<string, T>): Record<string, T> {
-    const configuredProviders = new Set(storage.providerKeys.getAll().map((k) => k.provider));
-    const filtered: Record<string, T> = {};
-    for (const [provider, config] of Object.entries(providers)) {
-      if (configuredProviders.has(provider)) {
-        filtered[provider] = config;
-      }
-    }
-    return filtered;
-  }
-
   function buildLocalProviderOverrides(): Record<
     string,
     { baseUrl: string; models: Array<{ id: string; name: string; inputModalities?: string[] }> }
@@ -390,12 +416,11 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       | "cdp";
     const curBrowserCdpPort = parseInt(storage.settings.get("browser-cdp-port") || "9222", 10);
 
-    // Build the full set of extra providers (all built-in non-OpenClaw providers).
-    // filterConfiguredExtraProviders narrows to those with API keys;
-    // managedProviderKeys only cleans RivonClaw-owned entries in openclaw.json.
-    // Do not write agent models.json here: OpenClaw owns its locked, atomic
-    // reconciliation and preserves unrelated user providers in merge mode.
-    const allExtraProviders = buildExtraProviderConfigs();
+    // Legacy releases wrote large, manually maintained third-party catalogs.
+    // Keep their keys only for one-way cleanup; vendor OpenClaw now owns those
+    // provider definitions and model lists. EasyClaw writes only its cloud
+    // provider, explicit custom providers, and narrow compatibility overlays.
+    const legacyManagedProviderKeys = Object.keys(buildExtraProviderConfigs());
 
     // Only reference apiKey env var if key exists in keychain
     const wsKeyExists = curWebSearchEnabled
@@ -411,6 +436,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       curEmbeddingEnabled && (curEmbeddingProvider === "ollama" || embKeyExists);
 
     const customProviderOverrides = buildCustomProviderOverrides();
+    const temporaryOpenAICodexOverride = buildTemporaryOpenAICodexProviderOverride(activeKey);
     if (cloudImageRouteActive && activeKey?.baseUrl) {
       customProviderOverrides[OPENAI_IMAGE_PROVIDER_ID] = {
         baseUrl: activeKey.baseUrl,
@@ -515,10 +541,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         apiKeyEnvVar: embKeyExists ? EMB_ENV_MAP[curEmbeddingProvider] : undefined,
       },
       extraProviders: {
-        ...filterConfiguredExtraProviders(allExtraProviders),
         ...customProviderOverrides,
+        ...temporaryOpenAICodexOverride,
       },
-      managedProviderKeys: [...Object.keys(allExtraProviders), OPENAI_IMAGE_PROVIDER_ID],
+      managedProviderKeys: [...legacyManagedProviderKeys, OPENAI_IMAGE_PROVIDER_ID],
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,

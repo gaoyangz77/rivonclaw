@@ -276,7 +276,7 @@ describe("getModelsForProvider", () => {
     const models = getModelsForProvider("openai-codex");
     const ids = models.map((m) => m.modelId);
 
-    expect(ids).toEqual(["gpt-5.5"]);
+    expect(ids).toEqual(["gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"]);
   });
 
   it("should return empty array for providers with no models", () => {
@@ -402,7 +402,7 @@ describe("openai-codex defaults", () => {
 
     const model = getDefaultModelForProvider("openai-codex");
     expect(model).toBeDefined();
-    expect(model!.modelId).toBe("gpt-5.5");
+    expect(model!.modelId).toBe("gpt-5.6");
   });
 
   it("should prefer the static Codex fallback over unrelated catalog rows", () => {
@@ -416,6 +416,6 @@ describe("openai-codex defaults", () => {
     const model = getDefaultModelForProvider("openai-codex");
 
     expect(model).toBeDefined();
-    expect(model!.modelId).toBe("gpt-5.5");
+    expect(model!.modelId).toBe("gpt-5.6");
   });
 });

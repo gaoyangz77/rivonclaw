@@ -117,6 +117,7 @@ export {
   isUsageQueryableProvider,
   REAUTH_SUPPORTED_PROVIDERS,
   isReauthSupportedProvider,
+  TEMPORARY_OPENAI_CODEX_MODELS,
   CNY_USD,
   providerSecretKey,
   getProviderMeta,
