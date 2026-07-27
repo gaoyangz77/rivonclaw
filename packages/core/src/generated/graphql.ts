@@ -1077,6 +1077,8 @@ export interface AffiliateCampaignSearchKeywordSuggestions {
 }
 
 export interface AffiliateCampaignSearchPhrase {
+  explanation?: Maybe<Scalars['String']['output']>;
+  explanationLocale?: Maybe<Scalars['String']['output']>;
   key: Scalars['String']['output'];
   source: AffiliateCampaignSearchPhraseSource;
   suggestionVersion?: Maybe<Scalars['Int']['output']>;
@@ -1094,6 +1096,8 @@ export interface AffiliateCampaignSearchPhraseExecution {
 }
 
 export interface AffiliateCampaignSearchPhraseInput {
+  explanation?: InputMaybe<Scalars['String']['input']>;
+  explanationLocale?: InputMaybe<Scalars['String']['input']>;
   source: AffiliateCampaignSearchPhraseSource;
   suggestionVersion?: InputMaybe<Scalars['Int']['input']>;
   text: Scalars['String']['input'];
@@ -1106,6 +1110,9 @@ export const AffiliateCampaignSearchPhraseSource = {
 
 export type AffiliateCampaignSearchPhraseSource = typeof AffiliateCampaignSearchPhraseSource[keyof typeof AffiliateCampaignSearchPhraseSource];
 export interface AffiliateCampaignSearchPhraseSuggestion {
+  explanation: Scalars['String']['output'];
+  explanationLocale: Scalars['String']['output'];
+  /** @deprecated Use explanation. */
   rationale: Scalars['String']['output'];
   text: Scalars['String']['output'];
 }
@@ -10873,11 +10880,13 @@ export interface SubscriptionUpdateAvailableArgs {
 export interface SuggestAffiliateCampaignSearchKeywordsInput {
   guidance?: InputMaybe<Scalars['String']['input']>;
   snapshotRef: Scalars['ID']['input'];
+  uiLocale?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface SuggestAffiliateCampaignSearchPhrasesInput {
   guidance?: InputMaybe<Scalars['String']['input']>;
   snapshotRef: Scalars['ID']['input'];
+  uiLocale: Scalars['String']['input'];
 }
 
 /** Supported IANA timezone identifiers used by analytics date boundaries */

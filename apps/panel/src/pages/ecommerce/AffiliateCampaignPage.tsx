@@ -42,6 +42,8 @@ type CampaignForm = {
   searchPhrases: Array<{
     text: string;
     source: GQL.AffiliateCampaignSearchPhraseSource;
+    explanation: string;
+    explanationLocale: string;
     suggestionVersion: number | null;
   }>;
   strategy: GQL.AffiliateCampaignSelectionStrategy;
@@ -83,6 +85,8 @@ const emptyForm: CampaignForm = {
   searchPhrases: [{
     text: "",
     source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+    explanation: "",
+    explanationLocale: "",
     suggestionVersion: null,
   }],
   strategy: GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
@@ -166,7 +170,7 @@ export function paginateCampaigns<T>(
 }
 
 export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
@@ -179,9 +183,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     useState<GQL.AffiliateCampaignProductSnapshot | null>(null);
   const [pendingProductResolution, setPendingProductResolution] =
     useState<GQL.AffiliateCampaignProductResolution | null>(null);
-  const [keywordSuggestions, setKeywordSuggestions] = useState<
-    GQL.AffiliateCampaignSearchPhraseSuggestion[]
-  >([]);
 
   const campaignsQuery = useQuery<{ affiliateCampaigns: GQL.AffiliateCampaign[] }>(
     AFFILIATE_CAMPAIGNS_QUERY,
@@ -312,7 +313,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setForm(emptyForm);
     setProductPreview(null);
     setPendingProductResolution(null);
-    setKeywordSuggestions([]);
     setEditingCampaignId("");
     setWizardStep(1);
     setWizardOpen(true);
@@ -343,11 +343,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         ? campaign.searchPhrases.map((phrase) => ({
             text: phrase.text,
             source: phrase.source,
+            explanation: phrase.explanation ?? "",
+            explanationLocale: phrase.explanationLocale ?? "",
             suggestionVersion: phrase.suggestionVersion ?? null,
           }))
         : [{
             text: "",
             source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+            explanation: "",
+            explanationLocale: "",
             suggestionVersion: null,
           }],
       strategy: campaign.selectionPolicy.strategy,
@@ -391,7 +395,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setEditingCampaignId(campaign.id);
     setProductPreview(campaign.productSnapshot ?? null);
     setPendingProductResolution(null);
-    setKeywordSuggestions([]);
     setWizardStep(1);
     setWizardOpen(true);
   };
@@ -442,7 +445,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         form.searchPhrases.length > 5 ||
         form.searchPhrases.some((phrase) => {
           const text = phrase.text.normalize("NFKC").trim().replace(/\s+/gu, " ");
-          return text.length < 2 || text.length > 80;
+          return !isEnglishCampaignSearchPhrase(text);
         }) ||
         new Set(
           form.searchPhrases.map((phrase) =>
@@ -500,12 +503,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       searchPhrases: [{
         text: "",
         source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+        explanation: "",
+        explanationLocale: "",
         suggestionVersion: null,
       }],
     }));
     setProductPreview(resolution.snapshot);
     setPendingProductResolution(null);
-    setKeywordSuggestions([]);
   };
 
   const generateKeywordSuggestions = async () => {
@@ -515,17 +519,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         variables: {
           input: {
             snapshotRef: form.productSnapshotRef,
+            uiLocale: i18n.resolvedLanguage ?? i18n.language,
           },
         },
       });
       const payload = result.data?.suggestAffiliateCampaignSearchPhrases;
       if (!payload) throw new Error(t("ecommerce.affiliateCampaign.keywordSuggestionFailed"));
-      setKeywordSuggestions(payload.suggestions);
       setForm((current) => ({
         ...current,
         searchPhrases: payload.suggestions.map((suggestion) => ({
           text: suggestion.text,
           source: GQL.AffiliateCampaignSearchPhraseSource.AiSuggested,
+          explanation: suggestion.explanation,
+          explanationLocale: suggestion.explanationLocale,
           suggestionVersion: payload.suggestionVersion,
         })),
       }));
@@ -548,6 +554,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         searchPhrases: form.searchPhrases.map((phrase) => ({
           text: phrase.text,
           source: phrase.source,
+          explanation: phrase.explanation || null,
+          explanationLocale: phrase.explanationLocale || null,
           suggestionVersion: phrase.suggestionVersion,
         })),
         dailyOutreachTarget: Number(form.dailyTarget),
@@ -1056,10 +1064,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <div className="affiliate-campaign-cadence">
                 <span>{t("ecommerce.affiliateCampaign.cadence")}</span>
                 <strong>
-                  {estimateCampaignCadence(
-                    selectedCampaign.dailyOutreachTarget,
-                    latestExecution?.counters.submitted ?? 0,
-                  )}
+                  {t("ecommerce.affiliateCampaign.hourlyRate", {
+                    rate: estimateCampaignCadence(
+                      selectedCampaign.dailyOutreachTarget,
+                      latestExecution?.counters.submitted ?? 0,
+                    ),
+                  })}
                 </strong>
                 <small>{t("ecommerce.affiliateCampaign.dynamicJitter")}</small>
               </div>
@@ -1228,6 +1238,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         searchPhrases: [{
                           text: "",
                           source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+                          explanation: "",
+                          explanationLocale: "",
                           suggestionVersion: null,
                         }],
                         ageRanges: [],
@@ -1241,7 +1253,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       }));
                       setProductPreview(null);
                       setPendingProductResolution(null);
-                      setKeywordSuggestions([]);
                     }}
                     options={shopOptions}
                     searchable
@@ -1262,11 +1273,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         updateForm("searchPhrases", [{
                           text: "",
                           source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+                          explanation: "",
+                          explanationLocale: "",
                           suggestionVersion: null,
                         }]);
                         setProductPreview(null);
                         setPendingProductResolution(null);
-                        setKeywordSuggestions([]);
                       }}
                       placeholder={t("ecommerce.affiliateCampaign.productIdPlaceholder")}
                     />
@@ -1476,29 +1488,57 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
                 <div className="affiliate-campaign-phrase-editor">
                   {form.searchPhrases.map((phrase, index) => (
-                    <div key={`${index}:${phrase.source}`}>
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      <input
-                        value={phrase.text}
-                        maxLength={80}
-                        onChange={(event) => {
-                          const next = [...form.searchPhrases];
-                          next[index] = {
-                            text: event.target.value,
-                            source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-                            suggestionVersion: null,
-                          };
-                          updateForm("searchPhrases", next);
-                        }}
-                        placeholder={t("ecommerce.affiliateCampaign.searchPhrasePlaceholder")}
-                      />
-                      <small>
-                        {phrase.source === GQL.AffiliateCampaignSearchPhraseSource.AiSuggested
-                          ? t("ecommerce.affiliateCampaign.aiSuggested")
-                          : t("ecommerce.affiliateCampaign.userAuthored")}
-                      </small>
+                    <div
+                      className="affiliate-campaign-phrase-card"
+                      key={`${index}:${phrase.source}`}
+                    >
+                      <span className="affiliate-campaign-phrase-index">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div className="affiliate-campaign-phrase-content">
+                        <div className="affiliate-campaign-phrase-meta">
+                          <span>
+                            {phrase.source ===
+                            GQL.AffiliateCampaignSearchPhraseSource.AiSuggested
+                              ? t("ecommerce.affiliateCampaign.aiSuggested")
+                              : t("ecommerce.affiliateCampaign.userAuthored")}
+                          </span>
+                          <span>{t("ecommerce.affiliateCampaign.englishSearchPhrase")}</span>
+                        </div>
+                        <input
+                          value={phrase.text}
+                          maxLength={80}
+                          onChange={(event) => {
+                            const next = [...form.searchPhrases];
+                            next[index] = {
+                              text: event.target.value,
+                              source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+                              explanation: "",
+                              explanationLocale: "",
+                              suggestionVersion: null,
+                            };
+                            updateForm("searchPhrases", next);
+                          }}
+                          placeholder={t("ecommerce.affiliateCampaign.searchPhrasePlaceholder")}
+                        />
+                        {phrase.explanation ? (
+                          <div className="affiliate-campaign-phrase-explanation">
+                            <strong>
+                              {t("ecommerce.affiliateCampaign.whyThisPhrase")}
+                            </strong>
+                            <p lang={phrase.explanationLocale || undefined}>
+                              {phrase.explanation}
+                            </p>
+                          </div>
+                        ) : (
+                          <small className="affiliate-campaign-phrase-empty-explanation">
+                            {t("ecommerce.affiliateCampaign.userEditedNoExplanation")}
+                          </small>
+                        )}
+                      </div>
                       <button
                         type="button"
+                        className="affiliate-campaign-remove-phrase"
                         aria-label={t("ecommerce.affiliateCampaign.removeSearchPhrase")}
                         disabled={form.searchPhrases.length === 1}
                         onClick={() =>
@@ -1521,6 +1561,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           {
                             text: "",
                             source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+                            explanation: "",
+                            explanationLocale: "",
                             suggestionVersion: null,
                           },
                         ])}
@@ -1529,17 +1571,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     </button>
                   )}
                 </div>
-                {keywordSuggestions.length > 0 && (
-                  <div className="affiliate-campaign-keyword-suggestions">
-                    <span>{t("ecommerce.affiliateCampaign.keywordSuggestions")}</span>
-                    {keywordSuggestions.map((suggestion) => (
-                      <div key={suggestion.text} data-selected="true">
-                        <strong>{suggestion.text}</strong>
-                        <small>{suggestion.rationale}</small>
-                      </div>
-                    ))}
-                  </div>
-                )}
                 <details className="affiliate-campaign-advanced-rules">
                   <summary>
                     <span>{t("ecommerce.affiliateCampaign.advancedProviderRules")}</span>
@@ -1833,7 +1864,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.estimatedInterval")}
-                  value={estimateCampaignCadence(Number(form.dailyTarget), 0)}
+                  value={t("ecommerce.affiliateCampaign.hourlyRate", {
+                    rate: estimateCampaignCadence(Number(form.dailyTarget), 0),
+                  })}
                 />
               </div>
               <div className="affiliate-campaign-authorization">
@@ -2263,7 +2296,16 @@ function campaignCommissionRate(campaign: GQL.AffiliateCampaign): number {
 
 export function estimateCampaignCadence(target: number, submitted: number) {
   const remaining = Math.max(0, target - submitted);
-  return `≈ ${(remaining / 12).toFixed(1)} / hr`;
+  return (remaining / 12).toFixed(1);
+}
+
+function isEnglishCampaignSearchPhrase(value: string): boolean {
+  if (value.length < 2 || value.length > 80) return false;
+  if (/[^\p{Script=Latin}\p{Mark}\p{Number}\s&'+,./()\-–—]/u.test(value)) {
+    return false;
+  }
+  const words = value.match(/\p{Script=Latin}[\p{Script=Latin}\p{Mark}'’-]*/gu) ?? [];
+  return words.length >= 2 && words.length <= 8;
 }
 
 function campaignErrorMessage(
