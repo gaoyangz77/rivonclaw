@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  campaignErrorMessage,
   estimateCampaignCadence,
+  isEnglishCampaignSearchPhrase,
   paginateCampaigns,
   renderAffiliateCampaignTemplatePreview,
 } from "./AffiliateCampaignPage.js";
@@ -28,5 +30,21 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(paginateCampaigns(campaigns, 1)).toEqual(campaigns.slice(0, 20));
     expect(paginateCampaigns(campaigns, 2)).toEqual(campaigns.slice(20, 40));
     expect(paginateCampaigns(campaigns, 3)).toEqual(campaigns.slice(40, 45));
+  });
+
+  it("accepts one-word Marketplace keywords while rejecting non-English input", () => {
+    expect(isEnglishCampaignSearchPhrase("necklace")).toBe(true);
+    expect(isEnglishCampaignSearchPhrase("faith based fashion")).toBe(true);
+    expect(isEnglishCampaignSearchPhrase("达人饰品")).toBe(false);
+  });
+
+  it("maps AI suggestion failures to specific localized messages", () => {
+    const t = (key: string) => key;
+    expect(campaignErrorMessage(new Error("CAMPAIGN_AI_SUGGESTION_TIMEOUT: timed out"), t)).toBe(
+      "ecommerce.affiliateCampaign.errors.suggestionTimeout",
+    );
+    expect(campaignErrorMessage(new Error("CAMPAIGN_AI_SUGGESTION_INVALID: incomplete"), t)).toBe(
+      "ecommerce.affiliateCampaign.errors.suggestionInvalid",
+    );
   });
 });

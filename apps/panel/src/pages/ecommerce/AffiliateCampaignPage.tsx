@@ -11,6 +11,7 @@ import {
   UserPlusIcon,
 } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import {
@@ -191,6 +192,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   );
   const [pendingProductResolution, setPendingProductResolution] =
     useState<GQL.AffiliateCampaignProductResolution | null>(null);
+  const [confirmation, setConfirmation] = useState<
+    | { kind: "resuggest"; existingPhrases: string[] }
+    | { kind: "delete-draft"; campaignId: string; campaignName: string }
+    | null
+  >(null);
 
   const campaignsQuery = useQuery<{ affiliateCampaigns: GQL.AffiliateCampaign[] }>(
     AFFILIATE_CAMPAIGNS_QUERY,
@@ -514,15 +520,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setPendingProductResolution(null);
   };
 
-  const generateKeywordSuggestions = async () => {
+  const requestKeywordSuggestions = async (existingPhrases: string[]) => {
     if (!productPreview || !form.productSnapshotRef) return;
-    const existingPhrases = form.searchPhrases.map((phrase) => phrase.text.trim()).filter(Boolean);
-    if (
-      existingPhrases.length > 0 &&
-      !window.confirm(t("ecommerce.affiliateCampaign.resuggestConfirm"))
-    ) {
-      return;
-    }
     try {
       const result = await suggestKeywords({
         variables: {
@@ -550,6 +549,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     } catch (error) {
       showToast(campaignErrorMessage(error, t), "error");
     }
+  };
+
+  const generateKeywordSuggestions = () => {
+    if (!productPreview || !form.productSnapshotRef) return;
+    const existingPhrases = form.searchPhrases.map((phrase) => phrase.text.trim()).filter(Boolean);
+    if (existingPhrases.length > 0) {
+      setConfirmation({ kind: "resuggest", existingPhrases });
+      return;
+    }
+    void requestKeywordSuggestions([]);
   };
 
   const createCampaign = async () => {
@@ -686,15 +695,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
   };
 
-  const deleteDraftCampaign = async (campaign: GQL.AffiliateCampaign) => {
-    if (
-      !window.confirm(t("ecommerce.affiliateCampaign.deleteDraftConfirm", { name: campaign.name }))
-    ) {
-      return;
-    }
+  const deleteDraftCampaign = (campaign: GQL.AffiliateCampaign) => {
+    setConfirmation({
+      kind: "delete-draft",
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+    });
+  };
+
+  const executeDeleteDraftCampaign = async (campaignId: string) => {
     try {
       const result = await deleteDraft({
-        variables: { input: { campaignId: campaign.id } },
+        variables: { input: { campaignId } },
       });
       if (!result.data?.deleteAffiliateCampaignDraft) {
         throw new Error("CAMPAIGN_DRAFT_DELETE_FAILED");
@@ -705,6 +717,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     } catch (error) {
       showToast(campaignErrorMessage(error, t), "error");
     }
+  };
+
+  const confirmPendingAction = () => {
+    const pending = confirmation;
+    setConfirmation(null);
+    if (!pending) return;
+    if (pending.kind === "resuggest") {
+      void requestKeywordSuggestions(pending.existingPhrases);
+      return;
+    }
+    void executeDeleteDraftCampaign(pending.campaignId);
   };
 
   const activeCount = campaigns.filter(
@@ -1956,6 +1979,30 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           )}
         </footer>
       </Modal>
+      <ConfirmDialog
+        isOpen={confirmation !== null}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={confirmPendingAction}
+        title={t(
+          confirmation?.kind === "delete-draft"
+            ? "ecommerce.affiliateCampaign.deleteDraftTitle"
+            : "ecommerce.affiliateCampaign.resuggestTitle",
+        )}
+        message={
+          confirmation?.kind === "delete-draft"
+            ? t("ecommerce.affiliateCampaign.deleteDraftConfirm", {
+                name: confirmation.campaignName,
+              })
+            : t("ecommerce.affiliateCampaign.resuggestConfirm")
+        }
+        confirmLabel={t(
+          confirmation?.kind === "delete-draft"
+            ? "ecommerce.affiliateCampaign.deleteDraft"
+            : "ecommerce.affiliateCampaign.replaceSuggestions",
+        )}
+        cancelLabel={t("common.cancel")}
+        confirmVariant={confirmation?.kind === "delete-draft" ? "danger" : "primary"}
+      />
     </div>
   );
 });
@@ -2610,16 +2657,16 @@ export function estimateCampaignCadence(target: number, submitted: number) {
   return (remaining / 12).toFixed(1);
 }
 
-function isEnglishCampaignSearchPhrase(value: string): boolean {
+export function isEnglishCampaignSearchPhrase(value: string): boolean {
   if (value.length < 2 || value.length > 80) return false;
   if (/[^\p{Script=Latin}\p{Mark}\p{Number}\s&'+,./()\-–—]/u.test(value)) {
     return false;
   }
   const words = value.match(/\p{Script=Latin}[\p{Script=Latin}\p{Mark}'’-]*/gu) ?? [];
-  return words.length >= 2 && words.length <= 8;
+  return words.length >= 1 && words.length <= 8;
 }
 
-function campaignErrorMessage(
+export function campaignErrorMessage(
   error: unknown,
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
@@ -2630,6 +2677,9 @@ function campaignErrorMessage(
     ["CAMPAIGN_DRAFT_HAS_HISTORY", "draftHasHistory"],
     ["CAMPAIGN_RECONFIGURATION_REQUIRED", "reconfigurationRequired"],
     ["CAMPAIGN_SEARCH_PHRASES_REQUIRED", "invalidSearchPhrases"],
+    ["CAMPAIGN_AI_SUGGESTION_TIMEOUT", "suggestionTimeout"],
+    ["CAMPAIGN_AI_SUGGESTION_INVALID", "suggestionInvalid"],
+    ["CAMPAIGN_AI_SUGGESTION_FAILED", "suggestionFailed"],
     ["CAMPAIGN_COPY_REQUIRED", "copyRequired"],
     ["PRODUCT_SNAPSHOT_REF_INVALID", "productSnapshotExpired"],
     ["CAMPAIGN_TEMPLATE_NOT_DISTINCT", "templateNotDistinct"],

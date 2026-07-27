@@ -28573,8 +28573,34 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-campaign-wizard-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
-  gap: 52px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.affiliate-campaign-wizard-copy {
+  display: grid;
+  grid-template:
+    "step title" auto
+    "step description" auto / 42px minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: start;
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--campaign-line);
+}
+.affiliate-campaign-wizard-copy > span {
+  grid-area: step;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+.affiliate-campaign-wizard-copy h3 {
+  grid-area: title;
+}
+.affiliate-campaign-wizard-copy p {
+  grid-area: description;
 }
 .affiliate-campaign-wizard-copy > span,
 .affiliate-campaign-confirmation > section > span {
@@ -28584,7 +28610,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-campaign-wizard-copy h3,
 .affiliate-campaign-confirmation h3 {
-  margin: 12px 0 10px;
+  margin: 0 0 6px;
   color: var(--campaign-ink);
   font-size: 25px;
   letter-spacing: -0.025em;
@@ -29991,7 +30017,7 @@ html[lang="zh"] .acct-tool-chips {
   }
   .affiliate-campaign-wizard-grid {
     grid-template-columns: 1fr;
-    gap: 26px;
+    gap: 20px;
   }
   .affiliate-campaign-directory-header {
     align-items: flex-start;
