@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
 import { openClawConnector } from "../openclaw/index.js";
 import { rootStore } from "../app/store/desktop-store.js";
-import { requestAgent } from "./agent-tooling-readiness.js";
 
 const log = createLogger("structured-one-shot-agent");
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -42,7 +41,10 @@ const defaultRuntime: StructuredOneShotAgentRuntime = {
     return rootStore.llmManager.resolveModelForDispatch(sessionKey);
   },
   start(input) {
-    return requestAgent<{ runId?: string }>(input);
+    // Structured one-shot work is a raw model run. Going through requestAgent()
+    // would unnecessarily wait for the interactive Agent tool catalog even
+    // though modelRun disables tool construction in the gateway.
+    return openClawConnector.request<{ runId?: string }>("agent", input);
   },
   wait(runId, timeoutMs) {
     return openClawConnector.request("agent.wait", { runId, timeoutMs });

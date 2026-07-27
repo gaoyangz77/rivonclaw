@@ -3,7 +3,8 @@ import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { fetchJson } from "./client.js";
 
 export function generateAffiliateCampaignSearchPhrases(input: {
-  snapshotRef: string;
+  shopId: string;
+  productId: string;
   uiLocale: string;
   excludePhrases?: string[];
   guidance?: string;
@@ -18,7 +19,8 @@ export function generateAffiliateCampaignSearchPhrases(input: {
 }
 
 export function generateAffiliateCampaignMessageTemplate(input: {
-  snapshotRef: string;
+  shopId: string;
+  productId: string;
   uiLocale: string;
   guidance?: string;
   mode: GQL.AffiliateCampaignTemplateGenerationMode;

@@ -85,6 +85,8 @@ describe("runStructuredOneShotAgent", () => {
       }),
     );
     expect(start.mock.calls[0]?.[0]).not.toHaveProperty("fastMode");
+    expect(start.mock.calls[0]?.[0]).not.toHaveProperty("tools");
+    expect(start.mock.calls[0]?.[0]).not.toHaveProperty("toolsAllow");
     expect(deleteSession).toHaveBeenCalledTimes(1);
   });
 

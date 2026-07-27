@@ -608,28 +608,25 @@ export const GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION = gql`
   }
 `;
 
-export const RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION = gql`
-  mutation ResolveAffiliateCampaignProduct($input: ResolveAffiliateCampaignProductInput!) {
-    resolveAffiliateCampaignProduct(input: $input) {
-      snapshotRef
-      expiresAt
-      snapshot {
-        id
-        productId
-        title
-        description
-        status
-        coverImage
-        originalCurrency
-        minimumPriceUsdAmount
-        maximumPriceUsdAmount
-        categoryPathIds
-        categoryPathNames
-        brandId
-        brandName
-        observedAt
-        snapshotHash
-      }
+export const AFFILIATE_CAMPAIGN_PRODUCT_PREVIEW_QUERY = gql`
+  query AffiliateCampaignProductPreview($input: ResolveAffiliateCampaignProductInput!) {
+    affiliateCampaignProductPreview(input: $input) {
+      productId
+      title
+      description
+      status
+      coverImage
+      originalCurrency
+      minimumPriceUsdAmount
+      maximumPriceUsdAmount
+      categoryLeafId
+      categoryLeafName
+      categoryPathIds
+      categoryPathNames
+      brandId
+      brandName
+      observedAt
+      snapshotHash
     }
   }
 `;

@@ -1696,6 +1696,7 @@ export default {
         "ECOM_MARK_CONVERSATION_READ": "มาร์คอ่าน",
         "ECOM_CREATE_CONVERSATION": "สร้างการสนทนา",
         "ECOM_UPDATE_SHOP": "อัพเดตร้านค้า",
+        "ECOM_WRITE_AFFILIATE_CAMPAIGN": "สร้างหรืออัปเดตแคมเปญพันธมิตร",
         "ECOM_SEARCH_RETURNS": "ค้นหาผลตอบแทน",
         "ECOM_SEARCH_CANCELLATIONS": "การยกเลิกการค้นหา",
         "ECOM_GET_AFTERSALE_ELIGIBILITY": "รับสิทธิ์หลังการขาย",

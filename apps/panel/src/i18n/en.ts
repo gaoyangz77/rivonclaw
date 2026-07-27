@@ -1871,6 +1871,7 @@ export default {
         ECOM_CREATE_CONVERSATION: "Create Conversation",
         // E-commerce Ops — Shop
         ECOM_UPDATE_SHOP: "Update Shop",
+        ECOM_WRITE_AFFILIATE_CAMPAIGN: "Create or Update Affiliate Campaign",
         // E-commerce Ops — Return & Refund
         ECOM_SEARCH_RETURNS: "Search Returns",
         ECOM_SEARCH_CANCELLATIONS: "Search Cancellations",

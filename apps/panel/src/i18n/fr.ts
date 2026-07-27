@@ -1696,6 +1696,7 @@ export default {
         "ECOM_MARK_CONVERSATION_READ": "Marquer comme lu",
         "ECOM_CREATE_CONVERSATION": "Créer une conversation",
         "ECOM_UPDATE_SHOP": "Mettre à jour la boutique",
+        "ECOM_WRITE_AFFILIATE_CAMPAIGN": "Créer ou mettre à jour la campagne d’affiliation",
         "ECOM_SEARCH_RETURNS": "Rechercher des retours",
         "ECOM_SEARCH_CANCELLATIONS": "Rechercher des annulations",
         "ECOM_GET_AFTERSALE_ELIGIBILITY": "Obtenez l'éligibilité après-vente",

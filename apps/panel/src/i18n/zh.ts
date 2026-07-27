@@ -1796,6 +1796,7 @@ export default {
         ECOM_CREATE_CONVERSATION: "创建会话",
         // 电商运营 — 店铺
         ECOM_UPDATE_SHOP: "更新店铺",
+        ECOM_WRITE_AFFILIATE_CAMPAIGN: "创建或更新达人推广计划",
         // 电商运营 — 售后退款
         ECOM_SEARCH_RETURNS: "搜索退货",
         ECOM_SEARCH_CANCELLATIONS: "搜索取消单",

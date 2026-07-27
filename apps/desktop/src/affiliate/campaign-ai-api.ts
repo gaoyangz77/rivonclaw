@@ -20,13 +20,15 @@ const generateSearchPhrases: EndpointHandler = async (
   }
   try {
     const body = asRecord(await parseBody(req));
-    const snapshotRef = requiredString(body.snapshotRef, "snapshotRef");
+    const shopId = requiredString(body.shopId, "shopId");
+    const productId = requiredString(body.productId, "productId");
     const uiLocale = requiredString(body.uiLocale, "uiLocale");
     const excludePhrases = optionalStringArray(body.excludePhrases, "excludePhrases");
     const guidance = optionalString(body.guidance, "guidance");
     const result = await generateCampaignSearchPhraseSuggestions({
       authSession: ctx.authSession,
-      snapshotRef,
+      shopId,
+      productId,
       uiLocale,
       excludePhrases,
       guidance,
@@ -56,7 +58,8 @@ const generateMessageTemplate: EndpointHandler = async (
     }
     const result = await generateCampaignMessageTemplate({
       authSession: ctx.authSession,
-      snapshotRef: requiredString(body.snapshotRef, "snapshotRef"),
+      shopId: requiredString(body.shopId, "shopId"),
+      productId: requiredString(body.productId, "productId"),
       uiLocale: requiredString(body.uiLocale, "uiLocale"),
       guidance: optionalString(body.guidance, "guidance"),
       mode,

@@ -1696,6 +1696,7 @@ export default {
         "ECOM_MARK_CONVERSATION_READ": "Tandai Baca",
         "ECOM_CREATE_CONVERSATION": "Buat Percakapan",
         "ECOM_UPDATE_SHOP": "Perbarui Toko",
+        "ECOM_WRITE_AFFILIATE_CAMPAIGN": "Buat atau Perbarui Kampanye Afiliasi",
         "ECOM_SEARCH_RETURNS": "Pencarian Kembali",
         "ECOM_SEARCH_CANCELLATIONS": "Pembatalan Pencarian",
         "ECOM_GET_AFTERSALE_ELIGIBILITY": "Dapatkan Kelayakan Purna Jual",
