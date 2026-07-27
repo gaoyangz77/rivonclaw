@@ -401,6 +401,8 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
       pageCursor
       pageSequence
       scanned
+      matched
+      eligible
       evaluated
       exhaustedAt
     }
@@ -408,7 +410,11 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
     riskReason
     counters {
       scanned
+      matched
+      protected
+      outreachPolicyBlocked
       evaluated
+      qualificationFailed
       qualified
       selected
       reserved
@@ -442,7 +448,11 @@ export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
       totalCreators
       counters {
         scanned
+        matched
+        protected
+        outreachPolicyBlocked
         evaluated
+        qualificationFailed
         qualified
         selected
         reserved
@@ -476,11 +486,20 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         campaignId
         shopId
         creatorId
+        productId
         market
         status
         firstSeenAt
         lastSeenAt
         searchOccurrenceCount
+        eligibilityCategory
+        eligibilityReasonCode
+        eligibilityPolicyVersion
+        eligibilityEvaluatedAt
+        latestSearchDailyExecutionId
+        latestSearchPhraseKeys
+        latestSearchProviderOrdinal
+        latestSearchMatchedAt
         expectedSalesUnits
         followerCount
         efficiencyScore

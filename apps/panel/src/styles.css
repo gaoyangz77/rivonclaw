@@ -28334,6 +28334,62 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--campaign-green);
 }
 
+.affiliate-campaign-funnel-groups {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(250px, 1fr) minmax(520px, 2.2fr);
+  gap: 10px;
+}
+
+.affiliate-campaign-funnel-group {
+  padding: 13px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.affiliate-campaign-funnel-group > span {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.affiliate-campaign-funnel-group > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+  gap: 7px;
+}
+
+.affiliate-campaign-funnel-group article {
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-campaign-funnel-group article small,
+.affiliate-campaign-funnel-group article strong {
+  display: block;
+}
+
+.affiliate-campaign-funnel-group article small {
+  min-height: 2.6em;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.affiliate-campaign-funnel-group article strong {
+  margin-top: 5px;
+  color: var(--color-text);
+  font-size: 18px;
+}
+
+.affiliate-campaign-funnel-group.is-blocked {
+  border-color: color-mix(in srgb, var(--color-warning) 35%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-warning) 5%, var(--color-bg));
+}
+
 .affiliate-campaign-configuration {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -28380,6 +28436,93 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-state-panel .custom-select {
   min-width: 220px;
 }
+
+.affiliate-campaign-state-filters {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.affiliate-campaign-state-filter {
+  position: relative;
+  min-width: 180px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.affiliate-campaign-state-filter > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.affiliate-campaign-state-filter > summary::-webkit-details-marker {
+  display: none;
+}
+
+.affiliate-campaign-state-filter > summary small {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-bg-alt);
+  color: var(--color-primary);
+}
+
+.affiliate-campaign-state-filter > div {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 5px);
+  left: 0;
+  display: grid;
+  width: max(100%, 250px);
+  max-height: 280px;
+  padding: 7px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.affiliate-campaign-state-filter label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.affiliate-campaign-state-filter label:hover {
+  background: var(--color-bg-alt);
+}
+
+.affiliate-campaign-state-filter input {
+  accent-color: var(--color-primary);
+}
+
+.affiliate-campaign-clear-state-filters {
+  padding: 9px 11px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 750;
+}
 .affiliate-campaign-state-table-wrap {
   overflow: hidden;
   border: 1px solid var(--campaign-line);
@@ -28424,13 +28567,37 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--campaign-green);
 }
 .affiliate-campaign-state-pill.is-failed,
-.affiliate-campaign-state-pill.is-disqualified {
+.affiliate-campaign-state-pill.is-disqualified,
+.affiliate-campaign-state-pill.is-ineligible_protected,
+.affiliate-campaign-state-pill.is-ineligible_outreach_policy,
+.affiliate-campaign-state-pill.is-ineligible_qualification {
   background: var(--color-danger-light);
   color: var(--color-danger);
 }
 .affiliate-campaign-state-pill.is-deferred {
   background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg));
   color: var(--campaign-amber);
+}
+
+.affiliate-campaign-eligibility-category {
+  display: inline-flex;
+  margin-top: 6px;
+  padding: 3px 6px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.affiliate-campaign-eligibility-category.is-protected {
+  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+  color: var(--color-danger);
+}
+
+.affiliate-campaign-eligibility-category.is-outreach_policy {
+  border-color: color-mix(in srgb, var(--color-warning) 35%, var(--color-border));
+  color: var(--color-warning);
 }
 .affiliate-campaign-table-empty {
   padding: 44px 20px;
@@ -29263,6 +29430,26 @@ html[lang="zh"] .acct-tool-chips {
   gap: 12px;
 }
 
+.affiliate-campaign-search-boundary {
+  padding: 13px 15px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary-light) 28%, var(--color-bg));
+}
+
+.affiliate-campaign-search-boundary strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.affiliate-campaign-search-boundary p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
 .affiliate-campaign-search-group-toolbar {
   display: flex;
   align-items: flex-end;
@@ -29440,6 +29627,64 @@ html[lang="zh"] .acct-tool-chips {
   padding: 14px 12px;
 }
 
+.affiliate-campaign-search-group-rules-body .affiliate-campaign-rule-block > strong {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+
+.affiliate-campaign-cross-product-warning {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--color-warning);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg));
+  color: var(--color-text-secondary);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.affiliate-campaign-outreach-limits {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.3fr);
+  gap: 18px;
+  padding: 15px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-campaign-outreach-limits > div span,
+.affiliate-campaign-outreach-limits > div strong {
+  display: block;
+}
+
+.affiliate-campaign-outreach-limits > div span {
+  color: var(--color-primary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.affiliate-campaign-outreach-limits > div strong {
+  margin-top: 5px;
+  color: var(--color-text);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.affiliate-campaign-outreach-limits ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .affiliate-campaign-advanced-rules[hidden] {
   display: none;
 }
@@ -29494,6 +29739,10 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-campaign-remove-phrase {
     grid-column: 2;
     justify-self: end;
+  }
+
+  .affiliate-campaign-outreach-limits {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -30108,6 +30357,9 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-campaign-workspace {
     grid-template-columns: 230px minmax(0, 1fr);
   }
+  .affiliate-campaign-funnel-groups {
+    grid-template-columns: 1fr;
+  }
   .affiliate-campaign-funnel-bars {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -30219,6 +30471,16 @@ html[lang="zh"] .acct-tool-chips {
   }
   .affiliate-campaign-funnel-bars {
     grid-template-columns: 1fr 1fr;
+  }
+  .affiliate-campaign-state-filter {
+    width: 100%;
+  }
+  .affiliate-campaign-state-filter > div {
+    position: static;
+    width: auto;
+    border-width: 1px 0 0;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: none;
   }
   .affiliate-campaign-funnel,
   .affiliate-campaign-state-panel,

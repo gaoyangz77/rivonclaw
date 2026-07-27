@@ -5,7 +5,9 @@ import {
   campaignShopDisplayName,
   DEFAULT_CAMPAIGN_STATUS_FILTERS,
   estimateCampaignCadence,
+  eligibilityReasonLabel,
   isEnglishCampaignSearchPhrase,
+  normalizeSuggestedDiscoveryRules,
   paginateCampaigns,
   renderAffiliateCampaignTemplatePreview,
 } from "./AffiliateCampaignPage.js";
@@ -68,6 +70,30 @@ describe("Affiliate Campaign presentation contracts", () => {
     );
   });
 
+  it("maps typed eligibility reasons through i18n instead of exposing backend codes", () => {
+    const t = (key: string) => `translated:${key}`;
+    expect(eligibilityReasonLabel("SHOP_CREATOR_7D_LIMIT", t)).toBe(
+      "translated:ecommerce.affiliateCampaign.eligibilityReason.shop_creator_7d_limit",
+    );
+    expect(eligibilityReasonLabel("PROTECTION_LIST", t)).toBe(
+      "translated:ecommerce.affiliateCampaign.eligibilityReason.protection_list",
+    );
+  });
+
+  it("keeps TikTok's cross-product 90-day invitation filter off in AI suggestions", () => {
+    expect(
+      normalizeSuggestedDiscoveryRules({
+        affiliatePerformance30d: {
+          fastGrowingOnly: true,
+          notInvitedLast90Days: true,
+        },
+      }).affiliatePerformance30d,
+    ).toMatchObject({
+      fastGrowingOnly: true,
+      notInvitedLast90Days: false,
+    });
+  });
+
   it("summarizes every supported search-group filter instead of hiding AI rules", () => {
     const labels: Record<string, string> = {
       "ecommerce.affiliateCampaign.audienceGender": "受众性别",
@@ -87,9 +113,9 @@ describe("Affiliate Campaign presentation contracts", () => {
           gmvRanges: ["GMV_RANGE_1000_10000"],
           unitsSoldRanges: [],
         },
-        categories: [],
-        contentPerformance30d: null,
-        affiliatePerformance30d: null,
+        categories: [{ parentCategoryId: "fashion", childCategoryIds: [] }],
+        contentPerformance30d: { averageVideoViews: "10000" },
+        affiliatePerformance30d: { fastGrowingOnly: true, notInvitedLast90Days: false },
         marketSpecific: {
           languages: [],
           creatorLevels: [],
@@ -103,8 +129,11 @@ describe("Affiliate Campaign presentation contracts", () => {
       expect.arrayContaining([
         "粉丝下限",
         "受众性别: Male ≥ 60%",
-        "30 天 GMV 区间: 1k 10k",
+        "30 天 GMV 区间: 1000 10000",
         "擅长类目: Fashion And Style",
+        "ecommerce.affiliateCampaign.categoryConditionCount",
+        "ecommerce.affiliateCampaign.contentConditionCount",
+        "ecommerce.affiliateCampaign.affiliateConditionCount",
       ]),
     );
   });
