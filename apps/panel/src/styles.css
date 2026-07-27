@@ -28216,6 +28216,13 @@ html[lang="zh"] .acct-tool-chips {
   gap: 10px;
 }
 
+.affiliate-campaign-detail-actions .affiliate-campaign-primary-action:disabled {
+  border-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
+  box-shadow: none;
+  color: color-mix(in srgb, var(--color-primary) 46%, var(--color-text-disabled));
+}
+
 .affiliate-campaign-status,
 .affiliate-campaign-state-pill {
   display: inline-flex;
