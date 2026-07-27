@@ -845,7 +845,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <col className="affiliate-campaign-col-status" />
                 <col className="affiliate-campaign-col-target" />
                 <col className="affiliate-campaign-col-boundary" />
-                <col className="affiliate-campaign-col-next" />
+                <col className="affiliate-campaign-col-product" />
                 <col className="affiliate-campaign-col-open" />
               </colgroup>
               <thead>
@@ -855,7 +855,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <th>{t("ecommerce.affiliateCampaign.statusLabel")}</th>
                   <th>{t("ecommerce.affiliateCampaign.dailyTarget")}</th>
                   <th>{t("ecommerce.affiliateCampaign.selectionBoundary")}</th>
-                  <th>{t("ecommerce.affiliateCampaign.nextActivity")}</th>
+                  <th>{t("ecommerce.affiliateCampaign.product")}</th>
                   <th aria-label={t("ecommerce.affiliateCampaign.openDetail")} />
                 </tr>
               </thead>
@@ -892,7 +892,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </td>
                       <td>
                         <div className="affiliate-campaign-directory-shop">
-                          <strong>{campaignShop?.shopName || campaign.shopId}</strong>
+                          <strong>{campaignShopDisplayName(campaignShop, campaign.shopId)}</strong>
                           <small>{campaign.market}</small>
                         </div>
                       </td>
@@ -914,13 +914,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <small>{campaignRuleSummary(campaign, t)}</small>
                       </td>
                       <td>
-                        <div className="affiliate-campaign-next-activity">
-                          <strong>
-                            {campaign.nextTickAt
-                              ? formatDateTime(campaign.nextTickAt)
-                              : t("ecommerce.affiliateCampaign.waitingForWindow")}
+                        <div className="affiliate-campaign-directory-product">
+                          <strong title={campaign.productSnapshot?.title ?? undefined}>
+                            {campaign.productSnapshot?.title?.trim() || campaign.primaryProductId}
                           </strong>
-                          <small>08:00–22:00 · {campaign.market}</small>
+                          <small title={campaignProductReference(campaign, t)}>
+                            {campaignProductReference(campaign, t)}
+                          </small>
                         </div>
                       </td>
                       <td>
@@ -2616,6 +2616,33 @@ function ConfirmationItem({ title, value }: { title: string; value: string }) {
 
 function campaignStatusLabel(status: GQL.AffiliateCampaignStatus, t: (key: string) => string) {
   return t(`ecommerce.affiliateCampaign.status.${status.toLowerCase()}`);
+}
+
+export function campaignShopDisplayName(
+  shop: Pick<GQL.Shop, "alias" | "shopName"> | null | undefined,
+  fallback: string,
+): string {
+  return shop?.alias?.trim() || shop?.shopName?.trim() || fallback;
+}
+
+function campaignProductReference(
+  campaign: Pick<GQL.AffiliateCampaign, "primaryProductId" | "productSnapshot">,
+  t: (key: string) => string,
+): string {
+  const sellerSkus = [
+    ...new Set(
+      (campaign.productSnapshot?.sellerSkus ?? [])
+        .map((sellerSku) => sellerSku.trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (sellerSkus.length === 0) {
+    return `${t("ecommerce.affiliateCampaign.productIdLabel")} · ${campaign.primaryProductId}`;
+  }
+  const remaining = sellerSkus.length - 1;
+  return `${t("ecommerce.affiliateCampaign.skuLabel")} · ${sellerSkus[0]}${
+    remaining > 0 ? ` +${remaining}` : ""
+  }`;
 }
 
 function isTerminalCampaignStatus(status: GQL.AffiliateCampaignStatus): boolean {

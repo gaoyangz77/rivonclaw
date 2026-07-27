@@ -29546,7 +29546,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-campaign-col-name {
-  width: 28%;
+  width: 25%;
 }
 .affiliate-campaign-col-shop {
   width: 14%;
@@ -29560,8 +29560,8 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-col-boundary {
   width: 18%;
 }
-.affiliate-campaign-col-next {
-  width: 18%;
+.affiliate-campaign-col-product {
+  width: 21%;
 }
 .affiliate-campaign-col-open {
   width: 4%;
@@ -29609,6 +29609,30 @@ html[lang="zh"] .acct-tool-chips {
   margin-top: 4px;
   color: var(--campaign-muted);
   font-size: 10px;
+}
+
+.affiliate-campaign-directory-product {
+  min-width: 0;
+}
+
+.affiliate-campaign-directory-product strong,
+.affiliate-campaign-directory-product small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-campaign-directory-product strong {
+  color: var(--campaign-ink);
+  font-weight: 720;
+}
+
+.affiliate-campaign-directory-product small {
+  margin-top: 4px;
+  color: var(--campaign-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .affiliate-campaign-directory-table td:last-child {

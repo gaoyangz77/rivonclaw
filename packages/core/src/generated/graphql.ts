@@ -1093,6 +1093,7 @@ export interface AffiliateCampaignProductSnapshot {
   observedAt: Scalars['DateTimeISO']['output'];
   originalCurrency: Scalars['String']['output'];
   productId: Scalars['String']['output'];
+  sellerSkus: Array<Scalars['String']['output']>;
   snapshotHash: Scalars['String']['output'];
   status?: Maybe<Scalars['String']['output']>;
   title: Scalars['String']['output'];
