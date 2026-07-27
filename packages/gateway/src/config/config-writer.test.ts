@@ -10,6 +10,8 @@ import {
   ensureGatewayConfig,
   generateGatewayToken,
   buildExtraProviderConfigs,
+  assertValidOpenClawConfig,
+  writeOpenClawConfigAtomically,
   DEFAULT_GATEWAY_PORT,
 } from "./config-writer.js";
 import { OpenClawSchema } from "../generated/openclaw-schema.js";
@@ -23,6 +25,53 @@ describe("config-writer", () => {
 
   afterEach(() => {
     rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  describe("atomic config persistence", () => {
+    it("keeps the previous config as last-known-good before replacement", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeOpenClawConfigAtomically(configPath, { gateway: { port: 18789 } });
+      writeOpenClawConfigAtomically(configPath, { gateway: { port: 18790 } });
+
+      expect(JSON.parse(readFileSync(configPath, "utf8"))).toMatchObject({
+        gateway: { port: 18790 },
+      });
+      expect(JSON.parse(readFileSync(`${configPath}.last-known-good`, "utf8"))).toMatchObject({
+        gateway: { port: 18789 },
+      });
+    });
+
+    it("does not replace a validated backup with a malformed current file", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      const backupPath = `${configPath}.last-known-good`;
+      writeFileSync(backupPath, JSON.stringify({ gateway: { port: 18788 } }));
+      writeFileSync(configPath, "{not-json");
+
+      writeOpenClawConfigAtomically(configPath, { gateway: { port: 18790 } });
+
+      expect(JSON.parse(readFileSync(configPath, "utf8"))).toMatchObject({
+        gateway: { port: 18790 },
+      });
+      expect(JSON.parse(readFileSync(backupPath, "utf8"))).toMatchObject({
+        gateway: { port: 18788 },
+      });
+    });
+
+    it("rejects invalid provider transports before callers replace the file", () => {
+      expect(() =>
+        assertValidOpenClawConfig({
+          models: {
+            providers: {
+              openai: {
+                baseUrl: "https://api.openai.com/v1",
+                api: "not-a-real-transport",
+                models: [],
+              },
+            },
+          },
+        }),
+      ).toThrow("Invalid OpenClaw config");
+    });
   });
 
   describe("resolveOpenClawStateDir", () => {
@@ -1370,6 +1419,48 @@ describe("config-writer", () => {
   });
 
   describe("writeGatewayConfig - extraProviders", () => {
+    it("merges overlay provider models by ID without replacing Vendor rows", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          models: {
+            mode: "merge",
+            providers: {
+              openai: {
+                baseUrl: "https://api.openai.com/v1",
+                api: "openai-responses",
+                models: [{ id: "gpt-5.5", name: "GPT-5.5" }],
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        extraProviders: {
+          openai: {
+            baseUrl: "https://api.openai.com/v1",
+            api: "openai-responses",
+            models: [
+              {
+                id: "gpt-5.6-terra",
+                name: "GPT-5.6 Terra",
+                api: "openai-chatgpt-responses",
+              },
+            ],
+          },
+        },
+        overlayProviderKeys: ["openai"],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf8"));
+      expect(
+        config.models.providers.openai.models.map((model: { id: string }) => model.id),
+      ).toEqual(["gpt-5.5", "gpt-5.6-terra"]);
+    });
+
     it("writes models.providers section with extra providers", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({

@@ -35,6 +35,17 @@ interface AuthProfileStore {
   order?: Record<string, string[]>;
 }
 
+export interface AuthProfileRuntimeDescriptor {
+  id: string;
+  provider: string;
+  type: "api_key" | "oauth";
+}
+
+export interface AuthProfileRuntimeState {
+  profiles: AuthProfileRuntimeDescriptor[];
+  order: Record<string, string[]>;
+}
+
 /**
  * Resolve the legacy auth-profiles.json path from an OpenClaw state directory.
  * Path: {stateDir}/agents/main/agent/auth-profiles.json
@@ -100,6 +111,75 @@ function readStore(filePath: string, databasePath: string): AuthProfileStore {
     log.warn(`Failed to read auth profiles at ${filePath}, starting fresh`);
   }
   return { version: 1, profiles: {}, order: {} };
+}
+
+/**
+ * Read the vendor-owned auth selection without exposing credential material.
+ *
+ * Product code uses this projection to join RivonClaw-only metadata to the
+ * OpenClaw runtime state. The returned descriptors intentionally omit keys,
+ * access tokens, refresh tokens, and account identifiers.
+ */
+export function readAuthProfileRuntimeState(stateDir: string): AuthProfileRuntimeState {
+  const store = readStore(
+    resolveAuthProfilePath(stateDir),
+    resolveAuthProfileDatabasePath(stateDir),
+  );
+  return {
+    profiles: Object.entries(store.profiles).map(([id, profile]) => ({
+      id,
+      provider: profile.provider,
+      type: profile.type,
+    })),
+    order: Object.fromEntries(
+      Object.entries(store.order ?? {}).map(([provider, ids]) => [provider, [...ids]]),
+    ),
+  };
+}
+
+/**
+ * Select the Vendor auth profile that matches a product credential.
+ *
+ * OpenAI API keys and Codex OAuth intentionally share the `openai` runtime
+ * provider. The credential type in Vendor auth state is therefore the only
+ * authoritative way to select the correct transport.
+ */
+export function activateAuthProfile(
+  stateDir: string,
+  productProvider: string,
+  authType: string | undefined,
+): string {
+  const filePath = resolveAuthProfilePath(stateDir);
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
+  const store = readStore(filePath, databasePath);
+  const resolvedProvider = resolveGatewayProvider(productProvider as LLMProvider);
+  const runtimeProvider =
+    productProvider === "gemini" && authType === "oauth" ? "google-gemini-cli" : resolvedProvider;
+  const requiredType = authType === "oauth" ? "oauth" : "api_key";
+  const currentOrder = store.order?.[runtimeProvider] ?? [];
+  const matchingId =
+    currentOrder.find((id) => {
+      const profile = store.profiles[id];
+      return profile?.provider === runtimeProvider && profile.type === requiredType;
+    }) ??
+    Object.entries(store.profiles).find(
+      ([, profile]) => profile.provider === runtimeProvider && profile.type === requiredType,
+    )?.[0];
+
+  if (!matchingId) {
+    throw new Error(
+      `No ${requiredType} auth profile is available for ${productProvider} (${runtimeProvider})`,
+    );
+  }
+
+  store.order ??= {};
+  store.order[runtimeProvider] = [matchingId, ...currentOrder.filter((id) => id !== matchingId)];
+  writeStore(filePath, databasePath, store);
+  syncManagedGeminiCliHome(stateDir, store);
+  log.info(
+    `Activated auth profile ${matchingId} for ${productProvider} (gateway: ${runtimeProvider})`,
+  );
+  return matchingId;
 }
 
 /**
@@ -224,7 +304,7 @@ export function removeAuthProfile(stateDir: string, provider: string): void {
 /**
  * Sync ALL active provider keys to OpenClaw's auth stores.
  *
- * Reads every default key from storage, fetches the secret value
+ * Reads every credential metadata row from storage, fetches the secret value
  * from the secret store, and writes them to SQLite plus the legacy JSON mirror.
  *
  * Intended to be called once at startup so the gateway has all
@@ -247,7 +327,11 @@ export async function syncAllAuthProfiles(
 ): Promise<void> {
   const filePath = resolveAuthProfilePath(stateDir);
   const databasePath = resolveAuthProfileDatabasePath(stateDir);
-  const store: AuthProfileStore = { version: 1, profiles: {}, order: {} };
+  // OpenClaw's auth store is authoritative. Merge Desktop-managed Keychain
+  // material into the existing store instead of rebuilding the whole file
+  // from SQLite metadata and deleting vendor/user-created profiles.
+  const store = readStore(filePath, databasePath);
+  store.order ??= {};
 
   try {
     await secretStore.get("__rivonclaw-secure-store-healthcheck__");
@@ -285,8 +369,9 @@ export async function syncAllAuthProfiles(
       : [...existingOrder, profileId];
   }
 
-  // Write the globally active key last so it wins any unavoidable profile-id
-  // collision and is first in the runtime provider's auth order.
+  // Runtime selection comes from the existing Vendor auth order. `isDefault`
+  // is only the Vendor projection used to keep a matching managed profile at
+  // the front when refreshing its Keychain material.
   const selectedKeys = [...keysByProductProvider.values()].sort(
     (left, right) => Number(left.isDefault) - Number(right.isDefault),
   );
@@ -384,21 +469,11 @@ export async function syncAllAuthProfiles(
     }
   }
 
-  // OpenClaw's OpenAI image provider is intentionally named "openai". When
-  // RivonClaw cloud is the active LLM, give that provider a short-lived alias
-  // to the same managed cloud key so image requests use the backend proxy.
-  const activeKey = storage.providerKeys.getActive?.() ?? allKeys.find((key) => key.isDefault);
-  if (activeKey?.provider === "rivonclaw-pro") {
-    const apiKey = await secretStore.get(`provider-key-${activeKey.id}`);
-    if (apiKey) {
-      const profileId = "openai:rivonclaw-pro-image";
-      store.profiles[profileId] = {
-        type: "api_key",
-        provider: "openai",
-        key: apiKey,
-      };
-      store.order!.openai = [profileId];
-    }
+  // Remove the legacy namespace collision once. TK image generation now uses
+  // rivonclaw-pro/gpt-image-2 and must never seize OpenAI's auth order.
+  delete store.profiles["openai:rivonclaw-pro-image"];
+  for (const [provider, ids] of Object.entries(store.order)) {
+    store.order[provider] = ids.filter((id) => id !== "openai:rivonclaw-pro-image");
   }
 
   writeStore(filePath, databasePath, store);
@@ -413,7 +488,7 @@ export async function syncAllAuthProfiles(
  * we read the (possibly refreshed) tokens from authoritative SQLite and write
  * them back to Keychain so the latest tokens survive across restarts.
  *
- * Call this BEFORE clearAllAuthProfiles().
+ * Vendor auth state is preserved during normal shutdown.
  */
 export async function syncBackOAuthCredentials(
   stateDir: string,

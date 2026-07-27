@@ -8,8 +8,8 @@ import {
   buildGatewayEnv,
   readExistingConfig,
   syncAllAuthProfiles,
+  activateAuthProfile,
   syncBackOAuthCredentials,
-  clearAllAuthProfiles,
   saveGeminiOAuthCredentials,
   refreshGeminiOAuthCredentials,
   validateGeminiAccessToken,
@@ -34,6 +34,7 @@ import {
   isReauthSupportedProvider,
   getFirstPartyDomainRoute,
   getTelegramDebugRelayApiRoot,
+  resolveGatewayProvider,
   type LLMProvider,
 } from "@rivonclaw/core";
 import type { GQL } from "@rivonclaw/core";
@@ -73,6 +74,10 @@ import {
 import { initTelemetry } from "../telemetry/telemetry-init.js";
 import { setCsTelemetryClient } from "../telemetry/cs-telemetry-ref.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "../providers/provider-key-utils.js";
+import {
+  projectProviderMetadataFromVendor,
+  writeVendorProviderDefinition,
+} from "../providers/vendor-provider-runtime.js";
 import { syncActiveKey } from "../providers/provider-validator.js";
 import { reaction } from "mobx";
 import {
@@ -85,6 +90,12 @@ import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
 import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
+import {
+  IMAGE_GENERATION_MODEL_REF,
+  IMAGE_GENERATION_TIMEOUT_MS,
+  OPENAI_IMAGE_GENERATION_MODEL_REF,
+} from "../gateway/config-builder.js";
+import { OpenAICodexCompatibilityProxy } from "../gateway/openai-codex-compatibility-proxy.js";
 import { loadClientToolSpecs } from "../gateway/client-tool-loader.js";
 import { stageMerchantExtensionsForCloudTools } from "../gateway/cloud-tools-extension-stage.js";
 import { reloadCloudToolsFromSpecs } from "../gateway/cloud-tools-runtime.js";
@@ -154,13 +165,11 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let lastSystemProxy: string | null = null;
 const desktopApiToken = randomUUID();
-let marketingAttributionSettings:
-  | {
-      set(key: string, value: string): void;
-      get(key: string): string | undefined;
-      delete(key: string): boolean;
-    }
-  | null = null;
+let marketingAttributionSettings: {
+  set(key: string, value: string): void;
+  get(key: string): string | undefined;
+  delete(key: string): boolean;
+} | null = null;
 const pendingMarketingAttributionUrls: string[] = [];
 
 function acceptMarketingAttributionUrl(rawUrl: string): void {
@@ -453,6 +462,20 @@ app.whenReady().then(async () => {
   proxyNetwork.setProxyRouterPort(actualProxyRouterPort);
   log.info(`Proxy router bound to port ${actualProxyRouterPort}`);
 
+  const openAICodexCompatibilityProxy = new OpenAICodexCompatibilityProxy({
+    fetchFn: (url, init) => proxyNetwork.fetch(url, init),
+  });
+  let openAICodexCompatibilityBaseUrl: string | undefined;
+  try {
+    await openAICodexCompatibilityProxy.start();
+    openAICodexCompatibilityBaseUrl = openAICodexCompatibilityProxy.getBaseUrl();
+  } catch (error) {
+    log.warn(
+      "Failed to start the temporary OpenAI Codex compatibility proxy; GPT-5.6 may be unavailable:",
+      error,
+    );
+  }
+
   await detectAndApplyFirstPartyDomainRoute((url, init) =>
     proxyNetwork.fetch(url, init, { firstPartyFailover: false }),
   );
@@ -558,6 +581,27 @@ app.whenReady().then(async () => {
 
   // Boot migrations — phase B (post-config, pre-gateway-write).
   await runPostConfigMigrations(configPath, stateDir);
+  if (storage.settings.get("_internal.provider-runtime-ownership-migration-pending") === "true") {
+    const { migrateLegacyDesktopProviderDefinitions } =
+      await import("../gateway/provider-runtime-ownership-migration.js");
+    migrateLegacyDesktopProviderDefinitions(configPath);
+    storage.settings.delete("_internal.provider-runtime-ownership-migration-pending");
+  }
+
+  storage.providerKeys.setRuntimeProjector((entries) =>
+    projectProviderMetadataFromVendor({
+      entries,
+      configPath,
+      stateDir,
+    }),
+  );
+
+  // OpenClaw config/auth state is authoritative for the active provider and
+  // model. Reload the MST read model by joining that runtime state with the
+  // RivonClaw-only metadata retained in SQLite.
+  rootStore.loadProviderKeys(
+    await allKeysToMstSnapshots(storage.providerKeys.getAll(), secretStore),
+  );
 
   // In packaged app, plugins/extensions live in Resources/.
   // In dev, config-writer auto-resolves via monorepo root.
@@ -720,6 +764,7 @@ app.whenReady().then(async () => {
     sttCliPath,
     vendorDir,
     merchantExtensionPaths: () => merchantExtensionPaths,
+    openAICodexCompatibilityBaseUrl,
     gatewayPort: actualGatewayPort,
     broadcastEvent,
   });
@@ -1696,14 +1741,42 @@ app.whenReady().then(async () => {
       // Clean up the flow
       pendingOAuthFlows.delete(flowId);
 
-      // Sync auth profiles + rewrite full config.
-      // Switch the active provider so buildFullGatewayConfig() picks it up.
-      storage.settings.set("llm-provider", activeProvider);
+      // Sync the new credential, then activate it in Vendor-owned auth order
+      // and config. SQLite contains only the product metadata/Keychain join.
       await syncAllAuthProfiles(stateDir, storage, secretStore);
+      activateAuthProfile(stateDir, activeProvider, "oauth");
       await writeProxyRouterConfig(storage, secretStore, lastSystemProxy);
       writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
+      const savedEntry = storage.providerKeys.getById(result.providerKeyId);
+      if (!savedEntry) {
+        throw new Error("Saved OAuth provider metadata could not be reloaded");
+      }
+      const runtimeProvider =
+        activeProvider === "gemini"
+          ? "google-gemini-cli"
+          : resolveGatewayProvider(activeProvider as LLMProvider);
+      mutateDesktopOpenClawConfig(
+        configPath,
+        "OAuth default model",
+        (config) => {
+          const agents = (
+            typeof config.agents === "object" && config.agents !== null ? config.agents : {}
+          ) as Record<string, unknown>;
+          const defaults = (
+            typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}
+          ) as Record<string, unknown>;
+          const model = (
+            typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}
+          ) as Record<string, unknown>;
+          model.primary = `${runtimeProvider}/${savedEntry.model}`;
+          defaults.model = model;
+          agents.defaults = defaults;
+          config.agents = agents;
+        },
+        { strict: true },
+      );
 
-      // Sync MST state (FIX: OAuth save was missing MST update)
+      // Sync MST state after Vendor activation so isDefault/model are projected.
       const oauthMstKeys = await allKeysToMstSnapshots(storage.providerKeys.getAll(), secretStore);
       rootStore.loadProviderKeys(oauthMstKeys);
 
@@ -1912,27 +1985,49 @@ app.whenReady().then(async () => {
     allKeysToMstSnapshots,
     syncActiveKey,
     syncAllAuthProfiles,
+    activateAuthProfile,
     writeProxyRouterConfig,
-    writeDefaultModelToConfig: (gwProvider: string, modelId: string) => {
+    writeDefaultModelToConfig: (gwProvider: string, modelId: string, productProvider: string) => {
       const configPath = resolveOpenClawConfigPath();
-      mutateDesktopOpenClawConfig(configPath, "default model", (config) => {
-        const agents = (
-          typeof config.agents === "object" && config.agents !== null ? config.agents : {}
-        ) as Record<string, unknown>;
-        const defaults = (
-          typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}
-        ) as Record<string, unknown>;
-        const model = (
-          typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}
-        ) as Record<string, unknown>;
-        model.primary = `${gwProvider}/${modelId}`;
-        defaults.model = model;
-        agents.defaults = defaults;
-        config.agents = agents;
-      });
+      mutateDesktopOpenClawConfig(
+        configPath,
+        "default model",
+        (config) => {
+          const agents = (
+            typeof config.agents === "object" && config.agents !== null ? config.agents : {}
+          ) as Record<string, unknown>;
+          const defaults = (
+            typeof agents.defaults === "object" && agents.defaults !== null ? agents.defaults : {}
+          ) as Record<string, unknown>;
+          const model = (
+            typeof defaults.model === "object" && defaults.model !== null ? defaults.model : {}
+          ) as Record<string, unknown>;
+          model.primary = `${gwProvider}/${modelId}`;
+          defaults.model = model;
+          if (productProvider === "rivonclaw-pro") {
+            defaults.imageGenerationModel = {
+              primary: IMAGE_GENERATION_MODEL_REF,
+              timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+            };
+          } else if (productProvider === "openai" || productProvider === "openai-codex") {
+            defaults.imageGenerationModel = {
+              primary: OPENAI_IMAGE_GENERATION_MODEL_REF,
+              timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+            };
+          } else {
+            delete defaults.imageGenerationModel;
+          }
+          agents.defaults = defaults;
+          config.agents = agents;
+        },
+        { strict: true },
+      );
     },
     writeFullGatewayConfig: async () => {
       writeGatewayConfig(await buildFullGatewayConfig(actualGatewayPort));
+    },
+    writeVendorProviderDefinition: async (entry, remove) => {
+      writeVendorProviderDefinition({ configPath, entry, remove });
     },
     restartGateway: async () => {
       await launcher.stop();
@@ -2120,10 +2215,7 @@ app.whenReady().then(async () => {
       log.info("CS telemetry client shut down gracefully");
     }
 
-    await Promise.all([launcher.stop(), proxyRouter.stop()]);
-
-    cleanupGatewayLock(configPath);
-    clearAllAuthProfiles(stateDir);
+    await Promise.all([launcher.stop(), openAICodexCompatibilityProxy.stop(), proxyRouter.stop()]);
 
     try {
       await syncBackOAuthCredentials(stateDir, storage, secretStore);
@@ -2174,12 +2266,15 @@ app.whenReady().then(async () => {
       }
 
       // Kill gateway and proxy router.
-      await Promise.all([launcher.stop(), proxyRouter.stop()]);
+      await Promise.all([
+        launcher.stop(),
+        openAICodexCompatibilityProxy.stop(),
+        proxyRouter.stop(),
+      ]);
 
-      // Clear sensitive API keys from disk before quitting
-      clearAllAuthProfiles(stateDir);
-
-      // Sync back any refreshed OAuth tokens to Keychain before clearing
+      // Vendor auth state is authoritative. Persist refreshed OAuth material
+      // back to Keychain as the Desktop secret backup, but do not erase
+      // Vendor-managed profiles during normal shutdown.
       try {
         await syncBackOAuthCredentials(stateDir, storage, secretStore);
       } catch (err) {

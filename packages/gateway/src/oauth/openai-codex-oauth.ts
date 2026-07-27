@@ -221,7 +221,9 @@ export async function startHybridCodexOAuthFlow(
     state,
     redirectUri: codexRedirectUriForPort(callbackServer?.port ?? CODEX_PREFERRED_CALLBACK_PORT),
   });
-  const redirectUri = codexRedirectUriForPort(callbackServer?.port ?? CODEX_PREFERRED_CALLBACK_PORT);
+  const redirectUri = codexRedirectUriForPort(
+    callbackServer?.port ?? CODEX_PREFERRED_CALLBACK_PORT,
+  );
 
   // Deferred for manual code input (resolved externally when user pastes callback URL)
   let resolveManualInput: (url: string) => void;
@@ -274,15 +276,17 @@ export async function startHybridCodexOAuthFlow(
   manualCompletion.catch(() => {});
 
   let completed = false;
-  const completionPromise = Promise.race([autoCompletion, manualCompletion]).then((creds) => {
-    completed = true;
-    log.info(`Codex hybrid OAuth complete, accountId=${creds.accountId}`);
-    return {
-      credentials: creds,
-      email: undefined,
-      tokenPreview: maskToken(creds.access ?? ""),
-    } as AcquiredCodexOAuthCredentials;
-  }).finally(() => callbackServer?.close());
+  const completionPromise = Promise.race([autoCompletion, manualCompletion])
+    .then((creds) => {
+      completed = true;
+      log.info(`Codex hybrid OAuth complete, accountId=${creds.accountId}`);
+      return {
+        credentials: creds,
+        email: undefined,
+        tokenPreview: maskToken(creds.access ?? ""),
+      } as AcquiredCodexOAuthCredentials;
+    })
+    .finally(() => callbackServer?.close());
 
   return {
     authUrl,
@@ -469,7 +473,7 @@ export function extractJwtExpiresAtMs(token: string): number | undefined {
 
 /**
  * Write OAuth credentials for an existing Codex key — overwrite the keychain
- * credential JSON in place. Does NOT touch the provider_keys row's
+ * credential JSON in place. Does NOT touch the provider metadata row's
  * label/model/isDefault/proxy; only the stored credential is rotated.
  *
  * Side effect: calls OpenAI's token endpoint once with the refresh_token.
@@ -518,7 +522,7 @@ export async function refreshCodexOAuthCredentials(
 }
 
 /**
- * Step 3: Store OAuth credentials in keychain and create provider_keys row.
+ * Step 3: Store OAuth credentials in keychain and create provider metadata.
  * Call after validation succeeds.
  */
 export async function saveCodexOAuthCredentials(
@@ -527,7 +531,6 @@ export async function saveCodexOAuthCredentials(
     providerKeys: {
       create(entry: ProviderKeyEntry): ProviderKeyEntry;
       getByProvider(provider: string): ProviderKeyEntry[];
-      setDefault(id: string): void;
     };
   },
   secretStore: {
@@ -561,9 +564,9 @@ export async function saveCodexOAuthCredentials(
     await secretStore.set(`proxy-auth-${id}`, options.proxyCredentials);
   }
 
-  // Create provider_keys row
+  // Create product metadata
   const label = options?.label || "OpenAI Codex OAuth";
-  const entry = storage.providerKeys.create({
+  storage.providerKeys.create({
     id,
     provider,
     label,
@@ -575,9 +578,6 @@ export async function saveCodexOAuthCredentials(
     createdAt: "",
     updatedAt: "",
   });
-
-  // Set as default for this provider
-  storage.providerKeys.setDefault(entry.id);
 
   log.info(`Created OAuth provider key ${id} for ${provider}`);
 

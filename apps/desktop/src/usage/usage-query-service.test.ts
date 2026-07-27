@@ -1,6 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createStorage, type Storage } from "@rivonclaw/storage";
-import { UsageQueryService, type CaptureUsageFn, type ModelUsageTotals } from "./usage-query-service.js";
+import {
+  UsageQueryService,
+  type CaptureUsageFn,
+  type ModelUsageTotals,
+} from "./usage-query-service.js";
 
 let storage: Storage;
 
@@ -29,6 +33,13 @@ function createKey(opts: {
     createdAt: "",
     updatedAt: "",
   });
+  if (opts.isDefault) {
+    // Active/default is Vendor runtime state. Simulate the Vendor projection;
+    // SQLite deliberately ignores the legacy isDefault input.
+    storage.providerKeys.setRuntimeProjector((entries) =>
+      entries.map((entry) => ({ ...entry, isDefault: entry.id === opts.id })),
+    );
+  }
 }
 
 /** Helper: insert a historical usage record. */
@@ -81,7 +92,13 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("full contribution", () => {
     it("returns full tokens when record startTime >= windowStart", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "My OpenAI Key", model: "gpt-4o", isDefault: false });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "My OpenAI Key",
+        model: "gpt-4o",
+        isDefault: false,
+      });
 
       insertRecord({
         keyId: "key-1",
@@ -120,7 +137,13 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("proportional overlap", () => {
     it("applies proportional ratio when record startTime < windowStart", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "OpenAI", model: "gpt-4o", isDefault: false });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "OpenAI",
+        model: "gpt-4o",
+        isDefault: false,
+      });
 
       // Record spans [1000, 3000], window starts at 2000
       // ratio = (3000 - 2000) / (3000 - 1000) = 0.5
@@ -144,15 +167,21 @@ describe("UsageQueryService", () => {
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0].inputTokens).toBe(500);   // 1000 * 0.5
-      expect(results[0].outputTokens).toBe(250);   // 500 * 0.5
+      expect(results[0].inputTokens).toBe(500); // 1000 * 0.5
+      expect(results[0].outputTokens).toBe(250); // 500 * 0.5
       expect(results[0].cacheReadTokens).toBe(100); // 200 * 0.5
       expect(results[0].cacheWriteTokens).toBe(50); // 100 * 0.5
       expect(results[0].totalCostUsd).toBe("0.050000"); // 0.1 * 0.5
     });
 
     it("handles non-even proportional ratio correctly", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "OpenAI", model: "gpt-4o", isDefault: false });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "OpenAI",
+        model: "gpt-4o",
+        isDefault: false,
+      });
 
       // Record spans [0, 3000], window starts at 1000
       // ratio = (3000 - 1000) / (3000 - 0) = 2000/3000 = 2/3
@@ -174,8 +203,8 @@ describe("UsageQueryService", () => {
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0].inputTokens).toBe(600);   // Math.round(900 * 2/3) = 600
-      expect(results[0].outputTokens).toBe(200);   // Math.round(300 * 2/3) = 200
+      expect(results[0].inputTokens).toBe(600); // Math.round(900 * 2/3) = 600
+      expect(results[0].outputTokens).toBe(200); // Math.round(300 * 2/3) = 200
       expect(parseFloat(results[0].totalCostUsd)).toBeCloseTo(0.06, 5); // 0.09 * 2/3
     });
   });
@@ -185,24 +214,42 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("multiple records same key/model", () => {
     it("correctly sums multiple records for the same key/model", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "OpenAI", model: "gpt-4o", isDefault: false });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "OpenAI",
+        model: "gpt-4o",
+        isDefault: false,
+      });
 
       insertRecord({
-        keyId: "key-1", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 100, outputTokens: 50,
+        keyId: "key-1",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 100,
+        outputTokens: 50,
         totalCostUsd: "0.010000",
       });
       insertRecord({
-        keyId: "key-1", provider: "openai", model: "gpt-4o",
-        startTime: 2000, endTime: 3000,
-        inputTokens: 200, outputTokens: 100,
+        keyId: "key-1",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 2000,
+        endTime: 3000,
+        inputTokens: 200,
+        outputTokens: 100,
         totalCostUsd: "0.020000",
       });
       insertRecord({
-        keyId: "key-1", provider: "openai", model: "gpt-4o",
-        startTime: 3000, endTime: 4000,
-        inputTokens: 300, outputTokens: 150,
+        keyId: "key-1",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 3000,
+        endTime: 4000,
+        inputTokens: 300,
+        outputTokens: 150,
         totalCostUsd: "0.030000",
       });
 
@@ -213,8 +260,8 @@ describe("UsageQueryService", () => {
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0].inputTokens).toBe(600);   // 100 + 200 + 300
-      expect(results[0].outputTokens).toBe(300);   // 50 + 100 + 150
+      expect(results[0].inputTokens).toBe(600); // 100 + 200 + 300
+      expect(results[0].outputTokens).toBe(300); // 50 + 100 + 150
       expect(results[0].totalCostUsd).toBe("0.060000"); // 0.01 + 0.02 + 0.03
     });
   });
@@ -224,19 +271,39 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("multiple keys", () => {
     it("returns separate summaries for different keys", async () => {
-      createKey({ id: "key-A", provider: "openai", label: "Key A", model: "gpt-4o", isDefault: false });
-      createKey({ id: "key-B", provider: "anthropic", label: "Key B", model: "claude-sonnet-4-5-20250929", isDefault: false });
+      createKey({
+        id: "key-A",
+        provider: "openai",
+        label: "Key A",
+        model: "gpt-4o",
+        isDefault: false,
+      });
+      createKey({
+        id: "key-B",
+        provider: "anthropic",
+        label: "Key B",
+        model: "claude-sonnet-4-5-20250929",
+        isDefault: false,
+      });
 
       insertRecord({
-        keyId: "key-A", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 500, outputTokens: 200,
+        keyId: "key-A",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 500,
+        outputTokens: 200,
         totalCostUsd: "0.050000",
       });
       insertRecord({
-        keyId: "key-B", provider: "anthropic", model: "claude-sonnet-4-5-20250929",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 800, outputTokens: 400,
+        keyId: "key-B",
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250929",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 800,
+        outputTokens: 400,
         totalCostUsd: "0.120000",
       });
 
@@ -264,19 +331,39 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("filter by keyId", () => {
     it("only returns matching key's records", async () => {
-      createKey({ id: "key-A", provider: "openai", label: "Key A", model: "gpt-4o", isDefault: false });
-      createKey({ id: "key-B", provider: "openai", label: "Key B", model: "gpt-4o", isDefault: false });
+      createKey({
+        id: "key-A",
+        provider: "openai",
+        label: "Key A",
+        model: "gpt-4o",
+        isDefault: false,
+      });
+      createKey({
+        id: "key-B",
+        provider: "openai",
+        label: "Key B",
+        model: "gpt-4o",
+        isDefault: false,
+      });
 
       insertRecord({
-        keyId: "key-A", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 500, outputTokens: 200,
+        keyId: "key-A",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 500,
+        outputTokens: 200,
         totalCostUsd: "0.050000",
       });
       insertRecord({
-        keyId: "key-B", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 800, outputTokens: 400,
+        keyId: "key-B",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 800,
+        outputTokens: 400,
         totalCostUsd: "0.080000",
       });
 
@@ -298,19 +385,39 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("filter by provider", () => {
     it("only returns matching provider's records", async () => {
-      createKey({ id: "key-A", provider: "openai", label: "Key A", model: "gpt-4o", isDefault: false });
-      createKey({ id: "key-B", provider: "anthropic", label: "Key B", model: "claude-sonnet-4-5-20250929", isDefault: false });
+      createKey({
+        id: "key-A",
+        provider: "openai",
+        label: "Key A",
+        model: "gpt-4o",
+        isDefault: false,
+      });
+      createKey({
+        id: "key-B",
+        provider: "anthropic",
+        label: "Key B",
+        model: "claude-sonnet-4-5-20250929",
+        isDefault: false,
+      });
 
       insertRecord({
-        keyId: "key-A", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 500, outputTokens: 200,
+        keyId: "key-A",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 500,
+        outputTokens: 200,
         totalCostUsd: "0.050000",
       });
       insertRecord({
-        keyId: "key-B", provider: "anthropic", model: "claude-sonnet-4-5-20250929",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 800, outputTokens: 400,
+        keyId: "key-B",
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250929",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 800,
+        outputTokens: 400,
         totalCostUsd: "0.080000",
       });
 
@@ -332,19 +439,39 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("filter by model", () => {
     it("only returns matching model's records", async () => {
-      createKey({ id: "key-A", provider: "openai", label: "Key A", model: "gpt-4o", isDefault: false });
-      createKey({ id: "key-B", provider: "openai", label: "Key B", model: "gpt-4o-mini", isDefault: false });
+      createKey({
+        id: "key-A",
+        provider: "openai",
+        label: "Key A",
+        model: "gpt-4o",
+        isDefault: false,
+      });
+      createKey({
+        id: "key-B",
+        provider: "openai",
+        label: "Key B",
+        model: "gpt-4o-mini",
+        isDefault: false,
+      });
 
       insertRecord({
-        keyId: "key-A", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 500, outputTokens: 200,
+        keyId: "key-A",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 500,
+        outputTokens: 200,
         totalCostUsd: "0.050000",
       });
       insertRecord({
-        keyId: "key-B", provider: "openai", model: "gpt-4o-mini",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 800, outputTokens: 400,
+        keyId: "key-B",
+        provider: "openai",
+        model: "gpt-4o-mini",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 800,
+        outputTokens: 400,
         totalCostUsd: "0.080000",
       });
 
@@ -366,7 +493,13 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("active key live delta", () => {
     it("includes live delta for active key with snapshot", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "Active Key", model: "gpt-4o", isDefault: true });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "Active Key",
+        model: "gpt-4o",
+        isDefault: true,
+      });
 
       // Insert a snapshot representing the last known cumulative usage
       storage.usageSnapshots.insert({
@@ -413,7 +546,13 @@ describe("UsageQueryService", () => {
     });
 
     it("skips live delta when delta is zero", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "Active Key", model: "gpt-4o", isDefault: true });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "Active Key",
+        model: "gpt-4o",
+        isDefault: true,
+      });
 
       storage.usageSnapshots.insert({
         keyId: "key-1",
@@ -450,13 +589,23 @@ describe("UsageQueryService", () => {
     });
 
     it("combines historical records with live delta", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "Active Key", model: "gpt-4o", isDefault: true });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "Active Key",
+        model: "gpt-4o",
+        isDefault: true,
+      });
 
       // Historical record
       insertRecord({
-        keyId: "key-1", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 300, outputTokens: 100,
+        keyId: "key-1",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 300,
+        outputTokens: 100,
         totalCostUsd: "0.030000",
       });
 
@@ -508,7 +657,13 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("active key proportional", () => {
     it("applies proportional ratio when snapshot time is before window start", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "Active Key", model: "gpt-4o", isDefault: true });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "Active Key",
+        model: "gpt-4o",
+        isDefault: true,
+      });
 
       // Snapshot at time 1000 (before window start of 3000)
       storage.usageSnapshots.insert({
@@ -567,26 +722,56 @@ describe("UsageQueryService", () => {
   // -------------------------------------------------------
   describe("sorted by cost descending", () => {
     it("returns results sorted by totalCostUsd descending", async () => {
-      createKey({ id: "key-A", provider: "openai", label: "Cheap Key", model: "gpt-4o-mini", isDefault: false });
-      createKey({ id: "key-B", provider: "openai", label: "Medium Key", model: "gpt-4o", isDefault: false });
-      createKey({ id: "key-C", provider: "anthropic", label: "Expensive Key", model: "claude-sonnet-4-5-20250929", isDefault: false });
+      createKey({
+        id: "key-A",
+        provider: "openai",
+        label: "Cheap Key",
+        model: "gpt-4o-mini",
+        isDefault: false,
+      });
+      createKey({
+        id: "key-B",
+        provider: "openai",
+        label: "Medium Key",
+        model: "gpt-4o",
+        isDefault: false,
+      });
+      createKey({
+        id: "key-C",
+        provider: "anthropic",
+        label: "Expensive Key",
+        model: "claude-sonnet-4-5-20250929",
+        isDefault: false,
+      });
 
       insertRecord({
-        keyId: "key-A", provider: "openai", model: "gpt-4o-mini",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 100, outputTokens: 50,
+        keyId: "key-A",
+        provider: "openai",
+        model: "gpt-4o-mini",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 100,
+        outputTokens: 50,
         totalCostUsd: "0.010000",
       });
       insertRecord({
-        keyId: "key-B", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 500, outputTokens: 250,
+        keyId: "key-B",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 500,
+        outputTokens: 250,
         totalCostUsd: "0.050000",
       });
       insertRecord({
-        keyId: "key-C", provider: "anthropic", model: "claude-sonnet-4-5-20250929",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 1000, outputTokens: 500,
+        keyId: "key-C",
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250929",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 1000,
+        outputTokens: 500,
         totalCostUsd: "0.200000",
       });
 
@@ -613,9 +798,13 @@ describe("UsageQueryService", () => {
     it("uses 'Unknown' label when key is not found in providerKeys", async () => {
       // Insert record for a key that does not exist in providerKeys
       insertRecord({
-        keyId: "deleted-key", provider: "openai", model: "gpt-4o",
-        startTime: 1000, endTime: 2000,
-        inputTokens: 100, outputTokens: 50,
+        keyId: "deleted-key",
+        provider: "openai",
+        model: "gpt-4o",
+        startTime: 1000,
+        endTime: 2000,
+        inputTokens: 100,
+        outputTokens: 50,
         totalCostUsd: "0.010000",
       });
 
@@ -630,7 +819,13 @@ describe("UsageQueryService", () => {
     });
 
     it("handles active key with no prior snapshot (treats snapshot as zero)", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "Fresh Key", model: "gpt-4o", isDefault: true });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "Fresh Key",
+        model: "gpt-4o",
+        isDefault: true,
+      });
 
       // No snapshot inserted — first time usage
       const mockCapture: CaptureUsageFn = async () => {
@@ -670,28 +865,58 @@ describe("UsageQueryService", () => {
     });
 
     it("filters live delta by keyId", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "Key 1", model: "gpt-4o", isDefault: true });
-      createKey({ id: "key-2", provider: "anthropic", label: "Key 2", model: "claude-sonnet-4-5-20250929", isDefault: false });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "Key 1",
+        model: "gpt-4o",
+        isDefault: true,
+      });
+      createKey({
+        id: "key-2",
+        provider: "anthropic",
+        label: "Key 2",
+        model: "claude-sonnet-4-5-20250929",
+        isDefault: false,
+      });
 
       storage.usageSnapshots.insert({
-        keyId: "key-1", provider: "openai", model: "gpt-4o",
-        inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
-        totalCostUsd: "0.000000", snapshotTime: 1000,
+        keyId: "key-1",
+        provider: "openai",
+        model: "gpt-4o",
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalCostUsd: "0.000000",
+        snapshotTime: 1000,
       });
       storage.usageSnapshots.insert({
-        keyId: "key-2", provider: "anthropic", model: "claude-sonnet-4-5-20250929",
-        inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
-        totalCostUsd: "0.000000", snapshotTime: 1000,
+        keyId: "key-2",
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250929",
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalCostUsd: "0.000000",
+        snapshotTime: 1000,
       });
 
       const mockCapture: CaptureUsageFn = async () => {
         const map = new Map<string, ModelUsageTotals>();
         map.set("openai/gpt-4o", {
-          inputTokens: 100, outputTokens: 50, cacheReadTokens: 0, cacheWriteTokens: 0,
+          inputTokens: 100,
+          outputTokens: 50,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
           totalCostUsd: "0.010000",
         });
         map.set("anthropic/claude-sonnet-4-5-20250929", {
-          inputTokens: 200, outputTokens: 100, cacheReadTokens: 0, cacheWriteTokens: 0,
+          inputTokens: 200,
+          outputTokens: 100,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
           totalCostUsd: "0.020000",
         });
         return map;
@@ -709,18 +934,33 @@ describe("UsageQueryService", () => {
     });
 
     it("filters live delta by model", async () => {
-      createKey({ id: "key-1", provider: "openai", label: "Key 1", model: "gpt-4o", isDefault: true });
+      createKey({
+        id: "key-1",
+        provider: "openai",
+        label: "Key 1",
+        model: "gpt-4o",
+        isDefault: true,
+      });
 
       storage.usageSnapshots.insert({
-        keyId: "key-1", provider: "openai", model: "gpt-4o",
-        inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
-        totalCostUsd: "0.000000", snapshotTime: 1000,
+        keyId: "key-1",
+        provider: "openai",
+        model: "gpt-4o",
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalCostUsd: "0.000000",
+        snapshotTime: 1000,
       });
 
       const mockCapture: CaptureUsageFn = async () => {
         const map = new Map<string, ModelUsageTotals>();
         map.set("openai/gpt-4o", {
-          inputTokens: 100, outputTokens: 50, cacheReadTokens: 0, cacheWriteTokens: 0,
+          inputTokens: 100,
+          outputTokens: 50,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
           totalCostUsd: "0.010000",
         });
         return map;
@@ -728,7 +968,7 @@ describe("UsageQueryService", () => {
 
       const service = new UsageQueryService(storage, mockCapture);
       const results = await service.queryUsage({
-        model: "gpt-4o-mini",  // does not match key-1's model
+        model: "gpt-4o-mini", // does not match key-1's model
         windowStart: 1000,
         windowEnd: 10000,
       });

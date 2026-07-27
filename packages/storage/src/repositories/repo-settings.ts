@@ -9,9 +9,9 @@ export class SettingsRepository {
   constructor(private db: Database.Database) {}
 
   get(key: string): string | undefined {
-    const row = this.db
-      .prepare("SELECT value FROM settings WHERE key = ?")
-      .get(key) as SettingRow | undefined;
+    const row = this.db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as
+      | SettingRow
+      | undefined;
     return row?.value;
   }
 
@@ -25,7 +25,11 @@ export class SettingsRepository {
 
   getAll(): Record<string, string> {
     const rows = this.db
-      .prepare("SELECT key, value FROM settings ORDER BY key ASC")
+      // Internal orchestration markers remain addressable through get(key) but
+      // are not part of the product settings read model or public Settings API.
+      .prepare(
+        "SELECT key, value FROM settings WHERE key NOT LIKE '\\_internal.%' ESCAPE '\\' ORDER BY key ASC",
+      )
       .all() as SettingRow[];
 
     const result: Record<string, string> = {};
@@ -36,9 +40,7 @@ export class SettingsRepository {
   }
 
   delete(key: string): boolean {
-    const result = this.db
-      .prepare("DELETE FROM settings WHERE key = ?")
-      .run(key);
+    const result = this.db.prepare("DELETE FROM settings WHERE key = ?").run(key);
     return result.changes > 0;
   }
 }

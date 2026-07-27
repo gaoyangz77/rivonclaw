@@ -154,6 +154,22 @@ describe("SettingsRepository", () => {
 });
 
 describe("ProviderKeysRepository", () => {
+  it("stores only product metadata after the provider ownership migration", () => {
+    const tables = storage.db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('provider_keys', 'provider_metadata') ORDER BY name",
+      )
+      .all() as Array<{ name: string }>;
+    const columns = storage.db.prepare("PRAGMA table_info(provider_metadata)").all() as Array<{
+      name: string;
+    }>;
+
+    expect(tables.map((table) => table.name)).toEqual(["provider_metadata"]);
+    expect(columns.map((column) => column.name)).not.toEqual(
+      expect.arrayContaining(["is_default", "base_url", "custom_models_json"]),
+    );
+  });
+
   it("should create and retrieve a provider key", () => {
     const key = storage.providerKeys.create({
       id: "key-1",
@@ -173,7 +189,13 @@ describe("ProviderKeysRepository", () => {
     expect(key.createdAt).toBeTruthy();
 
     const fetched = storage.providerKeys.getById("key-1");
-    expect(fetched).toMatchObject(key);
+    expect(fetched).toMatchObject({
+      id: key.id,
+      provider: key.provider,
+      label: key.label,
+      model: key.model,
+      isDefault: false,
+    });
   });
 
   it("should return undefined for non-existent key", () => {
@@ -181,17 +203,57 @@ describe("ProviderKeysRepository", () => {
   });
 
   it("should get all keys", () => {
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
-    storage.providerKeys.create({ id: "k2", provider: "anthropic", label: "B", model: "claude-sonnet-4-5-20250929", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({
+      id: "k1",
+      provider: "openai",
+      label: "A",
+      model: "gpt-4o",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    storage.providerKeys.create({
+      id: "k2",
+      provider: "anthropic",
+      label: "B",
+      model: "claude-sonnet-4-5-20250929",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
 
     const all = storage.providerKeys.getAll();
     expect(all).toHaveLength(2);
   });
 
   it("should get keys by provider", () => {
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
-    storage.providerKeys.create({ id: "k2", provider: "openai", label: "B", model: "gpt-4o-mini", isDefault: false, createdAt: "", updatedAt: "" });
-    storage.providerKeys.create({ id: "k3", provider: "anthropic", label: "C", model: "claude-sonnet-4-5-20250929", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({
+      id: "k1",
+      provider: "openai",
+      label: "A",
+      model: "gpt-4o",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    storage.providerKeys.create({
+      id: "k2",
+      provider: "openai",
+      label: "B",
+      model: "gpt-4o-mini",
+      isDefault: false,
+      createdAt: "",
+      updatedAt: "",
+    });
+    storage.providerKeys.create({
+      id: "k3",
+      provider: "anthropic",
+      label: "C",
+      model: "claude-sonnet-4-5-20250929",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
 
     const openaiKeys = storage.providerKeys.getByProvider("openai");
     expect(openaiKeys).toHaveLength(2);
@@ -199,37 +261,71 @@ describe("ProviderKeysRepository", () => {
   });
 
   it("should get default key for provider", () => {
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: false, createdAt: "", updatedAt: "" });
-    storage.providerKeys.create({ id: "k2", provider: "openai", label: "B", model: "gpt-4o-mini", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({
+      id: "k1",
+      provider: "openai",
+      label: "A",
+      model: "gpt-4o",
+      isDefault: false,
+      createdAt: "",
+      updatedAt: "",
+    });
+    storage.providerKeys.create({
+      id: "k2",
+      provider: "openai",
+      label: "B",
+      model: "gpt-4o-mini",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
 
+    storage.providerKeys.setRuntimeProjector((entries) =>
+      entries.map((entry) => ({ ...entry, isDefault: entry.id === "k2" })),
+    );
     const def = storage.providerKeys.getDefault("openai");
     expect(def?.id).toBe("k2");
   });
 
   it("should update a key", () => {
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "Old", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({
+      id: "k1",
+      provider: "openai",
+      label: "Old",
+      model: "gpt-4o",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
 
     const updated = storage.providerKeys.update("k1", { label: "New", model: "gpt-4o-mini" });
     expect(updated?.label).toBe("New");
     expect(updated?.model).toBe("gpt-4o-mini");
   });
 
-  it("should set default and clear others within same provider", () => {
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
-    storage.providerKeys.create({ id: "k2", provider: "openai", label: "B", model: "gpt-4o-mini", isDefault: false, createdAt: "", updatedAt: "" });
+  it("uses the installed Vendor projector for global activation", () => {
+    storage.providerKeys.create({
+      id: "k1",
+      provider: "openai",
+      label: "A",
+      model: "gpt-4o",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    storage.providerKeys.create({
+      id: "k2",
+      provider: "anthropic",
+      label: "B",
+      model: "claude-sonnet-4-5-20250929",
+      isDefault: false,
+      createdAt: "",
+      updatedAt: "",
+    });
 
-    storage.providerKeys.setDefault("k2");
-
-    expect(storage.providerKeys.getById("k1")?.isDefault).toBe(false);
-    expect(storage.providerKeys.getById("k2")?.isDefault).toBe(true);
-  });
-
-  it("should set default and clear keys across ALL providers (global unique)", () => {
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
-    storage.providerKeys.create({ id: "k2", provider: "anthropic", label: "B", model: "claude-sonnet-4-5-20250929", isDefault: false, createdAt: "", updatedAt: "" });
-
-    // Activate anthropic key — should clear openai's default
-    storage.providerKeys.setDefault("k2");
+    storage.providerKeys.setRuntimeProjector((entries) =>
+      entries.map((entry) => ({ ...entry, isDefault: entry.id === "k2" })),
+    );
 
     expect(storage.providerKeys.getById("k1")?.isDefault).toBe(false);
     expect(storage.providerKeys.getById("k2")?.isDefault).toBe(true);
@@ -239,15 +335,42 @@ describe("ProviderKeysRepository", () => {
   it("getActive() should return the single globally active key", () => {
     expect(storage.providerKeys.getActive()).toBeUndefined();
 
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: false, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({
+      id: "k1",
+      provider: "openai",
+      label: "A",
+      model: "gpt-4o",
+      isDefault: false,
+      createdAt: "",
+      updatedAt: "",
+    });
     expect(storage.providerKeys.getActive()).toBeUndefined();
 
-    storage.providerKeys.create({ id: "k2", provider: "anthropic", label: "B", model: "claude-sonnet-4-5-20250929", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({
+      id: "k2",
+      provider: "anthropic",
+      label: "B",
+      model: "claude-sonnet-4-5-20250929",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+    storage.providerKeys.setRuntimeProjector((entries) =>
+      entries.map((entry) => ({ ...entry, isDefault: entry.id === "k2" })),
+    );
     expect(storage.providerKeys.getActive()?.id).toBe("k2");
   });
 
   it("should delete a key", () => {
-    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({
+      id: "k1",
+      provider: "openai",
+      label: "A",
+      model: "gpt-4o",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
     expect(storage.providerKeys.delete("k1")).toBe(true);
     expect(storage.providerKeys.getById("k1")).toBeUndefined();
   });
@@ -256,7 +379,7 @@ describe("ProviderKeysRepository", () => {
     expect(storage.providerKeys.delete("nope")).toBe(false);
   });
 
-  it("should create and update a local provider key with baseUrl", () => {
+  it("does not persist Vendor-supported provider definitions", () => {
     const key = storage.providerKeys.create({
       id: "local-1",
       provider: "ollama",
@@ -274,16 +397,18 @@ describe("ProviderKeysRepository", () => {
     expect(key.baseUrl).toBe("http://localhost:11434");
 
     const fetched = storage.providerKeys.getById("local-1");
-    expect(fetched?.baseUrl).toBe("http://localhost:11434");
+    expect(fetched?.baseUrl).toBeNull();
     expect(fetched?.authType).toBe("local");
 
     // Update baseUrl
-    const updated = storage.providerKeys.update("local-1", { baseUrl: "http://192.168.1.100:11434" });
+    const updated = storage.providerKeys.update("local-1", {
+      baseUrl: "http://192.168.1.100:11434",
+    });
     expect(updated?.baseUrl).toBe("http://192.168.1.100:11434");
 
-    // Verify persisted
+    // The Vendor projector, not product SQLite, restores this field.
     const refetched = storage.providerKeys.getById("local-1");
-    expect(refetched?.baseUrl).toBe("http://192.168.1.100:11434");
+    expect(refetched?.baseUrl).toBeNull();
   });
 });
 
@@ -711,9 +836,11 @@ describe("Database", () => {
   });
 
   it("should track applied migrations", () => {
-    const rows = storage.db
-      .prepare("SELECT * FROM _migrations")
-      .all() as Array<{ id: number; name: string; applied_at: string }>;
+    const rows = storage.db.prepare("SELECT * FROM _migrations").all() as Array<{
+      id: number;
+      name: string;
+      applied_at: string;
+    }>;
     const byId = new Map(rows.map((row) => [row.id, row.name]));
 
     expect(rows).toHaveLength(migrations.length);
@@ -723,6 +850,7 @@ describe("Database", () => {
     expect(byId.get(7)).toBe("add_budget_columns_to_provider_keys");
     expect(byId.get(8)).toBe("add_usage_snapshots_and_history");
     expect(byId.get(9)).toBe("add_base_url_to_provider_keys");
+    expect(byId.get(33)).toBe("replace_provider_runtime_cache_with_metadata");
     expect(byId.get(10)).toBe("add_custom_provider_columns");
     expect(byId.get(12)).toBe("add_chat_sessions_table");
     expect(byId.get(15)).toBe("add_is_owner_to_channel_recipients");
@@ -738,9 +866,10 @@ describe("Database", () => {
     storage.close();
     storage = createStorage(":memory:");
 
-    const rows = storage.db
-      .prepare("SELECT * FROM _migrations")
-      .all() as Array<{ id: number; name: string }>;
+    const rows = storage.db.prepare("SELECT * FROM _migrations").all() as Array<{
+      id: number;
+      name: string;
+    }>;
 
     expect(rows).toHaveLength(migrations.length);
   });
@@ -782,9 +911,7 @@ describe("ToolSelections", () => {
   });
 
   it("should delete selections for a scope", () => {
-    storage.toolSelections.setForScope("cron_job", "cron-1", [
-      { toolId: "tool-a", enabled: true },
-    ]);
+    storage.toolSelections.setForScope("cron_job", "cron-1", [{ toolId: "tool-a", enabled: true }]);
 
     storage.toolSelections.deleteForScope("cron_job", "cron-1");
 
@@ -822,12 +949,8 @@ describe("ToolSelections", () => {
   });
 
   it("listScopes returns distinct scope pairs", () => {
-    storage.toolSelections.setForScope("chat_session", "s1", [
-      { toolId: "tool-a", enabled: true },
-    ]);
-    storage.toolSelections.setForScope("cron_job", "c1", [
-      { toolId: "tool-b", enabled: true },
-    ]);
+    storage.toolSelections.setForScope("chat_session", "s1", [{ toolId: "tool-a", enabled: true }]);
+    storage.toolSelections.setForScope("cron_job", "c1", [{ toolId: "tool-b", enabled: true }]);
     storage.toolSelections.setForScope("chat_session", "s1", [
       { toolId: "tool-a", enabled: true },
       { toolId: "tool-c", enabled: false },
@@ -973,10 +1096,12 @@ describe("migration 27: canonicalize_weixin_account_ids", () => {
     const s = runMigration27();
     // Seed legacy @-form row directly (bypassing the repo so we can insert
     // the raw form without any caller-side normalization).
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("openclaw-weixin", "abc123@im.bot", "abc123@im.bot", "{}", 1, 1);
+      )
+      .run("openclaw-weixin", "abc123@im.bot", "abc123@im.bot", "{}", 1, 1);
 
     // Re-run migration 27 (idempotent)
     const migration = migrations.find((m) => m.id === 27)!;
@@ -992,10 +1117,12 @@ describe("migration 27: canonicalize_weixin_account_ids", () => {
 
   it("rewrites @im.wechat suffix rows to -im-wechat dash form", () => {
     const s = runMigration27();
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("openclaw-weixin", "abc123@im.wechat", null, "{}", 1, 1);
+      )
+      .run("openclaw-weixin", "abc123@im.wechat", null, "{}", 1, 1);
 
     const migration = migrations.find((m) => m.id === 27)!;
     s.db.exec(migration.sql);
@@ -1010,16 +1137,20 @@ describe("migration 27: canonicalize_weixin_account_ids", () => {
 
   it("leaves already-canonical dash-form rows untouched", () => {
     const s = runMigration27();
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("openclaw-weixin", "xyz-im-bot", null, '{"foo":"bar"}', 42, 42);
+      )
+      .run("openclaw-weixin", "xyz-im-bot", null, '{"foo":"bar"}', 42, 42);
 
     const migration = migrations.find((m) => m.id === 27)!;
     s.db.exec(migration.sql);
 
     const row = s.db
-      .prepare("SELECT account_id, created_at, updated_at, config FROM channel_accounts WHERE account_id = 'xyz-im-bot'")
+      .prepare(
+        "SELECT account_id, created_at, updated_at, config FROM channel_accounts WHERE account_id = 'xyz-im-bot'",
+      )
       .get() as { account_id: string; created_at: number; updated_at: number; config: string };
     expect(row.account_id).toBe("xyz-im-bot");
     // Neither timestamp nor config should have been rewritten
@@ -1032,20 +1163,26 @@ describe("migration 27: canonicalize_weixin_account_ids", () => {
   it("resolves conflict by dropping @ form and keeping dash form", () => {
     const s = runMigration27();
     // Both forms co-exist: dash wins, @ is dropped.
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("openclaw-weixin", "collide-im-bot", "dash-wins", '{"keep":"dash"}', 100, 100);
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+      )
+      .run("openclaw-weixin", "collide-im-bot", "dash-wins", '{"keep":"dash"}', 100, 100);
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("openclaw-weixin", "collide@im.bot", "at-loses", '{"keep":"at"}', 200, 200);
+      )
+      .run("openclaw-weixin", "collide@im.bot", "at-loses", '{"keep":"at"}', 200, 200);
 
     const migration = migrations.find((m) => m.id === 27)!;
     s.db.exec(migration.sql);
 
     const rows = s.db
-      .prepare("SELECT account_id, name, config FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .prepare(
+        "SELECT account_id, name, config FROM channel_accounts WHERE channel_id = 'openclaw-weixin'",
+      )
       .all() as Array<{ account_id: string; name: string | null; config: string }>;
     expect(rows).toHaveLength(1);
     expect(rows[0].account_id).toBe("collide-im-bot");
@@ -1056,21 +1193,27 @@ describe("migration 27: canonicalize_weixin_account_ids", () => {
 
   it("is idempotent: a second run of the SQL is a no-op", () => {
     const s = runMigration27();
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("openclaw-weixin", "idem@im.bot", null, "{}", 1, 1);
+      )
+      .run("openclaw-weixin", "idem@im.bot", null, "{}", 1, 1);
 
     const migration = migrations.find((m) => m.id === 27)!;
     s.db.exec(migration.sql); // first rewrite
     const after1 = s.db
-      .prepare("SELECT account_id, updated_at FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .prepare(
+        "SELECT account_id, updated_at FROM channel_accounts WHERE channel_id = 'openclaw-weixin'",
+      )
       .get() as { account_id: string; updated_at: number };
     expect(after1.account_id).toBe("idem-im-bot");
 
     s.db.exec(migration.sql); // second run
     const after2 = s.db
-      .prepare("SELECT account_id, updated_at FROM channel_accounts WHERE channel_id = 'openclaw-weixin'")
+      .prepare(
+        "SELECT account_id, updated_at FROM channel_accounts WHERE channel_id = 'openclaw-weixin'",
+      )
       .get() as { account_id: string; updated_at: number };
     // account_id must not change (already canonical) and updated_at must not
     // be bumped because the UPDATE's WHERE clause excludes canonical rows.
@@ -1081,10 +1224,12 @@ describe("migration 27: canonicalize_weixin_account_ids", () => {
 
   it("does not touch non-weixin channels", () => {
     const s = runMigration27();
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("telegram", "bot@im.bot", null, "{}", 1, 1);
+      )
+      .run("telegram", "bot@im.bot", null, "{}", 1, 1);
 
     const migration = migrations.find((m) => m.id === 27)!;
     s.db.exec(migration.sql);
@@ -1107,16 +1252,27 @@ describe("migration 28: remove_stale_feishu_bot_name", () => {
 
   it("removes botName from feishu channel account configs", () => {
     const s = runMigration28();
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("feishu", "default", "Feishu", '{"appId":"cli_test","botName":"My Bot","enabled":true}', 1, 1);
+      )
+      .run(
+        "feishu",
+        "default",
+        "Feishu",
+        '{"appId":"cli_test","botName":"My Bot","enabled":true}',
+        1,
+        1,
+      );
 
     const migration = migrations.find((m) => m.id === 28)!;
     s.db.exec(migration.sql);
 
     const row = s.db
-      .prepare("SELECT config FROM channel_accounts WHERE channel_id = 'feishu' AND account_id = 'default'")
+      .prepare(
+        "SELECT config FROM channel_accounts WHERE channel_id = 'feishu' AND account_id = 'default'",
+      )
       .get() as { config: string };
     expect(row.config).toBe('{"appId":"cli_test","enabled":true}');
     s.close();
@@ -1124,16 +1280,20 @@ describe("migration 28: remove_stale_feishu_bot_name", () => {
 
   it("does not touch already-clean feishu configs", () => {
     const s = runMigration28();
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("feishu", "default", null, '{"appId":"cli_test","enabled":true}', 42, 42);
+      )
+      .run("feishu", "default", null, '{"appId":"cli_test","enabled":true}', 42, 42);
 
     const migration = migrations.find((m) => m.id === 28)!;
     s.db.exec(migration.sql);
 
     const row = s.db
-      .prepare("SELECT config, updated_at FROM channel_accounts WHERE channel_id = 'feishu' AND account_id = 'default'")
+      .prepare(
+        "SELECT config, updated_at FROM channel_accounts WHERE channel_id = 'feishu' AND account_id = 'default'",
+      )
       .get() as { config: string; updated_at: number };
     expect(row.config).toBe('{"appId":"cli_test","enabled":true}');
     expect(row.updated_at).toBe(42);
@@ -1142,16 +1302,20 @@ describe("migration 28: remove_stale_feishu_bot_name", () => {
 
   it("does not touch non-feishu channels", () => {
     const s = runMigration28();
-    s.db.prepare(
-      `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
+    s.db
+      .prepare(
+        `INSERT INTO channel_accounts (channel_id, account_id, name, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run("telegram", "default", null, '{"botName":"Keep Me"}', 1, 1);
+      )
+      .run("telegram", "default", null, '{"botName":"Keep Me"}', 1, 1);
 
     const migration = migrations.find((m) => m.id === 28)!;
     s.db.exec(migration.sql);
 
     const row = s.db
-      .prepare("SELECT config FROM channel_accounts WHERE channel_id = 'telegram' AND account_id = 'default'")
+      .prepare(
+        "SELECT config FROM channel_accounts WHERE channel_id = 'telegram' AND account_id = 'default'",
+      )
       .get() as { config: string };
     expect(row.config).toBe('{"botName":"Keep Me"}');
     s.close();

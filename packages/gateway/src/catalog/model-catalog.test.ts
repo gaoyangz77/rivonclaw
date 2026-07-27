@@ -27,8 +27,12 @@ function entry(id: string, name?: string, context?: Partial<CatalogModelEntry>):
 }
 
 // Import after mocking
-const { normalizeCatalog, readGatewayModelCatalog, readFullModelCatalog } =
-  await import("./model-catalog.js");
+const {
+  normalizeCatalog,
+  readGatewayModelCatalog,
+  readConfiguredModelCatalog,
+  readFullModelCatalog,
+} = await import("./model-catalog.js");
 
 describe("normalizeCatalog", () => {
   it("should keep 'zai' and 'zhipu' as separate providers", () => {
@@ -360,6 +364,55 @@ describe("readFullModelCatalog", () => {
     expect(result.volcengine!.length).toBeGreaterThan(0);
   });
 
+  it("merges configured models per model without replacing Vendor runtime rows", async () => {
+    mocks.existsSync.mockImplementation((path: string) => {
+      const value = String(path);
+      return (
+        value.endsWith("openclaw.json") ||
+        value.includes(join("agents", "main", "agent", "models.json"))
+      );
+    });
+    mocks.readFileSync.mockImplementation((path: string) => {
+      if (String(path).endsWith("openclaw.json")) {
+        return JSON.stringify({
+          models: {
+            providers: {
+              openai: {
+                models: [
+                  {
+                    id: "gpt-5.6-terra",
+                    name: "GPT-5.6 Terra",
+                    contextWindow: 1_050_000,
+                  },
+                ],
+              },
+            },
+          },
+        });
+      }
+      return JSON.stringify({
+        providers: {
+          openai: {
+            models: [{ id: "gpt-5.5", name: "GPT-5.5" }],
+          },
+        },
+      });
+    });
+
+    const env = {
+      RIVONCLAW_STATE_DIR: "/tmp/fake",
+      OPENCLAW_CONFIG_PATH: "/tmp/fake/openclaw.json",
+    };
+    expect(readConfiguredModelCatalog(env).openai?.map((model) => model.id)).toEqual([
+      "gpt-5.6-terra",
+    ]);
+
+    const result = await readFullModelCatalog(env);
+    expect(result.openai?.map((model) => model.id)).toEqual(
+      expect.arrayContaining(["gpt-5.5", "gpt-5.6-terra"]),
+    );
+  });
+
   it("should always populate KNOWN_MODELS (even with only local supplemental models)", async () => {
     mocks.existsSync.mockReturnValue(false);
     await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
@@ -441,7 +494,7 @@ describe("readFullModelCatalog", () => {
     // "gemini" subscription plan should inherit google-gemini-cli's models
     // (via catalogProvider: "google-gemini-cli" — OAuth tokens require Bearer auth)
     expect(result.gemini).toBeDefined();
-    expect(result.gemini!.length).toBe(2);
+    expect(result.gemini!.length).toBeGreaterThanOrEqual(2);
     expect(result.gemini!.map((m) => m.id)).toContain("gemini-2.5-pro");
     expect(result.gemini!.map((m) => m.id)).toContain("gemini-2.5-flash");
   });

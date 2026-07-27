@@ -7,6 +7,7 @@ import {
   resolveAuthProfilePath,
   resolveAuthProfileDatabasePath,
   resolveManagedGeminiCliHome,
+  activateAuthProfile,
   syncAuthProfile,
   removeAuthProfile,
   syncAllAuthProfiles,
@@ -404,7 +405,7 @@ describe("syncAllAuthProfiles", () => {
     expect(order["anthropic"]).toEqual(["anthropic:active"]);
   });
 
-  it("replaces previous profiles entirely", async () => {
+  it("preserves Vendor-owned profiles while merging Desktop credentials", async () => {
     // First sync with 2 providers
     syncAuthProfile(stateDir, "deepseek", "sk-old-deepseek");
 
@@ -426,9 +427,47 @@ describe("syncAllAuthProfiles", () => {
     const store = readJsonFile(filePath) as Record<string, unknown>;
     const profiles = store.profiles as Record<string, unknown>;
 
-    // deepseek should be gone (syncAll replaces the entire file)
-    expect(profiles["deepseek:active"]).toBeUndefined();
+    expect(profiles["deepseek:active"]).toBeDefined();
     expect(profiles["qwen:active"]).toBeDefined();
+  });
+
+  it("activates Codex OAuth without routing it through an OpenAI API key", async () => {
+    const mockStorage = {
+      providerKeys: {
+        getAll: () => [
+          { id: "openai-key", provider: "openai", isDefault: false },
+          {
+            id: "codex-oauth",
+            provider: "openai-codex",
+            isDefault: false,
+            authType: "oauth",
+          },
+        ],
+      },
+    };
+    const mockSecretStore = {
+      get: async (key: string) => {
+        if (key === "provider-key-openai-key") return "sk-openai";
+        if (key === "oauth-cred-codex-oauth") {
+          return JSON.stringify({
+            access: "codex-access",
+            refresh: "codex-refresh",
+            expires: Date.now() + 3600_000,
+            email: "codex@example.com",
+          });
+        }
+        return null;
+      },
+    };
+
+    await syncAllAuthProfiles(stateDir, mockStorage, mockSecretStore);
+    const selected = activateAuthProfile(stateDir, "openai-codex", "oauth");
+    const store = readJsonFile(resolveAuthProfilePath(stateDir)) as {
+      order: Record<string, string[]>;
+    };
+
+    expect(selected).toBe("openai:codex@example.com");
+    expect(store.order.openai).toEqual(["openai:codex@example.com", "openai:active"]);
   });
 });
 
@@ -739,7 +778,7 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
     expect(store.order.openai).toEqual(["openai:codex@example.com"]);
   });
 
-  it("prefers the active RivonClaw cloud key for the openai image provider alias", async () => {
+  it("keeps the RivonClaw cloud key in its own provider namespace", async () => {
     const cloudKey = {
       id: "cloud-rivonclaw-pro",
       provider: "rivonclaw-pro",
@@ -763,11 +802,12 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
       profiles: Record<string, Record<string, unknown>>;
       order: Record<string, string[]>;
     };
-    expect(store.profiles["openai:rivonclaw-pro-image"]).toEqual({
+    expect(store.profiles["rivonclaw-pro:active"]).toEqual({
       type: "api_key",
-      provider: "openai",
+      provider: "rivonclaw-pro",
       key: "rcllm_cloud_key",
     });
-    expect(store.order.openai).toEqual(["openai:rivonclaw-pro-image"]);
+    expect(store.order["rivonclaw-pro"]).toEqual(["rivonclaw-pro:active"]);
+    expect(store.profiles["openai:rivonclaw-pro-image"]).toBeUndefined();
   });
 });

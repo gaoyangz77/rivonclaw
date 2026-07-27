@@ -148,7 +148,7 @@ export async function validateGeminiAccessToken(
 
 /**
  * Write OAuth credentials for an existing Gemini key — overwrite the keychain
- * credential JSON in place. Does NOT touch the provider_keys row's
+ * credential JSON in place. Does NOT touch the provider metadata row's
  * label/model/isDefault/proxy; only the stored credential is rotated.
  *
  * Gemini refresh tokens are opaque, so `oauthExpiresAt` is always `undefined`.
@@ -168,7 +168,7 @@ export async function refreshGeminiOAuthCredentials(
 }
 
 /**
- * Step 3: Store OAuth credentials in keychain and create provider_keys row.
+ * Step 3: Store OAuth credentials in keychain and create provider metadata.
  * Call after validation succeeds.
  */
 export async function saveGeminiOAuthCredentials(
@@ -177,7 +177,6 @@ export async function saveGeminiOAuthCredentials(
     providerKeys: {
       create(entry: ProviderKeyEntry): ProviderKeyEntry;
       getByProvider(provider: string): ProviderKeyEntry[];
-      setDefault(id: string): void;
     };
   },
   secretStore: {
@@ -202,11 +201,11 @@ export async function saveGeminiOAuthCredentials(
     await secretStore.set(`proxy-auth-${id}`, options.proxyCredentials);
   }
 
-  // Create provider_keys row — oauthExpiresAt is undefined for Gemini but
+  // Create product metadata — oauthExpiresAt is undefined for Gemini but
   // passed explicitly so the row shape is consistent with Codex (and future
   // providers that surface expiry).
   const label = options?.label || credentials.email || "Gemini OAuth";
-  const entry = storage.providerKeys.create({
+  storage.providerKeys.create({
     id,
     provider,
     label,
@@ -218,9 +217,6 @@ export async function saveGeminiOAuthCredentials(
     createdAt: "",
     updatedAt: "",
   });
-
-  // Set as default for this provider
-  storage.providerKeys.setDefault(entry.id);
 
   log.info(`Created OAuth provider key ${id} for ${provider}`);
 
@@ -405,7 +401,6 @@ export async function runGeminiOAuthFlow(
     providerKeys: {
       create(entry: ProviderKeyEntry): ProviderKeyEntry;
       getByProvider(provider: string): ProviderKeyEntry[];
-      setDefault(id: string): void;
     };
   },
   secretStore: {

@@ -8,7 +8,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { createStorage, type Storage } from "@rivonclaw/storage";
-import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+import type { ProviderKeyEntry } from "@rivonclaw/core";
+import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -93,11 +94,18 @@ let stateDir: string;
 const secretMap = new Map<string, string>();
 const mockSecretStore = {
   get: async (key: string) => secretMap.get(key) ?? null,
-  set: async (key: string, value: string) => { secretMap.set(key, value); },
-  delete: async (key: string) => { secretMap.delete(key); },
+  set: async (key: string, value: string) => {
+    secretMap.set(key, value);
+  },
+  delete: async (key: string) => {
+    secretMap.delete(key);
+  },
 };
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<{ status: number; body: T }> {
+async function fetchJson<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<{ status: number; body: T }> {
   const res = await fetch(panelBaseUrl + path, {
     headers: { "Content-Type": "application/json" },
     ...init,
@@ -118,6 +126,16 @@ beforeAll(async () => {
 
   // 2. Set up storage
   storage = createStorage(":memory:");
+  const vendorDefinitions = new Map<
+    string,
+    Pick<ProviderKeyEntry, "baseUrl" | "customProtocol" | "customModelsJson" | "inputModalities">
+  >();
+  storage.providerKeys.setRuntimeProjector((entries) =>
+    entries.map((entry) => ({
+      ...entry,
+      ...vendorDefinitions.get(entry.provider),
+    })),
+  );
   stateDir = join(tmpdir(), `rivonclaw-test-${randomUUID()}`);
   mkdirSync(join(stateDir, "agents", "main", "agent"), { recursive: true });
 
@@ -130,9 +148,22 @@ beforeAll(async () => {
     allKeysToMstSnapshots,
     syncActiveKey,
     syncAllAuthProfiles: async () => {},
+    activateAuthProfile: () => "test:active",
     writeProxyRouterConfig: async () => {},
     writeDefaultModelToConfig: () => {},
     writeFullGatewayConfig: async () => {},
+    writeVendorProviderDefinition: (entry, remove) => {
+      if (remove) {
+        vendorDefinitions.delete(entry.provider);
+      } else {
+        vendorDefinitions.set(entry.provider, {
+          baseUrl: entry.baseUrl,
+          customProtocol: entry.customProtocol,
+          customModelsJson: entry.customModelsJson,
+          inputModalities: entry.inputModalities,
+        });
+      }
+    },
     restartGateway: async () => {},
     proxyFetch: globalThis.fetch,
     stateDir,
@@ -229,19 +260,22 @@ describe("Local LLM (Ollama) E2E", () => {
     let createdKeyId: string;
 
     it("POST /api/provider-keys creates a local key (no API key required)", async () => {
-      const { status, body } = await fetchJson<{ id: string; provider: string; authType: string; baseUrl?: string; model: string }>(
-        "/api/provider-keys",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            provider: "ollama",
-            label: "Test Ollama",
-            model: "llama3.2:latest",
-            authType: "local",
-            baseUrl: `http://127.0.0.1:${mockOllamaPort}`,
-          }),
-        },
-      );
+      const { status, body } = await fetchJson<{
+        id: string;
+        provider: string;
+        authType: string;
+        baseUrl?: string;
+        model: string;
+      }>("/api/provider-keys", {
+        method: "POST",
+        body: JSON.stringify({
+          provider: "ollama",
+          label: "Test Ollama",
+          model: "llama3.2:latest",
+          authType: "local",
+          baseUrl: `http://127.0.0.1:${mockOllamaPort}`,
+        }),
+      });
 
       expect(status).toBe(201);
       expect(body.provider).toBe("ollama");
@@ -251,9 +285,9 @@ describe("Local LLM (Ollama) E2E", () => {
     });
 
     it("GET /api/provider-keys returns the local key with baseUrl", async () => {
-      const { status, body } = await fetchJson<{ keys: Array<{ id: string; provider: string; baseUrl?: string | null; authType?: string }> }>(
-        "/api/provider-keys",
-      );
+      const { status, body } = await fetchJson<{
+        keys: Array<{ id: string; provider: string; baseUrl?: string | null; authType?: string }>;
+      }>("/api/provider-keys");
 
       expect(status).toBe(200);
       const localKey = body.keys.find((k) => k.id === createdKeyId);
@@ -325,7 +359,8 @@ describe("Local LLM (Ollama) E2E", () => {
 
     it("syncAllAuthProfiles uses real key when provided", async () => {
       // Add a real key to the secret store
-      secretMap.set("provider-key-ollama-sync-test", "my-proxy-api-key");
+      const selectedOllamaKey = storage.providerKeys.getByProvider("ollama")[0];
+      secretMap.set(`provider-key-${selectedOllamaKey.id}`, "my-proxy-api-key");
 
       await syncAllAuthProfiles(stateDir, storage, mockSecretStore as any);
 

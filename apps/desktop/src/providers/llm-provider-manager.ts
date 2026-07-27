@@ -45,14 +45,24 @@ export interface LLMProviderManagerEnv {
     storage: Storage,
     secretStore: SecretStore,
   ) => Promise<void>;
+  activateAuthProfile: (
+    stateDir: string,
+    productProvider: string,
+    authType: string | undefined,
+  ) => string;
   writeProxyRouterConfig: (
     storage: Storage,
     secretStore: SecretStore,
     lastSystemProxy: string | null,
   ) => Promise<void>;
-  writeDefaultModelToConfig: (gwProvider: string, modelId: string) => void;
+  writeDefaultModelToConfig: (gwProvider: string, modelId: string, productProvider: string) => void;
   /** Rewrite the full gateway config (used when provider-level config changes, e.g., new custom provider added). */
   writeFullGatewayConfig: () => Promise<void>;
+  /** Upsert/remove a Desktop-owned provider definition in authoritative Vendor config. */
+  writeVendorProviderDefinition?: (
+    entry: ProviderKeyEntry,
+    remove?: boolean,
+  ) => Promise<void> | void;
   /** Full gateway restart (stop + start). Reloads plugins. */
   restartGateway: () => Promise<void>;
   /** Proxy-aware fetch (routes through proxy-router for users behind a proxy). */
@@ -260,7 +270,9 @@ export const LLMProviderManagerModel = types
       appliedModel?: string;
     } | null {
       const { storage } = (self as any)._env as LLMProviderManagerEnv;
-      const activeKey = storage.providerKeys.getActive();
+      const activeKey =
+        (self.activeKeyId ? storage.providerKeys.getById(self.activeKeyId) : undefined) ??
+        storage.providerKeys.getActive();
       if (!activeKey) return null;
 
       const resolveInfo = (
@@ -327,7 +339,7 @@ export const LLMProviderManagerModel = types
       const { getRpcClient } = getEnvDeps();
       const rpc = getRpcClient();
       if (!rpc) throw new Error("RPC client not available");
-      const payload = { ...(options?.sessionPatch ?? {}), key: sessionKey, model: modelRef };
+      const payload = { ...options?.sessionPatch, key: sessionKey, model: modelRef };
       if (options?.requestTimeoutMs === undefined) {
         await rpc.request("sessions.patch", payload);
       } else {
@@ -351,7 +363,9 @@ export const LLMProviderManagerModel = types
 
     function getActiveDefaultModel(): (SessionModelOverride & { modelRef: string }) | null {
       const { storage } = getEnvDeps();
-      const active = storage.providerKeys.getActive();
+      const active =
+        (self.activeKeyId ? storage.providerKeys.getById(self.activeKeyId) : undefined) ??
+        storage.providerKeys.getActive();
       if (!active?.provider || !active.model) return null;
       return {
         provider: active.provider,
@@ -435,7 +449,7 @@ export const LLMProviderManagerModel = types
         provider === GEMINI_OAUTH_PROVIDER_ID && authType === "oauth"
           ? normalizeGeminiOAuthModelId(modelId)
           : stripProviderPrefix(modelId, gwProvider);
-      writeDefaultModelToConfig(gwProvider, gatewayModelId);
+      writeDefaultModelToConfig(gwProvider, gatewayModelId, provider);
       log.info(`Updated default model to ${gwProvider}/${gatewayModelId}`);
     }
 
@@ -457,13 +471,28 @@ export const LLMProviderManagerModel = types
       ]);
     }
 
+    function activateVendorAuth(entry: ProviderKeyEntry): void {
+      const { activateAuthProfile, stateDir } = getEnvDeps();
+      activateAuthProfile(stateDir, entry.provider, entry.authType);
+    }
+
+    async function persistVendorProviderDefinition(
+      entry: ProviderKeyEntry,
+      remove = false,
+    ): Promise<void> {
+      await getEnvDeps().writeVendorProviderDefinition?.(entry, remove);
+    }
+
     /**
      * Sync auth + proxy + rewrite full gateway config.
      * Used when provider-level config changes (new provider added, provider deleted,
      * custom models refreshed) — not for simple model switches.
      */
-    async function syncAuthProxyAndConfig(): Promise<void> {
-      const { writeFullGatewayConfig } = getEnvDeps();
+    async function syncAuthProxyAndConfig(entry?: ProviderKeyEntry): Promise<void> {
+      const { writeFullGatewayConfig, writeVendorProviderDefinition } = getEnvDeps();
+      if (entry) {
+        await writeVendorProviderDefinition?.(entry, false);
+      }
       await syncAuthAndProxy();
       await writeFullGatewayConfig();
     }
@@ -655,31 +684,31 @@ export const LLMProviderManagerModel = types
 
         const oldActive = storage.providerKeys.getActive();
 
-        // SQLite
-        storage.providerKeys.setDefault(keyId);
-        storage.settings.set("llm-provider", entry.provider);
-        self.activeKeyId = keyId;
-
         // Canonical secrets
         yield syncActiveKey(entry.provider, storage, secretStore);
         if (oldActive && oldActive.provider !== entry.provider) {
           yield syncActiveKey(oldActive.provider, storage, secretStore);
         }
 
-        // MST state (reload all — isDefault changed on multiple entries)
+        // Sync auth profiles and proxy config (so new provider's key is prioritized)
+        yield syncAuthAndProxy();
+        activateVendorAuth(entry);
+
+        // OpenClaw config + auth order are the activation transaction.
+        writeDefaultModel(entry.provider, entry.model, entry.authType);
+        self.activeKeyId = keyId;
+
+        const projectedEntries = storage.providerKeys.getAll();
         const mstKeys: MstProviderKeySnapshot[] = yield allKeysToMstSnapshots(
-          storage.providerKeys.getAll(),
+          projectedEntries,
           secretStore,
         );
         self.root.loadProviderKeys(mstKeys);
 
-        // Sync auth profiles and proxy config (so new provider's key is prioritized)
-        yield syncAuthAndProxy();
-
-        // Update OpenClaw config default.
-        writeDefaultModel(entry.provider, entry.model, entry.authType);
-
-        return { entry, oldActive };
+        return {
+          entry: storage.providerKeys.getById(keyId) ?? entry,
+          oldActive,
+        };
       }),
 
       /**
@@ -743,8 +772,9 @@ export const LLMProviderManagerModel = types
           yield secretStore.set(`provider-key-${id}`, data.apiKey);
         }
 
+        yield persistVendorProviderDefinition(entry);
+
         if (shouldActivate) {
-          storage.settings.set("llm-provider", data.provider);
           self.activeKeyId = id;
         }
 
@@ -757,6 +787,10 @@ export const LLMProviderManagerModel = types
 
         // Sync auth profiles and proxy config (provider already in config from startup)
         yield syncAuthAndProxy();
+        if (shouldActivate) {
+          activateVendorAuth(entry);
+          writeDefaultModel(entry.provider, entry.model, entry.authType);
+        }
 
         return { entry, shouldActivate };
       }),
@@ -819,6 +853,15 @@ export const LLMProviderManagerModel = types
           customModelsJson: fields.customModelsJson,
         });
 
+        if (
+          updated &&
+          (fields.baseUrl !== undefined ||
+            fields.inputModalities !== undefined ||
+            fields.customModelsJson !== undefined)
+        ) {
+          yield persistVendorProviderDefinition(updated);
+        }
+
         // MST state
         if (updated) {
           const mstEntry: MstProviderKeySnapshot = yield toMstSnapshot(updated, secretStore);
@@ -856,6 +899,8 @@ export const LLMProviderManagerModel = types
         // SQLite
         storage.providerKeys.delete(id);
 
+        yield persistVendorProviderDefinition(existing, true);
+
         // Keychain cleanup
         yield secretStore.delete(`provider-key-${id}`);
         yield secretStore.delete(`proxy-auth-${id}`);
@@ -865,12 +910,9 @@ export const LLMProviderManagerModel = types
         if (existing.isDefault) {
           const remaining = storage.providerKeys.getAll().filter((k) => k.id !== id);
           if (remaining.length > 0) {
-            storage.providerKeys.setDefault(remaining[0].id);
-            storage.settings.set("llm-provider", remaining[0].provider);
             promotedKey = remaining[0];
             self.activeKeyId = remaining[0].id;
           } else {
-            storage.settings.set("llm-provider", "");
             self.activeKeyId = null;
           }
         }
@@ -891,6 +933,7 @@ export const LLMProviderManagerModel = types
         // Sync auth profiles and proxy config (provider stays in config until restart)
         yield syncAuthAndProxy();
         if (promotedKey) {
+          activateVendorAuth(promotedKey);
           writeDefaultModel(promotedKey.provider, promotedKey.model, promotedKey.authType);
         }
 
@@ -928,7 +971,9 @@ export const LLMProviderManagerModel = types
         // The provider definition and possibly its active model changed. Rewrite
         // the authoritative config; OpenClaw safely reconciles agent models.json
         // through its locked, atomic planner on reload/startup.
-        yield syncAuthProxyAndConfig();
+        if (updated) {
+          yield syncAuthProxyAndConfig(updated);
+        }
 
         return updated;
       }),
@@ -949,19 +994,19 @@ export const LLMProviderManagerModel = types
         function* removeExistingCloudProvider(reason: string) {
           if (!existing) return;
           const wasDefault = existing.isDefault;
+          yield persistVendorProviderDefinition(existing, true);
           storage.providerKeys.delete(existing.id);
           yield secretStore.delete(`provider-key-${existing.id}`);
 
           if (wasDefault) {
             const remaining = storage.providerKeys.getAll();
             if (remaining.length > 0) {
-              storage.providerKeys.setDefault(remaining[0].id);
-              storage.settings.set("llm-provider", remaining[0].provider);
               yield syncActiveKey(remaining[0].provider, storage, secretStore);
               self.activeKeyId = remaining[0].id;
+              yield syncAuthAndProxy();
+              activateVendorAuth(remaining[0]);
               writeDefaultModel(remaining[0].provider, remaining[0].model, remaining[0].authType);
             } else {
-              storage.settings.set("llm-provider", "");
               self.activeKeyId = null;
             }
           }
@@ -1116,7 +1161,7 @@ export const LLMProviderManagerModel = types
           // path frequently; it must not rewrite config or patch all sessions
           // unless the underlying provider data changed.
           if (keyChanged || baseUrlChanged || labelChanged || modelsChanged || modelChanged) {
-            yield syncAuthProxyAndConfig();
+            yield syncAuthProxyAndConfig(freshEntry);
           }
 
           log.info(
@@ -1166,7 +1211,6 @@ export const LLMProviderManagerModel = types
         yield secretStore.set(`provider-key-${entry.id}`, apiKeyValue);
 
         if (shouldActivate) {
-          storage.settings.set("llm-provider", CLOUD_PROVIDER_ID);
           self.activeKeyId = entry.id;
         }
         yield syncActiveKey(CLOUD_PROVIDER_ID, storage, secretStore);
@@ -1176,8 +1220,9 @@ export const LLMProviderManagerModel = types
         self.root.upsertProviderKey(mstEntry);
 
         // Sync auth + proxy + full config (new cloud provider added)
-        yield syncAuthProxyAndConfig();
+        yield syncAuthProxyAndConfig(entry);
         if (shouldActivate) {
+          activateVendorAuth(entry);
           writeDefaultModel(entry.provider, entry.model, entry.authType);
         }
 
