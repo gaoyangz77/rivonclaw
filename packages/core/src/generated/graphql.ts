@@ -5298,40 +5298,6 @@ export const EcomApproveReturnDecision = {
 } as const;
 
 export type EcomApproveReturnDecision = typeof EcomApproveReturnDecision[keyof typeof EcomApproveReturnDecision];
-/** A governed dynamic BI attribute filter. */
-export interface EcomBiAttributeFilterInput {
-  attribute: EcomBiAttributeRefInput;
-  /** Filter operator. */
-  operator: EcomBiFilterOperator;
-  /** Filter values. Empty lists are invalid. */
-  values: Array<Scalars['String']['input']>;
-}
-
-/** Governed dynamic BI attribute metadata. */
-export interface EcomBiAttributeMetadata {
-  attributeKey: Scalars['String']['output'];
-  attributeNamespace: Scalars['String']['output'];
-  cardinality: EcomBiDimensionCardinality;
-  description?: Maybe<Scalars['String']['output']>;
-  entity: EcomBiDimensionEntity;
-  filterable: Scalars['Boolean']['output'];
-  groupable: Scalars['Boolean']['output'];
-  label: Scalars['String']['output'];
-  rawJsonPath?: Maybe<Scalars['String']['output']>;
-  sourceSystem: Scalars['String']['output'];
-  valueType: EcomBiValueType;
-}
-
-/** A governed dynamic BI attribute reference from the catalog. */
-export interface EcomBiAttributeRefInput {
-  /** Attribute key from catalog metadata. */
-  attributeKey: Scalars['String']['input'];
-  /** Optional attribute namespace. Omit when the key is unique for the entity in the selected dataset. */
-  attributeNamespace?: InputMaybe<Scalars['String']['input']>;
-  /** Attribute entity, for example PRODUCT or CREATIVE. */
-  entity: EcomBiDimensionEntity;
-}
-
 /** Warehouse-backed ecommerce BI dataset identifiers. */
 export const EcomBiDatasetId = {
   AdsGmvCampaignDaily: 'ADS_GMV_CAMPAIGN_DAILY',
@@ -5354,7 +5320,6 @@ export const EcomBiDatasetId = {
 export type EcomBiDatasetId = typeof EcomBiDatasetId[keyof typeof EcomBiDatasetId];
 /** BI dataset metadata. */
 export interface EcomBiDatasetMetadata {
-  attributes: Array<EcomBiAttributeMetadata>;
   dateRangeRequirement: EcomBiDateRangeRequirement;
   defaultDimensions: Array<EcomBiDimension>;
   defaultMetrics: Array<EcomBiMetric>;
@@ -5548,7 +5513,6 @@ export interface EcomBiDimensionMetadata {
 
 /** Where a BI dimension value is resolved from. */
 export const EcomBiDimensionSource = {
-  Attribute: 'ATTRIBUTE',
   Derived: 'DERIVED',
   Dimension: 'DIMENSION',
   Fact: 'FACT'
@@ -5557,7 +5521,6 @@ export const EcomBiDimensionSource = {
 export type EcomBiDimensionSource = typeof EcomBiDimensionSource[keyof typeof EcomBiDimensionSource];
 /** Whether a BI output column is a dimension or metric. */
 export const EcomBiFieldRole = {
-  Attribute: 'ATTRIBUTE',
   Dimension: 'DIMENSION',
   Metric: 'METRIC'
 } as const;
@@ -5768,10 +5731,6 @@ export interface EcomBiPageInfo {
 export interface EcomBiQueryInput {
   /** Reserved for future advertiser-document scoping; current Ads BI datasets do not use this field. Filter current Ads datasets with the ADVERTISER_ID and/or STORE_ID dimensions instead. */
   advertiserIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Optional governed dynamic attributes to group by. Values must come from getEcommerceBiCatalog.attributes. */
-  attributeDimensions?: InputMaybe<Array<EcomBiAttributeRefInput>>;
-  /** Optional filters over governed dynamic attributes from getEcommerceBiCatalog.attributes. */
-  attributeFilters?: InputMaybe<Array<EcomBiAttributeFilterInput>>;
   /** Dataset to query. */
   datasetId: EcomBiDatasetId;
   /** Dimensions to group by. Defaults are declared by dataset metadata. */
@@ -5812,9 +5771,6 @@ export interface EcomBiQueryResult {
 
 /** BI query output column. */
 export interface EcomBiResultColumn {
-  attributeEntity?: Maybe<EcomBiDimensionEntity>;
-  attributeKey?: Maybe<Scalars['String']['output']>;
-  attributeNamespace?: Maybe<Scalars['String']['output']>;
   dimension?: Maybe<EcomBiDimension>;
   key: Scalars['String']['output'];
   label: Scalars['String']['output'];
