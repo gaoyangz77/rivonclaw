@@ -9,8 +9,7 @@ import {
   buildTemporaryOpenAICodexProviderOverride,
   createGatewayConfigBuilder,
   DEFAULT_GATEWAY_TOOL_ALLOWLIST,
-  IMAGE_GENERATION_MODEL_REF,
-  IMAGE_GENERATION_TIMEOUT_MS,
+  isOpenAICodexOAuthActive,
   normalizeGeminiOAuthModelId,
   RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS,
 } from "./config-builder.js";
@@ -63,9 +62,9 @@ describe("gateway config builder", () => {
       },
     ]);
 
-    expect(overrides["rivonclaw-pro"]?.models).toEqual([
-      { id: "vision", name: "vision", input: ["text", "image"] },
-    ]);
+    expect(
+      overrides["rivonclaw-pro"]?.models.filter((model) => model.id !== "gpt-image-2"),
+    ).toEqual([{ id: "vision", name: "vision", input: ["text", "image"] }]);
     expect(overrides["rivonclaw-pro"]?.timeoutSeconds).toBe(
       RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS,
     );
@@ -123,9 +122,9 @@ describe("gateway config builder", () => {
       },
     ]);
 
-    expect(overrides["rivonclaw-pro"]?.models).toEqual([
-      { id: "vision", name: "vision", input: ["text", "image"] },
-    ]);
+    expect(
+      overrides["rivonclaw-pro"]?.models.filter((model) => model.id !== "gpt-image-2"),
+    ).toEqual([{ id: "vision", name: "vision", input: ["text", "image"] }]);
   });
 
   it("preserves Flagship context and output limits", () => {
@@ -147,7 +146,9 @@ describe("gateway config builder", () => {
       },
     ]);
 
-    expect(overrides["rivonclaw-pro"]?.models).toEqual([
+    expect(
+      overrides["rivonclaw-pro"]?.models.filter((model) => model.id !== "gpt-image-2"),
+    ).toEqual([
       {
         id: "rivonclaw-flagship",
         name: "Flagship",
@@ -170,7 +171,9 @@ describe("gateway config builder", () => {
       },
     ]);
 
-    expect(overrides["rivonclaw-pro"]?.models).toEqual([
+    expect(
+      overrides["rivonclaw-pro"]?.models.filter((model) => model.id !== "gpt-image-2"),
+    ).toEqual([
       {
         id: "gpt-5.6-terra",
         name: "gpt-5.6-terra",
@@ -201,7 +204,9 @@ describe("gateway config builder", () => {
       },
     ]);
 
-    expect(overrides["rivonclaw-pro"]?.models).toEqual([
+    expect(
+      overrides["rivonclaw-pro"]?.models.filter((model) => model.id !== "gpt-image-2"),
+    ).toEqual([
       {
         id: "rivonclaw-flagship",
         name: "rivonclaw-flagship",
@@ -213,7 +218,7 @@ describe("gateway config builder", () => {
     ]);
   });
 
-  it("routes image generation through the RivonClaw backend for the active cloud key", async () => {
+  it("keeps TK image models in the TK provider without rewriting the Vendor selection", async () => {
     const cloudKey = {
       id: "cloud-rivonclaw-pro",
       provider: "rivonclaw-pro",
@@ -247,19 +252,19 @@ describe("gateway config builder", () => {
     });
 
     const config = await builder.buildFullGatewayConfig(18789);
-    expect(config.imageGenerationModel).toEqual({
-      primary: IMAGE_GENERATION_MODEL_REF,
-      timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
+    expect(config.imageGenerationModel).toBeUndefined();
+    expect(config.extraProviders?.["rivonclaw-pro"]?.models).toContainEqual({
+      id: "gpt-image-2",
+      name: "GPT Image 2",
+      input: ["text", "image"],
     });
     expect(config.extraProviders?.openai).toMatchObject({
-      baseUrl: "https://api.rivonclaw.com/llm/v1",
-      api: "openai-completions",
-      timeoutSeconds: 300,
-      models: [{ id: "gpt-image-2", name: "GPT Image 2" }],
+      baseUrl: "https://api.openai.com/v1",
+      api: "openai-responses",
     });
   });
 
-  it("adds the temporary GPT-5.6 catalog only for active Codex OAuth", async () => {
+  it("adds the temporary GPT-5.6 model overlay independent of active metadata", async () => {
     const codexKey = {
       id: "codex-oauth",
       provider: "openai-codex",
@@ -290,13 +295,10 @@ describe("gateway config builder", () => {
     });
 
     const config = await builder.buildFullGatewayConfig(18789);
-    expect(config.imageGenerationModel).toEqual({
-      primary: IMAGE_GENERATION_MODEL_REF,
-      timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
-    });
+    expect(config.imageGenerationModel).toBeUndefined();
     expect(config.extraProviders?.openai).toMatchObject({
-      baseUrl: "https://chatgpt.com/backend-api/codex",
-      api: "openai-chatgpt-responses",
+      baseUrl: "https://api.openai.com/v1",
+      api: "openai-responses",
     });
     expect(config.extraProviders?.openai?.models.map((model) => model.id)).toEqual([
       "gpt-5.6",
@@ -305,49 +307,75 @@ describe("gateway config builder", () => {
       "gpt-5.6-luna",
     ]);
     expect(config.extraProviders?.openai?.models[0]).toMatchObject({
-      api: "openai-chatgpt-responses",
-      baseUrl: "https://chatgpt.com/backend-api/codex",
+      api: "openai-responses",
       contextWindow: 1_050_000,
       contextTokens: 272_000,
       maxTokens: 128_000,
     });
   });
 
-  it("never applies the temporary Codex transport to an OpenAI API key", () => {
-    expect(
-      buildTemporaryOpenAICodexProviderOverride({
-        provider: "openai",
-        authType: "api",
-      }),
-    ).toEqual({});
-    expect(
-      buildTemporaryOpenAICodexProviderOverride({
-        provider: "openai-codex",
-        authType: "api",
-      }),
-    ).toEqual({});
+  it("keeps official OpenAI transport for an API key profile", () => {
+    const override = buildTemporaryOpenAICodexProviderOverride().openai;
+    expect(override).toMatchObject({
+      baseUrl: "https://api.openai.com/v1",
+      api: "openai-responses",
+    });
+    expect(override.models.every((model) => model.api === "openai-responses")).toBe(true);
   });
 
-  it("persists the temporary per-model Codex transport through config validation", () => {
+  it("routes the OpenAI provider through the Codex compatibility boundary for OAuth", () => {
+    const override = buildTemporaryOpenAICodexProviderOverride(
+      "http://127.0.0.1:45678",
+      true,
+    ).openai;
+
+    expect(override).toMatchObject({
+      baseUrl: "http://127.0.0.1:45678",
+      api: "openai-chatgpt-responses",
+    });
+    expect(override.models.every((model) => model.api === "openai-chatgpt-responses")).toBe(true);
+  });
+
+  it("persists the temporary provider-level Codex transport through config validation", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-codex-56-"));
     const configPath = join(tmpDir, "openclaw.json");
     try {
       writeGatewayConfig({
         configPath,
-        extraProviders: buildTemporaryOpenAICodexProviderOverride({
-          provider: "openai-codex",
-          authType: "oauth",
-        }),
+        extraProviders: buildTemporaryOpenAICodexProviderOverride("http://127.0.0.1:45678", true),
       });
       const config = JSON.parse(readFileSync(configPath, "utf8"));
+      expect(config.models.providers.openai).toMatchObject({
+        baseUrl: "http://127.0.0.1:45678",
+        api: "openai-chatgpt-responses",
+      });
       expect(config.models.providers.openai.models[0]).toMatchObject({
         id: "gpt-5.6",
         api: "openai-chatgpt-responses",
-        baseUrl: "https://chatgpt.com/backend-api/codex",
       });
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  it("uses Vendor auth ordering to resolve the active OpenAI transport", () => {
+    const profiles = [
+      { id: "openai:oauth", provider: "openai", type: "oauth" as const },
+      { id: "openai:api", provider: "openai", type: "api_key" as const },
+    ];
+
+    expect(
+      isOpenAICodexOAuthActive({
+        profiles,
+        order: { openai: ["openai:oauth", "openai:api"] },
+      }),
+    ).toBe(true);
+    expect(
+      isOpenAICodexOAuthActive({
+        profiles,
+        order: { openai: ["openai:api", "openai:oauth"] },
+      }),
+    ).toBe(false);
   });
 
   it("leaves standard third-party provider catalogs to vendor OpenClaw", async () => {
@@ -383,6 +411,7 @@ describe("gateway config builder", () => {
 
     const config = await builder.buildFullGatewayConfig(18789);
     expect(config.extraProviders?.volcengine).toBeUndefined();
-    expect(config.managedProviderKeys).toContain("volcengine");
+    expect(config.managedProviderKeys).toBeUndefined();
+    expect(config.overlayProviderKeys).toEqual(["openai"]);
   });
 });

@@ -1,4 +1,14 @@
-import { chmodSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { createLogger } from "@rivonclaw/logger";
@@ -23,6 +33,7 @@ import { sanitizeWindowsBinds } from "./windows-bind-sanitizer.js";
 import { OpenClawSchema } from "../generated/openclaw-schema.js";
 
 const log = createLogger("gateway:config");
+const LAST_KNOWN_GOOD_SUFFIX = ".last-known-good";
 
 const FIXED_DM_SCOPE = "per-account-channel-peer";
 const GEMINI_CLI_BACKEND_ID = "google-gemini-cli";
@@ -275,6 +286,66 @@ function fixSemanticErrors(config: Record<string, unknown>): string[] {
   }
 
   return allRemoved;
+}
+
+/**
+ * Validate a complete OpenClaw config without repairing it.
+ *
+ * Targeted Desktop mutations use this strict boundary so an invalid candidate
+ * never replaces the last configuration that successfully passed the pinned
+ * vendor schema.
+ */
+export function assertValidOpenClawConfig(config: Record<string, unknown>): void {
+  const result = OpenClawSchema.safeParse(config);
+  if (result.success) return;
+
+  const summary = result.error.issues
+    .slice(0, 8)
+    .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+    .join("; ");
+  throw new Error(`Invalid OpenClaw config: ${summary}`);
+}
+
+/**
+ * Persist a validated config using same-directory atomic replacement.
+ *
+ * The previous valid file is retained as `.last-known-good`; agent-local
+ * `models.json` remains entirely vendor-owned and is never touched here.
+ */
+export function writeOpenClawConfigAtomically(
+  configPath: string,
+  config: Record<string, unknown>,
+): void {
+  const directory = dirname(configPath);
+  mkdirSync(directory, { recursive: true });
+  const tempPath = join(
+    directory,
+    `.${configPath.slice(directory.length + 1)}.${process.pid}.${Date.now()}.tmp`,
+  );
+  const previousMode = existsSync(configPath) ? statSync(configPath).mode & 0o777 : 0o600;
+
+  try {
+    writeFileSync(tempPath, JSON.stringify(config, null, 2) + "\n", {
+      encoding: "utf-8",
+      mode: previousMode,
+    });
+    if (existsSync(configPath)) {
+      try {
+        const previous = JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
+        if (OpenClawSchema.safeParse(previous).success) {
+          copyFileSync(configPath, `${configPath}${LAST_KNOWN_GOOD_SUFFIX}`);
+        }
+      } catch {
+        // Preserve an older validated backup rather than replacing it with a
+        // malformed or partially written current file.
+      }
+    }
+    renameSync(tempPath, configPath);
+  } finally {
+    if (existsSync(tempPath)) {
+      rmSync(tempPath, { force: true });
+    }
+  }
 }
 
 /** Plugin IDs that have been permanently removed from the project. */
@@ -686,6 +757,8 @@ export interface WriteGatewayConfigOptions {
   /** Provider keys managed by RivonClaw (the full set from buildExtraProviderConfigs).
    *  Used to clean up stale providers from previous configs that are no longer active. */
   managedProviderKeys?: string[];
+  /** Provider definitions whose models should be merged by ID instead of replacing the catalog. */
+  overlayProviderKeys?: string[];
   /** Override base URLs and models for local providers (e.g. Ollama with user-configured endpoint). */
   localProviderOverrides?: Record<
     string,
@@ -1632,12 +1705,47 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           }
         }
       }
+      const mergedExtraProviders = { ...options.extraProviders };
+      for (const key of options.overlayProviderKeys ?? []) {
+        const existing = existingProviders[key];
+        const incoming = options.extraProviders[key];
+        if (
+          typeof existing !== "object" ||
+          existing === null ||
+          typeof incoming !== "object" ||
+          incoming === null
+        ) {
+          continue;
+        }
+        const existingDefinition = existing as Record<string, unknown>;
+        const existingModels = Array.isArray(existingDefinition.models)
+          ? existingDefinition.models
+          : [];
+        const byId = new Map<string, unknown>();
+        for (const model of existingModels) {
+          if (
+            typeof model === "object" &&
+            model !== null &&
+            typeof (model as { id?: unknown }).id === "string"
+          ) {
+            byId.set((model as { id: string }).id, model);
+          }
+        }
+        for (const model of incoming.models) {
+          byId.set(model.id, model);
+        }
+        mergedExtraProviders[key] = {
+          ...existingDefinition,
+          ...incoming,
+          models: [...byId.values()] as typeof incoming.models,
+        };
+      }
       config.models = {
         ...existingModels,
         mode: existingModels.mode ?? "merge",
         providers: {
           ...existingProviders,
-          ...options.extraProviders,
+          ...mergedExtraProviders,
         },
       };
     }
@@ -1948,7 +2056,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     log.warn(`Fixed config validation errors by removing: ${fixedPaths.join(", ")}`);
   }
 
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  assertValidOpenClawConfig(config);
+  writeOpenClawConfigAtomically(configPath, config);
   log.info(`Gateway config written to ${configPath}`);
 
   return configPath;

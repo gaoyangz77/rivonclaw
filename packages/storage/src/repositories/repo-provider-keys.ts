@@ -1,37 +1,33 @@
 import type Database from "better-sqlite3";
 import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 
-interface ProviderKeyRow {
+interface ProviderMetadataRow {
   id: string;
-  provider: string;
+  product_provider: string;
   label: string;
-  model: string;
-  is_default: number;
+  preferred_model: string;
   proxy_base_url: string | null;
-  auth_type: string;
-  base_url: string | null;
-  custom_protocol: string | null;
-  custom_models_json: string | null;
-  input_modalities_json: string | null;
+  product_auth_kind: string;
   source: string;
   oauth_expires_at: number | null;
   created_at: string;
   updated_at: string;
 }
 
-function rowToEntry(row: ProviderKeyRow): ProviderKeyEntry {
+export type ProviderRuntimeProjector = (entries: ProviderKeyEntry[]) => ProviderKeyEntry[];
+
+function rowToEntry(row: ProviderMetadataRow): ProviderKeyEntry {
   return {
     id: row.id,
-    provider: row.provider,
+    provider: row.product_provider,
     label: row.label,
-    model: row.model,
-    isDefault: row.is_default === 1,
+    model: row.preferred_model,
+    isDefault: false,
     proxyBaseUrl: row.proxy_base_url,
-    authType: (row.auth_type as ProviderKeyAuthType) ?? "api_key",
-    baseUrl: row.base_url,
-    customProtocol: row.custom_protocol,
-    customModelsJson: row.custom_models_json,
-    inputModalities: row.input_modalities_json ? JSON.parse(row.input_modalities_json) as string[] : undefined,
+    authType: (row.product_auth_kind as ProviderKeyAuthType) ?? "api_key",
+    baseUrl: null,
+    customProtocol: null,
+    customModelsJson: null,
     source: (row.source as "local" | "cloud") ?? "local",
     oauthExpiresAt: row.oauth_expires_at,
     createdAt: row.created_at,
@@ -40,26 +36,44 @@ function rowToEntry(row: ProviderKeyRow): ProviderKeyEntry {
 }
 
 export class ProviderKeysRepository {
+  private runtimeProjector: ProviderRuntimeProjector | undefined;
+
   constructor(private db: Database.Database) {}
+
+  /**
+   * Join product-only metadata with the Vendor-owned runtime state.
+   *
+   * Storage deliberately has no dependency on OpenClaw. Desktop installs this
+   * adapter once config/auth paths are known.
+   */
+  setRuntimeProjector(projector: ProviderRuntimeProjector): void {
+    this.runtimeProjector = projector;
+  }
+
+  private getAllMetadata(): ProviderKeyEntry[] {
+    const rows = this.db
+      .prepare("SELECT * FROM provider_metadata ORDER BY product_provider ASC, created_at ASC")
+      .all() as ProviderMetadataRow[];
+    return rows.map(rowToEntry);
+  }
+
+  private project(entries: ProviderKeyEntry[]): ProviderKeyEntry[] {
+    return this.runtimeProjector ? this.runtimeProjector(entries) : entries;
+  }
 
   create(entry: ProviderKeyEntry): ProviderKeyEntry {
     const now = new Date().toISOString();
     this.db
       .prepare(
-        "INSERT INTO provider_keys (id, provider, label, model, is_default, proxy_base_url, auth_type, base_url, custom_protocol, custom_models_json, input_modalities_json, source, oauth_expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO provider_metadata (id, product_provider, label, preferred_model, proxy_base_url, product_auth_kind, source, oauth_expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         entry.id,
         entry.provider,
         entry.label,
         entry.model,
-        entry.isDefault ? 1 : 0,
         entry.proxyBaseUrl ?? null,
         entry.authType ?? "api_key",
-        entry.baseUrl ?? null,
-        entry.customProtocol ?? null,
-        entry.customModelsJson ?? null,
-        entry.inputModalities ? JSON.stringify(entry.inputModalities) : null,
         entry.source ?? "local",
         entry.oauthExpiresAt ?? null,
         now,
@@ -70,36 +84,39 @@ export class ProviderKeysRepository {
   }
 
   getById(id: string): ProviderKeyEntry | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM provider_keys WHERE id = ?")
-      .get(id) as ProviderKeyRow | undefined;
-    return row ? rowToEntry(row) : undefined;
+    return this.getAll().find((entry) => entry.id === id);
   }
 
   getByProvider(provider: string): ProviderKeyEntry[] {
-    const rows = this.db
-      .prepare("SELECT * FROM provider_keys WHERE provider = ? ORDER BY created_at ASC")
-      .all(provider) as ProviderKeyRow[];
-    return rows.map(rowToEntry);
+    return this.getAll().filter((entry) => entry.provider === provider);
   }
 
   getAll(): ProviderKeyEntry[] {
-    const rows = this.db
-      .prepare("SELECT * FROM provider_keys ORDER BY provider ASC, created_at ASC")
-      .all() as ProviderKeyRow[];
-    return rows.map(rowToEntry);
+    return this.project(this.getAllMetadata());
   }
 
   getDefault(provider: string): ProviderKeyEntry | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM provider_keys WHERE provider = ? AND is_default = 1 LIMIT 1")
-      .get(provider) as ProviderKeyRow | undefined;
-    return row ? rowToEntry(row) : undefined;
+    return this.getAll().find((entry) => entry.provider === provider && entry.isDefault);
   }
 
   update(
     id: string,
-    fields: Partial<Pick<ProviderKeyEntry, "label" | "model" | "isDefault" | "proxyBaseUrl" | "authType" | "baseUrl" | "customProtocol" | "customModelsJson" | "inputModalities" | "source" | "oauthExpiresAt">>,
+    fields: Partial<
+      Pick<
+        ProviderKeyEntry,
+        | "label"
+        | "model"
+        | "isDefault"
+        | "proxyBaseUrl"
+        | "authType"
+        | "baseUrl"
+        | "customProtocol"
+        | "customModelsJson"
+        | "inputModalities"
+        | "source"
+        | "oauthExpiresAt"
+      >
+    >,
   ): ProviderKeyEntry | undefined {
     const existing = this.getById(id);
     if (!existing) return undefined;
@@ -112,28 +129,27 @@ export class ProviderKeysRepository {
       proxyBaseUrl: fields.proxyBaseUrl !== undefined ? fields.proxyBaseUrl : existing.proxyBaseUrl,
       authType: fields.authType ?? existing.authType,
       baseUrl: fields.baseUrl !== undefined ? fields.baseUrl : existing.baseUrl,
-      customProtocol: fields.customProtocol !== undefined ? fields.customProtocol : existing.customProtocol,
-      customModelsJson: fields.customModelsJson !== undefined ? fields.customModelsJson : existing.customModelsJson,
-      inputModalities: fields.inputModalities !== undefined ? fields.inputModalities : existing.inputModalities,
+      customProtocol:
+        fields.customProtocol !== undefined ? fields.customProtocol : existing.customProtocol,
+      customModelsJson:
+        fields.customModelsJson !== undefined ? fields.customModelsJson : existing.customModelsJson,
+      inputModalities:
+        fields.inputModalities !== undefined ? fields.inputModalities : existing.inputModalities,
       source: fields.source ?? existing.source,
-      oauthExpiresAt: fields.oauthExpiresAt !== undefined ? fields.oauthExpiresAt : existing.oauthExpiresAt,
+      oauthExpiresAt:
+        fields.oauthExpiresAt !== undefined ? fields.oauthExpiresAt : existing.oauthExpiresAt,
       updatedAt: new Date().toISOString(),
     };
 
     this.db
       .prepare(
-        "UPDATE provider_keys SET label = ?, model = ?, is_default = ?, proxy_base_url = ?, auth_type = ?, base_url = ?, custom_protocol = ?, custom_models_json = ?, input_modalities_json = ?, source = ?, oauth_expires_at = ?, updated_at = ? WHERE id = ?",
+        "UPDATE provider_metadata SET label = ?, preferred_model = ?, proxy_base_url = ?, product_auth_kind = ?, source = ?, oauth_expires_at = ?, updated_at = ? WHERE id = ?",
       )
       .run(
         updated.label,
         updated.model,
-        updated.isDefault ? 1 : 0,
         updated.proxyBaseUrl ?? null,
         updated.authType,
-        updated.baseUrl ?? null,
-        updated.customProtocol ?? null,
-        updated.customModelsJson ?? null,
-        updated.inputModalities ? JSON.stringify(updated.inputModalities) : null,
         updated.source ?? "local",
         updated.oauthExpiresAt ?? null,
         updated.updatedAt,
@@ -147,31 +163,11 @@ export class ProviderKeysRepository {
    * Return the single globally active key (is_default = 1).
    */
   getActive(): ProviderKeyEntry | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM provider_keys WHERE is_default = 1 LIMIT 1")
-      .get() as ProviderKeyRow | undefined;
-    return row ? rowToEntry(row) : undefined;
-  }
-
-  /**
-   * Set a key as the globally active key.
-   * Clears is_default on ALL other keys across all providers.
-   */
-  setDefault(id: string): void {
-    const entry = this.getById(id);
-    if (!entry) return;
-
-    const now = new Date().toISOString();
-    this.db
-      .prepare("UPDATE provider_keys SET is_default = 0, updated_at = ? WHERE is_default = 1")
-      .run(now);
-    this.db
-      .prepare("UPDATE provider_keys SET is_default = 1, updated_at = ? WHERE id = ?")
-      .run(now, id);
+    return this.getAll().find((entry) => entry.isDefault);
   }
 
   delete(id: string): boolean {
-    const result = this.db.prepare("DELETE FROM provider_keys WHERE id = ?").run(id);
+    const result = this.db.prepare("DELETE FROM provider_metadata WHERE id = ?").run(id);
     return result.changes > 0;
   }
 }

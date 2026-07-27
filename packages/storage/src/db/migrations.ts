@@ -431,4 +431,52 @@ export const migrations: Migration[] = [
         ON cs_escalation_response_history(owner_id, escalation_id, submitted_at DESC);
     `,
   },
+  {
+    id: 33,
+    name: "replace_provider_runtime_cache_with_metadata",
+    sql: `
+      CREATE TABLE provider_metadata (
+        id TEXT PRIMARY KEY,
+        product_provider TEXT NOT NULL,
+        label TEXT NOT NULL DEFAULT '',
+        preferred_model TEXT NOT NULL DEFAULT '',
+        proxy_base_url TEXT DEFAULT NULL,
+        product_auth_kind TEXT NOT NULL DEFAULT 'api_key',
+        source TEXT NOT NULL DEFAULT 'local',
+        oauth_expires_at INTEGER DEFAULT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      INSERT INTO provider_metadata (
+        id,
+        product_provider,
+        label,
+        preferred_model,
+        proxy_base_url,
+        product_auth_kind,
+        source,
+        oauth_expires_at,
+        created_at,
+        updated_at
+      )
+      SELECT
+        id,
+        provider,
+        label,
+        model,
+        proxy_base_url,
+        auth_type,
+        source,
+        oauth_expires_at,
+        created_at,
+        updated_at
+      FROM provider_keys;
+
+      DROP TABLE provider_keys;
+      DELETE FROM settings WHERE key = 'llm-provider';
+      INSERT OR REPLACE INTO settings (key, value)
+        VALUES ('_internal.provider-runtime-ownership-migration-pending', 'true');
+    `,
+  },
 ];

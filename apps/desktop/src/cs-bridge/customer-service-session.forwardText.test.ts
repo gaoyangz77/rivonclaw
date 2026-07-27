@@ -78,7 +78,11 @@ vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
 
 // ─── Import after mocks ─────────────────────────────────────────────────────
 
-import { CustomerServiceSession, type CSShopContext, type CSContext } from "./customer-service-session.js";
+import {
+  CustomerServiceSession,
+  type CSShopContext,
+  type CSContext,
+} from "./customer-service-session.js";
 import { rootStore } from "../app/store/desktop-store.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -135,10 +139,11 @@ beforeEach(() => {
     } as any,
     secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
     getRpcClient: () => ({ request: mockRpcRequest, isConnected: () => true }) as any,
-    toMstSnapshot: async () => ({} as any),
+    toMstSnapshot: async () => ({}) as any,
     allKeysToMstSnapshots: async () => [],
     syncActiveKey: async () => {},
     syncAllAuthProfiles: async () => {},
+    activateAuthProfile: () => "openai:active",
     writeProxyRouterConfig: async () => {},
     writeFullGatewayConfig: async () => {},
     writeDefaultModelToConfig: () => {},
@@ -172,9 +177,7 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
 
     await session.forwardTextToBuyer("hello world");
 
-    const messageEvent = mockEmitCsTelemetry.mock.calls.find(
-      ([type]) => type === "cs.message",
-    );
+    const messageEvent = mockEmitCsTelemetry.mock.calls.find(([type]) => type === "cs.message");
     expect(messageEvent).toBeDefined();
     expect(messageEvent![1]).toMatchObject({
       shopId: "shop-obj-1",
@@ -227,10 +230,12 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     const session = makeSession();
     mockRpcRequest.mockRejectedValueOnce(new Error("RPC down"));
 
-    await expect(session.dispatchSensitiveContentRecovery({
-      failedRunId: "run-2",
-      rejectedText: "Blocked draft",
-    })).rejects.toThrow("RPC down");
+    await expect(
+      session.dispatchSensitiveContentRecovery({
+        failedRunId: "run-2",
+        rejectedText: "Blocked draft",
+      }),
+    ).rejects.toThrow("RPC down");
 
     expect(mockEmitCsDeliveryRecovery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -279,7 +284,9 @@ describe("CustomerServiceSession.forwardTextToBuyer — sends message and emits 
     await session.handleRunDeliveryFailure({
       runId: "run-no-session",
       text: "hello",
-      error: new Error("No active CS session for this conversation. Start a session before sending messages."),
+      error: new Error(
+        "No active CS session for this conversation. Start a session before sending messages.",
+      ),
     });
 
     expect(mockEmitCsError).toHaveBeenCalledWith(

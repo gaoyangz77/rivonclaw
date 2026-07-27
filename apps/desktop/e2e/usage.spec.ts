@@ -1,12 +1,18 @@
 import { test, expect } from "./electron-fixture.js";
 import { execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 test.describe("Usage Page", () => {
-  test("multi-provider seeded data, active key, today table, and chart", async ({ electronApp, window, apiBase }) => {
+  test("multi-provider seeded data, active key, today table, and chart", async ({
+    electronApp,
+    window,
+    apiBase,
+  }) => {
     // Dismiss any modal(s) blocking the UI
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
-      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
       await backdrop.click({ position: { x: 5, y: 5 }, force: true });
       await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
@@ -18,18 +24,15 @@ test.describe("Usage Page", () => {
     const isoNow = new Date().toISOString();
     const DAY = 86_400_000;
     const sql = `
-DELETE FROM provider_keys;
+DELETE FROM provider_metadata;
 DELETE FROM key_model_usage_history;
-DELETE FROM settings WHERE key = 'llm-provider';
 
-INSERT OR IGNORE INTO provider_keys (id, provider, label, model, is_default, auth_type, created_at, updated_at)
-VALUES ('key-openai-main', 'openai', 'OpenAI Main', 'gpt-4o', 1, 'api_key', '${isoNow}', '${isoNow}');
-INSERT OR IGNORE INTO provider_keys (id, provider, label, model, is_default, auth_type, created_at, updated_at)
-VALUES ('key-openai-mini', 'openai', 'OpenAI Mini', 'gpt-4o-mini', 0, 'api_key', '${isoNow}', '${isoNow}');
-INSERT OR IGNORE INTO provider_keys (id, provider, label, model, is_default, auth_type, created_at, updated_at)
-VALUES ('key-anthropic', 'anthropic', 'Anthropic Key', 'claude-sonnet-4-5-20250929', 0, 'api_key', '${isoNow}', '${isoNow}');
-
-INSERT OR REPLACE INTO settings (key, value) VALUES ('llm-provider', 'openai');
+INSERT OR IGNORE INTO provider_metadata (id, product_provider, label, preferred_model, product_auth_kind, source, created_at, updated_at)
+VALUES ('key-openai-main', 'openai', 'OpenAI Main', 'gpt-4o', 'api_key', 'local', '${isoNow}', '${isoNow}');
+INSERT OR IGNORE INTO provider_metadata (id, product_provider, label, preferred_model, product_auth_kind, source, created_at, updated_at)
+VALUES ('key-openai-mini', 'openai', 'OpenAI Mini', 'gpt-4o-mini', 'api_key', 'local', '${isoNow}', '${isoNow}');
+INSERT OR IGNORE INTO provider_metadata (id, product_provider, label, preferred_model, product_auth_kind, source, created_at, updated_at)
+VALUES ('key-anthropic', 'anthropic', 'Anthropic Key', 'claude-sonnet-4-5-20250929', 'api_key', 'local', '${isoNow}', '${isoNow}');
 
 INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
 VALUES ('key-openai-main', 'openai', 'gpt-4o', ${now - 3 * DAY}, ${now - 3 * DAY + 3600000}, 5000, 1200, 300, 100, '0.018000', '${isoNow}');
@@ -53,13 +56,31 @@ VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - DAY}
 
     execFileSync("sqlite3", [dbPath], { input: sql });
 
+    // Active/default is Vendor config state, not SQLite metadata.
+    const stateDir = await electronApp.evaluate(() => process.env.OPENCLAW_STATE_DIR);
+    expect(stateDir).toBeTruthy();
+    const configPath = join(stateDir!, "openclaw.json");
+    const vendorConfig = JSON.parse(readFileSync(configPath, "utf8")) as {
+      agents?: { defaults?: { model?: Record<string, unknown> } };
+    };
+    vendorConfig.agents ??= {};
+    vendorConfig.agents.defaults ??= {};
+    vendorConfig.agents.defaults.model = {
+      ...vendorConfig.agents.defaults.model,
+      primary: "openai/gpt-4o",
+    };
+    writeFileSync(configPath, `${JSON.stringify(vendorConfig, null, 2)}\n`, "utf8");
+
     // --- Navigate to Usage page ---
     const usageBtn = window.locator(".nav-btn", { hasText: "Usage" });
     await usageBtn.click();
     await expect(usageBtn).toHaveClass(/nav-active/);
 
     // Wait for loading to finish
-    await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
+    await window
+      .locator(".text-muted")
+      .waitFor({ state: "hidden", timeout: 30_000 })
+      .catch(() => {});
 
     // No error alert
     await expect(window.locator(".error-alert")).not.toBeVisible();
@@ -183,7 +204,10 @@ VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - DAY}
     // --- Verify time range filtering works ---
     // Switch to 7-day view and verify data is filtered
     await window.locator(".usage-time-range-bar .btn", { hasText: "7 Days" }).click();
-    await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 10_000 }).catch(() => {});
+    await window
+      .locator(".text-muted")
+      .waitFor({ state: "hidden", timeout: 10_000 })
+      .catch(() => {});
 
     // All our seeded data is within 7 days, so it should all be visible
     await expect(historySection).toContainText("openai");

@@ -32,6 +32,7 @@ export interface SetupGatewayDeps {
   sttCliPath: string;
   vendorDir: string;
   merchantExtensionPaths?: () => string[];
+  openAICodexCompatibilityBaseUrl?: string;
   gatewayPort: number;
   /** Broadcast an event to every Panel SSE client (routed through the unified `/api/events` bus). */
   broadcastEvent: BroadcastEvent;
@@ -59,6 +60,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     sttCliPath,
     vendorDir,
     merchantExtensionPaths,
+    openAICodexCompatibilityBaseUrl,
     gatewayPort,
     broadcastEvent,
   } = deps;
@@ -81,6 +83,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     sttCliPath,
     vendorDir,
     merchantExtensionPaths,
+    openAICodexCompatibilityBaseUrl,
     channelPluginEntries: () => rootStore.channelManager.buildPluginEntries(),
     channelConfigAccounts: () => rootStore.channelManager.buildConfigAccounts(),
   });

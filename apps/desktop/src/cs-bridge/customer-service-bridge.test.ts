@@ -639,6 +639,7 @@ beforeEach(() => {
     allKeysToMstSnapshots: async () => [],
     syncActiveKey: async () => {},
     syncAllAuthProfiles: async () => {},
+    activateAuthProfile: () => "openai:active",
     writeProxyRouterConfig: async () => {},
     writeFullGatewayConfig: async () => {},
     writeDefaultModelToConfig: () => {},
@@ -3359,16 +3360,22 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       return Promise.resolve({ ok: true });
     });
 
-    const signalA = triggerMessage(bridge, createFrame({
-      conversationId: "conv-single-flight",
-      messageId: "msg-single-flight-a",
-      createTime: 100,
-    }));
-    const signalB = triggerMessage(bridge, createFrame({
-      conversationId: "conv-single-flight",
-      messageId: "msg-single-flight-b",
-      createTime: 101,
-    }));
+    const signalA = triggerMessage(
+      bridge,
+      createFrame({
+        conversationId: "conv-single-flight",
+        messageId: "msg-single-flight-a",
+        createTime: 100,
+      }),
+    );
+    const signalB = triggerMessage(
+      bridge,
+      createFrame({
+        conversationId: "conv-single-flight",
+        messageId: "msg-single-flight-b",
+        createTime: 101,
+      }),
+    );
     await Promise.resolve();
     expect(detailsCalls).toBe(1);
 
@@ -3379,9 +3386,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     expect(sessions.size).toBe(1);
     const agentCalls = mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent");
     expect(agentCalls).toHaveLength(1);
-    expect(agentCalls[0][1].idempotencyKey).toBe(
-      "cs-start:conv-single-flight:msg-single-flight-b",
-    );
+    expect(agentCalls[0][1].idempotencyKey).toBe("cs-start:conv-single-flight:msg-single-flight-b");
   });
 
   it("two messages: first is aborted, second dispatches, only second auto-forwards", async () => {

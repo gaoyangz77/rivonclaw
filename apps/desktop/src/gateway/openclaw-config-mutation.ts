@@ -1,6 +1,9 @@
-import { writeFileSync } from "node:fs";
 import { createLogger } from "@rivonclaw/logger";
-import { readExistingConfig } from "@rivonclaw/gateway";
+import {
+  assertValidOpenClawConfig,
+  readExistingConfig,
+  writeOpenClawConfigAtomically,
+} from "@rivonclaw/gateway";
 
 const log = createLogger("gateway-config-mutation");
 
@@ -27,9 +30,11 @@ export function writeDesktopOpenClawConfig(
   configPath: string,
   config: OpenClawConfigObject,
   reason: string,
+  strict = false,
 ): void {
   enforceDesktopGatewayReloadPolicy(config);
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  if (strict) assertValidOpenClawConfig(config);
+  writeOpenClawConfigAtomically(configPath, config);
   log.debug(`wrote openclaw config (${reason})`);
 }
 
@@ -37,9 +42,10 @@ export function mutateDesktopOpenClawConfig(
   configPath: string,
   reason: string,
   mutate: (config: OpenClawConfigObject) => void,
+  options?: { strict?: boolean },
 ): OpenClawConfigObject {
   const config = readExistingConfig(configPath) as OpenClawConfigObject;
   mutate(config);
-  writeDesktopOpenClawConfig(configPath, config, reason);
+  writeDesktopOpenClawConfig(configPath, config, reason, options?.strict);
   return config;
 }

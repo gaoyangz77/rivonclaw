@@ -40,6 +40,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig: vi.fn(),
       writeFullGatewayConfig: async () => {},
@@ -105,6 +106,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig,
       writeFullGatewayConfig: async () => {},
@@ -119,7 +121,11 @@ describe("LLMProviderManager", () => {
     await rootStore.llmManager.updateKey("key-default", { model: "gpt-5.4" });
 
     expect(entry.model).toBe("gpt-5.4");
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.4");
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
+      "rivonclaw-pro",
+      "gpt-5.4",
+      "rivonclaw-pro",
+    );
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(rootStore.llmManager.getSessionModel("chat-session-1")).toBeNull();
     expect(rootStore.llmManager.getSessionModelFact("chat-session-1")).toMatchObject({
@@ -178,6 +184,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig: vi.fn(),
       writeFullGatewayConfig,
@@ -246,6 +253,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig: vi.fn(),
       writeFullGatewayConfig: async () => {},
@@ -294,6 +302,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig: vi.fn(),
       writeFullGatewayConfig: async () => {},
@@ -355,6 +364,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig: vi.fn(),
       writeFullGatewayConfig: async () => {},
@@ -442,6 +452,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig,
       writeFullGatewayConfig: async () => {},
@@ -461,7 +472,11 @@ describe("LLMProviderManager", () => {
 
     await rootStore.llmManager.activateProvider("key-pro");
 
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.4");
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
+      "rivonclaw-pro",
+      "gpt-5.4",
+      "rivonclaw-pro",
+    );
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(rootStore.llmManager.getSessionModel("telegram-session-default")).toBeNull();
     expect(rootStore.llmManager.getSessionModelFact("telegram-session-default")).toMatchObject({
@@ -527,6 +542,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig,
       writeFullGatewayConfig,
@@ -572,6 +588,7 @@ describe("LLMProviderManager", () => {
     expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
       "rivonclaw-pro",
       "rivonclaw-flagship",
+      "rivonclaw-pro",
     );
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(
@@ -686,6 +703,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig,
       writeFullGatewayConfig,
@@ -791,6 +809,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig,
       writeFullGatewayConfig,
@@ -897,6 +916,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: syncActiveKeyMock,
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig,
       writeFullGatewayConfig,
@@ -920,12 +940,10 @@ describe("LLMProviderManager", () => {
     });
 
     expect(keys.map((k) => k.id)).toEqual(["key-kimi"]);
-    expect(keys[0].isDefault).toBe(true);
     expect(await mockSecretStore.get("provider-key-cloud-rivonclaw-pro")).toBeNull();
-    expect(storage.settings.set).toHaveBeenCalledWith("llm-provider", "kimi");
     expect(syncActiveKeyMock).toHaveBeenCalledWith("kimi", storage, mockSecretStore);
     expect(syncActiveKeyMock).toHaveBeenCalledWith("rivonclaw-pro", storage, mockSecretStore);
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("kimi", "moonshot-v1-8k");
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("kimi", "moonshot-v1-8k", "kimi");
     expect(writeFullGatewayConfig).toHaveBeenCalled();
   });
 
@@ -999,6 +1017,7 @@ describe("LLMProviderManager", () => {
       allKeysToMstSnapshots,
       syncActiveKey: async () => {},
       syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
       writeProxyRouterConfig: async () => {},
       writeDefaultModelToConfig,
       writeFullGatewayConfig: async () => {},
@@ -1026,7 +1045,11 @@ describe("LLMProviderManager", () => {
 
     await rootStore.llmManager.activateProvider("key-pro");
 
-    expect(writeDefaultModelToConfig).toHaveBeenCalledWith("rivonclaw-pro", "gpt-5.4");
+    expect(writeDefaultModelToConfig).toHaveBeenCalledWith(
+      "rivonclaw-pro",
+      "gpt-5.4",
+      "rivonclaw-pro",
+    );
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", {
       key: "agent:main:cs:tiktok:conv-1",
       model: "rivonclaw-pro/gpt-5.4",

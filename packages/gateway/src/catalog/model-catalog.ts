@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { resolveAgentConfigDir } from "@rivonclaw/core/node";
+import { resolveAgentConfigDir, resolveOpenClawConfigPath } from "@rivonclaw/core/node";
 import { resolveVendorDir } from "../vendor/vendor.js";
 import {
   ALL_PROVIDERS,
@@ -152,6 +152,73 @@ export function readGatewayModelCatalog(
   } catch {
     return {};
   }
+}
+
+/**
+ * Read user/provider model definitions from the authoritative OpenClaw config.
+ *
+ * This closes the startup/reload window where vendor-owned `models.json` has
+ * not yet been reconciled, without falling back to RivonClaw's legacy SQLite
+ * copies of provider/model fields.
+ */
+export function readConfiguredModelCatalog(
+  env?: Record<string, string | undefined>,
+): Record<string, CatalogModelEntry[]> {
+  const configPath = resolveOpenClawConfigPath(env);
+  if (!existsSync(configPath)) return {};
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+      models?: {
+        providers?: Record<
+          string,
+          {
+            models?: Array<{
+              id?: string;
+              name?: string;
+              contextWindow?: number;
+              contextTokens?: number;
+            }>;
+          }
+        >;
+      };
+    };
+    const result: Record<string, CatalogModelEntry[]> = {};
+    for (const [provider, definition] of Object.entries(config.models?.providers ?? {})) {
+      const entries = (definition.models ?? []).flatMap((model) => {
+        const id = typeof model.id === "string" ? model.id.trim() : "";
+        if (!id) return [];
+        return [
+          {
+            id,
+            name: typeof model.name === "string" && model.name.trim() ? model.name.trim() : id,
+            contextWindow: positiveInt(model.contextWindow),
+            contextTokens: positiveInt(model.contextTokens),
+          },
+        ];
+      });
+      if (entries.length > 0) result[provider] = entries;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+function mergeCatalogMaps(
+  base: Record<string, CatalogModelEntry[]>,
+  overlay: Record<string, CatalogModelEntry[]>,
+): Record<string, CatalogModelEntry[]> {
+  const result: Record<string, CatalogModelEntry[]> = { ...base };
+  for (const [provider, overlayEntries] of Object.entries(overlay)) {
+    const byId = new Map((result[provider] ?? []).map((entry) => [entry.id, entry]));
+    for (const entry of overlayEntries) {
+      const existing = byId.get(entry.id);
+      byId.set(entry.id, existing ? { ...existing, ...entry } : entry);
+    }
+    result[provider] = [...byId.values()];
+  }
+  return result;
 }
 
 /** Maps vendor provider names to our provider names where they differ. */
@@ -380,13 +447,15 @@ export async function readFullModelCatalog(
   env?: Record<string, string | undefined>,
   vendorDir?: string,
 ): Promise<Record<string, CatalogModelEntry[]>> {
-  const [vendor, gateway] = await Promise.all([
+  const [vendor, gateway, configured] = await Promise.all([
     readVendorModelCatalog(vendorDir),
     Promise.resolve(readGatewayModelCatalog(env)),
+    Promise.resolve(readConfiguredModelCatalog(env)),
   ]);
 
-  // Gateway entries override vendor entries per provider
-  const merged = { ...vendor, ...gateway };
+  // Vendor is the base. Runtime-derived and configured entries override at
+  // model granularity, never by replacing an entire provider catalog.
+  const merged = mergeCatalogMaps(mergeCatalogMaps(vendor, gateway), configured);
 
   // Local supplemental models append entries that vendor/gateway do not yet
   // provide. For some providers this is runtime-only data (`extraModels`);

@@ -1,13 +1,18 @@
 import type { LLMProvider } from "@rivonclaw/core";
-import { getDefaultModelForProvider, reconstructProxyUrl, formatError, isReauthSupportedProvider } from "@rivonclaw/core";
 import {
-  applyCatalogContextMetadata,
-  readFullModelCatalog,
-  type CatalogModelEntry,
-} from "@rivonclaw/gateway";
+  getDefaultModelForProvider,
+  reconstructProxyUrl,
+  formatError,
+  isReauthSupportedProvider,
+} from "@rivonclaw/core";
+import { readFullModelCatalog } from "@rivonclaw/gateway";
 import { API } from "@rivonclaw/core/api-contract";
 import { createLogger } from "@rivonclaw/logger";
-import { validateProviderApiKey, validateCustomProviderApiKey, fetchCustomProviderModels } from "./provider-validator.js";
+import {
+  validateProviderApiKey,
+  validateCustomProviderApiKey,
+  fetchCustomProviderModels,
+} from "./provider-validator.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -27,9 +32,11 @@ const listKeys: EndpointHandler = async (_req, res, _url, _params, ctx: ApiConte
         return key;
       }
       const credentials = await secretStore.get(`proxy-auth-${key.id}`);
-      const proxyUrl = credentials ? reconstructProxyUrl(key.proxyBaseUrl, credentials) : key.proxyBaseUrl;
+      const proxyUrl = credentials
+        ? reconstructProxyUrl(key.proxyBaseUrl, credentials)
+        : key.proxyBaseUrl;
       return { ...key, proxyUrl };
-    })
+    }),
   );
 
   sendJson(res, 200, { keys: keysWithProxy });
@@ -38,7 +45,7 @@ const listKeys: EndpointHandler = async (_req, res, _url, _params, ctx: ApiConte
 // ── POST /api/provider-keys ──
 
 const createKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const { storage, onTelemetryTrack } = ctx;
+  const { onTelemetryTrack } = ctx;
   const body = (await parseBody(req)) as {
     provider?: string;
     label?: string;
@@ -67,7 +74,9 @@ const createKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiConte
   if (isCustom) {
     // Custom provider validation
     if (!body.baseUrl || !body.customProtocol || !body.customModelsJson) {
-      sendJson(res, 400, { error: "Custom providers require baseUrl, customProtocol, and customModelsJson" });
+      sendJson(res, 400, {
+        error: "Custom providers require baseUrl, customProtocol, and customModelsJson",
+      });
       return;
     }
     let rawModels: Array<string | { id: string }>;
@@ -80,21 +89,35 @@ const createKey: EndpointHandler = async (req, res, _url, _params, ctx: ApiConte
     }
     const firstModelId = typeof rawModels[0] === "string" ? rawModels[0] : rawModels[0].id;
     const validation = await validateCustomProviderApiKey(
-      body.baseUrl, body.apiKey!, body.customProtocol, firstModelId, ctx.proxyRouterPort, body.proxyUrl || undefined,
+      body.baseUrl,
+      body.apiKey!,
+      body.customProtocol,
+      firstModelId,
+      ctx.proxyRouterPort,
+      body.proxyUrl || undefined,
     );
     if (!validation.valid) {
       sendJson(res, 422, { error: validation.error || "Invalid API key" });
       return;
     }
   } else if (!isLocal) {
-    const validation = await validateProviderApiKey(body.provider, body.apiKey!, ctx.proxyRouterPort, body.proxyUrl || undefined, body.model || undefined);
+    const validation = await validateProviderApiKey(
+      body.provider,
+      body.apiKey!,
+      ctx.proxyRouterPort,
+      body.proxyUrl || undefined,
+      body.model || undefined,
+    );
     if (!validation.valid) {
       sendJson(res, 422, { error: validation.error || "Invalid API key" });
       return;
     }
   }
 
-  const model = body.model || (isCustom ? "" : getDefaultModelForProvider(body.provider as LLMProvider)?.modelId) || "";
+  const model =
+    body.model ||
+    (isCustom ? "" : getDefaultModelForProvider(body.provider as LLMProvider)?.modelId) ||
+    "";
   const label = body.label || "Default";
 
   // Proxy URL validation (fail fast before MST action)
@@ -193,7 +216,9 @@ const refreshModels: EndpointHandler = async (_req, res, _url, params, ctx: ApiC
     return;
   }
   if (entry.authType !== "custom" || entry.customProtocol !== "openai") {
-    sendJson(res, 400, { error: "Refresh models is only supported for custom OpenAI-compatible providers" });
+    sendJson(res, 400, {
+      error: "Refresh models is only supported for custom OpenAI-compatible providers",
+    });
     return;
   }
   if (!entry.baseUrl) {
@@ -209,10 +234,17 @@ const refreshModels: EndpointHandler = async (_req, res, _url, params, ctx: ApiC
   let proxyUrl: string | undefined;
   if (entry.proxyBaseUrl) {
     const credentials = await secretStore.get(`proxy-auth-${id}`);
-    proxyUrl = credentials ? reconstructProxyUrl(entry.proxyBaseUrl, credentials) : entry.proxyBaseUrl;
+    proxyUrl = credentials
+      ? reconstructProxyUrl(entry.proxyBaseUrl, credentials)
+      : entry.proxyBaseUrl;
   }
 
-  const result = await fetchCustomProviderModels(entry.baseUrl, apiKey, ctx.proxyRouterPort, proxyUrl);
+  const result = await fetchCustomProviderModels(
+    entry.baseUrl,
+    apiKey,
+    ctx.proxyRouterPort,
+    proxyUrl,
+  );
   if (result.error) {
     sendJson(res, 422, { error: result.error });
     return;
@@ -232,7 +264,15 @@ const refreshModels: EndpointHandler = async (_req, res, _url, params, ctx: ApiC
 const updateKey: EndpointHandler = async (req, res, _url, params, ctx: ApiContext) => {
   const { storage, snapshotEngine } = ctx;
   const id = params.id!;
-  const body = (await parseBody(req)) as { label?: string; model?: string; proxyUrl?: string; baseUrl?: string; inputModalities?: string[]; customModelsJson?: string; apiKey?: string };
+  const body = (await parseBody(req)) as {
+    label?: string;
+    model?: string;
+    proxyUrl?: string;
+    baseUrl?: string;
+    inputModalities?: string[];
+    customModelsJson?: string;
+    apiKey?: string;
+  };
   const existing = storage.providerKeys.getById(id);
   if (!existing) {
     sendJson(res, 404, { error: "Key not found" });
@@ -302,7 +342,9 @@ const reauthKey: EndpointHandler = async (_req, res, _url, params, ctx: ApiConte
     return;
   }
   if (entry.authType !== "oauth" || !isReauthSupportedProvider(entry.provider as LLMProvider)) {
-    sendJson(res, 400, { error: "Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)" });
+    sendJson(res, 400, {
+      error: "Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)",
+    });
     return;
   }
   if (!ctx.onOAuthReauth) {
@@ -354,7 +396,12 @@ const setSessionModel: EndpointHandler = async (req, res, _url, _params, _ctx) =
       sendJson(res, 200, { ok: true, sessionKey: body.sessionKey, provider: null, model: null });
     } else {
       await rootStore.llmManager.switchModelForSession(body.sessionKey, body.provider, body.model);
-      sendJson(res, 200, { ok: true, sessionKey: body.sessionKey, provider: body.provider, model: body.model });
+      sendJson(res, 200, {
+        ok: true,
+        sessionKey: body.sessionKey,
+        provider: body.provider,
+        model: body.model,
+      });
     }
   } catch (err) {
     sendJson(res, 500, { error: formatError(err) || "Failed to switch session model" });
@@ -371,7 +418,9 @@ const applySessionModel: EndpointHandler = async (req, res, _url, _params, _ctx)
   }
 
   try {
-    await rootStore.llmManager.applyModelForSession(body.sessionKey, undefined, { requestTimeoutMs: 10_000 });
+    await rootStore.llmManager.applyModelForSession(body.sessionKey, undefined, {
+      requestTimeoutMs: 10_000,
+    });
     const info = rootStore.llmManager.getSessionModelInfo(body.sessionKey);
     sendJson(res, 200, { ok: true, sessionKey: body.sessionKey, ...info });
   } catch (err) {
@@ -393,10 +442,17 @@ const fetchCustomModels: EndpointHandler = async (req, res, _url, _params, ctx: 
     return;
   }
   if (body.protocol !== "openai") {
-    sendJson(res, 400, { error: "Model fetching is only supported for OpenAI-compatible providers" });
+    sendJson(res, 400, {
+      error: "Model fetching is only supported for OpenAI-compatible providers",
+    });
     return;
   }
-  const result = await fetchCustomProviderModels(body.baseUrl, body.apiKey, ctx.proxyRouterPort, body.proxyUrl || undefined);
+  const result = await fetchCustomProviderModels(
+    body.baseUrl,
+    body.apiKey,
+    ctx.proxyRouterPort,
+    body.proxyUrl || undefined,
+  );
   if (result.error) {
     sendJson(res, 422, { error: result.error });
     return;
@@ -441,80 +497,19 @@ const localModelsHealth: EndpointHandler = async (req, res, _url, _params, _ctx)
 // ── GET /api/models ──
 
 const modelCatalog: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
-  const { storage, vendorDir } = ctx;
+  const { vendorDir } = ctx;
   const catalog = await readFullModelCatalog(undefined, vendorDir);
+  const chatCatalog = Object.fromEntries(
+    Object.entries(catalog).map(([provider, models]) => [
+      provider,
+      // Image-only models remain in Vendor config for imageGenerationModel
+      // resolution, but must never be offered as an agent chat model.
+      models.filter((model) => model.id !== "gpt-image-2"),
+    ]),
+  );
 
-  // Custom providers store their model list in customModelsJson but
-  // readFullModelCatalog only covers built-in providers.  The gateway's
-  // models.json is updated asynchronously after restart, so right after
-  // a custom provider is created the catalog won't include its models yet.
-  // Inject them from storage to close this race window.
-  const allKeys = storage.providerKeys.getAll();
-  for (const key of allKeys) {
-    if (key.customModelsJson) {
-      try {
-        const rawModels: Array<
-          | string
-          | {
-              id: string;
-              name?: unknown;
-              display_name?: unknown;
-              contextWindow?: unknown;
-              context_length?: unknown;
-              contextTokens?: unknown;
-              context_tokens?: unknown;
-            }
-        > = JSON.parse(key.customModelsJson);
-        const storedEntries = rawModels.flatMap((model): CatalogModelEntry[] => {
-          const id = typeof model === "string" ? model : model.id;
-          if (typeof id !== "string" || !id) return [];
-          const entry: CatalogModelEntry = {
-            id,
-            name:
-              typeof model === "string"
-                ? id
-                : typeof model.display_name === "string"
-                  ? model.display_name
-                  : typeof model.name === "string"
-                    ? model.name
-                    : id,
-          };
-          if (typeof model !== "string") {
-            const contextWindow = positiveCatalogInt(model.contextWindow ?? model.context_length);
-            const contextTokens = positiveCatalogInt(model.contextTokens ?? model.context_tokens);
-            if (contextWindow) entry.contextWindow = contextWindow;
-            if (contextTokens) entry.contextTokens = contextTokens;
-          }
-          return [applyCatalogContextMetadata(key.provider, entry)];
-        });
-
-        // The cloud catalog is controlled by RivonClaw backend. Treat the
-        // locally synced list as authoritative so stale gateway models.json
-        // entries cannot leak old physical model IDs into the chat selector.
-        if (key.provider === "rivonclaw-pro") {
-          catalog[key.provider] = storedEntries;
-          continue;
-        }
-        const existing = catalog[key.provider] ?? [];
-        const existingIds = new Set(existing.map((e) => e.id));
-        const extras = storedEntries.filter((entry) => !existingIds.has(entry.id));
-        if (extras.length > 0) {
-          catalog[key.provider] = [...existing, ...extras];
-        }
-      } catch {
-        // Invalid JSON in customModelsJson — skip
-      }
-    }
-  }
-
-  sendJson(res, 200, { models: catalog });
+  sendJson(res, 200, { models: chatCatalog });
 };
-
-function positiveCatalogInt(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? Math.trunc(value)
-    : undefined;
-}
 
 // ── POST /api/oauth/start ──
 
@@ -553,7 +548,12 @@ const oauthStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCont
 // ── POST /api/oauth/save ──
 
 const oauthSave: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  const body = (await parseBody(req)) as { provider?: string; proxyUrl?: string; label?: string; model?: string };
+  const body = (await parseBody(req)) as {
+    provider?: string;
+    proxyUrl?: string;
+    label?: string;
+    model?: string;
+  };
   if (!body.provider) {
     sendJson(res, 400, { error: "Missing required field: provider" });
     return;
@@ -573,7 +573,10 @@ const oauthSave: EndpointHandler = async (req, res, _url, _params, ctx: ApiConte
     log.error("OAuth save failed:", err);
     const message = formatError(err);
     const detail = err instanceof Error ? (err as Error & { detail?: string }).detail : undefined;
-    const status = message.includes("Invalid") || message.includes("expired") || message.includes("validation") ? 422 : 500;
+    const status =
+      message.includes("Invalid") || message.includes("expired") || message.includes("validation")
+        ? 422
+        : 500;
     sendJson(res, status, { error: message, detail });
   }
 };

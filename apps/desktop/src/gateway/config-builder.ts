@@ -1,7 +1,5 @@
 import { join } from "node:path";
-import type { LLMProvider } from "@rivonclaw/core";
 import {
-  resolveModelConfig,
   LOCAL_PROVIDER_IDS,
   getProviderMeta,
   getOllamaOpenAiBaseUrl,
@@ -15,7 +13,11 @@ import {
   resolveAffiliateAgentWorkspaceDir,
   resolveUserSkillsDir,
 } from "@rivonclaw/core/node";
-import { buildExtraProviderConfigs, writeGatewayConfig } from "@rivonclaw/gateway";
+import {
+  readAuthProfileRuntimeState,
+  writeGatewayConfig,
+  type AuthProfileRuntimeState,
+} from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
@@ -44,6 +46,11 @@ export interface GatewayConfigDeps {
   }>;
   /** Returns merchant extension paths after any runtime staging. */
   merchantExtensionPaths?: () => string[];
+  /**
+   * Temporary loopback compatibility boundary for GPT-5.6 Codex requests.
+   * Omit after the pinned OpenClaw runtime natively supports those models.
+   */
+  openAICodexCompatibilityBaseUrl?: string;
 }
 
 export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools", "rivonclaw-local-tools"];
@@ -51,9 +58,12 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools", "rivoncl
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
 export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 135;
-export const IMAGE_GENERATION_MODEL_REF = "openai/gpt-image-2";
+export const IMAGE_GENERATION_MODEL_REF = `${RIVONCLAW_CLOUD_PROVIDER_ID}/gpt-image-2`;
+export const OPENAI_IMAGE_GENERATION_MODEL_REF = "openai/gpt-image-2";
 export const IMAGE_GENERATION_TIMEOUT_MS = 300_000;
-const OPENAI_IMAGE_PROVIDER_ID = "openai";
+const OPENAI_PROVIDER_ID = "openai";
+const OPENAI_API_BASE_URL = "https://api.openai.com/v1";
+const OPENAI_API = "openai-responses";
 const OPENAI_CODEX_RESPONSES_BASE_URL = "https://chatgpt.com/backend-api/codex";
 const OPENAI_CODEX_RESPONSES_API = "openai-chatgpt-responses";
 const TEXT_AND_IMAGE_INPUT: GatewayInputModality[] = ["text", "image"];
@@ -140,8 +150,6 @@ const TEMPORARY_OPENAI_CODEX_PROVIDER_MODELS: ExtraProviderConfig["models"] =
   TEMPORARY_OPENAI_CODEX_MODELS.map((model) => ({
     id: model.modelId,
     name: model.displayName,
-    api: OPENAI_CODEX_RESPONSES_API,
-    baseUrl: OPENAI_CODEX_RESPONSES_BASE_URL,
     reasoning: true,
     input: model.supportsVision ? TEXT_AND_IMAGE_INPUT : ["text"],
     ...(model.cost ? { cost: model.cost } : {}),
@@ -152,22 +160,44 @@ const TEMPORARY_OPENAI_CODEX_PROVIDER_MODELS: ExtraProviderConfig["models"] =
 
 /**
  * TEMPORARY: remove after the pinned OpenClaw OpenAI manifest contains all
- * four GPT-5.6 IDs. The override is deliberately scoped to an active Codex
- * OAuth key so it can never change the official OpenAI API-key transport.
+ * four GPT-5.6 IDs.
+ *
+ * OpenClaw resolves transport at provider scope, so the provider endpoint and
+ * API protocol must follow the active Vendor-owned OpenAI auth profile. Model
+ * availability remains independent from the selected credential so historical
+ * and session-scoped GPT-5.6 references remain resolvable.
  */
 export function buildTemporaryOpenAICodexProviderOverride(
-  activeKey: Pick<ProviderKeyLike, "provider" | "authType"> | undefined,
+  codexBaseUrl = OPENAI_CODEX_RESPONSES_BASE_URL,
+  codexOAuthActive = false,
 ): Record<string, ExtraProviderConfig> {
-  if (activeKey?.provider !== "openai-codex" || activeKey.authType !== "oauth") {
-    return {};
-  }
+  const baseUrl = codexOAuthActive ? codexBaseUrl : OPENAI_API_BASE_URL;
+  const api = codexOAuthActive ? OPENAI_CODEX_RESPONSES_API : OPENAI_API;
   return {
     openai: {
-      baseUrl: OPENAI_CODEX_RESPONSES_BASE_URL,
-      api: OPENAI_CODEX_RESPONSES_API,
-      models: TEMPORARY_OPENAI_CODEX_PROVIDER_MODELS,
+      baseUrl,
+      api,
+      models: TEMPORARY_OPENAI_CODEX_PROVIDER_MODELS.map((model) => ({
+        ...model,
+        api,
+      })),
     },
   };
+}
+
+/**
+ * Resolve the active OpenAI credential exclusively from Vendor runtime state.
+ * The first ordered profile is authoritative; the profile list is a fallback
+ * for stores created before Vendor persisted explicit order.
+ */
+export function isOpenAICodexOAuthActive(state: AuthProfileRuntimeState): boolean {
+  const profilesById = new Map(state.profiles.map((profile) => [profile.id, profile]));
+  const orderedProfile = (state.order[OPENAI_PROVIDER_ID] ?? [])
+    .map((id) => profilesById.get(id))
+    .find((profile) => profile?.provider === OPENAI_PROVIDER_ID);
+  const activeProfile =
+    orderedProfile ?? state.profiles.find((profile) => profile.provider === OPENAI_PROVIDER_ID);
+  return activeProfile?.type === "oauth";
 }
 
 export function buildManagedGatewayAgents(stateDir: string): ManagedGatewayAgents {
@@ -282,6 +312,20 @@ export function buildCustomProviderOverridesFromKeys(
         ];
       }),
     };
+
+    // TK Copilot owns its image route under its own provider namespace.
+    // Protocol compatibility with OpenAI must never make us overwrite the
+    // vendor-owned `models.providers.openai` definition.
+    if (
+      key.provider === RIVONCLAW_CLOUD_PROVIDER_ID &&
+      !overrides[key.provider].models.some((model) => model.id === "gpt-image-2")
+    ) {
+      overrides[key.provider].models.push({
+        id: "gpt-image-2",
+        name: "GPT Image 2",
+        input: TEXT_AND_IMAGE_INPUT,
+      });
+    }
   }
   return overrides;
 }
@@ -291,7 +335,7 @@ export function buildCustomProviderOverridesFromKeys(
  * Returns closures that can be called without passing deps each time.
  */
 export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
-  const { storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath } = deps;
+  const { storage, secretStore, configPath, stateDir, extensionsDir, sttCliPath } = deps;
 
   function isGeminiOAuthActive(): boolean {
     return storage.providerKeys
@@ -351,13 +395,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     return overrides;
   }
 
-  function buildCustomProviderOverrides(): Record<
-    string,
-    { baseUrl: string; api: string; timeoutSeconds?: number; models: CustomProviderModel[] }
-  > {
-    return buildCustomProviderOverridesFromKeys(storage.providerKeys.getAll());
-  }
-
   const WS_ENV_MAP: Record<string, string> = {
     brave: "RIVONCLAW_WS_BRAVE_APIKEY",
     perplexity: "RIVONCLAW_WS_PERPLEXITY_APIKEY",
@@ -376,20 +413,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     gatewayPort: number,
     overrides?: { toolAllowlist?: string[]; toolAlsoAllowlist?: string[] },
   ): Promise<Parameters<typeof writeGatewayConfig>[0]> {
-    const activeKey = storage.providerKeys.getActive();
-    const cloudImageRouteActive = activeKey?.provider === RIVONCLAW_CLOUD_PROVIDER_ID;
-    const codexImageRouteActive =
-      activeKey?.provider === "openai-codex" && activeKey.authType === "oauth";
-    const openAiImageRouteActive = activeKey?.provider === "openai";
-    const curRegion = storage.settings.get("region") ?? (locale === "zh" ? "cn" : "us");
-    const curModel = activeKey
-      ? resolveModelConfig({
-          region: curRegion,
-          userProvider: activeKey.provider as LLMProvider,
-          userModelId: activeKey.model,
-        })
-      : null;
-
     const curSttEnabled = storage.settings.get("stt.enabled") === "true";
     const curSttProvider = (storage.settings.get("stt.provider") || "groq") as
       | "groq"
@@ -420,8 +443,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     // Keep their keys only for one-way cleanup; vendor OpenClaw now owns those
     // provider definitions and model lists. EasyClaw writes only its cloud
     // provider, explicit custom providers, and narrow compatibility overlays.
-    const legacyManagedProviderKeys = Object.keys(buildExtraProviderConfigs());
-
     // Only reference apiKey env var if key exists in keychain
     const wsKeyExists = curWebSearchEnabled
       ? await hasSecret(`websearch-${curWebSearchProvider}-apikey`)
@@ -435,22 +456,19 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     const effectiveEmbeddingEnabled =
       curEmbeddingEnabled && (curEmbeddingProvider === "ollama" || embKeyExists);
 
-    const customProviderOverrides = buildCustomProviderOverrides();
-    const temporaryOpenAICodexOverride = buildTemporaryOpenAICodexProviderOverride(activeKey);
-    if (cloudImageRouteActive && activeKey?.baseUrl) {
-      customProviderOverrides[OPENAI_IMAGE_PROVIDER_ID] = {
-        baseUrl: activeKey.baseUrl,
-        api: "openai-completions",
-        timeoutSeconds: IMAGE_GENERATION_TIMEOUT_MS / 1000,
-        models: [
-          {
-            id: "gpt-image-2",
-            name: "GPT Image 2",
-            input: TEXT_AND_IMAGE_INPUT,
-          },
-        ],
-      };
-    }
+    // Runtime provider definitions are persistent Vendor config, not a
+    // projection of whichever SQLite metadata row happens to be active.
+    // EasyClaw owns only its cloud provider and the narrow, versioned OpenAI
+    // compatibility overlay. Vendor-owned and user-configured providers are
+    // preserved by writeGatewayConfig's merge semantics.
+    const customProviderOverrides = buildCustomProviderOverridesFromKeys(
+      storage.providerKeys.getAll().filter((key) => key.provider === RIVONCLAW_CLOUD_PROVIDER_ID),
+    );
+    const openAIAuthState = readAuthProfileRuntimeState(stateDir);
+    const temporaryOpenAICodexOverride = buildTemporaryOpenAICodexProviderOverride(
+      deps.openAICodexCompatibilityBaseUrl,
+      isOpenAICodexOAuthActive(openAIAuthState),
+    );
 
     return {
       configPath,
@@ -516,14 +534,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       // RPC handshake and chat.history responses.
       discovery: { mdns: { mode: "off" as const } },
       skipBootstrap: false,
-      defaultModel: curModel ? resolveGeminiOAuthModel(curModel.provider, curModel.modelId) : null,
-      imageGenerationModel:
-        cloudImageRouteActive || codexImageRouteActive || openAiImageRouteActive
-          ? {
-              primary: IMAGE_GENERATION_MODEL_REF,
-              timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
-            }
-          : null,
+      // OpenClaw config is authoritative for selections. Omitting these fields
+      // preserves the vendor state across startup/full config regeneration.
+      defaultModel: undefined,
+      imageGenerationModel: undefined,
       stt: {
         enabled: curSttEnabled,
         provider: curSttProvider,
@@ -544,8 +558,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         ...customProviderOverrides,
         ...temporaryOpenAICodexOverride,
       },
-      managedProviderKeys: [...legacyManagedProviderKeys, OPENAI_IMAGE_PROVIDER_ID],
-      localProviderOverrides: buildLocalProviderOverrides(),
+      overlayProviderKeys: [OPENAI_PROVIDER_ID],
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
       agentWorkspace: join(stateDir, "workspace"),
