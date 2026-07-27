@@ -1137,7 +1137,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived && (
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-danger"
                     disabled={statusMutationState.loading}
                     onClick={() => archiveCampaign(selectedCampaign)}
                   >
@@ -1157,7 +1157,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 {!isTerminalCampaignStatus(selectedCampaign.status) && (
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className={
+                      selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
+                        ? "btn btn-secondary"
+                        : "btn btn-primary affiliate-campaign-primary-action"
+                    }
                     disabled={
                       statusMutationState.loading ||
                       (selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
