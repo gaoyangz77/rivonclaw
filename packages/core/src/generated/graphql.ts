@@ -1105,6 +1105,17 @@ export const AffiliateCampaignSearchPhraseSource = {
 } as const;
 
 export type AffiliateCampaignSearchPhraseSource = typeof AffiliateCampaignSearchPhraseSource[keyof typeof AffiliateCampaignSearchPhraseSource];
+export interface AffiliateCampaignSearchPhraseSuggestion {
+  rationale: Scalars['String']['output'];
+  text: Scalars['String']['output'];
+}
+
+export interface AffiliateCampaignSearchPhraseSuggestions {
+  productSnapshotHash: Scalars['String']['output'];
+  suggestionVersion: Scalars['Int']['output'];
+  suggestions: Array<AffiliateCampaignSearchPhraseSuggestion>;
+}
+
 export interface AffiliateCampaignSelectionPolicy {
   minimumExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   ranking: AffiliateCampaignSelectionRanking;
@@ -7741,6 +7752,8 @@ export interface Mutation {
   startWhatsAppQrOnboarding: StartWhatsAppQrOnboardingPayload;
   /** Generate reviewable Marketplace search keyword suggestions from the confirmed product snapshot. */
   suggestAffiliateCampaignSearchKeywords: AffiliateCampaignSearchKeywordSuggestions;
+  /** Generate reviewable Marketplace search phrase suggestions from the confirmed product snapshot. */
+  suggestAffiliateCampaignSearchPhrases: AffiliateCampaignSearchPhraseSuggestions;
   /** Queue an Airflow refresh of stores/shops visible to a connected TikTok Ads advertiser and return the current snapshot. */
   syncAdsStoreAccesses: Array<AdsStoreAccess>;
   /** Pull platform warehouse lists for one shop and auto-map official fulfillment warehouses when possible. */
@@ -8424,6 +8437,11 @@ export interface MutationStartWhatsAppQrOnboardingArgs {
 
 export interface MutationSuggestAffiliateCampaignSearchKeywordsArgs {
   input: SuggestAffiliateCampaignSearchKeywordsInput;
+}
+
+
+export interface MutationSuggestAffiliateCampaignSearchPhrasesArgs {
+  input: SuggestAffiliateCampaignSearchPhrasesInput;
 }
 
 
@@ -10853,6 +10871,11 @@ export interface SubscriptionUpdateAvailableArgs {
 }
 
 export interface SuggestAffiliateCampaignSearchKeywordsInput {
+  guidance?: InputMaybe<Scalars['String']['input']>;
+  snapshotRef: Scalars['ID']['input'];
+}
+
+export interface SuggestAffiliateCampaignSearchPhrasesInput {
   guidance?: InputMaybe<Scalars['String']['input']>;
   snapshotRef: Scalars['ID']['input'];
 }
