@@ -47,7 +47,9 @@ import {
   buildAutoSessionTitle,
   extractToolError,
   extractText,
+  extractImages,
   extractToolCallName,
+  hasImageBlocks,
   isPanelSessionKey,
   localizeError,
   mergeTerminalError,
@@ -842,17 +844,27 @@ export class ChatGatewayController {
           // Read run snapshot BEFORE cleanup (run is now in terminal "done" phase)
           const localRun = rs.getRun(chatRunId!);
           const flushedOffset = localRun?.flushedOffset ?? 0;
-          const finalText = extractText(payload.message?.content);
-          if (finalText) {
+          const finalContent = payload.message?.content;
+          const finalText = extractText(finalContent);
+          const finalImages = extractImages(finalContent);
+          const finalHasImageBlocks = hasImageBlocks(finalContent);
+          if (finalText || finalImages.length > 0 || finalHasImageBlocks) {
             const newText = flushedOffset > 0 ? finalText.slice(flushedOffset) : finalText;
-            if (cleanMessageText(newText).trim()) {
-              session.appendMessage({ role: "assistant", text: newText, timestamp: Date.now() });
+            if (cleanMessageText(newText).trim() || finalImages.length > 0) {
+              session.appendMessage({
+                role: "assistant",
+                text: newText,
+                timestamp: Date.now(),
+                images: finalImages.length > 0 ? finalImages : undefined,
+                idempotencyKey: chatRunId,
+              });
             }
           } else if (!localRun?.streaming) {
             session.appendMessage({
               role: "assistant",
               text: `\u26A0 ${this.t("chat.errorTimeout")}`,
               timestamp: Date.now(),
+              idempotencyKey: `${chatRunId}:local-error`,
             });
           }
           if (session.runState.sendStartedAt > 0) {
@@ -866,6 +878,7 @@ export class ChatGatewayController {
             session.runState.setExternalPending(false);
           }
           this.cleanupTerminalRuns(activeKey);
+          void this.loadHistory();
           break;
         }
         case "error": {
@@ -879,7 +892,12 @@ export class ChatGatewayController {
           const errText = localizeError(raw, this.tFn!);
           const renderedText = `\u26A0 ${errText}`;
           const errorTs = Date.now();
-          session.appendMessage({ role: "assistant", text: renderedText, timestamp: errorTs });
+          session.appendMessage({
+            role: "assistant",
+            text: renderedText,
+            timestamp: errorTs,
+            idempotencyKey: `${chatRunId}:local-error`,
+          });
           this.terminalErrors.set(activeKey, {
             runId: chatRunId!,
             text: renderedText,
@@ -931,14 +949,23 @@ export class ChatGatewayController {
         // Read run snapshot BEFORE cleanup
         const extRun = chatRunId ? rs.getRun(chatRunId) : null;
         const extFlushedOffset = extRun?.flushedOffset ?? 0;
-        const finalText = extractText(payload.message?.content);
-        if (finalText) {
+        const finalContent = payload.message?.content;
+        const finalText = extractText(finalContent);
+        const finalImages = extractImages(finalContent);
+        const finalHasImageBlocks = hasImageBlocks(finalContent);
+        if (finalText || finalImages.length > 0 || finalHasImageBlocks) {
           const extNewText = extFlushedOffset > 0 ? finalText.slice(extFlushedOffset) : finalText;
-          if (cleanMessageText(extNewText).trim()) {
-            session.appendMessage({ role: "assistant", text: extNewText, timestamp: Date.now() });
+          if (cleanMessageText(extNewText).trim() || finalImages.length > 0) {
+            session.appendMessage({
+              role: "assistant",
+              text: extNewText,
+              timestamp: Date.now(),
+              images: finalImages.length > 0 ? finalImages : undefined,
+              idempotencyKey: chatRunId,
+            });
           }
         }
-        this.loadHistory();
+        void this.loadHistory();
       }
       if (payload.state === "aborted" && this.consumePendingStopNotice(activeKey, chatRunId)) {
         session.appendMessage({
@@ -1002,14 +1029,24 @@ export class ChatGatewayController {
         const offset = run.flushedOffset ?? 0;
         const partialText = rawStreaming && offset > 0 ? rawStreaming.slice(offset) : rawStreaming;
         if (partialText?.trim()) {
-          session.appendMessage({ role: "assistant", text: partialText, timestamp: Date.now() });
+          session.appendMessage({
+            role: "assistant",
+            text: partialText,
+            timestamp: Date.now(),
+            idempotencyKey: runId,
+          });
         }
         const errorText = lifecycleError
           ? localizeError(lifecycleError, this.tFn!)
           : this.t("chat.stalledError");
         const renderedText = `\u26A0 ${errorText}`;
         const errorTs = Date.now();
-        session.appendMessage({ role: "assistant", text: renderedText, timestamp: errorTs });
+        session.appendMessage({
+          role: "assistant",
+          text: renderedText,
+          timestamp: errorTs,
+          idempotencyKey: `${runId}:local-error`,
+        });
         // Cache so the error survives loadHistory/switchSession message replacement
         if (lifecycleError) {
           this.terminalErrors.set(sessionKey, { runId, text: renderedText, timestamp: errorTs });
@@ -1131,6 +1168,7 @@ export class ChatGatewayController {
               role: "assistant",
               text: `\u26A0 ${this.t("chat.watchdogError")}`,
               timestamp: Date.now(),
+              idempotencyKey: `${localId}:local-error`,
             });
           }
         } else if (session.runState.externalPending || session.runState.isActive) {
@@ -1568,6 +1606,7 @@ export class ChatGatewayController {
         role: "assistant",
         text: `\u26A0 ${errText}`,
         timestamp: Date.now(),
+        idempotencyKey: `${idempotencyKey}:local-error`,
       });
       sendRs.failRun(idempotencyKey);
       this.markRunRecentlyCompleted(activeKey, idempotencyKey);
