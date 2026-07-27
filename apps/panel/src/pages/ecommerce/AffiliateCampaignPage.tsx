@@ -167,6 +167,7 @@ type CampaignCreatorStatePage = {
 };
 
 const CAMPAIGNS_PER_PAGE = 20;
+export const DEFAULT_CAMPAIGN_STATUS_FILTER = GQL.AffiliateCampaignStatus.Active;
 
 export function paginateCampaigns<T>(
   items: readonly T[],
@@ -188,6 +189,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [campaignPage, setCampaignPage] = useState(1);
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState<
+    GQL.AffiliateCampaignStatus | ""
+  >(DEFAULT_CAMPAIGN_STATUS_FILTER);
   const [stateStatus, setStateStatus] = useState("");
   const [generatingSearchGroups, setGeneratingSearchGroups] = useState(false);
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
@@ -199,12 +203,28 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [confirmation, setConfirmation] = useState<
     | { kind: "resuggest"; existingPhrases: string[] }
     | { kind: "delete-draft"; campaignId: string; campaignName: string }
+    | { kind: "archive"; campaignId: string; campaignName: string }
     | null
   >(null);
 
   const campaignsQuery = useQuery<{ affiliateCampaigns: GQL.AffiliateCampaign[] }>(
     AFFILIATE_CAMPAIGNS_QUERY,
-    { variables: { input: { limit: 500 } }, fetchPolicy: "cache-and-network" },
+    {
+      variables: {
+        input: {
+          limit: 500,
+          ...(campaignStatusFilter ? { status: campaignStatusFilter } : {}),
+        },
+      },
+      fetchPolicy: "cache-and-network",
+    },
+  );
+  const campaignPortfolioQuery = useQuery<{ affiliateCampaigns: GQL.AffiliateCampaign[] }>(
+    AFFILIATE_CAMPAIGNS_QUERY,
+    {
+      variables: { input: { limit: 500 } },
+      fetchPolicy: "cache-and-network",
+    },
   );
   const shopsQuery = useQuery<{ shops: GQL.Shop[] }>(SHOPS_QUERY, {
     fetchPolicy: "cache-and-network",
@@ -271,6 +291,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   >(DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION);
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
+  const campaignPortfolio = campaignPortfolioQuery.data?.affiliateCampaigns ?? [];
   const campaignPageCount = Math.max(1, Math.ceil(campaigns.length / CAMPAIGNS_PER_PAGE));
   const campaignPageStart = (campaignPage - 1) * CAMPAIGNS_PER_PAGE;
   const visibleCampaigns = paginateCampaigns(campaigns, campaignPage);
@@ -286,6 +307,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
   const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
+
+  useEffect(() => {
+    setCampaignPage(1);
+  }, [campaignStatusFilter]);
 
   useEffect(() => {
     if (
@@ -601,7 +626,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       if (!created) throw new Error(t("ecommerce.affiliateCampaign.createFailed"));
       setWizardOpen(false);
       setSelectedCampaignId(created.id);
-      await campaignsQuery.refetch();
+      await Promise.all([campaignsQuery.refetch(), campaignPortfolioQuery.refetch()]);
       showToast(
         t(
           editingCampaignId
@@ -651,7 +676,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       await setCampaignStatus({
         variables: { input: { campaignId: campaign.id, status: nextStatus } },
       });
-      await Promise.all([campaignsQuery.refetch(), summaryQuery.refetch()]);
+      await Promise.all([
+        campaignsQuery.refetch(),
+        campaignPortfolioQuery.refetch(),
+        summaryQuery.refetch(),
+      ]);
       showToast(
         t(
           nextStatus === GQL.AffiliateCampaignStatus.Active
@@ -660,6 +689,32 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         ),
         "success",
       );
+    } catch (error) {
+      showToast(campaignErrorMessage(error, t), "error");
+    }
+  };
+
+  const archiveCampaign = (campaign: GQL.AffiliateCampaign) => {
+    setConfirmation({
+      kind: "archive",
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+    });
+  };
+
+  const executeArchiveCampaign = async (campaignId: string) => {
+    try {
+      await setCampaignStatus({
+        variables: {
+          input: {
+            campaignId,
+            status: GQL.AffiliateCampaignStatus.Archived,
+          },
+        },
+      });
+      setSelectedCampaignId("");
+      await Promise.all([campaignsQuery.refetch(), campaignPortfolioQuery.refetch()]);
+      showToast(t("ecommerce.affiliateCampaign.archivedToast"), "success");
     } catch (error) {
       showToast(campaignErrorMessage(error, t), "error");
     }
@@ -677,7 +732,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       });
       const copy = result.data?.duplicateAffiliateCampaign;
       if (!copy) throw new Error(t("ecommerce.affiliateCampaign.copyFailed"));
-      await campaignsQuery.refetch();
+      await Promise.all([campaignsQuery.refetch(), campaignPortfolioQuery.refetch()]);
       setSelectedCampaignId("");
       openEdit(copy);
       showToast(t("ecommerce.affiliateCampaign.copiedAsDraft"), "success");
@@ -703,7 +758,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         throw new Error("CAMPAIGN_DRAFT_DELETE_FAILED");
       }
       setSelectedCampaignId("");
-      await campaignsQuery.refetch();
+      await Promise.all([campaignsQuery.refetch(), campaignPortfolioQuery.refetch()]);
       showToast(t("ecommerce.affiliateCampaign.draftDeleted"), "success");
     } catch (error) {
       showToast(campaignErrorMessage(error, t), "error");
@@ -718,13 +773,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       void requestKeywordSuggestions(pending.existingPhrases);
       return;
     }
+    if (pending.kind === "archive") {
+      void executeArchiveCampaign(pending.campaignId);
+      return;
+    }
     void executeDeleteDraftCampaign(pending.campaignId);
   };
 
-  const activeCount = campaigns.filter(
+  const activeCount = campaignPortfolio.filter(
     (campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active,
   ).length;
-  const dailyTargetTotal = campaigns
+  const dailyTargetTotal = campaignPortfolio
     .filter((campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active)
     .reduce((sum, campaign) => sum + campaign.dailyOutreachTarget, 0);
 
@@ -766,7 +825,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => void campaignsQuery.refetch()}
+            onClick={() =>
+              void Promise.all([campaignsQuery.refetch(), campaignPortfolioQuery.refetch()])
+            }
           >
             <RefreshIcon /> {t("common.refresh")}
           </button>
@@ -794,7 +855,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         <CampaignMetric
           label={t("ecommerce.affiliateCampaign.activeCampaigns")}
           value={activeCount}
-          detail={t("ecommerce.affiliateCampaign.totalCampaigns", { count: campaigns.length })}
+          detail={t("ecommerce.affiliateCampaign.totalCampaigns", {
+            count: campaignPortfolio.length,
+          })}
         />
         <CampaignMetric
           label={t("ecommerce.affiliateCampaign.dailyTargetTotal")}
@@ -808,7 +871,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         />
       </section>
 
-      {campaigns.length === 0 && !campaignsQuery.loading ? (
+      {campaignPortfolio.length === 0 && !campaignPortfolioQuery.loading ? (
         <section className="affiliate-campaign-empty">
           <div className="affiliate-campaign-empty-orbit" aria-hidden="true">
             <span />
@@ -832,9 +895,47 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <h2>{t("ecommerce.affiliateCampaign.campaignTableTitle")}</h2>
               <p>{t("ecommerce.affiliateCampaign.campaignTableDescription")}</p>
             </div>
-            <div className="affiliate-campaign-directory-count">
-              <strong>{formatNumber(campaigns.length)}</strong>
-              <span>{t("ecommerce.affiliateCampaign.campaignCountLabel")}</span>
+            <div className="affiliate-campaign-directory-tools">
+              <label className="affiliate-campaign-directory-status-filter">
+                <span>{t("ecommerce.affiliateCampaign.statusFilter")}</span>
+                <Select
+                  value={campaignStatusFilter}
+                  onChange={(value) =>
+                    setCampaignStatusFilter(value as GQL.AffiliateCampaignStatus | "")
+                  }
+                  ariaLabel={t("ecommerce.affiliateCampaign.statusFilter")}
+                  options={[
+                    {
+                      value: GQL.AffiliateCampaignStatus.Active,
+                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Active, t),
+                    },
+                    {
+                      value: GQL.AffiliateCampaignStatus.Paused,
+                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Paused, t),
+                    },
+                    {
+                      value: GQL.AffiliateCampaignStatus.Draft,
+                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Draft, t),
+                    },
+                    {
+                      value: GQL.AffiliateCampaignStatus.Completed,
+                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Completed, t),
+                    },
+                    {
+                      value: GQL.AffiliateCampaignStatus.Archived,
+                      label: campaignStatusLabel(GQL.AffiliateCampaignStatus.Archived, t),
+                    },
+                    {
+                      value: "",
+                      label: t("ecommerce.affiliateCampaign.allStatuses"),
+                    },
+                  ]}
+                />
+              </label>
+              <div className="affiliate-campaign-directory-count">
+                <strong>{formatNumber(campaigns.length)}</strong>
+                <span>{t("ecommerce.affiliateCampaign.campaignCountLabel")}</span>
+              </div>
             </div>
           </header>
           <div className="affiliate-campaign-directory-table-wrap">
@@ -860,6 +961,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </tr>
               </thead>
               <tbody>
+                {visibleCampaigns.length === 0 && (
+                  <tr className="affiliate-campaign-directory-empty-row">
+                    <td colSpan={7}>{t("ecommerce.affiliateCampaign.noCampaignsForStatus")}</td>
+                  </tr>
+                )}
                 {visibleCampaigns.map((campaign) => {
                   const campaignShop = shops.find((shop) => shop.id === campaign.shopId);
                   return (
@@ -1017,6 +1123,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 >
                   {t("ecommerce.affiliateCampaign.copyCampaign")}
                 </button>
+                {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={statusMutationState.loading}
+                    onClick={() => archiveCampaign(selectedCampaign)}
+                  >
+                    {t("ecommerce.affiliateCampaign.archive")}
+                  </button>
+                )}
                 {selectedCampaign.status === GQL.AffiliateCampaignStatus.Draft && (
                   <button
                     type="button"
@@ -1977,22 +2093,34 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         title={t(
           confirmation?.kind === "delete-draft"
             ? "ecommerce.affiliateCampaign.deleteDraftTitle"
-            : "ecommerce.affiliateCampaign.resuggestTitle",
+            : confirmation?.kind === "archive"
+              ? "ecommerce.affiliateCampaign.archiveTitle"
+              : "ecommerce.affiliateCampaign.resuggestTitle",
         )}
         message={
           confirmation?.kind === "delete-draft"
             ? t("ecommerce.affiliateCampaign.deleteDraftConfirm", {
                 name: confirmation.campaignName,
               })
-            : t("ecommerce.affiliateCampaign.resuggestConfirm")
+            : confirmation?.kind === "archive"
+              ? t("ecommerce.affiliateCampaign.archiveConfirm", {
+                  name: confirmation.campaignName,
+                })
+              : t("ecommerce.affiliateCampaign.resuggestConfirm")
         }
         confirmLabel={t(
           confirmation?.kind === "delete-draft"
             ? "ecommerce.affiliateCampaign.deleteDraft"
-            : "ecommerce.affiliateCampaign.replaceSuggestions",
+            : confirmation?.kind === "archive"
+              ? "ecommerce.affiliateCampaign.archive"
+              : "ecommerce.affiliateCampaign.replaceSuggestions",
         )}
         cancelLabel={t("common.cancel")}
-        confirmVariant={confirmation?.kind === "delete-draft" ? "danger" : "primary"}
+        confirmVariant={
+          confirmation?.kind === "delete-draft" || confirmation?.kind === "archive"
+            ? "danger"
+            : "primary"
+        }
       />
     </div>
   );
