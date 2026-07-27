@@ -15,6 +15,7 @@ export class CSRound {
   private turnTextBuffer = new Map<string, string>();
   private forwardedRunIds = new Set<string>();
   private terminalToolRunIds = new Set<string>();
+  private operationalFailureRunIds = new Set<string>();
   private sensitiveRecoveryAttempts = 0;
   private sensitiveRecoveryRunIds = new Set<string>();
   private disposeWhenIdle = false;
@@ -127,11 +128,18 @@ export class CSRound {
     this.terminalToolRunIds.add(runId);
   }
 
+  markOperationalFailure(runId: string): void {
+    this.operationalFailureRunIds.add(runId);
+  }
+
   completeRun(runId: string): {
     wasAborted: boolean;
     hadForwardedText: boolean;
     hadTerminalToolAction: boolean;
+    hadOperationalFailure: boolean;
     shouldDispose: boolean;
+    buyerMessageId?: string;
+    buyerMessageIndex?: string;
   } {
     const wasAborted = this.abortedRunIds.has(runId);
     if (wasAborted) {
@@ -139,13 +147,23 @@ export class CSRound {
     }
     const hadForwardedText = this.forwardedRunIds.has(runId);
     const hadTerminalToolAction = this.terminalToolRunIds.has(runId);
+    const hadOperationalFailure = this.operationalFailureRunIds.has(runId);
     this.forwardedRunIds.delete(runId);
     this.terminalToolRunIds.delete(runId);
+    this.operationalFailureRunIds.delete(runId);
     this.turnTextBuffer.delete(runId);
     if (this.activeRunId === runId) {
       this.activeRunId = null;
     }
-    return { wasAborted, hadForwardedText, hadTerminalToolAction, shouldDispose: this.shouldDispose() };
+    return {
+      wasAborted,
+      hadForwardedText,
+      hadTerminalToolAction,
+      hadOperationalFailure,
+      shouldDispose: this.shouldDispose(),
+      buyerMessageId: this.buyerMessageId,
+      buyerMessageIndex: this.buyerMessageIndex,
+    };
   }
 
   onDeliverySucceeded(): { shouldDispose: boolean } {
@@ -240,6 +258,8 @@ export class CSRound {
     this.abortedRunIds.clear();
     this.turnTextBuffer.clear();
     this.forwardedRunIds.clear();
+    this.terminalToolRunIds.clear();
+    this.operationalFailureRunIds.clear();
     this.sensitiveRecoveryRunIds.clear();
     this.sensitiveRecoveryAttempts = 0;
   }

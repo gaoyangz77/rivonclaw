@@ -7520,6 +7520,8 @@ export interface Mutation {
   createWhatsAppProxy: WhatsAppProxy;
   /** Acknowledge success/failure after executing a local CS escalation side-effect */
   csAckEscalationEvent?: Maybe<CsEscalationEventDelivery>;
+  /** Acknowledge that the desktop agent handled the exact pending buyer message without sending a buyer-facing reply */
+  csAcknowledgeConversationHandled: Scalars['Boolean']['output'];
   /** Claim a CS escalation side-effect event for exactly-once local execution */
   csClaimEscalationEvent?: Maybe<CsEscalationEventDelivery>;
   /** Dismiss all open CS escalations for a conversation without queueing desktop agent side-effect events */
@@ -7871,6 +7873,14 @@ export interface MutationCreateWhatsAppProxyArgs {
 
 export interface MutationCsAckEscalationEventArgs {
   input: AckCsEscalationEventInput;
+}
+
+
+export interface MutationCsAcknowledgeConversationHandledArgs {
+  conversationId: Scalars['String']['input'];
+  messageId: Scalars['String']['input'];
+  messageIndex?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
 }
 
 

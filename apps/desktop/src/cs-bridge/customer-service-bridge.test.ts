@@ -71,17 +71,19 @@ vi.mock("../affiliate/affiliate-workflow-skill.js", () => ({
 
 const mockEmitCsTelemetry = vi.fn();
 const mockEmitCsError = vi.fn();
+const mockEmitCsDispatchEvent = vi.fn();
 vi.mock("../telemetry/cs-telemetry-ref.js", () => ({
   emitCsTelemetry: (...args: unknown[]) => mockEmitCsTelemetry(...args),
   emitCsError: (...args: unknown[]) => mockEmitCsError(...args),
   emitCsDeliveryRecovery: vi.fn(),
-  emitCsDispatchEvent: vi.fn(),
+  emitCsDispatchEvent: (...args: unknown[]) => mockEmitCsDispatchEvent(...args),
   emitCsEscalationEvent: vi.fn(),
   emitCsSessionEvent: vi.fn(),
   CS_ERROR_STAGE: {
     DELIVER: "deliver",
     SANITIZE: "sanitize",
     RUN_ERROR: "run_error",
+    COMPLETION_ACK: "completion_ack",
     DISPATCH: "dispatch",
     BACKEND_SESSION: "backend_session",
     SETUP: "setup",
@@ -600,6 +602,9 @@ beforeEach(() => {
     }
     if (query.includes("csGetOrCreateSession")) {
       return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true, balance: 100 } };
+    }
+    if (query.includes("csAcknowledgeConversationHandled")) {
+      return { csAcknowledgeConversationHandled: true };
     }
     if (query.includes("ecommerceGetConversationMessageDelta")) {
       return buildTestConversationDeltaResult(variables?.currentMessageId);
@@ -3321,6 +3326,64 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     };
   }
 
+  it("single-flights session creation so concurrent signals share one round owner", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    let releaseContext!: () => void;
+    const contextGate = new Promise<void>((resolve) => {
+      releaseContext = resolve;
+    });
+    let detailsCalls = 0;
+    mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
+      if (query.includes("ecommerceGetConversationDetails")) {
+        detailsCalls++;
+        await contextGate;
+        return { ecommerceGetConversationDetails: { buyer: null } };
+      }
+      if (query.includes("csGetOrCreateSession")) {
+        return { csGetOrCreateSession: { sessionId: "sess-001", isNew: true } };
+      }
+      if (query.includes("ecommerceGetConversationMessageDelta")) {
+        return buildTestConversationDeltaResult(variables?.currentMessageId);
+      }
+      if (query.includes("csAcknowledgeConversationHandled")) {
+        return { csAcknowledgeConversationHandled: true };
+      }
+      return { ecommerceSendMessage: { messageId: "msg-default" } };
+    });
+    mockRpcRequest.mockImplementation((method: string, params?: any) => {
+      if (method === "agent") return Promise.resolve({ runId: params.idempotencyKey });
+      if (method === "chat.abort") return Promise.resolve({ aborted: true });
+      if (method === "cs_register_session") return Promise.resolve(true);
+      if (method === "sessions.patch") return Promise.resolve(true);
+      return Promise.resolve({ ok: true });
+    });
+
+    const signalA = triggerMessage(bridge, createFrame({
+      conversationId: "conv-single-flight",
+      messageId: "msg-single-flight-a",
+      createTime: 100,
+    }));
+    const signalB = triggerMessage(bridge, createFrame({
+      conversationId: "conv-single-flight",
+      messageId: "msg-single-flight-b",
+      createTime: 101,
+    }));
+    await Promise.resolve();
+    expect(detailsCalls).toBe(1);
+
+    releaseContext();
+    await Promise.all([signalA, signalB]);
+
+    const sessions = (bridge as any).sessions as Map<string, unknown>;
+    expect(sessions.size).toBe(1);
+    const agentCalls = mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent");
+    expect(agentCalls).toHaveLength(1);
+    expect(agentCalls[0][1].idempotencyKey).toBe(
+      "cs-start:conv-single-flight:msg-single-flight-b",
+    );
+  });
+
   it("two messages: first is aborted, second dispatches, only second auto-forwards", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
@@ -3864,7 +3927,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
     }
   });
 
-  it("cloud catch-up snapshots: Airflow retry after no forwarded text uses a fresh run key", async () => {
+  it("cloud catch-up snapshots: handled-without-reply is acknowledged and a later Airflow retry uses a fresh run key", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     mockRpcRequest.mockImplementation((method: string, params?: any) => {
@@ -3897,6 +3960,16 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       event: "chat",
       payload: { runId: firstRunId, state: "final" },
     } as any);
+    await vi.waitFor(() => {
+      expect(mockGraphqlFetch).toHaveBeenCalledWith(
+        expect.stringContaining("csAcknowledgeConversationHandled"),
+        expect.objectContaining({
+          conversationId: "conv-airflow-retry",
+          messageId: "msg-airflow-retry",
+          messageIndex: "1",
+        }),
+      );
+    });
 
     await session.dispatchCatchUp({
       ...options,
@@ -3909,11 +3982,19 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       "cs-retry:conv-airflow-retry:msg-airflow-retry:1780279200000",
     );
     expect(agentCalls[1][1].idempotencyKey).not.toBe(agentCalls[0][1].idempotencyKey);
-    expect(mockEmitCsError).toHaveBeenCalledWith(
+    expect(mockEmitCsError).not.toHaveBeenCalledWith(
       "run_error",
       expect.objectContaining({
         reason: "final_no_text",
         runId: firstRunId,
+      }),
+    );
+    expect(mockEmitCsDispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: "completed",
+        reason: "handled_without_reply",
+        runId: firstRunId,
+        messageId: "msg-airflow-retry",
       }),
     );
   });
@@ -4249,6 +4330,34 @@ describe("per-turn message forwarding", () => {
     );
   });
 
+  it("routes completion to the run owner even if the conversation registry changes", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-owned");
+
+    const owner = (bridge as any).sessions.get("conv-789");
+    const acknowledgeSpy = vi
+      .spyOn(owner, "acknowledgeHandledWithoutReply")
+      .mockResolvedValue(undefined);
+    (bridge as any).sessions.set("conv-789", {
+      onRunCompleted: vi.fn(() => ({
+        wasAborted: false,
+        hadForwardedText: false,
+        hadTerminalToolAction: false,
+        hadOperationalFailure: false,
+      })),
+      clearTurnText: vi.fn(),
+    });
+
+    chatFinal(bridge, "run-owned");
+
+    expect(acknowledgeSpy).toHaveBeenCalledWith({
+      runId: "run-owned",
+      messageId: "msg-001",
+      messageIndex: undefined,
+    });
+  });
+
   it("three segments: text between two tool calls, plus final segment", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
@@ -4353,7 +4462,7 @@ describe("per-turn message forwarding", () => {
     expect(texts[0]).toBe("First part.");
   });
 
-  it("chat final event cleans up turn buffers as safety net", async () => {
+  it("chat final event flushes a buffered turn when the lifecycle event is missing", async () => {
     const bridge = createBridge();
     bridge.setShopContext(defaultShop);
     await dispatchAndGetRunId(bridge, "run-1");
@@ -4361,12 +4470,16 @@ describe("per-turn message forwarding", () => {
     // Agent text arrives but lifecycle never fires (unusual)
     agentEvent(bridge, "run-1", "assistant", { text: "Buffered text" });
 
-    // Chat final fires — should clean up buffers without forwarding
+    // Chat final fires — safety-net forwarding prevents a real answer from
+    // being mistaken for handled-without-reply.
     chatFinal(bridge, "run-1");
 
-    // No text forwarded (lifecycle end never fired)
     const texts = await getForwardedTexts();
-    expect(texts).toHaveLength(0);
+    expect(texts).toEqual(["Buffered text"]);
+    expect(mockGraphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("csAcknowledgeConversationHandled"),
+      expect.anything(),
+    );
   });
 
   it("disposes the completed CS round after successful outbound delivery + chat final", async () => {
@@ -4467,8 +4580,13 @@ But the tool name is shown in the line above: \`to=functions.ecom_cs_get_product
 \`\`\``,
     });
     agentEvent(bridge, "run-protocol-drop", "lifecycle", { phase: "end" });
+    chatFinal(bridge, "run-protocol-drop");
 
     expect(await getForwardedTexts()).toHaveLength(0);
+    expect(mockGraphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("csAcknowledgeConversationHandled"),
+      expect.anything(),
+    );
   });
 });
 
@@ -4501,10 +4619,14 @@ describe("terminal guarantee (error/timeout)", () => {
   }
 
   /** Helper: send a chat error event. */
-  function chatError(bridge: ReturnType<typeof createBridge>, runId: string): void {
+  function chatError(
+    bridge: ReturnType<typeof createBridge>,
+    runId: string,
+    error?: { errorKind?: string; errorMessage?: string },
+  ): void {
     bridge.onGatewayEvent({
       event: "chat",
-      payload: { runId, state: "error" },
+      payload: { runId, state: "error", ...error },
     } as any);
   }
 
@@ -4566,13 +4688,28 @@ describe("terminal guarantee (error/timeout)", () => {
     await dispatchAndGetRunId(bridge, "run-err-2");
 
     // No agent text events — run errored before producing output
-    chatError(bridge, "run-err-2");
+    chatError(bridge, "run-err-2", {
+      errorKind: "provider_error",
+      errorMessage: "Provider returned HTTP 502",
+    });
 
     // Wait for any async side effects
     await new Promise((r) => setTimeout(r, 10));
 
     const texts = await getForwardedTexts();
     expect(texts).toHaveLength(0);
+    expect(mockEmitCsError).toHaveBeenCalledWith(
+      "run_error",
+      expect.objectContaining({
+        reason: "provider_error",
+        errorMessage: "Provider returned HTTP 502",
+        runId: "run-err-2",
+      }),
+    );
+    expect(mockGraphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("csAcknowledgeConversationHandled"),
+      expect.anything(),
+    );
   });
 
   it("chat error with previously forwarded text: no fallback sent", async () => {
@@ -4588,7 +4725,10 @@ describe("terminal guarantee (error/timeout)", () => {
     await new Promise((r) => setTimeout(r, 10));
 
     // Run errors after the tool call (no lifecycle end)
-    chatError(bridge, "run-err-3");
+    chatError(bridge, "run-err-3", {
+      errorKind: "tool_loop_error",
+      errorMessage: "Tool continuation failed",
+    });
 
     // Wait for potential fallback
     await new Promise((r) => setTimeout(r, 10));
@@ -4597,6 +4737,14 @@ describe("terminal guarantee (error/timeout)", () => {
     // Only the first turn's text should be forwarded; no fallback
     expect(texts).toHaveLength(1);
     expect(texts[0]).toBe("Let me look that up.");
+    expect(mockEmitCsError).toHaveBeenCalledWith(
+      "run_error",
+      expect.objectContaining({
+        reason: "tool_loop_error",
+        errorMessage: "Tool continuation failed",
+        runId: "run-err-3",
+      }),
+    );
   });
 
   it("aborted run error: no fallback sent", async () => {

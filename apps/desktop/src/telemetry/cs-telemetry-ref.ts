@@ -77,8 +77,10 @@ export const CS_ERROR_STAGE = {
   DELIVER: "deliver",
   /** Agent's full turn text matched a runtime-error pattern and was dropped. */
   SANITIZE: "sanitize",
-  /** Gateway chat error with no agent text forwarded for the run. */
+  /** Gateway chat run failed, whether or not partial text was already forwarded. */
   RUN_ERROR: "run_error",
+  /** A completed no-reply run could not acknowledge its exact pending buyer-message cursor. */
+  COMPLETION_ACK: "completion_ack",
   /** Failed to dispatch the buyer message to the agent (pre-run). */
   DISPATCH: "dispatch",
   /** Backend CS session creation (entitlement check / server RPC) failed. */

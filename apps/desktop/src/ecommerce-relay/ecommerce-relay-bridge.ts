@@ -119,11 +119,18 @@ export class EcommerceRelayBridge {
   /** Long-lived sessions keyed by conversationId. Reused across messages. */
   private sessions = new Map<string, CustomerServiceSession>();
 
+  /** In-flight session initialization keyed by conversationId (single-flight). */
+  private sessionCreations = new Map<string, Promise<CustomerServiceSession>>();
+
   /** Affiliate inbound frame handler. Owns affiliate shop contexts and sessions. */
   private affiliateInbound: AffiliateInbound;
 
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
-  private pendingRuns = new Map<string, { shopObjectId: string; conversationId: string }>();
+  private pendingRuns = new Map<string, {
+    shopObjectId: string;
+    conversationId: string;
+    session: CustomerServiceSession;
+  }>();
 
   /** Airflow backlog buyer-message dispatches keyed by platformShopId + conversationId. */
   private pendingAirflowBuyerCatchUps = new Map<string, {
@@ -269,6 +276,8 @@ export class EcommerceRelayBridge {
     const payload = evt.payload as {
       runId?: string;
       state?: string;
+      errorKind?: string;
+      errorMessage?: string;
     } | undefined;
     if (!payload?.runId) return;
 
@@ -281,25 +290,37 @@ export class EcommerceRelayBridge {
     if (payload.state === "final" || payload.state === "error") {
       this.pendingRuns.delete(payload.runId);
 
-      const session = this.sessions.get(pending.conversationId);
-
-      const completion = session?.onRunCompleted(payload.runId);
-      const wasAborted = completion?.wasAborted ?? false;
+      const session = pending.session;
+      // Lifecycle events normally flush the last assistant turn first. Keep
+      // chat completion as a safety net so a missing lifecycle frame cannot
+      // turn real buffered text into a handled-without-reply acknowledgement.
+      this.flushTurnText(payload.runId, session);
+      const completion = session.onRunCompleted(payload.runId);
+      const wasAborted = completion.wasAborted;
       if (wasAborted) {
         log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
-      } else if (!completion?.hadForwardedText && !completion?.hadTerminalToolAction) {
-        log.warn(`Agent run ${payload.runId} ended with ${payload.state} and no text was forwarded`);
-        session?.emitError(CS_ERROR_STAGE.RUN_ERROR, {
-          reason: payload.state === "error" ? "no_text" : "final_no_text",
+      } else if (payload.state === "error") {
+        const errorMessage = payload.errorMessage?.trim() || "Gateway agent run failed";
+        log.warn(`Agent run ${payload.runId} failed: ${errorMessage}`);
+        session.emitError(CS_ERROR_STAGE.RUN_ERROR, {
+          reason: payload.errorKind?.trim() || "gateway_error",
+          errorMessage,
           runId: payload.runId,
         });
-      } else if (payload.state === "error") {
-        // Non-aborted error after text was already forwarded: log only, no fallback.
-        log.warn(`Agent run ${payload.runId} ended with error (text was previously forwarded)`);
+      } else if (
+        !completion.hadForwardedText &&
+        !completion.hadTerminalToolAction &&
+        !completion.hadOperationalFailure
+      ) {
+        void session.acknowledgeHandledWithoutReply({
+          runId: payload.runId,
+          messageId: completion.buyerMessageId,
+          messageIndex: completion.buyerMessageIndex,
+        });
       }
 
       // Safety-net cleanup of turn buffer (normally already flushed by agent events)
-      session?.clearTurnText(payload.runId);
+      session.clearTurnText(payload.runId);
     }
   }
 
@@ -337,16 +358,16 @@ export class EcommerceRelayBridge {
     if (stream === "assistant") {
       const text = data.text;
       if (typeof text === "string") {
-        this.sessions.get(pending.conversationId)?.noteTurnText(runId, text);
+        pending.session.noteTurnText(runId, text);
       }
       return;
     }
 
     if (stream === "tool" && data.phase === "start") {
       if (this.isTerminalCsTool(data.toolName)) {
-        this.sessions.get(pending.conversationId)?.markRunTerminalToolStarted(runId);
+        pending.session.markRunTerminalToolStarted(runId);
       }
-      this.flushTurnText(runId, pending.conversationId);
+      this.flushTurnText(runId, pending.session);
       return;
     }
 
@@ -354,8 +375,8 @@ export class EcommerceRelayBridge {
       if (data.phase === "end" || data.phase === "error") {
         // Flush any buffered text before clearing — ensures partial
         // responses reach the buyer even when the run errors out.
-        this.flushTurnText(runId, pending.conversationId);
-        this.sessions.get(pending.conversationId)?.clearTurnText(runId);
+        this.flushTurnText(runId, pending.session);
+        pending.session.clearTurnText(runId);
       }
     }
   }
@@ -383,9 +404,7 @@ export class EcommerceRelayBridge {
    *   user-friendly fallback.
    * - If real content has a timeout suffix appended, strips the suffix.
    */
-  private flushTurnText(runId: string, conversationId: string): void {
-    const session = this.sessions.get(conversationId);
-    if (!session) return;
+  private flushTurnText(runId: string, session: CustomerServiceSession): void {
     let text = session.takeTurnText(runId).trim();
     if (!text) return;
 
@@ -397,6 +416,7 @@ export class EcommerceRelayBridge {
     // remains to send to the buyer.
     text = this.sanitizeForwardedText(text);
     if (!text) {
+      session.markRunOperationalFailure(runId);
       session.emitError(CS_ERROR_STAGE.SANITIZE, {
         reason: "internal_protocol",
         runId,
@@ -411,6 +431,7 @@ export class EcommerceRelayBridge {
     const preSanitizeLength = text.length;
     text = this.sanitizeRuntimeErrors(text);
     if (!text) {
+      session.markRunOperationalFailure(runId);
       session.emitError(CS_ERROR_STAGE.SANITIZE, {
         reason: "runtime_pattern",
         runId,
@@ -823,11 +844,21 @@ export class EcommerceRelayBridge {
   ): Promise<CustomerServiceSession> {
     const existing = this.sessions.get(params.conversationId);
     if (existing) return existing;
+    const inFlight = this.sessionCreations.get(params.conversationId);
+    if (inFlight) return inFlight;
 
     const shop = this.findShopByObjectId(shopObjectId);
     if (!shop) throw new Error(`No shop context for objectId ${shopObjectId}`);
 
-    return this.createAndStoreSession(shop, shopObjectId, params);
+    const creation = this.createAndStoreSession(shop, shopObjectId, params);
+    this.sessionCreations.set(params.conversationId, creation);
+    try {
+      return await creation;
+    } finally {
+      if (this.sessionCreations.get(params.conversationId) === creation) {
+        this.sessionCreations.delete(params.conversationId);
+      }
+    }
   }
 
   private async createAndStoreSession(
@@ -845,11 +876,16 @@ export class EcommerceRelayBridge {
       orderId: params.orderId,
     };
 
-    const session = new CustomerServiceSession(shop, csContext, {
+    let session!: CustomerServiceSession;
+    session = new CustomerServiceSession(shop, csContext, {
       defaultRunProfileId: this.opts.defaultRunProfileId,
       locale: () => this.opts.locale,
       onRunDispatched: (runId) => {
-        this.pendingRuns.set(runId, { shopObjectId, conversationId: params.conversationId });
+        this.pendingRuns.set(runId, {
+          shopObjectId,
+          conversationId: params.conversationId,
+          session,
+        });
       },
     });
 
