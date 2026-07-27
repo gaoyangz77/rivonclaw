@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.81",
+    "date": "2026-07-27",
+    "en": [
+      "Redesign affiliate campaign planning, search, and campaign operations",
+      "Improve creator management and preserve campaign attribution through desktop registration",
+      "Add structured one-shot agent utilities and improve customer service no-reply recovery"
+    ],
+    "zh": [
+      "重构达人 campaign 的规划、搜索和运营工作流",
+      "优化达人管理，并将 campaign 归因延续至桌面端注册流程",
+      "新增结构化一次性 Agent 工具，并优化客服未回复场景的恢复能力"
+    ]
+  },
+  {
     "version": "1.8.80",
     "date": "2026-07-24",
     "en": [
