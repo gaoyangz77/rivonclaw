@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   campaignErrorMessage,
+  campaignShopDisplayName,
   estimateCampaignCadence,
   isEnglishCampaignSearchPhrase,
   paginateCampaigns,
@@ -30,6 +31,19 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(paginateCampaigns(campaigns, 1)).toEqual(campaigns.slice(0, 20));
     expect(paginateCampaigns(campaigns, 2)).toEqual(campaigns.slice(20, 40));
     expect(paginateCampaigns(campaigns, 3)).toEqual(campaigns.slice(40, 45));
+  });
+
+  it("prefers the shop nickname and falls back to the provider shop name", () => {
+    expect(
+      campaignShopDisplayName(
+        { alias: "  Five Shop  ", shopName: "Holylegend & DIYCOM" },
+        "shop-id",
+      ),
+    ).toBe("Five Shop");
+    expect(campaignShopDisplayName({ alias: " ", shopName: "Holylegend" }, "shop-id")).toBe(
+      "Holylegend",
+    );
+    expect(campaignShopDisplayName(null, "shop-id")).toBe("shop-id");
   });
 
   it("requires a 2–8 word English Marketplace phrase", () => {

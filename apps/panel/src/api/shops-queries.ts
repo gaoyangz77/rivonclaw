@@ -241,6 +241,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
       id
       productId
       title
+      sellerSkus
       description
       status
       coverImage
