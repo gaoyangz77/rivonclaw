@@ -161,11 +161,7 @@ interface SearchRulesCandidate {
 interface SearchSuggestionCandidate {
   keyword: string;
   explanation: string;
-  rules: SearchRulesCandidate;
-}
-
-interface SearchSuggestionDraft {
-  suggestions: SearchSuggestionCandidate[];
+  rules?: SearchRulesCandidate | null;
 }
 
 export interface CampaignSearchPhraseSuggestions {
@@ -235,6 +231,8 @@ export async function generateCampaignSearchPhraseSuggestions(input: {
       "The five groups should cover meaningfully different creator audiences, content angles, or buyer intents.",
       "Use only capability values supplied in the user request. Use null or [] when a filter is not useful.",
       `Write every explanation in ${localeInstruction(context.explanationLocale)}.`,
+      'Return one JSON array shaped as [{"keyword":"...","explanation":"...","rules":{...}}].',
+      "Rules are optional selections: include only Provider-supported filters that materially improve the search, or use an empty object.",
       "Never invent unsupported enums, IDs, performance claims, or product facts.",
     ].join(" "),
     userPrompt: JSON.stringify({
@@ -250,9 +248,27 @@ export async function generateCampaignSearchPhraseSuggestions(input: {
         explanation: `A concise reason written in ${context.explanationLocale}.`,
         rules: "A conservative subset of the supplied Provider capabilities.",
       },
+      exactOutputExample: [
+        {
+          keyword: "short English creator phrase",
+          explanation: "localized explanation",
+          rules: {
+            minimumFollowers: null,
+            maximumFollowers: null,
+            ageRanges: [],
+            gender: null,
+            genderMinimumPercentage: null,
+            gmvRanges: [],
+            unitsSoldRanges: [],
+            languages: [],
+            creatorLevels: [],
+            categoryPros: [],
+          },
+        },
+      ],
     }),
     jsonSchema: searchSuggestionJsonSchema(context.marketplaceCapabilities),
-    validate: validateSearchSuggestionDraft,
+    validate: (value) => ({ suggestions: validateSearchSuggestionDraft(value) }),
   });
 
   const validated = await input.authSession.graphqlFetch<{
@@ -361,54 +377,32 @@ function searchSuggestionJsonSchema(
     ],
   });
   return {
-    type: "object",
-    additionalProperties: false,
-    required: ["suggestions"],
-    properties: {
-      suggestions: {
-        type: "array",
-        minItems: 5,
-        maxItems: 5,
-        items: {
+    type: "array",
+    minItems: 5,
+    maxItems: 5,
+    items: {
+      type: "object",
+      additionalProperties: false,
+      required: ["keyword", "explanation"],
+      properties: {
+        keyword: { type: "string", minLength: 2, maxLength: 80 },
+        explanation: { type: "string", minLength: 1, maxLength: 300 },
+        rules: {
           type: "object",
           additionalProperties: false,
-          required: ["keyword", "explanation", "rules"],
           properties: {
-            keyword: { type: "string", minLength: 2, maxLength: 80 },
-            explanation: { type: "string", minLength: 1, maxLength: 300 },
-            rules: {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "minimumFollowers",
-                "maximumFollowers",
-                "ageRanges",
-                "gender",
-                "genderMinimumPercentage",
-                "gmvRanges",
-                "unitsSoldRanges",
-                "languages",
-                "creatorLevels",
-                "categoryPros",
-              ],
-              properties: {
-                minimumFollowers: nullableInteger,
-                maximumFollowers: nullableInteger,
-                ageRanges: nullableStringArray(capabilities.ageRanges),
-                gender: nullableStringEnum(capabilities.genders),
-                genderMinimumPercentage: {
-                  anyOf: [
-                    { type: "number", minimum: 0, maximum: 100 },
-                    { type: "null" },
-                  ],
-                },
-                gmvRanges: nullableStringArray(capabilities.gmvRanges),
-                unitsSoldRanges: nullableStringArray(capabilities.unitsSoldRanges),
-                languages: nullableStringArray(capabilities.languages),
-                creatorLevels: nullableStringArray(capabilities.creatorLevels),
-                categoryPros: nullableStringArray(capabilities.categoryPros),
-              },
+            minimumFollowers: nullableInteger,
+            maximumFollowers: nullableInteger,
+            ageRanges: nullableStringArray(capabilities.ageRanges),
+            gender: nullableStringEnum(capabilities.genders),
+            genderMinimumPercentage: {
+              anyOf: [{ type: "number", minimum: 0, maximum: 100 }, { type: "null" }],
             },
+            gmvRanges: nullableStringArray(capabilities.gmvRanges),
+            unitsSoldRanges: nullableStringArray(capabilities.unitsSoldRanges),
+            languages: nullableStringArray(capabilities.languages),
+            creatorLevels: nullableStringArray(capabilities.creatorLevels),
+            categoryPros: nullableStringArray(capabilities.categoryPros),
           },
         },
       },
@@ -416,56 +410,60 @@ function searchSuggestionJsonSchema(
   };
 }
 
-function validateSearchSuggestionDraft(value: unknown): SearchSuggestionDraft {
-  const record = strictRecord(value, ["suggestions"], "search suggestion result");
-  if (!Array.isArray(record.suggestions) || record.suggestions.length !== 5) {
+function validateSearchSuggestionDraft(value: unknown): SearchSuggestionCandidate[] {
+  if (!Array.isArray(value) || value.length !== 5) {
     throw new Error("suggestions must contain exactly five items");
   }
-  return {
-    suggestions: record.suggestions.map((item, index) => {
-      const suggestion = strictRecord(
-        item,
-        ["keyword", "explanation", "rules"],
-        `suggestions[${index}]`,
-      );
-      const rules = strictRecord(
-        suggestion.rules,
-        [
-          "minimumFollowers",
-          "maximumFollowers",
-          "ageRanges",
-          "gender",
-          "genderMinimumPercentage",
-          "gmvRanges",
-          "unitsSoldRanges",
-          "languages",
-          "creatorLevels",
-          "categoryPros",
-        ],
-        `suggestions[${index}].rules`,
-      );
-      return {
-        keyword: requiredString(suggestion.keyword, `suggestions[${index}].keyword`, 80),
-        explanation: requiredString(
-          suggestion.explanation,
-          `suggestions[${index}].explanation`,
-          300,
-        ),
-        rules: {
-          minimumFollowers: optionalNonNegativeInteger(rules.minimumFollowers),
-          maximumFollowers: optionalNonNegativeInteger(rules.maximumFollowers),
-          ageRanges: optionalStringArray(rules.ageRanges),
-          gender: optionalString(rules.gender),
-          genderMinimumPercentage: optionalPercentage(rules.genderMinimumPercentage),
-          gmvRanges: optionalStringArray(rules.gmvRanges),
-          unitsSoldRanges: optionalStringArray(rules.unitsSoldRanges),
-          languages: optionalStringArray(rules.languages),
-          creatorLevels: optionalStringArray(rules.creatorLevels),
-          categoryPros: optionalStringArray(rules.categoryPros),
-        },
-      };
-    }),
-  };
+  return value.map((item, index) => {
+    const itemRecord = recordWithAllowedKeys(
+      item,
+      ["keyword", "explanation", "rules"],
+      ["keyword", "explanation"],
+      `suggestions[${index}]`,
+    );
+    const suggestion = strictRecord(
+      {
+        keyword: itemRecord.keyword,
+        explanation: itemRecord.explanation,
+        rules: itemRecord.rules ?? {},
+      },
+      ["keyword", "explanation", "rules"],
+      `suggestions[${index}]`,
+    );
+    const rules = recordWithAllowedKeys(
+      suggestion.rules,
+      [
+        "minimumFollowers",
+        "maximumFollowers",
+        "ageRanges",
+        "gender",
+        "genderMinimumPercentage",
+        "gmvRanges",
+        "unitsSoldRanges",
+        "languages",
+        "creatorLevels",
+        "categoryPros",
+      ],
+      [],
+      `suggestions[${index}].rules`,
+    );
+    return {
+      keyword: requiredString(suggestion.keyword, `suggestions[${index}].keyword`, 80),
+      explanation: requiredString(suggestion.explanation, `suggestions[${index}].explanation`, 300),
+      rules: {
+        minimumFollowers: optionalNonNegativeInteger(rules.minimumFollowers),
+        maximumFollowers: optionalNonNegativeInteger(rules.maximumFollowers),
+        ageRanges: optionalStringArray(rules.ageRanges),
+        gender: optionalString(rules.gender),
+        genderMinimumPercentage: optionalPercentage(rules.genderMinimumPercentage),
+        gmvRanges: optionalStringArray(rules.gmvRanges),
+        unitsSoldRanges: optionalStringArray(rules.unitsSoldRanges),
+        languages: optionalStringArray(rules.languages),
+        creatorLevels: optionalStringArray(rules.creatorLevels),
+        categoryPros: optionalStringArray(rules.categoryPros),
+      },
+    };
+  });
 }
 
 function validateTemplateDraft(value: unknown): {
@@ -479,11 +477,7 @@ function validateTemplateDraft(value: unknown): {
   };
 }
 
-function strictRecord(
-  value: unknown,
-  keys: string[],
-  field: string,
-): Record<string, unknown> {
+function strictRecord(value: unknown, keys: string[], field: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${field} must be an object`);
   }
@@ -491,6 +485,24 @@ function strictRecord(
   const expected = new Set(keys);
   const actual = Object.keys(record);
   if (actual.some((key) => !expected.has(key)) || keys.some((key) => !(key in record))) {
+    throw new Error(`${field} has an invalid key set`);
+  }
+  return record;
+}
+
+function recordWithAllowedKeys(
+  value: unknown,
+  allowedKeys: string[],
+  requiredKeys: string[],
+  field: string,
+): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${field} must be an object`);
+  }
+  const record = value as Record<string, unknown>;
+  const allowed = new Set(allowedKeys);
+  const actual = Object.keys(record);
+  if (actual.some((key) => !allowed.has(key)) || requiredKeys.some((key) => !(key in record))) {
     throw new Error(`${field} has an invalid key set`);
   }
   return record;

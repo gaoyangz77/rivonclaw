@@ -97,18 +97,16 @@ describe("affiliate Campaign Desktop AI service", () => {
         discoveryRules: {},
       })),
     };
-    const graphqlFetch = vi.fn(
-      async (query: string, _variables?: Record<string, unknown>) => {
-        if (query.includes("AffiliateCampaignAiGenerationContext")) {
-          return { affiliateCampaignAiGenerationContext: context };
-        }
-        if (query.includes("ValidateAffiliateCampaignSearchPhraseSuggestions")) {
-          return { validateAffiliateCampaignSearchPhraseSuggestions: backendResult };
-        }
-        throw new Error("Unexpected GraphQL operation");
-      },
-    );
-    const structured = structuredRunnerFor({ suggestions: candidates });
+    const graphqlFetch = vi.fn(async (query: string, _variables?: Record<string, unknown>) => {
+      if (query.includes("AffiliateCampaignAiGenerationContext")) {
+        return { affiliateCampaignAiGenerationContext: context };
+      }
+      if (query.includes("ValidateAffiliateCampaignSearchPhraseSuggestions")) {
+        return { validateAffiliateCampaignSearchPhraseSuggestions: backendResult };
+      }
+      throw new Error("Unexpected GraphQL operation");
+    });
+    const structured = structuredRunnerFor(candidates);
 
     const result = await generateCampaignSearchPhraseSuggestions({
       authSession: { graphqlFetch } as never,
@@ -137,17 +135,15 @@ describe("affiliate Campaign Desktop AI service", () => {
       productShortName: "faith-inspired pendant",
       source: "AI_GENERATED" as const,
     };
-    const graphqlFetch = vi.fn(
-      async (query: string, _variables?: Record<string, unknown>) => {
-        if (query.includes("AffiliateCampaignAiGenerationContext")) {
-          return { affiliateCampaignAiGenerationContext: context };
-        }
-        if (query.includes("ValidateAffiliateCampaignMessageTemplateSuggestion")) {
-          return { validateAffiliateCampaignMessageTemplateSuggestion: backendResult };
-        }
-        throw new Error("Unexpected GraphQL operation");
-      },
-    );
+    const graphqlFetch = vi.fn(async (query: string, _variables?: Record<string, unknown>) => {
+      if (query.includes("AffiliateCampaignAiGenerationContext")) {
+        return { affiliateCampaignAiGenerationContext: context };
+      }
+      if (query.includes("ValidateAffiliateCampaignMessageTemplateSuggestion")) {
+        return { validateAffiliateCampaignMessageTemplateSuggestion: backendResult };
+      }
+      throw new Error("Unexpected GraphQL operation");
+    });
     const structured = structuredRunnerFor({
       text: backendResult.text,
       productShortName: backendResult.productShortName,

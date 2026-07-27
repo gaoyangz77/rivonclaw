@@ -10,7 +10,7 @@ function runtimeFor(outputs: string[]): {
   deleteSession: ReturnType<typeof vi.fn>;
 } {
   let turn = 0;
-  const start = vi.fn(async () => ({ runId: `run-${turn += 1}` }));
+  const start = vi.fn(async () => ({ runId: `run-${(turn += 1)}` }));
   const deleteSession = vi.fn(async () => undefined);
   const runtime: StructuredOneShotAgentRuntime = {
     resolveDefaultModel: vi.fn(() => ({
@@ -41,6 +41,13 @@ function validateName(value: unknown): { name: string } {
     throw new Error("name is required");
   }
   return { name: (value as { name: string }).name };
+}
+
+function validateNames(value: unknown): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error("names are required");
+  }
+  return value;
 }
 
 describe("runStructuredOneShotAgent", () => {
@@ -77,12 +84,39 @@ describe("runStructuredOneShotAgent", () => {
         deliver: false,
       }),
     );
+    expect(start.mock.calls[0]?.[0]).not.toHaveProperty("fastMode");
+    expect(deleteSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("honors an array root declared by the caller's JSON Schema", async () => {
+    const { runtime, start, deleteSession } = runtimeFor(['["one","two"]']);
+
+    const result = await runStructuredOneShotAgent(
+      {
+        namespace: "campaign-keywords",
+        systemPrompt: "Generate test names.",
+        userPrompt: "Generate them now.",
+        jsonSchema: {
+          type: "array",
+          items: { type: "string" },
+        },
+        validate: validateNames,
+      },
+      runtime,
+    );
+
+    expect(result.value).toEqual(["one", "two"]);
+    expect(result.repaired).toBe(false);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(start.mock.calls[0]?.[0]?.extraSystemPrompt).toContain(
+      "top-level value MUST be a JSON array",
+    );
     expect(deleteSession).toHaveBeenCalledTimes(1);
   });
 
   it("runs one schema repair turn when the first response is invalid", async () => {
     const { runtime, start, deleteSession } = runtimeFor([
-      "not-json",
+      '[{"name":"repair me"}]',
       '```json\n{"name":"repaired"}\n```',
     ]);
 
@@ -107,10 +141,15 @@ describe("runStructuredOneShotAgent", () => {
     expect(start).toHaveBeenCalledTimes(2);
     expect(start.mock.calls[1]?.[0]).toEqual(
       expect.objectContaining({
-        message: expect.stringContaining("did not satisfy the required JSON contract"),
+        message: expect.stringContaining("Repair the previous model output"),
       }),
     );
-    expect(deleteSession).toHaveBeenCalledTimes(1);
+    const repairMessage = String(start.mock.calls[1]?.[0]?.message);
+    expect(repairMessage).toContain('[{"name":"repair me"}]');
+    expect(repairMessage).toContain('"required":["name"]');
+    expect(repairMessage).toContain("Return the COMPLETE corrected JSON object only");
+    expect(deleteSession).toHaveBeenCalledTimes(2);
+    expect(deleteSession.mock.calls[0]?.[0]).not.toBe(deleteSession.mock.calls[1]?.[0]);
   });
 
   it("fails closed after one unsuccessful repair and still deletes the session", async () => {
@@ -135,6 +174,6 @@ describe("runStructuredOneShotAgent", () => {
     ).rejects.toThrow("name is required");
 
     expect(start).toHaveBeenCalledTimes(2);
-    expect(deleteSession).toHaveBeenCalledTimes(1);
+    expect(deleteSession).toHaveBeenCalledTimes(2);
   });
 });
