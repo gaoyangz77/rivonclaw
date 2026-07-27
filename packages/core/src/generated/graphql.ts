@@ -792,6 +792,41 @@ export interface AffiliateCampaignAffiliatePerformanceRulesInput {
   postRate?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface AffiliateCampaignAiGenerationContext {
+  excludePhrases: Array<Scalars['String']['output']>;
+  explanationLocale: Scalars['String']['output'];
+  marketplaceCapabilities: AffiliateMarketplaceCreatorRuleCapabilities;
+  product: AffiliateCampaignProductPreview;
+  productSnapshotHash: Scalars['String']['output'];
+  shopName: Scalars['String']['output'];
+  snapshotRef: Scalars['ID']['output'];
+}
+
+export interface AffiliateCampaignAiGenerationContextInput {
+  excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
+  snapshotRef: Scalars['ID']['input'];
+  uiLocale: Scalars['String']['input'];
+}
+
+export interface AffiliateCampaignAiSearchPhraseCandidateInput {
+  explanation: Scalars['String']['input'];
+  keyword: Scalars['String']['input'];
+  rules: AffiliateCampaignAiSearchRulesInput;
+}
+
+export interface AffiliateCampaignAiSearchRulesInput {
+  ageRanges?: InputMaybe<Array<Scalars['String']['input']>>;
+  categoryPros?: InputMaybe<Array<Scalars['String']['input']>>;
+  creatorLevels?: InputMaybe<Array<Scalars['String']['input']>>;
+  gender?: InputMaybe<Scalars['String']['input']>;
+  genderMinimumPercentage?: InputMaybe<Scalars['Float']['input']>;
+  gmvRanges?: InputMaybe<Array<Scalars['String']['input']>>;
+  languages?: InputMaybe<Array<Scalars['String']['input']>>;
+  maximumFollowers?: InputMaybe<Scalars['Int']['input']>;
+  minimumFollowers?: InputMaybe<Scalars['Int']['input']>;
+  unitsSoldRanges?: InputMaybe<Array<Scalars['String']['input']>>;
+}
+
 export interface AffiliateCampaignAudienceRules {
   ageRanges?: Maybe<Array<CreatorSearchFollowerAgeRange>>;
   genderDistribution?: Maybe<AffiliateCampaignGenderDistributionRule>;
@@ -1020,6 +1055,25 @@ export const AffiliateCampaignPredictionStatus = {
 } as const;
 
 export type AffiliateCampaignPredictionStatus = typeof AffiliateCampaignPredictionStatus[keyof typeof AffiliateCampaignPredictionStatus];
+export interface AffiliateCampaignProductPreview {
+  brandId?: Maybe<Scalars['String']['output']>;
+  brandName?: Maybe<Scalars['String']['output']>;
+  categoryLeafId: Scalars['String']['output'];
+  categoryLeafName: Scalars['String']['output'];
+  categoryPathIds: Array<Scalars['String']['output']>;
+  categoryPathNames: Array<Scalars['String']['output']>;
+  coverImage?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  maximumPriceUsdAmount: Scalars['Float']['output'];
+  minimumPriceUsdAmount: Scalars['Float']['output'];
+  observedAt: Scalars['DateTimeISO']['output'];
+  originalCurrency: Scalars['String']['output'];
+  productId: Scalars['String']['output'];
+  snapshotHash: Scalars['String']['output'];
+  status?: Maybe<Scalars['String']['output']>;
+  title: Scalars['String']['output'];
+}
+
 export interface AffiliateCampaignProductResolution {
   expiresAt: Scalars['DateTimeISO']['output'];
   snapshot: AffiliateCampaignProductSnapshot;
@@ -7684,7 +7738,10 @@ export interface Mutation {
   ensureAffiliateBusinessDevelopers: EnsureAffiliateBusinessDevelopersPayload;
   /** Generate or retrieve a cached proxy URL for an external image/video URL. Requires login. */
   genOrGetCachedProxyUrl: MediaCachedProxy;
-  /** Create one reviewable first-touch template suggestion. The result is never saved or activated automatically. */
+  /**
+   * Legacy compatibility endpoint. Campaign AI generation now runs on the user's Desktop default model.
+   * @deprecated Use the Desktop Campaign AI endpoint and validateAffiliateCampaignMessageTemplateSuggestion.
+   */
   generateAffiliateCampaignMessageTemplate: AffiliateCampaignMessageTemplateSuggestion;
   /** Generate a 6-character pairing code for QR display */
   generatePairingCode: GeneratePairingResult;
@@ -7768,9 +7825,15 @@ export interface Mutation {
   startMicrosoftEmailOAuth: StartMicrosoftEmailOAuthPayload;
   /** Create/connect the Evolution instance and return WhatsApp QR onboarding data. */
   startWhatsAppQrOnboarding: StartWhatsAppQrOnboardingPayload;
-  /** Generate reviewable Marketplace search keyword suggestions from the confirmed product snapshot. */
+  /**
+   * Legacy compatibility endpoint. Campaign AI generation now runs on the user's Desktop default model.
+   * @deprecated Use the Desktop Campaign AI endpoint and validateAffiliateCampaignSearchPhraseSuggestions.
+   */
   suggestAffiliateCampaignSearchKeywords: AffiliateCampaignSearchKeywordSuggestions;
-  /** Generate reviewable Marketplace search phrase suggestions from the confirmed product snapshot. */
+  /**
+   * Legacy compatibility endpoint. Campaign AI generation now runs on the user's Desktop default model.
+   * @deprecated Use the Desktop Campaign AI endpoint and validateAffiliateCampaignSearchPhraseSuggestions.
+   */
   suggestAffiliateCampaignSearchPhrases: AffiliateCampaignSearchPhraseSuggestions;
   /** Queue an Airflow refresh of stores/shops visible to a connected TikTok Ads advertiser and return the current snapshot. */
   syncAdsStoreAccesses: Array<AdsStoreAccess>;
@@ -7795,6 +7858,10 @@ export interface Mutation {
   /** Update a user-owned WhatsApp egress proxy. */
   updateWhatsAppProxy: WhatsAppProxy;
   upsertExpertProfile: ExpertProfile;
+  /** Strictly validate a Desktop-local AI first-touch template against Campaign safety rules. */
+  validateAffiliateCampaignMessageTemplateSuggestion: AffiliateCampaignMessageTemplateSuggestion;
+  /** Strictly validate Desktop-local AI search groups against the owned snapshot and current Provider capabilities. */
+  validateAffiliateCampaignSearchPhraseSuggestions: AffiliateCampaignSearchPhraseSuggestions;
   /** Verify a pairing code from mobile and create relay token */
   verifyPairingCode: VerifyPairingResult;
   /** Log in from a browser and store the rotating refresh token in an HttpOnly cookie */
@@ -8542,6 +8609,16 @@ export interface MutationUpsertExpertProfileArgs {
 }
 
 
+export interface MutationValidateAffiliateCampaignMessageTemplateSuggestionArgs {
+  input: ValidateAffiliateCampaignMessageTemplateSuggestionInput;
+}
+
+
+export interface MutationValidateAffiliateCampaignSearchPhraseSuggestionsArgs {
+  input: ValidateAffiliateCampaignSearchPhraseSuggestionsInput;
+}
+
+
 export interface MutationVerifyPairingCodeArgs {
   mobileDeviceId: Scalars['String']['input'];
   pairingCode: Scalars['String']['input'];
@@ -9092,6 +9169,8 @@ export interface Query {
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
   affiliateBusinessDevelopers: Array<AffiliateBusinessDeveloper>;
+  /** Read trusted product and Marketplace capability context for a Desktop-local one-shot AI generation. */
+  affiliateCampaignAiGenerationContext: AffiliateCampaignAiGenerationContext;
   /** Cursor-paginated Creator funnel states for one owned Campaign. */
   affiliateCampaignCreatorStates: AffiliateCampaignCreatorStatePage;
   /** Read recent daily execution records for one owned Campaign. */
@@ -9392,6 +9471,11 @@ export interface QueryAffiliateBusinessDeveloperPageArgs {
 
 export interface QueryAffiliateBusinessDevelopersArgs {
   includeArchived?: InputMaybe<Scalars['Boolean']['input']>;
+}
+
+
+export interface QueryAffiliateCampaignAiGenerationContextArgs {
+  input: AffiliateCampaignAiGenerationContextInput;
 }
 
 
@@ -11798,6 +11882,21 @@ export interface UserAgentProfile {
 export interface UserSupport {
   /** Per-user Telegram debug proxy token for RivonClaw support sessions. */
   telegramDebugProxyToken?: Maybe<Scalars['String']['output']>;
+}
+
+export interface ValidateAffiliateCampaignMessageTemplateSuggestionInput {
+  mode: AffiliateCampaignTemplateGenerationMode;
+  previousDraft?: InputMaybe<Scalars['String']['input']>;
+  productShortName: Scalars['String']['input'];
+  snapshotRef: Scalars['ID']['input'];
+  text: Scalars['String']['input'];
+}
+
+export interface ValidateAffiliateCampaignSearchPhraseSuggestionsInput {
+  excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
+  snapshotRef: Scalars['ID']['input'];
+  suggestions: Array<AffiliateCampaignAiSearchPhraseCandidateInput>;
+  uiLocale: Scalars['String']['input'];
 }
 
 export interface VerifyPairingResult {

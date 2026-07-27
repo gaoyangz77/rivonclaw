@@ -189,6 +189,10 @@ export const API = {
   "csBridge.conversationSummary.get": { method: "GET", path: "/api/cs-bridge/conversation-summary", desc: "Read local CS conversation summary" },
   "csBridge.conversationSummary.create": { method: "POST", path: "/api/cs-bridge/conversation-summary", desc: "Generate local CS conversation summary" },
 
+  // ── Affiliate Campaign AI (user's Desktop default model) ──
+  "affiliate.campaignAi.searchPhrases": { method: "POST", path: "/api/affiliate/campaign-ai/search-phrases", desc: "Generate and validate five Campaign search groups" },
+  "affiliate.campaignAi.messageTemplate": { method: "POST", path: "/api/affiliate/campaign-ai/message-template", desc: "Generate and validate one Campaign first-touch template" },
+
   // ── Dependencies ──
   "deps.provision":          { method: "POST",   path: "/api/deps/provision",             desc: "Trigger dependency provisioner" },
 

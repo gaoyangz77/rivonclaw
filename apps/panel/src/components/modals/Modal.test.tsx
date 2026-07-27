@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { Modal } from "./Modal.js";
+
+afterEach(cleanup);
 
 function NestedPortalModal() {
   const [open, setOpen] = useState(false);
@@ -26,14 +28,23 @@ function StackedPortalModals() {
   const [parentOpen, setParentOpen] = useState(true);
   const [childOpen, setChildOpen] = useState(false);
 
-  return <>
-    <Modal isOpen={parentOpen} onClose={() => setParentOpen(false)} title="BD details" portal>
-      <button type="button" onClick={() => setChildOpen(true)}>Connect WhatsApp</button>
-    </Modal>
-    <Modal isOpen={childOpen} onClose={() => setChildOpen(false)} title="WhatsApp connection" portal>
-      <p>Scan the QR code</p>
-    </Modal>
-  </>;
+  return (
+    <>
+      <Modal isOpen={parentOpen} onClose={() => setParentOpen(false)} title="BD details" portal>
+        <button type="button" onClick={() => setChildOpen(true)}>
+          Connect WhatsApp
+        </button>
+      </Modal>
+      <Modal
+        isOpen={childOpen}
+        onClose={() => setChildOpen(false)}
+        title="WhatsApp connection"
+        portal
+      >
+        <p>Scan the QR code</p>
+      </Modal>
+    </>
+  );
 }
 
 describe("Modal", () => {
@@ -68,5 +79,30 @@ describe("Modal", () => {
 
     expect(screen.queryByRole("dialog", { name: "WhatsApp connection" })).toBeNull();
     expect(screen.getByRole("dialog", { name: "BD details" })).toBeTruthy();
+  });
+
+  it("locks page scrolling until the last stacked modal closes", async () => {
+    document.documentElement.style.overflow = "scroll";
+    document.body.style.overflow = "auto";
+
+    render(<StackedPortalModals />);
+
+    await waitFor(() => {
+      expect(document.documentElement.style.overflow).toBe("hidden");
+      expect(document.body.style.overflow).toBe("hidden");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect WhatsApp" }));
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.body.style.overflow).toBe("hidden");
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    await waitFor(() => {
+      expect(document.documentElement.style.overflow).toBe("scroll");
+      expect(document.body.style.overflow).toBe("auto");
+    });
   });
 });
