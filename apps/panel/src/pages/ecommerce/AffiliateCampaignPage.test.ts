@@ -6,10 +6,10 @@ import {
 } from "./AffiliateCampaignPage.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
-  it("derives the nominal cadence from the fixed fourteen-hour outreach window", () => {
-    expect(estimateCampaignCadence(100, 0)).toBe("≈ 8 min");
-    expect(estimateCampaignCadence(100, 50)).toBe("≈ 17 min");
-    expect(estimateCampaignCadence(1, 0)).toBe("≈ 840 min");
+  it("reports the average target rate over the twelve-hour paced window", () => {
+    expect(estimateCampaignCadence(100, 0)).toBe("≈ 8.3 / hr");
+    expect(estimateCampaignCadence(100, 50)).toBe("≈ 4.2 / hr");
+    expect(estimateCampaignCadence(1, 0)).toBe("≈ 0.1 / hr");
   });
 
   it("renders only the supported first-touch template variables", () => {

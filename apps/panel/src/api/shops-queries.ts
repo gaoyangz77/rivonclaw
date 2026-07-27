@@ -227,8 +227,24 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     primaryProductId
     productSnapshotId
     productSnapshotHash
-    searchKeywordSource
-    searchKeywordSuggestionVersion
+    productSnapshot {
+      id
+      productId
+      title
+      description
+      status
+      coverImage
+      originalCurrency
+      minimumPriceUsdAmount
+      maximumPriceUsdAmount
+      categoryPathIds
+      categoryPathNames
+      brandId
+      brandName
+      observedAt
+      snapshotHash
+    }
+    searchPhrases { key text source suggestionVersion }
     market
     resolvedTimeZone
     dailyOutreachTarget
@@ -293,10 +309,22 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
     modelVersion
     requestedTarget
     allocatedTarget
+    effectiveTarget
     status
     pageCursor
     providerSearchKey
     pageSequence
+    searchPhraseExecutions {
+      phraseKey
+      phrase
+      pageCursor
+      pageSequence
+      scanned
+      evaluated
+      exhaustedAt
+    }
+    riskState
+    riskReason
     counters {
       scanned
       evaluated
@@ -472,6 +500,15 @@ export const SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION = gql`
   }
 `;
 
+export const DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION = gql`
+  ${AFFILIATE_CAMPAIGN_FIELDS}
+  mutation DuplicateAffiliateCampaign($input: DuplicateAffiliateCampaignInput!) {
+    duplicateAffiliateCampaign(input: $input) {
+      ...AffiliateCampaignFields
+    }
+  }
+`;
+
 export const GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION = gql`
   mutation GenerateAffiliateCampaignMessageTemplate(
     $input: GenerateAffiliateCampaignMessageTemplateInput!
@@ -486,22 +523,25 @@ export const GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION = gql`
 export const RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION = gql`
   mutation ResolveAffiliateCampaignProduct($input: ResolveAffiliateCampaignProductInput!) {
     resolveAffiliateCampaignProduct(input: $input) {
-      productId
-      title
-      description
-      status
-      coverImage
-      originalCurrency
-      minimumPriceUsdAmount
-      maximumPriceUsdAmount
-      categoryLeafId
-      categoryLeafName
-      categoryPathIds
-      categoryPathNames
-      brandId
-      brandName
-      observedAt
-      snapshotHash
+      snapshotRef
+      expiresAt
+      snapshot {
+        id
+        productId
+        title
+        description
+        status
+        coverImage
+        originalCurrency
+        minimumPriceUsdAmount
+        maximumPriceUsdAmount
+        categoryPathIds
+        categoryPathNames
+        brandId
+        brandName
+        observedAt
+        snapshotHash
+      }
     }
   }
 `;
