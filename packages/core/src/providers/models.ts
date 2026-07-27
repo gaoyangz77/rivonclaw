@@ -96,6 +96,13 @@ export interface SubscriptionPlan {
   /** Vendor catalog provider to inherit models from (instead of parent).
    *  e.g. "google-gemini-cli" for Gemini OAuth which uses Cloud Code Assist API. */
   catalogProvider?: string;
+  /**
+   * Provider ID used by the Gateway at inference time.
+   * This is intentionally separate from catalogProvider: a product/storage ID
+   * may read one catalog while authenticating and running through another
+   * provider (for example openai-codex -> openai).
+   */
+  runtimeProvider?: string;
   /** Extra models specific to this plan. */
   extraModels?: ModelConfig[];
   /** Fallback models used locally until upstream catalog catches up. */
@@ -153,6 +160,7 @@ export interface ResolvedProviderMeta {
   subscriptionUrl?: string;
   oauth?: boolean;
   catalogProvider?: string;
+  runtimeProvider?: string;
   extraModels?: ModelConfig[];
   fallbackModels?: ModelConfig[];
   preferredModel?: string;
@@ -171,6 +179,53 @@ const FREE_COST: ModelCost = {
   cacheRead: 0,
   cacheWrite: 0,
 };
+
+/**
+ * TEMPORARY: remove after the pinned OpenClaw OpenAI manifest contains all
+ * four GPT-5.6 IDs. Values mirror the upstream OpenAI plugin manifest.
+ */
+export const TEMPORARY_OPENAI_CODEX_MODELS: ModelConfig[] = [
+  {
+    provider: "openai-codex",
+    modelId: "gpt-5.6",
+    displayName: "GPT-5.6",
+    supportsVision: true,
+    cost: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 6.25 },
+    contextWindow: 1_050_000,
+    contextTokens: 272_000,
+    maxTokens: 128_000,
+  },
+  {
+    provider: "openai-codex",
+    modelId: "gpt-5.6-sol",
+    displayName: "GPT-5.6 Sol",
+    supportsVision: true,
+    cost: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 6.25 },
+    contextWindow: 1_050_000,
+    contextTokens: 272_000,
+    maxTokens: 128_000,
+  },
+  {
+    provider: "openai-codex",
+    modelId: "gpt-5.6-terra",
+    displayName: "GPT-5.6 Terra",
+    supportsVision: true,
+    cost: { input: 2.5, output: 15, cacheRead: 0.25, cacheWrite: 3.125 },
+    contextWindow: 1_050_000,
+    contextTokens: 272_000,
+    maxTokens: 128_000,
+  },
+  {
+    provider: "openai-codex",
+    modelId: "gpt-5.6-luna",
+    displayName: "GPT-5.6 Luna",
+    supportsVision: true,
+    cost: { input: 1, output: 6, cacheRead: 0.1, cacheWrite: 1.25 },
+    contextWindow: 1_050_000,
+    contextTokens: 272_000,
+    maxTokens: 128_000,
+  },
+];
 
 /**
  * Unified provider registry. All provider metadata lives here.
@@ -196,13 +251,15 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         // transports under the runtime provider id `openai`. Keep
         // `openai-codex` only as our product/storage id.
         catalogProvider: "openai",
+        runtimeProvider: "openai",
         api: "openai-chatgpt-responses",
         validationModel: "gpt-5.5",
-        preferredModel: "gpt-5.5",
-        // GPT-5.5 is the plugin's static Codex fallback. Newer account-specific
-        // models (including GPT-5.6 variants) come from live OAuth discovery,
-        // so we must not advertise them to accounts that do not expose them.
+        preferredModel: "gpt-5.6",
+        // TEMPORARY: the pinned OpenClaw manifest predates GPT-5.6. Keep these
+        // UI/runtime fallback rows aligned with upstream's OpenAI manifest and
+        // remove them after a future vendor update contains all four IDs.
         fallbackModels: [
+          ...TEMPORARY_OPENAI_CODEX_MODELS,
           {
             provider: "openai-codex",
             modelId: "gpt-5.5",
@@ -1087,6 +1144,7 @@ for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
       subscriptionUrl: plan.subscriptionUrl,
       oauth: plan.oauth,
       catalogProvider: plan.catalogProvider,
+      runtimeProvider: plan.runtimeProvider,
       extraModels: plan.extraModels,
       fallbackModels: plan.fallbackModels,
       preferredModel: plan.preferredModel,
@@ -1110,18 +1168,19 @@ export function getProviderMeta(provider: LLMProvider): ResolvedProviderMeta | u
 /**
  * Resolve the gateway provider name for a given provider ID.
  *
- * Subscription plans that have their own `extraModels` are registered as
- * separate providers in the gateway and keep their own name. Other plans
- * share the parent provider, including plans whose catalog is owned by that
- * parent (for example the `openai-codex` product plan uses runtime `openai`).
+ * Prefer the explicit runtime mapping. Legacy subscription definitions fall
+ * back to their historical extraModels/catalog behavior until they are
+ * removed from the product registry.
  */
 export function resolveGatewayProvider(provider: LLMProvider): string {
   const parent = _parentMap.get(provider);
   if (!parent) return provider; // root provider
+  const meta = getProviderMeta(provider);
+  if (meta?.runtimeProvider) return meta.runtimeProvider;
   // Plan has its own extraModels → registered as separate gateway provider
-  if (getProviderMeta(provider)?.extraModels) return provider;
+  if (meta?.extraModels) return provider;
   // Plan maps to a built-in provider with the same ID
-  if (getProviderMeta(provider)?.catalogProvider === provider) return provider;
+  if (meta?.catalogProvider === provider) return provider;
   // Otherwise use parent's name
   return parent;
 }

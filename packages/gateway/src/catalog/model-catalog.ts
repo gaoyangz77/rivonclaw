@@ -55,12 +55,12 @@ const LOCAL_CONTEXT_OVERRIDES: Record<string, { contextWindow?: number; contextT
     "openai/gpt-5.4": { contextWindow: 272_000 },
     "openai/gpt-5.4-pro": { contextWindow: 1_050_000 },
     "openai/gpt-5.4-mini": { contextWindow: 400_000 },
-    // OpenClaw exposes ChatGPT/Codex OAuth models under the unified `openai`
-    // provider. GPT-5.6 may arrive through live discovery before the pinned
-    // vendor catalog knows its effective runtime input budget.
-    "openai/gpt-5.6-terra": { contextWindow: 372_000, contextTokens: 244_000 },
-    "openai/gpt-5.6-luna": { contextWindow: 372_000, contextTokens: 244_000 },
-    "openai/gpt-5.6-sol": { contextWindow: 372_000, contextTokens: 244_000 },
+    // Temporary metadata matching the upstream OpenAI manifest while the
+    // pinned vendor still lacks GPT-5.6 static rows.
+    "openai/gpt-5.6": { contextWindow: 1_050_000, contextTokens: 272_000 },
+    "openai/gpt-5.6-terra": { contextWindow: 1_050_000, contextTokens: 272_000 },
+    "openai/gpt-5.6-luna": { contextWindow: 1_050_000, contextTokens: 272_000 },
+    "openai/gpt-5.6-sol": { contextWindow: 1_050_000, contextTokens: 272_000 },
     "rivonclaw-pro/rivonclaw-flagship": {
       contextWindow: 372_000,
       contextTokens: 244_000,
@@ -420,6 +420,28 @@ export async function readFullModelCatalog(
   const modelAliases = deriveModelIdAliases(vendor);
 
   const result = normalizeCatalog(merged, modelAliases);
+
+  // Product/storage plans may need a plan-specific selector without becoming
+  // separate runtime providers. Build those virtual catalogs after provider
+  // alias normalization so openai-codex can inherit vendor `openai` rows and
+  // prepend its temporary OAuth-only fallbacks.
+  for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
+    for (const plan of PROVIDERS[root].subscriptionPlans ?? []) {
+      const supplemental = getSupplementalCatalogEntries(plan.id);
+      if (supplemental.length === 0 || result[plan.id]) continue;
+      const sourceProvider = plan.catalogProvider ?? root;
+      const source = result[sourceProvider] ?? [];
+      const normalized = normalizeEntries([...supplemental, ...source], modelAliases).map((entry) =>
+        applyCatalogContextMetadata(sourceProvider, entry),
+      );
+      const byId = new Map<string, CatalogModelEntry>();
+      for (const entry of normalized) {
+        const existing = byId.get(entry.id);
+        byId.set(entry.id, existing ? mergeCatalogEntries(existing, entry) : entry);
+      }
+      result[plan.id] = [...byId.values()].sort((a, b) => b.id.localeCompare(a.id));
+    }
+  }
 
   // Populate core's KNOWN_MODELS so getDefaultModelForProvider etc. work
   initKnownModels(result);

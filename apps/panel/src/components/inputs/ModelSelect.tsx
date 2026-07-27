@@ -45,7 +45,10 @@ export function ModelSelect({
 
   const catalogProvider = getProviderMeta(provider as LLMProvider)?.catalogProvider ?? provider;
   const gatewayProvider = resolveGatewayProvider(provider as LLMProvider);
-  const catalogEntries = catalog[catalogProvider] ?? catalog[provider] ?? catalog[gatewayProvider] ?? [];
+  // Prefer a product-plan catalog when one exists. Its UI model list may be
+  // narrower or temporarily supplemented even though inference runs through
+  // the shared vendor provider (for example openai-codex -> openai).
+  const catalogEntries = catalog[provider] ?? catalog[catalogProvider] ?? catalog[gatewayProvider] ?? [];
   const models = catalogEntries.map((m) => ({
     modelId: m.id,
     displayName: m.name,

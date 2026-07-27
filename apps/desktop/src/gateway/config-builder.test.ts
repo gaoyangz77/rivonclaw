@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCustomProviderOverridesFromKeys,
   buildManagedGatewayAgents,
+  buildTemporaryOpenAICodexProviderOverride,
   createGatewayConfigBuilder,
   DEFAULT_GATEWAY_TOOL_ALLOWLIST,
   IMAGE_GENERATION_MODEL_REF,
@@ -258,7 +259,7 @@ describe("gateway config builder", () => {
     });
   });
 
-  it("uses native Codex OAuth for image generation without a cloud provider override", async () => {
+  it("adds the temporary GPT-5.6 catalog only for active Codex OAuth", async () => {
     const codexKey = {
       id: "codex-oauth",
       provider: "openai-codex",
@@ -293,6 +294,95 @@ describe("gateway config builder", () => {
       primary: IMAGE_GENERATION_MODEL_REF,
       timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
     });
-    expect(config.extraProviders?.openai).toBeUndefined();
+    expect(config.extraProviders?.openai).toMatchObject({
+      baseUrl: "https://chatgpt.com/backend-api/codex",
+      api: "openai-chatgpt-responses",
+    });
+    expect(config.extraProviders?.openai?.models.map((model) => model.id)).toEqual([
+      "gpt-5.6",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna",
+    ]);
+    expect(config.extraProviders?.openai?.models[0]).toMatchObject({
+      api: "openai-chatgpt-responses",
+      baseUrl: "https://chatgpt.com/backend-api/codex",
+      contextWindow: 1_050_000,
+      contextTokens: 272_000,
+      maxTokens: 128_000,
+    });
+  });
+
+  it("never applies the temporary Codex transport to an OpenAI API key", () => {
+    expect(
+      buildTemporaryOpenAICodexProviderOverride({
+        provider: "openai",
+        authType: "api",
+      }),
+    ).toEqual({});
+    expect(
+      buildTemporaryOpenAICodexProviderOverride({
+        provider: "openai-codex",
+        authType: "api",
+      }),
+    ).toEqual({});
+  });
+
+  it("persists the temporary per-model Codex transport through config validation", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-codex-56-"));
+    const configPath = join(tmpDir, "openclaw.json");
+    try {
+      writeGatewayConfig({
+        configPath,
+        extraProviders: buildTemporaryOpenAICodexProviderOverride({
+          provider: "openai-codex",
+          authType: "oauth",
+        }),
+      });
+      const config = JSON.parse(readFileSync(configPath, "utf8"));
+      expect(config.models.providers.openai.models[0]).toMatchObject({
+        id: "gpt-5.6",
+        api: "openai-chatgpt-responses",
+        baseUrl: "https://chatgpt.com/backend-api/codex",
+      });
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("leaves standard third-party provider catalogs to vendor OpenClaw", async () => {
+    const volcengineKey = {
+      id: "volcengine-api-key",
+      provider: "volcengine",
+      authType: "api",
+      isDefault: true,
+      model: "doubao-seed-2-0-pro-260215",
+    };
+    const storage = {
+      providerKeys: {
+        getActive: () => volcengineKey,
+        getAll: () => [volcengineKey],
+        getByProvider: (provider: string) =>
+          provider === volcengineKey.provider ? [volcengineKey] : [],
+      },
+      settings: { get: () => undefined },
+      channelAccounts: { list: () => [], get: () => undefined },
+      channelRecipients: { getOwners: () => [] },
+    };
+    const builder = createGatewayConfigBuilder({
+      storage: storage as never,
+      secretStore: { get: async () => null } as never,
+      locale: "en",
+      configPath: "/tmp/openclaw.json",
+      stateDir: "/tmp/openclaw",
+      extensionsDir: "/tmp/extensions",
+      sttCliPath: "/tmp/stt.js",
+      channelPluginEntries: () => ({}),
+      channelConfigAccounts: () => [],
+    });
+
+    const config = await builder.buildFullGatewayConfig(18789);
+    expect(config.extraProviders?.volcengine).toBeUndefined();
+    expect(config.managedProviderKeys).toContain("volcengine");
   });
 });

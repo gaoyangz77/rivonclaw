@@ -208,8 +208,8 @@ describe("normalizeCatalog", () => {
 
     expect(result.openai![0]).toMatchObject({
       id: "gpt-5.6-terra",
-      contextWindow: 372_000,
-      contextTokens: 244_000,
+      contextWindow: 1_050_000,
+      contextTokens: 272_000,
     });
   });
 
@@ -369,7 +369,13 @@ describe("readFullModelCatalog", () => {
     expect(KNOWN_MODELS.volcengine).toBeDefined();
     expect(KNOWN_MODELS.volcengine!.length).toBeGreaterThan(0);
     expect(KNOWN_MODELS["openai-codex"]).toBeDefined();
-    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual(["gpt-5.5"]);
+    expect(KNOWN_MODELS["openai-codex"]!.map((m) => m.modelId)).toEqual([
+      "gpt-5.6-terra",
+      "gpt-5.6-sol",
+      "gpt-5.6-luna",
+      "gpt-5.6",
+      "gpt-5.5",
+    ]);
   });
 
   it("should populate KNOWN_MODELS with gateway models", async () => {
@@ -450,9 +456,10 @@ describe("readFullModelCatalog", () => {
     // zhipu-coding should have fewer models than zhipu (6 vs 12)
     expect(result["zhipu-coding"]!.length).toBeLessThan(result.zhipu!.length);
 
-    // Legacy/product-level Codex rows normalize into the runtime catalog.
-    // The product plan reads this through catalogProvider: "openai".
-    expect(result["openai-codex"]).toBeUndefined();
+    // Runtime rows remain unified under openai, while the product plan gets a
+    // virtual selector catalog with temporary OAuth-only fallbacks.
+    expect(result["openai-codex"]).toBeDefined();
+    expect(result["openai-codex"]!.map((m) => m.id)).toContain("gpt-5.6");
     expect(result.openai!.map((m) => m.id)).toContain("gpt-5.5");
   });
 
@@ -525,7 +532,7 @@ describe("readFullModelCatalog", () => {
 
     expect(ids).toContain("vendor-only-codex");
     expect(ids).toContain("gpt-5.5");
-    expect(result["openai-codex"]).toBeUndefined();
+    expect(result["openai-codex"]!.map((m) => m.id)).toContain("gpt-5.6");
   });
 
   it("should expose upstream Codex models under unified openai", async () => {
@@ -552,7 +559,7 @@ describe("readFullModelCatalog", () => {
     const ids = result.openai!.map((m) => m.id);
 
     expect(result.codex).toBeUndefined();
-    expect(result["openai-codex"]).toBeUndefined();
+    expect(result["openai-codex"]!.map((m) => m.id)).toContain("gpt-5.6");
     expect(ids).toContain("gpt-upstream-latest");
     expect(ids).toContain("gpt-upstream-mini");
     expect(ids).toContain("gpt-5.5");

@@ -670,6 +670,10 @@ export interface WriteGatewayConfigOptions {
       models: Array<{
         id: string;
         name: string;
+        /** Optional per-model transport override supported by OpenClaw. */
+        api?: string;
+        /** Optional per-model endpoint override supported by OpenClaw. */
+        baseUrl?: string;
         reasoning?: boolean;
         input?: Array<"text" | "image">;
         cost?: { input: number; output: number; cacheRead: number; cacheWrite: number };
