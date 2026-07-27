@@ -14,6 +14,7 @@ import { registerLogsHandlers } from "../logs/api.js";
 import { registerDoctorHandlers } from "../doctor/api.js";
 import { registerToolRegistryHandlers } from "../gateway/api.js";
 import { registerMediaCacheHandlers } from "../media-cache/api.js";
+import { registerAffiliateCampaignAiHandlers } from "../affiliate/campaign-ai-api.js";
 
 export function registerAllHandlers(registry: RouteRegistry): void {
   registerAuthHandlers(registry);
@@ -31,4 +32,5 @@ export function registerAllHandlers(registry: RouteRegistry): void {
   registerLogsHandlers(registry);
   registerDoctorHandlers(registry);
   registerToolRegistryHandlers(registry);
+  registerAffiliateCampaignAiHandlers(registry);
 }

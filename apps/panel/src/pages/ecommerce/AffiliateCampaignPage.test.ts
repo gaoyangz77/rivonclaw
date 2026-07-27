@@ -32,8 +32,8 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(paginateCampaigns(campaigns, 3)).toEqual(campaigns.slice(40, 45));
   });
 
-  it("accepts one-word Marketplace keywords while rejecting non-English input", () => {
-    expect(isEnglishCampaignSearchPhrase("necklace")).toBe(true);
+  it("requires a 2–8 word English Marketplace phrase", () => {
+    expect(isEnglishCampaignSearchPhrase("necklace")).toBe(false);
     expect(isEnglishCampaignSearchPhrase("faith based fashion")).toBe(true);
     expect(isEnglishCampaignSearchPhrase("达人饰品")).toBe(false);
   });

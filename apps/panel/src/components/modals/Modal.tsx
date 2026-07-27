@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 const openModalStack: string[] = [];
+let documentOverflowBeforeModal = "";
+let bodyOverflowBeforeModal = "";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -41,6 +43,12 @@ export function Modal({
   useEffect(() => {
     if (!isOpen) return;
     openModalStack.push(titleId);
+    if (openModalStack.length === 1) {
+      documentOverflowBeforeModal = document.documentElement.style.overflow;
+      bodyOverflowBeforeModal = document.body.style.overflow;
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+    }
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const content = contentRef.current;
@@ -77,6 +85,10 @@ export function Modal({
       document.removeEventListener("keydown", onKeyDown);
       const stackIndex = openModalStack.lastIndexOf(titleId);
       if (stackIndex >= 0) openModalStack.splice(stackIndex, 1);
+      if (openModalStack.length === 0) {
+        document.documentElement.style.overflow = documentOverflowBeforeModal;
+        document.body.style.overflow = bodyOverflowBeforeModal;
+      }
       previousFocus?.focus();
     };
   }, [isOpen, titleId]);

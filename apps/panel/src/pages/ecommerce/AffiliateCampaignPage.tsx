@@ -15,6 +15,10 @@ import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import {
+  generateAffiliateCampaignMessageTemplate,
+  generateAffiliateCampaignSearchPhrases,
+} from "../../api/affiliate-campaign-ai.js";
+import {
   AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
@@ -23,11 +27,9 @@ import {
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
   DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION,
-  GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION,
   RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION,
   SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION,
   SHOPS_QUERY,
-  SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION,
   WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "../../api/shops-queries.js";
 
@@ -187,6 +189,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [campaignPage, setCampaignPage] = useState(1);
   const [stateStatus, setStateStatus] = useState("");
+  const [generatingSearchGroups, setGeneratingSearchGroups] = useState(false);
+  const [generatingTemplate, setGeneratingTemplate] = useState(false);
   const [productPreview, setProductPreview] = useState<GQL.AffiliateCampaignProductSnapshot | null>(
     null,
   );
@@ -253,18 +257,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { setAffiliateCampaignStatus: GQL.AffiliateCampaign },
     { input: GQL.SetAffiliateCampaignStatusInput }
   >(SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION);
-  const [generateTemplate, generateTemplateState] = useMutation<
-    { generateAffiliateCampaignMessageTemplate: GQL.AffiliateCampaignMessageTemplateSuggestion },
-    { input: GQL.GenerateAffiliateCampaignMessageTemplateInput }
-  >(GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION);
   const [resolveProduct, resolveProductState] = useMutation<
     { resolveAffiliateCampaignProduct: GQL.AffiliateCampaignProductResolution },
     { input: GQL.ResolveAffiliateCampaignProductInput }
   >(RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION);
-  const [suggestKeywords, suggestKeywordsState] = useMutation<
-    { suggestAffiliateCampaignSearchPhrases: GQL.AffiliateCampaignSearchPhraseSuggestions },
-    { input: GQL.SuggestAffiliateCampaignSearchPhrasesInput }
-  >(SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION);
   const [duplicateCampaign, duplicateCampaignState] = useMutation<
     { duplicateAffiliateCampaign: GQL.AffiliateCampaign },
     { input: GQL.DuplicateAffiliateCampaignInput }
@@ -522,18 +518,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const requestKeywordSuggestions = async (existingPhrases: string[]) => {
     if (!productPreview || !form.productSnapshotRef) return;
+    setGeneratingSearchGroups(true);
     try {
-      const result = await suggestKeywords({
-        variables: {
-          input: {
-            snapshotRef: form.productSnapshotRef,
-            uiLocale: i18n.resolvedLanguage ?? i18n.language,
-            excludePhrases: existingPhrases,
-          },
-        },
+      const payload = await generateAffiliateCampaignSearchPhrases({
+        snapshotRef: form.productSnapshotRef,
+        uiLocale: i18n.resolvedLanguage ?? i18n.language,
+        excludePhrases: existingPhrases,
       });
-      const payload = result.data?.suggestAffiliateCampaignSearchPhrases;
-      if (!payload) throw new Error(t("ecommerce.affiliateCampaign.keywordSuggestionFailed"));
       setForm((current) => ({
         ...current,
         searchPhrases: payload.suggestions.map((suggestion) => ({
@@ -548,6 +539,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.keywordSuggestionsReady"), "success");
     } catch (error) {
       showToast(campaignErrorMessage(error, t), "error");
+    } finally {
+      setGeneratingSearchGroups(false);
     }
   };
 
@@ -624,21 +617,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const generateMessage = async () => {
     if (!form.productSnapshotRef) return;
+    setGeneratingTemplate(true);
     try {
-      const result = await generateTemplate({
-        variables: {
-          input: {
-            snapshotRef: form.productSnapshotRef,
-            guidance: form.templateGuidance.trim() || null,
-            mode: form.templateText.trim()
-              ? GQL.AffiliateCampaignTemplateGenerationMode.Alternative
-              : GQL.AffiliateCampaignTemplateGenerationMode.Initial,
-            previousDraft: form.templateText.trim() || null,
-          },
-        },
+      const suggestion = await generateAffiliateCampaignMessageTemplate({
+        snapshotRef: form.productSnapshotRef,
+        uiLocale: i18n.resolvedLanguage ?? i18n.language,
+        guidance: form.templateGuidance.trim() || undefined,
+        mode: form.templateText.trim()
+          ? GQL.AffiliateCampaignTemplateGenerationMode.Alternative
+          : GQL.AffiliateCampaignTemplateGenerationMode.Initial,
+        previousDraft: form.templateText.trim() || undefined,
       });
-      const suggestion = result.data?.generateAffiliateCampaignMessageTemplate;
-      if (!suggestion) throw new Error(t("ecommerce.affiliateCampaign.templateGenerationFailed"));
       setForm((current) => ({
         ...current,
         templateText: suggestion.text,
@@ -648,6 +637,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.templateReady"), "success");
     } catch (error) {
       showToast(campaignErrorMessage(error, t), "error");
+    } finally {
+      setGeneratingTemplate(false);
     }
   };
 
@@ -1485,10 +1476,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    disabled={!productPreview || suggestKeywordsState.loading}
+                    disabled={!productPreview || generatingSearchGroups}
                     onClick={generateKeywordSuggestions}
                   >
-                    {suggestKeywordsState.loading
+                    {generatingSearchGroups
                       ? t("ecommerce.affiliateCampaign.generating")
                       : t(
                           form.searchPhrases.some((phrase) => phrase.text.trim())
@@ -1804,9 +1795,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => void generateMessage()}
-                    disabled={generateTemplateState.loading}
+                    disabled={generatingTemplate}
                   >
-                    {generateTemplateState.loading
+                    {generatingTemplate
                       ? t("ecommerce.affiliateCampaign.generating")
                       : t(
                           form.templateText.trim()
@@ -2663,7 +2654,7 @@ export function isEnglishCampaignSearchPhrase(value: string): boolean {
     return false;
   }
   const words = value.match(/\p{Script=Latin}[\p{Script=Latin}\p{Mark}'’-]*/gu) ?? [];
-  return words.length >= 1 && words.length <= 8;
+  return words.length >= 2 && words.length <= 8;
 }
 
 export function campaignErrorMessage(
