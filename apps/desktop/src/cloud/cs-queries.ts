@@ -122,6 +122,22 @@ export const CS_GET_OR_CREATE_SESSION_MUTATION = `
   }
 `;
 
+export const CS_ACKNOWLEDGE_CONVERSATION_HANDLED_MUTATION = `
+  mutation CsAcknowledgeConversationHandled(
+    $shopId: ID!
+    $conversationId: String!
+    $messageId: String!
+    $messageIndex: String
+  ) {
+    csAcknowledgeConversationHandled(
+      shopId: $shopId
+      conversationId: $conversationId
+      messageId: $messageId
+      messageIndex: $messageIndex
+    )
+  }
+`;
+
 const CS_ESCALATION_EVENT_FIELDS = `
   escalation {
     id

@@ -47,6 +47,7 @@ import {
   GET_CONVERSATION_MESSAGE_DELTA_QUERY,
   GET_BUYER_ORDERS_QUERY,
   CS_GET_OR_CREATE_SESSION_MUTATION,
+  CS_ACKNOWLEDGE_CONVERSATION_HANDLED_MUTATION,
 } from "../cloud/cs-queries.js";
 import { readLatestUserSessionAnchor } from "../utils/openclaw-session-anchor.js";
 import {
@@ -783,10 +784,18 @@ export class CustomerServiceSession {
     wasAborted: boolean;
     hadForwardedText: boolean;
     hadTerminalToolAction: boolean;
+    hadOperationalFailure: boolean;
+    buyerMessageId?: string;
+    buyerMessageIndex?: string;
   } {
     const round = this.roundsByRunId.get(runId);
     if (!round) {
-      return { wasAborted: false, hadForwardedText: false, hadTerminalToolAction: false };
+      return {
+        wasAborted: false,
+        hadForwardedText: false,
+        hadTerminalToolAction: false,
+        hadOperationalFailure: false,
+      };
     }
 
     const result = round.completeRun(runId);
@@ -794,6 +803,94 @@ export class CustomerServiceSession {
       this.disposeRound(round);
     }
     return result;
+  }
+
+  async acknowledgeHandledWithoutReply(params: {
+    runId: string;
+    messageId?: string;
+    messageIndex?: string;
+  }): Promise<void> {
+    if (!params.messageId) {
+      log.info(
+        `Agent run ${params.runId} completed without buyer-facing text and has no buyer cursor to acknowledge`,
+      );
+      this.emitDispatchTelemetry({
+        source: "desktop",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "completed",
+        reason: "handled_without_reply_no_cursor",
+        runId: params.runId,
+      });
+      return;
+    }
+
+    const authSession = getAuthSession();
+    if (!authSession) {
+      const error = new Error("No auth session available for handled-without-reply acknowledgement");
+      this.emitError(CS_ERROR_STAGE.COMPLETION_ACK, {
+        reason: "no_auth_session",
+        errorMessage: error,
+        runId: params.runId,
+      });
+      this.emitDispatchTelemetry({
+        source: "desktop",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "failed",
+        reason: "handled_without_reply_ack_failed",
+        messageId: params.messageId,
+        messageIndex: params.messageIndex,
+        runId: params.runId,
+        errorMessage: error,
+      });
+      return;
+    }
+
+    try {
+      const result = await authSession.graphqlFetch<{
+        csAcknowledgeConversationHandled: boolean;
+      }>(CS_ACKNOWLEDGE_CONVERSATION_HANDLED_MUTATION, {
+        shopId: this.csContext.shopId,
+        conversationId: this.csContext.conversationId,
+        messageId: params.messageId,
+        messageIndex: params.messageIndex,
+      });
+      const acknowledged = result.csAcknowledgeConversationHandled === true;
+      log.info(
+        acknowledged
+          ? `Agent run ${params.runId} completed without buyer-facing reply; acknowledged buyer message ${params.messageId}`
+          : `Agent run ${params.runId} completed without buyer-facing reply; buyer cursor ${params.messageId} is no longer pending`,
+      );
+      this.emitDispatchTelemetry({
+        source: "desktop",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "completed",
+        reason: acknowledged ? "handled_without_reply" : "handled_without_reply_stale",
+        messageId: params.messageId,
+        messageIndex: params.messageIndex,
+        runId: params.runId,
+      });
+    } catch (err) {
+      log.warn(
+        `Failed to acknowledge handled-without-reply run ${params.runId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      this.emitError(CS_ERROR_STAGE.COMPLETION_ACK, {
+        reason: "graphql_error",
+        errorMessage: err,
+        runId: params.runId,
+      });
+      this.emitDispatchTelemetry({
+        source: "desktop",
+        dispatchReason: "PENDING_BUYER_MESSAGE",
+        outcome: "failed",
+        reason: "handled_without_reply_ack_failed",
+        messageId: params.messageId,
+        messageIndex: params.messageIndex,
+        runId: params.runId,
+        errorMessage: err,
+      });
+    }
   }
 
   // -- Escalation lifecycle ---------------------------------------------------
@@ -1729,6 +1826,10 @@ export class CustomerServiceSession {
 
   markRunTerminalToolStarted(runId: string): void {
     this.roundsByRunId.get(runId)?.markTerminalToolStarted(runId);
+  }
+
+  markRunOperationalFailure(runId: string): void {
+    this.roundsByRunId.get(runId)?.markOperationalFailure(runId);
   }
 
   getDebugRoundCount(): number {
