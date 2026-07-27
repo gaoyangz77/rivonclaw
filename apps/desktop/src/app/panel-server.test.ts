@@ -1,5 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { createServer } from "node:http";
 import type { Server } from "node:http";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createStorage, type Storage } from "@rivonclaw/storage";
 import { startPanelServer } from "./panel-server.js";
 
@@ -136,7 +140,7 @@ describe("panel-server API", () => {
 
   describe("GET /api/key-usage/active", () => {
     it("returns 200 with null when no active key", async () => {
-      const { status, body } = await fetchJson<unknown>("/api/key-usage/active");
+      const { status } = await fetchJson<unknown>("/api/key-usage/active");
       expect(status).toBe(200);
     });
   });
@@ -224,5 +228,426 @@ describe("panel-server API", () => {
         expect(body.error).toContain("Invalid slug");
       });
     });
+  });
+});
+
+describe("managed chat media proxy", () => {
+  it("proxies gateway-managed assistant media with gateway bearer auth", async () => {
+    const imageBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    let observedAuthorization: string | undefined;
+    let observedPath: string | undefined;
+
+    const gateway = createServer((req, res) => {
+      observedAuthorization = req.headers.authorization;
+      observedPath = req.url;
+      res.writeHead(200, {
+        "Content-Type": "image/png",
+        "Content-Length": String(imageBytes.byteLength),
+        "Cache-Control": "private, max-age=31536000, immutable",
+      });
+      res.end(imageBytes);
+    });
+    const gatewayPort = await new Promise<number>((resolve, reject) => {
+      gateway.listen(0, "127.0.0.1", () => {
+        const address = gateway.address();
+        if (address && typeof address === "object") resolve(address.port);
+        else reject(new Error("gateway test server did not bind"));
+      });
+      gateway.on("error", reject);
+    });
+
+    const testStorage = createStorage(":memory:");
+    const panel = await startPanelServer({
+      port: 0,
+      panelDistDir: "/tmp/nonexistent-panel-dist",
+      storage: testStorage,
+      secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+      vendorDir: "/tmp/nonexistent-vendor",
+      nodeBin: process.execPath,
+      proxyRouterPort: 18881,
+      gatewayPort,
+      getGatewayInfo: () => ({
+        wsUrl: `ws://127.0.0.1:${gatewayPort}`,
+        token: "gateway-token",
+      }),
+    });
+
+    try {
+      const mediaPath =
+        "/api/chat/media/outgoing/agent%3Amain%3Apanel-dfc12609/56745c79-d32f-4f8b-89f1-e1b71c67dfdb/full";
+      const res = await fetch(`http://127.0.0.1:${panel.port}${mediaPath}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+      expect(Buffer.from(await res.arrayBuffer())).toEqual(imageBytes);
+      expect(observedAuthorization).toBe("Bearer gateway-token");
+      expect(observedPath).toBe(mediaPath);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        panel.server.close((err) => (err ? reject(err) : resolve()));
+      });
+      await new Promise<void>((resolve, reject) => {
+        gateway.close((err) => (err ? reject(err) : resolve()));
+      });
+      testStorage.close();
+    }
+  });
+
+  it("serves gateway-managed assistant media from the local store when gateway history lookup misses it", async () => {
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = mkdtempSync(join(tmpdir(), "panel-managed-media-"));
+    const attachmentId = "39a1ab68-9584-4dc0-a831-14c507ca43fb";
+    const sessionKey = "agent:main:panel-dfc12609";
+    const imageBytes = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+    const mediaBase = join(stateDir, "media", "outgoing");
+    const recordsDir = join(mediaBase, "records");
+    const originalsDir = join(mediaBase, "originals");
+    mkdirSync(recordsDir, { recursive: true });
+    mkdirSync(originalsDir, { recursive: true });
+    const imagePath = join(originalsDir, "chart.jpg");
+    writeFileSync(imagePath, imageBytes);
+    writeFileSync(
+      join(recordsDir, `${attachmentId}.json`),
+      JSON.stringify({
+        attachmentId,
+        sessionKey,
+        messageId: "side-append-message",
+        createdAt: "2026-07-27T22:27:08.417Z",
+        retentionClass: "history",
+        alt: "chart.jpg",
+        original: {
+          path: imagePath,
+          contentType: "image/jpeg",
+          width: 2048,
+          height: 1172,
+          sizeBytes: imageBytes.byteLength,
+          filename: "chart.jpg",
+        },
+      }),
+    );
+
+    const gateway = createServer((_req, res) => {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("not found");
+    });
+    const gatewayPort = await new Promise<number>((resolve, reject) => {
+      gateway.listen(0, "127.0.0.1", () => {
+        const address = gateway.address();
+        if (address && typeof address === "object") resolve(address.port);
+        else reject(new Error("gateway test server did not bind"));
+      });
+      gateway.on("error", reject);
+    });
+
+    const testStorage = createStorage(":memory:");
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    const panel = await startPanelServer({
+      port: 0,
+      panelDistDir: "/tmp/nonexistent-panel-dist",
+      storage: testStorage,
+      secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+      vendorDir: "/tmp/nonexistent-vendor",
+      nodeBin: process.execPath,
+      proxyRouterPort: 18881,
+      gatewayPort,
+      getGatewayInfo: () => ({
+        wsUrl: `ws://127.0.0.1:${gatewayPort}`,
+        token: "gateway-token",
+      }),
+    });
+
+    try {
+      const mediaPath = `/api/chat/media/outgoing/${encodeURIComponent(sessionKey)}/${attachmentId}/full`;
+      const res = await fetch(`http://127.0.0.1:${panel.port}${mediaPath}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/jpeg");
+      expect(Buffer.from(await res.arrayBuffer())).toEqual(imageBytes);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        panel.server.close((err) => (err ? reject(err) : resolve()));
+      });
+      await new Promise<void>((resolve, reject) => {
+        gateway.close((err) => (err ? reject(err) : resolve()));
+      });
+      testStorage.close();
+      if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+      else process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to the transcript MEDIA path when the managed original has been removed", async () => {
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = mkdtempSync(join(tmpdir(), "panel-managed-media-transcript-"));
+    const attachmentId = "39a1ab68-9584-4dc0-a831-14c507ca43fb";
+    const sessionKey = "agent:main:panel-dfc12609";
+    const imageBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const mediaBase = join(stateDir, "media", "outgoing");
+    const recordsDir = join(mediaBase, "records");
+    const workspaceDir = join(stateDir, "workspace");
+    const sessionsDir = join(stateDir, "agents", "main", "sessions");
+    mkdirSync(recordsDir, { recursive: true });
+    mkdirSync(workspaceDir, { recursive: true });
+    mkdirSync(sessionsDir, { recursive: true });
+    const workspaceImagePath = join(workspaceDir, "chart.png");
+    writeFileSync(workspaceImagePath, imageBytes);
+    writeFileSync(
+      join(recordsDir, `${attachmentId}.json`),
+      JSON.stringify({
+        attachmentId,
+        sessionKey,
+        messageId: "side-append-message",
+        original: {
+          path: join(mediaBase, "originals", "removed.jpg"),
+          contentType: "image/jpeg",
+          filename: "removed.jpg",
+        },
+      }),
+    );
+    writeFileSync(
+      join(sessionsDir, "session.jsonl"),
+      [
+        JSON.stringify({
+          type: "message",
+          id: "text-message",
+          message: {
+            role: "assistant",
+            content: [{ type: "text", text: `Here it is:\n\nMEDIA:${workspaceImagePath}` }],
+          },
+        }),
+        JSON.stringify({
+          type: "message",
+          id: "side-append-message",
+          parentId: "text-message",
+          message: {
+            role: "assistant",
+            content: [{ type: "image", url: "unused" }],
+          },
+        }),
+      ].join("\n"),
+    );
+
+    const gateway = createServer((_req, res) => {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("not found");
+    });
+    const gatewayPort = await new Promise<number>((resolve, reject) => {
+      gateway.listen(0, "127.0.0.1", () => {
+        const address = gateway.address();
+        if (address && typeof address === "object") resolve(address.port);
+        else reject(new Error("gateway test server did not bind"));
+      });
+      gateway.on("error", reject);
+    });
+
+    const testStorage = createStorage(":memory:");
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    const panel = await startPanelServer({
+      port: 0,
+      panelDistDir: "/tmp/nonexistent-panel-dist",
+      storage: testStorage,
+      secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+      vendorDir: "/tmp/nonexistent-vendor",
+      nodeBin: process.execPath,
+      proxyRouterPort: 18881,
+      gatewayPort,
+      getGatewayInfo: () => ({
+        wsUrl: `ws://127.0.0.1:${gatewayPort}`,
+        token: "gateway-token",
+      }),
+    });
+
+    try {
+      const mediaPath = `/api/chat/media/outgoing/${encodeURIComponent(sessionKey)}/${attachmentId}/full`;
+      const res = await fetch(`http://127.0.0.1:${panel.port}${mediaPath}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+      expect(Buffer.from(await res.arrayBuffer())).toEqual(imageBytes);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        panel.server.close((err) => (err ? reject(err) : resolve()));
+      });
+      await new Promise<void>((resolve, reject) => {
+        gateway.close((err) => (err ? reject(err) : resolve()));
+      });
+      testStorage.close();
+      if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+      else process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to the transcript MEDIA path when the managed record has been removed", async () => {
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = mkdtempSync(join(tmpdir(), "panel-managed-media-pruned-record-"));
+    const attachmentId = "971b2e3f-8fc6-4a58-850e-97b648c051b7";
+    const sessionKey = "agent:main:panel-dfc12609";
+    const imageBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const workspaceDir = join(stateDir, "workspace");
+    const sessionsDir = join(stateDir, "agents", "main", "sessions");
+    mkdirSync(workspaceDir, { recursive: true });
+    mkdirSync(sessionsDir, { recursive: true });
+    const workspaceImagePath = join(workspaceDir, "holylegend_current_sps_component_scores.png");
+    writeFileSync(workspaceImagePath, imageBytes);
+    writeFileSync(
+      join(sessionsDir, "session.jsonl"),
+      [
+        JSON.stringify({
+          type: "message",
+          id: "assistant-text",
+          message: {
+            role: "assistant",
+            content: `Reattached the chart below.\n\nMEDIA:${workspaceImagePath}`,
+          },
+        }),
+        JSON.stringify({
+          type: "message",
+          id: "assistant-image",
+          parentId: "assistant-text",
+          message: {
+            role: "assistant",
+            content: [
+              {
+                type: "image",
+                url: `/api/chat/media/outgoing/${encodeURIComponent(sessionKey)}/${attachmentId}/full`,
+              },
+            ],
+          },
+        }),
+      ].join("\n"),
+    );
+
+    const gateway = createServer((_req, res) => {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("not found");
+    });
+    const gatewayPort = await new Promise<number>((resolve, reject) => {
+      gateway.listen(0, "127.0.0.1", () => {
+        const address = gateway.address();
+        if (address && typeof address === "object") resolve(address.port);
+        else reject(new Error("gateway test server did not bind"));
+      });
+      gateway.on("error", reject);
+    });
+
+    const testStorage = createStorage(":memory:");
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    const panel = await startPanelServer({
+      port: 0,
+      panelDistDir: "/tmp/nonexistent-panel-dist",
+      storage: testStorage,
+      secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+      vendorDir: "/tmp/nonexistent-vendor",
+      nodeBin: process.execPath,
+      proxyRouterPort: 18881,
+      gatewayPort,
+      getGatewayInfo: () => ({
+        wsUrl: `ws://127.0.0.1:${gatewayPort}`,
+        token: "gateway-token",
+      }),
+    });
+
+    try {
+      const mediaPath = `/api/chat/media/outgoing/${encodeURIComponent(sessionKey)}/${attachmentId}/full`;
+      const res = await fetch(`http://127.0.0.1:${panel.port}${mediaPath}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+      expect(Buffer.from(await res.arrayBuffer())).toEqual(imageBytes);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        panel.server.close((err) => (err ? reject(err) : resolve()));
+      });
+      await new Promise<void>((resolve, reject) => {
+        gateway.close((err) => (err ? reject(err) : resolve()));
+      });
+      testStorage.close();
+      if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+      else process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("local chat media route", () => {
+  it("serves image files under the OpenClaw state directory", async () => {
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = mkdtempSync(join(tmpdir(), "panel-local-chat-media-"));
+    const workspaceDir = join(stateDir, "workspace");
+    mkdirSync(workspaceDir, { recursive: true });
+    const imageBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const imagePath = join(workspaceDir, "chart.png");
+    writeFileSync(imagePath, imageBytes);
+
+    const testStorage = createStorage(":memory:");
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    const panel = await startPanelServer({
+      port: 0,
+      panelDistDir: "/tmp/nonexistent-panel-dist",
+      storage: testStorage,
+      secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+      vendorDir: "/tmp/nonexistent-vendor",
+      nodeBin: process.execPath,
+      proxyRouterPort: 18881,
+      gatewayPort: 18882,
+    });
+
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:${panel.port}/api/chat/media/local?path=${encodeURIComponent(imagePath)}`,
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+      expect(Buffer.from(await res.arrayBuffer())).toEqual(imageBytes);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        panel.server.close((err) => (err ? reject(err) : resolve()));
+      });
+      testStorage.close();
+      if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+      else process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects image paths outside the OpenClaw state directory", async () => {
+    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+    const stateDir = mkdtempSync(join(tmpdir(), "panel-local-chat-media-deny-"));
+    const outsideDir = mkdtempSync(join(tmpdir(), "panel-local-chat-media-outside-"));
+    const outsidePath = join(outsideDir, "chart.png");
+    writeFileSync(outsidePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+    const testStorage = createStorage(":memory:");
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    const panel = await startPanelServer({
+      port: 0,
+      panelDistDir: "/tmp/nonexistent-panel-dist",
+      storage: testStorage,
+      secretStore: { get: async () => null, set: async () => {}, delete: async () => {} } as any,
+      vendorDir: "/tmp/nonexistent-vendor",
+      nodeBin: process.execPath,
+      proxyRouterPort: 18881,
+      gatewayPort: 18882,
+    });
+
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:${panel.port}/api/chat/media/local?path=${encodeURIComponent(outsidePath)}`,
+      );
+
+      expect(res.status).toBe(403);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        panel.server.close((err) => (err ? reject(err) : resolve()));
+      });
+      testStorage.close();
+      if (previousStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
+      else process.env.OPENCLAW_STATE_DIR = previousStateDir;
+      rmSync(stateDir, { recursive: true, force: true });
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
   });
 });

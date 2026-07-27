@@ -10,7 +10,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": {
-        target: `http://localhost:${DEFAULTS.ports.panelDevBackend}`,
+        target: `http://127.0.0.1:${DEFAULTS.ports.panelDevBackend}`,
         changeOrigin: true,
       },
     },
