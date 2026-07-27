@@ -9,6 +9,11 @@ import {
 } from "../chat-utils.js";
 import { MarkdownMessage, CopyButton, CollapsibleContent, ToolArgsDisplay } from "../ChatMessage.js";
 
+function chatImageSrc(img: { data?: string; url?: string; mimeType: string }): string {
+  if (img.url) return img.url;
+  return `data:${img.mimeType};base64,${img.data ?? ""}`;
+}
+
 export interface ChatMessageListProps {
   visibleMessages: ChatMessage[];
   streaming: string | null;
@@ -93,8 +98,8 @@ export function ChatMessageList({
                   {msg.images!.map((img, j) => (
                     <img
                       key={j}
-                      src={`data:${img.mimeType};base64,${img.data}`}
-                      alt=""
+                      src={chatImageSrc(img)}
+                      alt={img.alt ?? ""}
                       className="chat-bubble-img"
                     />
                   ))}

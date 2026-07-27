@@ -6,7 +6,15 @@ export {
   type ChannelSessionRecipient,
 } from "../../lib/chat-session-keys.js";
 
-export type ChatImage = { data: string; mimeType: string };
+export type ChatImage = {
+  data?: string;
+  url?: string;
+  openUrl?: string;
+  alt?: string;
+  mimeType: string;
+  width?: number;
+  height?: number;
+};
 
 export type ToolEventStatus = "running" | "failed";
 
@@ -200,6 +208,12 @@ export function cleanMessageText(text: string): string {
     )
     .trim();
 
+  // Strip generated-media path directives once the gateway has converted them
+  // into managed image blocks. This avoids leaking local workspace paths in chat.
+  cleaned = cleaned
+    .replace(/(?:^|\n)\s*MEDIA:\s*\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?\s*(?=\n|$)/gi, "\n")
+    .trim();
+
   // Strip agent instruction about sending images back (injected by gateway for media messages)
   cleaned = cleaned
     .replace(/To send an image back,[\s\S]*?Keep caption in the text body\.\s*/g, "")
@@ -339,11 +353,24 @@ export function extractImages(content: unknown): ChatImage[] {
   if (!Array.isArray(content)) return [];
   return content
     .filter((b: { type?: string }) => b.type === "image")
-    .map((b: { data?: string; mimeType?: string }) => ({
+    .map((b: {
+      data?: string;
+      url?: string;
+      openUrl?: string;
+      alt?: string;
+      mimeType?: string;
+      width?: number;
+      height?: number;
+    }) => ({
       data: b.data ?? "",
+      url: b.url,
+      openUrl: b.openUrl,
+      alt: b.alt,
       mimeType: b.mimeType ?? "image/jpeg",
+      width: b.width,
+      height: b.height,
     }))
-    .filter((img) => img.data);
+    .filter((img) => img.data || img.url);
 }
 
 /** Returns true if content contains any image-type blocks, regardless of data. */
@@ -760,12 +787,21 @@ export function parseRawMessages(
  */
 export function mergeTerminalError(
   messages: ChatMessage[],
-  error: { text: string; timestamp: number } | undefined,
+  error: { runId?: string; text: string; timestamp: number } | undefined,
 ): ChatMessage[] {
   if (!error) return messages;
+  if (error.runId && hasSuccessfulAssistantMessageForRun(messages, error.runId)) return messages;
   const alreadyPresent = messages.some((m) => m.role === "assistant" && m.text === error.text);
   if (alreadyPresent) return messages;
-  return [...messages, { role: "assistant", text: error.text, timestamp: error.timestamp }];
+  return [
+    ...messages,
+    {
+      role: "assistant",
+      text: error.text,
+      timestamp: error.timestamp,
+      idempotencyKey: error.runId ? `${error.runId}:local-error` : undefined,
+    },
+  ];
 }
 
 const MESSAGE_DEDUPE_WINDOW_MS = 5 * 60_000;
@@ -804,7 +840,9 @@ function haveSameImages(a: ChatMessage, b: ChatMessage): boolean {
   if (!a.images || !b.images || a.images.length !== b.images.length) return false;
   return a.images.every(
     (image, index) =>
-      image.mimeType === b.images?.[index]?.mimeType && image.data === b.images[index]?.data,
+      image.mimeType === b.images?.[index]?.mimeType &&
+      image.data === b.images[index]?.data &&
+      image.url === b.images[index]?.url,
   );
 }
 
@@ -830,6 +868,43 @@ function areNearDuplicateMessages(a: ChatMessage, b: ChatMessage): boolean {
   if (!aText || aText !== bText) return false;
   if (a.channel && b.channel && a.channel !== b.channel) return false;
   return areMessageTimestampsNear(a, b, MESSAGE_DEDUPE_WINDOW_MS);
+}
+
+function runIdempotencyRoot(key: string | undefined): string | undefined {
+  if (!key) return undefined;
+  const separator = key.indexOf(":");
+  return separator === -1 ? key : key.slice(0, separator);
+}
+
+function isLocalTerminalErrorMessage(message: ChatMessage): boolean {
+  return message.role === "assistant" && message.idempotencyKey?.endsWith(":local-error") === true;
+}
+
+function isSuccessfulAssistantMessage(message: ChatMessage): boolean {
+  if (message.role !== "assistant" || isLocalTerminalErrorMessage(message)) return false;
+  return normalizeMessageTextForDedupe(message.text).length > 0 || hasMessageImages(message);
+}
+
+function hasSuccessfulAssistantMessageForRun(messages: ChatMessage[], runId: string): boolean {
+  return messages.some(
+    (message) =>
+      isSuccessfulAssistantMessage(message) && runIdempotencyRoot(message.idempotencyKey) === runId,
+  );
+}
+
+function pruneSupersededLocalTerminalErrors(messages: ChatMessage[]): ChatMessage[] {
+  const successfulRunIds = new Set<string>();
+  for (const message of messages) {
+    if (!isSuccessfulAssistantMessage(message)) continue;
+    const runId = runIdempotencyRoot(message.idempotencyKey);
+    if (runId) successfulRunIds.add(runId);
+  }
+  if (successfulRunIds.size === 0) return messages;
+  return messages.filter((message) => {
+    if (!isLocalTerminalErrorMessage(message)) return true;
+    const runId = runIdempotencyRoot(message.idempotencyKey);
+    return !runId || !successfulRunIds.has(runId);
+  });
 }
 
 function mergeDuplicateMessage(existing: ChatMessage, incoming: ChatMessage): ChatMessage {
@@ -888,9 +963,10 @@ export function mergeChatMessagesDedup(
     }
     merged.push({ ...message, __order: merged.length });
   }
-  return merged
+  const sorted = merged
     .sort(compareChatMessagesByTimeline)
     .map(({ __order: _order, ...message }) => message);
+  return pruneSupersededLocalTerminalErrors(sorted);
 }
 
 // ---------------------------------------------------------------------------
