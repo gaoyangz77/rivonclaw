@@ -81,6 +81,10 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorPerformance");
     expect(query).toContain("creatorRelationship");
     expect(query).toContain("activeCollaborationRecordIds");
+    expect(query).toContain("productId");
+    expect(query).toContain("eligibilityCategory");
+    expect(query).toContain("eligibilityReasonCode");
+    expect(query).toContain("latestSearchPhraseKeys");
   });
 
   it("loads approval proposals with relationship and collaboration focus context", () => {

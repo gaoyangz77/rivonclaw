@@ -126,6 +126,18 @@ const emptyForm: CampaignForm = {
 };
 
 const stateStatusOptions = Object.values(GQL.AffiliateCampaignCreatorStateStatus);
+const eligibilityCategoryOptions = Object.values(GQL.AffiliateCampaignEligibilityCategory);
+const eligibilityReasonOptions = [
+  "PROTECTION_LIST",
+  "SAME_PRODUCT_ALREADY_CONTACTED",
+  "SAME_PRODUCT_RESERVED_OR_SUBMITTED",
+  "SHOP_CREATOR_7D_LIMIT",
+  "SHOP_CREATOR_30D_LIMIT",
+  "CAMPAIGN_ALREADY_CONTACTED",
+  "PROVIDER_RESULT_INVALID",
+  "FOLLOWER_DATA_REQUIRED",
+  "EXPECTED_SALES_BELOW_THRESHOLD",
+] as const;
 
 type CampaignProductPreview =
   | GQL.AffiliateCampaignProductPreview
@@ -207,7 +219,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [campaignStatusFilters, setCampaignStatusFilters] = useState<GQL.AffiliateCampaignStatus[]>(
     () => [...DEFAULT_CAMPAIGN_STATUS_FILTERS],
   );
-  const [stateStatus, setStateStatus] = useState("");
+  const [stateStatuses, setStateStatuses] = useState<GQL.AffiliateCampaignCreatorStateStatus[]>([]);
+  const [eligibilityCategories, setEligibilityCategories] = useState<
+    GQL.AffiliateCampaignEligibilityCategory[]
+  >([]);
+  const [eligibilityReasons, setEligibilityReasons] = useState<string[]>([]);
   const [generatingSearchGroups, setGeneratingSearchGroups] = useState(false);
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
   const [productPreview, setProductPreview] = useState<CampaignProductPreview | null>(
@@ -272,7 +288,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       input: {
         campaignId: selectedCampaignId,
         limit: 50,
-        ...(stateStatus ? { status: stateStatus } : {}),
+        ...(stateStatuses.length ? { statuses: stateStatuses } : {}),
+        ...(eligibilityCategories.length ? { eligibilityCategories } : {}),
+        ...(eligibilityReasons.length ? { reasonCodes: eligibilityReasons } : {}),
       },
     },
     skip: !selectedCampaignId,
@@ -350,7 +368,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   }, [campaigns, selectedCampaignId]);
 
   useEffect(() => {
-    setStateStatus("");
+    setStateStatuses([]);
+    setEligibilityCategories([]);
+    setEligibilityReasons([]);
   }, [selectedCampaignId]);
 
   useEffect(() => {
@@ -362,14 +382,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     label: shop.shopName,
     description: `${shop.region ?? "—"} · ${shop.timezone}`,
   }));
-  const stateOptions = [
-    { value: "", label: t("ecommerce.affiliateCampaign.allStates") },
-    ...stateStatusOptions.map((status) => ({
-      value: status,
-      label: campaignStateLabel(status, t),
-    })),
-  ];
-
   const openCreate = () => {
     setForm(emptyForm);
     setProductPreview(null);
@@ -584,7 +596,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           explanation: suggestion.explanation,
           explanationLocale: suggestion.explanationLocale,
           suggestionVersion: payload.suggestionVersion,
-          discoveryRules: normalizeDiscoveryRules(suggestion.discoveryRules),
+          discoveryRules: normalizeSuggestedDiscoveryRules(suggestion.discoveryRules),
         })),
       }));
       showToast(t("ecommerce.affiliateCampaign.keywordSuggestionsReady"), "success");
@@ -823,7 +835,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           campaignId: selectedCampaignId,
           limit: 50,
           cursor: nextCursor,
-          ...(stateStatus ? { status: stateStatus } : {}),
+          ...(stateStatuses.length ? { statuses: stateStatuses } : {}),
+          ...(eligibilityCategories.length ? { eligibilityCategories } : {}),
+          ...(eligibilityReasons.length ? { reasonCodes: eligibilityReasons } : {}),
         },
       },
       updateQuery: (previous, { fetchMoreResult }) => ({
@@ -1274,12 +1288,56 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <h3>{t("ecommerce.affiliateCampaign.creatorStates")}</h3>
                   <p>{t("ecommerce.affiliateCampaign.creatorStatesDescription")}</p>
                 </div>
-                <Select
-                  value={stateStatus}
-                  onChange={setStateStatus}
-                  options={stateOptions}
-                  ariaLabel={t("ecommerce.affiliateCampaign.filterState")}
+              </div>
+              <div className="affiliate-campaign-state-filters">
+                <CampaignStateFilterGroup
+                  label={t("ecommerce.affiliateCampaign.filterState")}
+                  options={stateStatusOptions.map((status) => ({
+                    value: status,
+                    label: campaignStateLabel(status, t),
+                  }))}
+                  selected={stateStatuses}
+                  onToggle={(status) =>
+                    setStateStatuses((current) => toggleValue(current, status))
+                  }
                 />
+                <CampaignStateFilterGroup
+                  label={t("ecommerce.affiliateCampaign.eligibilityCategoryFilter")}
+                  options={eligibilityCategoryOptions.map((category) => ({
+                    value: category,
+                    label: eligibilityCategoryLabel(category, t),
+                  }))}
+                  selected={eligibilityCategories}
+                  onToggle={(category) =>
+                    setEligibilityCategories((current) => toggleValue(current, category))
+                  }
+                />
+                <CampaignStateFilterGroup
+                  label={t("ecommerce.affiliateCampaign.reasonFilter")}
+                  options={eligibilityReasonOptions.map((reason) => ({
+                    value: reason,
+                    label: eligibilityReasonLabel(reason, t),
+                  }))}
+                  selected={eligibilityReasons}
+                  onToggle={(reason) =>
+                    setEligibilityReasons((current) => toggleValue(current, reason))
+                  }
+                />
+                {(stateStatuses.length > 0 ||
+                  eligibilityCategories.length > 0 ||
+                  eligibilityReasons.length > 0) && (
+                  <button
+                    type="button"
+                    className="affiliate-campaign-clear-state-filters"
+                    onClick={() => {
+                      setStateStatuses([]);
+                      setEligibilityCategories([]);
+                      setEligibilityReasons([]);
+                    }}
+                  >
+                    {t("ecommerce.affiliateCampaign.clearFilters")}
+                  </button>
+                )}
               </div>
               <div className="affiliate-campaign-state-table-wrap">
                 <table className="affiliate-campaign-state-table">
@@ -1288,7 +1346,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <th>{t("ecommerce.affiliateCampaign.creator")}</th>
                       <th>{t("ecommerce.affiliateCampaign.outreachDisposition")}</th>
                       <th>{t("ecommerce.affiliateCampaign.state")}</th>
-                      <th>{t("ecommerce.affiliateCampaign.modelEvidence")}</th>
+                      <th>{t("ecommerce.affiliateCampaign.selectionEvidence")}</th>
                       <th>{t("ecommerce.affiliateCampaign.relationship")}</th>
                       <th>{t("ecommerce.affiliateCampaign.lastActivity")}</th>
                     </tr>
@@ -1579,6 +1637,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </strong>
                   <small>{t("ecommerce.affiliateCampaign.providerRulesAuthority")}</small>
                 </div>
+                <div className="affiliate-campaign-search-boundary">
+                  <strong>{t("ecommerce.affiliateCampaign.tiktokSearchConditions")}</strong>
+                  <p>{t("ecommerce.affiliateCampaign.tiktokSearchConditionsDescription")}</p>
+                </div>
                 <div className="affiliate-campaign-field-pair">
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.dailyTarget")}</span>
@@ -1634,6 +1696,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </span>
                       <div className="affiliate-campaign-phrase-content">
                         <div className="affiliate-campaign-phrase-meta">
+                          <span>
+                            {t("ecommerce.affiliateCampaign.searchGroupNumber", {
+                              number: String(index + 1).padStart(2, "0"),
+                            })}
+                          </span>
                           <span>
                             {phrase.source === GQL.AffiliateCampaignSearchPhraseSource.AiSuggested
                               ? t("ecommerce.affiliateCampaign.aiSuggested")
@@ -1717,6 +1784,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     </button>
                   )}
                 </div>
+                <section className="affiliate-campaign-outreach-limits">
+                  <div>
+                    <span>{t("ecommerce.affiliateCampaign.automaticOutreachLimits")}</span>
+                    <strong>
+                      {t("ecommerce.affiliateCampaign.automaticOutreachLimitsDescription")}
+                    </strong>
+                  </div>
+                  <ul>
+                    <li>{t("ecommerce.affiliateCampaign.protectionLimit")}</li>
+                    <li>{t("ecommerce.affiliateCampaign.sameProductLimit")}</li>
+                    <li>{t("ecommerce.affiliateCampaign.cadenceLimit")}</li>
+                    <li>{t("ecommerce.affiliateCampaign.relationshipDoesNotBlock")}</li>
+                    <li>{t("ecommerce.affiliateCampaign.replyHandoff")}</li>
+                  </ul>
+                </section>
                 <details className="affiliate-campaign-advanced-rules" hidden>
                   <summary>
                     <span>{t("ecommerce.affiliateCampaign.advancedProviderRules")}</span>
@@ -2211,7 +2293,18 @@ function CampaignCreatorStateRow({
         <span className={`affiliate-campaign-state-pill is-${state.status.toLowerCase()}`}>
           {campaignStateLabel(state.status, t)}
         </span>
-        <small>{formatDecisionReason(state.decisionReason)}</small>
+        <small>
+          {state.eligibilityReasonCode
+            ? eligibilityReasonLabel(state.eligibilityReasonCode, t)
+            : formatDecisionReason(state.decisionReason)}
+        </small>
+        {state.eligibilityCategory && (
+          <span
+            className={`affiliate-campaign-eligibility-category is-${state.eligibilityCategory.toLowerCase()}`}
+          >
+            {eligibilityCategoryLabel(state.eligibilityCategory, t)}
+          </span>
+        )}
       </td>
       <td>
         {state.selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ? (
@@ -2226,6 +2319,11 @@ function CampaignCreatorStateRow({
             <small>
               {t("ecommerce.affiliateCampaign.ruleFilterResult", {
                 result: marketplaceEnumLabel(state.filterResult ?? "NOT_EVALUATED"),
+              })}
+            </small>
+            <small>
+              {t("ecommerce.affiliateCampaign.matchedSearchGroups", {
+                count: state.latestSearchPhraseKeys?.length ?? 0,
               })}
             </small>
           </>
@@ -2266,6 +2364,9 @@ function CampaignCreatorStateRow({
               })
             : t("ecommerce.affiliateCampaign.relationshipAfterOutreach")}
         </small>
+        {relationship && (
+          <small>{t("ecommerce.affiliateCampaign.relationshipDoesNotBlockShort")}</small>
+        )}
       </td>
       <td>
         <strong>{formatDateTime(lastActivity)}</strong>
@@ -2276,6 +2377,39 @@ function CampaignCreatorStateRow({
         </small>
       </td>
     </tr>
+  );
+}
+
+function CampaignStateFilterGroup<T extends string>({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: Array<{ value: T; label: string }>;
+  selected: readonly T[];
+  onToggle: (value: T) => void;
+}) {
+  return (
+    <details className="affiliate-campaign-state-filter">
+      <summary>
+        <span>{label}</span>
+        <small>{selected.length || "—"}</small>
+      </summary>
+      <div>
+        {options.map((option) => (
+          <label key={option.value}>
+            <input
+              type="checkbox"
+              checked={selected.includes(option.value)}
+              onChange={() => onToggle(option.value)}
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -2346,6 +2480,11 @@ function SearchGroupRulesEditor({
   const languages = normalized.marketSpecific?.languages ?? [];
   const creatorLevels = normalized.marketSpecific?.creatorLevels ?? [];
   const categoryPros = normalized.marketSpecific?.categoryPros ?? [];
+  const categoryIds = (normalized.categories ?? [])
+    .map((category) => category.parentCategoryId)
+    .join(", ");
+  const content = normalized.contentPerformance30d ?? {};
+  const affiliate = normalized.affiliatePerformance30d ?? {};
   const summary = campaignSearchGroupRuleSummary(normalized, t);
   return (
     <details className="affiliate-campaign-search-group-rules">
@@ -2538,6 +2677,170 @@ function SearchGroupRulesEditor({
             })
           }
         />
+        <div className="affiliate-campaign-rule-block">
+          <label>
+            <span>{t("ecommerce.affiliateCampaign.categoryIds")}</span>
+            <input
+              value={categoryIds}
+              placeholder={t("ecommerce.affiliateCampaign.categoryIdsHint")}
+              onChange={(event) =>
+                onChange({
+                  ...normalized,
+                  categories: event.target.value
+                    .split(",")
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+                    .map((parentCategoryId) => ({ parentCategoryId, childCategoryIds: [] })),
+                })
+              }
+            />
+          </label>
+        </div>
+        <div className="affiliate-campaign-rule-block">
+          <strong>{t("ecommerce.affiliateCampaign.contentPerformanceConditions")}</strong>
+          <div className="affiliate-campaign-field-pair">
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.averageVideoViews")}
+              value={content.averageVideoViews ?? ""}
+              onChange={(averageVideoViews) =>
+                onChange({
+                  ...normalized,
+                  contentPerformance30d: { ...content, averageVideoViews },
+                })
+              }
+            />
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.averageEngagementRate")}
+              value={content.averageEngagementRate ?? ""}
+              onChange={(averageEngagementRate) =>
+                onChange({
+                  ...normalized,
+                  contentPerformance30d: { ...content, averageEngagementRate },
+                })
+              }
+            />
+          </div>
+          <div className="affiliate-campaign-field-pair">
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.averageShoppableVideoViews")}
+              value={content.averageShoppableVideoViews ?? ""}
+              onChange={(averageShoppableVideoViews) =>
+                onChange({
+                  ...normalized,
+                  contentPerformance30d: { ...content, averageShoppableVideoViews },
+                })
+              }
+            />
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.averageShoppableEngagementRate")}
+              value={content.averageShoppableEngagementRate ?? ""}
+              onChange={(averageShoppableEngagementRate) =>
+                onChange({
+                  ...normalized,
+                  contentPerformance30d: {
+                    ...content,
+                    averageShoppableEngagementRate,
+                  },
+                })
+              }
+            />
+          </div>
+          <div className="affiliate-campaign-field-pair">
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.averageLiveViewers")}
+              value={content.averageLiveViewers ?? ""}
+              onChange={(averageLiveViewers) =>
+                onChange({
+                  ...normalized,
+                  contentPerformance30d: { ...content, averageLiveViewers },
+                })
+              }
+            />
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.averageShoppableLiveViewers")}
+              value={content.averageShoppableLiveViewers ?? ""}
+              onChange={(averageShoppableLiveViewers) =>
+                onChange({
+                  ...normalized,
+                  contentPerformance30d: {
+                    ...content,
+                    averageShoppableLiveViewers,
+                  },
+                })
+              }
+            />
+          </div>
+        </div>
+        <div className="affiliate-campaign-rule-block">
+          <strong>{t("ecommerce.affiliateCampaign.affiliatePerformanceConditions")}</strong>
+          <div className="affiliate-campaign-field-pair">
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.averageCommissionRate")}
+              value={affiliate.averageCommissionRate ?? ""}
+              onChange={(averageCommissionRate) =>
+                onChange({
+                  ...normalized,
+                  affiliatePerformance30d: { ...affiliate, averageCommissionRate },
+                })
+              }
+            />
+            <RuleTextInput
+              label={t("ecommerce.affiliateCampaign.postRate")}
+              value={affiliate.postRate ?? ""}
+              onChange={(postRate) =>
+                onChange({
+                  ...normalized,
+                  affiliatePerformance30d: { ...affiliate, postRate },
+                })
+              }
+            />
+          </div>
+          <RuleTextInput
+            label={t("ecommerce.affiliateCampaign.creatorAgencyStatus")}
+            value={affiliate.creatorAgencyStatus ?? ""}
+            onChange={(creatorAgencyStatus) =>
+              onChange({
+                ...normalized,
+                affiliatePerformance30d: { ...affiliate, creatorAgencyStatus },
+              })
+            }
+          />
+          <label className="affiliate-campaign-check-rule">
+            <input
+              type="checkbox"
+              checked={affiliate.fastGrowingOnly ?? false}
+              onChange={(event) =>
+                onChange({
+                  ...normalized,
+                  affiliatePerformance30d: {
+                    ...affiliate,
+                    fastGrowingOnly: event.target.checked,
+                  },
+                })
+              }
+            />
+            <span>{t("ecommerce.affiliateCampaign.fastGrowingOnly")}</span>
+          </label>
+          <label className="affiliate-campaign-check-rule">
+            <input
+              type="checkbox"
+              checked={affiliate.notInvitedLast90Days ?? false}
+              onChange={(event) =>
+                onChange({
+                  ...normalized,
+                  affiliatePerformance30d: {
+                    ...affiliate,
+                    notInvitedLast90Days: event.target.checked,
+                  },
+                })
+              }
+            />
+            <span>{t("ecommerce.affiliateCampaign.notInvitedLast90Days")}</span>
+          </label>
+          <p className="affiliate-campaign-cross-product-warning">
+            {t("ecommerce.affiliateCampaign.notInvitedCrossProductWarning")}
+          </p>
+        </div>
       </div>
     </details>
   );
@@ -2557,6 +2860,13 @@ export function campaignSearchGroupRuleSummary(
   const languages = normalized.marketSpecific?.languages ?? [];
   const creatorLevels = normalized.marketSpecific?.creatorLevels ?? [];
   const categoryPros = normalized.marketSpecific?.categoryPros ?? [];
+  const categories = normalized.categories ?? [];
+  const contentRuleCount = Object.values(normalized.contentPerformance30d ?? {}).filter(
+    (value) => value != null && value !== "",
+  ).length;
+  const affiliateRuleCount = Object.values(normalized.affiliatePerformance30d ?? {}).filter(
+    (value) => value != null && value !== "" && value !== false,
+  ).length;
   return [
     minimumFollowers != null && maximumFollowers != null
       ? t("ecommerce.affiliateCampaign.followerRangeCompact", {
@@ -2591,6 +2901,17 @@ export function campaignSearchGroupRuleSummary(
     categoryPros.length
       ? `${t("ecommerce.affiliateCampaign.categoryPros")}: ${categoryPros.map(marketplaceEnumLabel).join(", ")}`
       : null,
+    categories.length
+      ? t("ecommerce.affiliateCampaign.categoryConditionCount", { count: categories.length })
+      : null,
+    contentRuleCount
+      ? t("ecommerce.affiliateCampaign.contentConditionCount", { count: contentRuleCount })
+      : null,
+    affiliateRuleCount
+      ? t("ecommerce.affiliateCampaign.affiliateConditionCount", {
+          count: affiliateRuleCount,
+        })
+      : null,
   ].filter((item): item is string => Boolean(item));
 }
 
@@ -2603,6 +2924,23 @@ function createDefaultDiscoveryRules(): GQL.AffiliateCampaignDiscoveryRulesInput
     contentPerformance30d: null,
     affiliatePerformance30d: null,
     marketSpecific: { languages: [], creatorLevels: [], categoryPros: [] },
+  };
+}
+
+export function normalizeSuggestedDiscoveryRules(
+  value:
+    | GQL.AffiliateCampaignDiscoveryRules
+    | GQL.AffiliateCampaignDiscoveryRulesInput
+    | null
+    | undefined,
+): GQL.AffiliateCampaignDiscoveryRulesInput {
+  const normalized = normalizeDiscoveryRules(value);
+  return {
+    ...normalized,
+    affiliatePerformance30d: {
+      ...normalized.affiliatePerformance30d,
+      notInvitedLast90Days: false,
+    },
   };
 }
 
@@ -2733,15 +3071,22 @@ function CampaignFunnel({
   counters?: GQL.AffiliateCampaignExecutionCounters;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
-  const steps = [
+  const acquisition = [
     ["scanned", counters?.scanned ?? 0],
+    ["matched", counters?.matched ?? 0],
+  ] as const;
+  const blocked = [
+    ["protected", counters?.protected ?? 0],
+    ["outreachPolicyBlocked", counters?.outreachPolicyBlocked ?? 0],
+  ] as const;
+  const progression = [
     ["evaluated", counters?.evaluated ?? 0],
+    ["qualificationFailed", counters?.qualificationFailed ?? 0],
     ["qualified", counters?.qualified ?? 0],
     ["selected", counters?.selected ?? 0],
     ["sent", counters?.sent ?? 0],
     ["replied", counters?.replied ?? 0],
   ] as const;
-  const maximum = Math.max(1, ...steps.map(([, value]) => value));
   return (
     <section className="affiliate-campaign-funnel">
       <div className="affiliate-campaign-section-heading">
@@ -2750,18 +3095,51 @@ function CampaignFunnel({
           <h3>{t("ecommerce.affiliateCampaign.discoveryToReply")}</h3>
         </div>
       </div>
-      <div className="affiliate-campaign-funnel-bars">
-        {steps.map(([key, value]) => (
-          <div key={key}>
-            <span>{t(`ecommerce.affiliateCampaign.funnel.${key}`)}</span>
-            <strong>{formatNumber(value)}</strong>
-            <i>
-              <b style={{ width: `${Math.max(value > 0 ? 3 : 0, (value / maximum) * 100)}%` }} />
-            </i>
-          </div>
-        ))}
+      <div className="affiliate-campaign-funnel-groups">
+        <FunnelGroup
+          label={t("ecommerce.affiliateCampaign.funnel.providerSearch")}
+          steps={acquisition}
+          t={t}
+        />
+        <FunnelGroup
+          label={t("ecommerce.affiliateCampaign.funnel.unreachable")}
+          steps={blocked}
+          variant="blocked"
+          t={t}
+        />
+        <FunnelGroup
+          label={t("ecommerce.affiliateCampaign.funnel.qualificationAndDelivery")}
+          steps={progression}
+          t={t}
+        />
       </div>
     </section>
+  );
+}
+
+function FunnelGroup({
+  label,
+  steps,
+  variant = "progress",
+  t,
+}: {
+  label: string;
+  steps: ReadonlyArray<readonly [string, number]>;
+  variant?: "progress" | "blocked";
+  t: (key: string) => string;
+}) {
+  return (
+    <div className={`affiliate-campaign-funnel-group is-${variant}`}>
+      <span>{label}</span>
+      <div>
+        {steps.map(([key, value]) => (
+          <article key={key}>
+            <small>{t(`ecommerce.affiliateCampaign.funnel.${key}`)}</small>
+            <strong>{formatNumber(value)}</strong>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -2840,6 +3218,14 @@ function isTerminalCampaignStatus(status: GQL.AffiliateCampaignStatus): boolean 
 
 function campaignStateLabel(status: string, t: (key: string) => string) {
   return t(`ecommerce.affiliateCampaign.creatorState.${status.toLowerCase()}`);
+}
+
+function eligibilityCategoryLabel(category: string, t: (key: string) => string) {
+  return t(`ecommerce.affiliateCampaign.eligibilityCategory.${category.toLowerCase()}`);
+}
+
+export function eligibilityReasonLabel(reason: string, t: (key: string) => string) {
+  return t(`ecommerce.affiliateCampaign.eligibilityReason.${reason.toLowerCase()}`);
 }
 
 function executionStatusLabel(
@@ -2966,6 +3352,9 @@ function campaignOutreachDisposition(status: string): "reached" | "hold" | "not_
   }
   if (
     status === GQL.AffiliateCampaignCreatorStateStatus.Disqualified ||
+    status === GQL.AffiliateCampaignCreatorStateStatus.IneligibleProtected ||
+    status === GQL.AffiliateCampaignCreatorStateStatus.IneligibleOutreachPolicy ||
+    status === GQL.AffiliateCampaignCreatorStateStatus.IneligibleQualification ||
     status === GQL.AffiliateCampaignCreatorStateStatus.Ignored ||
     status === GQL.AffiliateCampaignCreatorStateStatus.Cancelled ||
     status === GQL.AffiliateCampaignCreatorStateStatus.Failed

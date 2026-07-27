@@ -874,14 +874,23 @@ export interface AffiliateCampaignCreatorState {
   decisionReason?: Maybe<Scalars['String']['output']>;
   decisionReasonCodes: Array<Scalars['String']['output']>;
   efficiencyScore?: Maybe<Scalars['Float']['output']>;
+  eligibilityCategory?: Maybe<AffiliateCampaignEligibilityCategory>;
+  eligibilityEvaluatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  eligibilityPolicyVersion?: Maybe<Scalars['Int']['output']>;
+  eligibilityReasonCode?: Maybe<Scalars['String']['output']>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   filterResult?: Maybe<AffiliateCampaignRuleFilterResult>;
   firstSeenAt: Scalars['DateTimeISO']['output'];
   followerCount?: Maybe<Scalars['Int']['output']>;
   id: Scalars['ID']['output'];
   lastSeenAt: Scalars['DateTimeISO']['output'];
+  latestSearchDailyExecutionId?: Maybe<Scalars['ID']['output']>;
+  latestSearchMatchedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  latestSearchPhraseKeys: Array<Scalars['String']['output']>;
+  latestSearchProviderOrdinal?: Maybe<Scalars['Int']['output']>;
   market: Scalars['String']['output'];
   predictionStatus?: Maybe<AffiliateCampaignPredictionStatus>;
+  productId?: Maybe<Scalars['String']['output']>;
   providerOrdinal?: Maybe<Scalars['Int']['output']>;
   providerPageSequence?: Maybe<Scalars['Int']['output']>;
   reachedOutAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -906,6 +915,9 @@ export const AffiliateCampaignCreatorStateStatus = {
   EvaluationPending: 'EVALUATION_PENDING',
   Failed: 'FAILED',
   Ignored: 'IGNORED',
+  IneligibleOutreachPolicy: 'INELIGIBLE_OUTREACH_POLICY',
+  IneligibleProtected: 'INELIGIBLE_PROTECTED',
+  IneligibleQualification: 'INELIGIBLE_QUALIFICATION',
   QualifiedNotSelected: 'QUALIFIED_NOT_SELECTED',
   ReachedOut: 'REACHED_OUT',
   Replied: 'REPLIED',
@@ -983,9 +995,20 @@ export interface AffiliateCampaignDiscoveryRulesInput {
   salesPerformance30d?: InputMaybe<AffiliateCampaignSalesPerformanceRulesInput>;
 }
 
+export const AffiliateCampaignEligibilityCategory = {
+  OutreachPolicy: 'OUTREACH_POLICY',
+  Protected: 'PROTECTED',
+  Qualification: 'QUALIFICATION'
+} as const;
+
+export type AffiliateCampaignEligibilityCategory = typeof AffiliateCampaignEligibilityCategory[keyof typeof AffiliateCampaignEligibilityCategory];
 export interface AffiliateCampaignExecutionCounters {
   evaluated: Scalars['Int']['output'];
   failed: Scalars['Int']['output'];
+  matched: Scalars['Int']['output'];
+  outreachPolicyBlocked: Scalars['Int']['output'];
+  protected: Scalars['Int']['output'];
+  qualificationFailed: Scalars['Int']['output'];
   qualified: Scalars['Int']['output'];
   replied: Scalars['Int']['output'];
   reserved: Scalars['Int']['output'];
@@ -1138,8 +1161,10 @@ export interface AffiliateCampaignSearchPhrase {
 }
 
 export interface AffiliateCampaignSearchPhraseExecution {
+  eligible: Scalars['Int']['output'];
   evaluated: Scalars['Int']['output'];
   exhaustedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  matched: Scalars['Int']['output'];
   pageCursor?: Maybe<Scalars['String']['output']>;
   pageSequence: Scalars['Int']['output'];
   phrase: Scalars['String']['output'];
@@ -10098,8 +10123,11 @@ export interface ReadAffiliateApprovalPoliciesInput {
 export interface ReadAffiliateCampaignCreatorStatesInput {
   campaignId: Scalars['ID']['input'];
   cursor?: InputMaybe<Scalars['String']['input']>;
+  eligibilityCategories?: InputMaybe<Array<AffiliateCampaignEligibilityCategory>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  reasonCodes?: InputMaybe<Array<Scalars['String']['input']>>;
   status?: InputMaybe<AffiliateCampaignCreatorStateStatus>;
+  statuses?: InputMaybe<Array<AffiliateCampaignCreatorStateStatus>>;
 }
 
 export interface ReadAffiliateCampaignDailyExecutionsInput {
