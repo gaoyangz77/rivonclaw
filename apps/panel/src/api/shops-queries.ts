@@ -546,15 +546,15 @@ export const RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION = gql`
   }
 `;
 
-export const SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_KEYWORDS_MUTATION = gql`
-  mutation SuggestAffiliateCampaignSearchKeywords(
-    $input: SuggestAffiliateCampaignSearchKeywordsInput!
+export const SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION = gql`
+  mutation SuggestAffiliateCampaignSearchPhrases(
+    $input: SuggestAffiliateCampaignSearchPhrasesInput!
   ) {
-    suggestAffiliateCampaignSearchKeywords(input: $input) {
+    suggestAffiliateCampaignSearchPhrases(input: $input) {
       suggestionVersion
       productSnapshotHash
       suggestions {
-        keyword
+        text
         rationale
       }
     }

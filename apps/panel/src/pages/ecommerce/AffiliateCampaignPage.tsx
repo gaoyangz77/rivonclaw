@@ -25,7 +25,7 @@ import {
   RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION,
   SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION,
   SHOPS_QUERY,
-  SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_KEYWORDS_MUTATION,
+  SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION,
   WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "../../api/shops-queries.js";
 
@@ -180,7 +180,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [pendingProductResolution, setPendingProductResolution] =
     useState<GQL.AffiliateCampaignProductResolution | null>(null);
   const [keywordSuggestions, setKeywordSuggestions] = useState<
-    GQL.AffiliateCampaignSearchKeywordSuggestion[]
+    GQL.AffiliateCampaignSearchPhraseSuggestion[]
   >([]);
 
   const campaignsQuery = useQuery<{ affiliateCampaigns: GQL.AffiliateCampaign[] }>(
@@ -248,9 +248,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { input: GQL.ResolveAffiliateCampaignProductInput }
   >(RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION);
   const [suggestKeywords, suggestKeywordsState] = useMutation<
-    { suggestAffiliateCampaignSearchKeywords: GQL.AffiliateCampaignSearchKeywordSuggestions },
-    { input: GQL.SuggestAffiliateCampaignSearchKeywordsInput }
-  >(SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_KEYWORDS_MUTATION);
+    { suggestAffiliateCampaignSearchPhrases: GQL.AffiliateCampaignSearchPhraseSuggestions },
+    { input: GQL.SuggestAffiliateCampaignSearchPhrasesInput }
+  >(SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION);
   const [duplicateCampaign, duplicateCampaignState] = useMutation<
     { duplicateAffiliateCampaign: GQL.AffiliateCampaign },
     { input: GQL.DuplicateAffiliateCampaignInput }
@@ -518,13 +518,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           },
         },
       });
-      const payload = result.data?.suggestAffiliateCampaignSearchKeywords;
+      const payload = result.data?.suggestAffiliateCampaignSearchPhrases;
       if (!payload) throw new Error(t("ecommerce.affiliateCampaign.keywordSuggestionFailed"));
       setKeywordSuggestions(payload.suggestions);
       setForm((current) => ({
         ...current,
         searchPhrases: payload.suggestions.map((suggestion) => ({
-          text: suggestion.keyword,
+          text: suggestion.text,
           source: GQL.AffiliateCampaignSearchPhraseSource.AiSuggested,
           suggestionVersion: payload.suggestionVersion,
         })),
@@ -1533,8 +1533,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <div className="affiliate-campaign-keyword-suggestions">
                     <span>{t("ecommerce.affiliateCampaign.keywordSuggestions")}</span>
                     {keywordSuggestions.map((suggestion) => (
-                      <div key={suggestion.keyword} data-selected="true">
-                        <strong>{suggestion.keyword}</strong>
+                      <div key={suggestion.text} data-selected="true">
+                        <strong>{suggestion.text}</strong>
                         <small>{suggestion.rationale}</small>
                       </div>
                     ))}
