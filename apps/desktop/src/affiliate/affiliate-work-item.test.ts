@@ -897,6 +897,7 @@ describe("affiliate work item dispatch", () => {
       provider: "openai",
       model: "gpt-5-test",
     });
+    expect(agentCall?.[1]).not.toHaveProperty("allowEmptyAssistantReplyAsSilent");
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
     expect(agentCall?.[1]?.message).toContain("Reasons: SAMPLE_PENDING_REVIEW");

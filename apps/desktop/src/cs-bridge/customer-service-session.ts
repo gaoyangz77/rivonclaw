@@ -97,7 +97,10 @@ function buildConversationDeltaAnchor(
   if (typeof anchor.sessionMessageText === "string" && anchor.sessionMessageText.trim()) {
     result.sessionMessageText = anchor.sessionMessageText.trim();
   }
-  if (typeof anchor.sessionMessageTimestampMs === "number" && Number.isFinite(anchor.sessionMessageTimestampMs)) {
+  if (
+    typeof anchor.sessionMessageTimestampMs === "number" &&
+    Number.isFinite(anchor.sessionMessageTimestampMs)
+  ) {
     result.sessionMessageTimestampMs = anchor.sessionMessageTimestampMs;
   }
   return Object.keys(result).length > 0 ? result : null;
@@ -111,9 +114,9 @@ function classifyDeliveryFailure(err: unknown): {
   const normalized = message.toLowerCase();
 
   if (
-    normalized.includes("45101006")
-    || normalized.includes("hit sensitive")
-    || normalized.includes("sensitive")
+    normalized.includes("45101006") ||
+    normalized.includes("hit sensitive") ||
+    normalized.includes("sensitive")
   ) {
     return {
       reason: "sensitive_content",
@@ -146,7 +149,10 @@ function extractImageUrlFromUnknown(value: unknown, depth = 0): string | undefin
   if (typeof value === "string") {
     const text = value.trim();
     if (!text) return undefined;
-    if ((text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"))) {
+    if (
+      (text.startsWith("{") && text.endsWith("}")) ||
+      (text.startsWith("[") && text.endsWith("]"))
+    ) {
       try {
         const parsed = JSON.parse(text) as unknown;
         const nested = extractImageUrlFromUnknown(parsed, depth + 1);
@@ -344,11 +350,13 @@ export class CustomerServiceSession {
     this.dispatchKey = this.scopeKey;
   }
 
-  private telemetryContext(extra: {
-    buyerUserId?: string;
-    imUserId?: string;
-    orderId?: string | null;
-  } = {}): {
+  private telemetryContext(
+    extra: {
+      buyerUserId?: string;
+      imUserId?: string;
+      orderId?: string | null;
+    } = {},
+  ): {
     shopId: string;
     platformShopId: string;
     conversationId: string;
@@ -477,8 +485,9 @@ export class CustomerServiceSession {
       ...(this.csContext.recentOrders !== undefined
         ? [
             `- Buyer's Recent Orders: ${this.csContext.recentOrders.length === 0 ? "[]" : ""}`,
-            ...this.csContext.recentOrders.map(o =>
-              `  - Order ${o.orderId} (placed ${new Date(o.createTime * 1000).toISOString().slice(0, 10)})`
+            ...this.csContext.recentOrders.map(
+              (o) =>
+                `  - Order ${o.orderId} (placed ${new Date(o.createTime * 1000).toISOString().slice(0, 10)})`,
             ),
           ]
         : []),
@@ -487,6 +496,7 @@ export class CustomerServiceSession {
       "",
       "### General",
       "Reply in the buyer's language. Avoid Markdown styling; short hyphen bullets are OK.",
+      "When the current instruction permits no buyer-facing response, return exactly NO_REPLY and nothing else.",
       "Before asking a customer for photos, videos, screenshots, or other evidence, verify it would prove an unknown fact that changes your next action.",
       "",
       "### Authority & Escalation",
@@ -578,7 +588,9 @@ export class CustomerServiceSession {
   }): void {
     const previousRunId = this.activeRound?.abortActiveRun();
     if (!previousRunId) return;
-    log.info(`Buyer message ${params.messageId} superseded active/pending run ${previousRunId}; aborting prior dispatch`);
+    log.info(
+      `Buyer message ${params.messageId} superseded active/pending run ${previousRunId}; aborting prior dispatch`,
+    );
     this.fireAbort();
     this.undeliveredCount++;
     this.emitDispatchTelemetry({
@@ -623,14 +635,15 @@ export class CustomerServiceSession {
   private enqueueBuyerCatchUpDispatch(
     options: CatchUpDispatchOptions & { currentMessageId: string },
   ): Promise<DispatchResult> {
-    const currentMessageIndex = options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
+    const currentMessageIndex =
+      options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
     if (this.isSamePendingBuyerDispatch(options.currentMessageId, currentMessageIndex)) {
       return this.pendingBuyerDispatch?.promise ?? Promise.resolve({ runId: undefined });
     }
     if (
-      !this.pendingBuyerDispatch
-      && this.activeRound?.hasActiveRun()
-      && this.activeRound.isSameBuyerMessage(options.currentMessageId, currentMessageIndex)
+      !this.pendingBuyerDispatch &&
+      this.activeRound?.hasActiveRun() &&
+      this.activeRound.isSameBuyerMessage(options.currentMessageId, currentMessageIndex)
     ) {
       const activeRunId = this.activeRound.getActiveRunId();
       log.info(
@@ -704,7 +717,11 @@ export class CustomerServiceSession {
     this.pendingBuyerDispatch = null;
 
     try {
-      const result = await this.dispatchBuyerCatchUpNow(pending.options, pending.round, pending.placeholder);
+      const result = await this.dispatchBuyerCatchUpNow(
+        pending.options,
+        pending.round,
+        pending.placeholder,
+      );
       pending.resolve(result);
     } catch (err) {
       pending.reject(err);
@@ -759,8 +776,13 @@ export class CustomerServiceSession {
       });
       return true;
     } catch (err) {
-      log.warn(`CS backend session creation failed: ${err instanceof Error ? err.message : String(err)}`);
-      this.emitError(CS_ERROR_STAGE.BACKEND_SESSION, { reason: "graphql_error", errorMessage: err });
+      log.warn(
+        `CS backend session creation failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      this.emitError(CS_ERROR_STAGE.BACKEND_SESSION, {
+        reason: "graphql_error",
+        errorMessage: err,
+      });
       this.emitSessionTelemetry({
         action: "backend_session",
         source: "desktop",
@@ -826,7 +848,9 @@ export class CustomerServiceSession {
 
     const authSession = getAuthSession();
     if (!authSession) {
-      const error = new Error("No auth session available for handled-without-reply acknowledgement");
+      const error = new Error(
+        "No auth session available for handled-without-reply acknowledgement",
+      );
       this.emitError(CS_ERROR_STAGE.COMPLETION_ACK, {
         reason: "no_auth_session",
         errorMessage: error,
@@ -924,7 +948,10 @@ export class CustomerServiceSession {
    * Can be called multiple times — each call overwrites the previous result
    * (supports interim updates before final resolution).
    */
-  resolveEscalation(escalationId: string, params: { decision: string; instructions: string; resolved: boolean }): Escalation {
+  resolveEscalation(
+    escalationId: string,
+    params: { decision: string; instructions: string; resolved: boolean },
+  ): Escalation {
     const escalation = this.escalations.get(escalationId);
     if (!escalation) throw new Error(`Escalation ${escalationId} not found`);
     escalation.result = {
@@ -934,7 +961,9 @@ export class CustomerServiceSession {
       resolvedAt: Date.now(),
     };
 
-    log.info(`Escalation ${params.resolved ? "resolved" : "updated"}: ${escalationId} decision=${params.decision}`);
+    log.info(
+      `Escalation ${params.resolved ? "resolved" : "updated"}: ${escalationId} decision=${params.decision}`,
+    );
     this.emitEscalationTelemetry({
       escalationId,
       action: params.resolved ? "resolved" : "updated",
@@ -1077,8 +1106,8 @@ export class CustomerServiceSession {
     rejectedText: string;
   }): Promise<DispatchResult | undefined> {
     const round =
-      this.roundsByRunId.get(params.failedRunId)
-      ?? this.ensureActiveRound(`recovery:${params.failedRunId}`);
+      this.roundsByRunId.get(params.failedRunId) ??
+      this.ensureActiveRound(`recovery:${params.failedRunId}`);
     this.attachRunToRound(params.failedRunId, round);
 
     const recovery = round.planSensitiveRecovery(
@@ -1099,9 +1128,10 @@ export class CustomerServiceSession {
         maxAttempts: recovery.maxAttempts,
         textLength: params.rejectedText.length,
       });
-      const skipReason = recovery.status === "skipped_nested_recovery"
-        ? `${params.failedRunId} is itself a recovery run`
-        : `attempt limit reached, failedRunId=${params.failedRunId}`;
+      const skipReason =
+        recovery.status === "skipped_nested_recovery"
+          ? `${params.failedRunId} is itself a recovery run`
+          : `attempt limit reached, failedRunId=${params.failedRunId}`;
       log.info(
         `Sensitive-content recovery skipped for conv=${this.csContext.conversationId} (${skipReason})`,
       );
@@ -1111,7 +1141,7 @@ export class CustomerServiceSession {
 
     log.info(
       `Dispatching sensitive-content recovery for conv=${this.csContext.conversationId} ` +
-      `(failedRunId=${params.failedRunId}, attempt=${recovery.attempt}/${recovery.maxAttempts})`,
+        `(failedRunId=${params.failedRunId}, attempt=${recovery.attempt}/${recovery.maxAttempts})`,
     );
     const idempotencyKey = `cs-delivery-rewrite:${params.failedRunId}`;
     const placeholder = round.beginFollowUpDispatch(idempotencyKey);
@@ -1275,31 +1305,27 @@ export class CustomerServiceSession {
       // System boundary: swallow. BI collection never blocks CS traffic.
       log.warn(
         `Failed to collect cs.token_snapshot for ${this.scopeKey} ` +
-        `(non-fatal): ` +
-        (err instanceof Error ? err.message : String(err)),
+          `(non-fatal): ` +
+          (err instanceof Error ? err.message : String(err)),
       );
     }
   }
 
   private buildCatchUpMessage(options?: CatchUpDispatchOptions): string {
     const dispatchReason = options?.dispatchReason ?? "PENDING_BUYER_MESSAGE";
-    const sections = [
-      "[Internal: System]\n" +
-      buildCsAgentDispatchSystemPrompt(dispatchReason),
-    ];
+    const sections = ["[Internal: System]\n" + buildCsAgentDispatchSystemPrompt(dispatchReason)];
 
     const operatorInstruction = options?.operatorInstruction?.trim();
     if (operatorInstruction) {
-      sections.push(
-        "[Internal: Operator Instruction]\n" +
-        operatorInstruction,
-      );
+      sections.push("[Internal: Operator Instruction]\n" + operatorInstruction);
     }
 
     return sections.join("\n\n");
   }
 
-  private async fetchConversationDelta(currentMessageId: string): Promise<GQL.CustomerServiceMessageDelta | null> {
+  private async fetchConversationDelta(
+    currentMessageId: string,
+  ): Promise<GQL.CustomerServiceMessageDelta | null> {
     const authSession = getAuthSession();
     if (!authSession) {
       log.warn("No auth session available, cannot fetch CS conversation delta");
@@ -1311,12 +1337,12 @@ export class CustomerServiceSession {
         shopId: this.csContext.shopId,
         conversationId: this.csContext.conversationId,
       });
-      const rawAnchor = sessionCursor ?? await readLatestUserSessionAnchor(this.dispatchKey);
+      const rawAnchor = sessionCursor ?? (await readLatestUserSessionAnchor(this.dispatchKey));
       const anchor = buildConversationDeltaAnchor(rawAnchor);
       if (!anchor) {
         log.info(
           `Skipping CS conversation delta for ${this.csContext.conversationId}: ` +
-          "no local OpenClaw session anchor exists yet",
+            "no local OpenClaw session anchor exists yet",
         );
         return null;
       }
@@ -1332,7 +1358,9 @@ export class CustomerServiceSession {
       });
       return result.ecommerceGetConversationMessageDelta;
     } catch (err) {
-      log.warn(`Failed to fetch CS conversation delta for ${this.csContext.conversationId}: ${String(err)}`);
+      log.warn(
+        `Failed to fetch CS conversation delta for ${this.csContext.conversationId}: ${String(err)}`,
+      );
       return null;
     }
   }
@@ -1344,16 +1372,20 @@ export class CustomerServiceSession {
       attachedImageMessageIds?: Set<string>;
     },
   ): string {
-    const timeline = (delta.items ?? []).map((message, index) => [
-      `${index + 1}. [${message.sender?.role ?? "UNKNOWN"}${message.sender?.nickname ? ` / ${message.sender.nickname}` : ""}]`,
-      `   messageId: ${message.messageId ?? ""}`,
-      `   messageIndex: ${message.index ?? ""}`,
-      `   createTime: ${message.createTime ?? ""}`,
-      `   type: ${message.type ?? ""}`,
-      `   text: ${options?.attachedImageMessageIds?.has(message.messageId ?? "")
-        ? "[Image attached to this agent run]"
-        : message.text ?? ""}`,
-    ].join("\n"));
+    const timeline = (delta.items ?? []).map((message, index) =>
+      [
+        `${index + 1}. [${message.sender?.role ?? "UNKNOWN"}${message.sender?.nickname ? ` / ${message.sender.nickname}` : ""}]`,
+        `   messageId: ${message.messageId ?? ""}`,
+        `   messageIndex: ${message.index ?? ""}`,
+        `   createTime: ${message.createTime ?? ""}`,
+        `   type: ${message.type ?? ""}`,
+        `   text: ${
+          options?.attachedImageMessageIds?.has(message.messageId ?? "")
+            ? "[Image attached to this agent run]"
+            : (message.text ?? "")
+        }`,
+      ].join("\n"),
+    );
 
     return [
       "[Customer Service Conversation Work Package]",
@@ -1386,7 +1418,7 @@ export class CustomerServiceSession {
       return this.enqueueBuyerCatchUpDispatch(options);
     }
 
-    if (!await this.ensureBackendSession()) {
+    if (!(await this.ensureBackendSession())) {
       this.emitDispatchTelemetry({
         source: options?.source ?? "desktop",
         signalType: options?.signalType,
@@ -1413,7 +1445,9 @@ export class CustomerServiceSession {
           currentMessageIndex: options.currentMessageIndex,
           messageType: options.messageType,
           senderRole: options.senderRole,
-          advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
+          advanceSessionCursor: options.currentMessageCursor ?? {
+            messageId: options.currentMessageId,
+          },
         });
       }
     }
@@ -1431,7 +1465,9 @@ export class CustomerServiceSession {
     });
   }
 
-  private shouldUseBuyerRoundForCatchUp(options?: CatchUpDispatchOptions): options is CatchUpDispatchOptions & { currentMessageId: string } {
+  private shouldUseBuyerRoundForCatchUp(
+    options?: CatchUpDispatchOptions,
+  ): options is CatchUpDispatchOptions & { currentMessageId: string } {
     if (!options?.currentMessageId) return false;
     return (options.dispatchReason ?? "PENDING_BUYER_MESSAGE") === "PENDING_BUYER_MESSAGE";
   }
@@ -1464,10 +1500,11 @@ export class CustomerServiceSession {
     round: CSRound,
     placeholder: string,
   ): Promise<DispatchResult> {
-    const currentMessageIndex = options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
+    const currentMessageIndex =
+      options.currentMessageIndex ?? options.currentMessageCursor?.messageIndex ?? undefined;
 
     try {
-      if (!await this.ensureBackendSession()) {
+      if (!(await this.ensureBackendSession())) {
         if (this.activeRound === round) round.clearPlaceholderIfCurrent(placeholder);
         this.emitDispatchTelemetry({
           source: options.source ?? "cloud",
@@ -1569,7 +1606,9 @@ export class CustomerServiceSession {
         messageType: options.messageType,
         senderRole: options.senderRole,
         attachments,
-        advanceSessionCursor: options.currentMessageCursor ?? { messageId: options.currentMessageId },
+        advanceSessionCursor: options.currentMessageCursor ?? {
+          messageId: options.currentMessageId,
+        },
       });
       if (result.runId) {
         emitCsTelemetry("cs.message", {
@@ -1630,8 +1669,8 @@ export class CustomerServiceSession {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (
-        message === "Escalation routing not configured"
-        || message.startsWith("WeChat escalation recipient is not active yet")
+        message === "Escalation routing not configured" ||
+        message.startsWith("WeChat escalation recipient is not active yet")
       ) {
         return { ok: false, error: message };
       }
@@ -1685,13 +1724,15 @@ export class CustomerServiceSession {
     const colonIdx = escalationChannelId.indexOf(":");
     const channel = escalationChannelId.slice(0, colonIdx);
     const accountId = escalationChannelId.slice(colonIdx + 1);
-    const outboundAccountId = channel === WEIXIN_CHANNEL_ID
-      ? normalizeWeixinAccountId(accountId)
-      : accountId;
+    const outboundAccountId =
+      channel === WEIXIN_CHANNEL_ID ? normalizeWeixinAccountId(accountId) : accountId;
 
     if (
-      channel === WEIXIN_CHANNEL_ID
-      && !rootStore.channelManager.hasWeixinContextTokenForRecipient(outboundAccountId, escalationRecipientId)
+      channel === WEIXIN_CHANNEL_ID &&
+      !rootStore.channelManager.hasWeixinContextTokenForRecipient(
+        outboundAccountId,
+        escalationRecipientId,
+      )
     ) {
       log.warn(
         `WeChat escalation context token not cached; sending anyway account=${outboundAccountId} recipient=${escalationRecipientId}`,
@@ -1710,45 +1751,47 @@ export class CustomerServiceSession {
     if (orderId) lines.push(`Order: ${orderId}`);
     lines.push(`Reason: ${params.reason}`);
     if (params.context) lines.push(`Context: ${params.context}`);
-    lines.push("", "Please reply with your decision (e.g., \"Approved, process full refund\").");
+    lines.push("", 'Please reply with your decision (e.g., "Approved, process full refund").');
 
     let sendMessageId: string | undefined;
     try {
       const idempotencyKey = params.idempotencyKey ?? `cs-escalate:${params.escalationId}`;
       log.info(
         `Sending escalation ${params.escalationId} for conv=${this.csContext.conversationId} via ${channel} ` +
-        `account=${outboundAccountId} to=${escalationRecipientId}`,
+          `account=${outboundAccountId} to=${escalationRecipientId}`,
       );
-      const sendResult = channel === "feishu"
-        ? await openClawConnector.request("message.action", {
-            channel: "feishu",
-            action: "send",
-            accountId: outboundAccountId,
-            params: {
+      const sendResult =
+        channel === "feishu"
+          ? await openClawConnector.request("message.action", {
+              channel: "feishu",
+              action: "send",
+              accountId: outboundAccountId,
+              params: {
+                to: escalationRecipientId,
+                card: buildFeishuCsEscalationCard({
+                  escalationId: params.escalationId,
+                  shop: this.shop.shopName,
+                  conversationId: this.csContext.conversationId,
+                  buyer: buyerNickname ?? this.csContext.buyerUserId,
+                  orderId,
+                  reason: params.reason,
+                  context: params.context,
+                  locale: this.opts?.locale?.(),
+                }),
+              },
+              idempotencyKey,
+            })
+          : await openClawConnector.request("send", {
               to: escalationRecipientId,
-              card: buildFeishuCsEscalationCard({
-                escalationId: params.escalationId,
-                shop: this.shop.shopName,
-                conversationId: this.csContext.conversationId,
-                buyer: buyerNickname ?? this.csContext.buyerUserId,
-                orderId,
-                reason: params.reason,
-                context: params.context,
-                locale: this.opts?.locale?.(),
-              }),
-            },
-            idempotencyKey,
-          })
-        : await openClawConnector.request("send", {
-            to: escalationRecipientId,
-            channel,
-            accountId: outboundAccountId,
-            message: lines.join("\n"),
-            idempotencyKey,
-          });
-      sendMessageId = typeof (sendResult as { messageId?: unknown } | undefined)?.messageId === "string"
-        ? (sendResult as { messageId: string }).messageId
-        : undefined;
+              channel,
+              accountId: outboundAccountId,
+              message: lines.join("\n"),
+              idempotencyKey,
+            });
+      sendMessageId =
+        typeof (sendResult as { messageId?: unknown } | undefined)?.messageId === "string"
+          ? (sendResult as { messageId: string }).messageId
+          : undefined;
     } catch (err) {
       // Channel adapter failed to dispatch the escalation message (e.g. the
       // target channel isn't logged in, platform rejected the send, network).
@@ -1777,7 +1820,7 @@ export class CustomerServiceSession {
     });
     log.info(
       `Escalation ${params.escalationId} sent for conv=${this.csContext.conversationId} via ${channel} ` +
-      `account=${outboundAccountId} to=${escalationRecipientId} messageId=${sendMessageId ?? "unknown"}`,
+        `account=${outboundAccountId} to=${escalationRecipientId} messageId=${sendMessageId ?? "unknown"}`,
     );
   }
 
@@ -1844,9 +1887,12 @@ export class CustomerServiceSession {
 
   /** Fire-and-forget abort of the active run. Synchronous call (RPC is async but we don't await). */
   private fireAbort(): void {
-    openClawConnector.request("chat.abort", { sessionKey: this.scopeKey })
+    openClawConnector
+      .request("chat.abort", { sessionKey: this.scopeKey })
       .then(() => log.info(`Aborted active run for session ${this.scopeKey}`))
-      .catch((err: unknown) => log.warn(`Failed to abort run: ${err instanceof Error ? err.message : String(err)}`));
+      .catch((err: unknown) =>
+        log.warn(`Failed to abort run: ${err instanceof Error ? err.message : String(err)}`),
+      );
   }
 
   // -- Private — context resolution -------------------------------------------
@@ -1869,7 +1915,9 @@ export class CustomerServiceSession {
 
     const authSession = getAuthSession();
     if (!authSession) {
-      log.error(`Context resolution failed: no auth session for conv=${this.csContext.conversationId}`);
+      log.error(
+        `Context resolution failed: no auth session for conv=${this.csContext.conversationId}`,
+      );
       this.emitError(CS_ERROR_STAGE.CONTEXT_RESOLUTION, { reason: "no_auth_session" });
       this.csContext.recentOrders = [];
       this.contextResolved = true;
@@ -1887,7 +1935,9 @@ export class CustomerServiceSession {
       const platformBuyerId = detailsResult.ecommerceGetConversationDetails.buyer?.userId;
       this.csContext.buyerNickname = detailsResult.ecommerceGetConversationDetails.buyer?.nickname;
       if (!platformBuyerId) {
-        log.warn(`Context resolution: could not resolve platform buyer ID for conv=${this.csContext.conversationId}`);
+        log.warn(
+          `Context resolution: could not resolve platform buyer ID for conv=${this.csContext.conversationId}`,
+        );
         this.emitError(CS_ERROR_STAGE.CONTEXT_RESOLUTION, { reason: "no_platform_buyer" });
         this.csContext.recentOrders = [];
         this.csContext.orderId = null;
@@ -1897,7 +1947,9 @@ export class CustomerServiceSession {
 
       // Update buyerUserId to the real platform ID
       if (this.csContext.buyerUserId !== platformBuyerId) {
-        log.info(`Resolved platform buyerId=${platformBuyerId} (was ${this.csContext.buyerUserId}) for conv=${this.csContext.conversationId}`);
+        log.info(
+          `Resolved platform buyerId=${platformBuyerId} (was ${this.csContext.buyerUserId}) for conv=${this.csContext.conversationId}`,
+        );
         this.csContext.buyerUserId = platformBuyerId;
       }
 
@@ -1909,17 +1961,25 @@ export class CustomerServiceSession {
         buyerUserId: platformBuyerId,
       });
       const orders = (ordersResult.ecommerceGetOrders ?? [])
-        .filter((o): o is { orderId: string; createTime: number } => !!o.orderId && typeof o.createTime === "number")
+        .filter(
+          (o): o is { orderId: string; createTime: number } =>
+            !!o.orderId && typeof o.createTime === "number",
+        )
         .map((o) => ({ orderId: o.orderId, createTime: o.createTime }))
         .sort((a, b) => b.createTime - a.createTime);
       this.csContext.recentOrders = orders;
       this.csContext.orderId = orders[0]?.orderId ?? null;
-      log.info(`Context resolved: ${orders.length} order(s) for conv=${this.csContext.conversationId}${orders.length > 0 ? `, latest=${orders[0].orderId}` : ""}`);
+      log.info(
+        `Context resolved: ${orders.length} order(s) for conv=${this.csContext.conversationId}${orders.length > 0 ? `, latest=${orders[0].orderId}` : ""}`,
+      );
 
       this.contextResolved = true;
     } catch (err) {
       log.warn(`Context resolution failed for conv=${this.csContext.conversationId}:`, err);
-      this.emitError(CS_ERROR_STAGE.CONTEXT_RESOLUTION, { reason: "graphql_error", errorMessage: err });
+      this.emitError(CS_ERROR_STAGE.CONTEXT_RESOLUTION, {
+        reason: "graphql_error",
+        errorMessage: err,
+      });
       // contextResolved stays false — createAndStoreSession will throw,
       // next attempt to create a session for this conversation will retry
     }
@@ -1956,7 +2016,10 @@ export class CustomerServiceSession {
     });
   }
 
-  private async registerGatewaySessionIfNeeded(): Promise<{ skipped: boolean; durationMs: number }> {
+  private async registerGatewaySessionIfNeeded(): Promise<{
+    skipped: boolean;
+    durationMs: number;
+  }> {
     const signature = this.buildGatewaySessionRegistrationSignature();
     if (this.gatewaySessionRegistrationSignature === signature) {
       return { skipped: true, durationMs: 0 };
@@ -1981,13 +2044,13 @@ export class CustomerServiceSession {
       if (this.ensureSessionRunProfile(runProfileId)) {
         log.info(
           `Gateway runProfile binding refreshed: conv=${this.csContext.conversationId} ` +
-          `scope=${this.scopeKey} runProfileId=${runProfileId}`,
+            `scope=${this.scopeKey} runProfileId=${runProfileId}`,
         );
       }
       log.info(
         `Gateway setup refreshed: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
-        `registerMs=${registerMs} registerSkipped=${registration.skipped} ` +
-        `scope=${this.scopeKey}`,
+          `registerMs=${registerMs} registerSkipped=${registration.skipped} ` +
+          `scope=${this.scopeKey}`,
       );
       return;
     }
@@ -1999,8 +2062,8 @@ export class CustomerServiceSession {
     this.gatewaySetupReady = true;
     log.info(
       `Gateway setup ready: conv=${this.csContext.conversationId} totalMs=${Date.now() - setupStartedAt} ` +
-      `registerMs=${registerMs} registerSkipped=${registration.skipped} runProfileMs=${runProfileMs} ` +
-      `scope=${this.scopeKey} runProfileId=${runProfileId}`,
+        `registerMs=${registerMs} registerSkipped=${registration.skipped} runProfileMs=${runProfileMs} ` +
+        `scope=${this.scopeKey} runProfileId=${runProfileId}`,
     );
   }
 
@@ -2041,28 +2104,32 @@ export class CustomerServiceSession {
       });
       log.info(
         `Agent dispatch request starting: conv=${this.csContext.conversationId} session=${this.dispatchKey} ` +
-        `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
-        `messageChars=${params.message.length}`,
+          `attachments=${params.attachments?.length ?? 0} promptChars=${extraSystemPrompt.length} ` +
+          `messageChars=${params.message.length}`,
       );
       const resolvedModel = rootStore.llmManager.resolveModelForDispatch(this.scopeKey, {
         type: ScopeType.CS_SESSION,
         shopId: this.shop.objectId,
       });
-      const response = await requestAgent<DispatchResult>({
-        sessionKey: this.dispatchKey,
-        provider: resolvedModel.provider,
-        model: resolvedModel.model,
-        message: params.message,
-        extraSystemPrompt,
-        promptMode: "raw",
-        idempotencyKey: params.idempotencyKey,
-        ...(params.attachments ? { attachments: params.attachments } : {}),
-      }, CS_AGENT_DISPATCH_RPC_TIMEOUT_MS);
+      const response = await requestAgent<DispatchResult>(
+        {
+          sessionKey: this.dispatchKey,
+          provider: resolvedModel.provider,
+          model: resolvedModel.model,
+          message: params.message,
+          extraSystemPrompt,
+          promptMode: "raw",
+          allowEmptyAssistantReplyAsSilent: true,
+          idempotencyKey: params.idempotencyKey,
+          ...(params.attachments ? { attachments: params.attachments } : {}),
+        },
+        CS_AGENT_DISPATCH_RPC_TIMEOUT_MS,
+      );
 
       const runId = response?.runId;
       log.info(
         `Agent dispatch accepted: runId=${runId ?? "none"} conv=${this.csContext.conversationId} ` +
-        `acceptedMs=${Date.now() - dispatchStartedAt}`,
+          `acceptedMs=${Date.now() - dispatchStartedAt}`,
       );
       this.emitDispatchTelemetry({
         source: params.dispatchSource ?? "desktop",
@@ -2099,10 +2166,16 @@ export class CustomerServiceSession {
         // transfer the abort marker to the real runId so bridge can detect it.
         // Don't overwrite the active round — a newer message already claimed the slot.
         if (round && params.placeholder) {
-          const disposition = round.markDispatchResolved(runId, this.activeRound === round, params.placeholder);
+          const disposition = round.markDispatchResolved(
+            runId,
+            this.activeRound === round,
+            params.placeholder,
+          );
           this.attachRunToRound(runId, round);
           if (disposition === "aborted") {
-            log.info(`Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`);
+            log.info(
+              `Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`,
+            );
             this.emitDispatchTelemetry({
               source: params.dispatchSource ?? "desktop",
               signalType: params.signalType,
@@ -2118,7 +2191,9 @@ export class CustomerServiceSession {
             });
             this.opts?.onRunDispatched?.(runId);
           } else if (disposition === "stale") {
-            log.info(`Dispatch completed but placeholder ${params.placeholder} was replaced, marking runId=${runId} as aborted`);
+            log.info(
+              `Dispatch completed but placeholder ${params.placeholder} was replaced, marking runId=${runId} as aborted`,
+            );
             this.emitDispatchTelemetry({
               source: params.dispatchSource ?? "desktop",
               signalType: params.signalType,
@@ -2228,7 +2303,7 @@ export class CustomerServiceSession {
       }
       log.info(
         `CS image attachment ingested: source=${source.source} messageId=${source.messageId ?? ""} ` +
-        `inputBytes=${rawBuffer.byteLength} outputBytes=${buffer.byteLength} compression=${compression}`,
+          `inputBytes=${rawBuffer.byteLength} outputBytes=${buffer.byteLength} compression=${compression}`,
       );
       return [{ mimeType, content: buffer.toString("base64") }];
     } catch (err) {

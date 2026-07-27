@@ -192,6 +192,16 @@ preserved-session behavior.
 Removal: upstream provides equivalent bounded recovery that preserves the failed
 transcript without repeatedly routing later turns into it.
 
+### 0030 - Per-run silent completion through Agent RPC
+
+Exposes OpenClaw's existing `allowEmptyAssistantReplyAsSilent` option through
+the Gateway Agent RPC and command runner. RivonClaw enables it only for normal
+customer-service dispatches, so a clean empty assistant turn can be acknowledged
+without changing Main, Affiliate, or summary-agent behavior.
+
+Removal: upstream forwards `allowEmptyAssistantReplyAsSilent` through the Agent
+RPC, or provides an equivalent per-run silent-completion option.
+
 ## Dropped In v2026.6.11
 
 - `0005`: OpenClaw now owns system prompts through

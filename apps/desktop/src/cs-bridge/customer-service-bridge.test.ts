@@ -1288,6 +1288,15 @@ describe("CS RunProfile setup", () => {
     // resolve at effective-tools query time (returning empty tools if not found).
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
+    const agentCall = mockRpcRequest.mock.calls.findLast((call: any[]) => call[0] === "agent");
+    expect(agentCall?.[1]).toEqual(
+      expect.objectContaining({
+        allowEmptyAssistantReplyAsSilent: true,
+        extraSystemPrompt: expect.stringContaining(
+          "When the current instruction permits no buyer-facing response, return exactly NO_REPLY and nothing else.",
+        ),
+      }),
+    );
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
       runProfileId: "CUSTOMER_SERVICE",

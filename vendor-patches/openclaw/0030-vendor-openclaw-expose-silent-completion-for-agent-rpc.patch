@@ -1,0 +1,160 @@
+From e952913b594472f373424a04a52a37fa66c2483c Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 27 Jul 2026 12:00:26 -0700
+Subject: [PATCH] vendor(openclaw): expose silent completion for agent RPC
+
+Why:
+- Customer-service agents need to accept clean empty assistant turns without changing global agent behavior.
+
+Removal:
+- Drop when upstream agent Gateway RPC forwards allowEmptyAssistantReplyAsSilent or provides an equivalent per-run option.
+
+Tests:
+- apps/desktop/src/cs-bridge/vendor-agent-silent-completion.sentinel.test.ts
+- apps/desktop/src/cs-bridge/customer-service-bridge.test.ts
+- apps/desktop/src/cs-bridge/cs-conversation-summary-service.test.ts
+- apps/desktop/src/affiliate/affiliate-work-item.test.ts
+---
+ .../gateway-protocol/src/schema/agent.test.ts   | 17 +++++++++++++++++
+ packages/gateway-protocol/src/schema/agent.ts   |  1 +
+ .../command/attempt-execution.cli.test.ts       |  2 ++
+ src/agents/command/attempt-execution.ts         |  1 +
+ src/agents/command/types.ts                     |  2 ++
+ src/gateway/server-methods/agent.test.ts        |  3 +++
+ src/gateway/server-methods/agent.ts             |  2 ++
+ 7 files changed, 28 insertions(+)
+
+diff --git a/packages/gateway-protocol/src/schema/agent.test.ts b/packages/gateway-protocol/src/schema/agent.test.ts
+index bd03583bd7a..d24dba01e37 100644
+--- a/packages/gateway-protocol/src/schema/agent.test.ts
++++ b/packages/gateway-protocol/src/schema/agent.test.ts
+@@ -57,6 +57,23 @@ const musicCompletionEvent: AgentInternalEvent = {
+ };
+ 
+ describe("AgentParamsSchema", () => {
++  it("accepts only boolean silent empty-reply overrides", () => {
++    const params = makeAgentParamsWithInternalEvent(musicCompletionEvent);
++
++    expect(
++      Value.Check(AgentParamsSchema, {
++        ...params,
++        allowEmptyAssistantReplyAsSilent: true,
++      }),
++    ).toBe(true);
++    expect(
++      Value.Check(AgentParamsSchema, {
++        ...params,
++        allowEmptyAssistantReplyAsSilent: "true",
++      }),
++    ).toBe(false);
++  });
++
+   it("accepts generated music attachments on internal completion events", () => {
+     const params = makeAgentParamsWithInternalEvent(musicCompletionEvent);
+ 
+diff --git a/packages/gateway-protocol/src/schema/agent.ts b/packages/gateway-protocol/src/schema/agent.ts
+index 4abe976335e..a5f76aa04cc 100644
+--- a/packages/gateway-protocol/src/schema/agent.ts
++++ b/packages/gateway-protocol/src/schema/agent.ts
+@@ -218,6 +218,7 @@ export const AgentParamsSchema = Type.Object(
+         Type.Literal("raw"),
+       ]),
+     ),
++    allowEmptyAssistantReplyAsSilent: Type.Optional(Type.Boolean()),
+     extraSystemPrompt: Type.Optional(Type.String()),
+     bootstrapContextMode: Type.Optional(
+       Type.Union([Type.Literal("full"), Type.Literal("lightweight")]),
+diff --git a/src/agents/command/attempt-execution.cli.test.ts b/src/agents/command/attempt-execution.cli.test.ts
+index f614f0f0a98..2c1d7a66222 100644
+--- a/src/agents/command/attempt-execution.cli.test.ts
++++ b/src/agents/command/attempt-execution.cli.test.ts
+@@ -2386,6 +2386,7 @@ describe("CLI attempt execution", () => {
+       opts: {
+         modelRun: true,
+         promptMode: "none",
++        allowEmptyAssistantReplyAsSilent: true,
+         messageProvider: "discord-voice",
+         inputProvenance: {
+           kind: "inter_session",
+@@ -2416,6 +2417,7 @@ describe("CLI attempt execution", () => {
+       messageProvider: "discord-voice",
+       modelRun: true,
+       promptMode: "none",
++      allowEmptyAssistantReplyAsSilent: true,
+       disableTools: true,
+     });
+     expect(firstEmbeddedAgentArg().prompt).not.toContain("[Inter-session message]");
+diff --git a/src/agents/command/attempt-execution.ts b/src/agents/command/attempt-execution.ts
+index c4a2fd56c37..2ea8e36b412 100644
+--- a/src/agents/command/attempt-execution.ts
++++ b/src/agents/command/attempt-execution.ts
+@@ -830,6 +830,7 @@ export function runAgentAttempt(params: {
+     oneShotCliRun: params.opts.oneShotCliRun,
+     modelRun: params.opts.modelRun,
+     promptMode: params.opts.promptMode,
++    allowEmptyAssistantReplyAsSilent: params.opts.allowEmptyAssistantReplyAsSilent,
+     disableTools: params.opts.modelRun === true,
+     onAgentEvent: params.onAgentEvent,
+     deferTerminalLifecycle: params.deferTerminalLifecycle,
+diff --git a/src/agents/command/types.ts b/src/agents/command/types.ts
+index c15efb1b472..1e664348e19 100644
+--- a/src/agents/command/types.ts
++++ b/src/agents/command/types.ts
+@@ -161,6 +161,8 @@ export type AgentCommandOpts = {
+   modelRun?: boolean;
+   /** Internal prompt-mode override for trusted local/gateway callsites. */
+   promptMode?: PromptMode;
++  /** Treat a clean empty assistant completion as an intentional silent reply. */
++  allowEmptyAssistantReplyAsSilent?: boolean;
+   /** Internal ACP-ready session turn source. Manual spawn turns bypass only the dispatch gate. */
+   acpTurnSource?: AcpTurnSource;
+   /** Internal handoffs can feed the model without writing the synthetic prompt to transcript. */
+diff --git a/src/gateway/server-methods/agent.test.ts b/src/gateway/server-methods/agent.test.ts
+index 11a95244a16..1a4f03ba995 100644
+--- a/src/gateway/server-methods/agent.test.ts
++++ b/src/gateway/server-methods/agent.test.ts
+@@ -2361,6 +2361,7 @@ describe("gateway agent handler", () => {
+         model: "llama3.2:latest",
+         modelRun: true,
+         promptMode: "none",
++        allowEmptyAssistantReplyAsSilent: true,
+         sessionKey: "agent:main:main",
+         inputProvenance: {
+           kind: "inter_session",
+@@ -2379,11 +2380,13 @@ describe("gateway agent handler", () => {
+       message?: string;
+       modelRun?: boolean;
+       promptMode?: string;
++      allowEmptyAssistantReplyAsSilent?: boolean;
+     }>();
+     expectRecordFields(callArgs, {
+       message: "Reply exactly: pong",
+       modelRun: true,
+       promptMode: "none",
++      allowEmptyAssistantReplyAsSilent: true,
+     });
+     expect(callArgs.message).not.toContain("[Inter-session message]");
+ 
+diff --git a/src/gateway/server-methods/agent.ts b/src/gateway/server-methods/agent.ts
+index 0546ac51c65..3d5c9f3ffda 100644
+--- a/src/gateway/server-methods/agent.ts
++++ b/src/gateway/server-methods/agent.ts
+@@ -1023,6 +1023,7 @@ export const agentHandlers: GatewayRequestHandlers = {
+       extraSystemPrompt?: string;
+       modelRun?: boolean;
+       promptMode?: "full" | "minimal" | "none" | "raw";
++      allowEmptyAssistantReplyAsSilent?: boolean;
+       bootstrapContextMode?: "full" | "lightweight";
+       bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
+       acpTurnSource?: "manual_spawn";
+@@ -2678,6 +2679,7 @@ export const agentHandlers: GatewayRequestHandlers = {
+               lane: request.lane,
+               modelRun: request.modelRun === true,
+               promptMode: request.promptMode,
++              allowEmptyAssistantReplyAsSilent: request.allowEmptyAssistantReplyAsSilent,
+               extraSystemPrompt: request.extraSystemPrompt,
+               bootstrapContextMode: request.bootstrapContextMode,
+               bootstrapContextRunKind: request.bootstrapContextRunKind,
+-- 
+2.50.1 (Apple Git-155)
+
