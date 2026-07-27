@@ -27813,13 +27813,13 @@ html[lang="zh"] .acct-tool-chips {
 
 /* Affiliate creator campaigns — an operational planning surface, not an ad dashboard. */
 .affiliate-campaign-page {
-  --campaign-ink: #14251f;
-  --campaign-muted: #66756f;
-  --campaign-line: #dce5e0;
-  --campaign-paper: #f7faf8;
-  --campaign-green: #087a55;
-  --campaign-mint: #dff4e9;
-  --campaign-amber: #b16815;
+  --campaign-ink: var(--color-text);
+  --campaign-muted: var(--color-text-secondary);
+  --campaign-line: var(--color-border);
+  --campaign-paper: var(--color-bg-alt);
+  --campaign-green: var(--color-primary);
+  --campaign-mint: var(--color-primary-light);
+  --campaign-amber: var(--color-warning);
   width: min(1640px, calc(100% - 48px));
   margin: 0 auto;
   padding: 30px 0 64px;
@@ -27883,8 +27883,8 @@ html[lang="zh"] .acct-tool-chips {
   margin-bottom: 18px;
   border: 1px solid var(--campaign-line);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--panel-bg, #fff) 95%, #dfece5);
-  box-shadow: 0 10px 28px rgba(35, 67, 54, .045);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .affiliate-campaign-command-strip > div {
@@ -27902,8 +27902,8 @@ html[lang="zh"] .acct-tool-chips {
   grid-template-columns: minmax(68px, auto) minmax(0, 1fr);
   align-items: center;
   gap: 16px;
-  background: var(--campaign-ink);
-  color: #fff;
+  background: var(--color-bg-alt);
+  color: var(--color-text);
 }
 
 .affiliate-campaign-window-copy {
@@ -27914,7 +27914,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-window-copy small {
   display: block;
   overflow: hidden;
-  color: rgba(255, 255, 255, .63);
+  color: var(--color-text-muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -27922,7 +27922,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-window-copy span {
   margin-bottom: 5px;
-  color: rgba(255, 255, 255, .9);
+  color: var(--color-primary);
   font-weight: 750;
 }
 
@@ -27942,7 +27942,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-window-range > div {
   position: relative;
   height: 1px;
-  background: rgba(255, 255, 255, .25);
+  background: color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
 }
 
 .affiliate-campaign-window-range > div i {
@@ -27951,7 +27951,8 @@ html[lang="zh"] .acct-tool-chips {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #7ce6b2;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .affiliate-campaign-window-range > div i:first-child { left: 25%; }
@@ -27977,7 +27978,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-campaign-command-metric small {
-  color: #8b9893;
+  color: var(--color-text-muted);
   font-size: 11px;
 }
 
@@ -27993,7 +27994,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-empty {
   border: 1px solid var(--campaign-line);
   border-radius: 20px;
-  background: var(--panel-bg, #fff);
+  background: var(--color-bg);
 }
 
 .affiliate-campaign-rail {
@@ -28044,8 +28045,8 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-campaign-rail-card[data-active] {
-  border-color: #a9d6c0;
-  background: #edf8f2;
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+  background: var(--color-primary-light);
 }
 
 .affiliate-campaign-rail-card > span:nth-child(2) {
@@ -28062,22 +28063,22 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-rail-card strong { font-size: 13px; }
 .affiliate-campaign-rail-card small { margin-top: 3px; color: var(--campaign-muted); font-size: 11px; }
-.affiliate-campaign-rail-card > svg { color: #96a29d; }
+.affiliate-campaign-rail-card > svg { color: var(--color-text-muted); }
 
 .affiliate-campaign-status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #aab3af;
-  box-shadow: 0 0 0 4px rgba(170, 179, 175, .13);
+  background: var(--color-text-muted);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-text-muted) 14%, transparent);
 }
 
 .affiliate-campaign-status-dot.is-active {
-  background: #0cb37d;
-  box-shadow: 0 0 0 4px rgba(12, 179, 125, .14);
+  background: var(--color-success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 14%, transparent);
 }
 
-.affiliate-campaign-status-dot.is-paused { background: #d08a26; }
+.affiliate-campaign-status-dot.is-paused { background: var(--color-warning); }
 
 .affiliate-campaign-detail {
   overflow: hidden;
@@ -28127,17 +28128,15 @@ html[lang="zh"] .acct-tool-chips {
   font-weight: 750;
 }
 
-.affiliate-campaign-status { padding: 6px 10px; background: #eef1ef; color: #52615b; }
+.affiliate-campaign-status { padding: 6px 10px; background: var(--color-bg-alt); color: var(--color-text-secondary); }
 .affiliate-campaign-status.is-active { background: var(--campaign-mint); color: var(--campaign-green); }
-.affiliate-campaign-status.is-paused { background: #fff0d8; color: var(--campaign-amber); }
+.affiliate-campaign-status.is-paused { background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg)); color: var(--campaign-amber); }
 
 .affiliate-campaign-today {
   display: grid;
   grid-template-columns: 1.5fr 1fr 1fr;
   border-block: 1px solid var(--campaign-line);
-  background:
-    linear-gradient(135deg, rgba(226, 244, 235, .75), rgba(247, 250, 248, .55)),
-    repeating-linear-gradient(90deg, transparent 0, transparent 23px, rgba(8, 122, 85, .025) 24px);
+  background: color-mix(in srgb, var(--color-primary-light) 42%, var(--color-bg));
 }
 
 .affiliate-campaign-today > div {
@@ -28196,7 +28195,7 @@ html[lang="zh"] .acct-tool-chips {
   overflow: hidden;
   height: 4px;
   border-radius: 999px;
-  background: #e0e7e3;
+  background: var(--color-border);
 }
 .affiliate-campaign-funnel-bars b { display: block; height: 100%; border-radius: inherit; background: var(--campaign-green); }
 
@@ -28221,7 +28220,7 @@ html[lang="zh"] .acct-tool-chips {
   border-right: 0 !important;
   background: var(--campaign-paper);
 }
-.affiliate-campaign-template-readout p { margin: 8px 0 0; color: #405149; line-height: 1.55; }
+.affiliate-campaign-template-readout p { margin: 8px 0 0; color: var(--color-text-secondary); line-height: 1.55; }
 
 .affiliate-campaign-state-panel {
   padding-top: 22px;
@@ -28256,12 +28255,12 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-state-table td:first-child strong,
 .affiliate-campaign-state-table td:first-child small { display: block; }
 .affiliate-campaign-state-table td:first-child small { margin-top: 3px; color: var(--campaign-muted); font-size: 10px; }
-.affiliate-campaign-state-pill { padding: 5px 8px; background: #eff2f0; color: #56635e; }
+.affiliate-campaign-state-pill { padding: 5px 8px; background: var(--color-bg-alt); color: var(--color-text-secondary); }
 .affiliate-campaign-state-pill.is-reached_out,
 .affiliate-campaign-state-pill.is-replied { background: var(--campaign-mint); color: var(--campaign-green); }
 .affiliate-campaign-state-pill.is-failed,
-.affiliate-campaign-state-pill.is-disqualified { background: #fde8e5; color: #a54336; }
-.affiliate-campaign-state-pill.is-deferred { background: #fff0d8; color: var(--campaign-amber); }
+.affiliate-campaign-state-pill.is-disqualified { background: var(--color-danger-light); color: var(--color-danger); }
+.affiliate-campaign-state-pill.is-deferred { background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg)); color: var(--campaign-amber); }
 .affiliate-campaign-table-empty { padding: 44px 20px; color: var(--campaign-muted); text-align: center; }
 
 .affiliate-campaign-history-strip {
@@ -28287,25 +28286,25 @@ html[lang="zh"] .acct-tool-chips {
   min-height: 430px;
   padding: 58px;
 }
-.affiliate-campaign-empty-orbit { position: relative; width: 260px; height: 260px; border: 1px solid #badcca; border-radius: 50%; }
+.affiliate-campaign-empty-orbit { position: relative; width: 260px; height: 260px; border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border)); border-radius: 50%; }
 .affiliate-campaign-empty-orbit::before,
 .affiliate-campaign-empty-orbit::after {
   content: "";
   position: absolute;
-  border: 1px solid #d9e8e0;
+  border: 1px solid var(--color-border);
   border-radius: 50%;
   inset: 35px;
 }
-.affiliate-campaign-empty-orbit::after { inset: 82px; background: var(--campaign-ink); }
+.affiliate-campaign-empty-orbit::after { inset: 82px; background: var(--color-primary-light); }
 .affiliate-campaign-empty-orbit span {
   position: absolute;
   z-index: 1;
   width: 17px;
   height: 17px;
-  border: 4px solid #fff;
+  border: 4px solid var(--color-bg);
   border-radius: 50%;
-  background: #11aa77;
-  box-shadow: 0 4px 12px rgba(8, 122, 85, .2);
+  background: var(--color-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 .affiliate-campaign-empty-orbit span:nth-child(1) { top: 18px; left: 114px; }
 .affiliate-campaign-empty-orbit span:nth-child(2) { right: 23px; bottom: 57px; }
@@ -28315,11 +28314,11 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-empty p { margin: 0 0 23px; color: var(--campaign-muted); line-height: 1.6; }
 
 .affiliate-campaign-wizard.modal-content {
-  --campaign-ink: #10231d;
-  --campaign-green: #07845c;
-  --campaign-muted: #6f7d77;
-  --campaign-line: #dfe7e3;
-  --campaign-paper: #f3f6f4;
+  --campaign-ink: var(--color-text);
+  --campaign-green: var(--color-primary);
+  --campaign-muted: var(--color-text-secondary);
+  --campaign-line: var(--color-border);
+  --campaign-paper: var(--color-bg-alt);
   overflow: hidden;
   max-height: min(900px, calc(100vh - 36px));
   border-radius: 22px;
@@ -28335,7 +28334,7 @@ html[lang="zh"] .acct-tool-chips {
   display: flex;
   gap: 9px;
   align-items: center;
-  color: #9aa5a0;
+  color: var(--color-text-muted);
   font-size: 11px;
 }
 .affiliate-campaign-wizard-steps > div > span {
@@ -28343,19 +28342,19 @@ html[lang="zh"] .acct-tool-chips {
   width: 25px;
   height: 25px;
   place-items: center;
-  border: 1px solid #d5dfda;
+  border: 1px solid var(--color-border);
   border-radius: 50%;
 }
 .affiliate-campaign-wizard-steps > div[data-active] { color: var(--campaign-ink); }
-.affiliate-campaign-wizard-steps > div[data-active] > span { border-color: var(--campaign-green); background: var(--campaign-green); color: #fff; }
+.affiliate-campaign-wizard-steps > div[data-active] > span { border-color: var(--campaign-green); background: var(--campaign-green); color: var(--color-bg); }
 .affiliate-campaign-wizard-steps > div[data-complete] { color: var(--campaign-green); }
-.affiliate-campaign-wizard-steps > div[data-complete] > span { border-color: #a5dbc3; background: #e7f7ef; }
+.affiliate-campaign-wizard-steps > div[data-complete] > span { border-color: var(--campaign-green); background: var(--color-primary-light); }
 .affiliate-campaign-wizard-body {
   overflow-y: auto;
   min-height: 480px;
   max-height: calc(100vh - 245px);
   padding: 34px 40px;
-  background: #fbfcfb;
+  background: var(--color-bg-page);
   color: var(--campaign-ink);
 }
 .affiliate-campaign-wizard-grid {
@@ -28365,7 +28364,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-campaign-wizard-copy > span,
 .affiliate-campaign-confirmation > section > span {
-  color: #97a8a0;
+  color: var(--color-text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
 }
@@ -28382,7 +28381,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-wizard-fields label > span {
   display: block;
   margin-bottom: 7px;
-  color: #53625c;
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 750;
   letter-spacing: .03em;
@@ -28390,7 +28389,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-product-fetch > span {
   display: block;
   margin-bottom: 7px;
-  color: #53625c;
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 750;
   letter-spacing: .03em;
@@ -28398,7 +28397,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-product-fetch > small {
   display: block;
   margin-top: 7px;
-  color: #87958f;
+  color: var(--color-text-muted);
   font-size: 10px;
 }
 .affiliate-campaign-product-fetch-row,
@@ -28410,18 +28409,18 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-fetch-button,
 .affiliate-campaign-keyword-input-row button {
   min-width: 116px;
-  border: 1px solid #a8cbb9;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
   border-radius: 12px;
-  background: #eff8f3;
-  color: #087a55;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
 }
 .affiliate-campaign-fetch-button:hover:not(:disabled),
 .affiliate-campaign-keyword-input-row button:hover:not(:disabled) {
-  border-color: #087a55;
-  background: #e5f4ec;
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary-light) 78%, var(--color-primary));
 }
 .affiliate-campaign-fetch-button:disabled,
 .affiliate-campaign-keyword-input-row button:disabled {
@@ -28434,10 +28433,10 @@ html[lang="zh"] .acct-tool-chips {
   gap: 14px;
   align-items: center;
   padding: 13px;
-  border: 1px solid #bbdaca;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
   border-radius: 16px;
-  background: linear-gradient(135deg, #f4fbf7, #fff);
-  box-shadow: 0 12px 28px rgba(37, 91, 67, .07);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 .affiliate-campaign-product-preview img,
 .affiliate-campaign-product-preview-placeholder {
@@ -28445,16 +28444,16 @@ html[lang="zh"] .acct-tool-chips {
   height: 76px;
   border-radius: 12px;
   object-fit: cover;
-  background: #e6f2ec;
+  background: var(--color-primary-light);
 }
 .affiliate-campaign-product-preview-placeholder {
   display: grid;
   place-items: center;
-  color: #438c69;
+  color: var(--color-primary);
 }
 .affiliate-campaign-product-preview > div:nth-child(2) { display: grid; gap: 4px; min-width: 0; }
 .affiliate-campaign-product-preview span {
-  color: #087a55;
+  color: var(--color-primary);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: .1em;
@@ -28467,12 +28466,12 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 .affiliate-campaign-product-preview p,
-.affiliate-campaign-product-preview small { margin: 0; color: #71817a; font-size: 10px; }
+.affiliate-campaign-product-preview small { margin: 0; color: var(--color-text-muted); font-size: 10px; }
 .affiliate-campaign-product-preview > i {
   padding: 5px 8px;
   border-radius: 999px;
-  background: #dff3e8;
-  color: #087a55;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   font-size: 9px;
   font-style: normal;
   font-weight: 800;
@@ -28481,40 +28480,41 @@ html[lang="zh"] .acct-tool-chips {
   display: grid;
   gap: 8px;
   padding: 13px;
-  border: 1px solid #e0ddd1;
+  border: 1px solid var(--color-border);
   border-radius: 14px;
-  background: #fbfaf6;
+  background: var(--color-bg-alt);
 }
 .affiliate-campaign-keyword-suggestions > span {
-  color: #746e5b;
+  color: var(--color-text-secondary);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: .04em;
 }
-.affiliate-campaign-keyword-suggestions button {
+.affiliate-campaign-keyword-suggestions button,
+.affiliate-campaign-keyword-suggestions > div {
   display: grid;
   gap: 3px;
   padding: 10px 11px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: #fff;
+  background: var(--color-bg);
   color: var(--campaign-ink);
   text-align: left;
   cursor: pointer;
 }
 .affiliate-campaign-keyword-suggestions button:hover,
 .affiliate-campaign-keyword-suggestions button[data-selected] {
-  border-color: #78b596;
-  box-shadow: 0 0 0 2px rgba(8, 122, 85, .07);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
 }
 .affiliate-campaign-keyword-suggestions strong { font-size: 12px; }
-.affiliate-campaign-keyword-suggestions small { color: #75817c; line-height: 1.4; }
+.affiliate-campaign-keyword-suggestions small { color: var(--color-text-muted); line-height: 1.4; }
 .affiliate-campaign-wizard-fields input,
 .affiliate-campaign-wizard-fields textarea {
   width: 100%;
-  border: 1px solid #d6dfdb;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-bg);
   color: var(--campaign-ink);
   font: inherit;
   outline: none;
@@ -28523,20 +28523,20 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-wizard-fields input { height: 46px; padding: 0 13px; }
 .affiliate-campaign-wizard-fields textarea { resize: vertical; padding: 13px; line-height: 1.55; }
 .affiliate-campaign-wizard-fields input:focus,
-.affiliate-campaign-wizard-fields textarea:focus { border-color: #52a982; box-shadow: 0 0 0 3px rgba(8, 122, 85, .1); }
-.affiliate-campaign-wizard-fields label > small { display: block; margin-top: 6px; color: #87958f; font-size: 10px; }
+.affiliate-campaign-wizard-fields textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-light); }
+.affiliate-campaign-wizard-fields label > small { display: block; margin-top: 6px; color: var(--color-text-muted); font-size: 10px; }
 .affiliate-campaign-wizard-fields .custom-select-trigger {
   min-height: 46px;
-  border-color: #d6dfdb;
+  border-color: var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-bg);
   color: var(--campaign-ink);
 }
-.affiliate-campaign-wizard-fields .custom-select-placeholder { color: #8c9893; }
+.affiliate-campaign-wizard-fields .custom-select-placeholder { color: var(--color-text-muted); }
 .affiliate-campaign-wizard-body .btn-secondary,
 .affiliate-campaign-wizard-footer .btn-secondary {
-  border-color: #cdd8d3;
-  background: #fff;
+  border-color: var(--color-border);
+  background: var(--color-bg);
   color: var(--campaign-ink);
 }
 .affiliate-campaign-field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -28551,25 +28551,25 @@ html[lang="zh"] .acct-tool-chips {
   flex-direction: column;
   align-items: flex-start;
   padding: 17px;
-  border: 1px solid #d8e2dd;
+  border: 1px solid var(--color-border);
   border-radius: 15px;
-  background: #fff;
+  background: var(--color-bg);
   color: var(--campaign-ink);
   text-align: left;
   transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
 .affiliate-campaign-strategy-picker > button:not(:disabled):hover {
-  border-color: #8ac6aa;
+  border-color: var(--color-primary);
   transform: translateY(-1px);
 }
 .affiliate-campaign-strategy-picker > button[data-selected] {
   border-color: var(--campaign-green);
-  box-shadow: 0 0 0 3px rgba(8, 122, 85, .09);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 .affiliate-campaign-strategy-picker > button:disabled {
   cursor: not-allowed;
-  background: #f3f5f4;
-  color: #89958f;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
 }
 .affiliate-campaign-strategy-picker span {
   color: var(--campaign-green);
@@ -28593,7 +28593,7 @@ html[lang="zh"] .acct-tool-chips {
   gap: 3px;
   padding: 12px 14px;
   border-left: 3px solid var(--campaign-green);
-  background: #edf7f2;
+  background: var(--color-primary-light);
 }
 .affiliate-campaign-capability-note strong { font-size: 11px; }
 .affiliate-campaign-capability-note small { color: var(--campaign-muted); font-size: 10px; }
@@ -28601,7 +28601,7 @@ html[lang="zh"] .acct-tool-chips {
   overflow: hidden;
   border: 1px solid var(--campaign-line);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-bg);
 }
 .affiliate-campaign-advanced-rules > summary {
   display: flex;
@@ -28625,7 +28625,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-rule-block > strong {
   display: block;
   margin-bottom: 10px;
-  color: #53625c;
+  color: var(--color-text-secondary);
   font-size: 11px;
 }
 .affiliate-campaign-chip-grid {
@@ -28635,15 +28635,15 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-campaign-chip-grid button {
   padding: 7px 10px;
-  border: 1px solid #d7e0dc;
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: #fff;
-  color: #53625c;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
   font-size: 10px;
 }
 .affiliate-campaign-chip-grid button[data-selected] {
-  border-color: #65af8e;
-  background: #e8f7ef;
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
   color: var(--campaign-green);
   font-weight: 750;
 }
@@ -28666,9 +28666,9 @@ html[lang="zh"] .acct-tool-chips {
   gap: 12px;
   align-items: center;
   padding: 14px;
-  border: 1px solid #cce4d8;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
   border-radius: 13px;
-  background: #edf8f2;
+  background: var(--color-primary-light);
 }
 .affiliate-campaign-derived-context > span { flex: 1; }
 .affiliate-campaign-derived-context strong,
@@ -28681,7 +28681,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-allocation-preview > small { display: block; }
 .affiliate-campaign-allocation-preview > span { color: var(--campaign-muted); font-size: 11px; }
 .affiliate-campaign-allocation-preview > strong { margin: 4px 0 10px; font-size: 20px; }
-.affiliate-campaign-allocation-preview > div { overflow: hidden; height: 6px; border-radius: 999px; background: #dde7e2; }
+.affiliate-campaign-allocation-preview > div { overflow: hidden; height: 6px; border-radius: 999px; background: var(--color-border); }
 .affiliate-campaign-allocation-preview > div i { display: block; height: 100%; border-radius: inherit; background: var(--campaign-green); }
 .affiliate-campaign-allocation-preview > small { margin-top: 9px; color: var(--campaign-muted); font-size: 10px; }
 .affiliate-campaign-template-toolbar {
@@ -28694,7 +28694,14 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-template-toolbar span { display: block; }
 .affiliate-campaign-template-toolbar strong { font-size: 11px; }
 .affiliate-campaign-template-toolbar span { margin-top: 3px; color: var(--campaign-green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
-.affiliate-campaign-message-preview { position: relative; padding: 18px 20px 18px 56px; border-radius: 16px; background: var(--campaign-ink); color: #fff; }
+.affiliate-campaign-message-preview {
+  position: relative;
+  padding: 18px 20px 18px 56px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+}
 .affiliate-campaign-message-preview::before {
   content: "";
   position: absolute;
@@ -28703,22 +28710,23 @@ html[lang="zh"] .acct-tool-chips {
   width: 22px;
   height: 22px;
   border-radius: 50% 50% 50% 4px;
-  background: #69d9a4;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-light);
 }
-.affiliate-campaign-message-preview > span { color: rgba(255, 255, 255, .55); font-size: 10px; text-transform: uppercase; }
+.affiliate-campaign-message-preview > span { color: var(--color-text-muted); font-size: 10px; text-transform: uppercase; }
 .affiliate-campaign-message-preview p { margin: 7px 0 0; line-height: 1.55; }
 .affiliate-campaign-confirmation { max-width: 820px; margin: 0 auto; }
 .affiliate-campaign-confirmation > section { max-width: 600px; }
 .affiliate-campaign-confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 26px 0 16px; }
-.affiliate-campaign-confirm-grid > div { padding: 15px; border: 1px solid var(--campaign-line); border-radius: 13px; background: #fff; }
+.affiliate-campaign-confirm-grid > div { padding: 15px; border: 1px solid var(--campaign-line); border-radius: 13px; background: var(--color-bg); }
 .affiliate-campaign-confirm-grid span,
 .affiliate-campaign-confirm-grid strong { display: block; }
 .affiliate-campaign-confirm-grid span { color: var(--campaign-muted); font-size: 10px; }
 .affiliate-campaign-confirm-grid strong { margin-top: 5px; font-size: 13px; }
-.affiliate-campaign-authorization { display: flex; gap: 13px; padding: 18px; border: 1px solid #aad8c2; border-radius: 15px; background: #eaf8f1; }
+.affiliate-campaign-authorization { display: flex; gap: 13px; padding: 18px; border: 1px solid color-mix(in srgb, var(--color-primary) 36%, var(--color-border)); border-radius: 15px; background: var(--color-primary-light); }
 .affiliate-campaign-authorization > svg { flex: none; margin-top: 2px; color: var(--campaign-green); }
 .affiliate-campaign-authorization strong { font-size: 13px; }
-.affiliate-campaign-authorization p { margin: 5px 0 0; color: #4f655b; font-size: 11px; line-height: 1.55; }
+.affiliate-campaign-authorization p { margin: 5px 0 0; color: var(--color-text-secondary); font-size: 11px; line-height: 1.55; }
 .affiliate-campaign-boundaries { display: flex; flex-wrap: wrap; gap: 9px 18px; margin-top: 16px; }
 .affiliate-campaign-boundaries span { display: flex; gap: 7px; align-items: center; color: var(--campaign-muted); font-size: 10px; }
 .affiliate-campaign-boundaries i { width: 6px; height: 6px; border-radius: 50%; background: var(--campaign-green); }
@@ -28728,15 +28736,74 @@ html[lang="zh"] .acct-tool-chips {
   justify-content: space-between;
   padding: 17px 28px;
   border-top: 1px solid var(--campaign-line);
-  background: #fff;
+  background: var(--color-bg);
+}
+
+.affiliate-campaign-product-diff,
+.affiliate-campaign-readiness-warning {
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 38%, var(--color-border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-bg));
+  color: var(--color-text-secondary);
+}
+
+.affiliate-campaign-product-diff strong,
+.affiliate-campaign-readiness-warning strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--color-text);
+  font-size: 11px;
+}
+
+.affiliate-campaign-product-diff p,
+.affiliate-campaign-readiness-warning p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.affiliate-campaign-product-diff > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.affiliate-campaign-phrase-editor {
+  display: grid;
+  gap: 9px;
+}
+
+.affiliate-campaign-phrase-editor > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 8px;
+}
+
+.affiliate-campaign-phrase-editor > div > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  align-self: center;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+.affiliate-campaign-phrase-editor > div > button:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .affiliate-campaign-directory {
   overflow: hidden;
   border: 1px solid var(--campaign-line);
   border-radius: 18px;
-  background: var(--panel-bg, #fff);
-  box-shadow: 0 14px 40px rgba(35, 67, 54, .055);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .affiliate-campaign-directory-header {
@@ -28774,7 +28841,7 @@ html[lang="zh"] .acct-tool-chips {
   gap: 7px;
   min-width: max-content;
   padding: 9px 13px;
-  border: 1px solid #e4ebe7;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--campaign-paper);
   color: var(--campaign-muted);
@@ -28812,7 +28879,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-directory-table th {
   padding: 11px 16px;
   background: color-mix(in srgb, var(--campaign-paper) 76%, transparent);
-  color: #839089;
+  color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: .04em;
@@ -28836,7 +28903,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-directory-table tbody tr:hover,
 .affiliate-campaign-directory-table tbody tr:focus-visible {
-  background: #f3faf6;
+  background: var(--color-primary-light);
   box-shadow: inset 3px 0 0 var(--campaign-green);
 }
 
@@ -28852,7 +28919,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-campaign-directory-table td:last-child {
-  color: #8b9993;
+  color: var(--color-text-muted);
   text-align: right;
 }
 
@@ -28959,7 +29026,7 @@ html[lang="zh"] .acct-tool-chips {
   min-height: 58px;
   padding: 10px 20px;
   border-top: 1px solid var(--campaign-line);
-  background: #fbfcfb;
+  background: var(--color-bg-alt);
   color: var(--campaign-muted);
   font-size: 11px;
 }
@@ -28984,17 +29051,17 @@ html[lang="zh"] .acct-tool-chips {
   height: 34px;
   padding: 0;
   place-items: center;
-  border: 1px solid #d9e3de;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #fff;
-  color: #64736d;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: border-color .16s ease, background .16s ease, color .16s ease;
 }
 
 .affiliate-campaign-page-button:hover:not(:disabled) {
-  border-color: #a9d6c0;
-  background: #eef8f3;
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
   color: var(--campaign-green);
 }
 
@@ -29013,13 +29080,13 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-campaign-detail-modal.modal-content {
-  --campaign-ink: #14251f;
-  --campaign-muted: #66756f;
-  --campaign-line: #dce5e0;
-  --campaign-paper: #f7faf8;
-  --campaign-green: #087a55;
-  --campaign-mint: #dff4e9;
-  --campaign-amber: #b16815;
+  --campaign-ink: var(--color-text);
+  --campaign-muted: var(--color-text-secondary);
+  --campaign-line: var(--color-border);
+  --campaign-paper: var(--color-bg-alt);
+  --campaign-green: var(--color-primary);
+  --campaign-mint: var(--color-primary-light);
+  --campaign-amber: var(--color-warning);
   overflow: hidden;
   max-height: calc(100vh - 32px);
   border-radius: 22px;
@@ -29039,13 +29106,13 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-detail-modal-body {
   overflow-y: auto;
   max-height: calc(100vh - 104px);
-  background: #fff;
+  background: var(--color-bg);
 }
 
 .affiliate-campaign-detail-modal .affiliate-campaign-detail-header {
   padding: 17px 26px;
   border-bottom: 1px solid var(--campaign-line);
-  background: #fbfcfb;
+  background: var(--color-bg-alt);
 }
 
 .affiliate-campaign-detail-modal .affiliate-campaign-title-line {
@@ -29114,9 +29181,9 @@ html[lang="zh"] .acct-tool-chips {
   width: 42px;
   height: 42px;
   place-items: center;
-  border: 1px solid #d9e5df;
+  border: 1px solid var(--color-border);
   border-radius: 13px;
-  background: #edf6f1;
+  background: var(--color-primary-light);
   color: var(--campaign-green);
   font-weight: 800;
 }
@@ -29149,7 +29216,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-creator-cell p {
   max-width: 300px;
   margin: 6px 0 0;
-  color: #82908a;
+  color: var(--color-text-muted);
   font-size: 10px;
 }
 
@@ -29157,8 +29224,8 @@ html[lang="zh"] .acct-tool-chips {
   display: inline-flex;
   padding: 5px 9px;
   border-radius: 999px;
-  background: #eef1ef;
-  color: #56635e;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
   font-size: 10px;
   font-weight: 800;
 }
@@ -29169,13 +29236,13 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-campaign-disposition.is-hold {
-  background: #fff0d8;
+  background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg));
   color: var(--campaign-amber);
 }
 
 .affiliate-campaign-disposition.is-not_reached {
-  background: #f1f2f1;
-  color: #68736e;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
 }
 
 .affiliate-campaign-load-more {
