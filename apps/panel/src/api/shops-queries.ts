@@ -861,6 +861,86 @@ export const CS_CONVERSATION_MESSAGES_QUERY = gql`
   }
 `;
 
+export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
+  query CustomerServiceConversationOrderContext(
+    $shopId: String!
+    $orderId: String!
+    $buyerUserId: String
+  ) {
+    order: ecommerceGetOrder(
+      shopId: $shopId
+      orderId: $orderId
+      buyerUserId: $buyerUserId
+    ) {
+      orderId
+      buyerUserId
+      status
+      createTime
+      updateTime
+      paidTime
+      deliveryTime
+      totalAmount
+      currency
+      paymentMethodName
+      shippingProvider
+      trackingNumber
+      lineItems {
+        orderLineItemId
+        productId
+        productName
+        quantity
+        sellerSku
+        skuId
+        skuName
+        skuImage
+        salePrice
+        currency
+        displayStatus
+        packageStatus
+        trackingNumber
+      }
+    }
+    returns: ecommerceSearchReturns(
+      shopId: $shopId
+      limit: 20
+      orderIds: [$orderId]
+    ) {
+      returnId
+      orderId
+      returnType
+      returnStatus
+      returnReason
+      returnReasonText
+      createTime
+      updateTime
+      returnMethod
+      returnTrackingNumber
+      isQuickRefund
+      refundAmount {
+        currency
+        refundTotal
+      }
+      lineItems {
+        returnLineItemId
+        orderLineItemId
+        productName
+        sellerSku
+        skuId
+        skuName
+        productImage {
+          url
+          width
+          height
+        }
+        refundAmount {
+          currency
+          refundTotal
+        }
+      }
+    }
+  }
+`;
+
 export const CS_SET_CONVERSATION_AI_ENABLED_MUTATION = gql`
   mutation SetCustomerServiceConversationAiEnabled(
     $shopId: String!

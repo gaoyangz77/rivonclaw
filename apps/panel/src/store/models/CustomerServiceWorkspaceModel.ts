@@ -9,6 +9,7 @@ import {
   CS_ESCALATION_BY_ID_QUERY,
   CS_CONVERSATION_INBOX_QUERY,
   CS_CONVERSATION_MESSAGES_QUERY,
+  CS_CONVERSATION_ORDER_CONTEXT_QUERY,
   CS_OPEN_ESCALATIONS_QUERY,
   CS_SEND_MANUAL_TEXT_REPLY_MUTATION,
   CS_SET_CONVERSATION_AI_ENABLED_MUTATION,
@@ -44,6 +45,12 @@ function conversationTelemetryContext(item: Partial<GQL.CustomerServiceConversat
     orderId: item?.orderId ?? "",
     platform: "",
   };
+}
+
+function conversationOrderContextKey(
+  item: Pick<GQL.CustomerServiceConversationInboxItem, "shopId" | "orderId"> | null | undefined,
+): string | null {
+  return item?.orderId ? `${item.shopId}:${item.orderId}` : null;
 }
 
 function normalizedSearch(value: string): string {
@@ -288,6 +295,9 @@ export const CustomerServiceWorkspaceModel = types
     conversationSummaryLoading: types.optional(types.boolean, false),
     conversationSummaryGenerating: types.optional(types.boolean, false),
     conversationSummaryError: types.maybeNull(types.string),
+    conversationOrderContexts: types.optional(types.map(types.frozen<Record<string, any>>()), {}),
+    conversationOrderContextLoadingKeys: types.optional(types.array(types.string), []),
+    conversationOrderContextErrors: types.optional(types.map(types.string), {}),
 
     escalationShopId: types.optional(types.string, ""),
     escalationStatusFilter: types.optional(types.enumeration<EscalationStatusFilter>("EscalationStatusFilter", ["open", "pending", "inProgress", "resolved", "closed", "all"]), "open"),
@@ -329,6 +339,21 @@ export const CustomerServiceWorkspaceModel = types
         item.conversationId === self.selectedConversationId &&
         (!self.selectedConversationShopId || item.shopId === self.selectedConversationShopId)
       )) ?? null;
+    },
+    get selectedConversationOrderContext() {
+      const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      const key = conversationOrderContextKey(selected);
+      return key ? self.conversationOrderContexts.get(key) ?? null : null;
+    },
+    get selectedConversationOrderContextLoading() {
+      const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      const key = conversationOrderContextKey(selected);
+      return Boolean(key && self.conversationOrderContextLoadingKeys.includes(key));
+    },
+    get selectedConversationOrderContextError() {
+      const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+      const key = conversationOrderContextKey(selected);
+      return key ? self.conversationOrderContextErrors.get(key) ?? null : null;
     },
     get displayConversationMessages() {
       const seenServiceTexts = new Set<string>();
@@ -733,6 +758,41 @@ export const CustomerServiceWorkspaceModel = types
           self.conversationMessagesError = errorMessage(err);
         } finally {
           self.conversationMessagesLoading = false;
+        }
+      }),
+      fetchSelectedConversationOrderContext: flow(function* (force = false) {
+        const selected = (self as any).selectedConversation as GQL.CustomerServiceConversationInboxItem | null;
+        const key = conversationOrderContextKey(selected);
+        if (!selected?.orderId || !key) return null;
+        if (!force && self.conversationOrderContexts.has(key)) {
+          return self.conversationOrderContexts.get(key) ?? null;
+        }
+        if (self.conversationOrderContextLoadingKeys.includes(key)) return null;
+
+        pushUnique(self.conversationOrderContextLoadingKeys, key);
+        self.conversationOrderContextErrors.delete(key);
+        try {
+          const result = yield client().query({
+            query: CS_CONVERSATION_ORDER_CONTEXT_QUERY,
+            variables: {
+              shopId: selected.shopId,
+              orderId: selected.orderId,
+              buyerUserId: selected.buyerUserId ?? undefined,
+            },
+            fetchPolicy: "network-only",
+          });
+          const context = {
+            orderId: selected.orderId,
+            order: (result.data?.order as GQL.EcomOrder | null | undefined) ?? null,
+            returns: (result.data?.returns as GQL.EcomReturn[] | null | undefined) ?? [],
+          };
+          self.conversationOrderContexts.set(key, context as any);
+          return context;
+        } catch (err) {
+          self.conversationOrderContextErrors.set(key, errorMessage(err));
+          return null;
+        } finally {
+          removeValue(self.conversationOrderContextLoadingKeys, key);
         }
       }),
       fetchOlderConversationMessages: flow(function* (locale?: string) {

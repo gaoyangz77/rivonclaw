@@ -5,7 +5,7 @@ import { GQL } from "@rivonclaw/core";
 import { Select } from "../../components/inputs/Select.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
-import { CheckIcon, ChevronRightIcon, CopyIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
+import { CheckIcon, ChevronRightIcon, CopyIcon, InfoIcon, ModuleIcon, RefreshIcon } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
@@ -36,6 +36,11 @@ type DismissEscalationConfirm =
   | { kind: "conversation"; conversation: Conversation }
   | { kind: "single" };
 type EndSessionConfirm = { conversation: Conversation };
+type ConversationOrderContext = {
+  orderId: string;
+  order: GQL.EcomOrder | null;
+  returns: GQL.EcomReturn[];
+};
 type OlderMessagesScrollSnapshot = {
   conversationKey: string;
   scrollHeight: number;
@@ -121,6 +126,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const fixedTab = mode === "workspace" ? null : mode;
   const activeTab = fixedTab ?? workspace.activeTab;
   const [conversationDetailsOpen, setConversationDetailsOpen] = useState(false);
+  const [conversationOrderOpen, setConversationOrderOpen] = useState(false);
   const [conversationAdvancedFiltersOpen, setConversationAdvancedFiltersOpen] = useState(
     workspace.conversationAiFilter !== "all" ||
     workspace.conversationEscalationFilter !== "all",
@@ -129,6 +135,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const [endSessionConfirm, setEndSessionConfirm] = useState<EndSessionConfirm | null>(null);
   const [reviewModalConversation, setReviewModalConversation] = useState<Conversation | null>(null);
   const conversationDetailsRef = useRef<HTMLDivElement | null>(null);
+  const conversationOrderRef = useRef<HTMLDivElement | null>(null);
   const conversationListRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const olderMessagesScrollRef = useRef<OlderMessagesScrollSnapshot | null>(null);
@@ -185,6 +192,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     if (!workspace.selectedConversationId) return;
     olderMessagesScrollRef.current = null;
     setConversationDetailsOpen(false);
+    setConversationOrderOpen(false);
     workspace.fetchConversationMessages(i18n.language);
     workspace.fetchConversationSummary();
   }, [workspace, workspace.selectedConversationId, i18n.language]);
@@ -192,6 +200,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
   const conversationItems = workspace.filteredConversationItems as Conversation[];
   const conversationMessages = workspace.displayConversationMessages as ConversationMessage[];
   const selectedConversation = workspace.selectedConversation as Conversation | null;
+  const selectedConversationOrderContext = workspace.selectedConversationOrderContext as ConversationOrderContext | null;
   const selectedEscalation = workspace.selectedEscalation as Escalation | null;
   const selectedConversationKey = selectedConversation
     ? `${selectedConversation.shopId}:${selectedConversation.conversationId}`
@@ -246,6 +255,16 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [conversationDetailsOpen]);
+
+  useEffect(() => {
+    if (!conversationOrderOpen) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (conversationOrderRef.current?.contains(event.target as Node)) return;
+      setConversationOrderOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [conversationOrderOpen]);
 
   useEffect(() => {
     return panelEventBus.subscribe("cs-escalation-event", (raw) => {
@@ -806,12 +825,73 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         </span>
                         <span>{selectedConversation.aiEnabled ? t("ecommerce.customerServiceWorkspace.aiEnabled") : t("ecommerce.customerServiceWorkspace.aiDisabled")}</span>
                       </button>
+                      {selectedConversation.orderId && (
+                        <div className={conversationOrderOpen ? "cs-conversation-order open" : "cs-conversation-order"} ref={conversationOrderRef}>
+                          <button
+                            className={conversationOrderOpen ? "btn btn-secondary btn-sm cs-conversation-order-trigger active" : "btn btn-secondary btn-sm cs-conversation-order-trigger"}
+                            type="button"
+                            aria-expanded={conversationOrderOpen}
+                            onClick={() => {
+                              const nextOpen = !conversationOrderOpen;
+                              setConversationOrderOpen(nextOpen);
+                              if (nextOpen) {
+                                setConversationDetailsOpen(false);
+                                void workspace.fetchSelectedConversationOrderContext();
+                              }
+                            }}
+                          >
+                            <ModuleIcon size={14} />
+                            <span>{t("ecommerce.customerServiceWorkspace.order")}</span>
+                          </button>
+                          <div className="cs-conversation-order-popover">
+                            <div className="cs-conversation-order-head">
+                              <div>
+                                <span>{t("ecommerce.customerServiceWorkspace.orderContext")}</span>
+                                <code>{shortId(selectedConversation.orderId)}</code>
+                              </div>
+                              <button
+                                className="icon-button"
+                                type="button"
+                                title={t("common.refresh")}
+                                aria-label={t("common.refresh")}
+                                onClick={() => void workspace.fetchSelectedConversationOrderContext(true)}
+                                disabled={workspace.selectedConversationOrderContextLoading}
+                              >
+                                <RefreshIcon size={14} />
+                              </button>
+                            </div>
+                            {workspace.selectedConversationOrderContextLoading && !selectedConversationOrderContext ? (
+                              <div className="cs-order-context-state">{t("common.loading")}</div>
+                            ) : workspace.selectedConversationOrderContextError && !selectedConversationOrderContext ? (
+                              <div className="cs-order-context-state error">
+                                <span>{t("ecommerce.customerServiceWorkspace.orderLoadFailed")}</span>
+                                <button className="btn btn-secondary btn-sm" type="button" onClick={() => void workspace.fetchSelectedConversationOrderContext(true)}>
+                                  {t("ecommerce.customerServiceWorkspace.orderRetry")}
+                                </button>
+                              </div>
+                            ) : selectedConversationOrderContext ? (
+                              <ConversationOrderPopover
+                                context={selectedConversationOrderContext}
+                                copiedMeta={workspace.copiedMeta}
+                                locale={i18n.language}
+                                onCopy={copyMeta}
+                              />
+                            ) : null}
+                          </div>
+                        </div>
+                      )}
                       <div className={conversationDetailsOpen ? "cs-conversation-more open" : "cs-conversation-more"} ref={conversationDetailsRef}>
                         <button
                           className={conversationDetailsOpen ? "btn btn-secondary btn-sm cs-conversation-more-trigger active" : "btn btn-secondary btn-sm cs-conversation-more-trigger"}
                           type="button"
                           aria-expanded={conversationDetailsOpen}
-                          onClick={() => setConversationDetailsOpen((open) => !open)}
+                          onClick={() => {
+                            setConversationDetailsOpen((open) => {
+                              const nextOpen = !open;
+                              if (nextOpen) setConversationOrderOpen(false);
+                              return nextOpen;
+                            });
+                          }}
                         >
                           {t("ecommerce.customerServiceWorkspace.details")}
                         </button>
@@ -1457,6 +1537,117 @@ const EndSessionConfirmModal = observer(function EndSessionConfirmModal({
   );
 });
 
+function ConversationOrderPopover({
+  context,
+  copiedMeta,
+  locale,
+  onCopy,
+}: {
+  context: ConversationOrderContext;
+  copiedMeta: string | null;
+  locale: string;
+  onCopy: (label: string, value: string) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const { order, returns } = context;
+  const orderIdLabel = t("ecommerce.customerServiceWorkspace.orderIdLabel");
+
+  return (
+    <div className="cs-order-context">
+      <section className="cs-order-context-section">
+        {order ? (
+          <div className="cs-order-context-summary">
+            <span className="cs-order-status">{humanizePlatformValue(order.status) || t("ecommerce.customerServiceWorkspace.unknownStatus")}</span>
+            <strong>{formatOrderMoney(order.totalAmount, order.currency, locale)}</strong>
+          </div>
+        ) : (
+          <p className="cs-order-empty">{t("ecommerce.customerServiceWorkspace.orderUnavailable")}</p>
+        )}
+        <div className="cs-order-context-meta">
+          <CopyMetaButton
+            label={orderIdLabel}
+            value={order?.orderId ?? context.orderId}
+            copied={copiedMeta === `${orderIdLabel}:${order?.orderId ?? context.orderId}`}
+            onCopy={onCopy}
+          />
+          {order && (
+            <div>
+              <span>{t("ecommerce.customerServiceWorkspace.orderedAt")}</span>
+              <strong>{formatCompactDateTime(order.createTime)}</strong>
+            </div>
+          )}
+          {order && (order.shippingProvider || order.trackingNumber) && (
+              <div>
+                <span>{t("ecommerce.customerServiceWorkspace.shipping")}</span>
+                <strong>{[order.shippingProvider, order.trackingNumber].filter(Boolean).join(" · ")}</strong>
+              </div>
+            )}
+        </div>
+      </section>
+
+      {order && (
+        <section className="cs-order-context-section">
+          <h4>{t("ecommerce.customerServiceWorkspace.orderItems", { count: order.lineItems?.length ?? 0 })}</h4>
+          <div className="cs-order-items">
+            {(order.lineItems ?? []).map((item, index) => (
+              <div className="cs-order-item" key={item.orderLineItemId ?? `${item.skuId ?? "item"}:${index}`}>
+                <div className="cs-order-item-image">
+                  {item.skuImage ? (
+                    <RemoteMediaImage
+                      alt={item.productName ?? item.skuName ?? t("ecommerce.customerServiceWorkspace.orderItem")}
+                      loading="lazy"
+                      sourceUrl={item.skuImage}
+                    />
+                  ) : (
+                    <ModuleIcon size={18} />
+                  )}
+                </div>
+                <div className="cs-order-item-copy">
+                  <strong>{item.productName ?? item.skuName ?? t("ecommerce.customerServiceWorkspace.orderItem")}</strong>
+                  <span>
+                    {[item.skuName, item.sellerSku, item.quantity ? `x${item.quantity}` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </div>
+                <small>{formatOrderMoney(item.salePrice, item.currency ?? order.currency, locale)}</small>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="cs-order-context-section">
+        <h4>{t("ecommerce.customerServiceWorkspace.afterSales", { count: returns.length })}</h4>
+        {returns.length === 0 ? (
+          <p className="cs-order-empty">{t("ecommerce.customerServiceWorkspace.noAfterSales")}</p>
+        ) : (
+          <div className="cs-order-returns">
+            {returns.map((item) => (
+              <article className="cs-order-return" key={item.returnId}>
+                <div className="cs-order-return-head">
+                  <strong>{humanizePlatformValue(item.returnType) || t("ecommerce.customerServiceWorkspace.afterSaleRequest")}</strong>
+                  <span>{humanizePlatformValue(item.returnStatus) || t("ecommerce.customerServiceWorkspace.unknownStatus")}</span>
+                </div>
+                {(item.returnReasonText || item.returnReason) && (
+                  <p>{item.returnReasonText || humanizePlatformValue(item.returnReason)}</p>
+                )}
+                <div className="cs-order-return-meta">
+                  <code>{shortId(item.returnId)}</code>
+                  {item.refundAmount?.refundTotal && (
+                    <strong>{formatOrderMoney(item.refundAmount.refundTotal, item.refundAmount.currency ?? order?.currency, locale)}</strong>
+                  )}
+                  <span>{formatCompactDateTime(item.updateTime ?? item.createTime)}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function PageSummary({ start, end, total, page, pages }: { start: number; end: number; total: number; page: number; pages: number }) {
   const { t } = useTranslation();
   return (
@@ -1786,6 +1977,35 @@ function formatCompactDateTime(value?: string | number | null): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function formatOrderMoney(
+  value?: string | null,
+  currency?: string | null,
+  locale?: string,
+): string {
+  if (!value) return "-";
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || !currency) return [currency, value].filter(Boolean).join(" ");
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${value}`;
+  }
+}
+
+function humanizePlatformValue(value?: string | null): string {
+  if (!value) return "";
+  return value
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function formatDateTime(value?: string | null): string {
