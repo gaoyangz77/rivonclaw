@@ -55,6 +55,7 @@ export default {
     "tiktokShops": "ร้าน TikTok",
     "ecommerce": "ร้านค้า",
     "shopManagement": "ร้านค้า",
+    "shopAnalytics": "การวิเคราะห์ร้านค้า",
     "adsManagement": "โฆษณา",
     "inventoryManagement": "คลังสินค้า",
     "customerService": "บริการลูกค้า",
@@ -1786,6 +1787,99 @@ export default {
       }
     }
   },
+  "shopAnalytics": {
+    "loadingPage": "กำลังโหลดการวิเคราะห์ร้านค้า…",
+    "signInTitle": "เข้าสู่ระบบเพื่อดูการวิเคราะห์ร้านค้า",
+    "signInBody": "ข้อมูล SPS จะแสดงเฉพาะร้านค้าที่เป็นของบัญชีปัจจุบันของคุณ",
+    "eyebrow": "ประสิทธิภาพร้านค้า",
+    "title": "ดูสุขภาพ SPS ของทุกร้านค้าได้ในหน้าเดียว",
+    "subtitle": "เปรียบเทียบร้านค้าตามตลาด ติดตามแนวโน้มตัวชี้วัดสดจาก TikTok และเจาะจากคะแนนไปสู่การวินิจฉัยได้ในหน้าเดียว",
+    "liveApi": "API สด · แคช 5 นาที",
+    "refresh": "รีเฟรช",
+    "refreshing": "กำลังรีเฟรช…",
+    "metricSelectorAria": "ตัวชี้วัด SPS",
+    "diagnosisLens": "มุมมองการวินิจฉัย",
+    "metrics": {
+      "OTDR": "อัตราการจัดส่งตรงเวลา",
+      "NRR": "อัตรารีวิวเชิงลบ",
+      "NBFR": "อัตราความคิดเห็นเชิงลบจากผู้ซื้อ",
+      "SFCR": "อัตราการยกเลิกจากความผิดของผู้ขาย",
+      "AHT": "เวลาจัดการเฉลี่ย",
+      "IM_DSAT": "อัตราความไม่พอใจในการส่งข้อความ"
+    },
+    "summary": {
+      "markets": "ตลาด",
+      "marketsHint": "จัดกลุ่มจากร้านค้าที่เชื่อมต่อแล้ว",
+      "liveShops": "ร้านค้าที่มี SPS สด",
+      "liveShopsHint": "ร้านค้าในสหรัฐฯ ที่ได้รับอนุญาตและมีสิทธิ์ SPS",
+      "averageSps": "SPS เฉลี่ย",
+      "averageSpsHint": "คะแนนปัจจุบัน ไม่ใช่ค่าเฉลี่ยในอดีต",
+      "lastObserved": "สังเกตล่าสุด",
+      "trendWindow": "ช่วงแนวโน้มแพลตฟอร์ม {{days}} วัน"
+    },
+    "timeline": {
+      "title": "เกี่ยวกับไทม์ไลน์นี้",
+      "body": "TikTok Partner API ส่งคืนแนวโน้มได้สูงสุด 90 วัน เส้นด้านล่างคือข้อมูลสังเกตจากแพลตฟอร์มที่ดึงตามคำขอ ไม่ใช่ snapshot จากคลังข้อมูลหรือประวัติ 12 เดือน"
+    },
+    "market": {
+      "oneShop": "1 ร้านค้า",
+      "shops": "{{count}} ร้านค้า",
+      "live": "TikTok SPS สด",
+      "unavailable": "TikTok API ไม่พร้อมใช้งาน"
+    },
+    "chart": {
+      "trendByShop": "แนวโน้มตามร้านค้า",
+      "latestObservations": "ข้อมูลรายวันล่าสุด {{days}} จุด",
+      "unsupportedTitle": "SPS ยังไม่เปิดให้บริการในตลาดนี้",
+      "autoScale": "แกน Y ปรับตามช่วงข้อมูลที่มองเห็นโดยอัตโนมัติ",
+      "seriesAria": "ชุดข้อมูลกราฟ",
+      "noTrendTitle": "ไม่มีข้อมูลแนวโน้มส่งกลับมา",
+      "noTrendBody": "ตรวจสอบสถานะร้านค้าด้านล่าง แล้วรีเฟรชเมื่อข้อมูล TikTok SPS พร้อมใช้งาน",
+      "usOnlyTitle": "API ปัจจุบันรองรับเฉพาะสหรัฐอเมริกา",
+      "unsupportedBody": "ร้านค้าเหล่านี้แสดงเพื่อให้เห็นความครอบคลุม ระบบจะไม่อนุมานคะแนนหรือการวินิจฉัยสำหรับภูมิภาคที่ยังไม่รองรับ"
+    },
+    "availability": {
+      "AVAILABLE": "สด",
+      "MISSING_SCOPE": "ต้องให้สิทธิ์",
+      "NOT_AUTHORIZED": "เชื่อมต่อใหม่",
+      "UNSUPPORTED_REGION": "ยังไม่รองรับภูมิภาค",
+      "UNSUPPORTED_PLATFORM": "ยังไม่รองรับแพลตฟอร์ม",
+      "PLATFORM_ERROR": "ไม่พร้อมใช้งานชั่วคราว"
+    },
+    "unavailableReasons": {
+      "AVAILABLE": "",
+      "MISSING_SCOPE": "การอนุญาตร้านค้าขาดสิทธิ์ SPS ที่จำเป็น",
+      "NOT_AUTHORIZED": "เชื่อมต่อร้านค้านี้ใหม่เพื่อโหลดข้อมูล SPS",
+      "UNSUPPORTED_REGION": "ขณะนี้ TikTok เปิด SPS API เฉพาะร้านค้าในสหรัฐอเมริกา",
+      "UNSUPPORTED_PLATFORM": "TikTok SPS ใช้ได้เฉพาะการเชื่อมต่อ TikTok Shop",
+      "PLATFORM_ERROR": "ข้อมูล TikTok SPS ไม่พร้อมใช้งานชั่วคราว โปรดลองอีกครั้งภายหลัง"
+    },
+    "shop": {
+      "noTopIssue": "ไม่มีปัญหาหลักที่ถูกระบุ",
+      "currentTier": "ระดับปัจจุบัน",
+      "defaultCategory": "TikTok Shop",
+      "aheadOfPeers": "ดีกว่าร้านค้าใกล้เคียง {{percent}}%",
+      "observed": "สังเกตเมื่อ {{date}}",
+      "metricValue": "ค่าตัวชี้วัด",
+      "metricScore": "คะแนนตัวชี้วัด",
+      "status": "สถานะ",
+      "topIssues": "ปัญหาหลัก",
+      "diagnosis": "การวินิจฉัย",
+      "method": "การคำนวณตัวชี้วัดและเกณฑ์อ้างอิง",
+      "numerator": "ตัวเศษ",
+      "denominator": "ตัวส่วน",
+      "excellentThreshold": "เกณฑ์ยอดเยี่ยม",
+      "poorThreshold": "เกณฑ์ต่ำ",
+      "range": "ช่วง"
+    },
+    "states": {
+      "loading": "กำลังโหลดการวินิจฉัย SPS แบบสด…",
+      "errorTitle": "โหลดการวิเคราะห์ร้านค้าไม่ได้",
+      "retry": "ลองอีกครั้ง",
+      "noShopsTitle": "ไม่พบ TikTok Shop",
+      "noShopsBody": "เชื่อมต่อ TikTok Shop เพื่อเริ่มติดตาม Shop Performance Score"
+    }
+  },
   "tutorial": {
     "bubble": {
       "tooltip": "บทช่วยสอนหน้า"
@@ -1796,6 +1890,14 @@ export default {
       "done": "เสร็จแล้ว",
       "close": "ปิด",
       "stepOf": "{{current}} / {{total}}"
+    },
+    "shopAnalytics": {
+      "welcomeTitle": "การวิเคราะห์ประสิทธิภาพร้านค้า",
+      "welcomeBody": "เปรียบเทียบสถานะ SPS ปัจจุบันตามตลาดและร้านค้าในหน้าเดียว",
+      "metricsTitle": "เลือกตัวชี้วัดการวินิจฉัย",
+      "metricsBody": "การเปลี่ยนตัวชี้วัด SPS จะรีเฟรชกราฟตลาดและการวินิจฉัยร้านค้าทั้งหมด",
+      "trendTitle": "เปรียบเทียบแนวโน้มร้านค้า",
+      "trendBody": "แต่ละเส้นแทนร้านค้าหนึ่งแห่ง ปัจจุบัน TikTok ส่งคืนข้อมูลรายวันได้สูงสุด 90 จุด"
     },
     "providers": {
       "welcomeTitle": "ยินดีต้อนรับสู่โมเดล",

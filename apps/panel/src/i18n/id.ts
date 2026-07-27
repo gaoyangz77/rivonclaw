@@ -55,6 +55,7 @@ export default {
     "tiktokShops": "Toko TikTok",
     "ecommerce": "Toko",
     "shopManagement": "Toko",
+    "shopAnalytics": "Analitik toko",
     "adsManagement": "Iklan",
     "inventoryManagement": "Inventaris",
     "customerService": "Layanan Pelanggan",
@@ -1786,6 +1787,99 @@ export default {
       }
     }
   },
+  "shopAnalytics": {
+    "loadingPage": "Memuat analitik toko…",
+    "signInTitle": "Masuk untuk melihat analitik toko",
+    "signInBody": "Data SPS hanya tersedia untuk toko milik akun Anda saat ini.",
+    "eyebrow": "PERFORMA TOKO",
+    "title": "Pantau kesehatan SPS semua toko dalam satu tampilan.",
+    "subtitle": "Bandingkan toko per pasar, ikuti tren metrik langsung TikTok, dan lanjutkan dari skor ke diagnosis tanpa meninggalkan halaman.",
+    "liveApi": "API langsung · cache 5 mnt",
+    "refresh": "Segarkan",
+    "refreshing": "Menyegarkan…",
+    "metricSelectorAria": "Metrik SPS",
+    "diagnosisLens": "LENSA DIAGNOSIS",
+    "metrics": {
+      "OTDR": "Tingkat pengiriman tepat waktu",
+      "NRR": "Tingkat ulasan negatif",
+      "NBFR": "Tingkat umpan balik negatif pembeli",
+      "SFCR": "Tingkat pembatalan karena kesalahan penjual",
+      "AHT": "Waktu penanganan rata-rata",
+      "IM_DSAT": "Tingkat ketidakpuasan pesan instan"
+    },
+    "summary": {
+      "markets": "Pasar",
+      "marketsHint": "Dikelompokkan dari toko yang telah dihubungkan",
+      "liveShops": "Toko SPS langsung",
+      "liveShopsHint": "Toko AS terotorisasi dengan izin SPS",
+      "averageSps": "SPS rata-rata",
+      "averageSpsHint": "Skor saat ini, bukan rata-rata historis",
+      "lastObserved": "Terakhir diamati",
+      "trendWindow": "Rentang tren platform {{days}} hari"
+    },
+    "timeline": {
+      "title": "Tentang garis waktu ini",
+      "body": "API Partner TikTok mengembalikan maksimal 90 hari tren. Garis di bawah adalah pengamatan platform yang diambil sesuai permintaan, bukan snapshot gudang data atau riwayat 12 bulan."
+    },
+    "market": {
+      "oneShop": "1 toko",
+      "shops": "{{count}} toko",
+      "live": "TikTok SPS langsung",
+      "unavailable": "API TikTok tidak tersedia"
+    },
+    "chart": {
+      "trendByShop": "Tren per toko",
+      "latestObservations": "{{days}} pengamatan harian terbaru",
+      "unsupportedTitle": "SPS tidak tersedia di pasar ini",
+      "autoScale": "Sumbu Y disesuaikan otomatis ke rentang yang terlihat",
+      "seriesAria": "Seri grafik",
+      "noTrendTitle": "Tidak ada titik tren yang dikembalikan",
+      "noTrendBody": "Periksa status toko di bawah, lalu segarkan saat data SPS TikTok tersedia.",
+      "usOnlyTitle": "Cakupan API saat ini: hanya Amerika Serikat",
+      "unsupportedBody": "Toko ini ditampilkan untuk visibilitas. Skor atau diagnosis tidak disimpulkan untuk wilayah yang belum didukung."
+    },
+    "availability": {
+      "AVAILABLE": "Langsung",
+      "MISSING_SCOPE": "Izin diperlukan",
+      "NOT_AUTHORIZED": "Hubungkan kembali",
+      "UNSUPPORTED_REGION": "Wilayah belum didukung",
+      "UNSUPPORTED_PLATFORM": "Platform belum didukung",
+      "PLATFORM_ERROR": "Sementara tidak tersedia"
+    },
+    "unavailableReasons": {
+      "AVAILABLE": "",
+      "MISSING_SCOPE": "Otorisasi toko tidak memiliki izin SPS yang diperlukan.",
+      "NOT_AUTHORIZED": "Hubungkan kembali toko ini untuk memuat data SPS.",
+      "UNSUPPORTED_REGION": "TikTok saat ini hanya menyediakan API SPS untuk toko di Amerika Serikat.",
+      "UNSUPPORTED_PLATFORM": "TikTok SPS hanya tersedia untuk koneksi TikTok Shop.",
+      "PLATFORM_ERROR": "Data SPS TikTok sementara tidak tersedia. Coba lagi nanti."
+    },
+    "shop": {
+      "noTopIssue": "Tidak ada masalah utama yang ditandai",
+      "currentTier": "Tingkat saat ini",
+      "defaultCategory": "TikTok Shop",
+      "aheadOfPeers": "Lebih baik dari {{percent}}% toko sejenis",
+      "observed": "Diamati {{date}}",
+      "metricValue": "Nilai metrik",
+      "metricScore": "Skor metrik",
+      "status": "Status",
+      "topIssues": "Masalah utama",
+      "diagnosis": "Diagnosis",
+      "method": "Perhitungan metrik & tolok ukur",
+      "numerator": "Pembilang",
+      "denominator": "Penyebut",
+      "excellentThreshold": "Ambang sangat baik",
+      "poorThreshold": "Ambang buruk",
+      "range": "Rentang"
+    },
+    "states": {
+      "loading": "Memuat diagnosis SPS langsung…",
+      "errorTitle": "Analitik toko tidak dapat dimuat",
+      "retry": "Coba lagi",
+      "noShopsTitle": "Tidak ada TikTok Shop",
+      "noShopsBody": "Hubungkan TikTok Shop untuk mulai memantau Shop Performance Score."
+    }
+  },
   "tutorial": {
     "bubble": {
       "tooltip": "Halaman Tutorial"
@@ -1796,6 +1890,14 @@ export default {
       "done": "Selesai",
       "close": "Tutup",
       "stepOf": "{{current}} / {{total}}"
+    },
+    "shopAnalytics": {
+      "welcomeTitle": "Analitik performa toko",
+      "welcomeBody": "Bandingkan kondisi SPS terkini per pasar dan toko dalam satu halaman.",
+      "metricsTitle": "Pilih metrik diagnosis",
+      "metricsBody": "Mengganti metrik SPS akan memperbarui semua grafik pasar dan diagnosis toko.",
+      "trendTitle": "Bandingkan tren toko",
+      "trendBody": "Setiap garis mewakili satu toko. TikTok saat ini mengembalikan maksimal 90 pengamatan harian."
     },
     "providers": {
       "welcomeTitle": "Selamat datang di Model",

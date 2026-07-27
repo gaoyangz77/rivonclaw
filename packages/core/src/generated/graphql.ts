@@ -5323,7 +5323,7 @@ export const EcomApproveReturnDecision = {
 } as const;
 
 export type EcomApproveReturnDecision = typeof EcomApproveReturnDecision[keyof typeof EcomApproveReturnDecision];
-/** Warehouse-backed ecommerce BI dataset identifiers. */
+/** Warehouse-backed and live ecommerce BI dataset identifiers. */
 export const EcomBiDatasetId = {
   AdsGmvCampaignDaily: 'ADS_GMV_CAMPAIGN_DAILY',
   AdsGmvCampaignSummaryDaily: 'ADS_GMV_CAMPAIGN_SUMMARY_DAILY',
@@ -5339,6 +5339,10 @@ export const EcomBiDatasetId = {
   OrderShopDaily: 'ORDER_SHOP_DAILY',
   OrderSkuDaily: 'ORDER_SKU_DAILY',
   OrderSkuExportLine: 'ORDER_SKU_EXPORT_LINE',
+  ShopSpsMetricCurrent: 'SHOP_SPS_METRIC_CURRENT',
+  ShopSpsMetricDiagnosisCurrent: 'SHOP_SPS_METRIC_DIAGNOSIS_CURRENT',
+  ShopSpsOverviewCurrent: 'SHOP_SPS_OVERVIEW_CURRENT',
+  ShopSpsTopItemCurrent: 'SHOP_SPS_TOP_ITEM_CURRENT',
   WmsCurrentStock: 'WMS_CURRENT_STOCK'
 } as const;
 
@@ -5469,6 +5473,33 @@ export const EcomBiDimension = {
   SkuStatus: 'SKU_STATUS',
   SourceCreativeId: 'SOURCE_CREATIVE_ID',
   SourceCreativeIdType: 'SOURCE_CREATIVE_ID_TYPE',
+  SpsAftersalesType: 'SPS_AFTERSALES_TYPE',
+  SpsCalculationDenominatorLabel: 'SPS_CALCULATION_DENOMINATOR_LABEL',
+  SpsCalculationNumeratorLabel: 'SPS_CALCULATION_NUMERATOR_LABEL',
+  SpsDiagnosisDetails: 'SPS_DIAGNOSIS_DETAILS',
+  SpsDiagnosisSummaries: 'SPS_DIAGNOSIS_SUMMARIES',
+  SpsDimension: 'SPS_DIMENSION',
+  SpsEvaluationEndTime: 'SPS_EVALUATION_END_TIME',
+  SpsEvaluationStartTime: 'SPS_EVALUATION_START_TIME',
+  SpsItemType: 'SPS_ITEM_TYPE',
+  SpsLogisticsProvider: 'SPS_LOGISTICS_PROVIDER',
+  SpsMetricCode: 'SPS_METRIC_CODE',
+  SpsMetricName: 'SPS_METRIC_NAME',
+  SpsPrimaryCategoryId: 'SPS_PRIMARY_CATEGORY_ID',
+  SpsPrimaryCategoryName: 'SPS_PRIMARY_CATEGORY_NAME',
+  SpsProductImageUrl: 'SPS_PRODUCT_IMAGE_URL',
+  SpsSourceUpdateTime: 'SPS_SOURCE_UPDATE_TIME',
+  SpsStatus: 'SPS_STATUS',
+  SpsStatusText: 'SPS_STATUS_TEXT',
+  SpsTier: 'SPS_TIER',
+  SpsTierText: 'SPS_TIER_TEXT',
+  SpsTopIssueCodes: 'SPS_TOP_ISSUE_CODES',
+  SpsTopIssueSummary: 'SPS_TOP_ISSUE_SUMMARY',
+  SpsTopReasons: 'SPS_TOP_REASONS',
+  SpsTopReasonText: 'SPS_TOP_REASON_TEXT',
+  SpsTrendRecordDate: 'SPS_TREND_RECORD_DATE',
+  SpsUnlockedBenefitNames: 'SPS_UNLOCKED_BENEFIT_NAMES',
+  SpsValueUnit: 'SPS_VALUE_UNIT',
   StandardCommissionRate: 'STANDARD_COMMISSION_RATE',
   State: 'STATE',
   StatementId: 'STATEMENT_ID',
@@ -5701,6 +5732,29 @@ export const EcomBiMetric = {
   SmartPromotionCampaignPeriodFeeTaxAmount: 'SMART_PROMOTION_CAMPAIGN_PERIOD_FEE_TAX_AMOUNT',
   SmartPromotionFeeAmount: 'SMART_PROMOTION_FEE_AMOUNT',
   SmartPromotionFeeTaxAmount: 'SMART_PROMOTION_FEE_TAX_AMOUNT',
+  SpsBenefitCount: 'SPS_BENEFIT_COUNT',
+  SpsCalculationDenominatorValue: 'SPS_CALCULATION_DENOMINATOR_VALUE',
+  SpsCalculationNumeratorValue: 'SPS_CALCULATION_NUMERATOR_VALUE',
+  SpsDeliveredOrderCount: 'SPS_DELIVERED_ORDER_COUNT',
+  SpsEvaluateDurationDays: 'SPS_EVALUATE_DURATION_DAYS',
+  SpsExcellentThreshold: 'SPS_EXCELLENT_THRESHOLD',
+  SpsHandleDurationHours: 'SPS_HANDLE_DURATION_HOURS',
+  SpsMetricScore: 'SPS_METRIC_SCORE',
+  SpsMetricValue: 'SPS_METRIC_VALUE',
+  SpsNegativeOrderCount: 'SPS_NEGATIVE_ORDER_COUNT',
+  SpsOnTimeDeliverOrderCount: 'SPS_ON_TIME_DELIVER_ORDER_COUNT',
+  SpsOnTimeDeliverRate: 'SPS_ON_TIME_DELIVER_RATE',
+  SpsPeerPercentile: 'SPS_PEER_PERCENTILE',
+  SpsPoorThreshold: 'SPS_POOR_THRESHOLD',
+  SpsReturnOrderCount: 'SPS_RETURN_ORDER_COUNT',
+  SpsScore: 'SPS_SCORE',
+  SpsTopIssueCount: 'SPS_TOP_ISSUE_COUNT',
+  SpsTopItemPosition: 'SPS_TOP_ITEM_POSITION',
+  SpsTopItemTotalCount: 'SPS_TOP_ITEM_TOTAL_COUNT',
+  SpsTopReasonOrderCount: 'SPS_TOP_REASON_ORDER_COUNT',
+  SpsTopTypeOrderCount: 'SPS_TOP_TYPE_ORDER_COUNT',
+  SpsTrendValue: 'SPS_TREND_VALUE',
+  SpsUnlockedBenefitCount: 'SPS_UNLOCKED_BENEFIT_COUNT',
   StockQuantity: 'STOCK_QUANTITY',
   SubtotalBeforeDiscountsAmount: 'SUBTOTAL_BEFORE_DISCOUNTS_AMOUNT',
   SupportSessionCount: 'SUPPORT_SESSION_COUNT',
@@ -5774,7 +5828,7 @@ export interface EcomBiQueryInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
-  /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Required for Order, Finance, and CS datasets. Usually omit for Ads so authorized advertiser stores without onboarded Shops remain included; when supplied to Ads, this restricts results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
+  /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Required for Order, Finance, CS, and live SPS datasets. SPS accepts at most 50 owned AUTHORIZED US shops with data.shop_analytics.public.read. Usually omit for Ads so authorized advertiser stores without onboarded Shops remain included; when supplied to Ads, this restricts results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. */
   startDateGe?: InputMaybe<Scalars['String']['input']>;
@@ -9276,6 +9330,8 @@ export interface Query {
   ecommerceGetReturnRecords: Array<EcomReturnRecord>;
   /** Get order-derived shop SKU demand metrics from the warehouse as one row per shop-local date and SKU. Returns full item fields plus totalCount metadata. */
   ecommerceGetShopSkuPerformanceList: EcomSkuPerformanceResult;
+  /** Load the seller SPS analytics page: current SPS overview plus TikTok's live 90-day trend for one selected SPS metric, grouped by market and shop. */
+  ecommerceGetSpsAnalytics: SpsAnalyticsView;
   ecommerceListCSUnpaidOrderExperiments: Array<CsUnpaidOrderConfigExperimentView>;
   /** Search customer service sessions for a shop */
   ecommerceSearchCSSessions: CustomerServiceSessionPage;
@@ -9858,6 +9914,11 @@ export interface QueryEcommerceGetShopSkuPerformanceListArgs {
   productIds?: InputMaybe<Array<Scalars['String']['input']>>;
   shopId: Scalars['String']['input'];
   startDateGe: Scalars['String']['input'];
+}
+
+
+export interface QueryEcommerceGetSpsAnalyticsArgs {
+  input: SpsAnalyticsInput;
 }
 
 
@@ -10825,6 +10886,94 @@ export const SkillLabel = {
 } as const;
 
 export type SkillLabel = typeof SkillLabel[keyof typeof SkillLabel];
+export const SpsAnalyticsAvailability = {
+  Available: 'AVAILABLE',
+  MissingScope: 'MISSING_SCOPE',
+  NotAuthorized: 'NOT_AUTHORIZED',
+  PlatformError: 'PLATFORM_ERROR',
+  UnsupportedPlatform: 'UNSUPPORTED_PLATFORM',
+  UnsupportedRegion: 'UNSUPPORTED_REGION'
+} as const;
+
+export type SpsAnalyticsAvailability = typeof SpsAnalyticsAvailability[keyof typeof SpsAnalyticsAvailability];
+export interface SpsAnalyticsDistributionView {
+  count?: Maybe<Scalars['Int']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  percent?: Maybe<Scalars['Float']['output']>;
+}
+
+export interface SpsAnalyticsInput {
+  metricCode: SpsAnalyticsMetricCode;
+  /** Optional current-user onboarded Shop Mongo IDs. Omit to load all connected shops. */
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+export interface SpsAnalyticsMarketView {
+  apiSupported: Scalars['Boolean']['output'];
+  market: Scalars['String']['output'];
+  shops: Array<SpsAnalyticsShopView>;
+}
+
+export const SpsAnalyticsMetricCode = {
+  Aht: 'AHT',
+  ImDsat: 'IM_DSAT',
+  Nbfr: 'NBFR',
+  Nrr: 'NRR',
+  Otdr: 'OTDR',
+  Sfcr: 'SFCR'
+} as const;
+
+export type SpsAnalyticsMetricCode = typeof SpsAnalyticsMetricCode[keyof typeof SpsAnalyticsMetricCode];
+export interface SpsAnalyticsShopView {
+  availability: SpsAnalyticsAvailability;
+  calculationDenominatorLabel?: Maybe<Scalars['String']['output']>;
+  calculationDenominatorValue?: Maybe<Scalars['Float']['output']>;
+  calculationNumeratorLabel?: Maybe<Scalars['String']['output']>;
+  calculationNumeratorValue?: Maybe<Scalars['Float']['output']>;
+  diagnosisDetails: Array<Scalars['String']['output']>;
+  diagnosisSummaries: Array<Scalars['String']['output']>;
+  distributionDetails: Array<SpsAnalyticsDistributionView>;
+  evaluationDurationDays?: Maybe<Scalars['Int']['output']>;
+  excellentThreshold?: Maybe<Scalars['Float']['output']>;
+  market: Scalars['String']['output'];
+  metricCode: SpsAnalyticsMetricCode;
+  metricDimension?: Maybe<Scalars['String']['output']>;
+  metricScore?: Maybe<Scalars['Float']['output']>;
+  metricStatus?: Maybe<Scalars['String']['output']>;
+  metricStatusText?: Maybe<Scalars['String']['output']>;
+  metricValue?: Maybe<Scalars['Float']['output']>;
+  metricValueUnit?: Maybe<Scalars['String']['output']>;
+  observedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  peerPercentile?: Maybe<Scalars['Float']['output']>;
+  poorThreshold?: Maybe<Scalars['Float']['output']>;
+  primaryCategoryName?: Maybe<Scalars['String']['output']>;
+  shopAlias?: Maybe<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
+  sourceUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  spsScore?: Maybe<Scalars['Float']['output']>;
+  spsTier?: Maybe<Scalars['String']['output']>;
+  spsTierText?: Maybe<Scalars['String']['output']>;
+  topIssueCodes: Array<Scalars['String']['output']>;
+  topIssueSummary?: Maybe<Scalars['String']['output']>;
+  trend: Array<SpsAnalyticsTrendPointView>;
+  unavailableReason?: Maybe<Scalars['String']['output']>;
+}
+
+export interface SpsAnalyticsTrendPointView {
+  /** TikTok metric observation date in YYYY-MM-DD format. */
+  recordDate: Scalars['String']['output'];
+  value: Scalars['Float']['output'];
+}
+
+export interface SpsAnalyticsView {
+  asOf: Scalars['DateTimeISO']['output'];
+  markets: Array<SpsAnalyticsMarketView>;
+  metricCode: SpsAnalyticsMetricCode;
+  supportedMarkets: Array<Scalars['String']['output']>;
+  trendDurationDays: Scalars['Int']['output'];
+}
+
 export interface StartBillingSubscriptionInput {
   /** Legacy client-supplied Stripe cancel redirect URL. The backend now uses the canonical RivonClaw payment status page for STRIPE checkouts; ignored when an existing Stripe subscription is only resumed. */
   cancelUrl?: InputMaybe<Scalars['String']['input']>;

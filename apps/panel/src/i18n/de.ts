@@ -55,6 +55,7 @@ export default {
     "tiktokShops": "TikTok Geschäfte",
     "ecommerce": "Shops",
     "shopManagement": "Shops",
+    "shopAnalytics": "Shop-Analyse",
     "adsManagement": "Anzeigen",
     "inventoryManagement": "Inventar",
     "customerService": "Kundenservice",
@@ -1786,6 +1787,99 @@ export default {
       }
     }
   },
+  "shopAnalytics": {
+    "loadingPage": "Shop-Analysen werden geladen…",
+    "signInTitle": "Anmelden, um Shop-Analysen anzuzeigen",
+    "signInBody": "SPS-Daten sind nur für Shops verfügbar, die Ihrem aktuellen Konto gehören.",
+    "eyebrow": "SHOP-PERFORMANCE",
+    "title": "Der SPS-Zustand aller Shops auf einen Blick.",
+    "subtitle": "Vergleichen Sie Shops nach Markt, verfolgen Sie TikToks Live-Metriktrend und gelangen Sie direkt von der Bewertung zur Diagnose.",
+    "liveApi": "Live-API · 5 Min. Cache",
+    "refresh": "Aktualisieren",
+    "refreshing": "Wird aktualisiert…",
+    "metricSelectorAria": "SPS-Metrik",
+    "diagnosisLens": "DIAGNOSEANSICHT",
+    "metrics": {
+      "OTDR": "Pünktliche Zustellrate",
+      "NRR": "Negative Bewertungsrate",
+      "NBFR": "Negative Käuferfeedbackrate",
+      "SFCR": "Stornorate durch Verkäuferfehler",
+      "AHT": "Durchschnittliche Bearbeitungszeit",
+      "IM_DSAT": "Unzufriedenheitsrate im Chat"
+    },
+    "summary": {
+      "markets": "Märkte",
+      "marketsHint": "Nach Ihren verbundenen Shops gruppiert",
+      "liveShops": "Shops mit Live-SPS",
+      "liveShopsHint": "Autorisierte US-Shops mit SPS-Berechtigung",
+      "averageSps": "Durchschnittlicher SPS",
+      "averageSpsHint": "Aktuelle Bewertung, kein historischer Durchschnitt",
+      "lastObserved": "Zuletzt beobachtet",
+      "trendWindow": "{{days}}-Tage-Trendfenster der Plattform"
+    },
+    "timeline": {
+      "title": "Über diese Zeitachse",
+      "body": "Die TikTok Partner API liefert höchstens 90 Trendtage. Die Linien sind bei Bedarf abgerufene Plattformbeobachtungen – keine Data-Warehouse-Snapshots und keine 12-Monats-Historie."
+    },
+    "market": {
+      "oneShop": "1 Shop",
+      "shops": "{{count}} Shops",
+      "live": "TikTok SPS live",
+      "unavailable": "TikTok API nicht verfügbar"
+    },
+    "chart": {
+      "trendByShop": "Trend nach Shop",
+      "latestObservations": "Neueste {{days}} Tagesbeobachtungen",
+      "unsupportedTitle": "SPS ist in diesem Markt nicht verfügbar",
+      "autoScale": "Y-Achse automatisch auf den sichtbaren Bereich skaliert",
+      "seriesAria": "Diagrammreihen",
+      "noTrendTitle": "Keine Trendpunkte zurückgegeben",
+      "noTrendBody": "Prüfen Sie den Shop-Status unten und aktualisieren Sie, sobald TikTok SPS-Daten verfügbar sind.",
+      "usOnlyTitle": "Aktuelle API-Abdeckung: nur USA",
+      "unsupportedBody": "Diese Shops werden zur Übersicht angezeigt. Für nicht unterstützte Regionen werden keine Bewertung und keine Diagnose abgeleitet."
+    },
+    "availability": {
+      "AVAILABLE": "Live",
+      "MISSING_SCOPE": "Berechtigung erforderlich",
+      "NOT_AUTHORIZED": "Neu verbinden",
+      "UNSUPPORTED_REGION": "Region nicht unterstützt",
+      "UNSUPPORTED_PLATFORM": "Plattform nicht unterstützt",
+      "PLATFORM_ERROR": "Vorübergehend nicht verfügbar"
+    },
+    "unavailableReasons": {
+      "AVAILABLE": "",
+      "MISSING_SCOPE": "Der Shop-Autorisierung fehlt die erforderliche SPS-Berechtigung.",
+      "NOT_AUTHORIZED": "Verbinden Sie diesen Shop erneut, um SPS-Daten zu laden.",
+      "UNSUPPORTED_REGION": "TikTok stellt SPS-APIs derzeit nur für US-Shops bereit.",
+      "UNSUPPORTED_PLATFORM": "TikTok SPS ist nur für TikTok-Shop-Verbindungen verfügbar.",
+      "PLATFORM_ERROR": "TikTok SPS-Daten sind vorübergehend nicht verfügbar. Versuchen Sie es später erneut."
+    },
+    "shop": {
+      "noTopIssue": "Kein Hauptproblem markiert",
+      "currentTier": "Aktuelle Stufe",
+      "defaultCategory": "TikTok Shop",
+      "aheadOfPeers": "Besser als {{percent}} % vergleichbarer Shops",
+      "observed": "Beobachtet am {{date}}",
+      "metricValue": "Metrikwert",
+      "metricScore": "Metrikbewertung",
+      "status": "Status",
+      "topIssues": "Hauptprobleme",
+      "diagnosis": "Diagnose",
+      "method": "Metrikberechnung und Benchmarks",
+      "numerator": "Zähler",
+      "denominator": "Nenner",
+      "excellentThreshold": "Schwellenwert „Ausgezeichnet“",
+      "poorThreshold": "Schwellenwert „Schlecht“",
+      "range": "Bereich"
+    },
+    "states": {
+      "loading": "Live-SPS-Diagnosen werden geladen…",
+      "errorTitle": "Shop-Analysen konnten nicht geladen werden",
+      "retry": "Erneut versuchen",
+      "noShopsTitle": "Keine TikTok-Shops gefunden",
+      "noShopsBody": "Verbinden Sie einen TikTok Shop, um den Shop Performance Score zu überwachen."
+    }
+  },
   "tutorial": {
     "bubble": {
       "tooltip": "Seiten-Tutorial"
@@ -1796,6 +1890,14 @@ export default {
       "done": "Fertig",
       "close": "Schließen",
       "stepOf": "{{current}} / {{total}}"
+    },
+    "shopAnalytics": {
+      "welcomeTitle": "Shop-Performance-Analyse",
+      "welcomeBody": "Vergleichen Sie den aktuellen SPS-Status nach Markt und Shop auf einer Seite.",
+      "metricsTitle": "Diagnosemetrik auswählen",
+      "metricsBody": "Ein Wechsel der SPS-Metrik aktualisiert alle Marktcharts und Shop-Diagnosen.",
+      "trendTitle": "Shop-Trends vergleichen",
+      "trendBody": "Jede Linie steht für einen Shop. TikTok liefert derzeit höchstens 90 Tageswerte."
     },
     "providers": {
       "welcomeTitle": "Willkommen bei Models",
