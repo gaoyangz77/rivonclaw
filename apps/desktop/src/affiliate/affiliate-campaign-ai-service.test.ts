@@ -10,7 +10,6 @@ import {
 } from "./affiliate-campaign-ai-service.js";
 
 const context = {
-  snapshotRef: "snapshot-1",
   productSnapshotHash: "product-hash",
   shopName: "Shop Five",
   explanationLocale: "zh",
@@ -70,21 +69,20 @@ function structuredRunnerFor(raw: unknown): {
 
 describe("affiliate Campaign Desktop AI service", () => {
   it("uses one structured Agent run for all five search groups and then backend-validates them", async () => {
+    const ruleSets = [
+      { minimumFollowers: 1_000, ageRanges: ["AGE_25_34"] },
+      { minimumFollowers: 5_000, gmvRanges: ["GMV_1K_10K"] },
+      { maximumFollowers: 50_000, languages: ["en"] },
+      {
+        genderDistribution: { gender: "FEMALE", minimumPercentage: 60 },
+        categoryPros: ["FASHION"],
+      },
+      { creatorLevels: ["LEVEL_2"], unitsSoldRanges: ["UNITS_10_100"] },
+    ];
     const candidates = Array.from({ length: 5 }, (_, index) => ({
       keyword: `faith fashion creator ${index + 1}`,
       explanation: `这是第 ${index + 1} 个达人方向，用于覆盖不同内容受众。`,
-      rules: {
-        minimumFollowers: 1_000,
-        maximumFollowers: null,
-        ageRanges: ["AGE_25_34"],
-        gender: "FEMALE",
-        genderMinimumPercentage: 60,
-        gmvRanges: ["GMV_1K_10K"],
-        unitsSoldRanges: ["UNITS_10_100"],
-        languages: ["en"],
-        creatorLevels: ["LEVEL_2"],
-        categoryPros: ["FASHION"],
-      },
+      rules: ruleSets[index],
     }));
     const backendResult = {
       suggestionVersion: 3,
@@ -110,7 +108,8 @@ describe("affiliate Campaign Desktop AI service", () => {
 
     const result = await generateCampaignSearchPhraseSuggestions({
       authSession: { graphqlFetch } as never,
-      snapshotRef: "snapshot-1",
+      shopId: "shop-5",
+      productId: "product-1",
       uiLocale: "zh-CN",
       runStructured: structured.runner,
     });
@@ -122,11 +121,64 @@ describe("affiliate Campaign Desktop AI service", () => {
       "ValidateAffiliateCampaignSearchPhraseSuggestions",
     );
     const validationVariables = graphqlFetch.mock.calls[1]?.[1] as {
-      input: { snapshotRef: string; suggestions: SearchSuggestionLike[] };
+      input: { shopId: string; productSnapshotHash: string; suggestions: SearchSuggestionLike[] };
     };
-    expect(validationVariables.input.snapshotRef).toBe("snapshot-1");
+    expect(validationVariables.input.shopId).toBe("shop-5");
+    expect(validationVariables.input.productSnapshotHash).toBe("product-hash");
     expect(validationVariables.input.suggestions).toHaveLength(5);
     expect(validationVariables.input.suggestions[0]?.keyword).toBe("faith fashion creator 1");
+    expect(validationVariables.input.suggestions[3]?.rules).toMatchObject({
+      gender: "FEMALE",
+      genderMinimumPercentage: 60,
+    });
+    const structuredOptions = structured.calls.mock.calls[0]?.[0] as StructuredOneShotAgentOptions<{
+      suggestions: SearchSuggestionLike[];
+    }>;
+    expect(structuredOptions.systemPrompt).toContain(
+      "Every group must include at least one useful filter",
+    );
+    expect(structuredOptions.userPrompt).toContain("outputContractExample");
+    expect(structuredOptions.jsonSchema).toMatchObject({
+      items: {
+        required: ["keyword", "explanation", "rules"],
+        properties: {
+          rules: {
+            minProperties: 1,
+            properties: {
+              genderDistribution: {
+                required: ["gender", "minimumPercentage"],
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it("rejects five keyword-only groups so the structured utility can repair them", async () => {
+    const candidates = Array.from({ length: 5 }, (_, index) => ({
+      keyword: `faith fashion creator ${index + 1}`,
+      explanation: `这是第 ${index + 1} 个达人方向。`,
+      rules: {},
+    }));
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("AffiliateCampaignAiGenerationContext")) {
+        return { affiliateCampaignAiGenerationContext: context };
+      }
+      throw new Error("Backend validation should not be reached");
+    });
+    const structured = structuredRunnerFor(candidates);
+
+    await expect(
+      generateCampaignSearchPhraseSuggestions({
+        authSession: { graphqlFetch } as never,
+        shopId: "shop-5",
+        productId: "product-1",
+        uiLocale: "zh-CN",
+        runStructured: structured.runner,
+      }),
+    ).rejects.toThrow("must include at least one useful filter");
+    expect(graphqlFetch).toHaveBeenCalledTimes(1);
   });
 
   it("generates the first-touch template locally and sends only the draft to backend validation", async () => {
@@ -151,7 +203,8 @@ describe("affiliate Campaign Desktop AI service", () => {
 
     const result = await generateCampaignMessageTemplate({
       authSession: { graphqlFetch } as never,
-      snapshotRef: "snapshot-1",
+      shopId: "shop-5",
+      productId: "product-1",
       uiLocale: "zh-CN",
       mode: "INITIAL",
       runStructured: structured.runner,
@@ -162,7 +215,7 @@ describe("affiliate Campaign Desktop AI service", () => {
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
     expect(graphqlFetch.mock.calls[1]?.[1]).toEqual({
       input: {
-        snapshotRef: "snapshot-1",
+        shopId: "shop-5",
         text: backendResult.text,
         productShortName: backendResult.productShortName,
         mode: "INITIAL",
@@ -174,4 +227,8 @@ describe("affiliate Campaign Desktop AI service", () => {
 
 type SearchSuggestionLike = {
   keyword: string;
+  rules?: {
+    gender?: string | null;
+    genderMinimumPercentage?: number | null;
+  };
 };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   campaignErrorMessage,
+  campaignSearchGroupRuleSummary,
   campaignShopDisplayName,
   DEFAULT_CAMPAIGN_STATUS_FILTERS,
   estimateCampaignCadence,
@@ -64,6 +65,47 @@ describe("Affiliate Campaign presentation contracts", () => {
     );
     expect(campaignErrorMessage(new Error("CAMPAIGN_AI_SUGGESTION_INVALID: incomplete"), t)).toBe(
       "ecommerce.affiliateCampaign.errors.suggestionInvalid",
+    );
+  });
+
+  it("summarizes every supported search-group filter instead of hiding AI rules", () => {
+    const labels: Record<string, string> = {
+      "ecommerce.affiliateCampaign.audienceGender": "受众性别",
+      "ecommerce.affiliateCampaign.categoryPros": "擅长类目",
+      "ecommerce.affiliateCampaign.gmv30d": "30 天 GMV 区间",
+      "ecommerce.affiliateCampaign.minimumFollowersCompact": "粉丝下限",
+    };
+    const t = (key: string) => labels[key] ?? key;
+    const summary = campaignSearchGroupRuleSummary(
+      {
+        followerCount: { minimum: 1_000, maximum: null },
+        audience: {
+          ageRanges: [],
+          genderDistribution: { gender: "MALE", minimumPercentage: 60 },
+        },
+        salesPerformance30d: {
+          gmvRanges: ["GMV_RANGE_1000_10000"],
+          unitsSoldRanges: [],
+        },
+        categories: [],
+        contentPerformance30d: null,
+        affiliatePerformance30d: null,
+        marketSpecific: {
+          languages: [],
+          creatorLevels: [],
+          categoryPros: ["FASHION_AND_STYLE"],
+        },
+      },
+      t,
+    );
+
+    expect(summary).toEqual(
+      expect.arrayContaining([
+        "粉丝下限",
+        "受众性别: Male ≥ 60%",
+        "30 天 GMV 区间: 1k 10k",
+        "擅长类目: Fashion And Style",
+      ]),
     );
   });
 });

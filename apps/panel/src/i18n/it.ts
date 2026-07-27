@@ -1696,6 +1696,7 @@ export default {
         "ECOM_MARK_CONVERSATION_READ": "Segna letto",
         "ECOM_CREATE_CONVERSATION": "Crea conversazione",
         "ECOM_UPDATE_SHOP": "Aggiorna negozio",
+        "ECOM_WRITE_AFFILIATE_CAMPAIGN": "Crea o aggiorna campagna di affiliazione",
         "ECOM_SEARCH_RETURNS": "Resi della ricerca",
         "ECOM_SEARCH_CANCELLATIONS": "Cerca cancellazioni",
         "ECOM_GET_AFTERSALE_ELIGIBILITY": "Ottieni l'idoneità post-vendita",

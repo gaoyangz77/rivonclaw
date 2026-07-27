@@ -799,12 +799,12 @@ export interface AffiliateCampaignAiGenerationContext {
   product: AffiliateCampaignProductPreview;
   productSnapshotHash: Scalars['String']['output'];
   shopName: Scalars['String']['output'];
-  snapshotRef: Scalars['ID']['output'];
 }
 
 export interface AffiliateCampaignAiGenerationContextInput {
   excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  snapshotRef: Scalars['ID']['input'];
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
   uiLocale: Scalars['String']['input'];
 }
 
@@ -1072,12 +1072,6 @@ export interface AffiliateCampaignProductPreview {
   snapshotHash: Scalars['String']['output'];
   status?: Maybe<Scalars['String']['output']>;
   title: Scalars['String']['output'];
-}
-
-export interface AffiliateCampaignProductResolution {
-  expiresAt: Scalars['DateTimeISO']['output'];
-  snapshot: AffiliateCampaignProductSnapshot;
-  snapshotRef: Scalars['ID']['output'];
 }
 
 export interface AffiliateCampaignProductSnapshot {
@@ -7070,7 +7064,8 @@ export interface GenerateAffiliateCampaignMessageTemplateInput {
   guidance?: InputMaybe<Scalars['String']['input']>;
   mode: AffiliateCampaignTemplateGenerationMode;
   previousDraft?: InputMaybe<Scalars['String']['input']>;
-  snapshotRef: Scalars['ID']['input'];
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
 }
 
 export interface GeneratePairingResult {
@@ -7389,6 +7384,7 @@ export interface InventoryGoodMapping {
 
 /** External inventory/catalog source system */
 export const InventoryGoodMappingSourceSystem = {
+  Lingxing: 'LINGXING',
   TiktokFbt: 'TIKTOK_FBT',
   TiktokShop: 'TIKTOK_SHOP',
   Xlwms: 'XLWMS',
@@ -7426,11 +7422,13 @@ export const InventoryRegionCode = {
   Cn: 'CN',
   Cz: 'CZ',
   De: 'DE',
+  Es: 'ES',
   Fr: 'FR',
   Gb: 'GB',
   Gr: 'GR',
   Hu: 'HU',
   Id: 'ID',
+  It: 'IT',
   Jp: 'JP',
   My: 'MY',
   Nl: 'NL',
@@ -7795,8 +7793,6 @@ export interface Mutation {
   requestClientLogUpload: ClientLogUploadRequestPayload;
   /** Request/create TikTok GMV Max exclusive authorization for an advertiser-store access row. */
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
-  /** Fetch and normalize one owned-shop product for Campaign review. The returned hash must be confirmed on Campaign save. */
-  resolveAffiliateCampaignProduct: AffiliateCampaignProductResolution;
   /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the relationship work boundary and update relationship/collaboration state as needed. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Revoke all sessions for the current user (remote logout) */
@@ -8446,11 +8442,6 @@ export interface MutationRequestClientLogUploadArgs {
 export interface MutationRequestTikTokGmvMaxAuthorizationArgs {
   adsAdvertiserId: Scalars['ID']['input'];
   adsStoreAccessId: Scalars['ID']['input'];
-}
-
-
-export interface MutationResolveAffiliateCampaignProductArgs {
-  input: ResolveAffiliateCampaignProductInput;
 }
 
 
@@ -9176,6 +9167,8 @@ export interface Query {
   affiliateCampaignCreatorStates: AffiliateCampaignCreatorStatePage;
   /** Read recent daily execution records for one owned Campaign. */
   affiliateCampaignDailyExecutions: Array<AffiliateCampaignDailyExecution>;
+  /** Fetch and normalize one owned-shop product for Campaign review without creating persistent draft state. */
+  affiliateCampaignProductPreview: AffiliateCampaignProductPreview;
   /** Read whether the Campaign's explicitly selected evaluation strategy can run now. */
   affiliateCampaignSelectionReadiness: AffiliateCampaignSelectionReadiness;
   /** Read operational funnel totals and the latest execution for one Campaign. */
@@ -9487,6 +9480,11 @@ export interface QueryAffiliateCampaignCreatorStatesArgs {
 
 export interface QueryAffiliateCampaignDailyExecutionsArgs {
   input: ReadAffiliateCampaignDailyExecutionsInput;
+}
+
+
+export interface QueryAffiliateCampaignProductPreviewArgs {
+  input: ResolveAffiliateCampaignProductInput;
 }
 
 
@@ -10981,14 +10979,16 @@ export interface SubscriptionUpdateAvailableArgs {
 
 export interface SuggestAffiliateCampaignSearchKeywordsInput {
   guidance?: InputMaybe<Scalars['String']['input']>;
-  snapshotRef: Scalars['ID']['input'];
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
   uiLocale?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface SuggestAffiliateCampaignSearchPhrasesInput {
   excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
   guidance?: InputMaybe<Scalars['String']['input']>;
-  snapshotRef: Scalars['ID']['input'];
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
   uiLocale: Scalars['String']['input'];
 }
 
@@ -11635,7 +11635,8 @@ export const ToolId = {
   EcomSearchReturns: 'ECOM_SEARCH_RETURNS',
   EcomSetCustomerServiceConversationAiEnabled: 'ECOM_SET_CUSTOMER_SERVICE_CONVERSATION_AI_ENABLED',
   EcomUpdateInventory: 'ECOM_UPDATE_INVENTORY',
-  EcomUpdateShop: 'ECOM_UPDATE_SHOP'
+  EcomUpdateShop: 'ECOM_UPDATE_SHOP',
+  EcomWriteAffiliateCampaign: 'ECOM_WRITE_AFFILIATE_CAMPAIGN'
 } as const;
 
 export type ToolId = typeof ToolId[keyof typeof ToolId];
@@ -11890,13 +11891,14 @@ export interface ValidateAffiliateCampaignMessageTemplateSuggestionInput {
   mode: AffiliateCampaignTemplateGenerationMode;
   previousDraft?: InputMaybe<Scalars['String']['input']>;
   productShortName: Scalars['String']['input'];
-  snapshotRef: Scalars['ID']['input'];
+  shopId: Scalars['ID']['input'];
   text: Scalars['String']['input'];
 }
 
 export interface ValidateAffiliateCampaignSearchPhraseSuggestionsInput {
   excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  snapshotRef: Scalars['ID']['input'];
+  productSnapshotHash: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
   suggestions: Array<AffiliateCampaignAiSearchPhraseCandidateInput>;
   uiLocale: Scalars['String']['input'];
 }
@@ -11984,6 +11986,7 @@ export interface WarehouseAddressInput {
 /** System or provider that owns the physical or platform warehouse */
 export const WarehouseProvider = {
   AmazonFba: 'AMAZON_FBA',
+  Lingxing: 'LINGXING',
   Seller: 'SELLER',
   TiktokFbt: 'TIKTOK_FBT',
   Xlwms: 'XLWMS',
@@ -12113,6 +12116,7 @@ export interface WmsAccount {
 
 /** Third-party WMS provider */
 export const WmsAccountProvider = {
+  Lingxing: 'LINGXING',
   Xlwms: 'XLWMS',
   Yejoin: 'YEJOIN'
 } as const;
@@ -12188,7 +12192,7 @@ export interface WriteAffiliateCampaignInput {
   messageTemplateText: Scalars['String']['input'];
   name: Scalars['String']['input'];
   primaryProductId: Scalars['String']['input'];
-  productSnapshotRef: Scalars['ID']['input'];
+  refreshProductSnapshot?: InputMaybe<Scalars['Boolean']['input']>;
   searchPhrases: Array<AffiliateCampaignSearchPhraseInput>;
   selectionPolicy: AffiliateCampaignSelectionPolicyInput;
   shopId: Scalars['ID']['input'];
