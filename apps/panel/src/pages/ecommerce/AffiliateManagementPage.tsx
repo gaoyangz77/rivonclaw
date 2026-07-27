@@ -168,6 +168,13 @@ function mergeById<T extends { id?: string | null }>(items: T[]): T[] {
   return [...merged.values()];
 }
 
+export function selectAffiliateProposalItems<T>(
+  queryItems: T[] | undefined,
+  storedItems: T[],
+): T[] {
+  return queryItems === undefined ? storedItems : queryItems;
+}
+
 function hydrateAffiliateProposalProjection(projection: {
   proposal: unknown;
   collaborationRecord?: unknown | null;
@@ -542,7 +549,10 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     })
     .map(hydrateAffiliateProposalProjection);
   const visibleProposalItems = filterActionProposals(
-    (proposalItemsFromQuery.length ? proposalItemsFromQuery : proposalItemsFromStore)
+    selectAffiliateProposalItems(
+      proposalData === undefined ? undefined : proposalItemsFromQuery,
+      proposalItemsFromStore,
+    )
       .filter((proposal) => !proposalType || proposal.type === proposalType),
     attentionSearch,
     shopLabel,
