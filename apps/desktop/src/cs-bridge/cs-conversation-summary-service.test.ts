@@ -31,10 +31,12 @@ describe("generateConversationSummary", () => {
     summaryState.rpcRequest.mockReset();
     summaryState.writeConversationSummary.mockReset();
     summaryState.resolveModelForDispatch.mockClear();
-    summaryState.writeConversationSummary.mockImplementation(async (record: Record<string, unknown>) => ({
-      ...record,
-      updatedAt: "2026-05-21T00:00:00.000Z",
-    }));
+    summaryState.writeConversationSummary.mockImplementation(
+      async (record: Record<string, unknown>) => ({
+        ...record,
+        updatedAt: "2026-05-21T00:00:00.000Z",
+      }),
+    );
     summaryState.rpcRequest.mockImplementation(async (method: string) => {
       if (method === "agent") return { runId: "run-summary-1" };
       if (method === "agent.wait") return { status: "ok" };
@@ -86,24 +88,30 @@ describe("generateConversationSummary", () => {
     });
 
     expect(summary.summary).toBe("Buyer asked about delivery. Staff promised an update.");
-    expect(authSession.graphqlFetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      pageSize: 10,
-      locale: "en",
-    }));
+    expect(authSession.graphqlFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        pageSize: 10,
+        locale: "en",
+      }),
+    );
     const agentCall = summaryState.rpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall).toBeDefined();
     const agentParams = agentCall?.[1] as Record<string, unknown>;
-    expect(agentParams).toEqual(expect.objectContaining({
-      sessionKey: expect.stringMatching(/^agent:customer-service:cs-summary:shop-1:conv-1:/),
-      provider: "rivonclaw-pro",
-      model: "gpt-5.5",
-      modelRun: true,
-      promptMode: "raw",
-      deliver: false,
-    }));
+    expect(agentParams).toEqual(
+      expect.objectContaining({
+        sessionKey: expect.stringMatching(/^agent:customer-service:cs-summary:shop-1:conv-1:/),
+        provider: "rivonclaw-pro",
+        model: "gpt-5.5",
+        modelRun: true,
+        promptMode: "raw",
+        deliver: false,
+      }),
+    );
     expect(agentParams.message).toContain('current UI locale is "en"');
     expect(agentParams).not.toHaveProperty("runProfileId");
     expect(agentParams).not.toHaveProperty("tools");
+    expect(agentParams).not.toHaveProperty("allowEmptyAssistantReplyAsSilent");
     expect(summaryState.resolveModelForDispatch).toHaveBeenCalledWith(
       expect.stringMatching(/^agent:customer-service:cs-summary:shop-1:conv-1:/),
       { type: "cs_session", shopId: "shop-1" },
