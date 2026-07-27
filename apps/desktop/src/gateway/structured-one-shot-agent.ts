@@ -6,6 +6,7 @@ import { requestAgent } from "./agent-tooling-readiness.js";
 
 const log = createLogger("structured-one-shot-agent");
 const DEFAULT_TIMEOUT_MS = 120_000;
+const MAX_REPAIR_OUTPUT_CHARS = 60_000;
 
 type ChatHistoryMessage = Record<string, unknown>;
 
@@ -68,9 +69,11 @@ export async function runStructuredOneShotAgent<T>(
 ): Promise<StructuredOneShotAgentResult<T>> {
   const startedAt = Date.now();
   const sessionKey = `agent:utility:${sanitizeNamespace(options.namespace)}:${randomUUID()}`;
+  const repairSessionKey = `${sessionKey}:format-repair`;
   const resolvedModel = runtime.resolveDefaultModel(sessionKey);
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const runIds: string[] = [];
+  const createdSessionKeys = new Set([sessionKey]);
 
   try {
     const firstText = await runOneShotTurn({
@@ -84,31 +87,46 @@ export async function runStructuredOneShotAgent<T>(
       runIds,
     });
     try {
-      return result(options.validate(parseJson(firstText)), false);
+      return result(options.validate(parseJson(firstText, options.jsonSchema)), false);
     } catch (firstError) {
       if (options.allowFormatRepair === false) throw firstError;
+      log.warn(
+        `Structured one-shot initial output failed validation namespace=${options.namespace} initialError=${errorMessage(firstError)}`,
+      );
+      createdSessionKeys.add(repairSessionKey);
       const repairedText = await runOneShotTurn({
         runtime,
-        sessionKey,
+        sessionKey: repairSessionKey,
         resolvedModel,
         timeoutMs,
         systemPrompt: structuredSystemPrompt(options.systemPrompt, options.jsonSchema),
-        message: [
-          "Your previous response did not satisfy the required JSON contract.",
-          "Return a corrected JSON object only. Do not explain the correction.",
-          `Validation error: ${errorMessage(firstError)}`,
-        ].join("\n"),
+        message: structuredRepairPrompt({
+          invalidOutput: firstText,
+          validationError: errorMessage(firstError),
+          jsonSchema: options.jsonSchema,
+        }),
         idempotencyKey: `${sessionKey}:repair`,
         runIds,
       });
-      return result(options.validate(parseJson(repairedText)), true);
+      try {
+        return result(options.validate(parseJson(repairedText, options.jsonSchema)), true);
+      } catch (repairError) {
+        log.warn(
+          `Structured one-shot repair failed namespace=${options.namespace} initialError=${errorMessage(firstError)} repairError=${errorMessage(repairError)}`,
+        );
+        throw repairError;
+      }
     }
   } finally {
-    await runtime.deleteSession(sessionKey).catch((error) => {
-      log.warn(
-        `Failed to delete one-shot session namespace=${options.namespace}: ${errorMessage(error)}`,
-      );
-    });
+    await Promise.all(
+      [...createdSessionKeys].map((createdSessionKey) =>
+        runtime.deleteSession(createdSessionKey).catch((error) => {
+          log.warn(
+            `Failed to delete one-shot session namespace=${options.namespace}: ${errorMessage(error)}`,
+          );
+        }),
+      ),
+    );
   }
 
   function result(value: T, wasRepaired: boolean): StructuredOneShotAgentResult<T> {
@@ -144,7 +162,6 @@ async function runOneShotTurn(input: {
     message: input.message,
     extraSystemPrompt: input.systemPrompt,
     modelRun: true,
-    fastMode: true,
     promptMode: "raw",
     deliver: false,
     idempotencyKey: input.idempotencyKey,
@@ -169,25 +186,68 @@ function structuredSystemPrompt(
   useCasePrompt: string,
   jsonSchema: Record<string, unknown>,
 ): string {
+  const rootType = schemaRootType(jsonSchema);
   return [
     "You are a one-shot structured-output generator running on the user's current Desktop default model.",
     "Do not call tools. Do not emit Markdown or commentary.",
-    "Return exactly one JSON object that conforms to the supplied JSON Schema.",
+    `Return exactly one JSON ${rootType} that conforms to the supplied JSON Schema.`,
+    `The top-level value MUST be a JSON ${rootType}.`,
+    "Include every property listed in every required array, including nested required properties.",
+    `Your entire response must be the JSON ${rootType}; do not acknowledge these instructions.`,
     useCasePrompt,
     `JSON Schema: ${JSON.stringify(jsonSchema)}`,
   ].join("\n");
 }
 
-function parseJson(text: string): unknown {
+function structuredRepairPrompt(input: {
+  invalidOutput: string;
+  validationError: string;
+  jsonSchema: Record<string, unknown>;
+}): string {
+  const rootType = schemaRootType(input.jsonSchema);
+  const invalidOutput =
+    input.invalidOutput.length <= MAX_REPAIR_OUTPUT_CHARS
+      ? input.invalidOutput
+      : input.invalidOutput.slice(0, MAX_REPAIR_OUTPUT_CHARS);
+  return [
+    "Repair the previous model output into the required structured payload.",
+    "Do not acknowledge the error and do not describe the correction.",
+    `Return the COMPLETE corrected JSON ${rootType} only.`,
+    `The top-level value MUST be a JSON ${rootType}.`,
+    "Preserve useful content from the previous output, but add or correct every required property.",
+    `Validation error: ${input.validationError}`,
+    `Required JSON Schema: ${JSON.stringify(input.jsonSchema)}`,
+    "Previous invalid output:",
+    invalidOutput,
+  ].join("\n");
+}
+
+function parseJson(text: string, jsonSchema: Record<string, unknown>): unknown {
   const trimmed = text.trim();
   const unfenced = trimmed
     .replace(/^```(?:json)?\s*/iu, "")
     .replace(/\s*```$/u, "")
     .trim();
-  if (!unfenced.startsWith("{") || !unfenced.endsWith("}")) {
-    throw new Error("Model output must contain exactly one JSON object");
+  const rootType = schemaRootType(jsonSchema);
+  const hasExpectedDelimiters =
+    rootType === "array"
+      ? unfenced.startsWith("[") && unfenced.endsWith("]")
+      : unfenced.startsWith("{") && unfenced.endsWith("}");
+  if (!hasExpectedDelimiters) {
+    throw new Error(`Model output must contain exactly one JSON ${rootType}`);
   }
-  return JSON.parse(unfenced);
+  const parsed = JSON.parse(unfenced);
+  if (
+    (rootType === "array" && !Array.isArray(parsed)) ||
+    (rootType === "object" && (!parsed || typeof parsed !== "object" || Array.isArray(parsed)))
+  ) {
+    throw new Error(`Model output root must be a JSON ${rootType}`);
+  }
+  return parsed;
+}
+
+function schemaRootType(jsonSchema: Record<string, unknown>): "object" | "array" {
+  return jsonSchema.type === "array" ? "array" : "object";
 }
 
 function latestAssistantText(messages: ChatHistoryMessage[]): string | undefined {
