@@ -373,6 +373,39 @@ export function extractImages(content: unknown): ChatImage[] {
     .filter((img) => img.data || img.url);
 }
 
+const MEDIA_DIRECTIVE_PATH_RE =
+  /(?:^|\n)\s*MEDIA:\s*(?:"([^"\n]+\.(?:png|jpe?g|gif|webp)(?:\?[^"\n]*)?)"|`([^`\n]+\.(?:png|jpe?g|gif|webp)(?:\?[^`\n]*)?)`|([^\n]+?\.(?:png|jpe?g|gif|webp)(?:\?\S*)?))\s*(?=\n|$)/gi;
+
+function mimeTypeFromImagePath(path: string): string {
+  const lower = path.toLowerCase().replace(/\?.*$/, "");
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".webp")) return "image/webp";
+  return "image/jpeg";
+}
+
+function basenameFromImagePath(path: string): string {
+  const withoutQuery = path.replace(/\?.*$/, "");
+  return withoutQuery.split(/[\\/]/).pop() || "generated-image";
+}
+
+function extractMediaDirectiveImages(text: string): ChatImage[] {
+  const images: ChatImage[] = [];
+  MEDIA_DIRECTIVE_PATH_RE.lastIndex = 0;
+  for (const match of text.matchAll(MEDIA_DIRECTIVE_PATH_RE)) {
+    const rawPath = match[1] ?? match[2] ?? match[3];
+    if (!rawPath) continue;
+    const path = rawPath.replace(/\?.*$/, "").trim();
+    images.push({
+      url: `/api/chat/media/local?path=${encodeURIComponent(path)}`,
+      openUrl: `/api/chat/media/local?path=${encodeURIComponent(path)}`,
+      alt: basenameFromImagePath(path),
+      mimeType: mimeTypeFromImagePath(path),
+    });
+  }
+  return images;
+}
+
 /** Returns true if content contains any image-type blocks, regardless of data. */
 export function hasImageBlocks(content: unknown): boolean {
   if (!Array.isArray(content)) return false;
@@ -658,7 +691,10 @@ export function parseRawMessages(
       // Text is generated BEFORE tool calls in the LLM turn,
       // so the text bubble should appear above tool-event markers.
       const text = extractText(msg.content);
-      const images = extractImages(msg.content);
+      const images = [
+        ...extractImages(msg.content),
+        ...(msg.role === "assistant" ? extractMediaDirectiveImages(text) : []),
+      ];
       const strippedImages = images.length === 0 && hasImageBlocks(msg.content);
       // Skip internal gateway maintenance prompts (e.g. pre-compaction memory flush)
       if (msg.role === "user" && isInternalPrompt(text)) continue;
@@ -894,16 +930,38 @@ function hasSuccessfulAssistantMessageForRun(messages: ChatMessage[], runId: str
 
 function pruneSupersededLocalTerminalErrors(messages: ChatMessage[]): ChatMessage[] {
   const successfulRunIds = new Set<string>();
+  const localUserByRunId = new Map<string, ChatMessage>();
+  const successfulAssistantMessages: ChatMessage[] = [];
+
   for (const message of messages) {
-    if (!isSuccessfulAssistantMessage(message)) continue;
-    const runId = runIdempotencyRoot(message.idempotencyKey);
-    if (runId) successfulRunIds.add(runId);
+    if (message.role === "user") {
+      const runId = runIdempotencyRoot(message.idempotencyKey);
+      if (runId) localUserByRunId.set(runId, message);
+    }
+    if (isSuccessfulAssistantMessage(message)) {
+      successfulAssistantMessages.push(message);
+      const runId = runIdempotencyRoot(message.idempotencyKey);
+      if (runId) successfulRunIds.add(runId);
+    }
   }
-  if (successfulRunIds.size === 0) return messages;
+
   return messages.filter((message) => {
     if (!isLocalTerminalErrorMessage(message)) return true;
     const runId = runIdempotencyRoot(message.idempotencyKey);
-    return !runId || !successfulRunIds.has(runId);
+    if (!runId) return true;
+    if (successfulRunIds.has(runId)) return false;
+
+    const localUser = localUserByRunId.get(runId);
+    if (!localUser) return true;
+
+    const userTs = messageSortTimestamp(localUser);
+    const errorTs = messageSortTimestamp(message);
+    return !successfulAssistantMessages.some((assistantMessage) => {
+      const assistantTs = messageSortTimestamp(assistantMessage);
+      if (assistantTs <= 0 || userTs <= 0) return false;
+      if (assistantTs < userTs) return false;
+      return errorTs <= 0 || assistantTs <= errorTs + MESSAGE_DEDUPE_WINDOW_MS;
+    });
   });
 }
 

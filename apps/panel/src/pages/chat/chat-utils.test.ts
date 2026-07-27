@@ -52,6 +52,33 @@ describe("chat-utils media handling", () => {
     expect(message?.text).toBe("");
   });
 
+  it("parses assistant MEDIA directives into local image URLs", () => {
+    const imagePath = "/Users/example/.rivonclaw/openclaw/workspace/chart.png";
+    const [message] = parseRawMessages([
+      {
+        role: "assistant",
+        timestamp: 1785189190702,
+        content: [
+          {
+            type: "text",
+            text: `Here is the chart.\n\nMEDIA:${imagePath}`,
+          },
+        ],
+      },
+    ]);
+    const imageUrl = `/api/chat/media/local?path=${encodeURIComponent(imagePath)}`;
+
+    expect(message?.images).toEqual([
+      {
+        url: imageUrl,
+        openUrl: imageUrl,
+        alt: "chart.png",
+        mimeType: "image/png",
+      },
+    ]);
+    expect(cleanMessageText(message?.text ?? "")).toBe("Here is the chart.");
+  });
+
   it("drops local timeout errors once the same run has assistant media", () => {
     const merged = mergeChatMessagesDedup(
       [
@@ -80,6 +107,69 @@ describe("chat-utils media handling", () => {
 
     expect(merged).toHaveLength(1);
     expect(merged[0]?.images).toHaveLength(1);
+  });
+
+  it("drops local timeout errors when history has assistant media after the local user", () => {
+    const merged = mergeChatMessagesDedup(
+      [
+        {
+          role: "user",
+          text: "sned me the line chart here",
+          timestamp: 1000,
+          idempotencyKey: "run-3",
+        },
+        {
+          role: "assistant",
+          text: "",
+          timestamp: 3000,
+          images: [
+            {
+              url: "/api/chat/media/outgoing/session/attachment/full",
+              mimeType: "image/png",
+            },
+          ],
+        },
+      ],
+      [
+        {
+          role: "assistant",
+          text: "⚠ Request timed out.",
+          timestamp: 2500,
+          idempotencyKey: "run-3:local-error",
+        },
+      ],
+    );
+
+    expect(merged.some((message) => message.text.includes("Request timed out"))).toBe(false);
+    expect(merged.at(-1)?.images).toHaveLength(1);
+  });
+
+  it("keeps local timeout errors when only older assistant output exists", () => {
+    const merged = mergeChatMessagesDedup(
+      [
+        {
+          role: "assistant",
+          text: "Previous answer",
+          timestamp: 500,
+        },
+        {
+          role: "user",
+          text: "sned me the line chart here",
+          timestamp: 1000,
+          idempotencyKey: "run-4",
+        },
+      ],
+      [
+        {
+          role: "assistant",
+          text: "⚠ Request timed out.",
+          timestamp: 2500,
+          idempotencyKey: "run-4:local-error",
+        },
+      ],
+    );
+
+    expect(merged.some((message) => message.text.includes("Request timed out"))).toBe(true);
   });
 
   it("does not re-append cached terminal errors when history already has run output", () => {

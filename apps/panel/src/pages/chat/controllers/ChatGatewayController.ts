@@ -67,6 +67,10 @@ import {
 const REFRESH_DEBOUNCE = DEFAULTS.chat.sessionRefreshDebounceMs;
 const SESSION_METADATA_TTL_MS = 30_000;
 const SESSION_DERIVED_METADATA_TTL_MS = 5 * 60_000;
+const MEDIA_FINAL_HISTORY_RELOAD_DELAY_MS = 1_200;
+const LOCAL_ERROR_HISTORY_RECONCILE_DELAY_MS = 1_800;
+const MEDIA_DIRECTIVE_RE =
+  /(?:^|\n)\s*MEDIA:\s*(?:"[^"\n]+\.(?:png|jpe?g|gif|webp)(?:\?[^"\n]*)?"|`[^`\n]+\.(?:png|jpe?g|gif|webp)(?:\?[^`\n]*)?`|[^\n]+?\.(?:png|jpe?g|gif|webp)(?:\?\S*)?)\s*(?=\n|$)/i;
 
 /**
  * Read the user's custom session tab order from the MST-backed appSettings
@@ -107,9 +111,14 @@ function findFirstPanelUserTitle(messages: ChatMessage[]): string | undefined {
 function isTransientChatSendTransportError(raw: string): boolean {
   return (
     /RPC timeout after \d+ms:\s*chat\.send/i.test(raw) ||
+    /^request timed out\.?$/i.test(raw.trim()) ||
     /gateway disconnected/i.test(raw) ||
     /WebSocket not open/i.test(raw)
   );
+}
+
+function finalNeedsDelayedMediaHistoryReload(text: string, images: ChatImage[]): boolean {
+  return images.length === 0 && MEDIA_DIRECTIVE_RE.test(text);
 }
 
 // ---------------------------------------------------------------------------
@@ -848,6 +857,7 @@ export class ChatGatewayController {
           const finalText = extractText(finalContent);
           const finalImages = extractImages(finalContent);
           const finalHasImageBlocks = hasImageBlocks(finalContent);
+          const delayHistoryReload = finalNeedsDelayedMediaHistoryReload(finalText, finalImages);
           if (finalText || finalImages.length > 0 || finalHasImageBlocks) {
             const newText = flushedOffset > 0 ? finalText.slice(flushedOffset) : finalText;
             if (cleanMessageText(newText).trim() || finalImages.length > 0) {
@@ -866,6 +876,7 @@ export class ChatGatewayController {
               timestamp: Date.now(),
               idempotencyKey: `${chatRunId}:local-error`,
             });
+            this.reconcileLocalTerminalErrorFromHistory(activeKey);
           }
           if (session.runState.sendStartedAt > 0) {
             trackEvent("chat.response_received", {
@@ -878,7 +889,7 @@ export class ChatGatewayController {
             session.runState.setExternalPending(false);
           }
           this.cleanupTerminalRuns(activeKey);
-          void this.loadHistory();
+          this.loadHistoryAfterMediaFinal(delayHistoryReload);
           break;
         }
         case "error": {
@@ -903,6 +914,7 @@ export class ChatGatewayController {
             text: renderedText,
             timestamp: errorTs,
           });
+          this.reconcileLocalTerminalErrorFromHistory(activeKey);
           session.runState.setLastAgentStream(null);
           if (session.runState.externalPending) {
             session.runState.setExternalPending(false);
@@ -953,6 +965,7 @@ export class ChatGatewayController {
         const finalText = extractText(finalContent);
         const finalImages = extractImages(finalContent);
         const finalHasImageBlocks = hasImageBlocks(finalContent);
+        const delayHistoryReload = finalNeedsDelayedMediaHistoryReload(finalText, finalImages);
         if (finalText || finalImages.length > 0 || finalHasImageBlocks) {
           const extNewText = extFlushedOffset > 0 ? finalText.slice(extFlushedOffset) : finalText;
           if (cleanMessageText(extNewText).trim() || finalImages.length > 0) {
@@ -965,7 +978,7 @@ export class ChatGatewayController {
             });
           }
         }
-        void this.loadHistory();
+        this.loadHistoryAfterMediaFinal(delayHistoryReload);
       }
       if (payload.state === "aborted" && this.consumePendingStopNotice(activeKey, chatRunId)) {
         session.appendMessage({
@@ -1047,6 +1060,7 @@ export class ChatGatewayController {
           timestamp: errorTs,
           idempotencyKey: `${runId}:local-error`,
         });
+        this.reconcileLocalTerminalErrorFromHistory(sessionKey);
         // Cache so the error survives loadHistory/switchSession message replacement
         if (lifecycleError) {
           this.terminalErrors.set(sessionKey, { runId, text: renderedText, timestamp: errorTs });
@@ -1076,6 +1090,31 @@ export class ChatGatewayController {
     this.finalFallbackTimers.clear();
     this.lifecycleErrors.clear();
     this.terminalErrors.clear();
+  }
+
+  private loadHistoryAfterMediaFinal(delayForMediaSideAppend: boolean): void {
+    if (!delayForMediaSideAppend) {
+      void this.loadHistory();
+      return;
+    }
+    setTimeout(() => {
+      if (!this.cancelled && this.client) {
+        void this.loadHistory();
+      }
+    }, MEDIA_FINAL_HISTORY_RELOAD_DELAY_MS);
+  }
+
+  private reconcileLocalTerminalErrorFromHistory(sessionKey: string): void {
+    setTimeout(() => {
+      if (
+        !this.cancelled &&
+        this.client &&
+        this.store.activeSessionKey === sessionKey &&
+        this.store.sessions.has(sessionKey)
+      ) {
+        void this.loadHistory();
+      }
+    }, LOCAL_ERROR_HISTORY_RECONCILE_DELAY_MS);
   }
 
   /**
@@ -1170,6 +1209,7 @@ export class ChatGatewayController {
               timestamp: Date.now(),
               idempotencyKey: `${localId}:local-error`,
             });
+            this.reconcileLocalTerminalErrorFromHistory(this.store.activeSessionKey);
           }
         } else if (session.runState.externalPending || session.runState.isActive) {
           // External run was stuck
@@ -1178,6 +1218,7 @@ export class ChatGatewayController {
             text: `\u26A0 ${this.t("chat.watchdogError")}`,
             timestamp: Date.now(),
           });
+          this.reconcileLocalTerminalErrorFromHistory(this.store.activeSessionKey);
         }
 
         this.clearTimersForSession(this.store.activeSessionKey);
@@ -1608,6 +1649,7 @@ export class ChatGatewayController {
         timestamp: Date.now(),
         idempotencyKey: `${idempotencyKey}:local-error`,
       });
+      this.reconcileLocalTerminalErrorFromHistory(activeKey);
       sendRs.failRun(idempotencyKey);
       this.markRunRecentlyCompleted(activeKey, idempotencyKey);
       this.cleanupTerminalRuns(activeKey);
