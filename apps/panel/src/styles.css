@@ -18607,7 +18607,11 @@ html[lang="zh"] .acct-tool-chips {
   padding: 18px;
   border-color: color-mix(in srgb, #25d366 34%, var(--color-border-light));
   background:
-    radial-gradient(circle at 100% 0%, color-mix(in srgb, #25d366 12%, transparent), transparent 42%),
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, #25d366 12%, transparent),
+      transparent 42%
+    ),
     var(--color-bg);
 }
 
@@ -18670,8 +18674,14 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @keyframes affiliate-reconnect-pulse {
-  from { opacity: 0.8; transform: scale(0.75); }
-  to { opacity: 0; transform: scale(1.45); }
+  from {
+    opacity: 0.8;
+    transform: scale(0.75);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.45);
+  }
 }
 
 .affiliate-whatsapp-qr.is-reconnect {
@@ -18735,7 +18745,9 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @keyframes affiliate-reconnect-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .affiliate-whatsapp-proxy-panel {
@@ -23568,7 +23580,11 @@ html[lang="zh"] .acct-tool-chips {
   border: 1px solid var(--color-border-light);
   border-radius: 12px;
   background:
-    radial-gradient(circle at 8% 5%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 38%),
+    radial-gradient(
+      circle at 8% 5%,
+      color-mix(in srgb, var(--color-primary) 12%, transparent),
+      transparent 38%
+    ),
     var(--color-bg);
 }
 
@@ -24063,7 +24079,11 @@ html[lang="zh"] .acct-tool-chips {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .affiliate-team-page-tab:hover {
@@ -24654,13 +24674,23 @@ html[lang="zh"] .acct-tool-chips {
   text-transform: uppercase;
 }
 
-.affiliate-bd-table th:first-child { width: 28%; }
-.affiliate-bd-table th:nth-child(2) { width: 16%; }
+.affiliate-bd-table th:first-child {
+  width: 28%;
+}
+.affiliate-bd-table th:nth-child(2) {
+  width: 16%;
+}
 .affiliate-bd-table th:nth-child(3),
 .affiliate-bd-table th:nth-child(4),
-.affiliate-bd-table th:nth-child(5) { width: 10%; }
-.affiliate-bd-table th:nth-child(6) { width: 18%; }
-.affiliate-bd-table th:last-child { width: 44px; }
+.affiliate-bd-table th:nth-child(5) {
+  width: 10%;
+}
+.affiliate-bd-table th:nth-child(6) {
+  width: 18%;
+}
+.affiliate-bd-table th:last-child {
+  width: 44px;
+}
 
 .affiliate-bd-table tbody tr {
   cursor: pointer;
@@ -24977,7 +25007,10 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 12px;
   background: color-mix(in srgb, var(--accent-color) 3%, var(--surface-primary));
   text-align: center;
-  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .affiliate-protection-dropzone.is-dragging {
@@ -25263,7 +25296,11 @@ html[lang="zh"] .acct-tool-chips {
   padding: 18px 22px;
   border-bottom: 1px solid var(--border-color);
   background:
-    linear-gradient(112deg, color-mix(in srgb, var(--accent-color) 7%, var(--surface-primary)), transparent 58%),
+    linear-gradient(
+      112deg,
+      color-mix(in srgb, var(--accent-color) 7%, var(--surface-primary)),
+      transparent 58%
+    ),
     var(--surface-primary);
 }
 
@@ -25760,7 +25797,11 @@ html[lang="zh"] .acct-tool-chips {
   border: 1px solid color-mix(in srgb, var(--border-color) 72%, var(--accent-color) 12%);
   border-radius: 17px;
   background:
-    linear-gradient(112deg, color-mix(in srgb, var(--accent-color) 7%, var(--surface-primary)), var(--surface-primary) 55%),
+    linear-gradient(
+      112deg,
+      color-mix(in srgb, var(--accent-color) 7%, var(--surface-primary)),
+      var(--surface-primary) 55%
+    ),
     var(--surface-primary);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-primary) 86%, transparent);
 }
@@ -25781,8 +25822,11 @@ html[lang="zh"] .acct-tool-chips {
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--accent-color) 28%, transparent);
   border-radius: 17px;
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--accent-color) 20%, var(--surface-primary)), color-mix(in srgb, var(--accent-color) 7%, var(--surface-primary)));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--accent-color) 20%, var(--surface-primary)),
+    color-mix(in srgb, var(--accent-color) 7%, var(--surface-primary))
+  );
   color: var(--accent-color);
   box-shadow: 0 9px 24px color-mix(in srgb, var(--accent-color) 13%, transparent);
 }
@@ -25920,7 +25964,11 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .affiliate-bd-detail-tab svg {
@@ -26075,7 +26123,10 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 16px;
   background-color: var(--surface-primary);
   box-shadow: 0 12px 30px color-mix(in srgb, var(--color-text) 5%, transparent);
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .affiliate-bd-channel-card:hover {
@@ -26101,7 +26152,11 @@ html[lang="zh"] .acct-tool-chips {
   gap: 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--border-color) 82%, var(--channel-accent) 7%);
   background:
-    linear-gradient(110deg, color-mix(in srgb, var(--channel-accent) 8%, var(--surface-primary)), var(--surface-primary) 62%),
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--channel-accent) 8%, var(--surface-primary)),
+      var(--surface-primary) 62%
+    ),
     var(--surface-primary);
 }
 
@@ -26261,7 +26316,11 @@ html[lang="zh"] .acct-tool-chips {
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--channel-accent, var(--accent-color)) 8%, var(--surface-secondary));
+  background: color-mix(
+    in srgb,
+    var(--channel-accent, var(--accent-color)) 8%,
+    var(--surface-secondary)
+  );
   color: color-mix(in srgb, var(--channel-accent, var(--accent-color)) 80%, var(--text-primary));
 }
 
@@ -26400,7 +26459,10 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .affiliate-channel-transfer-button:hover {
@@ -26441,7 +26503,10 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--surface-primary);
   color: color-mix(in srgb, var(--channel-accent) 82%, var(--text-primary));
   box-shadow: none;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 }
 
 .affiliate-bd-channel-card .btn.affiliate-channel-connect-button:hover,
@@ -26480,7 +26545,11 @@ html[lang="zh"] .acct-tool-chips {
   padding: 18px;
   align-content: start;
   gap: 10px;
-  background: linear-gradient(155deg, color-mix(in srgb, var(--surface-secondary) 54%, transparent), transparent 70%);
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--surface-secondary) 54%, transparent),
+    transparent 70%
+  );
 }
 
 .affiliate-bd-profile-grid .affiliate-bd-metadata > div + div {
@@ -26493,7 +26562,11 @@ html[lang="zh"] .acct-tool-chips {
   border: 1px solid color-mix(in srgb, var(--accent-color) 16%, var(--border-color));
   border-radius: 14px;
   background:
-    linear-gradient(145deg, color-mix(in srgb, var(--accent-color) 6%, var(--surface-primary)), var(--surface-primary) 70%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--accent-color) 6%, var(--surface-primary)),
+      var(--surface-primary) 70%
+    ),
     var(--surface-primary);
   box-shadow: 0 8px 22px color-mix(in srgb, var(--color-text) 4%, transparent);
 }
@@ -27595,7 +27668,9 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--surface-primary);
   color: var(--text-primary);
   font: inherit;
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .affiliate-protection-directory-head input:focus {
@@ -27849,7 +27924,7 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--campaign-green);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: .13em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
@@ -27858,7 +27933,7 @@ html[lang="zh"] .acct-tool-chips {
   font-family: "Avenir Next", "Noto Sans SC", sans-serif;
   font-size: clamp(34px, 3.2vw, 46px);
   font-weight: 750;
-  letter-spacing: -.04em;
+  letter-spacing: -0.04em;
   line-height: 1.04;
 }
 
@@ -27878,7 +27953,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-command-strip {
   display: grid;
-  grid-template-columns: minmax(310px, 1.2fr) repeat(3, minmax(170px, .8fr));
+  grid-template-columns: minmax(310px, 1.2fr) repeat(3, minmax(170px, 0.8fr));
   overflow: hidden;
   margin-bottom: 18px;
   border: 1px solid var(--campaign-line);
@@ -27955,8 +28030,12 @@ html[lang="zh"] .acct-tool-chips {
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-.affiliate-campaign-window-range > div i:first-child { left: 25%; }
-.affiliate-campaign-window-range > div i:last-child { right: 25%; }
+.affiliate-campaign-window-range > div i:first-child {
+  left: 25%;
+}
+.affiliate-campaign-window-range > div i:last-child {
+  right: 25%;
+}
 
 .affiliate-campaign-command-metric {
   display: flex;
@@ -28035,7 +28114,10 @@ html[lang="zh"] .acct-tool-chips {
   background: transparent;
   color: var(--campaign-ink);
   text-align: left;
-  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .affiliate-campaign-rail-card:hover {
@@ -28061,9 +28143,17 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 
-.affiliate-campaign-rail-card strong { font-size: 13px; }
-.affiliate-campaign-rail-card small { margin-top: 3px; color: var(--campaign-muted); font-size: 11px; }
-.affiliate-campaign-rail-card > svg { color: var(--color-text-muted); }
+.affiliate-campaign-rail-card strong {
+  font-size: 13px;
+}
+.affiliate-campaign-rail-card small {
+  margin-top: 3px;
+  color: var(--campaign-muted);
+  font-size: 11px;
+}
+.affiliate-campaign-rail-card > svg {
+  color: var(--color-text-muted);
+}
 
 .affiliate-campaign-status-dot {
   width: 8px;
@@ -28078,7 +28168,9 @@ html[lang="zh"] .acct-tool-chips {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 14%, transparent);
 }
 
-.affiliate-campaign-status-dot.is-paused { background: var(--color-warning); }
+.affiliate-campaign-status-dot.is-paused {
+  background: var(--color-warning);
+}
 
 .affiliate-campaign-detail {
   overflow: hidden;
@@ -28103,7 +28195,7 @@ html[lang="zh"] .acct-tool-chips {
   margin: 0;
   font-family: "Avenir Next", "Noto Sans SC", sans-serif;
   font-size: 27px;
-  letter-spacing: -.025em;
+  letter-spacing: -0.025em;
 }
 
 .affiliate-campaign-detail-header p {
@@ -28128,9 +28220,19 @@ html[lang="zh"] .acct-tool-chips {
   font-weight: 750;
 }
 
-.affiliate-campaign-status { padding: 6px 10px; background: var(--color-bg-alt); color: var(--color-text-secondary); }
-.affiliate-campaign-status.is-active { background: var(--campaign-mint); color: var(--campaign-green); }
-.affiliate-campaign-status.is-paused { background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg)); color: var(--campaign-amber); }
+.affiliate-campaign-status {
+  padding: 6px 10px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+}
+.affiliate-campaign-status.is-active {
+  background: var(--campaign-mint);
+  color: var(--campaign-green);
+}
+.affiliate-campaign-status.is-paused {
+  background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg));
+  color: var(--campaign-amber);
+}
 
 .affiliate-campaign-today {
   display: grid;
@@ -28145,9 +28247,18 @@ html[lang="zh"] .acct-tool-chips {
   border-right: 1px solid var(--campaign-line);
 }
 
-.affiliate-campaign-today > div:last-child { border-right: 0; }
-.affiliate-campaign-today strong { display: block; margin: 8px 0 4px; font-size: 21px; }
-.affiliate-campaign-today small { color: var(--campaign-muted); font-size: 11px; }
+.affiliate-campaign-today > div:last-child {
+  border-right: 0;
+}
+.affiliate-campaign-today strong {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: 21px;
+}
+.affiliate-campaign-today small {
+  color: var(--campaign-muted);
+  font-size: 11px;
+}
 
 .affiliate-campaign-funnel,
 .affiliate-campaign-state-panel,
@@ -28188,8 +28299,14 @@ html[lang="zh"] .acct-tool-chips {
   display: block;
 }
 
-.affiliate-campaign-funnel-bars span { color: var(--campaign-muted); font-size: 10px; }
-.affiliate-campaign-funnel-bars strong { margin: 6px 0 11px; font-size: 19px; }
+.affiliate-campaign-funnel-bars span {
+  color: var(--campaign-muted);
+  font-size: 10px;
+}
+.affiliate-campaign-funnel-bars strong {
+  margin: 6px 0 11px;
+  font-size: 19px;
+}
 .affiliate-campaign-funnel-bars i {
   display: block;
   overflow: hidden;
@@ -28197,7 +28314,12 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 999px;
   background: var(--color-border);
 }
-.affiliate-campaign-funnel-bars b { display: block; height: 100%; border-radius: inherit; background: var(--campaign-green); }
+.affiliate-campaign-funnel-bars b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--campaign-green);
+}
 
 .affiliate-campaign-configuration {
   display: grid;
@@ -28211,23 +28333,40 @@ html[lang="zh"] .acct-tool-chips {
   padding: 17px 20px;
   border-right: 1px solid var(--campaign-line);
 }
-.affiliate-campaign-configuration > div:nth-child(3) { border-right: 0; }
-.affiliate-campaign-configuration span { color: var(--campaign-muted); font-size: 11px; }
-.affiliate-campaign-configuration strong { display: block; overflow: hidden; margin-top: 5px; text-overflow: ellipsis; white-space: nowrap; }
+.affiliate-campaign-configuration > div:nth-child(3) {
+  border-right: 0;
+}
+.affiliate-campaign-configuration span {
+  color: var(--campaign-muted);
+  font-size: 11px;
+}
+.affiliate-campaign-configuration strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .affiliate-campaign-template-readout {
   grid-column: 1 / -1;
   border-top: 1px solid var(--campaign-line);
   border-right: 0 !important;
   background: var(--campaign-paper);
 }
-.affiliate-campaign-template-readout p { margin: 8px 0 0; color: var(--color-text-secondary); line-height: 1.55; }
+.affiliate-campaign-template-readout p {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
 
 .affiliate-campaign-state-panel {
   padding-top: 22px;
   border-top: 1px solid var(--campaign-line);
 }
 
-.affiliate-campaign-state-panel .custom-select { min-width: 220px; }
+.affiliate-campaign-state-panel .custom-select {
+  min-width: 220px;
+}
 .affiliate-campaign-state-table-wrap {
   overflow: hidden;
   border: 1px solid var(--campaign-line);
@@ -28253,21 +28392,48 @@ html[lang="zh"] .acct-tool-chips {
   vertical-align: middle;
 }
 .affiliate-campaign-state-table td:first-child strong,
-.affiliate-campaign-state-table td:first-child small { display: block; }
-.affiliate-campaign-state-table td:first-child small { margin-top: 3px; color: var(--campaign-muted); font-size: 10px; }
-.affiliate-campaign-state-pill { padding: 5px 8px; background: var(--color-bg-alt); color: var(--color-text-secondary); }
+.affiliate-campaign-state-table td:first-child small {
+  display: block;
+}
+.affiliate-campaign-state-table td:first-child small {
+  margin-top: 3px;
+  color: var(--campaign-muted);
+  font-size: 10px;
+}
+.affiliate-campaign-state-pill {
+  padding: 5px 8px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+}
 .affiliate-campaign-state-pill.is-reached_out,
-.affiliate-campaign-state-pill.is-replied { background: var(--campaign-mint); color: var(--campaign-green); }
+.affiliate-campaign-state-pill.is-replied {
+  background: var(--campaign-mint);
+  color: var(--campaign-green);
+}
 .affiliate-campaign-state-pill.is-failed,
-.affiliate-campaign-state-pill.is-disqualified { background: var(--color-danger-light); color: var(--color-danger); }
-.affiliate-campaign-state-pill.is-deferred { background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg)); color: var(--campaign-amber); }
-.affiliate-campaign-table-empty { padding: 44px 20px; color: var(--campaign-muted); text-align: center; }
+.affiliate-campaign-state-pill.is-disqualified {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+.affiliate-campaign-state-pill.is-deferred {
+  background: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg));
+  color: var(--campaign-amber);
+}
+.affiliate-campaign-table-empty {
+  padding: 44px 20px;
+  color: var(--campaign-muted);
+  text-align: center;
+}
 
 .affiliate-campaign-history-strip {
   padding-top: 18px;
   border-top: 1px solid var(--campaign-line);
 }
-.affiliate-campaign-history-strip > div { display: flex; gap: 8px; margin-top: 10px; }
+.affiliate-campaign-history-strip > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
 .affiliate-campaign-history-strip article {
   min-width: 105px;
   padding: 10px 12px;
@@ -28275,8 +28441,13 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 11px;
 }
 .affiliate-campaign-history-strip article strong,
-.affiliate-campaign-history-strip article small { display: block; }
-.affiliate-campaign-history-strip article small { margin-top: 3px; color: var(--campaign-muted); }
+.affiliate-campaign-history-strip article small {
+  display: block;
+}
+.affiliate-campaign-history-strip article small {
+  margin-top: 3px;
+  color: var(--campaign-muted);
+}
 
 .affiliate-campaign-empty {
   display: grid;
@@ -28286,7 +28457,13 @@ html[lang="zh"] .acct-tool-chips {
   min-height: 430px;
   padding: 58px;
 }
-.affiliate-campaign-empty-orbit { position: relative; width: 260px; height: 260px; border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border)); border-radius: 50%; }
+.affiliate-campaign-empty-orbit {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
+  border-radius: 50%;
+}
 .affiliate-campaign-empty-orbit::before,
 .affiliate-campaign-empty-orbit::after {
   content: "";
@@ -28295,7 +28472,10 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 50%;
   inset: 35px;
 }
-.affiliate-campaign-empty-orbit::after { inset: 82px; background: var(--color-primary-light); }
+.affiliate-campaign-empty-orbit::after {
+  inset: 82px;
+  background: var(--color-primary-light);
+}
 .affiliate-campaign-empty-orbit span {
   position: absolute;
   z-index: 1;
@@ -28306,12 +28486,33 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-primary);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
-.affiliate-campaign-empty-orbit span:nth-child(1) { top: 18px; left: 114px; }
-.affiliate-campaign-empty-orbit span:nth-child(2) { right: 23px; bottom: 57px; }
-.affiliate-campaign-empty-orbit span:nth-child(3) { left: 28px; bottom: 50px; }
-.affiliate-campaign-empty > div:last-child > span { color: var(--campaign-green); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
-.affiliate-campaign-empty h2 { margin: 10px 0; font-size: 30px; }
-.affiliate-campaign-empty p { margin: 0 0 23px; color: var(--campaign-muted); line-height: 1.6; }
+.affiliate-campaign-empty-orbit span:nth-child(1) {
+  top: 18px;
+  left: 114px;
+}
+.affiliate-campaign-empty-orbit span:nth-child(2) {
+  right: 23px;
+  bottom: 57px;
+}
+.affiliate-campaign-empty-orbit span:nth-child(3) {
+  left: 28px;
+  bottom: 50px;
+}
+.affiliate-campaign-empty > div:last-child > span {
+  color: var(--campaign-green);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.affiliate-campaign-empty h2 {
+  margin: 10px 0;
+  font-size: 30px;
+}
+.affiliate-campaign-empty p {
+  margin: 0 0 23px;
+  color: var(--campaign-muted);
+  line-height: 1.6;
+}
 
 .affiliate-campaign-wizard.modal-content {
   --campaign-ink: var(--color-text);
@@ -28323,7 +28524,9 @@ html[lang="zh"] .acct-tool-chips {
   max-height: min(900px, calc(100vh - 36px));
   border-radius: 22px;
 }
-.affiliate-campaign-wizard .modal-header { padding: 22px 28px 16px; }
+.affiliate-campaign-wizard .modal-header {
+  padding: 22px 28px 16px;
+}
 .affiliate-campaign-wizard-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -28345,10 +28548,21 @@ html[lang="zh"] .acct-tool-chips {
   border: 1px solid var(--color-border);
   border-radius: 50%;
 }
-.affiliate-campaign-wizard-steps > div[data-active] { color: var(--campaign-ink); }
-.affiliate-campaign-wizard-steps > div[data-active] > span { border-color: var(--campaign-green); background: var(--campaign-green); color: var(--color-bg); }
-.affiliate-campaign-wizard-steps > div[data-complete] { color: var(--campaign-green); }
-.affiliate-campaign-wizard-steps > div[data-complete] > span { border-color: var(--campaign-green); background: var(--color-primary-light); }
+.affiliate-campaign-wizard-steps > div[data-active] {
+  color: var(--campaign-ink);
+}
+.affiliate-campaign-wizard-steps > div[data-active] > span {
+  border-color: var(--campaign-green);
+  background: var(--campaign-green);
+  color: var(--color-bg);
+}
+.affiliate-campaign-wizard-steps > div[data-complete] {
+  color: var(--campaign-green);
+}
+.affiliate-campaign-wizard-steps > div[data-complete] > span {
+  border-color: var(--campaign-green);
+  background: var(--color-primary-light);
+}
 .affiliate-campaign-wizard-body {
   overflow-y: auto;
   min-height: 480px;
@@ -28359,7 +28573,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-campaign-wizard-grid {
   display: grid;
-  grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
   gap: 52px;
 }
 .affiliate-campaign-wizard-copy > span,
@@ -28373,18 +28587,25 @@ html[lang="zh"] .acct-tool-chips {
   margin: 12px 0 10px;
   color: var(--campaign-ink);
   font-size: 25px;
-  letter-spacing: -.025em;
+  letter-spacing: -0.025em;
 }
 .affiliate-campaign-wizard-copy p,
-.affiliate-campaign-confirmation > section p { margin: 0; color: var(--campaign-muted); line-height: 1.6; }
-.affiliate-campaign-wizard-fields { display: grid; gap: 18px; }
+.affiliate-campaign-confirmation > section p {
+  margin: 0;
+  color: var(--campaign-muted);
+  line-height: 1.6;
+}
+.affiliate-campaign-wizard-fields {
+  display: grid;
+  gap: 18px;
+}
 .affiliate-campaign-wizard-fields label > span {
   display: block;
   margin-bottom: 7px;
   color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 750;
-  letter-spacing: .03em;
+  letter-spacing: 0.03em;
 }
 .affiliate-campaign-product-fetch > span {
   display: block;
@@ -28392,7 +28613,7 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 750;
-  letter-spacing: .03em;
+  letter-spacing: 0.03em;
 }
 .affiliate-campaign-product-fetch > small {
   display: block;
@@ -28425,7 +28646,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-fetch-button:disabled,
 .affiliate-campaign-keyword-input-row button:disabled {
   cursor: not-allowed;
-  opacity: .48;
+  opacity: 0.48;
 }
 .affiliate-campaign-product-preview {
   display: grid;
@@ -28451,12 +28672,16 @@ html[lang="zh"] .acct-tool-chips {
   place-items: center;
   color: var(--color-primary);
 }
-.affiliate-campaign-product-preview > div:nth-child(2) { display: grid; gap: 4px; min-width: 0; }
+.affiliate-campaign-product-preview > div:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
 .affiliate-campaign-product-preview span {
   color: var(--color-primary);
   font-size: 9px;
   font-weight: 850;
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
 }
 .affiliate-campaign-product-preview strong {
   overflow: hidden;
@@ -28466,7 +28691,11 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 .affiliate-campaign-product-preview p,
-.affiliate-campaign-product-preview small { margin: 0; color: var(--color-text-muted); font-size: 10px; }
+.affiliate-campaign-product-preview small {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
 .affiliate-campaign-product-preview > i {
   padding: 5px 8px;
   border-radius: 999px;
@@ -28488,7 +28717,7 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-secondary);
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 .affiliate-campaign-keyword-suggestions button,
 .affiliate-campaign-keyword-suggestions > div {
@@ -28507,8 +28736,13 @@ html[lang="zh"] .acct-tool-chips {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-light);
 }
-.affiliate-campaign-keyword-suggestions strong { font-size: 12px; }
-.affiliate-campaign-keyword-suggestions small { color: var(--color-text-muted); line-height: 1.4; }
+.affiliate-campaign-keyword-suggestions strong {
+  font-size: 12px;
+}
+.affiliate-campaign-keyword-suggestions small {
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
 .affiliate-campaign-wizard-fields input,
 .affiliate-campaign-wizard-fields textarea {
   width: 100%;
@@ -28518,13 +28752,30 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--campaign-ink);
   font: inherit;
   outline: none;
-  transition: border-color .16s ease, box-shadow .16s ease;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
 }
-.affiliate-campaign-wizard-fields input { height: 46px; padding: 0 13px; }
-.affiliate-campaign-wizard-fields textarea { resize: vertical; padding: 13px; line-height: 1.55; }
+.affiliate-campaign-wizard-fields input {
+  height: 46px;
+  padding: 0 13px;
+}
+.affiliate-campaign-wizard-fields textarea {
+  resize: vertical;
+  padding: 13px;
+  line-height: 1.55;
+}
 .affiliate-campaign-wizard-fields input:focus,
-.affiliate-campaign-wizard-fields textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-light); }
-.affiliate-campaign-wizard-fields label > small { display: block; margin-top: 6px; color: var(--color-text-muted); font-size: 10px; }
+.affiliate-campaign-wizard-fields textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.affiliate-campaign-wizard-fields label > small {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
 .affiliate-campaign-wizard-fields .custom-select-trigger {
   min-height: 46px;
   border-color: var(--color-border);
@@ -28532,14 +28783,20 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-bg);
   color: var(--campaign-ink);
 }
-.affiliate-campaign-wizard-fields .custom-select-placeholder { color: var(--color-text-muted); }
+.affiliate-campaign-wizard-fields .custom-select-placeholder {
+  color: var(--color-text-muted);
+}
 .affiliate-campaign-wizard-body .btn-secondary,
 .affiliate-campaign-wizard-footer .btn-secondary {
   border-color: var(--color-border);
   background: var(--color-bg);
   color: var(--campaign-ink);
 }
-.affiliate-campaign-field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.affiliate-campaign-field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
 .affiliate-campaign-strategy-picker {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -28556,7 +28813,10 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-bg);
   color: var(--campaign-ink);
   text-align: left;
-  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 .affiliate-campaign-strategy-picker > button:not(:disabled):hover {
   border-color: var(--color-primary);
@@ -28575,10 +28835,16 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--campaign-green);
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
 }
-.affiliate-campaign-strategy-picker strong { margin: 12px 0 7px; font-size: 16px; }
-.affiliate-campaign-strategy-picker small { color: var(--campaign-muted); line-height: 1.45; }
+.affiliate-campaign-strategy-picker strong {
+  margin: 12px 0 7px;
+  font-size: 16px;
+}
+.affiliate-campaign-strategy-picker small {
+  color: var(--campaign-muted);
+  line-height: 1.45;
+}
 .affiliate-campaign-strategy-picker i {
   margin-top: auto;
   padding-top: 14px;
@@ -28595,8 +28861,13 @@ html[lang="zh"] .acct-tool-chips {
   border-left: 3px solid var(--campaign-green);
   background: var(--color-primary-light);
 }
-.affiliate-campaign-capability-note strong { font-size: 11px; }
-.affiliate-campaign-capability-note small { color: var(--campaign-muted); font-size: 10px; }
+.affiliate-campaign-capability-note strong {
+  font-size: 11px;
+}
+.affiliate-campaign-capability-note small {
+  color: var(--campaign-muted);
+  font-size: 10px;
+}
 .affiliate-campaign-advanced-rules {
   overflow: hidden;
   border: 1px solid var(--campaign-line);
@@ -28610,9 +28881,17 @@ html[lang="zh"] .acct-tool-chips {
   padding: 15px 17px;
   list-style: none;
 }
-.affiliate-campaign-advanced-rules > summary::-webkit-details-marker { display: none; }
-.affiliate-campaign-advanced-rules > summary span { font-size: 12px; font-weight: 750; }
-.affiliate-campaign-advanced-rules > summary small { margin-top: 4px; color: var(--campaign-muted); }
+.affiliate-campaign-advanced-rules > summary::-webkit-details-marker {
+  display: none;
+}
+.affiliate-campaign-advanced-rules > summary span {
+  font-size: 12px;
+  font-weight: 750;
+}
+.affiliate-campaign-advanced-rules > summary small {
+  margin-top: 4px;
+  color: var(--campaign-muted);
+}
 .affiliate-campaign-advanced-rules[open] > summary {
   border-bottom: 1px solid var(--campaign-line);
   background: var(--campaign-paper);
@@ -28621,7 +28900,9 @@ html[lang="zh"] .acct-tool-chips {
   padding: 15px 17px;
   border-bottom: 1px solid var(--campaign-line);
 }
-.affiliate-campaign-rule-block:last-child { border-bottom: 0; }
+.affiliate-campaign-rule-block:last-child {
+  border-bottom: 0;
+}
 .affiliate-campaign-rule-block > strong {
   display: block;
   margin-bottom: 10px;
@@ -28647,7 +28928,9 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--campaign-green);
   font-weight: 750;
 }
-.affiliate-campaign-rule-block .affiliate-campaign-field-pair { margin-top: 13px; }
+.affiliate-campaign-rule-block .affiliate-campaign-field-pair {
+  margin-top: 13px;
+}
 .affiliate-campaign-check-rule {
   display: flex;
   gap: 9px;
@@ -28670,20 +28953,60 @@ html[lang="zh"] .acct-tool-chips {
   border-radius: 13px;
   background: var(--color-primary-light);
 }
-.affiliate-campaign-derived-context > span { flex: 1; }
+.affiliate-campaign-derived-context > span {
+  flex: 1;
+}
 .affiliate-campaign-derived-context strong,
-.affiliate-campaign-derived-context small { display: block; }
-.affiliate-campaign-derived-context small { margin-top: 2px; color: var(--campaign-muted); }
-.affiliate-campaign-derived-context i { color: var(--campaign-green); font-size: 10px; font-style: normal; font-weight: 750; text-transform: uppercase; }
-.affiliate-campaign-allocation-preview { padding: 16px; border: 1px solid var(--campaign-line); border-radius: 13px; background: var(--campaign-paper); }
+.affiliate-campaign-derived-context small {
+  display: block;
+}
+.affiliate-campaign-derived-context small {
+  margin-top: 2px;
+  color: var(--campaign-muted);
+}
+.affiliate-campaign-derived-context i {
+  color: var(--campaign-green);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.affiliate-campaign-allocation-preview {
+  padding: 16px;
+  border: 1px solid var(--campaign-line);
+  border-radius: 13px;
+  background: var(--campaign-paper);
+}
 .affiliate-campaign-allocation-preview > span,
 .affiliate-campaign-allocation-preview > strong,
-.affiliate-campaign-allocation-preview > small { display: block; }
-.affiliate-campaign-allocation-preview > span { color: var(--campaign-muted); font-size: 11px; }
-.affiliate-campaign-allocation-preview > strong { margin: 4px 0 10px; font-size: 20px; }
-.affiliate-campaign-allocation-preview > div { overflow: hidden; height: 6px; border-radius: 999px; background: var(--color-border); }
-.affiliate-campaign-allocation-preview > div i { display: block; height: 100%; border-radius: inherit; background: var(--campaign-green); }
-.affiliate-campaign-allocation-preview > small { margin-top: 9px; color: var(--campaign-muted); font-size: 10px; }
+.affiliate-campaign-allocation-preview > small {
+  display: block;
+}
+.affiliate-campaign-allocation-preview > span {
+  color: var(--campaign-muted);
+  font-size: 11px;
+}
+.affiliate-campaign-allocation-preview > strong {
+  margin: 4px 0 10px;
+  font-size: 20px;
+}
+.affiliate-campaign-allocation-preview > div {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+.affiliate-campaign-allocation-preview > div i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--campaign-green);
+}
+.affiliate-campaign-allocation-preview > small {
+  margin-top: 9px;
+  color: var(--campaign-muted);
+  font-size: 10px;
+}
 .affiliate-campaign-template-toolbar {
   display: flex;
   align-items: center;
@@ -28691,9 +29014,18 @@ html[lang="zh"] .acct-tool-chips {
   gap: 16px;
 }
 .affiliate-campaign-template-toolbar strong,
-.affiliate-campaign-template-toolbar span { display: block; }
-.affiliate-campaign-template-toolbar strong { font-size: 11px; }
-.affiliate-campaign-template-toolbar span { margin-top: 3px; color: var(--campaign-green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+.affiliate-campaign-template-toolbar span {
+  display: block;
+}
+.affiliate-campaign-template-toolbar strong {
+  font-size: 11px;
+}
+.affiliate-campaign-template-toolbar span {
+  margin-top: 3px;
+  color: var(--campaign-green);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+}
 .affiliate-campaign-message-preview {
   position: relative;
   padding: 18px 20px 18px 56px;
@@ -28713,23 +29045,134 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-primary);
   box-shadow: 0 0 0 4px var(--color-primary-light);
 }
-.affiliate-campaign-message-preview > span { color: var(--color-text-muted); font-size: 10px; text-transform: uppercase; }
-.affiliate-campaign-message-preview p { margin: 7px 0 0; line-height: 1.55; }
-.affiliate-campaign-confirmation { max-width: 820px; margin: 0 auto; }
-.affiliate-campaign-confirmation > section { max-width: 600px; }
-.affiliate-campaign-confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 26px 0 16px; }
-.affiliate-campaign-confirm-grid > div { padding: 15px; border: 1px solid var(--campaign-line); border-radius: 13px; background: var(--color-bg); }
+.affiliate-campaign-message-preview > span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.affiliate-campaign-message-preview p {
+  margin: 7px 0 0;
+  line-height: 1.55;
+}
+.affiliate-campaign-message-product-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+.affiliate-campaign-message-product-card > img,
+.affiliate-campaign-message-product-card > span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-primary);
+  object-fit: cover;
+}
+.affiliate-campaign-message-product-card > span svg {
+  width: 20px;
+  height: 20px;
+}
+.affiliate-campaign-message-product-card > div {
+  min-width: 0;
+}
+.affiliate-campaign-message-product-card strong,
+.affiliate-campaign-message-product-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.affiliate-campaign-message-product-card strong {
+  color: var(--color-text);
+  font-size: 11px;
+}
+.affiliate-campaign-message-product-card small {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+.affiliate-campaign-confirmation {
+  max-width: 820px;
+  margin: 0 auto;
+}
+.affiliate-campaign-confirmation > section {
+  max-width: 600px;
+}
+.affiliate-campaign-confirm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 26px 0 16px;
+}
+.affiliate-campaign-confirm-grid > div {
+  padding: 15px;
+  border: 1px solid var(--campaign-line);
+  border-radius: 13px;
+  background: var(--color-bg);
+}
 .affiliate-campaign-confirm-grid span,
-.affiliate-campaign-confirm-grid strong { display: block; }
-.affiliate-campaign-confirm-grid span { color: var(--campaign-muted); font-size: 10px; }
-.affiliate-campaign-confirm-grid strong { margin-top: 5px; font-size: 13px; }
-.affiliate-campaign-authorization { display: flex; gap: 13px; padding: 18px; border: 1px solid color-mix(in srgb, var(--color-primary) 36%, var(--color-border)); border-radius: 15px; background: var(--color-primary-light); }
-.affiliate-campaign-authorization > svg { flex: none; margin-top: 2px; color: var(--campaign-green); }
-.affiliate-campaign-authorization strong { font-size: 13px; }
-.affiliate-campaign-authorization p { margin: 5px 0 0; color: var(--color-text-secondary); font-size: 11px; line-height: 1.55; }
-.affiliate-campaign-boundaries { display: flex; flex-wrap: wrap; gap: 9px 18px; margin-top: 16px; }
-.affiliate-campaign-boundaries span { display: flex; gap: 7px; align-items: center; color: var(--campaign-muted); font-size: 10px; }
-.affiliate-campaign-boundaries i { width: 6px; height: 6px; border-radius: 50%; background: var(--campaign-green); }
+.affiliate-campaign-confirm-grid strong {
+  display: block;
+}
+.affiliate-campaign-confirm-grid span {
+  color: var(--campaign-muted);
+  font-size: 10px;
+}
+.affiliate-campaign-confirm-grid strong {
+  margin-top: 5px;
+  font-size: 13px;
+}
+.affiliate-campaign-authorization {
+  display: flex;
+  gap: 13px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 36%, var(--color-border));
+  border-radius: 15px;
+  background: var(--color-primary-light);
+}
+.affiliate-campaign-authorization > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--campaign-green);
+}
+.affiliate-campaign-authorization strong {
+  font-size: 13px;
+}
+.affiliate-campaign-authorization p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.affiliate-campaign-boundaries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 18px;
+  margin-top: 16px;
+}
+.affiliate-campaign-boundaries span {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--campaign-muted);
+  font-size: 10px;
+}
+.affiliate-campaign-boundaries i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--campaign-green);
+}
 .affiliate-campaign-wizard-footer {
   display: flex;
   align-items: center;
@@ -28771,7 +29214,31 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-phrase-editor {
   display: grid;
-  gap: 9px;
+  gap: 12px;
+}
+
+.affiliate-campaign-search-group-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.affiliate-campaign-search-group-toolbar > label {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.affiliate-campaign-search-group-toolbar > label > span {
+  color: var(--color-text);
+  font-weight: 750;
+}
+
+.affiliate-campaign-search-group-toolbar > label > small {
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
 .affiliate-campaign-phrase-card {
@@ -28779,10 +29246,11 @@ html[lang="zh"] .acct-tool-chips {
   grid-template-columns: 38px minmax(0, 1fr) 34px;
   gap: 12px;
   align-items: start;
-  padding: 13px;
+  padding: 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-alt);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .affiliate-campaign-phrase-index {
@@ -28838,7 +29306,7 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-phrase-explanation strong {
   color: var(--color-text-secondary);
   font-size: 9px;
-  letter-spacing: .02em;
+  letter-spacing: 0.02em;
 }
 
 .affiliate-campaign-phrase-explanation p {
@@ -28852,6 +29320,67 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-muted);
   font-size: 9px;
   line-height: 1.45;
+}
+
+.affiliate-campaign-search-group-rules {
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-campaign-search-group-rules > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.affiliate-campaign-search-group-rules > summary::-webkit-details-marker {
+  display: none;
+}
+
+.affiliate-campaign-search-group-rules > summary > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.affiliate-campaign-search-group-rules > summary small {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-campaign-search-group-rules > summary i {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.affiliate-campaign-search-group-rules[open] > summary {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-campaign-search-group-rules-body {
+  display: grid;
+  gap: 14px;
+  padding: 14px 12px;
+}
+
+.affiliate-campaign-advanced-rules[hidden] {
+  display: none;
 }
 
 .affiliate-campaign-remove-phrase {
@@ -28872,7 +29401,31 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-danger);
 }
 
+.affiliate-campaign-add-phrase {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary-light) 36%, var(--color-bg));
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.affiliate-campaign-add-phrase:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
 @media (max-width: 720px) {
+  .affiliate-campaign-search-group-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .affiliate-campaign-phrase-card {
     grid-template-columns: 32px minmax(0, 1fr);
   }
@@ -28904,14 +29457,14 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--campaign-green);
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: .13em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
 .affiliate-campaign-directory-header h2 {
   margin: 4px 0 3px;
   font-size: 20px;
-  letter-spacing: -.02em;
+  letter-spacing: -0.02em;
 }
 
 .affiliate-campaign-directory-header p {
@@ -28953,13 +29506,27 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 12px;
 }
 
-.affiliate-campaign-col-name { width: 28%; }
-.affiliate-campaign-col-shop { width: 14%; }
-.affiliate-campaign-col-status { width: 9%; }
-.affiliate-campaign-col-target { width: 9%; }
-.affiliate-campaign-col-boundary { width: 18%; }
-.affiliate-campaign-col-next { width: 18%; }
-.affiliate-campaign-col-open { width: 4%; }
+.affiliate-campaign-col-name {
+  width: 28%;
+}
+.affiliate-campaign-col-shop {
+  width: 14%;
+}
+.affiliate-campaign-col-status {
+  width: 9%;
+}
+.affiliate-campaign-col-target {
+  width: 9%;
+}
+.affiliate-campaign-col-boundary {
+  width: 18%;
+}
+.affiliate-campaign-col-next {
+  width: 18%;
+}
+.affiliate-campaign-col-open {
+  width: 4%;
+}
 
 .affiliate-campaign-directory-table th {
   padding: 11px 16px;
@@ -28967,7 +29534,7 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 750;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
   text-align: left;
   text-transform: uppercase;
 }
@@ -28983,7 +29550,9 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-directory-table tbody tr {
   cursor: pointer;
   outline: none;
-  transition: background .16s ease, box-shadow .16s ease;
+  transition:
+    background 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .affiliate-campaign-directory-table tbody tr:hover,
@@ -29011,7 +29580,9 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-directory-table td:last-child svg {
   width: 16px;
   height: 16px;
-  transition: color .16s ease, transform .16s ease;
+  transition:
+    color 0.16s ease,
+    transform 0.16s ease;
 }
 
 .affiliate-campaign-directory-table tbody tr:hover td:last-child svg,
@@ -29141,7 +29712,10 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-bg);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: border-color .16s ease, background .16s ease, color .16s ease;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease;
 }
 
 .affiliate-campaign-page-button:hover:not(:disabled) {
@@ -29152,7 +29726,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-page-button:disabled {
   cursor: not-allowed;
-  opacity: .38;
+  opacity: 0.38;
 }
 
 .affiliate-campaign-page-button svg {
@@ -29185,7 +29759,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-detail-modal .modal-title {
   font-size: 24px;
-  letter-spacing: -.025em;
+  letter-spacing: -0.025em;
 }
 
 .affiliate-campaign-detail-modal-body {
@@ -29229,12 +29803,24 @@ html[lang="zh"] .acct-tool-chips {
   min-width: 1260px;
 }
 
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(1) { width: 28%; }
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(2) { width: 11%; }
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(3) { width: 13%; }
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(4) { width: 18%; }
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(5) { width: 18%; }
-.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(6) { width: 12%; }
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(1) {
+  width: 28%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(2) {
+  width: 11%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(3) {
+  width: 13%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(4) {
+  width: 18%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(5) {
+  width: 18%;
+}
+.affiliate-campaign-detail-modal .affiliate-campaign-state-table th:nth-child(6) {
+  width: 12%;
+}
 
 .affiliate-campaign-detail-modal .affiliate-campaign-state-table td {
   padding-block: 15px;
@@ -29336,53 +29922,126 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 1100px) {
-  .affiliate-campaign-page { width: min(100% - 32px, 1680px); }
-  .affiliate-campaign-command-strip { grid-template-columns: 1.3fr repeat(3, .8fr); }
-  .affiliate-campaign-workspace { grid-template-columns: 230px minmax(0, 1fr); }
-  .affiliate-campaign-funnel-bars { grid-template-columns: repeat(3, 1fr); }
+  .affiliate-campaign-page {
+    width: min(100% - 32px, 1680px);
+  }
+  .affiliate-campaign-command-strip {
+    grid-template-columns: 1.3fr repeat(3, 0.8fr);
+  }
+  .affiliate-campaign-workspace {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+  .affiliate-campaign-funnel-bars {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 820px) {
-  .affiliate-campaign-page { width: min(100% - 24px, 1680px); padding-top: 28px; }
-  .affiliate-campaign-hero { align-items: flex-start; flex-direction: column; }
-  .affiliate-campaign-command-strip { grid-template-columns: 1fr 1fr; }
-  .affiliate-campaign-command-strip > div { border-bottom: 1px solid var(--campaign-line); }
-  .affiliate-campaign-workspace { grid-template-columns: 1fr; }
-  .affiliate-campaign-rail { position: static; display: flex; overflow-x: auto; }
-  .affiliate-campaign-rail-heading { display: none; }
-  .affiliate-campaign-rail-card { min-width: 220px; }
+  .affiliate-campaign-page {
+    width: min(100% - 24px, 1680px);
+    padding-top: 28px;
+  }
+  .affiliate-campaign-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .affiliate-campaign-command-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .affiliate-campaign-command-strip > div {
+    border-bottom: 1px solid var(--campaign-line);
+  }
+  .affiliate-campaign-workspace {
+    grid-template-columns: 1fr;
+  }
+  .affiliate-campaign-rail {
+    position: static;
+    display: flex;
+    overflow-x: auto;
+  }
+  .affiliate-campaign-rail-heading {
+    display: none;
+  }
+  .affiliate-campaign-rail-card {
+    min-width: 220px;
+  }
   .affiliate-campaign-today,
-  .affiliate-campaign-configuration { grid-template-columns: 1fr; }
+  .affiliate-campaign-configuration {
+    grid-template-columns: 1fr;
+  }
   .affiliate-campaign-today > div,
-  .affiliate-campaign-configuration > div { border-right: 0; border-bottom: 1px solid var(--campaign-line); }
-  .affiliate-campaign-template-readout { grid-column: 1; }
-  .affiliate-campaign-state-table-wrap { overflow-x: auto; }
-  .affiliate-campaign-state-table { min-width: 760px; }
-  .affiliate-campaign-empty { grid-template-columns: 1fr; }
-  .affiliate-campaign-empty-orbit { display: none; }
-  .affiliate-campaign-wizard-grid { grid-template-columns: 1fr; gap: 26px; }
-  .affiliate-campaign-directory-header { align-items: flex-start; flex-direction: column; }
-  .affiliate-campaign-detail-modal.modal-content { max-height: calc(100vh - 16px); border-radius: 16px; }
-  .affiliate-campaign-detail-modal-body { max-height: calc(100vh - 86px); }
+  .affiliate-campaign-configuration > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--campaign-line);
+  }
+  .affiliate-campaign-template-readout {
+    grid-column: 1;
+  }
+  .affiliate-campaign-state-table-wrap {
+    overflow-x: auto;
+  }
+  .affiliate-campaign-state-table {
+    min-width: 760px;
+  }
+  .affiliate-campaign-empty {
+    grid-template-columns: 1fr;
+  }
+  .affiliate-campaign-empty-orbit {
+    display: none;
+  }
+  .affiliate-campaign-wizard-grid {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+  .affiliate-campaign-directory-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .affiliate-campaign-detail-modal.modal-content {
+    max-height: calc(100vh - 16px);
+    border-radius: 16px;
+  }
+  .affiliate-campaign-detail-modal-body {
+    max-height: calc(100vh - 86px);
+  }
 }
 
 @media (max-width: 560px) {
   .affiliate-campaign-command-strip,
   .affiliate-campaign-field-pair,
   .affiliate-campaign-strategy-picker,
-  .affiliate-campaign-confirm-grid { grid-template-columns: 1fr; }
-  .affiliate-campaign-command-strip > div { border-right: 0; }
+  .affiliate-campaign-confirm-grid {
+    grid-template-columns: 1fr;
+  }
+  .affiliate-campaign-command-strip > div {
+    border-right: 0;
+  }
   .affiliate-campaign-detail-header,
-  .affiliate-campaign-section-heading { align-items: flex-start; flex-direction: column; }
-  .affiliate-campaign-detail-actions { width: 100%; }
-  .affiliate-campaign-detail-actions .btn { flex: 1; }
-  .affiliate-campaign-funnel-bars { grid-template-columns: 1fr 1fr; }
+  .affiliate-campaign-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .affiliate-campaign-detail-actions {
+    width: 100%;
+  }
+  .affiliate-campaign-detail-actions .btn {
+    flex: 1;
+  }
+  .affiliate-campaign-funnel-bars {
+    grid-template-columns: 1fr 1fr;
+  }
   .affiliate-campaign-funnel,
   .affiliate-campaign-state-panel,
   .affiliate-campaign-configuration,
-  .affiliate-campaign-history-strip { margin-inline: 16px; }
-  .affiliate-campaign-wizard-steps strong { display: none; }
-  .affiliate-campaign-wizard-body { padding: 24px 20px; }
+  .affiliate-campaign-history-strip {
+    margin-inline: 16px;
+  }
+  .affiliate-campaign-wizard-steps strong {
+    display: none;
+  }
+  .affiliate-campaign-wizard-body {
+    padding: 24px 20px;
+  }
   .affiliate-campaign-directory-pagination {
     align-items: flex-start;
     flex-direction: column;

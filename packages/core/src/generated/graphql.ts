@@ -751,6 +751,7 @@ export interface AffiliateCampaign {
   discoveryRules: AffiliateCampaignDiscoveryRules;
   id: Scalars['ID']['output'];
   market: ShopRegion;
+  messageProductName: Scalars['String']['output'];
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
   messageTemplateText: Scalars['String']['output'];
   name: Scalars['String']['output'];
@@ -1005,6 +1006,7 @@ export const AffiliateCampaignMessageTemplateSource = {
 
 export type AffiliateCampaignMessageTemplateSource = typeof AffiliateCampaignMessageTemplateSource[keyof typeof AffiliateCampaignMessageTemplateSource];
 export interface AffiliateCampaignMessageTemplateSuggestion {
+  productShortName: Scalars['String']['output'];
   source: AffiliateCampaignMessageTemplateSource;
   text: Scalars['String']['output'];
 }
@@ -1077,6 +1079,7 @@ export interface AffiliateCampaignSearchKeywordSuggestions {
 }
 
 export interface AffiliateCampaignSearchPhrase {
+  discoveryRules: AffiliateCampaignDiscoveryRules;
   explanation?: Maybe<Scalars['String']['output']>;
   explanationLocale?: Maybe<Scalars['String']['output']>;
   key: Scalars['String']['output'];
@@ -1096,6 +1099,7 @@ export interface AffiliateCampaignSearchPhraseExecution {
 }
 
 export interface AffiliateCampaignSearchPhraseInput {
+  discoveryRules?: InputMaybe<AffiliateCampaignDiscoveryRulesInput>;
   explanation?: InputMaybe<Scalars['String']['input']>;
   explanationLocale?: InputMaybe<Scalars['String']['input']>;
   source: AffiliateCampaignSearchPhraseSource;
@@ -1110,6 +1114,7 @@ export const AffiliateCampaignSearchPhraseSource = {
 
 export type AffiliateCampaignSearchPhraseSource = typeof AffiliateCampaignSearchPhraseSource[keyof typeof AffiliateCampaignSearchPhraseSource];
 export interface AffiliateCampaignSearchPhraseSuggestion {
+  discoveryRules: AffiliateCampaignDiscoveryRules;
   explanation: Scalars['String']['output'];
   explanationLocale: Scalars['String']['output'];
   /** @deprecated Use explanation. */
@@ -5192,6 +5197,10 @@ export interface DecideActionProposalInput {
   status: ActionProposalStatus;
 }
 
+export interface DeleteAffiliateCampaignDraftInput {
+  campaignId: Scalars['ID']['input'];
+}
+
 export interface DuplicateAffiliateCampaignInput {
   campaignId: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
@@ -7628,6 +7637,8 @@ export interface Mutation {
   decideActionProposal: ActionProposal;
   /** Delete an affiliate approval interception policy. */
   deleteAffiliateApprovalPolicy: Scalars['Boolean']['output'];
+  /** Delete an empty draft Campaign that has no execution, Creator, or delivery history. */
+  deleteAffiliateCampaignDraft: Scalars['Boolean']['output'];
   deleteExpertConversation: Scalars['Boolean']['output'];
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
@@ -8055,6 +8066,11 @@ export interface MutationDecideActionProposalArgs {
 
 export interface MutationDeleteAffiliateApprovalPolicyArgs {
   id: Scalars['String']['input'];
+}
+
+
+export interface MutationDeleteAffiliateCampaignDraftArgs {
+  input: DeleteAffiliateCampaignDraftInput;
 }
 
 
@@ -10884,6 +10900,7 @@ export interface SuggestAffiliateCampaignSearchKeywordsInput {
 }
 
 export interface SuggestAffiliateCampaignSearchPhrasesInput {
+  excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
   guidance?: InputMaybe<Scalars['String']['input']>;
   snapshotRef: Scalars['ID']['input'];
   uiLocale: Scalars['String']['input'];
@@ -12065,6 +12082,7 @@ export interface WriteAffiliateCampaignInput {
   dailyOutreachTarget: Scalars['Int']['input'];
   discoveryRules: AffiliateCampaignDiscoveryRulesInput;
   id?: InputMaybe<Scalars['ID']['input']>;
+  messageProductName?: InputMaybe<Scalars['String']['input']>;
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
   messageTemplateText: Scalars['String']['input'];
   name: Scalars['String']['input'];

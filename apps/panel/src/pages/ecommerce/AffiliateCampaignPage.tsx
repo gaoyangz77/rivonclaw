@@ -20,6 +20,7 @@ import {
   AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
+  DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
   DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION,
   GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION,
   RESOLVE_AFFILIATE_CAMPAIGN_PRODUCT_MUTATION,
@@ -45,6 +46,7 @@ type CampaignForm = {
     explanation: string;
     explanationLocale: string;
     suggestionVersion: number | null;
+    discoveryRules: GQL.AffiliateCampaignDiscoveryRulesInput;
   }>;
   strategy: GQL.AffiliateCampaignSelectionStrategy;
   ageRanges: GQL.CreatorSearchFollowerAgeRange[];
@@ -70,6 +72,7 @@ type CampaignForm = {
   templateText: string;
   templateGuidance: string;
   templateSource: GQL.AffiliateCampaignMessageTemplateSource;
+  messageProductName: string;
 };
 
 const emptyForm: CampaignForm = {
@@ -82,13 +85,16 @@ const emptyForm: CampaignForm = {
   minimumExpectedSales: "",
   commissionRate: "10",
   productSnapshotRef: "",
-  searchPhrases: [{
-    text: "",
-    source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-    explanation: "",
-    explanationLocale: "",
-    suggestionVersion: null,
-  }],
+  searchPhrases: [
+    {
+      text: "",
+      source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+      explanation: "",
+      explanationLocale: "",
+      suggestionVersion: null,
+      discoveryRules: createDefaultDiscoveryRules(),
+    },
+  ],
   strategy: GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
   ageRanges: [],
   audienceGender: "",
@@ -113,6 +119,7 @@ const emptyForm: CampaignForm = {
   templateText: "",
   templateGuidance: "",
   templateSource: GQL.AffiliateCampaignMessageTemplateSource.UserAuthored,
+  messageProductName: "",
 };
 
 const stateStatusOptions = Object.values(GQL.AffiliateCampaignCreatorStateStatus);
@@ -179,8 +186,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [campaignPage, setCampaignPage] = useState(1);
   const [stateStatus, setStateStatus] = useState("");
-  const [productPreview, setProductPreview] =
-    useState<GQL.AffiliateCampaignProductSnapshot | null>(null);
+  const [productPreview, setProductPreview] = useState<GQL.AffiliateCampaignProductSnapshot | null>(
+    null,
+  );
   const [pendingProductResolution, setPendingProductResolution] =
     useState<GQL.AffiliateCampaignProductResolution | null>(null);
 
@@ -192,8 +200,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     fetchPolicy: "cache-and-network",
   });
   const capabilitiesQuery = useQuery<{
-    affiliateMarketplaceCreatorRuleCapabilities:
-      GQL.AffiliateMarketplaceCreatorRuleCapabilities;
+    affiliateMarketplaceCreatorRuleCapabilities: GQL.AffiliateMarketplaceCreatorRuleCapabilities;
   }>(AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY, {
     variables: { shopId: form.shopId },
     skip: !form.shopId,
@@ -256,15 +263,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { duplicateAffiliateCampaign: GQL.AffiliateCampaign },
     { input: GQL.DuplicateAffiliateCampaignInput }
   >(DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION);
+  const [deleteDraft, deleteDraftState] = useMutation<
+    { deleteAffiliateCampaignDraft: boolean },
+    { input: GQL.DeleteAffiliateCampaignDraftInput }
+  >(DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION);
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
   const campaignPageCount = Math.max(1, Math.ceil(campaigns.length / CAMPAIGNS_PER_PAGE));
   const campaignPageStart = (campaignPage - 1) * CAMPAIGNS_PER_PAGE;
   const visibleCampaigns = paginateCampaigns(campaigns, campaignPage);
-  const selectedCampaign =
-    campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
-  const editingCampaign =
-    campaigns.find((campaign) => campaign.id === editingCampaignId) ?? null;
+  const selectedCampaign = campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
+  const editingCampaign = campaigns.find((campaign) => campaign.id === editingCampaignId) ?? null;
   const summary = summaryQuery.data?.affiliateCampaignSummary;
   const latestExecution = summary?.latestExecution;
   const shops = (shopsQuery.data?.shops ?? []).filter(
@@ -273,10 +282,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       shop.authStatus === GQL.ShopAuthStatus.Authorized,
   );
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
-  const capabilities =
-    capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
-  const selectionReadiness =
-    selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
+  const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
+  const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
 
   useEffect(() => {
     if (
@@ -326,13 +333,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       name: campaign.name,
       dailyTarget: String(campaign.dailyOutreachTarget),
       minimumFollowers:
-        rules.followerCount?.minimum == null
-          ? ""
-          : String(rules.followerCount.minimum),
+        rules.followerCount?.minimum == null ? "" : String(rules.followerCount.minimum),
       maximumFollowers:
-        rules.followerCount?.maximum == null
-          ? ""
-          : String(rules.followerCount.maximum),
+        rules.followerCount?.maximum == null ? "" : String(rules.followerCount.maximum),
       minimumExpectedSales:
         campaign.selectionPolicy.minimumExpectedSalesUnits == null
           ? ""
@@ -346,14 +349,20 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
             explanation: phrase.explanation ?? "",
             explanationLocale: phrase.explanationLocale ?? "",
             suggestionVersion: phrase.suggestionVersion ?? null,
+            discoveryRules: normalizeDiscoveryRules(
+              phrase.discoveryRules ?? campaign.discoveryRules,
+            ),
           }))
-        : [{
-            text: "",
-            source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-            explanation: "",
-            explanationLocale: "",
-            suggestionVersion: null,
-          }],
+        : [
+            {
+              text: "",
+              source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+              explanation: "",
+              explanationLocale: "",
+              suggestionVersion: null,
+              discoveryRules: normalizeDiscoveryRules(campaign.discoveryRules),
+            },
+          ],
       strategy: campaign.selectionPolicy.strategy,
       ageRanges: rules.audience?.ageRanges ?? [],
       audienceGender: rules.audience?.genderDistribution?.gender ?? "",
@@ -366,31 +375,24 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       languages: rules.marketSpecific?.languages ?? [],
       creatorLevels: rules.marketSpecific?.creatorLevels ?? [],
       categoryPros: rules.marketSpecific?.categoryPros ?? [],
-      categoryIds: (rules.categories ?? [])
-        .map((category) => category.parentCategoryId)
-        .join(", "),
+      categoryIds: (rules.categories ?? []).map((category) => category.parentCategoryId).join(", "),
       averageVideoViews: rules.contentPerformance30d?.averageVideoViews ?? "",
-      averageShoppableVideoViews:
-        rules.contentPerformance30d?.averageShoppableVideoViews ?? "",
-      averageEngagementRate:
-        rules.contentPerformance30d?.averageEngagementRate ?? "",
+      averageShoppableVideoViews: rules.contentPerformance30d?.averageShoppableVideoViews ?? "",
+      averageEngagementRate: rules.contentPerformance30d?.averageEngagementRate ?? "",
       averageShoppableEngagementRate:
         rules.contentPerformance30d?.averageShoppableEngagementRate ?? "",
       averageLiveViewers: rules.contentPerformance30d?.averageLiveViewers ?? "",
-      averageShoppableLiveViewers:
-        rules.contentPerformance30d?.averageShoppableLiveViewers ?? "",
-      averageCommissionRate:
-        rules.affiliatePerformance30d?.averageCommissionRate ?? "",
+      averageShoppableLiveViewers: rules.contentPerformance30d?.averageShoppableLiveViewers ?? "",
+      averageCommissionRate: rules.affiliatePerformance30d?.averageCommissionRate ?? "",
       postRate: rules.affiliatePerformance30d?.postRate ?? "",
-      creatorAgencyStatus:
-        rules.affiliatePerformance30d?.creatorAgencyStatus ?? "",
-      fastGrowingOnly:
-        rules.affiliatePerformance30d?.fastGrowingOnly ?? false,
-      notInvitedLast90Days:
-        rules.affiliatePerformance30d?.notInvitedLast90Days ?? false,
+      creatorAgencyStatus: rules.affiliatePerformance30d?.creatorAgencyStatus ?? "",
+      fastGrowingOnly: rules.affiliatePerformance30d?.fastGrowingOnly ?? false,
+      notInvitedLast90Days: rules.affiliatePerformance30d?.notInvitedLast90Days ?? false,
       templateText: campaign.messageTemplateText,
       templateGuidance: "",
       templateSource: campaign.messageTemplateSource,
+      messageProductName:
+        campaign.messageProductName || campaign.productSnapshot?.title || campaign.primaryProductId,
     });
     setEditingCampaignId(campaign.id);
     setProductPreview(campaign.productSnapshot ?? null);
@@ -417,19 +419,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
     if (
       wizardStep === 2 &&
-      (
-        Number(form.dailyTarget) < 1 ||
-        (form.minimumFollowers !== "" && Number(form.minimumFollowers) < 0) ||
-        (form.maximumFollowers !== "" && Number(form.maximumFollowers) < 0) ||
-        (
-          form.minimumFollowers !== "" &&
-          form.maximumFollowers !== "" &&
-          Number(form.minimumFollowers) > Number(form.maximumFollowers)
-        ) ||
+      (Number(form.dailyTarget) < 1 ||
+        form.searchPhrases.some((phrase) => {
+          const minimum = phrase.discoveryRules.followerCount?.minimum;
+          const maximum = phrase.discoveryRules.followerCount?.maximum;
+          return (
+            (minimum != null && minimum < 0) ||
+            (maximum != null && maximum < 0) ||
+            (minimum != null && maximum != null && minimum > maximum)
+          );
+        }) ||
         Number(form.commissionRate) < 0 ||
         Number(form.commissionRate) > 100 ||
-        (form.minimumExpectedSales && Number(form.minimumExpectedSales) < 0)
-      )
+        (form.minimumExpectedSales && Number(form.minimumExpectedSales) < 0))
     ) {
       showToast(t("ecommerce.affiliateCampaign.invalidTargets"), "error");
       return false;
@@ -440,8 +442,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
     if (
       wizardStep === 2 &&
-      (
-        form.searchPhrases.length < 1 ||
+      (form.searchPhrases.length < 1 ||
         form.searchPhrases.length > 5 ||
         form.searchPhrases.some((phrase) => {
           const text = phrase.text.normalize("NFKC").trim().replace(/\s+/gu, " ");
@@ -449,10 +450,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         }) ||
         new Set(
           form.searchPhrases.map((phrase) =>
-            phrase.text.normalize("NFKC").trim().replace(/\s+/gu, " ").toLocaleLowerCase()
+            phrase.text.normalize("NFKC").trim().replace(/\s+/gu, " ").toLocaleLowerCase(),
           ),
-        ).size !== form.searchPhrases.length
-      )
+        ).size !== form.searchPhrases.length)
     ) {
       showToast(t("ecommerce.affiliateCampaign.invalidSearchPhrases"), "error");
       return false;
@@ -493,20 +493,22 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
   };
 
-  const applyProductResolution = (
-    resolution: GQL.AffiliateCampaignProductResolution,
-  ) => {
+  const applyProductResolution = (resolution: GQL.AffiliateCampaignProductResolution) => {
     setForm((current) => ({
       ...current,
       productId: resolution.snapshot.productId,
       productSnapshotRef: resolution.snapshotRef,
-      searchPhrases: [{
-        text: "",
-        source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-        explanation: "",
-        explanationLocale: "",
-        suggestionVersion: null,
-      }],
+      searchPhrases: [
+        {
+          text: "",
+          source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+          explanation: "",
+          explanationLocale: "",
+          suggestionVersion: null,
+          discoveryRules: createDefaultDiscoveryRules(),
+        },
+      ],
+      messageProductName: "",
     }));
     setProductPreview(resolution.snapshot);
     setPendingProductResolution(null);
@@ -514,12 +516,20 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   const generateKeywordSuggestions = async () => {
     if (!productPreview || !form.productSnapshotRef) return;
+    const existingPhrases = form.searchPhrases.map((phrase) => phrase.text.trim()).filter(Boolean);
+    if (
+      existingPhrases.length > 0 &&
+      !window.confirm(t("ecommerce.affiliateCampaign.resuggestConfirm"))
+    ) {
+      return;
+    }
     try {
       const result = await suggestKeywords({
         variables: {
           input: {
             snapshotRef: form.productSnapshotRef,
             uiLocale: i18n.resolvedLanguage ?? i18n.language,
+            excludePhrases: existingPhrases,
           },
         },
       });
@@ -533,6 +543,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           explanation: suggestion.explanation,
           explanationLocale: suggestion.explanationLocale,
           suggestionVersion: payload.suggestionVersion,
+          discoveryRules: normalizeDiscoveryRules(suggestion.discoveryRules),
         })),
       }));
       showToast(t("ecommerce.affiliateCampaign.keywordSuggestionsReady"), "success");
@@ -557,77 +568,27 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           explanation: phrase.explanation || null,
           explanationLocale: phrase.explanationLocale || null,
           suggestionVersion: phrase.suggestionVersion,
+          discoveryRules: phrase.discoveryRules,
         })),
         dailyOutreachTarget: Number(form.dailyTarget),
         commissionRatePercent: Number(form.commissionRate),
-        discoveryRules: {
-          followerCount: {
-            minimum: form.minimumFollowers === ""
-              ? null
-              : Number(form.minimumFollowers),
-            maximum: form.maximumFollowers === ""
-              ? null
-              : Number(form.maximumFollowers),
-          },
-          audience: {
-            ageRanges: form.ageRanges,
-            genderDistribution: form.audienceGender
-              ? {
-                  gender: form.audienceGender,
-                  minimumPercentage: Number(form.audienceGenderMinimum || 0),
-                }
-              : null,
-          },
-          salesPerformance30d: {
-            gmvRanges: form.gmvRanges,
-            unitsSoldRanges: form.unitsSoldRanges,
-          },
-          categories: splitCsv(form.categoryIds).map((parentCategoryId) => ({
-            parentCategoryId,
-            childCategoryIds: [],
-          })),
-          contentPerformance30d: {
-            averageVideoViews: form.averageVideoViews || null,
-            averageShoppableVideoViews:
-              form.averageShoppableVideoViews || null,
-            averageEngagementRate: form.averageEngagementRate || null,
-            averageShoppableEngagementRate:
-              form.averageShoppableEngagementRate || null,
-            averageLiveViewers: form.averageLiveViewers || null,
-            averageShoppableLiveViewers:
-              form.averageShoppableLiveViewers || null,
-          },
-          affiliatePerformance30d: {
-            averageCommissionRate: form.averageCommissionRate || null,
-            postRate: form.postRate || null,
-            creatorAgencyStatus: form.creatorAgencyStatus || null,
-            fastGrowingOnly: form.fastGrowingOnly,
-            notInvitedLast90Days: form.notInvitedLast90Days,
-          },
-          marketSpecific: {
-            languages: form.languages,
-            creatorLevels: form.creatorLevels,
-            categoryPros: form.categoryPros,
-          },
-        },
+        discoveryRules: form.searchPhrases[0]?.discoveryRules ?? createDefaultDiscoveryRules(),
         selectionPolicy: {
           strategy: form.strategy,
           ranking:
-            form.strategy ===
-            GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules
+            form.strategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules
               ? GQL.AffiliateCampaignSelectionRanking.ProviderOrder
               : GQL.AffiliateCampaignSelectionRanking.ExpectedSalesPerFollower,
           minimumExpectedSalesUnits:
-            form.strategy ===
-              GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 &&
+            form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 &&
             form.minimumExpectedSales
               ? Number(form.minimumExpectedSales)
               : null,
         },
         messageTemplateText: form.templateText.trim(),
         messageTemplateSource: form.templateSource,
-        status:
-          GQL.AffiliateCampaignStatus.Active,
+        messageProductName: form.messageProductName.trim() || productPreview.title,
+        status: GQL.AffiliateCampaignStatus.Active,
       } as GQL.WriteAffiliateCampaignInput & { commissionRatePercent: number };
       const result = await writeCampaign({
         variables: {
@@ -672,6 +633,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       setForm((current) => ({
         ...current,
         templateText: suggestion.text,
+        messageProductName: suggestion.productShortName,
         templateSource: GQL.AffiliateCampaignMessageTemplateSource.AiGenerated,
       }));
       showToast(t("ecommerce.affiliateCampaign.templateReady"), "success");
@@ -724,6 +686,27 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
   };
 
+  const deleteDraftCampaign = async (campaign: GQL.AffiliateCampaign) => {
+    if (
+      !window.confirm(t("ecommerce.affiliateCampaign.deleteDraftConfirm", { name: campaign.name }))
+    ) {
+      return;
+    }
+    try {
+      const result = await deleteDraft({
+        variables: { input: { campaignId: campaign.id } },
+      });
+      if (!result.data?.deleteAffiliateCampaignDraft) {
+        throw new Error("CAMPAIGN_DRAFT_DELETE_FAILED");
+      }
+      setSelectedCampaignId("");
+      await campaignsQuery.refetch();
+      showToast(t("ecommerce.affiliateCampaign.draftDeleted"), "success");
+    } catch (error) {
+      showToast(campaignErrorMessage(error, t), "error");
+    }
+  };
+
   const activeCount = campaigns.filter(
     (campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active,
   ).length;
@@ -732,8 +715,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     .reduce((sum, campaign) => sum + campaign.dailyOutreachTarget, 0);
 
   const loadMoreCreatorStates = async () => {
-    const nextCursor =
-      creatorStatesQuery.data?.affiliateCampaignCreatorStates.nextCursor;
+    const nextCursor = creatorStatesQuery.data?.affiliateCampaignCreatorStates.nextCursor;
     if (!nextCursor) return;
     await creatorStatesQuery.fetchMore({
       variables: {
@@ -788,7 +770,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           </div>
           <div className="affiliate-campaign-window-range">
             <strong>08:00</strong>
-            <div aria-hidden="true"><i /><i /></div>
+            <div aria-hidden="true">
+              <i />
+              <i />
+            </div>
             <strong>22:00</strong>
           </div>
         </div>
@@ -877,13 +862,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     >
                       <td>
                         <div className="affiliate-campaign-directory-name">
-                          <span className={`affiliate-campaign-status-dot is-${campaign.status.toLowerCase()}`} />
+                          <span
+                            className={`affiliate-campaign-status-dot is-${campaign.status.toLowerCase()}`}
+                          />
                           <div>
                             <strong>{campaign.name}</strong>
                             <small>
                               {t("ecommerce.affiliateCampaign.templateVersion", {
                                 version: campaign.templateVersion,
-                              })} · {formatDateTime(campaign.updatedAt)}
+                              })}{" "}
+                              · {formatDateTime(campaign.updatedAt)}
                             </small>
                           </div>
                         </div>
@@ -895,7 +883,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         </div>
                       </td>
                       <td>
-                        <span className={`affiliate-campaign-status is-${campaign.status.toLowerCase()}`}>
+                        <span
+                          className={`affiliate-campaign-status is-${campaign.status.toLowerCase()}`}
+                        >
                           {campaignStatusLabel(campaign.status, t)}
                         </span>
                       </td>
@@ -904,22 +894,24 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <small>{t("ecommerce.affiliateCampaign.messagesPerDayShort")}</small>
                       </td>
                       <td>
-                        <strong>{campaignStrategyLabel(campaign.selectionPolicy.strategy, t)}</strong>
-                        <small>
-                          {campaignRuleSummary(campaign, t)}
-                        </small>
+                        <strong>
+                          {campaignStrategyLabel(campaign.selectionPolicy.strategy, t)}
+                        </strong>
+                        <small>{campaignRuleSummary(campaign, t)}</small>
                       </td>
                       <td>
                         <div className="affiliate-campaign-next-activity">
                           <strong>
-                          {campaign.nextTickAt
-                            ? formatDateTime(campaign.nextTickAt)
-                            : t("ecommerce.affiliateCampaign.waitingForWindow")}
+                            {campaign.nextTickAt
+                              ? formatDateTime(campaign.nextTickAt)
+                              : t("ecommerce.affiliateCampaign.waitingForWindow")}
                           </strong>
                           <small>08:00–22:00 · {campaign.market}</small>
                         </div>
                       </td>
-                      <td><ChevronRightIcon /></td>
+                      <td>
+                        <ChevronRightIcon />
+                      </td>
                     </tr>
                   );
                 })}
@@ -955,9 +947,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 className="affiliate-campaign-page-button is-direction"
                 aria-label={t("ecommerce.affiliateCampaign.nextPage")}
                 disabled={campaignPage >= campaignPageCount}
-                onClick={() =>
-                  setCampaignPage((page) => Math.min(campaignPageCount, page + 1))
-                }
+                onClick={() => setCampaignPage((page) => Math.min(campaignPageCount, page + 1))}
               >
                 <ChevronRightIcon />
               </button>
@@ -979,10 +969,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
             <header className="affiliate-campaign-detail-header">
               <div>
                 <div className="affiliate-campaign-title-line">
-                  <span className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}>
+                  <span
+                    className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}
+                  >
                     {campaignStatusLabel(selectedCampaign.status, t)}
                   </span>
-                  <span>{selectedCampaign.market} · {selectedCampaign.resolvedTimeZone}</span>
+                  <span>
+                    {selectedCampaign.market} · {selectedCampaign.resolvedTimeZone}
+                  </span>
                   <span>
                     {t("ecommerce.affiliateCampaign.templateVersion", {
                       version: selectedCampaign.templateVersion,
@@ -1007,18 +1001,26 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   disabled={duplicateCampaignState.loading}
                   onClick={() => void copyCampaign(selectedCampaign)}
                 >
-                  {t("ecommerce.affiliateCampaign.copyAsDraft")}
+                  {t("ecommerce.affiliateCampaign.copyCampaign")}
                 </button>
+                {selectedCampaign.status === GQL.AffiliateCampaignStatus.Draft && (
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    disabled={deleteDraftState.loading}
+                    onClick={() => void deleteDraftCampaign(selectedCampaign)}
+                  >
+                    {t("ecommerce.affiliateCampaign.deleteDraft")}
+                  </button>
+                )}
                 {!isTerminalCampaignStatus(selectedCampaign.status) && (
                   <button
                     type="button"
                     className="btn btn-secondary"
                     disabled={
                       statusMutationState.loading ||
-                      (
-                        selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
-                        selectionReadiness?.ready === false
-                      )
+                      (selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
+                        selectionReadiness?.ready === false)
                     }
                     onClick={() => void changeStatus(selectedCampaign)}
                   >
@@ -1034,9 +1036,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               !isTerminalCampaignStatus(selectedCampaign.status) && (
                 <div className="affiliate-campaign-readiness-warning">
                   <strong>{t("ecommerce.affiliateCampaign.reopenBlocked")}</strong>
-                  <span>
-                    {campaignReadinessMessage(selectionReadiness.reasonCode, t)}
-                  </span>
+                  <span>{campaignReadinessMessage(selectionReadiness.reasonCode, t)}</span>
                 </div>
               )}
 
@@ -1051,13 +1051,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <small>
                   {latestExecution?.nextTickAt
                     ? t("ecommerce.affiliateCampaign.nextSend", {
-                      time: formatDateTime(latestExecution.nextTickAt),
-                    })
+                        time: formatDateTime(latestExecution.nextTickAt),
+                      })
                     : latestExecution?.underDeliveryReason
-                      ? campaignExecutionReasonLabel(
-                        latestExecution.underDeliveryReason,
-                        t,
-                      )
+                      ? campaignExecutionReasonLabel(latestExecution.underDeliveryReason, t)
                       : t("ecommerce.affiliateCampaign.waitingForWindow")}
                 </small>
               </div>
@@ -1108,8 +1105,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <strong>
                   {selectionReadiness?.ready
                     ? t("ecommerce.affiliateCampaign.ready")
-                    : selectionReadiness?.message ||
-                      t("ecommerce.affiliateCampaign.checkingReadiness")}
+                    : campaignReadinessMessage(selectionReadiness?.reasonCode, t)}
                 </strong>
               </div>
               <div>
@@ -1157,7 +1153,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </tbody>
                 </table>
                 {!creatorStatesQuery.loading &&
-                  !(creatorStatesQuery.data?.affiliateCampaignCreatorStates.items.length) && (
+                  !creatorStatesQuery.data?.affiliateCampaignCreatorStates.items.length && (
                     <div className="affiliate-campaign-table-empty">
                       {t("ecommerce.affiliateCampaign.noCreatorStates")}
                     </div>
@@ -1179,14 +1175,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <section className="affiliate-campaign-history-strip">
                 <span>{t("ecommerce.affiliateCampaign.recentExecutions")}</span>
                 <div>
-                  {executionsQuery.data!.affiliateCampaignDailyExecutions.slice(0, 7).map(
-                    (execution) => (
+                  {executionsQuery
+                    .data!.affiliateCampaignDailyExecutions.slice(0, 7)
+                    .map((execution) => (
                       <article key={execution.id}>
                         <strong>{execution.marketLocalDate}</strong>
-                        <small>{execution.counters.sent}/{execution.allocatedTarget}</small>
+                        <small>
+                          {execution.counters.sent}/{execution.allocatedTarget}
+                        </small>
                       </article>
-                    ),
-                  )}
+                    ))}
                 </div>
               </section>
             )}
@@ -1235,13 +1233,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         shopId,
                         productId: "",
                         productSnapshotRef: "",
-                        searchPhrases: [{
-                          text: "",
-                          source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-                          explanation: "",
-                          explanationLocale: "",
-                          suggestionVersion: null,
-                        }],
+                        searchPhrases: [
+                          {
+                            text: "",
+                            source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+                            explanation: "",
+                            explanationLocale: "",
+                            suggestionVersion: null,
+                            discoveryRules: createDefaultDiscoveryRules(),
+                          },
+                        ],
+                        messageProductName: "",
                         ageRanges: [],
                         audienceGender: "",
                         audienceGenderMinimum: "",
@@ -1270,13 +1272,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       onChange={(event) => {
                         updateForm("productId", event.target.value.trim());
                         updateForm("productSnapshotRef", "");
-                        updateForm("searchPhrases", [{
-                          text: "",
-                          source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-                          explanation: "",
-                          explanationLocale: "",
-                          suggestionVersion: null,
-                        }]);
+                        updateForm("searchPhrases", [
+                          {
+                            text: "",
+                            source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
+                            explanation: "",
+                            explanationLocale: "",
+                            suggestionVersion: null,
+                            discoveryRules: createDefaultDiscoveryRules(),
+                          },
+                        ]);
+                        updateForm("messageProductName", "");
                         setProductPreview(null);
                         setPendingProductResolution(null);
                       }}
@@ -1285,7 +1291,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <button
                       type="button"
                       className="affiliate-campaign-fetch-button"
-                      disabled={!form.shopId || !form.productId.trim() || resolveProductState.loading}
+                      disabled={
+                        !form.shopId || !form.productId.trim() || resolveProductState.loading
+                      }
                       onClick={fetchProduct}
                     >
                       {resolveProductState.loading
@@ -1380,15 +1388,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <button
                     type="button"
                     data-selected={
-                      form.strategy ===
-                      GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ||
+                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ||
                       undefined
                     }
                     onClick={() =>
                       updateForm(
                         "strategy",
                         GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
-                      )}
+                      )
+                    }
                   >
                     <span>{t("ecommerce.affiliateCampaign.strategyRuleKicker")}</span>
                     <strong>{t("ecommerce.affiliateCampaign.strategyRuleTitle")}</strong>
@@ -1400,8 +1408,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     disabled
                     aria-disabled="true"
                     data-selected={
-                      form.strategy ===
-                      GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 ||
+                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 ||
                       undefined
                     }
                   >
@@ -1435,28 +1442,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <small>{t("ecommerce.affiliateCampaign.dailyTargetHint")}</small>
                   </label>
                   <label>
-                    <span>{t("ecommerce.affiliateCampaign.minimumFollowers")}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.minimumFollowers}
-                      onChange={(event) => updateForm("minimumFollowers", event.target.value)}
-                    />
-                    <small>{t("ecommerce.affiliateCampaign.minimumFollowersHint")}</small>
-                  </label>
-                </div>
-                <div className="affiliate-campaign-field-pair">
-                  <label>
-                    <span>{t("ecommerce.affiliateCampaign.maximumFollowers")}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.maximumFollowers}
-                      onChange={(event) => updateForm("maximumFollowers", event.target.value)}
-                      placeholder={t("ecommerce.affiliateCampaign.noMinimum")}
-                    />
-                  </label>
-                  <label>
                     <span>{t("ecommerce.affiliateCampaign.commissionRate")}</span>
                     <input
                       type="number"
@@ -1469,22 +1454,25 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <small>{t("ecommerce.affiliateCampaign.commissionRateHint")}</small>
                   </label>
                 </div>
-                <div className="affiliate-campaign-field-pair">
+                <div className="affiliate-campaign-search-group-toolbar">
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.marketplaceSearchPhrases")}</span>
-                    <div className="affiliate-campaign-keyword-input-row">
-                      <button
-                        type="button"
-                        disabled={!productPreview || suggestKeywordsState.loading}
-                        onClick={generateKeywordSuggestions}
-                      >
-                        {suggestKeywordsState.loading
-                          ? t("ecommerce.affiliateCampaign.generating")
-                          : t("ecommerce.affiliateCampaign.suggestKeywords")}
-                      </button>
-                    </div>
                     <small>{t("ecommerce.affiliateCampaign.searchPhrasesBudgetHint")}</small>
                   </label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={!productPreview || suggestKeywordsState.loading}
+                    onClick={generateKeywordSuggestions}
+                  >
+                    {suggestKeywordsState.loading
+                      ? t("ecommerce.affiliateCampaign.generating")
+                      : t(
+                          form.searchPhrases.some((phrase) => phrase.text.trim())
+                            ? "ecommerce.affiliateCampaign.resuggestSearchGroups"
+                            : "ecommerce.affiliateCampaign.suggestSearchGroups",
+                        )}
+                  </button>
                 </div>
                 <div className="affiliate-campaign-phrase-editor">
                   {form.searchPhrases.map((phrase, index) => (
@@ -1498,8 +1486,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <div className="affiliate-campaign-phrase-content">
                         <div className="affiliate-campaign-phrase-meta">
                           <span>
-                            {phrase.source ===
-                            GQL.AffiliateCampaignSearchPhraseSource.AiSuggested
+                            {phrase.source === GQL.AffiliateCampaignSearchPhraseSource.AiSuggested
                               ? t("ecommerce.affiliateCampaign.aiSuggested")
                               : t("ecommerce.affiliateCampaign.userAuthored")}
                           </span>
@@ -1516,6 +1503,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                               explanation: "",
                               explanationLocale: "",
                               suggestionVersion: null,
+                              discoveryRules: phrase.discoveryRules,
                             };
                             updateForm("searchPhrases", next);
                           }}
@@ -1523,18 +1511,24 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         />
                         {phrase.explanation ? (
                           <div className="affiliate-campaign-phrase-explanation">
-                            <strong>
-                              {t("ecommerce.affiliateCampaign.whyThisPhrase")}
-                            </strong>
-                            <p lang={phrase.explanationLocale || undefined}>
-                              {phrase.explanation}
-                            </p>
+                            <strong>{t("ecommerce.affiliateCampaign.whyThisPhrase")}</strong>
+                            <p lang={phrase.explanationLocale || undefined}>{phrase.explanation}</p>
                           </div>
                         ) : (
                           <small className="affiliate-campaign-phrase-empty-explanation">
                             {t("ecommerce.affiliateCampaign.userEditedNoExplanation")}
                           </small>
                         )}
+                        <SearchGroupRulesEditor
+                          rules={phrase.discoveryRules}
+                          capabilities={capabilities}
+                          t={t}
+                          onChange={(discoveryRules) => {
+                            const next = [...form.searchPhrases];
+                            next[index] = { ...phrase, discoveryRules };
+                            updateForm("searchPhrases", next);
+                          }}
+                        />
                       </div>
                       <button
                         type="button"
@@ -1545,7 +1539,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           updateForm(
                             "searchPhrases",
                             form.searchPhrases.filter((_, phraseIndex) => phraseIndex !== index),
-                          )}
+                          )
+                        }
                       >
                         ×
                       </button>
@@ -1564,14 +1559,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                             explanation: "",
                             explanationLocale: "",
                             suggestionVersion: null,
+                            discoveryRules: createDefaultDiscoveryRules(),
                           },
-                        ])}
+                        ])
+                      }
                     >
                       {t("ecommerce.affiliateCampaign.addSearchPhrase")}
                     </button>
                   )}
                 </div>
-                <details className="affiliate-campaign-advanced-rules">
+                <details className="affiliate-campaign-advanced-rules" hidden>
                   <summary>
                     <span>{t("ecommerce.affiliateCampaign.advancedProviderRules")}</span>
                     <small>{t("ecommerce.affiliateCampaign.advancedProviderRulesHint")}</small>
@@ -1585,7 +1582,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           key={value}
                           data-selected={form.ageRanges.includes(value) || undefined}
                           onClick={() =>
-                            updateForm("ageRanges", toggleValue(form.ageRanges, value))}
+                            updateForm("ageRanges", toggleValue(form.ageRanges, value))
+                          }
                         >
                           {marketplaceEnumLabel(value)}
                         </button>
@@ -1600,7 +1598,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                             updateForm(
                               "audienceGender",
                               value as GQL.CreatorSearchFollowerGender | "",
-                            )}
+                            )
+                          }
                           options={[
                             { value: "", label: t("ecommerce.affiliateCampaign.noMinimum") },
                             ...(capabilities?.genders ?? []).map((value) => ({
@@ -1619,7 +1618,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           disabled={!form.audienceGender}
                           value={form.audienceGenderMinimum}
                           onChange={(event) =>
-                            updateForm("audienceGenderMinimum", event.target.value)}
+                            updateForm("audienceGenderMinimum", event.target.value)
+                          }
                         />
                       </label>
                     </div>
@@ -1629,41 +1629,40 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     values={capabilities?.gmvRanges ?? []}
                     selected={form.gmvRanges}
                     onToggle={(value) =>
-                      updateForm("gmvRanges", toggleValue(form.gmvRanges, value))}
+                      updateForm("gmvRanges", toggleValue(form.gmvRanges, value))
+                    }
                   />
                   <RuleChipSection
                     title={t("ecommerce.affiliateCampaign.units30d")}
                     values={capabilities?.unitsSoldRanges ?? []}
                     selected={form.unitsSoldRanges}
                     onToggle={(value) =>
-                      updateForm(
-                        "unitsSoldRanges",
-                        toggleValue(form.unitsSoldRanges, value),
-                      )}
+                      updateForm("unitsSoldRanges", toggleValue(form.unitsSoldRanges, value))
+                    }
                   />
                   <RuleChipSection
                     title={t("ecommerce.affiliateCampaign.languages")}
                     values={capabilities?.languages ?? []}
                     selected={form.languages}
                     onToggle={(value) =>
-                      updateForm("languages", toggleValue(form.languages, value))}
+                      updateForm("languages", toggleValue(form.languages, value))
+                    }
                   />
                   <RuleChipSection
                     title={t("ecommerce.affiliateCampaign.creatorLevels")}
                     values={capabilities?.creatorLevels ?? []}
                     selected={form.creatorLevels}
                     onToggle={(value) =>
-                      updateForm(
-                        "creatorLevels",
-                        toggleValue(form.creatorLevels, value),
-                      )}
+                      updateForm("creatorLevels", toggleValue(form.creatorLevels, value))
+                    }
                   />
                   <RuleChipSection
                     title={t("ecommerce.affiliateCampaign.categoryPros")}
                     values={capabilities?.categoryPros ?? []}
                     selected={form.categoryPros}
                     onToggle={(value) =>
-                      updateForm("categoryPros", toggleValue(form.categoryPros, value))}
+                      updateForm("categoryPros", toggleValue(form.categoryPros, value))
+                    }
                   />
                   <div className="affiliate-campaign-rule-block">
                     <label>
@@ -1690,14 +1689,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <RuleTextInput
                         label={t("ecommerce.affiliateCampaign.averageShoppableVideoViews")}
                         value={form.averageShoppableVideoViews}
-                        onChange={(value) =>
-                          updateForm("averageShoppableVideoViews", value)}
+                        onChange={(value) => updateForm("averageShoppableVideoViews", value)}
                       />
                       <RuleTextInput
                         label={t("ecommerce.affiliateCampaign.averageShoppableEngagementRate")}
                         value={form.averageShoppableEngagementRate}
-                        onChange={(value) =>
-                          updateForm("averageShoppableEngagementRate", value)}
+                        onChange={(value) => updateForm("averageShoppableEngagementRate", value)}
                       />
                     </div>
                     <div className="affiliate-campaign-field-pair">
@@ -1709,8 +1706,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <RuleTextInput
                         label={t("ecommerce.affiliateCampaign.averageShoppableLiveViewers")}
                         value={form.averageShoppableLiveViewers}
-                        onChange={(value) =>
-                          updateForm("averageShoppableLiveViewers", value)}
+                        onChange={(value) => updateForm("averageShoppableLiveViewers", value)}
                       />
                     </div>
                     <div className="affiliate-campaign-field-pair">
@@ -1734,8 +1730,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <input
                         type="checkbox"
                         checked={form.fastGrowingOnly}
-                        onChange={(event) =>
-                          updateForm("fastGrowingOnly", event.target.checked)}
+                        onChange={(event) => updateForm("fastGrowingOnly", event.target.checked)}
                       />
                       <span>{t("ecommerce.affiliateCampaign.fastGrowingOnly")}</span>
                     </label>
@@ -1744,7 +1739,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         type="checkbox"
                         checked={form.notInvitedLast90Days}
                         onChange={(event) =>
-                          updateForm("notInvitedLast90Days", event.target.checked)}
+                          updateForm("notInvitedLast90Days", event.target.checked)
+                        }
                       />
                       <span>{t("ecommerce.affiliateCampaign.notInvitedLast90Days")}</span>
                     </label>
@@ -1797,6 +1793,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </button>
                 </div>
                 <label>
+                  <span>{t("ecommerce.affiliateCampaign.messageProductName")}</span>
+                  <input
+                    value={form.messageProductName}
+                    maxLength={80}
+                    onChange={(event) => updateForm("messageProductName", event.target.value)}
+                    placeholder={t("ecommerce.affiliateCampaign.messageProductNamePlaceholder")}
+                  />
+                  <small>{t("ecommerce.affiliateCampaign.messageProductNameHint")}</small>
+                </label>
+                <label>
                   <span>{t("ecommerce.affiliateCampaign.messageTemplate")}</span>
                   <textarea
                     rows={8}
@@ -1823,10 +1829,31 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <p>
                     {renderAffiliateCampaignTemplatePreview(
                       form.templateText,
-                      productPreview?.title || t("ecommerce.affiliateCampaign.previewProduct"),
+                      form.messageProductName ||
+                        productPreview?.title ||
+                        t("ecommerce.affiliateCampaign.previewProduct"),
                       selectedShop?.shopName || t("ecommerce.affiliateCampaign.previewShop"),
                     ) || t("ecommerce.affiliateCampaign.previewEmpty")}
                   </p>
+                  {productPreview && (
+                    <div className="affiliate-campaign-message-product-card">
+                      {productPreview.coverImage ? (
+                        <img src={productPreview.coverImage} alt="" />
+                      ) : (
+                        <span>
+                          <ShopIcon />
+                        </span>
+                      )}
+                      <div>
+                        <strong>{form.messageProductName || productPreview.title}</strong>
+                        <small>
+                          ${productPreview.minimumPriceUsdAmount.toFixed(2)}
+                          {" · "}
+                          {t("ecommerce.affiliateCampaign.productCardAttached")}
+                        </small>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
@@ -1877,9 +1904,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
               </div>
               <div className="affiliate-campaign-boundaries">
-                <span><i />{t("ecommerce.affiliateCampaign.platformOnlyBoundary")}</span>
-                <span><i />{t("ecommerce.affiliateCampaign.noFallbackBoundary")}</span>
-                <span><i />{t("ecommerce.affiliateCampaign.replyHandoffBoundary")}</span>
+                <span>
+                  <i />
+                  {t("ecommerce.affiliateCampaign.platformOnlyBoundary")}
+                </span>
+                <span>
+                  <i />
+                  {t("ecommerce.affiliateCampaign.noFallbackBoundary")}
+                </span>
+                <span>
+                  <i />
+                  {t("ecommerce.affiliateCampaign.replyHandoffBoundary")}
+                </span>
               </div>
             </div>
           )}
@@ -1894,9 +1930,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
             }}
             disabled={writeCampaignState.loading}
           >
-            {wizardStep === 1
-              ? t("common.cancel")
-              : t("ecommerce.affiliateCampaign.back")}
+            {wizardStep === 1 ? t("common.cancel") : t("ecommerce.affiliateCampaign.back")}
           </button>
           {wizardStep < 4 ? (
             <button type="button" className="btn btn-primary" onClick={nextStep}>
@@ -1944,8 +1978,7 @@ function CampaignCreatorStateRow({
     ? `@${profile.username.replace(/^@/, "")}`
     : shortId(profile?.creatorOpenId || state.creatorId);
   const followers = performance?.followerCount ?? state.followerCount;
-  const relationshipActivity =
-    relationship?.lastInboundAt || relationship?.lastOutboundAt || null;
+  const relationshipActivity = relationship?.lastInboundAt || relationship?.lastOutboundAt || null;
   const lastActivity =
     state.repliedAt ||
     state.reachedOutAt ||
@@ -1967,7 +2000,9 @@ function CampaignCreatorStateRow({
           </div>
           <div>
             <strong>{displayName}</strong>
-            <small>{handle} · {state.market}</small>
+            <small>
+              {handle} · {state.market}
+            </small>
             <p title={profile?.bioDescription ?? undefined}>
               {profile?.bioDescription ||
                 t("ecommerce.affiliateCampaign.profileObserved", {
@@ -1994,8 +2029,7 @@ function CampaignCreatorStateRow({
         <small>{formatDecisionReason(state.decisionReason)}</small>
       </td>
       <td>
-        {state.selectionStrategy ===
-        GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ? (
+        {state.selectionStrategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules ? (
           <>
             <strong>{t("ecommerce.affiliateCampaign.providerOrderEvidence")}</strong>
             <small>
@@ -2042,9 +2076,9 @@ function CampaignCreatorStateRow({
         <small>
           {relationship
             ? t("ecommerce.affiliateCampaign.relationshipSummary", {
-              shops: relationship.shopStates.length,
-              collaborations: relationship.activeCollaborationRecordIds.length,
-            })
+                shops: relationship.shopStates.length,
+                collaborations: relationship.activeCollaborationRecordIds.length,
+              })
             : t("ecommerce.affiliateCampaign.relationshipAfterOutreach")}
         </small>
       </td>
@@ -2108,6 +2142,297 @@ function RuleTextInput({
   );
 }
 
+function SearchGroupRulesEditor({
+  rules,
+  capabilities,
+  t,
+  onChange,
+}: {
+  rules: GQL.AffiliateCampaignDiscoveryRulesInput;
+  capabilities?: GQL.AffiliateMarketplaceCreatorRuleCapabilities;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  onChange: (rules: GQL.AffiliateCampaignDiscoveryRulesInput) => void;
+}) {
+  const normalized = normalizeDiscoveryRules(rules);
+  const ageRanges = normalized.audience?.ageRanges ?? [];
+  const gender = normalized.audience?.genderDistribution?.gender ?? "";
+  const gmvRanges = normalized.salesPerformance30d?.gmvRanges ?? [];
+  const unitsSoldRanges = normalized.salesPerformance30d?.unitsSoldRanges ?? [];
+  const languages = normalized.marketSpecific?.languages ?? [];
+  const creatorLevels = normalized.marketSpecific?.creatorLevels ?? [];
+  const categoryPros = normalized.marketSpecific?.categoryPros ?? [];
+  const summary = [
+    normalized.followerCount?.minimum != null
+      ? t("ecommerce.affiliateCampaign.minimumFollowersCompact", {
+          value: formatNumber(normalized.followerCount.minimum),
+        })
+      : null,
+    ageRanges.length
+      ? t("ecommerce.affiliateCampaign.ruleCount", { count: ageRanges.length })
+      : null,
+    languages.length
+      ? t("ecommerce.affiliateCampaign.languageCount", { count: languages.length })
+      : null,
+  ].filter(Boolean);
+  return (
+    <details className="affiliate-campaign-search-group-rules">
+      <summary>
+        <span>
+          {t("ecommerce.affiliateCampaign.searchGroupRules")}
+          <small>
+            {summary.length
+              ? summary.join(" · ")
+              : t("ecommerce.affiliateCampaign.searchGroupRulesEmpty")}
+          </small>
+        </span>
+        <i>{t("ecommerce.affiliateCampaign.editRules")}</i>
+      </summary>
+      <div className="affiliate-campaign-search-group-rules-body">
+        <div className="affiliate-campaign-field-pair">
+          <label>
+            <span>{t("ecommerce.affiliateCampaign.minimumFollowers")}</span>
+            <input
+              type="number"
+              min={0}
+              value={normalized.followerCount?.minimum ?? ""}
+              onChange={(event) =>
+                onChange({
+                  ...normalized,
+                  followerCount: {
+                    ...normalized.followerCount,
+                    minimum: optionalNumber(event.target.value),
+                  },
+                })
+              }
+            />
+          </label>
+          <label>
+            <span>{t("ecommerce.affiliateCampaign.maximumFollowers")}</span>
+            <input
+              type="number"
+              min={0}
+              value={normalized.followerCount?.maximum ?? ""}
+              onChange={(event) =>
+                onChange({
+                  ...normalized,
+                  followerCount: {
+                    ...normalized.followerCount,
+                    maximum: optionalNumber(event.target.value),
+                  },
+                })
+              }
+            />
+          </label>
+        </div>
+        <RuleChipSection
+          title={t("ecommerce.affiliateCampaign.audienceRules")}
+          values={capabilities?.ageRanges ?? []}
+          selected={ageRanges}
+          onToggle={(value) =>
+            onChange({
+              ...normalized,
+              audience: {
+                ...normalized.audience,
+                ageRanges: toggleValue(ageRanges, value),
+              },
+            })
+          }
+        />
+        <div className="affiliate-campaign-field-pair">
+          <label>
+            <span>{t("ecommerce.affiliateCampaign.audienceGender")}</span>
+            <Select
+              value={gender}
+              onChange={(value) =>
+                onChange({
+                  ...normalized,
+                  audience: {
+                    ...normalized.audience,
+                    genderDistribution: value
+                      ? {
+                          gender: value as GQL.CreatorSearchFollowerGender,
+                          minimumPercentage:
+                            normalized.audience?.genderDistribution?.minimumPercentage ?? 0,
+                        }
+                      : null,
+                  },
+                })
+              }
+              options={[
+                {
+                  value: "",
+                  label: t("ecommerce.affiliateCampaign.noMinimum"),
+                },
+                ...(capabilities?.genders ?? []).map((value) => ({
+                  value,
+                  label: marketplaceEnumLabel(value),
+                })),
+              ]}
+            />
+          </label>
+          <label>
+            <span>{t("ecommerce.affiliateCampaign.minimumAudienceShare")}</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              disabled={!gender}
+              value={normalized.audience?.genderDistribution?.minimumPercentage ?? ""}
+              onChange={(event) =>
+                onChange({
+                  ...normalized,
+                  audience: {
+                    ...normalized.audience,
+                    genderDistribution: gender
+                      ? {
+                          gender,
+                          minimumPercentage: optionalNumber(event.target.value) ?? 0,
+                        }
+                      : null,
+                  },
+                })
+              }
+            />
+          </label>
+        </div>
+        <RuleChipSection
+          title={t("ecommerce.affiliateCampaign.gmv30d")}
+          values={capabilities?.gmvRanges ?? []}
+          selected={gmvRanges}
+          onToggle={(value) =>
+            onChange({
+              ...normalized,
+              salesPerformance30d: {
+                ...normalized.salesPerformance30d,
+                gmvRanges: toggleValue(gmvRanges, value),
+              },
+            })
+          }
+        />
+        <RuleChipSection
+          title={t("ecommerce.affiliateCampaign.units30d")}
+          values={capabilities?.unitsSoldRanges ?? []}
+          selected={unitsSoldRanges}
+          onToggle={(value) =>
+            onChange({
+              ...normalized,
+              salesPerformance30d: {
+                ...normalized.salesPerformance30d,
+                unitsSoldRanges: toggleValue(unitsSoldRanges, value),
+              },
+            })
+          }
+        />
+        <RuleChipSection
+          title={t("ecommerce.affiliateCampaign.languages")}
+          values={capabilities?.languages ?? []}
+          selected={languages}
+          onToggle={(value) =>
+            onChange({
+              ...normalized,
+              marketSpecific: {
+                ...normalized.marketSpecific,
+                languages: toggleValue(languages, value),
+              },
+            })
+          }
+        />
+        <RuleChipSection
+          title={t("ecommerce.affiliateCampaign.creatorLevels")}
+          values={capabilities?.creatorLevels ?? []}
+          selected={creatorLevels}
+          onToggle={(value) =>
+            onChange({
+              ...normalized,
+              marketSpecific: {
+                ...normalized.marketSpecific,
+                creatorLevels: toggleValue(creatorLevels, value),
+              },
+            })
+          }
+        />
+        <RuleChipSection
+          title={t("ecommerce.affiliateCampaign.categoryPros")}
+          values={capabilities?.categoryPros ?? []}
+          selected={categoryPros}
+          onToggle={(value) =>
+            onChange({
+              ...normalized,
+              marketSpecific: {
+                ...normalized.marketSpecific,
+                categoryPros: toggleValue(categoryPros, value),
+              },
+            })
+          }
+        />
+      </div>
+    </details>
+  );
+}
+
+function createDefaultDiscoveryRules(): GQL.AffiliateCampaignDiscoveryRulesInput {
+  return {
+    followerCount: { minimum: 1_000, maximum: null },
+    audience: { ageRanges: [], genderDistribution: null },
+    salesPerformance30d: { gmvRanges: [], unitsSoldRanges: [] },
+    categories: [],
+    contentPerformance30d: null,
+    affiliatePerformance30d: null,
+    marketSpecific: { languages: [], creatorLevels: [], categoryPros: [] },
+  };
+}
+
+function normalizeDiscoveryRules(
+  value:
+    | GQL.AffiliateCampaignDiscoveryRules
+    | GQL.AffiliateCampaignDiscoveryRulesInput
+    | null
+    | undefined,
+): GQL.AffiliateCampaignDiscoveryRulesInput {
+  const fallback = createDefaultDiscoveryRules();
+  return {
+    keyword: value?.keyword ?? null,
+    followerCount: {
+      minimum: value?.followerCount?.minimum ?? null,
+      maximum: value?.followerCount?.maximum ?? null,
+    },
+    audience: {
+      ageRanges: [...(value?.audience?.ageRanges ?? [])],
+      genderDistribution: value?.audience?.genderDistribution
+        ? {
+            gender: value.audience.genderDistribution.gender,
+            minimumPercentage: value.audience.genderDistribution.minimumPercentage,
+          }
+        : null,
+    },
+    salesPerformance30d: {
+      gmvRanges: [...(value?.salesPerformance30d?.gmvRanges ?? [])],
+      unitsSoldRanges: [...(value?.salesPerformance30d?.unitsSoldRanges ?? [])],
+    },
+    categories: (value?.categories ?? []).map((category) => ({
+      parentCategoryId: category.parentCategoryId,
+      childCategoryIds: [...(category.childCategoryIds ?? [])],
+    })),
+    contentPerformance30d: value?.contentPerformance30d
+      ? { ...value.contentPerformance30d }
+      : fallback.contentPerformance30d,
+    affiliatePerformance30d: value?.affiliatePerformance30d
+      ? { ...value.affiliatePerformance30d }
+      : fallback.affiliatePerformance30d,
+    marketSpecific: {
+      languages: [...(value?.marketSpecific?.languages ?? [])],
+      creatorLevels: [...(value?.marketSpecific?.creatorLevels ?? [])],
+      categoryPros: [...(value?.marketSpecific?.categoryPros ?? [])],
+    },
+  };
+}
+
+function optionalNumber(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function CampaignMetric({
   label,
   value,
@@ -2127,13 +2452,7 @@ function CampaignMetric({
 }
 
 function toggleValue<T extends string>(values: readonly T[], value: T): T[] {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value];
-}
-
-function splitCsv(value: string): string[] {
-  return [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))];
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
 
 function marketplaceEnumLabel(value: string): string {
@@ -2159,8 +2478,7 @@ function campaignRuleSummary(
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   if (
-    campaign.selectionPolicy.strategy ===
-    GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3
+    campaign.selectionPolicy.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3
   ) {
     return campaign.selectionPolicy.minimumExpectedSalesUnits == null
       ? t("ecommerce.affiliateCampaign.noExpectedSalesFloor")
@@ -2213,7 +2531,9 @@ function CampaignFunnel({
           <div key={key}>
             <span>{t(`ecommerce.affiliateCampaign.funnel.${key}`)}</span>
             <strong>{formatNumber(value)}</strong>
-            <i><b style={{ width: `${Math.max(value > 0 ? 3 : 0, (value / maximum) * 100)}%` }} /></i>
+            <i>
+              <b style={{ width: `${Math.max(value > 0 ? 3 : 0, (value / maximum) * 100)}%` }} />
+            </i>
           </div>
         ))}
       </div>
@@ -2221,13 +2541,7 @@ function CampaignFunnel({
   );
 }
 
-function CampaignWizardSteps({
-  step,
-  t,
-}: {
-  step: number;
-  t: (key: string) => string;
-}) {
+function CampaignWizardSteps({ step, t }: { step: number; t: (key: string) => string }) {
   const labels = [
     t("ecommerce.affiliateCampaign.wizardShop"),
     t("ecommerce.affiliateCampaign.wizardTarget"),
@@ -2239,7 +2553,11 @@ function CampaignWizardSteps({
       {labels.map((label, index) => {
         const number = index + 1;
         return (
-          <div key={label} data-active={number === step || undefined} data-complete={number < step || undefined}>
+          <div
+            key={label}
+            data-active={number === step || undefined}
+            data-complete={number < step || undefined}
+          >
             <span>{number < step ? <CheckIcon size={15} /> : number}</span>
             <strong>{label}</strong>
           </div>
@@ -2258,10 +2576,7 @@ function ConfirmationItem({ title, value }: { title: string; value: string }) {
   );
 }
 
-function campaignStatusLabel(
-  status: GQL.AffiliateCampaignStatus,
-  t: (key: string) => string,
-) {
+function campaignStatusLabel(status: GQL.AffiliateCampaignStatus, t: (key: string) => string) {
   return t(`ecommerce.affiliateCampaign.status.${status.toLowerCase()}`);
 }
 
@@ -2272,10 +2587,7 @@ function isTerminalCampaignStatus(status: GQL.AffiliateCampaignStatus): boolean 
   );
 }
 
-function campaignStateLabel(
-  status: string,
-  t: (key: string) => string,
-) {
+function campaignStateLabel(status: string, t: (key: string) => string) {
   return t(`ecommerce.affiliateCampaign.creatorState.${status.toLowerCase()}`);
 }
 
@@ -2288,8 +2600,7 @@ function executionStatusLabel(
 
 function campaignCommissionRate(campaign: GQL.AffiliateCampaign): number {
   const value = Number(
-    (campaign as GQL.AffiliateCampaign & { commissionRatePercent?: number })
-      .commissionRatePercent,
+    (campaign as GQL.AffiliateCampaign & { commissionRatePercent?: number }).commissionRatePercent,
   );
   return Number.isFinite(value) ? value : 10;
 }
@@ -2315,6 +2626,8 @@ function campaignErrorMessage(
   const raw = error instanceof Error ? error.message : String(error);
   const mappings: Array<[string, string]> = [
     ["EXPECTED_SALES_V3_MODEL_NOT_READY", "modelNotReady"],
+    ["CAMPAIGN_DRAFT_DELETE_ONLY", "draftDeleteOnly"],
+    ["CAMPAIGN_DRAFT_HAS_HISTORY", "draftHasHistory"],
     ["CAMPAIGN_RECONFIGURATION_REQUIRED", "reconfigurationRequired"],
     ["CAMPAIGN_SEARCH_PHRASES_REQUIRED", "invalidSearchPhrases"],
     ["CAMPAIGN_COPY_REQUIRED", "copyRequired"],
@@ -2353,10 +2666,7 @@ function campaignRiskLabel(
   return t("ecommerce.affiliateCampaign.riskNormal");
 }
 
-function campaignExecutionReasonLabel(
-  reason: string,
-  t: (key: string) => string,
-): string {
+function campaignExecutionReasonLabel(reason: string, t: (key: string) => string): string {
   if (reason === "INSUFFICIENT_QUALIFIED_CREATORS") {
     return t("ecommerce.affiliateCampaign.underDeliveryInsufficientCreators");
   }
@@ -2371,7 +2681,9 @@ function formatNumber(value: number) {
 }
 
 function formatOptionalNumber(value?: number | null) {
-  return value == null ? "—" : new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
+  return value == null
+    ? "—"
+    : new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 }
 
 function formatScore(value?: number | null) {
