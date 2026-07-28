@@ -51,12 +51,41 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
       trainedAt
       featureVersion
       modelVersion
+      expectedSales {
+        modelStatus
+        modelStage
+        featureTemporalBasis
+        requestedTenantScope
+        requestedTenantId
+        effectiveTenantScope
+        effectiveTenantId
+        modelVersion { modelFamily modelStage tenantScope tenantId tenantModelName contractHash featureVersion trainedAt trainingRunId trainingIndex bentomlTag modelVersionKey }
+      }
+      humanDecision {
+        modelStatus
+        modelStage
+        featureTemporalBasis
+        requestedTenantScope
+        requestedTenantId
+        effectiveTenantScope
+        effectiveTenantId
+        modelVersion { modelFamily modelStage tenantScope tenantId tenantModelName contractHash featureVersion trainedAt trainingRunId trainingIndex bentomlTag modelVersionKey }
+      }
       predictions {
         cacheId
         status
         message
         expectedSalesUnits
         expectedSalesPercentile
+        humanDecision {
+          status
+          message
+          humanApprovalProbability
+          humanApprovalPercentile
+          wouldApprove
+          approvalCutoff
+          historicalApprovalRate
+        }
         subject {
           platformApplicationId
           creatorId

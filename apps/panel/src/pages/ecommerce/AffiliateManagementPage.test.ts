@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
   selectAffiliateProposalItems,
 } from "./AffiliateManagementPage.js";
@@ -23,6 +24,21 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(
       selectAffiliateProposalItems(queried, [{ id: "stale-proposal" }]),
     ).toBe(queried);
+  });
+
+  it("keeps Expected Sales and Human Decision stages independent", () => {
+    expect(
+      isBootstrapModelSelection({
+        modelStage: "EVENT_TIME",
+        featureTemporalBasis: "DECISION_TIME",
+      }),
+    ).toBe(false);
+    expect(
+      isBootstrapModelSelection({
+        modelStage: "BOOTSTRAP",
+        featureTemporalBasis: "CURRENT_STATE_PROXY",
+      }),
+    ).toBe(true);
   });
 });
 

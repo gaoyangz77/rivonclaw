@@ -1929,6 +1929,17 @@ export interface AffiliateExpectedSalesMissingField {
   reason: Scalars['String']['output'];
 }
 
+export interface AffiliateExpectedSalesModelSelection {
+  effectiveTenantId?: Maybe<Scalars['String']['output']>;
+  effectiveTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
+  featureTemporalBasis?: Maybe<AffiliateExpectedSalesFeatureTemporalBasis>;
+  modelStage?: Maybe<AffiliateExpectedSalesModelStage>;
+  modelStatus?: Maybe<Scalars['String']['output']>;
+  modelVersion?: Maybe<AffiliateExpectedSalesModelVersion>;
+  requestedTenantId?: Maybe<Scalars['String']['output']>;
+  requestedTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
+}
+
 export const AffiliateExpectedSalesModelStage = {
   Bootstrap: 'BOOTSTRAP',
   EventTime: 'EVENT_TIME'
@@ -1937,9 +1948,12 @@ export const AffiliateExpectedSalesModelStage = {
 export type AffiliateExpectedSalesModelStage = typeof AffiliateExpectedSalesModelStage[keyof typeof AffiliateExpectedSalesModelStage];
 export interface AffiliateExpectedSalesModelVersion {
   bentomlTag?: Maybe<Scalars['String']['output']>;
+  contractHash?: Maybe<Scalars['String']['output']>;
   featureVersion?: Maybe<Scalars['String']['output']>;
   modelFamily?: Maybe<Scalars['String']['output']>;
+  modelStage?: Maybe<AffiliateExpectedSalesModelStage>;
   modelVersionKey?: Maybe<Scalars['String']['output']>;
+  tenantId?: Maybe<Scalars['String']['output']>;
   tenantModelName?: Maybe<Scalars['String']['output']>;
   tenantScope?: Maybe<Scalars['String']['output']>;
   trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -1985,10 +1999,11 @@ export interface AffiliateExpectedSalesPredictionInterval {
 export interface AffiliateExpectedSalesPredictionPayload {
   effectiveTenantId?: Maybe<Scalars['String']['output']>;
   effectiveTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
+  expectedSales?: Maybe<AffiliateExpectedSalesModelSelection>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   featureTemporalBasis?: Maybe<AffiliateExpectedSalesFeatureTemporalBasis>;
   featureVersion?: Maybe<Scalars['String']['output']>;
-  humanBaselineModelVersion?: Maybe<AffiliateExpectedSalesModelVersion>;
+  humanDecision?: Maybe<AffiliateExpectedSalesModelSelection>;
   modelMetadata?: Maybe<AffiliateExpectedSalesModelVersion>;
   modelStage?: Maybe<AffiliateExpectedSalesModelStage>;
   modelStatus?: Maybe<Scalars['String']['output']>;
@@ -2078,7 +2093,7 @@ export interface AffiliateExpectedSalesSubjectPrediction {
   expectedSalesPercentile?: Maybe<Scalars['Float']['output']>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   featureAsOf?: Maybe<Scalars['DateTimeISO']['output']>;
-  humanBaseline?: Maybe<AffiliateHumanBaselinePrediction>;
+  humanDecision?: Maybe<AffiliateHumanDecisionPrediction>;
   message?: Maybe<Scalars['String']['output']>;
   missingFields?: Maybe<Array<AffiliateExpectedSalesMissingField>>;
   predictionBucket?: Maybe<AffiliateExpectedSalesPredictionBucket>;
@@ -2183,7 +2198,7 @@ export const AffiliateHistoryPartKind = {
 } as const;
 
 export type AffiliateHistoryPartKind = typeof AffiliateHistoryPartKind[keyof typeof AffiliateHistoryPartKind];
-export interface AffiliateHumanBaselinePrediction {
+export interface AffiliateHumanDecisionPrediction {
   approvalCutoff?: Maybe<Scalars['Float']['output']>;
   historicalApprovalRate?: Maybe<Scalars['Float']['output']>;
   humanApprovalPercentile?: Maybe<Scalars['Float']['output']>;
@@ -2191,7 +2206,7 @@ export interface AffiliateHumanBaselinePrediction {
   message?: Maybe<Scalars['String']['output']>;
   quality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
   status?: Maybe<Scalars['String']['output']>;
-  /** Whether the frozen human-baseline imitation model predicts historical staff would likely approve this subject. */
+  /** Whether the selected Human Decision model predicts historical staff would likely approve this subject. */
   wouldApprove?: Maybe<Scalars['Boolean']['output']>;
 }
 
