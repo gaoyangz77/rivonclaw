@@ -450,6 +450,7 @@ function withCheckpointContext(
   options: {
     preflightItems?: GQL.AffiliateCreatorMessageHistoryItem[];
     creatorProfiles?: GQL.AffiliateCreatorIdentity[];
+    involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[];
   } = {},
 ): (query: string, variables?: unknown) => Promise<unknown> {
   return async (query, variables) => {
@@ -475,6 +476,13 @@ function withCheckpointContext(
           relationshipOperationalConfigRevision: 2,
           businessDeveloperIdSnapshot: "bd-001",
           businessDeveloperConfigRevision: 3,
+          involvedShopInstructions: options.involvedShopInstructions ?? [
+            {
+              shopId: "shop-001",
+              shopName: "Affiliate Test Shop",
+              businessPrompt: "Prefer creator-product fit over raw audience size.",
+            },
+          ],
           baseMatchesCommitted: true,
           truncated: false,
           events: [],
@@ -901,12 +909,22 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
     expect(agentCall?.[1]?.message).toContain("Reasons: SAMPLE_PENDING_REVIEW");
+    expect(agentCall?.[1]?.message).toContain("Shop ID: shop-001");
     expect(agentCall?.[1]?.message).toContain("Sample Application Record ID: sample-record-001");
     expect(agentCall?.[1]?.message).not.toContain("Current Authoritative Workspace Snapshot");
     expect(agentCall?.[1]?.message).not.toContain("Authoritative Sample Application State");
     expect(agentCall?.[1]?.message).not.toContain("prediction");
     expect(agentCall?.[1]?.message).not.toContain("handledSignalAt");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "### Affiliate Test Shop (Shop ID: shop-001)",
+    );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "Prefer creator-product fit over raw audience size.",
+    );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "the Business Developer instructions override the shop instructions",
+    );
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
       "/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md",
     );
@@ -1966,6 +1984,29 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("Collaboration Record ID: collab-001");
     expect(request?.message).not.toContain("Lifecycle Stage");
     expect(request?.message).not.toContain("Backend Work Context");
+  });
+
+  it("renders the producing shop for every agenda item in a cross-shop Relationship bundle", () => {
+    const base = createSampleReviewWorkItem();
+    const firstAgenda = (base.creatorRelationship?.agendaItems ?? [])[0]!;
+    const secondAgenda = {
+      ...firstAgenda,
+      key: "collaboration:collab-002:COMPLETE_COLLABORATION_TASK",
+      shopId: "shop-002",
+      collaborationRecordId: "collab-002",
+      sampleApplicationRecordId: "sample-record-002",
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createSampleReviewWorkItem({
+        agentWorkingAgendaItems: [firstAgenda, secondAgenda],
+      }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain("1. Agenda Item:");
+    expect(request?.message).toContain("2. Agenda Item:");
+    expect(request?.message).toContain("Shop ID: shop-001");
+    expect(request?.message).toContain("Shop ID: shop-002");
   });
 
   it("renders a revision-requested proposal only from the dispatching working agenda", () => {

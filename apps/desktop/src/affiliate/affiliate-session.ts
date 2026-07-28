@@ -169,8 +169,22 @@ export class AffiliateSession {
   private buildExtraSystemPrompt(
     runMode: AffiliateAgentRunMode,
     businessDeveloperPrompt?: string | null,
+    involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[],
     workflowSkillCatalog?: string,
   ): string {
+    const effectiveShopInstructions =
+      involvedShopInstructions?.length
+        ? involvedShopInstructions
+        : [{
+            shopId: this.shop.objectId,
+            shopName: this.shop.shopName,
+            businessPrompt: this.shop.businessPrompt ?? null,
+          }];
+    const renderedShopInstructions = effectiveShopInstructions.flatMap((shop) => [
+      `### ${shop.shopName} (Shop ID: ${shop.shopId})`,
+      shop.businessPrompt?.trim() || "(none configured)",
+      "",
+    ]);
     return [
       "## Affiliate / Creator Management Agent",
       "",
@@ -205,11 +219,16 @@ export class AffiliateSession {
       "",
       workflowSkillCatalog?.trim() || "",
       "",
-      "## Merchant Affiliate Instructions",
-      this.shop.businessPrompt?.trim() || "(none configured)",
+      "## Involved Shop Affiliate Instructions",
+      "- Match each Agent Working Agenda item to its Shop ID and apply only that shop's instructions.",
+      ...renderedShopInstructions,
       "",
       "## Assigned Business Developer Instructions",
       businessDeveloperPrompt?.trim() || "(none configured)",
+      "",
+      "## Business Instruction Precedence",
+      "- The assigned Business Developer is the Relationship business owner. If its instructions conflict with the matching shop instructions, the Business Developer instructions override the shop instructions.",
+      "- Business instructions never override system, platform, safety, authorization, or action-contract rules.",
     ].join("\n");
   }
 
@@ -264,6 +283,7 @@ export class AffiliateSession {
       businessDeveloperConfigRevision:
         dispatchContext.checkpoint.businessDeveloperConfigRevision ?? null,
       businessDeveloperPrompt: dispatchContext.checkpoint.businessDeveloper?.businessPrompt ?? null,
+      involvedShopInstructions: dispatchContext.checkpoint.involvedShopInstructions,
     });
     if (result.runId) {
       this.pendingRunCompletions.set(result.runId, workItem);
@@ -358,6 +378,7 @@ export class AffiliateSession {
     businessDeveloperIdSnapshot?: string | null;
     businessDeveloperConfigRevision?: number | null;
     businessDeveloperPrompt?: string | null;
+    involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[];
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
     const runMode = params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING;
@@ -375,6 +396,7 @@ export class AffiliateSession {
     const systemPrompt = this.buildExtraSystemPrompt(
       runMode,
       params.businessDeveloperPrompt,
+      params.involvedShopInstructions,
       workflowSkillCatalog,
     );
     this.logDispatchPromptContext(params, systemPrompt);

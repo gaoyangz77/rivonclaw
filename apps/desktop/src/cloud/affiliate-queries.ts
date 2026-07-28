@@ -11,6 +11,11 @@ export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
       businessDeveloperConfigRevision
       baseMatchesCommitted
       truncated
+      involvedShopInstructions {
+        shopId
+        shopName
+        businessPrompt
+      }
       businessDeveloper {
         id
         displayName

@@ -3362,7 +3362,7 @@ export default {
         "如果保持约 {{approvalRate}} 的历史通过率，模型对应的最低预期销量门槛。",
       intelligenceConfiguredThresholdTitle: "当前店铺设置",
       intelligenceConfiguredThresholdHint:
-        "当 Campaign 没有单独阈值时，Agent 默认使用的最低预期销量。",
+        "有可用预测时展示给 Agent 的店铺参考线，并非自动批准规则。",
       intelligenceConfiguredThresholdUnset: "未设置",
       intelligenceTrainingScope:
         "{{window}} · 训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
@@ -4443,7 +4443,7 @@ export default {
         decisionThresholds: "决策阈值",
         minExpectedSalesUnits: "最低预期销量",
         minExpectedSalesUnitsHint:
-          "当合作没有更具体的 Campaign 阈值时，Agent 会把这个数作为默认放量/寄样判断参考。留空表示不配置默认数值。",
+          "仅作为有可用预期销量预测时的店铺级 Agent 判断参考，不会自动批准或拒绝样品。Campaign 自动筛选只使用 Campaign 自身明确配置的阈值。",
         noThreshold: "未设置",
         invalidDecisionThreshold: "最低预期销量必须是 0 或更大的数字。",
         businessPrompt: "达人业务提示词",

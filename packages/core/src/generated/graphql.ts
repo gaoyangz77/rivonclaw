@@ -1451,6 +1451,7 @@ export interface AffiliateContextBuilderPayload {
   businessDeveloperIdSnapshot?: Maybe<Scalars['ID']['output']>;
   creatorRelationship: AffiliateCreatorRelationship;
   events: Array<AffiliateRelationshipTimelineItem>;
+  involvedShopInstructions: Array<AffiliateInvolvedShopInstruction>;
   relationshipOperationalConfigRevision: Scalars['Int']['output'];
   targetEventCursor: Scalars['Int']['output'];
   truncated: Scalars['Boolean']['output'];
@@ -1863,14 +1864,14 @@ export interface AffiliateCreatorSampleApplicationListPayload {
   username?: Maybe<Scalars['String']['output']>;
 }
 
-/** Structured affiliate decision thresholds. Campaign thresholds override shop-level thresholds for the same decision surface. */
+/** Shop-level affiliate decision references. They inform Agent judgment but do not directly approve or reject a Sample Application. */
 export interface AffiliateDecisionThresholds {
-  /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
+  /** Default shop reference line for an available Creator-product expected-sales prediction. It is not an automatic Sample decision. Deterministic Campaign filtering requires an explicit Campaign selection-policy threshold. */
   minExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateDecisionThresholdsInput {
-  /** Minimum expected sales units required before the merchant should invest in or continue a creator-product collaboration by default. */
+  /** Default shop reference line for an available Creator-product expected-sales prediction. It is not an automatic Sample decision. Deterministic Campaign filtering requires an explicit Campaign selection-policy threshold. */
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
@@ -2180,6 +2181,12 @@ export interface AffiliateHumanReviewRequestInput {
   question: Scalars['String']['input'];
   /** Why a human decision is required for this concrete proposed action bundle. */
   reason: AffiliateHumanReviewReason;
+}
+
+export interface AffiliateInvolvedShopInstruction {
+  businessPrompt?: Maybe<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
 }
 
 export const AffiliateLifecycleActorRole = {
@@ -3035,7 +3042,7 @@ export interface AffiliateServiceSettings {
   businessPrompt?: Maybe<Scalars['String']['output']>;
   /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Empty or null means no device assigned. */
   csDeviceId?: Maybe<Scalars['String']['output']>;
-  /** Structured default decision thresholds for affiliate automation. Campaign-level thresholds override these values when present. */
+  /** Shop-level decision references for Agent interpretation. Campaign selection uses only thresholds explicitly frozen in that Campaign. */
   decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
   /** Whether affiliate creator-management inbound automation is enabled for this shop. */
   enabled: Scalars['Boolean']['output'];
@@ -3051,7 +3058,7 @@ export interface AffiliateServiceSettingsInput {
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
   /** Device ID of the desktop instance handling affiliate inbound signals. Omit or pass null to keep, empty string to clear. */
   csDeviceId?: InputMaybe<Scalars['String']['input']>;
-  /** Default affiliate decision thresholds. Omit or pass null to keep, empty object to clear. */
+  /** Shop-level Affiliate decision references. Omit or pass null to keep, empty object to clear. These do not directly approve or reject Sample Applications. */
   decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
   /** Affiliate service enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;

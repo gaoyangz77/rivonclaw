@@ -72,6 +72,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
         key: `work:${workItem.id}`,
         workKind: workItem.workKind,
         requiredAction: workItem.requiredAction,
+        shopId: workItem.triggerShopId,
         reasons: workItem.processReasons ?? [],
         collaborationRecordId: workItem.collaborationRecordId ?? null,
         sampleApplicationRecordId: workItem.sampleApplicationRecord?.id ?? null,
@@ -97,6 +98,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       `${index + 1}. Agenda Item: ${item.key}`,
       `   Work Kind: ${item.workKind}`,
       `   Required Action: ${item.requiredAction}`,
+      `   Shop ID: ${item.shopId ?? workItem.triggerShopId}`,
       `   Reasons: ${(item.reasons ?? []).join(", ") || "(none)"}`,
     );
     if (item.collaborationRecordId) {

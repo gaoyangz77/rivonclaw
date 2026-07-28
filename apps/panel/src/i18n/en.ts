@@ -3547,7 +3547,7 @@ export default {
         "The expected-sales threshold that would keep roughly the historical approval rate of {{approvalRate}}.",
       intelligenceConfiguredThresholdTitle: "Current shop setting",
       intelligenceConfiguredThresholdHint:
-        "The default minimum expected sales used by the agent when no campaign threshold is set.",
+        "The shop reference line shown to the Agent with an available prediction; it is not an automatic approval rule.",
       intelligenceConfiguredThresholdUnset: "Not set",
       intelligenceTrainingScope:
         "{{window}} · trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
@@ -4696,7 +4696,7 @@ export default {
         decisionThresholds: "Decision Thresholds",
         minExpectedSalesUnits: "Minimum expected sales units",
         minExpectedSalesUnitsHint:
-          "When a collaboration has no more specific campaign threshold, the agent uses this as the default proceed/sample-review reference. Leave empty for no default numeric threshold.",
+          "A shop-level reference for Agent judgment when an expected-sales prediction is available. It never auto-approves or rejects a sample. Campaign automation uses only its explicitly configured threshold.",
         noThreshold: "Not set",
         invalidDecisionThreshold:
           "Minimum expected sales units must be a number greater than or equal to 0.",
