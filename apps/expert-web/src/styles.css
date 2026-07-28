@@ -429,8 +429,9 @@ textarea:focus {
 .conversation-item {
   position: relative;
   min-width: 0;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  align-items: stretch;
   border-radius: 9px;
 }
 
@@ -441,7 +442,9 @@ textarea:focus {
 
 .conversation-title {
   min-width: 0;
-  flex: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
   overflow: hidden;
   padding: 11px 12px;
   border: 0;
@@ -466,13 +469,16 @@ textarea:focus {
 
 .conversation-more {
   width: 32px;
-  flex: 0 0 32px;
-  align-self: stretch;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border: 0;
   border-radius: 8px;
   color: #aebed3;
   background: transparent;
   font-size: 15px;
+  line-height: 1;
   letter-spacing: 0.03em;
   opacity: 0;
 }
@@ -485,8 +491,8 @@ textarea:focus {
 
 .conversation-actions {
   position: relative;
-  flex: 0 0 32px;
-  align-self: stretch;
+  display: grid;
+  place-items: center;
 }
 
 .conversation-menu-portal {
@@ -1151,8 +1157,9 @@ textarea:focus {
 .send-button,
 .stop-button {
   position: absolute;
+  top: 50%;
   right: 11px;
-  bottom: 10px;
+  transform: translateY(-50%);
   min-width: 62px;
   height: 36px;
   border: 0;
@@ -1182,6 +1189,16 @@ textarea:focus {
   margin-top: 8px;
   color: #8996a8;
   font-size: 10px;
+}
+
+.conversation-loading {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #708198;
+  font-size: 12px;
 }
 
 .onboarding-backdrop {

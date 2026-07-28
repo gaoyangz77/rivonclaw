@@ -162,13 +162,14 @@ export const ExpertStore = types
         role: "USER" | "ASSISTANT" | "SYSTEM";
         content: string;
         createdAt: string;
-        editedAt?: string;
+        editedAt?: string | null;
         suggestedQuestions?: string[];
       }>,
     ) {
       self.messages.replace(
         messages.map((message) => ({
           ...message,
+          editedAt: message.editedAt ?? undefined,
           suggestedQuestions: message.suggestedQuestions ?? [],
         })),
       );

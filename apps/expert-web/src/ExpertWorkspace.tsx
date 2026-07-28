@@ -26,7 +26,7 @@ interface ConversationData {
       role: "USER" | "ASSISTANT" | "SYSTEM";
       content: string;
       suggestedQuestions: string[];
-      editedAt?: string;
+      editedAt?: string | null;
       createdAt: string;
     }>;
   };
@@ -71,26 +71,53 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   const [messageEditDraft, setMessageEditDraft] = useState("");
   const [savingMessage, setSavingMessage] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string>();
+  const [loadingConversationId, setLoadingConversationId] = useState<string>();
+  const [loadedConversationId, setLoadedConversationId] = useState<string>();
   const subscriptionRef = useRef<{ unsubscribe(): void } | null>(null);
+  const conversationLoadRequestRef = useRef(0);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
 
   const loadConversation = useCallback(
     async (id: string, force = false) => {
-      const result = await apolloClient.query<ConversationData>({
-        query: EXPERT_CONVERSATION,
-        variables: { id },
-        fetchPolicy: "network-only",
-      });
-      if (
-        result.data?.expertConversation &&
-        store.selectedConversationId === id &&
-        (force || !store.isBusy)
-      ) {
-        store.replaceMessages(result.data.expertConversation.messages);
+      const requestId = ++conversationLoadRequestRef.current;
+      setLoadingConversationId(id);
+      try {
+        const result = await apolloClient.query<ConversationData>({
+          query: EXPERT_CONVERSATION,
+          variables: { id },
+          fetchPolicy: "network-only",
+        });
+        if (!result.data?.expertConversation) {
+          throw new Error("Expert conversation did not return any data");
+        }
+        if (
+          requestId === conversationLoadRequestRef.current &&
+          store.selectedConversationId === id &&
+          (force || !store.isBusy)
+        ) {
+          store.replaceMessages(result.data.expertConversation.messages);
+          store.setError(undefined);
+          setLoadedConversationId(id);
+        }
+        return true;
+      } catch (error) {
+        console.error("Unable to load Expert conversation", errorMessage(error));
+        if (
+          requestId === conversationLoadRequestRef.current &&
+          store.selectedConversationId === id
+        ) {
+          setLoadedConversationId(id);
+          store.setError(t("workspace.historyLoadFailed"));
+        }
+        return false;
+      } finally {
+        if (requestId === conversationLoadRequestRef.current) {
+          setLoadingConversationId(undefined);
+        }
       }
     },
-    [store],
+    [store, t],
   );
 
   const stopSubscription = useCallback(() => {
@@ -166,7 +193,11 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
 
   async function refreshAfterRun(conversationId: string) {
     try {
-      await Promise.all([loadConversation(conversationId, true), reloadBootstrap()]);
+      const [conversationLoaded] = await Promise.all([
+        loadConversation(conversationId, true),
+        reloadBootstrap(),
+      ]);
+      if (!conversationLoaded) store.setError(t("workspace.refreshFailed"));
     } catch (error) {
       console.error("Failed to refresh the completed Expert run", error);
       store.setError(t("workspace.refreshFailed"));
@@ -256,12 +287,28 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
 
   function startNewConversation() {
     if (store.isBusy) return;
+    conversationLoadRequestRef.current += 1;
+    setLoadingConversationId(undefined);
+    setLoadedConversationId(undefined);
     setConversationMenu(undefined);
     setRenamingConversationId(undefined);
     setEditingMessageId(undefined);
     setDraft("");
     store.startNewConversation();
     requestAnimationFrame(() => composerRef.current?.focus());
+  }
+
+  function openConversation(id: string) {
+    if (store.isBusy) return;
+    setConversationMenu(undefined);
+    setRenamingConversationId(undefined);
+    setEditingMessageId(undefined);
+    if (store.selectedConversationId === id) {
+      void loadConversation(id, true);
+      return;
+    }
+    setLoadedConversationId(undefined);
+    store.selectConversation(id);
   }
 
   function beginRename(id: string, title: string) {
@@ -397,7 +444,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }
 
   function renderConversationMenu() {
-    if (!conversationMenu) return null;
+    if (!conversationMenu || !conversationMenu.anchor.isConnected) return null;
     const rect = conversationMenu.anchor.getBoundingClientRect();
     const menuWidth = 152;
     const menuHeight = 94;
@@ -486,7 +533,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                     <button
                       className="conversation-title"
                       disabled={store.isBusy}
-                      onClick={() => store.selectConversation(conversation.id)}
+                      onClick={() => openConversation(conversation.id)}
                     >
                       {conversation.title}
                     </button>
@@ -500,13 +547,14 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                         className="conversation-more"
                         disabled={store.isBusy}
                         onClick={(event) => {
+                          const anchor = event.currentTarget;
                           setConversationMenu((current) =>
                             current?.id === conversation.id
                               ? undefined
                               : {
                                   id: conversation.id,
                                   title: conversation.title,
-                                  anchor: event.currentTarget,
+                                  anchor,
                                 },
                           );
                         }}
@@ -550,8 +598,29 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
           </div>
         </header>
 
-        <div className="message-scroll">
-          {store.messages.length === 0 && !store.pendingQuestion && !store.streamingAnswer ? (
+        <div
+          aria-busy={loadingConversationId === store.selectedConversationId}
+          className="message-scroll"
+        >
+          {store.selectedConversationId &&
+          loadedConversationId !== store.selectedConversationId &&
+          store.messages.length === 0 &&
+          !store.pendingQuestion &&
+          !store.streamingAnswer ? (
+            <div className="conversation-loading" aria-live="polite">
+              <span className="thinking-dots" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span>{t("workspace.loadingHistory")}</span>
+            </div>
+          ) : null}
+          {store.messages.length === 0 &&
+          !store.pendingQuestion &&
+          !store.streamingAnswer &&
+          (!store.selectedConversationId ||
+            loadedConversationId === store.selectedConversationId) ? (
             <div className="empty-state">
               <p className="eyebrow">{t("workspace.askKicker")}</p>
               <h1>{t("workspace.emptyTitle")}</h1>
