@@ -60,6 +60,91 @@ describe("ExpertWorkspace chat interactions", () => {
     expect((newConversation as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("loads persisted history with nullable edit timestamps after refresh", async () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations: [conversation] });
+    vi.mocked(apolloClient.query).mockResolvedValueOnce({
+      data: {
+        expertConversation: {
+          messages: [
+            {
+              id: "question-1",
+              role: "USER",
+              content: "刷新后仍应显示的问题",
+              suggestedQuestions: [],
+              editedAt: null,
+              createdAt: "2026-07-28T00:00:00.000Z",
+            },
+            {
+              id: "answer-1",
+              role: "ASSISTANT",
+              content: "刷新后仍应显示的回答",
+              suggestedQuestions: [],
+              editedAt: null,
+              createdAt: "2026-07-28T00:01:00.000Z",
+            },
+          ],
+        },
+      },
+    } as never);
+
+    renderWorkspace(store);
+
+    expect(screen.getByText("正在加载对话…")).not.toBeNull();
+    await waitFor(() => {
+      expect(screen.getByText("刷新后仍应显示的问题")).not.toBeNull();
+      expect(screen.getByText("刷新后仍应显示的回答")).not.toBeNull();
+    });
+    expect(store.messages[0]?.editedAt).toBeUndefined();
+  });
+
+  it("reloads the currently selected conversation when it is clicked again", async () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations: [conversation] });
+    vi.mocked(apolloClient.query)
+      .mockResolvedValueOnce({
+        data: {
+          expertConversation: {
+            messages: [
+              {
+                id: "answer-1",
+                role: "ASSISTANT",
+                content: "第一次加载",
+                suggestedQuestions: [],
+                editedAt: null,
+                createdAt: "2026-07-28T00:01:00.000Z",
+              },
+            ],
+          },
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        data: {
+          expertConversation: {
+            messages: [
+              {
+                id: "answer-1",
+                role: "ASSISTANT",
+                content: "重新加载后的内容",
+                suggestedQuestions: [],
+                editedAt: null,
+                createdAt: "2026-07-28T00:01:00.000Z",
+              },
+            ],
+          },
+        },
+      } as never);
+
+    renderWorkspace(store);
+    await screen.findByText("第一次加载");
+    fireEvent.click(screen.getByRole("button", { name: conversation.title }));
+
+    await waitFor(() => {
+      expect(screen.getByText("重新加载后的内容")).not.toBeNull();
+    });
+    expect(apolloClient.query).toHaveBeenCalledTimes(2);
+  });
+
   it("always presents an explicit waiting state before the first answer event", () => {
     const store = ExpertStore.create();
     store.startNewConversation();
