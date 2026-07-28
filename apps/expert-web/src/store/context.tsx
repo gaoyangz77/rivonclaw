@@ -5,8 +5,14 @@ import { ExpertStore, expertStore } from "./expert-store.js";
 type ExpertStoreInstance = Instance<typeof ExpertStore>;
 const StoreContext = createContext<ExpertStoreInstance>(expertStore);
 
-export function ExpertStoreProvider({ children }: { children: React.ReactNode }) {
-  return <StoreContext.Provider value={expertStore}>{children}</StoreContext.Provider>;
+export function ExpertStoreProvider({
+  children,
+  store = expertStore,
+}: {
+  children: React.ReactNode;
+  store?: ExpertStoreInstance;
+}) {
+  return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }
 
 export function useExpertStore(): ExpertStoreInstance {
