@@ -10,7 +10,6 @@ import {
   EXPERT_CONVERSATION,
   EXPERT_RUN_EVENTS,
   RENAME_EXPERT_CONVERSATION,
-  UPDATE_EXPERT_MESSAGE,
 } from "./api/operations.js";
 import { useExpertStore } from "./store/context.js";
 import { errorMessage } from "./error.js";
@@ -206,20 +205,19 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     }
   }
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    const question = draft.trim();
-    if (!question || store.isBusy) return;
-    setDraft("");
-    store.prepareRun(question);
+  async function startAgentRun(question: string, replaceMessageId?: string) {
+    if (replaceMessageId) store.prepareRerun(replaceMessageId, question);
+    else store.prepareRun(question);
+    const existingConversationId = store.selectedConversationId;
     try {
-      const conversationId = store.selectedConversationId ?? (await createConversation());
+      const conversationId = existingConversationId ?? (await createConversation());
       const result = await apolloClient.mutate<DispatchData>({
         mutation: DISPATCH_EXPERT_MESSAGE,
         variables: {
           conversationId,
           text: question,
           idempotencyKey: crypto.randomUUID(),
+          replaceMessageId,
         },
       });
       const runId = result.data?.dispatchExpertMessage.run.id;
@@ -263,11 +261,25 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             store.failRun(t("workspace.connectionFailed"));
           },
         });
+      return true;
     } catch (error) {
       console.error("Unable to dispatch Expert question", errorMessage(error));
       store.failRun(t("workspace.startFailed"));
-      setDraft(question);
+      if (replaceMessageId && existingConversationId) {
+        await loadConversation(existingConversationId, true);
+      } else {
+        setDraft(question);
+      }
+      return false;
     }
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    const question = draft.trim();
+    if (!question || store.isBusy) return;
+    setDraft("");
+    await startAgentRun(question);
   }
 
   async function cancel() {
@@ -367,22 +379,10 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     if (!content || savingMessage) return;
     setSavingMessage(true);
     try {
-      const result = await apolloClient.mutate<{
-        updateExpertMessage: { id: string; content: string; editedAt?: string };
-      }>({
-        mutation: UPDATE_EXPERT_MESSAGE,
-        variables: { id, content },
-      });
-      const message = result.data?.updateExpertMessage;
-      if (!message) throw new Error("Expert message was not updated");
-      store.updateMessageContent(message.id, message.content, message.editedAt);
-      setEditingMessageId(undefined);
-      const latestMessage = store.messages[store.messages.length - 1];
-      if (latestMessage?.id === id && latestMessage.role === "USER") {
-        await reloadBootstrap();
-      }
+      const started = await startAgentRun(content, id);
+      if (started) setEditingMessageId(undefined);
     } catch (error) {
-      console.error("Unable to update Expert message", error);
+      console.error("Unable to resubmit Expert message", error);
       store.setError(t("workspace.messageEditFailed"));
     } finally {
       setSavingMessage(false);
@@ -658,7 +658,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                     <textarea
                       aria-label={t("workspace.editMessage")}
                       autoFocus
-                      maxLength={message.role === "USER" ? 8000 : 64000}
+                      maxLength={8000}
                       onChange={(event) => setMessageEditDraft(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === "Escape") setEditingMessageId(undefined);
@@ -681,12 +681,16 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                         disabled={!messageEditDraft.trim() || savingMessage}
                         type="submit"
                       >
-                        {savingMessage ? t("workspace.savingEdit") : t("workspace.saveEdit")}
+                        {savingMessage
+                          ? t("workspace.resubmitting")
+                          : t("workspace.resubmit")}
                       </button>
                     </div>
                   </form>
                 ) : message.role === "USER" ? (
-                  <div className="user-message-text">{message.content}</div>
+                  <div className="user-message-bubble">
+                    <div className="user-message-text">{message.content}</div>
+                  </div>
                 ) : (
                   <ExpertMarkdown>{message.content}</ExpertMarkdown>
                 )}

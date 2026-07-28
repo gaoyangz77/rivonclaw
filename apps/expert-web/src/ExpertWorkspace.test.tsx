@@ -220,38 +220,70 @@ describe("ExpertWorkspace chat interactions", () => {
     });
   });
 
-  it("persists an edited final user question", async () => {
+  it("resubmits an edited latest user question as a new Agent run", async () => {
     const store = ExpertStore.create();
-    store.startNewConversation();
-    store.replaceMessages([
+    store.applyBootstrap({ profile: {}, conversations: [conversation] });
+    const existingMessages = [
       {
         id: "question-1",
-        role: "USER",
+        role: "USER" as const,
         content: "Original question",
+        suggestedQuestions: [],
+        editedAt: null,
         createdAt: "2026-07-28T00:00:00.000Z",
       },
-    ]);
-    vi.spyOn(apolloClient, "mutate").mockResolvedValue({
+      {
+        id: "answer-1",
+        role: "ASSISTANT" as const,
+        content: "Original answer",
+        suggestedQuestions: [],
+        editedAt: null,
+        createdAt: "2026-07-28T00:01:00.000Z",
+      },
+    ];
+    store.replaceMessages(existingMessages);
+    vi.mocked(apolloClient.query).mockResolvedValueOnce({
       data: {
-        updateExpertMessage: {
-          id: "question-1",
-          content: "Updated question",
-          editedAt: "2026-07-28T01:00:00.000Z",
+        expertConversation: {
+          messages: existingMessages,
         },
       },
     } as never);
+    vi.spyOn(apolloClient, "mutate").mockResolvedValue({
+      data: {
+        dispatchExpertMessage: {
+          run: {
+            id: "rerun-1",
+          },
+        },
+      },
+    } as never);
+    vi.spyOn(apolloClient, "subscribe").mockReturnValue({
+      subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
+    } as never);
     renderWorkspace(store);
+    await screen.findByText("Original answer");
 
     fireEvent.click(screen.getByRole("button", { name: "修改消息" }));
     fireEvent.change(screen.getByRole("textbox", { name: "修改消息" }), {
       target: { value: "Updated question" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新提交" }));
 
     await waitFor(() => {
+      expect(store.runPhase).toBe("WAITING");
+      expect(store.messages).toHaveLength(1);
       expect(store.messages[0]?.content).toBe("Updated question");
-      expect(screen.getByText("已修改")).not.toBeNull();
     });
+    expect(apolloClient.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variables: expect.objectContaining({
+          replaceMessageId: "question-1",
+          text: "Updated question",
+        }),
+      }),
+    );
+    expect(screen.queryByText("Original answer")).toBeNull();
   });
 
   it("only offers editing on the latest user-authored message", () => {
@@ -275,6 +307,8 @@ describe("ExpertWorkspace chat interactions", () => {
 
     const userMessage = screen.getByRole("article", { name: "你" });
     const assistantMessage = screen.getByRole("article", { name: "专家" });
+    const userCopyButton = within(userMessage).getByRole("button", { name: "复制消息" });
+    expect(userMessage.querySelector(".user-message-bubble")?.contains(userCopyButton)).toBe(false);
     expect(within(userMessage).getByRole("button", { name: "修改消息" })).not.toBeNull();
     expect(within(assistantMessage).queryByRole("button", { name: "修改消息" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "修改消息" })).toHaveLength(1);

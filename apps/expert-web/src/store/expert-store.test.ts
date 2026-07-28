@@ -84,4 +84,31 @@ describe("ExpertStore run lifecycle", () => {
     expect(store.streamingAnswer).toBe("");
     expect(store.error).toBe("Please try again");
   });
+
+  it("removes the previous answer before rerunning an edited user question", () => {
+    const store = ExpertStore.create();
+    store.replaceMessages([
+      {
+        id: "question-1",
+        role: "USER",
+        content: "Original question",
+        createdAt: "2026-07-28T00:00:00.000Z",
+      },
+      {
+        id: "answer-1",
+        role: "ASSISTANT",
+        content: "Original answer",
+        createdAt: "2026-07-28T00:01:00.000Z",
+      },
+    ]);
+
+    store.prepareRerun("question-1", "Revised question");
+    expect(store.messages).toHaveLength(0);
+    expect(store.pendingQuestion).toBe("Revised question");
+    expect(store.runPhase).toBe("STARTING");
+
+    store.beginRun("rerun-1");
+    expect(store.messages).toHaveLength(1);
+    expect(store.messages[0]?.content).toBe("Revised question");
+  });
 });
