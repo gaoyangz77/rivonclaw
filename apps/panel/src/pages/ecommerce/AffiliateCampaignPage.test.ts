@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   campaignErrorMessage,
+  campaignCreatorStatesViewState,
   campaignSearchGroupRuleSummary,
   campaignShopDisplayName,
   DEFAULT_CAMPAIGN_STATUS_FILTERS,
@@ -21,6 +22,18 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(estimateCampaignCadence(100, 0)).toBe("8.3");
     expect(estimateCampaignCadence(100, 50)).toBe("4.2");
     expect(estimateCampaignCadence(1, 0)).toBe("0.1");
+  });
+
+  it("never presents a failed CreatorState query as an empty campaign", () => {
+    expect(
+      campaignCreatorStatesViewState({ loading: false, hasError: true, itemCount: 0 }),
+    ).toBe("error");
+    expect(
+      campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 0 }),
+    ).toBe("empty");
+    expect(
+      campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 3 }),
+    ).toBe("ready");
   });
 
   it("renders only the supported first-touch template variables", () => {

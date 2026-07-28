@@ -301,6 +301,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     variables: { campaignId: selectedCampaignId },
     skip: !selectedCampaignId,
   });
+  const creatorStatesViewState = campaignCreatorStatesViewState({
+    loading: creatorStatesQuery.loading,
+    hasError: Boolean(creatorStatesQuery.error),
+    itemCount:
+      creatorStatesQuery.data?.affiliateCampaignCreatorStates.items.length ?? 0,
+  });
 
   const [writeCampaign, writeCampaignState] = useMutation<
     { writeAffiliateCampaign: GQL.AffiliateCampaign },
@@ -1359,12 +1365,26 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     )}
                   </tbody>
                 </table>
-                {!creatorStatesQuery.loading &&
-                  !creatorStatesQuery.data?.affiliateCampaignCreatorStates.items.length && (
-                    <div className="affiliate-campaign-table-empty">
-                      {t("ecommerce.affiliateCampaign.noCreatorStates")}
-                    </div>
-                  )}
+                {creatorStatesViewState === "error" && (
+                  <div
+                    className="affiliate-campaign-table-empty affiliate-campaign-table-error"
+                    role="alert"
+                  >
+                    <span>{t("ecommerce.affiliateCampaign.creatorStatesLoadFailed")}</span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => void creatorStatesQuery.refetch()}
+                    >
+                      {t("ecommerce.affiliateCampaign.retryCreatorStates")}
+                    </button>
+                  </div>
+                )}
+                {creatorStatesViewState === "empty" && (
+                  <div className="affiliate-campaign-table-empty">
+                    {t("ecommerce.affiliateCampaign.noCreatorStates")}
+                  </div>
+                )}
               </div>
               {creatorStatesQuery.data?.affiliateCampaignCreatorStates.nextCursor && (
                 <button
@@ -3245,6 +3265,16 @@ function campaignCommissionRate(campaign: GQL.AffiliateCampaign): number {
 export function estimateCampaignCadence(target: number, submitted: number) {
   const remaining = Math.max(0, target - submitted);
   return (remaining / 12).toFixed(1);
+}
+
+export function campaignCreatorStatesViewState(input: {
+  loading: boolean;
+  hasError: boolean;
+  itemCount: number;
+}): "loading" | "error" | "empty" | "ready" {
+  if (input.loading) return "loading";
+  if (input.hasError) return "error";
+  return input.itemCount > 0 ? "ready" : "empty";
 }
 
 export function isEnglishCampaignSearchPhrase(value: string): boolean {
