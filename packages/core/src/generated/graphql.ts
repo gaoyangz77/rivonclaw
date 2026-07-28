@@ -626,7 +626,8 @@ export const AffiliateAgentEligibilityReason = {
   Eligible: 'ELIGIBLE',
   OpenActionProposal: 'OPEN_ACTION_PROPOSAL',
   PlatformStateSync: 'PLATFORM_STATE_SYNC',
-  RelationshipBlocked: 'RELATIONSHIP_BLOCKED'
+  RelationshipBlocked: 'RELATIONSHIP_BLOCKED',
+  StaffReviewRequired: 'STAFF_REVIEW_REQUIRED'
 } as const;
 
 export type AffiliateAgentEligibilityReason = typeof AffiliateAgentEligibilityReason[keyof typeof AffiliateAgentEligibilityReason];
