@@ -28895,6 +28895,12 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--campaign-muted);
   text-align: center;
 }
+.affiliate-campaign-table-error {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  color: var(--color-danger);
+}
 
 .affiliate-campaign-history-strip {
   padding-top: 18px;
