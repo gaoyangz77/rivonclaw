@@ -874,45 +874,202 @@ textarea:focus {
   font-weight: 400;
 }
 
-.selected-markets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: -9px;
+.onboarding-field {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.selected-markets button {
-  min-height: 38px;
-  display: inline-flex;
+.market-multi-selector {
+  position: relative;
+  font-weight: 400;
+}
+
+.market-multi-selector summary {
+  min-height: 46px;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 10px 7px 13px;
-  border: 1px solid #9ab9f8;
-  border-radius: 999px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.market-multi-selector summary::-webkit-details-marker {
+  display: none;
+}
+
+.market-multi-selector summary:hover,
+.market-multi-selector[open] summary {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(26 86 219 / 9%);
+}
+
+.market-multi-selector summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.market-multi-selector summary .placeholder {
+  color: #8c98a8;
+}
+
+.selector-chevron {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-right: 1.5px solid #6c7b90;
+  border-bottom: 1.5px solid #6c7b90;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.market-multi-selector[open] .selector-chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.market-selector-popover {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 7px);
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  border: 1px solid #cdd9ec;
+  border-radius: 13px;
+  background: white;
+  box-shadow: 0 18px 44px rgb(16 35 75 / 18%);
+  animation: selector-open 150ms ease-out both;
+}
+
+@keyframes selector-open {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+.market-search {
+  padding: 12px 12px 8px;
+}
+
+.market-search input {
+  min-height: 40px;
+  padding-inline-start: 12px;
+  background: #f7f9fc;
+}
+
+.market-options {
+  max-height: 225px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  overflow-y: auto;
+  padding: 4px 8px 9px;
+  overscroll-behavior: contain;
+}
+
+.market-options label {
+  min-width: 0;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  color: #34435a;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.market-options label:hover,
+.market-options label.selected {
   color: #174ea6;
   background: #eff5ff;
+}
+
+.market-options input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.market-options label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-options label small {
+  color: #76869e;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+}
+
+.market-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 22px 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.market-selector-actions {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.market-selector-actions button {
+  justify-self: start;
+  padding: 6px 2px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
   font: inherit;
-  font-size: 13px;
   font-weight: 650;
   cursor: pointer;
 }
 
-.selected-markets button:hover {
-  border-color: var(--primary);
-  background: #e5efff;
+.market-selector-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
-.selected-markets button small {
-  color: #6480b2;
-  font-size: 10px;
-  letter-spacing: 0.06em;
+.market-selector-actions .market-selector-done {
+  justify-self: end;
+  padding: 7px 13px;
+  border-radius: 8px;
+  color: white;
+  background: var(--primary);
 }
 
-.selected-markets button span:last-child {
-  color: #5774aa;
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1;
+.visually-hidden {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .onboarding-fields fieldset {
@@ -1110,6 +1267,10 @@ textarea:focus {
 
   .choice-grid,
   .two-column-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .market-options {
     grid-template-columns: 1fr;
   }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { apolloClient } from "./api/client.js";
 import { UPSERT_EXPERT_PROFILE } from "./api/operations.js";
@@ -49,6 +49,103 @@ export function buildProfileMarkets(
   ];
 }
 
+export function MarketMultiSelector({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (marketCodes: string[]) => void;
+}) {
+  const { language, t } = useI18n();
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [query, setQuery] = useState("");
+  const marketNames = new Intl.DisplayNames([language], { type: "region" });
+  const listFormatter = new Intl.ListFormat([language], { style: "short", type: "conjunction" });
+
+  function marketName(code: string): string {
+    return marketNames.of(code) ?? code;
+  }
+
+  function toggleMarket(code: string) {
+    onChange(value.includes(code) ? value.filter((item) => item !== code) : [...value, code]);
+  }
+
+  const normalizedQuery = query.trim().toLocaleLowerCase(language);
+  const visibleMarkets = MARKET_CODES.filter((code) => {
+    if (!normalizedQuery) return true;
+    return (
+      code.toLocaleLowerCase(language).includes(normalizedQuery) ||
+      marketName(code).toLocaleLowerCase(language).includes(normalizedQuery)
+    );
+  });
+  const summary =
+    value.length === 0
+      ? t("onboarding.marketSelectPlaceholder")
+      : value.length <= 2
+        ? listFormatter.format(value.map(marketName))
+        : t("onboarding.marketSelectedCount", { count: value.length });
+
+  return (
+    <details
+      className="market-multi-selector"
+      ref={detailsRef}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") detailsRef.current?.removeAttribute("open");
+      }}
+    >
+      <summary>
+        <span className={value.length === 0 ? "placeholder" : ""}>{summary}</span>
+        <span className="selector-chevron" aria-hidden="true" />
+      </summary>
+      <div className="market-selector-popover">
+        <label className="market-search">
+          <span className="visually-hidden">{t("onboarding.marketSearch")}</span>
+          <input
+            type="search"
+            placeholder={t("onboarding.marketSearch")}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <div
+          className="market-options"
+          role="group"
+          aria-label={t("onboarding.market")}
+        >
+          {visibleMarkets.map((code) => (
+            <label className={value.includes(code) ? "selected" : ""} key={code}>
+              <input
+                type="checkbox"
+                aria-label={`${marketName(code)} (${code})`}
+                checked={value.includes(code)}
+                onChange={() => toggleMarket(code)}
+              />
+              <span>{marketName(code)}</span>
+              <small>{code}</small>
+            </label>
+          ))}
+          {visibleMarkets.length === 0 ? (
+            <p className="market-empty">{t("onboarding.marketNoResults")}</p>
+          ) : null}
+        </div>
+        <footer className="market-selector-actions">
+          <button type="button" disabled={value.length === 0} onClick={() => onChange([])}>
+            {t("onboarding.marketClear")}
+          </button>
+          <span>{t("onboarding.marketSelectedCount", { count: value.length })}</span>
+          <button
+            className="market-selector-done"
+            type="button"
+            onClick={() => detailsRef.current?.removeAttribute("open")}
+          >
+            {t("onboarding.marketDone")}
+          </button>
+        </footer>
+      </div>
+    </details>
+  );
+}
+
 export const Onboarding = observer(function Onboarding({
   onComplete,
 }: {
@@ -71,15 +168,6 @@ export const Onboarding = observer(function Onboarding({
 
   function marketName(code: string): string {
     return marketNames.of(code) ?? code;
-  }
-
-  function addMarket(code: string) {
-    if (!code) return;
-    setMarketCodes((current) => (current.includes(code) ? current : [...current, code]));
-  }
-
-  function removeMarket(code: string) {
-    setMarketCodes((current) => current.filter((item) => item !== code));
   }
 
   function profileMarkets(): string[] {
@@ -183,37 +271,10 @@ export const Onboarding = observer(function Onboarding({
                   )}
                 </select>
               </label>
-              <label>
+              <div className="onboarding-field">
                 {t("onboarding.market")}
-                <select
-                  autoFocus
-                  value=""
-                  onChange={(event) => addMarket(event.target.value)}
-                >
-                  <option value="">{t("onboarding.marketSelectPlaceholder")}</option>
-                  {MARKET_CODES.map((code) => (
-                    <option value={code} disabled={marketCodes.includes(code)} key={code}>
-                      {marketName(code)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {marketCodes.length > 0 ? (
-                <div className="selected-markets" aria-label={t("onboarding.selectedMarkets")}>
-                  {marketCodes.map((code) => (
-                    <button
-                      type="button"
-                      onClick={() => removeMarket(code)}
-                      aria-label={t("onboarding.removeMarket", { market: marketName(code) })}
-                      key={code}
-                    >
-                      <span>{marketName(code)}</span>
-                      <small>{code}</small>
-                      <span aria-hidden="true">×</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
+                <MarketMultiSelector value={marketCodes} onChange={setMarketCodes} />
+              </div>
               <label>
                 {t("onboarding.marketFreeLabel")}
                 <input
