@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   campaignErrorMessage,
   campaignCreatorStatesViewState,
+  campaignFunnelCounterValue,
   campaignSearchGroupRuleSummary,
   campaignShopDisplayName,
   DEFAULT_CAMPAIGN_STATUS_FILTERS,
@@ -34,6 +35,23 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(
       campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 3 }),
     ).toBe("ready");
+  });
+
+  it("does not render an unrecorded legacy funnel metric as zero", () => {
+    expect(
+      campaignFunnelCounterValue({
+        counterSchemaVersion: 1,
+        introducedInVersion: 2,
+        value: 0,
+      }),
+    ).toBeNull();
+    expect(
+      campaignFunnelCounterValue({
+        counterSchemaVersion: 2,
+        introducedInVersion: 2,
+        value: 0,
+      }),
+    ).toBe(0);
   });
 
   it("renders only the supported first-touch template variables", () => {
