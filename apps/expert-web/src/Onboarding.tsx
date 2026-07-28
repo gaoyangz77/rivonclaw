@@ -6,11 +6,47 @@ import { useExpertStore } from "./store/context.js";
 import { errorMessage } from "./error.js";
 import { useI18n } from "./i18n.js";
 
-function commaList(value: string): string[] {
-  return value
-    .split(/[,，]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+const MARKET_CODES = [
+  "US",
+  "GB",
+  "DE",
+  "FR",
+  "ES",
+  "IT",
+  "IE",
+  "AT",
+  "BE",
+  "CZ",
+  "GR",
+  "HU",
+  "NL",
+  "PL",
+  "PT",
+  "JP",
+  "BR",
+  "MX",
+  "ID",
+  "MY",
+  "PH",
+  "SG",
+  "TH",
+  "VN",
+] as const;
+
+function optionalList(value: string): string[] {
+  const normalized = value.trim();
+  return normalized ? [normalized] : [];
+}
+
+export function buildProfileMarkets(
+  marketCodes: string[],
+  marketContext: string,
+  marketName: (code: string) => string,
+): string[] {
+  return [
+    ...marketCodes.map((code) => `${marketName(code)} (${code})`),
+    ...optionalList(marketContext),
+  ];
 }
 
 export const Onboarding = observer(function Onboarding({
@@ -22,13 +58,33 @@ export const Onboarding = observer(function Onboarding({
   const { language, t } = useI18n();
   const [step, setStep] = useState(1);
   const [stage, setStage] = useState("EXPLORING");
-  const [markets, setMarkets] = useState("");
+  const [marketCodes, setMarketCodes] = useState<string[]>([]);
+  const [marketContext, setMarketContext] = useState("");
   const [sellerTypes, setSellerTypes] = useState<string[]>(["CROSS_BORDER"]);
   const [experience, setExperience] = useState("");
   const [capitalBand, setCapitalBand] = useState("");
   const [goals, setGoals] = useState("");
   const [constraints, setConstraints] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const marketNames = new Intl.DisplayNames([language], { type: "region" });
+
+  function marketName(code: string): string {
+    return marketNames.of(code) ?? code;
+  }
+
+  function addMarket(code: string) {
+    if (!code) return;
+    setMarketCodes((current) => (current.includes(code) ? current : [...current, code]));
+  }
+
+  function removeMarket(code: string) {
+    setMarketCodes((current) => current.filter((item) => item !== code));
+  }
+
+  function profileMarkets(): string[] {
+    return buildProfileMarkets(marketCodes, marketContext, marketName);
+  }
 
   function toggleSellerType(value: string) {
     setSellerTypes((current) =>
@@ -38,7 +94,7 @@ export const Onboarding = observer(function Onboarding({
 
   function next(event: React.FormEvent) {
     event.preventDefault();
-    if (step === 1 && commaList(markets).length === 0) return;
+    if (step === 1 && profileMarkets().length === 0) return;
     if (step === 2 && sellerTypes.length === 0) return;
     setStep((current) => Math.min(3, current + 1));
   }
@@ -54,14 +110,14 @@ export const Onboarding = observer(function Onboarding({
           input: {
             locale: language,
             stage,
-            targetMarkets: commaList(markets),
+            targetMarkets: profileMarkets(),
             sellerTypes,
             experience: experience.trim() || null,
             capitalBand: capitalBand.trim() || null,
             teamCapacity: null,
             targetTimeline: null,
-            goals: commaList(goals),
-            constraints: commaList(constraints),
+            goals: optionalList(goals),
+            constraints: optionalList(constraints),
           },
         },
       });
@@ -129,12 +185,41 @@ export const Onboarding = observer(function Onboarding({
               </label>
               <label>
                 {t("onboarding.market")}
-                <input
+                <select
                   autoFocus
-                  required
-                  placeholder={t("onboarding.marketPlaceholder")}
-                  value={markets}
-                  onChange={(event) => setMarkets(event.target.value)}
+                  value=""
+                  onChange={(event) => addMarket(event.target.value)}
+                >
+                  <option value="">{t("onboarding.marketSelectPlaceholder")}</option>
+                  {MARKET_CODES.map((code) => (
+                    <option value={code} disabled={marketCodes.includes(code)} key={code}>
+                      {marketName(code)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {marketCodes.length > 0 ? (
+                <div className="selected-markets" aria-label={t("onboarding.selectedMarkets")}>
+                  {marketCodes.map((code) => (
+                    <button
+                      type="button"
+                      onClick={() => removeMarket(code)}
+                      aria-label={t("onboarding.removeMarket", { market: marketName(code) })}
+                      key={code}
+                    >
+                      <span>{marketName(code)}</span>
+                      <small>{code}</small>
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <label>
+                {t("onboarding.marketFreeLabel")}
+                <input
+                  placeholder={t("onboarding.marketFreePlaceholder")}
+                  value={marketContext}
+                  onChange={(event) => setMarketContext(event.target.value)}
                 />
                 <small>{t("onboarding.marketHint")}</small>
               </label>
@@ -221,7 +306,7 @@ export const Onboarding = observer(function Onboarding({
               className="primary-button"
               disabled={
                 saving ||
-                (step === 1 && commaList(markets).length === 0) ||
+                (step === 1 && profileMarkets().length === 0) ||
                 (step === 2 && sellerTypes.length === 0)
               }
               type="submit"
