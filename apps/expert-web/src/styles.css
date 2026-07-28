@@ -743,7 +743,9 @@ textarea:focus {
 }
 
 .message.user .message-actions {
+  width: 100%;
   justify-content: flex-end;
+  margin-right: -6px;
   margin-bottom: -7px;
 }
 

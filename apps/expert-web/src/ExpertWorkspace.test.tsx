@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apolloClient } from "./api/client.js";
 import { ExpertWorkspace } from "./ExpertWorkspace.js";
@@ -220,22 +220,22 @@ describe("ExpertWorkspace chat interactions", () => {
     });
   });
 
-  it("persists an edited assistant answer", async () => {
+  it("persists an edited final user question", async () => {
     const store = ExpertStore.create();
     store.startNewConversation();
     store.replaceMessages([
       {
-        id: "answer-1",
-        role: "ASSISTANT",
-        content: "Original answer",
+        id: "question-1",
+        role: "USER",
+        content: "Original question",
         createdAt: "2026-07-28T00:00:00.000Z",
       },
     ]);
     vi.spyOn(apolloClient, "mutate").mockResolvedValue({
       data: {
         updateExpertMessage: {
-          id: "answer-1",
-          content: "Updated expert answer",
+          id: "question-1",
+          content: "Updated question",
           editedAt: "2026-07-28T01:00:00.000Z",
         },
       },
@@ -244,17 +244,17 @@ describe("ExpertWorkspace chat interactions", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "修改消息" }));
     fireEvent.change(screen.getByRole("textbox", { name: "修改消息" }), {
-      target: { value: "Updated expert answer" },
+      target: { value: "Updated question" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => {
-      expect(store.messages[0]?.content).toBe("Updated expert answer");
+      expect(store.messages[0]?.content).toBe("Updated question");
       expect(screen.getByText("已修改")).not.toBeNull();
     });
   });
 
-  it("only offers editing for a user question when it is the final message", () => {
+  it("only offers editing on the latest user-authored message", () => {
     const store = ExpertStore.create();
     store.startNewConversation();
     store.replaceMessages([
@@ -273,20 +273,38 @@ describe("ExpertWorkspace chat interactions", () => {
     ]);
     renderWorkspace(store);
 
+    const userMessage = screen.getByRole("article", { name: "你" });
+    const assistantMessage = screen.getByRole("article", { name: "专家" });
+    expect(within(userMessage).getByRole("button", { name: "修改消息" })).not.toBeNull();
+    expect(within(assistantMessage).queryByRole("button", { name: "修改消息" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "修改消息" })).toHaveLength(1);
 
     cleanup();
-    const cancelledStore = ExpertStore.create();
-    cancelledStore.startNewConversation();
-    cancelledStore.replaceMessages([
+    const multipleQuestionsStore = ExpertStore.create();
+    multipleQuestionsStore.startNewConversation();
+    multipleQuestionsStore.replaceMessages([
       {
         id: "question-2",
         role: "USER",
-        content: "Question after cancellation",
+        content: "Earlier question",
         createdAt: "2026-07-28T00:02:00.000Z",
       },
+      {
+        id: "answer-2",
+        role: "ASSISTANT",
+        content: "Earlier answer",
+        createdAt: "2026-07-28T00:03:00.000Z",
+      },
+      {
+        id: "question-3",
+        role: "USER",
+        content: "Latest question",
+        createdAt: "2026-07-28T00:04:00.000Z",
+      },
     ]);
-    renderWorkspace(cancelledStore);
-    expect(screen.getByRole("button", { name: "修改消息" })).not.toBeNull();
+    renderWorkspace(multipleQuestionsStore);
+    const userMessages = screen.getAllByRole("article", { name: "你" });
+    expect(within(userMessages[0]!).queryByRole("button", { name: "修改消息" })).toBeNull();
+    expect(within(userMessages[1]!).getByRole("button", { name: "修改消息" })).not.toBeNull();
   });
 });
