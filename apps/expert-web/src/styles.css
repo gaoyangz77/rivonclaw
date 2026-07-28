@@ -775,8 +775,9 @@ textarea:focus {
 .onboarding-modal {
   overflow: hidden;
   width: min(930px, 100%);
+  height: min(720px, calc(100dvh - 48px));
   max-height: calc(100dvh - 48px);
-  min-height: 570px;
+  min-height: 0;
   display: grid;
   grid-template-columns: 0.76fr 1.24fr;
   border: 1px solid rgb(255 255 255 / 15%);
@@ -941,9 +942,13 @@ textarea:focus {
 }
 
 .market-selector-popover {
-  position: static;
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 7px);
+  right: 0;
+  left: 0;
   overflow: hidden;
-  margin-top: 7px;
+  margin-top: 0;
   border: 1px solid #cdd9ec;
   border-radius: 13px;
   background: white;
@@ -969,7 +974,7 @@ textarea:focus {
 }
 
 .market-options {
-  max-height: 225px;
+  max-height: clamp(96px, calc(100dvh - 510px), 225px);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3px;
@@ -1217,9 +1222,10 @@ textarea:focus {
   }
 
   .onboarding-modal {
+    height: calc(100dvh - 30px);
     max-height: calc(100vh - 30px);
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: 1fr;
-    overflow-y: auto;
   }
 
   .onboarding-intro {
