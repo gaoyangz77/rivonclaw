@@ -122,6 +122,22 @@ export const CREATE_EXPERT_CONVERSATION = gql`
   }
 `;
 
+export const RENAME_EXPERT_CONVERSATION = gql`
+  mutation RenameExpertConversation($id: ID!, $title: String!) {
+    renameExpertConversation(id: $id, title: $title) {
+      id
+      title
+      lastMessageAt
+    }
+  }
+`;
+
+export const DELETE_EXPERT_CONVERSATION = gql`
+  mutation DeleteExpertConversation($id: ID!) {
+    deleteExpertConversation(id: $id)
+  }
+`;
+
 export const EXPERT_CONVERSATION = gql`
   query ExpertConversation($id: ID!) {
     expertConversation(id: $id) {
@@ -132,10 +148,10 @@ export const EXPERT_CONVERSATION = gql`
       }
       messages {
         id
-      role
-      content
-      suggestedQuestions
-      createdAt
+        role
+        content
+        suggestedQuestions
+        createdAt
       }
       recommendations {
         id

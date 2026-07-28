@@ -31,18 +31,28 @@ export const ExpertStore = types
     hasProfile: false,
     conversations: types.array(ConversationModel),
     selectedConversationId: types.maybe(types.string),
+    isNewConversationDraft: false,
     messages: types.array(MessageModel),
     usage: types.maybe(UsageModel),
     knowledgeVersion: types.maybe(types.string),
     activeRunId: types.maybe(types.string),
+    runPhase: types.optional(
+      types.enumeration(["IDLE", "STARTING", "WAITING", "STREAMING", "CANCELLING"]),
+      "IDLE",
+    ),
+    pendingQuestion: "",
     streamingAnswer: "",
     pendingSuggestedQuestions: types.array(types.string),
     runningTool: types.maybe(types.string),
     error: types.maybe(types.string),
+    notice: types.maybe(types.string),
   })
   .views((self) => ({
     get selectedConversation() {
       return self.conversations.find((item) => item.id === self.selectedConversationId);
+    },
+    get isBusy() {
+      return self.runPhase !== "IDLE";
     },
   }))
   .actions((self) => ({
@@ -63,9 +73,15 @@ export const ExpertStore = types
       self.conversations.clear();
       self.messages.clear();
       self.selectedConversationId = undefined;
+      self.isNewConversationDraft = false;
       self.activeRunId = undefined;
+      self.runPhase = "IDLE";
+      self.pendingQuestion = "";
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
+      self.runningTool = undefined;
+      self.error = undefined;
+      self.notice = undefined;
     },
     applyBootstrap(data: {
       profile: unknown;
@@ -82,7 +98,7 @@ export const ExpertStore = types
     }) {
       self.hasProfile = Boolean(data.profile);
       self.conversations.replace(data.conversations);
-      if (!self.selectedConversationId && data.conversations[0]) {
+      if (!self.isNewConversationDraft && !self.selectedConversationId && data.conversations[0]) {
         self.selectedConversationId = data.conversations[0].id;
       }
       self.usage = data.usage
@@ -103,13 +119,41 @@ export const ExpertStore = types
     addConversation(conversation: { id: string; title: string; lastMessageAt: string }) {
       self.conversations.unshift(conversation);
       self.selectedConversationId = conversation.id;
+      self.isNewConversationDraft = false;
       self.messages.clear();
     },
-    selectConversation(id: string) {
-      self.selectedConversationId = id;
+    startNewConversation() {
+      if (self.runPhase !== "IDLE" || self.isNewConversationDraft) return;
+      self.selectedConversationId = undefined;
+      self.isNewConversationDraft = true;
+      self.messages.clear();
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
       self.error = undefined;
+      self.notice = undefined;
+    },
+    selectConversation(id: string) {
+      if (self.runPhase !== "IDLE" || self.selectedConversationId === id) return;
+      self.selectedConversationId = id;
+      self.isNewConversationDraft = false;
+      self.messages.clear();
+      self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
+      self.error = undefined;
+      self.notice = undefined;
+    },
+    renameConversation(id: string, title: string) {
+      const conversation = self.conversations.find((item) => item.id === id);
+      if (conversation) conversation.title = title;
+    },
+    removeConversation(id: string) {
+      const index = self.conversations.findIndex((item) => item.id === id);
+      if (index >= 0) self.conversations.splice(index, 1);
+      if (self.selectedConversationId === id) {
+        self.selectedConversationId = undefined;
+        self.isNewConversationDraft = true;
+        self.messages.clear();
+      }
     },
     replaceMessages(
       messages: Array<{
@@ -127,20 +171,32 @@ export const ExpertStore = types
         })),
       );
     },
-    beginRun(runId: string, question: string) {
+    prepareRun(question: string) {
+      self.pendingQuestion = question;
+      self.runPhase = "STARTING";
+      self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
+      self.runningTool = undefined;
+      self.error = undefined;
+      self.notice = undefined;
+    },
+    beginRun(runId: string) {
       self.messages.push({
         id: `local-${runId}`,
         role: "USER",
-        content: question,
+        content: self.pendingQuestion,
         createdAt: new Date().toISOString(),
       });
+      self.pendingQuestion = "";
       self.activeRunId = runId;
+      self.runPhase = "WAITING";
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
       self.error = undefined;
     },
     appendDelta(text: string) {
       self.streamingAnswer += text;
+      self.runPhase = "STREAMING";
     },
     setRunningTool(toolName?: string) {
       self.runningTool = toolName;
@@ -150,18 +206,42 @@ export const ExpertStore = types
     },
     finishRun() {
       self.activeRunId = undefined;
+      self.runPhase = "IDLE";
+      self.pendingQuestion = "";
       self.runningTool = undefined;
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
     },
     failRun(message: string) {
       self.error = message;
+      self.notice = undefined;
       self.activeRunId = undefined;
+      self.runPhase = "IDLE";
+      self.pendingQuestion = "";
       self.runningTool = undefined;
+      self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
+    },
+    cancelRun(message: string) {
+      self.notice = message;
+      self.error = undefined;
+      self.activeRunId = undefined;
+      self.runPhase = "IDLE";
+      self.pendingQuestion = "";
+      self.runningTool = undefined;
+      self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
+    },
+    markCancelling() {
+      if (self.activeRunId) self.runPhase = "CANCELLING";
+    },
+    restoreWaitingAfterCancelFailure(message: string) {
+      self.runPhase = self.streamingAnswer ? "STREAMING" : "WAITING";
+      self.error = message;
     },
     setError(message?: string) {
       self.error = message;
+      if (message) self.notice = undefined;
     },
   }));
 
