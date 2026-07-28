@@ -1918,11 +1918,23 @@ export const AffiliateEmailAttachmentDisposition = {
 } as const;
 
 export type AffiliateEmailAttachmentDisposition = typeof AffiliateEmailAttachmentDisposition[keyof typeof AffiliateEmailAttachmentDisposition];
+export const AffiliateExpectedSalesFeatureTemporalBasis = {
+  CurrentStateProxy: 'CURRENT_STATE_PROXY',
+  DecisionTime: 'DECISION_TIME'
+} as const;
+
+export type AffiliateExpectedSalesFeatureTemporalBasis = typeof AffiliateExpectedSalesFeatureTemporalBasis[keyof typeof AffiliateExpectedSalesFeatureTemporalBasis];
 export interface AffiliateExpectedSalesMissingField {
   field: Scalars['String']['output'];
   reason: Scalars['String']['output'];
 }
 
+export const AffiliateExpectedSalesModelStage = {
+  Bootstrap: 'BOOTSTRAP',
+  EventTime: 'EVENT_TIME'
+} as const;
+
+export type AffiliateExpectedSalesModelStage = typeof AffiliateExpectedSalesModelStage[keyof typeof AffiliateExpectedSalesModelStage];
 export interface AffiliateExpectedSalesModelVersion {
   bentomlTag?: Maybe<Scalars['String']['output']>;
   featureVersion?: Maybe<Scalars['String']['output']>;
@@ -1971,13 +1983,22 @@ export interface AffiliateExpectedSalesPredictionInterval {
 }
 
 export interface AffiliateExpectedSalesPredictionPayload {
+  effectiveTenantId?: Maybe<Scalars['String']['output']>;
+  effectiveTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
+  expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  featureTemporalBasis?: Maybe<AffiliateExpectedSalesFeatureTemporalBasis>;
   featureVersion?: Maybe<Scalars['String']['output']>;
   humanBaselineModelVersion?: Maybe<AffiliateExpectedSalesModelVersion>;
+  modelMetadata?: Maybe<AffiliateExpectedSalesModelVersion>;
+  modelStage?: Maybe<AffiliateExpectedSalesModelStage>;
+  modelStatus?: Maybe<Scalars['String']['output']>;
   modelTag?: Maybe<Scalars['String']['output']>;
   modelType?: Maybe<Scalars['String']['output']>;
-  modelVersion?: Maybe<AffiliateExpectedSalesModelVersion>;
+  modelVersion?: Maybe<Scalars['String']['output']>;
   predictions: Array<AffiliateExpectedSalesSubjectPrediction>;
   requestId?: Maybe<Scalars['String']['output']>;
+  requestedTenantId?: Maybe<Scalars['String']['output']>;
+  requestedTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
   status: AffiliateExpectedSalesPredictionStatus;
   trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
@@ -2095,6 +2116,13 @@ export interface AffiliateExpectedSalesSubjectRef {
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
 
+export const AffiliateExpectedSalesTenantScope = {
+  Region: 'REGION',
+  Shop: 'SHOP',
+  User: 'USER'
+} as const;
+
+export type AffiliateExpectedSalesTenantScope = typeof AffiliateExpectedSalesTenantScope[keyof typeof AffiliateExpectedSalesTenantScope];
 export interface AffiliateExpectedSalesThresholdPercentile {
   percentile?: Maybe<Scalars['Float']['output']>;
   topPercent?: Maybe<Scalars['Float']['output']>;
@@ -6980,10 +7008,12 @@ export interface ExpertMessage {
   content: Scalars['String']['output'];
   conversationId: Scalars['String']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
+  editedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   expertRunId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   role: ExpertMessageRole;
   structuredPayload?: Maybe<Scalars['JSONObject']['output']>;
+  suggestedQuestions: Array<Scalars['String']['output']>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['String']['output'];
 }
@@ -7042,6 +7072,7 @@ export interface ExpertRun {
   nextEventSequence: Scalars['Int']['output'];
   outputTokens: Scalars['Int']['output'];
   skillVersion: Scalars['String']['output'];
+  sourceCommit: Scalars['String']['output'];
   startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   status: ExpertRunStatus;
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -7056,6 +7087,7 @@ export interface ExpertRunEvent {
   recommendationId?: Maybe<Scalars['String']['output']>;
   runId: Scalars['ID']['output'];
   sequence: Scalars['Int']['output'];
+  suggestedQuestions?: Maybe<Array<Scalars['String']['output']>>;
   text?: Maybe<Scalars['String']['output']>;
   toolName?: Maybe<Scalars['String']['output']>;
   type: ExpertRunEventType;
@@ -7827,6 +7859,7 @@ export interface Mutation {
   removeAffiliateCreatorRelationshipProtection: AffiliateCreatorProtectionRemovalPayload;
   /** Remove a shop-scoped tag from a user-level creator relation. */
   removeCreatorTag: AffiliateCreatorRelationship;
+  renameExpertConversation: ExpertConversation;
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
   reportDevicePresenceProbe: Scalars['Boolean']['output'];
   /** Request one typed affiliate action. Backend policy decides direct execution vs ActionProposal. */
@@ -7893,6 +7926,7 @@ export interface Mutation {
   /** Unenroll from a product module */
   unenrollModule: MeResponse;
   updateAffiliateCreatorChannelContact: AffiliateCreatorChannelContact;
+  updateExpertMessage: ExpertMessage;
   /** Update an existing run profile */
   updateRunProfile?: Maybe<RunProfile>;
   /** Update an existing shop */
@@ -8213,6 +8247,7 @@ export interface MutationDisconnectAdsAdvertiserArgs {
 export interface MutationDispatchExpertMessageArgs {
   conversationId: Scalars['ID']['input'];
   idempotencyKey: Scalars['String']['input'];
+  replaceMessageId?: InputMaybe<Scalars['ID']['input']>;
   text: Scalars['String']['input'];
 }
 
@@ -8464,6 +8499,12 @@ export interface MutationRemoveCreatorTagArgs {
 }
 
 
+export interface MutationRenameExpertConversationArgs {
+  id: Scalars['ID']['input'];
+  title: Scalars['String']['input'];
+}
+
+
 export interface MutationReportDevicePresenceProbeArgs {
   input: AdminDevicePresenceProbeResponseInput;
 }
@@ -8627,6 +8668,12 @@ export interface MutationUnenrollModuleArgs {
 
 export interface MutationUpdateAffiliateCreatorChannelContactArgs {
   input: UpdateAffiliateCreatorChannelContactInput;
+}
+
+
+export interface MutationUpdateExpertMessageArgs {
+  content: Scalars['String']['input'];
+  id: Scalars['ID']['input'];
 }
 
 

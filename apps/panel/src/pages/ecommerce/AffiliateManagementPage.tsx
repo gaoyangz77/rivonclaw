@@ -145,6 +145,13 @@ type CollaborationWorkViewModel = {
 type AffiliatePredictionSnapshotOutput = {
   expectedSalesUnits?: number | null;
   expectedSalesPercentile?: number | null;
+  modelStage?: "EVENT_TIME" | "BOOTSTRAP" | null;
+  featureTemporalBasis?: "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
+  requestedTenantScope?: "USER" | "REGION" | "SHOP" | null;
+  requestedTenantId?: string | null;
+  effectiveTenantScope?: "USER" | "REGION" | "SHOP" | null;
+  effectiveTenantId?: string | null;
+  modelStatus?: string | null;
   humanBaseline?: {
     wouldApprove?: boolean | null;
     humanApprovalProbability?: number | null;
@@ -4237,7 +4244,6 @@ function ActionProposalCard({
             ) : null}
             <div className="affiliate-proposal-row-context">
               <ProposalPredictionComparison
-                proposal={proposal}
                 snapshot={predictionSnapshot}
               />
               {shouldShowProductSummary ? (
@@ -4353,7 +4359,6 @@ function ActionProposalCard({
         {bodyExpanded ? (
           <>
             <ProposalPredictionComparison
-              proposal={proposal}
               snapshot={predictionSnapshot}
             />
             {shouldShowProductSummary ? (
@@ -4403,10 +4408,8 @@ function ActionProposalCard({
 }
 
 function ProposalPredictionComparison({
-  proposal,
   snapshot,
 }: {
-  proposal: GQL.ActionProposal;
   snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot | null;
 }) {
   const { t } = useTranslation();
@@ -4414,6 +4417,7 @@ function ProposalPredictionComparison({
   if (!output) return null;
   const humanBaseline = output?.humanBaseline ?? null;
   const expectedSalesUnits = output?.expectedSalesUnits ?? null;
+  const isBootstrap = isBootstrapExpectedSalesOutput(output);
   const hasHumanBaseline = typeof humanBaseline?.wouldApprove === "boolean";
   const hasPrediction = typeof expectedSalesUnits === "number" || hasHumanBaseline;
   if (!hasPrediction) return null;
@@ -4432,7 +4436,17 @@ function ProposalPredictionComparison({
     <section className="affiliate-prediction-comparison" aria-label={t("ecommerce.affiliateWorkspace.predictionComparison.title")}>
       <div className="affiliate-prediction-comparison-head">
         <span>{t("ecommerce.affiliateWorkspace.predictionComparison.title")}</span>
+        {isBootstrap ? (
+          <span className="badge">
+            {t("ecommerce.affiliateWorkspace.predictionComparison.bootstrapBadge")}
+          </span>
+        ) : null}
       </div>
+      {isBootstrap ? (
+        <div className="td-meta">
+          {t("ecommerce.affiliateWorkspace.predictionComparison.bootstrapExplanation")}
+        </div>
+      ) : null}
       <div className="affiliate-prediction-comparison-grid">
         <div className="affiliate-prediction-metric">
           <span>{t("ecommerce.affiliateWorkspace.predictionComparison.predictionJudgment")}</span>
@@ -4448,7 +4462,13 @@ function ProposalPredictionComparison({
           ) : null}
         </div>
         <div className="affiliate-prediction-metric">
-          <span>{t("ecommerce.affiliateWorkspace.predictionComparison.expectedSales")}</span>
+          <span>
+            {t(
+              isBootstrap
+                ? "ecommerce.affiliateWorkspace.predictionComparison.bootstrapEstimate"
+                : "ecommerce.affiliateWorkspace.predictionComparison.expectedSales",
+            )}
+          </span>
           <strong>
             {typeof expectedSalesUnits === "number"
               ? t("ecommerce.affiliateWorkspace.predictionComparison.expectedSalesValue", {
@@ -4456,9 +4476,28 @@ function ProposalPredictionComparison({
                 })
               : t("ecommerce.affiliateWorkspace.predictionComparison.unknown")}
           </strong>
+          {output.effectiveTenantScope ? (
+            <small>
+              {t("ecommerce.affiliateWorkspace.predictionComparison.effectiveScope", {
+                scope: output.effectiveTenantScope,
+              })}
+            </small>
+          ) : null}
         </div>
       </div>
     </section>
+  );
+}
+
+export function isBootstrapExpectedSalesOutput(
+  output: Pick<
+    AffiliatePredictionSnapshotOutput,
+    "modelStage" | "featureTemporalBasis"
+  >,
+): boolean {
+  return (
+    output.modelStage === "BOOTSTRAP" ||
+    output.featureTemporalBasis === "CURRENT_STATE_PROXY"
   );
 }
 
