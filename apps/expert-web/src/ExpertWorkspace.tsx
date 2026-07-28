@@ -6,9 +6,11 @@ import { apolloClient } from "./api/client.js";
 import {
   CANCEL_EXPERT_RUN,
   CREATE_EXPERT_CONVERSATION,
+  DELETE_EXPERT_CONVERSATION,
   DISPATCH_EXPERT_MESSAGE,
   EXPERT_CONVERSATION,
   EXPERT_RUN_EVENTS,
+  RENAME_EXPERT_CONVERSATION,
 } from "./api/operations.js";
 import { useExpertStore } from "./store/context.js";
 import { errorMessage } from "./error.js";
@@ -56,30 +58,73 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   const { t } = useI18n();
   const [draft, setDraft] = useState("");
   const [creating, setCreating] = useState(false);
+  const [conversationMenuId, setConversationMenuId] = useState<string>();
+  const [renamingConversationId, setRenamingConversationId] = useState<string>();
+  const [renameDraft, setRenameDraft] = useState("");
   const subscriptionRef = useRef<{ unsubscribe(): void } | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const messageEndRef = useRef<HTMLDivElement>(null);
 
-  const loadConversation = useCallback(async (id: string) => {
-    const result = await apolloClient.query<ConversationData>({
-      query: EXPERT_CONVERSATION,
-      variables: { id },
-      fetchPolicy: "network-only",
-    });
-    if (result.data?.expertConversation) {
-      store.replaceMessages(result.data.expertConversation.messages);
-    }
-  }, [store]);
+  const loadConversation = useCallback(
+    async (id: string, force = false) => {
+      const result = await apolloClient.query<ConversationData>({
+        query: EXPERT_CONVERSATION,
+        variables: { id },
+        fetchPolicy: "network-only",
+      });
+      if (
+        result.data?.expertConversation &&
+        store.selectedConversationId === id &&
+        (force || !store.isBusy)
+      ) {
+        store.replaceMessages(result.data.expertConversation.messages);
+      }
+    },
+    [store],
+  );
+
+  const stopSubscription = useCallback(() => {
+    subscriptionRef.current?.unsubscribe();
+    subscriptionRef.current = null;
+  }, []);
 
   useEffect(() => {
-    if (store.selectedConversationId) void loadConversation(store.selectedConversationId);
-  }, [loadConversation, store.selectedConversationId]);
+    if (store.selectedConversationId && !store.isBusy) {
+      void loadConversation(store.selectedConversationId);
+    }
+  }, [loadConversation, store.isBusy, store.selectedConversationId]);
 
   useEffect(
     () => () => {
-      subscriptionRef.current?.unsubscribe();
+      stopSubscription();
     },
-    [],
+    [stopSubscription],
   );
+
+  useEffect(() => {
+    if (!conversationMenuId) return;
+    function closeMenu(event: PointerEvent) {
+      if (!(event.target as HTMLElement).closest(".conversation-actions")) {
+        setConversationMenuId(undefined);
+      }
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setConversationMenuId(undefined);
+    }
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [conversationMenuId]);
+
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({
+      behavior: store.runPhase === "STREAMING" ? "auto" : "smooth",
+      block: "end",
+    });
+  }, [store.messages.length, store.pendingQuestion, store.runPhase, store.streamingAnswer]);
 
   async function createConversation(): Promise<string> {
     setCreating(true);
@@ -97,16 +142,22 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }
 
   async function refreshAfterRun(conversationId: string) {
-    await Promise.all([loadConversation(conversationId), reloadBootstrap()]);
-    store.finishRun();
+    try {
+      await Promise.all([loadConversation(conversationId, true), reloadBootstrap()]);
+    } catch (error) {
+      console.error("Failed to refresh the completed Expert run", error);
+      store.setError(t("workspace.refreshFailed"));
+    } finally {
+      store.finishRun();
+    }
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const question = draft.trim();
-    if (!question || store.activeRunId) return;
+    if (!question || store.isBusy) return;
     setDraft("");
-    store.setError(undefined);
+    store.prepareRun(question);
     try {
       const conversationId = store.selectedConversationId ?? (await createConversation());
       const result = await apolloClient.mutate<DispatchData>({
@@ -119,8 +170,9 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
       });
       const runId = result.data?.dispatchExpertMessage.run.id;
       if (!runId) throw new Error("The Expert run did not start");
-      store.beginRun(runId, question);
+      store.beginRun(runId);
       let lastSequence = 0;
+      stopSubscription();
       subscriptionRef.current = apolloClient
         .subscribe<RunEventData>({
           query: EXPERT_RUN_EVENTS,
@@ -136,29 +188,99 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             if (item.type === "TOOL_COMPLETED") store.setRunningTool(undefined);
             if (item.type === "COMPLETED") {
               store.setSuggestedQuestions(item.suggestedQuestions ?? []);
-              subscriptionRef.current?.unsubscribe();
+              stopSubscription();
               void refreshAfterRun(conversationId);
             }
             if (item.type === "FAILED" || item.type === "CANCELLED") {
-              subscriptionRef.current?.unsubscribe();
-              store.failRun(item.errorCode ?? item.type);
+              stopSubscription();
+              if (item.type === "CANCELLED" || item.errorCode === "USER_CANCELLED") {
+                store.cancelRun(t("workspace.cancelled"));
+              } else {
+                console.error("Expert run failed", item.errorCode ?? item.type);
+                store.failRun(t("workspace.runFailed"));
+              }
               void reloadBootstrap();
             }
           },
-          error: (error) => store.failRun(errorMessage(error)),
+          error: (error) => {
+            stopSubscription();
+            console.error("Expert run event subscription failed", error);
+            store.failRun(t("workspace.connectionFailed"));
+          },
         });
     } catch (error) {
-      store.failRun(errorMessage(error));
+      console.error("Unable to dispatch Expert question", errorMessage(error));
+      store.failRun(t("workspace.startFailed"));
       setDraft(question);
     }
   }
 
   async function cancel() {
-    if (!store.activeRunId) return;
-    await apolloClient.mutate({
-      mutation: CANCEL_EXPERT_RUN,
-      variables: { runId: store.activeRunId },
-    });
+    const runId = store.activeRunId;
+    if (!runId || store.runPhase === "CANCELLING") return;
+    store.markCancelling();
+    try {
+      await apolloClient.mutate({
+        mutation: CANCEL_EXPERT_RUN,
+        variables: { runId },
+      });
+    } catch (error) {
+      console.error("Unable to cancel Expert run", error);
+      store.restoreWaitingAfterCancelFailure(t("workspace.cancelFailed"));
+    }
+  }
+
+  function startNewConversation() {
+    if (store.isBusy) return;
+    setConversationMenuId(undefined);
+    setRenamingConversationId(undefined);
+    setDraft("");
+    store.startNewConversation();
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }
+
+  function beginRename(id: string, title: string) {
+    setConversationMenuId(undefined);
+    setRenamingConversationId(id);
+    setRenameDraft(title);
+  }
+
+  async function renameConversation(event: React.FormEvent, id: string) {
+    event.preventDefault();
+    const title = renameDraft.trim();
+    if (!title) return;
+    try {
+      const result = await apolloClient.mutate<{
+        renameExpertConversation: { id: string; title: string };
+      }>({
+        mutation: RENAME_EXPERT_CONVERSATION,
+        variables: { id, title },
+      });
+      const conversation = result.data?.renameExpertConversation;
+      if (!conversation) throw new Error("Conversation was not renamed");
+      store.renameConversation(conversation.id, conversation.title);
+      setRenamingConversationId(undefined);
+    } catch (error) {
+      console.error("Unable to rename Expert conversation", error);
+      store.setError(t("workspace.renameFailed"));
+    }
+  }
+
+  async function deleteConversation(id: string) {
+    setConversationMenuId(undefined);
+    if (!window.confirm(t("workspace.deleteConfirm"))) return;
+    try {
+      const result = await apolloClient.mutate<{ deleteExpertConversation: boolean }>({
+        mutation: DELETE_EXPERT_CONVERSATION,
+        variables: { id },
+      });
+      if (!result.data?.deleteExpertConversation) throw new Error("Conversation was not deleted");
+      store.removeConversation(id);
+      await reloadBootstrap();
+    } catch (error) {
+      console.error("Unable to delete Expert conversation", error);
+      store.setError(t("workspace.deleteFailed"));
+    }
   }
 
   const quotaText =
@@ -205,19 +327,100 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             <span>{t("brand.by")}</span>
           </div>
         </div>
-        <button className="new-conversation" disabled={creating} onClick={() => void createConversation()}>
+        <button
+          className="new-conversation"
+          disabled={creating || store.isBusy || store.isNewConversationDraft}
+          onClick={startNewConversation}
+        >
           <span>＋</span> {t("workspace.new")}
         </button>
         <nav aria-label={t("workspace.conversations")}>
-          {store.conversations.map((conversation) => (
-            <button
-              className={conversation.id === store.selectedConversationId ? "selected" : ""}
-              key={conversation.id}
-              onClick={() => store.selectConversation(conversation.id)}
-            >
-              {conversation.title}
-            </button>
-          ))}
+          {store.conversations.map((conversation) => {
+            const selected = conversation.id === store.selectedConversationId;
+            return (
+              <div
+                className={`conversation-item${selected ? " selected" : ""}`}
+                key={conversation.id}
+              >
+                {renamingConversationId === conversation.id ? (
+                  <form
+                    className="conversation-rename"
+                    onSubmit={(event) => void renameConversation(event, conversation.id)}
+                  >
+                    <input
+                      aria-label={t("workspace.rename")}
+                      autoFocus
+                      maxLength={120}
+                      value={renameDraft}
+                      onChange={(event) => setRenameDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") setRenamingConversationId(undefined);
+                      }}
+                    />
+                    <button
+                      aria-label={t("workspace.saveRename")}
+                      disabled={!renameDraft.trim()}
+                      type="submit"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      aria-label={t("workspace.cancelRename")}
+                      onClick={() => setRenamingConversationId(undefined)}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <button
+                      className="conversation-title"
+                      disabled={store.isBusy}
+                      onClick={() => store.selectConversation(conversation.id)}
+                    >
+                      {conversation.title}
+                    </button>
+                    <div className="conversation-actions">
+                      <button
+                        aria-expanded={conversationMenuId === conversation.id}
+                        aria-haspopup="menu"
+                        aria-label={t("workspace.conversationActions", {
+                          title: conversation.title,
+                        })}
+                        className="conversation-more"
+                        disabled={store.isBusy}
+                        onClick={() =>
+                          setConversationMenuId((current) =>
+                            current === conversation.id ? undefined : conversation.id,
+                          )
+                        }
+                      >
+                        ···
+                      </button>
+                      {conversationMenuId === conversation.id ? (
+                        <div className="conversation-menu" role="menu">
+                          <button
+                            onClick={() => beginRename(conversation.id, conversation.title)}
+                            role="menuitem"
+                          >
+                            {t("workspace.rename")}
+                          </button>
+                          <button
+                            className="danger"
+                            onClick={() => void deleteConversation(conversation.id)}
+                            role="menuitem"
+                          >
+                            {t("workspace.delete")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </nav>
         <div className="sidebar-footer">
           <span>{store.userEmail}</span>
@@ -232,6 +435,15 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             <h2>{store.selectedConversation?.title ?? t("workspace.start")}</h2>
           </div>
           <div className="header-actions">
+            <button
+              aria-label={t("workspace.new")}
+              className="mobile-new-conversation"
+              disabled={store.isBusy || store.isNewConversationDraft}
+              onClick={startNewConversation}
+              type="button"
+            >
+              ＋
+            </button>
             <div className="knowledge-chip">
               <span className="live-dot" />
               {t("workspace.knowledge")} {store.knowledgeVersion ?? "local preview"}
@@ -241,21 +453,19 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         </header>
 
         <div className="message-scroll">
-          {store.messages.length === 0 && !store.streamingAnswer ? (
+          {store.messages.length === 0 && !store.pendingQuestion && !store.streamingAnswer ? (
             <div className="empty-state">
               <p className="eyebrow">{t("workspace.askKicker")}</p>
               <h1>{t("workspace.emptyTitle")}</h1>
               <p>{t("workspace.emptyBody")}</p>
               <div className="starter-grid">
-                {[
-                  t("workspace.starter1"),
-                  t("workspace.starter2"),
-                  t("workspace.starter3"),
-                ].map((question) => (
-                  <button key={question} onClick={() => setDraft(question)}>
-                    {question}
-                  </button>
-                ))}
+                {[t("workspace.starter1"), t("workspace.starter2"), t("workspace.starter3")].map(
+                  (question) => (
+                    <button key={question} onClick={() => setDraft(question)}>
+                      {question}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
           ) : null}
@@ -268,11 +478,18 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
               <div className="markdown">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
               </div>
-              {message.role === "ASSISTANT"
-                ? suggestedQuestions(message.suggestedQuestions)
-                : null}
+              {message.role === "ASSISTANT" ? suggestedQuestions(message.suggestedQuestions) : null}
             </article>
           ))}
+
+          {store.pendingQuestion ? (
+            <article className="message user pending-question">
+              <span className="message-role">{t("workspace.you")}</span>
+              <div className="markdown">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{store.pendingQuestion}</ReactMarkdown>
+              </div>
+            </article>
+          ) : null}
 
           {store.streamingAnswer ? (
             <article className="message assistant streaming">
@@ -283,16 +500,34 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
               {suggestedQuestions(store.pendingSuggestedQuestions)}
             </article>
           ) : null}
-          {store.runningTool ? (
-            <p className="run-status">
-              {store.runningTool === "deliver_expert_response"
-                ? t("workspace.preparing")
-                : t("workspace.consulting", {
-                    tool: store.runningTool.replaceAll("_", " "),
-                  })}
-            </p>
+          {store.isBusy && !store.streamingAnswer ? (
+            <article className="message assistant waiting">
+              <span className="message-role">{t("workspace.expert")}</span>
+              <div className="thinking-row" aria-live="polite">
+                <span className="thinking-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span>
+                  {store.runPhase === "CANCELLING"
+                    ? t("workspace.cancelling")
+                    : store.runningTool === "deliver_expert_response"
+                      ? t("workspace.preparing")
+                      : store.runningTool
+                        ? t("workspace.consulting", {
+                            tool: store.runningTool.replaceAll("_", " "),
+                          })
+                        : store.runPhase === "STARTING"
+                          ? t("workspace.starting")
+                          : t("workspace.thinking")}
+                </span>
+              </div>
+            </article>
           ) : null}
           {store.error ? <p className="chat-error">{store.error}</p> : null}
+          {store.notice ? <p className="chat-notice">{store.notice}</p> : null}
+          <div ref={messageEndRef} />
         </div>
 
         <footer className="composer-shell">
@@ -304,19 +539,30 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
               placeholder={t("workspace.placeholder")}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                   event.preventDefault();
                   event.currentTarget.form?.requestSubmit();
                 }
               }}
             />
             {store.activeRunId ? (
-              <button className="stop-button" type="button" onClick={() => void cancel()}>
-                {t("workspace.stop")}
+              <button
+                className="stop-button"
+                disabled={store.runPhase === "CANCELLING"}
+                type="button"
+                onClick={() => void cancel()}
+              >
+                {store.runPhase === "CANCELLING"
+                  ? t("workspace.cancellingShort")
+                  : t("workspace.stop")}
               </button>
             ) : (
-              <button className="send-button" disabled={!draft.trim()} type="submit">
-                {t("workspace.ask")}
+              <button
+                className="send-button"
+                disabled={store.isBusy || !draft.trim()}
+                type="submit"
+              >
+                {store.runPhase === "STARTING" ? t("workspace.startingShort") : t("workspace.ask")}
               </button>
             )}
           </form>
