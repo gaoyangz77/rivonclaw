@@ -37,11 +37,20 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
   query AffiliateExpectedSalesPredictions($input: AffiliateExpectedSalesPredictionInput!) {
     affiliateExpectedSalesPredictions(input: $input) {
       status
+      modelStatus
+      expectedSalesUnits
       requestId
+      modelStage
+      requestedTenantScope
+      requestedTenantId
+      effectiveTenantScope
+      effectiveTenantId
+      featureTemporalBasis
       modelTag
       modelType
       trainedAt
       featureVersion
+      modelVersion
       predictions {
         cacheId
         status
