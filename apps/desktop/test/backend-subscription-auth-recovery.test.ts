@@ -279,6 +279,74 @@ describe("BackendSubscriptionClient auth recovery", () => {
 
     expect(token).toBe("staging-token");
     expect(subscriptions).toHaveLength(2);
+
+    token = "rotated-token";
+    await client.handleCredentialsChanged();
+
+    expect(subscriptions).toHaveLength(5);
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
+      authorization: "Bearer rotated-token",
+    });
+    client.disconnect();
+  });
+
+  it("does not restart twice when auth recovery also emits a credentials change", async () => {
+    let token = "expired-token";
+    let client!: BackendSubscriptionClient;
+    const refreshAuth = vi.fn(async () => {
+      token = "fresh-token";
+      await client.handleCredentialsChanged();
+    });
+
+    client = new BackendSubscriptionClient("en");
+    client.connect(() => token, { refreshAuth });
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationSignals(vi.fn());
+    clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
+    sockets.at(-1)?.close.mockClear();
+
+    subscriptions[0].sink.error([{ message: "Authentication required" }]);
+
+    await vi.waitFor(() => {
+      expect(refreshAuth).toHaveBeenCalledTimes(1);
+      expect(subscriptions).toHaveLength(2);
+    });
+
+    expect(sockets.at(-1)?.close).toHaveBeenCalledTimes(1);
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
+      authorization: "Bearer fresh-token",
+    });
+    client.disconnect();
+  });
+
+  it("does not enable authenticated subscriptions from a credentials event before auth bootstrap", async () => {
+    let token: string | null = null;
+    const client = new BackendSubscriptionClient("en");
+    client.connect(() => token);
+    client.subscribeToCsConversationChanges(vi.fn());
+
+    token = "bootstrap-token";
+    await client.handleCredentialsChanged();
+
+    expect(subscriptions).toHaveLength(0);
+
+    client.enableAuthenticatedSubscriptions();
+    expect(subscriptions).toHaveLength(1);
+    client.disconnect();
+  });
+
+  it("ignores unchanged active credentials", async () => {
+    const client = new BackendSubscriptionClient("en");
+    client.connect(() => "stable-token");
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationChanges(vi.fn());
+    clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
+    sockets.at(-1)?.close.mockClear();
+
+    await client.handleCredentialsChanged();
+
+    expect(subscriptions).toHaveLength(1);
+    expect(sockets.at(-1)?.close).not.toHaveBeenCalled();
     client.disconnect();
   });
 

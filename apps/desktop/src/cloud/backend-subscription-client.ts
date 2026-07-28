@@ -978,6 +978,8 @@ type RestartableClient = Client & {
   restart: () => void;
 };
 
+type AuthenticatedSubscriptionState = "disabled" | "active" | "suspended";
+
 /**
  * Unified GraphQL subscription client that manages a single shared
  * graphql-ws connection to the backend and exposes per-topic
@@ -993,8 +995,8 @@ export class BackendSubscriptionClient {
   /** Stored configs for reconciling desired long-lived operations. */
   private subscriptionConfigs = new Map<string, SubscriptionConfig>();
 
-  /** Whether authenticated subscription configs should be active. */
-  private authenticatedSubscriptionsEnabled = false;
+  /** Desired/runtime state for authenticated long-lived operations. */
+  private authenticatedSubscriptionState: AuthenticatedSubscriptionState = "disabled";
 
   /** Token used by the current authenticated subscription connection. */
   private authenticatedSubscriptionToken: string | null = null;
@@ -1067,60 +1069,131 @@ export class BackendSubscriptionClient {
       return;
     }
 
-    const wasEnabled = this.authenticatedSubscriptionsEnabled;
-    const tokenChanged = this.authenticatedSubscriptionToken !== token;
-    this.authenticatedSubscriptionsEnabled = true;
-    this.authenticatedSubscriptionToken = token;
-
-    if (!this.client) {
-      this.doConnect();
-      return;
-    }
-
-    if (!wasEnabled || tokenChanged || options?.forceReconnect) {
-      this.restartTransport(options?.forceReconnect ? "auth_force_reconnect" : "auth_enable");
-    }
-    this.reconcileSubscriptions("auth_enable");
+    this.applyAuthenticatedCredentials(token, {
+      allowEnableFromDisabled: true,
+      forceReconnect: options?.forceReconnect,
+      reason: options?.forceReconnect ? "auth_force_reconnect" : "auth_enable",
+    });
   }
 
   refreshAuthenticatedSubscriptions(): void {
-    if (!this.authenticatedSubscriptionsEnabled) return;
     const token = this.getToken?.() ?? null;
     if (!token) {
       this.disableAuthenticatedSubscriptions();
       return;
     }
 
-    this.authenticatedSubscriptionToken = token;
-    if (this.client) {
-      this.restartTransport("auth_refresh");
-      this.reconcileSubscriptions("auth_refresh");
-    } else {
-      this.doConnect();
-    }
+    this.applyAuthenticatedCredentials(token, {
+      allowEnableFromDisabled: false,
+      reason: "auth_refresh",
+    });
   }
 
-  disableAuthenticatedSubscriptions(): void {
-    if (!this.authenticatedSubscriptionsEnabled && !this.authenticatedSubscriptionToken) {
+  async handleCredentialsChanged(): Promise<void> {
+    const token = this.getToken?.() ?? null;
+    if (!token) {
+      this.disableAuthenticatedSubscriptions();
       return;
     }
 
-    this.authenticatedSubscriptionsEnabled = false;
+    this.applyAuthenticatedCredentials(token, {
+      allowEnableFromDisabled: false,
+      reason: "credentials_changed",
+    });
+  }
+
+  disableAuthenticatedSubscriptions(): void {
+    if (
+      this.authenticatedSubscriptionState === "disabled"
+      && !this.authenticatedSubscriptionToken
+    ) {
+      return;
+    }
+
+    const previousState = this.authenticatedSubscriptionState;
+    this.authenticatedSubscriptionState = "disabled";
     this.authenticatedSubscriptionToken = null;
+    this.authRecoveryFailures = 0;
 
     if (this.client) {
-      for (const config of this.subscriptionConfigs.values()) {
-        if (config.authRequired) {
-          const timer = this.completeRecoveryTimers.get(config.key);
-          if (timer) {
-            clearTimeout(timer);
-            this.completeRecoveryTimers.delete(config.key);
-          }
-          this.completeRecoveryFailures.delete(config.key);
-          this.stopActiveSubscription(config.key, "auth_disable");
-        }
-      }
+      this.stopAuthenticatedSubscriptions("auth_disable");
       this.restartTransport("auth_disable");
+    }
+
+    log.info("Authenticated backend subscriptions state changed", {
+      from: previousState,
+      to: this.authenticatedSubscriptionState,
+      reason: "auth_disable",
+    });
+  }
+
+  private suspendAuthenticatedSubscriptions(reason: string): void {
+    if (this.authenticatedSubscriptionState !== "active") return;
+
+    const previousState = this.authenticatedSubscriptionState;
+    this.authenticatedSubscriptionState = "suspended";
+
+    if (this.client) {
+      this.stopAuthenticatedSubscriptions("auth_suspend");
+      this.restartTransport("auth_suspend");
+    }
+
+    log.warn("Authenticated backend subscriptions state changed", {
+      from: previousState,
+      to: this.authenticatedSubscriptionState,
+      reason,
+    });
+  }
+
+  private applyAuthenticatedCredentials(
+    token: string,
+    options: {
+      allowEnableFromDisabled: boolean;
+      forceReconnect?: boolean;
+      reason: string;
+    },
+  ): void {
+    const previousState = this.authenticatedSubscriptionState;
+    if (previousState === "disabled" && !options.allowEnableFromDisabled) return;
+
+    const tokenChanged = this.authenticatedSubscriptionToken !== token;
+    const shouldResume = previousState === "suspended";
+    this.authenticatedSubscriptionState = "active";
+    this.authenticatedSubscriptionToken = token;
+    this.authRecoveryFailures = 0;
+
+    if (!this.client) {
+      this.doConnect();
+      this.reconcileSubscriptions(options.reason);
+      return;
+    }
+
+    if (shouldResume || tokenChanged || options.forceReconnect) {
+      this.restartTransport(options.reason);
+    }
+    this.reconcileSubscriptions(options.reason);
+
+    if (previousState !== this.authenticatedSubscriptionState || tokenChanged) {
+      log.info("Authenticated backend subscriptions state changed", {
+        from: previousState,
+        to: this.authenticatedSubscriptionState,
+        reason: options.reason,
+        tokenChanged,
+      });
+    }
+  }
+
+  private stopAuthenticatedSubscriptions(reason: string): void {
+    for (const config of this.subscriptionConfigs.values()) {
+      if (!config.authRequired) continue;
+
+      const timer = this.completeRecoveryTimers.get(config.key);
+      if (timer) {
+        clearTimeout(timer);
+        this.completeRecoveryTimers.delete(config.key);
+      }
+      this.completeRecoveryFailures.delete(config.key);
+      this.stopActiveSubscription(config.key, reason);
     }
   }
 
@@ -1258,7 +1331,7 @@ export class BackendSubscriptionClient {
   }
 
   private handleConnectionAuthFailure(source: string, err: unknown): void {
-    if (!this.authenticatedSubscriptionsEnabled) return;
+    if (this.authenticatedSubscriptionState !== "active") return;
     log.debug("Backend subscription connection auth failure; refreshing auth", {
       source,
       ...this.formatUnknownError(err),
@@ -1286,7 +1359,7 @@ export class BackendSubscriptionClient {
   }
 
   private recoverAuthenticatedSubscriptions(source: string): void {
-    if (!this.authenticatedSubscriptionsEnabled || !this.refreshAuth) return;
+    if (this.authenticatedSubscriptionState !== "active" || !this.refreshAuth) return;
     if (this.authRecoveryPromise) return;
 
     this.authRecoveryPromise = (async () => {
@@ -1331,7 +1404,7 @@ export class BackendSubscriptionClient {
             failureCount: this.authRecoveryFailures,
             reason,
           });
-          this.disableAuthenticatedSubscriptions();
+          this.suspendAuthenticatedSubscriptions(reason);
           return;
         }
 
@@ -1393,7 +1466,7 @@ export class BackendSubscriptionClient {
   }
 
   private shouldSubscribe(config: SubscriptionConfig): boolean {
-    return !config.authRequired || this.authenticatedSubscriptionsEnabled;
+    return !config.authRequired || this.authenticatedSubscriptionState === "active";
   }
 
   private startSubscription(config: SubscriptionConfig, reason = "start"): void {
@@ -1411,7 +1484,7 @@ export class BackendSubscriptionClient {
       subscription: config.key,
       reason,
       authRequired: config.authRequired === true,
-      authenticated: this.authenticatedSubscriptionsEnabled,
+      authenticated: this.authenticatedSubscriptionState === "active",
     });
     const active = config.subscribe();
     this.activeSubscriptions.set(config.key, active);

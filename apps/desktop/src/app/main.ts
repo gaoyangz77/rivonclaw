@@ -539,6 +539,9 @@ app.whenReady().then(async () => {
       return subscriptionReconnectShopRefresh;
     },
   });
+  const unsubscribeAuthCredentialsChanged = authSession.onCredentialsChanged(async () => {
+    await backendSubscription.handleCredentialsChanged();
+  });
   reaction(
     () => rootStore.getCustomerServiceShopIdsForDevice(deviceId).join("\0"),
     () => {
@@ -2195,6 +2198,7 @@ app.whenReady().then(async () => {
     // Stop all periodic timers
     clearInterval(proxyPollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
+    unsubscribeAuthCredentialsChanged();
     backendSubscription.disconnect();
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
@@ -2240,6 +2244,7 @@ app.whenReady().then(async () => {
     // Stop all periodic timers so they don't keep the event loop alive
     clearInterval(proxyPollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
+    unsubscribeAuthCredentialsChanged();
     backendSubscription.disconnect();
     clearInterval(singleInstanceHeartbeat);
     removeHeartbeat();
