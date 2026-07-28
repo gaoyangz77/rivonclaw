@@ -46,6 +46,7 @@ export const ExpertStore = types
     usage: types.maybe(UsageModel),
     knowledgeVersion: types.maybe(types.string),
     activeRunId: types.maybe(types.string),
+    activeRunConversationId: types.maybe(types.string),
     runPhase: types.optional(
       types.enumeration(["IDLE", "STARTING", "WAITING", "STREAMING", "CANCELLING"]),
       "IDLE",
@@ -85,6 +86,7 @@ export const ExpertStore = types
       self.selectedConversationId = undefined;
       self.isNewConversationDraft = false;
       self.activeRunId = undefined;
+      self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
       self.streamingAnswer = "";
@@ -157,22 +159,18 @@ export const ExpertStore = types
       self.messages.clear();
     },
     startNewConversation() {
-      if (self.runPhase !== "IDLE" || self.isNewConversationDraft) return;
+      if (self.isNewConversationDraft) return;
       self.selectedConversationId = undefined;
       self.isNewConversationDraft = true;
       self.messages.clear();
-      self.streamingAnswer = "";
-      self.pendingSuggestedQuestions.clear();
       self.error = undefined;
       self.notice = undefined;
     },
     selectConversation(id: string) {
-      if (self.runPhase !== "IDLE" || self.selectedConversationId === id) return;
+      if (self.selectedConversationId === id) return;
       self.selectedConversationId = id;
       self.isNewConversationDraft = false;
       self.messages.clear();
-      self.streamingAnswer = "";
-      self.pendingSuggestedQuestions.clear();
       self.error = undefined;
       self.notice = undefined;
     },
@@ -222,6 +220,9 @@ export const ExpertStore = types
       self.error = undefined;
       self.notice = undefined;
     },
+    bindRunConversation(conversationId: string) {
+      self.activeRunConversationId = conversationId;
+    },
     prepareRerun(messageId: string, question: string) {
       const messageIndex = self.messages.findIndex((message) => message.id === messageId);
       if (messageIndex < 0 || self.messages[messageIndex]?.role !== "USER") {
@@ -236,13 +237,16 @@ export const ExpertStore = types
       self.error = undefined;
       self.notice = undefined;
     },
-    beginRun(runId: string) {
-      self.messages.push({
-        id: `local-${runId}`,
-        role: "USER",
-        content: self.pendingQuestion,
-        createdAt: new Date().toISOString(),
-      });
+    beginRun(runId: string, conversationId: string) {
+      self.activeRunConversationId = conversationId;
+      if (self.selectedConversationId === conversationId) {
+        self.messages.push({
+          id: `local-${runId}`,
+          role: "USER",
+          content: self.pendingQuestion,
+          createdAt: new Date().toISOString(),
+        });
+      }
       self.pendingQuestion = "";
       self.activeRunId = runId;
       self.runPhase = "WAITING";
@@ -262,6 +266,7 @@ export const ExpertStore = types
     },
     finishRun() {
       self.activeRunId = undefined;
+      self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
       self.runningTool = undefined;
@@ -272,6 +277,7 @@ export const ExpertStore = types
       self.error = message;
       self.notice = undefined;
       self.activeRunId = undefined;
+      self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
       self.runningTool = undefined;
@@ -282,6 +288,7 @@ export const ExpertStore = types
       self.notice = message;
       self.error = undefined;
       self.activeRunId = undefined;
+      self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
       self.runningTool = undefined;

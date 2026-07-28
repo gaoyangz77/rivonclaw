@@ -440,6 +440,10 @@ textarea:focus {
   background: rgb(47 109 255 / 17%);
 }
 
+.conversation-item.running:not(.selected) {
+  background: rgb(35 184 122 / 7%);
+}
+
 .conversation-title {
   min-width: 0;
   min-height: 44px;
@@ -455,6 +459,31 @@ textarea:focus {
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.conversation-title-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-run-spinner {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  margin-left: 8px;
+  border: 2px solid rgb(115 214 255 / 26%);
+  border-top-color: #72ddff;
+  border-right-color: #55a5ff;
+  border-radius: 50%;
+  animation: conversation-run-spin 720ms linear infinite;
+}
+
+@keyframes conversation-run-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .conversation-item:hover .conversation-title,
@@ -521,6 +550,15 @@ textarea:focus {
 
 .conversation-menu-portal button:hover {
   background: #f1f5fa;
+}
+
+.conversation-menu-portal button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.conversation-menu-portal button:disabled:hover {
+  background: transparent;
 }
 
 .conversation-menu-portal button.danger {
@@ -731,6 +769,9 @@ textarea:focus {
 
 .message-scroll {
   overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
   padding: 42px max(40px, calc((100% - 850px) / 2));
 }
 
