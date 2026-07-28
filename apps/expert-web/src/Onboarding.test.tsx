@@ -2,7 +2,11 @@ import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "./i18n.js";
-import { buildProfileMarkets, MarketMultiSelector } from "./Onboarding.js";
+import {
+  buildProfileMarkets,
+  buildSupplementedAnswer,
+  MarketMultiSelector,
+} from "./Onboarding.js";
 
 function SelectorHarness() {
   const [value, setValue] = useState<string[]>([]);
@@ -34,6 +38,13 @@ describe("buildProfileMarkets", () => {
       "东南亚，优先考虑华人用户多的市场",
     ]);
   });
+
+  it("combines a structured choice with an optional free-form supplement", () => {
+    expect(buildSupplementedAnswer("有其他平台电商经验", "做过三年 Amazon 美国站")).toBe(
+      "有其他平台电商经验；做过三年 Amazon 美国站",
+    );
+    expect(buildSupplementedAnswer("", "预算约 30 万人民币")).toBe("预算约 30 万人民币");
+  });
 });
 
 describe("MarketMultiSelector", () => {
@@ -62,6 +73,21 @@ describe("MarketMultiSelector", () => {
     expect(screen.getAllByText("已选择 2 个").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(details!.open).toBe(false);
+  });
+
+  it("closes the panel when the user clicks outside it", () => {
+    const { container } = render(
+      <I18nProvider>
+        <SelectorHarness />
+      </I18nProvider>,
+    );
+    const details = container.querySelector("details");
+    const summary = container.querySelector("summary");
+    fireEvent.click(summary!);
+    expect(details!.open).toBe(true);
+
+    fireEvent.pointerDown(document.body);
     expect(details!.open).toBe(false);
   });
 });

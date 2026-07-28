@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { apolloClient } from "./api/client.js";
 import { UPSERT_EXPERT_PROFILE } from "./api/operations.js";
@@ -33,6 +33,9 @@ const MARKET_CODES = [
   "VN",
 ] as const;
 
+const EXPERIENCE_OPTIONS = ["FIRST_TIME", "ECOMMERCE", "TIKTOK_SHOP", "SERVICE_PROVIDER"] as const;
+const CAPITAL_OPTIONS = ["UNDECIDED", "UNDER_5K", "FROM_5K_TO_20K", "FROM_20K_TO_50K", "OVER_50K"] as const;
+
 function optionalList(value: string): string[] {
   const normalized = value.trim();
   return normalized ? [normalized] : [];
@@ -49,6 +52,11 @@ export function buildProfileMarkets(
   ];
 }
 
+export function buildSupplementedAnswer(optionLabel: string, supplement: string): string | undefined {
+  const parts = [optionLabel.trim(), supplement.trim()].filter(Boolean);
+  return parts.length > 0 ? parts.join("；") : undefined;
+}
+
 export function MarketMultiSelector({
   value,
   onChange,
@@ -61,6 +69,17 @@ export function MarketMultiSelector({
   const [query, setQuery] = useState("");
   const marketNames = new Intl.DisplayNames([language], { type: "region" });
   const listFormatter = new Intl.ListFormat([language], { style: "short", type: "conjunction" });
+
+  useEffect(() => {
+    function closeOnOutsidePointer(event: PointerEvent) {
+      const details = detailsRef.current;
+      if (!details?.open || !(event.target instanceof Node) || details.contains(event.target)) return;
+      details.removeAttribute("open");
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, []);
 
   function marketName(code: string): string {
     return marketNames.of(code) ?? code;
@@ -157,9 +176,11 @@ export const Onboarding = observer(function Onboarding({
   const [stage, setStage] = useState("EXPLORING");
   const [marketCodes, setMarketCodes] = useState<string[]>([]);
   const [marketContext, setMarketContext] = useState("");
-  const [sellerTypes, setSellerTypes] = useState<string[]>(["CROSS_BORDER"]);
-  const [experience, setExperience] = useState("");
-  const [capitalBand, setCapitalBand] = useState("");
+  const [sellerTypes, setSellerTypes] = useState<string[]>([]);
+  const [experienceOption, setExperienceOption] = useState("");
+  const [experienceSupplement, setExperienceSupplement] = useState("");
+  const [capitalOption, setCapitalOption] = useState("");
+  const [capitalSupplement, setCapitalSupplement] = useState("");
   const [goals, setGoals] = useState("");
   const [constraints, setConstraints] = useState("");
   const [saving, setSaving] = useState(false);
@@ -183,7 +204,6 @@ export const Onboarding = observer(function Onboarding({
   function next(event: React.FormEvent) {
     event.preventDefault();
     if (step === 1 && profileMarkets().length === 0) return;
-    if (step === 2 && sellerTypes.length === 0) return;
     setStep((current) => Math.min(3, current + 1));
   }
 
@@ -200,8 +220,16 @@ export const Onboarding = observer(function Onboarding({
             stage,
             targetMarkets: profileMarkets(),
             sellerTypes,
-            experience: experience.trim() || null,
-            capitalBand: capitalBand.trim() || null,
+            experience:
+              buildSupplementedAnswer(
+                experienceOption ? t(`onboarding.experienceOption.${experienceOption}`) : "",
+                experienceSupplement,
+              ) ?? null,
+            capitalBand:
+              buildSupplementedAnswer(
+                capitalOption ? t(`onboarding.capitalOption.${capitalOption}`) : "",
+                capitalSupplement,
+              ) ?? null,
             teamCapacity: null,
             targetTimeline: null,
             goals: optionalList(goals),
@@ -308,23 +336,53 @@ export const Onboarding = observer(function Onboarding({
                     />
                     {t("onboarding.local")}
                   </label>
+                  <label className={`unsure-option ${sellerTypes.length === 0 ? "selected" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={sellerTypes.length === 0}
+                      onChange={() => setSellerTypes([])}
+                    />
+                    {t("onboarding.sellerUnsure")}
+                  </label>
                 </div>
               </fieldset>
               <div className="two-column-fields">
                 <label>
                   {t("onboarding.experience")}
+                  <select
+                    value={experienceOption}
+                    onChange={(event) => setExperienceOption(event.target.value)}
+                  >
+                    <option value="">{t("onboarding.optionalSelect")}</option>
+                    {EXPERIENCE_OPTIONS.map((option) => (
+                      <option value={option} key={option}>
+                        {t(`onboarding.experienceOption.${option}`)}
+                      </option>
+                    ))}
+                  </select>
                   <input
-                    placeholder={t("onboarding.experiencePlaceholder")}
-                    value={experience}
-                    onChange={(event) => setExperience(event.target.value)}
+                    placeholder={t("onboarding.experienceSupplement")}
+                    value={experienceSupplement}
+                    onChange={(event) => setExperienceSupplement(event.target.value)}
                   />
                 </label>
                 <label>
                   {t("onboarding.capital")}
+                  <select
+                    value={capitalOption}
+                    onChange={(event) => setCapitalOption(event.target.value)}
+                  >
+                    <option value="">{t("onboarding.optionalSelect")}</option>
+                    {CAPITAL_OPTIONS.map((option) => (
+                      <option value={option} key={option}>
+                        {t(`onboarding.capitalOption.${option}`)}
+                      </option>
+                    ))}
+                  </select>
                   <input
-                    placeholder={t("onboarding.capitalPlaceholder")}
-                    value={capitalBand}
-                    onChange={(event) => setCapitalBand(event.target.value)}
+                    placeholder={t("onboarding.capitalSupplement")}
+                    value={capitalSupplement}
+                    onChange={(event) => setCapitalSupplement(event.target.value)}
                   />
                 </label>
               </div>
@@ -367,8 +425,7 @@ export const Onboarding = observer(function Onboarding({
               className="primary-button"
               disabled={
                 saving ||
-                (step === 1 && profileMarkets().length === 0) ||
-                (step === 2 && sellerTypes.length === 0)
+                (step === 1 && profileMarkets().length === 0)
               }
               type="submit"
             >
