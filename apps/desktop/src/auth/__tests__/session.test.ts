@@ -54,6 +54,67 @@ describe("AuthSessionManager secure storage", () => {
       ["auth.accessToken", "access"],
     ]);
   });
+
+  it("emits credentials changes once per actual token change and supports unsubscribe", async () => {
+    const secretStore = makeSecretStore();
+    const manager = new AuthSessionManager(
+      secretStore,
+      "en",
+      vi.fn() as unknown as typeof fetch,
+    );
+    const listener = vi.fn();
+    const unsubscribe = manager.onCredentialsChanged(listener);
+
+    await manager.storeTokens("access-1", "refresh-1");
+    await manager.storeTokens("access-1", "refresh-1");
+    await manager.storeTokens("access-2", "refresh-2");
+
+    expect(listener.mock.calls).toEqual([
+      [{ state: "available" }],
+      [{ state: "available" }],
+    ]);
+
+    unsubscribe();
+    await manager.clearTokens();
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it("emits cleared before secure storage deletion failures", async () => {
+    const secretStore = makeSecretStore();
+    const manager = new AuthSessionManager(
+      secretStore,
+      "en",
+      vi.fn() as unknown as typeof fetch,
+    );
+    await manager.storeTokens("access", "refresh");
+    const listener = vi.fn();
+    manager.onCredentialsChanged(listener);
+    vi.mocked(secretStore.delete).mockRejectedValueOnce(
+      new SecretStoreAccessError("delete", "auth.accessToken"),
+    );
+
+    await expect(manager.clearTokens()).rejects.toBeInstanceOf(SecretStoreAccessError);
+
+    expect(manager.getAccessToken()).toBeNull();
+    expect(listener).toHaveBeenCalledWith({ state: "cleared" });
+  });
+
+  it("does not let credential listener failures interrupt token storage", async () => {
+    const secretStore = makeSecretStore();
+    const manager = new AuthSessionManager(
+      secretStore,
+      "en",
+      vi.fn() as unknown as typeof fetch,
+    );
+    manager.onCredentialsChanged(async () => {
+      throw new Error("listener failed");
+    });
+
+    await expect(manager.storeTokens("access", "refresh")).resolves.toBeUndefined();
+
+    expect(manager.getAccessToken()).toBe("access");
+    expect(secretStore.set).toHaveBeenCalledWith("auth.accessToken", "access");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -366,6 +427,8 @@ describe("AuthSessionManager.refresh", () => {
   });
 
   it("keeps a successfully refreshed session in memory when secure storage is unavailable", async () => {
+    const credentialsChanged = vi.fn();
+    manager.onCredentialsChanged(credentialsChanged);
     vi.mocked(secretStore.set).mockImplementation(async (key) => {
       if (key === "auth.refreshToken") {
         throw new SecretStoreAccessError("set", key);
@@ -390,6 +453,8 @@ describe("AuthSessionManager.refresh", () => {
     expect(manager.getCachedUser()).toEqual(mockUser);
     expect(manager.isSecureStorageAvailable()).toBe(false);
     expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(credentialsChanged).toHaveBeenCalledTimes(1);
+    expect(credentialsChanged).toHaveBeenCalledWith({ state: "available" });
   });
 
   it("does not clear stored tokens when background GraphQL auto-refresh sees an invalid JWT", async () => {

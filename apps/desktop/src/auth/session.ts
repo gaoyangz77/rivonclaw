@@ -16,6 +16,12 @@ const log = createLogger("auth-session");
 const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
 export type UserChangedListener = (user: GQL.MeResponse | null) => void | Promise<void>;
+export type CredentialsChangedEvent = {
+  state: "available" | "cleared";
+};
+export type CredentialsChangedListener = (
+  event: CredentialsChangedEvent,
+) => void | Promise<void>;
 
 interface RefreshOptions {
   clearOnInvalid?: boolean;
@@ -71,6 +77,7 @@ export class AuthSessionManager {
   private cachedUser: GQL.MeResponse | null = null;
   private refreshPromise: Promise<string> | null = null;
   private userChangedListeners: UserChangedListener[] = [];
+  private credentialsChangedListeners = new Set<CredentialsChangedListener>();
   private secureStorageAvailable = true;
 
   constructor(
@@ -88,6 +95,26 @@ export class AuthSessionManager {
    */
   onUserChanged(listener: UserChangedListener): void {
     this.userChangedListeners.push(listener);
+  }
+
+  onCredentialsChanged(listener: CredentialsChangedListener): () => void {
+    this.credentialsChangedListeners.add(listener);
+    return () => {
+      this.credentialsChangedListeners.delete(listener);
+    };
+  }
+
+  private async emitCredentialsChanged(event: CredentialsChangedEvent): Promise<void> {
+    for (const listener of this.credentialsChangedListeners) {
+      try {
+        await listener(event);
+      } catch (error) {
+        log.warn("Credentials changed listener failed", {
+          state: event.state,
+          error: getErrorMessage(error),
+        });
+      }
+    }
   }
 
   private async setUser(user: GQL.MeResponse | null): Promise<void> {
@@ -133,6 +160,7 @@ export class AuthSessionManager {
   }
 
   async storeTokens(accessToken: string, refreshToken: string): Promise<void> {
+    const changed = this.accessToken !== accessToken || this.refreshToken !== refreshToken;
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     try {
@@ -144,13 +172,17 @@ export class AuthSessionManager {
       this.secureStorageAvailable = true;
     } catch (error) {
       if (error instanceof SecretStoreAccessError) this.secureStorageAvailable = false;
+      if (changed) await this.emitCredentialsChanged({ state: "available" });
       throw error;
     }
+    if (changed) await this.emitCredentialsChanged({ state: "available" });
   }
 
   async clearTokens(): Promise<void> {
+    const hadCredentials = !!this.accessToken || !!this.refreshToken;
     this.accessToken = null;
     this.refreshToken = null;
+    if (hadCredentials) await this.emitCredentialsChanged({ state: "cleared" });
     await this.setUser(null);
     await this.secretStore.delete(ACCESS_TOKEN_KEY);
     await this.secretStore.delete(REFRESH_TOKEN_KEY);
@@ -217,16 +249,20 @@ export class AuthSessionManager {
         return;
       }
 
+      const hadCredentials = !!this.accessToken || !!this.refreshToken;
       this.accessToken = null;
       this.refreshToken = null;
+      if (hadCredentials) await this.emitCredentialsChanged({ state: "cleared" });
       await this.setUser(null);
       await this.secretStore.delete(ACCESS_TOKEN_KEY);
       await this.secretStore.delete(REFRESH_TOKEN_KEY);
     } catch (error) {
       if (!(error instanceof SecretStoreAccessError)) throw error;
+      const hadCredentials = !!this.accessToken || !!this.refreshToken;
       this.accessToken = null;
       this.refreshToken = null;
       this.secureStorageAvailable = false;
+      if (hadCredentials) await this.emitCredentialsChanged({ state: "cleared" });
       await this.setUser(null);
       log.error("Rejected auth session could not be removed because secure storage is unavailable");
     }
