@@ -775,6 +775,7 @@ textarea:focus {
 .onboarding-modal {
   overflow: hidden;
   width: min(930px, 100%);
+  max-height: calc(100dvh - 48px);
   min-height: 570px;
   display: grid;
   grid-template-columns: 0.76fr 1.24fr;
@@ -837,6 +838,9 @@ textarea:focus {
 
 .onboarding-form {
   align-content: start;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   padding: 48px 50px 38px;
   color: var(--ink);
   background: white;
@@ -937,12 +941,9 @@ textarea:focus {
 }
 
 .market-selector-popover {
-  position: absolute;
-  z-index: 4;
-  top: calc(100% + 7px);
-  right: 0;
-  left: 0;
+  position: static;
   overflow: hidden;
+  margin-top: 7px;
   border: 1px solid #cdd9ec;
   border-radius: 13px;
   background: white;
@@ -1105,6 +1106,11 @@ textarea:focus {
 .choice-grid input {
   width: 17px;
   height: 17px;
+}
+
+.choice-grid .unsure-option {
+  min-height: 52px;
+  grid-column: 1 / -1;
 }
 
 .two-column-fields {
