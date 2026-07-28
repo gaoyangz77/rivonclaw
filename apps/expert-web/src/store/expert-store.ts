@@ -189,6 +189,20 @@ export const ExpertStore = types
       self.error = undefined;
       self.notice = undefined;
     },
+    prepareRerun(messageId: string, question: string) {
+      const messageIndex = self.messages.findIndex((message) => message.id === messageId);
+      if (messageIndex < 0 || self.messages[messageIndex]?.role !== "USER") {
+        throw new Error("Editable user message not found");
+      }
+      self.messages.splice(messageIndex, self.messages.length - messageIndex);
+      self.pendingQuestion = question;
+      self.runPhase = "STARTING";
+      self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
+      self.runningTool = undefined;
+      self.error = undefined;
+      self.notice = undefined;
+    },
     beginRun(runId: string) {
       self.messages.push({
         id: `local-${runId}`,

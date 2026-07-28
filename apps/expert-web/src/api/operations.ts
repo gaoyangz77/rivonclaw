@@ -177,11 +177,17 @@ export const EXPERT_CONVERSATION = gql`
 `;
 
 export const DISPATCH_EXPERT_MESSAGE = gql`
-  mutation DispatchExpertMessage($conversationId: ID!, $text: String!, $idempotencyKey: String!) {
+  mutation DispatchExpertMessage(
+    $conversationId: ID!
+    $text: String!
+    $idempotencyKey: String!
+    $replaceMessageId: ID
+  ) {
     dispatchExpertMessage(
       conversationId: $conversationId
       text: $text
       idempotencyKey: $idempotencyKey
+      replaceMessageId: $replaceMessageId
     ) {
       run {
         id
