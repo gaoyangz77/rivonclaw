@@ -17,6 +17,7 @@ import { BrandLogo } from "./BrandLogo.js";
 import { LanguageSwitcher, useI18n } from "./i18n.js";
 import { Onboarding } from "./Onboarding.js";
 import { CheckIcon, CopyIcon, EditIcon, ExpertMarkdown } from "./ExpertMarkdown.js";
+import type { ExpertUsageSnapshot } from "./store/expert-store.js";
 
 interface ConversationData {
   expertConversation: {
@@ -32,7 +33,10 @@ interface ConversationData {
 }
 
 interface DispatchData {
-  dispatchExpertMessage: { run: { id: string } };
+  dispatchExpertMessage: {
+    run: { id: string };
+    usage: ExpertUsageSnapshot;
+  };
 }
 
 interface RunEventData {
@@ -66,6 +70,11 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }>();
   const [renamingConversationId, setRenamingConversationId] = useState<string>();
   const [renameDraft, setRenameDraft] = useState("");
+  const [deleteCandidate, setDeleteCandidate] = useState<{
+    id: string;
+    title: string;
+  }>();
+  const [deletingConversation, setDeletingConversation] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string>();
   const [messageEditDraft, setMessageEditDraft] = useState("");
   const [savingMessage, setSavingMessage] = useState(false);
@@ -165,6 +174,17 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }, [conversationMenu]);
 
   useEffect(() => {
+    if (!deleteCandidate) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deletingConversation) {
+        setDeleteCandidate(undefined);
+      }
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [deleteCandidate, deletingConversation]);
+
+  useEffect(() => {
     messageEndRef.current?.scrollIntoView({
       behavior: store.runPhase === "STREAMING" ? "auto" : "smooth",
       block: "end",
@@ -208,6 +228,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   async function startAgentRun(question: string, replaceMessageId?: string) {
     if (replaceMessageId) store.prepareRerun(replaceMessageId, question);
     else store.prepareRun(question);
+    const optimisticallyDebited = store.optimisticallyConsumeFreeQuestion();
     const existingConversationId = store.selectedConversationId;
     try {
       const conversationId = existingConversationId ?? (await createConversation());
@@ -220,8 +241,10 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
           replaceMessageId,
         },
       });
-      const runId = result.data?.dispatchExpertMessage.run.id;
+      const dispatch = result.data?.dispatchExpertMessage;
+      const runId = dispatch?.run.id;
       if (!runId) throw new Error("The Expert run did not start");
+      store.applyUsage(dispatch.usage);
       store.beginRun(runId);
       let lastSequence = 0;
       stopSubscription();
@@ -264,6 +287,12 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
       return true;
     } catch (error) {
       console.error("Unable to dispatch Expert question", errorMessage(error));
+      if (optimisticallyDebited) store.restoreOptimisticFreeQuestion();
+      try {
+        await reloadBootstrap();
+      } catch (reloadError) {
+        console.error("Unable to reconcile Expert quota", reloadError);
+      }
       store.failRun(t("workspace.startFailed"));
       if (replaceMessageId && existingConversationId) {
         await loadConversation(existingConversationId, true);
@@ -350,9 +379,15 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     }
   }
 
-  async function deleteConversation(id: string) {
+  function requestDeleteConversation(id: string, title: string) {
     setConversationMenu(undefined);
-    if (!window.confirm(t("workspace.deleteConfirm"))) return;
+    setDeleteCandidate({ id, title });
+  }
+
+  async function deleteConversation() {
+    if (!deleteCandidate || deletingConversation) return;
+    const { id } = deleteCandidate;
+    setDeletingConversation(true);
     try {
       const result = await apolloClient.mutate<{ deleteExpertConversation: boolean }>({
         mutation: DELETE_EXPERT_CONVERSATION,
@@ -360,10 +395,13 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
       });
       if (!result.data?.deleteExpertConversation) throw new Error("Conversation was not deleted");
       store.removeConversation(id);
+      setDeleteCandidate(undefined);
       await reloadBootstrap();
     } catch (error) {
       console.error("Unable to delete Expert conversation", error);
       store.setError(t("workspace.deleteFailed"));
+    } finally {
+      setDeletingConversation(false);
     }
   }
 
@@ -468,7 +506,9 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         </button>
         <button
           className="danger"
-          onClick={() => void deleteConversation(conversationMenu.id)}
+          onClick={() =>
+            requestDeleteConversation(conversationMenu.id, conversationMenu.title)
+          }
           role="menuitem"
         >
           {t("workspace.delete")}
@@ -539,6 +579,9 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                       className="conversation-title"
                       disabled={store.isBusy}
                       onClick={() => openConversation(conversation.id)}
+                      onDoubleClick={() =>
+                        beginRename(conversation.id, conversation.title)
+                      }
                     >
                       {conversation.title}
                     </button>
@@ -755,7 +798,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                 <span>
                   {store.runPhase === "CANCELLING"
                     ? t("workspace.cancelling")
-                    : store.runningTool === "deliver_expert_response"
+                    : store.runningTool === "set_expert_followups"
                       ? t("workspace.preparing")
                       : store.runningTool
                         ? t("workspace.consulting", {
@@ -826,6 +869,64 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         </footer>
       </section>
       {renderConversationMenu()}
+      {deleteCandidate
+        ? createPortal(
+            <div
+              className="conversation-delete-backdrop"
+              onMouseDown={(event) => {
+                if (
+                  event.target === event.currentTarget &&
+                  !deletingConversation
+                ) {
+                  setDeleteCandidate(undefined);
+                }
+              }}
+            >
+              <section
+                aria-describedby="conversation-delete-description"
+                aria-labelledby="conversation-delete-title"
+                aria-modal="true"
+                className="conversation-delete-dialog"
+                role="alertdialog"
+              >
+                <div className="conversation-delete-mark" aria-hidden="true">
+                  !
+                </div>
+                <div>
+                  <h2 id="conversation-delete-title">
+                    {t("workspace.deleteTitle")}
+                  </h2>
+                  <p id="conversation-delete-description">
+                    {t("workspace.deleteBody", {
+                      title: deleteCandidate.title,
+                    })}
+                  </p>
+                </div>
+                <div className="conversation-delete-actions">
+                  <button
+                    autoFocus
+                    disabled={deletingConversation}
+                    onClick={() => setDeleteCandidate(undefined)}
+                    type="button"
+                  >
+                    {t("workspace.deleteCancel")}
+                  </button>
+                  <button
+                    className="danger"
+                    disabled={deletingConversation}
+                    onClick={() => void deleteConversation()}
+                    type="button"
+                  >
+                    {deletingConversation
+                      ? t("workspace.deleting")
+                      : t("workspace.delete")}
+                  </button>
+                </div>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
       {showOnboarding ? <Onboarding onComplete={reloadBootstrap} /> : null}
     </main>
   );

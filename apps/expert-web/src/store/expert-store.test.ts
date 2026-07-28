@@ -46,6 +46,32 @@ describe("ExpertStore conversation lifecycle", () => {
 });
 
 describe("ExpertStore run lifecycle", () => {
+  it("optimistically consumes and reconciles free daily quota", () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({
+      profile: {},
+      conversations,
+      usage: {
+        mode: "FREE_DAILY",
+        freeRemaining: 5,
+        freeLimit: 5,
+        resetsAt: "2026-07-29T00:00:00.000Z",
+      },
+    });
+
+    expect(store.optimisticallyConsumeFreeQuestion()).toBe(true);
+    expect(store.usage?.freeRemaining).toBe(4);
+    store.restoreOptimisticFreeQuestion();
+    expect(store.usage?.freeRemaining).toBe(5);
+    store.applyUsage({
+      mode: "FREE_DAILY",
+      freeRemaining: 3,
+      freeLimit: 5,
+      resetsAt: "2026-07-29T00:00:00.000Z",
+    });
+    expect(store.usage?.freeRemaining).toBe(3);
+  });
+
   it("shows a starting state before a run id exists and fully resets after cancellation", () => {
     const store = ExpertStore.create();
     store.prepareRun("Which market should I enter?");

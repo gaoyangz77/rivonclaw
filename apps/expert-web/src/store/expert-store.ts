@@ -24,6 +24,15 @@ const UsageModel = types.model("ExpertUsage", {
   resetsAt: types.string,
 });
 
+export interface ExpertUsageSnapshot {
+  mode: string;
+  freeRemaining?: number | null;
+  freeLimit?: number | null;
+  weeklyTokenRemaining?: number | null;
+  fiveHourTokenRemaining?: number | null;
+  resetsAt: string;
+}
+
 export const ExpertStore = types
   .model("ExpertStore", {
     booting: true,
@@ -87,14 +96,7 @@ export const ExpertStore = types
     applyBootstrap(data: {
       profile: unknown;
       conversations: Array<{ id: string; title: string; lastMessageAt: string }>;
-      usage?: {
-        mode: string;
-        freeRemaining?: number | null;
-        freeLimit?: number | null;
-        weeklyTokenRemaining?: number | null;
-        fiveHourTokenRemaining?: number | null;
-        resetsAt: string;
-      };
+      usage?: ExpertUsageSnapshot;
       knowledgeVersion?: string;
     }) {
       self.hasProfile = Boolean(data.profile);
@@ -113,6 +115,37 @@ export const ExpertStore = types
           }
         : undefined;
       self.knowledgeVersion = data.knowledgeVersion;
+    },
+    applyUsage(usage: ExpertUsageSnapshot) {
+      self.usage = {
+        mode: usage.mode,
+        freeRemaining: usage.freeRemaining ?? null,
+        freeLimit: usage.freeLimit ?? null,
+        weeklyTokenRemaining: usage.weeklyTokenRemaining ?? null,
+        fiveHourTokenRemaining: usage.fiveHourTokenRemaining ?? null,
+        resetsAt: usage.resetsAt,
+      };
+    },
+    optimisticallyConsumeFreeQuestion() {
+      if (
+        self.usage?.mode !== "FREE_DAILY" ||
+        self.usage.freeRemaining === null ||
+        self.usage.freeRemaining <= 0
+      ) {
+        return false;
+      }
+      self.usage.freeRemaining -= 1;
+      return true;
+    },
+    restoreOptimisticFreeQuestion() {
+      if (
+        self.usage?.mode !== "FREE_DAILY" ||
+        self.usage.freeRemaining === null
+      ) {
+        return;
+      }
+      const limit = self.usage.freeLimit ?? Number.POSITIVE_INFINITY;
+      self.usage.freeRemaining = Math.min(limit, self.usage.freeRemaining + 1);
     },
     markProfileComplete() {
       self.hasProfile = true;

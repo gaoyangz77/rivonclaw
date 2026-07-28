@@ -220,6 +220,105 @@ describe("ExpertWorkspace chat interactions", () => {
     });
   });
 
+  it("starts renaming on double click and uses a styled delete confirmation", () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations: [conversation] });
+    const confirm = vi.spyOn(window, "confirm");
+    renderWorkspace(store);
+
+    fireEvent.doubleClick(
+      screen.getByRole("button", { name: conversation.title }),
+    );
+    const renameInput = screen.getByRole("textbox", { name: "重命名" });
+    expect(renameInput).not.toBeNull();
+    fireEvent.keyDown(renameInput, { key: "Escape" });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "“美国市场计划”的操作",
+      }),
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: "删除" }));
+    const dialog = screen.getByRole("alertdialog", {
+      name: "删除这个对话？",
+    });
+    expect(dialog.closest(".conversation-delete-backdrop")?.parentElement).toBe(
+      document.body,
+    );
+    expect(within(dialog).getByText(/美国市场计划/)).not.toBeNull();
+    expect(within(dialog).getByRole("button", { name: "保留对话" })).not.toBeNull();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("decrements free quota before dispatch resolves and reconciles the response", async () => {
+    const store = ExpertStore.create();
+    store.startNewConversation();
+    store.applyBootstrap({
+      profile: {},
+      conversations: [],
+      usage: {
+        mode: "FREE_DAILY",
+        freeRemaining: 5,
+        freeLimit: 5,
+        resetsAt: "2026-07-29T00:00:00.000Z",
+      },
+    });
+    let resolveMutation:
+      | ((value: {
+          data: {
+            createExpertConversation: {
+              id: string;
+              title: string;
+              lastMessageAt: string;
+            };
+          };
+        }) => void)
+      | undefined;
+    vi.spyOn(apolloClient, "mutate")
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveMutation = resolve as typeof resolveMutation;
+          }) as never,
+      )
+      .mockResolvedValueOnce({
+        data: {
+          dispatchExpertMessage: {
+            run: { id: "run-1" },
+            usage: {
+              mode: "FREE_DAILY",
+              freeRemaining: 3,
+              freeLimit: 5,
+              resetsAt: "2026-07-29T00:00:00.000Z",
+            },
+          },
+        },
+      } as never);
+    vi.spyOn(apolloClient, "subscribe").mockReturnValue({
+      subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
+    } as never);
+    renderWorkspace(store);
+
+    fireEvent.change(screen.getByPlaceholderText(/描述你的决策/), {
+      target: { value: "我应该先做哪个市场？" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "提交" }));
+    expect(screen.getByText("今天还可提问 4/5 次")).not.toBeNull();
+
+    resolveMutation?.({
+      data: {
+        createExpertConversation: {
+          id: "conversation-new",
+          title: "New conversation",
+          lastMessageAt: "2026-07-28T00:00:00.000Z",
+        },
+      },
+    });
+    await waitFor(() => {
+      expect(screen.getByText("今天还可提问 3/5 次")).not.toBeNull();
+    });
+  });
+
   it("resubmits an edited latest user question as a new Agent run", async () => {
     const store = ExpertStore.create();
     store.applyBootstrap({ profile: {}, conversations: [conversation] });
@@ -254,6 +353,12 @@ describe("ExpertWorkspace chat interactions", () => {
         dispatchExpertMessage: {
           run: {
             id: "rerun-1",
+          },
+          usage: {
+            mode: "FREE_DAILY",
+            freeRemaining: 4,
+            freeLimit: 5,
+            resetsAt: "2026-07-29T00:00:00.000Z",
           },
         },
       },

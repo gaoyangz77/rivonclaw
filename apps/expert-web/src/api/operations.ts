@@ -195,6 +195,15 @@ export const DISPATCH_EXPERT_MESSAGE = gql`
         usageMode
         skillVersion
       }
+      usage {
+        mode
+        freeUsed
+        freeLimit
+        freeRemaining
+        weeklyTokenRemaining
+        fiveHourTokenRemaining
+        resetsAt
+      }
     }
   }
 `;
