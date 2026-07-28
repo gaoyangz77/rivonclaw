@@ -19,6 +19,7 @@ import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 
 const workspaceSectionId = (tab: DrawerTab, section: string) => `shop-workspace-${tab}-${section}`;
 const ADS_ACCOUNT_COLLAPSE_THRESHOLD = 4;
+const SHOW_REVIEW_MANAGEMENT_SETTINGS = false;
 
 interface ShopDrawerProps {
   shopId: string | null;
@@ -232,6 +233,14 @@ export const ShopDrawer = observer(function ShopDrawer({
               id: workspaceSectionId(activeTab, "unpaid-reachout"),
               label: t("ecommerce.shopDrawer.aiCS.unpaidReachout"),
             },
+            ...(SHOW_REVIEW_MANAGEMENT_SETTINGS
+              ? [
+                  {
+                    id: workspaceSectionId(activeTab, "review-management"),
+                    label: t("ecommerce.shopDrawer.aiCS.reviewManagement"),
+                  },
+                ]
+              : []),
             {
               id: workspaceSectionId(activeTab, "escalation"),
               label: t("tiktokShops.detail.escalationRouting"),

@@ -9,6 +9,8 @@ import type { UnpaidReachoutStageDraft } from "../EcommercePage.js";
 import { UnpaidOrderReachoutSettings } from "./UnpaidOrderReachoutSettings.js";
 
 const BUSINESS_PROMPT_MAX_LENGTH = 10_000;
+const SHOW_REVIEW_MANAGEMENT_SETTINGS = false;
+
 interface AiCustomerServiceTabProps {
   shop: Shop;
   // Business prompt
@@ -85,6 +87,16 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
   onDraftUnpaidReachoutStagesChange,
   onDraftUnpaidExperimentEnabledChange,
   onDraftUnpaidHoldoutPercentChange,
+  draftReviewOptimizationEnabled,
+  draftBadReviewReachoutEnabled,
+  draftBadReviewReachoutStars,
+  draftBadReviewReachoutRecentDays,
+  savingReviewOptimizationSettings,
+  onToggleReviewOptimizationEnabled,
+  onToggleBadReviewReachoutEnabled,
+  onDraftBadReviewReachoutStarsChange,
+  onDraftBadReviewReachoutRecentDaysChange,
+  onSaveReviewOptimizationSettings,
   savingEscalation,
   draftEscalationChannel,
   draftEscalationRecipient,
@@ -257,7 +269,131 @@ export const AiCustomerServiceTab = observer(function AiCustomerServiceTab({
           onHoldoutPercentChange={onDraftUnpaidHoldoutPercentChange}
         />
       </section>
-      {/* Review management is temporarily hidden from desktop UI while the product direction is being revisited. */}
+
+      {SHOW_REVIEW_MANAGEMENT_SETTINGS && (
+        <section
+          id="shop-workspace-aiCustomerService-review-management"
+          className="shop-workspace-section"
+        >
+          <div className="drawer-section-label">
+            {t("ecommerce.shopDrawer.aiCS.reviewManagement")}
+          </div>
+          <div className="shop-info-card shop-review-management-card">
+            <div className="shop-review-management-head">
+              <div className="shop-review-management-copy">
+                <span className="shop-review-management-kicker">
+                  {t("ecommerce.shopDrawer.aiCS.reviewManagementModule")}
+                </span>
+                <strong>{t("ecommerce.shopDrawer.aiCS.reviewOptimizationEnabled")}</strong>
+                <span className="form-hint">
+                  {t("ecommerce.shopDrawer.aiCS.reviewOptimizationHint")}
+                </span>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={draftReviewOptimizationEnabled}
+                  onChange={(event) => onToggleReviewOptimizationEnabled(event.target.checked)}
+                  disabled={savingReviewOptimizationSettings}
+                />
+                <span
+                  className={`toggle-track ${draftReviewOptimizationEnabled ? "toggle-track-on" : "toggle-track-off"} ${savingReviewOptimizationSettings ? "toggle-track-disabled" : ""}`}
+                >
+                  <span
+                    className={`toggle-thumb ${draftReviewOptimizationEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                  />
+                </span>
+              </label>
+            </div>
+
+            <div
+              className={`shop-review-feature-card${draftReviewOptimizationEnabled ? "" : " shop-review-feature-card-disabled"}`}
+            >
+              <div className="shop-review-feature-head">
+                <div className="shop-review-feature-title">
+                  <span className="shop-review-management-kicker">
+                    {t("ecommerce.shopDrawer.aiCS.reviewManagementSubmodule")}
+                  </span>
+                  <strong>{t("ecommerce.shopDrawer.aiCS.badReviewReachoutTitle")}</strong>
+                  <span className="form-hint">
+                    {t("ecommerce.shopDrawer.aiCS.badReviewReachoutHint")}
+                  </span>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={draftBadReviewReachoutEnabled}
+                    onChange={(event) => onToggleBadReviewReachoutEnabled(event.target.checked)}
+                    disabled={!draftReviewOptimizationEnabled || savingReviewOptimizationSettings}
+                  />
+                  <span
+                    className={`toggle-track ${draftBadReviewReachoutEnabled ? "toggle-track-on" : "toggle-track-off"} ${!draftReviewOptimizationEnabled || savingReviewOptimizationSettings ? "toggle-track-disabled" : ""}`}
+                  >
+                    <span
+                      className={`toggle-thumb ${draftBadReviewReachoutEnabled ? "toggle-thumb-on" : "toggle-thumb-off"}`}
+                    />
+                  </span>
+                </label>
+              </div>
+
+              <div className="shop-review-feature-settings">
+                <label className="shop-review-field">
+                  <span className="form-label-block">
+                    {t("ecommerce.shopDrawer.aiCS.badReviewReachoutStars")}
+                  </span>
+                  <input
+                    className="input-full shop-review-field-input"
+                    type="number"
+                    min={1}
+                    max={3}
+                    step={1}
+                    value={draftBadReviewReachoutStars}
+                    onChange={(event) => onDraftBadReviewReachoutStarsChange(event.target.value)}
+                    disabled={!draftReviewOptimizationEnabled || savingReviewOptimizationSettings}
+                  />
+                  <span className="form-hint">
+                    {t("ecommerce.shopDrawer.aiCS.badReviewReachoutStarsHint")}
+                  </span>
+                </label>
+
+                <label className="shop-review-field">
+                  <span className="form-label-block">
+                    {t("ecommerce.shopDrawer.aiCS.badReviewReachoutRecentDays")}
+                  </span>
+                  <input
+                    className="input-full shop-review-field-input"
+                    type="number"
+                    min={1}
+                    max={90}
+                    step={1}
+                    value={draftBadReviewReachoutRecentDays}
+                    onChange={(event) =>
+                      onDraftBadReviewReachoutRecentDaysChange(event.target.value)
+                    }
+                    disabled={!draftReviewOptimizationEnabled || savingReviewOptimizationSettings}
+                  />
+                  <span className="form-hint">
+                    {t("ecommerce.shopDrawer.aiCS.badReviewReachoutRecentDaysHint")}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-primary btn-sm"
+                type="button"
+                onClick={onSaveReviewOptimizationSettings}
+                disabled={savingReviewOptimizationSettings}
+              >
+                {savingReviewOptimizationSettings
+                  ? t("common.loading")
+                  : t("ecommerce.shopDrawer.overview.save")}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section id="shop-workspace-aiCustomerService-escalation" className="shop-workspace-section">
         <div className="drawer-section-label">{t("tiktokShops.detail.escalationRouting")}</div>
