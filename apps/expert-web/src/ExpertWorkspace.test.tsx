@@ -1,4 +1,12 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apolloClient } from "./api/client.js";
 import { ExpertWorkspace } from "./ExpertWorkspace.js";
@@ -10,6 +18,11 @@ const conversation = {
   id: "conversation-1",
   title: "美国市场计划",
   lastMessageAt: "2026-07-28T00:00:00.000Z",
+};
+const secondConversation = {
+  id: "conversation-2",
+  title: "东南亚市场计划",
+  lastMessageAt: "2026-07-27T00:00:00.000Z",
 };
 
 function renderWorkspace(store = ExpertStore.create()) {
@@ -317,6 +330,155 @@ describe("ExpertWorkspace chat interactions", () => {
     await waitFor(() => {
       expect(screen.getByText("今天还可提问 3/5 次")).not.toBeNull();
     });
+  });
+
+  it("keeps the active session subscribed while browsing and editing the sidebar", async () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({
+      profile: {},
+      conversations: [conversation, secondConversation],
+      usage: {
+        mode: "FREE_DAILY",
+        freeRemaining: 5,
+        freeLimit: 5,
+        resetsAt: "2026-07-29T00:00:00.000Z",
+      },
+    });
+    vi.spyOn(apolloClient, "mutate").mockResolvedValue({
+      data: {
+        dispatchExpertMessage: {
+          run: { id: "run-background" },
+          usage: {
+            mode: "FREE_DAILY",
+            freeRemaining: 4,
+            freeLimit: 5,
+            resetsAt: "2026-07-29T00:00:00.000Z",
+          },
+        },
+      },
+    } as never);
+    const unsubscribe = vi.fn();
+    let subscriptionObserver:
+      | {
+          next(value: {
+            data: {
+              expertRunEvents: {
+                sequence: number;
+                type: string;
+                text?: string;
+              };
+            };
+          }): void;
+        }
+      | undefined;
+    vi.spyOn(apolloClient, "subscribe").mockReturnValue({
+      subscribe: vi.fn((observer) => {
+        subscriptionObserver = observer as typeof subscriptionObserver;
+        return { unsubscribe };
+      }),
+    } as never);
+    renderWorkspace(store);
+
+    fireEvent.change(screen.getByPlaceholderText(/描述你的决策/), {
+      target: { value: "请分析美国市场" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "提交" }));
+    await waitFor(() => expect(store.runPhase).toBe("WAITING"));
+    expect(
+      screen.getByRole("status", { name: "“美国市场计划”正在回答" }),
+    ).not.toBeNull();
+
+    const newConversationButton = screen.getByRole("button", { name: "新对话" });
+    expect((newConversationButton as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(newConversationButton);
+    expect(store.isNewConversationDraft).toBe(true);
+    expect(unsubscribe).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: secondConversation.title }),
+    );
+    await waitFor(() =>
+      expect(store.selectedConversationId).toBe(secondConversation.id),
+    );
+    const actions = screen.getByRole("button", {
+      name: "“东南亚市场计划”的操作",
+    });
+    expect((actions as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(actions);
+    expect(
+      (screen.getByRole("menuitem", { name: "删除" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+
+    act(() => {
+      subscriptionObserver?.next({
+        data: {
+          expertRunEvents: {
+            sequence: 1,
+            type: "ANSWER_DELTA",
+            text: "后台仍在流式回答",
+          },
+        },
+      });
+    });
+    expect(store.streamingAnswer).toBe("后台仍在流式回答");
+    expect(screen.queryByText("后台仍在流式回答")).toBeNull();
+    expect(unsubscribe).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("menuitem", { name: "重命名" }));
+    expect(screen.getByRole("textbox", { name: "重命名" })).not.toBeNull();
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "重命名" }), {
+      key: "Escape",
+    });
+    fireEvent.click(screen.getByRole("button", { name: conversation.title }));
+    expect(await screen.findByText("后台仍在流式回答")).not.toBeNull();
+    expect(unsubscribe).not.toHaveBeenCalled();
+  });
+
+  it("stops auto-follow when the user scrolls upward and resumes at the bottom", async () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations: [conversation] });
+    store.prepareRun("Question");
+    store.bindRunConversation(conversation.id);
+    store.beginRun("run-scroll", conversation.id);
+    store.appendDelta("Initial answer");
+    const { container } = render(
+      <I18nProvider>
+        <ExpertStoreProvider store={store}>
+          <ExpertWorkspace
+            reloadBootstrap={vi.fn(async () => {})}
+            logout={vi.fn(async () => {})}
+            showOnboarding={false}
+          />
+        </ExpertStoreProvider>
+      </I18nProvider>,
+    );
+    const scrollArea = container.querySelector(".message-scroll") as HTMLDivElement;
+    let scrollHeight = 1_000;
+    Object.defineProperty(scrollArea, "scrollHeight", {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+    Object.defineProperty(scrollArea, "clientHeight", {
+      configurable: true,
+      value: 400,
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+
+    scrollArea.scrollTop = 600;
+    fireEvent.scroll(scrollArea);
+    fireEvent.wheel(scrollArea, { deltaY: -120 });
+    scrollArea.scrollTop = 300;
+    fireEvent.scroll(scrollArea);
+    act(() => store.appendDelta(" while reading above"));
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+    expect(scrollArea.scrollTop).toBe(300);
+
+    scrollArea.scrollTop = 600;
+    fireEvent.scroll(scrollArea);
+    scrollHeight = 1_100;
+    act(() => store.appendDelta(" at the bottom"));
+    await waitFor(() => expect(scrollArea.scrollTop).toBe(700));
   });
 
   it("resubmits an edited latest user question as a new Agent run", async () => {

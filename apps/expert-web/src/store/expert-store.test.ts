@@ -74,12 +74,13 @@ describe("ExpertStore run lifecycle", () => {
 
   it("shows a starting state before a run id exists and fully resets after cancellation", () => {
     const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations: [conversations[0]!] });
     store.prepareRun("Which market should I enter?");
     expect(store.isBusy).toBe(true);
     expect(store.runPhase).toBe("STARTING");
     expect(store.pendingQuestion).toBe("Which market should I enter?");
 
-    store.beginRun("run-1");
+    store.beginRun("run-1", "conversation-1");
     expect(store.runPhase).toBe("WAITING");
     expect(store.messages[0]?.content).toBe("Which market should I enter?");
 
@@ -102,7 +103,7 @@ describe("ExpertStore run lifecycle", () => {
   it("clears partial output after a failed run", () => {
     const store = ExpertStore.create();
     store.prepareRun("Question");
-    store.beginRun("run-1");
+    store.beginRun("run-1", "conversation-1");
     store.appendDelta("Partial answer");
     store.failRun("Please try again");
 
@@ -113,6 +114,7 @@ describe("ExpertStore run lifecycle", () => {
 
   it("removes the previous answer before rerunning an edited user question", () => {
     const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations: [conversations[0]!] });
     store.replaceMessages([
       {
         id: "question-1",
@@ -133,8 +135,32 @@ describe("ExpertStore run lifecycle", () => {
     expect(store.pendingQuestion).toBe("Revised question");
     expect(store.runPhase).toBe("STARTING");
 
-    store.beginRun("rerun-1");
+    store.beginRun("rerun-1", "conversation-1");
     expect(store.messages).toHaveLength(1);
     expect(store.messages[0]?.content).toBe("Revised question");
+  });
+
+  it("keeps a run bound to its conversation while the user navigates elsewhere", () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations });
+    store.prepareRun("Question in the first conversation");
+    store.bindRunConversation("conversation-1");
+    store.beginRun("run-1", "conversation-1");
+    store.appendDelta("First delta");
+
+    store.startNewConversation();
+    expect(store.isNewConversationDraft).toBe(true);
+    expect(store.activeRunConversationId).toBe("conversation-1");
+    expect(store.streamingAnswer).toBe("First delta");
+
+    store.selectConversation("conversation-2");
+    store.appendDelta(" and second delta");
+    expect(store.selectedConversationId).toBe("conversation-2");
+    expect(store.activeRunConversationId).toBe("conversation-1");
+    expect(store.streamingAnswer).toBe("First delta and second delta");
+
+    store.finishRun();
+    expect(store.selectedConversationId).toBe("conversation-2");
+    expect(store.activeRunConversationId).toBeUndefined();
   });
 });

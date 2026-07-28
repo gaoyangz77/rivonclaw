@@ -84,10 +84,21 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   const subscriptionRef = useRef<{ unsubscribe(): void } | null>(null);
   const conversationLoadRequestRef = useRef(0);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const messageEndRef = useRef<HTMLDivElement>(null);
+  const messageScrollRef = useRef<HTMLDivElement>(null);
+  const shouldFollowStreamRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
+  const scrollFrameRef = useRef<number>();
+  const isViewingActiveRun =
+    store.isBusy &&
+    (store.activeRunConversationId
+      ? store.selectedConversationId === store.activeRunConversationId
+      : store.isNewConversationDraft);
+  const isAnotherConversationRunning = store.isBusy && !isViewingActiveRun;
+  const visiblePendingQuestion = isViewingActiveRun ? store.pendingQuestion : "";
+  const visibleStreamingAnswer = isViewingActiveRun ? store.streamingAnswer : "";
 
   const loadConversation = useCallback(
-    async (id: string, force = false) => {
+    async (id: string) => {
       const requestId = ++conversationLoadRequestRef.current;
       setLoadingConversationId(id);
       try {
@@ -101,8 +112,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         }
         if (
           requestId === conversationLoadRequestRef.current &&
-          store.selectedConversationId === id &&
-          (force || !store.isBusy)
+          store.selectedConversationId === id
         ) {
           store.replaceMessages(result.data.expertConversation.messages);
           store.setError(undefined);
@@ -134,10 +144,10 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }, []);
 
   useEffect(() => {
-    if (store.selectedConversationId && !store.isBusy) {
+    if (store.selectedConversationId) {
       void loadConversation(store.selectedConversationId);
     }
-  }, [loadConversation, store.isBusy, store.selectedConversationId]);
+  }, [loadConversation, store.selectedConversationId]);
 
   useEffect(
     () => () => {
@@ -158,18 +168,26 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") setConversationMenu(undefined);
     }
-    function closeOnViewportChange() {
+    function closeOnResize() {
       setConversationMenu(undefined);
+    }
+    function closeOnSidebarScroll(event: Event) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest(".conversation-sidebar")
+      ) {
+        setConversationMenu(undefined);
+      }
     }
     document.addEventListener("pointerdown", closeMenu);
     document.addEventListener("keydown", closeOnEscape);
-    window.addEventListener("resize", closeOnViewportChange);
-    document.addEventListener("scroll", closeOnViewportChange, true);
+    window.addEventListener("resize", closeOnResize);
+    document.addEventListener("scroll", closeOnSidebarScroll, true);
     return () => {
       document.removeEventListener("pointerdown", closeMenu);
       document.removeEventListener("keydown", closeOnEscape);
-      window.removeEventListener("resize", closeOnViewportChange);
-      document.removeEventListener("scroll", closeOnViewportChange, true);
+      window.removeEventListener("resize", closeOnResize);
+      document.removeEventListener("scroll", closeOnSidebarScroll, true);
     };
   }, [conversationMenu]);
 
@@ -185,11 +203,56 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }, [deleteCandidate, deletingConversation]);
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({
-      behavior: store.runPhase === "STREAMING" ? "auto" : "smooth",
-      block: "end",
+    shouldFollowStreamRef.current = true;
+    lastScrollTopRef.current = 0;
+    if (scrollFrameRef.current !== undefined) {
+      window.cancelAnimationFrame(scrollFrameRef.current);
+    }
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      const container = messageScrollRef.current;
+      if (!container) return;
+      container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      lastScrollTopRef.current = container.scrollTop;
+      scrollFrameRef.current = undefined;
     });
-  }, [store.messages.length, store.pendingQuestion, store.runPhase, store.streamingAnswer]);
+    return () => {
+      if (scrollFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = undefined;
+      }
+    };
+  }, [loadedConversationId, store.selectedConversationId]);
+
+  useEffect(() => {
+    if (!isViewingActiveRun || !shouldFollowStreamRef.current) return;
+    if (scrollFrameRef.current !== undefined) {
+      window.cancelAnimationFrame(scrollFrameRef.current);
+    }
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      const container = messageScrollRef.current;
+      if (!container || !shouldFollowStreamRef.current) return;
+      const nextScrollTop = Math.max(
+        0,
+        container.scrollHeight - container.clientHeight,
+      );
+      if (nextScrollTop > container.scrollTop) {
+        container.scrollTop = nextScrollTop;
+      }
+      lastScrollTopRef.current = container.scrollTop;
+      scrollFrameRef.current = undefined;
+    });
+    return () => {
+      if (scrollFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = undefined;
+      }
+    };
+  }, [
+    isViewingActiveRun,
+    store.messages.length,
+    store.pendingQuestion,
+    store.streamingAnswer,
+  ]);
 
   useEffect(() => {
     if (!draft && composerRef.current) composerRef.current.style.height = "auto";
@@ -213,7 +276,9 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   async function refreshAfterRun(conversationId: string) {
     try {
       const [conversationLoaded] = await Promise.all([
-        loadConversation(conversationId, true),
+        store.selectedConversationId === conversationId
+          ? loadConversation(conversationId)
+          : Promise.resolve(true),
         reloadBootstrap(),
       ]);
       if (!conversationLoaded) store.setError(t("workspace.refreshFailed"));
@@ -232,6 +297,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     const existingConversationId = store.selectedConversationId;
     try {
       const conversationId = existingConversationId ?? (await createConversation());
+      store.bindRunConversation(conversationId);
       const result = await apolloClient.mutate<DispatchData>({
         mutation: DISPATCH_EXPERT_MESSAGE,
         variables: {
@@ -245,7 +311,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
       const runId = dispatch?.run.id;
       if (!runId) throw new Error("The Expert run did not start");
       store.applyUsage(dispatch.usage);
-      store.beginRun(runId);
+      store.beginRun(runId, conversationId);
       let lastSequence = 0;
       stopSubscription();
       subscriptionRef.current = apolloClient
@@ -270,7 +336,9 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
               stopSubscription();
               if (item.type === "CANCELLED" || item.errorCode === "USER_CANCELLED") {
                 store.cancelRun(t("workspace.cancelled"));
-                void loadConversation(conversationId, true);
+                if (store.selectedConversationId === conversationId) {
+                  void loadConversation(conversationId);
+                }
               } else {
                 console.error("Expert run failed", item.errorCode ?? item.type);
                 store.failRun(t("workspace.runFailed"));
@@ -295,7 +363,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
       }
       store.failRun(t("workspace.startFailed"));
       if (replaceMessageId && existingConversationId) {
-        await loadConversation(existingConversationId, true);
+        await loadConversation(existingConversationId);
       } else {
         setDraft(question);
       }
@@ -327,7 +395,6 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }
 
   function startNewConversation() {
-    if (store.isBusy) return;
     conversationLoadRequestRef.current += 1;
     setLoadingConversationId(undefined);
     setLoadedConversationId(undefined);
@@ -340,12 +407,11 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }
 
   function openConversation(id: string) {
-    if (store.isBusy) return;
     setConversationMenu(undefined);
     setRenamingConversationId(undefined);
     setEditingMessageId(undefined);
     if (store.selectedConversationId === id) {
-      void loadConversation(id, true);
+      void loadConversation(id);
       return;
     }
     setLoadedConversationId(undefined);
@@ -506,10 +572,16 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         </button>
         <button
           className="danger"
+          disabled={conversationMenu.id === store.activeRunConversationId}
           onClick={() =>
             requestDeleteConversation(conversationMenu.id, conversationMenu.title)
           }
           role="menuitem"
+          title={
+            conversationMenu.id === store.activeRunConversationId
+              ? t("workspace.runningDeleteUnavailable")
+              : undefined
+          }
         >
           {t("workspace.delete")}
         </button>
@@ -530,7 +602,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         </div>
         <button
           className="new-conversation"
-          disabled={creating || store.isBusy || store.isNewConversationDraft}
+          disabled={creating || store.isNewConversationDraft}
           onClick={startNewConversation}
         >
           <span>＋</span> {t("workspace.new")}
@@ -538,9 +610,12 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         <nav aria-label={t("workspace.conversations")}>
           {store.conversations.map((conversation) => {
             const selected = conversation.id === store.selectedConversationId;
+            const running = conversation.id === store.activeRunConversationId;
             return (
               <div
-                className={`conversation-item${selected ? " selected" : ""}`}
+                className={`conversation-item${selected ? " selected" : ""}${
+                  running ? " running" : ""
+                }`}
                 key={conversation.id}
               >
                 {renamingConversationId === conversation.id ? (
@@ -576,14 +651,25 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                 ) : (
                   <>
                     <button
+                      aria-label={conversation.title}
                       className="conversation-title"
-                      disabled={store.isBusy}
                       onClick={() => openConversation(conversation.id)}
                       onDoubleClick={() =>
                         beginRename(conversation.id, conversation.title)
                       }
                     >
-                      {conversation.title}
+                      <span className="conversation-title-label">
+                        {conversation.title}
+                      </span>
+                      {running ? (
+                        <span
+                          aria-label={t("workspace.conversationRunning", {
+                            title: conversation.title,
+                          })}
+                          className="conversation-run-spinner"
+                          role="status"
+                        />
+                      ) : null}
                     </button>
                     <div className="conversation-actions">
                       <button
@@ -593,7 +679,6 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                           title: conversation.title,
                         })}
                         className="conversation-more"
-                        disabled={store.isBusy}
                         onClick={(event) => {
                           const anchor = event.currentTarget;
                           setConversationMenu((current) =>
@@ -632,7 +717,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             <button
               aria-label={t("workspace.new")}
               className="mobile-new-conversation"
-              disabled={store.isBusy || store.isNewConversationDraft}
+              disabled={store.isNewConversationDraft}
               onClick={startNewConversation}
               type="button"
             >
@@ -649,12 +734,42 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         <div
           aria-busy={loadingConversationId === store.selectedConversationId}
           className="message-scroll"
+          onScroll={(event) => {
+            const container = event.currentTarget;
+            const movingUp =
+              container.scrollTop < lastScrollTopRef.current - 2;
+            const distanceFromBottom =
+              container.scrollHeight -
+              container.clientHeight -
+              container.scrollTop;
+            if (movingUp) {
+              shouldFollowStreamRef.current = false;
+              if (scrollFrameRef.current !== undefined) {
+                window.cancelAnimationFrame(scrollFrameRef.current);
+                scrollFrameRef.current = undefined;
+              }
+            }
+            if (distanceFromBottom <= 72) {
+              shouldFollowStreamRef.current = true;
+            }
+            lastScrollTopRef.current = container.scrollTop;
+          }}
+          onWheel={(event) => {
+            if (event.deltaY < 0) {
+              shouldFollowStreamRef.current = false;
+              if (scrollFrameRef.current !== undefined) {
+                window.cancelAnimationFrame(scrollFrameRef.current);
+                scrollFrameRef.current = undefined;
+              }
+            }
+          }}
+          ref={messageScrollRef}
         >
           {store.selectedConversationId &&
           loadedConversationId !== store.selectedConversationId &&
           store.messages.length === 0 &&
-          !store.pendingQuestion &&
-          !store.streamingAnswer ? (
+          !visiblePendingQuestion &&
+          !visibleStreamingAnswer ? (
             <div className="conversation-loading" aria-live="polite">
               <span className="thinking-dots" aria-hidden="true">
                 <i />
@@ -665,8 +780,8 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             </div>
           ) : null}
           {store.messages.length === 0 &&
-          !store.pendingQuestion &&
-          !store.streamingAnswer &&
+          !visiblePendingQuestion &&
+          !visibleStreamingAnswer &&
           (!store.selectedConversationId ||
             loadedConversationId === store.selectedConversationId) ? (
             <div className="empty-state">
@@ -775,19 +890,19 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             );
           })}
 
-          {store.pendingQuestion ? (
+          {visiblePendingQuestion ? (
             <article className="message user pending-question">
-              <div className="user-message-text">{store.pendingQuestion}</div>
+              <div className="user-message-text">{visiblePendingQuestion}</div>
             </article>
           ) : null}
 
-          {store.streamingAnswer ? (
+          {visibleStreamingAnswer ? (
             <article className="message assistant streaming">
-              <ExpertMarkdown>{store.streamingAnswer}</ExpertMarkdown>
+              <ExpertMarkdown>{visibleStreamingAnswer}</ExpertMarkdown>
               {suggestedQuestions(store.pendingSuggestedQuestions)}
             </article>
           ) : null}
-          {store.isBusy && !store.streamingAnswer ? (
+          {isViewingActiveRun && !visibleStreamingAnswer ? (
             <article className="message assistant waiting">
               <div className="thinking-row" aria-live="polite">
                 <span className="thinking-dots" aria-hidden="true">
@@ -813,7 +928,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
           ) : null}
           {store.error ? <p className="chat-error">{store.error}</p> : null}
           {store.notice ? <p className="chat-notice">{store.notice}</p> : null}
-          <div ref={messageEndRef} />
+          <div />
         </div>
 
         <footer className="composer-shell">
@@ -839,7 +954,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                 }
               }}
             />
-            {store.activeRunId ? (
+            {isViewingActiveRun && store.activeRunId ? (
               <button
                 className="stop-button"
                 disabled={store.runPhase === "CANCELLING"}
@@ -856,15 +971,21 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                 disabled={store.isBusy || !draft.trim()}
                 type="submit"
               >
-                {store.runPhase === "STARTING"
+                {isViewingActiveRun && store.runPhase === "STARTING"
                   ? t("workspace.startingShort")
-                  : t("workspace.submit")}
+                  : isAnotherConversationRunning
+                    ? t("workspace.runningElsewhereShort")
+                    : t("workspace.submit")}
               </button>
             )}
           </form>
           <div className="composer-meta">
             <span>{quotaText}</span>
-            <span>{t("workspace.enterHint")}</span>
+            <span>
+              {isAnotherConversationRunning
+                ? t("workspace.runningElsewhere")
+                : t("workspace.enterHint")}
+            </span>
           </div>
         </footer>
       </section>
