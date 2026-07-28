@@ -435,12 +435,17 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     );
   }
 
-  const lastMessage = store.messages[store.messages.length - 1];
+  const lastUserMessage = [...store.messages]
+    .reverse()
+    .find((message) => message.role === "USER");
 
   function canEditMessage(message: { id: string; role: "USER" | "ASSISTANT" | "SYSTEM" }) {
-    if (store.isBusy || message.id.startsWith("local-") || message.role === "SYSTEM") return false;
-    if (message.role === "ASSISTANT") return true;
-    return lastMessage?.id === message.id;
+    return (
+      !store.isBusy &&
+      message.role === "USER" &&
+      !message.id.startsWith("local-") &&
+      lastUserMessage?.id === message.id
+    );
   }
 
   function renderConversationMenu() {
