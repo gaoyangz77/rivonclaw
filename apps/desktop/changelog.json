@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.82",
+    "date": "2026-07-27",
+    "en": [
+      "Show relevant order context directly in customer service conversations",
+      "Add live shop analytics and refine affiliate campaign operations",
+      "Improve chat media rendering and intentional silent agent completion handling"
+    ],
+    "zh": [
+      "在客服对话中直接展示相关订单上下文",
+      "新增店铺实时分析，并优化达人 campaign 运营流程",
+      "优化聊天媒体渲染和 Agent 主动静默完成场景的处理"
+    ]
+  },
+  {
     "version": "1.8.81",
     "date": "2026-07-27",
     "en": [
