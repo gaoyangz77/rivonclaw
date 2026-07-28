@@ -101,6 +101,7 @@ describe("ExpertWorkspace chat interactions", () => {
     expect(container.querySelectorAll(".markdown li")).toHaveLength(2);
     expect(container.querySelector(".markdown strong")?.textContent).toBe("先验证美国市场。");
     expect(container.querySelector(".markdown table")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "提交" })).not.toBeNull();
   });
 
   it("renames a conversation through the sidebar action menu", async () => {
@@ -121,6 +122,9 @@ describe("ExpertWorkspace chat interactions", () => {
         name: "“美国市场计划”的操作",
       }),
     );
+    const menu = screen.getByRole("menu");
+    expect(menu.parentElement).toBe(document.body);
+    expect(document.querySelector(".conversation-sidebar nav")?.contains(menu)).toBe(false);
     fireEvent.click(screen.getByRole("menuitem", { name: "重命名" }));
     const input = screen.getByRole("textbox", { name: "重命名" });
     fireEvent.change(input, { target: { value: "美国市场启动计划" } });
@@ -129,5 +133,75 @@ describe("ExpertWorkspace chat interactions", () => {
     await waitFor(() => {
       expect(store.selectedConversation?.title).toBe("美国市场启动计划");
     });
+  });
+
+  it("persists an edited assistant answer", async () => {
+    const store = ExpertStore.create();
+    store.startNewConversation();
+    store.replaceMessages([
+      {
+        id: "answer-1",
+        role: "ASSISTANT",
+        content: "Original answer",
+        createdAt: "2026-07-28T00:00:00.000Z",
+      },
+    ]);
+    vi.spyOn(apolloClient, "mutate").mockResolvedValue({
+      data: {
+        updateExpertMessage: {
+          id: "answer-1",
+          content: "Updated expert answer",
+          editedAt: "2026-07-28T01:00:00.000Z",
+        },
+      },
+    } as never);
+    renderWorkspace(store);
+
+    fireEvent.click(screen.getByRole("button", { name: "修改消息" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "修改消息" }), {
+      target: { value: "Updated expert answer" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(store.messages[0]?.content).toBe("Updated expert answer");
+      expect(screen.getByText("已修改")).not.toBeNull();
+    });
+  });
+
+  it("only offers editing for a user question when it is the final message", () => {
+    const store = ExpertStore.create();
+    store.startNewConversation();
+    store.replaceMessages([
+      {
+        id: "question-1",
+        role: "USER",
+        content: "Original question",
+        createdAt: "2026-07-28T00:00:00.000Z",
+      },
+      {
+        id: "answer-1",
+        role: "ASSISTANT",
+        content: "Answer",
+        createdAt: "2026-07-28T00:01:00.000Z",
+      },
+    ]);
+    renderWorkspace(store);
+
+    expect(screen.getAllByRole("button", { name: "修改消息" })).toHaveLength(1);
+
+    cleanup();
+    const cancelledStore = ExpertStore.create();
+    cancelledStore.startNewConversation();
+    cancelledStore.replaceMessages([
+      {
+        id: "question-2",
+        role: "USER",
+        content: "Question after cancellation",
+        createdAt: "2026-07-28T00:02:00.000Z",
+      },
+    ]);
+    renderWorkspace(cancelledStore);
+    expect(screen.getByRole("button", { name: "修改消息" })).not.toBeNull();
   });
 });

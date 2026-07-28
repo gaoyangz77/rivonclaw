@@ -11,6 +11,7 @@ const MessageModel = types.model("ExpertMessage", {
   role: types.enumeration(["USER", "ASSISTANT", "SYSTEM"]),
   content: types.string,
   createdAt: types.string,
+  editedAt: types.maybe(types.string),
   suggestedQuestions: types.optional(types.array(types.string), []),
 });
 
@@ -161,6 +162,7 @@ export const ExpertStore = types
         role: "USER" | "ASSISTANT" | "SYSTEM";
         content: string;
         createdAt: string;
+        editedAt?: string;
         suggestedQuestions?: string[];
       }>,
     ) {
@@ -170,6 +172,12 @@ export const ExpertStore = types
           suggestedQuestions: message.suggestedQuestions ?? [],
         })),
       );
+    },
+    updateMessageContent(id: string, content: string, editedAt?: string) {
+      const message = self.messages.find((item) => item.id === id);
+      if (!message) return;
+      message.content = content;
+      message.editedAt = editedAt;
     },
     prepareRun(question: string) {
       self.pendingQuestion = question;

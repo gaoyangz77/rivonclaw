@@ -138,6 +138,16 @@ export const DELETE_EXPERT_CONVERSATION = gql`
   }
 `;
 
+export const UPDATE_EXPERT_MESSAGE = gql`
+  mutation UpdateExpertMessage($id: ID!, $content: String!) {
+    updateExpertMessage(id: $id, content: $content) {
+      id
+      content
+      editedAt
+    }
+  }
+`;
+
 export const EXPERT_CONVERSATION = gql`
   query ExpertConversation($id: ID!) {
     expertConversation(id: $id) {
@@ -151,6 +161,7 @@ export const EXPERT_CONVERSATION = gql`
         role
         content
         suggestedQuestions
+        editedAt
         createdAt
       }
       recommendations {
