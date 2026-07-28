@@ -874,6 +874,47 @@ textarea:focus {
   font-weight: 400;
 }
 
+.selected-markets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: -9px;
+}
+
+.selected-markets button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px 7px 13px;
+  border: 1px solid #9ab9f8;
+  border-radius: 999px;
+  color: #174ea6;
+  background: #eff5ff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.selected-markets button:hover {
+  border-color: var(--primary);
+  background: #e5efff;
+}
+
+.selected-markets button small {
+  color: #6480b2;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.selected-markets button span:last-child {
+  color: #5774aa;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1;
+}
+
 .onboarding-fields fieldset {
   margin: 0;
   padding: 0;
