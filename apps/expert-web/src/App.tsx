@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { apolloClient } from "./api/client.js";
 import { setAccessToken } from "./api/auth-session.js";
 import { EXPERT_BOOTSTRAP, WEB_LOGOUT, WEB_REFRESH } from "./api/operations.js";
 import { useExpertStore } from "./store/context.js";
 import { AuthScreen } from "./AuthScreen.js";
-import { Onboarding } from "./Onboarding.js";
 import { ExpertWorkspace } from "./ExpertWorkspace.js";
+import { BrandLogo } from "./BrandLogo.js";
+import { useI18n } from "./i18n.js";
 
 interface BootstrapData {
   expertProfile: unknown;
@@ -26,7 +27,9 @@ interface BootstrapData {
 
 export const App = observer(function App() {
   const store = useExpertStore();
+  const { t } = useI18n();
   const restored = useRef(false);
+  const [bootstrapReady, setBootstrapReady] = useState(false);
 
   const reloadBootstrap = useCallback(async () => {
     const result = await apolloClient.query<BootstrapData>({
@@ -62,7 +65,15 @@ export const App = observer(function App() {
   }, [store]);
 
   useEffect(() => {
-    if (store.authenticated) void reloadBootstrap();
+    if (!store.authenticated) {
+      setBootstrapReady(false);
+      return;
+    }
+    void reloadBootstrap()
+      .catch((error) => {
+        store.setError(error instanceof Error ? error.message : "Unable to load Expert");
+      })
+      .finally(() => setBootstrapReady(true));
   }, [reloadBootstrap, store.authenticated]);
 
   async function logout() {
@@ -75,15 +86,20 @@ export const App = observer(function App() {
     }
   }
 
-  if (store.booting) {
+  if (store.booting || (store.authenticated && !bootstrapReady)) {
     return (
       <main className="boot-screen">
-        <div className="brand-mark">R</div>
-        <p>Loading your Expert…</p>
+        <BrandLogo compact />
+        <p>{t("app.loading")}</p>
       </main>
     );
   }
   if (!store.authenticated) return <AuthScreen />;
-  if (!store.hasProfile) return <Onboarding />;
-  return <ExpertWorkspace reloadBootstrap={reloadBootstrap} logout={logout} />;
+  return (
+    <ExpertWorkspace
+      reloadBootstrap={reloadBootstrap}
+      logout={logout}
+      showOnboarding={!store.hasProfile}
+    />
+  );
 });

@@ -11,6 +11,7 @@ const MessageModel = types.model("ExpertMessage", {
   role: types.enumeration(["USER", "ASSISTANT", "SYSTEM"]),
   content: types.string,
   createdAt: types.string,
+  suggestedQuestions: types.optional(types.array(types.string), []),
 });
 
 const UsageModel = types.model("ExpertUsage", {
@@ -35,6 +36,7 @@ export const ExpertStore = types
     knowledgeVersion: types.maybe(types.string),
     activeRunId: types.maybe(types.string),
     streamingAnswer: "",
+    pendingSuggestedQuestions: types.array(types.string),
     runningTool: types.maybe(types.string),
     error: types.maybe(types.string),
   })
@@ -63,6 +65,7 @@ export const ExpertStore = types
       self.selectedConversationId = undefined;
       self.activeRunId = undefined;
       self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
     },
     applyBootstrap(data: {
       profile: unknown;
@@ -105,12 +108,24 @@ export const ExpertStore = types
     selectConversation(id: string) {
       self.selectedConversationId = id;
       self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
       self.error = undefined;
     },
     replaceMessages(
-      messages: Array<{ id: string; role: "USER" | "ASSISTANT" | "SYSTEM"; content: string; createdAt: string }>,
+      messages: Array<{
+        id: string;
+        role: "USER" | "ASSISTANT" | "SYSTEM";
+        content: string;
+        createdAt: string;
+        suggestedQuestions?: string[];
+      }>,
     ) {
-      self.messages.replace(messages);
+      self.messages.replace(
+        messages.map((message) => ({
+          ...message,
+          suggestedQuestions: message.suggestedQuestions ?? [],
+        })),
+      );
     },
     beginRun(runId: string, question: string) {
       self.messages.push({
@@ -121,6 +136,7 @@ export const ExpertStore = types
       });
       self.activeRunId = runId;
       self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
       self.error = undefined;
     },
     appendDelta(text: string) {
@@ -129,15 +145,20 @@ export const ExpertStore = types
     setRunningTool(toolName?: string) {
       self.runningTool = toolName;
     },
+    setSuggestedQuestions(questions: string[]) {
+      self.pendingSuggestedQuestions.replace(questions);
+    },
     finishRun() {
       self.activeRunId = undefined;
       self.runningTool = undefined;
       self.streamingAnswer = "";
+      self.pendingSuggestedQuestions.clear();
     },
     failRun(message: string) {
       self.error = message;
       self.activeRunId = undefined;
       self.runningTool = undefined;
+      self.pendingSuggestedQuestions.clear();
     },
     setError(message?: string) {
       self.error = message;

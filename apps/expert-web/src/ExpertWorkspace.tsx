@@ -12,6 +12,9 @@ import {
 } from "./api/operations.js";
 import { useExpertStore } from "./store/context.js";
 import { errorMessage } from "./error.js";
+import { BrandLogo } from "./BrandLogo.js";
+import { LanguageSwitcher, useI18n } from "./i18n.js";
+import { Onboarding } from "./Onboarding.js";
 
 interface ConversationData {
   expertConversation: {
@@ -19,6 +22,7 @@ interface ConversationData {
       id: string;
       role: "USER" | "ASSISTANT" | "SYSTEM";
       content: string;
+      suggestedQuestions: string[];
       createdAt: string;
     }>;
   };
@@ -34,6 +38,7 @@ interface RunEventData {
     type: string;
     text?: string;
     toolName?: string;
+    suggestedQuestions?: string[];
     errorCode?: string;
   };
 }
@@ -41,14 +46,18 @@ interface RunEventData {
 export const ExpertWorkspace = observer(function ExpertWorkspace({
   reloadBootstrap,
   logout,
+  showOnboarding,
 }: {
   reloadBootstrap: () => Promise<void>;
   logout: () => Promise<void>;
+  showOnboarding: boolean;
 }) {
   const store = useExpertStore();
+  const { t } = useI18n();
   const [draft, setDraft] = useState("");
   const [creating, setCreating] = useState(false);
   const subscriptionRef = useRef<{ unsubscribe(): void } | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const loadConversation = useCallback(async (id: string) => {
     const result = await apolloClient.query<ConversationData>({
@@ -126,6 +135,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             if (item.type === "TOOL_STARTED") store.setRunningTool(item.toolName);
             if (item.type === "TOOL_COMPLETED") store.setRunningTool(undefined);
             if (item.type === "COMPLETED") {
+              store.setSuggestedQuestions(item.suggestedQuestions ?? []);
               subscriptionRef.current?.unsubscribe();
               void refreshAfterRun(conversationId);
             }
@@ -153,26 +163,52 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
 
   const quotaText =
     store.usage?.mode === "FREE_DAILY"
-      ? `${store.usage.freeRemaining ?? 0} of ${store.usage.freeLimit ?? 5} questions left today`
-      : `${Math.min(
-          store.usage?.weeklyTokenRemaining ?? 0,
-          store.usage?.fiveHourTokenRemaining ?? 0,
-        ).toLocaleString()} tokens available`;
+      ? t("workspace.freeQuota", {
+          remaining: store.usage.freeRemaining ?? 0,
+          limit: store.usage.freeLimit ?? 5,
+        })
+      : t("workspace.tokenQuota", {
+          tokens: Math.min(
+            store.usage?.weeklyTokenRemaining ?? 0,
+            store.usage?.fiveHourTokenRemaining ?? 0,
+          ).toLocaleString(),
+        });
+
+  function chooseSuggestedQuestion(question: string) {
+    setDraft(question);
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }
+
+  function suggestedQuestions(questions: readonly string[]) {
+    if (questions.length === 0) return null;
+    return (
+      <div className="suggested-questions">
+        <span>{t("workspace.nextQuestions")}</span>
+        <div>
+          {questions.map((question) => (
+            <button key={question} type="button" onClick={() => chooseSuggestedQuestion(question)}>
+              {question}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="workspace">
       <aside className="conversation-sidebar">
         <div className="sidebar-brand">
-          <div className="brand-mark small">R</div>
+          <BrandLogo compact />
           <div>
-            <strong>Expert</strong>
-            <span>by RivonClaw</span>
+            <strong>{t("brand.expert")}</strong>
+            <span>{t("brand.by")}</span>
           </div>
         </div>
         <button className="new-conversation" disabled={creating} onClick={() => void createConversation()}>
-          <span>＋</span> New conversation
+          <span>＋</span> {t("workspace.new")}
         </button>
-        <nav aria-label="Conversations">
+        <nav aria-label={t("workspace.conversations")}>
           {store.conversations.map((conversation) => (
             <button
               className={conversation.id === store.selectedConversationId ? "selected" : ""}
@@ -185,36 +221,36 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         </nav>
         <div className="sidebar-footer">
           <span>{store.userEmail}</span>
-          <button onClick={() => void logout()}>Sign out</button>
+          <button onClick={() => void logout()}>{t("workspace.signOut")}</button>
         </div>
       </aside>
 
       <section className="chat-column">
         <header className="chat-header">
           <div>
-            <p className="eyebrow">TikTok Shop Expert</p>
-            <h2>{store.selectedConversation?.title ?? "Start a decision"}</h2>
+            <p className="eyebrow">{t("brand.expert")}</p>
+            <h2>{store.selectedConversation?.title ?? t("workspace.start")}</h2>
           </div>
-          <div className="knowledge-chip">
-            <span className="live-dot" />
-            Knowledge {store.knowledgeVersion ?? "local preview"}
+          <div className="header-actions">
+            <div className="knowledge-chip">
+              <span className="live-dot" />
+              {t("workspace.knowledge")} {store.knowledgeVersion ?? "local preview"}
+            </div>
+            <LanguageSwitcher compact />
           </div>
         </header>
 
         <div className="message-scroll">
           {store.messages.length === 0 && !store.streamingAnswer ? (
             <div className="empty-state">
-              <p className="eyebrow">Ask for a decision, not a definition</p>
-              <h1>What are you trying to make true?</h1>
-              <p>
-                Share your market, constraints, timeline, and what you have already ruled out. The
-                Expert will take a position and show you how to validate it.
-              </p>
+              <p className="eyebrow">{t("workspace.askKicker")}</p>
+              <h1>{t("workspace.emptyTitle")}</h1>
+              <p>{t("workspace.emptyBody")}</p>
               <div className="starter-grid">
                 {[
-                  "Which market fits my capital and operating constraints?",
-                  "What must be true before I commit inventory?",
-                  "Design a 30-day validation plan for my first product.",
+                  t("workspace.starter1"),
+                  t("workspace.starter2"),
+                  t("workspace.starter3"),
                 ].map((question) => (
                   <button key={question} onClick={() => setDraft(question)}>
                     {question}
@@ -226,23 +262,35 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
 
           {store.messages.map((message) => (
             <article className={`message ${message.role.toLowerCase()}`} key={message.id}>
-              <span className="message-role">{message.role === "USER" ? "You" : "Expert"}</span>
+              <span className="message-role">
+                {message.role === "USER" ? t("workspace.you") : t("workspace.expert")}
+              </span>
               <div className="markdown">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
               </div>
+              {message.role === "ASSISTANT"
+                ? suggestedQuestions(message.suggestedQuestions)
+                : null}
             </article>
           ))}
 
           {store.streamingAnswer ? (
             <article className="message assistant streaming">
-              <span className="message-role">Expert</span>
+              <span className="message-role">{t("workspace.expert")}</span>
               <div className="markdown">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{store.streamingAnswer}</ReactMarkdown>
               </div>
+              {suggestedQuestions(store.pendingSuggestedQuestions)}
             </article>
           ) : null}
           {store.runningTool ? (
-            <p className="run-status">Consulting {store.runningTool.replaceAll("_", " ")}…</p>
+            <p className="run-status">
+              {store.runningTool === "deliver_expert_response"
+                ? t("workspace.preparing")
+                : t("workspace.consulting", {
+                    tool: store.runningTool.replaceAll("_", " "),
+                  })}
+            </p>
           ) : null}
           {store.error ? <p className="chat-error">{store.error}</p> : null}
         </div>
@@ -250,9 +298,10 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         <footer className="composer-shell">
           <form className="composer" onSubmit={submit}>
             <textarea
+              ref={composerRef}
               value={draft}
               maxLength={8000}
-              placeholder="Describe the decision, your context, and constraints…"
+              placeholder={t("workspace.placeholder")}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
@@ -263,20 +312,21 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             />
             {store.activeRunId ? (
               <button className="stop-button" type="button" onClick={() => void cancel()}>
-                Stop
+                {t("workspace.stop")}
               </button>
             ) : (
               <button className="send-button" disabled={!draft.trim()} type="submit">
-                Ask
+                {t("workspace.ask")}
               </button>
             )}
           </form>
           <div className="composer-meta">
             <span>{quotaText}</span>
-            <span>Enter to send · Shift + Enter for a new line</span>
+            <span>{t("workspace.enterHint")}</span>
           </div>
         </footer>
       </section>
+      {showOnboarding ? <Onboarding onComplete={reloadBootstrap} /> : null}
     </main>
   );
 });

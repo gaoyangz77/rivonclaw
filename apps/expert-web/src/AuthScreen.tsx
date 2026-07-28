@@ -5,6 +5,8 @@ import { setAccessToken } from "./api/auth-session.js";
 import { REQUEST_CAPTCHA, WEB_LOGIN, WEB_REGISTER } from "./api/operations.js";
 import { useExpertStore } from "./store/context.js";
 import { errorMessage } from "./error.js";
+import { BrandLogo } from "./BrandLogo.js";
+import { LanguageSwitcher, useI18n } from "./i18n.js";
 
 interface CaptchaData {
   requestCaptcha: { token: string; svg: string };
@@ -17,6 +19,7 @@ interface WebAuthData {
 
 export const AuthScreen = observer(function AuthScreen() {
   const store = useExpertStore();
+  const { t } = useI18n();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [captcha, setCaptcha] = useState<CaptchaData["requestCaptcha"]>();
   const [email, setEmail] = useState("");
@@ -75,33 +78,35 @@ export const AuthScreen = observer(function AuthScreen() {
   return (
     <main className="auth-layout">
       <section className="auth-story">
-        <div className="brand-mark">R</div>
-        <p className="eyebrow">RivonClaw Expert</p>
-        <h1>Enter TikTok Shop with a point of view.</h1>
-        <p className="auth-lede">
-          A living industry expert that turns policy, market signals, and operator experience into
-          the next decision for your business.
-        </p>
+        <div className="auth-brand-row">
+          <BrandLogo />
+          <LanguageSwitcher compact />
+        </div>
+        <p className="eyebrow">{t("auth.kicker")}</p>
+        <h1>{t("auth.title")}</h1>
+        <p className="auth-lede">{t("auth.lede")}</p>
         <div className="proof-row">
-          <span>Continuously updated</span>
-          <span>Personalized reasoning</span>
-          <span>Operator-first advice</span>
+          <span>{t("auth.proof.updated")}</span>
+          <span>{t("auth.proof.personal")}</span>
+          <span>{t("auth.proof.operator")}</span>
         </div>
       </section>
 
       <section className="auth-panel">
         <div className="auth-card">
-          <p className="eyebrow">{mode === "login" ? "Welcome back" : "Create your account"}</p>
-          <h2>{mode === "login" ? "Continue your work" : "Meet your TikTok Shop expert"}</h2>
+          <p className="eyebrow">
+            {mode === "login" ? t("auth.welcome") : t("auth.createKicker")}
+          </p>
+          <h2>{mode === "login" ? t("auth.continue") : t("auth.meet")}</h2>
           <form onSubmit={submit}>
             {mode === "register" ? (
               <label>
-                Name
+                {t("auth.name")}
                 <input value={name} onChange={(event) => setName(event.target.value)} />
               </label>
             ) : null}
             <label>
-              Email
+              {t("auth.email")}
               <input
                 type="email"
                 required
@@ -111,7 +116,7 @@ export const AuthScreen = observer(function AuthScreen() {
               />
             </label>
             <label>
-              Password
+              {t("auth.password")}
               <input
                 type="password"
                 required
@@ -122,26 +127,30 @@ export const AuthScreen = observer(function AuthScreen() {
               />
             </label>
             <label>
-              Verification
+              {t("auth.verification")}
               <div className="captcha-row">
                 <input
                   required
                   value={captchaAnswer}
                   onChange={(event) => setCaptchaAnswer(event.target.value)}
-                  aria-label="Captcha answer"
+                  aria-label={t("auth.captcha")}
                 />
                 <button
                   className="captcha-image"
                   type="button"
                   onClick={() => void refreshCaptcha()}
-                  aria-label="Load another verification image"
+                  aria-label={t("auth.captchaRefresh")}
                   dangerouslySetInnerHTML={{ __html: captcha?.svg ?? "" }}
                 />
               </div>
             </label>
             {store.error ? <p className="form-error">{store.error}</p> : null}
             <button className="primary-button" disabled={submitting || !captcha} type="submit">
-              {submitting ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
+              {submitting
+                ? t("auth.working")
+                : mode === "login"
+                  ? t("auth.signIn")
+                  : t("auth.create")}
             </button>
           </form>
           <button
@@ -152,7 +161,7 @@ export const AuthScreen = observer(function AuthScreen() {
               store.setError(undefined);
             }}
           >
-            {mode === "login" ? "New here? Create an account" : "Already have an account? Sign in"}
+            {mode === "login" ? t("auth.toRegister") : t("auth.toLogin")}
           </button>
         </div>
       </section>

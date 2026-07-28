@@ -132,9 +132,10 @@ export const EXPERT_CONVERSATION = gql`
       }
       messages {
         id
-        role
-        content
-        createdAt
+      role
+      content
+      suggestedQuestions
+      createdAt
       }
       recommendations {
         id
@@ -174,6 +175,7 @@ export const EXPERT_RUN_EVENTS = gql`
       text
       toolName
       recommendationId
+      suggestedQuestions
       errorCode
       occurredAt
     }

@@ -4,16 +4,23 @@ import { apolloClient } from "./api/client.js";
 import { UPSERT_EXPERT_PROFILE } from "./api/operations.js";
 import { useExpertStore } from "./store/context.js";
 import { errorMessage } from "./error.js";
+import { useI18n } from "./i18n.js";
 
 function commaList(value: string): string[] {
   return value
-    .split(",")
+    .split(/[,，]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
-export const Onboarding = observer(function Onboarding() {
+export const Onboarding = observer(function Onboarding({
+  onComplete,
+}: {
+  onComplete: () => Promise<void>;
+}) {
   const store = useExpertStore();
+  const { language, t } = useI18n();
+  const [step, setStep] = useState(1);
   const [stage, setStage] = useState("EXPLORING");
   const [markets, setMarkets] = useState("");
   const [sellerTypes, setSellerTypes] = useState<string[]>(["CROSS_BORDER"]);
@@ -29,6 +36,13 @@ export const Onboarding = observer(function Onboarding() {
     );
   }
 
+  function next(event: React.FormEvent) {
+    event.preventDefault();
+    if (step === 1 && commaList(markets).length === 0) return;
+    if (step === 2 && sellerTypes.length === 0) return;
+    setStep((current) => Math.min(3, current + 1));
+  }
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
@@ -38,7 +52,7 @@ export const Onboarding = observer(function Onboarding() {
         mutation: UPSERT_EXPERT_PROFILE,
         variables: {
           input: {
-            locale: navigator.language || "en",
+            locale: language,
             stage,
             targetMarkets: commaList(markets),
             sellerTypes,
@@ -52,6 +66,7 @@ export const Onboarding = observer(function Onboarding() {
         },
       });
       store.markProfileComplete();
+      await onComplete();
     } catch (error) {
       store.setError(errorMessage(error));
     } finally {
@@ -59,96 +74,167 @@ export const Onboarding = observer(function Onboarding() {
     }
   }
 
+  const title =
+    step === 1
+      ? t("onboarding.contextTitle")
+      : step === 2
+        ? t("onboarding.setupTitle")
+        : t("onboarding.prioritiesTitle");
+  const body =
+    step === 1
+      ? t("onboarding.contextBody")
+      : step === 2
+        ? t("onboarding.setupBody")
+        : t("onboarding.prioritiesBody");
+
   return (
-    <main className="onboarding-layout">
-      <section className="onboarding-copy">
-        <div className="brand-mark">R</div>
-        <p className="eyebrow">Your operating context</p>
-        <h1>Good advice starts with the constraints.</h1>
-        <p>
-          The Expert uses this context to choose for you—not merely repeat policies or list every
-          possible path. You can refine it later.
-        </p>
+    <div className="onboarding-backdrop">
+      <section
+        className="onboarding-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+      >
+        <aside className="onboarding-intro">
+          <p className="eyebrow">{t("onboarding.kicker")}</p>
+          <h2 id="onboarding-title">{t("onboarding.title")}</h2>
+          <p>{t("onboarding.body")}</p>
+          <div className="onboarding-progress" aria-hidden="true">
+            {[1, 2, 3].map((item) => (
+              <span className={item <= step ? "active" : ""} key={item} />
+            ))}
+          </div>
+        </aside>
+
+        <form className="onboarding-form" onSubmit={step === 3 ? save : next}>
+          <header>
+            <span>{t("onboarding.step", { current: step, total: 3 })}</span>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </header>
+
+          {step === 1 ? (
+            <div className="onboarding-fields">
+              <label>
+                {t("onboarding.stage")}
+                <select value={stage} onChange={(event) => setStage(event.target.value)}>
+                  {["EXPLORING", "VALIDATING", "LAUNCHING", "OPERATING", "SCALING"].map(
+                    (value) => (
+                      <option value={value} key={value}>
+                        {t(`stage.${value}`)}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+              <label>
+                {t("onboarding.market")}
+                <input
+                  autoFocus
+                  required
+                  placeholder={t("onboarding.marketPlaceholder")}
+                  value={markets}
+                  onChange={(event) => setMarkets(event.target.value)}
+                />
+                <small>{t("onboarding.marketHint")}</small>
+              </label>
+            </div>
+          ) : null}
+
+          {step === 2 ? (
+            <div className="onboarding-fields">
+              <fieldset>
+                <legend>{t("onboarding.sellerSetup")}</legend>
+                <div className="choice-grid">
+                  <label className={sellerTypes.includes("CROSS_BORDER") ? "selected" : ""}>
+                    <input
+                      type="checkbox"
+                      checked={sellerTypes.includes("CROSS_BORDER")}
+                      onChange={() => toggleSellerType("CROSS_BORDER")}
+                    />
+                    {t("onboarding.crossBorder")}
+                  </label>
+                  <label className={sellerTypes.includes("LOCAL") ? "selected" : ""}>
+                    <input
+                      type="checkbox"
+                      checked={sellerTypes.includes("LOCAL")}
+                      onChange={() => toggleSellerType("LOCAL")}
+                    />
+                    {t("onboarding.local")}
+                  </label>
+                </div>
+              </fieldset>
+              <div className="two-column-fields">
+                <label>
+                  {t("onboarding.experience")}
+                  <input
+                    placeholder={t("onboarding.experiencePlaceholder")}
+                    value={experience}
+                    onChange={(event) => setExperience(event.target.value)}
+                  />
+                </label>
+                <label>
+                  {t("onboarding.capital")}
+                  <input
+                    placeholder={t("onboarding.capitalPlaceholder")}
+                    value={capitalBand}
+                    onChange={(event) => setCapitalBand(event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+          ) : null}
+
+          {step === 3 ? (
+            <div className="onboarding-fields">
+              <label>
+                {t("onboarding.goals")}
+                <textarea
+                  autoFocus
+                  placeholder={t("onboarding.goalsPlaceholder")}
+                  value={goals}
+                  onChange={(event) => setGoals(event.target.value)}
+                />
+              </label>
+              <label>
+                {t("onboarding.constraints")}
+                <textarea
+                  placeholder={t("onboarding.constraintsPlaceholder")}
+                  value={constraints}
+                  onChange={(event) => setConstraints(event.target.value)}
+                />
+              </label>
+            </div>
+          ) : null}
+
+          {store.error ? <p className="form-error">{store.error}</p> : null}
+          <footer className="onboarding-actions">
+            <button
+              className="secondary-button"
+              disabled={step === 1 || saving}
+              type="button"
+              onClick={() => setStep((current) => Math.max(1, current - 1))}
+            >
+              {t("onboarding.back")}
+            </button>
+            <button
+              className="primary-button"
+              disabled={
+                saving ||
+                (step === 1 && commaList(markets).length === 0) ||
+                (step === 2 && sellerTypes.length === 0)
+              }
+              type="submit"
+            >
+              {saving
+                ? t("onboarding.saving")
+                : step === 3
+                  ? t("onboarding.save")
+                  : t("onboarding.next")}
+            </button>
+          </footer>
+        </form>
       </section>
-      <form className="onboarding-card" onSubmit={save}>
-        <label>
-          Where are you now?
-          <select value={stage} onChange={(event) => setStage(event.target.value)}>
-            <option value="EXPLORING">Exploring the opportunity</option>
-            <option value="VALIDATING">Validating a market or product</option>
-            <option value="LAUNCHING">Preparing to launch</option>
-            <option value="OPERATING">Already operating a shop</option>
-            <option value="SCALING">Scaling an existing operation</option>
-          </select>
-        </label>
-        <label>
-          Target markets
-          <input
-            required
-            placeholder="US, UK, DE — use the markets you are considering"
-            value={markets}
-            onChange={(event) => setMarkets(event.target.value)}
-          />
-          <small>Comma-separated. The Expert supports every market represented in its current knowledge release.</small>
-        </label>
-        <fieldset>
-          <legend>Seller setup</legend>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={sellerTypes.includes("CROSS_BORDER")}
-              onChange={() => toggleSellerType("CROSS_BORDER")}
-            />
-            Cross-border seller
-          </label>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={sellerTypes.includes("LOCAL")}
-              onChange={() => toggleSellerType("LOCAL")}
-            />
-            Local entity / local seller
-          </label>
-        </fieldset>
-        <div className="two-column-fields">
-          <label>
-            Relevant experience
-            <input
-              placeholder="Amazon operator, first-time founder…"
-              value={experience}
-              onChange={(event) => setExperience(event.target.value)}
-            />
-          </label>
-          <label>
-            Capital range
-            <input
-              placeholder="$5k, $20–50k…"
-              value={capitalBand}
-              onChange={(event) => setCapitalBand(event.target.value)}
-            />
-          </label>
-        </div>
-        <label>
-          Goals
-          <input
-            placeholder="Validate a product, launch in 60 days"
-            value={goals}
-            onChange={(event) => setGoals(event.target.value)}
-          />
-        </label>
-        <label>
-          Hard constraints
-          <input
-            placeholder="No local warehouse, two-person team"
-            value={constraints}
-            onChange={(event) => setConstraints(event.target.value)}
-          />
-        </label>
-        {store.error ? <p className="form-error">{store.error}</p> : null}
-        <button className="primary-button" disabled={saving || sellerTypes.length === 0}>
-          {saving ? "Saving…" : "Start with my context"}
-        </button>
-      </form>
-    </main>
+    </div>
   );
 });
