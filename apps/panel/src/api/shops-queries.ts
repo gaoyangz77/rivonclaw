@@ -385,6 +385,7 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
     configRevision
     templateVersion
     selectionStrategy
+    counterSchemaVersion
     rulesHash
     capabilityHash
     modelVersion

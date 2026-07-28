@@ -1256,7 +1256,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </div>
             </section>
 
-            <CampaignFunnel counters={summary?.counters} t={t} />
+            <CampaignFunnel
+              counters={summary?.counters}
+              counterSchemaVersion={latestExecution?.counterSchemaVersion ?? 2}
+              t={t}
+            />
 
             <section className="affiliate-campaign-configuration">
               <div>
@@ -3086,22 +3090,53 @@ function campaignRuleSummary(
 
 function CampaignFunnel({
   counters,
+  counterSchemaVersion,
   t,
 }: {
   counters?: GQL.AffiliateCampaignExecutionCounters;
+  counterSchemaVersion: number;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
+  const legacyUnrecorded = counterSchemaVersion < 2;
   const acquisition = [
     ["scanned", counters?.scanned ?? 0],
-    ["matched", counters?.matched ?? 0],
+    [
+      "matched",
+      campaignFunnelCounterValue({
+        counterSchemaVersion,
+        introducedInVersion: 2,
+        value: counters?.matched ?? 0,
+      }),
+    ],
   ] as const;
   const blocked = [
-    ["protected", counters?.protected ?? 0],
-    ["outreachPolicyBlocked", counters?.outreachPolicyBlocked ?? 0],
+    [
+      "protected",
+      campaignFunnelCounterValue({
+        counterSchemaVersion,
+        introducedInVersion: 2,
+        value: counters?.protected ?? 0,
+      }),
+    ],
+    [
+      "outreachPolicyBlocked",
+      campaignFunnelCounterValue({
+        counterSchemaVersion,
+        introducedInVersion: 2,
+        value: counters?.outreachPolicyBlocked ?? 0,
+      }),
+    ],
   ] as const;
   const progression = [
     ["evaluated", counters?.evaluated ?? 0],
-    ["qualificationFailed", counters?.qualificationFailed ?? 0],
+    [
+      "qualificationFailed",
+      campaignFunnelCounterValue({
+        counterSchemaVersion,
+        introducedInVersion: 2,
+        value: counters?.qualificationFailed ?? 0,
+      }),
+    ],
     ["qualified", counters?.qualified ?? 0],
     ["selected", counters?.selected ?? 0],
     ["sent", counters?.sent ?? 0],
@@ -3113,6 +3148,9 @@ function CampaignFunnel({
         <div>
           <span>{t("ecommerce.affiliateCampaign.todayFunnel")}</span>
           <h3>{t("ecommerce.affiliateCampaign.discoveryToReply")}</h3>
+          {legacyUnrecorded && (
+            <small>{t("ecommerce.affiliateCampaign.legacyFunnelPartial")}</small>
+          )}
         </div>
       </div>
       <div className="affiliate-campaign-funnel-groups">
@@ -3144,7 +3182,7 @@ function FunnelGroup({
   t,
 }: {
   label: string;
-  steps: ReadonlyArray<readonly [string, number]>;
+  steps: ReadonlyArray<readonly [string, number | null]>;
   variant?: "progress" | "blocked";
   t: (key: string) => string;
 }) {
@@ -3155,7 +3193,15 @@ function FunnelGroup({
         {steps.map(([key, value]) => (
           <article key={key}>
             <small>{t(`ecommerce.affiliateCampaign.funnel.${key}`)}</small>
-            <strong>{formatNumber(value)}</strong>
+            <strong
+              title={
+                value == null
+                  ? t("ecommerce.affiliateCampaign.legacyMetricUnavailable")
+                  : undefined
+              }
+            >
+              {value == null ? "—" : formatNumber(value)}
+            </strong>
           </article>
         ))}
       </div>
@@ -3275,6 +3321,16 @@ export function campaignCreatorStatesViewState(input: {
   if (input.loading) return "loading";
   if (input.hasError) return "error";
   return input.itemCount > 0 ? "ready" : "empty";
+}
+
+export function campaignFunnelCounterValue(input: {
+  counterSchemaVersion: number;
+  value: number;
+  introducedInVersion?: number;
+}): number | null {
+  return input.counterSchemaVersion < (input.introducedInVersion ?? 1)
+    ? null
+    : input.value;
 }
 
 export function isEnglishCampaignSearchPhrase(value: string): boolean {

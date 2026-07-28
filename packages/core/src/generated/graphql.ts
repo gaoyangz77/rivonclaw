@@ -933,6 +933,7 @@ export interface AffiliateCampaignDailyExecution {
   campaignId: Scalars['ID']['output'];
   capabilityHash: Scalars['String']['output'];
   configRevision: Scalars['Int']['output'];
+  counterSchemaVersion: Scalars['Int']['output'];
   counters: AffiliateCampaignExecutionCounters;
   createdAt: Scalars['DateTimeISO']['output'];
   effectiveTarget: Scalars['Int']['output'];
@@ -7875,6 +7876,7 @@ export interface Mutation {
   syncWmsInventoryGoods: SyncWmsInventoryGoodsPayload;
   /** Pull warehouses from one WMS account and upsert canonical Warehouse records. */
   syncWmsWarehouses: WmsWarehouseSyncPayload;
+  tiktokIngestSellerDeauthorizationWebhook: TikTokSellerDeauthorizationWebhookResult;
   unassignAffiliateBusinessDeveloper: AffiliateCreatorRelationship;
   unassignAffiliateEmailAccount: EmailAccountBinding;
   unassignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
@@ -8580,6 +8582,11 @@ export interface MutationSyncWmsInventoryGoodsArgs {
 
 export interface MutationSyncWmsWarehousesArgs {
   wmsAccountId: Scalars['ID']['input'];
+}
+
+
+export interface MutationTiktokIngestSellerDeauthorizationWebhookArgs {
+  input: TikTokSellerDeauthorizationWebhookInput;
 }
 
 
@@ -10675,6 +10682,8 @@ export interface Shop {
   accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
   alias?: Maybe<Scalars['String']['output']>;
   authStatus: ShopAuthStatus;
+  authStatusReason?: Maybe<ShopAuthStatusReason>;
+  authorizedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Non-sensitive grouping key shared by shops that belong to the same platform seller. */
   collectionKey: Scalars['String']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
@@ -10685,6 +10694,7 @@ export interface Shop {
   platformShopId: Scalars['String']['output'];
   refreshTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
   region?: Maybe<ShopRegion>;
+  revokedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   services: ShopServiceConfig;
   shopName: Scalars['String']['output'];
   /** IANA timezone used for shop-local platform analytics dates */
@@ -10704,6 +10714,12 @@ export const ShopAuthStatus = {
 } as const;
 
 export type ShopAuthStatus = typeof ShopAuthStatus[keyof typeof ShopAuthStatus];
+/** Platform or user action that most recently changed shop authorization */
+export const ShopAuthStatusReason = {
+  SellerDeauthorizationWebhook: 'SELLER_DEAUTHORIZATION_WEBHOOK'
+} as const;
+
+export type ShopAuthStatusReason = typeof ShopAuthStatusReason[keyof typeof ShopAuthStatusReason];
 /** Shop auth/token status */
 export interface ShopAuthStatusResponse {
   accessTokenExpiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -11651,6 +11667,20 @@ export const TikTokSampleContentFulfillmentPlatformStatus = {
 } as const;
 
 export type TikTokSampleContentFulfillmentPlatformStatus = typeof TikTokSampleContentFulfillmentPlatformStatus[keyof typeof TikTokSampleContentFulfillmentPlatformStatus];
+export interface TikTokSellerDeauthorizationWebhookInput {
+  appKey: Scalars['String']['input'];
+  eventTime: Scalars['String']['input'];
+  notificationId: Scalars['String']['input'];
+  platformShopId: Scalars['String']['input'];
+}
+
+export interface TikTokSellerDeauthorizationWebhookResult {
+  accepted: Scalars['Boolean']['output'];
+  duplicate: Scalars['Boolean']['output'];
+  ignoredReason?: Maybe<Scalars['String']['output']>;
+  shopId?: Maybe<Scalars['String']['output']>;
+}
+
 /** Tool functional category */
 export const ToolCategory = {
   AffiliateAction: 'AFFILIATE_ACTION',

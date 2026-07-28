@@ -87,6 +87,9 @@ const en = {
   underDeliveryGeneric: "The daily plan was only partially delivered",
   todayFunnel: "TODAY'S FUNNEL",
   discoveryToReply: "Discovery to reply",
+  legacyFunnelPartial:
+    "This execution predates complete funnel tracking; unrecorded metrics are shown as —.",
+  legacyMetricUnavailable: "This metric was not recorded by the legacy worker.",
   primaryProduct: "Primary product",
   minimumFollowers: "Minimum followers",
   maximumFollowers: "Maximum followers (optional)",
@@ -507,6 +510,8 @@ const zh = {
   underDeliveryGeneric: "今日计划未完全送达",
   todayFunnel: "今日漏斗",
   discoveryToReply: "从发现到回复",
+  legacyFunnelPartial: "该执行早于完整漏斗埋点；历史未记录的指标显示为“—”。",
+  legacyMetricUnavailable: "旧版 Worker 当时未记录该指标。",
   primaryProduct: "主商品",
   minimumFollowers: "最低粉丝数",
   maximumFollowers: "最高粉丝数（可选）",
