@@ -7832,6 +7832,8 @@ export interface Mutation {
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
   /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the relationship work boundary and update relationship/collaboration state as needed. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
+  /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
+  retryAffiliateAgentFailure: AffiliateCreatorRelationshipStatePayload;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
   /** Revoke an Outlook/Microsoft Graph email account binding. */
@@ -8485,6 +8487,11 @@ export interface MutationRequestTikTokGmvMaxAuthorizationArgs {
 
 export interface MutationResolveAffiliateWorkItemArgs {
   input: ResolveAffiliateWorkItemInput;
+}
+
+
+export interface MutationRetryAffiliateAgentFailureArgs {
+  creatorRelationshipId: Scalars['ID']['input'];
 }
 
 
