@@ -1231,7 +1231,7 @@ export interface AffiliateCampaignSelectionReadiness {
 }
 
 export const AffiliateCampaignSelectionStrategy = {
-  ExpectedSalesV3: 'EXPECTED_SALES_V3',
+  ExpectedSales: 'EXPECTED_SALES',
   MarketplaceRules: 'MARKETPLACE_RULES'
 } as const;
 
@@ -2482,12 +2482,35 @@ export const AffiliateMlInsightsModelScope = {
 
 export type AffiliateMlInsightsModelScope = typeof AffiliateMlInsightsModelScope[keyof typeof AffiliateMlInsightsModelScope];
 export interface AffiliateMlInsightsPayload {
-  latestModelEfficiencySummary?: Maybe<AffiliateMlModelEfficiencySummary>;
+  modelAvailability: Array<AffiliateModelAvailability>;
+}
+
+export interface AffiliateModelAvailability {
+  bentomlTag?: Maybe<Scalars['String']['output']>;
+  contractHash?: Maybe<Scalars['String']['output']>;
+  contractStatus: Scalars['String']['output'];
+  effectiveTenantId?: Maybe<Scalars['ID']['output']>;
+  effectiveTenantScope?: Maybe<Scalars['String']['output']>;
+  evaluationSummary?: Maybe<AffiliateMlModelEfficiencySummary>;
+  featureTemporalBasis: Scalars['String']['output'];
+  modelFamily: Scalars['String']['output'];
+  modelStage: Scalars['String']['output'];
+  modelVersionKey?: Maybe<Scalars['String']['output']>;
+  reason?: Maybe<Scalars['String']['output']>;
+  requestedTenantId: Scalars['ID']['output'];
+  requestedTenantScope: Scalars['String']['output'];
+  status: Scalars['String']['output'];
+  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
 
 export interface AffiliateMlModelEfficiencySummary {
+  bentomlTag: Scalars['String']['output'];
+  contractHash: Scalars['String']['output'];
   createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  creatorCount: Scalars['Int']['output'];
+  evaluatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   evaluationScope: Scalars['String']['output'];
+  featureTemporalBasis: Scalars['String']['output'];
   humanApprovalRate?: Maybe<Scalars['Float']['output']>;
   humanApprovedActualAvgUnits?: Maybe<Scalars['Float']['output']>;
   humanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
@@ -2495,13 +2518,17 @@ export interface AffiliateMlModelEfficiencySummary {
   humanApprovedObservedCount: Scalars['Int']['output'];
   humanSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
   minExpectedSalesUnitsSameBudget?: Maybe<Scalars['Float']['output']>;
+  modelFamily: Scalars['String']['output'];
   modelRejectedHumanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
   modelRejectedHumanApprovedCount: Scalars['Int']['output'];
   modelSameBudgetCount: Scalars['Int']['output'];
   modelSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
   modelScope?: Maybe<Scalars['String']['output']>;
+  modelStage: Scalars['String']['output'];
+  modelStatus: Scalars['String']['output'];
   modelSelectedHumanRejectedCount: Scalars['Int']['output'];
   modelVsHumanExpectedUnitsLiftRatio?: Maybe<Scalars['Float']['output']>;
+  modelVersionKey: Scalars['String']['output'];
   payload?: Maybe<Scalars['JSONObject']['output']>;
   rowCount: Scalars['Int']['output'];
   shopId?: Maybe<Scalars['ID']['output']>;

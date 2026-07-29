@@ -19621,6 +19621,182 @@ html[lang="zh"] .acct-tool-chips {
   min-width: 0;
 }
 
+.affiliate-model-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--affiliate-intelligence-gap);
+}
+
+.affiliate-model-stage-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.affiliate-model-stage-card > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 62%),
+    var(--color-bg);
+}
+
+.affiliate-model-stage-card-bootstrap > header {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-warning) 9%, transparent), transparent 62%),
+    var(--color-bg);
+}
+
+.affiliate-model-stage-card h2 {
+  margin: 3px 0 0;
+  color: var(--color-text);
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.affiliate-model-stage-eyebrow {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.affiliate-model-stage-count {
+  min-width: 36px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+}
+
+.affiliate-model-stage-note {
+  margin: 0;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--color-warning) 6%, var(--color-bg));
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.affiliate-model-family-list {
+  display: grid;
+}
+
+.affiliate-model-family-row {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.affiliate-model-family-row + .affiliate-model-family-row {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.affiliate-model-family-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.affiliate-model-family-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.affiliate-model-family-heading span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.affiliate-model-family-heading strong {
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.affiliate-model-readiness {
+  align-self: start;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-text-muted) 10%, var(--color-bg));
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.affiliate-model-readiness-ready,
+.affiliate-model-readiness-fallback {
+  background: color-mix(in srgb, var(--color-success) 14%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-success) 78%, var(--color-text));
+}
+
+.affiliate-model-scope-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.affiliate-model-evaluation-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.affiliate-model-evaluation-strip > div {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border-radius: 7px;
+  background: var(--color-bg-subtle);
+}
+
+.affiliate-model-evaluation-strip span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.affiliate-model-evaluation-strip strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-model-no-evaluation,
+.affiliate-model-unavailable-reason {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.affiliate-model-family-row code {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .affiliate-intelligence-model-source {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -20703,6 +20879,7 @@ html[lang="zh"] .acct-tool-chips {
 
   .affiliate-intelligence-dashboard,
   .affiliate-intelligence-model-source,
+  .affiliate-model-stage-grid,
   .affiliate-intelligence-claim-grid,
   .affiliate-intelligence-claim-section,
   .affiliate-intelligence-explainers,
@@ -20711,6 +20888,10 @@ html[lang="zh"] .acct-tool-chips {
   }
 
   .affiliate-intelligence-model-source-options {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-model-evaluation-strip {
     grid-template-columns: 1fr;
   }
 

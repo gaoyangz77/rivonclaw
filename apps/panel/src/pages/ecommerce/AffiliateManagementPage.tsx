@@ -309,6 +309,68 @@ type AffiliateInsightSubject = {
 
 type AffiliateInsightModelScope = "user" | "region" | "shop";
 
+type AffiliateModelAvailabilityView = {
+  modelFamily: string;
+  modelStage: string;
+  status: string;
+  featureTemporalBasis: string;
+  requestedTenantScope: string;
+  requestedTenantId: string;
+  effectiveTenantScope?: string | null;
+  effectiveTenantId?: string | null;
+  modelVersionKey?: string | null;
+  bentomlTag?: string | null;
+  contractHash?: string | null;
+  contractStatus: string;
+  trainedAt?: string | null;
+  reason?: string | null;
+  evaluationSummary?: GQL.AffiliateMlModelEfficiencySummary | null;
+};
+
+export function affiliateModelStagePresentation(
+  availability: AffiliateModelAvailabilityView[],
+  family: "EXPECTED_SALES" | "HUMAN_DECISION",
+  stage: "EVENT_TIME" | "BOOTSTRAP",
+) {
+  const entry = availability.find(
+    (candidate) =>
+      candidate.modelFamily === family && candidate.modelStage === stage,
+  ) ?? null;
+  const production = availability.find(
+    (candidate) =>
+      candidate.modelFamily === family &&
+      candidate.modelStage === "EVENT_TIME",
+  );
+  const ready = entry?.status === "READY" || entry?.status === "FALLBACK";
+  const productionReady =
+    production?.status === "READY" || production?.status === "FALLBACK";
+  const rawEvaluation = entry?.evaluationSummary ?? null;
+  const evaluationIdentity = rawEvaluation as unknown as
+    | Record<string, unknown>
+    | null;
+  const evaluationSummary =
+    rawEvaluation &&
+    evaluationIdentity?.modelFamily === entry?.modelFamily &&
+    evaluationIdentity?.modelStage === entry?.modelStage &&
+    evaluationIdentity?.modelVersionKey === entry?.modelVersionKey &&
+    evaluationIdentity?.contractHash === entry?.contractHash
+      ? rawEvaluation
+      : null;
+  return {
+    entry,
+    ready,
+    evaluationSummary,
+    isCurrent: ready && (stage === "EVENT_TIME" || !productionReady),
+    statusKey: !ready
+      ? "modelDataAccumulating"
+      : stage === "EVENT_TIME"
+        ? "productionCurrentReview"
+        : !productionReady
+          ? "bootstrapCurrentReview"
+          : "bootstrapBackup",
+  };
+}
+
 type AffiliateInsightRow = {
   key: string;
   subjectKey: string;
@@ -316,7 +378,7 @@ type AffiliateInsightRow = {
   label: string;
   shopId?: string;
   modelScope: AffiliateInsightModelScope;
-  summary: GQL.AffiliateMlModelEfficiencySummary | null;
+  availability: AffiliateModelAvailabilityView[];
   failed?: boolean;
 };
 
@@ -380,7 +442,9 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
           label: subject.label,
           shopId: subject.shopId,
           modelScope,
-          summary: (cached?.summary ?? null) as GQL.AffiliateMlModelEfficiencySummary | null,
+          availability: (
+            cached?.availability ?? []
+          ) as AffiliateModelAvailabilityView[],
           failed: hasError && !cached,
         });
       }
@@ -956,11 +1020,13 @@ function AffiliateMlInsightsPanel({
   onSelect: (key: string) => void;
 }) {
   const { t } = useTranslation();
-  const entityStore = useEntityStore();
   const [activeModelScope, setActiveModelScope] = useState<AffiliateInsightModelScope>("user");
   const selectedSubject =
     subjects.find((subject) => subject.key === selectedKey)
-    ?? subjects.find((subject) => rows.some((row) => row.subjectKey === subject.key && row.summary))
+    ?? subjects.find((subject) =>
+      rows.some(
+        (row) => row.subjectKey === subject.key && row.availability.length > 0,
+      ))
     ?? subjects[0]
     ?? null;
   const selectedRows = selectedSubject
@@ -969,36 +1035,18 @@ function AffiliateMlInsightsPanel({
   const accountModelRow = selectedRows.find((row) => row.modelScope === "user") ?? null;
   const regionModelRow = selectedRows.find((row) => row.modelScope === "region") ?? null;
   const storeModelRow = selectedRows.find((row) => row.modelScope === "shop") ?? null;
-  const availableModelScope =
-    activeModelScope === "shop" && storeModelRow?.summary
-      ? "shop"
-      : activeModelScope === "region" && regionModelRow?.summary
-        ? "region"
-      : accountModelRow?.summary
-        ? "user"
-        : regionModelRow?.summary
-          ? "region"
-        : storeModelRow?.summary
-          ? "shop"
-          : activeModelScope;
   const selectedRow =
-    (availableModelScope === "shop"
+    (activeModelScope === "shop"
       ? storeModelRow
-      : availableModelScope === "region"
+      : activeModelScope === "region"
         ? regionModelRow
         : accountModelRow)
-    ?? selectedRows.find((row) => row.summary)
+    ?? selectedRows.find((row) => row.availability.length > 0)
     ?? selectedRows[0]
-    ?? rows.find((row) => row.summary)
+    ?? rows.find((row) => row.availability.length > 0)
     ?? rows[0]
     ?? null;
-  const summary = selectedRow?.summary ?? null;
-  const selectedModelLabel =
-    selectedRow?.modelScope === "shop"
-      ? t("ecommerce.affiliateWorkspace.intelligenceStoreModel")
-      : selectedRow?.modelScope === "region"
-        ? t("ecommerce.affiliateWorkspace.intelligenceRegionModel")
-      : t("ecommerce.affiliateWorkspace.intelligenceAccountModel");
+  const availability = selectedRow?.availability ?? [];
 
   useEffect(() => {
     if (selectedSubject?.kind === "user") {
@@ -1020,121 +1068,6 @@ function AffiliateMlInsightsPanel({
     );
   }
 
-  if (!summary) {
-    const modelLoadFailed = selectedRows.some((row) => row.failed);
-    return (
-      <div className="affiliate-ml-insights affiliate-intelligence-dashboard">
-        <AffiliateInsightScopeRail
-          subjects={subjects}
-          rows={rows}
-          selectedKey={selectedKey}
-          onSelect={onSelect}
-        />
-        {selectedSubject.kind === "shop" ? (
-          <AffiliateModelSourceSwitch
-            accountRow={accountModelRow}
-            activeModelScope={availableModelScope}
-            regionRow={regionModelRow}
-            storeRow={storeModelRow}
-            onChange={setActiveModelScope}
-          />
-        ) : null}
-        <div className="affiliate-intelligence-empty">
-          <InfoIcon />
-          <strong>{selectedSubject.label}</strong>
-          <span>
-            {modelLoadFailed
-              ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailableHint")
-              : t("ecommerce.affiliateWorkspace.mlInsightsEmpty", {
-                defaultValue: "No affiliate ML evaluation is available yet. Run the training pipeline after affiliate history is ready.",
-              })}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  const payload = parseAffiliateInsightPayload(summary.payload);
-  const sameBudgetPayload = payloadObject(payload, "same_sample_budget");
-  const sameBudgetConfidence = payloadObject(payload, "same_sample_budget_confidence");
-  const sameBudgetConfidenceLevel = affiliateConfidenceLevel(sameBudgetConfidence);
-  const sameBudget = {
-    ...sameBudgetPayload,
-    historical_sample_count: payloadNumber(sameBudgetPayload, "historical_sample_count") ?? summary.rowCount,
-    historical_approved_count:
-      payloadNumber(sameBudgetPayload, "historical_approved_count") ?? summary.humanApprovedCount,
-    historical_approval_rate:
-      payloadNumber(sameBudgetPayload, "historical_approval_rate") ?? summary.humanApprovalRate,
-    historical_expected_sales_units:
-      payloadNumber(sameBudgetPayload, "historical_expected_sales_units")
-      ?? summary.humanSameBudgetExpectedUnits,
-    model_selected_count:
-      payloadNumber(sameBudgetPayload, "model_selected_count") ?? summary.modelSameBudgetCount,
-    model_expected_sales_units:
-      payloadNumber(sameBudgetPayload, "model_expected_sales_units")
-      ?? summary.modelSameBudgetExpectedUnits,
-    expected_sales_lift_ratio:
-      payloadNumber(sameBudgetPayload, "expected_sales_lift_ratio")
-      ?? summary.modelVsHumanExpectedUnitsLiftRatio,
-    model_selected_human_rejected_count:
-      payloadNumber(sameBudgetPayload, "model_selected_human_rejected_count")
-      ?? summary.modelSelectedHumanRejectedCount,
-    model_rejected_human_approved_count:
-      payloadNumber(sameBudgetPayload, "model_rejected_human_approved_count")
-      ?? summary.modelRejectedHumanApprovedCount,
-    historical_approved_actual_units:
-      payloadNumber(sameBudgetPayload, "historical_approved_actual_units")
-      ?? summary.humanApprovedActualUnits,
-    historical_approved_actual_avg_units:
-      payloadNumber(sameBudgetPayload, "historical_approved_actual_avg_units")
-      ?? summary.humanApprovedActualAvgUnits,
-    historical_approved_observed_count:
-      payloadNumber(sameBudgetPayload, "historical_approved_observed_count")
-      ?? summary.humanApprovedObservedCount,
-  };
-  const budgetHumanApprovedCount = payloadNumber(sameBudget, "historical_approved_count");
-  const budgetHumanExpectedUnits = payloadNumber(sameBudget, "historical_expected_sales_units");
-  const budgetModelExpectedUnits = payloadNumber(sameBudget, "model_expected_sales_units");
-  const budgetLiftRatio = payloadNumber(sameBudget, "expected_sales_lift_ratio");
-  const budgetModelRejectedHumanApprovedCount = payloadNumber(sameBudget, "model_rejected_human_approved_count");
-  const impliedMinExpectedSalesUnits =
-    summary.minExpectedSalesUnitsSameBudget
-    ?? payloadNumber(sameBudget, "min_expected_sales_units_same_budget");
-  const selectedShop = selectedSubject.shopId
-    ? entityStore.shops.find((shop) => shop.id === selectedSubject.shopId)
-    : null;
-  const configuredMinExpectedSalesUnits =
-    selectedSubject.kind === "shop"
-      ? selectedShop?.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits ?? null
-      : undefined;
-  const sampleSavingsRisk =
-    budgetHumanApprovedCount && budgetHumanApprovedCount > 0
-      ? (budgetModelRejectedHumanApprovedCount ?? 0) / budgetHumanApprovedCount
-      : null;
-  const budgetMaxUnits = Math.max(budgetModelExpectedUnits ?? 0, budgetHumanExpectedUnits ?? 0, 1);
-  const modelBarWidth = `${Math.max(8, Math.round(((budgetModelExpectedUnits ?? 0) / budgetMaxUnits) * 100))}%`;
-  const humanBarWidth = `${Math.max(8, Math.round(((budgetHumanExpectedUnits ?? 0) / budgetMaxUnits) * 100))}%`;
-  const evaluationWindow = formatEvaluationWindow(payload, summary.evaluationScope, t);
-  const precisionLiftPercent = budgetLiftRatio == null ? null : (budgetLiftRatio - 1) * 100;
-  const precisionLiftLabel = formatSignedPercent(precisionLiftPercent);
-  const translate = t as unknown as (key: string, options?: Record<string, unknown>) => string;
-  const precisionClaimBody =
-    precisionLiftPercent != null && precisionLiftPercent > 0
-      ? translate(
-        "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionBody",
-        {
-          lift: precisionLiftLabel,
-          count: formatInteger(budgetHumanApprovedCount),
-        },
-      )
-      : translate(
-        "ecommerce.affiliateWorkspace.intelligenceClaimPrecisionNeutral",
-        {
-          lift: precisionLiftLabel,
-          count: formatInteger(budgetHumanApprovedCount),
-        },
-      );
-
   return (
     <div className="affiliate-ml-insights affiliate-intelligence-dashboard">
       <AffiliateInsightScopeRail
@@ -1148,91 +1081,141 @@ function AffiliateMlInsightsPanel({
         {selectedSubject.kind === "shop" ? (
           <AffiliateModelSourceSwitch
             accountRow={accountModelRow}
-            activeModelScope={availableModelScope}
+            activeModelScope={activeModelScope}
             regionRow={regionModelRow}
             storeRow={storeModelRow}
             onChange={setActiveModelScope}
           />
         ) : null}
-
-        <div className="affiliate-intelligence-claim-section">
-          <div className="affiliate-intelligence-comparison">
-            <div className="affiliate-intelligence-card-head">
-              <div className="affiliate-intelligence-card-title">
-                <span>{selectedSubject.kind === "shop" ? `${selectedSubject.label} · ${selectedModelLabel}` : selectedSubject.label}</span>
-                <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
-                <p>{precisionClaimBody}</p>
-              </div>
-              <div className="affiliate-intelligence-card-aside">
-                {precisionLiftPercent != null ? (
-                  <div className={`affiliate-intelligence-lift-badge${precisionLiftPercent < 0 ? " affiliate-intelligence-lift-badge-negative" : ""}`}>
-                    <strong>{precisionLiftLabel}</strong>
-                    <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameBudget")}</span>
-                  </div>
-                ) : null}
-                <small>
-                  {translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
-                    count: formatInteger(budgetHumanApprovedCount),
-                    window: evaluationWindow,
-                  })}
-                </small>
-              </div>
-            </div>
-
-            <div className="affiliate-intelligence-race">
-              <AffiliateRaceRow
-                icon={<AffiliateSparkIcon />}
-                label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
-                value={formatNumber(budgetModelExpectedUnits, 1)}
-                width={modelBarWidth}
-                variant="model"
-              />
-              <AffiliateRaceRow
-                icon={<UserIcon />}
-                label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
-                value={formatNumber(budgetHumanExpectedUnits, 1)}
-                width={humanBarWidth}
-                variant="human"
-              />
-            </div>
-
-            {impliedMinExpectedSalesUnits != null ? (
-              <AffiliateImplicitThresholdPanel
-                approvalRate={summary.humanApprovalRate}
-                configuredThreshold={configuredMinExpectedSalesUnits}
-                impliedThreshold={impliedMinExpectedSalesUnits}
-              />
-            ) : null}
-
-            {sameBudgetConfidenceLevel === "low" || sameBudgetConfidenceLevel === "medium" ? (
-              <AffiliateConfidenceNotice level={sameBudgetConfidenceLevel} />
-            ) : null}
-          </div>
-
-          <AffiliateBudgetDistributionPanel
-            claim={sameBudget}
-            windowLabel={evaluationWindow}
-          />
-        </div>
-
-        <div className="affiliate-intelligence-footnote">
-          <span
-            className="affiliate-intelligence-disclaimer"
-            title={t("ecommerce.affiliateWorkspace.intelligenceLegalDisclaimer")}
-          >
+        {availability.length === 0 ? (
+          <div className="affiliate-intelligence-empty">
             <InfoIcon />
-          </span>
-          <span>
-            {t("ecommerce.affiliateWorkspace.intelligenceTrainingScope", {
-              approvalRate: formatPercent(summary.humanApprovalRate),
-              filteredRate: formatPercent(sampleSavingsRisk),
-              trainedAt: formatDate(summary.trainedAt),
-              window: evaluationWindow,
-            })}
-          </span>
-        </div>
+            <strong>{selectedSubject.label}</strong>
+            <span>
+              {selectedRows.some((row) => row.failed)
+                ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailableHint")
+                : t("ecommerce.affiliateWorkspace.modelAvailabilityEmpty")}
+            </span>
+          </div>
+        ) : (
+          <div className="affiliate-model-stage-grid">
+            {(["EVENT_TIME", "BOOTSTRAP"] as const).map((stage) => (
+              <AffiliateModelStageCard
+                key={stage}
+                availability={availability}
+                stage={stage}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function AffiliateModelStageCard({
+  availability,
+  stage,
+}: {
+  availability: AffiliateModelAvailabilityView[];
+  stage: "EVENT_TIME" | "BOOTSTRAP";
+}) {
+  const { t } = useTranslation();
+  const stageRows = availability.filter((entry) => entry.modelStage === stage);
+  const stageTitle =
+    stage === "EVENT_TIME"
+      ? t("ecommerce.affiliateWorkspace.productionModel")
+      : t("ecommerce.affiliateWorkspace.bootstrapModel");
+  return (
+    <section className={`affiliate-model-stage-card affiliate-model-stage-card-${stage.toLowerCase()}`}>
+      <header>
+        <div>
+          <span className="affiliate-model-stage-eyebrow">
+            {stage === "EVENT_TIME" ? "EVENT_TIME" : "CURRENT_STATE_PROXY"}
+          </span>
+          <h2>{stageTitle}</h2>
+        </div>
+        <span className="affiliate-model-stage-count">{stageRows.length}/2</span>
+      </header>
+      {stage === "BOOTSTRAP" ? (
+        <p className="affiliate-model-stage-note">
+          {t("ecommerce.affiliateWorkspace.bootstrapApproximation")}
+        </p>
+      ) : null}
+      <div className="affiliate-model-family-list">
+        {(["EXPECTED_SALES", "HUMAN_DECISION"] as const).map((family) => {
+          const presentation = affiliateModelStagePresentation(
+            availability,
+            family,
+            stage,
+          );
+          const { entry, ready, statusKey } = presentation;
+          const summary = presentation.evaluationSummary;
+          const lift =
+            summary?.modelVsHumanExpectedUnitsLiftRatio == null
+              ? null
+              : (summary.modelVsHumanExpectedUnitsLiftRatio - 1) * 100;
+          const holdout = payloadObject(
+            parseAffiliateInsightPayload(summary?.payload),
+            "creator_disjoint_holdout",
+          );
+          const balancedAccuracy = payloadNumber(holdout, "balanced_accuracy");
+          return (
+            <article className="affiliate-model-family-row" key={family}>
+              <div className="affiliate-model-family-heading">
+                <div>
+                  <span>{family === "EXPECTED_SALES" ? "Expected Sales" : "Human Decision"}</span>
+                  <strong>{t(`ecommerce.affiliateWorkspace.${statusKey}`)}</strong>
+                </div>
+                <span className={`affiliate-model-readiness affiliate-model-readiness-${entry?.status?.toLowerCase() ?? "unavailable"}`}>
+                  {entry?.status ?? "UNAVAILABLE"}
+                </span>
+              </div>
+              {entry ? (
+                <div className="affiliate-model-scope-line">
+                  <span>{entry.requestedTenantScope} · {entry.requestedTenantId}</span>
+                  <span aria-hidden="true">→</span>
+                  <span>{entry.effectiveTenantScope ?? "—"} · {entry.effectiveTenantId ?? "—"}</span>
+                </div>
+              ) : null}
+              {ready && summary ? (
+                <div className="affiliate-model-evaluation-strip">
+                  <div>
+                    <span>{t("ecommerce.affiliateWorkspace.evaluationSamples")}</span>
+                    <strong>{formatInteger(summary.rowCount)}</strong>
+                  </div>
+                  <div>
+                    <span>{family === "EXPECTED_SALES"
+                      ? t("ecommerce.affiliateWorkspace.evaluationLift")
+                      : t("ecommerce.affiliateWorkspace.evaluationBalancedAccuracy")}</span>
+                    <strong>{family === "EXPECTED_SALES"
+                      ? formatSignedPercent(lift)
+                      : formatPercent(balancedAccuracy)}</strong>
+                  </div>
+                  <div>
+                    <span>{t("ecommerce.affiliateWorkspace.evaluationTrainedAt")}</span>
+                    <strong>{formatDate(entry?.trainedAt)}</strong>
+                  </div>
+                </div>
+              ) : ready ? (
+                <p className="affiliate-model-no-evaluation">
+                  {stage === "BOOTSTRAP"
+                    ? t("ecommerce.affiliateWorkspace.bootstrapNoEvaluation")
+                    : t("ecommerce.affiliateWorkspace.productionNoEvaluation")}
+                </p>
+              ) : (
+                <p className="affiliate-model-unavailable-reason">
+                  {entry?.reason || t("ecommerce.affiliateWorkspace.modelAvailabilityUnavailable")}
+                </p>
+              )}
+              {entry?.modelVersionKey ? (
+                <code title={entry.modelVersionKey}>{entry.modelVersionKey}</code>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1252,7 +1235,14 @@ function AffiliateInsightScopeRail({
     <div className="affiliate-intelligence-scope-rail">
       {subjects.map((subject) => {
         const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
-        const readyCount = subjectRows.filter((row) => row.summary).length;
+        const readyCount = subjectRows.reduce(
+          (count, row) =>
+            count +
+            row.availability.filter(
+              (entry) => entry.status === "READY" || entry.status === "FALLBACK",
+            ).length,
+          0,
+        );
         const failed = readyCount === 0 && subjectRows.some((row) => row.failed);
         const ready = readyCount > 0;
         const status = ready
@@ -1354,22 +1344,6 @@ function AffiliateModelSourceSwitch({
       row: storeRow,
     },
   ];
-  const rankedRows = rows.flatMap((item) => {
-    const lift = item.row?.summary?.modelVsHumanExpectedUnitsLiftRatio ?? null;
-    if (typeof lift !== "number" || !Number.isFinite(lift)) return [];
-    return [{
-      key: item.key,
-      lift,
-      confidenceLevel: item.row?.summary ? affiliateSummaryConfidenceLevel(item.row.summary) : null,
-    }];
-  });
-  const recommendationCandidates = rankedRows.filter((item) => item.confidenceLevel !== "low");
-  const candidates = recommendationCandidates.length > 0 ? recommendationCandidates : rankedRows;
-  const recommendedScope =
-    candidates.length > 0
-      ? candidates.reduce((best, item) => (item.lift > best.lift ? item : best)).key
-      : null;
-
   return (
     <div className="affiliate-intelligence-model-source" role="tablist">
       <span className="affiliate-intelligence-model-source-label">
@@ -1377,11 +1351,10 @@ function AffiliateModelSourceSwitch({
       </span>
       <div className="affiliate-intelligence-model-source-options">
         {rows.map((item) => {
-          const summary = item.row?.summary ?? null;
-          const lift = summary?.modelVsHumanExpectedUnitsLiftRatio == null
-            ? null
-            : (summary.modelVsHumanExpectedUnitsLiftRatio - 1) * 100;
-          const confidenceLevel = summary ? affiliateSummaryConfidenceLevel(summary) : null;
+          const readyCount = item.row?.availability.filter(
+            (entry) => entry.status === "READY" || entry.status === "FALLBACK",
+          ).length ?? 0;
+          const loaded = Boolean(item.row);
           const active = activeModelScope === item.key;
           return (
             <button
@@ -1390,29 +1363,20 @@ function AffiliateModelSourceSwitch({
               role="tab"
               aria-selected={active}
               className={`affiliate-intelligence-model-source-option${active ? " affiliate-intelligence-model-source-option-active" : ""}`}
-              disabled={!summary}
+              disabled={!loaded}
               onClick={() => onChange(item.key)}
             >
               <strong>{item.label}</strong>
               <span>
-                {summary
-                  ? formatSignedPercent(lift)
+                {loaded
+                  ? t("ecommerce.affiliateWorkspace.modelCombinationsReady", {
+                    count: readyCount,
+                  })
                   : item.row?.failed
                     ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
                     : t("ecommerce.affiliateWorkspace.intelligenceNoModel")}
               </span>
               <small>{item.description}</small>
-              {confidenceLevel ? (
-                <b
-                  className={`affiliate-intelligence-confidence-chip affiliate-intelligence-confidence-chip-${confidenceLevel}`}
-                  title={t(`ecommerce.affiliateWorkspace.intelligenceConfidence${confidenceLevel === "low" ? "Low" : confidenceLevel === "medium" ? "Medium" : "High"}Hint`)}
-                >
-                  {t(`ecommerce.affiliateWorkspace.intelligenceConfidence${confidenceLevel === "low" ? "Low" : confidenceLevel === "medium" ? "Medium" : "High"}`)}
-                </b>
-              ) : null}
-              {recommendedScope === item.key ? (
-                <em>{t("ecommerce.affiliateWorkspace.intelligenceRecommendedModel")}</em>
-              ) : null}
             </button>
           );
         })}
