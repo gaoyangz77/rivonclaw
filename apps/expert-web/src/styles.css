@@ -383,6 +383,78 @@ button {
   line-height: 1.12;
 }
 
+.google-auth-entry {
+  margin: -6px 0 22px;
+}
+
+.google-button-shell {
+  position: relative;
+  display: grid;
+  min-height: 44px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.google-button-shell > div {
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.google-button-shell.is-disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.google-button-loading {
+  position: absolute;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  color: #7a8495;
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  height: 1px;
+  background: var(--line);
+  content: "";
+}
+
+.google-link-notice {
+  margin: -10px 0 22px;
+  border: 1px solid #bfd1ff;
+  border-radius: 14px;
+  padding: 15px 16px;
+  color: #273c70;
+  background: #f2f6ff;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.google-link-notice p {
+  margin: 5px 0 0;
+}
+
+.google-link-cancel {
+  margin-top: 10px;
+  border: 0;
+  padding: 0;
+  color: var(--primary);
+  background: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 form {
   display: grid;
   gap: 18px;

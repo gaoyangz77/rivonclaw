@@ -35,6 +35,19 @@ export const WEB_REGISTER = gql`
   }
 `;
 
+export const WEB_GOOGLE_LOGIN = gql`
+  mutation WebGoogleLogin($input: GoogleLoginInput!) {
+    webGoogleLogin(input: $input) {
+      accessToken
+      user {
+        userId
+        email
+        name
+      }
+    }
+  }
+`;
+
 export const WEB_REFRESH = gql`
   mutation WebRefresh {
     webRefresh {
