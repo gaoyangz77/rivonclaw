@@ -7028,6 +7028,7 @@ export interface ExpertMessage {
   editedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   expertRunId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  imageAssets: Array<ImageAsset>;
   role: ExpertMessageRole;
   structuredPayload?: Maybe<Scalars['JSONObject']['output']>;
   suggestedQuestions: Array<Scalars['String']['output']>;
@@ -8281,6 +8282,7 @@ export interface MutationDisconnectAdsAdvertiserArgs {
 export interface MutationDispatchExpertMessageArgs {
   conversationId: Scalars['ID']['input'];
   idempotencyKey: Scalars['String']['input'];
+  imageAssetIds?: Array<Scalars['ID']['input']>;
   replaceMessageId?: InputMaybe<Scalars['ID']['input']>;
   text: Scalars['String']['input'];
 }
