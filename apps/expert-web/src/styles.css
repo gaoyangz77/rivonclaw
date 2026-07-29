@@ -1022,6 +1022,52 @@ textarea:focus {
   gap: 10px;
 }
 
+.theme-switcher {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #d7e1ee;
+  border-radius: 10px;
+  background: #f4f7fb;
+}
+
+.theme-switcher button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  color: #7b899c;
+  background: transparent;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.theme-switcher button:hover {
+  color: #31527d;
+  background: rgb(255 255 255 / 70%);
+}
+
+.theme-switcher button[aria-pressed="true"] {
+  color: #2459c4;
+  background: white;
+  box-shadow: 0 2px 8px rgb(31 54 89 / 14%);
+}
+
+.theme-switcher svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
 .mobile-new-conversation {
   display: none;
   width: 34px;
@@ -2355,8 +2401,22 @@ textarea:focus {
   }
 
   .chat-header h2 {
-    max-width: 210px;
+    max-width: 120px;
     font-size: 17px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .theme-switcher {
+    gap: 1px;
+    padding: 2px;
+  }
+
+  .theme-switcher button {
+    width: 25px;
+    height: 28px;
   }
 
   .empty-state h1 {
@@ -2379,6 +2439,288 @@ textarea:focus {
   .onboarding-backdrop {
     padding: 10px;
   }
+}
+
+.workspace[data-theme="dark"] {
+  --surface: #090f1a;
+  --surface-blue: #10233a;
+  --ink: #e7eef8;
+  --muted: #95a4b8;
+  --line: #263449;
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 72% -12%, rgb(47 109 255 / 12%), transparent 32rem), #090f1a;
+}
+
+.workspace[data-theme="dark"] .chat-header {
+  border-color: #263449;
+  background: rgb(12 19 32 / 88%);
+}
+
+.workspace[data-theme="dark"] .mobile-new-conversation,
+.workspace[data-theme="dark"] .header-actions .language-switcher.compact select {
+  border-color: #30415a;
+  color: #cbd7e8;
+  background: #121c2c;
+}
+
+.workspace[data-theme="dark"] .knowledge-chip {
+  border-color: #294567;
+  color: #9db5d2;
+  background: #10233a;
+}
+
+.workspace[data-theme="dark"] .theme-switcher {
+  border-color: #2c3b51;
+  background: #101927;
+}
+
+.workspace[data-theme="dark"] .theme-switcher button {
+  color: #73849a;
+}
+
+.workspace[data-theme="dark"] .theme-switcher button:hover {
+  color: #c7d5e8;
+  background: rgb(255 255 255 / 6%);
+}
+
+.workspace[data-theme="dark"] .theme-switcher button[aria-pressed="true"] {
+  color: #83b7ff;
+  background: #1c2a3d;
+  box-shadow: 0 2px 9px rgb(0 0 0 / 28%);
+}
+
+.workspace[data-theme="dark"] .empty-state h1,
+.workspace[data-theme="dark"] .markdown h1,
+.workspace[data-theme="dark"] .markdown h2,
+.workspace[data-theme="dark"] .markdown h3,
+.workspace[data-theme="dark"] .markdown h4,
+.workspace[data-theme="dark"] .markdown strong {
+  color: #f0f5fc;
+}
+
+.workspace[data-theme="dark"] .starter-grid button {
+  border-color: #293950;
+  color: #c3d0e1;
+  background: linear-gradient(145deg, #111b2a, #0d1725);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 12%);
+}
+
+.workspace[data-theme="dark"] .starter-grid button:hover {
+  border-color: #4779c9;
+  color: #e8f1ff;
+  box-shadow: 0 13px 34px rgb(0 0 0 / 24%);
+}
+
+.workspace[data-theme="dark"] .user-message-bubble {
+  border-color: #2a3d58;
+  background: #172439;
+}
+
+.workspace[data-theme="dark"] .user-message-text,
+.workspace[data-theme="dark"] .markdown {
+  color: #cbd6e5;
+}
+
+.workspace[data-theme="dark"] .message-image-grid figure {
+  border-color: rgb(194 215 242 / 12%);
+  background: #1c2a3e;
+}
+
+.workspace[data-theme="dark"] .message-actions {
+  color: #77889e;
+}
+
+.workspace[data-theme="dark"] .message-actions button {
+  color: #7f91a9;
+}
+
+.workspace[data-theme="dark"] .message-actions button:hover {
+  color: #d7e5f7;
+  background: #172438;
+}
+
+.workspace[data-theme="dark"] .message-actions > span {
+  color: #73839a;
+}
+
+.workspace[data-theme="dark"] .message-edit-form textarea {
+  border-color: #41699f;
+  color: #e3ebf6;
+  background: #101927;
+  box-shadow: 0 0 0 3px rgb(65 122 214 / 13%);
+}
+
+.workspace[data-theme="dark"] .message-edit-actions button {
+  border-color: #304058;
+  color: #aebed2;
+  background: #121c2b;
+}
+
+.workspace[data-theme="dark"] .message-edit-actions button.primary {
+  border-color: #3974e8;
+  color: white;
+  background: #3974e8;
+}
+
+.workspace[data-theme="dark"] .markdown blockquote {
+  border-left-color: #4d7fca;
+  color: #98a9bf;
+}
+
+.workspace[data-theme="dark"] .markdown hr {
+  border-color: #28364a;
+}
+
+.workspace[data-theme="dark"] .markdown code {
+  color: #c8d9ef;
+  background: #172338;
+}
+
+.workspace[data-theme="dark"] .expert-code-block {
+  border-color: #32435d;
+  background: #080d16;
+}
+
+.workspace[data-theme="dark"] .markdown th,
+.workspace[data-theme="dark"] .markdown td {
+  border-color: #2b3b52;
+}
+
+.workspace[data-theme="dark"] .markdown th {
+  color: #d9e5f4;
+  background: #152134;
+}
+
+.workspace[data-theme="dark"] .suggested-questions > span,
+.workspace[data-theme="dark"] .chat-notice,
+.workspace[data-theme="dark"] .thinking-row,
+.workspace[data-theme="dark"] .conversation-loading {
+  color: #8799af;
+}
+
+.workspace[data-theme="dark"] .suggested-questions button {
+  border-color: #2d4b70;
+  color: #a9c2e0;
+  background: #102039;
+}
+
+.workspace[data-theme="dark"] .suggested-questions button:hover {
+  border-color: #4f82d0;
+  color: #dcecff;
+  background: #172b49;
+}
+
+.workspace[data-theme="dark"] .composer-shell {
+  background: linear-gradient(to top, #090f1a 78%, rgb(9 15 26 / 0%));
+}
+
+.workspace[data-theme="dark"] .composer textarea {
+  border-color: #2b3e58;
+  color: #e2eaf5;
+  background: #111a29;
+  box-shadow: 0 12px 34px rgb(0 0 0 / 24%);
+}
+
+.workspace[data-theme="dark"] .composer textarea::placeholder {
+  color: #718199;
+}
+
+.workspace[data-theme="dark"] .attach-image-button {
+  color: #8495aa;
+}
+
+.workspace[data-theme="dark"] .attach-image-button:hover:not(:disabled) {
+  color: #83b7ff;
+  background: #19273b;
+}
+
+.workspace[data-theme="dark"] .composer-meta {
+  color: #718198;
+}
+
+html[data-expert-theme="dark"] .conversation-menu-portal {
+  border-color: #304058;
+  color: #e1e9f4;
+  background: rgb(15 24 38 / 98%);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 38%);
+}
+
+html[data-expert-theme="dark"] .conversation-menu-portal button {
+  color: #c3cfdf;
+}
+
+html[data-expert-theme="dark"] .conversation-menu-portal button:hover {
+  background: #1b293c;
+}
+
+html[data-expert-theme="dark"] .conversation-menu-portal button.danger {
+  color: #ff8e8e;
+}
+
+html[data-expert-theme="dark"] .conversation-delete-backdrop {
+  background: rgb(2 7 14 / 68%);
+}
+
+html[data-expert-theme="dark"] .conversation-delete-dialog {
+  border-color: #314158;
+  color: #edf3fb;
+  background: #111b2a;
+  box-shadow: 0 30px 90px rgb(0 0 0 / 48%);
+}
+
+html[data-expert-theme="dark"] .conversation-delete-dialog p {
+  color: #98a8bc;
+}
+
+html[data-expert-theme="dark"] .conversation-delete-actions button {
+  border-color: #34445a;
+  color: #bcc9d9;
+  background: #172234;
+}
+
+html[data-expert-theme="dark"] .onboarding-form {
+  color: #e7eef8;
+  background: #101927;
+}
+
+html[data-expert-theme="dark"] .onboarding-form input,
+html[data-expert-theme="dark"] .onboarding-form select,
+html[data-expert-theme="dark"] .onboarding-form textarea,
+html[data-expert-theme="dark"] .market-multi-selector summary {
+  border-color: #30425d;
+  color: #dce6f4;
+  background: #151f30;
+}
+
+html[data-expert-theme="dark"] .onboarding-field,
+html[data-expert-theme="dark"] .onboarding-form > header h3 {
+  color: #e7eef8;
+}
+
+html[data-expert-theme="dark"] .market-selector-popover {
+  border-color: #30425d;
+  background: #121c2b;
+  box-shadow: 0 20px 48px rgb(0 0 0 / 42%);
+}
+
+html[data-expert-theme="dark"] .market-search input {
+  background: #0d1624;
+}
+
+html[data-expert-theme="dark"] .market-options label {
+  color: #bac8da;
+}
+
+html[data-expert-theme="dark"] .market-options label:hover,
+html[data-expert-theme="dark"] .market-options label.selected,
+html[data-expert-theme="dark"] .choice-grid label.selected {
+  color: #bcd7ff;
+  background: #172b49;
+}
+
+html[data-expert-theme="dark"] .choice-grid label {
+  border-color: #30425d;
 }
 
 @media (prefers-reduced-motion: reduce) {
