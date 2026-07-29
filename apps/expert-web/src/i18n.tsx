@@ -75,6 +75,10 @@ const en: Messages = {
   "workspace.renameFailed": "The conversation could not be renamed. Please try again.",
   "workspace.deleteFailed": "The conversation could not be deleted. Please try again.",
   "workspace.signOut": "Sign out",
+  "workspace.theme": "Appearance",
+  "workspace.theme.system": "Use system appearance",
+  "workspace.theme.light": "Use light appearance",
+  "workspace.theme.dark": "Use dark appearance",
   "workspace.start": "Start a decision",
   "workspace.knowledge": "Knowledge",
   "workspace.askKicker": "Ask for a decision, not a definition",
@@ -244,6 +248,10 @@ const translations: Record<Language, Messages> = {
     "workspace.renameFailed": "无法重命名对话，请重试。",
     "workspace.deleteFailed": "无法删除对话，请重试。",
     "workspace.signOut": "退出登录",
+    "workspace.theme": "主题",
+    "workspace.theme.system": "跟随系统",
+    "workspace.theme.light": "浅色模式",
+    "workspace.theme.dark": "深色模式",
     "workspace.start": "开始一个决策",
     "workspace.knowledge": "知识版本",
     "workspace.askKicker": "问决策，而不只是问定义",
@@ -376,7 +384,8 @@ const translations: Record<Language, Messages> = {
     "auth.googleFailed": "Google ログインに失敗しました。もう一度お試しください。",
     "auth.googleUnavailable": "Google ログインは現在利用できません。メールログインは利用できます。",
     "auth.googleLinkTitle": "このメールには既に TK Copilot アカウントがあります",
-    "auth.googleLinkBody": "既存のパスワードと認証コードを入力して Google を安全に連携してください。",
+    "auth.googleLinkBody":
+      "既存のパスワードと認証コードを入力して Google を安全に連携してください。",
     "auth.googleLinkFailed": "アカウントを確認して連携できませんでした。もう一度お試しください。",
     "auth.googleLinkCancel": "Google 連携をキャンセル",
     "auth.googleLinkSubmit": "確認して Google を連携",
@@ -437,10 +446,13 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "oder mit E-Mail fortfahren",
     "auth.googleLoading": "Google-Anmeldung wird geladen…",
     "auth.googleFailed": "Google-Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
-    "auth.googleUnavailable": "Google-Anmeldung ist derzeit nicht verfügbar. E-Mail-Anmeldung funktioniert weiterhin.",
+    "auth.googleUnavailable":
+      "Google-Anmeldung ist derzeit nicht verfügbar. E-Mail-Anmeldung funktioniert weiterhin.",
     "auth.googleLinkTitle": "Für diese E-Mail existiert bereits ein TK Copilot-Konto",
-    "auth.googleLinkBody": "Gib dein vorhandenes Passwort und den Bestätigungscode ein, um Google sicher zu verknüpfen.",
-    "auth.googleLinkFailed": "Das Konto konnte nicht bestätigt und verknüpft werden. Bitte erneut versuchen.",
+    "auth.googleLinkBody":
+      "Gib dein vorhandenes Passwort und den Bestätigungscode ein, um Google sicher zu verknüpfen.",
+    "auth.googleLinkFailed":
+      "Das Konto konnte nicht bestätigt und verknüpft werden. Bitte erneut versuchen.",
     "auth.googleLinkCancel": "Google-Verknüpfung abbrechen",
     "auth.googleLinkSubmit": "Bestätigen und Google verknüpfen",
     "workspace.new": "Neue Unterhaltung",
@@ -502,9 +514,11 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "o continúa con el correo",
     "auth.googleLoading": "Cargando acceso con Google…",
     "auth.googleFailed": "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
-    "auth.googleUnavailable": "El acceso con Google no está disponible ahora. Puedes usar el correo.",
+    "auth.googleUnavailable":
+      "El acceso con Google no está disponible ahora. Puedes usar el correo.",
     "auth.googleLinkTitle": "Este correo ya tiene una cuenta de TK Copilot",
-    "auth.googleLinkBody": "Introduce tu contraseña actual y el código de verificación para vincular Google de forma segura.",
+    "auth.googleLinkBody":
+      "Introduce tu contraseña actual y el código de verificación para vincular Google de forma segura.",
     "auth.googleLinkFailed": "No pudimos verificar y vincular la cuenta. Inténtalo de nuevo.",
     "auth.googleLinkCancel": "Cancelar vinculación con Google",
     "auth.googleLinkSubmit": "Verificar y vincular Google",
@@ -567,9 +581,11 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "ou continuer avec l’e-mail",
     "auth.googleLoading": "Chargement de la connexion Google…",
     "auth.googleFailed": "La connexion Google a échoué. Réessayez.",
-    "auth.googleUnavailable": "La connexion Google est indisponible. La connexion par e-mail fonctionne toujours.",
+    "auth.googleUnavailable":
+      "La connexion Google est indisponible. La connexion par e-mail fonctionne toujours.",
     "auth.googleLinkTitle": "Cet e-mail possède déjà un compte TK Copilot",
-    "auth.googleLinkBody": "Saisissez votre mot de passe actuel et le code de vérification pour associer Google en toute sécurité.",
+    "auth.googleLinkBody":
+      "Saisissez votre mot de passe actuel et le code de vérification pour associer Google en toute sécurité.",
     "auth.googleLinkFailed": "Impossible de vérifier et d’associer ce compte. Réessayez.",
     "auth.googleLinkCancel": "Annuler l’association Google",
     "auth.googleLinkSubmit": "Vérifier et associer Google",
@@ -632,9 +648,11 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "ou continue com e-mail",
     "auth.googleLoading": "Carregando login do Google…",
     "auth.googleFailed": "Falha no login do Google. Tente novamente.",
-    "auth.googleUnavailable": "O login do Google está indisponível agora. O login por e-mail continua funcionando.",
+    "auth.googleUnavailable":
+      "O login do Google está indisponível agora. O login por e-mail continua funcionando.",
     "auth.googleLinkTitle": "Este e-mail já tem uma conta TK Copilot",
-    "auth.googleLinkBody": "Digite sua senha atual e o código de verificação para vincular o Google com segurança.",
+    "auth.googleLinkBody":
+      "Digite sua senha atual e o código de verificação para vincular o Google com segurança.",
     "auth.googleLinkFailed": "Não foi possível verificar e vincular a conta. Tente novamente.",
     "auth.googleLinkCancel": "Cancelar vínculo com Google",
     "auth.googleLinkSubmit": "Verificar e vincular Google",
@@ -694,7 +712,8 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "или продолжить по электронной почте",
     "auth.googleLoading": "Загрузка входа через Google…",
     "auth.googleFailed": "Не удалось войти через Google. Повторите попытку.",
-    "auth.googleUnavailable": "Вход через Google сейчас недоступен. Вход по почте продолжает работать.",
+    "auth.googleUnavailable":
+      "Вход через Google сейчас недоступен. Вход по почте продолжает работать.",
     "auth.googleLinkTitle": "Для этой почты уже есть аккаунт TK Copilot",
     "auth.googleLinkBody": "Введите текущий пароль и код проверки, чтобы безопасно связать Google.",
     "auth.googleLinkFailed": "Не удалось проверить и связать аккаунт. Повторите попытку.",
@@ -755,7 +774,8 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "أو المتابعة بالبريد الإلكتروني",
     "auth.googleLoading": "جارٍ تحميل تسجيل الدخول عبر Google…",
     "auth.googleFailed": "فشل تسجيل الدخول عبر Google. حاول مرة أخرى.",
-    "auth.googleUnavailable": "تسجيل الدخول عبر Google غير متاح الآن. ما زال تسجيل الدخول بالبريد يعمل.",
+    "auth.googleUnavailable":
+      "تسجيل الدخول عبر Google غير متاح الآن. ما زال تسجيل الدخول بالبريد يعمل.",
     "auth.googleLinkTitle": "يوجد حساب TK Copilot لهذا البريد بالفعل",
     "auth.googleLinkBody": "أدخل كلمة المرور الحالية ورمز التحقق لربط Google بأمان.",
     "auth.googleLinkFailed": "تعذر التحقق من الحساب وربطه. حاول مرة أخرى.",
@@ -816,9 +836,11 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "atau lanjutkan dengan email",
     "auth.googleLoading": "Memuat login Google…",
     "auth.googleFailed": "Login Google gagal. Silakan coba lagi.",
-    "auth.googleUnavailable": "Login Google sedang tidak tersedia. Login email tetap dapat digunakan.",
+    "auth.googleUnavailable":
+      "Login Google sedang tidak tersedia. Login email tetap dapat digunakan.",
     "auth.googleLinkTitle": "Email ini sudah memiliki akun TK Copilot",
-    "auth.googleLinkBody": "Masukkan kata sandi lama dan kode verifikasi untuk menautkan Google dengan aman.",
+    "auth.googleLinkBody":
+      "Masukkan kata sandi lama dan kode verifikasi untuk menautkan Google dengan aman.",
     "auth.googleLinkFailed": "Akun tidak dapat diverifikasi dan ditautkan. Silakan coba lagi.",
     "auth.googleLinkCancel": "Batalkan penautan Google",
     "auth.googleLinkSubmit": "Verifikasi dan tautkan Google",
@@ -878,9 +900,11 @@ const translations: Record<Language, Messages> = {
     "auth.googleDivider": "oppure continua con l’e-mail",
     "auth.googleLoading": "Caricamento accesso Google…",
     "auth.googleFailed": "Accesso con Google non riuscito. Riprova.",
-    "auth.googleUnavailable": "L’accesso con Google non è disponibile. Puoi continuare con l’e-mail.",
+    "auth.googleUnavailable":
+      "L’accesso con Google non è disponibile. Puoi continuare con l’e-mail.",
     "auth.googleLinkTitle": "Questa e-mail ha già un account TK Copilot",
-    "auth.googleLinkBody": "Inserisci la password attuale e il codice di verifica per collegare Google in sicurezza.",
+    "auth.googleLinkBody":
+      "Inserisci la password attuale e il codice di verifica per collegare Google in sicurezza.",
     "auth.googleLinkFailed": "Impossibile verificare e collegare l’account. Riprova.",
     "auth.googleLinkCancel": "Annulla collegamento Google",
     "auth.googleLinkSubmit": "Verifica e collega Google",

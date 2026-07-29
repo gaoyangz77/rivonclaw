@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { createPortal } from "react-dom";
 import { apolloClient } from "./api/client.js";
@@ -56,6 +56,46 @@ interface RunEventData {
   };
 }
 
+type WorkspaceThemePreference = "system" | "light" | "dark";
+type ResolvedWorkspaceTheme = Exclude<WorkspaceThemePreference, "system">;
+
+const WORKSPACE_THEME_STORAGE_KEY = "tkcopilot-expert-theme";
+const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
+
+function readThemePreference(): WorkspaceThemePreference {
+  try {
+    const stored = window.localStorage.getItem(WORKSPACE_THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {
+    // Storage can be unavailable in privacy-restricted browser contexts.
+  }
+  return "system";
+}
+
+function ThemeIcon({ preference }: { preference: WorkspaceThemePreference }) {
+  if (preference === "system") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <rect height="13" rx="2.5" width="18" x="3" y="4" />
+        <path d="M8 21h8M12 17v4" />
+      </svg>
+    );
+  }
+  if (preference === "light") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3.5" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M20.2 15.3A8.8 8.8 0 0 1 8.7 3.8 8.8 8.8 0 1 0 20.2 15.3Z" />
+    </svg>
+  );
+}
+
 export const ExpertWorkspace = observer(function ExpertWorkspace({
   reloadBootstrap,
   logout,
@@ -89,6 +129,11 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   const [copiedMessageId, setCopiedMessageId] = useState<string>();
   const [loadingConversationId, setLoadingConversationId] = useState<string>();
   const [loadedConversationId, setLoadedConversationId] = useState<string>();
+  const [themePreference, setThemePreference] =
+    useState<WorkspaceThemePreference>(readThemePreference);
+  const [systemPrefersDark, setSystemPrefersDark] = useState(
+    () => window.matchMedia?.(DARK_SCHEME_QUERY).matches ?? false,
+  );
   const subscriptionRef = useRef<{ unsubscribe(): void } | null>(null);
   const conversationLoadRequestRef = useRef(0);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -105,6 +150,39 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   const isAnotherConversationRunning = store.isBusy && !isViewingActiveRun;
   const visiblePendingQuestion = isViewingActiveRun ? store.pendingQuestion : "";
   const visibleStreamingAnswer = isViewingActiveRun ? store.streamingAnswer : "";
+  const resolvedTheme: ResolvedWorkspaceTheme =
+    themePreference === "system" ? (systemPrefersDark ? "dark" : "light") : themePreference;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.(DARK_SCHEME_QUERY);
+    if (!mediaQuery) return;
+    const updateSystemTheme = (event: MediaQueryListEvent | MediaQueryList) => {
+      setSystemPrefersDark(event.matches);
+    };
+    updateSystemTheme(mediaQuery);
+    mediaQuery.addEventListener?.("change", updateSystemTheme);
+    return () => mediaQuery.removeEventListener?.("change", updateSystemTheme);
+  }, []);
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.expertTheme = resolvedTheme;
+    return () => {
+      delete document.documentElement.dataset.expertTheme;
+    };
+  }, [resolvedTheme]);
+
+  function selectTheme(preference: WorkspaceThemePreference) {
+    setThemePreference(preference);
+    try {
+      if (preference === "system") {
+        window.localStorage.removeItem(WORKSPACE_THEME_STORAGE_KEY);
+      } else {
+        window.localStorage.setItem(WORKSPACE_THEME_STORAGE_KEY, preference);
+      }
+    } catch {
+      // The active choice still applies for this session when storage is unavailable.
+    }
+  }
 
   const loadConversation = useCallback(
     async (id: string) => {
@@ -649,7 +727,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   }
 
   return (
-    <main className="workspace">
+    <main className="workspace" data-theme={resolvedTheme}>
       <aside className="conversation-sidebar">
         <div className="sidebar-brand">
           <BrandLogo compact />
@@ -780,6 +858,20 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             <div className="knowledge-chip">
               <span className="live-dot" />
               {t("workspace.knowledge")} {store.knowledgeVersion ?? "local preview"}
+            </div>
+            <div aria-label={t("workspace.theme")} className="theme-switcher" role="group">
+              {(["system", "light", "dark"] as const).map((preference) => (
+                <button
+                  aria-label={t(`workspace.theme.${preference}`)}
+                  aria-pressed={themePreference === preference}
+                  key={preference}
+                  onClick={() => selectTheme(preference)}
+                  title={t(`workspace.theme.${preference}`)}
+                  type="button"
+                >
+                  <ThemeIcon preference={preference} />
+                </button>
+              ))}
             </div>
             <LanguageSwitcher compact />
           </div>

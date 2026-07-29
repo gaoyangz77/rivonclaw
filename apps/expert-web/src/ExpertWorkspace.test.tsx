@@ -1,12 +1,4 @@
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apolloClient } from "./api/client.js";
 import * as imageUpload from "./api/image-upload.js";
@@ -27,7 +19,7 @@ const secondConversation = {
 };
 
 function renderWorkspace(store = ExpertStore.create()) {
-  render(
+  return render(
     <I18nProvider>
       <ExpertStoreProvider store={store}>
         <ExpertWorkspace
@@ -38,14 +30,17 @@ function renderWorkspace(store = ExpertStore.create()) {
       </ExpertStoreProvider>
     </I18nProvider>,
   );
-  return store;
 }
 
 describe("ExpertWorkspace chat interactions", () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
   beforeEach(() => {
     window.history.replaceState({}, "", "/?lang=zh");
+    window.localStorage.removeItem("tkcopilot-expert-theme");
     vi.restoreAllMocks();
     Element.prototype.scrollIntoView = vi.fn();
     vi.spyOn(apolloClient, "query").mockResolvedValue({
@@ -55,6 +50,49 @@ describe("ExpertWorkspace chat interactions", () => {
         },
       },
     } as never);
+  });
+
+  it("supports system, light, and dark themes and persists explicit choices", () => {
+    let systemThemeListener: ((event: { matches: boolean }) => void) | undefined;
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: true,
+        media: "(prefers-color-scheme: dark)",
+        addEventListener: (event: string, listener: (event: { matches: boolean }) => void) => {
+          if (event === "change") systemThemeListener = listener;
+        },
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    const store = ExpertStore.create();
+    store.startNewConversation();
+    const { container, unmount } = renderWorkspace(store);
+    const workspace = container.querySelector(".workspace");
+    const systemButton = screen.getByRole("button", { name: "跟随系统" });
+    const lightButton = screen.getByRole("button", { name: "浅色模式" });
+    const darkButton = screen.getByRole("button", { name: "深色模式" });
+
+    expect(workspace?.getAttribute("data-theme")).toBe("dark");
+    expect(systemButton.getAttribute("aria-pressed")).toBe("true");
+    expect(document.documentElement.dataset.expertTheme).toBe("dark");
+
+    fireEvent.click(lightButton);
+    expect(workspace?.getAttribute("data-theme")).toBe("light");
+    expect(window.localStorage.getItem("tkcopilot-expert-theme")).toBe("light");
+
+    fireEvent.click(darkButton);
+    expect(workspace?.getAttribute("data-theme")).toBe("dark");
+    expect(window.localStorage.getItem("tkcopilot-expert-theme")).toBe("dark");
+
+    fireEvent.click(systemButton);
+    act(() => systemThemeListener?.({ matches: false }));
+    expect(workspace?.getAttribute("data-theme")).toBe("light");
+    expect(window.localStorage.getItem("tkcopilot-expert-theme")).toBeNull();
+
+    unmount();
+    expect(document.documentElement.dataset.expertTheme).toBeUndefined();
   });
 
   it("keeps repeated new-conversation clicks local until the first question", async () => {
@@ -270,9 +308,7 @@ describe("ExpertWorkspace chat interactions", () => {
     const confirm = vi.spyOn(window, "confirm");
     renderWorkspace(store);
 
-    fireEvent.doubleClick(
-      screen.getByRole("button", { name: conversation.title }),
-    );
+    fireEvent.doubleClick(screen.getByRole("button", { name: conversation.title }));
     const renameInput = screen.getByRole("textbox", { name: "重命名" });
     expect(renameInput).not.toBeNull();
     fireEvent.keyDown(renameInput, { key: "Escape" });
@@ -286,9 +322,7 @@ describe("ExpertWorkspace chat interactions", () => {
     const dialog = screen.getByRole("alertdialog", {
       name: "删除这个对话？",
     });
-    expect(dialog.closest(".conversation-delete-backdrop")?.parentElement).toBe(
-      document.body,
-    );
+    expect(dialog.closest(".conversation-delete-backdrop")?.parentElement).toBe(document.body);
     expect(within(dialog).getByText(/美国市场计划/)).not.toBeNull();
     expect(within(dialog).getByRole("button", { name: "保留对话" })).not.toBeNull();
     expect(confirm).not.toHaveBeenCalled();
@@ -415,9 +449,7 @@ describe("ExpertWorkspace chat interactions", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "提交" }));
     await waitFor(() => expect(store.runPhase).toBe("WAITING"));
-    expect(
-      screen.getByRole("status", { name: "“美国市场计划”正在回答" }),
-    ).not.toBeNull();
+    expect(screen.getByRole("status", { name: "“美国市场计划”正在回答" })).not.toBeNull();
 
     const newConversationButton = screen.getByRole("button", { name: "新对话" });
     expect((newConversationButton as HTMLButtonElement).disabled).toBe(false);
@@ -425,21 +457,16 @@ describe("ExpertWorkspace chat interactions", () => {
     expect(store.isNewConversationDraft).toBe(true);
     expect(unsubscribe).not.toHaveBeenCalled();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: secondConversation.title }),
-    );
-    await waitFor(() =>
-      expect(store.selectedConversationId).toBe(secondConversation.id),
-    );
+    fireEvent.click(screen.getByRole("button", { name: secondConversation.title }));
+    await waitFor(() => expect(store.selectedConversationId).toBe(secondConversation.id));
     const actions = screen.getByRole("button", {
       name: "“东南亚市场计划”的操作",
     });
     expect((actions as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(actions);
-    expect(
-      (screen.getByRole("menuitem", { name: "删除" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(false);
+    expect((screen.getByRole("menuitem", { name: "删除" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
 
     act(() => {
       subscriptionObserver?.next({
