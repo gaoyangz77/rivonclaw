@@ -17,7 +17,11 @@ import { BrandLogo } from "./BrandLogo.js";
 import { LanguageSwitcher, useI18n } from "./i18n.js";
 import { Onboarding } from "./Onboarding.js";
 import { CheckIcon, CopyIcon, EditIcon, ExpertMarkdown } from "./ExpertMarkdown.js";
-import { EXPERT_IMAGE_MAX_COUNT, uploadExpertImage } from "./api/image-upload.js";
+import {
+  EXPERT_IMAGE_MAX_COUNT,
+  getClipboardImageFiles,
+  uploadExpertImage,
+} from "./api/image-upload.js";
 import type { ExpertImageSnapshot, ExpertUsageSnapshot } from "./store/expert-store.js";
 
 interface ConversationData {
@@ -380,8 +384,8 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     if (started) setPendingImages([]);
   }
 
-  async function addImages(files: FileList | null) {
-    if (!files || files.length === 0 || uploadingImage) return;
+  async function addImages(files: readonly File[]) {
+    if (files.length === 0 || uploadingImage) return;
     const remaining = EXPERT_IMAGE_MAX_COUNT - pendingImages.length;
     if (remaining <= 0 || files.length > remaining) {
       store.setError(t("workspace.imageLimit"));
@@ -392,7 +396,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     setUploadingImage(true);
     store.setError(undefined);
     try {
-      const uploaded = await Promise.all(Array.from(files).map((file) => uploadExpertImage(file)));
+      const uploaded = await Promise.all(files.map((file) => uploadExpertImage(file)));
       setPendingImages((current) => [...current, ...uploaded].slice(0, EXPERT_IMAGE_MAX_COUNT));
     } catch (error) {
       console.error("Unable to prepare Expert image", errorMessage(error));
@@ -989,7 +993,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                 aria-label={t("workspace.attachImage")}
                 className="composer-file-input"
                 multiple
-                onChange={(event) => void addImages(event.currentTarget.files)}
+                onChange={(event) => void addImages(Array.from(event.currentTarget.files ?? []))}
                 ref={imageInputRef}
                 type="file"
               />
@@ -1020,6 +1024,12 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                     event.currentTarget.scrollHeight,
                     180,
                   )}px`;
+                }}
+                onPaste={(event) => {
+                  const images = getClipboardImageFiles(event.clipboardData.files);
+                  if (images.length === 0) return;
+                  event.preventDefault();
+                  void addImages(images);
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {

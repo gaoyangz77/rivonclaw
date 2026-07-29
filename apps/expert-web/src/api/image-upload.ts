@@ -22,6 +22,10 @@ export interface CompressedExpertImage {
   height: number;
 }
 
+export function getClipboardImageFiles(files: ArrayLike<File>): File[] {
+  return Array.from(files).filter((file) => file.type.startsWith("image/"));
+}
+
 export function fitImageDimensions(
   width: number,
   height: number,

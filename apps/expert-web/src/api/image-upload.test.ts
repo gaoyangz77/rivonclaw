@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { fitImageDimensions } from "./image-upload.js";
+import { fitImageDimensions, getClipboardImageFiles } from "./image-upload.js";
+
+describe("getClipboardImageFiles", () => {
+  it("keeps clipboard images and ignores pasted text files", () => {
+    const image = { name: "screenshot.png", type: "image/png" } as File;
+    const text = { name: "notes.txt", type: "text/plain" } as File;
+
+    expect(getClipboardImageFiles([text, image])).toEqual([image]);
+  });
+
+  it("does not intercept a text-only clipboard", () => {
+    const text = { name: "notes.txt", type: "text/plain" } as File;
+
+    expect(getClipboardImageFiles([text])).toEqual([]);
+  });
+});
 
 describe("fitImageDimensions", () => {
   it("keeps small images at their original size", () => {
