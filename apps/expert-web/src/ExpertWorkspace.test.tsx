@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apolloClient } from "./api/client.js";
+import * as imageUpload from "./api/image-upload.js";
 import { ExpertWorkspace } from "./ExpertWorkspace.js";
 import { I18nProvider } from "./i18n.js";
 import { ExpertStoreProvider } from "./store/context.js";
@@ -71,6 +72,36 @@ describe("ExpertWorkspace chat interactions", () => {
     expect(store.conversations).toHaveLength(1);
     expect(mutate).not.toHaveBeenCalled();
     expect((newConversation as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("uploads pasted images without intercepting ordinary text paste", async () => {
+    const upload = vi.spyOn(imageUpload, "uploadExpertImage").mockResolvedValue({
+      assetId: "asset-pasted",
+      publicUrl: "data:image/webp;base64,cGFzdGVk",
+      mimeType: "image/webp",
+      sizeBytes: 128,
+      width: 640,
+      height: 480,
+    });
+    renderWorkspace();
+    const composer = screen.getByPlaceholderText(/描述你的决策/);
+    const textPaste = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(textPaste, "clipboardData", {
+      value: { files: [] },
+    });
+    fireEvent(composer, textPaste);
+    expect(textPaste.defaultPrevented).toBe(false);
+
+    const screenshot = new File(["screenshot"], "screenshot.png", { type: "image/png" });
+    const imagePaste = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(imagePaste, "clipboardData", {
+      value: { files: [screenshot] },
+    });
+    fireEvent(composer, imagePaste);
+
+    expect(imagePaste.defaultPrevented).toBe(true);
+    await screen.findByRole("button", { name: "移除图片" });
+    expect(upload).toHaveBeenCalledWith(screenshot);
   });
 
   it("loads persisted history with nullable edit timestamps after refresh", async () => {
