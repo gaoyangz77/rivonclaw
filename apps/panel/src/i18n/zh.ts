@@ -3887,7 +3887,6 @@ export default {
       predictionComparison: {
         title: "判断依据",
         predictionJudgment: "预测判断",
-        humanBaseline: "历史人工倾向",
         expectedSales: "校准后预测销量",
         expectedSalesValue: "约 {{units}} 件",
         unknown: "暂无数据",

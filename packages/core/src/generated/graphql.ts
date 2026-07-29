@@ -2091,9 +2091,11 @@ export interface AffiliateExpectedSalesSubjectPrediction {
   contractName?: Maybe<Scalars['String']['output']>;
   contractVersion?: Maybe<Scalars['String']['output']>;
   expectedSalesPercentile?: Maybe<Scalars['Float']['output']>;
+  expectedSalesStatus?: Maybe<AffiliateExpectedSalesSubjectPredictionStatus>;
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   featureAsOf?: Maybe<Scalars['DateTimeISO']['output']>;
   humanDecision?: Maybe<AffiliateHumanDecisionPrediction>;
+  humanDecisionStatus?: Maybe<AffiliateExpectedSalesSubjectPredictionStatus>;
   message?: Maybe<Scalars['String']['output']>;
   missingFields?: Maybe<Array<AffiliateExpectedSalesMissingField>>;
   predictionBucket?: Maybe<AffiliateExpectedSalesPredictionBucket>;
@@ -3079,7 +3081,7 @@ export const AffiliateSampleReviewDecision = {
 export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision[keyof typeof AffiliateSampleReviewDecision];
 /** Affiliate creator-management settings per shop (user-configurable) */
 export interface AffiliateServiceSettings {
-  /** Write-once cutoff for pre-AI affiliate human-baseline training. Set when affiliate service is first enabled with an assigned device. */
+  /** Write-once cutoff for pre-automation affiliate history. Set when affiliate service is first enabled with an assigned device. */
   baselineCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Per-shop affiliate business instructions injected into affiliate agent runs. */
   businessPrompt?: Maybe<Scalars['String']['output']>;

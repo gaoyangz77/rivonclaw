@@ -4099,7 +4099,6 @@ export default {
       predictionComparison: {
         title: "Decision evidence",
         predictionJudgment: "Prediction judgment",
-        humanBaseline: "Historical staff baseline",
         expectedSales: "Calibrated predicted sales",
         expectedSalesValue: "About {{units}} units",
         unknown: "Unavailable",

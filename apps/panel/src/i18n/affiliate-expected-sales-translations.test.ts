@@ -25,4 +25,39 @@ describe("Affiliate Expected Sales translation backfill", () => {
       translation.ecommerce.affiliateWorkspace.predictionComparison.humanDecision,
     ).toBe("人工决策");
   });
+
+  it("provides every stage/status key in all eight supported languages", () => {
+    for (const language of [
+      "en",
+      "zh",
+      "de",
+      "es",
+      "fr",
+      "id",
+      "it",
+      "th",
+    ] as const) {
+      const predictionComparison = (
+        LANGUAGE_RESOURCES[language].translation as {
+          ecommerce: {
+            affiliateWorkspace: {
+              predictionComparison: Record<string, string>;
+            };
+          };
+        }
+      ).ecommerce.affiliateWorkspace.predictionComparison;
+      for (const key of [
+        "bootstrapEstimate",
+        "bootstrapBadge",
+        "bootstrapExplanation",
+        "humanDecision",
+        "humanBootstrapEstimate",
+        "humanBootstrapExplanation",
+        "effectiveScope",
+        "modelUnavailable",
+      ]) {
+        expect(predictionComparison[key], `${language}.${key}`).toBeTruthy();
+      }
+    }
+  });
 });

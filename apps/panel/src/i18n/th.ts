@@ -3155,7 +3155,6 @@ export default {
       "predictionComparison": {
         "title": "เหตุผลประกอบการตัดสินใจ",
         "predictionJudgment": "การประเมินจากการคาดการณ์",
-        "humanBaseline": "แนวโน้มจากพนักงานในอดีต",
         "expectedSales": "ยอดขายคาดการณ์ที่ปรับเทียบแล้ว",
         "expectedSalesValue": "ประมาณ {{units}} ชิ้น",
         "unknown": "ไม่มีข้อมูล",
