@@ -78,26 +78,47 @@ export const AuthScreen = observer(function AuthScreen() {
   return (
     <main className="auth-layout">
       <section className="auth-story">
+        <div className="auth-story-grid" aria-hidden="true" />
+        <div className="auth-orbit" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
         <div className="auth-brand-row">
           <BrandLogo />
-          <LanguageSwitcher compact />
+          <span>{t("brand.expert")}</span>
         </div>
-        <p className="eyebrow">{t("auth.kicker")}</p>
-        <h1>{t("auth.title")}</h1>
-        <p className="auth-lede">{t("auth.lede")}</p>
+        <div className="auth-story-copy">
+          <p className="eyebrow">{t("auth.kicker")}</p>
+          <h1>{t("auth.title")}</h1>
+          <p className="auth-lede">{t("auth.lede")}</p>
+        </div>
         <div className="proof-row">
-          <span>{t("auth.proof.updated")}</span>
-          <span>{t("auth.proof.personal")}</span>
-          <span>{t("auth.proof.operator")}</span>
+          {[
+            t("auth.proof.updated"),
+            t("auth.proof.personal"),
+            t("auth.proof.operator"),
+          ].map((label, index) => (
+            <span key={label}>
+              <b>{String(index + 1).padStart(2, "0")}</b>
+              {label}
+            </span>
+          ))}
         </div>
       </section>
 
       <section className="auth-panel">
+        <div className="auth-panel-toolbar">
+          <span>{t("auth.kicker")}</span>
+          <LanguageSwitcher />
+        </div>
         <div className="auth-card">
-          <p className="eyebrow">
-            {mode === "login" ? t("auth.welcome") : t("auth.createKicker")}
-          </p>
-          <h2>{mode === "login" ? t("auth.continue") : t("auth.meet")}</h2>
+          <header className="auth-card-header">
+            <p className="eyebrow">
+              {mode === "login" ? t("auth.welcome") : t("auth.createKicker")}
+            </p>
+            <h2>{mode === "login" ? t("auth.continue") : t("auth.meet")}</h2>
+          </header>
           <form onSubmit={submit}>
             {mode === "register" ? (
               <label>
