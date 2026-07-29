@@ -176,6 +176,14 @@ export const EXPERT_CONVERSATION = gql`
         suggestedQuestions
         editedAt
         createdAt
+        imageAssets {
+          assetId: id
+          publicUrl
+          mimeType
+          sizeBytes
+          width
+          height
+        }
       }
       recommendations {
         id
@@ -195,12 +203,14 @@ export const DISPATCH_EXPERT_MESSAGE = gql`
     $text: String!
     $idempotencyKey: String!
     $replaceMessageId: ID
+    $imageAssetIds: [ID!] = []
   ) {
     dispatchExpertMessage(
       conversationId: $conversationId
       text: $text
       idempotencyKey: $idempotencyKey
       replaceMessageId: $replaceMessageId
+      imageAssetIds: $imageAssetIds
     ) {
       run {
         id

@@ -112,6 +112,26 @@ describe("ExpertStore run lifecycle", () => {
     expect(store.error).toBe("Please try again");
   });
 
+  it("keeps compressed image metadata with the optimistic user message", () => {
+    const store = ExpertStore.create();
+    store.applyBootstrap({ profile: {}, conversations: [conversations[0]!] });
+    store.prepareRun("Review this listing image", [
+      {
+        assetId: "asset-1",
+        publicUrl: "data:image/webp;base64,preview",
+        mimeType: "image/webp",
+        sizeBytes: 42_000,
+        width: 960,
+        height: 720,
+      },
+    ]);
+
+    store.beginRun("run-with-image", "conversation-1");
+
+    expect(store.messages[0]?.imageAssets[0]?.assetId).toBe("asset-1");
+    expect(store.pendingImageAssets).toHaveLength(0);
+  });
+
   it("removes the previous answer before rerunning an edited user question", () => {
     const store = ExpertStore.create();
     store.applyBootstrap({ profile: {}, conversations: [conversations[0]!] });
