@@ -1246,9 +1246,9 @@ function AffiliateInsightScopeRail({
         const failed = readyCount === 0 && subjectRows.some((row) => row.failed);
         const ready = readyCount > 0;
         const status = ready
-          ? subject.kind === "shop" && readyCount > 1
-            ? t("ecommerce.affiliateWorkspace.intelligenceModelsReady", { count: readyCount })
-            : t("ecommerce.affiliateWorkspace.intelligenceModelReady")
+          ? t("ecommerce.affiliateWorkspace.modelCombinationsReady", {
+            count: readyCount,
+          })
           : failed
             ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
             : t("ecommerce.affiliateWorkspace.intelligenceNoModel");
