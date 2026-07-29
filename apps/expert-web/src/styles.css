@@ -2397,11 +2397,13 @@ textarea:focus {
   }
 
   .chat-header .language-switcher.compact select {
-    min-width: 66px;
+    width: 72px;
+    min-width: 72px;
+    padding: 0 25px 0 9px;
   }
 
   .chat-header h2 {
-    max-width: 120px;
+    max-width: 150px;
     font-size: 17px;
   }
 
