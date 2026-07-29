@@ -74,6 +74,8 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
       predictions {
         cacheId
         status
+        expectedSalesStatus
+        humanDecisionStatus
         message
         expectedSalesUnits
         expectedSalesPercentile

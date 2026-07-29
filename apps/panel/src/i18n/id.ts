@@ -3155,7 +3155,6 @@ export default {
       "predictionComparison": {
         "title": "Dasar keputusan",
         "predictionJudgment": "Penilaian prediksi",
-        "humanBaseline": "Kecenderungan historis staf",
         "expectedSales": "Prediksi penjualan terkalibrasi",
         "expectedSalesValue": "Sekitar {{units}} unit",
         "unknown": "Tidak tersedia",

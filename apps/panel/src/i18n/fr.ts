@@ -3155,7 +3155,6 @@ export default {
       "predictionComparison": {
         "title": "Base de décision",
         "predictionJudgment": "Jugement prédictif",
-        "humanBaseline": "Tendance historique de l'équipe",
         "expectedSales": "Ventes prévues calibrées",
         "expectedSalesValue": "Environ {{units}} unités",
         "unknown": "Indisponible",

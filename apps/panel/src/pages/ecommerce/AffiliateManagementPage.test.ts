@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
+  predictionFamilyAvailability,
   selectAffiliateProposalItems,
 } from "./AffiliateManagementPage.js";
 
@@ -40,6 +41,39 @@ describe("AffiliateManagementPage proposal source", () => {
       }),
     ).toBe(true);
   });
+
+  it.each([
+    ["both ready", "OK", "OK", true, true],
+    ["Expected only", "OK", "PREDICTION_NOT_AVAILABLE", true, false],
+    ["Human only", "PREDICTION_NOT_AVAILABLE", "OK", false, true],
+    [
+      "neither ready",
+      "PREDICTION_NOT_AVAILABLE",
+      "PREDICTION_NOT_AVAILABLE",
+      false,
+      false,
+    ],
+  ])(
+    "keeps family availability independent: %s",
+    (
+      _label,
+      expectedSalesStatus,
+      humanDecisionStatus,
+      expectedSalesReady,
+      humanDecisionReady,
+    ) => {
+      expect(
+        predictionFamilyAvailability({
+          expectedSalesStatus,
+          humanDecisionStatus,
+        }),
+      ).toEqual({
+        expectedSalesReady,
+        humanDecisionReady,
+        hasFamilyResult: true,
+      });
+    },
+  );
 });
 
 describe("Expected Sales model-stage presentation", () => {

@@ -6,6 +6,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "Bootstrap estimate",
           bootstrapBadge: "Bootstrap",
           humanDecision: "Human decision",
+          modelUnavailable: "Model unavailable",
           humanBootstrapEstimate: "Bootstrap human-decision estimate",
           humanBootstrapExplanation:
             "Built from current-state proxy features and historical staff decisions. Used until enough decision-time Human Decision examples accumulate.",
@@ -23,6 +24,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "冷启动估算",
           bootstrapBadge: "冷启动",
           humanDecision: "人工决策",
+          modelUnavailable: "模型不可用",
           humanBootstrapEstimate: "人工决策冷启动估算",
           humanBootstrapExplanation:
             "基于当前状态近似特征和历史真实人工审核构建。在积累足够的决策时点人工审核样本前使用。",
@@ -40,6 +42,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "Kaltstart-Schätzung",
           bootstrapBadge: "Kaltstart",
           humanDecision: "Menschliche Entscheidung",
+          modelUnavailable: "Modell nicht verfügbar",
           humanBootstrapEstimate: "Kaltstart-Schätzung der menschlichen Entscheidung",
           humanBootstrapExplanation:
             "Basiert auf aktuellen Proxy-Merkmalen und historischen Teamentscheidungen. Wird genutzt, bis genügend Human-Decision-Beispiele zum Entscheidungszeitpunkt vorliegen.",
@@ -57,6 +60,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "Estimación de arranque",
           bootstrapBadge: "Arranque",
           humanDecision: "Decisión humana",
+          modelUnavailable: "Modelo no disponible",
           humanBootstrapEstimate: "Estimación inicial de decisión humana",
           humanBootstrapExplanation:
             "Se basa en características proxy del estado actual y decisiones históricas reales. Se usa hasta reunir suficientes ejemplos de decisión humana en el momento de decidir.",
@@ -74,6 +78,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "Estimation de démarrage",
           bootstrapBadge: "Démarrage",
           humanDecision: "Décision humaine",
+          modelUnavailable: "Modèle indisponible",
           humanBootstrapEstimate: "Estimation de démarrage de la décision humaine",
           humanBootstrapExplanation:
             "Fondée sur des caractéristiques proxy actuelles et des décisions humaines historiques. Utilisée jusqu’à disposer de suffisamment d’exemples au moment de la décision.",
@@ -91,6 +96,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "Estimasi bootstrap",
           bootstrapBadge: "Bootstrap",
           humanDecision: "Keputusan manusia",
+          modelUnavailable: "Model tidak tersedia",
           humanBootstrapEstimate: "Estimasi bootstrap keputusan manusia",
           humanBootstrapExplanation:
             "Dibangun dari fitur proxy keadaan saat ini dan keputusan staf historis. Digunakan sampai contoh Human Decision pada waktu keputusan mencukupi.",
@@ -108,6 +114,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "Stima di avvio",
           bootstrapBadge: "Avvio",
           humanDecision: "Decisione umana",
+          modelUnavailable: "Modello non disponibile",
           humanBootstrapEstimate: "Stima iniziale della decisione umana",
           humanBootstrapExplanation:
             "Basata su feature proxy dello stato attuale e decisioni storiche reali. Usata finché non sono disponibili esempi sufficienti al momento della decisione.",
@@ -125,6 +132,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapEstimate: "ค่าประมาณช่วงเริ่มต้น",
           bootstrapBadge: "ช่วงเริ่มต้น",
           humanDecision: "การตัดสินใจของพนักงาน",
+          modelUnavailable: "โมเดลไม่พร้อมใช้งาน",
           humanBootstrapEstimate: "ค่าประมาณช่วงเริ่มต้นของการตัดสินใจ",
           humanBootstrapExplanation:
             "สร้างจากฟีเจอร์ตัวแทนของสถานะปัจจุบันและการตัดสินใจจริงในอดีต ใช้จนกว่าจะมีตัวอย่าง Human Decision ณ เวลาตัดสินใจเพียงพอ",

@@ -145,6 +145,8 @@ type CollaborationWorkViewModel = {
 type AffiliatePredictionSnapshotOutput = {
   expectedSalesUnits?: number | null;
   expectedSalesPercentile?: number | null;
+  expectedSalesStatus?: string | null;
+  humanDecisionStatus?: string | null;
   modelStage?: "EVENT_TIME" | "BOOTSTRAP" | null;
   featureTemporalBasis?: "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
   requestedTenantScope?: "USER" | "REGION" | "SHOP" | null;
@@ -4431,19 +4433,26 @@ function ProposalPredictionComparison({
   const expectedSalesUnits = output?.expectedSalesUnits ?? null;
   const expectedSalesSelection = output.expectedSalesSelection ?? output;
   const humanDecisionSelection = output.humanDecisionSelection ?? null;
-  const isExpectedSalesBootstrap = isBootstrapModelSelection(expectedSalesSelection);
-  const isHumanDecisionBootstrap = isBootstrapModelSelection(humanDecisionSelection);
+  const availability = predictionFamilyAvailability(output);
+  const isExpectedSalesBootstrap =
+    availability.expectedSalesReady &&
+    isBootstrapModelSelection(expectedSalesSelection);
+  const isHumanDecisionBootstrap =
+    availability.humanDecisionReady &&
+    isBootstrapModelSelection(humanDecisionSelection);
   const hasHumanDecision = typeof humanDecision?.wouldApprove === "boolean";
-  const hasPrediction = typeof expectedSalesUnits === "number" || hasHumanDecision;
-  if (!hasPrediction) return null;
+  if (!availability.hasFamilyResult) return null;
 
   const predictionJudgmentLabel = getPredictionSalesJudgmentLabel(expectedSalesUnits, t);
-  const humanDecisionLabel = hasHumanDecision
+  const humanDecisionLabel = availability.humanDecisionReady && hasHumanDecision
     ? humanDecision?.wouldApprove
       ? t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldApprove")
       : t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldReject")
-    : t("ecommerce.affiliateWorkspace.predictionComparison.humanInsufficient");
-  const probability = typeof humanDecision?.humanApprovalProbability === "number"
+    : availability.humanDecisionReady
+      ? t("ecommerce.affiliateWorkspace.predictionComparison.humanInsufficient")
+      : t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable");
+  const probability = availability.humanDecisionReady &&
+    typeof humanDecision?.humanApprovalProbability === "number"
     ? formatPercent(humanDecision.humanApprovalProbability)
     : null;
 
@@ -4491,6 +4500,13 @@ function ProposalPredictionComparison({
               {t("ecommerce.affiliateWorkspace.predictionComparison.humanApprovalProbability", { probability })}
             </small>
           ) : null}
+          {humanDecisionSelection?.effectiveTenantScope ? (
+            <small>
+              {t("ecommerce.affiliateWorkspace.predictionComparison.effectiveScope", {
+                scope: humanDecisionSelection.effectiveTenantScope,
+              })}
+            </small>
+          ) : null}
         </div>
         <div className="affiliate-prediction-metric">
           <span>
@@ -4501,11 +4517,14 @@ function ProposalPredictionComparison({
             )}
           </span>
           <strong>
-            {typeof expectedSalesUnits === "number"
+            {availability.expectedSalesReady &&
+            typeof expectedSalesUnits === "number"
               ? t("ecommerce.affiliateWorkspace.predictionComparison.expectedSalesValue", {
                   units: formatCompactNumber(expectedSalesUnits),
                 })
-              : t("ecommerce.affiliateWorkspace.predictionComparison.unknown")}
+              : availability.expectedSalesReady
+                ? t("ecommerce.affiliateWorkspace.predictionComparison.unknown")
+                : t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable")}
           </strong>
           {expectedSalesSelection.effectiveTenantScope ? (
             <small>
@@ -4518,6 +4537,38 @@ function ProposalPredictionComparison({
       </div>
     </section>
   );
+}
+
+export function predictionFamilyAvailability(
+  output: Pick<
+    AffiliatePredictionSnapshotOutput,
+    | "expectedSalesStatus"
+    | "humanDecisionStatus"
+    | "expectedSalesUnits"
+    | "humanDecision"
+  >,
+): {
+  expectedSalesReady: boolean;
+  humanDecisionReady: boolean;
+  hasFamilyResult: boolean;
+} {
+  const expectedSalesReady =
+    output.expectedSalesStatus === "OK" ||
+    (output.expectedSalesStatus == null &&
+      typeof output.expectedSalesUnits === "number");
+  const humanDecisionReady =
+    output.humanDecisionStatus === "OK" ||
+    (output.humanDecisionStatus == null &&
+      typeof output.humanDecision?.wouldApprove === "boolean");
+  return {
+    expectedSalesReady,
+    humanDecisionReady,
+    hasFamilyResult:
+      output.expectedSalesStatus != null ||
+      output.humanDecisionStatus != null ||
+      typeof output.expectedSalesUnits === "number" ||
+      typeof output.humanDecision?.wouldApprove === "boolean",
+  };
 }
 
 export function isBootstrapExpectedSalesOutput(
