@@ -35,6 +35,19 @@ export const WEB_REGISTER = gql`
   }
 `;
 
+export const WEB_GOOGLE_LOGIN = gql`
+  mutation WebGoogleLogin($input: GoogleLoginInput!) {
+    webGoogleLogin(input: $input) {
+      accessToken
+      user {
+        userId
+        email
+        name
+      }
+    }
+  }
+`;
+
 export const WEB_REFRESH = gql`
   mutation WebRefresh {
     webRefresh {
@@ -163,6 +176,14 @@ export const EXPERT_CONVERSATION = gql`
         suggestedQuestions
         editedAt
         createdAt
+        imageAssets {
+          assetId: id
+          publicUrl
+          mimeType
+          sizeBytes
+          width
+          height
+        }
       }
       recommendations {
         id
@@ -182,12 +203,14 @@ export const DISPATCH_EXPERT_MESSAGE = gql`
     $text: String!
     $idempotencyKey: String!
     $replaceMessageId: ID
+    $imageAssetIds: [ID!] = []
   ) {
     dispatchExpertMessage(
       conversationId: $conversationId
       text: $text
       idempotencyKey: $idempotencyKey
       replaceMessageId: $replaceMessageId
+      imageAssetIds: $imageAssetIds
     ) {
       run {
         id
