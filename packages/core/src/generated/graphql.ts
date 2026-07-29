@@ -7055,6 +7055,7 @@ export interface ExpertMessage {
   editedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   expertRunId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  imageAssets: Array<ImageAsset>;
   role: ExpertMessageRole;
   structuredPayload?: Maybe<Scalars['JSONObject']['output']>;
   suggestedQuestions: Array<Scalars['String']['output']>;
@@ -7191,6 +7192,19 @@ export interface GenerateAffiliateCampaignMessageTemplateInput {
 export interface GeneratePairingResult {
   code: Scalars['String']['output'];
   qrUrl?: Maybe<Scalars['String']['output']>;
+}
+
+/** Google ID token and optional existing-account link proof. */
+export interface GoogleLoginInput {
+  idToken: Scalars['String']['input'];
+  link?: InputMaybe<GooglePasswordLinkInput>;
+}
+
+/** Existing-account proof used to link a Google identity. */
+export interface GooglePasswordLinkInput {
+  captchaAnswer: Scalars['String']['input'];
+  captchaToken: Scalars['String']['input'];
+  password: Scalars['String']['input'];
 }
 
 export interface GrantBillingPromotionInput {
@@ -7864,6 +7878,8 @@ export interface Mutation {
   generateAffiliateCampaignMessageTemplate: AffiliateCampaignMessageTemplateSuggestion;
   /** Generate a 6-character pairing code for QR display */
   generatePairingCode: GeneratePairingResult;
+  /** Authenticate a desktop client with Google and return a TK Copilot token pair */
+  googleLogin: AuthPayload;
   /** Admin-only: grant complimentary service time. Stripe subscriptions are extended through Stripe trial_end; prepaid/manual subscriptions are extended locally. */
   grantBillingPromotion: BillingSubscription;
   importAffiliateCreatorProtections: ImportAffiliateCreatorProtectionsPayload;
@@ -7986,6 +8002,8 @@ export interface Mutation {
   validateAffiliateCampaignSearchPhraseSuggestions: AffiliateCampaignSearchPhraseSuggestions;
   /** Verify a pairing code from mobile and create relay token */
   verifyPairingCode: VerifyPairingResult;
+  /** Authenticate a browser with Google and store the refresh token in an HttpOnly cookie */
+  webGoogleLogin: WebAuthPayload;
   /** Log in from a browser and store the rotating refresh token in an HttpOnly cookie */
   webLogin: WebAuthPayload;
   /** Revoke and clear the browser refresh cookie */
@@ -8291,6 +8309,7 @@ export interface MutationDisconnectAdsAdvertiserArgs {
 export interface MutationDispatchExpertMessageArgs {
   conversationId: Scalars['ID']['input'];
   idempotencyKey: Scalars['String']['input'];
+  imageAssetIds?: Array<Scalars['ID']['input']>;
   replaceMessageId?: InputMaybe<Scalars['ID']['input']>;
   text: Scalars['String']['input'];
 }
@@ -8439,6 +8458,11 @@ export interface MutationGenerateAffiliateCampaignMessageTemplateArgs {
 
 export interface MutationGeneratePairingCodeArgs {
   desktopDeviceId: Scalars['String']['input'];
+}
+
+
+export interface MutationGoogleLoginArgs {
+  input: GoogleLoginInput;
 }
 
 
@@ -8762,6 +8786,11 @@ export interface MutationValidateAffiliateCampaignSearchPhraseSuggestionsArgs {
 export interface MutationVerifyPairingCodeArgs {
   mobileDeviceId: Scalars['String']['input'];
   pairingCode: Scalars['String']['input'];
+}
+
+
+export interface MutationWebGoogleLoginArgs {
+  input: GoogleLoginInput;
 }
 
 

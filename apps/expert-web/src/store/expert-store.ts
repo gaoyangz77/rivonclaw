@@ -6,6 +6,15 @@ const ConversationModel = types.model("ExpertConversation", {
   lastMessageAt: types.string,
 });
 
+const MessageImageModel = types.model("ExpertMessageImage", {
+  assetId: types.string,
+  publicUrl: types.maybeNull(types.string),
+  mimeType: types.string,
+  sizeBytes: types.number,
+  width: types.number,
+  height: types.number,
+});
+
 const MessageModel = types.model("ExpertMessage", {
   id: types.identifier,
   role: types.enumeration(["USER", "ASSISTANT", "SYSTEM"]),
@@ -13,6 +22,7 @@ const MessageModel = types.model("ExpertMessage", {
   createdAt: types.string,
   editedAt: types.maybe(types.string),
   suggestedQuestions: types.optional(types.array(types.string), []),
+  imageAssets: types.optional(types.array(MessageImageModel), []),
 });
 
 const UsageModel = types.model("ExpertUsage", {
@@ -31,6 +41,15 @@ export interface ExpertUsageSnapshot {
   weeklyTokenRemaining?: number | null;
   fiveHourTokenRemaining?: number | null;
   resetsAt: string;
+}
+
+export interface ExpertImageSnapshot {
+  assetId: string;
+  publicUrl?: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  width: number;
+  height: number;
 }
 
 export const ExpertStore = types
@@ -52,6 +71,7 @@ export const ExpertStore = types
       "IDLE",
     ),
     pendingQuestion: "",
+    pendingImageAssets: types.array(MessageImageModel),
     streamingAnswer: "",
     pendingSuggestedQuestions: types.array(types.string),
     runningTool: types.maybe(types.string),
@@ -89,6 +109,7 @@ export const ExpertStore = types
       self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
+      self.pendingImageAssets.clear();
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
       self.runningTool = undefined;
@@ -140,10 +161,7 @@ export const ExpertStore = types
       return true;
     },
     restoreOptimisticFreeQuestion() {
-      if (
-        self.usage?.mode !== "FREE_DAILY" ||
-        self.usage.freeRemaining === null
-      ) {
+      if (self.usage?.mode !== "FREE_DAILY" || self.usage.freeRemaining === null) {
         return;
       }
       const limit = self.usage.freeLimit ?? Number.POSITIVE_INFINITY;
@@ -195,6 +213,7 @@ export const ExpertStore = types
         createdAt: string;
         editedAt?: string | null;
         suggestedQuestions?: string[];
+        imageAssets?: ExpertImageSnapshot[];
       }>,
     ) {
       self.messages.replace(
@@ -202,6 +221,7 @@ export const ExpertStore = types
           ...message,
           editedAt: message.editedAt ?? undefined,
           suggestedQuestions: message.suggestedQuestions ?? [],
+          imageAssets: message.imageAssets ?? [],
         })),
       );
     },
@@ -211,8 +231,9 @@ export const ExpertStore = types
       message.content = content;
       message.editedAt = editedAt;
     },
-    prepareRun(question: string) {
+    prepareRun(question: string, imageAssets: ExpertImageSnapshot[] = []) {
       self.pendingQuestion = question;
+      self.pendingImageAssets.replace(imageAssets);
       self.runPhase = "STARTING";
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
@@ -230,6 +251,7 @@ export const ExpertStore = types
       }
       self.messages.splice(messageIndex, self.messages.length - messageIndex);
       self.pendingQuestion = question;
+      self.pendingImageAssets.clear();
       self.runPhase = "STARTING";
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
@@ -245,9 +267,18 @@ export const ExpertStore = types
           role: "USER",
           content: self.pendingQuestion,
           createdAt: new Date().toISOString(),
+          imageAssets: self.pendingImageAssets.map((image) => ({
+            assetId: image.assetId,
+            publicUrl: image.publicUrl,
+            mimeType: image.mimeType,
+            sizeBytes: image.sizeBytes,
+            width: image.width,
+            height: image.height,
+          })),
         });
       }
       self.pendingQuestion = "";
+      self.pendingImageAssets.clear();
       self.activeRunId = runId;
       self.runPhase = "WAITING";
       self.streamingAnswer = "";
@@ -269,6 +300,7 @@ export const ExpertStore = types
       self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
+      self.pendingImageAssets.clear();
       self.runningTool = undefined;
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
@@ -280,6 +312,7 @@ export const ExpertStore = types
       self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
+      self.pendingImageAssets.clear();
       self.runningTool = undefined;
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();
@@ -291,6 +324,7 @@ export const ExpertStore = types
       self.activeRunConversationId = undefined;
       self.runPhase = "IDLE";
       self.pendingQuestion = "";
+      self.pendingImageAssets.clear();
       self.runningTool = undefined;
       self.streamingAnswer = "";
       self.pendingSuggestedQuestions.clear();

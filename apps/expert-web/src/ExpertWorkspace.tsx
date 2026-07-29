@@ -17,7 +17,8 @@ import { BrandLogo } from "./BrandLogo.js";
 import { LanguageSwitcher, useI18n } from "./i18n.js";
 import { Onboarding } from "./Onboarding.js";
 import { CheckIcon, CopyIcon, EditIcon, ExpertMarkdown } from "./ExpertMarkdown.js";
-import type { ExpertUsageSnapshot } from "./store/expert-store.js";
+import { EXPERT_IMAGE_MAX_COUNT, uploadExpertImage } from "./api/image-upload.js";
+import type { ExpertImageSnapshot, ExpertUsageSnapshot } from "./store/expert-store.js";
 
 interface ConversationData {
   expertConversation: {
@@ -28,6 +29,7 @@ interface ConversationData {
       suggestedQuestions: string[];
       editedAt?: string | null;
       createdAt: string;
+      imageAssets: ExpertImageSnapshot[];
     }>;
   };
 }
@@ -62,6 +64,8 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   const store = useExpertStore();
   const { t } = useI18n();
   const [draft, setDraft] = useState("");
+  const [pendingImages, setPendingImages] = useState<ExpertImageSnapshot[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [creating, setCreating] = useState(false);
   const [conversationMenu, setConversationMenu] = useState<{
     id: string;
@@ -84,6 +88,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   const subscriptionRef = useRef<{ unsubscribe(): void } | null>(null);
   const conversationLoadRequestRef = useRef(0);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
   const shouldFollowStreamRef = useRef(true);
   const lastScrollTopRef = useRef(0);
@@ -172,10 +177,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
       setConversationMenu(undefined);
     }
     function closeOnSidebarScroll(event: Event) {
-      if (
-        event.target instanceof Element &&
-        event.target.closest(".conversation-sidebar")
-      ) {
+      if (event.target instanceof Element && event.target.closest(".conversation-sidebar")) {
         setConversationMenu(undefined);
       }
     }
@@ -231,10 +233,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     scrollFrameRef.current = window.requestAnimationFrame(() => {
       const container = messageScrollRef.current;
       if (!container || !shouldFollowStreamRef.current) return;
-      const nextScrollTop = Math.max(
-        0,
-        container.scrollHeight - container.clientHeight,
-      );
+      const nextScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
       if (nextScrollTop > container.scrollTop) {
         container.scrollTop = nextScrollTop;
       }
@@ -247,12 +246,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         scrollFrameRef.current = undefined;
       }
     };
-  }, [
-    isViewingActiveRun,
-    store.messages.length,
-    store.pendingQuestion,
-    store.streamingAnswer,
-  ]);
+  }, [isViewingActiveRun, store.messages.length, store.pendingQuestion, store.streamingAnswer]);
 
   useEffect(() => {
     if (!draft && composerRef.current) composerRef.current.style.height = "auto";
@@ -290,9 +284,13 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     }
   }
 
-  async function startAgentRun(question: string, replaceMessageId?: string) {
+  async function startAgentRun(
+    question: string,
+    replaceMessageId?: string,
+    imageAssets: ExpertImageSnapshot[] = [],
+  ) {
     if (replaceMessageId) store.prepareRerun(replaceMessageId, question);
-    else store.prepareRun(question);
+    else store.prepareRun(question, imageAssets);
     const optimisticallyDebited = store.optimisticallyConsumeFreeQuestion();
     const existingConversationId = store.selectedConversationId;
     try {
@@ -305,6 +303,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
           text: question,
           idempotencyKey: crypto.randomUUID(),
           replaceMessageId,
+          imageAssetIds: imageAssets.map((image) => image.assetId),
         },
       });
       const dispatch = result.data?.dispatchExpertMessage;
@@ -374,9 +373,34 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const question = draft.trim();
-    if (!question || store.isBusy) return;
+    if (!question || store.isBusy || uploadingImage) return;
+    const images = pendingImages.map((image) => ({ ...image }));
     setDraft("");
-    await startAgentRun(question);
+    const started = await startAgentRun(question, undefined, images);
+    if (started) setPendingImages([]);
+  }
+
+  async function addImages(files: FileList | null) {
+    if (!files || files.length === 0 || uploadingImage) return;
+    const remaining = EXPERT_IMAGE_MAX_COUNT - pendingImages.length;
+    if (remaining <= 0 || files.length > remaining) {
+      store.setError(t("workspace.imageLimit"));
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      return;
+    }
+
+    setUploadingImage(true);
+    store.setError(undefined);
+    try {
+      const uploaded = await Promise.all(Array.from(files).map((file) => uploadExpertImage(file)));
+      setPendingImages((current) => [...current, ...uploaded].slice(0, EXPERT_IMAGE_MAX_COUNT));
+    } catch (error) {
+      console.error("Unable to prepare Expert image", errorMessage(error));
+      store.setError(t("workspace.imageUploadFailed"));
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
   }
 
   async function cancel() {
@@ -402,6 +426,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     setRenamingConversationId(undefined);
     setEditingMessageId(undefined);
     setDraft("");
+    setPendingImages([]);
     store.startNewConversation();
     requestAnimationFrame(() => composerRef.current?.focus());
   }
@@ -539,9 +564,40 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
     );
   }
 
-  const lastUserMessage = [...store.messages]
-    .reverse()
-    .find((message) => message.role === "USER");
+  function imageGrid(images: readonly ExpertImageSnapshot[], removable = false) {
+    const visibleImages = images.filter((image) => image.publicUrl);
+    if (visibleImages.length === 0) return null;
+    return (
+      <div className="message-image-grid">
+        {visibleImages.map((image) => (
+          <figure key={image.assetId}>
+            <img
+              alt=""
+              height={image.height}
+              loading="lazy"
+              src={image.publicUrl ?? undefined}
+              width={image.width}
+            />
+            {removable ? (
+              <button
+                aria-label={t("workspace.removeImage")}
+                onClick={() =>
+                  setPendingImages((current) =>
+                    current.filter((item) => item.assetId !== image.assetId),
+                  )
+                }
+                type="button"
+              >
+                ×
+              </button>
+            ) : null}
+          </figure>
+        ))}
+      </div>
+    );
+  }
+
+  const lastUserMessage = [...store.messages].reverse().find((message) => message.role === "USER");
 
   function canEditMessage(message: { id: string; role: "USER" | "ASSISTANT" | "SYSTEM" }) {
     return (
@@ -573,9 +629,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
         <button
           className="danger"
           disabled={conversationMenu.id === store.activeRunConversationId}
-          onClick={() =>
-            requestDeleteConversation(conversationMenu.id, conversationMenu.title)
-          }
+          onClick={() => requestDeleteConversation(conversationMenu.id, conversationMenu.title)}
           role="menuitem"
           title={
             conversationMenu.id === store.activeRunConversationId
@@ -654,13 +708,9 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                       aria-label={conversation.title}
                       className="conversation-title"
                       onClick={() => openConversation(conversation.id)}
-                      onDoubleClick={() =>
-                        beginRename(conversation.id, conversation.title)
-                      }
+                      onDoubleClick={() => beginRename(conversation.id, conversation.title)}
                     >
-                      <span className="conversation-title-label">
-                        {conversation.title}
-                      </span>
+                      <span className="conversation-title-label">{conversation.title}</span>
                       {running ? (
                         <span
                           aria-label={t("workspace.conversationRunning", {
@@ -736,12 +786,9 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
           className="message-scroll"
           onScroll={(event) => {
             const container = event.currentTarget;
-            const movingUp =
-              container.scrollTop < lastScrollTopRef.current - 2;
+            const movingUp = container.scrollTop < lastScrollTopRef.current - 2;
             const distanceFromBottom =
-              container.scrollHeight -
-              container.clientHeight -
-              container.scrollTop;
+              container.scrollHeight - container.clientHeight - container.scrollTop;
             if (movingUp) {
               shouldFollowStreamRef.current = false;
               if (scrollFrameRef.current !== undefined) {
@@ -839,14 +886,13 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                         disabled={!messageEditDraft.trim() || savingMessage}
                         type="submit"
                       >
-                        {savingMessage
-                          ? t("workspace.resubmitting")
-                          : t("workspace.resubmit")}
+                        {savingMessage ? t("workspace.resubmitting") : t("workspace.resubmit")}
                       </button>
                     </div>
                   </form>
                 ) : message.role === "USER" ? (
                   <div className="user-message-bubble">
+                    {imageGrid(message.imageAssets)}
                     <div className="user-message-text">{message.content}</div>
                   </div>
                 ) : (
@@ -892,7 +938,10 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
 
           {visiblePendingQuestion ? (
             <article className="message user pending-question">
-              <div className="user-message-text">{visiblePendingQuestion}</div>
+              <div className="user-message-bubble">
+                {imageGrid(store.pendingImageAssets)}
+                <div className="user-message-text">{visiblePendingQuestion}</div>
+              </div>
             </article>
           ) : null}
 
@@ -933,54 +982,86 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
 
         <footer className="composer-shell">
           <form className="composer" onSubmit={submit}>
-            <textarea
-              ref={composerRef}
-              value={draft}
-              maxLength={8000}
-              placeholder={t("workspace.placeholder")}
-              rows={1}
-              onChange={(event) => {
-                setDraft(event.target.value);
-                event.currentTarget.style.height = "auto";
-                event.currentTarget.style.height = `${Math.min(
-                  event.currentTarget.scrollHeight,
-                  180,
-                )}px`;
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                  event.preventDefault();
-                  event.currentTarget.form?.requestSubmit();
+            {imageGrid(pendingImages, true)}
+            <div className="composer-input-row">
+              <input
+                accept="image/jpeg,image/png,image/webp"
+                aria-label={t("workspace.attachImage")}
+                className="composer-file-input"
+                multiple
+                onChange={(event) => void addImages(event.currentTarget.files)}
+                ref={imageInputRef}
+                type="file"
+              />
+              <button
+                aria-label={t("workspace.attachImage")}
+                className="attach-image-button"
+                disabled={
+                  store.isBusy || uploadingImage || pendingImages.length >= EXPERT_IMAGE_MAX_COUNT
                 }
-              }}
-            />
-            {isViewingActiveRun && store.activeRunId ? (
-              <button
-                className="stop-button"
-                disabled={store.runPhase === "CANCELLING"}
+                onClick={() => imageInputRef.current?.click()}
+                title={t("workspace.attachImage")}
                 type="button"
-                onClick={() => void cancel()}
               >
-                {store.runPhase === "CANCELLING"
-                  ? t("workspace.cancellingShort")
-                  : t("workspace.stop")}
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M8.5 12.5 14.9 6a3.5 3.5 0 0 1 5 5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8-8" />
+                </svg>
               </button>
-            ) : (
-              <button
-                className="send-button"
-                disabled={store.isBusy || !draft.trim()}
-                type="submit"
-              >
-                {isViewingActiveRun && store.runPhase === "STARTING"
-                  ? t("workspace.startingShort")
-                  : isAnotherConversationRunning
-                    ? t("workspace.runningElsewhereShort")
-                    : t("workspace.submit")}
-              </button>
-            )}
+              <textarea
+                ref={composerRef}
+                value={draft}
+                maxLength={8000}
+                placeholder={t("workspace.placeholder")}
+                rows={1}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  event.currentTarget.style.height = "auto";
+                  event.currentTarget.style.height = `${Math.min(
+                    event.currentTarget.scrollHeight,
+                    180,
+                  )}px`;
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
+              />
+              {isViewingActiveRun && store.activeRunId ? (
+                <button
+                  className="stop-button"
+                  disabled={store.runPhase === "CANCELLING"}
+                  type="button"
+                  onClick={() => void cancel()}
+                >
+                  {store.runPhase === "CANCELLING"
+                    ? t("workspace.cancellingShort")
+                    : t("workspace.stop")}
+                </button>
+              ) : (
+                <button
+                  className="send-button"
+                  disabled={store.isBusy || uploadingImage || !draft.trim()}
+                  type="submit"
+                >
+                  {isViewingActiveRun && store.runPhase === "STARTING"
+                    ? t("workspace.startingShort")
+                    : isAnotherConversationRunning
+                      ? t("workspace.runningElsewhereShort")
+                      : t("workspace.submit")}
+                </button>
+              )}
+            </div>
           </form>
           <div className="composer-meta">
-            <span>{quotaText}</span>
+            <span>
+              {uploadingImage
+                ? t("workspace.imageUploading")
+                : pendingImages.length > 0
+                  ? t("workspace.imageHint")
+                  : quotaText}
+            </span>
             <span>
               {isAnotherConversationRunning
                 ? t("workspace.runningElsewhere")
@@ -995,10 +1076,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
             <div
               className="conversation-delete-backdrop"
               onMouseDown={(event) => {
-                if (
-                  event.target === event.currentTarget &&
-                  !deletingConversation
-                ) {
+                if (event.target === event.currentTarget && !deletingConversation) {
                   setDeleteCandidate(undefined);
                 }
               }}
@@ -1014,9 +1092,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                   !
                 </div>
                 <div>
-                  <h2 id="conversation-delete-title">
-                    {t("workspace.deleteTitle")}
-                  </h2>
+                  <h2 id="conversation-delete-title">{t("workspace.deleteTitle")}</h2>
                   <p id="conversation-delete-description">
                     {t("workspace.deleteBody", {
                       title: deleteCandidate.title,
@@ -1038,9 +1114,7 @@ export const ExpertWorkspace = observer(function ExpertWorkspace({
                     onClick={() => void deleteConversation()}
                     type="button"
                   >
-                    {deletingConversation
-                      ? t("workspace.deleting")
-                      : t("workspace.delete")}
+                    {deletingConversation ? t("workspace.deleting") : t("workspace.delete")}
                   </button>
                 </div>
               </section>
