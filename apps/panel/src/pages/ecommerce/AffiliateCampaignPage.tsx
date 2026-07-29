@@ -651,7 +651,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               ? GQL.AffiliateCampaignSelectionRanking.ProviderOrder
               : GQL.AffiliateCampaignSelectionRanking.ExpectedSalesPerFollower,
           minimumExpectedSalesUnits:
-            form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 &&
+            form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSales &&
             form.minimumExpectedSales
               ? Number(form.minimumExpectedSales)
               : null,
@@ -1639,7 +1639,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     disabled
                     aria-disabled="true"
                     data-selected={
-                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3 ||
+                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSales ||
                       undefined
                     }
                   >
@@ -3064,7 +3064,7 @@ function campaignRuleSummary(
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   if (
-    campaign.selectionPolicy.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSalesV3
+    campaign.selectionPolicy.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSales
   ) {
     return campaign.selectionPolicy.minimumExpectedSalesUnits == null
       ? t("ecommerce.affiliateCampaign.noExpectedSalesFloor")

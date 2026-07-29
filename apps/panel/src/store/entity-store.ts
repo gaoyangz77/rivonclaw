@@ -24,7 +24,7 @@ import { CustomerServiceWorkspaceModel } from "./models/CustomerServiceWorkspace
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
-  AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY,
+  AFFILIATE_ML_INSIGHTS_QUERY,
   SHOPS_QUERY,
   SHOP_QUERY,
   PLATFORM_APPS_QUERY,
@@ -98,19 +98,12 @@ const AffiliateMlInsightRowModel = types.model("AffiliateMlInsightRow", {
   kind: types.enumeration(["user", "shop"]),
   shopId: types.maybe(types.string),
   modelScope: types.enumeration(["user", "region", "shop"]),
-  summary: types.maybeNull(types.frozen()),
+  availability: types.optional(types.frozen(), []),
   failed: types.optional(types.boolean, false),
 });
 
 function affiliateMlInsightSubjectKey(shopId?: string | null): string {
   return shopId ? `shop:${shopId}` : "user";
-}
-
-function normalizeAffiliateMlModelScope(value: unknown, fallback: AffiliateMlInsightModelScope): AffiliateMlInsightModelScope {
-  const normalized = String(value ?? fallback).toLowerCase();
-  if (normalized === "shop") return "shop";
-  if (normalized === "region") return "region";
-  return "user";
 }
 
 function cleanRecipientLookupPart(value: string): string {
@@ -389,23 +382,53 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
       self.affiliateMlInsightsLoading = true;
       self.affiliateMlInsightsError = null;
       try {
-        const result = yield client().query({
-          query: AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY,
-          variables: { input: { shopIds } },
-          fetchPolicy: "network-only",
-        });
-        const summaries = (result.data?.affiliateMlInsightSummaries ?? []) as Array<Record<string, unknown>>;
-        const rows = summaries.map((summary) => {
-          const shopId = typeof summary.shopId === "string" && summary.shopId ? summary.shopId : undefined;
-          const modelScope = normalizeAffiliateMlModelScope(summary.modelScope, shopId ? "shop" : "user");
-          const subjectKey = affiliateMlInsightSubjectKey(shopId);
+        const requests: Array<{
+          subjectKey: string;
+          kind: "user" | "shop";
+          shopId?: string;
+          modelScope: AffiliateMlInsightModelScope;
+          input: { shopId?: string; modelScope: string };
+        }> = [
+          {
+            subjectKey: "user",
+            kind: "user",
+            modelScope: "user",
+            input: { modelScope: "USER" },
+          },
+          ...shopIds.flatMap((shopId) =>
+            (["user", "region", "shop"] as AffiliateMlInsightModelScope[]).map(
+              (modelScope) => ({
+                subjectKey: affiliateMlInsightSubjectKey(shopId),
+                kind: "shop" as const,
+                shopId,
+                modelScope,
+                input: {
+                  shopId,
+                  modelScope: modelScope.toUpperCase(),
+                },
+              }),
+            ),
+          ),
+        ];
+        const results = yield Promise.all(
+          requests.map((request) =>
+            client().query({
+              query: AFFILIATE_ML_INSIGHTS_QUERY,
+              variables: { input: request.input },
+              fetchPolicy: "network-only",
+            }),
+          ),
+        );
+        const rows = requests.map((request, index) => {
+          const availability =
+            results[index]?.data?.affiliateMlInsights?.modelAvailability ?? [];
           return {
-            key: `${subjectKey}:${modelScope}`,
-            subjectKey,
-            kind: shopId ? "shop" : "user",
-            shopId,
-            modelScope,
-            summary: stripTypename(summary),
+            key: `${request.subjectKey}:${request.modelScope}`,
+            subjectKey: request.subjectKey,
+            kind: request.kind,
+            shopId: request.shopId,
+            modelScope: request.modelScope,
+            availability: stripTypename(availability),
             failed: false,
           };
         });

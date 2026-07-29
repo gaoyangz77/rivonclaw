@@ -58,6 +58,29 @@ describe("Affiliate Expected Sales translation backfill", () => {
       ]) {
         expect(predictionComparison[key], `${language}.${key}`).toBeTruthy();
       }
+      const workspace = (
+        LANGUAGE_RESOURCES[language].translation as {
+          ecommerce: {
+            affiliateWorkspace: Record<string, unknown>;
+          };
+        }
+      ).ecommerce.affiliateWorkspace;
+      for (const key of [
+        "productionModel",
+        "bootstrapModel",
+        "bootstrapApproximation",
+        "modelDataAccumulating",
+        "productionCurrentReview",
+        "bootstrapCurrentReview",
+        "bootstrapBackup",
+        "bootstrapNoEvaluation",
+        "productionNoEvaluation",
+        "modelAvailabilityUnavailable",
+        "modelAvailabilityEmpty",
+        "modelCombinationsReady",
+      ]) {
+        expect(workspace[key], `${language}.${key}`).toBeTruthy();
+      }
     }
   });
 });

@@ -1641,31 +1641,58 @@ export const AFFILIATE_COLLABORATION_RECORDS_QUERY = gql`
   }
 `;
 
-export const AFFILIATE_ML_INSIGHT_SUMMARIES_QUERY = gql`
-  query AffiliateMlInsightSummaries($input: AffiliateMlInsightSummariesInput) {
-    affiliateMlInsightSummaries(input: $input) {
-      userId
-      shopId
-      modelScope
-      tenantId
-      trainedAt
-      evaluationScope
-      rowCount
-      humanApprovedCount
-      humanApprovalRate
-      modelSameBudgetCount
-      minExpectedSalesUnitsSameBudget
-      modelSameBudgetExpectedUnits
-      humanSameBudgetExpectedUnits
-      modelVsHumanExpectedUnitsLiftRatio
-      modelSelectedHumanRejectedCount
-      modelRejectedHumanApprovedCount
-      modelRejectedHumanApprovedActualUnits
-      humanApprovedObservedCount
-      humanApprovedActualUnits
-      humanApprovedActualAvgUnits
-      payload
-      createdAt
+export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
+  query AffiliateMlInsights($input: AffiliateMlInsightsInput) {
+    affiliateMlInsights(input: $input) {
+      modelAvailability {
+        modelFamily
+        modelStage
+        status
+        featureTemporalBasis
+        requestedTenantScope
+        requestedTenantId
+        effectiveTenantScope
+        effectiveTenantId
+        modelVersionKey
+        bentomlTag
+        contractHash
+        contractStatus
+        trainedAt
+        reason
+        evaluationSummary {
+          userId
+          shopId
+          modelScope
+          tenantId
+          modelFamily
+          modelStage
+          featureTemporalBasis
+          modelStatus
+          contractHash
+          modelVersionKey
+          bentomlTag
+          trainedAt
+          evaluatedAt
+          evaluationScope
+          rowCount
+          creatorCount
+          humanApprovedCount
+          humanApprovalRate
+          modelSameBudgetCount
+          minExpectedSalesUnitsSameBudget
+          modelSameBudgetExpectedUnits
+          humanSameBudgetExpectedUnits
+          modelVsHumanExpectedUnitsLiftRatio
+          modelSelectedHumanRejectedCount
+          modelRejectedHumanApprovedCount
+          modelRejectedHumanApprovedActualUnits
+          humanApprovedObservedCount
+          humanApprovedActualUnits
+          humanApprovedActualAvgUnits
+          payload
+          createdAt
+        }
+      }
     }
   }
 `;

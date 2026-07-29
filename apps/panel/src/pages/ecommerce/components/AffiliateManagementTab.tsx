@@ -64,9 +64,9 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   const accountModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "user");
   const regionModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "region");
   const shopModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "shop");
-  const accountModelEvaluation = affiliateModelEvaluation(accountModelInsight?.summary);
-  const regionModelEvaluation = affiliateModelEvaluation(regionModelInsight?.summary);
-  const shopModelEvaluation = affiliateModelEvaluation(shopModelInsight?.summary);
+  const accountModelEvaluation = affiliateCurrentExpectedSalesEvaluation(accountModelInsight?.availability);
+  const regionModelEvaluation = affiliateCurrentExpectedSalesEvaluation(regionModelInsight?.availability);
+  const shopModelEvaluation = affiliateCurrentExpectedSalesEvaluation(shopModelInsight?.availability);
   const modelRecommendation = useMemo(
     () => buildAffiliateModelRecommendation(accountModelEvaluation, regionModelEvaluation, shopModelEvaluation),
     [accountModelEvaluation, regionModelEvaluation, shopModelEvaluation],
@@ -664,6 +664,27 @@ function affiliateModelEvaluation(summary: unknown): AffiliateModelEvaluation | 
   );
   if (liftRatio == null && confidence == null) return null;
   return { confidence, liftRatio };
+}
+
+function affiliateCurrentExpectedSalesEvaluation(
+  availability: unknown,
+): AffiliateModelEvaluation | null {
+  if (!Array.isArray(availability)) return null;
+  const ready = availability
+    .filter((entry): entry is Record<string, unknown> =>
+      Boolean(entry) && typeof entry === "object" && !Array.isArray(entry))
+    .filter(
+      (entry) =>
+        entry.modelFamily === "EXPECTED_SALES" &&
+        (entry.status === "READY" || entry.status === "FALLBACK"),
+    )
+    .sort((left, right) =>
+      left.modelStage === right.modelStage
+        ? 0
+        : left.modelStage === "EVENT_TIME"
+          ? -1
+          : 1)[0];
+  return affiliateModelEvaluation(ready?.evaluationSummary);
 }
 
 function confidenceRank(confidence: AffiliateModelConfidence | null): number {
