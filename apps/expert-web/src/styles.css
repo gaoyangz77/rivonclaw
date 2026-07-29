@@ -1619,6 +1619,7 @@ textarea:focus {
 }
 
 .composer textarea {
+  display: block;
   min-height: 56px;
   max-height: 180px;
   resize: none;
@@ -1642,7 +1643,7 @@ textarea:focus {
 .attach-image-button {
   position: absolute;
   z-index: 1;
-  top: 50%;
+  bottom: 12px;
   left: 11px;
   width: 32px;
   height: 32px;
@@ -1653,7 +1654,6 @@ textarea:focus {
   border-radius: 9px;
   color: #687991;
   background: transparent;
-  transform: translateY(-50%);
 }
 
 .attach-image-button:hover:not(:disabled) {
@@ -1678,9 +1678,8 @@ textarea:focus {
 .send-button,
 .stop-button {
   position: absolute;
-  top: 50%;
+  bottom: 10px;
   right: 11px;
-  transform: translateY(-50%);
   min-width: 62px;
   height: 36px;
   border: 0;
