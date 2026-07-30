@@ -103,7 +103,7 @@ export const ShopModel = ShopModelBase.views((self) => ({
 })).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
   const updateShop = async (input: ShopUpdateInput) => {
-    const result = await client().mutate({
+    const result = await client().mutate<{ updateShop: unknown }>({
       mutation: UPDATE_SHOP_MUTATION,
       variables: { id: self.id, input },
     });
