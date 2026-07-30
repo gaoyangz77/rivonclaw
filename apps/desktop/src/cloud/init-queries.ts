@@ -199,7 +199,7 @@ export const INIT_SHOPS_QUERY = `
         affiliateService {
           enabled
           runProfileId
-          csDeviceId
+          deviceId
           modelUsageScope
           businessPrompt
           decisionThresholds {

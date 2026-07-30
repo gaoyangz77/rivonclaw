@@ -385,7 +385,7 @@ async function triggerMessage(
             },
             affiliateService: {
               enabled: false,
-              csDeviceId: null,
+              deviceId: null,
               runProfileId: null,
             },
           },
@@ -461,7 +461,7 @@ function seedAffiliateShopInCache(overrides: Partial<CSShopContext> = {}): void 
           },
           affiliateService: {
             enabled: true,
-            csDeviceId: "test-gateway",
+            deviceId: "test-gateway",
             runProfileId: "AFFILIATE_OPERATOR",
           },
         },
@@ -3866,7 +3866,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
               },
               affiliateService: {
                 enabled: false,
-                csDeviceId: null,
+                deviceId: null,
                 runProfileId: null,
               },
             },

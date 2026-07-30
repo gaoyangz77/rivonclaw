@@ -18,6 +18,65 @@ export interface ChannelAccountForRouting {
 
 export type CustomerServiceRoutingIssue = "invalid_channel" | "missing_context_token";
 
+interface ShopUpdateInput {
+  shopName?: string;
+  alias?: string;
+  authStatus?: string;
+  region?: string;
+  services?: {
+    customerService?: {
+      enabled?: boolean;
+      unpaidOrderReachoutEnabled?: boolean;
+      unpaidOrderReachoutStages?: Array<{
+        id?: string | null;
+        enabled: boolean;
+        delayMinutes: number;
+        messageTemplate?: string | null;
+      }>;
+      unpaidOrderReachoutExperiment?: {
+        enabled?: boolean;
+        holdoutPercent?: number;
+      };
+      businessPrompt?: string | null;
+      runProfileId?: string;
+      csDeviceId?: string | null;
+      csProviderOverride?: string | null;
+      csModelOverride?: string | null;
+      escalationChannelId?: string | null;
+      escalationRecipientId?: string | null;
+      reviewOptimization?: {
+        enabled?: boolean;
+        badReviewReachout?: {
+          enabled?: boolean;
+          stars?: number;
+          recentDays?: number;
+        };
+      } | null;
+    };
+    wms?: {
+      enabled?: boolean | null;
+    };
+    affiliateService?: {
+      enabled?: boolean;
+      runProfileId?: string | null;
+      deviceId?: string | null;
+      businessPrompt?: string | null;
+      modelUsageScope?: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL" | null;
+      decisionThresholds?: {
+        minExpectedSalesUnits?: number | null;
+      } | null;
+    };
+  };
+}
+
+function requiredDeviceId(deviceId: string | null | undefined): string {
+  const normalized = deviceId?.trim();
+  if (!normalized) {
+    throw new Error("Current device ID is unavailable. Please try again after the app is ready.");
+  }
+  return normalized;
+}
+
 export const ShopModel = ShopModelBase.views((self) => ({
   getCustomerServiceRoutingIssue(params: {
     currentDeviceId: string | null;
@@ -43,63 +102,79 @@ export const ShopModel = ShopModelBase.views((self) => ({
   },
 })).actions((self) => {
   const client = () => getEnv<PanelStoreEnv>(self).apolloClient;
+  const updateShop = async (input: ShopUpdateInput) => {
+    const result = await client().mutate({
+      mutation: UPDATE_SHOP_MUTATION,
+      variables: { id: self.id, input },
+    });
+    return result.data!.updateShop;
+  };
 
   return {
-    update: flow(function* (input: {
-      shopName?: string;
-      alias?: string;
-      authStatus?: string;
-      region?: string;
-      services?: {
-        customerService?: {
-          enabled?: boolean;
-          unpaidOrderReachoutEnabled?: boolean;
-          unpaidOrderReachoutStages?: Array<{
-            id?: string | null;
-            enabled: boolean;
-            delayMinutes: number;
-            messageTemplate?: string | null;
-          }>;
-          unpaidOrderReachoutExperiment?: {
-            enabled?: boolean;
-            holdoutPercent?: number;
-          };
-          businessPrompt?: string | null;
-          runProfileId?: string;
-          csDeviceId?: string | null;
-          csProviderOverride?: string | null;
-          csModelOverride?: string | null;
-          escalationChannelId?: string | null;
-          escalationRecipientId?: string | null;
-          reviewOptimization?: {
-            enabled?: boolean;
-            badReviewReachout?: {
-              enabled?: boolean;
-              stars?: number;
-              recentDays?: number;
-            };
-          } | null;
-        };
-        wms?: {
-          enabled?: boolean | null;
-        };
-        affiliateService?: {
-          enabled?: boolean;
-          runProfileId?: string | null;
-          csDeviceId?: string | null;
-          businessPrompt?: string | null;
-          modelUsageScope?: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL" | null;
-          decisionThresholds?: {
-            minExpectedSalesUnits?: number | null;
-          } | null;
-        };
-      };
-    }) {
-      const result = yield client().mutate({
-        mutation: UPDATE_SHOP_MUTATION,
-        variables: { id: self.id, input },
+    update: flow(function* (input: ShopUpdateInput) {
+      return yield updateShop(input);
+    }),
+
+    setCustomerServiceEnabled: flow(function* (
+      enabled: boolean,
+      currentDeviceId?: string | null,
+    ) {
+      const existingDeviceId = self.services?.customerService?.csDeviceId?.trim();
+      return yield updateShop({
+        services: {
+          customerService: {
+            enabled,
+            ...(enabled && !existingDeviceId
+              ? { csDeviceId: requiredDeviceId(currentDeviceId) }
+              : {}),
+          },
+        },
       });
-      return result.data!.updateShop;
+    }),
+
+    bindCustomerServiceToDevice: flow(function* (deviceId: string) {
+      return yield updateShop({
+        services: { customerService: { csDeviceId: requiredDeviceId(deviceId) } },
+      });
+    }),
+
+    unbindCustomerServiceFromDevice: flow(function* () {
+      return yield updateShop({
+        services: { customerService: { csDeviceId: "" } },
+      });
+    }),
+
+    setAffiliateServiceEnabled: flow(function* (
+      enabled: boolean,
+      currentDeviceId?: string | null,
+    ) {
+      const affiliateService = self.services?.affiliateService;
+      const existingDeviceId = affiliateService?.deviceId?.trim();
+      return yield updateShop({
+        services: {
+          affiliateService: {
+            enabled,
+            ...(enabled && !affiliateService?.runProfileId
+              ? { runProfileId: "AFFILIATE_OPERATOR" }
+              : {}),
+            ...(enabled && !existingDeviceId
+              ? { deviceId: requiredDeviceId(currentDeviceId) }
+              : {}),
+          },
+        },
+      });
+    }),
+
+    bindAffiliateServiceToDevice: flow(function* (deviceId: string) {
+      return yield updateShop({
+        services: { affiliateService: { deviceId: requiredDeviceId(deviceId) } },
+      });
+    }),
+
+    unbindAffiliateServiceFromDevice: flow(function* () {
+      return yield updateShop({
+        services: { affiliateService: { deviceId: "" } },
+      });
     }),
 
     updateAlias: flow(function* (alias: string) {
