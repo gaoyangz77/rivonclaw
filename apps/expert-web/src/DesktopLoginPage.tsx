@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { apolloClient } from "./api/client.js";
 import { setAccessToken } from "./api/auth-session.js";
 import {
@@ -16,7 +17,7 @@ interface Attempt {
   expiresAt: string;
 }
 
-export function DesktopLoginPage() {
+export const DesktopLoginPage = observer(function DesktopLoginPage() {
   const store = useExpertStore();
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [ticket] = useState(() => params.get("ticket") ?? "");
@@ -91,7 +92,11 @@ export function DesktopLoginPage() {
     );
   }
   if (!store.authenticated && !error) {
-    return <AuthScreen onAuthenticated={() => store.finishBoot(true, store.userEmail)} />;
+    return (
+      <AuthScreen
+        onAuthenticated={(payload) => store.finishBoot(true, payload.user.email)}
+      />
+    );
   }
 
   return (
@@ -130,4 +135,4 @@ export function DesktopLoginPage() {
       </section>
     </main>
   );
-}
+});
