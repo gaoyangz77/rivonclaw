@@ -2485,24 +2485,6 @@ export interface AffiliateMlInsightsPayload {
   modelAvailability: Array<AffiliateModelAvailability>;
 }
 
-export interface AffiliateModelAvailability {
-  bentomlTag?: Maybe<Scalars['String']['output']>;
-  contractHash?: Maybe<Scalars['String']['output']>;
-  contractStatus: Scalars['String']['output'];
-  effectiveTenantId?: Maybe<Scalars['ID']['output']>;
-  effectiveTenantScope?: Maybe<Scalars['String']['output']>;
-  evaluationSummary?: Maybe<AffiliateMlModelEfficiencySummary>;
-  featureTemporalBasis: Scalars['String']['output'];
-  modelFamily: Scalars['String']['output'];
-  modelStage: Scalars['String']['output'];
-  modelVersionKey?: Maybe<Scalars['String']['output']>;
-  reason?: Maybe<Scalars['String']['output']>;
-  requestedTenantId: Scalars['ID']['output'];
-  requestedTenantScope: Scalars['String']['output'];
-  status: Scalars['String']['output'];
-  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-}
-
 export interface AffiliateMlModelEfficiencySummary {
   bentomlTag: Scalars['String']['output'];
   contractHash: Scalars['String']['output'];
@@ -2524,17 +2506,35 @@ export interface AffiliateMlModelEfficiencySummary {
   modelSameBudgetCount: Scalars['Int']['output'];
   modelSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
   modelScope?: Maybe<Scalars['String']['output']>;
+  modelSelectedHumanRejectedCount: Scalars['Int']['output'];
   modelStage: Scalars['String']['output'];
   modelStatus: Scalars['String']['output'];
-  modelSelectedHumanRejectedCount: Scalars['Int']['output'];
-  modelVsHumanExpectedUnitsLiftRatio?: Maybe<Scalars['Float']['output']>;
   modelVersionKey: Scalars['String']['output'];
+  modelVsHumanExpectedUnitsLiftRatio?: Maybe<Scalars['Float']['output']>;
   payload?: Maybe<Scalars['JSONObject']['output']>;
   rowCount: Scalars['Int']['output'];
   shopId?: Maybe<Scalars['ID']['output']>;
   tenantId?: Maybe<Scalars['ID']['output']>;
   trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   userId: Scalars['ID']['output'];
+}
+
+export interface AffiliateModelAvailability {
+  bentomlTag?: Maybe<Scalars['String']['output']>;
+  contractHash?: Maybe<Scalars['String']['output']>;
+  contractStatus: Scalars['String']['output'];
+  effectiveTenantId?: Maybe<Scalars['ID']['output']>;
+  effectiveTenantScope?: Maybe<Scalars['String']['output']>;
+  evaluationSummary?: Maybe<AffiliateMlModelEfficiencySummary>;
+  featureTemporalBasis: Scalars['String']['output'];
+  modelFamily: Scalars['String']['output'];
+  modelStage: Scalars['String']['output'];
+  modelVersionKey?: Maybe<Scalars['String']['output']>;
+  reason?: Maybe<Scalars['String']['output']>;
+  requestedTenantId: Scalars['ID']['output'];
+  requestedTenantScope: Scalars['String']['output'];
+  status: Scalars['String']['output'];
+  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
 
 /** Which tenant-scoped affiliate expected-sales model this shop should use. */
@@ -3112,10 +3112,10 @@ export interface AffiliateServiceSettings {
   baselineCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Per-shop affiliate business instructions injected into affiliate agent runs. */
   businessPrompt?: Maybe<Scalars['String']['output']>;
-  /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Empty or null means no device assigned. */
-  deviceId?: Maybe<Scalars['String']['output']>;
   /** Shop-level decision references for Agent interpretation. Campaign selection uses only thresholds explicitly frozen in that Campaign. */
   decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
+  /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Empty or null means no device assigned. */
+  deviceId?: Maybe<Scalars['String']['output']>;
   /** Whether affiliate creator-management inbound automation is enabled for this shop. */
   enabled: Scalars['Boolean']['output'];
   /** Prediction model scope used for affiliate expected-sales inference. Defaults to the account-level model. */
@@ -3128,10 +3128,10 @@ export interface AffiliateServiceSettings {
 export interface AffiliateServiceSettingsInput {
   /** Per-shop affiliate business instructions. Omit or pass null to keep, empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
-  /** Device ID of the desktop instance handling affiliate inbound signals. Omit or pass null to keep, empty string to clear. */
-  deviceId?: InputMaybe<Scalars['String']['input']>;
   /** Shop-level Affiliate decision references. Omit or pass null to keep, empty object to clear. These do not directly approve or reject Sample Applications. */
   decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
+  /** Device ID of the desktop instance handling affiliate inbound signals. Omit or pass null to keep, empty string to clear. */
+  deviceId?: InputMaybe<Scalars['String']['input']>;
   /** Affiliate service enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   /** Prediction model scope for affiliate expected-sales inference. Omit or pass null to keep. */
@@ -3615,6 +3615,34 @@ export interface BillingUsageStatus {
   window: UsageLimitWindow;
 }
 
+export interface BrowserToDesktopCodeInput {
+  code: Scalars['String']['input'];
+  codeVerifier: Scalars['String']['input'];
+}
+
+export interface BrowserToDesktopLoginApproval {
+  redirectUrl: Scalars['String']['output'];
+}
+
+export interface BrowserToDesktopLoginAttempt {
+  deviceName: Scalars['String']['output'];
+  expiresAt: Scalars['DateTimeISO']['output'];
+  status: Scalars['String']['output'];
+}
+
+export interface BrowserToDesktopLoginInput {
+  codeChallenge: Scalars['String']['input'];
+  deviceName: Scalars['String']['input'];
+  redirectUri: Scalars['String']['input'];
+  state: Scalars['String']['input'];
+}
+
+export interface BrowserToDesktopLoginStart {
+  authorizationUrl: Scalars['String']['output'];
+  expiresAt: Scalars['DateTimeISO']['output'];
+  flowId: Scalars['String']['output'];
+}
+
 /** One product/SKU included in an affiliate campaign setup. */
 export interface CampaignProduct {
   campaignId: Scalars['ID']['output'];
@@ -3708,9 +3736,13 @@ export interface CompleteTikTokAdsOAuthResponse {
 
 /** Public TikTok OAuth callback completion result. */
 export interface CompleteTikTokOAuthResponse {
+  claimStatus?: Maybe<Scalars['String']['output']>;
+  mode: Scalars['String']['output'];
   platform: Scalars['String']['output'];
   shopId: Scalars['ID']['output'];
   shopName: Scalars['String']['output'];
+  shops: Array<OAuthShopResponse>;
+  webSessionEstablished: Scalars['Boolean']['output'];
 }
 
 /** OpenClaw-session anchor used to bound a platform conversation delta. Prefer platform cursor fields; session text/timestamp are legacy fuzzy fallback fields. */
@@ -5360,6 +5392,11 @@ export interface DeleteAffiliateCampaignDraftInput {
 export interface DesktopGoogleAuthConfig {
   clientId?: Maybe<Scalars['String']['output']>;
   enabled: Scalars['Boolean']['output'];
+}
+
+export interface DesktopToWebLoginStart {
+  authorizationUrl: Scalars['String']['output'];
+  expiresAt: Scalars['DateTimeISO']['output'];
 }
 
 export interface DuplicateAffiliateCampaignInput {
@@ -7031,6 +7068,7 @@ export const ExpertConversationStatus = {
 export type ExpertConversationStatus = typeof ExpertConversationStatus[keyof typeof ExpertConversationStatus];
 export interface ExpertDispatchResult {
   run: ExpertRun;
+  usage: ExpertUsageStatus;
 }
 
 export interface ExpertKnowledgeRelease {
@@ -7768,6 +7806,7 @@ export interface Mutation {
   affiliatePublishRelationshipSignal: AffiliateRelationshipSignal;
   /** Apply a shop-scoped tag inside a user-level creator relation. */
   applyCreatorTag: AffiliateCreatorRelationship;
+  approveBrowserToDesktopLogin: BrowserToDesktopLoginApproval;
   archiveAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
   assignAffiliateBusinessDeveloper: AffiliateCreatorRelationship;
   assignAffiliateEmailAccount: EmailAccountBinding;
@@ -7781,6 +7820,7 @@ export interface Mutation {
   cancelExpertRun: ExpertRun;
   /** Check a creator phone number through Evolution API and optionally persist the result. */
   checkAffiliateCreatorWhatsApp: CheckCreatorWhatsAppContactPayload;
+  claimPendingTikTokShops: TikTokShopClaimResult;
   completeAffiliateOperationalOnboarding: AffiliateOperationalSettings;
   /** Complete Outlook/Microsoft Graph OAuth onboarding for a seller mailbox. */
   completeMicrosoftEmailOAuth: EmailAccountBinding;
@@ -7788,6 +7828,9 @@ export interface Mutation {
   completeTikTokAdsOAuth: CompleteTikTokAdsOAuthResponse;
   /** Complete TikTok OAuth from a public website callback using the one-time OAuth code and CSRF state. */
   completeTikTokOAuth: CompleteTikTokOAuthResponse;
+  consumeDesktopToWebLogin: WebAuthPayload;
+  consumeTikTokOAuthBrowserStart: TikTokOAuthBrowserStart;
+  createDesktopToWebLogin: DesktopToWebLoginStart;
   createExpertConversation: ExpertConversation;
   /** Create an additional original LLM proxy API key for the current user. Requires an active RivonClaw AI subscription. Most clients should use provisionLlmApiKey instead. */
   createLlmApiKey: CreatedLlmApiKeyPayload;
@@ -7881,6 +7924,7 @@ export interface Mutation {
   /** Enroll in a product module */
   enrollModule: MeResponse;
   ensureAffiliateBusinessDevelopers: EnsureAffiliateBusinessDevelopersPayload;
+  exchangeBrowserToDesktopLoginCode: AuthPayload;
   /** Generate or retrieve a cached proxy URL for an external image/video URL. Requires login. */
   genOrGetCachedProxyUrl: MediaCachedProxy;
   /**
@@ -7967,6 +8011,7 @@ export interface Mutation {
   setDefaultRunProfile: MeResponse;
   /** Single frontend entry point for paid billing. The backend decides whether to create a Stripe Checkout, resume a scheduled Stripe cancellation, return ALREADY_ACTIVE, create a Stripe trial that starts after existing free/prepaid access ends, process a Stripe upgrade, or create a Lakala prepaid QR payment. */
   startBillingSubscription: StartBillingSubscriptionResult;
+  startBrowserToDesktopLogin: BrowserToDesktopLoginStart;
   /** Start the one-time 7-day / 100 conversation customer-service trial for a shop. */
   startCustomerServiceTrial: EntitlementGrant;
   /** Start Outlook/Microsoft Graph OAuth onboarding for a seller mailbox. */
@@ -8084,6 +8129,11 @@ export interface MutationApplyCreatorTagArgs {
 }
 
 
+export interface MutationApproveBrowserToDesktopLoginArgs {
+  ticket: Scalars['String']['input'];
+}
+
+
 export interface MutationArchiveAffiliateBusinessDeveloperArgs {
   id: Scalars['ID']['input'];
 }
@@ -8148,7 +8198,23 @@ export interface MutationCompleteTikTokAdsOAuthArgs {
 
 export interface MutationCompleteTikTokOAuthArgs {
   code: Scalars['String']['input'];
-  state: Scalars['String']['input'];
+  serviceId: Scalars['String']['input'];
+  state?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface MutationConsumeDesktopToWebLoginArgs {
+  ticket: Scalars['String']['input'];
+}
+
+
+export interface MutationConsumeTikTokOAuthBrowserStartArgs {
+  ticket: Scalars['String']['input'];
+}
+
+
+export interface MutationCreateDesktopToWebLoginArgs {
+  returnPath: Scalars['String']['input'];
 }
 
 
@@ -8458,6 +8524,11 @@ export interface MutationEnsureAffiliateBusinessDevelopersArgs {
 }
 
 
+export interface MutationExchangeBrowserToDesktopLoginCodeArgs {
+  input: BrowserToDesktopCodeInput;
+}
+
+
 export interface MutationGenOrGetCachedProxyUrlArgs {
   sourceUrl: Scalars['String']['input'];
 }
@@ -8675,6 +8746,11 @@ export interface MutationStartBillingSubscriptionArgs {
 }
 
 
+export interface MutationStartBrowserToDesktopLoginArgs {
+  input: BrowserToDesktopLoginInput;
+}
+
+
 export interface MutationStartCustomerServiceTrialArgs {
   shopId: Scalars['ID']['input'];
 }
@@ -8882,6 +8958,11 @@ export interface OAuthCompletePayload {
   shopName: Scalars['String']['output'];
   /** All shops connected by this OAuth callback. */
   shops: Array<Shop>;
+}
+
+export interface OAuthShopResponse {
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
 }
 
 /** Unified payment record across payment providers. */
@@ -9414,6 +9495,7 @@ export interface Query {
   billingOverview: BillingOverview;
   /** List billable product plan definitions. */
   billingPlanDefinitions: Array<BillingPlanDefinition>;
+  browserToDesktopLoginAttempt: BrowserToDesktopLoginAttempt;
   /** Read campaign product setup rows from Mongo state. */
   campaignProducts: Array<CampaignProduct>;
   /** Check if a newer version is available (public, no auth required) */
@@ -9826,6 +9908,11 @@ export interface QueryAffiliateWorkItemsArgs {
 
 export interface QueryAffiliateWorkspaceArgs {
   input: AffiliateWorkspaceInput;
+}
+
+
+export interface QueryBrowserToDesktopLoginAttemptArgs {
+  ticket: Scalars['String']['input'];
 }
 
 
@@ -11803,6 +11890,11 @@ export const SystemSurface = {
 } as const;
 
 export type SystemSurface = typeof SystemSurface[keyof typeof SystemSurface];
+export interface TikTokOAuthBrowserStart {
+  authUrl: Scalars['String']['output'];
+  expiresAt: Scalars['DateTimeISO']['output'];
+}
+
 /** Raw TikTok sample content fulfillment status values. */
 export const TikTokSampleContentFulfillmentPlatformStatus = {
   Cancelled: 'CANCELLED',
@@ -11828,6 +11920,25 @@ export interface TikTokSellerDeauthorizationWebhookResult {
   duplicate: Scalars['Boolean']['output'];
   ignoredReason?: Maybe<Scalars['String']['output']>;
   shopId?: Maybe<Scalars['String']['output']>;
+}
+
+export interface TikTokShopClaimResult {
+  shops: Array<TikTokShopClaimShop>;
+  status: TikTokShopClaimResultStatus;
+}
+
+export const TikTokShopClaimResultStatus = {
+  AlreadyClaimed: 'ALREADY_CLAIMED',
+  Claimed: 'CLAIMED',
+  Expired: 'EXPIRED',
+  OwnershipConflict: 'OWNERSHIP_CONFLICT',
+  Revoked: 'REVOKED'
+} as const;
+
+export type TikTokShopClaimResultStatus = typeof TikTokShopClaimResultStatus[keyof typeof TikTokShopClaimResultStatus];
+export interface TikTokShopClaimShop {
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
 }
 
 /** Tool functional category */

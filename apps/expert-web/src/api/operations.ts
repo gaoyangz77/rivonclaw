@@ -67,6 +67,72 @@ export const WEB_LOGOUT = gql`
   }
 `;
 
+export const CONSUME_DESKTOP_TO_WEB_LOGIN = gql`
+  mutation ConsumeDesktopToWebLogin($ticket: String!) {
+    consumeDesktopToWebLogin(ticket: $ticket) {
+      accessToken
+      user {
+        userId
+        email
+        name
+      }
+    }
+  }
+`;
+
+export const BROWSER_TO_DESKTOP_LOGIN_ATTEMPT = gql`
+  query BrowserToDesktopLoginAttempt($ticket: String!) {
+    browserToDesktopLoginAttempt(ticket: $ticket) {
+      status
+      deviceName
+      expiresAt
+    }
+  }
+`;
+
+export const APPROVE_BROWSER_TO_DESKTOP_LOGIN = gql`
+  mutation ApproveBrowserToDesktopLogin($ticket: String!) {
+    approveBrowserToDesktopLogin(ticket: $ticket) {
+      redirectUrl
+    }
+  }
+`;
+
+export const CONSUME_TIKTOK_OAUTH_BROWSER_START = gql`
+  mutation ConsumeTikTokOAuthBrowserStart($ticket: String!) {
+    consumeTikTokOAuthBrowserStart(ticket: $ticket) {
+      authUrl
+      expiresAt
+    }
+  }
+`;
+
+export const COMPLETE_TIKTOK_OAUTH = gql`
+  mutation CompleteTikTokOAuth($code: String!, $state: String, $serviceId: String!) {
+    completeTikTokOAuth(code: $code, state: $state, serviceId: $serviceId) {
+      mode
+      webSessionEstablished
+      claimStatus
+      shops {
+        shopId
+        shopName
+      }
+    }
+  }
+`;
+
+export const CLAIM_PENDING_TIKTOK_SHOPS = gql`
+  mutation ClaimPendingTikTokShops {
+    claimPendingTikTokShops {
+      status
+      shops {
+        shopId
+        shopName
+      }
+    }
+  }
+`;
+
 export const EXPERT_BOOTSTRAP = gql`
   query ExpertBootstrap {
     expertProfile {

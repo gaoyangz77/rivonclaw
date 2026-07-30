@@ -17,6 +17,7 @@ import { runtimeStatusStore, subscribeToRuntimeStatusPatch } from "./store/runti
 import { openClawConnector } from "../openclaw/index.js";
 import type { AuthSessionManager } from "../auth/session.js";
 import { DesktopGoogleAuthCoordinator } from "../auth/google-oauth.js";
+import { DesktopBrowserLoginCoordinator } from "../auth/browser-login.js";
 import { clearStoredMarketingAttribution } from "../attribution/marketing-attribution.js";
 import { CloudClient } from "../cloud/cloud-client.js";
 import { startPairingNotifier } from "../channels/pairing-notifier.js";
@@ -227,6 +228,13 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
         await onAuthChange?.("google-login");
       },
     });
+    ctx.browserLoginCoordinator = new DesktopBrowserLoginCoordinator({
+      authSession,
+      openExternal: options.onOpenExternal,
+      onSuccess: async () => {
+        await onAuthChange?.("browser-login");
+      },
+    });
   }
 
   const server = createServer(async (req, res) => {
@@ -357,6 +365,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
 
   server.on("close", () => {
     ctx.googleAuthCoordinator?.dispose();
+    ctx.browserLoginCoordinator?.dispose();
     pairingNotifier.stop();
     panelEventBus.shutdown();
   });

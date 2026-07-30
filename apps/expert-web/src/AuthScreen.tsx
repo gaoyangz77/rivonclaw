@@ -31,6 +31,8 @@ export interface GoogleAuthConfig {
 
 interface AuthScreenProps {
   googleConfig?: GoogleAuthConfig;
+  initialMode?: "login" | "register";
+  onAuthenticated?: (payload: { accessToken: string; user: { email: string } }) => void;
 }
 
 function runtimeGoogleConfig(): GoogleAuthConfig {
@@ -57,10 +59,12 @@ function graphQLErrorCode(error: unknown): string | undefined {
 
 export const AuthScreen = observer(function AuthScreen({
   googleConfig = runtimeGoogleConfig(),
+  initialMode = "login",
+  onAuthenticated,
 }: AuthScreenProps) {
   const store = useExpertStore();
   const { language, t } = useI18n();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [captcha, setCaptcha] = useState<CaptchaData["requestCaptcha"]>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -95,8 +99,9 @@ export const AuthScreen = observer(function AuthScreen({
       setPendingGoogleIdToken(undefined);
       setAccessToken(payload.accessToken);
       store.signIn(payload.user.email);
+      onAuthenticated?.(payload);
     },
-    [store],
+    [onAuthenticated, store],
   );
 
   const handleGoogleCredential = useCallback(

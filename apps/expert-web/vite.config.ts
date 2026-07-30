@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 const EXPERT_WEB_DEV_PORT = Number(process.env.EXPERT_WEB_DEV_PORT ?? 5181);
 
 export default defineConfig({
+  base: "/app/",
   plugins: [react()],
   server: {
     port: EXPERT_WEB_DEV_PORT,

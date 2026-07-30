@@ -312,6 +312,58 @@ const googleCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
   sendJson(res, 200, flow);
 };
 
+const browserStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  if (!isTrustedPanelOrigin(req)) {
+    sendJson(res, 403, { errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN" });
+    return;
+  }
+  if (!ctx.browserLoginCoordinator) {
+    sendJson(res, 501, { errorCode: "BROWSER_AUTH_UNAVAILABLE" });
+    return;
+  }
+  try {
+    sendJson(res, 200, await ctx.browserLoginCoordinator.start());
+  } catch {
+    sendJson(res, 400, { errorCode: "BROWSER_AUTH_START_FAILED" });
+  }
+};
+
+const browserStatus: EndpointHandler = async (req, res, url, _params, ctx: ApiContext) => {
+  if (!isTrustedPanelOrigin(req)) {
+    sendJson(res, 403, { errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN" });
+    return;
+  }
+  const flowId = url.searchParams.get("flowId")?.trim();
+  if (!flowId || !ctx.browserLoginCoordinator) {
+    sendJson(res, 404, { errorCode: "BROWSER_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  const flow = ctx.browserLoginCoordinator.status(flowId);
+  if (!flow) {
+    sendJson(res, 404, { errorCode: "BROWSER_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  sendJson(res, 200, flow);
+};
+
+const browserCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  if (!isTrustedPanelOrigin(req)) {
+    sendJson(res, 403, { errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN" });
+    return;
+  }
+  const body = await parseBody(req) as { flowId?: string };
+  if (!body.flowId || !ctx.browserLoginCoordinator) {
+    sendJson(res, 404, { errorCode: "BROWSER_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  const flow = ctx.browserLoginCoordinator.cancel(body.flowId);
+  if (!flow) {
+    sendJson(res, 404, { errorCode: "BROWSER_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  sendJson(res, 200, flow);
+};
+
 export function registerAuthHandlers(registry: RouteRegistry): void {
   registry.register(API["auth.session"], getSession);
   registry.register(API["auth.login"], login);
@@ -325,4 +377,7 @@ export function registerAuthHandlers(registry: RouteRegistry): void {
   registry.register(API["auth.googleStatus"], googleStatus);
   registry.register(API["auth.googleLink"], googleLink);
   registry.register(API["auth.googleCancel"], googleCancel);
+  registry.register(API["auth.browserStart"], browserStart);
+  registry.register(API["auth.browserStatus"], browserStatus);
+  registry.register(API["auth.browserCancel"], browserCancel);
 }
