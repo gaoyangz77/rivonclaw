@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.8.83",
+    "date": "2026-07-29",
+    "en": [
+      "Recover authenticated desktop subscriptions after session refresh",
+      "Surface independent affiliate model availability and improve campaign guidance",
+      "Refine the hosted Expert chat, onboarding, sign-in, and image attachment experience"
+    ],
+    "zh": [
+      "在会话刷新后恢复桌面端已认证订阅连接",
+      "展示独立的达人模型可用性，并优化 campaign 指引",
+      "优化云端 Expert 的聊天、onboarding、登录和图片附件体验"
+    ]
+  },
+  {
     "version": "1.8.82",
     "date": "2026-07-27",
     "en": [
