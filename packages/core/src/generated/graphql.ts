@@ -1919,6 +1919,7 @@ export const AffiliateEmailAttachmentDisposition = {
 
 export type AffiliateEmailAttachmentDisposition = typeof AffiliateEmailAttachmentDisposition[keyof typeof AffiliateEmailAttachmentDisposition];
 export const AffiliateExpectedSalesFeatureTemporalBasis = {
+  BestAvailable: 'BEST_AVAILABLE',
   CurrentStateProxy: 'CURRENT_STATE_PROXY',
   DecisionTime: 'DECISION_TIME'
 } as const;
@@ -1942,7 +1943,8 @@ export interface AffiliateExpectedSalesModelSelection {
 
 export const AffiliateExpectedSalesModelStage = {
   Bootstrap: 'BOOTSTRAP',
-  EventTime: 'EVENT_TIME'
+  EventTime: 'EVENT_TIME',
+  Unified: 'UNIFIED'
 } as const;
 
 export type AffiliateExpectedSalesModelStage = typeof AffiliateExpectedSalesModelStage[keyof typeof AffiliateExpectedSalesModelStage];

@@ -3,6 +3,13 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Production model",
+        bestAvailableModel: "Best-available model",
+        bestAvailableExplanation:
+          "One progressive model that prefers decision-time features and uses eligible current-state proxies only when needed.",
+        bestAvailableCurrentReview:
+          "Best-available model · used for current sample review",
+        bestAvailableNoEvaluation:
+          "The best-available model is ready; this version has no backtest report yet.",
         bootstrapModel: "Bootstrap model",
         bootstrapApproximation: "Cold-start approximation using CURRENT_STATE_PROXY features.",
         modelDataAccumulating: "Data accumulating",
@@ -17,7 +24,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Production model is ready; this version has no backtest report yet.",
         modelAvailabilityUnavailable: "No READY artifact matches this scope and contract.",
         modelAvailabilityEmpty: "Live model availability could not be loaded.",
-        modelCombinationsReady: "{{count}} / 4 combinations ready",
+        modelCombinationsReady: "{{count}} / 2 model families ready",
         predictionComparison: {
           bootstrapEstimate: "Bootstrap estimate",
           bootstrapBadge: "Bootstrap",
@@ -37,6 +44,12 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "正式模型",
+        bestAvailableModel: "当前最佳模型",
+        bestAvailableExplanation:
+          "同一套渐进模型优先使用决策时点特征，仅在缺失时采用符合条件的当前状态近似特征。",
+        bestAvailableCurrentReview: "当前最佳模型 · 当前审样使用",
+        bestAvailableNoEvaluation:
+          "当前最佳模型已就绪，当前版本尚无回测报告。",
         bootstrapModel: "冷启动模型",
         bootstrapApproximation: "使用 CURRENT_STATE_PROXY 特征的冷启动近似。",
         modelDataAccumulating: "数据积累中",
@@ -51,7 +64,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "正式模型已就绪，当前版本尚无回测报告",
         modelAvailabilityUnavailable: "当前范围与契约下没有 READY artifact。",
         modelAvailabilityEmpty: "无法读取实时模型可用性。",
-        modelCombinationsReady: "{{count}} / 4 个组合就绪",
+        modelCombinationsReady: "{{count}} / 2 个模型系列就绪",
         predictionComparison: {
           bootstrapEstimate: "冷启动估算",
           bootstrapBadge: "冷启动",
@@ -71,6 +84,13 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Produktionsmodell",
+        bestAvailableModel: "Bestverfügbares Modell",
+        bestAvailableExplanation:
+          "Ein progressives Modell bevorzugt Entscheidungszeit-Merkmale und nutzt nur bei Bedarf zulässige aktuelle Näherungen.",
+        bestAvailableCurrentReview:
+          "Bestverfügbares Modell · für die aktuelle Prüfung",
+        bestAvailableNoEvaluation:
+          "Das bestverfügbare Modell ist bereit; für diese Version liegt noch kein Backtest vor.",
         bootstrapModel: "Kaltstartmodell",
         bootstrapApproximation: "Kaltstart-Näherung mit CURRENT_STATE_PROXY-Merkmalen.",
         modelDataAccumulating: "Daten werden gesammelt",
@@ -85,7 +105,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Das Produktionsmodell ist bereit; für diese Version liegt noch kein Backtest vor.",
         modelAvailabilityUnavailable: "Kein READY-Artefakt entspricht diesem Bereich und Vertrag.",
         modelAvailabilityEmpty: "Die Live-Modellverfügbarkeit konnte nicht geladen werden.",
-        modelCombinationsReady: "{{count}} / 4 Kombinationen bereit",
+        modelCombinationsReady: "{{count}} / 2 Modellfamilien bereit",
         predictionComparison: {
           bootstrapEstimate: "Kaltstart-Schätzung",
           bootstrapBadge: "Kaltstart",
@@ -105,6 +125,13 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Modelo de producción",
+        bestAvailableModel: "Mejor modelo disponible",
+        bestAvailableExplanation:
+          "Un modelo progresivo prioriza datos del momento de decisión y usa aproximaciones actuales válidas solo cuando hacen falta.",
+        bestAvailableCurrentReview:
+          "Mejor modelo disponible · usado en la revisión actual",
+        bestAvailableNoEvaluation:
+          "El mejor modelo disponible está listo; esta versión aún no tiene informe de backtest.",
         bootstrapModel: "Modelo de arranque",
         bootstrapApproximation: "Aproximación de arranque con características CURRENT_STATE_PROXY.",
         modelDataAccumulating: "Acumulando datos",
@@ -119,7 +146,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "El modelo de producción está listo; esta versión aún no tiene informe retrospectivo.",
         modelAvailabilityUnavailable: "Ningún artefacto READY coincide con este ámbito y contrato.",
         modelAvailabilityEmpty: "No se pudo cargar la disponibilidad del modelo en vivo.",
-        modelCombinationsReady: "{{count}} / 4 combinaciones listas",
+        modelCombinationsReady: "{{count}} / 2 familias de modelos listas",
         predictionComparison: {
           bootstrapEstimate: "Estimación de arranque",
           bootstrapBadge: "Arranque",
@@ -139,6 +166,13 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Modèle de production",
+        bestAvailableModel: "Meilleur modèle disponible",
+        bestAvailableExplanation:
+          "Un modèle progressif privilégie les variables au moment de la décision et utilise une approximation actuelle admissible si nécessaire.",
+        bestAvailableCurrentReview:
+          "Meilleur modèle disponible · utilisé pour la revue actuelle",
+        bestAvailableNoEvaluation:
+          "Le meilleur modèle disponible est prêt ; cette version n’a pas encore de rapport de backtest.",
         bootstrapModel: "Modèle de démarrage",
         bootstrapApproximation: "Approximation de démarrage avec des variables CURRENT_STATE_PROXY.",
         modelDataAccumulating: "Données en cours d’accumulation",
@@ -153,7 +187,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Le modèle de production est prêt ; cette version n’a pas encore de rapport de backtest.",
         modelAvailabilityUnavailable: "Aucun artefact READY ne correspond à ce périmètre et à ce contrat.",
         modelAvailabilityEmpty: "La disponibilité en direct des modèles n’a pas pu être chargée.",
-        modelCombinationsReady: "{{count}} / 4 combinaisons prêtes",
+        modelCombinationsReady: "{{count}} / 2 familles de modèles prêtes",
         predictionComparison: {
           bootstrapEstimate: "Estimation de démarrage",
           bootstrapBadge: "Démarrage",
@@ -173,6 +207,13 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Model produksi",
+        bestAvailableModel: "Model terbaik yang tersedia",
+        bestAvailableExplanation:
+          "Satu model progresif mengutamakan fitur saat keputusan dan memakai proksi kondisi kini yang valid hanya bila diperlukan.",
+        bestAvailableCurrentReview:
+          "Model terbaik yang tersedia · dipakai untuk tinjauan saat ini",
+        bestAvailableNoEvaluation:
+          "Model terbaik yang tersedia sudah siap; versi ini belum memiliki laporan backtest.",
         bootstrapModel: "Model bootstrap",
         bootstrapApproximation: "Perkiraan awal dengan fitur CURRENT_STATE_PROXY.",
         modelDataAccumulating: "Data sedang dikumpulkan",
@@ -187,7 +228,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Model produksi siap; versi ini belum memiliki laporan backtest.",
         modelAvailabilityUnavailable: "Tidak ada artefak READY yang cocok dengan cakupan dan kontrak ini.",
         modelAvailabilityEmpty: "Ketersediaan model langsung tidak dapat dimuat.",
-        modelCombinationsReady: "{{count}} / 4 kombinasi siap",
+        modelCombinationsReady: "{{count}} / 2 keluarga model siap",
         predictionComparison: {
           bootstrapEstimate: "Estimasi bootstrap",
           bootstrapBadge: "Bootstrap",
@@ -207,6 +248,13 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Modello di produzione",
+        bestAvailableModel: "Miglior modello disponibile",
+        bestAvailableExplanation:
+          "Un unico modello progressivo preferisce le feature al momento della decisione e usa proxy attuali idonei solo quando necessario.",
+        bestAvailableCurrentReview:
+          "Miglior modello disponibile · usato per la revisione attuale",
+        bestAvailableNoEvaluation:
+          "Il miglior modello disponibile è pronto; questa versione non ha ancora un report di backtest.",
         bootstrapModel: "Modello di avvio",
         bootstrapApproximation: "Approssimazione iniziale con feature CURRENT_STATE_PROXY.",
         modelDataAccumulating: "Raccolta dati in corso",
@@ -221,7 +269,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Il modello di produzione è pronto; questa versione non ha ancora un report di backtest.",
         modelAvailabilityUnavailable: "Nessun artefatto READY corrisponde a questo ambito e contratto.",
         modelAvailabilityEmpty: "Impossibile caricare la disponibilità live dei modelli.",
-        modelCombinationsReady: "{{count}} / 4 combinazioni pronte",
+        modelCombinationsReady: "{{count}} / 2 famiglie di modelli pronte",
         predictionComparison: {
           bootstrapEstimate: "Stima di avvio",
           bootstrapBadge: "Avvio",
@@ -241,6 +289,13 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "โมเดลใช้งานจริง",
+        bestAvailableModel: "โมเดลที่ดีที่สุดในขณะนี้",
+        bestAvailableExplanation:
+          "โมเดลแบบค่อยเป็นค่อยไปจะใช้ข้อมูล ณ เวลาตัดสินใจก่อน และใช้ข้อมูลสถานะปัจจุบันที่ผ่านเกณฑ์เมื่อจำเป็นเท่านั้น",
+        bestAvailableCurrentReview:
+          "โมเดลที่ดีที่สุดในขณะนี้ · ใช้กับการตรวจสอบปัจจุบัน",
+        bestAvailableNoEvaluation:
+          "โมเดลที่ดีที่สุดในขณะนี้พร้อมใช้งาน แต่เวอร์ชันนี้ยังไม่มีรายงาน backtest",
         bootstrapModel: "โมเดลเริ่มต้น",
         bootstrapApproximation: "การประมาณช่วงเริ่มต้นด้วยฟีเจอร์ CURRENT_STATE_PROXY",
         modelDataAccumulating: "กำลังสะสมข้อมูล",
@@ -255,7 +310,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "โมเดลใช้งานจริงพร้อมแล้ว แต่เวอร์ชันนี้ยังไม่มีรายงาน backtest",
         modelAvailabilityUnavailable: "ไม่มี artifact สถานะ READY ที่ตรงกับขอบเขตและสัญญานี้",
         modelAvailabilityEmpty: "ไม่สามารถโหลดสถานะโมเดลแบบสดได้",
-        modelCombinationsReady: "พร้อม {{count}} / 4 ชุด",
+        modelCombinationsReady: "พร้อม {{count}} / 2 กลุ่มโมเดล",
         predictionComparison: {
           bootstrapEstimate: "ค่าประมาณช่วงเริ่มต้น",
           bootstrapBadge: "ช่วงเริ่มต้น",

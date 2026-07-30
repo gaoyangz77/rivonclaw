@@ -95,89 +95,55 @@ describe("Expected Sales model-stage presentation", () => {
 
   const entry = (
     family: "EXPECTED_SALES" | "HUMAN_DECISION",
-    stage: "EVENT_TIME" | "BOOTSTRAP",
     status: "READY" | "FALLBACK" | "UNAVAILABLE",
     evaluationSummary?: Record<string, unknown> | null,
   ) => ({
     modelFamily: family,
-    modelStage: stage,
+    modelStage: "UNIFIED",
     status,
-    featureTemporalBasis:
-      stage === "EVENT_TIME" ? "DECISION_TIME" : "CURRENT_STATE_PROXY",
+    featureTemporalBasis: "BEST_AVAILABLE",
     requestedTenantScope: "SHOP",
     requestedTenantId: "shop-1",
     effectiveTenantScope: status === "FALLBACK" ? "REGION" : "SHOP",
     effectiveTenantId: status === "FALLBACK" ? "user-1::region::US" : "shop-1",
-    modelVersionKey: `${family}:${stage}:active`,
+    modelVersionKey: `${family}:UNIFIED:active`,
     contractHash: "a".repeat(64),
     contractStatus: status === "UNAVAILABLE" ? "UNAVAILABLE" : "MATCH",
     evaluationSummary: evaluationSummary as never,
   });
 
-  it("marks Production as current when EVENT_TIME is ready", () => {
-    const availability = [
-      entry("EXPECTED_SALES", "EVENT_TIME", "READY"),
-      entry("EXPECTED_SALES", "BOOTSTRAP", "READY"),
-    ];
+  it("marks the unified best-available artifact as current", () => {
+    const availability = [entry("EXPECTED_SALES", "READY")];
 
     expect(
       affiliateModelStagePresentation(
         availability,
         "EXPECTED_SALES",
-        "EVENT_TIME",
+        "UNIFIED",
       ).statusKey,
-    ).toBe("productionCurrentReview");
-    expect(
-      affiliateModelStagePresentation(
-        availability,
-        "EXPECTED_SALES",
-        "BOOTSTRAP",
-      ).statusKey,
-    ).toBe("bootstrapBackup");
+    ).toBe("bestAvailableCurrentReview");
   });
 
-  it("marks Bootstrap as current only when its family Production is unavailable", () => {
-    const availability = [
-      entry("EXPECTED_SALES", "EVENT_TIME", "UNAVAILABLE"),
-      entry("EXPECTED_SALES", "BOOTSTRAP", "FALLBACK"),
-      entry("HUMAN_DECISION", "EVENT_TIME", "READY"),
-      entry("HUMAN_DECISION", "BOOTSTRAP", "READY"),
-    ];
+  it("treats same-user scope fallback as the current unified artifact", () => {
+    const availability = [entry("EXPECTED_SALES", "FALLBACK")];
 
     expect(
       affiliateModelStagePresentation(
         availability,
         "EXPECTED_SALES",
-        "BOOTSTRAP",
+        "UNIFIED",
       ).statusKey,
-    ).toBe("bootstrapCurrentReview");
-    expect(
-      affiliateModelStagePresentation(
-        availability,
-        "HUMAN_DECISION",
-        "BOOTSTRAP",
-      ).statusKey,
-    ).toBe("bootstrapBackup");
+    ).toBe("bestAvailableCurrentReview");
   });
 
-  it("shows data accumulation when both stages are unavailable", () => {
-    const availability = [
-      entry("EXPECTED_SALES", "EVENT_TIME", "UNAVAILABLE"),
-      entry("EXPECTED_SALES", "BOOTSTRAP", "UNAVAILABLE"),
-    ];
+  it("shows data accumulation when the unified family is unavailable", () => {
+    const availability = [entry("EXPECTED_SALES", "UNAVAILABLE")];
 
     expect(
       affiliateModelStagePresentation(
         availability,
         "EXPECTED_SALES",
-        "EVENT_TIME",
-      ).statusKey,
-    ).toBe("modelDataAccumulating");
-    expect(
-      affiliateModelStagePresentation(
-        availability,
-        "EXPECTED_SALES",
-        "BOOTSTRAP",
+        "UNIFIED",
       ).statusKey,
     ).toBe("modelDataAccumulating");
   });
@@ -185,8 +151,8 @@ describe("Expected Sales model-stage presentation", () => {
   it("rejects an evaluation row that does not match the active artifact", () => {
     const staleEvaluation = {
       modelFamily: "EXPECTED_SALES",
-      modelStage: "BOOTSTRAP",
-      modelVersionKey: "EXPECTED_SALES:BOOTSTRAP:old",
+      modelStage: "UNIFIED",
+      modelVersionKey: "EXPECTED_SALES:UNIFIED:old",
       contractHash: "b".repeat(64),
       rowCount: 4_935,
       modelVsHumanExpectedUnitsLiftRatio: 1.819,
@@ -194,7 +160,6 @@ describe("Expected Sales model-stage presentation", () => {
     const availability = [
       entry(
         "EXPECTED_SALES",
-        "BOOTSTRAP",
         "READY",
         staleEvaluation,
       ),
@@ -204,19 +169,19 @@ describe("Expected Sales model-stage presentation", () => {
       affiliateModelStagePresentation(
         availability,
         "EXPECTED_SALES",
-        "BOOTSTRAP",
+        "UNIFIED",
       ).evaluationSummary,
     ).toBeNull();
   });
 
   it("retains requested/effective scope fallback independently of evaluation", () => {
     const availability = [
-      entry("HUMAN_DECISION", "BOOTSTRAP", "FALLBACK"),
+      entry("HUMAN_DECISION", "FALLBACK"),
     ];
     const presentation = affiliateModelStagePresentation(
       availability,
       "HUMAN_DECISION",
-      "BOOTSTRAP",
+      "UNIFIED",
     );
 
     expect(presentation.entry).toMatchObject({

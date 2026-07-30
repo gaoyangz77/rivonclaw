@@ -19793,7 +19793,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-model-stage-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--affiliate-intelligence-gap);
 }
 
@@ -19854,7 +19854,7 @@ html[lang="zh"] .acct-tool-chips {
   margin: 0;
   padding: 11px 20px;
   border-bottom: 1px solid var(--color-border-light);
-  background: color-mix(in srgb, var(--color-warning) 6%, var(--color-bg));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
   color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.45;
