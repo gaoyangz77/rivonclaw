@@ -147,8 +147,8 @@ type AffiliatePredictionSnapshotOutput = {
   expectedSalesPercentile?: number | null;
   expectedSalesStatus?: string | null;
   humanDecisionStatus?: string | null;
-  modelStage?: "EVENT_TIME" | "BOOTSTRAP" | null;
-  featureTemporalBasis?: "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
+  modelStage?: "UNIFIED" | "EVENT_TIME" | "BOOTSTRAP" | null;
+  featureTemporalBasis?: "BEST_AVAILABLE" | "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
   requestedTenantScope?: "USER" | "REGION" | "SHOP" | null;
   requestedTenantId?: string | null;
   effectiveTenantScope?: "USER" | "REGION" | "SHOP" | null;
@@ -166,8 +166,8 @@ type AffiliatePredictionSnapshotOutput = {
 };
 
 type AffiliatePredictionModelSelection = {
-  modelStage?: "EVENT_TIME" | "BOOTSTRAP" | null;
-  featureTemporalBasis?: "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
+  modelStage?: "UNIFIED" | "EVENT_TIME" | "BOOTSTRAP" | null;
+  featureTemporalBasis?: "BEST_AVAILABLE" | "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
   requestedTenantScope?: "USER" | "REGION" | "SHOP" | null;
   requestedTenantId?: string | null;
   effectiveTenantScope?: "USER" | "REGION" | "SHOP" | null;
@@ -330,20 +330,13 @@ type AffiliateModelAvailabilityView = {
 export function affiliateModelStagePresentation(
   availability: AffiliateModelAvailabilityView[],
   family: "EXPECTED_SALES" | "HUMAN_DECISION",
-  stage: "EVENT_TIME" | "BOOTSTRAP",
+  stage: "UNIFIED",
 ) {
   const entry = availability.find(
     (candidate) =>
       candidate.modelFamily === family && candidate.modelStage === stage,
   ) ?? null;
-  const production = availability.find(
-    (candidate) =>
-      candidate.modelFamily === family &&
-      candidate.modelStage === "EVENT_TIME",
-  );
   const ready = entry?.status === "READY" || entry?.status === "FALLBACK";
-  const productionReady =
-    production?.status === "READY" || production?.status === "FALLBACK";
   const rawEvaluation = entry?.evaluationSummary ?? null;
   const evaluationIdentity = rawEvaluation as unknown as
     | Record<string, unknown>
@@ -360,14 +353,8 @@ export function affiliateModelStagePresentation(
     entry,
     ready,
     evaluationSummary,
-    isCurrent: ready && (stage === "EVENT_TIME" || !productionReady),
-    statusKey: !ready
-      ? "modelDataAccumulating"
-      : stage === "EVENT_TIME"
-        ? "productionCurrentReview"
-        : !productionReady
-          ? "bootstrapCurrentReview"
-          : "bootstrapBackup",
+    isCurrent: ready,
+    statusKey: ready ? "bestAvailableCurrentReview" : "modelDataAccumulating",
   };
 }
 
@@ -1099,13 +1086,10 @@ function AffiliateMlInsightsPanel({
           </div>
         ) : (
           <div className="affiliate-model-stage-grid">
-            {(["EVENT_TIME", "BOOTSTRAP"] as const).map((stage) => (
-              <AffiliateModelStageCard
-                key={stage}
-                availability={availability}
-                stage={stage}
-              />
-            ))}
+            <AffiliateModelStageCard
+              availability={availability}
+              stage="UNIFIED"
+            />
           </div>
         )}
       </div>
@@ -1118,30 +1102,25 @@ function AffiliateModelStageCard({
   stage,
 }: {
   availability: AffiliateModelAvailabilityView[];
-  stage: "EVENT_TIME" | "BOOTSTRAP";
+  stage: "UNIFIED";
 }) {
   const { t } = useTranslation();
   const stageRows = availability.filter((entry) => entry.modelStage === stage);
-  const stageTitle =
-    stage === "EVENT_TIME"
-      ? t("ecommerce.affiliateWorkspace.productionModel")
-      : t("ecommerce.affiliateWorkspace.bootstrapModel");
+  const stageTitle = t("ecommerce.affiliateWorkspace.bestAvailableModel");
   return (
     <section className={`affiliate-model-stage-card affiliate-model-stage-card-${stage.toLowerCase()}`}>
       <header>
         <div>
           <span className="affiliate-model-stage-eyebrow">
-            {stage === "EVENT_TIME" ? "EVENT_TIME" : "CURRENT_STATE_PROXY"}
+            BEST_AVAILABLE
           </span>
           <h2>{stageTitle}</h2>
         </div>
         <span className="affiliate-model-stage-count">{stageRows.length}/2</span>
       </header>
-      {stage === "BOOTSTRAP" ? (
-        <p className="affiliate-model-stage-note">
-          {t("ecommerce.affiliateWorkspace.bootstrapApproximation")}
-        </p>
-      ) : null}
+      <p className="affiliate-model-stage-note">
+        {t("ecommerce.affiliateWorkspace.bestAvailableExplanation")}
+      </p>
       <div className="affiliate-model-family-list">
         {(["EXPECTED_SALES", "HUMAN_DECISION"] as const).map((family) => {
           const presentation = affiliateModelStagePresentation(
@@ -1199,9 +1178,7 @@ function AffiliateModelStageCard({
                 </div>
               ) : ready ? (
                 <p className="affiliate-model-no-evaluation">
-                  {stage === "BOOTSTRAP"
-                    ? t("ecommerce.affiliateWorkspace.bootstrapNoEvaluation")
-                    : t("ecommerce.affiliateWorkspace.productionNoEvaluation")}
+                  {t("ecommerce.affiliateWorkspace.bestAvailableNoEvaluation")}
                 </p>
               ) : (
                 <p className="affiliate-model-unavailable-reason">

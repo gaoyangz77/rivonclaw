@@ -671,19 +671,15 @@ function affiliateCurrentExpectedSalesEvaluation(
 ): AffiliateModelEvaluation | null {
   if (!Array.isArray(availability)) return null;
   const ready = availability
-    .filter((entry): entry is Record<string, unknown> =>
-      Boolean(entry) && typeof entry === "object" && !Array.isArray(entry))
     .filter(
+      (entry): entry is Record<string, unknown> =>
+        Boolean(entry) && typeof entry === "object" && !Array.isArray(entry),
+    )
+    .find(
       (entry) =>
         entry.modelFamily === "EXPECTED_SALES" &&
         (entry.status === "READY" || entry.status === "FALLBACK"),
-    )
-    .sort((left, right) =>
-      left.modelStage === right.modelStage
-        ? 0
-        : left.modelStage === "EVENT_TIME"
-          ? -1
-          : 1)[0];
+    );
   return affiliateModelEvaluation(ready?.evaluationSummary);
 }
 
