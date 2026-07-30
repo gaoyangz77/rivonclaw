@@ -3113,7 +3113,7 @@ export interface AffiliateServiceSettings {
   /** Per-shop affiliate business instructions injected into affiliate agent runs. */
   businessPrompt?: Maybe<Scalars['String']['output']>;
   /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Empty or null means no device assigned. */
-  csDeviceId?: Maybe<Scalars['String']['output']>;
+  deviceId?: Maybe<Scalars['String']['output']>;
   /** Shop-level decision references for Agent interpretation. Campaign selection uses only thresholds explicitly frozen in that Campaign. */
   decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
   /** Whether affiliate creator-management inbound automation is enabled for this shop. */
@@ -3129,7 +3129,7 @@ export interface AffiliateServiceSettingsInput {
   /** Per-shop affiliate business instructions. Omit or pass null to keep, empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
   /** Device ID of the desktop instance handling affiliate inbound signals. Omit or pass null to keep, empty string to clear. */
-  csDeviceId?: InputMaybe<Scalars['String']['input']>;
+  deviceId?: InputMaybe<Scalars['String']['input']>;
   /** Shop-level Affiliate decision references. Omit or pass null to keep, empty object to clear. These do not directly approve or reject Sample Applications. */
   decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
   /** Affiliate service enabled flag. Omit or pass null to keep, true/false to set. */

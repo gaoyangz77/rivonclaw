@@ -32,9 +32,7 @@ export function useDeviceBinding() {
     }
     setTogglingBindShopId(shopId);
     try {
-      await shop.update({
-        services: { customerService: { csDeviceId: myDeviceId } },
-      });
+      await shop.bindCustomerServiceToDevice(myDeviceId);
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {
@@ -50,9 +48,7 @@ export function useDeviceBinding() {
     if (!shop) return;
     setTogglingBindShopId(shopId);
     try {
-      await shop.update({
-        services: { customerService: { csDeviceId: myDeviceId } },
-      });
+      await shop.bindCustomerServiceToDevice(myDeviceId);
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {
@@ -65,9 +61,7 @@ export function useDeviceBinding() {
     if (!shop) return;
     setTogglingBindShopId(shopId);
     try {
-      await shop.update({
-        services: { customerService: { csDeviceId: "" } },
-      });
+      await shop.unbindCustomerServiceFromDevice();
     } catch {
       showToast(t("ecommerce.updateFailed"), "error");
     } finally {

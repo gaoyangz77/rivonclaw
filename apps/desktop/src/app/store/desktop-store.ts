@@ -162,7 +162,7 @@ const DesktopRootStoreModel = RootStoreModel
       const contexts: AffiliateShopContextProjection[] = [];
       for (const shop of self.shops as any[]) {
         const affiliateService = shop.services?.affiliateService;
-        if (!shop.platformShopId || !affiliateService?.enabled || affiliateService.csDeviceId !== deviceId) continue;
+        if (!shop.platformShopId || !affiliateService?.enabled || affiliateService.deviceId !== deviceId) continue;
         contexts.push({
           id: shop.id,
           userId: shop.userId,
@@ -198,7 +198,7 @@ const DesktopRootStoreModel = RootStoreModel
       if (!deviceId) return false;
       const shop = self.findShopByObjectOrPlatformId(shopId, platformShopId);
       const affiliateService = shop?.services?.affiliateService;
-      return !!(affiliateService?.enabled && affiliateService.csDeviceId === deviceId);
+      return !!(affiliateService?.enabled && affiliateService.deviceId === deviceId);
     },
   }))
   .actions((self) => ({
