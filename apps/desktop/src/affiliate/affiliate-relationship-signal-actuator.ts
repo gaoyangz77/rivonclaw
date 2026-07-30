@@ -32,10 +32,10 @@ export async function handleAffiliateRelationshipSignal(
     return;
   }
 
-  if (affiliateService.csDeviceId !== deviceId) {
+  if (affiliateService.deviceId !== deviceId) {
     log.info(
       `Ignoring affiliate signal for shop ${signal.platformShopId}: ` +
-      `assignedDevice=${affiliateService.csDeviceId ?? ""} currentDevice=${deviceId}`,
+      `assignedDevice=${affiliateService.deviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
   }

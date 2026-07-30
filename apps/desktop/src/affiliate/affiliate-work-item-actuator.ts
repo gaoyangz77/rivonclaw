@@ -15,7 +15,7 @@ function findWorkItemShopForDevice(workItem: AffiliateWorkItemPayload, deviceId:
   for (const shopKey of shopKeys) {
     const shop = rootStore.findShopByObjectOrPlatformId(shopKey, shopKey);
     const affiliateService = shop?.services?.affiliateService;
-    if (shop && affiliateService?.enabled && affiliateService.csDeviceId === deviceId) {
+    if (shop && affiliateService?.enabled && affiliateService.deviceId === deviceId) {
       return shop;
     }
   }
@@ -38,10 +38,10 @@ export async function handleAffiliateWorkItemChanged(
     return;
   }
 
-  if (affiliateService.csDeviceId !== deviceId) {
+  if (affiliateService.deviceId !== deviceId) {
     log.info(
       `Ignoring affiliate work item for shop ${shop.platformShopId}: ` +
-      `assignedDevice=${affiliateService.csDeviceId ?? ""} currentDevice=${deviceId}`,
+      `assignedDevice=${affiliateService.deviceId ?? ""} currentDevice=${deviceId}`,
     );
     return;
   }

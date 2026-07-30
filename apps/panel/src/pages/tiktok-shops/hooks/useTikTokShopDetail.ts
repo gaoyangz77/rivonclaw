@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { useRuntimeStatus } from "../../../store/RuntimeStatusProvider.js";
 import type { ModalTab } from "../tiktok-shops-types.js";
 
 interface UseTikTokShopDetailParams {
@@ -15,6 +16,7 @@ export function useTikTokShopDetail({
 }: UseTikTokShopDetailParams) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
+  const runtimeStatus = useRuntimeStatus();
   const { showToast } = useToast();
   const shops = entityStore.shops;
 
@@ -57,9 +59,7 @@ export function useTikTokShopDetail({
     try {
       const shop = shops.find((s) => s.id === shopId);
       if (!shop) throw new Error(`Shop ${shopId} not found`);
-      await shop.update({
-        services: { customerService: { enabled: !currentValue } },
-      });
+      await shop.setCustomerServiceEnabled(!currentValue, runtimeStatus.deviceId);
     } catch (err) {
       handleError(err, "tiktokShops.updateFailed");
     } finally {

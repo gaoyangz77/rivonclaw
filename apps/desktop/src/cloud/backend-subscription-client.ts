@@ -77,7 +77,7 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
           affiliateService {
             enabled
             runProfileId
-            csDeviceId
+            deviceId
             modelUsageScope
             businessPrompt
             decisionThresholds {
@@ -156,7 +156,7 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
         affiliateService {
           enabled
           runProfileId
-          csDeviceId
+          deviceId
           modelUsageScope
           businessPrompt
           decisionThresholds {

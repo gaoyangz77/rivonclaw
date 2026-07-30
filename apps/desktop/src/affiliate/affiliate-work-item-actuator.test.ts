@@ -43,7 +43,7 @@ describe("affiliate work item actuator", () => {
           wms: null,
           affiliateService: {
             enabled: true,
-            csDeviceId: "device-001",
+            deviceId: "device-001",
             runProfileId: "AFFILIATE_OPERATOR",
             businessPrompt: null,
             modelUsageScope: "USER_LEVEL",
