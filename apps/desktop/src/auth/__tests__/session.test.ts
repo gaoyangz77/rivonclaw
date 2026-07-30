@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { GQL } from "@rivonclaw/core";
 import { SecretStoreAccessError, type SecretStore } from "@rivonclaw/secrets";
-import { AuthSessionManager } from "../session.js";
+import { AuthSessionManager, GraphqlRequestError } from "../session.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -186,6 +186,68 @@ describe("AuthSessionManager.loginWithCredentials", () => {
 
     // Tokens should not have been stored
     expect(manager.getAccessToken()).toBeNull();
+  });
+});
+
+describe("AuthSessionManager Google sign-in", () => {
+  it("preserves GraphQL error codes needed for existing-account linking", async () => {
+    const manager = new AuthSessionManager(
+      makeSecretStore(),
+      "en",
+      vi.fn().mockResolvedValue({
+        status: 200,
+        json: async () => ({
+          errors: [{
+            message: "Link required",
+            extensions: { code: "GOOGLE_ACCOUNT_LINK_REQUIRED" },
+          }],
+        }),
+      }) as unknown as typeof fetch,
+    );
+
+    await expect(manager.loginWithGoogle({
+      idToken: "google-id-token",
+      nonce: "nonce",
+    })).rejects.toEqual(expect.objectContaining({
+      name: "GraphqlRequestError",
+      code: "GOOGLE_ACCOUNT_LINK_REQUIRED",
+    }));
+    await expect(manager.loginWithGoogle({
+      idToken: "google-id-token",
+      nonce: "nonce",
+    })).rejects.toBeInstanceOf(GraphqlRequestError);
+  });
+
+  it("stores only the TK Copilot token pair returned by googleLogin", async () => {
+    const secretStore = makeSecretStore();
+    const fetchFn = vi.fn().mockResolvedValue({
+      status: 200,
+      json: async () => ({
+        data: {
+          googleLogin: {
+            accessToken: "tk-access",
+            refreshToken: "tk-refresh",
+            user: mockUser,
+          },
+        },
+      }),
+    });
+    const manager = new AuthSessionManager(
+      secretStore,
+      "en",
+      fetchFn as unknown as typeof fetch,
+    );
+
+    await expect(manager.loginWithGoogle({
+      idToken: "google-id-token",
+      nonce: "desktop-nonce",
+    })).resolves.toEqual(mockUser);
+    expect(secretStore.set).toHaveBeenCalledWith("auth.accessToken", "tk-access");
+    expect(secretStore.set).toHaveBeenCalledWith("auth.refreshToken", "tk-refresh");
+    expect(secretStore.set).not.toHaveBeenCalledWith(
+      expect.any(String),
+      "google-id-token",
+    );
   });
 });
 

@@ -35,7 +35,7 @@ async function dispatch(method: string, path: string, ctx: ApiContext, body?: un
   const req = makeReq(method, body);
   const res = makeRes();
   const url = new URL(`http://localhost${path}`);
-  const handled = await registry.dispatch(req, res, url, path, ctx);
+  const handled = await registry.dispatch(req, res, url, url.pathname, ctx);
   return { handled, res };
 }
 
@@ -50,6 +50,7 @@ function makeReq(method: string, body?: unknown): IncomingMessage {
   }
   readable.push(null);
   (readable as any).method = method;
+  (readable as any).headers = {};
   return readable as unknown as IncomingMessage;
 }
 
@@ -488,5 +489,107 @@ describe("backward compatibility", () => {
       bootstrapStatus: "signed_out",
       error: null,
     });
+  });
+});
+
+describe("Desktop Google auth routes", () => {
+  it("starts with stored attribution and polls a flow without exposing tokens", async () => {
+    const capturedAt = new Date().toISOString();
+    const attribution = {
+      version: 1,
+      attributionId: "4a6f2465-48fb-4aaf-9963-75431d2bb42c",
+      firstTouch: {
+        source: "website",
+        medium: "download",
+        landingPage: "/download",
+        capturedAt,
+      },
+      lastTouch: {
+        source: "website",
+        medium: "download",
+        landingPage: "/download",
+        capturedAt,
+      },
+    };
+    const googleAuthCoordinator = {
+      start: vi.fn().mockResolvedValue({ flowId: "flow-1", status: "pending" }),
+      status: vi.fn().mockReturnValue({ flowId: "flow-1", status: "pending" }),
+    };
+    const ctx = {
+      storage: makeStorage(attribution),
+      googleAuthCoordinator,
+    } as unknown as ApiContext;
+
+    const started = await dispatch("POST", "/api/auth/google/start", ctx, {
+      inviteCode: "abc123",
+    });
+    expect(started.res._status).toBe(200);
+    expect(started.res._body).toEqual({ flowId: "flow-1", status: "pending" });
+    expect(googleAuthCoordinator.start).toHaveBeenCalledWith({
+      inviteCode: "ABC123",
+      attribution,
+    });
+
+    const status = await dispatch(
+      "GET",
+      "/api/auth/google/status?flowId=flow-1",
+      ctx,
+    );
+    expect(status.res._status).toBe(200);
+    expect(status.res._body).toEqual({ flowId: "flow-1", status: "pending" });
+    expect(JSON.stringify(status.res._body)).not.toContain("token");
+  });
+
+  it("forwards password and captcha only to a pending link flow", async () => {
+    const googleAuthCoordinator = {
+      link: vi.fn().mockResolvedValue({ flowId: "flow-1", status: "completed" }),
+    };
+    const ctx = { googleAuthCoordinator } as unknown as ApiContext;
+    const result = await dispatch("POST", "/api/auth/google/link", ctx, {
+      flowId: "flow-1",
+      password: "original-password",
+      captchaToken: "captcha-token",
+      captchaAnswer: "ABCD",
+    });
+
+    expect(result.res._status).toBe(200);
+    expect(googleAuthCoordinator.link).toHaveBeenCalledWith({
+      flowId: "flow-1",
+      password: "original-password",
+      captchaToken: "captcha-token",
+      captchaAnswer: "ABCD",
+    });
+  });
+
+  it("hides the client ID from the Panel config response", async () => {
+    const ctx = {
+      googleAuthCoordinator: {
+        getConfig: vi.fn().mockResolvedValue({
+          enabled: true,
+          clientId: "public-desktop-client-id",
+        }),
+      },
+    } as unknown as ApiContext;
+
+    const result = await dispatch("GET", "/api/auth/google/config", ctx);
+    expect(result.res._body).toEqual({ enabled: true });
+  });
+
+  it("rejects browser requests from a non-loopback origin", async () => {
+    const req = makeReq("POST", {});
+    (req as any).headers.origin = "https://attacker.example";
+    const res = makeRes();
+    const url = new URL("http://localhost/api/auth/google/start");
+    const handled = await registry.dispatch(
+      req,
+      res,
+      url,
+      url.pathname,
+      { googleAuthCoordinator: { start: vi.fn() } } as unknown as ApiContext,
+    );
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(403);
+    expect(res._body).toEqual({ errorCode: "GOOGLE_AUTH_UNTRUSTED_ORIGIN" });
   });
 });

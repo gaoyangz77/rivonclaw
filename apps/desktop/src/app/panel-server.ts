@@ -16,6 +16,8 @@ import { rootStore, subscribeToPatch } from "./store/desktop-store.js";
 import { runtimeStatusStore, subscribeToRuntimeStatusPatch } from "./store/runtime-status-store.js";
 import { openClawConnector } from "../openclaw/index.js";
 import type { AuthSessionManager } from "../auth/session.js";
+import { DesktopGoogleAuthCoordinator } from "../auth/google-oauth.js";
+import { clearStoredMarketingAttribution } from "../attribution/marketing-attribution.js";
 import { CloudClient } from "../cloud/cloud-client.js";
 import { startPairingNotifier } from "../channels/pairing-notifier.js";
 import { getSystemLocale } from "../i18n/locale.js";
@@ -140,6 +142,7 @@ export interface PanelServerOptions {
   getUpdateDownloadState?: () => { status: string;[key: string]: unknown };
   authSession?: AuthSessionManager;
   proxyFetch?: (url: string | URL, init?: RequestInit) => Promise<Response>;
+  onOpenExternal?: (url: string) => Promise<unknown>;
   channelManager?: import("../channels/channel-manager.js").ChannelManagerInstance;
   desktopApiToken?: string;
 }
@@ -214,6 +217,17 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     channelManager,
     desktopApiToken,
   };
+  if (authSession && options.proxyFetch && options.onOpenExternal) {
+    ctx.googleAuthCoordinator = new DesktopGoogleAuthCoordinator({
+      authSession,
+      fetchFn: options.proxyFetch,
+      openExternal: options.onOpenExternal,
+      onSuccess: async () => {
+        clearStoredMarketingAttribution(storage.settings);
+        await onAuthChange?.("google-login");
+      },
+    });
+  }
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://127.0.0.1:${requestedPort}`);
@@ -342,6 +356,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
   });
 
   server.on("close", () => {
+    ctx.googleAuthCoordinator?.dispose();
     pairingNotifier.stop();
     panelEventBus.shutdown();
   });

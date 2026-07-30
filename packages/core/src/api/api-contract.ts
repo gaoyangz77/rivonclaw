@@ -49,6 +49,11 @@ export const API = {
   "auth.storeTokens":        { method: "POST",   path: "/api/auth/store-tokens",          desc: "Store auth tokens from Panel" },
   "auth.refresh":            { method: "POST",   path: "/api/auth/refresh",               desc: "Refresh access token" },
   "auth.logout":             { method: "POST",   path: "/api/auth/logout",                desc: "Logout and clear tokens" },
+  "auth.googleConfig":       { method: "GET",    path: "/api/auth/google/config",          desc: "Get Desktop Google sign-in availability" },
+  "auth.googleStart":        { method: "POST",   path: "/api/auth/google/start",           desc: "Start system-browser Google sign-in" },
+  "auth.googleStatus":       { method: "GET",    path: "/api/auth/google/status",          desc: "Poll Desktop Google sign-in status" },
+  "auth.googleLink":         { method: "POST",   path: "/api/auth/google/link",            desc: "Link Google to an existing password account" },
+  "auth.googleCancel":       { method: "POST",   path: "/api/auth/google/cancel",          desc: "Cancel Desktop Google sign-in" },
 
   // ── App / Status ──
   "app.status":              { method: "GET",    path: "/api/status",                     desc: "App status and device ID" },

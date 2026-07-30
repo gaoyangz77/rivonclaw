@@ -8,6 +8,7 @@ import {
   clearStoredMarketingAttribution,
   readStoredMarketingAttribution,
 } from "../attribution/marketing-attribution.js";
+import { GraphqlRequestError } from "./session.js";
 
 const log = createLogger("auth-api");
 
@@ -203,6 +204,114 @@ const logout: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext
   sendJson(res, 200, { ok: true });
 };
 
+function googleErrorCode(error: unknown): string {
+  return error instanceof GraphqlRequestError && error.code
+    ? error.code
+    : "GOOGLE_AUTH_FAILED";
+}
+
+function isTrustedPanelOrigin(req: Parameters<EndpointHandler>[0]): boolean {
+  const origin = req.headers?.origin;
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    return url.protocol === "http:"
+      && (url.hostname === "127.0.0.1" || url.hostname === "localhost");
+  } catch {
+    return false;
+  }
+}
+
+function rejectUntrustedGoogleRequest(
+  req: Parameters<EndpointHandler>[0],
+  res: Parameters<EndpointHandler>[1],
+): boolean {
+  if (isTrustedPanelOrigin(req)) return false;
+  sendJson(res, 403, { errorCode: "GOOGLE_AUTH_UNTRUSTED_ORIGIN" });
+  return true;
+}
+
+const googleConfig: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
+  const config = await ctx.googleAuthCoordinator?.getConfig();
+  sendJson(res, 200, { enabled: config?.enabled === true });
+};
+
+const googleStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  if (rejectUntrustedGoogleRequest(req, res)) return;
+  if (!ctx.googleAuthCoordinator) {
+    sendJson(res, 501, { errorCode: "GOOGLE_AUTH_UNAVAILABLE" });
+    return;
+  }
+  const body = await parseBody(req) as { inviteCode?: string | null };
+  try {
+    const flow = await ctx.googleAuthCoordinator.start({
+      inviteCode: body.inviteCode?.trim().toUpperCase() || null,
+      attribution: readStoredMarketingAttribution(ctx.storage.settings) ?? undefined,
+    });
+    sendJson(res, 200, flow);
+  } catch (error) {
+    sendJson(res, 400, { errorCode: googleErrorCode(error) });
+  }
+};
+
+const googleStatus: EndpointHandler = async (_req, res, url, _params, ctx: ApiContext) => {
+  const flowId = url.searchParams.get("flowId")?.trim();
+  if (!flowId || !ctx.googleAuthCoordinator) {
+    sendJson(res, 404, { errorCode: "GOOGLE_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  const flow = ctx.googleAuthCoordinator.status(flowId);
+  if (!flow) {
+    sendJson(res, 404, { errorCode: "GOOGLE_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  sendJson(res, 200, flow);
+};
+
+const googleLink: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  if (rejectUntrustedGoogleRequest(req, res)) return;
+  if (!ctx.googleAuthCoordinator) {
+    sendJson(res, 501, { errorCode: "GOOGLE_AUTH_UNAVAILABLE" });
+    return;
+  }
+  const body = await parseBody(req) as {
+    flowId?: string;
+    password?: string;
+    captchaToken?: string;
+    captchaAnswer?: string;
+  };
+  if (!body.flowId || !body.password || !body.captchaToken || !body.captchaAnswer) {
+    sendJson(res, 400, { errorCode: "GOOGLE_AUTH_LINK_INPUT_REQUIRED" });
+    return;
+  }
+  try {
+    const flow = await ctx.googleAuthCoordinator.link({
+      flowId: body.flowId,
+      password: body.password,
+      captchaToken: body.captchaToken,
+      captchaAnswer: body.captchaAnswer,
+    });
+    sendJson(res, 200, flow);
+  } catch (error) {
+    sendJson(res, 400, { errorCode: googleErrorCode(error) });
+  }
+};
+
+const googleCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  if (rejectUntrustedGoogleRequest(req, res)) return;
+  const body = await parseBody(req) as { flowId?: string };
+  if (!body.flowId || !ctx.googleAuthCoordinator) {
+    sendJson(res, 404, { errorCode: "GOOGLE_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  const flow = ctx.googleAuthCoordinator.cancel(body.flowId);
+  if (!flow) {
+    sendJson(res, 404, { errorCode: "GOOGLE_AUTH_FLOW_NOT_FOUND" });
+    return;
+  }
+  sendJson(res, 200, flow);
+};
+
 export function registerAuthHandlers(registry: RouteRegistry): void {
   registry.register(API["auth.session"], getSession);
   registry.register(API["auth.login"], login);
@@ -211,4 +320,9 @@ export function registerAuthHandlers(registry: RouteRegistry): void {
   registry.register(API["auth.storeTokens"], storeTokens);
   registry.register(API["auth.refresh"], refresh);
   registry.register(API["auth.logout"], logout);
+  registry.register(API["auth.googleConfig"], googleConfig);
+  registry.register(API["auth.googleStart"], googleStart);
+  registry.register(API["auth.googleStatus"], googleStatus);
+  registry.register(API["auth.googleLink"], googleLink);
+  registry.register(API["auth.googleCancel"], googleCancel);
 }

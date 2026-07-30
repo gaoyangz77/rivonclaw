@@ -13,14 +13,17 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
     // Try to extract the server's error message (and optional detail) from the JSON body
     let serverMessage: string | undefined;
     let serverDetail: string | undefined;
+    let serverCode: string | undefined;
     try {
-      const body = await res.json() as { error?: string; detail?: string };
+      const body = await res.json() as { error?: string; errorCode?: string; detail?: string };
       serverMessage = body.error;
+      serverCode = body.errorCode;
       serverDetail = body.detail;
     } catch {
       // Response wasn't JSON — fall back to status text
     }
-    const err = new Error(serverMessage || `API error: ${res.status} ${res.statusText}`);
+    const err = new Error(serverMessage || serverCode || `API error: ${res.status} ${res.statusText}`);
+    if (serverCode) (err as Error & { code?: string }).code = serverCode;
     if (serverDetail) (err as Error & { detail?: string }).detail = serverDetail;
     throw err;
   }
