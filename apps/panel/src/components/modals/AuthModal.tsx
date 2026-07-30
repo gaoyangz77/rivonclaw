@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -32,6 +32,40 @@ function translateAuthError(err: unknown, t: TFunction): string {
   const raw = formatError(err);
   const key = AUTH_ERROR_MAP[raw];
   return key ? t(key) : t("auth.errorGeneric");
+}
+
+type GoogleAuthStatus =
+  | "pending"
+  | "link_required"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "expired";
+
+interface GoogleAuthFlow {
+  flowId: string;
+  status: GoogleAuthStatus;
+  errorCode?: string;
+}
+
+function translateGoogleError(error: unknown, t: TFunction): string {
+  const code = (error as { code?: string; errorCode?: string } | null)?.code
+    ?? (error as { errorCode?: string } | null)?.errorCode
+    ?? formatError(error);
+  if (code === "GOOGLE_AUTH_TIMEOUT") return t("auth.googleTimeout");
+  if (code === "GOOGLE_AUTH_UNAVAILABLE") return t("auth.googleUnavailable");
+  return t("auth.googleError");
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+      <path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.482h4.844a4.14 4.14 0 0 1-1.797 2.715v2.258h2.909c1.702-1.567 2.684-3.875 2.684-6.614Z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.181l-2.91-2.258c-.805.54-1.835.86-3.046.86-2.344 0-4.328-1.585-5.037-3.714H.955v2.332A9 9 0 0 0 9 18Z" />
+      <path fill="#FBBC05" d="M3.963 10.707A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.168.281-1.707V4.961H.955A9 9 0 0 0 0 9c0 1.452.347 2.827.955 4.039l3.008-2.332Z" />
+      <path fill="#EA4335" d="M9 3.58c1.322 0 2.508.454 3.441 1.346l2.582-2.582C13.463.892 11.426 0 9 0A9 9 0 0 0 .955 4.961l3.008 2.332C4.672 5.164 6.656 3.58 9 3.58Z" />
+    </svg>
+  );
 }
 
 interface AuthModalProps {
@@ -75,6 +109,11 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
   const [acceptedUserAgreement, setAcceptedUserAgreement] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleStarting, setGoogleStarting] = useState(false);
+  const [googleFlow, setGoogleFlow] = useState<GoogleAuthFlow | null>(null);
+  const googleFinishedRef = useRef(false);
+  const googleStartInFlightRef = useRef(false);
 
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
@@ -87,6 +126,8 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     return passed; // 0-4
   }, [pwChecks]);
   const compactModeSwitch = modeSwitch === "inlineLink";
+  const googlePending = googleFlow?.status === "pending";
+  const googleLinkRequired = googleFlow?.status === "link_required";
   const modalTitle = compactModeSwitch
     ? activeTab === "login"
       ? t("auth.loginAction")
@@ -111,11 +152,63 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     }
   }, []);
 
+  const finishGoogleSuccess = useCallback(() => {
+    if (googleFinishedRef.current) return;
+    googleFinishedRef.current = true;
+    showToast(t("auth.googleSuccess"));
+    onClose();
+    onSuccess?.();
+  }, [onClose, onSuccess, showToast, t]);
+
+  const cancelGoogleFlow = useCallback(async (flowId?: string) => {
+    if (!flowId) return;
+    await fetchJson<GoogleAuthFlow>(clientPath(API["auth.googleCancel"]), {
+      method: "POST",
+      body: JSON.stringify({ flowId }),
+    }).catch(() => {});
+  }, []);
+
+  const startGoogleFlow = useCallback(async () => {
+    if (googleStartInFlightRef.current) return;
+    googleStartInFlightRef.current = true;
+    setError(null);
+    setGoogleStarting(true);
+    googleFinishedRef.current = false;
+    try {
+      const flow = await fetchJson<GoogleAuthFlow>(clientPath(API["auth.googleStart"]), {
+        method: "POST",
+        body: JSON.stringify({
+          inviteCode: activeTab === "register"
+            ? inviteCode.trim().toUpperCase() || null
+            : null,
+        }),
+      });
+      setGoogleFlow(flow);
+    } catch (googleError) {
+      setGoogleFlow(null);
+      setError(translateGoogleError(googleError, t));
+    } finally {
+      googleStartInFlightRef.current = false;
+      setGoogleStarting(false);
+    }
+  }, [activeTab, inviteCode, t]);
+
+  const retryGoogleFlow = useCallback(async () => {
+    const previousFlowId = googleFlow?.flowId;
+    setGoogleFlow(null);
+    await cancelGoogleFlow(previousFlowId);
+    await startGoogleFlow();
+  }, [cancelGoogleFlow, googleFlow?.flowId, startGoogleFlow]);
+
   // Reset form state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
+      googleFinishedRef.current = false;
       refreshCaptcha();
+      fetchJson<{ enabled: boolean }>(clientPath(API["auth.googleConfig"]))
+        .then((config) => setGoogleEnabled(config.enabled))
+        .catch(() => setGoogleEnabled(false));
     } else {
       setActiveTab("login");
       setEmail("");
@@ -129,8 +222,50 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
       setCaptchaAnswer("");
       setCaptchaSvg("");
       setCaptchaError(false);
+      setGoogleEnabled(false);
+      setGoogleStarting(false);
+      googleStartInFlightRef.current = false;
+      setGoogleFlow(null);
     }
   }, [isOpen, initialTab, refreshCaptcha]);
+
+  useEffect(() => {
+    if (!isOpen || googleFlow?.status !== "pending") return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const status = await fetchJson<GoogleAuthFlow>(
+          `${clientPath(API["auth.googleStatus"])}?flowId=${encodeURIComponent(googleFlow.flowId)}`,
+        );
+        if (stopped) return;
+        setGoogleFlow(status);
+        if (status.status === "completed") {
+          finishGoogleSuccess();
+          return;
+        }
+        if (status.status === "link_required") {
+          setPassword("");
+          setShowPassword(false);
+          await refreshCaptcha();
+          return;
+        }
+        if (status.status === "failed" || status.status === "expired") {
+          setError(translateGoogleError(status, t));
+          return;
+        }
+      } catch (pollError) {
+        if (!stopped) setError(translateGoogleError(pollError, t));
+        return;
+      }
+      if (!stopped) timer = setTimeout(poll, 650);
+    };
+    timer = setTimeout(poll, 350);
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [finishGoogleSuccess, googleFlow?.flowId, googleFlow?.status, isOpen, refreshCaptcha, t]);
 
   // Clear errors when switching tabs, reset password visibility
   function switchTab(tab: "login" | "register") {
@@ -138,6 +273,36 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     setError(null);
     setShowPassword(false);
     setAcceptedUserAgreement(false);
+  }
+
+  function handleClose() {
+    void cancelGoogleFlow(googleFlow?.flowId);
+    onClose();
+  }
+
+  async function handleGoogleLink(e: React.FormEvent) {
+    e.preventDefault();
+    if (!googleFlow || googleFlow.status !== "link_required") return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await fetchJson<GoogleAuthFlow>(clientPath(API["auth.googleLink"]), {
+        method: "POST",
+        body: JSON.stringify({
+          flowId: googleFlow.flowId,
+          password,
+          captchaToken,
+          captchaAnswer,
+        }),
+      });
+      setGoogleFlow(result);
+      if (result.status === "completed") finishGoogleSuccess();
+    } catch (linkError) {
+      setError(translateGoogleError(linkError, t));
+      await refreshCaptcha();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -198,13 +363,17 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth={400}>
+    <Modal isOpen={isOpen} onClose={handleClose} title={modalTitle} maxWidth={400}>
       <div className="auth-modal-form">
         <p className="auth-subtitle">
-          {activeTab === "login" ? t("auth.subtitle") : t("auth.subtitleRegister")}
+          {googleLinkRequired
+            ? t("auth.googleLinkDescription")
+            : activeTab === "login"
+              ? t("auth.subtitle")
+              : t("auth.subtitleRegister")}
         </p>
 
-        {compactModeSwitch ? (
+        {!googlePending && !googleLinkRequired && (compactModeSwitch ? (
           <p className="auth-inline-switch">
             <span>
               {activeTab === "login" ? t("auth.switchToRegisterPrompt") : t("auth.switchToLoginPrompt")}
@@ -238,11 +407,106 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
               {t("auth.register")}
             </button>
           </div>
-        )}
+        ))}
 
         {error && <div className="error-alert">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        {googlePending ? (
+          <div className="google-auth-waiting" role="status" aria-live="polite">
+            <div className="google-auth-orbit">
+              <GoogleMark />
+            </div>
+            <strong>{t("auth.googleWaiting")}</strong>
+            <p>{t("auth.googleWaitingHint")}</p>
+            <div className="google-auth-waiting-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => void cancelGoogleFlow(googleFlow.flowId).then(() => setGoogleFlow(null))}>
+                {t("auth.googleCancel")}
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => void retryGoogleFlow()}>
+                {t("auth.googleRetry")}
+              </button>
+            </div>
+          </div>
+        ) : googleLinkRequired ? (
+          <form onSubmit={handleGoogleLink} className="auth-form google-link-form">
+            <div className="google-link-heading">
+              <GoogleMark />
+              <strong>{t("auth.googleLinkTitle")}</strong>
+            </div>
+            <div className="auth-input-wrap">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                maxLength={72}
+                autoComplete="current-password"
+                className="auth-input auth-input--has-toggle"
+                aria-label={t("auth.password")}
+                placeholder={t("auth.password")}
+              />
+              <button
+                type="button"
+                className="auth-pw-toggle"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={t("auth.showPassword")}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+            <div className="captcha-row">
+              <div className="captcha-row-input">
+                <input
+                  type="text"
+                  value={captchaAnswer}
+                  onChange={(e) => setCaptchaAnswer(e.target.value)}
+                  required
+                  maxLength={4}
+                  placeholder={t("auth.captchaPlaceholder")}
+                  className="auth-input"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="captcha-row-image">
+                {captchaSvg ? (
+                  <div className="captcha-svg" dangerouslySetInnerHTML={{ __html: captchaSvg }} />
+                ) : (
+                  <div className="captcha-svg captcha-placeholder" onClick={refreshCaptcha}>
+                    {captchaError ? "!" : "..."}
+                  </div>
+                )}
+                <button type="button" className="captcha-row-refresh" onClick={refreshCaptcha} aria-label={t("auth.captchaRefresh")}>
+                  <RefreshIcon />
+                </button>
+              </div>
+            </div>
+            <button type="submit" className="btn btn-primary auth-submit-btn" disabled={submitting}>
+              {submitting ? t("common.loading") : t("auth.googleLinkAction")}
+            </button>
+            <button type="button" className="google-link-cancel" onClick={() => void cancelGoogleFlow(googleFlow.flowId).then(() => setGoogleFlow(null))}>
+              {t("auth.googleCancel")}
+            </button>
+          </form>
+        ) : (
+          <>
+            {googleEnabled && (
+              <>
+                <button
+                  type="button"
+                  className="google-auth-button"
+                  onClick={() => void startGoogleFlow()}
+                  disabled={googleStarting}
+                >
+                  <span className="google-auth-mark"><GoogleMark /></span>
+                  <span>{googleStarting ? t("auth.googleOpeningBrowser") : t("auth.googleContinue")}</span>
+                </button>
+                <div className="google-auth-divider">
+                  <span>{t("auth.googleDivider")}</span>
+                </div>
+              </>
+            )}
+            <form onSubmit={handleSubmit} className="auth-form">
           <label className="form-label-block">
             {t("auth.email")}
             <input
@@ -372,7 +636,9 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
                 ? t("auth.loginAction")
                 : t("auth.registerAction")}
           </button>
-        </form>
+            </form>
+          </>
+        )}
       </div>
     </Modal>
   );

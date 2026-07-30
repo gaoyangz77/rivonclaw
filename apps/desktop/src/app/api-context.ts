@@ -6,6 +6,7 @@ import type { MobileManagerInstance } from "../mobile/mobile-manager.js";
 import type { AuthSessionManager } from "../auth/session.js";
 import type { CloudClient } from "../cloud/cloud-client.js";
 import type { ChannelManagerInstance } from "../channels/channel-manager.js";
+import type { DesktopGoogleAuthCoordinator } from "../auth/google-oauth.js";
 
 export interface ApiContext {
   storage: Storage;
@@ -69,6 +70,7 @@ export interface ApiContext {
   queryService?: UsageQueryService;
   mobileManager?: MobileManagerInstance;
   authSession?: AuthSessionManager;
+  googleAuthCoordinator?: DesktopGoogleAuthCoordinator;
   cloudClient?: CloudClient;
   channelManager?: ChannelManagerInstance;
   desktopApiToken?: string;

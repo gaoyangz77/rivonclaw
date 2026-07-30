@@ -124,3 +124,41 @@ export const REQUEST_CAPTCHA_MUTATION = `
     }
   }
 `;
+
+export const DESKTOP_GOOGLE_AUTH_CONFIG_QUERY = `
+  query DesktopGoogleAuthConfig {
+    desktopGoogleAuthConfig {
+      enabled
+      clientId
+    }
+  }
+`;
+
+export const GOOGLE_LOGIN_MUTATION = `
+  mutation DesktopGoogleLogin($input: GoogleLoginInput!) {
+    googleLogin(input: $input) {
+      accessToken
+      refreshToken
+      user {
+        userId
+        email
+        name
+        createdAt
+        enrolledModules
+        entitlementKeys
+        defaultRunProfileId
+        support {
+          telegramDebugProxyToken
+        }
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
+      }
+    }
+  }
+`;

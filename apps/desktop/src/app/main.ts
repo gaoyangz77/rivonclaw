@@ -1415,6 +1415,7 @@ app.whenReady().then(async () => {
     gatewayPort: actualGatewayPort,
     desktopApiToken,
     deviceId,
+    onOpenExternal: (url) => shell.openExternal(url),
     getUpdateResult: () => {
       const info = updater.getLatestInfo();
       return {

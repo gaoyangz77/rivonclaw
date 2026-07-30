@@ -8,6 +8,8 @@ import {
   LOGIN_MUTATION,
   REGISTER_MUTATION,
   REQUEST_CAPTCHA_MUTATION,
+  DESKTOP_GOOGLE_AUTH_CONFIG_QUERY,
+  GOOGLE_LOGIN_MUTATION,
 } from "../cloud/auth-queries.js";
 import type { MarketingAttribution } from "../attribution/marketing-attribution.js";
 
@@ -35,8 +37,35 @@ interface GraphqlFetchOptions {
 
 export interface GraphqlResponseEnvelope<T> {
   data?: T | null;
-  errors?: Array<{ message: string }>;
+  errors?: Array<{ message: string; extensions?: Record<string, unknown> }>;
   extensions?: Record<string, unknown>;
+}
+
+export class GraphqlRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "GraphqlRequestError";
+  }
+}
+
+export interface DesktopGoogleAuthConfig {
+  enabled: boolean;
+  clientId?: string | null;
+}
+
+export interface GoogleLoginRequest {
+  idToken: string;
+  nonce?: string;
+  link?: {
+    password: string;
+    captchaToken: string;
+    captchaAnswer: string;
+  };
+  inviteCode?: string | null;
+  attribution?: MarketingAttribution;
 }
 
 function isRecoverableAuthErrorMessage(message: string): boolean {
@@ -331,6 +360,28 @@ export class AuthSessionManager {
     return data.register.user;
   }
 
+  async getDesktopGoogleAuthConfig(): Promise<DesktopGoogleAuthConfig> {
+    const data = await this.graphqlFetch<{
+      desktopGoogleAuthConfig: DesktopGoogleAuthConfig;
+    }>(
+      DESKTOP_GOOGLE_AUTH_CONFIG_QUERY,
+      undefined,
+      { autoRefresh: false, includeAccessToken: false },
+    );
+    return data.desktopGoogleAuthConfig;
+  }
+
+  async loginWithGoogle(input: GoogleLoginRequest): Promise<GQL.MeResponse> {
+    const data = await this.graphqlFetch<{ googleLogin: GQL.AuthPayload }>(
+      GOOGLE_LOGIN_MUTATION,
+      { input },
+      { autoRefresh: false, includeAccessToken: false },
+    );
+    await this.storeTokens(data.googleLogin.accessToken, data.googleLogin.refreshToken);
+    await this.setUser(data.googleLogin.user);
+    return data.googleLogin.user;
+  }
+
   /** Request a CAPTCHA challenge from the Cloud. */
   async requestCaptcha(options?: { deterministicToken?: string }): Promise<{ token: string; svg: string }> {
     const variables = options?.deterministicToken
@@ -403,7 +454,9 @@ export class AuthSessionManager {
       if (isJwtIllegalErrorMessage(msg)) {
         throw new JwtIllegalError(msg);
       }
-      throw new Error(msg);
+      const code = json.errors.find((error) => typeof error.extensions?.code === "string")
+        ?.extensions?.code as string | undefined;
+      throw new GraphqlRequestError(msg, code);
     }
     return json;
   }

@@ -103,4 +103,9 @@ export type {
   OpenAICodexOAuthCredentials,
   HybridCodexOAuthFlow,
 } from "./oauth/openai-codex-oauth.js";
+export { startLoopbackOAuthCallback } from "./oauth/loopback-oauth.js";
+export type {
+  LoopbackOAuthCallback,
+  LoopbackOAuthCallbackOptions,
+} from "./oauth/loopback-oauth.js";
 export { enrichedPath, findInPath, ensureCliAvailable } from "./utils/cli-utils.js";
