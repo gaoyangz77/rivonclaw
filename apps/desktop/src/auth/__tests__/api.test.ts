@@ -593,3 +593,89 @@ describe("Desktop Google auth routes", () => {
     expect(res._body).toEqual({ errorCode: "GOOGLE_AUTH_UNTRUSTED_ORIGIN" });
   });
 });
+
+describe("Desktop browser auth routes", () => {
+  it("starts, polls, and cancels a browser login without exposing credentials", async () => {
+    const browserLoginCoordinator = {
+      start: vi.fn().mockResolvedValue({
+        flowId: "browser-flow-1",
+        status: "pending",
+      }),
+      status: vi.fn().mockReturnValue({
+        flowId: "browser-flow-1",
+        status: "pending",
+      }),
+      cancel: vi.fn().mockReturnValue({
+        flowId: "browser-flow-1",
+        status: "cancelled",
+      }),
+    };
+    const ctx = { browserLoginCoordinator } as unknown as ApiContext;
+
+    const started = await dispatch("POST", "/api/auth/browser/start", ctx);
+    expect(started.res._status).toBe(200);
+    expect(started.res._body).toEqual({
+      flowId: "browser-flow-1",
+      status: "pending",
+    });
+    expect(browserLoginCoordinator.start).toHaveBeenCalledTimes(1);
+
+    const status = await dispatch(
+      "GET",
+      "/api/auth/browser/status?flowId=browser-flow-1",
+      ctx,
+    );
+    expect(status.res._status).toBe(200);
+    expect(status.res._body).toEqual({
+      flowId: "browser-flow-1",
+      status: "pending",
+    });
+
+    const cancelled = await dispatch(
+      "POST",
+      "/api/auth/browser/cancel",
+      ctx,
+      { flowId: "browser-flow-1" },
+    );
+    expect(cancelled.res._status).toBe(200);
+    expect(cancelled.res._body).toEqual({
+      flowId: "browser-flow-1",
+      status: "cancelled",
+    });
+    expect(JSON.stringify([
+      started.res._body,
+      status.res._body,
+      cancelled.res._body,
+    ])).not.toMatch(/accessToken|refreshToken|ticket|code/);
+  });
+
+  it.each([
+    ["POST", "/api/auth/browser/start", undefined],
+    ["GET", "/api/auth/browser/status?flowId=browser-flow-1", undefined],
+    ["POST", "/api/auth/browser/cancel", { flowId: "browser-flow-1" }],
+  ])("rejects an untrusted origin for %s %s", async (method, path, body) => {
+    const req = makeReq(method, body);
+    (req as any).headers.origin = "https://attacker.example";
+    const res = makeRes();
+    const url = new URL(`http://localhost${path}`);
+    const handled = await registry.dispatch(
+      req,
+      res,
+      url,
+      url.pathname,
+      {
+        browserLoginCoordinator: {
+          start: vi.fn(),
+          status: vi.fn(),
+          cancel: vi.fn(),
+        },
+      } as unknown as ApiContext,
+    );
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(403);
+    expect(res._body).toEqual({
+      errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN",
+    });
+  });
+});

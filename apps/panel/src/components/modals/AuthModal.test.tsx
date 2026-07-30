@@ -49,6 +49,15 @@ function installDefaultResponses(status: "pending" | "completed" | "link_require
     if (pathIncludes(path, "/google/status")) return { flowId: "flow-1", status };
     if (pathIncludes(path, "/google/link")) return { flowId: "flow-1", status: "completed" };
     if (pathIncludes(path, "/google/cancel")) return { flowId: "flow-1", status: "cancelled" };
+    if (pathIncludes(path, "/browser/start")) {
+      return { flowId: "browser-flow-1", status: "pending" };
+    }
+    if (pathIncludes(path, "/browser/status")) {
+      return { flowId: "browser-flow-1", status };
+    }
+    if (pathIncludes(path, "/browser/cancel")) {
+      return { flowId: "browser-flow-1", status: "cancelled" };
+    }
     throw new Error(`Unexpected path: ${String(path)}`);
   });
 }
@@ -69,6 +78,21 @@ describe("AuthModal Google sign-in", () => {
 
     expect(await screen.findByRole("button", { name: "auth.googleContinue" })).toBeTruthy();
     expect(screen.getByText("auth.googleDivider")).toBeTruthy();
+  });
+
+  it("completes a browser-to-desktop login without entering credentials in the modal", async () => {
+    installDefaultResponses("completed");
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(<AuthModal isOpen onClose={onClose} onSuccess={onSuccess} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "auth.browserLoginContinue" }),
+    );
+    expect(await screen.findByText("auth.browserLoginWaiting")).toBeTruthy();
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1), { timeout: 2_000 });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mocks.showToast).toHaveBeenCalledWith("auth.browserLoginSuccess");
   });
 
   it("deduplicates start clicks and completes after the main-process status changes", async () => {

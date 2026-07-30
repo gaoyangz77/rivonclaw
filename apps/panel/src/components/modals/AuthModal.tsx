@@ -48,6 +48,12 @@ interface GoogleAuthFlow {
   errorCode?: string;
 }
 
+interface BrowserAuthFlow {
+  flowId: string;
+  status: "pending" | "completed" | "failed" | "cancelled" | "expired";
+  errorCode?: string;
+}
+
 function translateGoogleError(error: unknown, t: TFunction): string {
   const code = (error as { code?: string; errorCode?: string } | null)?.code
     ?? (error as { errorCode?: string } | null)?.errorCode
@@ -64,6 +70,20 @@ function GoogleMark() {
       <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.181l-2.91-2.258c-.805.54-1.835.86-3.046.86-2.344 0-4.328-1.585-5.037-3.714H.955v2.332A9 9 0 0 0 9 18Z" />
       <path fill="#FBBC05" d="M3.963 10.707A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.168.281-1.707V4.961H.955A9 9 0 0 0 0 9c0 1.452.347 2.827.955 4.039l3.008-2.332Z" />
       <path fill="#EA4335" d="M9 3.58c1.322 0 2.508.454 3.441 1.346l2.582-2.582C13.463.892 11.426 0 9 0A9 9 0 0 0 .955 4.961l3.008 2.332C4.672 5.164 6.656 3.58 9 3.58Z" />
+    </svg>
+  );
+}
+
+function BrowserMark() {
+  return (
+    <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M3.8 9h16.4M3.8 15h16.4M12 3c2.2 2.4 3.3 5.4 3.3 9S14.2 18.6 12 21c-2.2-2.4-3.3-5.4-3.3-9S9.8 5.4 12 3Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 }
@@ -112,6 +132,8 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [googleStarting, setGoogleStarting] = useState(false);
   const [googleFlow, setGoogleFlow] = useState<GoogleAuthFlow | null>(null);
+  const [browserStarting, setBrowserStarting] = useState(false);
+  const [browserFlow, setBrowserFlow] = useState<BrowserAuthFlow | null>(null);
   const googleFinishedRef = useRef(false);
   const googleStartInFlightRef = useRef(false);
 
@@ -127,6 +149,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
   }, [pwChecks]);
   const compactModeSwitch = modeSwitch === "inlineLink";
   const googlePending = googleFlow?.status === "pending";
+  const browserPending = browserFlow?.status === "pending";
   const googleLinkRequired = googleFlow?.status === "link_required";
   const modalTitle = compactModeSwitch
     ? activeTab === "login"
@@ -200,6 +223,30 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     await startGoogleFlow();
   }, [cancelGoogleFlow, googleFlow?.flowId, startGoogleFlow]);
 
+  const cancelBrowserFlow = useCallback(async (flowId?: string) => {
+    if (!flowId) return;
+    await fetchJson<BrowserAuthFlow>(clientPath(API["auth.browserCancel"]), {
+      method: "POST",
+      body: JSON.stringify({ flowId }),
+    }).catch(() => {});
+  }, []);
+
+  const startBrowserFlow = useCallback(async () => {
+    setError(null);
+    setBrowserStarting(true);
+    try {
+      const flow = await fetchJson<BrowserAuthFlow>(clientPath(API["auth.browserStart"]), {
+        method: "POST",
+      });
+      setBrowserFlow(flow);
+    } catch {
+      setBrowserFlow(null);
+      setError(t("auth.browserLoginError"));
+    } finally {
+      setBrowserStarting(false);
+    }
+  }, [t]);
+
   // Reset form state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -226,6 +273,8 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
       setGoogleStarting(false);
       googleStartInFlightRef.current = false;
       setGoogleFlow(null);
+      setBrowserStarting(false);
+      setBrowserFlow(null);
     }
   }, [isOpen, initialTab, refreshCaptcha]);
 
@@ -267,6 +316,44 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     };
   }, [finishGoogleSuccess, googleFlow?.flowId, googleFlow?.status, isOpen, refreshCaptcha, t]);
 
+  useEffect(() => {
+    if (!isOpen || browserFlow?.status !== "pending") return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const status = await fetchJson<BrowserAuthFlow>(
+          `${clientPath(API["auth.browserStatus"])}?flowId=${encodeURIComponent(browserFlow.flowId)}`,
+        );
+        if (stopped) return;
+        setBrowserFlow(status);
+        if (status.status === "completed") {
+          showToast(t("auth.browserLoginSuccess"));
+          onClose();
+          onSuccess?.();
+          return;
+        }
+        if (status.status === "failed" || status.status === "expired") {
+          setError(
+            status.status === "expired"
+              ? t("auth.browserLoginTimeout")
+              : t("auth.browserLoginError"),
+          );
+          return;
+        }
+      } catch {
+        if (!stopped) setError(t("auth.browserLoginError"));
+        return;
+      }
+      if (!stopped) timer = setTimeout(poll, 650);
+    };
+    timer = setTimeout(poll, 350);
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [browserFlow?.flowId, browserFlow?.status, isOpen, onClose, onSuccess, showToast, t]);
+
   // Clear errors when switching tabs, reset password visibility
   function switchTab(tab: "login" | "register") {
     setActiveTab(tab);
@@ -277,6 +364,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
 
   function handleClose() {
     void cancelGoogleFlow(googleFlow?.flowId);
+    void cancelBrowserFlow(browserFlow?.flowId);
     onClose();
   }
 
@@ -373,7 +461,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
               : t("auth.subtitleRegister")}
         </p>
 
-        {!googlePending && !googleLinkRequired && (compactModeSwitch ? (
+        {!googlePending && !browserPending && !googleLinkRequired && (compactModeSwitch ? (
           <p className="auth-inline-switch">
             <span>
               {activeTab === "login" ? t("auth.switchToRegisterPrompt") : t("auth.switchToLoginPrompt")}
@@ -411,7 +499,38 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
 
         {error && <div className="error-alert">{error}</div>}
 
-        {googlePending ? (
+        {browserPending ? (
+          <div className="google-auth-waiting" role="status" aria-live="polite">
+            <div className="google-auth-orbit">
+              <BrowserMark />
+            </div>
+            <strong>{t("auth.browserLoginWaiting")}</strong>
+            <p>{t("auth.browserLoginWaitingHint")}</p>
+            <div className="google-auth-waiting-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() =>
+                  void cancelBrowserFlow(browserFlow.flowId).then(() => setBrowserFlow(null))
+                }
+              >
+                {t("auth.googleCancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() =>
+                  void cancelBrowserFlow(browserFlow.flowId).then(() => {
+                    setBrowserFlow(null);
+                    void startBrowserFlow();
+                  })
+                }
+              >
+                {t("auth.googleRetry")}
+              </button>
+            </div>
+          </div>
+        ) : googlePending ? (
           <div className="google-auth-waiting" role="status" aria-live="polite">
             <div className="google-auth-orbit">
               <GoogleMark />
@@ -490,6 +609,20 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
           </form>
         ) : (
           <>
+            <button
+              type="button"
+              className="google-auth-button"
+              onClick={() => void startBrowserFlow()}
+              disabled={browserStarting}
+            >
+              <span className="google-auth-mark"><BrowserMark /></span>
+              <span>
+                {browserStarting ? t("auth.browserLoginOpening") : t("auth.browserLoginContinue")}
+              </span>
+            </button>
+            <div className="google-auth-divider">
+              <span>{t("auth.browserLoginDivider")}</span>
+            </div>
             {googleEnabled && (
               <>
                 <button

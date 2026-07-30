@@ -1,0 +1,98 @@
+export const BROWSER_AUTH_TRANSLATIONS = {
+  en: {
+    auth: {
+      browserLoginContinue: "Sign in from your browser",
+      browserLoginOpening: "Opening browser…",
+      browserLoginDivider: "or use another method",
+      browserLoginWaiting: "Finish signing in in your browser",
+      browserLoginWaitingHint: "Allow this desktop sign-in on the secure TK Copilot page. This window will update automatically.",
+      browserLoginSuccess: "Desktop signed in from your browser",
+      browserLoginTimeout: "The browser login request expired. Please try again.",
+      browserLoginError: "Browser login failed. Please try again.",
+    },
+  },
+  zh: {
+    auth: {
+      browserLoginContinue: "从浏览器登录",
+      browserLoginOpening: "正在打开浏览器…",
+      browserLoginDivider: "或使用其他方式",
+      browserLoginWaiting: "请在浏览器中完成登录",
+      browserLoginWaitingHint: "在 TK Copilot 安全页面允许此桌面端登录，本窗口会自动更新。",
+      browserLoginSuccess: "已通过浏览器登录桌面端",
+      browserLoginTimeout: "浏览器登录请求已过期，请重试。",
+      browserLoginError: "浏览器登录失败，请重试。",
+    },
+  },
+  de: {
+    auth: {
+      browserLoginContinue: "Im Browser anmelden",
+      browserLoginOpening: "Browser wird geöffnet…",
+      browserLoginDivider: "oder eine andere Methode verwenden",
+      browserLoginWaiting: "Anmeldung im Browser abschließen",
+      browserLoginWaitingHint: "Erlauben Sie die Desktop-Anmeldung auf der sicheren TK Copilot-Seite. Dieses Fenster wird automatisch aktualisiert.",
+      browserLoginSuccess: "Desktop über den Browser angemeldet",
+      browserLoginTimeout: "Die Browser-Anfrage ist abgelaufen. Bitte versuchen Sie es erneut.",
+      browserLoginError: "Die Browser-Anmeldung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    },
+  },
+  es: {
+    auth: {
+      browserLoginContinue: "Iniciar sesión desde el navegador",
+      browserLoginOpening: "Abriendo el navegador…",
+      browserLoginDivider: "o usa otro método",
+      browserLoginWaiting: "Completa el acceso en el navegador",
+      browserLoginWaitingHint: "Autoriza este inicio de sesión de escritorio en la página segura de TK Copilot. Esta ventana se actualizará automáticamente.",
+      browserLoginSuccess: "Desktop inició sesión desde el navegador",
+      browserLoginTimeout: "La solicitud de acceso del navegador caducó. Inténtalo de nuevo.",
+      browserLoginError: "No se pudo iniciar sesión desde el navegador. Inténtalo de nuevo.",
+    },
+  },
+  fr: {
+    auth: {
+      browserLoginContinue: "Se connecter depuis le navigateur",
+      browserLoginOpening: "Ouverture du navigateur…",
+      browserLoginDivider: "ou utiliser une autre méthode",
+      browserLoginWaiting: "Terminez la connexion dans le navigateur",
+      browserLoginWaitingHint: "Autorisez cette connexion Desktop sur la page sécurisée de TK Copilot. Cette fenêtre se mettra à jour automatiquement.",
+      browserLoginSuccess: "Desktop connecté depuis le navigateur",
+      browserLoginTimeout: "La demande de connexion a expiré. Veuillez réessayer.",
+      browserLoginError: "La connexion depuis le navigateur a échoué. Veuillez réessayer.",
+    },
+  },
+  id: {
+    auth: {
+      browserLoginContinue: "Masuk dari browser",
+      browserLoginOpening: "Membuka browser…",
+      browserLoginDivider: "atau gunakan cara lain",
+      browserLoginWaiting: "Selesaikan proses masuk di browser",
+      browserLoginWaitingHint: "Izinkan proses masuk Desktop ini di halaman aman TK Copilot. Jendela ini akan diperbarui otomatis.",
+      browserLoginSuccess: "Desktop berhasil masuk dari browser",
+      browserLoginTimeout: "Permintaan masuk dari browser telah kedaluwarsa. Coba lagi.",
+      browserLoginError: "Proses masuk dari browser gagal. Coba lagi.",
+    },
+  },
+  it: {
+    auth: {
+      browserLoginContinue: "Accedi dal browser",
+      browserLoginOpening: "Apertura del browser…",
+      browserLoginDivider: "oppure usa un altro metodo",
+      browserLoginWaiting: "Completa l’accesso nel browser",
+      browserLoginWaitingHint: "Autorizza questo accesso Desktop nella pagina sicura di TK Copilot. La finestra si aggiornerà automaticamente.",
+      browserLoginSuccess: "Desktop connesso dal browser",
+      browserLoginTimeout: "La richiesta di accesso dal browser è scaduta. Riprova.",
+      browserLoginError: "Accesso dal browser non riuscito. Riprova.",
+    },
+  },
+  th: {
+    auth: {
+      browserLoginContinue: "เข้าสู่ระบบจากเบราว์เซอร์",
+      browserLoginOpening: "กำลังเปิดเบราว์เซอร์…",
+      browserLoginDivider: "หรือใช้วิธีอื่น",
+      browserLoginWaiting: "เข้าสู่ระบบให้เสร็จในเบราว์เซอร์",
+      browserLoginWaitingHint: "อนุญาตการเข้าสู่ระบบ Desktop นี้ในหน้า TK Copilot ที่ปลอดภัย หน้าต่างนี้จะอัปเดตอัตโนมัติ",
+      browserLoginSuccess: "Desktop เข้าสู่ระบบจากเบราว์เซอร์แล้ว",
+      browserLoginTimeout: "คำขอเข้าสู่ระบบจากเบราว์เซอร์หมดอายุ โปรดลองอีกครั้ง",
+      browserLoginError: "เข้าสู่ระบบจากเบราว์เซอร์ไม่สำเร็จ โปรดลองอีกครั้ง",
+    },
+  },
+} as const;

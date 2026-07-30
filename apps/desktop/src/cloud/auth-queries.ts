@@ -162,3 +162,42 @@ export const GOOGLE_LOGIN_MUTATION = `
     }
   }
 `;
+
+export const START_BROWSER_TO_DESKTOP_LOGIN_MUTATION = `
+  mutation StartBrowserToDesktopLogin($input: BrowserToDesktopLoginInput!) {
+    startBrowserToDesktopLogin(input: $input) {
+      flowId
+      authorizationUrl
+      expiresAt
+    }
+  }
+`;
+
+export const EXCHANGE_BROWSER_TO_DESKTOP_LOGIN_MUTATION = `
+  mutation ExchangeBrowserToDesktopLogin($input: BrowserToDesktopCodeInput!) {
+    exchangeBrowserToDesktopLoginCode(input: $input) {
+      accessToken
+      refreshToken
+      user {
+        userId
+        email
+        name
+        createdAt
+        enrolledModules
+        entitlementKeys
+        defaultRunProfileId
+        support {
+          telegramDebugProxyToken
+        }
+        agent {
+          active
+          inviteCode
+          enabledAt
+          enabledByUserId
+          disabledAt
+          disabledByUserId
+        }
+      }
+    }
+  }
+`;
