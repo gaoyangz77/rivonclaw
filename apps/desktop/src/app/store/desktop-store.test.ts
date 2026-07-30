@@ -40,7 +40,7 @@ function customerServiceShop(id: string, name: string) {
       affiliateService: {
         enabled: false,
         runProfileId: null,
-        csDeviceId: null,
+        deviceId: null,
         businessPrompt: null,
         modelUsageScope: "USER_LEVEL",
         decisionThresholds: null,
@@ -97,7 +97,7 @@ describe("DesktopRootStore shop ingestion", () => {
         affiliateService: {
           enabled: false,
           runProfileId: null,
-          csDeviceId: null,
+          deviceId: null,
           businessPrompt: null,
           modelUsageScope: "USER_LEVEL",
           decisionThresholds: null,

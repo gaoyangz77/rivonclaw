@@ -58,7 +58,7 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
-  const assignedDeviceId = shop.services?.affiliateService?.csDeviceId ?? null;
+  const assignedDeviceId = shop.services?.affiliateService?.deviceId ?? null;
   const handledByThisDevice = Boolean(myDeviceId && assignedDeviceId === myDeviceId);
   const affiliateInsightSubjectKey = `shop:${shop.id}`;
   const accountModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "user");

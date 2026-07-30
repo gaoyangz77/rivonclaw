@@ -298,9 +298,7 @@ export const EcommercePage = observer(function EcommercePage() {
     try {
       const shop = shops.find((s) => s.id === shopId);
       if (!shop) throw new Error(`Shop ${shopId} not found`);
-      await shop.update({
-        services: { customerService: { enabled: !currentValue } },
-      });
+      await shop.setCustomerServiceEnabled(!currentValue, deviceBinding.myDeviceId);
       // If disabling CS while on the AI CS tab, switch back to overview
       if (currentValue && activeTab === "aiCustomerService") {
         setActiveTab("overview");
@@ -341,16 +339,7 @@ export const EcommercePage = observer(function EcommercePage() {
       const shop = shops.find((s) => s.id === shopId);
       if (!shop) throw new Error(`Shop ${shopId} not found`);
       const nextValue = !currentValue;
-      await shop.update({
-        services: {
-          affiliateService: {
-            enabled: nextValue,
-            ...(nextValue && !shop.services?.affiliateService?.runProfileId
-              ? { runProfileId: "AFFILIATE_OPERATOR" }
-              : {}),
-          },
-        },
-      });
+      await shop.setAffiliateServiceEnabled(nextValue, deviceBinding.myDeviceId);
       if (!nextValue && activeTab === "affiliateManagement") {
         setActiveTab("overview");
       }
@@ -544,16 +533,14 @@ export const EcommercePage = observer(function EcommercePage() {
     if (!deviceBinding.myDeviceId) return;
     const shop = shops.find((s) => s.id === shopId);
     if (!shop) return;
-    const existingDeviceId = shop.services?.affiliateService?.csDeviceId;
+    const existingDeviceId = shop.services?.affiliateService?.deviceId;
     if (existingDeviceId && existingDeviceId !== deviceBinding.myDeviceId) {
       setAffiliateBindConflictShopId(shopId);
       return;
     }
     setTogglingAffiliateBindShopId(shopId);
     try {
-      await shop.update({
-        services: { affiliateService: { csDeviceId: deviceBinding.myDeviceId } },
-      });
+      await shop.bindAffiliateServiceToDevice(deviceBinding.myDeviceId);
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -569,9 +556,7 @@ export const EcommercePage = observer(function EcommercePage() {
     if (!shop) return;
     setTogglingAffiliateBindShopId(shopId);
     try {
-      await shop.update({
-        services: { affiliateService: { csDeviceId: deviceBinding.myDeviceId } },
-      });
+      await shop.bindAffiliateServiceToDevice(deviceBinding.myDeviceId);
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {
@@ -584,9 +569,7 @@ export const EcommercePage = observer(function EcommercePage() {
     if (!shop) return;
     setTogglingAffiliateBindShopId(shopId);
     try {
-      await shop.update({
-        services: { affiliateService: { csDeviceId: "" } },
-      });
+      await shop.unbindAffiliateServiceFromDevice();
     } catch (err) {
       handleError(err, "ecommerce.updateFailed");
     } finally {

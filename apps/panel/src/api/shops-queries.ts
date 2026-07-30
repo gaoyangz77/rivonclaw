@@ -54,7 +54,7 @@ export const SHOP_FIELDS_FRAGMENT = gql`
       affiliateService {
         enabled
         runProfileId
-        csDeviceId
+        deviceId
         modelUsageScope
         businessPrompt
         decisionThresholds {
