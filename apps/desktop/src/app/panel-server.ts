@@ -214,6 +214,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll,
     onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
     snapshotEngine, queryService, mobileManager: rootStore.mobileManager, authSession,
+    openExternal: options.onOpenExternal,
     cloudClient: authSession ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch) : undefined,
     channelManager,
     desktopApiToken,

@@ -57,6 +57,7 @@ export const API = {
   "auth.browserStart":       { method: "POST",   path: "/api/auth/browser/start",          desc: "Start browser-to-Desktop sign-in" },
   "auth.browserStatus":      { method: "GET",    path: "/api/auth/browser/status",         desc: "Poll browser-to-Desktop sign-in" },
   "auth.browserCancel":      { method: "POST",   path: "/api/auth/browser/cancel",         desc: "Cancel browser-to-Desktop sign-in" },
+  "auth.webOpen":            { method: "POST",   path: "/api/auth/web/open",               desc: "Open the website with the current Desktop session" },
 
   // ── App / Status ──
   "app.status":              { method: "GET",    path: "/api/status",                     desc: "App status and device ID" },

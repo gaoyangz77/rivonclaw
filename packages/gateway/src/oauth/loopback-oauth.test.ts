@@ -85,6 +85,9 @@ describe("startLoopbackOAuthCallback", () => {
 
     const validResponse = await fetch(`${callback.redirectUri}?code=new&state=current`);
     expect(validResponse.status).toBe(200);
+    expect(await validResponse.text()).toContain(
+      'history.replaceState(null,"",location.pathname)',
+    );
     await expect(callback.waitForCallback).resolves.toEqual({ code: "new", state: "current" });
   });
 

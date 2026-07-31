@@ -1,4 +1,5 @@
 import { API } from "@rivonclaw/core/api-contract";
+import { getFirstPartyDomainRoute } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
@@ -8,6 +9,7 @@ import {
   clearStoredMarketingAttribution,
   readStoredMarketingAttribution,
 } from "../attribution/marketing-attribution.js";
+import { CREATE_DESKTOP_TO_WEB_LOGIN_MUTATION } from "../cloud/auth-queries.js";
 import { GraphqlRequestError } from "./session.js";
 
 const log = createLogger("auth-api");
@@ -364,6 +366,55 @@ const browserCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiC
   sendJson(res, 200, flow);
 };
 
+function websiteHomepage(): string {
+  return getFirstPartyDomainRoute() === "cn-relay"
+    ? "https://www.tkjiang.cn/"
+    : "https://www.tkcopilot.com/";
+}
+
+const webOpen: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  if (!isTrustedPanelOrigin(req)) {
+    sendJson(res, 403, { errorCode: "WEB_OPEN_UNTRUSTED_ORIGIN" });
+    return;
+  }
+  if (!ctx.openExternal) {
+    sendJson(res, 501, { errorCode: "WEB_OPEN_UNAVAILABLE" });
+    return;
+  }
+
+  if (!ctx.authSession?.getAccessToken()) {
+    await ctx.openExternal(websiteHomepage());
+    sendJson(res, 200, { authenticated: false });
+    return;
+  }
+
+  try {
+    const result = await ctx.authSession.graphqlFetch<{
+      createDesktopToWebLogin: {
+        authorizationUrl: string;
+      };
+    }>(
+      CREATE_DESKTOP_TO_WEB_LOGIN_MUTATION,
+      {
+        returnPath: "/",
+        surface: getFirstPartyDomainRoute() === "cn-relay" ? "CN_RELAY" : "GLOBAL",
+      },
+    );
+    await ctx.openExternal(result.createDesktopToWebLogin.authorizationUrl);
+    sendJson(res, 200, { authenticated: true });
+  } catch (error) {
+    log.warn("Failed to open an authenticated website session", {
+      category: error instanceof Error ? error.name : "UnknownError",
+    });
+    try {
+      await ctx.openExternal(websiteHomepage());
+      sendJson(res, 200, { authenticated: false });
+    } catch {
+      sendJson(res, 400, { errorCode: "WEB_OPEN_FAILED" });
+    }
+  }
+};
+
 export function registerAuthHandlers(registry: RouteRegistry): void {
   registry.register(API["auth.session"], getSession);
   registry.register(API["auth.login"], login);
@@ -380,4 +431,5 @@ export function registerAuthHandlers(registry: RouteRegistry): void {
   registry.register(API["auth.browserStart"], browserStart);
   registry.register(API["auth.browserStatus"], browserStatus);
   registry.register(API["auth.browserCancel"], browserCancel);
+  registry.register(API["auth.webOpen"], webOpen);
 }

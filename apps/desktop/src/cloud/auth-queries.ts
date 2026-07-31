@@ -201,3 +201,12 @@ export const EXCHANGE_BROWSER_TO_DESKTOP_LOGIN_MUTATION = `
     }
   }
 `;
+
+export const CREATE_DESKTOP_TO_WEB_LOGIN_MUTATION = `
+  mutation CreateDesktopToWebLogin($returnPath: String!, $surface: WebAppSurface) {
+    createDesktopToWebLogin(returnPath: $returnPath, surface: $surface) {
+      authorizationUrl
+      expiresAt
+    }
+  }
+`;

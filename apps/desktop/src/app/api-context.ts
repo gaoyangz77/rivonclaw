@@ -73,6 +73,7 @@ export interface ApiContext {
   authSession?: AuthSessionManager;
   googleAuthCoordinator?: DesktopGoogleAuthCoordinator;
   browserLoginCoordinator?: DesktopBrowserLoginCoordinator;
+  openExternal?: (url: string) => Promise<unknown>;
   cloudClient?: CloudClient;
   channelManager?: ChannelManagerInstance;
   desktopApiToken?: string;
