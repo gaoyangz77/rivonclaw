@@ -427,13 +427,16 @@ if [ "$EARLY_FAILURE" = false ] && [ "$PACK_SUCCEEDED" = true ] && [ "$REBUILD2_
   EXEC_PATH=""
   prod_e2e_skip=false
   if [ "$PLATFORM" = "mac" ]; then
-    APP_DIR=$(find "$RELEASE_DIR" -maxdepth 2 -name "RivonClaw.app" -print -quit 2>/dev/null || true)
+    APP_DIR=$(find "$RELEASE_DIR" -maxdepth 2 \
+      \( -name "TK Copilot.app" -o -name "RivonClaw.app" \) \
+      -print -quit 2>/dev/null || true)
     if [ -z "$APP_DIR" ]; then
-      warn "No RivonClaw.app found in $RELEASE_DIR after pack"
+      warn "No TK Copilot.app found in $RELEASE_DIR after pack"
       record_step "e2e prod" 1 $((SECONDS - step_start))
       prod_e2e_skip=true
     else
-      EXEC_PATH="$APP_DIR/Contents/MacOS/RivonClaw"
+      APP_NAME="$(basename "$APP_DIR" .app)"
+      EXEC_PATH="$APP_DIR/Contents/MacOS/$APP_NAME"
     fi
   elif [ "$PLATFORM" = "win" ]; then
     EXEC_PATH=$(find "$RELEASE_DIR" -maxdepth 2 -name "RivonClaw.exe" -not -path "*Setup*" -print -quit 2>/dev/null || true)
