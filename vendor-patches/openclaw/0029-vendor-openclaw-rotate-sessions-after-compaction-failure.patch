@@ -1,4 +1,4 @@
-From f00c9da57795d00013fd9d5417e22c565aab11bc Mon Sep 17 00:00:00 2001
+From a360cd377bf08cf7126e3fa93a9d310f72ee58f5 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 25 Jul 2026 01:26:48 -0700
 Subject: [PATCH] vendor(openclaw): rotate sessions after compaction failure
@@ -115,7 +115,7 @@ index 3e37a086d93..32c285f12d6 100644
      expect(updateSessionIdMock).not.toHaveBeenCalled();
      expect(state.updateSessionStoreMock).not.toHaveBeenCalled();
 diff --git a/src/auto-reply/reply/agent-runner-execution.ts b/src/auto-reply/reply/agent-runner-execution.ts
-index 42f2089d208..b6860928f21 100644
+index 42f2089d208..84a86045400 100644
 --- a/src/auto-reply/reply/agent-runner-execution.ts
 +++ b/src/auto-reply/reply/agent-runner-execution.ts
 @@ -1583,6 +1583,7 @@ export async function runAgentTurnWithFallback(params: {
@@ -149,7 +149,7 @@ index 42f2089d208..b6860928f21 100644
        };
        if (embeddedError && isContextOverflowError(embeddedError.message)) {
          emitSettledLifecycleError(new Error(terminalErrorMessage ?? "Agent run failed"));
-+        const didReset =
++        const didReset: boolean =
 +          !didResetAfterCompactionFailure &&
 +          (await params.resetSessionAfterCompactionFailure(embeddedError.message));
 +        didResetAfterCompactionFailure ||= didReset;
@@ -173,7 +173,7 @@ index 42f2089d208..b6860928f21 100644
  
        if (isCompactionFailure) {
          takePendingLifecycleTerminal()?.emit("error", err);
-+        const didReset =
++        const didReset: boolean =
 +          !didResetAfterCompactionFailure &&
 +          (await params.resetSessionAfterCompactionFailure(message));
 +        didResetAfterCompactionFailure ||= didReset;
@@ -317,3 +317,4 @@ index 43825221ff8..2065cc3eda5 100644
          sessionKey,
 -- 
 2.50.1 (Apple Git-155)
+
