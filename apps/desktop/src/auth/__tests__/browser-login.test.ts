@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  resetFirstPartyDomainRouteForTests,
+  setFirstPartyDomainRoute,
+} from "@rivonclaw/core";
 import type { AuthSessionManager } from "../session.js";
 
 const gatewayMocks = vi.hoisted(() => ({
@@ -32,6 +36,7 @@ describe("DesktopBrowserLoginCoordinator", () => {
   let openExternal: ReturnType<typeof vi.fn<(url: string) => Promise<void>>>;
 
   beforeEach(() => {
+    resetFirstPartyDomainRouteForTests();
     callback = deferred();
     close = vi.fn((reason?: Error) => {
       if (reason) callback.reject(reason);
@@ -80,6 +85,7 @@ describe("DesktopBrowserLoginCoordinator", () => {
     expect(startVariables.input).toMatchObject({
       redirectUri: "http://127.0.0.1:53684/oauth/tkcopilot/callback",
       deviceName: "Test Mac",
+      surface: "GLOBAL",
     });
     expect(startVariables.input.state).toBeTruthy();
     expect(startVariables.input.codeChallenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
@@ -103,6 +109,20 @@ describe("DesktopBrowserLoginCoordinator", () => {
       expect.objectContaining({ email: "owner@example.com" }),
     );
     expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the China browser surface when Desktop uses the China API route", async () => {
+    setFirstPartyDomainRoute("cn-relay");
+    const coordinator = new DesktopBrowserLoginCoordinator({
+      authSession: authSession as unknown as AuthSessionManager,
+      openExternal,
+    });
+
+    await coordinator.start();
+
+    expect(authSession.graphqlFetch.mock.calls[0]![1]).toMatchObject({
+      input: { surface: "CN_RELAY" },
+    });
   });
 
   it("cancels a pending flow without storing credentials", async () => {
