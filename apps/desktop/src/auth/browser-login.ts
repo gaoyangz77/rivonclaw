@@ -4,6 +4,7 @@ import {
   startLoopbackOAuthCallback,
   type LoopbackOAuthCallback,
 } from "@rivonclaw/gateway";
+import { getFirstPartyDomainRoute } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import {
   EXCHANGE_BROWSER_TO_DESKTOP_LOGIN_MUTATION,
@@ -90,6 +91,8 @@ export class DesktopBrowserLoginCoordinator {
             state,
             codeChallenge: challenge,
             deviceName: this.options.deviceName ?? hostname() ?? "TK Copilot Desktop",
+            surface:
+              getFirstPartyDomainRoute() === "cn-relay" ? "CN_RELAY" : "GLOBAL",
           },
         },
         { autoRefresh: false, includeAccessToken: false },

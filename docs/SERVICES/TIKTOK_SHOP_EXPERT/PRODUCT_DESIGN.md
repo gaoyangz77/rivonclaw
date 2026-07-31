@@ -109,7 +109,7 @@ Expert 的核心问题是：
 | `tiktok-shop-expert` | 用户侧运行时 Skill slug |
 | `evolve-tiktok-shop-expert` | 内部知识演进与发布 Skill |
 
-`expert.tkcopilot.com` 是认证后产品入口的优先候选。公开内容优先使用主站路径，以继承主域名 SEO、分析和品牌权重。中国区对应域名需要结合 ICP 与现有转发架构单独确认。
+`www.tkcopilot.com/expert` 是认证后产品入口，并与主站共享 SEO、分析、品牌权重和 host-only 登录 cookie。中国区使用同一 Web image，通过区域站点的一次性会话交换建立独立的 host-only cookie。
 
 ## 4. 目标用户
 
@@ -857,7 +857,7 @@ Airflow 继续服务当前数据平台和确定性业务数据同步，不作为
 
 ### 11.2 当前不能直接复用的部分
 
-项目当前没有“公开网站用户直接调用的托管 Agent”。现有 OpenClaw Runtime 属于用户本地 Electron Desktop，不能假设访问 `expert.tkcopilot.com` 的用户已经安装并运行桌面端。
+项目当前没有“公开网站用户直接调用的托管 Agent”。现有 OpenClaw Runtime 属于用户本地 Electron Desktop，不能假设访问 `www.tkcopilot.com/expert` 的用户已经安装并运行桌面端。
 
 因此必须新增：
 
@@ -1219,23 +1219,22 @@ manifest 不参与该链路。
 
 ### 14.1 当前基础
 
-当前 `server/website/site` 主要是静态 HTML/CSS/JS；`server/website` 继续负责主站营销内容和 generated skill artifacts。认证后的 Expert 产品使用独立应用：
+主站营销内容、账号页面和认证后的 Expert 产品统一由私有 `server` 仓库中的 Web 工程提供：
 
 ```text
-apps/expert-web
+server/web
 ```
 
 技术栈与 Desktop Panel 对齐：
 
-- React 19 + Vite；
+- React 19 + React Router Framework Mode + Vite；
 - Apollo Client，HTTP 与 `graphql-ws` split transport；
 - MobX-State-Tree；
 - 后端 schema codegen 生成的 GraphQL 类型。
 
 最终形成：
 
-- 主站静态 / 预渲染营销内容；
-- 独立构建的 Expert Web App；
+- 主站静态预渲染营销内容与动态账号/Expert 路由共用一个 Web 工程和 Docker image；
 - 共享品牌 tokens、analytics 和 auth client；
 - 后端业务类型来自 GraphQL codegen。
 
@@ -1246,19 +1245,12 @@ GraphQL 是 API 层，不是页面框架。前端技术选择应以 SSR/SEO、�
 建议：
 
 ```text
-tkcopilot.com/
-├── expert/                  # 产品介绍与入口
+www.tkcopilot.com/
+├── expert                   # 登录保护的 Expert 产品
 ├── academy/                 # 公开指南、政策解读、案例
 ├── assessment/              # 可索引的诊断入口
-└── resources/               # 经过审核的工具与资源
-
-expert.tkcopilot.com/
-├── onboarding
-├── chat
-├── recommendations
-├── plan
-├── tasks
-└── account
+├── resources/               # 经过审核的工具与资源
+└── account/                 # 登录、注册和跨端/跨区域会话
 ```
 
 不要使用 `chat.tkjiang.cn` 作为新入口；它在当前部署中已有移动 Chat PWA 语义。
@@ -1552,7 +1544,7 @@ Phase 1 稳定后实施 Runtime V2 Remote Knowledge Release 热更新。它是�
    artifact。不实现自有 Agent loop，不使用向量数据库。
 3. **Conversation ownership**：MongoDB 是云端会话权威存储；默认保存到用户删除，删除后 soft-delete 30 天。
 4. **Streaming**：GraphQL mutation + Redis Stream/PubSub + GraphQL Subscription，不使用轮询。
-5. **Web**：`apps/expert-web` 是 React/Vite/Apollo/MST SPA，部署在 `expert.tkcopilot.com`。
+5. **Web**：私有 `server/web` 是 React Router/Vite/Apollo/MST 应用，主页预渲染，账号与 Expert 页面部署在 `www.tkcopilot.com` 的同一 origin。
 6. **Auth**：access token 仅放 Web 内存；refresh token 使用 Secure、HttpOnly、SameSite=Lax cookie，并复用现有 JWT rotation。
 7. **Usage**：免费用户 UTC 每日 5 dispatch；订阅用户消耗 token，耗尽不回退免费额度。
 8. **Knowledge evolution**：本地 Codex automation 加载 Expertise Engine；确定性脚本处理 ETL 和传输，Codex 处理异常、语义提炼与冲突。
@@ -1584,15 +1576,13 @@ server/
 ├── hosted-skills/
 │   └── tiktok-shop-expert/                 # 只读 Customer Expert 世界模型
 ├── backend/src/expert/
-└── website/
-    └── src/expert/
+└── web/                                     # marketing、account 与 Expert
 
-apps/expert-web/                             # authenticated Expert SPA
 apps/panel/                                  # later TK Copilot integration
 packages/core/src/generated/graphql.ts       # generated
 ```
 
-主站公开 `/expert` 页面继续位于 `server/website`；`expert.tkcopilot.com` 单独构建并配置 SPA history fallback、同源 `/api/graphql` 和 GraphQL WebSocket proxy。
+`/`、`/account/*` 与 `/expert` 由同一 Web image 提供；`/expert` 未登录时跳转到官网登录页，并在成功后回到原路径。同源 `/api/graphql` 同时代理 GraphQL HTTP 与 WebSocket。
 
 ## 22. 后置产品问题
 
