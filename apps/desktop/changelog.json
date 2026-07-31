@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.84",
+    "date": "2026-07-30",
+    "en": [
+      "Open the TK Copilot website from Desktop with the current signed-in account",
+      "Remove one-time login credentials from localhost callback URLs after use"
+    ],
+    "zh": [
+      "从 Desktop 打开 TK Copilot 官网时自动沿用当前登录账号",
+      "一次性登录凭证使用后立即从 localhost 回调地址中清除"
+    ]
+  },
+  {
     "version": "1.8.83",
     "date": "2026-07-29",
     "en": [

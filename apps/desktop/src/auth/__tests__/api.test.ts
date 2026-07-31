@@ -679,3 +679,74 @@ describe("Desktop browser auth routes", () => {
     });
   });
 });
+
+describe("Desktop authenticated website route", () => {
+  it("opens a one-time browser handoff without exposing its ticket to the Panel", async () => {
+    const graphqlFetch = vi.fn().mockResolvedValue({
+      createDesktopToWebLogin: {
+        authorizationUrl:
+          "https://www.tkcopilot.com/account/login?handoff=secret-ticket&returnPath=%2F",
+      },
+    });
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+    const ctx = {
+      authSession: {
+        getAccessToken: vi.fn().mockReturnValue("desktop-access-token"),
+        graphqlFetch,
+      },
+      openExternal,
+    } as unknown as ApiContext;
+
+    const result = await dispatch("POST", "/api/auth/web/open", ctx);
+
+    expect(result.res._status).toBe(200);
+    expect(result.res._body).toEqual({ authenticated: true });
+    expect(JSON.stringify(result.res._body)).not.toContain("secret-ticket");
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("createDesktopToWebLogin"),
+      { returnPath: "/", surface: "GLOBAL" },
+    );
+    expect(openExternal).toHaveBeenCalledWith(
+      "https://www.tkcopilot.com/account/login?handoff=secret-ticket&returnPath=%2F",
+    );
+  });
+
+  it("opens the public homepage when Desktop is signed out", async () => {
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+    const ctx = {
+      authSession: {
+        getAccessToken: vi.fn().mockReturnValue(null),
+      },
+      openExternal,
+    } as unknown as ApiContext;
+
+    const result = await dispatch("POST", "/api/auth/web/open", ctx);
+
+    expect(result.res._status).toBe(200);
+    expect(result.res._body).toEqual({ authenticated: false });
+    expect(openExternal).toHaveBeenCalledWith("https://www.tkcopilot.com/");
+  });
+
+  it("rejects website handoff requests from a non-loopback origin", async () => {
+    const req = makeReq("POST", {});
+    (req as any).headers.origin = "https://attacker.example";
+    const res = makeRes();
+    const url = new URL("http://localhost/api/auth/web/open");
+    const handled = await registry.dispatch(
+      req,
+      res,
+      url,
+      url.pathname,
+      {
+        authSession: {
+          getAccessToken: vi.fn().mockReturnValue("desktop-access-token"),
+        },
+        openExternal: vi.fn(),
+      } as unknown as ApiContext,
+    );
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(403);
+    expect(res._body).toEqual({ errorCode: "WEB_OPEN_UNTRUSTED_ORIGIN" });
+  });
+});
