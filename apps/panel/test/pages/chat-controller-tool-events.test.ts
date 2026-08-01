@@ -131,6 +131,7 @@ describe("ChatGatewayController tool events", () => {
         data: {
           phase: "start",
           toolName: "search",
+          toolCallId: "call-search-live",
           args: { query: "failed order" },
         },
       },
@@ -140,11 +141,64 @@ describe("ChatGatewayController tool events", () => {
       expect.objectContaining({
         role: "tool-event",
         toolName: "search",
+        toolCallId: "call-search-live",
         toolArgs: { query: "failed order" },
         toolStatus: "running",
       }),
     ]);
     expect(session.runState.displayToolName).toBe("search");
+  });
+
+  it("does not duplicate a live tool event when history is reloaded", async () => {
+    const store = createChatStore();
+    const controller = new ChatGatewayController(store);
+    const session = store.getOrCreateSession(store.activeSessionKey);
+    session.runState.beginLocalRun("run-order", store.activeSessionKey);
+
+    (controller as any).handleEvent({
+      event: "agent",
+      payload: {
+        runId: "run-order",
+        sessionKey: store.activeSessionKey,
+        stream: "tool",
+        data: {
+          phase: "start",
+          name: "ecom_get_order",
+          toolCallId: "call-order",
+          args: { orderId: "577341290410316286" },
+        },
+      },
+    });
+
+    (controller as any).client = {
+      request: vi.fn().mockResolvedValue({
+        messages: [
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "toolCall",
+                id: "call-order",
+                name: "ecom_get_order",
+                arguments: { orderId: "577341290410316286" },
+              },
+            ],
+            timestamp: 10_000,
+          },
+        ],
+      }),
+    };
+
+    await controller.loadHistory();
+
+    expect(session.messages).toEqual([
+      expect.objectContaining({
+        role: "tool-event",
+        toolName: "ecom_get_order",
+        toolCallId: "call-order",
+        toolRunId: "run-order",
+      }),
+    ]);
   });
 
   it("marks the active tool event as failed when the run errors during tooling", () => {

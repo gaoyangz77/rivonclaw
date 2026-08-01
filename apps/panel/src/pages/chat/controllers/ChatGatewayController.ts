@@ -625,11 +625,16 @@ export class ChatGatewayController {
           const flushedText =
             rawStreaming && currentOffset > 0 ? rawStreaming.slice(currentOffset) : rawStreaming;
           const args = agentPayload.data?.args as Record<string, unknown> | undefined;
+          const toolCallId =
+            typeof agentPayload.data?.toolCallId === "string"
+              ? agentPayload.data.toolCallId
+              : undefined;
           if (session) {
             session.startToolEvent({
               runId: agentRunId,
               toolName: name,
               toolArgs: args,
+              toolCallId,
               flushedText,
             });
             // History patch for throttle buffer recovery (first tool call only)
