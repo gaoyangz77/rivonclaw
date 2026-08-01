@@ -324,7 +324,18 @@ const browserStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
     return;
   }
   try {
-    sendJson(res, 200, await ctx.browserLoginCoordinator.start());
+    const body = await parseBody(req) as { intent?: unknown };
+    if (body.intent !== undefined && body.intent !== "LOGIN" && body.intent !== "REGISTER") {
+      sendJson(res, 400, { errorCode: "BROWSER_AUTH_INVALID_INTENT" });
+      return;
+    }
+    sendJson(
+      res,
+      200,
+      await ctx.browserLoginCoordinator.start({
+        intent: body.intent === "REGISTER" ? "REGISTER" : "LOGIN",
+      }),
+    );
   } catch {
     sendJson(res, 400, { errorCode: "BROWSER_AUTH_START_FAILED" });
   }

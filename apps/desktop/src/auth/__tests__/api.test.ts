@@ -612,13 +612,15 @@ describe("Desktop browser auth routes", () => {
     };
     const ctx = { browserLoginCoordinator } as unknown as ApiContext;
 
-    const started = await dispatch("POST", "/api/auth/browser/start", ctx);
+    const started = await dispatch("POST", "/api/auth/browser/start", ctx, {
+      intent: "REGISTER",
+    });
     expect(started.res._status).toBe(200);
     expect(started.res._body).toEqual({
       flowId: "browser-flow-1",
       status: "pending",
     });
-    expect(browserLoginCoordinator.start).toHaveBeenCalledTimes(1);
+    expect(browserLoginCoordinator.start).toHaveBeenCalledWith({ intent: "REGISTER" });
 
     const status = await dispatch(
       "GET",
@@ -647,6 +649,19 @@ describe("Desktop browser auth routes", () => {
       status.res._body,
       cancelled.res._body,
     ])).not.toMatch(/accessToken|refreshToken|ticket|code/);
+  });
+
+  it("rejects an invalid browser authentication intent", async () => {
+    const browserLoginCoordinator = { start: vi.fn() };
+    const ctx = { browserLoginCoordinator } as unknown as ApiContext;
+
+    const result = await dispatch("POST", "/api/auth/browser/start", ctx, {
+      intent: "RESET_PASSWORD",
+    });
+
+    expect(result.res._status).toBe(400);
+    expect(result.res._body).toEqual({ errorCode: "BROWSER_AUTH_INVALID_INTENT" });
+    expect(browserLoginCoordinator.start).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -237,6 +237,9 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     try {
       const flow = await fetchJson<BrowserAuthFlow>(clientPath(API["auth.browserStart"]), {
         method: "POST",
+        body: JSON.stringify({
+          intent: activeTab === "register" ? "REGISTER" : "LOGIN",
+        }),
       });
       setBrowserFlow(flow);
     } catch {
@@ -245,7 +248,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
     } finally {
       setBrowserStarting(false);
     }
-  }, [t]);
+  }, [activeTab, t]);
 
   // Reset form state when modal opens/closes
   useEffect(() => {
@@ -617,7 +620,11 @@ export function AuthModal({ isOpen, onClose, initialTab = "login", modeSwitch = 
             >
               <span className="google-auth-mark"><BrowserMark /></span>
               <span>
-                {browserStarting ? t("auth.browserLoginOpening") : t("auth.browserLoginContinue")}
+                {browserStarting
+                  ? t("auth.browserLoginOpening")
+                  : activeTab === "register"
+                    ? t("auth.browserRegisterContinue")
+                    : t("auth.browserLoginContinue")}
               </span>
             </button>
             <div className="google-auth-divider">

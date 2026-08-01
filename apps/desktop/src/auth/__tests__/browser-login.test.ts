@@ -86,6 +86,7 @@ describe("DesktopBrowserLoginCoordinator", () => {
       redirectUri: "http://127.0.0.1:53684/oauth/tkcopilot/callback",
       deviceName: "Test Mac",
       surface: "GLOBAL",
+      intent: "LOGIN",
     });
     expect(startVariables.input.state).toBeTruthy();
     expect(startVariables.input.codeChallenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
@@ -122,6 +123,19 @@ describe("DesktopBrowserLoginCoordinator", () => {
 
     expect(authSession.graphqlFetch.mock.calls[0]![1]).toMatchObject({
       input: { surface: "CN_RELAY" },
+    });
+  });
+
+  it("forwards registration intent to the browser handoff", async () => {
+    const coordinator = new DesktopBrowserLoginCoordinator({
+      authSession: authSession as unknown as AuthSessionManager,
+      openExternal,
+    });
+
+    await coordinator.start({ intent: "REGISTER" });
+
+    expect(authSession.graphqlFetch.mock.calls[0]![1]).toMatchObject({
+      input: { intent: "REGISTER" },
     });
   });
 

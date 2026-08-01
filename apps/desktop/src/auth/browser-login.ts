@@ -29,6 +29,8 @@ export interface DesktopBrowserLoginFlowView {
   errorCode?: string;
 }
 
+export type DesktopBrowserAuthIntent = "LOGIN" | "REGISTER";
+
 interface PendingFlow extends DesktopBrowserLoginFlowView {
   createdAt: number;
   callback?: LoopbackOAuthCallback;
@@ -54,7 +56,9 @@ export class DesktopBrowserLoginCoordinator {
     this.now = options.now ?? Date.now;
   }
 
-  async start(): Promise<DesktopBrowserLoginFlowView> {
+  async start(
+    input: { intent?: DesktopBrowserAuthIntent } = {},
+  ): Promise<DesktopBrowserLoginFlowView> {
     this.cancelActive();
     const state = randomBytes(32).toString("base64url");
     const verifier = randomBytes(64).toString("base64url");
@@ -93,6 +97,7 @@ export class DesktopBrowserLoginCoordinator {
             deviceName: this.options.deviceName ?? hostname() ?? "TK Copilot Desktop",
             surface:
               getFirstPartyDomainRoute() === "cn-relay" ? "CN_RELAY" : "GLOBAL",
+            intent: input.intent ?? "LOGIN",
           },
         },
         { autoRefresh: false, includeAccessToken: false },

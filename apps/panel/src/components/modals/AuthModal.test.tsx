@@ -89,10 +89,31 @@ describe("AuthModal Google sign-in", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "auth.browserLoginContinue" }),
     );
+    await waitFor(() => {
+      const startCall = mocks.fetchJson.mock.calls.find(([path]) =>
+        pathIncludes(path, "/browser/start"));
+      expect(JSON.parse(startCall![1].body)).toEqual({ intent: "LOGIN" });
+    });
     expect(await screen.findByText("auth.browserLoginWaiting")).toBeTruthy();
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1), { timeout: 2_000 });
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(mocks.showToast).toHaveBeenCalledWith("auth.browserLoginSuccess");
+  });
+
+  it("opens browser registration when the registration tab is active", async () => {
+    installDefaultResponses();
+    render(<AuthModal isOpen onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "auth.register" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "auth.browserRegisterContinue" }),
+    );
+
+    await waitFor(() => {
+      const startCall = mocks.fetchJson.mock.calls.find(([path]) =>
+        pathIncludes(path, "/browser/start"));
+      expect(JSON.parse(startCall![1].body)).toEqual({ intent: "REGISTER" });
+    });
   });
 
   it("deduplicates start clicks and completes after the main-process status changes", async () => {

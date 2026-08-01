@@ -1509,6 +1509,7 @@ export default {
     loginSuccess: "Signed in successfully",
     registerSuccess: "Account created successfully",
     browserLoginContinue: "Sign in from your browser",
+    browserRegisterContinue: "Register in your browser",
     browserLoginOpening: "Opening browser…",
     browserLoginDivider: "or use another method",
     browserLoginWaiting: "Finish signing in in your browser",
