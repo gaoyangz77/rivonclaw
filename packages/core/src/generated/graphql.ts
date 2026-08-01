@@ -8339,7 +8339,8 @@ export interface MutationCsRespondArgs {
 
 
 export interface MutationCsStartSessionArgs {
-  conversationId: Scalars['String']['input'];
+  buyerUserId?: InputMaybe<Scalars['String']['input']>;
+  conversationId?: InputMaybe<Scalars['String']['input']>;
   operatorInstruction?: InputMaybe<Scalars['String']['input']>;
   orderId?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
