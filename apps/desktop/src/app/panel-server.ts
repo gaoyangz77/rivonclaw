@@ -222,7 +222,6 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
   if (authSession && options.proxyFetch && options.onOpenExternal) {
     ctx.googleAuthCoordinator = new DesktopGoogleAuthCoordinator({
       authSession,
-      fetchFn: options.proxyFetch,
       openExternal: options.onOpenExternal,
       onSuccess: async () => {
         clearStoredMarketingAttribution(storage.settings);

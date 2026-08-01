@@ -4,9 +4,16 @@ import { GraphqlRequestError, type AuthSessionManager } from "../session.js";
 const gatewayMocks = vi.hoisted(() => ({
   startLoopbackOAuthCallback: vi.fn(),
 }));
+const loggerMocks = vi.hoisted(() => ({
+  warn: vi.fn(),
+}));
 
 vi.mock("@rivonclaw/gateway", () => ({
   startLoopbackOAuthCallback: gatewayMocks.startLoopbackOAuthCallback,
+}));
+vi.mock("@rivonclaw/logger", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@rivonclaw/logger")>(),
+  createLogger: () => ({ warn: loggerMocks.warn }),
 }));
 
 import { DesktopGoogleAuthCoordinator } from "../google-oauth.js";
@@ -25,9 +32,9 @@ describe("DesktopGoogleAuthCoordinator", () => {
   let callback: ReturnType<typeof deferred<{ code: string; state: string }>>;
   let authSession: {
     getDesktopGoogleAuthConfig: ReturnType<typeof vi.fn>;
+    exchangeDesktopGoogleCode: ReturnType<typeof vi.fn>;
     loginWithGoogle: ReturnType<typeof vi.fn>;
   };
-  let fetchFn: Mock<(url: string | URL, init?: RequestInit) => Promise<Response>>;
   let openExternal: Mock<(url: string) => Promise<unknown>>;
   let close: Mock<(reason?: Error) => void>;
 
@@ -37,6 +44,7 @@ describe("DesktopGoogleAuthCoordinator", () => {
       if (reason) callback.reject(reason);
     });
     gatewayMocks.startLoopbackOAuthCallback.mockReset();
+    loggerMocks.warn.mockReset();
     gatewayMocks.startLoopbackOAuthCallback.mockResolvedValue({
       port: 53682,
       redirectUri: "http://127.0.0.1:53682/oauth/google/callback",
@@ -49,12 +57,9 @@ describe("DesktopGoogleAuthCoordinator", () => {
         enabled: true,
         clientId: "desktop-client.apps.googleusercontent.com",
       }),
+      exchangeDesktopGoogleCode: vi.fn().mockResolvedValue("google-id-token"),
       loginWithGoogle: vi.fn().mockResolvedValue({ userId: "user-1" }),
     };
-    fetchFn = vi.fn<(url: string | URL, init?: RequestInit) => Promise<Response>>().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id_token: "google-id-token" }),
-    } as Response);
     openExternal = vi.fn<(url: string) => Promise<unknown>>().mockResolvedValue(undefined);
   });
 
@@ -62,7 +67,6 @@ describe("DesktopGoogleAuthCoordinator", () => {
     return {
       instance: new DesktopGoogleAuthCoordinator({
         authSession: authSession as unknown as AuthSessionManager,
-        fetchFn,
         openExternal,
         onSuccess,
       }),
@@ -70,7 +74,7 @@ describe("DesktopGoogleAuthCoordinator", () => {
     };
   }
 
-  it("opens the system browser with PKCE, state, nonce, and no client secret", async () => {
+  it("opens the system browser with PKCE and exchanges the code through the backend", async () => {
     const { instance, onSuccess } = coordinator();
     const started = await instance.start({ inviteCode: "ABC123" });
 
@@ -90,10 +94,11 @@ describe("DesktopGoogleAuthCoordinator", () => {
     });
     await vi.waitFor(() => expect(instance.status(started.flowId)?.status).toBe("completed"));
 
-    const tokenBody = fetchFn.mock.calls[0]?.[1]?.body;
-    expect(tokenBody).toBeInstanceOf(URLSearchParams);
-    expect((tokenBody as URLSearchParams).get("code_verifier")).toBeTruthy();
-    expect((tokenBody as URLSearchParams).has("client_secret")).toBe(false);
+    expect(authSession.exchangeDesktopGoogleCode).toHaveBeenCalledWith({
+      code: "authorization-code",
+      codeVerifier: expect.stringMatching(/^[A-Za-z0-9_-]{43,128}$/),
+      redirectUri: "http://127.0.0.1:53682/oauth/google/callback",
+    });
     expect(authSession.loginWithGoogle).toHaveBeenCalledWith(expect.objectContaining({
       idToken: "google-id-token",
       nonce: authorizationUrl.searchParams.get("nonce"),
@@ -161,5 +166,28 @@ describe("DesktopGoogleAuthCoordinator", () => {
       code: "GOOGLE_AUTH_UNAVAILABLE",
     });
     expect(openExternal).not.toHaveBeenCalled();
+  });
+
+  it("logs a sanitized backend exchange failure without OAuth secrets", async () => {
+    authSession.exchangeDesktopGoogleCode.mockRejectedValue(
+      new GraphqlRequestError("response included sensitive content", "GOOGLE_AUTH_FAILED"),
+    );
+    const { instance } = coordinator();
+    const started = await instance.start();
+    const authorizationUrl = new URL(openExternal.mock.calls[0]![0]);
+    callback.resolve({
+      code: "authorization-code",
+      state: authorizationUrl.searchParams.get("state")!,
+    });
+
+    await vi.waitFor(() => expect(instance.status(started.flowId)?.status).toBe("failed"));
+    expect(loggerMocks.warn).toHaveBeenCalledWith("Desktop Google sign-in failed", {
+      category: "GOOGLE_AUTH_FAILED",
+      stage: "exchanging_code",
+      errorType: "GraphqlRequestError",
+      graphqlCode: "GOOGLE_AUTH_FAILED",
+    });
+    expect(JSON.stringify(loggerMocks.warn.mock.calls)).not.toContain("authorization-code");
+    expect(JSON.stringify(loggerMocks.warn.mock.calls)).not.toContain("sensitive content");
   });
 });

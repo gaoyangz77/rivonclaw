@@ -134,6 +134,12 @@ export const DESKTOP_GOOGLE_AUTH_CONFIG_QUERY = `
   }
 `;
 
+export const EXCHANGE_DESKTOP_GOOGLE_CODE_MUTATION = `
+  mutation ExchangeDesktopGoogleCode($input: DesktopGoogleCodeExchangeInput!) {
+    exchangeDesktopGoogleCode(input: $input)
+  }
+`;
+
 export const GOOGLE_LOGIN_MUTATION = `
   mutation DesktopGoogleLogin($input: GoogleLoginInput!) {
     googleLogin(input: $input) {

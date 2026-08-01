@@ -14,7 +14,6 @@ import {
 const log = createLogger("desktop-google-auth");
 
 const GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALLBACK_PATH = "/oauth/google/callback";
 const FLOW_TTL_MS = 5 * 60 * 1000;
 
@@ -53,13 +52,15 @@ interface PendingDesktopGoogleAuthFlow extends DesktopGoogleAuthFlowView {
   idToken?: string;
 }
 
-interface GoogleTokenResponse {
-  id_token?: unknown;
-}
+type DesktopGoogleAuthStage =
+  | "opening_browser"
+  | "waiting_for_callback"
+  | "exchanging_code"
+  | "validating_id_token"
+  | "logging_in_to_backend";
 
 export interface DesktopGoogleAuthCoordinatorOptions {
   authSession: AuthSessionManager;
-  fetchFn: (url: string | URL, init?: RequestInit) => Promise<Response>;
   openExternal: (url: string) => Promise<unknown>;
   onSuccess?: () => void | Promise<void>;
   now?: () => number;
@@ -154,7 +155,6 @@ export class DesktopGoogleAuthCoordinator {
 
     void this.completeBrowserFlow(
       flow,
-      config.clientId,
       verifier,
       authorizationUrl.toString(),
     );
@@ -233,32 +233,28 @@ export class DesktopGoogleAuthCoordinator {
 
   private async completeBrowserFlow(
     flow: PendingDesktopGoogleAuthFlow,
-    clientId: string,
     verifier: string,
     authorizationUrl: string,
   ): Promise<void> {
+    let stage: DesktopGoogleAuthStage = "opening_browser";
     try {
       await this.options.openExternal(authorizationUrl);
+      stage = "waiting_for_callback";
       const callbackResult = await flow.callback!.waitForCallback;
       if (flow.status !== "pending") return;
-      const tokenResponse = await this.options.fetchFn(GOOGLE_TOKEN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: clientId,
-          code: callbackResult.code,
-          code_verifier: verifier,
-          grant_type: "authorization_code",
-          redirect_uri: flow.callback!.redirectUri,
-        }),
+      stage = "exchanging_code";
+      const idToken = await this.options.authSession.exchangeDesktopGoogleCode({
+        code: callbackResult.code,
+        codeVerifier: verifier,
+        redirectUri: flow.callback!.redirectUri,
       });
-      if (!tokenResponse.ok) throw new Error("Google OAuth token exchange failed");
-      const tokenJson = await tokenResponse.json() as GoogleTokenResponse;
-      if (typeof tokenJson.id_token !== "string" || tokenJson.id_token.length > 20_000) {
+      stage = "validating_id_token";
+      if (typeof idToken !== "string" || idToken.length > 20_000) {
         throw new Error("Google OAuth token exchange did not return an ID token");
       }
-      flow.idToken = tokenJson.id_token;
+      flow.idToken = idToken;
       try {
+        stage = "logging_in_to_backend";
         await this.options.authSession.loginWithGoogle({
           idToken: flow.idToken,
           nonce: flow.nonce,
@@ -285,7 +281,14 @@ export class DesktopGoogleAuthCoordinator {
       flow.status = "failed";
       flow.errorCode = errorCodeFor(error);
       this.clearSensitive(flow);
-      log.warn("Desktop Google sign-in failed", { category: flow.errorCode });
+      log.warn("Desktop Google sign-in failed", {
+        category: flow.errorCode,
+        stage,
+        errorType: error instanceof Error ? error.name : "UnknownError",
+        ...(error instanceof GraphqlRequestError && error.code
+          ? { graphqlCode: error.code }
+          : {}),
+      });
     } finally {
       flow.callback?.close();
       flow.callback = undefined;
