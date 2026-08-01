@@ -9,6 +9,7 @@ import {
   REGISTER_MUTATION,
   REQUEST_CAPTCHA_MUTATION,
   DESKTOP_GOOGLE_AUTH_CONFIG_QUERY,
+  EXCHANGE_DESKTOP_GOOGLE_CODE_MUTATION,
   GOOGLE_LOGIN_MUTATION,
 } from "../cloud/auth-queries.js";
 import type { MarketingAttribution } from "../attribution/marketing-attribution.js";
@@ -369,6 +370,19 @@ export class AuthSessionManager {
       { autoRefresh: false, includeAccessToken: false },
     );
     return data.desktopGoogleAuthConfig;
+  }
+
+  async exchangeDesktopGoogleCode(input: {
+    code: string;
+    codeVerifier: string;
+    redirectUri: string;
+  }): Promise<string> {
+    const data = await this.graphqlFetch<{ exchangeDesktopGoogleCode: string }>(
+      EXCHANGE_DESKTOP_GOOGLE_CODE_MUTATION,
+      { input },
+      { autoRefresh: false, includeAccessToken: false },
+    );
+    return data.exchangeDesktopGoogleCode;
   }
 
   async loginWithGoogle(input: GoogleLoginRequest): Promise<GQL.MeResponse> {
