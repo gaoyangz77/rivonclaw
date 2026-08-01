@@ -559,6 +559,24 @@ export function extractToolCallName(block: Record<string, unknown>): string | un
   return undefined;
 }
 
+/** Extract the stable tool-call identity shared by live events and chat history. */
+export function extractToolCallId(block: Record<string, unknown>): string | undefined {
+  for (const field of [
+    "toolCallId",
+    "tool_call_id",
+    "toolUseId",
+    "tool_use_id",
+    "callId",
+    "id",
+  ]) {
+    const val = block[field];
+    if (typeof val === "string" && val.trim()) {
+      return val.trim();
+    }
+  }
+  return undefined;
+}
+
 export function extractToolError(block: Record<string, unknown>): string | undefined {
   for (const field of ["error", "errorMessage", "toolError"]) {
     const val = block[field];
@@ -795,6 +813,7 @@ export function parseRawMessages(
                 toolArgs: args,
                 toolStatus: toolError ? "failed" : undefined,
                 toolError,
+                toolCallId: extractToolCallId(b),
                 timestamp: msg.timestamp ?? 0,
               }),
             );
@@ -894,7 +913,14 @@ function isDuplicateImageMessage(a: ChatMessage, b: ChatMessage): boolean {
 }
 
 function areNearDuplicateMessages(a: ChatMessage, b: ChatMessage): boolean {
-  if (isToolMessage(a) || isToolMessage(b)) return false;
+  if (isToolMessage(a) || isToolMessage(b)) {
+    return (
+      isToolMessage(a) &&
+      isToolMessage(b) &&
+      Boolean(a.toolCallId) &&
+      a.toolCallId === b.toolCallId
+    );
+  }
   if (a.role !== b.role) return false;
   if (a.idempotencyKey && b.idempotencyKey) return a.idempotencyKey === b.idempotencyKey;
   if (isDuplicateImageMessage(a, b)) return true;
@@ -966,6 +992,23 @@ function pruneSupersededLocalTerminalErrors(messages: ChatMessage[]): ChatMessag
 }
 
 function mergeDuplicateMessage(existing: ChatMessage, incoming: ChatMessage): ChatMessage {
+  if (isToolMessage(existing) && isToolMessage(incoming)) {
+    const failed = existing.toolStatus === "failed" || incoming.toolStatus === "failed";
+    return {
+      ...existing,
+      toolName: existing.toolName ?? incoming.toolName,
+      toolArgs: existing.toolArgs ?? incoming.toolArgs,
+      toolStatus: failed
+        ? "failed"
+        : existing.toolStatus === "running" || incoming.toolStatus === "running"
+          ? "running"
+          : undefined,
+      toolError: existing.toolError ?? incoming.toolError,
+      toolRunId: existing.toolRunId ?? incoming.toolRunId,
+      toolCallId: existing.toolCallId ?? incoming.toolCallId,
+      timestamp: existing.timestamp > 0 ? existing.timestamp : incoming.timestamp,
+    };
+  }
   const existingHasImages = hasMessageImages(existing);
   const incomingHasImages = hasMessageImages(incoming);
   if (!existingHasImages && !incomingHasImages) return existing;

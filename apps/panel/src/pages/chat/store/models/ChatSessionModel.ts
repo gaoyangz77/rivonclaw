@@ -4,6 +4,7 @@ import {
   INITIAL_VISIBLE,
   clearActiveToolEvent,
   createToolEventMessage,
+  mergeChatMessagesDedup,
   settleActiveToolEvent,
 } from "../../chat-utils.js";
 import type { ChatMessage, PendingImage, ToolEventStatus } from "../../chat-utils.js";
@@ -86,6 +87,7 @@ export const ChatSessionModel = types
       runId: string;
       toolName: string;
       toolArgs?: Record<string, unknown>;
+      toolCallId?: string;
       timestamp?: number;
       flushedText?: string | null;
     }) {
@@ -94,14 +96,15 @@ export const ChatSessionModel = types
         self.messages.push({ role: "assistant", text: params.flushedText, timestamp: ts });
       }
       self.toolEventSeq += 1;
-      self.messages.push(createToolEventMessage({
+      const toolEvent = createToolEventMessage({
         toolName: params.toolName,
         toolArgs: params.toolArgs,
         toolStatus: "running",
         toolRunId: params.runId,
-        toolCallId: `${params.runId}:${self.toolEventSeq}`,
+        toolCallId: params.toolCallId ?? `${params.runId}:${self.toolEventSeq}`,
         timestamp: ts,
-      }));
+      });
+      self.messages.replace(mergeChatMessagesDedup([...self.messages], [toolEvent]));
     },
     settleToolEvent(runId: string, status: Exclude<ToolEventStatus, "running">, error?: string) {
       const next = settleActiveToolEvent([...self.messages], { runId, status, error });

@@ -159,6 +159,7 @@ describe("parseRawMessages — stripped image handling", () => {
         content: [
           {
             type: "tool_use",
+            id: "call-search-1",
             toolName: "search",
             input: {
               query: "order 123",
@@ -174,10 +175,65 @@ describe("parseRawMessages — stripped image handling", () => {
       expect.objectContaining({
         role: "tool-event",
         toolName: "search",
+        toolCallId: "call-search-1",
         toolArgs: { query: "order 123" },
         timestamp: 7000,
       }),
     ]);
+  });
+
+  it("dedupes the same live and historical tool call by its stable id", () => {
+    const history: ChatMessage[] = [
+      {
+        role: "tool-event",
+        text: "ecom_get_order",
+        toolName: "ecom_get_order",
+        toolArgs: { orderId: "577341290410316286" },
+        toolCallId: "call-order-1",
+        timestamp: 10_000,
+      },
+    ];
+    const realtime: ChatMessage[] = [
+      {
+        role: "tool-event",
+        text: "ecom_get_order",
+        toolName: "ecom_get_order",
+        toolArgs: { orderId: "577341290410316286" },
+        toolCallId: "call-order-1",
+        toolRunId: "run-order-1",
+        toolStatus: "running",
+        timestamp: 10_100,
+      },
+    ];
+
+    const result = mergeChatMessagesDedup(history, realtime);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        toolCallId: "call-order-1",
+        toolRunId: "run-order-1",
+        toolStatus: "running",
+      }),
+    );
+  });
+
+  it("keeps distinct tool calls when their names and arguments match", () => {
+    const first: ChatMessage = {
+      role: "tool-event",
+      text: "ecom_get_order",
+      toolName: "ecom_get_order",
+      toolArgs: { orderId: "577341290410316286" },
+      toolCallId: "call-order-1",
+      timestamp: 10_000,
+    };
+    const second: ChatMessage = {
+      ...first,
+      toolCallId: "call-order-2",
+      timestamp: 10_100,
+    };
+
+    expect(mergeChatMessagesDedup([first], [second])).toHaveLength(2);
   });
 
   it("marks historical tool events as failed when the block carries an error", () => {
