@@ -2,6 +2,7 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   en: {
     auth: {
       browserLoginContinue: "Sign in from your browser",
+      browserRegisterContinue: "Register in your browser",
       browserLoginOpening: "Opening browser…",
       browserLoginDivider: "or use another method",
       browserLoginWaiting: "Finish signing in in your browser",
@@ -13,7 +14,8 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   },
   zh: {
     auth: {
-      browserLoginContinue: "从浏览器登录",
+      browserLoginContinue: "在浏览器中登录",
+      browserRegisterContinue: "在浏览器中注册",
       browserLoginOpening: "正在打开浏览器…",
       browserLoginDivider: "或使用其他方式",
       browserLoginWaiting: "请在浏览器中完成登录",
@@ -26,6 +28,7 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   de: {
     auth: {
       browserLoginContinue: "Im Browser anmelden",
+      browserRegisterContinue: "Im Browser registrieren",
       browserLoginOpening: "Browser wird geöffnet…",
       browserLoginDivider: "oder eine andere Methode verwenden",
       browserLoginWaiting: "Anmeldung im Browser abschließen",
@@ -38,6 +41,7 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   es: {
     auth: {
       browserLoginContinue: "Iniciar sesión desde el navegador",
+      browserRegisterContinue: "Registrarse desde el navegador",
       browserLoginOpening: "Abriendo el navegador…",
       browserLoginDivider: "o usa otro método",
       browserLoginWaiting: "Completa el acceso en el navegador",
@@ -50,6 +54,7 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   fr: {
     auth: {
       browserLoginContinue: "Se connecter depuis le navigateur",
+      browserRegisterContinue: "S’inscrire depuis le navigateur",
       browserLoginOpening: "Ouverture du navigateur…",
       browserLoginDivider: "ou utiliser une autre méthode",
       browserLoginWaiting: "Terminez la connexion dans le navigateur",
@@ -62,6 +67,7 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   id: {
     auth: {
       browserLoginContinue: "Masuk dari browser",
+      browserRegisterContinue: "Daftar dari browser",
       browserLoginOpening: "Membuka browser…",
       browserLoginDivider: "atau gunakan cara lain",
       browserLoginWaiting: "Selesaikan proses masuk di browser",
@@ -74,6 +80,7 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   it: {
     auth: {
       browserLoginContinue: "Accedi dal browser",
+      browserRegisterContinue: "Registrati dal browser",
       browserLoginOpening: "Apertura del browser…",
       browserLoginDivider: "oppure usa un altro metodo",
       browserLoginWaiting: "Completa l’accesso nel browser",
@@ -86,6 +93,7 @@ export const BROWSER_AUTH_TRANSLATIONS = {
   th: {
     auth: {
       browserLoginContinue: "เข้าสู่ระบบจากเบราว์เซอร์",
+      browserRegisterContinue: "ลงทะเบียนจากเบราว์เซอร์",
       browserLoginOpening: "กำลังเปิดเบราว์เซอร์…",
       browserLoginDivider: "หรือใช้วิธีอื่น",
       browserLoginWaiting: "เข้าสู่ระบบให้เสร็จในเบราว์เซอร์",
