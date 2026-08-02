@@ -756,18 +756,23 @@ coverage 不是文件、字符或 token 数量，而是每个 `(nodeId, scopeId)
 自报比例。每次 run 生成 coverage assessment、coverage report 和
 research backlog，并随 run 归档，不在 Skill 中长期堆积版本快照。
 
-Research backlog 优先处理高权重 uncovered、partial、source cadence
-检测到变化的当前事实、未解决认知冲突和新 ontology 节点产生的空白。
-Knowledge Tree 中的 representative questions 是能力契约，不包含虚构标准
-答案；语义 smoke cases 仍然只能从真实且接受的 Material 产生。
+Research backlog 枚举 uncovered、partial、source cadence 检测到变化的当前
+事实、未解决认知冲突和新 ontology 节点产生的空白。Expert Research Planner
+根据世界模型的基础性、连接性、方法论脆弱度和预期知识产出做语义排序；权重
+与评测分数只作为信号，不生成机械加权总分。
+Knowledge Tree 中的 representative questions 是能力契约，不包含标准答案。
+Coverage 只衡量知识结构是否被填充；真实回答能力还必须通过独立的
+Expert/Baseline 对照评测观察。
 
 ### 10.6 主动研究与新 Source 晋升
 
-固定 Source Registry 与 coverage-driven 主动研究是两个并行入口。主动研究
+固定 Source Registry 与 gap-driven 主动研究是两个并行入口。Gap-driven
+任务可以由 coverage gap 或与当前 Expert release/digest 精确绑定的能力评测
+弱点触发。主动研究
 不直接修改 registry，而是按以下流程运行：
 
 ```text
-Research backlog
+Research backlog + current-release evaluation signals
 → 合并重复 leaf/scope 缺口
 → 生成官方、Google 和抖音搜索意图
 → 获取高价值候选内容
@@ -778,7 +783,10 @@ Research backlog
 → 人工审核后进入 Source Registry
 ```
 
-缺少 `current_state` 时优先搜索平台官方材料；缺少 `world_mechanics`、
+已经 COVERED 的 leaf 如果在真实对照考试中暴露知识缺口，也可以进入主动
+研究。回答组织、个性化或表达问题进入 Expert improvement backlog，不得
+伪装成资料缺口。需要当前事实核验的弱点只允许进入官方、监管、平台目录或
+服务商直接验证路线。缺少 `current_state` 时优先搜索平台官方材料；缺少 `world_mechanics`、
 `expert_methodology` 或 `resources` 时再加入抖音、社区和案例搜索。搜索
 结果标题、点赞数、粉丝数和排名不构成 Evidence。
 
@@ -1404,7 +1412,7 @@ MVP：
 
 ### 17.2 Expert 质量
 
-使用稳定场景集评估：
+使用版本化的 Canonical Question Bank 和稳定抽样蓝图评估：
 
 - 是否先给明确建议；
 - 是否正确使用用户约束；
@@ -1420,8 +1428,26 @@ MVP：
 - 是否拒绝泄露或帮助重建 Skill、references、Knowledge Tree 和内部协议；
 - 是否拒绝不安全或欺骗性操作。
 
-Expert Constitution 的保密与回答姿态测试不依赖行业材料，可以在架构阶段
-建立。业务准确性 smoke cases 和预期答案必须从已接受的真实 Evidence 产生。
+题库生成器只能读取 Canonical Knowledge Tree 和已审核的出题大纲，不能读取
+Expert Skill、references、coverage、历史答案或评分结果。第一版题库包含 171
+道题，按 FACT、RESOURCE、MECHANICS 和 METHODOLOGY 四层组织；每次按领域、
+层级和轮换约束确定性抽取 38 题，同一 leaf 最多一道。其中 12 道来自稳定
+Anchor，最多 8 道来自本次变更相关 leaf，其余来自 rotation pool；manifest
+固化题目版本、随机 seed 和 rotation ledger。
+
+同一批题分别交给不加载 Skill 和加载精确 Candidate Skill 的同一 Terra 模型
+回答，再由不加载 Skill 的 Sol 模型盲评。评估 factual reliability、coverage、
+reasoning、personalization、actionability、epistemic integrity 和 decisiveness，
+报告 W/L/T、分层均值和趋势。该能力评测是诊断工具，不是发布门槛；低分、
+执行失败或题库过期都不能阻止人工审核。每个 candidate 必须留下 capability
+attempt，状态为 `COMPLETE`、`FAILED`、`STALE_BANK` 或
+`SKIPPED_NO_VALID_BANK`；Review 只要求已经尝试并形成状态报告。
+
+Expert Constitution 使用独立测试套件并继续作为硬门槛。能力弱点进一步分为
+`KNOWLEDGE_GAP`、`ANSWER_COMPOSITION_GAP` 和 `GROUND_TRUTH_UNCERTAIN`：只有
+前者和需要事实核验的后者可以在对应 candidate 成为当前 release 后进入
+Expert Research Planner。Planner 只读取 compact signal，不读取原题、答案、
+judge reasoning 或标准答案。历史版本结果仅用于趋势展示。
 
 ### 17.3 产品指标
 
@@ -1461,14 +1487,14 @@ North Star 候选：
 - 建立 `evolve-tiktok-shop-expert`、Source Registry、Groq STT 和 MinIO 归档脚本；
 - 使用真实来源手工运行一次 Expertise Engine 完整循环；
 - 对首轮真实材料生成独立 ontology/expert patch、coverage 和 research backlog；
-- 从接受的 Evidence 生成 material-grounded smoke cases；
+- 建立 Canonical Question Bank、确定性抽样和 Expert/Baseline 对照评测；
 - 验证 Web、GraphQL、Hosted Runtime 和 bundled Skill 的真实流式对话；
 - 验证只读 tool registry、Skill 路径隔离、无 Agent 写权限和 output guard；
 - 定义并验证隐私、保留和安全边界。
 
 退出条件：
 
-- 第一批 material-grounded smoke cases 达到内部专家可接受水平；
+- Constitution 硬门槛通过，并完成第一批 advisory paired capability evaluation；
 - 登录用户可通过 Expert Web 完成一次真实流式问答；
 - Hosted Runtime 只能读取当前 bundled Skill 的已索引知识，不能读取其他文件
   或修改任何服务端状态；
@@ -1549,7 +1575,7 @@ Phase 1 稳定后实施 Runtime V2 Remote Knowledge Release 热更新。它是�
 7. **Usage**：免费用户 UTC 每日 5 dispatch；订阅用户消耗 token，耗尽不回退免费额度。
 8. **Knowledge evolution**：本地 Codex automation 加载 Expertise Engine；确定性脚本处理 ETL 和传输，Codex 处理异常、语义提炼与冲突。
 9. **Materials**：每次运行结束后脚本化上传 MinIO；媒体保留 30 天，文本和演进元数据不自动过期。
-10. **Evaluation**：业务语义评测只从真实且接受的 Material 产生；Expert Constitution 安全测试可在架构阶段建立。
+10. **Evaluation**：版本化题库只从 Knowledge Tree 和独立出题大纲生成；每个 candidate 尝试 Expert/Baseline 对照评测但不以分数阻止发布。Expert Constitution 仍是硬门槛。
 11. **World model**：Customer Skill 使用 World State、World Mechanics、Expert Methodology 三层模型，只保存当前事实和当前方法论。
 12. **Ontology evolution**：Canonical Knowledge Tree 位于 Expertise Engine 中，可由 Model Evolution 生成 ADD、SPLIT、MERGE、MOVE、REVISE、RETIRE 候选变更；早期结构变化均需人工审核。
 13. **Coverage**：coverage 按 Knowledge Tree 的 leaf/scope 权重计算，PARTIAL 单独报告，并作为主动学习控制中枢。
