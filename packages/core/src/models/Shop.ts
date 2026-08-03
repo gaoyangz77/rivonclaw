@@ -1,6 +1,11 @@
 import { types, type Instance } from "mobx-state-tree";
 import { assembleCsPrompt } from "../prompts/cs-prompt.js";
 
+export type CustomerServiceDeviceAssignment =
+  | "unassigned"
+  | "current_device"
+  | "other_device";
+
 export const CustomerServiceConfigModel = types
   .model("CustomerServiceConfig", {
     enabled: types.optional(types.boolean, false),
@@ -113,6 +118,17 @@ export const ShopModel = types.model("Shop", {
   refreshTokenExpiresAt: types.maybeNull(types.string),
   services: types.maybeNull(ShopServiceConfigModel),
 }).views((self) => ({
+  customerServiceDeviceAssignment(
+    deviceId: string | null | undefined,
+  ): CustomerServiceDeviceAssignment {
+    const assignedDeviceId = self.services?.customerService?.csDeviceId?.trim();
+    if (!assignedDeviceId) return "unassigned";
+
+    const currentDeviceId = deviceId?.trim();
+    return currentDeviceId && assignedDeviceId === currentDeviceId
+      ? "current_device"
+      : "other_device";
+  },
   handlesCustomerServiceOnDevice(deviceId: string | null | undefined): boolean {
     if (!deviceId) return false;
     const cs = self.services?.customerService;
