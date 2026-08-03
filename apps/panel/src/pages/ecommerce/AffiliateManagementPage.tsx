@@ -418,17 +418,16 @@ export function affiliateModelStagePresentation(
     (candidate) =>
       candidate.modelFamily === family && candidate.modelStage === stage,
   ) ?? null;
-  const ready = entry?.status === "READY" || entry?.status === "FALLBACK";
+  const ready = (
+    (entry?.status === "READY" || entry?.status === "FALLBACK")
+    && entry.contractStatus === "MATCH"
+  );
   const rawEvaluation = entry?.evaluationSummary ?? null;
-  const evaluationIdentity = rawEvaluation as unknown as
-    | Record<string, unknown>
-    | null;
   const evaluationSummary =
-    rawEvaluation &&
-    evaluationIdentity?.modelFamily === entry?.modelFamily &&
-    evaluationIdentity?.modelStage === entry?.modelStage &&
-    evaluationIdentity?.modelVersionKey === entry?.modelVersionKey &&
-    evaluationIdentity?.contractHash === entry?.contractHash
+    family === "EXPECTED_SALES"
+    && stage === "UNIFIED"
+    && ready
+    && rawEvaluation?.comparisonAvailable === true
       ? rawEvaluation
       : null;
   return {
