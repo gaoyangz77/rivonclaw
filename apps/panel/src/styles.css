@@ -20552,6 +20552,18 @@ html[lang="zh"] .acct-tool-chips {
   padding: 16px;
 }
 
+.affiliate-intelligence-training-data-card {
+  border-color: color-mix(in srgb, var(--color-success) 24%, var(--color-border-light));
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--color-success) 6%, transparent), transparent 58%),
+    var(--color-bg);
+}
+
+.affiliate-intelligence-training-data-card .affiliate-intelligence-tiny-stat:first-child {
+  border-color: color-mix(in srgb, var(--color-success) 30%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-success) 7%, var(--color-surface));
+}
+
 .affiliate-intelligence-distribution-head {
   display: flex;
   align-items: flex-start;
