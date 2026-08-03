@@ -82,6 +82,13 @@ function isTerminalRefreshErrorMessage(message: string): boolean {
   return message.split(";").some((part) => part.trim() === "Refresh token revoked or invalid");
 }
 
+function isTerminalRefreshError(error: unknown): boolean {
+  return (
+    error instanceof GraphqlRequestError
+    && error.code === "REFRESH_TOKEN_REVOKED"
+  ) || isTerminalRefreshErrorMessage(getErrorMessage(error));
+}
+
 class JwtIllegalError extends Error {
   constructor(message: string) {
     super(message);
@@ -256,7 +263,7 @@ export class AuthSessionManager {
       await this.setUser(payload.user);
       return payload.accessToken;
     } catch (err) {
-      const terminalRefreshError = isTerminalRefreshErrorMessage(getErrorMessage(err));
+      const terminalRefreshError = isTerminalRefreshError(err);
       if (terminalRefreshError) {
         log.warn("Refresh token is no longer valid; clearing stored auth session");
         await this.invalidateRejectedRefreshToken(attemptedRefreshToken);
@@ -313,7 +320,7 @@ export class AuthSessionManager {
       const isAuthError = isSessionInvalidErrorMessage(msg);
       if (isJwtIllegalError(err)) {
         log.warn("validate: JWT rejected, keeping cached auth session", { reason: msg });
-      } else if (isTerminalRefreshErrorMessage(msg)) {
+      } else if (isTerminalRefreshError(err)) {
         log.warn("validate: refresh token rejected; auth session was cleared", { reason: msg });
       } else if (isAuthError) {
         log.warn("validate: auth rejected, keeping cached auth session.", { reason: msg });
@@ -465,11 +472,11 @@ export class AuthSessionManager {
 
     if (json.errors?.length) {
       const msg = json.errors.map((e) => e.message).join("; ");
-      if (isJwtIllegalErrorMessage(msg)) {
-        throw new JwtIllegalError(msg);
-      }
       const code = json.errors.find((error) => typeof error.extensions?.code === "string")
         ?.extensions?.code as string | undefined;
+      if (isJwtIllegalErrorMessage(msg) && code !== "REFRESH_TOKEN_REVOKED") {
+        throw new JwtIllegalError(msg);
+      }
       throw new GraphqlRequestError(msg, code);
     }
     return json;
