@@ -57,7 +57,7 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools", "rivoncl
 
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
-export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 135;
+export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 300;
 export const IMAGE_GENERATION_MODEL_REF = `${RIVONCLAW_CLOUD_PROVIDER_ID}/gpt-image-2`;
 export const OPENAI_IMAGE_GENERATION_MODEL_REF = "openai/gpt-image-2";
 export const IMAGE_GENERATION_TIMEOUT_MS = 300_000;
