@@ -146,7 +146,6 @@ type HistorySubStatusFilter = string;
 const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
-const AFFILIATE_WORK_ITEMS_LIMIT = 200;
 const AFFILIATE_PROPOSAL_PAGE_SIZE = 20;
 const ALL_CREATOR_TAGS_FILTER = "__ALL_CREATOR_TAGS__";
 const PROJECTION_DATASET_I18N_KEY: Record<string, string> = {
@@ -477,7 +476,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
-  const shops = entityStore.shops;
+  const shops = entityStore.shops.filter((shop) => shop.services?.affiliateService?.enabled === true);
   const [selectedScopeKey, setSelectedScopeKey] = useState("user");
 
   useEffect(() => {
@@ -2435,24 +2434,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     fetchPolicy: "cache-and-network",
     skip: !user,
   });
-  const {
-    data: relationshipWorkData,
-    loading: relationshipWorkLoading,
-    refetch: refetchRelationshipWork,
-  } = useQuery<
-    { affiliateWorkItems: GQL.AffiliateWorkItem[] },
-    { input: GQL.ReadAffiliateWorkItemsInput }
-  >(AFFILIATE_WORK_ITEMS_QUERY, {
-    variables: {
-      input: {
-        shopId: selectedShopId || null,
-        limit: AFFILIATE_WORK_ITEMS_LIMIT,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !user,
-  });
-
   const [applyCreatorTag] = useMutation<
     { applyCreatorTag: GQL.AffiliateCreatorRelationship },
     { input: GQL.ApplyCreatorTagInput }
@@ -2465,44 +2446,19 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   useEffect(() => {
     const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
       void refetch();
-      void refetchRelationshipWork();
     });
     const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
       void refetch();
-      void refetchRelationshipWork();
     });
     return () => {
       unsubscribeProposal();
       unsubscribeWorkItem();
     };
-  }, [refetch, refetchRelationshipWork]);
-
-  useEffect(() => {
-    ingestAffiliateWorkItemsIntoWorkspace(
-      entityStore.affiliateWorkspace,
-      relationshipWorkData?.affiliateWorkItems,
-    );
-  }, [entityStore.affiliateWorkspace, relationshipWorkData?.affiliateWorkItems]);
+  }, [refetch]);
 
   const creatorPageResult = data?.affiliateCreators;
   const creatorItems = creatorPageResult?.items ?? [];
   const totalCreatorCount = creatorPageResult?.totalCount ?? 0;
-  const relationshipWorkItems = useMemo(
-    () => (relationshipWorkData?.affiliateWorkItems ?? []).map((workItem) =>
-      relationshipWorkItemFromWorkItem(workItem, entityStore.affiliateWorkspace)),
-    [entityStore.affiliateWorkspace, relationshipWorkData?.affiliateWorkItems],
-  );
-  const workItemsByCreatorId = useMemo(() => {
-    const grouped = new Map<string, CreatorRelationshipWorkItem[]>();
-    for (const relationshipWorkItem of relationshipWorkItems) {
-      const creatorId = relationshipWorkItem.creatorProfile?.id ?? relationshipWorkItem.creatorId ?? relationshipWorkItem.creatorRelation?.creatorId ?? "";
-      if (!creatorId) continue;
-      const list = grouped.get(creatorId) ?? [];
-      list.push(relationshipWorkItem);
-      grouped.set(creatorId, list);
-    }
-    return grouped;
-  }, [relationshipWorkItems]);
   const allTags = policyContextData?.creatorTags ?? [];
   const creatorPageCount = Math.max(1, Math.ceil(totalCreatorCount / AFFILIATE_CREATORS_PAGE_SIZE));
   const creatorPageStart = totalCreatorCount === 0
@@ -2594,12 +2550,11 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
             type="button"
             onClick={() => {
               void refetch();
-              void refetchRelationshipWork();
-              void refetchProjectionHealth();
+              if (selectedShopId) void refetchProjectionHealth();
             }}
-            disabled={(loading || relationshipWorkLoading) || !selectedShopId}
+            disabled={loading}
           >
-            {(loading || relationshipWorkLoading)
+            {loading
               ? t("common.loading")
               : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
           </button>
@@ -2696,7 +2651,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               <CreatorRelationshipCard
                 key={item.creatorId}
                 item={item}
-                workItems={workItemsByCreatorId.get(item.creatorId) ?? []}
                 allTags={allTags}
                 shopLabel={shopLabel}
                 updatingTagKey={updatingTagKey}
@@ -2775,7 +2729,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
 function CreatorRelationshipCard({
   item,
-  workItems,
   allTags,
   shopLabel,
   updatingTagKey,
@@ -2783,7 +2736,6 @@ function CreatorRelationshipCard({
   onUpdateTag,
 }: {
   item: AffiliateCreatorManagementItem;
-  workItems?: CreatorRelationshipWorkItem[];
   allTags: GQL.CreatorTag[];
   shopLabel: (shopId: string) => string;
   updatingTagKey: string | null;
@@ -2836,7 +2788,7 @@ function CreatorRelationshipCard({
     latestRecord?.shopId,
   ].filter((shopId): shopId is string => Boolean(shopId))));
   const followerCount = formatCount(item.creatorPerformance?.followerCount);
-  const relationshipDetail = relationshipDetailFromManagementItem(item, workItems ?? []);
+  const relationshipDetail = relationshipDetailFromManagementItem(item);
 
   return (
     <article
@@ -5630,11 +5582,51 @@ function CreatorRelationshipDetailModal({
   const activityLoadedOlderRef = useRef(false);
   const fallbackProfile = item.creatorProfile ?? null;
   const management = item.managementItem ?? null;
-  const workItems = item.workItems ?? [];
+  const seedWorkItems = item.workItems ?? [];
+  const seedPrimaryWorkItem = [...seedWorkItems].sort((left, right) =>
+    new Date(right.stateUpdatedAt ?? 0).getTime() - new Date(left.stateUpdatedAt ?? 0).getTime(),
+  )[0] ?? null;
+  const relationshipId = item.creatorRelation?.id ?? seedPrimaryWorkItem?.relationshipId ?? null;
+  const {
+    data: relationshipWorkData,
+    refetch: refetchRelationshipWork,
+  } = useQuery<
+    { affiliateWorkItems: GQL.AffiliateWorkItem[] },
+    { input: GQL.ReadAffiliateWorkItemsInput }
+  >(AFFILIATE_WORK_ITEMS_QUERY, {
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        limit: 10,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId,
+  });
+  useEffect(() => {
+    ingestAffiliateWorkItemsIntoWorkspace(
+      affiliateWorkspace,
+      relationshipWorkData?.affiliateWorkItems,
+    );
+  }, [affiliateWorkspace, relationshipWorkData?.affiliateWorkItems]);
+  useEffect(() => {
+    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
+      void refetchRelationshipWork();
+    });
+    const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
+      void refetchRelationshipWork();
+    });
+    return () => {
+      unsubscribeProposal();
+      unsubscribeWorkItem();
+    };
+  }, [refetchRelationshipWork]);
+  const exactWorkItems = (relationshipWorkData?.affiliateWorkItems ?? []).map((workItem) =>
+    relationshipWorkItemFromWorkItem(workItem, affiliateWorkspace));
+  const workItems = relationshipWorkData == null ? seedWorkItems : exactWorkItems;
   const primaryWorkItem = [...workItems].sort((left, right) =>
     new Date(right.stateUpdatedAt ?? 0).getTime() - new Date(left.stateUpdatedAt ?? 0).getTime(),
   )[0] ?? null;
-  const relationshipId = item.creatorRelation?.id ?? primaryWorkItem?.relationshipId ?? null;
   const {
     data: creatorProfileData,
     loading: creatorProfileLoading,

@@ -24,7 +24,7 @@ import { CustomerServiceWorkspaceModel } from "./models/CustomerServiceWorkspace
 import { CREATE_SURFACE_MUTATION } from "../api/surfaces-queries.js";
 import { CREATE_RUN_PROFILE_MUTATION } from "../api/run-profiles-queries.js";
 import {
-  AFFILIATE_ML_INSIGHTS_QUERY,
+  AFFILIATE_ML_INSIGHTS_BULK_QUERY,
   SHOPS_QUERY,
   SHOP_QUERY,
   PLATFORM_APPS_QUERY,
@@ -359,10 +359,6 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
     fetchShops: flow(function* () {
       const result = yield client().query({ query: SHOPS_QUERY, fetchPolicy: "network-only" });
       applySnapshot(self.shops, stripTypename(result.data?.shops ?? []) as any);
-      const shopIds = ((result.data?.shops ?? []) as Array<{ id?: string | null }>)
-        .map((shop) => shop.id)
-        .filter((shopId): shopId is string => Boolean(shopId));
-      yield (self as any).fetchAffiliateMlInsights({ shopIds }).catch(() => {});
     }),
 
     fetchAffiliateMlInsights: flow(function* (input?: { shopIds?: string[] }) {
@@ -375,7 +371,10 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
 
       const shopIds = Array.from(
         new Set(
-          (input?.shopIds ?? self.shops.map((shop) => shop.id))
+          (input?.shopIds
+            ?? self.shops
+              .filter((shop) => shop.services?.affiliateService?.enabled === true)
+              .map((shop) => shop.id))
             .map((shopId) => shopId.trim())
             .filter(Boolean),
         ),
@@ -383,56 +382,28 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
       self.affiliateMlInsightsLoading = true;
       self.affiliateMlInsightsError = null;
       try {
-        const requests: Array<{
-          subjectKey: string;
-          kind: "user" | "shop";
-          shopId?: string;
-          modelScope: AffiliateMlInsightModelScope;
-          input: { shopId?: string; modelScope: string };
-        }> = [
-          {
-            subjectKey: "user",
-            kind: "user",
-            modelScope: "user",
-            input: { modelScope: "USER" },
-          },
-          ...shopIds.flatMap((shopId) =>
-            (["user", "region", "shop"] as AffiliateMlInsightModelScope[]).map(
-              (modelScope) => ({
-                subjectKey: affiliateMlInsightSubjectKey(shopId),
-                kind: "shop" as const,
-                shopId,
-                modelScope,
-                input: {
-                  shopId,
-                  modelScope: modelScope.toUpperCase(),
-                },
-              }),
-            ),
-          ),
-        ];
-        const results = yield Promise.all(
-          requests.map((request) =>
-            client().query({
-              query: AFFILIATE_ML_INSIGHTS_QUERY,
-              variables: { input: request.input },
-              fetchPolicy: "network-only",
-            }),
-          ),
-        );
-        const rows = requests.map((request, index) => {
-          const availability =
-            results[index]?.data?.affiliateMlInsights?.modelAvailability ?? [];
-          const automaticSelection =
-            results[index]?.data?.affiliateMlInsights?.automaticExpectedSalesSelection ?? null;
+        const result = yield client().query({
+          query: AFFILIATE_ML_INSIGHTS_BULK_QUERY,
+          variables: { input: { shopIds } },
+          fetchPolicy: "network-only",
+        });
+        const rows = (result.data?.affiliateMlInsightsBulk?.items ?? []).map(
+          (item: {
+            shopId?: string | null;
+            modelScope: string;
+            modelAvailability?: unknown[] | null;
+            automaticExpectedSalesSelection?: unknown | null;
+          }) => {
+          const modelScope = item.modelScope.toLowerCase() as AffiliateMlInsightModelScope;
+          const shopId = item.shopId ?? undefined;
           return {
-            key: `${request.subjectKey}:${request.modelScope}`,
-            subjectKey: request.subjectKey,
-            kind: request.kind,
-            shopId: request.shopId,
-            modelScope: request.modelScope,
-            availability: stripTypename(availability),
-            automaticSelection: stripTypename(automaticSelection),
+            key: `${affiliateMlInsightSubjectKey(shopId)}:${modelScope}`,
+            subjectKey: affiliateMlInsightSubjectKey(shopId),
+            kind: shopId ? "shop" as const : "user" as const,
+            shopId,
+            modelScope,
+            availability: stripTypename(item.modelAvailability ?? []),
+            automaticSelection: stripTypename(item.automaticExpectedSalesSelection ?? null),
             failed: false,
           };
         });

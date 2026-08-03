@@ -9,6 +9,7 @@ import {
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_ML_INSIGHTS_QUERY,
+  AFFILIATE_ML_INSIGHTS_BULK_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
@@ -43,6 +44,17 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(evaluation).not.toContain("modelVersionKey");
     expect(evaluation).not.toContain("bentomlTag");
     expect(evaluation).not.toContain("contractHash");
+  });
+
+  it("loads all shop and scope ML insights through one bulk query", () => {
+    const query = queryText(AFFILIATE_ML_INSIGHTS_BULK_QUERY);
+
+    expect(query).toContain("affiliateMlInsightsBulk(input: $input)");
+    expect(query).toContain("shopId");
+    expect(query).toContain("modelScope");
+    expect(query).toContain("automaticExpectedSalesSelection");
+    expect(query).toContain("outperformanceProbability");
+    expect(query).not.toContain("confidenceLevel");
   });
 
   it("loads creator relationship roster from the creator relationship API", () => {

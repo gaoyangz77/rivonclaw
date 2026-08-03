@@ -1712,6 +1712,100 @@ export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_ML_INSIGHTS_BULK_QUERY = gql`
+  query AffiliateMlInsightsBulk($input: AffiliateMlInsightsBulkInput!) {
+    affiliateMlInsightsBulk(input: $input) {
+      items {
+        shopId
+        modelScope
+        automaticExpectedSalesSelection {
+          selectionBasis
+          requestedTenantScope
+          effectiveTenantScope
+          outperformanceProbability
+          dataFoundationLevel
+          evaluationSampleCount
+        }
+        modelAvailability {
+          modelFamily
+          modelStage
+          status
+          featureTemporalBasis
+          requestedTenantScope
+          requestedTenantId
+          effectiveTenantScope
+          effectiveTenantId
+          modelVersionKey
+          bentomlTag
+          contractHash
+          contractStatus
+          trainedAt
+          reason
+          evaluationSummary {
+            comparisonAvailable
+            historicalApplicationCount
+            historicalSelectedCount
+            modelSelectedCount
+            selectionDifferenceCount
+            historicalExpectedUnits
+            modelExpectedUnits
+            expectedSalesLiftRatio
+            outperformanceProbability
+            dataFoundationLevel
+            expectedSalesLiftRatioPrimaryRangeLevel
+            expectedSalesLiftRatioPrimaryRangeLowerBound
+            expectedSalesLiftRatioPrimaryRangeUpperBound
+            sameBudgetComparison {
+              historicalApprovalRate
+              historicalActualObservedCount
+              modelSelectedHistoricalRejectedCount
+              modelRejectedHistoricalSelectedCount
+              historicalActualUnitsHistogram {
+                key
+                label
+                count
+              }
+              historicalExpectedUnitsHistogram {
+                key
+                label
+                count
+              }
+              modelExpectedUnitsHistogram {
+                key
+                label
+                count
+              }
+            }
+            sameThresholdComparison {
+              minimumExpectedSalesUnits
+              historicalQualifiedCount
+              modelQualifiedCount
+              modelQualifiedHistoricalRejectedCount
+              belowThresholdCount
+              qualifiedCreatorLiftRatio
+              historicalExpectedUnitsHistogram {
+                key
+                label
+                count
+              }
+              modelExpectedUnitsHistogram {
+                key
+                label
+                count
+              }
+              belowThresholdModelExpectedUnitsHistogram {
+                key
+                label
+                count
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const AFFILIATE_APPROVAL_POLICIES_QUERY = gql`
   query AffiliateApprovalPolicies($input: ReadAffiliateApprovalPoliciesInput!) {
     affiliateApprovalPolicies(input: $input) {
