@@ -5938,8 +5938,10 @@ export interface EcomBiQueryInput {
   offset?: InputMaybe<Scalars['Int']['input']>;
   /** Optional sort order. Each item must set exactly one of dimension or metric, and that field must be selected in dimensions or metrics. */
   orderBy?: InputMaybe<Array<EcomBiOrderByInput>>;
-  /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Required for Order, Finance, CS, and live SPS datasets. SPS accepts at most 50 owned AUTHORIZED US shops with data.shop_analytics.public.read. Usually omit for Ads so authorized advertiser stores without onboarded Shops remain included; when supplied to Ads, this restricts results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
+  /** Onboarded Shop Mongo IDs copied exactly from ecom_list_shops.id. Use either shopIds or shopRegions, not both. Order, Finance, CS, and live SPS datasets require one of these Shop scopes. SPS accepts at most 50 owned AUTHORIZED US shops with data.shop_analytics.public.read. Usually omit both Shop scopes for Ads so authorized advertiser stores without onboarded Shops remain included; supplying either scope restricts Ads results to the owned onboarded Shop subset and enforces Shop analytics entitlement. */
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Current-user Shop regions to expand server-side into every onboarded Shop Mongo ID in those regions. Use this instead of shopIds when the user asks for all of their shops in one or more regions. Cannot be combined with shopIds. Ownership and per-Shop analytics entitlement checks still apply; SPS also retains its 50-Shop and US-only limits. */
+  shopRegions?: InputMaybe<Array<ShopRegion>>;
   /** Start date inclusive in YYYY-MM-DD format when the dataset uses dates. */
   startDateGe?: InputMaybe<Scalars['String']['input']>;
   /** Canonical warehouse Mongo IDs for warehouse-scoped live inventory datasets. */
