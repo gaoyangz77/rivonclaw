@@ -61,7 +61,6 @@ interface ShopUpdateInput {
       runProfileId?: string | null;
       deviceId?: string | null;
       businessPrompt?: string | null;
-      modelUsageScope?: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL" | null;
       decisionThresholds?: {
         minExpectedSalesUnits?: number | null;
       } | null;

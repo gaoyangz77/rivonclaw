@@ -3,6 +3,7 @@ import {
   applyAffiliateProposalChange,
   affiliateModelStagePresentation,
   affiliateExpectedSalesModelAvailabilityState,
+  affiliateSellerSafeMetrics,
   isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
   mergeAffiliateProposalPage,
@@ -219,7 +220,11 @@ describe("Expected Sales model-stage presentation", () => {
       historicalExpectedUnits: 93.45,
       modelExpectedUnits: 214.82,
       expectedSalesLiftRatio: 2.2987,
-      confidenceLevel: "high",
+      outperformanceProbability: 0.955,
+      dataFoundationLevel: "MODERATE",
+      expectedSalesLiftRatioPrimaryRangeLevel: 0.8,
+      expectedSalesLiftRatioPrimaryRangeLowerBound: 1.067,
+      expectedSalesLiftRatioPrimaryRangeUpperBound: 1.594,
       sameBudgetComparison: {
         historicalApprovalRate: 0.153,
         historicalActualObservedCount: 376,
@@ -256,6 +261,14 @@ describe("Expected Sales model-stage presentation", () => {
         "UNIFIED",
       ).evaluationSummary,
     ).toBe(sellerSafeEvaluation);
+
+    expect(affiliateSellerSafeMetrics(sellerSafeEvaluation as never)).toEqual({
+      outperformanceProbability: 0.955,
+      dataFoundationLevel: "MODERATE",
+      primaryRangeLevel: 0.8,
+      primaryRangeLowerBound: 1.067,
+      primaryRangeUpperBound: 1.594,
+    });
   });
 
   it("does not expose a comparison when the parent contract does not match", () => {

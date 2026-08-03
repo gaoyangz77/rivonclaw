@@ -46,7 +46,6 @@ describe("affiliate work item actuator", () => {
             deviceId: "device-001",
             runProfileId: "AFFILIATE_OPERATOR",
             businessPrompt: null,
-            modelUsageScope: "USER_LEVEL",
             decisionThresholds: null,
           },
         },

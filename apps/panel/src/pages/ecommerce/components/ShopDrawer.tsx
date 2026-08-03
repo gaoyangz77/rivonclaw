@@ -87,8 +87,6 @@ interface ShopDrawerProps {
   editAffiliateMinExpectedSalesUnits: string;
   onEditAffiliateMinExpectedSalesUnits: (value: string) => void;
   onCommitAffiliateMinExpectedSalesUnits: () => void;
-  editAffiliateModelUsageScope: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL";
-  onEditAffiliateModelUsageScope: (value: "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL") => void;
   savingAffiliateSettings: boolean;
   onSaveAffiliateBusinessPrompt: () => void;
   togglingAffiliateBindShopId: string | null;
@@ -160,8 +158,6 @@ export const ShopDrawer = observer(function ShopDrawer({
   editAffiliateMinExpectedSalesUnits,
   onEditAffiliateMinExpectedSalesUnits,
   onCommitAffiliateMinExpectedSalesUnits,
-  editAffiliateModelUsageScope,
-  onEditAffiliateModelUsageScope,
   savingAffiliateSettings,
   onSaveAffiliateBusinessPrompt,
   togglingAffiliateBindShopId,
@@ -279,7 +275,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                 },
                 {
                   id: workspaceSectionId(activeTab, "model"),
-                  label: t("ecommerce.shopDrawer.affiliate.modelUsageScope"),
+                  label: t("ecommerce.shopDrawer.affiliate.automaticModelSelection"),
                 },
                 {
                   id: workspaceSectionId(activeTab, "thresholds"),
@@ -792,8 +788,6 @@ export const ShopDrawer = observer(function ShopDrawer({
                       editMinExpectedSalesUnits={editAffiliateMinExpectedSalesUnits}
                       onEditMinExpectedSalesUnits={onEditAffiliateMinExpectedSalesUnits}
                       onCommitMinExpectedSalesUnits={onCommitAffiliateMinExpectedSalesUnits}
-                      editModelUsageScope={editAffiliateModelUsageScope}
-                      onEditModelUsageScope={onEditAffiliateModelUsageScope}
                       savingSettings={savingAffiliateSettings}
                       onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
                       myDeviceId={myDeviceId}

@@ -55,7 +55,6 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         enabled
         runProfileId
         deviceId
-        modelUsageScope
         businessPrompt
         decisionThresholds {
           minExpectedSalesUnits
@@ -1626,6 +1625,14 @@ export const AFFILIATE_COLLABORATIONS_QUERY = gql`
 export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
   query AffiliateMlInsights($input: AffiliateMlInsightsInput) {
     affiliateMlInsights(input: $input) {
+      automaticExpectedSalesSelection {
+        selectionBasis
+        requestedTenantScope
+        effectiveTenantScope
+        outperformanceProbability
+        dataFoundationLevel
+        evaluationSampleCount
+      }
       modelAvailability {
         modelFamily
         modelStage
@@ -1650,7 +1657,11 @@ export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
           historicalExpectedUnits
           modelExpectedUnits
           expectedSalesLiftRatio
-          confidenceLevel
+          outperformanceProbability
+          dataFoundationLevel
+          expectedSalesLiftRatioPrimaryRangeLevel
+          expectedSalesLiftRatioPrimaryRangeLowerBound
+          expectedSalesLiftRatioPrimaryRangeUpperBound
           sameBudgetComparison {
             historicalApprovalRate
             historicalActualObservedCount

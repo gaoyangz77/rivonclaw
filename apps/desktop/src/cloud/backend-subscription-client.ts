@@ -78,7 +78,6 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
             enabled
             runProfileId
             deviceId
-            modelUsageScope
             businessPrompt
             decisionThresholds {
               minExpectedSalesUnits
@@ -157,7 +156,6 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
           enabled
           runProfileId
           deviceId
-          modelUsageScope
           businessPrompt
           decisionThresholds {
             minExpectedSalesUnits

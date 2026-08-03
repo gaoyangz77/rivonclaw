@@ -464,6 +464,7 @@ type AffiliateInsightRow = {
   shopId?: string;
   modelScope: AffiliateInsightModelScope;
   availability: AffiliateModelAvailabilityView[];
+  automaticSelection?: GQL.AffiliateExpectedSalesAutomaticSelection | null;
   failed?: boolean;
 };
 
@@ -522,6 +523,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
           availability: (
             cached?.availability ?? []
           ) as AffiliateModelAvailabilityView[],
+          automaticSelection: (cached?.automaticSelection ?? null) as GQL.AffiliateExpectedSalesAutomaticSelection | null,
           failed: hasError && !cached,
         });
       }
@@ -1275,6 +1277,7 @@ function AffiliateMlInsightsPanel({
           <AffiliateModelSourceSwitch
             accountRow={accountModelRow}
             activeModelScope={activeModelScope}
+            automaticSelection={selectedRows.find((row) => row.automaticSelection)?.automaticSelection ?? null}
             regionRow={regionModelRow}
             storeRow={storeModelRow}
             onChange={setActiveModelScope}
@@ -1323,7 +1326,12 @@ function AffiliateProductionModelDashboard({
   const humanExpectedUnits = summary.historicalExpectedUnits;
   const modelExpectedUnits = summary.modelExpectedUnits;
   const liftRatio = summary.expectedSalesLiftRatio;
-  const sameBudgetConfidenceLevel = affiliateSummaryConfidenceLevel(summary);
+  const sellerSafeMetrics = affiliateSellerSafeMetrics(summary);
+  const outperformanceProbability = sellerSafeMetrics.outperformanceProbability;
+  const dataFoundationLevel = sellerSafeMetrics.dataFoundationLevel;
+  const rangeLevel = sellerSafeMetrics.primaryRangeLevel;
+  const rangeLower = sellerSafeMetrics.primaryRangeLowerBound;
+  const rangeUpper = sellerSafeMetrics.primaryRangeUpperBound;
   const maxUnits = Math.max(modelExpectedUnits ?? 0, humanExpectedUnits ?? 0, 1);
   const modelBarValue = Math.max(0, ((modelExpectedUnits ?? 0) / maxUnits) * 100);
   const humanBarValue = Math.max(0, ((humanExpectedUnits ?? 0) / maxUnits) * 100);
@@ -1401,9 +1409,28 @@ function AffiliateProductionModelDashboard({
             />
           </div>
 
-          {sameBudgetConfidenceLevel ? (
-            <AffiliateConfidenceNotice level={sameBudgetConfidenceLevel} />
-          ) : null}
+          <div className="affiliate-intelligence-confidence-note">
+            {outperformanceProbability != null ? (
+              <div>
+                <strong>{t("ecommerce.affiliateWorkspace.intelligenceOutperformanceProbability")}</strong>
+                <span>{formatPercent(outperformanceProbability)}</span>
+              </div>
+            ) : null}
+            {rangeLower != null && rangeUpper != null ? (
+              <div>
+                <strong>{t("ecommerce.affiliateWorkspace.intelligencePrimaryRange", {
+                  level: rangeLevel == null ? "" : Math.round(rangeLevel * 100),
+                })}</strong>
+                <span>{formatLiftRatioRange(rangeLower, rangeUpper)}</span>
+              </div>
+            ) : null}
+            {dataFoundationLevel ? (
+              <div>
+                <strong>{t("ecommerce.affiliateWorkspace.intelligenceDataFoundation")}</strong>
+                <span>{t(`ecommerce.affiliateWorkspace.intelligenceDataFoundationLevels.${dataFoundationLevel.toLowerCase()}`)}</span>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
       {summary.sameBudgetComparison ? (
@@ -1912,12 +1939,14 @@ function AffiliateInsightScopeRail({
 function AffiliateModelSourceSwitch({
   accountRow,
   activeModelScope,
+  automaticSelection,
   regionRow,
   storeRow,
   onChange,
 }: {
   accountRow: AffiliateInsightRow | null;
   activeModelScope: AffiliateInsightModelScope;
+  automaticSelection: GQL.AffiliateExpectedSalesAutomaticSelection | null;
   regionRow: AffiliateInsightRow | null;
   storeRow: AffiliateInsightRow | null;
   onChange: (scope: AffiliateInsightModelScope) => void;
@@ -1954,6 +1983,7 @@ function AffiliateModelSourceSwitch({
             item.row?.availability,
           );
           const active = activeModelScope === item.key;
+          const automaticallySelected = automaticSelection?.requestedTenantScope?.toLowerCase() === item.key;
           return (
             <button
               key={item.key}
@@ -1965,6 +1995,9 @@ function AffiliateModelSourceSwitch({
               onClick={() => onChange(item.key)}
             >
               <strong>{item.label}</strong>
+              {automaticallySelected ? (
+                <em>{t("ecommerce.affiliateWorkspace.intelligenceAutomaticallySelected")}</em>
+              ) : null}
               <span>
                 {modelState.status === "ready"
                   ? t("ecommerce.affiliateWorkspace.modelReady")
@@ -1996,20 +2029,6 @@ function affiliateModelFallbackLabel(
       ? t("ecommerce.affiliateWorkspace.intelligenceRegionModel")
       : t("ecommerce.affiliateWorkspace.intelligenceAccountModel");
   return t("ecommerce.affiliateWorkspace.modelFallback", { scope });
-}
-
-function AffiliateConfidenceNotice({ level }: { level: "low" | "medium" | "high" }) {
-  const { t } = useTranslation();
-  const suffix = level === "low" ? "Low" : level === "medium" ? "Medium" : "High";
-  return (
-    <div className={`affiliate-intelligence-confidence-note affiliate-intelligence-confidence-note-${level}`}>
-      <InfoIcon />
-      <div>
-        <strong>{t(`ecommerce.affiliateWorkspace.intelligenceConfidence${suffix}`)}</strong>
-        <span>{t(`ecommerce.affiliateWorkspace.intelligenceConfidence${suffix}Hint`)}</span>
-      </div>
-    </div>
-  );
 }
 
 function AffiliateRaceRow({
@@ -2067,11 +2086,6 @@ function AffiliateSparkIcon() {
   );
 }
 
-function affiliateSummaryConfidenceLevel(summary: GQL.AffiliateMlModelEfficiencySummary): "low" | "medium" | "high" | null {
-  const level = summary.confidenceLevel?.toLowerCase();
-  return level === "low" || level === "medium" || level === "high" ? level : null;
-}
-
 function formatInteger(value: number | null | undefined): string {
   return value == null ? "—" : new Intl.NumberFormat().format(value);
 }
@@ -2098,6 +2112,20 @@ function formatSignedPercent(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "—";
   if (Object.is(value, -0) || Math.abs(value) < 0.05) return "0.0%";
   return `${value > 0 ? "+" : ""}${formatNumber(value, 1)}%`;
+}
+
+function formatLiftRatioRange(lower: number, upper: number): string {
+  return `${formatSignedPercent((lower - 1) * 100)} – ${formatSignedPercent((upper - 1) * 100)}`;
+}
+
+export function affiliateSellerSafeMetrics(summary: GQL.AffiliateMlModelEfficiencySummary) {
+  return {
+    outperformanceProbability: summary.outperformanceProbability ?? null,
+    dataFoundationLevel: summary.dataFoundationLevel ?? null,
+    primaryRangeLevel: summary.expectedSalesLiftRatioPrimaryRangeLevel ?? null,
+    primaryRangeLowerBound: summary.expectedSalesLiftRatioPrimaryRangeLowerBound ?? null,
+    primaryRangeUpperBound: summary.expectedSalesLiftRatioPrimaryRangeUpperBound ?? null,
+  };
 }
 
 function formatDate(value: string | Date | null | undefined): string {

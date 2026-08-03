@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
@@ -9,8 +9,6 @@ import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
-const SHOP_MODEL_RECOMMENDATION_LIFT_RATIO = 1.25;
-type AffiliateModelUsageScopeValue = "USER_LEVEL" | "REGION_LEVEL" | "SHOP_LEVEL";
 
 interface AffiliateManagementTabProps {
   shop: Shop;
@@ -24,8 +22,6 @@ interface AffiliateManagementTabProps {
   editMinExpectedSalesUnits: string;
   onEditMinExpectedSalesUnits: (value: string) => void;
   onCommitMinExpectedSalesUnits: () => void;
-  editModelUsageScope: AffiliateModelUsageScopeValue;
-  onEditModelUsageScope: (value: AffiliateModelUsageScopeValue) => void;
   savingSettings: boolean;
   onSaveBusinessPrompt: () => void;
   myDeviceId: string | null;
@@ -46,8 +42,6 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   editMinExpectedSalesUnits,
   onEditMinExpectedSalesUnits,
   onCommitMinExpectedSalesUnits,
-  editModelUsageScope,
-  onEditModelUsageScope,
   savingSettings,
   onSaveBusinessPrompt,
   myDeviceId,
@@ -64,27 +58,10 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   const accountModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "user");
   const regionModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "region");
   const shopModelInsight = entityStore.affiliateMlInsightRow(affiliateInsightSubjectKey, "shop");
-  const accountModelEvaluation = affiliateCurrentExpectedSalesEvaluation(accountModelInsight?.availability);
-  const regionModelEvaluation = affiliateCurrentExpectedSalesEvaluation(regionModelInsight?.availability);
-  const shopModelEvaluation = affiliateCurrentExpectedSalesEvaluation(shopModelInsight?.availability);
-  const modelRecommendation = useMemo(
-    () => buildAffiliateModelRecommendation(accountModelEvaluation, regionModelEvaluation, shopModelEvaluation),
-    [accountModelEvaluation, regionModelEvaluation, shopModelEvaluation],
-  );
-  const modelUsageOptions = [
-    {
-      value: "USER_LEVEL",
-      label: t("ecommerce.shopDrawer.affiliate.modelUsageScopeUserLevel"),
-    },
-    {
-      value: "REGION_LEVEL",
-      label: t("ecommerce.shopDrawer.affiliate.modelUsageScopeRegionLevel"),
-    },
-    {
-      value: "SHOP_LEVEL",
-      label: t("ecommerce.shopDrawer.affiliate.modelUsageScopeShopLevel"),
-    },
-  ];
+  const automaticSelection = shopModelInsight?.automaticSelection
+    ?? regionModelInsight?.automaticSelection
+    ?? accountModelInsight?.automaticSelection
+    ?? null;
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((candidate) => candidate.id === toolId);
@@ -191,40 +168,11 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
       </section>
 
       <section id="shop-workspace-affiliateManagement-model" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.modelUsageScope")}</div>
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.automaticModelSelection")}</div>
         <div className="shop-info-card">
-          <div className="affiliate-threshold-row">
-            <div className="affiliate-threshold-copy">
-              <label className="form-label-block">
-                {t("ecommerce.shopDrawer.affiliate.modelUsageScopeLabel")}
-              </label>
-              <div className="shop-info-card-hint">
-                {t("ecommerce.shopDrawer.affiliate.modelUsageScopeHint")}
-              </div>
-            </div>
-            <div className="affiliate-threshold-control">
-              <Select
-                value={editModelUsageScope}
-                onChange={(value) => {
-                  if (value === "SHOP_LEVEL" || value === "REGION_LEVEL") {
-                    onEditModelUsageScope(value);
-                    return;
-                  }
-                  onEditModelUsageScope("USER_LEVEL");
-                }}
-                options={modelUsageOptions}
-                className="input-full"
-                disabled={savingSettings}
-              />
-            </div>
-          </div>
-          <AffiliateModelRecommendationPanel
-            accountModel={accountModelEvaluation}
+          <AffiliateAutomaticModelSelectionPanel
             loading={entityStore.affiliateMlInsightsLoading}
-            recommendation={modelRecommendation}
-            regionModel={regionModelEvaluation}
-            selectedScope={editModelUsageScope}
-            shopModel={shopModelEvaluation}
+            selection={automaticSelection}
           />
         </div>
       </section>
@@ -481,228 +429,67 @@ function formatCompactDate(value: string): string {
   return date.toLocaleString();
 }
 
-type AffiliateModelConfidence = "high" | "medium" | "low";
-
-type AffiliateModelEvaluation = {
-  confidence: AffiliateModelConfidence | null;
-  liftRatio: number | null;
-};
-
-type AffiliateModelRecommendation = {
-  reason:
-    | "account_more_stable"
-    | "region_balanced"
-    | "shop_clear_advantage"
-    | "only_account"
-    | "only_region"
-    | "only_shop";
-  scope: AffiliateModelUsageScopeValue;
-};
-
-function AffiliateModelRecommendationPanel({
-  accountModel,
+function AffiliateAutomaticModelSelectionPanel({
   loading,
-  recommendation,
-  regionModel,
-  selectedScope,
-  shopModel,
+  selection,
 }: {
-  accountModel: AffiliateModelEvaluation | null;
   loading: boolean;
-  recommendation: AffiliateModelRecommendation | null;
-  regionModel: AffiliateModelEvaluation | null;
-  selectedScope: AffiliateModelUsageScopeValue;
-  shopModel: AffiliateModelEvaluation | null;
+  selection: unknown;
 }) {
   const { t } = useTranslation();
-  const hasAnyModel = Boolean(accountModel || regionModel || shopModel);
-  if (!hasAnyModel) {
+  const source = objectFromUnknown(selection);
+  if (!source) {
     return (
       <div className="affiliate-model-recommendation affiliate-model-recommendation-muted">
-        <strong>{t("ecommerce.shopDrawer.affiliate.modelRecommendationPending")}</strong>
+        <strong>{t("ecommerce.shopDrawer.affiliate.automaticModelUnavailable")}</strong>
         <span>
           {loading
-            ? t("ecommerce.shopDrawer.affiliate.modelRecommendationLoading")
-            : t("ecommerce.shopDrawer.affiliate.modelRecommendationUnavailable")}
+            ? t("ecommerce.shopDrawer.affiliate.automaticModelLoading")
+            : t("ecommerce.shopDrawer.affiliate.automaticModelFallback")}
         </span>
       </div>
     );
   }
 
-  if (!recommendation) {
-    return (
-      <div className="affiliate-model-recommendation affiliate-model-recommendation-muted">
-        <strong>{t("ecommerce.shopDrawer.affiliate.modelRecommendationPending")}</strong>
-        <span>{t("ecommerce.shopDrawer.affiliate.modelRecommendationIncomplete")}</span>
-      </div>
-    );
-  }
-
-  const recommendedLabel = affiliateModelUsageScopeLabel(t, recommendation.scope);
-  const selectedMatchesRecommendation = selectedScope === recommendation.scope;
+  const scope = stringFromUnknown(source.requestedTenantScope) ?? "USER";
+  const probability = numberFromUnknown(source.outperformanceProbability);
+  const foundation = stringFromUnknown(source.dataFoundationLevel);
+  const basis = stringFromUnknown(source.selectionBasis);
 
   return (
-    <div className={`affiliate-model-recommendation${selectedMatchesRecommendation ? "" : " affiliate-model-recommendation-actionable"}`}>
+    <div className="affiliate-model-recommendation">
       <div className="affiliate-model-recommendation-head">
-        <strong>
-          {t("ecommerce.shopDrawer.affiliate.modelRecommendationTitle", {
-            scope: recommendedLabel,
-          })}
-        </strong>
-        <span>
-          {selectedMatchesRecommendation
-            ? t("ecommerce.shopDrawer.affiliate.modelRecommendationSelected")
-            : t("ecommerce.shopDrawer.affiliate.modelRecommendationSwitch")}
-        </span>
+        <strong>{t("ecommerce.shopDrawer.affiliate.automaticModelCurrent", {
+          scope: automaticScopeLabel(t, scope),
+        })}</strong>
+        <span>{basis === "OUTPERFORMANCE_PROBABILITY"
+          ? t("ecommerce.shopDrawer.affiliate.automaticModelProbabilityBased")
+          : t("ecommerce.shopDrawer.affiliate.automaticModelFallback")}</span>
       </div>
-      <p>{t(`ecommerce.shopDrawer.affiliate.modelRecommendationReasons.${recommendation.reason}`)}</p>
+      <p>{t("ecommerce.shopDrawer.affiliate.automaticModelHint")}</p>
       <div className="affiliate-model-recommendation-metrics">
-        <AffiliateModelRecommendationMetric
-          evaluation={accountModel}
-          label={t("ecommerce.shopDrawer.affiliate.modelUsageScopeUserLevel")}
-        />
-        <AffiliateModelRecommendationMetric
-          evaluation={regionModel}
-          label={t("ecommerce.shopDrawer.affiliate.modelUsageScopeRegionLevel")}
-        />
-        <AffiliateModelRecommendationMetric
-          evaluation={shopModel}
-          label={t("ecommerce.shopDrawer.affiliate.modelUsageScopeShopLevel")}
-        />
+        <div className="affiliate-model-recommendation-metric">
+          <span>{t("ecommerce.shopDrawer.affiliate.outperformanceProbability")}</span>
+          <strong>{probability == null ? "—" : new Intl.NumberFormat(undefined, {
+            style: "percent",
+            maximumFractionDigits: 1,
+          }).format(probability)}</strong>
+        </div>
+        <div className="affiliate-model-recommendation-metric">
+          <span>{t("ecommerce.shopDrawer.affiliate.dataFoundation")}</span>
+          <strong>{foundation
+            ? t(`ecommerce.shopDrawer.affiliate.dataFoundationLevels.${foundation.toLowerCase()}`)
+            : "—"}</strong>
+        </div>
       </div>
     </div>
   );
 }
 
-function AffiliateModelRecommendationMetric({
-  evaluation,
-  label,
-}: {
-  evaluation: AffiliateModelEvaluation | null;
-  label: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="affiliate-model-recommendation-metric">
-      <span>{label}</span>
-      <strong>{formatModelLift(evaluation?.liftRatio ?? null)}</strong>
-      <small>
-        {evaluation?.confidence
-          ? t(`ecommerce.shopDrawer.affiliate.modelConfidence.${evaluation.confidence}`)
-          : t("ecommerce.shopDrawer.affiliate.modelRecommendationNoData")}
-      </small>
-    </div>
-  );
-}
-
-function buildAffiliateModelRecommendation(
-  accountModel: AffiliateModelEvaluation | null,
-  regionModel: AffiliateModelEvaluation | null,
-  shopModel: AffiliateModelEvaluation | null,
-): AffiliateModelRecommendation | null {
-  const candidates = [
-    { scope: "USER_LEVEL" as const, evaluation: accountModel, reason: "account_more_stable" as const },
-    { scope: "REGION_LEVEL" as const, evaluation: regionModel, reason: "region_balanced" as const },
-    { scope: "SHOP_LEVEL" as const, evaluation: shopModel, reason: "shop_clear_advantage" as const },
-  ].filter((candidate) => candidate.evaluation) as Array<{
-    scope: AffiliateModelUsageScopeValue;
-    evaluation: AffiliateModelEvaluation;
-    reason: AffiliateModelRecommendation["reason"];
-  }>;
-
-  if (candidates.length === 0) return null;
-  if (candidates.length === 1) {
-    const only = candidates[0]!;
-    if (only.scope === "REGION_LEVEL") return { scope: only.scope, reason: "only_region" };
-    if (only.scope === "SHOP_LEVEL") return { scope: only.scope, reason: "only_shop" };
-    return { scope: only.scope, reason: "only_account" };
-  }
-
-  const ranked = [...candidates].sort((left, right) => {
-    const confidenceDelta = confidenceRank(right.evaluation.confidence) - confidenceRank(left.evaluation.confidence);
-    if (confidenceDelta !== 0) return confidenceDelta;
-    const liftDelta = (right.evaluation.liftRatio ?? 0) - (left.evaluation.liftRatio ?? 0);
-    if (Math.abs(liftDelta) > 0.05) return liftDelta;
-    return scopeStabilityRank(right.scope) - scopeStabilityRank(left.scope);
-  });
-  const best = ranked[0]!;
-
-  if (best.scope === "SHOP_LEVEL") {
-    const accountLift = accountModel?.liftRatio ?? 0;
-    const shopLift = shopModel?.liftRatio ?? 0;
-    const shopHasClearAdvantage =
-      confidenceRank(shopModel?.confidence ?? null) > confidenceRank("low")
-      && shopLift > 0
-      && shopLift >= Math.max(accountLift, 0.01) * SHOP_MODEL_RECOMMENDATION_LIFT_RATIO;
-    if (shopHasClearAdvantage) return { scope: best.scope, reason: "shop_clear_advantage" };
-    if (regionModel) return { scope: "REGION_LEVEL", reason: "region_balanced" };
-    return { scope: "USER_LEVEL", reason: "account_more_stable" };
-  }
-
-  return { scope: best.scope, reason: best.reason };
-}
-
-function affiliateModelUsageScopeLabel(t: (key: string) => string, scope: AffiliateModelUsageScopeValue): string {
-  if (scope === "SHOP_LEVEL") return t("ecommerce.shopDrawer.affiliate.modelUsageScopeShopLevel");
-  if (scope === "REGION_LEVEL") return t("ecommerce.shopDrawer.affiliate.modelUsageScopeRegionLevel");
-  return t("ecommerce.shopDrawer.affiliate.modelUsageScopeUserLevel");
-}
-
-function scopeStabilityRank(scope: AffiliateModelUsageScopeValue): number {
-  if (scope === "USER_LEVEL") return 3;
-  if (scope === "REGION_LEVEL") return 2;
-  return 1;
-}
-
-function affiliateModelEvaluation(summary: unknown): AffiliateModelEvaluation | null {
-  if (!summary || typeof summary !== "object") return null;
-  const source = summary as Record<string, unknown>;
-  const liftRatio = numberFromUnknown(source.modelVsHumanExpectedUnitsLiftRatio);
-  const payload = objectFromUnknown(source.payload);
-  const confidence = normalizeConfidence(
-    stringFromUnknown(objectFromUnknown(payload?.same_sample_budget_confidence)?.level),
-  );
-  if (liftRatio == null && confidence == null) return null;
-  return { confidence, liftRatio };
-}
-
-function affiliateCurrentExpectedSalesEvaluation(
-  availability: unknown,
-): AffiliateModelEvaluation | null {
-  if (!Array.isArray(availability)) return null;
-  const ready = availability
-    .filter(
-      (entry): entry is Record<string, unknown> =>
-        Boolean(entry) && typeof entry === "object" && !Array.isArray(entry),
-    )
-    .find(
-      (entry) =>
-        entry.modelFamily === "EXPECTED_SALES" &&
-        (entry.status === "READY" || entry.status === "FALLBACK"),
-    );
-  return affiliateModelEvaluation(ready?.evaluationSummary);
-}
-
-function confidenceRank(confidence: AffiliateModelConfidence | null): number {
-  if (confidence === "high") return 3;
-  if (confidence === "medium") return 2;
-  if (confidence === "low") return 1;
-  return 0;
-}
-
-function normalizeConfidence(value: string | null): AffiliateModelConfidence | null {
-  const normalized = value?.toLowerCase();
-  return normalized === "high" || normalized === "medium" || normalized === "low" ? normalized : null;
-}
-
-function formatModelLift(value: number | null): string {
-  if (value == null || !Number.isFinite(value)) return "—";
-  const liftPercent = (value - 1) * 100;
-  if (Math.abs(liftPercent) < 0.05) return "0.0%";
-  return `${liftPercent > 0 ? "+" : ""}${new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  }).format(liftPercent)}%`;
+function automaticScopeLabel(t: (key: string) => string, scope: string): string {
+  if (scope === "SHOP") return t("ecommerce.shopDrawer.affiliate.scopeShop");
+  if (scope === "REGION") return t("ecommerce.shopDrawer.affiliate.scopeRegion");
+  return t("ecommerce.shopDrawer.affiliate.scopeUser");
 }
 
 function objectFromUnknown(value: unknown): Record<string, unknown> | null {
