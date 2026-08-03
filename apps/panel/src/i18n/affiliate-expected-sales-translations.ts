@@ -3,9 +3,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Production model",
-        bestAvailableModel: "Best-available model",
-        bestAvailableExplanation:
-          "One progressive model that prefers decision-time features and uses eligible current-state proxies only when needed.",
+        bestAvailableModel: "Expected Sales",
+        bestAvailableExplanation: "Predicted sales for affiliate sample applications.",
         bestAvailableCurrentReview:
           "Best-available model · used for current sample review",
         bestAvailableNoEvaluation:
@@ -16,8 +15,18 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "Production model · used for current sample review",
         bootstrapCurrentReview: "Bootstrap model · used for current sample review",
         bootstrapBackup: "Backup model",
-        evaluationSamples: "Evaluation samples",
-        evaluationLift: "Expected lift",
+        evaluationSamples: "Historical applications",
+        evaluationLift: "Expected sales lift",
+        intelligenceHistoricalSelectedCount: "Historical selections",
+        intelligenceModelSelectedCount: "Suggested selections",
+        intelligenceClaimPrecisionTitle: "Expected sales lift",
+        intelligenceSellerSafeDisclaimer:
+          "Based on historical applications and sales data. Actual results may vary.",
+        intelligenceComparisonUnavailable:
+          "There is not enough historical data to generate a reliable comparison.",
+        intelligenceConfidenceHighHint: "The historical comparison is highly reliable.",
+        intelligenceConfidenceMediumHint: "The historical comparison is moderately reliable.",
+        intelligenceConfidenceLowHint: "Use this comparison as a directional reference.",
         evaluationBalancedAccuracy: "Balanced accuracy",
         evaluationTrainedAt: "Trained",
         bootstrapNoEvaluation: "Bootstrap is available for sample review; this version has no backtest report yet.",
@@ -44,9 +53,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "正式模型",
-        bestAvailableModel: "当前最佳模型",
-        bestAvailableExplanation:
-          "同一套渐进模型优先使用决策时点特征，仅在缺失时采用符合条件的当前状态近似特征。",
+        bestAvailableModel: "预计销量",
+        bestAvailableExplanation: "预测达人样品申请可能带来的销量。",
         bestAvailableCurrentReview: "当前最佳模型 · 当前审样使用",
         bestAvailableNoEvaluation:
           "当前最佳模型已就绪，当前版本尚无回测报告。",
@@ -56,8 +64,16 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "正式模型 · 当前审样使用",
         bootstrapCurrentReview: "冷启动模型 · 当前审样使用",
         bootstrapBackup: "备用模型",
-        evaluationSamples: "回测样本",
-        evaluationLift: "预期提升",
+        evaluationSamples: "历史申请数量",
+        evaluationLift: "预计销量提升",
+        intelligenceHistoricalSelectedCount: "历史选择数量",
+        intelligenceModelSelectedCount: "模型建议选择数量",
+        intelligenceClaimPrecisionTitle: "预计销量提升",
+        intelligenceSellerSafeDisclaimer: "基于历史申请与销量数据预测，实际结果可能不同。",
+        intelligenceComparisonUnavailable: "历史数据暂不足以生成可靠对比。",
+        intelligenceConfidenceHighHint: "历史对比具有较高可信度。",
+        intelligenceConfidenceMediumHint: "历史对比具有中等可信度。",
+        intelligenceConfidenceLowHint: "请将该对比作为方向性参考。",
         evaluationBalancedAccuracy: "平衡准确率",
         evaluationTrainedAt: "训练时间",
         bootstrapNoEvaluation: "冷启动模型可用于审样，当前版本尚无回测报告",
@@ -84,9 +100,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Produktionsmodell",
-        bestAvailableModel: "Bestverfügbares Modell",
-        bestAvailableExplanation:
-          "Ein progressives Modell bevorzugt Entscheidungszeit-Merkmale und nutzt nur bei Bedarf zulässige aktuelle Näherungen.",
+        bestAvailableModel: "Erwartete Verkäufe",
+        bestAvailableExplanation: "Prognostizierte Verkäufe für Affiliate-Musteranträge.",
         bestAvailableCurrentReview:
           "Bestverfügbares Modell · für die aktuelle Prüfung",
         bestAvailableNoEvaluation:
@@ -97,8 +112,18 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "Produktionsmodell · aktuell für Musterprüfungen",
         bootstrapCurrentReview: "Kaltstartmodell · aktuell für Musterprüfungen",
         bootstrapBackup: "Ersatzmodell",
-        evaluationSamples: "Evaluierungsbeispiele",
-        evaluationLift: "Erwarteter Uplift",
+        evaluationSamples: "Historische Anträge",
+        evaluationLift: "Erwartete Verkaufssteigerung",
+        intelligenceHistoricalSelectedCount: "Historische Auswahl",
+        intelligenceModelSelectedCount: "Empfohlene Auswahl",
+        intelligenceClaimPrecisionTitle: "Erwartete Verkaufssteigerung",
+        intelligenceSellerSafeDisclaimer:
+          "Basierend auf historischen Anträgen und Verkaufsdaten. Tatsächliche Ergebnisse können abweichen.",
+        intelligenceComparisonUnavailable:
+          "Es liegen nicht genügend historische Daten für einen verlässlichen Vergleich vor.",
+        intelligenceConfidenceHighHint: "Der historische Vergleich ist sehr zuverlässig.",
+        intelligenceConfidenceMediumHint: "Der historische Vergleich ist mäßig zuverlässig.",
+        intelligenceConfidenceLowHint: "Nutzen Sie den Vergleich als Orientierung.",
         evaluationBalancedAccuracy: "Ausgewogene Genauigkeit",
         evaluationTrainedAt: "Trainiert",
         bootstrapNoEvaluation: "Das Kaltstartmodell ist für Musterprüfungen verfügbar; für diese Version liegt noch kein Backtest vor.",
@@ -125,9 +150,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Modelo de producción",
-        bestAvailableModel: "Mejor modelo disponible",
-        bestAvailableExplanation:
-          "Un modelo progresivo prioriza datos del momento de decisión y usa aproximaciones actuales válidas solo cuando hacen falta.",
+        bestAvailableModel: "Ventas previstas",
+        bestAvailableExplanation: "Ventas previstas para solicitudes de muestras de afiliados.",
         bestAvailableCurrentReview:
           "Mejor modelo disponible · usado en la revisión actual",
         bestAvailableNoEvaluation:
@@ -138,8 +162,18 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "Modelo de producción · usado en la revisión actual",
         bootstrapCurrentReview: "Modelo de arranque · usado en la revisión actual",
         bootstrapBackup: "Modelo de respaldo",
-        evaluationSamples: "Muestras de evaluación",
-        evaluationLift: "Mejora esperada",
+        evaluationSamples: "Solicitudes históricas",
+        evaluationLift: "Mejora de ventas prevista",
+        intelligenceHistoricalSelectedCount: "Selecciones históricas",
+        intelligenceModelSelectedCount: "Selecciones sugeridas",
+        intelligenceClaimPrecisionTitle: "Mejora de ventas prevista",
+        intelligenceSellerSafeDisclaimer:
+          "Predicción basada en solicitudes y ventas históricas. Los resultados reales pueden variar.",
+        intelligenceComparisonUnavailable:
+          "No hay suficientes datos históricos para generar una comparación fiable.",
+        intelligenceConfidenceHighHint: "La comparación histórica tiene alta fiabilidad.",
+        intelligenceConfidenceMediumHint: "La comparación histórica tiene fiabilidad media.",
+        intelligenceConfidenceLowHint: "Use esta comparación como referencia orientativa.",
         evaluationBalancedAccuracy: "Exactitud equilibrada",
         evaluationTrainedAt: "Entrenado",
         bootstrapNoEvaluation: "El modelo de arranque está disponible para revisar muestras; esta versión aún no tiene informe retrospectivo.",
@@ -166,9 +200,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Modèle de production",
-        bestAvailableModel: "Meilleur modèle disponible",
-        bestAvailableExplanation:
-          "Un modèle progressif privilégie les variables au moment de la décision et utilise une approximation actuelle admissible si nécessaire.",
+        bestAvailableModel: "Ventes prévues",
+        bestAvailableExplanation: "Ventes prévues pour les demandes d’échantillons affiliés.",
         bestAvailableCurrentReview:
           "Meilleur modèle disponible · utilisé pour la revue actuelle",
         bestAvailableNoEvaluation:
@@ -179,8 +212,18 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "Modèle de production · utilisé pour la revue actuelle",
         bootstrapCurrentReview: "Modèle de démarrage · utilisé pour la revue actuelle",
         bootstrapBackup: "Modèle de secours",
-        evaluationSamples: "Échantillons d’évaluation",
-        evaluationLift: "Gain attendu",
+        evaluationSamples: "Demandes historiques",
+        evaluationLift: "Hausse prévue des ventes",
+        intelligenceHistoricalSelectedCount: "Sélections historiques",
+        intelligenceModelSelectedCount: "Sélections suggérées",
+        intelligenceClaimPrecisionTitle: "Hausse prévue des ventes",
+        intelligenceSellerSafeDisclaimer:
+          "Prévision fondée sur les demandes et ventes historiques. Les résultats réels peuvent varier.",
+        intelligenceComparisonUnavailable:
+          "Les données historiques sont insuffisantes pour produire une comparaison fiable.",
+        intelligenceConfidenceHighHint: "La comparaison historique est très fiable.",
+        intelligenceConfidenceMediumHint: "La comparaison historique est moyennement fiable.",
+        intelligenceConfidenceLowHint: "Utilisez cette comparaison comme indication.",
         evaluationBalancedAccuracy: "Exactitude équilibrée",
         evaluationTrainedAt: "Entraîné",
         bootstrapNoEvaluation: "Le modèle de démarrage peut revoir les échantillons ; cette version n’a pas encore de rapport de backtest.",
@@ -207,9 +250,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Model produksi",
-        bestAvailableModel: "Model terbaik yang tersedia",
-        bestAvailableExplanation:
-          "Satu model progresif mengutamakan fitur saat keputusan dan memakai proksi kondisi kini yang valid hanya bila diperlukan.",
+        bestAvailableModel: "Perkiraan penjualan",
+        bestAvailableExplanation: "Perkiraan penjualan untuk permohonan sampel afiliasi.",
         bestAvailableCurrentReview:
           "Model terbaik yang tersedia · dipakai untuk tinjauan saat ini",
         bestAvailableNoEvaluation:
@@ -220,8 +262,18 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "Model produksi · digunakan untuk tinjauan sampel saat ini",
         bootstrapCurrentReview: "Model bootstrap · digunakan untuk tinjauan sampel saat ini",
         bootstrapBackup: "Model cadangan",
-        evaluationSamples: "Sampel evaluasi",
-        evaluationLift: "Peningkatan yang diharapkan",
+        evaluationSamples: "Permohonan historis",
+        evaluationLift: "Peningkatan perkiraan penjualan",
+        intelligenceHistoricalSelectedCount: "Pilihan historis",
+        intelligenceModelSelectedCount: "Pilihan yang disarankan",
+        intelligenceClaimPrecisionTitle: "Peningkatan perkiraan penjualan",
+        intelligenceSellerSafeDisclaimer:
+          "Prediksi berdasarkan data permohonan dan penjualan historis. Hasil aktual dapat berbeda.",
+        intelligenceComparisonUnavailable:
+          "Data historis belum cukup untuk membuat perbandingan yang andal.",
+        intelligenceConfidenceHighHint: "Perbandingan historis memiliki keandalan tinggi.",
+        intelligenceConfidenceMediumHint: "Perbandingan historis memiliki keandalan sedang.",
+        intelligenceConfidenceLowHint: "Gunakan perbandingan ini sebagai acuan arah.",
         evaluationBalancedAccuracy: "Akurasi seimbang",
         evaluationTrainedAt: "Dilatih",
         bootstrapNoEvaluation: "Model bootstrap tersedia untuk tinjauan sampel; versi ini belum memiliki laporan backtest.",
@@ -248,9 +300,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "Modello di produzione",
-        bestAvailableModel: "Miglior modello disponibile",
-        bestAvailableExplanation:
-          "Un unico modello progressivo preferisce le feature al momento della decisione e usa proxy attuali idonei solo quando necessario.",
+        bestAvailableModel: "Vendite previste",
+        bestAvailableExplanation: "Vendite previste per le richieste di campioni affiliati.",
         bestAvailableCurrentReview:
           "Miglior modello disponibile · usato per la revisione attuale",
         bestAvailableNoEvaluation:
@@ -261,8 +312,18 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "Modello di produzione · usato per la revisione corrente",
         bootstrapCurrentReview: "Modello di avvio · usato per la revisione corrente",
         bootstrapBackup: "Modello di riserva",
-        evaluationSamples: "Campioni di valutazione",
-        evaluationLift: "Incremento atteso",
+        evaluationSamples: "Richieste storiche",
+        evaluationLift: "Incremento previsto delle vendite",
+        intelligenceHistoricalSelectedCount: "Selezioni storiche",
+        intelligenceModelSelectedCount: "Selezioni suggerite",
+        intelligenceClaimPrecisionTitle: "Incremento previsto delle vendite",
+        intelligenceSellerSafeDisclaimer:
+          "Previsione basata su richieste e vendite storiche. I risultati effettivi possono variare.",
+        intelligenceComparisonUnavailable:
+          "I dati storici non sono ancora sufficienti per un confronto affidabile.",
+        intelligenceConfidenceHighHint: "Il confronto storico ha un’elevata affidabilità.",
+        intelligenceConfidenceMediumHint: "Il confronto storico ha un’affidabilità media.",
+        intelligenceConfidenceLowHint: "Usa questo confronto come riferimento orientativo.",
         evaluationBalancedAccuracy: "Accuratezza bilanciata",
         evaluationTrainedAt: "Addestrato",
         bootstrapNoEvaluation: "Il modello di avvio è disponibile per la revisione; questa versione non ha ancora un report di backtest.",
@@ -289,9 +350,8 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
     ecommerce: {
       affiliateWorkspace: {
         productionModel: "โมเดลใช้งานจริง",
-        bestAvailableModel: "โมเดลที่ดีที่สุดในขณะนี้",
-        bestAvailableExplanation:
-          "โมเดลแบบค่อยเป็นค่อยไปจะใช้ข้อมูล ณ เวลาตัดสินใจก่อน และใช้ข้อมูลสถานะปัจจุบันที่ผ่านเกณฑ์เมื่อจำเป็นเท่านั้น",
+        bestAvailableModel: "ยอดขายที่คาดการณ์",
+        bestAvailableExplanation: "ยอดขายที่คาดการณ์สำหรับคำขอตัวอย่าง Affiliate",
         bestAvailableCurrentReview:
           "โมเดลที่ดีที่สุดในขณะนี้ · ใช้กับการตรวจสอบปัจจุบัน",
         bestAvailableNoEvaluation:
@@ -302,8 +362,18 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionCurrentReview: "โมเดลใช้งานจริง · ใช้ตรวจตัวอย่างปัจจุบัน",
         bootstrapCurrentReview: "โมเดลเริ่มต้น · ใช้ตรวจตัวอย่างปัจจุบัน",
         bootstrapBackup: "โมเดลสำรอง",
-        evaluationSamples: "ตัวอย่างการประเมิน",
-        evaluationLift: "ผลเพิ่มที่คาดหวัง",
+        evaluationSamples: "คำขอในอดีต",
+        evaluationLift: "ยอดขายที่คาดว่าจะเพิ่มขึ้น",
+        intelligenceHistoricalSelectedCount: "จำนวนที่เลือกในอดีต",
+        intelligenceModelSelectedCount: "จำนวนที่แนะนำ",
+        intelligenceClaimPrecisionTitle: "ยอดขายที่คาดว่าจะเพิ่มขึ้น",
+        intelligenceSellerSafeDisclaimer:
+          "คาดการณ์จากข้อมูลคำขอและยอดขายในอดีต ผลลัพธ์จริงอาจแตกต่างกัน",
+        intelligenceComparisonUnavailable:
+          "ข้อมูลในอดีตยังไม่เพียงพอสำหรับการเปรียบเทียบที่น่าเชื่อถือ",
+        intelligenceConfidenceHighHint: "การเปรียบเทียบในอดีตมีความน่าเชื่อถือสูง",
+        intelligenceConfidenceMediumHint: "การเปรียบเทียบในอดีตมีความน่าเชื่อถือปานกลาง",
+        intelligenceConfidenceLowHint: "ใช้การเปรียบเทียบนี้เป็นข้อมูลอ้างอิงเชิงทิศทาง",
         evaluationBalancedAccuracy: "ความแม่นยำแบบสมดุล",
         evaluationTrainedAt: "ฝึกเมื่อ",
         bootstrapNoEvaluation: "โมเดลเริ่มต้นพร้อมตรวจตัวอย่าง แต่เวอร์ชันนี้ยังไม่มีรายงาน backtest",

@@ -1602,37 +1602,15 @@ export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
         trainedAt
         reason
         evaluationSummary {
-          userId
-          shopId
-          modelScope
-          tenantId
-          modelFamily
-          modelStage
-          featureTemporalBasis
-          modelStatus
-          contractHash
-          modelVersionKey
-          bentomlTag
-          trainedAt
-          evaluatedAt
-          evaluationScope
-          rowCount
-          creatorCount
-          humanApprovedCount
-          humanApprovalRate
-          modelSameBudgetCount
-          minExpectedSalesUnitsSameBudget
-          modelSameBudgetExpectedUnits
-          humanSameBudgetExpectedUnits
-          modelVsHumanExpectedUnitsLiftRatio
-          modelSelectedHumanRejectedCount
-          modelRejectedHumanApprovedCount
-          modelRejectedHumanApprovedActualUnits
-          humanApprovedObservedCount
-          humanApprovedActualUnits
-          humanApprovedActualAvgUnits
-          payload
-          createdAt
+          comparisonAvailable
+          historicalApplicationCount
+          historicalSelectedCount
+          modelSelectedCount
+          selectionDifferenceCount
+          historicalExpectedUnits
+          modelExpectedUnits
+          expectedSalesLiftRatio
+          confidenceLevel
         }
       }
     }
