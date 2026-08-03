@@ -3375,6 +3375,14 @@ export default {
       intelligenceConfiguredThresholdUnset: "未设置",
       intelligenceTrainingScope:
         "训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
+      intelligenceTrainingDataTitle: "模型数据",
+      intelligenceTrainingDataHeadline: "线上训练集与留出评估集分开计算",
+      intelligenceTrainingDataHint:
+        "模型先使用建模样本训练并在 Creator 隔离留出集上评估；通过后，再用全部合格样本重新训练线上模型。",
+      intelligenceProductionTrainingSamples: "线上模型训练样本",
+      intelligenceInitialFitSamples: "初始建模样本",
+      intelligenceHoldoutSamples: "Creator 隔离留出样本",
+      intelligenceCurrentEvaluationSamples: "当前视图评估样本",
       intelligenceLegalDisclaimer:
         "本页面基于统计模型和机器学习预测，不代表用户使用该模型后一定会产生真实业务增长。",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} 天",
@@ -3383,8 +3391,8 @@ export default {
       intelligenceDistributionHeadline: "模型选择的人群更偏向高销量区间",
       intelligenceDistributionHint:
         "{{window}} · 对比历史人工通过后的实际销量，以及模型选择/拒绝人群的预期销量区间。",
-      intelligenceHistoricalApplications: "历史申请数",
-      intelligenceHistoricalApproved: "历史通过数",
+      intelligenceHistoricalApplications: "当前视图评估样本",
+      intelligenceHistoricalApproved: "当前视图历史通过样本",
       intelligenceObservedApproved: "有销量结果的通过样本",
       intelligenceHistoricalApprovedActual: "历史通过 · 实际销量",
       intelligenceModelSelectedExpected: "模型选择 · 预期销量",

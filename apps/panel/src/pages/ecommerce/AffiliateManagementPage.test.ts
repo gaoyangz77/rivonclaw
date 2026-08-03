@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   affiliateModelStagePresentation,
+  affiliateTrainingDatasetCounts,
   isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
   predictionFamilyAvailability,
@@ -78,6 +79,25 @@ describe("AffiliateManagementPage proposal source", () => {
 });
 
 describe("Expected Sales model-stage presentation", () => {
+  it("separates final production training rows from the holdout evaluation slice", () => {
+    expect(
+      affiliateTrainingDatasetCounts({
+        rowCount: 418,
+        payload: {
+          evaluation_method: {
+            fit_rows: 1_575,
+            holdout_rows: 418,
+          },
+        },
+      }),
+    ).toEqual({
+      productionTrainingRows: 1_993,
+      fitRows: 1_575,
+      holdoutRows: 418,
+      currentEvaluationRows: 418,
+    });
+  });
+
   it("identifies Bootstrap from either explicit stage or proxy temporal basis", () => {
     expect(
       isBootstrapExpectedSalesOutput({

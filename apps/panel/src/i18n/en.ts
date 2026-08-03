@@ -3561,6 +3561,14 @@ export default {
       intelligenceConfiguredThresholdUnset: "Not set",
       intelligenceTrainingScope:
         "Trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
+      intelligenceTrainingDataTitle: "Model data",
+      intelligenceTrainingDataHeadline: "Production training and holdout are separate",
+      intelligenceTrainingDataHint:
+        "The model is fitted first and evaluated on Creator-isolated holdout data, then retrained on every eligible sample for production.",
+      intelligenceProductionTrainingSamples: "production training samples",
+      intelligenceInitialFitSamples: "initial fit samples",
+      intelligenceHoldoutSamples: "Creator-isolated holdout",
+      intelligenceCurrentEvaluationSamples: "evaluation samples in this view",
       intelligenceLegalDisclaimer:
         "This view is based on statistical modeling and machine learning predictions. It is not a guarantee that using the model will produce actual business growth.",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} days",
@@ -3570,8 +3578,8 @@ export default {
         "The model shifts the selected group toward higher sales buckets",
       intelligenceDistributionHint:
         "{{window}} · historical approved outcomes versus model-selected and model-rejected expected sales buckets.",
-      intelligenceHistoricalApplications: "sample applications",
-      intelligenceHistoricalApproved: "historically approved",
+      intelligenceHistoricalApplications: "evaluation samples in this view",
+      intelligenceHistoricalApproved: "historically approved in this view",
       intelligenceObservedApproved: "approved with sales outcomes",
       intelligenceHistoricalApprovedActual: "Historical approved · actual sales",
       intelligenceModelSelectedExpected: "Model selected · expected sales",

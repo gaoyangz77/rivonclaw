@@ -1158,6 +1158,7 @@ function AffiliateProductionModelDashboard({
   const { t } = useTranslation();
   const entityStore = useEntityStore();
   const payload = parseAffiliateInsightPayload(summary.payload);
+  const trainingDataset = affiliateTrainingDatasetCounts(summary);
   const sameBudgetPayload = payloadObject(payload, "same_sample_budget");
   const sameBudgetConfidence = payloadObject(payload, "same_sample_budget_confidence");
   const sameBudgetConfidenceLevel = affiliateConfidenceLevel(sameBudgetConfidence);
@@ -1243,6 +1244,7 @@ function AffiliateProductionModelDashboard({
         <strong>{modelLabel}</strong>
         <small>UNIFIED · BEST_AVAILABLE</small>
       </div>
+      <AffiliateTrainingDatasetPanel counts={trainingDataset} />
       <div className="affiliate-intelligence-claim-section">
         <div className="affiliate-intelligence-comparison">
           <div className="affiliate-intelligence-card-head">
@@ -1311,6 +1313,44 @@ function AffiliateProductionModelDashboard({
         })}</span>
       </div>
     </>
+  );
+}
+
+function AffiliateTrainingDatasetPanel({
+  counts,
+}: {
+  counts: ReturnType<typeof affiliateTrainingDatasetCounts>;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <section className="affiliate-intelligence-distribution-card affiliate-intelligence-training-data-card">
+      <div className="affiliate-intelligence-distribution-head">
+        <div>
+          <span>{t("ecommerce.affiliateWorkspace.intelligenceTrainingDataTitle")}</span>
+          <strong>{t("ecommerce.affiliateWorkspace.intelligenceTrainingDataHeadline")}</strong>
+        </div>
+        <small>{t("ecommerce.affiliateWorkspace.intelligenceTrainingDataHint")}</small>
+      </div>
+      <div className="affiliate-intelligence-stat-strip">
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceProductionTrainingSamples")}
+          value={formatInteger(counts.productionTrainingRows)}
+        />
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceInitialFitSamples")}
+          value={formatInteger(counts.fitRows)}
+        />
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceHoldoutSamples")}
+          value={formatInteger(counts.holdoutRows)}
+        />
+        <AffiliateTinyStat
+          label={t("ecommerce.affiliateWorkspace.intelligenceCurrentEvaluationSamples")}
+          value={formatInteger(counts.currentEvaluationRows)}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -1829,6 +1869,25 @@ function payloadNumber(payload: AffiliateInsightPayload, key: string): number | 
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+export function affiliateTrainingDatasetCounts(summary: {
+  rowCount: number;
+  payload?: unknown;
+}) {
+  const evaluationMethod = payloadObject(
+    parseAffiliateInsightPayload(summary.payload),
+    "evaluation_method",
+  );
+  const fitRows = payloadNumber(evaluationMethod, "fit_rows");
+  const holdoutRows = payloadNumber(evaluationMethod, "holdout_rows");
+  return {
+    productionTrainingRows:
+      fitRows == null || holdoutRows == null ? null : fitRows + holdoutRows,
+    fitRows,
+    holdoutRows,
+    currentEvaluationRows: summary.rowCount,
+  };
 }
 
 function payloadString(payload: AffiliateInsightPayload, key: string): string | null {
