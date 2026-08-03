@@ -6464,12 +6464,13 @@ function getProposalActionProductId(proposal: GQL.ActionProposal | null): string
 }
 
 function findProposalPredictionSnapshot(
-  _proposal: GQL.ActionProposal,
+  proposal: GQL.ActionProposal,
 ): AffiliatePredictionSnapshotView | null {
-  // Prediction outputs are short-lived cache objects, not Collaboration state.
-  // The proposal API currently exposes cache ids only, so this view must not
-  // reconstruct or display a stale prediction from a Collaboration document.
-  return null;
+  const snapshots = proposal.predictionSnapshots ?? [];
+  if (!snapshots.length) return null;
+  return sortPredictionSnapshotsByCaptureTime(
+    snapshots as AffiliatePredictionSnapshotView[],
+  )[0] ?? null;
 }
 
 function sortPredictionSnapshotsByCaptureTime(

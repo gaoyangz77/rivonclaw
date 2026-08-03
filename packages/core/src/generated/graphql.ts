@@ -62,8 +62,10 @@ export interface ActionProposal {
   /** Staff-facing proposal summary. Pending creator-facing content lives in ordered messageIntent.parts and is cleared at terminal state. */
   operatorSummary: Scalars['String']['output'];
   policySnapshot?: Maybe<ActionProposalPolicySnapshot>;
-  /** Short-lived affiliate prediction cache ids carried with the frozen proposal until approval execution. */
+  /** Source cache references used to assemble the proposal's immutable predictionSnapshots. They are lineage only and may expire independently. */
   predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
+  /** Immutable prediction evidence owned by this proposal. It remains reviewable after the short-lived source cache expires and does not depend on Collaboration state. */
+  predictionSnapshots: Array<AffiliateActionProposalPredictionSnapshot>;
   productId?: Maybe<Scalars['String']['output']>;
   /** Best-known related product summary for staff review display. Proposal execution still uses frozen proposal fields. */
   productSummary?: Maybe<EcomProductSummary>;
@@ -277,7 +279,7 @@ export interface ActionProposalStep {
   messageIntent?: Maybe<ActionProposalMessageIntent>;
   /** Staff-facing summary for this action step. Use the desktop/operator language. */
   operatorSummary: Scalars['String']['output'];
-  /** Short-lived affiliate prediction cache ids used to promote exact search/review predictions when this step is executed. */
+  /** Source cache references associated with this action step. The proposal-owned predictionSnapshots remain the durable review evidence. */
   predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
   productId?: Maybe<Scalars['String']['output']>;
   relationshipOperationalConfigRevision: Scalars['Int']['output'];
@@ -615,6 +617,26 @@ export interface AffiliateActionProposalPage {
   nextCursor?: Maybe<Scalars['String']['output']>;
 }
 
+/** Immutable expected-sales and Human Decision evidence frozen into an ActionProposal when the proposal is created. */
+export interface AffiliateActionProposalPredictionSnapshot {
+  captureMode: AffiliatePredictionCaptureMode;
+  capturedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Frozen validation and diagnostic evidence returned with the prediction. */
+  diagnostics: Scalars['JSONObject']['output'];
+  message?: Maybe<Scalars['String']['output']>;
+  /** Frozen model identity, contract, scope, version, and training lineage. */
+  model: Scalars['JSONObject']['output'];
+  /** Frozen model output used by the Agent when this proposal was authored. */
+  output: Scalars['JSONObject']['output'];
+  predictedAt: Scalars['DateTimeISO']['output'];
+  predictionType: AffiliatePredictionType;
+  resolvedContext?: Maybe<AffiliateExpectedSalesResolvedContext>;
+  scenario: AffiliateExpectedSalesPredictionScenario;
+  sourceCacheId?: Maybe<Scalars['ID']['output']>;
+  status: AffiliatePredictionStatus;
+  subject: AffiliateExpectedSalesSubjectRef;
+}
+
 /** Result mode for an affiliate action request after backend policy evaluation. */
 export const AffiliateActionRequestMode = {
   Executed: 'EXECUTED',
@@ -622,6 +644,25 @@ export const AffiliateActionRequestMode = {
 } as const;
 
 export type AffiliateActionRequestMode = typeof AffiliateActionRequestMode[keyof typeof AffiliateActionRequestMode];
+export const AffiliatePredictionCaptureMode = {
+  PromotedFromCache: 'PROMOTED_FROM_CACHE',
+  QueryCache: 'QUERY_CACHE'
+} as const;
+
+export type AffiliatePredictionCaptureMode = typeof AffiliatePredictionCaptureMode[keyof typeof AffiliatePredictionCaptureMode];
+export const AffiliatePredictionStatus = {
+  InvalidContext: 'INVALID_CONTEXT',
+  Ok: 'OK',
+  PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
+  ServiceError: 'SERVICE_ERROR'
+} as const;
+
+export type AffiliatePredictionStatus = typeof AffiliatePredictionStatus[keyof typeof AffiliatePredictionStatus];
+export const AffiliatePredictionType = {
+  SalesUnitsForecast: 'SALES_UNITS_FORECAST'
+} as const;
+
+export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
 /** Whether relationships owned by a business developer may dispatch the Affiliate Agent. */
 export const AffiliateAgentAssistanceMode = {
   AiAssisted: 'AI_ASSISTED',
@@ -10617,7 +10658,7 @@ export interface RequestAffiliateActionInput {
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
   operatorSummary: Scalars['String']['input'];
-  /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
+  /** Prediction cache ids returned by Affiliate prediction tools. When a proposal is created, Backend copies their canonical contents into immutable proposal-owned predictionSnapshots. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   productId?: InputMaybe<Scalars['String']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
@@ -10657,7 +10698,7 @@ export interface ResolveAffiliateWorkItemActionInput {
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
-  /** Prediction cache ids returned by affiliateExpectedSalesPredictions. If this action creates or updates a collaboration, backend promotes these exact cached predictions into the collaboration record. */
+  /** Prediction cache ids returned by Affiliate prediction tools. When a proposal is created, Backend copies their canonical contents into immutable proposal-owned predictionSnapshots. */
   predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   productId?: InputMaybe<Scalars['String']['input']>;
   /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */

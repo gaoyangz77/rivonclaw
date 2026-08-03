@@ -306,6 +306,7 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   status: types.optional(types.string, ""),
   operatorSummary: types.optional(types.string, ""),
   predictionCacheIds: types.maybeNull(types.array(types.string)),
+  predictionSnapshots: types.optional(types.array(types.frozen<Record<string, any>>()), []),
   steps: types.optional(types.array(types.frozen<Record<string, any>>()), []),
   policySnapshot: types.maybeNull(types.frozen<Record<string, any>>()),
   decision: types.maybeNull(types.frozen<Record<string, any>>()),

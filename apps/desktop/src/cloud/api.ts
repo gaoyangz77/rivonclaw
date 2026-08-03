@@ -10,7 +10,10 @@ import {
   invalidateToolSpecsCache,
   syncDesktopToolSpecs,
 } from "./tool-specs-sync.js";
-import { getActiveAffiliateRunCheckpoint } from "../affiliate/affiliate-run-checkpoints.js";
+import {
+  getActiveAffiliateRunCheckpoint,
+  recordActiveAffiliateRunPredictionCacheIds,
+} from "../affiliate/affiliate-run-checkpoints.js";
 import { openClawConnector } from "../openclaw/index.js";
 
 const log = createLogger("cloud-graphql-proxy");
@@ -293,10 +296,20 @@ interface AffiliateResolveActionContext {
 
 function buildAffiliateResolveActionContext(input: Record<string, unknown>): AffiliateResolveActionContext {
   const affiliateCollaborationId = firstNonEmptyString(input.affiliateCollaborationId);
+  const creatorRelationshipId = firstNonEmptyString(input.creatorRelationshipId);
+  const checkpoint = creatorRelationshipId
+    ? getActiveAffiliateRunCheckpoint(creatorRelationshipId)
+    : null;
+  const predictionCacheIds = [
+    ...(Array.isArray(input.predictionCacheIds)
+      ? input.predictionCacheIds.filter(hasNonEmptyString)
+      : []),
+    ...(checkpoint?.predictionCacheIds ?? []),
+  ];
   const context: AffiliateResolveActionContext = {
     affiliateCollaborationId: affiliateCollaborationId ?? undefined,
-    predictionCacheIds: Array.isArray(input.predictionCacheIds)
-      ? input.predictionCacheIds.filter(hasNonEmptyString)
+    predictionCacheIds: predictionCacheIds.length
+      ? [...new Set(predictionCacheIds)]
       : undefined,
   };
 
@@ -318,7 +331,7 @@ function normalizeAffiliateResolveAction(
     case "REVIEW_SAMPLE_APPLICATION":
       return normalizeAffiliateSampleReviewAction({ ...action, type: actionType }, context);
     case "CREATE_TARGET_COLLABORATION":
-      return normalizeAffiliateTargetCollaborationAction({ ...action, type: actionType });
+      return normalizeAffiliateTargetCollaborationAction({ ...action, type: actionType }, context);
     default:
       return value;
   }
@@ -334,7 +347,12 @@ function normalizeAffiliateSampleReviewAction(
 ): unknown {
   const existingIntent = asRecord(action.sampleReviewIntent);
   if (existingIntent && !isInvalidAffiliateResolveAction(action)) {
-    return pickAffiliateActionFields(action, "sampleReviewIntent", existingIntent);
+    return pickAffiliateActionFields(
+      action,
+      "sampleReviewIntent",
+      existingIntent,
+      context?.predictionCacheIds,
+    );
   }
 
   const sampleApplicationRecordId = firstNonEmptyString(
@@ -373,7 +391,12 @@ function normalizeAffiliateSampleReviewAction(
   } else if (decision === "REJECT") {
     sampleReviewIntent.rejectReason = "OTHER";
   }
-  return pickAffiliateActionFields(action, "sampleReviewIntent", sampleReviewIntent);
+  return pickAffiliateActionFields(
+    action,
+    "sampleReviewIntent",
+    sampleReviewIntent,
+    context?.predictionCacheIds,
+  );
 }
 
 function normalizeSampleReviewDecision(value: unknown): "APPROVE" | "REJECT" | null {
@@ -423,21 +446,38 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
   }));
 }
 
-function normalizeAffiliateTargetCollaborationAction(action: Record<string, unknown>): unknown {
+function normalizeAffiliateTargetCollaborationAction(
+  action: Record<string, unknown>,
+  context?: AffiliateResolveActionContext,
+): unknown {
   const existingIntent = asRecord(action.targetCollaborationIntent);
   if (!existingIntent) return action;
-  return pickAffiliateActionFields(action, "targetCollaborationIntent", existingIntent);
+  return pickAffiliateActionFields(
+    action,
+    "targetCollaborationIntent",
+    existingIntent,
+    context?.predictionCacheIds,
+  );
 }
 
 function pickAffiliateActionFields(
   action: Record<string, unknown>,
   intentField: "messageIntent" | "sampleReviewIntent" | "targetCollaborationIntent",
   intentValue: Record<string, unknown>,
+  trustedPredictionCacheIds?: readonly string[],
 ): Record<string, unknown> {
+  const predictionCacheIds = [
+    ...(Array.isArray(action.predictionCacheIds)
+      ? action.predictionCacheIds.filter(hasNonEmptyString)
+      : []),
+    ...(trustedPredictionCacheIds ?? []),
+  ];
   return omitEmptyAffiliateStrings({
     type: action.type,
     affiliateCollaborationId: action.affiliateCollaborationId,
-    predictionCacheIds: action.predictionCacheIds,
+    predictionCacheIds: predictionCacheIds.length
+      ? [...new Set(predictionCacheIds)]
+      : undefined,
     expiresAt: cleanOptionalAffiliateDateTime(action.expiresAt),
     [intentField]: intentValue,
   });
@@ -696,6 +736,7 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       ? await ctx.authSession.graphqlFetchEnvelope(body.query, variables, requestExtensions)
       : null;
     const data = envelope ? envelope.data : await ctx.authSession.graphqlFetch(body.query, variables);
+    captureAffiliatePredictionEvidence(opName, variables, data);
 
     // Only ingest Panel responses into MST. Extension (agent tool) responses
     // return partial entities that would overwrite complete store data.
@@ -749,6 +790,30 @@ function parseRawBody(req: IncomingMessage): Promise<Buffer> {
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
+}
+
+function captureAffiliatePredictionEvidence(
+  opName: string | null,
+  variables: Record<string, unknown> | undefined,
+  data: unknown,
+): void {
+  if (!variables || !looksLikeAffiliatePredictCreatorProductFitVariables(opName, variables)) return;
+  const creatorRelationshipId = firstNonEmptyString(
+    asRecord(variables.input)?.creatorRelationshipId,
+  );
+  if (!creatorRelationshipId) return;
+  const payload = asRecord(asRecord(data)?.affiliatePredictCreatorProductFit);
+  const prediction = asRecord(payload?.prediction);
+  const predictionPayload = asRecord(payload?.predictionPayload);
+  const nestedPredictions = Array.isArray(predictionPayload?.predictions)
+    ? predictionPayload.predictions
+    : [];
+  const cacheIds = [
+    prediction?.cacheId,
+    ...nestedPredictions.map((value) => asRecord(value)?.cacheId),
+  ].filter(hasNonEmptyString);
+  if (!cacheIds.length) return;
+  recordActiveAffiliateRunPredictionCacheIds({ creatorRelationshipId, cacheIds });
 }
 
 /**

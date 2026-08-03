@@ -10,6 +10,7 @@ export interface ActiveAffiliateRunCheckpoint {
   relationshipOperationalConfigRevision: number;
   businessDeveloperIdSnapshot: string | null;
   businessDeveloperConfigRevision: number | null;
+  predictionCacheIds?: string[];
 }
 
 const activeAffiliateRunCheckpoints = new Map<string, ActiveAffiliateRunCheckpoint>();
@@ -32,6 +33,20 @@ export function getActiveAffiliateRunCheckpoint(
   creatorRelationshipId: string,
 ): ActiveAffiliateRunCheckpoint | null {
   return activeAffiliateRunCheckpoints.get(creatorRelationshipId) ?? null;
+}
+
+export function recordActiveAffiliateRunPredictionCacheIds(input: {
+  creatorRelationshipId: string;
+  cacheIds: readonly string[];
+}): void {
+  const checkpoint = activeAffiliateRunCheckpoints.get(input.creatorRelationshipId);
+  if (!checkpoint) return;
+  const merged = new Set(checkpoint.predictionCacheIds ?? []);
+  for (const cacheId of input.cacheIds) {
+    const normalized = cacheId.trim();
+    if (normalized) merged.add(normalized);
+  }
+  checkpoint.predictionCacheIds = [...merged];
 }
 
 export function __clearActiveAffiliateRunCheckpointsForTests(): void {
