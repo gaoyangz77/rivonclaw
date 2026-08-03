@@ -458,6 +458,24 @@ describe("AuthSessionManager.refresh", () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
+  it("clears stored tokens for the typed refresh-token revocation code", async () => {
+    fetchFn.mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({
+        errors: [{
+          message: "invalid signature",
+          extensions: { code: "REFRESH_TOKEN_REVOKED" },
+        }],
+      }),
+    });
+
+    await expect(manager.refresh()).rejects.toThrow("invalid signature");
+
+    expect(manager.getAccessToken()).toBeNull();
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.accessToken");
+    expect(secretStore.delete).toHaveBeenCalledWith("auth.refreshToken");
+  });
+
   it("preserves a newer token persisted while an older refresh request was in flight", async () => {
     fetchFn.mockResolvedValueOnce({
       status: 200,

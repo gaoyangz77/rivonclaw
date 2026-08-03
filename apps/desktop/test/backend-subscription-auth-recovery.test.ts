@@ -26,7 +26,9 @@ describe("BackendSubscriptionClient auth recovery", () => {
   const sockets: Array<{ readyState: number; close: ReturnType<typeof vi.fn> }> = [];
   const subscriptions: Array<{
     query: string;
+    unsubscribe: ReturnType<typeof vi.fn>;
     sink: {
+      next?: (result: unknown) => void;
       error: (err: unknown) => void;
       complete: () => void;
     };
@@ -48,9 +50,14 @@ describe("BackendSubscriptionClient auth recovery", () => {
       return {
         dispose,
         terminate: vi.fn(),
-        subscribe: (request: { query: string }, sink: { error: (err: unknown) => void }) => {
-          subscriptions.push({ query: request.query, sink });
-          return vi.fn();
+        subscribe: (request: { query: string }, sink: {
+          next?: (result: unknown) => void;
+          error: (err: unknown) => void;
+          complete: () => void;
+        }) => {
+          const unsubscribe = vi.fn();
+          subscriptions.push({ query: request.query, sink, unsubscribe });
+          return unsubscribe;
         },
       };
     });
@@ -185,6 +192,162 @@ describe("BackendSubscriptionClient auth recovery", () => {
     }
   });
 
+  it("recovers a CS operation after Not found without refreshing or invalidating auth", async () => {
+    vi.useFakeTimers();
+    const refreshAuth = vi.fn(async () => {});
+    const onConversation = vi.fn();
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "stable-token", { refreshAuth });
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationChanges(onConversation);
+
+      expect(subscriptions).toHaveLength(1);
+      subscriptions[0].sink.error([{ message: "Not found" }]);
+
+      expect(subscriptions[0].unsubscribe).toHaveBeenCalledTimes(1);
+      expect(refreshAuth).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(999);
+      expect(subscriptions).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(subscriptions).toHaveLength(2);
+
+      subscriptions[1].sink.next?.({
+        data: { csConversationChanged: { conversationId: "conversation-1" } },
+      });
+      expect(onConversation).toHaveBeenCalledWith({ conversationId: "conversation-1" });
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
+  it("blocks contract errors and retries them only once on a new transport generation", async () => {
+    vi.useFakeTimers();
+    const refreshAuth = vi.fn(async () => {});
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "stable-token", { refreshAuth });
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationChanges(vi.fn());
+
+      const validationError = [{
+        message: 'Cannot query field "removedField" on type "CustomerServiceConversation".',
+        extensions: { code: "GRAPHQL_VALIDATION_FAILED" },
+      }];
+      subscriptions[0].sink.error(validationError);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(subscriptions).toHaveLength(1);
+      expect(refreshAuth).not.toHaveBeenCalled();
+
+      clientOptions.at(-1)?.on?.connected?.({}, undefined, true);
+      await vi.runAllTicks();
+      expect(subscriptions).toHaveLength(2);
+
+      subscriptions[1].sink.error(validationError);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(subscriptions).toHaveLength(2);
+      expect(refreshAuth).not.toHaveBeenCalled();
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels a pending operation retry when an explicit refresh starts a newer attempt", async () => {
+    vi.useFakeTimers();
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "stable-token");
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationChanges(vi.fn());
+
+      subscriptions[0].sink.error([{ message: "Not found" }]);
+      client.refreshCsConversationChanges();
+      expect(subscriptions).toHaveLength(2);
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(subscriptions).toHaveLength(2);
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
+  it("blocks an unknown operation error after five bounded retries", async () => {
+    vi.useFakeTimers();
+    const refreshAuth = vi.fn(async () => {});
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "stable-token", { refreshAuth });
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationChanges(vi.fn());
+
+      const unknownError = [{ message: "Unexpected subscription failure" }];
+      const retryDelays = [1_000, 2_000, 4_000, 8_000, 16_000];
+      for (const delayMs of retryDelays) {
+        subscriptions.at(-1)?.sink.error(unknownError);
+        await vi.advanceTimersByTimeAsync(delayMs);
+      }
+
+      expect(subscriptions).toHaveLength(6);
+      subscriptions.at(-1)?.sink.error(unknownError);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(subscriptions).toHaveLength(6);
+      expect(refreshAuth).not.toHaveBeenCalled();
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not let an operation recovery timer restart after logout", async () => {
+    vi.useFakeTimers();
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "stable-token");
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationChanges(vi.fn());
+
+      subscriptions[0].sink.error([{ message: "Not found" }]);
+      client.disableAuthenticatedSubscriptions();
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(subscriptions).toHaveLength(1);
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
+  it("treats Forbidden as a blocked operation error rather than an auth failure", async () => {
+    vi.useFakeTimers();
+    const refreshAuth = vi.fn(async () => {});
+    const client = new BackendSubscriptionClient("en");
+
+    try {
+      client.connect(() => "stable-token", { refreshAuth });
+      client.enableAuthenticatedSubscriptions();
+      client.subscribeToCsConversationSignals(vi.fn());
+
+      subscriptions[0].sink.error([{ message: "Forbidden" }]);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(refreshAuth).not.toHaveBeenCalled();
+      expect(subscriptions).toHaveLength(1);
+    } finally {
+      client.disconnect();
+      vi.useRealTimers();
+    }
+  });
+
   it("lets graphql-ws replay active subscriptions after transport reconnect", async () => {
     const onConnectedAfterRetry = vi.fn(async () => {});
     const client = new BackendSubscriptionClient("en");
@@ -284,6 +447,37 @@ describe("BackendSubscriptionClient auth recovery", () => {
     await client.handleCredentialsChanged();
 
     expect(subscriptions).toHaveLength(5);
+    expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
+      authorization: "Bearer rotated-token",
+    });
+    client.disconnect();
+  });
+
+  it("suspends after a transient auth refresh failure and resumes on credential rotation", async () => {
+    let token: string | null = "stale-token";
+    const refreshAuth = vi.fn(async () => {
+      throw new Error("fetch failed");
+    });
+    const client = new BackendSubscriptionClient("en");
+
+    client.connect(() => token, { refreshAuth });
+    client.enableAuthenticatedSubscriptions();
+    client.subscribeToCsConversationChanges(vi.fn());
+
+    subscriptions[0].sink.error([{ message: "Authentication required" }]);
+
+    await vi.waitFor(() => {
+      expect(refreshAuth).toHaveBeenCalledTimes(1);
+      expect(subscriptions[0].unsubscribe).toHaveBeenCalledTimes(1);
+    });
+
+    client.subscribeToClientLogUploadRequests("device-1", vi.fn());
+    expect(subscriptions).toHaveLength(1);
+
+    token = "rotated-token";
+    await client.handleCredentialsChanged();
+
+    expect(subscriptions).toHaveLength(3);
     expect(clientOptions.at(-1)?.connectionParams?.()).toEqual({
       authorization: "Bearer rotated-token",
     });
