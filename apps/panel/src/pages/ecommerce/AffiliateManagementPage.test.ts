@@ -189,20 +189,23 @@ describe("Expected Sales model-stage presentation", () => {
     ).toBe("modelDataAccumulating");
   });
 
-  it("rejects an evaluation row that does not match the active artifact", () => {
-    const staleEvaluation = {
-      modelFamily: "EXPECTED_SALES",
-      modelStage: "UNIFIED",
-      modelVersionKey: "EXPECTED_SALES:UNIFIED:old",
-      contractHash: "b".repeat(64),
-      rowCount: 4_935,
-      modelVsHumanExpectedUnitsLiftRatio: 1.819,
+  it("shows a seller-safe comparison without internal model identity fields", () => {
+    const sellerSafeEvaluation = {
+      comparisonAvailable: true,
+      historicalApplicationCount: 18_065,
+      historicalSelectedCount: 558,
+      modelSelectedCount: 558,
+      selectionDifferenceCount: 490,
+      historicalExpectedUnits: 93.45,
+      modelExpectedUnits: 214.82,
+      expectedSalesLiftRatio: 2.2987,
+      confidenceLevel: "high",
     };
     const availability = [
       entry(
         "EXPECTED_SALES",
         "READY",
-        staleEvaluation,
+        sellerSafeEvaluation,
       ),
     ];
 
@@ -210,6 +213,49 @@ describe("Expected Sales model-stage presentation", () => {
       affiliateModelStagePresentation(
         availability,
         "EXPECTED_SALES",
+        "UNIFIED",
+      ).evaluationSummary,
+    ).toBe(sellerSafeEvaluation);
+  });
+
+  it("does not expose a comparison when the parent contract does not match", () => {
+    const availability = [{
+      ...entry("EXPECTED_SALES", "READY", { comparisonAvailable: true }),
+      contractStatus: "MISMATCH",
+    }];
+
+    const presentation = affiliateModelStagePresentation(
+      availability,
+      "EXPECTED_SALES",
+      "UNIFIED",
+    );
+
+    expect(presentation.ready).toBe(false);
+    expect(presentation.evaluationSummary).toBeNull();
+  });
+
+  it("never uses Human Decision comparison availability for Expected Sales", () => {
+    const humanEvaluation = { comparisonAvailable: false };
+    const expectedEvaluation = {
+      comparisonAvailable: true,
+      historicalApplicationCount: 18_065,
+    };
+    const availability = [
+      entry("HUMAN_DECISION", "READY", humanEvaluation),
+      entry("EXPECTED_SALES", "READY", expectedEvaluation),
+    ];
+
+    expect(
+      affiliateModelStagePresentation(
+        availability,
+        "EXPECTED_SALES",
+        "UNIFIED",
+      ).evaluationSummary,
+    ).toBe(expectedEvaluation);
+    expect(
+      affiliateModelStagePresentation(
+        availability,
+        "HUMAN_DECISION",
         "UNIFIED",
       ).evaluationSummary,
     ).toBeNull();
