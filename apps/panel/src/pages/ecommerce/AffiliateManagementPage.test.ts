@@ -200,6 +200,26 @@ describe("Expected Sales model-stage presentation", () => {
       modelExpectedUnits: 214.82,
       expectedSalesLiftRatio: 2.2987,
       confidenceLevel: "high",
+      sameBudgetComparison: {
+        historicalApprovalRate: 0.153,
+        historicalActualObservedCount: 376,
+        modelSelectedHistoricalRejectedCount: 490,
+        modelRejectedHistoricalSelectedCount: 490,
+        historicalActualUnitsHistogram: [{ key: "0", label: "0", count: 307 }],
+        historicalExpectedUnitsHistogram: [{ key: "0", label: "0", count: 489 }],
+        modelExpectedUnitsHistogram: [{ key: "0", label: "0", count: 492 }],
+      },
+      sameThresholdComparison: {
+        minimumExpectedSalesUnits: 0.3,
+        historicalQualifiedCount: 68,
+        modelQualifiedCount: 558,
+        modelQualifiedHistoricalRejectedCount: 490,
+        belowThresholdCount: 3_089,
+        qualifiedCreatorLiftRatio: 8.2059,
+        historicalExpectedUnitsHistogram: [{ key: "0", label: "0", count: 66 }],
+        modelExpectedUnitsHistogram: [{ key: "0", label: "0", count: 508 }],
+        belowThresholdModelExpectedUnitsHistogram: [{ key: "0", label: "0", count: 3_089 }],
+      },
     };
     const availability = [
       entry(

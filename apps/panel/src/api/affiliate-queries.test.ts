@@ -29,6 +29,12 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("comparisonAvailable");
     expect(query).toContain("historicalApplicationCount");
     expect(query).toContain("expectedSalesLiftRatio");
+    expect(query).toContain("sameBudgetComparison");
+    expect(query).toContain("sameThresholdComparison");
+    expect(query).toContain("historicalActualUnitsHistogram");
+    expect(query).toContain("modelExpectedUnitsHistogram");
+    expect(query).toContain("belowThresholdModelExpectedUnitsHistogram");
+    expect(query).toContain("modelQualifiedHistoricalRejectedCount");
     expect(query).not.toContain("payload");
     expect(query).not.toContain("teacherModelVersionKey");
     expect(query).not.toContain("artifactRole");

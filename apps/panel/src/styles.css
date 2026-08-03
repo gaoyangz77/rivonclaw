@@ -20518,19 +20518,26 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-intelligence-race-track {
+  appearance: none;
+  width: 100%;
   height: 14px;
   overflow: hidden;
+  border: 0;
   border-radius: 999px;
   background: var(--color-border-light);
 }
 
-.affiliate-intelligence-race-track > div {
-  height: 100%;
-  border-radius: inherit;
+.affiliate-intelligence-race-track::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--color-border-light);
+}
+
+.affiliate-intelligence-race-track::-webkit-progress-value {
+  border-radius: 999px;
   background: var(--color-text-muted);
 }
 
-.affiliate-intelligence-race-model .affiliate-intelligence-race-track > div {
+.affiliate-intelligence-race-model .affiliate-intelligence-race-track::-webkit-progress-value {
   background: var(--color-success);
 }
 
@@ -20845,6 +20852,62 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-secondary);
   font-size: 12px;
   text-align: center;
+}
+
+.affiliate-intelligence-histogram-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.affiliate-intelligence-histogram-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.affiliate-intelligence-histogram-svg {
+  display: block;
+  width: 100%;
+  min-width: 620px;
+  height: auto;
+}
+
+.affiliate-intelligence-histogram-grid {
+  stroke: var(--color-border-light);
+  stroke-width: 1;
+}
+
+.affiliate-intelligence-histogram-bar {
+  fill: var(--color-text-muted);
+}
+
+.affiliate-intelligence-histogram-bar-actual {
+  fill: var(--color-primary);
+}
+
+.affiliate-intelligence-histogram-bar-model {
+  fill: var(--color-success);
+}
+
+.affiliate-intelligence-histogram-bar-below {
+  fill: color-mix(in srgb, var(--color-text-muted) 44%, var(--color-bg));
+}
+
+.affiliate-intelligence-histogram-label {
+  fill: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.affiliate-bucket-legend-actual i {
+  background: var(--color-primary);
+}
+
+.affiliate-bucket-legend-below i {
+  background: color-mix(in srgb, var(--color-text-muted) 44%, var(--color-bg));
 }
 
 .affiliate-intelligence-reach-card {

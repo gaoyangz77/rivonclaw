@@ -1651,6 +1651,50 @@ export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
           modelExpectedUnits
           expectedSalesLiftRatio
           confidenceLevel
+          sameBudgetComparison {
+            historicalApprovalRate
+            historicalActualObservedCount
+            modelSelectedHistoricalRejectedCount
+            modelRejectedHistoricalSelectedCount
+            historicalActualUnitsHistogram {
+              key
+              label
+              count
+            }
+            historicalExpectedUnitsHistogram {
+              key
+              label
+              count
+            }
+            modelExpectedUnitsHistogram {
+              key
+              label
+              count
+            }
+          }
+          sameThresholdComparison {
+            minimumExpectedSalesUnits
+            historicalQualifiedCount
+            modelQualifiedCount
+            modelQualifiedHistoricalRejectedCount
+            belowThresholdCount
+            qualifiedCreatorLiftRatio
+            historicalExpectedUnitsHistogram {
+              key
+              label
+              count
+            }
+            modelExpectedUnitsHistogram {
+              key
+              label
+              count
+            }
+            belowThresholdModelExpectedUnitsHistogram {
+              key
+              label
+              count
+            }
+          }
         }
       }
     }
