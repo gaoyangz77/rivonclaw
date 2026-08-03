@@ -1168,6 +1168,46 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       status
       operatorSummary
       predictionCacheIds
+      predictionSnapshots {
+        sourceCacheId
+        predictionType
+        captureMode
+        scenario
+        status
+        output
+        model
+        diagnostics
+        message
+        predictedAt
+        capturedAt
+        subject {
+          sampleApplicationRecordId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          creatorCandidateId
+          campaignId
+          affiliateCollaborationId
+          platformCollaborationId
+          productId
+        }
+        resolvedContext {
+          shopId
+          campaignId
+          affiliateCollaborationId
+          platformCollaborationId
+          sampleApplicationRecordId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          creatorUsername
+          creatorNickname
+          productId
+          skuId
+          productTitle
+          source
+        }
+      }
       steps {
         stepId
         shopId
@@ -2213,6 +2253,46 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       status
       operatorSummary
       predictionCacheIds
+      predictionSnapshots {
+        sourceCacheId
+        predictionType
+        captureMode
+        scenario
+        status
+        output
+        model
+        diagnostics
+        message
+        predictedAt
+        capturedAt
+        subject {
+          sampleApplicationRecordId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          creatorCandidateId
+          campaignId
+          affiliateCollaborationId
+          platformCollaborationId
+          productId
+        }
+        resolvedContext {
+          shopId
+          campaignId
+          affiliateCollaborationId
+          platformCollaborationId
+          sampleApplicationRecordId
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          creatorUsername
+          creatorNickname
+          productId
+          skuId
+          productTitle
+          source
+        }
+      }
       steps {
         stepId
         type

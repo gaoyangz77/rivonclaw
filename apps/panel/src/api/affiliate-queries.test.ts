@@ -87,6 +87,9 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("affiliateCollaboration");
     expect(query).toContain("sampleApplicationRecord");
     expect(query).toContain("sampleReviewIntent");
+    expect(query).toContain("predictionSnapshots");
+    expect(query).toContain("sourceCacheId");
+    expect(query).toContain("capturedAt");
     expect(query).toContain("steps");
   });
 
@@ -117,6 +120,7 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(mutation).toContain("decideActionProposal(input: $input)");
     expect(mutation).toContain("creatorRelationshipId");
     expect(mutation).toContain("decision");
+    expect(mutation).toContain("predictionSnapshots");
   });
 
   it("loads exact seller-account to Creator contact assets", () => {

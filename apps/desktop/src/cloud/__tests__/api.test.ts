@@ -542,6 +542,104 @@ describe("cloud-graphql handler", () => {
     );
   });
 
+  it("carries prediction cache ids from the trusted run into a later sample review action", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
+      if (query.includes("AffiliatePredictCreatorProductFit")) {
+        return {
+          affiliatePredictCreatorProductFit: {
+            prediction: { cacheId: "prediction-cache-1" },
+            predictionPayload: {
+              predictions: [{ cacheId: "prediction-cache-1" }],
+            },
+          },
+        };
+      }
+      return {
+        resolveAffiliateWorkItem: {
+          decision: "REQUEST_ACTION",
+          stale: false,
+        },
+      };
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+    registerActiveAffiliateRunCheckpoint({
+      creatorRelationshipId: "relationship-1",
+      sessionKey: "agent:affiliate:affiliate:user-1:relationship-1",
+      runId: "run-checkpoint-1",
+      baseCheckpointId: null,
+      baseEventCursor: 7,
+      handledSignalAt: "2026-08-03T00:00:00.000Z",
+      candidateCheckpointId: "candidate-checkpoint-1",
+      targetEventCursor: 9,
+      relationshipOperationalConfigRevision: 4,
+      businessDeveloperIdSnapshot: null,
+      businessDeveloperConfigRevision: null,
+    });
+
+    const predictionQuery = `
+      query AffiliatePredictCreatorProductFit($input: AffiliateCreatorProductFitInput!) {
+        affiliatePredictCreatorProductFit(input: $input) {
+          prediction { cacheId }
+          predictionPayload { predictions { cacheId } }
+        }
+      }
+    `;
+    await dispatch("POST", pathname, ctx, {
+      query: predictionQuery,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          shopId: "shop-1",
+          productId: "product-1",
+          sampleApplicationRecordId: "sample-1",
+          scenario: "SAMPLE_REVIEW",
+        },
+      },
+    });
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) { decision stale }
+      }
+    `;
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          shopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          decision: "REQUEST_ACTION",
+          operatorSummary: "Review the sample.",
+          action: {
+            type: "REVIEW_SAMPLE_APPLICATION",
+            sampleApplicationRecordId: "sample-1",
+            sampleReviewDecision: "REJECT",
+            rejectReason: "NOT_MATCH",
+          },
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).toHaveBeenLastCalledWith(
+      mutation,
+      expect.objectContaining({
+        input: expect.objectContaining({
+          action: expect.objectContaining({
+            type: "REVIEW_SAMPLE_APPLICATION",
+            predictionCacheIds: ["prediction-cache-1"],
+          }),
+        }),
+      }),
+    );
+  });
+
   it("normalizes common sample review aliases and defaults reject reason", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
