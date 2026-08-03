@@ -608,6 +608,13 @@ export interface AffiliateActionProposalDeltaInput {
   since?: InputMaybe<Scalars['DateTimeISO']['input']>;
 }
 
+/** A stable cursor page of human-reviewable Affiliate action proposals. */
+export interface AffiliateActionProposalPage {
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<ActionProposal>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
 /** Result mode for an affiliate action request after backend policy evaluation. */
 export const AffiliateActionRequestMode = {
   Executed: 'EXECUTED',
@@ -9395,6 +9402,8 @@ export interface Query {
   adsStoreAccesses: Array<AdsStoreAccess>;
   /** Read bounded proposal events for one CreatorRelationship. Desktop injects this as per-run delta context, not as stable workspace state. */
   affiliateActionProposalDelta: Array<ActionProposal>;
+  /** Read a stable cursor page of human-reviewable Affiliate action proposals. */
+  affiliateActionProposalPage: AffiliateActionProposalPage;
   /** Read affiliate approval interception policies. */
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
   /** Read tag and campaign condition options across all Affiliate shops owned by the authenticated seller account. */
@@ -9696,6 +9705,11 @@ export interface QueryAdsStoreAccessesArgs {
 
 export interface QueryAffiliateActionProposalDeltaArgs {
   input: AffiliateActionProposalDeltaInput;
+}
+
+
+export interface QueryAffiliateActionProposalPageArgs {
+  input: ReadActionProposalsInput;
 }
 
 
@@ -10379,6 +10393,8 @@ export interface ReadActionProposalsInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  /** Opaque cursor returned by affiliateActionProposalPage. Cursors are scoped to the current filters. */
+  cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   shopId?: InputMaybe<Scalars['ID']['input']>;

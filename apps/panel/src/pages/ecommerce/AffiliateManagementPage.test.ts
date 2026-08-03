@@ -1,14 +1,55 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyAffiliateProposalChange,
   affiliateModelStagePresentation,
   affiliateTrainingDatasetCounts,
   isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
+  mergeAffiliateProposalPage,
   predictionFamilyAvailability,
   selectAffiliateProposalItems,
 } from "./AffiliateManagementPage.js";
 
 describe("AffiliateManagementPage proposal source", () => {
+  const proposal = (id: string, status: string, type = "SEND_MESSAGE", shopId = "shop-1") => ({
+    id,
+    status,
+    type,
+    focusShopId: shopId,
+  } as never);
+
+  it("appends cursor pages without duplicating proposals", () => {
+    expect(
+      mergeAffiliateProposalPage(
+        [proposal("proposal-1", "PENDING"), proposal("proposal-2", "PENDING")],
+        [proposal("proposal-2", "PENDING"), proposal("proposal-3", "PENDING")],
+      ).map((item) => item.id),
+    ).toEqual(["proposal-1", "proposal-2", "proposal-3"]);
+  });
+
+  it("removes a locally decided proposal from the pending queue", () => {
+    expect(
+      applyAffiliateProposalChange(
+        [proposal("proposal-1", "PENDING"), proposal("proposal-2", "PENDING")],
+        proposal("proposal-1", "APPROVED"),
+        { status: "PENDING" as never },
+      ).map((item) => item.id),
+    ).toEqual(["proposal-2"]);
+  });
+
+  it("updates a decided proposal in place when viewing all statuses", () => {
+    const updated = applyAffiliateProposalChange(
+      [proposal("proposal-1", "PENDING"), proposal("proposal-2", "PENDING")],
+      proposal("proposal-1", "REJECTED"),
+      {},
+    );
+
+    expect(updated.map((item) => `${item.id}:${item.status}`)).toEqual([
+      "proposal-1:REJECTED",
+      "proposal-2:PENDING",
+    ]);
+  });
+
   it("treats an empty query result as authoritative", () => {
     expect(
       selectAffiliateProposalItems([], [{ id: "stale-pending-proposal" }]),

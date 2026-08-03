@@ -147,6 +147,7 @@ const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
 const AFFILIATE_WORK_ITEMS_LIMIT = 200;
+const AFFILIATE_PROPOSAL_PAGE_SIZE = 20;
 const ALL_CREATOR_TAGS_FILTER = "__ALL_CREATOR_TAGS__";
 const PROJECTION_DATASET_I18N_KEY: Record<string, string> = {
   COLLABORATIONS: "ecommerce.affiliateWorkspace.projectionDataset.COLLABORATIONS",
@@ -337,6 +338,49 @@ const PROPOSAL_TYPE_FILTERS = [
 ] as const;
 
 type ProposalTypeFilter = (typeof PROPOSAL_TYPE_FILTERS)[number];
+
+type AffiliateActionProposalPageData = {
+  affiliateActionProposalPage: {
+    items: GQL.ActionProposal[];
+    nextCursor?: string | null;
+    hasMore: boolean;
+  };
+};
+
+type ReadAffiliateActionProposalPageInput = GQL.ReadActionProposalsInput & {
+  cursor?: string | null;
+};
+
+export function mergeAffiliateProposalPage(
+  current: GQL.ActionProposal[],
+  incoming: GQL.ActionProposal[],
+): GQL.ActionProposal[] {
+  return mergeById([...current, ...incoming]);
+}
+
+export function applyAffiliateProposalChange(
+  current: GQL.ActionProposal[],
+  proposal: GQL.ActionProposal,
+  filters: {
+    status?: GQL.ActionProposalStatus;
+    type?: GQL.ActionProposalType;
+    shopId?: string;
+  },
+): GQL.ActionProposal[] {
+  const existingIndex = current.findIndex((candidate) => candidate.id === proposal.id);
+  const matches = (
+    (!filters.status || proposal.status === filters.status)
+    && (!filters.type || proposal.type === filters.type)
+    && (!filters.shopId || existingIndex >= 0 || proposal.focusShopId === filters.shopId)
+  );
+  if (!matches) {
+    return existingIndex < 0
+      ? current
+      : current.filter((candidate) => candidate.id !== proposal.id);
+  }
+  if (existingIndex < 0) return [proposal, ...current];
+  return current.map((candidate) => candidate.id === proposal.id ? proposal : candidate);
+}
 
 type AffiliateInsightSubject = {
   key: string;
@@ -560,6 +604,11 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
   const [selectedRelationship, setSelectedRelationship] = useState<CreatorRelationshipDetailItem | null>(null);
+  const [loadedProposals, setLoadedProposals] = useState<GQL.ActionProposal[]>([]);
+  const [proposalCursor, setProposalCursor] = useState<string | null>(null);
+  const [hasMoreProposals, setHasMoreProposals] = useState(false);
+  const [loadingMoreProposals, setLoadingMoreProposals] = useState(false);
+  const proposalLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -606,19 +655,22 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     data: proposalData,
     loading: proposalsLoading,
     refetch: refetchProposals,
+    fetchMore: fetchMoreProposals,
   } = useQuery<
-    { actionProposals: GQL.ActionProposal[] },
-    { input: GQL.ReadActionProposalsInput }
+    AffiliateActionProposalPageData,
+    { input: ReadAffiliateActionProposalPageInput }
   >(AFFILIATE_ACTION_PROPOSALS_QUERY, {
     variables: {
       input: {
         shopId: selectedShopId || null,
         status: proposalStatus,
         type: proposalType,
-        limit: 200,
+        limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
+        cursor: null,
       },
     },
     fetchPolicy: "cache-and-network",
+    notifyOnNetworkStatusChange: true,
     skip: !user,
   });
 
@@ -628,41 +680,100 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   >(DECIDE_ACTION_PROPOSAL_MUTATION);
 
   useEffect(() => {
-    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
-      void refetchProposals();
-    });
-    const unsubscribeWorkItem = panelEventBus.subscribe("affiliate-work-item-changed", () => {
-      void refetchProposals();
-    });
-    return () => {
-      unsubscribeProposal();
-      unsubscribeWorkItem();
-    };
-  }, [refetchProposals]);
-
-  useEffect(() => {
-    for (const proposal of proposalData?.actionProposals ?? []) {
+    const page = proposalData?.affiliateActionProposalPage as
+      | AffiliateActionProposalPageData["affiliateActionProposalPage"]
+      | undefined;
+    if (!page) return;
+    setLoadedProposals(page.items);
+    setProposalCursor(page.nextCursor ?? null);
+    setHasMoreProposals(page.hasMore);
+    for (const proposal of page.items) {
       entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
     }
-  }, [entityStore.affiliateWorkspace, proposalData?.actionProposals]);
+  }, [entityStore.affiliateWorkspace, proposalData?.affiliateActionProposalPage]);
 
-  const proposalItemsFromQuery = (proposalData?.actionProposals ?? []).map((proposal) =>
+  useEffect(() => {
+    setLoadedProposals([]);
+    setProposalCursor(null);
+    setHasMoreProposals(false);
+  }, [selectedShopId, proposalStatus, proposalType]);
+
+  const loadMoreProposals = useCallback(async () => {
+    if (!proposalCursor || !hasMoreProposals || loadingMoreProposals) return;
+    setLoadingMoreProposals(true);
+    try {
+      const result = await fetchMoreProposals({
+        variables: {
+          input: {
+            shopId: selectedShopId || null,
+            status: proposalStatus,
+            type: proposalType,
+            limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
+            cursor: proposalCursor,
+          },
+        },
+        updateQuery: (current) => current,
+      });
+      const page = result.data?.affiliateActionProposalPage as
+        | AffiliateActionProposalPageData["affiliateActionProposalPage"]
+        | undefined;
+      if (!page) return;
+      setLoadedProposals((current) => mergeAffiliateProposalPage(current, page.items));
+      setProposalCursor(page.nextCursor ?? null);
+      setHasMoreProposals(page.hasMore);
+      for (const proposal of page.items) {
+        entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
+      }
+    } finally {
+      setLoadingMoreProposals(false);
+    }
+  }, [
+    entityStore.affiliateWorkspace,
+    fetchMoreProposals,
+    hasMoreProposals,
+    loadingMoreProposals,
+    proposalCursor,
+    proposalStatus,
+    proposalType,
+    selectedShopId,
+  ]);
+
+  useEffect(() => {
+    const target = proposalLoadMoreRef.current;
+    if (!target || !hasMoreProposals || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreProposals();
+        }
+      },
+      { rootMargin: "320px 0px" },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMoreProposals, loadMoreProposals]);
+
+  useEffect(() => {
+    const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", (payload) => {
+      const proposal = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
+      if (!proposal?.id) return;
+      entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
+      setLoadedProposals((current) => applyAffiliateProposalChange(current, proposal, {
+        shopId: selectedShopId || undefined,
+        status: proposalStatus,
+        type: proposalType,
+      }));
+    });
+    return unsubscribeProposal;
+  }, [entityStore.affiliateWorkspace, proposalStatus, proposalType, selectedShopId]);
+
+  const proposalItemsFromQuery = loadedProposals.map((proposal) =>
     hydrateAffiliateProposalProjection(
       proposalProjectionSnapshot(entityStore.affiliateWorkspace, proposal.id) ?? { proposal },
     ),
   );
-  const proposalItemsFromStore = entityStore.affiliateWorkspace
-    .actionProposalPage({
-      shopId: selectedShopId || undefined,
-      status: proposalStatus,
-      search: attentionSearch,
-    })
-    .map(hydrateAffiliateProposalProjection);
   const visibleProposalItems = filterActionProposals(
-    selectAffiliateProposalItems(
-      proposalData === undefined ? undefined : proposalItemsFromQuery,
-      proposalItemsFromStore,
-    )
+    proposalItemsFromQuery
       .filter((proposal) => !proposalType || proposal.type === proposalType),
     attentionSearch,
     shopLabel,
@@ -685,7 +796,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
             ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestedNote")
             : t("ecommerce.shopDrawer.affiliate.proposalRejectedNote")
       );
-      await decideActionProposal({
+      const result = await decideActionProposal({
         variables: {
           input: {
             id: proposal.id,
@@ -698,6 +809,15 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           },
         },
       });
+      const updatedProposal = result.data?.decideActionProposal;
+      if (updatedProposal) {
+        entityStore.affiliateWorkspace.upsertAffiliateActionProposal(updatedProposal);
+        setLoadedProposals((current) => applyAffiliateProposalChange(current, updatedProposal, {
+          shopId: selectedShopId || undefined,
+          status: proposalStatus,
+          type: proposalType,
+        }));
+      }
       showToast(
         status === GQL.ActionProposalStatus.Approved
           ? t("ecommerce.shopDrawer.affiliate.proposalApproveSuccess")
@@ -706,14 +826,24 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           : t("ecommerce.shopDrawer.affiliate.proposalRejectSuccess"),
         "success",
       );
-      await refetchProposals();
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
   }
 
-  function refetchActive() {
-    return refetchProposals();
+  async function refetchActive() {
+    setLoadedProposals([]);
+    setProposalCursor(null);
+    setHasMoreProposals(false);
+    return refetchProposals({
+      input: {
+        shopId: selectedShopId || null,
+        status: proposalStatus,
+        type: proposalType,
+        limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
+        cursor: null,
+      },
+    });
   }
 
   function shopLabel(shopId: string): string {
@@ -840,6 +970,31 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
               ))}
             </div>
           )}
+          {(hasMoreProposals || loadingMoreProposals) ? (
+            <div className="affiliate-proposal-stream-footer" ref={proposalLoadMoreRef}>
+              <button
+                className="btn btn-secondary affiliate-proposal-load-more"
+                type="button"
+                onClick={() => void loadMoreProposals()}
+                disabled={loadingMoreProposals}
+              >
+                {loadingMoreProposals
+                  ? t("ecommerce.affiliateWorkspace.loadingMoreProposals")
+                  : t("ecommerce.affiliateWorkspace.loadMoreProposals")}
+              </button>
+              <span>
+                {t("ecommerce.affiliateWorkspace.loadedProposalCount", {
+                  count: loadedProposals.length,
+                })}
+              </span>
+            </div>
+          ) : loadedProposals.length > 0 ? (
+            <div className="affiliate-proposal-stream-footer affiliate-proposal-stream-complete">
+              {t("ecommerce.affiliateWorkspace.allProposalsLoaded", {
+                count: loadedProposals.length,
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
 

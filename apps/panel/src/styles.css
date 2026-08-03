@@ -21310,6 +21310,28 @@ html[lang="zh"] .acct-tool-chips {
   min-height: 180px;
 }
 
+.affiliate-proposal-stream-footer {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
+  background: color-mix(in srgb, var(--color-bg-alt) 34%, var(--color-bg));
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.affiliate-proposal-load-more {
+  min-width: 150px;
+}
+
+.affiliate-proposal-stream-complete {
+  min-height: 44px;
+  padding-block: 10px 14px;
+}
+
 .affiliate-loading-state {
   display: flex;
   min-height: 220px;
