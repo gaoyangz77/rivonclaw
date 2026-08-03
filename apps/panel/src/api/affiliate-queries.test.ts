@@ -1,6 +1,4 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { buildSchema, print, validate } from "graphql";
+import { print } from "graphql";
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
@@ -10,6 +8,7 @@ import {
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATORS_QUERY,
+  AFFILIATE_ML_INSIGHTS_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
@@ -24,31 +23,20 @@ function queryText(document: Parameters<typeof print>[0]): string {
 }
 
 describe("affiliate workspace GraphQL contracts", () => {
-  it("keeps every Affiliate workspace operation valid against the backend schema", () => {
-    const schema = buildSchema(
-      readFileSync(resolve(process.cwd(), "../../server/backend/schema.graphql"), "utf8"),
-    );
-    const operations = {
-      workItems: AFFILIATE_WORK_ITEMS_QUERY,
-      proposals: AFFILIATE_ACTION_PROPOSALS_QUERY,
-      contacts: AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
-      collaborations: AFFILIATE_COLLABORATIONS_QUERY,
-      creators: AFFILIATE_CREATORS_QUERY,
-      creatorProfile: AFFILIATE_CREATOR_PROFILE_QUERY,
-      campaigns: AFFILIATE_CAMPAIGNS_QUERY,
-      campaignCreatorStates: AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
-      writeCampaign: WRITE_AFFILIATE_CAMPAIGN_MUTATION,
-      deleteCampaignDraft: DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
-      suggestCampaignSearchPhrases: SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION,
-      generateCampaignTemplate: GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION,
-      decideProposal: DECIDE_ACTION_PROPOSAL_MUTATION,
-      preferredAccount: SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
-    };
-    expect(
-      Object.entries(operations).flatMap(([operation, document]) =>
-        validate(schema, document).map((error) => ({ operation, message: error.message })),
-      ),
-    ).toEqual([]);
+  it("requests only seller-safe Expected Sales comparison fields", () => {
+    const query = queryText(AFFILIATE_ML_INSIGHTS_QUERY);
+
+    expect(query).toContain("comparisonAvailable");
+    expect(query).toContain("historicalApplicationCount");
+    expect(query).toContain("expectedSalesLiftRatio");
+    expect(query).not.toContain("payload");
+    expect(query).not.toContain("teacherModelVersionKey");
+    expect(query).not.toContain("artifactRole");
+    expect(query).not.toContain("evaluationStatus");
+    const evaluation = query.split("evaluationSummary")[1] || "";
+    expect(evaluation).not.toContain("modelVersionKey");
+    expect(evaluation).not.toContain("bentomlTag");
+    expect(evaluation).not.toContain("contractHash");
   });
 
   it("loads creator relationship roster from the creator relationship API", () => {

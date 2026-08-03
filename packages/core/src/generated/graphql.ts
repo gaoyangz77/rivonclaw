@@ -2385,37 +2385,15 @@ export interface AffiliateMlInsightsPayload {
 }
 
 export interface AffiliateMlModelEfficiencySummary {
-  bentomlTag: Scalars['String']['output'];
-  contractHash: Scalars['String']['output'];
-  createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  creatorCount: Scalars['Int']['output'];
-  evaluatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  evaluationScope: Scalars['String']['output'];
-  featureTemporalBasis: Scalars['String']['output'];
-  humanApprovalRate?: Maybe<Scalars['Float']['output']>;
-  humanApprovedActualAvgUnits?: Maybe<Scalars['Float']['output']>;
-  humanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
-  humanApprovedCount: Scalars['Int']['output'];
-  humanApprovedObservedCount: Scalars['Int']['output'];
-  humanSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
-  minExpectedSalesUnitsSameBudget?: Maybe<Scalars['Float']['output']>;
-  modelFamily: Scalars['String']['output'];
-  modelRejectedHumanApprovedActualUnits?: Maybe<Scalars['Float']['output']>;
-  modelRejectedHumanApprovedCount: Scalars['Int']['output'];
-  modelSameBudgetCount: Scalars['Int']['output'];
-  modelSameBudgetExpectedUnits?: Maybe<Scalars['Float']['output']>;
-  modelScope?: Maybe<Scalars['String']['output']>;
-  modelSelectedHumanRejectedCount: Scalars['Int']['output'];
-  modelStage: Scalars['String']['output'];
-  modelStatus: Scalars['String']['output'];
-  modelVersionKey: Scalars['String']['output'];
-  modelVsHumanExpectedUnitsLiftRatio?: Maybe<Scalars['Float']['output']>;
-  payload?: Maybe<Scalars['JSONObject']['output']>;
-  rowCount: Scalars['Int']['output'];
-  shopId?: Maybe<Scalars['ID']['output']>;
-  tenantId?: Maybe<Scalars['ID']['output']>;
-  trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  userId: Scalars['ID']['output'];
+  comparisonAvailable: Scalars['Boolean']['output'];
+  confidenceLevel?: Maybe<Scalars['String']['output']>;
+  expectedSalesLiftRatio?: Maybe<Scalars['Float']['output']>;
+  historicalApplicationCount: Scalars['Int']['output'];
+  historicalExpectedUnits?: Maybe<Scalars['Float']['output']>;
+  historicalSelectedCount: Scalars['Int']['output'];
+  modelExpectedUnits?: Maybe<Scalars['Float']['output']>;
+  modelSelectedCount: Scalars['Int']['output'];
+  selectionDifferenceCount: Scalars['Int']['output'];
 }
 
 export interface AffiliateModelAvailability {

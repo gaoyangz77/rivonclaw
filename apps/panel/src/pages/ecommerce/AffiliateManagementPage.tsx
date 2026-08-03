@@ -451,14 +451,6 @@ type AffiliateInsightRow = {
   failed?: boolean;
 };
 
-type AffiliateInsightPayload = Record<string, unknown>;
-
-type AffiliateSalesHistogramBucket = {
-  key: string;
-  label: string;
-  count: number;
-};
-
 export function AffiliateManagementPage() {
   return <AffiliateCreatorsPage />;
 }
@@ -1311,66 +1303,11 @@ function AffiliateProductionModelDashboard({
   summary: GQL.AffiliateMlModelEfficiencySummary;
 }) {
   const { t } = useTranslation();
-  const entityStore = useEntityStore();
-  const payload = parseAffiliateInsightPayload(summary.payload);
-  const trainingDataset = affiliateTrainingDatasetCounts(summary);
-  const sameBudgetPayload = payloadObject(payload, "same_sample_budget");
-  const sameBudgetConfidence = payloadObject(payload, "same_sample_budget_confidence");
-  const sameBudgetConfidenceLevel = affiliateConfidenceLevel(sameBudgetConfidence);
-  const sameBudget = {
-    ...sameBudgetPayload,
-    historical_sample_count:
-      payloadNumber(sameBudgetPayload, "historical_sample_count") ?? summary.rowCount,
-    historical_approved_count:
-      payloadNumber(sameBudgetPayload, "historical_approved_count") ?? summary.humanApprovedCount,
-    historical_approval_rate:
-      payloadNumber(sameBudgetPayload, "historical_approval_rate") ?? summary.humanApprovalRate,
-    historical_expected_sales_units:
-      payloadNumber(sameBudgetPayload, "historical_expected_sales_units")
-      ?? summary.humanSameBudgetExpectedUnits,
-    model_selected_count:
-      payloadNumber(sameBudgetPayload, "model_selected_count") ?? summary.modelSameBudgetCount,
-    model_expected_sales_units:
-      payloadNumber(sameBudgetPayload, "model_expected_sales_units")
-      ?? summary.modelSameBudgetExpectedUnits,
-    expected_sales_lift_ratio:
-      payloadNumber(sameBudgetPayload, "expected_sales_lift_ratio")
-      ?? summary.modelVsHumanExpectedUnitsLiftRatio,
-    model_selected_human_rejected_count:
-      payloadNumber(sameBudgetPayload, "model_selected_human_rejected_count")
-      ?? summary.modelSelectedHumanRejectedCount,
-    model_rejected_human_approved_count:
-      payloadNumber(sameBudgetPayload, "model_rejected_human_approved_count")
-      ?? summary.modelRejectedHumanApprovedCount,
-    historical_approved_actual_units:
-      payloadNumber(sameBudgetPayload, "historical_approved_actual_units")
-      ?? summary.humanApprovedActualUnits,
-    historical_approved_actual_avg_units:
-      payloadNumber(sameBudgetPayload, "historical_approved_actual_avg_units")
-      ?? summary.humanApprovedActualAvgUnits,
-    historical_approved_observed_count:
-      payloadNumber(sameBudgetPayload, "historical_approved_observed_count")
-      ?? summary.humanApprovedObservedCount,
-  };
-  const humanApprovedCount = payloadNumber(sameBudget, "historical_approved_count");
-  const humanExpectedUnits = payloadNumber(sameBudget, "historical_expected_sales_units");
-  const modelExpectedUnits = payloadNumber(sameBudget, "model_expected_sales_units");
-  const liftRatio = payloadNumber(sameBudget, "expected_sales_lift_ratio");
-  const modelRejectedHumanApprovedCount = payloadNumber(
-    sameBudget,
-    "model_rejected_human_approved_count",
-  );
-  const impliedThreshold = summary.minExpectedSalesUnitsSameBudget
-    ?? payloadNumber(sameBudget, "min_expected_sales_units_same_budget");
-  const selectedShop = selectedSubject.shopId
-    ? entityStore.shops.find((shop) => shop.id === selectedSubject.shopId)
-    : null;
-  const configuredThreshold = selectedSubject.kind === "shop"
-    ? selectedShop?.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits ?? null
-    : undefined;
-  const savingsRisk = humanApprovedCount && humanApprovedCount > 0
-    ? (modelRejectedHumanApprovedCount ?? 0) / humanApprovedCount
-    : null;
+  const humanApprovedCount = summary.historicalSelectedCount;
+  const humanExpectedUnits = summary.historicalExpectedUnits;
+  const modelExpectedUnits = summary.modelExpectedUnits;
+  const liftRatio = summary.expectedSalesLiftRatio;
+  const sameBudgetConfidenceLevel = affiliateSummaryConfidenceLevel(summary);
   const maxUnits = Math.max(modelExpectedUnits ?? 0, humanExpectedUnits ?? 0, 1);
   const modelBarWidth = `${Math.max(8, Math.round(((modelExpectedUnits ?? 0) / maxUnits) * 100))}%`;
   const humanBarWidth = `${Math.max(8, Math.round(((humanExpectedUnits ?? 0) / maxUnits) * 100))}%`;
@@ -1392,14 +1329,22 @@ function AffiliateProductionModelDashboard({
         count: formatInteger(humanApprovedCount),
       });
 
+  if (!summary.comparisonAvailable) {
+    return (
+      <div className="affiliate-intelligence-empty">
+        <InfoIcon />
+        <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
+        <span>{t("ecommerce.affiliateWorkspace.intelligenceComparisonUnavailable")}</span>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="affiliate-intelligence-production-banner">
-        <span>PRODUCTION</span>
+        <span>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</span>
         <strong>{modelLabel}</strong>
-        <small>UNIFIED · BEST_AVAILABLE</small>
       </div>
-      <AffiliateTrainingDatasetPanel counts={trainingDataset} />
       <div className="affiliate-intelligence-claim-section">
         <div className="affiliate-intelligence-comparison">
           <div className="affiliate-intelligence-card-head">
@@ -1440,19 +1385,10 @@ function AffiliateProductionModelDashboard({
             />
           </div>
 
-          {impliedThreshold != null ? (
-            <AffiliateImplicitThresholdPanel
-              approvalRate={summary.humanApprovalRate}
-              configuredThreshold={configuredThreshold}
-              impliedThreshold={impliedThreshold}
-            />
-          ) : null}
-          {sameBudgetConfidenceLevel === "low" || sameBudgetConfidenceLevel === "medium" ? (
+          {sameBudgetConfidenceLevel ? (
             <AffiliateConfidenceNotice level={sameBudgetConfidenceLevel} />
           ) : null}
         </div>
-
-        <AffiliateBudgetDistributionPanel claim={sameBudget} />
       </div>
       <div className="affiliate-intelligence-footnote">
         <span
@@ -1461,51 +1397,9 @@ function AffiliateProductionModelDashboard({
         >
           <InfoIcon />
         </span>
-        <span>{t("ecommerce.affiliateWorkspace.intelligenceTrainingScope", {
-          approvalRate: formatPercent(summary.humanApprovalRate),
-          filteredRate: formatPercent(savingsRisk),
-          trainedAt: formatDate(summary.trainedAt),
-        })}</span>
+        <span>{t("ecommerce.affiliateWorkspace.intelligenceSellerSafeDisclaimer")}</span>
       </div>
     </>
-  );
-}
-
-function AffiliateTrainingDatasetPanel({
-  counts,
-}: {
-  counts: ReturnType<typeof affiliateTrainingDatasetCounts>;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <section className="affiliate-intelligence-distribution-card affiliate-intelligence-training-data-card">
-      <div className="affiliate-intelligence-distribution-head">
-        <div>
-          <span>{t("ecommerce.affiliateWorkspace.intelligenceTrainingDataTitle")}</span>
-          <strong>{t("ecommerce.affiliateWorkspace.intelligenceTrainingDataHeadline")}</strong>
-        </div>
-        <small>{t("ecommerce.affiliateWorkspace.intelligenceTrainingDataHint")}</small>
-      </div>
-      <div className="affiliate-intelligence-stat-strip">
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceProductionTrainingSamples")}
-          value={formatInteger(counts.productionTrainingRows)}
-        />
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceInitialFitSamples")}
-          value={formatInteger(counts.fitRows)}
-        />
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceHoldoutSamples")}
-          value={formatInteger(counts.holdoutRows)}
-        />
-        <AffiliateTinyStat
-          label={t("ecommerce.affiliateWorkspace.intelligenceCurrentEvaluationSamples")}
-          value={formatInteger(counts.currentEvaluationRows)}
-        />
-      </div>
-    </section>
   );
 }
 
@@ -1517,94 +1411,58 @@ function AffiliateModelStageCard({
   stage: "UNIFIED";
 }) {
   const { t } = useTranslation();
-  const stageRows = availability.filter((entry) => entry.modelStage === stage);
   const stageTitle = t("ecommerce.affiliateWorkspace.bestAvailableModel");
+  const presentation = affiliateModelStagePresentation(
+    availability,
+    "EXPECTED_SALES",
+    stage,
+  );
+  const summary = presentation.evaluationSummary;
+  const comparisonAvailable = Boolean(
+    presentation.ready && summary?.comparisonAvailable,
+  );
   return (
     <section className={`affiliate-model-stage-card affiliate-model-stage-card-${stage.toLowerCase()}`}>
       <header>
         <div>
-          <span className="affiliate-model-stage-eyebrow">
-            BEST_AVAILABLE
-          </span>
+          <span className="affiliate-model-stage-eyebrow">Expected Sales</span>
           <h2>{stageTitle}</h2>
         </div>
-        <span className="affiliate-model-stage-count">
-          {affiliateModelStagePresentation(availability, "EXPECTED_SALES", stage).ready ? "READY" : "UNAVAILABLE"}
-        </span>
       </header>
       <p className="affiliate-model-stage-note">
         {t("ecommerce.affiliateWorkspace.bestAvailableExplanation")}
       </p>
       <div className="affiliate-model-family-list">
-        {(["EXPECTED_SALES"] as const).map((family) => {
-          const presentation = affiliateModelStagePresentation(
-            availability,
-            family,
-            stage,
-          );
-          const { entry, ready, statusKey } = presentation;
-          const summary = presentation.evaluationSummary;
-          const lift =
-            summary?.modelVsHumanExpectedUnitsLiftRatio == null
-              ? null
-              : (summary.modelVsHumanExpectedUnitsLiftRatio - 1) * 100;
-          const holdout = payloadObject(
-            parseAffiliateInsightPayload(summary?.payload),
-            "creator_disjoint_holdout",
-          );
-          const balancedAccuracy = payloadNumber(holdout, "balanced_accuracy");
-          return (
-            <article className="affiliate-model-family-row" key={family}>
-              <div className="affiliate-model-family-heading">
-                <div>
-                  <span>{family === "EXPECTED_SALES" ? "Expected Sales" : "Human Decision"}</span>
-                  <strong>{t(`ecommerce.affiliateWorkspace.${statusKey}`)}</strong>
-                </div>
-                <span className={`affiliate-model-readiness affiliate-model-readiness-${entry?.status?.toLowerCase() ?? "unavailable"}`}>
-                  {entry?.status ?? "UNAVAILABLE"}
-                </span>
+        <article className="affiliate-model-family-row">
+          {comparisonAvailable && summary ? (
+            <div className="affiliate-model-evaluation-strip">
+              <div>
+                <span>{t("ecommerce.affiliateWorkspace.evaluationSamples")}</span>
+                <strong>{formatInteger(summary.historicalApplicationCount)}</strong>
               </div>
-              {entry ? (
-                <div className="affiliate-model-scope-line">
-                  <span>{entry.requestedTenantScope} · {entry.requestedTenantId}</span>
-                  <span aria-hidden="true">→</span>
-                  <span>{entry.effectiveTenantScope ?? "—"} · {entry.effectiveTenantId ?? "—"}</span>
-                </div>
-              ) : null}
-              {ready && summary ? (
-                <div className="affiliate-model-evaluation-strip">
-                  <div>
-                    <span>{t("ecommerce.affiliateWorkspace.evaluationSamples")}</span>
-                    <strong>{formatInteger(summary.rowCount)}</strong>
-                  </div>
-                  <div>
-                    <span>{family === "EXPECTED_SALES"
-                      ? t("ecommerce.affiliateWorkspace.evaluationLift")
-                      : t("ecommerce.affiliateWorkspace.evaluationBalancedAccuracy")}</span>
-                    <strong>{family === "EXPECTED_SALES"
-                      ? formatSignedPercent(lift)
-                      : formatPercent(balancedAccuracy)}</strong>
-                  </div>
-                  <div>
-                    <span>{t("ecommerce.affiliateWorkspace.evaluationTrainedAt")}</span>
-                    <strong>{formatDate(entry?.trainedAt)}</strong>
-                  </div>
-                </div>
-              ) : ready ? (
-                <p className="affiliate-model-no-evaluation">
-                  {t("ecommerce.affiliateWorkspace.bestAvailableNoEvaluation")}
-                </p>
-              ) : (
-                <p className="affiliate-model-unavailable-reason">
-                  {entry?.reason || t("ecommerce.affiliateWorkspace.modelAvailabilityUnavailable")}
-                </p>
-              )}
-              {entry?.modelVersionKey ? (
-                <code title={entry.modelVersionKey}>{entry.modelVersionKey}</code>
-              ) : null}
-            </article>
-          );
-        })}
+              <div>
+                <span>{t("ecommerce.affiliateWorkspace.intelligenceHistoricalSelectedCount")}</span>
+                <strong>{formatInteger(summary.historicalSelectedCount)}</strong>
+              </div>
+              <div>
+                <span>{t("ecommerce.affiliateWorkspace.intelligenceModelSelectedCount")}</span>
+                <strong>{formatInteger(summary.modelSelectedCount)}</strong>
+              </div>
+              <div>
+                <span>{t("ecommerce.affiliateWorkspace.evaluationLift")}</span>
+                <strong>{formatSignedPercent(
+                  summary.expectedSalesLiftRatio == null
+                    ? null
+                    : (summary.expectedSalesLiftRatio - 1) * 100,
+                )}</strong>
+              </div>
+            </div>
+          ) : (
+            <p className="affiliate-model-no-evaluation">
+              {t("ecommerce.affiliateWorkspace.intelligenceComparisonUnavailable")}
+            </p>
+          )}
+        </article>
       </div>
     </section>
   );
@@ -1657,42 +1515,6 @@ function AffiliateInsightScopeRail({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function AffiliateImplicitThresholdPanel({
-  approvalRate,
-  configuredThreshold,
-  impliedThreshold,
-}: {
-  approvalRate?: number | null;
-  configuredThreshold?: number | null;
-  impliedThreshold: number;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className={`affiliate-intelligence-threshold-panel${configuredThreshold === undefined ? " affiliate-intelligence-threshold-panel-single" : ""}`}>
-      <div>
-        <span>{t("ecommerce.affiliateWorkspace.intelligenceImpliedThresholdTitle")}</span>
-        <strong>{formatNumber(impliedThreshold, 1)}</strong>
-        <small>
-          {t("ecommerce.affiliateWorkspace.intelligenceImpliedThresholdHint", {
-            approvalRate: formatPercent(approvalRate),
-          })}
-        </small>
-      </div>
-      {configuredThreshold !== undefined ? (
-        <div>
-          <span>{t("ecommerce.affiliateWorkspace.intelligenceConfiguredThresholdTitle")}</span>
-          <strong>
-            {configuredThreshold == null
-              ? t("ecommerce.affiliateWorkspace.intelligenceConfiguredThresholdUnset")
-              : formatNumber(configuredThreshold, 1)}
-          </strong>
-          <small>{t("ecommerce.affiliateWorkspace.intelligenceConfiguredThresholdHint")}</small>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1773,9 +1595,9 @@ function AffiliateModelSourceSwitch({
   );
 }
 
-function AffiliateConfidenceNotice({ level }: { level: "low" | "medium" }) {
+function AffiliateConfidenceNotice({ level }: { level: "low" | "medium" | "high" }) {
   const { t } = useTranslation();
-  const suffix = level === "low" ? "Low" : "Medium";
+  const suffix = level === "low" ? "Low" : level === "medium" ? "Medium" : "High";
   return (
     <div className={`affiliate-intelligence-confidence-note affiliate-intelligence-confidence-note-${level}`}>
       <InfoIcon />
@@ -1812,196 +1634,6 @@ function AffiliateRaceRow({
   );
 }
 
-function AffiliateBudgetDistributionPanel({
-  claim,
-}: {
-  claim: AffiliateInsightPayload;
-}) {
-  const { t } = useTranslation();
-  return (
-    <AffiliateClaimDistributionPanel
-      title={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsTitle")}
-      headline={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHeadline")}
-      hint={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHint")}
-      stats={[
-        {
-          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApplications"),
-          value: formatInteger(payloadNumber(claim, "historical_sample_count")),
-        },
-        {
-          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApproved"),
-          value: formatInteger(payloadNumber(claim, "historical_approved_count")),
-        },
-        {
-          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalExpectedUnits"),
-          value: formatNumber(payloadNumber(claim, "historical_expected_sales_units"), 1),
-        },
-        {
-          label: t("ecommerce.affiliateWorkspace.intelligenceModelExpectedUnits"),
-          value: formatNumber(payloadNumber(claim, "model_expected_sales_units"), 1),
-        },
-      ]}
-      series={[
-        {
-          key: "rejected",
-          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApprovedExpected"),
-          buckets: payloadHistogram(claim, "historical_approved_expected_units_histogram"),
-          expectedTotal: payloadNumber(claim, "historical_approved_count"),
-        },
-        {
-          key: "selected",
-          label: t("ecommerce.affiliateWorkspace.intelligenceModelSelectedExpected"),
-          buckets: payloadHistogram(claim, "model_selected_expected_units_histogram"),
-          expectedTotal: payloadNumber(claim, "model_selected_count"),
-        },
-      ]}
-    />
-  );
-}
-
-function AffiliateClaimDistributionPanel({
-  title,
-  headline,
-  hint,
-  stats,
-  series,
-}: {
-  title: string;
-  headline: string;
-  hint: string;
-  stats: Array<{ label: string; value: string }>;
-  series: Array<{
-    key: string;
-    label: string;
-    buckets: AffiliateSalesHistogramBucket[];
-    expectedTotal?: number | null;
-  }>;
-}) {
-  const { t } = useTranslation();
-  const labels = mergedHistogramLabels(series.map((item) => item.buckets));
-  const hasData = labels.length > 0 && series.some((item) => item.buckets.some((bucket) => bucket.count > 0));
-  const hasCompleteData = series.every((item) => {
-    const expectedTotal = item.expectedTotal;
-    if (expectedTotal == null) return true;
-    return histogramTotal(item.buckets) === Math.trunc(expectedTotal);
-  });
-
-  return (
-    <div className="affiliate-intelligence-distribution-card">
-      <div className="affiliate-intelligence-distribution-head">
-        <div>
-          <span>{title}</span>
-          <strong>{headline}</strong>
-        </div>
-        <small>{hint}</small>
-      </div>
-
-      <div className="affiliate-intelligence-stat-strip">
-        {stats.map((item) => (
-          <AffiliateTinyStat key={item.label} label={item.label} value={item.value} />
-        ))}
-      </div>
-
-      {hasData && hasCompleteData ? (
-        <AffiliateBucketShareChart labels={labels} series={series} />
-      ) : (
-        <div className="affiliate-intelligence-distribution-empty">
-          {t("ecommerce.affiliateWorkspace.intelligenceDistributionIncomplete")}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AffiliateBucketShareChart({
-  labels,
-  series,
-}: {
-  labels: AffiliateSalesHistogramBucket[];
-  series: Array<{
-    key: string;
-    label: string;
-    buckets: AffiliateSalesHistogramBucket[];
-    expectedTotal?: number | null;
-  }>;
-}) {
-  const seriesShares = series.map((item) => {
-    const total = histogramTotal(item.buckets);
-    const shares = labels.map((label) => {
-      const bucket = item.buckets.find((candidate) => candidate.key === label.key);
-      return total > 0 ? (bucket?.count ?? 0) / total : 0;
-    });
-    return { ...item, total, shares };
-  });
-  const maxShare = Math.max(0.01, ...seriesShares.flatMap((item) => item.shares));
-
-  return (
-    <div className="affiliate-intelligence-bucket-panel">
-      <div className="affiliate-intelligence-bucket-legend">
-        {seriesShares.map((item) => (
-          <span key={item.key} className={`affiliate-bucket-legend-${salesBucketClass(item.key)}`}>
-            <i />
-            <strong>{item.label}</strong>
-            <small>{formatInteger(item.total)}</small>
-          </span>
-        ))}
-      </div>
-      <div
-        className="affiliate-intelligence-bucket-chart"
-        role="img"
-        aria-label={seriesShares.map((item) => item.label).join(" versus ")}
-      >
-        {labels.map((label, index) => (
-          <div key={label.key} className="affiliate-intelligence-bucket-group">
-            <div className="affiliate-intelligence-bucket-bars">
-              {seriesShares.map((item) => {
-                const count = item.buckets.find((bucket) => bucket.key === label.key)?.count ?? 0;
-                const share = item.shares[index] ?? 0;
-                const heightPercent = maxShare > 0 ? Math.max(2, (share / maxShare) * 100) : 2;
-                if (count <= 0) {
-                  return (
-                    <span
-                      key={item.key}
-                      className={`affiliate-bucket-bar affiliate-bucket-bar-empty affiliate-bucket-bar-${salesBucketClass(item.key)}`}
-                      title={`${item.label} · ${label.label}: 0% (0)`}
-                    />
-                  );
-                }
-                return (
-                  <span
-                    key={item.key}
-                    className={`affiliate-bucket-bar affiliate-bucket-bar-${salesBucketClass(item.key)}`}
-                    style={{ height: `${heightPercent}%` }}
-                    title={`${item.label} · ${label.label}: ${formatPercent(share)} (${formatInteger(count)})`}
-                  />
-                );
-              })}
-            </div>
-            <span className="affiliate-intelligence-bucket-label">{label.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function histogramTotal(buckets: AffiliateSalesHistogramBucket[]): number {
-  return buckets.reduce((sum, bucket) => sum + bucket.count, 0);
-}
-
-function salesBucketClass(key: string): string {
-  return key.replace(/\+/g, "_plus").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "unknown";
-}
-
-function AffiliateTinyStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="affiliate-intelligence-tiny-stat">
-      <strong>{value}</strong>
-      <small>{label}</small>
-    </div>
-  );
-}
-
 function AffiliateSparkIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -2011,85 +1643,9 @@ function AffiliateSparkIcon() {
   );
 }
 
-function parseAffiliateInsightPayload(payload: unknown): AffiliateInsightPayload {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return {};
-  return payload as AffiliateInsightPayload;
-}
-
-function payloadNumber(payload: AffiliateInsightPayload, key: string): number | null {
-  const value = payload[key];
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
-export function affiliateTrainingDatasetCounts(summary: {
-  rowCount: number;
-  payload?: unknown;
-}) {
-  const evaluationMethod = payloadObject(
-    parseAffiliateInsightPayload(summary.payload),
-    "evaluation_method",
-  );
-  const fitRows = payloadNumber(evaluationMethod, "fit_rows");
-  const holdoutRows = payloadNumber(evaluationMethod, "holdout_rows");
-  return {
-    productionTrainingRows:
-      fitRows == null || holdoutRows == null ? null : fitRows + holdoutRows,
-    fitRows,
-    holdoutRows,
-    currentEvaluationRows: summary.rowCount,
-  };
-}
-
-function payloadString(payload: AffiliateInsightPayload, key: string): string | null {
-  const value = payload[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function payloadObject(payload: AffiliateInsightPayload, key: string): AffiliateInsightPayload {
-  const value = payload[key];
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as AffiliateInsightPayload;
-}
-
-function affiliateConfidenceLevel(payload: AffiliateInsightPayload): "low" | "medium" | "high" | null {
-  const level = payloadString(payload, "level")?.toLowerCase();
-  return level === "low" || level === "medium" || level === "high" ? level : null;
-}
-
 function affiliateSummaryConfidenceLevel(summary: GQL.AffiliateMlModelEfficiencySummary): "low" | "medium" | "high" | null {
-  const payload = parseAffiliateInsightPayload(summary.payload);
-  return affiliateConfidenceLevel(payloadObject(payload, "same_sample_budget_confidence"));
-}
-
-function payloadHistogram(payload: AffiliateInsightPayload, key: string): AffiliateSalesHistogramBucket[] {
-  const value = payload[key];
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const source = item as Record<string, unknown>;
-    const bucketKey = typeof source.key === "string" ? source.key : null;
-    const label = typeof source.label === "string" ? source.label : bucketKey;
-    const count = payloadNumber(source, "count");
-    if (!bucketKey || !label || count == null) return [];
-    return [{ key: bucketKey, label, count }];
-  });
-}
-
-function mergedHistogramLabels(bucketLists: AffiliateSalesHistogramBucket[][]): AffiliateSalesHistogramBucket[] {
-  const labels = new Map<string, AffiliateSalesHistogramBucket>();
-  for (const buckets of bucketLists) {
-    for (const bucket of buckets) {
-      if (!labels.has(bucket.key)) {
-        labels.set(bucket.key, { key: bucket.key, label: bucket.label, count: 0 });
-      }
-    }
-  }
-  return Array.from(labels.values());
+  const level = summary.confidenceLevel?.toLowerCase();
+  return level === "low" || level === "medium" || level === "high" ? level : null;
 }
 
 function formatInteger(value: number | null | undefined): string {
@@ -4703,9 +4259,6 @@ function ProposalPredictionComparison({
   const expectedSalesSelection = output.expectedSalesSelection ?? output;
   const humanDecisionSelection = output.humanDecisionSelection ?? null;
   const availability = predictionFamilyAvailability(output);
-  const isExpectedSalesBootstrap =
-    availability.expectedSalesReady &&
-    isBootstrapModelSelection(expectedSalesSelection);
   const isHumanDecisionBootstrap =
     availability.humanDecisionReady &&
     isBootstrapModelSelection(humanDecisionSelection);
@@ -4729,22 +4282,12 @@ function ProposalPredictionComparison({
     <section className="affiliate-prediction-comparison" aria-label={t("ecommerce.affiliateWorkspace.predictionComparison.title")}>
       <div className="affiliate-prediction-comparison-head">
         <span>{t("ecommerce.affiliateWorkspace.predictionComparison.title")}</span>
-        {isExpectedSalesBootstrap ? (
-          <span className="badge" data-model-family="EXPECTED_SALES">
-            {t("ecommerce.affiliateWorkspace.predictionComparison.bootstrapBadge")}
-          </span>
-        ) : null}
         {isHumanDecisionBootstrap ? (
           <span className="badge" data-model-family="HUMAN_DECISION">
             {t("ecommerce.affiliateWorkspace.predictionComparison.bootstrapBadge")}
           </span>
         ) : null}
       </div>
-      {isExpectedSalesBootstrap ? (
-        <div className="td-meta" data-model-family="EXPECTED_SALES">
-          {t("ecommerce.affiliateWorkspace.predictionComparison.bootstrapExplanation")}
-        </div>
-      ) : null}
       {isHumanDecisionBootstrap ? (
         <div className="td-meta" data-model-family="HUMAN_DECISION">
           {t("ecommerce.affiliateWorkspace.predictionComparison.humanBootstrapExplanation")}
@@ -4779,11 +4322,7 @@ function ProposalPredictionComparison({
         </div>
         <div className="affiliate-prediction-metric">
           <span>
-            {t(
-              isExpectedSalesBootstrap
-                ? "ecommerce.affiliateWorkspace.predictionComparison.bootstrapEstimate"
-                : "ecommerce.affiliateWorkspace.predictionComparison.expectedSales",
-            )}
+            {t("ecommerce.affiliateWorkspace.predictionComparison.expectedSales")}
           </span>
           <strong>
             {availability.expectedSalesReady &&
