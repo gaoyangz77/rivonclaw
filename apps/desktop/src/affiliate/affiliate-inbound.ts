@@ -634,7 +634,7 @@ export class AffiliateInbound {
     shop: AffiliateShopContext,
     workItem: AffiliateWorkItemPayload,
   ): AffiliateContext | null {
-    const collaboration = workItem.collaboration;
+    const collaboration = workItem.affiliateCollaboration;
     const relationship = workItem.creatorRelationship ?? workItem.context?.creatorRelation ?? null;
     const creatorProfile = workItem.context?.creatorProfile ?? null;
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
@@ -646,12 +646,12 @@ export class AffiliateInbound {
       userId: this.resolveWorkItemUserId(shop, workItem),
       shopId: workItem.triggerShopId,
       platformShopId: workItem.triggerPlatformShopId,
-      creatorImUserId: creatorProfile?.creatorImId ?? collaboration?.creatorImId ?? undefined,
-      creatorId: creatorProfile?.id ?? collaboration?.creatorId ?? relationship?.creatorId ?? undefined,
+      creatorImUserId: creatorProfile?.creatorImId ?? undefined,
+      creatorId: creatorProfile?.id ?? relationship?.creatorId ?? undefined,
       creatorOpenId: creatorProfile?.creatorOpenId ?? undefined,
       creatorRelationshipId,
-      productId: collaboration?.productId ?? undefined,
-      collaborationRecordId: workItem.collaborationRecordId ?? undefined,
+      productId: workItem.productId ?? collaboration?.productIds?.[0] ?? undefined,
+      affiliateCollaborationId: workItem.affiliateCollaborationId ?? undefined,
     };
 
     const requiredAction = workItem.requiredAction;

@@ -166,7 +166,7 @@ type CampaignCreatorRelationship = Pick<
   | "shopStates"
   | "lastInboundAt"
   | "lastOutboundAt"
-  | "activeCollaborationRecordIds"
+  | "activeAffiliateCollaborationIds"
   | "blocked"
   | "workSummary"
 >;
@@ -2384,7 +2384,7 @@ function CampaignCreatorStateRow({
           {relationship
             ? t("ecommerce.affiliateCampaign.relationshipSummary", {
                 shops: relationship.shopStates.length,
-                collaborations: relationship.activeCollaborationRecordIds.length,
+                collaborations: relationship.activeAffiliateCollaborationIds.length,
               })
             : t("ecommerce.affiliateCampaign.relationshipAfterOutreach")}
         </small>

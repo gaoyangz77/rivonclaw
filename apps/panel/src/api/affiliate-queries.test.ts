@@ -8,7 +8,7 @@ import {
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
-  AFFILIATE_COLLABORATION_RECORDS_QUERY,
+  AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
@@ -32,7 +32,7 @@ describe("affiliate workspace GraphQL contracts", () => {
       workItems: AFFILIATE_WORK_ITEMS_QUERY,
       proposals: AFFILIATE_ACTION_PROPOSALS_QUERY,
       contacts: AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
-      collaborations: AFFILIATE_COLLABORATION_RECORDS_QUERY,
+      collaborations: AFFILIATE_COLLABORATIONS_QUERY,
       creators: AFFILIATE_CREATORS_QUERY,
       creatorProfile: AFFILIATE_CREATOR_PROFILE_QUERY,
       campaigns: AFFILIATE_CAMPAIGNS_QUERY,
@@ -57,7 +57,7 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("affiliateCreators(input: $input)");
     expect(query).toContain("creatorRelation");
     expect(query).toContain("creatorProfile");
-    expect(query).toContain("latestCollaborationRecord");
+    expect(query).toContain("latestAffiliateCollaboration");
     expect(query).toContain("latestPendingProposal");
     expect(query).toContain("totalCount");
     expect(query).toContain("creatorPerformance");
@@ -80,7 +80,7 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorProfile");
     expect(query).toContain("creatorPerformance");
     expect(query).toContain("creatorRelationship");
-    expect(query).toContain("activeCollaborationRecordIds");
+    expect(query).toContain("activeAffiliateCollaborationIds");
     expect(query).toContain("productId");
     expect(query).toContain("eligibilityCategory");
     expect(query).toContain("eligibilityReasonCode");
@@ -94,20 +94,21 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorRelationshipId");
     expect(query).toContain("creatorProfile");
     expect(query).toContain("sourceWorkBoundary");
-    expect(query).toContain("collaborationRecord");
+    expect(query).toContain("affiliateCollaboration");
+    expect(query).toContain("sampleApplicationRecord");
     expect(query).toContain("sampleReviewIntent");
     expect(query).toContain("steps");
   });
 
-  it("loads collaboration records directly for the collaboration history page", () => {
-    const query = queryText(AFFILIATE_COLLABORATION_RECORDS_QUERY);
+  it("loads canonical platform collaborations directly for the collaboration history page", () => {
+    const query = queryText(AFFILIATE_COLLABORATIONS_QUERY);
 
-    expect(query).toContain("collaborationRecords(input: $input)");
-    expect(query).toContain("creatorRelationshipId");
-    expect(query).toContain("creatorProfile");
-    expect(query).toContain("sampleApplicationRecords");
-    expect(query).toContain("order");
-    expect(query).toContain("trackingNumber");
+    expect(query).toContain("affiliateCollaborations(input: $input)");
+    expect(query).toContain("creatorIds");
+    expect(query).toContain("creatorOpenIds");
+    expect(query).toContain("productIds");
+    expect(query).toContain("platformCollaborationId");
+    expect(query).not.toContain("collaborationRecords");
   });
 
   it("retains work items as an internal relationship dispatch contract", () => {

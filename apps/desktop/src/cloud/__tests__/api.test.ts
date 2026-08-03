@@ -246,7 +246,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           handledSignalAt: "2026-06-14T07:17:07.966Z",
           decision: "REQUEST_ACTION",
           operatorSummary: "Approve the sample.",
@@ -295,7 +295,7 @@ describe("cloud-graphql handler", () => {
       variables: {
         input: {
           shopId: "shop-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reply to creator.",
           action: {
@@ -367,7 +367,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Follow up.",
           baseCheckpointId: "agent-supplied-wrong-base",
@@ -507,7 +507,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reject the sample.",
           action: {
@@ -571,7 +571,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Decline the sample.",
           action: {
@@ -632,7 +632,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reject the sample.",
           action: {
@@ -701,7 +701,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reject the sample and notify the creator.",
           action: {
@@ -952,7 +952,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Review the sample and send a reply.",
           actions: [
@@ -1015,7 +1015,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Review the sample and send a reply.",
           actions: [
@@ -1078,7 +1078,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Review the sample and send a reply.",
           actions: [
@@ -1142,7 +1142,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Approve or reject the sample request and send a reply.",
           actions: [
@@ -1204,7 +1204,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reply to creator.",
           action: {
@@ -1280,7 +1280,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reply to creator.",
           action: {
@@ -1344,7 +1344,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           action: {
             type: "send_message",
@@ -1396,7 +1396,7 @@ describe("cloud-graphql handler", () => {
         input: {
           shopId: "shop-1",
           creatorRelationshipId: "relationship-1",
-          collaborationRecordId: "collab-1",
+          affiliateCollaborationId: "collab-1",
           decision: "REQUEST_ACTION",
           operatorSummary: "Reply to creator.",
           nextSellerActionAt: ",",

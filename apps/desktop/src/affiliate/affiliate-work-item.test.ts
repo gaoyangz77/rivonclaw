@@ -233,6 +233,20 @@ function createSampleReviewWorkItem(
     id: "collab-001",
     userId: "user-001",
     shopId: "shop-001",
+    campaignId: null,
+    creatorIds: ["creator-001"],
+    creatorOpenIds: ["creator-open-001"],
+    productIds: ["product-001"],
+    type: GQL.AffiliateCollaborationType.Target,
+    status: GQL.AffiliateCollaborationStatus.Active,
+    platformCollaborationId: "platform-collaboration-001",
+    commissionRate: null,
+    effectiveTime: "2026-05-11T00:00:00.000Z",
+    platformUpdatedAt: "2026-05-11T00:01:00.000Z",
+    firstObservedAt: "2026-05-11T00:00:00.000Z",
+    lastObservedAt: "2026-05-11T00:01:00.000Z",
+    lastSyncSource: GQL.AffiliateProjectionSyncSource.AirflowReconcile,
+    projectionRevision: 1,
     creatorId: "creator-001",
     creatorImId: "creator-im-001",
     productId: "product-001",
@@ -240,12 +254,11 @@ function createSampleReviewWorkItem(
     sampleApplicationRecordIds: ["sample-record-001"],
     platformSampleApplicationStatus: "PENDING",
     lifecycleStage: "SAMPLE_PENDING",
-    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
-    requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
-    processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+    processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
+    requiredAction: GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+    processReasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
     lastCreatorMessageId: null,
     lastCreatorMessageAt: null,
-    lastSignalAt: null,
     workHandledUntil: null,
     nextSellerActionAt: null,
     startedAt: "2026-05-11T00:00:00.000Z",
@@ -255,9 +268,8 @@ function createSampleReviewWorkItem(
     stateUpdatedAt: "2026-05-11T00:01:00.000Z",
     affiliateCollaborationId: null,
     collaborationType: null,
-    platformCollaborationId: null,
     predictionSnapshots: [],
-  } as unknown as GQL.AffiliateCollaborationRecord;
+  } as unknown as GQL.AffiliateCollaboration;
 
   const sampleApplicationRecord: GQL.SampleApplicationRecord = {
     id: "sample-record-001",
@@ -265,6 +277,7 @@ function createSampleReviewWorkItem(
     shopId: "shop-001",
     platformApplicationId: "platform-sample-001",
     creatorId: "creator-001",
+    creatorRelationshipId: "relationship-001",
     productId: "product-001",
     sampleWorkStatus: GQL.SampleWorkStatus.RequestPendingReview,
     firstObservedAt: "2026-05-11T00:00:00.000Z",
@@ -293,7 +306,7 @@ function createSampleReviewWorkItem(
     routingPlatformShopIds: ["platform-shop-001"],
     subjectType: GQL.AffiliateWorkItemSubjectType.CreatorRelationship,
     creatorRelationshipId: "relationship-001",
-    collaborationRecordId: "collab-001",
+    affiliateCollaborationId: "collab-001",
     workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
     agentWorkingAgendaItems: [],
@@ -306,10 +319,10 @@ function createSampleReviewWorkItem(
     businessDeveloperConfigRevision: null,
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
-    processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+    processReasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
     recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
     versionAt: "2026-05-11T00:01:00.000Z",
-    collaboration,
+    affiliateCollaboration: collaboration,
     creatorRelationship: {
       id: "relationship-001",
       userId: "user-001",
@@ -322,19 +335,20 @@ function createSampleReviewWorkItem(
       lastBlockedAt: null,
       lastPlatformSyncedAt: null,
       stateUpdatedAt: "2026-05-11T00:01:00.000Z",
-      activeCollaborationRecordIds: ["collab-001"],
+      activeAffiliateCollaborationIds: ["collab-001"],
+      activeSampleApplicationRecordIds: ["sample-record-001"],
       agendaItems: [
         {
-          key: "collaboration:collab-001:COMPLETE_COLLABORATION_TASK",
+          key: "affiliateCollaboration:collab-001:COMPLETE_COLLABORATION_TASK",
           owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
-          sourceType: GQL.AffiliateRelationshipAgendaSourceType.Collaboration,
+          sourceType: GQL.AffiliateRelationshipAgendaSourceType.PlatformCollaboration,
           workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
           requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
           shopId: "shop-001",
-          collaborationRecordId: "collab-001",
+          affiliateCollaborationId: "collab-001",
           sampleApplicationRecordId: "sample-record-001",
           proposalId: null,
-          reasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+          reasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
           nextActionAt: null,
           boundaryEventCursor: 1,
           updatedAt: "2026-05-11T00:01:00.000Z",
@@ -383,16 +397,16 @@ function createCreatorReplyWorkItem(
   overrides: Partial<GQL.AffiliateWorkItem> = {},
 ): GQL.AffiliateWorkItem {
   const base = createSampleReviewWorkItem();
-  const collaboration: GQL.AffiliateCollaborationRecord = {
-    ...(base.collaboration as GQL.AffiliateCollaborationRecord),
+  const affiliateCollaboration: GQL.AffiliateCollaboration = {
+    ...(base.affiliateCollaboration as GQL.AffiliateCollaboration),
     sampleApplicationRecordId: null,
     lifecycleStage: "CONVERSATION",
-    processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
-    requiredAction: GQL.AffiliateCollaborationRequiredAction.RespondToCreator,
-    processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
+    processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
+    requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
+    processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
     lastCreatorMessageId: null,
     lastCreatorMessageAt: null,
-  } as unknown as GQL.AffiliateCollaborationRecord;
+  } as unknown as GQL.AffiliateCollaboration;
 
   return {
     ...base,
@@ -400,14 +414,14 @@ function createCreatorReplyWorkItem(
     workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyOnly,
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
     requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
-    processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
+    processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
     recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
-    collaboration,
+    affiliateCollaboration,
     creatorRelationship: {
       ...base.creatorRelationship,
       processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
       requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
-      processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
+      processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
       agendaItems: [
         {
           key: "relationship:relationship-001:REPLY_TO_CREATOR",
@@ -416,10 +430,10 @@ function createCreatorReplyWorkItem(
           workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
           requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
           shopId: "shop-001",
-          collaborationRecordId: null,
+          affiliateCollaborationId: null,
           sampleApplicationRecordId: null,
           proposalId: null,
-          reasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply],
+          reasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
           nextActionAt: null,
           boundaryEventCursor: 1,
           updatedAt: "2026-05-11T00:01:00.000Z",
@@ -429,8 +443,8 @@ function createCreatorReplyWorkItem(
     sampleApplicationRecord: null,
     context: {
       ...base.context,
-      activeCollaborations: [collaboration],
-      focusCollaboration: collaboration,
+      activeCollaborations: [affiliateCollaboration],
+      focusCollaboration: affiliateCollaboration,
       primarySampleApplication: null,
       relatedSampleApplications: [],
       sampleApplicationLookup: {
@@ -488,7 +502,7 @@ function withCheckpointContext(
           events: [],
           workspace: {
             sampleApplicationRecords: [],
-            collaborationRecords: [],
+            affiliateCollaborations: [],
             actionProposals: [],
             approvalPolicies: [],
             creatorRelations: [],
@@ -496,7 +510,6 @@ function withCheckpointContext(
             creatorProfiles: options.creatorProfiles ?? [],
             campaigns: [],
             campaignProducts: [],
-            affiliateCollaborations: [],
             searchRuns: [],
             candidates: [],
           },
@@ -619,7 +632,7 @@ describe("affiliate work item dispatch", () => {
             return {
               affiliateWorkspace: {
                 sampleApplicationRecords: [],
-                collaborationRecords: [],
+                affiliateCollaborations: [],
                 actionProposals: [],
                 approvalPolicies: [],
                 creatorRelations: [],
@@ -627,7 +640,6 @@ describe("affiliate work item dispatch", () => {
                 creatorProfiles: [],
                 campaigns: [],
                 campaignProducts: [],
-                affiliateCollaborations: [],
                 searchRuns: [],
                 candidates: [],
               },
@@ -887,7 +899,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
         sampleApplicationRecordId: "sample-record-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         creatorOpenId: "creator-open-001",
         productId: "product-001",
@@ -1065,7 +1077,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
         sampleApplicationRecordId: "sample-record-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -1149,7 +1161,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
         sampleApplicationRecordId: "sample-record-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -1203,7 +1215,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "platform-sample-001",
         sampleApplicationRecordId: "sample-record-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -1690,9 +1702,9 @@ describe("affiliate work item dispatch", () => {
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem({
       id: "collab-expected-001",
-      collaborationRecordId: "collab-expected-001",
-      collaboration: {
-        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
+      affiliateCollaborationId: "collab-expected-001",
+      affiliateCollaboration: {
+        ...(createCreatorReplyWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
         id: "collab-expected-001",
       },
     });
@@ -1711,7 +1723,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
-        collaborationRecordId: "collab-expected-001",
+        affiliateCollaborationId: "collab-expected-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -1769,7 +1781,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
         creatorRelationshipId: "relationship-operator-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -1804,40 +1816,17 @@ describe("affiliate work item dispatch", () => {
     ).toBe(false);
   });
 
-  it("passes collaboration prediction snapshot cache ids into the sample review agent run", async () => {
+  it("does not read prediction evidence from canonical Collaboration state", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createSampleReviewWorkItem({
       id: "collab-with-snapshot",
-      collaborationRecordId: "collab-with-snapshot",
-      collaboration: {
-        ...(createSampleReviewWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
+      affiliateCollaborationId: "collab-with-snapshot",
+      affiliateCollaboration: {
+        ...(createSampleReviewWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
         id: "collab-with-snapshot",
-        lastSignalAt: "2026-05-11T00:01:00.000Z",
-        predictionSnapshots: [
-          {
-            sourceCacheId: "prediction-cache-from-snapshot",
-            predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
-            captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
-            scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
-            subject: {
-              sampleApplicationRecordId: "sample-record-001",
-              platformApplicationId: "platform-sample-001",
-              creatorId: "creator-001",
-              productId: "product-001",
-            },
-            status: GQL.AffiliatePredictionStatus.Ok,
-            output: { expectedSalesUnits: 0 },
-            model: {},
-            diagnostics: {},
-            predictedAt: "2026-05-11T00:00:00.000Z",
-            capturedAt: "2026-05-11T00:00:01.000Z",
-            resolvedContext: null,
-            message: null,
-          },
-        ],
       },
     });
     const session = new AffiliateSession(
@@ -1857,7 +1846,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
         sampleApplicationRecordId: "sample-record-001",
-        collaborationRecordId: "collab-with-snapshot",
+        affiliateCollaborationId: "collab-with-snapshot",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -1890,13 +1879,12 @@ describe("affiliate work item dispatch", () => {
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createSampleReviewWorkItem({
       id: "collab-sample-agent-001",
-      collaborationRecordId: "collab-sample-agent-001",
+      affiliateCollaborationId: "collab-sample-agent-001",
       agentDispatchRecommended: true,
       staffReviewRequired: false,
-      collaboration: {
-        ...(createSampleReviewWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
+      affiliateCollaboration: {
+        ...(createSampleReviewWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
         id: "collab-sample-agent-001",
-        lastSignalAt: "2026-05-11T00:01:00.000Z",
       },
     });
     const session = new AffiliateSession(
@@ -1917,7 +1905,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
         sampleApplicationRecordId: "sample-record-001",
-        collaborationRecordId: "collab-sample-agent-001",
+        affiliateCollaborationId: "collab-sample-agent-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -1950,7 +1938,7 @@ describe("affiliate work item dispatch", () => {
     const workItem = createSampleReviewWorkItem({
       workKind: GQL.AffiliateWorkKind.ManualReview,
       requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
-      processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+      processReasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
       agentDispatchRecommended: true,
       staffReviewRequired: false,
     });
@@ -1981,7 +1969,7 @@ describe("affiliate work item dispatch", () => {
 
     expect(request?.message).toContain("[Agent Working Agenda]");
     expect(request?.message).toContain("Creator Relationship ID: relationship-001");
-    expect(request?.message).toContain("Collaboration Record ID: collab-001");
+    expect(request?.message).toContain("Platform Collaboration ID: collab-001");
     expect(request?.message).not.toContain("Lifecycle Stage");
     expect(request?.message).not.toContain("Backend Work Context");
   });
@@ -1991,9 +1979,9 @@ describe("affiliate work item dispatch", () => {
     const firstAgenda = (base.creatorRelationship?.agendaItems ?? [])[0]!;
     const secondAgenda = {
       ...firstAgenda,
-      key: "collaboration:collab-002:COMPLETE_COLLABORATION_TASK",
+      key: "affiliateCollaboration:collab-002:COMPLETE_COLLABORATION_TASK",
       shopId: "shop-002",
-      collaborationRecordId: "collab-002",
+      affiliateCollaborationId: "collab-002",
       sampleApplicationRecordId: "sample-record-002",
     };
     const request = buildAffiliateAgentRunRequest({
@@ -2129,25 +2117,25 @@ describe("affiliate work item dispatch", () => {
   it("does not inject ambiguous collaboration candidates beyond the agenda", () => {
     const base = createCreatorReplyWorkItem();
     const firstCollaboration = {
-      ...(base.collaboration as GQL.AffiliateCollaborationRecord),
+      ...(base.affiliateCollaboration as GQL.AffiliateCollaboration),
       id: "collab-ambiguous-001",
       productId: "product-ambiguous-001",
       sampleApplicationRecordId: "sample-ambiguous-001",
-    } as GQL.AffiliateCollaborationRecord;
+    } as GQL.AffiliateCollaboration;
     const secondCollaboration = {
-      ...(base.collaboration as GQL.AffiliateCollaborationRecord),
+      ...(base.affiliateCollaboration as GQL.AffiliateCollaboration),
       id: "collab-ambiguous-002",
       productId: "product-ambiguous-002",
       sampleApplicationRecordId: null,
-    } as GQL.AffiliateCollaborationRecord;
+    } as GQL.AffiliateCollaboration;
     const request = buildAffiliateAgentRunRequest({
       workItem: createCreatorReplyWorkItem({
-        collaborationRecordId: null,
-        collaboration: null,
+        affiliateCollaborationId: null,
+        affiliateCollaboration: null,
         sampleApplicationRecord: null,
         processReasons: [
-          GQL.AffiliateCollaborationRecordProcessReason.CollaborationContextAmbiguous,
-          GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply,
+          GQL.AffiliateWorkProcessReason.CollaborationContextAmbiguous,
+          GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply,
         ],
         context: {
           ...base.context,
@@ -2192,7 +2180,7 @@ describe("affiliate work item dispatch", () => {
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-record-001",
         sampleApplicationRecordId: "sample-record-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -2235,7 +2223,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -2267,7 +2255,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -2309,13 +2297,13 @@ describe("affiliate work item dispatch", () => {
           affiliateWorkItems: [
             {
               id: "work-collab-001",
-              collaborationRecordId: "collab-001",
+              affiliateCollaborationId: "collab-001",
               versionAt: "2026-05-11T00:01:00.000Z",
               creatorRelationship: {
                 id: "relationship-001",
                 lastAgentHandledAt: "2026-05-11T00:01:00.000Z",
               },
-              collaboration: {
+              affiliateCollaboration: {
                 id: "collab-001",
                 workHandledUntil: "2026-05-11T00:01:00.000Z",
               },
@@ -2327,9 +2315,8 @@ describe("affiliate work item dispatch", () => {
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem({
-      collaboration: {
-        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
-        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      affiliateCollaboration: {
+        ...(createCreatorReplyWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
       },
     });
     const session = new AffiliateSession(
@@ -2347,7 +2334,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -2390,14 +2377,14 @@ describe("affiliate work item dispatch", () => {
           affiliateWorkItems: [
             {
               id: "work-collab-001",
-              collaborationRecordId: "collab-001",
+              affiliateCollaborationId: "collab-001",
               versionAt: "2026-05-11T00:01:00.000Z",
               agentDispatchRecommended: false,
               creatorRelationship: {
                 id: "relationship-001",
                 lastAgentHandledAt: null,
               },
-              collaboration: {
+              affiliateCollaboration: {
                 id: "collab-001",
                 workHandledUntil: null,
               },
@@ -2410,9 +2397,8 @@ describe("affiliate work item dispatch", () => {
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem({
       versionAt: "2026-05-11T00:01:00.000Z",
-      collaboration: {
-        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
-        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      affiliateCollaboration: {
+        ...(createCreatorReplyWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
       },
     });
     const session = new AffiliateSession(
@@ -2430,7 +2416,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -2473,13 +2459,13 @@ describe("affiliate work item dispatch", () => {
           affiliateWorkItems: [
             {
               id: "work-collab-001",
-              collaborationRecordId: "collab-001",
+              affiliateCollaborationId: "collab-001",
               versionAt: "2026-05-11T00:01:00.000Z",
               creatorRelationship: {
                 id: "relationship-001",
                 lastAgentHandledAt: null,
               },
-              collaboration: {
+              affiliateCollaboration: {
                 id: "collab-001",
                 workHandledUntil: "2026-05-11T00:01:00.000Z",
               },
@@ -2501,9 +2487,8 @@ describe("affiliate work item dispatch", () => {
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const workItem = createCreatorReplyWorkItem({
       versionAt: "2026-05-11T00:01:00.000Z",
-      collaboration: {
-        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
-        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      affiliateCollaboration: {
+        ...(createCreatorReplyWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
       },
     });
     const session = new AffiliateSession(
@@ -2521,7 +2506,7 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
-        collaborationRecordId: "collab-001",
+        affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         productId: "product-001",
       },
@@ -2639,17 +2624,16 @@ describe("affiliate work item dispatch", () => {
     const workItem = createCreatorReplyWorkItem({
       workKind: GQL.AffiliateWorkKind.CreatorFollowUp,
       workBundleKind: GQL.AffiliateWorkBundleKind.CreatorFollowUp,
-      requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
-      processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue],
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+      processReasons: [GQL.AffiliateWorkProcessReason.CreatorActionFollowUpDue],
       versionAt: "2026-05-13T00:01:00.000Z",
-      collaboration: {
-        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
-        requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
-        processReasons: [GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue],
-        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      affiliateCollaboration: {
+        ...(createCreatorReplyWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+        processReasons: [GQL.AffiliateWorkProcessReason.CreatorActionFollowUpDue],
         workHandledUntil: "2026-05-11T00:01:00.000Z",
         nextSellerActionAt: "2026-05-13T00:01:00.000Z",
-      } as GQL.AffiliateCollaborationRecord,
+      } as GQL.AffiliateCollaboration,
       recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
@@ -2669,17 +2653,16 @@ describe("affiliate work item dispatch", () => {
     const workItem = createCreatorReplyWorkItem({
       workKind: GQL.AffiliateWorkKind.ContentFollowUp,
       workBundleKind: GQL.AffiliateWorkBundleKind.ContentFollowUp,
-      requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
-      processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SampleContentFollowUpDue],
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+      processReasons: [GQL.AffiliateWorkProcessReason.SampleContentFollowUpDue],
       versionAt: "2026-05-14T00:01:00.000Z",
-      collaboration: {
-        ...(createCreatorReplyWorkItem().collaboration as GQL.AffiliateCollaborationRecord),
-        requiredAction: GQL.AffiliateCollaborationRequiredAction.FollowUpCreator,
-        processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SampleContentFollowUpDue],
-        lastSignalAt: "2026-05-11T00:01:00.000Z",
+      affiliateCollaboration: {
+        ...(createCreatorReplyWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+        processReasons: [GQL.AffiliateWorkProcessReason.SampleContentFollowUpDue],
         workHandledUntil: "2026-05-11T00:01:00.000Z",
         nextSellerActionAt: "2026-05-14T00:01:00.000Z",
-      } as GQL.AffiliateCollaborationRecord,
+      } as GQL.AffiliateCollaboration,
       recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
@@ -2700,8 +2683,8 @@ describe("affiliate work item dispatch", () => {
     const workItem = createCreatorReplyWorkItem({
       workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview,
       processReasons: [
-        GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply,
-        GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
+        GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply,
+        GQL.AffiliateWorkProcessReason.SamplePendingReview,
       ],
       recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
       sampleApplicationRecord: createSampleReviewWorkItem().sampleApplicationRecord,

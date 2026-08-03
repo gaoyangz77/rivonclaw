@@ -28,7 +28,7 @@ export async function handleAffiliateWorkItemChanged(
 ): Promise<void> {
   log.info(
     `Affiliate work item received: kind=${workItem.workKind} routes=${(workItem.routingPlatformShopIds ?? []).join(",") || workItem.triggerPlatformShopId} ` +
-    `collaboration=${workItem.collaborationRecordId} status=${workItem.processingStatus}`,
+    `collaboration=${workItem.affiliateCollaborationId} status=${workItem.processingStatus}`,
   );
 
   const shop = findWorkItemShopForDevice(workItem, deviceId);
@@ -63,12 +63,6 @@ function uniqueShopKeys(values: Array<string | null | undefined>): string[] {
 
 function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): void {
   const workspace = rootStore.affiliateWorkspace;
-  if (isCompleteCollaborationRecord(workItem.collaboration)) {
-    workspace.upsertAffiliateCollaborationRecord(workItem.collaboration as any);
-  } else if (workItem.collaboration?.id) {
-    log.warn(`Skipping incomplete affiliate collaboration snapshot from work item: id=${workItem.collaboration.id}`);
-  }
-
   workspace.upsertAffiliateCreatorRelationship(
     (workItem.creatorRelationship ?? workItem.context?.creatorRelation) as any,
   );
@@ -77,25 +71,4 @@ function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): vo
   if (productSummary) {
     workspace.upsertAffiliateProductSummary(productSummary);
   }
-}
-
-function hasString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
-}
-
-function isCompleteCollaborationRecord(record: AffiliateWorkItemPayload["collaboration"]): boolean {
-  return Boolean(
-    record
-    && hasString(record.id)
-    && hasString((record as any).userId)
-    && hasString((record as any).shopId)
-    && hasString(record.creatorId)
-    && hasString(record.lifecycleStage)
-    && hasString(record.processingStatus)
-    && hasString(record.requiredAction)
-    && hasString((record as any).stateUpdatedAt)
-    && hasString((record as any).startedAt)
-    && hasString((record as any).createdAt)
-    && hasString(record.updatedAt),
-  );
 }

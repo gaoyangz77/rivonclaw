@@ -169,7 +169,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       routingPlatformShopIds
       subjectType
       creatorRelationshipId
-      collaborationRecordId
+      affiliateCollaborationId
       relationshipOperationalConfigRevision
       businessDeveloperIdSnapshot
       businessDeveloperConfigRevision
@@ -184,7 +184,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         workKind
         requiredAction
         shopId
-        collaborationRecordId
+        affiliateCollaborationId
         sampleApplicationRecordId
         proposalId
         reasons
@@ -269,7 +269,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         activeRunBaseCheckpointId
         activeRunBaseEventCursor
         stateUpdatedAt
-        activeCollaborationRecordIds
+        activeAffiliateCollaborationIds
         shopStates {
           shopId
           tagIds
@@ -278,46 +278,26 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           lastQualifiedAt
         }
       }
-      collaboration {
+      affiliateCollaboration {
         id
         userId
         shopId
-        lastSignalAt
-        workHandledUntil
-        nextSellerActionAt
-        processingStatus
-        requiredAction
-        processReasons
-        creatorId
-        creatorOpenId
-        productId
-        sampleApplicationRecordId
-        sampleApplicationRecordIds
-        platformSampleApplicationStatus
-        platformSampleApplicationObservedAt
-        affiliateCollaborationId
-        collaborationType
+        campaignId
+        type
         platformCollaborationId
-        creatorImId
-        lifecycleStage
-        lastCreatorMessageId
-        lastCreatorMessageAt
-        stateUpdatedAt
-        startedAt
-        endedAt
+        status
+        creatorIds
+        creatorOpenIds
+        productIds
+        commissionRate
+        effectiveTime
+        platformUpdatedAt
+        firstObservedAt
+        lastObservedAt
+        lastSyncSource
+        projectionRevision
         createdAt
         updatedAt
-        predictionSnapshots {
-          sourceCacheId
-          predictionType
-          scenario
-          status
-          output
-          model
-          diagnostics
-          predictedAt
-          capturedAt
-        }
       }
       context {
         creatorProfile {
@@ -349,40 +329,41 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         }
         activeCollaborations {
           id
-          creatorId
-          creatorOpenId
-          productId
-          sampleApplicationRecordId
-          affiliateCollaborationId
-          collaborationType
+          userId
+          shopId
+          type
           platformCollaborationId
-          lifecycleStage
-          processingStatus
-          requiredAction
-          processReasons
-          lastSignalAt
-          workHandledUntil
+          status
+          creatorIds
+          creatorOpenIds
+          productIds
+          lastObservedAt
           updatedAt
         }
         focusCollaboration {
           id
-          creatorId
-          productId
-          lifecycleStage
-          processingStatus
+          userId
+          shopId
+          type
+          platformCollaborationId
+          status
+          creatorIds
+          creatorOpenIds
+          productIds
+          lastObservedAt
           updatedAt
         }
         ambiguousCollaborationCandidates {
           id
-          creatorId
-          creatorOpenId
-          productId
-          sampleApplicationRecordId
-          affiliateCollaborationId
-          collaborationType
+          userId
+          shopId
+          type
           platformCollaborationId
-          lifecycleStage
-          processingStatus
+          status
+          creatorIds
+          creatorOpenIds
+          productIds
+          lastObservedAt
           updatedAt
         }
         productContext {
@@ -503,12 +484,11 @@ export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `
         baseCheckpointId
         candidateCheckpointId
       }
-      collaborationRecord {
+      affiliateCollaboration {
         id
-        processingStatus
-        processReasons
-        workHandledUntil
-        stateUpdatedAt
+        status
+        lastObservedAt
+        projectionRevision
       }
     }
   }
@@ -523,9 +503,9 @@ export interface ResolveAffiliateWorkItemMutationResult {
       GQL.ActionProposal,
       "id" | "status" | "operatorSummary" | "baseCheckpointId" | "candidateCheckpointId"
     > | null;
-    collaborationRecord?: Pick<
-      GQL.AffiliateCollaborationRecord,
-      "id" | "processingStatus" | "processReasons" | "workHandledUntil" | "stateUpdatedAt"
+    affiliateCollaboration?: Pick<
+      GQL.AffiliateCollaboration,
+      "id" | "status" | "lastObservedAt" | "projectionRevision"
     > | null;
   };
 }

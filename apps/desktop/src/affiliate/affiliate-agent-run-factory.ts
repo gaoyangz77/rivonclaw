@@ -19,10 +19,10 @@ export function buildAffiliateAgentRunRequest(
 
   const idempotencySuffix = isSampleReviewWorkItem(workItem)
     ? resolveSampleApplicationRecordId(workItem) ??
-      workItem.collaborationRecordId ??
+      workItem.affiliateCollaborationId ??
       workItem.creatorRelationshipId
     : workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
-      ? workItem.collaboration?.lastCreatorMessageId ?? workItem.creatorRelationshipId
+      ? workItem.creatorRelationship?.lastInboundLifecycleEventId ?? workItem.creatorRelationshipId
       : null;
 
   return {
@@ -49,7 +49,6 @@ export function resolveSampleApplicationRecordId(
       ?.sampleApplicationRecordId ??
     workItem.creatorRelationship?.agendaItems?.find((item) => item.sampleApplicationRecordId)
       ?.sampleApplicationRecordId ??
-    workItem.collaboration?.sampleApplicationRecordId ??
     null;
 }
 
@@ -74,7 +73,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
         requiredAction: workItem.requiredAction,
         shopId: workItem.triggerShopId,
         reasons: workItem.processReasons ?? [],
-        collaborationRecordId: workItem.collaborationRecordId ?? null,
+        affiliateCollaborationId: workItem.affiliateCollaborationId ?? null,
         sampleApplicationRecordId: workItem.sampleApplicationRecord?.id ?? null,
         proposalId: null,
         revisionRequestedProposal: null,
@@ -101,8 +100,8 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       `   Shop ID: ${item.shopId ?? workItem.triggerShopId}`,
       `   Reasons: ${(item.reasons ?? []).join(", ") || "(none)"}`,
     );
-    if (item.collaborationRecordId) {
-      lines.push(`   Collaboration Record ID: ${item.collaborationRecordId}`);
+    if (item.affiliateCollaborationId) {
+      lines.push(`   Platform Collaboration ID: ${item.affiliateCollaborationId}`);
     }
     if (item.sampleApplicationRecordId) {
       lines.push(`   Sample Application Record ID: ${item.sampleApplicationRecordId}`);
@@ -144,7 +143,7 @@ function isSampleReviewWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
     (
       workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask &&
       workItem.processReasons?.includes(
-        GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
+        GQL.AffiliateWorkProcessReason.SamplePendingReview,
       ) === true
     )
   );
