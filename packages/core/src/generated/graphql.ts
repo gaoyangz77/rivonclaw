@@ -10436,7 +10436,7 @@ export interface ReadAffiliateCollaborationsInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
   platformCollaborationId?: InputMaybe<Scalars['String']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
-  shopId?: InputMaybe<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCollaborationStatus>;
   type?: InputMaybe<AffiliateCollaborationType>;
 }
@@ -10448,7 +10448,7 @@ export interface ReadAffiliateCreatorsInput {
   needsAttentionOnly?: InputMaybe<Scalars['Boolean']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
-  shopId?: InputMaybe<Scalars['ID']['input']>;
+  shopId: Scalars['ID']['input'];
   tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
