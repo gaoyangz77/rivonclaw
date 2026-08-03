@@ -24,7 +24,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Production model is ready; this version has no backtest report yet.",
         modelAvailabilityUnavailable: "No READY artifact matches this scope and contract.",
         modelAvailabilityEmpty: "Live model availability could not be loaded.",
-        modelCombinationsReady: "{{count}} / 2 model families ready",
+        modelCombinationsReady: "Production model ready",
         predictionComparison: {
           bootstrapEstimate: "Bootstrap estimate",
           bootstrapBadge: "Bootstrap",
@@ -64,7 +64,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "正式模型已就绪，当前版本尚无回测报告",
         modelAvailabilityUnavailable: "当前范围与契约下没有 READY artifact。",
         modelAvailabilityEmpty: "无法读取实时模型可用性。",
-        modelCombinationsReady: "{{count}} / 2 个模型系列就绪",
+        modelCombinationsReady: "Production 模型已就绪",
         predictionComparison: {
           bootstrapEstimate: "冷启动估算",
           bootstrapBadge: "冷启动",
@@ -105,7 +105,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Das Produktionsmodell ist bereit; für diese Version liegt noch kein Backtest vor.",
         modelAvailabilityUnavailable: "Kein READY-Artefakt entspricht diesem Bereich und Vertrag.",
         modelAvailabilityEmpty: "Die Live-Modellverfügbarkeit konnte nicht geladen werden.",
-        modelCombinationsReady: "{{count}} / 2 Modellfamilien bereit",
+        modelCombinationsReady: "Produktionsmodell bereit",
         predictionComparison: {
           bootstrapEstimate: "Kaltstart-Schätzung",
           bootstrapBadge: "Kaltstart",
@@ -146,7 +146,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "El modelo de producción está listo; esta versión aún no tiene informe retrospectivo.",
         modelAvailabilityUnavailable: "Ningún artefacto READY coincide con este ámbito y contrato.",
         modelAvailabilityEmpty: "No se pudo cargar la disponibilidad del modelo en vivo.",
-        modelCombinationsReady: "{{count}} / 2 familias de modelos listas",
+        modelCombinationsReady: "Modelo de producción listo",
         predictionComparison: {
           bootstrapEstimate: "Estimación de arranque",
           bootstrapBadge: "Arranque",
@@ -187,7 +187,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Le modèle de production est prêt ; cette version n’a pas encore de rapport de backtest.",
         modelAvailabilityUnavailable: "Aucun artefact READY ne correspond à ce périmètre et à ce contrat.",
         modelAvailabilityEmpty: "La disponibilité en direct des modèles n’a pas pu être chargée.",
-        modelCombinationsReady: "{{count}} / 2 familles de modèles prêtes",
+        modelCombinationsReady: "Modèle de production prêt",
         predictionComparison: {
           bootstrapEstimate: "Estimation de démarrage",
           bootstrapBadge: "Démarrage",
@@ -228,7 +228,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Model produksi siap; versi ini belum memiliki laporan backtest.",
         modelAvailabilityUnavailable: "Tidak ada artefak READY yang cocok dengan cakupan dan kontrak ini.",
         modelAvailabilityEmpty: "Ketersediaan model langsung tidak dapat dimuat.",
-        modelCombinationsReady: "{{count}} / 2 keluarga model siap",
+        modelCombinationsReady: "Model produksi siap",
         predictionComparison: {
           bootstrapEstimate: "Estimasi bootstrap",
           bootstrapBadge: "Bootstrap",
@@ -269,7 +269,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "Il modello di produzione è pronto; questa versione non ha ancora un report di backtest.",
         modelAvailabilityUnavailable: "Nessun artefatto READY corrisponde a questo ambito e contratto.",
         modelAvailabilityEmpty: "Impossibile caricare la disponibilità live dei modelli.",
-        modelCombinationsReady: "{{count}} / 2 famiglie di modelli pronte",
+        modelCombinationsReady: "Modello di produzione pronto",
         predictionComparison: {
           bootstrapEstimate: "Stima di avvio",
           bootstrapBadge: "Avvio",
@@ -310,7 +310,7 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
         productionNoEvaluation: "โมเดลใช้งานจริงพร้อมแล้ว แต่เวอร์ชันนี้ยังไม่มีรายงาน backtest",
         modelAvailabilityUnavailable: "ไม่มี artifact สถานะ READY ที่ตรงกับขอบเขตและสัญญานี้",
         modelAvailabilityEmpty: "ไม่สามารถโหลดสถานะโมเดลแบบสดได้",
-        modelCombinationsReady: "พร้อม {{count}} / 2 กลุ่มโมเดล",
+        modelCombinationsReady: "โมเดล Production พร้อมใช้งาน",
         predictionComparison: {
           bootstrapEstimate: "ค่าประมาณช่วงเริ่มต้น",
           bootstrapBadge: "ช่วงเริ่มต้น",

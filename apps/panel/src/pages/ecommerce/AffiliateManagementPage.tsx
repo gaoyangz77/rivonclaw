@@ -612,7 +612,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   >(AFFILIATE_ACTION_PROPOSALS_QUERY, {
     variables: {
       input: {
-        shopId: selectedShopId || undefined,
+        shopId: selectedShopId || null,
         status: proposalStatus,
         type: proposalType,
         limit: 200,
@@ -887,7 +887,7 @@ export const AffiliateStaffHandlingPage = observer(function AffiliateStaffHandli
   >(AFFILIATE_WORK_ITEMS_QUERY, {
     variables: {
       input: {
-        shopId: selectedShopId || undefined,
+        shopId: selectedShopId || null,
         processingStatus: GQL.AffiliateRelationshipProcessingStatus.StaffRequired,
         limit: 200,
       },
@@ -1336,13 +1336,15 @@ function AffiliateModelStageCard({
           </span>
           <h2>{stageTitle}</h2>
         </div>
-        <span className="affiliate-model-stage-count">{stageRows.length}/2</span>
+        <span className="affiliate-model-stage-count">
+          {affiliateModelStagePresentation(availability, "EXPECTED_SALES", stage).ready ? "READY" : "UNAVAILABLE"}
+        </span>
       </header>
       <p className="affiliate-model-stage-note">
         {t("ecommerce.affiliateWorkspace.bestAvailableExplanation")}
       </p>
       <div className="affiliate-model-family-list">
-        {(["EXPECTED_SALES", "HUMAN_DECISION"] as const).map((family) => {
+        {(["EXPECTED_SALES"] as const).map((family) => {
           const presentation = affiliateModelStagePresentation(
             availability,
             family,
@@ -1432,13 +1434,10 @@ function AffiliateInsightScopeRail({
     <div className="affiliate-intelligence-scope-rail">
       {subjects.map((subject) => {
         const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
-        const readyCount = new Set(
-          subjectRows.flatMap((row) =>
-            row.availability
-              .filter((entry) => entry.status === "READY" || entry.status === "FALLBACK")
-              .map((entry) => entry.modelFamily),
-          ),
-        ).size;
+        const readyCount = subjectRows.some((row) => row.availability.some(
+          (entry) => entry.modelFamily === "EXPECTED_SALES" &&
+            (entry.status === "READY" || entry.status === "FALLBACK"),
+        )) ? 1 : 0;
         const failed = readyCount === 0 && subjectRows.some((row) => row.failed);
         const ready = readyCount > 0;
         const status = ready
@@ -1547,11 +1546,10 @@ function AffiliateModelSourceSwitch({
       </span>
       <div className="affiliate-intelligence-model-source-options">
         {rows.map((item) => {
-          const readyCount = new Set(
-            item.row?.availability
-              .filter((entry) => entry.status === "READY" || entry.status === "FALLBACK")
-              .map((entry) => entry.modelFamily) ?? [],
-          ).size;
+          const readyCount = item.row?.availability.some(
+            (entry) => entry.modelFamily === "EXPECTED_SALES" &&
+              (entry.status === "READY" || entry.status === "FALLBACK"),
+          ) ? 1 : 0;
           const loaded = Boolean(item.row);
           const active = activeModelScope === item.key;
           return (
@@ -2166,7 +2164,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const affiliateShops = entityStore.shops.filter((shop) => shop.services?.affiliateService?.enabled);
-  const affiliateShopIds = affiliateShops.map((shop) => shop.id).join("\u0001");
   const [selectedShopId, setSelectedShopId] = useState("");
   const [selectedTagId, setSelectedTagId] = useState(ALL_CREATOR_TAGS_FILTER);
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
@@ -2183,16 +2180,13 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     }
   }, [entityStore, user]);
 
-  useEffect(() => {
-    if (!selectedShopId && affiliateShops.length) {
-      setSelectedShopId(affiliateShops[0].id);
-    }
-  }, [affiliateShopIds, selectedShopId]);
-
-  const shopOptions = affiliateShops.map((shop) => ({
-    value: shop.id,
-    label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
-  }));
+  const shopOptions = [
+    { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
+    ...affiliateShops.map((shop) => ({
+      value: shop.id,
+      label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+    })),
+  ];
   function shopLabel(shopId: string): string {
     const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
     return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
@@ -2259,7 +2253,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   >(AFFILIATE_CREATORS_QUERY, {
     variables: {
       input: {
-        shopId: selectedShopId,
+        shopId: selectedShopId || null,
         tagIds: selectedTagId === ALL_CREATOR_TAGS_FILTER ? undefined : [selectedTagId],
         needsAttentionOnly,
         search: debouncedCreatorSearch || undefined,
@@ -2268,7 +2262,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !user || !selectedShopId,
+    skip: !user,
   });
   const {
     data: relationshipWorkData,
@@ -2280,12 +2274,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   >(AFFILIATE_WORK_ITEMS_QUERY, {
     variables: {
       input: {
-        shopId: selectedShopId,
+        shopId: selectedShopId || null,
         limit: AFFILIATE_WORK_ITEMS_LIMIT,
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !user || !selectedShopId,
+    skip: !user,
   });
 
   const [applyCreatorTag] = useMutation<
@@ -2369,6 +2363,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   }
 
   async function updateCreatorTag(creatorId: string, tagId: string, mode: "apply" | "remove"): Promise<void> {
+    if (!selectedShopId) return;
     const key = `${mode}:${creatorId}:${tagId}`;
     setUpdatingTagKey(key);
     try {
@@ -3423,6 +3418,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   }, [entityStore, user]);
 
   const shopOptions = [
+    { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
     ...shops
       .filter((shop) => shop.services?.affiliateService?.enabled)
       .map((shop) => ({
@@ -3430,11 +3426,6 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
         label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
       })),
   ];
-  useEffect(() => {
-    if (!selectedShopId && shopOptions[0]?.value) {
-      setSelectedShopId(shopOptions[0].value);
-    }
-  }, [selectedShopId, shopOptions]);
   const historyStatusFilterOptions = useMemo(
     () => HISTORY_STATUS_FILTERS.map((filter) => ({
       value: filter,
@@ -3457,13 +3448,13 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   >(AFFILIATE_COLLABORATIONS_QUERY, {
     variables: {
       input: {
-        shopId: selectedShopId,
+        shopId: selectedShopId || null,
         status: collaborationStatus,
         limit: 200,
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !user || !selectedShopId,
+    skip: !user,
   });
 
   useEffect(() => {
