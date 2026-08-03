@@ -3538,7 +3538,7 @@ export default {
       intelligenceChartSameSalesBar: "Same expected-sales bar",
       intelligenceChartCreatorSwap: "Who the model would swap",
       intelligenceSameBudgetStory:
-        "{{window}} · predicted sales from the same {{count}} sample opportunities",
+        "Predicted sales from the same {{count}} sample opportunities",
       intelligenceSameSalesBarStory:
         "{{window}} · creators at or above the same {{bar}} predicted-sales bar",
       intelligenceCreatorSwapStory:
@@ -3560,7 +3560,7 @@ export default {
         "The shop reference line shown to the Agent with an available prediction; it is not an automatic approval rule.",
       intelligenceConfiguredThresholdUnset: "Not set",
       intelligenceTrainingScope:
-        "{{window}} · trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
+        "Trained {{trainedAt}}. Historical approval rate {{approvalRate}}; filtered historical approvals {{filteredRate}}.",
       intelligenceLegalDisclaimer:
         "This view is based on statistical modeling and machine learning predictions. It is not a guarantee that using the model will produce actual business growth.",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} days",
@@ -3582,7 +3582,7 @@ export default {
       intelligenceBudgetStatsHeadline:
         "Same sample count, more model picks land in higher predicted-sales ranges",
       intelligenceBudgetStatsHint:
-        "{{window}} · distribution of predicted sales in the holdout test window.",
+        "Distribution of predicted sales in the holdout test sample.",
       intelligenceHistoricalExpectedUnits: "staff-choice predicted units",
       intelligenceModelExpectedUnits: "model-choice predicted units",
       intelligenceHistoricalApprovedExpected: "Historical staff choice · predicted sales",
