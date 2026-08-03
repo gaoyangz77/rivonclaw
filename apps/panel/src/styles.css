@@ -1902,6 +1902,14 @@ tbody td {
   color: var(--color-info);
 }
 
+.shop-service-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+
 .badge-saved {
   font-size: 11px;
   color: var(--color-success);
