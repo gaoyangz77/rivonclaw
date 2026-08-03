@@ -1218,7 +1218,6 @@ function AffiliateProductionModelDashboard({
   const maxUnits = Math.max(modelExpectedUnits ?? 0, humanExpectedUnits ?? 0, 1);
   const modelBarWidth = `${Math.max(8, Math.round(((modelExpectedUnits ?? 0) / maxUnits) * 100))}%`;
   const humanBarWidth = `${Math.max(8, Math.round(((humanExpectedUnits ?? 0) / maxUnits) * 100))}%`;
-  const evaluationWindow = formatEvaluationWindow(payload, summary.evaluationScope, t);
   const liftPercent = liftRatio == null ? null : (liftRatio - 1) * 100;
   const liftLabel = formatSignedPercent(liftPercent);
   const modelLabel = selectedRow?.modelScope === "shop"
@@ -1263,7 +1262,6 @@ function AffiliateProductionModelDashboard({
               ) : null}
               <small>{translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
                 count: formatInteger(humanApprovedCount),
-                window: evaluationWindow,
               })}</small>
             </div>
           </div>
@@ -1297,7 +1295,7 @@ function AffiliateProductionModelDashboard({
           ) : null}
         </div>
 
-        <AffiliateBudgetDistributionPanel claim={sameBudget} windowLabel={evaluationWindow} />
+        <AffiliateBudgetDistributionPanel claim={sameBudget} />
       </div>
       <div className="affiliate-intelligence-footnote">
         <span
@@ -1310,7 +1308,6 @@ function AffiliateProductionModelDashboard({
           approvalRate: formatPercent(summary.humanApprovalRate),
           filteredRate: formatPercent(savingsRisk),
           trainedAt: formatDate(summary.trainedAt),
-          window: evaluationWindow,
         })}</span>
       </div>
     </>
@@ -1622,17 +1619,15 @@ function AffiliateRaceRow({
 
 function AffiliateBudgetDistributionPanel({
   claim,
-  windowLabel,
 }: {
   claim: AffiliateInsightPayload;
-  windowLabel: string;
 }) {
   const { t } = useTranslation();
   return (
     <AffiliateClaimDistributionPanel
       title={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsTitle")}
       headline={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHeadline")}
-      hint={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHint", { window: windowLabel })}
+      hint={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHint")}
       stats={[
         {
           label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApplications"),
@@ -1883,36 +1878,6 @@ function mergedHistogramLabels(bucketLists: AffiliateSalesHistogramBucket[][]): 
   return Array.from(labels.values());
 }
 
-function formatEvaluationWindow(
-  payload: AffiliateInsightPayload,
-  evaluationScope: string,
-  t: ReturnType<typeof useTranslation>["t"],
-): string {
-  const windowPayload = payloadObject(payload, "evaluation_window");
-  const start = typeof windowPayload.start === "string" ? windowPayload.start : null;
-  const end = typeof windowPayload.end === "string" ? windowPayload.end : null;
-  if (start && end) {
-    const dayCount = inclusiveDayCount(start, end);
-    return t("ecommerce.affiliateWorkspace.intelligenceWindowRange", {
-      start: formatShortDate(start),
-      end: formatShortDate(end),
-      days: dayCount == null ? "—" : formatInteger(dayCount),
-    });
-  }
-  return t(`ecommerce.affiliateWorkspace.evaluationScopes.${evaluationScope}`, {
-    defaultValue: t("ecommerce.affiliateWorkspace.intelligenceWindowLatestTraining"),
-  });
-}
-
-function inclusiveDayCount(start: string | Date, end: string | Date): number | null {
-  const startDate = parseDateOnlyAsLocalDate(start);
-  const endDate = parseDateOnlyAsLocalDate(end);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
-  const startUtc = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  const endUtc = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-  return Math.max(1, Math.round((endUtc - startUtc) / 86400000) + 1);
-}
-
 function formatInteger(value: number | null | undefined): string {
   return value == null ? "—" : new Intl.NumberFormat().format(value);
 }
@@ -1945,22 +1910,6 @@ function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "—";
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
-}
-
-function formatShortDate(value: string | Date | null | undefined): string {
-  if (!value) return "—";
-  const date = parseDateOnlyAsLocalDate(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
-}
-
-function parseDateOnlyAsLocalDate(value: string | Date): Date {
-  if (value instanceof Date) return value;
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-  if (dateOnly) {
-    const [, year, month, day] = dateOnly;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-  return new Date(value);
 }
 
 function filterActionProposals(

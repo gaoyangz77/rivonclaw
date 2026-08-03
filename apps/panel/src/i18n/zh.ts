@@ -3353,7 +3353,7 @@ export default {
       intelligenceChartSameBudget: "同样发样数量",
       intelligenceChartSameSalesBar: "相同预期销量门槛",
       intelligenceChartCreatorSwap: "模型会替换哪些选择",
-      intelligenceSameBudgetStory: "{{window}} · 对比同样 {{count}} 个发样机会下的预测销量",
+      intelligenceSameBudgetStory: "对比同样 {{count}} 个发样机会下的预测销量",
       intelligenceSameSalesBarStory: "{{window}} · 达到或超过同一个 {{bar}} 件预测销量门槛的达人",
       intelligenceCreatorSwapStory:
         "在相同通过数量下，模型会过滤 {{filtered}} 个低优先级批准，并换入被人工漏掉的达人。",
@@ -3374,7 +3374,7 @@ export default {
         "有可用预测时展示给 Agent 的店铺参考线，并非自动批准规则。",
       intelligenceConfiguredThresholdUnset: "未设置",
       intelligenceTrainingScope:
-        "{{window}} · 训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
+        "训练时间 {{trainedAt}}。历史通过率 {{approvalRate}}；会被过滤的历史通过样本 {{filteredRate}}。",
       intelligenceLegalDisclaimer:
         "本页面基于统计模型和机器学习预测，不代表用户使用该模型后一定会产生真实业务增长。",
       intelligenceWindowRange: "{{start}} - {{end}} · {{days}} 天",
@@ -3393,7 +3393,7 @@ export default {
         "本次模型评估缺少必要的分布摘要。请重新训练模型刷新该视图。",
       intelligenceBudgetStatsTitle: "提升来自哪里",
       intelligenceBudgetStatsHeadline: "同样发样数量，模型选择的人更多落在高预测销量区间",
-      intelligenceBudgetStatsHint: "{{window}} · 留出测试窗口中的预测销量分布。",
+      intelligenceBudgetStatsHint: "留出测试样本中的预测销量分布。",
       intelligenceHistoricalExpectedUnits: "人工选择预测销量",
       intelligenceModelExpectedUnits: "模型选择预测销量",
       intelligenceHistoricalApprovedExpected: "历史人工选择 · 预测销量",
