@@ -76,7 +76,7 @@ export interface AffiliateContext {
   creatorRelationshipId: string;
   productId?: string | null;
   sampleApplicationRecordId?: string;
-  collaborationRecordId?: string;
+  affiliateCollaborationId?: string;
   orderId?: string | null;
 }
 
@@ -478,7 +478,7 @@ export class AffiliateSession {
         `triggerKind=${this.affiliateContext.triggerKind}`,
         `triggerId=${this.affiliateContext.triggerId}`,
         `shopId=${this.affiliateContext.shopId}`,
-        `collaborationRecordId=${this.affiliateContext.collaborationRecordId ?? ""}`,
+        `affiliateCollaborationId=${this.affiliateContext.affiliateCollaborationId ?? ""}`,
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
         `systemPromptChars=${systemPrompt.length}`,
@@ -681,7 +681,7 @@ export class AffiliateSession {
       log.info(
         `Affiliate work item completion callback: runId=${runId} ` +
           `subject=${workItemSubjectLabel(workItem)} decision=${payload.decision} ` +
-          `stale=${payload.stale} status=${payload.collaborationRecord?.processingStatus ?? ""}`,
+          `stale=${payload.stale} status=${payload.affiliateCollaboration?.status ?? ""}`,
       );
     } catch (err) {
       log.error(`Failed to complete unresolved affiliate work item for run ${runId}:`, err);
@@ -748,7 +748,7 @@ export class AffiliateSession {
         },
       );
       const expectedInboundAt = parseOptionalDate(
-        workItem.creatorRelationship?.lastInboundAt ?? workItem.collaboration?.lastCreatorMessageAt,
+        workItem.creatorRelationship?.lastInboundAt,
       );
       const currentMessage = result.affiliateCreatorMessageHistory.items.find((item) => {
         if (item.direction !== GQL.AffiliateCreatorMessageDirection.Creator) return false;
@@ -816,7 +816,7 @@ export class AffiliateSession {
           input: {
             triggerShopId: input.workItem.triggerShopId,
             creatorRelationshipId: input.workItem.creatorRelationshipId,
-            collaborationRecordId: input.workItem.collaborationRecordId ?? undefined,
+            affiliateCollaborationId: input.workItem.affiliateCollaborationId ?? undefined,
             handledSignalAt: workItemBoundaryAt(input.workItem),
             baseCheckpointId: input.dispatchContext.checkpoint.baseCheckpointId,
             baseEventCursor: input.dispatchContext.checkpoint.baseEventCursor,
@@ -911,8 +911,8 @@ function hasProposalRevisionAgenda(workItem: GQL.AffiliateWorkItem): boolean {
 
 function workItemSubjectLabel(workItem: GQL.AffiliateWorkItem): string {
   const relationshipLabel = `relationship=${workItem.creatorRelationshipId ?? ""}`;
-  return workItem.collaborationRecordId
-    ? `${relationshipLabel} collaboration=${workItem.collaborationRecordId}`
+  return workItem.affiliateCollaborationId
+    ? `${relationshipLabel} collaboration=${workItem.affiliateCollaborationId}`
     : relationshipLabel;
 }
 
@@ -920,7 +920,6 @@ function workItemBoundaryAt(workItem: GQL.AffiliateWorkItem | null | undefined):
   if (!workItem) return null;
   return (
     workItem.versionAt ??
-    workItem.collaboration?.lastSignalAt ??
     workItem.creatorRelationship?.stateUpdatedAt ??
     workItem.creatorRelationship?.lastInboundAt ??
     null
@@ -932,7 +931,7 @@ function workItemHandledUntil(workItem: GQL.AffiliateWorkItem | null | undefined
   if (workItem.creatorRelationship != null) {
     return workItem.creatorRelationship.lastAgentHandledAt ?? null;
   }
-  return workItem.collaboration?.workHandledUntil ?? null;
+  return null;
 }
 
 function parseOptionalDate(value: string | null | undefined): Date | null {

@@ -286,28 +286,19 @@ function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, un
 }
 
 interface AffiliateResolveActionContext {
-  collaborationRecordId?: string;
+  affiliateCollaborationId?: string;
   sampleApplicationRecordId?: string;
   predictionCacheIds?: string[];
 }
 
 function buildAffiliateResolveActionContext(input: Record<string, unknown>): AffiliateResolveActionContext {
-  const collaborationRecordId = firstNonEmptyString(input.collaborationRecordId);
+  const affiliateCollaborationId = firstNonEmptyString(input.affiliateCollaborationId);
   const context: AffiliateResolveActionContext = {
-    collaborationRecordId: collaborationRecordId ?? undefined,
+    affiliateCollaborationId: affiliateCollaborationId ?? undefined,
     predictionCacheIds: Array.isArray(input.predictionCacheIds)
       ? input.predictionCacheIds.filter(hasNonEmptyString)
       : undefined,
   };
-
-  const collaboration = collaborationRecordId
-    ? rootStore.affiliateWorkspace.getCollaborationRecord(collaborationRecordId)
-    : null;
-  if (!collaboration) return context;
-
-  if (collaboration.sampleApplicationRecordId) {
-    context.sampleApplicationRecordId = collaboration.sampleApplicationRecordId;
-  }
 
   return context;
 }
@@ -445,7 +436,7 @@ function pickAffiliateActionFields(
 ): Record<string, unknown> {
   return omitEmptyAffiliateStrings({
     type: action.type,
-    collaborationRecordId: action.collaborationRecordId,
+    affiliateCollaborationId: action.affiliateCollaborationId,
     predictionCacheIds: action.predictionCacheIds,
     expiresAt: cleanOptionalAffiliateDateTime(action.expiresAt),
     [intentField]: intentValue,

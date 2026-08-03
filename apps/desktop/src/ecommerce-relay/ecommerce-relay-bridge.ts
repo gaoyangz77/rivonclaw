@@ -729,7 +729,7 @@ export class EcommerceRelayBridge {
     this.syncFromCache();
     log.info(
       `Affiliate work item: kind=${workItem.workKind} triggerShop=${workItem.triggerPlatformShopId} ` +
-      `collaboration=${workItem.collaborationRecordId} status=${workItem.processingStatus}`,
+      `collaboration=${workItem.affiliateCollaborationId} status=${workItem.processingStatus}`,
     );
 
     await this.affiliateInbound.handleWorkItem(workItem);

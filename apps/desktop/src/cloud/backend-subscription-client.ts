@@ -305,7 +305,7 @@ const AFFILIATE_RELATIONSHIP_SIGNAL_SUBSCRIPTION = `
       type
       source
       workSignal
-      collaborationRecordId
+      affiliateCollaborationId
       creatorRelationshipId
       processingStatus
       requiredAction
@@ -347,7 +347,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         routingPlatformShopIds
         subjectType
         creatorRelationshipId
-        collaborationRecordId
+        affiliateCollaborationId
         workKind
         workBundleKind
         agentWorkingAgendaItems {
@@ -357,7 +357,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           workKind
           requiredAction
           shopId
-          collaborationRecordId
+          affiliateCollaborationId
           sampleApplicationRecordId
           proposalId
           reasons
@@ -442,7 +442,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             workKind
             requiredAction
             shopId
-            collaborationRecordId
+            affiliateCollaborationId
             sampleApplicationRecordId
             proposalId
             reasons
@@ -458,7 +458,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             nextActionAt
           }
           stateUpdatedAt
-          activeCollaborationRecordIds
+          activeAffiliateCollaborationIds
           shopStates {
             shopId
             tagIds
@@ -467,46 +467,26 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             lastQualifiedAt
           }
         }
-        collaboration {
+        affiliateCollaboration {
           id
           userId
           shopId
-          creatorId
-          creatorOpenId
-          productId
-          sampleApplicationRecordId
-          sampleApplicationRecordIds
-          platformSampleApplicationStatus
-          platformSampleApplicationObservedAt
-          affiliateCollaborationId
-          collaborationType
+          campaignId
+          type
           platformCollaborationId
-          creatorImId
-          lifecycleStage
-          processingStatus
-          requiredAction
-          processReasons
-          lastCreatorMessageId
-          lastCreatorMessageAt
-          stateUpdatedAt
-          lastSignalAt
-          workHandledUntil
-          nextSellerActionAt
-          startedAt
-          endedAt
+          status
+          creatorIds
+          creatorOpenIds
+          productIds
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          lastSyncSource
+          projectionRevision
           createdAt
           updatedAt
-          predictionSnapshots {
-            sourceCacheId
-            predictionType
-            scenario
-            status
-            output
-            model
-            diagnostics
-            predictedAt
-            capturedAt
-          }
         }
         context {
           creatorProfile {
@@ -538,40 +518,41 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           }
           activeCollaborations {
             id
-            creatorId
-            creatorOpenId
-            productId
-            sampleApplicationRecordId
-            affiliateCollaborationId
-            collaborationType
+            userId
+            shopId
+            type
             platformCollaborationId
-            lifecycleStage
-            processingStatus
-            requiredAction
-            processReasons
-            lastSignalAt
-            workHandledUntil
+            status
+            creatorIds
+            creatorOpenIds
+            productIds
+            lastObservedAt
             updatedAt
           }
           focusCollaboration {
             id
-            creatorId
-            productId
-            lifecycleStage
-            processingStatus
+            userId
+            shopId
+            type
+            platformCollaborationId
+            status
+            creatorIds
+            creatorOpenIds
+            productIds
+            lastObservedAt
             updatedAt
           }
           ambiguousCollaborationCandidates {
             id
-            creatorId
-            creatorOpenId
-            productId
-            sampleApplicationRecordId
-            affiliateCollaborationId
-            collaborationType
+            userId
+            shopId
+            type
             platformCollaborationId
-            lifecycleStage
-            processingStatus
+            status
+            creatorIds
+            creatorOpenIds
+            productIds
+            lastObservedAt
             updatedAt
           }
           productContext {
@@ -690,11 +671,11 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           creatorOpenId
           creatorImId
         }
-        collaborationRecordId
+        affiliateCollaborationId
         sourceWorkBoundary {
           subjectType
           creatorRelationshipId
-          collaborationRecordId
+          affiliateCollaborationId
           workKind
           workBundleKind
           versionAt

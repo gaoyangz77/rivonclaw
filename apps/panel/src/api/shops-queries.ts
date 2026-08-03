@@ -538,7 +538,7 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
           }
           lastInboundAt
           lastOutboundAt
-          activeCollaborationRecordIds
+          activeAffiliateCollaborationIds
           blocked
           workSummary {
             agentRequiredCount
@@ -1091,10 +1091,14 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         createdAt
         updatedAt
       }
-      collaborationRecordId
+      affiliateCollaborationId
+      sampleApplicationRecordId
+      productId
       sourceWorkBoundary {
         subjectType
-        collaborationRecordId
+        affiliateCollaborationId
+        sampleApplicationRecordId
+        productId
         creatorRelationshipId
         workKind
         workBundleKind
@@ -1105,43 +1109,43 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         triggerLifecycleEventId
         recommendedActionTypes
       }
-      collaborationRecord {
+      affiliateCollaboration {
         id
         userId
         shopId
+        creatorIds
+        creatorOpenIds
+        productIds
+        type
+        status
+        platformCollaborationId
+        campaignId
+        commissionRate
+        effectiveTime
+        platformUpdatedAt
+        firstObservedAt
+        lastObservedAt
+        projectionRevision
+        lastSyncSource
+        createdAt
+        updatedAt
+      }
+      sampleApplicationRecord {
+        id
+        platformApplicationId
         creatorId
         creatorOpenId
         productId
-        lifecycleStage
-        processingStatus
-        requiredAction
-        processReasons
-        nextSellerActionAt
-        stateUpdatedAt
-        lastSignalAt
-        workHandledUntil
         affiliateCollaborationId
         collaborationType
-        sampleApplicationRecordId
         platformCollaborationId
-        creatorImId
-        lastCreatorMessageId
-        lastCreatorMessageAt
-        startedAt
-        endedAt
-        predictionSnapshots {
-          sourceCacheId
-          predictionType
-          captureMode
-          scenario
-          status
-          output
-          model
-          message
-          predictedAt
-          capturedAt
-        }
-        createdAt
+        sampleWorkStatus
+        trackingNumber
+        carrier
+        shippedAt
+        deliveredAt
+        observedContentCount
+        latestObservedContentAt
         updatedAt
       }
       productSummary {
@@ -1167,7 +1171,9 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         stepId
         shopId
         campaignId
-        collaborationRecordId
+        affiliateCollaborationId
+        sampleApplicationRecordId
+        productId
         type
         operatorSummary
         predictionCacheIds
@@ -1347,7 +1353,9 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
       id
       subjectType
       triggerShopId
-      collaborationRecordId
+      affiliateCollaborationId
+      sampleApplicationRecordId
+      productId
       triggerPlatformShopId
       routingShopIds
       routingPlatformShopIds
@@ -1362,30 +1370,24 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
       staffReviewRequired
       recommendedActionTypes
       versionAt
-      collaboration {
+      affiliateCollaboration {
         id
         userId
         shopId
-        creatorId
-        creatorOpenId
-        productId
-        lifecycleStage
-        processingStatus
-        requiredAction
-        processReasons
-        nextSellerActionAt
-        stateUpdatedAt
-        lastSignalAt
-        workHandledUntil
-        affiliateCollaborationId
-        collaborationType
-        sampleApplicationRecordId
+        creatorIds
+        creatorOpenIds
+        productIds
+        type
+        status
         platformCollaborationId
-        creatorImId
-        lastCreatorMessageId
-        lastCreatorMessageAt
-        startedAt
-        endedAt
+        campaignId
+        commissionRate
+        effectiveTime
+        platformUpdatedAt
+        firstObservedAt
+        lastObservedAt
+        projectionRevision
+        lastSyncSource
         createdAt
         updatedAt
       }
@@ -1439,26 +1441,20 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           id
           userId
           shopId
-          creatorId
-          creatorOpenId
-          productId
-          lifecycleStage
-          processingStatus
-          requiredAction
-          processReasons
-          nextSellerActionAt
-          stateUpdatedAt
-          lastSignalAt
-          workHandledUntil
-          affiliateCollaborationId
-          collaborationType
-          sampleApplicationRecordId
+          creatorIds
+          creatorOpenIds
+          productIds
+          type
+          status
           platformCollaborationId
-          creatorImId
-          lastCreatorMessageId
-          lastCreatorMessageAt
-          startedAt
-          endedAt
+          campaignId
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          projectionRevision
+          lastSyncSource
           createdAt
           updatedAt
         }
@@ -1466,26 +1462,20 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           id
           userId
           shopId
-          creatorId
-          creatorOpenId
-          productId
-          lifecycleStage
-          processingStatus
-          requiredAction
-          processReasons
-          nextSellerActionAt
-          stateUpdatedAt
-          lastSignalAt
-          workHandledUntil
-          affiliateCollaborationId
-          collaborationType
-          sampleApplicationRecordId
+          creatorIds
+          creatorOpenIds
+          productIds
+          type
+          status
           platformCollaborationId
-          creatorImId
-          lastCreatorMessageId
-          lastCreatorMessageAt
-          startedAt
-          endedAt
+          campaignId
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          projectionRevision
+          lastSyncSource
           createdAt
           updatedAt
         }
@@ -1493,26 +1483,20 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           id
           userId
           shopId
-          creatorId
-          creatorOpenId
-          productId
-          lifecycleStage
-          processingStatus
-          requiredAction
-          processReasons
-          nextSellerActionAt
-          stateUpdatedAt
-          lastSignalAt
-          workHandledUntil
-          affiliateCollaborationId
-          collaborationType
-          sampleApplicationRecordId
+          creatorIds
+          creatorOpenIds
+          productIds
+          type
+          status
           platformCollaborationId
-          creatorImId
-          lastCreatorMessageId
-          lastCreatorMessageAt
-          startedAt
-          endedAt
+          campaignId
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          projectionRevision
+          lastSyncSource
           createdAt
           updatedAt
         }
@@ -1569,74 +1553,28 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
   }
 `;
 
-export const AFFILIATE_COLLABORATION_RECORDS_QUERY = gql`
-  query AffiliateCollaborationRecords($input: ReadAffiliateCollaborationRecordsInput!) {
-    collaborationRecords(input: $input) {
+export const AFFILIATE_COLLABORATIONS_QUERY = gql`
+  query AffiliateCollaborations($input: ReadAffiliateCollaborationsInput!) {
+    affiliateCollaborations(input: $input) {
       id
       userId
       shopId
-      creatorId
-      creatorRelationshipId
-      creatorProfile {
-        id
-        platform
-        creatorOpenId
-        creatorImId
-        nickname
-        username
-        avatarUrl
-      }
-      creatorOpenId
-      productId
-      lifecycleStage
-      processingStatus
-      requiredAction
-      processReasons
-      nextSellerActionAt
-      stateUpdatedAt
-      lastSignalAt
-      workHandledUntil
-      affiliateCollaborationId
-      collaborationType
-      sampleApplicationRecordId
+      creatorIds
+      creatorOpenIds
+      productIds
+      type
+      status
       platformCollaborationId
-      creatorImId
-      lastCreatorMessageId
-      lastCreatorMessageAt
-      startedAt
-      endedAt
+      campaignId
+      commissionRate
+      effectiveTime
+      platformUpdatedAt
+      firstObservedAt
+      lastObservedAt
+      projectionRevision
+      lastSyncSource
       createdAt
       updatedAt
-      sampleApplicationRecords {
-        id
-        platformApplicationId
-        creatorId
-        creatorOpenId
-        productId
-        affiliateCollaborationId
-        collaborationType
-        platformCollaborationId
-        platformOpenCollaborationId
-        platformTargetCollaborationId
-        sampleWorkStatus
-        order {
-          platformOrderId
-          trackingNumber
-          carrier
-        }
-        trackingNumber
-        carrier
-        shippedAt
-        deliveredAt
-        observedContentCount
-        latestObservedContentAt
-        latestObservedContentId
-        latestObservedContentFormat
-        latestObservedContentUrl
-        latestObservedContentViewCount
-        latestObservedContentPaidOrderCount
-        updatedAt
-      }
     }
   }
 `;
@@ -1837,7 +1775,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
             workKind
             requiredAction
             shopId
-            collaborationRecordId
+            affiliateCollaborationId
             sampleApplicationRecordId
             proposalId
             reasons
@@ -1875,30 +1813,24 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           lastObservedAt
           updatedAt
         }
-        latestCollaborationRecord {
+        latestAffiliateCollaboration {
           id
           userId
           shopId
-          creatorId
-          creatorOpenId
-          productId
-          lifecycleStage
-          processingStatus
-          requiredAction
-          processReasons
-          nextSellerActionAt
-          stateUpdatedAt
-          lastSignalAt
-          workHandledUntil
-          creatorImId
-          lastCreatorMessageId
-          lastCreatorMessageAt
-          affiliateCollaborationId
-          collaborationType
+          creatorIds
+          creatorOpenIds
+          productIds
+          type
+          status
           platformCollaborationId
-          sampleApplicationRecordId
-          startedAt
-          endedAt
+          campaignId
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          projectionRevision
+          lastSyncSource
           updatedAt
         }
         latestPendingProposal {
@@ -2071,7 +2003,7 @@ export const APPLY_CREATOR_TAG_MUTATION = gql`
         workKind
         requiredAction
         shopId
-        collaborationRecordId
+        affiliateCollaborationId
         sampleApplicationRecordId
         proposalId
         reasons
@@ -2278,11 +2210,15 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       userId
       campaignId
       creatorId
-      collaborationRecordId
+      affiliateCollaborationId
+      sampleApplicationRecordId
+      productId
       creatorRelationshipId
       sourceWorkBoundary {
         subjectType
-        collaborationRecordId
+        affiliateCollaborationId
+        sampleApplicationRecordId
+        productId
         creatorRelationshipId
         workKind
         workBundleKind
@@ -2503,13 +2439,16 @@ export const SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION = gql`
         errorMessage
         createdAt
       }
-      collaborationRecord {
+      affiliateCollaboration {
         id
-        processingStatus
-        requiredAction
-        processReasons
-        stateUpdatedAt
-        workHandledUntil
+        shopId
+        platformCollaborationId
+        creatorIds
+        creatorOpenIds
+        productIds
+        type
+        status
+        lastObservedAt
         updatedAt
       }
     }

@@ -63,24 +63,24 @@ describe("affiliate work item actuator", () => {
       routingPlatformShopIds: ["platform-shop-001"],
       subjectType: GQL.AffiliateWorkItemSubjectType.CreatorRelationship,
       creatorRelationshipId: "relationship-001",
-      collaborationRecordId: "collab-001",
+      affiliateCollaborationId: "collab-001",
       workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
       workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
       agentDispatchRecommended: true,
       staffReviewRequired: false,
-      processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
-      requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
-      processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
+      processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+      processReasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
       recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
       versionAt: "2026-05-11T00:01:00.000Z",
       creatorRelationship: {
         id: "relationship-001",
         userId: "user-001",
         creatorId: "creator-001",
-        processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
-        requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
-        processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
-        activeCollaborationRecordIds: ["collab-001"],
+        processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+        processReasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
+        activeAffiliateCollaborationIds: ["collab-001"],
         shopStates: [],
         blocked: false,
         blockedShopIds: [],
@@ -88,21 +88,26 @@ describe("affiliate work item actuator", () => {
         createdAt: "2026-05-11T00:00:00.000Z",
         updatedAt: "2026-05-11T00:01:00.000Z",
       } as any,
-      collaboration: {
+      affiliateCollaboration: {
         id: "collab-001",
         userId: "user-001",
         shopId: "shop-001",
-        creatorRelationshipId: "relationship-001",
-        creatorId: "creator-001",
-        lifecycleStage: "SAMPLE",
-        processingStatus: GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
-        requiredAction: GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication,
-        processReasons: [GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview],
-        stateUpdatedAt: "2026-05-11T00:01:00.000Z",
-        startedAt: "2026-05-11T00:00:00.000Z",
+        campaignId: null,
+        creatorIds: ["creator-001"],
+        creatorOpenIds: ["creator-open-001"],
+        productIds: ["product-001"],
+        type: GQL.AffiliateCollaborationType.Target,
+        status: GQL.AffiliateCollaborationStatus.Active,
+        platformCollaborationId: "platform-collaboration-001",
+        commissionRate: null,
+        effectiveTime: "2026-05-11T00:00:00.000Z",
+        platformUpdatedAt: "2026-05-11T00:01:00.000Z",
+        firstObservedAt: "2026-05-11T00:00:00.000Z",
+        lastObservedAt: "2026-05-11T00:01:00.000Z",
+        lastSyncSource: GQL.AffiliateProjectionSyncSource.AirflowReconcile,
+        projectionRevision: 1,
         createdAt: "2026-05-11T00:00:00.000Z",
         updatedAt: "2026-05-11T00:01:00.000Z",
-        predictionSnapshots: [],
       } as any,
       sampleApplicationRecord: null,
       context: {
@@ -119,8 +124,8 @@ describe("affiliate work item actuator", () => {
 
     expect(rootStore.affiliateWorkspace.getCreatorRelationship("relationship-001")?.creatorId)
       .toBe("creator-001");
-    expect(rootStore.affiliateWorkspace.relationshipProjection("relationship-001")?.collaborationRecords)
-      .toHaveLength(1);
+    expect(rootStore.affiliateWorkspace.relationshipProjection("relationship-001")?.affiliateCollaborations)
+      .toHaveLength(0);
     expect(mockHandleAffiliateWorkItemChanged).toHaveBeenCalledOnce();
   });
 });

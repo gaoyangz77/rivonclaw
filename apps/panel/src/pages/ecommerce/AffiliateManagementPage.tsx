@@ -14,7 +14,7 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
-  AFFILIATE_COLLABORATION_RECORDS_QUERY,
+  AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_CREATOR_PROTECTIONS_QUERY,
@@ -43,22 +43,46 @@ type CreatorRelationshipWorkItem = {
   creatorImId?: string | null;
   processingStatus: GQL.AffiliateRelationshipProcessingStatus;
   requiredAction: GQL.AffiliateRelationshipRequiredAction;
-  processReasons: GQL.AffiliateCollaborationRecordProcessReason[];
+  processReasons: GQL.AffiliateWorkProcessReason[];
   lastInboundAt?: string | null;
   lastOutboundAt?: string | null;
   nextSellerActionAt?: string | null;
   stateUpdatedAt?: string | null;
   creatorProfile?: GQL.AffiliateCreatorIdentity | null;
   creatorRelation?: GQL.AffiliateCreatorRelationship | null;
-  activeCollaborations: GQL.AffiliateCollaborationRecord[];
-  ambiguousCollaborations: GQL.AffiliateCollaborationRecord[];
-  focusCollaboration?: GQL.AffiliateCollaborationRecord | null;
+  activeCollaborations: AffiliateCollaborationView[];
+  ambiguousCollaborations: AffiliateCollaborationView[];
+  focusCollaboration?: AffiliateCollaborationView | null;
   pendingProposals: GQL.ActionProposal[];
   focusedProposal?: GQL.ActionProposal | null;
   productContext?: GQL.AffiliateWorkProductContext | null;
   primarySampleApplication?: GQL.SampleApplicationRecord | null;
   relatedSampleApplications?: GQL.SampleApplicationRecord[];
   workItem?: GQL.AffiliateWorkItem | null;
+};
+
+/**
+ * Relationship work UI decorates the canonical platform Collaboration with
+ * relationship-level work metadata. Those optional fields come from the work
+ * item/agenda, never from a persisted creator-expanded Collaboration record.
+ */
+type AffiliateCollaborationView = GQL.AffiliateCollaboration & {
+  creatorRelationshipId?: string | null;
+  creatorId?: string | null;
+  creatorOpenId?: string | null;
+  creatorImId?: string | null;
+  creatorProfile?: GQL.AffiliateCreatorIdentity | null;
+  lifecycleStage?: string | null;
+  processingStatus?: GQL.AffiliateRelationshipProcessingStatus | null;
+  requiredAction?: GQL.AffiliateRelationshipRequiredAction | null;
+  processReasons?: GQL.AffiliateWorkProcessReason[] | null;
+  productId?: string | null;
+  sampleApplicationRecordId?: string | null;
+  sampleApplicationRecords?: GQL.SampleApplicationRecord[] | null;
+  affiliateCollaborationId?: string | null;
+  lastCreatorMessageAt?: string | null;
+  nextSellerActionAt?: string | null;
+  stateUpdatedAt?: string | null;
 };
 type CreatorRelationshipDetailItem = {
   creatorId: string;
@@ -105,9 +129,13 @@ type StagedAffiliateAttachment = {
 
 const HISTORY_STATUS_FILTERS = [
   "ALL",
-  GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired,
-  GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal,
-  GQL.AffiliateCollaborationRecordProcessingStatus.Idle,
+  GQL.AffiliateCollaborationStatus.Active,
+  GQL.AffiliateCollaborationStatus.Paused,
+  GQL.AffiliateCollaborationStatus.Expiring,
+  GQL.AffiliateCollaborationStatus.Terminating,
+  GQL.AffiliateCollaborationStatus.Expired,
+  GQL.AffiliateCollaborationStatus.Cancelled,
+  GQL.AffiliateCollaborationStatus.Failed,
 ] as const;
 
 const ALL_HISTORY_SUB_STATUS = "__ALL_HISTORY_SUB_STATUS__";
@@ -165,6 +193,15 @@ type AffiliatePredictionSnapshotOutput = {
   } | null;
 };
 
+type AffiliatePredictionSnapshotView = {
+  status: string;
+  output?: unknown;
+  sourceCacheId?: string | null;
+  scenario?: string | null;
+  capturedAt?: string | null;
+  predictedAt?: string | null;
+};
+
 type AffiliatePredictionModelSelection = {
   modelStage?: "UNIFIED" | "EVENT_TIME" | "BOOTSTRAP" | null;
   featureTemporalBasis?: "BEST_AVAILABLE" | "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
@@ -198,14 +235,20 @@ export function selectAffiliateProposalItems<T>(
 
 function hydrateAffiliateProposalProjection(projection: {
   proposal: unknown;
-  collaborationRecord?: unknown | null;
+  affiliateCollaboration?: unknown | null;
+  sampleApplicationRecord?: unknown | null;
   creatorProfile?: unknown | null;
   productSummary?: unknown | null;
 }): GQL.ActionProposal {
   const proposal = affiliateSnapshot(projection.proposal);
   return {
     ...proposal,
-    collaborationRecord: affiliateSnapshot(projection.collaborationRecord ?? (proposal as any).collaborationRecord),
+    affiliateCollaboration: affiliateSnapshot(
+      projection.affiliateCollaboration ?? (proposal as any).affiliateCollaboration,
+    ),
+    sampleApplicationRecord: affiliateSnapshot(
+      projection.sampleApplicationRecord ?? (proposal as any).sampleApplicationRecord,
+    ),
     creatorProfile: affiliateSnapshot(projection.creatorProfile ?? (proposal as any).creatorProfile),
     productSummary: affiliateSnapshot(projection.productSummary ?? (proposal as any).productSummary),
   } as GQL.ActionProposal;
@@ -213,7 +256,6 @@ function hydrateAffiliateProposalProjection(projection: {
 
 type AffiliateWorkspaceStore = {
   upsertAffiliateActionProposal?: (proposal: GQL.ActionProposal | null | undefined) => void;
-  upsertAffiliateCollaborationRecord?: (record: GQL.AffiliateCollaborationRecord | null | undefined) => void;
   upsertAffiliateCreatorRelationship?: (relationship: GQL.AffiliateCreatorRelationship | null | undefined) => void;
   upsertAffiliateCreatorProfile?: (profile: GQL.AffiliateCreatorIdentity | null | undefined) => void;
   upsertAffiliateProductSummary?: (product: GQL.EcomProductSummary | null | undefined) => void;
@@ -240,10 +282,6 @@ function ingestAffiliateWorkItemIntoWorkspace(
   const relationship = workItem.creatorRelationship ?? context.creatorRelation ?? null;
   workspace.upsertAffiliateCreatorRelationship?.(relationship);
   workspace.upsertAffiliateCreatorProfile?.(context.creatorProfile ?? null);
-  workspace.upsertAffiliateCollaborationRecord?.(workItem.collaboration ?? null);
-  workspace.upsertAffiliateCollaborationRecord?.(context.focusCollaboration ?? null);
-  for (const record of context.activeCollaborations ?? []) workspace.upsertAffiliateCollaborationRecord?.(record);
-  for (const record of context.ambiguousCollaborationCandidates ?? []) workspace.upsertAffiliateCollaborationRecord?.(record);
   workspace.upsertAffiliateSampleApplicationRecord?.(workItem.sampleApplicationRecord ?? null);
   workspace.upsertAffiliateSampleApplicationRecord?.(context.primarySampleApplication ?? null);
   for (const sample of context.relatedSampleApplications ?? []) workspace.upsertAffiliateSampleApplicationRecord?.(sample);
@@ -1034,6 +1072,11 @@ function AffiliateMlInsightsPanel({
     ?? rows[0]
     ?? null;
   const availability = selectedRow?.availability ?? [];
+  const productionPresentation = affiliateModelStagePresentation(
+    availability,
+    "EXPECTED_SALES",
+    "UNIFIED",
+  );
 
   useEffect(() => {
     if (selectedSubject?.kind === "user") {
@@ -1084,6 +1127,12 @@ function AffiliateMlInsightsPanel({
                 : t("ecommerce.affiliateWorkspace.modelAvailabilityEmpty")}
             </span>
           </div>
+        ) : productionPresentation.evaluationSummary ? (
+          <AffiliateProductionModelDashboard
+            selectedSubject={selectedSubject}
+            selectedRow={selectedRow}
+            summary={productionPresentation.evaluationSummary}
+          />
         ) : (
           <div className="affiliate-model-stage-grid">
             <AffiliateModelStageCard
@@ -1094,6 +1143,177 @@ function AffiliateMlInsightsPanel({
         )}
       </div>
     </div>
+  );
+}
+
+function AffiliateProductionModelDashboard({
+  selectedSubject,
+  selectedRow,
+  summary,
+}: {
+  selectedSubject: AffiliateInsightSubject;
+  selectedRow: AffiliateInsightRow | null;
+  summary: GQL.AffiliateMlModelEfficiencySummary;
+}) {
+  const { t } = useTranslation();
+  const entityStore = useEntityStore();
+  const payload = parseAffiliateInsightPayload(summary.payload);
+  const sameBudgetPayload = payloadObject(payload, "same_sample_budget");
+  const sameBudgetConfidence = payloadObject(payload, "same_sample_budget_confidence");
+  const sameBudgetConfidenceLevel = affiliateConfidenceLevel(sameBudgetConfidence);
+  const sameBudget = {
+    ...sameBudgetPayload,
+    historical_sample_count:
+      payloadNumber(sameBudgetPayload, "historical_sample_count") ?? summary.rowCount,
+    historical_approved_count:
+      payloadNumber(sameBudgetPayload, "historical_approved_count") ?? summary.humanApprovedCount,
+    historical_approval_rate:
+      payloadNumber(sameBudgetPayload, "historical_approval_rate") ?? summary.humanApprovalRate,
+    historical_expected_sales_units:
+      payloadNumber(sameBudgetPayload, "historical_expected_sales_units")
+      ?? summary.humanSameBudgetExpectedUnits,
+    model_selected_count:
+      payloadNumber(sameBudgetPayload, "model_selected_count") ?? summary.modelSameBudgetCount,
+    model_expected_sales_units:
+      payloadNumber(sameBudgetPayload, "model_expected_sales_units")
+      ?? summary.modelSameBudgetExpectedUnits,
+    expected_sales_lift_ratio:
+      payloadNumber(sameBudgetPayload, "expected_sales_lift_ratio")
+      ?? summary.modelVsHumanExpectedUnitsLiftRatio,
+    model_selected_human_rejected_count:
+      payloadNumber(sameBudgetPayload, "model_selected_human_rejected_count")
+      ?? summary.modelSelectedHumanRejectedCount,
+    model_rejected_human_approved_count:
+      payloadNumber(sameBudgetPayload, "model_rejected_human_approved_count")
+      ?? summary.modelRejectedHumanApprovedCount,
+    historical_approved_actual_units:
+      payloadNumber(sameBudgetPayload, "historical_approved_actual_units")
+      ?? summary.humanApprovedActualUnits,
+    historical_approved_actual_avg_units:
+      payloadNumber(sameBudgetPayload, "historical_approved_actual_avg_units")
+      ?? summary.humanApprovedActualAvgUnits,
+    historical_approved_observed_count:
+      payloadNumber(sameBudgetPayload, "historical_approved_observed_count")
+      ?? summary.humanApprovedObservedCount,
+  };
+  const humanApprovedCount = payloadNumber(sameBudget, "historical_approved_count");
+  const humanExpectedUnits = payloadNumber(sameBudget, "historical_expected_sales_units");
+  const modelExpectedUnits = payloadNumber(sameBudget, "model_expected_sales_units");
+  const liftRatio = payloadNumber(sameBudget, "expected_sales_lift_ratio");
+  const modelRejectedHumanApprovedCount = payloadNumber(
+    sameBudget,
+    "model_rejected_human_approved_count",
+  );
+  const impliedThreshold = summary.minExpectedSalesUnitsSameBudget
+    ?? payloadNumber(sameBudget, "min_expected_sales_units_same_budget");
+  const selectedShop = selectedSubject.shopId
+    ? entityStore.shops.find((shop) => shop.id === selectedSubject.shopId)
+    : null;
+  const configuredThreshold = selectedSubject.kind === "shop"
+    ? selectedShop?.services?.affiliateService?.decisionThresholds?.minExpectedSalesUnits ?? null
+    : undefined;
+  const savingsRisk = humanApprovedCount && humanApprovedCount > 0
+    ? (modelRejectedHumanApprovedCount ?? 0) / humanApprovedCount
+    : null;
+  const maxUnits = Math.max(modelExpectedUnits ?? 0, humanExpectedUnits ?? 0, 1);
+  const modelBarWidth = `${Math.max(8, Math.round(((modelExpectedUnits ?? 0) / maxUnits) * 100))}%`;
+  const humanBarWidth = `${Math.max(8, Math.round(((humanExpectedUnits ?? 0) / maxUnits) * 100))}%`;
+  const evaluationWindow = formatEvaluationWindow(payload, summary.evaluationScope, t);
+  const liftPercent = liftRatio == null ? null : (liftRatio - 1) * 100;
+  const liftLabel = formatSignedPercent(liftPercent);
+  const modelLabel = selectedRow?.modelScope === "shop"
+    ? t("ecommerce.affiliateWorkspace.intelligenceStoreModel")
+    : selectedRow?.modelScope === "region"
+      ? t("ecommerce.affiliateWorkspace.intelligenceRegionModel")
+      : t("ecommerce.affiliateWorkspace.intelligenceAccountModel");
+  const translate = t as unknown as (key: string, options?: Record<string, unknown>) => string;
+  const claimBody = liftPercent != null && liftPercent > 0
+    ? translate("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionBody", {
+        lift: liftLabel,
+        count: formatInteger(humanApprovedCount),
+      })
+    : translate("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionNeutral", {
+        lift: liftLabel,
+        count: formatInteger(humanApprovedCount),
+      });
+
+  return (
+    <>
+      <div className="affiliate-intelligence-production-banner">
+        <span>PRODUCTION</span>
+        <strong>{modelLabel}</strong>
+        <small>UNIFIED · BEST_AVAILABLE</small>
+      </div>
+      <div className="affiliate-intelligence-claim-section">
+        <div className="affiliate-intelligence-comparison">
+          <div className="affiliate-intelligence-card-head">
+            <div className="affiliate-intelligence-card-title">
+              <span>{selectedSubject.kind === "shop"
+                ? `${selectedSubject.label} · ${modelLabel}`
+                : selectedSubject.label}</span>
+              <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
+              <p>{claimBody}</p>
+            </div>
+            <div className="affiliate-intelligence-card-aside">
+              {liftPercent != null ? (
+                <div className={`affiliate-intelligence-lift-badge${liftPercent < 0 ? " affiliate-intelligence-lift-badge-negative" : ""}`}>
+                  <strong>{liftLabel}</strong>
+                  <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameBudget")}</span>
+                </div>
+              ) : null}
+              <small>{translate("ecommerce.affiliateWorkspace.intelligenceSameBudgetStory", {
+                count: formatInteger(humanApprovedCount),
+                window: evaluationWindow,
+              })}</small>
+            </div>
+          </div>
+
+          <div className="affiliate-intelligence-race">
+            <AffiliateRaceRow
+              icon={<AffiliateSparkIcon />}
+              label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
+              value={formatNumber(modelExpectedUnits, 1)}
+              width={modelBarWidth}
+              variant="model"
+            />
+            <AffiliateRaceRow
+              icon={<UserIcon />}
+              label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
+              value={formatNumber(humanExpectedUnits, 1)}
+              width={humanBarWidth}
+              variant="human"
+            />
+          </div>
+
+          {impliedThreshold != null ? (
+            <AffiliateImplicitThresholdPanel
+              approvalRate={summary.humanApprovalRate}
+              configuredThreshold={configuredThreshold}
+              impliedThreshold={impliedThreshold}
+            />
+          ) : null}
+          {sameBudgetConfidenceLevel === "low" || sameBudgetConfidenceLevel === "medium" ? (
+            <AffiliateConfidenceNotice level={sameBudgetConfidenceLevel} />
+          ) : null}
+        </div>
+
+        <AffiliateBudgetDistributionPanel claim={sameBudget} windowLabel={evaluationWindow} />
+      </div>
+      <div className="affiliate-intelligence-footnote">
+        <span
+          className="affiliate-intelligence-disclaimer"
+          title={t("ecommerce.affiliateWorkspace.intelligenceLegalDisclaimer")}
+        >
+          <InfoIcon />
+        </span>
+        <span>{t("ecommerce.affiliateWorkspace.intelligenceTrainingScope", {
+          approvalRate: formatPercent(summary.humanApprovalRate),
+          filteredRate: formatPercent(savingsRisk),
+          trainedAt: formatDate(summary.trainedAt),
+          window: evaluationWindow,
+        })}</span>
+      </div>
+    </>
   );
 }
 
@@ -1759,7 +1979,7 @@ function actionProposalSearchText(
   shopLabel: (shopId: string) => string,
 ): string {
   const creatorProfile = proposal.creatorProfile;
-  const collaboration = proposal.collaborationRecord;
+  const collaboration = proposal.affiliateCollaboration;
   const values = [
     proposal.id,
     proposal.focusShopId,
@@ -1773,12 +1993,12 @@ function actionProposalSearchText(
     creatorProfile?.username,
     creatorProfile?.creatorOpenId,
     creatorProfile?.creatorImId,
-    proposal.collaborationRecordId,
+    proposal.affiliateCollaborationId,
+    proposal.sampleApplicationRecordId,
     collaboration?.id,
-    collaboration?.creatorId,
-    collaboration?.creatorOpenId,
-    collaboration?.creatorImId,
-    collaboration?.productId,
+    ...(collaboration?.creatorIds ?? []),
+    ...(collaboration?.creatorOpenIds ?? []),
+    ...(collaboration?.productIds ?? []),
     collaboration?.platformCollaborationId,
     ...(proposal.messageIntent?.parts.flatMap((part) => [part.text, part.productId, part.fileName]) ?? []),
     proposal.sampleReviewIntent?.platformApplicationId,
@@ -1843,50 +2063,31 @@ function relationshipWorkItemSearchText(
     .toLowerCase();
 }
 
-function filterCollaborationRecords(
-  records: GQL.AffiliateCollaborationRecord[],
+function filterAffiliateCollaborations(
+  records: GQL.AffiliateCollaboration[],
   search: string,
   shopLabel: (shopId: string) => string,
-): GQL.AffiliateCollaborationRecord[] {
+): GQL.AffiliateCollaboration[] {
   const query = search.trim().toLowerCase();
   if (!query) return records;
-  return records.filter((record) => collaborationRecordSearchText(record, shopLabel).includes(query));
+  return records.filter((record) => affiliateCollaborationSearchText(record, shopLabel).includes(query));
 }
 
-function collaborationRecordSearchText(
-  record: GQL.AffiliateCollaborationRecord,
+function affiliateCollaborationSearchText(
+  record: GQL.AffiliateCollaboration,
   shopLabel: (shopId: string) => string,
 ): string {
-  const samples = record.sampleApplicationRecords ?? [];
   const values = [
     record.id,
     record.shopId,
     shopLabel(record.shopId),
-    record.creatorId,
-    record.creatorOpenId,
-    record.creatorImId,
-    record.productId,
+    ...record.creatorIds,
+    ...record.creatorOpenIds,
+    ...record.productIds,
     record.platformCollaborationId,
-    record.affiliateCollaborationId,
-    record.sampleApplicationRecordId,
-    record.processingStatus,
-    record.requiredAction,
-    record.lifecycleStage,
-    record.collaborationType,
-    ...(record.processReasons ?? []),
-    ...samples.flatMap((sample) => [
-      sample.id,
-      sample.platformApplicationId,
-      sample.productId,
-      sample.platformCollaborationId,
-      sample.platformOpenCollaborationId,
-      sample.platformTargetCollaborationId,
-      sample.sampleWorkStatus,
-      sample.order?.platformOrderId,
-      sample.order?.trackingNumber,
-      sample.trackingNumber,
-      sample.carrier,
-    ]),
+    record.campaignId,
+    record.status,
+    record.type,
   ];
   return values
     .filter((value): value is string => typeof value === "string" && value.length > 0)
@@ -1894,12 +2095,12 @@ function collaborationRecordSearchText(
     .toLowerCase();
 }
 
-function collaborationRecordMatchesHistoryStatusFilter(
-  record: GQL.AffiliateCollaborationRecord,
+function affiliateCollaborationMatchesHistoryStatusFilter(
+  record: GQL.AffiliateCollaboration,
   filter: HistoryStatusFilter,
 ): boolean {
   if (filter === "ALL") return true;
-  return record.processingStatus === filter;
+  return record.status === filter;
 }
 
 function isAffiliateStaffHandlingWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
@@ -1933,6 +2134,26 @@ function AffiliateLoadingState() {
     <div className="affiliate-loading-state" role="status" aria-live="polite">
       <div className="affiliate-loading-spinner" aria-hidden="true" />
       <span>{t("ecommerce.affiliateWorkspace.loadingEntities")}</span>
+    </div>
+  );
+}
+
+function AffiliateQueryErrorState({
+  error,
+  onRetry,
+}: {
+  error: unknown;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    <div className="affiliate-proposal-empty affiliate-query-error" role="alert">
+      <strong>{t("common.error", { defaultValue: "Unable to load data" })}</strong>
+      <span>{message}</span>
+      <button className="btn btn-secondary" type="button" onClick={onRetry}>
+        {t("common.retry", { defaultValue: "Retry" })}
+      </button>
     </div>
   );
 }
@@ -2408,29 +2629,27 @@ function CreatorRelationshipCard({
     ? creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"))
     : item.creatorId;
   const handle = profile ? creatorTikTokHandle(profile) : null;
-  const platformId = profile ? creatorPlatformIdentity(profile) : item.latestCollaborationRecord?.creatorOpenId ?? null;
+  const platformId = profile
+    ? creatorPlatformIdentity(profile)
+    : item.latestAffiliateCollaboration?.creatorOpenIds[0] ?? null;
   const missingTags = allTags.filter((tag) => !item.tagIds.includes(tag.id));
-  const latestRecord = item.latestCollaborationRecord;
-  const latestStatus = latestRecord?.processingStatus
-    ? t(`ecommerce.affiliateWorkspace.collaborationFilters.${latestRecord.processingStatus}`, {
-      defaultValue: latestRecord.processingStatus,
+  const latestRecord = item.latestAffiliateCollaboration;
+  const latestStatus = latestRecord?.status
+    ? t(`ecommerce.affiliateWorkspace.collaborationFilters.${latestRecord.status}`, {
+      defaultValue: latestRecord.status,
     })
     : t("ecommerce.affiliateWorkspace.creatorStable");
-  const lifecycleStage = latestRecord?.lifecycleStage ?? null;
+  const lifecycleStage = latestRecord?.type ?? null;
   const lifecycleLabel = lifecycleStage
-    ? t(`ecommerce.affiliateWorkspace.lifecycleStages.${lifecycleStage}`, { defaultValue: lifecycleStage })
+    ? t(`ecommerce.affiliateWorkspace.collaborationTypes.${lifecycleStage}`, { defaultValue: lifecycleStage })
     : t("ecommerce.affiliateWorkspace.creatorNotInCollaboration");
   const pendingProposal = item.latestPendingProposal;
   const nextAction = pendingProposal
     ? renderProposalRecommendationTitle(pendingProposal, t)
-    : latestRecord?.requiredAction && !isNoRequiredAction(latestRecord.requiredAction)
-      ? t(`ecommerce.affiliateWorkspace.requiredActions.${latestRecord.requiredAction}`, {
-        defaultValue: formatAffiliateEnumLabel(latestRecord.requiredAction),
-      })
-      : latestStatus;
+    : latestStatus;
   const nextActionContext = pendingProposal
     ? t("ecommerce.affiliateWorkspace.creatorPendingProposal")
-    : latestRecord?.productId
+    : latestRecord?.productIds.length
       ? t("ecommerce.affiliateWorkspace.productContextConfirmed")
       : null;
   const sampleStatus = item.latestSampleApplicationRecord?.sampleWorkStatus ?? null;
@@ -2689,74 +2908,42 @@ function CreatorRelationshipWorkCard({
   );
 }
 
-function CollaborationRecordCard({
-  record,
+function AffiliateCollaborationCard({
+  collaboration,
   shopLabel,
-  onOpen,
 }: {
-  record: GQL.AffiliateCollaborationRecord;
+  collaboration: GQL.AffiliateCollaboration;
   shopLabel: string;
-  onOpen: () => void;
 }) {
   const { t } = useTranslation();
-  const samples = record.sampleApplicationRecords ?? [];
-  const primarySample = samples[0] ?? null;
-  const sampleOrder = primarySample?.order;
-  const trackingNumber = sampleOrder?.trackingNumber ?? primarySample?.trackingNumber ?? null;
-  const carrier = sampleOrder?.carrier ?? primarySample?.carrier ?? null;
-  const sampleStatus = primarySample
-    ? t(`ecommerce.affiliateWorkspace.sampleWorkStatusLabels.${primarySample.sampleWorkStatus}`, {
-        defaultValue: formatAffiliateEnumLabel(primarySample.sampleWorkStatus),
-      })
-    : t("ecommerce.affiliateWorkspace.sampleApplication.none");
-  const statusDisplay = collaborationRecordStatusDisplay(record, t);
-  const workView = buildCollaborationWorkView(record, null, t);
-  const creatorProfile = record.creatorProfile ?? null;
-  const creatorPlatformId = creatorProfile
-    ? creatorPlatformIdentity(creatorProfile)
-    : record.creatorOpenId ?? record.creatorImId ?? null;
-  const creatorHandle = creatorProfile ? creatorTikTokHandle(creatorProfile) : null;
-  const creatorLabel = creatorProfile
-    ? creatorPrimaryName(creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
-    : creatorPlatformId
-      ? `@${formatCompactIdentifier(creatorPlatformId, 24)}`
-    : t("ecommerce.affiliateWorkspace.unknownCreator");
-  const contentCount = primarySample?.observedContentCount ?? 0;
-  const logisticsLabel = trackingNumber
-    ? [carrier, trackingNumber].filter(Boolean).join(" ")
-    : t("ecommerce.affiliateWorkspace.sampleApplication.noTrackingYet");
+  const creatorCount = collaboration.creatorIds.length || collaboration.creatorOpenIds.length;
+  const productCount = collaboration.productIds.length;
+  const statusDisplay = {
+    primary: formatAffiliateEnumLabel(collaboration.status),
+    secondary: formatAffiliateEnumLabel(collaboration.type),
+  };
+  const tone: CollaborationWorkViewModel["badgeTone"] =
+    collaboration.status === GQL.AffiliateCollaborationStatus.Active
+      ? "done"
+      : collaboration.status === GQL.AffiliateCollaborationStatus.Expiring ||
+          collaboration.status === GQL.AffiliateCollaborationStatus.Terminating
+        ? "attention"
+        : "waiting";
 
   return (
-    <article
-      className="affiliate-collaboration-card affiliate-collaboration-record-card"
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
-    >
+    <article className="affiliate-collaboration-card affiliate-collaboration-record-card">
       <div className="affiliate-work-item-head">
-        <div className="affiliate-creator-block">
-          <CreatorAvatarImage
-            avatarUrl={creatorProfile?.avatarUrl}
-            className="affiliate-avatar affiliate-relationship-work-avatar-image"
-            name={creatorLabel}
-          />
-          <div className="affiliate-creator-text">
-            <div className="affiliate-creator-name-static">{creatorLabel}</div>
-            <CreatorPlatformId handle={creatorHandle} platformId={creatorPlatformId} />
-            <div className="affiliate-work-item-meta">
-              <span>{shopLabel}</span>
-              <span>{formatProposalTime(record.stateUpdatedAt ?? record.updatedAt)}</span>
-              <SystemIdCopy value={record.id} />
-            </div>
+        <div className="affiliate-creator-text">
+          <div className="affiliate-creator-name-static">
+            {formatAffiliateEnumLabel(collaboration.type)} · {shopLabel}
+          </div>
+          <div className="affiliate-work-item-meta">
+            <span>{formatProposalTime(collaboration.platformUpdatedAt ?? collaboration.lastObservedAt)}</span>
+            <SystemIdCopy value={collaboration.id} />
+            <PlatformIdCopy value={collaboration.platformCollaborationId} />
           </div>
         </div>
-        <RelationshipStatusBadge display={statusDisplay} tone={collaborationStatusTone(record.processingStatus)} />
+        <RelationshipStatusBadge display={statusDisplay} tone={tone} />
       </div>
 
       <div className="affiliate-collaboration-card-body affiliate-collaboration-record-card-body">
@@ -2764,53 +2951,42 @@ function CollaborationRecordCard({
           <div className="affiliate-card-section-label">
             {t("ecommerce.affiliateWorkspace.collaborationRecords")}
           </div>
-          <div className="affiliate-card-section-title">{workView.title}</div>
-          <div className="affiliate-card-section-copy">{workView.description}</div>
+          <div className="affiliate-card-section-title">
+            {collaboration.productIds[0]
+              ? t("ecommerce.affiliateWorkspace.productIdShort", {
+                  productId: formatCompactIdentifier(collaboration.productIds[0], 28),
+                })
+              : collaboration.platformCollaborationId}
+          </div>
+          <div className="affiliate-card-section-copy">
+            {formatAffiliateEnumLabel(collaboration.status)} · {formatAffiliateEnumLabel(collaboration.type)}
+          </div>
         </section>
 
         <ProductSummaryCard
           product={null}
-          productId={record.productId}
-          shopId={record.shopId}
+          productId={collaboration.productIds[0]}
+          shopId={collaboration.shopId}
           label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
         />
 
         <div className="affiliate-relationship-work-card-priority">
           <RelationshipMetric
-            label={t("ecommerce.affiliateWorkspace.labels.nextStep")}
-            value={t(`ecommerce.affiliateWorkspace.requiredActions.${relationshipRequiredActionFromCollaboration(record.requiredAction)}`, {
-              defaultValue: formatAffiliateEnumLabel(record.requiredAction),
-            })}
+            label={t("ecommerce.affiliateWorkspace.statusFilter")}
+            value={formatAffiliateEnumLabel(collaboration.status)}
           />
           <RelationshipMetric
-            label={t("ecommerce.affiliateWorkspace.sampleApplication.status")}
-            value={sampleStatus}
+            label={t("ecommerce.affiliateWorkspace.creatorActiveCollaborations", { count: creatorCount })}
+            value={formatInteger(creatorCount)}
           />
           <RelationshipMetric
-            label={t("ecommerce.affiliateWorkspace.sampleApplication.shippingProgress")}
-            value={logisticsLabel}
+            label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+            value={formatInteger(productCount)}
           />
           <RelationshipMetric
-            label={t("ecommerce.affiliateWorkspace.sampleApplication.contentProgress")}
-            value={t("ecommerce.affiliateWorkspace.sampleApplication.contentProgressValue", {
-              count: contentCount,
-            })}
+            label="Commission"
+            value={collaboration.commissionRate == null ? "—" : formatPercent(collaboration.commissionRate)}
           />
-        </div>
-
-        <div className="affiliate-collaboration-card-footer">
-          <span>{t("ecommerce.affiliateWorkspace.openCreatorRelationshipWorkDetailHint")}</span>
-          <button
-            className="affiliate-collaboration-card-footer-action"
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpen();
-            }}
-          >
-            <EyeIcon size={16} />
-            <span>{t("ecommerce.affiliateWorkspace.viewDetails")}</span>
-          </button>
         </div>
       </div>
     </article>
@@ -2867,7 +3043,7 @@ function CollaborationRecordSubcard({
   onRequestRevision,
   decidingProposal = false,
 }: {
-  record: GQL.AffiliateCollaborationRecord;
+  record: AffiliateCollaborationView;
   compact?: boolean;
   focused?: boolean;
   statusDisplay?: { primary: string; secondary?: string | null };
@@ -2885,7 +3061,9 @@ function CollaborationRecordSubcard({
 }) {
   const { t } = useTranslation();
   const resolvedStatusDisplay = statusDisplay ?? collaborationRecordStatusDisplay(record, t);
-  const resolvedStatusTone = statusTone ?? collaborationStatusTone(record.processingStatus);
+  const resolvedStatusTone = statusTone ?? collaborationStatusTone(
+    record.processingStatus ?? GQL.AffiliateRelationshipProcessingStatus.Idle,
+  );
   const primarySample = samples[0] ?? (record.sampleApplicationRecords ?? [])[0] ?? null;
   const productHeading = record.productId
     ? t("ecommerce.affiliateWorkspace.productIdShort", {
@@ -2979,7 +3157,7 @@ function CollaborationRecordSubcard({
 
 function sampleBelongsToCollaboration(
   sample: GQL.SampleApplicationRecord,
-  record: GQL.AffiliateCollaborationRecord,
+  record: AffiliateCollaborationView,
 ): boolean {
   if (record.sampleApplicationRecordId && sample.id === record.sampleApplicationRecordId) return true;
   if (record.affiliateCollaborationId && sample.affiliateCollaborationId === record.affiliateCollaborationId) return true;
@@ -3236,7 +3414,6 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   const [historySearch, setHistorySearch] = useState("");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageInput, setHistoryPageInput] = useState("1");
-  const [selectedRelationship, setSelectedRelationship] = useState<CreatorRelationshipDetailItem | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -3245,7 +3422,6 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   }, [entityStore, user]);
 
   const shopOptions = [
-    { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
     ...shops
       .filter((shop) => shop.services?.affiliateService?.enabled)
       .map((shop) => ({
@@ -3253,6 +3429,11 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
         label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
       })),
   ];
+  useEffect(() => {
+    if (!selectedShopId && shopOptions[0]?.value) {
+      setSelectedShopId(shopOptions[0].value);
+    }
+  }, [selectedShopId, shopOptions]);
   const historyStatusFilterOptions = useMemo(
     () => HISTORY_STATUS_FILTERS.map((filter) => ({
       value: filter,
@@ -3265,23 +3446,23 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     [t],
   );
 
-  const processingStatus = useMemo(() => {
+  const collaborationStatus = useMemo(() => {
     if (historyStatusFilter === "ALL") return undefined;
     return historyStatusFilter;
   }, [historyStatusFilter]);
-  const { data: collaborationRecordsData, loading, refetch } = useQuery<
-    { collaborationRecords: GQL.AffiliateCollaborationRecord[] },
-    { input: GQL.ReadAffiliateCollaborationRecordsInput }
-  >(AFFILIATE_COLLABORATION_RECORDS_QUERY, {
+  const { data: collaborationsData, loading, error, refetch } = useQuery<
+    { affiliateCollaborations: GQL.AffiliateCollaboration[] },
+    { input: GQL.ReadAffiliateCollaborationsInput }
+  >(AFFILIATE_COLLABORATIONS_QUERY, {
     variables: {
       input: {
-        shopId: selectedShopId || undefined,
-        processingStatus,
+        shopId: selectedShopId,
+        status: collaborationStatus,
         limit: 200,
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !user,
+    skip: !user || !selectedShopId,
   });
 
   useEffect(() => {
@@ -3297,9 +3478,9 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     };
   }, [refetch]);
 
-  const collaborationRecords = collaborationRecordsData?.collaborationRecords ?? [];
-  const searchedItems = filterCollaborationRecords(collaborationRecords, historySearch, shopLabel)
-    .filter((record) => collaborationRecordMatchesHistoryStatusFilter(record, historyStatusFilter));
+  const collaborations = collaborationsData?.affiliateCollaborations ?? [];
+  const searchedItems = filterAffiliateCollaborations(collaborations, historySearch, shopLabel)
+    .filter((record) => affiliateCollaborationMatchesHistoryStatusFilter(record, historyStatusFilter));
   const historySubStatusOptions = useMemo(() => {
     const seen = new Set<string>();
     const options = [{
@@ -3307,7 +3488,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
       label: t("ecommerce.affiliateWorkspace.allSubStatuses"),
     }];
     for (const record of searchedItems) {
-      const key = collaborationRecordSubStatusKey(record) ?? NO_HISTORY_SUB_STATUS;
+      const key = `type:${record.type}`;
       if (seen.has(key)) continue;
       seen.add(key);
       options.push({
@@ -3318,7 +3499,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
     return options;
   }, [searchedItems, t]);
   const visibleItems = searchedItems
-    .filter((record) => historySubStatusFilter === ALL_HISTORY_SUB_STATUS || (collaborationRecordSubStatusKey(record) ?? NO_HISTORY_SUB_STATUS) === historySubStatusFilter);
+    .filter((record) => historySubStatusFilter === ALL_HISTORY_SUB_STATUS || `type:${record.type}` === historySubStatusFilter);
   const historyPageCount = Math.max(1, Math.ceil(visibleItems.length / CREATOR_RELATIONSHIP_WORK_PAGE_SIZE));
   const pagedVisibleItems = useMemo(() => {
     const start = (historyPage - 1) * CREATOR_RELATIONSHIP_WORK_PAGE_SIZE;
@@ -3463,7 +3644,9 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
           </div>
         </div>
 
-        {loading && visibleItems.length === 0 ? (
+        {error ? (
+          <AffiliateQueryErrorState error={error} onRetry={() => void refetch()} />
+        ) : loading && visibleItems.length === 0 ? (
           <AffiliateLoadingState />
         ) : visibleItems.length === 0 ? (
           <div className="affiliate-proposal-empty">
@@ -3473,13 +3656,10 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
           <>
             <div className="affiliate-collaboration-list">
               {pagedVisibleItems.map((record) => (
-                <CollaborationRecordCard
+                <AffiliateCollaborationCard
                   key={record.id}
-                  record={record}
+                  collaboration={record}
                   shopLabel={shopLabel(record.shopId)}
-                  onOpen={() => setSelectedRelationship(relationshipDetailFromWorkItem(
-                    relationshipWorkItemFromCollaborationRecord(record, entityStore.affiliateWorkspace),
-                  ))}
                 />
               ))}
             </div>
@@ -3541,13 +3721,6 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
         )}
       </div>
 
-      {selectedRelationship ? (
-        <CreatorRelationshipDetailModal
-          item={selectedRelationship}
-          selectedShopId={selectedShopId}
-          onClose={() => setSelectedRelationship(null)}
-        />
-      ) : null}
     </div>
   );
 });
@@ -4365,7 +4538,7 @@ function ActionProposalCard({
 function ProposalPredictionComparison({
   snapshot,
 }: {
-  snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot | null;
+  snapshot: AffiliatePredictionSnapshotView | null;
 }) {
   const { t } = useTranslation();
   const output = readPredictionSnapshotOutput(snapshot);
@@ -4713,7 +4886,10 @@ function SampleApplicationCopyFact({
 }
 
 function ProposalProductSummary({ proposal, label }: { proposal: GQL.ActionProposal; label?: string }) {
-  const productId = proposal.collaborationRecord?.productId ?? getProposalActionProductId(proposal);
+  const productId = proposal.productId
+    ?? proposal.affiliateCollaboration?.productIds[0]
+    ?? proposal.sampleApplicationRecord?.productId
+    ?? getProposalActionProductId(proposal);
   return (
     <ProductSummaryCard
       product={proposal.productSummary ?? null}
@@ -4727,7 +4903,9 @@ function ProposalProductSummary({ proposal, label }: { proposal: GQL.ActionPropo
 function hasProposalProductContext(proposal: GQL.ActionProposal): boolean {
   return Boolean(
     proposal.productSummary ||
-    proposal.collaborationRecord?.productId ||
+    proposal.productId ||
+    proposal.affiliateCollaboration?.productIds[0] ||
+    proposal.sampleApplicationRecord?.productId ||
     getProposalActionProductId(proposal),
   );
 }
@@ -4739,14 +4917,15 @@ function relationshipWorkItemFromProposal(
   const projection = relationshipProjectionSnapshot(workspace, proposal.creatorRelationshipId);
   const proposalProjection = proposalProjectionSnapshot(workspace, proposal.id);
   const hydratedProposal = hydrateAffiliateProposalProjection(proposalProjection ?? { proposal });
-  const projectionCollaborations = (projection?.collaborationRecords ?? []) as GQL.AffiliateCollaborationRecord[];
+  const projectionCollaborations = (projection?.affiliateCollaborations ?? []) as AffiliateCollaborationView[];
   const projectionPendingProposals = ((projection?.actionProposals ?? []) as GQL.ActionProposal[])
     .filter((item) => item.status === GQL.ActionProposalStatus.Pending);
-  const focusCollaboration =
-    hydratedProposal.collaborationRecord ??
-    projectionCollaborations.find((record) => record.id === hydratedProposal.collaborationRecordId) ??
+  const focusCollaboration = (
+    hydratedProposal.affiliateCollaboration ??
+    projectionCollaborations.find((record) => record.id === hydratedProposal.affiliateCollaborationId) ??
     projectionCollaborations[0] ??
-    null;
+    null
+  ) as AffiliateCollaborationView | null;
   const relationship = projection?.creatorRelationship ?? hydratedProposal.creatorRelationship ?? null;
   const activeCollaborations = mergeById([
     ...(focusCollaboration ? [focusCollaboration] : []),
@@ -4774,7 +4953,7 @@ function relationshipWorkItemFromProposal(
     activeCollaborations,
     ambiguousCollaborations: (relationship?.ambiguousCollaborationRecordIds ?? [])
       .map((recordId: string) => activeCollaborations.find((record) => record.id === recordId))
-      .filter(Boolean) as GQL.AffiliateCollaborationRecord[],
+      .filter(Boolean) as AffiliateCollaborationView[],
     focusCollaboration,
     pendingProposals,
     focusedProposal: hydratedProposal,
@@ -4791,19 +4970,20 @@ function relationshipWorkItemFromWorkItem(
 ): CreatorRelationshipWorkItem {
   const context = workItem.context;
   const projection = relationshipProjectionSnapshot(workspace, workItem.creatorRelationshipId);
-  const projectionCollaborations = (projection?.collaborationRecords ?? []) as GQL.AffiliateCollaborationRecord[];
+  const projectionCollaborations = (projection?.affiliateCollaborations ?? []) as AffiliateCollaborationView[];
   const projectionPendingProposals = ((projection?.actionProposals ?? []) as GQL.ActionProposal[])
     .filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending);
   const pendingProposals = mergeById(projectionPendingProposals);
   const projectedFocusCollaboration = projection?.creatorRelationship?.focusCollaborationRecordId
     ? projectionCollaborations.find((record) => record.id === projection.creatorRelationship.focusCollaborationRecordId)
     : null;
-  const focusCollaboration =
+  const focusCollaboration = (
     context.focusCollaboration ??
-    workItem.collaboration ??
-    projectionCollaborations.find((record) => record.id === workItem.collaborationRecordId) ??
+    workItem.affiliateCollaboration ??
+    projectionCollaborations.find((record) => record.id === workItem.affiliateCollaborationId) ??
     projectedFocusCollaboration ??
-    null;
+    null
+  ) as AffiliateCollaborationView | null;
   const relationship = workItem.creatorRelationship ?? context.creatorRelation ?? projection?.creatorRelationship ?? null;
   const primaryAgenda = relationship?.agendaItems?.find(
     (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.Agent,
@@ -4813,7 +4993,7 @@ function relationshipWorkItemFromWorkItem(
     (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.External,
   ) ?? null;
   const activeCollaborations = mergeById([
-    ...(context.activeCollaborations ?? []),
+    ...((context.activeCollaborations ?? []) as AffiliateCollaborationView[]),
     ...(focusCollaboration ? [focusCollaboration] : []),
     ...projectionCollaborations,
   ]);
@@ -4841,7 +5021,7 @@ function relationshipWorkItemFromWorkItem(
     creatorProfile: context.creatorProfile ?? projection?.creatorProfile ?? null,
     creatorRelation: relationship,
     activeCollaborations,
-    ambiguousCollaborations: context.ambiguousCollaborationCandidates ?? [],
+    ambiguousCollaborations: (context.ambiguousCollaborationCandidates ?? []) as AffiliateCollaborationView[],
     focusCollaboration,
     pendingProposals,
     focusedProposal: pendingProposals[0] ?? null,
@@ -4853,13 +5033,13 @@ function relationshipWorkItemFromWorkItem(
 }
 
 function relationshipWorkItemFromCollaborationRecord(
-  record: GQL.AffiliateCollaborationRecord,
+  record: AffiliateCollaborationView,
   workspace?: AffiliateWorkspaceStore,
 ): CreatorRelationshipWorkItem {
   const projection = relationshipProjectionSnapshot(workspace, record.creatorRelationshipId);
   const relationship = projection?.creatorRelationship ?? null;
   const creatorProfile = record.creatorProfile ?? projection?.creatorProfile ?? null;
-  const projectionCollaborations = (projection?.collaborationRecords ?? []) as GQL.AffiliateCollaborationRecord[];
+  const projectionCollaborations = (projection?.affiliateCollaborations ?? []) as AffiliateCollaborationView[];
   const projectionPendingProposals = ((projection?.actionProposals ?? []) as GQL.ActionProposal[])
     .filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending);
   const sampleApplications = mergeById([
@@ -4872,10 +5052,10 @@ function relationshipWorkItemFromCollaborationRecord(
     ...projectionCollaborations,
   ]);
   const pendingProposals = projectionPendingProposals.filter((proposal) =>
-    !proposal.collaborationRecordId || proposal.collaborationRecordId === record.id,
+    !proposal.affiliateCollaborationId || proposal.affiliateCollaborationId === record.id,
   );
   return {
-    relationshipId: record.creatorRelationshipId,
+    relationshipId: record.creatorRelationshipId ?? "",
     shopId: record.shopId,
     creatorId: relationship?.creatorId ?? creatorProfile?.id ?? record.creatorId ?? null,
     creatorOpenId: creatorProfile?.creatorOpenId ?? record.creatorOpenId ?? null,
@@ -4892,7 +5072,7 @@ function relationshipWorkItemFromCollaborationRecord(
     activeCollaborations,
     ambiguousCollaborations: (relationship?.ambiguousCollaborationRecordIds ?? [])
       .map((recordId: string) => activeCollaborations.find((candidate) => candidate.id === recordId))
-      .filter(Boolean) as GQL.AffiliateCollaborationRecord[],
+      .filter(Boolean) as AffiliateCollaborationView[],
     focusCollaboration: record,
     pendingProposals,
     focusedProposal: pendingProposals[0] ?? null,
@@ -4904,14 +5084,14 @@ function relationshipWorkItemFromCollaborationRecord(
 }
 
 function relationshipProcessingStatusFromCollaboration(
-  status: GQL.AffiliateCollaborationRecordProcessingStatus,
+  status?: GQL.AffiliateRelationshipProcessingStatus | null,
 ): GQL.AffiliateRelationshipProcessingStatus {
   switch (status) {
-    case GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired:
+    case GQL.AffiliateRelationshipProcessingStatus.AgentRequired:
       return GQL.AffiliateRelationshipProcessingStatus.AgentRequired;
-    case GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal:
+    case GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting:
       return GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting;
-    case GQL.AffiliateCollaborationRecordProcessingStatus.Idle:
+    case GQL.AffiliateRelationshipProcessingStatus.Idle:
     default:
       return GQL.AffiliateRelationshipProcessingStatus.Idle;
   }
@@ -4930,25 +5110,25 @@ function relationshipProcessingStatusFromAgendaOwner(
 }
 
 function relationshipRequiredActionFromCollaboration(
-  action: GQL.AffiliateCollaborationRequiredAction,
+  action?: GQL.AffiliateRelationshipRequiredAction | null,
 ): GQL.AffiliateRelationshipRequiredAction {
   switch (action) {
-    case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
+    case GQL.AffiliateRelationshipRequiredAction.ReplyToCreator:
       return GQL.AffiliateRelationshipRequiredAction.ReplyToCreator;
-    case GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication:
+    case GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication:
       return GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication;
-    case GQL.AffiliateCollaborationRequiredAction.ShipSample:
+    case GQL.AffiliateRelationshipRequiredAction.ShipSample:
       return GQL.AffiliateRelationshipRequiredAction.ShipSample;
-    case GQL.AffiliateCollaborationRequiredAction.FollowUpCreator:
+    case GQL.AffiliateRelationshipRequiredAction.FollowUpCreator:
       return GQL.AffiliateRelationshipRequiredAction.FollowUpCreator;
-    case GQL.AffiliateCollaborationRequiredAction.None:
+    case GQL.AffiliateRelationshipRequiredAction.NoAction:
     default:
       return GQL.AffiliateRelationshipRequiredAction.NoAction;
   }
 }
 
 function productContextFromCollaborationRecord(
-  record: GQL.AffiliateCollaborationRecord,
+  record: AffiliateCollaborationView,
 ): GQL.AffiliateWorkProductContext | null {
   if (!record.productId) return null;
   return {
@@ -5002,13 +5182,13 @@ function relationshipDetailFromManagementItem(
 function productContextFromProposal(
   proposal: GQL.ActionProposal,
 ): GQL.AffiliateWorkProductContext | null {
-  const productId = proposal.collaborationRecord?.productId ?? getProposalActionProductId(proposal);
+  const productId = proposal.affiliateCollaboration?.productIds[0] ?? getProposalActionProductId(proposal);
   if (!productId) return null;
   return {
     productId,
     title: proposal.productSummary?.title ?? null,
     imageUrl: proposal.productSummary?.coverImage ?? null,
-    source: proposal.collaborationRecord?.productId ? "collaboration" : "proposal",
+    source: proposal.affiliateCollaboration?.productIds[0] ? "collaboration" : "proposal",
   } as GQL.AffiliateWorkProductContext;
 }
 
@@ -5034,7 +5214,7 @@ function withRelationshipContext(
   return {
     ...proposal,
     creatorProfile: proposal.creatorProfile ?? item.creatorProfile ?? null,
-    collaborationRecord: proposal.collaborationRecord ?? item.focusCollaboration ?? null,
+    affiliateCollaboration: proposal.affiliateCollaboration ?? item.focusCollaboration ?? null,
   } as GQL.ActionProposal;
 }
 
@@ -5048,10 +5228,10 @@ function relationshipStatusTone(
 }
 
 function collaborationStatusTone(
-  status: GQL.AffiliateCollaborationRecordProcessingStatus,
+  status: GQL.AffiliateRelationshipProcessingStatus,
 ): CollaborationWorkViewModel["badgeTone"] {
-  if (status === GQL.AffiliateCollaborationRecordProcessingStatus.AgentRequired) return "attention";
-  if (status === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal) return "waiting";
+  if (status === GQL.AffiliateRelationshipProcessingStatus.AgentRequired) return "attention";
+  if (status === GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting) return "waiting";
   return "done";
 }
 
@@ -5065,7 +5245,7 @@ function relationshipSubStatusKey(item: CreatorRelationshipWorkItem): string | n
   );
 }
 
-function collaborationRecordSubStatusKey(record: GQL.AffiliateCollaborationRecord): string | null {
+function collaborationRecordSubStatusKey(record: AffiliateCollaborationView): string | null {
   return firstStatusDetailKey(
     record.processReasons,
     null,
@@ -5118,7 +5298,7 @@ function creatorRelationshipStatusDisplay(
 }
 
 function collaborationRecordStatusDisplay(
-  record: GQL.AffiliateCollaborationRecord,
+  record: AffiliateCollaborationView,
   t: ReturnType<typeof useTranslation>["t"],
 ): { primary: string; secondary?: string | null } {
   return {
@@ -5177,7 +5357,7 @@ function firstStatusDetailKey(
 
 function isNoRequiredAction(action?: string | null): boolean {
   return !action ||
-    action === GQL.AffiliateCollaborationRequiredAction.None ||
+    action === GQL.AffiliateRelationshipRequiredAction.NoAction ||
     action === GQL.AffiliateRelationshipRequiredAction.NoAction;
 }
 
@@ -5386,23 +5566,11 @@ function CreatorRelationshipDetailModal({
     { sendAffiliateCreatorMessage: GQL.SendAffiliateCreatorMessagePayload },
     { input: GQL.SendAffiliateCreatorMessageInput }
   >(SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION);
-  const { data: relationshipCollaborationsData } = useQuery<
-    { collaborationRecords: GQL.AffiliateCollaborationRecord[] },
-    { input: GQL.ReadAffiliateCollaborationRecordsInput }
-  >(AFFILIATE_COLLABORATION_RECORDS_QUERY, {
-    variables: {
-      input: {
-        creatorRelationshipId: relationshipId ?? undefined,
-        limit: 100,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !relationshipId,
-  });
-  const collaborationRecords = mergeById([
-    ...(relationshipCollaborationsData?.collaborationRecords ?? []),
+  const collaborationRecords = mergeById<AffiliateCollaborationView>([
     ...workItems.flatMap((workItem) => workItem.activeCollaborations),
-    ...(management?.latestCollaborationRecord ? [management.latestCollaborationRecord] : []),
+    ...(management?.latestAffiliateCollaboration
+      ? [management.latestAffiliateCollaboration as AffiliateCollaborationView]
+      : []),
   ]).sort((left, right) => new Date(right.updatedAt ?? right.createdAt).getTime() - new Date(left.updatedAt ?? left.createdAt).getTime());
   const pendingProposals = mergeById(workItems.flatMap((workItem) => [
     ...workItem.pendingProposals,
@@ -5565,7 +5733,6 @@ function CreatorRelationshipDetailModal({
       ...(workItem.primarySampleApplication ? [workItem.primarySampleApplication] : []),
       ...(workItem.relatedSampleApplications ?? []),
     ]),
-    ...collaborationRecords.flatMap((record) => record.sampleApplicationRecords ?? []),
   ].map((sample) => affiliateSnapshot(sample) as GQL.SampleApplicationRecord))
     .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
   const productSummaryForProductId = (productId: string | null | undefined) => {
@@ -5574,14 +5741,14 @@ function CreatorRelationshipDetailModal({
     return productSummaryFromWorkContext(context);
   };
   const hydrateRelationshipProposal = (proposal: GQL.ActionProposal) => {
-    const collaborationRecordId = proposal.collaborationRecord?.id ?? proposal.collaborationRecordId ?? null;
-    const collaborationRecord = proposal.collaborationRecord
+    const collaborationRecordId = proposal.affiliateCollaboration?.id ?? proposal.affiliateCollaborationId ?? null;
+    const collaborationRecord = proposal.affiliateCollaboration
       ?? collaborationRecords.find((record) => record.id === collaborationRecordId)
       ?? null;
-    const productId = collaborationRecord?.productId ?? getProposalActionProductId(proposal);
+    const productId = collaborationRecord?.productIds[0] ?? getProposalActionProductId(proposal);
     return hydrateAffiliateProposalProjection({
       proposal,
-      collaborationRecord,
+      affiliateCollaboration: collaborationRecord,
       creatorProfile: profile,
       productSummary: proposal.productSummary ?? productSummaryForProductId(productId),
     });
@@ -5591,9 +5758,9 @@ function CreatorRelationshipDetailModal({
   ])
     .map(hydrateRelationshipProposal)
     .filter((proposal) => proposal.status === GQL.ActionProposalStatus.Pending);
-  const pendingProposalsForRecord = (record: GQL.AffiliateCollaborationRecord) =>
+  const pendingProposalsForRecord = (record: AffiliateCollaborationView) =>
     visiblePendingProposals.filter((proposal) => {
-      const proposalRecordId = proposal.collaborationRecord?.id ?? proposal.collaborationRecordId ?? null;
+      const proposalRecordId = proposal.affiliateCollaboration?.id ?? proposal.affiliateCollaborationId ?? null;
       return proposalRecordId === record.id;
     });
   const activityEntries = buildRelationshipTimelineEntries(
@@ -6603,42 +6770,28 @@ function getProposalActionProductId(proposal: GQL.ActionProposal | null): string
 }
 
 function findProposalPredictionSnapshot(
-  proposal: GQL.ActionProposal,
-): GQL.AffiliateCollaborationRecordPredictionSnapshot | null {
-  const snapshots = proposal.collaborationRecord?.predictionSnapshots ?? [];
-  if (!snapshots.length) return null;
-  const cacheIds = new Set<string>();
-  for (const cacheId of proposal.predictionCacheIds ?? []) {
-    if (cacheId) cacheIds.add(cacheId);
-  }
-  for (const step of proposal.steps ?? []) {
-    for (const cacheId of step.predictionCacheIds ?? []) {
-      if (cacheId) cacheIds.add(cacheId);
-    }
-  }
-  const matching = cacheIds.size
-    ? snapshots.filter((snapshot) => snapshot.sourceCacheId && cacheIds.has(snapshot.sourceCacheId))
-    : [];
-  const candidates = matching.length
-    ? matching
-    : snapshots.filter((snapshot) => snapshot.scenario === GQL.AffiliateExpectedSalesPredictionScenario.SampleReview);
-  return sortPredictionSnapshotsByCaptureTime(candidates.length ? candidates : snapshots)[0] ?? null;
+  _proposal: GQL.ActionProposal,
+): AffiliatePredictionSnapshotView | null {
+  // Prediction outputs are short-lived cache objects, not Collaboration state.
+  // The proposal API currently exposes cache ids only, so this view must not
+  // reconstruct or display a stale prediction from a Collaboration document.
+  return null;
 }
 
 function sortPredictionSnapshotsByCaptureTime(
-  snapshots: GQL.AffiliateCollaborationRecordPredictionSnapshot[],
-): GQL.AffiliateCollaborationRecordPredictionSnapshot[] {
+  snapshots: AffiliatePredictionSnapshotView[],
+): AffiliatePredictionSnapshotView[] {
   return [...snapshots].sort((a, b) => {
-    const aTime = new Date(a.capturedAt ?? a.predictedAt).getTime();
-    const bTime = new Date(b.capturedAt ?? b.predictedAt).getTime();
+    const aTime = new Date(a.capturedAt ?? a.predictedAt ?? 0).getTime();
+    const bTime = new Date(b.capturedAt ?? b.predictedAt ?? 0).getTime();
     return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
   });
 }
 
 function readPredictionSnapshotOutput(
-  snapshot: GQL.AffiliateCollaborationRecordPredictionSnapshot | null,
+  snapshot: AffiliatePredictionSnapshotView | null,
 ): AffiliatePredictionSnapshotOutput | null {
-  if (!snapshot || snapshot.status !== GQL.AffiliatePredictionStatus.Ok) return null;
+  if (!snapshot || snapshot.status !== "OK") return null;
   const output = snapshot.output as AffiliatePredictionSnapshotOutput | null | undefined;
   return output ?? null;
 }
@@ -6762,7 +6915,7 @@ function getProposalMessagePreview(proposal: GQL.ActionProposal): string | null 
 }
 
 function buildCollaborationWorkView(
-  record: GQL.AffiliateCollaborationRecord,
+  record: AffiliateCollaborationView,
   latestProposal: GQL.ActionProposal | null | undefined,
   t: ReturnType<typeof useTranslation>["t"],
 ): CollaborationWorkViewModel {
@@ -6785,7 +6938,7 @@ function buildCollaborationWorkView(
     };
   }
 
-  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.Idle) {
+  if (record.processingStatus === GQL.AffiliateRelationshipProcessingStatus.Idle) {
     return {
       badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.done"),
       badgeTone: "done",
@@ -6830,7 +6983,7 @@ function buildCollaborationWorkView(
   }
 
   switch (record.requiredAction) {
-    case GQL.AffiliateCollaborationRequiredAction.RespondToCreator:
+    case GQL.AffiliateRelationshipRequiredAction.ReplyToCreator:
       return {
         badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.agent"),
         badgeTone: "attention",
@@ -6839,7 +6992,7 @@ function buildCollaborationWorkView(
         title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.RESPOND_TO_CREATOR"),
         description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.RESPOND_TO_CREATOR"),
       };
-    case GQL.AffiliateCollaborationRequiredAction.ReviewSampleApplication:
+    case GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication:
       return {
         badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.agent"),
         badgeTone: "attention",
@@ -6848,7 +7001,7 @@ function buildCollaborationWorkView(
         title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.SAMPLE_PENDING_REVIEW"),
         description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.REVIEW_SAMPLE_APPLICATION"),
       };
-    case GQL.AffiliateCollaborationRequiredAction.ShipSample:
+    case GQL.AffiliateRelationshipRequiredAction.ShipSample:
       return {
         badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.waitingPlatform"),
         badgeTone: "waiting",
@@ -6859,7 +7012,7 @@ function buildCollaborationWorkView(
           defaultValue: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.WAITING_PLATFORM"),
         }),
       };
-    case GQL.AffiliateCollaborationRequiredAction.FollowUpCreator:
+    case GQL.AffiliateRelationshipRequiredAction.FollowUpCreator:
       return {
         badge: t("ecommerce.affiliateWorkspace.collaborationWorkBadges.agent"),
         badgeTone: "attention",
@@ -6868,15 +7021,15 @@ function buildCollaborationWorkView(
         title: t("ecommerce.affiliateWorkspace.collaborationWorkTitles.CREATOR_ACTION_FOLLOW_UP_DUE"),
         description: t("ecommerce.affiliateWorkspace.collaborationWorkDescriptions.FOLLOW_UP_CREATOR"),
       };
-    case GQL.AffiliateCollaborationRequiredAction.None:
+    case GQL.AffiliateRelationshipRequiredAction.NoAction:
     default:
       break;
   }
 
-  if (record.processingStatus === GQL.AffiliateCollaborationRecordProcessingStatus.WaitingExternal) {
-    const awaitingFbtShipment = record.processReasons.some((reason) =>
-      reason === GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingPlatformShipment ||
-      reason === GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment
+  if (record.processingStatus === GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting) {
+    const awaitingFbtShipment = (record.processReasons ?? []).some((reason) =>
+      reason === GQL.AffiliateWorkProcessReason.SampleAwaitingPlatformShipment ||
+      reason === GQL.AffiliateWorkProcessReason.SampleAwaitingShipment
     );
     if (awaitingFbtShipment) {
       return {
@@ -6912,7 +7065,7 @@ function buildCollaborationWorkView(
     stage,
     ownerLabel: t("ecommerce.affiliateWorkspace.labels.needsYourAction"),
     title: renderCollaborationWorkTitle({
-      processReasons: record.processReasons,
+      processReasons: record.processReasons ?? [],
       fallback: latestProposal?.operatorSummary,
       t,
     }),
@@ -6926,7 +7079,7 @@ function renderCollaborationWorkTitle({
   fallback,
   t,
 }: {
-  processReasons: GQL.AffiliateCollaborationRecordProcessReason[];
+  processReasons: GQL.AffiliateWorkProcessReason[];
   sampleApplicationRecord?: GQL.SampleApplicationRecord | null;
   fallback?: string | null;
   t: ReturnType<typeof useTranslation>["t"];
@@ -6935,14 +7088,14 @@ function renderCollaborationWorkTitle({
     return t("ecommerce.affiliateWorkspace.collaborationWorkTitles.SAMPLE_REVIEW");
   }
   const priority = [
-    GQL.AffiliateCollaborationRecordProcessReason.CreatorMessageNeedsReply,
-    GQL.AffiliateCollaborationRecordProcessReason.SamplePendingReview,
-    GQL.AffiliateCollaborationRecordProcessReason.SampleAwaitingShipment,
-    GQL.AffiliateCollaborationRecordProcessReason.SampleContentFollowUpDue,
-    GQL.AffiliateCollaborationRecordProcessReason.CreatorActionFollowUpDue,
-    GQL.AffiliateCollaborationRecordProcessReason.IdentityResolution,
-    GQL.AffiliateCollaborationRecordProcessReason.AgentRunFailed,
-    GQL.AffiliateCollaborationRecordProcessReason.ProposalRevisionRequested,
+    GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply,
+    GQL.AffiliateWorkProcessReason.SamplePendingReview,
+    GQL.AffiliateWorkProcessReason.SampleAwaitingShipment,
+    GQL.AffiliateWorkProcessReason.SampleContentFollowUpDue,
+    GQL.AffiliateWorkProcessReason.CreatorActionFollowUpDue,
+    GQL.AffiliateWorkProcessReason.IdentityResolution,
+    GQL.AffiliateWorkProcessReason.AgentRunFailed,
+    GQL.AffiliateWorkProcessReason.ProposalRevisionRequested,
   ];
   const reason = priority.find((candidate) => processReasons.includes(candidate));
   if (reason) {

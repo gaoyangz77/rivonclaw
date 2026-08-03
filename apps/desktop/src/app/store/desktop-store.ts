@@ -337,7 +337,7 @@ const DesktopRootStoreModel = RootStoreModel
       BillingPlanDefinition: self.billingPlanDefinitions,
       Payment: self.payments,
       ActionProposal: self.affiliateWorkspace.actionProposals,
-      AffiliateCollaborationRecord: self.affiliateWorkspace.collaborationRecords,
+      AffiliateCollaboration: self.affiliateWorkspace.affiliateCollaborations,
       AffiliateCreatorRelationship: self.affiliateWorkspace.creatorRelationships,
       AffiliateCreatorIdentity: self.affiliateWorkspace.creatorProfiles,
       SampleApplicationRecord: self.affiliateWorkspace.sampleApplicationRecords,
@@ -395,8 +395,8 @@ const DesktopRootStoreModel = RootStoreModel
           self.affiliateWorkspace.replaceAffiliateCreatorRelationships(sanitizeForMst(raw) as any);
           continue;
         }
-        if (key === "collaborationRecords") {
-          self.affiliateWorkspace.replaceAffiliateCollaborationRecords(sanitizeForMst(raw) as any);
+        if (key === "affiliateCollaborations") {
+          self.affiliateWorkspace.replaceAffiliateCollaborations(sanitizeForMst(raw) as any);
           continue;
         }
         if (key === "creatorProfiles") {
@@ -438,8 +438,8 @@ const DesktopRootStoreModel = RootStoreModel
         if (id) {
           if (typeName === "ActionProposal") {
             self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
-          } else if (typeName === "AffiliateCollaborationRecord") {
-            self.affiliateWorkspace.upsertAffiliateCollaborationRecord(sanitized as any);
+          } else if (typeName === "AffiliateCollaboration") {
+            self.affiliateWorkspace.upsertAffiliateCollaboration(sanitized as any);
           } else if (typeName === "AffiliateCreatorRelationship") {
             self.affiliateWorkspace.upsertAffiliateCreatorRelationship(sanitized as any);
           } else if (typeName === "AffiliateCreatorIdentity") {
