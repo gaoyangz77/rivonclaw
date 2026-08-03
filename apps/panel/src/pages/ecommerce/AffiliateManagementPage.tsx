@@ -1308,8 +1308,8 @@ function AffiliateProductionModelDashboard({
   const liftRatio = summary.expectedSalesLiftRatio;
   const sameBudgetConfidenceLevel = affiliateSummaryConfidenceLevel(summary);
   const maxUnits = Math.max(modelExpectedUnits ?? 0, humanExpectedUnits ?? 0, 1);
-  const modelBarWidth = `${Math.max(8, Math.round(((modelExpectedUnits ?? 0) / maxUnits) * 100))}%`;
-  const humanBarWidth = `${Math.max(8, Math.round(((humanExpectedUnits ?? 0) / maxUnits) * 100))}%`;
+  const modelBarValue = Math.max(0, ((modelExpectedUnits ?? 0) / maxUnits) * 100);
+  const humanBarValue = Math.max(0, ((humanExpectedUnits ?? 0) / maxUnits) * 100);
   const liftPercent = liftRatio == null ? null : (liftRatio - 1) * 100;
   const liftLabel = formatSignedPercent(liftPercent);
   const modelLabel = selectedRow?.modelScope === "shop"
@@ -1372,14 +1372,14 @@ function AffiliateProductionModelDashboard({
               icon={<AffiliateSparkIcon />}
               label={t("ecommerce.affiliateWorkspace.intelligenceModelSelector")}
               value={formatNumber(modelExpectedUnits, 1)}
-              width={modelBarWidth}
+              barValue={modelBarValue}
               variant="model"
             />
             <AffiliateRaceRow
               icon={<UserIcon />}
               label={t("ecommerce.affiliateWorkspace.intelligenceHumanSelector")}
               value={formatNumber(humanExpectedUnits, 1)}
-              width={humanBarWidth}
+              barValue={humanBarValue}
               variant="human"
             />
           </div>
@@ -1389,6 +1389,22 @@ function AffiliateProductionModelDashboard({
           ) : null}
         </div>
       </div>
+      {summary.sameBudgetComparison ? (
+        <AffiliateBudgetDistributionPanel
+          comparison={summary.sameBudgetComparison}
+          historicalApplicationCount={summary.historicalApplicationCount}
+          historicalSelectedCount={summary.historicalSelectedCount}
+          historicalExpectedUnits={summary.historicalExpectedUnits}
+          modelExpectedUnits={summary.modelExpectedUnits}
+          modelSelectedCount={summary.modelSelectedCount}
+        />
+      ) : null}
+      {summary.sameThresholdComparison ? (
+        <AffiliateThresholdComparisonPanel
+          comparison={summary.sameThresholdComparison}
+          historicalApplicationCount={summary.historicalApplicationCount}
+        />
+      ) : null}
       <div className="affiliate-intelligence-footnote">
         <span
           className="affiliate-intelligence-disclaimer"
@@ -1400,6 +1416,362 @@ function AffiliateProductionModelDashboard({
       </div>
     </>
   );
+}
+
+type AffiliateHistogramSeries = {
+  key: string;
+  label: string;
+  buckets: GQL.AffiliateMlHistogramBucket[] | null | undefined;
+  expectedTotal?: number | null;
+};
+
+function AffiliateBudgetDistributionPanel({
+  comparison,
+  historicalApplicationCount,
+  historicalSelectedCount,
+  historicalExpectedUnits,
+  modelExpectedUnits,
+  modelSelectedCount,
+}: {
+  comparison: GQL.AffiliateMlSameBudgetComparison;
+  historicalApplicationCount: number;
+  historicalSelectedCount: number;
+  historicalExpectedUnits?: number | null;
+  modelExpectedUnits?: number | null;
+  modelSelectedCount: number;
+}) {
+  const { t } = useTranslation();
+  return (
+    <AffiliateClaimDistributionPanel
+      title={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsTitle")}
+      headline={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHeadline")}
+      hint={t("ecommerce.affiliateWorkspace.intelligenceBudgetStatsHint")}
+      stats={[
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApplications"),
+          value: formatInteger(historicalApplicationCount),
+        },
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalSelectedCount"),
+          value: formatInteger(historicalSelectedCount),
+        },
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalExpectedUnits"),
+          value: formatNumber(historicalExpectedUnits, 1),
+        },
+        {
+          label: t("ecommerce.affiliateWorkspace.intelligenceModelExpectedUnits"),
+          value: formatNumber(modelExpectedUnits, 1),
+        },
+      ]}
+      series={[
+        {
+          key: "actual",
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApprovedActual"),
+          buckets: comparison.historicalActualUnitsHistogram,
+          expectedTotal: comparison.historicalActualObservedCount,
+        },
+        {
+          key: "historical",
+          label: t("ecommerce.affiliateWorkspace.intelligenceHistoricalApprovedExpected"),
+          buckets: comparison.historicalExpectedUnitsHistogram,
+          expectedTotal: historicalSelectedCount,
+        },
+        {
+          key: "model",
+          label: t("ecommerce.affiliateWorkspace.intelligenceModelSelectedExpected"),
+          buckets: comparison.modelExpectedUnitsHistogram,
+          expectedTotal: modelSelectedCount,
+        },
+      ]}
+    />
+  );
+}
+
+function AffiliateThresholdComparisonPanel({
+  comparison,
+  historicalApplicationCount,
+}: {
+  comparison: GQL.AffiliateMlSameThresholdComparison;
+  historicalApplicationCount: number;
+}) {
+  const { t } = useTranslation();
+  const historicalQualifiedCount = comparison.historicalQualifiedCount;
+  const modelQualifiedCount = comparison.modelQualifiedCount;
+  const maximumCount = Math.max(
+    historicalQualifiedCount ?? 0,
+    modelQualifiedCount ?? 0,
+    1,
+  );
+  const liftPercent = comparison.qualifiedCreatorLiftRatio == null
+    ? null
+    : (comparison.qualifiedCreatorLiftRatio - 1) * 100;
+  const translate = t as unknown as (key: string, options?: Record<string, unknown>) => string;
+
+  return (
+    <section className="affiliate-intelligence-claim-section">
+      <div className="affiliate-intelligence-comparison affiliate-intelligence-comparison-secondary">
+        <div className="affiliate-intelligence-card-head">
+          <div className="affiliate-intelligence-card-title">
+            <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameSalesBar")}</span>
+            <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimReachTitle")}</strong>
+            <p>{translate("ecommerce.affiliateWorkspace.intelligenceClaimReachBody", {
+              bar: formatNumber(comparison.minimumExpectedSalesUnits, 1),
+              creators: formatInteger(modelQualifiedCount),
+              overlooked: formatInteger(comparison.modelQualifiedHistoricalRejectedCount),
+            })}</p>
+          </div>
+          {liftPercent != null ? (
+            <div className="affiliate-intelligence-lift-badge">
+              <strong>{formatSignedPercent(liftPercent)}</strong>
+              <span>{t("ecommerce.affiliateWorkspace.intelligenceChartSameSalesBar")}</span>
+            </div>
+          ) : null}
+        </div>
+        <div className="affiliate-intelligence-race">
+          <AffiliateRaceRow
+            icon={<AffiliateTargetIcon />}
+            label={t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators")}
+            value={formatInteger(modelQualifiedCount)}
+            barValue={Math.max(0, ((modelQualifiedCount ?? 0) / maximumCount) * 100)}
+            variant="model"
+          />
+          <AffiliateRaceRow
+            icon={<AffiliateShieldIcon />}
+            label={t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators")}
+            value={formatInteger(historicalQualifiedCount)}
+            barValue={Math.max(0, ((historicalQualifiedCount ?? 0) / maximumCount) * 100)}
+            variant="human"
+          />
+        </div>
+      </div>
+      <AffiliateClaimDistributionPanel
+        title={t("ecommerce.affiliateWorkspace.intelligenceReachStatsTitle")}
+        headline={t("ecommerce.affiliateWorkspace.intelligenceReachStatsHeadline")}
+        hint={translate("ecommerce.affiliateWorkspace.intelligenceClaimReachBody", {
+          bar: formatNumber(comparison.minimumExpectedSalesUnits, 1),
+          creators: formatInteger(modelQualifiedCount),
+          overlooked: formatInteger(comparison.modelQualifiedHistoricalRejectedCount),
+        })}
+        stats={[
+          {
+            label: t("ecommerce.affiliateWorkspace.intelligenceApprovalBar"),
+            value: formatNumber(comparison.minimumExpectedSalesUnits, 1),
+          },
+          {
+            label: t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedCreators"),
+            value: formatInteger(historicalQualifiedCount),
+          },
+          {
+            label: t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedCreators"),
+            value: formatInteger(modelQualifiedCount),
+          },
+          {
+            label: t("ecommerce.affiliateWorkspace.intelligenceOverlookedQualifiedCreators"),
+            value: formatInteger(comparison.modelQualifiedHistoricalRejectedCount),
+          },
+        ]}
+        series={[
+          {
+            key: "historical",
+            label: t("ecommerce.affiliateWorkspace.intelligenceHumanQualifiedExpected"),
+            buckets: comparison.historicalExpectedUnitsHistogram,
+            expectedTotal: historicalQualifiedCount,
+          },
+          {
+            key: "model",
+            label: t("ecommerce.affiliateWorkspace.intelligenceModelQualifiedExpected"),
+            buckets: comparison.modelExpectedUnitsHistogram,
+            expectedTotal: modelQualifiedCount,
+          },
+          {
+            key: "below",
+            label: t("ecommerce.affiliateWorkspace.intelligenceBelowBarExpected"),
+            buckets: comparison.belowThresholdModelExpectedUnitsHistogram,
+            expectedTotal: comparison.belowThresholdCount
+              ?? Math.max(0, historicalApplicationCount - (modelQualifiedCount ?? 0)),
+          },
+        ]}
+      />
+    </section>
+  );
+}
+
+function AffiliateClaimDistributionPanel({
+  title,
+  headline,
+  hint,
+  stats,
+  series,
+}: {
+  title: string;
+  headline: string;
+  hint: string;
+  stats: Array<{ label: string; value: string }>;
+  series: AffiliateHistogramSeries[];
+}) {
+  const { t } = useTranslation();
+  const completeSeries = series.flatMap((item) => {
+    const buckets = item.buckets ?? [];
+    const total = histogramTotal(buckets);
+    if (buckets.length === 0 || (item.expectedTotal != null && total !== item.expectedTotal)) {
+      return [];
+    }
+    return [{ ...item, buckets, total }];
+  });
+  const hasCompleteData = completeSeries.length === series.length;
+
+  return (
+    <section className="affiliate-intelligence-distribution-card">
+      <div className="affiliate-intelligence-distribution-head">
+        <div>
+          <span>{title}</span>
+          <strong>{headline}</strong>
+        </div>
+        <small>{hint}</small>
+      </div>
+      <div className="affiliate-intelligence-stat-strip">
+        {stats.map((item) => (
+          <AffiliateTinyStat key={item.label} label={item.label} value={item.value} />
+        ))}
+      </div>
+      {hasCompleteData ? (
+        <AffiliateHistogramChart series={completeSeries} />
+      ) : (
+        <div className="affiliate-intelligence-distribution-empty">
+          {t("ecommerce.affiliateWorkspace.intelligenceDistributionIncomplete")}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AffiliateHistogramChart({
+  series,
+}: {
+  series: Array<AffiliateHistogramSeries & {
+    buckets: GQL.AffiliateMlHistogramBucket[];
+    total: number;
+  }>;
+}) {
+  const labels = mergedHistogramLabels(series.map((item) => item.buckets));
+  const shares = series.map((item) => ({
+    ...item,
+    values: labels.map((label) => {
+      const count = item.buckets.find((bucket) => bucket.key === label.key)?.count ?? 0;
+      return item.total > 0 ? count / item.total : 0;
+    }),
+  }));
+  const maxShare = Math.max(0.01, ...shares.flatMap((item) => item.values));
+  const chartWidth = 720;
+  const chartHeight = 210;
+  const plotTop = 12;
+  const plotHeight = 150;
+  const groupWidth = chartWidth / Math.max(labels.length, 1);
+  const barWidth = Math.min(22, Math.max(8, (groupWidth - 20) / Math.max(series.length, 1)));
+  const barsWidth = barWidth * series.length;
+
+  return (
+    <div className="affiliate-intelligence-histogram-panel">
+      <div className="affiliate-intelligence-bucket-legend">
+        {shares.map((item) => (
+          <span key={item.key} className={`affiliate-bucket-legend-${salesBucketClass(item.key)}`}>
+            <i />
+            <strong>{item.label}</strong>
+            <small>{formatInteger(item.total)}</small>
+          </span>
+        ))}
+      </div>
+      <div className="affiliate-intelligence-histogram-scroll">
+        <svg
+          className="affiliate-intelligence-histogram-svg"
+          role="img"
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          aria-label={shares.map((item) => item.label).join(" versus ")}
+        >
+          {[0, 0.5, 1].map((step) => {
+            const y = plotTop + plotHeight - step * plotHeight;
+            return (
+              <line
+                key={step}
+                className="affiliate-intelligence-histogram-grid"
+                x1="0"
+                x2={chartWidth}
+                y1={y}
+                y2={y}
+              />
+            );
+          })}
+          {labels.map((label, labelIndex) => {
+            const groupX = labelIndex * groupWidth + (groupWidth - barsWidth) / 2;
+            return (
+              <g key={label.key}>
+                {shares.map((item, seriesIndex) => {
+                  const share = item.values[labelIndex] ?? 0;
+                  const height = Math.max(2, (share / maxShare) * plotHeight);
+                  const x = groupX + seriesIndex * barWidth;
+                  const y = plotTop + plotHeight - height;
+                  const count = item.buckets.find((bucket) => bucket.key === label.key)?.count ?? 0;
+                  return (
+                    <rect
+                      key={item.key}
+                      className={`affiliate-intelligence-histogram-bar affiliate-intelligence-histogram-bar-${salesBucketClass(item.key)}`}
+                      x={x}
+                      y={y}
+                      width={Math.max(4, barWidth - 3)}
+                      height={height}
+                      rx="3"
+                    >
+                      <title>{`${item.label} · ${label.label}: ${formatPercent(share)} (${formatInteger(count)})`}</title>
+                    </rect>
+                  );
+                })}
+                <text
+                  className="affiliate-intelligence-histogram-label"
+                  x={labelIndex * groupWidth + groupWidth / 2}
+                  y={chartHeight - 18}
+                  textAnchor="middle"
+                >
+                  {label.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function AffiliateTinyStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="affiliate-intelligence-tiny-stat">
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </div>
+  );
+}
+
+function histogramTotal(buckets: GQL.AffiliateMlHistogramBucket[]): number {
+  return buckets.reduce((total, bucket) => total + bucket.count, 0);
+}
+
+function mergedHistogramLabels(
+  bucketLists: GQL.AffiliateMlHistogramBucket[][],
+): GQL.AffiliateMlHistogramBucket[] {
+  const labels = new Map<string, GQL.AffiliateMlHistogramBucket>();
+  for (const buckets of bucketLists) {
+    for (const bucket of buckets) {
+      if (!labels.has(bucket.key)) {
+        labels.set(bucket.key, { key: bucket.key, label: bucket.label, count: 0 });
+      }
+    }
+  }
+  return Array.from(labels.values());
+}
+
+function salesBucketClass(key: string): string {
+  return key.replace(/\+/g, "_plus").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "unknown";
 }
 
 function AffiliateModelStageCard({
@@ -1612,24 +1984,45 @@ function AffiliateRaceRow({
   icon,
   label,
   value,
-  width,
+  barValue,
   variant,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
-  width: string;
+  barValue: number;
   variant: "model" | "human";
 }) {
   return (
     <div className={`affiliate-intelligence-race-row affiliate-intelligence-race-${variant}`}>
       <span className="affiliate-intelligence-race-icon">{icon}</span>
       <span className="affiliate-intelligence-race-label">{label}</span>
-      <div className="affiliate-intelligence-race-track">
-        <div style={{ width }} />
-      </div>
+      <progress
+        className="affiliate-intelligence-race-track"
+        max={100}
+        value={Math.min(100, Math.max(0, barValue))}
+      />
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function AffiliateTargetIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+    </svg>
+  );
+}
+
+function AffiliateShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3l7 3v5c0 4.6-2.7 8-7 10-4.3-2-7-5.4-7-10V6l7-3z" />
+      <path d="M8.5 12.2l2.1 2.1 4.9-5" />
+    </svg>
   );
 }
 

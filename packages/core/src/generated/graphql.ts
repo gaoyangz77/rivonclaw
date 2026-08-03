@@ -644,25 +644,6 @@ export const AffiliateActionRequestMode = {
 } as const;
 
 export type AffiliateActionRequestMode = typeof AffiliateActionRequestMode[keyof typeof AffiliateActionRequestMode];
-export const AffiliatePredictionCaptureMode = {
-  PromotedFromCache: 'PROMOTED_FROM_CACHE',
-  QueryCache: 'QUERY_CACHE'
-} as const;
-
-export type AffiliatePredictionCaptureMode = typeof AffiliatePredictionCaptureMode[keyof typeof AffiliatePredictionCaptureMode];
-export const AffiliatePredictionStatus = {
-  InvalidContext: 'INVALID_CONTEXT',
-  Ok: 'OK',
-  PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
-  ServiceError: 'SERVICE_ERROR'
-} as const;
-
-export type AffiliatePredictionStatus = typeof AffiliatePredictionStatus[keyof typeof AffiliatePredictionStatus];
-export const AffiliatePredictionType = {
-  SalesUnitsForecast: 'SALES_UNITS_FORECAST'
-} as const;
-
-export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
 /** Whether relationships owned by a business developer may dispatch the Affiliate Agent. */
 export const AffiliateAgentAssistanceMode = {
   AiAssisted: 'AI_ASSISTED',
@@ -2405,6 +2386,12 @@ export const AffiliateMessagePartKind = {
 } as const;
 
 export type AffiliateMessagePartKind = typeof AffiliateMessagePartKind[keyof typeof AffiliateMessagePartKind];
+export interface AffiliateMlHistogramBucket {
+  count: Scalars['Int']['output'];
+  key: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+}
+
 export interface AffiliateMlInsightSummariesInput {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
@@ -2434,7 +2421,31 @@ export interface AffiliateMlModelEfficiencySummary {
   historicalSelectedCount: Scalars['Int']['output'];
   modelExpectedUnits?: Maybe<Scalars['Float']['output']>;
   modelSelectedCount: Scalars['Int']['output'];
+  sameBudgetComparison?: Maybe<AffiliateMlSameBudgetComparison>;
+  sameThresholdComparison?: Maybe<AffiliateMlSameThresholdComparison>;
   selectionDifferenceCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateMlSameBudgetComparison {
+  historicalActualObservedCount?: Maybe<Scalars['Int']['output']>;
+  historicalActualUnitsHistogram?: Maybe<Array<AffiliateMlHistogramBucket>>;
+  historicalApprovalRate?: Maybe<Scalars['Float']['output']>;
+  historicalExpectedUnitsHistogram?: Maybe<Array<AffiliateMlHistogramBucket>>;
+  modelExpectedUnitsHistogram?: Maybe<Array<AffiliateMlHistogramBucket>>;
+  modelRejectedHistoricalSelectedCount?: Maybe<Scalars['Int']['output']>;
+  modelSelectedHistoricalRejectedCount?: Maybe<Scalars['Int']['output']>;
+}
+
+export interface AffiliateMlSameThresholdComparison {
+  belowThresholdCount?: Maybe<Scalars['Int']['output']>;
+  belowThresholdModelExpectedUnitsHistogram?: Maybe<Array<AffiliateMlHistogramBucket>>;
+  historicalExpectedUnitsHistogram?: Maybe<Array<AffiliateMlHistogramBucket>>;
+  historicalQualifiedCount?: Maybe<Scalars['Int']['output']>;
+  minimumExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  modelExpectedUnitsHistogram?: Maybe<Array<AffiliateMlHistogramBucket>>;
+  modelQualifiedCount?: Maybe<Scalars['Int']['output']>;
+  modelQualifiedHistoricalRejectedCount?: Maybe<Scalars['Int']['output']>;
+  qualifiedCreatorLiftRatio?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateModelAvailability {
@@ -2630,6 +2641,25 @@ export interface AffiliateOutreachOperationalStatusPayload {
   whatsappAccountsUsingUnavailableProxyCount: Scalars['Int']['output'];
 }
 
+export const AffiliatePredictionCaptureMode = {
+  PromotedFromCache: 'PROMOTED_FROM_CACHE',
+  QueryCache: 'QUERY_CACHE'
+} as const;
+
+export type AffiliatePredictionCaptureMode = typeof AffiliatePredictionCaptureMode[keyof typeof AffiliatePredictionCaptureMode];
+export const AffiliatePredictionStatus = {
+  InvalidContext: 'INVALID_CONTEXT',
+  Ok: 'OK',
+  PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
+  ServiceError: 'SERVICE_ERROR'
+} as const;
+
+export type AffiliatePredictionStatus = typeof AffiliatePredictionStatus[keyof typeof AffiliatePredictionStatus];
+export const AffiliatePredictionType = {
+  SalesUnitsForecast: 'SALES_UNITS_FORECAST'
+} as const;
+
+export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
 export const AffiliateProjectionSyncSource = {
   AirflowBootstrap: 'AIRFLOW_BOOTSTRAP',
   AirflowReconcile: 'AIRFLOW_RECONCILE',
@@ -10455,7 +10485,7 @@ export interface ReadAffiliateCollaborationsInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
   platformCollaborationId?: InputMaybe<Scalars['String']['input']>;
   productId?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['ID']['input'];
+  shopId?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<AffiliateCollaborationStatus>;
   type?: InputMaybe<AffiliateCollaborationType>;
 }
@@ -10467,7 +10497,7 @@ export interface ReadAffiliateCreatorsInput {
   needsAttentionOnly?: InputMaybe<Scalars['Boolean']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
-  shopId: Scalars['ID']['input'];
+  shopId?: InputMaybe<Scalars['ID']['input']>;
   tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
