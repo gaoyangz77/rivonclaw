@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyAffiliateProposalChange,
   affiliateModelStagePresentation,
+  affiliateExpectedSalesModelAvailabilityState,
   isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
   mergeAffiliateProposalPage,
@@ -187,6 +188,25 @@ describe("Expected Sales model-stage presentation", () => {
         "UNIFIED",
       ).statusKey,
     ).toBe("modelDataAccumulating");
+  });
+
+  it("derives exact, fallback, and unavailable states from live availability", () => {
+    expect(affiliateExpectedSalesModelAvailabilityState([
+      entry("EXPECTED_SALES", "READY"),
+    ])).toMatchObject({ status: "ready", effectiveTenantScope: "SHOP" });
+    expect(affiliateExpectedSalesModelAvailabilityState([
+      entry("EXPECTED_SALES", "FALLBACK"),
+    ])).toMatchObject({ status: "fallback", effectiveTenantScope: "REGION" });
+    expect(affiliateExpectedSalesModelAvailabilityState([
+      entry("EXPECTED_SALES", "UNAVAILABLE"),
+    ])).toMatchObject({ status: "unavailable" });
+    expect(affiliateExpectedSalesModelAvailabilityState([{
+      ...entry("EXPECTED_SALES", "READY"),
+      contractStatus: "MISMATCH",
+    }])).toMatchObject({ status: "unavailable" });
+    expect(affiliateExpectedSalesModelAvailabilityState([])).toMatchObject({
+      status: "unavailable",
+    });
   });
 
   it("shows a seller-safe comparison without internal model identity fields", () => {
