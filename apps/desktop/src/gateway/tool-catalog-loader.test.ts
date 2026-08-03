@@ -119,6 +119,23 @@ describe("loadGatewayToolCatalogTools", () => {
     );
   });
 
+  it("allows a normal cold-start window before failing closed", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: false, toolCount: 0 };
+      return { groups: [{ tools: [{ id: "read", source: "core" }] }] };
+    });
+    const rpc: RpcClientLike = { request: request as RpcClientLike["request"] };
+
+    await expect(
+      loadGatewayToolCatalogTools(rpc, {
+        retryDelayMs: 0,
+        sleep: vi.fn(async () => undefined),
+      }),
+    ).rejects.toMatchObject({ attempts: 30 });
+
+    expect(request).toHaveBeenCalledTimes(60);
+  });
+
   it("accepts a ready empty ToolSpecs snapshot while signed out", async () => {
     const request = vi.fn(async (method: string) => {
       if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: true, toolCount: 0 };

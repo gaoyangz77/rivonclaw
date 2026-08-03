@@ -1,7 +1,10 @@
 export const CLOUD_TOOLS_PLUGIN_ID = "rivonclaw-cloud-tools";
 export const CLOUD_TOOLS_STATUS_METHOD = "rivonclaw_cloud_tools.status";
 
-const DEFAULT_CLOUD_TOOLS_CATALOG_ATTEMPTS = 8;
+// A cold gateway can take longer than eight seconds to load and activate the
+// cloud-tools plugin. Keep the gate fail-closed, but allow enough time for a
+// normal cold start before declaring the tool catalog unavailable.
+const DEFAULT_CLOUD_TOOLS_CATALOG_ATTEMPTS = 30;
 const DEFAULT_CLOUD_TOOLS_CATALOG_RETRY_MS = 1_000;
 
 export type GatewayCatalogTool = {
