@@ -15,6 +15,10 @@ import {
 } from "./config-builder.js";
 
 describe("gateway config builder", () => {
+  it("allows long-running RivonClaw cloud requests up to five minutes", () => {
+    expect(RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS).toBe(300);
+  });
+
   it("isolates the Affiliate agent without restricting the main agent", () => {
     const agents = buildManagedGatewayAgents("/tmp/rivonclaw-openclaw");
     const main = agents.find((agent) => agent.id === "main");
