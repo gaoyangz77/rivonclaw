@@ -439,6 +439,23 @@ export function affiliateModelStagePresentation(
   };
 }
 
+export function affiliateExpectedSalesModelAvailabilityState(
+  availability: AffiliateModelAvailabilityView[] | null | undefined,
+): {
+  status: "ready" | "fallback" | "unavailable";
+  effectiveTenantScope: string | null;
+} {
+  const presentation = affiliateModelStagePresentation(
+    availability ?? [], "EXPECTED_SALES", "UNIFIED");
+  if (!presentation.ready || !presentation.entry) {
+    return { status: "unavailable", effectiveTenantScope: null };
+  }
+  return {
+    status: presentation.entry.status === "READY" ? "ready" : "fallback",
+    effectiveTenantScope: presentation.entry.effectiveTenantScope ?? null,
+  };
+}
+
 type AffiliateInsightRow = {
   key: string;
   subjectKey: string;
@@ -1855,16 +1872,18 @@ function AffiliateInsightScopeRail({
     <div className="affiliate-intelligence-scope-rail">
       {subjects.map((subject) => {
         const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
-        const readyCount = subjectRows.some((row) => row.availability.some(
-          (entry) => entry.modelFamily === "EXPECTED_SALES" &&
-            (entry.status === "READY" || entry.status === "FALLBACK"),
-        )) ? 1 : 0;
-        const failed = readyCount === 0 && subjectRows.some((row) => row.failed);
-        const ready = readyCount > 0;
+        const modelStates = subjectRows.map((row) =>
+          affiliateExpectedSalesModelAvailabilityState(row.availability));
+        const ready = modelStates.some((state) => state.status === "ready");
+        const fallback = !ready
+          ? modelStates.find((state) => state.status === "fallback") ?? null
+          : null;
+        const available = ready || Boolean(fallback);
+        const failed = !available && subjectRows.some((row) => row.failed);
         const status = ready
-          ? t("ecommerce.affiliateWorkspace.modelCombinationsReady", {
-            count: readyCount,
-          })
+          ? t("ecommerce.affiliateWorkspace.modelReady")
+          : fallback
+            ? affiliateModelFallbackLabel(fallback.effectiveTenantScope, t)
           : failed
             ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
             : t("ecommerce.affiliateWorkspace.intelligenceNoModel");
@@ -1872,7 +1891,7 @@ function AffiliateInsightScopeRail({
           <button
             key={subject.key}
             type="button"
-            className={`affiliate-intelligence-scope${selectedKey === subject.key ? " affiliate-intelligence-scope-active" : ""}${ready ? "" : " affiliate-intelligence-scope-empty"}`}
+            className={`affiliate-intelligence-scope${selectedKey === subject.key ? " affiliate-intelligence-scope-active" : ""}${available ? "" : " affiliate-intelligence-scope-empty"}`}
             onClick={() => onSelect(subject.key)}
           >
             <span className="affiliate-intelligence-scope-icon">
@@ -1882,7 +1901,7 @@ function AffiliateInsightScopeRail({
               <strong>{subject.label}</strong>
               <small>{status}</small>
             </span>
-            {ready ? <CheckIcon /> : <InfoIcon />}
+            {available ? <CheckIcon /> : <InfoIcon />}
           </button>
         );
       })}
@@ -1931,11 +1950,9 @@ function AffiliateModelSourceSwitch({
       </span>
       <div className="affiliate-intelligence-model-source-options">
         {rows.map((item) => {
-          const readyCount = item.row?.availability.some(
-            (entry) => entry.modelFamily === "EXPECTED_SALES" &&
-              (entry.status === "READY" || entry.status === "FALLBACK"),
-          ) ? 1 : 0;
-          const loaded = Boolean(item.row);
+          const modelState = affiliateExpectedSalesModelAvailabilityState(
+            item.row?.availability,
+          );
           const active = activeModelScope === item.key;
           return (
             <button
@@ -1944,15 +1961,18 @@ function AffiliateModelSourceSwitch({
               role="tab"
               aria-selected={active}
               className={`affiliate-intelligence-model-source-option${active ? " affiliate-intelligence-model-source-option-active" : ""}`}
-              disabled={!loaded}
+              disabled={!item.row}
               onClick={() => onChange(item.key)}
             >
               <strong>{item.label}</strong>
               <span>
-                {loaded
-                  ? t("ecommerce.affiliateWorkspace.modelCombinationsReady", {
-                    count: readyCount,
-                  })
+                {modelState.status === "ready"
+                  ? t("ecommerce.affiliateWorkspace.modelReady")
+                  : modelState.status === "fallback"
+                    ? affiliateModelFallbackLabel(
+                      modelState.effectiveTenantScope,
+                      t,
+                    )
                   : item.row?.failed
                     ? t("ecommerce.affiliateWorkspace.intelligenceModelUnavailable")
                     : t("ecommerce.affiliateWorkspace.intelligenceNoModel")}
@@ -1964,6 +1984,18 @@ function AffiliateModelSourceSwitch({
       </div>
     </div>
   );
+}
+
+function affiliateModelFallbackLabel(
+  effectiveTenantScope: string | null,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const scope = effectiveTenantScope === "SHOP"
+    ? t("ecommerce.affiliateWorkspace.intelligenceStoreModel")
+    : effectiveTenantScope === "REGION"
+      ? t("ecommerce.affiliateWorkspace.intelligenceRegionModel")
+      : t("ecommerce.affiliateWorkspace.intelligenceAccountModel");
+  return t("ecommerce.affiliateWorkspace.modelFallback", { scope });
 }
 
 function AffiliateConfidenceNotice({ level }: { level: "low" | "medium" | "high" }) {

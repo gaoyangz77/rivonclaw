@@ -77,7 +77,8 @@ describe("Affiliate Expected Sales translation backfill", () => {
         "productionNoEvaluation",
         "modelAvailabilityUnavailable",
         "modelAvailabilityEmpty",
-        "modelCombinationsReady",
+        "modelReady",
+        "modelFallback",
       ]) {
         expect(workspace[key], `${language}.${key}`).toBeTruthy();
       }
