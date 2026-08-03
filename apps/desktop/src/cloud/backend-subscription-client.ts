@@ -624,7 +624,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
   }
 `;
 
-const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
+export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
   subscription AffiliateActionProposalChanged {
     affiliateActionProposalChanged {
       proposal {
@@ -632,19 +632,153 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         userId
         focusShopId
         campaignId
+        creatorId
+        creatorRelationshipId
+        creatorProfile {
+          id
+          platform
+          creatorOpenId
+          creatorImId
+          username
+          nickname
+          avatarUrl
+          createdAt
+          updatedAt
+        }
+        affiliateCollaborationId
+        sampleApplicationRecordId
+        productId
+        sourceWorkBoundary {
+          subjectType
+          creatorRelationshipId
+          affiliateCollaborationId
+          sampleApplicationRecordId
+          productId
+          workKind
+          workBundleKind
+          versionAt
+          triggerKind
+          triggerId
+          triggerChannel
+          triggerLifecycleEventId
+          recommendedActionTypes
+        }
+        affiliateCollaboration {
+          id
+          userId
+          shopId
+          creatorIds
+          creatorOpenIds
+          productIds
+          type
+          status
+          platformCollaborationId
+          campaignId
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          projectionRevision
+          lastSyncSource
+          createdAt
+          updatedAt
+        }
+        sampleApplicationRecord {
+          id
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          productId
+          affiliateCollaborationId
+          collaborationType
+          platformCollaborationId
+          sampleWorkStatus
+          trackingNumber
+          carrier
+          shippedAt
+          deliveredAt
+          observedContentCount
+          latestObservedContentAt
+          updatedAt
+        }
+        productSummary {
+          productId
+          title
+          coverImage
+          status
+          priceMin
+          priceMax
+          skus {
+            skuId
+            skuName
+            sellerSku
+            price
+            currency
+          }
+        }
         type
         status
         operatorSummary
+        predictionCacheIds
+        predictionSnapshots {
+          sourceCacheId
+          predictionType
+          captureMode
+          scenario
+          status
+          output
+          model
+          diagnostics
+          message
+          predictedAt
+          capturedAt
+          subject {
+            sampleApplicationRecordId
+            platformApplicationId
+            creatorId
+            creatorOpenId
+            creatorCandidateId
+            campaignId
+            affiliateCollaborationId
+            platformCollaborationId
+            productId
+          }
+          resolvedContext {
+            shopId
+            campaignId
+            affiliateCollaborationId
+            platformCollaborationId
+            sampleApplicationRecordId
+            platformApplicationId
+            creatorId
+            creatorOpenId
+            creatorUsername
+            creatorNickname
+            productId
+            skuId
+            productTitle
+            source
+          }
+        }
         steps {
           stepId
+          shopId
+          campaignId
+          affiliateCollaborationId
+          sampleApplicationRecordId
+          productId
           type
           operatorSummary
+          predictionCacheIds
           sampleReviewIntent {
+            sampleApplicationRecordId
             platformApplicationId
             decision
             rejectReason
           }
           sampleShipmentIntent {
+            sampleApplicationRecordId
             platformApplicationId
             warehouseId
             skuId
@@ -652,6 +786,7 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           }
           messageIntent {
             creatorId
+            creatorOpenId
             preferredChannel
             emailSubject
             subjectHash
@@ -659,28 +794,8 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
             parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
         }
-        creatorId
-        creatorRelationshipId
         baseCheckpointId
         candidateCheckpointId
-        creatorProfile {
-          id
-          platform
-          creatorOpenId
-          creatorImId
-        }
-        affiliateCollaborationId
-        sourceWorkBoundary {
-          subjectType
-          creatorRelationshipId
-          affiliateCollaborationId
-          workKind
-          workBundleKind
-          versionAt
-          triggerKind
-          triggerId
-          recommendedActionTypes
-        }
         createdAt
         updatedAt
         expiresAt
@@ -702,11 +817,13 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           actorId
         }
         sampleReviewIntent {
+          sampleApplicationRecordId
           platformApplicationId
           decision
           rejectReason
         }
         sampleShipmentIntent {
+          sampleApplicationRecordId
           platformApplicationId
           warehouseId
           skuId
@@ -714,6 +831,7 @@ const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         }
         messageIntent {
           creatorId
+          creatorOpenId
           preferredChannel
           emailSubject
           subjectHash
