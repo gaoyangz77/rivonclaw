@@ -90,7 +90,9 @@ describe("affiliate workspace GraphQL contracts", () => {
   it("loads approval proposals with relationship and collaboration focus context", () => {
     const query = queryText(AFFILIATE_ACTION_PROPOSALS_QUERY);
 
-    expect(query).toContain("actionProposals(input: $input)");
+    expect(query).toContain("affiliateActionProposalPage(input: $input)");
+    expect(query).toContain("nextCursor");
+    expect(query).toContain("hasMore");
     expect(query).toContain("creatorRelationshipId");
     expect(query).toContain("creatorProfile");
     expect(query).toContain("sourceWorkBoundary");

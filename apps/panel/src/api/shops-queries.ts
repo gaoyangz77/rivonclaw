@@ -1074,7 +1074,8 @@ export const CS_DISMISS_CONVERSATION_ESCALATIONS_MUTATION = gql`
 
 export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
   query AffiliateActionProposals($input: ReadActionProposalsInput!) {
-    actionProposals(input: $input) {
+    affiliateActionProposalPage(input: $input) {
+      items {
       id
       userId
       focusShopId
@@ -1343,6 +1344,9 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         actualChannel
         channelSelectionSource
       }
+      }
+      nextCursor
+      hasMore
     }
   }
 `;
