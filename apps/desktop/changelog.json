@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.85",
+    "date": "2026-08-02",
+    "en": [
+      "Keep Desktop affiliate workflows aligned with the latest GraphQL input requirements"
+    ],
+    "zh": [
+      "让桌面端达人工作流与最新 GraphQL 输入要求保持一致"
+    ]
+  },
+  {
     "version": "1.8.84",
     "date": "2026-07-30",
     "en": [
