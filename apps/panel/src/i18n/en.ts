@@ -3346,10 +3346,10 @@ export default {
       subtitle: "Review pending agent actions for creator lifecycle work.",
       creatorsTitle: "Cooperation creators",
       creatorsSubtitle:
-        "Review creators with an established business relationship in this shop, maintain labels, and handle current work.",
+        "Review creator relationships across all Affiliate-enabled shops, maintain labels, and handle current work.",
       creatorsPanelTitle: "Shop creator pool",
       creatorsPanelHint:
-        "Shows creators with a relationship, conversation, or collaboration record in this shop.",
+        "Shows relationships across all Affiliate-enabled shops by default; select one shop to narrow the view.",
       creatorTagFilter: "Tag filter",
       allCreatorTagsFilter: "All tags",
       creatorAttentionOnly: "Needs attention only",
