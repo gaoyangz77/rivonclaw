@@ -1432,14 +1432,13 @@ function AffiliateInsightScopeRail({
     <div className="affiliate-intelligence-scope-rail">
       {subjects.map((subject) => {
         const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
-        const readyCount = subjectRows.reduce(
-          (count, row) =>
-            count +
-            row.availability.filter(
-              (entry) => entry.status === "READY" || entry.status === "FALLBACK",
-            ).length,
-          0,
-        );
+        const readyCount = new Set(
+          subjectRows.flatMap((row) =>
+            row.availability
+              .filter((entry) => entry.status === "READY" || entry.status === "FALLBACK")
+              .map((entry) => entry.modelFamily),
+          ),
+        ).size;
         const failed = readyCount === 0 && subjectRows.some((row) => row.failed);
         const ready = readyCount > 0;
         const status = ready
@@ -1548,9 +1547,11 @@ function AffiliateModelSourceSwitch({
       </span>
       <div className="affiliate-intelligence-model-source-options">
         {rows.map((item) => {
-          const readyCount = item.row?.availability.filter(
-            (entry) => entry.status === "READY" || entry.status === "FALLBACK",
-          ).length ?? 0;
+          const readyCount = new Set(
+            item.row?.availability
+              .filter((entry) => entry.status === "READY" || entry.status === "FALLBACK")
+              .map((entry) => entry.modelFamily) ?? [],
+          ).size;
           const loaded = Boolean(item.row);
           const active = activeModelScope === item.key;
           return (
