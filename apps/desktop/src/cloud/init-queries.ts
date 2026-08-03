@@ -200,7 +200,6 @@ export const INIT_SHOPS_QUERY = `
           enabled
           runProfileId
           deviceId
-          modelUsageScope
           businessPrompt
           decisionThresholds {
             minExpectedSalesUnits

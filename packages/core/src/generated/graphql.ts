@@ -1838,6 +1838,15 @@ export const AffiliateEmailAttachmentDisposition = {
 } as const;
 
 export type AffiliateEmailAttachmentDisposition = typeof AffiliateEmailAttachmentDisposition[keyof typeof AffiliateEmailAttachmentDisposition];
+export interface AffiliateExpectedSalesAutomaticSelection {
+  dataFoundationLevel?: Maybe<Scalars['String']['output']>;
+  effectiveTenantScope?: Maybe<Scalars['String']['output']>;
+  evaluationSampleCount: Scalars['Int']['output'];
+  outperformanceProbability?: Maybe<Scalars['Float']['output']>;
+  requestedTenantScope?: Maybe<Scalars['String']['output']>;
+  selectionBasis: Scalars['String']['output'];
+}
+
 export const AffiliateExpectedSalesFeatureTemporalBasis = {
   BestAvailable: 'BEST_AVAILABLE',
   CurrentStateProxy: 'CURRENT_STATE_PROXY',
@@ -2409,18 +2418,30 @@ export const AffiliateMlInsightsModelScope = {
 
 export type AffiliateMlInsightsModelScope = typeof AffiliateMlInsightsModelScope[keyof typeof AffiliateMlInsightsModelScope];
 export interface AffiliateMlInsightsPayload {
+  automaticExpectedSalesSelection?: Maybe<AffiliateExpectedSalesAutomaticSelection>;
   modelAvailability: Array<AffiliateModelAvailability>;
 }
 
 export interface AffiliateMlModelEfficiencySummary {
   comparisonAvailable: Scalars['Boolean']['output'];
+  /** @deprecated Internal estimate-precision diagnostic; seller UI should use outperformanceProbability and dataFoundationLevel. */
   confidenceLevel?: Maybe<Scalars['String']['output']>;
+  dataFoundationLevel?: Maybe<Scalars['String']['output']>;
+  effectEvidence?: Maybe<Scalars['String']['output']>;
   expectedSalesLiftRatio?: Maybe<Scalars['Float']['output']>;
+  /** @deprecated Internal 95% diagnostic; seller UI should use the primary range fields. */
+  expectedSalesLiftRatioLowerBound?: Maybe<Scalars['Float']['output']>;
+  expectedSalesLiftRatioPrimaryRangeLevel?: Maybe<Scalars['Float']['output']>;
+  expectedSalesLiftRatioPrimaryRangeLowerBound?: Maybe<Scalars['Float']['output']>;
+  expectedSalesLiftRatioPrimaryRangeUpperBound?: Maybe<Scalars['Float']['output']>;
+  /** @deprecated Internal 95% diagnostic; seller UI should use the primary range fields. */
+  expectedSalesLiftRatioUpperBound?: Maybe<Scalars['Float']['output']>;
   historicalApplicationCount: Scalars['Int']['output'];
   historicalExpectedUnits?: Maybe<Scalars['Float']['output']>;
   historicalSelectedCount: Scalars['Int']['output'];
   modelExpectedUnits?: Maybe<Scalars['Float']['output']>;
   modelSelectedCount: Scalars['Int']['output'];
+  outperformanceProbability?: Maybe<Scalars['Float']['output']>;
   sameBudgetComparison?: Maybe<AffiliateMlSameBudgetComparison>;
   sameThresholdComparison?: Maybe<AffiliateMlSameThresholdComparison>;
   selectionDifferenceCount: Scalars['Int']['output'];
@@ -2466,14 +2487,6 @@ export interface AffiliateModelAvailability {
   trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
 
-/** Which tenant-scoped affiliate expected-sales model this shop should use. */
-export const AffiliateModelUsageScope = {
-  RegionLevel: 'REGION_LEVEL',
-  ShopLevel: 'SHOP_LEVEL',
-  UserLevel: 'USER_LEVEL'
-} as const;
-
-export type AffiliateModelUsageScope = typeof AffiliateModelUsageScope[keyof typeof AffiliateModelUsageScope];
 export const AffiliateOperationalProjectionDataset = {
   Collaborations: 'COLLABORATIONS',
   Messages: 'MESSAGES',
@@ -3066,8 +3079,6 @@ export interface AffiliateServiceSettings {
   deviceId?: Maybe<Scalars['String']['output']>;
   /** Whether affiliate creator-management inbound automation is enabled for this shop. */
   enabled: Scalars['Boolean']['output'];
-  /** Prediction model scope used for affiliate expected-sales inference. Defaults to the account-level model. */
-  modelUsageScope: AffiliateModelUsageScope;
   /** RunProfile ID for affiliate creator-management agent sessions. */
   runProfileId?: Maybe<Scalars['String']['output']>;
 }
@@ -3082,8 +3093,6 @@ export interface AffiliateServiceSettingsInput {
   deviceId?: InputMaybe<Scalars['String']['input']>;
   /** Affiliate service enabled flag. Omit or pass null to keep, true/false to set. */
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Prediction model scope for affiliate expected-sales inference. Omit or pass null to keep. */
-  modelUsageScope?: InputMaybe<AffiliateModelUsageScope>;
   /** RunProfile ID for affiliate sessions. Omit or pass null to keep, empty string to clear. */
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }

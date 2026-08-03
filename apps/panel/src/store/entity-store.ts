@@ -99,6 +99,7 @@ const AffiliateMlInsightRowModel = types.model("AffiliateMlInsightRow", {
   shopId: types.maybe(types.string),
   modelScope: types.enumeration(["user", "region", "shop"]),
   availability: types.optional(types.frozen(), []),
+  automaticSelection: types.maybeNull(types.frozen()),
   failed: types.optional(types.boolean, false),
 });
 
@@ -422,6 +423,8 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
         const rows = requests.map((request, index) => {
           const availability =
             results[index]?.data?.affiliateMlInsights?.modelAvailability ?? [];
+          const automaticSelection =
+            results[index]?.data?.affiliateMlInsights?.automaticExpectedSalesSelection ?? null;
           return {
             key: `${request.subjectKey}:${request.modelScope}`,
             subjectKey: request.subjectKey,
@@ -429,6 +432,7 @@ const PanelRootStoreModel: IAnyModelType = RootStoreModel.props({
             shopId: request.shopId,
             modelScope: request.modelScope,
             availability: stripTypename(availability),
+            automaticSelection: stripTypename(automaticSelection),
             failed: false,
           };
         });
