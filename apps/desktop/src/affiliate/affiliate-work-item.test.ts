@@ -1464,6 +1464,12 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
       "TikTok Shop platform chat, WhatsApp, and Outlook email",
     );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "Once this run is dispatched, reconcile every listed agenda item",
+    );
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain(
+      "Never send a second outbound Affiliate message",
+    );
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("affiliate_resolve_work_item");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
       "/test/workspace-affiliate/skills/affiliate-workflow/SKILL.md",
