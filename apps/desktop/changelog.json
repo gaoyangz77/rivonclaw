@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.86",
+    "date": "2026-08-03",
+    "en": [
+      "Improve affiliate model selection, predicted-sales insights, and comparison workflows",
+      "Improve Desktop cloud subscriptions and cold-start recovery"
+    ],
+    "zh": [
+      "优化达人模型选择、预估销售洞察和对比工作流",
+      "优化桌面端云端订阅与冷启动恢复"
+    ]
+  },
+  {
     "version": "1.8.85",
     "date": "2026-08-02",
     "en": [
