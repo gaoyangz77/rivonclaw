@@ -4673,7 +4673,20 @@ function ProposalPredictionComparison({
 }) {
   const { t } = useTranslation();
   const output = readPredictionSnapshotOutput(snapshot);
-  if (!output) return null;
+  if (!snapshot) return null;
+  if (!output) {
+    return (
+      <section className="affiliate-prediction-comparison" aria-label={t("ecommerce.affiliateWorkspace.predictionComparison.title")}>
+        <div className="affiliate-prediction-comparison-head">
+          <span>{t("ecommerce.affiliateWorkspace.predictionComparison.title")}</span>
+        </div>
+        <div className="td-meta">
+          {t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable")}
+          {snapshot.status ? ` · ${formatAffiliateEnumLabel(snapshot.status)}` : ""}
+        </div>
+      </section>
+    );
+  }
   const humanDecision = output?.humanDecision ?? null;
   const expectedSalesUnits = output?.expectedSalesUnits ?? null;
   const expectedSalesSelection = output.expectedSalesSelection ?? output;

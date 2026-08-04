@@ -93,6 +93,7 @@ interface AffiliateRunCheckpoint {
   relationshipOperationalConfigRevision: number;
   businessDeveloperIdSnapshot: string | null;
   businessDeveloperConfigRevision: number | null;
+  predictionCacheIds: string[];
 }
 
 interface AffiliateResolvedDispatchContext {
@@ -379,6 +380,7 @@ export class AffiliateSession {
     businessDeveloperConfigRevision?: number | null;
     businessDeveloperPrompt?: string | null;
     involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[];
+    predictionCacheIds?: string[];
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
     const runMode = params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING;
@@ -390,6 +392,7 @@ export class AffiliateSession {
       relationshipOperationalConfigRevision: params.relationshipOperationalConfigRevision,
       businessDeveloperIdSnapshot: params.businessDeveloperIdSnapshot,
       businessDeveloperConfigRevision: params.businessDeveloperConfigRevision,
+      predictionCacheIds: params.predictionCacheIds,
     });
     const resolvedModel = this.resolveCurrentSessionModel();
     const workflowSkillCatalog = await buildAffiliateWorkflowSkillCatalog();
@@ -413,6 +416,7 @@ export class AffiliateSession {
       relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
       businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
       businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
+      predictionCacheIds: checkpoint.predictionCacheIds,
     });
 
     let response: AffiliateDispatchResult | undefined;
@@ -449,6 +453,7 @@ export class AffiliateSession {
         relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
         businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
         businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
+        predictionCacheIds: checkpoint.predictionCacheIds,
       });
       log.info(`Affiliate agent run dispatched: runId=${response.runId} scope=${this.scopeKey}`);
     } else {
@@ -521,6 +526,7 @@ export class AffiliateSession {
     relationshipOperationalConfigRevision?: number;
     businessDeveloperIdSnapshot?: string | null;
     businessDeveloperConfigRevision?: number | null;
+    predictionCacheIds?: string[];
   }): Promise<AffiliateRunCheckpoint> {
     const committed =
       requested.baseCheckpointId === undefined || requested.baseEventCursor === undefined
@@ -572,6 +578,7 @@ export class AffiliateSession {
         baseEventCursor,
         candidateCheckpointId,
         targetEventCursor,
+        predictionCacheIds: requested.predictionCacheIds ?? [],
       },
     });
 
@@ -583,6 +590,7 @@ export class AffiliateSession {
       relationshipOperationalConfigRevision: requested.relationshipOperationalConfigRevision ?? 1,
       businessDeveloperIdSnapshot: requested.businessDeveloperIdSnapshot ?? null,
       businessDeveloperConfigRevision: requested.businessDeveloperConfigRevision ?? null,
+      predictionCacheIds: [...new Set(requested.predictionCacheIds ?? [])],
     };
   }
 
