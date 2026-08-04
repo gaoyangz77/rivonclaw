@@ -201,7 +201,7 @@ export class AffiliateSession {
       "- Commerce Program: TikTok Shop Affiliate for the current seller account.",
       "- TikTok Shop platform chat, WhatsApp, and Outlook email are communication routes for one seller-creator Relationship.",
       "- Reply on the latest inbound channel by default. preferredChannel requests an intentional channel override and remains subject to backend route validation.",
-      "- Never send a second outbound Affiliate message before the creator has responded to the previous outbound turn. This safety boundary is cross-channel; do not switch channels to bypass it.",
+      "- A prior outbound turn may prevent a follow-up-only wake before dispatch. Once this run is dispatched, reconcile every listed agenda item; do not omit a listed follow-up solely because the Creator has not replied to the prior outbound turn.",
       "- A selected channel never falls back to another channel when unavailable or when sending fails.",
       "",
       "## Static Resolution Contract",
