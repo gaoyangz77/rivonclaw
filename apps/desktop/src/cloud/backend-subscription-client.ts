@@ -362,6 +362,21 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           nextActionAt
           boundaryEventCursor
           updatedAt
+          predictionEvidence {
+            sourceCacheId
+            predictionType
+            captureMode
+            scenario
+            subject { sampleApplicationRecordId platformApplicationId creatorId creatorOpenId affiliateCollaborationId platformCollaborationId productId }
+            status
+            output
+            model
+            diagnostics
+            resolvedContext { shopId sampleApplicationRecordId platformApplicationId creatorId creatorOpenId creatorUsername creatorNickname productId skuId productTitle source }
+            message
+            predictedAt
+            capturedAt
+          }
           revisionRequestedProposal {
             id
             type

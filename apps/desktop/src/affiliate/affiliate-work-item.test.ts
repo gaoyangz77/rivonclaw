@@ -226,6 +226,28 @@ async function waitForCondition(predicate: () => boolean, timeoutMs = 500): Prom
   }
 }
 
+function createWorkingAgendaPredictionEvidence(
+  overrides: Partial<GQL.AffiliateActionProposalPredictionSnapshot> = {},
+): GQL.AffiliateActionProposalPredictionSnapshot {
+  return {
+    sourceCacheId: "64f000000000000000000700",
+    predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
+    captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
+    scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
+    subject: {
+      sampleApplicationRecordId: "sample-record-001",
+      creatorId: "creator-001",
+      productId: "product-001",
+    },
+    status: GQL.AffiliatePredictionStatus.Ok,
+    output: { expectedSalesUnits: 2.4 },
+    model: { modelStage: "UNIFIED", effectiveTenantScope: "USER" },
+    diagnostics: {},
+    predictedAt: "2026-05-11T00:01:01.000Z",
+    ...overrides,
+  };
+}
+
 function createSampleReviewWorkItem(
   overrides: Partial<GQL.AffiliateWorkItem> = {},
 ): GQL.AffiliateWorkItem {
@@ -352,6 +374,7 @@ function createSampleReviewWorkItem(
           nextActionAt: null,
           boundaryEventCursor: 1,
           updatedAt: "2026-05-11T00:01:00.000Z",
+          predictionEvidence: createWorkingAgendaPredictionEvidence(),
         },
       ],
       workSummary: {
@@ -1118,6 +1141,7 @@ describe("affiliate work item dispatch", () => {
           baseEventCursor: 0,
           candidateCheckpointId: expect.any(String),
           targetEventCursor: 1,
+          predictionCacheIds: ["64f000000000000000000700"],
         },
       }),
     );
@@ -1878,20 +1902,49 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).not.toContain("persisted prediction snapshot");
   });
 
-  it("dispatches sample review to the agent without prefetching prediction evidence", async () => {
+  it("dispatches sample review with Backend prediction evidence and no Agent-side prefetch", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
+    const baseWorkItem = createSampleReviewWorkItem();
     const workItem = createSampleReviewWorkItem({
       id: "collab-sample-agent-001",
       affiliateCollaborationId: "collab-sample-agent-001",
       agentDispatchRecommended: true,
       staffReviewRequired: false,
       affiliateCollaboration: {
-        ...(createSampleReviewWorkItem().affiliateCollaboration as GQL.AffiliateCollaboration),
+        ...(baseWorkItem.affiliateCollaboration as GQL.AffiliateCollaboration),
         id: "collab-sample-agent-001",
       },
+      agentWorkingAgendaItems: [{
+        ...(baseWorkItem.creatorRelationship?.agendaItems ?? [])[0]!,
+        predictionEvidence: {
+          sourceCacheId: "64f000000000000000000777",
+          predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
+          captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
+          scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
+          subject: {
+            sampleApplicationRecordId: "sample-record-001",
+            creatorId: "creator-001",
+            productId: "product-001",
+          },
+          status: GQL.AffiliatePredictionStatus.Ok,
+          output: {
+            expectedSalesUnits: 2.4,
+            thresholdProbabilities: { unitsGe1: 0.81 },
+            humanDecision: { wouldApprove: true, humanApprovalProbability: 0.74 },
+            featureTemporalBasis: "BEST_AVAILABLE",
+          },
+          model: {
+            modelStage: "UNIFIED",
+            effectiveTenantScope: "USER",
+            modelVersion: "affiliate-unified-v4",
+          },
+          diagnostics: {},
+          predictedAt: "2026-05-11T00:01:01.000Z",
+        },
+      }],
     });
     const session = new AffiliateSession(
       {
@@ -1933,8 +1986,12 @@ describe("affiliate work item dispatch", () => {
     );
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
-    expect(agentCall?.[1]?.message).not.toContain("prediction evidence");
-    expect(agentCall?.[1]?.message).not.toContain("evidence snapshot");
+    expect(agentCall?.[1]?.message).toContain("Backend Prediction Evidence");
+    expect(agentCall?.[1]?.message).toContain('"expectedSalesUnits":2.4');
+    expect(agentCall?.[1]?.message).toContain('"unitsGe1":0.81');
+    expect(getActiveAffiliateRunCheckpoint("relationship-001")?.predictionCacheIds).toEqual([
+      "64f000000000000000000777",
+    ]);
     expect(agentCall?.[1]?.message).not.toContain(
       "before submitting a REVIEW_SAMPLE_APPLICATION action",
     );
@@ -1989,6 +2046,14 @@ describe("affiliate work item dispatch", () => {
       shopId: "shop-002",
       affiliateCollaborationId: "collab-002",
       sampleApplicationRecordId: "sample-record-002",
+      predictionEvidence: createWorkingAgendaPredictionEvidence({
+        sourceCacheId: "64f000000000000000000701",
+        subject: {
+          sampleApplicationRecordId: "sample-record-002",
+          creatorId: "creator-001",
+          productId: "product-002",
+        },
+      }),
     };
     const request = buildAffiliateAgentRunRequest({
       workItem: createSampleReviewWorkItem({
@@ -2162,12 +2227,18 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).not.toContain("collab-ambiguous-002");
   });
 
-  it("dispatches sample review to the agent even when prediction evidence was not prefetched", async () => {
+  it("rejects a formal sample review work item when Backend prediction evidence is missing", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
-    const workItem = createSampleReviewWorkItem();
+    const baseWorkItem = createSampleReviewWorkItem();
+    const workItem = createSampleReviewWorkItem({
+      agentWorkingAgendaItems: [{
+        ...(baseWorkItem.creatorRelationship?.agendaItems ?? [])[0]!,
+        predictionEvidence: null,
+      }],
+    });
     const session = new AffiliateSession(
       {
         objectId: "shop-001",
@@ -2192,24 +2263,11 @@ describe("affiliate work item dispatch", () => {
       },
     );
 
-    const result = await session.handleWorkItem(workItem);
-
-    expect(result).toEqual({
-      runId: "run-affiliate-001",
-      runMode: "OPERATOR_REASONING",
-    });
-    expect(graphqlFetch).not.toHaveBeenCalledWith(
-      expect.stringContaining("affiliateExpectedSalesPredictions"),
-      expect.anything(),
+    await expect(session.handleWorkItem(workItem)).rejects.toThrow(
+      "is missing Backend prediction evidence",
     );
-    expect(graphqlFetch).not.toHaveBeenCalledWith(
-      expect.stringContaining("ResolveAffiliateWorkItem"),
-      expect.anything(),
-    );
-    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
-    expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
-    expect(agentCall?.[1]?.message).not.toContain("Status: NOT_PREFETCHED");
-    expect(agentCall?.[1]?.message).not.toContain("prediction cache id");
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 
   it("does not ack work items when the gateway reports an agent run error", async () => {

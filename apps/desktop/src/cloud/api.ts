@@ -300,12 +300,7 @@ function buildAffiliateResolveActionContext(input: Record<string, unknown>): Aff
   const checkpoint = creatorRelationshipId
     ? getActiveAffiliateRunCheckpoint(creatorRelationshipId)
     : null;
-  const predictionCacheIds = [
-    ...(Array.isArray(input.predictionCacheIds)
-      ? input.predictionCacheIds.filter(hasNonEmptyString)
-      : []),
-    ...(checkpoint?.predictionCacheIds ?? []),
-  ];
+  const predictionCacheIds = checkpoint?.predictionCacheIds ?? [];
   const context: AffiliateResolveActionContext = {
     affiliateCollaborationId: affiliateCollaborationId ?? undefined,
     predictionCacheIds: predictionCacheIds.length
@@ -466,12 +461,7 @@ function pickAffiliateActionFields(
   intentValue: Record<string, unknown>,
   trustedPredictionCacheIds?: readonly string[],
 ): Record<string, unknown> {
-  const predictionCacheIds = [
-    ...(Array.isArray(action.predictionCacheIds)
-      ? action.predictionCacheIds.filter(hasNonEmptyString)
-      : []),
-    ...(trustedPredictionCacheIds ?? []),
-  ];
+  const predictionCacheIds = trustedPredictionCacheIds ?? [];
   return omitEmptyAffiliateStrings({
     type: action.type,
     ...(intentField === "messageIntent" ? {

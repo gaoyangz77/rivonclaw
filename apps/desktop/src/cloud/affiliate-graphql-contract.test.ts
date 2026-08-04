@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { buildSchema, parse, validate } from "graphql";
+import { buildSchema, isInputObjectType, parse, validate } from "graphql";
 import { describe, expect, it } from "vitest";
 import { AFFILIATE_WORK_ITEMS_QUERY } from "./affiliate-queries.js";
 import {
@@ -49,6 +49,16 @@ describe("affiliate desktop GraphQL contracts", () => {
     expect(compactQuery).toContain("committedEventCursor");
     expect(compactQuery).toContain("lifecycleEventSequence");
     expect(compactQuery).toContain("activeRunBaseEventCursor");
+  });
+
+  it("keeps prediction lineage scaffold-owned instead of Agent-authored", () => {
+    const actionInput = backendSchema.getType("ResolveAffiliateWorkItemActionInput");
+
+    expect(isInputObjectType(actionInput)).toBe(true);
+    if (!isInputObjectType(actionInput)) return;
+    expect(actionInput.getFields()).not.toHaveProperty("predictionCacheIds");
+    expect(AFFILIATE_WORK_ITEMS_QUERY).toContain("predictionEvidence");
+    expect(AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION).toContain("predictionEvidence");
   });
 
   it("does not query the removed relationship agenda status field", () => {

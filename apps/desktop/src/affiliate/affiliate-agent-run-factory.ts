@@ -9,6 +9,7 @@ export interface AffiliateAgentRunRequest {
   message: string;
   idempotencyKey: string;
   abortActive?: boolean;
+  predictionCacheIds?: string[];
 }
 
 export function buildAffiliateAgentRunRequest(
@@ -16,6 +17,7 @@ export function buildAffiliateAgentRunRequest(
 ): AffiliateAgentRunRequest | null {
   const { workItem, platform } = input;
   if (!workItem.agentDispatchRecommended) return null;
+  assertFormalSampleAgendaHasPredictionEvidence(workItem);
 
   const idempotencySuffix = isSampleReviewWorkItem(workItem)
     ? resolveSampleApplicationRecordId(workItem) ??
@@ -37,7 +39,21 @@ export function buildAffiliateAgentRunRequest(
       workItem.versionAt,
     ].filter(Boolean).join(":"),
     abortActive: false,
+    predictionCacheIds: collectWorkingAgendaPredictionCacheIds(workItem),
   };
+}
+
+function assertFormalSampleAgendaHasPredictionEvidence(
+  workItem: GQL.AffiliateWorkItem,
+): void {
+  const missingEvidence = resolveOpenAgentAgenda(workItem).find(
+    (item) => item.sampleApplicationRecordId && !item.predictionEvidence,
+  );
+  if (missingEvidence) {
+    throw new Error(
+      `Affiliate Sample Application agenda ${missingEvidence.key} is missing Backend prediction evidence; refuse to start an Agent run until the work item is redispatched.`,
+    );
+  }
 }
 
 export function resolveSampleApplicationRecordId(
@@ -53,24 +69,25 @@ export function resolveSampleApplicationRecordId(
 }
 
 /**
- * The user turn is deliberately a wake-up envelope, not a business snapshot.
- * IDs below are only stable scopes/targets needed to call the authoritative tools.
+ * The user turn is deliberately a wake-up envelope, not a general business snapshot.
+ * IDs below are stable scopes/targets needed to call authoritative tools. Formal Sample
+ * Application agenda items additionally carry Backend-generated prediction evidence.
  */
 export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): string {
   const creatorProfile = workItem.context?.creatorProfile ?? null;
   const creatorId = creatorProfile?.id ?? workItem.creatorRelationship?.creatorId ?? null;
-  const projectedAgentAgenda = workItem.agentWorkingAgendaItems ?? [];
-  const openAgentAgenda = projectedAgentAgenda.length > 0
-    ? projectedAgentAgenda
-    : (workItem.creatorRelationship?.agendaItems ?? []).filter(
-        (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.Agent,
-      );
-  const agendaItems = openAgentAgenda.length > 0
+  const openAgentAgenda = resolveOpenAgentAgenda(workItem);
+  const agendaItems: GQL.AffiliateRelationshipAgendaItem[] = openAgentAgenda.length > 0
     ? openAgentAgenda
     : [{
         key: `work:${workItem.id}`,
         workKind: workItem.workKind,
         requiredAction: workItem.requiredAction,
+        owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
+        sourceType: workItem.sampleApplicationRecord
+          ? GQL.AffiliateRelationshipAgendaSourceType.SampleApplication
+          : GQL.AffiliateRelationshipAgendaSourceType.Relationship,
+        updatedAt: workItem.versionAt,
         shopId: workItem.triggerShopId,
         reasons: workItem.processReasons ?? [],
         affiliateCollaborationId: workItem.affiliateCollaborationId ?? null,
@@ -106,6 +123,13 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     if (item.sampleApplicationRecordId) {
       lines.push(`   Sample Application Record ID: ${item.sampleApplicationRecordId}`);
     }
+    if (item.predictionEvidence) {
+      lines.push(
+        "   Backend Prediction Evidence: " +
+          JSON.stringify(compactWorkingAgendaPredictionEvidence(item.predictionEvidence)),
+        "   Prediction Semantics: This evidence was computed by Backend before dispatch. Weigh it with shop/BD instructions and current business facts; it is not an automatic approve/reject rule.",
+      );
+    }
     if (item.proposalId) {
       lines.push(`   Proposal ID: ${item.proposalId}`);
     }
@@ -124,6 +148,70 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     }
   });
   return lines.join("\n");
+}
+
+function collectWorkingAgendaPredictionCacheIds(workItem: GQL.AffiliateWorkItem): string[] {
+  return [
+    ...new Set(
+      resolveOpenAgentAgenda(workItem)
+        .map((item) => item.predictionEvidence?.sourceCacheId?.trim())
+        .filter((cacheId): cacheId is string => Boolean(cacheId)),
+    ),
+  ];
+}
+
+function resolveOpenAgentAgenda(
+  workItem: GQL.AffiliateWorkItem,
+): GQL.AffiliateRelationshipAgendaItem[] {
+  const projectedAgenda = workItem.agentWorkingAgendaItems ?? [];
+  return projectedAgenda.length > 0
+    ? projectedAgenda
+    : (workItem.creatorRelationship?.agendaItems ?? []).filter(
+        (item) => item.owner === GQL.AffiliateRelationshipAgendaOwner.Agent,
+      );
+}
+
+function compactWorkingAgendaPredictionEvidence(
+  evidence: GQL.AffiliateActionProposalPredictionSnapshot,
+): Record<string, unknown> {
+  const output = asRecord(evidence.output);
+  const model = asRecord(evidence.model);
+  return compactRecord({
+    status: evidence.status,
+    scenario: evidence.scenario,
+    sampleApplicationRecordId:
+      evidence.subject.sampleApplicationRecordId ??
+      evidence.resolvedContext?.sampleApplicationRecordId ??
+      null,
+    productId:
+      evidence.subject.productId ?? evidence.resolvedContext?.productId ?? null,
+    expectedSalesUnits: output.expectedSalesUnits,
+    expectedSalesPercentile: output.expectedSalesPercentile,
+    thresholdProbabilities: output.thresholdProbabilities,
+    predictionQuality: output.predictionQuality,
+    humanDecision: output.humanDecision,
+    expectedSalesSelection: output.expectedSalesSelection,
+    humanDecisionSelection: output.humanDecisionSelection,
+    featureTemporalBasis: output.featureTemporalBasis ?? model.featureTemporalBasis,
+    modelStage: output.modelStage ?? model.modelStage,
+    effectiveTenantScope: output.effectiveTenantScope ?? model.effectiveTenantScope,
+    effectiveTenantId: output.effectiveTenantId ?? model.effectiveTenantId,
+    modelVersion: model.modelVersion,
+    predictedAt: evidence.predictedAt,
+    message: evidence.message,
+  });
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value != null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function compactRecord(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, child]) => child !== undefined && child !== null),
+  );
 }
 
 function frozenRevisionIntent(

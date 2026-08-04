@@ -512,7 +512,7 @@ describe("cloud-graphql handler", () => {
           operatorSummary: "Reject the sample.",
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
-            predictionCacheIds: ["pred-1"],
+            predictionCacheIds: ["untrusted-pred-1"],
             sampleApplicationRecordId: "sample-1",
             decision: "REJECT",
             rejectReason: "OTHER",
@@ -530,7 +530,6 @@ describe("cloud-graphql handler", () => {
           decision: "REQUEST_ACTION",
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
-            predictionCacheIds: ["pred-1"],
             sampleReviewIntent: {
               sampleApplicationRecordId: "sample-1",
               decision: "REJECT",
@@ -1335,7 +1334,6 @@ describe("cloud-graphql handler", () => {
           decision: "REQUEST_ACTION",
           action: {
             type: "SEND_MESSAGE",
-            predictionCacheIds: ["pred-1"],
             expiresAt: undefined,
             messageIntent: {
               parts: [{

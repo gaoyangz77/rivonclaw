@@ -915,6 +915,7 @@ export interface AffiliateCampaignCreatorState {
   eligibilityEvaluatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   eligibilityPolicyVersion?: Maybe<Scalars['Int']['output']>;
   eligibilityReasonCode?: Maybe<Scalars['String']['output']>;
+  /** Raw arithmetic expectation of attributed units through Sample terminal, conditional on approval. */
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   filterResult?: Maybe<AffiliateCampaignRuleFilterResult>;
   firstSeenAt: Scalars['DateTimeISO']['output'];
@@ -1929,6 +1930,7 @@ export interface AffiliateExpectedSalesPredictionPayload {
   effectiveTenantId?: Maybe<Scalars['String']['output']>;
   effectiveTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
   expectedSales?: Maybe<AffiliateExpectedSalesModelSelection>;
+  /** Raw arithmetic expectation of attributed units through Sample terminal, conditional on approval. */
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   featureTemporalBasis?: Maybe<AffiliateExpectedSalesFeatureTemporalBasis>;
   featureVersion?: Maybe<Scalars['String']['output']>;
@@ -2021,6 +2023,7 @@ export interface AffiliateExpectedSalesSubjectPrediction {
   contractVersion?: Maybe<Scalars['String']['output']>;
   expectedSalesPercentile?: Maybe<Scalars['Float']['output']>;
   expectedSalesStatus?: Maybe<AffiliateExpectedSalesSubjectPredictionStatus>;
+  /** Raw arithmetic expectation of attributed units through Sample terminal, conditional on approval. */
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   featureAsOf?: Maybe<Scalars['DateTimeISO']['output']>;
   humanDecision?: Maybe<AffiliateHumanDecisionPrediction>;
@@ -2082,11 +2085,17 @@ export interface AffiliateExpectedSalesThresholdPercentiles {
   unitsGe10?: Maybe<AffiliateExpectedSalesThresholdPercentile>;
 }
 
+/** Tail probabilities for realized sales. Each unitsGeN field means P(realized sales units >= N), never P(units < N). */
 export interface AffiliateExpectedSalesThresholdProbabilities {
+  /** Probability of reaching at least 1 realized sales unit: P(units >= 1). For example, 0.008 means a 0.8% chance of reaching one or more units, not a 0.8% chance of staying below one unit. */
   unitsGe1?: Maybe<Scalars['Float']['output']>;
+  /** Probability of reaching at least 2 realized sales units: P(units >= 2). */
   unitsGe2?: Maybe<Scalars['Float']['output']>;
+  /** Probability of reaching at least 3 realized sales units: P(units >= 3). */
   unitsGe3?: Maybe<Scalars['Float']['output']>;
+  /** Probability of reaching at least 5 realized sales units: P(units >= 5). */
   unitsGe5?: Maybe<Scalars['Float']['output']>;
+  /** Probability of reaching at least 10 realized sales units: P(units >= 10). */
   unitsGe10?: Maybe<Scalars['Float']['output']>;
 }
 
@@ -2671,12 +2680,17 @@ export interface AffiliateOutreachOperationalStatusPayload {
 
 export const AffiliatePredictionCaptureMode = {
   PromotedFromCache: 'PROMOTED_FROM_CACHE',
-  QueryCache: 'QUERY_CACHE'
+  QueryCache: 'QUERY_CACHE',
+  WorkingAgenda: 'WORKING_AGENDA'
 } as const;
 
 export type AffiliatePredictionCaptureMode = typeof AffiliatePredictionCaptureMode[keyof typeof AffiliatePredictionCaptureMode];
 export const AffiliatePredictionStatus = {
+  DataNotReady: 'DATA_NOT_READY',
+  FeatureContractError: 'FEATURE_CONTRACT_ERROR',
+  FeatureVersionMismatch: 'FEATURE_VERSION_MISMATCH',
   InvalidContext: 'INVALID_CONTEXT',
+  ModelUpgrading: 'MODEL_UPGRADING',
   Ok: 'OK',
   PredictionNotAvailable: 'PREDICTION_NOT_AVAILABLE',
   ServiceError: 'SERVICE_ERROR'
@@ -2717,6 +2731,8 @@ export interface AffiliateRelationshipAgendaItem {
   key: Scalars['String']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   owner: AffiliateRelationshipAgendaOwner;
+  /** Backend-generated expected-sales and Human Decision evidence for this Sample Application dispatch. It is computed before the Agent run and later frozen into any resulting proposal. */
+  predictionEvidence?: Maybe<AffiliateActionProposalPredictionSnapshot>;
   productId?: Maybe<Scalars['String']['output']>;
   proposalId?: Maybe<Scalars['ID']['output']>;
   reasons: Array<AffiliateWorkProcessReason>;
@@ -10761,8 +10777,6 @@ export interface ResolveAffiliateWorkItemActionInput {
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
-  /** Prediction cache ids returned by Affiliate prediction tools. When a proposal is created, Backend copies their canonical contents into immutable proposal-owned predictionSnapshots. */
-  predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   productId?: InputMaybe<Scalars['String']['input']>;
   /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
