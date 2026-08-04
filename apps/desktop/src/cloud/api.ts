@@ -474,6 +474,10 @@ function pickAffiliateActionFields(
   ];
   return omitEmptyAffiliateStrings({
     type: action.type,
+    ...(intentField === "messageIntent" ? {
+      sampleApplicationRecordId: action.sampleApplicationRecordId,
+      productId: action.productId,
+    } : {}),
     affiliateCollaborationId: action.affiliateCollaborationId,
     predictionCacheIds: predictionCacheIds.length
       ? [...new Set(predictionCacheIds)]
