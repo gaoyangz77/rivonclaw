@@ -1383,6 +1383,9 @@ describe("cloud-graphql handler", () => {
           operatorSummary: "Reply to creator.",
           action: {
             type: "SEND_MESSAGE",
+            sampleApplicationRecordId: "sample-follow-up-1",
+            affiliateCollaborationId: "collab-follow-up-1",
+            productId: "product-follow-up-1",
             messageIntent: {
               parts: [{ kind: "text", text: "Thanks for the update." }],
             },
@@ -1399,6 +1402,9 @@ describe("cloud-graphql handler", () => {
         input: expect.objectContaining({
           action: {
             type: "SEND_MESSAGE",
+            sampleApplicationRecordId: "sample-follow-up-1",
+            affiliateCollaborationId: "collab-follow-up-1",
+            productId: "product-follow-up-1",
             predictionCacheIds: undefined,
             expiresAt: undefined,
             messageIntent: {
