@@ -33,6 +33,7 @@ import {
   UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
 } from "../../api/shops-queries.js";
 import { creatorTagLabel } from "./affiliate-tag-labels.js";
+import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 
 type CreatorRelationshipWorkItem = {
@@ -1408,24 +1409,39 @@ function AffiliateProductionModelDashboard({
             />
           </div>
 
-          <div className="affiliate-intelligence-confidence-note">
+          <div className="affiliate-intelligence-evidence-grid">
             {outperformanceProbability != null ? (
-              <div>
-                <strong>{t("ecommerce.affiliateWorkspace.intelligenceOutperformanceProbability")}</strong>
+              <div className="affiliate-intelligence-evidence-card affiliate-intelligence-evidence-card-probability">
+                <strong>
+                  <AffiliateMetricLabel
+                    label={t("ecommerce.affiliateWorkspace.intelligenceOutperformanceProbability")}
+                    tooltip={t("ecommerce.affiliateWorkspace.intelligenceOutperformanceProbabilityTooltip")}
+                  />
+                </strong>
                 <span>{formatPercent(outperformanceProbability)}</span>
               </div>
             ) : null}
             {rangeLower != null && rangeUpper != null ? (
-              <div>
-                <strong>{t("ecommerce.affiliateWorkspace.intelligencePrimaryRange", {
-                  level: rangeLevel == null ? "" : Math.round(rangeLevel * 100),
-                })}</strong>
+              <div className="affiliate-intelligence-evidence-card affiliate-intelligence-evidence-card-range">
+                <strong>
+                  <AffiliateMetricLabel
+                    label={t("ecommerce.affiliateWorkspace.intelligencePrimaryRange", {
+                      level: rangeLevel == null ? "" : Math.round(rangeLevel * 100),
+                    })}
+                    tooltip={t("ecommerce.affiliateWorkspace.intelligencePrimaryRangeTooltip")}
+                  />
+                </strong>
                 <span>{formatLiftRatioRange(rangeLower, rangeUpper)}</span>
               </div>
             ) : null}
             {dataFoundationLevel ? (
-              <div>
-                <strong>{t("ecommerce.affiliateWorkspace.intelligenceDataFoundation")}</strong>
+              <div className="affiliate-intelligence-evidence-card affiliate-intelligence-evidence-card-foundation">
+                <strong>
+                  <AffiliateMetricLabel
+                    label={t("ecommerce.affiliateWorkspace.intelligenceDataFoundation")}
+                    tooltip={t("ecommerce.affiliateWorkspace.intelligenceDataFoundationTooltip")}
+                  />
+                </strong>
                 <span>{t(`ecommerce.affiliateWorkspace.intelligenceDataFoundationLevels.${dataFoundationLevel.toLowerCase()}`)}</span>
               </div>
             ) : null}
