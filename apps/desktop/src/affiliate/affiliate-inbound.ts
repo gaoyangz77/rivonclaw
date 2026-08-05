@@ -27,16 +27,13 @@ import { getAuthSession } from "../auth/session-ref.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { resolveSampleApplicationRecordId } from "./affiliate-agent-run-factory.js";
 
+const AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV =
+  "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS";
 const log = createLogger("affiliate-inbound");
-const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
-  1,
-  Number.parseInt(process.env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS ?? "1", 10) || 1,
-);
+const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = resolveMaxActiveAffiliateAgentRuns();
 const MAX_QUEUED_AFFILIATE_WORK_ITEMS = parseOptionalPositiveInteger(
   process.env.RIVONCLAW_MAX_QUEUED_AFFILIATE_WORK_ITEMS,
 );
-const AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV =
-  "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS";
 
 export interface AffiliateShopSource {
   id: string;
@@ -688,6 +685,20 @@ function getControlledLiveTestRelationshipIds(): Set<string> | null {
     .map((value) => value.trim())
     .filter(Boolean);
   return relationshipIds.length > 0 ? new Set(relationshipIds) : null;
+}
+
+export function resolveMaxActiveAffiliateAgentRuns(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  const explicit = parseOptionalPositiveInteger(
+    env.RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS,
+  );
+  if (explicit != null) return explicit;
+  const controlledRelationshipIds = env[AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV]
+    ?.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return Math.max(1, new Set(controlledRelationshipIds ?? []).size);
 }
 
 function parseOptionalPositiveInteger(value: string | undefined): number | undefined {
