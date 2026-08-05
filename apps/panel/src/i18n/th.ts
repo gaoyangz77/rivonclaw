@@ -2756,7 +2756,7 @@ export default {
         "TAG_ADDED": "เพิ่มแท็กครีเอเตอร์แล้ว",
         "TAG_REMOVED": "ลบแท็กครีเอเตอร์แล้ว",
         "MESSAGE_SENT": "ส่งข้อความแล้ว",
-        "COLLABORATION_CREATED": "สร้างความร่วมมือแล้ว",
+        "COLLABORATION_CREATED": "พบความร่วมมือบนแพลตฟอร์มแล้ว",
         "COLLABORATION_CLOSED": "ปิดความร่วมมือแล้ว",
         "SAMPLE_APPLICATION_SUBMITTED": "ส่งคำขอตัวอย่างแล้ว",
         "SAMPLE_APPLICATION_APPROVED": "อนุมัติคำขอตัวอย่างแล้ว",

@@ -3287,14 +3287,6 @@ function relationshipTimelineTitle(
   }
   const event = item.businessEvent ?? item.actionEvent;
   if (event) {
-    if (
-      event.eventType === GQL.AffiliateLifecycleEventType.CollaborationCreated
-      && item.relatedIds.sampleApplicationRecordId
-    ) {
-      return t("ecommerce.affiliateWorkspace.platformCollaborationSampleReference", {
-        defaultValue: "Referenced by a sample application",
-      });
-    }
     return t(`ecommerce.affiliateWorkspace.lifecycleEvents.${event.eventType}`, {
       defaultValue: formatAffiliateEnumLabel(event.eventType),
     });

@@ -2756,7 +2756,7 @@ export default {
         "TAG_ADDED": "Tag creator aggiunto",
         "TAG_REMOVED": "Tag creator rimosso",
         "MESSAGE_SENT": "Messaggio inviato",
-        "COLLABORATION_CREATED": "Collaborazione creata",
+        "COLLABORATION_CREATED": "Collaborazione della piattaforma rilevata",
         "COLLABORATION_CLOSED": "Collaborazione chiusa",
         "SAMPLE_APPLICATION_SUBMITTED": "Richiesta campione inviata",
         "SAMPLE_APPLICATION_APPROVED": "Richiesta campione approvata",

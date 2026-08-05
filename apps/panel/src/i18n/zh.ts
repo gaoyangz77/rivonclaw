@@ -3625,7 +3625,7 @@ export default {
         RELATIONSHIP_CONTACT_UPDATED: "更新达人联系方式",
         MESSAGE_RECEIVED: "收到消息",
         MESSAGE_SENT: "发送消息",
-        COLLABORATION_CREATED: "创建合作记录",
+        COLLABORATION_CREATED: "发现平台合作",
         COLLABORATION_CLOSED: "关闭合作记录",
         SAMPLE_APPLICATION_SUBMITTED: "达人提交样品申请",
         SAMPLE_APPLICATION_APPROVED: "同意样品申请",
