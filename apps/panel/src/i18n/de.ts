@@ -70,7 +70,7 @@ export default {
     "affiliateCreators": "Kooperations-Creator",
     "affiliateInProgress": "In Bearbeitung",
     "affiliatePolicies": "Freigaberichtlinien",
-    "affiliateHistory": "Kooperationen",
+    "affiliateHistory": "Plattformkooperationen",
     "surfaces": "Oberflächen"
   },
   "chat": {
@@ -2772,8 +2772,8 @@ export default {
         "STAFF_MARKED_HANDLED": "Von Mitarbeiter als erledigt markiert",
         "WORK_RESOLVED": "Arbeit erledigt"
       },
-      "historyTitle": "Kooperationsdatensätze",
-      "historySubtitle": "Prüfen Sie Kooperationsdatensätze mit Konversationen, Vorschlägen und zugehörigen Kooperationen.",
+      "historyTitle": "Plattformkooperationen",
+      "historySubtitle": "TikTok Open- und Target-Collaboration-Plattformobjekte, Status und Produkte anzeigen.",
       "approvalQueueShortTitle": "Vorschläge",
       "collaborationWorkQueueShortTitle": "Kooperationen",
       "pagination": "Paginierung der Kooperationen",
@@ -2915,10 +2915,6 @@ export default {
       "typeFilter": "Typfilter",
       "searchFilter": "Suche",
       "itemCount": "{{count}} Einträge",
-      "collaborationRecords": "Kooperationsdatensätze",
-      "historicalCollaborations": "Historische Kooperationen",
-      "relatedCollaborations": "Zugehörige Kooperationen",
-      "collaborationRecordsHint": "Jede Karte steht für einen Kooperationsdatensatz zwischen Shop und Creator. Produktspezifische Kooperationen erscheinen darin, sobald Produkt- oder Sample-Kontext bekannt ist.",
       "emptyHistory": "Keine Kooperationen entsprechen dem aktuellen Filter.",
       "emptyApprovals": "Keine Aktionsvorschläge warten auf Genehmigung.",
       "emptyCollaborationWork": "Keine Kooperationen benötigen aktuell manuelle Bearbeitung.",
@@ -3027,7 +3023,6 @@ export default {
         "WHATSAPP_MESSAGE": "WhatsApp",
         "EMAIL_MESSAGE": "Email",
         "MESSAGE_DELIVERY": "Message delivery",
-        "COLLABORATION_RECORD": "Collaboration",
         "SAMPLE_APPLICATION_RECORD": "Sample application",
         "ACTION_PROPOSAL": "Action proposal",
         "LIFECYCLE_EVENT": "System event"

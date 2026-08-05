@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   applyAffiliateProposalChange,
   affiliateModelStagePresentation,
@@ -118,6 +120,20 @@ describe("AffiliateManagementPage proposal source", () => {
       });
     },
   );
+});
+
+describe("Affiliate canonical UI contract", () => {
+  it("does not reintroduce CollaborationRecord compatibility identifiers", () => {
+    const sources = [
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      resolve(process.cwd(), "src/api/shops-queries.ts"),
+      resolve(process.cwd(), "../../packages/core/src/models/Affiliate.ts"),
+    ].map((path) => readFileSync(path, "utf8"));
+
+    for (const source of sources) {
+      expect(source).not.toMatch(/collaborationRecord/i);
+    }
+  });
 });
 
 describe("Expected Sales model-stage presentation", () => {

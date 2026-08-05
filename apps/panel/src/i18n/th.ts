@@ -70,7 +70,7 @@ export default {
     "affiliateCreators": "ครีเอเตอร์ที่ร่วมงาน",
     "affiliateInProgress": "กำลังดำเนินการ",
     "affiliatePolicies": "นโยบายการอนุมัติ",
-    "affiliateHistory": "ความร่วมมือ",
+    "affiliateHistory": "ความร่วมมือบนแพลตฟอร์ม",
     "surfaces": "พื้นผิว"
   },
   "chat": {
@@ -2772,8 +2772,8 @@ export default {
         "STAFF_MARKED_HANDLED": "พนักงานทำเครื่องหมายว่าจัดการแล้ว",
         "WORK_RESOLVED": "งานได้รับการจัดการแล้ว"
       },
-      "historyTitle": "บันทึกความร่วมมือ",
-      "historySubtitle": "ดูบันทึกความร่วมมือพร้อมการสนทนา ข้อเสนอ และความร่วมมือที่เกี่ยวข้อง",
+      "historyTitle": "ความร่วมมือบนแพลตฟอร์ม",
+      "historySubtitle": "ดูออบเจ็กต์ TikTok Open และ Target Collaboration พร้อมสถานะและสินค้า",
       "approvalQueueShortTitle": "ข้อเสนอ",
       "collaborationWorkQueueShortTitle": "ความร่วมมือ",
       "pagination": "การแบ่งหน้าความร่วมมือ",
@@ -2915,10 +2915,6 @@ export default {
       "typeFilter": "ตัวกรองประเภท",
       "searchFilter": "ค้นหา",
       "itemCount": "{{count}} รายการ",
-      "collaborationRecords": "บันทึกความร่วมมือ",
-      "historicalCollaborations": "ความร่วมมือในอดีต",
-      "relatedCollaborations": "ความร่วมมือที่เกี่ยวข้อง",
-      "collaborationRecordsHint": "การ์ดแต่ละใบแทนบันทึกความร่วมมือระหว่างร้านค้ากับครีเอเตอร์ ความร่วมมือระดับสินค้าจะแสดงในบันทึกเมื่อทราบบริบทสินค้า หรือตัวอย่างสินค้า",
       "emptyHistory": "ไม่มีความร่วมมือที่ตรงกับตัวกรองปัจจุบัน",
       "emptyApprovals": "ไม่มีข้อเสนอการดำเนินการที่รออนุมัติ",
       "emptyCollaborationWork": "ไม่มีความร่วมมือที่ต้องจัดการด้วยตนเอง",
@@ -3027,7 +3023,6 @@ export default {
         "WHATSAPP_MESSAGE": "WhatsApp",
         "EMAIL_MESSAGE": "Email",
         "MESSAGE_DELIVERY": "Message delivery",
-        "COLLABORATION_RECORD": "Collaboration",
         "SAMPLE_APPLICATION_RECORD": "Sample application",
         "ACTION_PROPOSAL": "Action proposal",
         "LIFECYCLE_EVENT": "System event"

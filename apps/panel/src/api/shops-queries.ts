@@ -725,7 +725,6 @@ export const CS_OPEN_ESCALATIONS_QUERY = gql`
         context
         status
         version
-        createdAt
         updatedAt
         result {
           decision
@@ -752,7 +751,6 @@ export const CS_ESCALATION_BY_ID_QUERY = gql`
         context
         status
         version
-        createdAt
         updatedAt
         result {
           decision
@@ -1921,6 +1919,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
         }
         needsAttention
         activeCollaborationCount
+        activeSampleApplicationCount
         lastInteractionAt
         shopState {
           shopId
@@ -2075,6 +2074,246 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           latestObservedContentAt
           updatedAt
         }
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
+  query AffiliateCreatorRelationshipDetail($input: AffiliateCreatorRelationshipDetailInput!) {
+    affiliateCreatorRelationshipDetail(input: $input) {
+      includedShopIds
+      lastContactedAt
+      lastBusinessActivityAt
+      counts {
+        agendaItemCount
+        activeSampleApplicationCount
+        sampleApplicationCount
+        activePlatformCollaborationCount
+        platformCollaborationCount
+        pendingProposalCount
+        proposalCount
+        lifecycleEventCount
+      }
+      creator {
+        id
+        platform
+        creatorOpenId
+        creatorImId
+        username
+        nickname
+        avatarUrl
+        bioDescription
+        profileTtUri
+        firstObservedAt
+        lastObservedAt
+        updatedAt
+      }
+      performance {
+        id
+        market
+        sourceShopId
+        observedAt
+        sourceType
+        preciseDataAuthorized
+        followerCount
+        categoryIds
+        gmv { amount currency minimumAmount maximumAmount window precision }
+        videoGmv { amount currency minimumAmount maximumAmount window precision }
+        liveGmv { amount currency minimumAmount maximumAmount window precision }
+        gpm { amount currency minimumAmount maximumAmount window precision }
+        unitsSold
+        videoCount
+        liveCount
+        averageVideoViews
+        engagementRate
+        pps
+        ratingScore
+        contentWindow
+      }
+      businessDeveloper {
+        id
+        displayName
+        agentAssistanceMode
+        archivedAt
+      }
+      protection {
+        id
+        creatorId
+        creatorOpenId
+        username
+        businessDeveloperId
+        note
+        source
+        createdAt
+        updatedAt
+      }
+      creatorRelationship {
+        id
+        creatorId
+        businessDeveloperId
+        operationalConfigRevision
+        blocked
+        blockedShopIds
+        lastInboundAt
+        lastInboundChannel
+        lastOutboundAt
+        stateUpdatedAt
+        committedCheckpointId
+        committedEventCursor
+        lifecycleEventSequence
+        agendaItems {
+          key
+          owner
+          sourceType
+          workKind
+          requiredAction
+          shopId
+          affiliateCollaborationId
+          sampleApplicationRecordId
+          productId
+          proposalId
+          reasons
+          nextActionAt
+          boundaryEventCursor
+          updatedAt
+        }
+        workSummary {
+          agentRequiredCount
+          staffRequiredCount
+          externalWaitingCount
+          activeCollaborationCount
+          nextActionAt
+        }
+        shopStates {
+          shopId
+          tagIds
+          lastContactedAt
+          lastInvitedAt
+          lastQualifiedAt
+        }
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
+  query AffiliateRelationshipSampleApplications($input: AffiliateRelationshipEntityPageInput!) {
+    affiliateRelationshipSampleApplications(input: $input) {
+      hasMore
+      nextCursor
+      productSummaries {
+        shopId
+        product {
+          productId
+          title
+          coverImage
+          status
+          priceMin
+          priceMax
+          skus { skuId skuName sellerSku price currency }
+        }
+      }
+      items {
+        id
+        userId
+        shopId
+        platformApplicationId
+        creatorRelationshipId
+        creatorId
+        creatorOpenId
+        productId
+        affiliateCollaborationId
+        collaborationLinkBasis
+        collaborationType
+        platformCollaborationId
+        platformTargetCollaborationId
+        platformOpenCollaborationId
+        commissionRate
+        sampleWorkStatus
+        platformStatus
+        platformFulfillmentStatus
+        approveExpirationAt
+        firstObservedAt
+        lastObservedAt
+        providerEventAt
+        projectionRevision
+        order { platformOrderId trackingNumber carrier }
+        trackingNumber
+        carrier
+        shippedAt
+        deliveredAt
+        observedContentCount
+        latestObservedContentAt
+        latestObservedContentId
+        latestObservedContentFormat
+        latestObservedContentUrl
+        latestObservedContentViewCount
+        latestObservedContentPaidOrderCount
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY = gql`
+  query AffiliateRelationshipPlatformCollaborations($input: AffiliateRelationshipEntityPageInput!) {
+    affiliateRelationshipPlatformCollaborations(input: $input) {
+      hasMore
+      nextCursor
+      productSummaries {
+        shopId
+        product {
+          productId
+          title
+          coverImage
+          status
+          priceMin
+          priceMax
+          skus { skuId skuName sellerSku price currency }
+        }
+      }
+      items {
+        sources
+        collaboration {
+          id
+          userId
+          shopId
+          campaignId
+          type
+          platformCollaborationId
+          status
+          creatorIds
+          creatorOpenIds
+          productIds
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          lastSyncSource
+          projectionRevision
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_PRODUCT_SUMMARIES_QUERY = gql`
+  query AffiliateProductSummaries($input: AffiliateProductSummaryBatchInput!) {
+    affiliateProductSummaries(input: $input) {
+      shopId
+      product {
+        productId
+        title
+        coverImage
+        status
+        priceMin
+        priceMax
+        skus { skuId skuName sellerSku price currency }
       }
     }
   }
@@ -2261,7 +2500,7 @@ export const AFFILIATE_RELATIONSHIP_TIMELINE_QUERY = gql`
         relatedIds {
           shopId
           creatorId
-          collaborationRecordId
+          affiliateCollaborationId
           sampleApplicationRecordId
           platformApplicationId
           actionProposalId

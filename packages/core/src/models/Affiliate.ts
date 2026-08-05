@@ -273,7 +273,7 @@ export const AffiliateLifecycleEventModel = types.model("AffiliateLifecycleEvent
   actorType: types.maybeNull(types.string),
   actorRole: types.maybeNull(types.string),
   actorId: types.maybeNull(types.string),
-  collaborationRecordId: types.maybeNull(types.string),
+  affiliateCollaborationId: types.maybeNull(types.string),
   creatorRelationshipId: types.maybeNull(types.string),
   proposalId: types.maybeNull(types.string),
   creatorId: types.maybeNull(types.string),
@@ -424,7 +424,7 @@ export const AffiliateWorkspaceModel = types
       );
       return self.lifecycleEvents
         .filter((event) => (
-          event.collaborationRecordId === affiliateCollaborationId ||
+          event.affiliateCollaborationId === affiliateCollaborationId ||
           (
             typeof event.proposalId === "string" &&
             proposalIds.has(event.proposalId)
@@ -453,8 +453,8 @@ export const AffiliateWorkspaceModel = types
         .filter((event) => (
           event.creatorRelationshipId === creatorRelationshipId ||
           (
-            typeof event.collaborationRecordId === "string" &&
-            affiliateCollaborationIds.has(event.collaborationRecordId)
+            typeof event.affiliateCollaborationId === "string" &&
+            affiliateCollaborationIds.has(event.affiliateCollaborationId)
           ) ||
           (
             typeof event.proposalId === "string" &&
