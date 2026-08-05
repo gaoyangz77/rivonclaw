@@ -6565,6 +6565,8 @@ export interface EcomProductSku {
   /** SKU package weight value returned by TikTok Product detail. */
   skuWeightValue?: Maybe<Scalars['String']['output']>;
   statusInfo?: Maybe<EcomProductSkuStatusInfo>;
+  /** Current total available quantity across all warehouses, hydrated from the platform inventory endpoint. */
+  totalAvailableQuantity?: Maybe<Scalars['Int']['output']>;
 }
 
 /** Currency used by TikTok Shop product SKU pricing fields. */
@@ -9620,6 +9622,8 @@ export interface Query {
   affiliateEmailAccounts: Array<EmailAccountBinding>;
   /** Resolve affiliate prediction subjects against backend-owned affiliate state and proxy expected-sales prediction to the BentoML affiliate-expected-sales service. */
   affiliateExpectedSalesPredictions: AffiliateExpectedSalesPredictionPayload;
+  /** Get product details with current aggregate inventory */
+  affiliateGetProduct: EcomProduct;
   /** Read the authoritative Marketplace Creator rule capabilities for one owned shop. */
   affiliateMarketplaceCreatorRuleCapabilities: AffiliateMarketplaceCreatorRuleCapabilities;
   /** Read latest affiliate ML evaluation summaries in bulk for the current user and owned shops. */
@@ -10020,6 +10024,12 @@ export interface QueryAffiliateEmailAccountsArgs {
 
 export interface QueryAffiliateExpectedSalesPredictionsArgs {
   input: AffiliateExpectedSalesPredictionInput;
+}
+
+
+export interface QueryAffiliateGetProductArgs {
+  productId: Scalars['String']['input'];
+  shopId: Scalars['String']['input'];
 }
 
 

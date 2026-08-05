@@ -1012,6 +1012,7 @@ describe("affiliate work item dispatch", () => {
       currentPerformance: [
         {
           id: "performance-001",
+          sourceShopId: "shop-001",
           market: "US",
           observedAt: "2026-05-02T00:00:00.000Z",
           sourceType: "PERFORMANCE_DETAIL",
@@ -1999,6 +2000,8 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("Backend Prediction Evidence");
     expect(agentCall?.[1]?.message).toContain('"expectedSalesUnits":2.4');
     expect(agentCall?.[1]?.message).toContain('"unitsGe1":0.81');
+    expect(agentCall?.[1]?.message).not.toContain("humanDecision");
+    expect(agentCall?.[1]?.message).not.toContain("humanApprovalProbability");
     expect(getActiveAffiliateRunCheckpoint("relationship-001")?.predictionCacheIds).toEqual([
       "64f000000000000000000777",
     ]);
@@ -2143,6 +2146,7 @@ describe("affiliate work item dispatch", () => {
             currentPerformance: [
               {
                 id: "performance-001",
+                sourceShopId: "shop-001",
                 market: "US",
                 observedAt: "2026-05-02T00:00:00.000Z",
                 sourceType: "PERFORMANCE_DETAIL",
