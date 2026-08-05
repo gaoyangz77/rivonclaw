@@ -134,6 +134,34 @@ describe("Affiliate canonical UI contract", () => {
       expect(source).not.toMatch(/collaborationRecord/i);
     }
   });
+
+  it("defaults platform inventory to Open collaborations and exposes a real detail query", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const queries = readFileSync(
+      resolve(process.cwd(), "src/api/shops-queries.ts"),
+      "utf8",
+    );
+
+    expect(page).toContain(
+      "useState<HistoryTypeFilter>(GQL.AffiliateCollaborationType.Open)",
+    );
+    expect(page).toContain("AffiliateCollaborationDetailModal");
+    expect(queries).toContain("query AffiliateCollaborationDetail");
+    expect(queries).toContain("shopActivitySummaries");
+  });
+
+  it("keeps Creator pagination totals stable while cache-and-network fetches a new page", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain("stableCreatorTotalCount");
+    expect(page).toContain("if (!creatorPageResult) return;");
+  });
 });
 
 describe("Expected Sales model-stage presentation", () => {

@@ -1318,6 +1318,18 @@ export interface AffiliateCollaboration {
   userId: Scalars['ID']['output'];
 }
 
+export interface AffiliateCollaborationDetailInput {
+  id: Scalars['ID']['input'];
+}
+
+/** Canonical platform Collaboration detail with linked Creators, Sample Applications, and Product summaries. */
+export interface AffiliateCollaborationDetailPayload {
+  collaboration: AffiliateCollaboration;
+  creators: Array<AffiliateCreatorIdentity>;
+  productSummaries: Array<AffiliateRelationshipProductSummary>;
+  sampleApplications: Array<SampleApplicationRecord>;
+}
+
 /** Normalized platform collaboration status for open and target collaborations. */
 export const AffiliateCollaborationStatus = {
   Active: 'ACTIVE',
@@ -1775,6 +1787,18 @@ export interface AffiliateCreatorRelationshipDetailPayload {
   lastContactedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   performance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   protection?: Maybe<AffiliateCreatorProtection>;
+  shopActivitySummaries: Array<AffiliateCreatorRelationshipShopActivitySummary>;
+}
+
+/** Canonical contact and business activity summary for one shop in a CreatorRelationship. */
+export interface AffiliateCreatorRelationshipShopActivitySummary {
+  agendaItemCount: Scalars['Int']['output'];
+  lastBusinessActivityAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastContactedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  pendingProposalCount: Scalars['Int']['output'];
+  platformCollaborationCount: Scalars['Int']['output'];
+  sampleApplicationCount: Scalars['Int']['output'];
+  shopId: Scalars['ID']['output'];
 }
 
 /** Embedded shop membership, tags, and activity timestamps for a user-level creator relation. */
@@ -9596,6 +9620,8 @@ export interface Query {
   affiliateCampaignSummary: AffiliateCampaignSummary;
   /** Read affiliate campaigns from Mongo state. */
   affiliateCampaigns: Array<AffiliateCampaign>;
+  /** Read one canonical Open or Target platform Collaboration with its linked Creator, Sample Application, and Product context. */
+  affiliateCollaborationDetail: AffiliateCollaborationDetailPayload;
   affiliateCollaborationState: AffiliateCollaboration;
   /** Read platform-level affiliate collaborations, normalized across open and target collaborations. */
   affiliateCollaborations: Array<AffiliateCollaboration>;
@@ -9942,6 +9968,11 @@ export interface QueryAffiliateCampaignSummaryArgs {
 
 export interface QueryAffiliateCampaignsArgs {
   input: ReadAffiliateCampaignsInput;
+}
+
+
+export interface QueryAffiliateCollaborationDetailArgs {
+  input: AffiliateCollaborationDetailInput;
 }
 
 

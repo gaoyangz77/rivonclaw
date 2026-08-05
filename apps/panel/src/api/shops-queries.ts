@@ -1620,6 +1620,64 @@ export const AFFILIATE_COLLABORATIONS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
+  query AffiliateCollaborationDetail($input: AffiliateCollaborationDetailInput!) {
+    affiliateCollaborationDetail(input: $input) {
+      collaboration {
+        id
+        userId
+        shopId
+        creatorIds
+        creatorOpenIds
+        productIds
+        type
+        status
+        platformCollaborationId
+        campaignId
+        commissionRate
+        effectiveTime
+        platformUpdatedAt
+        firstObservedAt
+        lastObservedAt
+        projectionRevision
+        lastSyncSource
+        createdAt
+        updatedAt
+      }
+      creators {
+        id
+        platform
+        creatorOpenId
+        username
+        nickname
+        avatarUrl
+      }
+      sampleApplications {
+        id
+        platformApplicationId
+        creatorId
+        productId
+        sampleWorkStatus
+        platformStatus
+        platformFulfillmentStatus
+        updatedAt
+      }
+      productSummaries {
+        shopId
+        product {
+          productId
+          title
+          coverImage
+          status
+          priceMin
+          priceMax
+          skus { skuId skuName sellerSku price currency }
+        }
+      }
+    }
+  }
+`;
+
 export const AFFILIATE_ML_INSIGHTS_QUERY = gql`
   query AffiliateMlInsights($input: AffiliateMlInsightsInput) {
     affiliateMlInsights(input: $input) {
@@ -2094,6 +2152,15 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
         pendingProposalCount
         proposalCount
         lifecycleEventCount
+      }
+      shopActivitySummaries {
+        shopId
+        lastContactedAt
+        lastBusinessActivityAt
+        agendaItemCount
+        sampleApplicationCount
+        platformCollaborationCount
+        pendingProposalCount
       }
       creator {
         id
