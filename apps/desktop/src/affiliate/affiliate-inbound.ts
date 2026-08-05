@@ -35,9 +35,6 @@ const MAX_ACTIVE_AFFILIATE_AGENT_RUNS = Math.max(
 const MAX_QUEUED_AFFILIATE_WORK_ITEMS = parseOptionalPositiveInteger(
   process.env.RIVONCLAW_MAX_QUEUED_AFFILIATE_WORK_ITEMS,
 );
-const AFFILIATE_WORK_CATCH_UP_LIMIT = parseOptionalPositiveInteger(
-  process.env.RIVONCLAW_AFFILIATE_WORK_CATCH_UP_LIMIT,
-) ?? 20;
 const AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV =
   "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS";
 
@@ -81,9 +78,6 @@ export class AffiliateInbound {
 
   /** Work item semantic key -> last dispatched backend state version. */
   private dispatchedWorkItemVersions = new Map<string, string>();
-
-  /** Shop object ids with an in-flight catch-up query. */
-  private catchUpInFlightShopIds = new Set<string>();
 
   updateLocale(locale: string | undefined): void {
     if (this.locale === locale) return;
@@ -148,53 +142,6 @@ export class AffiliateInbound {
 
   getShopContext(platformShopId: string): AffiliateShopContext | undefined {
     return this.shopContexts.get(platformShopId);
-  }
-
-  async catchUpCurrentWorkItems(): Promise<void> {
-    const controlledRelationshipIds = getControlledLiveTestRelationshipIds();
-    if (controlledRelationshipIds) {
-      log.warn(
-        `Skipping Affiliate startup catch-up because an exact live-test cohort is active: ` +
-        `relationships=${controlledRelationshipIds.size}`,
-      );
-      return;
-    }
-    await Promise.all([...this.shopContexts.values()].map((shop) => this.catchUpShopWorkItems(shop)));
-  }
-
-  private async catchUpShopWorkItems(shop: AffiliateShopContext): Promise<void> {
-    if (this.catchUpInFlightShopIds.has(shop.objectId)) return;
-    const authSession = getAuthSession();
-    if (!authSession) return;
-
-    this.catchUpInFlightShopIds.add(shop.objectId);
-    try {
-      const agentWorkResult = await authSession.graphqlFetch<AffiliateWorkItemsQueryResult>(
-        AFFILIATE_WORK_ITEMS_QUERY,
-        {
-          input: {
-            shopId: shop.objectId,
-            processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-            agentDispatchRecommended: true,
-            limit: AFFILIATE_WORK_CATCH_UP_LIMIT,
-          },
-        },
-      );
-      const workItems = uniqueWorkItems(agentWorkResult.affiliateWorkItems ?? []);
-      if (workItems.length > 0) {
-        log.info(
-          `Affiliate work catch-up fetched ${workItems.length} item(s): ` +
-          `shop=${shop.platformShopId} limit=${AFFILIATE_WORK_CATCH_UP_LIMIT}`,
-        );
-      }
-      for (const workItem of workItems) {
-        await this.handleWorkItem(workItem);
-      }
-    } catch (err) {
-      log.error(`Failed to catch up affiliate work items for shop ${shop.platformShopId}:`, err);
-    } finally {
-      this.catchUpInFlightShopIds.delete(shop.objectId);
-    }
   }
 
   handleGatewayEvent(evt: GatewayEventFrame): void {
@@ -751,22 +698,6 @@ function parseOptionalPositiveInteger(value: string | undefined): number | undef
 
 function shouldDispatchWorkItemToLocalAgent(workItem: AffiliateWorkItemPayload): boolean {
   return workItem.agentDispatchRecommended;
-}
-
-function uniqueWorkItems(workItems: AffiliateWorkItemPayload[]): AffiliateWorkItemPayload[] {
-  const seen = new Set<string>();
-  const result: AffiliateWorkItemPayload[] = [];
-  for (const workItem of workItems) {
-    const key = [
-      workItem.creatorRelationshipId,
-      workItem.workKind,
-      workItem.versionAt ?? "",
-    ].join(":");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(workItem);
-  }
-  return result;
 }
 
 function normalizeStaffLanguage(locale: string | undefined): StaffLanguage {
