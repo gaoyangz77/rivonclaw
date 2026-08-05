@@ -978,7 +978,8 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("Sample Application Record ID: sample-record-001");
     expect(agentCall?.[1]?.message).not.toContain("Current Authoritative Workspace Snapshot");
     expect(agentCall?.[1]?.message).not.toContain("Authoritative Sample Application State");
-    expect(agentCall?.[1]?.message).not.toContain("prediction");
+    expect(agentCall?.[1]?.message).toContain("Backend Prediction Evidence");
+    expect(agentCall?.[1]?.message).not.toContain("thresholdProbabilities");
     expect(agentCall?.[1]?.message).not.toContain("handledSignalAt");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
@@ -1957,7 +1958,11 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Backend Prediction Evidence");
     expect(agentCall?.[1]?.message).toContain('"expectedSalesUnits":2.4');
-    expect(agentCall?.[1]?.message).toContain('"unitsGe1":0.81');
+    expect(agentCall?.[1]?.message).toContain(
+      "Treat Expected Sales as the primary commercial-value estimate",
+    );
+    expect(agentCall?.[1]?.message).not.toContain("thresholdProbabilities");
+    expect(agentCall?.[1]?.message).not.toContain("unitsGe1");
     expect(agentCall?.[1]?.message).not.toContain("humanDecision");
     expect(agentCall?.[1]?.message).not.toContain("humanApprovalProbability");
     expect(getActiveAffiliateRunCheckpoint("relationship-001")?.predictionCacheIds).toEqual([

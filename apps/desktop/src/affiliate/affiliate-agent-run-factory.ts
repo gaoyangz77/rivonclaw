@@ -127,7 +127,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       lines.push(
         "   Backend Prediction Evidence: " +
           JSON.stringify(compactWorkingAgendaPredictionEvidence(item.predictionEvidence)),
-        "   Prediction Semantics: This evidence was computed by Backend before dispatch. Weigh it with shop/BD instructions and current business facts; it is not an automatic approve/reject rule.",
+        "   Prediction Semantics: Backend computed this evidence before dispatch. Treat Expected Sales as the primary commercial-value estimate, not an automatic approve/reject threshold. Override it only with an explicit shop/BD instruction, seller commitment, operational hard conflict, or material current fact outside the prediction.",
       );
     }
     if (item.proposalId) {
@@ -187,7 +187,6 @@ function compactWorkingAgendaPredictionEvidence(
       evidence.subject.productId ?? evidence.resolvedContext?.productId ?? null,
     expectedSalesUnits: output.expectedSalesUnits,
     expectedSalesPercentile: output.expectedSalesPercentile,
-    thresholdProbabilities: output.thresholdProbabilities,
     predictionQuality: output.predictionQuality,
     expectedSalesSelection: output.expectedSalesSelection,
     featureTemporalBasis: output.featureTemporalBasis ?? model.featureTemporalBasis,
