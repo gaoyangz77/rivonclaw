@@ -48,7 +48,10 @@ vi.mock("./affiliate-workflow-skill.js", () => ({
 
 import { AffiliateSession, AffiliateTriggerKind } from "./affiliate-session.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
-import { AffiliateInbound } from "./affiliate-inbound.js";
+import {
+  AffiliateInbound,
+  resolveMaxActiveAffiliateAgentRuns,
+} from "./affiliate-inbound.js";
 import {
   __clearActiveAffiliateRunCheckpointsForTests,
   getActiveAffiliateRunCheckpoint,
@@ -56,6 +59,23 @@ import {
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 
 describe("affiliate session identity", () => {
+  it("uses the exact live-test cohort size as the default Agent pool", () => {
+    expect(resolveMaxActiveAffiliateAgentRuns({
+      RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
+    })).toBe(3);
+    expect(resolveMaxActiveAffiliateAgentRuns({
+      RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-1,rel-2",
+    })).toBe(2);
+    expect(resolveMaxActiveAffiliateAgentRuns({})).toBe(1);
+  });
+
+  it("allows an explicit Affiliate Agent pool size to override the live-test cohort", () => {
+    expect(resolveMaxActiveAffiliateAgentRuns({
+      RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
+      RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS: "7",
+    })).toBe(7);
+  });
+
   it("uses user id and creator relationship id as the long-lived affiliate session key", () => {
     expect(
       AffiliateSession.buildScopeKey("tiktok", {
