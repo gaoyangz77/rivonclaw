@@ -199,9 +199,13 @@ function sanitizeCloudGraphqlVariables(
 
 function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Record<string, unknown> {
   const creatorRelationshipId = firstNonEmptyString(input.creatorRelationshipId);
-  if (!creatorRelationshipId) return input;
+  if (!creatorRelationshipId) {
+    return { ...input, predictionCacheIds: undefined };
+  }
   const checkpoint = getActiveAffiliateRunCheckpoint(creatorRelationshipId);
-  if (!checkpoint) return input;
+  if (!checkpoint) {
+    return { ...input, predictionCacheIds: undefined };
+  }
   return {
     ...input,
     handledSignalAt: checkpoint.handledSignalAt,
@@ -212,6 +216,11 @@ function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Recor
     relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
     businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
     businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
+    // Prediction lineage is captured from Backend-delivered Working Agenda evidence.
+    // Always overwrite any model-authored value at the trusted Desktop boundary.
+    predictionCacheIds: checkpoint.predictionCacheIds?.length
+      ? [...new Set(checkpoint.predictionCacheIds)]
+      : undefined,
   };
 }
 
@@ -291,21 +300,12 @@ function looksLikeAffiliateResolveWorkItemVariables(variables: Record<string, un
 interface AffiliateResolveActionContext {
   affiliateCollaborationId?: string;
   sampleApplicationRecordId?: string;
-  predictionCacheIds?: string[];
 }
 
 function buildAffiliateResolveActionContext(input: Record<string, unknown>): AffiliateResolveActionContext {
   const affiliateCollaborationId = firstNonEmptyString(input.affiliateCollaborationId);
-  const creatorRelationshipId = firstNonEmptyString(input.creatorRelationshipId);
-  const checkpoint = creatorRelationshipId
-    ? getActiveAffiliateRunCheckpoint(creatorRelationshipId)
-    : null;
-  const predictionCacheIds = checkpoint?.predictionCacheIds ?? [];
   const context: AffiliateResolveActionContext = {
     affiliateCollaborationId: affiliateCollaborationId ?? undefined,
-    predictionCacheIds: predictionCacheIds.length
-      ? [...new Set(predictionCacheIds)]
-      : undefined,
   };
 
   return context;
@@ -346,7 +346,6 @@ function normalizeAffiliateSampleReviewAction(
       action,
       "sampleReviewIntent",
       existingIntent,
-      context?.predictionCacheIds,
     );
   }
 
@@ -390,7 +389,6 @@ function normalizeAffiliateSampleReviewAction(
     action,
     "sampleReviewIntent",
     sampleReviewIntent,
-    context?.predictionCacheIds,
   );
 }
 
@@ -451,7 +449,6 @@ function normalizeAffiliateTargetCollaborationAction(
     action,
     "targetCollaborationIntent",
     existingIntent,
-    context?.predictionCacheIds,
   );
 }
 
@@ -459,9 +456,7 @@ function pickAffiliateActionFields(
   action: Record<string, unknown>,
   intentField: "messageIntent" | "sampleReviewIntent" | "targetCollaborationIntent",
   intentValue: Record<string, unknown>,
-  trustedPredictionCacheIds?: readonly string[],
 ): Record<string, unknown> {
-  const predictionCacheIds = trustedPredictionCacheIds ?? [];
   return omitEmptyAffiliateStrings({
     type: action.type,
     ...(intentField === "messageIntent" ? {
@@ -469,9 +464,6 @@ function pickAffiliateActionFields(
       productId: action.productId,
     } : {}),
     affiliateCollaborationId: action.affiliateCollaborationId,
-    predictionCacheIds: predictionCacheIds.length
-      ? [...new Set(predictionCacheIds)]
-      : undefined,
     expiresAt: cleanOptionalAffiliateDateTime(action.expiresAt),
     [intentField]: intentValue,
   });
@@ -635,7 +627,6 @@ function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActio
     hints.push(
       [
         "reviewSampleRequiredFields={type:REVIEW_SAMPLE_APPLICATION",
-        context.predictionCacheIds?.length ? `predictionCacheIds:${JSON.stringify(context.predictionCacheIds)}` : null,
         `sampleApplicationRecordId:${context.sampleApplicationRecordId}`,
         "sampleReviewDecision:APPROVE|REJECT",
         "rejectReason:required-only-for-REJECT}",
@@ -645,7 +636,6 @@ function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActio
   hints.push(
     [
       "sendMessageRequiredFields={type:SEND_MESSAGE",
-      context.predictionCacheIds?.length ? `predictionCacheIds:${JSON.stringify(context.predictionCacheIds)}` : null,
       "messageIntent:{parts:[{kind:TEXT,text:final-creator-facing-text}]}}",
     ].filter(Boolean).join(" "),
   );

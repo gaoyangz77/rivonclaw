@@ -541,7 +541,7 @@ describe("cloud-graphql handler", () => {
     );
   });
 
-  it("carries prediction cache ids from the trusted run into a later sample review action", async () => {
+  it("carries prediction cache ids from the trusted run at the top-level scaffold boundary", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       if (query.includes("AffiliatePredictCreatorProductFit")) {
         return {
@@ -630,9 +630,9 @@ describe("cloud-graphql handler", () => {
       mutation,
       expect.objectContaining({
         input: expect.objectContaining({
+          predictionCacheIds: ["prediction-cache-1"],
           action: expect.objectContaining({
             type: "REVIEW_SAMPLE_APPLICATION",
-            predictionCacheIds: ["prediction-cache-1"],
           }),
         }),
       }),
@@ -755,7 +755,6 @@ describe("cloud-graphql handler", () => {
         input: expect.objectContaining({
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
-            predictionCacheIds: undefined,
             expiresAt: undefined,
             sampleReviewIntent: {
               sampleApplicationRecordId: "sample-1",

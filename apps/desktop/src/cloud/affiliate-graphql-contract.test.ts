@@ -57,6 +57,11 @@ describe("affiliate desktop GraphQL contracts", () => {
     expect(isInputObjectType(actionInput)).toBe(true);
     if (!isInputObjectType(actionInput)) return;
     expect(actionInput.getFields()).not.toHaveProperty("predictionCacheIds");
+    const resolveInput = backendSchema.getType("ResolveAffiliateWorkItemInput");
+    expect(isInputObjectType(resolveInput)).toBe(true);
+    if (isInputObjectType(resolveInput)) {
+      expect(resolveInput.getFields()).toHaveProperty("predictionCacheIds");
+    }
     expect(AFFILIATE_WORK_ITEMS_QUERY).toContain("predictionEvidence");
     expect(AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION).toContain("predictionEvidence");
   });
