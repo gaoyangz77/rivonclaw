@@ -70,7 +70,7 @@ export default {
     "affiliateCreators": "Kreator kerja sama",
     "affiliateInProgress": "Sedang berjalan",
     "affiliatePolicies": "Kebijakan Persetujuan",
-    "affiliateHistory": "Kolaborasi",
+    "affiliateHistory": "Kolaborasi platform",
     "surfaces": "Permukaan"
   },
   "chat": {
@@ -2772,8 +2772,8 @@ export default {
         "STAFF_MARKED_HANDLED": "Ditandai ditangani oleh staf",
         "WORK_RESOLVED": "Pekerjaan selesai"
       },
-      "historyTitle": "Catatan kolaborasi",
-      "historySubtitle": "Tinjau catatan kolaborasi dengan percakapan, proposal, dan kolaborasi terkait.",
+      "historyTitle": "Kolaborasi platform",
+      "historySubtitle": "Lihat objek platform TikTok Open dan Target Collaboration, status, dan produknya.",
       "approvalQueueShortTitle": "Proposal",
       "collaborationWorkQueueShortTitle": "Kolaborasi",
       "pagination": "Paginasi kolaborasi",
@@ -2915,10 +2915,6 @@ export default {
       "typeFilter": "Filter tipe",
       "searchFilter": "Cari",
       "itemCount": "{{count}} item",
-      "collaborationRecords": "Catatan kolaborasi",
-      "historicalCollaborations": "Kolaborasi historis",
-      "relatedCollaborations": "Kolaborasi terkait",
-      "collaborationRecordsHint": "Setiap kartu mewakili catatan kolaborasi antara toko dan kreator. Kolaborasi produk muncul di dalam catatan saat konteks produk atau sampel diketahui.",
       "emptyHistory": "Tidak ada kolaborasi yang cocok dengan filter saat ini.",
       "emptyApprovals": "Tidak ada proposal tindakan yang menunggu persetujuan.",
       "emptyCollaborationWork": "Tidak ada kolaborasi yang perlu ditangani manual.",
@@ -3027,7 +3023,6 @@ export default {
         "WHATSAPP_MESSAGE": "WhatsApp",
         "EMAIL_MESSAGE": "Email",
         "MESSAGE_DELIVERY": "Message delivery",
-        "COLLABORATION_RECORD": "Collaboration",
         "SAMPLE_APPLICATION_RECORD": "Sample application",
         "ACTION_PROPOSAL": "Action proposal",
         "LIFECYCLE_EVENT": "System event"

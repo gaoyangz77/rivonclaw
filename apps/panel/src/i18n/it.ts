@@ -70,7 +70,7 @@ export default {
     "affiliateCreators": "Creator collaboratori",
     "affiliateInProgress": "In corso",
     "affiliatePolicies": "Policy di approvazione",
-    "affiliateHistory": "Collaborazioni",
+    "affiliateHistory": "Collaborazioni della piattaforma",
     "surfaces": "Superfici"
   },
   "chat": {
@@ -2772,8 +2772,8 @@ export default {
         "STAFF_MARKED_HANDLED": "Contrassegnato come gestito dallo staff",
         "WORK_RESOLVED": "Lavoro risolto"
       },
-      "historyTitle": "Record di collaborazione",
-      "historySubtitle": "Rivedi i record di collaborazione con conversazioni, proposte e collaborazioni correlate.",
+      "historyTitle": "Collaborazioni della piattaforma",
+      "historySubtitle": "Visualizza gli oggetti TikTok Open e Target Collaboration, gli stati e i prodotti.",
       "approvalQueueShortTitle": "Proposte",
       "collaborationWorkQueueShortTitle": "Collaborazioni",
       "pagination": "Paginazione delle collaborazioni",
@@ -2915,10 +2915,6 @@ export default {
       "typeFilter": "Filtro tipo",
       "searchFilter": "Cerca",
       "itemCount": "{{count}} elementi",
-      "collaborationRecords": "Record di collaborazione",
-      "historicalCollaborations": "Collaborazioni storiche",
-      "relatedCollaborations": "Collaborazioni correlate",
-      "collaborationRecordsHint": "Ogni scheda rappresenta un record di collaborazione tra negozio e creator. Le collaborazioni prodotto appaiono nel record quando il contesto prodotto o campione è noto.",
       "emptyHistory": "Nessuna collaborazione corrisponde al filtro attuale.",
       "emptyApprovals": "Nessuna proposta di azione attende approvazione.",
       "emptyCollaborationWork": "Nessuna collaborazione richiede gestione manuale.",
@@ -3027,7 +3023,6 @@ export default {
         "WHATSAPP_MESSAGE": "WhatsApp",
         "EMAIL_MESSAGE": "Email",
         "MESSAGE_DELIVERY": "Message delivery",
-        "COLLABORATION_RECORD": "Collaboration",
         "SAMPLE_APPLICATION_RECORD": "Sample application",
         "ACTION_PROPOSAL": "Action proposal",
         "LIFECYCLE_EVENT": "System event"

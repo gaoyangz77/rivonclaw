@@ -70,7 +70,7 @@ export default {
     "affiliateCreators": "Creadores colaboradores",
     "affiliateInProgress": "En curso",
     "affiliatePolicies": "Políticas de aprobación",
-    "affiliateHistory": "Colaboraciones",
+    "affiliateHistory": "Colaboraciones de plataforma",
     "surfaces": "Superficies"
   },
   "chat": {
@@ -2772,8 +2772,8 @@ export default {
         "STAFF_MARKED_HANDLED": "Marcado como gestionado por el equipo",
         "WORK_RESOLVED": "Trabajo resuelto"
       },
-      "historyTitle": "Registros de colaboración",
-      "historySubtitle": "Revise registros de colaboración con conversaciones, propuestas y colaboraciones relacionadas.",
+      "historyTitle": "Colaboraciones de plataforma",
+      "historySubtitle": "Consulta los objetos Open y Target Collaboration de TikTok, sus estados y productos.",
       "approvalQueueShortTitle": "Propuestas",
       "collaborationWorkQueueShortTitle": "Colaboraciones",
       "pagination": "Paginación de colaboraciones",
@@ -2915,10 +2915,6 @@ export default {
       "typeFilter": "Filtro de tipo",
       "searchFilter": "Buscar",
       "itemCount": "{{count}} elementos",
-      "collaborationRecords": "Registros de colaboración",
-      "historicalCollaborations": "Colaboraciones históricas",
-      "relatedCollaborations": "Colaboraciones relacionadas",
-      "collaborationRecordsHint": "Cada tarjeta representa un registro de colaboración entre tienda y creador. Las colaboraciones de producto aparecen dentro del registro cuando se conoce el contexto de producto o muestra.",
       "emptyHistory": "Ninguna colaboración coincide con el filtro actual.",
       "emptyApprovals": "No hay propuestas de acción pendientes de aprobación.",
       "emptyCollaborationWork": "Ninguna colaboración necesita gestión manual.",
@@ -3027,7 +3023,6 @@ export default {
         "WHATSAPP_MESSAGE": "WhatsApp",
         "EMAIL_MESSAGE": "Email",
         "MESSAGE_DELIVERY": "Message delivery",
-        "COLLABORATION_RECORD": "Collaboration",
         "SAMPLE_APPLICATION_RECORD": "Sample application",
         "ACTION_PROPOSAL": "Action proposal",
         "LIFECYCLE_EVENT": "System event"

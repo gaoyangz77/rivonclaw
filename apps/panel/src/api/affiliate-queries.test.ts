@@ -6,10 +6,14 @@ import {
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
+  AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_ML_INSIGHTS_QUERY,
   AFFILIATE_ML_INSIGHTS_BULK_QUERY,
+  AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY,
+  AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY,
+  AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
@@ -120,6 +124,25 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("productIds");
     expect(query).toContain("platformCollaborationId");
     expect(query).not.toContain("collaborationRecords");
+  });
+
+  it("loads relationship detail from separate canonical entity pages", () => {
+    const detail = queryText(AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY);
+    const samples = queryText(AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY);
+    const platform = queryText(AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY);
+    const timeline = queryText(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY);
+
+    expect(detail).toContain("agendaItems");
+    expect(detail).toContain("activeSampleApplicationCount");
+    expect(detail).toContain("activePlatformCollaborationCount");
+    expect(samples).toContain("affiliateRelationshipSampleApplications");
+    expect(samples).toContain("platformApplicationId");
+    expect(samples).toContain("productSummaries");
+    expect(platform).toContain("affiliateRelationshipPlatformCollaborations");
+    expect(platform).toContain("sources");
+    expect(platform).toContain("productIds");
+    expect(timeline).toContain("affiliateCollaborationId");
+    expect([detail, samples, platform, timeline].join("\n")).not.toContain("collaborationRecord");
   });
 
   it("retains work items as an internal relationship dispatch contract", () => {

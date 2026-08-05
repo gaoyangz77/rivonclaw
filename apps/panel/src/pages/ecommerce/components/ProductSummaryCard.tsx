@@ -28,17 +28,19 @@ export function ProductSummaryCard({
   productId,
   shopId,
   label,
+  allowInlineLoad = true,
 }: {
   product?: GQL.EcomProductSummary | null;
   productId?: string | null;
   shopId?: string | null;
   label?: string;
+  allowInlineLoad?: boolean;
 }) {
   const { t } = useTranslation();
   const [detailOpen, setDetailOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const canOpenDetail = Boolean(shopId && productId);
-  const shouldLoadInlineProduct = canOpenDetail && !hasUsefulProductSummary(product);
+  const shouldLoadInlineProduct = allowInlineLoad && canOpenDetail && !hasUsefulProductSummary(product);
   const [loadInlineProduct, { data: inlineProductData, loading: inlineProductLoading }] = useLazyQuery<
     ProductDetailQuery,
     ProductDetailVariables

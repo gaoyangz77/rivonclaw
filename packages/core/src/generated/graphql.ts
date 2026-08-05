@@ -1492,6 +1492,7 @@ export interface AffiliateCreatorIdentity {
 /** Shop-scoped Creator relationship row with market-specific profile, work, proposal, and sample context. */
 export interface AffiliateCreatorManagementItem {
   activeCollaborationCount: Scalars['Int']['output'];
+  activeSampleApplicationCount: Scalars['Int']['output'];
   creatorId: Scalars['ID']['output'];
   creatorPerformance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
@@ -1577,6 +1578,7 @@ export interface AffiliateCreatorPerformanceCurrent {
   pps?: Maybe<Scalars['Float']['output']>;
   preciseDataAuthorized: Scalars['Boolean']['output'];
   ratingScore?: Maybe<Scalars['Float']['output']>;
+  sourceShopId: Scalars['ID']['output'];
   sourceType: Scalars['String']['output'];
   unitsSold?: Maybe<Scalars['Int']['output']>;
   videoCount?: Maybe<Scalars['Int']['output']>;
@@ -1745,6 +1747,34 @@ export interface AffiliateCreatorRelationship {
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   workSummary?: Maybe<AffiliateRelationshipWorkSummary>;
+}
+
+export interface AffiliateCreatorRelationshipDetailCounts {
+  activePlatformCollaborationCount: Scalars['Int']['output'];
+  activeSampleApplicationCount: Scalars['Int']['output'];
+  agendaItemCount: Scalars['Int']['output'];
+  lifecycleEventCount: Scalars['Int']['output'];
+  pendingProposalCount: Scalars['Int']['output'];
+  platformCollaborationCount: Scalars['Int']['output'];
+  proposalCount: Scalars['Int']['output'];
+  sampleApplicationCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateCreatorRelationshipDetailInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+}
+
+/** Canonical user-level CreatorRelationship summary. Historical entities are read through their dedicated pages. */
+export interface AffiliateCreatorRelationshipDetailPayload {
+  businessDeveloper?: Maybe<AffiliateBusinessDeveloper>;
+  counts: AffiliateCreatorRelationshipDetailCounts;
+  creator: AffiliateCreatorIdentity;
+  creatorRelationship: AffiliateCreatorRelationship;
+  includedShopIds: Array<Scalars['ID']['output']>;
+  lastBusinessActivityAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastContactedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  performance?: Maybe<AffiliateCreatorPerformanceCurrent>;
+  protection?: Maybe<AffiliateCreatorProtection>;
 }
 
 /** Embedded shop membership, tags, and activity timestamps for a user-level creator relation. */
@@ -2702,6 +2732,15 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
+export interface AffiliateProductSummaryBatchInput {
+  refs: Array<AffiliateProductSummaryReferenceInput>;
+}
+
+export interface AffiliateProductSummaryReferenceInput {
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
 export const AffiliateProjectionSyncSource = {
   AirflowBootstrap: 'AIRFLOW_BOOTSTRAP',
   AirflowReconcile: 'AIRFLOW_RECONCILE',
@@ -2761,6 +2800,32 @@ export const AffiliateRelationshipAgendaSourceType = {
 } as const;
 
 export type AffiliateRelationshipAgendaSourceType = typeof AffiliateRelationshipAgendaSourceType[keyof typeof AffiliateRelationshipAgendaSourceType];
+export interface AffiliateRelationshipEntityPageInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  shopId?: InputMaybe<Scalars['ID']['input']>;
+}
+
+export interface AffiliateRelationshipPlatformCollaborationItem {
+  collaboration: AffiliateCollaboration;
+  sources: Array<AffiliateRelationshipPlatformCollaborationSource>;
+}
+
+export interface AffiliateRelationshipPlatformCollaborationPage {
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<AffiliateRelationshipPlatformCollaborationItem>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+  productSummaries: Array<AffiliateRelationshipProductSummary>;
+}
+
+/** Why a platform Collaboration belongs in this CreatorRelationship view. */
+export const AffiliateRelationshipPlatformCollaborationSource = {
+  SampleReference: 'SAMPLE_REFERENCE',
+  TargetMembership: 'TARGET_MEMBERSHIP'
+} as const;
+
+export type AffiliateRelationshipPlatformCollaborationSource = typeof AffiliateRelationshipPlatformCollaborationSource[keyof typeof AffiliateRelationshipPlatformCollaborationSource];
 /** CreatorRelationship agenda owner state. This is relationship-level and should not encode sample or collaboration lifecycle details. */
 export const AffiliateRelationshipProcessingStatus = {
   AgentRequired: 'AGENT_REQUIRED',
@@ -2770,7 +2835,12 @@ export const AffiliateRelationshipProcessingStatus = {
 } as const;
 
 export type AffiliateRelationshipProcessingStatus = typeof AffiliateRelationshipProcessingStatus[keyof typeof AffiliateRelationshipProcessingStatus];
-/** CreatorRelationship agenda next step. Common concrete collaboration tasks are surfaced here; detailed sample/product state stays on CollaborationRecord or SampleApplication. */
+export interface AffiliateRelationshipProductSummary {
+  product: EcomProductSummary;
+  shopId: Scalars['ID']['output'];
+}
+
+/** CreatorRelationship agenda next step. Concrete platform work is surfaced here; detailed sample and fulfillment state stays on SampleApplication, while Open/Target inventory stays on AffiliateCollaboration. */
 export const AffiliateRelationshipRequiredAction = {
   CompleteCollaborationTask: 'COMPLETE_COLLABORATION_TASK',
   FollowUpCreator: 'FOLLOW_UP_CREATOR',
@@ -2786,6 +2856,13 @@ export const AffiliateRelationshipRequiredAction = {
 } as const;
 
 export type AffiliateRelationshipRequiredAction = typeof AffiliateRelationshipRequiredAction[keyof typeof AffiliateRelationshipRequiredAction];
+export interface AffiliateRelationshipSampleApplicationPage {
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<SampleApplicationRecord>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+  productSummaries: Array<AffiliateRelationshipProductSummary>;
+}
+
 /** Ephemeral affiliate work signal pushed to desktop after backend materializes a reducer event. */
 export interface AffiliateRelationshipSignal {
   /** Optional related AffiliateCollaboration platform ID when the relationship-level signal has a resolved collaboration context. */
@@ -9531,6 +9608,8 @@ export interface Query {
   /** Single authoritative Creator profile read. MongoDB is preferred; missing or stale market data is refreshed through a current-user same-market shop. */
   affiliateCreatorProfile: AffiliateCreatorProfilePayload;
   affiliateCreatorProtections: AffiliateCreatorProtectionPage;
+  /** Read the canonical user-level CreatorRelationship summary. Historical Samples, platform Collaborations, Proposals, messages, and lifecycle events remain separate entities. */
+  affiliateCreatorRelationshipDetail: AffiliateCreatorRelationshipDetailPayload;
   affiliateCreatorRelationshipState: AffiliateCreatorRelationshipStatePayload;
   affiliateCreatorSampleApplicationsForRelationship: AffiliateCreatorSampleApplicationListPayload;
   /** Read WhatsApp messages on demand from the bound provider for an affiliate creator relationship. */
@@ -9556,6 +9635,12 @@ export interface Query {
   affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatusPayload;
   /** Agent-facing expected-sales fit check for a candidate affiliate creator-product pair. This wraps affiliateExpectedSalesPredictions without mutating collaboration product context. */
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
+  /** Read deduplicated Product summaries for Affiliate pages through the authorized shop-scoped Product cache. */
+  affiliateProductSummaries: Array<AffiliateRelationshipProductSummary>;
+  /** Read Target Collaboration memberships and Sample-referenced Open Collaborations for one CreatorRelationship without creator-level expansion. */
+  affiliateRelationshipPlatformCollaborations: AffiliateRelationshipPlatformCollaborationPage;
+  /** Read a stable page of canonical Sample Applications for one CreatorRelationship. */
+  affiliateRelationshipSampleApplications: AffiliateRelationshipSampleApplicationPage;
   /** Read a Provider-backed CreatorRelationship timeline ordered by business occurredAt. */
   affiliateRelationshipTimeline: AffiliateRelationshipTimelinePayload;
   affiliateSampleApplicationState: AffiliateSampleApplicationStatePayload;
@@ -9902,6 +9987,11 @@ export interface QueryAffiliateCreatorProtectionsArgs {
 }
 
 
+export interface QueryAffiliateCreatorRelationshipDetailArgs {
+  input: AffiliateCreatorRelationshipDetailInput;
+}
+
+
 export interface QueryAffiliateCreatorRelationshipStateArgs {
   creatorRelationshipId: Scalars['ID']['input'];
 }
@@ -9965,6 +10055,21 @@ export interface QueryAffiliateOutreachOperationalStatusArgs {
 
 export interface QueryAffiliatePredictCreatorProductFitArgs {
   input: AffiliateCreatorProductFitInput;
+}
+
+
+export interface QueryAffiliateProductSummariesArgs {
+  input: AffiliateProductSummaryBatchInput;
+}
+
+
+export interface QueryAffiliateRelationshipPlatformCollaborationsArgs {
+  input: AffiliateRelationshipEntityPageInput;
+}
+
+
+export interface QueryAffiliateRelationshipSampleApplicationsArgs {
+  input: AffiliateRelationshipEntityPageInput;
 }
 
 
@@ -10811,6 +10916,8 @@ export interface ResolveAffiliateWorkItemInput {
   /** Optional Agent-requested review of the concrete action bundle. Presence forces an ActionProposal even when no approval policy matches. It never changes Collaboration or Relationship agenda ownership. */
   humanReviewRequest?: InputMaybe<AffiliateHumanReviewRequestInput>;
   operatorSummary: Scalars['String']['input'];
+  /** Trusted Working Agenda prediction evidence injected by the Desktop run scaffold. Agents should omit this field. */
+  predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   productId?: InputMaybe<Scalars['String']['input']>;
   relationshipOperationalConfigRevision?: InputMaybe<Scalars['Int']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;

@@ -14316,7 +14316,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 .cs-experiment-stat-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin-top: 20px;
   border-top: 1px solid var(--color-border-light);
 }
