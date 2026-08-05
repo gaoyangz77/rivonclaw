@@ -774,9 +774,8 @@ describe("affiliate work item dispatch", () => {
       },
     ]);
     const workItem = createSampleReviewWorkItem({ id: "relationship-queued" });
-    mockGetAuthSession.mockReturnValue({
-      graphqlFetch: vi.fn(async () => ({ affiliateWorkItems: [workItem] })),
-    });
+    const graphqlFetch = vi.fn(async () => ({ affiliateWorkItems: [workItem] }));
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
     (inbound as any).runIndex.set("run-active", "affiliate-session-active");
     (inbound as any).sessions.set("affiliate-session-active", { onRunCompleted: vi.fn() });
     const dispatchSpy = vi.spyOn(inbound as any, "dispatchWorkItem").mockResolvedValue(true);
@@ -787,6 +786,17 @@ describe("affiliate work item dispatch", () => {
     inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
     await waitForCondition(() => dispatchSpy.mock.calls.length === 1);
 
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      {
+        input: {
+          shopId: "shop-001",
+          creatorRelationshipId: "relationship-001",
+          agentDispatchRecommended: true,
+          limit: 10,
+        },
+      },
+    );
     expect(dispatchSpy).toHaveBeenCalledWith(
       workItem,
       "relationship-queued:shop-001:SAMPLE_APPLICATION_DECISION",
