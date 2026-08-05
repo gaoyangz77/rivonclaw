@@ -2752,7 +2752,7 @@ export default {
         "RELATIONSHIP_CONTACT_UPDATED": "Creator-Kontakt aktualisiert",
         "MESSAGE_RECEIVED": "Nachricht empfangen",
         "MESSAGE_SENT": "Nachricht gesendet",
-        "COLLABORATION_CREATED": "Kooperation erstellt",
+        "COLLABORATION_CREATED": "Plattformkooperation erkannt",
         "COLLABORATION_CLOSED": "Kooperation geschlossen",
         "SAMPLE_APPLICATION_SUBMITTED": "Musteranfrage eingereicht",
         "SAMPLE_APPLICATION_APPROVED": "Musteranfrage genehmigt",

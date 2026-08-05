@@ -3825,7 +3825,7 @@ export default {
         RELATIONSHIP_CONTACT_UPDATED: "Creator contact updated",
         MESSAGE_RECEIVED: "Message received",
         MESSAGE_SENT: "Message sent",
-        COLLABORATION_CREATED: "Collaboration created",
+        COLLABORATION_CREATED: "Platform collaboration discovered",
         COLLABORATION_CLOSED: "Collaboration closed",
         SAMPLE_APPLICATION_SUBMITTED: "Sample request submitted",
         SAMPLE_APPLICATION_APPROVED: "Sample request approved",

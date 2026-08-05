@@ -2756,7 +2756,7 @@ export default {
         "TAG_ADDED": "Tag creator ditambahkan",
         "TAG_REMOVED": "Tag creator dihapus",
         "MESSAGE_SENT": "Pesan terkirim",
-        "COLLABORATION_CREATED": "Kolaborasi dibuat",
+        "COLLABORATION_CREATED": "Kolaborasi platform ditemukan",
         "COLLABORATION_CLOSED": "Kolaborasi ditutup",
         "SAMPLE_APPLICATION_SUBMITTED": "Permintaan sampel dikirim",
         "SAMPLE_APPLICATION_APPROVED": "Permintaan sampel disetujui",
