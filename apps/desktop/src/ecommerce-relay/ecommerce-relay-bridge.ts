@@ -22,10 +22,6 @@ import { emitCsDispatchEvent, emitCsError, CS_ERROR_STAGE } from "../telemetry/c
 import { AffiliateInbound } from "../affiliate/affiliate-inbound.js";
 
 const log = createLogger("ecommerce-relay");
-const AFFILIATE_WORK_CATCH_UP_INTERVAL_MS = Math.max(
-  15_000,
-  Number.parseInt(process.env.RIVONCLAW_AFFILIATE_WORK_CATCH_UP_INTERVAL_MS ?? "60000", 10) || 60_000,
-);
 const DEFAULT_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS = 30_000;
 
 function resolveAirflowPendingCatchUpWindowMs(): number {
@@ -141,9 +137,6 @@ export class EcommerceRelayBridge {
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
 
-  /** Timer for durable affiliate work catch-up when subscription events are missed. */
-  private affiliateWorkCatchUpTimer: ReturnType<typeof setInterval> | null = null;
-
   constructor(private readonly opts: EcommerceRelayBridgeOptions) {
     this.affiliateInbound = new AffiliateInbound(opts.locale);
   }
@@ -154,7 +147,6 @@ export class EcommerceRelayBridge {
     this.closed = false;
     this.subscribeToCacheChanges();
     this.syncFromCache();
-    this.startAffiliateWorkCatchUp();
     runtimeStatusStore.setCsBridgeConnected();
     log.info("Ecommerce signal bridge started");
   }
@@ -165,10 +157,6 @@ export class EcommerceRelayBridge {
     if (this.cacheUnsubscribe) {
       this.cacheUnsubscribe();
       this.cacheUnsubscribe = null;
-    }
-    if (this.affiliateWorkCatchUpTimer) {
-      clearInterval(this.affiliateWorkCatchUpTimer);
-      this.affiliateWorkCatchUpTimer = null;
     }
     for (const pending of this.pendingAirflowBuyerCatchUps.values()) {
       if (pending.timer) clearTimeout(pending.timer);
@@ -551,15 +539,6 @@ export class EcommerceRelayBridge {
       }),
       () => this.syncFromCache(),
     );
-  }
-
-  private startAffiliateWorkCatchUp(): void {
-    if (this.affiliateWorkCatchUpTimer) return;
-    void this.affiliateInbound.catchUpCurrentWorkItems();
-    this.affiliateWorkCatchUpTimer = setInterval(() => {
-      if (this.closed) return;
-      void this.affiliateInbound.catchUpCurrentWorkItems();
-    }, AFFILIATE_WORK_CATCH_UP_INTERVAL_MS);
   }
 
   // -- Backend signal handling -----------------------------------------------
