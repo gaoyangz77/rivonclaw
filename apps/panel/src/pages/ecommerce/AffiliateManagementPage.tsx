@@ -2656,7 +2656,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               />
             ))}
             {totalCreatorCount > AFFILIATE_CREATORS_PAGE_SIZE ? (
-              <div className="affiliate-collaboration-pagination affiliate-creator-pagination" aria-label={t("ecommerce.affiliateWorkspace.pagination")}>
+              <div className="affiliate-collaboration-pagination affiliate-creator-pagination" aria-label={t("ecommerce.affiliateWorkspace.creatorsTitle")}>
                 <span className="affiliate-collaboration-pagination-summary">
                   {t("ecommerce.affiliateWorkspace.pageSummary", {
                     start: creatorPageStart,
@@ -2688,7 +2688,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                       min={1}
                       max={creatorPageCount}
                       value={creatorPageInput}
-                      aria-label={t("ecommerce.affiliateWorkspace.jumpPageAria")}
+                      aria-label={t("ecommerce.affiliateWorkspace.creatorsTitle")}
                       onChange={(event) => setCreatorPageInput(event.target.value)}
                       onBlur={commitCreatorPageInput}
                       onKeyDown={(event) => {
@@ -3154,10 +3154,8 @@ function RelationshipPlatformCollaborationCard({
       </div>
       <div className="affiliate-collaboration-card-body affiliate-collaboration-record-card-body">
         <div className="affiliate-relationship-work-card-priority">
-          <RelationshipMetric label={t("ecommerce.affiliateWorkspace.statusFilter")} value={formatAffiliateEnumLabel(collaboration.status)} />
+          <RelationshipMetric label={t("account.status")} value={formatAffiliateEnumLabel(collaboration.status)} />
           <RelationshipMetric label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")} value={formatInteger(collaboration.productIds.length)} />
-          <RelationshipMetric label={t("ecommerce.affiliateWorkspace.creatorActiveCollaborations", { count: collaboration.creatorIds.length })} value={formatInteger(collaboration.creatorIds.length)} />
-          <RelationshipMetric label="Commission" value={collaboration.commissionRate == null ? "—" : formatPercent(collaboration.commissionRate)} />
         </div>
         {collaboration.productIds.map((productId) => (
           <ProductSummaryCard
@@ -3289,6 +3287,14 @@ function relationshipTimelineTitle(
   }
   const event = item.businessEvent ?? item.actionEvent;
   if (event) {
+    if (
+      event.eventType === GQL.AffiliateLifecycleEventType.CollaborationCreated
+      && item.relatedIds.sampleApplicationRecordId
+    ) {
+      return t("ecommerce.affiliateWorkspace.platformCollaborationSampleReference", {
+        defaultValue: "Referenced by a sample application",
+      });
+    }
     return t(`ecommerce.affiliateWorkspace.lifecycleEvents.${event.eventType}`, {
       defaultValue: formatAffiliateEnumLabel(event.eventType),
     });
@@ -6321,7 +6327,7 @@ function CreatorRelationshipDetailModal({
                         disabled={!composerShopId || sendingMessage || uploadingAttachments || (!composerText.trim() && stagedAttachments.length === 0)}
                         onClick={() => void submitComposerMessage()}
                       >
-                        {sendingMessage ? t("common.loading") : t("common.send")}
+                        {sendingMessage ? t("common.loading") : t("chat.send")}
                       </button>
                     </div>
                   </div>
