@@ -520,6 +520,7 @@ export class AffiliateInbound {
         input: {
           shopId: shop.objectId,
           creatorRelationshipId: queuedWorkItem.creatorRelationshipId,
+          agentDispatchRecommended: true,
           limit: 10,
         },
       },
