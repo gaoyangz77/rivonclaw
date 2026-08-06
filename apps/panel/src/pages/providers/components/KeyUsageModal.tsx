@@ -11,7 +11,7 @@ export interface KeyUsageModalProps {
 }
 
 /**
- * Modal showing per-key subscription quota (Claude / Codex / Gemini).
+ * Modal showing per-key subscription quota.
  *
  * Reads `usage` reactively from the MST ProviderKey entry. The data is written
  * by Desktop's `LLMProviderManager.fetchKeyUsage` and flows here via the entity

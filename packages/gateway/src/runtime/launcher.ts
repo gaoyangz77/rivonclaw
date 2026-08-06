@@ -225,7 +225,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       ...process.env,
       ...this.options.env,
     };
-    env.PATH = enrichedPath(env.PATH ?? "", env);
+    env.PATH = enrichedPath(env.PATH ?? "");
 
     if (this.options.configPath) {
       env["OPENCLAW_CONFIG_PATH"] = this.options.configPath;

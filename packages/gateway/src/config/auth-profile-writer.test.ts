@@ -6,7 +6,6 @@ import { DatabaseSync } from "node:sqlite";
 import {
   resolveAuthProfilePath,
   resolveAuthProfileDatabasePath,
-  resolveManagedGeminiCliHome,
   activateAuthProfile,
   syncAuthProfile,
   removeAuthProfile,
@@ -532,43 +531,6 @@ describe("clearAllAuthProfiles", () => {
  * If the vendor changes its format, these tests fail BEFORE we ship a broken build.
  */
 describe("vendor contract: auth profile format", () => {
-  it("vendor's google plugin wraps google-gemini-cli credentials as JSON", () => {
-    // Our auth profiles use provider="google-gemini-cli" for Google OAuth.
-    // The vendor's google plugin formatApiKey must wrap this as JSON {token, projectId}
-    // for the google-gemini-cli streaming function to parse.
-    // In v2026.4.9 formatApiKey delegates to formatGoogleOauthApiKey in oauth-token-shared.ts.
-    const pluginSrc = readFileSync(
-      join(VENDOR_ROOT, "extensions/google/gemini-cli-provider.ts"),
-      "utf-8",
-    );
-    // Plugin registers formatApiKey for "google-gemini-cli"
-    expect(pluginSrc).toContain("formatApiKey");
-    expect(pluginSrc).toContain("formatGoogleOauthApiKey");
-
-    // The actual cred.access → JSON wrapping lives in the shared helper
-    const sharedSrc = readFileSync(
-      join(VENDOR_ROOT, "extensions/google/oauth-token-shared.ts"),
-      "utf-8",
-    );
-    expect(sharedSrc).toContain("cred.access");
-    expect(sharedSrc).toContain("cred.projectId");
-  });
-
-  it("vendor's normalizeProviderId preserves google-gemini-cli", () => {
-    // Profile lookup uses normalizeProviderId(cred.provider) === normalizeProviderId(model.provider).
-    // Both sides must resolve to the same string for google-gemini-cli.
-    // In v2026.6.11 normalizeProviderId lives in the model-catalog-core workspace package.
-    const providerIdSrc = readFileSync(
-      join(VENDOR_ROOT, "packages/model-catalog-core/src/provider-id.ts"),
-      "utf-8",
-    );
-    // normalizeProviderId should NOT alias "google-gemini-cli" to something else.
-    // Verify it's a simple toLowerCase passthrough (no special mapping for this ID).
-    expect(providerIdSrc).toContain("export function normalizeProviderId");
-    // The function should not contain a mapping that changes "google-gemini-cli"
-    expect(providerIdSrc).not.toContain('"google-gemini-cli"');
-  });
-
   it("OAuth credential fields match vendor's OAuthCredential type", () => {
     const typesSrc = readFileSync(join(VENDOR_ROOT, "src/agents/auth-profiles/types.ts"), "utf-8");
     expect(typesSrc).toContain('type: "oauth"');
@@ -603,29 +565,6 @@ describe("vendor contract: auth profile format", () => {
     expect(vendorOauthSrc).toContain("refresh: refreshToken");
     expect(vendorOauthSrc).toContain("expires:");
   });
-
-  it("vendor's google plugin registers google-gemini-cli provider runtime", () => {
-    const manifestSrc = readFileSync(
-      join(VENDOR_ROOT, "extensions/google/openclaw.plugin.json"),
-      "utf-8",
-    );
-    const providerSrc = readFileSync(
-      join(VENDOR_ROOT, "extensions/google/gemini-cli-provider.ts"),
-      "utf-8",
-    );
-    const authHomeSrc = readFileSync(
-      join(VENDOR_ROOT, "extensions/google/gemini-cli-auth-home.ts"),
-      "utf-8",
-    );
-
-    expect(manifestSrc).toContain('"google-gemini-cli"');
-    expect(authHomeSrc).toContain(
-      'export const GOOGLE_GEMINI_CLI_PROVIDER_ID = "google-gemini-cli"',
-    );
-    expect(providerSrc).toContain("const PROVIDER_ID = GOOGLE_GEMINI_CLI_PROVIDER_ID");
-    expect(providerSrc).toContain('const DEFAULT_MODEL = "google/gemini-3.1-pro-preview"');
-    expect(providerSrc).toContain("formatGoogleOauthApiKey");
-  });
 });
 
 describe("syncAllAuthProfiles: OAuth entries", () => {
@@ -639,66 +578,45 @@ describe("syncAllAuthProfiles: OAuth entries", () => {
     rmSync(stateDir, { recursive: true, force: true });
   });
 
-  it("writes Google OAuth with provider google-gemini-cli for Bearer auth path", async () => {
-    const mockStorage = {
-      providerKeys: {
-        getAll: () => [
-          { id: "oauth-key-1", provider: "gemini", isDefault: true, authType: "oauth" },
-        ],
-      },
-    };
-    const mockSecretStore = {
-      get: async (key: string) => {
-        if (key === "oauth-cred-oauth-key-1") {
-          return JSON.stringify({
-            access: "ya29.test-access-token",
-            refresh: "1//test-refresh-token",
-            expires: Date.now() + 3600_000,
-            email: "user@gmail.com",
-            projectId: "test-project-id",
-          });
-        }
-        return null;
-      },
-    };
-
-    await syncAllAuthProfiles(stateDir, mockStorage, mockSecretStore);
-
+  it("purges obsolete Gemini OAuth runtime profiles and managed home", async () => {
     const filePath = resolveAuthProfilePath(stateDir);
+    mkdirSync(join(filePath, ".."), { recursive: true });
+    writeFileSync(
+      filePath,
+      JSON.stringify({
+        version: 1,
+        profiles: {
+          "google-gemini-cli:user@example.com": {
+            type: "oauth",
+            provider: "google-gemini-cli",
+            access: "access",
+            refresh: "refresh",
+            expires: Date.now() + 60_000,
+          },
+          "openai:active": { type: "api_key", provider: "openai", key: "key" },
+        },
+        order: {
+          "google-gemini-cli": ["google-gemini-cli:user@example.com"],
+          openai: ["openai:active"],
+        },
+      }),
+    );
+    mkdirSync(join(stateDir, "gemini-cli-home", ".gemini"), { recursive: true });
+
+    await syncAllAuthProfiles(
+      stateDir,
+      { providerKeys: { getAll: () => [] } },
+      { get: async () => null },
+    );
+
     const store = readJsonFile(filePath) as {
-      profiles: Record<string, Record<string, unknown>>;
+      profiles: Record<string, unknown>;
       order: Record<string, string[]>;
     };
-
-    // Google OAuth uses "google-gemini-cli" provider to match vendor's
-    // Cloud Code Assist API (Bearer auth), not "google" (x-goog-api-key).
-    const profile = store.profiles["google-gemini-cli:user@gmail.com"];
-    expect(profile).toBeDefined();
-    expect(profile.type).toBe("oauth");
-    expect(profile.provider).toBe("google-gemini-cli");
-    expect(profile.access).toBe("ya29.test-access-token");
-    expect(profile.refresh).toBe("1//test-refresh-token");
-    expect(profile.email).toBe("user@gmail.com");
-    expect(profile.projectId).toBe("test-project-id");
-
-    // Order key must use "google-gemini-cli" to match model routing
-    expect(store.order["google-gemini-cli"]).toEqual(["google-gemini-cli:user@gmail.com"]);
-
-    const managedHome = resolveManagedGeminiCliHome(stateDir);
-    const settings = readJsonFile(join(managedHome, ".gemini", "settings.json")) as {
-      security?: { auth?: { selectedType?: string } };
-    };
-    const creds = readJsonFile(join(managedHome, ".gemini", "oauth_creds.json")) as Record<
-      string,
-      unknown
-    >;
-    expect(settings.security?.auth?.selectedType).toBe("oauth-personal");
-    expect(creds).toMatchObject({
-      access_token: "ya29.test-access-token",
-      refresh_token: "1//test-refresh-token",
-      expiry_date: profile.expires,
-      token_type: "Bearer",
-    });
+    expect(store.profiles["google-gemini-cli:user@example.com"]).toBeUndefined();
+    expect(store.profiles["openai:active"]).toBeDefined();
+    expect(store.order["google-gemini-cli"]).toBeUndefined();
+    expect(existsSync(join(stateDir, "gemini-cli-home"))).toBe(false);
   });
 
   it("writes non-Google OAuth as oauth type normally", async () => {

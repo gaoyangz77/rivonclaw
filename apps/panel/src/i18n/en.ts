@@ -271,14 +271,11 @@ export default {
       title: "Re-authenticate {{label}}",
       intro:
         "Sign in again to rotate the OAuth credentials for this key. Your label, model, and proxy are preserved — only the stored token is replaced.",
-      signIn_gemini: "Sign in with Google",
       "signIn_openai-codex": "Sign in with ChatGPT",
       waitingForBrowser: "Waiting for browser sign-in…",
       authUrlLabel: "Authorization URL",
       callbackLabel: "Redirect URL",
       callbackPlaceholder: "Paste the redirect URL from your browser here",
-      callbackHelp_gemini:
-        "After signing in with Google, copy the full redirect URL from your browser's address bar and paste it here.",
       "callbackHelp_openai-codex":
         "After signing in with ChatGPT, copy the full redirect URL from your browser's address bar and paste it here.",
       completeSignIn: "Complete Sign-in",
@@ -360,36 +357,25 @@ export default {
     "label_nvidia-nim": "NVIDIA NIM",
     "label_amazon-bedrock": "Amazon Bedrock",
     label_ollama: "Ollama",
-    label_gemini: "Gemini (OAuth)",
     "label_openai-codex": "OpenAI Codex (OAuth)",
     desc_ollama: "Run models locally with Ollama",
-    desc_gemini: "Sign in with Google for free Gemini access. No API key needed.",
-    hint_gemini: "",
     "desc_openai-codex": "Sign in with your ChatGPT account to use Codex models via subscription.",
     "hint_openai-codex": "",
-    oauthSignIn_gemini: "Sign in with Google",
     "oauthSignIn_openai-codex": "Sign in with ChatGPT",
     oauthLoading: "Setting up...",
     oauthBadge: "OAuth",
     oauthSectionTitle: "OAuth Providers",
-    oauthInfo_gemini:
-      "Sign in with your Google account for free Gemini access. No API key needed — Gemini CLI will be set up automatically if not already installed. OAuth tokens are stored securely in your OS keychain.",
     "oauthInfo_openai-codex":
       "Sign in with your ChatGPT account to use OpenAI Codex models. Requires a ChatGPT Plus or Pro subscription. OAuth tokens are stored securely in your OS keychain.",
     oauthTokenLabel: "OAuth Token",
-    oauthTokenHelp_gemini: "Token acquired via Google OAuth. Stored securely in your OS keychain.",
     "oauthTokenHelp_openai-codex":
       "Token acquired via OpenAI OAuth. Stored securely in your OS keychain.",
-    oauthManualInfo_gemini:
-      "Complete sign-in in the browser. If using a remote machine, copy the authorization URL below and paste the redirect URL back after signing in.",
     "oauthManualInfo_openai-codex":
       "Complete sign-in in the browser. If using a remote machine, copy the authorization URL below and paste the redirect URL back after signing in.",
     oauthWaitingForBrowser: "Waiting for browser sign-in...",
     oauthManualUrlLabel: "Authorization URL",
     oauthManualCallbackLabel: "Redirect URL",
     oauthManualCallbackPlaceholder: "Paste the redirect URL from your browser here",
-    oauthManualCallbackHelp_gemini:
-      "After signing in with Google, your browser will redirect to a local http://127.0.0.1 URL — copy the full URL from your browser's address bar and paste it here.",
     "oauthManualCallbackHelp_openai-codex":
       "After signing in with ChatGPT, your browser will redirect to a localhost URL — copy the full URL from your browser's address bar and paste it here.",
     oauthManualSubmit: "Complete Sign-in",
@@ -2024,8 +2010,7 @@ export default {
     },
     timeline: {
       title: "About this timeline",
-      body:
-        "TikTok’s Partner API returns at most 90 trend days. The lines below are platform observations fetched on demand—not warehouse snapshots and not a 12-month history.",
+      body: "TikTok’s Partner API returns at most 90 trend days. The lines below are platform observations fetched on demand—not warehouse snapshots and not a 12-month history.",
     },
     market: {
       oneShop: "1 shop",
@@ -2040,8 +2025,7 @@ export default {
       autoScale: "Y-axis auto-scaled to the visible range",
       seriesAria: "Chart series",
       noTrendTitle: "No trend points returned",
-      noTrendBody:
-        "Review the shop status below, then refresh when TikTok SPS data is available.",
+      noTrendBody: "Review the shop status below, then refresh when TikTok SPS data is available.",
       usOnlyTitle: "Current API coverage: United States only",
       unsupportedBody:
         "These shops are shown for visibility. No score or diagnosis is inferred for an unsupported region.",
@@ -2101,7 +2085,8 @@ export default {
       welcomeTitle: "Shop Performance Analytics",
       welcomeBody: "Compare live SPS health across every market and shop from one page.",
       metricsTitle: "Choose a Diagnosis Metric",
-      metricsBody: "Switch the selected SPS metric to refresh every market chart and shop diagnosis.",
+      metricsBody:
+        "Switch the selected SPS metric to refresh every market chart and shop diagnosis.",
       trendTitle: "Compare Shop Trends",
       trendBody: "Each line is one shop. TikTok currently returns at most 90 daily observations.",
     },
@@ -3255,7 +3240,8 @@ export default {
       actualAllocationHint:
         "Observed share of assigned orders. Incrementality compares only Control with the current production configuration A.",
       actualAssignedOrders: "{{count}} assigned orders",
-      excludedFromIncrementality: "Analyzed in the configuration test; excluded from incrementality",
+      excludedFromIncrementality:
+        "Analyzed in the configuration test; excluded from incrementality",
       noReachout: "No message configuration",
       usesBaseConfiguration: "Uses the shop's base reachout configuration",
       viewConfiguration: "View configuration",
@@ -3549,8 +3535,7 @@ export default {
       intelligenceChartSameBudget: "Same sample count",
       intelligenceChartSameSalesBar: "Same expected-sales bar",
       intelligenceChartCreatorSwap: "Who the model would swap",
-      intelligenceSameBudgetStory:
-        "Predicted sales from the same {{count}} sample opportunities",
+      intelligenceSameBudgetStory: "Predicted sales from the same {{count}} sample opportunities",
       intelligenceSameSalesBarStory:
         "{{window}} · creators at or above the same {{bar}} predicted-sales bar",
       intelligenceCreatorSwapStory:
@@ -3601,8 +3586,7 @@ export default {
       intelligenceBudgetStatsTitle: "Where the better picks come from",
       intelligenceBudgetStatsHeadline:
         "Same sample count, more model picks land in higher predicted-sales ranges",
-      intelligenceBudgetStatsHint:
-        "Distribution of predicted sales in the holdout test sample.",
+      intelligenceBudgetStatsHint: "Distribution of predicted sales in the holdout test sample.",
       intelligenceHistoricalExpectedUnits: "staff-choice predicted units",
       intelligenceModelExpectedUnits: "model-choice predicted units",
       intelligenceHistoricalApprovedExpected: "Historical staff choice · predicted sales",
@@ -4691,14 +4675,20 @@ export default {
         runProfileNone: "No RunProfile selected",
         automaticModelSelection: "Automatic model selection",
         automaticModelCurrent: "Currently using {{scope}}",
-        automaticModelHint: "The best available account, region, or shop model is selected automatically for this store.",
+        automaticModelHint:
+          "The best available account, region, or shop model is selected automatically for this store.",
         automaticModelProbabilityBased: "Highest outperformance probability",
         automaticModelFallback: "Using deterministic fallback until comparison data is available.",
         automaticModelUnavailable: "Automatic selection is not yet comparable",
         automaticModelLoading: "Loading model evaluation data.",
         outperformanceProbability: "Probability of outperforming historical selection",
         dataFoundation: "Data foundation",
-        dataFoundationLevels: { sufficient: "Sufficient", moderate: "Moderate", limited: "Limited", insufficient: "Insufficient" },
+        dataFoundationLevels: {
+          sufficient: "Sufficient",
+          moderate: "Moderate",
+          limited: "Limited",
+          insufficient: "Insufficient",
+        },
         scopeUser: "account model",
         scopeRegion: "region model",
         scopeShop: "shop model",

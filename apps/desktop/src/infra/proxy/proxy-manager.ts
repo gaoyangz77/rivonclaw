@@ -36,9 +36,6 @@ export const DOMAIN_TO_PROVIDER: Record<string, string> = (() => {
     "bedrock-runtime.ap-southeast-1.amazonaws.com": "amazon-bedrock",
     "bedrock-runtime.ap-northeast-1.amazonaws.com": "amazon-bedrock",
   });
-  // Google Gemini CLI OAuth (Cloud Code API) — not in baseUrl
-  map["cloudcode-pa.googleapis.com"] = "gemini";
-  map["oauth2.googleapis.com"] = "gemini";
   return map;
 })();
 

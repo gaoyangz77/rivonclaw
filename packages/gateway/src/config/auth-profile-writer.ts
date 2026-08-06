@@ -11,7 +11,8 @@ const log = createLogger("gateway:auth-profile");
 const AUTH_PROFILE_FILENAME = "auth-profiles.json";
 const AUTH_PROFILE_DATABASE_FILENAME = "openclaw-agent.sqlite";
 const AUTH_PROFILE_STORE_KEY = "primary";
-const GEMINI_CLI_HOME_DIRNAME = "gemini-cli-home";
+const REMOVED_GEMINI_RUNTIME_PROVIDER = "google-gemini-cli";
+const REMOVED_GEMINI_CLI_HOME_DIRNAME = "gemini-cli-home";
 
 type ApiKeyProfile = { type: "api_key"; provider: string; key: string };
 type OAuthProfile = {
@@ -57,17 +58,6 @@ export function resolveAuthProfilePath(stateDir: string): string {
 /** Resolve the authoritative auth store used by OpenClaw v2026.6.11+. */
 export function resolveAuthProfileDatabasePath(stateDir: string): string {
   return join(stateDir, "agents", DEFAULT_AGENT_ID, "agent", AUTH_PROFILE_DATABASE_FILENAME);
-}
-
-/**
- * Private HOME used only for the managed Gemini CLI subprocess.
- *
- * Gemini's official CLI reads OAuth from ~/.gemini/oauth_creds.json and auth
- * selection from ~/.gemini/settings.json. We derive those files from
- * the managed auth store instead of mutating the user's real ~/.gemini directory.
- */
-export function resolveManagedGeminiCliHome(stateDir: string): string {
-  return join(stateDir, GEMINI_CLI_HOME_DIRNAME);
 }
 
 /**
@@ -153,8 +143,7 @@ export function activateAuthProfile(
   const databasePath = resolveAuthProfileDatabasePath(stateDir);
   const store = readStore(filePath, databasePath);
   const resolvedProvider = resolveGatewayProvider(productProvider as LLMProvider);
-  const runtimeProvider =
-    productProvider === "gemini" && authType === "oauth" ? "google-gemini-cli" : resolvedProvider;
+  const runtimeProvider = resolvedProvider;
   const requiredType = authType === "oauth" ? "oauth" : "api_key";
   const currentOrder = store.order?.[runtimeProvider] ?? [];
   const matchingId =
@@ -175,7 +164,6 @@ export function activateAuthProfile(
   store.order ??= {};
   store.order[runtimeProvider] = [matchingId, ...currentOrder.filter((id) => id !== matchingId)];
   writeStore(filePath, databasePath, store);
-  syncManagedGeminiCliHome(stateDir, store);
   log.info(
     `Activated auth profile ${matchingId} for ${productProvider} (gateway: ${runtimeProvider})`,
   );
@@ -226,37 +214,20 @@ function writeStore(filePath: string, databasePath: string, store: AuthProfileSt
   });
 }
 
-function syncManagedGeminiCliHome(stateDir: string, store: AuthProfileStore): void {
-  const selectedProfileId = store.order?.["google-gemini-cli"]?.[0];
-  const profile = selectedProfileId ? store.profiles[selectedProfileId] : undefined;
-  const homeDir = resolveManagedGeminiCliHome(stateDir);
-
-  if (!profile || profile.type !== "oauth" || profile.provider !== "google-gemini-cli") {
-    rmSync(homeDir, { recursive: true, force: true });
-    return;
+function purgeRemovedGeminiOAuthState(stateDir: string, store: AuthProfileStore): boolean {
+  let changed = false;
+  for (const [id, profile] of Object.entries(store.profiles)) {
+    if (profile.provider === REMOVED_GEMINI_RUNTIME_PROVIDER) {
+      delete store.profiles[id];
+      changed = true;
+    }
   }
-
-  const geminiDir = join(homeDir, ".gemini");
-  mkdirSync(geminiDir, { recursive: true, mode: 0o700 });
-  writeFileSync(
-    join(geminiDir, "settings.json"),
-    `${JSON.stringify({ security: { auth: { selectedType: "oauth-personal" } } }, null, 2)}\n`,
-    { encoding: "utf-8", mode: 0o600 },
-  );
-  writeFileSync(
-    join(geminiDir, "oauth_creds.json"),
-    `${JSON.stringify(
-      {
-        access_token: profile.access,
-        refresh_token: profile.refresh,
-        expiry_date: profile.expires,
-        token_type: "Bearer",
-      },
-      null,
-      2,
-    )}\n`,
-    { encoding: "utf-8", mode: 0o600 },
-  );
+  if (store.order?.[REMOVED_GEMINI_RUNTIME_PROVIDER]) {
+    delete store.order[REMOVED_GEMINI_RUNTIME_PROVIDER];
+    changed = true;
+  }
+  rmSync(join(stateDir, REMOVED_GEMINI_CLI_HOME_DIRNAME), { recursive: true, force: true });
+  return changed;
 }
 
 /**
@@ -271,7 +242,7 @@ export function syncAuthProfile(stateDir: string, provider: string, apiKey: stri
   const store = readStore(filePath, databasePath);
 
   // Use the gateway provider name so OpenClaw can match it to the model config.
-  // e.g. "claude" → "anthropic", "gemini" → "google"
+  // e.g. "claude" → "anthropic"
   const gwProvider = resolveGatewayProvider(provider as LLMProvider);
   const profileId = `${gwProvider}:active`;
   store.profiles[profileId] = { type: "api_key", provider: gwProvider, key: apiKey };
@@ -332,11 +303,13 @@ export async function syncAllAuthProfiles(
   // from SQLite metadata and deleting vendor/user-created profiles.
   const store = readStore(filePath, databasePath);
   store.order ??= {};
+  const removedGeminiState = purgeRemovedGeminiOAuthState(stateDir, store);
 
   try {
     await secretStore.get("__rivonclaw-secure-store-healthcheck__");
   } catch (error) {
     if (!(error instanceof SecretStoreAccessError)) throw error;
+    if (removedGeminiState) writeStore(filePath, databasePath, store);
     log.warn("Secure storage is unavailable; preserving existing auth profiles");
     return;
   }
@@ -396,18 +369,12 @@ export async function syncAllAuthProfiles(
             email?: string;
             projectId?: string;
           };
-          // Google OAuth requires "google-gemini-cli" provider — the vendor has
-          // two separate Google API types:
-          //   "google" (google-generative-ai) → @google/genai SDK, x-goog-api-key header
-          //   "google-gemini-cli"              → raw fetch, Authorization: Bearer header
-          // OAuth tokens only work with the Bearer auth path.
-          const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
-          const profileId = `${oauthProvider}:${cred.email ?? "default"}`;
+          const profileId = `${gwProvider}:${cred.email ?? "default"}`;
           addOrderedProfile(
             profileId,
             {
               type: "oauth",
-              provider: oauthProvider,
+              provider: gwProvider,
               access: cred.access,
               refresh: cred.refresh,
               expires: cred.expires,
@@ -477,7 +444,6 @@ export async function syncAllAuthProfiles(
   }
 
   writeStore(filePath, databasePath, store);
-  syncManagedGeminiCliHome(stateDir, store);
   log.info(`Synced ${Object.keys(store.profiles).length} auth profile(s)`);
 }
 
@@ -519,9 +485,8 @@ export async function syncBackOAuthCredentials(
   for (const key of oauthKeys) {
     // Find the matching OAuth profile in the authoritative store.
     const gwProvider = resolveGatewayProvider(key.provider as LLMProvider);
-    const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
     const matchingProfile = Object.values(store.profiles)
-      .filter((p): p is OAuthProfile => p.type === "oauth" && p.provider === oauthProvider)
+      .filter((p): p is OAuthProfile => p.type === "oauth" && p.provider === gwProvider)
       .sort((a, b) => b.expires - a.expires)[0];
 
     if (!matchingProfile) continue;
@@ -557,6 +522,6 @@ export function clearAllAuthProfiles(stateDir: string): void {
   const databasePath = resolveAuthProfileDatabasePath(stateDir);
   const emptyStore: AuthProfileStore = { version: 1, profiles: {}, order: {} };
   writeStore(filePath, databasePath, emptyStore);
-  syncManagedGeminiCliHome(stateDir, emptyStore);
+  purgeRemovedGeminiOAuthState(stateDir, emptyStore);
   log.info("Cleared all auth profiles");
 }

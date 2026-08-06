@@ -1,5 +1,4 @@
 import {
-  chmodSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -24,10 +23,8 @@ import {
 import {
   resolveOpenClawStateDir as _resolveOpenClawStateDir,
   resolveOpenClawConfigPath as _resolveOpenClawConfigPath,
-  resolveRivonClawHome,
 } from "@rivonclaw/core/node";
 import { generateAudioConfig, mergeAudioConfig } from "./audio-config-writer.js";
-import { resolveManagedGeminiCliHome } from "./auth-profile-writer.js";
 import { migrateSingleAccountChannels } from "./channel-config-writer.js";
 import { sanitizeWindowsBinds } from "./windows-bind-sanitizer.js";
 import { OpenClawSchema } from "../generated/openclaw-schema.js";
@@ -36,18 +33,7 @@ const log = createLogger("gateway:config");
 const LAST_KNOWN_GOOD_SUFFIX = ".last-known-good";
 
 const FIXED_DM_SCOPE = "per-account-channel-peer";
-const GEMINI_CLI_BACKEND_ID = "google-gemini-cli";
-const GEMINI_CLI_BACKEND_ARGS = ["--output-format", "json", "--prompt", "{prompt}"] as const;
-const GEMINI_CLI_BACKEND_RESUME_ARGS = [
-  "--resume",
-  "{sessionId}",
-  "--output-format",
-  "json",
-  "--prompt",
-  "{prompt}",
-] as const;
-const GEMINI_CLI_WRAPPER_BASENAME =
-  process.platform === "win32" ? "rivonclaw-gemini-cli.cmd" : "rivonclaw-gemini-cli";
+const REMOVED_GEMINI_RUNTIME_PROVIDER = "google-gemini-cli";
 
 const WEB_SEARCH_PROVIDER_PLUGIN_IDS = {
   brave: "brave",
@@ -75,54 +61,78 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
   return next;
 }
 
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", "'\\''")}'`;
-}
+function removeGeminiOAuthRuntimeConfig(config: Record<string, unknown>, stateDir: string): void {
+  rmSync(join(stateDir, "bin", "rivonclaw-gemini-cli"), { force: true });
+  rmSync(join(stateDir, "bin", "rivonclaw-gemini-cli.cmd"), { force: true });
+  rmSync(join(stateDir, "gemini-cli-home"), { recursive: true, force: true });
 
-function resolveGeminiCliWrapperPath(stateDir: string): string {
-  return join(stateDir, "bin", GEMINI_CLI_WRAPPER_BASENAME);
-}
-
-function writeGeminiCliWrapper(stateDir: string): string {
-  const wrapperPath = resolveGeminiCliWrapperPath(stateDir);
-  mkdirSync(dirname(wrapperPath), { recursive: true });
-  const managedHome = resolveManagedGeminiCliHome(stateDir);
-  const managedGeminiBin = join(resolveRivonClawHome(), "gemini-cli", "node_modules", ".bin");
-
-  if (process.platform === "win32") {
-    writeFileSync(
-      wrapperPath,
-      [
-        "@echo off",
-        `set "HOME=${managedHome}"`,
-        `set "PATH=${managedGeminiBin};%PATH%"`,
-        'set "GOOGLE_GENAI_USE_GCA=true"',
-        'set "GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true"',
-        'set "NODE_NO_WARNINGS=1"',
-        "gemini %*",
-        "",
-      ].join("\r\n"),
-      "utf-8",
-    );
-    return wrapperPath;
+  const models = config.models;
+  if (models && typeof models === "object" && !Array.isArray(models)) {
+    const providers = (models as Record<string, unknown>).providers;
+    if (providers && typeof providers === "object" && !Array.isArray(providers)) {
+      delete (providers as Record<string, unknown>)[REMOVED_GEMINI_RUNTIME_PROVIDER];
+      if (Object.keys(providers).length === 0) {
+        delete (models as Record<string, unknown>).providers;
+      }
+    }
   }
 
-  writeFileSync(
-    wrapperPath,
-    [
-      "#!/bin/sh",
-      `export HOME=${shellQuote(managedHome)}`,
-      `export PATH=${shellQuote(managedGeminiBin)}":$PATH"`,
-      "export GOOGLE_GENAI_USE_GCA=true",
-      "export GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true",
-      "export NODE_NO_WARNINGS=1",
-      'exec gemini "$@"',
-      "",
-    ].join("\n"),
-    { encoding: "utf-8", mode: 0o700 },
-  );
-  chmodSync(wrapperPath, 0o700);
-  return wrapperPath;
+  const agents = config.agents;
+  if (!agents || typeof agents !== "object" || Array.isArray(agents)) return;
+  const defaults = (agents as Record<string, unknown>).defaults;
+  if (!defaults || typeof defaults !== "object" || Array.isArray(defaults)) return;
+  const defaultsRecord = defaults as Record<string, unknown>;
+
+  const cliBackends = defaultsRecord.cliBackends;
+  if (cliBackends && typeof cliBackends === "object" && !Array.isArray(cliBackends)) {
+    delete (cliBackends as Record<string, unknown>)[REMOVED_GEMINI_RUNTIME_PROVIDER];
+    if (Object.keys(cliBackends).length === 0) delete defaultsRecord.cliBackends;
+  }
+
+  const configuredModels = defaultsRecord.models;
+  if (
+    configuredModels &&
+    typeof configuredModels === "object" &&
+    !Array.isArray(configuredModels)
+  ) {
+    for (const id of Object.keys(configuredModels)) {
+      if (id.startsWith(`${REMOVED_GEMINI_RUNTIME_PROVIDER}/`)) {
+        delete (configuredModels as Record<string, unknown>)[id];
+      }
+    }
+    if (Object.keys(configuredModels).length === 0) delete defaultsRecord.models;
+  }
+
+  const selectedModel = defaultsRecord.model;
+  if (typeof selectedModel === "string") {
+    if (selectedModel.startsWith(`${REMOVED_GEMINI_RUNTIME_PROVIDER}/`)) {
+      delete defaultsRecord.model;
+    }
+  } else if (selectedModel && typeof selectedModel === "object" && !Array.isArray(selectedModel)) {
+    const selected = selectedModel as Record<string, unknown>;
+    let removedPrimary = false;
+    if (
+      typeof selected.primary === "string" &&
+      selected.primary.startsWith(`${REMOVED_GEMINI_RUNTIME_PROVIDER}/`)
+    ) {
+      delete selected.primary;
+      removedPrimary = true;
+    }
+    if (Array.isArray(selected.fallbacks)) {
+      const remainingFallbacks = selected.fallbacks.filter(
+        (id) => typeof id !== "string" || !id.startsWith(`${REMOVED_GEMINI_RUNTIME_PROVIDER}/`),
+      );
+      if (removedPrimary && typeof remainingFallbacks[0] === "string") {
+        selected.primary = remainingFallbacks.shift();
+      }
+      if (remainingFallbacks.length > 0) {
+        selected.fallbacks = remainingFallbacks;
+      } else {
+        delete selected.fallbacks;
+      }
+    }
+    if (Object.keys(selected).length === 0) delete defaultsRecord.model;
+  }
 }
 
 function removeRuntimeIncompatiblePluginHookKeys(config: Record<string, unknown>): void {
@@ -1105,58 +1115,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
-  // Gemini CLI compatibility — the bundled OpenClaw google plugin may carry
-  // backend args for newer CLI builds. RivonClaw installs and runs the user's
-  // local Gemini CLI, so pin args to the currently supported public surface.
-  {
-    const existingAgents =
-      typeof config.agents === "object" && config.agents !== null
-        ? (config.agents as Record<string, unknown>)
-        : {};
-    const existingDefaults =
-      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
-        ? (existingAgents.defaults as Record<string, unknown>)
-        : {};
-    const existingCliBackends =
-      typeof existingDefaults.cliBackends === "object" && existingDefaults.cliBackends !== null
-        ? (existingDefaults.cliBackends as Record<string, unknown>)
-        : {};
-    const existingGeminiBackend =
-      typeof existingCliBackends[GEMINI_CLI_BACKEND_ID] === "object" &&
-      existingCliBackends[GEMINI_CLI_BACKEND_ID] !== null
-        ? (existingCliBackends[GEMINI_CLI_BACKEND_ID] as Record<string, unknown>)
-        : {};
-    const existingGeminiEnv =
-      typeof existingGeminiBackend.env === "object" &&
-      existingGeminiBackend.env !== null &&
-      !Array.isArray(existingGeminiBackend.env)
-        ? (existingGeminiBackend.env as Record<string, unknown>)
-        : {};
-    const normalizedGeminiEnv = { ...existingGeminiEnv };
-    delete normalizedGeminiEnv.HOME;
-    const geminiCliWrapperPath = writeGeminiCliWrapper(stateDir);
-    config.agents = {
-      ...existingAgents,
-      defaults: {
-        ...existingDefaults,
-        cliBackends: {
-          ...existingCliBackends,
-          [GEMINI_CLI_BACKEND_ID]: {
-            ...existingGeminiBackend,
-            command: geminiCliWrapperPath,
-            args: [...GEMINI_CLI_BACKEND_ARGS],
-            resumeArgs: [...GEMINI_CLI_BACKEND_RESUME_ARGS],
-            env: {
-              ...normalizedGeminiEnv,
-              GOOGLE_GENAI_USE_GCA: "true",
-              GEMINI_FORCE_ENCRYPTED_FILE_STORAGE: "true",
-              NODE_NO_WARNINGS: "1",
-            },
-          },
-        },
-      },
-    };
-  }
+  removeGeminiOAuthRuntimeConfig(config, stateDir);
 
   // Compaction defaults — pin user-visible behavior so upstream default
   // changes don't silently alter the product experience on messaging channels.

@@ -10,7 +10,6 @@ import {
   createGatewayConfigBuilder,
   DEFAULT_GATEWAY_TOOL_ALLOWLIST,
   isOpenAICodexOAuthActive,
-  normalizeGeminiOAuthModelId,
   RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS,
 } from "./config-builder.js";
 
@@ -42,16 +41,6 @@ describe("gateway config builder", () => {
 
   it("does not enable the OpenClaw pdf tool by default", () => {
     expect(DEFAULT_GATEWAY_TOOL_ALLOWLIST).not.toContain("pdf");
-  });
-
-  it("normalizes Gemini OAuth model ids that already include a gateway provider prefix", () => {
-    expect(normalizeGeminiOAuthModelId("google-gemini-cli/gemini-3-pro-preview")).toBe(
-      "gemini-3-pro-preview",
-    );
-    expect(
-      normalizeGeminiOAuthModelId("google-gemini-cli/google-gemini-cli/gemini-3-pro-preview"),
-    ).toBe("gemini-3-pro-preview");
-    expect(normalizeGeminiOAuthModelId("google/gemini-3-pro-preview")).toBe("gemini-3-pro-preview");
   });
 
   it("forces RivonClaw cloud models to support image input", () => {

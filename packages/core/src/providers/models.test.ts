@@ -381,9 +381,8 @@ describe("resolveGatewayProvider", () => {
     expect(resolveGatewayProvider("openai")).toBe("openai");
   });
 
-  it("should map subscription plans without extraModels to parent", () => {
+  it("should map Claude subscription auth to Anthropic", () => {
     expect(resolveGatewayProvider("claude")).toBe("anthropic");
-    expect(resolveGatewayProvider("gemini")).toBe("google");
   });
 
   it("should map Codex subscription auth to OpenClaw's unified OpenAI provider", () => {

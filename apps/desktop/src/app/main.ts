@@ -10,20 +10,11 @@ import {
   syncAllAuthProfiles,
   activateAuthProfile,
   syncBackOAuthCredentials,
-  saveGeminiOAuthCredentials,
-  refreshGeminiOAuthCredentials,
-  validateGeminiAccessToken,
-  completeManualOAuthFlow,
   saveCodexOAuthCredentials,
   refreshCodexOAuthCredentials,
   startHybridCodexOAuthFlow,
-  startHybridGeminiOAuthFlow,
 } from "@rivonclaw/gateway";
-import type {
-  OAuthFlowResult,
-  AcquiredOAuthCredentials,
-  AcquiredCodexOAuthCredentials,
-} from "@rivonclaw/gateway";
+import type { OAuthFlowResult, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
 import type { GatewayState } from "@rivonclaw/gateway";
 import {
   parseProxyUrl,
@@ -38,6 +29,7 @@ import {
   type LLMProvider,
 } from "@rivonclaw/core";
 import type { GQL } from "@rivonclaw/core";
+import { cleanupRemovedGeminiOAuthSecrets } from "../providers/removed-gemini-oauth-cleanup.js";
 import { resolveRivonClawHome, findFreePort } from "@rivonclaw/core/node";
 import { createStorage } from "@rivonclaw/storage";
 import { createSecretStore } from "@rivonclaw/secrets";
@@ -46,7 +38,7 @@ import { getDeviceId } from "@rivonclaw/device-id";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { brandName } from "../i18n/brand.js";
@@ -304,6 +296,19 @@ app.whenReady().then(async () => {
     acceptMarketingAttributionUrl(pendingMarketingAttributionUrls.shift() ?? "");
   }
   const secretStore = createSecretStore();
+  try {
+    const removedGeminiOAuthCredentials = await cleanupRemovedGeminiOAuthSecrets(
+      storage,
+      secretStore,
+    );
+    if (removedGeminiOAuthCredentials > 0) {
+      log.info(`Removed ${removedGeminiOAuthCredentials} obsolete Gemini OAuth credential(s)`);
+    }
+  } catch (error) {
+    // Keep the migration marker so secure-store cleanup retries next launch.
+    log.warn("Could not remove obsolete Gemini OAuth credentials yet:", error);
+  }
+  rmSync(join(resolveRivonClawHome(), "gemini-cli"), { recursive: true, force: true });
 
   // Load provider keys into MST store (before panel server starts, so SSE
   // snapshot includes them on first Panel connect)
@@ -620,16 +625,13 @@ app.whenReady().then(async () => {
     provider: string;
     authUrl: string;
     status: "pending" | "completed" | "failed";
-    creds?: AcquiredOAuthCredentials | AcquiredCodexOAuthCredentials;
+    creds?: AcquiredCodexOAuthCredentials;
     error?: string;
     _createdAt: number;
-    // Gemini
-    verifier?: string;
     cancelCallback?: () => void;
-    // Codex
     resolveManualInput?: (url: string) => void;
     rejectManualInput?: (err: Error) => void;
-    completionPromise?: Promise<AcquiredOAuthCredentials | AcquiredCodexOAuthCredentials>;
+    completionPromise?: Promise<AcquiredCodexOAuthCredentials>;
   }
   const pendingOAuthFlows = new Map<string, PendingOAuthFlow>();
 
@@ -1529,70 +1531,27 @@ app.whenReady().then(async () => {
       applyAutoLaunch(enabled);
     },
     onOAuthAcquire: async (provider: string) => {
+      if (provider !== "openai-codex") {
+        throw new Error(`OAuth is not supported for provider '${provider}'`);
+      }
       const proxyRouterUrl = `http://127.0.0.1:${actualProxyRouterPort}`;
       const flowId = randomUUID();
-
-      if (provider === "openai-codex") {
-        const hybrid = await startHybridCodexOAuthFlow(
-          {
-            openUrl: (url) => shell.openExternal(url),
-            onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
-            proxyUrl: proxyRouterUrl,
-          },
-          vendorDir,
-        );
-
-        const flow: PendingOAuthFlow = {
-          provider,
-          authUrl: hybrid.authUrl,
-          status: "pending",
-          _createdAt: Date.now(),
-          resolveManualInput: hybrid.resolveManualInput,
-          rejectManualInput: hybrid.rejectManualInput,
-          cancelCallback: hybrid.cancel,
-          completionPromise: hybrid.completionPromise,
-        };
-
-        // Background: when auto flow completes, update flow status
-        hybrid.completionPromise
-          .then((creds) => {
-            flow.status = "completed";
-            flow.creds = creds;
-            log.info(`Codex OAuth auto-completed for flow ${flowId}`);
-          })
-          .catch((err) => {
-            if (flow.status === "pending") {
-              flow.status = "failed";
-              flow.error = err instanceof Error ? err.message : String(err);
-              log.error(`Codex OAuth failed for flow ${flowId}:`, flow.error);
-            }
-          });
-
-        pendingOAuthFlows.set(flowId, flow);
-        log.info(`Codex hybrid OAuth started, flowId=${flowId}`);
-        return {
-          email: undefined,
-          tokenPreview: "",
-          manualMode: true,
-          authUrl: hybrid.authUrl,
-          flowId,
-        };
-      }
-
-      // Gemini OAuth
-      const hybrid = await startHybridGeminiOAuthFlow({
-        onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
-        proxyUrl: proxyRouterUrl,
-      });
-
-      await shell.openExternal(hybrid.authUrl);
+      const hybrid = await startHybridCodexOAuthFlow(
+        {
+          openUrl: (url) => shell.openExternal(url),
+          onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
+          proxyUrl: proxyRouterUrl,
+        },
+        vendorDir,
+      );
 
       const flow: PendingOAuthFlow = {
         provider,
         authUrl: hybrid.authUrl,
         status: "pending",
         _createdAt: Date.now(),
-        verifier: hybrid.verifier,
+        resolveManualInput: hybrid.resolveManualInput,
+        rejectManualInput: hybrid.rejectManualInput,
         cancelCallback: hybrid.cancel,
         completionPromise: hybrid.completionPromise,
       };
@@ -1602,21 +1561,18 @@ app.whenReady().then(async () => {
         .then((creds) => {
           flow.status = "completed";
           flow.creds = creds;
-          log.info(`Gemini OAuth auto-completed for flow ${flowId}`);
+          log.info(`Codex OAuth auto-completed for flow ${flowId}`);
         })
         .catch((err) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (msg.includes("cancelled")) {
-            // Intentional cancellation (manual-complete took over)
-          } else {
+          if (flow.status === "pending") {
             flow.status = "failed";
-            flow.error = msg;
-            log.error(`Gemini OAuth auto-callback failed for flow ${flowId}: ${msg}`);
+            flow.error = err instanceof Error ? err.message : String(err);
+            log.error(`Codex OAuth failed for flow ${flowId}:`, flow.error);
           }
         });
 
       pendingOAuthFlows.set(flowId, flow);
-      log.info(`Gemini hybrid OAuth started, flowId=${flowId}`);
+      log.info(`Codex hybrid OAuth started, flowId=${flowId}`);
       return {
         email: undefined,
         tokenPreview: "",
@@ -1626,6 +1582,9 @@ app.whenReady().then(async () => {
       };
     },
     onOAuthManualComplete: async (provider: string, callbackUrl: string) => {
+      if (provider !== "openai-codex") {
+        throw new Error(`OAuth is not supported for provider '${provider}'`);
+      }
       const picked = findLatestManualCompletableFlow(pendingOAuthFlows, provider);
       if (!picked) {
         throw new Error("No pending OAuth flow. Please start the sign-in process first.");
@@ -1635,54 +1594,32 @@ app.whenReady().then(async () => {
       // Auto-callback already completed — return its result directly
       if (flow.status === "completed" && flow.creds) {
         log.info(`OAuth flow ${flowId} already auto-completed, returning existing result`);
-        const creds = flow.creds as AcquiredOAuthCredentials;
+        const creds = flow.creds;
         return { email: creds.email, tokenPreview: creds.tokenPreview };
       }
-
-      const proxyRouterUrl = `http://127.0.0.1:${actualProxyRouterPort}`;
-
-      if (provider === "openai-codex") {
-        // Resolve the manual input promise — the vendor's loginOpenAICodex handles the rest
-        if (!flow.resolveManualInput) {
-          throw new Error("Codex flow missing manual input resolver");
-        }
-        if (flow.status !== "pending") {
-          // Auto-callback already completed — return its result
-          return {
-            email: (flow.creds as any)?.email,
-            tokenPreview: (flow.creds as any)?.tokenPreview ?? "",
-          };
-        }
-        flow.resolveManualInput(callbackUrl);
-        // Wait for the vendor flow to complete with the manual input
-        const creds = await flow.completionPromise!;
-        flow.status = "completed";
-        flow.creds = creds;
-        log.info(`Codex OAuth manual-completed for flow ${flowId}`);
+      if (!flow.resolveManualInput) {
+        throw new Error("Codex flow missing manual input resolver");
+      }
+      if (flow.status !== "pending") {
         return {
-          email: (creds as AcquiredCodexOAuthCredentials).email,
-          tokenPreview: (creds as AcquiredCodexOAuthCredentials).tokenPreview,
+          email: flow.creds?.email,
+          tokenPreview: flow.creds?.tokenPreview ?? "",
         };
       }
-
-      // Gemini: use existing completeManualOAuthFlow
-      if (!flow.verifier) {
-        throw new Error("Gemini flow missing verifier");
-      }
-      // Cancel the background callback server
-      flow.cancelCallback?.();
-      const acquired = await completeManualOAuthFlow(callbackUrl, flow.verifier, proxyRouterUrl);
+      flow.resolveManualInput(callbackUrl);
+      const acquired = await flow.completionPromise!;
       flow.status = "completed";
       flow.creds = acquired;
-      log.info(
-        `Gemini OAuth manual-completed for flow ${flowId}, email=${acquired.email ?? "(none)"}`,
-      );
+      log.info(`Codex OAuth manual-completed for flow ${flowId}`);
       return { email: acquired.email, tokenPreview: acquired.tokenPreview };
     },
     onOAuthSave: async (
       provider: string,
       options: { proxyUrl?: string; label?: string; model?: string },
     ): Promise<OAuthFlowResult> => {
+      if (provider !== "openai-codex") {
+        throw new Error(`OAuth is not supported for provider '${provider}'`);
+      }
       // Find the MOST RECENT completed flow for this provider. Map iteration
       // is insertion-ordered, so a plain break-on-first-match would pick the
       // oldest — which can be a stale, abandoned flow still in the 10-min
@@ -1705,42 +1642,16 @@ app.whenReady().then(async () => {
         }
       }
 
-      const validationProxy =
-        options.proxyUrl?.trim() || `http://127.0.0.1:${actualProxyRouterPort}`;
-      let result: OAuthFlowResult;
-      let activeProvider: string;
-
-      if (provider === "openai-codex") {
-        const codexCreds = creds as AcquiredCodexOAuthCredentials;
-        result = await saveCodexOAuthCredentials(codexCreds.credentials, storage, secretStore, {
-          proxyBaseUrl,
-          proxyCredentials,
-          label: options.label,
-          model: options.model,
-          // Narrow cast: `typeof fetch` accepts `Request` objects, but our
-          // gateway helpers only ever pass string URLs. Safe at this seam.
-          fetchFn: ((url: string | URL, init?: RequestInit) =>
-            proxyNetwork.fetch(url, init)) as typeof fetch,
-        });
-        activeProvider = "openai-codex";
-      } else {
-        const geminiCreds = creds as AcquiredOAuthCredentials;
-        const validation = await validateGeminiAccessToken(
-          geminiCreds.credentials.access,
-          validationProxy,
-          geminiCreds.credentials.projectId,
-        );
-        if (!validation.valid) {
-          throw new Error(validation.error || "Token validation failed");
-        }
-        result = await saveGeminiOAuthCredentials(geminiCreds.credentials, storage, secretStore, {
-          proxyBaseUrl,
-          proxyCredentials,
-          label: options.label,
-          model: options.model,
-        });
-        activeProvider = "gemini";
-      }
+      const codexCreds = creds as AcquiredCodexOAuthCredentials;
+      const result = await saveCodexOAuthCredentials(codexCreds.credentials, storage, secretStore, {
+        proxyBaseUrl,
+        proxyCredentials,
+        label: options.label,
+        model: options.model,
+        fetchFn: ((url: string | URL, init?: RequestInit) =>
+          proxyNetwork.fetch(url, init)) as typeof fetch,
+      });
+      const activeProvider = "openai-codex";
 
       // Clean up the flow
       pendingOAuthFlows.delete(flowId);
@@ -1755,10 +1666,7 @@ app.whenReady().then(async () => {
       if (!savedEntry) {
         throw new Error("Saved OAuth provider metadata could not be reloaded");
       }
-      const runtimeProvider =
-        activeProvider === "gemini"
-          ? "google-gemini-cli"
-          : resolveGatewayProvider(activeProvider as LLMProvider);
+      const runtimeProvider = resolveGatewayProvider(activeProvider as LLMProvider);
       mutateDesktopOpenClawConfig(
         configPath,
         "OAuth default model",
@@ -1793,7 +1701,7 @@ app.whenReady().then(async () => {
      * Re-authenticate an existing OAuth key (Issue B2 — see docs/PROGRESS).
      *
      * Pipeline:
-     *   1. Look up the existing key; require OAuth + (codex | gemini).
+     *   1. Look up the existing Codex OAuth key.
      *   2. Find the most recently completed pendingOAuthFlow for that provider.
      *   3. Rotate credentials in place via the gateway's refresh* helpers.
      *   4. Persist the new refresh-token expiry on the existing row.
@@ -1809,9 +1717,7 @@ app.whenReady().then(async () => {
         throw new Error(`Provider key ${keyId} not found`);
       }
       if (entry.authType !== "oauth" || !isReauthSupportedProvider(entry.provider as LLMProvider)) {
-        throw new Error(
-          "Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)",
-        );
+        throw new Error("Re-authenticate is only supported for Codex OAuth subscription keys");
       }
 
       // Find the MOST RECENT completed flow for this provider — see the note
@@ -1826,40 +1732,13 @@ app.whenReady().then(async () => {
       // `idTokenCaptureFailed` is propagated back to the Panel so the Reauth
       // modal can warn the user that the OAuth token MAY be server-side-rotated
       // past our last successful read — if so they'll hit 401 on next use.
-      let oauthExpiresAt: number | undefined;
-      let idTokenCaptureFailed = false;
-      if (entry.provider === "openai-codex") {
-        const codexCreds = flow.creds as AcquiredCodexOAuthCredentials;
-        // Thread proxyNetwork.fetch so the refresh exchange (hits auth.openai.com)
-        // respects per-key / system proxies for users in blocked regions.
-        // Narrow cast (see saveCodexOAuthCredentials call above for rationale).
-        ({ oauthExpiresAt, idTokenCaptureFailed } = await refreshCodexOAuthCredentials(
-          keyId,
-          codexCreds.credentials,
-          secretStore,
-          ((url: string | URL, init?: RequestInit) =>
-            proxyNetwork.fetch(url, init)) as typeof fetch,
-        ));
-      } else {
-        const geminiCreds = flow.creds as AcquiredOAuthCredentials;
-        // Validate the new Gemini token before committing — matches the guard in
-        // onOAuthSave so an invalid token never silently replaces a working one.
-        const validationProxy = `http://127.0.0.1:${actualProxyRouterPort}`;
-        const validation = await validateGeminiAccessToken(
-          geminiCreds.credentials.access,
-          validationProxy,
-          geminiCreds.credentials.projectId,
-        );
-        if (!validation.valid) {
-          throw new Error(validation.error || "Token validation failed");
-        }
-        ({ oauthExpiresAt } = await refreshGeminiOAuthCredentials(
-          keyId,
-          geminiCreds.credentials,
-          secretStore,
-        ));
-        // Gemini refresh tokens are opaque — `idTokenCaptureFailed` stays false.
-      }
+      const codexCreds = flow.creds as AcquiredCodexOAuthCredentials;
+      const { oauthExpiresAt, idTokenCaptureFailed } = await refreshCodexOAuthCredentials(
+        keyId,
+        codexCreds.credentials,
+        secretStore,
+        ((url: string | URL, init?: RequestInit) => proxyNetwork.fetch(url, init)) as typeof fetch,
+      );
 
       // Persist the new expiry on the existing row. Pass `null` (not undefined)
       // so the repo overwrites a stale value — `undefined` would be preserved.
@@ -1896,8 +1775,8 @@ app.whenReady().then(async () => {
       if (flow.status === "completed" && flow.creds) {
         return {
           status: "completed" as const,
-          tokenPreview: (flow.creds as AcquiredOAuthCredentials).tokenPreview ?? "",
-          email: (flow.creds as AcquiredOAuthCredentials).email,
+          tokenPreview: flow.creds.tokenPreview ?? "",
+          email: flow.creds.email,
         };
       }
       if (flow.status === "failed") {

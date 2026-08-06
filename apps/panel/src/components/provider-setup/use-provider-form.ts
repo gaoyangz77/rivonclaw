@@ -25,7 +25,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     onSaveCallback(provider);
   }, [onSaveCallback]);
 
-  const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "gemini";
+  const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "openai-codex";
   const [tab, setTab] = useState<"subscription" | "api" | "local" | "custom">("subscription");
   const [provider, setProvider] = useState(defaultProv);
   // Custom provider state
@@ -186,7 +186,7 @@ export function useProviderForm(onSaveCallback: (provider: string) => void) {
     const prov = newTab === "local"
       ? "ollama"
       : newTab === "subscription"
-        ? (i18n.language === "zh" ? "zhipu-coding" : "gemini")
+        ? (i18n.language === "zh" ? "zhipu-coding" : "openai-codex")
         : (i18n.language === "zh" ? "zhipu" : "openai");
     handleProviderChange(prov);
     if (newTab === "local") {

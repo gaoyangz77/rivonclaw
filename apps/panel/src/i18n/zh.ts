@@ -256,13 +256,11 @@ export default {
     reauthModal: {
       title: "重新认证 {{label}}",
       intro: "重新登录以更新此密钥的 OAuth 凭据。标签、模型和代理设置会保留，仅替换已存储的令牌。",
-      signIn_gemini: "使用 Google 登录",
       "signIn_openai-codex": "使用 ChatGPT 登录",
       waitingForBrowser: "等待浏览器登录中…",
       authUrlLabel: "授权链接",
       callbackLabel: "回调网址",
       callbackPlaceholder: "将浏览器中的回调网址粘贴到此处",
-      callbackHelp_gemini: "使用 Google 账号登录后，从浏览器地址栏复制完整回调网址并粘贴到此处。",
       "callbackHelp_openai-codex":
         "使用 ChatGPT 账号登录后，从浏览器地址栏复制完整回调网址并粘贴到此处。",
       completeSignIn: "完成登录",
@@ -341,35 +339,24 @@ export default {
     "label_nvidia-nim": "英伟达 NIM (NVIDIA)",
     "label_amazon-bedrock": "Amazon Bedrock",
     label_ollama: "Ollama",
-    label_gemini: "Gemini (OAuth)",
     "label_openai-codex": "OpenAI Codex (OAuth)",
     desc_ollama: "使用 Ollama 在本地运行模型",
-    desc_gemini: "使用 Google 账号登录，免费使用 Gemini。无需 API Key。",
-    hint_gemini: "",
     "desc_openai-codex": "使用 ChatGPT 账号登录，通过订阅使用 Codex 模型。",
     "hint_openai-codex": "",
-    oauthSignIn_gemini: "使用 Google 登录",
     "oauthSignIn_openai-codex": "使用 ChatGPT 登录",
     oauthLoading: "正在设置...",
     oauthBadge: "OAuth",
     oauthSectionTitle: "OAuth 提供商",
-    oauthInfo_gemini:
-      "使用 Google 账号登录即可免费使用 Gemini，无需 API Key。如果尚未安装 Gemini CLI，将自动安装。OAuth 令牌安全存储在系统钥匙串中。",
     "oauthInfo_openai-codex":
       "使用 ChatGPT 账号登录以使用 OpenAI Codex 模型。需要 ChatGPT Plus 或 Pro 订阅。OAuth 令牌安全存储在系统钥匙串中。",
     oauthTokenLabel: "OAuth 令牌",
-    oauthTokenHelp_gemini: "通过 Google OAuth 获取的令牌，安全存储在系统钥匙串中。",
     "oauthTokenHelp_openai-codex": "通过 OpenAI OAuth 获取的令牌，安全存储在系统钥匙串中。",
-    oauthManualInfo_gemini:
-      "请在浏览器中完成登录。如使用远程机器，请复制下方授权链接，在浏览器中完成登录后将跳转链接粘贴回来。",
     "oauthManualInfo_openai-codex":
       "请在浏览器中完成登录。如使用远程机器，请复制下方授权链接，在浏览器中完成登录后将跳转链接粘贴回来。",
     oauthWaitingForBrowser: "等待浏览器登录中...",
     oauthManualUrlLabel: "授权链接",
     oauthManualCallbackLabel: "回调网址",
     oauthManualCallbackPlaceholder: "将浏览器中的回调网址粘贴到此处",
-    oauthManualCallbackHelp_gemini:
-      "使用 Google 账号登录后，浏览器会跳转到本地的 http://127.0.0.1 网址——请从浏览器地址栏复制完整网址并粘贴到此处。",
     "oauthManualCallbackHelp_openai-codex":
       "使用 ChatGPT 账号登录后，浏览器会跳转到一个 localhost 网址——请从浏览器地址栏复制完整网址并粘贴到此处。",
     oauthManualSubmit: "完成登录",
@@ -1947,8 +1934,7 @@ export default {
     },
     timeline: {
       title: "关于这条时间线",
-      body:
-        "TikTok Partner API 最多返回 90 天趋势。下方曲线是按需获取的平台观测值，并非数仓快照，也不是 12 个月历史。",
+      body: "TikTok Partner API 最多返回 90 天趋势。下方曲线是按需获取的平台观测值，并非数仓快照，也不是 12 个月历史。",
     },
     market: {
       oneShop: "1 家店铺",
@@ -3089,8 +3075,7 @@ export default {
       emptyBody: "可以更换店铺、实验类型，或切换实时与历史视图。",
       allocation: "流量与方案",
       allocationHint: "方案百分比按实验触达组流量内部计算。",
-      actualAllocationHint:
-        "展示已分组订单的实际占比；增量评估只比较对照组与当前生产配置 A。",
+      actualAllocationHint: "展示已分组订单的实际占比；增量评估只比较对照组与当前生产配置 A。",
       actualAssignedOrders: "实际分组 {{count}} 单",
       excludedFromIncrementality: "仅用于配置 A/B 测试，不进入增量评估",
       noReachout: "不发送消息",
@@ -3263,7 +3248,8 @@ export default {
       relationshipWorkActiveTitle: "{{count}} 个活跃平台合作",
       relationshipWorkAmbiguousSummary:
         "当前工作存在多个可能的平台合作上下文，请先核对后再执行商品相关动作。",
-      openCreatorRelationshipWorkDetailHint: "打开达人工作空间，查看待办、样品、平台合作、沟通与操作历史。",
+      openCreatorRelationshipWorkDetailHint:
+        "打开达人工作空间，查看待办、样品、平台合作、沟通与操作历史。",
       messageChannels: {
         PLATFORM_CHAT: "店铺后台私信",
         WHATSAPP: "WhatsApp",
@@ -4446,7 +4432,12 @@ export default {
         automaticModelLoading: "正在读取模型评估数据。",
         outperformanceProbability: "优于历史选择的概率",
         dataFoundation: "数据基础",
-        dataFoundationLevels: { sufficient: "充足", moderate: "中等", limited: "有限", insufficient: "不足" },
+        dataFoundationLevels: {
+          sufficient: "充足",
+          moderate: "中等",
+          limited: "有限",
+          insufficient: "不足",
+        },
         scopeUser: "账号模型",
         scopeRegion: "区域模型",
         scopeShop: "店铺模型",
