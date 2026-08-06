@@ -851,6 +851,7 @@ describe("Database", () => {
     expect(byId.get(8)).toBe("add_usage_snapshots_and_history");
     expect(byId.get(9)).toBe("add_base_url_to_provider_keys");
     expect(byId.get(33)).toBe("replace_provider_runtime_cache_with_metadata");
+    expect(byId.get(34)).toBe("remove_gemini_oauth_provider");
     expect(byId.get(10)).toBe("add_custom_provider_columns");
     expect(byId.get(12)).toBe("add_chat_sessions_table");
     expect(byId.get(15)).toBe("add_is_owner_to_channel_recipients");
@@ -879,6 +880,38 @@ describe("Database", () => {
 
     expect(migrationSql).not.toMatch(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?rules/i);
     expect(migrationSql).not.toMatch(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?artifacts/i);
+  });
+});
+
+describe("migration 34: remove_gemini_oauth_provider", () => {
+  it("removes Gemini OAuth metadata and usage while recording secret ids", () => {
+    const now = new Date().toISOString();
+    const insertMetadata = storage.db.prepare(`
+      INSERT INTO provider_metadata (
+        id, product_provider, label, preferred_model, proxy_base_url,
+        product_auth_kind, source, oauth_expires_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, NULL, ?, 'local', NULL, ?, ?)
+    `);
+    insertMetadata.run("gemini-key", "gemini", "Gemini", "gemini-pro", "oauth", now, now);
+    insertMetadata.run("google-key", "google", "Google", "gemini-pro", "api_key", now, now);
+    storage.db
+      .prepare(`
+        INSERT INTO usage_snapshots (
+          key_id, provider, model, snapshot_time, created_at
+        ) VALUES (?, ?, ?, ?, ?)
+      `)
+      .run("gemini-key", "gemini", "gemini-pro", Date.now(), now);
+
+    const migration = migrations.find((entry) => entry.id === 34)!;
+    storage.db.exec(migration.sql);
+
+    expect(storage.db.prepare("SELECT id FROM provider_metadata ORDER BY id").all()).toEqual([
+      { id: "google-key" },
+    ]);
+    expect(storage.db.prepare("SELECT key_id FROM usage_snapshots").all()).toEqual([]);
+    expect(JSON.parse(storage.settings.get("_internal.removed-gemini-oauth-key-ids")!)).toEqual([
+      "gemini-key",
+    ]);
   });
 });
 

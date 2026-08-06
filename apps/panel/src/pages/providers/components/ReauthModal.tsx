@@ -6,7 +6,7 @@ import { useEntityStore } from "../../../store/index.js";
 import { useToast } from "../../../components/Toast.js";
 
 /**
- * Re-authenticate an existing OAuth subscription key (Codex / Gemini).
+ * Re-authenticate an existing Codex OAuth subscription key.
  *
  * Reuses the panel's existing OAuth flow primitives on `entityStore`:
  *   1. `startOAuthFlow(provider)` — opens the browser, returns `{ flowId, authUrl }`
@@ -147,7 +147,7 @@ export const ReauthModal = observer(function ReauthModal({ keyId, onClose }: Rea
   const isOpen = keyId !== null && !!key;
 
   // Tolerate missing i18n keys for unexpected providers (TypeScript doesn't
-  // enforce provider ∈ {codex, gemini} here; the endpoint does).
+  // enforce the supported provider here; the endpoint does).
   const signInLabel = key
     ? t(`providers.reauthModal.signIn_${key.provider}`, { defaultValue: t("providers.reauthenticate") })
     : "";

@@ -30,7 +30,6 @@ export type LLMProvider =
   | "amazon-bedrock"
   | "nvidia"
   | "nvidia-nim"
-  | "gemini"
   | "claude"
   | "ollama";
 
@@ -45,7 +44,6 @@ export type RootProvider = Exclude<
   | "qwen-coding"
   | "modelscope"
   | "nvidia-nim"
-  | "gemini"
   | "claude"
 >;
 
@@ -93,8 +91,7 @@ export interface SubscriptionPlan {
   envVar: string;
   /** Whether this plan uses OAuth instead of API keys. */
   oauth?: boolean;
-  /** Vendor catalog provider to inherit models from (instead of parent).
-   *  e.g. "google-gemini-cli" for Gemini OAuth which uses Cloud Code Assist API. */
+  /** Vendor catalog provider to inherit models from (instead of parent). */
   catalogProvider?: string;
   /**
    * Provider ID used by the Gateway at inference time.
@@ -298,18 +295,6 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     url: "https://ai.google.dev/pricing",
     apiKeyUrl: "https://aistudio.google.com/app/apikey",
     envVar: "GEMINI_API_KEY",
-    subscriptionPlans: [
-      {
-        id: "gemini",
-        label: "Google Gemini (Subscription)",
-        baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-        subscriptionUrl: "https://gemini.google/subscriptions/",
-        apiKeyUrl: "https://aistudio.google.com/app/apikey",
-        envVar: "GOOGLE_GEMINI_CLI_API_KEY",
-        oauth: true,
-        catalogProvider: "google-gemini-cli",
-      },
-    ],
   },
   deepseek: {
     label: "DeepSeek",
@@ -1244,10 +1229,7 @@ export const API_PROVIDER_IDS: LLMProvider[] = (() => {
  * requires either (a) a full Anthropic OAuth authorization-code flow that
  * requests `user:profile`, or (b) a Panel UX for pasting the session cookie.
  */
-export const USAGE_QUERYABLE_PROVIDERS = [
-  "openai-codex",
-  "gemini",
-] as const satisfies readonly LLMProvider[];
+export const USAGE_QUERYABLE_PROVIDERS = ["openai-codex"] as const satisfies readonly LLMProvider[];
 
 export type UsageQueryableProvider = (typeof USAGE_QUERYABLE_PROVIDERS)[number];
 
@@ -1268,7 +1250,6 @@ export function isUsageQueryableProvider(p: LLMProvider): p is UsageQueryablePro
  */
 export const REAUTH_SUPPORTED_PROVIDERS = [
   "openai-codex",
-  "gemini",
 ] as const satisfies readonly LLMProvider[];
 
 export type ReauthSupportedProvider = (typeof REAUTH_SUPPORTED_PROVIDERS)[number];

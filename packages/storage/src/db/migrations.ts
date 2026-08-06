@@ -479,4 +479,27 @@ export const migrations: Migration[] = [
         VALUES ('_internal.provider-runtime-ownership-migration-pending', 'true');
     `,
   },
+  {
+    id: 34,
+    name: "remove_gemini_oauth_provider",
+    sql: `
+      INSERT OR REPLACE INTO settings (key, value)
+      SELECT
+        '_internal.removed-gemini-oauth-key-ids',
+        json_group_array(id)
+      FROM provider_metadata
+      WHERE product_provider = 'gemini'
+      HAVING COUNT(*) > 0;
+
+      DELETE FROM usage_snapshots
+      WHERE key_id IN (
+        SELECT id FROM provider_metadata WHERE product_provider = 'gemini'
+      );
+      DELETE FROM key_model_usage_history
+      WHERE key_id IN (
+        SELECT id FROM provider_metadata WHERE product_provider = 'gemini'
+      );
+      DELETE FROM provider_metadata WHERE product_provider = 'gemini';
+    `,
+  },
 ];

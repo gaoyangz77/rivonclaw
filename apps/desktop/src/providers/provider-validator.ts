@@ -33,7 +33,7 @@ export async function validateProviderApiKey(
   }
   const baseUrl = meta.baseUrl;
 
-  // OAuth-only providers (e.g. gemini) don't support API key validation
+  // OAuth-only providers don't support API key validation.
   if (meta.oauth) {
     return { valid: false, error: "This provider uses OAuth authentication and cannot be validated with an API key." };
   }

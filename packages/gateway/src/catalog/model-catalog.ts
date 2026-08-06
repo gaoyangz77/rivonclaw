@@ -470,7 +470,7 @@ export async function readFullModelCatalog(
   }
 
   // Subscription plans without their own models inherit from a catalog provider.
-  // Plans with `catalogProvider` (e.g. gemini → google-gemini-cli) use that
+  // Plans with `catalogProvider` (e.g. openai-codex → openai) use that
   // vendor catalog; others fall back to the parent root provider.
   for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
     for (const plan of PROVIDERS[root].subscriptionPlans ?? []) {

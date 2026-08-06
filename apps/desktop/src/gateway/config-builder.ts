@@ -67,7 +67,6 @@ const OPENAI_API = "openai-responses";
 const OPENAI_CODEX_RESPONSES_BASE_URL = "https://chatgpt.com/backend-api/codex";
 const OPENAI_CODEX_RESPONSES_API = "openai-chatgpt-responses";
 const TEXT_AND_IMAGE_INPUT: GatewayInputModality[] = ["text", "image"];
-const GEMINI_OAUTH_GATEWAY_PROVIDER_ID = "google-gemini-cli";
 type RawCustomModel =
   | string
   | {
@@ -92,15 +91,6 @@ type ProviderKeyLike = {
   customModelsJson?: string | null;
   inputModalities?: string[] | null;
 };
-
-export function normalizeGeminiOAuthModelId(modelId: string): string {
-  let normalized = modelId.trim();
-  for (;;) {
-    const next = normalized.replace(/^google-gemini-cli\//, "").replace(/^google\//, "");
-    if (next === normalized) return normalized;
-    normalized = next;
-  }
-}
 
 function normalizeInputModalities(
   value: unknown,
@@ -337,12 +327,6 @@ export function buildCustomProviderOverridesFromKeys(
 export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
   const { storage, secretStore, configPath, stateDir, extensionsDir, sttCliPath } = deps;
 
-  function isGeminiOAuthActive(): boolean {
-    return storage.providerKeys
-      .getAll()
-      .some((k) => k.provider === "gemini" && k.authType === "oauth" && k.isDefault);
-  }
-
   async function hasSecret(key: string): Promise<boolean> {
     try {
       return !!(await secretStore.get(key));
@@ -351,19 +335,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       log.warn(`Secure storage is unavailable while checking ${key}; disabling dependent feature`);
       return false;
     }
-  }
-
-  function resolveGeminiOAuthModel(
-    provider: string,
-    modelId: string,
-  ): { provider: string; modelId: string } {
-    if (!isGeminiOAuthActive() || provider !== "gemini") {
-      return { provider, modelId };
-    }
-    return {
-      provider: GEMINI_OAUTH_GATEWAY_PROVIDER_ID,
-      modelId: normalizeGeminiOAuthModelId(modelId),
-    };
   }
 
   function buildLocalProviderOverrides(): Record<
@@ -577,8 +548,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
   }
 
   return {
-    isGeminiOAuthActive,
-    resolveGeminiOAuthModel,
     buildLocalProviderOverrides,
     buildFullGatewayConfig,
   };

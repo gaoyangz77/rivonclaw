@@ -3,27 +3,22 @@
  *
  * These functions mirror the pure-HTTP fetchers exposed by OpenClaw's
  * `openclaw/plugin-sdk/provider-usage` entrypoint (see
- * `vendor/openclaw/src/infra/provider-usage.fetch.{claude,codex,gemini}.ts`).
+ * `vendor/openclaw/src/infra/provider-usage.fetch.codex.ts`).
  *
  * Why they are inlined instead of imported from the vendor package:
  *   - The `openclaw` package name is only resolvable from within the gateway
  *     runtime (node_modules under vendor/). Desktop's TypeScript build has no
  *     resolution for it, and using `createRequire(vendorDir + "/package.json")`
  *     at runtime would pull the full vendor module graph (including WSL2 / pi
- *     auth helpers) just for three ~80-line HTTP wrappers.
- *   - The same pattern is already used by `packages/gateway/src/gemini-cli-oauth.ts`
- *     which documents the vendor file it was copied from. Keep the comment header
- *     below in sync with vendor so an OpenClaw upgrade can replay the diff.
+ *     auth helpers) just for this small HTTP wrapper.
  *
  * Vendor reference (version 2026.4.1):
  *   - `vendor/openclaw/src/infra/provider-usage.types.ts`
- *   - `vendor/openclaw/src/infra/provider-usage.fetch.claude.ts`
  *   - `vendor/openclaw/src/infra/provider-usage.fetch.codex.ts`
- *   - `vendor/openclaw/src/infra/provider-usage.fetch.gemini.ts`
  *
  * Non-goals:
- *   - No plugin/custom-fetcher hook path. This file covers the three providers
- *     listed in `USAGE_QUERYABLE_PROVIDERS` (core) and no more.
+ *   - No plugin/custom-fetcher hook path. This file covers the provider listed
+ *     in `USAGE_QUERYABLE_PROVIDERS` (core) and no more.
  *   - No auth resolution. Callers must pass a bearer token already resolved
  *     against the per-key secret store / auth-profiles.json.
  */
@@ -33,9 +28,6 @@ export interface UsageWindow {
   usedPercent: number;
   resetAt?: number;
 }
-
-/** Discriminated on the matching entry in `USAGE_QUERYABLE_PROVIDERS`. */
-export type UsageProviderKind = "openai-codex" | "google-gemini-cli";
 
 export interface ProviderUsageSnapshot {
   windows: UsageWindow[];
@@ -50,8 +42,8 @@ function clampPercent(value: number): number {
 }
 
 /**
- * The provider-facing hosts here (chatgpt.com, cloudcode-pa.googleapis.com,
- * auth.openai.com) are blocked or slow in several regions and require per-key
+ * The provider-facing hosts here (chatgpt.com and auth.openai.com) are blocked
+ * or slow in several regions and require per-key
  * or system-wide proxy routing. All fetchers in this module accept a
  * `fetchFn` so the caller can thread `proxyNetwork.fetch` through — that
  * routes via the local proxy-router which already handles per-key / system /
@@ -230,81 +222,4 @@ export async function fetchCodexUsage(
   }
 
   return { windows, plan };
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// Gemini (Google OAuth via Code Assist)
-// ──────────────────────────────────────────────────────────────────────────
-
-type GeminiUsageResponse = {
-  buckets?: Array<{ modelId?: string; remainingFraction?: number }>;
-};
-
-export async function fetchGeminiUsage(
-  token: string,
-  fetchFn: typeof fetch = fetch,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
-): Promise<ProviderUsageSnapshot> {
-  // Same proxy-routing requirement as Codex — see note on `fetchWithTimeout`.
-  const res = await fetchWithTimeout(
-    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: "{}",
-    },
-    timeoutMs,
-    fetchFn,
-  );
-
-  if (!res.ok) return buildHttpErrorSnapshot(res.status);
-
-  const data = (await res.json()) as GeminiUsageResponse;
-  const quotas: Record<string, number> = {};
-  for (const bucket of data.buckets || []) {
-    const model = bucket.modelId || "unknown";
-    const frac = bucket.remainingFraction ?? 1;
-    if (quotas[model] === undefined || frac < quotas[model]) {
-      quotas[model] = frac;
-    }
-  }
-
-  const windows: UsageWindow[] = [];
-  let proMin = 1;
-  let flashMin = 1;
-  let hasPro = false;
-  let hasFlash = false;
-  for (const [model, frac] of Object.entries(quotas)) {
-    const lower = model.toLowerCase();
-    if (lower.includes("pro")) {
-      hasPro = true;
-      if (frac < proMin) proMin = frac;
-    }
-    if (lower.includes("flash")) {
-      hasFlash = true;
-      if (frac < flashMin) flashMin = frac;
-    }
-  }
-  if (hasPro) windows.push({ label: "Pro", usedPercent: clampPercent((1 - proMin) * 100) });
-  if (hasFlash) windows.push({ label: "Flash", usedPercent: clampPercent((1 - flashMin) * 100) });
-
-  return { windows };
-}
-
-/**
- * Some Gemini token stores (e.g. auth-profiles.json) wrap the bearer token in
- * a JSON envelope `{ "token": "ya29.x..." }`. Unwrap when present so the
- * Authorization header receives the raw token.
- */
-export function unwrapGeminiToken(raw: string): string {
-  try {
-    const parsed = JSON.parse(raw) as { token?: unknown };
-    if (typeof parsed?.token === "string") return parsed.token;
-  } catch {
-    // Not JSON — use as-is
-  }
-  return raw;
 }

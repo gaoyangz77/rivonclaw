@@ -21,7 +21,6 @@ const ZH_PRIORITY_PROVIDERS: LLMProvider[] = [
   "zhipu-coding",
   "moonshot-coding",
   "minimax-coding",
-  "gemini",
   "zhipu",
   "kimi",
   "volcengine",
@@ -32,7 +31,7 @@ const ZH_PRIORITY_PROVIDERS: LLMProvider[] = [
 ];
 
 const EN_PRIORITY_PROVIDERS: LLMProvider[] = [
-  "gemini",
+  "openai-codex",
   "claude",
   "anthropic",
 ];

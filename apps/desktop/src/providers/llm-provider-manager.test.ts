@@ -219,59 +219,6 @@ describe("LLMProviderManager", () => {
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
   });
 
-  it("normalizes legacy Gemini OAuth model refs without patching default-following sessions", async () => {
-    const rpcRequest = vi.fn().mockResolvedValue(true);
-
-    const entry: ProviderKeyEntry = {
-      id: "gemini-oauth",
-      provider: "gemini",
-      label: "Gemini",
-      model: "google-gemini-cli/gemini-3-pro-preview",
-      isDefault: true,
-      authType: "oauth",
-      createdAt: "",
-      updatedAt: "",
-    };
-    const storage = {
-      providerKeys: {
-        getActive: () => entry,
-        getById: (id: string) => (id === entry.id ? entry : undefined),
-        getAll: () => [entry],
-      },
-      settings: {
-        set: vi.fn(),
-        get: vi.fn(),
-      },
-    };
-    rootStore.loadProviderKeys([await toMstSnapshot(entry, mockSecretStore as any)]);
-
-    initLLMProviderManagerEnv({
-      storage: storage as any,
-      secretStore: mockSecretStore as any,
-      getRpcClient: () => ({ request: rpcRequest }) as any,
-      toMstSnapshot,
-      allKeysToMstSnapshots,
-      syncActiveKey: async () => {},
-      syncAllAuthProfiles: async () => {},
-      activateAuthProfile: () => "test:active",
-      writeProxyRouterConfig: async () => {},
-      writeDefaultModelToConfig: vi.fn(),
-      writeFullGatewayConfig: async () => {},
-      restartGateway: async () => {},
-      proxyFetch: globalThis.fetch,
-      stateDir: "/tmp/rivonclaw-llm-manager-test",
-      getLastSystemProxy: () => null,
-    });
-
-    const resolved = rootStore.llmManager.resolveModelForDispatch("agent:affiliate:affiliate:test");
-
-    expect(resolved).toEqual({
-      provider: "google-gemini-cli",
-      model: "gemini-3-pro-preview",
-    });
-    expect(rpcRequest).not.toHaveBeenCalled();
-  });
-
   it("resolves default model changes without writing session state", async () => {
     const rpcRequest = vi.fn().mockResolvedValue(true);
     let entry: ProviderKeyEntry = {

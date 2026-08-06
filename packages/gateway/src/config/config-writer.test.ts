@@ -946,28 +946,29 @@ describe("config-writer", () => {
     });
   });
 
-  describe("writeGatewayConfig - Gemini CLI backend", () => {
-    it("pins Gemini CLI args to the locally supported CLI surface", () => {
+  describe("writeGatewayConfig - removed Gemini OAuth runtime", () => {
+    it("removes legacy CLI backend and model references", () => {
       const configPath = join(tmpDir, "openclaw.json");
+      mkdirSync(join(tmpDir, "bin"), { recursive: true });
+      mkdirSync(join(tmpDir, "gemini-cli-home"), { recursive: true });
+      writeFileSync(join(tmpDir, "bin", "rivonclaw-gemini-cli"), "legacy wrapper");
       writeFileSync(
         configPath,
         JSON.stringify({
+          models: { providers: { "google-gemini-cli": { baseUrl: "https://example.test" } } },
           agents: {
             defaults: {
+              model: {
+                primary: "google-gemini-cli/gemini-3-pro-preview",
+                fallbacks: ["openai/gpt-5", "google-gemini-cli/gemini-2.5-flash"],
+              },
+              models: {
+                "google-gemini-cli/gemini-3-pro-preview": { alias: "Gemini" },
+                "openai/gpt-5": { alias: "GPT" },
+              },
               cliBackends: {
-                "google-gemini-cli": {
-                  args: ["--skip-trust", "--output-format", "json", "--prompt", "{prompt}"],
-                  resumeArgs: [
-                    "--skip-trust",
-                    "--resume",
-                    "{sessionId}",
-                    "--output-format",
-                    "json",
-                    "--prompt",
-                    "{prompt}",
-                  ],
-                  command: "gemini",
-                },
+                "google-gemini-cli": { command: "gemini" },
+                codex: { command: "codex" },
               },
             },
           },
@@ -977,32 +978,12 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.defaults.cliBackends["google-gemini-cli"].args).toEqual([
-        "--output-format",
-        "json",
-        "--prompt",
-        "{prompt}",
-      ]);
-      expect(config.agents.defaults.cliBackends["google-gemini-cli"].resumeArgs).toEqual([
-        "--resume",
-        "{sessionId}",
-        "--output-format",
-        "json",
-        "--prompt",
-        "{prompt}",
-      ]);
-      const geminiCommand = config.agents.defaults.cliBackends["google-gemini-cli"].command;
-      expect(geminiCommand).toBe(join(tmpDir, "bin", "rivonclaw-gemini-cli"));
-      const geminiWrapper = readFileSync(geminiCommand, "utf-8");
-      expect(geminiWrapper).toContain(`export HOME='${join(tmpDir, "gemini-cli-home")}'`);
-      expect(geminiWrapper).toContain("gemini-cli/node_modules/.bin");
-      expect(geminiWrapper).toContain("export GEMINI_FORCE_ENCRYPTED_FILE_STORAGE=true");
-      expect(geminiWrapper).toContain('exec gemini "$@"');
-      expect(config.agents.defaults.cliBackends["google-gemini-cli"].env).toMatchObject({
-        GOOGLE_GENAI_USE_GCA: "true",
-        GEMINI_FORCE_ENCRYPTED_FILE_STORAGE: "true",
-        NODE_NO_WARNINGS: "1",
-      });
+      expect(config.models.providers).toBeUndefined();
+      expect(config.agents.defaults.cliBackends).toEqual({ codex: { command: "codex" } });
+      expect(config.agents.defaults.model).toEqual({ primary: "openai/gpt-5" });
+      expect(config.agents.defaults.models).toEqual({ "openai/gpt-5": { alias: "GPT" } });
+      expect(existsSync(join(tmpDir, "bin", "rivonclaw-gemini-cli"))).toBe(false);
+      expect(existsSync(join(tmpDir, "gemini-cli-home"))).toBe(false);
     });
   });
 

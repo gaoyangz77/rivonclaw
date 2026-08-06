@@ -20,6 +20,10 @@ import { sendJson, parseBody } from "../infra/api/route-utils.js";
 
 const log = createLogger("provider-routes");
 
+function isSupportedDesktopOAuthProvider(provider: string): boolean {
+  return provider === "openai-codex";
+}
+
 // ── GET /api/provider-keys ──
 
 const listKeys: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
@@ -343,7 +347,7 @@ const reauthKey: EndpointHandler = async (_req, res, _url, params, ctx: ApiConte
   }
   if (entry.authType !== "oauth" || !isReauthSupportedProvider(entry.provider as LLMProvider)) {
     sendJson(res, 400, {
-      error: "Re-authenticate is only supported for OAuth subscription keys (Codex / Gemini)",
+      error: "Re-authenticate is only supported for Codex OAuth subscription keys",
     });
     return;
   }
@@ -520,6 +524,10 @@ const oauthStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCont
     sendJson(res, 400, { error: "Missing required field: provider" });
     return;
   }
+  if (!isSupportedDesktopOAuthProvider(body.provider)) {
+    sendJson(res, 400, { error: `OAuth is not supported for provider '${body.provider}'` });
+    return;
+  }
   if (onOAuthAcquire) {
     try {
       const result = await onOAuthAcquire(body.provider);
@@ -558,6 +566,10 @@ const oauthSave: EndpointHandler = async (req, res, _url, _params, ctx: ApiConte
     sendJson(res, 400, { error: "Missing required field: provider" });
     return;
   }
+  if (!isSupportedDesktopOAuthProvider(body.provider)) {
+    sendJson(res, 400, { error: `OAuth is not supported for provider '${body.provider}'` });
+    return;
+  }
   if (!ctx.onOAuthSave) {
     sendJson(res, 501, { error: "OAuth save not available" });
     return;
@@ -587,6 +599,10 @@ const oauthManualComplete: EndpointHandler = async (req, res, _url, _params, ctx
   const body = (await parseBody(req)) as { provider?: string; callbackUrl?: string };
   if (!body.provider || !body.callbackUrl) {
     sendJson(res, 400, { error: "Missing required fields: provider, callbackUrl" });
+    return;
+  }
+  if (!isSupportedDesktopOAuthProvider(body.provider)) {
+    sendJson(res, 400, { error: `OAuth is not supported for provider '${body.provider}'` });
     return;
   }
   if (!ctx.onOAuthManualComplete) {

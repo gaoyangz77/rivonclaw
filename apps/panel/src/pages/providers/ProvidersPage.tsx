@@ -476,7 +476,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
                           </div>
                         </>
                       ) : k.authType === "oauth" && isReauthSupportedProvider(k.provider as LLMProvider) ? (
-                        // Codex / Gemini OAuth: Update panel collapses to proxy-only.
+                        // Codex OAuth: Update panel collapses to proxy-only.
                         // Token rotation happens via the dedicated "Re-authenticate"
                         // button, NOT through an API key input (the key is OAuth, not
                         // a paste-in token). Anthropic-claude keeps the token input
