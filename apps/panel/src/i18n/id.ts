@@ -2966,7 +2966,7 @@ export default {
         "BLOCKED": "Diblokir"
       },
       "processReasons": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "Pesan kreator perlu dibalas",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "Pesan kreator perlu ditangani",
         "SAMPLE_PENDING_REVIEW": "Permintaan sampel menunggu tinjauan",
         "SAMPLE_AWAITING_PLATFORM_SHIPMENT": "Menunggu pengiriman otomatis TikTok FBT",
         "SAMPLE_AWAITING_SHIPMENT": "Sampel menunggu pengiriman",
@@ -3021,7 +3021,7 @@ export default {
         "NONE": "Tidak perlu tindakan",
         "NO_ACTION": "Tidak perlu tindakan",
         "RESPOND_TO_CREATOR": "Balas kreator",
-        "REPLY_TO_CREATOR": "Balas kreator",
+        "HANDLE_CREATOR_MESSAGE": "Tangani pesan kreator",
         "REVIEW_SAMPLE_APPLICATION": "Tinjau permintaan sampel",
         "SHIP_SAMPLE": "Kirim sampel",
         "FOLLOW_UP_CREATOR": "Tindak lanjuti kreator",
@@ -3168,7 +3168,7 @@ export default {
         }
       },
       "collaborationWorkTitles": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "Kreator menunggu balasan",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "Pesan kreator memerlukan penanganan",
         "SAMPLE_REVIEW": "Tinjau permintaan sampel",
         "SAMPLE_PENDING_REVIEW": "Tinjau permintaan sampel",
         "SAMPLE_AWAITING_SHIPMENT": "Kirim sampel yang disetujui",

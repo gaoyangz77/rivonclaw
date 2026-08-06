@@ -445,8 +445,8 @@ function createCreatorReplyWorkItem(
     sampleApplicationRecordId: null,
     lifecycleStage: "CONVERSATION",
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-    requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
-    processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
+    requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+    processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling],
     lastCreatorMessageId: null,
     lastCreatorMessageAt: null,
   } as unknown as GQL.AffiliateCollaboration;
@@ -456,27 +456,27 @@ function createCreatorReplyWorkItem(
     workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
     workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyOnly,
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-    requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
-    processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
+    requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+    processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling],
     recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
     affiliateCollaboration,
     creatorRelationship: {
       ...base.creatorRelationship,
       processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
-      requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
-      processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+      processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling],
       agendaItems: [
         {
-          key: "relationship:relationship-001:REPLY_TO_CREATOR",
+          key: "relationship:relationship-001:HANDLE_CREATOR_MESSAGE",
           owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
           sourceType: GQL.AffiliateRelationshipAgendaSourceType.Relationship,
           workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
-          requiredAction: GQL.AffiliateRelationshipRequiredAction.ReplyToCreator,
+          requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
           shopId: "shop-001",
           affiliateCollaborationId: null,
           sampleApplicationRecordId: null,
           proposalId: null,
-          reasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply],
+          reasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling],
           nextActionAt: null,
           boundaryEventCursor: 1,
           updatedAt: "2026-05-11T00:01:00.000Z",
@@ -1472,8 +1472,8 @@ describe("affiliate work item dispatch", () => {
       "final assistant response exactly NO_REPLY",
     );
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
-    expect(agentCall?.[1]?.message).toContain("Required Action: REPLY_TO_CREATOR");
-    expect(agentCall?.[1]?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_REPLY");
+    expect(agentCall?.[1]?.message).toContain("Required Action: HANDLE_CREATOR_MESSAGE");
+    expect(agentCall?.[1]?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_HANDLING");
     expect(agentCall?.[1]?.message).not.toContain("Current Trigger Channel");
     expect(agentCall?.[1]?.message).not.toContain("lifecycle-message-001");
 
@@ -2183,7 +2183,7 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecord: null,
         processReasons: [
           GQL.AffiliateWorkProcessReason.CollaborationContextAmbiguous,
-          GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply,
+          GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling,
         ],
         context: {
           ...base.context,
@@ -2724,7 +2724,7 @@ describe("affiliate work item dispatch", () => {
     const workItem = createCreatorReplyWorkItem({
       workBundleKind: GQL.AffiliateWorkBundleKind.CreatorReplyWithSampleReview,
       processReasons: [
-        GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply,
+        GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling,
         GQL.AffiliateWorkProcessReason.SamplePendingReview,
       ],
       recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
@@ -2739,7 +2739,7 @@ describe("affiliate work item dispatch", () => {
 
     expect(request?.message).toContain("[Agent Working Agenda]");
     expect(request?.message).toContain(
-      "Reasons: CREATOR_MESSAGE_NEEDS_REPLY, SAMPLE_PENDING_REVIEW",
+      "Reasons: CREATOR_MESSAGE_NEEDS_HANDLING, SAMPLE_PENDING_REVIEW",
     );
     expect(request?.message).not.toContain("Combined bundle requirement");
     expect(request?.message).not.toContain("REQUEST_ACTION");

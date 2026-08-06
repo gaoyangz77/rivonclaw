@@ -3726,7 +3726,7 @@ export default {
         BLOCKED: "已阻止",
       },
       processReasons: {
-        CREATOR_MESSAGE_NEEDS_REPLY: "达人消息待回复",
+        CREATOR_MESSAGE_NEEDS_HANDLING: "达人消息待处理",
         SAMPLE_PENDING_REVIEW: "样品申请待审核",
         SAMPLE_AWAITING_PLATFORM_SHIPMENT: "等待 TikTok FBT 发货",
         SAMPLE_AWAITING_SHIPMENT: "样品待发货",
@@ -3756,7 +3756,7 @@ export default {
         NONE: "无需动作",
         NO_ACTION: "无需动作",
         RESPOND_TO_CREATOR: "回复达人",
-        REPLY_TO_CREATOR: "回复达人",
+        HANDLE_CREATOR_MESSAGE: "处理达人消息",
         REVIEW_SAMPLE_APPLICATION: "审核样品申请",
         SHIP_SAMPLE: "寄出样品",
         FOLLOW_UP_CREATOR: "跟进达人",
@@ -3922,7 +3922,7 @@ export default {
         },
       },
       collaborationWorkTitles: {
-        CREATOR_MESSAGE_NEEDS_REPLY: "达人正在等待回复",
+        CREATOR_MESSAGE_NEEDS_HANDLING: "达人消息需要处理",
         RESPOND_TO_CREATOR: "回复达人消息",
         SAMPLE_REVIEW: "审核样品申请",
         SAMPLE_PENDING_REVIEW: "审核样品申请",
