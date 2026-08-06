@@ -3925,7 +3925,7 @@ export default {
         BLOCKED: "Blocked",
       },
       processReasons: {
-        CREATOR_MESSAGE_NEEDS_REPLY: "Creator message needs reply",
+        CREATOR_MESSAGE_NEEDS_HANDLING: "Creator message needs handling",
         SAMPLE_PENDING_REVIEW: "Sample request pending review",
         SAMPLE_AWAITING_PLATFORM_SHIPMENT: "Waiting for TikTok FBT shipment",
         SAMPLE_AWAITING_SHIPMENT: "Sample awaiting shipment",
@@ -3955,7 +3955,7 @@ export default {
         NONE: "No action required",
         NO_ACTION: "No action required",
         RESPOND_TO_CREATOR: "Respond to creator",
-        REPLY_TO_CREATOR: "Reply to creator",
+        HANDLE_CREATOR_MESSAGE: "Handle creator message",
         REVIEW_SAMPLE_APPLICATION: "Review sample application",
         SHIP_SAMPLE: "Ship sample",
         FOLLOW_UP_CREATOR: "Follow up with creator",
@@ -4134,7 +4134,7 @@ export default {
         },
       },
       collaborationWorkTitles: {
-        CREATOR_MESSAGE_NEEDS_REPLY: "Creator is waiting for a reply",
+        CREATOR_MESSAGE_NEEDS_HANDLING: "Creator message requires handling",
         RESPOND_TO_CREATOR: "Reply to the creator",
         SAMPLE_REVIEW: "Review the sample request",
         SAMPLE_PENDING_REVIEW: "Review the sample request",

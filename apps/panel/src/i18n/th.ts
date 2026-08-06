@@ -2966,7 +2966,7 @@ export default {
         "BLOCKED": "ถูกบล็อก"
       },
       "processReasons": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "ข้อความครีเอเตอร์ต้องตอบกลับ",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "ข้อความครีเอเตอร์ต้องได้รับการจัดการ",
         "SAMPLE_PENDING_REVIEW": "คำขอตัวอย่างรอตรวจสอบ",
         "SAMPLE_AWAITING_PLATFORM_SHIPMENT": "รอ TikTok FBT จัดส่งอัตโนมัติ",
         "SAMPLE_AWAITING_SHIPMENT": "ตัวอย่างรอจัดส่ง",
@@ -3021,7 +3021,7 @@ export default {
         "NONE": "ไม่ต้องดำเนินการ",
         "NO_ACTION": "ไม่ต้องดำเนินการ",
         "RESPOND_TO_CREATOR": "ตอบกลับครีเอเตอร์",
-        "REPLY_TO_CREATOR": "ตอบกลับครีเอเตอร์",
+        "HANDLE_CREATOR_MESSAGE": "จัดการข้อความครีเอเตอร์",
         "REVIEW_SAMPLE_APPLICATION": "ตรวจสอบคำขอตัวอย่าง",
         "SHIP_SAMPLE": "ส่งตัวอย่าง",
         "FOLLOW_UP_CREATOR": "ติดตามครีเอเตอร์",
@@ -3168,7 +3168,7 @@ export default {
         }
       },
       "collaborationWorkTitles": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "ครีเอเตอร์กำลังรอการตอบกลับ",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "ข้อความครีเอเตอร์ต้องได้รับการจัดการ",
         "SAMPLE_REVIEW": "ตรวจสอบคำขอตัวอย่าง",
         "SAMPLE_PENDING_REVIEW": "ตรวจสอบคำขอตัวอย่าง",
         "SAMPLE_AWAITING_SHIPMENT": "จัดส่งตัวอย่างที่อนุมัติแล้ว",

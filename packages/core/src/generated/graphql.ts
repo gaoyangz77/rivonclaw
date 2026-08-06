@@ -2868,8 +2868,8 @@ export interface AffiliateRelationshipProductSummary {
 export const AffiliateRelationshipRequiredAction = {
   CompleteCollaborationTask: 'COMPLETE_COLLABORATION_TASK',
   FollowUpCreator: 'FOLLOW_UP_CREATOR',
+  HandleCreatorMessage: 'HANDLE_CREATOR_MESSAGE',
   NoAction: 'NO_ACTION',
-  ReplyToCreator: 'REPLY_TO_CREATOR',
   ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
   ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
   ReviewAmbiguousContext: 'REVIEW_AMBIGUOUS_CONTEXT',
@@ -3340,8 +3340,11 @@ export interface AffiliateWorkItemChanged {
 
 /** Terminal decision for an agent-dispatched affiliate work item. */
 export const AffiliateWorkItemResolutionDecision = {
+  /** The work could not be completed in this run. */
   FailedOrIncomplete: 'FAILED_OR_INCOMPLETE',
+  /** The work was reviewed and completed without a platform action, including when a Creator message does not warrant a reply. */
   NoActionNeeded: 'NO_ACTION_NEEDED',
+  /** The work requires one or more concrete platform actions. */
   RequestAction: 'REQUEST_ACTION'
 } as const;
 
@@ -3397,7 +3400,7 @@ export const AffiliateWorkProcessReason = {
   CollaborationContextAmbiguous: 'COLLABORATION_CONTEXT_AMBIGUOUS',
   ContentPublished: 'CONTENT_PUBLISHED',
   CreatorActionFollowUpDue: 'CREATOR_ACTION_FOLLOW_UP_DUE',
-  CreatorMessageNeedsReply: 'CREATOR_MESSAGE_NEEDS_REPLY',
+  CreatorMessageNeedsHandling: 'CREATOR_MESSAGE_NEEDS_HANDLING',
   IdentityResolution: 'IDENTITY_RESOLUTION',
   MessageDeliveryFailed: 'MESSAGE_DELIVERY_FAILED',
   OrderAttributed: 'ORDER_ATTRIBUTED',
@@ -10951,6 +10954,7 @@ export interface ResolveAffiliateWorkItemInput {
   /** Candidate checkpoint id for this agent dispatch. Pending proposals store it; successful execution promotes it. */
   candidateCheckpointId?: InputMaybe<Scalars['String']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
+  /** Choose REQUEST_ACTION for concrete platform actions, NO_ACTION_NEEDED when review completes the work without an action, or FAILED_OR_INCOMPLETE when the run cannot complete the work. */
   decision: AffiliateWorkItemResolutionDecision;
   /** The relationship work boundary timestamp that this decision handled. Used as the ack boundary. */
   handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;

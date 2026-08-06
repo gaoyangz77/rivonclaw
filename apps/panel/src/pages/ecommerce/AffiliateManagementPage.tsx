@@ -7193,7 +7193,7 @@ function renderCollaborationWorkTitle({
     return t("ecommerce.affiliateWorkspace.collaborationWorkTitles.SAMPLE_REVIEW");
   }
   const priority = [
-    GQL.AffiliateWorkProcessReason.CreatorMessageNeedsReply,
+    GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling,
     GQL.AffiliateWorkProcessReason.SamplePendingReview,
     GQL.AffiliateWorkProcessReason.SampleAwaitingShipment,
     GQL.AffiliateWorkProcessReason.SampleContentFollowUpDue,

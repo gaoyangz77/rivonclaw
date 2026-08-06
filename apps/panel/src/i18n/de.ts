@@ -2966,7 +2966,7 @@ export default {
         "BLOCKED": "Blockiert"
       },
       "processReasons": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "Creator-Nachricht braucht Antwort",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "Creator-Nachricht muss bearbeitet werden",
         "SAMPLE_PENDING_REVIEW": "Probenantrag wartet auf Prüfung",
         "SAMPLE_AWAITING_PLATFORM_SHIPMENT": "Warten auf automatischen TikTok-FBT-Versand",
         "SAMPLE_AWAITING_SHIPMENT": "Probe wartet auf Versand",
@@ -3021,7 +3021,7 @@ export default {
         "NONE": "Keine Aktion erforderlich",
         "NO_ACTION": "Keine Aktion erforderlich",
         "RESPOND_TO_CREATOR": "Creator antworten",
-        "REPLY_TO_CREATOR": "Creator antworten",
+        "HANDLE_CREATOR_MESSAGE": "Creator-Nachricht bearbeiten",
         "REVIEW_SAMPLE_APPLICATION": "Probenantrag prüfen",
         "SHIP_SAMPLE": "Probe versenden",
         "FOLLOW_UP_CREATOR": "Creator nachfassen",
@@ -3168,7 +3168,7 @@ export default {
         }
       },
       "collaborationWorkTitles": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "Creator wartet auf Antwort",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "Creator-Nachricht erfordert Bearbeitung",
         "SAMPLE_REVIEW": "Probenantrag prüfen",
         "SAMPLE_PENDING_REVIEW": "Probenantrag prüfen",
         "SAMPLE_AWAITING_SHIPMENT": "Genehmigte Probe versenden",

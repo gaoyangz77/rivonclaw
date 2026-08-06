@@ -2966,7 +2966,7 @@ export default {
         "BLOCKED": "Bloqué"
       },
       "processReasons": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "Message créateur à répondre",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "Message du créateur à traiter",
         "SAMPLE_PENDING_REVIEW": "Demande d'échantillon à examiner",
         "SAMPLE_AWAITING_PLATFORM_SHIPMENT": "En attente de l'expédition automatique TikTok FBT",
         "SAMPLE_AWAITING_SHIPMENT": "Échantillon en attente d'expédition",
@@ -3021,7 +3021,7 @@ export default {
         "NONE": "Aucune action requise",
         "NO_ACTION": "Aucune action requise",
         "RESPOND_TO_CREATOR": "Répondre au créateur",
-        "REPLY_TO_CREATOR": "Répondre au créateur",
+        "HANDLE_CREATOR_MESSAGE": "Traiter le message du créateur",
         "REVIEW_SAMPLE_APPLICATION": "Examiner la demande d'échantillon",
         "SHIP_SAMPLE": "Expédier l'échantillon",
         "FOLLOW_UP_CREATOR": "Relancer le créateur",
@@ -3168,7 +3168,7 @@ export default {
         }
       },
       "collaborationWorkTitles": {
-        "CREATOR_MESSAGE_NEEDS_REPLY": "Le créateur attend une réponse",
+        "CREATOR_MESSAGE_NEEDS_HANDLING": "Le message du créateur doit être traité",
         "SAMPLE_REVIEW": "Examiner la demande d'échantillon",
         "SAMPLE_PENDING_REVIEW": "Examiner la demande d'échantillon",
         "SAMPLE_AWAITING_SHIPMENT": "Expédier l'échantillon approuvé",

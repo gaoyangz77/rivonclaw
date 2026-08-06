@@ -601,7 +601,7 @@ export class AffiliateInbound {
 
     const requiredAction = workItem.requiredAction;
     switch (requiredAction) {
-      case GQL.AffiliateRelationshipRequiredAction.ReplyToCreator:
+      case GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage:
         return {
           ...base,
           triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,

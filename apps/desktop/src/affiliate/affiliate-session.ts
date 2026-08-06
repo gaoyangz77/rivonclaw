@@ -906,7 +906,7 @@ export class AffiliateSession {
 
 function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
   return (
-    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.ReplyToCreator ||
+    workItem.requiredAction === GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage ||
     workItem.workKind === GQL.AffiliateWorkKind.InboundMessageTriage
   );
 }
