@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.90",
+    "date": "2026-08-08",
+    "en": [
+      "Restore Feishu message recipients and escalation card updates"
+    ],
+    "zh": [
+      "恢复飞书消息收件人和升级卡片更新"
+    ]
+  },
+  {
     "version": "1.8.89",
     "date": "2026-08-08",
     "en": [
