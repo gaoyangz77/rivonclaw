@@ -175,16 +175,16 @@ from rejecting the wildcard and aborting Gateway startup.
 Removal: the pinned OpenClaw revision contains commit
 `718e9c88204772c496e8f625cd63be8106cfa106` (PR `#116610`) or an equivalent fix.
 
-### 0032 - Expose node-host startup migrations
+### 0032 - Expose embedded-host state migrations
 
-Exports OpenClaw's existing `runStartupMigrations` function through the stable
-`plugin-sdk/node-host` boundary. RivonClaw Desktop starts an embedded Gateway
-without the OpenClaw node-host runner, so it must invoke the same official
-device-auth, device-identity, and exec-approval migrations before connecting.
+Exports OpenClaw's existing `runStartupMigrations`, workspace detector, and
+workspace migrator through the stable `plugin-sdk/node-host` boundary.
+RivonClaw Desktop starts an embedded Gateway without the OpenClaw node-host or
+Doctor flow, so it must invoke the same official device-auth, device-identity,
+exec-approval, and configured-workspace migrations before connecting.
 
-Removal: OpenClaw exposes `runStartupMigrations` (or an equivalent retired-state
-migration API) from a stable public runtime, or RivonClaw starts Gateway through
-the OpenClaw node-host runner that invokes these migrations itself.
+Removal: OpenClaw exposes both migration surfaces from a stable public runtime,
+or RivonClaw starts Gateway through a host flow that invokes them itself.
 
 ## Dropped In v2026.6.11
 
