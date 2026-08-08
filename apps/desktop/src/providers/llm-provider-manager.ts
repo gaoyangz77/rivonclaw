@@ -897,19 +897,20 @@ export const LLMProviderManagerModel = types
           yield syncActiveKey(promotedKey.provider, storage, secretStore);
         }
 
-        // MST state (reload all — isDefault may have shifted)
-        const mstKeys: MstProviderKeySnapshot[] = yield allKeysToMstSnapshots(
-          storage.providerKeys.getAll(),
-          secretStore,
-        );
-        self.root.loadProviderKeys(mstKeys);
-
         // Sync auth profiles and proxy config (provider stays in config until restart)
         yield syncAuthAndProxy();
         if (promotedKey) {
           activateVendorAuth(promotedKey);
           writeDefaultModel(promotedKey.provider, promotedKey.model, promotedKey.authType);
         }
+
+        // Re-project after the Vendor default changes so the promoted key is
+        // immediately reflected as active in the Panel.
+        const mstKeys: MstProviderKeySnapshot[] = yield allKeysToMstSnapshots(
+          storage.providerKeys.getAll(),
+          secretStore,
+        );
+        self.root.loadProviderKeys(mstKeys);
 
         return { existing, promotedKey };
       }),

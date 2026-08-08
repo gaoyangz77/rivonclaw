@@ -360,7 +360,7 @@ test.describe("Local Models E2E", () => {
     expect(localKey).toBeDefined();
     expect(localKey.provider).toBe("ollama");
     expect(localKey.authType).toBe("local");
-    expect(localKey.baseUrl).toBe(`http://127.0.0.1:${mockOllamaPort}`);
+    expect(localKey.baseUrl).toBe(`http://127.0.0.1:${mockOllamaPort}/v1`);
 
     // Update base URL
     const updateRes = await window.evaluate(async ({ base, id }: { base: string; id: string }) => {
