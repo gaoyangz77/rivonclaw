@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.87",
+    "date": "2026-08-07",
+    "en": [
+      "Improve affiliate collaboration workflows, creator message handling, and dispatch reliability",
+      "Remove the retired Gemini OAuth integration from Desktop"
+    ],
+    "zh": [
+      "优化达人协作流程、达人消息处理和派发稳定性",
+      "从桌面端移除已停用的 Gemini OAuth 集成"
+    ]
+  },
+  {
     "version": "1.8.86",
     "date": "2026-08-03",
     "en": [
