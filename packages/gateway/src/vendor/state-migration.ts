@@ -35,10 +35,36 @@ type VendorSqliteRuntime = {
 };
 
 type VendorNodeHostRuntime = {
+  detectLegacyWorkspaceState: (options: {
+    cfg: Record<string, unknown>;
+    doctorOnlyStateMigrations: true;
+    env: NodeJS.ProcessEnv;
+    stateDir: string;
+  }) => VendorWorkspaceStateDetection;
+  migrateLegacyWorkspaceState: (options: {
+    detected: VendorWorkspaceStateDetection;
+    env: NodeJS.ProcessEnv;
+    stateDir: string;
+  }) => Promise<VendorMigrationMessages>;
   runStartupMigrations: (options: {
     env: NodeJS.ProcessEnv;
     log: { info: (message: string) => void; warn: (message: string) => void };
   }) => Promise<void>;
+};
+
+type VendorWorkspaceStateSource = {
+  workspaceDir?: string;
+};
+
+type VendorWorkspaceStateDetection = {
+  hasLegacy: boolean;
+  sources: VendorWorkspaceStateSource[];
+};
+
+type VendorMigrationMessages = {
+  changes: string[];
+  notices?: string[];
+  warnings: string[];
 };
 
 type AgentDatabaseTarget = {
@@ -366,7 +392,7 @@ export function relocateRecreatedGatewayRpcClientIdentity(stateDir: string): str
 
 async function migrateRetiredVendorStartupState(
   options: VendorStateMigrationOptions,
-): Promise<void> {
+): Promise<VendorNodeHostRuntime> {
   const runtimePath = join(options.vendorDir, "dist", "plugin-sdk", "node-host.js");
   const runtime = (await import(pathToFileURL(runtimePath).href)) as VendorNodeHostRuntime;
   if (typeof runtime.runStartupMigrations !== "function") {
@@ -392,6 +418,55 @@ async function migrateRetiredVendorStartupState(
     const detail = warnings.length > 0 ? ` (${warnings.join("; ")})` : "";
     throw new Error(
       `OpenClaw device identity migration remained incomplete: ${pendingIdentityPaths.join(", ")}${detail}`,
+    );
+  }
+  return runtime;
+}
+
+function configuredWorkspaceStateDetection(
+  runtime: VendorNodeHostRuntime,
+  config: Record<string, unknown>,
+  stateDir: string,
+  env: NodeJS.ProcessEnv,
+): VendorWorkspaceStateDetection {
+  const detected = runtime.detectLegacyWorkspaceState({
+    cfg: config,
+    doctorOnlyStateMigrations: true,
+    env,
+    stateDir,
+  });
+  const sources = detected.sources.filter(
+    (source) => typeof source.workspaceDir === "string" && source.workspaceDir.length > 0,
+  );
+  return { hasLegacy: sources.length > 0, sources };
+}
+
+async function migrateConfiguredWorkspaceState(
+  options: VendorStateMigrationOptions,
+  runtime: VendorNodeHostRuntime,
+): Promise<void> {
+  if (!options.configPath || !existsSync(options.configPath)) return;
+
+  const config = JSON.parse(readFileSync(options.configPath, "utf-8")) as Record<string, unknown>;
+  const env = { ...process.env, OPENCLAW_STATE_DIR: options.stateDir };
+  const detected = configuredWorkspaceStateDetection(runtime, config, options.stateDir, env);
+  if (!detected.hasLegacy) return;
+
+  log.info(`Migrating retired workspace state for ${detected.sources.length} configured source(s)`);
+  const result = await runtime.migrateLegacyWorkspaceState({
+    detected,
+    env,
+    stateDir: options.stateDir,
+  });
+  for (const message of result.changes) log.info(message);
+  for (const message of result.notices ?? []) log.info(message);
+  for (const message of result.warnings) log.warn(message);
+
+  const remaining = configuredWorkspaceStateDetection(runtime, config, options.stateDir, env);
+  if (remaining.hasLegacy) {
+    const detail = result.warnings.length > 0 ? ` (${result.warnings.join("; ")})` : "";
+    throw new Error(
+      `OpenClaw workspace state migration remained incomplete for ${remaining.sources.length} configured source(s)${detail}`,
     );
   }
 }
@@ -435,7 +510,8 @@ export async function migrateVendorStateBeforeGateway(
   if (relocatedRpcIdentity) {
     log.info(`Relocated RivonClaw Gateway RPC client identity to ${relocatedRpcIdentity}`);
   }
-  await migrateRetiredVendorStartupState(options);
+  const nodeHostRuntime = await migrateRetiredVendorStartupState(options);
+  await migrateConfiguredWorkspaceState(options, nodeHostRuntime);
 
   if (options.configPath) {
     const archived = archiveOrphanedLegacyAllowFromFiles(options.stateDir, options.configPath);

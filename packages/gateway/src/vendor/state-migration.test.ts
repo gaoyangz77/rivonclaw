@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -241,6 +249,61 @@ describe("inspectVendorStateMigration", () => {
     } finally {
       preservedDatabase.close();
     }
+  });
+
+  it("migrates legacy setup state for configured customer-service workspaces", async () => {
+    const fixture = makeFixture();
+    const workspaceDir = join(fixture.stateDir, "workspace-customer-service");
+    const legacyPath = join(workspaceDir, "openclaw-workspace-state.json");
+    const configPath = join(fixture.stateDir, "openclaw.json");
+    mkdirSync(workspaceDir, { recursive: true });
+    writeFileSync(
+      legacyPath,
+      `${JSON.stringify({ version: 1, setupCompletedAt: "2026-08-01T00:00:00.000Z" })}\n`,
+    );
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        agents: {
+          entries: {
+            main: { default: true },
+            "customer-service": { workspace: workspaceDir },
+          },
+        },
+      }),
+    );
+
+    await migrateVendorStateBeforeGateway({
+      configPath,
+      stateDir: fixture.stateDir,
+      vendorDir: VENDOR_ROOT,
+    });
+
+    expect(existsSync(legacyPath)).toBe(false);
+    const database = new DatabaseSync(join(fixture.stateDir, "state", "openclaw.sqlite"), {
+      readOnly: true,
+    });
+    try {
+      const rows = database
+        .prepare(
+          `SELECT workspace_path, setup_completed_at
+           FROM workspace_setup_state`,
+        )
+        .all() as Array<{ setup_completed_at: unknown; workspace_path: string }>;
+      expect(rows).toContainEqual({
+        setup_completed_at: "2026-08-01T00:00:00.000Z",
+        workspace_path: realpathSync(workspaceDir),
+      });
+    } finally {
+      database.close();
+    }
+
+    await migrateVendorStateBeforeGateway({
+      configPath,
+      stateDir: fixture.stateDir,
+      vendorDir: VENDOR_ROOT,
+    });
+    expect(existsSync(legacyPath)).toBe(false);
   });
 });
 
