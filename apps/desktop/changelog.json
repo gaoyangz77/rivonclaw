@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.91",
+    "date": "2026-08-08",
+    "en": [
+      "Automatically migrate legacy agent workspace state before Gateway startup"
+    ],
+    "zh": [
+      "在 Gateway 启动前自动迁移旧版智能体 workspace 状态"
+    ]
+  },
+  {
     "version": "1.8.90",
     "date": "2026-08-08",
     "en": [
