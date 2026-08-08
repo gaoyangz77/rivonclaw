@@ -33,6 +33,7 @@ const REQUIRED_PATHS = [
   "node_modules/highlight.js/package.json",
   "node_modules/@larksuiteoapi/node-sdk/package.json",
   "node_modules/@openclaw/ai/package.json",
+  "node_modules/@openclaw/ai/dist/internal/runtime.mjs",
   "node_modules/openclaw/package.json",
 ];
 

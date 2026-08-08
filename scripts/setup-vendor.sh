@@ -47,11 +47,25 @@ fi
 # When dist is cached, the cached output already includes patched builds
 # (the cache key incorporates patch file hashes). We still apply patches
 # to source so git state matches the built artifacts.
-# If dist cache claims to be valid but .dist-complete marker is missing,
-# the cache is incomplete (e.g. stale from a prior vendor version).
+# If dist cache claims to be valid but any required build output is missing,
+# the cache is incomplete (e.g. stale from a prior vendor version). OpenClaw
+# workspace packages are linked from node_modules, so their dist directories
+# are part of the runtime contract even though they live outside root dist/.
 # Force a full rebuild by unsetting SKIP_VENDOR_BUILD.
-if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ ! -f dist/.dist-complete ]; then
-  echo "WARNING: dist cache hit but .dist-complete marker missing — forcing rebuild"
+VENDOR_BUILD_OUTPUTS=(
+  "dist/.dist-complete"
+  "packages/ai/dist/internal/runtime.mjs"
+)
+MISSING_VENDOR_BUILD_OUTPUT=""
+for output in "${VENDOR_BUILD_OUTPUTS[@]}"; do
+  if [ ! -f "$output" ]; then
+    MISSING_VENDOR_BUILD_OUTPUT="$output"
+    break
+  fi
+done
+
+if [ "${SKIP_VENDOR_BUILD:-}" = "true" ] && [ -n "$MISSING_VENDOR_BUILD_OUTPUT" ]; then
+  echo "WARNING: dist cache hit but $MISSING_VENDOR_BUILD_OUTPUT is missing — forcing rebuild"
   SKIP_VENDOR_BUILD=false
   # Dev dependencies are needed for build but cached node_modules may be
   # prod-only. pnpm won't re-install dev deps if it thinks the lockfile is
