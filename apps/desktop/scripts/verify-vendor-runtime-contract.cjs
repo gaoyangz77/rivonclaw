@@ -42,18 +42,41 @@ const PRUNED_FORBIDDEN_PATHS = [
   "node_modules/@openai/codex",
   "node_modules/@tloncorp/tlon-skill",
   "node_modules/@zed-industries/codex-acp",
+  "node_modules/@huggingface/transformers",
+  "node_modules/@lancedb/lancedb",
+  "node_modules/@microsoft/mxc-sdk",
+  "node_modules/@openclaw/libterminal",
+  "node_modules/ghostty-web",
+  "node_modules/node-pty",
+  "node_modules/onnxruntime-common",
+  "node_modules/onnxruntime-node",
+  "node_modules/onnxruntime-web",
   "extensions/copilot",
   "extensions/copilot-proxy",
   "extensions/github-copilot",
+  "extensions/memory-lancedb",
+  "extensions/mxc",
   "dist/extensions/copilot",
   "dist/extensions/copilot-proxy",
   "dist/extensions/github-copilot",
+  "dist/extensions/memory-lancedb",
+  "dist/extensions/mxc",
   "dist-runtime/extensions/copilot",
   "dist-runtime/extensions/copilot-proxy",
   "dist-runtime/extensions/github-copilot",
+  "dist-runtime/extensions/memory-lancedb",
+  "dist-runtime/extensions/mxc",
 ];
 
-const PRUNED_FORBIDDEN_CHILD_PREFIXES = [{ dir: "node_modules/@github", prefix: "copilot" }];
+const PRUNED_FORBIDDEN_CHILD_PREFIXES = [
+  { dir: "node_modules/@awesome.me", prefix: "webawesome" },
+  { dir: "node_modules/@codemirror", prefix: "" },
+  { dir: "node_modules/@github", prefix: "copilot" },
+  { dir: "node_modules/@lancedb", prefix: "lancedb" },
+  { dir: "node_modules/@lezer", prefix: "" },
+  { dir: "node_modules/@typescript", prefix: "typescript-" },
+];
+const TRANSIENT_TEMP_CLEANUP_CODES = new Set(["EBUSY", "ENOTEMPTY", "EPERM"]);
 
 function usage() {
   console.error(
@@ -139,6 +162,22 @@ function extractArchive(archivePath) {
   return tempDir;
 }
 
+function removeTempDirBestEffort(tempDir, remove = fs.rmSync) {
+  try {
+    remove(tempDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    return true;
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+    if (!TRANSIENT_TEMP_CLEANUP_CODES.has(code)) {
+      throw error;
+    }
+    console.warn(
+      `[verify-vendor-runtime] WARN: could not remove temporary directory ${tempDir}: ${code}`,
+    );
+    return false;
+  }
+}
+
 function findWorkspaceBundles(vendorDir) {
   const distDir = path.join(vendorDir, "dist");
   const entries = fs.readdirSync(distDir, { withFileTypes: true });
@@ -222,9 +261,13 @@ async function main() {
 
     console.log(`[verify-vendor-runtime] PASS ${vendorDir}`);
   } finally {
-    fs.rmSync(stateDir, { recursive: true, force: true });
+    // Imported runtime modules can briefly retain SQLite/file handles on
+    // Windows. Cleanup must not reverse an otherwise successful contract
+    // check; the process exits immediately and the OS temp directory remains
+    // eligible for later cleanup.
+    removeTempDirBestEffort(stateDir);
     if (extractedDir) {
-      fs.rmSync(extractedDir, { recursive: true, force: true });
+      removeTempDirBestEffort(extractedDir);
     }
     if (previousStateDir === undefined) {
       delete process.env.OPENCLAW_STATE_DIR;
@@ -239,9 +282,13 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(
-    `[verify-vendor-runtime] FAIL: ${error instanceof Error ? error.message : String(error)}`,
-  );
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(
+      `[verify-vendor-runtime] FAIL: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(1);
+  });
+}
+
+module.exports = { removeTempDirBestEffort };

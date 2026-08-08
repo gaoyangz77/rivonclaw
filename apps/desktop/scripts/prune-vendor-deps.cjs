@@ -14,9 +14,18 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-08.1";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-08.2";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
-const DISABLED_VENDOR_EXTENSIONS = ["copilot", "copilot-proxy", "github-copilot"];
+const DISABLED_VENDOR_EXTENSIONS = [
+  "copilot",
+  "copilot-proxy",
+  "github-copilot",
+  // These optional plugins are not exposed by RivonClaw Desktop. Their
+  // workspace dependencies otherwise add local inference and sandbox runtimes
+  // to every packaged app.
+  "memory-lancedb",
+  "mxc",
+];
 
 function hasCompletedProductionInstall() {
   try {
@@ -51,7 +60,22 @@ const EXTRA_REMOVE = [
   "@github/copilot",
   "@github/copilot-sdk",
 
+  // Dependencies exclusive to disabled memory-lancedb and mxc plugins.
+  "@huggingface/transformers",
+  "@lancedb",
+  "onnxruntime-common",
+  "onnxruntime-node",
+  "onnxruntime-web",
+  "@microsoft/mxc-sdk",
+  "node-pty",
+
   // Build/UI dependencies left behind by hoisted production installs.
+  "@awesome.me",
+  "@codemirror",
+  "@lezer",
+  "@openclaw/libterminal",
+  "@typescript",
+  "ghostty-web",
   "vite",
   "esbuild",
   "@esbuild",
