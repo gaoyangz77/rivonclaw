@@ -159,7 +159,7 @@ test.describe("Affiliate workspace entity pages", () => {
     await expectAffiliatePage(
       window,
       "/commerce/affiliate/history",
-      "Collaboration records",
+      "Platform collaborations",
       ".affiliate-collaboration-record-card",
     );
     await expectAffiliatePage(

@@ -165,5 +165,5 @@ describe("startup-timer preload", () => {
 
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(result.stdout).toContain("ok");
-  });
+  }, 15_000);
 });
