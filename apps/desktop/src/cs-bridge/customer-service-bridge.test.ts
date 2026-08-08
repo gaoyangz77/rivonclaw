@@ -1008,7 +1008,7 @@ describe("shop context management", () => {
         provider: "rivonclaw-pro",
         model: "gpt-5.5",
       }),
-      120000,
+      360000,
     );
   });
 });
@@ -1041,7 +1041,7 @@ describe("session key construction", () => {
       expect.objectContaining({
         sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-ABC",
       }),
-      120000,
+      360000,
     );
   });
 
@@ -1075,7 +1075,7 @@ describe("session key construction", () => {
         sessionKey: "agent:customer-service:cs:shopee:mongo-id-123:conv-PLAT",
         idempotencyKey: "cs-start:conv-PLAT:msg-001",
       }),
-      120000,
+      360000,
     );
   });
 
@@ -1285,7 +1285,7 @@ describe("CS RunProfile setup", () => {
     // Bridge no longer validates profile existence — it stores the ID and lets the model
     // resolve at effective-tools query time (returning empty tools if not found).
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
     const agentCall = mockRpcRequest.mock.calls.findLast((call: any[]) => call[0] === "agent");
     expect(agentCall?.[1]).toEqual(
       expect.objectContaining({
@@ -1330,7 +1330,7 @@ describe("CS RunProfile setup", () => {
     await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
 
     expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
       runProfileId: "CUSTOMER_SERVICE",
@@ -1458,7 +1458,7 @@ describe("agent dispatch", () => {
       expect.objectContaining({
         sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-dispatch",
       }),
-      120000,
+      360000,
     );
   });
 
@@ -1709,7 +1709,7 @@ describe("agent dispatch", () => {
       expect.objectContaining({
         idempotencyKey: "cs-start:conv-789:msg-unique-42",
       }),
-      120000,
+      360000,
     );
   });
 
@@ -1728,7 +1728,7 @@ describe("agent dispatch", () => {
 
     expect(mockRpcRequest).toHaveBeenCalledTimes(2);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
   });
 });
 
@@ -1781,7 +1781,7 @@ describe("error scenarios", () => {
     // Bridge no longer validates profile existence — it stores the ID.
     expect(mockRpcRequest).toHaveBeenCalledTimes(2);
     expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
-    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 120000);
+    expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
   });
 
   it("agent dispatch fails → bridge does not throw (continues running)", async () => {
@@ -2586,7 +2586,7 @@ describe("multi-provider model override", () => {
         provider,
         model,
       }),
-      120000,
+      360000,
     );
   }
 
@@ -3524,7 +3524,7 @@ describe("rapid buyer messages (abort + redispatch)", () => {
       expect.objectContaining({
         message: expect.stringContaining("Hello"),
       }),
-      120000,
+      360000,
     );
 
     // No abort should have been called

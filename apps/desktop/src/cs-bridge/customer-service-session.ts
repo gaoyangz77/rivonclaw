@@ -64,7 +64,8 @@ import { buildFeishuCsEscalationCard } from "./cs-escalation-card.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
-const CS_AGENT_DISPATCH_RPC_TIMEOUT_MS = 120_000;
+// This bounds the wait for OpenClaw's accepted acknowledgement, not the agent run itself.
+const CS_AGENT_DISPATCH_RPC_TIMEOUT_MS = 360_000;
 const DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS = 10_000;
 
 function resolveBuyerMessageQuietWindowMs(): number {
