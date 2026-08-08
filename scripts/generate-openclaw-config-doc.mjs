@@ -15,16 +15,29 @@ const schemaChunk = (await readdir(distDir)).find(
 if (!schemaChunk) throw new Error("OpenClaw Zod schema bundle was not found; build vendor first");
 
 const schemaModule = await import(pathToFileURL(path.join(distDir, schemaChunk)).href);
-const openClawSchema = Object.values(schemaModule).find(
-  (value) =>
-    value &&
-    typeof value === "object" &&
-    typeof value.safeParse === "function" &&
-    typeof value.toJSONSchema === "function",
-);
-if (!openClawSchema) throw new Error(`OpenClawSchema export was not found in ${schemaChunk}`);
+const schemaCandidates = Object.values(schemaModule)
+  .filter(
+    (value) =>
+      value &&
+      typeof value === "object" &&
+      typeof value.safeParse === "function" &&
+      typeof value.toJSONSchema === "function",
+  )
+  .map((schema) => ({
+    schema,
+    jsonSchema: schema.toJSONSchema({ unrepresentable: "any" }),
+  }))
+  .toSorted(
+    (left, right) =>
+      Object.keys(right.jsonSchema.properties ?? {}).length -
+      Object.keys(left.jsonSchema.properties ?? {}).length,
+  );
+const selectedSchema = schemaCandidates[0];
+if (!selectedSchema || Object.keys(selectedSchema.jsonSchema.properties ?? {}).length === 0) {
+  throw new Error(`OpenClaw root schema export was not found in ${schemaChunk}`);
+}
 
-const jsonSchema = openClawSchema.toJSONSchema({ unrepresentable: "any" });
+const jsonSchema = selectedSchema.jsonSchema;
 
 function variants(schema) {
   return [schema, ...(schema.anyOf ?? []), ...(schema.oneOf ?? [])];
@@ -85,6 +98,9 @@ function collectRows(schema, prefix, rows, seen = new Set()) {
 const rows = [];
 collectRows(jsonSchema, "", rows);
 const uniqueRows = [...new Map(rows.map((row) => [row.path, row])).values()];
+if (uniqueRows.length === 0) {
+  throw new Error("OpenClaw config schema produced no documentation rows");
+}
 const sections = new Map();
 for (const row of uniqueRows) {
   const section = row.path.split(".")[0];

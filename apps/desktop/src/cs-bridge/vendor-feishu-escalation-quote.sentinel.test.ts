@@ -38,7 +38,7 @@ describe("vendor patch 0027: explicit Feishu quote failures", () => {
     expect(patch).toContain(
       'expect(context.SupplementalContext?.quote?.body).toBe("quoted content")',
     );
-    expect(patch).toContain("keeps root_id-only P2P replies as quote replies outside thread mode");
+    expect(patch).toContain("fetches root_id-only P2P replies as quoted context");
     expect(patch).not.toContain("cs_list_open_escalations");
   });
 

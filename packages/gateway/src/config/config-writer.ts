@@ -61,6 +61,56 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
   return next;
 }
 
+function collectAgentEntries(
+  agents: Record<string, unknown>,
+): Map<string, Record<string, unknown>> {
+  const byId = new Map<string, Record<string, unknown>>();
+  const legacyList = Array.isArray(agents.list) ? agents.list : [];
+  for (const value of legacyList) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const entry = value as Record<string, unknown>;
+    const id = typeof entry.id === "string" ? entry.id.trim() : "";
+    if (!id) continue;
+    const { id: _id, ...config } = entry;
+    byId.set(id, config);
+  }
+
+  const currentEntries = agents.entries;
+  if (currentEntries && typeof currentEntries === "object" && !Array.isArray(currentEntries)) {
+    for (const [id, value] of Object.entries(currentEntries as Record<string, unknown>)) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      byId.set(id, { ...(value as Record<string, unknown>) });
+    }
+  }
+  return byId;
+}
+
+function canonicalizeAgentRoster(config: Record<string, unknown>): void {
+  const agents =
+    config.agents && typeof config.agents === "object" && !Array.isArray(config.agents)
+      ? (config.agents as Record<string, unknown>)
+      : {};
+  const byId = collectAgentEntries(agents);
+  if (byId.size === 0) {
+    byId.set("main", { default: true });
+  }
+
+  const defaultIds = [...byId].flatMap(([id, entry]) => (entry.default === true ? [id] : []));
+  const fallbackId = byId.has("main") ? "main" : byId.keys().next().value;
+  if (!fallbackId) throw new Error("Agent roster must contain at least one entry");
+  const defaultId = defaultIds.length === 1 ? defaultIds[0] : (defaultIds[0] ?? fallbackId);
+  for (const [id, entry] of byId) {
+    if (id === defaultId) {
+      entry.default = true;
+    } else if (entry.default === true) {
+      entry.default = false;
+    }
+  }
+
+  const { list: _list, ...rest } = agents;
+  config.agents = { ...rest, entries: Object.fromEntries(byId) };
+}
+
 function removeGeminiOAuthRuntimeConfig(config: Record<string, unknown>, stateDir: string): void {
   rmSync(join(stateDir, "bin", "rivonclaw-gemini-cli"), { force: true });
   rmSync(join(stateDir, "bin", "rivonclaw-gemini-cli.cmd"), { force: true });
@@ -83,11 +133,8 @@ function removeGeminiOAuthRuntimeConfig(config: Record<string, unknown>, stateDi
   if (!defaults || typeof defaults !== "object" || Array.isArray(defaults)) return;
   const defaultsRecord = defaults as Record<string, unknown>;
 
-  const cliBackends = defaultsRecord.cliBackends;
-  if (cliBackends && typeof cliBackends === "object" && !Array.isArray(cliBackends)) {
-    delete (cliBackends as Record<string, unknown>)[REMOVED_GEMINI_RUNTIME_PROVIDER];
-    if (Object.keys(cliBackends).length === 0) delete defaultsRecord.cliBackends;
-  }
+  // cliBackends was removed from OpenClaw's canonical config surface.
+  delete defaultsRecord.cliBackends;
 
   const configuredModels = defaultsRecord.models;
   if (
@@ -412,7 +459,6 @@ const LEGACY_RIVONCLAW_CLOUD_COMPACTION_MODELS = new Set([
   "rivonclaw-pro/gpt-5.6-luna",
   RIVONCLAW_CLOUD_COMPACTION_MODEL,
 ]);
-const DEFAULT_COMPACTION_MAX_HISTORY_SHARE = 0.35;
 
 // TODO(cleanup): Remove after v1.8.0 — by then all users will have upgraded past the rebrand.
 /** Plugin IDs renamed during the EasyClaw → RivonClaw rebrand.
@@ -883,17 +929,12 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       };
     }
 
-    // Allow the panel (control-ui) to connect without device identity while
-    // preserving self-declared scopes. Without this flag the vendor clears
-    // scopes to [] for non-device connections.
-    //
     // Control UI is disabled by default — EasyClaw's Panel provides the UI.
     // This prevents the gateway's expensive auto-build check (~30 s in dev
     // when dist/control-ui/ doesn't exist). When controlUiRoot is explicitly
     // provided, re-enable and set the root path.
     const controlUiConfig: Record<string, unknown> = {
       enabled: false,
-      dangerouslyDisableDeviceAuth: true,
     };
     if (options.controlUiRoot) {
       controlUiConfig.enabled = true;
@@ -903,10 +944,10 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof merged.reload === "object" && merged.reload !== null
         ? (merged.reload as Record<string, unknown>)
         : {};
-    // RivonClaw Desktop owns process restarts through GatewayLauncher. Keep
-    // OpenClaw's config watcher hot-reloadable, but prevent watcher-triggered
-    // gateway-level in-process restarts.
-    merged.reload = { ...reloadConfig, mode: "hot" };
+    // RivonClaw Desktop owns process restarts through GatewayLauncher. Hybrid
+    // keeps dynamic config reloads while allowing OpenClaw to classify fields
+    // that require a restart; Desktop still controls explicit process restarts.
+    merged.reload = { ...reloadConfig, mode: "hybrid" };
     merged.controlUi = controlUiConfig;
 
     config.gateway = merged;
@@ -998,7 +1039,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
-  // Image generation model selection → agents.defaults.imageGenerationModel.
+  // Image generation model selection → agents.defaults.mediaModels.image.
   if (options.imageGenerationModel !== undefined) {
     const existingAgents =
       typeof config.agents === "object" && config.agents !== null
@@ -1008,17 +1049,25 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
         ? (existingAgents.defaults as Record<string, unknown>)
         : {};
+    const existingMediaModels =
+      typeof existingDefaults.mediaModels === "object" && existingDefaults.mediaModels !== null
+        ? (existingDefaults.mediaModels as Record<string, unknown>)
+        : {};
     const nextDefaults = { ...existingDefaults };
+    const nextMediaModels = { ...existingMediaModels };
+    delete nextDefaults.imageGenerationModel;
     if (options.imageGenerationModel === null) {
-      delete nextDefaults.imageGenerationModel;
+      delete nextMediaModels.image;
     } else {
-      nextDefaults.imageGenerationModel = {
+      nextMediaModels.image = {
         primary: options.imageGenerationModel.primary,
         ...(options.imageGenerationModel.timeoutMs !== undefined
           ? { timeoutMs: options.imageGenerationModel.timeoutMs }
           : {}),
       };
     }
+    if (Object.keys(nextMediaModels).length > 0) nextDefaults.mediaModels = nextMediaModels;
+    else delete nextDefaults.mediaModels;
     config.agents = {
       ...existingAgents,
       defaults: nextDefaults,
@@ -1060,17 +1109,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof config.agents === "object" && config.agents !== null
         ? (config.agents as Record<string, unknown>)
         : {};
-    const existingList = Array.isArray(existingAgents.list)
-      ? existingAgents.list.filter(
-          (entry): entry is Record<string, unknown> =>
-            entry !== null && typeof entry === "object" && !Array.isArray(entry),
-        )
-      : [];
     const managedDefaultId = options.managedAgents.find((entry) => entry.default)?.id;
-    const byId = new Map<string, Record<string, unknown>>();
-    for (const entry of existingList) {
-      const id = typeof entry.id === "string" ? entry.id.trim() : "";
-      if (!id) continue;
+    const byId = collectAgentEntries(existingAgents);
+    for (const [id, entry] of byId) {
       byId.set(id, {
         ...entry,
         ...(managedDefaultId && id !== managedDefaultId && entry.default === true
@@ -1080,16 +1121,15 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
     for (const managed of options.managedAgents) {
       const existingEntry = byId.get(managed.id) ?? {};
-      const nextEntry = { ...existingEntry, ...managed } as Record<string, unknown>;
+      const { id: managedId, ...managedConfig } = managed;
+      const nextEntry = { ...existingEntry, ...managedConfig } as Record<string, unknown>;
       if (managed.contextTokens === null) {
         delete nextEntry.contextTokens;
       }
-      byId.set(managed.id, nextEntry);
+      byId.set(managedId, nextEntry);
     }
-    config.agents = {
-      ...existingAgents,
-      list: [...byId.values()],
-    };
+    const { list: _list, ...rest } = existingAgents;
+    config.agents = { ...rest, entries: Object.fromEntries(byId) };
   }
 
   // Block streaming defaults — RivonClaw always enables block streaming so that
@@ -1159,7 +1199,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     const nextCompaction: Record<string, unknown> = {
       ...existingCompaction,
       ...(compactionModel ? { model: compactionModel } : {}),
-      maxHistoryShare: existingCompaction.maxHistoryShare ?? DEFAULT_COMPACTION_MAX_HISTORY_SHARE,
       midTurnPrecheck: {
         ...existingMidTurnPrecheck,
         enabled: existingMidTurnPrecheck.enabled ?? true,
@@ -1586,7 +1625,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     config.tools = { ...existingTools, web: existingWeb };
   }
 
-  // Embedding / memory search configuration via OpenClaw's agents.defaults.memorySearch
+  // Embedding / memory search configuration via OpenClaw's top-level memory.search.
   if (options.embedding !== undefined) {
     const existingAgents =
       typeof config.agents === "object" && config.agents !== null
@@ -1596,6 +1635,15 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
         ? (existingAgents.defaults as Record<string, unknown>)
         : {};
+    const existingMemory =
+      typeof config.memory === "object" && config.memory !== null
+        ? (config.memory as Record<string, unknown>)
+        : {};
+    const existingSearch =
+      typeof existingMemory.search === "object" && existingMemory.search !== null
+        ? (existingMemory.search as Record<string, unknown>)
+        : {};
+    delete existingDefaults.memorySearch;
 
     if (options.embedding.enabled) {
       const pluginId = EMBEDDING_PROVIDER_PLUGIN_IDS[options.embedding.provider];
@@ -1607,10 +1655,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       }
 
       const memoryConfig: Record<string, unknown> = {
-        ...(typeof existingDefaults.memorySearch === "object" &&
-        existingDefaults.memorySearch !== null
-          ? (existingDefaults.memorySearch as Record<string, unknown>)
-          : {}),
+        ...existingSearch,
         enabled: true,
         provider: options.embedding.provider,
       };
@@ -1633,9 +1678,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         if (Object.keys(remote).length > 0) memoryConfig.remote = remote;
         else delete memoryConfig.remote;
       }
-      existingDefaults.memorySearch = memoryConfig;
+      config.memory = { ...existingMemory, search: memoryConfig };
     } else {
-      existingDefaults.memorySearch = { enabled: false };
+      config.memory = { ...existingMemory, search: { ...existingSearch, enabled: false } };
     }
 
     config.agents = { ...existingAgents, defaults: existingDefaults };
@@ -1788,7 +1833,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ssrfPolicy: { dangerouslyAllowPrivateNetwork: true },
         profiles: {
           ...cleanProfiles,
-          openclaw: { cdpUrl: `http://127.0.0.1:${cdpPort}`, color: "#4A90D9" },
+          openclaw: { cdpUrl: `http://127.0.0.1:${cdpPort}` },
         },
       };
     } else {
@@ -1814,7 +1859,6 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           chrome: {
             driver: "clawd",
             cdpPort: (options.gatewayPort ?? DEFAULT_GATEWAY_PORT) + CDP_PORT_OFFSET,
-            color: "#00AA00",
           },
         },
       };
@@ -1997,6 +2041,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // so that stale entries injected by third-party plugins, manual edits, or
   // old migrations don't cause "Config invalid – Unrecognized key" on
   // gateway startup.
+  canonicalizeAgentRoster(config);
   const removedKeys = stripUnknownKeys(config);
   if (removedKeys.length > 0) {
     log.warn(`Stripped unknown config keys: ${removedKeys.join(", ")}`);

@@ -341,6 +341,12 @@ for (const requiredPath of [
 }
 console.log("[archive-vendor-runtime] Archive verification passed (workspace templates found).");
 
+console.log("[archive-vendor-runtime] Running packaged runtime contract...");
+execSync(
+  `node ${shellQuote(path.join(__dirname, "verify-vendor-runtime-contract.cjs"))} --archive ${shellQuote(archivePath)}`,
+  { stdio: "inherit", timeout: 300_000 },
+);
+
 // ─── Write manifest ───
 const manifest = {
   version,

@@ -68,14 +68,6 @@ docs, protocol paths, and the underlying runtime.
 
 Removal: upstream exposes host branding or a post-build prompt transform.
 
-### 0011 - Isolated tool-discovery registry
-
-Keeps a scoped plugin tool-discovery registry on the active surface instead of
-replacing the startup-pinned channel registry. This protects proactive channel
-outbound adapters when cloud tools are refreshed.
-
-Removal: upstream separates tool discovery from channel adapter ownership.
-
 ### 0012 - Desktop startup recovery controls
 
 Adds `OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY` and
@@ -115,13 +107,6 @@ dispatch and supplies a caller-owned checkpoint id.
 
 Removal: upstream exposes an equivalent explicit checkpoint API.
 
-### 0018 - Registry refresh after session plugin patch
-
-Refreshes the runtime plugin registry after `sessions.pluginPatch` changes
-session extension state, preventing stale tool and hook visibility.
-
-Removal: upstream invalidates or refreshes this registry natively.
-
 ### 0019 - Image prompt worker process
 
 Runs the heavy built-in image tool prompt path in a child process, with a
@@ -129,14 +114,6 @@ main-process fallback. Runtime setup occurs inside the worker so cold startup
 does not consume the provider request timeout budget.
 
 Removal: upstream provides equivalent worker-backed image execution.
-
-### 0022 - Asynchronous taskkill error handling
-
-Backports OpenClaw #101392 to the new `agent-core` kill-tree owner by attaching
-an error listener to the best-effort Windows `taskkill` process.
-
-Removal: delete when the pinned vendor includes upstream commit
-`55fa22b482a7c6b8163f47590047c34b0dcd7382` or equivalent behavior.
 
 ### 0023 - Feishu task lifetime after queue eviction
 
@@ -146,19 +123,6 @@ attached to a still-running agent retry without blocking later chat messages.
 
 Removal: upstream independently bounds ordering without resolving the original
 caller-facing task.
-
-### 0026 - Reply-session initialization conflict recovery
-
-Backports OpenClaw commit
-`826c84ea19429ece853d62aba5b674cae90f5824` (PR #98835) to compare only
-`sessionId` and `sessionFile` during reply initialization while preserving
-concurrent non-identity metadata. It also backports
-`101b601df8acb9139dedc6070081b993dcd5fccb` (PR #105754), which retries true
-initialization conflicts up to five times with bounded, abort-aware backoff.
-
-Removal: delete when `.openclaw-version` includes both upstream commits, or an
-equivalent implementation with identity-only reply-session CAS and
-abort-aware five-attempt outer retry behavior.
 
 ### 0027 - Preserve failed Feishu quote context
 
@@ -181,16 +145,15 @@ claimed business callbacks never become synthetic agent messages.
 Removal: upstream bundled Feishu supports trusted raw form-card sends and
 synchronous, policy-aware plugin interactive dispatch with complete form data.
 
-### 0029 - Compaction-failure successor session
+### 0029 - Compaction-failure lifecycle reset
 
-Rotates the active route to a clean successor session after an unrecoverable
-automatic compaction or context-overflow failure. The failed transcript remains
-available on disk, while the next user turn no longer re-enters the same broken
-session. If the session store cannot be rotated, OpenClaw retains its upstream
-preserved-session behavior.
+Resets the durable SQLite lifecycle after an unrecoverable automatic compaction
+or context-overflow failure. The failed transcript remains available, while the
+next user turn no longer re-enters the same broken context. If lifecycle reset
+is unavailable, OpenClaw retains its upstream preserved-session behavior.
 
-Removal: upstream provides equivalent bounded recovery that preserves the failed
-transcript without repeatedly routing later turns into it.
+Removal: upstream provides equivalent bounded lifecycle recovery that preserves
+the failed transcript without repeatedly routing later turns into it.
 
 ### 0030 - Per-run silent completion through Agent RPC
 
@@ -201,6 +164,27 @@ without changing Main, Affiliate, or summary-agent behavior.
 
 Removal: upstream forwards `allowEmptyAssistantReplyAsSilent` through the Agent
 RPC, or provides an equivalent per-run silent-completion option.
+
+### 0031 - Ignore wildcard pairing bindings during legacy migration
+
+Backports OpenClaw commit `718e9c88204772c496e8f625cd63be8106cfa106`
+(PR `#116610`). Wildcard route bindings use `accountId: "*"`; they are selectors,
+not concrete pairing accounts. Ignoring them prevents legacy allowlist migration
+from rejecting the wildcard and aborting Gateway startup.
+
+Removal: the pinned OpenClaw revision contains commit
+`718e9c88204772c496e8f625cd63be8106cfa106` (PR `#116610`) or an equivalent fix.
+
+### 0032 - Expose node-host startup migrations
+
+Exports OpenClaw's existing `runStartupMigrations` function through the stable
+`plugin-sdk/node-host` boundary. RivonClaw Desktop starts an embedded Gateway
+without the OpenClaw node-host runner, so it must invoke the same official
+device-auth, device-identity, and exec-approval migrations before connecting.
+
+Removal: OpenClaw exposes `runStartupMigrations` (or an equivalent retired-state
+migration API) from a stable public runtime, or RivonClaw starts Gateway through
+the OpenClaw node-host runner that invokes these migrations itself.
 
 ## Dropped In v2026.6.11
 
@@ -221,3 +205,17 @@ RPC, or provides an equivalent per-run silent-completion option.
   are included.
 
 Earlier dropped patches remain documented in git history.
+
+## Dropped In v2026.7.2-beta.7
+
+- `0011`: upstream now pins channel registries independently from active and
+  session-extension registries, with regression coverage for scoped tool
+  discovery churn.
+- `0018`: upstream now pins the startup session-extension registry and covers
+  `sessions.pluginPatch` across later active-registry churn.
+- `0022`: upstream commit `55fa22b482a7c6b8163f47590047c34b0dcd7382`
+  (OpenClaw #101392) is included.
+- `0026`: upstream commits `826c84ea19429ece853d62aba5b674cae90f5824`
+  (PR #98835) and `101b601df8acb9139dedc6070081b993dcd5fccb`
+  (PR #105754) include identity-only reply-session CAS and bounded,
+  abort-aware initialization retries.

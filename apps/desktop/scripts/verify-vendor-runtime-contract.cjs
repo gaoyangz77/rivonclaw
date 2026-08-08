@@ -10,6 +10,7 @@ const { execFileSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { createRequire } = require("module");
 const { pathToFileURL } = require("url");
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
@@ -31,6 +32,7 @@ const REQUIRED_PATHS = [
   "extensions/openclaw-lark/openclaw.plugin.json",
   "node_modules/highlight.js/package.json",
   "node_modules/@larksuiteoapi/node-sdk/package.json",
+  "node_modules/@openclaw/ai/package.json",
   "node_modules/openclaw/package.json",
 ];
 
@@ -51,9 +53,7 @@ const PRUNED_FORBIDDEN_PATHS = [
   "dist-runtime/extensions/github-copilot",
 ];
 
-const PRUNED_FORBIDDEN_CHILD_PREFIXES = [
-  { dir: "node_modules/@github", prefix: "copilot" },
-];
+const PRUNED_FORBIDDEN_CHILD_PREFIXES = [{ dir: "node_modules/@github", prefix: "copilot" }];
 
 function usage() {
   console.error(
@@ -168,41 +168,75 @@ async function runWorkspaceBootstrapSmoke(vendorDir) {
   }
 
   const workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-workspace-smoke-"));
-  await ensureAgentWorkspace({ dir: workspaceDir, ensureBootstrapFiles: true });
+  try {
+    await ensureAgentWorkspace({ dir: workspaceDir, ensureBootstrapFiles: true });
 
-  for (const fileName of ["AGENTS.md", "SOUL.md", "TOOLS.md", "BOOTSTRAP.md"]) {
-    const filePath = path.join(workspaceDir, fileName);
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`workspace bootstrap did not create ${fileName}`);
+    for (const fileName of ["AGENTS.md", "SOUL.md", "IDENTITY.md", "USER.md", "BOOTSTRAP.md"]) {
+      const filePath = path.join(workspaceDir, fileName);
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`workspace bootstrap did not create ${fileName}`);
+      }
     }
+  } finally {
+    fs.rmSync(workspaceDir, { recursive: true, force: true });
   }
+}
+
+async function runOpenClawAiRuntimeSmoke(vendorDir) {
+  const requireFromVendor = createRequire(path.join(vendorDir, "package.json"));
+  const runtimePath = requireFromVendor.resolve("@openclaw/ai/internal/runtime");
+  await import(pathToFileURL(runtimePath).href);
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const extractedDir = args.archivePath ? extractArchive(args.archivePath) : "";
   const vendorDir = extractedDir || args.vendorDir;
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-runtime-contract-state-"));
+  const previousStateDir = process.env.OPENCLAW_STATE_DIR;
+  const previousConfigPath = process.env.OPENCLAW_CONFIG_PATH;
 
-  if (!fs.existsSync(vendorDir)) {
-    throw new Error(`vendor runtime not found: ${vendorDir}`);
-  }
+  process.env.OPENCLAW_STATE_DIR = stateDir;
+  process.env.OPENCLAW_CONFIG_PATH = path.join(stateDir, "openclaw.json");
 
-  for (const relPath of REQUIRED_PATHS) {
-    assertExists(vendorDir, relPath);
-  }
-
-  if (!args.skipPruneChecks) {
-    for (const relPath of PRUNED_FORBIDDEN_PATHS) {
-      assertAbsent(vendorDir, relPath);
+  try {
+    if (!fs.existsSync(vendorDir)) {
+      throw new Error(`vendor runtime not found: ${vendorDir}`);
     }
-    for (const entry of PRUNED_FORBIDDEN_CHILD_PREFIXES) {
-      assertNoChildPrefix(vendorDir, entry);
+
+    for (const relPath of REQUIRED_PATHS) {
+      assertExists(vendorDir, relPath);
+    }
+
+    if (!args.skipPruneChecks) {
+      for (const relPath of PRUNED_FORBIDDEN_PATHS) {
+        assertAbsent(vendorDir, relPath);
+      }
+      for (const entry of PRUNED_FORBIDDEN_CHILD_PREFIXES) {
+        assertNoChildPrefix(vendorDir, entry);
+      }
+    }
+
+    await runWorkspaceBootstrapSmoke(vendorDir);
+    await runOpenClawAiRuntimeSmoke(vendorDir);
+
+    console.log(`[verify-vendor-runtime] PASS ${vendorDir}`);
+  } finally {
+    fs.rmSync(stateDir, { recursive: true, force: true });
+    if (extractedDir) {
+      fs.rmSync(extractedDir, { recursive: true, force: true });
+    }
+    if (previousStateDir === undefined) {
+      delete process.env.OPENCLAW_STATE_DIR;
+    } else {
+      process.env.OPENCLAW_STATE_DIR = previousStateDir;
+    }
+    if (previousConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousConfigPath;
     }
   }
-
-  await runWorkspaceBootstrapSmoke(vendorDir);
-
-  console.log(`[verify-vendor-runtime] PASS ${vendorDir}`);
 }
 
 main().catch((error) => {

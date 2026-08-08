@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   requiresExecApproval,
   resolveExecApprovalsFromFile,
-} from "../../../../vendor/openclaw/src/infra/exec-approvals.js";
+} from "../../../../vendor/openclaw/dist/plugin-sdk/infra-runtime.js";
 import { syncExecApprovalsYolo } from "../config/exec-approvals-writer.js";
 
 /**

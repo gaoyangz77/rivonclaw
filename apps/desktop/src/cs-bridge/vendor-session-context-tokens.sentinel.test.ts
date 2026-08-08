@@ -17,7 +17,7 @@ describe("vendor patch 0016: sessions.patch contextTokens support", () => {
   it("exposes contextTokens in the sessions.patch protocol schema", () => {
     expect(patch).toContain("diff --git a/packages/gateway-protocol/src/schema/sessions.ts");
     expect(patch).toContain(
-      "+    contextTokens: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()])),",
+      "+  contextTokens: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()])),",
     );
   });
 

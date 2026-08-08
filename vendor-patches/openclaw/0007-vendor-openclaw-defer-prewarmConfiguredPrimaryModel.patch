@@ -1,4 +1,4 @@
-From cba256e29327360dd183e094dbe8dd8456b4bd34 Mon Sep 17 00:00:00 2001
+From ca8c7d85a2db96f5822b17579ec56532949680ee Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Mon, 13 Apr 2026 09:11:51 -0700
 Subject: [PATCH] vendor(openclaw): defer prewarmConfiguredPrimaryModel to
@@ -23,31 +23,39 @@ Removal:
 Tests:
 - apps/desktop/test/vendor-patch-prewarm-defer.test.ts
 ---
- src/gateway/server-startup-post-attach.ts | 20 +++++++++++---------
- 1 file changed, 11 insertions(+), 9 deletions(-)
+ src/gateway/server-startup-post-attach.ts | 27 ++++++++++++-----------
+ 1 file changed, 14 insertions(+), 13 deletions(-)
 
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index 6950b6594f..5936d6ebf6 100644
+index cf27e691e33..b275e9d8c50 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -736,18 +736,20 @@ export async function startGatewaySidecars(params: {
-   await measureStartup(params.startupTrace, "sidecars.channels", async () => {
-     if (!skipChannels) {
-       try {
--        schedulePrimaryModelPrewarm(
--          {
--            cfg: params.cfg,
--            workspaceDir: params.defaultWorkspaceDir,
--            log: params.log,
--            startupTrace: params.startupTrace,
--          },
--          params.prewarmPrimaryModel,
--        );
+@@ -658,19 +658,6 @@ export async function startGatewaySidecars(params: {
+   const skipChannels =
+     isTruthyEnvValue(process.env.OPENCLAW_SKIP_CHANNELS) ||
+     isTruthyEnvValue(process.env.OPENCLAW_SKIP_PROVIDERS);
+-  // Agent RPC remains available when transports are disabled. Publish configured/static facts before
+-  // accepting work; live provider catalogs stay advisory and never enter the Gateway lifecycle.
+-  await measureStartup(params.startupTrace, "sidecars.model-runtime", () =>
+-    publishStartupModelRuntime(
+-      {
+-        cfg: params.cfg,
+-        workspaceDir: params.defaultWorkspaceDir,
+-        log: params.log,
+-        startupTrace: params.startupTrace,
+-      },
+-      params.prewarmPrimaryModel,
+-    ),
+-  );
+   await measureStartup(params.startupTrace, "sidecars.main-session-recovery", async () => {
+     try {
+       const { markStartupOrphanedMainSessionsForRecovery } =
+@@ -688,6 +675,20 @@ export async function startGatewaySidecars(params: {
          await measureStartup(params.startupTrace, "sidecars.channel-start", () =>
            params.startChannels(),
          );
-+        setTimeout(() => {
-+          schedulePrimaryModelPrewarm(
++        const prewarmTimer = setTimeout(() => {
++          void publishStartupModelRuntime(
 +            {
 +              cfg: params.cfg,
 +              workspaceDir: params.defaultWorkspaceDir,
@@ -55,11 +63,13 @@ index 6950b6594f..5936d6ebf6 100644
 +              startupTrace: params.startupTrace,
 +            },
 +            params.prewarmPrimaryModel,
-+          );
++          ).catch((err) => {
++            params.log.warn(`deferred model runtime prewarm failed: ${String(err)}`);
++          });
 +        }, 15_000);
++        prewarmTimer.unref?.();
        } catch (err) {
          params.logChannels.error(`channel startup failed: ${String(err)}`);
        }
 -- 
 2.50.1 (Apple Git-155)
-

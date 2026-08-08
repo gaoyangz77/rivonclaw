@@ -3,10 +3,14 @@
  * the RivonClaw panel (browser).  Handles the challenge-response handshake,
  * JSON-RPC request/response, event streaming, and auto-reconnect.
  *
- * Compared to OpenClaw's GatewayBrowserClient this version skips device
- * identity / IndexedDB / crypto.subtle — the panel is always on localhost
- * so simple token auth is sufficient.
+ * The panel runs in a secure localhost context and authenticates with a
+ * persistent browser device identity in addition to the gateway token.
  */
+
+import {
+  buildGatewayDeviceAuthPayload,
+  loadOrCreateGatewayDeviceIdentity,
+} from "./gateway-device-identity.js";
 
 export type GatewayEvent = {
   type: "event";
@@ -142,22 +146,46 @@ export class GatewayChatClient {
     setTimeout(() => this.doConnect(), delay);
   }
 
-  private sendConnect(): void {
+  private async sendConnect(): Promise<void> {
     if (this.connectSent || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     this.connectSent = true;
 
+    const client = {
+      id: "openclaw-control-ui",
+      version: "1.0.0",
+      platform: navigator.platform ?? "web",
+      mode: "webchat",
+    };
+    const role = "operator";
+    const scopes = ["operator.admin"];
+    const identity = await loadOrCreateGatewayDeviceIdentity();
+    const signedAt = Date.now();
+    const nonce = this.connectNonce ?? "";
+    const signaturePayload = buildGatewayDeviceAuthPayload({
+      deviceId: identity.deviceId,
+      clientId: client.id,
+      clientMode: client.mode,
+      role,
+      scopes,
+      signedAtMs: signedAt,
+      token: this.opts.token,
+      nonce,
+      platform: client.platform,
+    });
     const params = {
       minProtocol: 4,
       maxProtocol: 4,
-      client: {
-        id: "openclaw-control-ui",
-        version: "1.0.0",
-        platform: navigator.platform ?? "web",
-        mode: "webchat",
-      },
-      role: "operator",
-      scopes: ["operator.admin"],
+      client,
+      role,
+      scopes,
       caps: ["tool-events"],
+      device: {
+        id: identity.deviceId,
+        publicKey: identity.publicKey,
+        signature: await identity.sign(signaturePayload),
+        signedAt,
+        nonce,
+      },
       auth: this.opts.token ? { token: this.opts.token } : undefined,
       userAgent: navigator.userAgent,
       locale: navigator.language,
@@ -186,8 +214,14 @@ export class GatewayChatClient {
   }
 
   private stopKeepalive(): void {
-    if (this.keepaliveTimer) { clearInterval(this.keepaliveTimer); this.keepaliveTimer = null; }
-    if (this.keepaliveTimeout) { clearTimeout(this.keepaliveTimeout); this.keepaliveTimeout = null; }
+    if (this.keepaliveTimer) {
+      clearInterval(this.keepaliveTimer);
+      this.keepaliveTimer = null;
+    }
+    if (this.keepaliveTimeout) {
+      clearTimeout(this.keepaliveTimeout);
+      this.keepaliveTimeout = null;
+    }
   }
 
   private sendPing(): void {
@@ -204,7 +238,10 @@ export class GatewayChatClient {
     // gateway event loop on large or cold stores.
     this.request("agent.identity.get", { agentId: "main" })
       .then(() => {
-        if (this.keepaliveTimeout) { clearTimeout(this.keepaliveTimeout); this.keepaliveTimeout = null; }
+        if (this.keepaliveTimeout) {
+          clearTimeout(this.keepaliveTimeout);
+          this.keepaliveTimeout = null;
+        }
       })
       .catch((err) => {
         console.warn("[gateway-client] keepalive ping failed:", err);
@@ -230,7 +267,10 @@ export class GatewayChatClient {
         const payload = evt.payload as { nonce?: string } | undefined;
         if (payload?.nonce) {
           this.connectNonce = payload.nonce;
-          this.sendConnect();
+          void this.sendConnect().catch((err) => {
+            console.warn("[gateway-client] failed to prepare device authentication:", err);
+            this.ws?.close(1000, "device authentication failed");
+          });
         }
         return;
       }
@@ -239,7 +279,12 @@ export class GatewayChatClient {
     }
 
     if (frame.type === "res") {
-      const res = parsed as { id: string; ok: boolean; payload?: unknown; error?: { message?: string } };
+      const res = parsed as {
+        id: string;
+        ok: boolean;
+        payload?: unknown;
+        error?: { message?: string };
+      };
       const pending = this.pending.get(res.id);
       if (!pending) return;
       this.pending.delete(res.id);

@@ -20,7 +20,7 @@ const MODELS_MERGE_FILE = resolve(
 );
 const GATEWAY_STARTUP_FILE = resolve(
   __dirname,
-  "../../../../vendor/openclaw/src/gateway/server-startup-post-attach.ts",
+  "../../../../tmp/vendor-patched/openclaw/src/gateway/server-startup-post-attach.ts",
 );
 
 describe("OpenClaw managed-provider models.json reconciliation", () => {
@@ -39,20 +39,22 @@ describe("OpenClaw managed-provider models.json reconciliation", () => {
 
     expect(planner).toContain('if (params.mode !== "merge")');
     expect(planner).toContain("mergeWithExistingProviderSecrets({");
-    expect(merger).toContain("for (const [key, entry] of Object.entries(existingProviders))");
+    expect(merger).toContain(
+      "for (const [key, entry] of Object.entries(normalizedExistingProviders))",
+    );
     expect(merger).toContain("if (!isExistingProviderSelfContained(entry))");
     expect(merger).toContain("mergedProviders[key] = entry");
-    expect(merger).toContain("for (const [key, newEntry] of Object.entries(nextProviders))");
+    expect(merger).toContain(
+      "for (const [key, newEntry] of Object.entries(normalizedNextProviders))",
+    );
     expect(merger).toContain("mergedProviders[key] = { ...newEntry, ...preserved }");
   });
 
   it("treats startup reconciliation failures as non-fatal", () => {
     const startup = readFileSync(GATEWAY_STARTUP_FILE, "utf8");
 
-    expect(startup).toContain("await ensureOpenClawModelsJson(params.cfg, agentDir");
-    expect(startup).toContain(
-      "startup model warmup failed for ${provider}/${model}: ${String(err)}",
-    );
-    expect(startup).toContain("continuing without waiting");
+    expect(startup).toContain("void publishStartupModelRuntime(");
+    expect(startup).toContain("deferred model runtime prewarm failed: ${String(err)}");
+    expect(startup).toContain("prewarmTimer.unref?.()");
   });
 });

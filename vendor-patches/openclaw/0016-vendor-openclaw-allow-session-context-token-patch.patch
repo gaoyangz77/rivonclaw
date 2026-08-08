@@ -1,4 +1,4 @@
-From 306c1cd57edd53d96adfc5fd478e0902bfabd87b Mon Sep 17 00:00:00 2001
+From 7232c7116a1c13635db926119a7b6f771439ed4b Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 18 Jun 2026 23:53:22 -0700
 Subject: [PATCH] vendor(openclaw): allow session context token patch
@@ -21,22 +21,22 @@ Tests:
  3 files changed, 40 insertions(+)
 
 diff --git a/packages/gateway-protocol/src/schema/sessions.ts b/packages/gateway-protocol/src/schema/sessions.ts
-index d938f80f68..d0b78ab20c 100644
+index ed32af118e4..8f8daac8a9f 100644
 --- a/packages/gateway-protocol/src/schema/sessions.ts
 +++ b/packages/gateway-protocol/src/schema/sessions.ts
-@@ -322,6 +322,7 @@ export const SessionsPatchParamsSchema = Type.Object(
-     execAsk: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
-     execNode: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
-     model: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
-+    contextTokens: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()])),
-     spawnedBy: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
-     spawnedWorkspaceDir: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
-     spawnedCwd: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+@@ -538,6 +538,7 @@ export const SessionsPatchParamsSchema = closedObject({
+   execAsk: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+   execNode: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+   model: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
++  contextTokens: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()])),
+   completionOwnerSessionKey: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
+   inheritedToolPolicyVersion: Type.Optional(Type.Union([Type.Literal(1), Type.Null()])),
+   inheritedToolAllow: Type.Optional(Type.Union([Type.Array(NonEmptyString), Type.Null()])),
 diff --git a/src/gateway/sessions-patch.test.ts b/src/gateway/sessions-patch.test.ts
-index 90b86c7996..91539e7bbe 100644
+index 3ed958b6254..f293c98be63 100644
 --- a/src/gateway/sessions-patch.test.ts
 +++ b/src/gateway/sessions-patch.test.ts
-@@ -238,6 +238,33 @@ describe("gateway sessions patch", () => {
+@@ -449,6 +449,33 @@ describe("gateway sessions patch", () => {
      expect(entry.thinkingLevel).toBeUndefined();
    });
  
@@ -67,14 +67,14 @@ index 90b86c7996..91539e7bbe 100644
 +    expect(entry.contextTokens).toBeUndefined();
 +  });
 +
-   test("persists reasoningLevel=off (does not clear)", async () => {
+   test("persists responseUsage=off (does not clear)", async () => {
      const entry = expectPatchOk(
        await runPatch({
 diff --git a/src/gateway/sessions-patch.ts b/src/gateway/sessions-patch.ts
-index b1500b0590..5c708840bc 100644
+index f5a077bb0e2..b692b901101 100644
 --- a/src/gateway/sessions-patch.ts
 +++ b/src/gateway/sessions-patch.ts
-@@ -588,6 +588,18 @@ export async function projectSessionsPatchEntry(params: {
+@@ -640,6 +640,18 @@ export async function projectSessionsPatchEntry(params: {
      }
    }
  
@@ -90,7 +90,7 @@ index b1500b0590..5c708840bc 100644
 +    }
 +  }
 +
-   if (next.thinkingLevel) {
+   if (next.thinkingLevel && ("thinkingLevel" in patch || "model" in patch)) {
      const effectiveProvider = next.providerOverride ?? resolvedDefault.provider;
      const effectiveModel = next.modelOverride ?? resolvedDefault.model;
 -- 
