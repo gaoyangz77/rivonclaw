@@ -7,6 +7,16 @@ export {
   getGatewayCommand,
 } from "./vendor/vendor.js";
 export {
+  inspectVendorStateMigration,
+  migrateVendorStateBeforeGateway,
+  relocateRecreatedGatewayRpcClientIdentity,
+  resolveGatewayRpcClientIdentityPath,
+} from "./vendor/state-migration.js";
+export type {
+  VendorStateMigrationInspection,
+  VendorStateMigrationOptions,
+} from "./vendor/state-migration.js";
+export {
   writeGatewayConfig,
   ensureGatewayConfig,
   readExistingConfig,

@@ -125,6 +125,11 @@
     },
     {
       "file": "packages/gateway/src/generated/openclaw-schema.js",
+      "vendorPath": "vendor/openclaw/node_modules/ms/index.js",
+      "reason": "Auto-generated schema bundles vendor ms (v2026.7.2 duration parsing)"
+    },
+    {
+      "file": "packages/gateway/src/generated/openclaw-schema.js",
       "vendorPath": "vendor/openclaw/node_modules/json5/lib/unicode.js",
       "reason": "Auto-generated schema bundles vendor json5 (v2026.4.11 config parsing)"
     },

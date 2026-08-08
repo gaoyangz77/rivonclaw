@@ -16,8 +16,16 @@ export interface GatewayConfigHandlerDeps {
   writeGatewayConfig: (config: WriteGatewayConfigOptions) => string;
   buildFullProxyEnv: () => Record<string, string>;
   sttManager: { initialize: () => Promise<void> };
-  syncAllAuthProfiles: (stateDir: string, storage: Storage, secretStore: SecretStore) => Promise<void>;
-  writeProxyRouterConfig: (storage: Storage, secretStore: SecretStore, lastSystemProxy: string | null) => Promise<void>;
+  syncAllAuthProfiles: (
+    stateDir: string,
+    storage: Storage,
+    secretStore: SecretStore,
+  ) => Promise<void>;
+  writeProxyRouterConfig: (
+    storage: Storage,
+    secretStore: SecretStore,
+    lastSystemProxy: string | null,
+  ) => Promise<void>;
   getLastSystemProxy: () => string | null;
 }
 
@@ -83,12 +91,15 @@ export function createGatewayConfigHandlers(deps: GatewayConfigHandlerDeps) {
    *   Syncs auth-profiles.json and proxy router config. No restart needed.
    * - `configOnly: true` — Only the config file changed.
    *   The centralized Desktop config writer persists the change with
-   *   gateway.reload.mode=hot, so OpenClaw's watcher may apply hot reloads but
-   *   cannot escalate to a gateway-level restart.
+   *   gateway.reload.mode=hybrid, so OpenClaw's watcher applies dynamic changes
+   *   and classifies settings that require an explicit restart.
    * - Neither — Updates all configs and restarts gateway.
    *   Full restart ensures model changes take effect immediately.
    */
-  async function handleProviderChange(hint?: { configOnly?: boolean; keyOnly?: boolean }): Promise<void> {
+  async function handleProviderChange(hint?: {
+    configOnly?: boolean;
+    keyOnly?: boolean;
+  }): Promise<void> {
     const keyOnly = hint?.keyOnly === true;
     const configOnly = hint?.configOnly === true;
     log.info(`Provider settings changed (keyOnly=${keyOnly}, configOnly=${configOnly})`);

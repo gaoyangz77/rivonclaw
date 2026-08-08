@@ -17,52 +17,55 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-function generateReasoningTags() {
-  const codeRegionsSrc = readFileSync(
-    resolve(ROOT, "vendor/openclaw/src/shared/text/code-regions.ts"),
-    "utf-8",
-  );
-  const reasoningTagsSrc = readFileSync(
-    resolve(ROOT, "vendor/openclaw/src/shared/text/reasoning-tags.ts"),
-    "utf-8",
-  );
-  const finalTagsSrc = readFileSync(
-    resolve(ROOT, "vendor/openclaw/src/shared/text/final-tags.ts"),
-    "utf-8",
-  );
+async function loadEsbuild() {
+  try {
+    return require("esbuild");
+  } catch {
+    // esbuild is not always hoisted by pnpm; resolve it from the virtual store.
+    const { readdirSync } = await import("node:fs");
+    const pnpmDir = resolve(ROOT, "node_modules/.pnpm");
+    const esbuildDir = readdirSync(pnpmDir).find((entry) => entry.startsWith("esbuild@"));
+    if (!esbuildDir) throw new Error("Cannot find esbuild in node_modules/.pnpm/");
+    return require(resolve(pnpmDir, esbuildDir, "node_modules/esbuild/lib/main.js"));
+  }
+}
 
-  // --- Transform code-regions: strip exports, keep as file-private -----------
-  const codeRegionsBody = codeRegionsSrc
-    // Remove "export " keyword — these become file-private
-    .replace(/^export /gm, "");
+async function generateReasoningTags() {
+  const esbuild = await loadEsbuild();
+  const sharedTextDir = resolve(ROOT, "vendor/openclaw/src/shared/text");
+  const result = await esbuild.build({
+    stdin: {
+      contents: ['export * from "./final-tags.js";', 'export * from "./reasoning-tags.js";'].join(
+        "\n",
+      ),
+      resolveDir: sharedTextDir,
+      sourcefile: "reasoning-tags.generated-entry.ts",
+      loader: "ts",
+    },
+    bundle: true,
+    write: false,
+    format: "esm",
+    platform: "node",
+    target: "node22",
+    alias: {
+      "@openclaw/normalization-core": resolve(
+        ROOT,
+        "vendor/openclaw/packages/normalization-core/src/index.ts",
+      ),
+    },
+  });
 
-  // --- Transform reasoning-tags: remove inlined imports, keep exports --------
-  const reasoningTagsBody = reasoningTagsSrc.replace(
-    /^import\s*\{[^}]*\}\s*from\s*["']\.\/(?:code-regions|final-tags)\.js["'];?\s*\n/gm,
-    "",
-  );
-
-  const output = `// AUTO-GENERATED from vendor/openclaw — do not edit manually.
+  const header = `// @ts-nocheck -- esbuild emits JavaScript syntax into this generated TypeScript module.
+// AUTO-GENERATED from vendor/openclaw — do not edit manually.
 // Re-generate with: node scripts/generate-vendor-artifacts.mjs
 
-// ---------------------------------------------------------------------------
-// Inlined from vendor/openclaw/src/shared/text/code-regions.ts (private)
-// ---------------------------------------------------------------------------
-
-${codeRegionsBody.trim()}
-
-// ---------------------------------------------------------------------------
-// Inlined from vendor/openclaw/src/shared/text/final-tags.ts (public exports)
-// ---------------------------------------------------------------------------
-
-${finalTagsSrc.trim()}
-
-// ---------------------------------------------------------------------------
-// From vendor/openclaw/src/shared/text/reasoning-tags.ts (public exports)
-// ---------------------------------------------------------------------------
-
-${reasoningTagsBody.trim()}
 `;
+  const publicTypes = `
+export type ReasoningTagMode = "strict" | "preserve";
+export type ReasoningTagTrim = "none" | "start" | "both";
+export type ReasoningTagScope = "all" | "leading";
+`;
+  const output = header + result.outputFiles[0].text + publicTypes;
 
   const outPath = resolve(ROOT, "packages/core/src/generated/reasoning-tags.ts");
   mkdirSync(dirname(outPath), { recursive: true });
@@ -71,19 +74,7 @@ ${reasoningTagsBody.trim()}
 }
 
 async function generateOpenClawSchema() {
-  // esbuild is not hoisted to root node_modules by pnpm. Resolve it from
-  // the .pnpm flat store via a known consumer package (tsdown).
-  let esbuild;
-  try {
-    esbuild = require("esbuild");
-  } catch {
-    // Fallback: resolve from the pnpm virtual store
-    const { readdirSync } = await import("node:fs");
-    const pnpmDir = resolve(ROOT, "node_modules/.pnpm");
-    const esbuildDir = readdirSync(pnpmDir).find((d) => d.startsWith("esbuild@"));
-    if (!esbuildDir) throw new Error("Cannot find esbuild in node_modules/.pnpm/");
-    esbuild = require(resolve(pnpmDir, esbuildDir, "node_modules/esbuild/lib/main.js"));
-  }
+  const esbuild = await loadEsbuild();
 
   const entryPoint = resolve(ROOT, "vendor/openclaw/src/config/zod-schema.ts");
   const outDir = resolve(ROOT, "packages/gateway/src/generated");
@@ -116,7 +107,13 @@ export declare const OpenClawSchema: z.ZodType<Record<string, unknown>>;
 }
 
 async function generatePluginModelCatalog() {
-  const googleCatalogPath = resolve(ROOT, "vendor/openclaw/extensions/google/provider-catalog.ts");
+  // Import the built entry rather than the TypeScript source. Newer OpenClaw
+  // provider sources use package self-references that only resolve from the
+  // installed package layout; the dist entry keeps those boundaries intact.
+  const googleCatalogPath = resolve(
+    ROOT,
+    "vendor/openclaw/dist/extensions/google/provider-catalog.js",
+  );
   const { buildGoogleStaticCatalogProvider, buildGoogleVertexStaticCatalogProvider } = await import(
     `${pathToFileURL(googleCatalogPath).href}?generated=${Date.now()}`
   );
@@ -144,6 +141,6 @@ export const OPENCLAW_PLUGIN_MODEL_CATALOG = ${JSON.stringify(catalog, null, 2)}
   console.log(`wrote ${outPath}`);
 }
 
-generateReasoningTags();
+await generateReasoningTags();
 await generatePluginModelCatalog();
 await generateOpenClawSchema();

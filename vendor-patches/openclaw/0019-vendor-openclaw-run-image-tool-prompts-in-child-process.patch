@@ -1,4 +1,4 @@
-From c6b43e160f2f8871b115ce640d363d55b0326205 Mon Sep 17 00:00:00 2001
+From 0d755848281a94d13aa5512c497fd870338591ad Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 8 Jul 2026 20:16:28 -0700
 Subject: [PATCH] vendor(openclaw): run image tool prompts in child process
@@ -25,16 +25,16 @@ Tests:
 
 - apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts
 ---
- src/agents/tools/image-tool-worker.ts |  38 ++++++++
- src/agents/tools/image-tool.test.ts   |  51 ++++++++++
- src/agents/tools/image-tool.ts        | 133 +++++++++++++++++++++++++-
+ src/agents/tools/image-tool-worker.ts |  38 +++++++
+ src/agents/tools/image-tool.test.ts   |  49 +++++++++
+ src/agents/tools/image-tool.ts        | 147 +++++++++++++++++++++++++-
  tsdown.config.ts                      |   1 +
- 4 files changed, 218 insertions(+), 5 deletions(-)
+ 4 files changed, 230 insertions(+), 5 deletions(-)
  create mode 100644 src/agents/tools/image-tool-worker.ts
 
 diff --git a/src/agents/tools/image-tool-worker.ts b/src/agents/tools/image-tool-worker.ts
 new file mode 100644
-index 0000000000..f1e6a754b5
+index 00000000000..f1e6a754b5e
 --- /dev/null
 +++ b/src/agents/tools/image-tool-worker.ts
 @@ -0,0 +1,38 @@
@@ -77,10 +77,10 @@ index 0000000000..f1e6a754b5
 +  }
 +});
 diff --git a/src/agents/tools/image-tool.test.ts b/src/agents/tools/image-tool.test.ts
-index a3396cf3a7..11b790ee79 100644
+index 34a6516a907..d3a3a61b441 100644
 --- a/src/agents/tools/image-tool.test.ts
 +++ b/src/agents/tools/image-tool.test.ts
-@@ -3316,3 +3316,54 @@ describe("image compression policy", () => {
+@@ -3461,4 +3461,53 @@ describe("image tool run abort", () => {
      });
    });
  });
@@ -128,27 +128,24 @@ index a3396cf3a7..11b790ee79 100644
 +      });
 +      expect(result).toMatchObject({
 +        content: [{ type: "text", text: "worker-ok" }],
-+        details: {
-+          model: "openai/gpt-5.4-mini",
-+        },
++        details: { model: "openai/gpt-5.4-mini" },
 +      });
 +    });
 +  });
 +});
+ /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
 diff --git a/src/agents/tools/image-tool.ts b/src/agents/tools/image-tool.ts
-index b4796b864b..d4345baaee 100644
+index f203faf4a43..bf8e949b3ca 100644
 --- a/src/agents/tools/image-tool.ts
 +++ b/src/agents/tools/image-tool.ts
-@@ -3,10 +3,15 @@
-  *
-  * Describes local, staged, web, and generated media through configured media-understanding providers.
-  */
+@@ -1,8 +1,13 @@
 -import { resolve, isAbsolute } from "node:path";
 +import { fork } from "node:child_process";
 +import { existsSync } from "node:fs";
 +import { dirname, isAbsolute, resolve } from "node:path";
 +import { fileURLToPath } from "node:url";
  import { Type } from "typebox";
+ import { findCapabilityProviderById } from "../../../packages/media-generation-core/src/capability-model-ref.js";
  import type { OpenClawConfig } from "../../config/types.openclaw.js";
  import type { MediaUnderstandingModelConfig } from "../../config/types.tools.js";
 +import { formatErrorMessage } from "../../infra/errors.js";
@@ -156,7 +153,7 @@ index b4796b864b..d4345baaee 100644
  import {
    DEFAULT_TIMEOUT_SECONDS,
    resolveAutoMediaKeyProviders,
-@@ -87,6 +92,8 @@ import {
+@@ -88,6 +93,8 @@ import {
  
  const DEFAULT_PROMPT = "Describe the image.";
  const DEFAULT_MAX_IMAGES = 20;
@@ -165,7 +162,7 @@ index b4796b864b..d4345baaee 100644
  
  type ImageToolLoadWebMediaOptions = {
    maxBytes?: number;
-@@ -206,6 +213,9 @@ export const testing = {
+@@ -232,6 +239,9 @@ const testing = {
      imageToolProviderDeps.loadImageWebMediaRuntime =
        overrides?.loadImageWebMediaRuntime ?? loadImageWebMediaRuntime;
    },
@@ -175,19 +172,19 @@ index b4796b864b..d4345baaee 100644
  } as const;
  
  function resolveImageToolMaxTokens(modelMaxTokens: number | undefined, requestedMaxTokens = 4096) {
-@@ -632,7 +642,7 @@ type ImageSandboxConfig = {
+@@ -692,7 +702,7 @@ type ImageSandboxConfig = {
    bridge: SandboxFsBridge;
  };
  
 -async function runImagePrompt(params: {
 +export type ImagePromptParams = {
    cfg?: OpenClawConfig;
+   agentId?: string;
    agentDir: string;
-   authStore?: AuthProfileStore;
-@@ -641,12 +651,16 @@ async function runImagePrompt(params: {
-   prompt: string;
-   images: Array<{ buffer: Buffer; mimeType: string }>;
+@@ -704,12 +714,16 @@ async function runImagePrompt(params: {
    workspaceDir?: string;
+   preparedModelRuntime?: PreparedModelRuntimeSnapshot;
+   signal?: AbortSignal;
 -}): Promise<{
 +};
 +
@@ -202,8 +199,8 @@ index b4796b864b..d4345baaee 100644
 +export async function runImagePrompt(params: ImagePromptParams): Promise<ImagePromptResult> {
    const effectiveCfg = applyImageModelConfigDefaults(params.cfg, params.imageModelConfig);
    const providerCfg: OpenClawConfig = effectiveCfg ?? {};
-   const providerRegistry = imageToolProviderDeps.buildProviderRegistry(undefined, providerCfg);
-@@ -748,6 +762,115 @@ async function runImagePrompt(params: {
+   const preparedProviders =
+@@ -842,6 +856,129 @@ async function runImagePrompt(params: {
    };
  }
  
@@ -236,6 +233,7 @@ index b4796b864b..d4345baaee 100644
 +}
 +
 +async function runImagePromptInChildProcess(params: ImagePromptParams): Promise<ImagePromptResult> {
++  params.signal?.throwIfAborted();
 +  const child = fork(resolveImagePromptWorkerPath(), [], {
 +    env: {
 +      ...process.env,
@@ -252,6 +250,7 @@ index b4796b864b..d4345baaee 100644
 +      Number.isFinite(configuredTimeout) && configuredTimeout > 0
 +        ? configuredTimeout
 +        : DEFAULT_CHILD_PROCESS_TIMEOUT_MS;
++    const onAbort = () => finish(new Error("image tool worker aborted"), true);
 +    const timeout = setTimeout(
 +      () => finish(new Error(`image tool worker timed out after ${timeoutMs}ms`), true),
 +      timeoutMs,
@@ -262,6 +261,7 @@ index b4796b864b..d4345baaee 100644
 +      }
 +      settled = true;
 +      clearTimeout(timeout);
++      params.signal?.removeEventListener("abort", onAbort);
 +      if (kill && !child.killed) {
 +        child.kill("SIGKILL");
 +      }
@@ -273,6 +273,7 @@ index b4796b864b..d4345baaee 100644
 +        rejectPromise(new Error("image tool worker returned no result"));
 +      }
 +    };
++    params.signal?.addEventListener("abort", onAbort, { once: true });
 +    child.on("message", (message: unknown) => {
 +      const response = message as ImagePromptWorkerResponse | undefined;
 +      if (response?.type === "success") {
@@ -295,7 +296,16 @@ index b4796b864b..d4345baaee 100644
 +    });
 +    child.send({
 +      type: "run-image-prompt",
-+      params: { ...params, authStore: undefined },
++      params: {
++        cfg: params.cfg,
++        agentId: params.agentId,
++        agentDir: params.agentDir,
++        imageModelConfig: params.imageModelConfig,
++        modelOverride: params.modelOverride,
++        prompt: params.prompt,
++        images: params.images,
++        workspaceDir: params.workspaceDir,
++      },
 +    });
 +  });
 +}
@@ -311,6 +321,7 @@ index b4796b864b..d4345baaee 100644
 +  try {
 +    return await imagePromptChildRunner(params);
 +  } catch (err) {
++    params.signal?.throwIfAborted();
 +    log.warn(`image tool worker unavailable; using main process: ${formatErrorMessage(err)}`);
 +    return await runImagePrompt(params);
 +  }
@@ -318,28 +329,28 @@ index b4796b864b..d4345baaee 100644
 +
  export function createImageTool(options?: {
    config?: OpenClawConfig;
-   agentDir?: string;
-@@ -1046,7 +1169,7 @@ export function createImageTool(options?: {
-       }
- 
-       // MARK: - Run image prompt with all loaded images
+   agentId?: string;
+@@ -1156,7 +1293,7 @@ export function createImageTool(options?: {
+       // Do not issue a paid vision-provider call for an already-aborted run.
+       signal?.throwIfAborted();
+       // Text-only runs delegate image understanding to the configured fallback model.
 -      const result = await runImagePrompt({
 +      const result = await runImagePromptWithWorkerFallback({
+         signal,
          cfg: options?.config,
-         agentDir,
-         authStore: options?.authProfileStore,
+         agentId: options?.agentId,
 diff --git a/tsdown.config.ts b/tsdown.config.ts
-index 9418df0141..a1fabf0a19 100644
+index d98234e9082..df309d124f9 100644
 --- a/tsdown.config.ts
 +++ b/tsdown.config.ts
-@@ -263,6 +263,7 @@ function buildCoreDistEntries(): Record<string, string> {
+@@ -282,6 +282,7 @@ function buildCoreDistEntries(): Record<string, string> {
      "agents/code-mode.worker": "src/agents/code-mode.worker.ts",
      "agents/compaction-planning.worker": "src/agents/compaction-planning.worker.ts",
      "agents/model-provider-auth.worker": "src/agents/model-provider-auth.worker.ts",
 +    "agents/tools/image-tool-worker": "src/agents/tools/image-tool-worker.ts",
-     "acp/control-plane/manager": "src/acp/control-plane/manager.ts",
-     "cli/gateway-lifecycle.runtime": "src/cli/gateway-cli/lifecycle.runtime.ts",
-     "provider-dispatcher.runtime": "src/auto-reply/reply/provider-dispatcher.runtime.ts",
+     "audit/audit-event-writer.worker": "src/audit/audit-event-writer.worker.ts",
+     "config/sessions/session-transcript-reconcile.worker":
+       "src/config/sessions/session-transcript-reconcile.worker.ts",
 -- 
 2.50.1 (Apple Git-155)
 

@@ -45,16 +45,14 @@ describe("resolveVendorEntryPath", () => {
 describe("resolveVendorVersion", () => {
   it("returns a version string from the vendor package.json", () => {
     const version = resolveVendorVersion();
-    // The version should be a non-empty string matching a date-based format
+    // Explicit vendor pins may target a prerelease build of a date-based release.
     expect(version).toBeTruthy();
     expect(typeof version).toBe("string");
-    expect(version).toMatch(/^\d{4}\.\d{1,2}\.\d{1,2}$/);
+    expect(version).toMatch(/^\d{4}\.\d{1,2}\.\d{1,2}(?:-[0-9A-Za-z.-]+)?$/);
   });
 
   it("throws when vendor dir does not exist", () => {
-    expect(() => resolveVendorVersion("/nonexistent/path")).toThrow(
-      /package\.json not found/,
-    );
+    expect(() => resolveVendorVersion("/nonexistent/path")).toThrow(/package\.json not found/);
   });
 });
 
@@ -64,9 +62,7 @@ describe("assertVendorExists", () => {
   });
 
   it("throws when vendor directory does not exist", () => {
-    expect(() => assertVendorExists("/nonexistent/vendor")).toThrow(
-      /vendor directory not found/,
-    );
+    expect(() => assertVendorExists("/nonexistent/vendor")).toThrow(/vendor directory not found/);
   });
 });
 

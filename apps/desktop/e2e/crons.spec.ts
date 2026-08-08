@@ -10,7 +10,7 @@ import { test, expect } from "./electron-fixture.js";
 async function dismissModals(window: import("@playwright/test").Page) {
   for (let i = 0; i < 3; i++) {
     const backdrop = window.locator(".modal-backdrop");
-    if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+    if (!(await backdrop.isVisible({ timeout: 3_000 }).catch(() => false))) break;
     const closeBtn = backdrop.locator(".modal-close-btn");
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
       await closeBtn.click();
@@ -45,6 +45,14 @@ async function navigateToCrons(window: import("@playwright/test").Page) {
   await cronsBtn.click();
   await expect(cronsBtn).toHaveClass(/nav-active/);
   await expect(window.locator(".crons-status-dot-connected")).toBeVisible({ timeout: 30_000 });
+}
+
+async function readCronJobCount(window: import("@playwright/test").Page): Promise<number> {
+  const statusBar = window.locator(".crons-status-bar");
+  await expect(statusBar).toContainText(/Connected\(\d+ jobs?\)/, { timeout: 30_000 });
+  const match = (await statusBar.textContent())?.match(/\((\d+) jobs?\)/);
+  if (!match) throw new Error("Cron status bar did not expose a stable job count");
+  return Number(match[1]);
 }
 
 /**
@@ -90,10 +98,16 @@ async function fillIntervalValue(modal: import("@playwright/test").Locator, valu
  * The modal closes programmatically after the action completes. If the backdrop
  * lingers (e.g. slow gateway), we explicitly click the close button as a fallback.
  */
-async function submitForm(modal: import("@playwright/test").Locator, buttonText: string = "Add Job") {
+async function submitForm(
+  modal: import("@playwright/test").Locator,
+  buttonText: string = "Add Job",
+) {
   const submitBtn = modal.locator(".modal-actions .btn-primary", { hasText: buttonText });
   await submitBtn.click();
-  const hidden = await modal.waitFor({ state: "hidden", timeout: 15_000 }).then(() => true).catch(() => false);
+  const hidden = await modal
+    .waitFor({ state: "hidden", timeout: 15_000 })
+    .then(() => true)
+    .catch(() => false);
   if (!hidden) {
     const closeBtn = modal.locator(".modal-close-btn");
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
@@ -164,7 +178,10 @@ async function deleteJob(window: import("@playwright/test").Page, jobName: strin
   await expect(confirmDialog).toContainText(jobName);
   const confirmBtn = confirmDialog.locator(".btn-danger", { hasText: "Delete" });
   await confirmBtn.click();
-  const hidden = await confirmDialog.waitFor({ state: "hidden", timeout: 10_000 }).then(() => true).catch(() => false);
+  const hidden = await confirmDialog
+    .waitFor({ state: "hidden", timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
   if (!hidden) {
     const closeBtn = confirmDialog.locator(".modal-close-btn");
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
@@ -174,9 +191,7 @@ async function deleteJob(window: import("@playwright/test").Page, jobName: strin
   }
 }
 
-
 test.describe("Crons Page", () => {
-
   // ──────────────────────────────────────────────────────────
   // 1. Full CRUD lifecycle: create, edit, toggle, run, history, delete
   // ──────────────────────────────────────────────────────────
@@ -274,9 +289,9 @@ test.describe("Crons Page", () => {
     await expect(historyModal.locator(".modal-header")).toContainText("E2E CRUD Job Edited");
 
     // History may show the run we just triggered, or empty state
-    await expect(
-      historyModal.locator(".crons-runs-table, .empty-state"),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(historyModal.locator(".crons-runs-table, .empty-state")).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Close history
     const closeBtn = historyModal.locator(".modal-close-btn");
@@ -286,8 +301,8 @@ test.describe("Crons Page", () => {
     // ── DELETE ──
     await deleteJob(window, "E2E CRUD Job Edited");
 
-    // Back to empty state
-    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
+    // The vendor may retain managed system jobs. Verify only our job was removed.
+    await expect(table.locator("tr", { hasText: "E2E CRUD Job Edited" })).toHaveCount(0);
   });
 
   // ──────────────────────────────────────────────────────────
@@ -316,10 +331,10 @@ test.describe("Crons Page", () => {
     const builderFields = modal.locator(".crons-builder-row .custom-select-trigger");
     await expect(builderFields).toHaveCount(5);
     await expect(builderFields.nth(0)).toContainText("Every 5 min"); // minute = */5
-    await expect(builderFields.nth(1)).toContainText("Any");          // hour = *
-    await expect(builderFields.nth(2)).toContainText("Any");          // day = *
-    await expect(builderFields.nth(3)).toContainText("Any");          // month = *
-    await expect(builderFields.nth(4)).toContainText("Any");          // weekday = *
+    await expect(builderFields.nth(1)).toContainText("Any"); // hour = *
+    await expect(builderFields.nth(2)).toContainText("Any"); // day = *
+    await expect(builderFields.nth(3)).toContainText("Any"); // month = *
+    await expect(builderFields.nth(4)).toContainText("Any"); // weekday = *
 
     // Change weekday via visual builder to Monday (use exact match to avoid "Mon–Fri")
     await builderFields.nth(4).click();
@@ -376,7 +391,9 @@ test.describe("Crons Page", () => {
     await datetimeInput.fill(formatted);
 
     // Verify Delete After Run is now auto-enabled
-    const deleteAfterRunCheckbox = modal.locator(".crons-checkbox-label", { hasText: "Delete after run" }).locator("input[type='checkbox']");
+    const deleteAfterRunCheckbox = modal
+      .locator(".crons-checkbox-label", { hasText: "Delete after run" })
+      .locator("input[type='checkbox']");
     await expect(deleteAfterRunCheckbox).toBeChecked();
 
     // Fill message.
@@ -544,7 +561,9 @@ test.describe("Crons Page", () => {
 
     // Verify wake mode shows "Next heartbeat"
     const editWakeModeGroup = editModal.locator(".form-group").filter({ hasText: "Wake Mode" });
-    await expect(editWakeModeGroup.locator(".custom-select-trigger")).toContainText("Next heartbeat");
+    await expect(editWakeModeGroup.locator(".custom-select-trigger")).toContainText(
+      "Next heartbeat",
+    );
 
     // Cancel edit
     const cancelBtn = editModal.locator(".modal-actions .btn-secondary", { hasText: "Cancel" });
@@ -589,7 +608,9 @@ test.describe("Crons Page", () => {
     // First disable Beta Job
     const betaRow = table.locator("tr", { hasText: "Beta Job" });
     await betaRow.locator(".toggle-switch").click();
-    await expect(betaRow.locator(".toggle-switch input[type='checkbox']")).not.toBeChecked({ timeout: 10_000 });
+    await expect(betaRow.locator(".toggle-switch input[type='checkbox']")).not.toBeChecked({
+      timeout: 10_000,
+    });
 
     // Filter to "Enabled" only
     const filterSelects = window.locator(".crons-filter-select .custom-select-trigger");
@@ -619,7 +640,8 @@ test.describe("Crons Page", () => {
     // Cleanup
     await deleteJob(window, "Alpha Job");
     await deleteJob(window, "Beta Job");
-    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
+    await expect(table.locator("tr", { hasText: "Alpha Job" })).toHaveCount(0);
+    await expect(table.locator("tr", { hasText: "Beta Job" })).toHaveCount(0);
   });
 
   // ──────────────────────────────────────────────────────────
@@ -666,7 +688,11 @@ test.describe("Crons Page", () => {
     await navigateToCrons(window);
 
     // Create an interval job with specific unit
-    await createIntervalJob(window, "Interval Persist Job", { intervalValue: "2", unit: "Hours", message: "Interval persist test" });
+    await createIntervalJob(window, "Interval Persist Job", {
+      intervalValue: "2",
+      unit: "Hours",
+      message: "Interval persist test",
+    });
 
     // Verify schedule in table
     const table = window.locator(".crons-table");
@@ -805,7 +831,9 @@ test.describe("Crons Page", () => {
     const table = window.locator(".crons-table");
     const jobRow = table.locator("tr", { hasText: "Described Job" });
     await expect(jobRow).toBeVisible({ timeout: 10_000 });
-    await expect(jobRow.locator(".crons-job-desc")).toContainText("This is a detailed job description");
+    await expect(jobRow.locator(".crons-job-desc")).toContainText(
+      "This is a detailed job description",
+    );
 
     // Edit and verify description persists
     const editBtn = jobRow.locator(".btn", { hasText: "Edit" });
@@ -885,7 +913,7 @@ test.describe("Crons Page", () => {
     const dropdown = window.locator(".custom-select-dropdown");
 
     // Retry trigger click if dropdown didn't appear (scroll/reposition race)
-    if (!await dropdown.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    if (!(await dropdown.isVisible({ timeout: 2_000 }).catch(() => false))) {
       await tzTrigger.click();
     }
     await expect(dropdown).toBeVisible({ timeout: 5_000 });
@@ -896,9 +924,14 @@ test.describe("Crons Page", () => {
     // Select Tokyo via DOM click (bypasses Playwright's scroll-into-view which
     // can detach the element when the portal dropdown is repositioning)
     await window.evaluate(() => {
-      const opts = document.querySelectorAll<HTMLButtonElement>(".custom-select-dropdown .custom-select-option");
+      const opts = document.querySelectorAll<HTMLButtonElement>(
+        ".custom-select-dropdown .custom-select-option",
+      );
       for (const opt of opts) {
-        if (opt.textContent?.includes("Tokyo")) { opt.click(); break; }
+        if (opt.textContent?.includes("Tokyo")) {
+          opt.click();
+          break;
+        }
       }
     });
 
@@ -917,15 +950,21 @@ test.describe("Crons Page", () => {
   test("status bar shows job count", async ({ window }) => {
     await navigateToCrons(window);
 
+    const baselineCount = await readCronJobCount(window);
+
     // Create a job
-    await createIntervalJob(window, "Count Test Job", { intervalValue: "60", message: "Count test" });
+    await createIntervalJob(window, "Count Test Job", {
+      intervalValue: "60",
+      message: "Count test",
+    });
 
     // Wait for table
-    await expect(window.locator(".crons-table")).toBeVisible({ timeout: 10_000 });
+    const table = window.locator(".crons-table");
+    await expect(table).toBeVisible({ timeout: 10_000 });
 
-    // Status bar should show job count
+    // Status bar should include the vendor-managed baseline plus our new job.
     const statusBar = window.locator(".crons-status-bar");
-    await expect(statusBar).toContainText("1");
+    await expect(statusBar).toContainText(`${baselineCount + 1} jobs`);
 
     // Cleanup
     await deleteJob(window, "Count Test Job");
@@ -939,7 +978,11 @@ test.describe("Crons Page", () => {
     await navigateToCrons(window);
 
     // Create a job with long interval so it never runs
-    await createIntervalJob(window, "History Empty Job", { intervalValue: "9999", unit: "Hours", message: "History empty test" });
+    await createIntervalJob(window, "History Empty Job", {
+      intervalValue: "9999",
+      unit: "Hours",
+      message: "History empty test",
+    });
 
     // Open history
     const table = window.locator(".crons-table");
@@ -966,7 +1009,7 @@ test.describe("Crons Page", () => {
   // 17. Page navigation & empty state
   // ──────────────────────────────────────────────────────────
 
-  test("navigates to crons page and shows empty state", async ({ window }) => {
+  test("navigates to crons page and shows the jobs surface", async ({ window }) => {
     await navigateToCrons(window);
 
     // Page title (scoped to avoid matching other page h1s still in DOM)
@@ -980,8 +1023,8 @@ test.describe("Crons Page", () => {
     await expect(statusBar).toBeVisible();
     await expect(statusBar).toContainText("Connected");
 
-    // Empty state since no jobs exist
-    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
+    // Newer vendors can provision managed system jobs during startup.
+    await expect(window.locator(".crons-table, .empty-state")).toBeVisible({ timeout: 10_000 });
 
     // Toolbar with search, filters, and Add Job button
     const toolbar = window.locator(".crons-toolbar");
@@ -1000,8 +1043,8 @@ test.describe("Crons Page", () => {
   test("cancelling the create form does not create a job", async ({ window }) => {
     await navigateToCrons(window);
 
-    // Verify empty state
-    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 10_000 });
+    const table = window.locator(".crons-table");
+    const baselineCount = await readCronJobCount(window);
 
     // Open create form
     const modal = await openCreateForm(window);
@@ -1012,8 +1055,9 @@ test.describe("Crons Page", () => {
     await cancelBtn.click();
     await expect(modal).toBeHidden({ timeout: 5_000 });
 
-    // Still empty state
-    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 5_000 });
+    // No test job was added; managed vendor jobs remain untouched.
+    await expect(table.locator("tr", { hasText: "Should Not Exist" })).toHaveCount(0);
+    expect(await readCronJobCount(window)).toBe(baselineCount);
   });
 
   // ──────────────────────────────────────────────────────────
@@ -1022,6 +1066,9 @@ test.describe("Crons Page", () => {
 
   test("close form by clicking modal backdrop", async ({ window }) => {
     await navigateToCrons(window);
+
+    const table = window.locator(".crons-table");
+    const baselineCount = await readCronJobCount(window);
 
     // Open create form
     const modal = await openCreateForm(window);
@@ -1037,8 +1084,9 @@ test.describe("Crons Page", () => {
     await window.mouse.up();
     await expect(modal).toBeHidden({ timeout: 5_000 });
 
-    // No job created
-    await expect(window.getByText("No cron jobs yet")).toBeVisible({ timeout: 5_000 });
+    // No test job was added; managed vendor jobs remain untouched.
+    await expect(table.locator("tr", { hasText: "Backdrop Close Test" })).toHaveCount(0);
+    expect(await readCronJobCount(window)).toBe(baselineCount);
   });
 
   // ──────────────────────────────────────────────────────────
@@ -1049,7 +1097,10 @@ test.describe("Crons Page", () => {
     await navigateToCrons(window);
 
     // Create a job
-    await createIntervalJob(window, "Keep Me Job", { intervalValue: "60", message: "Keep me test" });
+    await createIntervalJob(window, "Keep Me Job", {
+      intervalValue: "60",
+      message: "Keep me test",
+    });
 
     const table = window.locator(".crons-table");
     const jobRow = table.locator("tr", { hasText: "Keep Me Job" });

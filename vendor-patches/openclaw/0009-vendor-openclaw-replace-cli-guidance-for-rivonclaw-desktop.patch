@@ -1,4 +1,4 @@
-From 2159a22b3016228e9479f87ab725f18a94bbda42 Mon Sep 17 00:00:00 2001
+From 5298e0ee57bdaecc3920c27dba5ae216b50cf0d1 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 25 Apr 2026 20:08:44 -0700
 Subject: [PATCH] vendor(openclaw): replace CLI guidance for RivonClaw desktop
@@ -13,35 +13,39 @@ Removal:
 Tests:
 - apps/desktop/src/cs-bridge/vendor-no-openclaw-cli-guidance.sentinel.test.ts
 ---
- src/agents/system-prompt.ts | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ src/agents/system-prompt.ts | 20 ++++++++------------
+ 1 file changed, 8 insertions(+), 12 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 4586f042b1..f32b5e91b4 100644
+index 0fc2477021d..843d6910f4b 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -614,9 +614,9 @@ function buildDocsSection(params: {
-       : "Docs are authoritative for OpenClaw self-knowledge: before understanding how OpenClaw works (memory/daily notes, sessions, tools, Gateway, config, commands, project context), use the docs mirror first when web tooling is available; treat AGENTS.md/project context, workspace/profile/memory notes, and `memory_search` as instruction context or user memory, not OpenClaw design/implementation knowledge.",
-     "Config fields: use `gateway` action `config.schema.lookup`; broader config docs: `docs/gateway/configuration.md`, `docs/gateway/configuration-reference.md`.",
+@@ -687,9 +687,9 @@ function buildDocsSection(params: {
+       : "OpenClaw behavior questions: docs mirror first when web exists. AGENTS/project/workspace/profile/memory = instructions/user memory, not product design truth.",
+     "Config field: `gateway(config.schema.lookup)` exact path. Broader: `docs/gateway/configuration.md`, `docs/gateway/configuration-reference.md`.",
      sourcePath
 -      ? "If docs are silent/stale, say so and inspect local source."
 -      : "If docs are silent/stale, say so and inspect GitHub source.",
--    "Diagnosing issues: run `openclaw status` when possible; ask user only if blocked.",
+-    "Diagnosis: run `openclaw status` when possible; ask only if blocked.",
 +      ? "If docs are incomplete or stale, inspect the local OpenClaw source code before answering."
 +      : "If docs are incomplete or stale, review the OpenClaw source on GitHub before answering.",
 +    "When diagnosing issues in RivonClaw Desktop, use available first-class runtime tools instead of shelling out to the OpenClaw CLI.",
      "",
    ];
    return lines.filter((line): line is string => line !== undefined);
-@@ -1138,11 +1138,11 @@ export function buildAgentSystemPrompt(params: {
+@@ -1267,15 +1267,11 @@ export function buildAgentSystemPrompt(params: {
          fallback: [],
        }),
        ...safetySection,
 -      "## OpenClaw Control",
 -      "Do not invent commands.",
--      "Config/restart: prefer `gateway` tool (`config.schema.lookup|get|patch|apply`, `restart`).",
--      "CLI lifecycle only on explicit user request: `openclaw gateway status|restart|start|stop`.",
--      "`restart`, not stop+start.",
+-      ...(hasOpenClaw
+-        ? [
+-            "Config, channels, plugins, new agents, model/provider, updates: ask `openclaw`. Never write own config; OpenClaw is system expert.",
+-          ]
+-        : [
+-            "Config read: `gateway` (`config.get|config.schema.lookup`). Write/restart unavailable; ask human.",
+-          ]),
 +      "## RivonClaw Desktop Runtime",
 +      "RivonClaw Desktop manages the OpenClaw gateway lifecycle for this session.",
 +      "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",

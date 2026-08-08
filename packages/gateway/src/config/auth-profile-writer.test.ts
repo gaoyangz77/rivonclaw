@@ -29,8 +29,23 @@ function createTempDir(): string {
 }
 
 function readJsonFile(path: string): unknown {
+  if (!existsSync(path)) {
+    const database = new DatabaseSync(join(resolve(path, ".."), AUTH_PROFILE_DATABASE_BASENAME), {
+      readOnly: true,
+    });
+    try {
+      const row = database
+        .prepare("SELECT store_json FROM auth_profile_store WHERE store_key = ?")
+        .get("primary") as { store_json: string };
+      return JSON.parse(row.store_json);
+    } finally {
+      database.close();
+    }
+  }
   return JSON.parse(readFileSync(path, "utf-8"));
 }
+
+const AUTH_PROFILE_DATABASE_BASENAME = "openclaw-agent.sqlite";
 
 function readSqliteStore(stateDir: string): unknown {
   const database = new DatabaseSync(resolveAuthProfileDatabasePath(stateDir), { readOnly: true });
@@ -39,6 +54,16 @@ function readSqliteStore(stateDir: string): unknown {
       .prepare("SELECT store_json FROM auth_profile_store WHERE store_key = ?")
       .get("primary") as { store_json: string };
     return JSON.parse(row.store_json);
+  } finally {
+    database.close();
+  }
+}
+
+function readSqliteVersion(stateDir: string): number {
+  const database = new DatabaseSync(resolveAuthProfileDatabasePath(stateDir), { readOnly: true });
+  try {
+    const row = database.prepare("PRAGMA user_version").get() as { user_version: number };
+    return row.user_version;
   } finally {
     database.close();
   }
@@ -91,7 +116,7 @@ describe("syncAuthProfile", () => {
         qwen: ["qwen:active"],
       },
     });
-    expect(readSqliteStore(stateDir)).toEqual(store);
+    expect(existsSync(resolveAuthProfileDatabasePath(stateDir))).toBe(false);
   });
 
   it("overwrites existing profile for the same provider", () => {
@@ -115,8 +140,18 @@ describe("syncAuthProfile", () => {
     expect(profiles["qwen:active"].key).toBe("sk-qwen-key");
   });
 
-  it("treats SQLite as authoritative when the legacy JSON mirror diverges", () => {
-    syncAuthProfile(stateDir, "openai", "sk-sqlite-key");
+  it("treats SQLite as authoritative when the legacy JSON mirror diverges", async () => {
+    await syncAllAuthProfiles(
+      stateDir,
+      {
+        providerKeys: {
+          getAll: () => [{ id: "openai-key", provider: "openai", isDefault: true }],
+        },
+      },
+      {
+        get: async (key: string) => (key === "provider-key-openai-key" ? "sk-sqlite-key" : null),
+      },
+    );
 
     const filePath = resolveAuthProfilePath(stateDir);
     const staleStore = {
@@ -140,7 +175,7 @@ describe("syncAuthProfile", () => {
     expect(store.profiles["openai:active"].key).toBe("sk-sqlite-key");
     expect(store.profiles["qwen:active"].key).toBe("sk-qwen-key");
     expect(store.profiles["anthropic:active"]).toBeUndefined();
-    expect(readJsonFile(filePath)).toEqual(store);
+    expect(existsSync(filePath)).toBe(false);
   });
 
   it("maps subscription plan names to gateway provider names", () => {
@@ -197,7 +232,7 @@ describe("removeAuthProfile", () => {
     const filePath = resolveAuthProfilePath(stateDir);
     const store = readJsonFile(filePath) as Record<string, unknown>;
     expect(store).toEqual({ version: 1, profiles: {}, order: {} });
-    expect(readSqliteStore(stateDir)).toEqual(store);
+    expect(existsSync(resolveAuthProfileDatabasePath(stateDir))).toBe(false);
   });
 });
 
@@ -258,6 +293,11 @@ describe("syncAllAuthProfiles", () => {
         qwen: ["qwen:active"],
       },
     });
+    const vendorManifest = JSON.parse(readFileSync(join(VENDOR_ROOT, "package.json"), "utf-8")) as {
+      openclaw: { schemaVersions: { agent: number } };
+    };
+    expect(readSqliteVersion(stateDir)).toBe(vendorManifest.openclaw.schemaVersions.agent);
+    expect(existsSync(filePath)).toBe(false);
   });
 
   it("prefers default key when multiple keys exist for same provider", async () => {

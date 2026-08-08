@@ -14,28 +14,29 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-07-12.1";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-08.1";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = ["copilot", "copilot-proxy", "github-copilot"];
 
 function hasCompletedProductionInstall() {
   try {
-    const modulesState = JSON.parse(
-      fs.readFileSync(path.join(nmDir, ".modules.yaml"), "utf-8"),
+    const modulesState = JSON.parse(fs.readFileSync(path.join(nmDir, ".modules.yaml"), "utf-8"));
+    return (
+      modulesState?.included?.dependencies === true &&
+      modulesState?.included?.devDependencies === false
     );
-    return modulesState?.included?.dependencies === true &&
-      modulesState?.included?.devDependencies === false;
   } catch {
     return false;
   }
 }
 
-const macRuntimeArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "arm64" ||
+const macRuntimeArch =
+  process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "arm64" ||
   process.env.RIVONCLAW_MAC_RUNTIME_ARCH === "x64"
-  ? process.env.RIVONCLAW_MAC_RUNTIME_ARCH
-  : process.platform === "darwin" && (process.arch === "arm64" || process.arch === "x64")
-    ? process.arch
-    : null;
+    ? process.env.RIVONCLAW_MAC_RUNTIME_ARCH
+    : process.platform === "darwin" && (process.arch === "arm64" || process.arch === "x64")
+      ? process.arch
+      : null;
 
 // Package blacklist. Scope-only entries remove every package inside that scope.
 const EXTRA_REMOVE = [
@@ -202,7 +203,8 @@ function packageDirsForExactOrScope(pkg) {
   if (pkg.startsWith("@") && !pkg.includes("/")) {
     const scopeDir = path.join(nmDir, pkg);
     if (!fs.existsSync(scopeDir)) return [];
-    return fs.readdirSync(scopeDir, { withFileTypes: true })
+    return fs
+      .readdirSync(scopeDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => path.join(scopeDir, entry.name));
   }
@@ -291,6 +293,77 @@ function hasRequiredOfficialVendorPlugins() {
   ].every((requiredPath) => fs.existsSync(requiredPath));
 }
 
+function workspaceDependencies() {
+  const manifest = JSON.parse(fs.readFileSync(path.join(vendorDir, "package.json"), "utf-8"));
+  return Object.entries(manifest.dependencies ?? {})
+    .filter(([, version]) => String(version).startsWith("workspace:"))
+    .map(([name]) => name);
+}
+
+function packageDir(packageName) {
+  return path.join(nmDir, ...packageName.split("/"));
+}
+
+function hasMaterializedWorkspaceDependencies() {
+  return workspaceDependencies().every((packageName) => {
+    const destination = packageDir(packageName);
+    try {
+      return (
+        !fs.lstatSync(destination).isSymbolicLink() &&
+        fs.existsSync(path.join(destination, "package.json"))
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+function materializeWorkspaceDependencies() {
+  for (const packageName of workspaceDependencies()) {
+    const destination = packageDir(packageName);
+    let source;
+    try {
+      source = fs.realpathSync(destination);
+    } catch {
+      throw new Error(`workspace dependency is not installed: ${packageName}`);
+    }
+
+    const relativeSource = path.relative(vendorDir, source);
+    if (relativeSource.startsWith("..") || path.isAbsolute(relativeSource)) {
+      throw new Error(`workspace dependency points outside vendor: ${packageName} -> ${source}`);
+    }
+
+    if (!fs.lstatSync(destination).isSymbolicLink()) {
+      continue;
+    }
+
+    const manifestPath = path.join(source, "package.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+    const publishedFiles = Array.isArray(manifest.files) ? manifest.files : [];
+    if (publishedFiles.length === 0) {
+      throw new Error(`workspace dependency has no package files allowlist: ${packageName}`);
+    }
+
+    const staged = `${destination}.rivonclaw-materialize-${process.pid}`;
+    fs.rmSync(staged, { recursive: true, force: true });
+    fs.mkdirSync(staged, { recursive: true });
+    fs.copyFileSync(manifestPath, path.join(staged, "package.json"));
+
+    for (const entry of publishedFiles) {
+      if (typeof entry !== "string" || /[*?{}[\]]/u.test(entry)) {
+        throw new Error(`unsupported package files entry for ${packageName}: ${String(entry)}`);
+      }
+      const sourceEntry = path.join(source, entry);
+      if (!fs.existsSync(sourceEntry)) continue;
+      fs.cpSync(sourceEntry, path.join(staged, entry), { recursive: true });
+    }
+
+    fs.rmSync(destination, { recursive: true, force: true });
+    fs.renameSync(staged, destination);
+    console.log(`  materialized workspace dependency ${packageName}`);
+  }
+}
+
 function makeDistVisibleToElectronBuilder() {
   const gitignorePath = path.join(vendorDir, ".gitignore");
   if (!fs.existsSync(gitignorePath)) return;
@@ -333,7 +406,9 @@ function copyExtensionManifestsIntoDist() {
 
 function isPluginSkillMarkdown(filePath) {
   const rel = path.relative(vendorDir, filePath).replace(/\\/g, "/");
-  return /^(dist\/extensions|dist-runtime\/extensions|extensions)\/[^/]+\/skills\/[^/]+\/SKILL\.md$/u.test(rel);
+  return /^(dist\/extensions|dist-runtime\/extensions|extensions)\/[^/]+\/skills\/[^/]+\/SKILL\.md$/u.test(
+    rel,
+  );
 }
 
 function stripNonRuntimeFiles(rootDir, depth = 0) {
@@ -368,7 +443,8 @@ function stripNonRuntimeFiles(rootDir, depth = 0) {
 
     let shouldStrip = STRIP_FILES.has(entry.name) || STRIP_DTS_RE.test(entry.name);
     if (!shouldStrip) {
-      shouldStrip = STRIP_EXTS.some((ext) => entry.name.endsWith(ext)) && !isPluginSkillMarkdown(full);
+      shouldStrip =
+        STRIP_EXTS.some((ext) => entry.name.endsWith(ext)) && !isPluginSkillMarkdown(full);
     }
     if (!shouldStrip) continue;
 
@@ -411,11 +487,7 @@ function stripOtherDarwinArch() {
           : entry.isDirectory()
             ? dirSize(full)
             : fs.statSync(full).size;
-        const count = entry.isSymbolicLink()
-          ? 1
-          : entry.isDirectory()
-            ? fileCount(full)
-            : 1;
+        const count = entry.isSymbolicLink() ? 1 : entry.isDirectory() ? fileCount(full) : 1;
         fs.rmSync(full, { recursive: true, force: true });
         removedBytes += size;
         removedEntries += count;
@@ -540,7 +612,8 @@ function removeOrphanedDistRuntimeWrappers() {
   let bytes = 0;
   const distEntries = fs.existsSync(distExtDir)
     ? new Set(
-        fs.readdirSync(distExtDir, { withFileTypes: true })
+        fs
+          .readdirSync(distExtDir, { withFileTypes: true })
           .filter((entry) => entry.isDirectory())
           .map((entry) => entry.name),
       )
@@ -572,7 +645,8 @@ if (fs.existsSync(prunedMarkerPath)) {
     !hasDevDeps &&
     !hasBlacklistedPackage() &&
     disabledVendorExtensionDirs().length === 0 &&
-    hasRequiredOfficialVendorPlugins()
+    hasRequiredOfficialVendorPlugins() &&
+    hasMaterializedWorkspaceDependencies()
   ) {
     console.log("[prune-vendor-deps] Already pruned (.pruned marker found), skipping.");
     process.exit(0);
@@ -606,6 +680,9 @@ try {
     process.exit(1);
   }
 }
+
+console.log("[prune-vendor-deps] Materializing production workspace dependencies ...");
+materializeWorkspaceDependencies();
 
 try {
   execSync("git checkout -- .", { cwd: vendorDir, stdio: "ignore" });

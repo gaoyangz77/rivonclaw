@@ -1,10 +1,12 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, chmodSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { pathToFileURL } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { createLogger } from "@rivonclaw/logger";
 import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
 import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
 import { SecretStoreAccessError } from "@rivonclaw/secrets";
+import { resolveVendorDir } from "../vendor/vendor.js";
 
 const log = createLogger("gateway:auth-profile");
 
@@ -13,6 +15,13 @@ const AUTH_PROFILE_DATABASE_FILENAME = "openclaw-agent.sqlite";
 const AUTH_PROFILE_STORE_KEY = "primary";
 const REMOVED_GEMINI_RUNTIME_PROVIDER = "google-gemini-cli";
 const REMOVED_GEMINI_CLI_HOME_DIRNAME = "gemini-cli-home";
+
+type VendorSqliteRuntime = {
+  ensureOpenClawAgentDatabaseSchema: (
+    database: DatabaseSync,
+    options: { agentId: string; path: string; env: NodeJS.ProcessEnv },
+  ) => void;
+};
 
 type ApiKeyProfile = { type: "api_key"; provider: string; key: string };
 type OAuthProfile = {
@@ -174,19 +183,72 @@ export function activateAuthProfile(
  * Write the auth profile store to OpenClaw's authoritative SQLite database.
  * Matches OpenClaw's convention: directory 0o700, database 0o600.
  */
-function writeDatabaseStore(databasePath: string, store: AuthProfileStore): void {
-  const dir = dirname(databasePath);
-  mkdirSync(dir, { recursive: true, mode: 0o700 });
+async function ensureAuthProfileDatabase(stateDir: string): Promise<void> {
+  const databasePath = resolveAuthProfileDatabasePath(stateDir);
+  const vendorDistDir = process.env.RIVONCLAW_OPENCLAW_DIST_DIR ?? join(resolveVendorDir(), "dist");
+  const vendorPackagePath = join(dirname(vendorDistDir), "package.json");
+  const vendorPackage = JSON.parse(readFileSync(vendorPackagePath, "utf-8")) as {
+    openclaw?: { schemaVersions?: { agent?: unknown } };
+  };
+  const targetVersion = vendorPackage.openclaw?.schemaVersions?.agent;
+  if (!Number.isSafeInteger(targetVersion) || Number(targetVersion) <= 0) {
+    throw new Error(
+      `OpenClaw does not declare a valid agent schema version at ${vendorPackagePath}`,
+    );
+  }
+
+  const existed = existsSync(databasePath);
+  if (existed) {
+    const inspection = new DatabaseSync(databasePath, { readOnly: true });
+    try {
+      const version = Number(
+        (inspection.prepare("PRAGMA user_version").get() as { user_version?: unknown } | undefined)
+          ?.user_version ?? 0,
+      );
+      if (version === targetVersion) return;
+      if (version !== 0) {
+        throw new Error(
+          `OpenClaw agent database ${databasePath} uses schema version ${version}; ` +
+            "run the Desktop vendor migration before syncing auth profiles",
+        );
+      }
+      const tables = inspection
+        .prepare(
+          "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+        )
+        .all()
+        .map((row) => String((row as { name?: unknown }).name));
+      if (tables.some((name) => name !== "auth_profile_store")) {
+        throw new Error(
+          `Refusing to adopt unowned schema-version-0 agent database ${databasePath}`,
+        );
+      }
+    } finally {
+      inspection.close();
+    }
+  }
+
+  mkdirSync(dirname(databasePath), { recursive: true, mode: 0o700 });
+  const runtimePath = join(vendorDistDir, "plugin-sdk", "sqlite-runtime.js");
+  const runtime = (await import(pathToFileURL(runtimePath).href)) as VendorSqliteRuntime;
   const database = new DatabaseSync(databasePath);
   try {
-    database.exec(`
-      PRAGMA busy_timeout = 5000;
-      CREATE TABLE IF NOT EXISTS auth_profile_store (
-        store_key TEXT NOT NULL PRIMARY KEY,
-        store_json TEXT NOT NULL,
-        updated_at INTEGER NOT NULL
-      );
-    `);
+    runtime.ensureOpenClawAgentDatabaseSchema(database, {
+      agentId: DEFAULT_AGENT_ID,
+      path: databasePath,
+      env: { ...process.env, OPENCLAW_STATE_DIR: stateDir },
+    });
+  } finally {
+    database.close();
+  }
+}
+
+function writeDatabaseStore(databasePath: string, store: AuthProfileStore): boolean {
+  if (!existsSync(databasePath)) return false;
+
+  const database = new DatabaseSync(databasePath);
+  try {
+    database.exec("PRAGMA busy_timeout = 5000");
     database
       .prepare(
         `INSERT INTO auth_profile_store (store_key, store_json, updated_at)
@@ -200,18 +262,23 @@ function writeDatabaseStore(databasePath: string, store: AuthProfileStore): void
     database.close();
   }
   chmodSync(databasePath, 0o600);
+  return true;
 }
 
 function writeStore(filePath: string, databasePath: string, store: AuthProfileStore): void {
   const dir = dirname(filePath);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
-  // OpenClaw v2026.6.11+ reads SQLite. Keep JSON in sync for rollback to older
-  // vendored versions and for diagnostics, but never treat it as authoritative.
-  writeDatabaseStore(databasePath, store);
-  writeFileSync(filePath, JSON.stringify(store, null, 2) + "\n", {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  // OpenClaw owns the agent database schema. Before the asynchronous startup
+  // bootstrap has initialized it, keep a temporary legacy store without
+  // claiming the SQLite pathname. syncAllAuthProfiles imports and removes it.
+  if (writeDatabaseStore(databasePath, store)) {
+    rmSync(filePath, { force: true });
+  } else {
+    writeFileSync(filePath, JSON.stringify(store, null, 2) + "\n", {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+  }
 }
 
 function purgeRemovedGeminiOAuthState(stateDir: string, store: AuthProfileStore): boolean {
@@ -298,10 +365,15 @@ export async function syncAllAuthProfiles(
 ): Promise<void> {
   const filePath = resolveAuthProfilePath(stateDir);
   const databasePath = resolveAuthProfileDatabasePath(stateDir);
+  const databaseExisted = existsSync(databasePath);
+  const preBootstrapStore = readStore(filePath, databasePath);
+  await ensureAuthProfileDatabase(stateDir);
   // OpenClaw's auth store is authoritative. Merge Desktop-managed Keychain
   // material into the existing store instead of rebuilding the whole file
   // from SQLite metadata and deleting vendor/user-created profiles.
-  const store = readStore(filePath, databasePath);
+  const store = databaseExisted
+    ? (readDatabaseStore(databasePath) ?? preBootstrapStore)
+    : preBootstrapStore;
   store.order ??= {};
   const removedGeminiState = purgeRemovedGeminiOAuthState(stateDir, store);
 

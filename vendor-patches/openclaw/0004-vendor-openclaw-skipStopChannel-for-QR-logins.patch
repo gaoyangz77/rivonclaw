@@ -1,4 +1,4 @@
-From 58a5091c6e25cdc73ff8407c8e83aa64635f70f0 Mon Sep 17 00:00:00 2001
+From b3dccc0358d9fd08e4e7d6e53feb94b3ccdcab0d Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:17:51 -0700
 Subject: [PATCH] vendor(openclaw): skip stopChannel for new-account QR logins
@@ -26,10 +26,10 @@ Tests:
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/gateway/server-methods/web.ts b/src/gateway/server-methods/web.ts
-index 24f6caf455..794dc433a5 100644
+index e14eace4a0a..3bc21a56036 100644
 --- a/src/gateway/server-methods/web.ts
 +++ b/src/gateway/server-methods/web.ts
-@@ -120,7 +120,7 @@ export const webHandlers: GatewayRequestHandlers = {
+@@ -156,7 +156,7 @@ export const webHandlers: GatewayRequestHandlers = {
          accountId,
        });
        const forceLogin = Boolean(params.force);
