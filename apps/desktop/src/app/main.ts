@@ -81,6 +81,7 @@ import { runtimeStatusStore } from "./store/runtime-status-store.js";
 import { OUR_PLUGIN_IDS } from "../generated/our-plugin-ids.js";
 
 import { createGatewayConfigHandlers } from "../gateway/config-handlers.js";
+import { buildGatewayNodeOptions } from "../gateway/gateway-node-options.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 import {
   IMAGE_GENERATION_MODEL_REF,
@@ -1816,8 +1817,10 @@ app.whenReady().then(async () => {
   // This is reused by all restart paths (handleSttChange, handleExtrasChange)
   // so the --require is never accidentally dropped.
   const proxySetupPath = writeProxySetupModule(stateDir, vendorDir);
-  // Quote the path — Windows usernames with spaces break unquoted --require
-  const gatewayNodeOptions = `--require "${proxySetupPath.replaceAll("\\", "/")}"`;
+  // Quote the path — Windows usernames with spaces break unquoted --require.
+  // The larger heap is a temporary guard for large OpenClaw session files;
+  // it is scoped to the gateway process rather than the Electron UI.
+  const gatewayNodeOptions = buildGatewayNodeOptions(proxySetupPath);
 
   /**
    * Build the complete proxy env including NODE_OPTIONS.
