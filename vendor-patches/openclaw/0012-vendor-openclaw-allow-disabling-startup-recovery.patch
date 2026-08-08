@@ -1,6 +1,6 @@
-From 599f224eb3f211d66beb4e483a0dd32c5dac6636 Mon Sep 17 00:00:00 2001
-From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
-Date: Wed, 6 May 2026 07:23:04 -0700
+From 239a6143cdbefcf1a5ce8a79ff7d4b458911b231 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Sat, 8 Aug 2026 05:00:58 -0700
 Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
 
 Why:
@@ -15,46 +15,28 @@ Tests:
 - vendor/openclaw/src/gateway/server-startup-post-attach.test.ts
 - apps/desktop/src/infra/proxy/proxy-manager.test.ts
 ---
- src/gateway/server-runtime-services.test.ts   | 27 ++++++++++++++
- src/gateway/server-runtime-services.ts        | 18 ++++++++-
+ src/gateway/server-runtime-services.test.ts   | 17 +++++++++
+ src/gateway/server-runtime-services.ts        | 36 +++++++++++++------
+ src/gateway/server-startup-finish.ts          |  1 +
  .../server-startup-post-attach.test.ts        |  9 +++++
- src/gateway/server-startup-post-attach.ts     | 37 +++++++++++++------
- src/gateway/server.impl.ts                    |  1 +
- 5 files changed, 80 insertions(+), 12 deletions(-)
+ src/gateway/server-startup-post-attach.ts     | 18 +++++++++-
+ 5 files changed, 70 insertions(+), 11 deletions(-)
 
 diff --git a/src/gateway/server-runtime-services.test.ts b/src/gateway/server-runtime-services.test.ts
-index 980be6971f..0bf168df37 100644
+index b031ec3479a..e1d97a8602a 100644
 --- a/src/gateway/server-runtime-services.test.ts
 +++ b/src/gateway/server-runtime-services.test.ts
-@@ -29,6 +29,8 @@ vi.mock("../infra/heartbeat-runner.js", () => ({
- 
- vi.mock("../infra/env.js", () => ({
-   isVitestRuntimeEnv: hoisted.isVitestRuntimeEnv,
-+  isTruthyEnvValue: (value: unknown) =>
-+    typeof value === "string" && ["1", "true", "yes", "on"].includes(value.trim().toLowerCase()),
- }));
- 
- vi.mock("../infra/outbound/deliver.js", () => ({
-@@ -204,6 +206,31 @@ describe("server-runtime-services", () => {
-     expect(hoisted.recoverPendingDeliveries).toHaveBeenCalledTimes(1);
+@@ -380,6 +380,23 @@ describe("server-runtime-services", () => {
+     );
    });
  
 +  it("can disable startup delivery and session restart recovery by environment", async () => {
 +    vi.useFakeTimers();
-+    const cron = { start: vi.fn(async () => undefined) };
-+
-+    activateGatewayScheduledServices({
-+      minimalTestGateway: false,
-+      cfgAtStart: {} as never,
-+      deps: {} as never,
-+      sessionDeliveryRecoveryMaxEnqueuedAt: 123,
-+      cron,
-+      logCron: { error: vi.fn() },
-+      log: createLog(),
++    activateScheduledServicesForTest({
 +      env: {
 +        OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY: "1",
 +        OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY: "1",
-+      } as never,
++      } as NodeJS.ProcessEnv,
 +    });
 +
 +    await vi.advanceTimersByTimeAsync(1_250);
@@ -62,87 +44,119 @@ index 980be6971f..0bf168df37 100644
 +
 +    expect(hoisted.recoverPendingDeliveries).not.toHaveBeenCalled();
 +    expect(hoisted.recoverPendingRestartContinuationDeliveries).not.toHaveBeenCalled();
++    expect(hoisted.schedulePendingSessionDeliveries).not.toHaveBeenCalled();
 +  });
 +
-   it("starts cron and records memory when post-ready maintenance fails", async () => {
+   it("can defer cron startup while activating other scheduled services", async () => {
+     vi.useFakeTimers();
      const cron = { start: vi.fn(async () => undefined) };
-     const log = createLog();
 diff --git a/src/gateway/server-runtime-services.ts b/src/gateway/server-runtime-services.ts
-index e0b973475e..2d8743e68b 100644
+index 2d29723e7d1..db0365ee425 100644
 --- a/src/gateway/server-runtime-services.ts
 +++ b/src/gateway/server-runtime-services.ts
-@@ -1,7 +1,7 @@
- // Gateway post-ready runtime services.
+@@ -2,6 +2,7 @@
  // Starts delayed maintenance, cron, heartbeat, recovery, and pricing refresh work.
+ import { getRuntimeConfig } from "../config/config.js";
  import type { OpenClawConfig } from "../config/types.openclaw.js";
--import { isVitestRuntimeEnv } from "../infra/env.js";
-+import { isTruthyEnvValue, isVitestRuntimeEnv } from "../infra/env.js";
- import { startHeartbeatRunner, type HeartbeatRunner } from "../infra/heartbeat-runner.js";
- import type { PluginMetadataRegistryView } from "../plugins/plugin-metadata-snapshot.types.js";
- import { isGatewayModelPricingEnabled } from "./model-pricing-config.js";
-@@ -10,6 +10,9 @@ import {
-   createNoopHeartbeatRunner,
-   type GatewayRuntimeServiceLogger,
- } from "./server-runtime-service-shared.js";
-+
-+const DISABLE_OUTBOUND_DELIVERY_RECOVERY_ENV = "OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY";
-+const DISABLE_SESSION_RESTART_RECOVERY_ENV = "OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY";
- export {
-   startGatewayChannelHealthMonitor,
-   startGatewayRuntimeServices,
-@@ -135,7 +138,12 @@ export function scheduleGatewayPostReadyMaintenance(params: {
++import { isTruthyEnvValue } from "../infra/env.js";
+ import {
+   resolveHeartbeatAgents,
+   startHeartbeatRunner,
+@@ -236,7 +237,12 @@ export function scheduleGatewayIdleTask(params: {
  function recoverPendingOutboundDeliveries(params: {
    cfg: OpenClawConfig;
    log: GatewayRuntimeServiceLogger;
 +  env: NodeJS.ProcessEnv;
  }): void {
-+  if (isTruthyEnvValue(params.env[DISABLE_OUTBOUND_DELIVERY_RECOVERY_ENV])) {
++  if (isTruthyEnvValue(params.env.OPENCLAW_DISABLE_OUTBOUND_DELIVERY_RECOVERY)) {
 +    params.log.child("delivery-recovery").info("disabled by environment");
 +    return;
 +  }
    // Recovery is best-effort background work; startup must continue even if outbound modules fail
    // to import or queued delivery replay fails.
-   void (async () => {
-@@ -154,7 +162,12 @@ function recoverPendingSessionDeliveries(params: {
+   void runWithGatewayIndependentRootWorkAdmission(async () => {
+@@ -255,6 +261,7 @@ function startPendingSessionDeliveryRuntime(params: {
    deps: import("../cli/deps.types.js").CliDeps;
    log: GatewayRuntimeServiceLogger;
    maxEnqueuedAt: number;
-+  env: NodeJS.ProcessEnv;
- }): void {
-+  if (isTruthyEnvValue(params.env[DISABLE_SESSION_RESTART_RECOVERY_ENV])) {
-+    params.log.child("session-delivery-recovery").info("disabled by environment");
-+    return;
-+  }
-   // Delay session continuation recovery so the gateway has time to publish ready state and
-   // request routing before replaying restart-sentinel deliveries.
-   const timer = setTimeout(() => {
-@@ -220,6 +233,7 @@ export function activateGatewayScheduledServices(params: {
++  disableRestartRecovery: boolean;
+ }): () => void {
+   let stopped = false;
+   let stopRuntime: (() => void) | undefined;
+@@ -278,16 +285,20 @@ function startPendingSessionDeliveryRuntime(params: {
+         log: logRecovery,
+         onSettled: (entry) => removeCronRunContinuationSessionIfIdle(entry.sessionKey, entry.id),
+       });
+-      try {
+-        await recoverPendingRestartContinuationDeliveries({
+-          deps: params.deps,
+-          log: logRecovery,
+-          maxEnqueuedAt: params.maxEnqueuedAt,
+-        });
+-      } finally {
+-        // Recovery and scheduling are independent safeguards. A transient
+-        // recovery failure must not leave persisted rows without timers.
+-        await schedulePendingSessionDeliveries();
++      if (params.disableRestartRecovery) {
++        logRecovery.info("restart recovery disabled by environment");
++      } else {
++        try {
++          await recoverPendingRestartContinuationDeliveries({
++            deps: params.deps,
++            log: logRecovery,
++            maxEnqueuedAt: params.maxEnqueuedAt,
++          });
++        } finally {
++          // Recovery and scheduling are independent safeguards. A transient
++          // recovery failure must not leave persisted rows without timers.
++          await schedulePendingSessionDeliveries();
++        }
+       }
+     }).catch((err: unknown) =>
+       params.log.error(`Session delivery recovery failed: ${String(err)}`),
+@@ -313,6 +324,7 @@ export function activateGatewayScheduledServices(params: {
+   startCron?: boolean;
    logCron: { error: (message: string) => void };
    log: GatewayRuntimeServiceLogger;
-   pluginLookUpTable?: PluginMetadataRegistryView;
 +  env?: NodeJS.ProcessEnv;
- }): { heartbeatRunner: HeartbeatRunner; stopModelPricingRefresh: () => void } {
+ }): { heartbeatRunner: HeartbeatRunner } {
    if (params.minimalTestGateway) {
      // Minimal gateways keep handles callable but inert so tests can share shutdown paths with
-@@ -236,11 +250,13 @@ export function activateGatewayScheduledServices(params: {
+@@ -342,6 +354,9 @@ export function activateGatewayScheduledServices(params: {
+     deps: params.deps,
+     log: params.log,
+     maxEnqueuedAt: params.sessionDeliveryRecoveryMaxEnqueuedAt,
++    disableRestartRecovery: isTruthyEnvValue(
++      (params.env ?? process.env).OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY,
++    ),
+   });
+   const heartbeatRunnerWithUpstreamMonitor: HeartbeatRunner = {
+     updateConfig: heartbeatRunner.updateConfig,
+@@ -363,6 +378,7 @@ export function activateGatewayScheduledServices(params: {
    recoverPendingOutboundDeliveries({
      cfg: params.cfgAtStart,
      log: params.log,
 +    env: params.env ?? process.env,
    });
-   recoverPendingSessionDeliveries({
-     deps: params.deps,
-     log: params.log,
-     maxEnqueuedAt: params.sessionDeliveryRecoveryMaxEnqueuedAt,
-+    env: params.env ?? process.env,
-   });
-   const stopModelPricingRefresh = !isVitestRuntimeEnv()
-     ? startGatewayModelPricingRefreshOnDemand({
+   return {
+     heartbeatRunner: heartbeatRunnerWithUpstreamMonitor,
+diff --git a/src/gateway/server-startup-finish.ts b/src/gateway/server-startup-finish.ts
+index 54dd8d38d35..e7f316727d5 100644
+--- a/src/gateway/server-startup-finish.ts
++++ b/src/gateway/server-startup-finish.ts
+@@ -412,6 +412,7 @@ export async function finishGatewayStartup(params: {
+         startCron: false,
+         logCron,
+         log,
++        env: process.env,
+       });
+       runtimeState.heartbeatRunner = activated.heartbeatRunner;
+     });
 diff --git a/src/gateway/server-startup-post-attach.test.ts b/src/gateway/server-startup-post-attach.test.ts
-index af80c89be1..15a05d6eda 100644
+index 05c0d0c39e0..b56e76cd58c 100644
 --- a/src/gateway/server-startup-post-attach.test.ts
 +++ b/src/gateway/server-startup-post-attach.test.ts
-@@ -361,6 +361,15 @@ describe("startGatewayPostAttachRuntime", () => {
+@@ -384,6 +384,15 @@ describe("startGatewayPostAttachRuntime", () => {
      hoisted.createTranscriptsAutoStartService.mockClear();
    });
  
@@ -156,32 +170,27 @@ index af80c89be1..15a05d6eda 100644
 +  });
 +
    afterEach(() => {
+     resetGatewayWorkAdmission();
      closeOpenClawStateDatabaseForTest();
-     vi.useRealTimers();
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index 5936d6ebf6..586a2d8735 100644
+index b275e9d8c50..20840b3885a 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -35,6 +35,7 @@ const AGENT_RUNTIME_PLUGIN_PREWARM_START_DELAY_MS = 10_000;
+@@ -47,8 +47,13 @@ const AGENT_RUNTIME_PLUGIN_PREWARM_START_DELAY_MS = 0;
  const DEFERRED_SIDECAR_START_DELAY_MS = 100;
  const SESSION_LOCK_CLEANUP_CONCURRENCY = 4;
  const SKIP_STARTUP_MODEL_PREWARM_ENV = "OPENCLAW_SKIP_STARTUP_MODEL_PREWARM";
 +const DISABLE_SESSION_RESTART_RECOVERY_ENV = "OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY";
- const QMD_STARTUP_IDLE_DELAY_MS = 120_000;
- 
  type Awaitable<T> = T | Promise<T>;
-@@ -148,6 +149,10 @@ function shouldSkipStartupModelPrewarm(env: NodeJS.ProcessEnv = process.env): bo
-   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
- }
  
 +function shouldDisableSessionRestartRecovery(env: NodeJS.ProcessEnv = process.env): boolean {
 +  return isTruthyEnvValue(env[DISABLE_SESSION_RESTART_RECOVERY_ENV]);
 +}
 +
- function resolveGatewayMemoryStartupPolicy(cfg: OpenClawConfig): GatewayMemoryStartupPolicy {
-   if (cfg.memory?.backend !== "qmd") {
-     return { mode: "off" };
-@@ -430,6 +435,7 @@ async function cleanupStaleSessionLocks(params: {
+ type GatewayMemoryStartupPolicy =
+   | { mode: "off" }
+   | { mode: "immediate" }
+@@ -411,6 +416,7 @@ async function cleanupStaleSessionLocks(params: {
    isStopped: () => boolean;
    cleanStaleLockFiles: CleanStaleLockFiles;
    markRestartAbortedMainSessionsFromLocks?: MarkRestartAbortedMainSessionsFromLocks;
@@ -189,26 +198,17 @@ index 5936d6ebf6..586a2d8735 100644
    concurrency?: number;
  }): Promise<void> {
    const concurrency = Math.max(
-@@ -463,11 +469,13 @@ async function cleanupStaleSessionLocks(params: {
+@@ -442,6 +448,9 @@ async function cleanupStaleSessionLocks(params: {
        if (result.cleaned.length === 0) {
-         continue;
+         return;
        }
--      const markRestartAbortedMainSessionsFromLocksLocal = await getMarker();
--      await markRestartAbortedMainSessionsFromLocksLocal({
--        sessionsDir,
--        cleanedLocks: result.cleaned,
--      });
-+      if (!params.disableRestartRecovery) {
-+        const markRestartAbortedMainSessionsFromLocksLocal = await getMarker();
-+        await markRestartAbortedMainSessionsFromLocksLocal({
-+          sessionsDir,
-+          cleanedLocks: result.cleaned,
-+        });
++      if (params.disableRestartRecovery) {
++        return;
 +      }
-     }
-   };
-   await Promise.all(Array.from({ length: concurrency }, () => worker()));
-@@ -723,6 +731,9 @@ export async function startGatewaySidecars(params: {
+       const markRestartAbortedMainSessionsFromLocksLocal = await getMarker();
+       await markRestartAbortedMainSessionsFromLocksLocal({
+         sessionsDir,
+@@ -659,6 +668,9 @@ export async function startGatewaySidecars(params: {
      isTruthyEnvValue(process.env.OPENCLAW_SKIP_CHANNELS) ||
      isTruthyEnvValue(process.env.OPENCLAW_SKIP_PROVIDERS);
    await measureStartup(params.startupTrace, "sidecars.main-session-recovery", async () => {
@@ -218,7 +218,7 @@ index 5936d6ebf6..586a2d8735 100644
      try {
        const { markStartupOrphanedMainSessionsForRecovery } =
          await loadMainSessionRestartRecoveryModule();
-@@ -861,6 +872,7 @@ export async function startGatewaySidecars(params: {
+@@ -808,6 +820,7 @@ export async function startGatewaySidecars(params: {
            log: params.log,
            isStopped,
            cleanStaleLockFiles,
@@ -226,47 +226,25 @@ index 5936d6ebf6..586a2d8735 100644
          });
        } catch (err) {
          params.log.warn(`session lock cleanup failed on startup: ${String(err)}`);
-@@ -1276,12 +1288,14 @@ export async function startGatewayPostAttachRuntime(
-         for (const method of STARTUP_UNAVAILABLE_GATEWAY_METHODS) {
-           params.unavailableGatewayMethods.delete(method);
-         }
--        try {
--          const { scheduleRestartAbortedMainSessionRecovery } =
--            await loadMainSessionRestartRecoveryModule();
--          scheduleRestartAbortedMainSessionRecovery({ cfg: params.cfgAtStart });
--        } catch (err) {
--          params.log.warn(`main-session restart recovery failed to schedule: ${String(err)}`);
-+        if (!shouldDisableSessionRestartRecovery()) {
-+          try {
-+            const { scheduleRestartAbortedMainSessionRecovery } =
-+              await loadMainSessionRestartRecoveryModule();
-+            scheduleRestartAbortedMainSessionRecovery({ cfg: params.cfgAtStart });
-+          } catch (err) {
-+            params.log.warn(`main-session restart recovery failed to schedule: ${String(err)}`);
-+          }
-         }
-         if (!pluginServicesReported) {
-           reportPluginServices(result.pluginServices);
-@@ -1411,6 +1425,7 @@ export const testing = {
+@@ -1245,7 +1258,9 @@ export async function startGatewayPostAttachRuntime(
+         ]);
+         let mainSessionRecoverySidecar: GatewayPostReadySidecarHandle | undefined;
+         try {
+-          if (params.isClosing?.() !== true) {
++          if (shouldDisableSessionRestartRecovery()) {
++            params.log.info("main-session restart recovery disabled by environment");
++          } else if (params.isClosing?.() !== true) {
+             const { scheduleRestartAbortedMainSessionRecovery } =
+               await loadMainSessionRestartRecoveryModule();
+             // Closing can begin while the runtime module is loading; a late owner
+@@ -1416,6 +1431,7 @@ export const testing = {
+   refreshLatestUpdateRestartSentinelIfPresent,
+   resolveGatewayMemoryStartupPolicy,
    cleanupStaleSessionLocks,
-   scheduleProviderAuthStatePrewarm,
-   schedulePrimaryModelPrewarm,
 +  shouldDisableSessionRestartRecovery,
+   scheduleProviderAuthStatePrewarm,
+   scheduleRestartSentinelWakeAfterReady,
    shouldSkipStartupModelPrewarm,
-   stopPostReadySidecarsAfterCloseStarted,
- };
-diff --git a/src/gateway/server.impl.ts b/src/gateway/server.impl.ts
-index 3df5dd955a..25eff9496e 100644
---- a/src/gateway/server.impl.ts
-+++ b/src/gateway/server.impl.ts
-@@ -1610,6 +1610,7 @@ export async function startGatewayServer(
-           logCron,
-           log,
-           pluginLookUpTable,
-+          env: process.env,
-         });
-         runtimeState.heartbeatRunner = activated.heartbeatRunner;
-         runtimeState.stopModelPricingRefresh = activated.stopModelPricingRefresh;
 -- 
 2.50.1 (Apple Git-155)
 

@@ -3,6 +3,7 @@ import {
   resolveVendorEntryPath,
   writeGatewayConfig,
   readExistingConfig,
+  resolveGatewayRpcClientIdentityPath,
   syncExecApprovalsYolo,
 } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
@@ -156,7 +157,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   openClawConnector.setRpcConnectionDeps({
     url: `ws://127.0.0.1:${port}`,
     token,
-    deviceIdentityPath: join(stateDir, "identity", "device.json"),
+    deviceIdentityPath: resolveGatewayRpcClientIdentityPath(stateDir),
   });
 
   return {

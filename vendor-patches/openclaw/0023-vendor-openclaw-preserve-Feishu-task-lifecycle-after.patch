@@ -1,4 +1,4 @@
-From 2d4ba13a4ff36cabf6b430661be9a04963731e75 Mon Sep 17 00:00:00 2001
+From f23b72e6a6c3548ebdc1d7ee862854e6ffc1b8d4 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 11 Jul 2026 01:52:53 -0700
 Subject: [PATCH] vendor(openclaw): preserve Feishu task lifecycle after queue
@@ -19,7 +19,7 @@ Tests:
  2 files changed, 21 insertions(+), 10 deletions(-)
 
 diff --git a/extensions/feishu/src/sequential-queue.test.ts b/extensions/feishu/src/sequential-queue.test.ts
-index 071c29b20f..c754ef0948 100644
+index 071c29b20f8..c754ef09487 100644
 --- a/extensions/feishu/src/sequential-queue.test.ts
 +++ b/extensions/feishu/src/sequential-queue.test.ts
 @@ -127,9 +127,17 @@ describe("createSequentialQueue", () => {
@@ -42,10 +42,10 @@ index 071c29b20f..c754ef0948 100644
  
    it("clamps oversized task timeouts before scheduling", async () => {
 diff --git a/extensions/feishu/src/sequential-queue.ts b/extensions/feishu/src/sequential-queue.ts
-index 591ac35a86..574b2e2583 100644
+index 9b562d57eec..89d16eb83aa 100644
 --- a/extensions/feishu/src/sequential-queue.ts
 +++ b/extensions/feishu/src/sequential-queue.ts
-@@ -33,8 +33,8 @@ export interface SequentialQueueOptions {
+@@ -33,8 +33,8 @@ interface SequentialQueueOptions {
  
    /**
     * Optional callback fired when a task exceeds `taskTimeoutMs`. The task

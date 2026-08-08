@@ -9,7 +9,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { createStorage, type Storage } from "@rivonclaw/storage";
 import type { ProviderKeyEntry } from "@rivonclaw/core";
-import { mkdirSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, existsSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -22,6 +23,21 @@ import { startPanelServer } from "../app/panel-server.js";
 import { initLLMProviderManagerEnv } from "../app/store/desktop-store.js";
 import { syncActiveKey } from "./provider-validator.js";
 import { toMstSnapshot, allKeysToMstSnapshots } from "./provider-key-utils.js";
+
+function readAuthProfiles(stateDir: string): any {
+  const database = new DatabaseSync(
+    join(stateDir, "agents", "main", "agent", "openclaw-agent.sqlite"),
+    { readOnly: true },
+  );
+  try {
+    const row = database
+      .prepare("SELECT store_json FROM auth_profile_store WHERE store_key = ?")
+      .get("primary") as { store_json: string };
+    return JSON.parse(row.store_json);
+  } finally {
+    database.close();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Mock Ollama server
@@ -343,10 +359,10 @@ describe("Local LLM (Ollama) E2E", () => {
       // No API key in secret store → should use dummy "ollama"
       await syncAllAuthProfiles(stateDir, storage, mockSecretStore as any);
 
-      // Read the written auth-profiles.json
+      // SQLite is authoritative; the retired JSON store must not remain.
       const profilePath = resolveAuthProfilePath(stateDir);
-      expect(existsSync(profilePath)).toBe(true);
-      const profiles = JSON.parse(readFileSync(profilePath, "utf-8"));
+      expect(existsSync(profilePath)).toBe(false);
+      const profiles = readAuthProfiles(stateDir);
       expect(profiles.version).toBe(1);
 
       // Should have an "ollama:active" profile with the dummy key
@@ -364,16 +380,14 @@ describe("Local LLM (Ollama) E2E", () => {
 
       await syncAllAuthProfiles(stateDir, storage, mockSecretStore as any);
 
-      const profilePath = resolveAuthProfilePath(stateDir);
-      const profiles = JSON.parse(readFileSync(profilePath, "utf-8"));
+      const profiles = readAuthProfiles(stateDir);
       expect(profiles.profiles["ollama:active"].key).toBe("my-proxy-api-key");
     });
 
     it("clearAllAuthProfiles removes all profiles", () => {
       clearAllAuthProfiles(stateDir);
 
-      const profilePath = resolveAuthProfilePath(stateDir);
-      const profiles = JSON.parse(readFileSync(profilePath, "utf-8"));
+      const profiles = readAuthProfiles(stateDir);
       expect(profiles.profiles).toEqual({});
       expect(profiles.order).toEqual({});
     });

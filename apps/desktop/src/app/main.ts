@@ -10,6 +10,7 @@ import {
   syncAllAuthProfiles,
   activateAuthProfile,
   syncBackOAuthCredentials,
+  migrateVendorStateBeforeGateway,
   saveCodexOAuthCredentials,
   refreshCodexOAuthCredentials,
   startHybridCodexOAuthFlow,
@@ -739,6 +740,15 @@ app.whenReady().then(async () => {
     vendorDir = join(import.meta.dirname, "..", "..", "..", "vendor", "openclaw");
   }
   setVendorDir(vendorDir);
+  process.env.RIVONCLAW_OPENCLAW_DIST_DIR = join(vendorDir, "dist");
+
+  // OpenClaw owns migrations for its agent database. Run the vendor schema
+  // owner directly before Desktop syncs credentials or starts the gateway.
+  await migrateVendorStateBeforeGateway({
+    configPath,
+    stateDir,
+    vendorDir,
+  });
 
   // Initialize Channel Manager -- loads accounts from SQLite (runs migration if needed).
   // Must happen BEFORE createGatewayConfigBuilder so that buildPluginEntries() and
@@ -1887,19 +1897,27 @@ app.whenReady().then(async () => {
           ) as Record<string, unknown>;
           model.primary = `${gwProvider}/${modelId}`;
           defaults.model = model;
+          const mediaModels = (
+            typeof defaults.mediaModels === "object" && defaults.mediaModels !== null
+              ? defaults.mediaModels
+              : {}
+          ) as Record<string, unknown>;
+          delete defaults.imageGenerationModel;
           if (productProvider === "rivonclaw-pro") {
-            defaults.imageGenerationModel = {
+            mediaModels.image = {
               primary: IMAGE_GENERATION_MODEL_REF,
               timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
             };
           } else if (productProvider === "openai" || productProvider === "openai-codex") {
-            defaults.imageGenerationModel = {
+            mediaModels.image = {
               primary: OPENAI_IMAGE_GENERATION_MODEL_REF,
               timeoutMs: IMAGE_GENERATION_TIMEOUT_MS,
             };
           } else {
-            delete defaults.imageGenerationModel;
+            delete mediaModels.image;
           }
+          if (Object.keys(mediaModels).length > 0) defaults.mediaModels = mediaModels;
+          else delete defaults.mediaModels;
           agents.defaults = defaults;
           config.agents = agents;
         },

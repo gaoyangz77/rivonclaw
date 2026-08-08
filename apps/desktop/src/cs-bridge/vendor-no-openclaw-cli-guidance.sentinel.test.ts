@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/openclaw");
+const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
+  ? PATCHED_VENDOR_ROOT
+  : resolve(__dirname, "../../../../vendor/openclaw");
 
 const CLI_PATCH_FILE = resolve(
   __dirname,
@@ -14,16 +18,13 @@ const BRAND_PATCH_FILE = resolve(
   __dirname,
   "../../../../vendor-patches/openclaw/0010-vendor-openclaw-brand-agent-prompt-for-rivonclaw-desktop.patch",
 );
-const VENDOR_SYSTEM_PROMPT = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/src/agents/system-prompt.ts",
-);
+const VENDOR_SYSTEM_PROMPT = resolve(VENDOR_ROOT, "src/agents/system-prompt.ts");
 
 describe("vendor patch 0009: replace OpenClaw CLI guidance", () => {
   const patch = readFileSync(CLI_PATCH_FILE, "utf-8");
 
   it("adds RivonClaw Desktop runtime guidance instead", () => {
-    expect(patch).toContain("\"## RivonClaw Desktop Runtime\"");
+    expect(patch).toContain('"## RivonClaw Desktop Runtime"');
     expect(patch).toContain("use available first-class runtime tools instead of shelling out");
     expect(patch).toContain("instead of shell CLI commands");
   });
@@ -48,10 +49,15 @@ describe("vendor patch 0010: brand agent prompt for RivonClaw Desktop", () => {
   });
 
   it("brands user-visible runtime sections while preserving underlying OpenClaw facts", () => {
-    expect(patch).toContain('+    gateway: "Restart, apply config, or run updates on the running RivonClaw Desktop gateway"');
+    expect(patch).toContain('+    gateway: "Read RivonClaw Desktop gateway config/schema"');
     expect(patch).toContain('hasGateway && !isMinimal ? "## RivonClaw Desktop Updates" : ""');
-    expect(patch).toContain('"After restart, RivonClaw pings the last active session automatically."');
-    expect(patch).toContain('"These user-editable files are loaded by RivonClaw and included below in Project Context."');
+    expect(patch).toContain(
+      '"After restart, RivonClaw pings the last active session automatically."',
+    );
+    expect(patch).toContain("Actions: config.get, config.patch, config.apply, update.run.");
+    expect(patch).toContain(
+      '"These user-editable files are loaded by RivonClaw and included below in Project Context."',
+    );
     expect(patch).toContain("RivonClaw Desktop manages the underlying OpenClaw gateway lifecycle");
   });
 

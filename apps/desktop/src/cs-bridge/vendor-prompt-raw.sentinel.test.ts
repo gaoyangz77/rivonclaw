@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -19,24 +19,22 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/openclaw");
+const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
+  ? PATCHED_VENDOR_ROOT
+  : resolve(__dirname, "../../../../vendor/openclaw");
 
-const VENDOR_FILE = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/src/agents/system-prompt.ts",
-);
+const VENDOR_FILE = resolve(VENDOR_ROOT, "src/agents/system-prompt.ts");
 
-const VENDOR_TYPES_FILE = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/src/agents/system-prompt.types.ts",
-);
+const VENDOR_TYPES_FILE = resolve(VENDOR_ROOT, "src/agents/system-prompt.types.ts");
 
 const ATTEMPT_FILE = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/src/agents/embedded-agent-runner/run/attempt.ts",
+  VENDOR_ROOT,
+  "src/agents/embedded-agent-runner/run/attempt-session.ts",
 );
 const EMBEDDED_SYSTEM_PROMPT_FILE = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/src/agents/embedded-agent-runner/system-prompt.ts",
+  VENDOR_ROOT,
+  "src/agents/embedded-agent-runner/system-prompt.ts",
 );
 
 /** Check if the vendor source has the promptMode raw patch applied. */
