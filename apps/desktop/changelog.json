@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.89",
+    "date": "2026-08-08",
+    "en": [
+      "Upgrade the bundled OpenClaw runtime with SQLite session improvements",
+      "Stabilize the Desktop baseline and gateway startup behavior"
+    ],
+    "zh": [
+      "升级内置 OpenClaw runtime，改进 SQLite 会话能力",
+      "增强桌面端基线和 gateway 启动稳定性"
+    ]
+  },
+  {
     "version": "1.8.88",
     "date": "2026-08-07",
     "en": [
