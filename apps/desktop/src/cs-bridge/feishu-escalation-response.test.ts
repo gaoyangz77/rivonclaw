@@ -150,9 +150,13 @@ describe("FeishuEscalationResponseProcessor", () => {
       expect.objectContaining({
         action: "edit",
         idempotencyKey: "feishu-cs-result:callback-1",
-        params: expect.objectContaining({ messageId: "om_card" }),
+        params: expect.objectContaining({
+          to: "oc_chat",
+          messageId: "om_card",
+        }),
       }),
     );
+    expect(gatewayRequest).toHaveBeenCalledTimes(1);
     const editedCard = gatewayRequest.mock.calls[0][1].params.card;
     const serializedCard = JSON.stringify(editedCard);
     expect(editedCard.header.template).toBe("green");

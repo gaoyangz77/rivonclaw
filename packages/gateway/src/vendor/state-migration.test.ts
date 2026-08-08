@@ -8,6 +8,7 @@ import {
   inspectVendorStateMigration,
   migrateVendorStateBeforeGateway,
   resolveGatewayRpcClientIdentityPath,
+  restoreFeishuAllowFromFromAgentDatabases,
 } from "./state-migration.js";
 
 const tempDirs: string[] = [];
@@ -320,5 +321,150 @@ describe("archiveOrphanedLegacyAllowFromFiles", () => {
 
     expect(archiveOrphanedLegacyAllowFromFiles(fixture.stateDir, configPath)).toEqual([]);
     expect(readFileSync(allowFromPath, "utf-8")).toBe("preserve me");
+  });
+});
+
+describe("restoreFeishuAllowFromFromAgentDatabases", () => {
+  function createConversationDatabase(
+    stateDir: string,
+    agentId: string,
+    rows: Array<{ accountId: string; kind: string; peerId: string; deliveryTarget: string }>,
+  ): void {
+    const databasePath = createAgentDatabase(stateDir, agentId, 16);
+    const database = new DatabaseSync(databasePath);
+    try {
+      database.exec(`
+        CREATE TABLE conversations (
+          conversation_id TEXT PRIMARY KEY,
+          channel TEXT NOT NULL,
+          account_id TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          peer_id TEXT NOT NULL,
+          delivery_target TEXT NOT NULL
+        ) STRICT;
+      `);
+      const insert = database.prepare(
+        `INSERT INTO conversations
+         (conversation_id, channel, account_id, kind, peer_id, delivery_target)
+         VALUES (?, 'feishu', ?, ?, ?, ?)`,
+      );
+      rows.forEach((row, index) => {
+        insert.run(
+          `conversation-${index}`,
+          row.accountId,
+          row.kind,
+          row.peerId,
+          row.deliveryTarget,
+        );
+      });
+    } finally {
+      database.close();
+    }
+  }
+
+  it("recovers only unambiguous direct recipients into their active Feishu accounts", () => {
+    const fixture = makeFixture();
+    const configPath = join(fixture.stateDir, "openclaw.json");
+    const credentialsDir = join(fixture.stateDir, "credentials");
+    mkdirSync(credentialsDir, { recursive: true });
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        channels: {
+          feishu: {
+            accounts: { default: {}, secondary: {}, existing: {} },
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(credentialsDir, "feishu-existing-allowFrom.json"),
+      `${JSON.stringify({ version: 1, allowFrom: ["ou_preserved"] })}\n`,
+    );
+    createConversationDatabase(fixture.stateDir, "main", [
+      { accountId: "default", kind: "direct", peerId: "ou_alice", deliveryTarget: "user:ou_alice" },
+      { accountId: "secondary", kind: "direct", peerId: "ou_bob", deliveryTarget: "user:ou_bob" },
+      {
+        accountId: "existing",
+        kind: "direct",
+        peerId: "ou_ignored",
+        deliveryTarget: "user:ou_ignored",
+      },
+      {
+        accountId: "removed",
+        kind: "direct",
+        peerId: "ou_removed",
+        deliveryTarget: "user:ou_removed",
+      },
+      {
+        accountId: "default",
+        kind: "group",
+        peerId: "ou_group_sender",
+        deliveryTarget: "user:ou_group_sender",
+      },
+      { accountId: "default", kind: "direct", peerId: "oc_chat", deliveryTarget: "user:oc_chat" },
+      {
+        accountId: "default",
+        kind: "direct",
+        peerId: "ou_wrong_route",
+        deliveryTarget: "ou_wrong_route",
+      },
+    ]);
+
+    const restored = restoreFeishuAllowFromFromAgentDatabases(fixture.stateDir, configPath);
+
+    expect(restored).toEqual([
+      {
+        accountId: "default",
+        path: join(credentialsDir, "feishu-default-allowFrom.json"),
+        recipientIds: ["ou_alice"],
+      },
+      {
+        accountId: "secondary",
+        path: join(credentialsDir, "feishu-secondary-allowFrom.json"),
+        recipientIds: ["ou_bob"],
+      },
+    ]);
+    expect(
+      JSON.parse(readFileSync(join(credentialsDir, "feishu-default-allowFrom.json"), "utf-8")),
+    ).toEqual({
+      version: 1,
+      allowFrom: ["ou_alice"],
+    });
+    expect(
+      JSON.parse(readFileSync(join(credentialsDir, "feishu-secondary-allowFrom.json"), "utf-8")),
+    ).toEqual({
+      version: 1,
+      allowFrom: ["ou_bob"],
+    });
+    expect(
+      JSON.parse(readFileSync(join(credentialsDir, "feishu-existing-allowFrom.json"), "utf-8")),
+    ).toEqual({
+      version: 1,
+      allowFrom: ["ou_preserved"],
+    });
+    expect(existsSync(join(credentialsDir, "feishu-removed-allowFrom.json"))).toBe(false);
+  });
+
+  it("is idempotent and preserves malformed allowFrom files", () => {
+    const fixture = makeFixture();
+    const configPath = join(fixture.stateDir, "openclaw.json");
+    const credentialsDir = join(fixture.stateDir, "credentials");
+    mkdirSync(credentialsDir, { recursive: true });
+    writeFileSync(
+      configPath,
+      JSON.stringify({ channels: { feishu: { accounts: { default: {}, broken: {} } } } }),
+    );
+    writeFileSync(join(credentialsDir, "feishu-broken-allowFrom.json"), "not json");
+    createConversationDatabase(fixture.stateDir, "main", [
+      { accountId: "default", kind: "direct", peerId: "ou_alice", deliveryTarget: "user:ou_alice" },
+      { accountId: "broken", kind: "direct", peerId: "ou_bob", deliveryTarget: "user:ou_bob" },
+    ]);
+
+    expect(restoreFeishuAllowFromFromAgentDatabases(fixture.stateDir, configPath)).toHaveLength(1);
+    expect(restoreFeishuAllowFromFromAgentDatabases(fixture.stateDir, configPath)).toEqual([]);
+    expect(readFileSync(join(credentialsDir, "feishu-broken-allowFrom.json"), "utf-8")).toBe(
+      "not json",
+    );
   });
 });

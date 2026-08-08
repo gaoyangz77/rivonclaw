@@ -70,6 +70,7 @@ class FeishuEscalationResponseAdapter implements CsEscalationResponseChannelAdap
       accountId: submission.accountId,
       idempotencyKey: `feishu-cs-result:${submission.callbackId}`,
       params: {
+        to: submission.chatId,
         messageId: submission.messageId,
         card: buildFeishuCsEscalationResultCard({
           ...view,
