@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.88",
+    "date": "2026-08-07",
+    "en": [
+      "Increase gateway memory headroom for more reliable Desktop sessions",
+      "Persist routed cloud provider endpoints across Desktop restarts"
+    ],
+    "zh": [
+      "提高 gateway 内存余量，让桌面端会话更稳定",
+      "在桌面端重启后保留路由后的云端 Provider 端点"
+    ]
+  },
+  {
     "version": "1.8.87",
     "date": "2026-08-07",
     "en": [
