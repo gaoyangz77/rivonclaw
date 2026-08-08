@@ -1062,16 +1062,13 @@ export const LLMProviderManagerModel = types
           }
           const baseUrlChanged = existing.baseUrl !== currentBaseUrl;
           const labelChanged = existing.label !== CLOUD_KEY_LABEL;
-
-          // Update local metadata if environment/name changed.
-          if (baseUrlChanged || labelChanged) {
-            storage.providerKeys.update(existing.id, {
-              baseUrl: baseUrlChanged ? currentBaseUrl : existing.baseUrl,
-              label: labelChanged ? CLOUD_KEY_LABEL : existing.label,
-            });
-            if (baseUrlChanged) {
-              log.info(`Updated cloud provider baseUrl: ${existing.baseUrl} -> ${currentBaseUrl}`);
-            }
+          const providerChanges: Partial<ProviderKeyEntry> = {};
+          if (baseUrlChanged) {
+            providerChanges.baseUrl = currentBaseUrl;
+            log.info(`Updated cloud provider baseUrl: ${existing.baseUrl} -> ${currentBaseUrl}`);
+          }
+          if (labelChanged) {
+            providerChanges.label = CLOUD_KEY_LABEL;
           }
 
           // Always refresh model list (capabilities may have changed on the backend)
@@ -1113,11 +1110,9 @@ export const LLMProviderManagerModel = types
                 previousInputModalities !== nextInputModalities ||
                 modelChanged
               ) {
-                storage.providerKeys.update(existing.id, {
-                  customModelsJson: nextCustomModelsJson,
-                  inputModalities: ["text", "image"],
-                  model: modelChanged ? nextModel : existing.model,
-                });
+                providerChanges.customModelsJson = nextCustomModelsJson;
+                providerChanges.inputModalities = ["text", "image"];
+                providerChanges.model = modelChanged ? nextModel : existing.model;
                 modelsChanged = true;
               }
             }
@@ -1125,18 +1120,31 @@ export const LLMProviderManagerModel = types
             // Model refresh failed — keep existing list
           }
 
-          // MST state
-          const freshEntry = storage.providerKeys.getById(existing.id)!;
-          const mstEntry: MstProviderKeySnapshot = yield toMstSnapshot(freshEntry, secretStore);
-          self.root.upsertProviderKey(mstEntry);
-
           // Sync auth profiles + config only when the local cloud provider
           // material actually changed. Billing overview polling can call this
           // path frequently; it must not rewrite config or patch all sessions
           // unless the underlying provider data changed.
-          if (keyChanged || baseUrlChanged || labelChanged || modelsChanged || modelChanged) {
-            yield syncAuthProxyAndConfig(freshEntry);
+          const providerChanged =
+            baseUrlChanged || labelChanged || modelsChanged || modelChanged;
+          const nextEntry = providerChanged
+            ? storage.providerKeys.update(existing.id, providerChanges)
+            : existing;
+          if (!nextEntry) {
+            throw new Error(`Cloud provider metadata disappeared during sync: ${existing.id}`);
           }
+
+          if (keyChanged || baseUrlChanged || labelChanged || modelsChanged || modelChanged) {
+            // Runtime provider fields are Vendor-owned. Persist the merged
+            // definition before reading through the runtime projector again;
+            // otherwise the projector returns the previous definition and
+            // silently writes the stale endpoint back to config.
+            yield syncAuthProxyAndConfig(nextEntry);
+          }
+
+          // Re-project only after the authoritative config has been updated.
+          const freshEntry = storage.providerKeys.getById(existing.id) ?? nextEntry;
+          const mstEntry: MstProviderKeySnapshot = yield toMstSnapshot(freshEntry, secretStore);
+          self.root.upsertProviderKey(mstEntry);
 
           log.info(
             keyChanged || baseUrlChanged || labelChanged || modelsChanged || modelChanged

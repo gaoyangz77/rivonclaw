@@ -1,5 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { ScopeType, type ProviderKeyEntry } from "@rivonclaw/core";
+import {
+  ScopeType,
+  resetFirstPartyDomainRouteForTests,
+  setFirstPartyDomainRoute,
+  type ProviderKeyEntry,
+} from "@rivonclaw/core";
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 import { allKeysToMstSnapshots, toMstSnapshot } from "./provider-key-utils.js";
 
@@ -19,6 +24,7 @@ afterEach(() => {
   rootStore.loadProviderKeys([]);
   rootStore.clearCloudEntities();
   secretMap.clear();
+  resetFirstPartyDomainRouteForTests();
   vi.restoreAllMocks();
 });
 
@@ -701,6 +707,121 @@ describe("LLMProviderManager", () => {
     expect(writeDefaultModelToConfig).not.toHaveBeenCalled();
     expect(rpcRequest).not.toHaveBeenCalledWith("sessions.patch", expect.anything());
     expect(restartGateway).not.toHaveBeenCalled();
+  });
+
+  it("persists a routed cloud endpoint before re-projecting Vendor-owned provider state", async () => {
+    setFirstPartyDomainRoute("cn-relay");
+
+    const modelCatalog = [
+      {
+        id: "rivonclaw-flagship",
+        input_modalities: ["text", "image"],
+      },
+    ];
+    let metadata: ProviderKeyEntry = {
+      id: "cloud-rivonclaw-pro",
+      provider: "rivonclaw-pro",
+      label: "TK Copilot AI",
+      model: "rivonclaw-flagship",
+      isDefault: true,
+      authType: "custom",
+      baseUrl: "https://api.rivonclaw.com/llm/v1",
+      customProtocol: "openai",
+      customModelsJson: JSON.stringify(modelCatalog),
+      inputModalities: ["text", "image"],
+      source: "cloud",
+      createdAt: "",
+      updatedAt: "",
+    };
+    let vendorDefinition = {
+      baseUrl: metadata.baseUrl,
+      customModelsJson: metadata.customModelsJson,
+      inputModalities: metadata.inputModalities,
+    };
+    const project = (): ProviderKeyEntry => ({ ...metadata, ...vendorDefinition });
+    const storage = {
+      providerKeys: {
+        getActive: () => project(),
+        getById: (id: string) => (id === metadata.id ? project() : undefined),
+        getAll: () => [project()],
+        update: (id: string, fields: Partial<ProviderKeyEntry>) => {
+          if (id !== metadata.id) return undefined;
+          const updated = { ...project(), ...fields, updatedAt: "updated" };
+          // Match the real repository: runtime fields are returned to the
+          // caller but are not authoritative until the Vendor writer runs.
+          metadata = {
+            ...metadata,
+            label: updated.label,
+            model: updated.model,
+            updatedAt: updated.updatedAt,
+          };
+          return updated;
+        },
+      },
+      settings: { set: vi.fn(), get: vi.fn() },
+      chatSessions: { list: () => [] },
+    };
+    const writeVendorProviderDefinition = vi.fn((entry: ProviderKeyEntry) => {
+      vendorDefinition = {
+        baseUrl: entry.baseUrl,
+        customModelsJson: entry.customModelsJson,
+        inputModalities: entry.inputModalities,
+      };
+    });
+    await mockSecretStore.set(`provider-key-${metadata.id}`, "cloud-token");
+    rootStore.loadProviderKeys([await toMstSnapshot(project(), mockSecretStore as any)]);
+
+    initLLMProviderManagerEnv({
+      storage: storage as any,
+      secretStore: mockSecretStore as any,
+      getRpcClient: () => null,
+      toMstSnapshot,
+      allKeysToMstSnapshots,
+      syncActiveKey: async () => {},
+      syncAllAuthProfiles: async () => {},
+      activateAuthProfile: () => "test:active",
+      writeProxyRouterConfig: async () => {},
+      writeDefaultModelToConfig: vi.fn(),
+      writeFullGatewayConfig: async () => {},
+      writeVendorProviderDefinition,
+      restartGateway: async () => {},
+      graphqlFetch: vi.fn().mockResolvedValue({
+        provisionLlmApiKey: {
+          id: "llm-key-1",
+          key: "cloud-token",
+          keyPrefix: "cloud",
+          status: "ACTIVE",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          lastUsedAt: null,
+        },
+      }),
+      proxyFetch: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: modelCatalog }),
+      }) as any,
+      stateDir: "/tmp/rivonclaw-llm-manager-test",
+      getLastSystemProxy: () => null,
+    });
+
+    await rootStore.llmManager.syncCloud({
+      userId: "u1",
+      email: "test@example.com",
+      name: "Test",
+      createdAt: "2026-01-01T00:00:00Z",
+      enrolledModules: [],
+      entitlementKeys: [],
+      defaultRunProfileId: null,
+    });
+
+    expect(writeVendorProviderDefinition).toHaveBeenCalledOnce();
+    expect(writeVendorProviderDefinition.mock.calls[0]?.[0]).toMatchObject({
+      baseUrl: "https://api.zhuazhuaai.cn/llm/v1",
+    });
+    expect(storage.providerKeys.getById(metadata.id)?.baseUrl).toBe(
+      "https://api.zhuazhuaai.cn/llm/v1",
+    );
   });
 
   it("does not reset sessions when cloud provider sync finds no material changes", async () => {
