@@ -1,4 +1,4 @@
-From 913c7a283fa98f43da12f5d95df9e148e389d7e4 Mon Sep 17 00:00:00 2001
+From 3fe88d74120998b297d9c551efd8c434ca3425ea Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:12:32 -0700
 Subject: [PATCH] vendor(openclaw): add before_tool_resolve hook for
@@ -17,73 +17,156 @@ Removal:
 Tests:
 - extensions/rivonclaw-capability-manager/src/__tests__/
 ---
- src/agents/embedded-agent-runner/compact.ts   | 16 ++++++++++++-
- .../embedded-agent-runner/run/attempt.ts      | 18 +++++++++++++-
- src/plugins/hook-types.ts                     | 15 +++++++++++-
- src/plugins/hooks.ts                          | 24 +++++++++++++++++++
- 4 files changed, 70 insertions(+), 3 deletions(-)
+ .../prepared-compaction-runtime.ts            |  7 +++-
+ .../run/attempt-bundle-tools.ts               |  8 ++++-
+ src/agents/tool-resolve-hook.test.ts          | 36 +++++++++++++++++++
+ src/agents/tool-resolve-hook.ts               | 31 ++++++++++++++++
+ src/plugins/hook-types.ts                     | 15 +++++++-
+ src/plugins/hooks.ts                          | 20 +++++++++++
+ 6 files changed, 114 insertions(+), 3 deletions(-)
+ create mode 100644 src/agents/tool-resolve-hook.test.ts
+ create mode 100644 src/agents/tool-resolve-hook.ts
 
-diff --git a/src/agents/embedded-agent-runner/compact.ts b/src/agents/embedded-agent-runner/compact.ts
-index 0ef6b1d73e..7b0c7a9384 100644
---- a/src/agents/embedded-agent-runner/compact.ts
-+++ b/src/agents/embedded-agent-runner/compact.ts
-@@ -1002,7 +1002,21 @@ async function compactEmbeddedAgentSessionDirectOnce(
+diff --git a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
+index fe166af66e2..cb4fc371d60 100644
+--- a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
++++ b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
+@@ -75,6 +75,7 @@ import {
+ } from "./sandbox-skills.js";
+ import { buildEmbeddedSystemPrompt } from "./system-prompt.js";
+ import { collectAllowedToolNames } from "./tool-name-allowlist.js";
++import { filterToolsWithBeforeResolveHook } from "../tool-resolve-hook.js";
+ import { mapThinkingLevelForProvider } from "./utils.js";
+ 
+ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionPreparation) {
+@@ -413,7 +414,11 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
        sessionKey: params.sessionKey,
        sessionId: params.sessionId,
      });
 -    const effectiveTools = [...toolSchemaProjection.tools];
-+    let effectiveTools = [...toolSchemaProjection.tools];
-+    const toolResolveHookRunner = getGlobalHookRunner();
-+    if (toolResolveHookRunner?.hasHooks("before_tool_resolve")) {
-+      const hookResult = await toolResolveHookRunner.runBeforeToolResolve(
-+        { tools: effectiveTools.map((tool) => tool.name) },
-+        {
-+          agentId: effectiveSkillAgentId,
-+          sessionKey: sandboxSessionKey,
-+        },
-+      );
-+      if (hookResult?.tools) {
-+        const allowedToolNames = new Set(hookResult.tools);
-+        effectiveTools = effectiveTools.filter((tool) => allowedToolNames.has(tool.name));
-+      }
-+    }
++    const effectiveTools = await filterToolsWithBeforeResolveHook({
++      tools: toolSchemaProjection.tools,
++      agentId: effectiveSkillAgentId,
++      sessionKey: sandboxSessionKey,
++    });
      const allowedToolNames = collectAllowedToolNames({ tools: effectiveTools });
      runtimePlan.tools.logDiagnostics(effectiveTools, runtimePlanModelContext);
      const machineName = await getMachineDisplayName();
-diff --git a/src/agents/embedded-agent-runner/run/attempt.ts b/src/agents/embedded-agent-runner/run/attempt.ts
-index c818c1225c..1d40276f78 100644
---- a/src/agents/embedded-agent-runner/run/attempt.ts
-+++ b/src/agents/embedded-agent-runner/run/attempt.ts
-@@ -1652,7 +1652,23 @@ export async function runEmbeddedAttempt(
-       sessionKey: params.sessionKey,
-       sessionId: params.sessionId,
+diff --git a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
+index 840b5af583f..115aaa7c2a2 100644
+--- a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
++++ b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
+@@ -7,6 +7,7 @@ import {
+ import { filterLocalModelLeanTools } from "../../local-model-lean.js";
+ import { normalizeAgentRuntimeTools } from "../../runtime-plan/tools.js";
+ import { replaceWithEffectiveToolAllowlist } from "../../tool-policy.js";
++import { filterToolsWithBeforeResolveHook } from "../../tool-resolve-hook.js";
+ import { filterRuntimeCompatibleTools } from "../../tool-schema-projection.js";
+ import { logRuntimeToolSchemaQuarantine } from "../../tool-schema-quarantine.js";
+ import { replaceWithEffectiveCronCreatorToolAllowlist } from "../../tools/cron-tool.js";
+@@ -216,12 +217,17 @@ export async function prepareEmbeddedAttemptBundleTools(params: {
+       sessionKey: params.attempt.sessionKey,
+       sessionId: params.attempt.sessionId,
      });
--    const uncompactedEffectiveTools = [...uncompactedToolSchemaProjection.tools];
-+    let uncompactedEffectiveTools = [...uncompactedToolSchemaProjection.tools];
-+    const toolResolveHookRunner = getGlobalHookRunner();
-+    if (toolResolveHookRunner?.hasHooks("before_tool_resolve")) {
-+      const hookResult = await toolResolveHookRunner.runBeforeToolResolve(
-+        { tools: uncompactedEffectiveTools.map((tool) => tool.name) },
-+        {
-+          agentId: sessionAgentId,
-+          sessionKey: sandboxSessionKey,
++    const uncompactedEffectiveTools = await filterToolsWithBeforeResolveHook({
++      tools: schemaProjection.tools,
++      agentId: params.sessionAgentId,
++      sessionKey: params.attempt.sessionKey,
++    });
+     return {
+       bundleLspRuntime,
+       bundleMcpRuntime,
+       clientTools,
+       tools,
+-      uncompactedEffectiveTools: [...schemaProjection.tools],
++      uncompactedEffectiveTools,
+     };
+   } catch (error) {
+     try {
+diff --git a/src/agents/tool-resolve-hook.test.ts b/src/agents/tool-resolve-hook.test.ts
+new file mode 100644
+index 00000000000..184dbc324bd
+--- /dev/null
++++ b/src/agents/tool-resolve-hook.test.ts
+@@ -0,0 +1,36 @@
++import { describe, expect, it, vi } from "vitest";
++import { filterToolsWithBeforeResolveHook } from "./tool-resolve-hook.js";
++
++describe("filterToolsWithBeforeResolveHook", () => {
++  it("filters the complete tool surface with session context", async () => {
++    const runBeforeToolResolve = vi.fn(async () => ({ tools: ["read", "cloud_tool"] }));
++    const result = await filterToolsWithBeforeResolveHook({
++      tools: [{ name: "read" }, { name: "exec" }, { name: "cloud_tool" }],
++      agentId: "main",
++      sessionKey: "agent:main:feishu:default:direct:user",
++      hookRunner: {
++        hasHooks: () => true,
++        runBeforeToolResolve,
++      },
++    });
++
++    expect(result.map((tool) => tool.name)).toEqual(["read", "cloud_tool"]);
++    expect(runBeforeToolResolve).toHaveBeenCalledWith(
++      { tools: ["read", "exec", "cloud_tool"] },
++      { agentId: "main", sessionKey: "agent:main:feishu:default:direct:user" },
++    );
++  });
++
++  it("preserves tools when no hook is registered", async () => {
++    const tools = [{ name: "read" }];
++    await expect(
++      filterToolsWithBeforeResolveHook({
++        tools,
++        hookRunner: {
++          hasHooks: () => false,
++          runBeforeToolResolve: vi.fn(),
 +        },
-+      );
-+      if (hookResult?.tools) {
-+        const allowedToolNames = new Set(hookResult.tools);
-+        uncompactedEffectiveTools = uncompactedEffectiveTools.filter((tool) =>
-+          allowedToolNames.has(tool.name),
-+        );
-+      }
-+    }
-     let effectiveTools = uncompactedEffectiveTools;
-     const catalogToolHookContext = {
-       agentId: sessionAgentId,
++      }),
++    ).resolves.toEqual(tools);
++  });
++});
+diff --git a/src/agents/tool-resolve-hook.ts b/src/agents/tool-resolve-hook.ts
+new file mode 100644
+index 00000000000..7bb50cac051
+--- /dev/null
++++ b/src/agents/tool-resolve-hook.ts
+@@ -0,0 +1,31 @@
++import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
++
++type ToolResolveHookRunner = {
++  hasHooks: (hookName: "before_tool_resolve") => boolean;
++  runBeforeToolResolve: (
++    event: { tools: string[] },
++    context: { agentId?: string; sessionKey?: string },
++  ) => Promise<{ tools?: string[] } | undefined>;
++};
++
++export async function filterToolsWithBeforeResolveHook<T extends { name: string }>(params: {
++  tools: readonly T[];
++  agentId?: string;
++  sessionKey?: string;
++  hookRunner?: ToolResolveHookRunner | null;
++}): Promise<T[]> {
++  const tools = [...params.tools];
++  const hookRunner = params.hookRunner ?? getGlobalHookRunner();
++  if (!hookRunner?.hasHooks("before_tool_resolve")) {
++    return tools;
++  }
++  const result = await hookRunner.runBeforeToolResolve(
++    { tools: tools.map((tool) => tool.name) },
++    { agentId: params.agentId, sessionKey: params.sessionKey },
++  );
++  if (!result?.tools) {
++    return tools;
++  }
++  const allowedToolNames = new Set(result.tools);
++  return tools.filter((tool) => allowedToolNames.has(tool.name));
++}
 diff --git a/src/plugins/hook-types.ts b/src/plugins/hook-types.ts
-index 49e41ae90f..3aa322e34e 100644
+index 5d8fff14490..31548d7285f 100644
 --- a/src/plugins/hook-types.ts
 +++ b/src/plugins/hook-types.ts
-@@ -123,7 +123,8 @@ export type PluginHookName =
+@@ -141,7 +141,8 @@ export type PluginHookName =
    | "reply_dispatch"
    | "before_install"
    | "before_agent_run"
@@ -91,9 +174,9 @@ index 49e41ae90f..3aa322e34e 100644
 +  | "resolve_exec_env"
 +  | "before_tool_resolve";
  
- export const PLUGIN_HOOK_NAMES = [
+ const PLUGIN_HOOK_NAMES = [
    "before_model_resolve",
-@@ -165,6 +166,7 @@ export const PLUGIN_HOOK_NAMES = [
+@@ -188,6 +189,7 @@ const PLUGIN_HOOK_NAMES = [
    "before_install",
    "before_agent_run",
    "resolve_exec_env",
@@ -101,8 +184,8 @@ index 49e41ae90f..3aa322e34e 100644
  ] as const satisfies readonly PluginHookName[];
  
  type MissingPluginHookNames = Exclude<PluginHookName, (typeof PLUGIN_HOOK_NAMES)[number]>;
-@@ -956,6 +958,13 @@ export type PluginHookGatewayCronService = {
-   remove: (id: string) => Promise<PluginHookGatewayCronRemoveResult>;
+@@ -1111,6 +1113,13 @@ export type PluginHookGatewayCronService = {
+   }) => Promise<number>;
  };
  
 +export type PluginHookBeforeToolResolveEvent = {
@@ -113,9 +196,9 @@ index 49e41ae90f..3aa322e34e 100644
 +  tools?: string[];
 +};
  export type PluginInstallTargetType = "skill" | "plugin";
- export type PluginInstallRequestKind =
+ type PluginInstallRequestKind =
    | "skill-install"
-@@ -1258,6 +1267,10 @@ export type PluginHookHandlerMap = {
+@@ -1435,6 +1444,10 @@ export type PluginHookHandlerMap = {
      event: PluginHookResolveExecEnvEvent,
      ctx: PluginHookResolveExecEnvContext,
    ) => Promise<Record<string, string> | void> | Record<string, string> | void;
@@ -127,27 +210,23 @@ index 49e41ae90f..3aa322e34e 100644
  
  export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = {
 diff --git a/src/plugins/hooks.ts b/src/plugins/hooks.ts
-index 57abb8ce3f..42022f7139 100644
+index 645a56c3c3a..f161a54d08b 100644
 --- a/src/plugins/hooks.ts
 +++ b/src/plugins/hooks.ts
-@@ -92,6 +92,8 @@ import type {
+@@ -102,6 +102,8 @@ import type {
    PluginHookBeforeInstallResult,
    PluginHookResolveExecEnvContext,
    PluginHookResolveExecEnvEvent,
 +  PluginHookBeforeToolResolveEvent,
 +  PluginHookBeforeToolResolveResult,
- } from "./hook-types.js";
- 
- // Re-export types for consumers
-@@ -1252,6 +1254,27 @@ export function createHookRunner(
+   PluginHookSkillChangedEvent,
+   PluginHookSkillContext,
+   PluginHookSkillProposalChangedEvent,
+@@ -1347,6 +1349,23 @@ export function createHookRunner(
    // Tool Hooks
    // =========================================================================
  
-+  /**
-+   * Run before_tool_resolve hook.
-+   * Allows plugins to filter the tool list before session creation.
-+   * Runs sequentially; last result wins for the tools array.
-+   */
++  /** Filter the model-visible tool surface before session creation. */
 +  async function runBeforeToolResolve(
 +    event: PluginHookBeforeToolResolveEvent,
 +    ctx: PluginHookAgentContext,
@@ -167,7 +246,7 @@ index 57abb8ce3f..42022f7139 100644
    /**
     * Run before_tool_call hook.
     * Allows plugins to modify or block tool calls.
-@@ -1650,6 +1673,7 @@ export function createHookRunner(
+@@ -1845,6 +1864,7 @@ export function createHookRunner(
      runMessageSending,
      runMessageSent,
      // Tool hooks

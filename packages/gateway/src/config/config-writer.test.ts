@@ -157,7 +157,7 @@ describe("config-writer", () => {
       expect(result).toBe(configPath);
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.port).toBe(18789);
-      expect(config.gateway.reload.mode).toBe("hot");
+      expect(config.gateway.reload.mode).toBe("hybrid");
     });
 
     it("creates config file with plugins object (extensions dir auto-added)", () => {
@@ -350,7 +350,8 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.plugins.entries.brave.config.webSearch.apiKey).toBeUndefined();
       expect(config.plugins.allow).toContain("google");
-      expect(config.agents.defaults.memorySearch.remote).toBeUndefined();
+      expect(config.memory.search.remote).toBeUndefined();
+      expect(config.agents.defaults.memorySearch).toBeUndefined();
       expect(JSON.stringify(config)).not.toContain("RIVONCLAW_EMB_GEMINI_APIKEY");
       expect(JSON.stringify(config)).not.toContain("RIVONCLAW_WS_BRAVE_APIKEY");
     });
@@ -621,7 +622,7 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.controlUi.enabled).toBe(true);
       expect(config.gateway.controlUi.root).toBe("/vendor/openclaw/dist/control-ui");
-      expect(config.gateway.controlUi.dangerouslyDisableDeviceAuth).toBe(true);
+      expect(config.gateway.controlUi.dangerouslyDisableDeviceAuth).toBeUndefined();
     });
 
     it("disables controlUi when controlUiRoot is not provided", () => {
@@ -633,7 +634,7 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.controlUi.enabled).toBe(false);
-      expect(config.gateway.controlUi.dangerouslyDisableDeviceAuth).toBe(true);
+      expect(config.gateway.controlUi.dangerouslyDisableDeviceAuth).toBeUndefined();
       expect(config.gateway.controlUi.root).toBeUndefined();
     });
   });
@@ -836,18 +837,16 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, managedAgents });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.list).toEqual([
-        { id: "main", name: "Primary", default: true },
-        { id: "custom", default: false, workspace: "/custom" },
-        {
-          id: "customer-service",
+      expect(config.agents.entries).toEqual({
+        main: { name: "Primary", default: true },
+        custom: { default: false, workspace: "/custom" },
+        "customer-service": {
           workspace: "/state/workspace-customer-service",
           contextTokens: 100_000,
           thinkingDefault: "off",
           reasoningDefault: "off",
         },
-        {
-          id: "affiliate",
+        affiliate: {
           workspace: "/state/workspace-affiliate",
           skills: ["affiliate-workflow"],
           tools: {
@@ -855,7 +854,8 @@ describe("config-writer", () => {
             fs: { workspaceOnly: true },
           },
         },
-      ]);
+      });
+      expect(config.agents.list).toBeUndefined();
     });
 
     it("removes a previously managed per-agent context cap", () => {
@@ -888,13 +888,14 @@ describe("config-writer", () => {
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.list).toEqual([
-        {
-          id: "customer-service",
+      expect(config.agents.entries).toEqual({
+        "customer-service": {
+          default: true,
           thinkingDefault: "low",
           reasoningDefault: "off",
         },
-      ]);
+      });
+      expect(config.agents.list).toBeUndefined();
     });
   });
 
@@ -979,7 +980,7 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.models.providers).toBeUndefined();
-      expect(config.agents.defaults.cliBackends).toEqual({ codex: { command: "codex" } });
+      expect(config.agents.defaults.cliBackends).toBeUndefined();
       expect(config.agents.defaults.model).toEqual({ primary: "openai/gpt-5" });
       expect(config.agents.defaults.models).toEqual({ "openai/gpt-5": { alias: "GPT" } });
       expect(existsSync(join(tmpDir, "bin", "rivonclaw-gemini-cli"))).toBe(false);
@@ -1575,14 +1576,16 @@ describe("config-writer", () => {
       });
 
       let config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.agents.defaults.imageGenerationModel).toEqual({
+      expect(config.agents.defaults.mediaModels.image).toEqual({
         primary: "openai/gpt-image-2",
         timeoutMs: 300_000,
       });
+      expect(config.agents.defaults.imageGenerationModel).toBeUndefined();
 
       writeGatewayConfig({ configPath, imageGenerationModel: null });
       config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.imageGenerationModel).toBeUndefined();
+      expect(config.agents.defaults.mediaModels).toBeUndefined();
     });
   });
 
@@ -1868,7 +1871,7 @@ describe("config-writer", () => {
       expect(config.browser.defaultProfile).toBe("openclaw");
       expect(config.browser.attachOnly).toBe(true);
       expect(config.browser.profiles.openclaw.cdpUrl).toBe("http://127.0.0.1:9222");
-      expect(config.browser.profiles.openclaw.color).toBe("#4A90D9");
+      expect(config.browser.profiles.openclaw.color).toBeUndefined();
     });
 
     it("writes CDP browser config with custom port", () => {
@@ -1877,7 +1880,7 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.browser.profiles.openclaw.cdpUrl).toBe("http://127.0.0.1:9333");
-      expect(config.browser.profiles.openclaw.color).toBe("#4A90D9");
+      expect(config.browser.profiles.openclaw.color).toBeUndefined();
     });
 
     it("backward compat: forceStandaloneBrowser maps to standalone", () => {
@@ -1920,7 +1923,7 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, browserMode: "standalone" });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.browser.remoteCdpTimeoutMs).toBe(3000);
+      expect(config.browser.remoteCdpTimeoutMs).toBeUndefined();
       expect(config.browser.defaultProfile).toBe("openclaw");
     });
 
@@ -2252,7 +2255,7 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.compaction.notifyUser).toBe(false);
       expect(config.agents.defaults.compaction.reserveTokensFloor).toBeUndefined();
-      expect(config.agents.defaults.compaction.maxHistoryShare).toBe(0.35);
+      expect(config.agents.defaults.compaction.maxHistoryShare).toBeUndefined();
       expect(config.agents.defaults.compaction.midTurnPrecheck.enabled).toBe(true);
       expect(config.agents.defaults.compaction.model).toBeUndefined();
     });
@@ -2340,8 +2343,8 @@ describe("config-writer", () => {
       expect(config.agents.defaults.compaction.notifyUser).toBe(false);
       expect(config.agents.defaults.compaction.mode).toBe("safeguard");
       expect(config.agents.defaults.compaction.recentTurnsPreserve).toBe(5);
-      expect(config.agents.defaults.compaction.reserveTokensFloor).toBe(80_000);
-      expect(config.agents.defaults.compaction.maxHistoryShare).toBe(0.25);
+      expect(config.agents.defaults.compaction.reserveTokensFloor).toBeUndefined();
+      expect(config.agents.defaults.compaction.maxHistoryShare).toBeUndefined();
       expect(config.agents.defaults.compaction.midTurnPrecheck.enabled).toBe(false);
       expect(config.agents.defaults.compaction.model).toBe("openai/gpt-4o-mini");
     });

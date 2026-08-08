@@ -11,24 +11,26 @@ const PATCH_FILE = resolve(
   "../../../../vendor-patches/openclaw/0029-vendor-openclaw-rotate-sessions-after-compaction-failure.patch",
 );
 
-describe("vendor patch 0029: compaction-failure successor session", () => {
+describe("vendor patch 0029: compaction-failure lifecycle reset", () => {
   const patch = readFileSync(PATCH_FILE, "utf-8");
 
-  it("rotates the route instead of repeatedly reusing an unrecoverable transcript", () => {
+  it("resets the SQLite lifecycle instead of repeatedly reusing poisoned context", () => {
     expect(patch).toContain("resetSessionAfterCompactionFailure");
-    expect(patch).toContain("Rotated");
-    expect(patch).toContain("clean successor session");
+    expect(patch).toContain("clean lifecycle");
+    expect(patch).toContain("the failed transcript remains available");
   });
 
-  it("keeps the upstream preserved-session fallback when rotation is unavailable", () => {
+  it("keeps the upstream preserved-session fallback when reset is unavailable", () => {
     expect(patch).toContain("preserveSessionMapping: !didReset");
-    expect(patch).toContain("because successor rotation was unavailable");
+    expect(patch).toContain("because reset was unavailable");
   });
 
-  it("carries an integration test that preserves the failed transcript", () => {
+  it("covers both payload and thrown compaction failures", () => {
     expect(patch).toContain(
-      'it("rotates an unrecoverable compaction session while preserving its transcript"',
+      'it("resets the session lifecycle when embedded overflow recovery fails"',
     );
-    expect(patch).toContain('expect(await fs.readFile(sessionFile, "utf-8")).toContain');
+    expect(patch).toContain(
+      'it("resets the session lifecycle when compaction failure is thrown before reply"',
+    );
   });
 });

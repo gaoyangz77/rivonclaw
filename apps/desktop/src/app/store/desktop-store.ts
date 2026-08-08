@@ -1,8 +1,18 @@
-import { onPatch, applySnapshot, getSnapshot, types, type IJsonPatch } from "mobx-state-tree";
+import {
+  onPatch,
+  applySnapshot,
+  getSnapshot,
+  types,
+  type IJsonPatch,
+  type Instance,
+} from "mobx-state-tree";
 import { RootStoreModel } from "@rivonclaw/core/models";
 import type { GQL } from "@rivonclaw/core";
 import { SYSTEM_TOOL_CATALOG } from "../../generated/system-tool-catalog.js";
-import { LLMProviderManagerModel, type LLMProviderManagerEnv } from "../../providers/llm-provider-manager.js";
+import {
+  LLMProviderManagerModel,
+  type LLMProviderManagerEnv,
+} from "../../providers/llm-provider-manager.js";
 import { ChannelManagerModel, type ChannelManagerEnv } from "../../channels/channel-manager.js";
 import { MobileManagerModel, type MobileManagerEnv } from "../../mobile/mobile-manager.js";
 import { normalizePlatform } from "../../utils/platform.js";
@@ -133,74 +143,82 @@ export type { LLMProviderManagerEnv, ChannelManagerEnv, MobileManagerEnv };
 // Desktop-specific RootStore: extends shared model with ingestion actions
 // ---------------------------------------------------------------------------
 
-const DesktopRootStoreModel = RootStoreModel
-  .views((self) => ({
-    getCustomerServiceShopContextsForDevice(deviceId: string | null | undefined): CustomerServiceShopContextProjection[] {
-      if (!deviceId) return [];
-      const contexts: CustomerServiceShopContextProjection[] = [];
-      for (const shop of self.shops as any[]) {
-        const platformShopId = shop.platformShopId;
-        if (!platformShopId || !shop.handlesCustomerServiceOnDevice(deviceId)) continue;
-        const assembledPrompt = shop.services?.customerService?.assembledPrompt;
-        if (!assembledPrompt) continue;
-        contexts.push({
-          objectId: shop.id,
-          platformShopId,
-          shopName: shop.shopName ?? platformShopId,
-          platform: normalizePlatform(shop.platform),
-          systemPrompt: assembledPrompt,
-          csProviderOverride: shop.services?.customerService?.csProviderOverride ?? undefined,
-          csModelOverride: shop.services?.customerService?.csModelOverride ?? undefined,
-          runProfileId: shop.services?.customerService?.runProfileId ?? undefined,
-        });
-      }
-      return contexts;
-    },
+const DesktopRootStoreModel = RootStoreModel.views((self) => ({
+  getCustomerServiceShopContextsForDevice(
+    deviceId: string | null | undefined,
+  ): CustomerServiceShopContextProjection[] {
+    if (!deviceId) return [];
+    const contexts: CustomerServiceShopContextProjection[] = [];
+    for (const shop of self.shops as any[]) {
+      const platformShopId = shop.platformShopId;
+      if (!platformShopId || !shop.handlesCustomerServiceOnDevice(deviceId)) continue;
+      const assembledPrompt = shop.services?.customerService?.assembledPrompt;
+      if (!assembledPrompt) continue;
+      contexts.push({
+        objectId: shop.id,
+        platformShopId,
+        shopName: shop.shopName ?? platformShopId,
+        platform: normalizePlatform(shop.platform),
+        systemPrompt: assembledPrompt,
+        csProviderOverride: shop.services?.customerService?.csProviderOverride ?? undefined,
+        csModelOverride: shop.services?.customerService?.csModelOverride ?? undefined,
+        runProfileId: shop.services?.customerService?.runProfileId ?? undefined,
+      });
+    }
+    return contexts;
+  },
 
-    getAffiliateShopContextsForDevice(deviceId: string | null | undefined): AffiliateShopContextProjection[] {
-      if (!deviceId) return [];
-      const contexts: AffiliateShopContextProjection[] = [];
-      for (const shop of self.shops as any[]) {
-        const affiliateService = shop.services?.affiliateService;
-        if (!shop.platformShopId || !affiliateService?.enabled || affiliateService.deviceId !== deviceId) continue;
-        contexts.push({
-          id: shop.id,
-          userId: shop.userId,
-          platform: shop.platform,
-          platformShopId: shop.platformShopId,
-          shopName: shop.shopName,
-          runProfileId: affiliateService.runProfileId,
-          businessPrompt: affiliateService.businessPrompt,
-          decisionThresholds: affiliateService.decisionThresholds,
-        });
-      }
-      return contexts;
-    },
+  getAffiliateShopContextsForDevice(
+    deviceId: string | null | undefined,
+  ): AffiliateShopContextProjection[] {
+    if (!deviceId) return [];
+    const contexts: AffiliateShopContextProjection[] = [];
+    for (const shop of self.shops as any[]) {
+      const affiliateService = shop.services?.affiliateService;
+      if (
+        !shop.platformShopId ||
+        !affiliateService?.enabled ||
+        affiliateService.deviceId !== deviceId
+      )
+        continue;
+      contexts.push({
+        id: shop.id,
+        userId: shop.userId,
+        platform: shop.platform,
+        platformShopId: shop.platformShopId,
+        shopName: shop.shopName,
+        runProfileId: affiliateService.runProfileId,
+        businessPrompt: affiliateService.businessPrompt,
+        decisionThresholds: affiliateService.decisionThresholds,
+      });
+    }
+    return contexts;
+  },
 
-    isKnownShopCacheReady(): boolean {
-      return self.shopLifecycle.status === "ready";
-    },
+  isKnownShopCacheReady(): boolean {
+    return self.shopLifecycle.status === "ready";
+  },
 
-    isCustomerServiceShopAvailableForDevice(
-      shopId: string | null | undefined,
-      platformShopId: string | null | undefined,
-      deviceId: string | null | undefined,
-    ): boolean {
-      const shop = self.findShopByObjectOrPlatformId(shopId, platformShopId);
-      return !!shop?.handlesCustomerServiceOnDevice(deviceId);
-    },
+  isCustomerServiceShopAvailableForDevice(
+    shopId: string | null | undefined,
+    platformShopId: string | null | undefined,
+    deviceId: string | null | undefined,
+  ): boolean {
+    const shop = self.findShopByObjectOrPlatformId(shopId, platformShopId);
+    return !!shop?.handlesCustomerServiceOnDevice(deviceId);
+  },
 
-    isAffiliateShopAvailableForDevice(
-      shopId: string | null | undefined,
-      platformShopId: string | null | undefined,
-      deviceId: string | null | undefined,
-    ): boolean {
-      if (!deviceId) return false;
-      const shop = self.findShopByObjectOrPlatformId(shopId, platformShopId);
-      const affiliateService = shop?.services?.affiliateService;
-      return !!(affiliateService?.enabled && affiliateService.deviceId === deviceId);
-    },
-  }))
+  isAffiliateShopAvailableForDevice(
+    shopId: string | null | undefined,
+    platformShopId: string | null | undefined,
+    deviceId: string | null | undefined,
+  ): boolean {
+    if (!deviceId) return false;
+    const shop = self.findShopByObjectOrPlatformId(shopId, platformShopId);
+    const affiliateService = shop?.services?.affiliateService;
+    return !!(affiliateService?.enabled && affiliateService.deviceId === deviceId);
+  },
+}))
   .actions((self) => ({
     beginShopRefresh(reason: string) {
       self.shopLifecycle.status = "loading";
@@ -286,74 +304,81 @@ const DesktopRootStoreModel = RootStoreModel
     },
   }))
   .actions((self) => ({
-  /**
-   * Update systemTools from gateway catalog IDs.
-   * Preserves metadata from pre-seeded SYSTEM_TOOL_CATALOG entries.
-   */
-  updateSystemToolsFromCatalog(catalogCoreIds: string[]) {
-    if (catalogCoreIds.length === 0) return;
-    const existingMeta = new Map(
-      self.systemTools.map((t) => [t.id, { displayName: t.displayName, description: t.description, category: t.category }]),
-    );
-    applySnapshot(
-      self.systemTools,
-      catalogCoreIds.map((id) => {
-        const meta = existingMeta.get(id);
-        return {
-          id,
-          name: id,
-          displayName: meta?.displayName ?? id,
-          description: meta?.description ?? "",
-          category: meta?.category ?? "system",
-          source: "system",
-          operationType: "system",
-        };
-      }),
-    );
-  },
+    /**
+     * Update systemTools from gateway catalog IDs.
+     * Preserves metadata from pre-seeded SYSTEM_TOOL_CATALOG entries.
+     */
+    updateSystemToolsFromCatalog(catalogCoreIds: string[]) {
+      if (catalogCoreIds.length === 0) return;
+      const existingMeta = new Map(
+        self.systemTools.map((t) => [
+          t.id,
+          { displayName: t.displayName, description: t.description, category: t.category },
+        ]),
+      );
+      applySnapshot(
+        self.systemTools,
+        catalogCoreIds.map((id) => {
+          const meta = existingMeta.get(id);
+          return {
+            id,
+            name: id,
+            displayName: meta?.displayName ?? id,
+            description: meta?.description ?? "",
+            category: meta?.category ?? "system",
+            source: "system",
+            operationType: "system",
+          };
+        }),
+      );
+    },
 
-  /**
-   * Ingest a GraphQL response into the MST store.
-   *
-   * Uses __typename to automatically route data to the correct MST collection.
-   * Handles reads (query arrays) and creates/updates (mutation objects).
-   * Deletes are handled by Panel MST actions directly (optimistic removal after mutation succeeds).
-   */
+    /**
+     * Ingest a GraphQL response into the MST store.
+     *
+     * Uses __typename to automatically route data to the correct MST collection.
+     * Handles reads (query arrays) and creates/updates (mutation objects).
+     * Deletes are handled by Panel MST actions directly (optimistic removal after mutation succeeds).
+     */
     ingestGraphQLResponse(rawData: Record<string, unknown>) {
-    // --- Entity collections: __typename → MST array ---
-    const COLLECTIONS: Record<string, any> = {
-      Shop: self.shops,
-      AdsAdvertiser: self.adsAdvertisers,
-      AdsStoreBinding: self.adsStoreBindings,
-      AdsStoreAccess: self.adsStoreBindings,
-      Surface: self.surfaces,
-      RunProfile: self.runProfiles,
-      ToolSpec: self.entitledTools,
-      PlatformApp: self.platformApps,
-      WmsAccount: self.wmsAccounts,
-      Warehouse: self.warehouses,
-      ShopWarehouse: self.shopWarehouses,
-      InventoryGood: self.inventoryGoods,
-      BillingPlanDefinition: self.billingPlanDefinitions,
-      Payment: self.payments,
-      ActionProposal: self.affiliateWorkspace.actionProposals,
-      AffiliateCollaboration: self.affiliateWorkspace.affiliateCollaborations,
-      AffiliateCreatorRelationship: self.affiliateWorkspace.creatorRelationships,
-      AffiliateCreatorIdentity: self.affiliateWorkspace.creatorProfiles,
-      SampleApplicationRecord: self.affiliateWorkspace.sampleApplicationRecords,
-      LifecycleEvent: self.affiliateWorkspace.lifecycleEvents,
-      EcomProductSummary: self.affiliateWorkspace.productSummaries,
-    };
+      // --- Entity collections: __typename → MST array ---
+      const COLLECTIONS: Record<string, any> = {
+        Shop: self.shops,
+        AdsAdvertiser: self.adsAdvertisers,
+        AdsStoreBinding: self.adsStoreBindings,
+        AdsStoreAccess: self.adsStoreBindings,
+        Surface: self.surfaces,
+        RunProfile: self.runProfiles,
+        ToolSpec: self.entitledTools,
+        PlatformApp: self.platformApps,
+        WmsAccount: self.wmsAccounts,
+        Warehouse: self.warehouses,
+        ShopWarehouse: self.shopWarehouses,
+        InventoryGood: self.inventoryGoods,
+        BillingPlanDefinition: self.billingPlanDefinitions,
+        Payment: self.payments,
+        ActionProposal: self.affiliateWorkspace.actionProposals,
+        AffiliateCollaboration: self.affiliateWorkspace.affiliateCollaborations,
+        AffiliateCreatorRelationship: self.affiliateWorkspace.creatorRelationships,
+        AffiliateCreatorIdentity: self.affiliateWorkspace.creatorProfiles,
+        SampleApplicationRecord: self.affiliateWorkspace.sampleApplicationRecords,
+        LifecycleEvent: self.affiliateWorkspace.lifecycleEvents,
+        EcomProductSummary: self.affiliateWorkspace.productSummaries,
+      };
 
-    // --- Nullable singletons: __typename → getter/setter ---
+      // --- Nullable singletons: __typename → getter/setter ---
       const SINGLETONS: Record<string, { get: () => any; set: (v: any) => void }> = {
-      BillingOverview: {
-        get: () => self.billingOverview,
-        set: (v) => { self.billingOverview = v; },
-      },
-      MeResponse: {
-        get: () => self.currentUser,
-        set: (v) => { self.currentUser = v; },
+        BillingOverview: {
+          get: () => self.billingOverview,
+          set: (v) => {
+            self.billingOverview = v;
+          },
+        },
+        MeResponse: {
+          get: () => self.currentUser,
+          set: (v) => {
+            self.currentUser = v;
+          },
         },
       };
 
@@ -362,162 +387,164 @@ const DesktopRootStoreModel = RootStoreModel
         billingOverview: SINGLETONS.BillingOverview,
       };
 
-    // --- Key-based fallback for arrays without __typename ---
-    const KEY_FALLBACK: Record<string, any> = {
-      shops: self.shops,
-      adsAdvertisers: self.adsAdvertisers,
-      adsStoreAccesses: self.adsStoreBindings,
-      adsStoreBindings: self.adsStoreBindings,
-      surfaces: self.surfaces,
-      runProfiles: self.runProfiles,
-      toolSpecs: self.entitledTools,
-      platformApps: self.platformApps,
-      readWmsAccounts: self.wmsAccounts,
-      readWarehouses: self.warehouses,
-      readShopWarehouses: self.shopWarehouses,
-      readInventoryGoods: self.inventoryGoods,
-      writeInventoryGoods: self.inventoryGoods,
-      writeShopWarehouseMappings: self.shopWarehouses,
-      billingPlanDefinitions: self.billingPlanDefinitions,
-      readPayments: self.payments,
-    };
+      // --- Key-based fallback for arrays without __typename ---
+      const KEY_FALLBACK: Record<string, any> = {
+        shops: self.shops,
+        adsAdvertisers: self.adsAdvertisers,
+        adsStoreAccesses: self.adsStoreBindings,
+        adsStoreBindings: self.adsStoreBindings,
+        surfaces: self.surfaces,
+        runProfiles: self.runProfiles,
+        toolSpecs: self.entitledTools,
+        platformApps: self.platformApps,
+        readWmsAccounts: self.wmsAccounts,
+        readWarehouses: self.warehouses,
+        readShopWarehouses: self.shopWarehouses,
+        readInventoryGoods: self.inventoryGoods,
+        writeInventoryGoods: self.inventoryGoods,
+        writeShopWarehouseMappings: self.shopWarehouses,
+        billingPlanDefinitions: self.billingPlanDefinitions,
+        readPayments: self.payments,
+      };
 
-    for (const [key, raw] of Object.entries(rawData)) {
-      if (raw === undefined || raw === null) continue;
+      for (const [key, raw] of Object.entries(rawData)) {
+        if (raw === undefined || raw === null) continue;
 
-      // 1. Array → collection hydration (query result)
-      if (Array.isArray(raw)) {
-        if (key === "actionProposals") {
-          self.affiliateWorkspace.ingestAffiliateActionProposals(sanitizeForMst(raw) as any);
-          continue;
-        }
-        if (key === "creatorRelations") {
-          self.affiliateWorkspace.replaceAffiliateCreatorRelationships(sanitizeForMst(raw) as any);
-          continue;
-        }
-        if (key === "affiliateCollaborations") {
-          self.affiliateWorkspace.replaceAffiliateCollaborations(sanitizeForMst(raw) as any);
-          continue;
-        }
-        if (key === "creatorProfiles") {
-          self.affiliateWorkspace.replaceAffiliateCreatorProfiles(sanitizeForMst(raw) as any);
-          continue;
-        }
-        const typeName = (raw[0] as any)?.__typename;
-        const target = (typeName && COLLECTIONS[typeName]) || KEY_FALLBACK[key];
-        if (target) {
-          if (target === self.shops) {
-            (self as any).replaceShopsFromGraphQL(raw, `graphql:${key}`);
-          } else {
-            applySnapshot(target, sanitizeForMst(raw));
+        // 1. Array → collection hydration (query result)
+        if (Array.isArray(raw)) {
+          if (key === "actionProposals") {
+            self.affiliateWorkspace.ingestAffiliateActionProposals(sanitizeForMst(raw) as any);
+            continue;
           }
-        }
-        continue;
-      }
-
-      // 2. Skip booleans (delete responses — handled by Panel actions)
-      if (typeof raw !== "object") continue;
-
-      const obj = raw as Record<string, unknown>;
-      const typeName = obj.__typename as string | undefined;
-      const sanitized = sanitizeForMst(obj);
-
-      if (key === "decideActionProposal" || key === "affiliateResolveWorkItem") {
-        self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
-      }
-
-      if (key === "affiliateWorkspace") {
-        self.affiliateWorkspace.ingestAffiliateWorkspace(sanitized as any);
-        continue;
-      }
-
-      // 3. Collection entity → upsert by identifier
-      if (typeName && COLLECTIONS[typeName]) {
-        const target = COLLECTIONS[typeName];
-        const id = (sanitized as any).id;
-        if (id) {
-          if (typeName === "ActionProposal") {
-            self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
-          } else if (typeName === "AffiliateCollaboration") {
-            self.affiliateWorkspace.upsertAffiliateCollaboration(sanitized as any);
-          } else if (typeName === "AffiliateCreatorRelationship") {
-            self.affiliateWorkspace.upsertAffiliateCreatorRelationship(sanitized as any);
-          } else if (typeName === "AffiliateCreatorIdentity") {
-            self.affiliateWorkspace.upsertAffiliateCreatorProfile(sanitized as any);
-          } else if (typeName === "SampleApplicationRecord") {
-            self.affiliateWorkspace.upsertAffiliateSampleApplicationRecord(sanitized as any);
-          } else if (typeName === "LifecycleEvent") {
-            self.affiliateWorkspace.upsertAffiliateLifecycleEvent(sanitized as any);
-          } else if (typeName === "EcomProductSummary") {
-            self.affiliateWorkspace.upsertAffiliateProductSummary(sanitized as any);
+          if (key === "creatorRelations") {
+            self.affiliateWorkspace.replaceAffiliateCreatorRelationships(
+              sanitizeForMst(raw) as any,
+            );
+            continue;
           }
-          if (target === self.shops) {
-            (self as any).upsertShopFromGraphQL(obj, `graphql:${key || typeName}`);
-          } else {
-            const idx = target.findIndex((item: any) => item.id === id);
-            if (idx >= 0) {
-              applySnapshot(target[idx], sanitized);
+          if (key === "affiliateCollaborations") {
+            self.affiliateWorkspace.replaceAffiliateCollaborations(sanitizeForMst(raw) as any);
+            continue;
+          }
+          if (key === "creatorProfiles") {
+            self.affiliateWorkspace.replaceAffiliateCreatorProfiles(sanitizeForMst(raw) as any);
+            continue;
+          }
+          const typeName = (raw[0] as any)?.__typename;
+          const target = (typeName && COLLECTIONS[typeName]) || KEY_FALLBACK[key];
+          if (target) {
+            if (target === self.shops) {
+              (self as any).replaceShopsFromGraphQL(raw, `graphql:${key}`);
             } else {
-              target.push(sanitized as any);
+              applySnapshot(target, sanitizeForMst(raw));
             }
           }
+          continue;
         }
-        continue;
-      }
 
-      // 4. Singleton entity → set or update
-      const singleton = (typeName && SINGLETONS[typeName]) || (!typeName && KEY_SINGLETONS[key]);
-      if (singleton) {
-        const s = singleton;
-        if (s.get()) {
-          applySnapshot(s.get(), sanitized);
-        } else {
-          s.set(sanitized);
+        // 2. Skip booleans (delete responses — handled by Panel actions)
+        if (typeof raw !== "object") continue;
+
+        const obj = raw as Record<string, unknown>;
+        const typeName = obj.__typename as string | undefined;
+        const sanitized = sanitizeForMst(obj);
+
+        if (key === "decideActionProposal" || key === "affiliateResolveWorkItem") {
+          self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
         }
-        continue;
-      }
 
-      // 5. AuthPayload wrapper (login/register → nested user)
-      if (typeName === "AuthPayload") {
-        const user = (obj as any).user;
-        if (user && typeof user === "object" && user.__typename === "MeResponse") {
-          const sanitizedUser = sanitizeForMst(user);
-          if (self.currentUser) {
-            applySnapshot(self.currentUser, sanitizedUser);
-          } else {
-            self.currentUser = sanitizedUser as any;
+        if (key === "affiliateWorkspace") {
+          self.affiliateWorkspace.ingestAffiliateWorkspace(sanitized as any);
+          continue;
+        }
+
+        // 3. Collection entity → upsert by identifier
+        if (typeName && COLLECTIONS[typeName]) {
+          const target = COLLECTIONS[typeName];
+          const id = (sanitized as any).id;
+          if (id) {
+            if (typeName === "ActionProposal") {
+              self.affiliateWorkspace.upsertAffiliateActionProposal(sanitized as any);
+            } else if (typeName === "AffiliateCollaboration") {
+              self.affiliateWorkspace.upsertAffiliateCollaboration(sanitized as any);
+            } else if (typeName === "AffiliateCreatorRelationship") {
+              self.affiliateWorkspace.upsertAffiliateCreatorRelationship(sanitized as any);
+            } else if (typeName === "AffiliateCreatorIdentity") {
+              self.affiliateWorkspace.upsertAffiliateCreatorProfile(sanitized as any);
+            } else if (typeName === "SampleApplicationRecord") {
+              self.affiliateWorkspace.upsertAffiliateSampleApplicationRecord(sanitized as any);
+            } else if (typeName === "LifecycleEvent") {
+              self.affiliateWorkspace.upsertAffiliateLifecycleEvent(sanitized as any);
+            } else if (typeName === "EcomProductSummary") {
+              self.affiliateWorkspace.upsertAffiliateProductSummary(sanitized as any);
+            }
+            if (target === self.shops) {
+              (self as any).upsertShopFromGraphQL(obj, `graphql:${key || typeName}`);
+            } else {
+              const idx = target.findIndex((item: any) => item.id === id);
+              if (idx >= 0) {
+                applySnapshot(target[idx], sanitized);
+              } else {
+                target.push(sanitized as any);
+              }
+            }
           }
+          continue;
         }
-        continue;
+
+        // 4. Singleton entity → set or update
+        const singleton = (typeName && SINGLETONS[typeName]) || (!typeName && KEY_SINGLETONS[key]);
+        if (singleton) {
+          const s = singleton;
+          if (s.get()) {
+            applySnapshot(s.get(), sanitized);
+          } else {
+            s.set(sanitized);
+          }
+          continue;
+        }
+
+        // 5. AuthPayload wrapper (login/register → nested user)
+        if (typeName === "AuthPayload") {
+          const user = (obj as any).user;
+          if (user && typeof user === "object" && user.__typename === "MeResponse") {
+            const sanitizedUser = sanitizeForMst(user);
+            if (self.currentUser) {
+              applySnapshot(self.currentUser, sanitizedUser);
+            } else {
+              self.currentUser = sanitizedUser as any;
+            }
+          }
+          continue;
+        }
+
+        // enrollModule / unenrollModule / setDefaultRunProfile now return full MeResponse
+        // with __typename, so they are handled by the MeResponse singleton branch above (step 4).
       }
+    },
 
-      // enrollModule / unenrollModule / setDefaultRunProfile now return full MeResponse
-      // with __typename, so they are handled by the MeResponse singleton branch above (step 4).
-    }
-  },
+    /**
+     * Remove an entity from a collection by __typename and ID.
+     * Called by the GraphQL proxy after a successful delete mutation.
+     * This triggers SSE patches to Panel automatically.
+     */
+    removeEntity(typeName: string, id: string) {
+      const COLLECTIONS: Record<string, any> = {
+        Shop: self.shops,
+        AdsAdvertiser: self.adsAdvertisers,
+        AdsStoreBinding: self.adsStoreBindings,
+        AdsStoreAccess: self.adsStoreBindings,
+        Surface: self.surfaces,
+        RunProfile: self.runProfiles,
+      };
+      const target = COLLECTIONS[typeName];
+      if (target) {
+        const idx = target.findIndex((item: any) => item.id === id);
+        if (idx >= 0) target.splice(idx, 1);
+      }
+    },
 
-  /**
-   * Remove an entity from a collection by __typename and ID.
-   * Called by the GraphQL proxy after a successful delete mutation.
-   * This triggers SSE patches to Panel automatically.
-   */
-  removeEntity(typeName: string, id: string) {
-    const COLLECTIONS: Record<string, any> = {
-      Shop: self.shops,
-      AdsAdvertiser: self.adsAdvertisers,
-      AdsStoreBinding: self.adsStoreBindings,
-      AdsStoreAccess: self.adsStoreBindings,
-      Surface: self.surfaces,
-      RunProfile: self.runProfiles,
-    };
-    const target = COLLECTIONS[typeName];
-    if (target) {
-      const idx = target.findIndex((item: any) => item.id === id);
-      if (idx >= 0) target.splice(idx, 1);
-    }
-  },
-
-  /** Set the current user from auth REST routes (login/register/session). */
+    /** Set the current user from auth REST routes (login/register/session). */
     setCurrentUser(userData: any) {
       if (self.currentUser) {
         applySnapshot(self.currentUser, userData);
@@ -526,7 +553,10 @@ const DesktopRootStoreModel = RootStoreModel
       }
     },
 
-    setAuthBootstrap(status: "signed_out" | "loading" | "ready" | "error", error: string | null = null) {
+    setAuthBootstrap(
+      status: "signed_out" | "loading" | "ready" | "error",
+      error: string | null = null,
+    ) {
       (self as any).authBootstrap.status = status;
       (self as any).authBootstrap.error = error;
     },
@@ -595,116 +625,126 @@ const DesktopRootStoreModel = RootStoreModel
       applySnapshot(self.payments, []);
     },
 
-  /** Replace all client tool specs in the MST store (from gateway RPC). */
-  loadClientToolSpecs(specs: any[]) {
-    applySnapshot(self.clientTools, specs);
-  },
+    /** Replace all client tool specs in the MST store (from gateway RPC). */
+    loadClientToolSpecs(specs: any[]) {
+      applySnapshot(self.clientTools, specs);
+    },
 
-  /** Replace all provider keys in the MST store (bulk load from storage). */
-  loadProviderKeys(keys: any[]) {
-    applySnapshot(self.providerKeys, keys);
-  },
+    /** Replace all provider keys in the MST store (bulk load from storage). */
+    loadProviderKeys(keys: any[]) {
+      applySnapshot(self.providerKeys, keys);
+    },
 
-  /** Upsert a single provider key (after create/update). */
-  upsertProviderKey(key: any) {
-    const idx = self.providerKeys.findIndex((k) => k.id === key.id);
-    if (idx >= 0) {
-      applySnapshot(self.providerKeys[idx], key);
-    } else {
-      self.providerKeys.push(key);
-    }
-  },
+    /** Upsert a single provider key (after create/update). */
+    upsertProviderKey(key: any) {
+      const idx = self.providerKeys.findIndex((k) => k.id === key.id);
+      if (idx >= 0) {
+        applySnapshot(self.providerKeys[idx], key);
+      } else {
+        self.providerKeys.push(key);
+      }
+    },
 
-  /** Remove a provider key by ID. */
-  removeProviderKey(id: string) {
-    const idx = self.providerKeys.findIndex((k) => k.id === id);
-    if (idx >= 0) self.providerKeys.splice(idx, 1);
-  },
+    /** Remove a provider key by ID. */
+    removeProviderKey(id: string) {
+      const idx = self.providerKeys.findIndex((k) => k.id === id);
+      if (idx >= 0) self.providerKeys.splice(idx, 1);
+    },
 
-  /** Replace all channel accounts in the MST store (bulk load from storage). */
-  loadChannelAccounts(accounts: any[]) {
-    applySnapshot(self.channelAccounts, accounts);
-  },
+    /** Replace all channel accounts in the MST store (bulk load from storage). */
+    loadChannelAccounts(accounts: any[]) {
+      applySnapshot(self.channelAccounts, accounts);
+    },
 
-  /** Upsert a single channel account (after create/update). */
-  upsertChannelAccount(account: any) {
-    const idx = self.channelAccounts.findIndex(
-      (a) => a.channelId === account.channelId && a.accountId === account.accountId,
-    );
-    if (idx >= 0) {
-      applySnapshot(self.channelAccounts[idx], account);
-    } else {
-      self.channelAccounts.push(account);
-    }
-  },
+    /** Upsert a single channel account (after create/update). */
+    upsertChannelAccount(account: any) {
+      const idx = self.channelAccounts.findIndex(
+        (a) => a.channelId === account.channelId && a.accountId === account.accountId,
+      );
+      if (idx >= 0) {
+        applySnapshot(self.channelAccounts[idx], account);
+      } else {
+        self.channelAccounts.push(account);
+      }
+    },
 
-  /** Update ephemeral channel account status derived from local runtime state. */
-  updateChannelAccountStatus(channelId: string, accountId: string, status: Record<string, unknown>) {
-    const account = self.channelAccounts.find(
-      (a) => a.channelId === channelId && a.accountId === accountId,
-    );
-    if (!account) return;
-    applySnapshot(account, {
-      ...getSnapshot(account),
-      status: {
-        ...(getSnapshot(account).status ?? {}),
-        ...status,
-      },
-    });
-  },
+    /** Update ephemeral channel account status derived from local runtime state. */
+    updateChannelAccountStatus(
+      channelId: string,
+      accountId: string,
+      status: Record<string, unknown>,
+    ) {
+      const account = self.channelAccounts.find(
+        (a) => a.channelId === channelId && a.accountId === accountId,
+      );
+      if (!account) return;
+      applySnapshot(account, {
+        ...getSnapshot(account),
+        status: {
+          ...(getSnapshot(account).status ?? {}),
+          ...status,
+        },
+      });
+    },
 
-  /** Update account-scoped recipient state derived from pairing/allowFrom storage. */
-  updateChannelAccountRecipients(channelId: string, accountId: string, recipients: Record<string, unknown>) {
-    const account = self.channelAccounts.find(
-      (a) => a.channelId === channelId && a.accountId === accountId,
-    );
-    if (!account) return;
-    applySnapshot(account, {
-      ...getSnapshot(account),
-      recipients,
-    });
-  },
+    /** Update account-scoped recipient state derived from pairing/allowFrom storage. */
+    updateChannelAccountRecipients(
+      channelId: string,
+      accountId: string,
+      recipients: Record<string, unknown>,
+    ) {
+      const account = self.channelAccounts.find(
+        (a) => a.channelId === channelId && a.accountId === accountId,
+      );
+      if (!account) return;
+      applySnapshot(account, {
+        ...getSnapshot(account),
+        recipients,
+      });
+    },
 
-  /** Remove a channel account by composite key. */
-  removeChannelAccount(channelId: string, accountId: string) {
-    const idx = self.channelAccounts.findIndex(
-      (a) => a.channelId === channelId && a.accountId === accountId,
-    );
-    if (idx >= 0) self.channelAccounts.splice(idx, 1);
-  },
+    /** Remove a channel account by composite key. */
+    removeChannelAccount(channelId: string, accountId: string) {
+      const idx = self.channelAccounts.findIndex(
+        (a) => a.channelId === channelId && a.accountId === accountId,
+      );
+      if (idx >= 0) self.channelAccounts.splice(idx, 1);
+    },
 
-  /** Replace all mobile pairings in the MST store (bulk load from storage). */
-  loadMobilePairings(pairings: any[]) {
-    applySnapshot(self.mobilePairings, pairings);
-  },
+    /** Replace all mobile pairings in the MST store (bulk load from storage). */
+    loadMobilePairings(pairings: any[]) {
+      applySnapshot(self.mobilePairings, pairings);
+    },
 
-  /** Upsert a single mobile pairing. */
-  upsertMobilePairing(pairing: any) {
-    const idx = self.mobilePairings.findIndex((p) => p.id === pairing.id);
-    if (idx >= 0) {
-      applySnapshot(self.mobilePairings[idx], pairing);
-    } else {
-      self.mobilePairings.push(pairing);
-    }
-  },
+    /** Upsert a single mobile pairing. */
+    upsertMobilePairing(pairing: any) {
+      const idx = self.mobilePairings.findIndex((p) => p.id === pairing.id);
+      if (idx >= 0) {
+        applySnapshot(self.mobilePairings[idx], pairing);
+      } else {
+        self.mobilePairings.push(pairing);
+      }
+    },
 
-  /** Remove a mobile pairing by ID. */
-  removeMobilePairing(id: string) {
-    const idx = self.mobilePairings.findIndex((p) => p.id === id);
-    if (idx >= 0) self.mobilePairings.splice(idx, 1);
-  },
-}))
-.props({
-  /** LLM Provider Manager — encapsulates provider key transaction actions. */
-  llmManager: types.optional(LLMProviderManagerModel, {}),
-  /** Channel Manager — encapsulates channel account CRUD and plugin entry computation. */
-  channelManager: types.optional(ChannelManagerModel, {}),
-  /** Mobile Manager — encapsulates mobile pairing lifecycle and sync engine coordination. */
-  mobileManager: types.optional(MobileManagerModel, {}),
-});
+    /** Remove a mobile pairing by ID. */
+    removeMobilePairing(id: string) {
+      const idx = self.mobilePairings.findIndex((p) => p.id === id);
+      if (idx >= 0) self.mobilePairings.splice(idx, 1);
+    },
+  }))
+  .props({
+    /** LLM Provider Manager — encapsulates provider key transaction actions. */
+    llmManager: types.optional(LLMProviderManagerModel, {}),
+    /** Channel Manager — encapsulates channel account CRUD and plugin entry computation. */
+    channelManager: types.optional(ChannelManagerModel, {}),
+    /** Mobile Manager — encapsulates mobile pairing lifecycle and sync engine coordination. */
+    mobileManager: types.optional(MobileManagerModel, {}),
+  });
 
 /** Singleton MST store instance for the Desktop process. */
-export const rootStore = DesktopRootStoreModel.create({
+export type DesktopRootStore = Instance<typeof DesktopRootStoreModel>;
+
+export const rootStore: DesktopRootStore = DesktopRootStoreModel.create({
   systemTools: SYSTEM_TOOL_CATALOG.map((t) => ({
     id: t.id,
     name: t.id,

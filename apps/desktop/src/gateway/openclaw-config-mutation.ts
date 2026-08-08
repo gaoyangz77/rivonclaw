@@ -15,13 +15,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Desktop owns the gateway process lifecycle. Keep OpenClaw's file watcher in
- * hot mode so file edits can update dynamic/channel state, but cannot escalate
- * into an in-process gateway restart.
+ * hybrid mode so file edits can update dynamic/channel state while OpenClaw
+ * can still classify settings that require a restart.
  */
 export function enforceDesktopGatewayReloadPolicy(config: OpenClawConfigObject): void {
   const gateway = isRecord(config.gateway) ? config.gateway : {};
   const reload = isRecord(gateway.reload) ? gateway.reload : {};
-  reload.mode = "hot";
+  reload.mode = "hybrid";
   gateway.reload = reload;
   config.gateway = gateway;
 }

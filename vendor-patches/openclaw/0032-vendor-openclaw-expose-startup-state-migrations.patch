@@ -1,0 +1,32 @@
+From 333eae39f709502ee55c2a890ef334ab08bd6a2c Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Sat, 8 Aug 2026 05:21:05 -0700
+Subject: [PATCH] vendor(openclaw): expose startup state migrations
+
+Why:
+- RivonClaw Desktop starts the embedded Gateway without the node-host runner, so retired device identity state is otherwise never migrated.
+
+Removal:
+- OpenClaw exports runStartupMigrations from a stable public runtime, or RivonClaw starts Gateway through the node-host runner.
+
+Tests:
+- packages/gateway/src/vendor/state-migration.test.ts
+---
+ src/plugin-sdk/node-host.ts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/plugin-sdk/node-host.ts b/src/plugin-sdk/node-host.ts
+index b3cd1a94a39..ade55b1d572 100644
+--- a/src/plugin-sdk/node-host.ts
++++ b/src/plugin-sdk/node-host.ts
+@@ -8,6 +8,7 @@ export {
+   type NodePtyResumeParams,
+ } from "../node-host/pty-command.js";
+ export { validateClaudeSessionId } from "../node-host/invoke-agent-cli-claude-params.js";
++export { runStartupMigrations } from "../node-host/startup-state-migrations.js";
+ export type { OpenClawPluginNodeHostCommandIo } from "../plugins/types.js";
+ 
+ /** Resolve a node-host executable using the selected PATH source policy. */
+-- 
+2.50.1 (Apple Git-155)
+

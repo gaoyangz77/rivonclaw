@@ -77,7 +77,7 @@ const CLOUD_DEFAULT_MODEL_ID = "rivonclaw-flagship";
 const NO_ACTIVE_LLM_PROVIDER_ERROR =
   "No active LLM provider is configured. Renew TK Copilot AI or add and activate an API key in Models.";
 
-interface CloudModel {
+export interface CloudModel {
   id: string;
   name?: unknown;
   display_name?: unknown;
@@ -92,7 +92,7 @@ interface CloudModel {
   maxTokens?: unknown;
 }
 
-interface ApplyModelForSessionOptions {
+export interface ApplyModelForSessionOptions {
   requestTimeoutMs?: number;
   sessionPatch?: Record<string, unknown>;
 }
@@ -1125,8 +1125,7 @@ export const LLMProviderManagerModel = types
           // material actually changed. Billing overview polling can call this
           // path frequently; it must not rewrite config or patch all sessions
           // unless the underlying provider data changed.
-          const providerChanged =
-            baseUrlChanged || labelChanged || modelsChanged || modelChanged;
+          const providerChanged = baseUrlChanged || labelChanged || modelsChanged || modelChanged;
           const nextEntry = providerChanged
             ? storage.providerKeys.update(existing.id, providerChanges)
             : existing;

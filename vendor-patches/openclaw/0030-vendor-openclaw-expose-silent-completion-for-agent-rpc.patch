@@ -1,34 +1,32 @@
-From e952913b594472f373424a04a52a37fa66c2483c Mon Sep 17 00:00:00 2001
+From a6b6e6817f729cd5eb0ac9d25b547f8be6c23bda Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
-Date: Mon, 27 Jul 2026 12:00:26 -0700
+Date: Sat, 8 Aug 2026 00:52:01 -0700
 Subject: [PATCH] vendor(openclaw): expose silent completion for agent RPC
 
 Why:
-- Customer-service agents need to accept clean empty assistant turns without changing global agent behavior.
+- Trusted internal RPC callers need clean empty model completions to settle as intentional silent replies.
 
 Removal:
-- Drop when upstream agent Gateway RPC forwards allowEmptyAssistantReplyAsSilent or provides an equivalent per-run option.
+- Drop when upstream AgentParamsSchema and gateway execution expose allowEmptyAssistantReplyAsSilent without overriding subagent handoff behavior.
 
 Tests:
 - apps/desktop/src/cs-bridge/vendor-agent-silent-completion.sentinel.test.ts
-- apps/desktop/src/cs-bridge/customer-service-bridge.test.ts
-- apps/desktop/src/cs-bridge/cs-conversation-summary-service.test.ts
-- apps/desktop/src/affiliate/affiliate-work-item.test.ts
 ---
  .../gateway-protocol/src/schema/agent.test.ts   | 17 +++++++++++++++++
  packages/gateway-protocol/src/schema/agent.ts   |  1 +
  .../command/attempt-execution.cli.test.ts       |  2 ++
- src/agents/command/attempt-execution.ts         |  1 +
+ src/agents/command/attempt-execution.ts         |  3 ++-
  src/agents/command/types.ts                     |  2 ++
- src/gateway/server-methods/agent.test.ts        |  3 +++
- src/gateway/server-methods/agent.ts             |  2 ++
- 7 files changed, 28 insertions(+)
+ .../server-methods/agent-request-types.ts       |  1 +
+ .../server-methods/agent-run-execution-phase.ts |  1 +
+ .../agent.events-and-subagents.test-utils.ts    |  3 +++
+ 8 files changed, 29 insertions(+), 1 deletion(-)
 
 diff --git a/packages/gateway-protocol/src/schema/agent.test.ts b/packages/gateway-protocol/src/schema/agent.test.ts
-index bd03583bd7a..d24dba01e37 100644
+index ea46d48d118..825c6a08a9f 100644
 --- a/packages/gateway-protocol/src/schema/agent.test.ts
 +++ b/packages/gateway-protocol/src/schema/agent.test.ts
-@@ -57,6 +57,23 @@ const musicCompletionEvent: AgentInternalEvent = {
+@@ -70,6 +70,23 @@ const musicCompletionEvent: AgentInternalEvent = {
  };
  
  describe("AgentParamsSchema", () => {
@@ -49,26 +47,26 @@ index bd03583bd7a..d24dba01e37 100644
 +    ).toBe(false);
 +  });
 +
-   it("accepts generated music attachments on internal completion events", () => {
-     const params = makeAgentParamsWithInternalEvent(musicCompletionEvent);
- 
+   it("accepts the backend expected-session binding", () => {
+     expect(
+       Value.Check(AgentParamsSchema, {
 diff --git a/packages/gateway-protocol/src/schema/agent.ts b/packages/gateway-protocol/src/schema/agent.ts
-index 4abe976335e..a5f76aa04cc 100644
+index dc6bb3b35e9..8de85332932 100644
 --- a/packages/gateway-protocol/src/schema/agent.ts
 +++ b/packages/gateway-protocol/src/schema/agent.ts
-@@ -218,6 +218,7 @@ export const AgentParamsSchema = Type.Object(
-         Type.Literal("raw"),
-       ]),
-     ),
-+    allowEmptyAssistantReplyAsSilent: Type.Optional(Type.Boolean()),
-     extraSystemPrompt: Type.Optional(Type.String()),
-     bootstrapContextMode: Type.Optional(
-       Type.Union([Type.Literal("full"), Type.Literal("lightweight")]),
+@@ -316,6 +316,7 @@ export const AgentParamsSchema = closedObject({
+       Type.Literal("raw"),
+     ]),
+   ),
++  allowEmptyAssistantReplyAsSilent: Type.Optional(Type.Boolean()),
+   extraSystemPrompt: Type.Optional(Type.String()),
+   bootstrapContextMode: Type.Optional(
+     Type.Union([Type.Literal("full"), Type.Literal("lightweight")]),
 diff --git a/src/agents/command/attempt-execution.cli.test.ts b/src/agents/command/attempt-execution.cli.test.ts
-index f614f0f0a98..2c1d7a66222 100644
+index 4219ac3770a..7db43fbdf2b 100644
 --- a/src/agents/command/attempt-execution.cli.test.ts
 +++ b/src/agents/command/attempt-execution.cli.test.ts
-@@ -2386,6 +2386,7 @@ describe("CLI attempt execution", () => {
+@@ -3195,6 +3195,7 @@ describe("CLI attempt execution", () => {
        opts: {
          modelRun: true,
          promptMode: "none",
@@ -76,7 +74,7 @@ index f614f0f0a98..2c1d7a66222 100644
          messageProvider: "discord-voice",
          inputProvenance: {
            kind: "inter_session",
-@@ -2416,6 +2417,7 @@ describe("CLI attempt execution", () => {
+@@ -3225,6 +3226,7 @@ describe("CLI attempt execution", () => {
        messageProvider: "discord-voice",
        modelRun: true,
        promptMode: "none",
@@ -85,22 +83,24 @@ index f614f0f0a98..2c1d7a66222 100644
      });
      expect(firstEmbeddedAgentArg().prompt).not.toContain("[Inter-session message]");
 diff --git a/src/agents/command/attempt-execution.ts b/src/agents/command/attempt-execution.ts
-index c4a2fd56c37..2ea8e36b412 100644
+index c6fde499f25..1ca71e1e9bd 100644
 --- a/src/agents/command/attempt-execution.ts
 +++ b/src/agents/command/attempt-execution.ts
-@@ -830,6 +830,7 @@ export function runAgentAttempt(params: {
-     oneShotCliRun: params.opts.oneShotCliRun,
+@@ -1050,7 +1050,8 @@ export function runAgentAttempt(params: {
      modelRun: params.opts.modelRun,
      promptMode: params.opts.promptMode,
-+    allowEmptyAssistantReplyAsSilent: params.opts.allowEmptyAssistantReplyAsSilent,
-     disableTools: params.opts.modelRun === true,
+     disableTools,
+-    allowEmptyAssistantReplyAsSilent: isSubagentAnnounceHandoff,
++    allowEmptyAssistantReplyAsSilent:
++      params.opts.allowEmptyAssistantReplyAsSilent === true || isSubagentAnnounceHandoff,
      onAgentEvent: params.onAgentEvent,
      deferTerminalLifecycle: params.deferTerminalLifecycle,
+     suppressNextUserMessagePersistence: params.suppressPromptPersistenceOnRetry === true,
 diff --git a/src/agents/command/types.ts b/src/agents/command/types.ts
-index c15efb1b472..1e664348e19 100644
+index 0055710af2e..213f200ff2c 100644
 --- a/src/agents/command/types.ts
 +++ b/src/agents/command/types.ts
-@@ -161,6 +161,8 @@ export type AgentCommandOpts = {
+@@ -196,6 +196,8 @@ export type AgentCommandOpts = {
    modelRun?: boolean;
    /** Internal prompt-mode override for trusted local/gateway callsites. */
    promptMode?: PromptMode;
@@ -109,11 +109,35 @@ index c15efb1b472..1e664348e19 100644
    /** Internal ACP-ready session turn source. Manual spawn turns bypass only the dispatch gate. */
    acpTurnSource?: AcpTurnSource;
    /** Internal handoffs can feed the model without writing the synthetic prompt to transcript. */
-diff --git a/src/gateway/server-methods/agent.test.ts b/src/gateway/server-methods/agent.test.ts
-index 11a95244a16..1a4f03ba995 100644
---- a/src/gateway/server-methods/agent.test.ts
-+++ b/src/gateway/server-methods/agent.test.ts
-@@ -2361,6 +2361,7 @@ describe("gateway agent handler", () => {
+diff --git a/src/gateway/server-methods/agent-request-types.ts b/src/gateway/server-methods/agent-request-types.ts
+index decbed33ab4..7f28629a8f2 100644
+--- a/src/gateway/server-methods/agent-request-types.ts
++++ b/src/gateway/server-methods/agent-request-types.ts
+@@ -32,6 +32,7 @@ export type AgentRunRequest = {
+   extraSystemPrompt?: string;
+   modelRun?: boolean;
+   promptMode?: "full" | "minimal" | "none" | "raw";
++  allowEmptyAssistantReplyAsSilent?: boolean;
+   bootstrapContextMode?: "full" | "lightweight";
+   // Commitment fan-out scope is scheduler-internal and cannot be selected over Gateway RPC.
+   bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
+diff --git a/src/gateway/server-methods/agent-run-execution-phase.ts b/src/gateway/server-methods/agent-run-execution-phase.ts
+index 90179397eaf..7c96eef1cfc 100644
+--- a/src/gateway/server-methods/agent-run-execution-phase.ts
++++ b/src/gateway/server-methods/agent-run-execution-phase.ts
+@@ -343,6 +343,7 @@ export function startAgentRunExecution(params: {
+           lane: params.request.lane,
+           modelRun: params.request.modelRun === true,
+           promptMode: params.request.promptMode,
++          allowEmptyAssistantReplyAsSilent: params.request.allowEmptyAssistantReplyAsSilent,
+           extraSystemPrompt: params.request.extraSystemPrompt,
+           bootstrapContextMode: params.request.bootstrapContextMode,
+           bootstrapContextRunKind: params.effectiveBootstrapContextRunKind,
+diff --git a/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts b/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
+index 8b6b5eeb97c..d9712f610e4 100644
+--- a/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
++++ b/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
+@@ -459,6 +459,7 @@ describe("gateway agent handler", () => {
          model: "llama3.2:latest",
          modelRun: true,
          promptMode: "none",
@@ -121,7 +145,7 @@ index 11a95244a16..1a4f03ba995 100644
          sessionKey: "agent:main:main",
          inputProvenance: {
            kind: "inter_session",
-@@ -2379,11 +2380,13 @@ describe("gateway agent handler", () => {
+@@ -477,11 +478,13 @@ describe("gateway agent handler", () => {
        message?: string;
        modelRun?: boolean;
        promptMode?: string;
@@ -135,26 +159,5 @@ index 11a95244a16..1a4f03ba995 100644
      });
      expect(callArgs.message).not.toContain("[Inter-session message]");
  
-diff --git a/src/gateway/server-methods/agent.ts b/src/gateway/server-methods/agent.ts
-index 0546ac51c65..3d5c9f3ffda 100644
---- a/src/gateway/server-methods/agent.ts
-+++ b/src/gateway/server-methods/agent.ts
-@@ -1023,6 +1023,7 @@ export const agentHandlers: GatewayRequestHandlers = {
-       extraSystemPrompt?: string;
-       modelRun?: boolean;
-       promptMode?: "full" | "minimal" | "none" | "raw";
-+      allowEmptyAssistantReplyAsSilent?: boolean;
-       bootstrapContextMode?: "full" | "lightweight";
-       bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
-       acpTurnSource?: "manual_spawn";
-@@ -2678,6 +2679,7 @@ export const agentHandlers: GatewayRequestHandlers = {
-               lane: request.lane,
-               modelRun: request.modelRun === true,
-               promptMode: request.promptMode,
-+              allowEmptyAssistantReplyAsSilent: request.allowEmptyAssistantReplyAsSilent,
-               extraSystemPrompt: request.extraSystemPrompt,
-               bootstrapContextMode: request.bootstrapContextMode,
-               bootstrapContextRunKind: request.bootstrapContextRunKind,
 -- 
 2.50.1 (Apple Git-155)
-

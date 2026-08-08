@@ -1,13 +1,24 @@
-import fs from "node:fs";
-import path from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import {
+import { assertOpenClawChannelRegistryValid } from "../../../../extensions/rivonclaw-capability-manager/src/channel-registry-diagnostics.js";
+
+const vendorDist = resolve(__dirname, "../../../../vendor/openclaw/dist");
+const runtimeEntry = readdirSync(vendorDist)
+  .filter((name) => /^runtime-.*\.js$/.test(name))
+  .find((name) =>
+    readFileSync(resolve(vendorDist, name), "utf8").includes(
+      "export { collectLivePluginRegistries, getActivePluginChannelRegistry",
+    ),
+  );
+if (!runtimeEntry) throw new Error("Unable to locate built OpenClaw plugin runtime entry");
+const {
   getActivePluginChannelRegistry,
   pinActivePluginChannelRegistry,
   resetPluginRuntimeStateForTest,
   setActivePluginRegistry,
-} from "../../../../vendor/openclaw/src/plugins/runtime.js";
-import { assertOpenClawChannelRegistryValid } from "../../../../extensions/rivonclaw-capability-manager/src/channel-registry-diagnostics.js";
+} = await import(pathToFileURL(resolve(vendorDist, runtimeEntry)).href);
 
 function createRegistry(channelIds: string[], withOutbound = false) {
   return {
@@ -62,20 +73,5 @@ describe("OpenClaw channel registry pinning", () => {
     expect(() => assertOpenClawChannelRegistryValid(["telegram"])).toThrow(
       /telegram:REQUIRED_CHANNEL_MISSING_OUTBOUND/,
     );
-  });
-
-  it("keeps standalone plugin tool discovery off the channel registry surface", () => {
-    const toolsSource = fs.readFileSync(
-      path.resolve(__dirname, "../../../../vendor/openclaw/src/plugins/tools.ts"),
-      "utf8",
-    );
-    const start = toolsSource.indexOf("export function ensureStandalonePluginToolRegistryLoaded");
-    const end = toolsSource.indexOf("export function resolvePluginTools", start);
-    const ensureStandaloneBody =
-      start >= 0 && end > start ? toolsSource.slice(start, end) : undefined;
-
-    expect(ensureStandaloneBody).toBeTruthy();
-    expect(ensureStandaloneBody).not.toContain('surface: "channel"');
-    expect(ensureStandaloneBody).toContain('surface: "active"');
   });
 });

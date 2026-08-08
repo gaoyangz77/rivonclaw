@@ -306,6 +306,57 @@ function normalizeRecipientIdForChannel(channelId: string, recipientId: string):
   return trimmed.startsWith(prefix) ? trimmed.slice(prefix.length) : trimmed;
 }
 
+function normalizeFeishuStreamingConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const {
+    streaming: legacyStreaming,
+    blockStreaming,
+    blockStreamingCoalesce,
+    chunkMode,
+    ...rest
+  } = config;
+  const streaming = legacyStreaming && typeof legacyStreaming === "object" && !Array.isArray(legacyStreaming)
+    ? { ...legacyStreaming as Record<string, unknown> }
+    : {};
+
+  if (typeof legacyStreaming === "boolean") {
+    streaming.mode = legacyStreaming ? "partial" : "off";
+  } else if (streaming.mode !== "off" && streaming.mode !== "partial") {
+    streaming.mode = "partial";
+  }
+  if (
+    streaming.chunkMode === undefined &&
+    (chunkMode === "length" || chunkMode === "newline")
+  ) {
+    streaming.chunkMode = chunkMode;
+  }
+
+  const existingBlock = streaming.block && typeof streaming.block === "object" && !Array.isArray(streaming.block)
+    ? { ...streaming.block as Record<string, unknown> }
+    : {};
+  if (existingBlock.enabled === undefined) {
+    existingBlock.enabled = typeof blockStreaming === "boolean" ? blockStreaming : false;
+  }
+  if (
+    existingBlock.coalesce === undefined &&
+    blockStreamingCoalesce &&
+    typeof blockStreamingCoalesce === "object" &&
+    !Array.isArray(blockStreamingCoalesce)
+  ) {
+    const legacyCoalesce = blockStreamingCoalesce as Record<string, unknown>;
+    const coalesce = Object.fromEntries(
+      ["minChars", "maxChars", "idleMs"]
+        .filter((key) => legacyCoalesce[key] !== undefined)
+        .map((key) => [key, legacyCoalesce[key]]),
+    );
+    if (Object.keys(coalesce).length > 0) {
+      existingBlock.coalesce = coalesce;
+    }
+  }
+  streaming.block = existingBlock;
+
+  return { ...rest, streaming };
+}
+
 function sanitizeChannelAccountConfig(channelId: string, config: Record<string, unknown>): Record<string, unknown> {
   let next = config;
   if (channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId")) {
@@ -320,7 +371,7 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
     };
   }
   if (channelId === FEISHU_CHANNEL_ID) {
-    next = {
+    next = normalizeFeishuStreamingConfig({
       ...next,
       // OpenClaw's generic outbound media normalizer defaults to 5 MB when
       // this field is absent, while the Feishu sender supports 30 MB. Keep
@@ -331,9 +382,7 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
           ? next.mediaMaxMb
           : FEISHU_MEDIA_MAX_MB,
       renderMode: typeof next.renderMode === "string" ? next.renderMode : "card",
-      streaming: typeof next.streaming === "boolean" ? next.streaming : true,
-      blockStreaming: typeof next.blockStreaming === "boolean" ? next.blockStreaming : false,
-    };
+    });
   }
   if (channelId === TELEGRAM_CHANNEL_ID) {
     return { ...next, streaming: { mode: "block" } };
@@ -442,13 +491,7 @@ function isFeishuOfficialPluginPath(value: unknown): value is string {
   if (typeof value !== "string") return false;
   const normalized = value.replace(/\\/g, "/").replace(/\/+$/, "");
   return FEISHU_OFFICIAL_PLUGIN_ROOTS.some((relativeRoot) =>
-    normalized.endsWith(`/vendor/openclaw/${relativeRoot}`),
-  );
-}
-
-function isBundledFeishuOfficialPluginRoot(pluginRoot: string): boolean {
-  return pluginRoot.replace(/\\/g, "/").replace(/\/+$/, "").endsWith(
-    "/dist-runtime/extensions/feishu",
+    normalized.endsWith(`/openclaw/${relativeRoot}`),
   );
 }
 
@@ -503,6 +546,19 @@ function readFeishuOfficialToolIds(pluginRoot: string): string[] {
 }
 
 function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void {
+  const channels = ensureRecord(config, "channels");
+  const feishu = ensureRecord(channels, FEISHU_CHANNEL_ID);
+  const accounts = ensureRecord(feishu, "accounts");
+  const normalizedRoot = normalizeFeishuStreamingConfig(feishu);
+  Object.assign(feishu, normalizedRoot);
+  for (const legacyKey of ["blockStreaming", "blockStreamingCoalesce", "chunkMode"]) {
+    delete feishu[legacyKey];
+  }
+  for (const [accountId, account] of Object.entries(accounts)) {
+    if (!account || typeof account !== "object" || Array.isArray(account)) continue;
+    accounts[accountId] = normalizeFeishuStreamingConfig(account as Record<string, unknown>);
+  }
+
   const plugins = ensureRecord(config, "plugins");
   const entries = ensureRecord(plugins, "entries");
   entries.feishu = {
@@ -537,11 +593,9 @@ function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void
   for (let i = paths.length - 1; i >= 0; i--) {
     if (isFeishuOfficialPluginPath(paths[i])) paths.splice(i, 1);
   }
-  // Current OpenClaw bundles Feishu in dist-runtime and marks bundled plugins
-  // as trusted. Older runtimes still need the explicit fallback path.
-  if (!isBundledFeishuOfficialPluginRoot(pluginRoot)) {
-    addUniqueString(paths, pluginRoot);
-  }
+  // Feishu ships inside the OpenClaw package. Let bundled discovery load it so
+  // the runtime grants trusted channel-state APIs; an explicit load path would
+  // downgrade the same official plugin to the untrusted "config" origin.
 
   const tools = ensureRecord(config, "tools");
   const alsoAllow = ensureArrayRecord(tools, "alsoAllow");
@@ -1034,8 +1088,7 @@ export const ChannelManagerModel = types
         connectionMode: "websocket",
         mediaMaxMb: FEISHU_MEDIA_MAX_MB,
         renderMode: "card",
-        streaming: true,
-        blockStreaming: false,
+        streaming: { mode: "partial", block: { enabled: false } },
         requireMention: true,
         dmPolicy: "open",
         allowFrom: ["*"],

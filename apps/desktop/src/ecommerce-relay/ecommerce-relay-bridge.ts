@@ -1,7 +1,11 @@
 import { createLogger } from "@rivonclaw/logger";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 import { stripReasoningTagsFromText } from "@rivonclaw/core";
-import { CustomerServiceSession, type CSShopContext, type Escalation } from "../cs-bridge/customer-service-session.js";
+import {
+  CustomerServiceSession,
+  type CSShopContext,
+  type Escalation,
+} from "../cs-bridge/customer-service-session.js";
 import { reaction } from "mobx";
 import type {
   AffiliateRelationshipSignalPayload,
@@ -42,7 +46,10 @@ function csDispatchSortKey(dispatch: CsAgentDispatchRequest): [number, number, s
   return [timestamp, messageIndex.length, messageIndex, dispatch.messageId ?? ""];
 }
 
-function compareCsDispatchCursor(left: CsAgentDispatchRequest, right: CsAgentDispatchRequest): number {
+function compareCsDispatchCursor(
+  left: CsAgentDispatchRequest,
+  right: CsAgentDispatchRequest,
+): number {
   const leftKey = csDispatchSortKey(left);
   const rightKey = csDispatchSortKey(right);
   for (let index = 0; index < leftKey.length; index += 1) {
@@ -122,17 +129,23 @@ export class EcommerceRelayBridge {
   private affiliateInbound: AffiliateInbound;
 
   /** Pending agent runs keyed by runId, used to auto-forward final text to buyer. */
-  private pendingRuns = new Map<string, {
-    shopObjectId: string;
-    conversationId: string;
-    session: CustomerServiceSession;
-  }>();
+  private pendingRuns = new Map<
+    string,
+    {
+      shopObjectId: string;
+      conversationId: string;
+      session: CustomerServiceSession;
+    }
+  >();
 
   /** Airflow backlog buyer-message dispatches keyed by platformShopId + conversationId. */
-  private pendingAirflowBuyerCatchUps = new Map<string, {
-    dispatch: CsAgentDispatchRequest;
-    timer: ReturnType<typeof setTimeout> | null;
-  }>();
+  private pendingAirflowBuyerCatchUps = new Map<
+    string,
+    {
+      dispatch: CsAgentDispatchRequest;
+      timer: ReturnType<typeof setTimeout> | null;
+    }
+  >();
 
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
@@ -261,12 +274,14 @@ export class EcommerceRelayBridge {
 
     if (evt.event !== "chat") return;
 
-    const payload = evt.payload as {
-      runId?: string;
-      state?: string;
-      errorKind?: string;
-      errorMessage?: string;
-    } | undefined;
+    const payload = evt.payload as
+      | {
+          runId?: string;
+          state?: string;
+          errorKind?: string;
+          errorMessage?: string;
+        }
+      | undefined;
     if (!payload?.runId) return;
 
     const pending = this.pendingRuns.get(payload.runId);
@@ -326,11 +341,13 @@ export class EcommerceRelayBridge {
    *   text (partial responses still reach the buyer), then clear the buffer
    */
   private onAgentEvent(evt: GatewayEventFrame): void {
-    const payload = evt.payload as {
-      runId?: string;
-      stream?: string;
-      data?: Record<string, unknown>;
-    } | undefined;
+    const payload = evt.payload as
+      | {
+          runId?: string;
+          stream?: string;
+          data?: Record<string, unknown>;
+        }
+      | undefined;
     if (!payload?.runId) return;
 
     const { runId, stream, data } = payload;
@@ -435,24 +452,25 @@ export class EcommerceRelayBridge {
     // human" experience. The periodic unread-message sweep is responsible
     // for catching the dropped turn and re-sending.
     session.markRunDeliveryStarted(runId);
-    session.forwardTextToBuyer(text, runId)
-      .catch((err) => {
-        if (session.isRunAborted(runId)) {
-          log.info(`Run ${runId} was aborted during delivery, skipping`);
-          return;
-        }
-        void session.handleRunDeliveryFailure({
+    session.forwardTextToBuyer(text, runId).catch((err) => {
+      if (session.isRunAborted(runId)) {
+        log.info(`Run ${runId} was aborted during delivery, skipping`);
+        return;
+      }
+      void session
+        .handleRunDeliveryFailure({
           runId,
           text,
           error: err,
-        }).catch((recoveryErr) => {
+        })
+        .catch((recoveryErr) => {
           log.warn(
             `Failed to handle delivery failure for run ${runId} ` +
-            `(shop=${session.csContext.shopId}, conversation=${session.csContext.conversationId}): ` +
-            (recoveryErr instanceof Error ? recoveryErr.message : String(recoveryErr)),
+              `(shop=${session.csContext.shopId}, conversation=${session.csContext.conversationId}): ` +
+              (recoveryErr instanceof Error ? recoveryErr.message : String(recoveryErr)),
           );
         });
-      });
+    });
   }
 
   /**
@@ -461,8 +479,8 @@ export class EcommerceRelayBridge {
    * was a runtime error message.
    */
   private sanitizeRuntimeErrors(text: string): string {
-    const hasErrorPattern = EcommerceRelayBridge.RUNTIME_ERROR_PATTERNS.some(
-      (pattern) => pattern.test(text),
+    const hasErrorPattern = EcommerceRelayBridge.RUNTIME_ERROR_PATTERNS.some((pattern) =>
+      pattern.test(text),
     );
     if (!hasErrorPattern) return text;
 
@@ -470,8 +488,8 @@ export class EcommerceRelayBridge {
     const lines = text.split("\n");
     const cleanLines: string[] = [];
     for (const line of lines) {
-      const isErrorLine = EcommerceRelayBridge.RUNTIME_ERROR_PATTERNS.some(
-        (pattern) => pattern.test(line),
+      const isErrorLine = EcommerceRelayBridge.RUNTIME_ERROR_PATTERNS.some((pattern) =>
+        pattern.test(line),
       );
       if (isErrorLine) break;
       cleanLines.push(line);
@@ -479,7 +497,9 @@ export class EcommerceRelayBridge {
 
     const cleaned = cleanLines.join("\n").trim();
     if (cleaned) {
-      log.info(`Stripped runtime error suffix from agent text (${text.length} → ${cleaned.length} chars)`);
+      log.info(
+        `Stripped runtime error suffix from agent text (${text.length} → ${cleaned.length} chars)`,
+      );
       return cleaned;
     }
 
@@ -497,7 +517,10 @@ export class EcommerceRelayBridge {
    * assistant text stream.
    */
   private sanitizeForwardedText(text: string): string {
-    let cleaned = stripReasoningTagsFromText(text, { mode: "preserve", trim: "both" });
+    let cleaned = stripReasoningTagsFromText(text, {
+      mode: "preserve",
+      trim: "both",
+    }) as string;
 
     // Drop fenced JSON/code examples entirely. Buyer-facing CS replies should
     // never contain tool-call payload examples, and those blocks are a common
@@ -509,7 +532,9 @@ export class EcommerceRelayBridge {
       .map((line) => line.trim())
       .map((line) => {
         if (!line) return "";
-        if (EcommerceRelayBridge.INTERNAL_PROTOCOL_LINE_PATTERNS.some((pattern) => pattern.test(line))) {
+        if (
+          EcommerceRelayBridge.INTERNAL_PROTOCOL_LINE_PATTERNS.some((pattern) => pattern.test(line))
+        ) {
           return "";
         }
         return line;
@@ -543,9 +568,13 @@ export class EcommerceRelayBridge {
 
   // -- Backend signal handling -----------------------------------------------
 
-  async handleCsConversationSignal(signal: CsConversationSignalPayload | CsAgentDispatchRequest): Promise<void> {
+  async handleCsConversationSignal(
+    signal: CsConversationSignalPayload | CsAgentDispatchRequest,
+  ): Promise<void> {
     if (signal.aiEnabled === false) {
-      log.info(`Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`);
+      log.info(
+        `Ignoring CS signal for shop ${signal.platformShopId} conv=${signal.conversationId}: AI disabled`,
+      );
       emitCsDispatchEvent({
         shopId: signal.shopId,
         platformShopId: signal.platformShopId,
@@ -565,7 +594,7 @@ export class EcommerceRelayBridge {
     if (!dispatch) {
       log.warn(
         `Ignoring CS signal with unknown type ${String(signal.type)} ` +
-        `for shop=${signal.platformShopId} conv=${signal.conversationId}`,
+          `for shop=${signal.platformShopId} conv=${signal.conversationId}`,
       );
       emitCsDispatchEvent({
         shopId: signal.shopId,
@@ -594,9 +623,10 @@ export class EcommerceRelayBridge {
   private enqueueAirflowPendingBuyerCatchUp(dispatch: CsAgentDispatchRequest): void {
     const key = csDispatchBatchKey(dispatch);
     const existing = this.pendingAirflowBuyerCatchUps.get(key);
-    const selected = existing && compareCsDispatchCursor(existing.dispatch, dispatch) > 0
-      ? existing.dispatch
-      : dispatch;
+    const selected =
+      existing && compareCsDispatchCursor(existing.dispatch, dispatch) > 0
+        ? existing.dispatch
+        : dispatch;
     if (existing?.timer) clearTimeout(existing.timer);
 
     const windowMs = resolveAirflowPendingCatchUpWindowMs();
@@ -616,7 +646,7 @@ export class EcommerceRelayBridge {
     if (existing) {
       log.info(
         `Coalescing Airflow CS pending buyer catch-up for shop=${dispatch.platformShopId} ` +
-        `conv=${dispatch.conversationId}; latest msg=${selected.messageId ?? ""}`,
+          `conv=${dispatch.conversationId}; latest msg=${selected.messageId ?? ""}`,
       );
     }
   }
@@ -625,7 +655,7 @@ export class EcommerceRelayBridge {
     this.syncFromCache();
     log.info(
       `CS signal: type=${dispatch.type} reason=${dispatch.dispatchReason} shop=${dispatch.platformShopId} ` +
-      `conv=${dispatch.conversationId} msg=${dispatch.messageId ?? ""}`,
+        `conv=${dispatch.conversationId} msg=${dispatch.messageId ?? ""}`,
     );
 
     const shop = this.shopContexts.get(dispatch.platformShopId);
@@ -677,16 +707,22 @@ export class EcommerceRelayBridge {
         senderRole: dispatch.senderRole ?? undefined,
         latestMessagePreview: dispatch.latestMessagePreview ?? undefined,
         useMessageDelta: dispatch.useMessageDelta,
-        currentMessageCursor: dispatch.messageId || dispatch.messageIndex || dispatch.eventTime
-          ? {
-              messageId: dispatch.messageId ?? undefined,
-              messageIndex: dispatch.messageIndex ?? undefined,
-              createTime: dispatch.eventTime ? Math.floor(new Date(dispatch.eventTime).getTime() / 1000) : undefined,
-            }
-          : undefined,
+        currentMessageCursor:
+          dispatch.messageId || dispatch.messageIndex || dispatch.eventTime
+            ? {
+                messageId: dispatch.messageId ?? undefined,
+                messageIndex: dispatch.messageIndex ?? undefined,
+                createTime: dispatch.eventTime
+                  ? Math.floor(new Date(dispatch.eventTime).getTime() / 1000)
+                  : undefined,
+              }
+            : undefined,
       });
     } catch (err) {
-      log.error(`Failed to handle CS signal ${dispatch.messageId ?? dispatch.conversationId}:`, err);
+      log.error(
+        `Failed to handle CS signal ${dispatch.messageId ?? dispatch.conversationId}:`,
+        err,
+      );
       session?.emitError(CS_ERROR_STAGE.DISPATCH, {
         reason: "unhandled_exception",
         errorMessage: err,
@@ -694,11 +730,13 @@ export class EcommerceRelayBridge {
     }
   }
 
-  async handleAffiliateRelationshipSignal(signal: AffiliateRelationshipSignalPayload): Promise<void> {
+  async handleAffiliateRelationshipSignal(
+    signal: AffiliateRelationshipSignalPayload,
+  ): Promise<void> {
     this.syncFromCache();
     log.info(
       `Affiliate signal: type=${signal.type} shop=${signal.platformShopId} ` +
-      `relationship=${signal.creatorRelationshipId ?? ""} msg=${signal.messageId ?? ""}`,
+        `relationship=${signal.creatorRelationshipId ?? ""} msg=${signal.messageId ?? ""}`,
     );
 
     await this.affiliateInbound.handleSignal(signal);
@@ -708,7 +746,7 @@ export class EcommerceRelayBridge {
     this.syncFromCache();
     log.info(
       `Affiliate work item: kind=${workItem.workKind} triggerShop=${workItem.triggerPlatformShopId} ` +
-      `collaboration=${workItem.affiliateCollaborationId} status=${workItem.processingStatus}`,
+        `collaboration=${workItem.affiliateCollaborationId} status=${workItem.processingStatus}`,
     );
 
     await this.affiliateInbound.handleWorkItem(workItem);
@@ -736,7 +774,11 @@ export class EcommerceRelayBridge {
    * Find escalation data by ID, checking in-memory sessions first, then storage.
    * Returns the escalation plus its conversation/shop/buyer context.
    */
-  findEscalationById(escalationId: string): { escalation: Escalation; conversationId: string; shopId: string; buyerUserId: string } | undefined {
+  findEscalationById(
+    escalationId: string,
+  ):
+    | { escalation: Escalation; conversationId: string; shopId: string; buyerUserId: string }
+    | undefined {
     // Check in-memory sessions first (fast path)
     for (const session of this.sessions.values()) {
       const esc = session.escalations.get(escalationId);
@@ -806,13 +848,16 @@ export class EcommerceRelayBridge {
       currentMessageIndex: params.currentMessageIndex,
       source: "panel",
       useMessageDelta: params.useMessageDelta,
-      currentMessageCursor: params.currentMessageId || params.currentMessageIndex || params.currentMessageCreateTime != null
-        ? {
-            messageId: params.currentMessageId,
-            messageIndex: params.currentMessageIndex,
-            createTime: params.currentMessageCreateTime,
-          }
-        : undefined,
+      currentMessageCursor:
+        params.currentMessageId ||
+        params.currentMessageIndex ||
+        params.currentMessageCreateTime != null
+          ? {
+              messageId: params.currentMessageId,
+              messageIndex: params.currentMessageIndex,
+              createTime: params.currentMessageCreateTime,
+            }
+          : undefined,
     });
   }
 
