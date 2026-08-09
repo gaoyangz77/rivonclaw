@@ -30,19 +30,26 @@ const REMOVED_PLUGIN_IDS = new Set([
 // These optional provider plugins are not shipped in the pruned Desktop
 // runtime. Older builds seeded them into plugins.deny to reduce discovery
 // overhead; remove only the stale deny references while preserving any user
-// provider entries. Moonshot remains packaged/configurable for Kimi search.
+// provider entries. Removing a deny entry does not remove or disable a provider;
+// it only stops referencing plugins absent from the packaged runtime.
 const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
   "amazon-bedrock",
   "anthropic-vertex",
+  "byteplus",
   "chutes",
   "cloudflare-ai-gateway",
   "deepseek",
   "github-copilot",
   "kilocode",
   "kimi",
+  "mistral",
+  "moonshot",
   "qianfan",
+  "synthetic",
   "venice",
   "vercel-ai-gateway",
+  "volcengine",
+  "xiaomi",
 ]);
 
 const REMOVED_PLUGIN_LOAD_PATH_HINTS = [
@@ -266,6 +273,24 @@ export function migrateLegacyOpenClawConfig(configPath: string): void {
   }
 
   const tools = config.tools;
+  const media = isRecord(tools) && isRecord(tools.media) ? tools.media : undefined;
+  const audio = media && isRecord(media.audio) ? media.audio : undefined;
+  if (media && audio && Array.isArray(audio.models)) {
+    const existingModels = Array.isArray(media.models) ? media.models : [];
+    const seen = new Set(existingModels.map((model) => JSON.stringify(model)));
+    media.models = [
+      ...existingModels,
+      ...audio.models.filter((model) => {
+        const key = JSON.stringify(model);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }),
+    ];
+    delete audio.models;
+    touched.push("tools.media.audio.models");
+  }
+
   const web = isRecord(tools) && isRecord(tools.web) ? tools.web : undefined;
   const search = web && isRecord(web.search) ? web.search : undefined;
   if (search) {

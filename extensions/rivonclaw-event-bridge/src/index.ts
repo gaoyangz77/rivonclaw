@@ -463,6 +463,18 @@ export default defineRivonClawPlugin({
       eventCount++;
       const shouldLog = eventCount <= 5 || eventCount % 50 === 0;
 
+      // Ignore streams that the Chat Page never consumes before resolving the
+      // run mapping. Startup/background runs can emit run_status and item
+      // events before llm_input provides a sessionKey; that is expected and
+      // should not be reported as a dropped chat event.
+      if (evt.stream !== "assistant" && evt.stream !== "lifecycle" && evt.stream !== "tool") {
+        if (shouldLog)
+          api.logger.debug?.(
+            `[event-bridge] skip: unneeded stream=${evt.stream} runId=${evt.runId}`,
+          );
+        return;
+      }
+
       const mappedSessionKey = runSessionTracker.get(evt.runId);
       const sessionKey = mappedSessionKey ?? evt.sessionKey;
 
@@ -490,13 +502,6 @@ export default defineRivonClawPlugin({
           api.logger.warn(
             `[event-bridge] drop: no sessionKey in map (stream=${evt.stream} runId=${evt.runId} mapSize=${runSessionTracker.size})`,
           );
-        return;
-      }
-
-      // Only mirror streams the Chat Page cares about.
-      if (evt.stream !== "assistant" && evt.stream !== "lifecycle" && evt.stream !== "tool") {
-        if (shouldLog)
-          api.logger.info(`[event-bridge] skip: unneeded stream=${evt.stream} runId=${evt.runId}`);
         return;
       }
 

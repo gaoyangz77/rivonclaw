@@ -17,6 +17,12 @@ export type {
   VendorStateMigrationOptions,
 } from "./vendor/state-migration.js";
 export {
+  addVendorChannelAllowFromEntry,
+  clearVendorChannelAllowFrom,
+  readVendorChannelAllowFrom,
+  removeVendorChannelAllowFromEntry,
+} from "./vendor/channel-pairing-state.js";
+export {
   writeGatewayConfig,
   ensureGatewayConfig,
   readExistingConfig,

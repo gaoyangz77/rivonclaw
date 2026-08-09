@@ -43,6 +43,11 @@ describe("gateway config builder", () => {
     expect(DEFAULT_GATEWAY_TOOL_ALLOWLIST).not.toContain("pdf");
   });
 
+  it("does not expose the RPC-only local-tools plugin as a tool namespace", () => {
+    expect(DEFAULT_GATEWAY_TOOL_ALLOWLIST).toContain("rivonclaw-cloud-tools");
+    expect(DEFAULT_GATEWAY_TOOL_ALLOWLIST).not.toContain("rivonclaw-local-tools");
+  });
+
   it("forces RivonClaw cloud models to support image input", () => {
     const overrides = buildCustomProviderOverridesFromKeys([
       {

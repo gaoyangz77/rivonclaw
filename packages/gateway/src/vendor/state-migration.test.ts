@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -14,10 +15,15 @@ import { DatabaseSync } from "node:sqlite";
 import {
   archiveOrphanedLegacyAllowFromFiles,
   inspectVendorStateMigration,
+  migrateVendorAuthProfilesBeforeGateway,
   migrateVendorStateBeforeGateway,
   resolveGatewayRpcClientIdentityPath,
-  restoreFeishuAllowFromFromAgentDatabases,
+  restoreFeishuPairingStateFromAgentDatabases,
 } from "./state-migration.js";
+import {
+  addVendorChannelAllowFromEntry,
+  readVendorChannelAllowFrom,
+} from "./channel-pairing-state.js";
 
 const tempDirs: string[] = [];
 const VENDOR_ROOT = resolve(import.meta.dirname, "../../../../vendor/openclaw");
@@ -307,6 +313,60 @@ describe("inspectVendorStateMigration", () => {
   });
 });
 
+describe("migrateVendorAuthProfilesBeforeGateway", () => {
+  it("uses OpenClaw's verified migration to archive retired auth state", async () => {
+    const root = mkdtempSync(join(tmpdir(), "vendor-auth-profile-migration-"));
+    tempDirs.push(root);
+    const stateDir = join(root, "state");
+    const agentDir = join(stateDir, "agents", "main", "agent");
+    const configPath = join(stateDir, "openclaw.json");
+    const statePath = join(agentDir, "auth-state.json");
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(configPath, "{}\n", "utf-8");
+    writeFileSync(
+      statePath,
+      `${JSON.stringify({
+        version: 1,
+        lastGood: { openai: "openai:default" },
+      })}\n`,
+      "utf-8",
+    );
+
+    const result = await migrateVendorAuthProfilesBeforeGateway({
+      configPath,
+      stateDir,
+      vendorDir: VENDOR_ROOT,
+    });
+
+    expect(result?.warnings).toEqual([]);
+    expect(existsSync(statePath)).toBe(false);
+    expect(readdirSync(agentDir).some((name) => name.startsWith("auth-state.json.migrated-"))).toBe(
+      true,
+    );
+
+    const database = new DatabaseSync(join(agentDir, "openclaw-agent.sqlite"), {
+      readOnly: true,
+    });
+    try {
+      const storeRow = database
+        .prepare("SELECT store_json FROM auth_profile_store WHERE store_key = 'primary'")
+        .get() as { store_json: string };
+      expect(JSON.parse(storeRow.store_json)).toMatchObject({
+        profiles: {},
+        version: 1,
+      });
+      const stateRow = database
+        .prepare("SELECT state_json FROM auth_profile_state WHERE state_key = 'primary'")
+        .get() as { state_json: string };
+      expect(JSON.parse(stateRow.state_json)).toMatchObject({
+        lastGood: { openai: "openai:default" },
+      });
+    } finally {
+      database.close();
+    }
+  });
+});
+
 describe("archiveOrphanedLegacyAllowFromFiles", () => {
   it("archives only allowlists for accounts absent from the current config", () => {
     const fixture = makeFixture();
@@ -387,7 +447,26 @@ describe("archiveOrphanedLegacyAllowFromFiles", () => {
   });
 });
 
-describe("restoreFeishuAllowFromFromAgentDatabases", () => {
+describe("restoreFeishuPairingStateFromAgentDatabases", () => {
+  function createSharedPairingDatabase(stateDir: string): void {
+    const databaseDir = join(stateDir, "state");
+    mkdirSync(databaseDir, { recursive: true });
+    const database = new DatabaseSync(join(databaseDir, "openclaw.sqlite"));
+    database.exec(`
+      CREATE TABLE channel_pairing_allow_entries (
+        channel_key TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        entry TEXT NOT NULL,
+        sort_order INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (channel_key, account_id, entry)
+      ) STRICT;
+      CREATE INDEX idx_channel_pairing_allow_account
+        ON channel_pairing_allow_entries(channel_key, account_id, sort_order, entry);
+    `);
+    database.close();
+  }
+
   function createConversationDatabase(
     stateDir: string,
     agentId: string,
@@ -428,8 +507,7 @@ describe("restoreFeishuAllowFromFromAgentDatabases", () => {
   it("recovers only unambiguous direct recipients into their active Feishu accounts", () => {
     const fixture = makeFixture();
     const configPath = join(fixture.stateDir, "openclaw.json");
-    const credentialsDir = join(fixture.stateDir, "credentials");
-    mkdirSync(credentialsDir, { recursive: true });
+    createSharedPairingDatabase(fixture.stateDir);
     writeFileSync(
       configPath,
       JSON.stringify({
@@ -440,10 +518,7 @@ describe("restoreFeishuAllowFromFromAgentDatabases", () => {
         },
       }),
     );
-    writeFileSync(
-      join(credentialsDir, "feishu-existing-allowFrom.json"),
-      `${JSON.stringify({ version: 1, allowFrom: ["ou_preserved"] })}\n`,
-    );
+    addVendorChannelAllowFromEntry(fixture.stateDir, "feishu", "existing", "ou_preserved");
     createConversationDatabase(fixture.stateDir, "main", [
       { accountId: "default", kind: "direct", peerId: "ou_alice", deliveryTarget: "user:ou_alice" },
       { accountId: "secondary", kind: "direct", peerId: "ou_bob", deliveryTarget: "user:ou_bob" },
@@ -474,60 +549,94 @@ describe("restoreFeishuAllowFromFromAgentDatabases", () => {
       },
     ]);
 
-    const restored = restoreFeishuAllowFromFromAgentDatabases(fixture.stateDir, configPath);
+    const restored = restoreFeishuPairingStateFromAgentDatabases(fixture.stateDir, configPath);
 
     expect(restored).toEqual([
       {
         accountId: "default",
-        path: join(credentialsDir, "feishu-default-allowFrom.json"),
+        markerPath: join(
+          fixture.stateDir,
+          "rivonclaw",
+          "migrations",
+          "feishu-default-recipient-recovery-v1.json",
+        ),
         recipientIds: ["ou_alice"],
       },
       {
         accountId: "secondary",
-        path: join(credentialsDir, "feishu-secondary-allowFrom.json"),
+        markerPath: join(
+          fixture.stateDir,
+          "rivonclaw",
+          "migrations",
+          "feishu-secondary-recipient-recovery-v1.json",
+        ),
         recipientIds: ["ou_bob"],
       },
     ]);
-    expect(
-      JSON.parse(readFileSync(join(credentialsDir, "feishu-default-allowFrom.json"), "utf-8")),
-    ).toEqual({
-      version: 1,
-      allowFrom: ["ou_alice"],
-    });
-    expect(
-      JSON.parse(readFileSync(join(credentialsDir, "feishu-secondary-allowFrom.json"), "utf-8")),
-    ).toEqual({
-      version: 1,
-      allowFrom: ["ou_bob"],
-    });
-    expect(
-      JSON.parse(readFileSync(join(credentialsDir, "feishu-existing-allowFrom.json"), "utf-8")),
-    ).toEqual({
-      version: 1,
-      allowFrom: ["ou_preserved"],
-    });
-    expect(existsSync(join(credentialsDir, "feishu-removed-allowFrom.json"))).toBe(false);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "default")).toEqual(["ou_alice"]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "secondary")).toEqual(["ou_bob"]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "existing")).toEqual([
+      "ou_preserved",
+    ]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "removed")).toEqual([]);
+    expect(existsSync(join(fixture.stateDir, "credentials"))).toBe(false);
   });
 
-  it("is idempotent and preserves malformed allowFrom files", () => {
+  it("does not open agent databases when every active account has a recovery marker", () => {
     const fixture = makeFixture();
     const configPath = join(fixture.stateDir, "openclaw.json");
-    const credentialsDir = join(fixture.stateDir, "credentials");
-    mkdirSync(credentialsDir, { recursive: true });
+    const markerDir = join(fixture.stateDir, "rivonclaw", "migrations");
+    const invalidDatabasePath = join(
+      fixture.stateDir,
+      "agents",
+      "main",
+      "agent",
+      "openclaw-agent.sqlite",
+    );
+    createSharedPairingDatabase(fixture.stateDir);
+    mkdirSync(markerDir, { recursive: true });
+    mkdirSync(invalidDatabasePath, { recursive: true });
     writeFileSync(
       configPath,
-      JSON.stringify({ channels: { feishu: { accounts: { default: {}, broken: {} } } } }),
+      JSON.stringify({ channels: { feishu: { accounts: { default: {}, secondary: {} } } } }),
     );
-    writeFileSync(join(credentialsDir, "feishu-broken-allowFrom.json"), "not json");
+    for (const accountId of ["default", "secondary"]) {
+      writeFileSync(
+        join(markerDir, `feishu-${accountId}-recipient-recovery-v1.json`),
+        `${JSON.stringify({ version: 1, accountId, importedCount: 0 })}\n`,
+      );
+    }
+
+    expect(restoreFeishuPairingStateFromAgentDatabases(fixture.stateDir, configPath)).toEqual([]);
+  });
+
+  it("is idempotent and records accounts with no recoverable recipients", () => {
+    const fixture = makeFixture();
+    const configPath = join(fixture.stateDir, "openclaw.json");
+    createSharedPairingDatabase(fixture.stateDir);
+    writeFileSync(
+      configPath,
+      JSON.stringify({ channels: { feishu: { accounts: { default: {}, empty: {} } } } }),
+    );
     createConversationDatabase(fixture.stateDir, "main", [
       { accountId: "default", kind: "direct", peerId: "ou_alice", deliveryTarget: "user:ou_alice" },
-      { accountId: "broken", kind: "direct", peerId: "ou_bob", deliveryTarget: "user:ou_bob" },
     ]);
 
-    expect(restoreFeishuAllowFromFromAgentDatabases(fixture.stateDir, configPath)).toHaveLength(1);
-    expect(restoreFeishuAllowFromFromAgentDatabases(fixture.stateDir, configPath)).toEqual([]);
-    expect(readFileSync(join(credentialsDir, "feishu-broken-allowFrom.json"), "utf-8")).toBe(
-      "not json",
+    expect(restoreFeishuPairingStateFromAgentDatabases(fixture.stateDir, configPath)).toHaveLength(
+      1,
     );
+    expect(restoreFeishuPairingStateFromAgentDatabases(fixture.stateDir, configPath)).toEqual([]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "default")).toEqual(["ou_alice"]);
+    expect(readVendorChannelAllowFrom(fixture.stateDir, "feishu", "empty")).toEqual([]);
+    expect(
+      existsSync(
+        join(
+          fixture.stateDir,
+          "rivonclaw",
+          "migrations",
+          "feishu-empty-recipient-recovery-v1.json",
+        ),
+      ),
+    ).toBe(true);
   });
 });

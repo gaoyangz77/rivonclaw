@@ -60,6 +60,11 @@ describe("migrateLegacyOpenClawConfig", () => {
             "github-copilot",
             "kimi",
             "moonshot",
+            "byteplus",
+            "mistral",
+            "synthetic",
+            "volcengine",
+            "xiaomi",
           ],
           entries: {
             "rivonclaw-tools": { enabled: true },
@@ -88,9 +93,52 @@ describe("migrateLegacyOpenClawConfig", () => {
       "/some/other/plugin",
     ]);
     expect((config.plugins as { allow: string[] }).allow).toEqual(["memory-core"]);
-    expect((config.plugins as { deny: string[] }).deny).toEqual(["xai", "moonshot"]);
+    expect((config.plugins as { deny: string[] }).deny).toEqual(["xai"]);
     expect((config.plugins as { entries: Record<string, unknown> }).entries).toEqual({
       "rivonclaw-policy": { enabled: true },
+    });
+  });
+
+  it("moves legacy audio models to the shared media model list", () => {
+    const configPath = makeConfigPath();
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        tools: {
+          media: {
+            models: [{ provider: "openai", model: "gpt-4o", capabilities: ["image"] }],
+            audio: {
+              enabled: true,
+              models: [
+                {
+                  provider: "groq",
+                  model: "whisper-large-v3-turbo",
+                  type: "provider",
+                  capabilities: ["audio"],
+                },
+              ],
+            },
+          },
+        },
+      }),
+      "utf-8",
+    );
+
+    migrateLegacyOpenClawConfig(configPath);
+
+    expect(readConfig(configPath).tools).toEqual({
+      media: {
+        models: [
+          { provider: "openai", model: "gpt-4o", capabilities: ["image"] },
+          {
+            provider: "groq",
+            model: "whisper-large-v3-turbo",
+            type: "provider",
+            capabilities: ["audio"],
+          },
+        ],
+        audio: { enabled: true },
+      },
     });
   });
 

@@ -53,7 +53,7 @@ export interface GatewayConfigDeps {
   openAICodexCompatibilityBaseUrl?: string;
 }
 
-export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools", "rivonclaw-local-tools"];
+export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools"];
 
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";

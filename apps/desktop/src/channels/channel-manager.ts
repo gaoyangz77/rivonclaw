@@ -5,7 +5,13 @@ import { promises as fs } from "node:fs";
 import { existsSync, readFileSync } from "node:fs";
 import type { Storage } from "@rivonclaw/storage";
 import type { ChannelAccount } from "@rivonclaw/storage";
-import { readExistingConfig } from "@rivonclaw/gateway";
+import {
+  addVendorChannelAllowFromEntry,
+  clearVendorChannelAllowFrom,
+  readExistingConfig,
+  readVendorChannelAllowFrom,
+  removeVendorChannelAllowFromEntry,
+} from "@rivonclaw/gateway";
 import type { GatewayRpcClient } from "@rivonclaw/gateway";
 import type { ChannelsStatusSnapshot } from "@rivonclaw/core";
 import { normalizeWeixinAccountId } from "@rivonclaw/core";
@@ -271,14 +277,25 @@ function readAllowFromListSyncForPath(filePath: string): string[] {
   }
 }
 
-function readAccountAllowFromListSync(channelId: string, accountId?: string): string[] {
+function readAccountAllowFromListSync(
+  channelId: string,
+  accountId: string | undefined,
+  stateDir: string,
+): string[] {
+  const sharedEntries = channelId === FEISHU_CHANNEL_ID
+    ? readVendorChannelAllowFrom(stateDir, channelId, accountId)
+    : [];
   if (shouldIncludeLegacyAllowFromEntries(accountId)) {
     return [...new Set([
+      ...sharedEntries,
       ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, "default")),
       ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId)),
     ])];
   }
-  return readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, accountId));
+  return [...new Set([
+    ...sharedEntries,
+    ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, accountId)),
+  ])];
 }
 
 function collectConfigAllowFrom(config?: Record<string, unknown>): string[] {
@@ -987,7 +1004,12 @@ export const ChannelManagerModel = types
         })();
       }
 
-      // Remove account-scoped allowFrom file to prevent orphaned recipients
+      // Feishu recipients are authoritative in OpenClaw's shared SQLite state.
+      if (channelId === FEISHU_CHANNEL_ID) {
+        clearVendorChannelAllowFrom(stateDir, channelId, accountId);
+      }
+
+      // Remove any account-scoped legacy allowFrom file to prevent orphaned recipients.
       const allowFromAccountIds = channelId === WEIXIN_CHANNEL_ID
         ? resolveEquivalentWeixinAccountIds(accountId)
         : [accountId];
@@ -1072,7 +1094,7 @@ export const ChannelManagerModel = types
       domain: "feishu" | "lark";
       openId?: string;
     }): Promise<ChannelAccountSnapshotForMst> {
-      const { storage } = getEnv();
+      const { storage, stateDir } = getEnv();
       const existingAccount = storage.channelAccounts.list(FEISHU_CHANNEL_ID).find((account) => (
         typeof account.config === "object" &&
         account.config !== null &&
@@ -1105,7 +1127,12 @@ export const ChannelManagerModel = types
 
       if (params.openId) {
         const { configPath } = getEnv();
-        addAllowFromEntrySync(FEISHU_CHANNEL_ID, accountId, params.openId);
+        addVendorChannelAllowFromEntry(
+          stateDir,
+          FEISHU_CHANNEL_ID,
+          accountId,
+          params.openId,
+        );
         storage.channelRecipients.ensureExists(FEISHU_CHANNEL_ID, params.openId, true);
         syncOwnerAllowFrom(storage, configPath);
         updateChannelAccountRecipients(FEISHU_CHANNEL_ID, accountId);
@@ -1236,8 +1263,10 @@ export const ChannelManagerModel = types
       accountId?: string,
       accountConfig?: Record<string, unknown>,
     ): ChannelRecipientsSnapshot {
-      const { storage } = getEnv();
-      const entries = new Set<string>(readAccountAllowFromListSync(channelId, accountId));
+      const { storage, stateDir } = getEnv();
+      const entries = new Set<string>(
+        readAccountAllowFromListSync(channelId, accountId, stateDir),
+      );
       for (const entry of collectConfigAllowFrom(accountConfig)) {
         entries.add(entry);
       }
@@ -1378,11 +1407,11 @@ export const ChannelManagerModel = types
 
       /**
        * Persist a gateway recipient-seen event. This is the action boundary for
-       * recipient SQLite rows, account-scoped channel allowFrom files, and the
+       * recipient SQLite rows, account-scoped channel pairing state, and the
        * derived WeChat context-token readiness in MST.
        */
       recordRecipientSeen(params: { channelId: string; accountId?: string; recipientId: string }) {
-        const { storage, configPath } = getEnv();
+        const { storage, configPath, stateDir } = getEnv();
         const accountId = params.accountId
           ? normalizeChannelAccountId(params.channelId, params.accountId)
           : undefined;
@@ -1414,7 +1443,16 @@ export const ChannelManagerModel = types
         }
 
         if (params.channelId === FEISHU_CHANNEL_ID && accountId) {
-          membershipChanged = addAllowFromEntrySync(params.channelId, accountId, recipientId) || membershipChanged;
+          try {
+            membershipChanged = addVendorChannelAllowFromEntry(
+              stateDir,
+              params.channelId,
+              accountId,
+              recipientId,
+            ) || membershipChanged;
+          } catch (error) {
+            log.warn(`Failed to persist Feishu recipient in shared pairing state: ${String(error)}`);
+          }
         }
 
         if (inserted) {
@@ -1638,11 +1676,16 @@ export const ChannelManagerModel = types
         requests.splice(requestIndex, 1);
         yield writePairingRequests(params.channelId, requests);
 
-        // Add to allowlist
-        const allowlist: string[] = yield readAllowFromList(params.channelId, accountId);
-        if (!allowlist.includes(request.id)) {
-          allowlist.push(request.id);
-          yield writeAllowFromList(params.channelId, allowlist, accountId);
+        // Add to the channel's canonical allowlist store.
+        if (params.channelId === FEISHU_CHANNEL_ID) {
+          const { stateDir } = getEnv();
+          addVendorChannelAllowFromEntry(stateDir, params.channelId, accountId, request.id);
+        } else {
+          const allowlist: string[] = yield readAllowFromList(params.channelId, accountId);
+          if (!allowlist.includes(request.id)) {
+            allowlist.push(request.id);
+            yield writeAllowFromList(params.channelId, allowlist, accountId);
+          }
         }
 
         // Every new recipient is provisioned as owner by default; single-operator is
@@ -1668,8 +1711,8 @@ export const ChannelManagerModel = types
        * Get the merged allowlist for a channel, enriched with labels and owner flags.
        *
        * Two sources converge here:
-       *   1. AllowFrom files under the credentials dir — populated by pairing-flow
-       *      channels (Telegram, Feishu) via `approvePairing`.
+       *   1. Channel pairing state — shared SQLite for Feishu and legacy
+       *      allowFrom files for other pairing-flow channels.
        *   2. SQLite `channel_recipients` rows — populated by BOTH pairing-flow
        *      channels (same code path) AND non-pairing channels (WeChat) via the
        *      gateway's `rivonclaw.recipient-seen` broadcast (see
@@ -1740,7 +1783,7 @@ export const ChannelManagerModel = types
        * Returns whether the allowlist was changed.
        */
       removeFromAllowlist: flow(function* (channelId: string, entry: string, accountId?: string) {
-        const { storage, configPath } = getEnv();
+        const { storage, configPath, stateDir } = getEnv();
 
         // Mobile channel: delegate full cleanup to MobileManager
         if (channelId === "mobile") {
@@ -1757,10 +1800,15 @@ export const ChannelManagerModel = types
           return { changed: false };
         }
 
+        // Feishu pairing state is authoritative in OpenClaw's shared SQLite.
+        let changed = channelId === FEISHU_CHANNEL_ID
+          ? removeVendorChannelAllowFromEntry(stateDir, channelId, accountId, entry)
+          : false;
+
         // Generic channel: remove entry from the scoped allowFrom file when
         // an account is provided; otherwise preserve the legacy channel-wide
-        // cleanup behavior.
-        let changed = false;
+        // cleanup behavior. Feishu also cleans up any retired file left by an
+        // interrupted migration, but never creates one.
         const credentialsDir = resolveCredentialsDir();
         const prefix = `${channelId}-`;
         const suffix = "-allowFrom.json";

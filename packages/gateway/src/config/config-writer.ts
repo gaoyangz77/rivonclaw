@@ -444,13 +444,19 @@ const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
   "anthropic-vertex",
   "chutes",
   "cloudflare-ai-gateway",
+  "byteplus",
   "deepseek",
   "github-copilot",
   "kilocode",
   "kimi",
+  "mistral",
+  "moonshot",
   "qianfan",
+  "synthetic",
   "venice",
   "vercel-ai-gateway",
+  "volcengine",
+  "xiaomi",
 ]);
 
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
@@ -1488,20 +1494,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       // TODO: Remove this seed once vendor makes plugins.allow filter
       //   discovery, or when bundled plugin scanning goes parallel/lazy.
       const SEED_DENY_PLUGINS = [
-        "byteplus",
         "huggingface",
         "litellm",
         "minimax",
-        "mistral",
-        "moonshot",
         "nvidia",
         "sglang",
-        "synthetic",
         "together",
         "vllm",
-        "volcengine",
         "xai",
-        "xiaomi",
       ];
       const existingDeny = Array.isArray(merged.deny) ? (merged.deny as string[]) : [];
       const denySet = new Set(
