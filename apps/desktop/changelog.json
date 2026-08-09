@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.93",
+    "date": "2026-08-08",
+    "en": [
+      "Recover accepted customer-service runs reliably after Gateway reconnects"
+    ],
+    "zh": [
+      "在 Gateway 重连后可靠恢复已接受的客服任务"
+    ]
+  },
+  {
     "version": "1.8.92",
     "date": "2026-08-08",
     "en": [
