@@ -1,4 +1,4 @@
-From 4f76ed68e028873ac127c922a4e2adf1c71eb577 Mon Sep 17 00:00:00 2001
+From c0e50758958c181428f72bb5072e0d77d24a6fc4 Mon Sep 17 00:00:00 2001
 From: Gaoyang Zhang <younglobalization@gmail.com>
 Date: Fri, 5 Jun 2026 02:26:11 -0700
 Subject: [PATCH] vendor(openclaw): hide media tool model overrides
@@ -13,11 +13,11 @@ Removal:
 Tests:
 - node scripts/run-vitest.mjs run --config test/vitest/vitest.agents-tools.config.ts src/agents/tools/image-tool.test.ts src/agents/tools/video-generate-tool.test.ts
 ---
- src/agents/tools/image-tool.test.ts          | 14 +++++++----
- src/agents/tools/image-tool.ts               | 16 +++---------
- src/agents/tools/video-generate-tool.test.ts | 16 ++++++++++++
- src/agents/tools/video-generate-tool.ts      | 26 ++++----------------
- 4 files changed, 34 insertions(+), 38 deletions(-)
+ src/agents/tools/image-tool.test.ts          | 14 +++++---
+ src/agents/tools/image-tool.ts               | 16 +++------
+ src/agents/tools/video-generate-tool.test.ts | 16 +++++++++
+ src/agents/tools/video-generate-tool.ts      | 36 +++++++++-----------
+ 4 files changed, 46 insertions(+), 36 deletions(-)
 
 diff --git a/src/agents/tools/image-tool.test.ts b/src/agents/tools/image-tool.test.ts
 index c0d8c2e3f85..34a6516a907 100644
@@ -128,10 +128,10 @@ index d389ab39a36..f203faf4a43 100644
          images: loadedImages.map((img) => ({ buffer: img.buffer, mimeType: img.mimeType })),
          workspaceDir: options?.workspaceDir,
 diff --git a/src/agents/tools/video-generate-tool.test.ts b/src/agents/tools/video-generate-tool.test.ts
-index c1a3d83a32d..72b57c50bcf 100644
+index 4c131059592..0e818938bce 100644
 --- a/src/agents/tools/video-generate-tool.test.ts
 +++ b/src/agents/tools/video-generate-tool.test.ts
-@@ -397,6 +397,22 @@ describe("createVideoGenerateTool", () => {
+@@ -398,6 +398,22 @@ describe("createVideoGenerateTool", () => {
      );
    });
  
@@ -155,10 +155,10 @@ index c1a3d83a32d..72b57c50bcf 100644
      const listProviders = vi
        .spyOn(videoGenerationRuntime, "listRuntimeVideoGenerationProviders")
 diff --git a/src/agents/tools/video-generate-tool.ts b/src/agents/tools/video-generate-tool.ts
-index 880b91ce4eb..2fb7ed4bfde 100644
+index eab94ec0fe0..38b74dbeb9c 100644
 --- a/src/agents/tools/video-generate-tool.ts
 +++ b/src/agents/tools/video-generate-tool.ts
-@@ -163,9 +163,6 @@ const VideoGenerateToolProperties = {
+@@ -162,9 +162,6 @@ const VideoGenerateToolProperties = {
          "`audioRef` + `audioRefs` roles by index after de-dupe. Value: reference_audio; empty string leaves unset.",
      }),
    ),
@@ -168,7 +168,7 @@ index 880b91ce4eb..2fb7ed4bfde 100644
    filename: Type.Optional(
      Type.String({
        description: "Output filename hint; basename preserved in managed media dir.",
-@@ -446,12 +443,10 @@ function resolveSelectedVideoGenerationProvider(params: {
+@@ -445,12 +442,10 @@ function resolveSelectedVideoGenerationProvider(params: {
    config?: OpenClawConfig;
    providers?: VideoGenerationProvider[];
    videoGenerationModelConfig: ToolModelConfig;
@@ -181,7 +181,7 @@ index 880b91ce4eb..2fb7ed4bfde 100644
      parseModelRef: parseVideoGenerationModelRef,
    });
  }
-@@ -678,7 +673,6 @@ async function executeVideoGenerationJob(params: {
+@@ -604,7 +599,6 @@ async function executeVideoGenerationJob(params: {
    effectiveCfg: OpenClawConfig;
    prompt: string;
    agentDir?: string;
@@ -189,7 +189,7 @@ index 880b91ce4eb..2fb7ed4bfde 100644
    size?: string;
    aspectRatio?: string;
    resolution?: VideoGenerationResolution;
-@@ -706,7 +700,6 @@ async function executeVideoGenerationJob(params: {
+@@ -632,7 +626,6 @@ async function executeVideoGenerationJob(params: {
        cfg: params.effectiveCfg,
        prompt: params.prompt,
        agentDir: params.agentDir,
@@ -197,7 +197,7 @@ index 880b91ce4eb..2fb7ed4bfde 100644
        size: params.size,
        aspectRatio: params.aspectRatio,
        resolution: params.resolution,
-@@ -1036,7 +1029,6 @@ export function createVideoGenerateTool(options?: {
+@@ -985,7 +978,6 @@ export function createVideoGenerateTool(options?: {
          return activeDuplicateGuardResult;
        }
  
@@ -205,7 +205,7 @@ index 880b91ce4eb..2fb7ed4bfde 100644
        const filename = readStringParam(args, "filename");
        const size = readStringParam(args, "size");
        const aspectRatio = normalizeAspectRatio(readStringParam(args, "aspectRatio"));
-@@ -1109,20 +1101,16 @@ export function createVideoGenerateTool(options?: {
+@@ -1058,20 +1050,16 @@ export function createVideoGenerateTool(options?: {
          config: effectiveCfg,
          providers: preparedProviders,
          videoGenerationModelConfig,
@@ -230,17 +230,27 @@ index 880b91ce4eb..2fb7ed4bfde 100644
          size,
          aspectRatio,
          resolution,
-@@ -1190,8 +1178,7 @@ export function createVideoGenerateTool(options?: {
+@@ -1142,6 +1130,19 @@ export function createVideoGenerateTool(options?: {
        }
-       validateVideoGenerationCapabilities({
-         provider: selectedProvider,
--        model:
--          parseVideoGenerationModelRef(model)?.model ?? model ?? selectedProvider?.defaultModel,
+       // Accepted tasks own their paid work independently; cancellation applies only before admission.
+       signal?.throwIfAborted();
++      validateVideoGenerationCapabilities({
++        provider: selectedProvider,
 +        model: primaryModelRef?.model ?? selectedProvider?.defaultModel,
-         inputImageCount: loadedReferenceImages.length,
-         inputVideoCount: loadedReferenceVideos.length,
-         inputAudioCount: loadedReferenceAudios.length,
-@@ -1237,7 +1224,6 @@ export function createVideoGenerateTool(options?: {
++        inputImageCount: loadedReferenceImages.length,
++        inputVideoCount: loadedReferenceVideos.length,
++        inputAudioCount: loadedReferenceAudios.length,
++        size,
++        aspectRatio,
++        resolution,
++        durationSeconds,
++        audio,
++        watermark,
++      });
+       const taskHandle = createVideoGenerationTaskRun({
+         sessionKey: options?.agentSessionKey,
+         requesterOrigin: options?.requesterOrigin,
+@@ -1177,7 +1178,6 @@ export function createVideoGenerateTool(options?: {
                effectiveCfg,
                prompt,
                agentDir: options?.agentDir,
@@ -248,7 +258,7 @@ index 880b91ce4eb..2fb7ed4bfde 100644
                size,
                aspectRatio,
                resolution,
-@@ -1283,7 +1269,6 @@ export function createVideoGenerateTool(options?: {
+@@ -1223,7 +1223,6 @@ export function createVideoGenerateTool(options?: {
                getResolvedInput: (entry) => entry.resolvedInput,
                singleRewriteKey: "videoRewrittenFrom",
              }),
@@ -256,7 +266,7 @@ index 880b91ce4eb..2fb7ed4bfde 100644
              ...(size ? { size } : {}),
              ...(aspectRatio ? { aspectRatio } : {}),
              ...(resolution ? { resolution } : {}),
-@@ -1301,7 +1286,6 @@ export function createVideoGenerateTool(options?: {
+@@ -1241,7 +1240,6 @@ export function createVideoGenerateTool(options?: {
            effectiveCfg,
            prompt,
            agentDir: options?.agentDir,

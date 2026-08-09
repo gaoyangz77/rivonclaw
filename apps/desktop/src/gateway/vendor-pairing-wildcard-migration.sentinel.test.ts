@@ -6,27 +6,28 @@ import { describe, expect, it } from "vitest";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PATCH_FILE = resolve(
+const MIGRATION_FILE = resolve(
   __dirname,
-  "../../../../vendor-patches/openclaw/0031-vendor-openclaw-ignore-wildcard-pairing-bindings-dur.patch",
+  "../../../../vendor/openclaw/src/infra/state-migrations.channel-pairing.ts",
+);
+const DOCTOR_FILE = resolve(
+  __dirname,
+  "../../../../vendor/openclaw/src/infra/state-migrations.doctor.ts",
 );
 
-describe("vendor patch 0031: wildcard pairing migration", () => {
-  const patch = readFileSync(PATCH_FILE, "utf-8");
+describe("upstream wildcard pairing migration", () => {
+  const migrationSource = readFileSync(MIGRATION_FILE, "utf-8");
+  const doctorSource = readFileSync(DOCTOR_FILE, "utf-8");
 
   it("does not treat wildcard route bindings as concrete pairing accounts", () => {
-    expect(patch).toContain("resolveConcreteBindingAccountId");
-    expect(patch).toContain('accountId !== "*"');
-    expect(patch).toContain("does not treat wildcard route bindings as pairing account ids");
+    expect(doctorSource).toContain("resolveConcreteBindingAccountId");
+    expect(doctorSource).toContain('accountId !== "*"');
   });
 
   it("keeps one invalid account candidate from aborting the migration", () => {
-    expect(patch).toContain("One invalid configured candidate must not abort every legacy migration");
-    expect(patch).toContain("ignores invalid account candidates while resolving scoped filenames");
-  });
-
-  it("records the exact upstream removal condition", () => {
-    expect(patch).toContain("718e9c88204772c496e8f625cd63be8106cfa106");
-    expect(patch).toContain("PR #116610");
+    expect(migrationSource).toContain(
+      "One invalid configured candidate must not abort every legacy migration",
+    );
+    expect(migrationSource).toContain("safeAccountKey(accountId)");
   });
 });

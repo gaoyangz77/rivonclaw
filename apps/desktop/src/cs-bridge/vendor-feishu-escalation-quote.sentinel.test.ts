@@ -48,6 +48,7 @@ describe("vendor patch 0027: explicit Feishu quote failures", () => {
       "recovers interactive card content from a quoted merged-forward message",
     );
     expect(patch).toContain("Escalation ID: M1DG8V");
-    expect(patch).toContain("fails closed when a quoted merged-forward child cannot be parsed");
+    expect(patch).toContain("merged-forward child content could not be recovered");
+    expect(patch).toContain('reason: "parse_error"');
   });
 });

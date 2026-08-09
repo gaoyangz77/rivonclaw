@@ -44,15 +44,6 @@ for the channel. Existing-account relogin and takeover behavior is preserved.
 
 Removal: upstream distinguishes new-account login from account relogin.
 
-### 0007 - Deferred model prewarm
-
-Starts channels before the synchronous provider/model discovery prewarm and
-defers prewarm by 15 seconds. This avoids multi-second event-loop starvation on
-desktops with many providers.
-
-Removal: provider discovery becomes non-blocking or runs outside the gateway
-event loop. Verify channel readiness remains below one second without it.
-
 ### 0009 - Desktop runtime guidance
 
 Replaces CLI lifecycle instructions in the agent prompt with RivonClaw's
@@ -165,16 +156,6 @@ without changing Main, Affiliate, or summary-agent behavior.
 Removal: upstream forwards `allowEmptyAssistantReplyAsSilent` through the Agent
 RPC, or provides an equivalent per-run silent-completion option.
 
-### 0031 - Ignore wildcard pairing bindings during legacy migration
-
-Backports OpenClaw commit `718e9c88204772c496e8f625cd63be8106cfa106`
-(PR `#116610`). Wildcard route bindings use `accountId: "*"`; they are selectors,
-not concrete pairing accounts. Ignoring them prevents legacy allowlist migration
-from rejecting the wildcard and aborting Gateway startup.
-
-Removal: the pinned OpenClaw revision contains commit
-`718e9c88204772c496e8f625cd63be8106cfa106` (PR `#116610`) or an equivalent fix.
-
 ### 0032 - Expose embedded-host state migrations
 
 Exports OpenClaw's existing `runStartupMigrations`, workspace detector, and
@@ -185,6 +166,17 @@ exec-approval, and configured-workspace migrations before connecting.
 
 Removal: OpenClaw exposes both migration surfaces from a stable public runtime,
 or RivonClaw starts Gateway through a host flow that invokes them itself.
+
+## Dropped In 1609ae9b624
+
+- `0007`: startup model prewarm now publishes the configured static runtime
+  snapshots directly, without the old synchronous provider discovery. Keeping
+  the deferred patch would move required model publication after chat metadata
+  refresh and make Gateway startup fail with an unavailable metadata owner.
+- `0031`: OpenClaw now contains commit
+  `718e9c88204772c496e8f625cd63be8106cfa106` (PR `#116610`), which ignores
+  wildcard route bindings and invalid account candidates during legacy pairing
+  migration.
 
 ## Dropped In v2026.6.11
 

@@ -17,9 +17,17 @@ const OFFICIAL_PLUGINS = [
   {
     packageName: "@larksuite/openclaw-lark",
     version: "2026.6.10",
-    targetDirName: "openclaw-lark",
+    targetRelativeDir: "extensions/openclaw-lark",
+  },
+  {
+    // OpenClaw externalized Groq in 2026.7.2. Desktop must carry the provider
+    // because customer machines are not required to have Node/npm installed.
+    packageName: "@openclaw/groq-provider",
+    version: "2026.7.2-beta.7",
+    targetRelativeDir: "dist-runtime/extensions/groq",
   },
 ];
+const OBSOLETE_STAGED_PLUGIN_DIRS = ["extensions/openclaw-groq-provider"];
 
 function splitPackageName(packageName) {
   const parts = packageName.split("/");
@@ -30,9 +38,7 @@ function splitPackageName(packageName) {
 
 function packagePathFromNodeModules(nodeModulesDir, packageName) {
   const { scope, name } = splitPackageName(packageName);
-  return scope
-    ? path.join(nodeModulesDir, scope, name)
-    : path.join(nodeModulesDir, name);
+  return scope ? path.join(nodeModulesDir, scope, name) : path.join(nodeModulesDir, name);
 }
 
 function packageNodeModulesDir(packageDir, packageName) {
@@ -93,10 +99,7 @@ function copyDependencyTree(packageName, sourceSearchDirs, copied = new Set()) {
   copyPackageContents(sourceDir, targetDir);
 
   const manifest = readPackageJson(sourceDir);
-  const childSearchDirs = [
-    packageNodeModulesDir(sourceDir, packageName),
-    ...sourceSearchDirs,
-  ];
+  const childSearchDirs = [packageNodeModulesDir(sourceDir, packageName), ...sourceSearchDirs];
 
   for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
     copyDependencyTree(dependencyName, childSearchDirs, copied);
@@ -150,7 +153,10 @@ function stageOpenClawSdkShim() {
 }
 
 function stagePlugin(plugin) {
-  const pluginSourceDir = resolvePackageDir(plugin.packageName, rootRequire.resolve.paths(plugin.packageName) ?? []);
+  const pluginSourceDir = resolvePackageDir(
+    plugin.packageName,
+    rootRequire.resolve.paths(plugin.packageName) ?? [],
+  );
   const pluginManifest = readPackageJson(pluginSourceDir);
   if (pluginManifest.version !== plugin.version) {
     throw new Error(
@@ -158,7 +164,7 @@ function stagePlugin(plugin) {
     );
   }
 
-  const pluginTargetDir = path.join(vendorDir, "extensions", plugin.targetDirName);
+  const pluginTargetDir = path.join(vendorDir, plugin.targetRelativeDir);
   copyPackageContents(pluginSourceDir, pluginTargetDir);
   patchPluginRuntime(plugin, pluginTargetDir);
 
@@ -225,10 +231,15 @@ if (!fs.existsSync(vendorDir)) {
   throw new Error(`vendor/openclaw not found: ${vendorDir}`);
 }
 if (!fs.existsSync(path.join(vendorDir, "dist", "plugin-sdk"))) {
-  throw new Error(`OpenClaw plugin SDK dist is missing: ${path.join(vendorDir, "dist", "plugin-sdk")}`);
+  throw new Error(
+    `OpenClaw plugin SDK dist is missing: ${path.join(vendorDir, "dist", "plugin-sdk")}`,
+  );
 }
 
 fs.mkdirSync(vendorNodeModulesDir, { recursive: true });
+for (const relativeDir of OBSOLETE_STAGED_PLUGIN_DIRS) {
+  fs.rmSync(path.join(vendorDir, relativeDir), { recursive: true, force: true });
+}
 stageOpenClawSdkShim();
 for (const plugin of OFFICIAL_PLUGINS) {
   stagePlugin(plugin);

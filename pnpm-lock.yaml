@@ -10,10 +10,13 @@ importers:
     dependencies:
       '@larksuite/openclaw-lark':
         specifier: 2026.6.10
-        version: 2026.6.10(openclaw@2026.5.4(@types/express@5.0.6)(encoding@0.1.13))
+        version: 2026.6.10
       '@larksuiteoapi/node-sdk':
         specifier: ^1.59.0
         version: 1.59.0
+      '@openclaw/groq-provider':
+        specifier: 2026.7.2-beta.7
+        version: 2026.7.2-beta.7
       '@rolldown/binding-darwin-arm64':
         specifier: 1.0.0-rc.3
         version: 1.0.0-rc.3
@@ -1880,6 +1883,14 @@ packages:
   '@npmcli/fs@4.0.0':
     resolution: {integrity: sha512-/xGlezI6xfGO9NwuJlnwz/K14qD1kCSAGtacBHnGzeAIuJGazcp45KP5NuyARXoKb7cwulAGWVsbeSxdG/cb0Q==}
     engines: {node: ^18.17.0 || >=20.5.0}
+
+  '@openclaw/groq-provider@2026.7.2-beta.7':
+    resolution: {integrity: sha512-u8UsLstplUUnEPYK8YZR55vj3K32xsZO8abYKvJ2RR2JY6oj+Bbk0esJ7BtZ/tPtXoL/399gUd56F7OSkCsviw==}
+    peerDependencies:
+      openclaw: '>=2026.7.2-beta.7'
+    peerDependenciesMeta:
+      openclaw:
+        optional: true
 
   '@oxc-project/types@0.112.0':
     resolution: {integrity: sha512-m6RebKHIRsax2iCwVpYW2ErQwa4ywHJrE4sCK3/8JK8ZZAWOKXaRJFl/uP51gaVyyXlaS4+chU1nSCdzYf6QqQ==}
@@ -7772,15 +7783,13 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@larksuite/openclaw-lark@2026.6.10(openclaw@2026.5.4(@types/express@5.0.6)(encoding@0.1.13))':
+  '@larksuite/openclaw-lark@2026.6.10':
     dependencies:
       '@larksuiteoapi/node-sdk': 1.68.0
       '@sinclair/typebox': 0.34.49
       image-size: 2.0.2
       undici-types: 8.5.0
       zod: 4.4.3
-    optionalDependencies:
-      openclaw: 2026.5.4(@types/express@5.0.6)(encoding@0.1.13)
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -8088,6 +8097,8 @@ snapshots:
   '@npmcli/fs@4.0.0':
     dependencies:
       semver: 7.7.4
+
+  '@openclaw/groq-provider@2026.7.2-beta.7': {}
 
   '@oxc-project/types@0.112.0': {}
 

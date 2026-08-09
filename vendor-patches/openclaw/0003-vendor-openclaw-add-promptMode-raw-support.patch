@@ -1,4 +1,4 @@
-From 82547f6f76146de75159b6341a3da7e82a4927a9 Mon Sep 17 00:00:00 2001
+From e05c4e9d1af1c78ad7c3fb1c949c76c3b890853c Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 13 May 2026 00:20:04 -0700
 Subject: [PATCH] vendor(openclaw): add promptMode "raw" for custom persona
@@ -36,7 +36,7 @@ Tests:
  7 files changed, 22 insertions(+), 6 deletions(-)
 
 diff --git a/packages/gateway-protocol/src/schema/agent.ts b/packages/gateway-protocol/src/schema/agent.ts
-index 5c40074860a..dc6bb3b35e9 100644
+index 09eee97a0ad..a5a82dcc878 100644
 --- a/packages/gateway-protocol/src/schema/agent.ts
 +++ b/packages/gateway-protocol/src/schema/agent.ts
 @@ -309,7 +309,12 @@ export const AgentParamsSchema = closedObject({
@@ -54,18 +54,18 @@ index 5c40074860a..dc6bb3b35e9 100644
    extraSystemPrompt: Type.Optional(Type.String()),
    bootstrapContextMode: Type.Optional(
 diff --git a/src/agents/embedded-agent-runner/compact.types.ts b/src/agents/embedded-agent-runner/compact.types.ts
-index 15f9bd0829b..8628022cf47 100644
+index 81215798c15..2d96d347115 100644
 --- a/src/agents/embedded-agent-runner/compact.types.ts
 +++ b/src/agents/embedded-agent-runner/compact.types.ts
-@@ -14,6 +14,7 @@ import type { SkillSnapshot } from "../../skills/types.js";
- import type { ExecElevatedDefaults, ExecToolDefaults } from "../bash-tools.exec-types.js";
+@@ -15,6 +15,7 @@ import type { ExecElevatedDefaults, ExecToolDefaults } from "../bash-tools.exec-
  import type { AgentRunSessionTarget } from "../run-session-target.js";
  import type { AgentRuntimeAuthPlan, AgentRuntimePlan } from "../runtime-plan/types.js";
+ import type { TrustedSubagentCompletionHandoff } from "../subagent-announce-handoff.js";
 +import type { PromptMode } from "../system-prompt.types.js";
  
  export type CompactEmbeddedAgentSessionParams = {
    sessionId: string;
-@@ -110,6 +111,8 @@ export type CompactEmbeddedAgentSessionParams = {
+@@ -111,6 +112,8 @@ export type CompactEmbeddedAgentSessionParams = {
    lane?: string;
    enqueue?: CommandQueueEnqueueFn;
    extraSystemPrompt?: string;
@@ -75,10 +75,10 @@ index 15f9bd0829b..8628022cf47 100644
    ownerNumbers?: string[];
    abortSignal?: AbortSignal;
 diff --git a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-index cb4fc371d60..15eb98e0275 100644
+index c68388edb2a..54db51a6fb9 100644
 --- a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
 +++ b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-@@ -511,9 +511,10 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
+@@ -512,9 +512,10 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
      const userDate = formatDateStamp(Date.now(), userTimezone);
      const promptSurface = resolveAgentPromptSurfaceForSessionKey(params.sessionKey);
      const promptMode =
@@ -105,10 +105,10 @@ index 052ebf3045b..441a2bd104a 100644
  type AgentRuntimePromptTrigger = "cron" | "heartbeat" | "manual" | "memory" | "overflow" | "user";
  
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 7d3c682fa39..0fc2477021d 100644
+index 4b35046a9e8..c50f7803317 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -1099,6 +1099,13 @@ export function buildAgentSystemPrompt(params: {
+@@ -1144,6 +1144,13 @@ export function buildAgentSystemPrompt(params: {
    });
    const workspaceNotes = normalizeStringEntries(params.workspaceNotes);
  
@@ -132,7 +132,7 @@ index ecb6aa40621..a35f82d8919 100644
 +export type PromptMode = "full" | "minimal" | "none" | "raw";
  export type SilentReplyPromptMode = "generic" | "none";
 diff --git a/src/gateway/server-methods/agent-request-types.ts b/src/gateway/server-methods/agent-request-types.ts
-index f6cf165631f..decbed33ab4 100644
+index 4b6721b5982..1c8cbc0cad1 100644
 --- a/src/gateway/server-methods/agent-request-types.ts
 +++ b/src/gateway/server-methods/agent-request-types.ts
 @@ -31,7 +31,7 @@ export type AgentRunRequest = {

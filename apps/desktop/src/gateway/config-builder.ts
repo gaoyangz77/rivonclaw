@@ -478,6 +478,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
           },
           "rivonclaw-cloud-tools": {
             enabled: true,
+            hooks: { allowConversationAccess: true },
           },
           "rivonclaw-local-tools": {
             enabled: true,

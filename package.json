@@ -28,6 +28,7 @@
   "dependencies": {
     "@larksuite/openclaw-lark": "2026.6.10",
     "@larksuiteoapi/node-sdk": "^1.59.0",
+    "@openclaw/groq-provider": "2026.7.2-beta.7",
     "@rolldown/binding-darwin-arm64": "1.0.0-rc.3"
   },
   "devDependencies": {

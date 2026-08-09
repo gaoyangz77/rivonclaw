@@ -6,7 +6,7 @@
 // it validates the final runtime payload shape and executes the workspace
 // bootstrap path that depends on packaged templates.
 
-const { execFileSync } = require("child_process");
+const { execFileSync, spawnSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -30,6 +30,8 @@ const REQUIRED_PATHS = [
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
   "extensions/openclaw-lark/openclaw.plugin.json",
+  "dist-runtime/extensions/groq/openclaw.plugin.json",
+  "dist-runtime/extensions/groq/dist/index.js",
   "node_modules/highlight.js/package.json",
   "node_modules/@larksuiteoapi/node-sdk/package.json",
   "node_modules/@openclaw/ai/package.json",
@@ -228,6 +230,98 @@ async function runOpenClawAiRuntimeSmoke(vendorDir) {
   await import(pathToFileURL(runtimePath).href);
 }
 
+async function runGroqProviderRuntimeSmoke(vendorDir) {
+  const entryPath = path.join(vendorDir, "dist-runtime", "extensions", "groq", "dist", "index.js");
+  const pluginModule = await import(pathToFileURL(entryPath).href);
+  if (!pluginModule.default || typeof pluginModule.default !== "object") {
+    throw new Error("Groq provider runtime did not export an OpenClaw plugin");
+  }
+
+  let mediaProvider;
+  const registrationApi = new Proxy(
+    {
+      registerMediaUnderstandingProvider(provider) {
+        mediaProvider = provider;
+      },
+    },
+    {
+      get(target, property) {
+        return property in target ? target[property] : () => {};
+      },
+    },
+  );
+  pluginModule.default.register(registrationApi);
+  if (
+    mediaProvider?.id !== "groq" ||
+    !mediaProvider.capabilities?.includes("audio") ||
+    typeof mediaProvider.transcribeAudio !== "function"
+  ) {
+    throw new Error("Groq provider runtime did not register audio transcription support");
+  }
+}
+
+function runNoHostPackageManagerStartupSmoke(vendorDir) {
+  const smokeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-no-npm-smoke-"));
+  const smokeStateDir = path.join(smokeRoot, "state");
+  const emptyBinDir = path.join(smokeRoot, "empty-bin");
+  const configPath = path.join(smokeRoot, "openclaw.json");
+  fs.mkdirSync(smokeStateDir, { recursive: true });
+  fs.mkdirSync(emptyBinDir, { recursive: true });
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify(
+      {
+        gateway: {
+          mode: "local",
+          auth: { mode: "token", token: "runtime-contract-token" },
+        },
+        memory: { search: { enabled: false } },
+        plugins: { entries: { groq: { enabled: true } } },
+      },
+      null,
+      2,
+    ),
+  );
+
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [path.join(vendorDir, "openclaw.mjs"), "doctor", "--fix", "--non-interactive"],
+      {
+        encoding: "utf8",
+        timeout: 90_000,
+        maxBuffer: 20 * 1024 * 1024,
+        env: {
+          ...process.env,
+          CI: "1",
+          HOME: smokeRoot,
+          PATH: emptyBinDir,
+          OPENCLAW_STATE_DIR: smokeStateDir,
+          OPENCLAW_CONFIG_PATH: configPath,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(vendorDir, "dist-runtime", "extensions"),
+        },
+      },
+    );
+    const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(
+        `OpenClaw doctor failed without a host package manager (status ${result.status}):\n${output.slice(-4_000)}`,
+      );
+    }
+    if (/spawn\s+(?:npm(?:\.cmd)?|npx(?:\.cmd)?|pnpm(?:\.cmd)?)\b/iu.test(output)) {
+      throw new Error(`OpenClaw attempted to use a host package manager:\n${output.slice(-4_000)}`);
+    }
+    if (!output.includes("Doctor complete")) {
+      throw new Error(`OpenClaw doctor did not complete:\n${output.slice(-4_000)}`);
+    }
+  } finally {
+    removeTempDirBestEffort(smokeRoot);
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const extractedDir = args.archivePath ? extractArchive(args.archivePath) : "";
@@ -259,6 +353,8 @@ async function main() {
 
     await runWorkspaceBootstrapSmoke(vendorDir);
     await runOpenClawAiRuntimeSmoke(vendorDir);
+    await runGroqProviderRuntimeSmoke(vendorDir);
+    runNoHostPackageManagerStartupSmoke(vendorDir);
 
     console.log(`[verify-vendor-runtime] PASS ${vendorDir}`);
   } finally {

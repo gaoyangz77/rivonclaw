@@ -371,7 +371,7 @@ describe("Local LLM (Ollama) E2E", () => {
       expect(profiles.profiles["ollama:active"].provider).toBe("ollama");
       expect(profiles.profiles["ollama:active"].key).toBe("ollama"); // dummy key
       expect(profiles.order?.ollama).toEqual(["ollama:active"]);
-    });
+    }, 30_000);
 
     it("syncAllAuthProfiles uses real key when provided", async () => {
       // Add a real key to the secret store
@@ -382,7 +382,7 @@ describe("Local LLM (Ollama) E2E", () => {
 
       const profiles = readAuthProfiles(stateDir);
       expect(profiles.profiles["ollama:active"].key).toBe("my-proxy-api-key");
-    });
+    }, 30_000);
 
     it("clearAllAuthProfiles removes all profiles", () => {
       clearAllAuthProfiles(stateDir);

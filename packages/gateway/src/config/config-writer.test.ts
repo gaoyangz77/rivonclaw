@@ -1270,6 +1270,14 @@ describe("config-writer", () => {
       expect(config.gateway.port).toBe(9999);
     });
 
+    it("does not persist the dynamic port sentinel when no port is provided", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      ensureGatewayConfig({ configPath });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.gateway.port).toBeUndefined();
+    });
+
     it("does not overwrite existing config", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(configPath, JSON.stringify({ gateway: { port: 1234 } }));

@@ -962,9 +962,17 @@ test.describe("Crons Page", () => {
     const table = window.locator(".crons-table");
     await expect(table).toBeVisible({ timeout: 10_000 });
 
-    // Status bar should include the vendor-managed baseline plus our new job.
+    // Vendor-managed jobs can finish loading after navigation. Compare the
+    // status bar with the table instead of assuming the initial count is final.
     const statusBar = window.locator(".crons-status-bar");
-    await expect(statusBar).toContainText(`${baselineCount + 1} jobs`);
+    const rows = table.locator("tbody tr");
+    await expect
+      .poll(async () => {
+        const statusCount = await readCronJobCount(window);
+        const rowCount = await rows.count();
+        return statusCount === rowCount && statusCount > baselineCount;
+      })
+      .toBe(true);
 
     // Cleanup
     await deleteJob(window, "Count Test Job");

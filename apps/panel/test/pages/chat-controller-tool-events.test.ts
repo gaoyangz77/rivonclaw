@@ -3,6 +3,27 @@ import { ChatGatewayController } from "../../src/pages/chat/controllers/ChatGate
 import { createChatStore } from "../../src/pages/chat/store/chat-store.js";
 
 describe("ChatGatewayController tool events", () => {
+  it("ignores heartbeat agent events from the gateway", () => {
+    const store = createChatStore();
+    const controller = new ChatGatewayController(store);
+    const session = store.getOrCreateSession(store.activeSessionKey);
+    session.runState.beginLocalRun("heartbeat-run", store.activeSessionKey);
+
+    (controller as any).handleEvent({
+      event: "agent",
+      payload: {
+        runId: "heartbeat-run",
+        sessionKey: store.activeSessionKey,
+        isHeartbeat: true,
+        stream: "tool",
+        data: { phase: "start", name: "read" },
+      },
+    });
+
+    expect(session.messages).toEqual([]);
+    expect(session.runState.displayToolName).toBeNull();
+  });
+
   it("hydrates a switched tab even when realtime inbound already added one message", async () => {
     const store = createChatStore();
     const controller = new ChatGatewayController(store);

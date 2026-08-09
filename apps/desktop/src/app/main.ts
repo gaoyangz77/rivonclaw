@@ -574,7 +574,7 @@ app.whenReady().then(async () => {
   // Initialize gateway launcher
   const stateDir = resolveOpenClawStateDir();
   resetDevicePairing(stateDir);
-  const configPath = ensureGatewayConfig();
+  const configPath = ensureGatewayConfig({ gatewayPort: actualGatewayPort });
 
   if (app.isPackaged) {
     ensureOpenClawCliShimInstalled({
@@ -984,11 +984,12 @@ app.whenReady().then(async () => {
     log.info(`Auth lifecycle settled: ${action} (userId=${user?.userId ?? "signed-out"})`);
   }
 
-  const startupAuthSideEffectsPromise = initialAuthBootstrapPromise
-    .then(() => applyAuthLifecycleSideEffects("startup"))
-    .catch((err: unknown) => {
-      log.warn("Failed to apply startup auth lifecycle side effects:", err);
-    });
+  const applyStartupAuthSideEffects = () =>
+    initialAuthBootstrapPromise
+      .then(() => applyAuthLifecycleSideEffects("startup"))
+      .catch((err: unknown) => {
+        log.warn("Failed to apply startup auth lifecycle side effects:", err);
+      });
 
   // ToolCapability is now an MST sub-model on rootStore — views auto-recompute
   // when tools change (e.g. after ingestGraphQLResponse).
@@ -2035,7 +2036,7 @@ app.whenReady().then(async () => {
     suspendCsBridge();
   });
 
-  await startupAuthSideEffectsPromise;
+  await applyStartupAuthSideEffects();
 
   Promise.all([
     syncAllAuthProfiles(stateDir, storage, secretStore),

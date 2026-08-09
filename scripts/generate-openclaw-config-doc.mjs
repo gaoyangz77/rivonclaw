@@ -137,5 +137,9 @@ for (const [section, sectionRows] of sections) {
   lines.push("");
 }
 
-await writeFile(path.join(repoRoot, "docs", "OPENCLAW_CONFIG.md"), `${lines.join("\n")}\n`, "utf8");
+await writeFile(
+  path.join(repoRoot, "docs", "OPENCLAW_CONFIG.md"),
+  `${lines.join("\n").trimEnd()}\n`,
+  "utf8",
+);
 console.log(`Generated docs/OPENCLAW_CONFIG.md (${uniqueRows.length} schema paths)`);

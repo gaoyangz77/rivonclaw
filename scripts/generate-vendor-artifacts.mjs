@@ -13,9 +13,20 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import { format } from "oxfmt";
 
 const require = createRequire(import.meta.url);
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+async function writeGeneratedFile(outPath, content) {
+  const result = await format(outPath, content);
+  if (result.errors.length > 0) {
+    throw new Error(
+      `Failed to format ${outPath}: ${result.errors.map((error) => error.message).join("; ")}`,
+    );
+  }
+  writeFileSync(outPath, result.code, "utf-8");
+}
 
 async function loadEsbuild() {
   try {
@@ -69,7 +80,7 @@ export type ReasoningTagScope = "all" | "leading";
 
   const outPath = resolve(ROOT, "packages/core/src/generated/reasoning-tags.ts");
   mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, output, "utf-8");
+  await writeGeneratedFile(outPath, output);
   console.log(`wrote ${outPath}`);
 }
 
@@ -93,7 +104,7 @@ async function generateOpenClawSchema() {
   const jsCode = result.outputFiles[0].text;
   const header = `// AUTO-GENERATED from vendor/openclaw — do not edit manually.\n// Re-generate with: node scripts/generate-vendor-artifacts.mjs\n\n`;
   const jsOutPath = resolve(outDir, "openclaw-schema.js");
-  writeFileSync(jsOutPath, header + jsCode, "utf-8");
+  await writeGeneratedFile(jsOutPath, header + jsCode);
   console.log(`wrote ${jsOutPath}`);
 
   const dtsContent = `// AUTO-GENERATED — do not edit manually.
@@ -102,7 +113,7 @@ import { z } from "zod";
 export declare const OpenClawSchema: z.ZodType<Record<string, unknown>>;
 `;
   const dtsOutPath = resolve(outDir, "openclaw-schema.d.ts");
-  writeFileSync(dtsOutPath, dtsContent, "utf-8");
+  await writeGeneratedFile(dtsOutPath, dtsContent);
   console.log(`wrote ${dtsOutPath}`);
 }
 
@@ -137,7 +148,7 @@ export const OPENCLAW_PLUGIN_MODEL_CATALOG = ${JSON.stringify(catalog, null, 2)}
 `;
   const outPath = resolve(ROOT, "packages/gateway/src/generated/openclaw-plugin-model-catalog.ts");
   mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, output, "utf-8");
+  await writeGeneratedFile(outPath, output);
   console.log(`wrote ${outPath}`);
 }
 

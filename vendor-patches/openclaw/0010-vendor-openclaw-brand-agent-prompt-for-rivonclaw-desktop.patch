@@ -1,4 +1,4 @@
-From 7e85def51bc8557c30eb192481e071cfdaa4549e Mon Sep 17 00:00:00 2001
+From a489559f0041e483009698df4ae17bc735ec07cc Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sun, 26 Apr 2026 02:44:52 -0700
 Subject: [PATCH] vendor(openclaw): brand agent prompt for RivonClaw desktop
@@ -23,10 +23,10 @@ Tests:
  1 file changed, 18 insertions(+), 7 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 843d6910f4b..f92eab056b6 100644
+index 3158ce42046..9598c0aca3f 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -591,7 +591,7 @@ function buildMessagingSection(params: {
+@@ -635,7 +635,7 @@ function buildMessagingSection(params: {
      "- Cross-session: `sessions_send(sessionKey, message)`.",
      subagentOrchestrationGuidance,
      completionEventGuidance,
@@ -35,10 +35,10 @@ index 843d6910f4b..f92eab056b6 100644
      params.availableTools.has("message")
        ? [
            "",
-@@ -871,9 +871,9 @@ export function buildAgentSystemPrompt(params: {
+@@ -911,9 +911,9 @@ export function buildAgentSystemPrompt(params: {
      conversations_send: "Send directly to an external conversation",
      conversations_turn: "Send and wait for one correlated external reply",
-     openclaw: "System setup/config expert; writes need human approval",
+     openclaw: "Gateway restart/system setup/config; changes need human approval",
 -    gateway: "Read gateway config/schema",
 +    gateway: "Read RivonClaw Desktop gateway config/schema",
      agents_list: acpSpawnRuntimeEnabled
@@ -47,7 +47,7 @@ index 843d6910f4b..f92eab056b6 100644
        : "List allowed subagent ids",
      sessions_list: "List visible sessions; filters/last",
      sessions_history: "Read visible session/subagent history",
-@@ -1108,7 +1108,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1153,7 +1153,7 @@ export function buildAgentSystemPrompt(params: {
  
    // For "none" mode, return just the basic identity line
    if (promptMode === "none") {
@@ -56,7 +56,7 @@ index 843d6910f4b..f92eab056b6 100644
        .filter(Boolean)
        .join("\n");
    }
-@@ -1169,7 +1169,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1214,7 +1214,7 @@ export function buildAgentSystemPrompt(params: {
    });
    const stablePrefix = cacheStablePromptPrefix(stablePrefixCacheKey, () => {
      const lines = [
@@ -65,7 +65,7 @@ index 843d6910f4b..f92eab056b6 100644
        "",
        "## Tooling",
        "Tools policy-filtered. Names case-sensitive; call exact.",
-@@ -1268,7 +1268,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1313,7 +1313,7 @@ export function buildAgentSystemPrompt(params: {
        }),
        ...safetySection,
        "## RivonClaw Desktop Runtime",
@@ -74,7 +74,7 @@ index 843d6910f4b..f92eab056b6 100644
        "Do not run or ask the user to run `openclaw` CLI commands for gateway status, start, stop, or restart.",
        "When available, use first-class runtime tools such as `gateway`, `session_status`, or RivonClaw-provided tools for gateway status, config, and restart instead of shell CLI commands.",
        "If no first-class tool is available, explain the limitation and ask the user before suggesting manual diagnostics.",
-@@ -1276,6 +1276,17 @@ export function buildAgentSystemPrompt(params: {
+@@ -1321,6 +1321,17 @@ export function buildAgentSystemPrompt(params: {
        ...skillsSection,
        ...skillWorkshopSection,
        ...memorySection,
@@ -92,7 +92,7 @@ index 843d6910f4b..f92eab056b6 100644
        params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
          ? "## Model Aliases"
          : "",
-@@ -1357,7 +1368,7 @@ export function buildAgentSystemPrompt(params: {
+@@ -1402,7 +1413,7 @@ export function buildAgentSystemPrompt(params: {
        params.sandboxInfo?.enabled ? "" : "",
        ...bootstrapSystemPromptSections,
        "## Workspace Files (injected)",

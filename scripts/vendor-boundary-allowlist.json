@@ -33,13 +33,23 @@
     },
     {
       "file": "apps/desktop/src/gateway/vendor-channel-registry-pin.sentinel.test.ts",
-      "vendorPath": "vendor/openclaw/src/plugins/runtime.js",
-      "reason": "Drift guard — validates pinned channel registry ignores later empty plugin registries (vendor patch 0007)"
+      "vendorPath": "vendor/openclaw/src/plugins/runtime-channel-state.ts",
+      "reason": "Lifecycle guard — validates RivonClaw channel diagnostics follow OpenClaw's process-root active registry"
     },
     {
-      "file": "apps/desktop/src/gateway/vendor-channel-registry-pin.sentinel.test.ts",
-      "vendorPath": "vendor/openclaw/src/plugins/tools.ts",
-      "reason": "Drift guard — validates standalone plugin tool discovery does not replace the channel registry (vendor patch 0011)"
+      "file": "apps/desktop/src/gateway/vendor-pairing-wildcard-migration.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/src/infra/state-migrations.channel-pairing.ts",
+      "reason": "Migration guard — validates one invalid pairing account cannot abort all legacy pairing migrations"
+    },
+    {
+      "file": "apps/desktop/src/gateway/vendor-pairing-wildcard-migration.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/src/infra/state-migrations.doctor.ts",
+      "reason": "Migration guard — validates wildcard route bindings are not treated as concrete pairing accounts"
+    },
+    {
+      "file": "apps/desktop/test/vendor-patch-prewarm-defer.test.ts",
+      "vendorPath": "vendor/openclaw/src/gateway/server-startup-post-attach.ts",
+      "reason": "Startup guard — validates model runtime snapshots publish before heavier chat metadata and channel startup"
     },
     {
       "file": "apps/desktop/src/cs-bridge/vendor-prompt-raw.sentinel.test.ts",
