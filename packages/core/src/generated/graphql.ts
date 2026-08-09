@@ -10435,6 +10435,8 @@ export interface QueryEcommerceSearchPackagesArgs {
 
 
 export interface QueryEcommerceSearchProductsArgs {
+  createTimeGe?: InputMaybe<Scalars['Float']['input']>;
+  createTimeLe?: InputMaybe<Scalars['Float']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
   status?: InputMaybe<EcomProductStatus>;
