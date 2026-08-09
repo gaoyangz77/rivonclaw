@@ -261,6 +261,10 @@ async function runGroqProviderRuntimeSmoke(vendorDir) {
 }
 
 function runNoHostPackageManagerStartupSmoke(vendorDir) {
+  const configuredTimeout = Number(process.env.RIVONCLAW_VENDOR_RUNTIME_DOCTOR_TIMEOUT_MS);
+  const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+    ? configuredTimeout
+    : 90_000;
   const smokeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-no-npm-smoke-"));
   const smokeStateDir = path.join(smokeRoot, "state");
   const emptyBinDir = path.join(smokeRoot, "empty-bin");
@@ -289,7 +293,7 @@ function runNoHostPackageManagerStartupSmoke(vendorDir) {
       [path.join(vendorDir, "openclaw.mjs"), "doctor", "--fix", "--non-interactive"],
       {
         encoding: "utf8",
-        timeout: 90_000,
+        timeout,
         maxBuffer: 20 * 1024 * 1024,
         env: {
           ...process.env,
