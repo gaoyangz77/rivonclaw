@@ -4600,6 +4600,152 @@ But the tool name is shown in the line above: \`to=functions.ecom_cs_get_product
       expect.anything(),
     );
   });
+
+  it("recovers and delivers a run that completed while Gateway RPC was disconnected", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-reconnect-complete");
+
+    bridge.suspendForGatewayDisconnect();
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "sessions.messages.subscribe") return { subscribed: true };
+      if (method === "agent.wait") return { status: "ok" };
+      if (method === "chat.history") {
+        return {
+          messages: [
+            {
+              role: "user",
+              idempotencyKey: "run-reconnect-complete:user",
+              timestamp: Date.now(),
+              content: [{ type: "text", text: "buyer work package" }],
+            },
+            {
+              role: "assistant",
+              timestamp: Date.now(),
+              content: [{ type: "text", text: "Recovered answer" }],
+            },
+          ],
+        };
+      }
+      return {};
+    });
+
+    await bridge.resumeAfterGatewayReconnect();
+
+    expect(await getForwardedTexts()).toEqual(["Recovered answer"]);
+    expect((bridge as any).pendingRuns.has("run-reconnect-complete")).toBe(false);
+    expect(mockRpcRequest).toHaveBeenCalledWith("sessions.messages.subscribe", {
+      key: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
+    });
+  });
+
+  it("keeps an accepted run pending after reconnect when Gateway is still executing it", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-reconnect-pending");
+
+    bridge.suspendForGatewayDisconnect();
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "sessions.messages.subscribe") return { subscribed: true };
+      if (method === "agent.wait") return { status: "timeout" };
+      return {};
+    });
+
+    await bridge.resumeAfterGatewayReconnect();
+
+    expect((bridge as any).pendingRuns.has("run-reconnect-pending")).toBe(true);
+
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: {
+        runId: "run-reconnect-pending",
+        stream: "assistant",
+        data: { text: "Live answer after reconnect" },
+      },
+    } as any);
+    bridge.onGatewayEvent({
+      event: "agent",
+      payload: {
+        runId: "run-reconnect-pending",
+        stream: "lifecycle",
+        data: { phase: "end" },
+      },
+    } as any);
+
+    expect(await getForwardedTexts()).toEqual(["Live answer after reconnect"]);
+  });
+
+  it("lets a newer reconnect supersede recovery work from an older Gateway socket", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-reconnect-generation");
+
+    let releaseFirstSubscribe!: () => void;
+    const firstSubscribe = new Promise<void>((resolve) => {
+      releaseFirstSubscribe = resolve;
+    });
+    let subscribeCalls = 0;
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "sessions.messages.subscribe") {
+        subscribeCalls += 1;
+        if (subscribeCalls === 1) await firstSubscribe;
+        return { subscribed: true };
+      }
+      if (method === "agent.wait") return { status: "timeout" };
+      return {};
+    });
+
+    bridge.suspendForGatewayDisconnect();
+    const firstRecovery = bridge.resumeAfterGatewayReconnect();
+    await Promise.resolve();
+
+    bridge.suspendForGatewayDisconnect();
+    const secondRecovery = bridge.resumeAfterGatewayReconnect();
+    await secondRecovery;
+    releaseFirstSubscribe();
+    await firstRecovery;
+
+    expect(subscribeCalls).toBe(2);
+    expect((bridge as any).pendingRuns.has("run-reconnect-generation")).toBe(true);
+  });
+
+  it("does not redeliver text that was already forwarded before reconnect", async () => {
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    await dispatchAndGetRunId(bridge, "run-reconnect-dedupe");
+
+    agentEvent(bridge, "run-reconnect-dedupe", "assistant", { text: "Already delivered" });
+    agentEvent(bridge, "run-reconnect-dedupe", "lifecycle", { phase: "end" });
+    expect(await getForwardedTexts()).toEqual(["Already delivered"]);
+
+    bridge.suspendForGatewayDisconnect();
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "sessions.messages.subscribe") return { subscribed: true };
+      if (method === "agent.wait") return { status: "ok" };
+      if (method === "chat.history") {
+        return {
+          messages: [
+            {
+              role: "user",
+              idempotencyKey: "run-reconnect-dedupe:user",
+              timestamp: Date.now(),
+              content: [{ type: "text", text: "buyer work package" }],
+            },
+            {
+              role: "assistant",
+              timestamp: Date.now(),
+              content: [{ type: "text", text: "Already delivered" }],
+            },
+          ],
+        };
+      }
+      return {};
+    });
+
+    await bridge.resumeAfterGatewayReconnect();
+
+    expect(await getForwardedTexts()).toEqual(["Already delivered"]);
+  });
 });
 
 // ─── 15. Terminal guarantee: error/timeout handling ──────────────────────────

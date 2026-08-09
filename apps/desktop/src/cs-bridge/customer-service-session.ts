@@ -1864,8 +1864,12 @@ export class CustomerServiceSession {
     this.roundsByRunId.get(runId)?.clearTurnText(runId);
   }
 
-  markRunDeliveryStarted(runId: string): void {
-    this.roundsByRunId.get(runId)?.markDeliveryStarted(runId);
+  markRunDeliveryStarted(runId: string, text?: string): void {
+    this.roundsByRunId.get(runId)?.markDeliveryStarted(runId, text);
+  }
+
+  hasRunForwardedText(runId: string, text: string): boolean {
+    return this.roundsByRunId.get(runId)?.hasForwardedText(runId, text) ?? false;
   }
 
   markRunTerminalToolStarted(runId: string): void {

@@ -14,6 +14,7 @@ export class CSRound {
   private abortedRunIds = new Set<string>();
   private turnTextBuffer = new Map<string, string>();
   private forwardedRunIds = new Set<string>();
+  private forwardedTextsByRunId = new Map<string, Set<string>>();
   private terminalToolRunIds = new Set<string>();
   private operationalFailureRunIds = new Set<string>();
   private sensitiveRecoveryAttempts = 0;
@@ -38,7 +39,8 @@ export class CSRound {
   isSameBuyerMessage(messageId: string, messageIndex?: string): boolean {
     if (!this.buyerMessageId) return false;
     if (this.buyerMessageId !== messageId) return false;
-    if (this.buyerMessageIndex && messageIndex && this.buyerMessageIndex !== messageIndex) return false;
+    if (this.buyerMessageIndex && messageIndex && this.buyerMessageIndex !== messageIndex)
+      return false;
     return true;
   }
 
@@ -120,8 +122,18 @@ export class CSRound {
     this.turnTextBuffer.delete(runId);
   }
 
-  markDeliveryStarted(runId: string): void {
+  markDeliveryStarted(runId: string, text?: string): void {
     this.forwardedRunIds.add(runId);
+    const normalized = text?.trim();
+    if (normalized) {
+      const texts = this.forwardedTextsByRunId.get(runId) ?? new Set<string>();
+      texts.add(normalized);
+      this.forwardedTextsByRunId.set(runId, texts);
+    }
+  }
+
+  hasForwardedText(runId: string, text: string): boolean {
+    return this.forwardedTextsByRunId.get(runId)?.has(text.trim()) ?? false;
   }
 
   markTerminalToolStarted(runId: string): void {
@@ -149,6 +161,7 @@ export class CSRound {
     const hadTerminalToolAction = this.terminalToolRunIds.has(runId);
     const hadOperationalFailure = this.operationalFailureRunIds.has(runId);
     this.forwardedRunIds.delete(runId);
+    this.forwardedTextsByRunId.delete(runId);
     this.terminalToolRunIds.delete(runId);
     this.operationalFailureRunIds.delete(runId);
     this.turnTextBuffer.delete(runId);
@@ -194,14 +207,19 @@ export class CSRound {
     let message = content;
     if (this.undeliveredCountAtStart <= 0) return message;
 
-    const notice = this.undeliveredCountAtStart === 1
-      ? "[Internal: System]\nNote: Your previous reply was not delivered to the buyer because a new message arrived. The buyer has not seen it. Please incorporate all messages in your response."
-      : `[Internal: System]\nNote: Your last ${this.undeliveredCountAtStart} replies were not delivered to the buyer because new messages arrived while you were responding. The buyer has not seen them. Please incorporate all messages in your response.`;
+    const notice =
+      this.undeliveredCountAtStart === 1
+        ? "[Internal: System]\nNote: Your previous reply was not delivered to the buyer because a new message arrived. The buyer has not seen it. Please incorporate all messages in your response."
+        : `[Internal: System]\nNote: Your last ${this.undeliveredCountAtStart} replies were not delivered to the buyer because new messages arrived while you were responding. The buyer has not seen them. Please incorporate all messages in your response.`;
     message = `${notice}\n\n${message}`;
     return message;
   }
 
-  planSensitiveRecovery(maxAttempts: number, failedRunId: string, rejectedText: string): SensitiveRecoveryPlan {
+  planSensitiveRecovery(
+    maxAttempts: number,
+    failedRunId: string,
+    rejectedText: string,
+  ): SensitiveRecoveryPlan {
     if (this.sensitiveRecoveryRunIds.has(failedRunId)) {
       return {
         ok: false,
@@ -258,6 +276,7 @@ export class CSRound {
     this.abortedRunIds.clear();
     this.turnTextBuffer.clear();
     this.forwardedRunIds.clear();
+    this.forwardedTextsByRunId.clear();
     this.terminalToolRunIds.clear();
     this.operationalFailureRunIds.clear();
     this.sensitiveRecoveryRunIds.clear();

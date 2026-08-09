@@ -24,6 +24,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import { emitCsDispatchEvent, emitCsError, CS_ERROR_STAGE } from "../telemetry/cs-telemetry-ref.js";
 import { AffiliateInbound } from "../affiliate/affiliate-inbound.js";
+import { openClawConnector } from "../openclaw/index.js";
 
 const log = createLogger("ecommerce-relay");
 const DEFAULT_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS = 30_000;
@@ -135,8 +136,12 @@ export class EcommerceRelayBridge {
       shopObjectId: string;
       conversationId: string;
       session: CustomerServiceSession;
+      acceptedAt: number;
     }
   >();
+
+  private gatewayGeneration = 0;
+  private reconnectRecovery: { generation: number; promise: Promise<void> } | null = null;
 
   /** Airflow backlog buyer-message dispatches keyed by platformShopId + conversationId. */
   private pendingAirflowBuyerCatchUps = new Map<
@@ -165,6 +170,7 @@ export class EcommerceRelayBridge {
   }
 
   stop(): void {
+    this.gatewayGeneration += 1;
     this.closed = true;
     // Unsubscribe from entity cache
     if (this.cacheUnsubscribe) {
@@ -177,6 +183,42 @@ export class EcommerceRelayBridge {
     this.pendingAirflowBuyerCatchUps.clear();
     runtimeStatusStore.setCsBridgeDisconnected();
     log.info("Ecommerce signal bridge stopped");
+  }
+
+  /**
+   * Mark the local Gateway transport unavailable without discarding run
+   * ownership. The Gateway process can keep executing accepted runs while its
+   * Desktop RPC socket reconnects, so pendingRuns must survive this boundary.
+   */
+  suspendForGatewayDisconnect(): void {
+    this.gatewayGeneration += 1;
+    this.closed = true;
+    runtimeStatusStore.setCsBridgeDisconnected();
+    log.warn(`Ecommerce signal bridge suspended with ${this.pendingRuns.size} pending run(s)`);
+  }
+
+  /** Restore event delivery and reconcile runs that may have ended off-socket. */
+  async resumeAfterGatewayReconnect(): Promise<void> {
+    const generation = this.gatewayGeneration;
+    this.closed = false;
+    this.subscribeToCacheChanges();
+    this.syncFromCache();
+    runtimeStatusStore.setCsBridgeConnected();
+
+    if (this.reconnectRecovery?.generation === generation) {
+      await this.reconnectRecovery.promise;
+      return;
+    }
+
+    const recovery = this.restorePendingRunDelivery(generation);
+    this.reconnectRecovery = { generation, promise: recovery };
+    try {
+      await recovery;
+    } finally {
+      if (this.reconnectRecovery?.promise === recovery) {
+        this.reconnectRecovery = null;
+      }
+    }
   }
 
   updateLocale(locale: string | undefined): void {
@@ -292,39 +334,231 @@ export class EcommerceRelayBridge {
 
     if (payload.state === "final" || payload.state === "error") {
       this.pendingRuns.delete(payload.runId);
+      this.completePendingRun(payload.runId, pending, payload);
+    }
+  }
 
-      const session = pending.session;
-      // Lifecycle events normally flush the last assistant turn first. Keep
-      // chat completion as a safety net so a missing lifecycle frame cannot
-      // turn real buffered text into a handled-without-reply acknowledgement.
-      this.flushTurnText(payload.runId, session);
-      const completion = session.onRunCompleted(payload.runId);
-      const wasAborted = completion.wasAborted;
-      if (wasAborted) {
-        log.info(`Run ${payload.runId} was aborted, skipping auto-forward`);
-      } else if (payload.state === "error") {
-        const errorMessage = payload.errorMessage?.trim() || "Gateway agent run failed";
-        log.warn(`Agent run ${payload.runId} failed: ${errorMessage}`);
-        session.emitError(CS_ERROR_STAGE.RUN_ERROR, {
-          reason: payload.errorKind?.trim() || "gateway_error",
-          errorMessage,
-          runId: payload.runId,
-        });
-      } else if (
-        !completion.hadForwardedText &&
-        !completion.hadTerminalToolAction &&
-        !completion.hadOperationalFailure
-      ) {
-        void session.acknowledgeHandledWithoutReply({
-          runId: payload.runId,
-          messageId: completion.buyerMessageId,
-          messageIndex: completion.buyerMessageIndex,
-        });
+  private completePendingRun(
+    runId: string,
+    pending: { session: CustomerServiceSession },
+    payload: { state?: string; errorKind?: string; errorMessage?: string },
+  ): void {
+    const session = pending.session;
+    // Lifecycle events normally flush the last assistant turn first. Keep
+    // chat completion as a safety net so a missing lifecycle frame cannot
+    // turn real buffered text into a handled-without-reply acknowledgement.
+    this.flushTurnText(runId, session);
+    const completion = session.onRunCompleted(runId);
+    if (completion.wasAborted) {
+      log.info(`Run ${runId} was aborted, skipping auto-forward`);
+    } else if (payload.state === "error") {
+      const errorMessage = payload.errorMessage?.trim() || "Gateway agent run failed";
+      log.warn(`Agent run ${runId} failed: ${errorMessage}`);
+      session.emitError(CS_ERROR_STAGE.RUN_ERROR, {
+        reason: payload.errorKind?.trim() || "gateway_error",
+        errorMessage,
+        runId,
+      });
+    } else if (
+      !completion.hadForwardedText &&
+      !completion.hadTerminalToolAction &&
+      !completion.hadOperationalFailure
+    ) {
+      void session.acknowledgeHandledWithoutReply({
+        runId,
+        messageId: completion.buyerMessageId,
+        messageIndex: completion.buyerMessageIndex,
+      });
+    }
+    session.clearTurnText(runId);
+  }
+
+  private async restorePendingRunDelivery(generation: number): Promise<void> {
+    if (!this.isGatewayGenerationCurrent(generation)) return;
+    const snapshot = [...this.pendingRuns.entries()];
+    if (snapshot.length === 0) {
+      log.info("Ecommerce signal bridge resumed with no pending runs");
+      return;
+    }
+
+    const sessionKeys = new Set(snapshot.map(([, pending]) => pending.session.scopeKey));
+    for (const sessionKey of sessionKeys) {
+      if (!this.isGatewayGenerationCurrent(generation)) return;
+      try {
+        await openClawConnector.request("sessions.messages.subscribe", { key: sessionKey });
+      } catch (error) {
+        log.warn(
+          `Failed to restore CS Gateway event subscription for ${sessionKey}: ${this.errorMessage(error)}`,
+        );
+      }
+    }
+
+    // Reconciliation is deliberately bounded. Live subscriptions above cover
+    // runs that are still executing; these probes only recover terminals that
+    // landed while no Desktop RPC socket existed.
+    const workers = Array.from({ length: Math.min(2, snapshot.length) }, async (_, worker) => {
+      for (let index = worker; index < snapshot.length; index += 2) {
+        if (!this.isGatewayGenerationCurrent(generation)) return;
+        const [runId, pending] = snapshot[index];
+        await this.reconcilePendingRun(runId, pending, generation);
+      }
+    });
+    await Promise.all(workers);
+    if (!this.isGatewayGenerationCurrent(generation)) return;
+    log.info(
+      `Ecommerce signal bridge resumed: restored ${sessionKeys.size} session subscription(s), ` +
+        `${this.pendingRuns.size} run(s) still pending`,
+    );
+  }
+
+  private async reconcilePendingRun(
+    runId: string,
+    pending: {
+      session: CustomerServiceSession;
+      acceptedAt: number;
+    },
+    generation: number,
+  ): Promise<void> {
+    if (!this.isGatewayGenerationCurrent(generation) || this.pendingRuns.get(runId) !== pending) {
+      return;
+    }
+    try {
+      const wait = await openClawConnector.request<{
+        status?: string;
+        error?: unknown;
+      }>("agent.wait", { runId, timeoutMs: 0 });
+      if (!this.isGatewayGenerationCurrent(generation) || this.pendingRuns.get(runId) !== pending) {
+        return;
+      }
+      if (!wait?.status || wait.status === "timeout" || wait.status === "pending") return;
+
+      if (wait.status === "ok") {
+        const history = await openClawConnector.request<{
+          messages?: Array<Record<string, unknown>>;
+        }>("chat.history", { sessionKey: pending.session.scopeKey, limit: 30, maxChars: 80_000 });
+        if (
+          !this.isGatewayGenerationCurrent(generation) ||
+          this.pendingRuns.get(runId) !== pending
+        ) {
+          return;
+        }
+        const recovered = this.extractRecoveredRunOutput(
+          history?.messages ?? [],
+          runId,
+          pending.acceptedAt,
+        );
+        for (const text of recovered.texts) {
+          if (pending.session.hasRunForwardedText(runId, text)) continue;
+          pending.session.noteTurnText(runId, text);
+          this.flushTurnText(runId, pending.session);
+        }
+        if (recovered.terminalToolAction) {
+          pending.session.markRunTerminalToolStarted(runId);
+        }
+        this.pendingRuns.delete(runId);
+        log.info(`Recovered completed CS run after Gateway reconnect: ${runId}`);
+        this.completePendingRun(runId, pending, { state: "final" });
+        return;
       }
 
-      // Safety-net cleanup of turn buffer (normally already flushed by agent events)
-      session.clearTurnText(payload.runId);
+      this.pendingRuns.delete(runId);
+      this.completePendingRun(runId, pending, {
+        state: "error",
+        errorKind: `recovered_${wait.status}`,
+        errorMessage:
+          this.errorMessage(wait.error) || `Gateway agent run ended with ${wait.status}`,
+      });
+    } catch (error) {
+      log.warn(`Failed to reconcile pending CS run ${runId}: ${this.errorMessage(error)}`);
     }
+  }
+
+  private extractRecoveredRunOutput(
+    messages: Array<Record<string, unknown>>,
+    runId: string,
+    acceptedAt: number,
+  ): { texts: string[]; terminalToolAction: boolean } {
+    let userIndex = -1;
+    const runUserIdempotencyKey = `${runId}:user`;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (
+        message.role === "user" &&
+        typeof message.idempotencyKey === "string" &&
+        message.idempotencyKey === runUserIdempotencyKey
+      ) {
+        userIndex = index;
+        break;
+      }
+    }
+
+    // Older transcripts may not expose the persisted idempotency key through
+    // chat.history. In that case, use the accepted time only as a compatibility
+    // fallback, never as the preferred run identity.
+    if (userIndex < 0) {
+      for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index];
+        if (message.role !== "user") continue;
+        const timestamp = this.timestampToMs(message.timestamp);
+        if (timestamp == null || timestamp >= acceptedAt - 10_000) {
+          userIndex = index;
+          break;
+        }
+      }
+    }
+    if (userIndex < 0) return { texts: [], terminalToolAction: false };
+
+    const texts: string[] = [];
+    let terminalToolAction = false;
+    for (const message of messages.slice(userIndex + 1)) {
+      if (message.role === "user") break;
+      if (message.role !== "assistant") continue;
+      const blocks = Array.isArray(message.content) ? message.content : [];
+      const text = this.historyMessageText(message);
+      if (text) texts.push(text);
+      terminalToolAction ||= blocks.some((block) => {
+        if (!block || typeof block !== "object") return false;
+        const candidate = block as { type?: unknown; name?: unknown };
+        return candidate.type === "toolCall" && this.isTerminalCsTool(candidate.name);
+      });
+    }
+    return { texts, terminalToolAction };
+  }
+
+  private historyMessageText(message: Record<string, unknown>): string {
+    if (typeof message.content === "string") return message.content.trim();
+    if (Array.isArray(message.content)) {
+      const contentText = message.content
+        .map((block) =>
+          block &&
+          typeof block === "object" &&
+          typeof (block as { text?: unknown }).text === "string"
+            ? String((block as { text: string }).text)
+            : "",
+        )
+        .filter((part) => part.trim())
+        .join("\n")
+        .trim();
+      if (contentText) return contentText;
+    }
+    return typeof message.text === "string" ? message.text.trim() : "";
+  }
+
+  private timestampToMs(value: unknown): number | undefined {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value < 10_000_000_000 ? value * 1_000 : value;
+    }
+    if (typeof value !== "string") return undefined;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error ?? "");
+  }
+
+  private isGatewayGenerationCurrent(generation: number): boolean {
+    return !this.closed && this.gatewayGeneration === generation;
   }
 
   // -- Per-turn agent event handling ------------------------------------------
@@ -451,7 +685,7 @@ export class EcommerceRelayBridge {
     // NOT retry or send a boilerplate apology — keeps the "feels like a
     // human" experience. The periodic unread-message sweep is responsible
     // for catching the dropped turn and re-sending.
-    session.markRunDeliveryStarted(runId);
+    session.markRunDeliveryStarted(runId, text);
     session.forwardTextToBuyer(text, runId).catch((err) => {
       if (session.isRunAborted(runId)) {
         log.info(`Run ${runId} was aborted during delivery, skipping`);
@@ -909,6 +1143,7 @@ export class EcommerceRelayBridge {
           shopObjectId,
           conversationId: params.conversationId,
           session,
+          acceptedAt: Date.now(),
         });
       },
     });
