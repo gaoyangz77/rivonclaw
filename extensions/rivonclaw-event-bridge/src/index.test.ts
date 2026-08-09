@@ -48,6 +48,7 @@ function activateEventBridge() {
   eventBridgePlugin.activate(api as never);
   return {
     interactive: () => interactive,
+    logger: api.logger,
     registeredHooks,
     captureBroadcast: (broadcast: (event: string, payload: unknown) => void) =>
       initGateway?.({ respond: vi.fn(), context: { broadcast } }),
@@ -121,6 +122,26 @@ describe("shouldMirrorExternalSession", () => {
 });
 
 describe("agent event mirroring", () => {
+  it("quietly ignores unneeded streams before a run has a session mapping", () => {
+    const broadcast = vi.fn();
+    const activated = activateEventBridge();
+    activated.captureBroadcast(broadcast);
+
+    activated.emitAgentEvent({
+      runId: "startup-run",
+      seq: 1,
+      stream: "run_status",
+      ts: 1,
+      data: { phase: "running" },
+    });
+
+    expect(broadcast).not.toHaveBeenCalled();
+    expect(activated.logger.warn).not.toHaveBeenCalled();
+    expect(activated.logger.debug).toHaveBeenCalledWith(
+      "[event-bridge] skip: unneeded stream=run_status runId=startup-run",
+    );
+  });
+
   it("does not mirror a mapped main-session heartbeat run", () => {
     const broadcast = vi.fn();
     const activated = activateEventBridge();

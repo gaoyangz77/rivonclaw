@@ -185,7 +185,7 @@ describe("config-writer", () => {
       expect(config.plugins.entries).toEqual({ "my-plugin": { enabled: true } });
     });
 
-    it("removes stale optional provider deny IDs while preserving Moonshot and entries", () => {
+    it("removes stale optional provider deny IDs while preserving provider entries", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
@@ -202,7 +202,7 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, plugins: {} });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.plugins.deny).toContain("moonshot");
+      expect(config.plugins.deny).not.toContain("moonshot");
       expect(config.plugins.deny).not.toContain("amazon-bedrock");
       expect(config.plugins.deny).not.toContain("github-copilot");
       expect(config.plugins.deny).not.toContain("kimi");

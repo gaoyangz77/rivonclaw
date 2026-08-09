@@ -11,7 +11,6 @@ describe("audio-config-writer", () => {
     it("generates Groq config when enabled", () => {
       const config = generateAudioConfig(true, "groq");
       expect(config).toEqual({
-        enabled: true,
         models: [
           {
             provider: "groq",
@@ -20,10 +19,13 @@ describe("audio-config-writer", () => {
             capabilities: ["audio"],
           },
         ],
-        maxBytes: 25 * 1024 * 1024,
-        timeoutSeconds: 300,
-        scope: {
-          default: "allow",
+        audio: {
+          enabled: true,
+          maxBytes: 25 * 1024 * 1024,
+          timeoutSeconds: 300,
+          scope: {
+            default: "allow",
+          },
         },
       });
     });
@@ -34,18 +36,21 @@ describe("audio-config-writer", () => {
         sttCliPath: "/path/to/volcengine-stt-cli.mjs",
       });
       expect(config).toEqual({
-        enabled: true,
         models: [
           {
             type: "cli",
             command: "/usr/local/bin/node",
             args: ["/path/to/volcengine-stt-cli.mjs", "{{MediaPath}}"],
+            capabilities: ["audio"],
           },
         ],
-        maxBytes: 25 * 1024 * 1024,
-        timeoutSeconds: 300,
-        scope: {
-          default: "allow",
+        audio: {
+          enabled: true,
+          maxBytes: 25 * 1024 * 1024,
+          timeoutSeconds: 300,
+          scope: {
+            default: "allow",
+          },
         },
       });
     });
@@ -78,15 +83,23 @@ describe("audio-config-writer", () => {
     it("adds audio config to empty config", () => {
       const config = {};
       const audioConfig = {
-        enabled: true,
-        models: [{ provider: "openai", model: "whisper-1" }],
+        audio: { enabled: true },
+        models: [
+          {
+            provider: "openai",
+            model: "whisper-1",
+            type: "provider" as const,
+            capabilities: ["audio"] as ["audio"],
+          },
+        ],
       };
 
       const result = mergeAudioConfig(config, audioConfig);
       expect(result).toEqual({
         tools: {
           media: {
-            audio: audioConfig,
+            audio: audioConfig.audio,
+            models: audioConfig.models,
           },
         },
       });
@@ -101,8 +114,14 @@ describe("audio-config-writer", () => {
         },
       };
       const audioConfig = {
-        enabled: true,
-        models: [{ provider: "openai" }],
+        audio: { enabled: true },
+        models: [
+          {
+            provider: "openai",
+            type: "provider" as const,
+            capabilities: ["audio"] as ["audio"],
+          },
+        ],
       };
 
       const result = mergeAudioConfig(config, audioConfig);
@@ -110,7 +129,8 @@ describe("audio-config-writer", () => {
         tools: {
           media: {
             image: { enabled: true },
-            audio: audioConfig,
+            audio: audioConfig.audio,
+            models: audioConfig.models,
           },
         },
       });
@@ -125,14 +145,71 @@ describe("audio-config-writer", () => {
         },
       };
       const newAudioConfig = {
-        enabled: true,
-        models: [{ provider: "volcengine" }],
+        audio: { enabled: true },
+        models: [
+          {
+            provider: "volcengine",
+            type: "provider" as const,
+            capabilities: ["audio"] as ["audio"],
+          },
+        ],
       };
 
       const result = mergeAudioConfig(config, newAudioConfig);
       expect(result.tools).toEqual({
         media: {
-          audio: newAudioConfig,
+          audio: newAudioConfig.audio,
+          models: newAudioConfig.models,
+        },
+      });
+    });
+
+    it("moves legacy nested models and preserves non-audio media models", () => {
+      const config = {
+        tools: {
+          media: {
+            models: [{ provider: "openai", model: "gpt-4o", capabilities: ["image"] }],
+            audio: {
+              enabled: true,
+              models: [
+                {
+                  provider: "custom-stt",
+                  model: "speech-1",
+                  type: "provider",
+                  capabilities: ["audio"],
+                },
+              ],
+            },
+            video: { enabled: true },
+          },
+        },
+      };
+
+      const result = mergeAudioConfig(config, generateAudioConfig(true, "groq"));
+      expect(result.tools).toEqual({
+        media: {
+          audio: {
+            enabled: true,
+            maxBytes: 25 * 1024 * 1024,
+            timeoutSeconds: 300,
+            scope: { default: "allow" },
+          },
+          models: [
+            { provider: "openai", model: "gpt-4o", capabilities: ["image"] },
+            {
+              provider: "custom-stt",
+              model: "speech-1",
+              type: "provider",
+              capabilities: ["audio"],
+            },
+            {
+              provider: "groq",
+              model: "whisper-large-v3-turbo",
+              type: "provider",
+              capabilities: ["audio"],
+            },
+          ],
+          video: { enabled: true },
         },
       });
     });

@@ -2,10 +2,31 @@ import { describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { applySnapshot, types } from "mobx-state-tree";
+import { readVendorChannelAllowFrom } from "@rivonclaw/gateway";
 import { ChannelManagerModel, RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID } from "./channel-manager.js";
 import { WEIXIN_CHANNEL_ID } from "./weixin-account-dedupe.js";
 import { getVendorDir, setVendorDir } from "../gateway/vendor-dir-ref.js";
+
+function createSharedPairingDatabase(stateDir: string): void {
+  const databaseDir = join(stateDir, "state");
+  mkdirSync(databaseDir, { recursive: true });
+  const database = new DatabaseSync(join(databaseDir, "openclaw.sqlite"));
+  database.exec(`
+    CREATE TABLE channel_pairing_allow_entries (
+      channel_key TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      entry TEXT NOT NULL,
+      sort_order INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (channel_key, account_id, entry)
+    ) STRICT;
+    CREATE INDEX idx_channel_pairing_allow_account
+      ON channel_pairing_allow_entries(channel_key, account_id, sort_order, entry);
+  `);
+  database.close();
+}
 
 const TestRootModel = types
   .model("TestRoot", {
@@ -623,6 +644,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     process.env.OPENCLAW_STATE_DIR = stateDir;
     try {
       const configPath = join(stateDir, "openclaw.json");
+      createSharedPairingDatabase(stateDir);
       writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
       const accounts = [{
         channelId: "feishu",
@@ -674,10 +696,8 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       expect(result).toEqual({ inserted: true, membershipChanged: true });
       expect(ensureExists).toHaveBeenCalledWith("feishu", "ou_seen", false);
-      expect(JSON.parse(readFileSync(join(stateDir, "credentials", "feishu-default-allowFrom.json"), "utf-8"))).toEqual({
-        version: 1,
-        allowFrom: ["ou_seen"],
-      });
+      expect(readVendorChannelAllowFrom(stateDir, "feishu", "default")).toEqual(["ou_seen"]);
+      expect(existsSync(join(stateDir, "credentials", "feishu-default-allowFrom.json"))).toBe(false);
       const recipients = root.channelAccounts[0].recipients as { allowlist: string[]; owners: Record<string, boolean> };
       expect(recipients.allowlist).toEqual(["ou_seen"]);
       expect(recipients.owners).toEqual({ ou_seen: false });
@@ -916,6 +936,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
     try {
       const configPath = join(stateDir, "openclaw.json");
+      createSharedPairingDatabase(stateDir);
       writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
 
       const accounts: Array<{
@@ -1039,8 +1060,8 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(config.channels.feishu.groupPolicy).toBeUndefined();
       expect(config.channels.feishu.groupAllowFrom).toBeUndefined();
 
-      const allowFromFile = JSON.parse(readFileSync(join(stateDir, "credentials", `feishu-${accountId}-allowFrom.json`), "utf-8"));
-      expect(allowFromFile.allowFrom).toEqual(["ou_creator"]);
+      expect(readVendorChannelAllowFrom(stateDir, "feishu", accountId)).toEqual(["ou_creator"]);
+      expect(existsSync(join(stateDir, "credentials", `feishu-${accountId}-allowFrom.json`))).toBe(false);
 
       const recipients = root.channelAccounts.find((account) => account.channelId === "feishu" && account.accountId === accountId)
         ?.recipients as { allowlist: string[]; labels: Record<string, string>; owners: Record<string, boolean> };
@@ -1067,6 +1088,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
     try {
       const configPath = join(stateDir, "openclaw.json");
+      createSharedPairingDatabase(stateDir);
       writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
 
       const accounts: Array<{

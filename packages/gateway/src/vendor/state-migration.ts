@@ -12,6 +12,10 @@ import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { createLogger } from "@rivonclaw/logger";
+import {
+  addVendorChannelAllowFromEntry,
+  readVendorChannelAllowFrom,
+} from "./channel-pairing-state.js";
 
 const log = createLogger("gateway:vendor-state-migration");
 
@@ -67,6 +71,20 @@ type VendorMigrationMessages = {
   warnings: string[];
 };
 
+type VendorAuthProfileMigrationResult = {
+  detected: string[];
+  changes: string[];
+  warnings: string[];
+};
+
+type VendorAuthProfileMigrationRuntime = {
+  maybeMigrateAuthProfileJsonStoresToSqlite: (options: {
+    cfg: Record<string, unknown>;
+    env: NodeJS.ProcessEnv;
+    prompter: { confirmAutoFix: () => Promise<boolean> };
+  }) => Promise<VendorAuthProfileMigrationResult>;
+};
+
 type AgentDatabaseTarget = {
   agentId: string;
   databasePath: string;
@@ -82,9 +100,9 @@ type OpenClawConfig = {
   channels?: Record<string, OpenClawChannelConfig>;
 };
 
-export interface RestoredFeishuAllowFromFile {
+export interface RestoredFeishuPairingState {
   accountId: string;
-  path: string;
+  markerPath: string;
   recipientIds: string[];
 }
 
@@ -98,6 +116,7 @@ const LEGACY_DEVICE_IDENTITY_CLAIM_SUFFIXES = [
 const LEGACY_DEVICE_IDENTITY_MIGRATION_KIND = "legacy-device-identity-json";
 const FEISHU_CHANNEL_ID = "feishu";
 const FEISHU_OPEN_ID_PATTERN = /^ou_[A-Za-z0-9_-]+$/;
+const FEISHU_RECIPIENT_RECOVERY_VERSION = 1;
 
 function safePairingKey(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -202,8 +221,50 @@ function listActiveFeishuAccountIds(configPath: string): Set<string> {
   return accountIds;
 }
 
-function collectFeishuDirectRecipients(stateDir: string): Map<string, Set<string>> {
+function resolveFeishuRecipientRecoveryMarkerPath(stateDir: string, accountId: string): string {
+  return join(
+    stateDir,
+    "rivonclaw",
+    "migrations",
+    `feishu-${accountId}-recipient-recovery-v${FEISHU_RECIPIENT_RECOVERY_VERSION}.json`,
+  );
+}
+
+function writeFeishuRecipientRecoveryMarker(
+  stateDir: string,
+  accountId: string,
+  importedCount: number,
+): string {
+  const markerPath = resolveFeishuRecipientRecoveryMarkerPath(stateDir, accountId);
+  mkdirSync(dirname(markerPath), { recursive: true });
+  const temporaryPath = `${markerPath}.tmp-${process.pid}`;
+  writeFileSync(
+    temporaryPath,
+    `${JSON.stringify(
+      {
+        version: FEISHU_RECIPIENT_RECOVERY_VERSION,
+        accountId,
+        importedCount,
+        completedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    )}\n`,
+    "utf-8",
+  );
+  renameSync(temporaryPath, markerPath);
+  return markerPath;
+}
+
+function collectFeishuDirectRecipients(
+  stateDir: string,
+  accountIds: ReadonlySet<string>,
+): Map<string, Set<string>> {
   const recipientsByAccount = new Map<string, Set<string>>();
+  if (accountIds.size === 0) return recipientsByAccount;
+
+  const requestedAccountIds = [...accountIds];
+  const accountPlaceholders = requestedAccountIds.map(() => "?").join(", ");
 
   for (const { databasePath } of listAgentDatabaseTargets(stateDir)) {
     if (!existsSync(databasePath)) continue;
@@ -218,9 +279,11 @@ function collectFeishuDirectRecipients(stateDir: string): Map<string, Set<string
         .prepare(
           `SELECT DISTINCT account_id, peer_id, delivery_target
            FROM conversations
-           WHERE channel = ? AND kind = 'direct'`,
+           WHERE channel = ?
+             AND account_id IN (${accountPlaceholders})
+             AND kind = 'direct'`,
         )
-        .all(FEISHU_CHANNEL_ID) as Array<{
+        .all(FEISHU_CHANNEL_ID, ...requestedAccountIds) as Array<{
         account_id: unknown;
         peer_id: unknown;
         delivery_target: unknown;
@@ -251,16 +314,17 @@ function collectFeishuDirectRecipients(stateDir: string): Map<string, Set<string
 }
 
 /**
- * Recover a missing account-scoped Feishu recipient file from OpenClaw's
- * canonical conversation rows. Existing files remain authoritative, including
- * an intentionally empty allowlist, so removed recipients never return.
- * Older Desktop state only retained channel-wide metadata, which cannot safely
- * be merged when multiple Feishu bots are configured.
+ * Recover missing account-scoped Feishu recipients from canonical conversation
+ * rows into OpenClaw's shared SQLite pairing state. Never recreate legacy
+ * `*-allowFrom.json` files: current OpenClaw migrates and removes those files at
+ * startup, which changes the migration fingerprint and forces a second Gateway
+ * launch. A RivonClaw-owned marker makes an intentionally empty result durable
+ * so removed recipients are not rediscovered on every startup.
  */
-export function restoreFeishuAllowFromFromAgentDatabases(
+export function restoreFeishuPairingStateFromAgentDatabases(
   stateDir: string,
   configPath: string,
-): RestoredFeishuAllowFromFile[] {
+): RestoredFeishuPairingState[] {
   if (!existsSync(configPath)) return [];
 
   let activeAccountIds: Set<string>;
@@ -274,31 +338,40 @@ export function restoreFeishuAllowFromFromAgentDatabases(
   }
   if (activeAccountIds.size === 0) return [];
 
-  const credentialsDir = join(stateDir, "credentials");
-  const recipientsByAccount = collectFeishuDirectRecipients(stateDir);
-  const restored: RestoredFeishuAllowFromFile[] = [];
-
-  for (const [accountId, discoveredRecipients] of recipientsByAccount) {
-    if (!activeAccountIds.has(accountId) || discoveredRecipients.size === 0) continue;
-
-    const path = join(
-      credentialsDir,
-      `${FEISHU_CHANNEL_ID}-${accountId}${LEGACY_ALLOW_FROM_SUFFIX}`,
-    );
-    if (existsSync(path)) continue;
-
-    const recipientIds = [...discoveredRecipients].sort();
-
-    mkdirSync(credentialsDir, { recursive: true });
-    const temporaryPath = `${path}.tmp-${process.pid}`;
-    writeFileSync(
-      temporaryPath,
-      `${JSON.stringify({ version: 1, allowFrom: recipientIds }, null, 2)}\n`,
-      "utf-8",
-    );
-    renameSync(temporaryPath, path);
-    restored.push({ accountId, path, recipientIds });
+  const unmarkedAccountIds = new Set(
+    [...activeAccountIds].filter(
+      (accountId) => !existsSync(resolveFeishuRecipientRecoveryMarkerPath(stateDir, accountId)),
+    ),
+  );
+  const missingAccountIds = new Set<string>();
+  for (const accountId of unmarkedAccountIds) {
+    const existing = readVendorChannelAllowFrom(stateDir, FEISHU_CHANNEL_ID, accountId);
+    if (existing.length > 0) {
+      writeFeishuRecipientRecoveryMarker(stateDir, accountId, 0);
+    } else {
+      missingAccountIds.add(accountId);
+    }
   }
+  if (missingAccountIds.size === 0) return [];
+
+  const startedAt = Date.now();
+  const recipientsByAccount = collectFeishuDirectRecipients(stateDir, missingAccountIds);
+  const restored: RestoredFeishuPairingState[] = [];
+
+  for (const accountId of missingAccountIds) {
+    const recipientIds = [...(recipientsByAccount.get(accountId) ?? [])].sort();
+    for (const recipientId of recipientIds) {
+      addVendorChannelAllowFromEntry(stateDir, FEISHU_CHANNEL_ID, accountId, recipientId);
+    }
+    const markerPath = writeFeishuRecipientRecoveryMarker(stateDir, accountId, recipientIds.length);
+    if (recipientIds.length > 0) {
+      restored.push({ accountId, markerPath, recipientIds });
+    }
+  }
+
+  log.info(
+    `Feishu recipient recovery checked ${missingAccountIds.size} unmigrated account(s) in ${Date.now() - startedAt}ms`,
+  );
 
   return restored;
 }
@@ -323,6 +396,79 @@ function listAgentDatabaseTargets(stateDir: string): AgentDatabaseTarget[] {
       agentId: entry.name,
       databasePath: join(agentsDir, entry.name, "agent", "openclaw-agent.sqlite"),
     }));
+}
+
+function listRetiredAuthProfileFiles(stateDir: string): string[] {
+  const paths: string[] = [];
+  const agentsDir = join(stateDir, "agents");
+  if (existsSync(agentsDir)) {
+    for (const entry of readdirSync(agentsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const agentDir = join(agentsDir, entry.name, "agent");
+      for (const name of ["auth-profiles.json", "auth-state.json", "auth.json"]) {
+        const path = join(agentDir, name);
+        if (existsSync(path)) paths.push(path);
+      }
+    }
+  }
+  const oauthPath = join(stateDir, "credentials", "oauth.json");
+  if (existsSync(oauthPath)) paths.push(oauthPath);
+  return paths;
+}
+
+async function loadVendorAuthProfileMigrationRuntime(
+  vendorDir: string,
+): Promise<VendorAuthProfileMigrationRuntime> {
+  const distDir = join(vendorDir, "dist");
+  const candidates = readdirSync(distDir)
+    .filter((name) => /^doctor-auth-flat-profiles-.*\.js$/u.test(name))
+    .filter((name) =>
+      readFileSync(join(distDir, name), "utf-8").includes(
+        "export { maybeMigrateAuthProfileJsonStoresToSqlite",
+      ),
+    );
+
+  for (const name of candidates) {
+    const runtime = (await import(
+      pathToFileURL(join(distDir, name)).href
+    )) as Partial<VendorAuthProfileMigrationRuntime>;
+    if (typeof runtime.maybeMigrateAuthProfileJsonStoresToSqlite === "function") {
+      return runtime as VendorAuthProfileMigrationRuntime;
+    }
+  }
+
+  throw new Error(
+    `OpenClaw auth-profile migration entry point was not found in ${distDir}; ` +
+      "refresh the RivonClaw vendor migration adapter for this OpenClaw build",
+  );
+}
+
+/** Run OpenClaw's narrow, verified auth-profile migration without invoking full Doctor. */
+export async function migrateVendorAuthProfilesBeforeGateway(options: {
+  configPath: string;
+  stateDir: string;
+  vendorDir: string;
+}): Promise<VendorAuthProfileMigrationResult | undefined> {
+  const detected = listRetiredAuthProfileFiles(options.stateDir);
+  if (detected.length === 0) return undefined;
+
+  const cfg = JSON.parse(readFileSync(options.configPath, "utf-8")) as Record<string, unknown>;
+  const runtime = await loadVendorAuthProfileMigrationRuntime(options.vendorDir);
+  const result = await runtime.maybeMigrateAuthProfileJsonStoresToSqlite({
+    cfg,
+    env: { ...process.env, OPENCLAW_STATE_DIR: options.stateDir },
+    prompter: { confirmAutoFix: async () => true },
+  });
+
+  for (const message of result.changes) log.info(message);
+  for (const message of result.warnings) log.warn(message);
+  const remaining = listRetiredAuthProfileFiles(options.stateDir);
+  if (remaining.length > 0) {
+    log.warn(
+      `OpenClaw left ${remaining.length} retired auth profile source(s) for recovery: ${remaining.join(", ")}`,
+    );
+  }
+  return result;
 }
 
 function pendingLegacyDeviceIdentityPaths(stateDir: string): string[] {
@@ -551,7 +697,23 @@ export async function migrateVendorStateBeforeGateway(
   }
 
   if (options.configPath) {
-    const restored = restoreFeishuAllowFromFromAgentDatabases(options.stateDir, options.configPath);
+    try {
+      await migrateVendorAuthProfilesBeforeGateway({
+        configPath: options.configPath,
+        stateDir: options.stateDir,
+        vendorDir: options.vendorDir,
+      });
+    } catch (error) {
+      // Retired JSON is recovery input, not the canonical runtime store. Keep
+      // startup available if a future vendor changes its private Doctor chunk;
+      // the explicit warning makes the adapter drift actionable on upgrade.
+      log.warn(`OpenClaw auth profile migration could not complete: ${String(error)}`);
+    }
+
+    const restored = restoreFeishuPairingStateFromAgentDatabases(
+      options.stateDir,
+      options.configPath,
+    );
     if (restored.length > 0) {
       const summary = restored
         .map(({ accountId, recipientIds }) => `${accountId}=${recipientIds.length}`)

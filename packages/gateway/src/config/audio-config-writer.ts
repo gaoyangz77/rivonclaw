@@ -3,25 +3,26 @@ import { DEFAULTS, type SttProvider as SttProviderType } from "@rivonclaw/core";
 
 const log = createLogger("gateway:audio-config");
 
-/**
- * OpenClaw audio understanding model configuration.
- * Maps to tools.media.audio.models in openclaw.json.
- */
 interface AudioModelConfig {
   provider?: string;
   model?: string;
   type: "provider" | "cli";
   command?: string;
   args?: string[];
-  capabilities?: ["audio"];
+  capabilities: ["audio"];
   language?: string;
+}
+
+interface GeneratedAudioConfig {
+  audio: Record<string, unknown>;
+  models: AudioModelConfig[];
 }
 
 /**
  * Generate OpenClaw audio understanding configuration based on RivonClaw STT settings.
  *
- * This function creates the `tools.media.audio` configuration that tells OpenClaw
- * how to transcribe voice messages.
+ * OpenClaw keeps shared media models at `tools.media.models`; the
+ * `tools.media.audio` object contains only audio policy and limits.
  *
  * @param enabled - Whether STT is enabled
  * @param provider - STT provider (groq or volcengine)
@@ -37,7 +38,7 @@ export function generateAudioConfig(
     /** Absolute path to the Volcengine STT CLI script. */
     sttCliPath?: string;
   },
-): Record<string, unknown> | null {
+): GeneratedAudioConfig | null {
   if (!enabled) {
     return null;
   }
@@ -61,6 +62,7 @@ export function generateAudioConfig(
         type: "cli",
         command: options.nodeBin,
         args: [options.sttCliPath, "{{MediaPath}}"],
+        capabilities: ["audio"],
       });
     } else {
       log.warn("Volcengine STT requires nodeBin and sttCliPath; skipping audio config");
@@ -73,14 +75,38 @@ export function generateAudioConfig(
   }
 
   return {
-    enabled: true,
     models,
-    maxBytes: DEFAULTS.gatewayConfig.audioMaxBytes,
-    timeoutSeconds: DEFAULTS.gatewayConfig.audioTimeoutSeconds,
-    scope: {
-      default: "allow",
+    audio: {
+      enabled: true,
+      maxBytes: DEFAULTS.gatewayConfig.audioMaxBytes,
+      timeoutSeconds: DEFAULTS.gatewayConfig.audioTimeoutSeconds,
+      scope: {
+        default: "allow",
+      },
     },
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isManagedAudioModel(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (
+    value.provider === "groq" &&
+    value.model === "whisper-large-v3-turbo" &&
+    value.type === "provider"
+  ) {
+    return true;
+  }
+  return (
+    value.type === "cli" &&
+    Array.isArray(value.args) &&
+    value.args.some(
+      (arg) => typeof arg === "string" && /(?:^|[/\\])volcengine-stt-cli\.mjs$/u.test(arg),
+    )
+  );
 }
 
 /**
@@ -94,26 +120,28 @@ export function generateAudioConfig(
  */
 export function mergeAudioConfig(
   config: Record<string, unknown>,
-  audioConfig: Record<string, unknown> | null,
+  audioConfig: GeneratedAudioConfig | null,
 ): Record<string, unknown> {
+  const tools = isRecord(config.tools) ? config.tools : {};
+  const media = isRecord(tools.media) ? tools.media : {};
+  const currentAudio = isRecord(media.audio) ? media.audio : undefined;
+  const legacyNestedModels = Array.isArray(currentAudio?.models) ? currentAudio.models : [];
+  const currentModels = Array.isArray(media.models) ? media.models : [];
+  const preservedModels = [...currentModels, ...legacyNestedModels].filter(
+    (model) => !isManagedAudioModel(model),
+  );
+
   if (!audioConfig) {
-    // If audio is disabled, remove the config
-    const tools = config.tools as Record<string, unknown> | undefined;
-    if (tools) {
-      const media = tools.media as Record<string, unknown> | undefined;
-      if (media) {
-        delete media.audio;
-      }
-    }
+    delete media.audio;
+    if (preservedModels.length > 0) media.models = preservedModels;
+    else delete media.models;
+    tools.media = media;
+    config.tools = tools;
     return config;
   }
 
-  // Ensure tools.media.audio path exists
-  const tools = (config.tools as Record<string, unknown>) ?? {};
-  const media = (tools.media as Record<string, unknown>) ?? {};
-
-  // Set audio config
-  media.audio = audioConfig;
+  media.audio = audioConfig.audio;
+  media.models = [...preservedModels, ...audioConfig.models];
   tools.media = media;
   config.tools = tools;
 
