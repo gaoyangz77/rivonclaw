@@ -15,7 +15,7 @@ describe("vendor patch 0019: worker-backed OpenClaw image tool", () => {
   const patch = readFileSync(PATCH_FILE, "utf-8");
 
   it("keeps the official image tool surface instead of introducing a replacement tool", () => {
-    expect(patch).toContain("RivonClaw needs to keep the official image tool name");
+    expect(patch).toContain("export function createImageTool");
     expect(patch).toContain("runImagePromptWithWorkerFallback");
     expect(patch).not.toContain("rivonclaw-image-worker");
   });
@@ -31,5 +31,4 @@ describe("vendor patch 0019: worker-backed OpenClaw image tool", () => {
     expect(patch).toContain('vi.stubEnv("OPENCLAW_IMAGE_TOOL_CHILD_PROCESS", "1")');
     expect(patch).toContain("expect(childRunner).toHaveBeenCalledTimes(1)");
   });
-
 });

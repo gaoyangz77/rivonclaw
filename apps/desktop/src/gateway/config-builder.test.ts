@@ -246,6 +246,12 @@ describe("gateway config builder", () => {
 
     const config = await builder.buildFullGatewayConfig(18789);
     expect(config.imageGenerationModel).toBeUndefined();
+    const cloudToolsEntry = config.plugins?.entries?.["rivonclaw-cloud-tools"] as
+      | { hooks?: { allowConversationAccess?: boolean } }
+      | undefined;
+    expect(cloudToolsEntry?.hooks).toEqual({
+      allowConversationAccess: true,
+    });
     expect(config.extraProviders?.["rivonclaw-pro"]?.models).toContainEqual({
       id: "gpt-image-2",
       name: "GPT Image 2",

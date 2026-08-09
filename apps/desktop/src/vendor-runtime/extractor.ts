@@ -43,6 +43,8 @@ const REQUIRED_RUNTIME_FILES = [
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
   "extensions/openclaw-lark/openclaw.plugin.json",
+  "dist-runtime/extensions/groq/openclaw.plugin.json",
+  "dist-runtime/extensions/groq/dist/index.js",
 ];
 
 function missingRuntimeFiles(runtimeDir: string): string[] {
@@ -60,9 +62,7 @@ function missingRuntimeFiles(runtimeDir: string): string[] {
  */
 export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   const manifestPath = join(archiveDir, "vendor-runtime-manifest.json");
-  const manifest: VendorRuntimeManifest = JSON.parse(
-    readFileSync(manifestPath, "utf-8"),
-  );
+  const manifest: VendorRuntimeManifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
   const runtimeBaseDir = join(app.getPath("userData"), "runtime");
   const targetDir = join(runtimeBaseDir, manifest.version, "openclaw");
@@ -72,9 +72,7 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   if (existsSync(entryPath)) {
     const missingFiles = missingRuntimeFiles(targetDir);
     if (missingFiles.length === 0) {
-      console.log(
-        `[vendor-runtime] Already extracted (version ${manifest.version}), skipping.`,
-      );
+      console.log(`[vendor-runtime] Already extracted (version ${manifest.version}), skipping.`);
       cleanupStaleVersions(runtimeBaseDir, manifest.version);
       return targetDir;
     }
@@ -89,23 +87,16 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   // Extract
   const archivePath = join(archiveDir, manifest.archiveFile);
   if (!existsSync(archivePath)) {
-    throw new Error(
-      `[vendor-runtime] Archive not found: ${archivePath}`,
-    );
+    throw new Error(`[vendor-runtime] Archive not found: ${archivePath}`);
   }
 
-  console.log(
-    `[vendor-runtime] Extracting vendor runtime (version ${manifest.version})...`,
-  );
+  console.log(`[vendor-runtime] Extracting vendor runtime (version ${manifest.version})...`);
   const startMs = Date.now();
 
   // Extract to a temp directory first, then atomically rename to the final path.
   // This prevents a half-extracted directory from being used if the app crashes
   // or is killed mid-extraction.
-  const tempDir = join(
-    runtimeBaseDir,
-    `.extracting-${manifest.version}-${Date.now()}`,
-  );
+  const tempDir = join(runtimeBaseDir, `.extracting-${manifest.version}-${Date.now()}`);
 
   try {
     mkdirSync(tempDir, { recursive: true });
@@ -136,11 +127,7 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
   }
 
   const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
-  const archiveSizeMB = (
-    statSync(archivePath).size /
-    1024 /
-    1024
-  ).toFixed(1);
+  const archiveSizeMB = (statSync(archivePath).size / 1024 / 1024).toFixed(1);
   console.log(
     `[vendor-runtime] Extracted ${archiveSizeMB}MB archive in ${elapsedSec}s to ${targetDir}`,
   );
@@ -154,10 +141,7 @@ export async function ensureVendorRuntime(archiveDir: string): Promise<string> {
  * Removes stale version directories and incomplete .extracting-* temp dirs
  * from the runtime base directory.
  */
-function cleanupStaleVersions(
-  runtimeBaseDir: string,
-  currentVersion: string,
-): void {
+function cleanupStaleVersions(runtimeBaseDir: string, currentVersion: string): void {
   if (!existsSync(runtimeBaseDir)) return;
 
   let entries;
@@ -171,9 +155,7 @@ function cleanupStaleVersions(
     // Clean up incomplete extractions
     if (entry.name.startsWith(".extracting-")) {
       const fullPath = join(runtimeBaseDir, entry.name);
-      console.log(
-        `[vendor-runtime] Cleaning up stale temp dir: ${entry.name}`,
-      );
+      console.log(`[vendor-runtime] Cleaning up stale temp dir: ${entry.name}`);
       rmSync(fullPath, { recursive: true, force: true });
       continue;
     }
@@ -181,9 +163,7 @@ function cleanupStaleVersions(
     // Clean up old version directories
     if (entry.isDirectory() && entry.name !== currentVersion) {
       const fullPath = join(runtimeBaseDir, entry.name);
-      console.log(
-        `[vendor-runtime] Cleaning up old version: ${entry.name}`,
-      );
+      console.log(`[vendor-runtime] Cleaning up old version: ${entry.name}`);
       rmSync(fullPath, { recursive: true, force: true });
     }
   }

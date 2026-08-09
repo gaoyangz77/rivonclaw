@@ -369,6 +369,105 @@ describe("chat-utils system event cleanup", () => {
       }),
     ]);
   });
+
+  it("hides heartbeat poll tools and acknowledgement from history", () => {
+    const result = parseRawMessages([
+      {
+        role: "user",
+        content: [{ type: "text", text: "[OpenClaw heartbeat poll]" }],
+        provenance: { kind: "internal_system", sourceTool: "heartbeat" },
+        timestamp: 1,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", name: "read", input: { path: "HEARTBEAT.md" } }],
+        timestamp: 2,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "HEARTBEAT_OK" }],
+        timestamp: 3,
+      },
+      {
+        role: "user",
+        content: [{ type: "text", text: "normal request" }],
+        timestamp: 4,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", name: "search", input: { query: "orders" } }],
+        timestamp: 5,
+      },
+    ]);
+
+    expect(result).toEqual([
+      expect.objectContaining({ role: "user", text: "normal request" }),
+      expect.objectContaining({ role: "tool-event", toolName: "search" }),
+    ]);
+  });
+
+  it("hides heartbeat tools when the gateway omits all heartbeat markers from history", () => {
+    const result = parseRawMessages([
+      {
+        role: "assistant",
+        content: [
+          { type: "toolCall", name: "read", arguments: { path: "HEARTBEAT.md" } },
+          {
+            type: "toolCall",
+            name: "read",
+            arguments: { path: "memory/2026-08-09.md" },
+          },
+        ],
+        timestamp: 1,
+      },
+    ]);
+
+    expect(result).toEqual([]);
+  });
+
+  it("keeps completed non-heartbeat tool calls", () => {
+    const result = parseRawMessages([
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", name: "search", arguments: { query: "orders" } }],
+        timestamp: 1,
+      },
+      {
+        role: "toolResult",
+        content: [{ type: "text", text: "result" }],
+        timestamp: 2,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "I found the order." }],
+        timestamp: 3,
+      },
+    ]);
+
+    expect(result).toEqual([
+      expect.objectContaining({ role: "tool-event", toolName: "search" }),
+      expect.objectContaining({ role: "assistant", text: "I found the order." }),
+    ]);
+  });
+
+  it("keeps substantive heartbeat alerts while removing the acknowledgement token", () => {
+    const alert = "A".repeat(301);
+    const result = parseRawMessages([
+      {
+        role: "user",
+        content: [{ type: "text", text: "[OpenClaw heartbeat poll]" }],
+        provenance: { kind: "internal_system", sourceTool: "heartbeat" },
+        timestamp: 1,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: `HEARTBEAT_OK ${alert}` }],
+        timestamp: 2,
+      },
+    ]);
+
+    expect(result).toEqual([expect.objectContaining({ role: "assistant", text: alert })]);
+  });
 });
 
 describe("localizeError", () => {

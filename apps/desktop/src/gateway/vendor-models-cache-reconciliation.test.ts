@@ -50,11 +50,18 @@ describe("OpenClaw managed-provider models.json reconciliation", () => {
     expect(merger).toContain("mergedProviders[key] = { ...newEntry, ...preserved }");
   });
 
-  it("treats startup reconciliation failures as non-fatal", () => {
+  it("publishes configured model runtime before chat metadata and channels", () => {
     const startup = readFileSync(GATEWAY_STARTUP_FILE, "utf8");
 
-    expect(startup).toContain("void publishStartupModelRuntime(");
-    expect(startup).toContain("deferred model runtime prewarm failed: ${String(err)}");
-    expect(startup).toContain("prewarmTimer.unref?.()");
+    expect(startup).toContain('catalogMode: "static"');
+    expect(startup).toContain("await publication(params)");
+
+    const modelRuntimeIndex = startup.indexOf('"sidecars.model-runtime"');
+    const chatMetadataIndex = startup.indexOf('"sidecars.chat-metadata"');
+    const channelsIndex = startup.indexOf('"sidecars.channels"');
+
+    expect(modelRuntimeIndex).toBeGreaterThanOrEqual(0);
+    expect(chatMetadataIndex).toBeGreaterThan(modelRuntimeIndex);
+    expect(channelsIndex).toBeGreaterThan(chatMetadataIndex);
   });
 });

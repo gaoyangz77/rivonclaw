@@ -14,7 +14,7 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-08.2";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-09.4";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = [
   "copilot",
@@ -26,6 +26,7 @@ const DISABLED_VENDOR_EXTENSIONS = [
   "memory-lancedb",
   "mxc",
 ];
+const PRESERVED_DIST_RUNTIME_EXTENSIONS = new Set(["groq"]);
 
 function hasCompletedProductionInstall() {
   try {
@@ -309,9 +310,22 @@ function removeDisabledVendorExtensions() {
   }
 }
 
+function removeReplacedVendorExtensionSources() {
+  const extensionDir = path.join(vendorDir, "extensions", "groq");
+  if (!fs.existsSync(extensionDir)) return;
+  const size = dirSize(extensionDir);
+  fs.rmSync(extensionDir, { recursive: true, force: true });
+  console.log(
+    `  removed source-only Groq extension replaced by staged runtime ` +
+      `(${(size / 1024 / 1024).toFixed(1)}MB)`,
+  );
+}
+
 function hasRequiredOfficialVendorPlugins() {
   return [
     path.join(vendorDir, "extensions", "openclaw-lark", "openclaw.plugin.json"),
+    path.join(vendorDir, "dist-runtime", "extensions", "groq", "openclaw.plugin.json"),
+    path.join(vendorDir, "dist-runtime", "extensions", "groq", "dist", "index.js"),
     path.join(nmDir, "@larksuiteoapi", "node-sdk", "package.json"),
     path.join(nmDir, "openclaw", "package.json"),
   ].every((requiredPath) => fs.existsSync(requiredPath));
@@ -644,7 +658,13 @@ function removeOrphanedDistRuntimeWrappers() {
     : new Set();
 
   for (const entry of fs.readdirSync(distRuntimeExtDir, { withFileTypes: true })) {
-    if (!entry.isDirectory() || distEntries.has(entry.name)) continue;
+    if (
+      !entry.isDirectory() ||
+      distEntries.has(entry.name) ||
+      PRESERVED_DIST_RUNTIME_EXTENSIONS.has(entry.name)
+    ) {
+      continue;
+    }
 
     const full = path.join(distRuntimeExtDir, entry.name);
     const size = dirSize(full);
@@ -688,12 +708,15 @@ console.log(
 
 console.log("[prune-vendor-deps] Phase 1: pnpm install --prod ...");
 try {
-  execSync("pnpm install --prod --no-frozen-lockfile --ignore-scripts", {
-    cwd: vendorDir,
-    stdio: "inherit",
-    timeout: 120_000,
-    env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
-  });
+  execSync(
+    "pnpm --config.manage-package-manager-versions=false --config.auto-install-peers=false install --prod --no-frozen-lockfile --ignore-scripts",
+    {
+      cwd: vendorDir,
+      stdio: "inherit",
+      timeout: 120_000,
+      env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
+    },
+  );
 } catch (err) {
   if (err?.code === "ETIMEDOUT" && hasCompletedProductionInstall()) {
     console.warn(
@@ -733,6 +756,7 @@ for (const prefix of EXTRA_REMOVE_PREFIXES) {
   }
 }
 removeDisabledVendorExtensions();
+removeReplacedVendorExtensionSources();
 
 const sizeP2 = dirSize(nmDir);
 console.log(

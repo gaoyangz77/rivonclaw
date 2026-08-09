@@ -51,6 +51,10 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+if [[ "$TARGET_DIR" != /* ]]; then
+  TARGET_DIR="$REPO_ROOT/$TARGET_DIR"
+fi
+
 echo "==> Preparing patched vendor workspace"
 echo "    repo:   $REPO_ROOT"
 echo "    vendor: $VENDOR_DIR"

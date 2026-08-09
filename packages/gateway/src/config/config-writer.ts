@@ -2082,9 +2082,10 @@ export function ensureGatewayConfig(options?: {
   const configPath = options?.configPath ?? resolveOpenClawConfigPath();
 
   if (!existsSync(configPath)) {
+    const gatewayPort = options?.gatewayPort ?? DEFAULT_GATEWAY_PORT;
     return writeGatewayConfig({
       configPath,
-      gatewayPort: options?.gatewayPort ?? DEFAULT_GATEWAY_PORT,
+      gatewayPort: gatewayPort > 0 ? gatewayPort : undefined,
       gatewayToken: generateGatewayToken(),
       enableChatCompletions: true,
       commandsRestart: true,

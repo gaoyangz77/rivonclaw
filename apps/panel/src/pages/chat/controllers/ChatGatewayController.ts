@@ -551,10 +551,12 @@ export class ChatGatewayController {
             runId?: string;
             stream?: string;
             sessionKey?: string;
+            isHeartbeat?: boolean;
             data?: Record<string, unknown>;
           }
         | undefined;
       if (!agentPayload) return;
+      if (agentPayload.isHeartbeat) return;
       const isBackground = agentPayload.sessionKey && agentPayload.sessionKey !== activeKey;
 
       if (isBackground) {

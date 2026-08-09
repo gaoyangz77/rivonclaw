@@ -1,75 +1,60 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { assertOpenClawChannelRegistryValid } from "../../../../extensions/rivonclaw-capability-manager/src/channel-registry-diagnostics.js";
 
-const vendorDist = resolve(__dirname, "../../../../vendor/openclaw/dist");
-const runtimeEntry = readdirSync(vendorDist)
-  .filter((name) => /^runtime-.*\.js$/.test(name))
-  .find((name) =>
-    readFileSync(resolve(vendorDist, name), "utf8").includes(
-      "export { collectLivePluginRegistries, getActivePluginChannelRegistry",
-    ),
-  );
-if (!runtimeEntry) throw new Error("Unable to locate built OpenClaw plugin runtime entry");
-const {
-  getActivePluginChannelRegistry,
-  pinActivePluginChannelRegistry,
-  resetPluginRuntimeStateForTest,
-  setActivePluginRegistry,
-} = await import(pathToFileURL(resolve(vendorDist, runtimeEntry)).href);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const RUNTIME_CHANNEL_STATE_FILE = resolve(
+  __dirname,
+  "../../../../vendor/openclaw/src/plugins/runtime-channel-state.ts",
+);
+const PLUGIN_REGISTRY_STATE = Symbol.for("openclaw.pluginRegistryState");
 
 function createRegistry(channelIds: string[], withOutbound = false) {
   return {
-    plugins: [],
-    diagnostics: [],
-    gatewayHandlers: {},
-    gatewayMethods: [],
-    httpRoutes: [],
     channels: channelIds.map((id) => ({
       pluginId: id,
-      origin: "bundled",
       plugin: {
         id,
-        meta: {},
         ...(withOutbound ? { outbound: { sendText: async () => ({ messageId: "sent" }) } } : {}),
       },
     })),
-    sessionExtensions: [],
-    runtimeLifecycles: [],
-    agentEventSubscriptions: [],
-    sessionSchedulerJobs: [],
   };
 }
 
-describe("OpenClaw channel registry pinning", () => {
+function setActiveRegistry(registry: ReturnType<typeof createRegistry>): void {
+  Object.assign(globalThis, {
+    [PLUGIN_REGISTRY_STATE]: {
+      activeRegistry: registry,
+      activeVersion: 1,
+    },
+  });
+}
+
+describe("OpenClaw channel registry ownership", () => {
   afterEach(() => {
-    resetPluginRuntimeStateForTest();
+    delete (globalThis as Record<symbol, unknown>)[PLUGIN_REGISTRY_STATE];
   });
 
-  it("keeps outbound channel adapters pinned across later non-channel registry loads", async () => {
-    const startupRegistry = createRegistry(["telegram", "feishu"], true);
-    const toolDiscoveryRegistry = createRegistry(["telegram", "feishu"], false);
+  it("uses the process-root active registry without the retired pinning scaffold", () => {
+    const source = readFileSync(RUNTIME_CHANNEL_STATE_FILE, "utf8");
 
-    setActivePluginRegistry(startupRegistry as never, "startup");
-    pinActivePluginChannelRegistry(startupRegistry as never);
+    expect(source).toContain("state?.activeRegistry ?? null");
+    expect(source).not.toContain("state?.channel?.registry");
+    expect(source).not.toContain("pinActivePluginChannelRegistry");
+  });
 
-    setActivePluginRegistry(toolDiscoveryRegistry as never, "tool-discovery");
+  it("keeps RivonClaw outbound diagnostics compatible with the active registry", () => {
+    setActiveRegistry(createRegistry(["telegram", "feishu"], true));
 
-    expect(getActivePluginChannelRegistry()).toBe(startupRegistry);
     expect(() => assertOpenClawChannelRegistryValid(["telegram"])).not.toThrow();
   });
 
-  it("fails loudly if a channel shell is incorrectly pinned over the outbound registry", async () => {
-    const startupRegistry = createRegistry(["telegram", "feishu"], true);
-    const toolDiscoveryRegistry = createRegistry(["telegram", "feishu"], false);
+  it("fails loudly when the active registry loses a required outbound adapter", () => {
+    setActiveRegistry(createRegistry(["telegram", "feishu"], false));
 
-    setActivePluginRegistry(startupRegistry as never, "startup");
-    pinActivePluginChannelRegistry(startupRegistry as never);
-    pinActivePluginChannelRegistry(toolDiscoveryRegistry as never);
-
-    expect(getActivePluginChannelRegistry()).toBe(toolDiscoveryRegistry);
     expect(() => assertOpenClawChannelRegistryValid(["telegram"])).toThrow(
       /telegram:REQUIRED_CHANNEL_MISSING_OUTBOUND/,
     );

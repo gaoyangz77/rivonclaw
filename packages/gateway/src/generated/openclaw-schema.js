@@ -1057,6 +1057,14 @@ var SecretRefSchema = z4.discriminatedUnion("source", [
   ExecSecretRefSchema,
 ]);
 var SecretInputSchema = z4.union([z4.string(), SecretRefSchema]);
+var SsrFPolicyConfigSchema = z4
+  .object({
+    dangerouslyAllowPrivateNetwork: z4.boolean().optional(),
+    allowRfc2544BenchmarkRange: z4.boolean().optional(),
+    allowIpv6UniqueLocalRange: z4.boolean().optional(),
+    allowedHostnames: z4.array(z4.string()).optional(),
+  })
+  .strict();
 var SecretsEnvProviderSchema = z4
   .object({
     source: z4.literal("env"),
@@ -2223,15 +2231,13 @@ var ToolsWebFetchSchema = z5
     cacheTtlMinutes: z5.number().nonnegative().optional(),
     maxRedirects: z5.number().int().nonnegative().optional(),
     userAgent: z5.string().optional(),
+    // Values are registered sensitive so exposed config redacts them. Names are
+    // validated at request time rather than here, because a fail-closed config
+    // error over one header typo would disable the whole surface.
+    headers: z5.record(z5.string(), z5.string().register(sensitive)).optional(),
     readability: z5.boolean().optional(),
     useTrustedEnvProxy: z5.boolean().optional(),
-    ssrfPolicy: z5
-      .object({
-        allowRfc2544BenchmarkRange: z5.boolean().optional(),
-        allowIpv6UniqueLocalRange: z5.boolean().optional(),
-      })
-      .strict()
-      .optional(),
+    ssrfPolicy: SsrFPolicyConfigSchema.optional(),
   })
   .strict()
   .optional();
@@ -3822,6 +3828,8 @@ var PluginEntrySchema = z15.strictObject({
     .strictObject({
       allowModelOverride: z15.boolean().optional(),
       allowedModels: z15.array(z15.string()).optional(),
+      allowedCompletionModels: z15.array(z15.string()).optional(),
+      allowAuthProfileOverride: z15.boolean().optional(),
       allowAgentIdOverride: z15.boolean().optional(),
     })
     .optional(),
@@ -4478,6 +4486,10 @@ var ProxyConfigSchema = z18
   .optional();
 
 // vendor/openclaw/src/config/zod-schema.root-shape.ts
+var MetricNamePrefixSchema = z19
+  .string()
+  .max(128)
+  .regex(/^(?:[A-Za-z][A-Za-z0-9_./-]*)?$/);
 var OpenClawSchemaShape = {
   $schema: z19.string().optional(),
   meta: z19
@@ -4526,9 +4538,10 @@ var OpenClawSchemaShape = {
           tracesEndpoint: z19.string().optional(),
           metricsEndpoint: z19.string().optional(),
           logsEndpoint: z19.string().optional(),
-          protocol: z19.union([z19.literal("http/protobuf"), z19.literal("grpc")]).optional(),
+          protocol: z19.literal("http/protobuf").optional(),
           headers: z19.record(z19.string(), z19.string()).optional(),
           serviceName: z19.string().optional(),
+          metricNamePrefix: MetricNamePrefixSchema.optional(),
           traces: z19.boolean().optional(),
           metrics: z19.boolean().optional(),
           logs: z19.boolean().optional(),
@@ -4554,6 +4567,7 @@ var OpenClawSchemaShape = {
       audit: z19
         .strictObject({
           enabled: z19.boolean().optional(),
+          executionIdentity: z19.boolean().optional(),
           messages: z19
             .union([z19.literal("off"), z19.literal("direct"), z19.literal("all")])
             .optional(),
@@ -4591,12 +4605,7 @@ var OpenClawSchemaShape = {
       attachOnly: z19.boolean().optional(),
       defaultProfile: z19.string().optional(),
       snapshotDefaults: BrowserSnapshotDefaultsSchema,
-      ssrfPolicy: z19
-        .strictObject({
-          dangerouslyAllowPrivateNetwork: z19.boolean().optional(),
-          allowedHostnames: z19.array(z19.string()).optional(),
-        })
-        .optional(),
+      ssrfPolicy: SsrFPolicyConfigSchema.optional(),
       profiles: z19
         .record(
           z19
@@ -4644,6 +4653,11 @@ var OpenClawSchemaShape = {
       tabCleanup: z19
         .strictObject({
           enabled: z19.boolean().optional(),
+        })
+        .optional(),
+      extensionRelay: z19
+        .strictObject({
+          allowLegacyAuth: z19.boolean().optional(),
         })
         .optional(),
     })
@@ -4766,6 +4780,7 @@ var OpenClawSchemaShape = {
         })
         .optional(),
       webhookToken: SecretInputSchema.optional().register(sensitive),
+      webhookSsrfPolicy: SsrFPolicyConfigSchema.optional(),
       sessionRetention: z19.union([z19.string(), z19.literal(false)]).optional(),
       failureAlert: z19
         .strictObject({

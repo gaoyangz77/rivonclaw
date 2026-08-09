@@ -421,6 +421,8 @@ const EXEC_EVENT_RE = /^An async command you ran earlier has completed/;
 const HEARTBEAT_PROMPT_RE = /^(?:Current time:|HEARTBEAT_OK$)/;
 const SYSTEM_MSG_RE = /^\[System Message\]/;
 const SILENT_ASSISTANT_REPLY_RE = /^\s*NO_REPLY\s*$/;
+const HEARTBEAT_TOKEN = "HEARTBEAT_OK";
+const HEARTBEAT_ACK_MAX_CHARS = 300;
 export function isSystemEventMessage(text: string): boolean {
   // Strip optional inline timestamp prefix before matching.
   const trimmed = text
@@ -686,6 +688,105 @@ function hasToolCallBlocks(content: unknown): boolean {
   );
 }
 
+function isHeartbeatMaintenanceToolMessage(content: unknown): boolean {
+  if (!Array.isArray(content) || extractText(content).trim()) return false;
+  const toolCalls = content.filter(
+    (block): block is Record<string, unknown> =>
+      Boolean(block) && typeof block === "object" && isToolCallBlock(block),
+  );
+  if (toolCalls.length === 0) return false;
+  return (
+    toolCalls.every((block) => extractToolCallName(block) === "read") &&
+    toolCalls.some((block) => {
+      const args = extractToolArgs(block);
+      const path = typeof args?.path === "string" ? args.path : "";
+      return /(?:^|\/)HEARTBEAT\.md$/.test(path);
+    })
+  );
+}
+
+function stripHeartbeatTokenForDisplay(raw: string): {
+  didStrip: boolean;
+  shouldSkip: boolean;
+  text: string;
+} {
+  let text = raw.trim();
+  if (!text) return { didStrip: false, shouldSkip: false, text: "" };
+
+  const strippedMarkup = text
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/^[*`~_]+/, "")
+    .replace(/[*`~_]+$/, "");
+  if (!text.includes(HEARTBEAT_TOKEN) && !strippedMarkup.includes(HEARTBEAT_TOKEN)) {
+    return { didStrip: false, shouldSkip: false, text };
+  }
+
+  const tokenAtEnd = new RegExp(`${HEARTBEAT_TOKEN}[^\\w]{0,4}$`);
+  let changed = true;
+  let didStrip = false;
+  text = strippedMarkup.trim();
+  while (changed) {
+    changed = false;
+    const next = text.trim();
+    if (next.startsWith(HEARTBEAT_TOKEN)) {
+      text = next.slice(HEARTBEAT_TOKEN.length).trimStart();
+      didStrip = true;
+      changed = true;
+      continue;
+    }
+    if (tokenAtEnd.test(next)) {
+      const index = next.lastIndexOf(HEARTBEAT_TOKEN);
+      const before = next.slice(0, index).trimEnd();
+      const after = next.slice(index + HEARTBEAT_TOKEN.length).trimStart();
+      text = before ? `${before}${after}`.trimEnd() : "";
+      didStrip = true;
+      changed = true;
+    }
+  }
+
+  return {
+    didStrip,
+    shouldSkip: didStrip && (!text || text.length <= HEARTBEAT_ACK_MAX_CHARS),
+    text,
+  };
+}
+
+function isHeartbeatPollMessage(message: { provenance?: unknown }, text: string): boolean {
+  if (text.trim() === "[OpenClaw heartbeat poll]") return true;
+  if (!message.provenance || typeof message.provenance !== "object") return false;
+  const provenance = message.provenance as { kind?: string; sourceTool?: string };
+  return provenance.kind === "internal_system" && provenance.sourceTool === "heartbeat";
+}
+
+function findHeartbeatToolMessageIndexes(
+  raw: Array<{ role?: string; content?: unknown }>,
+): Set<number> {
+  const indexes = new Set<number>();
+  for (let index = 0; index < raw.length; index++) {
+    const message = raw[index];
+    if (message.role !== "assistant") continue;
+    const heartbeat = stripHeartbeatTokenForDisplay(extractText(message.content));
+    if (!heartbeat.didStrip) continue;
+
+    for (let previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
+      const previous = raw[previousIndex];
+      const normalizedRole = previous.role?.toLowerCase().replace(/[_-]/g, "");
+      if (normalizedRole === "toolresult") continue;
+      if (
+        previous.role === "assistant" &&
+        !extractText(previous.content).trim() &&
+        hasToolCallBlocks(previous.content)
+      ) {
+        indexes.add(previousIndex);
+        continue;
+      }
+      break;
+    }
+  }
+  return indexes;
+}
+
 /**
  * Parse raw gateway messages into ChatMessage[].
  * Always extracts tool call blocks as inline "tool-event" entries;
@@ -703,12 +804,29 @@ export function parseRawMessages(
 ): ChatMessage[] {
   if (!raw) return [];
   const parsed: ChatMessage[] = [];
-  for (const msg of raw) {
+  const heartbeatToolMessageIndexes = findHeartbeatToolMessageIndexes(raw);
+  let heartbeatTurn = false;
+  for (const [messageIndex, msg] of raw.entries()) {
     if (msg.role === "user" || msg.role === "assistant") {
       // Extract text + images first, then tool call names.
       // Text is generated BEFORE tool calls in the LLM turn,
       // so the text bubble should appear above tool-event markers.
-      const text = extractText(msg.content);
+      const rawText = extractText(msg.content);
+      const heartbeatMaintenanceTooling =
+        msg.role === "assistant" && isHeartbeatMaintenanceToolMessage(msg.content);
+      if (msg.role === "user") {
+        heartbeatTurn = isHeartbeatPollMessage(msg, rawText);
+        if (heartbeatTurn) continue;
+      }
+      const heartbeatDisplay =
+        msg.role === "assistant"
+          ? stripHeartbeatTokenForDisplay(rawText)
+          : { didStrip: false, shouldSkip: false, text: rawText };
+      const text = heartbeatDisplay.didStrip
+        ? heartbeatDisplay.shouldSkip
+          ? ""
+          : heartbeatDisplay.text
+        : rawText;
       const images = [
         ...extractImages(msg.content),
         ...(msg.role === "assistant" ? extractMediaDirectiveImages(text) : []),
@@ -800,7 +918,13 @@ export function parseRawMessages(
           timestamp: msg.timestamp ?? 0,
         });
       }
-      if (msg.role === "assistant" && Array.isArray(msg.content)) {
+      if (
+        msg.role === "assistant" &&
+        Array.isArray(msg.content) &&
+        !heartbeatTurn &&
+        !heartbeatMaintenanceTooling &&
+        !heartbeatToolMessageIndexes.has(messageIndex)
+      ) {
         for (const block of msg.content) {
           const b = block as Record<string, unknown>;
           const toolName = isToolCallBlock(b) ? extractToolCallName(b) : undefined;

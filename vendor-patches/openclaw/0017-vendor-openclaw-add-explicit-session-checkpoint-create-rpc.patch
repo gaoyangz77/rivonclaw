@@ -1,6 +1,6 @@
-From 537546282af2bff445aa09683488297f22fdd488 Mon Sep 17 00:00:00 2001
+From 105f0630e6c9792fec1c34d2252054d16d9cfce1 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
-Date: Sun, 5 Jul 2026 23:09:28 -0700
+Date: Sat, 8 Aug 2026 20:25:45 -0700
 Subject: [PATCH] vendor(openclaw): add explicit session checkpoint create rpc
 
 Why:
@@ -10,20 +10,20 @@ Removal:
 - Drop when upstream exposes a business-neutral session checkpoint creation RPC that accepts a caller-provided checkpoint id and can be restored by checkpoint id.
 
 Tests:
+- src/gateway/server.sessions.compaction.test.ts
 - apps/desktop/src/affiliate/affiliate-work-item.test.ts
 ---
  ...ocol-schema-fragment-sessions-lifecycle.ts |  2 +
- .../gateway-protocol/src/schema/sessions.ts   | 21 +++++++
- .../src/validator-registry.ts                 |  4 ++
+ .../gateway-protocol/src/schema/sessions.ts   | 15 +++++
+ .../src/validator-registry.ts                 |  3 +
  src/gateway/methods/core-descriptors.ts       |  1 +
- src/gateway/server-methods.ts                 |  1 +
- .../sessions-compaction-checkpoints.ts        | 62 ++++++++++++++++++-
+ .../sessions-compaction-checkpoints.ts        | 63 ++++++++++++++++++-
  .../server.sessions.compaction.test.ts        | 57 +++++++++++++++++
  src/gateway/session-compaction-checkpoints.ts | 61 ++++++++++++++++--
- 8 files changed, 203 insertions(+), 6 deletions(-)
+ 7 files changed, 196 insertions(+), 6 deletions(-)
 
 diff --git a/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts b/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts
-index d57660c63fe..e650c995991 100644
+index 4a32cea02b0..deec1dfe4e2 100644
 --- a/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts
 +++ b/packages/gateway-protocol/src/schema/protocol-schema-fragment-sessions-lifecycle.ts
 @@ -6,10 +6,12 @@ export const SessionLifecycleProtocolSchemas = {
@@ -40,43 +40,37 @@ index d57660c63fe..e650c995991 100644
    SessionsRewindResult: sessions.SessionsRewindResultSchema,
    SessionsForkParams: sessions.SessionsForkParamsSchema,
 diff --git a/packages/gateway-protocol/src/schema/sessions.ts b/packages/gateway-protocol/src/schema/sessions.ts
-index 8f8daac8a9f..32998649d1e 100644
+index f4d3c9cc93b..c55ae150bb7 100644
 --- a/packages/gateway-protocol/src/schema/sessions.ts
 +++ b/packages/gateway-protocol/src/schema/sessions.ts
-@@ -723,6 +723,15 @@ export const SessionsBranchesSwitchParamsSchema = closedObject({
+@@ -733,6 +733,12 @@ export const SessionsBranchesSwitchParamsSchema = closedObject({
  
  export const SessionsBranchesSwitchResultSchema = closedObject({});
  
-+export const SessionsCheckpointCreateParamsSchema = Type.Object(
-+  {
-+    key: NonEmptyString,
-+    checkpointId: NonEmptyString,
-+    summary: Type.Optional(Type.String()),
-+  },
-+  { additionalProperties: false },
-+);
++export const SessionsCheckpointCreateParamsSchema = closedObject({
++  key: NonEmptyString,
++  checkpointId: NonEmptyString,
++  summary: Type.Optional(Type.String()),
++});
 +
  /** List response for session compaction checkpoints. */
  export const SessionsCompactionListResultSchema = closedObject({
    ok: Type.Literal(true),
-@@ -768,6 +777,16 @@ export const SessionsCompactionRestoreResultSchema = closedObject({
+@@ -778,6 +784,13 @@ export const SessionsCompactionRestoreResultSchema = closedObject({
    ),
  });
  
-+export const SessionsCheckpointCreateResultSchema = Type.Object(
-+  {
-+    ok: Type.Literal(true),
-+    key: NonEmptyString,
-+    sessionId: NonEmptyString,
-+    checkpoint: SessionCompactionCheckpointSchema,
-+  },
-+  { additionalProperties: false },
-+);
++export const SessionsCheckpointCreateResultSchema = closedObject({
++  ok: Type.Literal(true),
++  key: NonEmptyString,
++  sessionId: NonEmptyString,
++  checkpoint: SessionCompactionCheckpointSchema,
++});
 +
  /** Usage report query across one session, one agent, or all agent sessions. */
  export const SessionsUsageParamsSchema = closedObject({
    /** Specific session key to analyze; if omitted returns sessions for the effective agent. */
-@@ -851,10 +870,12 @@ export type SessionsCompactionListParams = Static<typeof SessionsCompactionListP
+@@ -861,10 +874,12 @@ export type SessionsCompactionListParams = Static<typeof SessionsCompactionListP
  export type SessionsCompactionGetParams = Static<typeof SessionsCompactionGetParamsSchema>;
  export type SessionsCompactionBranchParams = Static<typeof SessionsCompactionBranchParamsSchema>;
  export type SessionsCompactionRestoreParams = Static<typeof SessionsCompactionRestoreParamsSchema>;
@@ -90,59 +84,38 @@ index 8f8daac8a9f..32998649d1e 100644
  export type SessionsForkParams = Static<typeof SessionsForkParamsSchema>;
  export type SessionsRewindResult = Static<typeof SessionsRewindResultSchema>;
 diff --git a/packages/gateway-protocol/src/validator-registry.ts b/packages/gateway-protocol/src/validator-registry.ts
-index b051bc5fa94..4ef9d437d27 100644
+index 52848b12123..153584d02e9 100644
 --- a/packages/gateway-protocol/src/validator-registry.ts
 +++ b/packages/gateway-protocol/src/validator-registry.ts
-@@ -149,6 +149,7 @@ import {
-   SessionsCompactionGetParamsSchema,
-   SessionsCompactionBranchParamsSchema,
-   SessionsCompactionRestoreParamsSchema,
-+  SessionsCheckpointCreateParamsSchema,
-   SessionsBranchesListParamsSchema,
-   SessionsBranchesSwitchParamsSchema,
-   SessionsRewindParamsSchema,
-@@ -526,6 +527,9 @@ export const validateSessionsCompactionBranchParams = lazyCompile(
- export const validateSessionsCompactionRestoreParams = lazyCompile(
-   SessionsCompactionRestoreParamsSchema,
+@@ -233,6 +233,9 @@ export const validateSessionsCompactionBranchParams = compile(
+ export const validateSessionsCompactionRestoreParams = compile(
+   S.SessionsCompactionRestoreParamsSchema,
  );
-+export const validateSessionsCheckpointCreateParams = lazyCompile(
-+  SessionsCheckpointCreateParamsSchema,
++export const validateSessionsCheckpointCreateParams = compile(
++  S.SessionsCheckpointCreateParamsSchema,
 +);
- export const validateSessionsBranchesListParams = lazyCompile(SessionsBranchesListParamsSchema);
- export const validateSessionsBranchesSwitchParams = lazyCompile(SessionsBranchesSwitchParamsSchema);
- export const validateSessionsRewindParams = lazyCompile(SessionsRewindParamsSchema);
+ export const validateSessionsBranchesListParams = compile(S.SessionsBranchesListParamsSchema);
+ export const validateSessionsBranchesSwitchParams = compile(S.SessionsBranchesSwitchParamsSchema);
+ export const validateSessionsRewindParams = compile(S.SessionsRewindParamsSchema);
 diff --git a/src/gateway/methods/core-descriptors.ts b/src/gateway/methods/core-descriptors.ts
-index 686e3009145..0dc8e8d10fb 100644
+index 9b7596ea860..874304a51de 100644
 --- a/src/gateway/methods/core-descriptors.ts
 +++ b/src/gateway/methods/core-descriptors.ts
-@@ -226,6 +226,7 @@ const CORE_GATEWAY_METHOD_SPECS: readonly CoreGatewayMethodSpec[] = [
-   { name: "sessions.compaction.get", scope: "operator.read", since: "<=2026.7" },
-   { name: "sessions.compaction.branch", scope: "operator.write", since: "<=2026.7" },
-   { name: "sessions.compaction.restore", scope: "operator.admin", since: "<=2026.7" },
-+  { name: "sessions.checkpoint.create", scope: "operator.admin", since: "2026.7" },
-   { name: "sessions.branches.list", scope: "operator.read", since: "<=2026.7" },
-   { name: "sessions.branches.switch", scope: "operator.admin", since: "<=2026.7" },
-   { name: "sessions.rewind", scope: "operator.admin", since: "<=2026.7" },
-diff --git a/src/gateway/server-methods.ts b/src/gateway/server-methods.ts
-index 629aeac031f..62383c46b69 100644
---- a/src/gateway/server-methods.ts
-+++ b/src/gateway/server-methods.ts
-@@ -750,6 +750,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
-       "sessions.create",
-       "sessions.compaction.branch",
-       "sessions.compaction.restore",
-+      "sessions.checkpoint.create",
-       "sessions.branches.list",
-       "sessions.branches.switch",
-       "sessions.rewind",
+@@ -235,6 +235,7 @@ const CORE_GATEWAY_METHOD_SPECS = [
+   ["sessions.compaction.get", "sessions-compaction-queries", "operator.read", "<=2026.7"],
+   ["sessions.compaction.branch", "sessions-compaction-checkpoints", "operator.write", "<=2026.7"],
+   ["sessions.compaction.restore", "sessions-compaction-checkpoints", "operator.admin", "<=2026.7"],
++  ["sessions.checkpoint.create", "sessions-compaction-checkpoints", "operator.admin", "2026.7"],
+   ["sessions.branches.list", "sessions-rewind", "operator.read", "<=2026.7"],
+   ["sessions.branches.switch", "sessions-rewind", "operator.admin", "<=2026.7"],
+   ["sessions.rewind", "sessions-rewind", "operator.admin", "<=2026.7"],
 diff --git a/src/gateway/server-methods/sessions-compaction-checkpoints.ts b/src/gateway/server-methods/sessions-compaction-checkpoints.ts
-index 77ac9ecae73..6ef0f36757b 100644
+index 9591d488191..3f4414a4945 100644
 --- a/src/gateway/server-methods/sessions-compaction-checkpoints.ts
 +++ b/src/gateway/server-methods/sessions-compaction-checkpoints.ts
-@@ -1,9 +1,11 @@
+@@ -1,9 +1,10 @@
 -// Compaction checkpoint branching and restore operations.
 +// Compaction checkpoint creation, branching, and restore operations.
-+import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
  import {
    ErrorCodes,
    errorShape,
@@ -152,15 +125,15 @@ index 77ac9ecae73..6ef0f36757b 100644
  } from "../../../packages/gateway-protocol/src/index.js";
  import { clearSessionQueues } from "../../auto-reply/reply/queue/cleanup.js";
  import { SESSION_LIFECYCLE_CHANGED_ERROR_REASON } from "../../config/sessions.js";
-@@ -15,6 +17,7 @@ import {
+@@ -15,6 +16,7 @@ import {
  import {
    createFileBackedCompactionCheckpointStore,
    getSessionCompactionCheckpoint,
 +  persistExplicitSessionCompactionCheckpoint,
  } from "../session-compaction-checkpoints.js";
- import {
-   buildDashboardSessionKey,
-@@ -37,6 +40,63 @@ const MODEL_SELECTION_LOCKED_CHECKPOINT_MESSAGE =
+ import { buildDashboardSessionKey } from "../session-create-service.js";
+ import { resolveRequestedSessionAgentId as resolveRequestedGlobalAgentId } from "../session-request-agent.js";
+@@ -35,6 +37,65 @@ const MODEL_SELECTION_LOCKED_CHECKPOINT_MESSAGE =
    "Checkpoint branch and restore are unavailable while model selection is locked.";
  
  export const sessionCheckpointHandlers: GatewayRequestHandlers = {
@@ -175,8 +148,7 @@ index 77ac9ecae73..6ef0f36757b 100644
 +    ) {
 +      return;
 +    }
-+    const p = params;
-+    const key = requireSessionKey(p.key, respond);
++    const key = requireSessionKey(params.key, respond);
 +    if (!key) {
 +      return;
 +    }
@@ -186,14 +158,17 @@ index 77ac9ecae73..6ef0f36757b 100644
 +      respond(false, undefined, requestedAgent.error);
 +      return;
 +    }
-+    const { entry, canonicalKey, storePath, target } =
-+      loadAccessorSessionEntryForGatewayTarget({
-+        key,
-+        cfg,
-+        agentId: requestedAgent.agentId,
-+      });
++    const { entry, canonicalKey, target, storePath } = loadAccessorSessionEntryForGatewayTarget({
++      key,
++      cfg,
++      agentId: requestedAgent.agentId,
++    });
 +    if (!entry?.sessionId) {
-+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, `session not found: ${key}`));
++      respond(
++        false,
++        undefined,
++        errorShape(ErrorCodes.INVALID_REQUEST, `session not found: ${key}`),
++      );
 +      return;
 +    }
 +    const checkpoint = await persistExplicitSessionCompactionCheckpoint({
@@ -202,8 +177,8 @@ index 77ac9ecae73..6ef0f36757b 100644
 +      sessionId: entry.sessionId,
 +      agentId: target.agentId,
 +      storePath,
-+      checkpointId: p.checkpointId,
-+      ...(normalizeOptionalString(p.summary) ? { summary: normalizeOptionalString(p.summary) } : {}),
++      checkpointId: params.checkpointId,
++      ...(params.summary?.trim() ? { summary: params.summary.trim() } : {}),
 +      ...(typeof entry.totalTokens === "number" ? { tokensBefore: entry.totalTokens } : {}),
 +    });
 +    if (!checkpoint) {
@@ -225,10 +200,10 @@ index 77ac9ecae73..6ef0f36757b 100644
      if (
        !assertValidParams(
 diff --git a/src/gateway/server.sessions.compaction.test.ts b/src/gateway/server.sessions.compaction.test.ts
-index c5c2ffd56ef..9df3be3304c 100644
+index d72495de519..a6f42bef9c0 100644
 --- a/src/gateway/server.sessions.compaction.test.ts
 +++ b/src/gateway/server.sessions.compaction.test.ts
-@@ -219,6 +219,63 @@ async function alignCheckpointBoundaryWithSqliteRows(params: {
+@@ -232,6 +232,63 @@ async function alignCheckpointBoundaryWithSqliteRows(params: {
    }));
  }
  
@@ -293,10 +268,10 @@ index c5c2ffd56ef..9df3be3304c 100644
    const { dir, storePath } = await createSessionStoreDir();
    const fixture = await createCheckpointFixture(dir, { legacyPreCompactionSnapshot: false });
 diff --git a/src/gateway/session-compaction-checkpoints.ts b/src/gateway/session-compaction-checkpoints.ts
-index 56f6b54e41c..39dddeba642 100644
+index b7c761ca6e3..8d5952fa167 100644
 --- a/src/gateway/session-compaction-checkpoints.ts
 +++ b/src/gateway/session-compaction-checkpoints.ts
-@@ -88,6 +88,9 @@ type PersistSessionCompactionCheckpointParams = {
+@@ -89,6 +89,9 @@ type PersistSessionCompactionCheckpointParams = {
    cfg: OpenClawConfig;
    sessionKey: string;
    sessionId: string;
@@ -306,7 +281,7 @@ index 56f6b54e41c..39dddeba642 100644
    reason: SessionCompactionCheckpointReason;
    snapshot: CapturedCompactionCheckpointSnapshot;
    summary?: string;
-@@ -710,13 +713,20 @@ async function persistSessionCompactionCheckpoint(
+@@ -712,13 +715,20 @@ async function persistSessionCompactionCheckpoint(
      return null;
    }
  
@@ -332,7 +307,7 @@ index 56f6b54e41c..39dddeba642 100644
      sessionKey: target.canonicalKey,
      sessionId: params.sessionId,
      createdAt,
-@@ -750,6 +760,7 @@ async function persistSessionCompactionCheckpoint(
+@@ -753,6 +763,7 @@ async function persistSessionCompactionCheckpoint(
    let stored = false;
    const updatedEntry = await updateSessionEntry(
      {
@@ -340,7 +315,7 @@ index 56f6b54e41c..39dddeba642 100644
        storePath: target.storePath,
        sessionKey: target.canonicalKey,
      },
-@@ -784,6 +795,46 @@ async function persistSessionCompactionCheckpoint(
+@@ -787,6 +798,46 @@ async function persistSessionCompactionCheckpoint(
    return checkpoint;
  }
  

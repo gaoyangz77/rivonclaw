@@ -13,7 +13,7 @@
  * 4. Broadcasts `plugin.rivonclaw.channel-inbound` for external channel user
  *    messages so they appear on the Chat Page in real time (not only after history sync).
  *    Uses a two-phase approach: `message_received` captures the message text,
- *    then `llm_input` resolves the sessionKey and broadcasts. `before_agent_start`
+ *    then `llm_input` resolves the sessionKey and broadcasts. `before_agent_run`
  *    is kept as a fallback for vendor hook ordering differences.
  */
 
@@ -90,7 +90,8 @@ export function parseCsEscalationResponseInteraction(
   if (
     context.channel !== "feishu" ||
     (interactionPayload !== "respond" && !interactionPayload?.startsWith("respond:"))
-  ) return null;
+  )
+    return null;
   const accountId = readBoundedString(context.accountId, 128);
   const callbackId = readBoundedString(context.callbackId, 512);
   const chatId = readBoundedString(context.conversationId, 256);
@@ -209,7 +210,7 @@ export function shouldMirrorExternalSession(sessionKey?: string): boolean {
 // reuse cached registries on gateway restart without calling setup again).
 const runSessionTracker = createRunSessionTracker();
 // Pending inbound messages from external channels, keyed by channelId.
-// Populated by `message_received`, consumed by `before_agent_start`.
+// Populated by `message_received`, consumed by `before_agent_run`.
 // Each channelId holds a FIFO queue because multiple conversations on
 // the same channel may overlap slightly.
 const pendingInboundMessages = new Map<string, PendingInbound[]>();
@@ -241,7 +242,9 @@ export default defineRivonClawPlugin({
       const sessionChannelId = resolveChannelIdFromSessionKey(sessionKey);
       const channelId = sessionChannelId ?? channelHint;
       if (!channelId) {
-        api.logger.warn(`[event-bridge] channel-inbound: cannot resolve channel for sessionKey=${sessionKey}`);
+        api.logger.warn(
+          `[event-bridge] channel-inbound: cannot resolve channel for sessionKey=${sessionKey}`,
+        );
         return false;
       }
       if (shouldSkipChannelInbound(channelId)) return false;
@@ -273,7 +276,13 @@ export default defineRivonClawPlugin({
     if (typeof api.registerGatewayMethod === "function") {
       api.registerGatewayMethod(
         "event_bridge_init",
-        ({ respond, context }: { respond: (ok: boolean) => void; context?: { broadcast: BroadcastFn } }) => {
+        ({
+          respond,
+          context,
+        }: {
+          respond: (ok: boolean) => void;
+          context?: { broadcast: BroadcastFn };
+        }) => {
           if (context?.broadcast) {
             gatewayBroadcast = context.broadcast;
             api.logger.info("Gateway broadcast captured");
@@ -338,10 +347,14 @@ export default defineRivonClawPlugin({
       (evt: { runId?: string }, ctx: { sessionKey?: string; channelId?: string }) => {
         if (evt.runId && ctx?.sessionKey) {
           runSessionTracker.set(evt.runId, ctx.sessionKey);
-          api.logger.info(`[event-bridge] llm_input mapped runId=${evt.runId} → sessionKey=${ctx.sessionKey}`);
+          api.logger.info(
+            `[event-bridge] llm_input mapped runId=${evt.runId} → sessionKey=${ctx.sessionKey}`,
+          );
           broadcastPendingInboundForSession(ctx.sessionKey, ctx.channelId, "llm_input");
         } else {
-          api.logger.warn(`[event-bridge] llm_input missing: runId=${evt.runId ?? "undefined"} sessionKey=${ctx?.sessionKey ?? "undefined"}`);
+          api.logger.warn(
+            `[event-bridge] llm_input missing: runId=${evt.runId ?? "undefined"} sessionKey=${ctx?.sessionKey ?? "undefined"}`,
+          );
         }
       },
     );
@@ -350,7 +363,7 @@ export default defineRivonClawPlugin({
     // The `message_received` hook fires for ALL channels when a user message
     // arrives, but its context only has { channelId, conversationId } — no
     // sessionKey. We store the message in a per-channelId FIFO queue so a later
-    // routing hook with sessionKey (`llm_input`, with `before_agent_start` as
+    // routing hook with sessionKey (`llm_input`, with `before_agent_run` as
     // fallback) can consume it and broadcast to the Chat Page.
     //
     // Skip list: channels whose messages are already broadcast to the Chat
@@ -404,10 +417,7 @@ export default defineRivonClawPlugin({
     // signal consumed only by Desktop's gateway event dispatcher.
     api.on(
       "message_received",
-      (
-        evt: { from?: string },
-        ctx: { channelId?: string; accountId?: string },
-      ) => {
+      (evt: { from?: string }, ctx: { channelId?: string; accountId?: string }) => {
         if (!gatewayBroadcast || !ctx?.channelId) return;
         if (ctx.channelId === "mobile" || ctx.channelId === "webchat") return;
         const recipientId = evt?.from;
@@ -428,13 +438,13 @@ export default defineRivonClawPlugin({
     // Fallback for vendor hook ordering differences. The primary path is
     // `llm_input`, which is known to include sessionKey in current OpenClaw.
     api.on(
-      "before_agent_start",
+      "before_agent_run",
       (
         _evt: { prompt?: string },
         ctx: { sessionKey?: string; channelId?: string; trigger?: string },
       ) => {
         if (!ctx?.sessionKey) return;
-        broadcastPendingInboundForSession(ctx.sessionKey, ctx.channelId, "before_agent_start");
+        broadcastPendingInboundForSession(ctx.sessionKey, ctx.channelId, "before_agent_run");
       },
     );
 
@@ -443,13 +453,10 @@ export default defineRivonClawPlugin({
     // across many runs. Cleanup must therefore be scoped to the ended runId;
     // deleting every mapping for the sessionKey can make later assistant
     // chunks from overlapping runs disappear from the Chat Page.
-    api.on(
-      "agent_end",
-      (evt: { runId?: string }) => {
-        if (!evt?.runId) return;
-        runSessionTracker.scheduleCleanup(evt.runId);
-      },
-    );
+    api.on("agent_end", (evt: { runId?: string }) => {
+      if (!evt?.runId) return;
+      runSessionTracker.scheduleCleanup(evt.runId);
+    });
 
     // ── Mirror suppressed agent events to Chat Page ─────────────────
     const unsubscribe = (api as any).runtime.events.onAgentEvent((evt: AgentEventPayload) => {
@@ -459,33 +466,44 @@ export default defineRivonClawPlugin({
       const mappedSessionKey = runSessionTracker.get(evt.runId);
       const sessionKey = mappedSessionKey ?? evt.sessionKey;
 
-      // If sessionKey is present for a non-external run, server-chat.ts is
-      // already broadcasting to the Control UI. External channel runs are the
-      // exception: OpenClaw may attach sessionKey to lifecycle terminal events
-      // while still suppressing Control UI broadcasts via isControlUiVisible.
-      // Mirror those too so the Chat Page can clear the streaming run state.
-      if (evt.sessionKey && !shouldMirrorExternalSession(sessionKey)) {
-        if (shouldLog) api.logger.debug?.(`[event-bridge] skip: vendor-broadcasted (stream=${evt.stream} runId=${evt.runId} seq=${evt.seq})`);
+      // The tracker is authoritative when OpenClaw omits sessionKey from agent
+      // events. Only external channel runs belong on this mirror; main/webchat
+      // runs are already handled by the native gateway event path.
+      if (sessionKey && !shouldMirrorExternalSession(sessionKey)) {
+        if (shouldLog)
+          api.logger.debug?.(
+            `[event-bridge] skip: non-external session (stream=${evt.stream} runId=${evt.runId} seq=${evt.seq})`,
+          );
         return;
       }
 
       if (!gatewayBroadcast) {
-        if (shouldLog) api.logger.warn(`[event-bridge] drop: no broadcast fn (stream=${evt.stream} runId=${evt.runId})`);
+        if (shouldLog)
+          api.logger.warn(
+            `[event-bridge] drop: no broadcast fn (stream=${evt.stream} runId=${evt.runId})`,
+          );
         return;
       }
 
       if (!sessionKey) {
-        if (shouldLog) api.logger.warn(`[event-bridge] drop: no sessionKey in map (stream=${evt.stream} runId=${evt.runId} mapSize=${runSessionTracker.size})`);
+        if (shouldLog)
+          api.logger.warn(
+            `[event-bridge] drop: no sessionKey in map (stream=${evt.stream} runId=${evt.runId} mapSize=${runSessionTracker.size})`,
+          );
         return;
       }
 
       // Only mirror streams the Chat Page cares about.
       if (evt.stream !== "assistant" && evt.stream !== "lifecycle" && evt.stream !== "tool") {
-        if (shouldLog) api.logger.info(`[event-bridge] skip: unneeded stream=${evt.stream} runId=${evt.runId}`);
+        if (shouldLog)
+          api.logger.info(`[event-bridge] skip: unneeded stream=${evt.stream} runId=${evt.runId}`);
         return;
       }
 
-      if (shouldLog) api.logger.info(`[event-bridge] mirror: stream=${evt.stream} runId=${evt.runId} seq=${evt.seq}`);
+      if (shouldLog)
+        api.logger.info(
+          `[event-bridge] mirror: stream=${evt.stream} runId=${evt.runId} seq=${evt.seq}`,
+        );
       gatewayBroadcast("plugin.rivonclaw.chat-mirror", {
         runId: evt.runId,
         sessionKey,

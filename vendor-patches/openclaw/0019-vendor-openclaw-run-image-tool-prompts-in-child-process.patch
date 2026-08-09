@@ -1,49 +1,35 @@
-From 0d755848281a94d13aa5512c497fd870338591ad Mon Sep 17 00:00:00 2001
+From 01c892f7700c6844a90da8212a0661247c0366a0 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
-Date: Wed, 8 Jul 2026 20:16:28 -0700
+Date: Sat, 8 Aug 2026 20:28:02 -0700
 Subject: [PATCH] vendor(openclaw): run image tool prompts in child process
 
 Why:
-
-- RivonClaw customer-service workloads can trigger OpenClaw's built-in image tool on large or multi-image buyer messages.
-
-- Running the image-model prompt path in the gateway process can block the event loop and saturate the main process CPU.
-
-- RivonClaw needs to keep the official image tool name and capability semantics while isolating the heavy image prompt execution path.
-
-- Worker startup and model runtime resolution must not consume the provider request timeout budget, otherwise cold workers reach the image model with only a few seconds remaining.
+- RivonClaw customer-service workloads can trigger the built-in image tool on large or multi-image buyer messages.
+- Running image-model prompting in the gateway process can block its event loop and saturate main-process CPU.
+- Worker startup and runtime resolution must not consume the provider timeout budget.
 
 Removal:
-
-- Drop when upstream OpenClaw runs image-tool media understanding outside the gateway event-loop process or exposes an equivalent worker-backed image tool execution option with provider-request timeout isolation.
+- Drop when upstream isolates image-tool media understanding outside the gateway event-loop process or exposes an equivalent worker-backed option.
 
 Tests:
-
-- vendor/openclaw/src/media-understanding/image.test.ts
-
-- vendor/openclaw/src/agents/tools/image-tool.test.ts
-
+- src/agents/tools/image-tool.test.ts
 - apps/desktop/src/cs-bridge/vendor-image-tool-worker.sentinel.test.ts
 ---
- src/agents/tools/image-tool-worker.ts |  38 +++++++
+ src/agents/tools/image-tool-worker.ts |  34 ++++++
  src/agents/tools/image-tool.test.ts   |  49 +++++++++
  src/agents/tools/image-tool.ts        | 147 +++++++++++++++++++++++++-
  tsdown.config.ts                      |   1 +
- 4 files changed, 230 insertions(+), 5 deletions(-)
+ 4 files changed, 226 insertions(+), 5 deletions(-)
  create mode 100644 src/agents/tools/image-tool-worker.ts
 
 diff --git a/src/agents/tools/image-tool-worker.ts b/src/agents/tools/image-tool-worker.ts
 new file mode 100644
-index 00000000000..f1e6a754b5e
+index 00000000000..5d8af64b06d
 --- /dev/null
 +++ b/src/agents/tools/image-tool-worker.ts
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,34 @@
 +import { formatErrorMessage } from "../../infra/errors.js";
-+import {
-+  runImagePrompt,
-+  type ImagePromptParams,
-+  type ImagePromptResult,
-+} from "./image-tool.js";
++import { runImagePrompt, type ImagePromptParams, type ImagePromptResult } from "./image-tool.js";
 +
 +type ImagePromptWorkerRequest = {
 +  type: "run-image-prompt";
@@ -340,17 +326,17 @@ index f203faf4a43..bf8e949b3ca 100644
          cfg: options?.config,
          agentId: options?.agentId,
 diff --git a/tsdown.config.ts b/tsdown.config.ts
-index d98234e9082..df309d124f9 100644
+index e6a5a1db3fe..191ea1f9599 100644
 --- a/tsdown.config.ts
 +++ b/tsdown.config.ts
-@@ -282,6 +282,7 @@ function buildCoreDistEntries(): Record<string, string> {
+@@ -289,6 +289,7 @@ function buildCoreDistEntries(): Record<string, string> {
      "agents/code-mode.worker": "src/agents/code-mode.worker.ts",
      "agents/compaction-planning.worker": "src/agents/compaction-planning.worker.ts",
      "agents/model-provider-auth.worker": "src/agents/model-provider-auth.worker.ts",
 +    "agents/tools/image-tool-worker": "src/agents/tools/image-tool-worker.ts",
      "audit/audit-event-writer.worker": "src/audit/audit-event-writer.worker.ts",
-     "config/sessions/session-transcript-reconcile.worker":
-       "src/config/sessions/session-transcript-reconcile.worker.ts",
+     "config/sessions/session-accessor.sqlite-archive.worker":
+       "src/config/sessions/session-accessor.sqlite-archive.worker.ts",
 -- 
 2.50.1 (Apple Git-155)
 
