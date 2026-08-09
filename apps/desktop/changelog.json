@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.92",
+    "date": "2026-08-08",
+    "en": [
+      "Restore Weixin compatibility after an OpenClaw SDK import change",
+      "Migrate configured workspace state for reliable gateway startup"
+    ],
+    "zh": [
+      "适配 OpenClaw SDK import 变更，恢复微信兼容性",
+      "迁移已配置 workspace 状态，提升 gateway 启动可靠性"
+    ]
+  },
+  {
     "version": "1.8.91",
     "date": "2026-08-08",
     "en": [
