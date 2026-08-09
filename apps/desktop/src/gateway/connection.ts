@@ -29,6 +29,7 @@ export function getCsBridge(): CustomerServiceBridge | null {
 
 let _csBridgeStarting = false;
 let _csBridgeLifecycleGeneration = 0;
+let _csBridgeSuspended = false;
 
 export function stopCsBridge(): void {
   _csBridgeLifecycleGeneration += 1;
@@ -37,6 +38,15 @@ export function stopCsBridge(): void {
     _csBridge.stop();
     _csBridge = null;
   }
+  _csBridgeSuspended = false;
+}
+
+export function suspendCsBridge(): void {
+  _csBridgeLifecycleGeneration += 1;
+  _csBridgeStarting = false;
+  if (!_csBridge) return;
+  _csBridgeSuspended = true;
+  _csBridge.suspendForGatewayDisconnect();
 }
 
 export function updateCsBridgeLocale(locale?: string): void {
@@ -48,7 +58,7 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
   if (!authSession) return;
 
   const attemptStart = () => {
-    if (_csBridge || _csBridgeStarting) return;
+    if (_csBridgeStarting) return;
     const generation = _csBridgeLifecycleGeneration;
     _csBridgeStarting = true;
 
@@ -64,6 +74,15 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
         if (!rpc) return;
         const user = authSession.getCachedUser();
         if (!user) return;
+
+        if (_csBridge) {
+          if (!_csBridgeSuspended) return;
+          await _csBridge.resumeAfterGatewayReconnect();
+          if (generation !== _csBridgeLifecycleGeneration || !_csBridge) return;
+          _csBridgeSuspended = false;
+          log.info("CS bridge resumed after Gateway RPC reconnect");
+          return;
+        }
 
         try {
           await ensureAgentToolingReady();
@@ -89,6 +108,7 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
           gatewayId,
           locale,
         });
+        _csBridgeSuspended = false;
         rootStore.llmManager.refreshModelCatalog().catch(() => {});
         _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
         log.info("CS bridge started (signed-in ecommerce workspace)");

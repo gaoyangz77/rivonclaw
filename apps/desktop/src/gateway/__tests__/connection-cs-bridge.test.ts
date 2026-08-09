@@ -13,6 +13,8 @@ const {
   const mockCsBridgeInstance = {
     start: vi.fn().mockResolvedValue(undefined),
     stop: vi.fn(),
+    suspendForGatewayDisconnect: vi.fn(),
+    resumeAfterGatewayReconnect: vi.fn().mockResolvedValue(undefined),
   };
 
   // Use function syntax so `new MockCustomerServiceBridge(...)` works as a constructor
@@ -78,7 +80,7 @@ vi.mock("../agent-tooling-readiness.js", () => ({
 
 // ─── Imports (after mocks) ───────────────────────────────────────────────────
 
-import { getCsBridge, tryStartCsBridge, stopCsBridge } from "../connection.js";
+import { getCsBridge, tryStartCsBridge, stopCsBridge, suspendCsBridge } from "../connection.js";
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
@@ -140,6 +142,29 @@ describe("connection.ts CS Bridge", () => {
     });
   });
 
+  describe("transient Gateway RPC disconnect", () => {
+    it("preserves the bridge instance and resumes it after reconnect", async () => {
+      tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
+      const bridge = getCsBridge();
+      mockCsBridgeInstance.stop.mockClear();
+
+      suspendCsBridge();
+
+      expect(mockCsBridgeInstance.suspendForGatewayDisconnect).toHaveBeenCalledTimes(1);
+      expect(mockCsBridgeInstance.stop).not.toHaveBeenCalled();
+      expect(getCsBridge()).toBe(bridge);
+
+      MockCustomerServiceBridge.mockClear();
+      tryStartCsBridge("device-1");
+      await flushCsBridgeStart();
+
+      expect(mockCsBridgeInstance.resumeAfterGatewayReconnect).toHaveBeenCalledTimes(1);
+      expect(MockCustomerServiceBridge).not.toHaveBeenCalled();
+      expect(getCsBridge()).toBe(bridge);
+    });
+  });
+
   describe("tryStartCsBridge", () => {
     it("does not create duplicate when bridge already exists", async () => {
       tryStartCsBridge("device-1");
@@ -187,9 +212,11 @@ describe("connection.ts CS Bridge", () => {
 
     it("waits for agent tooling readiness before creating bridge", async () => {
       let resolveReady!: () => void;
-      mockEnsureAgentToolingReady.mockReturnValueOnce(new Promise<void>((resolve) => {
-        resolveReady = resolve;
-      }));
+      mockEnsureAgentToolingReady.mockReturnValueOnce(
+        new Promise<void>((resolve) => {
+          resolveReady = resolve;
+        }),
+      );
 
       tryStartCsBridge("device-1");
       await Promise.resolve();
@@ -206,9 +233,11 @@ describe("connection.ts CS Bridge", () => {
 
     it("does not create bridge when stopped while waiting for agent tooling readiness", async () => {
       let resolveReady!: () => void;
-      mockEnsureAgentToolingReady.mockReturnValueOnce(new Promise<void>((resolve) => {
-        resolveReady = resolve;
-      }));
+      mockEnsureAgentToolingReady.mockReturnValueOnce(
+        new Promise<void>((resolve) => {
+          resolveReady = resolve;
+        }),
+      );
 
       tryStartCsBridge("device-1");
       await Promise.resolve();

@@ -98,7 +98,7 @@ import {
   resetAgentToolingReadiness,
 } from "../gateway/agent-tooling-readiness.js";
 import { runGatewayStartupCoordinator } from "../gateway/startup-coordinator.js";
-import { tryStartCsBridge, stopCsBridge } from "../gateway/connection.js";
+import { tryStartCsBridge, stopCsBridge, suspendCsBridge } from "../gateway/connection.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { flushCsSessionCursorStore } from "../cs-bridge/cs-session-cursor-store.js";
 import { ensureOpenClawCliShimInstalled } from "../cli/shim-installer.js";
@@ -2026,12 +2026,13 @@ app.whenReady().then(async () => {
   });
 
   // ── Register onRpcDisconnected callback ────────────────────────────────────
-  // Stop CS bridge when RPC disconnects (network blip, gateway crash, etc.)
-  // so it can be recreated on the next connect.
+  // Preserve accepted-run ownership across a transient RPC disconnect. The
+  // Gateway process may still be executing those runs and will resume event
+  // delivery when the Desktop socket reconnects.
   openClawConnector.onRpcDisconnected(() => {
     resetAgentToolingReadiness("gateway rpc disconnected");
     rootStore.llmManager.clearAppliedSessionModelState();
-    stopCsBridge();
+    suspendCsBridge();
   });
 
   await startupAuthSideEffectsPromise;
