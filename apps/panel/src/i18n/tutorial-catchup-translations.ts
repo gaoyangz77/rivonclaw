@@ -7,6 +7,40 @@
  */
 export const TUTORIAL_NEW_KEYS_EN = {
   tutorial: {
+    ecommerceAffiliateTeam: {
+      welcomeTitle: "Team and channels",
+      welcomeBody: "Define who owns each creator relationship and which WhatsApp or Outlook account they use, then keep creator protections and approval rules in one operational workspace.",
+      tabsTitle: "Three operating areas",
+      tabsBody: "Move between team operations, creator assignments, and safety approvals. The summaries show workload, protected creators, and setup readiness before you open a view.",
+      responsibilitiesTitle: "Owners and outreach channels",
+      responsibilitiesBody: "Review each business developer's creator workload, WhatsApp and Outlook account health, and AI assistance mode. Open a row to connect, transfer, or choose preferred sender accounts.",
+      assignmentsTitle: "Creator ownership protection",
+      assignmentsBody: "Import or maintain protected creators so existing human relationships are not reassigned accidentally. Resolve identities and assign a business developer before confirming the boundary.",
+      safetyTitle: "Approval safety",
+      safetyBody: "Set account-wide approval policies for affiliate actions. Message rules review the exact draft before it is delivered through a provider.",
+    },
+    ecommerceAffiliateCampaign: {
+      welcomeTitle: "Promotion plans",
+      welcomeBody: "Create and operate repeatable creator outreach plans for a product, with explicit targeting, daily limits, messaging, and lifecycle controls.",
+      summaryTitle: "Operating window and capacity",
+      summaryBody: "Check the market-local sending window, active plan count, combined daily outreach target, and agent-cost boundary before changing capacity.",
+      directoryTitle: "Plan portfolio",
+      directoryBody: "Filter and open promotion plans to inspect status, shop, daily target, selection boundary, and product. Empty portfolios provide the same entry point for the first plan.",
+      createTitle: "Create a promotion plan",
+      createBody: "Start here to define the shop and product, creator discovery rules, first message, and final activation settings.",
+      wizardTitle: "Four-stage setup",
+      wizardBody: "Complete shop and product context, targeting and selection boundaries, the first-touch message, then review authorization and activation. This tutorial opens a blank draft but will not save it.",
+    },
+    ecommerceAffiliateIntelligence: {
+      welcomeTitle: "Creator intelligence",
+      welcomeBody: "Evaluate whether the expected-sales model improves creator selection, and understand which account, region, or shop model is actually serving each decision.",
+      refreshTitle: "Refresh model evidence",
+      refreshBody: "Reload the latest availability and evaluation snapshot after training or production model changes.",
+      scopesTitle: "Choose an analysis scope",
+      scopesBody: "Start with the account model or choose an enabled shop. Each scope reports whether a trained model is ready, falling back, unavailable, or still missing data.",
+      analysisTitle: "Compare model and human decisions",
+      analysisBody: "Read same-budget expected-sales lift together with probability, uncertainty range, and data-foundation signals. Treat unavailable or weak evidence as a reason to wait, not as proof of improvement.",
+    },
     ecommerceCustomerService: {
       conversationsWelcomeTitle: "Conversation inbox",
       conversationsWelcomeBody: "Review buyer conversations across shops, search the inbox, and move between AI and human handling without leaving the workspace.",
@@ -154,6 +188,40 @@ export const TUTORIAL_CATCHUP_EN = {
 
 export const TUTORIAL_CATCHUP_ZH = {
   tutorial: {
+    ecommerceAffiliateTeam: {
+      welcomeTitle: "团队与渠道",
+      welcomeBody: "统一管理达人关系负责人及其 WhatsApp、Outlook 发送账号，并维护达人保护范围和审批规则。",
+      tabsTitle: "三个运营区域",
+      tabsBody: "在团队运营、达人分配和安全审批之间切换；摘要会先展示工作量、受保护达人数和设置状态。",
+      responsibilitiesTitle: "负责人和触达渠道",
+      responsibilitiesBody: "查看每位 BD 的达人工作量、WhatsApp 与 Outlook 账号健康及 AI 协作模式；打开一行可连接、转移或设置首选发送账号。",
+      assignmentsTitle: "达人归属保护",
+      assignmentsBody: "导入或维护受保护达人，避免已有人工关系被意外重新分配；确认边界前请解析达人身份并指定 BD。",
+      safetyTitle: "审批安全",
+      safetyBody: "设置联盟操作的账号级审批策略；消息规则会在服务商实际发送前审核完整草稿。",
+    },
+    ecommerceAffiliateCampaign: {
+      welcomeTitle: "推广计划",
+      welcomeBody: "围绕商品创建并运营可重复执行的达人触达计划，明确筛选策略、每日上限、消息内容和生命周期。",
+      summaryTitle: "运行窗口与容量",
+      summaryBody: "调整容量前，先确认市场本地发送窗口、运行中计划数、合计每日触达目标和 Agent 成本边界。",
+      directoryTitle: "计划组合",
+      directoryBody: "筛选并打开推广计划，查看状态、店铺、每日目标、筛选边界和商品；没有计划时也可从这里创建第一条。",
+      createTitle: "创建推广计划",
+      createBody: "从这里依次配置店铺与商品、达人发现规则、首条消息和最终启用设置。",
+      wizardTitle: "四阶段设置",
+      wizardBody: "完成店铺与商品上下文、筛选与选择边界、首次触达消息，再检查授权并启用。本教程只打开空白草稿，不会保存。",
+    },
+    ecommerceAffiliateIntelligence: {
+      welcomeTitle: "达人智能分析",
+      welcomeBody: "评估预期销量模型能否改善达人选择，并确认每次决策实际使用的是账号、区域还是店铺模型。",
+      refreshTitle: "刷新模型证据",
+      refreshBody: "模型训练或生产版本变化后，重新加载最新的可用性与评估快照。",
+      scopesTitle: "选择分析范围",
+      scopesBody: "可先查看账号模型，或选择已启用的店铺；每个范围都会显示模型已就绪、回退、不可用或仍缺少数据。",
+      analysisTitle: "比较模型与人工决策",
+      analysisBody: "结合相同预算下的预期销量提升、胜出概率、不确定区间和数据基础解读结果；证据不足时应等待，不应视为模型有效。",
+    },
     ecommerceCustomerService: {
       conversationsWelcomeTitle: "会话收件箱",
       conversationsWelcomeBody: "集中查看跨店铺买家会话、搜索收件箱，并在 AI 与人工处理之间切换。",
