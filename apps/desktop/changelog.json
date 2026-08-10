@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.96",
+    "date": "2026-08-10",
+    "en": [
+      "Improve customer-service session startup and affiliate task retry reliability"
+    ],
+    "zh": [
+      "提升客服会话启动与达人任务重试的可靠性"
+    ]
+  },
+  {
     "version": "1.8.95",
     "date": "2026-08-09",
     "en": [
