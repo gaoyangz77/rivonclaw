@@ -305,12 +305,12 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
 
   return (
     <div className="page-enter cs-performance-page">
-      <div className="ecommerce-page-header cs-performance-header">
+      <div className="ecommerce-page-header cs-performance-header" data-tutorial-id="cs-performance-header">
         <div>
           <h1>{t("ecommerce.customerServicePerformance.title")}</h1>
           <p className="ecommerce-page-subtitle">{t("ecommerce.customerServicePerformance.subtitle")}</p>
         </div>
-        <div className="cs-performance-tabs" role="tablist" aria-label={t("ecommerce.customerServicePerformance.tabs.label")}>
+        <div className="cs-performance-tabs" role="tablist" aria-label={t("ecommerce.customerServicePerformance.tabs.label")} data-tutorial-id="cs-performance-tabs">
           <button
             type="button"
             role="tab"
@@ -341,7 +341,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
         </div>
       </div>
 
-      <div className="section-card cs-performance-toolbar">
+      <div className="section-card cs-performance-toolbar" data-tutorial-id="cs-performance-filters">
         <label className="cs-performance-filter">
           <span>{t("ecommerce.customerServicePerformance.shopFilter")}</span>
           <Select
@@ -392,13 +392,13 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
 
       {activeTab === "unpaid" ? (
         <>
-          <div className="cs-performance-kpis">
+          <div className="cs-performance-kpis" data-tutorial-id="cs-performance-kpis">
             <MetricTile label="Eligible orders" value={formatCount(unpaidReport?.summary.eligible)} detail="Reached opportunity cohort" />
             <MetricTile label="Reached orders" value={formatCount(unpaidReport?.summary.reached)} detail={`${formatCount(unpaidReport?.summary.sentMessages)} messages sent`} />
             <MetricTile label="Associated paid orders" value={formatCount(unpaidReport?.summary.associatedPaidOrders)} detail={`${formatRate(unpaidReport?.summary.associatedConversionRate)} associated conversion`} />
             <MetricTile label="Associated units" value={formatCount(unpaidReport?.summary.associatedSalesUnits)} detail={(unpaidReport?.summary.associatedGmv ?? []).map((item: any) => formatMoney(item.amount, item.currency, i18n.language)).join(" · ") || "No associated GMV"} />
           </div>
-          <div className="section-card cs-unpaid-funnel">
+          <div className="section-card cs-unpaid-funnel" data-tutorial-id="cs-performance-unpaid-funnel">
             <h3>Eligible → Reached → Paid</h3>
             <div className="cs-unpaid-funnel-steps">
               {[["Eligible", unpaidReport?.summary.eligible], ["Reached", unpaidReport?.summary.reached], ["Paid", unpaidReport?.summary.associatedPaidOrders]].map(([label, value]) => <div key={String(label)}><strong>{formatCount(value as number)}</strong><span>{label}</span></div>)}
@@ -476,7 +476,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             />
           </div>
 
-          <div className="cs-performance-chart-grid">
+          <div className="cs-performance-chart-grid" data-tutorial-id="cs-performance-charts">
             <ChartPanel
               title={t("ecommerce.customerServicePerformance.charts.volume")}
               loading={loading}
@@ -559,7 +559,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
           </div>
         </>
       ) : (
-        <div className="cs-performance-chart-grid">
+        <div className="cs-performance-chart-grid" data-tutorial-id="cs-performance-charts">
           <ChartPanel
             title={t("ecommerce.customerServicePerformance.realtimeCharts.state")}
             loading={loading}
@@ -682,7 +682,7 @@ export const CustomerServicePerformancePage = observer(function CustomerServiceP
             </ResponsiveContainer>
           </ChartPanel>
 
-          <div className="section-card cs-performance-table-card">
+          <div className="section-card cs-performance-table-card" data-tutorial-id="cs-performance-daily-table">
             <div className="ecommerce-section-header cs-performance-table-header">
               <div>
                 <h3>{t("ecommerce.customerServicePerformance.dailyTable")}</h3>

@@ -11,7 +11,13 @@ import { accountSteps } from "./account.js"
 import { billingSteps } from "./billing.js"
 import { ecommerceSteps } from "./ecommerce.js"
 import { adsManagementSteps } from "./adsManagement.js"
-import { ecommerceCustomerServiceSteps } from "./ecommerceCustomerService.js"
+import {
+  customerServiceWorkspaceSteps,
+  customerServiceConversationsSteps,
+  customerServiceEscalationsSteps,
+  customerServicePerformanceSteps,
+  customerServiceExperimentsSteps,
+} from "./ecommerceCustomerService.js"
 import { ecommerceAffiliateSteps } from "./ecommerceAffiliate.js"
 import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js"
 import { inventoryManagementSteps } from "./inventoryManagement.js"
@@ -21,11 +27,11 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
   "/commerce/shops": ecommerceSteps,
   "/commerce/shop-analytics": shopAnalyticsSteps,
-  "/commerce/customer-service": ecommerceCustomerServiceSteps,
-  "/commerce/customer-service/conversations": ecommerceCustomerServiceSteps,
-  "/commerce/customer-service/escalations": ecommerceCustomerServiceSteps,
-  "/commerce/customer-service/performance": ecommerceCustomerServiceSteps,
-  "/commerce/customer-service/experiments": ecommerceCustomerServiceSteps,
+  "/commerce/customer-service": customerServiceWorkspaceSteps,
+  "/commerce/customer-service/conversations": customerServiceConversationsSteps,
+  "/commerce/customer-service/escalations": customerServiceEscalationsSteps,
+  "/commerce/customer-service/performance": customerServicePerformanceSteps,
+  "/commerce/customer-service/experiments": customerServiceExperimentsSteps,
   "/commerce/affiliate": ecommerceAffiliateSteps,
   "/commerce/affiliate/attention": ecommerceAffiliateSteps,
   "/commerce/affiliate/history": ecommerceAffiliateSteps,

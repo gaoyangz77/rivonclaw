@@ -150,7 +150,7 @@ export function ChatInputArea({
   }, [draft]);
 
   return (
-    <div className="chat-input-area">
+    <div className="chat-input-area" data-tutorial-id="chat-input">
       {pendingImages.length > 0 && (
         <div className="chat-image-preview-strip">
           {pendingImages.map((img, i) => (

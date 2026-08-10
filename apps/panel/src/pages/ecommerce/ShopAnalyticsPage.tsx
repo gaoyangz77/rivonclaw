@@ -250,7 +250,7 @@ function MarketSection({
   const yAxisDomain = buildSpsYAxisDomain(yAxisValues, unit);
 
   return (
-    <section className="sps-market-section">
+    <section className="sps-market-section" data-tutorial-id="analytics-market">
       <div className="sps-market-heading">
         <div>
           <span className="sps-market-code">{market.market}</span>
@@ -347,7 +347,7 @@ function MarketSection({
         )}
       </div>
 
-      <div className="sps-shop-grid">
+      <div className="sps-shop-grid" data-tutorial-id="analytics-shops">
         {market.shops.map((shop) => <ShopDiagnosisCard key={shop.shopId} shop={shop} />)}
       </div>
     </section>
@@ -419,7 +419,7 @@ export function ShopAnalyticsPage() {
 
   return (
     <div className="page-enter sps-analytics-page">
-      <header className="sps-hero">
+      <header className="sps-hero" data-tutorial-id="analytics-header">
         <div className="sps-hero-copy">
           <span className="sps-eyebrow">{t("shopAnalytics.eyebrow")}</span>
           <h1>{t("shopAnalytics.title")}</h1>
@@ -439,7 +439,7 @@ export function ShopAnalyticsPage() {
         </div>
       </header>
 
-      <div className="sps-metric-selector" role="radiogroup" aria-label={t("shopAnalytics.metricSelectorAria")}>
+      <div className="sps-metric-selector" role="radiogroup" aria-label={t("shopAnalytics.metricSelectorAria")} data-tutorial-id="analytics-metrics">
         <div className="sps-metric-selector-copy">
           <span>{t("shopAnalytics.diagnosisLens")}</span>
           <strong>{t(`shopAnalytics.metrics.${selectedMetric.code}`)}</strong>
@@ -461,7 +461,7 @@ export function ShopAnalyticsPage() {
         </div>
       </div>
 
-      <div className="sps-summary-grid">
+      <div className="sps-summary-grid" data-tutorial-id="analytics-summary">
         <div className="sps-summary-card">
           <span>{t("shopAnalytics.summary.markets")}</span>
           <strong>{report?.markets.length ?? "—"}</strong>
@@ -490,7 +490,7 @@ export function ShopAnalyticsPage() {
         </div>
       </div>
 
-      <div className="sps-data-note">
+      <div className="sps-data-note" data-tutorial-id="analytics-timeline">
         <strong>{t("shopAnalytics.timeline.title")}</strong>
         <p>{t("shopAnalytics.timeline.body")}</p>
       </div>

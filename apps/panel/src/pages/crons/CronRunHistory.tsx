@@ -76,7 +76,7 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
         </div>
       ) : (
         <>
-          <div className="table-scroll-wrap">
+          <div className="table-scroll-wrap" data-tutorial-id="crons-history">
             <table className="crons-runs-table">
               <thead>
                 <tr>

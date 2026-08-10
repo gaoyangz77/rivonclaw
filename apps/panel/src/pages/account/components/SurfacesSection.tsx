@@ -31,13 +31,13 @@ export function SurfacesSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card" data-tutorial-id="account-surfaces">
       <div className="acct-section-header">
         <div>
           <h3>{t("surfaces.surfacesTitle")}</h3>
           <p className="acct-section-desc">{t("surfaces.description")}</p>
         </div>
-        <div className="td-actions">
+        <div className="td-actions" data-tutorial-id="account-surface-actions">
           <button
             className="btn btn-secondary btn-sm"
             onClick={onRefreshTools}
@@ -64,7 +64,7 @@ export function SurfacesSection({
       {surfaces.length === 0 ? (
         <div className="empty-cell">{t("surfaces.noSurfaces")}</div>
       ) : (
-        <div className="acct-item-list">
+        <div className="acct-item-list" data-tutorial-id="account-surface-list">
           {surfaces.map((s) => {
             const isSystem = !s.userId;
             const isDefault = isSystem && s.id === "Default";

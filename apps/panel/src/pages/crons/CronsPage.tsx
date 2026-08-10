@@ -130,11 +130,11 @@ export function CronsPage() {
   }, []);
 
   return (
-    <div className="page-enter">
+    <div className="page-enter" data-tutorial-id="crons-page">
       <h1>{t("crons.title")}</h1>
       <p className="page-description">{t("crons.description")}</p>
 
-      <div className="crons-status-bar">
+      <div className="crons-status-bar" data-tutorial-id="crons-status">
         <span className={`crons-status-dot crons-status-dot-${cron.connectionState}`} />
         <span>{t(`crons.${cron.connectionState}`)}</span>
         {cron.total > 0 && <span className="text-muted">({cron.total} {t("crons.jobCount")})</span>}
@@ -153,7 +153,7 @@ export function CronsPage() {
 
       {/* Toolbar */}
       <div className="section-card">
-        <div className="crons-toolbar">
+        <div className="crons-toolbar" data-tutorial-id="crons-toolbar">
           <input
             className="input-full crons-search-input"
             placeholder={t("crons.searchPlaceholder")}
@@ -174,6 +174,7 @@ export function CronsPage() {
           />
           <button
             className="btn btn-primary"
+            data-tutorial-id="crons-add"
             onClick={openCreate}
             disabled={cron.connectionState !== "connected"}
           >

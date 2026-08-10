@@ -1,22 +1,22 @@
 import type { TutorialStep } from "../types.js"
+import { tutorialTarget } from "../targets.js"
+
+function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+  return {
+    id,
+    target: tutorialTarget(targetId),
+    titleKey: `tutorial.inventoryManagement.${key}Title`,
+    bodyKey: `tutorial.inventoryManagement.${key}Body`,
+    placement,
+  }
+}
 
 export const inventoryManagementSteps: TutorialStep[] = [
-  {
-    target: ".inventory-page .ecommerce-page-header",
-    titleKey: "tutorial.inventoryManagement.welcomeTitle",
-    bodyKey: "tutorial.inventoryManagement.welcomeBody",
-    placement: "bottom",
-  },
-  {
-    target: ".wms-account-table, .empty-cell",
-    titleKey: "tutorial.inventoryManagement.wmsTitle",
-    bodyKey: "tutorial.inventoryManagement.wmsBody",
-    placement: "bottom",
-  },
-  {
-    target: ".inventory-goods-section",
-    titleKey: "tutorial.inventoryManagement.goodsTitle",
-    bodyKey: "tutorial.inventoryManagement.goodsBody",
-    placement: "top",
-  },
+  step("inventory-welcome", "inventory-header", "welcome", "bottom"),
+  step("inventory-wms", "shops-wms", "wms", "bottom"),
+  step("inventory-goods", "inventory-goods", "goods", "top"),
+  step("inventory-actions", "inventory-goods-actions", "actions", "left"),
+  step("inventory-filters", "inventory-goods-filters", "filters", "bottom"),
+  step("inventory-table", "inventory-goods-table", "table", "top"),
+  step("inventory-pagination", "inventory-pagination", "pagination", "top"),
 ]

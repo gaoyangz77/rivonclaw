@@ -1,63 +1,21 @@
 import type { TutorialStep } from "../types.js"
+import { tutorialTarget } from "../targets.js"
+
+function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+  return {
+    id,
+    target: tutorialTarget(targetId),
+    titleKey: `tutorial.usage.${key}Title`,
+    bodyKey: `tutorial.usage.${key}Body`,
+    placement,
+  }
+}
 
 export const usageSteps: TutorialStep[] = [
-  // --- Overview ---
-  {
-    target: ".page-header h1",
-    titleKey: "tutorial.usage.welcomeTitle",
-    bodyKey: "tutorial.usage.welcomeBody",
-    placement: "bottom",
-  },
-  {
-    target: ".page-header-actions .btn-secondary",
-    titleKey: "tutorial.usage.refreshTitle",
-    bodyKey: "tutorial.usage.refreshBody",
-    placement: "left",
-  },
-  // --- Today's usage ---
-  {
-    target: ".usage-section-title",
-    titleKey: "tutorial.usage.todayTitle",
-    bodyKey: "tutorial.usage.todayBody",
-    placement: "bottom",
-  },
-  {
-    target: ".usage-blocks",
-    titleKey: "tutorial.usage.blocksTitle",
-    bodyKey: "tutorial.usage.blocksBody",
-    placement: "bottom",
-  },
-  {
-    target: ".usage-key-block:first-child .usage-key-header",
-    titleKey: "tutorial.usage.keyHeaderTitle",
-    bodyKey: "tutorial.usage.keyHeaderBody",
-    placement: "bottom",
-  },
-  {
-    target: ".usage-inner-table",
-    titleKey: "tutorial.usage.innerTableTitle",
-    bodyKey: "tutorial.usage.innerTableBody",
-    placement: "bottom",
-  },
-  // --- Time range ---
-  {
-    target: ".usage-time-range-bar",
-    titleKey: "tutorial.usage.timeRangeTitle",
-    bodyKey: "tutorial.usage.timeRangeBody",
-    placement: "bottom",
-  },
-  // --- Chart ---
-  {
-    target: ".usage-chart-wrap",
-    titleKey: "tutorial.usage.chartTitle",
-    bodyKey: "tutorial.usage.chartBody",
-    placement: "top",
-  },
-  // --- Last updated ---
-  {
-    target: ".td-meta",
-    titleKey: "tutorial.usage.lastUpdatedTitle",
-    bodyKey: "tutorial.usage.lastUpdatedBody",
-    placement: "top",
-  },
+  step("usage-welcome", "usage-header", "welcome", "bottom"),
+  step("usage-today", "usage-today", "today", "bottom"),
+  step("usage-range", "usage-range", "timeRange", "bottom"),
+  step("usage-history", "usage-history", "blocks", "bottom"),
+  step("usage-chart", "usage-chart", "chart", "top"),
+  step("usage-updated", "usage-updated", "lastUpdated", "top"),
 ]

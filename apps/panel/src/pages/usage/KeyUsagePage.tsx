@@ -179,7 +179,7 @@ export function KeyUsagePage() {
 
   return (
     <div className="page-enter">
-      <div className="page-header">
+      <div className="page-header" data-tutorial-id="usage-header">
         <h1>{t("keyUsage.title")}</h1>
         <div className="page-header-actions">
           <button
@@ -200,7 +200,7 @@ export function KeyUsagePage() {
 
       {/* Today's Usage Table */}
       {!loading && !error && hasTodayData && (
-        <div className="section-card">
+        <div className="section-card" data-tutorial-id="usage-today">
           <h3 className="usage-section-title">{t("keyUsage.todayTitle")}</h3>
           <UsageTable grouped={todayGrouped} isCN={isCN} t={t} />
         </div>
@@ -208,7 +208,7 @@ export function KeyUsagePage() {
 
       {/* Time range selector — controls historical table + chart */}
       {!loading && !error && (
-        <div className="usage-time-range-bar">
+        <div className="usage-time-range-bar" data-tutorial-id="usage-range">
           {(["7d", "30d", "all"] as TimeRange[]).map((range) => (
             <button
               key={range}
@@ -224,7 +224,7 @@ export function KeyUsagePage() {
 
       {/* Historical Usage Table */}
       {!loading && !error && hasData && (
-        <div className="section-card">
+        <div className="section-card" data-tutorial-id="usage-history">
           <h3 className="usage-section-title">{t("keyUsage.historyTitle")}</h3>
           <UsageTable grouped={grouped} isCN={isCN} t={t} />
         </div>
@@ -242,7 +242,7 @@ export function KeyUsagePage() {
         </div>
       )}
 
-      <p className="td-meta">
+      <p className="td-meta" data-tutorial-id="usage-updated">
         {t("keyUsage.lastUpdated")}: {lastRefresh.toLocaleTimeString()}
       </p>
     </div>

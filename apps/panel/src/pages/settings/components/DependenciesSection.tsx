@@ -9,7 +9,7 @@ export function DependenciesSection({ depsInstalling, handleInstallDeps }: Depen
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-deps">
+    <div className="section-card settings-section-deps" data-tutorial-id="settings-dependencies">
       <h3>{t("settings.deps.title")}</h3>
       <p className="text-secondary">
         {t("settings.deps.description")}

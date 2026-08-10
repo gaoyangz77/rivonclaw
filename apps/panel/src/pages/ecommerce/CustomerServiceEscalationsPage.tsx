@@ -539,7 +539,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
 
   return (
     <div className="page-enter cs-workspace-page">
-      <div className="ecommerce-page-header">
+      <div className="ecommerce-page-header" data-tutorial-id="cs-header">
         <div>
           <h1>
             {t(
@@ -561,7 +561,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
           </p>
         </div>
         {mode === "workspace" ? (
-          <div className="cs-workspace-tabs" role="tablist">
+          <div className="cs-workspace-tabs" role="tablist" data-tutorial-id="cs-workspace-tabs">
             <button
               className={activeTab === "conversations" ? "cs-workspace-tab active" : "cs-workspace-tab"}
               type="button"
@@ -584,7 +584,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
 
       {activeTab === "conversations" ? (
         <section className="cs-workspace-panel">
-          <div className="cs-workspace-filter-grid cs-conversation-filter-grid">
+          <div className="cs-workspace-filter-grid cs-conversation-filter-grid" data-tutorial-id="cs-conversation-filters">
             <div className="cs-conversation-filter-primary">
               <FilterField label={t("ecommerce.customerServiceWorkspace.filterShop")}>
                 <Select
@@ -683,8 +683,8 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
             </button>
           )}
 
-          <div className="cs-conversation-shell" style={conversationShellStyle}>
-            <div className="cs-conversation-list" ref={conversationListRef}>
+          <div className="cs-conversation-shell" style={conversationShellStyle} data-tutorial-id="cs-conversation-workspace">
+            <div className="cs-conversation-list" ref={conversationListRef} data-tutorial-id="cs-conversation-list">
               <div className="cs-conversation-list-head">
                 <PageSummary
                   start={workspace.conversationPageStart}
@@ -748,7 +748,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
               onPointerDown={startConversationResize}
             />
 
-            <div className="cs-conversation-detail">
+            <div className="cs-conversation-detail" data-tutorial-id="cs-conversation-detail">
               {selectedConversation ? (
                 <>
                   <div className="cs-conversation-summary">
@@ -814,6 +814,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                       )}
                       <button
                         className={selectedConversation.aiEnabled ? "cs-ai-switch enabled" : "cs-ai-switch"}
+                        data-tutorial-id="cs-ai-control"
                         type="button"
                         role="switch"
                         aria-checked={selectedConversation.aiEnabled}
@@ -829,6 +830,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         <div className={conversationOrderOpen ? "cs-conversation-order open" : "cs-conversation-order"} ref={conversationOrderRef}>
                           <button
                             className={conversationOrderOpen ? "btn btn-secondary btn-sm cs-conversation-order-trigger active" : "btn btn-secondary btn-sm cs-conversation-order-trigger"}
+                            data-tutorial-id="cs-order-context"
                             type="button"
                             aria-expanded={conversationOrderOpen}
                             onClick={() => {
@@ -985,7 +987,7 @@ export const CustomerServiceEscalationsPage = observer(function CustomerServiceW
                         ))}
                       </div>
                     )}
-                    <form className="cs-manual-reply-form" onSubmit={(event) => void sendManualReply(event)}>
+                    <form className="cs-manual-reply-form" data-tutorial-id="cs-manual-reply" onSubmit={(event) => void sendManualReply(event)}>
                       <textarea
                         value={workspace.manualReplyDraft}
                         onChange={(event) => workspace.setManualReplyDraft(event.target.value)}
@@ -1097,8 +1099,8 @@ const EscalationsTab = observer(function EscalationsTab({
   const items = workspace.escalationItems as unknown as Escalation[];
 
   return (
-    <section className="cs-workspace-panel">
-      <div className="cs-workspace-toolbar">
+    <section className="cs-workspace-panel" data-tutorial-id="cs-escalation-workspace">
+      <div className="cs-workspace-toolbar" data-tutorial-id="cs-escalation-toolbar">
         <div>
           <div className="cs-workspace-count">
             {t("ecommerce.customerServiceWorkspace.openCount", { count: workspace.escalationTotal })}
@@ -1110,7 +1112,7 @@ const EscalationsTab = observer(function EscalationsTab({
         </button>
       </div>
 
-      <div className="cs-workspace-filter-grid">
+      <div className="cs-workspace-filter-grid" data-tutorial-id="cs-escalation-filters">
         <FilterField label={t("ecommerce.customerServiceWorkspace.filterShop")}>
           <Select
             ariaLabel={t("ecommerce.customerServiceWorkspace.filterShop")}
@@ -1184,7 +1186,7 @@ const EscalationsTab = observer(function EscalationsTab({
             page={workspace.escalationPage}
             pages={workspace.escalationPageCount}
           />
-          <div className="cs-escalation-table" role="table">
+          <div className="cs-escalation-table" role="table" data-tutorial-id="cs-escalation-table">
             <div className="cs-escalation-table-head" role="row">
               <span>{t("ecommerce.customerServiceWorkspace.reason")}</span>
               <span>{t("ecommerce.customerServiceWorkspace.statusOpen")}</span>
@@ -1243,7 +1245,7 @@ const EscalationDetailModal = observer(function EscalationDetailModal({
   const workspace = entityStore.customerServiceWorkspace;
 
   return (
-    <div className="cs-escalation-modal">
+    <div className="cs-escalation-modal" data-tutorial-id="cs-escalation-detail">
       <section className="cs-escalation-detail">
         <div className="cs-escalation-detail-head">
           <div>

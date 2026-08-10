@@ -269,7 +269,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
       )}
 
       {/* Header */}
-      <div className="channel-header">
+      <div className="channel-header" data-tutorial-id="channels-header">
         <div className="channel-title-row">
           <h1 className="channel-title">{t("channels.title")}</h1>
           <button className="btn btn-secondary" onClick={handleRefresh} disabled={refreshing}>
@@ -280,14 +280,14 @@ export const ChannelsPage = observer(function ChannelsPage() {
       </div>
 
       {/* Add Account Section */}
-      <div className="section-card channel-add-section">
+      <div className="section-card channel-add-section" data-tutorial-id="channels-add-account">
         <h3>{t("channels.addAccount")}</h3>
         <div
           className={`channel-selector-col${selectedDropdownChannel === "mobile" ? " channel-selector-col--mobile" : ""}`}
         >
           {/* Left column: selector row + tooltip */}
           <div className="channel-selector-right">
-            <div className="channel-selector-row">
+            <div className="channel-selector-row" data-tutorial-id="channels-selector">
               <label className="channel-selector-label">{t("channels.selectChannelType")}</label>
               <Select
                 value={selectedDropdownChannel}
@@ -310,7 +310,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
 
             {/* Tooltip for mobile or other channels */}
             {selectedDropdownChannel === "mobile" && (
-              <div className="channel-info-box">
+              <div className="channel-info-box" data-tutorial-id="channels-guidance">
                 <div className="channel-info-title">{t("mobile.installHint")}</div>
               </div>
             )}
@@ -322,7 +322,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
                 if (selected.id === "feishu") {
                   const zh = i18n.language.toLowerCase().startsWith("zh");
                   return (
-                    <div className="channel-info-box feishu-channel-onboarding">
+                    <div className="channel-info-box feishu-channel-onboarding" data-tutorial-id="channels-guidance">
                       <div className="channel-info-title">
                         {zh
                           ? "推荐扫码自动创建飞书机器人"
@@ -338,7 +338,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
                 }
 
                 return (
-                  <div className="channel-info-box">
+                  <div className="channel-info-box" data-tutorial-id="channels-guidance">
                     <div className="channel-info-title">{t(selected.tooltip)}</div>
                     {selected.tutorialUrl && (
                       <div>
@@ -373,7 +373,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
       />
 
       {/* Last Updated */}
-      <div className="channel-last-updated">
+      <div className="channel-last-updated" data-tutorial-id="channels-last-updated">
         {t("channels.lastUpdated")} {new Date(snapshot.ts).toLocaleString()}
       </div>
 

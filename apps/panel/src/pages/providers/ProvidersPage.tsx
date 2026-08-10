@@ -229,7 +229,7 @@ export const ProvidersPage = observer(function ProvidersPage() {
   }
 
   return (
-    <div className="page-enter">
+    <div className="page-enter" data-tutorial-id="providers-page">
       <h1>{t("providers.title")}</h1>
       <p>{t("providers.description")}</p>
 
@@ -240,14 +240,14 @@ export const ProvidersPage = observer(function ProvidersPage() {
       />
 
       {/* Section B: Configured Keys */}
-      <div className="section-card">
+      <div className="section-card" data-tutorial-id="providers-configured">
         <h3>{t("providers.configuredKeysTitle")}</h3>
         {keys.length === 0 ? (
           <div className="empty-cell">
             {t("providers.noKeys")}
           </div>
         ) : (
-          <div className="pk-grid">
+          <div className="pk-grid" data-tutorial-id="providers-keys">
             {keys.map((k) => {
               const isActive = k.isDefault;
               const isExp = expandedKeyId === k.id;

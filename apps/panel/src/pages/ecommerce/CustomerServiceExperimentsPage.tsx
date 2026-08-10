@@ -390,7 +390,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
 
   return (
     <div className="page-enter cs-experiments-page">
-      <header className="page-header cs-experiments-header">
+      <header className="page-header cs-experiments-header" data-tutorial-id="cs-experiments-header">
         <div>
           <div className="cs-experiments-eyebrow">
             {t("ecommerce.customerServiceExperiments.eyebrow")}
@@ -400,6 +400,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         </div>
         <div
           className="cs-experiments-tabs"
+          data-tutorial-id="cs-experiments-tabs"
           role="tablist"
           aria-label={t("ecommerce.customerServiceExperiments.tabs.label")}
         >
@@ -419,7 +420,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
         </div>
       </header>
 
-      <div className="section-card cs-performance-toolbar cs-experiments-toolbar">
+      <div className="section-card cs-performance-toolbar cs-experiments-toolbar" data-tutorial-id="cs-experiments-filters">
         <label className="cs-performance-filter">
           <span>{t("ecommerce.customerServiceExperiments.filters.shop")}</span>
           <Select
@@ -475,7 +476,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
 
       {items.length ? (
         <>
-          <section className="section-card cs-experiment-picker">
+          <section className="section-card cs-experiment-picker" data-tutorial-id="cs-experiment-picker">
             <div className="cs-experiment-picker-control">
               <div className="cs-experiment-picker-label">
                 <span>
@@ -564,7 +565,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
             ) : null}
             {detail ? (
               <>
-                <section className="section-card cs-experiment-variants">
+                <section className="section-card cs-experiment-variants" data-tutorial-id="cs-experiment-variants">
                   <div className="cs-experiment-section-heading">
                     <div>
                       <span>01</span>
@@ -649,7 +650,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                   </div>
                 </section>
 
-                <section className="section-card cs-experiment-analysis">
+                <section className="section-card cs-experiment-analysis" data-tutorial-id="cs-experiment-analysis">
                   <div className="cs-experiment-section-heading">
                     <div>
                       <span>02</span>
@@ -841,7 +842,7 @@ export const CustomerServiceExperimentsPage = observer(function CustomerServiceE
                   )}
                 </section>
 
-                <section className="section-card cs-experiment-comparisons">
+                <section className="section-card cs-experiment-comparisons" data-tutorial-id="cs-experiment-comparisons">
                   <div className="cs-experiment-section-heading">
                     <div>
                       <span>03</span>

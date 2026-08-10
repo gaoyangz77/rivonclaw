@@ -624,7 +624,7 @@ export const EcommercePage = observer(function EcommercePage() {
 
   return (
     <div className="page-enter">
-      <div className="ecommerce-page-header">
+      <div className="ecommerce-page-header" data-tutorial-id="shops-header">
         <div>
           <h1>{t("ecommerce.title")}</h1>
           <p className="ecommerce-page-subtitle">{t("ecommerce.subtitle")}</p>

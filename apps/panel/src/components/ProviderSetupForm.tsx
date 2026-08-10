@@ -42,7 +42,7 @@ export function ProviderSetupForm({
   const isOAuth = !!getProviderMeta(provider as LLMProvider)?.oauth;
 
   return (
-    <div className="page-two-col">
+    <div className="page-two-col" data-tutorial-id="providers-setup">
       <div ref={leftCardRef} className={variant === "card" ? "section-card page-col-main" : "flex-1"}>
         {title && (variant === "card" ? <h3>{title}</h3> : <h1>{title}</h1>)}
         {description && <p>{description}</p>}
@@ -54,7 +54,7 @@ export function ProviderSetupForm({
           </div>
         )}
 
-        <div className="tab-bar">
+        <div className="tab-bar" data-tutorial-id="providers-tabs">
           <button
             className={`tab-btn${tab === "subscription" ? " tab-btn-active" : ""}`}
             onClick={() => handleTabChange("subscription")}
@@ -87,7 +87,7 @@ export function ProviderSetupForm({
           <LocalModelForm form={form} saveButtonLabel={saveButtonLabel} savingLabel={savingLabel} />
         ) : (
           <>
-            <div className="mb-sm">
+            <div className="mb-sm" data-tutorial-id="providers-selector">
               <div className="form-label text-secondary">{t("onboarding.providerLabel")}</div>
               <ProviderSelect value={provider} onChange={handleProviderChange} providers={providerFilter} />
             </div>
@@ -102,7 +102,7 @@ export function ProviderSetupForm({
       </div>
 
       {/* Right: Pricing table / Local info / Custom info */}
-      <div className="page-col-side" style={{ height: leftHeight }}>
+      <div className="page-col-side" style={{ height: leftHeight }} data-tutorial-id="providers-info">
         {tab === "custom" ? (
           <div className="section-card pricing-card provider-info-card">
             <h4 className="pricing-heading">{t("providers.customInfoTitle")}</h4>

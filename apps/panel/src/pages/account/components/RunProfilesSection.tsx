@@ -38,7 +38,7 @@ export function RunProfilesSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card">
+    <div className="section-card" data-tutorial-id="account-profiles">
       <div className="acct-section-header">
         <div>
           <h3>{t("surfaces.runProfilesTitle")}</h3>
@@ -65,7 +65,7 @@ export function RunProfilesSection({
       {profileError && <div className="error-alert">{profileError}</div>}
 
       {profiles.length > 0 && (
-        <div className="acct-default-profile">
+        <div className="acct-default-profile" data-tutorial-id="account-default-profile">
           <label className="form-label-block">{t("account.defaultRunProfile")}</label>
           <div className="form-hint">{t("account.defaultRunProfileHint")}</div>
           {defaultProfileError && <div className="error-alert">{defaultProfileError}</div>}

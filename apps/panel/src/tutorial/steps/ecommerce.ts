@@ -1,68 +1,51 @@
 import type { TutorialStep } from "../types.js"
+import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js"
+
+function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+  return {
+    id,
+    target: tutorialTarget(targetId),
+    titleKey: `tutorial.ecommerce.${key}Title`,
+    bodyKey: `tutorial.ecommerce.${key}Body`,
+    placement,
+  }
+}
+
+function ensureConnectForm() {
+  if (!findTutorialTarget("shops-connect-form")) clickTutorialTarget("shops-add")
+}
+
+function closeConnectForm() {
+  if (findTutorialTarget("shops-connect-form")) clickTutorialTarget("shops-connect-cancel")
+}
+
+function ensureShopDrawer() {
+  if (findTutorialTarget("shops-drawer")?.classList.contains("drawer-panel-open")) return
+  document.querySelector<HTMLElement>(".shop-table-actions .btn-secondary")?.click()
+}
+
+function closeShopDrawer() {
+  if (findTutorialTarget("shops-drawer")?.classList.contains("drawer-panel-open")) {
+    clickTutorialTarget("shops-drawer-close")
+  }
+}
 
 export const ecommerceSteps: TutorialStep[] = [
+  step("shops-welcome", "shops-header", "welcome", "bottom"),
+  step("shops-list", "shops-list", "shops", "bottom"),
+  step("shops-actions", "shops-actions", "shopActions", "left"),
+  step("shops-table", "shops-table", "shopTable", "top"),
+  step("shops-collections", "shops-table", "shopCollections", "top"),
   {
-    target: ".ecommerce-page-header",
-    titleKey: "tutorial.ecommerce.welcomeTitle",
-    bodyKey: "tutorial.ecommerce.welcomeBody",
-    placement: "bottom",
+    ...step("shops-connect", "shops-connect-form", "connectFlow", "right"),
+    prepare: ensureConnectForm,
+    cleanup: closeConnectForm,
+    targetTimeoutMs: 1800,
   },
   {
-    target: ".ecommerce-section-header:first-child",
-    titleKey: "tutorial.ecommerce.shopsTitle",
-    bodyKey: "tutorial.ecommerce.shopsBody",
-    placement: "bottom",
-  },
-  {
-    target: ".ecommerce-section-header:first-child .ecommerce-section-actions",
-    titleKey: "tutorial.ecommerce.shopActionsTitle",
-    bodyKey: "tutorial.ecommerce.shopActionsBody",
-    placement: "left",
-  },
-  {
-    target: ".shop-table-wrap, .section-card:first-of-type .empty-cell",
-    titleKey: "tutorial.ecommerce.shopTableTitle",
-    bodyKey: "tutorial.ecommerce.shopTableBody",
-    placement: "top",
-  },
-  {
-    target: ".shop-alias-input",
-    titleKey: "tutorial.ecommerce.shopAliasTitle",
-    bodyKey: "tutorial.ecommerce.shopAliasBody",
-    placement: "bottom",
-  },
-  {
-    target: ".shop-table-actions",
-    titleKey: "tutorial.ecommerce.shopRowActionsTitle",
-    bodyKey: "tutorial.ecommerce.shopRowActionsBody",
-    placement: "left",
-  },
-  {
-    target: ".ecommerce-inventory-section",
-    titleKey: "tutorial.ecommerce.wmsTitle",
-    bodyKey: "tutorial.ecommerce.wmsBody",
-    placement: "bottom",
-  },
-  {
-    target: ".ecommerce-inventory-section .ecommerce-section-actions",
-    titleKey: "tutorial.ecommerce.wmsActionsTitle",
-    bodyKey: "tutorial.ecommerce.wmsActionsBody",
-    placement: "left",
-  },
-  {
-    target: ".wms-table-wrap, .ecommerce-inventory-section .empty-cell",
-    titleKey: "tutorial.ecommerce.wmsTableTitle",
-    bodyKey: "tutorial.ecommerce.wmsTableBody",
-    placement: "top",
-  },
-  {
-    target: ".drawer-panel-open",
-    titleKey: "tutorial.ecommerce.drawerTitle",
-    bodyKey: "tutorial.ecommerce.drawerBody",
-    placement: "left",
-    beforeAction: () => {
-      const btn = document.querySelector(".shop-table-actions .btn-secondary") as HTMLElement | null
-      btn?.click()
-    },
+    ...step("shops-drawer", "shops-drawer-navigation", "drawer", "left"),
+    prepare: ensureShopDrawer,
+    cleanup: closeShopDrawer,
+    targetTimeoutMs: 1800,
   },
 ]

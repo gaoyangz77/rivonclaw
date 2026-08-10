@@ -207,7 +207,7 @@ const ChatPageInner = observer(function ChatPageInner() {
   );
 
   return (
-    <div className="chat-container">
+    <div className="chat-container" data-tutorial-id="chat-page">
       <SessionTabBar
         sessions={sessionsWithRecipientAliases}
         activeSessionKey={store.activeSessionKey}
@@ -219,7 +219,7 @@ const ChatPageInner = observer(function ChatPageInner() {
         onRestoreSession={(key) => controller.restoreSession(key)}
         onReorderSession={(from, to) => controller.reorderSessions(from, to)}
       />
-      <div className="chat-main-panel">
+      <div className="chat-main-panel" data-tutorial-id="chat-messages">
         {messages.length === 0 && !streaming ? (
           <div className="chat-empty">
             <div>{t("chat.emptyState")}</div>

@@ -314,7 +314,7 @@ export const ShopDrawer = observer(function ShopDrawer({
         className={`drawer-overlay${isOpen ? " drawer-overlay-visible" : ""}`}
         onClick={onClose}
       />
-      <div className={`drawer-panel${isOpen ? " drawer-panel-open" : ""}`}>
+      <div className={`drawer-panel${isOpen ? " drawer-panel-open" : ""}`} data-tutorial-id="shops-drawer">
         <div className="drawer-header">
           <div className="drawer-header-left">
             <span className="drawer-header-icon">
@@ -337,7 +337,7 @@ export const ShopDrawer = observer(function ShopDrawer({
             </div>
           </div>
           {shop && (
-            <div className="drawer-tab-bar drawer-tab-bar-header">
+            <div className="drawer-tab-bar drawer-tab-bar-header" data-tutorial-id="shops-drawer-tabs">
               <button
                 className={`drawer-tab-btn ${activeTab === "overview" ? "drawer-tab-btn-active" : ""}`}
                 onClick={() => onTabChange("overview")}
@@ -370,7 +370,7 @@ export const ShopDrawer = observer(function ShopDrawer({
               )}
             </div>
           )}
-          <button className="drawer-close-btn" onClick={onClose}>
+          <button className="drawer-close-btn" data-tutorial-id="shops-drawer-close" onClick={onClose}>
             <CloseIcon size={18} />
           </button>
         </div>
@@ -383,6 +383,7 @@ export const ShopDrawer = observer(function ShopDrawer({
             <div className="shop-workspace-shell">
               <aside
                 className="shop-workspace-side-menu"
+                data-tutorial-id="shops-drawer-navigation"
                 aria-label={t("ecommerce.shopDrawer.tabs.overview")}
               >
                 {workspaceSections.map((section) => (

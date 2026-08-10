@@ -325,12 +325,12 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
 
   return (
     <div>
-      <div className="ecommerce-page-header">
+      <div className="ecommerce-page-header" data-tutorial-id="ads-header">
         <div>
           <h1>{t("adsManagement.title")}</h1>
           <p className="ecommerce-page-subtitle">{t("adsManagement.subtitle")}</p>
         </div>
-        <div className="ecommerce-header-actions">
+        <div className="ecommerce-header-actions" data-tutorial-id="ads-actions">
           <button className="btn btn-secondary" onClick={handleRefresh} disabled={loading || oauthWaiting}>
             <RefreshIcon />
             {loading ? t("common.loading") : t("common.refresh")}
@@ -342,7 +342,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         </div>
       </div>
 
-      <div className="ads-summary-strip ads-summary-strip-five">
+      <div className="ads-summary-strip ads-summary-strip-five" data-tutorial-id="ads-summary">
         <div className="ads-summary-item">
           <span>{t("adsManagement.totalAdvertisers")}</span>
           <strong>{advertisers.length}</strong>
@@ -361,14 +361,14 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         </div>
       </div>
 
-      <section className="panel-card ads-advertiser-section">
+      <section className="panel-card ads-advertiser-section" data-tutorial-id="ads-accounts">
         <div className="ecommerce-section-header">
           <div>
             <h3>{t("adsManagement.advertiserTableTitle")}</h3>
             <p className="ecommerce-section-subtitle">{t("adsManagement.advertiserTableSubtitle")}</p>
           </div>
           {advertisers.length > 0 ? (
-            <div className="ads-section-tools">
+            <div className="ads-section-tools" data-tutorial-id="ads-account-filters">
               <input
                 className="ads-search-input"
                 value={advertiserQuery}
@@ -490,13 +490,13 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
         )}
       </section>
 
-      <section className="panel-card ads-advertiser-section ads-shop-readiness-section">
+      <section className="panel-card ads-advertiser-section ads-shop-readiness-section" data-tutorial-id="ads-coverage">
         <div className="ecommerce-section-header">
           <div>
             <h3>{t("adsManagement.shopCoverageTitle")}</h3>
             <p className="ecommerce-section-subtitle">{t("adsManagement.shopCoverageSubtitle")}</p>
           </div>
-          <div className="ads-section-tools">
+          <div className="ads-section-tools" data-tutorial-id="ads-coverage-filters">
             <div className="ads-segmented-control">
               {([
                 ["all", t("adsManagement.filters.all", { defaultValue: "All" })],

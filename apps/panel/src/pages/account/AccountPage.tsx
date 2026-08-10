@@ -114,7 +114,7 @@ export const AccountPage = observer(function AccountPage({
   }
 
   return (
-    <div className="account-page page-enter">
+    <div className="account-page page-enter" data-tutorial-id="account-page">
       {/* ── Profile & Subscription ── */}
       <AccountProfileCard
         onLogout={handleLogout}

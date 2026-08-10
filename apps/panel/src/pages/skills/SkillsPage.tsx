@@ -174,7 +174,7 @@ export function SkillsPage() {
 
   return (
     <div className="page-enter skills-page">
-      <div className="skills-page-header">
+      <div className="skills-page-header" data-tutorial-id="skills-header">
         <h1>{t("skills.title")}</h1>
         <p className="skills-page-subtitle">{t("skills.description")}</p>
       </div>
@@ -186,9 +186,10 @@ export function SkillsPage() {
       )}
 
       {/* Tab bar */}
-      <div className="tab-bar" role="tablist" aria-label={t("skills.title")}>
+      <div className="tab-bar" role="tablist" aria-label={t("skills.title")} data-tutorial-id="skills-tabs">
         <button
           className={`tab-btn${activeTab === "market" ? " tab-btn-active" : ""}`}
+          data-tutorial-id="skills-market-tab"
           onClick={() => setActiveTab("market")}
           role="tab"
           aria-selected={activeTab === "market"}
@@ -197,6 +198,7 @@ export function SkillsPage() {
         </button>
         <button
           className={`tab-btn${activeTab === "installed" ? " tab-btn-active" : ""}`}
+          data-tutorial-id="skills-installed-tab"
           onClick={() => setActiveTab("installed")}
           role="tab"
           aria-selected={activeTab === "installed"}
@@ -209,7 +211,7 @@ export function SkillsPage() {
       {activeTab === "market" && (
         <>
           {/* Search bar */}
-          <div className="skills-search-bar">
+          <div className="skills-search-bar" data-tutorial-id="skills-search">
             <input
               className="skills-search-input"
               type="text"
@@ -221,7 +223,7 @@ export function SkillsPage() {
 
           {/* Category chips */}
           {categories.length > 0 && (
-            <div className="skills-category-chips">
+            <div className="skills-category-chips" data-tutorial-id="skills-categories">
               <button
                 className={`btn btn-sm ${selectedCategory === "" ? "btn-outline" : "btn-secondary"}`}
                 onClick={() => {
@@ -251,7 +253,7 @@ export function SkillsPage() {
 
           {/* Skills grid */}
           {!loading && marketSkills.length > 0 && (
-            <div className="skills-grid">
+            <div className="skills-grid" data-tutorial-id="skills-market-grid">
               {marketSkills.map((skill) => (
                 <SkillCard
                   key={skill.slug}
@@ -283,7 +285,7 @@ export function SkillsPage() {
 
           {/* Pagination */}
           {!loading && totalPages > 1 && (
-            <div className="skills-pagination">
+            <div className="skills-pagination" data-tutorial-id="skills-pagination">
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={page <= 1}
@@ -337,7 +339,7 @@ export function SkillsPage() {
       {/* Installed tab */}
       {activeTab === "installed" && (
         <>
-          <div className="skills-installed-header">
+          <div className="skills-installed-header" data-tutorial-id="skills-installed-header">
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => openSkillsFolder()}

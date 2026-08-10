@@ -17,7 +17,7 @@ export function AgentSettingsSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-agent">
+    <div className="section-card settings-section-agent" data-tutorial-id="settings-agent">
       <h3>{t("settings.agent.title")}</h3>
 
       <div>

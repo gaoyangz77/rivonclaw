@@ -36,7 +36,7 @@ export const WmsAccountTable = observer(function WmsAccountTable({
   const deleteAccount = deleteAccountId ? accounts.find((account) => account.id === deleteAccountId) : null;
 
   return (
-    <div className="section-card ecommerce-inventory-section">
+    <div className="section-card ecommerce-inventory-section" data-tutorial-id="shops-wms">
       <div className="ecommerce-section-header">
         <div>
           <h3>{t("ecommerce.inventory.wmsAccounts")}</h3>
