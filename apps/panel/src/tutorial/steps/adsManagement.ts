@@ -1,34 +1,22 @@
 import type { TutorialStep } from "../types.js"
+import { tutorialTarget } from "../targets.js"
+
+function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+  return {
+    id,
+    target: tutorialTarget(targetId),
+    titleKey: `tutorial.adsManagement.${key}Title`,
+    bodyKey: `tutorial.adsManagement.${key}Body`,
+    placement,
+  }
+}
 
 export const adsManagementSteps: TutorialStep[] = [
-  {
-    target: ".ecommerce-page-header",
-    titleKey: "tutorial.adsManagement.welcomeTitle",
-    bodyKey: "tutorial.adsManagement.welcomeBody",
-    placement: "bottom",
-  },
-  {
-    target: ".ecommerce-header-actions",
-    titleKey: "tutorial.adsManagement.actionsTitle",
-    bodyKey: "tutorial.adsManagement.actionsBody",
-    placement: "left",
-  },
-  {
-    target: ".ads-summary-strip",
-    titleKey: "tutorial.adsManagement.summaryTitle",
-    bodyKey: "tutorial.adsManagement.summaryBody",
-    placement: "bottom",
-  },
-  {
-    target: ".ads-advertiser-section:first-of-type",
-    titleKey: "tutorial.adsManagement.advertisersTitle",
-    bodyKey: "tutorial.adsManagement.advertisersBody",
-    placement: "bottom",
-  },
-  {
-    target: ".ads-shop-readiness-section",
-    titleKey: "tutorial.adsManagement.shopCoverageTitle",
-    bodyKey: "tutorial.adsManagement.shopCoverageBody",
-    placement: "top",
-  },
+  step("ads-welcome", "ads-header", "welcome", "bottom"),
+  step("ads-actions", "ads-actions", "actions", "left"),
+  step("ads-summary", "ads-summary", "summary", "bottom"),
+  step("ads-accounts", "ads-accounts", "advertisers", "bottom"),
+  step("ads-account-filters", "ads-account-filters", "accountFilters", "bottom"),
+  step("ads-coverage", "ads-coverage", "shopCoverage", "top"),
+  step("ads-coverage-filters", "ads-coverage-filters", "coverageFilters", "top"),
 ]

@@ -21,7 +21,7 @@ export function AppSettingsSection({
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-app">
+    <div className="section-card settings-section-app" data-tutorial-id="settings-app">
       <h3>{t("settings.app.title")}</h3>
 
       <div>

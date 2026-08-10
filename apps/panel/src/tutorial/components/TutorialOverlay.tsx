@@ -1,12 +1,19 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useTutorial } from "../TutorialProvider.js"
+import { waitForTutorialTarget } from "../targets.js"
 
 interface SpotlightRect {
   top: number
   left: number
   width: number
   height: number
+}
+
+interface ActiveLifecycle {
+  key: string
+  label: string
+  cleanup?: () => void | Promise<void>
 }
 
 function computePlacement(
@@ -57,35 +64,23 @@ export function TutorialOverlay() {
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const spotlightRef = useRef<HTMLDivElement>(null)
+  const activeTargetRef = useRef<Element | null>(null)
+  const activeLifecycleRef = useRef<ActiveLifecycle | null>(null)
   const mouseDownOnOverlay = useRef(false)
   const directionRef = useRef<"forward" | "backward">("forward")
 
-  const updatePosition = useCallback(async () => {
-    if (!isPlaying || steps.length === 0) return
-
-    const step = steps[currentStepIndex]
-    if (!step) return
-
-    // Execute beforeAction if defined (e.g., click a button to expand a form)
-    if (step.beforeAction) {
-      step.beforeAction()
-      // Wait for DOM to settle after action
-      await new Promise(r => setTimeout(r, 100))
+  const cleanupActiveLifecycle = useCallback(async () => {
+    const lifecycle = activeLifecycleRef.current
+    activeLifecycleRef.current = null
+    if (!lifecycle?.cleanup) return
+    try {
+      await lifecycle.cleanup()
+    } catch (error) {
+      console.warn(`[tutorial] cleanup failed for ${lifecycle.label}`, error)
     }
+  }, [])
 
-    const el = document.querySelector(step.target)
-    if (!el) {
-      // Target not found — skip in the direction the user was navigating
-      if (directionRef.current === "backward" && currentStepIndex > 0) {
-        prev()
-      } else if (currentStepIndex < steps.length - 1) {
-        next()
-      } else {
-        stop()
-      }
-      return
-    }
-
+  const positionTarget = useCallback((el: Element, placement: "top" | "bottom" | "left" | "right") => {
     // Scroll target into view instantly — CSS transitions on spotlight handle visual smoothness
     el.scrollIntoView({ behavior: "instant", block: "center" })
 
@@ -116,17 +111,90 @@ export function TutorialOverlay() {
       }
 
       // Position tooltip via CSS custom properties
-      const pos = computePlacement(clampedRect, step.placement ?? "bottom", tooltipRef.current)
+      const pos = computePlacement(clampedRect, placement, tooltipRef.current)
       if (tooltipRef.current) {
         tooltipRef.current.style.setProperty("--tooltip-top", `${pos.top}px`)
         tooltipRef.current.style.setProperty("--tooltip-left", `${pos.left}px`)
       }
     })
-  }, [isPlaying, steps, currentStepIndex, next, stop])
+  }, [])
+
+  const updatePosition = useCallback(() => {
+    if (!isPlaying || steps.length === 0) return
+    const step = steps[currentStepIndex]
+    if (!step) return
+    const current = activeTargetRef.current
+    const el = current && document.contains(current) ? current : document.querySelector(step.target)
+    if (!el) return
+    activeTargetRef.current = el
+    positionTarget(el, step.placement ?? "bottom")
+  }, [isPlaying, steps, currentStepIndex, positionTarget])
 
   useEffect(() => {
-    updatePosition()
-  }, [updatePosition])
+    let cancelled = false
+    activeTargetRef.current = null
+    setSpotlightRect(null)
+
+    if (!isPlaying || steps.length === 0) {
+      void cleanupActiveLifecycle()
+      return
+    }
+    const step = steps[currentStepIndex]
+    if (!step) return
+
+    async function activateStep() {
+      const label = step.id ?? step.titleKey
+      const lifecycleKey = step.lifecycleGroup ?? label
+      if (activeLifecycleRef.current?.key !== lifecycleKey) {
+        await cleanupActiveLifecycle()
+        if (cancelled) return
+
+        try {
+          await step.prepare?.()
+        } catch (error) {
+          console.warn(`[tutorial] prepare failed for ${label}`, error)
+        }
+        if (cancelled) {
+          if (step.cleanup) {
+            try {
+              await step.cleanup()
+            } catch (error) {
+              console.warn(`[tutorial] cleanup failed for ${label}`, error)
+            }
+          }
+          return
+        }
+        activeLifecycleRef.current = { key: lifecycleKey, label, cleanup: step.cleanup }
+      }
+
+      const el = await waitForTutorialTarget(step.target, step.targetTimeoutMs)
+      if (cancelled) return
+      if (!el) {
+        console.warn(`[tutorial] target not found for ${step.id ?? step.titleKey}: ${step.target}`)
+        if (directionRef.current === "backward" && currentStepIndex > 0) {
+          prev()
+        } else if (currentStepIndex < steps.length - 1) {
+          next()
+        } else {
+          stop()
+        }
+        return
+      }
+
+      activeTargetRef.current = el
+      positionTarget(el, step.placement ?? "bottom")
+    }
+
+    void activateStep()
+    return () => {
+      cancelled = true
+      activeTargetRef.current = null
+    }
+  }, [isPlaying, steps, currentStepIndex, next, prev, stop, positionTarget, cleanupActiveLifecycle])
+
+  useEffect(() => () => {
+    void cleanupActiveLifecycle()
+  }, [cleanupActiveLifecycle])
 
   // Reposition on window resize
   useEffect(() => {

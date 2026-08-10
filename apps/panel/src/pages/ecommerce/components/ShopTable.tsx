@@ -88,13 +88,13 @@ export function ShopTable({
   }
 
   return (
-    <div className="section-card">
+    <div className="section-card" data-tutorial-id="shops-list">
       <div className="ecommerce-section-header">
         <div>
           <h3>{t("ecommerce.shops")}</h3>
           <p className="ecommerce-section-subtitle">{t("ecommerce.shopsSubtitle")}</p>
         </div>
-        <div className="ecommerce-section-actions">
+        <div className="ecommerce-section-actions" data-tutorial-id="shops-actions">
           <button
             className="btn-icon-inline"
             onClick={onRefresh}
@@ -104,7 +104,7 @@ export function ShopTable({
           >
             <RefreshIcon className={refreshing ? "spin" : ""} />
           </button>
-          <button className="btn btn-primary btn-sm" onClick={onAddShop} disabled={oauthLoading}>
+          <button className="btn btn-primary btn-sm" data-tutorial-id="shops-add" onClick={onAddShop} disabled={oauthLoading}>
             {t("ecommerce.addShop")}
           </button>
         </div>
@@ -114,7 +114,7 @@ export function ShopTable({
         <div className="empty-cell">{t("ecommerce.noShops")}</div>
       ) : (
         <div className="table-scroll-wrap shop-table-wrap">
-          <table className="shop-table">
+          <table className="shop-table" data-tutorial-id="shops-table">
             <thead>
               <tr>
                 <th aria-sort="ascending">

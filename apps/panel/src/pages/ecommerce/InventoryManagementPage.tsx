@@ -46,7 +46,7 @@ export const InventoryManagementPage = observer(function InventoryManagementPage
 
   return (
     <div className="page-enter inventory-page">
-      <div className="ecommerce-page-header">
+      <div className="ecommerce-page-header" data-tutorial-id="inventory-header">
         <div>
           <h1>{t("ecommerce.inventory.pageTitle")}</h1>
           <p className="ecommerce-page-subtitle">{t("ecommerce.inventory.pageSubtitle")}</p>

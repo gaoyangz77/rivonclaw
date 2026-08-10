@@ -14,7 +14,7 @@ export function DiagnosticsSection({ doctorStatus, doctorOutput, doctorExitCode,
   const { t } = useTranslation();
 
   return (
-    <div className="section-card settings-section-diagnostics">
+    <div className="section-card settings-section-diagnostics" data-tutorial-id="settings-diagnostics">
       <h3>{t("settings.diagnostics.title")}</h3>
       <p className="text-secondary">
         {t("settings.diagnostics.description")}

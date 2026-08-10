@@ -633,11 +633,13 @@ export function SessionTabBar({
   return (
     <div
       className="chat-session-tabs"
+      data-tutorial-id="chat-sessions"
       style={{ width: sidebarWidth, minWidth: sidebarWidth }}
     >
       <div className="chat-session-tabs-header">
         <button
           className="chat-session-tab-new-btn"
+          data-tutorial-id="chat-new-session"
           onClick={onNewChat}
           title={t("chat.newSession")}
         >
@@ -727,7 +729,7 @@ export function SessionTabBar({
       </div>
 
       <div className="chat-session-tabs-actions">
-        <div className="chat-archived-trigger-wrap">
+        <div className="chat-archived-trigger-wrap" data-tutorial-id="chat-archived">
           <button
             className="chat-session-tab-action-btn"
             onClick={() => setShowArchived((v) => !v)}

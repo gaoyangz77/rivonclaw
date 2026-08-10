@@ -58,13 +58,13 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
 
   return (
     <>
-      <div className="section-card ecommerce-inventory-section inventory-goods-section">
+      <div className="section-card ecommerce-inventory-section inventory-goods-section" data-tutorial-id="inventory-goods">
         <div className="ecommerce-section-header">
           <div>
             <h3>{t("ecommerce.inventory.inventoryGoods")}</h3>
             <p className="ecommerce-section-subtitle">{t("ecommerce.inventory.inventoryGoodsSubtitle")}</p>
           </div>
-          <div className="ecommerce-section-actions inventory-goods-header-actions">
+          <div className="ecommerce-section-actions inventory-goods-header-actions" data-tutorial-id="inventory-goods-actions">
             <button
               className="btn-icon-inline"
               onClick={() => inventory.fetchInventoryGoods().catch(() => {})}
@@ -91,6 +91,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
 
         <form
           className="inventory-goods-filter-bar"
+          data-tutorial-id="inventory-goods-filters"
           onSubmit={(e) => {
             e.preventDefault();
             inventory.applyInventoryGoodsFilters().catch(() => {});
@@ -150,7 +151,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
           </div>
         ) : (
           <div className="table-scroll-wrap inventory-goods-table-wrap">
-            <table className="shop-table inventory-goods-table">
+            <table className="shop-table inventory-goods-table" data-tutorial-id="inventory-goods-table">
               <thead>
                 <tr>
                   <th className="inventory-goods-select-cell">
@@ -256,7 +257,7 @@ export const InventoryGoodsTableSection = observer(function InventoryGoodsTableS
           </div>
         )}
 
-        <div className="inventory-goods-pagination">
+        <div className="inventory-goods-pagination" data-tutorial-id="inventory-pagination">
           <div className="inventory-goods-pagination-summary">
             {t("ecommerce.inventory.inventoryGoodsPageSummary", {
               page: inventory.inventoryGoodsPage,

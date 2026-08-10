@@ -887,7 +887,7 @@ const ShopServiceSubscriptionFlow = observer(function ShopServiceSubscriptionFlo
     }));
 
   return (
-    <div className="billing-shop-subscribe-flow">
+    <div className="billing-shop-subscribe-flow" data-tutorial-id="billing-subscribe-flow">
       <div className="billing-flow-head">
         <div>
           <h5>{t("billing.subscribeShopServices")}</h5>
@@ -996,7 +996,7 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
   );
 
   return (
-    <div className="section-card account-billing-section">
+    <div className="section-card account-billing-section" data-tutorial-id="billing-overview">
       <div className="account-section-header">
         <div>
           <h3>{t("billing.title")}</h3>
@@ -1004,7 +1004,7 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
         </div>
       </div>
 
-      <div className="billing-dashboard-grid">
+      <div className="billing-dashboard-grid" data-tutorial-id="billing-account-plan">
         <EntitlementSummary
           title={accountPlan ? billingPlanDisplayName(t, accountPlan) : t("billing.accountAi")}
           entitlement={accountLlm?.entitlement ?? null}
@@ -1013,13 +1013,13 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
         />
       </div>
 
-      <div className="billing-subsection">
+      <div className="billing-subsection" data-tutorial-id="billing-shop-services">
         <h4>{t("billing.shopServices")}</h4>
         <ShopServiceSubscriptionFlow
           groups={shopBillingGroups}
           planDefinitions={planDefinitions}
         />
-        <div className="billing-shop-list">
+        <div className="billing-shop-list" data-tutorial-id="billing-shop-list">
           {shopBillingGroups.length
             ? shopBillingGroups.map((group) => (
                 <BillingShopServiceGroup
@@ -1032,7 +1032,7 @@ export const AccountBillingSection = observer(function AccountBillingSection() {
         </div>
       </div>
 
-      <div className="billing-subsection">
+      <div className="billing-subsection" data-tutorial-id="billing-payments">
         <h4>{t("billing.paymentRecords")}</h4>
         <PaymentRecords payments={payments} />
       </div>

@@ -53,7 +53,7 @@ export const ChatStatusBar = observer(function ChatStatusBar({
         : "chat.disconnected";
 
   return (
-    <div className="chat-status">
+    <div className="chat-status" data-tutorial-id="chat-controls">
       <span className={`chat-status-dot chat-status-dot-${connectionState}`} />
       <span>{agentName ? `${agentName} · ${t(statusKey)}` : t(statusKey)}</span>
       {connectionState === "connected" && activeModel && (

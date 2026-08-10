@@ -31,7 +31,7 @@ export function UsageChart({
   return (
     <div className="section-card">
       <h3 className="usage-section-title">{t("keyUsage.historyChart")}</h3>
-      <div className="usage-chart-wrap">
+      <div className="usage-chart-wrap" data-tutorial-id="usage-chart">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />

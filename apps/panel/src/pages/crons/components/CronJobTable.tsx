@@ -51,7 +51,7 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
   return (
     <div className="section-card">
       <div className="table-scroll-wrap">
-        <table className="crons-table">
+        <table className="crons-table" data-tutorial-id="crons-table">
           <thead>
             <tr>
               <th>{t("crons.colName")}</th>

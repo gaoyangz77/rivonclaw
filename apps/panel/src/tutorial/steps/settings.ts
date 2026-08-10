@@ -1,116 +1,25 @@
-import type { TutorialStep } from "../types.js";
+import type { TutorialStep } from "../types.js"
+import { tutorialTarget } from "../targets.js"
+
+function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+  return {
+    id,
+    target: tutorialTarget(targetId),
+    titleKey: `tutorial.settings.${key}Title`,
+    bodyKey: `tutorial.settings.${key}Body`,
+    placement,
+  }
+}
 
 export const settingsSteps: TutorialStep[] = [
-  // --- Welcome ---
-  {
-    target: ".page-enter h1",
-    titleKey: "tutorial.settings.welcomeTitle",
-    bodyKey: "tutorial.settings.welcomeBody",
-    placement: "bottom",
-  },
-  // --- Agent Settings Section ---
-  {
-    target: ".settings-section-agent h3",
-    titleKey: "tutorial.settings.agentSectionTitle",
-    bodyKey: "tutorial.settings.agentSectionBody",
-    placement: "bottom",
-  },
-  {
-    target: ".settings-section-agent .custom-select",
-    titleKey: "tutorial.settings.browserModeTitle",
-    bodyKey: "tutorial.settings.browserModeBody",
-    placement: "bottom",
-  },
-  // --- Chat Settings Section ---
-  {
-    target: ".settings-section-chat h3",
-    titleKey: "tutorial.settings.chatSectionTitle",
-    bodyKey: "tutorial.settings.chatSectionBody",
-    placement: "bottom",
-  },
-  {
-    target: ".settings-section-chat .settings-toggle-card:nth-of-type(1)",
-    titleKey: "tutorial.settings.showAgentEventsTitle",
-    bodyKey: "tutorial.settings.showAgentEventsBody",
-    placement: "bottom",
-  },
-  {
-    target: ".settings-section-chat .settings-toggle-card:nth-of-type(2)",
-    titleKey: "tutorial.settings.preserveToolEventsTitle",
-    bodyKey: "tutorial.settings.preserveToolEventsBody",
-    placement: "bottom",
-  },
-  {
-    target: ".settings-section-chat .settings-toggle-card:nth-of-type(3)",
-    titleKey: "tutorial.settings.collapseMessagesTitle",
-    bodyKey: "tutorial.settings.collapseMessagesBody",
-    placement: "bottom",
-  },
-  // --- App Settings Section ---
-  {
-    target: ".accent-color-picker",
-    titleKey: "tutorial.settings.accentColorTitle",
-    bodyKey: "tutorial.settings.accentColorBody",
-    placement: "bottom",
-  },
-  {
-    target: ".settings-section-app .settings-toggle-card:nth-of-type(1)",
-    titleKey: "tutorial.settings.privacyModeTitle",
-    bodyKey: "tutorial.settings.privacyModeBody",
-    placement: "bottom",
-  },
-  // --- Tutorial Section ---
-  {
-    target: ".settings-section-tutorial .settings-toggle-card",
-    titleKey: "tutorial.settings.tutorialToggleTitle",
-    bodyKey: "tutorial.settings.tutorialToggleBody",
-    placement: "bottom",
-  },
-  // --- Auto-Launch Section ---
-  {
-    target: ".settings-section-auto-launch .settings-toggle-card",
-    titleKey: "tutorial.settings.autoLaunchTitle",
-    bodyKey: "tutorial.settings.autoLaunchBody",
-    placement: "bottom",
-  },
-  // --- Data Directory Section ---
-  {
-    target: ".data-dir-display",
-    titleKey: "tutorial.settings.dataDirTitle",
-    bodyKey: "tutorial.settings.dataDirBody",
-    placement: "bottom",
-  },
-  {
-    target: ".data-dir-actions",
-    titleKey: "tutorial.settings.dataDirActionsTitle",
-    bodyKey: "tutorial.settings.dataDirActionsBody",
-    placement: "top",
-  },
-  // --- Telemetry Section ---
-  {
-    target: ".settings-section-telemetry .settings-toggle-card",
-    titleKey: "tutorial.settings.telemetryToggleTitle",
-    bodyKey: "tutorial.settings.telemetryToggleBody",
-    placement: "bottom",
-  },
-  {
-    target: ".telemetry-details",
-    titleKey: "tutorial.settings.telemetryDetailsTitle",
-    bodyKey: "tutorial.settings.telemetryDetailsBody",
-    placement: "bottom",
-  },
-  // --- System Dependencies Section ---
-  {
-    target: ".settings-section-deps .btn-primary",
-    titleKey: "tutorial.settings.installDepsTitle",
-    bodyKey: "tutorial.settings.installDepsBody",
-    placement: "bottom",
-  },
-  // --- Diagnostics Section ---
-  {
-    target: ".settings-section-diagnostics .doctor-actions",
-    titleKey: "tutorial.settings.diagnosticsTitle",
-    bodyKey: "tutorial.settings.diagnosticsBody",
-    placement: "top",
-  },
-];
+  step("settings-welcome", "settings-page", "welcome", "bottom"),
+  step("settings-agent", "settings-agent", "agentSection", "bottom"),
+  step("settings-chat", "settings-chat", "chatSection", "bottom"),
+  step("settings-app", "settings-app", "appSection", "bottom"),
+  step("settings-tutorial", "settings-tutorial", "tutorialToggle", "bottom"),
+  step("settings-auto-launch", "settings-auto-launch", "autoLaunch", "bottom"),
+  step("settings-data", "settings-data", "dataAndLogs", "bottom"),
+  step("settings-telemetry", "settings-telemetry", "telemetryToggle", "bottom"),
+  step("settings-dependencies", "settings-dependencies", "installDeps", "bottom"),
+  step("settings-diagnostics", "settings-diagnostics", "diagnostics", "top"),
+]

@@ -32,11 +32,11 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
       title={mode === "create" ? t("crons.createTitle") : t("crons.editTitle")}
       maxWidth={1040}
     >
-      <div className="crons-form-shell">
+      <div className="crons-form-shell" data-tutorial-id="crons-form">
         {cronForm.submitError && <div className="error-alert">{cronForm.submitError}</div>}
 
         <div className="crons-form-grid">
-          <section className="crons-form-card">
+          <section className="crons-form-card" data-tutorial-id="crons-form-basics">
             <div className="crons-form-section-title">{t("crons.sectionBasics")}</div>
             <div className="crons-form-two-col">
               <div className="form-group crons-form-span-2">
@@ -83,7 +83,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
             </div>
           </section>
 
-          <section className="crons-form-card">
+          <section className="crons-form-card" data-tutorial-id="crons-form-delivery">
             <div className="crons-form-section-title">{t("crons.sectionDelivery")}</div>
             <CronDeliveryFields
               form={cronForm.form}
@@ -96,7 +96,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
             />
           </section>
 
-          <section className="crons-form-card crons-form-card-span-2">
+          <section className="crons-form-card crons-form-card-span-2" data-tutorial-id="crons-form-payload">
             <div className="crons-form-section-title">{t("crons.sectionPayload")}</div>
             {cronForm.form.payloadKind === "agentTurn" ? (
               <div className="form-group">
@@ -131,7 +131,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
             )}
           </section>
 
-          <section className="crons-form-card">
+          <section className="crons-form-card" data-tutorial-id="crons-form-schedule">
             <div className="crons-form-section-title">{t("crons.sectionSchedule")}</div>
             <CronScheduleFields
               form={cronForm.form}
@@ -142,7 +142,7 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
             />
           </section>
 
-          <section className="crons-form-card">
+          <section className="crons-form-card" data-tutorial-id="crons-form-execution">
             <div className="crons-form-section-title">{t("crons.sectionExecution")}</div>
 
             <div className="form-group">
@@ -179,8 +179,8 @@ export const CronJobForm = observer(function CronJobForm({ mode, initialData, on
         </div>
       </div>
 
-      <div className="modal-actions">
-        <button className="btn btn-secondary" onClick={onCancel} disabled={cronForm.saving}>
+      <div className="modal-actions" data-tutorial-id="crons-form-actions">
+        <button className="btn btn-secondary" data-tutorial-id="crons-form-cancel" onClick={onCancel} disabled={cronForm.saving}>
           {t("common.cancel")}
         </button>
         <button className="btn btn-primary" onClick={cronForm.handleSubmit} disabled={cronForm.saving}>

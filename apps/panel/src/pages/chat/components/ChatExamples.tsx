@@ -19,7 +19,7 @@ export function ChatExamples({
   const { t } = useTranslation();
 
   return (
-    <div className="chat-examples">
+    <div className="chat-examples" data-tutorial-id="chat-examples">
       <button
         className="chat-examples-toggle"
         onClick={onToggleExpanded}

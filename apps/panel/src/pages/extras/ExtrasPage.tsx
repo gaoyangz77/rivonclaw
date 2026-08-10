@@ -234,7 +234,7 @@ export const ExtrasPage = observer(function ExtrasPage() {
 
   return (
     <div className="page-enter extras-page">
-      <div className="extras-header">
+      <div className="extras-header" data-tutorial-id="extras-header">
         <h1>{t("extras.title")}</h1>
         <p className="extras-subtitle">{t("extras.description")}</p>
       </div>
@@ -243,7 +243,7 @@ export const ExtrasPage = observer(function ExtrasPage() {
 
       <div className="extras-list">
         {/* ── Card 1: Speech-to-Text ── */}
-        <div className="section-card extras-card">
+        <div className="section-card extras-card" data-tutorial-id="extras-stt">
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--stt">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
@@ -345,7 +345,7 @@ export const ExtrasPage = observer(function ExtrasPage() {
         </div>
 
         {/* ── Card 2: Web Search ── */}
-        <div className="section-card extras-card">
+        <div className="section-card extras-card" data-tutorial-id="extras-search">
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--search">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
@@ -411,7 +411,7 @@ export const ExtrasPage = observer(function ExtrasPage() {
         </div>
 
         {/* ── Card 3: Embedding / Memory ── */}
-        <div className="section-card extras-card">
+        <div className="section-card extras-card" data-tutorial-id="extras-embedding">
           <div className="extras-card-head">
             <div className="extras-card-icon extras-card-icon--memory">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>

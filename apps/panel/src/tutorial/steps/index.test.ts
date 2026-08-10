@@ -1,6 +1,35 @@
 import { describe, expect, it } from "vitest"
+import { readFileSync, readdirSync } from "node:fs"
+import { extname, join, resolve } from "node:path"
 import { ROUTES } from "../../routes.js"
+import { LANGUAGE_OPTIONS } from "../../i18n/languages.js"
 import { getStepsForRoute } from "./index.js"
+
+const SRC_ROOT = resolve(__dirname, "../..")
+const TARGET_SELECTOR = /^\[data-tutorial-id="([^"]+)"\]$/
+
+function walkSource(directory: string, files: string[] = []): string[] {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) walkSource(path, files)
+    else if ([".ts", ".tsx"].includes(extname(entry.name))) files.push(path)
+  }
+  return files
+}
+
+function hasTranslation(resource: object, key: string): boolean {
+  let value: unknown = resource
+  for (const segment of key.split(".")) {
+    if (!value || typeof value !== "object" || !(segment in value)) return false
+    value = (value as Record<string, unknown>)[segment]
+  }
+  return typeof value === "string" && value.length > 0
+}
+
+const renderedSource = ["pages", "components"]
+  .flatMap((directory) => walkSource(join(SRC_ROOT, directory)))
+  .map((file) => readFileSync(file, "utf8"))
+  .join("\n")
 
 describe("tutorial step registry", () => {
   it("covers every sidebar route with a tutorial", () => {
@@ -27,5 +56,48 @@ describe("tutorial step registry", () => {
         expect(step.bodyKey, `${route} body key`).toMatch(/^tutorial\./)
       }
     }
+  })
+
+  it("uses stable, rendered targets for every non-Affiliate tutorial", () => {
+    const auditedRoutes = ROUTES.filter((route) =>
+      !route.internal && !route.path.startsWith("/commerce/affiliate")
+    )
+
+    for (const route of auditedRoutes) {
+      const stepIds = new Set<string>()
+      for (const step of getStepsForRoute(route.path)) {
+        expect(step.id, `${route.path} step id`).toMatch(/\S/)
+        expect(stepIds.has(step.id!), `${route.path} duplicate step id ${step.id}`).toBe(false)
+        stepIds.add(step.id!)
+
+        const targetId = step.target.match(TARGET_SELECTOR)?.[1]
+        expect(targetId, `${route.path} stable target for ${step.id}`).toBeDefined()
+        expect(
+          renderedSource.includes(`data-tutorial-id="${targetId}"`),
+          `${route.path} rendered target ${targetId}`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  it("provides English and Chinese copy for every non-Affiliate step", () => {
+    const english = LANGUAGE_OPTIONS.find((language) => language.code === "en")
+    const chinese = LANGUAGE_OPTIONS.find((language) => language.code === "zh")
+    expect(english).toBeDefined()
+    expect(chinese).toBeDefined()
+
+    const missing: string[] = []
+    for (const route of ROUTES.filter((entry) =>
+      !entry.internal && !entry.path.startsWith("/commerce/affiliate")
+    )) {
+      for (const step of getStepsForRoute(route.path)) {
+        for (const language of [english!, chinese!]) {
+          for (const key of [step.titleKey, step.bodyKey]) {
+            if (!hasTranslation(language.resource, key)) missing.push(`${language.code} ${key}`)
+          }
+        }
+      }
+    }
+    expect(missing).toEqual([])
   })
 })

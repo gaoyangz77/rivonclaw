@@ -1,58 +1,22 @@
 import type { TutorialStep } from "../types.js"
+import { tutorialTarget } from "../targets.js"
+
+function step(id: string, targetId: string, key: string, placement: TutorialStep["placement"]): TutorialStep {
+  return {
+    id,
+    target: tutorialTarget(targetId),
+    titleKey: `tutorial.billing.${key}Title`,
+    bodyKey: `tutorial.billing.${key}Body`,
+    placement,
+  }
+}
 
 export const billingSteps: TutorialStep[] = [
-  {
-    target: ".billing-page",
-    titleKey: "tutorial.billing.welcomeTitle",
-    bodyKey: "tutorial.billing.welcomeBody",
-    placement: "bottom",
-  },
-  {
-    target: ".account-billing-section .account-section-header",
-    titleKey: "tutorial.billing.overviewTitle",
-    bodyKey: "tutorial.billing.overviewBody",
-    placement: "bottom",
-  },
-  {
-    target: ".billing-dashboard-grid",
-    titleKey: "tutorial.billing.accountPlanTitle",
-    bodyKey: "tutorial.billing.accountPlanBody",
-    placement: "bottom",
-  },
-  {
-    target: ".billing-usage-list, .billing-meta-grid",
-    titleKey: "tutorial.billing.usageTitle",
-    bodyKey: "tutorial.billing.usageBody",
-    placement: "bottom",
-  },
-  {
-    target: ".billing-account-actions, .billing-action-zone",
-    titleKey: "tutorial.billing.accountActionsTitle",
-    bodyKey: "tutorial.billing.accountActionsBody",
-    placement: "top",
-  },
-  {
-    target: ".billing-subsection",
-    titleKey: "tutorial.billing.shopServicesTitle",
-    bodyKey: "tutorial.billing.shopServicesBody",
-    placement: "bottom",
-  },
-  {
-    target: ".billing-shop-subscribe-flow",
-    titleKey: "tutorial.billing.subscribeFlowTitle",
-    bodyKey: "tutorial.billing.subscribeFlowBody",
-    placement: "bottom",
-  },
-  {
-    target: ".billing-shop-list",
-    titleKey: "tutorial.billing.shopListTitle",
-    bodyKey: "tutorial.billing.shopListBody",
-    placement: "bottom",
-  },
-  {
-    target: ".billing-table-wrap, .billing-subsection:last-child",
-    titleKey: "tutorial.billing.paymentsTitle",
-    bodyKey: "tutorial.billing.paymentsBody",
-    placement: "top",
-  },
+  step("billing-welcome", "billing-page", "welcome", "bottom"),
+  step("billing-overview", "billing-overview", "overview", "bottom"),
+  step("billing-account-plan", "billing-account-plan", "accountPlan", "bottom"),
+  step("billing-shop-services", "billing-shop-services", "shopServices", "bottom"),
+  step("billing-subscribe", "billing-subscribe-flow", "subscribeFlow", "bottom"),
+  step("billing-shop-list", "billing-shop-list", "shopList", "bottom"),
+  step("billing-payments", "billing-payments", "payments", "top"),
 ]

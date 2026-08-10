@@ -444,7 +444,7 @@ export function ChannelAccountsTable({
       <tr className="channel-recipients-row">
         <td className="channel-expand-col"></td>
         <td colSpan={6}>
-          <div className="recipients-section">
+          <div className="recipients-section" data-tutorial-id="channels-recipients">
             {/* Pending Pairing Requests */}
             {data.pairingRequests.length > 0 && (
               <div>
@@ -574,7 +574,7 @@ export function ChannelAccountsTable({
     <div className="section-card">
       <h3>{t("channels.allAccounts")}</h3>
       <div className="table-scroll-wrap">
-        <table className="channel-table">
+        <table className="channel-table" data-tutorial-id="channels-accounts">
           <thead>
             <tr>
               <th className="channel-expand-col"></th>

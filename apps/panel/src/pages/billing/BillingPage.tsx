@@ -47,7 +47,7 @@ export const BillingPage = observer(function BillingPage() {
   }
 
   return (
-    <div className="billing-page page-enter">
+    <div className="billing-page page-enter" data-tutorial-id="billing-page">
       <AccountBillingSection />
     </div>
   );

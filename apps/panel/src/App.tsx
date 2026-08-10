@@ -326,7 +326,6 @@ export const App = observer(function App() {
   }
 
   const ChatComponent = ROUTE_MAP.get("/")!.component;
-  const ChannelsComponent = ROUTE_MAP.get("/connections/channels")!.component;
   const currentRoute = ROUTE_MAP.get(currentPath);
   const isKeepMounted = currentRoute?.keepMounted;
   const isAccount = currentPath === "/account/profile";
@@ -341,7 +340,6 @@ export const App = observer(function App() {
         <div className={currentPath === "/" ? "contents-toggle" : "hidden-toggle"}>
           <ChatComponent />
         </div>
-        {currentPath === "/connections/channels" && <ChannelsComponent />}
         {isAccount &&
           (() => {
             const AccountComponent = currentRoute!.component;

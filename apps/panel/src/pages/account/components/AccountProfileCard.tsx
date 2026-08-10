@@ -66,7 +66,7 @@ export function AccountProfileCard({
   }
 
   return (
-    <div className="section-card account-profile-card">
+    <div className="section-card account-profile-card" data-tutorial-id="account-profile">
       <div className="account-profile-header">
         <div className="account-profile-identity">
           <div className="account-avatar">{initial}</div>
@@ -102,7 +102,7 @@ export function AccountProfileCard({
           </span>
         </div>
         {inviteCode && (
-          <div className="account-info-item account-invite-item">
+          <div className="account-info-item account-invite-item" data-tutorial-id="account-invite-code">
             <span className="account-info-label account-invite-label">
               {t("account.inviteCode")}
               <span
@@ -129,7 +129,7 @@ export function AccountProfileCard({
           </div>
         )}
         {llmUsages.length > 0 && (
-          <div className="account-info-item account-info-item-wide quota-weekly account-usage-list">
+          <div className="account-info-item account-info-item-wide quota-weekly account-usage-list" data-tutorial-id="account-quota">
             {llmUsages.map((usage) => {
               const remainingPercent = usage.remainingPercent;
               return (

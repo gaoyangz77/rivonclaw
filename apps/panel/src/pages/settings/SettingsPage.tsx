@@ -27,7 +27,7 @@ export const SettingsPage = observer(function SettingsPage() {
   const entityStore = useEntityStore();
 
   return (
-    <div className="page-enter">
+    <div className="page-enter" data-tutorial-id="settings-page">
       <h1>{t("settings.title")}</h1>
       <p className="page-description">{t("settings.description")}</p>
 

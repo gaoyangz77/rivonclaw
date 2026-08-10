@@ -97,7 +97,7 @@ export function ConnectShopModal({
       title={t("ecommerce.addShopModal.title")}
       preventBackdropClose={oauthWaiting}
     >
-      <div className="modal-form-col">
+      <div className="modal-form-col" data-tutorial-id="shops-connect-form">
         {!oauthWaiting ? (
           <>
             <div>
@@ -171,9 +171,10 @@ export function ConnectShopModal({
             {matchError && (
               <div className="form-hint form-hint-error">{matchError}</div>
             )}
-            <div className="modal-actions">
+            <div className="modal-actions" data-tutorial-id="shops-connect-actions">
               <button
                 className="btn btn-secondary"
+                data-tutorial-id="shops-connect-cancel"
                 onClick={onClose}
               >
                 {t("common.cancel")}
@@ -188,7 +189,7 @@ export function ConnectShopModal({
             </div>
           </>
         ) : (
-          <div className="oauth-flow">
+          <div className="oauth-flow" data-tutorial-id="shops-oauth-flow">
             <div className="oauth-flow-step">
               <span className="oauth-flow-step-num">1</span>
               <span className="oauth-flow-step-text">{t("ecommerce.addShopModal.authLink")}</span>
