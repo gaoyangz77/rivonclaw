@@ -485,7 +485,8 @@ export const CustomerServiceWorkspaceModel = types
     }
 
     function shouldShowConversation(item: GQL.CustomerServiceConversationInboxItem): boolean {
-      if (!item.isOpen) return false;
+      const search = normalizedSearch(self.conversationSearch);
+      if (!item.isOpen && !search) return false;
       if (self.conversationShopId && item.shopId !== self.conversationShopId) return false;
       const status = statusForConversationFilter(self.conversationStatusFilter);
       if (status && item.status !== status) return false;
@@ -493,7 +494,6 @@ export const CustomerServiceWorkspaceModel = types
       if (aiEnabled != null && item.aiEnabled !== aiEnabled) return false;
       if (self.conversationEscalationFilter === "open" && !(item.openEscalationCount > 0)) return false;
       if (self.conversationEscalationFilter === "none" && item.openEscalationCount > 0) return false;
-      const search = normalizedSearch(self.conversationSearch);
       return matchesText(search, [
         item.conversationId,
         item.buyerNickname,

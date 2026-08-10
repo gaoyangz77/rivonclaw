@@ -77,3 +77,39 @@ describe("CustomerServiceWorkspaceModel order context", () => {
     expect(store.selectedConversationOrderContext).toBeNull();
   });
 });
+
+describe("CustomerServiceWorkspaceModel conversation search", () => {
+  function changedConversation(isOpen: boolean) {
+    return {
+      conversation: {
+        shopId: "shop-1",
+        platformShopId: "platform-shop-1",
+        conversationId: "conversation-closed",
+        replyStatus: GQL.CustomerServiceConversationStatus.Resolved,
+        isOpen,
+        aiEnabled: true,
+        participants: [{ role: "BUYER", userId: "buyer-1", nickname: "jennediel" }],
+        openEscalationCount: 0,
+      },
+    };
+  }
+
+  it("keeps a matching closed conversation while an exact search is active", () => {
+    const store = CustomerServiceWorkspaceModel.create({}, { apolloClient: {} as any });
+    store.setConversationSearchDraft("jennediel");
+    store.applyConversationSearch();
+
+    store.ingestConversationChanged(changedConversation(false));
+
+    expect(store.conversationItems).toHaveLength(1);
+    expect(store.conversationItems[0].conversationId).toBe("conversation-closed");
+  });
+
+  it("excludes a closed conversation when no search is active", () => {
+    const store = CustomerServiceWorkspaceModel.create({}, { apolloClient: {} as any });
+
+    store.ingestConversationChanged(changedConversation(false));
+
+    expect(store.conversationItems).toHaveLength(0);
+  });
+});
