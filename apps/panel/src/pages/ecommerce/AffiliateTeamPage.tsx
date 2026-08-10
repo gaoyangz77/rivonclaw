@@ -1140,7 +1140,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
   return (
     <div className="page-enter affiliate-team-page">
-      <header className="affiliate-team-header">
+      <header className="affiliate-team-header" data-tutorial-id="affiliate-team-header">
         <div className="affiliate-team-title-block">
           <span className="affiliate-team-eyebrow">{t("ecommerce.affiliateTeam.eyebrow")}</span>
           <h1>{t("ecommerce.affiliateTeam.title")}</h1>
@@ -1158,10 +1158,16 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         </div>
       </header>
 
-      <div className="affiliate-team-page-tabs" role="tablist" aria-label={t("ecommerce.affiliateTeam.pageTabsLabel")}>
+      <div
+        className="affiliate-team-page-tabs"
+        role="tablist"
+        aria-label={t("ecommerce.affiliateTeam.pageTabsLabel")}
+        data-tutorial-id="affiliate-team-tabs"
+      >
         {pageTabs.map((tab, index) => (
           <button
             id={`affiliate-team-tab-${tab.id.toLowerCase()}`}
+            data-tutorial-id={`affiliate-team-tab-${tab.id.toLowerCase()}`}
             className={`affiliate-team-page-tab ${pageTab === tab.id ? "is-active" : ""}`}
             type="button"
             role="tab"
@@ -1210,7 +1216,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         <div><span>{t("ecommerce.affiliateTeam.protectedCreators")}</span><strong>{protectedCreatorCount}</strong><small>{t("ecommerce.affiliateTeam.appliedProtections", { count: appliedProtectionCount })}</small></div>
       </section>
 
-      <section className="affiliate-team-responsibility">
+      <section className="affiliate-team-responsibility" data-tutorial-id="affiliate-team-responsibilities">
         <div className="affiliate-team-responsibility-head">
           <div>
             <span>{t("ecommerce.affiliateTeam.responsibilityMap")}</span>
@@ -1375,7 +1381,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         hidden={pageTab !== "ASSIGNMENTS"}
       >
       <section className="affiliate-protection-boundary">
-        <div className="affiliate-protection-boundary-head">
+        <div className="affiliate-protection-boundary-head" data-tutorial-id="affiliate-team-assignments">
           <div className="affiliate-protection-boundary-title">
             <span className="affiliate-protection-boundary-icon"><InfoIcon /></span>
             <div>
@@ -1513,7 +1519,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         hidden={pageTab !== "SAFETY"}
       >
       <section className="affiliate-team-policy-section is-open">
-        <div className="affiliate-team-policy-heading">
+        <div className="affiliate-team-policy-heading" data-tutorial-id="affiliate-team-safety">
           <div>
             <span className="affiliate-team-eyebrow">
               {t("ecommerce.affiliateWorkspace.policies.title")}

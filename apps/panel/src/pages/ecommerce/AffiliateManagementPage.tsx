@@ -545,7 +545,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
 
   return (
     <div className="page-enter affiliate-workbench affiliate-intelligence-page">
-      <div className="affiliate-intelligence-hero">
+      <div className="affiliate-intelligence-hero" data-tutorial-id="affiliate-intelligence-header">
         <div>
           <p className="affiliate-intelligence-kicker">
             {t("ecommerce.affiliateWorkspace.intelligenceKicker")}
@@ -559,6 +559,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
           <button
             className="btn btn-secondary affiliate-intelligence-refresh"
             type="button"
+            data-tutorial-id="affiliate-intelligence-refresh"
             onClick={() => entityStore.fetchAffiliateMlInsights().catch(() => {})}
             disabled={entityStore.affiliateMlInsightsLoading}
           >
@@ -1265,7 +1266,7 @@ function AffiliateMlInsightsPanel({
           />
         ) : null}
         {availability.length === 0 ? (
-          <div className="affiliate-intelligence-empty">
+          <div className="affiliate-intelligence-empty" data-tutorial-id="affiliate-intelligence-analysis">
             <InfoIcon />
             <strong>{selectedSubject.label}</strong>
             <span>
@@ -1281,7 +1282,7 @@ function AffiliateMlInsightsPanel({
             summary={productionPresentation.evaluationSummary}
           />
         ) : (
-          <div className="affiliate-model-stage-grid">
+          <div className="affiliate-model-stage-grid" data-tutorial-id="affiliate-intelligence-analysis">
             <AffiliateModelStageCard
               availability={availability}
               stage="UNIFIED"
@@ -1336,7 +1337,7 @@ function AffiliateProductionModelDashboard({
 
   if (!summary.comparisonAvailable) {
     return (
-      <div className="affiliate-intelligence-empty">
+      <div className="affiliate-intelligence-empty" data-tutorial-id="affiliate-intelligence-analysis">
         <InfoIcon />
         <strong>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</strong>
         <span>{t("ecommerce.affiliateWorkspace.intelligenceComparisonUnavailable")}</span>
@@ -1350,7 +1351,7 @@ function AffiliateProductionModelDashboard({
         <span>{t("ecommerce.affiliateWorkspace.intelligenceClaimPrecisionTitle")}</span>
         <strong>{modelLabel}</strong>
       </div>
-      <div className="affiliate-intelligence-claim-section">
+      <div className="affiliate-intelligence-claim-section" data-tutorial-id="affiliate-intelligence-analysis">
         <div className="affiliate-intelligence-comparison">
           <div className="affiliate-intelligence-card-head">
             <div className="affiliate-intelligence-card-title">
@@ -1892,7 +1893,7 @@ function AffiliateInsightScopeRail({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="affiliate-intelligence-scope-rail">
+    <div className="affiliate-intelligence-scope-rail" data-tutorial-id="affiliate-intelligence-scopes">
       {subjects.map((subject) => {
         const subjectRows = rows.filter((row) => row.subjectKey === subject.key);
         const modelStates = subjectRows.map((row) =>

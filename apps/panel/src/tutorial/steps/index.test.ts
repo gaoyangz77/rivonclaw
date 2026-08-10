@@ -7,6 +7,15 @@ import { getStepsForRoute } from "./index.js"
 
 const SRC_ROOT = resolve(__dirname, "../..")
 const TARGET_SELECTOR = /^\[data-tutorial-id="([^"]+)"\]$/
+const AUDITED_AFFILIATE_ROUTES = new Set([
+  "/commerce/affiliate/team",
+  "/commerce/affiliate/campaigns",
+  "/commerce/affiliate/intelligence",
+])
+
+function isAuditedRoute(path: string): boolean {
+  return !path.startsWith("/commerce/affiliate") || AUDITED_AFFILIATE_ROUTES.has(path)
+}
 
 function walkSource(directory: string, files: string[] = []): string[] {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -58,9 +67,9 @@ describe("tutorial step registry", () => {
     }
   })
 
-  it("uses stable, rendered targets for every non-Affiliate tutorial", () => {
+  it("uses stable, rendered targets for every audited tutorial", () => {
     const auditedRoutes = ROUTES.filter((route) =>
-      !route.internal && !route.path.startsWith("/commerce/affiliate")
+      !route.internal && isAuditedRoute(route.path)
     )
 
     for (const route of auditedRoutes) {
@@ -80,7 +89,7 @@ describe("tutorial step registry", () => {
     }
   })
 
-  it("provides English and Chinese copy for every non-Affiliate step", () => {
+  it("provides English and Chinese copy for every audited step", () => {
     const english = LANGUAGE_OPTIONS.find((language) => language.code === "en")
     const chinese = LANGUAGE_OPTIONS.find((language) => language.code === "zh")
     expect(english).toBeDefined()
@@ -88,7 +97,7 @@ describe("tutorial step registry", () => {
 
     const missing: string[] = []
     for (const route of ROUTES.filter((entry) =>
-      !entry.internal && !entry.path.startsWith("/commerce/affiliate")
+      !entry.internal && isAuditedRoute(entry.path)
     )) {
       for (const step of getStepsForRoute(route.path)) {
         for (const language of [english!, chinese!]) {

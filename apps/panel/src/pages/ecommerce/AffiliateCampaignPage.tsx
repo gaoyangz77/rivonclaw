@@ -861,7 +861,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
   return (
     <div className="affiliate-campaign-page">
-      <header className="affiliate-campaign-hero">
+      <header className="affiliate-campaign-hero" data-tutorial-id="affiliate-campaign-header">
         <div className="affiliate-campaign-hero-copy">
           <span className="affiliate-campaign-eyebrow">
             {t("ecommerce.affiliateCampaign.eyebrow")}
@@ -879,13 +879,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           >
             <RefreshIcon /> {t("common.refresh")}
           </button>
-          <button type="button" className="btn btn-primary" onClick={openCreate}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openCreate}
+            data-tutorial-id="affiliate-campaign-create"
+          >
             <UserPlusIcon /> {t("ecommerce.affiliateCampaign.create")}
           </button>
         </div>
       </header>
 
-      <section className="affiliate-campaign-command-strip">
+      <section className="affiliate-campaign-command-strip" data-tutorial-id="affiliate-campaign-summary">
         <div className="affiliate-campaign-window">
           <div className="affiliate-campaign-window-copy">
             <span>{t("ecommerce.affiliateCampaign.sendingWindow")}</span>
@@ -920,7 +925,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       </section>
 
       {campaignPortfolio.length === 0 && !campaignPortfolioQuery.loading ? (
-        <section className="affiliate-campaign-empty">
+        <section className="affiliate-campaign-empty" data-tutorial-id="affiliate-campaign-directory">
           <div className="affiliate-campaign-empty-orbit" aria-hidden="true">
             <span />
             <span />
@@ -936,7 +941,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           </div>
         </section>
       ) : (
-        <section className="affiliate-campaign-directory">
+        <section className="affiliate-campaign-directory" data-tutorial-id="affiliate-campaign-directory">
           <header className="affiliate-campaign-directory-header">
             <div>
               <span>{t("ecommerce.affiliateCampaign.portfolio")}</span>
@@ -1438,7 +1443,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         preventBackdropClose={writeCampaignState.loading}
       >
         <CampaignWizardSteps step={wizardStep} t={t} />
-        <div className="affiliate-campaign-wizard-body">
+        <div className="affiliate-campaign-wizard-body" data-tutorial-id="affiliate-campaign-wizard">
           {wizardStep === 1 && (
             <div className="affiliate-campaign-wizard-grid">
               <section className="affiliate-campaign-wizard-copy">
@@ -2180,6 +2185,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           <button
             type="button"
             className="btn btn-secondary"
+            data-tutorial-id="affiliate-campaign-wizard-cancel"
             onClick={() => {
               if (wizardStep === 1) setWizardOpen(false);
               else setWizardStep((step) => step - 1);
