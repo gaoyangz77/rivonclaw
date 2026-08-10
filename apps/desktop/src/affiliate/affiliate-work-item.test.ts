@@ -1514,6 +1514,9 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
       "final assistant response exactly NO_REPLY",
     );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
+      "Never select FAILED_OR_INCOMPLETE",
+    );
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Required Action: HANDLE_CREATOR_MESSAGE");
     expect(agentCall?.[1]?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_HANDLING");
@@ -2523,7 +2526,7 @@ describe("affiliate work item dispatch", () => {
     );
   });
 
-  it("does not treat a handled collaboration as a handled relationship work boundary", async () => {
+  it("leaves an unresolved relationship work boundary retryable", async () => {
     const graphqlFetch = vi.fn(async (query: string) => {
       if (query.includes("affiliateExpectedSalesPredictions")) {
         return {
@@ -2555,15 +2558,6 @@ describe("affiliate work item dispatch", () => {
               },
             },
           ],
-        };
-      }
-      if (query.includes("ResolveAffiliateWorkItem")) {
-        return {
-          resolveAffiliateWorkItem: {
-            decision: "FAILED_OR_INCOMPLETE",
-            stale: false,
-            collaborationRecord: null,
-          },
         };
       }
       throw new Error(`Unexpected GraphQL call: ${query}`);
@@ -2603,15 +2597,14 @@ describe("affiliate work item dispatch", () => {
 
     await vi.waitFor(() => {
       expect(graphqlFetch).toHaveBeenCalledWith(
-        expect.stringContaining("ResolveAffiliateWorkItem"),
-        expect.objectContaining({
-          input: expect.objectContaining({
-            creatorRelationshipId: "relationship-001",
-            handledSignalAt: "2026-05-11T00:01:00.000Z",
-          }),
-        }),
+        expect.stringContaining("AffiliateWorkItems"),
+        expect.anything(),
       );
     });
+    expect(graphqlFetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("ResolveAffiliateWorkItem"),
+      expect.anything(),
+    );
   });
 
   it("does not submit fallback failure after a structured resolution removes the work item", async () => {

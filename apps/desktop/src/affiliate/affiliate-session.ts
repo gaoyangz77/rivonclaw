@@ -211,6 +211,7 @@ export class AffiliateSession {
       "- affiliate_resolve_work_item supports only three platform action types: SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent unsupported action types.",
       "- Each REQUEST_ACTION action must populate the required payload matching its type: SEND_MESSAGE -> messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent.",
       "- You own ordinary Affiliate judgment. If a concrete supported action genuinely requires a human decision, keep decision=REQUEST_ACTION and include humanReviewRequest with one structured reason and one concise decision-ready question. This forces a pending proposal; it does not transfer or rewrite the working agenda.",
+      "- Agent-facing resolution has only two valid decisions: REQUEST_ACTION or NO_ACTION_NEEDED. Never select FAILED_OR_INCOMPLETE. Retry a failed tool call; if the tool or runtime remains unavailable, let the run end unresolved so the same business facts remain retryable.",
       "- Never pass provider message, conversation, thread, or account route identifiers; backend resolves exact routes from the work boundary and relationship.",
       "- For REVIEW_SAMPLE_APPLICATION, use the local action.sampleApplicationRecordId returned by an Affiliate read tool, action.sampleReviewDecision, and optional action.rejectReason. The backend resolves the Provider ID and re-validates TikTok immediately before executing. Do not send sampleReviewIntent: {}.",
       "- Omit optional fields when unknown. Never send empty strings for Date, ID, or object fields.",
@@ -681,30 +682,12 @@ export class AffiliateSession {
         return;
       }
 
-      const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
-        RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
-        {
-          input: {
-            triggerShopId: workItem.triggerShopId,
-            creatorRelationshipId: workItem.creatorRelationshipId,
-            handledSignalAt: workItemBoundaryAt(workItem),
-            baseCheckpointId: this.runCheckpoints.get(runId)?.baseCheckpointId ?? null,
-            baseEventCursor: this.runCheckpoints.get(runId)?.baseEventCursor ?? 0,
-            candidateCheckpointId: this.runCheckpoints.get(runId)?.candidateCheckpointId,
-            targetEventCursor: this.runCheckpoints.get(runId)?.targetEventCursor ?? 0,
-            decision: "FAILED_OR_INCOMPLETE",
-            operatorSummary: `Agent run ${runId} completed without a structured affiliate_resolve_work_item decision.`,
-          },
-        },
-      );
-      const payload = result.resolveAffiliateWorkItem;
-      log.info(
-        `Affiliate work item completion callback: runId=${runId} ` +
-          `subject=${workItemSubjectLabel(workItem)} decision=${payload.decision} ` +
-          `stale=${payload.stale} status=${payload.affiliateCollaboration?.status ?? ""}`,
+      log.warn(
+        `Affiliate Agent run ended without a structured resolution; leaving the work boundary ` +
+          `unacknowledged and retryable: runId=${runId} subject=${workItemSubjectLabel(workItem)}`,
       );
     } catch (err) {
-      log.error(`Failed to complete unresolved affiliate work item for run ${runId}:`, err);
+      log.error(`Failed to verify unresolved affiliate work item for run ${runId}:`, err);
     }
   }
 

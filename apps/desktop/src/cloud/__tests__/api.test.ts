@@ -318,6 +318,50 @@ describe("cloud-graphql handler", () => {
     });
   });
 
+  it("rejects agent-authored FAILED_OR_INCOMPLETE resolutions", async () => {
+    const graphqlFetch = vi.fn();
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+
+    const mutation = `
+      mutation ResolveAffiliateWorkItem($input: ResolveAffiliateWorkItemInput!) {
+        resolveAffiliateWorkItem(input: $input) {
+          decision
+          stale
+        }
+      }
+    `;
+
+    const { handled, res } = await dispatch("POST", pathname, ctx, {
+      query: mutation,
+      variables: {
+        input: {
+          triggerShopId: "shop-1",
+          creatorRelationshipId: "relationship-1",
+          decision: "FAILED_OR_INCOMPLETE",
+          operatorSummary: "Tools were unavailable.",
+        },
+      },
+    });
+
+    expect(handled).toBe(true);
+    expect(res._status).toBe(200);
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [
+        {
+          message: expect.stringContaining(
+            "FAILED_OR_INCOMPLETE is reserved for trusted system preflight failures",
+          ),
+        },
+      ],
+    });
+  });
+
   it("injects the active affiliate run checkpoint into resolve work item calls", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {

@@ -140,6 +140,12 @@ function sanitizeCloudGraphqlVariables(
   if (!hasNonEmptyString(input.creatorRelationshipId)) {
     throw new Error("creatorRelationshipId is required for affiliate_resolve_work_item");
   }
+  if (input.decision === "FAILED_OR_INCOMPLETE") {
+    throw new Error(
+      "FAILED_OR_INCOMPLETE is reserved for trusted system preflight failures and cannot be selected by the Affiliate Agent. " +
+      "Retry the failed read or action tool. If the run cannot complete because the tool or runtime is unavailable, leave the work item unresolved so it remains retryable; do not transfer it to staff.",
+    );
+  }
   const inputWithCheckpoint = injectAffiliateResolveCheckpoint(input);
   if (input.decision !== "REQUEST_ACTION") {
     const normalizedInput = omitEmptyAffiliateStrings({
