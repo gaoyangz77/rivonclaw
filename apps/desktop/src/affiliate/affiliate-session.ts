@@ -402,8 +402,17 @@ export class AffiliateSession {
       params.involvedShopInstructions,
       workflowSkillCatalog,
     );
-    this.logDispatchPromptContext(params, systemPrompt);
-    const provisionalRunId = params.idempotencyKey;
+    // The work-item key is a semantic version used by AffiliateInbound to suppress
+    // duplicate delivery while a run is active. It cannot also be the transcript
+    // admission key: a deliberate replay of the same work version (for example
+    // after a rejected proposal or a missing local checkpoint) must create a new
+    // user turn instead of colliding with the prior transcript identity.
+    // candidateCheckpointId is generated once per intentional dispatch attempt,
+    // so retries inside this request remain idempotent while later replays do not.
+    const agentRequestIdempotencyKey =
+      `${params.idempotencyKey}:attempt:${checkpoint.candidateCheckpointId}`;
+    this.logDispatchPromptContext(params, systemPrompt, agentRequestIdempotencyKey);
+    const provisionalRunId = agentRequestIdempotencyKey;
     registerActiveAffiliateRunCheckpoint({
       creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
       sessionKey: this.scopeKey,
@@ -428,7 +437,7 @@ export class AffiliateSession {
         message: params.message,
         extraSystemPrompt: systemPrompt,
         promptMode: "raw",
-        idempotencyKey: params.idempotencyKey,
+        idempotencyKey: agentRequestIdempotencyKey,
       });
     } catch (err) {
       unregisterActiveAffiliateRunCheckpoint({
@@ -474,12 +483,14 @@ export class AffiliateSession {
       businessDeveloperPrompt?: string | null;
     },
     systemPrompt: string,
+    agentRequestIdempotencyKey: string,
   ): void {
     log.info(
       [
         "Affiliate dispatch prompt context",
         `scope=${this.scopeKey}`,
         `idempotencyKey=${params.idempotencyKey}`,
+        `agentRequestIdempotencyKey=${agentRequestIdempotencyKey}`,
         `triggerKind=${this.affiliateContext.triggerKind}`,
         `triggerId=${this.affiliateContext.triggerId}`,
         `shopId=${this.affiliateContext.shopId}`,
@@ -498,6 +509,7 @@ export class AffiliateSession {
         "[Affiliate Dispatch Full Prompt]",
         `scope=${this.scopeKey}`,
         `idempotencyKey=${params.idempotencyKey}`,
+        `agentRequestIdempotencyKey=${agentRequestIdempotencyKey}`,
         "",
         "## extraSystemPrompt",
         systemPrompt,

@@ -1298,6 +1298,49 @@ describe("affiliate work item dispatch", () => {
     );
   });
 
+  it("uses a fresh transcript admission key when deliberately replaying the same work version", async () => {
+    const workItem = createSampleReviewWorkItem();
+    let runCount = 0;
+    mockRpcRequest.mockImplementation(async (method: string) => {
+      if (method === "agent") return { runId: `run-replay-${++runCount}` };
+      return {};
+    });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "platform-sample-001",
+        sampleApplicationRecordId: "sample-record-001",
+        affiliateCollaborationId: "collab-001",
+        creatorId: "creator-001",
+        productId: "product-001",
+      },
+    );
+
+    const first = await session.handleWorkItem(workItem);
+    session.onRunCompleted(first.runId!);
+    const second = await session.handleWorkItem(workItem);
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((call) => call[0] === "agent");
+    expect(agentCalls).toHaveLength(2);
+    const firstKey = agentCalls[0]?.[1]?.idempotencyKey as string;
+    const secondKey = agentCalls[1]?.[1]?.idempotencyKey as string;
+    const semanticKey = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })?.idempotencyKey;
+    expect(firstKey).toMatch(new RegExp(`^${semanticKey}:attempt:`));
+    expect(secondKey).toMatch(new RegExp(`^${semanticKey}:attempt:`));
+    expect(secondKey).not.toBe(firstKey);
+  });
+
   it.each([
     {
       name: "the checkpoint and event cursor base is stale",
