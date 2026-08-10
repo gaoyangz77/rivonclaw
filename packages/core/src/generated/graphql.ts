@@ -2315,7 +2315,9 @@ export const AffiliateLifecycleEventType = {
   TagAdded: 'TAG_ADDED',
   TagRemoved: 'TAG_REMOVED',
   TargetInviteCreated: 'TARGET_INVITE_CREATED',
-  WorkItemResolved: 'WORK_ITEM_RESOLVED'
+  WorkItemRequeued: 'WORK_ITEM_REQUEUED',
+  WorkItemResolved: 'WORK_ITEM_RESOLVED',
+  WorkItemRetryRequested: 'WORK_ITEM_RETRY_REQUESTED'
 } as const;
 
 export type AffiliateLifecycleEventType = typeof AffiliateLifecycleEventType[keyof typeof AffiliateLifecycleEventType];
