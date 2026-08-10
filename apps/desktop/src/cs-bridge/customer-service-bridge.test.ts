@@ -697,7 +697,9 @@ describe("affiliate message dispatch", () => {
 
     expect(setSessionRunProfileCalls).toHaveLength(0);
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
   });
 
   it("drops affiliate messages when the shop is not known locally", async () => {
@@ -1027,6 +1029,7 @@ describe("session key construction", () => {
       expect.objectContaining({
         sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-ABC",
       }),
+      360_000,
     );
   });
 
@@ -1068,6 +1071,7 @@ describe("session key construction", () => {
       expect.objectContaining({
         sessionKey: "agent:customer-service:cs:shopee:mongo-id-123:conv-PLAT",
       }),
+      360_000,
     );
     expect(mockRpcRequest).toHaveBeenCalledWith(
       "agent",
@@ -1091,6 +1095,7 @@ describe("session key construction", () => {
       expect.objectContaining({
         sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-DEF",
       }),
+      360_000,
     );
   });
 });
@@ -1284,7 +1289,7 @@ describe("CS RunProfile setup", () => {
 
     // Bridge no longer validates profile existence — it stores the ID and lets the model
     // resolve at effective-tools query time (returning empty tools if not found).
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything(), 360_000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
     const agentCall = mockRpcRequest.mock.calls.findLast((call: any[]) => call[0] === "agent");
     expect(agentCall?.[1]).toEqual(
@@ -1329,7 +1334,9 @@ describe("CS RunProfile setup", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-2" }));
 
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
     expect(setSessionRunProfileCalls).toContainEqual({
       sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-789",
@@ -1347,7 +1354,9 @@ describe("CS RunProfile setup", () => {
     await triggerMessage(bridge, createFrame());
 
     // Missing RunProfile fails setup before gateway registration/agent dispatch.
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
     expect(setSessionRunProfileCalls).toHaveLength(0);
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
@@ -1368,17 +1377,21 @@ describe("session registration", () => {
       }),
     );
 
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", {
-      sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-100",
-      csContext: {
-        shopId: "mongo-id-123",
-        conversationId: "conv-100",
-        buyerUserId: "buyer-200",
-        imUserId: "buyer-200",
-        orderId: null,
-        recentOrders: [],
+    expect(mockRpcRequest).toHaveBeenCalledWith(
+      "cs_register_session",
+      {
+        sessionKey: "agent:customer-service:cs:tiktok:mongo-id-123:conv-100",
+        csContext: {
+          shopId: "mongo-id-123",
+          conversationId: "conv-100",
+          buyerUserId: "buyer-200",
+          imUserId: "buyer-200",
+          orderId: null,
+          recentOrders: [],
+        },
       },
-    });
+      360_000,
+    );
   });
 
   it("csContext contains shop.objectId, not platform ID", async () => {
@@ -1424,6 +1437,7 @@ describe("session registration", () => {
       expect.objectContaining({
         csContext: expect.objectContaining({ orderId: "order-555" }),
       }),
+      360_000,
     );
   });
 
@@ -1438,7 +1452,7 @@ describe("session registration", () => {
     await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest).toHaveBeenCalledTimes(1);
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything(), 360_000);
     // No RunProfile set should have been called
     expect(setSessionRunProfileCalls).toHaveLength(0);
   });
@@ -1727,7 +1741,7 @@ describe("agent dispatch", () => {
     await triggerMessage(bridge, createFrame({ messageId: "msg-fail" }));
 
     expect(mockRpcRequest).toHaveBeenCalledTimes(2);
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything(), 360_000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
   });
 });
@@ -1767,7 +1781,7 @@ describe("error scenarios", () => {
     await triggerMessage(bridge, createFrame());
 
     expect(mockRpcRequest).toHaveBeenCalledTimes(1);
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything(), 360_000);
     expect(setSessionRunProfileCalls).toHaveLength(0);
   });
 
@@ -1780,7 +1794,7 @@ describe("error scenarios", () => {
 
     // Bridge no longer validates profile existence — it stores the ID.
     expect(mockRpcRequest).toHaveBeenCalledTimes(2);
-    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest).toHaveBeenCalledWith("cs_register_session", expect.anything(), 360_000);
     expect(mockRpcRequest).toHaveBeenCalledWith("agent", expect.anything(), 360000);
   });
 
@@ -1861,6 +1875,7 @@ describe("reactive entity cache sync", () => {
         expect.objectContaining({
           csContext: expect.objectContaining({ shopId: "shop-1" }),
         }),
+        360_000,
       );
     });
   });
@@ -1979,6 +1994,7 @@ describe("reactive entity cache sync", () => {
         expect.objectContaining({
           csContext: expect.objectContaining({ shopId: "shop-1" }),
         }),
+        360_000,
       );
     });
   });
@@ -2104,6 +2120,7 @@ describe("reactive entity cache sync", () => {
         expect.objectContaining({
           sessionKey: "agent:customer-service:cs:tiktok:shop-1:conv-789",
         }),
+        360_000,
       );
     });
   });
@@ -2178,6 +2195,7 @@ describe("reactive entity cache sync", () => {
       expect(mockRpcRequest).toHaveBeenCalledWith(
         "cs_register_session",
         expect.objectContaining({ csContext: expect.objectContaining({ shopId: "shop-1" }) }),
+        360_000,
       );
 
       // Reset and verify shop-4 works:
@@ -2198,6 +2216,7 @@ describe("reactive entity cache sync", () => {
       expect(mockRpcRequest).toHaveBeenCalledWith(
         "cs_register_session",
         expect.objectContaining({ csContext: expect.objectContaining({ shopId: "shop-4" }) }),
+        360_000,
       );
     });
   });
@@ -2268,7 +2287,9 @@ describe("CS session lifecycle", () => {
 
     // ensureBackendSession fails before setup, so neither cs_register_session nor agent is called
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
   });
 
   it("skips agent dispatch when no auth session available", async () => {
@@ -2692,7 +2713,9 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-2" }));
 
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
     expectDispatchedModel("openai", "gpt-4o");
   });
 
@@ -2710,7 +2733,9 @@ describe("multi-provider model override", () => {
 
     await triggerMessage(bridge, createFrame({ messageId: "msg-model-default-2" }));
 
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
     expectDispatchedModel("rivonclaw-pro", "gpt-5.5");
   });
 });
@@ -2869,7 +2894,9 @@ describe("escalate", () => {
         idempotencyKey: "cs-escalate:esc_cloud_001",
       }),
     );
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
   });
 

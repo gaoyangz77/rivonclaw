@@ -66,6 +66,7 @@ const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
 // This bounds the wait for OpenClaw's accepted acknowledgement, not the agent run itself.
 const CS_AGENT_DISPATCH_RPC_TIMEOUT_MS = 360_000;
+const CS_SESSION_REGISTRATION_RPC_TIMEOUT_MS = 360_000;
 const DEFAULT_BUYER_MESSAGE_QUIET_WINDOW_MS = 10_000;
 
 function resolveBuyerMessageQuietWindowMs(): number {
@@ -2030,10 +2031,14 @@ export class CustomerServiceSession {
       return { skipped: true, durationMs: 0 };
     }
     const startedAt = Date.now();
-    await openClawConnector.request("cs_register_session", {
-      sessionKey: this.scopeKey,
-      csContext: this.csContext,
-    });
+    await openClawConnector.request(
+      "cs_register_session",
+      {
+        sessionKey: this.scopeKey,
+        csContext: this.csContext,
+      },
+      CS_SESSION_REGISTRATION_RPC_TIMEOUT_MS,
+    );
     this.gatewaySessionRegistrationSignature = signature;
     return { skipped: false, durationMs: Date.now() - startedAt };
   }

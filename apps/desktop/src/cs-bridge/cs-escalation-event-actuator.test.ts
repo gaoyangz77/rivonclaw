@@ -187,7 +187,9 @@ describe("handleCsEscalationEvent", () => {
         message: expect.stringContaining("Needs manager approval"),
       }),
     );
-    expect(mockRpcRequest).not.toHaveBeenCalledWith("cs_register_session", expect.anything());
+    expect(mockRpcRequest.mock.calls.some(([method]) => method === "cs_register_session")).toBe(
+      false,
+    );
     expect(mockRpcRequest).not.toHaveBeenCalledWith("agent", expect.anything());
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
   });
