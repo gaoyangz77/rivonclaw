@@ -18,7 +18,13 @@ function runtimeFor(outputs: string[]): {
       model: "user-default-model",
     })),
     start,
-    wait: vi.fn(async () => ({ status: "ok" })),
+    wait: vi.fn(async () => ({
+      status: "ok",
+      terminalReply: {
+        disposition: "visible" as const,
+        text: outputs[Math.max(0, turn - 1)],
+      },
+    })),
     history: vi.fn(async () => ({
       messages: [
         {
@@ -77,6 +83,7 @@ describe("runStructuredOneShotAgent", () => {
     expect(start).toHaveBeenCalledTimes(1);
     expect(start).toHaveBeenCalledWith(
       expect.objectContaining({
+        sessionKey: expect.stringMatching(/^agent:main:model-run:campaign-keywords:/u),
         provider: "user-default-provider",
         model: "user-default-model",
         modelRun: true,
@@ -88,6 +95,31 @@ describe("runStructuredOneShotAgent", () => {
     expect(start.mock.calls[0]?.[0]).not.toHaveProperty("tools");
     expect(start.mock.calls[0]?.[0]).not.toHaveProperty("toolsAllow");
     expect(deleteSession).toHaveBeenCalledTimes(1);
+    expect(runtime.history).not.toHaveBeenCalled();
+  });
+
+  it("falls back to chat history for gateways without terminal reply evidence", async () => {
+    const { runtime } = runtimeFor(['{"name":"legacy"}']);
+    vi.mocked(runtime.wait).mockResolvedValueOnce({ status: "ok" });
+
+    const result = await runStructuredOneShotAgent(
+      {
+        namespace: "campaign-keywords",
+        systemPrompt: "Generate a test object.",
+        userPrompt: "Generate it now.",
+        jsonSchema: {
+          type: "object",
+          required: ["name"],
+          properties: { name: { type: "string" } },
+          additionalProperties: false,
+        },
+        validate: validateName,
+      },
+      runtime,
+    );
+
+    expect(result.value).toEqual({ name: "legacy" });
+    expect(runtime.history).toHaveBeenCalledTimes(1);
   });
 
   it("honors an array root declared by the caller's JSON Schema", async () => {
@@ -147,6 +179,8 @@ describe("runStructuredOneShotAgent", () => {
       }),
     );
     const repairMessage = String(start.mock.calls[1]?.[0]?.message);
+    expect(repairMessage).toContain("Original task input:");
+    expect(repairMessage).toContain("Generate it now.");
     expect(repairMessage).toContain('[{"name":"repair me"}]');
     expect(repairMessage).toContain('"required":["name"]');
     expect(repairMessage).toContain("Return the COMPLETE corrected JSON object only");

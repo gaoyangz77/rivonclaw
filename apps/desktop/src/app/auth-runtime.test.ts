@@ -147,6 +147,7 @@ describe("setupAuth backend subscription forwarding", () => {
         listKeys: vi.fn().mockResolvedValue([]),
       },
       locale: "en-US",
+      getUiLocale: () => "zh-CN",
       deviceId: "device-1",
       appVersion: "1.0.0-test",
       proxyFetch: vi.fn(),

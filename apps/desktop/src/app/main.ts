@@ -333,6 +333,7 @@ app.whenReady().then(async () => {
   const { authSession, backendSubscription } = await setupAuth({
     secretStore,
     locale,
+    getUiLocale: () => storage.settings.get("locale") ?? locale,
     deviceId,
     appVersion: app.getVersion(),
     proxyFetch: (url, init) => proxyNetwork.fetch(url, init),

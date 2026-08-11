@@ -60,7 +60,7 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
     const actuator = new AffiliateCampaignSearchPlanActuator(
       { graphqlFetch } as never,
       "device-1",
-      "zh-CN",
+      () => "zh-CN",
       generate as never,
     );
 
@@ -78,5 +78,8 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
       "submit:plan-2",
     ]);
     expect(generate).toHaveBeenCalledTimes(2);
+    expect(graphqlFetch).toHaveBeenCalledWith(expect.stringContaining("ClaimAffiliateCampaignSearchPlanGeneration"), {
+      input: expect.objectContaining({ uiLocale: "zh-CN" }),
+    });
   });
 });

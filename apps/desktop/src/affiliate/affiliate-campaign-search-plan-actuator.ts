@@ -49,7 +49,7 @@ export class AffiliateCampaignSearchPlanActuator {
   constructor(
     private readonly authSession: BackendClient,
     private readonly deviceId: string,
-    private readonly uiLocale: string,
+    private readonly getUiLocale: () => string,
     private readonly generate: typeof generatePlan = generatePlan,
   ) {}
 
@@ -84,7 +84,7 @@ export class AffiliateCampaignSearchPlanActuator {
         searchPlanId: request.searchPlanId,
         generation: request.generation,
         deviceId: this.deviceId,
-        uiLocale: this.uiLocale,
+        uiLocale: this.getUiLocale(),
       } });
       context = claimed.claimAffiliateCampaignSearchPlanGeneration;
     } catch (error) {
@@ -131,6 +131,11 @@ export class AffiliateCampaignSearchPlanActuator {
         }
       }
     } catch (error) {
+      log.warn("Dynamic Affiliate Campaign SearchPlan generation failed", {
+        searchPlanId: request.searchPlanId,
+        generation: request.generation,
+        error: errorMessage(error),
+      });
       await this.authSession.graphqlFetch(REPORT, { input: {
         searchPlanId: request.searchPlanId,
         generation: request.generation,
@@ -168,34 +173,49 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
     namespace: "affiliate-campaign-search-plan",
     systemPrompt: [
       "Generate exactly one next TikTok Creator Marketplace search plan.",
-      "keyword must be a useful English phrase containing 2-8 words.",
-      `explanation must use UI locale ${context.uiLocale}.`,
+      "keyword MUST be a useful, product-relevant English phrase containing 2-8 words, never a generic one-word placeholder such as creator or influencer.",
+      `explanation MUST explain why this exact search direction fits the product, using UI locale ${context.uiLocale}.`,
       "rules may be empty. Add filters only when historical plan volume shows the search should be narrowed.",
       "Do not repeat or trivially paraphrase a recent plan. Never invent unsupported rule enum values.",
       semanticAttempt === 2 ? "The prior proposal was rejected semantically; choose a materially different phrase or supported rules." : "",
     ].filter(Boolean).join("\n"),
-    userPrompt: JSON.stringify({
-      campaign: context.campaign,
-      shop: context.shop,
-      product: context.productSnapshot,
-      supportedMarketplaceConditions: capability,
-      recentSearchPlans: context.recentPlans,
-    }),
+    userPrompt: [
+      "Generate the SearchPlan for this exact Campaign and product context. Return no placeholder content.",
+      `Mandatory constraints: keyword is a product-relevant 2-8 word English phrase; explanation is written in ${context.uiLocale}; rules contain only supported values and may be empty.`,
+      JSON.stringify({
+        campaign: context.campaign,
+        shop: context.shop,
+        product: context.productSnapshot,
+        supportedMarketplaceConditions: capability,
+        recentSearchPlans: context.recentPlans,
+      }),
+    ].join("\n"),
     jsonSchema: {
       type: "object",
       additionalProperties: false,
       required: ["keyword", "explanation", "rules"],
       properties: {
-        keyword: { type: "string", minLength: 2, maxLength: 80 },
-        explanation: { type: "string", minLength: 2, maxLength: 300 },
+        keyword: {
+          type: "string",
+          minLength: 3,
+          maxLength: 80,
+          pattern: "^[A-Za-z0-9&'+,./()\\-–—]+(?:\\s+[A-Za-z0-9&'+,./()\\-–—]+){1,7}$",
+          description: "A product-relevant English search phrase containing 2-8 space-separated words.",
+        },
+        explanation: {
+          type: "string",
+          minLength: 2,
+          maxLength: 300,
+          description: `Why this search direction fits the product, written in UI locale ${context.uiLocale}.`,
+        },
         rules: { type: "object", additionalProperties: false, properties: ruleProperties },
       },
     },
-    validate: validateGeneratedPlan,
+    validate: (value) => validateGeneratedPlan(value, context),
   });
 }
 
-function validateGeneratedPlan(value: unknown): GeneratedPlan {
+function validateGeneratedPlan(value: unknown, context: GenerationContext): GeneratedPlan {
   if (!value || typeof value !== "object") throw new Error("SEARCH_PLAN_JSON_INVALID");
   const item = value as Record<string, unknown>;
   const keyword = String(item.keyword ?? "").normalize("NFKC").trim().replace(/\s+/gu, " ");
@@ -205,9 +225,48 @@ function validateGeneratedPlan(value: unknown): GeneratedPlan {
     throw new Error("SEARCH_PLAN_ENGLISH_PHRASE_REQUIRED");
   }
   if (!explanation || explanation.length > 300) throw new Error("SEARCH_PLAN_EXPLANATION_INVALID");
-  const rules = item.rules && typeof item.rules === "object" && !Array.isArray(item.rules)
+  if (!explanationMatchesLocale(explanation, context.uiLocale)) {
+    throw new Error("SEARCH_PLAN_EXPLANATION_LOCALE_REQUIRED");
+  }
+  const rawRules = item.rules && typeof item.rules === "object" && !Array.isArray(item.rules)
     ? item.rules as SearchRules : {};
+  const rules = removeNonNarrowingEnumFilters(rawRules, context.capability);
   return { keyword, explanation, rules };
+}
+
+function explanationMatchesLocale(explanation: string, uiLocale: string): boolean {
+  const language = uiLocale.trim().toLowerCase().split(/[-_]/u)[0];
+  if (language === "zh") return /\p{Script=Han}/u.test(explanation);
+  if (language === "th") return /\p{Script=Thai}/u.test(explanation);
+  return true;
+}
+
+function removeNonNarrowingEnumFilters(
+  rules: SearchRules,
+  capability: Record<string, unknown>,
+): SearchRules {
+  const next = { ...rules };
+  for (const key of [
+    "ageRanges",
+    "gmvRanges",
+    "unitsSoldRanges",
+    "languages",
+    "creatorLevels",
+    "categoryPros",
+  ] as const) {
+    const selected = next[key];
+    const supported = capability[key];
+    if (
+      Array.isArray(selected) &&
+      Array.isArray(supported) &&
+      supported.length > 0 &&
+      new Set(selected).size === new Set(supported).size &&
+      supported.every((value) => selected.includes(String(value)))
+    ) {
+      delete next[key];
+    }
+  }
+  return next;
 }
 
 function providerRules(rules: SearchRules): Record<string, unknown> {
