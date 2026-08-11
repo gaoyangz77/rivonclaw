@@ -199,7 +199,6 @@ export const API = {
   "csBridge.conversationSummary.create": { method: "POST", path: "/api/cs-bridge/conversation-summary", desc: "Generate local CS conversation summary" },
 
   // ── Affiliate Campaign AI (user's Desktop default model) ──
-  "affiliate.campaignAi.searchPhrases": { method: "POST", path: "/api/affiliate/campaign-ai/search-phrases", desc: "Generate and validate five Campaign search groups" },
   "affiliate.campaignAi.messageTemplate": { method: "POST", path: "/api/affiliate/campaign-ai/message-template", desc: "Generate and validate one Campaign first-touch template" },
 
   // ── Dependencies ──

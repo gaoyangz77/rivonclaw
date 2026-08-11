@@ -16,19 +16,20 @@ import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import {
   generateAffiliateCampaignMessageTemplate,
-  generateAffiliateCampaignSearchPhrases,
 } from "../../api/affiliate-campaign-ai.js";
 import {
   AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY,
+  AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
   DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION,
   AFFILIATE_CAMPAIGN_PRODUCT_PREVIEW_QUERY,
   SET_AFFILIATE_CAMPAIGN_STATUS_MUTATION,
+  RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION,
   SHOPS_QUERY,
   WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "../../api/shops-queries.js";
@@ -43,14 +44,7 @@ type CampaignForm = {
   minimumExpectedSales: string;
   commissionRate: string;
   refreshProductSnapshot: boolean;
-  searchPhrases: Array<{
-    text: string;
-    source: GQL.AffiliateCampaignSearchPhraseSource;
-    explanation: string;
-    explanationLocale: string;
-    suggestionVersion: number | null;
-    discoveryRules: GQL.AffiliateCampaignDiscoveryRulesInput;
-  }>;
+  searchPlanGuidance: string;
   strategy: GQL.AffiliateCampaignSelectionStrategy;
   ageRanges: GQL.CreatorSearchFollowerAgeRange[];
   audienceGender: GQL.CreatorSearchFollowerGender | "";
@@ -88,16 +82,7 @@ const emptyForm: CampaignForm = {
   minimumExpectedSales: "",
   commissionRate: "10",
   refreshProductSnapshot: false,
-  searchPhrases: [
-    {
-      text: "",
-      source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-      explanation: "",
-      explanationLocale: "",
-      suggestionVersion: null,
-      discoveryRules: createDefaultDiscoveryRules(),
-    },
-  ],
+  searchPlanGuidance: "",
   strategy: GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
   ageRanges: [],
   audienceGender: "",
@@ -182,6 +167,31 @@ type CampaignCreatorStatePage = {
   nextCursor?: string | null;
 };
 
+type CampaignSearchPlanView = {
+  id: string;
+  generation: number;
+  status: string;
+  phrase?: { text: string; explanation: string; explanationLocale: string } | null;
+  discoveryRules?: GQL.AffiliateCampaignDiscoveryRules | null;
+  pageSequence: number;
+  totals: {
+    scanned: number;
+    matched: number;
+    protected: number;
+    outreachPolicyBlocked: number;
+    qualificationFailed: number;
+    qualified: number;
+    selected: number;
+  };
+  blockStage?: string | null;
+  errorCode?: string | null;
+  completionReason?: string | null;
+  requestedAt: string;
+  startedAt?: string | null;
+  lastSearchedAt?: string | null;
+  completedAt?: string | null;
+};
+
 const CAMPAIGNS_PER_PAGE = 20;
 const CAMPAIGN_STATUS_FILTER_OPTIONS: GQL.AffiliateCampaignStatus[] = [
   GQL.AffiliateCampaignStatus.Active,
@@ -224,7 +234,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     GQL.AffiliateCampaignEligibilityCategory[]
   >([]);
   const [eligibilityReasons, setEligibilityReasons] = useState<string[]>([]);
-  const [generatingSearchGroups, setGeneratingSearchGroups] = useState(false);
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
   const [productPreview, setProductPreview] = useState<CampaignProductPreview | null>(
     null,
@@ -232,7 +241,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [pendingProductResolution, setPendingProductResolution] =
     useState<CampaignProductPreview | null>(null);
   const [confirmation, setConfirmation] = useState<
-    | { kind: "resuggest"; existingPhrases: string[] }
     | { kind: "delete-draft"; campaignId: string; campaignName: string }
     | { kind: "archive"; campaignId: string; campaignName: string }
     | null
@@ -301,6 +309,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     variables: { campaignId: selectedCampaignId },
     skip: !selectedCampaignId,
   });
+  const searchPlansQuery = useQuery<{
+    affiliateCampaignSearchPlans: {
+      items: CampaignSearchPlanView[];
+      nextCursor?: string | null;
+    };
+  }>(AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY, {
+    variables: { input: { campaignId: selectedCampaignId, limit: 20 } },
+    skip: !selectedCampaignId,
+    pollInterval: selectedCampaignId ? 15_000 : 0,
+  });
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
     hasError: Boolean(creatorStatesQuery.error),
@@ -328,6 +346,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     { deleteAffiliateCampaignDraft: boolean },
     { input: GQL.DeleteAffiliateCampaignDraftInput }
   >(DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION);
+  const [retrySearchPlan, retrySearchPlanState] = useMutation(
+    RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION,
+  );
 
   const campaigns = campaignsQuery.data?.affiliateCampaigns ?? [];
   const campaignPortfolio = campaignPortfolioQuery.data?.affiliateCampaigns ?? [];
@@ -347,6 +368,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
   const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
+  const searchPlans = searchPlansQuery.data?.affiliateCampaignSearchPlans.items ?? [];
+  const currentSearchPlan =
+    searchPlans.find((plan) => plan.id === selectedCampaign?.activeSearchPlanId) ??
+    searchPlans[0] ??
+    null;
 
   useEffect(() => {
     setCampaignPage(1);
@@ -399,68 +425,41 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const openEdit = (campaign: GQL.AffiliateCampaign) => {
-    const rules = campaign.discoveryRules;
     setForm({
       shopId: campaign.shopId,
       productId: campaign.primaryProductId,
       name: campaign.name,
       dailyTarget: String(campaign.dailyOutreachTarget),
-      minimumFollowers:
-        rules.followerCount?.minimum == null ? "" : String(rules.followerCount.minimum),
-      maximumFollowers:
-        rules.followerCount?.maximum == null ? "" : String(rules.followerCount.maximum),
+      minimumFollowers: "",
+      maximumFollowers: "",
       minimumExpectedSales:
         campaign.selectionPolicy.minimumExpectedSalesUnits == null
           ? ""
           : String(campaign.selectionPolicy.minimumExpectedSalesUnits),
       commissionRate: String(campaignCommissionRate(campaign)),
       refreshProductSnapshot: false,
-      searchPhrases: campaign.searchPhrases.length
-        ? campaign.searchPhrases.map((phrase) => ({
-            text: phrase.text,
-            source: phrase.source,
-            explanation: phrase.explanation ?? "",
-            explanationLocale: phrase.explanationLocale ?? "",
-            suggestionVersion: phrase.suggestionVersion ?? null,
-            discoveryRules: normalizeDiscoveryRules(
-              phrase.discoveryRules ?? campaign.discoveryRules,
-            ),
-          }))
-        : [
-            {
-              text: "",
-              source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-              explanation: "",
-              explanationLocale: "",
-              suggestionVersion: null,
-              discoveryRules: normalizeDiscoveryRules(campaign.discoveryRules),
-            },
-          ],
+      searchPlanGuidance: campaign.searchPlanGuidance ?? "",
       strategy: campaign.selectionPolicy.strategy,
-      ageRanges: rules.audience?.ageRanges ?? [],
-      audienceGender: rules.audience?.genderDistribution?.gender ?? "",
-      audienceGenderMinimum:
-        rules.audience?.genderDistribution?.minimumPercentage == null
-          ? ""
-          : String(rules.audience.genderDistribution.minimumPercentage),
-      gmvRanges: rules.salesPerformance30d?.gmvRanges ?? [],
-      unitsSoldRanges: rules.salesPerformance30d?.unitsSoldRanges ?? [],
-      languages: rules.marketSpecific?.languages ?? [],
-      creatorLevels: rules.marketSpecific?.creatorLevels ?? [],
-      categoryPros: rules.marketSpecific?.categoryPros ?? [],
-      categoryIds: (rules.categories ?? []).map((category) => category.parentCategoryId).join(", "),
-      averageVideoViews: rules.contentPerformance30d?.averageVideoViews ?? "",
-      averageShoppableVideoViews: rules.contentPerformance30d?.averageShoppableVideoViews ?? "",
-      averageEngagementRate: rules.contentPerformance30d?.averageEngagementRate ?? "",
-      averageShoppableEngagementRate:
-        rules.contentPerformance30d?.averageShoppableEngagementRate ?? "",
-      averageLiveViewers: rules.contentPerformance30d?.averageLiveViewers ?? "",
-      averageShoppableLiveViewers: rules.contentPerformance30d?.averageShoppableLiveViewers ?? "",
-      averageCommissionRate: rules.affiliatePerformance30d?.averageCommissionRate ?? "",
-      postRate: rules.affiliatePerformance30d?.postRate ?? "",
-      creatorAgencyStatus: rules.affiliatePerformance30d?.creatorAgencyStatus ?? "",
-      fastGrowingOnly: rules.affiliatePerformance30d?.fastGrowingOnly ?? false,
-      notInvitedLast90Days: rules.affiliatePerformance30d?.notInvitedLast90Days ?? false,
+      ageRanges: [],
+      audienceGender: "",
+      audienceGenderMinimum: "",
+      gmvRanges: [],
+      unitsSoldRanges: [],
+      languages: [],
+      creatorLevels: [],
+      categoryPros: [],
+      categoryIds: "",
+      averageVideoViews: "",
+      averageShoppableVideoViews: "",
+      averageEngagementRate: "",
+      averageShoppableEngagementRate: "",
+      averageLiveViewers: "",
+      averageShoppableLiveViewers: "",
+      averageCommissionRate: "",
+      postRate: "",
+      creatorAgencyStatus: "",
+      fastGrowingOnly: false,
+      notInvitedLast90Days: false,
       templateText: campaign.messageTemplateText,
       templateGuidance: "",
       templateSource: campaign.messageTemplateSource,
@@ -492,15 +491,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     if (
       wizardStep === 2 &&
       (Number(form.dailyTarget) < 1 ||
-        form.searchPhrases.some((phrase) => {
-          const minimum = phrase.discoveryRules.followerCount?.minimum;
-          const maximum = phrase.discoveryRules.followerCount?.maximum;
-          return (
-            (minimum != null && minimum < 0) ||
-            (maximum != null && maximum < 0) ||
-            (minimum != null && maximum != null && minimum > maximum)
-          );
-        }) ||
         Number(form.commissionRate) < 0 ||
         Number(form.commissionRate) > 100 ||
         (form.minimumExpectedSales && Number(form.minimumExpectedSales) < 0))
@@ -512,23 +502,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.templateRequired"), "error");
       return false;
     }
-    if (
-      wizardStep === 2 &&
-      (form.searchPhrases.length < 1 ||
-        form.searchPhrases.length > 5 ||
-        form.searchPhrases.some((phrase) => {
-          const text = phrase.text.normalize("NFKC").trim().replace(/\s+/gu, " ");
-          return !isEnglishCampaignSearchPhrase(text);
-        }) ||
-        new Set(
-          form.searchPhrases.map((phrase) =>
-            phrase.text.normalize("NFKC").trim().replace(/\s+/gu, " ").toLocaleLowerCase(),
-          ),
-        ).size !== form.searchPhrases.length)
-    ) {
-      showToast(t("ecommerce.affiliateCampaign.invalidSearchPhrases"), "error");
-      return false;
-    }
+    if (wizardStep === 2 && form.searchPlanGuidance.length > 500) return false;
     return true;
   };
 
@@ -569,59 +543,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       ...current,
       productId: preview.productId,
       refreshProductSnapshot: true,
-      searchPhrases: [
-        {
-          text: "",
-          source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-          explanation: "",
-          explanationLocale: "",
-          suggestionVersion: null,
-          discoveryRules: createDefaultDiscoveryRules(),
-        },
-      ],
       messageProductName: "",
     }));
     setProductPreview(preview);
     setPendingProductResolution(null);
-  };
-
-  const requestKeywordSuggestions = async (existingPhrases: string[]) => {
-    if (!productPreview) return;
-    setGeneratingSearchGroups(true);
-    try {
-      const payload = await generateAffiliateCampaignSearchPhrases({
-        shopId: form.shopId,
-        productId: form.productId,
-        uiLocale: i18n.resolvedLanguage ?? i18n.language,
-        excludePhrases: existingPhrases,
-      });
-      setForm((current) => ({
-        ...current,
-        searchPhrases: payload.suggestions.map((suggestion) => ({
-          text: suggestion.text,
-          source: GQL.AffiliateCampaignSearchPhraseSource.AiSuggested,
-          explanation: suggestion.explanation,
-          explanationLocale: suggestion.explanationLocale,
-          suggestionVersion: payload.suggestionVersion,
-          discoveryRules: normalizeSuggestedDiscoveryRules(suggestion.discoveryRules),
-        })),
-      }));
-      showToast(t("ecommerce.affiliateCampaign.keywordSuggestionsReady"), "success");
-    } catch (error) {
-      showToast(campaignErrorMessage(error, t), "error");
-    } finally {
-      setGeneratingSearchGroups(false);
-    }
-  };
-
-  const generateKeywordSuggestions = () => {
-    if (!productPreview) return;
-    const existingPhrases = form.searchPhrases.map((phrase) => phrase.text.trim()).filter(Boolean);
-    if (existingPhrases.length > 0) {
-      setConfirmation({ kind: "resuggest", existingPhrases });
-      return;
-    }
-    void requestKeywordSuggestions([]);
   };
 
   const createCampaign = async () => {
@@ -634,17 +559,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         name: form.name.trim(),
         primaryProductId: form.productId,
         refreshProductSnapshot: form.refreshProductSnapshot,
-        searchPhrases: form.searchPhrases.map((phrase) => ({
-          text: phrase.text,
-          source: phrase.source,
-          explanation: phrase.explanation || null,
-          explanationLocale: phrase.explanationLocale || null,
-          suggestionVersion: phrase.suggestionVersion,
-          discoveryRules: phrase.discoveryRules,
-        })),
+        searchPlanGuidance: form.searchPlanGuidance.trim() || null,
         dailyOutreachTarget: Number(form.dailyTarget),
         commissionRatePercent: Number(form.commissionRate),
-        discoveryRules: form.searchPhrases[0]?.discoveryRules ?? createDefaultDiscoveryRules(),
         selectionPolicy: {
           strategy: form.strategy,
           ranking:
@@ -815,10 +732,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     const pending = confirmation;
     setConfirmation(null);
     if (!pending) return;
-    if (pending.kind === "resuggest") {
-      void requestKeywordSuggestions(pending.existingPhrases);
-      return;
-    }
     if (pending.kind === "archive") {
       void executeArchiveCampaign(pending.campaignId);
       return;
@@ -857,6 +770,40 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         },
       }),
     });
+  };
+
+  const loadMoreSearchPlans = async () => {
+    const nextCursor = searchPlansQuery.data?.affiliateCampaignSearchPlans.nextCursor;
+    if (!nextCursor || !selectedCampaignId) return;
+    await searchPlansQuery.fetchMore({
+      variables: {
+        input: {
+          campaignId: selectedCampaignId,
+          limit: 20,
+          cursor: nextCursor,
+        },
+      },
+      updateQuery: (previous, { fetchMoreResult }) => ({
+        affiliateCampaignSearchPlans: {
+          ...fetchMoreResult.affiliateCampaignSearchPlans,
+          items: [
+            ...previous.affiliateCampaignSearchPlans.items,
+            ...fetchMoreResult.affiliateCampaignSearchPlans.items,
+          ],
+        },
+      }),
+    });
+  };
+
+  const retryCurrentSearchPlan = async () => {
+    if (!selectedCampaignId) return;
+    try {
+      await retrySearchPlan({ variables: { campaignId: selectedCampaignId } });
+      await Promise.all([searchPlansQuery.refetch(), campaignsQuery.refetch()]);
+      showToast(t("ecommerce.affiliateCampaign.searchPlanRetryScheduled"), "success");
+    } catch (error) {
+      showToast(campaignErrorMessage(error, t), "error");
+    }
   };
 
   return (
@@ -1268,6 +1215,106 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               t={t}
             />
 
+            <section className="affiliate-campaign-search-plan-panel">
+              <div className="affiliate-campaign-section-heading">
+                <div>
+                  <span>{t("ecommerce.affiliateCampaign.dynamicDiscoveryEyebrow")}</span>
+                  <h3>{t("ecommerce.affiliateCampaign.currentSearchPlan")}</h3>
+                  <p>{t("ecommerce.affiliateCampaign.currentSearchPlanDescription")}</p>
+                </div>
+                <span className={`affiliate-campaign-plan-status is-${String(currentSearchPlan?.status ?? selectedCampaign.searchPlanningState).toLowerCase()}`}>
+                  {searchPlanStatusLabel(
+                    currentSearchPlan?.status ?? selectedCampaign.searchPlanningState,
+                    t,
+                  )}
+                </span>
+              </div>
+              {currentSearchPlan?.phrase ? (
+                <div className="affiliate-campaign-current-plan">
+                  <div className="affiliate-campaign-plan-identity">
+                    <span>
+                      {t("ecommerce.affiliateCampaign.searchPlanGeneration", {
+                        generation: currentSearchPlan.generation,
+                      })}
+                    </span>
+                    <strong>{currentSearchPlan.phrase.text}</strong>
+                    <p lang={currentSearchPlan.phrase.explanationLocale || undefined}>
+                      {currentSearchPlan.phrase.explanation}
+                    </p>
+                  </div>
+                  <div className="affiliate-campaign-plan-progress">
+                    <span>{t("ecommerce.affiliateCampaign.successfulPages")}</span>
+                    <strong>{currentSearchPlan.pageSequence}<small>/50</small></strong>
+                    <div aria-hidden="true">
+                      <i style={{ width: `${Math.min(100, currentSearchPlan.pageSequence * 2)}%` }} />
+                    </div>
+                  </div>
+                  <div className="affiliate-campaign-plan-metrics">
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.scanned")} value={currentSearchPlan.totals.scanned} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.matched")} value={currentSearchPlan.totals.matched} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.qualified")} value={currentSearchPlan.totals.qualified} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.selected")} value={currentSearchPlan.totals.selected} />
+                  </div>
+                  <div className="affiliate-campaign-plan-footnote">
+                    <span>
+                      {currentSearchPlan.discoveryRules
+                        ? campaignSearchGroupRuleSummary(currentSearchPlan.discoveryRules, t)
+                        : t("ecommerce.affiliateCampaign.noAdditionalProviderRules")}
+                    </span>
+                    <small>
+                      {currentSearchPlan.lastSearchedAt
+                        ? t("ecommerce.affiliateCampaign.lastSearchAt", {
+                            time: formatDateTime(currentSearchPlan.lastSearchedAt),
+                          })
+                        : t("ecommerce.affiliateCampaign.notSearchedYet")}
+                    </small>
+                  </div>
+                </div>
+              ) : (
+                <div className="affiliate-campaign-plan-waiting">
+                  <strong>{searchPlanStatusLabel(selectedCampaign.searchPlanningState, t)}</strong>
+                  <p>{t("ecommerce.affiliateCampaign.waitingDesktopPlanDescription")}</p>
+                </div>
+              )}
+              {(currentSearchPlan?.status === "BLOCKED" ||
+                selectedCampaign.searchPlanningState === "BLOCKED") && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={retrySearchPlanState.loading}
+                  onClick={() => void retryCurrentSearchPlan()}
+                >
+                  {t("ecommerce.affiliateCampaign.retrySearchPlan")}
+                </button>
+              )}
+              {searchPlans.length > 1 && (
+                <details className="affiliate-campaign-plan-history">
+                  <summary>{t("ecommerce.affiliateCampaign.searchPlanHistory")}</summary>
+                  <div>
+                    {searchPlans.map((plan) => (
+                      <article key={plan.id}>
+                        <span>#{plan.generation}</span>
+                        <strong>{plan.phrase?.text ?? searchPlanStatusLabel(plan.status, t)}</strong>
+                        <small>
+                          {plan.pageSequence}/50 · {formatNumber(plan.totals.matched)} {t("ecommerce.affiliateCampaign.matched")}
+                        </small>
+                      </article>
+                    ))}
+                  </div>
+                  {searchPlansQuery.data?.affiliateCampaignSearchPlans.nextCursor && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={searchPlansQuery.loading}
+                      onClick={() => void loadMoreSearchPlans()}
+                    >
+                      {t("ecommerce.affiliateCampaign.loadMoreSearchPlans")}
+                    </button>
+                  )}
+                </details>
+              )}
+            </section>
+
             <section className="affiliate-campaign-configuration">
               <div>
                 <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
@@ -1470,16 +1517,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         shopId,
                         productId: "",
                         refreshProductSnapshot: false,
-                        searchPhrases: [
-                          {
-                            text: "",
-                            source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-                            explanation: "",
-                            explanationLocale: "",
-                            suggestionVersion: null,
-                            discoveryRules: createDefaultDiscoveryRules(),
-                          },
-                        ],
                         messageProductName: "",
                         ageRanges: [],
                         audienceGender: "",
@@ -1509,16 +1546,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       onChange={(event) => {
                         updateForm("productId", event.target.value.trim());
                         updateForm("refreshProductSnapshot", false);
-                        updateForm("searchPhrases", [
-                          {
-                            text: "",
-                            source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-                            explanation: "",
-                            explanationLocale: "",
-                            suggestionVersion: null,
-                            discoveryRules: createDefaultDiscoveryRules(),
-                          },
-                        ]);
                         updateForm("messageProductName", "");
                         setProductPreview(null);
                         setPendingProductResolution(null);
@@ -1695,125 +1722,32 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <small>{t("ecommerce.affiliateCampaign.commissionRateHint")}</small>
                   </label>
                 </div>
-                <div className="affiliate-campaign-search-group-toolbar">
+                <section className="affiliate-campaign-dynamic-discovery">
+                  <div>
+                    <strong>{t("ecommerce.affiliateCampaign.dynamicDiscoveryTitle")}</strong>
+                    <p>{t("ecommerce.affiliateCampaign.dynamicDiscoveryDescription")}</p>
+                  </div>
+                  <ul>
+                    <li>{t("ecommerce.affiliateCampaign.dynamicDiscoverySequential")}</li>
+                    <li>{t("ecommerce.affiliateCampaign.dynamicDiscoveryPageLimit")}</li>
+                    <li>{t("ecommerce.affiliateCampaign.dynamicDiscoveryDesktopRequired")}</li>
+                  </ul>
                   <label>
-                    <span>{t("ecommerce.affiliateCampaign.marketplaceSearchPhrases")}</span>
-                    <small>{t("ecommerce.affiliateCampaign.searchPhrasesBudgetHint")}</small>
+                    <span>{t("ecommerce.affiliateCampaign.searchPlanGuidance")}</span>
+                    <textarea
+                      value={form.searchPlanGuidance}
+                      maxLength={500}
+                      rows={4}
+                      onChange={(event) => updateForm("searchPlanGuidance", event.target.value)}
+                      placeholder={t("ecommerce.affiliateCampaign.searchPlanGuidancePlaceholder")}
+                    />
+                    <small>
+                      {t("ecommerce.affiliateCampaign.searchPlanGuidanceHint", {
+                        count: form.searchPlanGuidance.length,
+                      })}
+                    </small>
                   </label>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled={!productPreview || generatingSearchGroups}
-                    onClick={generateKeywordSuggestions}
-                  >
-                    {generatingSearchGroups
-                      ? t("ecommerce.affiliateCampaign.generating")
-                      : t(
-                          form.searchPhrases.some((phrase) => phrase.text.trim())
-                            ? "ecommerce.affiliateCampaign.resuggestSearchGroups"
-                            : "ecommerce.affiliateCampaign.suggestSearchGroups",
-                        )}
-                  </button>
-                </div>
-                <div className="affiliate-campaign-phrase-editor">
-                  {form.searchPhrases.map((phrase, index) => (
-                    <div
-                      className="affiliate-campaign-phrase-card"
-                      key={`${index}:${phrase.source}`}
-                    >
-                      <span className="affiliate-campaign-phrase-index">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <div className="affiliate-campaign-phrase-content">
-                        <div className="affiliate-campaign-phrase-meta">
-                          <span>
-                            {t("ecommerce.affiliateCampaign.searchGroupNumber", {
-                              number: String(index + 1).padStart(2, "0"),
-                            })}
-                          </span>
-                          <span>
-                            {phrase.source === GQL.AffiliateCampaignSearchPhraseSource.AiSuggested
-                              ? t("ecommerce.affiliateCampaign.aiSuggested")
-                              : t("ecommerce.affiliateCampaign.userAuthored")}
-                          </span>
-                          <span>{t("ecommerce.affiliateCampaign.englishSearchPhrase")}</span>
-                        </div>
-                        <input
-                          value={phrase.text}
-                          maxLength={80}
-                          onChange={(event) => {
-                            const next = [...form.searchPhrases];
-                            next[index] = {
-                              text: event.target.value,
-                              source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-                              explanation: "",
-                              explanationLocale: "",
-                              suggestionVersion: null,
-                              discoveryRules: phrase.discoveryRules,
-                            };
-                            updateForm("searchPhrases", next);
-                          }}
-                          placeholder={t("ecommerce.affiliateCampaign.searchPhrasePlaceholder")}
-                        />
-                        {phrase.explanation ? (
-                          <div className="affiliate-campaign-phrase-explanation">
-                            <strong>{t("ecommerce.affiliateCampaign.whyThisPhrase")}</strong>
-                            <p lang={phrase.explanationLocale || undefined}>{phrase.explanation}</p>
-                          </div>
-                        ) : (
-                          <small className="affiliate-campaign-phrase-empty-explanation">
-                            {t("ecommerce.affiliateCampaign.userEditedNoExplanation")}
-                          </small>
-                        )}
-                        <SearchGroupRulesEditor
-                          rules={phrase.discoveryRules}
-                          capabilities={capabilities}
-                          t={t}
-                          onChange={(discoveryRules) => {
-                            const next = [...form.searchPhrases];
-                            next[index] = { ...phrase, discoveryRules };
-                            updateForm("searchPhrases", next);
-                          }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        className="affiliate-campaign-remove-phrase"
-                        aria-label={t("ecommerce.affiliateCampaign.removeSearchPhrase")}
-                        disabled={form.searchPhrases.length === 1}
-                        onClick={() =>
-                          updateForm(
-                            "searchPhrases",
-                            form.searchPhrases.filter((_, phraseIndex) => phraseIndex !== index),
-                          )
-                        }
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  {form.searchPhrases.length < 5 && (
-                    <button
-                      type="button"
-                      className="affiliate-campaign-add-phrase"
-                      onClick={() =>
-                        updateForm("searchPhrases", [
-                          ...form.searchPhrases,
-                          {
-                            text: "",
-                            source: GQL.AffiliateCampaignSearchPhraseSource.UserAuthored,
-                            explanation: "",
-                            explanationLocale: "",
-                            suggestionVersion: null,
-                            discoveryRules: createDefaultDiscoveryRules(),
-                          },
-                        ])
-                      }
-                    >
-                      {t("ecommerce.affiliateCampaign.addSearchPhrase")}
-                    </button>
-                  )}
-                </div>
+                </section>
                 <section className="affiliate-campaign-outreach-limits">
                   <div>
                     <span>{t("ecommerce.affiliateCampaign.automaticOutreachLimits")}</span>
@@ -2225,34 +2159,24 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         title={t(
           confirmation?.kind === "delete-draft"
             ? "ecommerce.affiliateCampaign.deleteDraftTitle"
-            : confirmation?.kind === "archive"
-              ? "ecommerce.affiliateCampaign.archiveTitle"
-              : "ecommerce.affiliateCampaign.resuggestTitle",
+            : "ecommerce.affiliateCampaign.archiveTitle",
         )}
         message={
           confirmation?.kind === "delete-draft"
             ? t("ecommerce.affiliateCampaign.deleteDraftConfirm", {
                 name: confirmation.campaignName,
               })
-            : confirmation?.kind === "archive"
-              ? t("ecommerce.affiliateCampaign.archiveConfirm", {
-                  name: confirmation.campaignName,
-                })
-              : t("ecommerce.affiliateCampaign.resuggestConfirm")
+            : t("ecommerce.affiliateCampaign.archiveConfirm", {
+                name: confirmation?.campaignName,
+              })
         }
         confirmLabel={t(
           confirmation?.kind === "delete-draft"
             ? "ecommerce.affiliateCampaign.deleteDraft"
-            : confirmation?.kind === "archive"
-              ? "ecommerce.affiliateCampaign.archive"
-              : "ecommerce.affiliateCampaign.replaceSuggestions",
+            : "ecommerce.affiliateCampaign.archive",
         )}
         cancelLabel={t("common.cancel")}
-        confirmVariant={
-          confirmation?.kind === "delete-draft" || confirmation?.kind === "archive"
-            ? "danger"
-            : "primary"
-        }
+        confirmVariant="danger"
       />
     </div>
   );
@@ -2353,8 +2277,8 @@ function CampaignCreatorStateRow({
               })}
             </small>
             <small>
-              {t("ecommerce.affiliateCampaign.matchedSearchGroups", {
-                count: state.latestSearchPhraseKeys?.length ?? 0,
+              {t("ecommerce.affiliateCampaign.searchPlanGeneration", {
+                generation: state.latestSearchPlanGeneration ?? "—",
               })}
             </small>
           </>
@@ -3044,6 +2968,20 @@ function CampaignMetric({
   );
 }
 
+function PlanMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{formatNumber(value)}</strong>
+    </div>
+  );
+}
+
+function searchPlanStatusLabel(status: string, t: (key: string) => string): string {
+  const key = status.toLowerCase();
+  return t(`ecommerce.affiliateCampaign.searchPlanStatus.${key}`);
+}
+
 function toggleValue<T extends string>(values: readonly T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
@@ -3079,20 +3017,7 @@ function campaignRuleSummary(
           count: campaign.selectionPolicy.minimumExpectedSalesUnits,
         });
   }
-  const minimum = campaign.discoveryRules.followerCount?.minimum;
-  const maximum = campaign.discoveryRules.followerCount?.maximum;
-  if (minimum != null && maximum != null) {
-    return t("ecommerce.affiliateCampaign.followerRangeCompact", {
-      minimum: formatNumber(minimum),
-      maximum: formatNumber(maximum),
-    });
-  }
-  if (minimum != null) {
-    return t("ecommerce.affiliateCampaign.minimumFollowersCompact", {
-      value: formatNumber(minimum),
-    });
-  }
-  return t("ecommerce.affiliateCampaign.providerOrderNoFollowerFloor");
+  return t("ecommerce.affiliateCampaign.dynamicSearchPlanSummary");
 }
 
 function CampaignFunnel({

@@ -23,6 +23,20 @@ vi.mock("@rivonclaw/logger", () => ({
     warn: vi.fn(),
     error: vi.fn(),
   }),
+  createQuietLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
+
+vi.mock("../affiliate/affiliate-campaign-search-plan-actuator.js", () => ({
+  AffiliateCampaignSearchPlanActuator: vi.fn().mockImplementation(
+    function AffiliateCampaignSearchPlanActuator() {
+      return { enqueue: vi.fn() };
+    },
+  ),
 }));
 
 vi.mock("../auth/session.js", () => ({
@@ -73,6 +87,9 @@ vi.mock("../cloud/backend-subscription-client.js", () => ({
       }),
       subscribeToAffiliateActionProposalChanges: vi.fn((callback) => {
         mocks.callbacks.affiliateActionProposalChanged = callback;
+      }),
+      subscribeToAffiliateCampaignSearchPlanRequests: vi.fn((_: string, callback) => {
+        mocks.callbacks.affiliateCampaignSearchPlanRequested = callback;
       }),
     };
     mocks.backendSubscriptionInstances.push(instance);

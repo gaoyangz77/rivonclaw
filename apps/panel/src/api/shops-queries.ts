@@ -254,109 +254,21 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
       observedAt
       snapshotHash
     }
-    searchPhrases {
-      key
-      text
-      source
-      explanation
-      explanationLocale
-      suggestionVersion
-      discoveryRules {
-        keyword
-        followerCount {
-          minimum
-          maximum
-        }
-        audience {
-          ageRanges
-          genderDistribution {
-            gender
-            minimumPercentage
-          }
-        }
-        salesPerformance30d {
-          gmvRanges
-          unitsSoldRanges
-        }
-        categories {
-          parentCategoryId
-          childCategoryIds
-        }
-        contentPerformance30d {
-          averageVideoViews
-          averageShoppableVideoViews
-          averageEngagementRate
-          averageShoppableEngagementRate
-          averageLiveViewers
-          averageShoppableLiveViewers
-        }
-        affiliatePerformance30d {
-          averageCommissionRate
-          postRate
-          creatorAgencyStatus
-          fastGrowingOnly
-          notInvitedLast90Days
-        }
-        marketSpecific {
-          languages
-          creatorLevels
-          categoryPros
-        }
-      }
-    }
+    searchPlanGuidance
+    searchPlanningState
+    activeSearchPlanId
+    searchPlanGeneration
+    lastSearchPlanCompletedAt
+    searchPlanErrorCode
     market
     resolvedTimeZone
     dailyOutreachTarget
     commissionRatePercent
-    discoveryRules {
-      keyword
-      followerCount {
-        minimum
-        maximum
-      }
-      audience {
-        ageRanges
-        genderDistribution {
-          gender
-          minimumPercentage
-        }
-      }
-      salesPerformance30d {
-        gmvRanges
-        unitsSoldRanges
-      }
-      categories {
-        parentCategoryId
-        childCategoryIds
-      }
-      contentPerformance30d {
-        averageVideoViews
-        averageShoppableVideoViews
-        averageEngagementRate
-        averageShoppableEngagementRate
-        averageLiveViewers
-        averageShoppableLiveViewers
-      }
-      affiliatePerformance30d {
-        averageCommissionRate
-        postRate
-        creatorAgencyStatus
-        fastGrowingOnly
-        notInvitedLast90Days
-      }
-      marketSpecific {
-        languages
-        creatorLevels
-        categoryPros
-      }
-    }
     selectionPolicy {
       strategy
       ranking
       minimumExpectedSalesUnits
     }
-    rulesHash
-    capabilityHash
     messageTemplateText
     messageTemplateSource
     messageProductName
@@ -385,26 +297,25 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
     templateVersion
     selectionStrategy
     counterSchemaVersion
-    rulesHash
-    capabilityHash
     modelVersion
     requestedTarget
     allocatedTarget
     effectiveTarget
     status
-    pageCursor
-    providerSearchKey
-    pageSequence
-    searchPhraseExecutions {
+    searchPlanExecutions {
+      searchPlanId
+      generation
       phraseKey
       phrase
-      pageCursor
-      pageSequence
+      startPageSequence
+      endPageSequence
       scanned
       matched
-      eligible
-      evaluated
-      exhaustedAt
+      qualified
+      selected
+      startedAt
+      lastSearchedAt
+      completedAt
     }
     riskState
     riskReason
@@ -496,8 +407,10 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         eligibilityReasonCode
         eligibilityPolicyVersion
         eligibilityEvaluatedAt
+        sourceSearchPlanIds
         latestSearchDailyExecutionId
-        latestSearchPhraseKeys
+        latestSearchPlanId
+        latestSearchPlanGeneration
         latestSearchProviderOrdinal
         latestSearchMatchedAt
         expectedSalesUnits
@@ -582,6 +495,86 @@ export const AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
+  query AffiliateCampaignSearchPlans($input: ReadAffiliateCampaignSearchPlansInput!) {
+    affiliateCampaignSearchPlans(input: $input) {
+      nextCursor
+      items {
+        id
+        campaignId
+        shopId
+        productId
+        generation
+        configRevision
+        status
+        phrase {
+          key
+          text
+          explanation
+          explanationLocale
+        }
+        discoveryRules {
+          followerCount { minimum maximum }
+          audience {
+            ageRanges
+            genderDistribution { gender minimumPercentage }
+          }
+          salesPerformance30d { gmvRanges unitsSoldRanges }
+          categories { parentCategoryId }
+          contentPerformance30d {
+            averageVideoViews
+            averageShoppableVideoViews
+            averageEngagementRate
+            averageShoppableEngagementRate
+            averageLiveViewers
+            averageShoppableLiveViewers
+          }
+          affiliatePerformance30d {
+            averageCommissionRate
+            postRate
+            creatorAgencyStatus
+            fastGrowingOnly
+            notInvitedLast90Days
+          }
+          marketSpecific { languages creatorLevels categoryPros }
+        }
+        pageSequence
+        totals {
+          scanned
+          matched
+          protected
+          outreachPolicyBlocked
+          qualificationFailed
+          qualified
+          selected
+        }
+        generationAttemptCount
+        providerFailureCount
+        blockStage
+        errorCode
+        completionReason
+        requestedAt
+        startedAt
+        lastSearchedAt
+        completedAt
+      }
+    }
+  }
+`;
+
+export const RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION = gql`
+  mutation RetryAffiliateCampaignSearchPlan($campaignId: ID!) {
+    retryAffiliateCampaignSearchPlanGeneration(campaignId: $campaignId) {
+      id
+      campaignId
+      generation
+      status
+      blockStage
+      errorCode
+    }
+  }
+`;
+
 export const WRITE_AFFILIATE_CAMPAIGN_MUTATION = gql`
   ${AFFILIATE_CAMPAIGN_FIELDS}
   mutation WriteAffiliateCampaign($input: WriteAffiliateCampaignInput!) {
@@ -646,64 +639,6 @@ export const AFFILIATE_CAMPAIGN_PRODUCT_PREVIEW_QUERY = gql`
       brandName
       observedAt
       snapshotHash
-    }
-  }
-`;
-
-export const SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION = gql`
-  mutation SuggestAffiliateCampaignSearchPhrases(
-    $input: SuggestAffiliateCampaignSearchPhrasesInput!
-  ) {
-    suggestAffiliateCampaignSearchPhrases(input: $input) {
-      suggestionVersion
-      productSnapshotHash
-      suggestions {
-        text
-        explanation
-        explanationLocale
-        discoveryRules {
-          keyword
-          followerCount {
-            minimum
-            maximum
-          }
-          audience {
-            ageRanges
-            genderDistribution {
-              gender
-              minimumPercentage
-            }
-          }
-          salesPerformance30d {
-            gmvRanges
-            unitsSoldRanges
-          }
-          categories {
-            parentCategoryId
-            childCategoryIds
-          }
-          contentPerformance30d {
-            averageVideoViews
-            averageShoppableVideoViews
-            averageEngagementRate
-            averageShoppableEngagementRate
-            averageLiveViewers
-            averageShoppableLiveViewers
-          }
-          affiliatePerformance30d {
-            averageCommissionRate
-            postRate
-            creatorAgencyStatus
-            fastGrowingOnly
-            notInvitedLast90Days
-          }
-          marketSpecific {
-            languages
-            creatorLevels
-            categoryPros
-          }
-        }
-      }
     }
   }
 `;
