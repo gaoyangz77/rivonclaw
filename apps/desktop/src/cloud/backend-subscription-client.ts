@@ -355,6 +355,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           workKind
           requiredAction
           shopId
+          shopRegion
           affiliateCollaborationId
           sampleApplicationRecordId
           proposalId
@@ -455,6 +456,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             workKind
             requiredAction
             shopId
+            shopRegion
             affiliateCollaborationId
             sampleApplicationRecordId
             proposalId
