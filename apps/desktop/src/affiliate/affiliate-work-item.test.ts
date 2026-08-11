@@ -2061,11 +2061,15 @@ describe("affiliate work item dispatch", () => {
 
   it("renders the producing shop for every agenda item in a cross-shop Relationship bundle", () => {
     const base = createSampleReviewWorkItem();
-    const firstAgenda = (base.creatorRelationship?.agendaItems ?? [])[0]!;
+    const firstAgenda = {
+      ...(base.creatorRelationship?.agendaItems ?? [])[0]!,
+      shopRegion: "US",
+    };
     const secondAgenda = {
       ...firstAgenda,
       key: "affiliateCollaboration:collab-002:COMPLETE_COLLABORATION_TASK",
       shopId: "shop-002",
+      shopRegion: "FR",
       affiliateCollaborationId: "collab-002",
       sampleApplicationRecordId: "sample-record-002",
       predictionEvidence: createWorkingAgendaPredictionEvidence({
@@ -2088,6 +2092,8 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("2. Agenda Item:");
     expect(request?.message).toContain("Shop ID: shop-001");
     expect(request?.message).toContain("Shop ID: shop-002");
+    expect(request?.message).toContain("Shop Region: US");
+    expect(request?.message).toContain("Shop Region: FR");
   });
 
   it("renders a revision-requested proposal only from the dispatching working agenda", () => {

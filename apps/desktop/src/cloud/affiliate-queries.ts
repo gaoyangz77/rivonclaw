@@ -184,6 +184,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         workKind
         requiredAction
         shopId
+        shopRegion
         affiliateCollaborationId
         sampleApplicationRecordId
         proposalId

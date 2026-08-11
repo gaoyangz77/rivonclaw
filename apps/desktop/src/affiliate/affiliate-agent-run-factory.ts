@@ -89,6 +89,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
           : GQL.AffiliateRelationshipAgendaSourceType.Relationship,
         updatedAt: workItem.versionAt,
         shopId: workItem.triggerShopId,
+        shopRegion: null,
         reasons: workItem.processReasons ?? [],
         affiliateCollaborationId: workItem.affiliateCollaborationId ?? null,
         sampleApplicationRecordId: workItem.sampleApplicationRecord?.id ?? null,
@@ -115,6 +116,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       `   Work Kind: ${item.workKind}`,
       `   Required Action: ${item.requiredAction}`,
       `   Shop ID: ${item.shopId ?? workItem.triggerShopId}`,
+      `   Shop Region: ${item.shopRegion ?? "(unavailable)"}`,
       `   Reasons: ${(item.reasons ?? []).join(", ") || "(none)"}`,
     );
     if (item.affiliateCollaborationId) {

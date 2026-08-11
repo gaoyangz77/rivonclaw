@@ -2826,6 +2826,8 @@ export interface AffiliateRelationshipAgendaItem {
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
+  /** Current region of the shop that owns this agenda fact. Request-scoped and not persisted on the Relationship. */
+  shopRegion?: Maybe<Scalars['String']['output']>;
   sourceType: AffiliateRelationshipAgendaSourceType;
   updatedAt: Scalars['DateTimeISO']['output'];
   workKind: AffiliateWorkKind;
