@@ -162,6 +162,22 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("stableCreatorTotalCount");
     expect(page).toContain("if (!creatorPageResult) return;");
   });
+
+  it("shows natural AI Team ownership without offering an unassign action", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const queries = readFileSync(
+      resolve(process.cwd(), "src/api/shops-queries.ts"),
+      "utf8",
+    );
+
+    expect(page).toContain('placeholder={t("ecommerce.affiliateTeam.aiTeam")}');
+    expect(page).not.toContain("__AI_TEAM__");
+    expect(page).not.toContain("unassignAffiliateBusinessDeveloper");
+    expect(queries).not.toContain("unassignAffiliateBusinessDeveloper");
+  });
 });
 
 describe("Expected Sales model-stage presentation", () => {

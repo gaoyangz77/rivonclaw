@@ -3400,17 +3400,6 @@ export const ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
   }
 `;
 
-export const UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION = gql`
-  mutation UnassignAffiliateBusinessDeveloper($creatorRelationshipId: ID!) {
-    unassignAffiliateBusinessDeveloper(creatorRelationshipId: $creatorRelationshipId) {
-      id
-      businessDeveloperId
-      operationalConfigRevision
-      updatedAt
-    }
-  }
-`;
-
 export const PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION = gql`
   mutation ProtectAffiliateCreatorRelationship($input: ProtectAffiliateCreatorRelationshipInput!) {
     protectAffiliateCreatorRelationship(input: $input) {
