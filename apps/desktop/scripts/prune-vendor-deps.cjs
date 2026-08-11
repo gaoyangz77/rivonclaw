@@ -14,7 +14,7 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-09.4";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-11.5";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = [
   "copilot",
@@ -47,6 +47,13 @@ const macRuntimeArch =
     : process.platform === "darwin" && (process.arch === "arm64" || process.arch === "x64")
       ? process.arch
       : null;
+const sqliteVecRuntimePlatform = process.platform === "win32" ? "windows" : process.platform;
+const sqliteVecRuntimeArch = process.platform === "darwin" ? macRuntimeArch : process.arch;
+const sqliteVecTargetPackage =
+  ["darwin", "linux", "windows"].includes(sqliteVecRuntimePlatform) &&
+  ["arm64", "x64"].includes(sqliteVecRuntimeArch ?? "")
+    ? `sqlite-vec-${sqliteVecRuntimePlatform}-${sqliteVecRuntimeArch}`
+    : null;
 
 // Package blacklist. Scope-only entries remove every package inside that scope.
 const EXTRA_REMOVE = [
@@ -104,7 +111,6 @@ const EXTRA_REMOVE = [
   "koffi",
   "playwright",
   "sharp",
-  "sqlite-vec",
 ];
 
 const EXTRA_REMOVE_PREFIXES = [
@@ -121,7 +127,6 @@ const EXTRA_REMOVE_PREFIXES = [
   "@tloncorp/tlon-skill-",
   "@zed-industries/codex-acp-",
   "lightningcss-",
-  "sqlite-vec-",
 ];
 
 const STRIP_FILES = new Set([
@@ -321,14 +326,32 @@ function removeReplacedVendorExtensionSources() {
   );
 }
 
+function removeOtherSqliteVecPlatforms() {
+  for (const pkgDir of packageDirsForPrefix("sqlite-vec-")) {
+    if (packageLabel(pkgDir) === sqliteVecTargetPackage) continue;
+    removePackageDir(pkgDir);
+  }
+}
+
+function hasOtherSqliteVecPlatforms() {
+  return packageDirsForPrefix("sqlite-vec-").some(
+    (pkgDir) => packageLabel(pkgDir) !== sqliteVecTargetPackage,
+  );
+}
+
 function hasRequiredOfficialVendorPlugins() {
-  return [
+  const requiredPaths = [
     path.join(vendorDir, "extensions", "openclaw-lark", "openclaw.plugin.json"),
     path.join(vendorDir, "dist-runtime", "extensions", "groq", "openclaw.plugin.json"),
     path.join(vendorDir, "dist-runtime", "extensions", "groq", "dist", "index.js"),
     path.join(nmDir, "@larksuiteoapi", "node-sdk", "package.json"),
     path.join(nmDir, "openclaw", "package.json"),
-  ].every((requiredPath) => fs.existsSync(requiredPath));
+    path.join(nmDir, "sqlite-vec", "package.json"),
+  ];
+  if (sqliteVecTargetPackage) {
+    requiredPaths.push(path.join(nmDir, sqliteVecTargetPackage, "package.json"));
+  }
+  return requiredPaths.every((requiredPath) => fs.existsSync(requiredPath));
 }
 
 function workspaceDependencies() {
@@ -688,6 +711,7 @@ if (fs.existsSync(prunedMarkerPath)) {
     hasCurrentPruneProfile &&
     !hasDevDeps &&
     !hasBlacklistedPackage() &&
+    !hasOtherSqliteVecPlatforms() &&
     disabledVendorExtensionDirs().length === 0 &&
     hasRequiredOfficialVendorPlugins() &&
     hasMaterializedWorkspaceDependencies()
@@ -755,6 +779,7 @@ for (const prefix of EXTRA_REMOVE_PREFIXES) {
     removePackageDir(pkgDir);
   }
 }
+removeOtherSqliteVecPlatforms();
 removeDisabledVendorExtensions();
 removeReplacedVendorExtensionSources();
 

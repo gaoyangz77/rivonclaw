@@ -6,13 +6,19 @@ vi.mock("@rivonclaw/logger", () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { mockSpawn, mockReadFile, mockArch, mockHomedir, mockGetAugmentedPath, mockGetMirrorEnv } =
-  vi.hoisted(() => ({
+const {
+  mockSpawn,
+  mockReadFile,
+  mockArch,
+  mockHomedir,
+  mockGetAugmentedEnvironment,
+  mockGetMirrorEnv,
+} = vi.hoisted(() => ({
     mockSpawn: vi.fn(),
     mockReadFile: vi.fn(),
     mockArch: vi.fn<() => string>(() => "arm64"),
     mockHomedir: vi.fn(() => "/Users/testuser"),
-    mockGetAugmentedPath: vi.fn(() => "/mock/path"),
+    mockGetAugmentedEnvironment: vi.fn(() => ({ PATH: "/mock/path" })),
     mockGetMirrorEnv: vi.fn<(region: string) => Record<string, string> | null>(
       () => null,
     ),
@@ -32,7 +38,10 @@ vi.mock("node:os", () => ({
 }));
 
 vi.mock("../dep-detector.js", () => ({
-  getAugmentedPath: () => mockGetAugmentedPath(),
+  getAugmentedEnvironment: (overrides?: NodeJS.ProcessEnv) => ({
+    ...mockGetAugmentedEnvironment(),
+    ...overrides,
+  }),
 }));
 
 vi.mock("../mirror-config.js", () => ({
@@ -129,7 +138,7 @@ describe("installDep", () => {
     spawnCalls = [];
     mockArch.mockReturnValue("arm64");
     mockHomedir.mockReturnValue("/Users/testuser");
-    mockGetAugmentedPath.mockReturnValue("/mock/augmented/path");
+    mockGetAugmentedEnvironment.mockReturnValue({ PATH: "/mock/augmented/path" });
     mockGetMirrorEnv.mockReturnValue(null);
   });
 

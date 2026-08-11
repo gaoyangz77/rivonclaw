@@ -9,6 +9,10 @@
     ".": {
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.mts"
+    },
+    "./path-env": {
+      "import": "./dist/path-env.mjs",
+      "types": "./dist/path-env.d.mts"
     }
   },
   "scripts": {

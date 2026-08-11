@@ -5,7 +5,7 @@ import { posix } from "node:path";
 import { DEFAULTS } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { DepName } from "./types.js";
-import { getAugmentedPath } from "./dep-detector.js";
+import { getAugmentedEnvironment } from "./dep-detector.js";
 import { getMirrorEnv } from "./mirror-config.js";
 import type { Region } from "./region-detector.js";
 
@@ -40,7 +40,7 @@ function spawnAsync(
     let timedOut = false;
     const recentOutput: string[] = [];
     const env = {
-      ...(opts.env ?? { ...process.env, PATH: getAugmentedPath() }),
+      ...(opts.env ?? getAugmentedEnvironment()),
       ...UTF8_ENV,
     };
     const child = spawn(cmd, args, {
@@ -129,12 +129,10 @@ async function ensureHomebrew(
   onOutput("Installing Homebrew...");
 
   const mirrorEnv = getMirrorEnv(region);
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    PATH: getAugmentedPath(),
+  const env: NodeJS.ProcessEnv = getAugmentedEnvironment({
     NONINTERACTIVE: "1",
     ...mirrorEnv,
-  };
+  });
 
   if (region === "cn") {
     onOutput("Installing Homebrew from China mirror...");
@@ -214,11 +212,9 @@ async function installDepMacOS(
   await ensureHomebrew(region, onOutput);
 
   const mirrorEnv = getMirrorEnv(region);
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    PATH: getAugmentedPath(),
+  const env: NodeJS.ProcessEnv = getAugmentedEnvironment({
     ...mirrorEnv,
-  };
+  });
 
   if (dep === "uv") {
     if (region === "cn") {
@@ -232,7 +228,7 @@ async function installDepMacOS(
         "/bin/bash",
         ["-c", `curl -LsSf ${DEFAULTS.installers.uvUnix} | sh`],
         onOutput,
-        { env: { ...process.env, PATH: getAugmentedPath() } },
+        { env: getAugmentedEnvironment() },
       );
     }
     return;

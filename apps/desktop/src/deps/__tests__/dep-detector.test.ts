@@ -21,11 +21,18 @@ vi.mock("node:os", () => ({
   homedir: () => mockHomedir(),
 }));
 
-import { detectDeps, getAugmentedPath } from "../dep-detector.js";
+import {
+  detectDeps,
+  getAugmentedPath,
+  syncDetectedDependencyPaths,
+} from "../dep-detector.js";
 
 const originalPath = process.env.PATH;
 
 afterEach(() => {
+  for (const key of Object.keys(process.env)) {
+    if (key.toLowerCase() === "path") delete process.env[key];
+  }
   process.env.PATH = originalPath;
 });
 
@@ -100,6 +107,27 @@ describe("getAugmentedPath", () => {
     // Should use ";" separator on win32
     expect(path).toContain(";");
   });
+
+  it("syncs detected Windows executable directories into one canonical Path", () => {
+    mockPlatform.mockReturnValue("win32");
+    mockHomedir.mockReturnValue("C:\\Users\\testuser");
+    process.env.Path = "D:\\Program Files\\nodejs";
+    process.env.PATH = "";
+
+    syncDetectedDependencyPaths([
+      {
+        name: "node",
+        available: true,
+        version: "24.14.0",
+        path: "D:\\Program Files\\nodejs\\node.exe",
+      },
+    ]);
+
+    expect(Object.keys(process.env).filter((key) => key.toLowerCase() === "path")).toEqual([
+      "Path",
+    ]);
+    expect(process.env.Path?.split(";")[0]).toBe("D:\\Program Files\\nodejs");
+  });
 });
 
 describe("detectDeps", () => {
@@ -118,6 +146,8 @@ describe("detectDeps", () => {
       "which python3": { stdout: "/usr/bin/python3\n", stderr: "" },
       "node --version": { stdout: "v20.11.0", stderr: "" },
       "which node": { stdout: "/usr/local/bin/node\n", stderr: "" },
+      "npm --version": { stdout: "11.9.0\n", stderr: "" },
+      "which npm": { stdout: "/usr/local/bin/npm\n", stderr: "" },
       "uv --version": { stdout: "uv 0.5.1", stderr: "" },
       "which uv": { stdout: "/Users/testuser/.cargo/bin/uv\n", stderr: "" },
     });
@@ -179,6 +209,8 @@ describe("detectDeps", () => {
       "which python": { stdout: "/usr/bin/python\n", stderr: "" },
       "node --version": { stdout: "v20.11.0", stderr: "" },
       "which node": { stdout: "/usr/local/bin/node\n", stderr: "" },
+      "npm --version": { stdout: "11.9.0\n", stderr: "" },
+      "which npm": { stdout: "/usr/local/bin/npm\n", stderr: "" },
       "uv --version": { stdout: "uv 0.5.1", stderr: "" },
       "which uv": { stdout: "/Users/testuser/.cargo/bin/uv\n", stderr: "" },
     });
@@ -203,6 +235,11 @@ describe("detectDeps", () => {
       "python --version": { stdout: "", stderr: "" },
       "node --version": { stdout: "v20.11.0", stderr: "" },
       "where.exe node": { stdout: "C:\\Program Files\\nodejs\\node.exe\n", stderr: "" },
+      "C:\\Windows\\System32\\cmd.exe /d /s /c npm.cmd --version": {
+        stdout: "11.9.0\n",
+        stderr: "",
+      },
+      "where.exe npm.cmd": { stdout: "C:\\Program Files\\nodejs\\npm.cmd\n", stderr: "" },
       "uv --version": { stdout: "uv 0.5.1", stderr: "" },
       "where.exe uv": { stdout: "C:\\Users\\testuser\\.cargo\\bin\\uv.exe\n", stderr: "" },
     });
@@ -222,6 +259,11 @@ describe("detectDeps", () => {
       "where.exe python3": { stdout: "C:\\Python312\\python3.exe\n", stderr: "" },
       "node --version": { stdout: "v20.11.0", stderr: "" },
       "where.exe node": { stdout: "C:\\Program Files\\nodejs\\node.exe\n", stderr: "" },
+      "C:\\Windows\\System32\\cmd.exe /d /s /c npm.cmd --version": {
+        stdout: "11.9.0\n",
+        stderr: "",
+      },
+      "where.exe npm.cmd": { stdout: "C:\\Program Files\\nodejs\\npm.cmd\n", stderr: "" },
       "uv --version": { stdout: "uv 0.5.1", stderr: "" },
       "where.exe uv": { stdout: "C:\\Users\\testuser\\.cargo\\bin\\uv.exe\n", stderr: "" },
     });
@@ -243,6 +285,8 @@ describe("detectDeps", () => {
       "which python3": { stdout: "/usr/bin/python3\n", stderr: "" },
       "node --version": { stdout: "v18.19.1\n", stderr: "" },
       "which node": { stdout: "/usr/local/bin/node\n", stderr: "" },
+      "npm --version": { stdout: "10.8.2\n", stderr: "" },
+      "which npm": { stdout: "/usr/local/bin/npm\n", stderr: "" },
       "uv --version": { stdout: "uv 0.1.0-beta.3\n", stderr: "" },
       "which uv": { stdout: "/usr/local/bin/uv\n", stderr: "" },
     });
@@ -254,5 +298,43 @@ describe("detectDeps", () => {
     expect(results.find((d) => d.name === "python")!.version).toBe("3.10.0");
     expect(results.find((d) => d.name === "node")!.version).toBe("18.19.1");
     expect(results.find((d) => d.name === "uv")!.version).toBe("0.1.0-beta.3");
+  });
+
+  it("marks Node.js unavailable when npm is missing", async () => {
+    setupExecFile({
+      "node --version": { stdout: "v20.11.0", stderr: "" },
+      "which node": { stdout: "/usr/local/bin/node\n", stderr: "" },
+    });
+
+    const results = await detectDeps();
+
+    expect(results.find((dep) => dep.name === "node")).toEqual({
+      name: "node",
+      available: false,
+    });
+  });
+
+  it("runs npm.cmd through the trusted Windows command interpreter", async () => {
+    mockPlatform.mockReturnValue("win32");
+    mockHomedir.mockReturnValue("C:\\Users\\testuser");
+    setupExecFile({
+      "node --version": { stdout: "v24.14.0", stderr: "" },
+      "where.exe node": { stdout: "D:\\Program Files\\nodejs\\node.exe\n", stderr: "" },
+      "C:\\Windows\\System32\\cmd.exe /d /s /c npm.cmd --version": {
+        stdout: "11.9.0\n",
+        stderr: "",
+      },
+      "where.exe npm.cmd": { stdout: "D:\\Program Files\\nodejs\\npm.cmd\n", stderr: "" },
+    });
+
+    const results = await detectDeps();
+
+    expect(results.find((dep) => dep.name === "node")?.available).toBe(true);
+    expect(mockExecFile).toHaveBeenCalledWith(
+      "C:\\Windows\\System32\\cmd.exe",
+      ["/d", "/s", "/c", "npm.cmd --version"],
+      expect.objectContaining({ windowsHide: true }),
+      expect.any(Function),
+    );
   });
 });

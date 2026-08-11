@@ -82,7 +82,10 @@ vi.mock("@rivonclaw/logger", () => ({
 }));
 
 vi.mock("../utils/cli-utils.js", () => ({
-  enrichedPath: (basePath = "") => `${basePath}:/mock/enriched/bin`,
+  normalizePathEnvironment: (env: NodeJS.ProcessEnv) => ({
+    ...env,
+    PATH: `${env.PATH ?? ""}:/mock/enriched/bin`,
+  }),
 }));
 
 // ─── GatewayLauncher tests ─────────────────────────────────────────────────

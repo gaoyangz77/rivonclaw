@@ -109,4 +109,11 @@ export type {
   LoopbackOAuthCallback,
   LoopbackOAuthCallbackOptions,
 } from "./oauth/loopback-oauth.js";
-export { enrichedPath, findInPath, ensureCliAvailable } from "./utils/cli-utils.js";
+export {
+  buildEffectivePath,
+  commonExecutablePaths,
+  enrichedPath,
+  ensureCliAvailable,
+  findInPath,
+  normalizePathEnvironment,
+} from "./utils/cli-utils.js";
