@@ -13,6 +13,7 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/release/**", "**/.git/**", "**/e2e/**"],
     alias: {
       "@rivonclaw/logger": resolve(__dirname, "../../packages/logger/src/index.ts"),
+      "@rivonclaw/gateway/path-env": resolve(__dirname, "../../packages/gateway/src/path-env.ts"),
       "@rivonclaw/gateway": resolve(__dirname, "../../packages/gateway/src/index.ts"),
       "@rivonclaw/core/node": resolve(__dirname, "../../packages/core/src/node.ts"),
       "@rivonclaw/core/models": resolve(__dirname, "../../packages/core/src/mst-models.ts"),

@@ -13,7 +13,7 @@ import {
   type GatewayPerformanceBurst,
 } from "./gateway-performance-capture.js";
 import { captureGatewayProcessTree } from "./gateway-process-tree.js";
-import { enrichedPath } from "../utils/cli-utils.js";
+import { normalizePathEnvironment } from "../utils/cli-utils.js";
 
 const log = createLogger("gateway");
 
@@ -221,11 +221,21 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     this.setState("starting");
     this.performanceCapture.reset();
 
-    const env: Record<string, string | undefined> = {
+    const sourceEnv = {
       ...process.env,
       ...this.options.env,
     };
-    env.PATH = enrichedPath(env.PATH ?? "");
+    const sourcePathKeys = Object.keys(sourceEnv).filter((key) =>
+      process.platform === "win32" ? key.toLowerCase() === "path" : key === "PATH",
+    );
+    const env = normalizePathEnvironment(sourceEnv);
+    const pathKey = process.platform === "win32" ? "Path" : "PATH";
+    const pathEntries = env[pathKey]?.split(process.platform === "win32" ? ";" : ":").length ?? 0;
+    log.info(
+      `Gateway executable path prepared ` +
+        `(source=${sourcePathKeys.join("+") || "fallbacks"}, key=${pathKey}, ` +
+        `entries=${pathEntries}, packageManager=not-required)`,
+    );
 
     if (this.options.configPath) {
       env["OPENCLAW_CONFIG_PATH"] = this.options.configPath;

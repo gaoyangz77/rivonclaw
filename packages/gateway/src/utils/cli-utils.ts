@@ -9,23 +9,29 @@ import { existsSync, readdirSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { delimiter, join } from "node:path";
 import { homedir } from "node:os";
+import {
+  buildEffectivePath,
+  commonExecutablePaths,
+  normalizePathEnvironment,
+} from "../path-env.js";
+export {
+  buildEffectivePath,
+  commonExecutablePaths,
+  normalizePathEnvironment,
+} from "../path-env.js";
+
+function pathDelimiter(platform: NodeJS.Platform): string {
+  return platform === "win32" ? ";" : delimiter;
+}
 
 /**
  * Build an enriched PATH that includes common Node.js/npm install locations.
  * Packaged Electron apps on macOS inherit a minimal PATH (e.g. /usr/bin:/bin)
  * that doesn't include Homebrew, nvm, volta, fnm, etc.
  */
-export function enrichedPath(basePath: string = process.env.PATH ?? ""): string {
-  const base = basePath;
+export function enrichedPath(basePath?: string): string {
   const home = homedir();
-  const extra: string[] = [
-    "/usr/local/bin", // Homebrew (Intel Mac) / system installs
-    "/opt/homebrew/bin", // Homebrew (Apple Silicon)
-    join(home, ".nvm", "current", "bin"), // nvm (symlink alias)
-    join(home, ".volta", "bin"), // Volta
-    join(home, ".fnm", "aliases", "default", "bin"), // fnm
-    join(home, ".local", "bin"), // pipx / user-local installs
-  ];
+  const extra = commonExecutablePaths({ homeDir: home });
 
   // nvm: also check versioned directories (pick the first one found)
   const nvmVersions = join(home, ".nvm", "versions", "node");
@@ -41,10 +47,14 @@ export function enrichedPath(basePath: string = process.env.PATH ?? ""): string 
     // nvm not installed
   }
 
-  const existing = new Set(base.split(delimiter));
-  const additions = extra.filter((d) => !existing.has(d) && existsSync(d));
-  if (additions.length === 0) return base;
-  return base + delimiter + additions.join(delimiter);
+  return buildEffectivePath(
+    basePath === undefined
+      ? process.env
+      : process.platform === "win32"
+        ? { Path: basePath }
+        : { PATH: basePath },
+    { extraPaths: extra.filter((entry) => existsSync(entry)) },
+  );
 }
 
 /**
@@ -53,7 +63,8 @@ export function enrichedPath(basePath: string = process.env.PATH ?? ""): string 
  */
 export function findInPath(name: string): string | null {
   const exts = process.platform === "win32" ? [".cmd", ".bat", ".exe", ""] : [""];
-  for (const dir of enrichedPath().split(delimiter)) {
+  const separator = pathDelimiter(process.platform);
+  for (const dir of buildEffectivePath(process.env).split(separator)) {
     for (const ext of exts) {
       const p = join(dir, name + ext);
       if (existsSync(p)) {
@@ -94,7 +105,11 @@ export async function ensureCliAvailable(cliName: string, npmPackage: string): P
     execFile(
       npmBin,
       ["install", "-g", npmPackage],
-      { timeout: 120_000, shell: useShell, env: { ...process.env, PATH: enrichedPath() } },
+      {
+        timeout: 120_000,
+        shell: useShell,
+        env: normalizePathEnvironment(process.env),
+      },
       (err, _stdout, stderr) => {
         if (err) {
           reject(new Error(`Failed to install ${npmPackage}: ${stderr || err.message}`));

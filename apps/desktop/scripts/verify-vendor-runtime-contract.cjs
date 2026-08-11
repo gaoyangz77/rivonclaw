@@ -37,7 +37,21 @@ const REQUIRED_PATHS = [
   "node_modules/@openclaw/ai/package.json",
   "node_modules/@openclaw/ai/dist/internal/runtime.mjs",
   "node_modules/openclaw/package.json",
+  "node_modules/sqlite-vec/package.json",
 ];
+
+const sqliteVecRuntimePlatform = process.platform === "win32" ? "windows" : process.platform;
+const configuredMacRuntimeArch = process.env.RIVONCLAW_MAC_RUNTIME_ARCH;
+const sqliteVecRuntimeArch =
+  process.platform === "darwin" && ["x64", "arm64"].includes(configuredMacRuntimeArch)
+    ? configuredMacRuntimeArch
+    : process.arch;
+const SQLITE_VEC_PLATFORM_PACKAGE =
+  ["darwin", "linux", "windows"].includes(sqliteVecRuntimePlatform) &&
+  ["x64", "arm64"].includes(sqliteVecRuntimeArch)
+    ? `node_modules/sqlite-vec-${sqliteVecRuntimePlatform}-${sqliteVecRuntimeArch}/package.json`
+    : "";
+if (SQLITE_VEC_PLATFORM_PACKAGE) REQUIRED_PATHS.push(SQLITE_VEC_PLATFORM_PACKAGE);
 
 const PRUNED_FORBIDDEN_PATHS = [
   "node_modules/@agentclientprotocol/claude-agent-acp",
@@ -230,6 +244,44 @@ async function runOpenClawAiRuntimeSmoke(vendorDir) {
   await import(pathToFileURL(runtimePath).href);
 }
 
+async function runSqliteVecRuntimeSmoke(vendorDir) {
+  if (!SQLITE_VEC_PLATFORM_PACKAGE) {
+    throw new Error(
+      `sqlite-vec does not support runtime target ${sqliteVecRuntimePlatform}-${sqliteVecRuntimeArch}`,
+    );
+  }
+
+  if (sqliteVecRuntimeArch !== process.arch) {
+    const platformPackageDir = path.dirname(path.join(vendorDir, SQLITE_VEC_PLATFORM_PACKAGE));
+    const nativeExtension = fs
+      .readdirSync(platformPackageDir, { withFileTypes: true })
+      .find(
+        (entry) =>
+          entry.isFile() &&
+          (entry.name.endsWith(".dylib") ||
+            entry.name.endsWith(".so") ||
+            entry.name.endsWith(".dll")),
+      );
+    if (!nativeExtension) {
+      throw new Error(
+        `sqlite-vec target package has no native extension: ${path.relative(vendorDir, platformPackageDir)}`,
+      );
+    }
+    return;
+  }
+
+  const requireFromVendor = createRequire(path.join(vendorDir, "package.json"));
+  const sqliteVecPath = requireFromVendor.resolve("sqlite-vec");
+  const sqliteVec = await import(pathToFileURL(sqliteVecPath).href);
+  if (typeof sqliteVec.getLoadablePath !== "function") {
+    throw new Error("sqlite-vec runtime did not export getLoadablePath");
+  }
+  const extensionPath = sqliteVec.getLoadablePath();
+  if (!fs.existsSync(extensionPath)) {
+    throw new Error(`sqlite-vec native extension is missing: ${extensionPath}`);
+  }
+}
+
 async function runGroqProviderRuntimeSmoke(vendorDir) {
   const entryPath = path.join(vendorDir, "dist-runtime", "extensions", "groq", "dist", "index.js");
   const pluginModule = await import(pathToFileURL(entryPath).href);
@@ -280,7 +332,7 @@ function runNoHostPackageManagerStartupSmoke(vendorDir) {
           auth: { mode: "token", token: "runtime-contract-token" },
         },
         memory: { search: { enabled: false } },
-        plugins: { entries: { groq: { enabled: true } } },
+        plugins: { allow: ["groq"], entries: { groq: { enabled: true } } },
       },
       null,
       2,
@@ -357,6 +409,7 @@ async function main() {
 
     await runWorkspaceBootstrapSmoke(vendorDir);
     await runOpenClawAiRuntimeSmoke(vendorDir);
+    await runSqliteVecRuntimeSmoke(vendorDir);
     await runGroqProviderRuntimeSmoke(vendorDir);
     runNoHostPackageManagerStartupSmoke(vendorDir);
 
