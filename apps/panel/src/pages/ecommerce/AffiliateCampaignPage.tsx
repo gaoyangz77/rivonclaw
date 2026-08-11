@@ -1250,10 +1250,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     </div>
                   </div>
                   <div className="affiliate-campaign-plan-metrics">
-                    <PlanMetric label={t("ecommerce.affiliateCampaign.scanned")} value={currentSearchPlan.totals.scanned} />
-                    <PlanMetric label={t("ecommerce.affiliateCampaign.matched")} value={currentSearchPlan.totals.matched} />
-                    <PlanMetric label={t("ecommerce.affiliateCampaign.qualified")} value={currentSearchPlan.totals.qualified} />
-                    <PlanMetric label={t("ecommerce.affiliateCampaign.selected")} value={currentSearchPlan.totals.selected} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.scanned")} value={currentSearchPlan.totals.scanned} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.matched")} value={currentSearchPlan.totals.matched} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.qualified")} value={currentSearchPlan.totals.qualified} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.selected")} value={currentSearchPlan.totals.selected} />
                   </div>
                   <div className="affiliate-campaign-plan-footnote">
                     <span>
@@ -1296,7 +1296,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <span>#{plan.generation}</span>
                         <strong>{plan.phrase?.text ?? searchPlanStatusLabel(plan.status, t)}</strong>
                         <small>
-                          {plan.pageSequence}/50 · {formatNumber(plan.totals.matched)} {t("ecommerce.affiliateCampaign.matched")}
+                          {plan.pageSequence}/50 · {formatNumber(plan.totals.matched)} {t("ecommerce.affiliateCampaign.funnel.matched")}
                         </small>
                       </article>
                     ))}

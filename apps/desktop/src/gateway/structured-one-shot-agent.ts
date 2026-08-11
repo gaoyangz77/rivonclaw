@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import { openClawConnector } from "../openclaw/index.js";
 import { rootStore } from "../app/store/desktop-store.js";
@@ -6,13 +7,20 @@ import { rootStore } from "../app/store/desktop-store.js";
 const log = createLogger("structured-one-shot-agent");
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_REPAIR_OUTPUT_CHARS = 60_000;
+const MAX_REPAIR_CONTEXT_CHARS = 40_000;
 
 type ChatHistoryMessage = Record<string, unknown>;
+type TerminalReply =
+  | { disposition: "visible"; text: string }
+  | { disposition: "silent" | "empty" };
 
 export interface StructuredOneShotAgentRuntime {
   resolveDefaultModel(sessionKey: string): { provider: string; model: string };
   start(input: Record<string, unknown>): Promise<{ runId?: string }>;
-  wait(runId: string, timeoutMs: number): Promise<{ status?: string; error?: unknown }>;
+  wait(
+    runId: string,
+    timeoutMs: number,
+  ): Promise<{ status?: string; error?: unknown; terminalReply?: TerminalReply }>;
   history(sessionKey: string): Promise<{ messages?: ChatHistoryMessage[] }>;
   deleteSession(sessionKey: string): Promise<unknown>;
 }
@@ -70,7 +78,13 @@ export async function runStructuredOneShotAgent<T>(
   runtime: StructuredOneShotAgentRuntime = defaultRuntime,
 ): Promise<StructuredOneShotAgentResult<T>> {
   const startedAt = Date.now();
-  const sessionKey = `agent:utility:${sanitizeNamespace(options.namespace)}:${randomUUID()}`;
+  // The second session-key segment is an OpenClaw agent id, not a workload
+  // label. One-shot workloads still run through the configured default agent;
+  // modelRun + promptMode=raw are what remove tools and the normal system
+  // prompt. Using a synthetic id such as "utility" makes the gateway reject
+  // the request when no agent with that id is configured.
+  const sessionKey =
+    `agent:${DEFAULT_AGENT_ID}:model-run:${sanitizeNamespace(options.namespace)}:${randomUUID()}`;
   const repairSessionKey = `${sessionKey}:format-repair`;
   const resolvedModel = runtime.resolveDefaultModel(sessionKey);
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -103,6 +117,7 @@ export async function runStructuredOneShotAgent<T>(
         timeoutMs,
         systemPrompt: structuredSystemPrompt(options.systemPrompt, options.jsonSchema),
         message: structuredRepairPrompt({
+          originalUserPrompt: options.userPrompt,
           invalidOutput: firstText,
           validationError: errorMessage(firstError),
           jsonSchema: options.jsonSchema,
@@ -178,6 +193,13 @@ async function runOneShotTurn(input: {
         : `Structured one-shot Agent ended with status ${wait.status ?? "unknown"}`,
     );
   }
+  // Raw model runs intentionally use internal session effects, so their reply
+  // is not required to appear in chat.history. agent.wait.terminalReply is the
+  // producer-owned terminal result and is therefore the authoritative output
+  // path. Keep history only as a compatibility fallback for older gateways.
+  if (wait.terminalReply?.disposition === "visible" && wait.terminalReply.text.trim()) {
+    return wait.terminalReply.text;
+  }
   const history = await input.runtime.history(input.sessionKey);
   const text = latestAssistantText(history.messages ?? []);
   if (!text) throw new Error("Structured one-shot Agent produced no visible output");
@@ -202,6 +224,7 @@ function structuredSystemPrompt(
 }
 
 function structuredRepairPrompt(input: {
+  originalUserPrompt: string;
   invalidOutput: string;
   validationError: string;
   jsonSchema: Record<string, unknown>;
@@ -211,14 +234,21 @@ function structuredRepairPrompt(input: {
     input.invalidOutput.length <= MAX_REPAIR_OUTPUT_CHARS
       ? input.invalidOutput
       : input.invalidOutput.slice(0, MAX_REPAIR_OUTPUT_CHARS);
+  const originalUserPrompt =
+    input.originalUserPrompt.length <= MAX_REPAIR_CONTEXT_CHARS
+      ? input.originalUserPrompt
+      : input.originalUserPrompt.slice(0, MAX_REPAIR_CONTEXT_CHARS);
   return [
     "Repair the previous model output into the required structured payload.",
     "Do not acknowledge the error and do not describe the correction.",
     `Return the COMPLETE corrected JSON ${rootType} only.`,
     `The top-level value MUST be a JSON ${rootType}.`,
     "Preserve useful content from the previous output, but add or correct every required property.",
+    "Use the original task input below as the factual source. Do not replace it with generic placeholder content.",
     `Validation error: ${input.validationError}`,
     `Required JSON Schema: ${JSON.stringify(input.jsonSchema)}`,
+    "Original task input:",
+    originalUserPrompt,
     "Previous invalid output:",
     invalidOutput,
   ].join("\n");

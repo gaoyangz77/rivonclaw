@@ -17,6 +17,7 @@ const log = createLogger("auth-runtime");
 export interface SetupAuthDeps {
   secretStore: SecretStore;
   locale: string;
+  getUiLocale: () => string;
   deviceId: string;
   appVersion: string;
   proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>;
@@ -47,7 +48,7 @@ function adminDesktopPlatform(): "DARWIN" | "LINUX" | "WINDOWS" | "UNKNOWN" {
  * backend subscription client and its event subscriptions.
  */
 export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
-  const { secretStore, locale, deviceId, appVersion, proxyFetch, broadcastEvent } = deps;
+  const { secretStore, locale, getUiLocale, deviceId, appVersion, proxyFetch, broadcastEvent } = deps;
 
   // Initialize auth session manager
   const authSession = new AuthSessionManager(secretStore, locale, proxyFetch);
@@ -161,7 +162,7 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   const campaignSearchPlanActuator = new AffiliateCampaignSearchPlanActuator(
     authSession,
     deviceId,
-    locale,
+    getUiLocale,
   );
   backendSubscription.subscribeToAffiliateCampaignSearchPlanRequests(deviceId, (request) => {
     campaignSearchPlanActuator.enqueue(request);
