@@ -34,7 +34,6 @@ import {
   SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
   PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
   REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION,
-  UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
 } from "../../api/shops-queries.js";
 import { creatorTagLabel } from "./affiliate-tag-labels.js";
 import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
@@ -5618,9 +5617,9 @@ function CreatorRelationshipDetailModal({
     const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
     return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
   };
-  const [relationshipOwnerId, setRelationshipOwnerId] = useState(relationship?.businessDeveloperId ?? "__AI_TEAM__");
+  const [relationshipOwnerId, setRelationshipOwnerId] = useState(relationship?.businessDeveloperId ?? "");
   useEffect(() => {
-    setRelationshipOwnerId(relationship?.businessDeveloperId ?? "__AI_TEAM__");
+    setRelationshipOwnerId(relationship?.businessDeveloperId ?? "");
   }, [relationship?.businessDeveloperId]);
   const relationshipProtection = relationshipDetail?.protection ?? null;
   const { data: developerData } = useQuery<{ affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[] }>(
@@ -5631,24 +5630,20 @@ function CreatorRelationshipDetailModal({
     if (developerData) affiliateWorkspace.replaceAffiliateBusinessDevelopers(developerData.affiliateBusinessDevelopers);
   }, [affiliateWorkspace, developerData]);
   const [assignDeveloper, assignDeveloperState] = useMutation(ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
-  const [unassignDeveloper, unassignDeveloperState] = useMutation(UNASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION);
   const [protectRelationship, protectRelationshipState] = useMutation(PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION);
   const [removeRelationshipProtection, removeRelationshipProtectionState] = useMutation(REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION);
-  const ownerOptions = [
-    { value: "__AI_TEAM__", label: t("ecommerce.affiliateTeam.aiTeam") },
-    ...affiliateWorkspace.businessDevelopers
-      .filter((developer) => !developer.archivedAt)
-      .map((developer) => ({ value: developer.id, label: developer.displayName })),
-  ];
-  const relationshipOwner = relationshipOwnerId === "__AI_TEAM__"
-    ? null
-    : affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId);
+  const ownerOptions = affiliateWorkspace.businessDevelopers
+    .filter((developer) => !developer.archivedAt)
+    .map((developer) => ({ value: developer.id, label: developer.displayName }));
+  const relationshipOwner = relationshipOwnerId
+    ? affiliateWorkspace.getBusinessDeveloper(relationshipOwnerId)
+    : null;
   const effectiveAiLabel = relationshipProtection
     ? t("ecommerce.affiliateWorkspace.relationshipProtected")
     : relationshipOwner?.agentAssistanceMode === GQL.AffiliateAgentAssistanceMode.HumanOnly
       ? t("ecommerce.affiliateTeam.humanOnly")
       : t("ecommerce.affiliateTeam.aiAssisted");
-  const ownershipBusy = assignDeveloperState.loading || unassignDeveloperState.loading
+  const ownershipBusy = assignDeveloperState.loading
     || protectRelationshipState.loading || removeRelationshipProtectionState.loading;
   const includedShopIds = relationshipDetail?.includedShopIds ?? rawShopStates.map((state) => state.shopId);
   const shopActivitySummaries = relationshipDetail?.shopActivitySummaries
@@ -6022,11 +6017,12 @@ function CreatorRelationshipDetailModal({
     if (!relationshipId || ownershipBusy || nextOwnerId === relationshipOwnerId) return;
     if (!window.confirm(t("ecommerce.affiliateWorkspace.relationshipOwnerChangeConfirm"))) return;
     try {
-      const result = nextOwnerId === "__AI_TEAM__"
-        ? await unassignDeveloper({ variables: { creatorRelationshipId: relationshipId } })
-        : await assignDeveloper({ variables: { input: { creatorRelationshipId: relationshipId, businessDeveloperId: nextOwnerId } } });
-      const relationship = (result.data as any)?.unassignAffiliateBusinessDeveloper
-        ?? (result.data as any)?.assignAffiliateBusinessDeveloper;
+      const result = await assignDeveloper({
+        variables: {
+          input: { creatorRelationshipId: relationshipId, businessDeveloperId: nextOwnerId },
+        },
+      });
+      const relationship = (result.data as any)?.assignAffiliateBusinessDeveloper;
       if (relationship) affiliateWorkspace.upsertAffiliateCreatorRelationship(relationship);
       setRelationshipOwnerId(nextOwnerId);
       showToast(t("ecommerce.affiliateTeam.saved"), "success");
@@ -6046,7 +6042,7 @@ function CreatorRelationshipDetailModal({
           variables: {
             input: {
               creatorRelationshipId: relationshipId,
-              businessDeveloperId: relationshipOwnerId === "__AI_TEAM__" ? null : relationshipOwnerId,
+              businessDeveloperId: relationshipOwnerId || null,
             },
           },
         });
@@ -6157,6 +6153,7 @@ function CreatorRelationshipDetailModal({
                   value={relationshipOwnerId}
                   onChange={(value) => void updateRelationshipOwner(value)}
                   options={ownerOptions}
+                  placeholder={t("ecommerce.affiliateTeam.aiTeam")}
                   disabled={!relationshipId || ownershipBusy}
                 />
               </label>

@@ -2313,7 +2313,6 @@ export const AffiliateLifecycleEventType = {
   ProposalRevisionRequested: 'PROPOSAL_REVISION_REQUESTED',
   ProposalSuperseded: 'PROPOSAL_SUPERSEDED',
   RelationshipBdAssigned: 'RELATIONSHIP_BD_ASSIGNED',
-  RelationshipBdUnassigned: 'RELATIONSHIP_BD_UNASSIGNED',
   RelationshipContactUpdated: 'RELATIONSHIP_CONTACT_UPDATED',
   SampleApplicationApproved: 'SAMPLE_APPLICATION_APPROVED',
   SampleApplicationCancelled: 'SAMPLE_APPLICATION_CANCELLED',
@@ -8204,7 +8203,6 @@ export interface Mutation {
   /** Pull warehouses from one WMS account and upsert canonical Warehouse records. */
   syncWmsWarehouses: WmsWarehouseSyncPayload;
   tiktokIngestSellerDeauthorizationWebhook: TikTokSellerDeauthorizationWebhookResult;
-  unassignAffiliateBusinessDeveloper: AffiliateCreatorRelationship;
   unassignAffiliateEmailAccount: EmailAccountBinding;
   unassignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
   /** Unenroll from a product module */
@@ -8992,11 +8990,6 @@ export interface MutationSyncWmsWarehousesArgs {
 
 export interface MutationTiktokIngestSellerDeauthorizationWebhookArgs {
   input: TikTokSellerDeauthorizationWebhookInput;
-}
-
-
-export interface MutationUnassignAffiliateBusinessDeveloperArgs {
-  creatorRelationshipId: Scalars['ID']['input'];
 }
 
 
