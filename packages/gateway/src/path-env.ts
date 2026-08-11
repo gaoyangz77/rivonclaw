@@ -1,4 +1,4 @@
-import { delimiter, posix, win32 } from "node:path";
+import { posix, win32 } from "node:path";
 import { homedir } from "node:os";
 
 export interface EffectivePathOptions {
@@ -9,7 +9,7 @@ export interface EffectivePathOptions {
 }
 
 function pathDelimiter(platform: NodeJS.Platform): string {
-  return platform === "win32" ? ";" : delimiter;
+  return platform === "win32" ? win32.delimiter : posix.delimiter;
 }
 
 /** Common executable locations shared by Desktop dependency checks and Gateway. */
