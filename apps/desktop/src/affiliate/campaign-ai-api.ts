@@ -4,40 +4,7 @@ import type { EndpointHandler, RouteRegistry } from "../infra/api/route-registry
 import { parseBody, sendJson } from "../infra/api/route-utils.js";
 import {
   generateCampaignMessageTemplate,
-  generateCampaignSearchPhraseSuggestions,
 } from "./affiliate-campaign-ai-service.js";
-
-const generateSearchPhrases: EndpointHandler = async (
-  req,
-  res,
-  _url,
-  _params,
-  ctx: ApiContext,
-) => {
-  if (!ctx.authSession?.getAccessToken()) {
-    sendJson(res, 401, { error: "Authentication required" });
-    return;
-  }
-  try {
-    const body = asRecord(await parseBody(req));
-    const shopId = requiredString(body.shopId, "shopId");
-    const productId = requiredString(body.productId, "productId");
-    const uiLocale = requiredString(body.uiLocale, "uiLocale");
-    const excludePhrases = optionalStringArray(body.excludePhrases, "excludePhrases");
-    const guidance = optionalString(body.guidance, "guidance");
-    const result = await generateCampaignSearchPhraseSuggestions({
-      authSession: ctx.authSession,
-      shopId,
-      productId,
-      uiLocale,
-      excludePhrases,
-      guidance,
-    });
-    sendJson(res, 200, result);
-  } catch (error) {
-    sendCampaignAiError(res, error);
-  }
-};
 
 const generateMessageTemplate: EndpointHandler = async (
   req,
@@ -72,7 +39,6 @@ const generateMessageTemplate: EndpointHandler = async (
 };
 
 export function registerAffiliateCampaignAiHandlers(registry: RouteRegistry): void {
-  registry.register(API["affiliate.campaignAi.searchPhrases"], generateSearchPhrases);
   registry.register(API["affiliate.campaignAi.messageTemplate"], generateMessageTemplate);
 }
 
@@ -98,14 +64,6 @@ function optionalString(value: unknown, field: string): string | undefined {
     throw new CampaignAiRequestError(`${field} must be a string`);
   }
   return value.trim() || undefined;
-}
-
-function optionalStringArray(value: unknown, field: string): string[] {
-  if (value == null) return [];
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-    throw new CampaignAiRequestError(`${field} must be a string array`);
-  }
-  return value.map((item) => item.trim()).filter(Boolean);
 }
 
 function sendCampaignAiError(

@@ -779,14 +779,14 @@ export interface AffiliateBusinessDeveloperSummary {
 /** One affiliate campaign objective owned by a TikTok seller shop. */
 export interface AffiliateCampaign {
   activatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  capabilityHash: Scalars['String']['output'];
+  activeSearchPlanId?: Maybe<Scalars['ID']['output']>;
   commissionRatePercent: Scalars['Float']['output'];
   completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
   dailyOutreachTarget: Scalars['Int']['output'];
-  discoveryRules: AffiliateCampaignDiscoveryRules;
   id: Scalars['ID']['output'];
+  lastSearchPlanCompletedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   market: ShopRegion;
   messageProductName: Scalars['String']['output'];
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
@@ -800,10 +800,10 @@ export interface AffiliateCampaign {
   productSnapshotHash?: Maybe<Scalars['String']['output']>;
   productSnapshotId?: Maybe<Scalars['ID']['output']>;
   resolvedTimeZone: Scalars['String']['output'];
-  rulesHash: Scalars['String']['output'];
-  searchKeywordSource: AffiliateCampaignSearchKeywordSource;
-  searchKeywordSuggestionVersion?: Maybe<Scalars['Int']['output']>;
-  searchPhrases: Array<AffiliateCampaignSearchPhrase>;
+  searchPlanErrorCode?: Maybe<Scalars['String']['output']>;
+  searchPlanGeneration: Scalars['Int']['output'];
+  searchPlanGuidance?: Maybe<Scalars['String']['output']>;
+  searchPlanningState: AffiliateCampaignSearchPlanningState;
   selectionPolicy: AffiliateCampaignSelectionPolicy;
   shopId: Scalars['ID']['output'];
   status: AffiliateCampaignStatus;
@@ -827,41 +827,6 @@ export interface AffiliateCampaignAffiliatePerformanceRulesInput {
   fastGrowingOnly?: InputMaybe<Scalars['Boolean']['input']>;
   notInvitedLast90Days?: InputMaybe<Scalars['Boolean']['input']>;
   postRate?: InputMaybe<Scalars['String']['input']>;
-}
-
-export interface AffiliateCampaignAiGenerationContext {
-  excludePhrases: Array<Scalars['String']['output']>;
-  explanationLocale: Scalars['String']['output'];
-  marketplaceCapabilities: AffiliateMarketplaceCreatorRuleCapabilities;
-  product: AffiliateCampaignProductPreview;
-  productSnapshotHash: Scalars['String']['output'];
-  shopName: Scalars['String']['output'];
-}
-
-export interface AffiliateCampaignAiGenerationContextInput {
-  excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  productId: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
-  uiLocale: Scalars['String']['input'];
-}
-
-export interface AffiliateCampaignAiSearchPhraseCandidateInput {
-  explanation: Scalars['String']['input'];
-  keyword: Scalars['String']['input'];
-  rules: AffiliateCampaignAiSearchRulesInput;
-}
-
-export interface AffiliateCampaignAiSearchRulesInput {
-  ageRanges?: InputMaybe<Array<Scalars['String']['input']>>;
-  categoryPros?: InputMaybe<Array<Scalars['String']['input']>>;
-  creatorLevels?: InputMaybe<Array<Scalars['String']['input']>>;
-  gender?: InputMaybe<Scalars['String']['input']>;
-  genderMinimumPercentage?: InputMaybe<Scalars['Float']['input']>;
-  gmvRanges?: InputMaybe<Array<Scalars['String']['input']>>;
-  languages?: InputMaybe<Array<Scalars['String']['input']>>;
-  maximumFollowers?: InputMaybe<Scalars['Int']['input']>;
-  minimumFollowers?: InputMaybe<Scalars['Int']['input']>;
-  unitsSoldRanges?: InputMaybe<Array<Scalars['String']['input']>>;
 }
 
 export interface AffiliateCampaignAudienceRules {
@@ -924,7 +889,8 @@ export interface AffiliateCampaignCreatorState {
   lastSeenAt: Scalars['DateTimeISO']['output'];
   latestSearchDailyExecutionId?: Maybe<Scalars['ID']['output']>;
   latestSearchMatchedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  latestSearchPhraseKeys: Array<Scalars['String']['output']>;
+  latestSearchPlanGeneration?: Maybe<Scalars['Int']['output']>;
+  latestSearchPlanId?: Maybe<Scalars['ID']['output']>;
   latestSearchProviderOrdinal?: Maybe<Scalars['Int']['output']>;
   market: Scalars['String']['output'];
   predictionStatus?: Maybe<AffiliateCampaignPredictionStatus>;
@@ -937,6 +903,7 @@ export interface AffiliateCampaignCreatorState {
   searchOccurrenceCount: Scalars['Int']['output'];
   selectionStrategy?: Maybe<AffiliateCampaignSelectionStrategy>;
   shopId: Scalars['ID']['output'];
+  sourceSearchPlanIds: Array<Scalars['ID']['output']>;
   status: AffiliateCampaignCreatorStateStatus;
 }
 
@@ -969,7 +936,6 @@ export type AffiliateCampaignCreatorStateStatus = typeof AffiliateCampaignCreato
 export interface AffiliateCampaignDailyExecution {
   allocatedTarget: Scalars['Int']['output'];
   campaignId: Scalars['ID']['output'];
-  capabilityHash: Scalars['String']['output'];
   configRevision: Scalars['Int']['output'];
   counterSchemaVersion: Scalars['Int']['output'];
   counters: AffiliateCampaignExecutionCounters;
@@ -980,14 +946,10 @@ export interface AffiliateCampaignDailyExecution {
   marketLocalDate: Scalars['String']['output'];
   modelVersion?: Maybe<Scalars['String']['output']>;
   nextTickAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  pageCursor?: Maybe<Scalars['String']['output']>;
-  pageSequence: Scalars['Int']['output'];
-  providerSearchKey?: Maybe<Scalars['String']['output']>;
   requestedTarget: Scalars['Int']['output'];
   riskReason?: Maybe<Scalars['String']['output']>;
   riskState: AffiliateCampaignExecutionRiskState;
-  rulesHash: Scalars['String']['output'];
-  searchPhraseExecutions: Array<AffiliateCampaignSearchPhraseExecution>;
+  searchPlanExecutions: Array<AffiliateCampaignSearchPlanExecution>;
   selectionStrategy: AffiliateCampaignSelectionStrategy;
   shopId: Scalars['ID']['output'];
   status: AffiliateCampaignDailyExecutionStatus;
@@ -1008,7 +970,8 @@ export const AffiliateCampaignDailyExecutionStatus = {
   Paused: 'PAUSED',
   Planned: 'PLANNED',
   Scheduling: 'SCHEDULING',
-  Sending: 'SENDING'
+  Sending: 'SENDING',
+  WaitingForSearchPlan: 'WAITING_FOR_SEARCH_PLAN'
 } as const;
 
 export type AffiliateCampaignDailyExecutionStatus = typeof AffiliateCampaignDailyExecutionStatus[keyof typeof AffiliateCampaignDailyExecutionStatus];
@@ -1172,75 +1135,128 @@ export interface AffiliateCampaignSalesPerformanceRulesInput {
   unitsSoldRanges?: InputMaybe<Array<AffiliateMarketplaceUnitsSoldRange>>;
 }
 
-export const AffiliateCampaignSearchKeywordSource = {
-  AiSuggested: 'AI_SUGGESTED',
-  UserAuthored: 'USER_AUTHORED'
-} as const;
-
-export type AffiliateCampaignSearchKeywordSource = typeof AffiliateCampaignSearchKeywordSource[keyof typeof AffiliateCampaignSearchKeywordSource];
-export interface AffiliateCampaignSearchKeywordSuggestion {
-  keyword: Scalars['String']['output'];
-  rationale: Scalars['String']['output'];
-}
-
-export interface AffiliateCampaignSearchKeywordSuggestions {
-  productSnapshotHash: Scalars['String']['output'];
-  suggestionVersion: Scalars['Int']['output'];
-  suggestions: Array<AffiliateCampaignSearchKeywordSuggestion>;
-}
-
-export interface AffiliateCampaignSearchPhrase {
-  discoveryRules: AffiliateCampaignDiscoveryRules;
-  explanation?: Maybe<Scalars['String']['output']>;
-  explanationLocale?: Maybe<Scalars['String']['output']>;
-  key: Scalars['String']['output'];
-  source: AffiliateCampaignSearchPhraseSource;
-  suggestionVersion?: Maybe<Scalars['Int']['output']>;
-  text: Scalars['String']['output'];
-}
-
-export interface AffiliateCampaignSearchPhraseExecution {
-  eligible: Scalars['Int']['output'];
-  evaluated: Scalars['Int']['output'];
-  exhaustedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  matched: Scalars['Int']['output'];
-  pageCursor?: Maybe<Scalars['String']['output']>;
-  pageSequence: Scalars['Int']['output'];
-  phrase: Scalars['String']['output'];
-  phraseKey: Scalars['String']['output'];
-  scanned: Scalars['Int']['output'];
-}
-
-export interface AffiliateCampaignSearchPhraseInput {
+export interface AffiliateCampaignSearchPhraseCandidateInput {
   discoveryRules?: InputMaybe<AffiliateCampaignDiscoveryRulesInput>;
-  explanation?: InputMaybe<Scalars['String']['input']>;
-  explanationLocale?: InputMaybe<Scalars['String']['input']>;
-  source: AffiliateCampaignSearchPhraseSource;
-  suggestionVersion?: InputMaybe<Scalars['Int']['input']>;
+  explanation: Scalars['String']['input'];
   text: Scalars['String']['input'];
 }
 
-export const AffiliateCampaignSearchPhraseSource = {
-  AiSuggested: 'AI_SUGGESTED',
-  UserAuthored: 'USER_AUTHORED'
+export interface AffiliateCampaignSearchPlan {
+  blockStage?: Maybe<AffiliateCampaignSearchPlanBlockStage>;
+  campaignId: Scalars['ID']['output'];
+  completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  completionReason?: Maybe<AffiliateCampaignSearchPlanCompletionReason>;
+  configRevision: Scalars['Int']['output'];
+  discoveryRules?: Maybe<AffiliateCampaignDiscoveryRules>;
+  errorCode?: Maybe<Scalars['String']['output']>;
+  generation: Scalars['Int']['output'];
+  generationAttemptCount: Scalars['Int']['output'];
+  id: Scalars['ID']['output'];
+  lastSearchedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  pageSequence: Scalars['Int']['output'];
+  phrase?: Maybe<AffiliateCampaignSearchPlanPhrase>;
+  productId: Scalars['String']['output'];
+  providerFailureCount: Scalars['Int']['output'];
+  requestedAt: Scalars['DateTimeISO']['output'];
+  shopId: Scalars['ID']['output'];
+  startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  status: AffiliateCampaignSearchPlanStatus;
+  totals: AffiliateCampaignSearchPlanTotals;
+}
+
+export const AffiliateCampaignSearchPlanBlockStage = {
+  AgentGeneration: 'AGENT_GENERATION',
+  ProviderSearch: 'PROVIDER_SEARCH'
 } as const;
 
-export type AffiliateCampaignSearchPhraseSource = typeof AffiliateCampaignSearchPhraseSource[keyof typeof AffiliateCampaignSearchPhraseSource];
-export interface AffiliateCampaignSearchPhraseSuggestion {
-  discoveryRules: AffiliateCampaignDiscoveryRules;
+export type AffiliateCampaignSearchPlanBlockStage = typeof AffiliateCampaignSearchPlanBlockStage[keyof typeof AffiliateCampaignSearchPlanBlockStage];
+export const AffiliateCampaignSearchPlanCompletionReason = {
+  CampaignCompletedOrArchived: 'CAMPAIGN_COMPLETED_OR_ARCHIVED',
+  CampaignConfigChanged: 'CAMPAIGN_CONFIG_CHANGED',
+  PageBudgetReached: 'PAGE_BUDGET_REACHED',
+  ProviderCursorExpired: 'PROVIDER_CURSOR_EXPIRED',
+  ProviderExhausted: 'PROVIDER_EXHAUSTED'
+} as const;
+
+export type AffiliateCampaignSearchPlanCompletionReason = typeof AffiliateCampaignSearchPlanCompletionReason[keyof typeof AffiliateCampaignSearchPlanCompletionReason];
+export interface AffiliateCampaignSearchPlanExecution {
+  completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  endPageSequence: Scalars['Int']['output'];
+  generation: Scalars['Int']['output'];
+  lastSearchedAt: Scalars['DateTimeISO']['output'];
+  matched: Scalars['Int']['output'];
+  phrase: Scalars['String']['output'];
+  phraseKey: Scalars['String']['output'];
+  qualified: Scalars['Int']['output'];
+  scanned: Scalars['Int']['output'];
+  searchPlanId: Scalars['ID']['output'];
+  selected: Scalars['Int']['output'];
+  startPageSequence: Scalars['Int']['output'];
+  startedAt: Scalars['DateTimeISO']['output'];
+}
+
+export interface AffiliateCampaignSearchPlanGenerationContext {
+  campaign: Scalars['JSONObject']['output'];
+  capability: Scalars['JSONObject']['output'];
+  leaseToken: Scalars['String']['output'];
+  productSnapshot: Scalars['JSONObject']['output'];
+  recentPlans: Array<Scalars['JSONObject']['output']>;
+  searchPlanId: Scalars['ID']['output'];
+  shop: Scalars['JSONObject']['output'];
+  uiLocale: Scalars['String']['output'];
+}
+
+export interface AffiliateCampaignSearchPlanPage {
+  items: Array<AffiliateCampaignSearchPlan>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateCampaignSearchPlanPhrase {
   explanation: Scalars['String']['output'];
   explanationLocale: Scalars['String']['output'];
-  /** @deprecated Use explanation. */
-  rationale: Scalars['String']['output'];
+  key: Scalars['String']['output'];
   text: Scalars['String']['output'];
 }
 
-export interface AffiliateCampaignSearchPhraseSuggestions {
-  productSnapshotHash: Scalars['String']['output'];
-  suggestionVersion: Scalars['Int']['output'];
-  suggestions: Array<AffiliateCampaignSearchPhraseSuggestion>;
+export interface AffiliateCampaignSearchPlanRequest {
+  attempt: Scalars['Int']['output'];
+  campaignId: Scalars['ID']['output'];
+  configRevision: Scalars['Int']['output'];
+  generation: Scalars['Int']['output'];
+  platformShopId: Scalars['String']['output'];
+  requestedAt: Scalars['DateTimeISO']['output'];
+  searchPlanId: Scalars['ID']['output'];
+  shopId: Scalars['ID']['output'];
 }
 
+export const AffiliateCampaignSearchPlanStatus = {
+  Active: 'ACTIVE',
+  Blocked: 'BLOCKED',
+  Exhausted: 'EXHAUSTED',
+  Generating: 'GENERATING',
+  Invalidated: 'INVALIDATED',
+  WaitingForDesktopAgent: 'WAITING_FOR_DESKTOP_AGENT'
+} as const;
+
+export type AffiliateCampaignSearchPlanStatus = typeof AffiliateCampaignSearchPlanStatus[keyof typeof AffiliateCampaignSearchPlanStatus];
+export interface AffiliateCampaignSearchPlanTotals {
+  matched: Scalars['Int']['output'];
+  outreachPolicyBlocked: Scalars['Int']['output'];
+  protected: Scalars['Int']['output'];
+  qualificationFailed: Scalars['Int']['output'];
+  qualified: Scalars['Int']['output'];
+  scanned: Scalars['Int']['output'];
+  selected: Scalars['Int']['output'];
+}
+
+export const AffiliateCampaignSearchPlanningState = {
+  Blocked: 'BLOCKED',
+  Idle: 'IDLE',
+  PlanActive: 'PLAN_ACTIVE',
+  WaitingForDesktopAgent: 'WAITING_FOR_DESKTOP_AGENT'
+} as const;
+
+export type AffiliateCampaignSearchPlanningState = typeof AffiliateCampaignSearchPlanningState[keyof typeof AffiliateCampaignSearchPlanningState];
 export interface AffiliateCampaignSelectionPolicy {
   minimumExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   ranking: AffiliateCampaignSelectionRanking;
@@ -2793,9 +2809,13 @@ export type AffiliateProviderReadSource = typeof AffiliateProviderReadSource[key
 export interface AffiliateRelationshipAgendaItem {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   boundaryEventCursor?: Maybe<Scalars['Int']['output']>;
+  conversationSourceId?: Maybe<Scalars['ID']['output']>;
   key: Scalars['String']['output'];
+  messageChannel?: Maybe<AffiliateMessageChannel>;
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   owner: AffiliateRelationshipAgendaOwner;
+  pendingLifecycleEventId?: Maybe<Scalars['ID']['output']>;
+  pendingRelationshipSequence?: Maybe<Scalars['Int']['output']>;
   /** Backend-generated expected-sales and Human Decision evidence for this Sample Application dispatch. It is computed before the Agent run and later frozen into any resulting proposal. */
   predictionEvidence?: Maybe<AffiliateActionProposalPredictionSnapshot>;
   productId?: Maybe<Scalars['String']['output']>;
@@ -2819,7 +2839,9 @@ export const AffiliateRelationshipAgendaOwner = {
 
 export type AffiliateRelationshipAgendaOwner = typeof AffiliateRelationshipAgendaOwner[keyof typeof AffiliateRelationshipAgendaOwner];
 export const AffiliateRelationshipAgendaSourceType = {
+  CreatorChannelContact: 'CREATOR_CHANNEL_CONTACT',
   PlatformCollaboration: 'PLATFORM_COLLABORATION',
+  PlatformConversationRoute: 'PLATFORM_CONVERSATION_ROUTE',
   Proposal: 'PROPOSAL',
   Relationship: 'RELATIONSHIP',
   SampleApplication: 'SAMPLE_APPLICATION'
@@ -3830,6 +3852,13 @@ export interface CheckCreatorWhatsAppContactPayload {
   jid?: Maybe<Scalars['String']['output']>;
   number: Scalars['String']['output'];
   whatsAppAccount: WhatsAppAccountBinding;
+}
+
+export interface ClaimAffiliateCampaignSearchPlanGenerationInput {
+  deviceId: Scalars['String']['input'];
+  generation: Scalars['Int']['input'];
+  searchPlanId: Scalars['ID']['input'];
+  uiLocale: Scalars['String']['input'];
 }
 
 /** Input for claiming a CS escalation event for local execution */
@@ -7958,6 +7987,7 @@ export interface Mutation {
   cancelExpertRun: ExpertRun;
   /** Check a creator phone number through Evolution API and optionally persist the result. */
   checkAffiliateCreatorWhatsApp: CheckCreatorWhatsAppContactPayload;
+  claimAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlanGenerationContext;
   claimPendingTikTokShops: TikTokShopClaimResult;
   completeAffiliateOperationalOnboarding: AffiliateOperationalSettings;
   /** Complete Outlook/Microsoft Graph OAuth onboarding for a seller mailbox. */
@@ -8117,6 +8147,7 @@ export interface Mutation {
   /** Remove a shop-scoped tag from a user-level creator relation. */
   removeCreatorTag: AffiliateCreatorRelationship;
   renameExpertConversation: ExpertConversation;
+  reportAffiliateCampaignSearchPlanGenerationFailure: AffiliateCampaignSearchPlan;
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
   reportDevicePresenceProbe: Scalars['Boolean']['output'];
   /** Request one typed affiliate action. Backend policy decides direct execution vs ActionProposal. */
@@ -8131,6 +8162,7 @@ export interface Mutation {
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
   retryAffiliateAgentFailure: AffiliateCreatorRelationshipStatePayload;
+  retryAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlan;
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
   /** Revoke an Outlook/Microsoft Graph email account binding. */
@@ -8160,16 +8192,7 @@ export interface Mutation {
   startWebSessionTransfer: WebSessionTransferStart;
   /** Create/connect the Evolution instance and return WhatsApp QR onboarding data. */
   startWhatsAppQrOnboarding: StartWhatsAppQrOnboardingPayload;
-  /**
-   * Legacy compatibility endpoint. Campaign AI generation now runs on the user's Desktop default model.
-   * @deprecated Use the Desktop Campaign AI endpoint and validateAffiliateCampaignSearchPhraseSuggestions.
-   */
-  suggestAffiliateCampaignSearchKeywords: AffiliateCampaignSearchKeywordSuggestions;
-  /**
-   * Legacy compatibility endpoint. Campaign AI generation now runs on the user's Desktop default model.
-   * @deprecated Use the Desktop Campaign AI endpoint and validateAffiliateCampaignSearchPhraseSuggestions.
-   */
-  suggestAffiliateCampaignSearchPhrases: AffiliateCampaignSearchPhraseSuggestions;
+  submitAffiliateCampaignSearchPlan: AffiliateCampaignSearchPlan;
   /** Queue an Airflow refresh of stores/shops visible to a connected TikTok Ads advertiser and return the current snapshot. */
   syncAdsStoreAccesses: Array<AdsStoreAccess>;
   /** Pull platform warehouse lists for one shop and auto-map official fulfillment warehouses when possible. */
@@ -8197,8 +8220,6 @@ export interface Mutation {
   upsertExpertProfile: ExpertProfile;
   /** Strictly validate a Desktop-local AI first-touch template against Campaign safety rules. */
   validateAffiliateCampaignMessageTemplateSuggestion: AffiliateCampaignMessageTemplateSuggestion;
-  /** Strictly validate Desktop-local AI search groups against the owned snapshot and current Provider capabilities. */
-  validateAffiliateCampaignSearchPhraseSuggestions: AffiliateCampaignSearchPhraseSuggestions;
   /** Verify a pairing code from mobile and create relay token */
   verifyPairingCode: VerifyPairingResult;
   /** Authenticate a browser with Google and store the refresh token in an HttpOnly cookie */
@@ -8324,6 +8345,11 @@ export interface MutationCancelExpertRunArgs {
 
 export interface MutationCheckAffiliateCreatorWhatsAppArgs {
   input: CheckCreatorWhatsAppContactInput;
+}
+
+
+export interface MutationClaimAffiliateCampaignSearchPlanGenerationArgs {
+  input: ClaimAffiliateCampaignSearchPlanGenerationInput;
 }
 
 
@@ -8810,6 +8836,11 @@ export interface MutationRenameExpertConversationArgs {
 }
 
 
+export interface MutationReportAffiliateCampaignSearchPlanGenerationFailureArgs {
+  input: ReportAffiliateCampaignSearchPlanGenerationFailureInput;
+}
+
+
 export interface MutationReportDevicePresenceProbeArgs {
   input: AdminDevicePresenceProbeResponseInput;
 }
@@ -8845,6 +8876,11 @@ export interface MutationResolveAffiliateWorkItemArgs {
 
 export interface MutationRetryAffiliateAgentFailureArgs {
   creatorRelationshipId: Scalars['ID']['input'];
+}
+
+
+export interface MutationRetryAffiliateCampaignSearchPlanGenerationArgs {
+  campaignId: Scalars['ID']['input'];
 }
 
 
@@ -8926,13 +8962,8 @@ export interface MutationStartWhatsAppQrOnboardingArgs {
 }
 
 
-export interface MutationSuggestAffiliateCampaignSearchKeywordsArgs {
-  input: SuggestAffiliateCampaignSearchKeywordsInput;
-}
-
-
-export interface MutationSuggestAffiliateCampaignSearchPhrasesArgs {
-  input: SuggestAffiliateCampaignSearchPhrasesInput;
+export interface MutationSubmitAffiliateCampaignSearchPlanArgs {
+  input: SubmitAffiliateCampaignSearchPlanInput;
 }
 
 
@@ -9023,11 +9054,6 @@ export interface MutationUpsertExpertProfileArgs {
 
 export interface MutationValidateAffiliateCampaignMessageTemplateSuggestionArgs {
   input: ValidateAffiliateCampaignMessageTemplateSuggestionInput;
-}
-
-
-export interface MutationValidateAffiliateCampaignSearchPhraseSuggestionsArgs {
-  input: ValidateAffiliateCampaignSearchPhraseSuggestionsInput;
 }
 
 
@@ -9611,14 +9637,13 @@ export interface Query {
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
   affiliateBusinessDevelopers: Array<AffiliateBusinessDeveloper>;
-  /** Read trusted product and Marketplace capability context for a Desktop-local one-shot AI generation. */
-  affiliateCampaignAiGenerationContext: AffiliateCampaignAiGenerationContext;
   /** Cursor-paginated Creator funnel states for one owned Campaign. */
   affiliateCampaignCreatorStates: AffiliateCampaignCreatorStatePage;
   /** Read recent daily execution records for one owned Campaign. */
   affiliateCampaignDailyExecutions: Array<AffiliateCampaignDailyExecution>;
   /** Fetch and normalize one owned-shop product for Campaign review without creating persistent draft state. */
   affiliateCampaignProductPreview: AffiliateCampaignProductPreview;
+  affiliateCampaignSearchPlans: AffiliateCampaignSearchPlanPage;
   /** Read whether the Campaign's explicitly selected evaluation strategy can run now. */
   affiliateCampaignSelectionReadiness: AffiliateCampaignSelectionReadiness;
   /** Read operational funnel totals and the latest execution for one Campaign. */
@@ -9941,11 +9966,6 @@ export interface QueryAffiliateBusinessDevelopersArgs {
 }
 
 
-export interface QueryAffiliateCampaignAiGenerationContextArgs {
-  input: AffiliateCampaignAiGenerationContextInput;
-}
-
-
 export interface QueryAffiliateCampaignCreatorStatesArgs {
   input: ReadAffiliateCampaignCreatorStatesInput;
 }
@@ -9958,6 +9978,11 @@ export interface QueryAffiliateCampaignDailyExecutionsArgs {
 
 export interface QueryAffiliateCampaignProductPreviewArgs {
   input: ResolveAffiliateCampaignProductInput;
+}
+
+
+export interface QueryAffiliateCampaignSearchPlansArgs {
+  input: ReadAffiliateCampaignSearchPlansInput;
 }
 
 
@@ -10673,6 +10698,12 @@ export interface ReadAffiliateCampaignDailyExecutionsInput {
   limit?: InputMaybe<Scalars['Int']['input']>;
 }
 
+export interface ReadAffiliateCampaignSearchPlansInput {
+  campaignId: Scalars['ID']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}
+
 export interface ReadAffiliateCampaignsInput {
   id?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -10877,6 +10908,13 @@ export interface RelayTokenResult {
   mobileDeviceId?: Maybe<Scalars['String']['output']>;
   pairingId?: Maybe<Scalars['String']['output']>;
   valid: Scalars['Boolean']['output'];
+}
+
+export interface ReportAffiliateCampaignSearchPlanGenerationFailureInput {
+  errorCode: Scalars['String']['input'];
+  generation: Scalars['Int']['input'];
+  leaseToken: Scalars['String']['input'];
+  searchPlanId: Scalars['ID']['input'];
 }
 
 export interface RequestAffiliateActionInput {
@@ -11513,11 +11551,22 @@ export interface StripeBillingPortalSessionPayload {
   url: Scalars['String']['output'];
 }
 
+export interface SubmitAffiliateCampaignSearchPlanInput {
+  configRevision: Scalars['Int']['input'];
+  generation: Scalars['Int']['input'];
+  leaseToken: Scalars['String']['input'];
+  phrase: AffiliateCampaignSearchPhraseCandidateInput;
+  productSnapshotHash: Scalars['String']['input'];
+  searchPlanId: Scalars['ID']['input'];
+  uiLocale: Scalars['String']['input'];
+}
+
 export interface Subscription {
   /** Fires when TikTok Ads OAuth completes so desktop clients can refresh advertiser and store-access data without polling. */
   adsOAuthComplete: AdsOAuthCompletePayload;
   /** Streams affiliate action proposal changes so desktop review tables can update without polling. */
   affiliateActionProposalChanged: AffiliateActionProposalChanged;
+  affiliateCampaignSearchPlanRequested: AffiliateCampaignSearchPlanRequest;
   /** Fires when a seller-level affiliate outreach account finishes direct-channel onboarding. */
   affiliateOutreachAccountConnected: AffiliateOutreachAccountConnectedPayload;
   /** Streams ephemeral affiliate signals to desktop clients. Missing signals are recovered by platform sync/check jobs, not by Mongo replay. */
@@ -11548,6 +11597,11 @@ export interface Subscription {
 
 export interface SubscriptionAffiliateActionProposalChangedArgs {
   shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+}
+
+
+export interface SubscriptionAffiliateCampaignSearchPlanRequestedArgs {
+  deviceId: Scalars['String']['input'];
 }
 
 
@@ -11589,21 +11643,6 @@ export interface SubscriptionExpertRunEventsArgs {
 
 export interface SubscriptionUpdateAvailableArgs {
   clientVersion: Scalars['String']['input'];
-}
-
-export interface SuggestAffiliateCampaignSearchKeywordsInput {
-  guidance?: InputMaybe<Scalars['String']['input']>;
-  productId: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
-  uiLocale?: InputMaybe<Scalars['String']['input']>;
-}
-
-export interface SuggestAffiliateCampaignSearchPhrasesInput {
-  excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  guidance?: InputMaybe<Scalars['String']['input']>;
-  productId: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
-  uiLocale: Scalars['String']['input'];
 }
 
 /** Supported IANA timezone identifiers used by analytics date boundaries */
@@ -12547,14 +12586,6 @@ export interface ValidateAffiliateCampaignMessageTemplateSuggestionInput {
   text: Scalars['String']['input'];
 }
 
-export interface ValidateAffiliateCampaignSearchPhraseSuggestionsInput {
-  excludePhrases?: InputMaybe<Array<Scalars['String']['input']>>;
-  productSnapshotHash: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
-  suggestions: Array<AffiliateCampaignAiSearchPhraseCandidateInput>;
-  uiLocale: Scalars['String']['input'];
-}
-
 export interface VerifyPairingResult {
   accessToken: Scalars['String']['output'];
   desktopDeviceId: Scalars['String']['output'];
@@ -12849,7 +12880,6 @@ export interface WriteAffiliateBusinessDeveloperInput {
 export interface WriteAffiliateCampaignInput {
   commissionRatePercent: Scalars['Float']['input'];
   dailyOutreachTarget: Scalars['Int']['input'];
-  discoveryRules: AffiliateCampaignDiscoveryRulesInput;
   id?: InputMaybe<Scalars['ID']['input']>;
   messageProductName?: InputMaybe<Scalars['String']['input']>;
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
@@ -12857,7 +12887,7 @@ export interface WriteAffiliateCampaignInput {
   name: Scalars['String']['input'];
   primaryProductId: Scalars['String']['input'];
   refreshProductSnapshot?: InputMaybe<Scalars['Boolean']['input']>;
-  searchPhrases: Array<AffiliateCampaignSearchPhraseInput>;
+  searchPlanGuidance?: InputMaybe<Scalars['String']['input']>;
   selectionPolicy: AffiliateCampaignSelectionPolicyInput;
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCampaignStatus>;

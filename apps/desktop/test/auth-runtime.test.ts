@@ -130,6 +130,9 @@ vi.mock("../src/cloud/backend-subscription-client.js", () => ({
     subscribeToAffiliateActionProposalChanges() {
       return () => {};
     }
+    subscribeToAffiliateCampaignSearchPlanRequests() {
+      return () => {};
+    }
     refreshCsConversationSignals() {
       backendState.refreshCsConversationSignals();
     }

@@ -29407,6 +29407,211 @@ html[lang="zh"] .acct-tool-chips {
   border-top: 1px solid var(--campaign-line);
 }
 
+.affiliate-campaign-dynamic-discovery,
+.affiliate-campaign-search-plan-panel {
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-campaign-dynamic-discovery {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.affiliate-campaign-dynamic-discovery p,
+.affiliate-campaign-dynamic-discovery ul {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+}
+
+.affiliate-campaign-dynamic-discovery ul {
+  display: grid;
+  gap: 7px;
+  padding-left: 20px;
+}
+
+.affiliate-campaign-dynamic-discovery textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.affiliate-campaign-search-plan-panel {
+  padding: 24px;
+}
+
+.affiliate-campaign-plan-status {
+  align-self: flex-start;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 7px 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.affiliate-campaign-plan-status.is-active,
+.affiliate-campaign-plan-status.is-plan_active {
+  border-color: color-mix(in srgb, var(--color-success) 32%, var(--color-border));
+  color: var(--color-success);
+}
+
+.affiliate-campaign-plan-status.is-blocked {
+  border-color: color-mix(in srgb, var(--color-danger) 36%, var(--color-border));
+  color: var(--color-danger);
+}
+
+.affiliate-campaign-current-plan {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.4fr) minmax(160px, 0.6fr);
+  gap: 22px;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.affiliate-campaign-plan-identity span,
+.affiliate-campaign-plan-progress > span,
+.affiliate-campaign-plan-metrics span {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.affiliate-campaign-plan-identity strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-text);
+  font-size: 22px;
+}
+
+.affiliate-campaign-plan-identity p {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.affiliate-campaign-plan-progress strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 30px;
+}
+
+.affiliate-campaign-plan-progress strong small {
+  margin-left: 3px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.affiliate-campaign-plan-progress > div {
+  height: 5px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border-light);
+}
+
+.affiliate-campaign-plan-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.affiliate-campaign-plan-metrics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-campaign-plan-metrics > div {
+  padding: 15px 12px;
+  border-right: 1px solid var(--color-border-light);
+}
+
+.affiliate-campaign-plan-metrics > div:last-child {
+  border-right: 0;
+}
+
+.affiliate-campaign-plan-metrics strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.affiliate-campaign-plan-footnote {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--color-text-secondary);
+}
+
+.affiliate-campaign-plan-footnote small {
+  color: var(--color-text-muted);
+}
+
+.affiliate-campaign-plan-waiting {
+  margin: 20px 0;
+  padding: 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.affiliate-campaign-plan-waiting p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+}
+
+.affiliate-campaign-plan-history {
+  margin-top: 18px;
+}
+
+.affiliate-campaign-plan-history summary {
+  cursor: pointer;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.affiliate-campaign-plan-history > div {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.affiliate-campaign-plan-history article {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 13px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+@media (max-width: 720px) {
+  .affiliate-campaign-current-plan {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-campaign-plan-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .affiliate-campaign-plan-footnote {
+    flex-direction: column;
+  }
+}
+
 .affiliate-campaign-state-panel .custom-select {
   min-width: 220px;
 }

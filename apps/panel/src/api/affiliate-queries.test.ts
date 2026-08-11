@@ -2,7 +2,6 @@ import { print } from "graphql";
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_ACTION_PROPOSALS_QUERY,
-  AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
@@ -16,11 +15,7 @@ import {
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
-  DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
-  GENERATE_AFFILIATE_CAMPAIGN_TEMPLATE_MUTATION,
   SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
-  SUGGEST_AFFILIATE_CAMPAIGN_SEARCH_PHRASES_MUTATION,
-  WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "./shops-queries.js";
 
 function queryText(document: Parameters<typeof print>[0]): string {
@@ -94,7 +89,9 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("productId");
     expect(query).toContain("eligibilityCategory");
     expect(query).toContain("eligibilityReasonCode");
-    expect(query).toContain("latestSearchPhraseKeys");
+    expect(query).toContain("sourceSearchPlanIds");
+    expect(query).toContain("latestSearchPlanId");
+    expect(query).toContain("latestSearchPlanGeneration");
   });
 
   it("loads approval proposals with relationship and collaboration focus context", () => {
