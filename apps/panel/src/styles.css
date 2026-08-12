@@ -32779,6 +32779,189 @@ html[lang="zh"] .acct-tool-chips {
   border-top: 0;
 }
 
+.affiliate-campaign-product-spotlight {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) minmax(190px, 0.34fr);
+  gap: 18px;
+  align-items: center;
+  margin: 22px 30px 0;
+  padding: 16px;
+  border: 1px solid var(--campaign-line);
+  border-radius: 17px;
+  background: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--color-primary-light) 42%, var(--color-bg)) 0%,
+    var(--color-bg) 42%
+  );
+}
+
+.affiliate-campaign-product-spotlight-media {
+  display: grid;
+  overflow: hidden;
+  width: 88px;
+  height: 88px;
+  place-items: center;
+  border: 1px solid var(--color-border-light);
+  border-radius: 14px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+}
+
+.affiliate-campaign-product-spotlight-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.affiliate-campaign-product-spotlight-media svg {
+  width: 25px;
+  height: 25px;
+}
+
+.affiliate-campaign-product-spotlight-copy {
+  min-width: 0;
+}
+
+.affiliate-campaign-product-spotlight-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.affiliate-campaign-product-spotlight-copy h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 6px 0 4px;
+  font-size: 17px;
+  line-height: 1.28;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.affiliate-campaign-product-spotlight-copy p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-campaign-product-spotlight-shop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 9px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+
+.affiliate-campaign-product-spotlight-shop svg {
+  width: 13px;
+  height: 13px;
+  color: var(--color-primary);
+}
+
+.affiliate-campaign-product-spotlight-shop > span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+
+.affiliate-campaign-product-spotlight-shop strong,
+.affiliate-campaign-product-spotlight-shop small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-campaign-product-spotlight-shop strong {
+  max-width: 170px;
+}
+
+.affiliate-campaign-product-spotlight-shop small {
+  max-width: 210px;
+  color: var(--color-text-muted);
+}
+
+.affiliate-campaign-product-spotlight-shop i {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.affiliate-campaign-product-spotlight-skus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 10px;
+}
+
+.affiliate-campaign-product-spotlight-skus > span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.affiliate-campaign-product-spotlight-skus > div {
+  display: flex;
+  overflow: hidden;
+  gap: 5px;
+  min-width: 0;
+}
+
+.affiliate-campaign-product-spotlight-skus code,
+.affiliate-campaign-product-spotlight-skus small {
+  overflow: hidden;
+  max-width: 180px;
+  padding: 3px 7px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-campaign-product-spotlight-reference {
+  min-width: 0;
+  padding-left: 18px;
+  border-left: 1px solid var(--campaign-line);
+}
+
+.affiliate-campaign-product-spotlight-reference span,
+.affiliate-campaign-product-spotlight-reference strong,
+.affiliate-campaign-product-spotlight-reference small {
+  display: block;
+}
+
+.affiliate-campaign-product-spotlight-reference span,
+.affiliate-campaign-product-spotlight-reference small {
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+
+.affiliate-campaign-product-spotlight-reference strong {
+  overflow: hidden;
+  margin: 5px 0 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .affiliate-campaign-state-panel .affiliate-campaign-section-heading p {
   margin: 5px 0 0;
   color: var(--campaign-muted);
@@ -33010,6 +33193,23 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-campaign-detail-modal-body {
     max-height: none;
   }
+
+  .affiliate-campaign-product-spotlight {
+    grid-template-columns: 72px minmax(0, 1fr);
+    margin-inline: 20px;
+  }
+
+  .affiliate-campaign-product-spotlight-media {
+    width: 72px;
+    height: 72px;
+  }
+
+  .affiliate-campaign-product-spotlight-reference {
+    grid-column: 1 / -1;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--campaign-line);
+    border-left: 0;
+  }
 }
 
 @media (max-width: 560px) {
@@ -33032,6 +33232,23 @@ html[lang="zh"] .acct-tool-chips {
   }
   .affiliate-campaign-detail-actions .btn {
     flex: 1;
+  }
+
+  .affiliate-campaign-product-spotlight {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 12px;
+    margin-inline: 16px;
+    padding: 12px;
+  }
+
+  .affiliate-campaign-product-spotlight-media {
+    width: 58px;
+    height: 58px;
+    border-radius: 11px;
+  }
+
+  .affiliate-campaign-product-spotlight-skus code:nth-of-type(n + 2) {
+    display: none;
   }
   .affiliate-campaign-funnel-bars {
     grid-template-columns: 1fr 1fr;

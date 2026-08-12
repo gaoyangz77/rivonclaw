@@ -11,6 +11,7 @@ import {
   UserPlusIcon,
 } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
@@ -366,6 +367,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       shop.services?.affiliateService?.enabled === true,
   );
   const selectedShop = shops.find((shop) => shop.id === form.shopId);
+  const selectedCampaignShop = shops.find((shop) => shop.id === selectedCampaign?.shopId);
   const capabilities = capabilitiesQuery.data?.affiliateMarketplaceCreatorRuleCapabilities;
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
   const searchPlans = searchPlansQuery.data?.affiliateCampaignSearchPlans.items ?? [];
@@ -1162,6 +1164,81 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
               )}
 
+            <section
+              className="affiliate-campaign-product-spotlight"
+              aria-label={t("ecommerce.affiliateCampaign.primaryProduct")}
+            >
+              <div className="affiliate-campaign-product-spotlight-media">
+                {selectedCampaign.productSnapshot?.coverImage ? (
+                  <RemoteMediaImage
+                    sourceUrl={selectedCampaign.productSnapshot.coverImage}
+                    alt={selectedCampaign.productSnapshot.title}
+                    loading="lazy"
+                  />
+                ) : (
+                  <ShopIcon />
+                )}
+              </div>
+              <div className="affiliate-campaign-product-spotlight-copy">
+                <div className="affiliate-campaign-product-spotlight-eyebrow">
+                  <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
+                </div>
+                <h3>
+                  {selectedCampaign.productSnapshot?.title?.trim() ||
+                    selectedCampaign.primaryProductId}
+                </h3>
+                <p>
+                  {[
+                    selectedCampaign.productSnapshot?.brandName,
+                    selectedCampaign.productSnapshot?.categoryPathNames.join(" / "),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || t("ecommerce.affiliateCampaign.noBrand")}
+                </p>
+                <div className="affiliate-campaign-product-spotlight-shop">
+                  <ShopIcon />
+                  <span>{t("ecommerce.affiliateCampaign.shop")}</span>
+                  <strong>
+                    {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
+                  </strong>
+                  {selectedCampaignShop?.alias?.trim() &&
+                    selectedCampaignShop.shopName?.trim() &&
+                    selectedCampaignShop.alias.trim() !== selectedCampaignShop.shopName.trim() && (
+                      <small>{selectedCampaignShop.shopName.trim()}</small>
+                    )}
+                  <i>{selectedCampaign.market}</i>
+                </div>
+                <div className="affiliate-campaign-product-spotlight-skus">
+                  <span>{t("ecommerce.affiliateCampaign.skuLabel")}</span>
+                  {(selectedCampaign.productSnapshot?.sellerSkus ?? []).length > 0 ? (
+                    <div title={selectedCampaign.productSnapshot?.sellerSkus.join(" · ")}>
+                      {selectedCampaign.productSnapshot?.sellerSkus.slice(0, 3).map((sellerSku) => (
+                        <code key={sellerSku}>{sellerSku}</code>
+                      ))}
+                      {(selectedCampaign.productSnapshot?.sellerSkus.length ?? 0) > 3 && (
+                        <small>+{(selectedCampaign.productSnapshot?.sellerSkus.length ?? 0) - 3}</small>
+                      )}
+                    </div>
+                  ) : (
+                    <code>—</code>
+                  )}
+                </div>
+              </div>
+              <div className="affiliate-campaign-product-spotlight-reference">
+                <span>{t("ecommerce.affiliateCampaign.productIdLabel")}</span>
+                <strong title={selectedCampaign.primaryProductId}>
+                  {selectedCampaign.primaryProductId}
+                </strong>
+                {selectedCampaign.productSnapshot?.observedAt && (
+                  <small>
+                    {t("ecommerce.affiliateCampaign.snapshotObservedAt", {
+                      time: formatDateTime(selectedCampaign.productSnapshot.observedAt),
+                    })}
+                  </small>
+                )}
+              </div>
+            </section>
+
             <section className="affiliate-campaign-today">
               <div className="affiliate-campaign-today-copy">
                 <span>{t("ecommerce.affiliateCampaign.todayExecution")}</span>
@@ -1316,10 +1393,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
             </section>
 
             <section className="affiliate-campaign-configuration">
-              <div>
-                <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
-                <strong>{selectedCampaign.primaryProductId}</strong>
-              </div>
               <div>
                 <span>{t("ecommerce.affiliateCampaign.selectionStrategy")}</span>
                 <strong>
