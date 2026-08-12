@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.98",
+    "date": "2026-08-11",
+    "en": [
+      "Add Product Knowledge support and exact per-agenda product context for Affiliate workflows"
+    ],
+    "zh": [
+      "为达人工作流新增产品知识支持与准确的 Agenda 级商品上下文"
+    ]
+  },
+  {
     "version": "1.8.97",
     "date": "2026-08-10",
     "en": [
