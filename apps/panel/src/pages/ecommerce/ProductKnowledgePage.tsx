@@ -5,11 +5,11 @@ import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import {
   CheckIcon,
-  CopyIcon,
   EcommerceIcon,
   RefreshIcon,
   ShopIcon,
 } from "../../components/icons.js";
+import { ProductCard } from "../../components/ecommerce/ProductCard.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
@@ -399,10 +399,11 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
     draft.qaMarkdown,
     draft.creativeCasesMarkdown,
   ].some((value) => value.length > MARKDOWN_MAX_LENGTH));
-  const groupedCandidates = candidates.reduce<Record<string, GQL.SellerSkuProductCandidate[]>>((groups, candidate) => {
-    (groups[candidate.shopId] ??= []).push(candidate);
-    return groups;
-  }, {});
+  const shopById = new Map(entityStore.shops.map((shop) => [shop.id, shop]));
+  const productCardLabels = {
+    alias: t("ecommerce.productKnowledge.shopAlias"),
+    sellerSku: t("ecommerce.productKnowledge.sellerSkuLabel"),
+  };
 
   return (
     <div className="page-enter product-knowledge-page">
@@ -512,6 +513,25 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
         onClose={closeDetail}
         onBackdropClose={closeDetail}
         title={t("ecommerce.productKnowledge.manageTitle")}
+        headerContent={knowledge && draft ? (
+          <div className="product-knowledge-modal-toolbar">
+            <div className="product-knowledge-name-field">
+              <label className="sr-only" htmlFor="product-knowledge-name">{t("ecommerce.productKnowledge.name")}</label>
+              <input id="product-knowledge-name" value={draft.name} maxLength={120} readOnly={isArchived} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+            </div>
+            <div className="product-knowledge-detail-actions">
+              {dirty ? <span className="badge badge-warning">{t("ecommerce.productKnowledge.unsaved")}</span> : <span className="badge badge-muted">v{knowledge.revision}</span>}
+              {isArchived ? (
+                <button className="btn btn-primary" disabled={restoreState.loading} onClick={handleRestore}>{t("ecommerce.productKnowledge.restore")}</button>
+              ) : (
+                <>
+                  <button className="btn btn-secondary" disabled={archiveState.loading || dirty} onClick={() => setConfirmation({ kind: "archive", id: knowledge.id, name: knowledge.name, revision: knowledge.revision })}>{t("ecommerce.productKnowledge.archive")}</button>
+                  <button className="btn btn-primary" disabled={!dirty || updateState.loading || !draft.name.trim() || contentOverLimit} onClick={handleSave}>{updateState.loading ? t("common.saving") : t("common.save")}</button>
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
         className="product-knowledge-management-modal"
         closeLabel={t("common.close")}
         maxWidth={1320}
@@ -522,24 +542,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
             <div className="product-knowledge-detail-empty"><p>{t("common.loading")}</p></div>
           ) : knowledge && draft ? (
             <>
-              <div className="product-knowledge-detail-header">
-                <div className="product-knowledge-name-field">
-                  <label htmlFor="product-knowledge-name">{t("ecommerce.productKnowledge.name")}</label>
-                  <input id="product-knowledge-name" value={draft.name} maxLength={120} readOnly={isArchived} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
-                </div>
-                <div className="product-knowledge-detail-actions">
-                  {dirty ? <span className="badge badge-warning">{t("ecommerce.productKnowledge.unsaved")}</span> : <span className="badge badge-muted">v{knowledge.revision}</span>}
-                  {isArchived ? (
-                    <button className="btn btn-primary" disabled={restoreState.loading} onClick={handleRestore}>{t("ecommerce.productKnowledge.restore")}</button>
-                  ) : (
-                    <>
-                      <button className="btn btn-secondary" disabled={archiveState.loading || dirty} onClick={() => setConfirmation({ kind: "archive", id: knowledge.id, name: knowledge.name, revision: knowledge.revision })}>{t("ecommerce.productKnowledge.archive")}</button>
-                      <button className="btn btn-primary" disabled={!dirty || updateState.loading || !draft.name.trim() || contentOverLimit} onClick={handleSave}>{updateState.loading ? t("common.saving") : t("common.save")}</button>
-                    </>
-                  )}
-                </div>
-              </div>
-
               {staleConflict ? (
                 <div className="product-knowledge-conflict-banner">
                   <div><strong>{t("ecommerce.productKnowledge.staleTitle")}</strong><span>{t("ecommerce.productKnowledge.staleBody")}</span></div>
@@ -551,13 +553,16 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
               ) : null}
 
               <section className="product-knowledge-content-studio">
-                <aside className="product-knowledge-content-sections">
+                <div className="product-knowledge-content-sections">
                   <div className="product-knowledge-content-heading">
-                    <span className="product-knowledge-section-index">01</span>
-                    <div>
-                      <h2>{t("ecommerce.productKnowledge.contentTitle")}</h2>
-                      <p>{t("ecommerce.productKnowledge.contentSubtitle")}</p>
+                    <div className="product-knowledge-content-heading-title">
+                      <span className="product-knowledge-section-index">01</span>
+                      <div>
+                        <h2>{t("ecommerce.productKnowledge.contentTitle")}</h2>
+                        <p>{t("ecommerce.productKnowledge.contentSubtitle")}</p>
+                      </div>
                     </div>
+                    <p className="product-knowledge-markdown-note">{t("ecommerce.productKnowledge.markdownNativeHint")}</p>
                   </div>
                   <nav aria-label={t("ecommerce.productKnowledge.contentTitle")}>
                     {tabConfig.map((tab, index) => {
@@ -574,20 +579,20 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                             <strong>{tab.label}</strong>
                             <small>{tab.description}</small>
                           </span>
-                          <span className={`product-knowledge-content-state${markdown.trim() ? " complete" : ""}`}>
-                            {markdown.length.toLocaleString(i18n.language)}
+                          <span className={`product-knowledge-content-state${activeTab === tab.id ? " active" : ""}`}>
+                            {activeTab === tab.id
+                              ? t("ecommerce.productKnowledge.editingSection")
+                              : t("ecommerce.productKnowledge.characters", { count: markdown.length })}
                           </span>
                         </button>
                       );
                     })}
                   </nav>
-                  <p className="product-knowledge-markdown-note">{t("ecommerce.productKnowledge.markdownNativeHint")}</p>
-                </aside>
+                </div>
 
                 <div className="product-knowledge-editor-panel">
                   <div className="product-knowledge-editor-panel-heading">
                     <div>
-                      <span>{t("ecommerce.productKnowledge.editingSection")}</span>
                       <h3>{activeTabConfig.label}</h3>
                       <p>{activeTabConfig.description}</p>
                     </div>
@@ -618,13 +623,22 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
 
                 {knowledge.bindings.length > 0 ? (
                   <div className="product-knowledge-bound-grid">
-                    {knowledge.bindings.map((binding) => (
-                      <article className="product-knowledge-bound-card" key={binding.id}>
-                        {binding.productCoverImageSnapshot ? <img src={binding.productCoverImageSnapshot} alt="" /> : <div className="product-knowledge-image-placeholder"><ShopIcon /></div>}
-                        <div><strong>{binding.productTitleSnapshot}</strong><span>{binding.shopNameSnapshot}{binding.shopRegionSnapshot ? ` · ${binding.shopRegionSnapshot}` : ""}</span><code>{binding.productId}</code><small>{binding.sellerSkusSnapshot.join(" · ") || t("ecommerce.productKnowledge.noSellerSku")}{binding.productStatusSnapshot ? ` · ${binding.productStatusSnapshot}` : ""}</small></div>
-                        <button className="btn btn-secondary" onClick={() => setConfirmation({ kind: "unlink", bindingId: binding.id, productTitle: binding.productTitleSnapshot })}>{t("ecommerce.productKnowledge.unlink")}</button>
-                      </article>
-                    ))}
+                    {knowledge.bindings.map((binding) => {
+                      const shop = shopById.get(binding.shopId);
+                      return (
+                        <ProductCard
+                          key={binding.id}
+                          title={binding.productTitleSnapshot}
+                          imageUrl={binding.productCoverImageSnapshot}
+                          shopAlias={shop?.alias}
+                          shopName={binding.shopNameSnapshot}
+                          sellerSkus={binding.sellerSkusSnapshot}
+                          aliasLabel={productCardLabels.alias}
+                          sellerSkuLabel={productCardLabels.sellerSku}
+                          actions={<button className="commerce-product-card-action" onClick={() => setConfirmation({ kind: "unlink", bindingId: binding.id, productTitle: binding.productTitleSnapshot })}>{t("ecommerce.productKnowledge.unlink")}</button>}
+                        />
+                      );
+                    })}
                   </div>
                 ) : <p className="product-knowledge-no-bindings">{t("ecommerce.productKnowledge.noBindings")}</p>}
 
@@ -668,26 +682,37 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                             ))}
                           </div>
                         ) : null}
-                        {Object.entries(groupedCandidates).map(([shopId, shopCandidates]) => (
-                          <div className="product-knowledge-shop-group" key={shopId}>
-                            <h3><ShopIcon size={15} />{shopCandidates[0].shopName}<span>{shopCandidates[0].shopRegion}</span></h3>
-                            {shopCandidates.map((candidate) => {
+                        <div className="product-knowledge-candidate-grid">
+                          {candidates.map((candidate) => {
                               const key = candidateKey(candidate);
                               const boundElsewhere = Boolean(candidate.existingProductKnowledgeId && candidate.existingProductKnowledgeId !== selectedId);
                               const boundHere = candidate.existingProductKnowledgeId === selectedId;
+                              const shop = shopById.get(candidate.shopId);
                               return (
-                                <label className={`product-knowledge-candidate${boundElsewhere ? " disabled" : ""}`} key={key}>
-                                  <input type="checkbox" disabled={boundElsewhere || boundHere} checked={boundHere || selectedCandidates.has(key)} onChange={() => toggleCandidate(key)} />
-                                  {candidate.productCoverImage ? <img src={candidate.productCoverImage} alt="" /> : <span className="product-knowledge-image-placeholder"><ShopIcon /></span>}
-                                  <span className="product-knowledge-candidate-copy"><strong>{candidate.productTitle}</strong><span>{candidate.sellerSkus.join(" · ")}{candidate.productStatus ? ` · ${candidate.productStatus}` : ""}</span><code>{candidate.productId}</code></span>
-                                  <button type="button" className="product-knowledge-copy-id" title={t("common.copy")} onClick={(event) => { event.preventDefault(); void navigator.clipboard.writeText(candidate.productId); showToast(t("common.copied")); }}><CopyIcon /></button>
-                                  {boundHere ? <span className="badge badge-success"><CheckIcon />{t("ecommerce.productKnowledge.linkedHere")}</span> : null}
-                                  {boundElsewhere ? <span className="badge badge-warning">{t("ecommerce.productKnowledge.boundElsewhere", { name: candidate.existingProductKnowledgeName })}</span> : null}
-                                </label>
+                                <ProductCard
+                                  key={key}
+                                  title={candidate.productTitle}
+                                  imageUrl={candidate.productCoverImage}
+                                  shopAlias={shop?.alias}
+                                  shopName={candidate.shopName}
+                                  sellerSkus={candidate.matchedSellerSkus.length > 0 ? candidate.matchedSellerSkus : candidate.sellerSkus}
+                                  aliasLabel={productCardLabels.alias}
+                                  sellerSkuLabel={productCardLabels.sellerSku}
+                                  selection={{
+                                    checked: boundHere || selectedCandidates.has(key),
+                                    disabled: boundElsewhere || boundHere,
+                                    label: candidate.productTitle,
+                                    onChange: () => toggleCandidate(key),
+                                  }}
+                                  status={boundHere
+                                    ? <span className="badge badge-success"><CheckIcon />{t("ecommerce.productKnowledge.linkedHere")}</span>
+                                    : boundElsewhere
+                                      ? <span className="badge badge-warning" title={t("ecommerce.productKnowledge.boundElsewhere", { name: candidate.existingProductKnowledgeName })}>{t("ecommerce.productKnowledge.linkedElsewhereShort")}</span>
+                                      : null}
+                                />
                               );
-                            })}
-                          </div>
-                        ))}
+                          })}
+                        </div>
                         {candidates.length === 0 && discoveryPayload.shopFailures.length === 0 ? <p className="product-knowledge-no-results">{t("ecommerce.productKnowledge.noResults", { sku: discoveryPayload.sellerSku })}</p> : null}
                         {selectedCandidates.size > 0 ? <div className="product-knowledge-link-bar"><span>{t("ecommerce.productKnowledge.selectedCount", { count: selectedCandidates.size })}</span><button className="btn btn-primary" disabled={linkState.loading} onClick={handleLinkProducts}>{t("ecommerce.productKnowledge.linkSelected")}</button></div> : null}
                       </div>

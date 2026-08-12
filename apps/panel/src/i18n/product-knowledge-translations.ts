@@ -81,6 +81,8 @@ const en = {
   unlinkConfirm: "Remove “{{name}}” from this Product Knowledge?",
   unlinked: "Product unlinked.",
   noSellerSku: "No Seller SKU snapshot",
+  shopAlias: "Shop alias",
+  sellerSkuLabel: "Seller SKU",
   sellerSku: "Discover by Seller SKU",
   sellerSkuHint: "Exact, case-sensitive matching across every authorized TikTok Shop.",
   sellerSkuPlaceholder: "Enter exact Seller SKU",
@@ -98,6 +100,7 @@ const en = {
   linkFailureTitle: "Products that could not be linked",
   linkedHere: "Connected",
   boundElsewhere: "Linked to {{name}}",
+  linkedElsewhereShort: "Linked elsewhere",
 };
 
 const zh = {
@@ -184,6 +187,8 @@ const zh = {
   unlinkConfirm: "确认从该产品知识中移除“{{name}}”？",
   unlinked: "商品连接已解除。",
   noSellerSku: "没有 Seller SKU 快照",
+  shopAlias: "店铺别名",
+  sellerSkuLabel: "Seller SKU",
   sellerSku: "通过 Seller SKU 发现商品",
   sellerSkuHint: "在当前用户所有已授权 TikTok 店铺中进行大小写敏感的精确匹配。",
   sellerSkuPlaceholder: "输入准确的 Seller SKU",
@@ -201,6 +206,7 @@ const zh = {
   linkFailureTitle: "以下商品未能连接",
   linkedHere: "已连接",
   boundElsewhere: "已连接到 {{name}}",
+  linkedElsewhereShort: "已连接至其他知识库",
 };
 
 const enTutorial = {
