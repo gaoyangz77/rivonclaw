@@ -80,10 +80,9 @@ export const Layout = observer(function Layout({
   );
 
   useEffect(() => {
-    const activeRoute = navRoutes.find(
-      (route) =>
-        currentPath === route.path ||
-        (route.navGroupOnly ? currentPath.startsWith(`${route.path}/`) : false),
+    const exactRoute = navRoutes.find((route) => currentPath === route.path);
+    const activeRoute = exactRoute ?? navRoutes.find(
+      (route) => route.navGroupOnly && currentPath.startsWith(`${route.path}/`),
     );
     const activeGroupKey = activeRoute?.navGroupKey;
     if (!activeGroupKey || !COLLAPSIBLE_NAV_GROUP_KEYS.has(activeGroupKey)) return;
@@ -96,10 +95,9 @@ export const Layout = observer(function Layout({
   }, [currentPath, navRoutes]);
 
   useEffect(() => {
-    const activeParentPath = navRoutes.find(
-      (route) =>
-        route.navGroupOnly &&
-        (currentPath === route.path || currentPath.startsWith(`${route.path}/`)),
+    const exactRoute = navRoutes.find((route) => currentPath === route.path);
+    const activeParentPath = exactRoute?.parentPath ?? navRoutes.find(
+      (route) => route.navGroupOnly && (currentPath === route.path || currentPath.startsWith(`${route.path}/`)),
     )?.path;
     if (!activeParentPath) return;
     setCollapsedNavParents((current) => {
@@ -155,6 +153,7 @@ export const Layout = observer(function Layout({
   }
 
   let currentNavGroupKey: string | undefined;
+  const currentParentPath = navRoutes.find((route) => route.path === currentPath)?.parentPath;
 
   return (
     <div className="layout-root">
@@ -192,7 +191,9 @@ export const Layout = observer(function Layout({
               if (collapsed && route.navGroupOnly) return null;
               const active =
                 currentPath === route.path ||
-                (route.navGroupOnly ? currentPath.startsWith(`${route.path}/`) : false);
+                (route.navGroupOnly
+                  ? currentPath.startsWith(`${route.path}/`) || currentParentPath === route.path
+                  : false);
               const isSubItem = Boolean(route.parentPath);
               const startsGroup =
                 !collapsed && route.navGroupKey && route.navGroupKey !== currentNavGroupKey;

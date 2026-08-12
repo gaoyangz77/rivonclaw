@@ -15,6 +15,7 @@
     "@apollo/client": "^4.1.6",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
+    "@mdxeditor/editor": "^4.2.0",
     "@rivonclaw/core": "workspace:*",
     "emoji-picker-react": "^4.18.0",
     "graphql": "^16.13.1",
