@@ -65,7 +65,7 @@ type CreatorRelationshipWorkItem = {
   workItem?: GQL.AffiliateWorkItem | null;
 };
 
-type CreatorRelationshipDetailItem = {
+export type CreatorRelationshipDetailItem = {
   creatorId: string;
   creatorProfile?: GQL.AffiliateCreatorIdentity | null;
   creatorRelation?: GQL.AffiliateCreatorRelationship | null;
@@ -5529,7 +5529,7 @@ function CreatorAvatarImage({
   );
 }
 
-function CreatorRelationshipDetailModal({
+export function CreatorRelationshipDetailModal({
   item,
   selectedShopId,
   onClose,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  campaignDecisionReasonLabel,
   campaignErrorMessage,
   campaignCreatorStatesViewState,
   campaignFunnelCounterValue,
@@ -108,6 +109,22 @@ describe("Affiliate Campaign presentation contracts", () => {
     );
     expect(eligibilityReasonLabel("PROTECTION_LIST", t)).toBe(
       "translated:ecommerce.affiliateCampaign.eligibilityReason.protection_list",
+    );
+  });
+
+  it("maps selection decision codes through i18n instead of exposing English audit text", () => {
+    const t = (key: string) => `translated:${key}`;
+    expect(
+      campaignDecisionReasonLabel(
+        ["PROVIDER_FILTER_MATCH", "PROVIDER_ORDER"],
+        "Qualified by TikTok Marketplace filters in provider order",
+        t,
+      ),
+    ).toBe(
+      "translated:ecommerce.affiliateCampaign.decisionReason.providerFilterMatch",
+    );
+    expect(campaignDecisionReasonLabel([], "UNMAPPED_BACKEND_TEXT", t)).toBe(
+      "translated:ecommerce.affiliateCampaign.decisionReason.recorded",
     );
   });
 
