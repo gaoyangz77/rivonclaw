@@ -461,6 +461,7 @@ const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
 
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
 const RIVONCLAW_CLOUD_COMPACTION_MODEL = "rivonclaw-pro/rivonclaw-flagship";
+const RIVONCLAW_COMPACTION_TIMEOUT_SECONDS = 360;
 const LEGACY_RIVONCLAW_CLOUD_COMPACTION_MODELS = new Set([
   "rivonclaw-pro/gpt-5.6-luna",
   RIVONCLAW_CLOUD_COMPACTION_MODEL,
@@ -1190,21 +1191,31 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       : undefined;
     const existingCompactionModel =
       typeof existingCompaction.model === "string" ? existingCompaction.model.trim() : "";
+    const existingCompactionTimeoutSeconds =
+      typeof existingCompaction.timeoutSeconds === "number" &&
+      Number.isFinite(existingCompaction.timeoutSeconds) &&
+      existingCompaction.timeoutSeconds > 0
+        ? Math.trunc(existingCompaction.timeoutSeconds)
+        : 0;
     const hasManagedCloudCompactionModel =
       LEGACY_RIVONCLAW_CLOUD_COMPACTION_MODELS.has(existingCompactionModel);
     const shouldRemoveManagedCloudCompactionModel =
       options.defaultModel !== undefined &&
       defaultGatewayProvider !== RIVONCLAW_CLOUD_PROVIDER_ID &&
       hasManagedCloudCompactionModel;
-    const compactionModel = shouldRemoveManagedCloudCompactionModel
-      ? undefined
-      : defaultGatewayProvider === RIVONCLAW_CLOUD_PROVIDER_ID &&
-          (!existingCompactionModel || hasManagedCloudCompactionModel)
+    const compactionModel =
+      defaultGatewayProvider === RIVONCLAW_CLOUD_PROVIDER_ID
         ? RIVONCLAW_CLOUD_COMPACTION_MODEL
-        : existingCompaction.model;
+        : shouldRemoveManagedCloudCompactionModel
+          ? undefined
+          : existingCompaction.model;
     const nextCompaction: Record<string, unknown> = {
       ...existingCompaction,
       ...(compactionModel ? { model: compactionModel } : {}),
+      timeoutSeconds: Math.max(
+        existingCompactionTimeoutSeconds,
+        RIVONCLAW_COMPACTION_TIMEOUT_SECONDS,
+      ),
       midTurnPrecheck: {
         ...existingMidTurnPrecheck,
         enabled: existingMidTurnPrecheck.enabled ?? true,

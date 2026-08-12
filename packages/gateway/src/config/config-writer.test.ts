@@ -2262,6 +2262,7 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.compaction.notifyUser).toBe(false);
+      expect(config.agents.defaults.compaction.timeoutSeconds).toBe(360);
       expect(config.agents.defaults.compaction.reserveTokensFloor).toBeUndefined();
       expect(config.agents.defaults.compaction.maxHistoryShare).toBeUndefined();
       expect(config.agents.defaults.compaction.midTurnPrecheck.enabled).toBe(true);
@@ -2288,7 +2289,10 @@ describe("config-writer", () => {
         JSON.stringify({
           agents: {
             defaults: {
-              compaction: { model: "rivonclaw-pro/gpt-5.6-luna" },
+              compaction: {
+                model: "rivonclaw-pro/gpt-5.6-luna",
+                timeoutSeconds: 180,
+              },
             },
           },
         }),
@@ -2301,6 +2305,30 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.compaction.model).toBe("rivonclaw-pro/rivonclaw-flagship");
+      expect(config.agents.defaults.compaction.timeoutSeconds).toBe(360);
+    });
+
+    it("enforces Flagship for cloud compaction over a stale custom override", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: {
+            defaults: {
+              compaction: { model: "openai/gpt-4o-mini" },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        defaultModel: { provider: "rivonclaw-pro", modelId: "rivonclaw-flagship" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.compaction.model).toBe("rivonclaw-pro/rivonclaw-flagship");
+      expect(config.agents.defaults.compaction.timeoutSeconds).toBe(360);
     });
 
     it("removes a legacy managed cloud compaction model when leaving the cloud provider", () => {
@@ -2339,6 +2367,7 @@ describe("config-writer", () => {
                 maxHistoryShare: 0.25,
                 midTurnPrecheck: { enabled: false },
                 model: "openai/gpt-4o-mini",
+                timeoutSeconds: 600,
               },
             },
           },
@@ -2355,6 +2384,7 @@ describe("config-writer", () => {
       expect(config.agents.defaults.compaction.maxHistoryShare).toBeUndefined();
       expect(config.agents.defaults.compaction.midTurnPrecheck.enabled).toBe(false);
       expect(config.agents.defaults.compaction.model).toBe("openai/gpt-4o-mini");
+      expect(config.agents.defaults.compaction.timeoutSeconds).toBe(600);
     });
 
     it("overwrites pre-existing notifyUser value", () => {
