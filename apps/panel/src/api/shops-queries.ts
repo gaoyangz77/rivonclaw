@@ -56,6 +56,9 @@ export const SHOP_FIELDS_FRAGMENT = gql`
         runProfileId
         deviceId
         businessPrompt
+        campaignDailyCreatorOutreachLimit
+        campaignDailyCreatorOutreachLimitRevision
+        campaignDailyCreatorOutreachLimitUpdatedAt
         decisionThresholds {
           minExpectedSalesUnits
         }
@@ -333,9 +336,12 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
       sent
       replied
       failed
+      uncertain
     }
     nextTickAt
     stopReason
+    completionReason
+    completedAt
     underDeliveryReason
     createdAt
     updatedAt
@@ -371,6 +377,18 @@ export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
         sent
         replied
         failed
+        uncertain
+      }
+      shopDailyCapacity {
+        marketLocalDate
+        effectiveDailyLimit
+        countedOutreachCount
+        remainingOutreachCapacity
+        activeCampaignDailyTargetSum
+        targetToLimitRatio
+        nextAllowedAt
+        circuitOpenUntil
+        circuitReason
       }
       latestExecution {
         ...AffiliateCampaignExecutionFields

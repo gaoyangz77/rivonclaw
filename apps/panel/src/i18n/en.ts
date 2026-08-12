@@ -4668,6 +4668,12 @@ export default {
       },
       affiliate: {
         serviceStatus: "Service Status",
+        dailyCreatorOutreachLimit: "Daily automatic creator outreach limit",
+        dailyCreatorOutreachLimitHint:
+          "The seller-defined number of creators this shop may contact automatically per local day. This is not an official TikTok quota.",
+        dailyCreatorOutreachLimitInvalid: "The daily limit must be a whole number from 1 to 20,000.",
+        dailyCreatorOutreachLimitSaved: "Daily creator outreach limit saved.",
+        dailyCreatorOutreachLimitSaveFailed: "The daily creator outreach limit could not be saved.",
         bindDevice: "Handle affiliate inbound on this device",
         bindDeviceHint:
           "Enable to wake this desktop's agent for creator replies and affiliate lifecycle signals.",

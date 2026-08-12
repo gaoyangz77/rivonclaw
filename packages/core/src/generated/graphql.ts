@@ -954,6 +954,8 @@ export type AffiliateCampaignCreatorStateStatus = typeof AffiliateCampaignCreato
 export interface AffiliateCampaignDailyExecution {
   allocatedTarget: Scalars['Int']['output'];
   campaignId: Scalars['ID']['output'];
+  completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  completionReason?: Maybe<Scalars['String']['output']>;
   configRevision: Scalars['Int']['output'];
   counterSchemaVersion: Scalars['Int']['output'];
   counters: AffiliateCampaignExecutionCounters;
@@ -1036,6 +1038,7 @@ export interface AffiliateCampaignExecutionCounters {
   selected: Scalars['Int']['output'];
   sent: Scalars['Int']['output'];
   submitted: Scalars['Int']['output'];
+  uncertain: Scalars['Int']['output'];
 }
 
 export const AffiliateCampaignExecutionRiskState = {
@@ -1307,6 +1310,18 @@ export const AffiliateCampaignSelectionStrategy = {
 } as const;
 
 export type AffiliateCampaignSelectionStrategy = typeof AffiliateCampaignSelectionStrategy[keyof typeof AffiliateCampaignSelectionStrategy];
+export interface AffiliateCampaignShopDailyCapacity {
+  activeCampaignDailyTargetSum: Scalars['Int']['output'];
+  circuitOpenUntil?: Maybe<Scalars['DateTimeISO']['output']>;
+  circuitReason?: Maybe<Scalars['String']['output']>;
+  countedOutreachCount: Scalars['Int']['output'];
+  effectiveDailyLimit?: Maybe<Scalars['Int']['output']>;
+  marketLocalDate: Scalars['String']['output'];
+  nextAllowedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  remainingOutreachCapacity: Scalars['Int']['output'];
+  targetToLimitRatio?: Maybe<Scalars['Float']['output']>;
+}
+
 export const AffiliateCampaignStatus = {
   Active: 'ACTIVE',
   Archived: 'ARCHIVED',
@@ -1320,6 +1335,7 @@ export interface AffiliateCampaignSummary {
   campaignId: Scalars['ID']['output'];
   counters: AffiliateCampaignExecutionCounters;
   latestExecution?: Maybe<AffiliateCampaignDailyExecution>;
+  shopDailyCapacity: AffiliateCampaignShopDailyCapacity;
   totalCreators: Scalars['Int']['output'];
 }
 
@@ -2432,7 +2448,12 @@ export interface AffiliateMessageDelivery {
   openClawSessionKey?: Maybe<Scalars['String']['output']>;
   parts: Array<AffiliateMessageDeliveryPart>;
   preferredChannel: AffiliateMessageChannel;
+  providerAttemptStartedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   providerMessageId?: Maybe<Scalars['String']['output']>;
+  quotaCountedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  quotaMarketLocalDate?: Maybe<Scalars['String']['output']>;
+  quotaReleaseReason?: Maybe<Scalars['String']['output']>;
+  quotaReleasedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   replyToLifecycleEventId?: Maybe<Scalars['ID']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
   source: AffiliateDeliverySource;
@@ -3251,6 +3272,10 @@ export interface AffiliateServiceSettings {
   baselineCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Per-shop affiliate business instructions injected into affiliate agent runs. */
   businessPrompt?: Maybe<Scalars['String']['output']>;
+  /** Seller-configured maximum creators contacted automatically by Affiliate Campaigns per shop-local day. This is not a TikTok Provider quota. */
+  campaignDailyCreatorOutreachLimit?: Maybe<Scalars['Int']['output']>;
+  campaignDailyCreatorOutreachLimitRevision: Scalars['Int']['output'];
+  campaignDailyCreatorOutreachLimitUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Shop-level decision references for Agent interpretation. Campaign selection uses only thresholds explicitly frozen in that Campaign. */
   decisionThresholds?: Maybe<AffiliateDecisionThresholds>;
   /** Device ID of the desktop instance handling affiliate inbound signals for this shop. Empty or null means no device assigned. */
@@ -3265,6 +3290,8 @@ export interface AffiliateServiceSettings {
 export interface AffiliateServiceSettingsInput {
   /** Per-shop affiliate business instructions. Omit or pass null to keep, empty string to clear. */
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
+  /** Maximum creators contacted automatically by Campaigns per shop-local day. Omit or null to keep the existing value; valid range 1-20000. */
+  campaignDailyCreatorOutreachLimit?: InputMaybe<Scalars['Int']['input']>;
   /** Shop-level Affiliate decision references. Omit or pass null to keep, empty object to clear. These do not directly approve or reject Sample Applications. */
   decisionThresholds?: InputMaybe<AffiliateDecisionThresholdsInput>;
   /** Device ID of the desktop instance handling affiliate inbound signals. Omit or pass null to keep, empty string to clear. */

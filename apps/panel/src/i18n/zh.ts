@@ -4420,6 +4420,12 @@ export default {
       },
       affiliate: {
         serviceStatus: "服务状态",
+        dailyCreatorOutreachLimit: "每日自动联系达人上限",
+        dailyCreatorOutreachLimitHint:
+          "由卖家配置该店铺每个当地日最多自动联系多少位达人；这不是 TikTok 官方消息额度。",
+        dailyCreatorOutreachLimitInvalid: "每日上限必须是 1–20,000 的整数。",
+        dailyCreatorOutreachLimitSaved: "已保存每日自动联系达人上限。",
+        dailyCreatorOutreachLimitSaveFailed: "保存每日自动联系达人上限失败。",
         bindDevice: "在本设备接管达人消息",
         bindDeviceHint: "开启后，本设备会唤醒本地 Agent 处理达人回复和达人生命周期事件。",
         bindConflict: "另一台设备正在处理此店铺的达人消息。是否切换到本设备？",
