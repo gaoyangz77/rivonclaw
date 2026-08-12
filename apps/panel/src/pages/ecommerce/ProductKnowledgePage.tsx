@@ -455,9 +455,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                       <th>{t("ecommerce.productKnowledge.tableStatus")}</th>
                       <th>{t("ecommerce.productKnowledge.tableCoverage")}</th>
                       <th>{t("ecommerce.productKnowledge.tableProducts")}</th>
-                      <th>{t("ecommerce.productKnowledge.tableRevision")}</th>
                       <th>{t("ecommerce.productKnowledge.tableUpdated")}</th>
-                      <th aria-label={t("ecommerce.productKnowledge.openDetail")} />
                     </tr>
                   </thead>
                   <tbody>
@@ -491,9 +489,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                             </div>
                           </td>
                           <td><span className="product-knowledge-product-count"><ShopIcon size={14} />{item.bindingCount}</span></td>
-                          <td><code>v{item.revision}</code></td>
                           <td><time dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleString(i18n.language, { dateStyle: "medium", timeStyle: "short" })}</time></td>
-                          <td><span className="product-knowledge-row-arrow" aria-hidden="true">→</span></td>
                         </tr>
                       );
                     })}
