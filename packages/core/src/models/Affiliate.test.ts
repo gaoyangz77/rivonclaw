@@ -156,7 +156,8 @@ describe("AffiliateWorkspaceModel", () => {
   it("normalizes BD ownership, operational settings, and outreach accounts", () => {
     const workspace = AffiliateWorkspaceModel.create({});
     workspace.replaceAffiliateBusinessDevelopers([{
-      id: "bd-1", userId: "user-1", displayName: "Maria", regions: ["US"],
+      id: "bd-1", userId: "user-1", displayName: "Maria Internal",
+      creatorDisplayName: "Maria", regions: ["US"],
       acceptingCreators: true, agentAssistanceMode: "AI_ASSISTED", configRevision: 2,
       createdAt: NOW, updatedAt: NOW,
     }] as any);
@@ -164,7 +165,8 @@ describe("AffiliateWorkspaceModel", () => {
       id: "settings-1", userId: "user-1", onboardingCompletedAt: NOW,
     } as any);
 
-    expect(workspace.getBusinessDeveloper("bd-1")?.displayName).toBe("Maria");
+    expect(workspace.getBusinessDeveloper("bd-1")?.displayName).toBe("Maria Internal");
+    expect(workspace.getBusinessDeveloper("bd-1")?.creatorDisplayName).toBe("Maria");
     expect(workspace.operationalSettings?.onboardingCompletedAt).toBe(NOW);
   });
 });

@@ -3164,6 +3164,7 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     id
     userId
     displayName
+    creatorDisplayName
     normalizedDisplayName
     regions
     acceptingCreators

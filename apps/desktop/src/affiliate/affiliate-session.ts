@@ -45,6 +45,66 @@ const MISSING_SESSION_CHECKPOINT_PATTERN = /checkpoint not found/i;
 /** TikTok Provider history rejects values above 20. Keep the pre-run safety gate portable. */
 const AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_LIMIT = 20;
 
+function formatBusinessDeveloperContact(
+  displayName: string | null | undefined,
+  address: string,
+): string {
+  const label = displayName?.trim();
+  return label ? `${label} — ${address}` : address;
+}
+
+export function buildBusinessDeveloperPromptSection(
+  context: GQL.AffiliateBusinessDeveloperDispatchContext | null | undefined,
+): string[] {
+  if (!context) return [];
+  return [
+    "## Assigned Business Developer",
+    `- Creator-facing name: ${context.creatorDisplayName}`,
+    ...(context.whatsApp
+      ? [
+          `- WhatsApp: ${formatBusinessDeveloperContact(
+            context.whatsApp.displayName,
+            context.whatsApp.phoneNumber,
+          )}`,
+        ]
+      : []),
+    ...(context.email
+      ? [
+          `- Email: ${formatBusinessDeveloperContact(
+            context.email.displayName,
+            context.email.emailAddress,
+          )}`,
+        ]
+      : []),
+    "- The contact details above are the assigned Business Developer's Creator-shareable contact identities. Use them only when the conversation and Business Developer instructions call for moving or continuing the relationship on that channel.",
+    "- Do not invent a WhatsApp number, email address, or unavailable channel.",
+    ...(context.businessPrompt?.trim()
+      ? [
+          "",
+          "### Business Developer Instructions",
+          context.businessPrompt.trim(),
+        ]
+      : []),
+    "",
+    "## Business Instruction Precedence",
+    "- The assigned Business Developer is the Relationship business owner. If its instructions conflict with the matching shop instructions, the Business Developer instructions override the shop instructions.",
+    "- Business instructions never override system, platform, safety, authorization, or action-contract rules.",
+  ];
+}
+
+export function redactBusinessDeveloperContactDetails(
+  prompt: string,
+  context: GQL.AffiliateBusinessDeveloperDispatchContext | null | undefined,
+): string {
+  let redacted = prompt;
+  const values = [context?.whatsApp?.phoneNumber, context?.email?.emailAddress]
+    .filter((value): value is string => Boolean(value));
+  for (const value of values) {
+    redacted = redacted.replaceAll(value, "[REDACTED_BD_CONTACT]");
+  }
+  return redacted;
+}
+
 export interface AffiliateShopContext {
   /** Backend user id owning this affiliate shop. */
   userId?: string;
@@ -169,7 +229,7 @@ export class AffiliateSession {
 
   private buildExtraSystemPrompt(
     runMode: AffiliateAgentRunMode,
-    businessDeveloperPrompt?: string | null,
+    businessDeveloperContext?: GQL.AffiliateBusinessDeveloperDispatchContext | null,
     involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[],
     workflowSkillCatalog?: string,
   ): string {
@@ -186,6 +246,9 @@ export class AffiliateSession {
       shop.businessPrompt?.trim() || "(none configured)",
       "",
     ]);
+    const businessDeveloperSection = buildBusinessDeveloperPromptSection(
+      businessDeveloperContext,
+    );
     return [
       "## Affiliate / Creator Management Agent",
       "",
@@ -225,12 +288,7 @@ export class AffiliateSession {
       "- Match each Agent Working Agenda item to its Shop ID and apply only that shop's instructions.",
       ...renderedShopInstructions,
       "",
-      "## Assigned Business Developer Instructions",
-      businessDeveloperPrompt?.trim() || "(none configured)",
-      "",
-      "## Business Instruction Precedence",
-      "- The assigned Business Developer is the Relationship business owner. If its instructions conflict with the matching shop instructions, the Business Developer instructions override the shop instructions.",
-      "- Business instructions never override system, platform, safety, authorization, or action-contract rules.",
+      ...businessDeveloperSection,
     ].join("\n");
   }
 
@@ -284,7 +342,8 @@ export class AffiliateSession {
       businessDeveloperIdSnapshot: dispatchContext.checkpoint.businessDeveloperIdSnapshot ?? null,
       businessDeveloperConfigRevision:
         dispatchContext.checkpoint.businessDeveloperConfigRevision ?? null,
-      businessDeveloperPrompt: dispatchContext.checkpoint.businessDeveloper?.businessPrompt ?? null,
+      businessDeveloperContext:
+        dispatchContext.checkpoint.businessDeveloperDispatchContext ?? null,
       involvedShopInstructions: dispatchContext.checkpoint.involvedShopInstructions,
     });
     if (result.runId) {
@@ -379,7 +438,7 @@ export class AffiliateSession {
     relationshipOperationalConfigRevision?: number;
     businessDeveloperIdSnapshot?: string | null;
     businessDeveloperConfigRevision?: number | null;
-    businessDeveloperPrompt?: string | null;
+    businessDeveloperContext?: GQL.AffiliateBusinessDeveloperDispatchContext | null;
     involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[];
     predictionCacheIds?: string[];
   }): Promise<AffiliateDispatchResult> {
@@ -399,7 +458,7 @@ export class AffiliateSession {
     const workflowSkillCatalog = await buildAffiliateWorkflowSkillCatalog();
     const systemPrompt = this.buildExtraSystemPrompt(
       runMode,
-      params.businessDeveloperPrompt,
+      params.businessDeveloperContext,
       params.involvedShopInstructions,
       workflowSkillCatalog,
     );
@@ -481,7 +540,7 @@ export class AffiliateSession {
       message: string;
       idempotencyKey: string;
       runMode?: AffiliateAgentRunMode;
-      businessDeveloperPrompt?: string | null;
+      businessDeveloperContext?: GQL.AffiliateBusinessDeveloperDispatchContext | null;
     },
     systemPrompt: string,
     agentRequestIdempotencyKey: string,
@@ -499,6 +558,9 @@ export class AffiliateSession {
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
         `systemPromptChars=${systemPrompt.length}`,
+        `businessDeveloperContext=${params.businessDeveloperContext ? "present" : "absent"}`,
+        `businessDeveloperWhatsApp=${params.businessDeveloperContext?.whatsApp ? "present" : "absent"}`,
+        `businessDeveloperEmail=${params.businessDeveloperContext?.email ? "present" : "absent"}`,
         "promptContextVersion=affiliate-working-agenda-v1",
         `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
       ].join(" "),
@@ -513,7 +575,7 @@ export class AffiliateSession {
         `agentRequestIdempotencyKey=${agentRequestIdempotencyKey}`,
         "",
         "## extraSystemPrompt",
-        systemPrompt,
+        redactBusinessDeveloperContactDetails(systemPrompt, params.businessDeveloperContext),
         "",
         "## userMessage",
         params.message,

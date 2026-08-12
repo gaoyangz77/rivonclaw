@@ -702,6 +702,7 @@ export interface AffiliateBusinessDeveloper {
   businessPrompt?: Maybe<Scalars['String']['output']>;
   configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
+  creatorDisplayName?: Maybe<Scalars['String']['output']>;
   displayName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   normalizedDisplayName: Scalars['String']['output'];
@@ -713,6 +714,23 @@ export interface AffiliateBusinessDeveloper {
   regions: Array<ShopRegion>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
+}
+
+export interface AffiliateBusinessDeveloperDispatchContext {
+  businessPrompt?: Maybe<Scalars['String']['output']>;
+  creatorDisplayName: Scalars['String']['output'];
+  email?: Maybe<AffiliateBusinessDeveloperDispatchEmail>;
+  whatsApp?: Maybe<AffiliateBusinessDeveloperDispatchWhatsApp>;
+}
+
+export interface AffiliateBusinessDeveloperDispatchEmail {
+  displayName?: Maybe<Scalars['String']['output']>;
+  emailAddress: Scalars['String']['output'];
+}
+
+export interface AffiliateBusinessDeveloperDispatchWhatsApp {
+  displayName?: Maybe<Scalars['String']['output']>;
+  phoneNumber: Scalars['String']['output'];
 }
 
 export interface AffiliateBusinessDeveloperPage {
@@ -1395,6 +1413,7 @@ export interface AffiliateContextBuilderPayload {
   baseMatchesCommitted: Scalars['Boolean']['output'];
   businessDeveloper?: Maybe<AffiliateBusinessDeveloper>;
   businessDeveloperConfigRevision?: Maybe<Scalars['Int']['output']>;
+  businessDeveloperDispatchContext?: Maybe<AffiliateBusinessDeveloperDispatchContext>;
   businessDeveloperIdSnapshot?: Maybe<Scalars['ID']['output']>;
   creatorRelationship: AffiliateCreatorRelationship;
   events: Array<AffiliateRelationshipTimelineItem>;
@@ -11218,16 +11237,22 @@ export interface SampleApplicationRecord {
   creatorRelationshipId: Scalars['ID']['output'];
   deliveredAt?: Maybe<Scalars['DateTimeISO']['output']>;
   firstObservedAt: Scalars['DateTimeISO']['output'];
+  /** True when TikTok Shop has confirmed that the Creator already published at least one affiliate work for this Sample Application. */
+  hasPublishedContent: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
   lastNotificationId?: Maybe<Scalars['String']['output']>;
   lastObservedAt: Scalars['DateTimeISO']['output'];
   lastSyncSource: AffiliateProjectionSyncSource;
+  /** Legacy storage name for the Provider publication time of the latest known affiliate work. Prefer latestPublishedContentAt in Agent-facing reads. */
   latestObservedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
   latestObservedContentFormat?: Maybe<Scalars['String']['output']>;
   latestObservedContentId?: Maybe<Scalars['String']['output']>;
   latestObservedContentPaidOrderCount?: Maybe<Scalars['Int']['output']>;
   latestObservedContentUrl?: Maybe<Scalars['String']['output']>;
   latestObservedContentViewCount?: Maybe<Scalars['Int']['output']>;
+  /** Provider publication time of the latest known affiliate work; a non-null value means the work is already published, not merely planned or detected locally. */
+  latestPublishedContentAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Legacy storage name for the number of Provider-confirmed published affiliate works. Prefer publishedContentCount in Agent-facing reads. */
   observedContentCount: Scalars['Int']['output'];
   order?: Maybe<SampleApplicationOrderRecord>;
   platformApplicationId: Scalars['String']['output'];
@@ -11239,6 +11264,8 @@ export interface SampleApplicationRecord {
   productId?: Maybe<Scalars['String']['output']>;
   projectionRevision: Scalars['Int']['output'];
   providerEventAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Number of TikTok Shop-confirmed affiliate works already published for this Sample Application. */
+  publishedContentCount: Scalars['Int']['output'];
   /** RivonClaw-owned sample lifecycle state optimized for agent and operator understanding. */
   sampleWorkStatus: SampleWorkStatus;
   shippedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -13044,6 +13071,7 @@ export interface WriteAffiliateBusinessDeveloperInput {
   acceptingCreators?: InputMaybe<Scalars['Boolean']['input']>;
   agentAssistanceMode?: InputMaybe<AffiliateAgentAssistanceMode>;
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
+  creatorDisplayName?: InputMaybe<Scalars['String']['input']>;
   displayName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   regions?: InputMaybe<Array<ShopRegion>>;

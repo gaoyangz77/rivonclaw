@@ -46,7 +46,12 @@ vi.mock("./affiliate-workflow-skill.js", () => ({
     ),
 }));
 
-import { AffiliateSession, AffiliateTriggerKind } from "./affiliate-session.js";
+import {
+  AffiliateSession,
+  AffiliateTriggerKind,
+  buildBusinessDeveloperPromptSection,
+  redactBusinessDeveloperContactDetails,
+} from "./affiliate-session.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
 import {
   AffiliateInbound,
@@ -59,6 +64,41 @@ import {
 import { initLLMProviderManagerEnv, rootStore } from "../app/store/desktop-store.js";
 
 describe("affiliate session identity", () => {
+  it("renders only the available frozen BD prompt fields", () => {
+    expect(buildBusinessDeveloperPromptSection(null)).toEqual([]);
+
+    const nameOnly = buildBusinessDeveloperPromptSection({ creatorDisplayName: "Mia" });
+    expect(nameOnly.join("\n")).toContain("Creator-facing name: Mia");
+    expect(nameOnly.join("\n")).not.toContain("(none configured)");
+    expect(nameOnly.join("\n")).not.toContain("WhatsApp:");
+    expect(nameOnly.join("\n")).not.toContain("Email:");
+    expect(nameOnly.join("\n")).not.toContain("Business Developer Instructions");
+
+    const promptAndEmail = buildBusinessDeveloperPromptSection({
+      creatorDisplayName: "Mia",
+      businessPrompt: "Move qualified Creators to email.",
+      email: { displayName: "Mia Sales", emailAddress: "mia@example.com" },
+    });
+    expect(promptAndEmail.join("\n")).toContain("Move qualified Creators to email.");
+    expect(promptAndEmail.join("\n")).toContain("Email: Mia Sales — mia@example.com");
+    expect(promptAndEmail.join("\n")).not.toContain("WhatsApp:");
+  });
+
+  it("redacts frozen BD contact details from full-prompt diagnostics", () => {
+    const context = {
+      creatorDisplayName: "Mia",
+      whatsApp: { phoneNumber: "+1 555 0101" },
+      email: { emailAddress: "mia@example.com" },
+    } as GQL.AffiliateBusinessDeveloperDispatchContext;
+
+    expect(
+      redactBusinessDeveloperContactDetails(
+        "WhatsApp +1 555 0101 and email mia@example.com",
+        context,
+      ),
+    ).toBe("WhatsApp [REDACTED_BD_CONTACT] and email [REDACTED_BD_CONTACT]");
+  });
+
   it("uses the exact live-test cohort size as the default Agent pool", () => {
     expect(resolveMaxActiveAffiliateAgentRuns({
       RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
@@ -327,6 +367,8 @@ function createSampleReviewWorkItem(
     lastSyncSource: GQL.AffiliateProjectionSyncSource.AirflowReconcile,
     projectionRevision: 1,
     observedContentCount: 0,
+    publishedContentCount: 0,
+    hasPublishedContent: false,
     latestObservedContentAt: null,
     latestObservedContentId: null,
     latestObservedContentUrl: null,
@@ -508,6 +550,7 @@ function withCheckpointContext(
     preflightItems?: GQL.AffiliateCreatorMessageHistoryItem[];
     creatorProfiles?: GQL.AffiliateCreatorIdentity[];
     involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[];
+    omitBusinessDeveloperContext?: boolean;
   } = {},
 ): (query: string, variables?: unknown) => Promise<unknown> {
   return async (query, variables) => {
@@ -519,6 +562,7 @@ function withCheckpointContext(
             id: "bd-001",
             userId: "user-001",
             displayName: "Maria",
+            creatorDisplayName: "Maria Chen",
             regions: [GQL.ShopRegion.Us],
             acceptingCreators: true,
             agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
@@ -527,6 +571,20 @@ function withCheckpointContext(
             createdAt: "2026-05-11T00:00:00.000Z",
             updatedAt: "2026-05-11T00:00:00.000Z",
           },
+          businessDeveloperDispatchContext: options.omitBusinessDeveloperContext
+            ? null
+            : {
+                creatorDisplayName: "Maria Chen",
+                businessPrompt: "Keep creator outreach concise and warm.",
+                whatsApp: {
+                  displayName: "Maria WhatsApp",
+                  phoneNumber: "+1 555 0100",
+                },
+                email: {
+                  displayName: "Maria",
+                  emailAddress: "maria@example.com",
+                },
+              },
           baseCheckpointId: null,
           baseEventCursor: 0,
           targetEventCursor: 1,
@@ -934,6 +992,39 @@ describe("affiliate work item dispatch", () => {
     ).toBe(false);
   });
 
+  it("omits the complete Business Developer section when no BD context is assigned", async () => {
+    const graphqlFetch = vi.fn(
+      withCheckpointContext(async (query: string) => {
+        throw new Error(`Unexpected GraphQL call: ${query}`);
+      }, { omitBusinessDeveloperContext: true }),
+    );
+    mockGetAuthSession.mockReturnValue({ graphqlFetch });
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        shopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+        triggerId: "sample-record-001",
+      },
+    );
+
+    await session.handleWorkItem(createSampleReviewWorkItem());
+
+    const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("## Assigned Business Developer");
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("## Business Instruction Precedence");
+    expect(agentCall?.[1]?.extraSystemPrompt).not.toContain("(none configured)");
+  });
+
   it("dispatches sample-review work items to the agent instead of resolving them in desktop", async () => {
     const workItem = createSampleReviewWorkItem();
     const session = new AffiliateSession(
@@ -982,6 +1073,9 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).not.toContain("thresholdProbabilities");
     expect(agentCall?.[1]?.message).not.toContain("handledSignalAt");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain("Keep creator outreach concise and warm.");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Creator-facing name: Maria Chen");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Maria WhatsApp — +1 555 0100");
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Maria — maria@example.com");
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
       "### Affiliate Test Shop (Shop ID: shop-001)",
     );
