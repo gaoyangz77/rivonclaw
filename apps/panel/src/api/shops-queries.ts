@@ -817,6 +817,15 @@ export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
       paymentMethodName
       shippingProvider
       trackingNumber
+      recipientAddress {
+        name
+        fullAddress
+        postalCode
+        phone
+        region
+        city
+        district
+      }
       lineItems {
         orderLineItemId
         productId

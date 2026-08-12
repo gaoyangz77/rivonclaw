@@ -1553,6 +1553,22 @@ function ConversationOrderPopover({
   const { t } = useTranslation();
   const { order, returns } = context;
   const orderIdLabel = t("ecommerce.customerServiceWorkspace.orderIdLabel");
+  const recipient = order?.recipientAddress;
+  const recipientAddress = recipient?.fullAddress?.trim()
+    || [recipient?.region, recipient?.city, recipient?.district].map((part) => part?.trim()).filter(Boolean).join(", ");
+  const sellerSkus = Array.from(new Set(
+    (order?.lineItems ?? []).map((item) => item.sellerSku?.trim()).filter((value): value is string => Boolean(value)),
+  )).join(", ");
+  const copyAllLabel = t("ecommerce.customerServiceWorkspace.copyAll");
+  const recipientCopyValue = [
+    [orderIdLabel, order?.orderId ?? context.orderId],
+    [t("ecommerce.customerServiceWorkspace.fullName"), recipient?.name],
+    [t("ecommerce.customerServiceWorkspace.address"), recipientAddress],
+    [t("ecommerce.customerServiceWorkspace.zip"), recipient?.postalCode],
+    [t("ecommerce.customerServiceWorkspace.phone"), recipient?.phone],
+    [t("ecommerce.customerServiceWorkspace.sellerSku"), sellerSkus],
+  ].map(([label, value]) => `${label}\t${value?.trim() || "—"}`).join("\n");
+  const recipientCopied = copiedMeta === `${copyAllLabel}:${recipientCopyValue}`;
 
   return (
     <div className="cs-order-context">
@@ -1589,6 +1605,50 @@ function ConversationOrderPopover({
 
       {order && (
         <section className="cs-order-context-section">
+          <div className="cs-order-context-section-head">
+            <h4>{t("ecommerce.customerServiceWorkspace.recipientDetails")}</h4>
+            <button
+              className="cs-order-copy-all"
+              type="button"
+              title={copyAllLabel}
+              onClick={() => void onCopy(copyAllLabel, recipientCopyValue)}
+            >
+              {recipientCopied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+              <span>{copyAllLabel}</span>
+            </button>
+          </div>
+          <div className="cs-order-recipient-details">
+            <CopyOrderField
+              label={t("ecommerce.customerServiceWorkspace.fullName")}
+              value={recipient?.name}
+              copiedMeta={copiedMeta}
+              onCopy={onCopy}
+            />
+            <CopyOrderField
+              label={t("ecommerce.customerServiceWorkspace.address")}
+              value={recipientAddress}
+              copiedMeta={copiedMeta}
+              onCopy={onCopy}
+              multiline
+            />
+            <CopyOrderField
+              label={t("ecommerce.customerServiceWorkspace.zip")}
+              value={recipient?.postalCode}
+              copiedMeta={copiedMeta}
+              onCopy={onCopy}
+            />
+            <CopyOrderField
+              label={t("ecommerce.customerServiceWorkspace.phone")}
+              value={recipient?.phone}
+              copiedMeta={copiedMeta}
+              onCopy={onCopy}
+            />
+          </div>
+        </section>
+      )}
+
+      {order && (
+        <section className="cs-order-context-section">
           <h4>{t("ecommerce.customerServiceWorkspace.orderItems", { count: order.lineItems?.length ?? 0 })}</h4>
           <div className="cs-order-items">
             {(order.lineItems ?? []).map((item, index) => (
@@ -1606,11 +1666,24 @@ function ConversationOrderPopover({
                 </div>
                 <div className="cs-order-item-copy">
                   <strong>{item.productName ?? item.skuName ?? t("ecommerce.customerServiceWorkspace.orderItem")}</strong>
-                  <span>
-                    {[item.skuName, item.sellerSku, item.quantity ? `x${item.quantity}` : null]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
+                  {item.skuName && <span>{item.skuName}</span>}
+                  <div className="cs-order-item-foot">
+                    {item.sellerSku && (
+                      <button
+                        className="cs-order-item-sku"
+                        type="button"
+                        title={`${t("ecommerce.customerServiceWorkspace.sellerSku")}: ${item.sellerSku}`}
+                        onClick={() => void onCopy(t("ecommerce.customerServiceWorkspace.sellerSku"), item.sellerSku!)}
+                      >
+                        <span>{t("ecommerce.customerServiceWorkspace.sellerSku")}</span>
+                        <code>{item.sellerSku}</code>
+                        {copiedMeta === `${t("ecommerce.customerServiceWorkspace.sellerSku")}:${item.sellerSku}`
+                          ? <CheckIcon size={12} />
+                          : <CopyIcon size={12} />}
+                      </button>
+                    )}
+                    {item.quantity ? <span>x{item.quantity}</span> : null}
+                  </div>
                 </div>
                 <small>{formatOrderMoney(item.salePrice, item.currency ?? order.currency, locale)}</small>
               </div>
@@ -1647,6 +1720,45 @@ function ConversationOrderPopover({
         )}
       </section>
     </div>
+  );
+}
+
+function CopyOrderField({
+  label,
+  value,
+  copiedMeta,
+  onCopy,
+  multiline = false,
+}: {
+  label: string;
+  value?: string | null;
+  copiedMeta: string | null;
+  onCopy: (label: string, value: string) => Promise<void>;
+  multiline?: boolean;
+}) {
+  const normalizedValue = value?.trim() ?? "";
+  const copied = normalizedValue.length > 0 && copiedMeta === `${label}:${normalizedValue}`;
+
+  if (!normalizedValue) {
+    return (
+      <div className={`cs-order-recipient-field${multiline ? " multiline" : ""}`}>
+        <span>{label}</span>
+        <strong>—</strong>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      className={`cs-order-recipient-field copyable${multiline ? " multiline" : ""}`}
+      type="button"
+      title={`${label}: ${normalizedValue}`}
+      onClick={() => void onCopy(label, normalizedValue)}
+    >
+      <span>{label}</span>
+      <strong>{normalizedValue}</strong>
+      {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+    </button>
   );
 }
 

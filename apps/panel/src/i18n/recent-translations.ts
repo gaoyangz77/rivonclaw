@@ -76,6 +76,13 @@ export const RECENT_TRANSLATIONS = {
     },
     ecommerce: {
       customerServiceWorkspace: {
+        recipientDetails: "Empfängerdaten",
+        fullName: "Vollständiger Name",
+        address: "Adresse",
+        zip: "Postleitzahl",
+        phone: "Telefon",
+        sellerSku: "Verkäufer-SKU",
+        copyAll: "Alle kopieren",
         badReviewBadge: "Negative Bewertung",
         openBadReviewDetails: "Details zur negativen Bewertung anzeigen",
         badReviewModalTitle: "Produktbewertungen",
@@ -148,6 +155,13 @@ export const RECENT_TRANSLATIONS = {
     },
     ecommerce: {
       customerServiceWorkspace: {
+        recipientDetails: "Datos del destinatario",
+        fullName: "Nombre completo",
+        address: "Dirección",
+        zip: "Código postal",
+        phone: "Teléfono",
+        sellerSku: "SKU del vendedor",
+        copyAll: "Copiar todo",
         badReviewBadge: "Reseña negativa",
         openBadReviewDetails: "Ver detalles de la reseña negativa",
         badReviewModalTitle: "Reseñas de productos",
@@ -219,6 +233,13 @@ export const RECENT_TRANSLATIONS = {
     },
     ecommerce: {
       customerServiceWorkspace: {
+        recipientDetails: "Coordonnées du destinataire",
+        fullName: "Nom complet",
+        address: "Adresse",
+        zip: "Code postal",
+        phone: "Téléphone",
+        sellerSku: "SKU vendeur",
+        copyAll: "Tout copier",
         badReviewBadge: "Avis négatif",
         openBadReviewDetails: "Afficher les détails de l'avis négatif",
         badReviewModalTitle: "Avis sur les produits",
@@ -297,6 +318,13 @@ export const RECENT_TRANSLATIONS = {
         sampleWorkStatusLabels: { PLATFORM_STATUS_UNKNOWN: "Status platform tidak diketahui" },
       },
       customerServiceWorkspace: {
+        recipientDetails: "Detail penerima",
+        fullName: "Nama lengkap",
+        address: "Alamat",
+        zip: "Kode pos",
+        phone: "Telepon",
+        sellerSku: "SKU penjual",
+        copyAll: "Salin semua",
         badReviewBadge: "Ulasan buruk",
         openBadReviewDetails: "Lihat detail ulasan buruk",
         badReviewModalTitle: "Ulasan produk",
@@ -368,6 +396,13 @@ export const RECENT_TRANSLATIONS = {
     },
     ecommerce: {
       customerServiceWorkspace: {
+        recipientDetails: "Dati del destinatario",
+        fullName: "Nome completo",
+        address: "Indirizzo",
+        zip: "CAP",
+        phone: "Telefono",
+        sellerSku: "SKU venditore",
+        copyAll: "Copia tutto",
         badReviewBadge: "Recensione negativa",
         openBadReviewDetails: "Visualizza i dettagli della recensione negativa",
         badReviewModalTitle: "Recensioni dei prodotti",
@@ -439,6 +474,13 @@ export const RECENT_TRANSLATIONS = {
     },
     ecommerce: {
       customerServiceWorkspace: {
+        recipientDetails: "ข้อมูลผู้รับ",
+        fullName: "ชื่อ-นามสกุล",
+        address: "ที่อยู่",
+        zip: "รหัสไปรษณีย์",
+        phone: "โทรศัพท์",
+        sellerSku: "SKU ผู้ขาย",
+        copyAll: "คัดลอกทั้งหมด",
         badReviewBadge: "รีวิวเชิงลบ",
         openBadReviewDetails: "ดูรายละเอียดรีวิวเชิงลบ",
         badReviewModalTitle: "รีวิวสินค้า",

@@ -17069,6 +17069,38 @@ html[lang="zh"] .acct-tool-chips {
   text-transform: uppercase;
 }
 
+.cs-order-context-section-head {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.cs-order-context-section-head h4 {
+  margin-bottom: 0;
+}
+
+.cs-order-copy-all {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.cs-order-copy-all:hover {
+  color: var(--color-primary);
+}
+
 .cs-order-context-summary {
   display: flex;
   align-items: center;
@@ -17133,6 +17165,72 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 
+.cs-order-recipient-details {
+  display: grid;
+  gap: 6px;
+}
+
+.cs-order-recipient-field {
+  display: grid;
+  width: 100%;
+  min-height: 32px;
+  grid-template-columns: 92px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+}
+
+.cs-order-recipient-field:not(.copyable) {
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+
+.cs-order-recipient-field.copyable {
+  cursor: pointer;
+}
+
+.cs-order-recipient-field.copyable:hover {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg-alt));
+}
+
+.cs-order-recipient-field > span {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+}
+
+.cs-order-recipient-field > strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-order-recipient-field.multiline {
+  align-items: start;
+}
+
+.cs-order-recipient-field.multiline > strong {
+  overflow: visible;
+  line-height: 1.45;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.cs-order-recipient-field > svg {
+  align-self: center;
+  color: var(--color-text-muted);
+}
+
 .cs-order-items,
 .cs-order-returns {
   display: grid;
@@ -17184,6 +17282,39 @@ html[lang="zh"] .acct-tool-chips {
 .cs-order-item > small {
   color: var(--color-text-muted);
   font-size: 10.5px;
+}
+
+.cs-order-item-foot {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.cs-order-item-sku {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.cs-order-item-sku:hover {
+  color: var(--color-primary);
+}
+
+.cs-order-item-sku code {
+  max-width: 150px;
+  overflow: hidden;
+  color: inherit;
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cs-order-item > small {

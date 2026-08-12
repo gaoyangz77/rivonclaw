@@ -11,5 +11,9 @@ describe("customer service order context query", () => {
     expect(query).toMatch(/orderIds: \[\$orderId\]/);
     expect(query).toContain("refundTotal");
     expect(query).toContain("lineItems");
+    expect(query).toContain("recipientAddress");
+    expect(query).toContain("fullAddress");
+    expect(query).toContain("postalCode");
+    expect(query).toContain("sellerSku");
   });
 });
