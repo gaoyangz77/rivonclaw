@@ -37,6 +37,7 @@ import { CustomerServiceExperimentsPage } from "./pages/ecommerce/CustomerServic
 import { AdsManagementPage } from "./pages/ecommerce/AdsManagementPage.js";
 import { InventoryManagementPage } from "./pages/ecommerce/InventoryManagementPage.js";
 import { ShopAnalyticsPage } from "./pages/ecommerce/ShopAnalyticsPage.js";
+import { ProductKnowledgePage } from "./pages/ecommerce/ProductKnowledgePage.js";
 
 export interface RouteEntry {
   /** URL path */
@@ -76,6 +77,7 @@ export const ROUTES: RouteEntry[] = [
   { path: "/commerce/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
   { path: "/commerce/shops", pageKey: "ecommerce-shops", component: EcommercePage, icon: <ShopIcon />, navLabelKey: "nav.shopManagement", authRequired: true },
   { path: "/commerce/shop-analytics", pageKey: "ecommerce-shop-analytics", component: ShopAnalyticsPage, icon: <EcommerceIcon />, navLabelKey: "nav.shopAnalytics", authRequired: true },
+  { path: "/commerce/product-knowledge", pageKey: "ecommerce-product-knowledge", component: ProductKnowledgePage, icon: <EcommerceIcon />, navLabelKey: "nav.productKnowledge", authRequired: true },
   { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, navGroupOnly: true },
   { path: "/commerce/customer-service/conversations", pageKey: "ecommerce-customer-service-conversations", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceConversations", authRequired: true, parentPath: "/commerce/customer-service" },
   { path: "/commerce/customer-service/escalations", pageKey: "ecommerce-customer-service-escalations", component: CustomerServiceEscalationQueuePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceEscalations", authRequired: true, parentPath: "/commerce/customer-service" },

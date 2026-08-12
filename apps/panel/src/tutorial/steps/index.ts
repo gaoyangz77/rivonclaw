@@ -24,11 +24,13 @@ import { ecommerceAffiliateIntelligenceSteps } from "./ecommerceAffiliateIntelli
 import { ecommerceAffiliateTeamSteps } from "./ecommerceAffiliateTeam.js"
 import { inventoryManagementSteps } from "./inventoryManagement.js"
 import { shopAnalyticsSteps } from "./shopAnalytics.js"
+import { productKnowledgeSteps } from "./productKnowledge.js"
 
 const stepRegistry: Record<string, TutorialStep[]> = {
   "/": chatSteps,
   "/commerce/shops": ecommerceSteps,
   "/commerce/shop-analytics": shopAnalyticsSteps,
+  "/commerce/product-knowledge": productKnowledgeSteps,
   "/commerce/customer-service": customerServiceWorkspaceSteps,
   "/commerce/customer-service/conversations": customerServiceConversationsSteps,
   "/commerce/customer-service/escalations": customerServiceEscalationsSteps,

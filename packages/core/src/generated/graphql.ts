@@ -3966,6 +3966,13 @@ export interface CreatePaymentGraphqlInput {
   successUrl?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface CreateProductKnowledgeInput {
+  creativeCasesMarkdown?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  qaMarkdown?: InputMaybe<Scalars['String']['input']>;
+  usageInstructionsMarkdown?: InputMaybe<Scalars['String']['input']>;
+}
+
 /** Input for creating a new RunProfile */
 export interface CreateRunProfileInput {
   name: Scalars['String']['input'];
@@ -7802,6 +7809,16 @@ export const InventoryWeightUnit = {
 } as const;
 
 export type InventoryWeightUnit = typeof InventoryWeightUnit[keyof typeof InventoryWeightUnit];
+export interface LinkProductsToKnowledgeInput {
+  productKnowledgeId: Scalars['ID']['input'];
+  products: Array<ProductKnowledgeProductReferenceInput>;
+}
+
+export interface LinkProductsToKnowledgePayload {
+  failures: Array<ProductKnowledgeLinkFailure>;
+  linked: Array<ProductKnowledgeBinding>;
+}
+
 export interface ListAffiliateEmailAccountsInput {
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<EmailAccountStatus>;
@@ -7976,6 +7993,7 @@ export interface Mutation {
   applyCreatorTag: AffiliateCreatorRelationship;
   approveBrowserToDesktopLogin: BrowserToDesktopLoginApproval;
   archiveAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
+  archiveProductKnowledge: ProductKnowledge;
   assignAffiliateBusinessDeveloper: AffiliateCreatorRelationship;
   assignAffiliateEmailAccount: EmailAccountBinding;
   assignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
@@ -8006,6 +8024,7 @@ export interface Mutation {
   createLlmApiKey: CreatedLlmApiKeyPayload;
   /** Create a payment through Stripe or Lakala. */
   createPayment: Payment;
+  createProductKnowledge: ProductKnowledge;
   /** Create a new run profile */
   createRunProfile: RunProfile;
   /** Create a temporary Stripe Customer Portal session for the current user's active Stripe subscription. Use this for changing cards, viewing invoices, or Stripe-hosted subscription management. */
@@ -8115,6 +8134,7 @@ export interface Mutation {
   initiateTikTokAdsOAuth: InitiateAdsOAuthResponse;
   /** Generate TikTok OAuth authorization URL */
   initiateTikTokOAuth: InitiateOAuthResponse;
+  linkProductsToKnowledge: LinkProductsToKnowledgePayload;
   /** Log in with email and password */
   login: AuthPayload;
   /** Log out (revoke the provided refresh token) */
@@ -8161,6 +8181,7 @@ export interface Mutation {
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
   /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the relationship work boundary and update relationship/collaboration state as needed. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
+  restoreProductKnowledge: ProductKnowledge;
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
   retryAffiliateAgentFailure: AffiliateCreatorRelationshipStatePayload;
   retryAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlan;
@@ -8207,8 +8228,10 @@ export interface Mutation {
   unassignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
   /** Unenroll from a product module */
   unenrollModule: MeResponse;
+  unlinkProductKnowledgeBinding: Scalars['Boolean']['output'];
   updateAffiliateCreatorChannelContact: AffiliateCreatorChannelContact;
   updateExpertMessage: ExpertMessage;
+  updateProductKnowledge: ProductKnowledge;
   /** Update an existing run profile */
   updateRunProfile?: Maybe<RunProfile>;
   /** Update an existing shop */
@@ -8298,6 +8321,12 @@ export interface MutationApproveBrowserToDesktopLoginArgs {
 
 
 export interface MutationArchiveAffiliateBusinessDeveloperArgs {
+  id: Scalars['ID']['input'];
+}
+
+
+export interface MutationArchiveProductKnowledgeArgs {
+  expectedRevision: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 }
 
@@ -8394,6 +8423,11 @@ export interface MutationCreateDesktopToWebLoginArgs {
 
 export interface MutationCreatePaymentArgs {
   input: CreatePaymentGraphqlInput;
+}
+
+
+export interface MutationCreateProductKnowledgeArgs {
+  input: CreateProductKnowledgeInput;
 }
 
 
@@ -8744,6 +8778,11 @@ export interface MutationInitiateTikTokOAuthArgs {
 }
 
 
+export interface MutationLinkProductsToKnowledgeArgs {
+  input: LinkProductsToKnowledgeInput;
+}
+
+
 export interface MutationLoginArgs {
   input: LoginInput;
 }
@@ -8871,6 +8910,12 @@ export interface MutationRequestTikTokGmvMaxAuthorizationArgs {
 
 export interface MutationResolveAffiliateWorkItemArgs {
   input: ResolveAffiliateWorkItemInput;
+}
+
+
+export interface MutationRestoreProductKnowledgeArgs {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
 }
 
 
@@ -9008,6 +9053,11 @@ export interface MutationUnenrollModuleArgs {
 }
 
 
+export interface MutationUnlinkProductKnowledgeBindingArgs {
+  bindingId: Scalars['ID']['input'];
+}
+
+
 export interface MutationUpdateAffiliateCreatorChannelContactArgs {
   input: UpdateAffiliateCreatorChannelContactInput;
 }
@@ -9016,6 +9066,11 @@ export interface MutationUpdateAffiliateCreatorChannelContactArgs {
 export interface MutationUpdateExpertMessageArgs {
   content: Scalars['String']['input'];
   id: Scalars['ID']['input'];
+}
+
+
+export interface MutationUpdateProductKnowledgeArgs {
+  input: UpdateProductKnowledgeInput;
 }
 
 
@@ -9398,6 +9453,71 @@ export interface PresetSkillsChangedPayload {
   revision: Scalars['String']['output'];
 }
 
+export interface ProductKnowledge {
+  archivedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  bindingCount: Scalars['Int']['output'];
+  bindings: Array<ProductKnowledgeBinding>;
+  createdAt: Scalars['DateTimeISO']['output'];
+  creativeCasesMarkdown: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  qaMarkdown: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+  status: ProductKnowledgeStatus;
+  updatedAt: Scalars['DateTimeISO']['output'];
+  usageInstructionsMarkdown: Scalars['String']['output'];
+}
+
+export interface ProductKnowledgeBinding {
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  platformSnapshot: Scalars['String']['output'];
+  productCoverImageSnapshot?: Maybe<Scalars['String']['output']>;
+  productId: Scalars['String']['output'];
+  productKnowledgeId: Scalars['ID']['output'];
+  productStatusSnapshot?: Maybe<Scalars['String']['output']>;
+  productTitleSnapshot: Scalars['String']['output'];
+  sellerSkusSnapshot: Array<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  shopNameSnapshot: Scalars['String']['output'];
+  shopRegionSnapshot?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTimeISO']['output'];
+}
+
+export interface ProductKnowledgeLinkFailure {
+  code: Scalars['String']['output'];
+  existingProductKnowledgeId?: Maybe<Scalars['ID']['output']>;
+  existingProductKnowledgeName?: Maybe<Scalars['String']['output']>;
+  message: Scalars['String']['output'];
+  productId: Scalars['String']['output'];
+  shopId: Scalars['ID']['output'];
+}
+
+export interface ProductKnowledgePage {
+  items: Array<ProductKnowledge>;
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface ProductKnowledgePageInput {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<ProductKnowledgeStatus>;
+}
+
+export interface ProductKnowledgeProductReferenceInput {
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+export const ProductKnowledgeStatus = {
+  Active: 'ACTIVE',
+  Archived: 'ARCHIVED'
+} as const;
+
+export type ProductKnowledgeStatus = typeof ProductKnowledgeStatus[keyof typeof ProductKnowledgeStatus];
 /** System lifecycle state for customer-service review follow-up. */
 export const ProductReviewFollowUpStatus = {
   Attached: 'ATTACHED',
@@ -9732,6 +9852,7 @@ export interface Query {
   csPendingEscalationEvents: Array<CsEscalationEventDelivery>;
   /** Get public Google sign-in configuration for native desktop clients */
   desktopGoogleAuthConfig: DesktopGoogleAuthConfig;
+  discoverProductsBySellerSku: SellerSkuProductDiscoveryPayload;
   /** Get aftersale eligibility for an order */
   ecommerceGetAftersaleEligibility: EcomAftersaleEligibility;
   ecommerceGetCSExperimentDetail: CsExperimentDetailView;
@@ -9831,6 +9952,8 @@ export interface Query {
   presetSkills?: Maybe<Scalars['String']['output']>;
   /** Get pricing for all providers */
   pricing: Array<ProviderPricing>;
+  productKnowledge: ProductKnowledge;
+  productKnowledges: ProductKnowledgePage;
   /** Read source-of-truth inventory and order-derived SKU demand facts for agent-side inventory and replenishment analysis. */
   readInventoryAnalysis: InventoryAnalysisPayload;
   /** Read external SKU to InventoryGood mappings. Use input.id for one row, or filters for a list. */
@@ -10220,6 +10343,11 @@ export interface QueryCsPendingEscalationEventsArgs {
 }
 
 
+export interface QueryDiscoverProductsBySellerSkuArgs {
+  sellerSku: Scalars['String']['input'];
+}
+
+
 export interface QueryEcommerceGetAftersaleEligibilityArgs {
   buyerUserId?: InputMaybe<Scalars['String']['input']>;
   orderId: Scalars['String']['input'];
@@ -10525,6 +10653,16 @@ export interface QueryPricingArgs {
   deviceId?: InputMaybe<Scalars['String']['input']>;
   language?: InputMaybe<Scalars['String']['input']>;
   platform?: InputMaybe<Scalars['String']['input']>;
+}
+
+
+export interface QueryProductKnowledgeArgs {
+  id: Scalars['ID']['input'];
+}
+
+
+export interface QueryProductKnowledgesArgs {
+  input?: InputMaybe<ProductKnowledgePageInput>;
 }
 
 
@@ -11125,6 +11263,36 @@ export const SampleWorkStatus = {
 } as const;
 
 export type SampleWorkStatus = typeof SampleWorkStatus[keyof typeof SampleWorkStatus];
+export interface SellerSkuProductCandidate {
+  existingProductKnowledgeId?: Maybe<Scalars['ID']['output']>;
+  existingProductKnowledgeName?: Maybe<Scalars['String']['output']>;
+  existingProductKnowledgeStatus?: Maybe<ProductKnowledgeStatus>;
+  matchedSellerSkus: Array<Scalars['String']['output']>;
+  platform: Scalars['String']['output'];
+  productCoverImage?: Maybe<Scalars['String']['output']>;
+  productId: Scalars['String']['output'];
+  productStatus?: Maybe<Scalars['String']['output']>;
+  productTitle: Scalars['String']['output'];
+  sellerSkus: Array<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
+  shopRegion?: Maybe<Scalars['String']['output']>;
+}
+
+export interface SellerSkuProductDiscoveryPayload {
+  candidates: Array<SellerSkuProductCandidate>;
+  searchedShopCount: Scalars['Int']['output'];
+  sellerSku: Scalars['String']['output'];
+  shopFailures: Array<SellerSkuShopSearchFailure>;
+  successfulShopCount: Scalars['Int']['output'];
+}
+
+export interface SellerSkuShopSearchFailure {
+  message: Scalars['String']['output'];
+  shopId: Scalars['ID']['output'];
+  shopName: Scalars['String']['output'];
+}
+
 export interface SendAffiliateCreatorMessageInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   /** Staff-only exact BD-account-to-Creator contact route override. */
@@ -12480,6 +12648,15 @@ export interface UpdateAffiliateCreatorChannelContactInput {
 /** Update notification payload */
 export interface UpdatePayload {
   version: Scalars['String']['output'];
+}
+
+export interface UpdateProductKnowledgeInput {
+  creativeCasesMarkdown: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  name: Scalars['String']['input'];
+  qaMarkdown: Scalars['String']['input'];
+  usageInstructionsMarkdown: Scalars['String']['input'];
 }
 
 /** Input for updating an existing RunProfile */
