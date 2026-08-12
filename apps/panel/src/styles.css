@@ -6732,7 +6732,7 @@ tbody td {
 
 .product-knowledge-table {
   width: 100%;
-  min-width: 940px;
+  min-width: 760px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -6757,30 +6757,28 @@ tbody td {
 
 .product-knowledge-table th:first-child,
 .product-knowledge-table td:first-child {
-  width: 30%;
+  width: 36%;
   padding-left: 22px;
 }
 
 .product-knowledge-table th:nth-child(2),
 .product-knowledge-table td:nth-child(2) {
-  width: 11%;
+  width: 12%;
 }
 
 .product-knowledge-table th:nth-child(3),
 .product-knowledge-table td:nth-child(3) {
-  width: 17%;
+  width: 19%;
 }
 
 .product-knowledge-table th:nth-child(4),
-.product-knowledge-table td:nth-child(4),
-.product-knowledge-table th:nth-child(5),
-.product-knowledge-table td:nth-child(5) {
-  width: 10%;
+.product-knowledge-table td:nth-child(4) {
+  width: 13%;
 }
 
 .product-knowledge-table th:last-child,
 .product-knowledge-table td:last-child {
-  width: 44px;
+  width: 20%;
   padding-right: 22px;
 }
 
@@ -6872,34 +6870,9 @@ tbody td {
   font-weight: 600;
 }
 
-.product-knowledge-table code {
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-
 .product-knowledge-table time {
   color: var(--color-text-secondary);
   font-size: 12px;
-}
-
-.product-knowledge-row-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  color: var(--color-text-muted);
-  transition: transform 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.product-knowledge-table tbody tr:hover .product-knowledge-row-arrow,
-.product-knowledge-table tbody tr:focus-visible .product-knowledge-row-arrow {
-  transform: translateX(2px);
-  border-color: var(--brand-tint-25);
-  color: var(--color-primary);
 }
 
 .product-knowledge-table-state,
@@ -7594,7 +7567,7 @@ tbody td {
 @media (max-width: 1100px) {
   .product-knowledge-table th:first-child,
   .product-knowledge-table td:first-child {
-    width: 26%;
+    width: 34%;
   }
 
   .product-knowledge-discovery-form {
