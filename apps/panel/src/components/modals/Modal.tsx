@@ -10,6 +10,7 @@ export interface ModalProps {
   onClose: () => void;
   onBackdropClose?: () => void;
   title: string;
+  headerContent?: ReactNode;
   children: ReactNode;
   maxWidth?: number;
   hideCloseButton?: boolean;
@@ -26,6 +27,7 @@ export function Modal({
   onClose,
   onBackdropClose,
   title,
+  headerContent,
   children,
   maxWidth = 600,
   hideCloseButton,
@@ -118,9 +120,12 @@ export function Modal({
         tabIndex={-1}
       >
         <div className="modal-header">
-          <h2 id={titleId} className="modal-title">
-            {title}
-          </h2>
+          <div className="modal-header-main">
+            <h2 id={titleId} className="modal-title">
+              {title}
+            </h2>
+            {headerContent}
+          </div>
           {!hideCloseButton && (
             <button onClick={onClose} className="modal-close-btn" aria-label={closeLabel}>
               ×
