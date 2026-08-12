@@ -99,6 +99,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const [createName, setCreateName] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [sellerSku, setSellerSku] = useState("");
+  const [discoveryKnowledgeId, setDiscoveryKnowledgeId] = useState("");
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [linkFailures, setLinkFailures] = useState<GQL.ProductKnowledgeLinkFailure[]>([]);
   const [staleConflict, setStaleConflict] = useState(false);
@@ -146,7 +147,9 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const knowledge = detailQuery.data?.productKnowledge;
   const dirty = draftIsDirty(draft, knowledge);
   const isArchived = knowledge?.status === GQL.ProductKnowledgeStatus.Archived;
-  const discoveryPayload = discovery.data?.discoverProductsBySellerSku;
+  const discoveryPayload = discoveryKnowledgeId === selectedId
+    ? discovery.data?.discoverProductsBySellerSku
+    : undefined;
   const candidates = discoveryPayload?.candidates ?? [];
   const selectableCandidates = candidates.filter((candidate) =>
     !candidate.existingProductKnowledgeId || candidate.existingProductKnowledgeId === selectedId,
@@ -206,6 +209,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
     setDraft(null);
     setDraftRevision(0);
     setSellerSku("");
+    setDiscoveryKnowledgeId("");
     setSelectedCandidates(new Set());
     setLinkFailures([]);
     setStaleConflict(false);
@@ -307,10 +311,13 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   async function runDiscovery(clearLinkFailures = true) {
     const value = sellerSku.trim();
     if (!value || isArchived) return;
+    const knowledgeId = selectedId;
+    setDiscoveryKnowledgeId("");
     setSelectedCandidates(new Set());
     if (clearLinkFailures) setLinkFailures([]);
     try {
       await discoverProducts({ variables: { sellerSku: value } });
+      setDiscoveryKnowledgeId(knowledgeId);
     } catch (error) {
       showToast(t("common.operationFailed", { message: errorMessage(error) }), "error");
     }
@@ -550,7 +557,12 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                     <div className="product-knowledge-discovery-form">
                       <div><label htmlFor="seller-sku-search">{t("ecommerce.productKnowledge.sellerSku")}</label><span>{t("ecommerce.productKnowledge.sellerSkuHint")}</span></div>
                       <form onSubmit={(event) => { event.preventDefault(); void runDiscovery(); }}>
-                        <input id="seller-sku-search" value={sellerSku} onChange={(event) => setSellerSku(event.target.value)} placeholder={t("ecommerce.productKnowledge.sellerSkuPlaceholder")} />
+                        <input id="seller-sku-search" value={sellerSku} onChange={(event) => {
+                          setSellerSku(event.target.value);
+                          setDiscoveryKnowledgeId("");
+                          setSelectedCandidates(new Set());
+                          setLinkFailures([]);
+                        }} placeholder={t("ecommerce.productKnowledge.sellerSkuPlaceholder")} />
                         <button className="btn btn-primary" disabled={!sellerSku.trim() || discovery.loading} type="submit">{discovery.loading ? t("ecommerce.productKnowledge.searching") : t("ecommerce.productKnowledge.discover")}</button>
                       </form>
                     </div>
