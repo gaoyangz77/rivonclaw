@@ -8,7 +8,6 @@ import {
 } from "../cs-bridge/customer-service-session.js";
 import { reaction } from "mobx";
 import type {
-  AffiliateRelationshipSignalPayload,
   AffiliateWorkItemPayload,
   CsConversationSignalPayload,
   CsEscalationEventDeliveryPayload,
@@ -962,18 +961,6 @@ export class EcommerceRelayBridge {
         errorMessage: err,
       });
     }
-  }
-
-  async handleAffiliateRelationshipSignal(
-    signal: AffiliateRelationshipSignalPayload,
-  ): Promise<void> {
-    this.syncFromCache();
-    log.info(
-      `Affiliate signal: type=${signal.type} shop=${signal.platformShopId} ` +
-        `relationship=${signal.creatorRelationshipId ?? ""} msg=${signal.messageId ?? ""}`,
-    );
-
-    await this.affiliateInbound.handleSignal(signal);
   }
 
   async handleAffiliateWorkItemChanged(workItem: AffiliateWorkItemPayload): Promise<void> {

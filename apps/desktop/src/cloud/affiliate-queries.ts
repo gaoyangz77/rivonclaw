@@ -206,6 +206,25 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         nextActionAt
         boundaryEventCursor
         updatedAt
+        conversationWindow {
+          coverage
+          resolvedThroughRelationshipSequence
+          lastPendingRelationshipSequence
+          totalCreatorTurnCount
+          includedCreatorTurnCount
+          includedCharacterCount
+          maxCreatorTurnCount
+          maxCharacterCount
+          containsUnsupportedContent
+          sellerAnchor {
+            relationshipSequence occurredAt direction channel subject trust
+            parts { sequence kind contentTruncated originalCharacterCount text fileName mimeType sizeBytes caption agentReadable productId shopId targetCollaborationId sampleApplicationId providerType summary contentAvailability }
+          }
+          creatorTurns {
+            relationshipSequence occurredAt direction channel subject trust
+            parts { sequence kind contentTruncated originalCharacterCount text fileName mimeType sizeBytes caption agentReadable productId shopId targetCollaborationId sampleApplicationId providerType summary contentAvailability }
+          }
+        }
         predictionEvidence {
           sourceCacheId
           predictionType
@@ -277,6 +296,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       staffReviewRequired
       processingStatus
       versionAt
+      versionKey
       requiredAction
       processReasons
       creatorRelationship {
@@ -289,8 +309,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         lastInboundAt
         lastInboundChannel
         lastInboundLifecycleEventId
-        lastOutboundAt
-        lastAgentHandledAt
         committedCheckpointId
         committedCheckpointAt
         committedEventCursor
@@ -473,32 +491,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
 
 export interface AffiliateWorkItemsQueryResult {
   affiliateWorkItems: GQL.AffiliateWorkItem[];
-}
-
-export const AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY = `
-  query AffiliateCreatorMessagePreflight($input: AffiliateCreatorMessageHistoryInput!) {
-    affiliateCreatorMessageHistory(input: $input) {
-      items {
-        channel
-        direction
-        createdAt
-        messageType
-        parts {
-          kind
-          fileName
-          mimeType
-          sizeBytes
-          agentReadable
-          providerType
-          summary
-        }
-      }
-    }
-  }
-`;
-
-export interface AffiliateCreatorMessagePreflightQueryResult {
-  affiliateCreatorMessageHistory: Pick<GQL.AffiliateCreatorMessageHistoryPayload, "items">;
 }
 
 export const RESOLVE_AFFILIATE_WORK_ITEM_MUTATION = `

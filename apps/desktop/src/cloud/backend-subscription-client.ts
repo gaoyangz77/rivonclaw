@@ -79,6 +79,9 @@ export const OAUTH_COMPLETE_SUBSCRIPTION = `
             runProfileId
             deviceId
             businessPrompt
+            campaignDailyCreatorOutreachLimit
+            campaignDailyCreatorOutreachLimitRevision
+            campaignDailyCreatorOutreachLimitUpdatedAt
             decisionThresholds {
               minExpectedSalesUnits
             }
@@ -157,6 +160,9 @@ export const SHOP_UPDATED_SUBSCRIPTION = `
           runProfileId
           deviceId
           businessPrompt
+          campaignDailyCreatorOutreachLimit
+          campaignDailyCreatorOutreachLimitRevision
+          campaignDailyCreatorOutreachLimitUpdatedAt
           decisionThresholds {
             minExpectedSalesUnits
           }
@@ -297,43 +303,6 @@ const CS_CONVERSATION_CHANGED_SUBSCRIPTION = `
   }
 `;
 
-const AFFILIATE_RELATIONSHIP_SIGNAL_SUBSCRIPTION = `
-  subscription AffiliateRelationshipSignal {
-    affiliateRelationshipSignal {
-      type
-      source
-      workSignal
-      affiliateCollaborationId
-      creatorRelationshipId
-      processingStatus
-      requiredAction
-      processReasons
-      shopId
-      platformShopId
-      messageId
-      messageIndex
-      messageType
-      messageDirection
-      channel
-      creatorImId
-      senderRole
-      senderId
-      sampleApplicationRecordId
-      platformTargetCollaborationId
-      platformStatus
-      platformFulfillmentStatus
-      platformFulfillmentId
-      contentId
-      creatorOpenId
-      productId
-      orderId
-      platformProgramId
-      notificationId
-      eventTime
-    }
-  }
-`;
-
 export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
   subscription AffiliateWorkItemChanged {
     affiliateWorkItemChanged {
@@ -365,6 +334,25 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           nextActionAt
           boundaryEventCursor
           updatedAt
+          conversationWindow {
+            coverage
+            resolvedThroughRelationshipSequence
+            lastPendingRelationshipSequence
+            totalCreatorTurnCount
+            includedCreatorTurnCount
+            includedCharacterCount
+            maxCreatorTurnCount
+            maxCharacterCount
+            containsUnsupportedContent
+            sellerAnchor {
+              relationshipSequence occurredAt direction channel subject trust
+              parts { sequence kind text fileName mimeType sizeBytes caption agentReadable productId shopId targetCollaborationId sampleApplicationId providerType summary contentAvailability }
+            }
+            creatorTurns {
+              relationshipSequence occurredAt direction channel subject trust
+              parts { sequence kind text fileName mimeType sizeBytes caption agentReadable productId shopId targetCollaborationId sampleApplicationId providerType summary contentAvailability }
+            }
+          }
           predictionEvidence {
             sourceCacheId
             predictionType
@@ -436,14 +424,13 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         requiredAction
         processReasons
         versionAt
+        versionKey
         creatorRelationship {
           id
           creatorId
           blocked
           blockedShopIds
           lastInboundAt
-          lastOutboundAt
-          lastAgentHandledAt
           committedCheckpointId
           committedCheckpointAt
           committedEventCursor
@@ -967,7 +954,6 @@ export type ToolSpecsChangedPayload = GQL.ToolSpecsChangedPayload;
 export type PresetSkillsChangedPayload = GQL.PresetSkillsChangedPayload;
 export type CsConversationSignalPayload = GQL.CsConversationSignal;
 export type CsConversationChangedPayload = GQL.CustomerServiceConversation;
-export type AffiliateRelationshipSignalPayload = GQL.AffiliateRelationshipSignal;
 export type AffiliateWorkItemPayload = GQL.AffiliateWorkItem;
 
 export interface AffiliateCampaignSearchPlanRequestPayload {
@@ -2313,41 +2299,6 @@ export class BackendSubscriptionClient {
           },
           error: (err) => {
             this.handleSubscriptionError(key, attempt, "CS conversation changed subscription error", err);
-          },
-          complete: () => this.handleSubscriptionComplete(key, attempt),
-        },
-      );
-      return unsubscribe;
-    };
-
-    return this.registerSubscription({ key, subscribe, authRequired: true, longLived: true });
-  }
-
-  subscribeToAffiliateRelationshipSignals(
-    onSignal: (signal: AffiliateRelationshipSignalPayload) => void,
-  ): () => void {
-    const key = "affiliate-relationship-signals";
-
-    const subscribe = (attempt: number): (() => void) => {
-      if (!this.client) return () => {};
-
-      const unsubscribe = this.client.subscribe<{ affiliateRelationshipSignal: AffiliateRelationshipSignalPayload }>(
-        { query: AFFILIATE_RELATIONSHIP_SIGNAL_SUBSCRIPTION },
-        {
-          next: (result) => {
-            this.noteSubscriptionNext(key, attempt);
-            if (this.handleResultErrors(key, attempt, "Affiliate relationship signal subscription next contained GraphQL errors", result.errors)) {
-              return;
-            }
-            const payload = result.data?.affiliateRelationshipSignal;
-            if (!payload) {
-              this.logUnexpectedResult(key, attempt, "affiliateRelationshipSignal", result as any);
-              return;
-            }
-            onSignal(payload);
-          },
-          error: (err) => {
-            this.handleSubscriptionError(key, attempt, "Affiliate relationship signal subscription error", err);
           },
           complete: () => this.handleSubscriptionComplete(key, attempt),
         },

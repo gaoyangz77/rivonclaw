@@ -47,16 +47,14 @@ vi.mock("./affiliate-workflow-skill.js", () => ({
 }));
 
 import {
+  AffiliateAgentRunMode,
   AffiliateSession,
   AffiliateTriggerKind,
   buildBusinessDeveloperPromptSection,
   redactBusinessDeveloperContactDetails,
 } from "./affiliate-session.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
-import {
-  AffiliateInbound,
-  resolveMaxActiveAffiliateAgentRuns,
-} from "./affiliate-inbound.js";
+import { AffiliateInbound, resolveMaxActiveAffiliateAgentRuns } from "./affiliate-inbound.js";
 import {
   __clearActiveAffiliateRunCheckpointsForTests,
   getActiveAffiliateRunCheckpoint,
@@ -100,27 +98,33 @@ describe("affiliate session identity", () => {
   });
 
   it("uses the exact live-test cohort size as the default Agent pool", () => {
-    expect(resolveMaxActiveAffiliateAgentRuns({
-      RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
-    })).toBe(3);
-    expect(resolveMaxActiveAffiliateAgentRuns({
-      RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-1,rel-2",
-    })).toBe(2);
+    expect(
+      resolveMaxActiveAffiliateAgentRuns({
+        RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
+      }),
+    ).toBe(3);
+    expect(
+      resolveMaxActiveAffiliateAgentRuns({
+        RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-1,rel-2",
+      }),
+    ).toBe(2);
     expect(resolveMaxActiveAffiliateAgentRuns({})).toBe(1);
   });
 
   it("allows an explicit Affiliate Agent pool size to override the live-test cohort", () => {
-    expect(resolveMaxActiveAffiliateAgentRuns({
-      RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
-      RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS: "7",
-    })).toBe(7);
+    expect(
+      resolveMaxActiveAffiliateAgentRuns({
+        RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS: "rel-1,rel-2,rel-3",
+        RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS: "7",
+      }),
+    ).toBe(7);
   });
 
   it("uses user id and creator relationship id as the long-lived affiliate session key", () => {
     expect(
       AffiliateSession.buildScopeKey("tiktok", {
         userId: "user-1",
-        shopId: "shop-1",
+        routingShopId: "shop-1",
         platformShopId: "platform-shop-1",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conv-1",
@@ -130,7 +134,7 @@ describe("affiliate session identity", () => {
     expect(
       AffiliateSession.buildScopeKey("whatsapp", {
         userId: "user-1",
-        shopId: "shop-1",
+        routingShopId: "shop-1",
         platformShopId: "platform-shop-1",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "wa-message-1",
@@ -151,7 +155,7 @@ describe("affiliate session identity", () => {
       },
       {
         userId: "user-1",
-        shopId: "shop-1",
+        routingShopId: "shop-1",
         platformShopId: "platform-shop-1",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "message-1",
@@ -171,7 +175,7 @@ describe("affiliate session identity", () => {
       });
       session.updateAffiliateContext({
         userId: "user-1",
-        shopId: "shop-2",
+        routingShopId: "shop-2",
         platformShopId: "platform-shop-2",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
         triggerId: "sample-2",
@@ -181,7 +185,7 @@ describe("affiliate session identity", () => {
 
     expect(session.scopeKey).toBe("agent:affiliate:affiliate:user-1:rel-1");
     expect(session.affiliateContext).toMatchObject({
-      shopId: "shop-2",
+      routingShopId: "shop-2",
       platformShopId: "platform-shop-2",
       creatorRelationshipId: "rel-1",
     });
@@ -191,7 +195,7 @@ describe("affiliate session identity", () => {
   it("rejects affiliate session keys without a user id", () => {
     expect(() =>
       AffiliateSession.buildScopeKey("tiktok", {
-        shopId: "shop-1",
+        routingShopId: "shop-1",
         platformShopId: "platform-shop-1",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conv-1",
@@ -239,7 +243,7 @@ describe("affiliate session identity", () => {
     );
 
     expect(context).toMatchObject({
-      shopId: "shop-001",
+      routingShopId: "shop-001",
       creatorRelationshipId: "relationship-001",
       creatorId: "creator-canonical-001",
       creatorOpenId: "creator-open-001",
@@ -393,7 +397,25 @@ function createSampleReviewWorkItem(
     affiliateCollaborationId: "collab-001",
     workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
     workBundleKind: GQL.AffiliateWorkBundleKind.SampleReviewOnly,
-    agentWorkingAgendaItems: [],
+    agentWorkingAgendaItems: [
+      {
+        key: "affiliateCollaboration:collab-001:COMPLETE_COLLABORATION_TASK",
+        owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
+        sourceType: GQL.AffiliateRelationshipAgendaSourceType.PlatformCollaboration,
+        workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
+        shopId: "shop-001",
+        productId: "product-001",
+        affiliateCollaborationId: "collab-001",
+        sampleApplicationRecordId: "sample-record-001",
+        proposalId: null,
+        reasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
+        nextActionAt: null,
+        boundaryEventCursor: 1,
+        updatedAt: "2026-05-11T00:01:00.000Z",
+        predictionEvidence: createWorkingAgendaPredictionEvidence(),
+      },
+    ],
     agentDispatchRecommended: true,
     creatorProtected: false,
     agentEligibilityReason: GQL.AffiliateAgentEligibilityReason.Eligible,
@@ -406,6 +428,7 @@ function createSampleReviewWorkItem(
     processReasons: [GQL.AffiliateWorkProcessReason.SamplePendingReview],
     recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
     versionAt: "2026-05-11T00:01:00.000Z",
+    versionKey: "relationship-001:version-1",
     affiliateCollaboration: collaboration,
     creatorRelationship: {
       id: "relationship-001",
@@ -501,6 +524,23 @@ function createCreatorReplyWorkItem(
     requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
     processReasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling],
     recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
+    agentWorkingAgendaItems: [
+      {
+        key: "relationship:relationship-001:HANDLE_CREATOR_MESSAGE",
+        owner: GQL.AffiliateRelationshipAgendaOwner.Agent,
+        sourceType: GQL.AffiliateRelationshipAgendaSourceType.Relationship,
+        workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+        shopId: "shop-001",
+        affiliateCollaborationId: null,
+        sampleApplicationRecordId: null,
+        proposalId: null,
+        reasons: [GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling],
+        nextActionAt: null,
+        boundaryEventCursor: 1,
+        updatedAt: "2026-05-11T00:01:00.000Z",
+      },
+    ],
     affiliateCollaboration,
     creatorRelationship: {
       ...base.creatorRelationship,
@@ -864,22 +904,15 @@ describe("affiliate work item dispatch", () => {
     inbound.handleGatewayEvent({ payload: { runId: "run-active", state: "final" } } as any);
     await waitForCondition(() => dispatchSpy.mock.calls.length === 1);
 
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      expect.any(String),
-      {
-        input: {
-          shopId: "shop-001",
-          creatorRelationshipId: "relationship-001",
-          agentDispatchRecommended: true,
-          limit: 10,
-        },
+    expect(graphqlFetch).toHaveBeenCalledWith(expect.any(String), {
+      input: {
+        shopId: "shop-001",
+        creatorRelationshipId: "relationship-001",
+        agentDispatchRecommended: true,
+        limit: 10,
       },
-    );
-    expect(dispatchSpy).toHaveBeenCalledWith(
-      workItem,
-      "relationship-queued:shop-001:SAMPLE_APPLICATION_DECISION",
-      workItem.versionAt,
-    );
+    });
+    expect(dispatchSpy).toHaveBeenCalledWith(workItem, workItem.versionKey, workItem.versionAt);
   });
 
   it("drops queued work that became non-actionable before capacity was released", async () => {
@@ -945,7 +978,7 @@ describe("affiliate work item dispatch", () => {
     expect(dispatchSpy).not.toHaveBeenCalled();
   });
 
-  it("fetches only checkpoint metadata before a work-item dispatch", async () => {
+  it("fetches only checkpoint metadata and keeps the frozen Agenda boundary", async () => {
     const graphqlFetch = vi.fn(
       withCheckpointContext(async (query: string) => {
         throw new Error(`Unexpected GraphQL call: ${query}`);
@@ -962,7 +995,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -972,7 +1005,16 @@ describe("affiliate work item dispatch", () => {
       },
     );
 
-    await session.handleWorkItem(createSampleReviewWorkItem());
+    const baseWorkItem = createSampleReviewWorkItem();
+    await session.handleWorkItem(
+      createSampleReviewWorkItem({
+        creatorRelationship: {
+          ...baseWorkItem.creatorRelationship!,
+          // Simulate a newer Creator fact arriving after this WorkItem was frozen.
+          lifecycleEventSequence: 9,
+        },
+      }),
+    );
 
     expect(graphqlFetch).toHaveBeenCalledWith(
       expect.stringContaining("affiliateContextBuilder"),
@@ -980,6 +1022,7 @@ describe("affiliate work item dispatch", () => {
         input: expect.objectContaining({
           shopId: "shop-001",
           creatorRelationshipId: "relationship-001",
+          targetEventCursor: 1,
           includeWorkspace: false,
           includeEventDelta: false,
           limit: 1,
@@ -993,9 +1036,12 @@ describe("affiliate work item dispatch", () => {
 
   it("omits the complete Business Developer section when no BD context is assigned", async () => {
     const graphqlFetch = vi.fn(
-      withCheckpointContext(async (query: string) => {
-        throw new Error(`Unexpected GraphQL call: ${query}`);
-      }, { omitBusinessDeveloperContext: true }),
+      withCheckpointContext(
+        async (query: string) => {
+          throw new Error(`Unexpected GraphQL call: ${query}`);
+        },
+        { omitBusinessDeveloperContext: true },
+      ),
     );
     mockGetAuthSession.mockReturnValue({ graphqlFetch });
     const session = new AffiliateSession(
@@ -1008,7 +1054,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1036,7 +1082,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1098,8 +1144,9 @@ describe("affiliate work item dispatch", () => {
       sessionKey: "agent:affiliate:affiliate:user-001:relationship-001",
       toolContext: {
         kind: "AFFILIATE",
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         creatorRelationshipId: "relationship-001",
+        frozenAgendaProductShopPairsJson: "[]",
         creatorId: "creator-001",
         creatorOpenId: "creator-open-001",
       },
@@ -1174,7 +1221,7 @@ describe("affiliate work item dispatch", () => {
         platform: "tiktok",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1218,7 +1265,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1302,7 +1349,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1355,7 +1402,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1404,7 +1451,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1417,13 +1464,16 @@ describe("affiliate work item dispatch", () => {
 
     const first = await session.handleWorkItem(workItem);
     session.onRunCompleted(first.runId!);
-    const second = await session.handleWorkItem(workItem);
+    await session.handleWorkItem(workItem);
 
     const agentCalls = mockRpcRequest.mock.calls.filter((call) => call[0] === "agent");
     expect(agentCalls).toHaveLength(2);
     const firstKey = agentCalls[0]?.[1]?.idempotencyKey as string;
     const secondKey = agentCalls[1]?.[1]?.idempotencyKey as string;
-    const semanticKey = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })?.idempotencyKey;
+    const semanticKey = buildAffiliateAgentRunRequest({
+      workItem,
+      platform: "tiktok",
+    })?.idempotencyKey;
     expect(firstKey).toMatch(new RegExp(`^${semanticKey}:attempt:`));
     expect(secondKey).toMatch(new RegExp(`^${semanticKey}:attempt:`));
     expect(secondKey).not.toBe(firstKey);
@@ -1466,7 +1516,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -1572,7 +1622,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -1602,9 +1652,7 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.extraSystemPrompt).toContain(
       "final assistant response exactly NO_REPLY",
     );
-    expect(agentCall?.[1]?.extraSystemPrompt).toContain(
-      "Never select FAILED_OR_INCOMPLETE",
-    );
+    expect(agentCall?.[1]?.extraSystemPrompt).toContain("Never select FAILED_OR_INCOMPLETE");
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Required Action: HANDLE_CREATOR_MESSAGE");
     expect(agentCall?.[1]?.message).toContain("Reasons: CREATOR_MESSAGE_NEEDS_HANDLING");
@@ -1625,21 +1673,8 @@ describe("affiliate work item dispatch", () => {
     ).toBe(false);
   });
 
-  it("routes unreadable creator attachments to staff before creating an Agent run", async () => {
-    const graphqlFetch = vi.fn(async (query: string, variables?: any) => {
-      if (query.includes("ResolveAffiliateWorkItem")) {
-        expect(variables?.input).toMatchObject({
-          creatorRelationshipId: "relationship-001",
-          decision: "FAILED_OR_INCOMPLETE",
-        });
-        expect(variables?.input?.operatorSummary).toContain("creator-video.mp4");
-        return {
-          resolveAffiliateWorkItem: {
-            decision: "FAILED_OR_INCOMPLETE",
-            stale: false,
-          },
-        };
-      }
+  it("dispatches unreadable Creator attachments without a legacy hydration preflight", async () => {
+    const graphqlFetch = vi.fn(async (query: string) => {
       throw new Error(`Unexpected GraphQL call: ${query}`);
     });
     mockGetAuthSession.mockReturnValue({
@@ -1666,7 +1701,7 @@ describe("affiliate work item dispatch", () => {
         platform: "tiktok",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -1675,13 +1710,15 @@ describe("affiliate work item dispatch", () => {
     );
 
     await expect(session.handleWorkItem(createCreatorReplyWorkItem())).resolves.toEqual({
-      runId: undefined,
+      runId: "run-affiliate-001",
+      runMode: AffiliateAgentRunMode.OPERATOR_REASONING,
     });
-    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(false);
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      expect.stringContaining("ResolveAffiliateWorkItem"),
-      expect.anything(),
-    );
+    expect(mockRpcRequest.mock.calls.some((call) => call[0] === "agent")).toBe(true);
+    expect(
+      graphqlFetch.mock.calls.some(([query]) =>
+        String(query).includes("AffiliateCreatorMessagePreflight"),
+      ),
+    ).toBe(false);
   });
 
   it("dispatches a staff-requested proposal revision without re-running inbound attachment preflight", async () => {
@@ -1742,7 +1779,7 @@ describe("affiliate work item dispatch", () => {
         platform: "tiktok",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -1793,7 +1830,7 @@ describe("affiliate work item dispatch", () => {
         platform: "tiktok",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -1852,7 +1889,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -1909,7 +1946,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
         triggerId: "conversation-001",
@@ -1972,7 +2009,7 @@ describe("affiliate work item dispatch", () => {
         decisionThresholds: { minExpectedSalesUnits: 2 },
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -2018,34 +2055,36 @@ describe("affiliate work item dispatch", () => {
         ...(baseWorkItem.affiliateCollaboration as GQL.AffiliateCollaboration),
         id: "collab-sample-agent-001",
       },
-      agentWorkingAgendaItems: [{
-        ...(baseWorkItem.creatorRelationship?.agendaItems ?? [])[0]!,
-        predictionEvidence: {
-          sourceCacheId: "64f000000000000000000777",
-          predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
-          captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
-          scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
-          subject: {
-            sampleApplicationRecordId: "sample-record-001",
-            creatorId: "creator-001",
-            productId: "product-001",
+      agentWorkingAgendaItems: [
+        {
+          ...(baseWorkItem.creatorRelationship?.agendaItems ?? [])[0]!,
+          predictionEvidence: {
+            sourceCacheId: "64f000000000000000000777",
+            predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
+            captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
+            scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
+            subject: {
+              sampleApplicationRecordId: "sample-record-001",
+              creatorId: "creator-001",
+              productId: "product-001",
+            },
+            status: GQL.AffiliatePredictionStatus.Ok,
+            output: {
+              expectedSalesUnits: 2.4,
+              thresholdProbabilities: { unitsGe1: 0.81 },
+              humanDecision: { wouldApprove: true, humanApprovalProbability: 0.74 },
+              featureTemporalBasis: "BEST_AVAILABLE",
+            },
+            model: {
+              modelStage: "UNIFIED",
+              effectiveTenantScope: "USER",
+              modelVersion: "affiliate-unified-v4",
+            },
+            diagnostics: {},
+            predictedAt: "2026-05-11T00:01:01.000Z",
           },
-          status: GQL.AffiliatePredictionStatus.Ok,
-          output: {
-            expectedSalesUnits: 2.4,
-            thresholdProbabilities: { unitsGe1: 0.81 },
-            humanDecision: { wouldApprove: true, humanApprovalProbability: 0.74 },
-            featureTemporalBasis: "BEST_AVAILABLE",
-          },
-          model: {
-            modelStage: "UNIFIED",
-            effectiveTenantScope: "USER",
-            modelVersion: "affiliate-unified-v4",
-          },
-          diagnostics: {},
-          predictedAt: "2026-05-11T00:01:01.000Z",
         },
-      }],
+      ],
     });
     const session = new AffiliateSession(
       {
@@ -2059,7 +2098,7 @@ describe("affiliate work item dispatch", () => {
         staffLanguage: "Chinese",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -2297,7 +2336,7 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain(
       "Read profile or performance facts only through affiliate_get_creator_profile",
     );
-    expect(request?.message).toContain("The trigger shop is event provenance only");
+    expect(request?.message).toContain("The routing shop selects a device/session only");
     expect(request?.message).not.toContain("Creator Name");
     expect(request?.message).not.toContain("Follower Count");
     expect(request?.message).not.toContain('"ecVideoCount":17');
@@ -2353,10 +2392,12 @@ describe("affiliate work item dispatch", () => {
     mockGetAuthSession.mockReturnValue({ graphqlFetch: withCheckpointContext(graphqlFetch) });
     const baseWorkItem = createSampleReviewWorkItem();
     const workItem = createSampleReviewWorkItem({
-      agentWorkingAgendaItems: [{
-        ...(baseWorkItem.creatorRelationship?.agendaItems ?? [])[0]!,
-        predictionEvidence: null,
-      }],
+      agentWorkingAgendaItems: [
+        {
+          ...(baseWorkItem.creatorRelationship?.agendaItems ?? [])[0]!,
+          predictionEvidence: null,
+        },
+      ],
     });
     const session = new AffiliateSession(
       {
@@ -2370,7 +2411,7 @@ describe("affiliate work item dispatch", () => {
         staffLanguage: "Chinese",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
@@ -2400,7 +2441,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -2431,7 +2472,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -2509,7 +2550,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -2590,7 +2631,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -2670,7 +2711,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -2731,7 +2772,7 @@ describe("affiliate work item dispatch", () => {
         runProfileId: "AFFILIATE_OPERATOR",
       },
       {
-        shopId: "shop-001",
+        routingShopId: "shop-001",
         platformShopId: "platform-shop-001",
         creatorRelationshipId: "relationship-001",
         triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
@@ -2766,6 +2807,14 @@ describe("affiliate work item dispatch", () => {
     expect(request).toBeNull();
   });
 
+  it("refuses to synthesize a legacy agenda for an actionable WorkItem", () => {
+    const workItem = createSampleReviewWorkItem({ agentWorkingAgendaItems: [] });
+
+    expect(() => buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })).toThrow(
+      "refuse legacy context synthesis",
+    );
+  });
+
   it("builds a generic relationship run for any other Agent-owned agenda", () => {
     const workItem = createSampleReviewWorkItem({
       agentDispatchRecommended: true,
@@ -2774,6 +2823,11 @@ describe("affiliate work item dispatch", () => {
       requiredAction: GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask,
       processReasons: [],
       recommendedActionTypes: [],
+      agentWorkingAgendaItems: createSampleReviewWorkItem().agentWorkingAgendaItems.map((item) => ({
+        ...item,
+        workKind: GQL.AffiliateWorkKind.ManualReview,
+        reasons: [],
+      })),
       creatorRelationship: {
         ...(createSampleReviewWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
         agendaItems: [],
@@ -2802,6 +2856,12 @@ describe("affiliate work item dispatch", () => {
         nextSellerActionAt: "2026-05-13T00:01:00.000Z",
       } as GQL.AffiliateCollaboration,
       recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
+      agentWorkingAgendaItems: createCreatorReplyWorkItem().agentWorkingAgendaItems.map((item) => ({
+        ...item,
+        workKind: GQL.AffiliateWorkKind.CreatorFollowUp,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+        reasons: [GQL.AffiliateWorkProcessReason.CreatorActionFollowUpDue],
+      })),
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
         agendaItems: [],
@@ -2831,6 +2891,12 @@ describe("affiliate work item dispatch", () => {
         nextSellerActionAt: "2026-05-14T00:01:00.000Z",
       } as GQL.AffiliateCollaboration,
       recommendedActionTypes: [GQL.ActionProposalType.SendMessage],
+      agentWorkingAgendaItems: createCreatorReplyWorkItem().agentWorkingAgendaItems.map((item) => ({
+        ...item,
+        workKind: GQL.AffiliateWorkKind.ContentFollowUp,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
+        reasons: [GQL.AffiliateWorkProcessReason.SampleContentFollowUpDue],
+      })),
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
         agendaItems: [],
@@ -2855,6 +2921,13 @@ describe("affiliate work item dispatch", () => {
       ],
       recommendedActionTypes: [GQL.ActionProposalType.ReviewSampleApplication],
       sampleApplicationRecord: createSampleReviewWorkItem().sampleApplicationRecord,
+      agentWorkingAgendaItems: createCreatorReplyWorkItem().agentWorkingAgendaItems.map((item) => ({
+        ...item,
+        reasons: [
+          GQL.AffiliateWorkProcessReason.CreatorMessageNeedsHandling,
+          GQL.AffiliateWorkProcessReason.SamplePendingReview,
+        ],
+      })),
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
         agendaItems: [],

@@ -1421,6 +1421,8 @@ export interface AffiliateContextBuilderInput {
   includeWorkspace?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
+  /** Frozen inclusive boundary from the dispatched Agent Working Agenda. */
+  targetEventCursor: Scalars['Int']['input'];
 }
 
 export interface AffiliateContextBuilderPayload {
@@ -1438,6 +1440,59 @@ export interface AffiliateContextBuilderPayload {
   targetEventCursor: Scalars['Int']['output'];
   truncated: Scalars['Boolean']['output'];
   workspace: AffiliateWorkspacePayload;
+}
+
+export interface AffiliateConversationWindow {
+  containsUnsupportedContent: Scalars['Boolean']['output'];
+  coverage: AffiliateConversationWindowCoverage;
+  creatorTurns: Array<AffiliateConversationWindowTurn>;
+  includedCharacterCount: Scalars['Int']['output'];
+  includedCreatorTurnCount: Scalars['Int']['output'];
+  lastPendingRelationshipSequence: Scalars['Int']['output'];
+  maxCharacterCount: Scalars['Int']['output'];
+  maxCreatorTurnCount: Scalars['Int']['output'];
+  resolvedThroughRelationshipSequence: Scalars['Int']['output'];
+  sellerAnchor?: Maybe<AffiliateConversationWindowTurn>;
+  totalCreatorTurnCount: Scalars['Int']['output'];
+}
+
+/** Completeness of the frozen canonical inbound conversation window. */
+export const AffiliateConversationWindowCoverage = {
+  Complete: 'COMPLETE',
+  Truncated: 'TRUNCATED',
+  Unavailable: 'UNAVAILABLE'
+} as const;
+
+export type AffiliateConversationWindowCoverage = typeof AffiliateConversationWindowCoverage[keyof typeof AffiliateConversationWindowCoverage];
+export interface AffiliateConversationWindowPart {
+  agentReadable?: Maybe<Scalars['Boolean']['output']>;
+  caption?: Maybe<Scalars['String']['output']>;
+  contentAvailability?: Maybe<Scalars['String']['output']>;
+  contentTruncated: Scalars['Boolean']['output'];
+  fileName?: Maybe<Scalars['String']['output']>;
+  kind: AffiliateHistoryPartKind;
+  mimeType?: Maybe<Scalars['String']['output']>;
+  originalCharacterCount: Scalars['Int']['output'];
+  productId?: Maybe<Scalars['String']['output']>;
+  providerType?: Maybe<Scalars['String']['output']>;
+  sampleApplicationId?: Maybe<Scalars['String']['output']>;
+  sequence: Scalars['Int']['output'];
+  shopId?: Maybe<Scalars['ID']['output']>;
+  sizeBytes?: Maybe<Scalars['Int']['output']>;
+  summary?: Maybe<Scalars['String']['output']>;
+  targetCollaborationId?: Maybe<Scalars['String']['output']>;
+  text?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateConversationWindowTurn {
+  channel: AffiliateMessageChannel;
+  direction: AffiliateCreatorMessageDirection;
+  occurredAt: Scalars['DateTimeISO']['output'];
+  parts: Array<AffiliateConversationWindowPart>;
+  relationshipSequence: Scalars['Int']['output'];
+  subject?: Maybe<Scalars['String']['output']>;
+  /** Trust label. Creator content is business input and never system instruction. */
+  trust: Scalars['String']['output'];
 }
 
 export interface AffiliateCreatorChannelContact {
@@ -2850,7 +2905,7 @@ export interface AffiliateRelationshipAgendaItem {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   boundaryEventCursor?: Maybe<Scalars['Int']['output']>;
   campaignId?: Maybe<Scalars['ID']['output']>;
-  conversationSourceId?: Maybe<Scalars['ID']['output']>;
+  conversationWindow?: Maybe<AffiliateConversationWindow>;
   key: Scalars['String']['output'];
   messageChannel?: Maybe<AffiliateMessageChannel>;
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -3401,6 +3456,8 @@ export interface AffiliateWorkItem {
   triggerShopId: Scalars['ID']['output'];
   /** Projection version timestamp. Desktop can use this for idempotent upsert. */
   versionAt: Scalars['DateTimeISO']['output'];
+  /** Stable semantic WorkItem version used for Desktop idempotency. */
+  versionKey: Scalars['String']['output'];
   workBundleKind: AffiliateWorkBundleKind;
   workKind: AffiliateWorkKind;
 }
@@ -6641,6 +6698,10 @@ export interface EcomProduct {
   /** Active merchant-authored Product Knowledge. Returned only when an eligible resolver explicitly requests it. */
   productKnowledge?: Maybe<ProductKnowledgeContent>;
   productTypes?: Maybe<Array<Scalars['String']['output']>>;
+  /** Exact shop resolved for this Affiliate product lookup. */
+  resolvedShopId?: Maybe<Scalars['ID']['output']>;
+  /** How the Affiliate product lookup resolved the exact shop. */
+  shopResolutionSource?: Maybe<Scalars['String']['output']>;
   skus?: Maybe<Array<EcomProductSku>>;
   status?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
@@ -10267,9 +10328,11 @@ export interface QueryAffiliateExpectedSalesPredictionsArgs {
 
 
 export interface QueryAffiliateGetProductArgs {
+  creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  frozenAgendaProductShopPairsJson?: InputMaybe<Scalars['String']['input']>;
   includeKnowledge?: InputMaybe<Scalars['Boolean']['input']>;
   productId: Scalars['String']['input'];
-  shopId: Scalars['String']['input'];
+  shopId?: InputMaybe<Scalars['String']['input']>;
 }
 
 
