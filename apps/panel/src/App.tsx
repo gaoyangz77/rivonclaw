@@ -30,6 +30,7 @@ import {
 } from "./api/announcement-queries.js";
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { normalizeLanguageCode } from "./i18n/languages.js";
+import { navigationAllowed } from "./lib/navigation-guard.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -74,11 +75,16 @@ export const App = observer(function App() {
   // Keep state in sync when user presses browser Back / Forward
   useEffect(() => {
     function onPopState() {
-      setCurrentPath(resolveRoute(window.location.pathname));
+      const nextPath = resolveRoute(window.location.pathname);
+      if (nextPath !== currentPath && !navigationAllowed(currentPath, nextPath)) {
+        window.history.pushState(null, "", currentPath);
+        return;
+      }
+      setCurrentPath(nextPath);
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [currentPath]);
 
   // Clear auth state when any API call returns 401
   useEffect(() => {
@@ -89,12 +95,13 @@ export const App = observer(function App() {
 
   const navigate = useCallback((path: string) => {
     const route = resolveRoute(path);
+    if (route !== window.location.pathname && !navigationAllowed(currentPath, route)) return;
     if (route !== window.location.pathname) {
       window.history.pushState(null, "", route);
     }
     setCurrentPath(route);
     trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
-  }, []);
+  }, [currentPath]);
 
   useEffect(() => {
     if (import.meta.env.VITE_FORCE_WELCOME === "1") {
