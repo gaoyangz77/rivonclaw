@@ -9,13 +9,9 @@ import { normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_CONTEXT_BUILDER_QUERY,
-  AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
-  RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
   type AffiliateContextBuilderQueryResult,
-  type AffiliateCreatorMessagePreflightQueryResult,
   type AffiliateWorkItemsQueryResult,
-  type ResolveAffiliateWorkItemMutationResult,
 } from "../cloud/affiliate-queries.js";
 import type { StaffLanguage } from "../i18n/locale.js";
 import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
@@ -42,8 +38,6 @@ const AGENT_RUNTIME_FAILURE_PATTERNS = [
 const AFFILIATE_CHECKPOINT_PLUGIN_ID = "rivonclaw-capability-manager";
 const AFFILIATE_CHECKPOINT_EXTENSION_NAMESPACE = "affiliateCheckpoint";
 const MISSING_SESSION_CHECKPOINT_PATTERN = /checkpoint not found/i;
-/** TikTok Provider history rejects values above 20. Keep the pre-run safety gate portable. */
-const AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_LIMIT = 20;
 
 function formatBusinessDeveloperContact(
   displayName: string | null | undefined,
@@ -79,11 +73,7 @@ export function buildBusinessDeveloperPromptSection(
     "- The contact details above are the assigned Business Developer's Creator-shareable contact identities. Use them only when the conversation and Business Developer instructions call for moving or continuing the relationship on that channel.",
     "- Do not invent a WhatsApp number, email address, or unavailable channel.",
     ...(context.businessPrompt?.trim()
-      ? [
-          "",
-          "### Business Developer Instructions",
-          context.businessPrompt.trim(),
-        ]
+      ? ["", "### Business Developer Instructions", context.businessPrompt.trim()]
       : []),
     "",
     "## Business Instruction Precedence",
@@ -97,8 +87,9 @@ export function redactBusinessDeveloperContactDetails(
   context: GQL.AffiliateBusinessDeveloperDispatchContext | null | undefined,
 ): string {
   let redacted = prompt;
-  const values = [context?.whatsApp?.phoneNumber, context?.email?.emailAddress]
-    .filter((value): value is string => Boolean(value));
+  const values = [context?.whatsApp?.phoneNumber, context?.email?.emailAddress].filter(
+    (value): value is string => Boolean(value),
+  );
   for (const value of values) {
     redacted = redacted.replaceAll(value, "[REDACTED_BD_CONTACT]");
   }
@@ -126,7 +117,8 @@ export interface AffiliateShopContext {
 
 export interface AffiliateContext {
   userId?: string;
-  shopId: string;
+  /** Device/session routing only; never message business provenance. */
+  routingShopId: string;
   platformShopId: string;
   triggerKind: AffiliateTriggerKind;
   triggerId: string;
@@ -134,6 +126,8 @@ export interface AffiliateContext {
   creatorId?: string | null;
   creatorOpenId?: string | null;
   creatorRelationshipId: string;
+  /** Exact product/shop pairs frozen in the canonical WorkItem Agenda. */
+  frozenAgendaProductShopPairsJson?: string;
   sampleApplicationRecordId?: string;
   affiliateCollaborationId?: string;
   orderId?: string | null;
@@ -157,11 +151,6 @@ interface AffiliateRunCheckpoint {
 
 interface AffiliateResolvedDispatchContext {
   checkpoint: GQL.AffiliateContextBuilderPayload;
-}
-
-interface AffiliateCreatorMessagePreflightResult {
-  safeForAgentRun: boolean;
-  operatorSummary: string;
 }
 
 export enum AffiliateAgentRunMode {
@@ -232,22 +221,21 @@ export class AffiliateSession {
     involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[],
     workflowSkillCatalog?: string,
   ): string {
-    const effectiveShopInstructions =
-      involvedShopInstructions?.length
-        ? involvedShopInstructions
-        : [{
+    const effectiveShopInstructions = involvedShopInstructions?.length
+      ? involvedShopInstructions
+      : [
+          {
             shopId: this.shop.objectId,
             shopName: this.shop.shopName,
             businessPrompt: this.shop.businessPrompt ?? null,
-          }];
+          },
+        ];
     const renderedShopInstructions = effectiveShopInstructions.flatMap((shop) => [
       `### ${shop.shopName} (Shop ID: ${shop.shopId})`,
       shop.businessPrompt?.trim() || "(none configured)",
       "",
     ]);
-    const businessDeveloperSection = buildBusinessDeveloperPromptSection(
-      businessDeveloperContext,
-    );
+    const businessDeveloperSection = buildBusinessDeveloperPromptSection(businessDeveloperContext);
     return [
       "## Affiliate / Creator Management Agent",
       "",
@@ -301,25 +289,24 @@ export class AffiliateSession {
       workItem.creatorRelationship?.committedCheckpointId,
     );
     const baseEventCursor = workItem.creatorRelationship?.committedEventCursor ?? 0;
+    const targetEventCursor = frozenWorkItemTargetEventCursor(workItem, baseEventCursor);
+    if (targetEventCursor == null) {
+      log.error(
+        `Affiliate dispatch skipped because its Agent Working Agenda has no valid frozen boundary: relationship=${workItem.creatorRelationshipId}`,
+      );
+      return { runId: undefined };
+    }
     const dispatchContext = await this.fetchDispatchContext({
       workItem,
       baseCheckpointId,
       baseEventCursor,
+      targetEventCursor,
     });
     if (!dispatchContext) return { runId: undefined };
 
     let generation: number | undefined;
     if (isCreatorReplyWorkItem(workItem) && !hasProposalRevisionAgenda(workItem)) {
       generation = this.beginCreatorMessageTakeover();
-      const preflight = await this.preflightCreatorMessage(workItem);
-      if (!preflight.safeForAgentRun) {
-        await this.transferCreatorMessageToStaffBeforeRun({
-          workItem,
-          dispatchContext,
-          operatorSummary: preflight.operatorSummary,
-        });
-        return { runId: undefined };
-      }
       if (generation !== this.dispatchGeneration) return { runId: undefined };
     }
 
@@ -335,14 +322,13 @@ export class AffiliateSession {
       baseCheckpointId,
       baseEventCursor,
       handledSignalAt: workItemBoundaryAt(workItem),
-      targetEventCursor: dispatchContext.checkpoint.targetEventCursor,
+      targetEventCursor,
       relationshipOperationalConfigRevision:
         dispatchContext.checkpoint.relationshipOperationalConfigRevision,
       businessDeveloperIdSnapshot: dispatchContext.checkpoint.businessDeveloperIdSnapshot ?? null,
       businessDeveloperConfigRevision:
         dispatchContext.checkpoint.businessDeveloperConfigRevision ?? null,
-      businessDeveloperContext:
-        dispatchContext.checkpoint.businessDeveloperDispatchContext ?? null,
+      businessDeveloperContext: dispatchContext.checkpoint.businessDeveloperDispatchContext ?? null,
       involvedShopInstructions: dispatchContext.checkpoint.involvedShopInstructions,
     });
     if (result.runId) {
@@ -406,8 +392,10 @@ export class AffiliateSession {
       sessionKey: this.scopeKey,
       toolContext: {
         kind: "AFFILIATE",
-        shopId: this.shop.objectId,
+        routingShopId: this.shop.objectId,
         creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
+        frozenAgendaProductShopPairsJson:
+          this.affiliateContext.frozenAgendaProductShopPairsJson ?? "[]",
         ...(this.affiliateContext.creatorId ? { creatorId: this.affiliateContext.creatorId } : {}),
         ...(this.affiliateContext.creatorOpenId
           ? { creatorOpenId: this.affiliateContext.creatorOpenId }
@@ -468,8 +456,7 @@ export class AffiliateSession {
     // user turn instead of colliding with the prior transcript identity.
     // candidateCheckpointId is generated once per intentional dispatch attempt,
     // so retries inside this request remain idempotent while later replays do not.
-    const agentRequestIdempotencyKey =
-      `${params.idempotencyKey}:attempt:${checkpoint.candidateCheckpointId}`;
+    const agentRequestIdempotencyKey = `${params.idempotencyKey}:attempt:${checkpoint.candidateCheckpointId}`;
     this.logDispatchPromptContext(params, systemPrompt, agentRequestIdempotencyKey);
     const provisionalRunId = agentRequestIdempotencyKey;
     registerActiveAffiliateRunCheckpoint({
@@ -552,7 +539,7 @@ export class AffiliateSession {
         `agentRequestIdempotencyKey=${agentRequestIdempotencyKey}`,
         `triggerKind=${this.affiliateContext.triggerKind}`,
         `triggerId=${this.affiliateContext.triggerId}`,
-        `shopId=${this.affiliateContext.shopId}`,
+        `routingShopId=${this.affiliateContext.routingShopId}`,
         `affiliateCollaborationId=${this.affiliateContext.affiliateCollaborationId ?? ""}`,
         `runMode=${params.runMode ?? AffiliateAgentRunMode.OPERATOR_REASONING}`,
         `messageChars=${params.message.length}`,
@@ -711,7 +698,7 @@ export class AffiliateSession {
       AFFILIATE_WORK_ITEMS_QUERY,
       {
         input: {
-          shopId: this.affiliateContext.shopId,
+          shopId: this.affiliateContext.routingShopId,
           creatorRelationshipId: this.affiliateContext.creatorRelationshipId,
           limit: 1,
         },
@@ -755,9 +742,6 @@ export class AffiliateSession {
   private async isWorkItemResolvedOrNoLongerDispatchable(
     workItem: GQL.AffiliateWorkItem,
   ): Promise<boolean> {
-    const boundary = parseOptionalDate(workItemBoundaryAt(workItem));
-    if (!boundary) return false;
-
     const authSession = getAuthSession();
     if (!authSession) return false;
 
@@ -765,7 +749,7 @@ export class AffiliateSession {
       AFFILIATE_WORK_ITEMS_QUERY,
       {
         input: {
-          shopId: this.affiliateContext.shopId,
+          shopId: this.affiliateContext.routingShopId,
           creatorRelationshipId: workItem.creatorRelationshipId,
           limit: 1,
         },
@@ -775,11 +759,7 @@ export class AffiliateSession {
     if (currentWorkItem == null) {
       return true;
     }
-    if (currentWorkItem.agentDispatchRecommended === false) {
-      return true;
-    }
-    const handledUntil = parseOptionalDate(workItemHandledUntil(currentWorkItem));
-    return handledUntil != null && handledUntil.getTime() >= boundary.getTime();
+    return currentWorkItem.agentDispatchRecommended === false;
   }
 
   private beginCreatorMessageTakeover(): number {
@@ -788,131 +768,11 @@ export class AffiliateSession {
     return this.dispatchGeneration;
   }
 
-  private async preflightCreatorMessage(
-    workItem: GQL.AffiliateWorkItem,
-  ): Promise<AffiliateCreatorMessagePreflightResult> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      return {
-        safeForAgentRun: false,
-        operatorSummary:
-          "Creator message was routed to staff before Agent run because no authenticated Provider-history session was available.",
-      };
-    }
-
-    try {
-      const result = await authSession.graphqlFetch<AffiliateCreatorMessagePreflightQueryResult>(
-        AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_QUERY,
-        {
-          input: {
-            creatorRelationshipId: workItem.creatorRelationshipId,
-            limit: AFFILIATE_CREATOR_MESSAGE_PREFLIGHT_LIMIT,
-            ...(workItem.triggerChannel ? { channelFilter: [workItem.triggerChannel] } : {}),
-          },
-        },
-      );
-      const expectedInboundAt = parseOptionalDate(
-        workItem.creatorRelationship?.lastInboundAt,
-      );
-      const currentMessage = result.affiliateCreatorMessageHistory.items.find((item) => {
-        if (item.direction !== GQL.AffiliateCreatorMessageDirection.Creator) return false;
-        const occurredAt = parseOptionalDate(item.createdAt);
-        return (
-          expectedInboundAt == null ||
-          (occurredAt != null && occurredAt.getTime() >= expectedInboundAt.getTime() - 30_000)
-        );
-      });
-      if (!currentMessage || currentMessage.parts.length === 0) {
-        return {
-          safeForAgentRun: false,
-          operatorSummary:
-            "Creator message was routed to staff before Agent run because the current Provider-backed message could not be materialized safely.",
-        };
-      }
-
-      const unsupported = currentMessage.parts.filter(
-        (part) =>
-          part.kind === GQL.AffiliateHistoryPartKind.Unknown ||
-          (part.kind === GQL.AffiliateHistoryPartKind.Attachment && part.agentReadable !== true),
-      );
-      if (unsupported.length > 0) {
-        const labels = unsupported.map(
-          (part) =>
-            part.fileName ?? part.mimeType ?? part.providerType ?? part.summary ?? part.kind,
-        );
-        return {
-          safeForAgentRun: false,
-          operatorSummary: `Creator message was routed to staff before Agent run because it contains unsupported content: ${labels.join(", ")}.`,
-        };
-      }
-      return {
-        safeForAgentRun: true,
-        operatorSummary: "Creator message parts passed the Agent-readable attachment preflight.",
-      };
-    } catch (error) {
-      log.warn(
-        "Affiliate creator message preflight failed; routing work to staff before Agent run",
-        error,
-      );
-      return {
-        safeForAgentRun: false,
-        operatorSummary:
-          "Creator message was routed to staff before Agent run because Provider-backed attachment preflight was unavailable.",
-      };
-    }
-  }
-
-  private async transferCreatorMessageToStaffBeforeRun(input: {
-    workItem: GQL.AffiliateWorkItem;
-    dispatchContext: AffiliateResolvedDispatchContext;
-    operatorSummary: string;
-  }): Promise<void> {
-    const authSession = getAuthSession();
-    if (!authSession) {
-      throw new Error(
-        `Cannot transfer unsupported Affiliate message to staff without an auth session: ${input.workItem.id}`,
-      );
-    }
-    try {
-      const result = await authSession.graphqlFetch<ResolveAffiliateWorkItemMutationResult>(
-        RESOLVE_AFFILIATE_WORK_ITEM_MUTATION,
-        {
-          input: {
-            triggerShopId: input.workItem.triggerShopId,
-            creatorRelationshipId: input.workItem.creatorRelationshipId,
-            affiliateCollaborationId: input.workItem.affiliateCollaborationId ?? undefined,
-            handledSignalAt: workItemBoundaryAt(input.workItem),
-            baseCheckpointId: input.dispatchContext.checkpoint.baseCheckpointId,
-            baseEventCursor: input.dispatchContext.checkpoint.baseEventCursor,
-            targetEventCursor: input.dispatchContext.checkpoint.targetEventCursor,
-            relationshipOperationalConfigRevision:
-              input.dispatchContext.checkpoint.relationshipOperationalConfigRevision,
-            businessDeveloperIdSnapshot:
-              input.dispatchContext.checkpoint.businessDeveloperIdSnapshot,
-            businessDeveloperConfigRevision:
-              input.dispatchContext.checkpoint.businessDeveloperConfigRevision,
-            decision: "FAILED_OR_INCOMPLETE",
-            operatorSummary: input.operatorSummary,
-          },
-        },
-      );
-      log.info(
-        `Affiliate creator message preflight resolved without Agent run: ` +
-          `workItem=${input.workItem.id} stale=${result.resolveAffiliateWorkItem.stale}`,
-      );
-    } catch (error) {
-      log.error(
-        `Failed to transfer unsupported Affiliate message to staff: ${input.workItem.id}`,
-        error,
-      );
-      throw error;
-    }
-  }
-
   private async fetchDispatchContext(input: {
     workItem: GQL.AffiliateWorkItem;
     baseCheckpointId: string | null;
     baseEventCursor: number;
+    targetEventCursor: number;
   }): Promise<AffiliateResolvedDispatchContext | null> {
     const authSession = getAuthSession();
     if (!authSession) {
@@ -928,6 +788,7 @@ export class AffiliateSession {
             creatorRelationshipId: input.workItem.creatorRelationshipId,
             baseCheckpointId: input.baseCheckpointId,
             baseEventCursor: input.baseEventCursor,
+            targetEventCursor: input.targetEventCursor,
             limit: 1,
             includeWorkspace: false,
             includeEventDelta: false,
@@ -938,6 +799,12 @@ export class AffiliateSession {
       if (!context.baseMatchesCommitted) {
         log.warn(
           `Affiliate dispatch skipped because checkpoint/cursor base is stale: relationship=${input.workItem.creatorRelationshipId}`,
+        );
+        return null;
+      }
+      if (context.targetEventCursor !== input.targetEventCursor) {
+        log.error(
+          `Affiliate dispatch skipped because Backend changed the frozen work boundary: relationship=${input.workItem.creatorRelationshipId} requested=${input.targetEventCursor} returned=${context.targetEventCursor}`,
         );
         return null;
       }
@@ -958,6 +825,23 @@ export class AffiliateSession {
       return null;
     }
   }
+}
+
+function frozenWorkItemTargetEventCursor(
+  workItem: GQL.AffiliateWorkItem,
+  baseEventCursor: number,
+): number | null {
+  const agendaItems = workItem.agentWorkingAgendaItems ?? [];
+  if (agendaItems.length === 0) return null;
+  const boundaries = agendaItems.map((item) => item.boundaryEventCursor);
+  if (
+    boundaries.some(
+      (boundary) => boundary == null || !Number.isInteger(boundary) || boundary < baseEventCursor,
+    )
+  ) {
+    return null;
+  }
+  return Math.max(...(boundaries as number[]));
 }
 
 function isCreatorReplyWorkItem(workItem: GQL.AffiliateWorkItem): boolean {
@@ -988,20 +872,6 @@ function workItemBoundaryAt(workItem: GQL.AffiliateWorkItem | null | undefined):
     workItem.creatorRelationship?.lastInboundAt ??
     null
   );
-}
-
-function workItemHandledUntil(workItem: GQL.AffiliateWorkItem | null | undefined): string | null {
-  if (!workItem) return null;
-  if (workItem.creatorRelationship != null) {
-    return workItem.creatorRelationship.lastAgentHandledAt ?? null;
-  }
-  return null;
-}
-
-function parseOptionalDate(value: string | null | undefined): Date | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function normalizeCheckpointId(value: unknown): string | null {

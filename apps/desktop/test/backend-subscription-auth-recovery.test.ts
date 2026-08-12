@@ -153,7 +153,7 @@ describe("BackendSubscriptionClient auth recovery", () => {
     client.enableAuthenticatedSubscriptions();
     client.subscribeToCsEscalationEvents(vi.fn());
     client.subscribeToCsConversationSignals(vi.fn());
-    client.subscribeToAffiliateRelationshipSignals(vi.fn());
+    client.subscribeToAffiliateWorkItemChanges(vi.fn());
     clientOptions.at(-1)?.on?.opened?.(sockets.at(-1));
 
     subscriptions[0].sink.error([{ message: "Authentication required" }]);

@@ -201,6 +201,9 @@ export const INIT_SHOPS_QUERY = `
           runProfileId
           deviceId
           businessPrompt
+          campaignDailyCreatorOutreachLimit
+          campaignDailyCreatorOutreachLimitRevision
+          campaignDailyCreatorOutreachLimitUpdatedAt
           decisionThresholds {
             minExpectedSalesUnits
           }

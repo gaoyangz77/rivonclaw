@@ -31,8 +31,11 @@ export interface CSSessionContext {
 
 export interface AffiliateSessionContext {
   readonly kind: "AFFILIATE";
-  readonly shopId: string;
+  /** Device/Provider routing context only; never business product provenance. */
+  readonly routingShopId?: string;
   readonly creatorRelationshipId: string;
+  /** Frozen exact Product/Shop pairs from this run's canonical Agenda. */
+  readonly frozenAgendaProductShopPairsJson?: string;
   /** Canonical backend AffiliateCreatorIdentity id for this Relationship. */
   readonly creatorId?: string;
   /** TikTok creator_open_id matched to this Relationship. */
@@ -153,7 +156,7 @@ export function resolveSessionContext(
 function isAffiliateContext(value: unknown): value is AffiliateSessionContext {
   if (value == null || typeof value !== "object") return false;
   const context = value as Partial<AffiliateSessionContext>;
-  return context.kind === "AFFILIATE" && Boolean(context.shopId && context.creatorRelationshipId);
+  return context.kind === "AFFILIATE" && Boolean(context.creatorRelationshipId);
 }
 
 function isCustomerServiceContext(value: unknown): value is CSSessionContext {

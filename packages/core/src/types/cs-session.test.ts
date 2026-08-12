@@ -16,16 +16,18 @@ describe("tool session context", () => {
   it("injects and resolves Affiliate relationship routing context", () => {
     registerToolSession(SESSION_KEY, {
       kind: "AFFILIATE",
-      shopId: "shop-1",
+      routingShopId: "shop-1",
       creatorRelationshipId: "relationship-1",
+      frozenAgendaProductShopPairsJson: "[]",
     });
 
     const injected = getInjectedParams(SESSION_KEY, { attachmentRef: "attachment-1" });
 
     expect(resolveToolSessionContext(injected ?? undefined)).toEqual({
       kind: "AFFILIATE",
-      shopId: "shop-1",
+      routingShopId: "shop-1",
       creatorRelationshipId: "relationship-1",
+      frozenAgendaProductShopPairsJson: "[]",
     });
     expect(resolveSessionContext(injected ?? undefined)).toBeNull();
   });
