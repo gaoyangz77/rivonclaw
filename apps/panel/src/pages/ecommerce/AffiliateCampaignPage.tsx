@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,10 @@ import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
+import {
+  CreatorRelationshipDetailModal,
+  type CreatorRelationshipDetailItem,
+} from "./AffiliateManagementPage.js";
 import {
   generateAffiliateCampaignMessageTemplate,
 } from "../../api/affiliate-campaign-ai.js";
@@ -226,6 +231,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [form, setForm] = useState<CampaignForm>(emptyForm);
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
+  const [selectedCreatorDetail, setSelectedCreatorDetail] =
+    useState<CreatorRelationshipDetailItem | null>(null);
   const [campaignPage, setCampaignPage] = useState(1);
   const [campaignStatusFilters, setCampaignStatusFilters] = useState<GQL.AffiliateCampaignStatus[]>(
     () => [...DEFAULT_CAMPAIGN_STATUS_FILTERS],
@@ -406,6 +413,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setStateStatuses([]);
     setEligibilityCategories([]);
     setEligibilityReasons([]);
+    setSelectedCreatorDetail(null);
   }, [selectedCampaignId]);
 
   useEffect(() => {
@@ -1183,7 +1191,24 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <div className="affiliate-campaign-product-spotlight-eyebrow">
                   <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
                 </div>
-                <h3>
+                <div className="affiliate-campaign-product-spotlight-shop">
+                  <span className="affiliate-campaign-product-spotlight-shop-icon">
+                    <ShopIcon />
+                  </span>
+                  <div>
+                    <span>{t("ecommerce.affiliateCampaign.shop")}</span>
+                    <strong>
+                      {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
+                    </strong>
+                    {selectedCampaignShop?.alias?.trim() &&
+                      selectedCampaignShop.shopName?.trim() &&
+                      selectedCampaignShop.alias.trim() !== selectedCampaignShop.shopName.trim() && (
+                        <small>{selectedCampaignShop.shopName.trim()}</small>
+                      )}
+                  </div>
+                  <i>{selectedCampaign.market}</i>
+                </div>
+                <h3 title={selectedCampaign.productSnapshot?.title ?? undefined}>
                   {selectedCampaign.productSnapshot?.title?.trim() ||
                     selectedCampaign.primaryProductId}
                 </h3>
@@ -1195,19 +1220,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     .filter(Boolean)
                     .join(" · ") || t("ecommerce.affiliateCampaign.noBrand")}
                 </p>
-                <div className="affiliate-campaign-product-spotlight-shop">
-                  <ShopIcon />
-                  <span>{t("ecommerce.affiliateCampaign.shop")}</span>
-                  <strong>
-                    {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
-                  </strong>
-                  {selectedCampaignShop?.alias?.trim() &&
-                    selectedCampaignShop.shopName?.trim() &&
-                    selectedCampaignShop.alias.trim() !== selectedCampaignShop.shopName.trim() && (
-                      <small>{selectedCampaignShop.shopName.trim()}</small>
-                    )}
-                  <i>{selectedCampaign.market}</i>
-                </div>
                 <div className="affiliate-campaign-product-spotlight-skus">
                   <span>{t("ecommerce.affiliateCampaign.skuLabel")}</span>
                   {(selectedCampaign.productSnapshot?.sellerSkus ?? []).length > 0 ? (
@@ -1490,7 +1502,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <tbody>
                     {(creatorStatesQuery.data?.affiliateCampaignCreatorStates.items ?? []).map(
                       (state) => (
-                        <CampaignCreatorStateRow key={state.id} state={state} t={t} />
+                        <CampaignCreatorStateRow
+                          key={state.id}
+                          state={state}
+                          t={t}
+                          onOpen={() => setSelectedCreatorDetail(campaignCreatorDetailItem(state))}
+                        />
                       ),
                     )}
                   </tbody>
@@ -1548,6 +1565,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           </div>
         )}
       </Modal>
+
+      {selectedCreatorDetail &&
+        createPortal(
+          <CreatorRelationshipDetailModal
+            item={selectedCreatorDetail}
+            selectedShopId={selectedCampaign?.shopId ?? ""}
+            onClose={() => setSelectedCreatorDetail(null)}
+          />,
+          document.body,
+        )}
 
       <Modal
         isOpen={wizardOpen}
@@ -2258,9 +2285,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 function CampaignCreatorStateRow({
   state,
   t,
+  onOpen,
 }: {
   state: CampaignCreatorState;
   t: (key: string, options?: Record<string, unknown>) => string;
+  onOpen: () => void;
 }) {
   const profile = state.creatorProfile;
   const performance = state.creatorPerformance;
@@ -2285,7 +2314,13 @@ function CampaignCreatorStateRow({
   return (
     <tr>
       <td>
-        <div className="affiliate-campaign-creator-cell">
+        <button
+          type="button"
+          className="affiliate-campaign-creator-cell"
+          title={t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+          aria-label={t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+          onClick={onOpen}
+        >
           <div className="affiliate-campaign-creator-avatar">
             {profile?.avatarUrl ? (
               <img src={profile.avatarUrl} alt="" />
@@ -2298,14 +2333,8 @@ function CampaignCreatorStateRow({
             <small>
               {handle} · {state.market}
             </small>
-            <p title={profile?.bioDescription ?? undefined}>
-              {profile?.bioDescription ||
-                t("ecommerce.affiliateCampaign.profileObserved", {
-                  count: state.searchOccurrenceCount,
-                })}
-            </p>
           </div>
-        </div>
+        </button>
       </td>
       <td>
         <span className={`affiliate-campaign-disposition is-${disposition}`}>
@@ -2321,10 +2350,10 @@ function CampaignCreatorStateRow({
         <span className={`affiliate-campaign-state-pill is-${state.status.toLowerCase()}`}>
           {campaignStateLabel(state.status, t)}
         </span>
-        <small>
+        <small title={state.decisionReason ?? undefined}>
           {state.eligibilityReasonCode
             ? eligibilityReasonLabel(state.eligibilityReasonCode, t)
-            : formatDecisionReason(state.decisionReason)}
+            : campaignDecisionReasonLabel(state.decisionReasonCodes, state.decisionReason, t)}
         </small>
         {state.eligibilityCategory && (
           <span
@@ -3299,6 +3328,46 @@ export function eligibilityReasonLabel(reason: string, t: (key: string) => strin
   return t(`ecommerce.affiliateCampaign.eligibilityReason.${reason.toLowerCase()}`);
 }
 
+export function campaignDecisionReasonLabel(
+  reasonCodes: readonly string[] | null | undefined,
+  rawReason: string | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  const codes = new Set((reasonCodes ?? []).map((code) => code.trim().toUpperCase()));
+  if (codes.has("PROVIDER_FILTER_MATCH") || codes.has("PROVIDER_ORDER")) {
+    return t("ecommerce.affiliateCampaign.decisionReason.providerFilterMatch");
+  }
+  if (codes.has("EXPECTED_SALES_QUALIFIED")) {
+    return t("ecommerce.affiliateCampaign.decisionReason.expectedSalesQualified");
+  }
+  if (codes.has("EXPECTED_SALES_BELOW_MINIMUM")) {
+    return t("ecommerce.affiliateCampaign.decisionReason.expectedSalesBelowMinimum");
+  }
+  if (codes.has("EXPECTED_SALES_NOT_READY")) {
+    return t("ecommerce.affiliateCampaign.decisionReason.expectedSalesNotReady");
+  }
+  if (!rawReason?.trim()) return "—";
+  return t("ecommerce.affiliateCampaign.decisionReason.recorded");
+}
+
+export function campaignCreatorDetailItem(
+  state: CampaignCreatorState,
+): CreatorRelationshipDetailItem {
+  const relationship = state.creatorRelationship ?? null;
+  return {
+    creatorId: state.creatorProfile?.id ?? state.creatorId,
+    creatorProfile: (state.creatorProfile as GQL.AffiliateCreatorIdentity | null | undefined) ?? null,
+    creatorRelation:
+      (relationship as GQL.AffiliateCreatorRelationship | null | undefined) ?? null,
+    shopState:
+      (relationship?.shopStates.find((shopState) => shopState.shopId === state.shopId) as
+        | GQL.AffiliateCreatorRelationshipShopState
+        | undefined) ?? null,
+    managementItem: null,
+    workItems: [],
+  };
+}
+
 function executionStatusLabel(
   status: GQL.AffiliateCampaignDailyExecutionStatus,
   t: (key: string) => string,
@@ -3453,14 +3522,6 @@ function campaignOutreachDisposition(status: string): "reached" | "hold" | "not_
     return "not_reached";
   }
   return "hold";
-}
-
-function formatDecisionReason(value?: string | null) {
-  if (!value) return "—";
-  return value
-    .replaceAll("_", " ")
-    .toLowerCase()
-    .replace(/(^|\s)\S/g, (character) => character.toUpperCase());
 }
 
 export function renderAffiliateCampaignTemplatePreview(
