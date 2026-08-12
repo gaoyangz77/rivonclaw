@@ -111,6 +111,12 @@ const en = {
   dynamicJitter: "Evaluated every five minutes against the remaining daily target",
   allocatedQuota: "Daily plan target",
   remainingTarget: "Remaining target",
+  shopDailyCapacity: "Shop daily creator capacity",
+  shopCapacityRemaining: "{{count}} creator contacts remaining today",
+  activeTargetsVsLimit: "{{targets}} active targets · {{ratio}}% of the shop limit",
+  shopCircuitUntil: "Shop risk circuit open until {{time}}",
+  dailyCreatorOutreachLimitRequired:
+    "Set this shop's daily automatic creator outreach limit before activating a campaign.",
   riskNormal: "Provider risk controls normal",
   riskThrottled: "Provider throttling · backing off",
   riskCircuitOpen: "Shop sending paused by risk circuit",
@@ -363,6 +369,10 @@ const en = {
   createFailed: "Campaign creation did not return a campaign.",
   created: "Campaign activated.",
   errors: {
+    dailyCreatorOutreachLimitRequired:
+      "Set this shop's daily automatic creator outreach limit before activating a campaign.",
+    dailyCreatorOutreachLimitInvalid: "The shop daily creator outreach limit must be 1–20,000.",
+    campaignMaintenance: "Campaign outreach is temporarily paused for maintenance.",
     modelNotReady:
       "AI mode is not ready for this shop yet. Use Marketplace rules or edit the configuration.",
     reconfigurationRequired:
@@ -429,7 +439,10 @@ const en = {
     qualificationFailed: "Qualification failed",
     qualified: "Qualified",
     selected: "Selected",
+    submitted: "Provider attempts",
     sent: "Sent",
+    uncertain: "Result pending",
+    failed: "Failed",
     replied: "Replied",
     providerSearch: "TikTok search",
     unreachable: "Not reachable",
@@ -572,6 +585,11 @@ const zh = {
   dynamicJitter: "每 5 分钟根据剩余目标重新判断",
   allocatedQuota: "每日计划目标",
   remainingTarget: "今日剩余目标",
+  shopDailyCapacity: "店铺每日达人触达容量",
+  shopCapacityRemaining: "今天还可自动联系 {{count}} 位达人",
+  activeTargetsVsLimit: "运行中计划目标合计 {{targets}} · 占店铺上限 {{ratio}}%",
+  shopCircuitUntil: "店铺风控熔断至 {{time}}",
+  dailyCreatorOutreachLimitRequired: "请先在店铺设置中配置每日自动联系达人上限，再开启推广计划。",
   riskNormal: "Provider 风控状态正常",
   riskThrottled: "Provider 正在限流，系统已退避",
   riskCircuitOpen: "店铺发送已被风控熔断暂停",
@@ -807,6 +825,9 @@ const zh = {
   createFailed: "后端没有返回新建的推广计划。",
   created: "推广计划已启用。",
   errors: {
+    dailyCreatorOutreachLimitRequired: "请先在店铺设置中配置每日自动联系达人上限，再开启推广计划。",
+    dailyCreatorOutreachLimitInvalid: "店铺每日自动联系达人上限必须为 1–20,000 的整数。",
+    campaignMaintenance: "推广计划触达正在维护中，请稍后再试。",
     modelNotReady: "该店铺的人工智能模式尚未就绪。请使用达人广场规则模式，或修改计划配置。",
     reconfigurationRequired: "重新开启前，请先确认商品快照和达人选择配置。",
     providerRuleUnsupported: "当前店铺已不再支持部分达人广场筛选条件。",
@@ -867,7 +888,10 @@ const zh = {
     qualificationFailed: "资格不合格",
     qualified: "合格",
     selected: "选中",
+    submitted: "Provider 尝试",
     sent: "发送",
+    uncertain: "结果待确认",
+    failed: "失败",
     replied: "回复",
     providerSearch: "TikTok 搜索",
     unreachable: "不可触达",
@@ -924,6 +948,87 @@ const zhTutorial = {
   statesBody: "每位达人都有去重后的状态和决策原因，支持审计、重试与 Campaign 归因。",
 };
 
+const operationalCopy = {
+  de: {
+    dailyCreatorOutreachLimitRequired: "Lege zuerst das tägliche automatische Creator-Kontaktlimit des Shops fest.",
+    shopDailyCapacity: "Tägliche Creator-Kapazität des Shops",
+    shopCapacityRemaining: "Heute sind noch {{count}} Creator-Kontakte verfügbar",
+    activeTargetsVsLimit: "{{targets}} aktive Ziele · {{ratio}} % des Shop-Limits",
+    shopCircuitUntil: "Risikosperre des Shops bis {{time}}",
+    errors: {
+      dailyCreatorOutreachLimitRequired: "Lege zuerst das tägliche automatische Creator-Kontaktlimit des Shops fest.",
+      dailyCreatorOutreachLimitInvalid: "Das tägliche Limit muss eine ganze Zahl von 1 bis 20.000 sein.",
+      campaignMaintenance: "Campaign-Outreach ist wegen Wartungsarbeiten vorübergehend pausiert.",
+    },
+    funnel: { submitted: "Provider-Versuche", uncertain: "Ergebnis ausstehend", failed: "Fehlgeschlagen" },
+  },
+  es: {
+    dailyCreatorOutreachLimitRequired: "Configura primero el límite diario de contactos automáticos del comercio.",
+    shopDailyCapacity: "Capacidad diaria de creators del comercio",
+    shopCapacityRemaining: "Quedan {{count}} contactos de creators hoy",
+    activeTargetsVsLimit: "{{targets}} objetivos activos · {{ratio}} % del límite del comercio",
+    shopCircuitUntil: "Circuito de riesgo del comercio abierto hasta {{time}}",
+    errors: {
+      dailyCreatorOutreachLimitRequired: "Configura primero el límite diario de contactos automáticos del comercio.",
+      dailyCreatorOutreachLimitInvalid: "El límite diario debe ser un entero entre 1 y 20.000.",
+      campaignMaintenance: "El alcance de campañas está pausado temporalmente por mantenimiento.",
+    },
+    funnel: { submitted: "Intentos al proveedor", uncertain: "Resultado pendiente", failed: "Fallidos" },
+  },
+  fr: {
+    dailyCreatorOutreachLimitRequired: "Définissez d’abord la limite quotidienne de contacts automatiques de la boutique.",
+    shopDailyCapacity: "Capacité quotidienne de créateurs de la boutique",
+    shopCapacityRemaining: "{{count}} contacts créateurs encore disponibles aujourd’hui",
+    activeTargetsVsLimit: "{{targets}} objectifs actifs · {{ratio}} % de la limite boutique",
+    shopCircuitUntil: "Circuit de risque de la boutique ouvert jusqu’à {{time}}",
+    errors: {
+      dailyCreatorOutreachLimitRequired: "Définissez d’abord la limite quotidienne de contacts automatiques de la boutique.",
+      dailyCreatorOutreachLimitInvalid: "La limite quotidienne doit être un entier compris entre 1 et 20 000.",
+      campaignMaintenance: "La prospection des campagnes est temporairement suspendue pour maintenance.",
+    },
+    funnel: { submitted: "Tentatives fournisseur", uncertain: "Résultat en attente", failed: "Échecs" },
+  },
+  id: {
+    dailyCreatorOutreachLimitRequired: "Atur terlebih dahulu batas harian kontak kreator otomatis untuk toko ini.",
+    shopDailyCapacity: "Kapasitas kreator harian toko",
+    shopCapacityRemaining: "Tersisa {{count}} kontak kreator hari ini",
+    activeTargetsVsLimit: "{{targets}} target aktif · {{ratio}}% dari batas toko",
+    shopCircuitUntil: "Sirkuit risiko toko aktif hingga {{time}}",
+    errors: {
+      dailyCreatorOutreachLimitRequired: "Atur terlebih dahulu batas harian kontak kreator otomatis untuk toko ini.",
+      dailyCreatorOutreachLimitInvalid: "Batas harian harus berupa bilangan bulat 1–20.000.",
+      campaignMaintenance: "Outreach kampanye dijeda sementara untuk pemeliharaan.",
+    },
+    funnel: { submitted: "Percobaan provider", uncertain: "Hasil tertunda", failed: "Gagal" },
+  },
+  it: {
+    dailyCreatorOutreachLimitRequired: "Imposta prima il limite giornaliero di contatti automatici del negozio.",
+    shopDailyCapacity: "Capacità giornaliera creator del negozio",
+    shopCapacityRemaining: "Restano {{count}} contatti creator oggi",
+    activeTargetsVsLimit: "{{targets}} obiettivi attivi · {{ratio}}% del limite negozio",
+    shopCircuitUntil: "Circuito di rischio del negozio aperto fino alle {{time}}",
+    errors: {
+      dailyCreatorOutreachLimitRequired: "Imposta prima il limite giornaliero di contatti automatici del negozio.",
+      dailyCreatorOutreachLimitInvalid: "Il limite giornaliero deve essere un intero tra 1 e 20.000.",
+      campaignMaintenance: "L’outreach delle campagne è temporaneamente sospeso per manutenzione.",
+    },
+    funnel: { submitted: "Tentativi provider", uncertain: "Risultato in attesa", failed: "Non riusciti" },
+  },
+  th: {
+    dailyCreatorOutreachLimitRequired: "โปรดตั้งค่าจำนวนครีเอเตอร์สูงสุดที่ร้านจะติดต่ออัตโนมัติต่อวันก่อนเปิดแคมเปญ",
+    shopDailyCapacity: "ความจุครีเอเตอร์รายวันของร้าน",
+    shopCapacityRemaining: "วันนี้ยังติดต่อครีเอเตอร์ได้อีก {{count}} ราย",
+    activeTargetsVsLimit: "เป้าหมายที่ทำงาน {{targets}} · {{ratio}}% ของขีดจำกัดร้าน",
+    shopCircuitUntil: "วงจรป้องกันความเสี่ยงของร้านเปิดถึง {{time}}",
+    errors: {
+      dailyCreatorOutreachLimitRequired: "โปรดตั้งค่าจำนวนครีเอเตอร์สูงสุดที่ร้านจะติดต่ออัตโนมัติต่อวันก่อนเปิดแคมเปญ",
+      dailyCreatorOutreachLimitInvalid: "ขีดจำกัดรายวันต้องเป็นจำนวนเต็มระหว่าง 1–20,000",
+      campaignMaintenance: "การติดต่อจากแคมเปญหยุดชั่วคราวเพื่อบำรุงรักษา",
+    },
+    funnel: { submitted: "ความพยายามส่ง", uncertain: "รอยืนยันผล", failed: "ล้มเหลว" },
+  },
+} as const;
+
 function locale(
   title: string,
   subtitle: string,
@@ -936,7 +1041,9 @@ function locale(
   status: typeof en.status,
   creatorState: Partial<typeof en.creatorState>,
   decisionReason: Partial<typeof en.decisionReason> = {},
+  operationalLocale?: keyof typeof operationalCopy,
 ) {
+  const operational = operationalLocale ? operationalCopy[operationalLocale] : undefined;
   return {
     ...en,
     title,
@@ -955,6 +1062,15 @@ function locale(
     decisionReason: {
       ...en.decisionReason,
       ...decisionReason,
+    },
+    ...(operational ?? {}),
+    errors: {
+      ...en.errors,
+      ...(operational?.errors ?? {}),
+    },
+    funnel: {
+      ...en.funnel,
+      ...(operational?.funnel ?? {}),
     },
   };
 }
@@ -1013,6 +1129,7 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS = {
           expectedSalesNotReady: "Die Daten für Expected Sales sind noch nicht bereit.",
           recorded: "Die Bewertungsgrundlage für diese Entscheidung wurde erfasst.",
         },
+        "de",
       ),
     },
   },
@@ -1059,6 +1176,7 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS = {
           expectedSalesNotReady: "Los datos de Expected Sales aún no están listos.",
           recorded: "Se registró la evidencia de evaluación de esta decisión.",
         },
+        "es",
       ),
     },
   },
@@ -1105,6 +1223,7 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS = {
           expectedSalesNotReady: "Les données Expected Sales ne sont pas encore prêtes.",
           recorded: "Les éléments d’évaluation de cette décision ont été enregistrés.",
         },
+        "fr",
       ),
     },
   },
@@ -1151,6 +1270,7 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS = {
           expectedSalesNotReady: "Data Expected Sales belum siap.",
           recorded: "Bukti evaluasi untuk keputusan ini telah dicatat.",
         },
+        "id",
       ),
     },
   },
@@ -1197,6 +1317,7 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS = {
           expectedSalesNotReady: "I dati Expected Sales non sono ancora pronti.",
           recorded: "Le evidenze di valutazione per questa decisione sono state registrate.",
         },
+        "it",
       ),
     },
   },
@@ -1243,6 +1364,7 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS = {
           expectedSalesNotReady: "ข้อมูล Expected Sales ยังไม่พร้อม",
           recorded: "บันทึกหลักฐานการประเมินสำหรับการตัดสินใจนี้แล้ว",
         },
+        "th",
       ),
     },
   },

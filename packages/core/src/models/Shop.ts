@@ -93,6 +93,9 @@ export const AffiliateServiceConfigModel = types.model("AffiliateServiceConfig",
   deviceId: types.maybeNull(types.string),
   runProfileId: types.maybeNull(types.string),
   businessPrompt: types.maybeNull(types.string),
+  campaignDailyCreatorOutreachLimit: types.maybeNull(types.number),
+  campaignDailyCreatorOutreachLimitRevision: types.optional(types.number, 0),
+  campaignDailyCreatorOutreachLimitUpdatedAt: types.maybeNull(types.string),
   decisionThresholds: types.maybeNull(AffiliateDecisionThresholdsConfigModel),
 });
 

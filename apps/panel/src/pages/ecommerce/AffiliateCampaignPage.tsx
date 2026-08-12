@@ -508,6 +508,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.invalidTargets"), "error");
       return false;
     }
+    if (
+      wizardStep === 2 &&
+      !selectedShop?.services?.affiliateService?.campaignDailyCreatorOutreachLimit
+    ) {
+      showToast(t("ecommerce.affiliateCampaign.dailyCreatorOutreachLimitRequired"), "error");
+      return false;
+    }
     if (wizardStep === 3 && !form.templateText.trim()) {
       showToast(t("ecommerce.affiliateCampaign.templateRequired"), "error");
       return false;
@@ -645,6 +652,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       campaign.status === GQL.AffiliateCampaignStatus.Active
         ? GQL.AffiliateCampaignStatus.Paused
         : GQL.AffiliateCampaignStatus.Active;
+    const campaignShop = shops.find((shop) => shop.id === campaign.shopId);
+    if (
+      nextStatus === GQL.AffiliateCampaignStatus.Active &&
+      !campaignShop?.services?.affiliateService?.campaignDailyCreatorOutreachLimit
+    ) {
+      showToast(t("ecommerce.affiliateCampaign.dailyCreatorOutreachLimitRequired"), "error");
+      return;
+    }
     try {
       await setCampaignStatus({
         variables: { input: { campaignId: campaign.id, status: nextStatus } },
@@ -1275,7 +1290,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   {t("ecommerce.affiliateCampaign.hourlyRate", {
                     rate: estimateCampaignCadence(
                       selectedCampaign.dailyOutreachTarget,
-                      latestExecution?.counters.submitted ?? 0,
+                      latestExecution?.counters.sent ?? 0,
                     ),
                   })}
                 </strong>
@@ -1287,7 +1302,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   {Math.max(
                     0,
                     selectedCampaign.dailyOutreachTarget -
-                      (latestExecution?.counters.submitted ?? 0),
+                      (latestExecution?.counters.sent ?? 0),
                   )}
                 </strong>
                 <small>
@@ -1296,11 +1311,44 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     : campaignRiskLabel(latestExecution?.riskState, t)}
                 </small>
               </div>
+              <div className="affiliate-campaign-shop-capacity">
+                <span>{t("ecommerce.affiliateCampaign.shopDailyCapacity")}</span>
+                <strong>
+                  {summary?.shopDailyCapacity.effectiveDailyLimit == null
+                    ? "—"
+                    : `${formatNumber(summary.shopDailyCapacity.countedOutreachCount)} / ${formatNumber(summary.shopDailyCapacity.effectiveDailyLimit)}`}
+                </strong>
+                <small>
+                  {summary?.shopDailyCapacity.effectiveDailyLimit == null
+                    ? t("ecommerce.affiliateCampaign.dailyCreatorOutreachLimitRequired")
+                    : t("ecommerce.affiliateCampaign.shopCapacityRemaining", {
+                        count: summary.shopDailyCapacity.remainingOutreachCapacity,
+                      })}
+                </small>
+                {summary?.shopDailyCapacity.effectiveDailyLimit != null && (
+                  <small className={
+                    (summary.shopDailyCapacity.targetToLimitRatio ?? 0) > 1
+                      ? "is-warning"
+                      : undefined
+                  }>
+                    {summary.shopDailyCapacity.circuitOpenUntil
+                      ? t("ecommerce.affiliateCampaign.shopCircuitUntil", {
+                          time: formatDateTime(summary.shopDailyCapacity.circuitOpenUntil),
+                        })
+                      : t("ecommerce.affiliateCampaign.activeTargetsVsLimit", {
+                          targets: summary.shopDailyCapacity.activeCampaignDailyTargetSum,
+                          ratio: Math.round(
+                            (summary.shopDailyCapacity.targetToLimitRatio ?? 0) * 100,
+                          ),
+                        })}
+                  </small>
+                )}
+              </div>
             </section>
 
             <CampaignFunnel
               counters={summary?.counters}
-              counterSchemaVersion={latestExecution?.counterSchemaVersion ?? 2}
+              counterSchemaVersion={latestExecution?.counterSchemaVersion ?? 3}
               t={t}
             />
 
@@ -3173,7 +3221,17 @@ function CampaignFunnel({
     ],
     ["qualified", counters?.qualified ?? 0],
     ["selected", counters?.selected ?? 0],
+    ["submitted", counters?.submitted ?? 0],
     ["sent", counters?.sent ?? 0],
+    [
+      "uncertain",
+      campaignFunnelCounterValue({
+        counterSchemaVersion,
+        introducedInVersion: 3,
+        value: counters?.uncertain ?? 0,
+      }),
+    ],
+    ["failed", counters?.failed ?? 0],
     ["replied", counters?.replied ?? 0],
   ] as const;
   return (
@@ -3422,6 +3480,15 @@ export function campaignErrorMessage(
 ): string {
   const raw = error instanceof Error ? error.message : String(error);
   const mappings: Array<[string, string]> = [
+    [
+      "AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_REQUIRED",
+      "dailyCreatorOutreachLimitRequired",
+    ],
+    [
+      "AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_INVALID",
+      "dailyCreatorOutreachLimitInvalid",
+    ],
+    ["AFFILIATE_CAMPAIGN_MAINTENANCE", "campaignMaintenance"],
     ["EXPECTED_SALES_V3_MODEL_NOT_READY", "modelNotReady"],
     ["CAMPAIGN_DRAFT_DELETE_ONLY", "draftDeleteOnly"],
     ["CAMPAIGN_DRAFT_HAS_HISTORY", "draftHasHistory"],

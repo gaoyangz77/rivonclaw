@@ -418,6 +418,15 @@ export const EcommercePage = observer(function EcommercePage() {
     }
   }
 
+  async function handleSaveAffiliateDailyCreatorOutreachLimit(limit: number) {
+    if (!selectedShopId) throw new Error("Shop is not selected");
+    const shop = shops.find((candidate) => candidate.id === selectedShopId);
+    if (!shop) throw new Error(`Shop ${selectedShopId} not found`);
+    await shop.update({
+      services: { affiliateService: { campaignDailyCreatorOutreachLimit: limit } },
+    });
+  }
+
   async function handleSaveAffiliateDecisionThresholds(
     value = editAffiliateMinExpectedSalesUnits,
     shopId = selectedShopId,
@@ -753,6 +762,9 @@ export const EcommercePage = observer(function EcommercePage() {
         onCommitAffiliateMinExpectedSalesUnits={() => handleSaveAffiliateDecisionThresholds()}
         savingAffiliateSettings={savingAffiliateSettings}
         onSaveAffiliateBusinessPrompt={handleSaveAffiliateBusinessPrompt}
+        onSaveAffiliateDailyCreatorOutreachLimit={
+          handleSaveAffiliateDailyCreatorOutreachLimit
+        }
         togglingAffiliateBindShopId={togglingAffiliateBindShopId}
         onBindAffiliateDevice={handleBindAffiliateDevice}
         onUnbindAffiliateDevice={handleUnbindAffiliateDevice}

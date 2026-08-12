@@ -30602,7 +30602,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-campaign-today {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
+  grid-template-columns: 1.35fr 1fr 1fr 1.15fr;
   border-block: 1px solid var(--campaign-line);
   background: color-mix(in srgb, var(--color-primary-light) 42%, var(--color-bg));
 }
@@ -30624,6 +30624,10 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-today small {
   color: var(--campaign-muted);
   font-size: 11px;
+}
+.affiliate-campaign-today small.is-warning {
+  color: var(--color-warning);
+  font-weight: 700;
 }
 
 .affiliate-campaign-funnel,

@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { GQL } from "@rivonclaw/core";
 import type { Shop } from "@rivonclaw/core/models";
 import { Select } from "../../../components/inputs/Select.js";
+import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
 
@@ -24,6 +25,7 @@ interface AffiliateManagementTabProps {
   onCommitMinExpectedSalesUnits: () => void;
   savingSettings: boolean;
   onSaveBusinessPrompt: () => void;
+  onSaveDailyCreatorOutreachLimit: (limit: number) => Promise<void>;
   myDeviceId: string | null;
   togglingBindShopId: string | null;
   onBindDevice: (shopId: string) => void;
@@ -44,12 +46,14 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   onCommitMinExpectedSalesUnits,
   savingSettings,
   onSaveBusinessPrompt,
+  onSaveDailyCreatorOutreachLimit,
   myDeviceId,
   togglingBindShopId,
   onBindDevice,
   onUnbindDevice,
 }: AffiliateManagementTabProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const entityStore = useEntityStore();
   const allTools = entityStore.availableTools;
   const assignedDeviceId = shop.services?.affiliateService?.deviceId ?? null;
@@ -62,6 +66,34 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
     ?? regionModelInsight?.automaticSelection
     ?? accountModelInsight?.automaticSelection
     ?? null;
+  const persistedDailyLimit = shop.services?.affiliateService
+    ?.campaignDailyCreatorOutreachLimit;
+  const [dailyLimit, setDailyLimit] = useState(
+    persistedDailyLimit == null ? "" : String(persistedDailyLimit),
+  );
+  const [savingDailyLimit, setSavingDailyLimit] = useState(false);
+
+  useEffect(() => {
+    setDailyLimit(persistedDailyLimit == null ? "" : String(persistedDailyLimit));
+  }, [persistedDailyLimit, shop.id]);
+
+  async function saveDailyLimit() {
+    const value = Number(dailyLimit);
+    if (!Number.isInteger(value) || value < 1 || value > 20_000) {
+      showToast(t("ecommerce.shopDrawer.affiliate.dailyCreatorOutreachLimitInvalid"), "error");
+      return;
+    }
+    if (value === persistedDailyLimit) return;
+    setSavingDailyLimit(true);
+    try {
+      await onSaveDailyCreatorOutreachLimit(value);
+      showToast(t("ecommerce.shopDrawer.affiliate.dailyCreatorOutreachLimitSaved"), "success");
+    } catch {
+      showToast(t("ecommerce.shopDrawer.affiliate.dailyCreatorOutreachLimitSaveFailed"), "error");
+    } finally {
+      setSavingDailyLimit(false);
+    }
+  }
 
   function toolDisplayName(toolId: string): string {
     const tool = allTools.find((candidate) => candidate.id === toolId);
@@ -180,6 +212,48 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
       <section id="shop-workspace-affiliateManagement-thresholds" className="shop-workspace-section">
         <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.decisionThresholds")}</div>
         <div className="shop-info-card">
+          <div className="affiliate-threshold-row">
+            <div className="affiliate-threshold-copy">
+              <label className="form-label-block" htmlFor={`affiliate-daily-limit-${shop.id}`}>
+                {t("ecommerce.shopDrawer.affiliate.dailyCreatorOutreachLimit")}
+              </label>
+              <div className="shop-info-card-hint">
+                {t("ecommerce.shopDrawer.affiliate.dailyCreatorOutreachLimitHint")}
+              </div>
+            </div>
+            <div className="affiliate-threshold-control">
+              <input
+                id={`affiliate-daily-limit-${shop.id}`}
+                className="input affiliate-threshold-input"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={20_000}
+                step={1}
+                placeholder="1–20,000"
+                value={dailyLimit}
+                onChange={(event) => setDailyLimit(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void saveDailyLimit();
+                }}
+                disabled={savingDailyLimit}
+              />
+              <button
+                className="btn btn-secondary btn-sm"
+                type="button"
+                onClick={() => void saveDailyLimit()}
+                disabled={
+                  savingDailyLimit ||
+                  !dailyLimit.trim() ||
+                  Number(dailyLimit) === persistedDailyLimit
+                }
+              >
+                {savingDailyLimit
+                  ? t("common.loading")
+                  : t("ecommerce.shopDrawer.overview.save")}
+              </button>
+            </div>
+          </div>
           <div className="affiliate-threshold-row">
             <div className="affiliate-threshold-copy">
               <label className="form-label-block" htmlFor={`affiliate-threshold-${shop.id}`}>

@@ -89,6 +89,7 @@ interface ShopDrawerProps {
   onCommitAffiliateMinExpectedSalesUnits: () => void;
   savingAffiliateSettings: boolean;
   onSaveAffiliateBusinessPrompt: () => void;
+  onSaveAffiliateDailyCreatorOutreachLimit: (limit: number) => Promise<void>;
   togglingAffiliateBindShopId: string | null;
   onBindAffiliateDevice: (shopId: string) => void;
   onUnbindAffiliateDevice: (shopId: string) => void;
@@ -160,6 +161,7 @@ export const ShopDrawer = observer(function ShopDrawer({
   onCommitAffiliateMinExpectedSalesUnits,
   savingAffiliateSettings,
   onSaveAffiliateBusinessPrompt,
+  onSaveAffiliateDailyCreatorOutreachLimit,
   togglingAffiliateBindShopId,
   onBindAffiliateDevice,
   onUnbindAffiliateDevice,
@@ -791,6 +793,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                       onCommitMinExpectedSalesUnits={onCommitAffiliateMinExpectedSalesUnits}
                       savingSettings={savingAffiliateSettings}
                       onSaveBusinessPrompt={onSaveAffiliateBusinessPrompt}
+                      onSaveDailyCreatorOutreachLimit={onSaveAffiliateDailyCreatorOutreachLimit}
                       myDeviceId={myDeviceId}
                       togglingBindShopId={togglingAffiliateBindShopId}
                       onBindDevice={onBindAffiliateDevice}

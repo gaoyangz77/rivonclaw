@@ -61,6 +61,7 @@ interface ShopUpdateInput {
       runProfileId?: string | null;
       deviceId?: string | null;
       businessPrompt?: string | null;
+      campaignDailyCreatorOutreachLimit?: number;
       decisionThresholds?: {
         minExpectedSalesUnits?: number | null;
       } | null;
