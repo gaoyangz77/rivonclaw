@@ -18,7 +18,5 @@ function step(
 
 export const productKnowledgeSteps: TutorialStep[] = [
   step("product-knowledge-welcome", "product-knowledge-header", "welcome", "bottom"),
-  step("product-knowledge-library", "product-knowledge-library", "library", "right"),
-  step("product-knowledge-editor", "product-knowledge-editor", "editor", "left"),
-  step("product-knowledge-bindings", "product-knowledge-bindings", "bindings", "top"),
+  step("product-knowledge-library", "product-knowledge-library", "library", "top"),
 ];

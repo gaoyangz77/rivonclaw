@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,6 @@ import {
   RefreshIcon,
   ShopIcon,
 } from "../../components/icons.js";
-import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
@@ -28,6 +27,11 @@ import {
   UPDATE_PRODUCT_KNOWLEDGE_MUTATION,
 } from "../../api/product-knowledge-queries.js";
 
+const ProductKnowledgeMarkdownEditor = lazy(async () => {
+  const module = await import("./components/ProductKnowledgeMarkdownEditor.js");
+  return { default: module.ProductKnowledgeMarkdownEditor };
+});
+
 const MARKDOWN_MAX_LENGTH = 50_000;
 const PAGE_SIZE = 25;
 
@@ -39,7 +43,6 @@ type KnowledgeDraft = {
   creativeCasesMarkdown: string;
 };
 type ContentTab = "usage" | "qa" | "cases";
-type EditorMode = "edit" | "preview";
 type Confirmation =
   | { kind: "archive"; id: string; name: string; revision: number }
   | { kind: "unlink"; bindingId: string; productTitle: string }
@@ -94,7 +97,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const [draft, setDraft] = useState<KnowledgeDraft | null>(null);
   const [draftRevision, setDraftRevision] = useState(0);
   const [activeTab, setActiveTab] = useState<ContentTab>("usage");
-  const [editorMode, setEditorMode] = useState<EditorMode>("edit");
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
@@ -156,17 +158,6 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   );
 
   useEffect(() => {
-    if (items.length === 0) {
-      setSelectedId("");
-      setDraft(null);
-      return;
-    }
-    if (!selectedId || !items.some((item) => item.id === selectedId)) {
-      setSelectedId(items[0].id);
-    }
-  }, [items, selectedId]);
-
-  useEffect(() => {
     if (!knowledge) return;
     if (!draft || draftRevision === 0 || (!dirty && draftRevision !== knowledge.revision)) {
       setDraft(draftFromKnowledge(knowledge));
@@ -198,6 +189,11 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
     if (!allowDiscardDraft()) return;
     resetSelection();
     setSelectedId(id);
+  }
+
+  function closeDetail() {
+    if (!allowDiscardDraft()) return;
+    resetSelection();
   }
 
   function allowDiscardDraft(): boolean {
@@ -391,13 +387,18 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
     );
   }
 
-  const tabConfig: Array<{ id: ContentTab; label: string; field: keyof KnowledgeDraft }> = [
-    { id: "usage", label: t("ecommerce.productKnowledge.usageInstructions"), field: "usageInstructionsMarkdown" },
-    { id: "qa", label: t("ecommerce.productKnowledge.qa"), field: "qaMarkdown" },
-    { id: "cases", label: t("ecommerce.productKnowledge.creativeCases"), field: "creativeCasesMarkdown" },
+  const tabConfig: Array<{ id: ContentTab; label: string; description: string; field: keyof KnowledgeDraft }> = [
+    { id: "usage", label: t("ecommerce.productKnowledge.usageInstructions"), description: t("ecommerce.productKnowledge.usageDescription"), field: "usageInstructionsMarkdown" },
+    { id: "qa", label: t("ecommerce.productKnowledge.qa"), description: t("ecommerce.productKnowledge.qaDescription"), field: "qaMarkdown" },
+    { id: "cases", label: t("ecommerce.productKnowledge.creativeCases"), description: t("ecommerce.productKnowledge.casesDescription"), field: "creativeCasesMarkdown" },
   ];
   const activeTabConfig = tabConfig.find((tab) => tab.id === activeTab)!;
   const activeMarkdown = draft?.[activeTabConfig.field] ?? "";
+  const contentOverLimit = Boolean(draft && [
+    draft.usageInstructionsMarkdown,
+    draft.qaMarkdown,
+    draft.creativeCasesMarkdown,
+  ].some((value) => value.length > MARKDOWN_MAX_LENGTH));
   const groupedCandidates = candidates.reduce<Record<string, GQL.SellerSkuProductCandidate[]>>((groups, candidate) => {
     (groups[candidate.shopId] ??= []).push(candidate);
     return groups;
@@ -405,76 +406,123 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
 
   return (
     <div className="page-enter product-knowledge-page">
-      <header className="ecommerce-page-header" data-tutorial-id="product-knowledge-header">
-        <div className="product-knowledge-title-block">
-          <span className="product-knowledge-kicker"><EcommerceIcon size={14} />{t("ecommerce.productKnowledge.kicker")}</span>
-          <h1>{t("ecommerce.productKnowledge.pageTitle")}</h1>
-          <p className="ecommerce-page-subtitle">{t("ecommerce.productKnowledge.pageSubtitle")}</p>
-        </div>
-        <button className="btn btn-primary" data-tutorial-id="product-knowledge-create" onClick={() => setCreateOpen(true)}>
-          + {t("ecommerce.productKnowledge.create")}
-        </button>
+      <header className="ecommerce-page-header product-knowledge-header" data-tutorial-id="product-knowledge-header">
+            <div className="product-knowledge-title-block">
+              <span className="product-knowledge-kicker"><EcommerceIcon size={14} />{t("ecommerce.productKnowledge.kicker")}</span>
+              <h1>{t("ecommerce.productKnowledge.pageTitle")}</h1>
+              <p className="ecommerce-page-subtitle">{t("ecommerce.productKnowledge.pageSubtitle")}</p>
+            </div>
+            <button className="btn btn-primary" data-tutorial-id="product-knowledge-create" onClick={() => setCreateOpen(true)}>
+              + {t("ecommerce.productKnowledge.create")}
+            </button>
       </header>
 
-      <div className="product-knowledge-workbench" data-tutorial-id="product-knowledge-library">
-        <aside className="product-knowledge-library">
-          <div className="product-knowledge-library-tools">
-            <form onSubmit={(event) => {
-              event.preventDefault();
-              const nextSearch = searchDraft.trim();
-              if (nextSearch === search || !allowDiscardDraft()) return;
-              resetSelection();
-              setOffset(0);
-              setSearch(nextSearch);
-            }}>
-              <input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder={t("ecommerce.productKnowledge.searchPlaceholder")} />
-            </form>
-            <div className="product-knowledge-status-switch">
-              <button className={status === GQL.ProductKnowledgeStatus.Active ? "active" : ""} onClick={() => { if (status !== GQL.ProductKnowledgeStatus.Active && allowDiscardDraft()) { resetSelection(); setStatus(GQL.ProductKnowledgeStatus.Active); setOffset(0); } }}>{t("ecommerce.productKnowledge.active")}</button>
-              <button className={status === GQL.ProductKnowledgeStatus.Archived ? "active" : ""} onClick={() => { if (status !== GQL.ProductKnowledgeStatus.Archived && allowDiscardDraft()) { resetSelection(); setStatus(GQL.ProductKnowledgeStatus.Archived); setOffset(0); } }}>{t("ecommerce.productKnowledge.archivedStatus")}</button>
+      <section className="product-knowledge-catalog" data-tutorial-id="product-knowledge-library">
+            <div className="product-knowledge-catalog-toolbar">
+              <form className="product-knowledge-catalog-search" onSubmit={(event) => {
+                event.preventDefault();
+                const nextSearch = searchDraft.trim();
+                if (nextSearch === search) return;
+                setOffset(0);
+                setSearch(nextSearch);
+              }}>
+                <input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder={t("ecommerce.productKnowledge.searchPlaceholder")} />
+                <button type="submit">{t("ecommerce.productKnowledge.search")}</button>
+              </form>
+              <div className="product-knowledge-catalog-controls">
+                <span className="product-knowledge-catalog-count">{t("ecommerce.productKnowledge.libraryCount", { count: totalCount })}</span>
+                <div className="product-knowledge-status-switch">
+                  <button className={status === GQL.ProductKnowledgeStatus.Active ? "active" : ""} onClick={() => { if (status !== GQL.ProductKnowledgeStatus.Active) { setStatus(GQL.ProductKnowledgeStatus.Active); setOffset(0); } }}>{t("ecommerce.productKnowledge.active")}</button>
+                  <button className={status === GQL.ProductKnowledgeStatus.Archived ? "active" : ""} onClick={() => { if (status !== GQL.ProductKnowledgeStatus.Archived) { setStatus(GQL.ProductKnowledgeStatus.Archived); setOffset(0); } }}>{t("ecommerce.productKnowledge.archivedStatus")}</button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="product-knowledge-list">
-            {listQuery.loading && items.length === 0 ? <p className="td-meta">{t("common.loading")}</p> : null}
-            {!listQuery.loading && items.length === 0 ? (
-              <div className="product-knowledge-empty-mini">
-                <EcommerceIcon size={22} />
+            {listQuery.loading && items.length === 0 ? (
+              <div className="product-knowledge-table-state"><p>{t("common.loading")}</p></div>
+            ) : !listQuery.loading && items.length === 0 ? (
+              <div className="product-knowledge-table-state">
+                <EcommerceIcon size={28} />
                 <strong>{t("ecommerce.productKnowledge.emptyTitle")}</strong>
                 <span>{t("ecommerce.productKnowledge.emptyBody")}</span>
               </div>
+            ) : (
+              <div className="product-knowledge-table-shell">
+                <table className="product-knowledge-table">
+                  <thead>
+                    <tr>
+                      <th>{t("ecommerce.productKnowledge.tableKnowledge")}</th>
+                      <th>{t("ecommerce.productKnowledge.tableStatus")}</th>
+                      <th>{t("ecommerce.productKnowledge.tableCoverage")}</th>
+                      <th>{t("ecommerce.productKnowledge.tableProducts")}</th>
+                      <th>{t("ecommerce.productKnowledge.tableRevision")}</th>
+                      <th>{t("ecommerce.productKnowledge.tableUpdated")}</th>
+                      <th aria-label={t("ecommerce.productKnowledge.openDetail")} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => {
+                      const sections = [item.usageInstructionsMarkdown, item.qaMarkdown, item.creativeCasesMarkdown];
+                      const completion = sections.filter((value) => value.trim()).length;
+                      const characters = sections.reduce((total, value) => total + value.length, 0);
+                      return (
+                        <tr
+                          key={item.id}
+                          tabIndex={0}
+                          onClick={() => selectKnowledge(item.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              selectKnowledge(item.id);
+                            }
+                          }}
+                        >
+                          <td>
+                            <span className="product-knowledge-table-name">{item.name}</span>
+                            <span className="product-knowledge-table-meta">{t("ecommerce.productKnowledge.characters", { count: characters })}</span>
+                          </td>
+                          <td><span className={`product-knowledge-status product-knowledge-status-${item.status.toLowerCase()}`}>{item.status === GQL.ProductKnowledgeStatus.Active ? t("ecommerce.productKnowledge.active") : t("ecommerce.productKnowledge.archivedStatus")}</span></td>
+                          <td>
+                            <div className="product-knowledge-coverage">
+                              <span className="product-knowledge-coverage-meter" aria-hidden="true">
+                                {sections.map((value, index) => <i className={value.trim() ? "filled" : ""} key={index} />)}
+                              </span>
+                              <span>{t("ecommerce.productKnowledge.coverageCount", { count: completion })}</span>
+                            </div>
+                          </td>
+                          <td><span className="product-knowledge-product-count"><ShopIcon size={14} />{item.bindingCount}</span></td>
+                          <td><code>v{item.revision}</code></td>
+                          <td><time dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleString(i18n.language, { dateStyle: "medium", timeStyle: "short" })}</time></td>
+                          <td><span className="product-knowledge-row-arrow" aria-hidden="true">→</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {totalCount > PAGE_SIZE ? (
+              <div className="product-knowledge-pagination">
+                <button className="btn btn-secondary" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>{t("ecommerce.productKnowledge.previous")}</button>
+                <span>{Math.floor(offset / PAGE_SIZE) + 1} / {Math.ceil(totalCount / PAGE_SIZE)}</span>
+                <button className="btn btn-secondary" disabled={offset + PAGE_SIZE >= totalCount} onClick={() => setOffset(offset + PAGE_SIZE)}>{t("ecommerce.productKnowledge.next")}</button>
+              </div>
             ) : null}
-            {items.map((item) => {
-              const completion = [item.usageInstructionsMarkdown, item.qaMarkdown, item.creativeCasesMarkdown].filter((value) => value.trim()).length;
-              return (
-                <button key={item.id} className={`product-knowledge-list-item${selectedId === item.id ? " active" : ""}`} onClick={() => selectKnowledge(item.id)}>
-                  <span className="product-knowledge-list-item-top"><strong>{item.name}</strong><span>{completion}/3</span></span>
-                  <span className="product-knowledge-list-item-meta">
-                    <span><ShopIcon size={13} />{t("ecommerce.productKnowledge.productCount", { count: item.bindingCount })}</span>
-                    <time>{new Date(item.updatedAt).toLocaleDateString(i18n.language)}</time>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+      </section>
 
-          {totalCount > PAGE_SIZE ? (
-            <div className="product-knowledge-pagination">
-              <button className="btn btn-secondary" disabled={offset === 0} onClick={() => { if (allowDiscardDraft()) { resetSelection(); setOffset(Math.max(0, offset - PAGE_SIZE)); } }}>{t("ecommerce.productKnowledge.previous")}</button>
-              <span>{Math.floor(offset / PAGE_SIZE) + 1} / {Math.ceil(totalCount / PAGE_SIZE)}</span>
-              <button className="btn btn-secondary" disabled={offset + PAGE_SIZE >= totalCount} onClick={() => { if (allowDiscardDraft()) { resetSelection(); setOffset(offset + PAGE_SIZE); } }}>{t("ecommerce.productKnowledge.next")}</button>
-            </div>
-          ) : null}
-        </aside>
-
-        <main className="product-knowledge-detail" data-tutorial-id="product-knowledge-editor">
-          {!selectedId ? (
-            <div className="product-knowledge-detail-empty">
-              <EcommerceIcon size={30} />
-              <h2>{t("ecommerce.productKnowledge.selectTitle")}</h2>
-              <p>{t("ecommerce.productKnowledge.selectBody")}</p>
-            </div>
-          ) : detailQuery.loading && !knowledge ? (
+      <Modal
+        isOpen={Boolean(selectedId)}
+        onClose={closeDetail}
+        onBackdropClose={closeDetail}
+        title={t("ecommerce.productKnowledge.manageTitle")}
+        className="product-knowledge-management-modal"
+        closeLabel={t("common.close")}
+        maxWidth={1320}
+        portal
+      >
+        <div className="product-knowledge-detail" data-tutorial-id="product-knowledge-editor">
+          {detailQuery.loading && !knowledge ? (
             <div className="product-knowledge-detail-empty"><p>{t("common.loading")}</p></div>
           ) : knowledge && draft ? (
             <>
@@ -490,7 +538,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                   ) : (
                     <>
                       <button className="btn btn-secondary" disabled={archiveState.loading || dirty} onClick={() => setConfirmation({ kind: "archive", id: knowledge.id, name: knowledge.name, revision: knowledge.revision })}>{t("ecommerce.productKnowledge.archive")}</button>
-                      <button className="btn btn-primary" disabled={!dirty || updateState.loading || !draft.name.trim()} onClick={handleSave}>{updateState.loading ? t("common.saving") : t("common.save")}</button>
+                      <button className="btn btn-primary" disabled={!dirty || updateState.loading || !draft.name.trim() || contentOverLimit} onClick={handleSave}>{updateState.loading ? t("common.saving") : t("common.save")}</button>
                     </>
                   )}
                 </div>
@@ -506,32 +554,64 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                 </div>
               ) : null}
 
-              <section className="product-knowledge-editor-card">
-                <div className="product-knowledge-editor-toolbar">
-                  <div className="product-knowledge-tabs">
-                    {tabConfig.map((tab) => <button key={tab.id} className={activeTab === tab.id ? "active" : ""} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>)}
+              <section className="product-knowledge-content-studio">
+                <aside className="product-knowledge-content-sections">
+                  <div className="product-knowledge-content-heading">
+                    <span className="product-knowledge-section-index">01</span>
+                    <div>
+                      <h2>{t("ecommerce.productKnowledge.contentTitle")}</h2>
+                      <p>{t("ecommerce.productKnowledge.contentSubtitle")}</p>
+                    </div>
                   </div>
-                  <div className="product-knowledge-mode-switch">
-                    <button className={editorMode === "edit" ? "active" : ""} onClick={() => setEditorMode("edit")}>{t("common.edit")}</button>
-                    <button className={editorMode === "preview" ? "active" : ""} onClick={() => setEditorMode("preview")}>{t("ecommerce.productKnowledge.preview")}</button>
+                  <nav aria-label={t("ecommerce.productKnowledge.contentTitle")}>
+                    {tabConfig.map((tab, index) => {
+                      const markdown = draft[tab.field];
+                      return (
+                        <button
+                          type="button"
+                          key={tab.id}
+                          className={activeTab === tab.id ? "active" : ""}
+                          onClick={() => setActiveTab(tab.id)}
+                        >
+                          <span className="product-knowledge-content-number">0{index + 1}</span>
+                          <span className="product-knowledge-content-copy">
+                            <strong>{tab.label}</strong>
+                            <small>{tab.description}</small>
+                          </span>
+                          <span className={`product-knowledge-content-state${markdown.trim() ? " complete" : ""}`}>
+                            {markdown.length.toLocaleString(i18n.language)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                  <p className="product-knowledge-markdown-note">{t("ecommerce.productKnowledge.markdownNativeHint")}</p>
+                </aside>
+
+                <div className="product-knowledge-editor-panel">
+                  <div className="product-knowledge-editor-panel-heading">
+                    <div>
+                      <span>{t("ecommerce.productKnowledge.editingSection")}</span>
+                      <h3>{activeTabConfig.label}</h3>
+                      <p>{activeTabConfig.description}</p>
+                    </div>
+                    <span className={activeMarkdown.length > MARKDOWN_MAX_LENGTH ? "limit" : ""}>
+                      {activeMarkdown.length.toLocaleString(i18n.language)} / {MARKDOWN_MAX_LENGTH.toLocaleString(i18n.language)}
+                    </span>
                   </div>
-                </div>
-                {editorMode === "edit" ? (
-                  <div className="product-knowledge-editor-body">
-                    <textarea
+                  <Suspense fallback={<div className="product-knowledge-editor-loading">{t("common.loading")}</div>}>
+                    <ProductKnowledgeMarkdownEditor
+                      key={`${knowledge.id}:${activeTab}`}
                       value={activeMarkdown}
                       readOnly={isArchived}
-                      maxLength={MARKDOWN_MAX_LENGTH}
                       placeholder={t(`ecommerce.productKnowledge.${activeTab}Placeholder`)}
-                      onChange={(event) => setDraft({ ...draft, [activeTabConfig.field]: event.target.value })}
+                      onChange={(markdown) => setDraft({ ...draft, [activeTabConfig.field]: markdown })}
                     />
-                    <span className={activeMarkdown.length >= MARKDOWN_MAX_LENGTH ? "limit" : ""}>{activeMarkdown.length.toLocaleString()} / {MARKDOWN_MAX_LENGTH.toLocaleString()}</span>
-                  </div>
-                ) : (
-                  <div className="product-knowledge-markdown-preview">
-                    {activeMarkdown.trim() ? <MarkdownMessage text={activeMarkdown} /> : <p>{t("ecommerce.productKnowledge.previewEmpty")}</p>}
-                  </div>
-                )}
+                  </Suspense>
+                  {activeMarkdown.length > MARKDOWN_MAX_LENGTH ? (
+                    <p className="product-knowledge-editor-limit-message">{t("ecommerce.productKnowledge.overLimit")}</p>
+                  ) : null}
+                </div>
               </section>
 
               <section className="product-knowledge-bindings" data-tutorial-id="product-knowledge-bindings">
@@ -621,8 +701,8 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
               </section>
             </>
           ) : null}
-        </main>
-      </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={t("ecommerce.productKnowledge.createTitle")} maxWidth={480} portal>
         <label className="form-label-block"><span>{t("ecommerce.productKnowledge.name")}</span><input autoFocus value={createName} maxLength={120} onChange={(event) => setCreateName(event.target.value)} placeholder={t("ecommerce.productKnowledge.namePlaceholder")} /></label>
