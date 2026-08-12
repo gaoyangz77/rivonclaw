@@ -1340,7 +1340,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
       triggerShopId
       affiliateCollaborationId
       sampleApplicationRecordId
-      productId
       triggerPlatformShopId
       routingShopIds
       routingPlatformShopIds

@@ -197,6 +197,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         requiredAction
         shopId
         shopRegion
+        productId
+        campaignId
         affiliateCollaborationId
         sampleApplicationRecordId
         proposalId

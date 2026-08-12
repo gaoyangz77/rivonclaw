@@ -356,6 +356,8 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           requiredAction
           shopId
           shopRegion
+          productId
+          campaignId
           affiliateCollaborationId
           sampleApplicationRecordId
           proposalId

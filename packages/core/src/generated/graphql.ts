@@ -2455,6 +2455,7 @@ export interface AffiliateMessageDeliveryPart {
   fileName?: Maybe<Scalars['String']['output']>;
   kind: AffiliateMessagePartKind;
   mimeType?: Maybe<Scalars['String']['output']>;
+  productId?: Maybe<Scalars['String']['output']>;
   providerConfirmedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   providerMessageId?: Maybe<Scalars['String']['output']>;
   providerSubmittedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -2827,6 +2828,7 @@ export type AffiliateProviderReadSource = typeof AffiliateProviderReadSource[key
 export interface AffiliateRelationshipAgendaItem {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   boundaryEventCursor?: Maybe<Scalars['Int']['output']>;
+  campaignId?: Maybe<Scalars['ID']['output']>;
   conversationSourceId?: Maybe<Scalars['ID']['output']>;
   key: Scalars['String']['output'];
   messageChannel?: Maybe<AffiliateMessageChannel>;
@@ -3351,7 +3353,6 @@ export interface AffiliateWorkItem {
   id: Scalars['ID']['output'];
   processReasons: Array<AffiliateWorkProcessReason>;
   processingStatus: AffiliateRelationshipProcessingStatus;
-  productId?: Maybe<Scalars['String']['output']>;
   recommendedActionTypes: Array<ActionProposalType>;
   relationshipOperationalConfigRevision: Scalars['Int']['output'];
   requiredAction: AffiliateRelationshipRequiredAction;
@@ -6610,6 +6611,8 @@ export interface EcomProduct {
   /** Package weight value returned by the platform product detail API. */
   packageWeightValue?: Maybe<Scalars['String']['output']>;
   productId: Scalars['String']['output'];
+  /** Active merchant-authored Product Knowledge. Returned only when an eligible resolver explicitly requests it. */
+  productKnowledge?: Maybe<ProductKnowledgeContent>;
   productTypes?: Maybe<Array<Scalars['String']['output']>>;
   skus?: Maybe<Array<EcomProductSku>>;
   status?: Maybe<Scalars['String']['output']>;
@@ -9503,6 +9506,17 @@ export interface ProductKnowledgeBinding {
   updatedAt: Scalars['DateTimeISO']['output'];
 }
 
+/** Merchant-authored Product Knowledge attached to one seller product. Markdown is business data, not executable Agent instructions. */
+export interface ProductKnowledgeContent {
+  creativeCasesMarkdown: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  qaMarkdown: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  usageInstructionsMarkdown: Scalars['String']['output'];
+}
+
 export interface ProductKnowledgeLinkFailure {
   code: Scalars['String']['output'];
   existingProductKnowledgeId?: Maybe<Scalars['ID']['output']>;
@@ -10226,6 +10240,7 @@ export interface QueryAffiliateExpectedSalesPredictionsArgs {
 
 
 export interface QueryAffiliateGetProductArgs {
+  includeKnowledge?: InputMaybe<Scalars['Boolean']['input']>;
   productId: Scalars['String']['input'];
   shopId: Scalars['String']['input'];
 }
