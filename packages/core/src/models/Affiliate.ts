@@ -96,6 +96,7 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
   id: types.identifier,
   userId: types.string,
   displayName: types.string,
+  creatorDisplayName: types.maybeNull(types.string),
   normalizedDisplayName: types.optional(types.string, ""),
   regions: types.optional(types.array(types.string), []),
   acceptingCreators: types.optional(types.boolean, true),

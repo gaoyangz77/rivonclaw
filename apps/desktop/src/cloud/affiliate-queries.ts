@@ -25,6 +25,18 @@ export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
         businessPrompt
         configRevision
       }
+      businessDeveloperDispatchContext {
+        creatorDisplayName
+        businessPrompt
+        whatsApp {
+          displayName
+          phoneNumber
+        }
+        email {
+          displayName
+          emailAddress
+        }
+      }
     }
   }
 `;

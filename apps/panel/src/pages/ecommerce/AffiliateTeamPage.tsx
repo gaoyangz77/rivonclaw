@@ -72,8 +72,9 @@ type PendingAccountTransfer = {
   account: ChannelAccount;
 };
 
-type DeveloperForm = {
+export type DeveloperForm = {
   displayName: string;
+  creatorDisplayName: string;
   regions: GQL.ShopRegion[];
   acceptingCreators: boolean;
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode;
@@ -125,11 +126,59 @@ type BusinessDeveloperResolutionGroup = {
 
 const EMPTY_DEVELOPER: DeveloperForm = {
   displayName: "",
+  creatorDisplayName: "",
   regions: [],
   acceptingCreators: true,
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
   businessPrompt: "",
 };
+
+type DeveloperFormSource = {
+  displayName: string;
+  creatorDisplayName?: string | null;
+  regions: readonly GQL.ShopRegion[];
+  acceptingCreators: boolean;
+  agentAssistanceMode: GQL.AffiliateAgentAssistanceMode;
+  businessPrompt?: string | null;
+};
+
+export function developerFormFrom(source: DeveloperFormSource): DeveloperForm {
+  return {
+    displayName: source.displayName,
+    creatorDisplayName: source.creatorDisplayName ?? "",
+    regions: Array.from(source.regions),
+    acceptingCreators: source.acceptingCreators,
+    agentAssistanceMode: source.agentAssistanceMode,
+    businessPrompt: source.businessPrompt ?? "",
+  };
+}
+
+export function isDeveloperFormDirty(
+  form: DeveloperForm,
+  source: DeveloperFormSource,
+): boolean {
+  return form.displayName.trim() !== source.displayName
+    || form.creatorDisplayName.trim() !== (source.creatorDisplayName?.trim() ?? "")
+    || form.agentAssistanceMode !== source.agentAssistanceMode
+    || form.acceptingCreators !== source.acceptingCreators
+    || [...form.regions].sort().join("|") !== [...source.regions].sort().join("|")
+    || form.businessPrompt.trim() !== (source.businessPrompt?.trim() ?? "");
+}
+
+export function writeDeveloperInputFrom(
+  form: DeveloperForm,
+  id?: string | null,
+): GQL.WriteAffiliateBusinessDeveloperInput {
+  return {
+    id: id ?? null,
+    displayName: form.displayName.trim(),
+    creatorDisplayName: form.creatorDisplayName.trim() || null,
+    regions: form.regions,
+    acceptingCreators: form.acceptingCreators,
+    agentAssistanceMode: form.agentAssistanceMode,
+    businessPrompt: form.businessPrompt.trim() || null,
+  };
+}
 
 function readTeamPageTab(): TeamPageTab {
   const view = new URLSearchParams(window.location.search).get("view");
@@ -384,13 +433,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     + detailSummary.whatsappAccountCount
     + detailSummary.emailAccountCount > 0
   ));
-  const detailFormDirty = Boolean(detailDeveloper && (
-    form.displayName.trim() !== detailDeveloper.displayName
-    || form.agentAssistanceMode !== detailDeveloper.agentAssistanceMode
-    || form.acceptingCreators !== detailDeveloper.acceptingCreators
-    || [...form.regions].sort().join("|") !== [...detailDeveloper.regions].sort().join("|")
-    || form.businessPrompt.trim() !== (detailDeveloper.businessPrompt?.trim() ?? "")
-  ));
+  const detailFormDirty = Boolean(
+    detailDeveloper && isDeveloperFormDirty(form, detailDeveloper as DeveloperFormSource),
+  );
   const detailNeedsProfileConfirmation = (
     detailDeveloper?.profileStatus === GQL.AffiliateBusinessDeveloperProfileStatus.NeedsConfiguration
   );
@@ -453,13 +498,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     const developer = workspace.getBusinessDeveloper(summary.developer.id) ?? summary.developer;
     setDetailSummary(summary);
     setEditingDeveloperId(developer.id);
-    setForm({
-      displayName: developer.displayName,
-      regions: Array.from(developer.regions) as GQL.ShopRegion[],
-      acceptingCreators: developer.acceptingCreators,
-      agentAssistanceMode: developer.agentAssistanceMode as GQL.AffiliateAgentAssistanceMode,
-      businessPrompt: developer.businessPrompt ?? "",
-    });
+    setForm(developerFormFrom(developer as DeveloperFormSource));
     setConnectChannel(null);
     setReconnectWhatsAppAccountId(null);
     setPendingAccountTransfer(null);
@@ -495,14 +534,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     try {
       const result = await writeDeveloper({
         variables: {
-          input: {
-            id: editingDeveloper?.id ?? null,
-            displayName,
-            regions: form.regions,
-            acceptingCreators: form.acceptingCreators,
-            agentAssistanceMode: form.agentAssistanceMode,
-            businessPrompt: form.businessPrompt.trim() || null,
-          },
+          input: writeDeveloperInputFrom(form, editingDeveloper?.id),
         },
       });
       const developer = result.data?.writeAffiliateBusinessDeveloper;
@@ -511,13 +543,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       setEditing(false);
       if (savingDetail) {
         setEditingDeveloperId(developer.id);
-        setForm({
-          displayName: developer.displayName,
-          regions: Array.from(developer.regions) as GQL.ShopRegion[],
-          acceptingCreators: developer.acceptingCreators,
-          agentAssistanceMode: developer.agentAssistanceMode,
-          businessPrompt: developer.businessPrompt ?? "",
-        });
+        setForm(developerFormFrom(developer));
         setDetailSummary((current) => current ? { ...current, developer } : current);
       } else {
         setEditingDeveloperId(null);
@@ -2344,7 +2370,8 @@ export function DeveloperEditor({ form, setForm, onCancel, onSave, saving, t }: 
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return <div className="affiliate-developer-editor">
-    <label><span>{t("ecommerce.affiliateTeam.name")}</span><input className="input" value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
+    <label><span>{t("ecommerce.affiliateTeam.internalName")}</span><input className="input" value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /><small className="form-hint">{t("ecommerce.affiliateTeam.internalNameHint")}</small></label>
+    <label><span>{t("ecommerce.affiliateTeam.creatorDisplayName")}</span><input className="input" value={form.creatorDisplayName} onChange={(event) => setForm({ ...form, creatorDisplayName: event.target.value })} placeholder={t("ecommerce.affiliateTeam.creatorDisplayNamePlaceholder")} /><small className="form-hint">{t("ecommerce.affiliateTeam.creatorDisplayNameHint")}</small></label>
     <label><span>{t("ecommerce.affiliateTeam.workMode")}</span><Select value={form.agentAssistanceMode} onChange={(value) => setForm({ ...form, agentAssistanceMode: value as GQL.AffiliateAgentAssistanceMode })} options={[
       { value: GQL.AffiliateAgentAssistanceMode.AiAssisted, label: t("ecommerce.affiliateTeam.aiAssisted") },
       { value: GQL.AffiliateAgentAssistanceMode.HumanOnly, label: t("ecommerce.affiliateTeam.humanOnly") },
@@ -2362,7 +2389,8 @@ function DeveloperProfileEditor({ form, setForm, t }: {
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return <div className="affiliate-bd-inline-editor">
-    <label className="affiliate-bd-inline-name"><span>{t("ecommerce.affiliateTeam.name")}</span><input className="input" value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
+    <label className="affiliate-bd-inline-name"><span>{t("ecommerce.affiliateTeam.internalName")}</span><input className="input" value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /><small className="form-hint">{t("ecommerce.affiliateTeam.internalNameHint")}</small></label>
+    <label><span>{t("ecommerce.affiliateTeam.creatorDisplayName")}</span><input className="input" value={form.creatorDisplayName} onChange={(event) => setForm({ ...form, creatorDisplayName: event.target.value })} placeholder={t("ecommerce.affiliateTeam.creatorDisplayNamePlaceholder")} /><small className="form-hint">{t("ecommerce.affiliateTeam.creatorDisplayNameHint")}</small></label>
     <label><span>{t("ecommerce.affiliateTeam.workMode")}</span><Select value={form.agentAssistanceMode} onChange={(value) => setForm({ ...form, agentAssistanceMode: value as GQL.AffiliateAgentAssistanceMode })} options={[
       { value: GQL.AffiliateAgentAssistanceMode.AiAssisted, label: t("ecommerce.affiliateTeam.aiAssisted") },
       { value: GQL.AffiliateAgentAssistanceMode.HumanOnly, label: t("ecommerce.affiliateTeam.humanOnly") },
