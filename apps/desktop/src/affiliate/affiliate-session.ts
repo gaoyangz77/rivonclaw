@@ -134,7 +134,6 @@ export interface AffiliateContext {
   creatorId?: string | null;
   creatorOpenId?: string | null;
   creatorRelationshipId: string;
-  productId?: string | null;
   sampleApplicationRecordId?: string;
   affiliateCollaborationId?: string;
   orderId?: string | null;

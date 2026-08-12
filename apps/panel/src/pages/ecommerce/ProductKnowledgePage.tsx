@@ -32,7 +32,7 @@ const ProductKnowledgeMarkdownEditor = lazy(async () => {
   return { default: module.ProductKnowledgeMarkdownEditor };
 });
 
-const MARKDOWN_MAX_LENGTH = 50_000;
+const MARKDOWN_MAX_LENGTH = 10_000;
 const PAGE_SIZE = 25;
 
 type KnowledgeSummary = Omit<GQL.ProductKnowledge, "bindings">;

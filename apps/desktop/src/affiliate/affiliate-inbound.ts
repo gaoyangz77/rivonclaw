@@ -579,7 +579,6 @@ export class AffiliateInbound {
     shop: AffiliateShopContext,
     workItem: AffiliateWorkItemPayload,
   ): AffiliateContext | null {
-    const collaboration = workItem.affiliateCollaboration;
     const relationship = workItem.creatorRelationship ?? workItem.context?.creatorRelation ?? null;
     const creatorProfile = workItem.context?.creatorProfile ?? null;
     const creatorRelationshipId = workItem.creatorRelationshipId ?? relationship?.id ?? undefined;
@@ -595,7 +594,6 @@ export class AffiliateInbound {
       creatorId: creatorProfile?.id ?? relationship?.creatorId ?? undefined,
       creatorOpenId: creatorProfile?.creatorOpenId ?? undefined,
       creatorRelationshipId,
-      productId: workItem.productId ?? collaboration?.productIds?.[0] ?? undefined,
       affiliateCollaborationId: workItem.affiliateCollaborationId ?? undefined,
     };
 

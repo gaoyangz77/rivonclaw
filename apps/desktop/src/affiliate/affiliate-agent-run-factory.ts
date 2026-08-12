@@ -117,8 +117,12 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       `   Required Action: ${item.requiredAction}`,
       `   Shop ID: ${item.shopId ?? workItem.triggerShopId}`,
       `   Shop Region: ${item.shopRegion ?? "(unavailable)"}`,
+      `   Product ID: ${item.productId ?? "(unavailable)"}`,
       `   Reasons: ${(item.reasons ?? []).join(", ") || "(none)"}`,
     );
+    if (item.campaignId) {
+      lines.push(`   Campaign ID: ${item.campaignId}`);
+    }
     if (item.affiliateCollaborationId) {
       lines.push(`   Platform Collaboration ID: ${item.affiliateCollaborationId}`);
     }

@@ -969,7 +969,6 @@ describe("affiliate work item dispatch", () => {
         triggerId: "sample-record-001",
         sampleApplicationRecordId: "sample-record-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -1046,7 +1045,6 @@ describe("affiliate work item dispatch", () => {
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
         creatorOpenId: "creator-open-001",
-        productId: "product-001",
       },
     );
 
@@ -1228,7 +1226,6 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -1313,7 +1310,6 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -1367,7 +1363,6 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -1417,7 +1412,6 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -1865,7 +1859,6 @@ describe("affiliate work item dispatch", () => {
         triggerId: "conversation-001",
         affiliateCollaborationId: "collab-expected-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -1923,7 +1916,6 @@ describe("affiliate work item dispatch", () => {
         creatorRelationshipId: "relationship-operator-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -1988,7 +1980,6 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         affiliateCollaborationId: "collab-with-snapshot",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -2076,7 +2067,6 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         affiliateCollaborationId: "collab-sample-agent-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -2158,12 +2148,15 @@ describe("affiliate work item dispatch", () => {
     const firstAgenda = {
       ...(base.creatorRelationship?.agendaItems ?? [])[0]!,
       shopRegion: "US",
+      productId: "product-001",
     };
     const secondAgenda = {
       ...firstAgenda,
       key: "affiliateCollaboration:collab-002:COMPLETE_COLLABORATION_TASK",
       shopId: "shop-002",
       shopRegion: "FR",
+      productId: "product-002",
+      campaignId: "campaign-002",
       affiliateCollaborationId: "collab-002",
       sampleApplicationRecordId: "sample-record-002",
       predictionEvidence: createWorkingAgendaPredictionEvidence({
@@ -2188,6 +2181,9 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("Shop ID: shop-002");
     expect(request?.message).toContain("Shop Region: US");
     expect(request?.message).toContain("Shop Region: FR");
+    expect(request?.message).toContain("Product ID: product-001");
+    expect(request?.message).toContain("Product ID: product-002");
+    expect(request?.message).toContain("Campaign ID: campaign-002");
   });
 
   it("renders a revision-requested proposal only from the dispatching working agenda", () => {
@@ -2382,7 +2378,6 @@ describe("affiliate work item dispatch", () => {
         sampleApplicationRecordId: "sample-record-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -2412,7 +2407,6 @@ describe("affiliate work item dispatch", () => {
         triggerId: "conversation-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -2444,7 +2438,6 @@ describe("affiliate work item dispatch", () => {
         triggerId: "conversation-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -2523,7 +2516,6 @@ describe("affiliate work item dispatch", () => {
         triggerId: "conversation-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -2605,7 +2597,6 @@ describe("affiliate work item dispatch", () => {
         triggerId: "conversation-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
@@ -2686,7 +2677,6 @@ describe("affiliate work item dispatch", () => {
         triggerId: "conversation-001",
         affiliateCollaborationId: "collab-001",
         creatorId: "creator-001",
-        productId: "product-001",
       },
     );
 
