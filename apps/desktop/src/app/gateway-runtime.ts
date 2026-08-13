@@ -31,6 +31,7 @@ export interface SetupGatewayDeps {
   stateDir: string;
   extensionsDir: string;
   sttCliPath: string;
+  deviceId?: string;
   vendorDir: string;
   merchantExtensionPaths?: () => string[];
   openAICodexCompatibilityBaseUrl?: string;
@@ -59,6 +60,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     stateDir,
     extensionsDir,
     sttCliPath,
+    deviceId,
     vendorDir,
     merchantExtensionPaths,
     openAICodexCompatibilityBaseUrl,
@@ -82,6 +84,7 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     stateDir,
     extensionsDir,
     sttCliPath,
+    deviceId,
     vendorDir,
     merchantExtensionPaths,
     openAICodexCompatibilityBaseUrl,
