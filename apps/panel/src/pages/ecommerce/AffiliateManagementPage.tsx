@@ -1079,30 +1079,28 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       </div>
 
       <div className="affiliate-workbench-panel">
-        <div className="affiliate-agent-workspace-tabs" role="tablist" aria-label={t("ecommerce.affiliateWorkspace.agentWorkspaceViews.label")}>
-          {AGENT_WORKSPACE_VIEWS.map((view) => (
-            <button
-              key={view}
-              type="button"
-              role="tab"
-              aria-selected={agentWorkspaceView === view}
-              className={`affiliate-agent-workspace-tab${agentWorkspaceView === view ? " affiliate-agent-workspace-tab-active" : ""}`}
-              onClick={() => setAgentWorkspaceView(view)}
-            >
-              {t(`ecommerce.affiliateWorkspace.agentWorkspaceViews.${view}`)}
-            </button>
-          ))}
-        </div>
-        <div className="affiliate-workbench-panel-head affiliate-attention-panel-head">
-          <div>
-            <div className="affiliate-workbench-panel-title">
-              {t("ecommerce.affiliateWorkspace.approvalQueueTitle")}
-            </div>
-            <div className="form-hint">
-              {t("ecommerce.affiliateWorkspace.approvalQueueHint")}
-            </div>
+        <div className="affiliate-workbench-panel-head affiliate-attention-panel-head affiliate-agent-workspace-controls">
+          <div
+            className="affiliate-agent-workspace-tabs"
+            role="tablist"
+            aria-label={t("ecommerce.affiliateWorkspace.agentWorkspaceViews.label")}
+          >
+            {AGENT_WORKSPACE_VIEWS.map((view) => (
+              <button
+                key={view}
+                type="button"
+                role="tab"
+                aria-selected={agentWorkspaceView === view}
+                className={`affiliate-agent-workspace-tab${agentWorkspaceView === view ? " affiliate-agent-workspace-tab-active" : ""}`}
+                onClick={() => setAgentWorkspaceView(view)}
+              >
+                {t(`ecommerce.affiliateWorkspace.agentWorkspaceViews.${view}`)}
+              </button>
+            ))}
           </div>
-          <div className="affiliate-attention-toolbar">
+          <div
+            className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
+          >
             {agentWorkspaceView === "ALL" ? (
               <label className="affiliate-filter-field">
                 <span>{t("ecommerce.affiliateWorkspace.statusFilter")}</span>

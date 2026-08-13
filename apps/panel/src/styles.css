@@ -19598,14 +19598,13 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-agent-workspace-tabs {
   display: flex;
   gap: 22px;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-bg);
+  flex: 0 0 auto;
+  align-self: flex-end;
 }
 
 .affiliate-agent-workspace-tab {
   position: relative;
-  min-height: 48px;
+  min-height: 38px;
   padding: 0 2px;
   border: 0;
   background: transparent;
@@ -19620,7 +19619,7 @@ html[lang="zh"] .acct-tool-chips {
   content: "";
   position: absolute;
   right: 0;
-  bottom: -1px;
+  bottom: -13px;
   left: 0;
   height: 2px;
   border-radius: 999px 999px 0 0;
@@ -23003,6 +23002,23 @@ html[lang="zh"] .acct-tool-chips {
   gap: 16px;
 }
 
+.affiliate-agent-workspace-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  padding-block: 12px;
+}
+
+.affiliate-agent-workspace-controls .affiliate-attention-toolbar {
+  flex: 1 1 720px;
+  max-width: 980px;
+}
+
+.affiliate-agent-workspace-controls .affiliate-attention-toolbar-compact {
+  grid-template-columns: minmax(180px, 220px) minmax(280px, 1fr);
+}
+
 .affiliate-attention-toolbar {
   display: grid;
   grid-template-columns: minmax(150px, 180px) minmax(180px, 220px) minmax(260px, 1fr);
@@ -23122,6 +23138,27 @@ html[lang="zh"] .acct-tool-chips {
 
   .affiliate-attention-panel-head {
     grid-template-columns: 1fr;
+  }
+
+  .affiliate-agent-workspace-controls {
+    display: grid;
+    gap: 12px;
+  }
+
+  .affiliate-agent-workspace-controls .affiliate-agent-workspace-tabs {
+    align-self: stretch;
+  }
+
+  .affiliate-agent-workspace-controls .affiliate-agent-workspace-tab::after {
+    bottom: 0;
+  }
+
+  .affiliate-agent-workspace-controls .affiliate-attention-toolbar {
+    max-width: none;
+  }
+
+  .affiliate-agent-workspace-controls .affiliate-attention-toolbar-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .affiliate-workbench-panel-title-row {
