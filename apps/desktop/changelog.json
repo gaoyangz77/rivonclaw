@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.99",
+    "date": "2026-08-13",
+    "en": [
+      "Attribute cloud LLM usage by device and improve Affiliate and Product Knowledge form safeguards"
+    ],
+    "zh": [
+      "支持按设备归因云端 LLM 用量，并改善达人管理与产品知识表单保护"
+    ]
+  },
+  {
     "version": "1.8.98",
     "date": "2026-08-11",
     "en": [
