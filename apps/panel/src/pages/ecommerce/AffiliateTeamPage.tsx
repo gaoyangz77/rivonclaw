@@ -207,6 +207,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [editing, setEditing] = useState(false);
   const [editingDeveloperId, setEditingDeveloperId] = useState<string | null>(null);
   const [form, setForm] = useState<DeveloperForm>(EMPTY_DEVELOPER);
+  const [savedDetailForm, setSavedDetailForm] = useState<DeveloperForm | null>(null);
   const [protectionRows, setProtectionRows] = useState<ProtectionPreviewRow[]>([]);
   const [protectionImportProgress, setProtectionImportProgress] = useState<ProtectionImportProgress | null>(null);
   const [protectionImportPhase, setProtectionImportPhase] = useState<ProtectionImportPhase>("IDLE");
@@ -434,7 +435,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     + detailSummary.emailAccountCount > 0
   ));
   const detailFormDirty = Boolean(
-    detailDeveloper && isDeveloperFormDirty(form, detailDeveloper as DeveloperFormSource),
+    detailDeveloper && savedDetailForm && isDeveloperFormDirty(form, savedDetailForm),
   );
   const detailNeedsProfileConfirmation = (
     detailDeveloper?.profileStatus === GQL.AffiliateBusinessDeveloperProfileStatus.NeedsConfiguration
@@ -496,9 +497,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
 
   function openDeveloperDetail(summary: DeveloperSummary) {
     const developer = workspace.getBusinessDeveloper(summary.developer.id) ?? summary.developer;
+    const initialForm = developerFormFrom(developer as DeveloperFormSource);
     setDetailSummary(summary);
     setEditingDeveloperId(developer.id);
-    setForm(developerFormFrom(developer as DeveloperFormSource));
+    setForm(initialForm);
+    setSavedDetailForm(initialForm);
     setConnectChannel(null);
     setReconnectWhatsAppAccountId(null);
     setPendingAccountTransfer(null);
@@ -511,6 +514,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     if (detailFormDirty && !window.confirm(t("ecommerce.affiliateTeam.unsavedChangesConfirm"))) return;
     setDetailSummary(null);
     setEditingDeveloperId(null);
+    setSavedDetailForm(null);
     setConnectChannel(null);
     setReconnectWhatsAppAccountId(null);
     setPendingAccountTransfer(null);
@@ -530,11 +534,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       showToast(t("ecommerce.affiliateTeam.nameRequired"), "error");
       return;
     }
-    const savingDetail = Boolean(detailSummary && editingDeveloper);
+    const updatingExistingDeveloper = Boolean(editingDeveloperId);
+    const savingDetail = Boolean(detailSummary && updatingExistingDeveloper);
     try {
       const result = await writeDeveloper({
         variables: {
-          input: writeDeveloperInputFrom(form, editingDeveloper?.id),
+          input: writeDeveloperInputFrom(form, editingDeveloperId),
         },
       });
       const developer = result.data?.writeAffiliateBusinessDeveloper;
@@ -542,13 +547,15 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       workspace.upsertAffiliateBusinessDeveloper(developer);
       setEditing(false);
       if (savingDetail) {
+        const savedForm = developerFormFrom(developer);
         setEditingDeveloperId(developer.id);
-        setForm(developerFormFrom(developer));
+        setForm(savedForm);
+        setSavedDetailForm(savedForm);
         setDetailSummary((current) => current ? { ...current, developer } : current);
       } else {
         setEditingDeveloperId(null);
       }
-      if (!editingDeveloper) setDeveloperPage(0);
+      if (!updatingExistingDeveloper) setDeveloperPage(0);
       await Promise.all([developersQuery.refetch(), developerPageQuery.refetch()]);
       showToast(t("ecommerce.affiliateTeam.saved"), "success");
     } catch (error) {
@@ -571,6 +578,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
         workspace.upsertAffiliateBusinessDeveloper(result.data.archiveAffiliateBusinessDeveloper);
       }
       setDetailSummary(null);
+      setSavedDetailForm(null);
       await Promise.all([developersQuery.refetch(), developerPageQuery.refetch()]);
       showToast(t("ecommerce.affiliateTeam.archived"), "success");
     } catch (error) {
