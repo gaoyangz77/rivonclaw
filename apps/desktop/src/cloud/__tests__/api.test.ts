@@ -1642,6 +1642,143 @@ describe("cloud-graphql handler", () => {
     );
   });
 
+  it("redacts historical staff-decision imitation from Affiliate Agent tool responses", async () => {
+    const data = {
+      affiliatePredictCreatorProductFit: {
+        prediction: {
+          cacheId: "prediction-cache-1",
+          expectedSalesUnits: 2.4,
+          humanDecisionStatus: "OK",
+          humanDecision: {
+            wouldApprove: true,
+            humanApprovalProbability: 0.91,
+            approvalCutoff: 0.55,
+          },
+        },
+        predictionPayload: {
+          expectedSalesUnits: 2.4,
+          expectedSales: { modelStatus: "READY" },
+          humanDecision: { modelStatus: "READY" },
+          predictions: [
+            {
+              cacheId: "prediction-cache-1",
+              expectedSalesUnits: 2.4,
+              merchantAcceptanceStatus: "OK",
+              merchantAcceptance: { wouldAccept: true },
+            },
+          ],
+        },
+      },
+    };
+    const graphqlFetchEnvelope = vi.fn().mockResolvedValue({
+      data,
+      extensions: { rivonclaw: { persisted: true } },
+    });
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetchEnvelope,
+      },
+    } as unknown as ApiContext;
+    registerActiveAffiliateRunCheckpoint({
+      creatorRelationshipId: "relationship-1",
+      sessionKey: "agent:affiliate:affiliate:user-1:relationship-1",
+      runId: "run-checkpoint-1",
+      baseCheckpointId: null,
+      baseEventCursor: 7,
+      handledSignalAt: "2026-08-03T00:00:00.000Z",
+      candidateCheckpointId: "candidate-checkpoint-1",
+      targetEventCursor: 9,
+      relationshipOperationalConfigRevision: 4,
+      businessDeveloperIdSnapshot: null,
+      businessDeveloperConfigRevision: null,
+    });
+
+    const query = `
+      query AffiliatePredictCreatorProductFit($input: AffiliateCreatorProductFitInput!) {
+        affiliatePredictCreatorProductFit(input: $input) {
+          prediction { cacheId expectedSalesUnits humanDecisionStatus humanDecision { wouldApprove } }
+          predictionPayload { expectedSalesUnits }
+        }
+      }
+    `;
+    const { res } = await dispatch("POST", pathname, ctx, {
+      query,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          shopId: "shop-1",
+          productId: "product-1",
+        },
+      },
+      extensions: { rivonclaw: { persistResult: true, toolId: "affiliate_predict_creator_product_fit" } },
+    }, { "x-request-source": "extension" });
+
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual({
+      data: {
+        affiliatePredictCreatorProductFit: {
+          prediction: {
+            cacheId: "prediction-cache-1",
+            expectedSalesUnits: 2.4,
+          },
+          predictionPayload: {
+            expectedSalesUnits: 2.4,
+            expectedSales: { modelStatus: "READY" },
+            predictions: [
+              {
+                cacheId: "prediction-cache-1",
+                expectedSalesUnits: 2.4,
+              },
+            ],
+          },
+        },
+      },
+      extensions: { rivonclaw: { persisted: true } },
+    });
+    expect(graphqlFetchEnvelope).toHaveBeenCalledOnce();
+    expect(data.affiliatePredictCreatorProductFit.prediction.humanDecision.wouldApprove).toBe(true);
+  });
+
+  it("preserves staff-decision imitation for non-Agent seller GraphQL responses", async () => {
+    const data = {
+      affiliatePredictCreatorProductFit: {
+        prediction: {
+          expectedSalesUnits: 2.4,
+          humanDecision: { wouldApprove: true },
+        },
+      },
+    };
+    const graphqlFetch = vi.fn().mockResolvedValue(data);
+    const ctx = {
+      authSession: {
+        getAccessToken: () => "valid-token",
+        graphqlFetch,
+      },
+    } as unknown as ApiContext;
+    const query = `
+      query AffiliatePredictCreatorProductFit($input: AffiliateCreatorProductFitInput!) {
+        affiliatePredictCreatorProductFit(input: $input) {
+          prediction { expectedSalesUnits humanDecision { wouldApprove } }
+        }
+      }
+    `;
+
+    const { res } = await dispatch("POST", pathname, ctx, {
+      query,
+      variables: {
+        input: {
+          creatorRelationshipId: "relationship-1",
+          shopId: "shop-1",
+          productId: "product-1",
+        },
+      },
+    });
+
+    expect(res._status).toBe(200);
+    expect(res._body).toEqual({ data });
+  });
+
   it("returns 200 with errors on auth-related errors", async () => {
     const ctx = {
       authSession: {
