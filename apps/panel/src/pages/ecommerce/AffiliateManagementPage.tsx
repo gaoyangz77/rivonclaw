@@ -332,6 +332,62 @@ type ReadAffiliateActionProposalPageInput = GQL.ReadActionProposalsInput & {
   cursor?: string | null;
 };
 
+type AffiliateProposalPageBuffer = {
+  queryKey: string;
+  items: GQL.ActionProposal[];
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
+export function affiliateProposalPageQueryKey(filters: {
+  userId?: string | null;
+  shopId?: string | null;
+  status?: GQL.ActionProposalStatus;
+  type?: GQL.ActionProposalType;
+}): string {
+  return JSON.stringify([
+    filters.userId ?? "",
+    filters.shopId ?? "",
+    filters.status ?? "ALL",
+    filters.type ?? "ALL",
+  ]);
+}
+
+export function emptyAffiliateProposalPageBuffer(queryKey: string): AffiliateProposalPageBuffer {
+  return {
+    queryKey,
+    items: [],
+    nextCursor: null,
+    hasMore: false,
+  };
+}
+
+export function replaceAffiliateProposalPageBuffer(
+  queryKey: string,
+  page: AffiliateActionProposalPageData["affiliateActionProposalPage"],
+): AffiliateProposalPageBuffer {
+  return {
+    queryKey,
+    items: page.items,
+    nextCursor: page.nextCursor ?? null,
+    hasMore: page.hasMore,
+  };
+}
+
+export function appendAffiliateProposalPageBuffer(
+  current: AffiliateProposalPageBuffer,
+  queryKey: string,
+  page: AffiliateActionProposalPageData["affiliateActionProposalPage"],
+): AffiliateProposalPageBuffer {
+  if (current.queryKey !== queryKey) return current;
+  return {
+    queryKey,
+    items: mergeAffiliateProposalPage(current.items, page.items),
+    nextCursor: page.nextCursor ?? null,
+    hasMore: page.hasMore,
+  };
+}
+
 export function mergeAffiliateProposalPage(
   current: GQL.ActionProposal[],
   incoming: GQL.ActionProposal[],
@@ -349,10 +405,15 @@ export function applyAffiliateProposalChange(
   },
 ): GQL.ActionProposal[] {
   const existingIndex = current.findIndex((candidate) => candidate.id === proposal.id);
+  const targetsShop = !filters.shopId || (
+    proposal.focusShopId === filters.shopId
+    || proposal.steps.some((step) => step.shopId === filters.shopId)
+    || proposal.creatorRelationship?.shopStates.some((state) => state.shopId === filters.shopId)
+  );
   const matches = (
     (!filters.status || proposal.status === filters.status)
     && (!filters.type || proposal.type === filters.type)
-    && (!filters.shopId || existingIndex >= 0 || proposal.focusShopId === filters.shopId)
+    && (targetsShop || existingIndex >= 0)
   );
   if (!matches) {
     return existingIndex < 0
@@ -360,7 +421,7 @@ export function applyAffiliateProposalChange(
       : current.filter((candidate) => candidate.id !== proposal.id);
   }
   if (existingIndex < 0) return [proposal, ...current];
-  return current.map((candidate) => candidate.id === proposal.id ? proposal : candidate);
+  return [proposal, ...current.filter((candidate) => candidate.id !== proposal.id)];
 }
 
 type AffiliateInsightSubject = {
@@ -596,10 +657,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
   const [selectedRelationship, setSelectedRelationship] = useState<CreatorRelationshipDetailItem | null>(null);
-  const [loadedProposals, setLoadedProposals] = useState<GQL.ActionProposal[]>([]);
-  const [proposalCursor, setProposalCursor] = useState<string | null>(null);
-  const [hasMoreProposals, setHasMoreProposals] = useState(false);
-  const [loadingMoreProposals, setLoadingMoreProposals] = useState(false);
+  const [loadingMoreProposalQueryKey, setLoadingMoreProposalQueryKey] = useState<string | null>(null);
   const proposalLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -642,6 +700,23 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const proposalType = useMemo(() => {
     return proposalTypeFilter === "ALL" ? undefined : proposalTypeFilter;
   }, [proposalTypeFilter]);
+  const proposalQueryKey = affiliateProposalPageQueryKey({
+    userId: user?.userId,
+    shopId: selectedShopId,
+    status: proposalStatus,
+    type: proposalType,
+  });
+  const activeProposalQueryKeyRef = useRef(proposalQueryKey);
+  activeProposalQueryKeyRef.current = proposalQueryKey;
+  const [proposalPageBuffer, setProposalPageBuffer] = useState<AffiliateProposalPageBuffer>(() =>
+    emptyAffiliateProposalPageBuffer(proposalQueryKey));
+  const activeProposalPageBuffer = proposalPageBuffer.queryKey === proposalQueryKey
+    ? proposalPageBuffer
+    : emptyAffiliateProposalPageBuffer(proposalQueryKey);
+  const loadedProposals = activeProposalPageBuffer.items;
+  const proposalCursor = activeProposalPageBuffer.nextCursor;
+  const hasMoreProposals = activeProposalPageBuffer.hasMore;
+  const loadingMoreProposals = loadingMoreProposalQueryKey === proposalQueryKey;
 
   const {
     data: proposalData,
@@ -671,28 +746,29 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     { input: GQL.DecideActionProposalInput }
   >(DECIDE_ACTION_PROPOSAL_MUTATION);
 
+  const replaceProposalPage = useCallback((
+    queryKey: string,
+    page: AffiliateActionProposalPageData["affiliateActionProposalPage"],
+  ) => {
+    if (activeProposalQueryKeyRef.current !== queryKey) return;
+    setProposalPageBuffer(replaceAffiliateProposalPageBuffer(queryKey, page));
+    for (const proposal of page.items) {
+      entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
+    }
+  }, [entityStore.affiliateWorkspace]);
+
   useEffect(() => {
     const page = proposalData?.affiliateActionProposalPage as
       | AffiliateActionProposalPageData["affiliateActionProposalPage"]
       | undefined;
     if (!page) return;
-    setLoadedProposals(page.items);
-    setProposalCursor(page.nextCursor ?? null);
-    setHasMoreProposals(page.hasMore);
-    for (const proposal of page.items) {
-      entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
-    }
-  }, [entityStore.affiliateWorkspace, proposalData?.affiliateActionProposalPage]);
-
-  useEffect(() => {
-    setLoadedProposals([]);
-    setProposalCursor(null);
-    setHasMoreProposals(false);
-  }, [selectedShopId, proposalStatus, proposalType]);
+    replaceProposalPage(proposalQueryKey, page);
+  }, [proposalData?.affiliateActionProposalPage, proposalQueryKey, proposalsLoading, replaceProposalPage]);
 
   const loadMoreProposals = useCallback(async () => {
     if (!proposalCursor || !hasMoreProposals || loadingMoreProposals) return;
-    setLoadingMoreProposals(true);
+    const requestQueryKey = proposalQueryKey;
+    setLoadingMoreProposalQueryKey(requestQueryKey);
     try {
       const result = await fetchMoreProposals({
         variables: {
@@ -709,15 +785,16 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       const page = result.data?.affiliateActionProposalPage as
         | AffiliateActionProposalPageData["affiliateActionProposalPage"]
         | undefined;
-      if (!page) return;
-      setLoadedProposals((current) => mergeAffiliateProposalPage(current, page.items));
-      setProposalCursor(page.nextCursor ?? null);
-      setHasMoreProposals(page.hasMore);
+      if (!page || activeProposalQueryKeyRef.current !== requestQueryKey) return;
+      setProposalPageBuffer((current) =>
+        appendAffiliateProposalPageBuffer(current, requestQueryKey, page));
       for (const proposal of page.items) {
         entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
       }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     } finally {
-      setLoadingMoreProposals(false);
+      setLoadingMoreProposalQueryKey((current) => current === requestQueryKey ? null : current);
     }
   }, [
     entityStore.affiliateWorkspace,
@@ -725,9 +802,12 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     hasMoreProposals,
     loadingMoreProposals,
     proposalCursor,
+    proposalQueryKey,
     proposalStatus,
     proposalType,
     selectedShopId,
+    showToast,
+    t,
   ]);
 
   useEffect(() => {
@@ -750,14 +830,19 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       const proposal = (payload as { proposal?: GQL.ActionProposal } | null)?.proposal;
       if (!proposal?.id) return;
       entityStore.affiliateWorkspace.upsertAffiliateActionProposal(proposal);
-      setLoadedProposals((current) => applyAffiliateProposalChange(current, proposal, {
-        shopId: selectedShopId || undefined,
-        status: proposalStatus,
-        type: proposalType,
-      }));
+      setProposalPageBuffer((current) => current.queryKey !== proposalQueryKey
+        ? current
+        : {
+            ...current,
+            items: applyAffiliateProposalChange(current.items, proposal, {
+              shopId: selectedShopId || undefined,
+              status: proposalStatus,
+              type: proposalType,
+            }),
+          });
     });
     return unsubscribeProposal;
-  }, [entityStore.affiliateWorkspace, proposalStatus, proposalType, selectedShopId]);
+  }, [entityStore.affiliateWorkspace, proposalQueryKey, proposalStatus, proposalType, selectedShopId]);
 
   const proposalItemsFromQuery = loadedProposals.map((proposal) =>
     hydrateAffiliateProposalProjection(
@@ -804,11 +889,16 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       const updatedProposal = result.data?.decideActionProposal;
       if (updatedProposal) {
         entityStore.affiliateWorkspace.upsertAffiliateActionProposal(updatedProposal);
-        setLoadedProposals((current) => applyAffiliateProposalChange(current, updatedProposal, {
-          shopId: selectedShopId || undefined,
-          status: proposalStatus,
-          type: proposalType,
-        }));
+        setProposalPageBuffer((current) => current.queryKey !== proposalQueryKey
+          ? current
+          : {
+              ...current,
+              items: applyAffiliateProposalChange(current.items, updatedProposal, {
+                shopId: selectedShopId || undefined,
+                status: proposalStatus,
+                type: proposalType,
+              }),
+            });
       }
       showToast(
         status === GQL.ActionProposalStatus.Approved
@@ -824,18 +914,24 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   }
 
   async function refetchActive() {
-    setLoadedProposals([]);
-    setProposalCursor(null);
-    setHasMoreProposals(false);
-    return refetchProposals({
-      input: {
-        shopId: selectedShopId || null,
-        status: proposalStatus,
-        type: proposalType,
-        limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
-        cursor: null,
-      },
-    });
+    const requestQueryKey = proposalQueryKey;
+    try {
+      const result = await refetchProposals({
+        input: {
+          shopId: selectedShopId || null,
+          status: proposalStatus,
+          type: proposalType,
+          limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
+          cursor: null,
+        },
+      });
+      const page = result.data?.affiliateActionProposalPage as
+        | AffiliateActionProposalPageData["affiliateActionProposalPage"]
+        | undefined;
+      if (page) replaceProposalPage(requestQueryKey, page);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
+    }
   }
 
   function shopLabel(shopId: string): string {
