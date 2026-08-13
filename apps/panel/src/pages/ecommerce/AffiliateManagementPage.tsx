@@ -6,6 +6,7 @@ import { GQL } from "@rivonclaw/core";
 import type { AffiliateLifecycleEvent } from "@rivonclaw/core/models";
 import { getSnapshot, isStateTreeNode } from "mobx-state-tree";
 import { Select } from "../../components/inputs/Select.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { useToast } from "../../components/Toast.js";
 import { CheckIcon, CopyIcon, EyeIcon, InfoIcon, RefreshIcon, ShopIcon, UserIcon } from "../../components/icons.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
@@ -5618,6 +5619,9 @@ export function CreatorRelationshipDetailModal({
     return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
   };
   const [relationshipOwnerId, setRelationshipOwnerId] = useState(relationship?.businessDeveloperId ?? "");
+  const [pendingOwnershipConfirmation, setPendingOwnershipConfirmation] = useState<
+    { kind: "OWNER"; nextOwnerId: string } | { kind: "PROTECTION" } | null
+  >(null);
   useEffect(() => {
     setRelationshipOwnerId(relationship?.businessDeveloperId ?? "");
   }, [relationship?.businessDeveloperId]);
@@ -6013,9 +6017,13 @@ export function CreatorRelationshipDetailModal({
     });
   }
 
-  async function updateRelationshipOwner(nextOwnerId: string): Promise<void> {
+  function updateRelationshipOwner(nextOwnerId: string): void {
     if (!relationshipId || ownershipBusy || nextOwnerId === relationshipOwnerId) return;
-    if (!window.confirm(t("ecommerce.affiliateWorkspace.relationshipOwnerChangeConfirm"))) return;
+    setPendingOwnershipConfirmation({ kind: "OWNER", nextOwnerId });
+  }
+
+  async function applyRelationshipOwner(nextOwnerId: string): Promise<void> {
+    if (!relationshipId || ownershipBusy || nextOwnerId === relationshipOwnerId) return;
     try {
       const result = await assignDeveloper({
         variables: {
@@ -6031,9 +6039,13 @@ export function CreatorRelationshipDetailModal({
     }
   }
 
-  async function toggleRelationshipProtection(): Promise<void> {
+  function toggleRelationshipProtection(): void {
     if (!relationshipId || ownershipBusy) return;
-    if (!window.confirm(t("ecommerce.affiliateWorkspace.relationshipProtectionChangeConfirm"))) return;
+    setPendingOwnershipConfirmation({ kind: "PROTECTION" });
+  }
+
+  async function applyRelationshipProtectionChange(): Promise<void> {
+    if (!relationshipId || ownershipBusy) return;
     try {
       if (relationshipProtection) {
         await removeRelationshipProtection({ variables: { creatorRelationshipId: relationshipId } });
@@ -6052,6 +6064,17 @@ export function CreatorRelationshipDetailModal({
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
     }
+  }
+
+  function confirmOwnershipChange(): void {
+    const confirmation = pendingOwnershipConfirmation;
+    if (!confirmation) return;
+    setPendingOwnershipConfirmation(null);
+    if (confirmation.kind === "OWNER") {
+      void applyRelationshipOwner(confirmation.nextOwnerId);
+      return;
+    }
+    void applyRelationshipProtectionChange();
   }
 
   if (relationshipDetailError && !relationshipDetail) {
@@ -6151,7 +6174,7 @@ export function CreatorRelationshipDetailModal({
                 <span>{t("ecommerce.affiliateWorkspace.relationshipOwnerLabel")}</span>
                 <Select
                   value={relationshipOwnerId}
-                  onChange={(value) => void updateRelationshipOwner(value)}
+                  onChange={updateRelationshipOwner}
                   options={ownerOptions}
                   placeholder={t("ecommerce.affiliateTeam.aiTeam")}
                   disabled={!relationshipId || ownershipBusy}
@@ -6165,7 +6188,7 @@ export function CreatorRelationshipDetailModal({
                 <button
                   className="btn btn-secondary btn-sm"
                   type="button"
-                  onClick={() => void toggleRelationshipProtection()}
+                  onClick={toggleRelationshipProtection}
                   disabled={!relationshipId || ownershipBusy}
                 >
                   {relationshipProtection
@@ -6545,6 +6568,24 @@ export function CreatorRelationshipDetailModal({
           </section>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(pendingOwnershipConfirmation)}
+        onCancel={() => setPendingOwnershipConfirmation(null)}
+        onConfirm={confirmOwnershipChange}
+        title={pendingOwnershipConfirmation?.kind === "OWNER"
+          ? t("ecommerce.affiliateWorkspace.relationshipOwner")
+          : t("ecommerce.affiliateWorkspace.relationshipAiParticipation")}
+        message={pendingOwnershipConfirmation?.kind === "OWNER"
+          ? t("ecommerce.affiliateWorkspace.relationshipOwnerChangeConfirm")
+          : t("ecommerce.affiliateWorkspace.relationshipProtectionChangeConfirm")}
+        confirmLabel={pendingOwnershipConfirmation?.kind === "OWNER"
+          ? t("ecommerce.affiliateTeam.assignDeveloper")
+          : relationshipProtection
+            ? t("ecommerce.affiliateTeam.removeProtection", { defaultValue: "Remove protection" })
+            : t("ecommerce.affiliateTeam.addProtectedCreator")}
+        cancelLabel={t("common.cancel")}
+        confirmVariant={pendingOwnershipConfirmation?.kind === "OWNER" ? "primary" : "danger"}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ChannelsIcon, CheckIcon, ChevronRightIcon, CloseIcon, DownloadIcon, GlobeIcon, InfoIcon, RefreshIcon, UserIcon, UserPlusIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
+import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
@@ -69,8 +70,17 @@ type ChannelAccount = {
 };
 type PendingAccountTransfer = {
   channel: "WHATSAPP" | "EMAIL";
-  account: ChannelAccount;
+  accountId: string;
+  displayName?: string | null;
+  phoneNumber?: string | null;
+  emailAddress?: string | null;
 };
+type PendingTeamConfirmation =
+  | { kind: "DISCARD_DEVELOPER_CHANGES" }
+  | { kind: "ARCHIVE_DEVELOPER"; developerId: string; displayName: string }
+  | { kind: "MOVE_ACCOUNT"; channel: "WHATSAPP" | "EMAIL"; accountId: string; nextOwnerId: string }
+  | { kind: "REMOVE_PROTECTION"; protectionId: string; creator: string }
+  | null;
 
 export type DeveloperForm = {
   displayName: string;
@@ -201,6 +211,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [connectChannel, setConnectChannel] = useState<ConnectChannel>(null);
   const [reconnectWhatsAppAccountId, setReconnectWhatsAppAccountId] = useState<string | null>(null);
   const [pendingAccountTransfer, setPendingAccountTransfer] = useState<PendingAccountTransfer | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingTeamConfirmation>(null);
   const [transferTargetId, setTransferTargetId] = useState("");
   const [transferBusy, setTransferBusy] = useState(false);
   const [showUnassignedAccounts, setShowUnassignedAccounts] = useState(false);
@@ -509,9 +520,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setDetailTab("CHANNELS");
   }
 
-  function closeDeveloperDetail() {
-    if (writeState.loading) return;
-    if (detailFormDirty && !window.confirm(t("ecommerce.affiliateTeam.unsavedChangesConfirm"))) return;
+  function closeDeveloperDetailImmediately() {
     setDetailSummary(null);
     setEditingDeveloperId(null);
     setSavedDetailForm(null);
@@ -520,6 +529,15 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setPendingAccountTransfer(null);
     setTransferTargetId("");
     setDetailTab("CHANNELS");
+  }
+
+  function closeDeveloperDetail() {
+    if (writeState.loading) return;
+    if (detailFormDirty) {
+      setPendingConfirmation({ kind: "DISCARD_DEVELOPER_CHANGES" });
+      return;
+    }
+    closeDeveloperDetailImmediately();
   }
 
   function beginCreateDeveloper() {
@@ -569,16 +587,22 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setEditingDeveloperId(null);
   }
 
-  async function handleArchiveDeveloper() {
+  function handleArchiveDeveloper() {
     if (!detailDeveloper || archiveBlocked) return;
-    if (!window.confirm(t("ecommerce.affiliateTeam.archiveConfirm", { name: detailDeveloper.displayName }))) return;
+    setPendingConfirmation({
+      kind: "ARCHIVE_DEVELOPER",
+      developerId: detailDeveloper.id,
+      displayName: detailDeveloper.displayName,
+    });
+  }
+
+  async function archiveDeveloperNow(developerId: string) {
     try {
-      const result = await archiveDeveloper({ variables: { id: detailDeveloper.id } });
+      const result = await archiveDeveloper({ variables: { id: developerId } });
       if (result.data?.archiveAffiliateBusinessDeveloper) {
         workspace.upsertAffiliateBusinessDeveloper(result.data.archiveAffiliateBusinessDeveloper);
       }
-      setDetailSummary(null);
-      setSavedDetailForm(null);
+      closeDeveloperDetailImmediately();
       await Promise.all([developersQuery.refetch(), developerPageQuery.refetch()]);
       showToast(t("ecommerce.affiliateTeam.archived"), "success");
     } catch (error) {
@@ -586,8 +610,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     }
   }
 
-  async function changeAccountOwner(channel: "WHATSAPP" | "EMAIL", accountId: string, nextOwner: string, confirmed = false): Promise<boolean> {
-    if (!confirmed && !window.confirm(t("ecommerce.affiliateTeam.transferConfirm"))) return false;
+  function requestAccountOwnerChange(channel: "WHATSAPP" | "EMAIL", accountId: string, nextOwnerId: string) {
+    setPendingConfirmation({ kind: "MOVE_ACCOUNT", channel, accountId, nextOwnerId });
+  }
+
+  async function changeAccountOwner(channel: "WHATSAPP" | "EMAIL", accountId: string, nextOwner: string): Promise<boolean> {
     try {
       if (channel === "WHATSAPP") {
         if (nextOwner === UNASSIGNED_ID) await unassignWhatsapp({ variables: { accountBindingId: accountId } });
@@ -606,7 +633,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   }
 
   function beginAccountTransfer(channel: "WHATSAPP" | "EMAIL", account: ChannelAccount) {
-    setPendingAccountTransfer({ channel, account });
+    setPendingAccountTransfer({
+      channel,
+      accountId: account.id,
+      displayName: account.displayName,
+      phoneNumber: account.phoneNumber,
+      emailAddress: account.emailAddress,
+    });
     setTransferTargetId("");
   }
 
@@ -615,9 +648,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     setTransferBusy(true);
     const moved = await changeAccountOwner(
       pendingAccountTransfer.channel,
-      pendingAccountTransfer.account.id,
+      pendingAccountTransfer.accountId,
       transferTargetId,
-      true,
     );
     setTransferBusy(false);
     if (moved) {
@@ -1062,18 +1094,87 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     }
   }
 
-  async function removePersistedProtection(protection: GQL.AffiliateCreatorProtection) {
+  function requestRemovePersistedProtection(protection: GQL.AffiliateCreatorProtection) {
     const creator = protection.username ? `@${protection.username}` : protection.creatorOpenId ?? protection.id;
-    if (!window.confirm(t("ecommerce.affiliateTeam.removeProtectionConfirm", {
-      creator,
-      defaultValue: `Remove protection for ${creator}? Existing work may become eligible for AI immediately.`,
-    }))) return;
+    setPendingConfirmation({ kind: "REMOVE_PROTECTION", protectionId: protection.id, creator });
+  }
+
+  async function removePersistedProtection(protectionId: string) {
     try {
-      await removeProtection({ variables: { id: protection.id } });
+      await removeProtection({ variables: { id: protectionId } });
       await protectionQuery.refetch();
       showToast(t("ecommerce.affiliateTeam.protectionRemoved", { defaultValue: "Protection removed" }), "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("ecommerce.updateFailed"), "error");
+    }
+  }
+
+  function pendingConfirmationTitle(): string {
+    switch (pendingConfirmation?.kind) {
+      case "DISCARD_DEVELOPER_CHANGES":
+        return t("ecommerce.affiliateTeam.unsavedChanges");
+      case "ARCHIVE_DEVELOPER":
+        return t("ecommerce.affiliateTeam.archive");
+      case "MOVE_ACCOUNT":
+        return t("ecommerce.affiliateTeam.transferAccount");
+      case "REMOVE_PROTECTION":
+        return t("ecommerce.affiliateTeam.removeProtection", { defaultValue: "Remove protection" });
+      default:
+        return "";
+    }
+  }
+
+  function pendingConfirmationMessage(): string {
+    switch (pendingConfirmation?.kind) {
+      case "DISCARD_DEVELOPER_CHANGES":
+        return t("ecommerce.affiliateTeam.unsavedChangesConfirm");
+      case "ARCHIVE_DEVELOPER":
+        return t("ecommerce.affiliateTeam.archiveConfirm", { name: pendingConfirmation.displayName });
+      case "MOVE_ACCOUNT":
+        return t("ecommerce.affiliateTeam.transferConfirm");
+      case "REMOVE_PROTECTION":
+        return t("ecommerce.affiliateTeam.removeProtectionConfirm", {
+          creator: pendingConfirmation.creator,
+          defaultValue: `Remove protection for ${pendingConfirmation.creator}? Existing work may become eligible for AI immediately.`,
+        });
+      default:
+        return "";
+    }
+  }
+
+  function pendingConfirmationLabel(): string {
+    switch (pendingConfirmation?.kind) {
+      case "ARCHIVE_DEVELOPER":
+        return t("ecommerce.affiliateTeam.archive");
+      case "MOVE_ACCOUNT":
+        return t("ecommerce.affiliateTeam.confirmTransfer");
+      case "REMOVE_PROTECTION":
+        return t("common.remove");
+      default:
+        return t("common.close");
+    }
+  }
+
+  function confirmPendingAction() {
+    const confirmation = pendingConfirmation;
+    if (!confirmation) return;
+    setPendingConfirmation(null);
+    switch (confirmation.kind) {
+      case "DISCARD_DEVELOPER_CHANGES":
+        closeDeveloperDetailImmediately();
+        return;
+      case "ARCHIVE_DEVELOPER":
+        void archiveDeveloperNow(confirmation.developerId);
+        return;
+      case "MOVE_ACCOUNT":
+        void changeAccountOwner(
+          confirmation.channel,
+          confirmation.accountId,
+          confirmation.nextOwnerId,
+        );
+        return;
+      case "REMOVE_PROTECTION":
+        void removePersistedProtection(confirmation.protectionId);
     }
   }
 
@@ -1519,7 +1620,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                       className="btn btn-secondary btn-sm affiliate-protection-directory-action"
                       type="button"
                       disabled={removeProtectionState.loading}
-                      onClick={() => void removePersistedProtection(protection)}
+                      onClick={() => requestRemovePersistedProtection(protection)}
                     >
                       {t("ecommerce.affiliateTeam.removeProtection", { defaultValue: "Remove protection" })}
                     </button>
@@ -1993,14 +2094,11 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                     (protectionImportProgress.completed / protectionImportProgress.total) * 100,
                   )}%</span>
                 </div>
-                <span>
-                  <i style={{
-                    width: `${Math.max(
-                      2,
-                      (protectionImportProgress.completed / protectionImportProgress.total) * 100,
-                    )}%`,
-                  }} />
-                </span>
+                <progress
+                  max={protectionImportProgress.total}
+                  value={protectionImportProgress.completed}
+                  aria-label={t("ecommerce.affiliateTeam.protectionImportBatchProgress", protectionImportProgress)}
+                />
               </div>
             )}
 
@@ -2266,9 +2364,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
               </span>
               <div>
                 <small>{pendingAccountTransfer.channel === "WHATSAPP" ? "WhatsApp" : "Outlook"}</small>
-                <strong>{pendingAccountTransfer.account.displayName || pendingAccountTransfer.account.phoneNumber || pendingAccountTransfer.account.emailAddress || t("ecommerce.affiliateTeam.unnamedAccount")}</strong>
-                {(pendingAccountTransfer.account.phoneNumber || pendingAccountTransfer.account.emailAddress) && pendingAccountTransfer.account.displayName && (
-                  <span>{pendingAccountTransfer.account.phoneNumber || pendingAccountTransfer.account.emailAddress}</span>
+                <strong>{pendingAccountTransfer.displayName || pendingAccountTransfer.phoneNumber || pendingAccountTransfer.emailAddress || t("ecommerce.affiliateTeam.unnamedAccount")}</strong>
+                {(pendingAccountTransfer.phoneNumber || pendingAccountTransfer.emailAddress) && pendingAccountTransfer.displayName && (
+                  <span>{pendingAccountTransfer.phoneNumber || pendingAccountTransfer.emailAddress}</span>
                 )}
               </div>
             </div>
@@ -2340,8 +2438,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       >
         <div className="affiliate-unassigned-body">
           <p>{t("ecommerce.affiliateTeam.unassignedAccountsHint", { defaultValue: "Assign each account to the BD who will use it for creator communication." })}</p>
-          <ChannelAccountRows channel="WHATSAPP" accounts={unassignedWhatsapp} ownerOptions={ownerOptions} onOwnerChange={changeAccountOwner} t={t} />
-          <ChannelAccountRows channel="EMAIL" accounts={unassignedEmail} ownerOptions={ownerOptions} onOwnerChange={changeAccountOwner} t={t} />
+          <ChannelAccountRows channel="WHATSAPP" accounts={unassignedWhatsapp} ownerOptions={ownerOptions} onOwnerChange={requestAccountOwnerChange} t={t} />
+          <ChannelAccountRows channel="EMAIL" accounts={unassignedEmail} ownerOptions={ownerOptions} onOwnerChange={requestAccountOwnerChange} t={t} />
           {unassignedChannelCount === 0 && <div className="affiliate-channel-empty">{t("ecommerce.affiliateTeam.noUnassignedAccounts", { defaultValue: "All outreach accounts are assigned." })}</div>}
         </div>
       </Modal>
@@ -2365,6 +2463,17 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           t={t}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingConfirmation)}
+        onCancel={() => setPendingConfirmation(null)}
+        onConfirm={confirmPendingAction}
+        title={pendingConfirmationTitle()}
+        message={pendingConfirmationMessage()}
+        confirmLabel={pendingConfirmationLabel()}
+        cancelLabel={t("common.cancel")}
+        confirmVariant={pendingConfirmation?.kind === "MOVE_ACCOUNT" ? "primary" : "danger"}
+      />
     </div>
   );
 });

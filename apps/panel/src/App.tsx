@@ -76,7 +76,12 @@ export const App = observer(function App() {
   useEffect(() => {
     function onPopState() {
       const nextPath = resolveRoute(window.location.pathname);
-      if (nextPath !== currentPath && !navigationAllowed(currentPath, nextPath)) {
+      const proceed = () => {
+        window.history.pushState(null, "", nextPath);
+        setCurrentPath(nextPath);
+        trackEvent("panel.page_viewed", { page: pageNameFromRoute(nextPath) });
+      };
+      if (nextPath !== currentPath && !navigationAllowed(currentPath, nextPath, proceed)) {
         window.history.pushState(null, "", currentPath);
         return;
       }
@@ -95,12 +100,15 @@ export const App = observer(function App() {
 
   const navigate = useCallback((path: string) => {
     const route = resolveRoute(path);
-    if (route !== window.location.pathname && !navigationAllowed(currentPath, route)) return;
-    if (route !== window.location.pathname) {
-      window.history.pushState(null, "", route);
-    }
-    setCurrentPath(route);
-    trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
+    const proceed = () => {
+      if (route !== window.location.pathname) {
+        window.history.pushState(null, "", route);
+      }
+      setCurrentPath(route);
+      trackEvent("panel.page_viewed", { page: pageNameFromRoute(route) });
+    };
+    if (route !== window.location.pathname && !navigationAllowed(currentPath, route, proceed)) return;
+    proceed();
   }, [currentPath]);
 
   useEffect(() => {
