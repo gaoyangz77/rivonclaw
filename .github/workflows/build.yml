@@ -68,7 +68,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
@@ -248,7 +248,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-arm64-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
@@ -420,7 +420,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-x64-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
@@ -596,7 +596,7 @@ jobs:
             vendor/openclaw/node_modules
             vendor/openclaw/.gitignore
             vendor/openclaw/dist-runtime
-          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
+          key: vendor-prod-v2-${{ runner.os }}-${{ hashFiles('.openclaw-version') }}-${{ hashFiles('vendor-patches/openclaw/*.patch') }}-${{ hashFiles('scripts/setup-vendor.sh', 'apps/desktop/scripts/prune-vendor-deps.cjs', 'apps/desktop/scripts/pnpm-target-architecture.cjs', 'apps/desktop/scripts/copy-vendor-deps.cjs', 'apps/desktop/scripts/archive-vendor-runtime.cjs', 'apps/desktop/scripts/stage-official-vendor-plugins.cjs') }}
 
       - name: Setup OpenClaw vendor
         if: steps.cache-vendor-prod.outputs.cache-hit != 'true'
