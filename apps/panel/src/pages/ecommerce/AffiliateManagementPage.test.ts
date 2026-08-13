@@ -10,6 +10,7 @@ import {
   affiliateExpectedSalesModelAvailabilityState,
   affiliateSellerSafeMetrics,
   emptyAffiliateProposalPageBuffer,
+  formatExpectedSalesUnits,
   getProposalActionProductId,
   groupAgentWorkBundles,
   isBootstrapModelSelection,
@@ -329,6 +330,34 @@ describe("AffiliateManagementPage proposal source", () => {
       approveCount: 1,
       rejectCount: 1,
     });
+  });
+
+  it("uses an existing Seller SKU when a Sample product title is unavailable", () => {
+    const sampleProposal = {
+      ...proposal("proposal-seller-sku", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      productId: "product-1",
+      productSummary: {
+        productId: "product-1",
+        skus: [{ skuId: "sku-1", sellerSku: "SELLER-ROPE-01" }],
+      },
+      sampleReviewIntent: {
+        sampleApplicationRecordId: "sample-1",
+        platformApplicationId: "platform-1",
+        decision: "REJECT",
+        rejectReason: "OUT_OF_STOCK",
+      },
+    } as unknown as GQL.ActionProposal;
+
+    expect(proposalSampleReviewRows(sampleProposal)[0]).toMatchObject({
+      productTitle: null,
+      productSellerSku: "SELLER-ROPE-01",
+      rejectReason: "OUT_OF_STOCK",
+    });
+  });
+
+  it("formats expected sales to two decimal places", () => {
+    expect(formatExpectedSalesUnits(2.2502386227488933)).toBe("2.25");
+    expect(formatExpectedSalesUnits(0.2)).toBe("0.20");
   });
 
   it("does not attach an unrelated prediction to a Sample step", () => {
