@@ -8,13 +8,15 @@
 
 const { execSync } = require("child_process");
 const fs = require("fs");
+const { createRequire } = require("module");
 const path = require("path");
+const { withPnpmTargetArchitecture } = require("./pnpm-target-architecture.cjs");
 
 const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-11.5";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-12.6";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = [
   "copilot",
@@ -54,6 +56,31 @@ const sqliteVecTargetPackage =
   ["arm64", "x64"].includes(sqliteVecRuntimeArch ?? "")
     ? `sqlite-vec-${sqliteVecRuntimePlatform}-${sqliteVecRuntimeArch}`
     : null;
+const needsCrossArchMacDependencies =
+  process.platform === "darwin" &&
+  sqliteVecRuntimeArch !== null &&
+  sqliteVecRuntimeArch !== process.arch;
+
+function withCrossArchMacDependencies(runInstall) {
+  if (!needsCrossArchMacDependencies) return runInstall();
+
+  const workspacePath = path.join(vendorDir, "pnpm-workspace.yaml");
+  const requireFromVendor = createRequire(path.join(vendorDir, "package.json"));
+  const YAML = requireFromVendor("yaml");
+  const targetArch = sqliteVecRuntimeArch;
+  if (targetArch !== "arm64" && targetArch !== "x64") return runInstall();
+
+  console.log(
+    `[prune-vendor-deps] Installing macOS dependencies for host ${process.arch} ` +
+      `and target ${targetArch} ...`,
+  );
+  return withPnpmTargetArchitecture({
+    workspacePath,
+    targetArch,
+    yaml: YAML,
+    run: runInstall,
+  });
+}
 
 // Package blacklist. Scope-only entries remove every package inside that scope.
 const EXTRA_REMOVE = [
@@ -732,14 +759,16 @@ console.log(
 
 console.log("[prune-vendor-deps] Phase 1: pnpm install --prod ...");
 try {
-  execSync(
-    "pnpm --config.manage-package-manager-versions=false --config.auto-install-peers=false install --prod --no-frozen-lockfile --ignore-scripts",
-    {
-      cwd: vendorDir,
-      stdio: "inherit",
-      timeout: 120_000,
-      env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
-    },
+  withCrossArchMacDependencies(() =>
+    execSync(
+      "pnpm --config.manage-package-manager-versions=false --config.auto-install-peers=false install --prod --no-frozen-lockfile --ignore-scripts",
+      {
+        cwd: vendorDir,
+        stdio: "inherit",
+        timeout: 120_000,
+        env: { ...process.env, CI: "true", npm_config_node_linker: "hoisted" },
+      },
+    ),
   );
 } catch (err) {
   if (err?.code === "ETIMEDOUT" && hasCompletedProductionInstall()) {
@@ -750,6 +779,16 @@ try {
     console.error("[prune-vendor-deps] pnpm install --prod failed:", err.message);
     process.exit(1);
   }
+}
+
+if (
+  sqliteVecTargetPackage &&
+  !fs.existsSync(path.join(nmDir, sqliteVecTargetPackage, "package.json"))
+) {
+  console.error(
+    `[prune-vendor-deps] pnpm did not install required target package ${sqliteVecTargetPackage}`,
+  );
+  process.exit(1);
 }
 
 console.log("[prune-vendor-deps] Materializing production workspace dependencies ...");
