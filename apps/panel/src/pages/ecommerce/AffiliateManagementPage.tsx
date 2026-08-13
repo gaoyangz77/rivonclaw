@@ -205,6 +205,7 @@ export type AffiliateSampleProposalReviewRow = {
   platformApplicationId: string | null;
   productId: string | null;
   productTitle: string | null;
+  productSellerSku: string | null;
   decision: GQL.AffiliateSampleReviewDecision;
   rejectReason: string | null;
   predictionSnapshot: AffiliatePredictionSnapshotView | null;
@@ -1026,7 +1027,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
   function shopLabel(shopId: string): string {
     const shop = shops.find((candidate) => candidate.id === shopId);
-    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
+    return shop?.alias || shop?.shopName || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
   }
 
   if (authChecking) {
@@ -1158,6 +1159,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                     proposal={bundle.proposal}
                     revisionHistory={bundle.revisionHistory}
                     shopLabel={shopLabel(bundle.proposal.focusShopId)}
+                    shopLabelForId={shopLabel}
                     decidingProposal={decidingProposal}
                     affiliateWorkspace={entityStore.affiliateWorkspace}
                     onOpenRelationshipWork={(detailItem) => setSelectedRelationship(relationshipDetailFromWorkItem(detailItem))}
@@ -4546,6 +4548,7 @@ function AgentWorkBundleCard({
   proposal,
   revisionHistory = proposal.revisionHistory ?? [],
   shopLabel,
+  shopLabelForId,
   decidingProposal = false,
   variant = "full",
   allowDecisionActions,
@@ -4559,6 +4562,7 @@ function AgentWorkBundleCard({
   proposal: GQL.ActionProposal;
   revisionHistory?: GQL.ActionProposalRevisionSummary[];
   shopLabel: string;
+  shopLabelForId?: (shopId: string) => string;
   decidingProposal?: boolean;
   variant?: "full" | "compact";
   allowDecisionActions?: boolean;
@@ -4836,7 +4840,10 @@ function AgentWorkBundleCard({
             ) : null}
             <div className="affiliate-proposal-row-context">
               {sampleReviewRows.length > 0 ? (
-                <ProposalSampleDecisionBundle rows={sampleReviewRows} />
+                <ProposalSampleDecisionBundle
+                  rows={sampleReviewRows}
+                  shopLabelForId={shopLabelForId ?? (() => shopLabel)}
+                />
               ) : null}
               <ProposalPredictionComparison
                 snapshot={predictionSnapshot}
@@ -4964,7 +4971,10 @@ function AgentWorkBundleCard({
         {bodyExpanded ? (
           <>
             {sampleReviewRows.length > 0 ? (
-              <ProposalSampleDecisionBundle rows={sampleReviewRows} />
+              <ProposalSampleDecisionBundle
+                rows={sampleReviewRows}
+                shopLabelForId={shopLabelForId ?? (() => shopLabel)}
+              />
             ) : null}
             <ProposalPredictionComparison
               snapshot={predictionSnapshot}
@@ -5175,19 +5185,28 @@ export function proposalSampleReviewRows(
       source,
       sources.length === 1,
     );
+    const productId =
+      source.productId ??
+      snapshot?.resolvedContext?.productId ??
+      snapshot?.subject?.productId ??
+      null;
+    const productSummary = proposal.productSummary?.productId === productId
+      ? proposal.productSummary
+      : null;
+    const productSellerSku = productSummary?.skus
+      ?.map((sku) => sku.sellerSku?.trim())
+      .find((sellerSku): sellerSku is string => Boolean(sellerSku)) ?? null;
     return {
       stepId: source.stepId,
       shopId: source.shopId,
       sampleApplicationRecordId: source.sampleApplicationRecordId,
       platformApplicationId: source.sampleReviewIntent.platformApplicationId ?? null,
-      productId:
-        source.productId ??
-        snapshot?.resolvedContext?.productId ??
-        snapshot?.subject?.productId ??
-        null,
+      productId,
       productTitle:
         snapshot?.resolvedContext?.productTitle ??
+        productSummary?.title ??
         (sources.length === 1 ? proposal.productSummary?.title ?? null : null),
+      productSellerSku,
       decision: source.sampleReviewIntent.decision,
       rejectReason: source.sampleReviewIntent.rejectReason ?? null,
       predictionSnapshot: snapshot,
@@ -5248,8 +5267,10 @@ function findPredictionSnapshotForSampleSource(
 
 function ProposalSampleDecisionBundle({
   rows,
+  shopLabelForId,
 }: {
   rows: AffiliateSampleProposalReviewRow[];
+  shopLabelForId: (shopId: string) => string;
 }) {
   const { t } = useTranslation();
   const summary = summarizeSampleProposalReviewRows(rows);
@@ -5286,32 +5307,37 @@ function ProposalSampleDecisionBundle({
             typeof output?.humanDecision?.wouldApprove === "boolean"
               ? output.humanDecision.wouldApprove
               : null;
-          const predictionMeta = [
-            row.predictionSnapshot?.status,
-            output?.expectedSalesStatus,
-            output?.predictionQuality?.level,
-            row.predictionSnapshot?.capturedAt ?? row.predictionSnapshot?.predictedAt,
-          ].filter(Boolean);
           const approves = row.decision === GQL.AffiliateSampleReviewDecision.Approve;
+          const productLabel = row.productTitle
+            || (row.productSellerSku
+              ? `${t("ecommerce.affiliateWorkspace.sampleDecisionBundle.sellerSku")} ${row.productSellerSku}`
+              : row.productId || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct"));
+          const decisionLabel = approves
+            ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approve")
+            : row.rejectReason
+              ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectWithReason", {
+                  reason: t(`ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectReasons.${row.rejectReason}`, {
+                    defaultValue: formatAffiliateEnumLabel(row.rejectReason),
+                  }),
+                })
+              : t("ecommerce.affiliateWorkspace.sampleDecisionBundle.reject");
           return (
             <article className="affiliate-sample-decision-row" key={row.stepId}>
               <div className="affiliate-sample-decision-identity">
                 <span className="affiliate-sample-decision-index">{index + 1}</span>
                 <div>
-                  <strong>{row.productTitle || row.productId || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct")}</strong>
-                  {row.productTitle && row.productId ? <small>{row.productId}</small> : null}
+                  <strong>{productLabel}</strong>
                   <div className="affiliate-sample-decision-identifiers">
                     <span>
                       {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.localApplication")}
-                      <SystemIdCopy value={row.sampleApplicationRecordId} />
                     </span>
+                    <SystemIdCopy value={row.sampleApplicationRecordId} />
+                    <PlatformIdCopy value={row.platformApplicationId} />
                     <span>
-                      {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.providerApplication")}
-                      <PlatformIdCopy value={row.platformApplicationId} />
-                    </span>
-                    <span>
-                      {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.shop")}
-                      <PlatformIdCopy value={row.shopId} />
+                      {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.shop")}：
+                      {row.shopId
+                        ? shopLabelForId(row.shopId)
+                        : t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop")}
                     </span>
                   </div>
                 </div>
@@ -5319,18 +5345,12 @@ function ProposalSampleDecisionBundle({
               <div className="affiliate-sample-decision-metric">
                 <span>{t("ecommerce.affiliateWorkspace.predictionComparison.expectedSales")}</span>
                 <strong>{expectedSales ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unavailable")}</strong>
-                <small>{predictionMeta.map((value) => formatAffiliateEnumLabel(String(value))).join(" · ") || "—"}</small>
               </div>
               <div className="affiliate-sample-decision-metric">
                 <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.agentDecision")}</span>
                 <strong className={approves ? "affiliate-sample-decision-approve" : "affiliate-sample-decision-reject"}>
-                  {t(
-                    approves
-                      ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.approve"
-                      : "ecommerce.affiliateWorkspace.sampleDecisionBundle.reject",
-                  )}
+                  {decisionLabel}
                 </strong>
-                <small>{row.rejectReason ? formatAffiliateEnumLabel(row.rejectReason) : "—"}</small>
               </div>
               <div className="affiliate-sample-decision-metric affiliate-sample-decision-history">
                 <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.historicalStaff")}</span>
@@ -5343,7 +5363,6 @@ function ProposalSampleDecisionBundle({
                           : "ecommerce.affiliateWorkspace.sampleDecisionBundle.reject",
                       )}
                 </strong>
-                <small>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.displayOnly")}</small>
               </div>
             </article>
           );
@@ -6211,7 +6230,7 @@ export function CreatorRelationshipDetailModal({
   const rawShopStates = relationship?.shopStates ?? (item.shopState ? [item.shopState] : []);
   const relationshipShopName = (shopId: string) => {
     const shop = entityStore.shops.find((candidate) => candidate.id === shopId);
-    return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
+    return shop?.alias || shop?.shopName || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
   };
   const [relationshipOwnerId, setRelationshipOwnerId] = useState(relationship?.businessDeveloperId ?? "");
   const [pendingOwnershipConfirmation, setPendingOwnershipConfirmation] = useState<
@@ -6957,6 +6976,7 @@ export function CreatorRelationshipDetailModal({
                             key={proposal.id}
                             proposal={proposal}
                             shopLabel={t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}
+                            shopLabelForId={relationshipShopName}
                             variant="full"
                           />
                         ))}
@@ -6968,7 +6988,13 @@ export function CreatorRelationshipDetailModal({
                       <h3>{t("ecommerce.affiliateWorkspace.relationshipProposalHistory", { defaultValue: "Proposal history" })}</h3>
                       <div className="affiliate-relationship-work-overview-proposal-list">
                         {relationshipProposals.filter((proposal) => proposal.status !== GQL.ActionProposalStatus.Pending).map((proposal) => (
-                          <AgentWorkBundleCard key={proposal.id} proposal={proposal} shopLabel={relationshipShopName(proposal.focusShopId)} variant="compact" />
+                          <AgentWorkBundleCard
+                            key={proposal.id}
+                            proposal={proposal}
+                            shopLabel={relationshipShopName(proposal.focusShopId)}
+                            shopLabelForId={relationshipShopName}
+                            variant="compact"
+                          />
                         ))}
                       </div>
                     </section>
@@ -7735,9 +7761,10 @@ function formatCompactNumber(value: number): string {
   }).format(value);
 }
 
-function formatExpectedSalesUnits(value: number): string {
+export function formatExpectedSalesUnits(value: number): string {
   return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 4,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 

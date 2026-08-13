@@ -17,7 +17,7 @@ describe("Affiliate proposal translations", () => {
         LANGUAGE_RESOURCES[language].translation as {
           ecommerce: {
             affiliateWorkspace: {
-              sampleDecisionBundle: Record<string, string>;
+              sampleDecisionBundle: Record<string, unknown>;
             };
           };
         }
@@ -36,18 +36,25 @@ describe("Affiliate proposal translations", () => {
         "overrideNote",
         "overrideSuccess",
         "localApplication",
-        "providerApplication",
         "shop",
+        "unknownShop",
+        "sellerSku",
         "unknownProduct",
         "unavailable",
         "agentDecision",
         "approve",
         "reject",
+        "rejectWithReason",
         "historicalStaff",
-        "displayOnly",
       ]) {
         expect(bundle[key], `${language}.${key}`).toBeTruthy();
       }
+      expect(bundle.rejectReasons, `${language}.rejectReasons`).toEqual(expect.objectContaining({
+        NOT_MATCH: expect.any(String),
+        OFFLINE: expect.any(String),
+        OUT_OF_STOCK: expect.any(String),
+        OTHER: expect.any(String),
+      }));
     }
   });
 });
