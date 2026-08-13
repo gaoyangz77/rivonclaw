@@ -69,7 +69,7 @@ export default {
     "customerServiceExperiments": "Eksperimen",
     "affiliateManagement": "Manajemen Afiliasi",
     "affiliateIntelligence": "Intelijen Afiliasi",
-    "affiliateNeedsAttention": "Proposal tindakan",
+    "affiliateNeedsAttention": "Ruang kerja Agent",
     "affiliateStaffHandling": "Penanganan staf",
     "affiliateCreators": "Kreator kerja sama",
     "affiliateInProgress": "Sedang berjalan",
@@ -2589,7 +2589,7 @@ export default {
       },
       "emptyCreators": "Belum ada kreator kerja sama untuk toko ini.",
       "pageTitles": {
-        "NEEDS_ATTENTION": "Proposal tindakan",
+        "NEEDS_ATTENTION": "Ruang kerja Agent",
         "IN_PROGRESS": "Pekerjaan afiliasi berjalan",
         "HISTORY": "Riwayat afiliasi"
       },

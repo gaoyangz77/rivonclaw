@@ -69,7 +69,7 @@ export default {
     "customerServiceExperiments": "Expériences",
     "affiliateManagement": "Gestion des affiliations",
     "affiliateIntelligence": "Intelligence affiliée",
-    "affiliateNeedsAttention": "Propositions d'action",
+    "affiliateNeedsAttention": "Espace de travail Agent",
     "affiliateStaffHandling": "Traitement manuel",
     "affiliateCreators": "Créateurs partenaires",
     "affiliateInProgress": "En cours",
@@ -2589,7 +2589,7 @@ export default {
       },
       "emptyCreators": "Aucun créateur partenaire pour cette boutique pour le moment.",
       "pageTitles": {
-        "NEEDS_ATTENTION": "Propositions d'action",
+        "NEEDS_ATTENTION": "Espace de travail Agent",
         "IN_PROGRESS": "Travail affilié en cours",
         "HISTORY": "Historique affilié"
       },

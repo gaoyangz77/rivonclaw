@@ -69,7 +69,7 @@ export default {
     "customerServiceExperiments": "การทดลอง",
     "affiliateManagement": "การจัดการพันธมิตร",
     "affiliateIntelligence": "Affiliate Intelligence",
-    "affiliateNeedsAttention": "ข้อเสนอการดำเนินการ",
+    "affiliateNeedsAttention": "พื้นที่ทำงาน Agent",
     "affiliateStaffHandling": "งานที่ต้องให้พนักงานจัดการ",
     "affiliateCreators": "ครีเอเตอร์ที่ร่วมงาน",
     "affiliateInProgress": "กำลังดำเนินการ",
@@ -2589,7 +2589,7 @@ export default {
       },
       "emptyCreators": "ยังไม่มีครีเอเตอร์ที่ร่วมงานสำหรับร้านค้านี้",
       "pageTitles": {
-        "NEEDS_ATTENTION": "ข้อเสนอการดำเนินการ",
+        "NEEDS_ATTENTION": "พื้นที่ทำงาน Agent",
         "IN_PROGRESS": "งานพันธมิตรที่กำลังดำเนินการ",
         "HISTORY": "ประวัติพันธมิตร"
       },
