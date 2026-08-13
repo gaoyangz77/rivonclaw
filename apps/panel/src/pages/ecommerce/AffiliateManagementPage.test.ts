@@ -276,7 +276,6 @@ describe("AffiliateManagementPage proposal source", () => {
           productId: "product-1",
           sampleApplicationRecordId: "sample-1",
           predictionCacheIds: ["prediction-1"],
-          operatorSummary: "Approve the stronger application.",
           sampleReviewIntent: {
             sampleApplicationRecordId: "sample-1",
             platformApplicationId: "platform-1",
@@ -290,7 +289,6 @@ describe("AffiliateManagementPage proposal source", () => {
           productId: "product-2",
           sampleApplicationRecordId: "sample-2",
           predictionCacheIds: ["prediction-2"],
-          operatorSummary: "Reject the weaker application.",
           sampleReviewIntent: {
             sampleApplicationRecordId: "sample-2",
             platformApplicationId: "platform-2",
@@ -304,6 +302,9 @@ describe("AffiliateManagementPage proposal source", () => {
     const rows = proposalSampleReviewRows(multiSampleProposal);
 
     expect(rows).toHaveLength(2);
+    expect(
+      rows.every((row) => !Object.prototype.hasOwnProperty.call(row, "operatorSummary")),
+    ).toBe(true);
     expect(rows.map((row) => ({
       sampleId: row.sampleApplicationRecordId,
       decision: row.decision,
@@ -354,7 +355,6 @@ describe("AffiliateManagementPage proposal source", () => {
         productId: "product-target",
         sampleApplicationRecordId: "sample-target",
         predictionCacheIds: ["prediction-target"],
-        operatorSummary: "Review target.",
         sampleReviewIntent: {
           sampleApplicationRecordId: "sample-target",
           platformApplicationId: "platform-target",

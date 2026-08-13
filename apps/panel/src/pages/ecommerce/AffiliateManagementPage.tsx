@@ -207,7 +207,6 @@ export type AffiliateSampleProposalReviewRow = {
   productTitle: string | null;
   decision: GQL.AffiliateSampleReviewDecision;
   rejectReason: string | null;
-  operatorSummary: string | null;
   predictionSnapshot: AffiliatePredictionSnapshotView | null;
 };
 
@@ -5134,7 +5133,6 @@ export function proposalSampleReviewRows(
     shopId: string | null;
     sampleApplicationRecordId: string | null;
     productId: string | null;
-    operatorSummary: string | null;
     predictionCacheIds: string[];
     sampleReviewIntent: GQL.ActionProposalSampleReviewIntent;
   }> = sampleSteps.length > 0
@@ -5150,7 +5148,6 @@ export function proposalSampleReviewRows(
             step.sampleApplicationRecordId ??
             null,
           productId: step.productId ?? null,
-          operatorSummary: step.operatorSummary?.trim() || null,
           predictionCacheIds: step.predictionCacheIds ?? [],
           sampleReviewIntent: step.sampleReviewIntent,
         }))
@@ -5166,7 +5163,6 @@ export function proposalSampleReviewRows(
             proposal.productId ??
             proposal.sampleApplicationRecord?.productId ??
             null,
-          operatorSummary: proposal.operatorSummary?.trim() || null,
           predictionCacheIds: proposal.predictionCacheIds ?? [],
           sampleReviewIntent: proposal.sampleReviewIntent,
         }]
@@ -5194,7 +5190,6 @@ export function proposalSampleReviewRows(
         (sources.length === 1 ? proposal.productSummary?.title ?? null : null),
       decision: source.sampleReviewIntent.decision,
       rejectReason: source.sampleReviewIntent.rejectReason ?? null,
-      operatorSummary: source.operatorSummary,
       predictionSnapshot: snapshot,
     };
   });
@@ -5305,7 +5300,6 @@ function ProposalSampleDecisionBundle({
                 <div>
                   <strong>{row.productTitle || row.productId || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct")}</strong>
                   {row.productTitle && row.productId ? <small>{row.productId}</small> : null}
-                  {row.operatorSummary ? <p>{row.operatorSummary}</p> : null}
                   <div className="affiliate-sample-decision-identifiers">
                     <span>
                       {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.localApplication")}
