@@ -34,6 +34,24 @@ const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
 const AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME = "AffiliatePredictCreatorProductFit";
 const AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME = "AffiliateRelationshipTimeline";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
+const AFFILIATE_STAFF_DECISION_FIELD_NAMES = new Set([
+  "humanDecision",
+  "humanDecisionSelection",
+  "humanDecisionStatus",
+  "humanApprovalProbability",
+  "humanApprovalPercentile",
+  "wouldApprove",
+  "approvalCutoff",
+  "historicalApprovalRate",
+  // Legacy aliases for the same historical staff-imitation signal.
+  "merchantAcceptance",
+  "merchantAcceptanceSelection",
+  "merchantAcceptanceStatus",
+  "merchantAcceptanceProbability",
+  "merchantAcceptancePercentile",
+  "wouldAccept",
+  "acceptanceCutoff",
+]);
 
 function extractOperationName(query: string): string | null {
   const m = query.match(/(?:query|mutation)\s+(\w+)/);
@@ -42,6 +60,25 @@ function extractOperationName(query: string): string | null {
 
 function isModuleEnrollmentOperation(opName: string | null): boolean {
   return opName !== null && MODULE_ENROLLMENT_OP_NAMES.has(opName);
+}
+
+function isAffiliateGraphqlOperation(opName: string | null, query: string): boolean {
+  return opName?.toLowerCase().includes("affiliate") === true
+    || /\b(?:affiliate[A-Z]|resolveAffiliate)/.test(query);
+}
+
+function redactAffiliateStaffDecisionEvidence(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(redactAffiliateStaffDecisionEvidence);
+  }
+  const record = asRecord(value);
+  if (!record) return value;
+  const redacted: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(record)) {
+    if (AFFILIATE_STAFF_DECISION_FIELD_NAMES.has(key)) continue;
+    redacted[key] = redactAffiliateStaffDecisionEvidence(child);
+  }
+  return redacted;
 }
 
 function runAuthChangeInBackground(ctx: ApiContext): void {
@@ -750,7 +787,13 @@ const cloudGraphql: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
       runCloudLlmEntitlementSyncInBackground(ctx);
     }
 
-    sendJson(res, 200, envelope ?? { data });
+    const responseData = isExtension && isAffiliateGraphqlOperation(opName, body.query)
+      ? redactAffiliateStaffDecisionEvidence(data)
+      : data;
+    const responseEnvelope = envelope
+      ? { ...envelope, data: responseData }
+      : { data: responseData };
+    sendJson(res, 200, responseEnvelope);
   } catch (err) {
     // undici's "fetch failed" TypeError hides the real error in .cause
     const cause =
