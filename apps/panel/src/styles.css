@@ -19608,12 +19608,11 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-agent-workspace-switch {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   min-height: 38px;
-  padding: 0 12px 0 8px;
-  border: 1px solid var(--color-border-light);
-  border-radius: 999px;
-  background: var(--color-bg);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--color-text-secondary);
   font: inherit;
   font-size: 13px;
@@ -19621,14 +19620,10 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast),
-    box-shadow var(--transition-fast);
+    color var(--transition-fast);
 }
 
 .affiliate-agent-workspace-switch:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border-light));
   color: var(--color-primary);
 }
 
@@ -19638,39 +19633,51 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-agent-workspace-switch-active {
-  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
-  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
   color: var(--color-primary);
-  box-shadow: var(--shadow-xs);
 }
 
 .affiliate-agent-workspace-switch-track {
-  display: inline-flex;
-  align-items: center;
-  width: 34px;
-  height: 20px;
-  padding: 2px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-text-muted) 28%, var(--color-bg));
-  transition: background var(--transition-fast);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 20px);
+  width: 42px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 78%, var(--color-bg));
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--color-bg);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
-.affiliate-agent-workspace-switch-active .affiliate-agent-workspace-switch-track {
-  background: var(--color-primary);
+.affiliate-agent-workspace-switch:hover .affiliate-agent-workspace-switch-track,
+.affiliate-agent-workspace-switch:focus-visible .affiliate-agent-workspace-switch-track {
+  border-color: color-mix(in srgb, var(--color-primary) 54%, var(--color-border-strong));
+}
+
+.affiliate-agent-workspace-switch-slot + .affiliate-agent-workspace-switch-slot {
+  border-left: 1px solid var(--color-border-light);
 }
 
 .affiliate-agent-workspace-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
-  background: var(--color-bg);
-  box-shadow: 0 1px 4px rgb(15 23 42 / 18%);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-text-muted) 62%, var(--color-bg));
+  box-shadow: 0 1px 3px rgb(15 23 42 / 16%);
   transform: translateX(0);
-  transition: transform var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .affiliate-agent-workspace-switch-active .affiliate-agent-workspace-switch-thumb {
-  transform: translateX(14px);
+  background: var(--color-primary);
+  transform: translateX(20px);
 }
 
 .affiliate-workbench-panel-head {

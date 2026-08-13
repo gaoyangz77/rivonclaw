@@ -1087,10 +1087,12 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
               className={`affiliate-agent-workspace-switch${agentWorkspaceView === "PENDING" ? " affiliate-agent-workspace-switch-active" : ""}`}
               onClick={() => setAgentWorkspaceView((view) => view === "PENDING" ? "ALL" : "PENDING")}
             >
+              <span>{t("ecommerce.affiliateWorkspace.agentWorkspaceViews.PENDING")}</span>
               <span className="affiliate-agent-workspace-switch-track" aria-hidden="true">
+                <span className="affiliate-agent-workspace-switch-slot" />
+                <span className="affiliate-agent-workspace-switch-slot" />
                 <span className="affiliate-agent-workspace-switch-thumb" />
               </span>
-              <span>{t("ecommerce.affiliateWorkspace.agentWorkspaceViews.PENDING")}</span>
             </button>
           </div>
           <div
