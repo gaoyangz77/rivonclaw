@@ -36,6 +36,18 @@ describe("Affiliate business developer region editor", () => {
     });
   });
 
+  it("uses the saved mutation response as a stable dirty-state baseline", () => {
+    const staleWorkspaceDeveloper = developer;
+    const savedDeveloper = {
+      ...developer,
+      businessPrompt: "Move accepted collaborations to WhatsApp.",
+    };
+    const savedForm = developerFormFrom(savedDeveloper);
+
+    expect(isDeveloperFormDirty(savedForm, staleWorkspaceDeveloper)).toBe(true);
+    expect(isDeveloperFormDirty(savedForm, savedForm)).toBe(false);
+  });
+
   it("renders only supported shop regions and has no other-region option", () => {
     const t = ((key: string, options?: Record<string, unknown>) =>
       String(options?.defaultValue ?? key)) as never;
