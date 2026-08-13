@@ -350,8 +350,7 @@ const PROPOSAL_TYPE_FILTERS = [
 
 type ProposalTypeFilter = (typeof PROPOSAL_TYPE_FILTERS)[number];
 
-const AGENT_WORKSPACE_VIEWS = ["PENDING", "ALL"] as const;
-type AgentWorkspaceView = (typeof AGENT_WORKSPACE_VIEWS)[number];
+type AgentWorkspaceView = "PENDING" | "ALL";
 
 type AffiliateActionProposalPageData = {
   affiliateActionProposalPage: {
@@ -1080,23 +1079,19 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head affiliate-attention-panel-head affiliate-agent-workspace-controls">
-          <div
-            className="affiliate-agent-workspace-tabs"
-            role="tablist"
-            aria-label={t("ecommerce.affiliateWorkspace.agentWorkspaceViews.label")}
-          >
-            {AGENT_WORKSPACE_VIEWS.map((view) => (
-              <button
-                key={view}
-                type="button"
-                role="tab"
-                aria-selected={agentWorkspaceView === view}
-                className={`affiliate-agent-workspace-tab${agentWorkspaceView === view ? " affiliate-agent-workspace-tab-active" : ""}`}
-                onClick={() => setAgentWorkspaceView(view)}
-              >
-                {t(`ecommerce.affiliateWorkspace.agentWorkspaceViews.${view}`)}
-              </button>
-            ))}
+          <div className="affiliate-agent-workspace-view-control">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={agentWorkspaceView === "PENDING"}
+              className={`affiliate-agent-workspace-switch${agentWorkspaceView === "PENDING" ? " affiliate-agent-workspace-switch-active" : ""}`}
+              onClick={() => setAgentWorkspaceView((view) => view === "PENDING" ? "ALL" : "PENDING")}
+            >
+              <span className="affiliate-agent-workspace-switch-track" aria-hidden="true">
+                <span className="affiliate-agent-workspace-switch-thumb" />
+              </span>
+              <span>{t("ecommerce.affiliateWorkspace.agentWorkspaceViews.PENDING")}</span>
+            </button>
           </div>
           <div
             className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}

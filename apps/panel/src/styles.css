@@ -19595,44 +19595,82 @@ html[lang="zh"] .acct-tool-chips {
   box-shadow: 0 10px 28px color-mix(in srgb, var(--color-text) 5%, transparent);
 }
 
-.affiliate-agent-workspace-tabs {
+.affiliate-agent-workspace-view-control {
   display: flex;
-  gap: 22px;
+  align-items: center;
   flex: 0 0 auto;
   align-self: flex-end;
+  min-height: 38px;
+  padding-right: 28px;
+  border-right: 1px solid var(--color-border-light);
 }
 
-.affiliate-agent-workspace-tab {
-  position: relative;
+.affiliate-agent-workspace-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   min-height: 38px;
-  padding: 0 2px;
-  border: 0;
-  background: transparent;
-  color: var(--color-text-muted);
+  padding: 0 12px 0 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
   font: inherit;
   font-size: 13px;
-  font-weight: 680;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
-.affiliate-agent-workspace-tab::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: -13px;
-  left: 0;
-  height: 2px;
-  border-radius: 999px 999px 0 0;
-  background: transparent;
-}
-
-.affiliate-agent-workspace-tab:hover,
-.affiliate-agent-workspace-tab-active {
+.affiliate-agent-workspace-switch:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border-light));
   color: var(--color-primary);
 }
 
-.affiliate-agent-workspace-tab-active::after {
+.affiliate-agent-workspace-switch:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 16%, transparent);
+  outline-offset: 2px;
+}
+
+.affiliate-agent-workspace-switch-active {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
+  color: var(--color-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.affiliate-agent-workspace-switch-track {
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-muted) 28%, var(--color-bg));
+  transition: background var(--transition-fast);
+}
+
+.affiliate-agent-workspace-switch-active .affiliate-agent-workspace-switch-track {
   background: var(--color-primary);
+}
+
+.affiliate-agent-workspace-switch-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 18%);
+  transform: translateX(0);
+  transition: transform var(--transition-fast);
+}
+
+.affiliate-agent-workspace-switch-active .affiliate-agent-workspace-switch-thumb {
+  transform: translateX(14px);
 }
 
 .affiliate-workbench-panel-head {
@@ -23145,12 +23183,12 @@ html[lang="zh"] .acct-tool-chips {
     gap: 12px;
   }
 
-  .affiliate-agent-workspace-controls .affiliate-agent-workspace-tabs {
+  .affiliate-agent-workspace-controls .affiliate-agent-workspace-view-control {
     align-self: stretch;
-  }
-
-  .affiliate-agent-workspace-controls .affiliate-agent-workspace-tab::after {
-    bottom: 0;
+    padding-right: 0;
+    padding-bottom: 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-light);
   }
 
   .affiliate-agent-workspace-controls .affiliate-attention-toolbar {
