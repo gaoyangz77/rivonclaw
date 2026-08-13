@@ -4,6 +4,8 @@ import type { AffiliateCampaignSearchPlanRequestPayload } from "../cloud/backend
 import { runStructuredOneShotAgent } from "../gateway/structured-one-shot-agent.js";
 
 const log = createLogger("affiliate-campaign-search-plan");
+export const DEFAULT_SEARCH_PLAN_GENERATION_CONCURRENCY = 3;
+export const SEARCH_PLAN_AGENT_TIMEOUT_MS = 3 * 60 * 1000;
 
 const CLAIM = `mutation ClaimAffiliateCampaignSearchPlanGeneration($input: ClaimAffiliateCampaignSearchPlanGenerationInput!) {
   claimAffiliateCampaignSearchPlanGeneration(input: $input) {
@@ -43,36 +45,99 @@ type GenerationContext = {
 };
 
 export class AffiliateCampaignSearchPlanActuator {
-  private tail: Promise<void> = Promise.resolve();
+  private readonly pendingByShop = new Map<string, AffiliateCampaignSearchPlanRequestPayload[]>();
+  private readonly shopOrder: string[] = [];
   private readonly enqueued = new Set<string>();
+  private readonly idleWaiters = new Set<() => void>();
+  private activeCount = 0;
+  private pendingCount = 0;
+  private lastStartedShopId: string | undefined;
+  private readonly maxConcurrency: number;
 
   constructor(
     private readonly authSession: BackendClient,
     private readonly deviceId: string,
     private readonly getUiLocale: () => string,
     private readonly generate: typeof generatePlan = generatePlan,
-  ) {}
+    maxConcurrency = DEFAULT_SEARCH_PLAN_GENERATION_CONCURRENCY,
+  ) {
+    this.maxConcurrency = Number.isFinite(maxConcurrency)
+      ? Math.max(1, Math.floor(maxConcurrency))
+      : DEFAULT_SEARCH_PLAN_GENERATION_CONCURRENCY;
+  }
 
   enqueue(request: AffiliateCampaignSearchPlanRequestPayload): void {
     const key = `${request.searchPlanId}:${request.generation}:${request.attempt}`;
     if (this.enqueued.has(key)) return;
     this.enqueued.add(key);
-    this.tail = this.tail
-      .then(() => this.process(request))
-      .catch((error) => {
-        log.error("SearchPlan actuator queue failed", {
-          searchPlanId: request.searchPlanId,
-          generation: request.generation,
-          error: errorMessage(error),
-        });
-      })
-      .finally(() => {
-        this.enqueued.delete(key);
-      });
+    const shopQueue = this.pendingByShop.get(request.shopId);
+    if (shopQueue) {
+      shopQueue.push(request);
+    } else {
+      this.pendingByShop.set(request.shopId, [request]);
+      this.shopOrder.push(request.shopId);
+    }
+    this.pendingCount += 1;
+    this.drain();
   }
 
   async waitForIdle(): Promise<void> {
-    await this.tail;
+    if (this.activeCount === 0 && this.pendingCount === 0) return;
+    await new Promise<void>((resolve) => this.idleWaiters.add(resolve));
+  }
+
+  private drain(): void {
+    while (this.activeCount < this.maxConcurrency && this.pendingCount > 0) {
+      const request = this.takeNext();
+      if (!request) break;
+      this.activeCount += 1;
+      const key = `${request.searchPlanId}:${request.generation}:${request.attempt}`;
+      void this.process(request)
+        .catch((error) => {
+          log.error("SearchPlan actuator queue failed", {
+            searchPlanId: request.searchPlanId,
+            generation: request.generation,
+            error: errorMessage(error),
+          });
+        })
+        .finally(() => {
+          this.enqueued.delete(key);
+          this.activeCount -= 1;
+          this.drain();
+          this.resolveIdleIfNeeded();
+        });
+    }
+  }
+
+  private takeNext(): AffiliateCampaignSearchPlanRequestPayload | undefined {
+    if (!this.shopOrder.length) return undefined;
+    let index = this.shopOrder.findIndex((shopId) => shopId !== this.lastStartedShopId);
+    if (index < 0) index = 0;
+    const [shopId] = this.shopOrder.splice(index, 1);
+    if (!shopId) return undefined;
+    const shopQueue = this.pendingByShop.get(shopId);
+    if (!shopQueue) {
+      return this.takeNext();
+    }
+    const request = shopQueue.shift();
+    if (!request) {
+      this.pendingByShop.delete(shopId);
+      return this.takeNext();
+    }
+    this.pendingCount -= 1;
+    this.lastStartedShopId = shopId;
+    if (shopQueue.length) {
+      this.shopOrder.push(shopId);
+    } else {
+      this.pendingByShop.delete(shopId);
+    }
+    return request;
+  }
+
+  private resolveIdleIfNeeded(): void {
+    if (this.activeCount !== 0 || this.pendingCount !== 0) return;
+    for (const resolve of this.idleWaiters) resolve();
+    this.idleWaiters.clear();
   }
 
   private async process(request: AffiliateCampaignSearchPlanRequestPayload): Promise<void> {
@@ -80,12 +145,14 @@ export class AffiliateCampaignSearchPlanActuator {
     try {
       const claimed = await this.authSession.graphqlFetch<{
         claimAffiliateCampaignSearchPlanGeneration: GenerationContext;
-      }>(CLAIM, { input: {
-        searchPlanId: request.searchPlanId,
-        generation: request.generation,
-        deviceId: this.deviceId,
-        uiLocale: this.getUiLocale(),
-      } });
+      }>(CLAIM, {
+        input: {
+          searchPlanId: request.searchPlanId,
+          generation: request.generation,
+          deviceId: this.deviceId,
+          uiLocale: this.getUiLocale(),
+        },
+      });
       context = claimed.claimAffiliateCampaignSearchPlanGeneration;
     } catch (error) {
       log.info("SearchPlan request was not claimable", {
@@ -100,19 +167,21 @@ export class AffiliateCampaignSearchPlanActuator {
       for (let semanticAttempt = 1; semanticAttempt <= 2; semanticAttempt += 1) {
         const generated = await this.generate(context, semanticAttempt);
         try {
-          await this.authSession.graphqlFetch(SUBMIT, { input: {
-            searchPlanId: request.searchPlanId,
-            generation: request.generation,
-            configRevision: request.configRevision,
-            leaseToken: context.leaseToken,
-            productSnapshotHash: context.productSnapshot.snapshotHash,
-            uiLocale: context.uiLocale,
-            phrase: {
-              text: generated.value.keyword,
-              explanation: generated.value.explanation,
-              discoveryRules: providerRules(generated.value.rules),
+          await this.authSession.graphqlFetch(SUBMIT, {
+            input: {
+              searchPlanId: request.searchPlanId,
+              generation: request.generation,
+              configRevision: request.configRevision,
+              leaseToken: context.leaseToken,
+              productSnapshotHash: context.productSnapshot.snapshotHash,
+              uiLocale: context.uiLocale,
+              phrase: {
+                text: generated.value.keyword,
+                explanation: generated.value.explanation,
+                discoveryRules: providerRules(generated.value.rules),
+              },
             },
-          } });
+          });
           log.info("Dynamic Affiliate Campaign SearchPlan generated", {
             searchPlanId: request.searchPlanId,
             generation: request.generation,
@@ -125,8 +194,10 @@ export class AffiliateCampaignSearchPlanActuator {
           return;
         } catch (error) {
           const message = errorMessage(error);
-          const retryable = message.includes("SEARCH_PLAN_DUPLICATE_WITHIN_30_DAYS") ||
-            message.includes("CAPABILITY") || message.includes("ENGLISH_PHRASE");
+          const retryable =
+            message.includes("SEARCH_PLAN_DUPLICATE_WITHIN_30_DAYS") ||
+            message.includes("CAPABILITY") ||
+            message.includes("ENGLISH_PHRASE");
           if (!retryable || semanticAttempt === 2) throw error;
         }
       }
@@ -136,33 +207,47 @@ export class AffiliateCampaignSearchPlanActuator {
         generation: request.generation,
         error: errorMessage(error),
       });
-      await this.authSession.graphqlFetch(REPORT, { input: {
-        searchPlanId: request.searchPlanId,
-        generation: request.generation,
-        leaseToken: context.leaseToken,
-        errorCode: classifyError(error),
-      } }).catch((reportError) => log.warn("Failed to report SearchPlan generation failure", {
-        searchPlanId: request.searchPlanId,
-        error: errorMessage(reportError),
-      }));
+      await this.authSession
+        .graphqlFetch(REPORT, {
+          input: {
+            searchPlanId: request.searchPlanId,
+            generation: request.generation,
+            leaseToken: context.leaseToken,
+            errorCode: classifyError(error),
+          },
+        })
+        .catch((reportError) =>
+          log.warn("Failed to report SearchPlan generation failure", {
+            searchPlanId: request.searchPlanId,
+            error: errorMessage(reportError),
+          }),
+        );
     }
   }
 }
 
 async function generatePlan(context: GenerationContext, semanticAttempt: number) {
   const capability = context.capability;
-  const enumArray = (key: string) => Array.isArray(capability[key]) ? capability[key] : [];
+  const enumArray = (key: string) => (Array.isArray(capability[key]) ? capability[key] : []);
   const ruleProperties: Record<string, unknown> = {
     minimumFollowers: { type: "integer", minimum: 0 },
     maximumFollowers: { type: "integer", minimum: 0 },
   };
   for (const [key, capabilityKey] of [
-    ["ageRanges", "ageRanges"], ["gmvRanges", "gmvRanges"],
-    ["unitsSoldRanges", "unitsSoldRanges"], ["languages", "languages"],
-    ["creatorLevels", "creatorLevels"], ["categoryPros", "categoryPros"],
+    ["ageRanges", "ageRanges"],
+    ["gmvRanges", "gmvRanges"],
+    ["unitsSoldRanges", "unitsSoldRanges"],
+    ["languages", "languages"],
+    ["creatorLevels", "creatorLevels"],
+    ["categoryPros", "categoryPros"],
   ]) {
     const values = enumArray(capabilityKey);
-    if (values.length) ruleProperties[key] = { type: "array", uniqueItems: true, items: { type: "string", enum: values } };
+    if (values.length)
+      ruleProperties[key] = {
+        type: "array",
+        uniqueItems: true,
+        items: { type: "string", enum: values },
+      };
   }
   const genders = enumArray("genders");
   if (genders.length) {
@@ -171,14 +256,19 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
   }
   return runStructuredOneShotAgent<GeneratedPlan>({
     namespace: "affiliate-campaign-search-plan",
+    timeoutMs: SEARCH_PLAN_AGENT_TIMEOUT_MS,
     systemPrompt: [
       "Generate exactly one next TikTok Creator Marketplace search plan.",
       "keyword MUST be a useful, product-relevant English phrase containing 2-8 words, never a generic one-word placeholder such as creator or influencer.",
       `explanation MUST explain why this exact search direction fits the product, using UI locale ${context.uiLocale}.`,
       "rules may be empty. Add filters only when historical plan volume shows the search should be narrowed.",
       "Do not repeat or trivially paraphrase a recent plan. Never invent unsupported rule enum values.",
-      semanticAttempt === 2 ? "The prior proposal was rejected semantically; choose a materially different phrase or supported rules." : "",
-    ].filter(Boolean).join("\n"),
+      semanticAttempt === 2
+        ? "The prior proposal was rejected semantically; choose a materially different phrase or supported rules."
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
     userPrompt: [
       "Generate the SearchPlan for this exact Campaign and product context. Return no placeholder content.",
       `Mandatory constraints: keyword is a product-relevant 2-8 word English phrase; explanation is written in ${context.uiLocale}; rules contain only supported values and may be empty.`,
@@ -200,7 +290,8 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
           minLength: 3,
           maxLength: 80,
           pattern: "^[A-Za-z0-9&'+,./()\\-–—]+(?:\\s+[A-Za-z0-9&'+,./()\\-–—]+){1,7}$",
-          description: "A product-relevant English search phrase containing 2-8 space-separated words.",
+          description:
+            "A product-relevant English search phrase containing 2-8 space-separated words.",
         },
         explanation: {
           type: "string",
@@ -218,18 +309,30 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
 function validateGeneratedPlan(value: unknown, context: GenerationContext): GeneratedPlan {
   if (!value || typeof value !== "object") throw new Error("SEARCH_PLAN_JSON_INVALID");
   const item = value as Record<string, unknown>;
-  const keyword = String(item.keyword ?? "").normalize("NFKC").trim().replace(/\s+/gu, " ");
-  const explanation = String(item.explanation ?? "").normalize("NFKC").trim().replace(/\s+/gu, " ");
+  const keyword = String(item.keyword ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/gu, " ");
+  const explanation = String(item.explanation ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/gu, " ");
   const words = keyword.match(/\p{Script=Latin}[\p{Script=Latin}\p{Mark}'’-]*/gu) ?? [];
-  if (words.length < 2 || words.length > 8 || /[^\p{Script=Latin}\p{Mark}\p{Number}\s&'+,./()\-–—]/u.test(keyword)) {
+  if (
+    words.length < 2 ||
+    words.length > 8 ||
+    /[^\p{Script=Latin}\p{Mark}\p{Number}\s&'+,./()\-–—]/u.test(keyword)
+  ) {
     throw new Error("SEARCH_PLAN_ENGLISH_PHRASE_REQUIRED");
   }
   if (!explanation || explanation.length > 300) throw new Error("SEARCH_PLAN_EXPLANATION_INVALID");
   if (!explanationMatchesLocale(explanation, context.uiLocale)) {
     throw new Error("SEARCH_PLAN_EXPLANATION_LOCALE_REQUIRED");
   }
-  const rawRules = item.rules && typeof item.rules === "object" && !Array.isArray(item.rules)
-    ? item.rules as SearchRules : {};
+  const rawRules =
+    item.rules && typeof item.rules === "object" && !Array.isArray(item.rules)
+      ? (item.rules as SearchRules)
+      : {};
   const rules = removeNonNarrowingEnumFilters(rawRules, context.capability);
   return { keyword, explanation, rules };
 }
@@ -271,26 +374,44 @@ function removeNonNarrowingEnumFilters(
 
 function providerRules(rules: SearchRules): Record<string, unknown> {
   return {
-    ...(rules.minimumFollowers != null || rules.maximumFollowers != null ? {
-      followerCount: { minimum: rules.minimumFollowers, maximum: rules.maximumFollowers },
-    } : {}),
-    ...(rules.ageRanges?.length || rules.gender ? {
-      audience: {
-        ageRanges: rules.ageRanges ?? [],
-        ...(rules.gender && rules.genderMinimumPercentage != null ? {
-          genderDistribution: { gender: rules.gender, minimumPercentage: rules.genderMinimumPercentage },
-        } : {}),
-      },
-    } : {}),
-    ...(rules.gmvRanges?.length || rules.unitsSoldRanges?.length ? {
-      salesPerformance30d: { gmvRanges: rules.gmvRanges ?? [], unitsSoldRanges: rules.unitsSoldRanges ?? [] },
-    } : {}),
+    ...(rules.minimumFollowers != null || rules.maximumFollowers != null
+      ? {
+          followerCount: { minimum: rules.minimumFollowers, maximum: rules.maximumFollowers },
+        }
+      : {}),
+    ...(rules.ageRanges?.length || rules.gender
+      ? {
+          audience: {
+            ageRanges: rules.ageRanges ?? [],
+            ...(rules.gender && rules.genderMinimumPercentage != null
+              ? {
+                  genderDistribution: {
+                    gender: rules.gender,
+                    minimumPercentage: rules.genderMinimumPercentage,
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+    ...(rules.gmvRanges?.length || rules.unitsSoldRanges?.length
+      ? {
+          salesPerformance30d: {
+            gmvRanges: rules.gmvRanges ?? [],
+            unitsSoldRanges: rules.unitsSoldRanges ?? [],
+          },
+        }
+      : {}),
     categories: [],
-    ...(rules.languages?.length || rules.creatorLevels?.length || rules.categoryPros?.length ? {
-      marketSpecific: {
-        languages: rules.languages ?? [], creatorLevels: rules.creatorLevels ?? [], categoryPros: rules.categoryPros ?? [],
-      },
-    } : {}),
+    ...(rules.languages?.length || rules.creatorLevels?.length || rules.categoryPros?.length
+      ? {
+          marketSpecific: {
+            languages: rules.languages ?? [],
+            creatorLevels: rules.creatorLevels ?? [],
+            categoryPros: rules.categoryPros ?? [],
+          },
+        }
+      : {}),
   };
 }
 
