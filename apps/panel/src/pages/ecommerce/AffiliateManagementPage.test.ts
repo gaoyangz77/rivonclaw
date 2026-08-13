@@ -558,6 +558,17 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).not.toContain("unassignAffiliateBusinessDeveloper");
     expect(queries).not.toContain("unassignAffiliateBusinessDeveloper");
   });
+
+  it("keeps workspace view tabs and filters in one compact control row", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain("affiliate-agent-workspace-controls");
+    expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
+    expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueHint");
+  });
 });
 
 describe("Expected Sales model-stage presentation", () => {
