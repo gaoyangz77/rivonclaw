@@ -437,8 +437,8 @@ const REMOVED_PLUGIN_IDS = new Set([
   "rivonclaw-browser-profiles-tools",
 ]);
 
-/** Optional provider plugins absent from the pruned Desktop runtime.
- * Remove only stale plugins.deny references; provider entries are preserved. */
+/** Historical optional-provider deny entries. Remove only the stale deny
+ * references; provider entries are preserved and packaged providers stay usable. */
 const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
   "amazon-bedrock",
   "anthropic-vertex",

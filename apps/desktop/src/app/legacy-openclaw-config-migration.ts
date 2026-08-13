@@ -27,11 +27,10 @@ const REMOVED_PLUGIN_IDS = new Set([
   "rivonclaw-tools",
 ]);
 
-// These optional provider plugins are not shipped in the pruned Desktop
-// runtime. Older builds seeded them into plugins.deny to reduce discovery
-// overhead; remove only the stale deny references while preserving any user
-// provider entries. Removing a deny entry does not remove or disable a provider;
-// it only stops referencing plugins absent from the packaged runtime.
+// Older builds seeded optional providers into plugins.deny to reduce discovery
+// overhead. Remove those stale deny references while preserving user entries;
+// supported providers that are now packaged must not remain blocked after an
+// upgrade, and absent providers do not need negative inventory entries.
 const STALE_OPTIONAL_PLUGIN_DENY_IDS = new Set([
   "amazon-bedrock",
   "anthropic-vertex",
