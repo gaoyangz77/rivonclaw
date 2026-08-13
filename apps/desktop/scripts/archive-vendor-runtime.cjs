@@ -60,6 +60,7 @@ for (const scriptName of [
   "prune-vendor-deps.cjs",
   "archive-vendor-runtime.cjs",
   "stage-official-vendor-plugins.cjs",
+  "vendor-runtime-plugin-inventory.cjs",
 ]) {
   const scriptPath = path.join(__dirname, scriptName);
   if (fs.existsSync(scriptPath)) {

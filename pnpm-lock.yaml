@@ -8,15 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@larksuite/openclaw-lark':
-        specifier: 2026.6.10
-        version: 2026.6.10
-      '@larksuiteoapi/node-sdk':
-        specifier: ^1.59.0
-        version: 1.59.0
-      '@openclaw/groq-provider':
-        specifier: 2026.7.2-beta.7
-        version: 2026.7.2-beta.7
       '@rolldown/binding-darwin-arm64':
         specifier: 1.0.0-rc.3
         version: 1.0.0-rc.3
@@ -1751,22 +1742,6 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@larksuite/openclaw-lark@2026.6.10':
-    resolution: {integrity: sha512-OdNePiG88jRIUrRAx0h3bF2o5UxLD4c9zlK5Wfn1xirYLic6koGpx7xoRFAgvCMd15DzLQQtekkwO6+xkDupBw==}
-    engines: {node: '>=22'}
-    hasBin: true
-    peerDependencies:
-      openclaw: '>=2026.5.4'
-    peerDependenciesMeta:
-      openclaw:
-        optional: true
-
-  '@larksuiteoapi/node-sdk@1.59.0':
-    resolution: {integrity: sha512-sBpkruTvZDOxnVtoTbepWKRX0j1Y1ZElQYu0x7+v088sI9pcpbVp6ZzCGn62dhrKPatzNyCJyzYCPXPYQWccrA==}
-
-  '@larksuiteoapi/node-sdk@1.68.0':
-    resolution: {integrity: sha512-ip14+pWAv2La3bss4oDDtee2P5xBLDXuvmzhTvkxQMcPA5jCffFsler1TvNt4MyW6pexscj72AEWektyZwU9Yw==}
-
   '@lexical/a11y@0.48.0':
     resolution: {integrity: sha512-18W4ehyipkUim4YVoDZitoH63Om3j6iCN4c84zdqE9RgkWf/PE4rvI/8BHTm6Ni7NkVE14nimXgkpaP5ok15zA==}
     peerDependencies:
@@ -2260,14 +2235,6 @@ packages:
   '@npmcli/fs@4.0.0':
     resolution: {integrity: sha512-/xGlezI6xfGO9NwuJlnwz/K14qD1kCSAGtacBHnGzeAIuJGazcp45KP5NuyARXoKb7cwulAGWVsbeSxdG/cb0Q==}
     engines: {node: ^18.17.0 || >=20.5.0}
-
-  '@openclaw/groq-provider@2026.7.2-beta.7':
-    resolution: {integrity: sha512-u8UsLstplUUnEPYK8YZR55vj3K32xsZO8abYKvJ2RR2JY6oj+Bbk0esJ7BtZ/tPtXoL/399gUd56F7OSkCsviw==}
-    peerDependencies:
-      openclaw: '>=2026.7.2-beta.7'
-    peerDependenciesMeta:
-      openclaw:
-        optional: true
 
   '@oxc-project/types@0.112.0':
     resolution: {integrity: sha512-m6RebKHIRsax2iCwVpYW2ErQwa4ywHJrE4sCK3/8JK8ZZAWOKXaRJFl/uP51gaVyyXlaS4+chU1nSCdzYf6QqQ==}
@@ -3003,9 +2970,6 @@ packages:
   '@sinclair/typebox@0.34.48':
     resolution: {integrity: sha512-kKJTNuK3AQOrgjjotVxMrCn1sUJwM76wMszfq1kdU4uYVJjvEWuFQ6HgvLt4Xz3fSmZlTOxJ/Ie13KnIcWQXFA==}
 
-  '@sinclair/typebox@0.34.49':
-    resolution: {integrity: sha512-brySQQs7Jtn0joV8Xh9ZV/hZb9Ozb0pmazDIASBkYKCjXrXU3mpcFahmK/z4YDhGkQvP9mWJbVyahdtU5wQA+A==}
-
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
@@ -3671,9 +3635,6 @@ packages:
   await-to-js@3.0.0:
     resolution: {integrity: sha512-zJAaP9zxTcvTHRlejau3ZOY4V7SRpiByf3/dxx2uyKxxor19tpmpV2QRsTKikckwhaPmr2dVpxxMr7jOCYVp5g==}
     engines: {node: '>=6.0.0'}
-
-  axios@1.13.5:
-    resolution: {integrity: sha512-cz4ur7Vb0xS4/KUN0tPWe44eqxrIu31me+fbang3ijiNscE129POzipJJA6zniq2C/Z6sJCjMimjS8Lc/GAs8Q==}
 
   axios@1.15.0:
     resolution: {integrity: sha512-wWyJDlAatxk30ZJer+GeCWS209sA42X+N5jU2jy6oHTp7ufw8uzUTVFBX9+wTfAlhiJXGS0Bq7X6efruWjuK9Q==}
@@ -4911,11 +4872,6 @@ packages:
   image-q@4.0.0:
     resolution: {integrity: sha512-PfJGVgIfKQJuq3s0tTDOKtztksibuUEbJQIYT3by6wctQo+Rdlh7ef4evJ5NCdxY4CfMbvFkocEwbl4BF8RlJw==}
 
-  image-size@2.0.2:
-    resolution: {integrity: sha512-IRqXKlaXwgSMAMtpNzZa1ZAe8m+Sa1770Dhk8VkSsP9LS+iHD62Zd8FQKs8fbPiagBE7BzoFX23cxFnwshpV6w==}
-    engines: {node: '>=16.x'}
-    hasBin: true
-
   immediate@3.0.6:
     resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
 
@@ -5239,9 +5195,6 @@ packages:
   lodash.escaperegexp@4.1.2:
     resolution: {integrity: sha512-TM9YBvyC84ZxE3rgfefxUWiQKLilstD6k7PTGt6wfbtXF8ixIJLOL3VYyV/z+ZiPLsVxAsKAFVwWlWeb2Y8Yyw==}
 
-  lodash.identity@3.0.0:
-    resolution: {integrity: sha512-AupTIzdLQxJS5wIYUQlgGyk2XRTfGXA+MCghDHqZk0pzUNYvd3EESS6dkChNauNYVIutcb0dfHw1ri9Q1yPV8Q==}
-
   lodash.includes@4.3.0:
     resolution: {integrity: sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==}
 
@@ -5264,14 +5217,8 @@ packages:
   lodash.isstring@4.0.1:
     resolution: {integrity: sha512-0wJxfxH1wgO3GrbuP+dTTk7op+6L41QCXbGINEmD+ny/G/eCqGzxyCsh7159S+mgDDcoarnBw6PC1PS5+wUGgw==}
 
-  lodash.merge@4.6.2:
-    resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
-
   lodash.once@4.1.1:
     resolution: {integrity: sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==}
-
-  lodash.pickby@4.6.0:
-    resolution: {integrity: sha512-AZV+GsS/6ckvPOVQPXSiFFacKvKB4kOQu6ynt9wz0F3LO4R9Ij4K1ddYsIytDpSgLz88JHd9P+oaLeej5/Sl7Q==}
 
   lodash@4.17.23:
     resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
@@ -6898,9 +6845,6 @@ packages:
 
   undici-types@7.19.2:
     resolution: {integrity: sha512-qYVnV5OEm2AW8cJMCpdV20CDyaN3g0AjDlOGf1OW4iaDEx8MwdtChUp4zu4H0VP3nDRF/8RKWH+IPp9uW0YGZg==}
-
-  undici-types@8.5.0:
-    resolution: {integrity: sha512-+FxhD+5RUdCZHlVPt+pd0DaYYHBPsgoHovxhMnFq9R1SOejHGE4ma0swzuRoKhOisEzsjFWdFedyD0JQmftrHg==}
 
   undici@7.21.0:
     resolution: {integrity: sha512-Hn2tCQpoDt1wv23a68Ctc8Cr/BHpUSfaPYrkajTXOS9IKpxVRx/X5m1K2YkbK2ipgZgxXSgsUinl3x+2YdSSfg==}
@@ -9042,46 +8986,6 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@larksuite/openclaw-lark@2026.6.10':
-    dependencies:
-      '@larksuiteoapi/node-sdk': 1.68.0
-      '@sinclair/typebox': 0.34.49
-      image-size: 2.0.2
-      undici-types: 8.5.0
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - utf-8-validate
-
-  '@larksuiteoapi/node-sdk@1.59.0':
-    dependencies:
-      axios: 1.13.5
-      lodash.identity: 3.0.0
-      lodash.merge: 4.6.2
-      lodash.pickby: 4.6.0
-      protobufjs: 7.5.4
-      qs: 6.15.0
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - utf-8-validate
-
-  '@larksuiteoapi/node-sdk@1.68.0':
-    dependencies:
-      axios: 1.13.5
-      lodash.identity: 3.0.0
-      lodash.merge: 4.6.2
-      lodash.pickby: 4.6.0
-      protobufjs: 7.5.4
-      qs: 6.15.0
-      ws: 8.20.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - utf-8-validate
-
   '@lexical/a11y@0.48.0(typescript@5.9.3)':
     dependencies:
       '@lexical/extension': 0.48.0(typescript@5.9.3)
@@ -9757,8 +9661,6 @@ snapshots:
     dependencies:
       semver: 7.7.4
 
-  '@openclaw/groq-provider@2026.7.2-beta.7': {}
-
   '@oxc-project/types@0.112.0': {}
 
   '@oxfmt/darwin-arm64@0.28.0':
@@ -10352,8 +10254,6 @@ snapshots:
   '@silvia-odwyer/photon-node@0.3.4': {}
 
   '@sinclair/typebox@0.34.48': {}
-
-  '@sinclair/typebox@0.34.49': {}
 
   '@sindresorhus/is@4.6.0': {}
 
@@ -11229,14 +11129,6 @@ snapshots:
   at-least-node@1.0.0: {}
 
   await-to-js@3.0.0: {}
-
-  axios@1.13.5:
-    dependencies:
-      follow-redirects: 1.15.11
-      form-data: 4.0.5
-      proxy-from-env: 1.1.0
-    transitivePeerDependencies:
-      - debug
 
   axios@1.15.0:
     dependencies:
@@ -12689,8 +12581,6 @@ snapshots:
     dependencies:
       '@types/node': 16.9.1
 
-  image-size@2.0.2: {}
-
   immediate@3.0.6: {}
 
   immer@10.2.0: {}
@@ -13008,8 +12898,6 @@ snapshots:
 
   lodash.escaperegexp@4.1.2: {}
 
-  lodash.identity@3.0.0: {}
-
   lodash.includes@4.3.0: {}
 
   lodash.isboolean@3.0.3: {}
@@ -13024,11 +12912,7 @@ snapshots:
 
   lodash.isstring@4.0.1: {}
 
-  lodash.merge@4.6.2: {}
-
   lodash.once@4.1.1: {}
-
-  lodash.pickby@4.6.0: {}
 
   lodash@4.17.23: {}
 
@@ -15120,8 +15004,6 @@ snapshots:
 
   undici-types@7.19.2:
     optional: true
-
-  undici-types@8.5.0: {}
 
   undici@7.21.0: {}
 

@@ -11,12 +11,16 @@ const fs = require("fs");
 const { createRequire } = require("module");
 const path = require("path");
 const { withPnpmTargetArchitecture } = require("./pnpm-target-architecture.cjs");
+const {
+  DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
+  STAGED_VENDOR_SOURCE_PLUGINS,
+} = require("./vendor-runtime-plugin-inventory.cjs");
 
 const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-12.6";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-13.1";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = [
   "copilot",
@@ -28,7 +32,9 @@ const DISABLED_VENDOR_EXTENSIONS = [
   "memory-lancedb",
   "mxc",
 ];
-const PRESERVED_DIST_RUNTIME_EXTENSIONS = new Set(["groq"]);
+const PRESERVED_DIST_RUNTIME_EXTENSIONS = new Set(
+  STAGED_VENDOR_SOURCE_PLUGINS.map((plugin) => plugin.id),
+);
 
 function hasCompletedProductionInstall() {
   try {
@@ -343,14 +349,16 @@ function removeDisabledVendorExtensions() {
 }
 
 function removeReplacedVendorExtensionSources() {
-  const extensionDir = path.join(vendorDir, "extensions", "groq");
-  if (!fs.existsSync(extensionDir)) return;
-  const size = dirSize(extensionDir);
-  fs.rmSync(extensionDir, { recursive: true, force: true });
-  console.log(
-    `  removed source-only Groq extension replaced by staged runtime ` +
-      `(${(size / 1024 / 1024).toFixed(1)}MB)`,
-  );
+  for (const plugin of STAGED_VENDOR_SOURCE_PLUGINS) {
+    const extensionDir = path.join(vendorDir, "extensions", plugin.id);
+    if (!fs.existsSync(extensionDir)) continue;
+    const size = dirSize(extensionDir);
+    fs.rmSync(extensionDir, { recursive: true, force: true });
+    console.log(
+      `  removed source-only ${plugin.id} extension replaced by staged runtime ` +
+        `(${(size / 1024 / 1024).toFixed(1)}MB)`,
+    );
+  }
 }
 
 function removeOtherSqliteVecPlatforms() {
@@ -368,9 +376,12 @@ function hasOtherSqliteVecPlatforms() {
 
 function hasRequiredOfficialVendorPlugins() {
   const requiredPaths = [
-    path.join(vendorDir, "extensions", "openclaw-lark", "openclaw.plugin.json"),
-    path.join(vendorDir, "dist-runtime", "extensions", "groq", "openclaw.plugin.json"),
-    path.join(vendorDir, "dist-runtime", "extensions", "groq", "dist", "index.js"),
+    ...DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS.map((pluginId) =>
+      path.join(vendorDir, "dist-runtime", "extensions", pluginId, "openclaw.plugin.json"),
+    ),
+    ...STAGED_VENDOR_SOURCE_PLUGINS.map((plugin) =>
+      path.join(vendorDir, "dist-runtime", "extensions", plugin.id, "index.ts"),
+    ),
     path.join(nmDir, "@larksuiteoapi", "node-sdk", "package.json"),
     path.join(nmDir, "openclaw", "package.json"),
     path.join(nmDir, "sqlite-vec", "package.json"),

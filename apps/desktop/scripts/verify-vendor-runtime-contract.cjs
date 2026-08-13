@@ -12,6 +12,10 @@ const os = require("os");
 const path = require("path");
 const { createRequire } = require("module");
 const { pathToFileURL } = require("url");
+const {
+  DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
+  STAGED_VENDOR_SOURCE_PLUGINS,
+} = require("./vendor-runtime-plugin-inventory.cjs");
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 
@@ -29,9 +33,10 @@ const REQUIRED_PATHS = [
   "docs/reference/templates/USER.md",
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
-  "extensions/openclaw-lark/openclaw.plugin.json",
-  "dist-runtime/extensions/groq/openclaw.plugin.json",
-  "dist-runtime/extensions/groq/dist/index.js",
+  ...DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS.map(
+    (pluginId) => `dist-runtime/extensions/${pluginId}/openclaw.plugin.json`,
+  ),
+  ...STAGED_VENDOR_SOURCE_PLUGINS.map((plugin) => `dist-runtime/extensions/${plugin.id}/index.ts`),
   "node_modules/highlight.js/package.json",
   "node_modules/@larksuiteoapi/node-sdk/package.json",
   "node_modules/@openclaw/ai/package.json",
@@ -159,6 +164,30 @@ function assertAbsent(vendorDir, relPath) {
   }
 }
 
+function assertDesktopPluginInventory(vendorDir) {
+  const vendorVersion = JSON.parse(
+    fs.readFileSync(path.join(vendorDir, "package.json"), "utf8"),
+  ).version;
+  for (const pluginId of DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS) {
+    const pluginDir = path.join(vendorDir, "dist-runtime", "extensions", pluginId);
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(pluginDir, "openclaw.plugin.json"), "utf8"),
+    );
+    const packageJson = JSON.parse(fs.readFileSync(path.join(pluginDir, "package.json"), "utf8"));
+    if (manifest.id !== pluginId) {
+      throw new Error(
+        `bundled plugin id mismatch for ${pluginId}: manifest declares ${String(manifest.id)}`,
+      );
+    }
+    if (packageJson.version !== vendorVersion) {
+      throw new Error(
+        `bundled plugin ${pluginId} version ${String(packageJson.version)} ` +
+          `does not match OpenClaw ${String(vendorVersion)}`,
+      );
+    }
+  }
+}
+
 function assertNoChildPrefix(vendorDir, { dir, prefix }) {
   const fullDir = path.join(vendorDir, dir);
   if (!fs.existsSync(fullDir)) return;
@@ -282,41 +311,10 @@ async function runSqliteVecRuntimeSmoke(vendorDir) {
   }
 }
 
-async function runGroqProviderRuntimeSmoke(vendorDir) {
-  const entryPath = path.join(vendorDir, "dist-runtime", "extensions", "groq", "dist", "index.js");
-  const pluginModule = await import(pathToFileURL(entryPath).href);
-  if (!pluginModule.default || typeof pluginModule.default !== "object") {
-    throw new Error("Groq provider runtime did not export an OpenClaw plugin");
-  }
-
-  let mediaProvider;
-  const registrationApi = new Proxy(
-    {
-      registerMediaUnderstandingProvider(provider) {
-        mediaProvider = provider;
-      },
-    },
-    {
-      get(target, property) {
-        return property in target ? target[property] : () => {};
-      },
-    },
-  );
-  pluginModule.default.register(registrationApi);
-  if (
-    mediaProvider?.id !== "groq" ||
-    !mediaProvider.capabilities?.includes("audio") ||
-    typeof mediaProvider.transcribeAudio !== "function"
-  ) {
-    throw new Error("Groq provider runtime did not register audio transcription support");
-  }
-}
-
 function runNoHostPackageManagerStartupSmoke(vendorDir) {
   const configuredTimeout = Number(process.env.RIVONCLAW_VENDOR_RUNTIME_DOCTOR_TIMEOUT_MS);
-  const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
-    ? configuredTimeout
-    : 90_000;
+  const timeout =
+    Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 90_000;
   const smokeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-no-npm-smoke-"));
   const smokeStateDir = path.join(smokeRoot, "state");
   const emptyBinDir = path.join(smokeRoot, "empty-bin");
@@ -332,7 +330,19 @@ function runNoHostPackageManagerStartupSmoke(vendorDir) {
           auth: { mode: "token", token: "runtime-contract-token" },
         },
         memory: { search: { enabled: false } },
-        plugins: { allow: ["groq"], entries: { groq: { enabled: true } } },
+        channels: {
+          feishu: {
+            accounts: {
+              default: { appId: "cli_runtime_contract", appSecret: "not-a-real-secret" },
+            },
+          },
+        },
+        plugins: {
+          allow: DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS,
+          entries: Object.fromEntries(
+            DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS.map((pluginId) => [pluginId, { enabled: true }]),
+          ),
+        },
       },
       null,
       2,
@@ -373,6 +383,50 @@ function runNoHostPackageManagerStartupSmoke(vendorDir) {
     if (!output.includes("Doctor complete")) {
       throw new Error(`OpenClaw doctor did not complete:\n${output.slice(-4_000)}`);
     }
+
+    const listResult = spawnSync(
+      process.execPath,
+      [path.join(vendorDir, "openclaw.mjs"), "plugins", "list", "--json"],
+      {
+        encoding: "utf8",
+        timeout,
+        maxBuffer: 20 * 1024 * 1024,
+        env: {
+          ...process.env,
+          CI: "1",
+          HOME: smokeRoot,
+          PATH: emptyBinDir,
+          OPENCLAW_STATE_DIR: smokeStateDir,
+          OPENCLAW_CONFIG_PATH: configPath,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: path.join(vendorDir, "dist-runtime", "extensions"),
+        },
+      },
+    );
+    const listOutput = `${listResult.stdout ?? ""}\n${listResult.stderr ?? ""}`;
+    if (listResult.error) throw listResult.error;
+    if (listResult.status !== 0) {
+      throw new Error(
+        `OpenClaw plugin inventory failed without a host package manager ` +
+          `(status ${listResult.status}):\n${listOutput.slice(-4_000)}`,
+      );
+    }
+    const inventory = JSON.parse(listResult.stdout || "{}");
+    const plugins = Array.isArray(inventory) ? inventory : inventory.plugins;
+    if (!Array.isArray(plugins)) {
+      throw new Error(`OpenClaw plugin inventory returned unexpected JSON: ${listResult.stdout}`);
+    }
+    for (const pluginId of DESKTOP_REQUIRED_BUNDLED_PLUGIN_IDS) {
+      const plugin = plugins.find((entry) => entry?.id === pluginId);
+      if (!plugin) {
+        throw new Error(`OpenClaw did not discover required bundled plugin ${pluginId}`);
+      }
+      if (plugin.status === "error") {
+        throw new Error(
+          `OpenClaw failed to load required bundled plugin ${pluginId}: ` +
+            `${String(plugin.error ?? "unknown error")}`,
+        );
+      }
+    }
   } finally {
     removeTempDirBestEffort(smokeRoot);
   }
@@ -397,6 +451,7 @@ async function main() {
     for (const relPath of REQUIRED_PATHS) {
       assertExists(vendorDir, relPath);
     }
+    assertDesktopPluginInventory(vendorDir);
 
     if (!args.skipPruneChecks) {
       for (const relPath of PRUNED_FORBIDDEN_PATHS) {
@@ -410,7 +465,6 @@ async function main() {
     await runWorkspaceBootstrapSmoke(vendorDir);
     await runOpenClawAiRuntimeSmoke(vendorDir);
     await runSqliteVecRuntimeSmoke(vendorDir);
-    await runGroqProviderRuntimeSmoke(vendorDir);
     runNoHostPackageManagerStartupSmoke(vendorDir);
 
     console.log(`[verify-vendor-runtime] PASS ${vendorDir}`);

@@ -32,6 +32,21 @@ interface VendorRuntimeManifest {
 }
 
 const ENTRY_FILE = "openclaw.mjs";
+const REQUIRED_BUNDLED_PLUGIN_IDS = [
+  "brave",
+  "feishu",
+  "google",
+  "groq",
+  "mistral",
+  "moonshot",
+  "ollama",
+  "openai",
+  "perplexity",
+  "telegram",
+  "voyage",
+  "xai",
+];
+const REQUIRED_SOURCE_PLUGIN_IDS = ["groq", "mistral", "moonshot", "perplexity", "voyage"];
 const REQUIRED_RUNTIME_FILES = [
   ENTRY_FILE,
   "package.json",
@@ -42,9 +57,10 @@ const REQUIRED_RUNTIME_FILES = [
   "skills",
   "dist/extensions/acpx/openclaw.plugin.json",
   "dist/extensions/memory-core/openclaw.plugin.json",
-  "extensions/openclaw-lark/openclaw.plugin.json",
-  "dist-runtime/extensions/groq/openclaw.plugin.json",
-  "dist-runtime/extensions/groq/dist/index.js",
+  ...REQUIRED_BUNDLED_PLUGIN_IDS.map(
+    (pluginId) => `dist-runtime/extensions/${pluginId}/openclaw.plugin.json`,
+  ),
+  ...REQUIRED_SOURCE_PLUGIN_IDS.map((pluginId) => `dist-runtime/extensions/${pluginId}/index.ts`),
 ];
 
 function missingRuntimeFiles(runtimeDir: string): string[] {

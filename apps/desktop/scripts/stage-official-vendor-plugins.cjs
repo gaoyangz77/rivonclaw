@@ -1,72 +1,25 @@
 // @ts-check
-// Stages official external OpenClaw plugins into vendor/openclaw so they are
-// packaged as runtime assets, not as Electron app dependencies.
+// Stages official external OpenClaw plugins from the pinned vendor checkout
+// into dist-runtime so supported Desktop settings never require npm on a
+// customer machine.
 
 const fs = require("fs");
 const path = require("path");
-const { createRequire } = require("module");
+const { STAGED_VENDOR_SOURCE_PLUGINS } = require("./vendor-runtime-plugin-inventory.cjs");
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.join(repoRoot, "vendor", "openclaw");
 const vendorNodeModulesDir = path.join(vendorDir, "node_modules");
-const rootRequire = createRequire(path.join(repoRoot, "package.json"));
-
-const OFFICIAL_PLUGINS = [
-  {
-    packageName: "@larksuite/openclaw-lark",
-    version: "2026.6.10",
-    targetRelativeDir: "extensions/openclaw-lark",
-  },
-  {
-    // OpenClaw externalized Groq in 2026.7.2. Desktop must carry the provider
-    // because customer machines are not required to have Node/npm installed.
-    packageName: "@openclaw/groq-provider",
-    version: "2026.7.2-beta.7",
-    targetRelativeDir: "dist-runtime/extensions/groq",
-  },
+const OBSOLETE_STAGED_PLUGIN_DIRS = [
+  "extensions/openclaw-groq-provider",
+  "extensions/openclaw-lark",
+  "dist-runtime/extensions/openclaw-lark",
 ];
-const OBSOLETE_STAGED_PLUGIN_DIRS = ["extensions/openclaw-groq-provider"];
-
-function splitPackageName(packageName) {
-  const parts = packageName.split("/");
-  return packageName.startsWith("@")
-    ? { scope: parts[0], name: parts[1] }
-    : { scope: null, name: parts[0] };
-}
-
-function packagePathFromNodeModules(nodeModulesDir, packageName) {
-  const { scope, name } = splitPackageName(packageName);
-  return scope ? path.join(nodeModulesDir, scope, name) : path.join(nodeModulesDir, name);
-}
-
-function packageNodeModulesDir(packageDir, packageName) {
-  const { scope } = splitPackageName(packageName);
-  return scope ? path.dirname(path.dirname(packageDir)) : path.dirname(packageDir);
-}
 
 function readPackageJson(packageDir) {
   return JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf-8"));
-}
-
-function resolvePackageDir(packageName, searchNodeModulesDirs) {
-  for (const nodeModulesDir of searchNodeModulesDirs) {
-    const candidate = packagePathFromNodeModules(nodeModulesDir, packageName);
-    if (fs.existsSync(path.join(candidate, "package.json"))) {
-      return fs.realpathSync(candidate);
-    }
-  }
-
-  const rootSearchPaths = rootRequire.resolve.paths(packageName) ?? [];
-  for (const nodeModulesDir of rootSearchPaths) {
-    const candidate = packagePathFromNodeModules(nodeModulesDir, packageName);
-    if (fs.existsSync(path.join(candidate, "package.json"))) {
-      return fs.realpathSync(candidate);
-    }
-  }
-
-  throw new Error(`Could not resolve package directory for ${packageName}`);
 }
 
 function shouldCopyRuntimeFile(source, root) {
@@ -76,6 +29,8 @@ function shouldCopyRuntimeFile(source, root) {
   if (rel === ".git" || rel.startsWith(".git/")) return false;
   if (rel === ".cache" || rel.includes("/.cache/")) return false;
   if (rel === ".bin" || rel.includes("/.bin/")) return false;
+  if (/^(?:README\.md|tsconfig\.json)$/iu.test(rel)) return false;
+  if (/(?:^|\/)(?:test-api|.+\.(?:test|spec|live\.test))\.[cm]?[jt]sx?$/u.test(rel)) return false;
   return true;
 }
 
@@ -87,33 +42,6 @@ function copyPackageContents(sourceDir, targetDir) {
     dereference: true,
     filter: (source) => shouldCopyRuntimeFile(source, sourceDir),
   });
-}
-
-function copyDependencyTree(packageName, sourceSearchDirs, copied = new Set()) {
-  if (packageName === "openclaw") return;
-  if (copied.has(packageName)) return;
-  copied.add(packageName);
-
-  const sourceDir = resolvePackageDir(packageName, sourceSearchDirs);
-  const targetDir = packagePathFromNodeModules(vendorNodeModulesDir, packageName);
-  copyPackageContents(sourceDir, targetDir);
-
-  const manifest = readPackageJson(sourceDir);
-  const childSearchDirs = [packageNodeModulesDir(sourceDir, packageName), ...sourceSearchDirs];
-
-  for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
-    copyDependencyTree(dependencyName, childSearchDirs, copied);
-  }
-  for (const dependencyName of Object.keys(manifest.optionalDependencies ?? {})) {
-    try {
-      copyDependencyTree(dependencyName, childSearchDirs, copied);
-    } catch (err) {
-      console.warn(
-        `[stage-official-vendor-plugins] Optional dependency ${dependencyName} was not staged: ` +
-          `${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  }
 }
 
 function stageOpenClawSdkShim() {
@@ -153,78 +81,24 @@ function stageOpenClawSdkShim() {
 }
 
 function stagePlugin(plugin) {
-  const pluginSourceDir = resolvePackageDir(
-    plugin.packageName,
-    rootRequire.resolve.paths(plugin.packageName) ?? [],
-  );
+  const pluginSourceDir = path.join(vendorDir, "extensions", plugin.id);
+  if (!fs.existsSync(path.join(pluginSourceDir, "package.json"))) {
+    throw new Error(`Pinned vendor plugin source is missing: extensions/${plugin.id}`);
+  }
   const pluginManifest = readPackageJson(pluginSourceDir);
-  if (pluginManifest.version !== plugin.version) {
+  if (pluginManifest.name !== plugin.packageName) {
     throw new Error(
-      `${plugin.packageName} version mismatch: expected ${plugin.version}, got ${pluginManifest.version}`,
+      `${plugin.id} package mismatch: expected ${plugin.packageName}, got ${pluginManifest.name}`,
+    );
+  }
+  if (Object.keys(pluginManifest.dependencies ?? {}).length > 0) {
+    throw new Error(
+      `${plugin.packageName} gained runtime dependencies; update Desktop staging before release`,
     );
   }
 
-  const pluginTargetDir = path.join(vendorDir, plugin.targetRelativeDir);
+  const pluginTargetDir = path.join(vendorDir, "dist-runtime", "extensions", plugin.id);
   copyPackageContents(pluginSourceDir, pluginTargetDir);
-  patchPluginRuntime(plugin, pluginTargetDir);
-
-  const sourceSearchDirs = [packageNodeModulesDir(pluginSourceDir, plugin.packageName)];
-  for (const dependencyName of Object.keys(pluginManifest.dependencies ?? {})) {
-    copyDependencyTree(dependencyName, sourceSearchDirs);
-  }
-}
-
-function patchPluginRuntime(plugin, pluginTargetDir) {
-  if (plugin.packageName !== "@larksuite/openclaw-lark") return;
-
-  const versionHelperPath = path.join(pluginTargetDir, "src", "core", "version.js");
-  if (!fs.existsSync(versionHelperPath)) return;
-
-  fs.writeFileSync(
-    versionHelperPath,
-    [
-      "const fs = require('node:fs');",
-      "const path = require('node:path');",
-      "",
-      "let cachedVersion;",
-      "",
-      "function getPluginVersion() {",
-      "  if (cachedVersion) return cachedVersion;",
-      "  try {",
-      "    const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');",
-      "    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));",
-      "    cachedVersion = pkg.version || 'unknown';",
-      "  } catch {",
-      "    cachedVersion = 'unknown';",
-      "  }",
-      "  return cachedVersion;",
-      "}",
-      "",
-      "function getPlatform() {",
-      "  if (process.platform === 'darwin') return 'mac';",
-      "  if (process.platform === 'win32') return 'windows';",
-      "  return 'linux';",
-      "}",
-      "",
-      "function getUserAgent() {",
-      "  return `openclaw-lark/${getPluginVersion()}/${getPlatform()}`;",
-      "}",
-      "",
-      "module.exports = { getPluginVersion, getPlatform, getUserAgent };",
-      "",
-    ].join("\n"),
-    "utf-8",
-  );
-
-  const tokenStorePath = path.join(pluginTargetDir, "src", "core", "token-store.js");
-  if (fs.existsSync(tokenStorePath)) {
-    const original = fs.readFileSync(tokenStorePath, "utf-8");
-    const patched = original.replace(
-      "const _require = (0, node_module_1.createRequire)(typeof __filename !== 'undefined' ? __filename : import.meta.url);",
-      "const _require = (0, node_module_1.createRequire)(__filename);",
-    );
-    fs.writeFileSync(tokenStorePath, patched, "utf-8");
-  }
 }
 
 if (!fs.existsSync(vendorDir)) {
@@ -241,10 +115,11 @@ for (const relativeDir of OBSOLETE_STAGED_PLUGIN_DIRS) {
   fs.rmSync(path.join(vendorDir, relativeDir), { recursive: true, force: true });
 }
 stageOpenClawSdkShim();
-for (const plugin of OFFICIAL_PLUGINS) {
+for (const plugin of STAGED_VENDOR_SOURCE_PLUGINS) {
   stagePlugin(plugin);
 }
 
 console.log(
-  `[stage-official-vendor-plugins] Staged ${OFFICIAL_PLUGINS.length} official plugin(s) into ${vendorDir}`,
+  `[stage-official-vendor-plugins] Staged ${STAGED_VENDOR_SOURCE_PLUGINS.length} ` +
+    `pinned vendor plugin(s) into ${vendorDir}`,
 );
