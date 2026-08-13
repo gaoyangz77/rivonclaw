@@ -300,6 +300,11 @@ export interface ActionProposalStep {
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   messageIntent?: Maybe<ActionProposalMessageIntent>;
+  /**
+   * Deprecated wire-only projection of ActionProposal.operatorSummary for released Desktop clients.
+   * @deprecated Read ActionProposal.operatorSummary once for the complete action bundle.
+   */
+  operatorSummary: Scalars['String']['output'];
   /** Source cache references associated with this action step. The proposal-owned predictionSnapshots remain the durable review evidence. */
   predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
   productId?: Maybe<Scalars['String']['output']>;
