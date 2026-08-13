@@ -3475,7 +3475,7 @@ export default {
       approvalQueueHint: "One card per Agent dispatch, including pending proposals, completed actions, no-action decisions, and rewrite history.",
       approvalQueueShortTitle: "Agent work",
       agentWorkspaceViews: {
-        label: "Agent workspace view",
+        label: "View",
         PENDING: "Pending review",
         ALL: "All Agent work",
       },

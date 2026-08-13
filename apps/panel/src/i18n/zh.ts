@@ -3297,7 +3297,7 @@ export default {
       approvalQueueHint: "每张卡片对应一次 Agent dispatch，统一展示待审批提案、已执行动作、无需动作结果与重写历史。",
       approvalQueueShortTitle: "Agent 工作",
       agentWorkspaceViews: {
-        label: "Agent 工作区视图",
+        label: "显示范围",
         PENDING: "只看待审批",
         ALL: "全部 Agent 工作",
       },
