@@ -1245,6 +1245,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           platformApplicationId
           decision
           rejectReason
+          rejectReasonExplanation
         }
         sampleShipmentIntent {
           sampleApplicationRecordId
@@ -1305,6 +1306,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         platformApplicationId
         decision
         rejectReason
+        rejectReasonExplanation
       }
       sampleShipmentIntent {
         sampleApplicationRecordId
@@ -2107,6 +2109,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
             platformApplicationId
             decision
             rejectReason
+            rejectReasonExplanation
           }
           targetCollaborationIntent {
             name
@@ -2812,6 +2815,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
           platformApplicationId
           decision
           rejectReason
+          rejectReasonExplanation
         }
         sampleShipmentIntent {
           sampleApplicationRecordId
@@ -2872,6 +2876,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         platformApplicationId
         decision
         rejectReason
+        rejectReasonExplanation
       }
       sampleShipmentIntent {
         sampleApplicationRecordId

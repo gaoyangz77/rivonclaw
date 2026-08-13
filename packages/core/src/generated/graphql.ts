@@ -212,6 +212,8 @@ export interface ActionProposalSampleReviewIntent {
   platformApplicationId?: Maybe<Scalars['String']['output']>;
   projectionRevision?: Maybe<Scalars['Int']['output']>;
   rejectReason?: Maybe<AffiliateSampleRejectReason>;
+  /** Agent-authored explanation for the structured rejection reason. Required for new OTHER rejections. */
+  rejectReasonExplanation?: Maybe<Scalars['String']['output']>;
   /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
 }
@@ -223,6 +225,8 @@ export interface ActionProposalSampleReviewIntentInput {
   platformApplicationId?: InputMaybe<Scalars['String']['input']>;
   projectionRevision?: InputMaybe<Scalars['Int']['input']>;
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
+  /** Agent-authored explanation for the structured rejection reason. Required for new OTHER rejections. */
+  rejectReasonExplanation?: InputMaybe<Scalars['String']['input']>;
   /** Local Mongo projection id. Nullable only for terminal legacy audit records created before sample projections became mandatory; current writes still require a valid local record id. */
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
 }
@@ -3324,6 +3328,9 @@ export const AffiliateSampleCommissionRateSource = {
 
 export type AffiliateSampleCommissionRateSource = typeof AffiliateSampleCommissionRateSource[keyof typeof AffiliateSampleCommissionRateSource];
 export const AffiliateSampleRejectReason = {
+  CreatorBlacklisted: 'CREATOR_BLACKLISTED',
+  DuplicateApplication: 'DUPLICATE_APPLICATION',
+  LowExpectedSales: 'LOW_EXPECTED_SALES',
   NotMatch: 'NOT_MATCH',
   Offline: 'OFFLINE',
   Other: 'OTHER',
@@ -11201,8 +11208,10 @@ export interface ResolveAffiliateWorkItemActionInput {
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
   productId?: InputMaybe<Scalars['String']['input']>;
-  /** Optional agent-facing shortcut for REVIEW_SAMPLE_APPLICATION rejection reason. Required by policy only when sampleReviewDecision is REJECT; defaults may be applied when omitted. */
+  /** Structured rejection reason. Required when sampleReviewDecision is REJECT; omit for APPROVE. */
   rejectReason?: InputMaybe<AffiliateSampleRejectReason>;
+  /** Free-text explanation for the rejection reason. Required when rejectReason is OTHER; omit for approvals. */
+  rejectReasonExplanation?: InputMaybe<Scalars['String']['input']>;
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Agent-facing shortcut for REVIEW_SAMPLE_APPLICATION. Use APPROVE or REJECT. Backend normalizes this into sampleReviewIntent.decision. */
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;

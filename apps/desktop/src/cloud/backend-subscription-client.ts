@@ -380,7 +380,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
               emailSubject
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
-            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason }
+            sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
             targetCollaborationIntent {
               name
               message
@@ -402,7 +402,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
                 emailSubject
                 parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
               }
-              sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason }
+              sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
               targetCollaborationIntent {
                 name
                 message
@@ -804,6 +804,7 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
             platformApplicationId
             decision
             rejectReason
+            rejectReasonExplanation
           }
           sampleShipmentIntent {
             sampleApplicationRecordId
@@ -849,6 +850,7 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           platformApplicationId
           decision
           rejectReason
+          rejectReasonExplanation
         }
         sampleShipmentIntent {
           sampleApplicationRecordId

@@ -45,6 +45,7 @@ describe("Affiliate proposal translations", () => {
         "approve",
         "reject",
         "rejectWithReason",
+        "rejectWithReasonExplanation",
         "historicalStaff",
       ]) {
         expect(bundle[key], `${language}.${key}`).toBeTruthy();
@@ -53,6 +54,9 @@ describe("Affiliate proposal translations", () => {
         NOT_MATCH: expect.any(String),
         OFFLINE: expect.any(String),
         OUT_OF_STOCK: expect.any(String),
+        LOW_EXPECTED_SALES: expect.any(String),
+        CREATOR_BLACKLISTED: expect.any(String),
+        DUPLICATE_APPLICATION: expect.any(String),
         OTHER: expect.any(String),
       }));
     }

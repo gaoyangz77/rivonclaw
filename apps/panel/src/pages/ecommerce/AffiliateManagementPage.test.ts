@@ -294,7 +294,8 @@ describe("AffiliateManagementPage proposal source", () => {
             sampleApplicationRecordId: "sample-2",
             platformApplicationId: "platform-2",
             decision: "REJECT",
-            rejectReason: "INSUFFICIENT_CREATOR_QUALITY",
+            rejectReason: "OTHER",
+            rejectReasonExplanation: "Creator quality evidence is below the shop requirement.",
           },
         },
       ],
@@ -312,18 +313,24 @@ describe("AffiliateManagementPage proposal source", () => {
       productTitle: row.productTitle,
       expectedSalesUnits: (row.predictionSnapshot?.output as { expectedSalesUnits?: number } | undefined)
         ?.expectedSalesUnits,
+      rejectReason: row.rejectReason,
+      rejectReasonExplanation: row.rejectReasonExplanation,
     }))).toEqual([
       {
         sampleId: "sample-1",
         decision: "APPROVE",
         productTitle: "Product one",
         expectedSalesUnits: 3.75,
+        rejectReason: null,
+        rejectReasonExplanation: null,
       },
       {
         sampleId: "sample-2",
         decision: "REJECT",
         productTitle: "Product two",
         expectedSalesUnits: 0.22,
+        rejectReason: "OTHER",
+        rejectReasonExplanation: "Creator quality evidence is below the shop requirement.",
       },
     ]);
     expect(summarizeSampleProposalReviewRows(rows)).toEqual({
@@ -352,6 +359,7 @@ describe("AffiliateManagementPage proposal source", () => {
       productTitle: null,
       productSellerSku: "SELLER-ROPE-01",
       rejectReason: "OUT_OF_STOCK",
+      rejectReasonExplanation: null,
     });
   });
 
