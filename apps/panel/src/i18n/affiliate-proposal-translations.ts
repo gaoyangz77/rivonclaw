@@ -84,7 +84,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadedProposalCount: "{{count}} Vorschläge geladen",
       allProposalsLoaded: "Alle {{count}} Vorschläge dieser Ansicht wurden geladen",
       agentWorkspaceViews: {
-        label: "Agent-Arbeitsbereich",
+        label: "Ansicht",
         PENDING: "Ausstehende Prüfung",
         ALL: "Alle Agent-Arbeiten",
       },
@@ -137,7 +137,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadedProposalCount: "{{count}} propuestas cargadas",
       allProposalsLoaded: "Se cargaron las {{count}} propuestas de esta vista",
       agentWorkspaceViews: {
-        label: "Vista del espacio de trabajo del agente",
+        label: "Vista",
         PENDING: "Pendiente de revisión",
         ALL: "Todo el trabajo del agente",
       },
@@ -190,7 +190,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadedProposalCount: "{{count}} propositions chargées",
       allProposalsLoaded: "Les {{count}} propositions de cette vue sont chargées",
       agentWorkspaceViews: {
-        label: "Vue de l’espace de travail Agent",
+        label: "Vue",
         PENDING: "En attente de validation",
         ALL: "Tout le travail de l’Agent",
       },
@@ -243,7 +243,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadedProposalCount: "{{count}} proposal dimuat",
       allProposalsLoaded: "Semua {{count}} proposal dalam tampilan ini telah dimuat",
       agentWorkspaceViews: {
-        label: "Tampilan ruang kerja Agent",
+        label: "Tampilan",
         PENDING: "Menunggu tinjauan",
         ALL: "Semua pekerjaan Agent",
       },
@@ -296,7 +296,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadedProposalCount: "{{count}} proposte caricate",
       allProposalsLoaded: "Tutte le {{count}} proposte di questa vista sono state caricate",
       agentWorkspaceViews: {
-        label: "Vista area di lavoro Agent",
+        label: "Vista",
         PENDING: "In attesa di revisione",
         ALL: "Tutto il lavoro dell’Agent",
       },
@@ -349,7 +349,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadedProposalCount: "โหลดแล้ว {{count}} ข้อเสนอ",
       allProposalsLoaded: "โหลดข้อเสนอทั้ง {{count}} รายการในมุมมองนี้แล้ว",
       agentWorkspaceViews: {
-        label: "มุมมองพื้นที่ทำงาน Agent",
+        label: "มุมมอง",
         PENDING: "รอตรวจสอบ",
         ALL: "งาน Agent ทั้งหมด",
       },
