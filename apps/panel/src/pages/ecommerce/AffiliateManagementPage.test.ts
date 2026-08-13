@@ -14,8 +14,12 @@ import {
   isBootstrapExpectedSalesOutput,
   mergeAffiliateProposalPage,
   predictionFamilyAvailability,
+  proposalSampleDecisionOverrideTarget,
+  proposalSampleReviewRows,
   replaceAffiliateProposalPageBuffer,
   selectAffiliateProposalItems,
+  sortAffiliateProposalsNewestFirst,
+  summarizeSampleProposalReviewRows,
 } from "./AffiliateManagementPage.js";
 
 describe("AffiliateManagementPage proposal source", () => {
@@ -58,6 +62,22 @@ describe("AffiliateManagementPage proposal source", () => {
       "proposal-2:REJECTED",
       "proposal-1:PENDING",
     ]);
+  });
+
+  it("orders the proposal timeline by creation time, not later status updates", () => {
+    const older = {
+      ...proposal("proposal-older", "PENDING"),
+      createdAt: "2026-08-13T01:00:00.000Z",
+      updatedAt: "2026-08-13T09:00:00.000Z",
+    } as GQL.ActionProposal;
+    const newer = {
+      ...proposal("proposal-newer", "PENDING"),
+      createdAt: "2026-08-13T02:00:00.000Z",
+      updatedAt: "2026-08-13T02:00:00.000Z",
+    } as GQL.ActionProposal;
+
+    expect(sortAffiliateProposalsNewestFirst([older, newer]).map((item) => item.id))
+      .toEqual(["proposal-newer", "proposal-older"]);
   });
 
   it("accepts a realtime proposal that targets the selected shop through a secondary step", () => {
@@ -169,6 +189,206 @@ describe("AffiliateManagementPage proposal source", () => {
       });
     },
   );
+
+  it("keeps every Sample Application decision in one proposal and binds its exact prediction", () => {
+    const multiSampleProposal = {
+      ...proposal("proposal-multi", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      sampleReviewIntent: {
+        sampleApplicationRecordId: "sample-1",
+        platformApplicationId: "platform-1",
+        decision: "APPROVE",
+      },
+      predictionSnapshots: [
+        {
+          sourceCacheId: "prediction-2",
+          status: "OK",
+          capturedAt: "2026-08-13T02:00:00.000Z",
+          output: { expectedSalesStatus: "OK", expectedSalesUnits: 0.22 },
+          subject: { sampleApplicationRecordId: "sample-2" },
+          resolvedContext: { productId: "product-2", productTitle: "Product two" },
+        },
+        {
+          sourceCacheId: "prediction-1",
+          status: "OK",
+          capturedAt: "2026-08-13T01:00:00.000Z",
+          output: { expectedSalesStatus: "OK", expectedSalesUnits: 3.75 },
+          subject: { sampleApplicationRecordId: "sample-1" },
+          resolvedContext: { productId: "product-1", productTitle: "Product one" },
+        },
+      ],
+      steps: [
+        {
+          stepId: "step-1",
+          shopId: "shop-1",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          productId: "product-1",
+          sampleApplicationRecordId: "sample-1",
+          predictionCacheIds: ["prediction-1"],
+          operatorSummary: "Approve the stronger application.",
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "platform-1",
+            decision: "APPROVE",
+          },
+        },
+        {
+          stepId: "step-2",
+          shopId: "shop-2",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          productId: "product-2",
+          sampleApplicationRecordId: "sample-2",
+          predictionCacheIds: ["prediction-2"],
+          operatorSummary: "Reject the weaker application.",
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-2",
+            platformApplicationId: "platform-2",
+            decision: "REJECT",
+            rejectReason: "INSUFFICIENT_CREATOR_QUALITY",
+          },
+        },
+      ],
+    } as unknown as GQL.ActionProposal;
+
+    const rows = proposalSampleReviewRows(multiSampleProposal);
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => ({
+      sampleId: row.sampleApplicationRecordId,
+      decision: row.decision,
+      productTitle: row.productTitle,
+      expectedSalesUnits: (row.predictionSnapshot?.output as { expectedSalesUnits?: number } | undefined)
+        ?.expectedSalesUnits,
+    }))).toEqual([
+      {
+        sampleId: "sample-1",
+        decision: "APPROVE",
+        productTitle: "Product one",
+        expectedSalesUnits: 3.75,
+      },
+      {
+        sampleId: "sample-2",
+        decision: "REJECT",
+        productTitle: "Product two",
+        expectedSalesUnits: 0.22,
+      },
+    ]);
+    expect(summarizeSampleProposalReviewRows(rows)).toEqual({
+      approveCount: 1,
+      rejectCount: 1,
+    });
+  });
+
+  it("does not attach an unrelated prediction to a Sample step", () => {
+    const proposalWithoutMatchingPrediction = {
+      ...proposal("proposal-no-match", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      predictionSnapshots: [
+        {
+          sourceCacheId: "prediction-other",
+          status: "OK",
+          output: { expectedSalesStatus: "OK", expectedSalesUnits: 9 },
+          subject: { sampleApplicationRecordId: "sample-other" },
+        },
+        {
+          sourceCacheId: "prediction-another",
+          status: "OK",
+          output: { expectedSalesStatus: "OK", expectedSalesUnits: 8 },
+          subject: { sampleApplicationRecordId: "sample-another" },
+        },
+      ],
+      steps: [{
+        stepId: "step-target",
+        shopId: "shop-1",
+        type: "REVIEW_SAMPLE_APPLICATION",
+        productId: "product-target",
+        sampleApplicationRecordId: "sample-target",
+        predictionCacheIds: ["prediction-target"],
+        operatorSummary: "Review target.",
+        sampleReviewIntent: {
+          sampleApplicationRecordId: "sample-target",
+          platformApplicationId: "platform-target",
+          decision: "APPROVE",
+        },
+      }],
+    } as unknown as GQL.ActionProposal;
+
+    expect(proposalSampleReviewRows(proposalWithoutMatchingPrediction)[0]?.predictionSnapshot)
+      .toBeNull();
+  });
+
+  it("offers rejection only as the opposite decision for one pure Sample action", () => {
+    const singleApprove = {
+      ...proposal("proposal-single-approve", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      sampleReviewIntent: {
+        sampleApplicationRecordId: "sample-1",
+        platformApplicationId: "platform-1",
+        decision: "APPROVE",
+      },
+      steps: [{
+        stepId: "step-1",
+        type: "REVIEW_SAMPLE_APPLICATION",
+        sampleReviewIntent: {
+          sampleApplicationRecordId: "sample-1",
+          platformApplicationId: "platform-1",
+          decision: "APPROVE",
+        },
+      }],
+    } as unknown as GQL.ActionProposal;
+    const singleReject = {
+      ...singleApprove,
+      id: "proposal-single-reject",
+      sampleReviewIntent: {
+        ...singleApprove.sampleReviewIntent!,
+        decision: "REJECT",
+      },
+      steps: [{
+        ...singleApprove.steps[0]!,
+        sampleReviewIntent: {
+          ...singleApprove.steps[0]!.sampleReviewIntent!,
+          decision: "REJECT",
+        },
+      }],
+    } as unknown as GQL.ActionProposal;
+
+    expect(proposalSampleDecisionOverrideTarget(singleApprove)).toBe("REJECT");
+    expect(proposalSampleDecisionOverrideTarget(singleReject)).toBe("APPROVE");
+  });
+
+  it("hides rejection for multi-Sample and mixed-action proposals", () => {
+    const single = {
+      ...proposal("proposal-single", "PENDING", "REVIEW_SAMPLE_APPLICATION"),
+      sampleReviewIntent: {
+        sampleApplicationRecordId: "sample-1",
+        platformApplicationId: "platform-1",
+        decision: "APPROVE",
+      },
+      steps: [{
+        stepId: "step-1",
+        type: "REVIEW_SAMPLE_APPLICATION",
+        sampleReviewIntent: {
+          sampleApplicationRecordId: "sample-1",
+          platformApplicationId: "platform-1",
+          decision: "APPROVE",
+        },
+      }],
+    } as unknown as GQL.ActionProposal;
+    const multi = {
+      ...single,
+      steps: [
+        single.steps[0],
+        { ...single.steps[0], stepId: "step-2" },
+      ],
+    } as GQL.ActionProposal;
+    const mixed = {
+      ...single,
+      messageIntent: { parts: [{ kind: "TEXT", text: "hello" }] },
+    } as unknown as GQL.ActionProposal;
+
+    expect(proposalSampleDecisionOverrideTarget(multi)).toBeNull();
+    expect(proposalSampleDecisionOverrideTarget(mixed)).toBeNull();
+    expect(proposalSampleDecisionOverrideTarget(
+      proposal("proposal-message", "PENDING", "SEND_MESSAGE"),
+    )).toBeNull();
+  });
 });
 
 describe("Affiliate canonical UI contract", () => {

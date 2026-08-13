@@ -162,6 +162,10 @@ type AffiliatePredictionSnapshotOutput = {
   effectiveTenantScope?: "USER" | "REGION" | "SHOP" | null;
   effectiveTenantId?: string | null;
   modelStatus?: string | null;
+  predictionQuality?: {
+    level?: string | null;
+    score?: number | null;
+  } | null;
   expectedSalesSelection?: AffiliatePredictionModelSelection | null;
   humanDecisionSelection?: AffiliatePredictionModelSelection | null;
   humanDecision?: {
@@ -180,6 +184,31 @@ type AffiliatePredictionSnapshotView = {
   scenario?: string | null;
   capturedAt?: string | null;
   predictedAt?: string | null;
+  subject?: {
+    sampleApplicationRecordId?: string | null;
+    platformApplicationId?: string | null;
+    productId?: string | null;
+  } | null;
+  resolvedContext?: {
+    shopId?: string | null;
+    sampleApplicationRecordId?: string | null;
+    platformApplicationId?: string | null;
+    productId?: string | null;
+    productTitle?: string | null;
+  } | null;
+};
+
+export type AffiliateSampleProposalReviewRow = {
+  stepId: string;
+  shopId: string | null;
+  sampleApplicationRecordId: string | null;
+  platformApplicationId: string | null;
+  productId: string | null;
+  productTitle: string | null;
+  decision: GQL.AffiliateSampleReviewDecision;
+  rejectReason: string | null;
+  operatorSummary: string | null;
+  predictionSnapshot: AffiliatePredictionSnapshotView | null;
 };
 
 type AffiliatePredictionModelSelection = {
@@ -393,6 +422,22 @@ export function mergeAffiliateProposalPage(
   incoming: GQL.ActionProposal[],
 ): GQL.ActionProposal[] {
   return mergeById([...current, ...incoming]);
+}
+
+export function sortAffiliateProposalsNewestFirst(
+  proposals: GQL.ActionProposal[],
+): GQL.ActionProposal[] {
+  return [...proposals].sort((left, right) => {
+    const createdDifference = proposalTimestamp(right.createdAt) - proposalTimestamp(left.createdAt);
+    if (createdDifference !== 0) return createdDifference;
+    return right.id.localeCompare(left.id);
+  });
+}
+
+function proposalTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 export function applyAffiliateProposalChange(
@@ -849,12 +894,12 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       proposalProjectionSnapshot(entityStore.affiliateWorkspace, proposal.id) ?? { proposal },
     ),
   );
-  const visibleProposalItems = filterActionProposals(
+  const visibleProposalItems = sortAffiliateProposalsNewestFirst(filterActionProposals(
     proposalItemsFromQuery
       .filter((proposal) => !proposalType || proposal.type === proposalType),
     attentionSearch,
     shopLabel,
-  );
+  ));
 
   async function decideProposal(
     proposal: GQL.ActionProposal,
@@ -869,8 +914,10 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       const decisionNote = note?.trim() || (
         status === GQL.ActionProposalStatus.Approved
           ? t("ecommerce.shopDrawer.affiliate.proposalApprovedNote")
-          : status === GQL.ActionProposalStatus.RevisionRequested
+        : status === GQL.ActionProposalStatus.RevisionRequested
             ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestedNote")
+          : proposalSampleDecisionOverrideTarget(proposal) != null
+            ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideNote")
             : t("ecommerce.shopDrawer.affiliate.proposalRejectedNote")
       );
       const result = await decideActionProposal({
@@ -905,6 +952,8 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           ? t("ecommerce.shopDrawer.affiliate.proposalApproveSuccess")
           : status === GQL.ActionProposalStatus.RevisionRequested
             ? t("ecommerce.shopDrawer.affiliate.proposalRevisionRequestSuccess")
+          : proposalSampleDecisionOverrideTarget(proposal) != null
+            ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideSuccess")
           : t("ecommerce.shopDrawer.affiliate.proposalRejectSuccess"),
         "success",
       );
@@ -1041,20 +1090,25 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                 : t("ecommerce.affiliateWorkspace.emptyProposalEntities")}
             </div>
           ) : (
-            <div className="affiliate-workbench-list">
+            <div className="affiliate-workbench-list affiliate-proposal-timeline" role="list">
               {visibleProposalItems.map((proposal) => (
-                <ActionProposalCard
-                  key={proposal.id}
-                  proposal={proposal}
-                  shopLabel={shopLabel(proposal.focusShopId)}
-                  decidingProposal={decidingProposal}
-                  affiliateWorkspace={entityStore.affiliateWorkspace}
-                  onOpenRelationshipWork={(detailItem) => setSelectedRelationship(relationshipDetailFromWorkItem(detailItem))}
-                  onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
-                  onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
-                  onRequestRevision={(item, revisionNote) =>
-                    decideProposal(item, GQL.ActionProposalStatus.RevisionRequested, revisionNote)}
-                />
+                <div className="affiliate-proposal-timeline-entry" key={proposal.id} role="listitem">
+                  <time dateTime={proposal.createdAt}>
+                    {formatProposalTime(proposal.createdAt)}
+                  </time>
+                  <span className="affiliate-proposal-timeline-marker" aria-hidden="true" />
+                  <ActionProposalCard
+                    proposal={proposal}
+                    shopLabel={shopLabel(proposal.focusShopId)}
+                    decidingProposal={decidingProposal}
+                    affiliateWorkspace={entityStore.affiliateWorkspace}
+                    onOpenRelationshipWork={(detailItem) => setSelectedRelationship(relationshipDetailFromWorkItem(detailItem))}
+                    onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
+                    onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
+                    onRequestRevision={(item, revisionNote) =>
+                      decideProposal(item, GQL.ActionProposalStatus.RevisionRequested, revisionNote)}
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -4477,17 +4531,40 @@ function ActionProposalCard({
     : t("ecommerce.affiliateWorkspace.unknownCreator");
   const creatorHandle = proposal.creatorProfile ? creatorTikTokHandle(proposal.creatorProfile) : null;
   const creatorPlatformId = proposal.creatorProfile ? creatorPlatformIdentity(proposal.creatorProfile) : null;
-  const recommendationTitle = renderProposalRecommendationTitle(proposal, t);
-  const executionDescription = renderProposalExecutionDescription(proposal, t);
+  const sampleReviewRows = proposalSampleReviewRows(proposal);
+  const sampleReviewSummary = summarizeSampleProposalReviewRows(sampleReviewRows);
+  const recommendationTitle = sampleReviewRows.length > 1
+    ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.recommendationTitle", {
+        count: sampleReviewRows.length,
+        approveCount: sampleReviewSummary.approveCount,
+        rejectCount: sampleReviewSummary.rejectCount,
+      })
+    : renderProposalRecommendationTitle(proposal, t);
+  const executionDescription = sampleReviewRows.length > 0
+    ? null
+    : renderProposalExecutionDescription(proposal, t);
   const messagePreview = getProposalMessagePreview(proposal);
-  const predictionSnapshot = findProposalPredictionSnapshot(proposal);
+  const predictionSnapshot = sampleReviewRows.length > 0
+    ? null
+    : findProposalPredictionSnapshot(proposal);
   const isCompact = variant === "compact";
   const bodyExpanded = !isCompact || compactOpen;
   const canDecide =
     proposal.status === GQL.ActionProposalStatus.Pending &&
-    Boolean(onApprove && onReject) &&
+    Boolean(onApprove) &&
     (allowDecisionActions ?? !isCompact);
   const canRequestRevision = canDecide && Boolean(onRequestRevision);
+  const sampleDecisionOverrideTarget = proposalSampleDecisionOverrideTarget(proposal);
+  const canRejectOverride = canDecide && Boolean(onReject && sampleDecisionOverrideTarget);
+  const approveActionLabel = sampleReviewRows.length === 1
+    ? t(
+        sampleReviewRows[0]?.decision === GQL.AffiliateSampleReviewDecision.Approve
+          ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.confirmSend"
+          : "ecommerce.affiliateWorkspace.sampleDecisionBundle.confirmDoNotSend",
+      )
+    : sampleReviewRows.length > 1
+      ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approveBundle")
+      : t("common.approve", { defaultValue: "Approve" });
   const trimmedRevisionNote = revisionNote.trim();
   const proposalStepCount = proposal.steps?.length ?? 0;
   const proposalStepCountLabel = proposalStepCount > 1
@@ -4498,7 +4575,7 @@ function ActionProposalCard({
   const openPrimaryTarget = () => {
     if (canOpenRelationshipWork && detailItem && onOpenRelationshipWork) onOpenRelationshipWork(detailItem);
   };
-  const shouldShowProductSummary = hasProposalProductContext(proposal);
+  const shouldShowProductSummary = sampleReviewRows.length === 0 && hasProposalProductContext(proposal);
   const statusBadge = (
     <span className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}>
       {t(`ecommerce.affiliateWorkspace.proposalFilters.${proposal.status}`, {
@@ -4549,17 +4626,23 @@ function ActionProposalCard({
         </button>
       ) : (
         <>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            disabled={decidingProposal}
-            onClick={(event) => {
-              event.stopPropagation();
-              void onReject?.(proposal);
-            }}
-          >
-            {t("common.reject", { defaultValue: "Reject" })}
-          </button>
+          {canRejectOverride ? (
+            <button
+              className="btn btn-secondary affiliate-proposal-override-button"
+              type="button"
+              disabled={decidingProposal}
+              onClick={(event) => {
+                event.stopPropagation();
+                void onReject?.(proposal);
+              }}
+            >
+              {t(
+                sampleDecisionOverrideTarget === GQL.AffiliateSampleReviewDecision.Approve
+                  ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideSend"
+                  : "ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideDoNotSend",
+              )}
+            </button>
+          ) : null}
           {canRequestRevision ? (
             <button
               className="btn btn-secondary"
@@ -4597,7 +4680,7 @@ function ActionProposalCard({
       >
         {revisionOpen
           ? t("ecommerce.shopDrawer.affiliate.sendProposalRevisionRequest")
-          : t("common.approve", { defaultValue: "Approve" })}
+          : approveActionLabel}
       </button>
     </div>
   ) : null;
@@ -4647,7 +4730,7 @@ function ActionProposalCard({
                 />
                 <div className="affiliate-work-item-meta">
                   <span>{shopLabel}</span>
-                  <span>{formatProposalTime(proposal.updatedAt)}</span>
+                  <span>{formatProposalTime(proposal.createdAt)}</span>
                 </div>
               </div>
             </div>
@@ -4680,6 +4763,9 @@ function ActionProposalCard({
               </div>
             ) : null}
             <div className="affiliate-proposal-row-context">
+              {sampleReviewRows.length > 0 ? (
+                <ProposalSampleDecisionBundle rows={sampleReviewRows} />
+              ) : null}
               <ProposalPredictionComparison
                 snapshot={predictionSnapshot}
               />
@@ -4707,7 +4793,7 @@ function ActionProposalCard({
             <div className="affiliate-proposal-row-decision-meta">
               <span>{formatActionProposalTypeLabel(proposal.type, t)}</span>
               {proposalStepCountLabel ? <span>{proposalStepCountLabel}</span> : null}
-              <strong>{formatProposalTime(proposal.updatedAt)}</strong>
+              <strong>{formatProposalTime(proposal.createdAt)}</strong>
             </div>
             {decisionActions}
           </aside>
@@ -4760,7 +4846,7 @@ function ActionProposalCard({
             />
             <div className="affiliate-work-item-meta">
               <span>{shopLabel}</span>
-              <span>{formatProposalTime(proposal.updatedAt)}</span>
+              <span>{formatProposalTime(proposal.createdAt)}</span>
               {proposalStepCountLabel ? <span>{proposalStepCountLabel}</span> : null}
               <SystemIdCopy value={proposal.id} />
             </div>
@@ -4789,12 +4875,15 @@ function ActionProposalCard({
             <div className="affiliate-card-section-footline">
               <span>{formatActionProposalTypeLabel(proposal.type, t)}</span>
               {proposalStepCountLabel ? <span>{proposalStepCountLabel}</span> : null}
-              <span>{formatProposalTime(proposal.updatedAt)}</span>
+              <span>{formatProposalTime(proposal.createdAt)}</span>
             </div>
           ) : null}
         </section>
         {bodyExpanded ? (
           <>
+            {sampleReviewRows.length > 0 ? (
+              <ProposalSampleDecisionBundle rows={sampleReviewRows} />
+            ) : null}
             <ProposalPredictionComparison
               snapshot={predictionSnapshot}
             />
@@ -4841,6 +4930,306 @@ function ActionProposalCard({
         </>
       ) : null}
     </article>
+  );
+}
+
+export function summarizeSampleProposalReviewRows(
+  rows: AffiliateSampleProposalReviewRow[],
+): { approveCount: number; rejectCount: number } {
+  return rows.reduce(
+    (summary, row) => {
+      if (row.decision === GQL.AffiliateSampleReviewDecision.Approve) {
+        summary.approveCount += 1;
+      } else if (row.decision === GQL.AffiliateSampleReviewDecision.Reject) {
+        summary.rejectCount += 1;
+      }
+      return summary;
+    },
+    { approveCount: 0, rejectCount: 0 },
+  );
+}
+
+export function proposalSampleDecisionOverrideTarget(
+  proposal: GQL.ActionProposal,
+): GQL.AffiliateSampleReviewDecision | null {
+  const sources = proposal.steps?.length ? proposal.steps : [proposal];
+  if (
+    sources.length !== 1
+    || proposal.type !== GQL.ActionProposalType.ReviewSampleApplication
+    || !isPureSampleReviewProposalSource(proposal)
+    || !isPureSampleReviewProposalSource(sources[0]!)
+  ) {
+    return null;
+  }
+  const agentDecision = sources[0]!.sampleReviewIntent?.decision;
+  if (agentDecision === GQL.AffiliateSampleReviewDecision.Approve) {
+    return GQL.AffiliateSampleReviewDecision.Reject;
+  }
+  if (agentDecision === GQL.AffiliateSampleReviewDecision.Reject) {
+    return GQL.AffiliateSampleReviewDecision.Approve;
+  }
+  return null;
+}
+
+function isPureSampleReviewProposalSource(source: {
+  type?: GQL.ActionProposalType | null;
+  candidateDecisionIntent?: unknown;
+  messageIntent?: unknown;
+  targetCollaborationIntent?: unknown;
+  sampleReviewIntent?: GQL.ActionProposalSampleReviewIntent | null;
+  sampleShipmentIntent?: unknown;
+  creatorTagIntent?: unknown;
+  blockCreatorIntent?: unknown;
+  campaignProductUpdateIntent?: unknown;
+  approvalPolicyUpdateIntent?: unknown;
+}): boolean {
+  return source.type === GQL.ActionProposalType.ReviewSampleApplication
+    && source.sampleReviewIntent != null
+    && source.candidateDecisionIntent == null
+    && source.messageIntent == null
+    && source.targetCollaborationIntent == null
+    && source.sampleShipmentIntent == null
+    && source.creatorTagIntent == null
+    && source.blockCreatorIntent == null
+    && source.campaignProductUpdateIntent == null
+    && source.approvalPolicyUpdateIntent == null;
+}
+
+export function proposalSampleReviewRows(
+  proposal: GQL.ActionProposal,
+): AffiliateSampleProposalReviewRow[] {
+  const sampleSteps = (proposal.steps ?? []).filter(
+    (step) =>
+      step.type === GQL.ActionProposalType.ReviewSampleApplication ||
+      Boolean(step.sampleReviewIntent),
+  );
+  const sources: Array<{
+    stepId: string;
+    shopId: string | null;
+    sampleApplicationRecordId: string | null;
+    productId: string | null;
+    operatorSummary: string | null;
+    predictionCacheIds: string[];
+    sampleReviewIntent: GQL.ActionProposalSampleReviewIntent;
+  }> = sampleSteps.length > 0
+    ? sampleSteps
+        .filter((step): step is GQL.ActionProposalStep & {
+          sampleReviewIntent: GQL.ActionProposalSampleReviewIntent;
+        } => Boolean(step.sampleReviewIntent))
+        .map((step) => ({
+          stepId: step.stepId,
+          shopId: step.shopId ?? null,
+          sampleApplicationRecordId:
+            step.sampleReviewIntent.sampleApplicationRecordId ??
+            step.sampleApplicationRecordId ??
+            null,
+          productId: step.productId ?? null,
+          operatorSummary: step.operatorSummary?.trim() || null,
+          predictionCacheIds: step.predictionCacheIds ?? [],
+          sampleReviewIntent: step.sampleReviewIntent,
+        }))
+    : proposal.sampleReviewIntent
+      ? [{
+          stepId: proposal.id,
+          shopId: proposal.focusShopId ?? null,
+          sampleApplicationRecordId:
+            proposal.sampleReviewIntent.sampleApplicationRecordId ??
+            proposal.sampleApplicationRecordId ??
+            null,
+          productId:
+            proposal.productId ??
+            proposal.sampleApplicationRecord?.productId ??
+            null,
+          operatorSummary: proposal.operatorSummary?.trim() || null,
+          predictionCacheIds: proposal.predictionCacheIds ?? [],
+          sampleReviewIntent: proposal.sampleReviewIntent,
+        }]
+      : [];
+
+  const snapshots = (proposal.predictionSnapshots ?? []) as AffiliatePredictionSnapshotView[];
+  return sources.map((source) => {
+    const snapshot = findPredictionSnapshotForSampleSource(
+      snapshots,
+      source,
+      sources.length === 1,
+    );
+    return {
+      stepId: source.stepId,
+      shopId: source.shopId,
+      sampleApplicationRecordId: source.sampleApplicationRecordId,
+      platformApplicationId: source.sampleReviewIntent.platformApplicationId ?? null,
+      productId:
+        source.productId ??
+        snapshot?.resolvedContext?.productId ??
+        snapshot?.subject?.productId ??
+        null,
+      productTitle:
+        snapshot?.resolvedContext?.productTitle ??
+        (sources.length === 1 ? proposal.productSummary?.title ?? null : null),
+      decision: source.sampleReviewIntent.decision,
+      rejectReason: source.sampleReviewIntent.rejectReason ?? null,
+      operatorSummary: source.operatorSummary,
+      predictionSnapshot: snapshot,
+    };
+  });
+}
+
+function findPredictionSnapshotForSampleSource(
+  snapshots: AffiliatePredictionSnapshotView[],
+  source: {
+    predictionCacheIds: string[];
+    sampleApplicationRecordId: string | null;
+    productId: string | null;
+    shopId: string | null;
+    sampleReviewIntent: GQL.ActionProposalSampleReviewIntent;
+  },
+  allowSingleSnapshotFallback: boolean,
+): AffiliatePredictionSnapshotView | null {
+  if (!snapshots.length) return null;
+  const cacheIds = new Set(source.predictionCacheIds);
+  const platformApplicationId = source.sampleReviewIntent.platformApplicationId ?? null;
+  const ranked = snapshots
+    .map((snapshot) => {
+      let score = 0;
+      if (snapshot.sourceCacheId && cacheIds.has(snapshot.sourceCacheId)) score += 100;
+      if (
+        source.sampleApplicationRecordId &&
+        (snapshot.subject?.sampleApplicationRecordId === source.sampleApplicationRecordId ||
+          snapshot.resolvedContext?.sampleApplicationRecordId === source.sampleApplicationRecordId)
+      ) score += 80;
+      if (
+        platformApplicationId &&
+        (snapshot.subject?.platformApplicationId === platformApplicationId ||
+          snapshot.resolvedContext?.platformApplicationId === platformApplicationId)
+      ) score += 70;
+      if (
+        score > 0 &&
+        source.productId &&
+        (snapshot.subject?.productId === source.productId ||
+          snapshot.resolvedContext?.productId === source.productId)
+      ) score += 10;
+      if (score > 0 && source.shopId && snapshot.resolvedContext?.shopId === source.shopId) {
+        score += 5;
+      }
+      return { snapshot, score };
+    })
+    .filter((candidate) => candidate.score > 0)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return sortPredictionSnapshotsByCaptureTime([a.snapshot, b.snapshot])[0] === a.snapshot
+        ? -1
+        : 1;
+    });
+  if (ranked[0]) return ranked[0].snapshot;
+  if (allowSingleSnapshotFallback && snapshots.length === 1) return snapshots[0];
+  return null;
+}
+
+function ProposalSampleDecisionBundle({
+  rows,
+}: {
+  rows: AffiliateSampleProposalReviewRow[];
+}) {
+  const { t } = useTranslation();
+  const summary = summarizeSampleProposalReviewRows(rows);
+  return (
+    <section
+      className="affiliate-sample-decision-bundle"
+      aria-label={t("ecommerce.affiliateWorkspace.sampleDecisionBundle.title")}
+    >
+      <div className="affiliate-sample-decision-bundle-head">
+        <div>
+          <div className="affiliate-card-section-label">
+            {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.title")}
+          </div>
+          <strong>
+            {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.summary", {
+              count: rows.length,
+              approveCount: summary.approveCount,
+              rejectCount: summary.rejectCount,
+            })}
+          </strong>
+        </div>
+        <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approvalScope")}</span>
+      </div>
+      <div className="affiliate-sample-decision-list">
+        {rows.map((row, index) => {
+          const output = readPredictionSnapshotOutput(row.predictionSnapshot);
+          const availability = output ? predictionFamilyAvailability(output) : null;
+          const expectedSales =
+            availability?.expectedSalesReady && typeof output?.expectedSalesUnits === "number"
+              ? formatExpectedSalesUnits(output.expectedSalesUnits)
+              : null;
+          const humanDecision =
+            availability?.humanDecisionReady &&
+            typeof output?.humanDecision?.wouldApprove === "boolean"
+              ? output.humanDecision.wouldApprove
+              : null;
+          const predictionMeta = [
+            row.predictionSnapshot?.status,
+            output?.expectedSalesStatus,
+            output?.predictionQuality?.level,
+            row.predictionSnapshot?.capturedAt ?? row.predictionSnapshot?.predictedAt,
+          ].filter(Boolean);
+          const approves = row.decision === GQL.AffiliateSampleReviewDecision.Approve;
+          return (
+            <article className="affiliate-sample-decision-row" key={row.stepId}>
+              <div className="affiliate-sample-decision-identity">
+                <span className="affiliate-sample-decision-index">{index + 1}</span>
+                <div>
+                  <strong>{row.productTitle || row.productId || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct")}</strong>
+                  {row.productTitle && row.productId ? <small>{row.productId}</small> : null}
+                  {row.operatorSummary ? <p>{row.operatorSummary}</p> : null}
+                  <div className="affiliate-sample-decision-identifiers">
+                    <span>
+                      {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.localApplication")}
+                      <SystemIdCopy value={row.sampleApplicationRecordId} />
+                    </span>
+                    <span>
+                      {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.providerApplication")}
+                      <PlatformIdCopy value={row.platformApplicationId} />
+                    </span>
+                    <span>
+                      {t("ecommerce.affiliateWorkspace.sampleDecisionBundle.shop")}
+                      <PlatformIdCopy value={row.shopId} />
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="affiliate-sample-decision-metric">
+                <span>{t("ecommerce.affiliateWorkspace.predictionComparison.expectedSales")}</span>
+                <strong>{expectedSales ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unavailable")}</strong>
+                <small>{predictionMeta.map((value) => formatAffiliateEnumLabel(String(value))).join(" · ") || "—"}</small>
+              </div>
+              <div className="affiliate-sample-decision-metric">
+                <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.agentDecision")}</span>
+                <strong className={approves ? "affiliate-sample-decision-approve" : "affiliate-sample-decision-reject"}>
+                  {t(
+                    approves
+                      ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.approve"
+                      : "ecommerce.affiliateWorkspace.sampleDecisionBundle.reject",
+                  )}
+                </strong>
+                <small>{row.rejectReason ? formatAffiliateEnumLabel(row.rejectReason) : "—"}</small>
+              </div>
+              <div className="affiliate-sample-decision-metric affiliate-sample-decision-history">
+                <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.historicalStaff")}</span>
+                <strong>
+                  {humanDecision == null
+                    ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unavailable")
+                    : t(
+                        humanDecision
+                          ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.approve"
+                          : "ecommerce.affiliateWorkspace.sampleDecisionBundle.reject",
+                      )}
+                </strong>
+                <small>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.displayOnly")}</small>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -4939,7 +5328,7 @@ function ProposalPredictionComparison({
             {availability.expectedSalesReady &&
             typeof expectedSalesUnits === "number"
               ? t("ecommerce.affiliateWorkspace.predictionComparison.expectedSalesValue", {
-                  units: formatCompactNumber(expectedSalesUnits),
+                  units: formatExpectedSalesUnits(expectedSalesUnits),
                 })
               : availability.expectedSalesReady
                 ? t("ecommerce.affiliateWorkspace.predictionComparison.unknown")
@@ -7229,6 +7618,12 @@ function formatCount(value?: number | null): string | null {
 function formatCompactNumber(value: number): string {
   return new Intl.NumberFormat(undefined, {
     maximumFractionDigits: Math.abs(value) < 10 ? 1 : 0,
+  }).format(value);
+}
+
+function formatExpectedSalesUnits(value: number): string {
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 4,
   }).format(value);
 }
 
