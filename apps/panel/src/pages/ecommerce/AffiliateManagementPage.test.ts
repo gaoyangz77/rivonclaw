@@ -568,6 +568,7 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("affiliate-agent-workspace-controls");
     expect(page).toContain('role="switch"');
     expect(page).toContain('aria-checked={agentWorkspaceView === "PENDING"}');
+    expect(page.match(/affiliate-agent-workspace-switch-slot/g)).toHaveLength(2);
     expect(page).not.toContain("AGENT_WORKSPACE_VIEWS.map");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueHint");
