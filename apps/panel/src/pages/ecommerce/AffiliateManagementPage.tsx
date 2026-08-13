@@ -208,6 +208,7 @@ export type AffiliateSampleProposalReviewRow = {
   productSellerSku: string | null;
   decision: GQL.AffiliateSampleReviewDecision;
   rejectReason: string | null;
+  rejectReasonExplanation: string | null;
   predictionSnapshot: AffiliatePredictionSnapshotView | null;
 };
 
@@ -5202,6 +5203,8 @@ export function proposalSampleReviewRows(
       productSellerSku,
       decision: source.sampleReviewIntent.decision,
       rejectReason: source.sampleReviewIntent.rejectReason ?? null,
+      rejectReasonExplanation:
+        source.sampleReviewIntent.rejectReasonExplanation?.trim() || null,
       predictionSnapshot: snapshot,
     };
   });
@@ -5305,13 +5308,21 @@ function ProposalSampleDecisionBundle({
             || (row.productSellerSku
               ? `${t("ecommerce.affiliateWorkspace.sampleDecisionBundle.sellerSku")} ${row.productSellerSku}`
               : row.productId || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownProduct"));
+          const rejectReasonLabel = row.rejectReason
+            ? t(`ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectReasons.${row.rejectReason}`, {
+                defaultValue: formatAffiliateEnumLabel(row.rejectReason),
+              })
+            : null;
           const decisionLabel = approves
             ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approve")
-            : row.rejectReason
+            : rejectReasonLabel && row.rejectReasonExplanation
+              ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectWithReasonExplanation", {
+                  reason: rejectReasonLabel,
+                  explanation: row.rejectReasonExplanation,
+                })
+              : rejectReasonLabel
               ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectWithReason", {
-                  reason: t(`ecommerce.affiliateWorkspace.sampleDecisionBundle.rejectReasons.${row.rejectReason}`, {
-                    defaultValue: formatAffiliateEnumLabel(row.rejectReason),
-                  }),
+                  reason: rejectReasonLabel,
                 })
               : t("ecommerce.affiliateWorkspace.sampleDecisionBundle.reject");
           return (

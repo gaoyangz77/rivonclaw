@@ -560,6 +560,7 @@ describe("cloud-graphql handler", () => {
             sampleApplicationRecordId: "sample-1",
             decision: "REJECT",
             rejectReason: "OTHER",
+            rejectReasonExplanation: "The merchant requested a case-specific rejection.",
           },
         },
       },
@@ -578,6 +579,7 @@ describe("cloud-graphql handler", () => {
               sampleApplicationRecordId: "sample-1",
               decision: "REJECT",
               rejectReason: "OTHER",
+              rejectReasonExplanation: "The merchant requested a case-specific rejection.",
             },
           },
         }),
@@ -683,7 +685,7 @@ describe("cloud-graphql handler", () => {
     );
   });
 
-  it("normalizes common sample review aliases and defaults reject reason", async () => {
+  it("rejects a sample review rejection that omits its structured reason", async () => {
     const graphqlFetch = vi.fn().mockResolvedValue({
       resolveAffiliateWorkItem: {
         decision: "REQUEST_ACTION",
@@ -726,22 +728,12 @@ describe("cloud-graphql handler", () => {
 
     expect(handled).toBe(true);
     expect(res._status).toBe(200);
-    expect(graphqlFetch).toHaveBeenCalledWith(
-      mutation,
-      expect.objectContaining({
-        input: expect.objectContaining({
-          decision: "REQUEST_ACTION",
-          action: {
-            type: "REVIEW_SAMPLE_APPLICATION",
-            sampleReviewIntent: {
-              sampleApplicationRecordId: "sample-1",
-              decision: "REJECT",
-              rejectReason: "OTHER",
-            },
-          },
-        }),
-      }),
-    );
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      errors: [{
+        message: expect.stringContaining("REJECT also requires action.rejectReason"),
+      }],
+    });
   });
 
   it("drops empty unrelated affiliate action intents before proxying", async () => {
@@ -785,6 +777,7 @@ describe("cloud-graphql handler", () => {
               platformApplicationId: "platform-app-1",
               decision: "REJECT",
               rejectReason: "OTHER",
+              rejectReasonExplanation: "The merchant supplied a case-specific rejection.",
             },
           },
         },
@@ -805,6 +798,7 @@ describe("cloud-graphql handler", () => {
               platformApplicationId: "platform-app-1",
               decision: "REJECT",
               rejectReason: "OTHER",
+              rejectReasonExplanation: "The merchant supplied a case-specific rejection.",
             },
           },
         }),
@@ -858,6 +852,7 @@ describe("cloud-graphql handler", () => {
                 platformApplicationId: "platform-app-1",
                 decision: "REJECT",
                 rejectReason: "OTHER",
+                rejectReasonExplanation: "The merchant supplied a case-specific rejection.",
               },
             },
             {
@@ -886,6 +881,7 @@ describe("cloud-graphql handler", () => {
           platformApplicationId: "platform-app-1",
           decision: "REJECT",
           rejectReason: "OTHER",
+          rejectReasonExplanation: "The merchant supplied a case-specific rejection.",
         },
       },
       {

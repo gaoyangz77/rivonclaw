@@ -231,7 +231,8 @@ function sanitizeCloudGraphqlVariables(
       "This is a tool payload schema error, not a reason to request human review. " +
       "Retry affiliate_resolve_work_item with decision REQUEST_ACTION and the corrected typed action. " +
       "For SEND_MESSAGE use action.messageIntent.parts with 1-10 ordered structured parts; never send messageIntent: {}. " +
-      "For REVIEW_SAMPLE_APPLICATION use action.sampleApplicationRecordId, action.sampleReviewDecision, and optional action.rejectReason.";
+      "For REVIEW_SAMPLE_APPLICATION use action.sampleApplicationRecordId and action.sampleReviewDecision; " +
+      "REJECT also requires action.rejectReason, and OTHER requires action.rejectReasonExplanation.";
     throw new Error(
       `${reason} raw=${describeAffiliateResolveActionShape(actionLike)} normalized=${describeAffiliateResolveActionShape(normalizedActions)} ${describeAffiliateResolveActionRepairHint(context)}`,
     );
@@ -412,6 +413,12 @@ function normalizeAffiliateSampleReviewAction(
     action.reason,
     action.reject_reason,
   );
+  const rejectReasonExplanation = firstNonEmptyString(
+    existingIntent?.rejectReasonExplanation,
+    action.rejectReasonExplanation,
+    action.reasonExplanation,
+    action.reject_reason_explanation,
+  );
   if (
     !sampleApplicationRecordId ||
     !decision
@@ -425,8 +432,9 @@ function normalizeAffiliateSampleReviewAction(
   };
   if (hasNonEmptyString(rejectReason)) {
     sampleReviewIntent.rejectReason = rejectReason;
-  } else if (decision === "REJECT") {
-    sampleReviewIntent.rejectReason = "OTHER";
+  }
+  if (hasNonEmptyString(rejectReasonExplanation)) {
+    sampleReviewIntent.rejectReasonExplanation = rejectReasonExplanation;
   }
   return pickAffiliateActionFields(
     action,
@@ -535,10 +543,20 @@ function isInvalidAffiliateResolveAction(value: unknown): boolean {
     }
     case "REVIEW_SAMPLE_APPLICATION": {
       const sampleReviewIntent = asRecord(action.sampleReviewIntent);
-      return (
+      if (
         !hasNonEmptyString(sampleReviewIntent?.sampleApplicationRecordId) ||
         !["APPROVE", "REJECT"].includes(String(sampleReviewIntent?.decision ?? ""))
+      ) return true;
+      const decision = String(sampleReviewIntent?.decision);
+      const rejectReason = firstNonEmptyString(sampleReviewIntent?.rejectReason);
+      const rejectReasonExplanation = firstNonEmptyString(
+        sampleReviewIntent?.rejectReasonExplanation,
       );
+      if (decision === "APPROVE") {
+        return rejectReason != null || rejectReasonExplanation != null;
+      }
+      if (rejectReason == null) return true;
+      return rejectReason === "OTHER" && rejectReasonExplanation == null;
     }
     case "CREATE_TARGET_COLLABORATION":
       return !asRecord(action.targetCollaborationIntent);
@@ -617,6 +635,7 @@ function describeAffiliateResolveActionShape(actions: unknown[]): string {
         "reviewDecision",
         "sampleDecision",
         "rejectReason",
+        "rejectReasonExplanation",
         "reason",
         "messageText",
         "text",
@@ -638,6 +657,7 @@ function describeAffiliateResolveActionShape(actions: unknown[]): string {
         "reviewDecision",
         "sampleDecision",
         "rejectReason",
+        "rejectReasonExplanation",
         "reason",
       ]) : undefined,
       targetCollaborationIntentFields: targetCollaborationIntent ? Object.keys(targetCollaborationIntent).sort() : [],
@@ -672,7 +692,8 @@ function describeAffiliateResolveActionRepairHint(context: AffiliateResolveActio
         "reviewSampleRequiredFields={type:REVIEW_SAMPLE_APPLICATION",
         `sampleApplicationRecordId:${context.sampleApplicationRecordId}`,
         "sampleReviewDecision:APPROVE|REJECT",
-        "rejectReason:required-only-for-REJECT}",
+        "rejectReason:required-for-REJECT",
+        "rejectReasonExplanation:required-when-rejectReason-is-OTHER}",
       ].filter(Boolean).join(" "),
     );
   }
