@@ -559,13 +559,16 @@ describe("Affiliate canonical UI contract", () => {
     expect(queries).not.toContain("unassignAffiliateBusinessDeveloper");
   });
 
-  it("keeps workspace view tabs and filters in one compact control row", () => {
+  it("separates the pending-only scope switch from workspace filters", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
     );
 
     expect(page).toContain("affiliate-agent-workspace-controls");
+    expect(page).toContain('role="switch"');
+    expect(page).toContain('aria-checked={agentWorkspaceView === "PENDING"}');
+    expect(page).not.toContain("AGENT_WORKSPACE_VIEWS.map");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueHint");
   });
