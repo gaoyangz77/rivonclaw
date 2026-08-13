@@ -1,25 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { GQL } from "@rivonclaw/core";
 import {
+  affiliateProposalPageQueryKey,
+  appendAffiliateProposalPageBuffer,
   applyAffiliateProposalChange,
   affiliateModelStagePresentation,
   affiliateExpectedSalesModelAvailabilityState,
   affiliateSellerSafeMetrics,
+  emptyAffiliateProposalPageBuffer,
   isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
   mergeAffiliateProposalPage,
   predictionFamilyAvailability,
+  replaceAffiliateProposalPageBuffer,
   selectAffiliateProposalItems,
 } from "./AffiliateManagementPage.js";
 
 describe("AffiliateManagementPage proposal source", () => {
-  const proposal = (id: string, status: string, type = "SEND_MESSAGE", shopId = "shop-1") => ({
+  const proposal = (id: string, status: string, type = "SEND_MESSAGE", shopId = "shop-1"): GQL.ActionProposal => ({
     id,
     status,
     type,
     focusShopId: shopId,
-  } as never);
+    steps: [],
+    creatorRelationship: null,
+  } as unknown as GQL.ActionProposal);
 
   it("appends cursor pages without duplicating proposals", () => {
     expect(
@@ -40,17 +47,59 @@ describe("AffiliateManagementPage proposal source", () => {
     ).toEqual(["proposal-2"]);
   });
 
-  it("updates a decided proposal in place when viewing all statuses", () => {
+  it("moves a changed proposal to the front when viewing all statuses", () => {
     const updated = applyAffiliateProposalChange(
       [proposal("proposal-1", "PENDING"), proposal("proposal-2", "PENDING")],
-      proposal("proposal-1", "REJECTED"),
+      proposal("proposal-2", "REJECTED"),
       {},
     );
 
     expect(updated.map((item) => `${item.id}:${item.status}`)).toEqual([
-      "proposal-1:REJECTED",
-      "proposal-2:PENDING",
+      "proposal-2:REJECTED",
+      "proposal-1:PENDING",
     ]);
+  });
+
+  it("accepts a realtime proposal that targets the selected shop through a secondary step", () => {
+    const multiShopProposal = {
+      ...proposal("proposal-2", "PENDING", "SEND_MESSAGE", "shop-1"),
+      steps: [{ shopId: "shop-2" }],
+    } as GQL.ActionProposal;
+
+    expect(applyAffiliateProposalChange([], multiShopProposal, { shopId: "shop-2" as never }))
+      .toEqual([multiShopProposal]);
+  });
+
+  it("keeps proposal pagination state isolated by account and filters", () => {
+    const pendingKey = affiliateProposalPageQueryKey({
+      userId: "user-1",
+      status: "PENDING" as never,
+    });
+    const approvedKey = affiliateProposalPageQueryKey({
+      userId: "user-1",
+      status: "APPROVED" as never,
+    });
+    const otherUserKey = affiliateProposalPageQueryKey({
+      userId: "user-2",
+      status: "PENDING" as never,
+    });
+    const pendingPage = {
+      items: [proposal("proposal-1", "PENDING")],
+      nextCursor: "cursor-1",
+      hasMore: true,
+    };
+    const pending = replaceAffiliateProposalPageBuffer(pendingKey, pendingPage as never);
+
+    expect(pending.queryKey).not.toBe(approvedKey);
+    expect(pending.queryKey).not.toBe(otherUserKey);
+    expect(emptyAffiliateProposalPageBuffer(approvedKey).items).toEqual([]);
+    expect(
+      appendAffiliateProposalPageBuffer(pending, approvedKey, {
+        items: [proposal("proposal-2", "APPROVED")],
+        nextCursor: null,
+        hasMore: false,
+      } as never),
+    ).toBe(pending);
   });
 
   it("treats an empty query result as authoritative", () => {

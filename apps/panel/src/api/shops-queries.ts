@@ -1041,6 +1041,13 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       campaignId
       creatorId
       creatorRelationshipId
+      creatorRelationship {
+        id
+        creatorId
+        shopStates {
+          shopId
+        }
+      }
       creatorProfile {
         id
         creatorOpenId

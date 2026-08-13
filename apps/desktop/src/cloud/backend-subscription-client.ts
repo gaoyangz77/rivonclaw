@@ -655,6 +655,13 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         campaignId
         creatorId
         creatorRelationshipId
+        creatorRelationship {
+          id
+          creatorId
+          shopStates {
+            shopId
+          }
+        }
         creatorProfile {
           id
           platform
@@ -920,6 +927,11 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           lifecycleEventIds
           executedAt
           errorMessage
+          deliveryId
+          deliveryStatus
+          preferredChannel
+          actualChannel
+          channelSelectionSource
         }
       }
     }

@@ -37,6 +37,11 @@ describe("affiliate desktop GraphQL contracts", () => {
       "predictionCacheIds",
       "predictionSnapshots",
       "resolvedContext",
+      "creatorRelationship",
+      "shopStates",
+      "deliveryId",
+      "deliveryStatus",
+      "channelSelectionSource",
     ]) {
       expect(compactSubscription).toContain(field);
     }

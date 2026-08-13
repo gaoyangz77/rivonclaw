@@ -101,6 +101,8 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("nextCursor");
     expect(query).toContain("hasMore");
     expect(query).toContain("creatorRelationshipId");
+    expect(query).toContain("creatorRelationship");
+    expect(query).toContain("shopStates");
     expect(query).toContain("creatorProfile");
     expect(query).toContain("sourceWorkBoundary");
     expect(query).toContain("affiliateCollaboration");
