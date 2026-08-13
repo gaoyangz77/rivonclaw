@@ -617,7 +617,7 @@ export interface AffiliateActionProposalPage {
   nextCursor?: Maybe<Scalars['String']['output']>;
 }
 
-/** Immutable expected-sales and Human Decision evidence frozen into an ActionProposal when the proposal is created. */
+/** Immutable prediction evidence frozen into an ActionProposal when the proposal is created. Staff proposal reads may include the display-only Human Decision comparison; Agent mutation responses redact it. */
 export interface AffiliateActionProposalPredictionSnapshot {
   captureMode: AffiliatePredictionCaptureMode;
   capturedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -626,7 +626,7 @@ export interface AffiliateActionProposalPredictionSnapshot {
   message?: Maybe<Scalars['String']['output']>;
   /** Frozen model identity, contract, scope, version, and training lineage. */
   model: Scalars['JSONObject']['output'];
-  /** Frozen model output used by the Agent when this proposal was authored. */
+  /** Frozen model output captured when this proposal was authored. */
   output: Scalars['JSONObject']['output'];
   predictedAt: Scalars['DateTimeISO']['output'];
   predictionType: AffiliatePredictionType;
