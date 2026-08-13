@@ -69,7 +69,7 @@ export default {
     "customerServiceExperiments": "Esperimenti",
     "affiliateManagement": "Gestione degli affiliati",
     "affiliateIntelligence": "Intelligence affiliate",
-    "affiliateNeedsAttention": "Proposte di azione",
+    "affiliateNeedsAttention": "Area di lavoro Agent",
     "affiliateStaffHandling": "Gestione manuale",
     "affiliateCreators": "Creator collaboratori",
     "affiliateInProgress": "In corso",
@@ -2589,7 +2589,7 @@ export default {
       },
       "emptyCreators": "Non ci sono ancora creator collaboratori per questo negozio.",
       "pageTitles": {
-        "NEEDS_ATTENTION": "Proposte di azione",
+        "NEEDS_ATTENTION": "Area di lavoro Agent",
         "IN_PROGRESS": "Lavoro affiliati in corso",
         "HISTORY": "Cronologia affiliati"
       },

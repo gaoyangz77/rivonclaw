@@ -74,7 +74,7 @@ export default {
     customerServiceExperiments: "Experiments",
     affiliateManagement: "Affiliate Management",
     affiliateIntelligence: "Affiliate Intelligence",
-    affiliateNeedsAttention: "Action proposals",
+    affiliateNeedsAttention: "Agent workspace",
     affiliateStaffHandling: "Staff handling",
     affiliateCreators: "Cooperation creators",
     affiliateInProgress: "In progress",
@@ -4179,7 +4179,7 @@ export default {
         FOLLOW_UP_CREATOR:
           "The creator-side next step is overdue. Follow up with the creator based on the current collaboration context.",
         REVIEW_ACTION_PROPOSAL:
-          "The agent has created a platform-action proposal. Approve or reject it on the Action proposals page.",
+          "The agent has created a platform-action proposal. Approve or reject it in the Agent workspace.",
         REVIEW_AGENT_FAILURE:
           "The agent did not complete this work item. Review the record and decide the next step manually.",
         RESOLVE_CREATOR_IDENTITY:

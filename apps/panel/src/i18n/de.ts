@@ -69,7 +69,7 @@ export default {
     "customerServiceExperiments": "Experimente",
     "affiliateManagement": "Affiliate-Management",
     "affiliateIntelligence": "Affiliate Intelligence",
-    "affiliateNeedsAttention": "Aktionsvorschläge",
+    "affiliateNeedsAttention": "Agent-Arbeitsbereich",
     "affiliateStaffHandling": "Manuelle Bearbeitung",
     "affiliateCreators": "Kooperations-Creator",
     "affiliateInProgress": "In Bearbeitung",
@@ -2589,7 +2589,7 @@ export default {
       },
       "emptyCreators": "Für diesen Shop gibt es noch keine Kooperations-Creator.",
       "pageTitles": {
-        "NEEDS_ATTENTION": "Aktionsvorschläge",
+        "NEEDS_ATTENTION": "Agent-Arbeitsbereich",
         "IN_PROGRESS": "Affiliate-Arbeit in Bearbeitung",
         "HISTORY": "Affiliate-Verlauf"
       },

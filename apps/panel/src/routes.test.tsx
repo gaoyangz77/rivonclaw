@@ -2,13 +2,19 @@ import { describe, expect, it } from "vitest";
 import { ROUTES } from "./routes.js";
 
 describe("commerce navigation", () => {
-  it("places Product Knowledge inside Affiliate immediately after Team & Channels", () => {
-    const teamIndex = ROUTES.findIndex((route) => route.path === "/commerce/affiliate/team");
-    const knowledgeIndex = ROUTES.findIndex((route) => route.path === "/commerce/product-knowledge");
-    const knowledgeRoute = ROUTES[knowledgeIndex];
+  it("keeps the Affiliate manual workspace in its task-priority order", () => {
+    const affiliateChildren = ROUTES
+      .filter((route) => route.parentPath === "/commerce/affiliate")
+      .map((route) => route.path);
 
-    expect(teamIndex).toBeGreaterThan(-1);
-    expect(knowledgeIndex).toBe(teamIndex + 1);
-    expect(knowledgeRoute?.parentPath).toBe("/commerce/affiliate");
+    expect(affiliateChildren).toEqual([
+      "/commerce/affiliate/attention",
+      "/commerce/affiliate/team",
+      "/commerce/product-knowledge",
+      "/commerce/affiliate/campaigns",
+      "/commerce/affiliate/creators",
+      "/commerce/affiliate/history",
+      "/commerce/affiliate/intelligence",
+    ]);
   });
 });
