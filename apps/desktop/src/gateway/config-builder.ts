@@ -34,6 +34,8 @@ export interface GatewayConfigDeps {
   stateDir: string;
   extensionsDir: string;
   sttCliPath: string;
+  /** Stable hashed installation identifier used only for RivonClaw cloud usage attribution. */
+  deviceId?: string;
   /** Absolute path to the vendored OpenClaw directory (e.g. vendor/openclaw). */
   vendorDir?: string;
   /** Returns plugin entries for channels with at least one account (from ChannelManager). */
@@ -57,6 +59,8 @@ export const DEFAULT_GATEWAY_TOOL_ALLOWLIST = ["rivonclaw-cloud-tools"];
 
 type GatewayInputModality = "text" | "image";
 const RIVONCLAW_CLOUD_PROVIDER_ID = "rivonclaw-pro";
+const DEVICE_ID_HEADER = "X-Device-Id";
+const CANONICAL_DEVICE_ID_PATTERN = /^[a-f0-9]{64}$/u;
 export const RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS = 300;
 export const IMAGE_GENERATION_MODEL_REF = `${RIVONCLAW_CLOUD_PROVIDER_ID}/gpt-image-2`;
 export const OPENAI_IMAGE_GENERATION_MODEL_REF = "openai/gpt-image-2";
@@ -238,13 +242,26 @@ const CLOUD_MODEL_RUNTIME_LIMITS = new Map<
 
 export function buildCustomProviderOverridesFromKeys(
   allKeys: ProviderKeyLike[],
+  deviceId?: string,
 ): Record<
   string,
-  { baseUrl: string; api: string; timeoutSeconds?: number; models: CustomProviderModel[] }
+  {
+    baseUrl: string;
+    api: string;
+    timeoutSeconds?: number;
+    headers?: Record<string, string>;
+    models: CustomProviderModel[];
+  }
 > {
   const overrides: Record<
     string,
-    { baseUrl: string; api: string; timeoutSeconds?: number; models: CustomProviderModel[] }
+    {
+      baseUrl: string;
+      api: string;
+      timeoutSeconds?: number;
+      headers?: Record<string, string>;
+      models: CustomProviderModel[];
+    }
   > = {};
   const customKeys = allKeys.filter((k) => k.authType === "custom");
 
@@ -266,6 +283,9 @@ export function buildCustomProviderOverridesFromKeys(
       baseUrl: key.baseUrl,
       api,
       ...(forceImageInput ? { timeoutSeconds: RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS } : {}),
+      ...(forceImageInput && deviceId && CANONICAL_DEVICE_ID_PATTERN.test(deviceId)
+        ? { headers: { [DEVICE_ID_HEADER]: deviceId } }
+        : {}),
       models: rawModels.flatMap((m) => {
         if (typeof m === "string") {
           const runtimeLimits = forceImageInput ? CLOUD_MODEL_RUNTIME_LIMITS.get(m) : undefined;
@@ -434,6 +454,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     // preserved by writeGatewayConfig's merge semantics.
     const customProviderOverrides = buildCustomProviderOverridesFromKeys(
       storage.providerKeys.getAll().filter((key) => key.provider === RIVONCLAW_CLOUD_PROVIDER_ID),
+      deps.deviceId,
     );
     const openAIAuthState = readAuthProfileRuntimeState(stateDir);
     const temporaryOpenAICodexOverride = buildTemporaryOpenAICodexProviderOverride(

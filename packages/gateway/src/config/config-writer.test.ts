@@ -1409,6 +1409,42 @@ describe("config-writer", () => {
   });
 
   describe("writeGatewayConfig - extraProviders", () => {
+    it("persists provider-level request headers", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({
+        configPath,
+        extraProviders: {
+          "rivonclaw-pro": {
+            baseUrl: "https://api.rivonclaw.com/llm/v1",
+            api: "openai-completions",
+            headers: { "X-Device-Id": "a".repeat(64) },
+            models: [{ id: "rivonclaw-flagship", name: "RivonClaw Flagship" }],
+          },
+        },
+      });
+
+      writeGatewayConfig({
+        configPath,
+        extraProviders: {
+          "rivonclaw-pro": {
+            baseUrl: "https://api.rivonclaw.com/llm/v1",
+            api: "openai-completions",
+            headers: { "X-Device-Id": "a".repeat(64) },
+            models: [{ id: "gpt-image-2", name: "GPT Image 2" }],
+          },
+        },
+        overlayProviderKeys: ["rivonclaw-pro"],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf8"));
+      expect(config.models.providers["rivonclaw-pro"].headers).toEqual({
+        "X-Device-Id": "a".repeat(64),
+      });
+      expect(
+        config.models.providers["rivonclaw-pro"].models.map((model: { id: string }) => model.id),
+      ).toEqual(["rivonclaw-flagship", "gpt-image-2"]);
+    });
+
     it("merges overlay provider models by ID without replacing Vendor rows", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(

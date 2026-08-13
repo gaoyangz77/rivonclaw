@@ -778,6 +778,7 @@ app.whenReady().then(async () => {
     stateDir,
     extensionsDir,
     sttCliPath,
+    deviceId,
     vendorDir,
     merchantExtensionPaths: () => merchantExtensionPaths,
     openAICodexCompatibilityBaseUrl,

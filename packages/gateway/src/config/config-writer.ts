@@ -801,6 +801,8 @@ export interface WriteGatewayConfigOptions {
       baseUrl: string;
       api?: string;
       timeoutSeconds?: number;
+      /** Static headers merged into every request made through this provider. */
+      headers?: Record<string, string>;
       models: Array<{
         id: string;
         name: string;

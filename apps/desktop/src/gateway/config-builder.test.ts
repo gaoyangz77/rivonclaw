@@ -14,6 +14,53 @@ import {
 } from "./config-builder.js";
 
 describe("gateway config builder", () => {
+  const deviceId = "a".repeat(64);
+
+  it("adds the stable device header only to the RivonClaw cloud provider", () => {
+    const overrides = buildCustomProviderOverridesFromKeys(
+      [
+        {
+          provider: "rivonclaw-pro",
+          authType: "custom",
+          baseUrl: "https://api.rivonclaw.com/llm/v1",
+          customProtocol: "openai",
+          customModelsJson: JSON.stringify(["rivonclaw-flagship"]),
+        },
+        {
+          provider: "custom-openai",
+          authType: "custom",
+          baseUrl: "https://example.com/v1",
+          customProtocol: "openai",
+          customModelsJson: JSON.stringify(["example-model"]),
+        },
+      ],
+      deviceId,
+    );
+
+    expect(overrides["rivonclaw-pro"]?.headers).toEqual({ "X-Device-Id": deviceId });
+    expect(overrides["custom-openai"]?.headers).toBeUndefined();
+  });
+
+  it.each([undefined, "unknown", "A".repeat(64), "a".repeat(63)])(
+    "omits the device header for a non-canonical device id (%s)",
+    (invalidDeviceId) => {
+      const overrides = buildCustomProviderOverridesFromKeys(
+        [
+          {
+            provider: "rivonclaw-pro",
+            authType: "custom",
+            baseUrl: "https://api.rivonclaw.com/llm/v1",
+            customProtocol: "openai",
+            customModelsJson: JSON.stringify(["rivonclaw-flagship"]),
+          },
+        ],
+        invalidDeviceId,
+      );
+
+      expect(overrides["rivonclaw-pro"]?.headers).toBeUndefined();
+    },
+  );
+
   it("allows long-running RivonClaw cloud requests up to five minutes", () => {
     expect(RIVONCLAW_CLOUD_PROVIDER_TIMEOUT_SECONDS).toBe(300);
   });
@@ -245,6 +292,7 @@ describe("gateway config builder", () => {
       stateDir: "/tmp/openclaw",
       extensionsDir: "/tmp/extensions",
       sttCliPath: "/tmp/stt.js",
+      deviceId,
       channelPluginEntries: () => ({}),
       channelConfigAccounts: () => [],
     });
@@ -261,6 +309,9 @@ describe("gateway config builder", () => {
       id: "gpt-image-2",
       name: "GPT Image 2",
       input: ["text", "image"],
+    });
+    expect(config.extraProviders?.["rivonclaw-pro"]?.headers).toEqual({
+      "X-Device-Id": deviceId,
     });
     expect(config.extraProviders?.openai).toMatchObject({
       baseUrl: "https://api.openai.com/v1",
