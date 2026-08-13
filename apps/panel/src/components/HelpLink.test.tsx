@@ -23,7 +23,9 @@ describe("HelpLink", () => {
   it("asks Desktop to open an authenticated website session", () => {
     render(<HelpLink />);
 
-    fireEvent.click(screen.getByTitle("common.website"));
+    const link = screen.getByRole("link", { name: "common.openWebsite" });
+    expect(link.getAttribute("data-tooltip")).toBe("common.openWebsite");
+    fireEvent.click(link);
 
     expect(fetchJsonMock).toHaveBeenCalledWith("/auth/web/open", {
       method: "POST",

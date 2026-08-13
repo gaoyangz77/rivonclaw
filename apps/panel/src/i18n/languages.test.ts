@@ -69,6 +69,22 @@ describe("panel i18n resources", () => {
     }
   });
 
+  it("localizes every sidebar action tooltip", () => {
+    const tooltipKeys = [
+      "common.themeControl",
+      "common.languageControl",
+      "common.openWebsite",
+      "common.openInBrowser",
+    ];
+
+    for (const language of LANGUAGE_OPTIONS) {
+      const values = flattenValues(language.resource);
+      for (const key of tooltipKeys) {
+        expect(values[key]?.trim(), `${language.code} ${key}`).toBeTruthy();
+      }
+    }
+  });
+
   it("uses only the customer-facing TK brand", () => {
     for (const language of LANGUAGE_OPTIONS) {
       const values = flattenValues(language.resource);

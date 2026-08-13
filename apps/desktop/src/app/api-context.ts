@@ -67,6 +67,7 @@ export interface ApiContext {
     downloadUrl?: string | null;
   } | null;
   getGatewayInfo?: () => { wsUrl: string; token?: string };
+  getPanelUrl?: () => string;
   snapshotEngine?: UsageSnapshotEngine;
   queryService?: UsageQueryService;
   mobileManager?: MobileManagerInstance;

@@ -1,5 +1,6 @@
 import { ThemeToggle } from "./ThemeToggle.js";
 import { LangToggle } from "./LangToggle.js";
+import { OpenInBrowserButton } from "./OpenInBrowserButton.js";
 import { HelpLink } from "./HelpLink.js";
 
 /**
@@ -18,6 +19,7 @@ export function BottomActions({
             <ThemeToggle />
             <LangToggle />
             <HelpLink />
+            <OpenInBrowserButton />
         </div>
     );
 }

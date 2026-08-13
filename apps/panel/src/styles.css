@@ -610,7 +610,7 @@ tbody td {
   margin-bottom: 8px;
 }
 
-/* Sidebar bottom actions (theme + language) */
+/* Sidebar bottom actions */
 .sidebar-bottom-actions {
   display: flex;
   justify-content: space-between;
@@ -706,7 +706,7 @@ tbody td {
   justify-content: center;
 }
 
-.help-link-trigger {
+.sidebar-action-trigger {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -724,7 +724,7 @@ tbody td {
     background-color var(--transition-fast);
 }
 
-.help-link-trigger:hover {
+.sidebar-action-trigger:hover {
   color: var(--color-sidebar-text);
   background-color: var(--color-sidebar-hover);
 }
@@ -1238,12 +1238,17 @@ tbody td {
 }
 
 /* ===== 16. Tooltip ===== */
-.has-tooltip {
+.has-tooltip,
+.sidebar-action-tooltip {
   position: relative;
+}
+
+.has-tooltip {
   cursor: help;
 }
 
-.has-tooltip::after {
+.has-tooltip::after,
+.sidebar-action-tooltip::after {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 6px);
@@ -1263,8 +1268,16 @@ tbody td {
 }
 
 .has-tooltip:hover::after,
-.has-tooltip:focus-visible::after {
+.has-tooltip:focus-visible::after,
+.sidebar-action-tooltip:hover::after,
+.sidebar-action-tooltip:focus-visible::after {
   opacity: 1;
+}
+
+.sidebar-bottom-actions-collapsed .sidebar-action-tooltip::after {
+  bottom: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(50%);
 }
 
 /* ===== 17. Custom Select ===== */
@@ -5215,7 +5228,8 @@ tbody td {
 }
 
 /* ===== D27. Tooltip ===== */
-[data-theme="dark"] .has-tooltip::after {
+[data-theme="dark"] .has-tooltip::after,
+[data-theme="dark"] .sidebar-action-tooltip::after {
   background: #1c2130;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }

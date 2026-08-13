@@ -3,7 +3,7 @@ import { getFirstPartyDomainRoute } from "@rivonclaw/core";
 import { createLogger } from "@rivonclaw/logger";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
-import { parseBody, sendJson } from "../infra/api/route-utils.js";
+import { isTrustedLoopbackOrigin, parseBody, sendJson } from "../infra/api/route-utils.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import {
   clearStoredMarketingAttribution,
@@ -212,23 +212,11 @@ function googleErrorCode(error: unknown): string {
     : "GOOGLE_AUTH_FAILED";
 }
 
-function isTrustedPanelOrigin(req: Parameters<EndpointHandler>[0]): boolean {
-  const origin = req.headers?.origin;
-  if (!origin) return true;
-  try {
-    const url = new URL(origin);
-    return url.protocol === "http:"
-      && (url.hostname === "127.0.0.1" || url.hostname === "localhost");
-  } catch {
-    return false;
-  }
-}
-
 function rejectUntrustedGoogleRequest(
   req: Parameters<EndpointHandler>[0],
   res: Parameters<EndpointHandler>[1],
 ): boolean {
-  if (isTrustedPanelOrigin(req)) return false;
+  if (isTrustedLoopbackOrigin(req)) return false;
   sendJson(res, 403, { errorCode: "GOOGLE_AUTH_UNTRUSTED_ORIGIN" });
   return true;
 }
@@ -315,7 +303,7 @@ const googleCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
 };
 
 const browserStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  if (!isTrustedPanelOrigin(req)) {
+  if (!isTrustedLoopbackOrigin(req)) {
     sendJson(res, 403, { errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN" });
     return;
   }
@@ -342,7 +330,7 @@ const browserStart: EndpointHandler = async (req, res, _url, _params, ctx: ApiCo
 };
 
 const browserStatus: EndpointHandler = async (req, res, url, _params, ctx: ApiContext) => {
-  if (!isTrustedPanelOrigin(req)) {
+  if (!isTrustedLoopbackOrigin(req)) {
     sendJson(res, 403, { errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN" });
     return;
   }
@@ -360,7 +348,7 @@ const browserStatus: EndpointHandler = async (req, res, url, _params, ctx: ApiCo
 };
 
 const browserCancel: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  if (!isTrustedPanelOrigin(req)) {
+  if (!isTrustedLoopbackOrigin(req)) {
     sendJson(res, 403, { errorCode: "BROWSER_AUTH_UNTRUSTED_ORIGIN" });
     return;
   }
@@ -384,7 +372,7 @@ function websiteHomepage(): string {
 }
 
 const webOpen: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
-  if (!isTrustedPanelOrigin(req)) {
+  if (!isTrustedLoopbackOrigin(req)) {
     sendJson(res, 403, { errorCode: "WEB_OPEN_UNTRUSTED_ORIGIN" });
     return;
   }

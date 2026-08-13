@@ -64,6 +64,7 @@ export const API = {
   "app.apiBaseUrl":          { method: "GET",    path: "/api/app/api-base-url",           desc: "Cloud API base URL" },
   "app.update":              { method: "GET",    path: "/api/app/update",                 desc: "Check for available updates" },
   "app.gatewayInfo":         { method: "GET",    path: "/api/app/gateway-info",           desc: "Gateway WebSocket URL and token" },
+  "app.openInBrowser":       { method: "POST",   path: "/api/app/open-in-browser",        desc: "Open the current Desktop app in the system browser" },
   "app.changelog":           { method: "GET",    path: "/api/app/changelog",              desc: "Get changelog entries" },
   "app.updateDownload":      { method: "POST",   path: "/api/app/update/download",        desc: "Start downloading update" },
   "app.updateCancel":        { method: "POST",   path: "/api/app/update/cancel",          desc: "Cancel update download" },

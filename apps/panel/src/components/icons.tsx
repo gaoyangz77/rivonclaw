@@ -159,6 +159,16 @@ export function MonitorIcon(props: IconProps) {
     );
 }
 
+export function HomeIcon(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M3 11 12 3l9 8" />
+            <path d="M5 10v10h14V10" />
+            <path d="M9 20v-6h6v6" />
+        </Icon>
+    );
+}
+
 export function SunIcon(props: IconProps) {
     return (
         <Icon size={16} strokeWidth={2} {...props}>
