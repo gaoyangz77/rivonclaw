@@ -1431,6 +1431,7 @@ app.whenReady().then(async () => {
     desktopApiToken,
     deviceId,
     onOpenExternal: (url) => shell.openExternal(url),
+    getPanelUrl: () => PANEL_URL,
     getUpdateResult: () => {
       const info = updater.getLatestInfo();
       return {

@@ -136,6 +136,7 @@ export interface PanelServerOptions {
     downloadUrl?: string | null;
   } | null;
   getGatewayInfo?: () => { wsUrl: string; token?: string };
+  getPanelUrl?: () => string;
   changelogPath?: string;
   onUpdateDownload?: () => Promise<void>;
   onUpdateCancel?: () => void;
@@ -163,7 +164,7 @@ registerAllHandlers(registry);
 export async function startPanelServer(options: PanelServerOptions): Promise<{ server: Server; port: number }> {
   const requestedPort = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, proxyRouterPort, gatewayPort, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onCloudLlmEntitlementAvailable, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, channelManager, desktopApiToken } = options;
+  const { storage, secretStore, proxyRouterPort, gatewayPort, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onCloudLlmEntitlementAvailable, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, getPanelUrl, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, channelManager, desktopApiToken } = options;
 
   // Read changelog.json once at startup (cached in closure)
   let changelogEntries: unknown[] = [];
@@ -212,7 +213,7 @@ export async function startPanelServer(options: PanelServerOptions): Promise<{ s
     onProviderChange, onOpenFileDialog,
     sttManager, onSttChange, onExtrasChange, onToolSelectionChange, onBrowserChange, onAutoLaunchChange, onAuthChange, onCloudLlmEntitlementAvailable,
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthReauth, onOAuthManualComplete, onOAuthPoll,
-    onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
+    onTelemetryTrack, onCsTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, getPanelUrl,
     snapshotEngine, queryService, mobileManager: rootStore.mobileManager, authSession,
     openExternal: options.onOpenExternal,
     cloudClient: authSession ? new CloudClient(authSession, getSystemLocale(), options.proxyFetch) : undefined,

@@ -25,9 +25,10 @@ export function LangToggle({ popupDirection = "up" }: { popupDirection?: "up" | 
   return (
     <div className="lang-menu-wrapper" ref={menuRef}>
       <button
-        className="lang-menu-trigger"
+        className="lang-menu-trigger sidebar-action-tooltip"
         onClick={() => setMenuOpen((v) => !v)}
-        title={t("common.language")}
+        data-tooltip={t("common.languageControl")}
+        aria-label={t("common.languageControl")}
       >
         <GlobeIcon />
       </button>

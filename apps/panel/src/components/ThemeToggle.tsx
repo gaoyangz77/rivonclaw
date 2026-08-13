@@ -81,9 +81,10 @@ export const ThemeToggle = observer(function ThemeToggle() {
   return (
     <div className="theme-menu-wrapper" ref={menuRef}>
       <button
-        className="theme-menu-trigger"
+        className="theme-menu-trigger sidebar-action-tooltip"
         onClick={() => setMenuOpen((v) => !v)}
-        title={t(`theme.${themePreference}`)}
+        data-tooltip={t("common.themeControl")}
+        aria-label={t("common.themeControl")}
       >
         <TriggerIcon />
       </button>

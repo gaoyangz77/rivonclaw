@@ -40,6 +40,18 @@ export function parseBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
+export function isTrustedLoopbackOrigin(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    return url.protocol === "http:"
+      && (url.hostname === "127.0.0.1" || url.hostname === "localhost");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Fetch through local proxy router so GFW-blocked APIs (Telegram, LINE, etc.)
  * can reach their targets via the system proxy.

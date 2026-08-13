@@ -6,7 +6,7 @@ import { resolveOpenClawConfigPath, resolveOpenClawStateDir } from "@rivonclaw/g
 import { API } from "@rivonclaw/core/api-contract";
 import type { RouteRegistry, EndpointHandler } from "../infra/api/route-registry.js";
 import type { ApiContext } from "../app/api-context.js";
-import { sendJson, parseBody } from "../infra/api/route-utils.js";
+import { isTrustedLoopbackOrigin, sendJson, parseBody } from "../infra/api/route-utils.js";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import { updateCsBridgeLocale } from "../gateway/connection.js";
 import { mutateDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
@@ -43,6 +43,24 @@ const appUpdate: EndpointHandler = async (_req, res, _url, _params, ctx: ApiCont
 const gatewayInfo: EndpointHandler = async (_req, res, _url, _params, ctx: ApiContext) => {
   const info = ctx.getGatewayInfo?.();
   sendJson(res, 200, info ?? { wsUrl: `ws://127.0.0.1:${ctx.gatewayPort}` });
+};
+
+// ── POST /api/app/open-in-browser ──
+
+const openInBrowser: EndpointHandler = async (req, res, _url, _params, ctx: ApiContext) => {
+  if (!isTrustedLoopbackOrigin(req)) {
+    sendJson(res, 403, { errorCode: "APP_OPEN_IN_BROWSER_UNTRUSTED_ORIGIN" });
+    return;
+  }
+  if (!ctx.openExternal || !ctx.getPanelUrl) {
+    sendJson(res, 501, { errorCode: "APP_OPEN_IN_BROWSER_UNAVAILABLE" });
+    return;
+  }
+
+  const panelUrl = new URL(ctx.getPanelUrl());
+  panelUrl.hostname = "localhost";
+  await ctx.openExternal(panelUrl.toString());
+  sendJson(res, 200, { ok: true });
 };
 
 // ── GET /api/settings ──
@@ -562,6 +580,7 @@ export function registerSettingsHandlers(registry: RouteRegistry): void {
   registry.register(API["app.apiBaseUrl"], apiBaseUrl);
   registry.register(API["app.update"], appUpdate);
   registry.register(API["app.gatewayInfo"], gatewayInfo);
+  registry.register(API["app.openInBrowser"], openInBrowser);
 
   // Settings
   registry.register(API["settings.getAll"], getAll);
