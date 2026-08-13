@@ -1744,7 +1744,6 @@ export default {
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "อัปโหลดไฟล์แนบร่าง Affiliate",
         "AFFILIATE_RESOLVE_WORK_ITEM": "แก้ไขงานพันธมิตร",
         "AFFILIATE_DECIDE_PROPOSAL": "ตัดสินใจข้อเสนอ Affiliate",
-        "AFFILIATE_REQUEST_ACTION": "ร้องขอการดำเนินการ Affiliate",
         "AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT": "คาดการณ์ความเหมาะสมของครีเอเตอร์กับสินค้า",
         "AFFILIATE_LIST_WHATSAPP_ACCOUNTS": "แสดงบัญชี WhatsApp",
         "AFFILIATE_LIST_EMAIL_ACCOUNTS": "แสดงบัญชีอีเมล",

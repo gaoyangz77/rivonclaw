@@ -67,6 +67,20 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Weitere Vorschläge werden geladen…",
       loadedProposalCount: "{{count}} Vorschläge geladen",
       allProposalsLoaded: "Alle {{count}} Vorschläge dieser Ansicht wurden geladen",
+      agentWorkspaceViews: {
+        label: "Agent-Arbeitsbereich",
+        PENDING: "Ausstehende Prüfung",
+        ALL: "Alle Agent-Arbeiten",
+      },
+      revisionHistory: {
+        title: "Überarbeitungsverlauf",
+        hint: "Frühere und aktuelle Versionen dieses Arbeitspakets.",
+        versionCount: "V{{version}} · {{count}} Versionen",
+      },
+      proposalRecommendationTitles: { NO_ACTION_NEEDED: "Keine Aktion erforderlich" },
+      proposalExecutionDescriptions: {
+        NO_ACTION_NEEDED: "Der Agent hat diesen Lauf ohne Plattformaktion abgeschlossen.",
+      },
       sampleDecisionBundle: {
         recommendationTitle: "{{count}} Musteranträge prüfen · {{approveCount}} senden · {{rejectCount}} nicht senden",
         title: "Entscheidungspaket für Musteranträge",
@@ -90,7 +104,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         historicalStaff: "Historischer Mitarbeitervergleich",
         displayOnly: "Nur Anzeige · keine KI-Entscheidungsgrundlage",
       },
-    } },
+    }, shopDrawer: { affiliate: { proposalTypes: { NO_ACTION_NEEDED: "Keine Aktion erforderlich" } } } },
   },
   es: {
     ecommerce: { affiliateWorkspace: {
@@ -98,6 +112,20 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Cargando más propuestas…",
       loadedProposalCount: "{{count}} propuestas cargadas",
       allProposalsLoaded: "Se cargaron las {{count}} propuestas de esta vista",
+      agentWorkspaceViews: {
+        label: "Vista del espacio de trabajo del agente",
+        PENDING: "Pendiente de revisión",
+        ALL: "Todo el trabajo del agente",
+      },
+      revisionHistory: {
+        title: "Historial de reescrituras",
+        hint: "Versiones anteriores y actual de este paquete de trabajo.",
+        versionCount: "V{{version}} · {{count}} versiones",
+      },
+      proposalRecommendationTitles: { NO_ACTION_NEEDED: "No se necesita ninguna acción" },
+      proposalExecutionDescriptions: {
+        NO_ACTION_NEEDED: "El agente completó esta ejecución sin realizar una acción en la plataforma.",
+      },
       sampleDecisionBundle: {
         recommendationTitle: "Revisar {{count}} solicitudes · {{approveCount}} enviar · {{rejectCount}} no enviar",
         title: "Paquete de decisiones de muestras",
@@ -121,7 +149,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         historicalStaff: "Comparación histórica del personal",
         displayOnly: "Solo visualización · no influye en la decisión de IA",
       },
-    } },
+    }, shopDrawer: { affiliate: { proposalTypes: { NO_ACTION_NEEDED: "No se necesita ninguna acción" } } } },
   },
   fr: {
     ecommerce: { affiliateWorkspace: {
@@ -129,6 +157,20 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Chargement de propositions supplémentaires…",
       loadedProposalCount: "{{count}} propositions chargées",
       allProposalsLoaded: "Les {{count}} propositions de cette vue sont chargées",
+      agentWorkspaceViews: {
+        label: "Vue de l’espace de travail Agent",
+        PENDING: "En attente de validation",
+        ALL: "Tout le travail de l’Agent",
+      },
+      revisionHistory: {
+        title: "Historique des réécritures",
+        hint: "Versions précédentes et actuelle de ce lot de travail.",
+        versionCount: "V{{version}} · {{count}} versions",
+      },
+      proposalRecommendationTitles: { NO_ACTION_NEEDED: "Aucune action requise" },
+      proposalExecutionDescriptions: {
+        NO_ACTION_NEEDED: "L’Agent a terminé ce traitement sans action sur la plateforme.",
+      },
       sampleDecisionBundle: {
         recommendationTitle: "Examiner {{count}} demandes · {{approveCount}} envoyer · {{rejectCount}} ne pas envoyer",
         title: "Lot de décisions sur les échantillons",
@@ -152,7 +194,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         historicalStaff: "Comparaison historique de l’équipe",
         displayOnly: "Affichage uniquement · hors décision de l’IA",
       },
-    } },
+    }, shopDrawer: { affiliate: { proposalTypes: { NO_ACTION_NEEDED: "Aucune action requise" } } } },
   },
   id: {
     ecommerce: { affiliateWorkspace: {
@@ -160,6 +202,20 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Memuat proposal lainnya…",
       loadedProposalCount: "{{count}} proposal dimuat",
       allProposalsLoaded: "Semua {{count}} proposal dalam tampilan ini telah dimuat",
+      agentWorkspaceViews: {
+        label: "Tampilan ruang kerja Agent",
+        PENDING: "Menunggu tinjauan",
+        ALL: "Semua pekerjaan Agent",
+      },
+      revisionHistory: {
+        title: "Riwayat penulisan ulang",
+        hint: "Versi sebelumnya dan saat ini dari paket pekerjaan ini.",
+        versionCount: "V{{version}} · {{count}} versi",
+      },
+      proposalRecommendationTitles: { NO_ACTION_NEEDED: "Tidak perlu tindakan" },
+      proposalExecutionDescriptions: {
+        NO_ACTION_NEEDED: "Agent menyelesaikan proses ini tanpa tindakan platform.",
+      },
       sampleDecisionBundle: {
         recommendationTitle: "Tinjau {{count}} permohonan · {{approveCount}} kirim · {{rejectCount}} jangan kirim",
         title: "Paket keputusan permohonan sampel",
@@ -183,7 +239,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         historicalStaff: "Perbandingan staf historis",
         displayOnly: "Hanya tampilan · bukan input keputusan AI",
       },
-    } },
+    }, shopDrawer: { affiliate: { proposalTypes: { NO_ACTION_NEEDED: "Tidak perlu tindakan" } } } },
   },
   it: {
     ecommerce: { affiliateWorkspace: {
@@ -191,6 +247,20 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "Caricamento di altre proposte…",
       loadedProposalCount: "{{count}} proposte caricate",
       allProposalsLoaded: "Tutte le {{count}} proposte di questa vista sono state caricate",
+      agentWorkspaceViews: {
+        label: "Vista area di lavoro Agent",
+        PENDING: "In attesa di revisione",
+        ALL: "Tutto il lavoro dell’Agent",
+      },
+      revisionHistory: {
+        title: "Cronologia riscritture",
+        hint: "Versioni precedenti e corrente di questo pacchetto di lavoro.",
+        versionCount: "V{{version}} · {{count}} versioni",
+      },
+      proposalRecommendationTitles: { NO_ACTION_NEEDED: "Nessuna azione necessaria" },
+      proposalExecutionDescriptions: {
+        NO_ACTION_NEEDED: "L’Agent ha completato questa esecuzione senza azioni sulla piattaforma.",
+      },
       sampleDecisionBundle: {
         recommendationTitle: "Esamina {{count}} richieste · {{approveCount}} invia · {{rejectCount}} non inviare",
         title: "Pacchetto decisioni sui campioni",
@@ -214,7 +284,7 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         historicalStaff: "Confronto storico del personale",
         displayOnly: "Solo visualizzazione · non influenza la decisione AI",
       },
-    } },
+    }, shopDrawer: { affiliate: { proposalTypes: { NO_ACTION_NEEDED: "Nessuna azione necessaria" } } } },
   },
   th: {
     ecommerce: { affiliateWorkspace: {
@@ -222,6 +292,20 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
       loadingMoreProposals: "กำลังโหลดข้อเสนอเพิ่มเติม…",
       loadedProposalCount: "โหลดแล้ว {{count}} ข้อเสนอ",
       allProposalsLoaded: "โหลดข้อเสนอทั้ง {{count}} รายการในมุมมองนี้แล้ว",
+      agentWorkspaceViews: {
+        label: "มุมมองพื้นที่ทำงาน Agent",
+        PENDING: "รอตรวจสอบ",
+        ALL: "งาน Agent ทั้งหมด",
+      },
+      revisionHistory: {
+        title: "ประวัติการเขียนใหม่",
+        hint: "เวอร์ชันก่อนหน้าและปัจจุบันของชุดงานนี้",
+        versionCount: "V{{version}} · {{count}} เวอร์ชัน",
+      },
+      proposalRecommendationTitles: { NO_ACTION_NEEDED: "ไม่ต้องดำเนินการ" },
+      proposalExecutionDescriptions: {
+        NO_ACTION_NEEDED: "Agent ทำงานรอบนี้เสร็จโดยไม่มีการดำเนินการบนแพลตฟอร์ม",
+      },
       sampleDecisionBundle: {
         recommendationTitle: "ตรวจ {{count}} คำขอ · ส่ง {{approveCount}} · ไม่ส่ง {{rejectCount}}",
         title: "ชุดการตัดสินใจคำขอตัวอย่าง",
@@ -245,6 +329,6 @@ export const AFFILIATE_PROPOSAL_TRANSLATIONS = {
         historicalStaff: "เปรียบเทียบกับพนักงานในอดีต",
         displayOnly: "เพื่อแสดงผลเท่านั้น · ไม่ใช้ตัดสินใจโดย AI",
       },
-    } },
+    }, shopDrawer: { affiliate: { proposalTypes: { NO_ACTION_NEEDED: "ไม่ต้องดำเนินการ" } } } },
   },
 } as const;

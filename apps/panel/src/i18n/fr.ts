@@ -1744,7 +1744,6 @@ export default {
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Téléverser la pièce jointe du brouillon d'affiliation",
         "AFFILIATE_RESOLVE_WORK_ITEM": "Résoudre le travail d'affiliation",
         "AFFILIATE_DECIDE_PROPOSAL": "Décider de la proposition d'affiliation",
-        "AFFILIATE_REQUEST_ACTION": "Demander une action d'affiliation",
         "AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT": "Prédire l'adéquation créateur-produit",
         "AFFILIATE_LIST_WHATSAPP_ACCOUNTS": "Lister les comptes WhatsApp",
         "AFFILIATE_LIST_EMAIL_ACCOUNTS": "Lister les comptes e-mail",

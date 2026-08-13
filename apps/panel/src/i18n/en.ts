@@ -1933,7 +1933,6 @@ export default {
         AFFILIATE_UPLOAD_DRAFT_ATTACHMENT: "Upload Affiliate Draft Attachment",
         AFFILIATE_RESOLVE_WORK_ITEM: "Resolve Affiliate Work",
         AFFILIATE_DECIDE_PROPOSAL: "Decide Affiliate Proposal",
-        AFFILIATE_REQUEST_ACTION: "Request Affiliate Action",
         AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT: "Predict Creator Product Fit",
         AFFILIATE_LIST_WHATSAPP_ACCOUNTS: "List WhatsApp Accounts",
         AFFILIATE_LIST_EMAIL_ACCOUNTS: "List Email Accounts",
@@ -3472,9 +3471,19 @@ export default {
       historyTitle: "Platform collaborations",
       historySubtitle:
         "Review TikTok Open and Target Collaboration platform objects, statuses, and products.",
-      approvalQueueTitle: "Action proposals",
-      approvalQueueHint: "Agent-created platform actions waiting for staff approval or rejection.",
-      approvalQueueShortTitle: "Proposals",
+      approvalQueueTitle: "Agent work",
+      approvalQueueHint: "One card per Agent dispatch, including pending proposals, completed actions, no-action decisions, and rewrite history.",
+      approvalQueueShortTitle: "Agent work",
+      agentWorkspaceViews: {
+        label: "Agent workspace view",
+        PENDING: "Pending review",
+        ALL: "All Agent work",
+      },
+      revisionHistory: {
+        title: "Rewrite history",
+        hint: "Earlier and current versions of this Agent work bundle.",
+        versionCount: "V{{version}} · {{count}} versions",
+      },
       collaborationWorkQueueTitle: "Collaborations needing staff handling",
       collaborationWorkQueueHint:
         "Collaboration work with no pending proposal. Staff should decide the next step manually.",
@@ -3647,13 +3656,13 @@ export default {
       searchFilter: "Search",
       itemCount: "{{count}} item(s)",
       pageTitles: {
-        NEEDS_ATTENTION: "Action proposals",
+        NEEDS_ATTENTION: "Agent workspace",
         IN_PROGRESS: "Affiliate work in progress",
         HISTORY: "Affiliate history",
       },
       pageSubtitles: {
         NEEDS_ATTENTION:
-          "Review approvals, manual follow-ups, and affiliate work that needs agent handling.",
+          "Review pending decisions or inspect the complete timeline of work produced by Affiliate Agent dispatches.",
         IN_PROGRESS:
           "Monitor creator collaborations that are waiting on creators or platform updates.",
         HISTORY:
@@ -4016,12 +4025,14 @@ export default {
         currentSituation: "Current situation",
       },
       proposalRecommendationTitles: {
+        NO_ACTION_NEEDED: "No action needed",
         APPROVE_SAMPLE_REQUEST: "Approve this sample request",
         REJECT_SAMPLE_REQUEST: "Reject this sample request",
         SEND_MESSAGE: "Send a message to the creator",
         CREATE_TARGET_COLLABORATION: "Create a target collaboration",
       },
       proposalExecutionDescriptions: {
+        NO_ACTION_NEEDED: "The Agent completed this dispatch without requesting or executing a platform action.",
         APPROVE_SAMPLE_REQUEST:
           "The system will approve the creator's sample request on TikTok Shop.",
         REJECT_SAMPLE_REQUEST:
@@ -4755,6 +4766,7 @@ export default {
         approvalPolicyPreview: "Update approval policy for {{action}}.",
         candidateDecisionPreview: "Mark {{count}} creator candidate(s) as {{status}}.",
         proposalTypes: {
+          NO_ACTION_NEEDED: "No action needed",
           SEND_MESSAGE: "Message",
           REVIEW_SAMPLE_APPLICATION: "Review sample request",
           APPROVE_SAMPLE: "Approve sample",
