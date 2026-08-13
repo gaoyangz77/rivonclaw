@@ -10,6 +10,8 @@ import {
   affiliateExpectedSalesModelAvailabilityState,
   affiliateSellerSafeMetrics,
   emptyAffiliateProposalPageBuffer,
+  getProposalActionProductId,
+  groupAgentWorkBundles,
   isBootstrapModelSelection,
   isBootstrapExpectedSalesOutput,
   mergeAffiliateProposalPage,
@@ -78,6 +80,56 @@ describe("AffiliateManagementPage proposal source", () => {
 
     expect(sortAffiliateProposalsNewestFirst([older, newer]).map((item) => item.id))
       .toEqual(["proposal-newer", "proposal-older"]);
+  });
+
+  it("groups rewrite versions into one Agent work bundle", () => {
+    const rootId = "proposal-v1";
+    const revisionHistory = [
+      {
+        id: rootId,
+        type: GQL.ActionProposalType.SendMessage,
+        status: GQL.ActionProposalStatus.Superseded,
+        operatorSummary: "First draft",
+        revisionNumber: 1,
+        revisionRootProposalId: rootId,
+        createdAt: "2026-08-13T01:00:00.000Z",
+        updatedAt: "2026-08-13T01:10:00.000Z",
+      },
+      {
+        id: "proposal-v2",
+        type: GQL.ActionProposalType.NoActionNeeded,
+        status: GQL.ActionProposalStatus.Executed,
+        operatorSummary: "No reply needed after rewrite",
+        revisionNumber: 2,
+        revisionOfProposalId: rootId,
+        revisionRootProposalId: rootId,
+        createdAt: "2026-08-13T01:15:00.000Z",
+        updatedAt: "2026-08-13T01:15:00.000Z",
+      },
+    ] as GQL.ActionProposalRevisionSummary[];
+    const v1 = {
+      ...proposal(rootId, "SUPERSEDED"),
+      revisionNumber: 1,
+      revisionRootProposalId: rootId,
+      revisionHistory,
+      createdAt: revisionHistory[0]!.createdAt,
+    } as GQL.ActionProposal;
+    const v2 = {
+      ...proposal("proposal-v2", "EXECUTED", "NO_ACTION_NEEDED"),
+      revisionNumber: 2,
+      revisionOfProposalId: rootId,
+      revisionRootProposalId: rootId,
+      revisionHistory,
+      createdAt: revisionHistory[1]!.createdAt,
+    } as GQL.ActionProposal;
+
+    expect(groupAgentWorkBundles([v1, v2])).toEqual([
+      expect.objectContaining({
+        rootProposalId: rootId,
+        proposal: v2,
+        revisionHistory,
+      }),
+    ]);
   });
 
   it("accepts a realtime proposal that targets the selected shop through a secondary step", () => {
@@ -388,6 +440,36 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(proposalSampleDecisionOverrideTarget(
       proposal("proposal-message", "PENDING", "SEND_MESSAGE"),
     )).toBeNull();
+  });
+
+  it("does not treat a Sample-trigger provenance product as part of a text-only reply", () => {
+    const reply = {
+      ...proposal("proposal-reply", "PENDING", "SEND_MESSAGE"),
+      productId: "provenance-product",
+      sampleApplicationRecordId: "sample-1",
+      sampleApplicationRecord: { productId: "provenance-product" },
+      productSummary: { productId: "provenance-product", title: "Historical product" },
+      messageIntent: {
+        parts: [{ kind: "TEXT", text: "Thanks!" }],
+      },
+    } as unknown as GQL.ActionProposal;
+
+    expect(getProposalActionProductId(reply)).toBeNull();
+  });
+
+  it("shows product context only when the proposed action actually carries a product", () => {
+    const productCardReply = {
+      ...proposal("proposal-product-card", "PENDING", "SEND_MESSAGE"),
+      productId: "provenance-product",
+      messageIntent: {
+        parts: [
+          { kind: "TEXT", text: "Here is the product." },
+          { kind: "PRODUCT_CARD", productId: "action-product" },
+        ],
+      },
+    } as unknown as GQL.ActionProposal;
+
+    expect(getProposalActionProductId(productCardReply)).toBe("action-product");
   });
 });
 

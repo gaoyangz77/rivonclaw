@@ -1133,6 +1133,37 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       type
       status
       operatorSummary
+      requestedByActorType
+      requestedByActorId
+      revisionOfProposalId
+      revisionRootProposalId
+      revisionNumber
+      supersededByProposalId
+      revisionHistory {
+        id
+        type
+        status
+        operatorSummary
+        requestedByActorType
+        requestedByActorId
+        revisionOfProposalId
+        revisionRootProposalId
+        revisionNumber
+        supersededByProposalId
+        decision {
+          decidedAt
+          note
+          actorType
+          actorId
+        }
+        executionResult {
+          executedAt
+          errorMessage
+          deliveryStatus
+        }
+        createdAt
+        updatedAt
+      }
       predictionCacheIds
       predictionSnapshots {
         sourceCacheId
@@ -2675,6 +2706,37 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       type
       status
       operatorSummary
+      requestedByActorType
+      requestedByActorId
+      revisionOfProposalId
+      revisionRootProposalId
+      revisionNumber
+      supersededByProposalId
+      revisionHistory {
+        id
+        type
+        status
+        operatorSummary
+        requestedByActorType
+        requestedByActorId
+        revisionOfProposalId
+        revisionRootProposalId
+        revisionNumber
+        supersededByProposalId
+        decision {
+          decidedAt
+          note
+          actorType
+          actorId
+        }
+        executionResult {
+          executedAt
+          errorMessage
+          deliveryStatus
+        }
+        createdAt
+        updatedAt
+      }
       predictionCacheIds
       predictionSnapshots {
         sourceCacheId

@@ -1744,7 +1744,6 @@ export default {
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Carica allegato bozza affiliato",
         "AFFILIATE_RESOLVE_WORK_ITEM": "Risolvi il lavoro di affiliazione",
         "AFFILIATE_DECIDE_PROPOSAL": "Decidere la proposta di affiliazione",
-        "AFFILIATE_REQUEST_ACTION": "Richiedi un'azione di affiliazione",
         "AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT": "Prevedi compatibilità creator-prodotto",
         "AFFILIATE_LIST_WHATSAPP_ACCOUNTS": "Elenca account WhatsApp",
         "AFFILIATE_LIST_EMAIL_ACCOUNTS": "Elenca account email",

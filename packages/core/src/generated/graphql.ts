@@ -29,7 +29,7 @@ export interface AckCsEscalationEventInput {
   success: Scalars['Boolean']['input'];
 }
 
-/** Human-reviewable action proposed by an agent after policy evaluation. */
+/** Durable result of one Affiliate Agent dispatch. It may remain pending for staff review, execute automatically, record no action needed, or retain a terminal review outcome. */
 export interface ActionProposal {
   /** Current canonical platform Collaboration projection for staff review display. */
   affiliateCollaboration?: Maybe<AffiliateCollaboration>;
@@ -69,7 +69,17 @@ export interface ActionProposal {
   productId?: Maybe<Scalars['String']['output']>;
   /** Best-known related product summary for staff review display. Proposal execution still uses frozen proposal fields. */
   productSummary?: Maybe<EcomProductSummary>;
+  requestedByActorId?: Maybe<Scalars['String']['output']>;
+  requestedByActorType?: Maybe<AffiliateLifecycleActorType>;
   reviewSource: AffiliateProposalReviewSource;
+  /** Ordered compact V1..Vn rewrite history for this work bundle. */
+  revisionHistory: Array<ActionProposalRevisionSummary>;
+  /** One-based version number within the proposal rewrite chain. */
+  revisionNumber: Scalars['Int']['output'];
+  /** Direct predecessor when this work bundle was produced by a staff rewrite request. */
+  revisionOfProposalId?: Maybe<Scalars['ID']['output']>;
+  /** Stable V1 root for this proposal rewrite chain. */
+  revisionRootProposalId?: Maybe<Scalars['ID']['output']>;
   /** Current canonical Sample Application projection for staff review display. */
   sampleApplicationRecord?: Maybe<SampleApplicationRecord>;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
@@ -79,6 +89,8 @@ export interface ActionProposal {
   status: ActionProposalStatus;
   /** Frozen ordered action steps. Current single-action proposals contain exactly one step. */
   steps: Array<ActionProposalStep>;
+  /** Direct rewritten successor created from this proposal. */
+  supersededByProposalId?: Maybe<Scalars['ID']['output']>;
   targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
   targetEventCursor?: Maybe<Scalars['Int']['output']>;
   type: ActionProposalType;
@@ -118,13 +130,6 @@ export interface ActionProposalCandidateDecisionIntent {
   candidateIds: Array<Scalars['ID']['output']>;
   evidenceItems?: Maybe<Array<CreatorCandidateEvidence>>;
   rationale?: Maybe<Scalars['String']['output']>;
-  status: CreatorCandidateStatus;
-}
-
-export interface ActionProposalCandidateDecisionIntentInput {
-  candidateIds: Array<Scalars['ID']['input']>;
-  evidenceItems?: InputMaybe<Array<CreatorCandidateEvidenceInput>>;
-  rationale?: InputMaybe<Scalars['String']['input']>;
   status: CreatorCandidateStatus;
 }
 
@@ -180,6 +185,24 @@ export interface ActionProposalPolicySnapshot {
   matchedPolicyIds: Array<Scalars['ID']['output']>;
   reasons: Array<Scalars['String']['output']>;
   requiresApproval: Scalars['Boolean']['output'];
+}
+
+/** One compact version entry in an Affiliate work-bundle rewrite chain. */
+export interface ActionProposalRevisionSummary {
+  createdAt: Scalars['DateTimeISO']['output'];
+  decision?: Maybe<ActionProposalDecisionSnapshot>;
+  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
+  id: Scalars['ID']['output'];
+  operatorSummary: Scalars['String']['output'];
+  requestedByActorId?: Maybe<Scalars['String']['output']>;
+  requestedByActorType?: Maybe<AffiliateLifecycleActorType>;
+  revisionNumber: Scalars['Int']['output'];
+  revisionOfProposalId?: Maybe<Scalars['ID']['output']>;
+  revisionRootProposalId?: Maybe<Scalars['ID']['output']>;
+  status: ActionProposalStatus;
+  supersededByProposalId?: Maybe<Scalars['ID']['output']>;
+  type: ActionProposalType;
+  updatedAt: Scalars['DateTimeISO']['output'];
 }
 
 export interface ActionProposalSampleReviewIntent {
@@ -306,18 +329,6 @@ export interface ActionProposalTargetCollaborationIntent {
   sellerContactInfo: ActionProposalSellerContactInfoIntent;
 }
 
-export interface ActionProposalTargetCollaborationIntentInput {
-  creatorIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  creatorOpenIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  endTime: Scalars['DateTimeISO']['input'];
-  hasFreeSample: Scalars['Boolean']['input'];
-  isSampleApprovalExempt: Scalars['Boolean']['input'];
-  message?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  products: Array<ActionProposalTargetCollaborationProductIntentInput>;
-  sellerContactInfo: ActionProposalSellerContactInfoIntentInput;
-}
-
 export interface ActionProposalTargetCollaborationProductIntent {
   productId: Scalars['String']['output'];
   shopAdsCommissionRateBps?: Maybe<Scalars['Int']['output']>;
@@ -332,6 +343,7 @@ export interface ActionProposalTargetCollaborationProductIntentInput {
 
 export const ActionProposalType = {
   CreateTargetCollaboration: 'CREATE_TARGET_COLLABORATION',
+  NoActionNeeded: 'NO_ACTION_NEEDED',
   ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
   SendMessage: 'SEND_MESSAGE'
 } as const;
@@ -610,7 +622,7 @@ export interface AffiliateActionProposalDeltaInput {
   since?: InputMaybe<Scalars['DateTimeISO']['input']>;
 }
 
-/** A stable cursor page of human-reviewable Affiliate action proposals. */
+/** A stable cursor page of durable Affiliate Agent work bundles. */
 export interface AffiliateActionProposalPage {
   hasMore: Scalars['Boolean']['output'];
   items: Array<ActionProposal>;
@@ -2393,6 +2405,7 @@ export const AffiliateLifecycleEventType = {
   CreatorProtectionAdded: 'CREATOR_PROTECTION_ADDED',
   CreatorProtectionMerged: 'CREATOR_PROTECTION_MERGED',
   CreatorProtectionRemoved: 'CREATOR_PROTECTION_REMOVED',
+  CreatorProtectionUpdated: 'CREATOR_PROTECTION_UPDATED',
   MessageReceived: 'MESSAGE_RECEIVED',
   MessageSent: 'MESSAGE_SENT',
   ProposalApproved: 'PROPOSAL_APPROVED',
@@ -4137,13 +4150,6 @@ export interface CreatorCandidateEvidence {
   source?: Maybe<Scalars['String']['output']>;
   type: CreatorCandidateEvidenceType;
   value?: Maybe<Scalars['String']['output']>;
-}
-
-export interface CreatorCandidateEvidenceInput {
-  label: Scalars['String']['input'];
-  source?: InputMaybe<Scalars['String']['input']>;
-  type: CreatorCandidateEvidenceType;
-  value?: InputMaybe<Scalars['String']['input']>;
 }
 
 /** Typed evidence categories used when an agent or human qualifies a creator candidate. */
@@ -8174,7 +8180,7 @@ export interface Mutation {
   csRespond: CsRespondResult;
   /** Publish a manual CS conversation signal that asks the assigned desktop to start a CS agent session */
   csStartSession: CsConversationSignal;
-  /** Record an approval/rejection/modification decision. APPROVED executes the frozen action intent through the backend proposal service. */
+  /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED reverses exactly one pure Sample Application review and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note. */
   decideActionProposal: ActionProposal;
   /** Delete an affiliate approval interception policy. */
   deleteAffiliateApprovalPolicy: Scalars['Boolean']['output'];
@@ -8281,15 +8287,13 @@ export interface Mutation {
   reportAffiliateCampaignSearchPlanGenerationFailure: AffiliateCampaignSearchPlan;
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
   reportDevicePresenceProbe: Scalars['Boolean']['output'];
-  /** Request one typed affiliate action. Backend policy decides direct execution vs ActionProposal. */
-  requestAffiliateAction: RequestAffiliateActionPayload;
   /** Request a new captcha challenge */
   requestCaptcha: CaptchaResponse;
   /** Request one user's authenticated desktop client to upload its current local log (admin only) */
   requestClientLogUpload: ClientLogUploadRequestPayload;
   /** Request/create TikTok GMV Max exclusive authorization for an advertiser-store access row. */
   requestTikTokGmvMaxAuthorization: AdsStoreAccess;
-  /** Resolve one affiliate work item. REQUEST_ACTION may execute immediately or create an ActionProposal; non-action decisions ack the relationship work boundary and update relationship/collaboration state as needed. */
+  /** Resolve one affiliate work item. Every completed REQUEST_ACTION or NO_ACTION_NEEDED result is persisted as an ActionProposal work bundle; policy and evidence review decide whether it waits for staff or executes automatically. */
   resolveAffiliateWorkItem: ResolveAffiliateWorkItemPayload;
   restoreProductKnowledge: ProductKnowledge;
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
@@ -8992,11 +8996,6 @@ export interface MutationReportAffiliateCampaignSearchPlanGenerationFailureArgs 
 
 export interface MutationReportDevicePresenceProbeArgs {
   input: AdminDevicePresenceProbeResponseInput;
-}
-
-
-export interface MutationRequestAffiliateActionArgs {
-  input: RequestAffiliateActionInput;
 }
 
 
@@ -9844,7 +9843,7 @@ export interface PublishCsConversationSignalInput {
 }
 
 export interface Query {
-  /** Read human-reviewable affiliate action proposals. */
+  /** Read durable Affiliate Agent work bundles. */
   actionProposals: Array<ActionProposal>;
   /** Read server-driven announcements for the current user, surface, app version, and locale. */
   activeAnnouncements: Array<ActiveAnnouncement>;
@@ -9863,7 +9862,7 @@ export interface Query {
   adsStoreAccesses: Array<AdsStoreAccess>;
   /** Read bounded proposal events for one CreatorRelationship. Desktop injects this as per-run delta context, not as stable workspace state. */
   affiliateActionProposalDelta: Array<ActionProposal>;
-  /** Read a stable cursor page of human-reviewable Affiliate action proposals. */
+  /** Read a stable cursor page of durable Affiliate Agent work bundles. */
   affiliateActionProposalPage: AffiliateActionProposalPage;
   /** Read affiliate approval interception policies. */
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
@@ -11172,33 +11171,6 @@ export interface ReportAffiliateCampaignSearchPlanGenerationFailureInput {
   generation: Scalars['Int']['input'];
   leaseToken: Scalars['String']['input'];
   searchPlanId: Scalars['ID']['input'];
-}
-
-export interface RequestAffiliateActionInput {
-  affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
-  campaignId?: InputMaybe<Scalars['ID']['input']>;
-  candidateDecisionIntent?: InputMaybe<ActionProposalCandidateDecisionIntentInput>;
-  creatorId?: InputMaybe<Scalars['ID']['input']>;
-  creatorRelationshipId: Scalars['ID']['input'];
-  expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  /** The collaboration.lastSignalAt value that this action request handled. Used as the ack boundary. */
-  handledSignalAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
-  messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
-  operatorSummary: Scalars['String']['input'];
-  /** Prediction cache ids returned by Affiliate prediction tools. When a proposal is created, Backend copies their canonical contents into immutable proposal-owned predictionSnapshots. */
-  predictionCacheIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  productId?: InputMaybe<Scalars['String']['input']>;
-  sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
-  sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
-  shopId: Scalars['ID']['input'];
-  targetCollaborationIntent?: InputMaybe<ActionProposalTargetCollaborationIntentInput>;
-  type: ActionProposalType;
-}
-
-export interface RequestAffiliateActionPayload {
-  executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
-  mode: AffiliateActionRequestMode;
-  proposal?: Maybe<ActionProposal>;
 }
 
 export interface ResolveAffiliateCampaignProductInput {

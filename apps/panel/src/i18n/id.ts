@@ -1744,7 +1744,6 @@ export default {
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Unggah Lampiran Draf Afiliasi",
         "AFFILIATE_RESOLVE_WORK_ITEM": "Selesaikan Pekerjaan Afiliasi",
         "AFFILIATE_DECIDE_PROPOSAL": "Putuskan Proposal Afiliasi",
-        "AFFILIATE_REQUEST_ACTION": "Minta Tindakan Afiliasi",
         "AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT": "Prediksi Kesesuaian Kreator-Produk",
         "AFFILIATE_LIST_WHATSAPP_ACCOUNTS": "Daftar Akun WhatsApp",
         "AFFILIATE_LIST_EMAIL_ACCOUNTS": "Daftar Akun Email",

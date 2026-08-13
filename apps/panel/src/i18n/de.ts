@@ -1744,7 +1744,6 @@ export default {
         "AFFILIATE_UPLOAD_DRAFT_ATTACHMENT": "Affiliate-Entwurfsanhang hochladen",
         "AFFILIATE_RESOLVE_WORK_ITEM": "Affiliate-Arbeit lösen",
         "AFFILIATE_DECIDE_PROPOSAL": "Entscheiden Sie sich für einen Partnervorschlag",
-        "AFFILIATE_REQUEST_ACTION": "Fordern Sie eine Affiliate-Aktion an",
         "AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT": "Creator-Produkt-Passung vorhersagen",
         "AFFILIATE_LIST_WHATSAPP_ACCOUNTS": "WhatsApp-Konten auflisten",
         "AFFILIATE_LIST_EMAIL_ACCOUNTS": "E-Mail-Konten auflisten",
