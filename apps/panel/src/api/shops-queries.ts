@@ -1213,7 +1213,6 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         sampleApplicationRecordId
         productId
         type
-        operatorSummary
         predictionCacheIds
         messageIntent {
           creatorId
@@ -2781,7 +2780,6 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       steps {
         stepId
         type
-        operatorSummary
         predictionCacheIds
         messageIntent {
           creatorId

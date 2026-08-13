@@ -300,8 +300,6 @@ export interface ActionProposalStep {
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   messageIntent?: Maybe<ActionProposalMessageIntent>;
-  /** Staff-facing summary for this action step. Use the desktop/operator language. */
-  operatorSummary: Scalars['String']['output'];
   /** Source cache references associated with this action step. The proposal-owned predictionSnapshots remain the durable review evidence. */
   predictionCacheIds?: Maybe<Array<Scalars['ID']['output']>>;
   productId?: Maybe<Scalars['String']['output']>;
