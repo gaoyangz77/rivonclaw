@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,7 @@ import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
-import { BEFORE_NAVIGATE_EVENT } from "../../lib/navigation-guard.js";
+import { BEFORE_NAVIGATE_EVENT, type BeforeNavigateDetail } from "../../lib/navigation-guard.js";
 import {
   ARCHIVE_PRODUCT_KNOWLEDGE_MUTATION,
   CREATE_PRODUCT_KNOWLEDGE_MUTATION,
@@ -46,6 +46,8 @@ type ContentTab = "usage" | "qa" | "cases";
 type Confirmation =
   | { kind: "archive"; id: string; name: string; revision: number }
   | { kind: "unlink"; bindingId: string; productTitle: string }
+  | { kind: "discard"; action: "select"; selectedId: string }
+  | { kind: "discard"; action: "close" | "create" | "navigate" }
   | null;
 
 function draftFromKnowledge(knowledge: GQL.ProductKnowledge): KnowledgeDraft {
@@ -100,6 +102,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
+  const pendingNavigationRef = useRef<(() => void) | null>(null);
   const [sellerSku, setSellerSku] = useState("");
   const [discoveryKnowledgeId, setDiscoveryKnowledgeId] = useState("");
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
@@ -172,9 +175,10 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
       event.preventDefault();
     };
     const handleBeforeNavigate = (event: Event) => {
-      if (!window.confirm(t("ecommerce.productKnowledge.unsavedConfirm"))) {
-        event.preventDefault();
-      }
+      const navigationEvent = event as CustomEvent<BeforeNavigateDetail>;
+      event.preventDefault();
+      pendingNavigationRef.current = navigationEvent.detail.proceed ?? null;
+      setConfirmation({ kind: "discard", action: "navigate" });
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener(BEFORE_NAVIGATE_EVENT, handleBeforeNavigate);
@@ -186,18 +190,20 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
 
   function selectKnowledge(id: string) {
     if (id === selectedId) return;
-    if (!allowDiscardDraft()) return;
+    if (dirty) {
+      setConfirmation({ kind: "discard", action: "select", selectedId: id });
+      return;
+    }
     resetSelection();
     setSelectedId(id);
   }
 
   function closeDetail() {
-    if (!allowDiscardDraft()) return;
+    if (dirty) {
+      setConfirmation({ kind: "discard", action: "close" });
+      return;
+    }
     resetSelection();
-  }
-
-  function allowDiscardDraft(): boolean {
-    return !dirty || window.confirm(t("ecommerce.productKnowledge.unsavedConfirm"));
   }
 
   function resetSelection() {
@@ -213,7 +219,14 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
 
   async function handleCreate() {
     if (!createName.trim()) return;
-    if (!allowDiscardDraft()) return;
+    if (dirty) {
+      setConfirmation({ kind: "discard", action: "create" });
+      return;
+    }
+    await createKnowledgeNow();
+  }
+
+  async function createKnowledgeNow() {
     try {
       const result = await createKnowledge({ variables: { input: { name: createName } } });
       const created = result.data?.createProductKnowledge;
@@ -374,6 +387,39 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
       setConfirmation(null);
       showToast(t("common.operationFailed", { message: errorMessage(error) }), "error");
     }
+  }
+
+  function cancelConfirmation() {
+    if (confirmation?.kind === "discard" && confirmation.action === "navigate") {
+      pendingNavigationRef.current = null;
+    }
+    setConfirmation(null);
+  }
+
+  function confirmDialogAction() {
+    if (!confirmation) return;
+    if (confirmation.kind === "archive") {
+      void handleArchive();
+      return;
+    }
+    if (confirmation.kind === "unlink") {
+      void handleUnlink();
+      return;
+    }
+    const action = confirmation;
+    const pendingNavigation = action.action === "navigate" ? pendingNavigationRef.current : null;
+    pendingNavigationRef.current = null;
+    setConfirmation(null);
+    resetSelection();
+    if (action.action === "select") {
+      setSelectedId(action.selectedId);
+      return;
+    }
+    if (action.action === "create") {
+      void createKnowledgeNow();
+      return;
+    }
+    pendingNavigation?.();
   }
 
   if (authChecking) {
@@ -733,11 +779,23 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
 
       <ConfirmDialog
         isOpen={Boolean(confirmation)}
-        onCancel={() => setConfirmation(null)}
-        onConfirm={() => confirmation?.kind === "archive" ? void handleArchive() : void handleUnlink()}
-        title={confirmation?.kind === "archive" ? t("ecommerce.productKnowledge.archiveTitle") : t("ecommerce.productKnowledge.unlinkTitle")}
-        message={confirmation?.kind === "archive" ? t("ecommerce.productKnowledge.archiveConfirm", { name: confirmation.name }) : t("ecommerce.productKnowledge.unlinkConfirm", { name: confirmation?.productTitle })}
-        confirmLabel={confirmation?.kind === "archive" ? t("ecommerce.productKnowledge.archive") : t("ecommerce.productKnowledge.unlink")}
+        onCancel={cancelConfirmation}
+        onConfirm={confirmDialogAction}
+        title={confirmation?.kind === "archive"
+          ? t("ecommerce.productKnowledge.archiveTitle")
+          : confirmation?.kind === "unlink"
+            ? t("ecommerce.productKnowledge.unlinkTitle")
+            : t("ecommerce.productKnowledge.unsaved")}
+        message={confirmation?.kind === "archive"
+          ? t("ecommerce.productKnowledge.archiveConfirm", { name: confirmation.name })
+          : confirmation?.kind === "unlink"
+            ? t("ecommerce.productKnowledge.unlinkConfirm", { name: confirmation.productTitle })
+            : t("ecommerce.productKnowledge.unsavedConfirm")}
+        confirmLabel={confirmation?.kind === "archive"
+          ? t("ecommerce.productKnowledge.archive")
+          : confirmation?.kind === "unlink"
+            ? t("ecommerce.productKnowledge.unlink")
+            : t("ecommerce.productKnowledge.discardChanges")}
         confirmVariant="danger"
       />
     </div>

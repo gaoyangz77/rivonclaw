@@ -149,4 +149,15 @@ describe("Panel architecture guardrails", () => {
       expect(hasRoutes, `${label} does not import from routes.tsx`).toBe(true);
     }
   });
+
+  it("uses styled confirmation components instead of native window.confirm", () => {
+    const violations = allFiles
+      .filter((filePath) => readFileSync(filePath, "utf-8").includes("window.confirm"))
+      .map((filePath) => relative(SRC_ROOT, filePath).replace(/\\/g, "/"));
+
+    expect(
+      violations,
+      `Native window.confirm calls bypass the shared styled dialog:\n${violations.join("\n")}`,
+    ).toEqual([]);
+  });
 });

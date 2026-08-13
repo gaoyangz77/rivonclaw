@@ -25,10 +25,10 @@ export function ConfirmDialog({
     <Modal isOpen={isOpen} onClose={onCancel} title={title} maxWidth={440} portal>
       <p className="confirm-dialog-message">{message}</p>
       <div className="modal-actions">
-        <button className="btn btn-secondary" onClick={onCancel}>
+        <button type="button" className="btn btn-secondary" onClick={onCancel}>
           {cancelLabel}
         </button>
-        <button className={`btn btn-${confirmVariant}`} onClick={onConfirm}>
+        <button type="button" className={`btn btn-${confirmVariant}`} onClick={onConfirm}>
           {confirmLabel}
         </button>
       </div>
