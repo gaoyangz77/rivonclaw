@@ -6478,6 +6478,15 @@ export const EcomDocumentType = {
 } as const;
 
 export type EcomDocumentType = typeof EcomDocumentType[keyof typeof EcomDocumentType];
+/** Whether a Fulfilled by TikTok read succeeded. Anything other than OK means the returned FBT facts are incomplete and absent stock must not be interpreted as zero stock. */
+export const EcomFbtReadState = {
+  AccessDenied: 'ACCESS_DENIED',
+  CapabilityUnavailable: 'CAPABILITY_UNAVAILABLE',
+  Ok: 'OK',
+  UnsupportedRegion: 'UNSUPPORTED_REGION'
+} as const;
+
+export type EcomFbtReadState = typeof EcomFbtReadState[keyof typeof EcomFbtReadState];
 /** Image with dimensions */
 export interface EcomImage {
   height?: Maybe<Scalars['Int']['output']>;
@@ -7753,6 +7762,60 @@ export interface InitiateOAuthResponse {
   state: Scalars['String']['output'];
 }
 
+/** One shop listing bound to a Fulfilled by TikTok goods pool. A goods pool can bind listings in several shops of the same seller, so this is the many-to-many bridge between a goods pool and the shops that sell out of it. */
+export interface InventoryAnalysisFbtBoundListing {
+  /** This listing's allocation of the pool inside this warehouse, taken from the shop platform's per-listing warehouse inventory. Allocations of all bound listings sum to roughly the pool available quantity. Null when the FBT warehouse is not mapped to a shop platform warehouse or the listing carries no inventory row for it. */
+  allocatedQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Shop platform product ID resolved from our own shop product catalog. Null when the bound listing is not present in the catalog, for example a paused listing. */
+  productId?: Maybe<Scalars['String']['output']>;
+  /** Shop alias/name. */
+  shopAlias?: Maybe<Scalars['String']['output']>;
+  /** Shop Mongo ID that owns this listing. */
+  shopId: Scalars['ID']['output'];
+  /** Shop platform SKU ID bound to the goods pool. */
+  skuId: Scalars['String']['output'];
+}
+
+/** Authoritative Fulfilled by TikTok stock pool for one (goodsId, fbtWarehouseId) pair. TikTok returns a byte-identical copy of this pool to every shop of the seller that can see the goods, so it is counted exactly once here no matter how many shops reported it. Pool quantities are additive over distinct (goodsId, fbtWarehouseId) pairs only. */
+export interface InventoryAnalysisFbtGoodsStock {
+  /** Units available to sell. Null means unread, zero means really zero. */
+  availableQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Shop listings bound to this goods pool. Empty when the goods binds no listing we can resolve, for example a paused goods that still holds stock. */
+  boundListings: Array<InventoryAnalysisFbtBoundListing>;
+  /** TikTok-global Fulfilled by TikTok warehouse ID. It is not scoped to a shop, and it is NOT the id used for inventory writes — see platformWarehouseId. */
+  fbtWarehouseId: Scalars['String']['output'];
+  /** Fulfilled by TikTok goods ID. */
+  goodsId: Scalars['ID']['output'];
+  /** Goods display name reported by TikTok. May differ from referenceCode, for example when the seller suffixed it to mark the goods as paused. */
+  goodsName?: Maybe<Scalars['String']['output']>;
+  /** Units in transit toward this warehouse for this goods. Goods-level, not per shop. Null means unread, zero means really zero. */
+  inTransitQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Shop-facing platform warehouse ID for this FBT warehouse, used for inventory writes and for joining this pool to the officialPlatformWarehouses rows of the same physical warehouse. It is a different id from fbtWarehouseId. Resolved from our own ShopWarehouse mappings, not from the FBT response; null when no visible shop has mapped the warehouse. */
+  platformWarehouseId?: Maybe<Scalars['String']['output']>;
+  /** Goods reference code, which is the seller SKU. */
+  referenceCode: Scalars['String']['output'];
+  /** Units reserved against open orders. Null means unread, zero means really zero. */
+  reservedQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Total units of this goods held in this warehouse. Null means the quantity could not be read; zero means the pool is really empty. */
+  totalQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Units held as unfulfillable. Null means unread, zero means really zero. */
+  unfulfillableQuantity?: Maybe<Scalars['Int']['output']>;
+  /** Every shop whose API returned this goods record. A shop can see the record without binding any listing to it, so presence here is visibility, not ownership. TikTok exposes no owner or seller field, so a shared pool cannot be attributed to one shop. */
+  visibleToShopIds: Array<Scalars['ID']['output']>;
+  /** Warehouse display name resolved from our own Warehouse documents. Null when the FBT warehouse has not been mapped yet. */
+  warehouseName?: Maybe<Scalars['String']['output']>;
+}
+
+/** Whether Fulfilled by TikTok facts could be read for one shop. Anything other than OK means this shop contributed no FBT records because the read was refused, not because it has no FBT stock. */
+export interface InventoryAnalysisFbtShopRead {
+  /** Outcome of this shop's FBT read. */
+  readState: EcomFbtReadState;
+  /** Shop alias/name. */
+  shopAlias?: Maybe<Scalars['String']['output']>;
+  /** Shop Mongo ID. */
+  shopId: Scalars['ID']['output'];
+}
+
 /** Shop backend's observed inventory quantity for a third-party WMS warehouse mapping. */
 export interface InventoryAnalysisInShopWarehouseQuantity {
   /** Shop platform warehouse ID used for inventory updates, copied from ShopWarehouse.platformWarehouseId. */
@@ -7769,28 +7832,24 @@ export interface InventoryAnalysisInShopWarehouseQuantity {
   skuId?: Maybe<Scalars['String']['output']>;
 }
 
-/** Full current inventory facts for one seller SKU. */
+/** Full current inventory facts for one seller SKU. Summation rule: pool quantities in fbtGoodsStocks sum over distinct (goodsId, fbtWarehouseId) pairs; allocation quantities in officialPlatformWarehouses and fbtGoodsStocks[].boundListings sum over listings. The two families measure the same physical units from different sides and must never be added together. */
 export interface InventoryAnalysisInventoryFacts {
-  /** Platform official/seller warehouse quantities where the shop platform is the source of truth. */
+  /** Authoritative Fulfilled by TikTok stock pools for this seller SKU, one entry per distinct (goodsId, fbtWarehouseId) pair, counted once across all shops that can see it. */
+  fbtGoodsStocks: Array<InventoryAnalysisFbtGoodsStock>;
+  /** Per-shop-listing allocations inside platform official/seller warehouses, as reported by the shop platform. Not the warehouse pool. */
   officialPlatformWarehouses: Array<InventoryAnalysisOfficialPlatformWarehouseStock>;
   /** Third-party WMS warehouse quantities plus mapped shop backend observations. */
   thirdPartyWmsWarehouses: Array<InventoryAnalysisThirdPartyWmsWarehouseStock>;
 }
 
-/** Inventory quantity for a shop platform warehouse where the platform is the source of truth. */
+/** One shop listing's inventory allocation inside a platform warehouse, as the shop platform reports it for that listing. This is listing-level, not warehouse-level: for Fulfilled by TikTok warehouses a single goods pool can be shared by listings in several shops, and each row carries only this shop's share. Sum these rows over listings only. The authoritative warehouse pool lives in InventoryAnalysisInventoryFacts.fbtGoodsStocks; never add a pool quantity to an allocation quantity. */
 export interface InventoryAnalysisOfficialPlatformWarehouseStock {
-  /** Units currently in transit to this platform warehouse when available. */
-  inTransitQuantity?: Maybe<Scalars['Int']['output']>;
   /** Shop platform warehouse ID used for inventory updates, copied from ShopWarehouse.platformWarehouseId. */
   platformWarehouseId?: Maybe<Scalars['String']['output']>;
   /** Shop platform product ID for this seller SKU when available. */
   productId?: Maybe<Scalars['String']['output']>;
-  /** Authoritative platform warehouse quantity. */
+  /** This shop listing's on-hand allocation for this platform warehouse, as reported by the shop platform. It equals the warehouse total only when the underlying goods is not shared with listings in other shops; when it is shared, the allocations of all bound listings sum to the warehouse pool. See InventoryAnalysisInventoryFacts.fbtGoodsStocks for the authoritative pool. */
   quantity: Scalars['Int']['output'];
-  /** Units being received by this platform warehouse when available. */
-  receivingQuantity?: Maybe<Scalars['Int']['output']>;
-  /** Units shipped toward this platform warehouse when available. */
-  shippedQuantity?: Maybe<Scalars['Int']['output']>;
   /** Shop alias/name. */
   shopAlias?: Maybe<Scalars['String']['output']>;
   /** Shop Mongo ID. */
@@ -7805,6 +7864,8 @@ export interface InventoryAnalysisOfficialPlatformWarehouseStock {
 
 /** Source-of-truth inventory and performance bundle for desktop agent analysis. */
 export interface InventoryAnalysisPayload {
+  /** Per-shop Fulfilled by TikTok read outcome, one entry per requested shop. Check this before concluding that a shop has no FBT stock: a refused read contributes no records at all. */
+  fbtReads: Array<InventoryAnalysisFbtShopRead>;
   /** One row per seller SKU / canonical InventoryGood identity. */
   rows: Array<InventoryAnalysisRow>;
   /** Number of seller SKU rows returned. */
