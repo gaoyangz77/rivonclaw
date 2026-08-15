@@ -115,11 +115,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       lines.push(`   Sample Application Record ID: ${item.sampleApplicationRecordId}`);
     }
     if (item.predictionEvidence) {
-      lines.push(
-        "   Backend Prediction Evidence: " +
-          JSON.stringify(compactWorkingAgendaPredictionEvidence(item.predictionEvidence)),
-        "   Prediction Semantics: Backend computed this evidence before dispatch. Treat Expected Sales as the primary commercial-value estimate, not an automatic approve/reject threshold. Override it only with an explicit shop/BD instruction, seller commitment, operational hard conflict, or material current fact outside the prediction.",
-      );
+      lines.push(...renderWorkingAgendaPredictionEvidence(item.predictionEvidence));
     }
     if (item.proposalId) {
       lines.push(`   Proposal ID: ${item.proposalId}`);
@@ -190,12 +186,98 @@ function resolveOpenAgentAgenda(
   return workItem.agentWorkingAgendaItems ?? [];
 }
 
-function compactWorkingAgendaPredictionEvidence(
+/**
+ * ADR-058 canonical evidence contract (destructive cutover): Backend computes
+ * and freezes the evidence mode and both family signals in the snapshot's
+ * canonical `predictionEvidence` object. Desktop performs NO mode derivation
+ * and has NO legacy-shape fallback — a status-OK snapshot without canonical
+ * predictionEvidence (or with an unknown evidenceMode) is a contract
+ * violation and fails the dispatch fast rather than silently degrading.
+ *
+ * - EXPECTED_SALES_TRUSTED: inject the Expected Sales value; Human Decision
+ *   output must never appear (context isolation).
+ * - MERCHANT_APPROVAL_TENDENCY: withhold ES numerics; inject the Human
+ *   Decision value as 商家历史审批倾向 (a behavioral prior, not a prediction).
+ * - NO_MODEL_SIGNAL: sanctioned absence, including seller cold start; honest
+ *   disclosure, normal operation.
+ * - MODEL_SIGNAL_ERROR: a model family failed; disclose the real recorded
+ *   error code/message loudly — never re-normalize into normal operation.
+ *
+ * DATA_PATH_PASSTHROUGH is Desktop-internal for top-level request-status
+ * failures only; the top-level snapshot status no longer reflects family
+ * states.
+ */
+const CANONICAL_PREDICTION_EVIDENCE_MODES = [
+  "EXPECTED_SALES_TRUSTED",
+  "MERCHANT_APPROVAL_TENDENCY",
+  "NO_MODEL_SIGNAL",
+  "MODEL_SIGNAL_ERROR",
+] as const;
+
+type CanonicalPredictionEvidenceMode =
+  (typeof CANONICAL_PREDICTION_EVIDENCE_MODES)[number];
+
+type WorkingAgendaPredictionEvidenceMode =
+  | CanonicalPredictionEvidenceMode
+  | "DATA_PATH_PASSTHROUGH";
+
+const PREDICTION_SEMANTICS_BY_MODE: Record<WorkingAgendaPredictionEvidenceMode, string> = {
+  EXPECTED_SALES_TRUSTED:
+    "Backend computed this evidence before dispatch. Treat Expected Sales as the primary commercial-value estimate, not an automatic approve/reject threshold. Override it only with an explicit shop/BD instruction, seller commitment, operational hard conflict, or material current fact outside the prediction.",
+  MERCHANT_APPROVAL_TENDENCY:
+    "Backend withheld Expected Sales because its reliability is not TRUSTED. Do not infer, estimate, or restate any Expected Sales number, and the shop minimum Expected Sales reference does not apply and must not be compared against this evidence. The merchant approval tendency (商家历史审批倾向) describes how this merchant's staff historically decided similar applications — a behavioral/policy prior about the merchant's approval policy, NOT a sales prediction. Treat it as the primary quantitative prior, not an automatic decision; reversing a strong tendency requires specific, current, case-grounded evidence.",
+  NO_MODEL_SIGNAL:
+    "Backend has no model signal for this decision: Expected Sales is withheld or unavailable, and the merchant approval tendency (商家历史审批倾向) is not available for this evidence either. Do not infer, estimate, or restate any Expected Sales number; the shop minimum Expected Sales reference does not apply. This is normal operation — not an error, and not by itself a reason to request staff review. Decide from raw business evidence: creator raw performance metrics, product facts, conversation context, and shop/BD instructions.",
+  MODEL_SIGNAL_ERROR:
+    "Backend could not provide a model signal: Expected Sales is withheld or unavailable, and the fallback merchant approval tendency (商家历史审批倾向) failed with the recorded error code shown in the evidence block. Do not infer, estimate, or restate any Expected Sales number; the shop minimum Expected Sales reference does not apply. Decide from the raw business evidence: creator raw performance metrics, product facts, conversation context, and shop/BD instructions.",
+  DATA_PATH_PASSTHROUGH:
+    "This prediction is unavailable because of a data-path, context, or service error; the recorded status and message identify the failure. No Expected Sales estimate and no merchant approval tendency are provided, and the shop minimum Expected Sales reference does not apply. Decide from the raw business evidence: creator raw performance metrics, product facts, conversation context, and shop/BD instructions.",
+};
+
+function renderWorkingAgendaPredictionEvidence(
+  evidence: GQL.AffiliateActionProposalPredictionSnapshot,
+): string[] {
+  if (evidence.status !== GQL.AffiliatePredictionStatus.Ok) {
+    return [
+      "   Backend Prediction Evidence: " +
+        JSON.stringify(compactRecord({
+          ...snapshotSubjectContext(evidence),
+          predictedAt: evidence.predictedAt,
+          message: evidence.message,
+        })),
+      `   Prediction Semantics: ${PREDICTION_SEMANTICS_BY_MODE.DATA_PATH_PASSTHROUGH}`,
+    ];
+  }
+  const canonical = asRecord(asRecord(evidence).predictionEvidence);
+  const mode = canonical.evidenceMode;
+  if (!isCanonicalPredictionEvidenceMode(mode)) {
+    // Contract violation, not a business state: Backend owns mode computation
+    // and every OK snapshot must carry the frozen canonical evidence. Fail the
+    // dispatch fast instead of re-deriving or silently degrading on Desktop.
+    throw new Error(
+      `Affiliate prediction snapshot ${evidence.sourceCacheId ?? "(uncached)"} has no canonical predictionEvidence.evidenceMode; Backend must freeze the evidence contract before dispatch and Desktop refuses to re-derive it.`,
+    );
+  }
+  return [
+    "   Backend Prediction Evidence: " +
+      JSON.stringify(compactCanonicalPredictionEvidence(evidence, canonical, mode)),
+    `   Prediction Semantics: ${PREDICTION_SEMANTICS_BY_MODE[mode]}`,
+  ];
+}
+
+function isCanonicalPredictionEvidenceMode(
+  value: unknown,
+): value is CanonicalPredictionEvidenceMode {
+  return (
+    typeof value === "string" &&
+    (CANONICAL_PREDICTION_EVIDENCE_MODES as readonly string[]).includes(value)
+  );
+}
+
+function snapshotSubjectContext(
   evidence: GQL.AffiliateActionProposalPredictionSnapshot,
 ): Record<string, unknown> {
-  const output = asRecord(evidence.output);
-  const model = asRecord(evidence.model);
-  return compactRecord({
+  return {
     status: evidence.status,
     scenario: evidence.scenario,
     sampleApplicationRecordId:
@@ -204,18 +286,150 @@ function compactWorkingAgendaPredictionEvidence(
       null,
     productId:
       evidence.subject.productId ?? evidence.resolvedContext?.productId ?? null,
-    expectedSalesUnits: output.expectedSalesUnits,
-    expectedSalesPercentile: output.expectedSalesPercentile,
-    predictionQuality: output.predictionQuality,
-    expectedSalesSelection: output.expectedSalesSelection,
-    featureTemporalBasis: output.featureTemporalBasis ?? model.featureTemporalBasis,
-    modelStage: output.modelStage ?? model.modelStage,
-    effectiveTenantScope: output.effectiveTenantScope ?? model.effectiveTenantScope,
-    effectiveTenantId: output.effectiveTenantId ?? model.effectiveTenantId,
-    modelVersion: model.modelVersion,
-    predictedAt: evidence.predictedAt,
-    message: evidence.message,
+  };
+}
+
+function compactCanonicalPredictionEvidence(
+  evidence: GQL.AffiliateActionProposalPredictionSnapshot,
+  canonical: Record<string, unknown>,
+  mode: CanonicalPredictionEvidenceMode,
+): Record<string, unknown> {
+  const expectedSales = asRecord(canonical.expectedSales);
+  const humanDecision = asRecord(canonical.humanDecision);
+  const expectedSalesValue = asRecord(expectedSales.value);
+  const humanDecisionValue = asRecord(humanDecision.value);
+  const subjectContext = snapshotSubjectContext(evidence);
+  switch (mode) {
+    case "EXPECTED_SALES_TRUSTED":
+      return compactRecord({
+        evidenceMode: mode,
+        ...subjectContext,
+        expectedSales: compactRecord({
+          units: expectedSalesValue.units,
+          percentile: expectedSalesValue.percentile,
+          quality: expectedSalesValue.quality,
+          reliability: expectedSalesValue.reliability,
+          reliabilityReasons: expectedSalesValue.reliabilityReasons,
+          selection: compactCanonicalSelectionIdentity(expectedSales.selection),
+        }),
+        predictedAt: evidence.predictedAt,
+        message: evidence.message,
+      });
+    case "MERCHANT_APPROVAL_TENDENCY":
+      return compactRecord({
+        evidenceMode: mode,
+        ...subjectContext,
+        expectedSalesWithheld: true,
+        expectedSales: compactRecord({
+          status: expectedSales.status,
+          reliability: expectedSalesValue.reliability,
+          reliabilityReasons: expectedSalesValue.reliabilityReasons,
+        }),
+        merchantApprovalTendency: compactRecord({
+          wouldApprove: humanDecisionValue.wouldApprove,
+          approvalProbability: humanDecisionValue.approvalProbability,
+          approvalPercentile: humanDecisionValue.approvalPercentile,
+          cutoff: humanDecisionValue.cutoff,
+          historicalApprovalRate: humanDecisionValue.historicalApprovalRate,
+          selection: compactCanonicalSelectionIdentity(humanDecision.selection),
+        }),
+        predictedAt: evidence.predictedAt,
+        message: evidence.message,
+      });
+    case "NO_MODEL_SIGNAL":
+      return compactRecord({
+        evidenceMode: mode,
+        ...subjectContext,
+        expectedSalesWithheld: true,
+        expectedSales: compactRecord({
+          status: expectedSales.status,
+          reliability: expectedSalesValue.reliability,
+          reliabilityReasons: expectedSalesValue.reliabilityReasons,
+        }),
+        humanDecision: compactRecord({ status: humanDecision.status }),
+        disclosure:
+          "No prediction model signal is available for this evidence; judge from raw business evidence.",
+        predictedAt: evidence.predictedAt,
+        message: evidence.message,
+      });
+    case "MODEL_SIGNAL_ERROR":
+      return compactRecord({
+        evidenceMode: mode,
+        ...subjectContext,
+        expectedSalesWithheld: true,
+        expectedSales: compactRecord({
+          status: expectedSales.status,
+          reliability: expectedSalesValue.reliability,
+          reliabilityReasons: expectedSalesValue.reliabilityReasons,
+          error: canonicalFamilyError(expectedSales),
+        }),
+        humanDecision: compactRecord({
+          status: humanDecision.status,
+          error: canonicalFamilyError(humanDecision),
+        }),
+        disclosure: modelSignalErrorDisclosure(evidence, expectedSales, humanDecision),
+        predictedAt: evidence.predictedAt,
+        message: evidence.message,
+      });
+  }
+}
+
+function canonicalFamilyError(family: Record<string, unknown>): Record<string, unknown> | undefined {
+  const error = asRecord(family.error);
+  if (Object.keys(error).length === 0) return undefined;
+  return compactRecord({ code: error.code, message: error.message });
+}
+
+/**
+ * MODEL_SIGNAL_ERROR must quote the real recorded error code(s) — never a bare
+ * "unavailable". An ERROR mode without any recorded family error violates the
+ * upstream invariant (ERROR → error present) and fails fast.
+ */
+function modelSignalErrorDisclosure(
+  evidence: GQL.AffiliateActionProposalPredictionSnapshot,
+  expectedSales: Record<string, unknown>,
+  humanDecision: Record<string, unknown>,
+): string {
+  const failures: string[] = [];
+  for (const [family, error] of [
+    ["EXPECTED_SALES", canonicalFamilyError(expectedSales)],
+    ["HUMAN_DECISION", canonicalFamilyError(humanDecision)],
+  ] as const) {
+    if (error == null) continue;
+    failures.push(
+      `${family} ${String(error.code ?? "(missing error code)")}${
+        error.message ? `: ${String(error.message)}` : ""
+      }`,
+    );
+  }
+  if (failures.length === 0) {
+    throw new Error(
+      `Affiliate prediction snapshot ${evidence.sourceCacheId ?? "(uncached)"} froze evidenceMode MODEL_SIGNAL_ERROR without any recorded family error; Backend violated the canonical evidence invariant (ERROR requires error.code).`,
+    );
+  }
+  return `Model signal unavailable due to recorded error(s): ${failures.join("; ")}. Judge from raw business evidence.`;
+}
+
+/**
+ * Canonical selections carry the evaluated scope chain (per-scope tenant IDs,
+ * failure reasons, invalid-artifact details) as audit-only passthrough. That
+ * data must never enter the Agent prompt, so any injected selection is
+ * filtered down to identity the Agent legitimately needs: effective scope and
+ * compact model version.
+ */
+function compactCanonicalSelectionIdentity(
+  selection: unknown,
+): Record<string, unknown> | undefined {
+  const record = asRecord(selection);
+  const modelVersion = record.modelVersion;
+  const compacted = compactRecord({
+    effectiveScope: record.effectiveScope,
+    modelVersion:
+      typeof modelVersion === "string"
+        ? modelVersion
+        : asRecord(modelVersion).modelVersionKey,
   });
+  return Object.keys(compacted).length > 0 ? compacted : undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -229,6 +443,7 @@ function compactRecord(value: Record<string, unknown>): Record<string, unknown> 
     Object.entries(value).filter(([, child]) => child !== undefined && child !== null),
   );
 }
+
 
 function frozenRevisionIntent(
   proposal: GQL.AffiliateRevisionRequestedProposalContext,

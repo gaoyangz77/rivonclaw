@@ -13,10 +13,10 @@ import {
   formatExpectedSalesUnits,
   getProposalActionProductId,
   groupAgentWorkBundles,
-  isBootstrapModelSelection,
-  isBootstrapExpectedSalesOutput,
   mergeAffiliateProposalPage,
-  predictionFamilyAvailability,
+  predictionEvidenceHighlightTarget,
+  predictionSignalFallbackLabel,
+  resolvePredictionEvidenceState,
   proposalSampleDecisionOverrideTarget,
   proposalSampleReviewRows,
   replaceAffiliateProposalPageBuffer,
@@ -195,53 +195,128 @@ describe("AffiliateManagementPage proposal source", () => {
     ).toBe(queried);
   });
 
-  it("keeps Expected Sales and Human Decision stages independent", () => {
-    expect(
-      isBootstrapModelSelection({
-        modelStage: "EVENT_TIME",
-        featureTemporalBasis: "DECISION_TIME",
-      }),
-    ).toBe(false);
-    expect(
-      isBootstrapModelSelection({
-        modelStage: "BOOTSTRAP",
-        featureTemporalBasis: "CURRENT_STATE_PROXY",
-      }),
-    ).toBe(true);
+  const signalFixture = (
+    family: "EXPECTED_SALES" | "HUMAN_DECISION",
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    family,
+    status: "NOT_AVAILABLE",
+    selection: {
+      requestedScope: "SHOP",
+      effectiveScope: null,
+      modelVersion: null,
+      evaluatedScopes: [],
+    },
+    error: null,
+    value: null,
+    ...overrides,
   });
 
+  const evidenceFixture = (
+    mode:
+      | "EXPECTED_SALES_TRUSTED"
+      | "MERCHANT_APPROVAL_TENDENCY"
+      | "NO_MODEL_SIGNAL"
+      | "MODEL_SIGNAL_ERROR",
+    overrides: {
+      expectedSales?: Record<string, unknown>;
+      humanDecision?: Record<string, unknown>;
+    } = {},
+  ) => ({
+    evidenceMode: mode,
+    expectedSales: signalFixture("EXPECTED_SALES", overrides.expectedSales),
+    humanDecision: signalFixture("HUMAN_DECISION", overrides.humanDecision),
+  }) as unknown as GQL.AffiliatePredictionEvidence;
+
   it.each([
-    ["both ready", "OK", "OK", true, true],
-    ["Expected only", "OK", "PREDICTION_NOT_AVAILABLE", true, false],
-    ["Human only", "PREDICTION_NOT_AVAILABLE", "OK", false, true],
-    [
-      "neither ready",
-      "PREDICTION_NOT_AVAILABLE",
-      "PREDICTION_NOT_AVAILABLE",
-      false,
-      false,
-    ],
-  ])(
-    "keeps family availability independent: %s",
-    (
-      _label,
-      expectedSalesStatus,
-      humanDecisionStatus,
-      expectedSalesReady,
-      humanDecisionReady,
-    ) => {
+    ["EXPECTED_SALES_TRUSTED", "EXPECTED_SALES"],
+    ["MERCHANT_APPROVAL_TENDENCY", "HUMAN_DECISION"],
+    ["NO_MODEL_SIGNAL", "NONE"],
+    ["MODEL_SIGNAL_ERROR", "NONE"],
+  ] as const)(
+    "maps the frozen evidence mode 1:1 to the highlight target: %s → %s",
+    (mode, expected) => {
       expect(
-        predictionFamilyAvailability({
-          expectedSalesStatus,
-          humanDecisionStatus,
-        }),
-      ).toEqual({
-        expectedSalesReady,
-        humanDecisionReady,
-        hasFamilyResult: true,
-      });
+        predictionEvidenceHighlightTarget({ evidenceMode: mode }),
+      ).toBe(expected);
     },
   );
+
+  it("classifies the typed evidence field: evidence / request failure / contract violation", () => {
+    expect(resolvePredictionEvidenceState(null)).toBeNull();
+
+    const withEvidence = resolvePredictionEvidenceState({
+      status: "OK",
+      predictionEvidence: evidenceFixture("EXPECTED_SALES_TRUSTED", {
+        expectedSales: {
+          status: "READY",
+          value: { units: 2.4, reliability: "TRUSTED", reliabilityReasons: [] },
+        },
+      }),
+    });
+    expect(withEvidence?.kind).toBe("EVIDENCE");
+    expect(
+      withEvidence?.kind === "EVIDENCE"
+        ? withEvidence.evidence.expectedSales.value?.units
+        : undefined,
+    ).toBe(2.4);
+
+    // Evidence null + snapshot status not OK = the request itself failed:
+    // rendered from the snapshot's own status/message, not as a violation.
+    expect(
+      resolvePredictionEvidenceState({
+        status: "SERVICE_ERROR",
+        message: "prediction backend unreachable",
+      }),
+    ).toEqual({
+      kind: "REQUEST_FAILED",
+      status: "SERVICE_ERROR",
+      message: "prediction backend unreachable",
+    });
+
+    // Snapshot OK but the typed evidence field is absent = contract violation.
+    expect(resolvePredictionEvidenceState({ status: "OK" })).toEqual({
+      kind: "CONTRACT_VIOLATION",
+    });
+    // Legacy payloads inside `output` are ignored entirely — no fallback.
+    expect(
+      resolvePredictionEvidenceState({
+        status: "OK",
+        output: { legacyFlatStatusField: "OK", legacyUnitsField: 2.4 },
+      }),
+    ).toEqual({ kind: "CONTRACT_VIOLATION" });
+  });
+
+  it("renders signal fallbacks from the family's own error code and never from a status", () => {
+    expect(
+      predictionSignalFallbackLabel({ status: "READY", error: null }, "不可用"),
+    ).toBeNull();
+    // NOT_AVAILABLE is the sanctioned absence: plain text, no parenthetical,
+    // even when a stray error object is present.
+    expect(
+      predictionSignalFallbackLabel(
+        { status: "NOT_AVAILABLE", error: { code: "DATA_NOT_READY" } },
+        "不可用",
+      ),
+    ).toBe("不可用");
+    expect(
+      predictionSignalFallbackLabel(
+        { status: "ERROR", error: { code: "SERVICE_ERROR" } },
+        "不可用",
+      ),
+    ).toBe("不可用 (SERVICE_ERROR)");
+    expect(
+      predictionSignalFallbackLabel({ status: "ERROR", error: null }, "不可用"),
+    ).toBe("不可用 (ERROR)");
+    // "不可用 (OK)" must be impossible: the signal status is never printed.
+    for (const status of ["READY", "NOT_AVAILABLE", "ERROR"] as const) {
+      const label = predictionSignalFallbackLabel(
+        { status, error: { code: "ARTIFACT_INVALID" } },
+        "不可用",
+      );
+      expect(label ?? "").not.toContain("(OK)");
+    }
+  });
 
   it("keeps every Sample Application decision in one proposal and binds its exact prediction", () => {
     const multiSampleProposal = {
@@ -256,7 +331,12 @@ describe("AffiliateManagementPage proposal source", () => {
           sourceCacheId: "prediction-2",
           status: "OK",
           capturedAt: "2026-08-13T02:00:00.000Z",
-          output: { expectedSalesStatus: "OK", expectedSalesUnits: 0.22 },
+          predictionEvidence: evidenceFixture("EXPECTED_SALES_TRUSTED", {
+            expectedSales: {
+              status: "READY",
+              value: { units: 0.22, reliability: "TRUSTED", reliabilityReasons: [] },
+            },
+          }),
           subject: { sampleApplicationRecordId: "sample-2" },
           resolvedContext: { productId: "product-2", productTitle: "Product two" },
         },
@@ -264,7 +344,12 @@ describe("AffiliateManagementPage proposal source", () => {
           sourceCacheId: "prediction-1",
           status: "OK",
           capturedAt: "2026-08-13T01:00:00.000Z",
-          output: { expectedSalesStatus: "OK", expectedSalesUnits: 3.75 },
+          predictionEvidence: evidenceFixture("EXPECTED_SALES_TRUSTED", {
+            expectedSales: {
+              status: "READY",
+              value: { units: 3.75, reliability: "TRUSTED", reliabilityReasons: [] },
+            },
+          }),
           subject: { sampleApplicationRecordId: "sample-1" },
           resolvedContext: { productId: "product-1", productTitle: "Product one" },
         },
@@ -311,8 +396,12 @@ describe("AffiliateManagementPage proposal source", () => {
       sampleId: row.sampleApplicationRecordId,
       decision: row.decision,
       productTitle: row.productTitle,
-      expectedSalesUnits: (row.predictionSnapshot?.output as { expectedSalesUnits?: number } | undefined)
-        ?.expectedSalesUnits,
+      expectedSalesUnits: (() => {
+        const state = resolvePredictionEvidenceState(row.predictionSnapshot);
+        return state?.kind === "EVIDENCE"
+          ? state.evidence.expectedSales.value?.units
+          : undefined;
+      })(),
       rejectReason: row.rejectReason,
       rejectReasonExplanation: row.rejectReasonExplanation,
     }))).toEqual([
@@ -375,13 +464,23 @@ describe("AffiliateManagementPage proposal source", () => {
         {
           sourceCacheId: "prediction-other",
           status: "OK",
-          output: { expectedSalesStatus: "OK", expectedSalesUnits: 9 },
+          predictionEvidence: evidenceFixture("EXPECTED_SALES_TRUSTED", {
+            expectedSales: {
+              status: "READY",
+              value: { units: 9, reliability: "TRUSTED", reliabilityReasons: [] },
+            },
+          }),
           subject: { sampleApplicationRecordId: "sample-other" },
         },
         {
           sourceCacheId: "prediction-another",
           status: "OK",
-          output: { expectedSalesStatus: "OK", expectedSalesUnits: 8 },
+          predictionEvidence: evidenceFixture("EXPECTED_SALES_TRUSTED", {
+            expectedSales: {
+              status: "READY",
+              value: { units: 8, reliability: "TRUSTED", reliabilityReasons: [] },
+            },
+          }),
           subject: { sampleApplicationRecordId: "sample-another" },
         },
       ],
@@ -584,21 +683,6 @@ describe("Affiliate canonical UI contract", () => {
 });
 
 describe("Expected Sales model-stage presentation", () => {
-  it("identifies Bootstrap from either explicit stage or proxy temporal basis", () => {
-    expect(
-      isBootstrapExpectedSalesOutput({
-        modelStage: "BOOTSTRAP",
-        featureTemporalBasis: "CURRENT_STATE_PROXY",
-      }),
-    ).toBe(true);
-    expect(
-      isBootstrapExpectedSalesOutput({
-        modelStage: "EVENT_TIME",
-        featureTemporalBasis: "DECISION_TIME",
-      }),
-    ).toBe(false);
-  });
-
   const entry = (
     family: "EXPECTED_SALES" | "HUMAN_DECISION",
     status: "READY" | "FALLBACK" | "UNAVAILABLE",

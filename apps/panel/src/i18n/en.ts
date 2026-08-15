@@ -4701,14 +4701,14 @@ export default {
         runProfileLabel: "Run Profile",
         runProfileHint: "Select a RunProfile to control which affiliate tools the agent can use.",
         runProfileNone: "No RunProfile selected",
-        automaticModelSelection: "Automatic model selection",
-        automaticModelCurrent: "Currently using {{scope}}",
-        automaticModelHint:
-          "The best available account, region, or shop model is selected automatically for this store.",
-        automaticModelProbabilityBased: "Highest outperformance probability",
-        automaticModelFallback: "Using deterministic fallback until comparison data is available.",
-        automaticModelUnavailable: "Automatic selection is not yet comparable",
-        automaticModelLoading: "Loading model evaluation data.",
+        modelScopeDiagnostics: "Model scope diagnostics (not the serving selection)",
+        modelScopeDiagnosticsLeader: "Best-performing scope: {{scope}}",
+        modelScopeDiagnosticsHint:
+          "Diagnostic comparison of the account-, region-, and shop-scope models by historical outperformance. It does not pick the model in use — each prediction resolves its served model through the reliability chain (shop → region → account, first TRUSTED artifact); when no scope is TRUSTED, the most local usable artifact is served labeled DEGRADED; if the merchant historical approval tendency is available (READY), it then becomes the primary signal.",
+        modelScopeDiagnosticsProbabilityBasis: "Highest outperformance probability",
+        modelScopeDiagnosticsInsufficient: "Not enough comparison data for a probability-based diagnosis.",
+        modelScopeDiagnosticsUnavailable: "Scope comparison not yet available",
+        modelScopeDiagnosticsLoading: "Loading model evaluation data.",
         outperformanceProbability: "Probability of outperforming historical selection",
         dataFoundation: "Data foundation",
         dataFoundationLevels: {

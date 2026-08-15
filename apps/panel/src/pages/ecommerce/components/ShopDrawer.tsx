@@ -277,7 +277,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                 },
                 {
                   id: workspaceSectionId(activeTab, "model"),
-                  label: t("ecommerce.shopDrawer.affiliate.automaticModelSelection"),
+                  label: t("ecommerce.shopDrawer.affiliate.modelScopeDiagnostics"),
                 },
                 {
                   id: workspaceSectionId(activeTab, "thresholds"),

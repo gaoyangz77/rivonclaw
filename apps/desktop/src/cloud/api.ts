@@ -34,6 +34,13 @@ const AFFILIATE_RESOLVE_WORK_ITEM_OP_NAME = "ResolveAffiliateWorkItem";
 const AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT_OP_NAME = "AffiliatePredictCreatorProductFit";
 const AFFILIATE_RELATIONSHIP_TIMELINE_OP_NAME = "AffiliateRelationshipTimeline";
 const MODULE_ENROLLMENT_OP_NAMES = new Set(["EnrollModule", "UnenrollModule"]);
+// Backend no longer redacts Human Decision output from proposal projections;
+// Desktop owns tool-path gating. This name-based recursive guard strips every
+// matching key from extension-bound affiliate GraphQL responses. The canonical
+// evidence location (predictionEvidence.humanDecision, ADR-058 cutover) is
+// covered by the "humanDecision" key match; the canonical value field names
+// below are defense-in-depth in case HD values ever surface outside a
+// humanDecision-keyed object.
 const AFFILIATE_STAFF_DECISION_FIELD_NAMES = new Set([
   "humanDecision",
   "humanDecisionSelection",
@@ -43,6 +50,10 @@ const AFFILIATE_STAFF_DECISION_FIELD_NAMES = new Set([
   "wouldApprove",
   "approvalCutoff",
   "historicalApprovalRate",
+  // Canonical AffiliateHumanDecisionSignalValue field names.
+  "approvalProbability",
+  "approvalPercentile",
+  "cutoff",
   // Legacy aliases for the same historical staff-imitation signal.
   "merchantAcceptance",
   "merchantAcceptanceSelection",

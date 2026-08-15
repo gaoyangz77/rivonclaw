@@ -19187,6 +19187,11 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-bg);
 }
 
+.affiliate-prediction-metric-signal {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
+}
+
 .affiliate-prediction-metric span,
 .affiliate-prediction-metric small {
   overflow: hidden;
@@ -19376,6 +19381,11 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-sample-decision-history {
   background: color-mix(in srgb, var(--color-bg-alt) 58%, var(--color-bg));
+}
+
+.affiliate-sample-decision-signal {
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
+  box-shadow: inset 2px 0 0 var(--color-primary);
 }
 
 @media (max-width: 980px) {

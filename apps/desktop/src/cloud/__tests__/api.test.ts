@@ -1650,6 +1650,25 @@ describe("cloud-graphql handler", () => {
             humanApprovalProbability: 0.91,
             approvalCutoff: 0.55,
           },
+          predictionEvidence: {
+            evidenceMode: "MERCHANT_APPROVAL_TENDENCY",
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "READY",
+              value: { units: 2.4, reliability: "DEGRADED" },
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "READY",
+              value: {
+                wouldApprove: true,
+                approvalProbability: 0.91,
+                approvalPercentile: 80,
+                cutoff: 0.55,
+                historicalApprovalRate: 0.7,
+              },
+            },
+          },
         },
         predictionPayload: {
           expectedSalesUnits: 2.4,
@@ -1717,6 +1736,14 @@ describe("cloud-graphql handler", () => {
           prediction: {
             cacheId: "prediction-cache-1",
             expectedSalesUnits: 2.4,
+            predictionEvidence: {
+              evidenceMode: "MERCHANT_APPROVAL_TENDENCY",
+              expectedSales: {
+                family: "EXPECTED_SALES",
+                status: "READY",
+                value: { units: 2.4, reliability: "DEGRADED" },
+              },
+            },
           },
           predictionPayload: {
             expectedSalesUnits: 2.4,
@@ -1734,6 +1761,10 @@ describe("cloud-graphql handler", () => {
     });
     expect(graphqlFetchEnvelope).toHaveBeenCalledOnce();
     expect(data.affiliatePredictCreatorProductFit.prediction.humanDecision.wouldApprove).toBe(true);
+    expect(
+      data.affiliatePredictCreatorProductFit.prediction.predictionEvidence.humanDecision.value
+        .approvalProbability,
+    ).toBe(0.91);
   });
 
   it("preserves staff-decision imitation for non-Agent seller GraphQL responses", async () => {

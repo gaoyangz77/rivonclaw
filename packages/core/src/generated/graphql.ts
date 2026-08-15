@@ -636,7 +636,7 @@ export interface AffiliateActionProposalPage {
   nextCursor?: Maybe<Scalars['String']['output']>;
 }
 
-/** Immutable prediction evidence frozen into an ActionProposal when the proposal is created. Staff proposal reads may include the display-only Human Decision comparison; Agent mutation responses redact it. */
+/** Immutable prediction evidence frozen into an ActionProposal when the proposal is created. The canonical per-family model signals live in predictionEvidence; Desktop decides Agent-prompt visibility via its evidenceMode. */
 export interface AffiliateActionProposalPredictionSnapshot {
   captureMode: AffiliatePredictionCaptureMode;
   capturedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -648,6 +648,8 @@ export interface AffiliateActionProposalPredictionSnapshot {
   /** Frozen model output captured when this proposal was authored. */
   output: Scalars['JSONObject']['output'];
   predictedAt: Scalars['DateTimeISO']['output'];
+  /** Canonical per-family model-signal evidence (evidenceMode, expectedSales, humanDecision) frozen exactly as computed at prediction time. Null when the prediction request itself failed. */
+  predictionEvidence?: Maybe<AffiliatePredictionEvidence>;
   predictionType: AffiliatePredictionType;
   resolvedContext?: Maybe<AffiliateExpectedSalesResolvedContext>;
   scenario: AffiliateExpectedSalesPredictionScenario;
@@ -2027,6 +2029,16 @@ export interface AffiliateExpectedSalesAutomaticSelection {
   selectionBasis: Scalars['String']['output'];
 }
 
+/** One evaluated step of serving's quality-seeking Expected Sales scope chain (shop -> region -> user). Audit data; artifactFound=true with a reason means the artifact exists but is invalid. */
+export interface AffiliateExpectedSalesEvaluatedScope {
+  artifactFound: Scalars['Boolean']['output'];
+  expectedSalesReliability?: Maybe<AffiliateExpectedSalesReliability>;
+  reason?: Maybe<Scalars['String']['output']>;
+  reliabilityReasons?: Maybe<Array<Scalars['String']['output']>>;
+  tenantId?: Maybe<Scalars['String']['output']>;
+  tenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
+}
+
 export const AffiliateExpectedSalesFeatureTemporalBasis = {
   BestAvailable: 'BEST_AVAILABLE',
   CurrentStateProxy: 'CURRENT_STATE_PROXY',
@@ -2042,10 +2054,16 @@ export interface AffiliateExpectedSalesMissingField {
 export interface AffiliateExpectedSalesModelSelection {
   effectiveTenantId?: Maybe<Scalars['String']['output']>;
   effectiveTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
+  /** Serving's evaluated scope chain; EXPECTED_SALES selections only. */
+  evaluatedScopes?: Maybe<Array<AffiliateExpectedSalesEvaluatedScope>>;
+  /** Only populated for EXPECTED_SALES selections; null for Human Decision and for sources that predate the signal. */
+  expectedSalesReliability?: Maybe<AffiliateExpectedSalesReliability>;
   featureTemporalBasis?: Maybe<AffiliateExpectedSalesFeatureTemporalBasis>;
   modelStage?: Maybe<AffiliateExpectedSalesModelStage>;
   modelStatus?: Maybe<Scalars['String']['output']>;
   modelVersion?: Maybe<AffiliateExpectedSalesModelVersion>;
+  /** Stable reason codes from the artifact's serving_reliability (ADR-059), passed through verbatim; empty when TRUSTED. */
+  reliabilityReasons?: Maybe<Array<Scalars['String']['output']>>;
   requestedTenantId?: Maybe<Scalars['String']['output']>;
   requestedTenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
 }
@@ -2150,7 +2168,6 @@ export const AffiliateExpectedSalesPredictionStatus = {
   FeatureContractError: 'FEATURE_CONTRACT_ERROR',
   FeatureVersionMismatch: 'FEATURE_VERSION_MISMATCH',
   InvalidInput: 'INVALID_INPUT',
-  ModelNotAvailable: 'MODEL_NOT_AVAILABLE',
   ModelUpgrading: 'MODEL_UPGRADING',
   Ok: 'OK',
   Partial: 'PARTIAL',
@@ -2178,6 +2195,13 @@ export interface AffiliateExpectedSalesPredictionValidation {
   status?: Maybe<Scalars['String']['output']>;
 }
 
+/** Expected Sales artifact reliability, consumed verbatim from the artifact's versioned serving_reliability object (ADR-059). The training/publication side is the sole source of truth; serving and backend never re-derive it. */
+export const AffiliateExpectedSalesReliability = {
+  Degraded: 'DEGRADED',
+  Trusted: 'TRUSTED'
+} as const;
+
+export type AffiliateExpectedSalesReliability = typeof AffiliateExpectedSalesReliability[keyof typeof AffiliateExpectedSalesReliability];
 export interface AffiliateExpectedSalesResolvedContext {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   campaignId?: Maybe<Scalars['ID']['output']>;
@@ -2195,24 +2219,43 @@ export interface AffiliateExpectedSalesResolvedContext {
   source?: Maybe<Scalars['String']['output']>;
 }
 
+/** Canonical Expected Sales model signal. READY carries a value (kept even when DEGRADED); NOT_AVAILABLE strictly means no artifact exists; ERROR carries the real failure. */
+export interface AffiliateExpectedSalesSignal {
+  error?: Maybe<AffiliateModelSignalError>;
+  family: AffiliateModelSignalFamily;
+  selection: AffiliateModelSignalSelection;
+  status: AffiliateModelSignalStatus;
+  value?: Maybe<AffiliateExpectedSalesSignalValue>;
+}
+
+export interface AffiliateExpectedSalesSignalValue {
+  percentile?: Maybe<Scalars['Float']['output']>;
+  quality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
+  reliability: AffiliateExpectedSalesReliability;
+  reliabilityReasons: Array<Scalars['String']['output']>;
+  /** Raw arithmetic expectation of attributed units through Sample terminal, conditional on approval. */
+  units: Scalars['Float']['output'];
+}
+
 export interface AffiliateExpectedSalesSubjectPrediction {
   /** Short-lived backend cache id for promoting this exact prediction into a persisted affiliate decision snapshot. */
   cacheId?: Maybe<Scalars['ID']['output']>;
   contractName?: Maybe<Scalars['String']['output']>;
   contractVersion?: Maybe<Scalars['String']['output']>;
   expectedSalesPercentile?: Maybe<Scalars['Float']['output']>;
-  expectedSalesStatus?: Maybe<AffiliateExpectedSalesSubjectPredictionStatus>;
   /** Raw arithmetic expectation of attributed units through Sample terminal, conditional on approval. */
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
   featureAsOf?: Maybe<Scalars['DateTimeISO']['output']>;
   humanDecision?: Maybe<AffiliateHumanDecisionPrediction>;
-  humanDecisionStatus?: Maybe<AffiliateExpectedSalesSubjectPredictionStatus>;
   message?: Maybe<Scalars['String']['output']>;
   missingFields?: Maybe<Array<AffiliateExpectedSalesMissingField>>;
   predictionBucket?: Maybe<AffiliateExpectedSalesPredictionBucket>;
+  /** Canonical per-family model-signal evidence; null when the request itself failed and no family signal was produced. */
+  predictionEvidence?: Maybe<AffiliatePredictionEvidence>;
   predictionInterval?: Maybe<AffiliateExpectedSalesPredictionInterval>;
   predictionQuality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
   resolvedContext?: Maybe<AffiliateExpectedSalesResolvedContext>;
+  /** Per-subject REQUEST outcome only. Family availability lives exclusively on predictionEvidence. */
   status: AffiliateExpectedSalesSubjectPredictionStatus;
   subject: AffiliateExpectedSalesSubjectRef;
   thresholdPercentiles?: Maybe<AffiliateExpectedSalesThresholdPercentiles>;
@@ -2324,9 +2367,25 @@ export interface AffiliateHumanDecisionPrediction {
   humanApprovalProbability?: Maybe<Scalars['Float']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   quality?: Maybe<AffiliateExpectedSalesPredictionQuality>;
-  status?: Maybe<Scalars['String']['output']>;
   /** Whether the selected Human Decision model predicts historical staff would likely approve this subject. */
   wouldApprove?: Maybe<Scalars['Boolean']['output']>;
+}
+
+/** Canonical Human Decision (merchant approval tendency) model signal. */
+export interface AffiliateHumanDecisionSignal {
+  error?: Maybe<AffiliateModelSignalError>;
+  family: AffiliateModelSignalFamily;
+  selection: AffiliateModelSignalSelection;
+  status: AffiliateModelSignalStatus;
+  value?: Maybe<AffiliateHumanDecisionSignalValue>;
+}
+
+export interface AffiliateHumanDecisionSignalValue {
+  approvalPercentile?: Maybe<Scalars['Float']['output']>;
+  approvalProbability?: Maybe<Scalars['Float']['output']>;
+  cutoff?: Maybe<Scalars['Float']['output']>;
+  historicalApprovalRate?: Maybe<Scalars['Float']['output']>;
+  wouldApprove: Scalars['Boolean']['output'];
 }
 
 /** Structured reason an Agent asks a human to review its concrete proposed action bundle. */
@@ -2698,6 +2757,33 @@ export interface AffiliateModelAvailability {
   trainedAt?: Maybe<Scalars['DateTimeISO']['output']>;
 }
 
+export interface AffiliateModelSignalError {
+  code: AffiliatePredictionErrorCode;
+  message?: Maybe<Scalars['String']['output']>;
+}
+
+export const AffiliateModelSignalFamily = {
+  ExpectedSales: 'EXPECTED_SALES',
+  HumanDecision: 'HUMAN_DECISION'
+} as const;
+
+export type AffiliateModelSignalFamily = typeof AffiliateModelSignalFamily[keyof typeof AffiliateModelSignalFamily];
+/** Scope routing of one model signal: requested scope, effective scope after serving's fallback chain, and the audited evaluated chain. */
+export interface AffiliateModelSignalSelection {
+  effectiveScope?: Maybe<AffiliateExpectedSalesTenantScope>;
+  evaluatedScopes: Array<AffiliateExpectedSalesEvaluatedScope>;
+  modelVersion?: Maybe<Scalars['String']['output']>;
+  requestedScope: AffiliateExpectedSalesTenantScope;
+}
+
+/** Canonical per-family model signal status. READY has a value and no error; NOT_AVAILABLE strictly means no artifact exists; ERROR carries the real failure. */
+export const AffiliateModelSignalStatus = {
+  Error: 'ERROR',
+  NotAvailable: 'NOT_AVAILABLE',
+  Ready: 'READY'
+} as const;
+
+export type AffiliateModelSignalStatus = typeof AffiliateModelSignalStatus[keyof typeof AffiliateModelSignalStatus];
 export const AffiliateOperationalProjectionDataset = {
   Collaborations: 'COLLABORATIONS',
   Messages: 'MESSAGES',
@@ -2872,6 +2958,31 @@ export const AffiliatePredictionCaptureMode = {
 } as const;
 
 export type AffiliatePredictionCaptureMode = typeof AffiliatePredictionCaptureMode[keyof typeof AffiliatePredictionCaptureMode];
+export const AffiliatePredictionErrorCode = {
+  ArtifactInvalid: 'ARTIFACT_INVALID',
+  ContractMismatch: 'CONTRACT_MISMATCH',
+  DataNotReady: 'DATA_NOT_READY',
+  ServiceError: 'SERVICE_ERROR',
+  VersionMismatch: 'VERSION_MISMATCH'
+} as const;
+
+export type AffiliatePredictionErrorCode = typeof AffiliatePredictionErrorCode[keyof typeof AffiliatePredictionErrorCode];
+/** Canonical prediction evidence computed once in the backend and frozen into snapshots. */
+export interface AffiliatePredictionEvidence {
+  evidenceMode: AffiliatePredictionEvidenceMode;
+  expectedSales: AffiliateExpectedSalesSignal;
+  humanDecision: AffiliateHumanDecisionSignal;
+}
+
+/** Deterministic evidence mode computed once in the backend and frozen into snapshots. Desktop gates Agent-prompt evidence on it; Panel may render DEGRADED Expected Sales values de-emphasized. */
+export const AffiliatePredictionEvidenceMode = {
+  ExpectedSalesTrusted: 'EXPECTED_SALES_TRUSTED',
+  MerchantApprovalTendency: 'MERCHANT_APPROVAL_TENDENCY',
+  ModelSignalError: 'MODEL_SIGNAL_ERROR',
+  NoModelSignal: 'NO_MODEL_SIGNAL'
+} as const;
+
+export type AffiliatePredictionEvidenceMode = typeof AffiliatePredictionEvidenceMode[keyof typeof AffiliatePredictionEvidenceMode];
 export const AffiliatePredictionStatus = {
   DataNotReady: 'DATA_NOT_READY',
   FeatureContractError: 'FEATURE_CONTRACT_ERROR',
