@@ -54,6 +54,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "Built from creators’ current performance and recently completed collaborations. Used as the Expected Sales fallback until enough decision-time data accumulates.",
           effectiveScope: "Effective model scope: {{scope}}",
+          evidenceMissing: "Prediction evidence missing — data contract violation",
+          merchantApprovalTendency: "Merchant historical approval tendency",
+          merchantApprovalTendencyHint:
+            "A policy prior from this merchant's past staff approvals — not an AI recommendation and not a sales prediction.",
         },
       },
     },
@@ -110,6 +114,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "基于 Creator 当前表现和近期已完成合作构建。在积累足够的决策时点数据前，作为 Expected Sales 的 fallback。",
           effectiveScope: "实际模型范围：{{scope}}",
+          evidenceMissing: "预测证据缺失（数据契约异常）",
+          merchantApprovalTendency: "商家历史审批倾向",
+          merchantApprovalTendencyHint:
+            "来自商家历史员工审批的策略先验——不是 AI 推荐，也不是销量预测。",
         },
       },
     },
@@ -169,6 +177,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "Basiert auf der aktuellen Creator-Leistung und kürzlich abgeschlossenen Kooperationen. Dient als Expected-Sales-Fallback, bis genügend Daten zum Entscheidungszeitpunkt vorliegen.",
           effectiveScope: "Effektiver Modellbereich: {{scope}}",
+          evidenceMissing: "Vorhersage-Evidenz fehlt – Verstoß gegen den Datenvertrag",
+          merchantApprovalTendency: "Historische Freigabetendenz des Händlers",
+          merchantApprovalTendencyHint:
+            "Ein Policy-Prior aus früheren Mitarbeiterfreigaben dieses Händlers – keine KI-Empfehlung und keine Verkaufsprognose.",
         },
       },
     },
@@ -228,6 +240,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "Se basa en el rendimiento actual de los creadores y en colaboraciones finalizadas recientemente. Se usa como respaldo de Expected Sales hasta reunir suficientes datos del momento de decisión.",
           effectiveScope: "Ámbito efectivo del modelo: {{scope}}",
+          evidenceMissing: "Falta la evidencia de predicción: infracción del contrato de datos",
+          merchantApprovalTendency: "Tendencia histórica de aprobación del comerciante",
+          merchantApprovalTendencyHint:
+            "Un prior de política basado en las aprobaciones históricas del personal de este comerciante; no es una recomendación de IA ni una predicción de ventas.",
         },
       },
     },
@@ -287,6 +303,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "Fondée sur les performances actuelles des créateurs et les collaborations récemment terminées. Sert de solution de repli pour Expected Sales jusqu’à disposer de suffisamment de données au moment de la décision.",
           effectiveScope: "Périmètre effectif du modèle : {{scope}}",
+          evidenceMissing: "Évidence de prédiction manquante — violation du contrat de données",
+          merchantApprovalTendency: "Tendance historique d’approbation du marchand",
+          merchantApprovalTendencyHint:
+            "Un a priori de politique issu des approbations historiques de l’équipe de ce marchand — ni une recommandation d’IA, ni une prévision de ventes.",
         },
       },
     },
@@ -346,6 +366,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "Dibangun dari performa kreator saat ini dan kolaborasi yang baru selesai. Digunakan sebagai fallback Expected Sales sampai data pada waktu keputusan mencukupi.",
           effectiveScope: "Cakupan model efektif: {{scope}}",
+          evidenceMissing: "Bukti prediksi hilang — pelanggaran kontrak data",
+          merchantApprovalTendency: "Kecenderungan persetujuan historis merchant",
+          merchantApprovalTendencyHint:
+            "Prior kebijakan dari persetujuan staf merchant ini di masa lalu — bukan rekomendasi AI dan bukan prediksi penjualan.",
         },
       },
     },
@@ -405,6 +429,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "Basata sulle prestazioni attuali dei creator e sulle collaborazioni concluse di recente. Viene usata come fallback di Expected Sales finché non sono disponibili dati sufficienti al momento della decisione.",
           effectiveScope: "Ambito effettivo del modello: {{scope}}",
+          evidenceMissing: "Evidenza di previsione mancante — violazione del contratto dati",
+          merchantApprovalTendency: "Tendenza storica di approvazione del merchant",
+          merchantApprovalTendencyHint:
+            "Un prior di policy basato sulle approvazioni storiche dello staff di questo merchant: non è una raccomandazione dell’IA né una previsione di vendita.",
         },
       },
     },
@@ -464,6 +492,10 @@ export const AFFILIATE_EXPECTED_SALES_TRANSLATIONS = {
           bootstrapExplanation:
             "สร้างจากผลงานปัจจุบันของ Creator และความร่วมมือที่เพิ่งเสร็จสิ้น ใช้เป็น fallback ของ Expected Sales จนกว่าจะมีข้อมูล ณ เวลาตัดสินใจเพียงพอ",
           effectiveScope: "ขอบเขตโมเดลที่ใช้จริง: {{scope}}",
+          evidenceMissing: "ไม่มีหลักฐานการคาดการณ์ — ผิดสัญญาข้อมูล",
+          merchantApprovalTendency: "แนวโน้มการอนุมัติในอดีตของร้านค้า",
+          merchantApprovalTendencyHint:
+            "ข้อมูลเชิงนโยบายจากการอนุมัติของพนักงานร้านค้าในอดีต ไม่ใช่คำแนะนำจาก AI และไม่ใช่การคาดการณ์ยอดขาย",
         },
       },
     },

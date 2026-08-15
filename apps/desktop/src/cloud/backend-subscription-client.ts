@@ -363,6 +363,23 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             output
             model
             diagnostics
+            predictionEvidence {
+              evidenceMode
+              expectedSales {
+                family
+                status
+                selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+                error { code message }
+                value { units percentile reliability reliabilityReasons quality { score level featureCompletenessScore dataSupportScore probabilityMarginScore predictionBucketSupportScore interpretation } }
+              }
+              humanDecision {
+                family
+                status
+                selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+                error { code message }
+                value { wouldApprove approvalProbability approvalPercentile cutoff historicalApprovalRate }
+              }
+            }
             resolvedContext { shopId sampleApplicationRecordId platformApplicationId creatorId creatorOpenId creatorUsername creatorNickname productId skuId productTitle source }
             message
             predictedAt
@@ -758,6 +775,23 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           output
           model
           diagnostics
+          predictionEvidence {
+            evidenceMode
+            expectedSales {
+              family
+              status
+              selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+              error { code message }
+              value { units percentile reliability reliabilityReasons quality { score level featureCompletenessScore dataSupportScore probabilityMarginScore predictionBucketSupportScore interpretation } }
+            }
+            humanDecision {
+              family
+              status
+              selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+              error { code message }
+              value { wouldApprove approvalProbability approvalPercentile cutoff historicalApprovalRate }
+            }
+          }
           message
           predictedAt
           capturedAt

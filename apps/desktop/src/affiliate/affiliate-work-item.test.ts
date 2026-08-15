@@ -290,8 +290,36 @@ async function waitForCondition(predicate: () => boolean, timeoutMs = 500): Prom
   }
 }
 
+function createCanonicalPredictionEvidence(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    evidenceMode: "EXPECTED_SALES_TRUSTED",
+    expectedSales: {
+      family: "EXPECTED_SALES",
+      status: "READY",
+      selection: {
+        requestedScope: "SHOP",
+        effectiveScope: "USER",
+        modelVersion: "affiliate-unified-v4:USER:7",
+        evaluatedScopes: [],
+      },
+      error: null,
+      value: { units: 2.4, reliability: "TRUSTED", reliabilityReasons: [] },
+    },
+    humanDecision: {
+      family: "HUMAN_DECISION",
+      status: "NOT_AVAILABLE",
+      selection: null,
+      error: null,
+      value: null,
+    },
+    ...overrides,
+  };
+}
+
 function createWorkingAgendaPredictionEvidence(
-  overrides: Partial<GQL.AffiliateActionProposalPredictionSnapshot> = {},
+  overrides: Record<string, unknown> = {},
 ): GQL.AffiliateActionProposalPredictionSnapshot {
   return {
     sourceCacheId: "64f000000000000000000700",
@@ -304,12 +332,13 @@ function createWorkingAgendaPredictionEvidence(
       productId: "product-001",
     },
     status: GQL.AffiliatePredictionStatus.Ok,
-    output: { expectedSalesUnits: 2.4 },
-    model: { modelStage: "UNIFIED", effectiveTenantScope: "USER" },
+    output: {},
+    model: {},
     diagnostics: {},
     predictedAt: "2026-05-11T00:01:01.000Z",
+    predictionEvidence: createCanonicalPredictionEvidence(),
     ...overrides,
-  };
+  } as unknown as GQL.AffiliateActionProposalPredictionSnapshot;
 }
 
 function createSampleReviewWorkItem(
@@ -2058,31 +2087,23 @@ describe("affiliate work item dispatch", () => {
       agentWorkingAgendaItems: [
         {
           ...(baseWorkItem.creatorRelationship?.agendaItems ?? [])[0]!,
-          predictionEvidence: {
+          predictionEvidence: createWorkingAgendaPredictionEvidence({
             sourceCacheId: "64f000000000000000000777",
-            predictionType: GQL.AffiliatePredictionType.SalesUnitsForecast,
-            captureMode: GQL.AffiliatePredictionCaptureMode.PromotedFromCache,
-            scenario: GQL.AffiliateExpectedSalesPredictionScenario.SampleReview,
-            subject: {
-              sampleApplicationRecordId: "sample-record-001",
-              creatorId: "creator-001",
-              productId: "product-001",
-            },
-            status: GQL.AffiliatePredictionStatus.Ok,
+            // Raw frozen output stays snapshot-only; the factory must never
+            // read it under the canonical cutover.
             output: {
-              expectedSalesUnits: 2.4,
               thresholdProbabilities: { unitsGe1: 0.81 },
-              humanDecision: { wouldApprove: true, humanApprovalProbability: 0.74 },
-              featureTemporalBasis: "BEST_AVAILABLE",
             },
-            model: {
-              modelStage: "UNIFIED",
-              effectiveTenantScope: "USER",
-              modelVersion: "affiliate-unified-v4",
-            },
-            diagnostics: {},
-            predictedAt: "2026-05-11T00:01:01.000Z",
-          },
+            predictionEvidence: createCanonicalPredictionEvidence({
+              humanDecision: {
+                family: "HUMAN_DECISION",
+                status: "READY",
+                selection: { effectiveScope: "USER", modelVersion: "affiliate-unified-v4:USER:7" },
+                error: null,
+                value: { wouldApprove: true, approvalProbability: 0.74 },
+              },
+            }),
+          }),
         },
       ],
     });
@@ -2126,20 +2147,431 @@ describe("affiliate work item dispatch", () => {
     const agentCall = mockRpcRequest.mock.calls.find((call) => call[0] === "agent");
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Backend Prediction Evidence");
-    expect(agentCall?.[1]?.message).toContain('"expectedSalesUnits":2.4');
+    expect(agentCall?.[1]?.message).toContain('"units":2.4');
     expect(agentCall?.[1]?.message).toContain(
       "Treat Expected Sales as the primary commercial-value estimate",
     );
+    expect(agentCall?.[1]?.message).toContain('"evidenceMode":"EXPECTED_SALES_TRUSTED"');
+    expect(agentCall?.[1]?.message).toContain('"reliability":"TRUSTED"');
     expect(agentCall?.[1]?.message).not.toContain("thresholdProbabilities");
     expect(agentCall?.[1]?.message).not.toContain("unitsGe1");
     expect(agentCall?.[1]?.message).not.toContain("humanDecision");
-    expect(agentCall?.[1]?.message).not.toContain("humanApprovalProbability");
+    expect(agentCall?.[1]?.message).not.toContain("approvalProbability");
+    expect(agentCall?.[1]?.message).not.toContain("wouldApprove");
+    expect(agentCall?.[1]?.message).not.toContain("merchantApprovalTendency");
     expect(getActiveAffiliateRunCheckpoint("relationship-001")?.predictionCacheIds).toEqual([
       "64f000000000000000000777",
     ]);
     expect(agentCall?.[1]?.message).not.toContain(
       "before submitting a REVIEW_SAMPLE_APPLICATION action",
     );
+  });
+
+  describe("canonical prediction evidence injection (ADR-058 cutover)", () => {
+    function createSampleReviewWorkItemWithEvidence(
+      evidence: GQL.AffiliateActionProposalPredictionSnapshot,
+    ): GQL.AffiliateWorkItem {
+      const base = createSampleReviewWorkItem();
+      return createSampleReviewWorkItem({
+        agentWorkingAgendaItems: [
+          {
+            ...(base.agentWorkingAgendaItems ?? [])[0]!,
+            predictionEvidence: evidence,
+          },
+        ],
+      });
+    }
+
+    it("injects the frozen trusted Expected Sales value without any Human Decision output", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "READY",
+              selection: {
+                requestedScope: "SHOP",
+                effectiveScope: "USER",
+                modelVersion: "affiliate-unified-v4:USER:7",
+                evaluatedScopes: [{ scope: "SHOP", tenantId: "tenant-scope-shop-001" }],
+              },
+              error: null,
+              value: {
+                units: 2.4,
+                percentile: 61,
+                quality: { level: "HIGH" },
+                reliability: "TRUSTED",
+                reliabilityReasons: [],
+              },
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "READY",
+              selection: { effectiveScope: "USER", modelVersion: "affiliate-unified-v4:USER:7" },
+              error: null,
+              value: { wouldApprove: true, approvalProbability: 0.74, cutoff: 0.5 },
+            },
+          }),
+        }),
+      );
+
+      const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+      expect(request?.message).toContain('"evidenceMode":"EXPECTED_SALES_TRUSTED"');
+      expect(request?.message).toContain('"units":2.4');
+      expect(request?.message).toContain('"percentile":61');
+      expect(request?.message).toContain('"reliability":"TRUSTED"');
+      expect(request?.message).toContain(
+        '"selection":{"effectiveScope":"USER","modelVersion":"affiliate-unified-v4:USER:7"}',
+      );
+      expect(request?.message).toContain(
+        "Treat Expected Sales as the primary commercial-value estimate",
+      );
+      expect(request?.message).not.toContain("humanDecision");
+      expect(request?.message).not.toContain("wouldApprove");
+      expect(request?.message).not.toContain("approvalProbability");
+      expect(request?.message).not.toContain("merchantApprovalTendency");
+      expect(request?.message).not.toContain("evaluatedScopes");
+      expect(request?.message).not.toContain("requestedScope");
+      expect(request?.message).not.toContain("tenant-scope-shop-001");
+    });
+
+    it("injects the frozen merchant approval tendency without Expected Sales numerics", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            evidenceMode: "MERCHANT_APPROVAL_TENDENCY",
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "READY",
+              selection: { effectiveScope: "SHOP", modelVersion: "affiliate-unified-v4:SHOP:3" },
+              error: null,
+              value: {
+                units: 2.4,
+                reliability: "DEGRADED",
+                reliabilityReasons: [
+                  "NESTED_CREATOR_CALIBRATION_MISSING",
+                  "STATISTICAL_MAE_INFERIOR",
+                ],
+              },
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "READY",
+              selection: { effectiveScope: "USER", modelVersion: "affiliate-hd-v2:USER:4" },
+              error: null,
+              value: {
+                wouldApprove: true,
+                approvalProbability: 0.74,
+                approvalPercentile: 66,
+                cutoff: 0.5,
+                historicalApprovalRate: 0.68,
+              },
+            },
+          }),
+        }),
+      );
+
+      const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+      expect(request?.message).toContain('"evidenceMode":"MERCHANT_APPROVAL_TENDENCY"');
+      expect(request?.message).toContain('"expectedSalesWithheld":true');
+      expect(request?.message).toContain('"reliability":"DEGRADED"');
+      expect(request?.message).toContain("NESTED_CREATOR_CALIBRATION_MISSING");
+      expect(request?.message).toContain(
+        '"merchantApprovalTendency":{"wouldApprove":true,"approvalProbability":0.74,"approvalPercentile":66,"cutoff":0.5,"historicalApprovalRate":0.68,"selection":{"effectiveScope":"USER","modelVersion":"affiliate-hd-v2:USER:4"}}',
+      );
+      expect(request?.message).toContain("商家历史审批倾向");
+      expect(request?.message).toContain("NOT a sales prediction");
+      expect(request?.message).toContain(
+        "shop minimum Expected Sales reference does not apply",
+      );
+      expect(request?.message).not.toContain('"units"');
+      expect(request?.message).not.toContain('"percentile"');
+      expect(request?.message).not.toContain(
+        "Treat Expected Sales as the primary commercial-value estimate",
+      );
+    });
+
+    it("renders the frozen NO_MODEL_SIGNAL disclosure and still builds the run (cold start included)", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            evidenceMode: "NO_MODEL_SIGNAL",
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "NOT_AVAILABLE",
+              selection: null,
+              error: null,
+              value: null,
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "NOT_AVAILABLE",
+              selection: null,
+              error: null,
+              value: null,
+            },
+          }),
+        }),
+      );
+
+      const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+      expect(request).not.toBeNull();
+      expect(request?.message).toContain('"evidenceMode":"NO_MODEL_SIGNAL"');
+      expect(request?.message).toContain('"expectedSales":{"status":"NOT_AVAILABLE"}');
+      expect(request?.message).toContain('"humanDecision":{"status":"NOT_AVAILABLE"}');
+      expect(request?.message).toContain(
+        "No prediction model signal is available for this evidence",
+      );
+      expect(request?.message).toContain("This is normal operation");
+      expect(request?.message).toContain(
+        "not by itself a reason to request staff review",
+      );
+      expect(request?.message).not.toContain('"units"');
+      expect(request?.message).not.toContain("merchantApprovalTendency");
+    });
+
+    it("quotes the real recorded error code in MODEL_SIGNAL_ERROR and withholds all numerics", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            evidenceMode: "MODEL_SIGNAL_ERROR",
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "READY",
+              selection: { effectiveScope: "SHOP", modelVersion: "affiliate-unified-v4:SHOP:3" },
+              error: null,
+              value: {
+                units: 2.4,
+                reliability: "DEGRADED",
+                reliabilityReasons: ["STATISTICAL_MAE_INFERIOR"],
+              },
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "ERROR",
+              selection: null,
+              error: {
+                code: "FEATURE_CONTRACT_ERROR",
+                message: "HD feature contract hash mismatch.",
+              },
+              value: null,
+            },
+          }),
+        }),
+      );
+
+      const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+      expect(request).not.toBeNull();
+      expect(request?.message).toContain('"evidenceMode":"MODEL_SIGNAL_ERROR"');
+      expect(request?.message).toContain('"expectedSalesWithheld":true');
+      expect(request?.message).toContain('"code":"FEATURE_CONTRACT_ERROR"');
+      expect(request?.message).toContain("HD feature contract hash mismatch.");
+      expect(request?.message).toContain(
+        "HUMAN_DECISION FEATURE_CONTRACT_ERROR: HD feature contract hash mismatch.",
+      );
+      expect(request?.message).toContain(
+        "failed with the recorded error code shown in the evidence block",
+      );
+      expect(request?.message).not.toContain('"units"');
+      expect(request?.message).not.toContain("normal operation");
+      expect(request?.message).not.toContain("not an error");
+      expect(request?.message).not.toContain(
+        "not by itself a reason to request staff review",
+      );
+      expect(request?.message).not.toContain("merchantApprovalTendency");
+    });
+
+    it("fails fast when a status-OK snapshot has no canonical predictionEvidence", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({ predictionEvidence: undefined }),
+      );
+
+      expect(() => buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })).toThrow(
+        /has no canonical predictionEvidence\.evidenceMode/,
+      );
+    });
+
+    it("fails fast on an unknown frozen evidenceMode instead of re-deriving", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            evidenceMode: "SOME_FUTURE_MODE",
+          }),
+        }),
+      );
+
+      expect(() => buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })).toThrow(
+        /has no canonical predictionEvidence\.evidenceMode/,
+      );
+    });
+
+    it("fails fast when MODEL_SIGNAL_ERROR carries no recorded family error", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            evidenceMode: "MODEL_SIGNAL_ERROR",
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "NOT_AVAILABLE",
+              selection: null,
+              error: null,
+              value: null,
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "NOT_AVAILABLE",
+              selection: null,
+              error: null,
+              value: null,
+            },
+          }),
+        }),
+      );
+
+      expect(() => buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" })).toThrow(
+        /without any recorded family error/,
+      );
+    });
+
+    it("keeps DATA_PATH_PASSTHROUGH for top-level request failures without requiring canonical evidence", () => {
+      const workItem = createSampleReviewWorkItemWithEvidence(
+        createWorkingAgendaPredictionEvidence({
+          status: GQL.AffiliatePredictionStatus.DataNotReady,
+          predictionEvidence: undefined,
+          message: "Creator performance observation not ready.",
+        }),
+      );
+
+      const request = buildAffiliateAgentRunRequest({ workItem, platform: "tiktok" });
+
+      expect(request?.message).toContain('"status":"DATA_NOT_READY"');
+      expect(request?.message).toContain("Creator performance observation not ready.");
+      expect(request?.message).not.toContain("evidenceMode");
+      expect(request?.message).toContain(
+        "unavailable because of a data-path, context, or service error",
+      );
+      expect(request?.message).toContain(
+        "shop minimum Expected Sales reference does not apply",
+      );
+      expect(request?.message).not.toContain('"units"');
+      expect(request?.message).not.toContain("merchantApprovalTendency");
+      expect(request?.message).not.toContain(
+        "Treat Expected Sales as the primary commercial-value estimate",
+      );
+    });
+
+    it("never leaks scope-chain internals from canonical selections in any mode", () => {
+      const chainSelection = {
+        requestedScope: "SHOP",
+        effectiveScope: "USER",
+        modelVersion: {
+          modelVersionKey: "affiliate-unified-v4:USER:7",
+          bentomlTag: "affiliate_unified:abc123",
+          trainingRunId: "training-run-001",
+          contractHash: "hash-001",
+          tenantId: "tenant-model-001",
+        },
+        evaluatedScopes: [
+          {
+            scope: "SHOP",
+            tenantId: "tenant-scope-shop-001",
+            artifactFound: true,
+            reliability: "DEGRADED",
+            reason: "SHOP_ARTIFACT_DEGRADED",
+          },
+          { scope: "USER", tenantId: "tenant-scope-user-001", artifactFound: true },
+        ],
+      };
+      const evidenceByMode = [
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "READY",
+              selection: chainSelection,
+              error: null,
+              value: { units: 2.4, reliability: "TRUSTED", reliabilityReasons: [] },
+            },
+          }),
+        }),
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            evidenceMode: "MERCHANT_APPROVAL_TENDENCY",
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "READY",
+              selection: chainSelection,
+              error: null,
+              value: { reliability: "DEGRADED", reliabilityReasons: [] },
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "READY",
+              selection: chainSelection,
+              error: null,
+              value: { wouldApprove: true, approvalProbability: 0.74 },
+            },
+          }),
+        }),
+        createWorkingAgendaPredictionEvidence({
+          predictionEvidence: createCanonicalPredictionEvidence({
+            evidenceMode: "MODEL_SIGNAL_ERROR",
+            expectedSales: {
+              family: "EXPECTED_SALES",
+              status: "ERROR",
+              selection: chainSelection,
+              error: { code: "SERVICE_ERROR", message: "ES scoring service failed." },
+              value: null,
+            },
+            humanDecision: {
+              family: "HUMAN_DECISION",
+              status: "ERROR",
+              selection: chainSelection,
+              error: { code: "SERVICE_ERROR", message: "HD scoring service failed." },
+              value: null,
+            },
+          }),
+        }),
+      ];
+
+      for (const evidence of evidenceByMode) {
+        const request = buildAffiliateAgentRunRequest({
+          workItem: createSampleReviewWorkItemWithEvidence(evidence),
+          platform: "tiktok",
+        });
+
+        expect(request?.message).not.toContain("evaluatedScopes");
+        expect(request?.message).not.toContain("requestedScope");
+        expect(request?.message).not.toContain("tenant-scope-shop-001");
+        expect(request?.message).not.toContain("tenant-scope-user-001");
+        expect(request?.message).not.toContain("tenant-model-001");
+        expect(request?.message).not.toContain("bentomlTag");
+        expect(request?.message).not.toContain("trainingRunId");
+        expect(request?.message).not.toContain("contractHash");
+        expect(request?.message).not.toContain("artifactFound");
+        expect(request?.message).not.toContain("SHOP_ARTIFACT_DEGRADED");
+      }
+
+      const trustedRequest = buildAffiliateAgentRunRequest({
+        workItem: createSampleReviewWorkItemWithEvidence(evidenceByMode[0]!),
+        platform: "tiktok",
+      });
+      expect(trustedRequest?.message).toContain(
+        '"selection":{"effectiveScope":"USER","modelVersion":"affiliate-unified-v4:USER:7"}',
+      );
+
+      const errorRequest = buildAffiliateAgentRunRequest({
+        workItem: createSampleReviewWorkItemWithEvidence(evidenceByMode[2]!),
+        platform: "tiktok",
+      });
+      expect(errorRequest?.message).toContain(
+        "EXPECTED_SALES SERVICE_ERROR: ES scoring service failed.; HUMAN_DECISION SERVICE_ERROR: HD scoring service failed.",
+      );
+    });
   });
 
   it("renders relationship-level sample pending work as a sample review agent run", () => {

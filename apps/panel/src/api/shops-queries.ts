@@ -1177,6 +1177,68 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         message
         predictedAt
         capturedAt
+        predictionEvidence {
+          evidenceMode
+          expectedSales {
+            family
+            status
+            selection {
+              requestedScope
+              effectiveScope
+              modelVersion
+              evaluatedScopes {
+                tenantScope
+                tenantId
+                artifactFound
+                expectedSalesReliability
+                reliabilityReasons
+                reason
+              }
+            }
+            error {
+              code
+              message
+            }
+            value {
+              units
+              percentile
+              quality {
+                level
+                score
+              }
+              reliability
+              reliabilityReasons
+            }
+          }
+          humanDecision {
+            family
+            status
+            selection {
+              requestedScope
+              effectiveScope
+              modelVersion
+              evaluatedScopes {
+                tenantScope
+                tenantId
+                artifactFound
+                expectedSalesReliability
+                reliabilityReasons
+                reason
+              }
+            }
+            error {
+              code
+              message
+            }
+            value {
+              wouldApprove
+              approvalProbability
+              approvalPercentile
+              cutoff
+              historicalApprovalRate
+            }
+          }
+        }
         subject {
           sampleApplicationRecordId
           platformApplicationId
@@ -2752,6 +2814,68 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         message
         predictedAt
         capturedAt
+        predictionEvidence {
+          evidenceMode
+          expectedSales {
+            family
+            status
+            selection {
+              requestedScope
+              effectiveScope
+              modelVersion
+              evaluatedScopes {
+                tenantScope
+                tenantId
+                artifactFound
+                expectedSalesReliability
+                reliabilityReasons
+                reason
+              }
+            }
+            error {
+              code
+              message
+            }
+            value {
+              units
+              percentile
+              quality {
+                level
+                score
+              }
+              reliability
+              reliabilityReasons
+            }
+          }
+          humanDecision {
+            family
+            status
+            selection {
+              requestedScope
+              effectiveScope
+              modelVersion
+              evaluatedScopes {
+                tenantScope
+                tenantId
+                artifactFound
+                expectedSalesReliability
+                reliabilityReasons
+                reason
+              }
+            }
+            error {
+              code
+              message
+            }
+            value {
+              wouldApprove
+              approvalProbability
+              approvalPercentile
+              cutoff
+              historicalApprovalRate
+            }
+          }
+        }
         subject {
           sampleApplicationRecordId
           platformApplicationId

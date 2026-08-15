@@ -150,35 +150,31 @@ type CollaborationWorkViewModel = {
   ownerLabel: string;
 };
 
-type AffiliatePredictionSnapshotOutput = {
-  expectedSalesUnits?: number | null;
-  expectedSalesPercentile?: number | null;
-  expectedSalesStatus?: string | null;
-  humanDecisionStatus?: string | null;
-  modelStage?: "UNIFIED" | "EVENT_TIME" | "BOOTSTRAP" | null;
-  featureTemporalBasis?: "BEST_AVAILABLE" | "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
-  requestedTenantScope?: "USER" | "REGION" | "SHOP" | null;
-  requestedTenantId?: string | null;
-  effectiveTenantScope?: "USER" | "REGION" | "SHOP" | null;
-  effectiveTenantId?: string | null;
-  modelStatus?: string | null;
-  predictionQuality?: {
-    level?: string | null;
-    score?: number | null;
-  } | null;
-  expectedSalesSelection?: AffiliatePredictionModelSelection | null;
-  humanDecisionSelection?: AffiliatePredictionModelSelection | null;
-  humanDecision?: {
-    wouldApprove?: boolean | null;
-    humanApprovalProbability?: number | null;
-    historicalApprovalRate?: number | null;
-    status?: string | null;
+/**
+ * Canonical backend-frozen prediction evidence (ADR-058 cutover): the typed
+ * `predictionEvidence` field on a snapshot, written verbatim by the backend.
+ * Null evidence means the prediction request itself failed (rendered from the
+ * snapshot's own status/message); a snapshot with status OK but no evidence
+ * is a data-contract violation and renders an explicit error state. There is
+ * no legacy-shape fallback.
+ */
+export type AffiliatePredictionEvidenceState =
+  | { kind: "EVIDENCE"; evidence: GQL.AffiliatePredictionEvidence }
+  | { kind: "REQUEST_FAILED"; status: string; message: string | null }
+  | { kind: "CONTRACT_VIOLATION" };
+
+type AffiliatePredictionSignalLike = {
+  status: GQL.AffiliateModelSignalStatus;
+  error?: {
+    code: GQL.AffiliatePredictionErrorCode;
     message?: string | null;
   } | null;
 };
 
 type AffiliatePredictionSnapshotView = {
   status: string;
+  message?: string | null;
+  predictionEvidence?: GQL.AffiliatePredictionEvidence | null;
   output?: unknown;
   sourceCacheId?: string | null;
   scenario?: string | null;
@@ -210,16 +206,6 @@ export type AffiliateSampleProposalReviewRow = {
   rejectReason: string | null;
   rejectReasonExplanation: string | null;
   predictionSnapshot: AffiliatePredictionSnapshotView | null;
-};
-
-type AffiliatePredictionModelSelection = {
-  modelStage?: "UNIFIED" | "EVENT_TIME" | "BOOTSTRAP" | null;
-  featureTemporalBasis?: "BEST_AVAILABLE" | "DECISION_TIME" | "CURRENT_STATE_PROXY" | null;
-  requestedTenantScope?: "USER" | "REGION" | "SHOP" | null;
-  requestedTenantId?: string | null;
-  effectiveTenantScope?: "USER" | "REGION" | "SHOP" | null;
-  effectiveTenantId?: string | null;
-  modelStatus?: string | null;
 };
 
 function affiliateSnapshot<T>(value: T | null | undefined): any {
@@ -5292,17 +5278,37 @@ function ProposalSampleDecisionBundle({
       </div>
       <div className="affiliate-sample-decision-list">
         {rows.map((row, index) => {
-          const output = readPredictionSnapshotOutput(row.predictionSnapshot);
-          const availability = output ? predictionFamilyAvailability(output) : null;
+          const evidenceState = resolvePredictionEvidenceState(row.predictionSnapshot);
+          const evidence =
+            evidenceState?.kind === "EVIDENCE" ? evidenceState.evidence : null;
+          const highlightTarget = evidence
+            ? predictionEvidenceHighlightTarget(evidence)
+            : "NONE";
+          const unavailableLabel = t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unavailable");
+          const evidenceStateFallback =
+            evidenceState?.kind === "CONTRACT_VIOLATION"
+              ? t("ecommerce.affiliateWorkspace.predictionComparison.evidenceMissing")
+              : evidenceState?.kind === "REQUEST_FAILED"
+                ? `${unavailableLabel} (${evidenceState.status})`
+                : unavailableLabel;
           const expectedSales =
-            availability?.expectedSalesReady && typeof output?.expectedSalesUnits === "number"
-              ? formatExpectedSalesUnits(output.expectedSalesUnits)
+            evidence?.expectedSales.status === GQL.AffiliateModelSignalStatus.Ready
+              && evidence.expectedSales.value
+              ? formatExpectedSalesUnits(evidence.expectedSales.value.units)
               : null;
+          const expectedSalesFallback = evidence
+            ? predictionSignalFallbackLabel(evidence.expectedSales, unavailableLabel)
+              ?? unavailableLabel
+            : evidenceStateFallback;
           const humanDecision =
-            availability?.humanDecisionReady &&
-            typeof output?.humanDecision?.wouldApprove === "boolean"
-              ? output.humanDecision.wouldApprove
+            evidence?.humanDecision.status === GQL.AffiliateModelSignalStatus.Ready
+              && evidence.humanDecision.value
+              ? evidence.humanDecision.value.wouldApprove
               : null;
+          const humanDecisionFallback = evidence
+            ? predictionSignalFallbackLabel(evidence.humanDecision, unavailableLabel)
+              ?? unavailableLabel
+            : evidenceStateFallback;
           const approves = row.decision === GQL.AffiliateSampleReviewDecision.Approve;
           const productLabel = row.productTitle
             || (row.productSellerSku
@@ -5346,9 +5352,15 @@ function ProposalSampleDecisionBundle({
                   </div>
                 </div>
               </div>
-              <div className="affiliate-sample-decision-metric">
+              <div
+                className={
+                  highlightTarget === "EXPECTED_SALES"
+                    ? "affiliate-sample-decision-metric affiliate-sample-decision-signal"
+                    : "affiliate-sample-decision-metric affiliate-sample-decision-history"
+                }
+              >
                 <span>{t("ecommerce.affiliateWorkspace.predictionComparison.expectedSales")}</span>
-                <strong>{expectedSales ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unavailable")}</strong>
+                <strong>{expectedSales ?? expectedSalesFallback}</strong>
               </div>
               <div className="affiliate-sample-decision-metric">
                 <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.agentDecision")}</span>
@@ -5356,11 +5368,23 @@ function ProposalSampleDecisionBundle({
                   {decisionLabel}
                 </strong>
               </div>
-              <div className="affiliate-sample-decision-metric affiliate-sample-decision-history">
-                <span>{t("ecommerce.affiliateWorkspace.sampleDecisionBundle.historicalStaff")}</span>
+              <div
+                className={
+                  highlightTarget === "HUMAN_DECISION"
+                    ? "affiliate-sample-decision-metric affiliate-sample-decision-signal"
+                    : "affiliate-sample-decision-metric affiliate-sample-decision-history"
+                }
+              >
+                <span>
+                  {t(
+                    highlightTarget === "HUMAN_DECISION"
+                      ? "ecommerce.affiliateWorkspace.predictionComparison.merchantApprovalTendency"
+                      : "ecommerce.affiliateWorkspace.sampleDecisionBundle.historicalStaff",
+                  )}
+                </span>
                 <strong>
                   {humanDecision == null
-                    ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unavailable")
+                    ? humanDecisionFallback
                     : t(
                         humanDecision
                           ? "ecommerce.affiliateWorkspace.sampleDecisionBundle.approve"
@@ -5382,70 +5406,78 @@ function ProposalPredictionComparison({
   snapshot: AffiliatePredictionSnapshotView | null;
 }) {
   const { t } = useTranslation();
-  const output = readPredictionSnapshotOutput(snapshot);
   if (!snapshot) return null;
-  if (!output) {
+  const evidenceState = resolvePredictionEvidenceState(snapshot);
+  if (!evidenceState || evidenceState.kind !== "EVIDENCE") {
+    // REQUEST_FAILED: the prediction request itself failed — render the
+    // snapshot's own status/message. CONTRACT_VIOLATION: snapshot OK but the
+    // frozen evidence is absent — surface it explicitly, never guess.
     return (
       <section className="affiliate-prediction-comparison" aria-label={t("ecommerce.affiliateWorkspace.predictionComparison.title")}>
         <div className="affiliate-prediction-comparison-head">
           <span>{t("ecommerce.affiliateWorkspace.predictionComparison.title")}</span>
         </div>
         <div className="td-meta">
-          {t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable")}
-          {snapshot.status ? ` · ${formatAffiliateEnumLabel(snapshot.status)}` : ""}
+          {evidenceState?.kind === "REQUEST_FAILED"
+            ? `${t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable")} · ${formatAffiliateEnumLabel(evidenceState.status)}${
+                evidenceState.message ? ` · ${evidenceState.message}` : ""
+              }`
+            : t("ecommerce.affiliateWorkspace.predictionComparison.evidenceMissing")}
         </div>
       </section>
     );
   }
-  const humanDecision = output?.humanDecision ?? null;
-  const expectedSalesUnits = output?.expectedSalesUnits ?? null;
-  const expectedSalesSelection = output.expectedSalesSelection ?? output;
-  const humanDecisionSelection = output.humanDecisionSelection ?? null;
-  const availability = predictionFamilyAvailability(output);
-  const isHumanDecisionBootstrap =
-    availability.humanDecisionReady &&
-    isBootstrapModelSelection(humanDecisionSelection);
-  const hasHumanDecision = typeof humanDecision?.wouldApprove === "boolean";
-  if (!availability.hasFamilyResult) return null;
+  const evidence = evidenceState.evidence;
+  const highlightTarget = predictionEvidenceHighlightTarget(evidence);
+  const expectedSalesSignal = evidence.expectedSales;
+  const humanDecisionSignal = evidence.humanDecision;
+  const expectedSalesValue =
+    expectedSalesSignal.status === GQL.AffiliateModelSignalStatus.Ready
+      ? expectedSalesSignal.value ?? null
+      : null;
+  const humanDecisionValue =
+    humanDecisionSignal.status === GQL.AffiliateModelSignalStatus.Ready
+      ? humanDecisionSignal.value ?? null
+      : null;
+  const unavailableLabel = t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable");
 
-  const predictionJudgmentLabel = getPredictionSalesJudgmentLabel(expectedSalesUnits, t);
-  const humanDecisionLabel = availability.humanDecisionReady && hasHumanDecision
-    ? humanDecision?.wouldApprove
+  const predictionJudgmentLabel = getPredictionSalesJudgmentLabel(
+    expectedSalesValue?.units ?? null,
+    t,
+  );
+  const humanDecisionLabel = humanDecisionValue
+    ? humanDecisionValue.wouldApprove
       ? t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldApprove")
       : t("ecommerce.affiliateWorkspace.predictionComparison.humanWouldReject")
-    : availability.humanDecisionReady
+    : humanDecisionSignal.status === GQL.AffiliateModelSignalStatus.Ready
       ? t("ecommerce.affiliateWorkspace.predictionComparison.humanInsufficient")
-      : t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable");
-  const probability = availability.humanDecisionReady &&
-    typeof humanDecision?.humanApprovalProbability === "number"
-    ? formatPercent(humanDecision.humanApprovalProbability)
+      : predictionSignalFallbackLabel(humanDecisionSignal, unavailableLabel)
+        ?? unavailableLabel;
+  const probability = typeof humanDecisionValue?.approvalProbability === "number"
+    ? formatPercent(humanDecisionValue.approvalProbability)
     : null;
 
   return (
     <section className="affiliate-prediction-comparison" aria-label={t("ecommerce.affiliateWorkspace.predictionComparison.title")}>
       <div className="affiliate-prediction-comparison-head">
         <span>{t("ecommerce.affiliateWorkspace.predictionComparison.title")}</span>
-        {isHumanDecisionBootstrap ? (
-          <span className="badge" data-model-family="HUMAN_DECISION">
-            {t("ecommerce.affiliateWorkspace.predictionComparison.bootstrapBadge")}
-          </span>
-        ) : null}
       </div>
-      {isHumanDecisionBootstrap ? (
-        <div className="td-meta" data-model-family="HUMAN_DECISION">
-          {t("ecommerce.affiliateWorkspace.predictionComparison.humanBootstrapExplanation")}
-        </div>
-      ) : null}
       <div className="affiliate-prediction-comparison-grid">
         <div className="affiliate-prediction-metric">
           <span>{t("ecommerce.affiliateWorkspace.predictionComparison.predictionJudgment")}</span>
           <strong>{predictionJudgmentLabel}</strong>
         </div>
-        <div className="affiliate-prediction-metric">
+        <div
+          className={
+            highlightTarget === "HUMAN_DECISION"
+              ? "affiliate-prediction-metric affiliate-prediction-metric-signal"
+              : "affiliate-prediction-metric"
+          }
+        >
           <span>
             {t(
-              isHumanDecisionBootstrap
-                ? "ecommerce.affiliateWorkspace.predictionComparison.humanBootstrapEstimate"
+              highlightTarget === "HUMAN_DECISION"
+                ? "ecommerce.affiliateWorkspace.predictionComparison.merchantApprovalTendency"
                 : "ecommerce.affiliateWorkspace.predictionComparison.humanDecision",
             )}
           </span>
@@ -5455,32 +5487,43 @@ function ProposalPredictionComparison({
               {t("ecommerce.affiliateWorkspace.predictionComparison.humanApprovalProbability", { probability })}
             </small>
           ) : null}
-          {humanDecisionSelection?.effectiveTenantScope ? (
+          {highlightTarget === "HUMAN_DECISION" ? (
+            <small>
+              {t("ecommerce.affiliateWorkspace.predictionComparison.merchantApprovalTendencyHint")}
+            </small>
+          ) : null}
+          {humanDecisionSignal.selection?.effectiveScope ? (
             <small>
               {t("ecommerce.affiliateWorkspace.predictionComparison.effectiveScope", {
-                scope: humanDecisionSelection.effectiveTenantScope,
+                scope: humanDecisionSignal.selection.effectiveScope,
               })}
             </small>
           ) : null}
         </div>
-        <div className="affiliate-prediction-metric">
+        <div
+          className={
+            highlightTarget === "EXPECTED_SALES"
+              ? "affiliate-prediction-metric affiliate-prediction-metric-signal"
+              : "affiliate-prediction-metric"
+          }
+        >
           <span>
             {t("ecommerce.affiliateWorkspace.predictionComparison.expectedSales")}
           </span>
           <strong>
-            {availability.expectedSalesReady &&
-            typeof expectedSalesUnits === "number"
+            {expectedSalesValue
               ? t("ecommerce.affiliateWorkspace.predictionComparison.expectedSalesValue", {
-                  units: formatExpectedSalesUnits(expectedSalesUnits),
+                  units: formatExpectedSalesUnits(expectedSalesValue.units),
                 })
-              : availability.expectedSalesReady
+              : expectedSalesSignal.status === GQL.AffiliateModelSignalStatus.Ready
                 ? t("ecommerce.affiliateWorkspace.predictionComparison.unknown")
-                : t("ecommerce.affiliateWorkspace.predictionComparison.modelUnavailable")}
+                : predictionSignalFallbackLabel(expectedSalesSignal, unavailableLabel)
+                  ?? unavailableLabel}
           </strong>
-          {expectedSalesSelection.effectiveTenantScope ? (
+          {expectedSalesSignal.selection?.effectiveScope ? (
             <small>
               {t("ecommerce.affiliateWorkspace.predictionComparison.effectiveScope", {
-                scope: expectedSalesSelection.effectiveTenantScope,
+                scope: expectedSalesSignal.selection.effectiveScope,
               })}
             </small>
           ) : null}
@@ -5490,60 +5533,44 @@ function ProposalPredictionComparison({
   );
 }
 
-export function predictionFamilyAvailability(
-  output: Pick<
-    AffiliatePredictionSnapshotOutput,
-    | "expectedSalesStatus"
-    | "humanDecisionStatus"
-    | "expectedSalesUnits"
-    | "humanDecision"
-  >,
-): {
-  expectedSalesReady: boolean;
-  humanDecisionReady: boolean;
-  hasFamilyResult: boolean;
-} {
-  const expectedSalesReady =
-    output.expectedSalesStatus === "OK" ||
-    (output.expectedSalesStatus == null &&
-      typeof output.expectedSalesUnits === "number");
-  const humanDecisionReady =
-    output.humanDecisionStatus === "OK" ||
-    (output.humanDecisionStatus == null &&
-      typeof output.humanDecision?.wouldApprove === "boolean");
-  return {
-    expectedSalesReady,
-    humanDecisionReady,
-    hasFamilyResult:
-      output.expectedSalesStatus != null ||
-      output.humanDecisionStatus != null ||
-      typeof output.expectedSalesUnits === "number" ||
-      typeof output.humanDecision?.wouldApprove === "boolean",
-  };
+export type AffiliatePredictionHighlightTarget =
+  | "EXPECTED_SALES"
+  | "HUMAN_DECISION"
+  | "NONE";
+
+/**
+ * 1:1 mapping from the backend-frozen evidence mode to the highlighted cell.
+ * No derivation: the backend already resolved the either-or evidence contract
+ * (ADR-058) when it froze the evidence.
+ */
+export function predictionEvidenceHighlightTarget(
+  evidence: Pick<GQL.AffiliatePredictionEvidence, "evidenceMode">,
+): AffiliatePredictionHighlightTarget {
+  if (evidence.evidenceMode === GQL.AffiliatePredictionEvidenceMode.ExpectedSalesTrusted) {
+    return "EXPECTED_SALES";
+  }
+  if (evidence.evidenceMode === GQL.AffiliatePredictionEvidenceMode.MerchantApprovalTendency) {
+    return "HUMAN_DECISION";
+  }
+  return "NONE";
 }
 
-export function isBootstrapExpectedSalesOutput(
-  output: Pick<
-    AffiliatePredictionSnapshotOutput,
-    "modelStage" | "featureTemporalBasis"
-  >,
-): boolean {
-  return (
-    output.modelStage === "BOOTSTRAP" ||
-    output.featureTemporalBasis === "CURRENT_STATE_PROXY"
-  );
-}
-
-export function isBootstrapModelSelection(
-  selection: Pick<
-    AffiliatePredictionModelSelection,
-    "modelStage" | "featureTemporalBasis"
-  > | null | undefined,
-): boolean {
-  return Boolean(
-    selection?.modelStage === "BOOTSTRAP" ||
-      selection?.featureTemporalBasis === "CURRENT_STATE_PROXY",
-  );
+/**
+ * Fallback text for a family signal that has no displayable value.
+ * READY → null (the value renders instead). NOT_AVAILABLE → the plain
+ * unavailable text: it is the sanctioned absence, never annotated with a
+ * status code. ERROR → unavailable text plus the family's real error code.
+ * The signal status itself is never printed, so "不可用 (OK)" cannot occur.
+ */
+export function predictionSignalFallbackLabel(
+  signal: AffiliatePredictionSignalLike,
+  unavailableText: string,
+): string | null {
+  if (signal.status === GQL.AffiliateModelSignalStatus.Ready) return null;
+  if (signal.status === GQL.AffiliateModelSignalStatus.Error) {
+    return `${unavailableText} (${signal.error?.code || "ERROR"})`;
+  }
+  return unavailableText;
 }
 
 function SampleApplicationSummaryCard({
@@ -7720,12 +7747,31 @@ function sortPredictionSnapshotsByCaptureTime(
   });
 }
 
-function readPredictionSnapshotOutput(
+/**
+ * Classifies a snapshot's backend-frozen evidence:
+ * - EVIDENCE: the typed `predictionEvidence` field is present (written
+ *   verbatim by the backend at prediction time).
+ * - REQUEST_FAILED: evidence is null and the snapshot's own status is not OK
+ *   — the prediction request itself failed; render from status/message.
+ * - CONTRACT_VIOLATION: snapshot status OK but evidence absent — the backend
+ *   contract guarantees evidence on successful requests, so surface it loudly
+ *   instead of guessing.
+ */
+export function resolvePredictionEvidenceState(
   snapshot: AffiliatePredictionSnapshotView | null,
-): AffiliatePredictionSnapshotOutput | null {
-  if (!snapshot || snapshot.status !== "OK") return null;
-  const output = snapshot.output as AffiliatePredictionSnapshotOutput | null | undefined;
-  return output ?? null;
+): AffiliatePredictionEvidenceState | null {
+  if (!snapshot) return null;
+  if (snapshot.predictionEvidence) {
+    return { kind: "EVIDENCE", evidence: snapshot.predictionEvidence };
+  }
+  if (snapshot.status !== "OK") {
+    return {
+      kind: "REQUEST_FAILED",
+      status: snapshot.status,
+      message: snapshot.message ?? null,
+    };
+  }
+  return { kind: "CONTRACT_VIOLATION" };
 }
 
 function getPredictionSalesJudgmentLabel(

@@ -86,13 +86,27 @@ export const AFFILIATE_EXPECTED_SALES_PREDICTIONS_QUERY = `
       predictions {
         cacheId
         status
-        expectedSalesStatus
-        humanDecisionStatus
         message
         expectedSalesUnits
         expectedSalesPercentile
+        predictionEvidence {
+          evidenceMode
+          expectedSales {
+            family
+            status
+            selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+            error { code message }
+            value { units percentile reliability reliabilityReasons quality { score level featureCompletenessScore dataSupportScore probabilityMarginScore predictionBucketSupportScore interpretation } }
+          }
+          humanDecision {
+            family
+            status
+            selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+            error { code message }
+            value { wouldApprove approvalProbability approvalPercentile cutoff historicalApprovalRate }
+          }
+        }
         humanDecision {
-          status
           message
           humanApprovalProbability
           humanApprovalPercentile
@@ -235,6 +249,23 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           output
           model
           diagnostics
+          predictionEvidence {
+            evidenceMode
+            expectedSales {
+              family
+              status
+              selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+              error { code message }
+              value { units percentile reliability reliabilityReasons quality { score level featureCompletenessScore dataSupportScore probabilityMarginScore predictionBucketSupportScore interpretation } }
+            }
+            humanDecision {
+              family
+              status
+              selection { requestedScope effectiveScope modelVersion evaluatedScopes { tenantScope tenantId artifactFound expectedSalesReliability reliabilityReasons reason } }
+              error { code message }
+              value { wouldApprove approvalProbability approvalPercentile cutoff historicalApprovalRate }
+            }
+          }
           resolvedContext { shopId sampleApplicationRecordId platformApplicationId creatorId creatorOpenId creatorUsername creatorNickname productId skuId productTitle source }
           message
           predictedAt

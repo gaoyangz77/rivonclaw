@@ -200,9 +200,9 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
       </section>
 
       <section id="shop-workspace-affiliateManagement-model" className="shop-workspace-section">
-        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.automaticModelSelection")}</div>
+        <div className="drawer-section-label">{t("ecommerce.shopDrawer.affiliate.modelScopeDiagnostics")}</div>
         <div className="shop-info-card">
-          <AffiliateAutomaticModelSelectionPanel
+          <AffiliateModelScopeDiagnosticsPanel
             loading={entityStore.affiliateMlInsightsLoading}
             selection={automaticSelection}
           />
@@ -503,7 +503,7 @@ function formatCompactDate(value: string): string {
   return date.toLocaleString();
 }
 
-function AffiliateAutomaticModelSelectionPanel({
+function AffiliateModelScopeDiagnosticsPanel({
   loading,
   selection,
 }: {
@@ -515,11 +515,11 @@ function AffiliateAutomaticModelSelectionPanel({
   if (!source) {
     return (
       <div className="affiliate-model-recommendation affiliate-model-recommendation-muted">
-        <strong>{t("ecommerce.shopDrawer.affiliate.automaticModelUnavailable")}</strong>
+        <strong>{t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsUnavailable")}</strong>
         <span>
           {loading
-            ? t("ecommerce.shopDrawer.affiliate.automaticModelLoading")
-            : t("ecommerce.shopDrawer.affiliate.automaticModelFallback")}
+            ? t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsLoading")
+            : t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsInsufficient")}
         </span>
       </div>
     );
@@ -533,14 +533,14 @@ function AffiliateAutomaticModelSelectionPanel({
   return (
     <div className="affiliate-model-recommendation">
       <div className="affiliate-model-recommendation-head">
-        <strong>{t("ecommerce.shopDrawer.affiliate.automaticModelCurrent", {
+        <strong>{t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsLeader", {
           scope: automaticScopeLabel(t, scope),
         })}</strong>
         <span>{basis === "OUTPERFORMANCE_PROBABILITY"
-          ? t("ecommerce.shopDrawer.affiliate.automaticModelProbabilityBased")
-          : t("ecommerce.shopDrawer.affiliate.automaticModelFallback")}</span>
+          ? t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsProbabilityBasis")
+          : t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsInsufficient")}</span>
       </div>
-      <p>{t("ecommerce.shopDrawer.affiliate.automaticModelHint")}</p>
+      <p>{t("ecommerce.shopDrawer.affiliate.modelScopeDiagnosticsHint")}</p>
       <div className="affiliate-model-recommendation-metrics">
         <div className="affiliate-model-recommendation-metric">
           <span>{t("ecommerce.shopDrawer.affiliate.outperformanceProbability")}</span>

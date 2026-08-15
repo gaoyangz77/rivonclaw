@@ -55,6 +55,9 @@ describe("Affiliate Expected Sales translation backfill", () => {
         "humanBootstrapExplanation",
         "effectiveScope",
         "modelUnavailable",
+        "merchantApprovalTendency",
+        "merchantApprovalTendencyHint",
+        "evidenceMissing",
       ]) {
         expect(predictionComparison[key], `${language}.${key}`).toBeTruthy();
       }
