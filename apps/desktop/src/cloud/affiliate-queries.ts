@@ -271,6 +271,14 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           predictedAt
           capturedAt
         }
+        lastFailedExecution {
+          proposalId
+          proposalType
+          operatorSummary
+          failedAt
+          errorMessage
+          errorRetryability
+        }
         revisionRequestedProposal {
           id
           type

@@ -3953,6 +3953,7 @@ export default {
         PRODUCT_CONTEXT_MISSING: "Product context missing",
         CREATOR_IDENTITY_UNRESOLVED: "Creator identity unresolved",
         USER_LEVEL_BLOCKED: "Blocked by merchant",
+        SAMPLE_PLATFORM_TERMINAL_STATE: "Sample application closed by TikTok",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "Approval",
@@ -3980,6 +3981,7 @@ export default {
         REVIEW_AMBIGUOUS_CONTEXT: "Review ambiguous context",
         WAIT_CREATOR_RESPONSE: "Wait for creator response",
         WAIT_PLATFORM_UPDATE: "Wait for platform update",
+        HANDLE_SAMPLE_TERMINAL_STATE: "Follow up on closed sample",
       },
       workKinds: {
         RELATIONSHIP: "Creator relationship",
@@ -3992,6 +3994,7 @@ export default {
         OBSERVATION_REVIEW: "Observation review",
         SAMPLE_APPLICATION_DECISION: "Sample application decision",
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "Waiting for FBT fulfillment",
+        SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "Closed sample follow-up",
         SAMPLE_SHIPMENT: "Sample shipment",
       },
       statusLabels: {

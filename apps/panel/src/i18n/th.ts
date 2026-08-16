@@ -2550,7 +2550,10 @@ export default {
       }
     },
     "affiliateWorkspace": {
-      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "รอ FBT ดำเนินการ" },
+      "workKinds": {
+        "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "รอ FBT ดำเนินการ",
+        "SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP": "ติดตามหลังคำขอตัวอย่างถูกปิด"
+      },
       "title": "การจัดการพันธมิตร",
       "subtitle": "ตรวจสอบการดำเนินการของตัวแทนที่รอดำเนินการสำหรับงานวงจรชีวิตของผู้สร้าง",
       "creatorsTitle": "ครีเอเตอร์ที่ร่วมงาน",
@@ -2982,7 +2985,8 @@ export default {
         "PROPOSAL_WAITING_APPROVAL": "ข้อเสนอรออนุมัติ",
         "PRODUCT_CONTEXT_MISSING": "ขาดบริบทสินค้า",
         "CREATOR_IDENTITY_UNRESOLVED": "ยังไม่ระบุตัวตนครีเอเตอร์",
-        "USER_LEVEL_BLOCKED": "ถูกบล็อกโดยผู้ขาย"
+        "USER_LEVEL_BLOCKED": "ถูกบล็อกโดยผู้ขาย",
+        "SAMPLE_PLATFORM_TERMINAL_STATE": "คำขอตัวอย่างถูกปิดโดย TikTok"
       },
       "itemKinds": {
         "APPROVAL_REQUIRED": "อนุมัติ",
@@ -3035,7 +3039,8 @@ export default {
         "REVIEW_ACTION_PROPOSAL": "ตรวจสอบข้อเสนอการดำเนินการ",
         "REVIEW_AMBIGUOUS_CONTEXT": "ตรวจสอบบริบทที่ไม่ชัดเจน",
         "WAIT_CREATOR_RESPONSE": "รอคำตอบจากครีเอเตอร์",
-        "WAIT_PLATFORM_UPDATE": "รอการอัปเดตจากแพลตฟอร์ม"
+        "WAIT_PLATFORM_UPDATE": "รอการอัปเดตจากแพลตฟอร์ม",
+        "HANDLE_SAMPLE_TERMINAL_STATE": "ติดตามคำขอตัวอย่างที่ถูกปิด"
       },
       "statusLabels": {
         "NEED_PROCESS": "ต้องดำเนินการ",

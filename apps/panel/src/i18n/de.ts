@@ -2550,7 +2550,10 @@ export default {
       }
     },
     "affiliateWorkspace": {
-      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "Auf FBT-Abwicklung warten" },
+      "workKinds": {
+        "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "Auf FBT-Abwicklung warten",
+        "SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP": "Nachfassung zu geschlossener Probe"
+      },
       "title": "Affiliate-Management",
       "subtitle": "Überprüfen Sie ausstehende Agentenaktionen für die Arbeit im Lebenszyklus des Erstellers.",
       "creatorsTitle": "Kooperations-Creator",
@@ -2982,7 +2985,8 @@ export default {
         "PROPOSAL_WAITING_APPROVAL": "Vorschlag wartet auf Genehmigung",
         "PRODUCT_CONTEXT_MISSING": "Produktkontext fehlt",
         "CREATOR_IDENTITY_UNRESOLVED": "Creator-Identität ungeklärt",
-        "USER_LEVEL_BLOCKED": "Vom Händler blockiert"
+        "USER_LEVEL_BLOCKED": "Vom Händler blockiert",
+        "SAMPLE_PLATFORM_TERMINAL_STATE": "Probenantrag von TikTok geschlossen"
       },
       "itemKinds": {
         "APPROVAL_REQUIRED": "Genehmigung",
@@ -3035,7 +3039,8 @@ export default {
         "REVIEW_ACTION_PROPOSAL": "Aktionsvorschlag prüfen",
         "REVIEW_AMBIGUOUS_CONTEXT": "Mehrdeutigen Kontext prüfen",
         "WAIT_CREATOR_RESPONSE": "Auf Creator-Antwort warten",
-        "WAIT_PLATFORM_UPDATE": "Auf Plattformaktualisierung warten"
+        "WAIT_PLATFORM_UPDATE": "Auf Plattformaktualisierung warten",
+        "HANDLE_SAMPLE_TERMINAL_STATE": "Geschlossene Probe nachfassen"
       },
       "statusLabels": {
         "NEED_PROCESS": "Zu bearbeiten",
