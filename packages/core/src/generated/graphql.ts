@@ -739,7 +739,7 @@ export interface AffiliateBusinessDeveloper {
 
 export interface AffiliateBusinessDeveloperDispatchContext {
   businessPrompt?: Maybe<Scalars['String']['output']>;
-  creatorDisplayName: Scalars['String']['output'];
+  creatorDisplayName?: Maybe<Scalars['String']['output']>;
   email?: Maybe<AffiliateBusinessDeveloperDispatchEmail>;
   whatsApp?: Maybe<AffiliateBusinessDeveloperDispatchWhatsApp>;
 }
@@ -2033,7 +2033,7 @@ export interface AffiliateExpectedSalesAutomaticSelection {
 export interface AffiliateExpectedSalesEvaluatedScope {
   artifactFound: Scalars['Boolean']['output'];
   expectedSalesReliability?: Maybe<AffiliateExpectedSalesReliability>;
-  reason?: Maybe<Scalars['String']['output']>;
+  reason?: Maybe<AffiliateExpectedSalesScopeEvaluationReason>;
   reliabilityReasons?: Maybe<Array<Scalars['String']['output']>>;
   tenantId?: Maybe<Scalars['String']['output']>;
   tenantScope?: Maybe<AffiliateExpectedSalesTenantScope>;
@@ -2219,6 +2219,14 @@ export interface AffiliateExpectedSalesResolvedContext {
   source?: Maybe<Scalars['String']['output']>;
 }
 
+/** Why one scope of serving's tenant chain did not serve. A closed vocabulary carrying no artifact paths, file names, or exception text. */
+export const AffiliateExpectedSalesScopeEvaluationReason = {
+  ArtifactInvalid: 'ARTIFACT_INVALID',
+  ArtifactNotFound: 'ARTIFACT_NOT_FOUND',
+  FeatureContractMismatch: 'FEATURE_CONTRACT_MISMATCH'
+} as const;
+
+export type AffiliateExpectedSalesScopeEvaluationReason = typeof AffiliateExpectedSalesScopeEvaluationReason[keyof typeof AffiliateExpectedSalesScopeEvaluationReason];
 /** Canonical Expected Sales model signal. READY carries a value (kept even when DEGRADED); NOT_AVAILABLE strictly means no artifact exists; ERROR carries the real failure. */
 export interface AffiliateExpectedSalesSignal {
   error?: Maybe<AffiliateModelSignalError>;

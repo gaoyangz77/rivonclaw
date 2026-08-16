@@ -1,8 +1,36 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
 
+/**
+ * Loggers are memoized per name so assertions survive `vi.resetModules()`, which
+ * re-runs module-scope `createLogger(...)` calls in the module under test.
+ */
+const loggerMocks = vi.hoisted(() => {
+  const loggers = new Map<
+    string,
+    { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> }
+  >();
+  return {
+    get(name: string) {
+      let logger = loggers.get(name);
+      if (!logger) {
+        logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        loggers.set(name, logger);
+      }
+      return logger;
+    },
+    clear() {
+      for (const logger of loggers.values()) {
+        logger.info.mockClear();
+        logger.warn.mockClear();
+        logger.error.mockClear();
+      }
+    },
+  };
+});
+
 vi.mock("@rivonclaw/logger", () => ({
-  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  createLogger: (name: string) => loggerMocks.get(name),
 }));
 
 const mockRpcRequest = vi.fn();
@@ -80,6 +108,27 @@ describe("affiliate session identity", () => {
     expect(promptAndEmail.join("\n")).toContain("Move qualified Creators to email.");
     expect(promptAndEmail.join("\n")).toContain("Email: Mia Sales — mia@example.com");
     expect(promptAndEmail.join("\n")).not.toContain("WhatsApp:");
+  });
+
+  it("omits the Creator-facing name line when the BD has no Creator-facing name", () => {
+    for (const context of [
+      {},
+      { creatorDisplayName: null },
+      { creatorDisplayName: "   " },
+    ] as GQL.AffiliateBusinessDeveloperDispatchContext[]) {
+      const rendered = buildBusinessDeveloperPromptSection({
+        ...context,
+        businessPrompt: "Keep replies short.",
+        email: { displayName: "Mia Sales", emailAddress: "mia@example.com" },
+      }).join("\n");
+
+      expect(rendered).not.toContain("Creator-facing name");
+      expect(rendered).not.toContain("undefined");
+      expect(rendered).not.toContain("null");
+      expect(rendered).toContain("## Assigned Business Developer");
+      expect(rendered).toContain("Email: Mia Sales — mia@example.com");
+      expect(rendered).toContain("Keep replies short.");
+    }
   });
 
   it("redacts frozen BD contact details from full-prompt diagnostics", () => {
@@ -3387,5 +3436,113 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).not.toContain("minExpectedSalesUnits");
     expect(request?.message).not.toContain("If expectedSalesUnits is below");
     expect(request?.message).not.toContain("If expectedSalesUnits meets or exceeds");
+  });
+});
+
+describe("affiliate containment startup proof", () => {
+  /**
+   * The containment filter, the concurrency ceiling and the prompt-debug flag are
+   * all resolved once at module load, so each case re-imports the module under a
+   * fresh environment. That also proves the value survived into the process
+   * rather than merely existing in the launching shell.
+   */
+  async function captureContainmentStartupLog(): Promise<{
+    level: "info" | "warn";
+    line: string;
+  }> {
+    vi.resetModules();
+    loggerMocks.clear();
+    const { AffiliateInbound: FreshAffiliateInbound } = await import("./affiliate-inbound.js");
+    const logger = loggerMocks.get("affiliate-inbound");
+
+    new FreshAffiliateInbound("en");
+
+    const lines = [
+      ...logger.info.mock.calls.map((call) => ({ level: "info" as const, line: String(call[0]) })),
+      ...logger.warn.mock.calls.map((call) => ({ level: "warn" as const, line: String(call[0]) })),
+    ].filter((entry) => entry.line.startsWith("Affiliate containment startup"));
+
+    expect(lines).toHaveLength(1);
+    return lines[0];
+  }
+
+  beforeEach(() => {
+    vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", undefined);
+    vi.stubEnv("RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS", undefined);
+    vi.stubEnv("DEBUG_AFFILIATE_PROMPT", undefined);
+    vi.stubEnv("RIVONCLAW_DEBUG_AFFILIATE_PROMPT", undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("proves the exact live-test cohort and derived concurrency the process applied", async () => {
+    vi.stubEnv(
+      "RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS",
+      " relationship-b , relationship-a ,relationship-b",
+    );
+
+    const { level, line } = await captureContainmentStartupLog();
+
+    expect(level).toBe("info");
+    expect(line).toContain("liveTestFilter=active");
+    expect(line).toContain("relationshipIdCount=2");
+    expect(line).toContain("relationshipIds=relationship-a,relationship-b");
+    expect(line).toContain("maxActiveAffiliateAgentRuns=2");
+    expect(line).toContain("debugFullPrompt=false");
+  });
+
+  it("reports an explicit Agent pool override alongside the cohort", async () => {
+    vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", "relationship-a");
+    vi.stubEnv("RIVONCLAW_MAX_ACTIVE_AFFILIATE_AGENT_RUNS", "5");
+
+    const { line } = await captureContainmentStartupLog();
+
+    expect(line).toContain("relationshipIdCount=1");
+    expect(line).toContain("relationshipIds=relationship-a");
+    expect(line).toContain("maxActiveAffiliateAgentRuns=5");
+  });
+
+  it("warns loudly when no live-test containment filter reached the process", async () => {
+    const { level, line } = await captureContainmentStartupLog();
+
+    expect(level).toBe("warn");
+    expect(line).toContain("liveTestFilter=absent");
+    expect(line).toContain("relationshipIdCount=0");
+    expect(line).toContain("maxActiveAffiliateAgentRuns=1");
+    expect(line).toContain("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS is not set");
+    expect(line).toContain("every Affiliate work item is dispatchable");
+    expect(line).not.toContain("liveTestFilter=active");
+  });
+
+  it("treats a blank containment filter as absent rather than active", async () => {
+    vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", " , ");
+
+    const { level, line } = await captureContainmentStartupLog();
+
+    expect(level).toBe("warn");
+    expect(line).toContain("liveTestFilter=absent");
+  });
+
+  it("reports the resolved full-prompt debug state", async () => {
+    vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", "relationship-a");
+    vi.stubEnv("DEBUG_AFFILIATE_PROMPT", "1");
+
+    expect((await captureContainmentStartupLog()).line).toContain("debugFullPrompt=true");
+
+    vi.stubEnv("DEBUG_AFFILIATE_PROMPT", undefined);
+    vi.stubEnv("RIVONCLAW_DEBUG_AFFILIATE_PROMPT", "1");
+
+    expect((await captureContainmentStartupLog()).line).toContain("debugFullPrompt=true");
+  });
+
+  it("emits the containment proof on a single greppable line", async () => {
+    vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", "relationship-a,relationship-b");
+
+    expect((await captureContainmentStartupLog()).line).not.toContain("\n");
+    vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", undefined);
+    expect((await captureContainmentStartupLog()).line).not.toContain("\n");
   });
 });
