@@ -680,6 +680,23 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueHint");
   });
+
+  it("lets staff decide a policy-gated no-action proposal", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    // A NO_ACTION_NEEDED proposal can now be held PENDING by approval policy, so
+    // the review card must not exclude it from the decision actions.
+    expect(page).not.toContain(
+      "proposal.type !== GQL.ActionProposalType.NoActionNeeded",
+    );
+    expect(page).toContain("ecommerce.affiliateWorkspace.noActionDecision.confirm");
+    expect(page).toContain(
+      "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.NO_ACTION_NEEDED_PENDING",
+    );
+  });
 });
 
 describe("Expected Sales model-stage presentation", () => {
