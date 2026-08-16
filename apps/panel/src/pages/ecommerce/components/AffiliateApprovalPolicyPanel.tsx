@@ -18,11 +18,24 @@ import { creatorTagLabel } from "../affiliate-tag-labels.js";
 type AffiliateApprovalPolicy = GQL.AffiliateApprovalPolicy;
 type AffiliatePolicyAction = GQL.ActionProposalType;
 
-const AFFILIATE_POLICY_ACTIONS = [
+export const AFFILIATE_POLICY_ACTIONS = [
   GQL.ActionProposalType.SendMessage,
   GQL.ActionProposalType.ReviewSampleApplication,
   GQL.ActionProposalType.CreateTargetCollaboration,
+  GQL.ActionProposalType.NoActionNeeded,
 ] as const;
+
+/**
+ * Mirrors AFFILIATE_POLICY_DIMENSIONS_BY_ACTION in the backend policy catalog.
+ * A no-action decision carries no product and no campaign, so those conditions
+ * are rejected by the backend and must not be offered here.
+ */
+export const AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT: Record<AffiliatePolicyAction, boolean> = {
+  [GQL.ActionProposalType.SendMessage]: true,
+  [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
+  [GQL.ActionProposalType.NoActionNeeded]: false,
+};
 
 type AffiliatePolicyFormState = {
   id?: string;
@@ -463,6 +476,7 @@ function AffiliatePolicyForm({
   onSave: () => void;
 }) {
   const { t } = useTranslation();
+  const supportsCampaignAndProduct = AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[form.action];
 
   return (
     <div className="affiliate-policy-form affiliate-policy-modal-form">
@@ -470,7 +484,16 @@ function AffiliatePolicyForm({
         <span>{t("ecommerce.affiliateWorkspace.policies.actionLabel")}</span>
         <Select
           value={form.action}
-          onChange={(value) => onChange({ ...form, action: value as AffiliatePolicyAction })}
+          onChange={(value) => {
+            const action = value as AffiliatePolicyAction;
+            // Drop conditions the selected action cannot express; the backend
+            // rejects them and a silently retained value would look applied.
+            onChange(
+              AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[action]
+                ? { ...form, action }
+                : { ...form, action, campaignIds: [], productIdsText: "" },
+            );
+          }}
           options={actionOptions}
           ariaLabel={t("ecommerce.affiliateWorkspace.policies.actionLabel")}
         />
@@ -506,30 +529,39 @@ function AffiliatePolicyForm({
         onChange={(creatorTagIds) => onChange({ ...form, creatorTagIds })}
       />
 
-      <AffiliatePolicyMultiSelect
-        label={t("ecommerce.affiliateWorkspace.policies.campaignsLabel")}
-        allLabel={t("ecommerce.affiliateWorkspace.policies.allCampaigns")}
-        options={campaignOptions}
-        selectedIds={form.campaignIds}
-        onChange={(campaignIds) => onChange({ ...form, campaignIds })}
-      />
+      {supportsCampaignAndProduct ? (
+        <>
+          <AffiliatePolicyMultiSelect
+            label={t("ecommerce.affiliateWorkspace.policies.campaignsLabel")}
+            allLabel={t("ecommerce.affiliateWorkspace.policies.allCampaigns")}
+            options={campaignOptions}
+            selectedIds={form.campaignIds}
+            onChange={(campaignIds) => onChange({ ...form, campaignIds })}
+          />
 
-      <label className="affiliate-policy-field">
-        <span>{t("ecommerce.affiliateWorkspace.policies.productIdsLabel")}</span>
-        <textarea
-          value={form.productIdsText}
-          onChange={(event) => onChange({ ...form, productIdsText: event.target.value })}
-          placeholder={t("ecommerce.affiliateWorkspace.policies.productIdsPlaceholder")}
-          rows={4}
-        />
-        <small>
-          {parsePolicyIds(form.productIdsText).length === 0
-            ? t("ecommerce.affiliateWorkspace.policies.allProducts")
-            : t("ecommerce.affiliateWorkspace.policies.productIdsCount", {
-                count: parsePolicyIds(form.productIdsText).length,
-              })}
-        </small>
-      </label>
+          <label className="affiliate-policy-field">
+            <span>{t("ecommerce.affiliateWorkspace.policies.productIdsLabel")}</span>
+            <textarea
+              value={form.productIdsText}
+              onChange={(event) => onChange({ ...form, productIdsText: event.target.value })}
+              placeholder={t("ecommerce.affiliateWorkspace.policies.productIdsPlaceholder")}
+              rows={4}
+            />
+            <small>
+              {parsePolicyIds(form.productIdsText).length === 0
+                ? t("ecommerce.affiliateWorkspace.policies.allProducts")
+                : t("ecommerce.affiliateWorkspace.policies.productIdsCount", {
+                    count: parsePolicyIds(form.productIdsText).length,
+                  })}
+            </small>
+          </label>
+        </>
+      ) : (
+        <div className="affiliate-policy-match-preview">
+          <InfoIcon />
+          <span>{t("ecommerce.affiliateWorkspace.policies.creatorTagOnlyHint")}</span>
+        </div>
+      )}
 
       <div className="affiliate-policy-match-preview">
         <InfoIcon />

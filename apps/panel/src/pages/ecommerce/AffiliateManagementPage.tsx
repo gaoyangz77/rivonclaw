@@ -4585,7 +4585,6 @@ function AgentWorkBundleCard({
   const bodyExpanded = !isCompact || compactOpen;
   const canDecide =
     proposal.status === GQL.ActionProposalStatus.Pending &&
-    proposal.type !== GQL.ActionProposalType.NoActionNeeded &&
     Boolean(onApprove) &&
     (allowDecisionActions ?? !isCompact);
   const canRequestRevision = canDecide && Boolean(onRequestRevision);
@@ -4599,7 +4598,9 @@ function AgentWorkBundleCard({
       )
     : sampleReviewRows.length > 1
       ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.approveBundle")
-      : t("common.approve", { defaultValue: "Approve" });
+      : proposal.type === GQL.ActionProposalType.NoActionNeeded
+        ? t("ecommerce.affiliateWorkspace.noActionDecision.confirm")
+        : t("common.approve", { defaultValue: "Approve" });
   const trimmedRevisionNote = revisionNote.trim();
   const proposalStepCount = proposal.steps?.length ?? 0;
   const proposalStepCountLabel = proposalStepCount > 1
@@ -7874,7 +7875,13 @@ function renderProposalExecutionDescription(
   t: ReturnType<typeof useTranslation>["t"],
 ): string {
   if (proposal.type === GQL.ActionProposalType.NoActionNeeded) {
-    return t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.NO_ACTION_NEEDED");
+    // A gated no-action proposal is still a decision waiting on staff, so the
+    // "what will happen" copy must describe the pending outcome, not a past run.
+    return t(
+      proposal.status === GQL.ActionProposalStatus.Pending
+        ? "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.NO_ACTION_NEEDED_PENDING"
+        : "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.NO_ACTION_NEEDED",
+    );
   }
   if (proposal.type === GQL.ActionProposalType.ReviewSampleApplication) {
     const decision = proposal.sampleReviewIntent?.decision;
