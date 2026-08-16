@@ -7,6 +7,7 @@ import {
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
+  AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY,
   AFFILIATE_CREATORS_QUERY,
   AFFILIATE_ML_INSIGHTS_QUERY,
   AFFILIATE_ML_INSIGHTS_BULK_QUERY,
@@ -15,6 +16,13 @@ import {
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
+  CREATE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
+  CREATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
+  EDIT_AFFILIATE_OPEN_COLLABORATION_SAMPLE_RULE_MUTATION,
+  EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION,
+  REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
+  REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
+  UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
   SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
 } from "./shops-queries.js";
 
@@ -122,7 +130,34 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorOpenIds");
     expect(query).toContain("productIds");
     expect(query).toContain("platformCollaborationId");
+    expect(query).toContain("openSampleRule");
+    expect(query).toContain("sellerContactInfo");
+    expect(query).toContain("freeSampleRule");
+    expect(query).toContain("targetCreators");
+    expect(query).toContain("products");
     expect(query).not.toContain("collaborationRecords");
+  });
+
+  it("exposes the complete platform collaboration operation surface", () => {
+    const operations = [
+      AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY,
+      EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION,
+      CREATE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
+      EDIT_AFFILIATE_OPEN_COLLABORATION_SAMPLE_RULE_MUTATION,
+      REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
+      CREATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
+      UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
+      REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
+    ].map(queryText).join("\n");
+
+    expect(operations).toContain("affiliateOpenCollaborationSettings(shopId: $shopId)");
+    expect(operations).toContain("editAffiliateOpenCollaborationSettings(input: $input)");
+    expect(operations).toContain("createAffiliateOpenCollaboration(input: $input)");
+    expect(operations).toContain("editAffiliateOpenCollaborationSampleRule(input: $input)");
+    expect(operations).toContain("removeAffiliateOpenCollaboration(input: $input)");
+    expect(operations).toContain("createAffiliateTargetCollaboration(input: $input)");
+    expect(operations).toContain("updateAffiliateTargetCollaboration(input: $input)");
+    expect(operations).toContain("removeAffiliateTargetCollaboration(input: $input)");
   });
 
   it("loads relationship detail from separate canonical entity pages", () => {
