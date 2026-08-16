@@ -2750,6 +2750,54 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).not.toContain("This staff-only pending proposal must stay hidden.");
   });
 
+  it("renders the frozen retryability of the last failed execution on the re-dispatched agenda", () => {
+    const base = createCreatorReplyWorkItem();
+    const agenda = {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      lastFailedExecution: {
+        proposalId: "proposal-failed-001",
+        proposalType: GQL.ActionProposalType.ReviewSampleApplication,
+        operatorSummary: "Approve sample application 123",
+        failedAt: "2026-08-15T00:00:00.000Z",
+        errorMessage: "TikTok API error 16022004: Create Trade Order Error",
+        errorRetryability: GQL.TikTokPlatformErrorRetryability.NonRetryable,
+      } satisfies GQL.AffiliateFailedExecutionContext,
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({ agentWorkingAgendaItems: [agenda] }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain("Previous Attempt On This Boundary: FAILED");
+    expect(request?.message).toContain("Previous Attempt Proposal ID: proposal-failed-001");
+    expect(request?.message).toContain("Previous Attempt Retryability: NON_RETRYABLE");
+    expect(request?.message).toContain("16022004");
+  });
+
+  it("says plainly when a failed attempt carries no producer-side classification", () => {
+    const base = createCreatorReplyWorkItem();
+    const agenda = {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      lastFailedExecution: {
+        proposalId: "proposal-failed-002",
+        proposalType: GQL.ActionProposalType.SendMessage,
+        operatorSummary: "Reply to the creator",
+        failedAt: "2026-08-15T00:00:00.000Z",
+        errorMessage: "Message delivery failed",
+        errorRetryability: null,
+      } satisfies GQL.AffiliateFailedExecutionContext,
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({ agentWorkingAgendaItems: [agenda] }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain(
+      "Previous Attempt Retryability: (no platform error was classified)",
+    );
+    expect(request?.message).not.toContain("Previous Attempt Retryability: UNKNOWN");
+  });
+
   it("injects only trusted Creator identity constants, not commerce snapshots, into the run context", () => {
     const base = createCreatorReplyWorkItem();
     const request = buildAffiliateAgentRunRequest({
@@ -3544,5 +3592,58 @@ describe("affiliate containment startup proof", () => {
     expect((await captureContainmentStartupLog()).line).not.toContain("\n");
     vi.stubEnv("RIVONCLAW_AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS", undefined);
     expect((await captureContainmentStartupLog()).line).not.toContain("\n");
+  });
+});
+
+describe("Provider-terminal sample follow-up dispatch mapping", () => {
+  function createTerminalFollowUpWorkItem(): GQL.AffiliateWorkItem {
+    const base = createSampleReviewWorkItem();
+    return {
+      ...base,
+      workKind: GQL.AffiliateWorkKind.SamplePlatformTerminalFollowUp,
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleSampleTerminalState,
+      processReasons: [GQL.AffiliateWorkProcessReason.SamplePlatformTerminalState],
+      agentWorkingAgendaItems: (base.agentWorkingAgendaItems ?? []).map((item) => ({
+        ...item,
+        workKind: GQL.AffiliateWorkKind.SamplePlatformTerminalFollowUp,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleSampleTerminalState,
+        reasons: [GQL.AffiliateWorkProcessReason.SamplePlatformTerminalState],
+      })),
+    };
+  }
+
+  function buildContext(workItem: GQL.AffiliateWorkItem) {
+    const inbound = new AffiliateInbound("en");
+    inbound.syncFromShops([
+      {
+        id: "shop-001",
+        userId: "user-001",
+        platform: "tiktok",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+      },
+    ]);
+    const shop = (inbound as any).shopContexts.get("platform-shop-001");
+    return (inbound as any).buildContextFromWorkItem(shop, workItem);
+  }
+
+  it("anchors the run on the closed Sample Application", () => {
+    expect(buildContext(createTerminalFollowUpWorkItem())).toMatchObject({
+      triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+      triggerId: "sample-record-001",
+      sampleApplicationRecordId: "sample-record-001",
+      creatorRelationshipId: "relationship-001",
+    });
+  });
+
+  it("still anchors on the Sample Application when only the work kind is known", () => {
+    const workItem = {
+      ...createTerminalFollowUpWorkItem(),
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.NoAction,
+    };
+    expect(buildContext(workItem)).toMatchObject({
+      triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
+      triggerId: "sample-record-001",
+    });
   });
 });

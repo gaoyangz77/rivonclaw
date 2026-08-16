@@ -2550,7 +2550,10 @@ export default {
       }
     },
     "affiliateWorkspace": {
-      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "In attesa dell'evasione FBT" },
+      "workKinds": {
+        "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "In attesa dell'evasione FBT",
+        "SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP": "Follow-up campione chiuso"
+      },
       "title": "Gestione degli affiliati",
       "subtitle": "Esamina le azioni in sospeso dell'agente per il lavoro del ciclo di vita del creatore.",
       "creatorsTitle": "Creator collaboratori",
@@ -2982,7 +2985,8 @@ export default {
         "PROPOSAL_WAITING_APPROVAL": "Proposta in attesa approvazione",
         "PRODUCT_CONTEXT_MISSING": "Contesto prodotto mancante",
         "CREATOR_IDENTITY_UNRESOLVED": "Identità creator non risolta",
-        "USER_LEVEL_BLOCKED": "Bloccato dal merchant"
+        "USER_LEVEL_BLOCKED": "Bloccato dal merchant",
+        "SAMPLE_PLATFORM_TERMINAL_STATE": "Richiesta campione chiusa da TikTok"
       },
       "itemKinds": {
         "APPROVAL_REQUIRED": "Approvazione",
@@ -3035,7 +3039,8 @@ export default {
         "REVIEW_ACTION_PROPOSAL": "Rivedi proposta azione",
         "REVIEW_AMBIGUOUS_CONTEXT": "Rivedi contesto ambiguo",
         "WAIT_CREATOR_RESPONSE": "Attendi risposta creator",
-        "WAIT_PLATFORM_UPDATE": "Attendi aggiornamento piattaforma"
+        "WAIT_PLATFORM_UPDATE": "Attendi aggiornamento piattaforma",
+        "HANDLE_SAMPLE_TERMINAL_STATE": "Dai seguito al campione chiuso"
       },
       "statusLabels": {
         "NEED_PROCESS": "Da elaborare",

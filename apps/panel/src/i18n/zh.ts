@@ -3754,6 +3754,7 @@ export default {
         PRODUCT_CONTEXT_MISSING: "缺少确定合作商品",
         CREATOR_IDENTITY_UNRESOLVED: "达人身份未解析",
         USER_LEVEL_BLOCKED: "商家已拉黑",
+        SAMPLE_PLATFORM_TERMINAL_STATE: "样品申请已被平台关闭",
       },
       itemKinds: {
         APPROVAL_REQUIRED: "待审批",
@@ -3781,6 +3782,7 @@ export default {
         REVIEW_AMBIGUOUS_CONTEXT: "确认合作上下文",
         WAIT_CREATOR_RESPONSE: "等待达人回复",
         WAIT_PLATFORM_UPDATE: "等待平台更新",
+        HANDLE_SAMPLE_TERMINAL_STATE: "跟进已关闭样品",
       },
       workKinds: {
         RELATIONSHIP: "达人关系",
@@ -3793,6 +3795,7 @@ export default {
         OBSERVATION_REVIEW: "观察结果复核",
         SAMPLE_APPLICATION_DECISION: "样品申请决策",
         SAMPLE_PLATFORM_FULFILLMENT_WAIT: "等待 FBT 自动履约",
+        SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP: "样品关闭跟进",
         SAMPLE_SHIPMENT: "样品寄送",
       },
       statusLabels: {

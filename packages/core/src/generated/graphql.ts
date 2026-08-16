@@ -159,6 +159,8 @@ export interface ActionProposalExecutionResultSnapshot {
   deliveryStatus?: Maybe<AffiliateDeliveryStatus>;
   domainObjectId?: Maybe<Scalars['ID']['output']>;
   errorMessage?: Maybe<Scalars['String']['output']>;
+  /** Producer-side retryability of the failure behind errorMessage. Absent means no Provider error was classified, which is not the same as UNKNOWN. */
+  errorRetryability?: Maybe<TikTokPlatformErrorRetryability>;
   executedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lifecycleEventIds: Array<Scalars['ID']['output']>;
   platformObjectId?: Maybe<Scalars['String']['output']>;
@@ -2337,6 +2339,17 @@ export interface AffiliateExpectedSalesValidationIssue {
   severity?: Maybe<Scalars['String']['output']>;
 }
 
+/** Frozen record of the most recent Provider execution attempt on this agenda boundary, attached only while that attempt is the newest one and it failed. A later successful attempt on the same boundary removes it. */
+export interface AffiliateFailedExecutionContext {
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  /** Producer-side retryability frozen by the Backend at failure time. Absent means no Provider error was classified; it must never be read as UNKNOWN. */
+  errorRetryability?: Maybe<TikTokPlatformErrorRetryability>;
+  failedAt: Scalars['DateTimeISO']['output'];
+  operatorSummary: Scalars['String']['output'];
+  proposalId: Scalars['ID']['output'];
+  proposalType: ActionProposalType;
+}
+
 export interface AffiliateHistoryPart {
   agentReadable?: Maybe<Scalars['Boolean']['output']>;
   attachmentRef?: Maybe<Scalars['String']['output']>;
@@ -3046,6 +3059,8 @@ export interface AffiliateRelationshipAgendaItem {
   campaignId?: Maybe<Scalars['ID']['output']>;
   conversationWindow?: Maybe<AffiliateConversationWindow>;
   key: Scalars['String']['output'];
+  /** The most recent Provider execution attempt on this agenda boundary when that attempt failed and nothing has succeeded on the boundary since. Absent means the boundary has no unresolved execution failure. */
+  lastFailedExecution?: Maybe<AffiliateFailedExecutionContext>;
   messageChannel?: Maybe<AffiliateMessageChannel>;
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   owner: AffiliateRelationshipAgendaOwner;
@@ -3130,6 +3145,7 @@ export const AffiliateRelationshipRequiredAction = {
   CompleteCollaborationTask: 'COMPLETE_COLLABORATION_TASK',
   FollowUpCreator: 'FOLLOW_UP_CREATOR',
   HandleCreatorMessage: 'HANDLE_CREATOR_MESSAGE',
+  HandleSampleTerminalState: 'HANDLE_SAMPLE_TERMINAL_STATE',
   NoAction: 'NO_ACTION',
   ResolveCreatorIdentity: 'RESOLVE_CREATOR_IDENTITY',
   ReviewAgentFailure: 'REVIEW_AGENT_FAILURE',
@@ -3636,6 +3652,7 @@ export const AffiliateWorkKind = {
   ObservationReview: 'OBSERVATION_REVIEW',
   SampleApplicationDecision: 'SAMPLE_APPLICATION_DECISION',
   SamplePlatformFulfillmentWait: 'SAMPLE_PLATFORM_FULFILLMENT_WAIT',
+  SamplePlatformTerminalFollowUp: 'SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP',
   SampleShipment: 'SAMPLE_SHIPMENT'
 } as const;
 
@@ -3681,6 +3698,7 @@ export const AffiliateWorkProcessReason = {
   SampleAwaitingShipment: 'SAMPLE_AWAITING_SHIPMENT',
   SampleContentFollowUpDue: 'SAMPLE_CONTENT_FOLLOW_UP_DUE',
   SamplePendingReview: 'SAMPLE_PENDING_REVIEW',
+  SamplePlatformTerminalState: 'SAMPLE_PLATFORM_TERMINAL_STATE',
   TargetCollaborationAccepted: 'TARGET_COLLABORATION_ACCEPTED',
   UserLevelBlocked: 'USER_LEVEL_BLOCKED'
 } as const;
@@ -12622,6 +12640,14 @@ export interface TikTokOAuthBrowserStart {
   expiresAt: Scalars['DateTimeISO']['output'];
 }
 
+/** Producer-side classification of a Provider execution failure. UNKNOWN is a real third state meaning the failure matched neither explicit set, never a synonym for NON_RETRYABLE. */
+export const TikTokPlatformErrorRetryability = {
+  NonRetryable: 'NON_RETRYABLE',
+  Retryable: 'RETRYABLE',
+  Unknown: 'UNKNOWN'
+} as const;
+
+export type TikTokPlatformErrorRetryability = typeof TikTokPlatformErrorRetryability[keyof typeof TikTokPlatformErrorRetryability];
 /** Raw TikTok sample content fulfillment status values. */
 export const TikTokSampleContentFulfillmentPlatformStatus = {
   Cancelled: 'CANCELLED',

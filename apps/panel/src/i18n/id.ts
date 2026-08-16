@@ -2550,7 +2550,10 @@ export default {
       }
     },
     "affiliateWorkspace": {
-      "workKinds": { "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "Menunggu pemenuhan FBT" },
+      "workKinds": {
+        "SAMPLE_PLATFORM_FULFILLMENT_WAIT": "Menunggu pemenuhan FBT",
+        "SAMPLE_PLATFORM_TERMINAL_FOLLOW_UP": "Tindak lanjut sampel yang ditutup"
+      },
       "title": "Manajemen Afiliasi",
       "subtitle": "Tinjau tindakan agen yang tertunda untuk pekerjaan siklus hidup pembuat konten.",
       "creatorsTitle": "Kreator kerja sama",
@@ -2982,7 +2985,8 @@ export default {
         "PROPOSAL_WAITING_APPROVAL": "Proposal menunggu persetujuan",
         "PRODUCT_CONTEXT_MISSING": "Konteks produk hilang",
         "CREATOR_IDENTITY_UNRESOLVED": "Identitas kreator belum terselesaikan",
-        "USER_LEVEL_BLOCKED": "Diblokir oleh merchant"
+        "USER_LEVEL_BLOCKED": "Diblokir oleh merchant",
+        "SAMPLE_PLATFORM_TERMINAL_STATE": "Permintaan sampel ditutup oleh TikTok"
       },
       "itemKinds": {
         "APPROVAL_REQUIRED": "Persetujuan",
@@ -3035,7 +3039,8 @@ export default {
         "REVIEW_ACTION_PROPOSAL": "Tinjau proposal tindakan",
         "REVIEW_AMBIGUOUS_CONTEXT": "Tinjau konteks ambigu",
         "WAIT_CREATOR_RESPONSE": "Tunggu balasan kreator",
-        "WAIT_PLATFORM_UPDATE": "Tunggu pembaruan platform"
+        "WAIT_PLATFORM_UPDATE": "Tunggu pembaruan platform",
+        "HANDLE_SAMPLE_TERMINAL_STATE": "Tindak lanjuti sampel yang ditutup"
       },
       "statusLabels": {
         "NEED_PROCESS": "Perlu diproses",

@@ -385,6 +385,14 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             predictedAt
             capturedAt
           }
+          lastFailedExecution {
+            proposalId
+            proposalType
+            operatorSummary
+            failedAt
+            errorMessage
+            errorRetryability
+          }
           revisionRequestedProposal {
             id
             type

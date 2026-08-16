@@ -460,6 +460,10 @@ export class AffiliateInbound {
           triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
           triggerId: base.creatorRelationshipId,
         };
+      // A Provider-closed Sample Application. The sample decision is gone, but
+      // the run is still anchored on that exact application so the Agent reads
+      // the closed record rather than an unrelated one.
+      case GQL.AffiliateRelationshipRequiredAction.HandleSampleTerminalState:
       case GQL.AffiliateRelationshipRequiredAction.CompleteCollaborationTask: {
         const sampleTriggerId = resolveSampleApplicationRecordId(workItem);
         if (!sampleTriggerId) return null;
@@ -496,6 +500,7 @@ export class AffiliateInbound {
           triggerId: base.creatorRelationshipId,
         };
       case GQL.AffiliateWorkKind.SampleApplicationDecision:
+      case GQL.AffiliateWorkKind.SamplePlatformTerminalFollowUp:
       case GQL.AffiliateWorkKind.SampleShipment: {
         const sampleTriggerId = resolveSampleApplicationRecordId(workItem);
         if (!sampleTriggerId) return null;

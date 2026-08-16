@@ -120,6 +120,9 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     if (item.proposalId) {
       lines.push(`   Proposal ID: ${item.proposalId}`);
     }
+    if (item.lastFailedExecution) {
+      lines.push(...renderLastFailedExecution(item.lastFailedExecution));
+    }
     if (item.revisionRequestedProposal) {
       const revision = item.revisionRequestedProposal;
       lines.push(
@@ -135,6 +138,26 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     }
   });
   return lines.join("\n");
+}
+
+/**
+ * The Backend attaches this only while the newest Provider execution attempt on
+ * this exact agenda boundary failed and nothing has succeeded on it since. The
+ * retryability verdict is producer-side and frozen; Desktop renders it verbatim
+ * and never derives one from the error text.
+ */
+function renderLastFailedExecution(
+  failure: GQL.AffiliateFailedExecutionContext,
+): string[] {
+  return [
+    "   Previous Attempt On This Boundary: FAILED",
+    `   Previous Attempt Proposal ID: ${failure.proposalId}`,
+    `   Previous Attempt Action: ${failure.proposalType}`,
+    `   Previous Attempt Summary: ${failure.operatorSummary}`,
+    `   Previous Attempt Failed At: ${failure.failedAt}`,
+    `   Previous Attempt Error: ${failure.errorMessage?.trim() || "(error message unavailable)"}`,
+    `   Previous Attempt Retryability: ${failure.errorRetryability ?? "(no platform error was classified)"}`,
+  ];
 }
 
 function renderConversationWindow(
