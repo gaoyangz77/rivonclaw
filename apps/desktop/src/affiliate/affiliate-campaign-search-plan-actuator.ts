@@ -32,7 +32,17 @@ type SearchRules = {
   creatorLevels?: string[];
   categoryPros?: string[];
 };
-type GeneratedPlan = { keyword: string; explanation: string; rules: SearchRules };
+type SearchPlanGuidanceInterpretation = {
+  softDirections: string[];
+  hardConstraints: SearchRules;
+  unsupportedHardConstraints: string[];
+};
+type GeneratedPlan = {
+  keyword: string;
+  explanation: string;
+  rules: SearchRules;
+  guidanceInterpretation: SearchPlanGuidanceInterpretation;
+};
 type GenerationContext = {
   leaseToken: string;
   searchPlanId: string;
@@ -180,6 +190,15 @@ export class AffiliateCampaignSearchPlanActuator {
                 explanation: generated.value.explanation,
                 discoveryRules: providerRules(generated.value.rules),
               },
+              guidanceInterpretation: {
+                sourceGuidanceHash: String(context.campaign.searchPlanGuidanceHash ?? ""),
+                softDirections: generated.value.guidanceInterpretation.softDirections,
+                hardConstraints: providerRules(
+                  generated.value.guidanceInterpretation.hardConstraints,
+                ),
+                unsupportedHardConstraints:
+                  generated.value.guidanceInterpretation.unsupportedHardConstraints,
+              },
             },
           });
           log.info("Dynamic Affiliate Campaign SearchPlan generated", {
@@ -197,7 +216,8 @@ export class AffiliateCampaignSearchPlanActuator {
           const retryable =
             message.includes("SEARCH_PLAN_DUPLICATE_WITHIN_30_DAYS") ||
             message.includes("CAPABILITY") ||
-            message.includes("ENGLISH_PHRASE");
+            message.includes("ENGLISH_PHRASE") ||
+            message.includes("SEARCH_PLAN_GUIDANCE");
           if (!retryable || semanticAttempt === 2) throw error;
         }
       }
@@ -262,6 +282,11 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
       "keyword MUST be a useful, product-relevant English phrase containing 2-8 words, never a generic one-word placeholder such as creator or influencer.",
       `explanation MUST explain why this exact search direction fits the product, using UI locale ${context.uiLocale}.`,
       "rules may be empty. Add filters only when historical plan volume shows the search should be narrowed.",
+      "Campaign searchPlanGuidance has two semantics. Descriptive preferences, audiences, styles, and directions are SOFT: use them to choose the keyword and optional filters, but do not claim they are guaranteed.",
+      "Obligation language such as must, required, only, at least, at most, no more than, exclude, do not include, and equivalents in the user's language is HARD.",
+      "Every supported HARD clause MUST appear exactly in guidanceInterpretation.hardConstraints and also be applied to rules. Historical search volume never removes a hard constraint.",
+      "Every HARD clause that cannot be represented by supportedMarketplaceConditions MUST be copied into unsupportedHardConstraints. Never silently ignore, weaken, or reinterpret it as soft guidance.",
+      `Put concise summaries of all remaining soft guidance in softDirections, written in UI locale ${context.uiLocale}. If Campaign guidance is empty, all three interpretation fields must be empty.`,
       "Do not repeat or trivially paraphrase a recent plan. Never invent unsupported rule enum values.",
       semanticAttempt === 2
         ? "The prior proposal was rejected semantically; choose a materially different phrase or supported rules."
@@ -271,7 +296,7 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
       .join("\n"),
     userPrompt: [
       "Generate the SearchPlan for this exact Campaign and product context. Return no placeholder content.",
-      `Mandatory constraints: keyword is a product-relevant 2-8 word English phrase; explanation is written in ${context.uiLocale}; rules contain only supported values and may be empty.`,
+      `Mandatory constraints: keyword is a product-relevant 2-8 word English phrase; explanation is written in ${context.uiLocale}; rules contain only supported values and may be empty unless Campaign hard guidance requires a filter.`,
       JSON.stringify({
         campaign: context.campaign,
         shop: context.shop,
@@ -283,7 +308,7 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
     jsonSchema: {
       type: "object",
       additionalProperties: false,
-      required: ["keyword", "explanation", "rules"],
+      required: ["keyword", "explanation", "rules", "guidanceInterpretation"],
       properties: {
         keyword: {
           type: "string",
@@ -300,13 +325,37 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
           description: `Why this search direction fits the product, written in UI locale ${context.uiLocale}.`,
         },
         rules: { type: "object", additionalProperties: false, properties: ruleProperties },
+        guidanceInterpretation: {
+          type: "object",
+          additionalProperties: false,
+          required: ["softDirections", "hardConstraints", "unsupportedHardConstraints"],
+          properties: {
+            softDirections: {
+              type: "array",
+              maxItems: 10,
+              uniqueItems: true,
+              items: { type: "string", minLength: 1, maxLength: 200 },
+            },
+            hardConstraints: {
+              type: "object",
+              additionalProperties: false,
+              properties: ruleProperties,
+            },
+            unsupportedHardConstraints: {
+              type: "array",
+              maxItems: 10,
+              uniqueItems: true,
+              items: { type: "string", minLength: 1, maxLength: 200 },
+            },
+          },
+        },
       },
     },
     validate: (value) => validateGeneratedPlan(value, context),
   });
 }
 
-function validateGeneratedPlan(value: unknown, context: GenerationContext): GeneratedPlan {
+export function validateGeneratedPlan(value: unknown, context: GenerationContext): GeneratedPlan {
   if (!value || typeof value !== "object") throw new Error("SEARCH_PLAN_JSON_INVALID");
   const item = value as Record<string, unknown>;
   const keyword = String(item.keyword ?? "")
@@ -333,8 +382,64 @@ function validateGeneratedPlan(value: unknown, context: GenerationContext): Gene
     item.rules && typeof item.rules === "object" && !Array.isArray(item.rules)
       ? (item.rules as SearchRules)
       : {};
-  const rules = removeNonNarrowingEnumFilters(rawRules, context.capability);
-  return { keyword, explanation, rules };
+  const rawInterpretation =
+    item.guidanceInterpretation &&
+    typeof item.guidanceInterpretation === "object" &&
+    !Array.isArray(item.guidanceInterpretation)
+      ? (item.guidanceInterpretation as Record<string, unknown>)
+      : {};
+  const hardConstraints =
+    rawInterpretation.hardConstraints &&
+    typeof rawInterpretation.hardConstraints === "object" &&
+    !Array.isArray(rawInterpretation.hardConstraints)
+      ? (rawInterpretation.hardConstraints as SearchRules)
+      : {};
+  const rules = removeNonNarrowingEnumFilters(rawRules, context.capability, hardConstraints);
+  const softDirections = normalizeInterpretationStatements(
+    rawInterpretation.softDirections,
+    "SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_INVALID",
+  );
+  if (softDirections.some((direction) => !explanationMatchesLocale(direction, context.uiLocale))) {
+    throw new Error("SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_LOCALE_REQUIRED");
+  }
+  const unsupportedHardConstraints = normalizeInterpretationStatements(
+    rawInterpretation.unsupportedHardConstraints,
+    "SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_INVALID",
+  );
+  const guidance = String(context.campaign.searchPlanGuidance ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/gu, " ");
+  const hasHardConstraints = hasMeaningfulRule(hardConstraints);
+  if (unsupportedHardConstraints.length) {
+    throw new Error("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED");
+  }
+  if (!guidance && (softDirections.length || hasHardConstraints)) {
+    throw new Error("SEARCH_PLAN_GUIDANCE_INTERPRETATION_INVALID");
+  }
+  if (guidance && !softDirections.length && !hasHardConstraints) {
+    throw new Error(
+      guidanceAppearsToContainHardConstraint(guidance)
+        ? "SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_REQUIRED"
+        : "SEARCH_PLAN_GUIDANCE_INTERPRETATION_REQUIRED",
+    );
+  }
+  if (guidanceAppearsToContainHardConstraint(guidance) && !hasHardConstraints) {
+    throw new Error("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_REQUIRED");
+  }
+  if (hasHardConstraints && !containsRequiredValue(rules, hardConstraints)) {
+    throw new Error("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_NOT_APPLIED");
+  }
+  return {
+    keyword,
+    explanation,
+    rules,
+    guidanceInterpretation: {
+      softDirections,
+      hardConstraints,
+      unsupportedHardConstraints,
+    },
+  };
 }
 
 function explanationMatchesLocale(explanation: string, uiLocale: string): boolean {
@@ -347,6 +452,7 @@ function explanationMatchesLocale(explanation: string, uiLocale: string): boolea
 function removeNonNarrowingEnumFilters(
   rules: SearchRules,
   capability: Record<string, unknown>,
+  hardConstraints: SearchRules = {},
 ): SearchRules {
   const next = { ...rules };
   for (const key of [
@@ -360,6 +466,7 @@ function removeNonNarrowingEnumFilters(
     const selected = next[key];
     const supported = capability[key];
     if (
+      !hasMeaningfulRule(hardConstraints[key]) &&
       Array.isArray(selected) &&
       Array.isArray(supported) &&
       supported.length > 0 &&
@@ -370,6 +477,49 @@ function removeNonNarrowingEnumFilters(
     }
   }
   return next;
+}
+
+export function guidanceAppearsToContainHardConstraint(value: string): boolean {
+  const guidance = value.normalize("NFKC").trim().toLocaleLowerCase();
+  return /(?:\b(?:must|required|only|at least|at most|no more than|over|under|exclude|do not include)\b|\b\d[\d,.]*\s*(?:k|m)?\s*\+|必须|务必|至少|不低于|不小于|不得少于|不超过|至多|最多|以上|以下|仅限|排除|不要包含|\b(?:muss|mindestens|höchstens|nur|ausschließen|debe|solo|al menos|como máximo|excluir|doit|uniquement|au moins|au plus|exclure|harus|hanya|minimal|maksimal|kecualikan|deve|almeno|al massimo|escludere)\b|ต้อง|เท่านั้น|อย่างน้อย|ไม่เกิน|ยกเว้น)/iu.test(
+    guidance,
+  );
+}
+
+function normalizeInterpretationStatements(value: unknown, errorCode: string): string[] {
+  if (!Array.isArray(value) || value.length > 10) throw new Error(errorCode);
+  const statements = value.map((item) => String(item).normalize("NFKC").trim().replace(/\s+/gu, " "));
+  if (statements.some((item) => !item || item.length > 200)) throw new Error(errorCode);
+  return [...new Set(statements)];
+}
+
+function hasMeaningfulRule(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  if (!value || typeof value !== "object") return value !== undefined && value !== null;
+  return Object.values(value as Record<string, unknown>).some(hasMeaningfulRule);
+}
+
+function containsRequiredValue(actual: unknown, required: unknown): boolean {
+  if (Array.isArray(required)) {
+    if (!required.length) return true;
+    if (!Array.isArray(actual)) return false;
+    return canonicalValue(actual) === canonicalValue(required);
+  }
+  if (!required || typeof required !== "object") return Object.is(actual, required);
+  if (!actual || typeof actual !== "object" || Array.isArray(actual)) return false;
+  return Object.entries(required as Record<string, unknown>).every(
+    ([key, child]) => !hasMeaningfulRule(child) || containsRequiredValue(
+      (actual as Record<string, unknown>)[key],
+      child,
+    ),
+  );
+}
+
+function canonicalValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return JSON.stringify([...value].map(String).sort());
+  }
+  return JSON.stringify(value);
 }
 
 function providerRules(rules: SearchRules): Record<string, unknown> {

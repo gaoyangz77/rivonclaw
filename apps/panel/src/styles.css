@@ -31990,6 +31990,12 @@ html[lang="zh"] .acct-tool-chips {
   resize: vertical;
 }
 
+.affiliate-campaign-guidance-contract-hint {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.55;
+}
+
 .affiliate-campaign-search-plan-panel {
   padding: 24px;
 }
@@ -32111,6 +32117,35 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-muted);
 }
 
+.affiliate-campaign-plan-guidance-contract {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.affiliate-campaign-plan-guidance-contract > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.affiliate-campaign-plan-guidance-contract strong {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.affiliate-campaign-plan-guidance-contract span {
+  color: var(--color-text-primary);
+  line-height: 1.45;
+}
+
 .affiliate-campaign-plan-waiting {
   margin: 20px 0;
   padding: 24px;
@@ -32122,6 +32157,24 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-plan-waiting p {
   margin: 6px 0 0;
   color: var(--color-text-secondary);
+}
+
+.affiliate-campaign-search-plan-blocked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-warning-border, rgba(180, 83, 9, 0.2));
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg, rgba(180, 83, 9, 0.06));
+}
+
+.affiliate-campaign-search-plan-blocked p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
 }
 
 .affiliate-campaign-plan-history {
@@ -32162,6 +32215,10 @@ html[lang="zh"] .acct-tool-chips {
 
   .affiliate-campaign-plan-footnote {
     flex-direction: column;
+  }
+
+  .affiliate-campaign-plan-guidance-contract {
+    grid-template-columns: 1fr;
   }
 }
 

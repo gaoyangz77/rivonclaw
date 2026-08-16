@@ -179,6 +179,11 @@ type CampaignSearchPlanView = {
   status: string;
   phrase?: { text: string; explanation: string; explanationLocale: string } | null;
   discoveryRules?: GQL.AffiliateCampaignDiscoveryRules | null;
+  guidanceInterpretation?: {
+    sourceGuidanceHash: string;
+    softDirections: string[];
+    hardConstraints?: GQL.AffiliateCampaignDiscoveryRules | null;
+  } | null;
   pageSequence: number;
   totals: {
     scanned: number;
@@ -1406,6 +1411,29 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         : t("ecommerce.affiliateCampaign.notSearchedYet")}
                     </small>
                   </div>
+                  {currentSearchPlan.guidanceInterpretation && (
+                    <div className="affiliate-campaign-plan-guidance-contract">
+                      <div>
+                        <strong>{t("ecommerce.affiliateCampaign.softGuidanceLabel")}</strong>
+                        <span>
+                          {currentSearchPlan.guidanceInterpretation.softDirections.length
+                            ? currentSearchPlan.guidanceInterpretation.softDirections.join(" · ")
+                            : t("ecommerce.affiliateCampaign.noSoftGuidance")}
+                        </span>
+                      </div>
+                      <div>
+                        <strong>{t("ecommerce.affiliateCampaign.hardConstraintsLabel")}</strong>
+                        <span>
+                          {currentSearchPlan.guidanceInterpretation.hardConstraints
+                            ? campaignSearchGroupRuleSummary(
+                                currentSearchPlan.guidanceInterpretation.hardConstraints,
+                                t,
+                              )
+                            : t("ecommerce.affiliateCampaign.noHardConstraints")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="affiliate-campaign-plan-waiting">
@@ -1415,14 +1443,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               )}
               {(currentSearchPlan?.status === "BLOCKED" ||
                 selectedCampaign.searchPlanningState === "BLOCKED") && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={retrySearchPlanState.loading}
-                  onClick={() => void retryCurrentSearchPlan()}
-                >
-                  {t("ecommerce.affiliateCampaign.retrySearchPlan")}
-                </button>
+                <div className="affiliate-campaign-search-plan-blocked">
+                  <p>{searchPlanGenerationErrorMessage(currentSearchPlan?.errorCode, t)}</p>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={retrySearchPlanState.loading}
+                    onClick={() => void retryCurrentSearchPlan()}
+                  >
+                    {t("ecommerce.affiliateCampaign.retrySearchPlan")}
+                  </button>
+                </div>
               )}
               {searchPlans.length > 1 && (
                 <details className="affiliate-campaign-plan-history">
@@ -1889,7 +1920,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       onChange={(event) => updateForm("searchPlanGuidance", event.target.value)}
                       placeholder={t("ecommerce.affiliateCampaign.searchPlanGuidancePlaceholder")}
                     />
-                    <small>
+                    <small className="affiliate-campaign-guidance-contract-hint">
                       {t("ecommerce.affiliateCampaign.searchPlanGuidanceHint", {
                         count: form.searchPlanGuidance.length,
                       })}
@@ -3505,6 +3536,19 @@ export function campaignErrorMessage(
   return match
     ? t(`ecommerce.affiliateCampaign.errors.${match[1]}`)
     : t("ecommerce.affiliateCampaign.errors.generic");
+}
+
+function searchPlanGenerationErrorMessage(
+  errorCode: string | null | undefined,
+  t: (key: string) => string,
+): string {
+  if (errorCode?.includes("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED")) {
+    return t("ecommerce.affiliateCampaign.errors.searchPlanHardConstraintUnsupported");
+  }
+  if (errorCode?.includes("SEARCH_PLAN_GUIDANCE")) {
+    return t("ecommerce.affiliateCampaign.errors.searchPlanHardConstraintRequired");
+  }
+  return t("ecommerce.affiliateCampaign.errors.generic");
 }
 
 function campaignReadinessMessage(
