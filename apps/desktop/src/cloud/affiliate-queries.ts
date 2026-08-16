@@ -278,6 +278,8 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           failedAt
           errorMessage
           errorRetryability
+          consecutiveFailureCount
+          consecutiveFailureCountTruncated
         }
         revisionRequestedProposal {
           id

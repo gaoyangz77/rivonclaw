@@ -157,7 +157,25 @@ function renderLastFailedExecution(
     `   Previous Attempt Failed At: ${failure.failedAt}`,
     `   Previous Attempt Error: ${failure.errorMessage?.trim() || "(error message unavailable)"}`,
     `   Previous Attempt Retryability: ${failure.errorRetryability ?? "(no platform error was classified)"}`,
+    `   Consecutive Failed Attempts On This Boundary: ${renderConsecutiveFailureCount(failure)}`,
   ];
+}
+
+/**
+ * The attempt budget the Agent is held to is expressed in attempts on a
+ * boundary, so this renders the count of attempts already spent — a bare number
+ * the Agent compares against that bound without arithmetic.
+ *
+ * A truncated count is rendered as a floor rather than as an exact figure: the
+ * Backend measures the run inside a bounded scan, and a run that fills the scan
+ * is only known to be at least that long.
+ */
+function renderConsecutiveFailureCount(
+  failure: GQL.AffiliateFailedExecutionContext,
+): string {
+  const count = failure.consecutiveFailureCount;
+  if (typeof count !== "number") return "(attempt count unavailable)";
+  return failure.consecutiveFailureCountTruncated ? `at least ${count}` : String(count);
 }
 
 function renderConversationWindow(
