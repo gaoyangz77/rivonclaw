@@ -1656,55 +1656,110 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_COLLABORATION_FIELDS_FRAGMENT = gql`
+  fragment AffiliateCollaborationFields on AffiliateCollaboration {
+    id
+    userId
+    shopId
+    creatorIds
+    creatorOpenIds
+    productIds
+    type
+    status
+    platformCollaborationId
+    campaignId
+    name
+    message
+    collaborationSubType
+    commissionRate
+    commissionStartTime
+    commissionEndTime
+    effectiveTime
+    startTime
+    endTime
+    creatorInvitedCount
+    showcaseCreatorCount
+    contentCreatorCount
+    productCount
+    sellerContactInfo {
+      email
+      phoneNumber
+      whatsapp
+      telegram
+      line
+    }
+    freeSampleRule {
+      hasFreeSample
+      isSampleApprovalExempt
+    }
+    openSampleRule {
+      productId
+      status
+      sampleQuota
+      availableQuantity
+      isSampleTimeUnlimited
+      startTime
+      endTime
+      thresholds {
+        minimumFollowerCount
+        minimumGmv
+        avgEcVideoViews
+        categoryIds
+        predictedFulfillmentRank
+      }
+    }
+    products {
+      id
+      productId
+      title
+      imageUrl
+      mainImageUrl
+      status
+      collaborationStatus
+      commissionEffectiveStatus
+      commission {
+        rate
+        shopAdsCommissionRate
+        startTime
+        endTime
+      }
+    }
+    targetCreators {
+      creatorOpenId
+      username
+      nickname
+      collaborationStatus
+      productEffectiveStatus
+      selectionRegion
+      showcaseProductCount
+      contentProductCount
+      avatar { url width height }
+    }
+    platformUpdatedAt
+    firstObservedAt
+    lastObservedAt
+    projectionRevision
+    lastSyncSource
+    createdAt
+    updatedAt
+  }
+`;
+
 export const AFFILIATE_COLLABORATIONS_QUERY = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
   query AffiliateCollaborations($input: ReadAffiliateCollaborationsInput!) {
     affiliateCollaborations(input: $input) {
-      id
-      userId
-      shopId
-      creatorIds
-      creatorOpenIds
-      productIds
-      type
-      status
-      platformCollaborationId
-      campaignId
-      commissionRate
-      effectiveTime
-      platformUpdatedAt
-      firstObservedAt
-      lastObservedAt
-      projectionRevision
-      lastSyncSource
-      createdAt
-      updatedAt
+      ...AffiliateCollaborationFields
     }
   }
 `;
 
 export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
   query AffiliateCollaborationDetail($input: AffiliateCollaborationDetailInput!) {
     affiliateCollaborationDetail(input: $input) {
       collaboration {
-        id
-        userId
-        shopId
-        creatorIds
-        creatorOpenIds
-        productIds
-        type
-        status
-        platformCollaborationId
-        campaignId
-        commissionRate
-        effectiveTime
-        platformUpdatedAt
-        firstObservedAt
-        lastObservedAt
-        projectionRevision
-        lastSyncSource
-        createdAt
-        updatedAt
+        ...AffiliateCollaborationFields
       }
       creators {
         id
@@ -1736,6 +1791,116 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
           skus { skuId skuName sellerSku price currency }
         }
       }
+    }
+  }
+`;
+
+export const EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION = gql`
+  mutation EditAffiliateOpenCollaborationSettings($input: EditAffiliateOpenCollaborationSettingsInput!) {
+    editAffiliateOpenCollaborationSettings(input: $input) {
+      settings {
+        autoAddProduct { enable commissionRate }
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY = gql`
+  query AffiliateOpenCollaborationSettings($shopId: ID!) {
+    affiliateOpenCollaborationSettings(shopId: $shopId) {
+      autoAddProduct { enable commissionRate }
+    }
+  }
+`;
+
+export const CREATE_AFFILIATE_OPEN_COLLABORATION_MUTATION = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
+  mutation CreateAffiliateOpenCollaboration($input: CreateAffiliateOpenCollaborationInput!) {
+    createAffiliateOpenCollaboration(input: $input) {
+      collaboration { ...AffiliateCollaborationFields }
+    }
+  }
+`;
+
+export const EDIT_AFFILIATE_OPEN_COLLABORATION_SAMPLE_RULE_MUTATION = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
+  mutation EditAffiliateOpenCollaborationSampleRule($input: EditAffiliateOpenCollaborationSampleRuleInput!) {
+    editAffiliateOpenCollaborationSampleRule(input: $input) {
+      collaboration { ...AffiliateCollaborationFields }
+      sampleRule {
+        productId
+        status
+        sampleQuota
+        availableQuantity
+        isSampleTimeUnlimited
+        startTime
+        endTime
+        thresholds {
+          minimumFollowerCount
+          minimumGmv
+          avgEcVideoViews
+          categoryIds
+          predictedFulfillmentRank
+        }
+      }
+    }
+  }
+`;
+
+export const REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
+  mutation RemoveAffiliateOpenCollaboration($input: RemoveAffiliateOpenCollaborationInput!) {
+    removeAffiliateOpenCollaboration(input: $input) {
+      collaboration { ...AffiliateCollaborationFields }
+      terminatedEffectiveTime
+    }
+  }
+`;
+
+export const CREATE_AFFILIATE_TARGET_COLLABORATION_MUTATION = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
+  mutation CreateAffiliateTargetCollaboration($input: CreateAffiliateTargetCollaborationInput!) {
+    createAffiliateTargetCollaboration(input: $input) {
+      collaboration { ...AffiliateCollaborationFields }
+      providerResult {
+        targetCollaborationId
+        invalidOpenIdList
+        invalidProductIdList
+        targetCollaborationConflicts { creatorUserOpenId productId }
+      }
+    }
+  }
+`;
+
+export const UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
+  mutation UpdateAffiliateTargetCollaboration($input: UpdateAffiliateTargetCollaborationInput!) {
+    updateAffiliateTargetCollaboration(input: $input) {
+      collaboration { ...AffiliateCollaborationFields }
+      providerResult {
+        targetCollaborationConflicts { creatorUserOpenId productId }
+        updateFailed {
+          removeCreatorOpenIds
+          removeProductIds
+          addCreatorOpenIds
+          invalidOpenIdList
+          invalidProductIdList
+          name
+          endTime
+          addProducts { id productId commissionRate }
+          changeCommissions { id productId commissionRate }
+          sellerContactInfo { email phoneNumber whatsapp telegram line }
+        }
+      }
+    }
+  }
+`;
+
+export const REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION = gql`
+  ${AFFILIATE_COLLABORATION_FIELDS_FRAGMENT}
+  mutation RemoveAffiliateTargetCollaboration($input: RemoveAffiliateTargetCollaborationInput!) {
+    removeAffiliateTargetCollaboration(input: $input) {
+      collaboration { ...AffiliateCollaborationFields }
     }
   }
 `;

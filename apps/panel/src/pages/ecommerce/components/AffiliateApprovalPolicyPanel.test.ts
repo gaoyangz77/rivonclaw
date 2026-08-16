@@ -5,6 +5,9 @@ import { GQL } from "@rivonclaw/core";
 import {
   AFFILIATE_POLICY_ACTIONS,
   AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT,
+  AFFILIATE_POLICY_SUPPORTS_CAMPAIGN,
+  AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG,
+  AFFILIATE_POLICY_SUPPORTS_PRODUCT,
 } from "./AffiliateApprovalPolicyPanel.js";
 
 describe("Affiliate approval policy actions", () => {
@@ -14,13 +17,22 @@ describe("Affiliate approval policy actions", () => {
     );
   });
 
-  it("offers campaign and product conditions only where the backend accepts them", () => {
+  it("mirrors the backend policy dimensions for every action", () => {
     expect(
       AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[GQL.ActionProposalType.NoActionNeeded],
     ).toBe(false);
-    for (const action of AFFILIATE_POLICY_ACTIONS) {
-      if (action === GQL.ActionProposalType.NoActionNeeded) continue;
-      expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[action]).toBe(true);
+    expect(AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[GQL.ActionProposalType.NoActionNeeded]).toBe(true);
+    expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[GQL.ActionProposalType.NoActionNeeded]).toBe(false);
+    expect(AFFILIATE_POLICY_SUPPORTS_PRODUCT[GQL.ActionProposalType.NoActionNeeded]).toBe(false);
+
+    for (const action of [
+      GQL.ActionProposalType.ManageOpenCollaboration,
+      GQL.ActionProposalType.ManageTargetCollaboration,
+    ]) {
+      expect(AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[action]).toBe(false);
+      expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[action]).toBe(false);
+      expect(AFFILIATE_POLICY_SUPPORTS_PRODUCT[action]).toBe(true);
+      expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[action]).toBe(false);
     }
   });
 

@@ -8,6 +8,8 @@ import {
   applyAffiliateProposalChange,
   affiliateModelStagePresentation,
   affiliateExpectedSalesModelAvailabilityState,
+  affiliateCommissionPercentToBps,
+  affiliateDelimitedIdentifiers,
   affiliateSellerSafeMetrics,
   emptyAffiliateProposalPageBuffer,
   formatExpectedSalesUnits,
@@ -610,6 +612,29 @@ describe("AffiliateManagementPage proposal source", () => {
 });
 
 describe("Affiliate canonical UI contract", () => {
+  it("converts operator-friendly commissions and identifier lists into API-safe values", () => {
+    expect(affiliateCommissionPercentToBps("25")).toBe(2500);
+    expect(affiliateCommissionPercentToBps("12.5")).toBe(1250);
+    expect(() => affiliateCommissionPercentToBps("0.5")).toThrow(/1% and 80%/);
+    expect(() => affiliateCommissionPercentToBps("81")).toThrow(/1% and 80%/);
+    expect(affiliateDelimitedIdentifiers("creator-1, creator-2\ncreator-1"))
+      .toEqual(["creator-1", "creator-2"]);
+  });
+
+  it("renders create, settings, edit, and stop controls for platform collaborations", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain("AffiliateCollaborationCreateModal");
+    expect(page).toContain("AffiliateOpenCollaborationSettingsModal");
+    expect(page).toContain("AffiliateOpenCollaborationEditor");
+    expect(page).toContain("AffiliateTargetCollaborationEditor");
+    expect(page).toContain("REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION");
+    expect(page).toContain("REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION");
+  });
+
   it("does not reintroduce CollaborationRecord compatibility identifiers", () => {
     const sources = [
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),

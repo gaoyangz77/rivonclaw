@@ -22,6 +22,8 @@ export const AFFILIATE_POLICY_ACTIONS = [
   GQL.ActionProposalType.SendMessage,
   GQL.ActionProposalType.ReviewSampleApplication,
   GQL.ActionProposalType.CreateTargetCollaboration,
+  GQL.ActionProposalType.ManageOpenCollaboration,
+  GQL.ActionProposalType.ManageTargetCollaboration,
   GQL.ActionProposalType.NoActionNeeded,
 ] as const;
 
@@ -34,6 +36,35 @@ export const AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT: Record<AffiliatePol
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
   [GQL.ActionProposalType.CreateTargetCollaboration]: true,
+  [GQL.ActionProposalType.ManageOpenCollaboration]: false,
+  [GQL.ActionProposalType.ManageTargetCollaboration]: false,
+  [GQL.ActionProposalType.NoActionNeeded]: false,
+};
+
+export const AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG: Record<AffiliatePolicyAction, boolean> = {
+  [GQL.ActionProposalType.SendMessage]: true,
+  [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
+  [GQL.ActionProposalType.ManageOpenCollaboration]: false,
+  [GQL.ActionProposalType.ManageTargetCollaboration]: false,
+  [GQL.ActionProposalType.NoActionNeeded]: true,
+};
+
+export const AFFILIATE_POLICY_SUPPORTS_CAMPAIGN: Record<AffiliatePolicyAction, boolean> = {
+  [GQL.ActionProposalType.SendMessage]: true,
+  [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
+  [GQL.ActionProposalType.ManageOpenCollaboration]: false,
+  [GQL.ActionProposalType.ManageTargetCollaboration]: false,
+  [GQL.ActionProposalType.NoActionNeeded]: false,
+};
+
+export const AFFILIATE_POLICY_SUPPORTS_PRODUCT: Record<AffiliatePolicyAction, boolean> = {
+  [GQL.ActionProposalType.SendMessage]: true,
+  [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
+  [GQL.ActionProposalType.ManageOpenCollaboration]: true,
+  [GQL.ActionProposalType.ManageTargetCollaboration]: true,
   [GQL.ActionProposalType.NoActionNeeded]: false,
 };
 
@@ -476,7 +507,9 @@ function AffiliatePolicyForm({
   onSave: () => void;
 }) {
   const { t } = useTranslation();
-  const supportsCampaignAndProduct = AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[form.action];
+  const supportsCreatorTag = AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[form.action];
+  const supportsCampaign = AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[form.action];
+  const supportsProduct = AFFILIATE_POLICY_SUPPORTS_PRODUCT[form.action];
 
   return (
     <div className="affiliate-policy-form affiliate-policy-modal-form">
@@ -488,11 +521,13 @@ function AffiliatePolicyForm({
             const action = value as AffiliatePolicyAction;
             // Drop conditions the selected action cannot express; the backend
             // rejects them and a silently retained value would look applied.
-            onChange(
-              AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[action]
-                ? { ...form, action }
-                : { ...form, action, campaignIds: [], productIdsText: "" },
-            );
+            onChange({
+              ...form,
+              action,
+              creatorTagIds: AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[action] ? form.creatorTagIds : [],
+              campaignIds: AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[action] ? form.campaignIds : [],
+              productIdsText: AFFILIATE_POLICY_SUPPORTS_PRODUCT[action] ? form.productIdsText : "",
+            });
           }}
           options={actionOptions}
           ariaLabel={t("ecommerce.affiliateWorkspace.policies.actionLabel")}
@@ -521,16 +556,17 @@ function AffiliatePolicyForm({
         />
       </label>
 
-      <AffiliatePolicyMultiSelect
-        label={t("ecommerce.affiliateWorkspace.policies.creatorTagsLabel")}
-        allLabel={t("ecommerce.affiliateWorkspace.policies.allCreatorTags")}
-        options={creatorTagOptions}
-        selectedIds={form.creatorTagIds}
-        onChange={(creatorTagIds) => onChange({ ...form, creatorTagIds })}
-      />
+      {supportsCreatorTag ? (
+        <AffiliatePolicyMultiSelect
+          label={t("ecommerce.affiliateWorkspace.policies.creatorTagsLabel")}
+          allLabel={t("ecommerce.affiliateWorkspace.policies.allCreatorTags")}
+          options={creatorTagOptions}
+          selectedIds={form.creatorTagIds}
+          onChange={(creatorTagIds) => onChange({ ...form, creatorTagIds })}
+        />
+      ) : null}
 
-      {supportsCampaignAndProduct ? (
-        <>
+      {supportsCampaign ? (
           <AffiliatePolicyMultiSelect
             label={t("ecommerce.affiliateWorkspace.policies.campaignsLabel")}
             allLabel={t("ecommerce.affiliateWorkspace.policies.allCampaigns")}
@@ -538,7 +574,9 @@ function AffiliatePolicyForm({
             selectedIds={form.campaignIds}
             onChange={(campaignIds) => onChange({ ...form, campaignIds })}
           />
+      ) : null}
 
+      {supportsProduct ? (
           <label className="affiliate-policy-field">
             <span>{t("ecommerce.affiliateWorkspace.policies.productIdsLabel")}</span>
             <textarea
@@ -555,13 +593,14 @@ function AffiliatePolicyForm({
                   })}
             </small>
           </label>
-        </>
-      ) : (
+      ) : null}
+
+      {supportsCreatorTag && !supportsCampaign && !supportsProduct ? (
         <div className="affiliate-policy-match-preview">
           <InfoIcon />
           <span>{t("ecommerce.affiliateWorkspace.policies.creatorTagOnlyHint")}</span>
         </div>
-      )}
+      ) : null}
 
       <div className="affiliate-policy-match-preview">
         <InfoIcon />
