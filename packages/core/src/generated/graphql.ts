@@ -2362,8 +2362,12 @@ export interface AffiliateExpectedSalesValidationIssue {
 
 /** Frozen record of the most recent Provider execution attempt on this agenda boundary, attached only while that attempt is the newest one and it failed. A later successful attempt on the same boundary removes it. */
 export interface AffiliateFailedExecutionContext {
+  /** How many consecutive Provider attempts on this boundary have failed, counting back from the newest. Always at least 1 while this context exists. Any non-failed attempt breaks the run, so a success followed by a fresh failure counts as 1 again. This is what makes an attempt-bounded retry policy enforceable by the Agent. Nullable only for a Backend older than this field. */
+  consecutiveFailureCount?: Maybe<Scalars['Int']['output']>;
+  /** True when the failure run was still unbroken at the oldest attempt the bounded scan could read, so consecutiveFailureCount is a floor rather than an exact figure. Nullable only for a Backend older than this field. */
+  consecutiveFailureCountTruncated?: Maybe<Scalars['Boolean']['output']>;
   errorMessage?: Maybe<Scalars['String']['output']>;
-  /** Producer-side retryability frozen by the Backend at failure time. Absent means no Provider error was classified; it must never be read as UNKNOWN. */
+  /** Retryability projected for the Agent from the producer-side classification frozen at failure time. Only a proven NON_RETRYABLE is surfaced as such: UNKNOWN and an unclassified failure are both projected to RETRYABLE, because rejecting a Creator's Sample is a real business decision and an unclassifiable Provider outcome is not grounds for one. The untouched frozen value stays on the proposal's own execution result. Nullable only for a Backend older than this projection. */
   errorRetryability?: Maybe<TikTokPlatformErrorRetryability>;
   failedAt: Scalars['DateTimeISO']['output'];
   operatorSummary: Scalars['String']['output'];
@@ -10524,6 +10528,8 @@ export interface Query {
   affiliateMlInsights: AffiliateMlInsightsPayload;
   /** Read Affiliate ML availability and shop-specific evaluations for the current user and owned shops in one request. */
   affiliateMlInsightsBulk: AffiliateMlInsightsBulkPayload;
+  /** Read shop-wide TikTok Open Collaboration auto-add settings from the Provider. */
+  affiliateOpenCollaborationSettings: EcomOpenCollaborationSettings;
   /** Read shop-level Affiliate Collaboration and Sample Application projection readiness. */
   affiliateOperationalProjectionHealth: AffiliateOperationalProjectionHealthPayload;
   affiliateOperationalSettings: AffiliateOperationalSettings;
@@ -10953,6 +10959,11 @@ export interface QueryAffiliateMlInsightsArgs {
 
 export interface QueryAffiliateMlInsightsBulkArgs {
   input: AffiliateMlInsightsBulkInput;
+}
+
+
+export interface QueryAffiliateOpenCollaborationSettingsArgs {
+  shopId: Scalars['ID']['input'];
 }
 
 

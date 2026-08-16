@@ -392,6 +392,8 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             failedAt
             errorMessage
             errorRetryability
+            consecutiveFailureCount
+            consecutiveFailureCountTruncated
           }
           revisionRequestedProposal {
             id

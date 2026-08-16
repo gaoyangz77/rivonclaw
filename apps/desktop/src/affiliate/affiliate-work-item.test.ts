@@ -2761,6 +2761,8 @@ describe("affiliate work item dispatch", () => {
         failedAt: "2026-08-15T00:00:00.000Z",
         errorMessage: "TikTok API error 16022004: Create Trade Order Error",
         errorRetryability: GQL.TikTokPlatformErrorRetryability.NonRetryable,
+        consecutiveFailureCount: 1,
+        consecutiveFailureCountTruncated: false,
       } satisfies GQL.AffiliateFailedExecutionContext,
     };
     const request = buildAffiliateAgentRunRequest({
@@ -2772,6 +2774,79 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("Previous Attempt Proposal ID: proposal-failed-001");
     expect(request?.message).toContain("Previous Attempt Retryability: NON_RETRYABLE");
     expect(request?.message).toContain("16022004");
+    expect(request?.message).toContain("Consecutive Failed Attempts On This Boundary: 1");
+  });
+
+  it("renders the spent attempt budget so the boundary retry bound is checkable", () => {
+    const base = createCreatorReplyWorkItem();
+    const agenda = {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      lastFailedExecution: {
+        proposalId: "proposal-failed-003",
+        proposalType: GQL.ActionProposalType.ReviewSampleApplication,
+        operatorSummary: "Approve sample application 123",
+        failedAt: "2026-08-15T00:00:00.000Z",
+        errorMessage: "TikTok API error 16032001: rate limited",
+        errorRetryability: GQL.TikTokPlatformErrorRetryability.Retryable,
+        consecutiveFailureCount: 3,
+        consecutiveFailureCountTruncated: false,
+      } satisfies GQL.AffiliateFailedExecutionContext,
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({ agentWorkingAgendaItems: [agenda] }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain("Consecutive Failed Attempts On This Boundary: 3");
+  });
+
+  it("renders a scan-truncated attempt count as a floor, never as an exact figure", () => {
+    const base = createCreatorReplyWorkItem();
+    const agenda = {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      lastFailedExecution: {
+        proposalId: "proposal-failed-004",
+        proposalType: GQL.ActionProposalType.ReviewSampleApplication,
+        operatorSummary: "Approve sample application 123",
+        failedAt: "2026-08-15T00:00:00.000Z",
+        errorMessage: "TikTok API error 16032001: rate limited",
+        errorRetryability: GQL.TikTokPlatformErrorRetryability.Retryable,
+        consecutiveFailureCount: 20,
+        consecutiveFailureCountTruncated: true,
+      } satisfies GQL.AffiliateFailedExecutionContext,
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({ agentWorkingAgendaItems: [agenda] }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain(
+      "Consecutive Failed Attempts On This Boundary: at least 20",
+    );
+  });
+
+  it("says plainly when a Backend older than the attempt count sent no number", () => {
+    const base = createCreatorReplyWorkItem();
+    const agenda = {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      lastFailedExecution: {
+        proposalId: "proposal-failed-005",
+        proposalType: GQL.ActionProposalType.SendMessage,
+        operatorSummary: "Reply to the creator",
+        failedAt: "2026-08-15T00:00:00.000Z",
+        errorMessage: "Message delivery failed",
+        errorRetryability: GQL.TikTokPlatformErrorRetryability.Retryable,
+        consecutiveFailureCount: null,
+      } satisfies GQL.AffiliateFailedExecutionContext,
+    };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({ agentWorkingAgendaItems: [agenda] }),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).toContain(
+      "Consecutive Failed Attempts On This Boundary: (attempt count unavailable)",
+    );
   });
 
   it("says plainly when a failed attempt carries no producer-side classification", () => {
