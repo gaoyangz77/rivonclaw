@@ -6,6 +6,7 @@ import {
 import {
   AffiliateSession,
   AffiliateTriggerKind,
+  DEBUG_AFFILIATE_PROMPT,
   DEFAULT_AFFILIATE_RUN_PROFILE_ID,
   type AffiliateContext,
   type AffiliateShopContext,
@@ -41,7 +42,9 @@ export interface AffiliateShopSource {
 }
 
 export class AffiliateInbound {
-  constructor(private locale?: string) {}
+  constructor(private locale?: string) {
+    logAffiliateContainmentStartup();
+  }
 
   /** Affiliate shop context keyed by platformShopId from relay frames. */
   private shopContexts = new Map<string, AffiliateShopContext>();
@@ -525,6 +528,45 @@ export class AffiliateInbound {
       a.staffLanguage === b.staffLanguage
     );
   }
+}
+
+/**
+ * Emits the Affiliate live-test containment proof as a single greppable line.
+ *
+ * The protocol requires proving, before any controlled dispatch, that this
+ * Desktop process itself parsed and applied the containment filter. Reading the
+ * launching shell's environment is not sufficient — it cannot show that the
+ * value survived into the process (for example when Turbo's `dev.passThroughEnv`
+ * drops it). Both the filter and the concurrency ceiling reported here are read
+ * exactly as the dispatch path reads them, so the line cannot disagree with the
+ * rule that is actually enforced.
+ */
+function logAffiliateContainmentStartup(): void {
+  const controlledRelationshipIds = getControlledLiveTestRelationshipIds();
+  if (!controlledRelationshipIds) {
+    log.warn(
+      [
+        "Affiliate containment startup",
+        "liveTestFilter=absent",
+        "relationshipIdCount=0",
+        `maxActiveAffiliateAgentRuns=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS}`,
+        `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
+        `-- UNFILTERED: ${AFFILIATE_LIVE_TEST_RELATIONSHIP_IDS_ENV} is not set in this Desktop process,`,
+        "so every Affiliate work item is dispatchable",
+      ].join(" "),
+    );
+    return;
+  }
+  log.info(
+    [
+      "Affiliate containment startup",
+      "liveTestFilter=active",
+      `relationshipIdCount=${controlledRelationshipIds.size}`,
+      `relationshipIds=${[...controlledRelationshipIds].sort().join(",")}`,
+      `maxActiveAffiliateAgentRuns=${MAX_ACTIVE_AFFILIATE_AGENT_RUNS}`,
+      `debugFullPrompt=${DEBUG_AFFILIATE_PROMPT}`,
+    ].join(" "),
+  );
 }
 
 function getControlledLiveTestRelationshipIds(): Set<string> | null {

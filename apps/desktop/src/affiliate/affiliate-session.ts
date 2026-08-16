@@ -24,7 +24,12 @@ import { buildAffiliateWorkflowSkillCatalog } from "./affiliate-workflow-skill.j
 const log = createLogger("affiliate-session");
 
 export const DEFAULT_AFFILIATE_RUN_PROFILE_ID = "AFFILIATE_OPERATOR";
-const DEBUG_AFFILIATE_PROMPT =
+/**
+ * Whether full Affiliate prompt bodies are mirrored into the Desktop log.
+ * Exported so the Affiliate containment startup proof can report the state this
+ * process actually resolved at load time, instead of re-deriving it from env.
+ */
+export const DEBUG_AFFILIATE_PROMPT =
   process.env.DEBUG_AFFILIATE_PROMPT === "1" ||
   process.env.RIVONCLAW_DEBUG_AFFILIATE_PROMPT === "1";
 const AGENT_RUNTIME_FAILURE_PATTERNS = [
@@ -51,9 +56,12 @@ export function buildBusinessDeveloperPromptSection(
   context: GQL.AffiliateBusinessDeveloperDispatchContext | null | undefined,
 ): string[] {
   if (!context) return [];
+  const creatorFacingName = context.creatorDisplayName?.trim();
   return [
     "## Assigned Business Developer",
-    `- Creator-facing name: ${context.creatorDisplayName}`,
+    // Backend only sends a Creator-facing name; the internal operator-facing
+    // name is never exposed, so render nothing when it is absent.
+    ...(creatorFacingName ? [`- Creator-facing name: ${creatorFacingName}`] : []),
     ...(context.whatsApp
       ? [
           `- WhatsApp: ${formatBusinessDeveloperContact(
