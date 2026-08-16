@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AffiliateCampaignSearchPlanRequestPayload } from "../cloud/backend-subscription-client.js";
-import { AffiliateCampaignSearchPlanActuator } from "./affiliate-campaign-search-plan-actuator.js";
+import {
+  AffiliateCampaignSearchPlanActuator,
+  guidanceAppearsToContainHardConstraint,
+  validateGeneratedPlan,
+} from "./affiliate-campaign-search-plan-actuator.js";
 
 function request(
   id: string,
@@ -30,7 +34,10 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
           claimAffiliateCampaignSearchPlanGeneration: {
             leaseToken: `lease-${id}`,
             searchPlanId: id,
-            campaign: { searchPlanGuidance: "automotive creators" },
+            campaign: {
+              searchPlanGuidance: "automotive creators",
+              searchPlanGuidanceHash: "guidance-hash",
+            },
             shop: { market: "US" },
             productSnapshot: { snapshotHash: `snapshot-${id}`, title: "Car organizer" },
             capability: { languages: ["en"] },
@@ -53,6 +60,11 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
           keyword: "car organization creators",
           explanation: "寻找关注车内收纳内容的达人。",
           rules: {},
+          guidanceInterpretation: {
+            softDirections: ["汽车内容达人"],
+            hardConstraints: {},
+            unsupportedHardConstraints: [],
+          },
         },
         provider: "user-provider",
         model: "user-default-model",
@@ -87,6 +99,19 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
       expect.stringContaining("ClaimAffiliateCampaignSearchPlanGeneration"),
       {
         input: expect.objectContaining({ uiLocale: "zh-CN" }),
+      },
+    );
+    expect(graphqlFetch).toHaveBeenCalledWith(
+      expect.stringContaining("SubmitAffiliateCampaignSearchPlan"),
+      {
+        input: expect.objectContaining({
+          guidanceInterpretation: {
+            sourceGuidanceHash: "guidance-hash",
+            softDirections: ["汽车内容达人"],
+            hardConstraints: { categories: [] },
+            unsupportedHardConstraints: [],
+          },
+        }),
       },
     );
   });
@@ -161,6 +186,60 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
     releases.get("shop-b-2")?.();
     await actuator.waitForIdle();
   });
+
+  it("requires explicit hard guidance to be applied to provider rules", () => {
+    const context = generationContext("Creators must have at least 10,000 followers");
+    expect(() => validateGeneratedPlan({
+      keyword: "automotive accessory creators",
+      explanation: "寻找适合汽车配件推广的达人。",
+      rules: { minimumFollowers: 1_000 },
+      guidanceInterpretation: {
+        softDirections: [],
+        hardConstraints: { minimumFollowers: 10_000 },
+        unsupportedHardConstraints: [],
+      },
+    }, context as never)).toThrow("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_NOT_APPLIED");
+
+    expect(validateGeneratedPlan({
+      keyword: "automotive accessory creators",
+      explanation: "寻找适合汽车配件推广的达人。",
+      rules: { minimumFollowers: 10_000 },
+      guidanceInterpretation: {
+        softDirections: [],
+        hardConstraints: { minimumFollowers: 10_000 },
+        unsupportedHardConstraints: [],
+      },
+    }, context as never).rules.minimumFollowers).toBe(10_000);
+  });
+
+  it("fails closed instead of silently weakening unsupported hard guidance", () => {
+    const context = generationContext("Only creators who own a red convertible");
+    expect(() => validateGeneratedPlan({
+      keyword: "convertible lifestyle creators",
+      explanation: "寻找跑车生活方式达人。",
+      rules: {},
+      guidanceInterpretation: {
+        softDirections: [],
+        hardConstraints: {},
+        unsupportedHardConstraints: ["Creator must own a red convertible"],
+      },
+    }, context as never)).toThrow("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED");
+  });
+
+  it("treats descriptive preferences as soft guidance", () => {
+    expect(guidanceAppearsToContainHardConstraint("Prefer practical automotive content")).toBe(false);
+    const result = validateGeneratedPlan({
+      keyword: "practical car accessory creators",
+      explanation: "寻找擅长讲解实用汽车用品的达人。",
+      rules: {},
+      guidanceInterpretation: {
+        softDirections: ["实用汽车内容"],
+        hardConstraints: {},
+        unsupportedHardConstraints: [],
+      },
+    }, generationContext("Prefer practical automotive content") as never);
+    expect(result.guidanceInterpretation.softDirections).toEqual(["实用汽车内容"]);
+  });
 });
 
 function graphqlClient() {
@@ -193,12 +272,33 @@ function generated(id: string) {
       keyword: "car organization creators",
       explanation: "寻找关注车内收纳内容的达人。",
       rules: {},
+      guidanceInterpretation: {
+        softDirections: [],
+        hardConstraints: {},
+        unsupportedHardConstraints: [],
+      },
     },
     provider: "user-provider",
     model: "user-default-model",
     runIds: [`run-${id}`],
     repaired: false,
     durationMs: 12,
+  };
+}
+
+function generationContext(guidance: string) {
+  return {
+    leaseToken: "lease",
+    searchPlanId: "plan",
+    campaign: {
+      searchPlanGuidance: guidance,
+      searchPlanGuidanceHash: "guidance-hash",
+    },
+    shop: {},
+    productSnapshot: { snapshotHash: "snapshot", title: "Car accessory" },
+    capability: {},
+    uiLocale: "zh-CN",
+    recentPlans: [],
   };
 }
 

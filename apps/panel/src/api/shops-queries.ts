@@ -556,6 +556,35 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
           }
           marketSpecific { languages creatorLevels categoryPros }
         }
+        guidanceInterpretation {
+          sourceGuidanceHash
+          softDirections
+          hardConstraints {
+            followerCount { minimum maximum }
+            audience {
+              ageRanges
+              genderDistribution { gender minimumPercentage }
+            }
+            salesPerformance30d { gmvRanges unitsSoldRanges }
+            categories { parentCategoryId }
+            contentPerformance30d {
+              averageVideoViews
+              averageShoppableVideoViews
+              averageEngagementRate
+              averageShoppableEngagementRate
+              averageLiveViewers
+              averageShoppableLiveViewers
+            }
+            affiliatePerformance30d {
+              averageCommissionRate
+              postRate
+              creatorAgencyStatus
+              fastGrowingOnly
+              notInvitedLast90Days
+            }
+            marketSpecific { languages creatorLevels categoryPros }
+          }
+        }
         pageSequence
         totals {
           scanned
