@@ -286,7 +286,8 @@ async function generatePlan(context: GenerationContext, semanticAttempt: number)
       "Obligation language such as must, required, only, at least, at most, no more than, exclude, do not include, and equivalents in the user's language is HARD.",
       "Every supported HARD clause MUST appear exactly in guidanceInterpretation.hardConstraints and also be applied to rules. Historical search volume never removes a hard constraint.",
       "Every HARD clause that cannot be represented by supportedMarketplaceConditions MUST be copied into unsupportedHardConstraints. Never silently ignore, weaken, or reinterpret it as soft guidance.",
-      `Put concise summaries of all remaining soft guidance in softDirections, written in UI locale ${context.uiLocale}. If Campaign guidance is empty, all three interpretation fields must be empty.`,
+      `Put concise summaries of all remaining soft guidance in softDirections, written in UI locale ${context.uiLocale}. softDirections MUST be a JSON array of plain strings, never a single string or object. If Campaign guidance is empty, all three interpretation fields must be empty.`,
+      localeSpecificGuidanceInstruction(context.uiLocale),
       "Do not repeat or trivially paraphrase a recent plan. Never invent unsupported rule enum values.",
       semanticAttempt === 2
         ? "The prior proposal was rejected semantically; choose a materially different phrase or supported rules."
@@ -395,21 +396,23 @@ export function validateGeneratedPlan(value: unknown, context: GenerationContext
       ? (rawInterpretation.hardConstraints as SearchRules)
       : {};
   const rules = removeNonNarrowingEnumFilters(rawRules, context.capability, hardConstraints);
-  const softDirections = normalizeInterpretationStatements(
-    rawInterpretation.softDirections,
-    "SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_INVALID",
-  );
-  if (softDirections.some((direction) => !explanationMatchesLocale(direction, context.uiLocale))) {
-    throw new Error("SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_LOCALE_REQUIRED");
-  }
-  const unsupportedHardConstraints = normalizeInterpretationStatements(
-    rawInterpretation.unsupportedHardConstraints,
-    "SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_INVALID",
-  );
   const guidance = String(context.campaign.searchPlanGuidance ?? "")
     .normalize("NFKC")
     .trim()
     .replace(/\s+/gu, " ");
+  const hasHardGuidance = guidanceAppearsToContainHardConstraint(guidance);
+  const softDirections = normalizeSoftDirections({
+    value: rawInterpretation.softDirections,
+    explanation,
+    uiLocale: context.uiLocale,
+    allowLocalizedFallback: Boolean(guidance) && !hasHardGuidance,
+  });
+  const unsupportedHardConstraints = rawInterpretation.unsupportedHardConstraints === undefined
+    ? []
+    : normalizeInterpretationStatements(
+      rawInterpretation.unsupportedHardConstraints,
+      "SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_INVALID",
+    );
   const hasHardConstraints = hasMeaningfulRule(hardConstraints);
   if (unsupportedHardConstraints.length) {
     throw new Error("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED");
@@ -419,12 +422,12 @@ export function validateGeneratedPlan(value: unknown, context: GenerationContext
   }
   if (guidance && !softDirections.length && !hasHardConstraints) {
     throw new Error(
-      guidanceAppearsToContainHardConstraint(guidance)
+      hasHardGuidance
         ? "SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_REQUIRED"
         : "SEARCH_PLAN_GUIDANCE_INTERPRETATION_REQUIRED",
     );
   }
-  if (guidanceAppearsToContainHardConstraint(guidance) && !hasHardConstraints) {
+  if (hasHardGuidance && !hasHardConstraints) {
     throw new Error("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_REQUIRED");
   }
   if (hasHardConstraints && !containsRequiredValue(rules, hardConstraints)) {
@@ -486,11 +489,60 @@ export function guidanceAppearsToContainHardConstraint(value: string): boolean {
   );
 }
 
-function normalizeInterpretationStatements(value: unknown, errorCode: string): string[] {
-  if (!Array.isArray(value) || value.length > 10) throw new Error(errorCode);
-  const statements = value.map((item) => String(item).normalize("NFKC").trim().replace(/\s+/gu, " "));
+function normalizeInterpretationStatements(
+  value: unknown,
+  errorCode: string,
+  options: { allowSingleton?: boolean } = {},
+): string[] {
+  const values = options.allowSingleton && typeof value === "string" ? [value] : value;
+  if (!Array.isArray(values) || values.length > 10) throw new Error(errorCode);
+  const statements = values.map((item) => String(item).normalize("NFKC").trim().replace(/\s+/gu, " "));
   if (statements.some((item) => !item || item.length > 200)) throw new Error(errorCode);
   return [...new Set(statements)];
+}
+
+function normalizeSoftDirections(input: {
+  value: unknown;
+  explanation: string;
+  uiLocale: string;
+  allowLocalizedFallback: boolean;
+}): string[] {
+  let statements: string[];
+  try {
+    statements = normalizeInterpretationStatements(
+      input.value,
+      "SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_INVALID",
+      { allowSingleton: true },
+    );
+  } catch (error) {
+    if (!input.allowLocalizedFallback) throw error;
+    return [input.explanation];
+  }
+  if (statements.some((direction) => !explanationMatchesLocale(direction, input.uiLocale))) {
+    if (input.allowLocalizedFallback) return [input.explanation];
+    throw new Error(
+      `SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_LOCALE_REQUIRED: every softDirections item must be written in ${input.uiLocale}${localeScriptRequirement(input.uiLocale)}`,
+    );
+  }
+  return statements;
+}
+
+function localeSpecificGuidanceInstruction(uiLocale: string): string {
+  const language = uiLocale.trim().toLowerCase().split(/[-_]/u)[0];
+  if (language === "zh") {
+    return 'For this Chinese UI locale, every softDirections item MUST contain Chinese Han characters; example shape: "softDirections": ["实用汽车内容达人"].';
+  }
+  if (language === "th") {
+    return 'For this Thai UI locale, every softDirections item MUST contain Thai script; example shape: "softDirections": ["ครีเอเตอร์สายรถยนต์"].';
+  }
+  return `Every softDirections item MUST be written in the language of UI locale ${uiLocale}.`;
+}
+
+function localeScriptRequirement(uiLocale: string): string {
+  const language = uiLocale.trim().toLowerCase().split(/[-_]/u)[0];
+  if (language === "zh") return " and contain Chinese Han characters";
+  if (language === "th") return " and contain Thai script";
+  return "";
 }
 
 function hasMeaningfulRule(value: unknown): boolean {
