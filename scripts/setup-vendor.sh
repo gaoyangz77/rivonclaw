@@ -54,6 +54,7 @@ fi
 # Force a full rebuild by unsetting SKIP_VENDOR_BUILD.
 VENDOR_BUILD_OUTPUTS=(
   "dist/.dist-complete"
+  "dist-runtime/extensions/brave/openclaw.plugin.json"
   "packages/ai/dist/internal/runtime.mjs"
 )
 MISSING_VENDOR_BUILD_OUTPUT=""
