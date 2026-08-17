@@ -338,6 +338,7 @@ export class AffiliateSession {
         dispatchContext.checkpoint.businessDeveloperConfigRevision ?? null,
       businessDeveloperContext: dispatchContext.checkpoint.businessDeveloperDispatchContext ?? null,
       involvedShopInstructions: dispatchContext.checkpoint.involvedShopInstructions,
+      agendaItemsSnapshotId: workItem.agendaItemsSnapshotId ?? null,
     });
     if (result.runId) {
       this.pendingRunCompletions.set(result.runId, workItem);
@@ -435,6 +436,7 @@ export class AffiliateSession {
     businessDeveloperConfigRevision?: number | null;
     businessDeveloperContext?: GQL.AffiliateBusinessDeveloperDispatchContext | null;
     involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[];
+    agendaItemsSnapshotId?: string | null;
     predictionCacheIds?: string[];
   }): Promise<AffiliateDispatchResult> {
     if (params.abortActive !== false) this.abortActiveRun();
@@ -479,6 +481,7 @@ export class AffiliateSession {
       relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
       businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
       businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
+      agendaItemsSnapshotId: params.agendaItemsSnapshotId ?? null,
       predictionCacheIds: checkpoint.predictionCacheIds,
     });
 
@@ -516,6 +519,7 @@ export class AffiliateSession {
         relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
         businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
         businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
+        agendaItemsSnapshotId: params.agendaItemsSnapshotId ?? null,
         predictionCacheIds: checkpoint.predictionCacheIds,
       });
       log.info(`Affiliate agent run dispatched: runId=${response.runId} scope=${this.scopeKey}`);

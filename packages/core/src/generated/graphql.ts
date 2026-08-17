@@ -3776,6 +3776,8 @@ export interface AffiliateWorkItem {
   affiliateCollaboration?: Maybe<AffiliateCollaboration>;
   /** Optional canonical platform Collaboration context inside the CreatorRelationship. */
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
+  /** Immutable agenda snapshot minted for this exact dispatch. Set on the subscription publish path and on the Desktop dispatch query opt-in; null on inventory/audit reads and on projections that predate snapshot dispatch. */
+  agendaItemsSnapshotId?: Maybe<Scalars['ID']['output']>;
   /** True when desktop should consider starting an affiliate agent run for this work item. */
   agentDispatchRecommended: Scalars['Boolean']['output'];
   agentEligibilityReason: AffiliateAgentEligibilityReason;
@@ -11705,6 +11707,8 @@ export interface ReadAffiliateWorkItemsInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   agentDispatchRecommended?: InputMaybe<Scalars['Boolean']['input']>;
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
+  /** Explicit dispatch opt-in. Only the authoritative Desktop dispatch flow passes true; each returned work item then carries a freshly minted immutable agenda snapshot. Inventory, audit, and Panel reads must leave this unset — they never mint. */
+  dispatch?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   processingStatus?: InputMaybe<AffiliateRelationshipProcessingStatus>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
@@ -11948,6 +11952,8 @@ export interface ResolveAffiliateWorkItemInput {
   /** Ordered action list for bundled affiliate work. If provided, backend evaluates/executes the whole list together. */
   actions?: InputMaybe<Array<ResolveAffiliateWorkItemActionInput>>;
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  /** Id of the immutable agenda snapshot this run was dispatched with, injected by the Desktop run scaffold. When present, resolution anchors on the frozen snapshot boundary instead of re-deriving it. Agents should omit this field. */
+  agendaItemsSnapshotId?: InputMaybe<Scalars['ID']['input']>;
   /** Committed CreatorRelationship checkpoint used as the base for this agent dispatch. */
   baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
   /** Event cursor represented by baseCheckpointId. */

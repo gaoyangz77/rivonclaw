@@ -394,6 +394,7 @@ describe("cloud-graphql handler", () => {
       relationshipOperationalConfigRevision: 4,
       businessDeveloperIdSnapshot: null,
       businessDeveloperConfigRevision: null,
+      agendaItemsSnapshotId: "66f000000000000000000abc",
     });
 
     const mutation = `
@@ -420,6 +421,7 @@ describe("cloud-graphql handler", () => {
           relationshipOperationalConfigRevision: 99,
           businessDeveloperIdSnapshot: "agent-supplied-wrong-bd",
           businessDeveloperConfigRevision: 99,
+          agendaItemsSnapshotId: "agent-supplied-wrong-snapshot",
           action: {
             type: "SEND_MESSAGE",
             messageIntent: {
@@ -444,6 +446,9 @@ describe("cloud-graphql handler", () => {
           relationshipOperationalConfigRevision: 4,
           businessDeveloperIdSnapshot: null,
           businessDeveloperConfigRevision: null,
+          // The dispatch snapshot id rides the trusted checkpoint; the
+          // model-authored value never reaches the backend.
+          agendaItemsSnapshotId: "66f000000000000000000abc",
         }),
       }),
     );
