@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
@@ -14,16 +13,21 @@ interface AffiliateBdDeviceBannerProps {
  * App-wide warning shown while any active (non-archived) affiliate business
  * developer has no outreach device bound. Existing deviceless BDs are never
  * migrated or auto-assigned — this banner is the remediation surface, pointing
- * the seller at the team page. It fetches through the same query/fragment as
- * the team page and ingests into the shared affiliate workspace store, so
- * saves made on the team page clear it immediately.
+ * the seller at the team page.
+ *
+ * It reads its own query result and deliberately writes nothing to the MST
+ * workspace: `replaceAffiliateBusinessDevelopers` clears the collection before
+ * rebuilding it, so a second writer of the same list makes every observer of
+ * `businessDevelopers` render an empty list for a frame. This banner is mounted
+ * app-wide, which would inflict that flash on the team page continuously. The
+ * Apollo cache is shared, so a save on the team page still updates this query
+ * and clears the banner immediately.
  */
 export const AffiliateBdDeviceBanner = observer(function AffiliateBdDeviceBanner({
   onNavigate,
 }: AffiliateBdDeviceBannerProps) {
   const { t } = useTranslation();
   const entityStore = useEntityStore();
-  const workspace = entityStore.affiliateWorkspace;
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const skip = !user || authChecking;
@@ -33,14 +37,8 @@ export const AffiliateBdDeviceBanner = observer(function AffiliateBdDeviceBanner
     { variables: { includeArchived: true }, fetchPolicy: "cache-and-network", skip },
   );
 
-  useEffect(() => {
-    if (developersQuery.data) {
-      workspace.replaceAffiliateBusinessDevelopers(developersQuery.data.affiliateBusinessDevelopers);
-    }
-  }, [developersQuery.data, workspace]);
-
   if (skip) return null;
-  const missingDeviceNames = workspace.businessDevelopers
+  const missingDeviceNames = (developersQuery.data?.affiliateBusinessDevelopers ?? [])
     .filter((developer) => !developer.archivedAt && !(developer.deviceId ?? "").trim())
     .map((developer) => developer.displayName);
   if (missingDeviceNames.length === 0) return null;
