@@ -4,21 +4,31 @@ import { useToast } from "../../../components/Toast.js";
 import { fetchJson } from "../../../api/client.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 
-export function useDeviceBinding() {
-  const { t } = useTranslation();
-  const { showToast } = useToast();
-  const entityStore = useEntityStore();
-
+/**
+ * This desktop's device id, fetched from Desktop `/status` on mount.
+ * Shared by every affiliate/CS surface that binds work to the current device
+ * (shop-level service bindings, BD outreach devices).
+ */
+export function useMyDeviceId(): string | null {
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
-  const [bindConflictShopId, setBindConflictShopId] = useState<string | null>(null);
-  const [togglingBindShopId, setTogglingBindShopId] = useState<string | null>(null);
 
-  // Fetch deviceId from desktop on mount
   useEffect(() => {
     fetchJson<{ deviceId?: string }>("/status")
       .then((status) => setMyDeviceId(status.deviceId || null))
       .catch(() => setMyDeviceId(null));
   }, []);
+
+  return myDeviceId;
+}
+
+export function useDeviceBinding() {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  const entityStore = useEntityStore();
+
+  const myDeviceId = useMyDeviceId();
+  const [bindConflictShopId, setBindConflictShopId] = useState<string | null>(null);
+  const [togglingBindShopId, setTogglingBindShopId] = useState<string | null>(null);
 
   async function handleBindDevice(shopId: string) {
     if (!myDeviceId) return;

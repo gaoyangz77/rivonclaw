@@ -3598,6 +3598,7 @@ export const AFFILIATE_BUSINESS_DEVELOPER_FIELDS_FRAGMENT = gql`
     profileConfirmedAt
     preferredWhatsAppAccountBindingId
     preferredEmailAccountBindingId
+    deviceId
     configRevision
     archivedAt
     createdAt

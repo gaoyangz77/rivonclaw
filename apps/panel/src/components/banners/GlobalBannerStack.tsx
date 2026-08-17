@@ -5,6 +5,7 @@ import { panelEventBus } from "../../lib/event-bus.js";
 import { useToast } from "../Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../../store/RuntimeStatusProvider.js";
+import { AffiliateBdDeviceBanner } from "./AffiliateBdDeviceBanner.js";
 import { CloudLlmQuotaBanner } from "./CloudLlmQuotaBanner.js";
 import { CloudToolsBanner } from "./CloudToolsBanner.js";
 import {
@@ -76,6 +77,7 @@ export const GlobalBannerStack = observer(function GlobalBannerStack({
       <CloudLlmQuotaBanner onNavigate={onNavigate} />
       <CloudToolsBanner state={runtimeStatus.cloudTools.state} />
       <LlmUnavailableBanner show={showLlmUnavailableBanner} />
+      <AffiliateBdDeviceBanner onNavigate={onNavigate} />
       <CustomerServiceBridgeBanner
         show={showCsBridgeBanner}
         state={csBridgeState}

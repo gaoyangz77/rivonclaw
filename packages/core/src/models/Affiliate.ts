@@ -107,6 +107,10 @@ export const AffiliateBusinessDeveloperModel = types.model("AffiliateBusinessDev
   profileConfirmedAt: types.maybeNull(types.string),
   preferredWhatsAppAccountBindingId: types.maybeNull(types.string),
   preferredEmailAccountBindingId: types.maybeNull(types.string),
+  // Outreach device that executes this developer's WhatsApp/email work, in the
+  // same id space as a shop's `services.affiliateService.deviceId`. Null until
+  // a device is bound; absence is a real state consumers must see.
+  deviceId: types.maybeNull(types.string),
   configRevision: types.optional(types.number, 1),
   archivedAt: types.maybeNull(types.string),
   createdAt: types.optional(types.string, nowIso),
