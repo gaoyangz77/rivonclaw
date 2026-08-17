@@ -57,8 +57,11 @@ export async function setupAuth(deps: SetupAuthDeps): Promise<AuthRuntime> {
   // NOTE: validate() is deferred until after proxy router starts (caller's responsibility).
   const cloudClient = new CloudClient(authSession, locale, proxyFetch);
 
-  // Initialize unified backend subscription client (single shared graphql-ws connection)
-  const backendSubscription = new BackendSubscriptionClient(locale);
+  // Initialize unified backend subscription client (single shared graphql-ws
+  // connection). The device id travels as a connection param so the backend's
+  // affiliate presence registry knows which device holds the work-item
+  // subscription.
+  const backendSubscription = new BackendSubscriptionClient(locale, deviceId);
   const inFlightLogUploadRequests = new Set<string>();
 
   // Subscribe to OAuth completion events

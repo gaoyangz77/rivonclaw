@@ -11964,16 +11964,6 @@ export interface ResolveAffiliateWorkItemInput {
   baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
   /** Event cursor represented by baseCheckpointId. */
   baseEventCursor?: InputMaybe<Scalars['Int']['input']>;
-  /**
-   * Deprecated and ignored. Do not supply.
-   * @deprecated Ignored. The frozen Business Developer dispatch context is read from the agenda snapshot named by agendaItemsSnapshotId.
-   */
-  businessDeveloperConfigRevision?: InputMaybe<Scalars['Int']['input']>;
-  /**
-   * Deprecated and ignored. Do not supply.
-   * @deprecated Ignored. The frozen Business Developer dispatch context is read from the agenda snapshot named by agendaItemsSnapshotId.
-   */
-  businessDeveloperIdSnapshot?: InputMaybe<Scalars['ID']['input']>;
   /** Candidate checkpoint id for this agent dispatch. Pending proposals store it; successful execution promotes it. */
   candidateCheckpointId?: InputMaybe<Scalars['String']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
@@ -11991,11 +11981,6 @@ export interface ResolveAffiliateWorkItemInput {
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Latest event cursor included in this agent run context. */
   targetEventCursor?: InputMaybe<Scalars['Int']['input']>;
-  /**
-   * Deprecated and ignored. Do not supply.
-   * @deprecated Ignored. The frozen agenda snapshot named by agendaItemsSnapshotId is the only shop-provenance source; the field is deleted once released Desktop clients stop sending it.
-   */
-  triggerShopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ResolveAffiliateWorkItemMessageIntentInput {

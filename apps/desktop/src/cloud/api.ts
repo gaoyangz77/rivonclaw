@@ -252,25 +252,50 @@ function sanitizeCloudGraphqlVariables(
   return variables;
 }
 
+/**
+ * Deprecated resolve inputs the Desktop no longer sends. The backend reads
+ * shop and Business Developer provenance exclusively from the frozen agenda
+ * snapshot named by agendaItemsSnapshotId, and deletes these input fields once
+ * released Desktops stop sending them. Stripping happens here — at the trusted
+ * proxy boundary every resolve call crosses — because the values can still
+ * arrive from below: a cached backend tool spec may keep binding
+ * `input.triggerShopId` from the session context, and a model may echo fields
+ * it saw in an older schema. `undefined` serializes as absent.
+ */
+const DEPRECATED_AFFILIATE_RESOLVE_INPUT_STRIP = {
+  triggerShopId: undefined,
+  businessDeveloperIdSnapshot: undefined,
+  businessDeveloperConfigRevision: undefined,
+} as const;
+
 function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Record<string, unknown> {
   const creatorRelationshipId = firstNonEmptyString(input.creatorRelationshipId);
   if (!creatorRelationshipId) {
-    return { ...input, predictionCacheIds: undefined, agendaItemsSnapshotId: undefined };
+    return {
+      ...input,
+      ...DEPRECATED_AFFILIATE_RESOLVE_INPUT_STRIP,
+      predictionCacheIds: undefined,
+      agendaItemsSnapshotId: undefined,
+    };
   }
   const checkpoint = getActiveAffiliateRunCheckpoint(creatorRelationshipId);
   if (!checkpoint) {
-    return { ...input, predictionCacheIds: undefined, agendaItemsSnapshotId: undefined };
+    return {
+      ...input,
+      ...DEPRECATED_AFFILIATE_RESOLVE_INPUT_STRIP,
+      predictionCacheIds: undefined,
+      agendaItemsSnapshotId: undefined,
+    };
   }
   return {
     ...input,
+    ...DEPRECATED_AFFILIATE_RESOLVE_INPUT_STRIP,
     handledSignalAt: checkpoint.handledSignalAt,
     baseCheckpointId: checkpoint.baseCheckpointId,
     baseEventCursor: checkpoint.baseEventCursor,
     candidateCheckpointId: checkpoint.candidateCheckpointId,
     targetEventCursor: checkpoint.targetEventCursor,
     relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
-    businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
-    businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
     // The immutable agenda snapshot this run was dispatched with, captured at
     // the trusted Desktop boundary like the checkpoint itself — a
     // model-authored value is always overwritten. `undefined` serializes as

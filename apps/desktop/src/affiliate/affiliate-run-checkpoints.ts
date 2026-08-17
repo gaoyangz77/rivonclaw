@@ -8,8 +8,6 @@ export interface ActiveAffiliateRunCheckpoint {
   candidateCheckpointId: string;
   targetEventCursor: number;
   relationshipOperationalConfigRevision: number;
-  businessDeveloperIdSnapshot: string | null;
-  businessDeveloperConfigRevision: number | null;
   /**
    * Immutable agenda snapshot the backend minted for this exact dispatch.
    * Null when the work item predates snapshot dispatch (old backend or old

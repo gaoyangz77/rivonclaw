@@ -152,8 +152,6 @@ interface AffiliateRunCheckpoint {
   candidateCheckpointId: string;
   targetEventCursor: number;
   relationshipOperationalConfigRevision: number;
-  businessDeveloperIdSnapshot: string | null;
-  businessDeveloperConfigRevision: number | null;
   predictionCacheIds: string[];
 }
 
@@ -333,9 +331,6 @@ export class AffiliateSession {
       targetEventCursor,
       relationshipOperationalConfigRevision:
         dispatchContext.checkpoint.relationshipOperationalConfigRevision,
-      businessDeveloperIdSnapshot: dispatchContext.checkpoint.businessDeveloperIdSnapshot ?? null,
-      businessDeveloperConfigRevision:
-        dispatchContext.checkpoint.businessDeveloperConfigRevision ?? null,
       businessDeveloperContext: dispatchContext.checkpoint.businessDeveloperDispatchContext ?? null,
       involvedShopInstructions: dispatchContext.checkpoint.involvedShopInstructions,
       agendaItemsSnapshotId: workItem.agendaItemsSnapshotId ?? null,
@@ -432,8 +427,6 @@ export class AffiliateSession {
     handledSignalAt?: string | null;
     targetEventCursor?: number | null;
     relationshipOperationalConfigRevision?: number;
-    businessDeveloperIdSnapshot?: string | null;
-    businessDeveloperConfigRevision?: number | null;
     businessDeveloperContext?: GQL.AffiliateBusinessDeveloperDispatchContext | null;
     involvedShopInstructions?: GQL.AffiliateInvolvedShopInstruction[];
     agendaItemsSnapshotId?: string | null;
@@ -447,8 +440,6 @@ export class AffiliateSession {
       baseEventCursor: params.baseEventCursor,
       targetEventCursor: params.targetEventCursor,
       relationshipOperationalConfigRevision: params.relationshipOperationalConfigRevision,
-      businessDeveloperIdSnapshot: params.businessDeveloperIdSnapshot,
-      businessDeveloperConfigRevision: params.businessDeveloperConfigRevision,
       predictionCacheIds: params.predictionCacheIds,
     });
     const resolvedModel = this.resolveCurrentSessionModel();
@@ -479,8 +470,6 @@ export class AffiliateSession {
       candidateCheckpointId: checkpoint.candidateCheckpointId,
       targetEventCursor: checkpoint.targetEventCursor,
       relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
-      businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
-      businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
       agendaItemsSnapshotId: params.agendaItemsSnapshotId ?? null,
       predictionCacheIds: checkpoint.predictionCacheIds,
     });
@@ -517,8 +506,6 @@ export class AffiliateSession {
         candidateCheckpointId: checkpoint.candidateCheckpointId,
         targetEventCursor: checkpoint.targetEventCursor,
         relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
-        businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
-        businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
         agendaItemsSnapshotId: params.agendaItemsSnapshotId ?? null,
         predictionCacheIds: checkpoint.predictionCacheIds,
       });
@@ -597,8 +584,6 @@ export class AffiliateSession {
     baseEventCursor?: number | null;
     targetEventCursor?: number | null;
     relationshipOperationalConfigRevision?: number;
-    businessDeveloperIdSnapshot?: string | null;
-    businessDeveloperConfigRevision?: number | null;
     predictionCacheIds?: string[];
   }): Promise<AffiliateRunCheckpoint> {
     const committed =
@@ -661,8 +646,6 @@ export class AffiliateSession {
       candidateCheckpointId,
       targetEventCursor,
       relationshipOperationalConfigRevision: requested.relationshipOperationalConfigRevision ?? 1,
-      businessDeveloperIdSnapshot: requested.businessDeveloperIdSnapshot ?? null,
-      businessDeveloperConfigRevision: requested.businessDeveloperConfigRevision ?? null,
       predictionCacheIds: [...new Set(requested.predictionCacheIds ?? [])],
     };
   }
