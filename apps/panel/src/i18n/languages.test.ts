@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GQL } from "@rivonclaw/core";
 import i18n from "./index.js";
-import { LANGUAGE_OPTIONS } from "./languages.js";
+import { LANGUAGE_OPTIONS, LANGUAGE_RESOURCES } from "./languages.js";
 
 function flattenKeys(value: unknown, prefix = ""): string[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -109,6 +109,26 @@ describe("panel i18n resources", () => {
       for (const market of markets) {
         expect(keys.has(`ecommerce.market.${market}`), `${language.code} ${market}`).toBe(true);
       }
+    }
+  });
+
+  it("describes Campaign saves without promising that queued work was recalculated", () => {
+    const expected = {
+      en: "Campaign configuration updated.",
+      zh: "推广计划配置已更新。",
+      de: "Kampagnenkonfiguration aktualisiert.",
+      es: "Configuración de la campaña actualizada.",
+      fr: "Configuration de la campagne mise à jour.",
+      id: "Konfigurasi kampanye diperbarui.",
+      it: "Configurazione della campagna aggiornata.",
+      th: "อัปเดตการตั้งค่าแคมเปญแล้ว",
+    } as const;
+    for (const language of LANGUAGE_OPTIONS) {
+      const values = flattenValues(LANGUAGE_RESOURCES[language.code].translation);
+      expect(values["ecommerce.affiliateCampaign.updated"]).toBe(expected[language.code]);
+      expect(values["ecommerce.affiliateCampaign.authorizationBody"]).not.toMatch(
+        /all unsubmitted work|所有未提交任务/u,
+      );
     }
   });
 });
