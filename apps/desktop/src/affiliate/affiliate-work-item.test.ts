@@ -4052,3 +4052,136 @@ describe("Target Collaboration coverage in the Working Agenda", () => {
     expect(message).not.toContain(LABEL);
   });
 });
+
+/**
+ * The shop's own minimum expected-sales reference on Sample review work.
+ *
+ * The workflow requires a decision that turns on a low estimate to state the
+ * estimate, the reference and the gap. The reference had no path to the Agent
+ * at all: a live run was handed an agenda without it, correctly refused to
+ * assert a shortfall it could not cite, and escalated to a human.
+ *
+ * Backend freezes which of the three states applies, and that the real
+ * producers emit them per owning shop is proved in
+ * `server/backend/src/ecommerce/affiliate/services/AffiliateShopMinExpectedSalesReference.test.ts`.
+ * What is at stake here is that Desktop renders them apart — above all that an
+ * absent reference never reaches the Agent as a number, and that a shop with no
+ * standard is never confused with a reference we failed to read.
+ */
+describe("Shop minimum expected sales reference in the Working Agenda", () => {
+  function renderReference(
+    minExpectedSalesReference: GQL.AffiliateMinExpectedSalesReference | null,
+    itemOverrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {},
+  ): string {
+    const base = createCreatorReplyWorkItem();
+    const agendaItem = (base.creatorRelationship?.agendaItems ?? [])[0] as
+      GQL.AffiliateRelationshipAgendaItem;
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({
+        agentWorkingAgendaItems: [{
+          ...agendaItem,
+          workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+          requiredAction:
+            GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+          sampleApplicationRecordId: "sample-reference-001",
+          productId: "product-under-review",
+          predictionEvidence: createWorkingAgendaPredictionEvidence(),
+          minExpectedSalesReference,
+          ...itemOverrides,
+        }],
+      }),
+      platform: "tiktok",
+    });
+    return request?.message ?? "";
+  }
+
+  const LABEL = "Shop Minimum Expected Sales Reference";
+
+  it("states the configured reference as a number the Agent can compare against", () => {
+    const message = renderReference({
+      availability: GQL.AffiliateShopReferenceAvailability.Configured,
+      units: 2.5,
+    });
+
+    expect(message).toContain(`${LABEL}: 2.5 units`);
+    expect(message).toContain("configured reference for this agenda item's own shop");
+    expect(message).not.toContain(`${LABEL}: NOT CONFIGURED`);
+    expect(message).not.toContain(`${LABEL}: UNAVAILABLE`);
+  });
+
+  /**
+   * The unconfigured shop — 63 of 64 in production today. It has to arrive as
+   * an answer in its own words, not as a missing line and not as a number: a
+   * substituted default would drive real Sample rejections against a figure the
+   * seller never set.
+   */
+  it("renders an unconfigured shop as an explicit answer carrying no number", () => {
+    const message = renderReference({
+      availability: GQL.AffiliateShopReferenceAvailability.NotConfigured,
+      units: null,
+    });
+
+    expect(message).toContain(`${LABEL}: NOT CONFIGURED`);
+    expect(message).toContain("no minimum expected sales reference set by the seller");
+    expect(message).toContain("Never substitute a default");
+    expect(message).not.toContain(`${LABEL}: UNAVAILABLE`);
+    expect(message).not.toMatch(new RegExp(`${LABEL}: [0-9]`));
+  });
+
+  /**
+   * The distinction the whole field exists for. An unread shop is a missing
+   * fact; a shop without a standard is a business answer. Collapsing them is
+   * what left the earlier run unable to tell whether the seller had no rule or
+   * the number simply had not arrived.
+   */
+  it("keeps an unresolved shop apart from a shop that set no standard", () => {
+    const message = renderReference({
+      availability: GQL.AffiliateShopReferenceAvailability.ShopUnresolved,
+      units: null,
+    });
+
+    expect(message).toContain(`${LABEL}: UNAVAILABLE`);
+    expect(message).toContain("missing fact, not a shop without a standard");
+    expect(message).toContain("Do not treat it as NOT CONFIGURED");
+    expect(message).not.toContain(`${LABEL}: NOT CONFIGURED`);
+    expect(message).not.toMatch(new RegExp(`${LABEL}: [0-9]`));
+  });
+
+  /**
+   * A Backend that predates the field. Silence would read as "no reference
+   * exists", which is a claim this Desktop cannot make.
+   */
+  it("says the reference never arrived when the Backend sent none", () => {
+    const message = renderReference(null);
+
+    expect(message).toContain(`${LABEL}: UNAVAILABLE`);
+    expect(message).toContain("did not send the shop reference at all");
+    expect(message).not.toContain(`${LABEL}: NOT CONFIGURED`);
+  });
+
+  it("refuses to render a configured reference that carries no units", () => {
+    expect(() => renderReference({
+      availability: GQL.AffiliateShopReferenceAvailability.Configured,
+      units: null,
+    })).toThrow(/CONFIGURED shop minimum expected sales reference with no units/);
+  });
+
+  it("stays silent on work that is not a Sample review", () => {
+    const message = renderReference(
+      {
+        availability: GQL.AffiliateShopReferenceAvailability.NotConfigured,
+        units: null,
+      },
+      {
+        workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
+        requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+        sampleApplicationRecordId: null,
+        productId: null,
+        predictionEvidence: null,
+      },
+    );
+
+    expect(message).toContain("[Agent Working Agenda]");
+    expect(message).not.toContain(LABEL);
+  });
+});

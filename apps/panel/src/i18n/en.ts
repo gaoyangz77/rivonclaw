@@ -4727,7 +4727,8 @@ export default {
         minExpectedSalesUnits: "Minimum expected sales units",
         minExpectedSalesUnitsHint:
           "A shop-level reference for Agent judgment when an expected-sales prediction is available. It never auto-approves or rejects a sample. Campaign automation uses only its explicitly configured threshold.",
-        noThreshold: "Not set",
+        minExpectedSalesUnitsRequired:
+          "Minimum expected sales units is required. Enter a number greater than or equal to 0.",
         invalidDecisionThreshold:
           "Minimum expected sales units must be a number greater than or equal to 0.",
         businessPrompt: "Business Prompt",

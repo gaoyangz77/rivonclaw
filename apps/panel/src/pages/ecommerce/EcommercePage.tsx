@@ -441,15 +441,16 @@ export const EcommercePage = observer(function EcommercePage() {
     if (value.trim() === currentValue) return;
 
     const trimmed = value.trim();
-    let decisionThresholds: { minExpectedSalesUnits?: number } = {};
-    if (trimmed !== "") {
-      const parsed = Number(trimmed);
-      if (!Number.isFinite(parsed) || parsed < 0) {
-        showToast(t("ecommerce.shopDrawer.affiliate.invalidDecisionThreshold"), "error");
-        return;
-      }
-      decisionThresholds = { minExpectedSalesUnits: parsed };
+    if (trimmed === "") {
+      showToast(t("ecommerce.shopDrawer.affiliate.minExpectedSalesUnitsRequired"), "error");
+      return;
     }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      showToast(t("ecommerce.shopDrawer.affiliate.invalidDecisionThreshold"), "error");
+      return;
+    }
+    const decisionThresholds = { minExpectedSalesUnits: parsed };
 
     setSavingAffiliateSettings(true);
     setUpgradePrompt(false);

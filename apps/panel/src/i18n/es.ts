@@ -3517,7 +3517,7 @@ export default {
         "decisionThresholds": "Umbrales de decisión",
         "minExpectedSalesUnits": "Unidades de venta mínimas expected sales",
         "minExpectedSalesUnitsHint": "Referencia de tienda para el criterio del agente cuando existe una predicción de ventas esperadas. Nunca aprueba ni rechaza muestras automáticamente. La automatización de campañas usa solo su umbral configurado explícitamente.",
-        "noThreshold": "No establecido",
+        "minExpectedSalesUnitsRequired": "Las unidades de venta mínimas expected sales son obligatorias. Introduzca un número mayor o igual a 0.",
         "invalidDecisionThreshold": "Las unidades de venta mínimas expected sales deben ser un número mayor o igual a 0.",
         "businessPrompt": "Aviso comercial",
         "businessPromptHint": "Configure las reglas de colaboración de afiliados de esta tienda, el estilo de comunicación, los límites de comisiones/muestras y los requisitos de revisión humana. Este mensaje se inyecta en las ejecuciones del agente afiliado.",

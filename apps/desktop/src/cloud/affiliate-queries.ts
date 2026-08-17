@@ -287,6 +287,10 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           platformStatus
         }
         hasTargetCollaboration
+        minExpectedSalesReference {
+          availability
+          units
+        }
         revisionRequestedProposal {
           id
           type

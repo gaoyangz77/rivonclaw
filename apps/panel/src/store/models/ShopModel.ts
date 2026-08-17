@@ -69,6 +69,13 @@ interface ShopUpdateInput {
   };
 }
 
+/**
+ * Seeded onto a shop the first time Affiliate service is switched on, so the
+ * Affiliate Agent always has a shop reference to compare expected sales
+ * against. Shops that already carry a threshold keep the operator's value.
+ */
+const DEFAULT_MIN_EXPECTED_SALES_UNITS = 1;
+
 function requiredDeviceId(deviceId: string | null | undefined): string {
   const normalized = deviceId?.trim();
   if (!normalized) {
@@ -150,6 +157,8 @@ export const ShopModel = ShopModelBase.views((self) => ({
     ) {
       const affiliateService = self.services?.affiliateService;
       const existingDeviceId = affiliateService?.deviceId?.trim();
+      const existingMinExpectedSalesUnits =
+        affiliateService?.decisionThresholds?.minExpectedSalesUnits;
       return yield updateShop({
         services: {
           affiliateService: {
@@ -159,6 +168,13 @@ export const ShopModel = ShopModelBase.views((self) => ({
               : {}),
             ...(enabled && !existingDeviceId
               ? { deviceId: requiredDeviceId(currentDeviceId) }
+              : {}),
+            ...(enabled && typeof existingMinExpectedSalesUnits !== "number"
+              ? {
+                  decisionThresholds: {
+                    minExpectedSalesUnits: DEFAULT_MIN_EXPECTED_SALES_UNITS,
+                  },
+                }
               : {}),
           },
         },

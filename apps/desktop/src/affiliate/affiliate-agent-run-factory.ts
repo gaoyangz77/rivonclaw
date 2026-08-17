@@ -118,6 +118,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       lines.push(...renderSampleTerminalState(item.sampleTerminalState));
     }
     lines.push(...renderTargetCollaborationCoverage(item));
+    lines.push(...renderMinExpectedSalesReference(item));
     if (item.predictionEvidence) {
       lines.push(...renderWorkingAgendaPredictionEvidence(item.predictionEvidence));
     }
@@ -321,6 +322,67 @@ function renderTargetCollaborationCoverage(
     "   Seller Target Collaboration For This Product: UNKNOWN — this agenda item carries no product to look a commitment up by, so the question was not answered.",
     "   UNKNOWN is not NO. Do not treat it as evidence that no commitment exists.",
   ];
+}
+
+/**
+ * The shop's own minimum expected-sales reference, for the Sample review that
+ * turns on it.
+ *
+ * The reference is a per-shop seller setting and this line is the only place it
+ * reaches the Agent. Without it a run could not produce an auditable
+ * low-expected-sales rejection at all: the workflow requires the estimate, the
+ * reference and the gap to be stated, and one live run correctly refused to
+ * assert a shortfall it could not cite and escalated to a human instead.
+ *
+ * The three states are rendered apart and none of them is a bare number, so an
+ * absent reference can never be read as a value. NOT_CONFIGURED is a business
+ * answer — this seller set no standard for this shop — and SHOP_UNRESOLVED is a
+ * missing fact. Conflating them is exactly the confusion that produced the wrong
+ * escalation, so each says in words what it is and what it is not.
+ *
+ * Resolved per item rather than per Relationship because a Relationship
+ * routinely spans several shops, each with its own reference.
+ */
+function renderMinExpectedSalesReference(
+  item: GQL.AffiliateRelationshipAgendaItem,
+): string[] {
+  if (item.requiredAction !== GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication) {
+    return [];
+  }
+  const reference = item.minExpectedSalesReference;
+  if (!reference) {
+    return [
+      "   Shop Minimum Expected Sales Reference: UNAVAILABLE — this Backend did not send the shop reference at all.",
+      "   UNAVAILABLE is not a reference of zero and not a shop without a standard. Do not compare Expected Sales against a reference here, and do not invent one.",
+    ];
+  }
+  switch (reference.availability) {
+    case GQL.AffiliateShopReferenceAvailability.Configured:
+      if (typeof reference.units !== "number") {
+        throw new Error(
+          `Affiliate agenda ${item.key} reports a CONFIGURED shop minimum expected sales reference with no units; refuse to hand the Agent a reference it cannot compare against.`,
+        );
+      }
+      return [
+        `   Shop Minimum Expected Sales Reference: ${reference.units} units — the seller's configured reference for this agenda item's own shop.`,
+      ];
+    case GQL.AffiliateShopReferenceAvailability.NotConfigured:
+      return [
+        "   Shop Minimum Expected Sales Reference: NOT CONFIGURED — this shop has no minimum expected sales reference set by the seller.",
+        "   That is the answer, not a gap in the data: this shop has no reference to compare Expected Sales against. Never substitute a default, another shop's reference, or a figure of your own, and never claim an estimate fell below a reference here.",
+      ];
+    case GQL.AffiliateShopReferenceAvailability.ShopUnresolved:
+      return [
+        "   Shop Minimum Expected Sales Reference: UNAVAILABLE — the shop that owns this agenda item could not be resolved, so its reference was never read.",
+        "   UNAVAILABLE is a missing fact, not a shop without a standard. Do not treat it as NOT CONFIGURED and do not assume a value.",
+      ];
+    default: {
+      const unhandled: never = reference.availability;
+      throw new Error(
+        `Affiliate agenda ${item.key} carries an unknown shop reference availability ${String(unhandled)}; refuse to guess whether the shop has a reference.`,
+      );
+    }
+  }
 }
 
 /**

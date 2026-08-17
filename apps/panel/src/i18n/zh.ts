@@ -4476,7 +4476,7 @@ export default {
         minExpectedSalesUnits: "最低预期销量",
         minExpectedSalesUnitsHint:
           "仅作为有可用预期销量预测时的店铺级 Agent 判断参考，不会自动批准或拒绝样品。Campaign 自动筛选只使用 Campaign 自身明确配置的阈值。",
-        noThreshold: "未设置",
+        minExpectedSalesUnitsRequired: "最低预期销量为必填项，请输入 0 或更大的数字。",
         invalidDecisionThreshold: "最低预期销量必须是 0 或更大的数字。",
         businessPrompt: "达人业务提示词",
         businessPromptHint:
