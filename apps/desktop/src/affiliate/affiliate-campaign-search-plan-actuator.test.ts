@@ -240,6 +240,66 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
     }, generationContext("Prefer practical automotive content") as never);
     expect(result.guidanceInterpretation.softDirections).toEqual(["实用汽车内容"]);
   });
+
+  it("normalizes a localized singleton soft direction from model output", () => {
+    const result = validateGeneratedPlan({
+      keyword: "practical car accessory creators",
+      explanation: "寻找擅长讲解实用汽车用品的达人。",
+      rules: {},
+      guidanceInterpretation: {
+        softDirections: "实用汽车内容",
+        hardConstraints: {},
+        unsupportedHardConstraints: [],
+      },
+    }, generationContext("Prefer practical automotive content") as never);
+
+    expect(result.guidanceInterpretation.softDirections).toEqual(["实用汽车内容"]);
+  });
+
+  it("uses the localized explanation when soft-guidance audit output has the wrong locale", () => {
+    const result = validateGeneratedPlan({
+      keyword: "practical car accessory creators",
+      explanation: "寻找擅长讲解实用汽车用品的达人。",
+      rules: {},
+      guidanceInterpretation: {
+        softDirections: ["practical automotive creators"],
+        hardConstraints: {},
+        unsupportedHardConstraints: [],
+      },
+    }, generationContext("Prefer practical automotive content") as never);
+
+    expect(result.guidanceInterpretation.softDirections).toEqual([
+      "寻找擅长讲解实用汽车用品的达人。",
+    ]);
+  });
+
+  it("uses the localized explanation when a pure-soft interpretation is omitted", () => {
+    const result = validateGeneratedPlan({
+      keyword: "practical car accessory creators",
+      explanation: "寻找擅长讲解实用汽车用品的达人。",
+      rules: {},
+    }, generationContext("Prefer practical automotive content") as never);
+
+    expect(result.guidanceInterpretation.softDirections).toEqual([
+      "寻找擅长讲解实用汽车用品的达人。",
+    ]);
+    expect(result.guidanceInterpretation.unsupportedHardConstraints).toEqual([]);
+  });
+
+  it("does not use the localized soft-guidance fallback for hard guidance", () => {
+    expect(() => validateGeneratedPlan({
+      keyword: "automotive accessory creators",
+      explanation: "寻找适合汽车配件推广的达人。",
+      rules: {},
+      guidanceInterpretation: {
+        softDirections: { locale: "zh-CN", values: ["汽车配件达人"] },
+        hardConstraints: {},
+        unsupportedHardConstraints: [],
+      },
+    }, generationContext("Creators must have at least 10,000 followers") as never)).toThrow(
+      "SEARCH_PLAN_GUIDANCE_SOFT_DIRECTION_INVALID",
+    );
+  });
 });
 
 function graphqlClient() {
