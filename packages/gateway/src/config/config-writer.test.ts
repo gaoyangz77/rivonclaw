@@ -182,7 +182,10 @@ describe("config-writer", () => {
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.plugins.entries).toEqual({ "my-plugin": { enabled: true } });
+      expect(config.plugins.entries).toEqual({
+        "memory-core": { config: { dreaming: { enabled: false } } },
+        "my-plugin": { enabled: true },
+      });
     });
 
     it("removes stale optional provider deny IDs while preserving provider entries", () => {
@@ -491,7 +494,10 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.port).toBe(9999);
-      expect(config.plugins.entries).toEqual({ p1: {} });
+      expect(config.plugins.entries).toEqual({
+        "memory-core": { config: { dreaming: { enabled: false } } },
+        p1: {},
+      });
       expect(config.skills.load.extraDirs).toEqual(["/s1"]);
     });
 
@@ -754,7 +760,10 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.port).toBe(9999);
       expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
-      expect(config.plugins.entries).toEqual({ p1: {} });
+      expect(config.plugins.entries).toEqual({
+        "memory-core": { config: { dreaming: { enabled: false } } },
+        p1: {},
+      });
     });
 
     it("does not touch agents when defaultModel is omitted", () => {
@@ -2455,6 +2464,66 @@ describe("config-writer", () => {
       expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
       expect(config.agents.defaults.blockStreamingDefault).toBe("on");
       expect(config.agents.defaults.compaction.notifyUser).toBe(false);
+    });
+  });
+
+  describe("writeGatewayConfig - background agent defaults", () => {
+    it("disables heartbeat and memory dreaming for a new config", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.heartbeat.every).toBe("0m");
+      expect(config.plugins.entries["memory-core"].config.dreaming.enabled).toBe(false);
+    });
+
+    it("adds disabled defaults to an existing config that has no explicit choice", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: { defaults: { heartbeat: { target: "none" } } },
+          plugins: {
+            entries: {
+              "memory-core": { config: { dreaming: { frequency: "0 4 * * *" } } },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.heartbeat).toMatchObject({ every: "0m", target: "none" });
+      expect(config.plugins.entries["memory-core"].config.dreaming).toEqual({
+        enabled: false,
+        frequency: "0 4 * * *",
+      });
+    });
+
+    it("preserves explicit heartbeat and memory dreaming settings", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          agents: { defaults: { heartbeat: { every: "2h", lightContext: true } } },
+          plugins: {
+            entries: {
+              "memory-core": { config: { dreaming: { enabled: true, frequency: "0 2 * * *" } } },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, gatewayPort: 18789 });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.defaults.heartbeat).toMatchObject({ every: "2h", lightContext: true });
+      expect(config.plugins.entries["memory-core"].config.dreaming).toEqual({
+        enabled: true,
+        frequency: "0 2 * * *",
+      });
     });
   });
 

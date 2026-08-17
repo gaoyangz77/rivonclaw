@@ -61,6 +61,24 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
   return next;
 }
 
+function applyBackgroundAgentDefaults(config: Record<string, unknown>): void {
+  const agents = ensureRecord(config, "agents");
+  const defaults = ensureRecord(agents, "defaults");
+  const heartbeat = ensureRecord(defaults, "heartbeat");
+  if (typeof heartbeat.every !== "string") {
+    heartbeat.every = "0m";
+  }
+
+  const plugins = ensureRecord(config, "plugins");
+  const entries = ensureRecord(plugins, "entries");
+  const memoryCore = ensureRecord(entries, "memory-core");
+  const memoryCoreConfig = ensureRecord(memoryCore, "config");
+  const dreaming = ensureRecord(memoryCoreConfig, "dreaming");
+  if (typeof dreaming.enabled !== "boolean") {
+    dreaming.enabled = false;
+  }
+}
+
 function collectAgentEntries(
   agents: Record<string, unknown>,
 ): Map<string, Record<string, unknown>> {
@@ -1263,6 +1281,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       },
     };
   }
+
+  // OpenClaw enables two background model workloads by default: a main-agent
+  // heartbeat every 30 minutes and a nightly memory dreaming sweep. RivonClaw
+  // uses explicit automations for scheduled work and keeps long-term memory
+  // promotion opt-in, so disable both when the user has not configured them.
+  // Preserve explicit values so a future product control or manual config can
+  // intentionally enable either feature without the config sync undoing it.
+  applyBackgroundAgentDefaults(config);
 
   // Tools profile — RivonClaw is a desktop app with full agent capabilities.
   // OpenClaw v2026.3.2 defaults new installs to "messaging" (no file/exec tools).
