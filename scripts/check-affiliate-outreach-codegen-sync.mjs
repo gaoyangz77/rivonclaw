@@ -106,12 +106,25 @@ addCheck(
   hasLine(messageIntentInputGenerated, "parts: Array<AffiliateOutboundMessagePartInput>;"),
 );
 addCheck(
-  "ResolveAffiliateWorkItemMessageIntentInput.preferredChannel is in backend schema",
-  hasLine(messageIntentInputSchema, "preferredChannel: AffiliateMessageChannel"),
+  "ResolveAffiliateWorkItemMessageIntentInput.channelType is in backend schema",
+  hasLine(messageIntentInputSchema, "channelType: AffiliateMessageChannel!"),
 );
 addCheck(
-  "ResolveAffiliateWorkItemMessageIntentInput.preferredChannel is in core generated type",
-  hasLine(messageIntentInputGenerated, "preferredChannel?: InputMaybe<AffiliateMessageChannel>;"),
+  "ResolveAffiliateWorkItemMessageIntentInput.channelType is in core generated type",
+  hasLine(messageIntentInputGenerated, "channelType: AffiliateMessageChannel;"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemMessageIntentInput.preferredChannel stayed removed",
+  !hasSnippet(messageIntentInputSchema, "preferredChannel")
+    && !hasSnippet(messageIntentInputGenerated, "preferredChannel"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemMessageIntentInput.shopId is in backend schema",
+  hasLine(messageIntentInputSchema, "shopId: ID"),
+);
+addCheck(
+  "ResolveAffiliateWorkItemMessageIntentInput.shopId is in core generated type",
+  hasLine(messageIntentInputGenerated, "shopId?: InputMaybe<Scalars['ID']['input']>;"),
 );
 addCheck(
   "ResolveAffiliateWorkItemMessageIntentInput.emailSubject is in backend schema",

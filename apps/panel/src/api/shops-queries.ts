@@ -1077,6 +1077,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       id
       userId
       focusShopId
+      shopIds
       campaignId
       creatorId
       creatorRelationshipId
@@ -2949,6 +2950,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
     decideActionProposal(input: $input) {
       id
       userId
+      shopIds
       campaignId
       creatorId
       affiliateCollaborationId

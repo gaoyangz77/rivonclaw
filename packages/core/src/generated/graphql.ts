@@ -56,6 +56,7 @@ export interface ActionProposal {
   decision?: Maybe<ActionProposalDecisionSnapshot>;
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
   expiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** @deprecated Fabricated single-shop anchor. Read shopIds — the honest set of shops the proposal acts for. */
   focusShopId: Scalars['ID']['output'];
   humanReviewRequest?: Maybe<ActionProposalHumanReviewRequest>;
   id: Scalars['ID']['output'];
@@ -86,6 +87,8 @@ export interface ActionProposal {
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
+  /** Every shop this proposal acts for: the union of its steps' own shops. Empty for a pure direct-channel proposal, which is relationship-level work with no shop anchor. */
+  shopIds: Array<Scalars['ID']['output']>;
   /** Frozen structured intent for seller-wide Open/Target Collaboration operations. */
   shopOperationIntent?: Maybe<Scalars['JSONObject']['output']>;
   sourceWorkBoundary?: Maybe<ActionProposalSourceWorkBoundary>;
@@ -176,10 +179,13 @@ export interface ActionProposalHumanReviewRequest {
 }
 
 export interface ActionProposalMessageIntent {
+  /** The Agent-declared outbound channel frozen on this proposal. Absent only on proposals created before the explicit channel contract. */
+  channelType?: Maybe<AffiliateMessageChannel>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   creatorOpenId?: Maybe<Scalars['String']['output']>;
   emailSubject?: Maybe<Scalars['String']['output']>;
   parts: Array<AffiliateMessagePart>;
+  /** @deprecated Pre-B1 channel preference; new proposals freeze channelType instead. */
   preferredChannel?: Maybe<AffiliateMessageChannel>;
   subjectHash?: Maybe<Scalars['String']['output']>;
   subjectLength?: Maybe<Scalars['Int']['output']>;
@@ -321,8 +327,8 @@ export interface ActionProposalStep {
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
-  /** Platform-action shop scope for this step. The proposal itself is owned by creatorRelationshipId. */
-  shopId: Scalars['ID']['output'];
+  /** Platform-action shop scope for this step. Null exactly on direct-channel (WhatsApp/Email) SEND_MESSAGE steps, which carry no sending shop. The proposal itself is owned by creatorRelationshipId. */
+  shopId?: Maybe<Scalars['ID']['output']>;
   stepId: Scalars['String']['output'];
   targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
   targetEventCursor?: Maybe<Scalars['Int']['output']>;
@@ -6023,7 +6029,7 @@ export interface CustomerServiceSettingsInput {
 }
 
 export interface DecideActionProposalInput {
-  /** CreatorRelationship workspace for BD proposals. Omit for shop-operations proposals, which are authorized by focusShopId. */
+  /** CreatorRelationship workspace for BD proposals. Omit for shop-operations proposals, which are authorized per acted-on shop via shopIds. */
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   decision?: InputMaybe<ActionProposalDecisionSnapshotInput>;
   id: Scalars['ID']['input'];
@@ -11952,13 +11958,21 @@ export interface ResolveAffiliateWorkItemInput {
   /** Ordered action list for bundled affiliate work. If provided, backend evaluates/executes the whole list together. */
   actions?: InputMaybe<Array<ResolveAffiliateWorkItemActionInput>>;
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
-  /** Id of the immutable agenda snapshot this run was dispatched with, injected by the Desktop run scaffold. When present, resolution anchors on the frozen snapshot boundary instead of re-deriving it. Agents should omit this field. */
-  agendaItemsSnapshotId?: InputMaybe<Scalars['ID']['input']>;
+  /** Id of the immutable agenda snapshot this run was dispatched with, injected by the Desktop run scaffold; a model-authored value is always overwritten there. Resolution refuses to run without it — the frozen snapshot boundary is the only source of the dispatched agenda. */
+  agendaItemsSnapshotId: Scalars['ID']['input'];
   /** Committed CreatorRelationship checkpoint used as the base for this agent dispatch. */
   baseCheckpointId?: InputMaybe<Scalars['String']['input']>;
   /** Event cursor represented by baseCheckpointId. */
   baseEventCursor?: InputMaybe<Scalars['Int']['input']>;
+  /**
+   * Deprecated and ignored. Do not supply.
+   * @deprecated Ignored. The frozen Business Developer dispatch context is read from the agenda snapshot named by agendaItemsSnapshotId.
+   */
   businessDeveloperConfigRevision?: InputMaybe<Scalars['Int']['input']>;
+  /**
+   * Deprecated and ignored. Do not supply.
+   * @deprecated Ignored. The frozen Business Developer dispatch context is read from the agenda snapshot named by agendaItemsSnapshotId.
+   */
   businessDeveloperIdSnapshot?: InputMaybe<Scalars['ID']['input']>;
   /** Candidate checkpoint id for this agent dispatch. Pending proposals store it; successful execution promotes it. */
   candidateCheckpointId?: InputMaybe<Scalars['String']['input']>;
@@ -11977,19 +11991,24 @@ export interface ResolveAffiliateWorkItemInput {
   sampleApplicationRecordId?: InputMaybe<Scalars['ID']['input']>;
   /** Latest event cursor included in this agent run context. */
   targetEventCursor?: InputMaybe<Scalars['Int']['input']>;
-  /** Trusted trigger-shop provenance. Backend derives each action destination from its relationship-owned record or explicit authorized target shop; this value is not a read boundary. */
-  triggerShopId: Scalars['ID']['input'];
+  /**
+   * Deprecated and ignored. Do not supply.
+   * @deprecated Ignored. The frozen agenda snapshot named by agendaItemsSnapshotId is the only shop-provenance source; the field is deleted once released Desktop clients stop sending it.
+   */
+  triggerShopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ResolveAffiliateWorkItemMessageIntentInput {
+  /** Required explicit outbound channel: PLATFORM_CHAT, WHATSAPP, or EMAIL. The message goes out on exactly this channel; there is no fallback to another channel. Never supply channel contact ids, account ids, or provider recipient/thread ids — the backend resolves and freezes the exact route. */
+  channelType: AffiliateMessageChannel;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorOpenId?: InputMaybe<Scalars['String']['input']>;
   /** Required when starting a new email thread. Ignored for an exact reply to an existing email message. */
   emailSubject?: InputMaybe<Scalars['String']['input']>;
-  /** One to ten ordered creator-facing message parts. Use only text, staged draftAssetId attachments, or typed platform-native cards. */
+  /** One to ten ordered creator-facing message parts. Use only text, staged draftAssetId attachments, or typed platform-native cards. Tag every part that references a concrete entity: sampleApplicationId for a Sample, productId for a product, targetCollaborationId for a Target Collaboration. */
   parts: Array<AffiliateOutboundMessagePartInput>;
-  /** Optional explicit outbound channel override. Omit to inherit the trigger channel or relationship default. */
-  preferredChannel?: InputMaybe<AffiliateMessageChannel>;
+  /** Destination shop for PLATFORM_CHAT: the shop whose seat sends this message. Omit when the working agenda involves exactly one shop; required when it involves several — pick one of the involved shops. Must be omitted for WHATSAPP and EMAIL: a direct message carries no sending shop. */
+  shopId?: InputMaybe<Scalars['ID']['input']>;
 }
 
 export interface ResolveAffiliateWorkItemPayload {

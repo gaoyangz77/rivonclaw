@@ -56,6 +56,39 @@ describe("AffiliateManagementPage proposal source", () => {
     ).toEqual(["proposal-2"]);
   });
 
+  it("routes a changed proposal to shop lists by its acted-on shop set, not the fabricated focus shop", () => {
+    const multiShop = {
+      ...proposal("proposal-multi", "PENDING"),
+      shopIds: ["shop-1", "shop-2"],
+    } as GQL.ActionProposal;
+    expect(
+      applyAffiliateProposalChange([], multiShop, { shopId: "shop-2" })
+        .map((item) => item.id),
+    ).toEqual(["proposal-multi"]);
+    expect(applyAffiliateProposalChange([], multiShop, { shopId: "shop-3" })).toEqual([]);
+
+    // The fabricated focus shop no longer routes: a proposal whose honest set
+    // excludes the filter shop stays out even when focusShopId names it.
+    const fabricated = {
+      ...proposal("proposal-fabricated", "PENDING", "SEND_MESSAGE", "shop-9"),
+      shopIds: ["shop-1"],
+    } as GQL.ActionProposal;
+    expect(applyAffiliateProposalChange([], fabricated, { shopId: "shop-9" })).toEqual([]);
+
+    // A shopless direct proposal reaches a shop list only through its
+    // relationship coverage; relationship-level views own it otherwise.
+    const direct = {
+      ...proposal("proposal-direct", "PENDING"),
+      shopIds: [],
+      creatorRelationship: { shopStates: [{ shopId: "shop-1" }] },
+    } as unknown as GQL.ActionProposal;
+    expect(
+      applyAffiliateProposalChange([], direct, { shopId: "shop-1" })
+        .map((item) => item.id),
+    ).toEqual(["proposal-direct"]);
+    expect(applyAffiliateProposalChange([], direct, { shopId: "shop-9" })).toEqual([]);
+  });
+
   it("moves a changed proposal to the front when viewing all statuses", () => {
     const updated = applyAffiliateProposalChange(
       [proposal("proposal-1", "PENDING"), proposal("proposal-2", "PENDING")],
