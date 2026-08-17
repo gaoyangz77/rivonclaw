@@ -114,6 +114,9 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     if (item.sampleApplicationRecordId) {
       lines.push(`   Sample Application Record ID: ${item.sampleApplicationRecordId}`);
     }
+    if (item.sampleTerminalState) {
+      lines.push(...renderSampleTerminalState(item.sampleTerminalState));
+    }
     if (item.predictionEvidence) {
       lines.push(...renderWorkingAgendaPredictionEvidence(item.predictionEvidence));
     }
@@ -138,6 +141,37 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     }
   });
   return lines.join("\n");
+}
+
+/**
+ * Why the Sample Application ended, on terminal follow-up work.
+ *
+ * The terminal work status alone cannot answer it: a rejection the platform
+ * forced on us, a Creator withdrawing their own application, and a Creator
+ * missing their content deadline all land in `CANCELLED`, and each owes that
+ * Creator a different message — or none. The Backend classifies the cause once
+ * from the frozen transition event; Desktop renders that verdict verbatim and
+ * never re-derives one from the platform status beside it.
+ *
+ * `UNDETERMINED` gets an explicit instruction rather than a bare value. It is
+ * the one case where the Agent has to be told what NOT to do: the Sample is
+ * visibly dead, so inventing a plausible reason is the natural failure, and a
+ * wrong reason read back to a Creator is worse than no reason at all.
+ */
+function renderSampleTerminalState(
+  terminal: GQL.AffiliateSampleTerminalStateContext,
+): string[] {
+  const lines = [
+    `   Sample Terminal Cause: ${terminal.cause}`,
+    `   Sample Terminal Work Status: ${terminal.sampleWorkStatus}`,
+    `   Sample Terminal Platform Status: ${terminal.platformStatus ?? "(unavailable)"}`,
+  ];
+  if (terminal.cause === GQL.AffiliateSampleTerminalCause.Undetermined) {
+    lines.push(
+      "   Terminal Cause Disclosure: the platform did not record why this Sample Application ended. Never state or imply a reason to the Creator.",
+    );
+  }
+  return lines;
 }
 
 /**

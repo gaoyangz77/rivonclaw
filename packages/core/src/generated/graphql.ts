@@ -1200,6 +1200,7 @@ export interface AffiliateCampaignSearchPlan {
   errorCode?: Maybe<Scalars['String']['output']>;
   generation: Scalars['Int']['output'];
   generationAttemptCount: Scalars['Int']['output'];
+  guidanceInterpretation?: Maybe<AffiliateCampaignSearchPlanGuidanceInterpretation>;
   id: Scalars['ID']['output'];
   lastSearchedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   pageSequence: Scalars['Int']['output'];
@@ -1253,6 +1254,19 @@ export interface AffiliateCampaignSearchPlanGenerationContext {
   searchPlanId: Scalars['ID']['output'];
   shop: Scalars['JSONObject']['output'];
   uiLocale: Scalars['String']['output'];
+}
+
+export interface AffiliateCampaignSearchPlanGuidanceInterpretation {
+  hardConstraints?: Maybe<AffiliateCampaignDiscoveryRules>;
+  softDirections: Array<Scalars['String']['output']>;
+  sourceGuidanceHash: Scalars['String']['output'];
+}
+
+export interface AffiliateCampaignSearchPlanGuidanceInterpretationInput {
+  hardConstraints?: InputMaybe<AffiliateCampaignDiscoveryRulesInput>;
+  softDirections: Array<Scalars['String']['input']>;
+  sourceGuidanceHash: Scalars['String']['input'];
+  unsupportedHardConstraints: Array<Scalars['String']['input']>;
 }
 
 export interface AffiliateCampaignSearchPlanPage {
@@ -3141,6 +3155,8 @@ export interface AffiliateRelationshipAgendaItem {
   /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  /** Why the Sample Application ended, on HANDLE_SAMPLE_TERMINAL_STATE work. Absent on every other agenda item, and on a terminal item whose transition event carried no work status at all. */
+  sampleTerminalState?: Maybe<AffiliateSampleTerminalStateContext>;
   shopId?: Maybe<Scalars['ID']['output']>;
   /** Current region of the shop that owns this agenda fact. Request-scoped and not persisted on the Relationship. */
   shopRegion?: Maybe<Scalars['String']['output']>;
@@ -3535,7 +3551,8 @@ export const AffiliateSampleRejectReason = {
   NotMatch: 'NOT_MATCH',
   Offline: 'OFFLINE',
   Other: 'OTHER',
-  OutOfStock: 'OUT_OF_STOCK'
+  OutOfStock: 'OUT_OF_STOCK',
+  PlatformError: 'PLATFORM_ERROR'
 } as const;
 
 export type AffiliateSampleRejectReason = typeof AffiliateSampleRejectReason[keyof typeof AffiliateSampleRejectReason];
@@ -3545,6 +3562,29 @@ export const AffiliateSampleReviewDecision = {
 } as const;
 
 export type AffiliateSampleReviewDecision = typeof AffiliateSampleReviewDecision[keyof typeof AffiliateSampleReviewDecision];
+/** Why a Sample Application reached the terminal state that opened seller follow-up work. Frozen by the Backend from the transition event; consumers read it verbatim and never re-derive it. UNDETERMINED means the platform did not say, and no cause may be presented to the Creator. */
+export const AffiliateSampleTerminalCause = {
+  ApprovalWindowExpired: 'APPROVAL_WINDOW_EXPIRED',
+  ContentObligationUnfulfilled: 'CONTENT_OBLIGATION_UNFULFILLED',
+  CreatorWithdrew: 'CREATOR_WITHDREW',
+  PlatformForcedRejection: 'PLATFORM_FORCED_REJECTION',
+  PlatformOperationsClosed: 'PLATFORM_OPERATIONS_CLOSED',
+  SellerDidNotShip: 'SELLER_DID_NOT_SHIP',
+  Undetermined: 'UNDETERMINED',
+  Unfulfillable: 'UNFULFILLABLE'
+} as const;
+
+export type AffiliateSampleTerminalCause = typeof AffiliateSampleTerminalCause[keyof typeof AffiliateSampleTerminalCause];
+/** Frozen reason a Sample Application reached the terminal state that opened this follow-up. Classified by the Backend from the immutable transition event, because the Sample row keeps no transition history and cannot recover it. */
+export interface AffiliateSampleTerminalStateContext {
+  /** The producer-side verdict. Read it verbatim: three very different endings share the CANCELLED work status, and only this field separates them. UNDETERMINED means the platform did not say why, and no cause may then be presented to the Creator. */
+  cause: AffiliateSampleTerminalCause;
+  /** Raw Provider application status frozen with the transition, for audit. Provenance only — the cause above is the verdict and must not be re-derived from this. Absent when the transition carried no application status. */
+  platformStatus?: Maybe<Scalars['String']['output']>;
+  /** The terminal work status the Sample Application landed in. */
+  sampleWorkStatus: SampleWorkStatus;
+}
+
 export interface AffiliateSellerContactInfoInput {
   email: Scalars['String']['input'];
   line?: InputMaybe<Scalars['String']['input']>;
@@ -12454,6 +12494,7 @@ export interface StripeBillingPortalSessionPayload {
 export interface SubmitAffiliateCampaignSearchPlanInput {
   configRevision: Scalars['Int']['input'];
   generation: Scalars['Int']['input'];
+  guidanceInterpretation: AffiliateCampaignSearchPlanGuidanceInterpretationInput;
   leaseToken: Scalars['String']['input'];
   phrase: AffiliateCampaignSearchPhraseCandidateInput;
   productSnapshotHash: Scalars['String']['input'];

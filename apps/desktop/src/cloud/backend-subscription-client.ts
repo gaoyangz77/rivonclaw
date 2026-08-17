@@ -395,6 +395,11 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             consecutiveFailureCount
             consecutiveFailureCountTruncated
           }
+          sampleTerminalState {
+            cause
+            sampleWorkStatus
+            platformStatus
+          }
           revisionRequestedProposal {
             id
             type
