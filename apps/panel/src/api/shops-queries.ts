@@ -315,7 +315,7 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
       scanned
       matched
       qualified
-      selected
+      scheduled
       startedAt
       lastSearchedAt
       completedAt
@@ -330,13 +330,13 @@ const AFFILIATE_CAMPAIGN_EXECUTION_FIELDS = gql`
       evaluated
       qualificationFailed
       qualified
-      selected
-      reserved
+      scheduled
       submitted
       sent
       replied
       failed
       uncertain
+      cancelled
     }
     nextTickAt
     stopReason
@@ -371,13 +371,13 @@ export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
         evaluated
         qualificationFailed
         qualified
-        selected
-        reserved
+        scheduled
         submitted
         sent
         replied
         failed
         uncertain
+        cancelled
       }
       shopDailyCapacity {
         marketLocalDate
@@ -386,7 +386,7 @@ export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
         remainingOutreachCapacity
         activeCampaignDailyTargetSum
         targetToLimitRatio
-        nextAllowedAt
+        nextSlotAt
         circuitOpenUntil
         circuitReason
       }
@@ -441,6 +441,17 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         decisionReasonCodes
         providerOrdinal
         providerPageSequence
+        evaluationAttemptCount
+        nextEvaluationAt
+        evaluationFailureStage
+        evidenceMode
+        minimumExpectedSalesUnits
+        humanDecisionWouldApprove
+        modelVersion
+        contractVersion
+        featureAsOf
+        qualificationDecision
+        qualifiedAt
         scheduledAt
         reachedOutAt
         repliedAt
@@ -592,7 +603,7 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
           outreachPolicyBlocked
           qualificationFailed
           qualified
-          selected
+          scheduled
         }
         generationAttemptCount
         providerFailureCount

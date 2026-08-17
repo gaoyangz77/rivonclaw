@@ -192,7 +192,7 @@ type CampaignSearchPlanView = {
     outreachPolicyBlocked: number;
     qualificationFailed: number;
     qualified: number;
-    selected: number;
+    scheduled: number;
   };
   blockStage?: string | null;
   errorCode?: string | null;
@@ -1395,7 +1395,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.scanned")} value={currentSearchPlan.totals.scanned} />
                     <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.matched")} value={currentSearchPlan.totals.matched} />
                     <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.qualified")} value={currentSearchPlan.totals.qualified} />
-                    <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.selected")} value={currentSearchPlan.totals.selected} />
+                    <PlanMetric label={t("ecommerce.affiliateCampaign.funnel.scheduled")} value={currentSearchPlan.totals.scheduled} />
                   </div>
                   <div className="affiliate-campaign-plan-footnote">
                     <span>
@@ -3251,7 +3251,7 @@ function CampaignFunnel({
       }),
     ],
     ["qualified", counters?.qualified ?? 0],
-    ["selected", counters?.selected ?? 0],
+    ["scheduled", counters?.scheduled ?? 0],
     ["submitted", counters?.submitted ?? 0],
     ["sent", counters?.sent ?? 0],
     [
@@ -3263,6 +3263,7 @@ function CampaignFunnel({
       }),
     ],
     ["failed", counters?.failed ?? 0],
+    ["cancelled", counters?.cancelled ?? 0],
     ["replied", counters?.replied ?? 0],
   ] as const;
   return (
