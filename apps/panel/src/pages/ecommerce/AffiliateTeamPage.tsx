@@ -1317,6 +1317,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
       >
         {pageTabs.map((tab, index) => (
           <button
+            key={tab.id}
             id={`affiliate-team-tab-${tab.id.toLowerCase()}`}
             data-tutorial-id={`affiliate-team-tab-${tab.id.toLowerCase()}`}
             className={`affiliate-team-page-tab ${pageTab === tab.id ? "is-active" : ""}`}
@@ -2554,31 +2555,28 @@ function DeveloperDeviceBinding({ form, setForm, myDeviceId, t }: {
 }) {
   const boundDeviceId = form.deviceId.trim();
   const boundToThisDevice = Boolean(myDeviceId) && boundDeviceId === myDeviceId;
-  return <div className="shop-toggle-card">
-    <div className="shop-toggle-card-left">
-      <span className="shop-toggle-card-label">{t("ecommerce.affiliateTeam.outreachDevice")}</span>
-      <span className="form-hint">{t("ecommerce.affiliateTeam.outreachDeviceHint")}</span>
-      {boundToThisDevice && (
-        <span className="badge badge-success shop-badge-inline">{t("ecommerce.affiliateTeam.outreachDeviceThis")}</span>
-      )}
-      {!boundToThisDevice && boundDeviceId !== "" && (
-        <span className="badge badge-warning shop-badge-inline">{t("ecommerce.affiliateTeam.outreachDeviceOther")}</span>
-      )}
-      {boundDeviceId === "" && (
-        <span className="badge badge-warning shop-badge-inline">{t("ecommerce.affiliateTeam.outreachDeviceNone")}</span>
-      )}
+  const statusLabel = boundToThisDevice
+    ? t("ecommerce.affiliateTeam.outreachDeviceThis")
+    : boundDeviceId !== ""
+      ? t("ecommerce.affiliateTeam.outreachDeviceOther")
+      : t("ecommerce.affiliateTeam.outreachDeviceNone");
+  return <div className="affiliate-bd-device-field">
+    <span>{t("ecommerce.affiliateTeam.outreachDevice")}</span>
+    <div className="affiliate-bd-device-control">
+      <label className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={boundToThisDevice}
+          onChange={() => setForm({ ...form, deviceId: boundToThisDevice ? "" : myDeviceId ?? "" })}
+          disabled={!myDeviceId}
+        />
+        <span className={`toggle-track ${boundToThisDevice ? "toggle-track-on" : "toggle-track-off"}`}>
+          <span className={`toggle-thumb ${boundToThisDevice ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
+        </span>
+      </label>
+      <span className={`badge ${boundToThisDevice ? "badge-success" : "badge-warning"}`}>{statusLabel}</span>
     </div>
-    <label className="toggle-switch">
-      <input
-        type="checkbox"
-        checked={boundToThisDevice}
-        onChange={() => setForm({ ...form, deviceId: boundToThisDevice ? "" : myDeviceId ?? "" })}
-        disabled={!myDeviceId}
-      />
-      <span className={`toggle-track ${boundToThisDevice ? "toggle-track-on" : "toggle-track-off"}`}>
-        <span className={`toggle-thumb ${boundToThisDevice ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
-      </span>
-    </label>
+    <small className="form-hint">{t("ecommerce.affiliateTeam.outreachDeviceHint")}</small>
   </div>;
 }
 

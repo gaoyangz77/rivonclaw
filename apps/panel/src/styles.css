@@ -30141,12 +30141,14 @@ html[lang="zh"] .acct-tool-chips {
   box-shadow: 0 8px 22px color-mix(in srgb, var(--color-text) 4%, transparent);
 }
 
+.affiliate-bd-inline-editor > .affiliate-bd-device-field,
 .affiliate-bd-inline-editor > label {
   min-width: 0;
   display: grid;
   gap: 7px;
 }
 
+.affiliate-bd-inline-editor > .affiliate-bd-device-field > span,
 .affiliate-bd-inline-editor > label > span,
 .affiliate-bd-inline-editor legend {
   color: var(--text-muted);
@@ -30713,10 +30715,12 @@ html[lang="zh"] .acct-tool-chips {
   gap: 18px;
   padding: 22px 24px 0;
 }
+.affiliate-developer-editor > .affiliate-bd-device-field,
 .affiliate-developer-editor > label {
   display: grid;
   gap: 7px;
 }
+.affiliate-developer-editor > .affiliate-bd-device-field > span,
 .affiliate-developer-editor > label > span,
 .affiliate-developer-editor legend {
   color: var(--text-muted);
@@ -34550,4 +34554,15 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-campaign-directory-pagination > div {
     align-self: flex-end;
   }
+}
+
+/* The BD handling-device cell sits in the same editor grids as the plain
+   label cells, so it repeats their shape: caption, control row, hint. The
+   toggle and its status badge share one row so the cell's height matches a
+   sibling input's. */
+.affiliate-bd-device-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
 }
