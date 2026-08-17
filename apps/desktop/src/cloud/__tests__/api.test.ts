@@ -392,8 +392,6 @@ describe("cloud-graphql handler", () => {
       candidateCheckpointId: "candidate-checkpoint-1",
       targetEventCursor: 9,
       relationshipOperationalConfigRevision: 4,
-      businessDeveloperIdSnapshot: null,
-      businessDeveloperConfigRevision: null,
       agendaItemsSnapshotId: "66f000000000000000000abc",
     });
 
@@ -419,6 +417,9 @@ describe("cloud-graphql handler", () => {
           handledSignalAt: "2026-01-01T00:00:00.000Z",
           candidateCheckpointId: null,
           relationshipOperationalConfigRevision: 99,
+          // Deprecated resolve inputs, as a stale tool-spec binding or a
+          // model echo would still send them. The proxy must strip all three.
+          triggerShopId: "tool-binding-supplied-shop",
           businessDeveloperIdSnapshot: "agent-supplied-wrong-bd",
           businessDeveloperConfigRevision: 99,
           agendaItemsSnapshotId: "agent-supplied-wrong-snapshot",
@@ -444,14 +445,23 @@ describe("cloud-graphql handler", () => {
           candidateCheckpointId: "candidate-checkpoint-1",
           targetEventCursor: 9,
           relationshipOperationalConfigRevision: 4,
-          businessDeveloperIdSnapshot: null,
-          businessDeveloperConfigRevision: null,
           // The dispatch snapshot id rides the trusted checkpoint; the
           // model-authored value never reaches the backend.
           agendaItemsSnapshotId: "66f000000000000000000abc",
         }),
       }),
     );
+    // The deprecated resolve inputs are stripped at the proxy boundary and
+    // never reach the backend, whatever the tool payload carried.
+    const proxiedResolveInput = (
+      graphqlFetch.mock.calls.find(([query]) => String(query).includes("resolveAffiliateWorkItem"))?.[1] as {
+        input: Record<string, unknown>;
+      }
+    ).input;
+    expect(proxiedResolveInput.triggerShopId).toBeUndefined();
+    expect(proxiedResolveInput.businessDeveloperIdSnapshot).toBeUndefined();
+    expect(proxiedResolveInput.businessDeveloperConfigRevision).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(proxiedResolveInput))).not.toHaveProperty("triggerShopId");
     expect(mockOpenClawRequest).toHaveBeenCalledWith(
       "sessions.checkpoint.create",
       expect.objectContaining({
@@ -488,8 +498,6 @@ describe("cloud-graphql handler", () => {
       candidateCheckpointId: "candidate-checkpoint-1",
       targetEventCursor: 9,
       relationshipOperationalConfigRevision: 4,
-      businessDeveloperIdSnapshot: null,
-      businessDeveloperConfigRevision: null,
     });
 
     const mutation = `
@@ -627,8 +635,6 @@ describe("cloud-graphql handler", () => {
       candidateCheckpointId: "candidate-checkpoint-1",
       targetEventCursor: 9,
       relationshipOperationalConfigRevision: 4,
-      businessDeveloperIdSnapshot: null,
-      businessDeveloperConfigRevision: null,
     });
 
     const predictionQuery = `
@@ -1710,8 +1716,6 @@ describe("cloud-graphql handler", () => {
       candidateCheckpointId: "candidate-checkpoint-1",
       targetEventCursor: 9,
       relationshipOperationalConfigRevision: 4,
-      businessDeveloperIdSnapshot: null,
-      businessDeveloperConfigRevision: null,
     });
 
     const query = `

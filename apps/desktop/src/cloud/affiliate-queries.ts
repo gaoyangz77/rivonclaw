@@ -7,8 +7,6 @@ export const AFFILIATE_CONTEXT_BUILDER_QUERY = `
       baseEventCursor
       targetEventCursor
       relationshipOperationalConfigRevision
-      businessDeveloperIdSnapshot
-      businessDeveloperConfigRevision
       baseMatchesCommitted
       truncated
       involvedShopInstructions {
@@ -206,6 +204,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       agentWorkingAgendaItems {
         key
         owner
+        scopeType
         sourceType
         workKind
         requiredAction
@@ -370,6 +369,14 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         activeRunBaseEventCursor
         stateUpdatedAt
         activeAffiliateCollaborationIds
+        workSummary {
+          agentRequiredCount
+          staffRequiredCount
+          externalWaitingCount
+          nextActionAt
+          businessDeveloperId
+          businessDeveloperDeviceId
+        }
         shopStates {
           shopId
           tagIds

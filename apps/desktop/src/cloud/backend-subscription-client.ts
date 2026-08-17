@@ -320,6 +320,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         agentWorkingAgendaItems {
           key
           owner
+          scopeType
           sourceType
           workKind
           requiredAction
@@ -497,6 +498,8 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             staffRequiredCount
             externalWaitingCount
             nextActionAt
+            businessDeveloperId
+            businessDeveloperDeviceId
           }
           stateUpdatedAt
           activeAffiliateCollaborationIds
@@ -689,6 +692,7 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         id
         userId
         focusShopId
+        shopIds
         campaignId
         creatorId
         creatorRelationshipId
@@ -1406,7 +1410,23 @@ export class BackendSubscriptionClient {
   /** Pong watchdog for graphql-ws keep-alive pings. */
   private pongTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly locale: string) {}
+  /**
+   * @param deviceId This Desktop's device id, announced to the backend as a
+   * graphql-ws connection param next to `authorization`. The backend's
+   * affiliate work-item presence registry reads it pre-execution in its
+   * `onSubscribe` hook to record WHICH device holds the subscription, so the
+   * dispatch tail can skip sellers whose online devices cannot admit affiliate
+   * work. A connection param (not a subscription variable) on purpose: a
+   * variable would have to be declared on the subscription field, and a
+   * backend that does not yet declare it rejects the whole operation at
+   * GraphQL validation — breaking updated Desktops against the currently
+   * deployed backend. An unknown connection param is simply ignored by older
+   * backends, so it is safe in both deploy directions.
+   */
+  constructor(
+    private readonly locale: string,
+    private readonly deviceId?: string,
+  ) {}
 
   isConnected(): boolean {
     return this.client !== null;
@@ -2524,7 +2544,11 @@ export class BackendSubscriptionClient {
       webSocketImpl: proxyNetwork.createProxiedWebSocketClass() as any,
       connectionParams: () => {
         const token = this.getToken?.();
-        return token ? { authorization: `Bearer ${token}` } : {};
+        if (!token) return {};
+        return {
+          authorization: `Bearer ${token}`,
+          ...(this.deviceId ? { deviceId: this.deviceId } : {}),
+        };
       },
       retryAttempts: Infinity,
       retryWait: async (retries: number) => {

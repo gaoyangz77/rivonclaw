@@ -5,21 +5,80 @@ import { rootStore } from "../app/store/desktop-store.js";
 
 const log = createLogger("affiliate-work-item-actuator");
 
-function findWorkItemShopForDevice(workItem: AffiliateWorkItemPayload, deviceId: string): any | undefined {
-  const shopKeys = uniqueShopKeys([
-    ...(workItem.routingShopIds ?? []),
-    ...(workItem.routingPlatformShopIds ?? []),
-    workItem.triggerShopId,
-    workItem.triggerPlatformShopId,
-  ]);
-  for (const shopKey of shopKeys) {
-    const shop = rootStore.findShopByObjectOrPlatformId(shopKey, shopKey);
-    const affiliateService = shop?.services?.affiliateService;
-    if (shop && affiliateService?.enabled && affiliateService.deviceId === deviceId) {
-      return shop;
-    }
+/**
+ * The single device a work item is targeted at, or the reason no device can
+ * claim it. Exactly one Desktop may dispatch a given work item; every Desktop
+ * computes the same target from the same payload, and only the one whose
+ * local device id equals the target proceeds.
+ */
+export type AffiliateWorkItemDeviceTarget =
+  | { kind: "BUSINESS_DEVELOPER"; deviceId: string }
+  /**
+   * A Business Developer owns the Relationship but has no outreach device
+   * bound. Nobody dispatches — the work waits visibly (the Panel banner is
+   * the remediation surface). There is deliberately NO shop fallback: shop
+   * devices must not pick up Business Developer work.
+   */
+  | { kind: "BUSINESS_DEVELOPER_WITHOUT_DEVICE" }
+  | { kind: "SHOP"; deviceId: string; shopId: string }
+  /** No candidate shop is enabled with an affiliate device; nobody dispatches. */
+  | { kind: "NO_ELIGIBLE_SHOP" };
+
+/** The per-shop facts the targeting rule needs, resolved by the caller. */
+export interface AffiliateShopDeviceFacts {
+  enabled: boolean;
+  deviceId: string | null;
+}
+
+/**
+ * Deterministic single-target device selection for an affiliate work item.
+ *
+ * Rule (in priority order):
+ * 1. Business Developer first: when the relationship work summary names a
+ *    Business Developer, the target is that developer's device and nothing
+ *    else. A deviceless Business Developer means nobody dispatches — never
+ *    fall back to a shop device.
+ * 2. Otherwise the first enabled shop with an affiliate device wins, scanning
+ *    the frozen agenda items' shop anchors in payload order.
+ * 3. Only when no agenda item names a shop at all, scan the relationship's
+ *    shop-state list in payload order with the same predicate. Anchored
+ *    agendas whose shops all fail the predicate do NOT fall through to the
+ *    shop-state list — the work has named its shops and none can carry it.
+ *
+ * Determinism comes from the payload: candidate order is the backend-frozen
+ * agenda/shop-state order, and `lookupShop` is keyed by shop id, so the local
+ * store's own iteration order can never influence the result. Every Desktop
+ * of the seller therefore computes the same target.
+ */
+export function computeAffiliateWorkItemDeviceTarget(
+  workItem: AffiliateWorkItemPayload,
+  lookupShop: (shopId: string) => AffiliateShopDeviceFacts | undefined,
+): AffiliateWorkItemDeviceTarget {
+  const workSummary = workItem.creatorRelationship?.workSummary;
+  const businessDeveloperId = trimmedOrNull(workSummary?.businessDeveloperId);
+  if (businessDeveloperId) {
+    const businessDeveloperDeviceId = trimmedOrNull(workSummary?.businessDeveloperDeviceId);
+    return businessDeveloperDeviceId
+      ? { kind: "BUSINESS_DEVELOPER", deviceId: businessDeveloperDeviceId }
+      : { kind: "BUSINESS_DEVELOPER_WITHOUT_DEVICE" };
   }
-  return undefined;
+
+  const agendaShopIds = orderedUniqueShopIds(
+    (workItem.agentWorkingAgendaItems ?? []).map((item) => item.shopId),
+  );
+  const candidateShopIds = agendaShopIds.length > 0
+    ? agendaShopIds
+    : orderedUniqueShopIds(
+        (workItem.creatorRelationship?.shopStates ?? []).map((state) => state.shopId),
+      );
+
+  for (const shopId of candidateShopIds) {
+    const shop = lookupShop(shopId);
+    if (shop?.enabled !== true) continue;
+    const deviceId = trimmedOrNull(shop.deviceId);
+    if (deviceId) return { kind: "SHOP", deviceId, shopId };
+  }
+  return { kind: "NO_ELIGIBLE_SHOP" };
 }
 
 export async function handleAffiliateWorkItemChanged(
@@ -31,17 +90,25 @@ export async function handleAffiliateWorkItemChanged(
     `collaboration=${workItem.affiliateCollaborationId} status=${workItem.processingStatus}`,
   );
 
-  const shop = findWorkItemShopForDevice(workItem, deviceId);
-  const affiliateService = shop?.services?.affiliateService;
-  if (!shop || !affiliateService?.enabled) {
-    log.info(`Ignoring affiliate work item with no available enabled route for this desktop`);
+  const target = computeAffiliateWorkItemDeviceTarget(workItem, lookupAffiliateShopDeviceFacts);
+  if (target.kind === "BUSINESS_DEVELOPER_WITHOUT_DEVICE") {
+    log.info(
+      `Affiliate work item is Business Developer-routed but the developer has no device; ` +
+      `no desktop dispatches and the work waits visibly: relationship=${workItem.creatorRelationshipId}`,
+    );
     return;
   }
-
-  if (affiliateService.deviceId !== deviceId) {
+  if (target.kind === "NO_ELIGIBLE_SHOP") {
     log.info(
-      `Ignoring affiliate work item for shop ${shop.platformShopId}: ` +
-      `assignedDevice=${affiliateService.deviceId ?? ""} currentDevice=${deviceId}`,
+      `Affiliate work item has no enabled shop with an affiliate device; no desktop dispatches: ` +
+      `relationship=${workItem.creatorRelationshipId}`,
+    );
+    return;
+  }
+  if (target.deviceId !== deviceId) {
+    log.info(
+      `Ignoring affiliate work item targeted at another device: ` +
+      `targetKind=${target.kind} targetDevice=${target.deviceId} currentDevice=${deviceId}`,
     );
     return;
   }
@@ -50,15 +117,38 @@ export async function handleAffiliateWorkItemChanged(
 
   const bridge = getCsBridge();
   if (!bridge) {
-    log.warn(`Affiliate work item arrived before ecommerce bridge was ready: shop=${shop.platformShopId}`);
+    log.warn(
+      `Affiliate work item arrived before ecommerce bridge was ready: relationship=${workItem.creatorRelationshipId}`,
+    );
     return;
   }
 
   await bridge.handleAffiliateWorkItemChanged(workItem);
 }
 
-function uniqueShopKeys(values: Array<string | null | undefined>): string[] {
-  return [...new Set(values.filter((value): value is string => typeof value === "string" && value.length > 0))];
+function lookupAffiliateShopDeviceFacts(shopId: string): AffiliateShopDeviceFacts | undefined {
+  const shop = rootStore.findShopByObjectOrPlatformId(shopId, null);
+  if (!shop) return undefined;
+  const affiliateService = shop.services?.affiliateService;
+  return {
+    enabled: affiliateService?.enabled === true,
+    deviceId: affiliateService?.deviceId ?? null,
+  };
+}
+
+function trimmedOrNull(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function orderedUniqueShopIds(values: Array<string | null | undefined>): string[] {
+  return [
+    ...new Set(
+      values
+        .map((value) => trimmedOrNull(value))
+        .filter((value): value is string => value !== null),
+    ),
+  ];
 }
 
 function ingestAffiliateWorkItemEntities(workItem: AffiliateWorkItemPayload): void {
