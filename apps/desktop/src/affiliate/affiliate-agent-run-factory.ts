@@ -144,33 +144,140 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
 }
 
 /**
- * Why the Sample Application ended, on terminal follow-up work.
+ * What each terminal cause means, and what we suggest doing about it.
  *
- * The terminal work status alone cannot answer it: a rejection the platform
- * forced on us, a Creator withdrawing their own application, and a Creator
- * missing their content deadline all land in `CANCELLED`, and each owes that
- * Creator a different message — or none. The Backend classifies the cause once
- * from the frozen transition event; Desktop renders that verdict verbatim and
- * never re-derives one from the platform status beside it.
+ * THIS TABLE IS THE ONLY PLACE THAT DECIDES WHETHER A CAUSE WARRANTS
+ * CONTACTING THE CREATOR. The affiliate workflow skill teaches how to word the
+ * contact well; it must not also rule on whether to make it, because two
+ * rulings drift and the item is what the Agent actually reads.
  *
- * `UNDETERMINED` gets an explicit instruction rather than a bare value. It is
- * the one case where the Agent has to be told what NOT to do: the Sample is
- * visibly dead, so inventing a plausible reason is the natural failure, and a
- * wrong reason read back to a Creator is worse than no reason at all.
+ * Both fields are prose because the enum name is not an instruction. A live run
+ * handed `HANDLE_SAMPLE_TERMINAL_STATE` / `SAMPLE_PLATFORM_TERMINAL_STATE` and
+ * nothing else contacted neither Creator: every line it was given named a
+ * state, and doing nothing is a defensible way to "handle" a state.
+ *
+ * `fact` states what happened, at the level the frozen record actually
+ * supports — the Agent cannot derive it, because all it can otherwise see is a
+ * Sample that is already dead. `suggestedNextStep` is a suggestion, not a
+ * mandate: the Agent may fold it into another message in the same bundle or
+ * adjust it for a conversation that just covered the ground. Where contact is
+ * not suggested, the field says so explicitly; emitting nothing would read as
+ * an oversight and put the Agent back to inferring.
+ *
+ * Keyed exhaustively so a new Backend cause fails to compile here rather than
+ * reaching an Agent as a bare identifier.
+ */
+const SAMPLE_TERMINAL_CAUSE_PROSE: Record<
+  GQL.AffiliateSampleTerminalCause,
+  { fact: string; suggestedNextStep: string }
+> = {
+  /**
+   * The wording deliberately stops short of "we intended to approve".
+   *
+   * Every path the Backend produces this cause on today does start from a
+   * refused APPROVE — `AffiliatePlatformActionService` auto-rejects only inside
+   * the approval branch of its catch (a failed REJECT returns earlier and
+   * writes no failure event at all), and the stranded-sample repair script
+   * requires an `ACTION_FAILED` event naming the Sample, which only that branch
+   * produces. But `PLATFORM_ERROR` is still an accepted value on the proposal
+   * input and nothing validates it away, so the frozen record cannot prove the
+   * blocked decision was an approval. What it does prove — that no one judged
+   * this Creator — is the part the Creator is owed, and it holds on every path.
+   */
+  [GQL.AffiliateSampleTerminalCause.PlatformForcedRejection]: {
+    fact:
+      "The platform refused the review call for this application itself, so the decision could not be carried out and the application was closed as a rejection on those grounds. This records a platform failure, not a judgement: nobody on our side decided against this Creator, this product, or this application. The frozen record does not say which decision was blocked, so do not tell the Creator we had approved them.",
+    suggestedNextStep:
+      "Contact the Creator. This is the one ending they have no way to find out about, and they are owed the honest fact that the application could not be completed because of an error on our side rather than because we were unwilling. Do not quote the platform error code or request id.",
+  },
+  [GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired]: {
+    fact:
+      "Nobody reviewed this application before its approval window lapsed, so the platform closed it. It was never judged at all — the Creator applied and was left waiting on an answer that never came, and the lapse is ours, not theirs.",
+    suggestedNextStep:
+      "Contact the Creator and acknowledge the lapse plainly, without blaming them or the platform. If the seller still wants this Creator, say what happens next.",
+  },
+  [GQL.AffiliateSampleTerminalCause.CreatorWithdrew]: {
+    fact:
+      "The Creator withdrew this application themselves, before anyone on our side approved or rejected it. It was their own decision and they already know they made it.",
+    suggestedNextStep:
+      "No outreach about this application. Telling a Creator what they themselves just did is noise, and asking them to reconsider is worse. Reply only if separate live business in this relationship still needs an answer, and then answer that business rather than the withdrawal.",
+  },
+  [GQL.AffiliateSampleTerminalCause.ContentObligationUnfulfilled]: {
+    fact:
+      "The Creator received the sample and the content they committed to did not arrive within the agreed timeframe, so the platform closed the application. The record carries that outcome and nothing at all about why it happened.",
+    suggestedNextStep:
+      "No outreach is owed. A reprimand or a demand for an explanation would assert bad faith we have no evidence of. If the seller wants to keep this relationship, a factual, non-accusatory check-in is the most to propose; otherwise leave it to the seller's own tagging and protection rules.",
+  },
+  [GQL.AffiliateSampleTerminalCause.SellerDidNotShip]: {
+    fact:
+      "The seller approved this application and then did not ship the sample within the platform's required timeframe, so the platform cancelled it. The Creator was waiting on us throughout, and the miss is ours.",
+    suggestedNextStep:
+      "Contact the Creator and own the miss plainly. Do not blame the platform, do not blame them, and do not invent a shipping reason the record does not carry. If the seller still wants the collaboration, say what happens next.",
+  },
+  [GQL.AffiliateSampleTerminalCause.Unfulfillable]: {
+    fact:
+      "The platform cancelled this application because producing the content had become impossible for reasons outside the Creator's control. The platform establishes that much and does not tell us which reason.",
+    suggestedNextStep:
+      "Contact the Creator to make clear this was not a judgement about them, and give no specific reason — we do not have one. If the specific reason decides what happens next, request human review instead of guessing.",
+  },
+  [GQL.AffiliateSampleTerminalCause.PlatformOperationsClosed]: {
+    fact:
+      "TikTok operations staff closed this application themselves, cancelling it or marking it failed. Neither the seller nor the Creator decided it, and the platform does not tell us why.",
+    suggestedNextStep:
+      "Contact the Creator only if this relationship warrants it, and then say only what is known — that the platform closed the application. Never suggest a policy violation or an account problem; an unfounded hint at either damages the Creator far more than silence.",
+  },
+  [GQL.AffiliateSampleTerminalCause.Undetermined]: {
+    fact:
+      "This application reached a terminal state and the transition the platform recorded names no ending we can read. We do not know why it ended.",
+    suggestedNextStep:
+      "No outreach on the strength of this alone. If contact is warranted by other live business in this relationship, confine yourself to the fact that the application is closed. If a reason is genuinely needed to decide what happens next, request human review and say the cause was undetermined.",
+  },
+};
+
+/**
+ * Why the Sample Application ended, on terminal follow-up work — and what we
+ * suggest doing about it.
+ *
+ * The terminal work status alone cannot answer the first part: a rejection the
+ * platform forced on us, a Creator withdrawing their own application, and a
+ * Creator missing their content deadline all land in `CANCELLED`, and each owes
+ * that Creator a different message — or none. The Backend classifies the cause
+ * once from the frozen transition event; Desktop renders that verdict verbatim
+ * and never re-derives one from the platform status beside it.
+ *
+ * The prose below is a fixed mapping from that frozen verdict, not a second
+ * opinion about it. Rendering it here rather than at the producer matches how
+ * every other standing instruction on this agenda is delivered (the untrusted-
+ * input warning on a Conversation Window, the attempt-budget framing on a
+ * failed execution): the Backend owns the facts, the run context owns how they
+ * are put to the Agent.
+ *
+ * `UNDETERMINED` keeps its explicit prohibition on top of its prose. It is the
+ * one case where the Agent has to be told what NOT to do: the Sample is visibly
+ * dead, so inventing a plausible reason is the natural failure, and a wrong
+ * reason read back to a Creator is worse than no reason at all.
  */
 function renderSampleTerminalState(
   terminal: GQL.AffiliateSampleTerminalStateContext,
 ): string[] {
+  const prose = SAMPLE_TERMINAL_CAUSE_PROSE[terminal.cause];
+  if (!prose) {
+    throw new Error(
+      `Affiliate Sample terminal cause ${terminal.cause} has no fact or suggested next step; refuse to hand the Agent a bare identifier.`,
+    );
+  }
   const lines = [
     `   Sample Terminal Cause: ${terminal.cause}`,
     `   Sample Terminal Work Status: ${terminal.sampleWorkStatus}`,
     `   Sample Terminal Platform Status: ${terminal.platformStatus ?? "(unavailable)"}`,
+    `   Sample Terminal Fact: ${prose.fact}`,
   ];
   if (terminal.cause === GQL.AffiliateSampleTerminalCause.Undetermined) {
     lines.push(
       "   Terminal Cause Disclosure: the platform did not record why this Sample Application ended. Never state or imply a reason to the Creator.",
     );
   }
+  lines.push(`   Sample Terminal Suggested Next Step: ${prose.suggestedNextStep}`);
   return lines;
 }
 

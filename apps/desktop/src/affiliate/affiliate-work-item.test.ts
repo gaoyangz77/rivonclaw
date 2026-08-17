@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GQL } from "@rivonclaw/core";
 
@@ -2874,12 +2875,37 @@ describe("affiliate work item dispatch", () => {
   });
 
   /**
-   * The three shapes below are the exact `sampleTerminalState` values the
-   * Backend freezes for the same three endings, verified against the real
-   * producers in `AffiliateSampleTerminalFollowUp.test.ts`. A forced rejection
-   * and a Creator withdrawal share `CANCELLED`, so the work status cannot tell
-   * the Agent them apart and only the rendered cause can.
+   * The exact `sampleTerminalState` values the Backend freezes for these
+   * endings, each transcribed from the assertion in
+   * `AffiliateSampleTerminalFollowUp.test.ts` that pins it against the real
+   * producer — the forced rejection from an APPROVE that TikTok refused
+   * non-retryably, the other two from the Provider observation writer. Nothing
+   * here is a triple this file invented: a fact statement is only worth
+   * anything if it is attached to a shape a writer actually produces.
+   *
+   * A forced rejection and a Creator withdrawal share `CANCELLED`, so the work
+   * status cannot tell the Agent them apart and only the cause can.
    */
+  const PRODUCER_VERIFIED_TERMINAL_STATES = {
+    [GQL.AffiliateSampleTerminalCause.PlatformForcedRejection]: {
+      cause: GQL.AffiliateSampleTerminalCause.PlatformForcedRejection,
+      sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
+      platformStatus: "REJECT_CANCELLED",
+    },
+    [GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired]: {
+      cause: GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired,
+      sampleWorkStatus: GQL.SampleWorkStatus.Expired,
+      platformStatus: "OVERDUE_CANCELLED",
+    },
+    [GQL.AffiliateSampleTerminalCause.CreatorWithdrew]: {
+      cause: GQL.AffiliateSampleTerminalCause.CreatorWithdrew,
+      sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
+      platformStatus: "WITHDRAW_CANCELLED",
+    },
+  } as const satisfies Partial<
+    Record<GQL.AffiliateSampleTerminalCause, GQL.AffiliateSampleTerminalStateContext>
+  >;
+
   function terminalAgenda(
     sampleTerminalState: GQL.AffiliateSampleTerminalStateContext,
   ): GQL.AffiliateRelationshipAgendaItem {
@@ -2908,17 +2934,17 @@ describe("affiliate work item dispatch", () => {
     return request?.message ?? "";
   }
 
+  /** The prose line for one layer, so two causes can be compared as text. */
+  function terminalLine(message: string, label: string): string {
+    const line = message.split("\n").find((candidate) => candidate.includes(`   ${label}: `));
+    return line?.slice(line.indexOf(`${label}: `) + label.length + 2).trim() ?? "";
+  }
+
   it("tells a rejection the platform forced apart from a Creator withdrawal", () => {
-    const forced = renderTerminalAgenda({
-      cause: GQL.AffiliateSampleTerminalCause.PlatformForcedRejection,
-      sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
-      platformStatus: "REJECT_CANCELLED",
-    });
-    const withdrawn = renderTerminalAgenda({
-      cause: GQL.AffiliateSampleTerminalCause.CreatorWithdrew,
-      sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
-      platformStatus: "WITHDRAW_CANCELLED",
-    });
+    const forced = renderTerminalAgenda(
+      PRODUCER_VERIFIED_TERMINAL_STATES.PLATFORM_FORCED_REJECTION,
+    );
+    const withdrawn = renderTerminalAgenda(PRODUCER_VERIFIED_TERMINAL_STATES.CREATOR_WITHDREW);
 
     expect(forced).toContain("Sample Terminal Cause: PLATFORM_FORCED_REJECTION");
     expect(forced).toContain("Sample Terminal Work Status: CANCELLED");
@@ -2929,17 +2955,117 @@ describe("affiliate work item dispatch", () => {
     expect(withdrawn).toContain("Sample Terminal Work Status: CANCELLED");
   });
 
+  /**
+   * The defect this pair exists for. A live run given only
+   * `HANDLE_SAMPLE_TERMINAL_STATE` and `SAMPLE_PLATFORM_TERMINAL_STATE`
+   * contacted neither Creator: both lines name a state, and doing nothing is a
+   * defensible way to handle a state. So the item has to say what happened and
+   * what we suggest doing — and the two endings that share the least must not
+   * share either sentence.
+   */
+  it("states a different fact and a different next step for a forced rejection than for an expiry", () => {
+    const forced = renderTerminalAgenda(
+      PRODUCER_VERIFIED_TERMINAL_STATES.PLATFORM_FORCED_REJECTION,
+    );
+    const expired = renderTerminalAgenda(
+      PRODUCER_VERIFIED_TERMINAL_STATES.APPROVAL_WINDOW_EXPIRED,
+    );
+
+    const forcedFact = terminalLine(forced, "Sample Terminal Fact");
+    const expiredFact = terminalLine(expired, "Sample Terminal Fact");
+    const forcedStep = terminalLine(forced, "Sample Terminal Suggested Next Step");
+    const expiredStep = terminalLine(expired, "Sample Terminal Suggested Next Step");
+
+    for (const prose of [forcedFact, expiredFact, forcedStep, expiredStep]) {
+      expect(prose.length).toBeGreaterThan(0);
+    }
+    expect(forcedFact).not.toBe(expiredFact);
+    expect(forcedStep).not.toBe(expiredStep);
+
+    // The facts, stated rather than left to be inferred from the enum name.
+    expect(forcedFact).toContain("refused the review call");
+    expect(forcedFact).toContain("not a judgement");
+    expect(expiredFact).toContain("approval window lapsed");
+    expect(expiredFact).toContain("never judged");
+    // Neither fact may claim we had approved: the frozen record does not carry
+    // which decision the platform blocked.
+    expect(forcedFact).toContain("do not tell the Creator we had approved them");
+
+    // The suggestions, phrased as suggestions.
+    expect(forcedStep).toContain("Contact the Creator");
+    expect(expiredStep).toContain("Contact the Creator");
+    expect(forcedStep).toContain("error on our side");
+    expect(expiredStep).toContain("acknowledge the lapse");
+  });
+
+  it("says so explicitly when it does not suggest contacting the Creator", () => {
+    const withdrawn = renderTerminalAgenda(PRODUCER_VERIFIED_TERMINAL_STATES.CREATOR_WITHDREW);
+
+    expect(terminalLine(withdrawn, "Sample Terminal Fact")).toContain(
+      "withdrew this application themselves",
+    );
+    // An absent action layer would read as an oversight and put the Agent back
+    // to inferring, so silence has to be stated.
+    expect(terminalLine(withdrawn, "Sample Terminal Suggested Next Step")).toContain(
+      "No outreach about this application",
+    );
+  });
+
   it("tells an expiry apart from a rejection the platform forced", () => {
-    const expired = renderTerminalAgenda({
-      cause: GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired,
-      sampleWorkStatus: GQL.SampleWorkStatus.Expired,
-      platformStatus: "OVERDUE_CANCELLED",
-    });
+    const expired = renderTerminalAgenda(
+      PRODUCER_VERIFIED_TERMINAL_STATES.APPROVAL_WINDOW_EXPIRED,
+    );
 
     expect(expired).toContain("Sample Terminal Cause: APPROVAL_WINDOW_EXPIRED");
     expect(expired).toContain("Sample Terminal Work Status: EXPIRED");
     expect(expired).toContain("Sample Terminal Platform Status: OVERDUE_CANCELLED");
     expect(expired).not.toContain("PLATFORM_FORCED_REJECTION");
+  });
+
+  /**
+   * Coverage is read from the Backend's own schema artifact rather than from a
+   * list kept here, because a cause added there and missed here is exactly the
+   * regression this asserts against: the Agent would receive a bare identifier
+   * and be back to inferring its next step for that ending. The same artifact
+   * already backs `affiliate-graphql-contract.test.ts`.
+   */
+  it("states a distinct fact and next step for every cause the Backend can freeze", () => {
+    const schema = readFileSync(
+      new URL("../../../../server/backend/schema.graphql", import.meta.url),
+      "utf8",
+    );
+    const block = /enum AffiliateSampleTerminalCause \{([^}]*)\}/.exec(schema);
+    const schemaCauses = (block?.[1] ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    expect(schemaCauses.length).toBeGreaterThan(0);
+    expect([...schemaCauses].sort()).toEqual(
+      [...Object.values(GQL.AffiliateSampleTerminalCause)].sort(),
+    );
+
+    const facts = new Map<string, string>();
+    const steps = new Map<string, string>();
+    for (const cause of schemaCauses as GQL.AffiliateSampleTerminalCause[]) {
+      const message = renderTerminalAgenda({
+        cause,
+        // Provenance only; the prose is keyed off the cause alone.
+        sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
+        platformStatus: null,
+      });
+      const fact = terminalLine(message, "Sample Terminal Fact");
+      const step = terminalLine(message, "Sample Terminal Suggested Next Step");
+      expect(fact, `${cause} states no fact`).not.toBe("");
+      expect(step, `${cause} suggests no next step`).not.toBe("");
+      facts.set(cause, fact);
+      steps.set(cause, step);
+    }
+
+    // Shared prose would mean one of the causes is being described by another
+    // cause's ending, which is the failure the fact layer exists to prevent.
+    expect(new Set(facts.values()).size).toBe(facts.size);
+    expect(new Set(steps.values()).size).toBe(steps.size);
   });
 
   it("forbids inventing a reason when the platform did not record one", () => {
