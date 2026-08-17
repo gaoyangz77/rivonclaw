@@ -286,6 +286,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           sampleWorkStatus
           platformStatus
         }
+        hasTargetCollaboration
         revisionRequestedProposal {
           id
           type

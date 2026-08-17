@@ -3138,6 +3138,8 @@ export interface AffiliateRelationshipAgendaItem {
   boundaryEventCursor?: Maybe<Scalars['Int']['output']>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   conversationWindow?: Maybe<AffiliateConversationWindow>;
+  /** Whether an active Target Collaboration covers this item's exact shop, Creator and product — the seller commitment a Sample decision turns on. Null means the question is unanswerable from this item (it names no product, or its shop lies outside the Relationship), NOT that no commitment exists; never read null as false. */
+  hasTargetCollaboration?: Maybe<Scalars['Boolean']['output']>;
   key: Scalars['String']['output'];
   /** The most recent Provider execution attempt on this agenda boundary when that attempt failed and nothing has succeeded on the boundary since. Absent means the boundary has no unresolved execution failure. */
   lastFailedExecution?: Maybe<AffiliateFailedExecutionContext>;
@@ -3474,7 +3476,6 @@ export interface AffiliateRelationshipTimelineRelatedIds {
 }
 
 export interface AffiliateRelationshipWorkSummary {
-  activeCollaborationCount: Scalars['Int']['output'];
   agentRequiredCount: Scalars['Int']['output'];
   externalWaitingCount: Scalars['Int']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;

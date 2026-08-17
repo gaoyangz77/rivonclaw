@@ -545,7 +545,6 @@ function createSampleReviewWorkItem(
         agentRequiredCount: 1,
         staffRequiredCount: 0,
         externalWaitingCount: 0,
-        activeCollaborationCount: 1,
         nextActionAt: null,
       },
       committedCheckpointId: null,
@@ -3956,5 +3955,100 @@ describe("Provider-terminal sample follow-up dispatch mapping", () => {
       triggerKind: AffiliateTriggerKind.SAMPLE_APPLICATION,
       triggerId: "sample-record-001",
     });
+  });
+});
+
+/**
+ * The seller-commitment line on Sample work.
+ *
+ * It replaced `workSummary.activeCollaborationCount`, a Relationship-level
+ * number that summed active Samples and active Collaborations and reported the
+ * total as a Collaboration count. A live run was shown `1` beside an empty
+ * collaboration id list, correctly called it a contradiction, and escalated a
+ * Sample it could have decided.
+ *
+ * Backend decides the three states; that the producer actually emits all three
+ * is proved against real writers in
+ * `server/backend/src/ecommerce/affiliate/services/AffiliateTargetCollaborationCoverage.test.ts`.
+ * What is at stake here is only that Desktop renders them apart — above all
+ * that null is not shown to the Agent as "no".
+ */
+describe("Target Collaboration coverage in the Working Agenda", () => {
+  function renderCoverage(
+    hasTargetCollaboration: boolean | null,
+    itemOverrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {},
+  ): string {
+    const base = createCreatorReplyWorkItem();
+    const agendaItem = (base.creatorRelationship?.agendaItems ?? [])[0] as
+      GQL.AffiliateRelationshipAgendaItem;
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({
+        agentWorkingAgendaItems: [{
+          ...agendaItem,
+          workKind: GQL.AffiliateWorkKind.SampleApplicationDecision,
+          requiredAction:
+            GQL.AffiliateRelationshipRequiredAction.ReviewSampleApplication,
+          sampleApplicationRecordId: "sample-coverage-001",
+          productId: "product-under-review",
+          predictionEvidence: createWorkingAgendaPredictionEvidence(),
+          hasTargetCollaboration,
+          ...itemOverrides,
+        }],
+      }),
+      platform: "tiktok",
+    });
+    return request?.message ?? "";
+  }
+
+  const LABEL = "Seller Target Collaboration For This Product";
+
+  it("states the commitment as present when the Backend answered yes", () => {
+    const message = renderCoverage(true);
+
+    expect(message).toContain(`${LABEL}: YES`);
+    expect(message).toContain("active Target Collaboration covers this shop, this Creator and this product");
+    expect(message).not.toContain(`${LABEL}: NO`);
+    expect(message).not.toContain(`${LABEL}: UNKNOWN`);
+  });
+
+  /**
+   * A "no" here rules out the structured invitation only. A seller who invited
+   * the Creator in conversation leaves no Collaboration behind, so the line
+   * must not read as "the seller never invited them".
+   */
+  it("scopes a no to the structured invitation", () => {
+    const message = renderCoverage(false);
+
+    expect(message).toContain(`${LABEL}: NO`);
+    expect(message).toContain("rules out only the structured invitation");
+    expect(message).not.toContain(`${LABEL}: YES`);
+  });
+
+  /**
+   * The whole point of the field being nullable. The seller rule keys on a
+   * commitment being PRESENT, so an unanswered question rendered as "no" would
+   * push the Agent toward wrongly refusing — the same class of error as the
+   * count it replaced.
+   */
+  it("renders an unanswered question as its own state and never as a no", () => {
+    const message = renderCoverage(null, { productId: null });
+
+    expect(message).toContain(`${LABEL}: UNKNOWN`);
+    expect(message).toContain("UNKNOWN is not NO");
+    expect(message).not.toContain(`${LABEL}: NO`);
+    expect(message).not.toContain(`${LABEL}: YES`);
+  });
+
+  it("stays silent on non-Sample work the Backend did not answer for", () => {
+    const message = renderCoverage(null, {
+      workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
+      sampleApplicationRecordId: null,
+      productId: null,
+      predictionEvidence: null,
+    });
+
+    expect(message).toContain("[Agent Working Agenda]");
+    expect(message).not.toContain(LABEL);
   });
 });

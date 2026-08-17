@@ -400,6 +400,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             sampleWorkStatus
             platformStatus
           }
+          hasTargetCollaboration
           revisionRequestedProposal {
             id
             type
@@ -490,7 +491,6 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             agentRequiredCount
             staffRequiredCount
             externalWaitingCount
-            activeCollaborationCount
             nextActionAt
           }
           stateUpdatedAt

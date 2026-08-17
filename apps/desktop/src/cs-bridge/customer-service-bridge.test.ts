@@ -154,7 +154,6 @@ function buildAffiliateRelationshipWorkItem(creatorRelationshipId: string, userI
       agentRequiredCount: 1,
       staffRequiredCount: 0,
       externalWaitingCount: 0,
-      activeCollaborationCount: 0,
       nextActionAt: null,
     },
     processingStatus: GQL.AffiliateRelationshipProcessingStatus.AgentRequired,

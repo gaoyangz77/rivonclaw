@@ -117,6 +117,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     if (item.sampleTerminalState) {
       lines.push(...renderSampleTerminalState(item.sampleTerminalState));
     }
+    lines.push(...renderTargetCollaborationCoverage(item));
     if (item.predictionEvidence) {
       lines.push(...renderWorkingAgendaPredictionEvidence(item.predictionEvidence));
     }
@@ -279,6 +280,47 @@ function renderSampleTerminalState(
   }
   lines.push(`   Sample Terminal Suggested Next Step: ${prose.suggestedNextStep}`);
   return lines;
+}
+
+/**
+ * Whether the seller already committed to this Creator for this product, as a
+ * per-product fact the Agent can decide from.
+ *
+ * This replaced a Relationship-level `activeCollaborationCount` that summed
+ * active Samples and active Collaborations and reported the total under a name
+ * that promised only Collaborations. A live run was shown `1` beside an empty
+ * collaboration id list, correctly called it a contradiction, and escalated a
+ * Sample it could have decided. A corrected count in that slot would have
+ * invited the same misreading, because the question is per product and the slot
+ * is per Relationship.
+ *
+ * Absent is rendered as its own state and never as "no". The Backend leaves the
+ * flag null exactly when the item cannot pose the question — it names no
+ * product, or its shop lies outside the Relationship — and the seller rule
+ * keys on a commitment being PRESENT, so a "no" there would push the Agent
+ * toward wrongly refusing. The line is emitted only where the question is
+ * meaningful: on Sample-bearing work, or wherever the Backend answered it.
+ */
+function renderTargetCollaborationCoverage(
+  item: GQL.AffiliateRelationshipAgendaItem,
+): string[] {
+  const answered = item.hasTargetCollaboration != null;
+  if (!answered && !item.sampleApplicationRecordId) return [];
+  if (item.hasTargetCollaboration === true) {
+    return [
+      "   Seller Target Collaboration For This Product: YES — an active Target Collaboration covers this shop, this Creator and this product.",
+    ];
+  }
+  if (item.hasTargetCollaboration === false) {
+    return [
+      "   Seller Target Collaboration For This Product: NO — no active Target Collaboration covers this shop, this Creator and this product.",
+      "   This rules out only the structured invitation. It does not establish that the seller never invited this Creator; a conversational invitation leaves no Collaboration behind.",
+    ];
+  }
+  return [
+    "   Seller Target Collaboration For This Product: UNKNOWN — this agenda item carries no product to look a commitment up by, so the question was not answered.",
+    "   UNKNOWN is not NO. Do not treat it as evidence that no commitment exists.",
+  ];
 }
 
 /**

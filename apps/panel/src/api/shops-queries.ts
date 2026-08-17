@@ -474,7 +474,6 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
             agentRequiredCount
             staffRequiredCount
             externalWaitingCount
-            activeCollaborationCount
           }
         }
       }
@@ -2271,7 +2270,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
             agentRequiredCount
             staffRequiredCount
             externalWaitingCount
-            activeCollaborationCount
             nextActionAt
           }
           shopStates {
@@ -2506,7 +2504,6 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
           agentRequiredCount
           staffRequiredCount
           externalWaitingCount
-          activeCollaborationCount
           nextActionAt
         }
         shopStates {
@@ -2749,7 +2746,6 @@ export const APPLY_CREATOR_TAG_MUTATION = gql`
         agentRequiredCount
         staffRequiredCount
         externalWaitingCount
-        activeCollaborationCount
         nextActionAt
       }
       shopStates {
