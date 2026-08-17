@@ -3517,7 +3517,7 @@ export default {
         "decisionThresholds": "Soglie decisionali",
         "minExpectedSalesUnits": "Unità di vendita minime expected sales",
         "minExpectedSalesUnitsHint": "Riferimento a livello di negozio per il giudizio dell’Agent quando è disponibile una previsione di vendite. Non approva o rifiuta mai automaticamente un campione. L’automazione Campaign usa solo la soglia configurata esplicitamente.",
-        "noThreshold": "Non impostato",
+        "minExpectedSalesUnitsRequired": "Le unità di vendita minime expected sales sono obbligatorie. Inserisci un numero maggiore o uguale a 0.",
         "invalidDecisionThreshold": "Le unità di vendita minime expected sales devono essere un numero intero maggiore o uguale a 0.",
         "businessPrompt": "Richiesta aziendale",
         "businessPromptHint": "Configura le regole di collaborazione di affiliazione di questo negozio, lo stile di comunicazione, i limiti di commissione/campione e i requisiti di revisione umana. Questa richiesta viene inserita nelle esecuzioni dell'agente affiliato.",

@@ -3517,7 +3517,7 @@ export default {
         "decisionThresholds": "Seuils de décision",
         "minExpectedSalesUnits": "Unités de vente minimales expected sales",
         "minExpectedSalesUnitsHint": "Référence boutique pour le jugement de l’Agent lorsqu’une prévision de ventes est disponible. Elle n’approuve ni ne refuse automatiquement un échantillon. L’automatisation Campaign utilise uniquement son seuil explicitement configuré.",
-        "noThreshold": "Non défini",
+        "minExpectedSalesUnitsRequired": "Les unités de vente minimales expected sales sont obligatoires. Saisissez un nombre supérieur ou égal à 0.",
         "invalidDecisionThreshold": "Les unités de vente minimales expected sales doivent être un nombre nombre supérieur ou égal à 0.",
         "businessPrompt": "Invite commerciale",
         "businessPromptHint": "Configurez les règles de collaboration d'affiliation, le style de communication, les limites de commission/échantillon et les exigences d'évaluation humaine de cette boutique. Cette invite est injectée dans les exécutions des agents affiliés.",

@@ -3515,7 +3515,7 @@ export default {
         "decisionThresholds": "Ambang Batas Keputusan",
         "minExpectedSalesUnits": "Minimal unit penjualan expected sales",
         "minExpectedSalesUnitsHint": "Referensi tingkat toko untuk pertimbangan Agent saat prediksi expected sales tersedia. Nilai ini tidak pernah menyetujui atau menolak sampel secara otomatis. Otomatisasi Campaign hanya memakai ambang yang dikonfigurasi secara eksplisit.",
-        "noThreshold": "Tidak disetel",
+        "minExpectedSalesUnitsRequired": "Unit penjualan minimum expected sales wajib diisi. Masukkan angka yang lebih besar dari atau sama dengan 0.",
         "invalidDecisionThreshold": "Unit penjualan minimum expected sales harus berupa angka yang lebih besar dari atau sama dengan 0.",
         "businessPrompt": "Perintah Bisnis",
         "businessPromptHint": "Konfigurasikan aturan kolaborasi afiliasi toko ini, gaya komunikasi, batasan komisi/sampel, dan persyaratan peninjauan manusia. Prompt ini dimasukkan ke dalam proses agen afiliasi.",

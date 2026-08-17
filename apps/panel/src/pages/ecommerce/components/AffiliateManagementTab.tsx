@@ -271,7 +271,8 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
                 inputMode="decimal"
                 min={0}
                 step={0.1}
-                placeholder={t("ecommerce.shopDrawer.affiliate.noThreshold")}
+                required
+                placeholder="≥ 0"
                 value={editMinExpectedSalesUnits}
                 onChange={(e) => onEditMinExpectedSalesUnits(e.target.value)}
                 onBlur={onCommitMinExpectedSalesUnits}

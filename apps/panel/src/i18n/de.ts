@@ -3517,7 +3517,7 @@ export default {
         "decisionThresholds": "Entscheidungsschwellen",
         "minExpectedSalesUnits": "Mindestverkaufseinheiten expected sales",
         "minExpectedSalesUnitsHint": "Shop-Referenz für die Agent-Entscheidung, wenn eine Expected-Sales-Prognose verfügbar ist. Sie genehmigt oder lehnt Samples nie automatisch ab. Campaign-Automatisierung nutzt nur ihren ausdrücklich konfigurierten Schwellenwert.",
-        "noThreshold": "Nicht festgelegt",
+        "minExpectedSalesUnitsRequired": "Mindestverkaufseinheiten expected sales sind erforderlich. Geben Sie eine Zahl größer oder gleich 0 ein.",
         "invalidDecisionThreshold": "Die Mindestverkaufseinheiten von expected sales müssen eine Zahl größer oder gleich 0 sein.",
         "businessPrompt": "Geschäftsaufforderung",
         "businessPromptHint": "Konfigurieren Sie die Affiliate-Zusammenarbeitsregeln, den Kommunikationsstil, die Provisions-/Probengrenzen und die Anforderungen an die menschliche Überprüfung dieses Shops. Diese Eingabeaufforderung wird in Affiliate-Agent-Ausführungen eingefügt.",

@@ -401,6 +401,10 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             platformStatus
           }
           hasTargetCollaboration
+          minExpectedSalesReference {
+            availability
+            units
+          }
           revisionRequestedProposal {
             id
             type

@@ -2715,6 +2715,14 @@ export const AffiliateMessagePartKind = {
 } as const;
 
 export type AffiliateMessagePartKind = typeof AffiliateMessagePartKind[keyof typeof AffiliateMessagePartKind];
+/** The owning shop's minimum expected-sales reference for one agenda item. Availability and units are frozen together so a consumer never has to read a missing number as a missing standard. */
+export interface AffiliateMinExpectedSalesReference {
+  /** CONFIGURED carries units. NOT_CONFIGURED means this shop set no reference, which is a business answer: there is nothing to compare an estimate against. SHOP_UNRESOLVED means the owning shop could not be read and is a missing fact, never an absent standard. */
+  availability: AffiliateShopReferenceAvailability;
+  /** The seller's configured minimum expected-sales reference for this shop, in units. Present exactly when availability is CONFIGURED. Never defaulted — a substituted value would drive real Sample rejections against a number the seller never set. */
+  units?: Maybe<Scalars['Float']['output']>;
+}
+
 export interface AffiliateMlHistogramBucket {
   count: Scalars['Int']['output'];
   key: Scalars['String']['output'];
@@ -3144,6 +3152,8 @@ export interface AffiliateRelationshipAgendaItem {
   /** The most recent Provider execution attempt on this agenda boundary when that attempt failed and nothing has succeeded on the boundary since. Absent means the boundary has no unresolved execution failure. */
   lastFailedExecution?: Maybe<AffiliateFailedExecutionContext>;
   messageChannel?: Maybe<AffiliateMessageChannel>;
+  /** The minimum expected-sales reference configured on the shop that owns this agenda item, resolved per item because one Relationship routinely spans several shops. Null only for a Backend older than this field. */
+  minExpectedSalesReference?: Maybe<AffiliateMinExpectedSalesReference>;
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   owner: AffiliateRelationshipAgendaOwner;
   pendingLifecycleEventId?: Maybe<Scalars['ID']['output']>;
@@ -3636,6 +3646,14 @@ export interface AffiliateShopOperationProposalPayload {
   proposal: ActionProposal;
 }
 
+/** Whether a shop-level affiliate decision reference was configured, absent, or unreadable. NOT_CONFIGURED is a business answer; SHOP_UNRESOLVED is a missing fact and must never be read as one. */
+export const AffiliateShopReferenceAvailability = {
+  Configured: 'CONFIGURED',
+  NotConfigured: 'NOT_CONFIGURED',
+  ShopUnresolved: 'SHOP_UNRESOLVED'
+} as const;
+
+export type AffiliateShopReferenceAvailability = typeof AffiliateShopReferenceAvailability[keyof typeof AffiliateShopReferenceAvailability];
 export interface AffiliateTargetCollaborationCreateProductInput {
   productId: Scalars['String']['input'];
   shopAdsCommissionRateBps?: InputMaybe<Scalars['Int']['input']>;

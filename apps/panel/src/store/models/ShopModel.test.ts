@@ -7,6 +7,7 @@ function createShop(input?: {
   affiliateServiceEnabled?: boolean;
   affiliateServiceDeviceId?: string | null;
   affiliateRunProfileId?: string | null;
+  affiliateMinExpectedSalesUnits?: number;
 }) {
   const mutate = vi.fn().mockResolvedValue({
     data: { updateShop: { id: "shop-1" } },
@@ -28,6 +29,10 @@ function createShop(input?: {
           enabled: input?.affiliateServiceEnabled ?? false,
           deviceId: input?.affiliateServiceDeviceId ?? null,
           runProfileId: input?.affiliateRunProfileId ?? null,
+          decisionThresholds:
+            typeof input?.affiliateMinExpectedSalesUnits === "number"
+              ? { minExpectedSalesUnits: input.affiliateMinExpectedSalesUnits }
+              : null,
         },
       },
     },
@@ -79,7 +84,7 @@ describe("ShopModel service lifecycle actions", () => {
     });
   });
 
-  it("binds affiliate service and supplies its default run profile when enabling", async () => {
+  it("binds affiliate service and supplies its defaults when enabling", async () => {
     const { mutate, shop } = createShop();
 
     await shop.setAffiliateServiceEnabled(true, "device-1");
@@ -90,21 +95,51 @@ describe("ShopModel service lifecycle actions", () => {
           enabled: true,
           runProfileId: "AFFILIATE_OPERATOR",
           deviceId: "device-1",
+          decisionThresholds: { minExpectedSalesUnits: 1 },
         },
       },
     });
   });
 
-  it("preserves existing affiliate device and run-profile settings when enabling", async () => {
+  it("preserves existing affiliate device, run-profile, and threshold when enabling", async () => {
     const { mutate, shop } = createShop({
       affiliateServiceDeviceId: "device-2",
       affiliateRunProfileId: "custom-profile",
+      affiliateMinExpectedSalesUnits: 25,
     });
 
     await shop.setAffiliateServiceEnabled(true, "device-1");
 
     expect(updateInput(mutate)).toEqual({
       services: { affiliateService: { enabled: true } },
+    });
+  });
+
+  it("keeps a deliberate zero threshold instead of reseeding the default", async () => {
+    const { mutate, shop } = createShop({
+      affiliateServiceDeviceId: "device-2",
+      affiliateRunProfileId: "custom-profile",
+      affiliateMinExpectedSalesUnits: 0,
+    });
+
+    await shop.setAffiliateServiceEnabled(true, "device-1");
+
+    expect(updateInput(mutate)).toEqual({
+      services: { affiliateService: { enabled: true } },
+    });
+  });
+
+  it("does not seed a threshold when disabling affiliate service", async () => {
+    const { mutate, shop } = createShop({
+      affiliateServiceEnabled: true,
+      affiliateServiceDeviceId: "device-1",
+      affiliateRunProfileId: "custom-profile",
+    });
+
+    await shop.setAffiliateServiceEnabled(false, "device-1");
+
+    expect(updateInput(mutate)).toEqual({
+      services: { affiliateService: { enabled: false } },
     });
   });
 
