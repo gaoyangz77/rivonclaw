@@ -296,6 +296,9 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   id: types.identifier,
   userId: types.optional(types.string, ""),
   focusShopId: types.optional(types.string, ""),
+  /** Honest per-shop set: the union of the steps' own shops. Empty for a pure
+   * direct-channel proposal, which is relationship-level work. */
+  shopIds: types.optional(types.array(types.string), []),
   campaignId: types.maybeNull(types.string),
   creatorId: types.maybeNull(types.string),
   creatorRelationshipId: types.maybeNull(types.string),
@@ -585,7 +588,11 @@ export const AffiliateWorkspaceModel = types
         .filter((projection): projection is NonNullable<typeof projection> => !!projection)
         .filter((projection) => {
           if (!input?.shopId) return true;
-          if (projection.proposal.focusShopId === input.shopId) return true;
+          // Honest per-shop membership: the proposal's own acted-on shop set.
+          // The collaboration and relationship clauses keep transitional
+          // coverage for rows ingested from sources that do not yet carry
+          // shopIds (Desktop SSE payloads) and for relationship-level views.
+          if (projection.proposal.shopIds.includes(input.shopId)) return true;
           if (projection.affiliateCollaboration?.shopId === input.shopId) return true;
           return relationshipHasShop(projection.creatorRelationship, input.shopId);
         })

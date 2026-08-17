@@ -484,7 +484,10 @@ export function applyAffiliateProposalChange(
 ): GQL.ActionProposal[] {
   const existingIndex = current.findIndex((candidate) => candidate.id === proposal.id);
   const targetsShop = !filters.shopId || (
-    proposal.focusShopId === filters.shopId
+    // Honest per-shop membership: the proposal's own acted-on shop set. The
+    // steps and relationship clauses keep transitional coverage for change
+    // payloads that do not yet carry shopIds (Desktop SSE mirror).
+    (proposal.shopIds ?? []).includes(filters.shopId)
     || proposal.steps.some((step) => step.shopId === filters.shopId)
     || proposal.creatorRelationship?.shopStates.some((state) => state.shopId === filters.shopId)
   );
@@ -1146,6 +1149,8 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                   <AgentWorkBundleCard
                     proposal={bundle.proposal}
                     revisionHistory={bundle.revisionHistory}
+                    // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId): single-shop
+                    // label slot; the removal batch derives display from shopIds.
                     shopLabel={shopLabel(bundle.proposal.focusShopId)}
                     shopLabelForId={shopLabel}
                     decidingProposal={decidingProposal}
@@ -2347,6 +2352,8 @@ function actionProposalSearchText(
   const collaboration = proposal.affiliateCollaboration;
   const values = [
     proposal.id,
+    // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId): search text keeps the legacy
+    // anchor until the removal batch derives it from shopIds labels.
     proposal.focusShopId,
     shopLabel(proposal.focusShopId),
     proposal.creatorId,
@@ -6209,6 +6216,8 @@ export function proposalSampleReviewRows(
     : proposal.sampleReviewIntent
       ? [{
           stepId: proposal.id,
+          // FROZEN-LEGACY (focusShopId): stepless pre-steps-era proposals only;
+          // their single frozen anchor is the honest shop of the one intent.
           shopId: proposal.focusShopId ?? null,
           sampleApplicationRecordId:
             proposal.sampleReviewIntent.sampleApplicationRecordId ??
@@ -6824,6 +6833,9 @@ function ProposalProductSummary({ proposal, label }: { proposal: GQL.ActionPropo
     <ProductSummaryCard
       product={product}
       productId={productId}
+      // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId): product context is one
+      // shop's catalog; the removal batch derives it from the product-bearing
+      // step instead of the fabricated anchor.
       shopId={proposal.focusShopId}
       label={label}
     />
@@ -6860,6 +6872,8 @@ function relationshipWorkItemFromProposal(
   ]);
   return {
     relationshipId,
+    // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId): CreatorRelationshipWorkItem
+    // carries a single shop slot; the removal batch owns its multi-shop rule.
     shopId: hydratedProposal.focusShopId,
     creatorId: relationship?.creatorId ?? hydratedProposal.creatorId ?? null,
     creatorOpenId: hydratedProposal.creatorProfile?.creatorOpenId ?? null,
@@ -8090,6 +8104,8 @@ export function CreatorRelationshipDetailModal({
                           <AgentWorkBundleCard
                             key={proposal.id}
                             proposal={proposal}
+                            // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId):
+                            // single-shop label slot, same rule as the timeline.
                             shopLabel={relationshipShopName(proposal.focusShopId)}
                             shopLabelForId={relationshipShopName}
                             variant="compact"
