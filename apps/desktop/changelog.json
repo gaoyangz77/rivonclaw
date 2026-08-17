@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.100",
+    "date": "2026-08-17",
+    "en": [
+      "Expand Affiliate collaboration workflows, bind outreach devices to Business Developers, and improve bundled Desktop plugin support"
+    ],
+    "zh": [
+      "扩展达人协作工作流，支持将外联设备绑定至商务开发人员，并改善桌面端内置插件支持"
+    ]
+  },
+  {
     "version": "1.8.99",
     "date": "2026-08-13",
     "en": [
