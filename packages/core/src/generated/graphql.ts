@@ -915,6 +915,7 @@ export interface AffiliateCampaignContentPerformanceRulesInput {
 
 export interface AffiliateCampaignCreatorState {
   campaignId: Scalars['ID']['output'];
+  contractVersion?: Maybe<Scalars['String']['output']>;
   creatorId: Scalars['ID']['output'];
   creatorPerformance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
@@ -926,11 +927,16 @@ export interface AffiliateCampaignCreatorState {
   eligibilityEvaluatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   eligibilityPolicyVersion?: Maybe<Scalars['Int']['output']>;
   eligibilityReasonCode?: Maybe<Scalars['String']['output']>;
+  evaluationAttemptCount?: Maybe<Scalars['Int']['output']>;
+  evaluationFailureStage?: Maybe<Scalars['String']['output']>;
+  evidenceMode?: Maybe<Scalars['String']['output']>;
   /** Raw arithmetic expectation of attributed units through Sample terminal, conditional on approval. */
   expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  featureAsOf?: Maybe<Scalars['DateTimeISO']['output']>;
   filterResult?: Maybe<AffiliateCampaignRuleFilterResult>;
   firstSeenAt: Scalars['DateTimeISO']['output'];
   followerCount?: Maybe<Scalars['Int']['output']>;
+  humanDecisionWouldApprove?: Maybe<Scalars['Boolean']['output']>;
   id: Scalars['ID']['output'];
   lastSeenAt: Scalars['DateTimeISO']['output'];
   latestSearchDailyExecutionId?: Maybe<Scalars['ID']['output']>;
@@ -939,10 +945,15 @@ export interface AffiliateCampaignCreatorState {
   latestSearchPlanId?: Maybe<Scalars['ID']['output']>;
   latestSearchProviderOrdinal?: Maybe<Scalars['Int']['output']>;
   market: Scalars['String']['output'];
+  minimumExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
+  modelVersion?: Maybe<Scalars['String']['output']>;
+  nextEvaluationAt?: Maybe<Scalars['DateTimeISO']['output']>;
   predictionStatus?: Maybe<AffiliateCampaignPredictionStatus>;
   productId?: Maybe<Scalars['String']['output']>;
   providerOrdinal?: Maybe<Scalars['Int']['output']>;
   providerPageSequence?: Maybe<Scalars['Int']['output']>;
+  qualificationDecision?: Maybe<Scalars['String']['output']>;
+  qualifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   reachedOutAt?: Maybe<Scalars['DateTimeISO']['output']>;
   repliedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   scheduledAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -969,12 +980,9 @@ export const AffiliateCampaignCreatorStateStatus = {
   IneligibleOutreachPolicy: 'INELIGIBLE_OUTREACH_POLICY',
   IneligibleProtected: 'INELIGIBLE_PROTECTED',
   IneligibleQualification: 'INELIGIBLE_QUALIFICATION',
-  QualifiedNotSelected: 'QUALIFIED_NOT_SELECTED',
   ReachedOut: 'REACHED_OUT',
   Replied: 'REPLIED',
-  Reserved: 'RESERVED',
   Scheduled: 'SCHEDULED',
-  Selected: 'SELECTED',
   Submitted: 'SUBMITTED'
 } as const;
 
@@ -1053,6 +1061,7 @@ export const AffiliateCampaignEligibilityCategory = {
 
 export type AffiliateCampaignEligibilityCategory = typeof AffiliateCampaignEligibilityCategory[keyof typeof AffiliateCampaignEligibilityCategory];
 export interface AffiliateCampaignExecutionCounters {
+  cancelled: Scalars['Int']['output'];
   evaluated: Scalars['Int']['output'];
   failed: Scalars['Int']['output'];
   matched: Scalars['Int']['output'];
@@ -1061,9 +1070,8 @@ export interface AffiliateCampaignExecutionCounters {
   qualificationFailed: Scalars['Int']['output'];
   qualified: Scalars['Int']['output'];
   replied: Scalars['Int']['output'];
-  reserved: Scalars['Int']['output'];
   scanned: Scalars['Int']['output'];
-  selected: Scalars['Int']['output'];
+  scheduled: Scalars['Int']['output'];
   sent: Scalars['Int']['output'];
   submitted: Scalars['Int']['output'];
   uncertain: Scalars['Int']['output'];
@@ -1239,8 +1247,8 @@ export interface AffiliateCampaignSearchPlanExecution {
   phraseKey: Scalars['String']['output'];
   qualified: Scalars['Int']['output'];
   scanned: Scalars['Int']['output'];
+  scheduled: Scalars['Int']['output'];
   searchPlanId: Scalars['ID']['output'];
-  selected: Scalars['Int']['output'];
   startPageSequence: Scalars['Int']['output'];
   startedAt: Scalars['DateTimeISO']['output'];
 }
@@ -1309,7 +1317,7 @@ export interface AffiliateCampaignSearchPlanTotals {
   qualificationFailed: Scalars['Int']['output'];
   qualified: Scalars['Int']['output'];
   scanned: Scalars['Int']['output'];
-  selected: Scalars['Int']['output'];
+  scheduled: Scalars['Int']['output'];
 }
 
 export const AffiliateCampaignSearchPlanningState = {
@@ -1359,7 +1367,7 @@ export interface AffiliateCampaignShopDailyCapacity {
   countedOutreachCount: Scalars['Int']['output'];
   effectiveDailyLimit?: Maybe<Scalars['Int']['output']>;
   marketLocalDate: Scalars['String']['output'];
-  nextAllowedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  nextSlotAt?: Maybe<Scalars['DateTimeISO']['output']>;
   remainingOutreachCapacity: Scalars['Int']['output'];
   targetToLimitRatio?: Maybe<Scalars['Float']['output']>;
 }
@@ -2014,6 +2022,14 @@ export interface AffiliateDecisionThresholdsInput {
   minExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
 }
 
+export const AffiliateDeliveryAttemptOutcome = {
+  Accepted: 'ACCEPTED',
+  ExplicitRetryableFailure: 'EXPLICIT_RETRYABLE_FAILURE',
+  ExplicitTerminalFailure: 'EXPLICIT_TERMINAL_FAILURE',
+  Uncertain: 'UNCERTAIN'
+} as const;
+
+export type AffiliateDeliveryAttemptOutcome = typeof AffiliateDeliveryAttemptOutcome[keyof typeof AffiliateDeliveryAttemptOutcome];
 /** How the outbound Affiliate delivery channel was selected */
 export const AffiliateDeliveryChannelSelectionSource = {
   AgentOverride: 'AGENT_OVERRIDE',
@@ -2626,6 +2642,8 @@ export type AffiliateMessageChannel = typeof AffiliateMessageChannel[keyof typeo
 /** Recorded delivery attempt for a creator-facing affiliate message. */
 export interface AffiliateMessageDelivery {
   actualChannel?: Maybe<AffiliateMessageChannel>;
+  attemptCount: Scalars['Int']['output'];
+  attempts: Array<AffiliateMessageDeliveryAttempt>;
   baseCheckpointId?: Maybe<Scalars['String']['output']>;
   baseEventCursor?: Maybe<Scalars['Int']['output']>;
   campaignCreatorStateId?: Maybe<Scalars['ID']['output']>;
@@ -2643,17 +2661,16 @@ export interface AffiliateMessageDelivery {
   errorMessage?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   idempotencyKey: Scalars['String']['output'];
+  marketLocalDate?: Maybe<Scalars['String']['output']>;
+  nextAttemptAt?: Maybe<Scalars['DateTimeISO']['output']>;
   openClawRunId?: Maybe<Scalars['String']['output']>;
   openClawSessionKey?: Maybe<Scalars['String']['output']>;
   parts: Array<AffiliateMessageDeliveryPart>;
   preferredChannel: AffiliateMessageChannel;
   providerAttemptStartedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   providerMessageId?: Maybe<Scalars['String']['output']>;
-  quotaCountedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  quotaMarketLocalDate?: Maybe<Scalars['String']['output']>;
-  quotaReleaseReason?: Maybe<Scalars['String']['output']>;
-  quotaReleasedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   replyToLifecycleEventId?: Maybe<Scalars['ID']['output']>;
+  scheduledAt?: Maybe<Scalars['DateTimeISO']['output']>;
   shopId?: Maybe<Scalars['ID']['output']>;
   source: AffiliateDeliverySource;
   status: AffiliateDeliveryStatus;
@@ -2664,6 +2681,14 @@ export interface AffiliateMessageDelivery {
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   whatsappAccountBindingId?: Maybe<Scalars['ID']['output']>;
+}
+
+export interface AffiliateMessageDeliveryAttempt {
+  attemptNumber: Scalars['Int']['output'];
+  completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  errorCode?: Maybe<Scalars['String']['output']>;
+  outcome?: Maybe<AffiliateDeliveryAttemptOutcome>;
+  startedAt: Scalars['DateTimeISO']['output'];
 }
 
 export interface AffiliateMessageDeliveryPart {
