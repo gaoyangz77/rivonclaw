@@ -379,6 +379,9 @@ export class AffiliateInbound {
           shopId: shop.objectId,
           creatorRelationshipId: queuedWorkItem.creatorRelationshipId,
           agentDispatchRecommended: true,
+          // This re-fetch is the authoritative dispatch read: the backend
+          // mints a fresh immutable agenda snapshot per returned work item.
+          dispatch: true,
           limit: 10,
         },
       },

@@ -987,6 +987,9 @@ describe("affiliate work item dispatch", () => {
         shopId: "shop-001",
         creatorRelationshipId: "relationship-001",
         agentDispatchRecommended: true,
+        // The authoritative dispatch re-fetch opts into snapshot minting so
+        // the drained work item carries a fresh immutable agenda snapshot.
+        dispatch: true,
         limit: 10,
       },
     });

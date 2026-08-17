@@ -10,6 +10,12 @@ export interface ActiveAffiliateRunCheckpoint {
   relationshipOperationalConfigRevision: number;
   businessDeveloperIdSnapshot: string | null;
   businessDeveloperConfigRevision: number | null;
+  /**
+   * Immutable agenda snapshot the backend minted for this exact dispatch.
+   * Null when the work item predates snapshot dispatch (old backend or old
+   * rows); passed through on affiliate_resolve_work_item when present.
+   */
+  agendaItemsSnapshotId?: string | null;
   predictionCacheIds?: string[];
 }
 

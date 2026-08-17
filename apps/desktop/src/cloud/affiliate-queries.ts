@@ -348,6 +348,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
       processingStatus
       versionAt
       versionKey
+      agendaItemsSnapshotId
       requiredAction
       processReasons
       creatorRelationship {

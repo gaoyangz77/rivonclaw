@@ -255,11 +255,11 @@ function sanitizeCloudGraphqlVariables(
 function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Record<string, unknown> {
   const creatorRelationshipId = firstNonEmptyString(input.creatorRelationshipId);
   if (!creatorRelationshipId) {
-    return { ...input, predictionCacheIds: undefined };
+    return { ...input, predictionCacheIds: undefined, agendaItemsSnapshotId: undefined };
   }
   const checkpoint = getActiveAffiliateRunCheckpoint(creatorRelationshipId);
   if (!checkpoint) {
-    return { ...input, predictionCacheIds: undefined };
+    return { ...input, predictionCacheIds: undefined, agendaItemsSnapshotId: undefined };
   }
   return {
     ...input,
@@ -271,6 +271,12 @@ function injectAffiliateResolveCheckpoint(input: Record<string, unknown>): Recor
     relationshipOperationalConfigRevision: checkpoint.relationshipOperationalConfigRevision,
     businessDeveloperIdSnapshot: checkpoint.businessDeveloperIdSnapshot,
     businessDeveloperConfigRevision: checkpoint.businessDeveloperConfigRevision,
+    // The immutable agenda snapshot this run was dispatched with, captured at
+    // the trusted Desktop boundary like the checkpoint itself — a
+    // model-authored value is always overwritten. `undefined` serializes as
+    // absent, so an old backend input schema and snapshot-less runs stay
+    // untouched.
+    agendaItemsSnapshotId: checkpoint.agendaItemsSnapshotId ?? undefined,
     // Prediction lineage is captured from Backend-delivered Working Agenda evidence.
     // Always overwrite any model-authored value at the trusted Desktop boundary.
     predictionCacheIds: checkpoint.predictionCacheIds?.length

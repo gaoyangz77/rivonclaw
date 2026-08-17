@@ -462,6 +462,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
         processReasons
         versionAt
         versionKey
+        agendaItemsSnapshotId
         creatorRelationship {
           id
           creatorId
