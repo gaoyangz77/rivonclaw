@@ -2873,6 +2873,116 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).not.toContain("Previous Attempt Retryability: UNKNOWN");
   });
 
+  /**
+   * The three shapes below are the exact `sampleTerminalState` values the
+   * Backend freezes for the same three endings, verified against the real
+   * producers in `AffiliateSampleTerminalFollowUp.test.ts`. A forced rejection
+   * and a Creator withdrawal share `CANCELLED`, so the work status cannot tell
+   * the Agent them apart and only the rendered cause can.
+   */
+  function terminalAgenda(
+    sampleTerminalState: GQL.AffiliateSampleTerminalStateContext,
+  ): GQL.AffiliateRelationshipAgendaItem {
+    const base = createCreatorReplyWorkItem();
+    return {
+      ...((base.creatorRelationship?.agendaItems ?? [])[0] as GQL.AffiliateRelationshipAgendaItem),
+      workKind: GQL.AffiliateWorkKind.SamplePlatformTerminalFollowUp,
+      requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleSampleTerminalState,
+      sampleApplicationRecordId: "sample-terminal-001",
+      // A Sample-scoped agenda item always carries Backend evidence, and
+      // dispatch refuses to start without it.
+      predictionEvidence: createWorkingAgendaPredictionEvidence(),
+      sampleTerminalState,
+    };
+  }
+
+  function renderTerminalAgenda(
+    sampleTerminalState: GQL.AffiliateSampleTerminalStateContext,
+  ): string {
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem({
+        agentWorkingAgendaItems: [terminalAgenda(sampleTerminalState)],
+      }),
+      platform: "tiktok",
+    });
+    return request?.message ?? "";
+  }
+
+  it("tells a rejection the platform forced apart from a Creator withdrawal", () => {
+    const forced = renderTerminalAgenda({
+      cause: GQL.AffiliateSampleTerminalCause.PlatformForcedRejection,
+      sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
+      platformStatus: "REJECT_CANCELLED",
+    });
+    const withdrawn = renderTerminalAgenda({
+      cause: GQL.AffiliateSampleTerminalCause.CreatorWithdrew,
+      sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
+      platformStatus: "WITHDRAW_CANCELLED",
+    });
+
+    expect(forced).toContain("Sample Terminal Cause: PLATFORM_FORCED_REJECTION");
+    expect(forced).toContain("Sample Terminal Work Status: CANCELLED");
+    expect(forced).toContain("Sample Terminal Platform Status: REJECT_CANCELLED");
+    expect(withdrawn).toContain("Sample Terminal Cause: CREATOR_WITHDREW");
+    expect(withdrawn).not.toContain("PLATFORM_FORCED_REJECTION");
+    // Both carry the same terminal work status; the cause is the whole signal.
+    expect(withdrawn).toContain("Sample Terminal Work Status: CANCELLED");
+  });
+
+  it("tells an expiry apart from a rejection the platform forced", () => {
+    const expired = renderTerminalAgenda({
+      cause: GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired,
+      sampleWorkStatus: GQL.SampleWorkStatus.Expired,
+      platformStatus: "OVERDUE_CANCELLED",
+    });
+
+    expect(expired).toContain("Sample Terminal Cause: APPROVAL_WINDOW_EXPIRED");
+    expect(expired).toContain("Sample Terminal Work Status: EXPIRED");
+    expect(expired).toContain("Sample Terminal Platform Status: OVERDUE_CANCELLED");
+    expect(expired).not.toContain("PLATFORM_FORCED_REJECTION");
+  });
+
+  it("forbids inventing a reason when the platform did not record one", () => {
+    const undetermined = renderTerminalAgenda({
+      cause: GQL.AffiliateSampleTerminalCause.Undetermined,
+      sampleWorkStatus: GQL.SampleWorkStatus.Cancelled,
+      platformStatus: "CONTENT_PENDING",
+    });
+
+    expect(undetermined).toContain("Sample Terminal Cause: UNDETERMINED");
+    expect(undetermined).toContain(
+      "Never state or imply a reason to the Creator.",
+    );
+    // The disclosure belongs to UNDETERMINED alone; a known cause must not
+    // carry an instruction telling the Agent to withhold it.
+    expect(
+      renderTerminalAgenda({
+        cause: GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired,
+        sampleWorkStatus: GQL.SampleWorkStatus.Expired,
+        platformStatus: "OVERDUE_CANCELLED",
+      }),
+    ).not.toContain("Terminal Cause Disclosure");
+  });
+
+  it("says the platform status is unavailable rather than omitting the line", () => {
+    const message = renderTerminalAgenda({
+      cause: GQL.AffiliateSampleTerminalCause.ApprovalWindowExpired,
+      sampleWorkStatus: GQL.SampleWorkStatus.Expired,
+      platformStatus: null,
+    });
+
+    expect(message).toContain("Sample Terminal Platform Status: (unavailable)");
+  });
+
+  it("renders no terminal lines on agenda work that is not a terminal follow-up", () => {
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createCreatorReplyWorkItem(),
+      platform: "tiktok",
+    });
+
+    expect(request?.message).not.toContain("Sample Terminal Cause:");
+  });
+
   it("injects only trusted Creator identity constants, not commerce snapshots, into the run context", () => {
     const base = createCreatorReplyWorkItem();
     const request = buildAffiliateAgentRunRequest({

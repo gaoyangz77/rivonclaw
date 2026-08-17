@@ -281,6 +281,11 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           consecutiveFailureCount
           consecutiveFailureCountTruncated
         }
+        sampleTerminalState {
+          cause
+          sampleWorkStatus
+          platformStatus
+        }
         revisionRequestedProposal {
           id
           type
