@@ -30,6 +30,7 @@ import {
   WHATSAPP_ACCOUNT_BINDINGS_QUERY,
   WRITE_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
 } from "../../api/shops-queries.js";
+import { useMyDeviceId } from "./hooks/useDeviceBinding.js";
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
@@ -89,6 +90,8 @@ export type DeveloperForm = {
   acceptingCreators: boolean;
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode;
   businessPrompt: string;
+  /** Outreach device draft; "" means unbound. */
+  deviceId: string;
 };
 
 type ProtectionPreviewRow = {
@@ -141,6 +144,7 @@ const EMPTY_DEVELOPER: DeveloperForm = {
   acceptingCreators: true,
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode.AiAssisted,
   businessPrompt: "",
+  deviceId: "",
 };
 
 type DeveloperFormSource = {
@@ -150,6 +154,7 @@ type DeveloperFormSource = {
   acceptingCreators: boolean;
   agentAssistanceMode: GQL.AffiliateAgentAssistanceMode;
   businessPrompt?: string | null;
+  deviceId?: string | null;
 };
 
 export function developerFormFrom(source: DeveloperFormSource): DeveloperForm {
@@ -160,6 +165,7 @@ export function developerFormFrom(source: DeveloperFormSource): DeveloperForm {
     acceptingCreators: source.acceptingCreators,
     agentAssistanceMode: source.agentAssistanceMode,
     businessPrompt: source.businessPrompt ?? "",
+    deviceId: source.deviceId ?? "",
   };
 }
 
@@ -172,7 +178,8 @@ export function isDeveloperFormDirty(
     || form.agentAssistanceMode !== source.agentAssistanceMode
     || form.acceptingCreators !== source.acceptingCreators
     || [...form.regions].sort().join("|") !== [...source.regions].sort().join("|")
-    || form.businessPrompt.trim() !== (source.businessPrompt?.trim() ?? "");
+    || form.businessPrompt.trim() !== (source.businessPrompt?.trim() ?? "")
+    || form.deviceId.trim() !== (source.deviceId?.trim() ?? "");
 }
 
 export function writeDeveloperInputFrom(
@@ -187,6 +194,7 @@ export function writeDeveloperInputFrom(
     acceptingCreators: form.acceptingCreators,
     agentAssistanceMode: form.agentAssistanceMode,
     businessPrompt: form.businessPrompt.trim() || null,
+    deviceId: form.deviceId.trim() || null,
   };
 }
 
@@ -202,6 +210,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const workspace = entityStore.affiliateWorkspace;
+  const myDeviceId = useMyDeviceId();
   const [pageTab, setPageTab] = useState<TeamPageTab>(readTeamPageTab);
   const [developerPage, setDeveloperPage] = useState(0);
   const [developerSearch, setDeveloperSearch] = useState("");
@@ -550,6 +559,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
     const displayName = form.displayName.trim();
     if (!displayName) {
       showToast(t("ecommerce.affiliateTeam.nameRequired"), "error");
+      return;
+    }
+    // Panel-side enforcement (backend stays permissive, like the shop-level
+    // minimum expected sales requirement): an active BD must have an outreach
+    // device. Archived BDs are exempt.
+    if (!editingDeveloper?.archivedAt && !form.deviceId.trim()) {
+      showToast(t("ecommerce.affiliateTeam.deviceRequired"), "error");
       return;
     }
     const updatingExistingDeveloper = Boolean(editingDeveloperId);
@@ -2317,7 +2333,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                   </div>
                 </div>
               </div>
-              <DeveloperProfileEditor form={form} setForm={setForm} t={t} />
+              <DeveloperProfileEditor form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
             </section>}
           </div>
 
@@ -2460,6 +2476,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           onCancel={closeDeveloperEditor}
           onSave={saveDeveloper}
           saving={writeState.loading}
+          myDeviceId={myDeviceId}
           t={t}
         />
       </Modal>
@@ -2478,12 +2495,13 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   );
 });
 
-export function DeveloperEditor({ form, setForm, onCancel, onSave, saving, t }: {
+export function DeveloperEditor({ form, setForm, onCancel, onSave, saving, myDeviceId, t }: {
   form: DeveloperForm;
   setForm: (form: DeveloperForm) => void;
   onCancel: () => void;
   onSave: () => void;
   saving: boolean;
+  myDeviceId: string | null;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return <div className="affiliate-developer-editor">
@@ -2493,6 +2511,7 @@ export function DeveloperEditor({ form, setForm, onCancel, onSave, saving, t }: 
       { value: GQL.AffiliateAgentAssistanceMode.AiAssisted, label: t("ecommerce.affiliateTeam.aiAssisted") },
       { value: GQL.AffiliateAgentAssistanceMode.HumanOnly, label: t("ecommerce.affiliateTeam.humanOnly") },
     ]} /></label>
+    <DeveloperDeviceBinding form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
     <fieldset><legend>{t("ecommerce.affiliateTeam.regions")}</legend><div className="affiliate-region-grid">{SHOP_REGIONS.map((region) => <label key={region}><input type="checkbox" checked={form.regions.includes(region)} onChange={(event) => setForm({ ...form, regions: event.target.checked ? [...form.regions, region] : form.regions.filter((item) => item !== region) })} /><span>{formatShopRegionLabel(region, t)}</span></label>)}</div></fieldset>
     <label className="affiliate-developer-toggle"><input type="checkbox" checked={form.acceptingCreators} onChange={(event) => setForm({ ...form, acceptingCreators: event.target.checked })} /><span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span></label>
     <label><span>{t("ecommerce.affiliateTeam.workingStyle")}</span><textarea className="input" rows={7} value={form.businessPrompt} onChange={(event) => setForm({ ...form, businessPrompt: event.target.value })} placeholder={t("ecommerce.affiliateTeam.workingStylePlaceholder")} /><small className="affiliate-bd-prompt-hint"><InfoIcon />{t("ecommerce.affiliateTeam.workingStylePlaceholder")}</small></label>
@@ -2500,9 +2519,10 @@ export function DeveloperEditor({ form, setForm, onCancel, onSave, saving, t }: 
   </div>;
 }
 
-function DeveloperProfileEditor({ form, setForm, t }: {
+function DeveloperProfileEditor({ form, setForm, myDeviceId, t }: {
   form: DeveloperForm;
   setForm: (form: DeveloperForm) => void;
+  myDeviceId: string | null;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return <div className="affiliate-bd-inline-editor">
@@ -2512,9 +2532,53 @@ function DeveloperProfileEditor({ form, setForm, t }: {
       { value: GQL.AffiliateAgentAssistanceMode.AiAssisted, label: t("ecommerce.affiliateTeam.aiAssisted") },
       { value: GQL.AffiliateAgentAssistanceMode.HumanOnly, label: t("ecommerce.affiliateTeam.humanOnly") },
     ]} /></label>
+    <DeveloperDeviceBinding form={form} setForm={setForm} myDeviceId={myDeviceId} t={t} />
     <label className="affiliate-bd-inline-toggle"><input type="checkbox" checked={form.acceptingCreators} onChange={(event) => setForm({ ...form, acceptingCreators: event.target.checked })} /><span>{t("ecommerce.affiliateTeam.acceptingCreators")}</span></label>
     <fieldset><legend>{t("ecommerce.affiliateTeam.regions")}</legend><div className="affiliate-region-grid">{SHOP_REGIONS.map((region) => <label key={region}><input type="checkbox" checked={form.regions.includes(region)} onChange={(event) => setForm({ ...form, regions: event.target.checked ? [...form.regions, region] : form.regions.filter((item) => item !== region) })} /><span>{formatShopRegionLabel(region, t)}</span></label>)}</div></fieldset>
     <label className="affiliate-bd-inline-prompt"><span>{t("ecommerce.affiliateTeam.workingStyle")}</span><textarea className="input" rows={5} value={form.businessPrompt} onChange={(event) => setForm({ ...form, businessPrompt: event.target.value })} placeholder={t("ecommerce.affiliateTeam.workingStylePlaceholder")} /><small className="affiliate-bd-prompt-hint"><InfoIcon />{t("ecommerce.affiliateTeam.workingStylePlaceholder")}</small></label>
+  </div>;
+}
+
+/**
+ * Outreach-device draft control for the BD editor. Reuses the shop-level
+ * affiliate device-binding capability: the only bindable device is this
+ * desktop (`useMyDeviceId`), in the same id space as
+ * `shop.services.affiliateService.deviceId`. Writes the draft only — the save
+ * boundary enforces that an active BD has a device.
+ */
+function DeveloperDeviceBinding({ form, setForm, myDeviceId, t }: {
+  form: DeveloperForm;
+  setForm: (form: DeveloperForm) => void;
+  myDeviceId: string | null;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const boundDeviceId = form.deviceId.trim();
+  const boundToThisDevice = Boolean(myDeviceId) && boundDeviceId === myDeviceId;
+  return <div className="shop-toggle-card">
+    <div className="shop-toggle-card-left">
+      <span className="shop-toggle-card-label">{t("ecommerce.affiliateTeam.outreachDevice")}</span>
+      <span className="form-hint">{t("ecommerce.affiliateTeam.outreachDeviceHint")}</span>
+      {boundToThisDevice && (
+        <span className="badge badge-success shop-badge-inline">{t("ecommerce.affiliateTeam.outreachDeviceThis")}</span>
+      )}
+      {!boundToThisDevice && boundDeviceId !== "" && (
+        <span className="badge badge-warning shop-badge-inline">{t("ecommerce.affiliateTeam.outreachDeviceOther")}</span>
+      )}
+      {boundDeviceId === "" && (
+        <span className="badge badge-warning shop-badge-inline">{t("ecommerce.affiliateTeam.outreachDeviceNone")}</span>
+      )}
+    </div>
+    <label className="toggle-switch">
+      <input
+        type="checkbox"
+        checked={boundToThisDevice}
+        onChange={() => setForm({ ...form, deviceId: boundToThisDevice ? "" : myDeviceId ?? "" })}
+        disabled={!myDeviceId}
+      />
+      <span className={`toggle-track ${boundToThisDevice ? "toggle-track-on" : "toggle-track-off"}`}>
+        <span className={`toggle-thumb ${boundToThisDevice ? "toggle-thumb-on" : "toggle-thumb-off"}`} />
+      </span>
+    </label>
   </div>;
 }
 

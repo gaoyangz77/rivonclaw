@@ -672,6 +672,13 @@ export const AffiliateActionRequestMode = {
 } as const;
 
 export type AffiliateActionRequestMode = typeof AffiliateActionRequestMode[keyof typeof AffiliateActionRequestMode];
+/** Who is responsible for handling an agenda item. Uniform per Relationship: BUSINESS_DEVELOPER when the Relationship has an assigned business developer, SHOP otherwise (the shop owner is the fallback handler). Orthogonal to the item's shopId anchor, which names WHICH shop's business the item concerns. */
+export const AffiliateAgendaScopeType = {
+  BusinessDeveloper: 'BUSINESS_DEVELOPER',
+  Shop: 'SHOP'
+} as const;
+
+export type AffiliateAgendaScopeType = typeof AffiliateAgendaScopeType[keyof typeof AffiliateAgendaScopeType];
 /** Whether relationships owned by a business developer may dispatch the Affiliate Agent. */
 export const AffiliateAgentAssistanceMode = {
   AiAssisted: 'AI_ASSISTED',
@@ -731,6 +738,8 @@ export interface AffiliateBusinessDeveloper {
   configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
   creatorDisplayName?: Maybe<Scalars['String']['output']>;
+  /** Outreach device that executes this developer's WhatsApp/email work, in the same id space as a shop's affiliate device. Null until a device is bound; absence is a real state, never substituted. */
+  deviceId?: Maybe<Scalars['String']['output']>;
   displayName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   normalizedDisplayName: Scalars['String']['output'];
@@ -3177,7 +3186,7 @@ export interface AffiliateRelationshipAgendaItem {
   /** The most recent Provider execution attempt on this agenda boundary when that attempt failed and nothing has succeeded on the boundary since. Absent means the boundary has no unresolved execution failure. */
   lastFailedExecution?: Maybe<AffiliateFailedExecutionContext>;
   messageChannel?: Maybe<AffiliateMessageChannel>;
-  /** The minimum expected-sales reference configured on the shop that owns this agenda item, resolved per item because one Relationship routinely spans several shops. Null only for a Backend older than this field. */
+  /** The minimum expected-sales reference configured on the shop that owns this agenda item, resolved per item because one Relationship routinely spans several shops. Absent on items with no shop anchor (a direct-channel message, a cross-channel wait): structurally shopless work has no owning shop to read, which is not a missing fact — SHOP_UNRESOLVED is reserved for an anchored item whose shop could not be read. Also null for a Backend older than this field. */
   minExpectedSalesReference?: Maybe<AffiliateMinExpectedSalesReference>;
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   owner: AffiliateRelationshipAgendaOwner;
@@ -3194,6 +3203,8 @@ export interface AffiliateRelationshipAgendaItem {
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
   /** Why the Sample Application ended, on HANDLE_SAMPLE_TERMINAL_STATE work. Absent on every other agenda item, and on a terminal item whose transition event carried no work status at all. */
   sampleTerminalState?: Maybe<AffiliateSampleTerminalStateContext>;
+  /** Who is responsible for handling this item. Uniform per Relationship — BUSINESS_DEVELOPER when the Relationship has an assigned business developer, SHOP otherwise (the shop owner is the fallback handler) — and stamped per item so each projected item is self-describing. Orthogonal to shopId, which names WHICH shop's business the item concerns. Request-scoped; null only on surfaces that predate this field or bypass the work-item projection. */
+  scopeType?: Maybe<AffiliateAgendaScopeType>;
   shopId?: Maybe<Scalars['ID']['output']>;
   /** Current region of the shop that owns this agenda fact. Request-scoped and not persisted on the Relationship. */
   shopRegion?: Maybe<Scalars['String']['output']>;
@@ -3512,6 +3523,10 @@ export interface AffiliateRelationshipTimelineRelatedIds {
 
 export interface AffiliateRelationshipWorkSummary {
   agentRequiredCount: Scalars['Int']['output'];
+  /** The owning Business Developer's outreach device at the instant the summary was computed. Null with businessDeveloperId set means a Business Developer is assigned but no usable device is bound to them; never infer "no Business Developer" from a null device. */
+  businessDeveloperDeviceId?: Maybe<Scalars['String']['output']>;
+  /** The Business Developer who owns this Relationship, read the instant the summary was computed. Absent exactly when no Business Developer is assigned — this field, not businessDeveloperDeviceId, answers that question. */
+  businessDeveloperId?: Maybe<Scalars['ID']['output']>;
   externalWaitingCount: Scalars['Int']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   staffRequiredCount: Scalars['Int']['output'];
@@ -13893,6 +13908,8 @@ export interface WriteAffiliateBusinessDeveloperInput {
   agentAssistanceMode?: InputMaybe<AffiliateAgentAssistanceMode>;
   businessPrompt?: InputMaybe<Scalars['String']['input']>;
   creatorDisplayName?: InputMaybe<Scalars['String']['input']>;
+  /** Outreach device that executes this developer's WhatsApp/email work, in the same id space as a shop's affiliate device. Omit to keep the current binding; null or blank stores the developer as unbound. */
+  deviceId?: InputMaybe<Scalars['String']['input']>;
   displayName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   regions?: InputMaybe<Array<ShopRegion>>;
