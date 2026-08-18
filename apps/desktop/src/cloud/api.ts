@@ -525,8 +525,15 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
       sampleApplicationId: part.sampleApplicationId,
     });
   });
+  // This rebuild is an allowlist: a field absent here never reaches the
+  // backend, however plainly the tool schema requires it. `channelType` and
+  // `shopId` are part of the explicit-channel contract, so they must be
+  // carried; `preferredChannel` stays only for a model still emitting the
+  // superseded name.
   return pickAffiliateActionFields(action, "messageIntent", omitEmptyAffiliateStrings({
     parts,
+    channelType: existingIntent.channelType,
+    shopId: existingIntent.shopId,
     preferredChannel: existingIntent.preferredChannel,
     emailSubject: existingIntent.emailSubject,
   }));

@@ -426,6 +426,8 @@ describe("cloud-graphql handler", () => {
           action: {
             type: "SEND_MESSAGE",
             messageIntent: {
+              channelType: "PLATFORM_CHAT",
+              shopId: "66f000000000000000000s01",
               parts: [{ kind: "TEXT", text: "Hi, just checking in." }],
             },
           },
@@ -458,6 +460,12 @@ describe("cloud-graphql handler", () => {
         input: Record<string, unknown>;
       }
     ).input;
+    // The proxy rebuilds messageIntent from an allowlist, so a field missing
+    // from that list silently never reaches the backend however plainly the
+    // tool schema requires it. Pin the explicit-channel contract's fields.
+    const proxiedMessageIntent = (proxiedResolveInput.action as { messageIntent: Record<string, unknown> }).messageIntent;
+    expect(proxiedMessageIntent.channelType).toBe("PLATFORM_CHAT");
+    expect(proxiedMessageIntent.shopId).toBe("66f000000000000000000s01");
     expect(proxiedResolveInput.triggerShopId).toBeUndefined();
     expect(proxiedResolveInput.businessDeveloperIdSnapshot).toBeUndefined();
     expect(proxiedResolveInput.businessDeveloperConfigRevision).toBeUndefined();
