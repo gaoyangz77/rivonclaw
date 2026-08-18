@@ -3634,6 +3634,10 @@ export default {
       "apiTokenPlaceholder": "Tempelkan token",
       "apiTokenEditPlaceholder": "Biarkan kosong untuk menyimpan token yang ada",
       "apiTokenHint": "Token hanya bersifat tulis dan tidak akan ditampilkan lagi.",
+      "apiTokenIssues": {
+        "invalidJson": "Bukan JSON yang valid. Tempel objek kredensial, misalnya {\"appKey\":\"...\",\"appSecret\":\"...\"}.",
+        "missingFields": "Objek kredensial tidak memiliki {{fields}}.",
+      },
       "apiTokenPlaceholders": {
         "YEJOIN": "Tempelkan token",
         "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"

@@ -3636,6 +3636,10 @@ export default {
       "apiTokenPlaceholder": "วางโทเค็น",
       "apiTokenEditPlaceholder": "เว้นว่างไว้เพื่อเก็บโทเค็นที่มีอยู่",
       "apiTokenHint": "โทเค็นเป็นแบบเขียนเท่านั้นและจะไม่แสดงอีก",
+      "apiTokenIssues": {
+        "invalidJson": "ไม่ใช่ JSON ที่ถูกต้อง วางออบเจ็กต์ข้อมูลรับรอง เช่น {\"appKey\":\"...\",\"appSecret\":\"...\"}",
+        "missingFields": "ออบเจ็กต์ข้อมูลรับรองขาด {{fields}}",
+      },
       "apiTokenPlaceholders": {
         "YEJOIN": "วางโทเค็น",
         "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"

@@ -5,6 +5,7 @@ import { Modal } from "../../../components/modals/Modal.js";
 import { Select } from "../../../components/inputs/Select.js";
 import { HelpCircleIcon } from "../../../components/icons.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { wmsApiTokenFields, wmsApiTokenIssue } from "../wms-credentials.js";
 
 const currencyOptions = Object.values(GQL.Currency).map((currency) => ({
   value: currency,
@@ -23,12 +24,17 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
   const draft = inventory.addWmsAccountDraft;
   const isEdit = inventory.isEditingWmsAccount;
 
+  // Providers that expect a JSON credential used to accept anything typed here
+  // and only rejected it hours later, inside the nightly inventory sync.
+  const apiTokenIssue = wmsApiTokenIssue(draft.provider, draft.apiToken);
+
   const canSubmit = Boolean(
     draft.provider &&
     draft.label.trim() &&
     draft.endpoint.trim() &&
     draft.declaredValueCurrency &&
-    (isEdit || draft.apiToken.trim()),
+    (isEdit || draft.apiToken.trim()) &&
+    !apiTokenIssue,
   );
 
   return (
@@ -150,6 +156,13 @@ export const AddWmsAccountModal = observer(function AddWmsAccountModal() {
                   defaultValue: t("ecommerce.inventory.apiTokenHint"),
                 })}
           </div>
+          {apiTokenIssue && (
+            <div className="form-hint form-hint-error">
+              {t(`ecommerce.inventory.apiTokenIssues.${apiTokenIssue}`, {
+                fields: (wmsApiTokenFields(draft.provider) ?? []).join(", "),
+              })}
+            </div>
+          )}
         </div>
 
         <div>

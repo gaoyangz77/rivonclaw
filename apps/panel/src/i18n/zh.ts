@@ -4598,6 +4598,10 @@ export default {
       apiTokenPlaceholder: "粘贴 API 令牌",
       apiTokenEditPlaceholder: "留空则保持现有 API 令牌",
       apiTokenHint: "API 令牌只写入后端，不会再次展示。",
+      apiTokenIssues: {
+        invalidJson: "不是有效的 JSON。请粘贴凭证对象，例如 {\"appKey\":\"...\",\"appSecret\":\"...\"}。",
+        missingFields: "凭证对象缺少 {{fields}}。",
+      },
       apiTokenPlaceholders: {
         YEJOIN: "粘贴 API 令牌",
         XLWMS: '{"appKey":"...","appSecret":"..."}',
