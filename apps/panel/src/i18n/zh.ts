@@ -4440,7 +4440,7 @@ export default {
         serviceStatus: "服务状态",
         dailyCreatorOutreachLimit: "每日自动联系达人上限",
         dailyCreatorOutreachLimitHint:
-          "由卖家配置该店铺每个当地日最多自动联系多少位达人；这不是 TikTok 官方消息额度。",
+          "该店铺每个当地日最多自动联系多少位达人。默认使用 TikTok 标准的每日可触达数量 10,000，可调低以放慢触达节奏。",
         dailyCreatorOutreachLimitInvalid: "每日上限必须是 1–20,000 的整数。",
         dailyCreatorOutreachLimitSaved: "已保存每日自动联系达人上限。",
         dailyCreatorOutreachLimitSaveFailed: "保存每日自动联系达人上限失败。",

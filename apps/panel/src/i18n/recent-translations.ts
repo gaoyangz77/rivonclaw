@@ -145,7 +145,7 @@ export const RECENT_TRANSLATIONS = {
         },
         affiliate: {
           dailyCreatorOutreachLimit: "Tägliches automatisches Creator-Kontaktlimit",
-          dailyCreatorOutreachLimitHint: "Vom Verkäufer festgelegte Anzahl der Creator, die dieser Shop pro lokalem Tag automatisch kontaktieren darf. Dies ist kein offizielles TikTok-Kontingent.",
+          dailyCreatorOutreachLimitHint: "Wie viele Creator dieser Shop pro lokalem Tag automatisch kontaktieren darf. Standard ist TikToks übliches Tageskontingent von 10.000; senke den Wert, um langsamer zu kontaktieren.",
           dailyCreatorOutreachLimitInvalid: "Das tägliche Limit muss eine ganze Zahl von 1 bis 20.000 sein.",
           dailyCreatorOutreachLimitSaved: "Das tägliche Creator-Kontaktlimit wurde gespeichert.",
           dailyCreatorOutreachLimitSaveFailed: "Das tägliche Creator-Kontaktlimit konnte nicht gespeichert werden.",
@@ -230,7 +230,7 @@ export const RECENT_TRANSLATIONS = {
         },
         affiliate: {
           dailyCreatorOutreachLimit: "Límite diario de contacto automático de creators",
-          dailyCreatorOutreachLimitHint: "Número definido por el vendedor de creators que este comercio puede contactar automáticamente por día local. No es una cuota oficial de TikTok.",
+          dailyCreatorOutreachLimitHint: "Cuántos creators puede contactar automáticamente este comercio por día local. Por defecto usa el límite diario estándar de TikTok de 10.000; redúcelo para contactar más despacio.",
           dailyCreatorOutreachLimitInvalid: "El límite diario debe ser un entero entre 1 y 20.000.",
           dailyCreatorOutreachLimitSaved: "Se guardó el límite diario de contacto de creators.",
           dailyCreatorOutreachLimitSaveFailed: "No se pudo guardar el límite diario de contacto de creators.",
@@ -315,7 +315,7 @@ export const RECENT_TRANSLATIONS = {
         },
         affiliate: {
           dailyCreatorOutreachLimit: "Limite quotidienne de contacts automatiques de créateurs",
-          dailyCreatorOutreachLimitHint: "Nombre défini par le vendeur de créateurs que cette boutique peut contacter automatiquement par jour local. Ce n’est pas un quota officiel TikTok.",
+          dailyCreatorOutreachLimitHint: "Nombre de créateurs que cette boutique peut contacter automatiquement par jour local. Par défaut, le quota quotidien standard de TikTok, soit 10 000 ; abaissez-le pour ralentir la prise de contact.",
           dailyCreatorOutreachLimitInvalid: "La limite quotidienne doit être un entier compris entre 1 et 20 000.",
           dailyCreatorOutreachLimitSaved: "La limite quotidienne de contacts créateurs a été enregistrée.",
           dailyCreatorOutreachLimitSaveFailed: "Impossible d’enregistrer la limite quotidienne de contacts créateurs.",
@@ -407,7 +407,7 @@ export const RECENT_TRANSLATIONS = {
         },
         affiliate: {
           dailyCreatorOutreachLimit: "Batas harian kontak kreator otomatis",
-          dailyCreatorOutreachLimitHint: "Jumlah kreator per hari lokal yang ditetapkan penjual untuk dihubungi otomatis oleh toko ini. Ini bukan kuota resmi TikTok.",
+          dailyCreatorOutreachLimitHint: "Berapa banyak kreator yang boleh dihubungi otomatis oleh toko ini per hari lokal. Bawaannya mengikuti jatah harian standar TikTok sebesar 10.000; turunkan untuk memperlambat penjangkauan.",
           dailyCreatorOutreachLimitInvalid: "Batas harian harus berupa bilangan bulat 1–20.000.",
           dailyCreatorOutreachLimitSaved: "Batas harian kontak kreator telah disimpan.",
           dailyCreatorOutreachLimitSaveFailed: "Batas harian kontak kreator tidak dapat disimpan.",
@@ -492,7 +492,7 @@ export const RECENT_TRANSLATIONS = {
         },
         affiliate: {
           dailyCreatorOutreachLimit: "Limite giornaliero di contatti automatici dei creator",
-          dailyCreatorOutreachLimitHint: "Numero di creator, definito dal venditore, che il negozio può contattare automaticamente per giorno locale. Non è una quota ufficiale TikTok.",
+          dailyCreatorOutreachLimitHint: "Quanti creator questo negozio può contattare automaticamente per giorno locale. Per impostazione predefinita usa il limite giornaliero standard di TikTok di 10.000; abbassalo per rallentare i contatti.",
           dailyCreatorOutreachLimitInvalid: "Il limite giornaliero deve essere un intero tra 1 e 20.000.",
           dailyCreatorOutreachLimitSaved: "Il limite giornaliero di contatti creator è stato salvato.",
           dailyCreatorOutreachLimitSaveFailed: "Impossibile salvare il limite giornaliero di contatti creator.",
@@ -571,7 +571,7 @@ export const RECENT_TRANSLATIONS = {
         },
         affiliate: {
           dailyCreatorOutreachLimit: "จำนวนครีเอเตอร์สูงสุดที่ติดต่ออัตโนมัติต่อวัน",
-          dailyCreatorOutreachLimitHint: "จำนวนครีเอเตอร์ต่อวันตามเวลาท้องถิ่นที่ผู้ขายกำหนดให้ร้านติดต่ออัตโนมัติได้ ไม่ใช่โควตาอย่างเป็นทางการของ TikTok",
+          dailyCreatorOutreachLimitHint: "จำนวนครีเอเตอร์ที่ร้านนี้ติดต่ออัตโนมัติได้ต่อวันตามเวลาท้องถิ่น ค่าเริ่มต้นใช้โควตารายวันมาตรฐานของ TikTok ที่ 10,000 ลดลงได้หากต้องการติดต่อช้าลง",
           dailyCreatorOutreachLimitInvalid: "ขีดจำกัดรายวันต้องเป็นจำนวนเต็มระหว่าง 1–20,000",
           dailyCreatorOutreachLimitSaved: "บันทึกขีดจำกัดการติดต่อครีเอเตอร์รายวันแล้ว",
           dailyCreatorOutreachLimitSaveFailed: "ไม่สามารถบันทึกขีดจำกัดการติดต่อครีเอเตอร์รายวันได้",

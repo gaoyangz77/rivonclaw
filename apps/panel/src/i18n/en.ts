@@ -4688,7 +4688,7 @@ export default {
         serviceStatus: "Service Status",
         dailyCreatorOutreachLimit: "Daily automatic creator outreach limit",
         dailyCreatorOutreachLimitHint:
-          "The seller-defined number of creators this shop may contact automatically per local day. This is not an official TikTok quota.",
+          "How many creators this shop may contact automatically per local day. Defaults to TikTok's standard daily allowance of 10,000; lower it to pace outreach more slowly.",
         dailyCreatorOutreachLimitInvalid: "The daily limit must be a whole number from 1 to 20,000.",
         dailyCreatorOutreachLimitSaved: "Daily creator outreach limit saved.",
         dailyCreatorOutreachLimitSaveFailed: "The daily creator outreach limit could not be saved.",

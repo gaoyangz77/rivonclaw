@@ -55,3 +55,21 @@ export function getAuthStatusBadgeClass(status: string): string {
       return "badge badge-muted";
   }
 }
+
+/**
+ * TikTok's standard number of Creators a Shop may contact per day. Backend
+ * applies the same value as the schema default for newly connected Shops.
+ */
+export const DEFAULT_DAILY_CREATOR_OUTREACH_LIMIT = 10_000;
+
+/**
+ * The daily Creator outreach limit a Shop runs at. Shops connected before the
+ * schema default existed have no stored value, so the seller sees the standard
+ * allowance rather than a blank field. Once we can read the allowance back from
+ * the Provider, only this function changes.
+ */
+export function resolveDailyCreatorOutreachLimit(
+  persistedLimit: number | null | undefined,
+): number {
+  return persistedLimit ?? DEFAULT_DAILY_CREATOR_OUTREACH_LIMIT;
+}

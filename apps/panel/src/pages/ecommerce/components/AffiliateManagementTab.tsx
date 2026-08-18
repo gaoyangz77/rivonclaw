@@ -8,6 +8,7 @@ import { Select } from "../../../components/inputs/Select.js";
 import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
+import { resolveDailyCreatorOutreachLimit } from "../ecommerce-utils.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 
@@ -69,12 +70,12 @@ export const AffiliateManagementTab = observer(function AffiliateManagementTab({
   const persistedDailyLimit = shop.services?.affiliateService
     ?.campaignDailyCreatorOutreachLimit;
   const [dailyLimit, setDailyLimit] = useState(
-    persistedDailyLimit == null ? "" : String(persistedDailyLimit),
+    String(resolveDailyCreatorOutreachLimit(persistedDailyLimit)),
   );
   const [savingDailyLimit, setSavingDailyLimit] = useState(false);
 
   useEffect(() => {
-    setDailyLimit(persistedDailyLimit == null ? "" : String(persistedDailyLimit));
+    setDailyLimit(String(resolveDailyCreatorOutreachLimit(persistedDailyLimit)));
   }, [persistedDailyLimit, shop.id]);
 
   async function saveDailyLimit() {
