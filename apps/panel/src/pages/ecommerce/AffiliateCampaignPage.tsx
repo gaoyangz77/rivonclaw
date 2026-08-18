@@ -46,6 +46,9 @@ type CampaignForm = {
   productId: string;
   name: string;
   dailyTarget: string;
+  endDays: string;
+  isSampleApprovalExempt: boolean;
+  sellerContactEmail: string;
   minimumFollowers: string;
   maximumFollowers: string;
   commissionRate: string;
@@ -83,6 +86,9 @@ const emptyForm: CampaignForm = {
   productId: "",
   name: "",
   dailyTarget: "100",
+  endDays: "30",
+  isSampleApprovalExempt: false,
+  sellerContactEmail: "",
   minimumFollowers: "1000",
   maximumFollowers: "",
   commissionRate: "10",
@@ -451,6 +457,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       productId: campaign.primaryProductId,
       name: campaign.name,
       dailyTarget: String(campaign.dailyOutreachTarget),
+      endDays: String(campaign.endDays ?? 30),
+      isSampleApprovalExempt: Boolean(campaign.isSampleApprovalExempt),
+      sellerContactEmail: campaign.sellerContactEmail ?? "",
       minimumFollowers: "",
       maximumFollowers: "",
       commissionRate: String(campaignCommissionRate(campaign)),
@@ -509,7 +518,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       wizardStep === 2 &&
       (Number(form.dailyTarget) < 1 ||
         Number(form.commissionRate) < 0 ||
-        Number(form.commissionRate) > 100)
+        Number(form.commissionRate) > 100 ||
+        !Number.isInteger(Number(form.endDays)) ||
+        Number(form.endDays) < 1 ||
+        Number(form.endDays) > 365 ||
+        !form.sellerContactEmail.trim())
     ) {
       showToast(t("ecommerce.affiliateCampaign.invalidTargets"), "error");
       return false;
@@ -585,6 +598,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         searchPlanGuidance: form.searchPlanGuidance.trim() || null,
         dailyOutreachTarget: Number(form.dailyTarget),
         commissionRatePercent: Number(form.commissionRate),
+        endDays: Number(form.endDays),
+        isSampleApprovalExempt: form.isSampleApprovalExempt,
+        sellerContactEmail: form.sellerContactEmail.trim(),
         // Both modes take Creators in Marketplace order; AI mode only adds a
         // pre-screen. There is no seller-set threshold to send any more.
         selectionPolicy: { strategy: form.strategy },
@@ -1898,6 +1914,40 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     />
                     <small>{t("ecommerce.affiliateCampaign.commissionRateHint")}</small>
                   </label>
+                  <label>
+                    <span>{t("ecommerce.affiliateCampaign.endDays")}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      step="1"
+                      value={form.endDays}
+                      onChange={(event) => updateForm("endDays", event.target.value)}
+                    />
+                    <small>{t("ecommerce.affiliateCampaign.endDaysHint")}</small>
+                  </label>
+                  <label>
+                    <span>{t("ecommerce.affiliateCampaign.sellerContactEmail")}</span>
+                    <input
+                      type="email"
+                      value={form.sellerContactEmail}
+                      onChange={(event) =>
+                        updateForm("sellerContactEmail", event.target.value)}
+                    />
+                    <small>{t("ecommerce.affiliateCampaign.sellerContactEmailHint")}</small>
+                  </label>
+                  <label className="affiliate-campaign-check-rule">
+                    <input
+                      type="checkbox"
+                      checked={form.isSampleApprovalExempt}
+                      onChange={(event) =>
+                        updateForm("isSampleApprovalExempt", event.target.checked)}
+                    />
+                    <span>{t("ecommerce.affiliateCampaign.sampleApprovalExempt")}</span>
+                  </label>
+                  <p className="form-hint">
+                    {t("ecommerce.affiliateCampaign.sampleApprovalExemptHint")}
+                  </p>
                 </div>
                 <section className="affiliate-campaign-dynamic-discovery">
                   <div>
@@ -2256,6 +2306,24 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.commissionRate")}
                   value={`${form.commissionRate}%`}
+                />
+                <ConfirmationItem
+                  title={t("ecommerce.affiliateCampaign.endDays")}
+                  value={t("ecommerce.affiliateCampaign.endDaysValue", {
+                    count: Number(form.endDays),
+                  })}
+                />
+                <ConfirmationItem
+                  title={t("ecommerce.affiliateCampaign.sellerContactEmail")}
+                  value={form.sellerContactEmail || "—"}
+                />
+                <ConfirmationItem
+                  title={t("ecommerce.affiliateCampaign.sampleApprovalExempt")}
+                  value={t(
+                    form.isSampleApprovalExempt
+                      ? "ecommerce.affiliateCampaign.sampleApprovalExemptOn"
+                      : "ecommerce.affiliateCampaign.sampleApprovalExemptOff",
+                  )}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.sendingWindow")}

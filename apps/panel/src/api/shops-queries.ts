@@ -267,6 +267,9 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     resolvedTimeZone
     dailyOutreachTarget
     commissionRatePercent
+    endDays
+    isSampleApprovalExempt
+    sellerContactEmail
     selectionPolicy {
       strategy
     }

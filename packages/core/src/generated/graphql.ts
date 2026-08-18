@@ -846,7 +846,11 @@ export interface AffiliateCampaign {
   configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
   dailyOutreachTarget: Scalars['Int']['output'];
+  /** How long a Target Collaboration created by this Campaign stays open, in whole days. Resolved against the moment each collaboration is created, not against the Campaign start. */
+  endDays: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
+  /** Whether Creators reached by this Campaign skip the seller's sample approval step. Leaving this false keeps producing the approval decisions the screening models learn from. */
+  isSampleApprovalExempt: Scalars['Boolean']['output'];
   lastSearchPlanCompletedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   market: ShopRegion;
   messageProductName: Scalars['String']['output'];
@@ -866,6 +870,8 @@ export interface AffiliateCampaign {
   searchPlanGuidance?: Maybe<Scalars['String']['output']>;
   searchPlanningState: AffiliateCampaignSearchPlanningState;
   selectionPolicy: AffiliateCampaignSelectionPolicy;
+  /** Seller contact address published on Target Collaborations this Campaign creates. */
+  sellerContactEmail?: Maybe<Scalars['String']['output']>;
   shopId: Scalars['ID']['output'];
   status: AffiliateCampaignStatus;
   templateTextHash: Scalars['String']['output'];
@@ -11926,7 +11932,7 @@ export interface ResolveAffiliateCampaignProductInput {
   shopId: Scalars['ID']['input'];
 }
 
-/** Agent-authored Target Collaboration details. Creator identity is injected from the trusted Affiliate run context. */
+/** Agent-authored Target Collaboration details for the ONE Creator of the current Affiliate work item. Creator identity is injected from the trusted CreatorRelationship context and is never accepted from the agent: there is no field here for naming, substituting, or batch-inviting Creators, and exactly one Creator is invited. Choose the shop and the collaboration terms; the Creator is already decided by the work item. */
 export interface ResolveAffiliateTargetCollaborationIntentInput {
   endTime: Scalars['DateTimeISO']['input'];
   hasFreeSample: Scalars['Boolean']['input'];
@@ -11955,7 +11961,7 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
-  /** Required only when type is CREATE_TARGET_COLLABORATION. Creator identity and shop are injected from the trusted run context. */
+  /** Required only when type is CREATE_TARGET_COLLABORATION. Creates a Target Collaboration for the ONE Creator of the current Affiliate work item; that Creator's identity is injected from the trusted CreatorRelationship context, so you cannot name, substitute, or batch-invite Creators here. Select the owning shop explicitly. */
   targetCollaborationIntent?: InputMaybe<ResolveAffiliateTargetCollaborationIntentInput>;
   /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent unsupported seller operations. */
   type: ActionProposalType;
@@ -13936,7 +13942,9 @@ export interface WriteAffiliateBusinessDeveloperInput {
 export interface WriteAffiliateCampaignInput {
   commissionRatePercent: Scalars['Float']['input'];
   dailyOutreachTarget: Scalars['Int']['input'];
+  endDays?: InputMaybe<Scalars['Int']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
+  isSampleApprovalExempt?: InputMaybe<Scalars['Boolean']['input']>;
   messageProductName?: InputMaybe<Scalars['String']['input']>;
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
   messageTemplateText: Scalars['String']['input'];
@@ -13945,6 +13953,7 @@ export interface WriteAffiliateCampaignInput {
   refreshProductSnapshot?: InputMaybe<Scalars['Boolean']['input']>;
   searchPlanGuidance?: InputMaybe<Scalars['String']['input']>;
   selectionPolicy: AffiliateCampaignSelectionPolicyInput;
+  sellerContactEmail?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCampaignStatus>;
 }
