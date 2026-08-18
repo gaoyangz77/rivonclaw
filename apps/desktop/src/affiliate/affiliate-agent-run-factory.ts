@@ -117,7 +117,6 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
     if (item.sampleTerminalState) {
       lines.push(...renderSampleTerminalState(item.sampleTerminalState));
     }
-    lines.push(...renderTargetCollaborationCoverage(item));
     lines.push(...renderMinExpectedSalesReference(item));
     if (item.predictionEvidence) {
       lines.push(...renderWorkingAgendaPredictionEvidence(item.predictionEvidence));
@@ -283,46 +282,26 @@ function renderSampleTerminalState(
   return lines;
 }
 
+
 /**
- * Whether the seller already committed to this Creator for this product, as a
- * per-product fact the Agent can decide from.
+ * Deliberately absent: the Working Agenda no longer tells the Agent whether an
+ * active Target Collaboration covers the product under review.
  *
- * This replaced a Relationship-level `activeCollaborationCount` that summed
- * active Samples and active Collaborations and reported the total under a name
- * that promised only Collaborations. A live run was shown `1` beside an empty
- * collaboration id list, correctly called it a contradiction, and escalated a
- * Sample it could have decided. A corrected count in that slot would have
- * invited the same misreading, because the question is per product and the slot
- * is per Relationship.
+ * The line used to answer "is there a seller commitment?" for the Sample
+ * decision. Once a targeted invitation stopped being a commitment, its mere
+ * existence stopped being an input to that decision — but the line kept
+ * presenting it as a headline per-product fact, and two live runs read it back
+ * as "明确的商家合作承诺" and approved against the model on that basis alone,
+ * one of them across a 95% Expected Sales shortfall. A line that says a thing
+ * exists, next to a rule that says the thing decides nothing, is a contradiction
+ * the Agent resolves in favour of the line.
  *
- * Absent is rendered as its own state and never as "no". The Backend leaves the
- * flag null exactly when the item cannot pose the question — it names no
- * product, or its shop lies outside the Relationship — and the seller rule
- * keys on a commitment being PRESENT, so a "no" there would push the Agent
- * toward wrongly refusing. The line is emitted only where the question is
- * meaningful: on Sample-bearing work, or wherever the Backend answered it.
+ * Collaboration state is still readable through
+ * `affiliate_list_creator_collaborations` where it genuinely matters — writing
+ * to the Creator without contradicting an invitation that is still open, and
+ * Target Collaboration work items themselves. It is simply no longer pushed
+ * into the Sample-decision agenda.
  */
-function renderTargetCollaborationCoverage(
-  item: GQL.AffiliateRelationshipAgendaItem,
-): string[] {
-  const answered = item.hasTargetCollaboration != null;
-  if (!answered && !item.sampleApplicationRecordId) return [];
-  if (item.hasTargetCollaboration === true) {
-    return [
-      "   Seller Target Collaboration For This Product: YES — an active Target Collaboration covers this shop, this Creator and this product.",
-    ];
-  }
-  if (item.hasTargetCollaboration === false) {
-    return [
-      "   Seller Target Collaboration For This Product: NO — no active Target Collaboration covers this shop, this Creator and this product.",
-      "   This rules out only the structured invitation. It does not establish that the seller never invited this Creator; a conversational invitation leaves no Collaboration behind.",
-    ];
-  }
-  return [
-    "   Seller Target Collaboration For This Product: UNKNOWN — this agenda item carries no product to look a commitment up by, so the question was not answered.",
-    "   UNKNOWN is not NO. Do not treat it as evidence that no commitment exists.",
-  ];
-}
 
 /**
  * The shop's own minimum expected-sales reference, for the Sample review that

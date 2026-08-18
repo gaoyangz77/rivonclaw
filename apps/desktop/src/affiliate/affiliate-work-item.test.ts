@@ -3962,22 +3962,18 @@ describe("Provider-terminal sample follow-up dispatch mapping", () => {
 });
 
 /**
- * The seller-commitment line on Sample work.
+ * The Working Agenda must not tell the Agent whether a Target Collaboration
+ * covers the product under review.
  *
- * It replaced `workSummary.activeCollaborationCount`, a Relationship-level
- * number that summed active Samples and active Collaborations and reported the
- * total as a Collaboration count. A live run was shown `1` beside an empty
- * collaboration id list, correctly called it a contradiction, and escalated a
- * Sample it could have decided.
- *
- * Backend decides the three states; that the producer actually emits all three
- * is proved against real writers in
- * `server/backend/src/ecommerce/affiliate/services/AffiliateTargetCollaborationCoverage.test.ts`.
- * What is at stake here is only that Desktop renders them apart — above all
- * that null is not shown to the Agent as "no".
+ * The line it replaces answered "is there a seller commitment?" for the Sample
+ * decision. Once a targeted invitation stopped being a commitment, its
+ * existence stopped being an input to that decision, and two live runs proved
+ * that stating it anyway is not neutral: both read the flag back as an explicit
+ * merchant commitment and approved against the model on that alone, one across
+ * a 95% Expected Sales shortfall.
  */
-describe("Target Collaboration coverage in the Working Agenda", () => {
-  function renderCoverage(
+describe("Target Collaboration coverage is absent from the Working Agenda", () => {
+  function renderAgenda(
     hasTargetCollaboration: boolean | null,
     itemOverrides: Partial<GQL.AffiliateRelationshipAgendaItem> = {},
   ): string {
@@ -4005,54 +4001,21 @@ describe("Target Collaboration coverage in the Working Agenda", () => {
 
   const LABEL = "Seller Target Collaboration For This Product";
 
-  it("states the commitment as present when the Backend answered yes", () => {
-    const message = renderCoverage(true);
+  it.each([[true], [false], [null]])(
+    "says nothing about Collaboration coverage when the Backend answered %p",
+    (hasTargetCollaboration) => {
+      const message = renderAgenda(hasTargetCollaboration as boolean | null);
 
-    expect(message).toContain(`${LABEL}: YES`);
-    expect(message).toContain("active Target Collaboration covers this shop, this Creator and this product");
-    expect(message).not.toContain(`${LABEL}: NO`);
-    expect(message).not.toContain(`${LABEL}: UNKNOWN`);
-  });
+      expect(message).toContain("[Agent Working Agenda]");
+      expect(message).not.toContain(LABEL);
+      expect(message).not.toContain("Target Collaboration");
+    },
+  );
 
-  /**
-   * A "no" here rules out the structured invitation only. A seller who invited
-   * the Creator in conversation leaves no Collaboration behind, so the line
-   * must not read as "the seller never invited them".
-   */
-  it("scopes a no to the structured invitation", () => {
-    const message = renderCoverage(false);
+  it("still renders the rest of the Sample agenda", () => {
+    const message = renderAgenda(true);
 
-    expect(message).toContain(`${LABEL}: NO`);
-    expect(message).toContain("rules out only the structured invitation");
-    expect(message).not.toContain(`${LABEL}: YES`);
-  });
-
-  /**
-   * The whole point of the field being nullable. The seller rule keys on a
-   * commitment being PRESENT, so an unanswered question rendered as "no" would
-   * push the Agent toward wrongly refusing — the same class of error as the
-   * count it replaced.
-   */
-  it("renders an unanswered question as its own state and never as a no", () => {
-    const message = renderCoverage(null, { productId: null });
-
-    expect(message).toContain(`${LABEL}: UNKNOWN`);
-    expect(message).toContain("UNKNOWN is not NO");
-    expect(message).not.toContain(`${LABEL}: NO`);
-    expect(message).not.toContain(`${LABEL}: YES`);
-  });
-
-  it("stays silent on non-Sample work the Backend did not answer for", () => {
-    const message = renderCoverage(null, {
-      workKind: GQL.AffiliateWorkKind.InboundMessageTriage,
-      requiredAction: GQL.AffiliateRelationshipRequiredAction.HandleCreatorMessage,
-      sampleApplicationRecordId: null,
-      productId: null,
-      predictionEvidence: null,
-    });
-
-    expect(message).toContain("[Agent Working Agenda]");
-    expect(message).not.toContain(LABEL);
+    expect(message).toContain("Sample Application Record ID: sample-coverage-001");
   });
 });
 
