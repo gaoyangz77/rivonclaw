@@ -26,6 +26,7 @@ import {
 import {
   AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
+  AFFILIATE_CAMPAIGN_AI_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY,
   AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY,
   AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY,
@@ -47,7 +48,6 @@ type CampaignForm = {
   dailyTarget: string;
   minimumFollowers: string;
   maximumFollowers: string;
-  minimumExpectedSales: string;
   commissionRate: string;
   refreshProductSnapshot: boolean;
   searchPlanGuidance: string;
@@ -85,7 +85,6 @@ const emptyForm: CampaignForm = {
   dailyTarget: "100",
   minimumFollowers: "1000",
   maximumFollowers: "",
-  minimumExpectedSales: "",
   commissionRate: "10",
   refreshProductSnapshot: false,
   searchPlanGuidance: "",
@@ -127,7 +126,7 @@ const eligibilityReasonOptions = [
   "CAMPAIGN_ALREADY_CONTACTED",
   "PROVIDER_RESULT_INVALID",
   "FOLLOWER_DATA_REQUIRED",
-  "EXPECTED_SALES_BELOW_THRESHOLD",
+  "PRE_APPROVAL_REJECTED",
 ] as const;
 
 type CampaignProductPreview =
@@ -281,6 +280,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const shopsQuery = useQuery<{ shops: GQL.Shop[] }>(SHOPS_QUERY, {
     fetchPolicy: "cache-and-network",
   });
+  // Readiness is read once for the page, not per Campaign: the artifact is
+  // resolved at user scope, so the answer is the same for every Campaign here.
+  const aiReadinessQuery = useQuery<{
+    affiliateCampaignAiReadiness: GQL.AffiliateCampaignAiReadiness;
+  }>(AFFILIATE_CAMPAIGN_AI_READINESS_QUERY, { fetchPolicy: "cache-and-network" });
+  const aiReadiness = aiReadinessQuery.data?.affiliateCampaignAiReadiness ?? null;
+  const aiReadinessLoading = aiReadinessQuery.loading && !aiReadiness;
   const capabilitiesQuery = useQuery<{
     affiliateMarketplaceCreatorRuleCapabilities: GQL.AffiliateMarketplaceCreatorRuleCapabilities;
   }>(AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY, {
@@ -447,10 +453,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       dailyTarget: String(campaign.dailyOutreachTarget),
       minimumFollowers: "",
       maximumFollowers: "",
-      minimumExpectedSales:
-        campaign.selectionPolicy.minimumExpectedSalesUnits == null
-          ? ""
-          : String(campaign.selectionPolicy.minimumExpectedSalesUnits),
       commissionRate: String(campaignCommissionRate(campaign)),
       refreshProductSnapshot: false,
       searchPlanGuidance: campaign.searchPlanGuidance ?? "",
@@ -507,8 +509,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       wizardStep === 2 &&
       (Number(form.dailyTarget) < 1 ||
         Number(form.commissionRate) < 0 ||
-        Number(form.commissionRate) > 100 ||
-        (form.minimumExpectedSales && Number(form.minimumExpectedSales) < 0))
+        Number(form.commissionRate) > 100)
     ) {
       showToast(t("ecommerce.affiliateCampaign.invalidTargets"), "error");
       return false;
@@ -584,18 +585,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         searchPlanGuidance: form.searchPlanGuidance.trim() || null,
         dailyOutreachTarget: Number(form.dailyTarget),
         commissionRatePercent: Number(form.commissionRate),
-        selectionPolicy: {
-          strategy: form.strategy,
-          ranking:
-            form.strategy === GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules
-              ? GQL.AffiliateCampaignSelectionRanking.ProviderOrder
-              : GQL.AffiliateCampaignSelectionRanking.ExpectedSalesPerFollower,
-          minimumExpectedSalesUnits:
-            form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSales &&
-            form.minimumExpectedSales
-              ? Number(form.minimumExpectedSales)
-              : null,
-        },
+        // Both modes take Creators in Marketplace order; AI mode only adds a
+        // pre-screen. There is no seller-set threshold to send any more.
+        selectionPolicy: { strategy: form.strategy },
         messageTemplateText: form.templateText.trim(),
         messageTemplateSource: form.templateSource,
         messageProductName: form.messageProductName.trim() || productPreview.title,
@@ -1848,17 +1840,23 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </button>
                   <button
                     type="button"
-                    disabled
-                    aria-disabled="true"
+                    disabled={!aiReadiness?.ready}
+                    aria-disabled={!aiReadiness?.ready || undefined}
                     data-selected={
-                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSales ||
+                      form.strategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval ||
                       undefined
+                    }
+                    onClick={() =>
+                      updateForm(
+                        "strategy",
+                        GQL.AffiliateCampaignSelectionStrategy.AiPreApproval,
+                      )
                     }
                   >
                     <span>{t("ecommerce.affiliateCampaign.strategyMlKicker")}</span>
                     <strong>{t("ecommerce.affiliateCampaign.strategyMlTitle")}</strong>
                     <small>{t("ecommerce.affiliateCampaign.strategyMlDescription")}</small>
-                    <i>{t("ecommerce.affiliateCampaign.strategyMlUnavailable")}</i>
+                    <i>{campaignAiReadinessNote(aiReadiness, aiReadinessLoading, t)}</i>
                   </button>
                 </div>
                 <div className="affiliate-campaign-capability-note">
@@ -2465,23 +2463,27 @@ function CampaignCreatorStateRow({
           </>
         ) : (
           <>
-            <strong>
-              {t("ecommerce.affiliateCampaign.expectedSalesCompact", {
-                count: formatOptionalNumber(state.expectedSalesUnits),
-              })}
-            </strong>
+            <strong>{campaignPreApprovalOutcomeLabel(state.preApproved, t)}</strong>
             <small>
-              {t("ecommerce.affiliateCampaign.followerAndEfficiency", {
-                followers: followers == null ? "—" : formatNumber(followers),
-                score: formatScore(state.efficiencyScore),
+              {t("ecommerce.affiliateCampaign.preApprovalScore", {
+                probability: formatProbability(state.preApprovalProbability),
+                cutoff: formatProbability(state.preApprovalCutoff),
               })}
             </small>
             <small>
-              {performance
-                ? t("ecommerce.affiliateCampaign.performanceAsOf", {
-                    date: formatDateTime(performance.observedAt),
+              {t("ecommerce.affiliateCampaign.preApprovalModel", {
+                model: state.preApprovalModelVersion ?? "—",
+              })}
+            </small>
+            <small>
+              {state.preApprovalObservedAt
+                ? t("ecommerce.affiliateCampaign.preApprovalObservedAt", {
+                    date: formatDateTime(state.preApprovalObservedAt),
                   })
                 : t("ecommerce.affiliateCampaign.performancePending")}
+            </small>
+            <small className="form-hint">
+              {t("ecommerce.affiliateCampaign.preApprovalDisclaimer")}
             </small>
           </>
         )}
@@ -3190,15 +3192,27 @@ function campaignRuleSummary(
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   if (
-    campaign.selectionPolicy.strategy === GQL.AffiliateCampaignSelectionStrategy.ExpectedSales
+    campaign.selectionPolicy.strategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval
   ) {
-    return campaign.selectionPolicy.minimumExpectedSalesUnits == null
-      ? t("ecommerce.affiliateCampaign.noExpectedSalesFloor")
-      : t("ecommerce.affiliateCampaign.expectedSalesFloor", {
-          count: campaign.selectionPolicy.minimumExpectedSalesUnits,
-        });
+    return t("ecommerce.affiliateCampaign.preApprovalSummary");
   }
   return t("ecommerce.affiliateCampaign.dynamicSearchPlanSummary");
+}
+
+/**
+ * The readiness line under the AI option. It says what the seller can do about
+ * it and nothing about which artifact answered.
+ */
+export function campaignAiReadinessNote(
+  readiness: GQL.AffiliateCampaignAiReadiness | null | undefined,
+  loading: boolean,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (loading || !readiness) return t("ecommerce.affiliateCampaign.strategyMlChecking");
+  if (readiness.ready) return t("ecommerce.affiliateCampaign.strategyMlReady");
+  return readiness.status === GQL.AffiliateCampaignAiReadinessStatus.TemporarilyUnavailable
+    ? t("ecommerce.affiliateCampaign.strategyMlTemporarilyUnavailable")
+    : t("ecommerce.affiliateCampaign.strategyMlNotConfigured");
 }
 
 function CampaignFunnel({
@@ -3427,14 +3441,16 @@ export function campaignDecisionReasonLabel(
   if (codes.has("PROVIDER_FILTER_MATCH") || codes.has("PROVIDER_ORDER")) {
     return t("ecommerce.affiliateCampaign.decisionReason.providerFilterMatch");
   }
-  if (codes.has("EXPECTED_SALES_QUALIFIED")) {
-    return t("ecommerce.affiliateCampaign.decisionReason.expectedSalesQualified");
+  if (codes.has("PRE_APPROVAL_QUALIFIED")) {
+    return t("ecommerce.affiliateCampaign.decisionReason.preApprovalQualified");
   }
-  if (codes.has("EXPECTED_SALES_BELOW_MINIMUM")) {
-    return t("ecommerce.affiliateCampaign.decisionReason.expectedSalesBelowMinimum");
+  if (codes.has("PRE_APPROVAL_REJECTED")) {
+    return t("ecommerce.affiliateCampaign.decisionReason.preApprovalRejected");
   }
-  if (codes.has("EXPECTED_SALES_NOT_READY")) {
-    return t("ecommerce.affiliateCampaign.decisionReason.expectedSalesNotReady");
+  // Every remaining Pre-Approval code is a technical failure. The seller is
+  // told the screening could not run, never which internal code said so.
+  if ([...codes].some((code) => code.startsWith("PRE_APPROVAL_"))) {
+    return t("ecommerce.affiliateCampaign.decisionReason.preApprovalUnavailable");
   }
   if (!rawReason?.trim()) return "—";
   return t("ecommerce.affiliateCampaign.decisionReason.recorded");
@@ -3521,7 +3537,8 @@ export function campaignErrorMessage(
       "dailyCreatorOutreachLimitInvalid",
     ],
     ["AFFILIATE_CAMPAIGN_MAINTENANCE", "campaignMaintenance"],
-    ["EXPECTED_SALES_V3_MODEL_NOT_READY", "modelNotReady"],
+    ["AFFILIATE_CAMPAIGN_QUALIFICATION_MODEL_NOT_READY", "modelNotReady"],
+    ["AFFILIATE_CAMPAIGN_MODEL_READINESS_RETRY", "modelTemporarilyUnavailable"],
     ["CAMPAIGN_DRAFT_DELETE_ONLY", "draftDeleteOnly"],
     ["CAMPAIGN_DRAFT_HAS_HISTORY", "draftHasHistory"],
     ["CAMPAIGN_RECONFIGURATION_REQUIRED", "reconfigurationRequired"],
@@ -3598,8 +3615,26 @@ function formatOptionalNumber(value?: number | null) {
     : new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 }
 
-function formatScore(value?: number | null) {
-  return value == null ? "—" : value.toFixed(6);
+function formatProbability(value?: number | null) {
+  return value == null
+    ? "—"
+    : new Intl.NumberFormat(undefined, {
+        style: "percent",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }).format(value);
+}
+
+export function campaignPreApprovalOutcomeLabel(
+  preApproved: boolean | null | undefined,
+  t: (key: string) => string,
+): string {
+  if (preApproved == null) {
+    return t("ecommerce.affiliateCampaign.preApprovalUnavailable");
+  }
+  return preApproved
+    ? t("ecommerce.affiliateCampaign.preApprovalPassed")
+    : t("ecommerce.affiliateCampaign.preApprovalFailed");
 }
 
 function formatDateTime(value: string) {

@@ -890,6 +890,21 @@ export interface AffiliateCampaignAffiliatePerformanceRulesInput {
   postRate?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface AffiliateCampaignAiReadiness {
+  checkedAt: Scalars['DateTimeISO']['output'];
+  contractVersion?: Maybe<Scalars['String']['output']>;
+  modelVersion?: Maybe<Scalars['String']['output']>;
+  ready: Scalars['Boolean']['output'];
+  status: AffiliateCampaignAiReadinessStatus;
+}
+
+export const AffiliateCampaignAiReadinessStatus = {
+  NotConfigured: 'NOT_CONFIGURED',
+  Ready: 'READY',
+  TemporarilyUnavailable: 'TEMPORARILY_UNAVAILABLE'
+} as const;
+
+export type AffiliateCampaignAiReadinessStatus = typeof AffiliateCampaignAiReadinessStatus[keyof typeof AffiliateCampaignAiReadinessStatus];
 export interface AffiliateCampaignAudienceRules {
   ageRanges?: Maybe<Array<CreatorSearchFollowerAgeRange>>;
   genderDistribution?: Maybe<AffiliateCampaignGenderDistributionRule>;
@@ -930,28 +945,21 @@ export interface AffiliateCampaignContentPerformanceRulesInput {
 
 export interface AffiliateCampaignCreatorState {
   campaignId: Scalars['ID']['output'];
-  contractVersion?: Maybe<Scalars['String']['output']>;
   creatorId: Scalars['ID']['output'];
   creatorPerformance?: Maybe<AffiliateCreatorPerformanceCurrent>;
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
   creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
   decisionReason?: Maybe<Scalars['String']['output']>;
   decisionReasonCodes: Array<Scalars['String']['output']>;
-  efficiencyScore?: Maybe<Scalars['Float']['output']>;
   eligibilityCategory?: Maybe<AffiliateCampaignEligibilityCategory>;
   eligibilityEvaluatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   eligibilityPolicyVersion?: Maybe<Scalars['Int']['output']>;
   eligibilityReasonCode?: Maybe<Scalars['String']['output']>;
   evaluationAttemptCount?: Maybe<Scalars['Int']['output']>;
   evaluationFailureStage?: Maybe<Scalars['String']['output']>;
-  evidenceMode?: Maybe<Scalars['String']['output']>;
-  /** Raw arithmetic expectation of attributed units through Sample terminal, conditional on approval. */
-  expectedSalesUnits?: Maybe<Scalars['Float']['output']>;
-  featureAsOf?: Maybe<Scalars['DateTimeISO']['output']>;
   filterResult?: Maybe<AffiliateCampaignRuleFilterResult>;
   firstSeenAt: Scalars['DateTimeISO']['output'];
   followerCount?: Maybe<Scalars['Int']['output']>;
-  humanDecisionWouldApprove?: Maybe<Scalars['Boolean']['output']>;
   id: Scalars['ID']['output'];
   lastSeenAt: Scalars['DateTimeISO']['output'];
   latestSearchDailyExecutionId?: Maybe<Scalars['ID']['output']>;
@@ -960,9 +968,17 @@ export interface AffiliateCampaignCreatorState {
   latestSearchPlanId?: Maybe<Scalars['ID']['output']>;
   latestSearchProviderOrdinal?: Maybe<Scalars['Int']['output']>;
   market: Scalars['String']['output'];
-  minimumExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
-  modelVersion?: Maybe<Scalars['String']['output']>;
   nextEvaluationAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  preApprovalContractVersion?: Maybe<Scalars['String']['output']>;
+  /** The artifact's own cutoff. Frozen at training time, never seller-set. */
+  preApprovalCutoff?: Maybe<Scalars['Float']['output']>;
+  preApprovalInputHash?: Maybe<Scalars['String']['output']>;
+  preApprovalModelVersion?: Maybe<Scalars['String']['output']>;
+  /** When the Marketplace observation behind this decision was read. */
+  preApprovalObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Screening probability that this Creator is worth a first Reach out. It authorises scheduling that Reach out and nothing else; it is not a prediction that a Sample Application will be approved. */
+  preApprovalProbability?: Maybe<Scalars['Float']['output']>;
+  preApproved?: Maybe<Scalars['Boolean']['output']>;
   predictionStatus?: Maybe<AffiliateCampaignPredictionStatus>;
   productId?: Maybe<Scalars['String']['output']>;
   providerOrdinal?: Maybe<Scalars['Int']['output']>;
@@ -1344,23 +1360,13 @@ export const AffiliateCampaignSearchPlanningState = {
 
 export type AffiliateCampaignSearchPlanningState = typeof AffiliateCampaignSearchPlanningState[keyof typeof AffiliateCampaignSearchPlanningState];
 export interface AffiliateCampaignSelectionPolicy {
-  minimumExpectedSalesUnits?: Maybe<Scalars['Float']['output']>;
-  ranking: AffiliateCampaignSelectionRanking;
   strategy: AffiliateCampaignSelectionStrategy;
 }
 
 export interface AffiliateCampaignSelectionPolicyInput {
-  minimumExpectedSalesUnits?: InputMaybe<Scalars['Float']['input']>;
-  ranking: AffiliateCampaignSelectionRanking;
   strategy: AffiliateCampaignSelectionStrategy;
 }
 
-export const AffiliateCampaignSelectionRanking = {
-  ExpectedSalesPerFollower: 'EXPECTED_SALES_PER_FOLLOWER',
-  ProviderOrder: 'PROVIDER_ORDER'
-} as const;
-
-export type AffiliateCampaignSelectionRanking = typeof AffiliateCampaignSelectionRanking[keyof typeof AffiliateCampaignSelectionRanking];
 export interface AffiliateCampaignSelectionReadiness {
   campaignId: Scalars['ID']['output'];
   message?: Maybe<Scalars['String']['output']>;
@@ -1370,7 +1376,7 @@ export interface AffiliateCampaignSelectionReadiness {
 }
 
 export const AffiliateCampaignSelectionStrategy = {
-  ExpectedSales: 'EXPECTED_SALES',
+  AiPreApproval: 'AI_PRE_APPROVAL',
   MarketplaceRules: 'MARKETPLACE_RULES'
 } as const;
 
@@ -10584,6 +10590,8 @@ export interface Query {
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
   /** List user-level Affiliate business developers. */
   affiliateBusinessDevelopers: Array<AffiliateBusinessDeveloper>;
+  /** Read whether the seller can run Campaigns in AI mode right now. A ready answer authorises scheduling first Reach outs only; it says nothing about Sample Application approval. */
+  affiliateCampaignAiReadiness: AffiliateCampaignAiReadiness;
   /** Cursor-paginated Creator funnel states for one owned Campaign. */
   affiliateCampaignCreatorStates: AffiliateCampaignCreatorStatePage;
   /** Read recent daily execution records for one owned Campaign. */

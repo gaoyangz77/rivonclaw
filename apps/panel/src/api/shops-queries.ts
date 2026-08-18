@@ -269,8 +269,6 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     commissionRatePercent
     selectionPolicy {
       strategy
-      ranking
-      minimumExpectedSalesUnits
     }
     messageTemplateText
     messageTemplateSource
@@ -406,6 +404,18 @@ export const AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_CAMPAIGN_AI_READINESS_QUERY = gql`
+  query AffiliateCampaignAiReadiness {
+    affiliateCampaignAiReadiness {
+      ready
+      status
+      modelVersion
+      contractVersion
+      checkedAt
+    }
+  }
+`;
+
 export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
   query AffiliateCampaignCreatorStates($input: ReadAffiliateCampaignCreatorStatesInput!) {
     affiliateCampaignCreatorStates(input: $input) {
@@ -431,9 +441,7 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         latestSearchPlanGeneration
         latestSearchProviderOrdinal
         latestSearchMatchedAt
-        expectedSalesUnits
         followerCount
-        efficiencyScore
         decisionReason
         selectionStrategy
         predictionStatus
@@ -444,12 +452,12 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         evaluationAttemptCount
         nextEvaluationAt
         evaluationFailureStage
-        evidenceMode
-        minimumExpectedSalesUnits
-        humanDecisionWouldApprove
-        modelVersion
-        contractVersion
-        featureAsOf
+        preApprovalProbability
+        preApprovalCutoff
+        preApproved
+        preApprovalModelVersion
+        preApprovalContractVersion
+        preApprovalObservedAt
         qualificationDecision
         qualifiedAt
         scheduledAt
