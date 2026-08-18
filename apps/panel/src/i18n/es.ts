@@ -3636,6 +3636,10 @@ export default {
       "apiTokenPlaceholder": "Pegar token",
       "apiTokenEditPlaceholder": "Déjelo en blanco para conservar el token existente",
       "apiTokenHint": "El token es de sólo escritura y no se volverá a mostrar.",
+      "apiTokenIssues": {
+        "invalidJson": "No es JSON válido. Pega el objeto de credenciales, por ejemplo {\"appKey\":\"...\",\"appSecret\":\"...\"}.",
+        "missingFields": "Al objeto de credenciales le falta {{fields}}.",
+      },
       "apiTokenPlaceholders": {
         "YEJOIN": "Pegar token",
         "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"

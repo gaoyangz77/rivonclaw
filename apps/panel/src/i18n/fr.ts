@@ -3636,6 +3636,10 @@ export default {
       "apiTokenPlaceholder": "Coller le jeton",
       "apiTokenEditPlaceholder": "Laisser vide pour conserver le jeton existant",
       "apiTokenHint": "Le jeton est en écriture seule et ne sera plus affiché.",
+      "apiTokenIssues": {
+        "invalidJson": "JSON non valide. Collez l’objet d’identifiants, par exemple {\"appKey\":\"...\",\"appSecret\":\"...\"}.",
+        "missingFields": "L’objet d’identifiants ne contient pas {{fields}}.",
+      },
       "apiTokenPlaceholders": {
         "YEJOIN": "Coller le jeton",
         "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"

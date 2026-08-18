@@ -4857,6 +4857,10 @@ export default {
       apiTokenPlaceholder: "Paste token",
       apiTokenEditPlaceholder: "Leave blank to keep existing token",
       apiTokenHint: "The token is write-only and will not be shown again.",
+      apiTokenIssues: {
+        invalidJson: "Not valid JSON. Paste the credential object, for example {\"appKey\":\"...\",\"appSecret\":\"...\"}.",
+        missingFields: "The credential object is missing {{fields}}.",
+      },
       apiTokenPlaceholders: {
         YEJOIN: "Paste token",
         XLWMS: '{"appKey":"...","appSecret":"..."}',

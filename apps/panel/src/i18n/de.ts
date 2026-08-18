@@ -3636,6 +3636,10 @@ export default {
       "apiTokenPlaceholder": "Token einfügen",
       "apiTokenEditPlaceholder": "Lassen Sie das Feld leer, um das vorhandene Token beizubehalten",
       "apiTokenHint": "Das Token ist schreibgeschützt und wird nicht erneut angezeigt.",
+      "apiTokenIssues": {
+        "invalidJson": "Kein gültiges JSON. Fügen Sie das Anmeldeobjekt ein, zum Beispiel {\"appKey\":\"...\",\"appSecret\":\"...\"}.",
+        "missingFields": "Im Anmeldeobjekt fehlt {{fields}}.",
+      },
       "apiTokenPlaceholders": {
         "YEJOIN": "Token einfügen",
         "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"

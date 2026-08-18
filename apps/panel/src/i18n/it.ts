@@ -3636,6 +3636,10 @@ export default {
       "apiTokenPlaceholder": "Incolla gettone",
       "apiTokenEditPlaceholder": "Lascia vuoto per mantenere il token esistente",
       "apiTokenHint": "Il token è di sola scrittura e non verrà visualizzato nuovamente.",
+      "apiTokenIssues": {
+        "invalidJson": "JSON non valido. Incolla l’oggetto delle credenziali, ad esempio {\"appKey\":\"...\",\"appSecret\":\"...\"}.",
+        "missingFields": "Nell’oggetto delle credenziali manca {{fields}}.",
+      },
       "apiTokenPlaceholders": {
         "YEJOIN": "Incolla token",
         "XLWMS": "{\"appKey\":\"...\",\"appSecret\":\"...\"}"
