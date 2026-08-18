@@ -2735,6 +2735,7 @@ export interface AffiliateMessageDeliveryPart {
   sha256?: Maybe<Scalars['String']['output']>;
   sizeBytes?: Maybe<Scalars['Int']['output']>;
   status: AffiliateDeliveryPartStatus;
+  targetCollaborationId?: Maybe<Scalars['String']['output']>;
   textHash?: Maybe<Scalars['String']['output']>;
   textLength?: Maybe<Scalars['Int']['output']>;
 }
@@ -3668,7 +3669,7 @@ export interface AffiliateServiceSettings {
   baselineCutoffAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** Per-shop affiliate business instructions injected into affiliate agent runs. */
   businessPrompt?: Maybe<Scalars['String']['output']>;
-  /** Seller-configured maximum creators contacted automatically by Affiliate Campaigns per shop-local day. This is not a TikTok Provider quota. */
+  /** Maximum creators contacted automatically by Affiliate Campaigns per shop-local day. Defaults to TikTok's standard daily creator outreach allowance; sellers may lower it to pace outreach. */
   campaignDailyCreatorOutreachLimit?: Maybe<Scalars['Int']['output']>;
   campaignDailyCreatorOutreachLimitRevision: Scalars['Int']['output'];
   campaignDailyCreatorOutreachLimitUpdatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
