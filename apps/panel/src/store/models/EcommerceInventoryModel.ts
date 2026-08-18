@@ -655,6 +655,20 @@ export const EcommerceInventoryModel = types
           return payload;
         } catch (err) {
           self.addWmsAccountError = messageFromError(err);
+          // A failure here does not always mean nothing was written: the
+          // account row is created before its credentials are tried, and only
+          // a failed first sync rolls it back. Refresh so whatever survived is
+          // visible in the list instead of hiding until the next page load.
+          try {
+            yield client().query({
+              query: READ_WMS_ACCOUNTS_QUERY,
+              variables: { input: wmsAccountsInput },
+              fetchPolicy: "network-only",
+            });
+          } catch {
+            // The save error is what the operator needs; a refresh that also
+            // fails must not replace it.
+          }
           throw err;
         } finally {
           self.addWmsAccountSaving = false;
