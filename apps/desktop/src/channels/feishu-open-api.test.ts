@@ -168,4 +168,28 @@ describe("sendFeishuTextMessage", () => {
       "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id",
     );
   });
+
+  it("bounds every request so a hung Feishu call cannot stall the caller", async () => {
+    const fetchMock = mockFetch(jsonResponse(TOKEN_OK), jsonResponse({ code: 0 }));
+
+    await patchFeishuCardMessage({ accountId: "account-1", messageId: "om_1", card: { a: 1 } });
+
+    // The processor releases its per-card `inflight` key in a `finally`, so an unbounded
+    // request would leave that card permanently unsubmittable.
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init.signal).toBeInstanceOf(AbortSignal);
+    }
+  });
+
+  it("reports a timed-out request as a plain error, not a bare DOMException", async () => {
+    const timeout = Object.assign(new Error("The operation was aborted due to timeout"), {
+      name: "TimeoutError",
+    });
+    const fetchMock = vi.fn().mockRejectedValue(timeout);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      patchFeishuCardMessage({ accountId: "account-1", messageId: "om_1", card: { a: 1 } }),
+    ).rejects.toThrow(/timed out after \d+ms/);
+  });
 });
