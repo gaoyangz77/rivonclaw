@@ -19,6 +19,14 @@ const CHAT_ID_PREFIX = "oc_";
 const OPEN_ID_PREFIX = "ou_";
 const TOKEN_EXPIRY_SKEW_SECONDS = 60;
 const DEFAULT_TOKEN_TTL_SECONDS = 7200;
+/**
+ * Every call here must settle. `CsEscalationResponseProcessor` releases its per-card
+ * `inflight` key in a `finally`, so a request that never settles never releases it, and
+ * every later submission on that card is dropped as a duplicate while its submit button
+ * stays frozen. Feishu calls from these hosts have been observed taking ~100s, so the
+ * bound is not hypothetical. Generous against a measured ~75ms round trip.
+ */
+const FEISHU_REQUEST_TIMEOUT_MS = 15_000;
 
 export interface FeishuAccountCredentials {
   appId: string;
@@ -87,11 +95,15 @@ export async function getFeishuTenantAccessToken(
   const cached = tokenCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.token;
 
-  const res = await fetch(getFeishuTokenUrl(domain), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
-  });
+  const res = await fetchFeishu(
+    getFeishuTokenUrl(domain),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
+    },
+    "Feishu tenant token request",
+  );
   const body = await readFeishuBody(res, "Feishu tenant token request");
   const token = body.tenant_access_token;
   if (typeof token !== "string" || !token) {
@@ -138,6 +150,22 @@ async function readFeishuBody(res: Response, label: string): Promise<FeishuRespo
   return body;
 }
 
+/**
+ * `fetch` with a hard deadline, so no caller can hang forever. An aborted request
+ * surfaces as a normal `Error` rather than a bare `TimeoutError` DOMException, keeping
+ * it on the same failure path as an HTTP or Feishu-code failure.
+ */
+async function fetchFeishu(url: string, init: RequestInit, label: string): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(FEISHU_REQUEST_TIMEOUT_MS) });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error(`${label} timed out after ${FEISHU_REQUEST_TIMEOUT_MS}ms`, { cause: error });
+    }
+    throw error;
+  }
+}
+
 async function authHeaders(accountId: string): Promise<{
   domain: string;
   headers: Record<string, string>;
@@ -163,11 +191,15 @@ export async function patchFeishuCardMessage(params: {
   card: Record<string, unknown>;
 }): Promise<void> {
   const { domain, headers } = await authHeaders(params.accountId);
-  const res = await fetch(getFeishuMessagePatchUrl(domain, params.messageId), {
-    method: "PATCH",
-    headers,
-    body: JSON.stringify({ content: JSON.stringify(params.card) }),
-  });
+  const res = await fetchFeishu(
+    getFeishuMessagePatchUrl(domain, params.messageId),
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ content: JSON.stringify(params.card) }),
+    },
+    `Feishu card update message=${params.messageId}`,
+  );
   await readFeishuBody(res, `Feishu card update message=${params.messageId}`);
 }
 
@@ -178,7 +210,7 @@ export async function sendFeishuTextMessage(params: {
   text: string;
 }): Promise<void> {
   const { domain, headers } = await authHeaders(params.accountId);
-  const res = await fetch(
+  const res = await fetchFeishu(
     getFeishuMessageUrl(domain, resolveFeishuReceiveIdType(params.receiveId)),
     {
       method: "POST",
@@ -189,6 +221,7 @@ export async function sendFeishuTextMessage(params: {
         content: JSON.stringify({ text: params.text }),
       }),
     },
+    `Feishu text send to=${params.receiveId}`,
   );
   await readFeishuBody(res, `Feishu text send to=${params.receiveId}`);
 }
