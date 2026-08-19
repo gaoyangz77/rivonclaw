@@ -6951,7 +6951,10 @@ function relationshipWorkItemFromWorkItem(
     creatorOpenId: context.creatorProfile?.creatorOpenId ?? null,
     creatorImId: context.creatorProfile?.creatorImId ?? null,
     processingStatus: primaryAgenda
-      ? relationshipProcessingStatusFromAgendaOwner(primaryAgenda.owner)
+      ? reconcileAgendaProcessingStatusWithPendingProposals(
+          relationshipProcessingStatusFromAgendaOwner(primaryAgenda.owner),
+          pendingProposals.length > 0,
+        )
       : workItem.processingStatus,
     requiredAction: primaryAgenda?.requiredAction ?? workItem.requiredAction,
     processReasons: primaryAgenda?.reasons ?? workItem.processReasons ?? [],
@@ -6983,6 +6986,23 @@ function relationshipProcessingStatusFromAgendaOwner(
     return GQL.AffiliateRelationshipProcessingStatus.StaffRequired;
   }
   return GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting;
+}
+
+// The agenda cannot see PENDING proposals (its builder loads only
+// REVISION_REQUESTED ones), so an item stays AGENT-owned after the Agent has
+// produced its proposal; with one pending, the decision waits on staff.
+// Mirrors the backend's reconcileProcessingStatusWithOpenProposal.
+export function reconcileAgendaProcessingStatusWithPendingProposals(
+  status: GQL.AffiliateRelationshipProcessingStatus,
+  hasPendingProposals: boolean,
+): GQL.AffiliateRelationshipProcessingStatus {
+  if (
+    hasPendingProposals &&
+    status === GQL.AffiliateRelationshipProcessingStatus.AgentRequired
+  ) {
+    return GQL.AffiliateRelationshipProcessingStatus.StaffRequired;
+  }
+  return status;
 }
 
 function relationshipDetailFromProfile(

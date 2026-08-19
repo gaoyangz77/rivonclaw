@@ -25,6 +25,7 @@ import {
   selectAffiliateProposalItems,
   sortAffiliateProposalsNewestFirst,
   proposalMessageWasDelivered,
+  reconcileAgendaProcessingStatusWithPendingProposals,
   resolveProposalMessageDisplay,
   summarizeSampleProposalReviewRows,
 } from "./AffiliateManagementPage.js";
@@ -1112,5 +1113,38 @@ describe("SEND_MESSAGE proposal message box", () => {
       text: null,
       contentCleared: false,
     });
+  });
+});
+
+describe("relationship processing status with pending proposals", () => {
+  // The agenda cannot see PENDING proposals, so its AGENT-owned item keeps
+  // deriving AgentRequired after the Agent has produced its proposal; the
+  // detail card reconciles that into StaffRequired, mirroring the backend.
+  it("flips AgentRequired to StaffRequired while proposals are pending", () => {
+    expect(
+      reconcileAgendaProcessingStatusWithPendingProposals(
+        GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
+        true,
+      ),
+    ).toBe(GQL.AffiliateRelationshipProcessingStatus.StaffRequired);
+  });
+
+  it("keeps AgentRequired without pending proposals", () => {
+    expect(
+      reconcileAgendaProcessingStatusWithPendingProposals(
+        GQL.AffiliateRelationshipProcessingStatus.AgentRequired,
+        false,
+      ),
+    ).toBe(GQL.AffiliateRelationshipProcessingStatus.AgentRequired);
+  });
+
+  it("never masks non-agent statuses into staff work", () => {
+    for (const status of [
+      GQL.AffiliateRelationshipProcessingStatus.StaffRequired,
+      GQL.AffiliateRelationshipProcessingStatus.ExternalWaiting,
+      GQL.AffiliateRelationshipProcessingStatus.Idle,
+    ]) {
+      expect(reconcileAgendaProcessingStatusWithPendingProposals(status, true)).toBe(status);
+    }
   });
 });
