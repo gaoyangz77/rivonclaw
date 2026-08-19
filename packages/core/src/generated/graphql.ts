@@ -7474,6 +7474,10 @@ export interface EcomProductSummary {
   /** Lowest SKU price across the product's variants, formatted to two decimals (e.g. '10.00'). Omitted when no SKU has a numeric price. When only one SKU exists, priceMin === priceMax. */
   priceMin?: Maybe<Scalars['String']['output']>;
   productId: Scalars['String']['output'];
+  /** Canonical onboarded Shop ID that this search result belongs to. */
+  shopId?: Maybe<Scalars['String']['output']>;
+  /** Region of the Shop that this search result belongs to. */
+  shopRegion?: Maybe<Scalars['String']['output']>;
   skus?: Maybe<Array<EcomProductSkuSummary>>;
   status?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
@@ -10826,7 +10830,7 @@ export interface Query {
   ecommerceSearchCancellations: Array<EcomCancellation>;
   /** Search fulfillment packages with optional filters and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchPackages: Array<EcomPackage>;
-  /** Search/list products with optional filters and return a flat summary list. When creation-time and update-time filters are both provided, products must match both ranges. Pagination is handled internally by the backend. For full product details including images use ecommerceGetProduct. */
+  /** Search/list products across authorized shops with optional shopIds and region scope. When shopIds and region are both provided, only shops matching both are searched. When creation-time and update-time filters are both provided, products must match both ranges. The limit applies across all selected shops, and pagination is handled internally by the backend. For full product details including images use ecommerceGetProduct. */
   ecommerceSearchProducts: Array<EcomProductSummary>;
   /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchReturns: Array<EcomReturn>;
@@ -11525,7 +11529,9 @@ export interface QueryEcommerceSearchProductsArgs {
   createTimeGe?: InputMaybe<Scalars['Float']['input']>;
   createTimeLe?: InputMaybe<Scalars['Float']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
-  shopId: Scalars['String']['input'];
+  region?: InputMaybe<ShopRegion>;
+  shopId?: InputMaybe<Scalars['String']['input']>;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   status?: InputMaybe<EcomProductStatus>;
   updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
   updateTimeLe?: InputMaybe<Scalars['Float']['input']>;
