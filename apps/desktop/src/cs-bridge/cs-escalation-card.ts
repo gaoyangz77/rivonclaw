@@ -40,8 +40,18 @@ function buildEscalationDetails(input: CsEscalationCardInput): string {
   ].join("\n");
 }
 
-function buildResponseForm(input: CsEscalationCardInput): Record<string, unknown> {
+/**
+ * Freeze/unfreeze policy for the response form.
+ *
+ * Only the submit button is disabled: the input and select stay editable so an
+ * employee can keep drafting while a submission is in flight.
+ */
+function buildResponseForm(
+  input: CsEscalationCardInput,
+  options?: { disabled?: boolean },
+): Record<string, unknown> {
   const t = getCsEscalationCardMessages(input.locale);
+  const disabled = options?.disabled === true;
   return {
     tag: "form",
     name: "cs_escalation_response",
@@ -80,6 +90,7 @@ function buildResponseForm(input: CsEscalationCardInput): Record<string, unknown
         type: "primary",
         text: plainText(t.submit),
         form_action_type: "submit",
+        ...(disabled ? { disabled: true, disabled_tips: plainText(t.submitDisabledTip) } : {}),
         value: {
           action: "rivonclaw.cs:respond",
           escalationId: input.escalationId,
@@ -145,6 +156,47 @@ export function buildFeishuCsEscalationCard(input: CsEscalationCardInput): Recor
     },
     body: {
       elements: [{ tag: "markdown", content: details }, buildResponseForm(input)],
+    },
+  };
+}
+
+/** Transient states the card can show while a submission is not yet a final result. */
+export type CsEscalationNoticeState = "submitting" | "unconfirmed" | "failed";
+
+/**
+ * The single freeze/unfreeze policy table.
+ *
+ * `submitting` and `unconfirmed` both keep the button frozen: in the uncertain case the
+ * backend mutation may still land, so re-enabling the button would invite a duplicate
+ * submission of a response that already succeeded. Only a definite rejection unfreezes.
+ */
+const NOTICE_STATES: Record<
+  CsEscalationNoticeState,
+  { message: (t: ReturnType<typeof getCsEscalationCardMessages>) => string; formDisabled: boolean }
+> = {
+  submitting: { message: (t) => t.submissionInProgress, formDisabled: true },
+  unconfirmed: { message: (t) => t.resultUnconfirmed, formDisabled: true },
+  failed: { message: (t) => t.failed, formDisabled: false },
+};
+
+/** Card for a submission that is in flight, unconfirmed, or definitively rejected. */
+export function buildFeishuCsEscalationNoticeCard(
+  input: CsEscalationCardInput & { state: CsEscalationNoticeState },
+): Record<string, unknown> {
+  const t = getCsEscalationCardMessages(input.locale);
+  const state = NOTICE_STATES[input.state];
+  return {
+    schema: "2.0",
+    config: { update_multi: true },
+    // None of these states is a resolved escalation, so the header stays orange.
+    header: { title: plainText(t.title), template: "orange" },
+    body: {
+      elements: [
+        { tag: "markdown", content: buildEscalationDetails(input) },
+        { tag: "hr" },
+        { tag: "markdown", content: state.message(t) },
+        buildResponseForm(input, { disabled: state.formDisabled }),
+      ],
     },
   };
 }

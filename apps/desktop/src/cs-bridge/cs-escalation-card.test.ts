@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { SUPPORTED_LOCALES } from "../i18n/locale.js";
 import {
   buildFeishuCsEscalationCard,
+  buildFeishuCsEscalationNoticeCard,
   buildFeishuCsEscalationResultCard,
+  type CsEscalationNoticeState,
 } from "./cs-escalation-card.js";
 import {
   getCsEscalationCardLocales,
@@ -47,6 +49,9 @@ describe("Feishu CS escalation card", () => {
         }),
       }),
     ]);
+    const button = form.elements.find((element: any) => element.tag === "button");
+    expect(button).not.toHaveProperty("disabled");
+    expect(button).not.toHaveProperty("disabled_tips");
   });
 
   it("escapes and truncates dynamic markdown", () => {
@@ -170,12 +175,72 @@ describe("Feishu CS escalation card", () => {
     expect(serialized).toContain("still open");
     expect(serialized).toContain('"tag":"form"');
     expect(serialized).toContain('"tag":"button"');
+    // An unresolved escalation can legitimately receive another update, so the
+    // re-included form must stay usable.
+    expect(serialized).not.toContain('"disabled"');
+  });
+
+  const noticeInput = {
+    escalationId: "M1DG8V",
+    shop: "Test Shop",
+    conversationId: "conv-1",
+    buyer: "mayracastrocabrer",
+    reason: "Refund requested",
+    locale: "en",
+  } as const;
+
+  function noticeButton(state: CsEscalationNoticeState): any {
+    const card = buildFeishuCsEscalationNoticeCard({ ...noticeInput, state }) as any;
+    const form = card.body.elements.find((element: any) => element.tag === "form");
+    return form.elements.find((element: any) => element.tag === "button");
+  }
+
+  it.each([
+    ["submitting", "Submitting your response, please wait…"],
+    ["unconfirmed", "The result could not be confirmed. Please refresh later to check."],
+  ] as const)("freezes the submit button in the %s notice", (state, message) => {
+    const card = buildFeishuCsEscalationNoticeCard({ ...noticeInput, state }) as any;
+    const serialized = JSON.stringify(card);
+
+    expect(card.header.template).toBe("orange");
+    expect(serialized).toContain("Test Shop");
+    expect(serialized).toContain(message);
+    expect(noticeButton(state)).toEqual(
+      expect.objectContaining({
+        form_action_type: "submit",
+        disabled: true,
+        disabled_tips: { tag: "plain_text", content: "Processing — please do not submit again." },
+      }),
+    );
+    // Only the button freezes; the employee can keep editing the draft.
+    const form = card.body.elements.find((element: any) => element.tag === "form");
+    expect(form.elements.find((element: any) => element.tag === "input")).not.toHaveProperty(
+      "disabled",
+    );
+    expect(form.elements.find((element: any) => element.tag === "select_static")).not.toHaveProperty(
+      "disabled",
+    );
+  });
+
+  it("unfreezes the submit button in the failed notice", () => {
+    const card = buildFeishuCsEscalationNoticeCard({ ...noticeInput, state: "failed" }) as any;
+
+    expect(card.header.template).toBe("orange");
+    expect(JSON.stringify(card)).toContain("Could not submit the response.");
+    expect(noticeButton("failed")).not.toHaveProperty("disabled");
+    expect(noticeButton("failed")).not.toHaveProperty("disabled_tips");
   });
 
   it("has a complete typed catalog for every Desktop locale and falls back to English", () => {
     expect([...getCsEscalationCardLocales()].sort()).toEqual([...SUPPORTED_LOCALES].sort());
     for (const locale of SUPPORTED_LOCALES) {
-      expect(Object.values(getCsEscalationCardMessages(locale)).every(Boolean)).toBe(true);
+      const messages = getCsEscalationCardMessages(locale);
+      expect(Object.values(messages).every(Boolean)).toBe(true);
+      for (const key of ["submissionInProgress", "submitDisabledTip", "resultUnconfirmed"] as const) {
+        expect(messages[key].trim().length).toBeGreaterThan(0);
+      }
+      // The card body copy is distinct from the gateway toast string.
+      expect(messages.submissionInProgress).not.toBe(messages.submitting);
     }
     expect(getCsEscalationCardMessages("unknown")).toEqual(getCsEscalationCardMessages("en"));
   });

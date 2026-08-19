@@ -223,9 +223,26 @@ export function getFeishuTokenUrl(domain: string): string {
 	return `https://${getFeishuHost(domain)}/open-apis/auth/v3/tenant_access_token/internal`;
 }
 
+/** Feishu/Lark receive-id kinds accepted by the `im/v1/messages` send endpoint. */
+export type FeishuReceiveIdType = "chat_id" | "open_id" | "user_id" | "union_id" | "email";
+
 /** Feishu/Lark send message endpoint. */
-export function getFeishuMessageUrl(domain: string): string {
-	return `https://${getFeishuHost(domain)}/open-apis/im/v1/messages?receive_id_type=open_id`;
+export function getFeishuMessageUrl(
+	domain: string,
+	receiveIdType: FeishuReceiveIdType = "open_id",
+): string {
+	return `https://${getFeishuHost(domain)}/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`;
+}
+
+/**
+ * Feishu/Lark update-sent-message endpoint (`PATCH`).
+ *
+ * Updates an interactive card the app itself sent. The card must declare
+ * `config.update_multi: true`; the body is capped at 30KB, only messages sent
+ * within the last 14 days can be updated, and the per-message rate limit is 5 QPS.
+ */
+export function getFeishuMessagePatchUrl(domain: string, messageId: string): string {
+	return `https://${getFeishuHost(domain)}/open-apis/im/v1/messages/${encodeURIComponent(messageId)}`;
 }
 
 /** LINE Messaging API: push message endpoint. */

@@ -111,18 +111,36 @@ function createHistory() {
   };
 }
 
+function createMessenger() {
+  return {
+    patchCard: vi.fn().mockResolvedValue(undefined),
+    sendText: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+/** The card handed to the write-back call at `index`; negative counts from the end. */
+function patchedCard(messenger: ReturnType<typeof createMessenger>, index = -1): any {
+  return messenger.patchCard.mock.calls.at(index)![0].card;
+}
+
+/** The submit button of the form in `card`, or undefined when the form is gone. */
+function submitButton(card: any): any {
+  const form = card.body.elements.find((element: any) => element.tag === "form");
+  return form?.elements.find((element: any) => element.tag === "button");
+}
+
 function createHarness(graphqlFetch = vi.fn(), history = createHistory()) {
-  const gatewayRequest = vi.fn().mockResolvedValue({ ok: true });
+  const messenger = createMessenger();
   const auth = { graphqlFetch } as any;
   const processor = new FeishuEscalationResponseProcessor({
     locale: () => "en",
     getAuth: () => auth,
-    gatewayRequest: gatewayRequest as any,
+    messenger,
     history: history as any,
     resolveShopName: () => "Test Shop",
     mutationTimeoutMs: 20,
   });
-  return { processor, graphqlFetch, gatewayRequest, auth, history };
+  return { processor, graphqlFetch, messenger, auth, history };
 }
 
 describe("FeishuEscalationResponseProcessor", () => {
@@ -135,7 +153,7 @@ describe("FeishuEscalationResponseProcessor", () => {
       .mockResolvedValueOnce({
         csRespond: { ok: true, escalationId: payload.escalationId, status: "RESOLVED", version: 2 },
       });
-    const { processor, gatewayRequest } = createHarness(graphqlFetch);
+    const { processor, messenger } = createHarness(graphqlFetch);
 
     await processor.handle(payload);
 
@@ -145,19 +163,15 @@ describe("FeishuEscalationResponseProcessor", () => {
       instructions: "",
       resolved: true,
     });
-    expect(gatewayRequest).toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({
-        action: "edit",
-        idempotencyKey: "feishu-cs-result:callback-1",
-        params: expect.objectContaining({
-          to: "oc_chat",
-          messageId: "om_card",
-        }),
-      }),
+    expect(messenger.patchCard).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: "account-1", messageId: "om_card" }),
     );
-    expect(gatewayRequest).toHaveBeenCalledTimes(1);
-    const editedCard = gatewayRequest.mock.calls[0][1].params.card;
+    // One freeze card up front, then the result card.
+    expect(messenger.patchCard).toHaveBeenCalledTimes(2);
+    expect(submitButton(patchedCard(messenger, 0))).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+    const editedCard = patchedCard(messenger);
     const serializedCard = JSON.stringify(editedCard);
     expect(editedCard.header.template).toBe("green");
     expect(serializedCard).toContain("Test Shop");
@@ -168,7 +182,8 @@ describe("FeishuEscalationResponseProcessor", () => {
     expect(serializedCard).not.toContain("Feedback history");
     expect(serializedCard).not.toContain('"tag":"form"');
     expect(serializedCard).not.toContain('"tag":"button"');
-    expect(gatewayRequest.mock.calls.some((call) => call[0] === "agent")).toBe(false);
+    // The write-back is the only outbound call: no agent dispatch, no text fallback.
+    expect(messenger.sendText).not.toHaveBeenCalled();
   });
 
   it("keeps unresolved feedback orange and actionable", async () => {
@@ -176,7 +191,7 @@ describe("FeishuEscalationResponseProcessor", () => {
       .fn()
       .mockResolvedValueOnce(pendingEscalation())
       .mockResolvedValueOnce({ csRespond: { ok: true, status: "PENDING", version: 2 } });
-    const { processor, gatewayRequest, history } = createHarness(graphqlFetch);
+    const { processor, messenger, history } = createHarness(graphqlFetch);
 
     await processor.handle({ ...payload, resolved: false });
 
@@ -184,7 +199,7 @@ describe("FeishuEscalationResponseProcessor", () => {
     expect(history.entries).toEqual([
       expect.objectContaining({ decision: payload.decision, resolved: false, channelId: "feishu" }),
     ]);
-    const card = gatewayRequest.mock.calls[0][1].params.card;
+    const card = patchedCard(messenger);
     const serialized = JSON.stringify(card);
     expect(card.header.template).toBe("orange");
     expect(serialized).toContain("Feedback history");
@@ -194,7 +209,7 @@ describe("FeishuEscalationResponseProcessor", () => {
 
   it("skips mutation and renders already processed when the escalation is resolved", async () => {
     const graphqlFetch = vi.fn().mockResolvedValueOnce(processedEscalation());
-    const { processor, gatewayRequest } = createHarness(graphqlFetch);
+    const { processor, messenger } = createHarness(graphqlFetch);
 
     await processor.handle({
       ...payload,
@@ -203,14 +218,10 @@ describe("FeishuEscalationResponseProcessor", () => {
     });
 
     expect(graphqlFetch).toHaveBeenCalledTimes(1);
-    expect(gatewayRequest).toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({
-        action: "edit",
-        params: expect.objectContaining({ card: expect.any(Object) }),
-      }),
+    expect(messenger.patchCard).toHaveBeenCalledWith(
+      expect.objectContaining({ messageId: "om_card", card: expect.any(Object) }),
     );
-    const card = gatewayRequest.mock.calls[0][1].params.card;
+    const card = patchedCard(messenger);
     const serialized = JSON.stringify(card);
     expect(serialized).toContain("Approve the full refund");
     expect(serialized).toContain("Resolved");
@@ -236,7 +247,7 @@ describe("FeishuEscalationResponseProcessor", () => {
       submittedAt: payload.submittedAt - 60_000,
       version: 2,
     });
-    const { processor, gatewayRequest } = createHarness(graphqlFetch, history);
+    const { processor, messenger } = createHarness(graphqlFetch, history);
 
     await processor.handle({
       ...payload,
@@ -246,7 +257,7 @@ describe("FeishuEscalationResponseProcessor", () => {
     });
 
     expect(graphqlFetch).toHaveBeenCalledTimes(2);
-    const card = gatewayRequest.mock.calls[0][1].params.card;
+    const card = patchedCard(messenger);
     const serialized = JSON.stringify(card);
     expect(card.header.template).toBe("green");
     expect(serialized).toContain("Feedback history");
@@ -273,13 +284,13 @@ describe("FeishuEscalationResponseProcessor", () => {
       version: 2,
     });
     const duplicateFetch = vi.fn().mockResolvedValueOnce(unresolvedEscalation());
-    const { processor, gatewayRequest } = createHarness(duplicateFetch, history);
+    const { processor, messenger } = createHarness(duplicateFetch, history);
 
     await processor.handle({ ...payload, resolved: false });
 
     expect(duplicateFetch).toHaveBeenCalledTimes(1);
-    expect(gatewayRequest.mock.calls[0][1].params.card.header.template).toBe("orange");
-    expect(JSON.stringify(gatewayRequest.mock.calls[0][1].params.card)).toContain('"tag":"form"');
+    expect(patchedCard(messenger).header.template).toBe("orange");
+    expect(JSON.stringify(patchedCard(messenger))).toContain('"tag":"form"');
   });
 
   it("deduplicates concurrent callbacks for the same account and card", async () => {
@@ -306,48 +317,117 @@ describe("FeishuEscalationResponseProcessor", () => {
   it.each([
     ["preflight query failure", () => vi.fn().mockRejectedValueOnce(new Error("offline"))],
     [
-      "mutation ok=false",
-      () =>
-        vi
-          .fn()
-          .mockResolvedValueOnce(pendingEscalation())
-          .mockResolvedValueOnce({ csRespond: { ok: false, error: "rejected" } }),
+      "escalation not found",
+      () => vi.fn().mockResolvedValueOnce({ csGetEscalationResult: null }),
     ],
-  ])("keeps the form unchanged on %s and sends a failure reply", async (_name, makeFetch) => {
-    const { processor, gatewayRequest } = createHarness(makeFetch());
+  ])("leaves the card untouched on %s and sends a failure reply", async (_name, makeFetch) => {
+    const { processor, messenger } = createHarness(makeFetch());
 
     await processor.handle(payload);
 
-    expect(gatewayRequest).not.toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({ action: "edit" }),
-    );
-    expect(gatewayRequest).toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({ action: "send" }),
+    // These paths run before the freeze, so there is no frozen card to repaint.
+    expect(messenger.patchCard).not.toHaveBeenCalled();
+    expect(messenger.sendText).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: "account-1", receiveId: "oc_chat" }),
     );
   });
 
+  it("unfreezes the card with a failure notice when the mutation is rejected", async () => {
+    const graphqlFetch = vi
+      .fn()
+      .mockResolvedValueOnce(pendingEscalation())
+      .mockResolvedValueOnce({ csRespond: { ok: false, error: "rejected" } });
+    const { processor, messenger } = createHarness(graphqlFetch);
+
+    await processor.handle(payload);
+
+    expect(messenger.patchCard).toHaveBeenCalledTimes(2);
+    const card = patchedCard(messenger);
+    const serialized = JSON.stringify(card);
+    expect(serialized).toContain("Could not submit the response.");
+    expect(serialized).toContain("Test Shop");
+    expect(serialized).toContain("mayracastrocabrer");
+    expect(serialized).toContain("Refund requested");
+    expect(submitButton(card)).not.toHaveProperty("disabled");
+    expect(messenger.sendText).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a text reply when the failure card cannot be patched", async () => {
+    const graphqlFetch = vi
+      .fn()
+      .mockResolvedValueOnce(pendingEscalation())
+      .mockResolvedValueOnce({ csRespond: { ok: false, error: "rejected" } });
+    const { processor, messenger } = createHarness(graphqlFetch);
+    messenger.patchCard
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("card update rejected"));
+
+    await processor.handle(payload);
+
+    expect(messenger.sendText).toHaveBeenCalledWith({
+      accountId: "account-1",
+      receiveId: "oc_chat",
+      text: "Could not submit the response. Please try again.",
+    });
+  });
+
   it("fails closed when Desktop authentication is missing", async () => {
-    const gatewayRequest = vi.fn().mockResolvedValue({ ok: true });
+    const messenger = createMessenger();
     const processor = new FeishuEscalationResponseProcessor({
       locale: () => "en",
       getAuth: () => null,
-      gatewayRequest: gatewayRequest as any,
+      messenger,
       history: createHistory() as any,
       resolveShopName: () => undefined,
     });
 
     await processor.handle(payload);
 
-    expect(gatewayRequest).toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({ action: "send" }),
+    expect(messenger.sendText).toHaveBeenCalledTimes(1);
+    expect(messenger.patchCard).not.toHaveBeenCalled();
+  });
+
+  it("freezes the submit button between the preflight and the mutation", async () => {
+    const graphqlFetch = vi
+      .fn()
+      .mockResolvedValueOnce(pendingEscalation())
+      .mockResolvedValueOnce({ csRespond: { ok: true, status: "RESOLVED", version: 2 } });
+    const { processor, messenger } = createHarness(graphqlFetch);
+
+    await processor.handle(payload);
+
+    const frozenAt = messenger.patchCard.mock.invocationCallOrder[0];
+    expect(frozenAt).toBeGreaterThan(graphqlFetch.mock.invocationCallOrder[0]);
+    expect(frozenAt).toBeLessThan(graphqlFetch.mock.invocationCallOrder[1]);
+    const freezeCard = patchedCard(messenger, 0);
+    const frozenSerialized = JSON.stringify(freezeCard);
+    expect(frozenSerialized).toContain("Submitting your response, please wait…");
+    // The freeze keeps the case on screen instead of blanking it to placeholders.
+    expect(frozenSerialized).toContain("Test Shop");
+    expect(frozenSerialized).toContain("mayracastrocabrer");
+    expect(frozenSerialized).toContain("576924518065478202");
+    expect(frozenSerialized).toContain("Refund requested");
+    expect(frozenSerialized).toContain("conv-1");
+    expect(submitButton(freezeCard)).toEqual(
+      expect.objectContaining({
+        disabled: true,
+        disabled_tips: { tag: "plain_text", content: "Processing — please do not submit again." },
+      }),
     );
-    expect(gatewayRequest).not.toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({ action: "edit" }),
-    );
+  });
+
+  it("does not abort the mutation when the freeze card cannot be patched", async () => {
+    const graphqlFetch = vi
+      .fn()
+      .mockResolvedValueOnce(pendingEscalation())
+      .mockResolvedValueOnce({ csRespond: { ok: true, status: "RESOLVED", version: 2 } });
+    const { processor, messenger } = createHarness(graphqlFetch);
+    messenger.patchCard.mockRejectedValueOnce(new Error("card patch rejected"));
+
+    await processor.handle(payload);
+
+    expect(graphqlFetch).toHaveBeenCalledTimes(2);
+    expect(patchedCard(messenger).header.template).toBe("green");
   });
 
   it("rechecks an uncertain mutation before showing success", async () => {
@@ -356,15 +436,13 @@ describe("FeishuEscalationResponseProcessor", () => {
       .mockResolvedValueOnce(pendingEscalation())
       .mockRejectedValueOnce(new Error("network disconnected after send"))
       .mockResolvedValueOnce(processedEscalation());
-    const { processor, gatewayRequest } = createHarness(graphqlFetch);
+    const { processor, messenger } = createHarness(graphqlFetch);
 
     await processor.handle(payload);
 
     expect(graphqlFetch).toHaveBeenCalledTimes(3);
-    expect(gatewayRequest).toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({ action: "edit" }),
-    );
+    expect(messenger.patchCard).toHaveBeenCalledTimes(2);
+    expect(patchedCard(messenger).header.template).toBe("green");
   });
 
   it("does not mistake an unchanged unresolved result for a successful timed-out update", async () => {
@@ -373,7 +451,7 @@ describe("FeishuEscalationResponseProcessor", () => {
       .mockResolvedValueOnce(unresolvedEscalation())
       .mockRejectedValueOnce(new Error("network disconnected after send"))
       .mockResolvedValueOnce(unresolvedEscalation());
-    const { processor, gatewayRequest } = createHarness(graphqlFetch);
+    const { processor, messenger } = createHarness(graphqlFetch);
 
     await processor.handle({
       ...payload,
@@ -382,14 +460,17 @@ describe("FeishuEscalationResponseProcessor", () => {
       resolved: false,
     });
 
-    expect(gatewayRequest).not.toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({ action: "edit" }),
+    // The backend may still be processing, so the card stays frozen and says so.
+    expect(messenger.patchCard).toHaveBeenCalledTimes(2);
+    const card = patchedCard(messenger);
+    const serialized = JSON.stringify(card);
+    expect(serialized).toContain(
+      "The result could not be confirmed. Please refresh later to check.",
     );
-    expect(gatewayRequest).toHaveBeenCalledWith(
-      "message.action",
-      expect.objectContaining({ action: "send" }),
-    );
+    expect(serialized).toContain("Test Shop");
+    expect(serialized).toContain("mayracastrocabrer");
+    expect(submitButton(card)).toEqual(expect.objectContaining({ disabled: true }));
+    expect(messenger.sendText).not.toHaveBeenCalled();
   });
 
   it("uses a success reply when mutation succeeded but the card edit fails", async () => {
@@ -397,21 +478,18 @@ describe("FeishuEscalationResponseProcessor", () => {
       .fn()
       .mockResolvedValueOnce(pendingEscalation())
       .mockResolvedValueOnce({ csRespond: { ok: true, status: "RESOLVED", version: 2 } });
-    const { processor, gatewayRequest } = createHarness(graphqlFetch);
-    gatewayRequest
-      .mockRejectedValueOnce(new Error("edit rejected"))
-      .mockResolvedValueOnce({ ok: true });
+    const { processor, messenger } = createHarness(graphqlFetch);
+    // The first patch is the freeze card; only the result patch fails.
+    messenger.patchCard
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("card update rejected"));
 
     await processor.handle(payload);
 
-    expect(gatewayRequest).toHaveBeenNthCalledWith(
-      2,
-      "message.action",
-      expect.objectContaining({
-        action: "send",
-        idempotencyKey: "feishu-cs-fallback:callback-1",
-        params: expect.objectContaining({ text: "Response submitted successfully." }),
-      }),
-    );
+    expect(messenger.sendText).toHaveBeenCalledWith({
+      accountId: "account-1",
+      receiveId: "oc_chat",
+      text: "Response submitted successfully.",
+    });
   });
 });
