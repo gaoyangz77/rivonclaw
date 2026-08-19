@@ -3186,6 +3186,21 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
+/** The Open Collaboration commission a product currently carries in one shop, for use as the reference when drafting a Target Collaboration. */
+export interface AffiliateProductOpenCommission {
+  affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
+  collaborationName?: Maybe<Scalars['String']['output']>;
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  /** False when this shop has no active Open Collaboration covering the product. The commission is then genuinely unknown, which is not the same as zero. */
+  found: Scalars['Boolean']['output'];
+  lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Active Open Collaborations covering this shop and product. More than one means the shop carries several commissions for the same product, so the reported rate is the most recently observed of them and is not the only one in force. */
+  matchedOpenCollaborationCount: Scalars['Float']['output'];
+  productId: Scalars['String']['output'];
+  shopId: Scalars['ID']['output'];
+  status?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateProductSummaryBatchInput {
   refs: Array<AffiliateProductSummaryReferenceInput>;
 }
@@ -3573,6 +3588,32 @@ export interface AffiliateRelationshipWorkSummary {
   externalWaitingCount: Scalars['Int']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   staffRequiredCount: Scalars['Int']['output'];
+}
+
+/** One Target Collaboration a Creator could be added to, with the seat accounting that decides whether it is reusable. */
+export interface AffiliateReusableTargetCollaboration {
+  affiliateCollaborationId: Scalars['ID']['output'];
+  /** True when this Creator is already invited here, so adding them again would be a no-op. */
+  alreadyIncludesCreator: Scalars['Boolean']['output'];
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** Creators already invited. The platform caps a Target Collaboration at 50. */
+  creatorCount: Scalars['Float']['output'];
+  endTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  productIds: Array<Scalars['String']['output']>;
+  /** Seats left before the platform cap. Zero means the collaboration is full. */
+  remainingSeats: Scalars['Float']['output'];
+  shopId: Scalars['ID']['output'];
+  status: Scalars['String']['output'];
+}
+
+/** Target Collaborations that could take another Creator for this shop and product, newest first. */
+export interface AffiliateReusableTargetCollaborationsPayload {
+  items: Array<AffiliateReusableTargetCollaboration>;
+  /** Active Target Collaborations covering this shop and product before the seat filter, so an empty list can be told apart from no collaborations at all. */
+  matchedCollaborationCount: Scalars['Float']['output'];
+  seatCap: Scalars['Float']['output'];
 }
 
 /** Frozen revision source attached only to the Agent working agenda created by a staff revision request. */
@@ -10683,6 +10724,7 @@ export interface Query {
   affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatusPayload;
   /** Agent-facing expected-sales fit check for a candidate affiliate creator-product pair. This wraps affiliateExpectedSalesPredictions without mutating collaboration product context. */
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
+  affiliateProductOpenCommission: AffiliateProductOpenCommission;
   /** Read deduplicated Product summaries for Affiliate pages through the authorized shop-scoped Product cache. */
   affiliateProductSummaries: Array<AffiliateRelationshipProductSummary>;
   /** Read Target Collaboration memberships and Sample-referenced Open Collaborations for one CreatorRelationship without creator-level expansion. */
@@ -10691,6 +10733,7 @@ export interface Query {
   affiliateRelationshipSampleApplications: AffiliateRelationshipSampleApplicationPage;
   /** Read a Provider-backed CreatorRelationship timeline ordered by business occurredAt. */
   affiliateRelationshipTimeline: AffiliateRelationshipTimelinePayload;
+  affiliateReusableTargetCollaborations: AffiliateReusableTargetCollaborationsPayload;
   affiliateSampleApplicationState: AffiliateSampleApplicationStatePayload;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
@@ -11128,6 +11171,12 @@ export interface QueryAffiliatePredictCreatorProductFitArgs {
 }
 
 
+export interface QueryAffiliateProductOpenCommissionArgs {
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryAffiliateProductSummariesArgs {
   input: AffiliateProductSummaryBatchInput;
 }
@@ -11145,6 +11194,13 @@ export interface QueryAffiliateRelationshipSampleApplicationsArgs {
 
 export interface QueryAffiliateRelationshipTimelineArgs {
   input: AffiliateRelationshipTimelineInput;
+}
+
+
+export interface QueryAffiliateReusableTargetCollaborationsArgs {
+  creatorRelationshipId: Scalars['ID']['input'];
+  productId: Scalars['String']['input'];
+  shopId: Scalars['ID']['input'];
 }
 
 
@@ -13310,11 +13366,13 @@ export const ToolId = {
   AffiliateGetCreatorProfile: 'AFFILIATE_GET_CREATOR_PROFILE',
   AffiliateGetCreatorRelationship: 'AFFILIATE_GET_CREATOR_RELATIONSHIP',
   AffiliateGetProduct: 'AFFILIATE_GET_PRODUCT',
+  AffiliateGetProductOpenCommission: 'AFFILIATE_GET_PRODUCT_OPEN_COMMISSION',
   AffiliateGetRelationshipTimeline: 'AFFILIATE_GET_RELATIONSHIP_TIMELINE',
   AffiliateGetSampleApplication: 'AFFILIATE_GET_SAMPLE_APPLICATION',
   AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
   AffiliateListCreatorSampleApplications: 'AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS',
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
+  AffiliateListReusableTargetCollaborations: 'AFFILIATE_LIST_REUSABLE_TARGET_COLLABORATIONS',
   AffiliateListShops: 'AFFILIATE_LIST_SHOPS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliateManageOpenCollaboration: 'AFFILIATE_MANAGE_OPEN_COLLABORATION',
