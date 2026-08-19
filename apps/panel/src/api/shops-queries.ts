@@ -1495,6 +1495,16 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         actualChannel
         channelSelectionSource
       }
+      deliveredMessage {
+        deliveryId
+        status
+        channel
+        parts {
+          sequence
+          kind
+          text
+        }
+      }
       }
       nextCursor
       hasMore
@@ -3289,6 +3299,16 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         preferredChannel
         actualChannel
         channelSelectionSource
+      }
+      deliveredMessage {
+        deliveryId
+        status
+        channel
+        parts {
+          sequence
+          kind
+          text
+        }
       }
     }
   }

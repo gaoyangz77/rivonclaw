@@ -5646,7 +5646,8 @@ function AgentWorkBundleCard({
   const executionDescription = sampleReviewRows.length > 0
     ? null
     : renderProposalExecutionDescription(proposal, t);
-  const messagePreview = getProposalMessagePreview(proposal);
+  const { text: messagePreview, contentCleared: messageContentCleared } =
+    resolveProposalMessageDisplay(proposal);
   const predictionSnapshot =
     sampleReviewRows.length === 0 &&
     proposal.type === GQL.ActionProposalType.ReviewSampleApplication
@@ -5918,6 +5919,10 @@ function AgentWorkBundleCard({
                   <div className="affiliate-card-section-copy">{executionDescription}</div>
                   {messagePreview ? (
                     <div className="affiliate-work-item-preview">{messagePreview}</div>
+                  ) : messageContentCleared ? (
+                    <div className="affiliate-card-section-copy affiliate-message-content-cleared">
+                      {t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_CONTENT_CLEARED")}
+                    </div>
                   ) : null}
                 </section>
               ) : null}
@@ -6040,11 +6045,19 @@ function AgentWorkBundleCard({
             {executionDescription ? (
               <section className="affiliate-card-section affiliate-card-execution-section">
                 <div className="affiliate-card-section-label">
-                  {t("ecommerce.affiliateWorkspace.labels.whatWillHappen")}
+                  {t(
+                    proposal.status === GQL.ActionProposalStatus.Pending
+                      ? "ecommerce.affiliateWorkspace.labels.whatWillHappen"
+                      : "ecommerce.affiliateWorkspace.labels.currentSituation",
+                  )}
                 </div>
                 <div className="affiliate-card-section-copy">{executionDescription}</div>
                 {messagePreview ? (
                   <div className="affiliate-work-item-preview">{messagePreview}</div>
+                ) : messageContentCleared ? (
+                  <div className="affiliate-card-section-copy affiliate-message-content-cleared">
+                    {t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_CONTENT_CLEARED")}
+                  </div>
                 ) : null}
               </section>
             ) : null}
@@ -8977,7 +8990,16 @@ function renderProposalExecutionDescription(
     return t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.REVIEW_SAMPLE_REQUEST");
   }
   if (proposal.type === GQL.ActionProposalType.SendMessage) {
-    return t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE");
+    // The same card renders a proposal before and after it runs, so the copy has
+    // to follow the proposal's own tense instead of always promising a future send.
+    if (proposalDraftIsRetained(proposal)) {
+      return t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE");
+    }
+    return t(
+      proposalMessageWasDelivered(proposal)
+        ? "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_EXECUTED"
+        : "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_NOT_SENT",
+    );
   }
   if (proposal.type === GQL.ActionProposalType.CreateTargetCollaboration) {
     return t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.CREATE_TARGET_COLLABORATION");
@@ -8993,6 +9015,72 @@ function getProposalMessagePreview(proposal: GQL.ActionProposal): string | null 
     if (text) return text;
   }
   return null;
+}
+
+/**
+ * A proposal's review draft is only readable while the proposal is still open:
+ * the backend scrubs creator-facing draft text the moment it reaches a terminal
+ * state, keeping just the hash and length.
+ */
+function proposalDraftIsRetained(proposal: GQL.ActionProposal): boolean {
+  return (
+    proposal.status === GQL.ActionProposalStatus.Pending ||
+    proposal.status === GQL.ActionProposalStatus.RevisionRequested ||
+    proposal.status === GQL.ActionProposalStatus.Approved
+  );
+}
+
+/**
+ * Delivery statuses that mean the message actually reached the provider on its
+ * way to the creator. A proposal can end in EXECUTION_FAILED while still
+ * carrying a deliveryId, so the id's presence alone never proves a send.
+ */
+const DELIVERED_MESSAGE_STATUSES = new Set<GQL.AffiliateDeliveryStatus>([
+  GQL.AffiliateDeliveryStatus.Sent,
+  GQL.AffiliateDeliveryStatus.PartiallySent,
+  GQL.AffiliateDeliveryStatus.Submitted,
+]);
+
+export function proposalMessageWasDelivered(proposal: GQL.ActionProposal): boolean {
+  const status = proposal.deliveredMessage?.status ?? proposal.executionResult?.deliveryStatus;
+  return Boolean(status) && DELIVERED_MESSAGE_STATUSES.has(status as GQL.AffiliateDeliveryStatus);
+}
+
+/**
+ * Text actually delivered to the creator, read back from the linked Delivery.
+ * This is the only message body still available once the review draft is gone.
+ */
+function getProposalDeliveredMessageText(proposal: GQL.ActionProposal): string | null {
+  const parts = proposal.deliveredMessage?.parts;
+  if (!parts || parts.length === 0) return null;
+  const text = [...parts]
+    .sort((left, right) => left.sequence - right.sequence)
+    .filter((part) => part.kind === GQL.AffiliateMessagePartKind.Text)
+    .map((part) => part.text?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join("\n");
+  return text || null;
+}
+
+/**
+ * What the card should put in its message box.
+ *
+ * A proposal that is still open shows its review draft. Once it closes, the
+ * draft is gone and only the linked Delivery can still say what the creator
+ * actually received. When neither exists the card must say the wording was
+ * cleared rather than render an empty box.
+ */
+export function resolveProposalMessageDisplay(proposal: GQL.ActionProposal): {
+  text: string | null;
+  contentCleared: boolean;
+} {
+  const text = getProposalMessagePreview(proposal) ?? getProposalDeliveredMessageText(proposal);
+  if (text) return { text, contentCleared: false };
+  if (proposalDraftIsRetained(proposal)) return { text: null, contentCleared: false };
+  const hadMessageIntent =
+    Boolean(proposal.messageIntent) ||
+    (proposal.steps ?? []).some((step) => Boolean(step.messageIntent));
+  return { text: null, contentCleared: hadMessageIntent };
 }
 
 function renderCollaborationWorkTitle({

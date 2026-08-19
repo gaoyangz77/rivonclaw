@@ -24,6 +24,8 @@ import {
   replaceAffiliateProposalPageBuffer,
   selectAffiliateProposalItems,
   sortAffiliateProposalsNewestFirst,
+  proposalMessageWasDelivered,
+  resolveProposalMessageDisplay,
   summarizeSampleProposalReviewRows,
 } from "./AffiliateManagementPage.js";
 
@@ -951,6 +953,164 @@ describe("Expected Sales model-stage presentation", () => {
       requestedTenantId: "shop-1",
       effectiveTenantScope: "REGION",
       effectiveTenantId: "user-1::region::US",
+    });
+  });
+});
+
+describe("SEND_MESSAGE proposal message box", () => {
+  const sendMessageProposal = (
+    status: GQL.ActionProposalStatus,
+    overrides: Partial<GQL.ActionProposal> = {},
+  ): GQL.ActionProposal => ({
+    id: "proposal-message",
+    status,
+    type: GQL.ActionProposalType.SendMessage,
+    focusShopId: "shop-1",
+    steps: [],
+    creatorRelationship: null,
+    messageIntent: {
+      creatorId: "creator-1",
+      preferredChannel: GQL.AffiliateMessageChannel.PlatformChat,
+      parts: [
+        {
+          kind: GQL.AffiliateMessagePartKind.Text,
+          textHash: "hash",
+          textLength: 501,
+        },
+      ],
+    },
+    ...overrides,
+  } as unknown as GQL.ActionProposal);
+
+  it("shows the review draft while the proposal is still open", () => {
+    const proposal = sendMessageProposal(GQL.ActionProposalStatus.Pending, {
+      messageIntent: {
+        creatorId: "creator-1",
+        parts: [
+          {
+            kind: GQL.AffiliateMessagePartKind.Text,
+            text: "  Hi there, are you interested?  ",
+            textLength: 32,
+          },
+        ],
+      },
+    } as unknown as Partial<GQL.ActionProposal>);
+
+    expect(resolveProposalMessageDisplay(proposal)).toEqual({
+      text: "Hi there, are you interested?",
+      contentCleared: false,
+    });
+  });
+
+  it("falls back to the delivered message once the draft has been scrubbed", () => {
+    const proposal = sendMessageProposal(GQL.ActionProposalStatus.Executed, {
+      deliveredMessage: {
+        deliveryId: "delivery-1",
+        status: GQL.AffiliateDeliveryStatus.Sent,
+        channel: GQL.AffiliateMessageChannel.PlatformChat,
+        parts: [
+          { sequence: 2, kind: GQL.AffiliateMessagePartKind.Text, text: "Second line" },
+          { sequence: 1, kind: GQL.AffiliateMessagePartKind.Text, text: "First line" },
+        ],
+      },
+    } as unknown as Partial<GQL.ActionProposal>);
+
+    expect(resolveProposalMessageDisplay(proposal)).toEqual({
+      text: "First line\nSecond line",
+      contentCleared: false,
+    });
+  });
+
+  it("reports cleared content for a closed proposal that kept neither draft nor delivery", () => {
+    for (const status of [
+      GQL.ActionProposalStatus.Expired,
+      GQL.ActionProposalStatus.Superseded,
+      GQL.ActionProposalStatus.Rejected,
+      GQL.ActionProposalStatus.Executed,
+      GQL.ActionProposalStatus.ExecutionFailed,
+    ]) {
+      expect(resolveProposalMessageDisplay(sendMessageProposal(status)), status).toEqual({
+        text: null,
+        contentCleared: true,
+      });
+    }
+  });
+
+  it("treats only provider-accepted delivery statuses as sent", () => {
+    for (const status of [
+      GQL.AffiliateDeliveryStatus.Sent,
+      GQL.AffiliateDeliveryStatus.PartiallySent,
+      GQL.AffiliateDeliveryStatus.Submitted,
+    ]) {
+      expect(
+        proposalMessageWasDelivered(
+          sendMessageProposal(GQL.ActionProposalStatus.Executed, {
+            executionResult: { deliveryId: "delivery-1", deliveryStatus: status },
+          } as unknown as Partial<GQL.ActionProposal>),
+        ),
+        status,
+      ).toBe(true);
+    }
+  });
+
+  it("never claims a failed, cancelled or queued delivery reached the creator", () => {
+    for (const status of [
+      GQL.AffiliateDeliveryStatus.Failed,
+      GQL.AffiliateDeliveryStatus.Cancelled,
+      GQL.AffiliateDeliveryStatus.Queued,
+    ]) {
+      expect(
+        proposalMessageWasDelivered(
+          sendMessageProposal(GQL.ActionProposalStatus.ExecutionFailed, {
+            executionResult: { deliveryId: "delivery-1", deliveryStatus: status },
+          } as unknown as Partial<GQL.ActionProposal>),
+        ),
+        status,
+      ).toBe(false);
+    }
+  });
+
+  it("prefers the delivery's own status over the execution snapshot", () => {
+    const proposal = sendMessageProposal(GQL.ActionProposalStatus.ExecutionFailed, {
+      executionResult: { deliveryId: "delivery-1", deliveryStatus: GQL.AffiliateDeliveryStatus.Failed },
+      deliveredMessage: {
+        deliveryId: "delivery-1",
+        status: GQL.AffiliateDeliveryStatus.Failed,
+        parts: [{ sequence: 1, kind: GQL.AffiliateMessagePartKind.Text, text: "Attempted body" }],
+      },
+    } as unknown as Partial<GQL.ActionProposal>);
+
+    expect(proposalMessageWasDelivered(proposal)).toBe(false);
+    expect(resolveProposalMessageDisplay(proposal)).toEqual({
+      text: "Attempted body",
+      contentCleared: false,
+    });
+  });
+
+  it("does not treat a proposal without any delivery as sent", () => {
+    expect(
+      proposalMessageWasDelivered(sendMessageProposal(GQL.ActionProposalStatus.Expired)),
+    ).toBe(false);
+  });
+
+  it("keeps an open proposal without draft text out of the cleared-content note", () => {
+    expect(resolveProposalMessageDisplay(sendMessageProposal(GQL.ActionProposalStatus.Pending))).toEqual({
+      text: null,
+      contentCleared: false,
+    });
+  });
+
+  it("leaves proposals that never carried a message untouched", () => {
+    const proposal = {
+      id: "proposal-no-message",
+      status: GQL.ActionProposalStatus.Executed,
+      type: GQL.ActionProposalType.NoActionNeeded,
+      steps: [],
+    } as unknown as GQL.ActionProposal;
+
+    expect(resolveProposalMessageDisplay(proposal)).toEqual({
+      text: null,
+      contentCleared: false,
     });
   });
 });
