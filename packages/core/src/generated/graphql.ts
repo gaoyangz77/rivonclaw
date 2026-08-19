@@ -860,7 +860,6 @@ export interface AffiliateBusinessDeveloperSummary {
 export interface AffiliateCampaign {
   activatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   activeSearchPlanId?: Maybe<Scalars['ID']['output']>;
-  commissionRatePercent: Scalars['Float']['output'];
   completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
@@ -879,10 +878,11 @@ export interface AffiliateCampaign {
   needsReconfiguration: Scalars['Boolean']['output'];
   nextTickAt?: Maybe<Scalars['DateTimeISO']['output']>;
   pausedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  primaryProductId: Scalars['String']['output'];
   productSnapshot?: Maybe<AffiliateCampaignProductSnapshot>;
   productSnapshotHash?: Maybe<Scalars['String']['output']>;
   productSnapshotId?: Maybe<Scalars['ID']['output']>;
+  /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
+  products: Array<AffiliateCampaignProductType>;
   resolvedTimeZone: Scalars['String']['output'];
   searchPlanErrorCode?: Maybe<Scalars['String']['output']>;
   searchPlanGeneration: Scalars['Int']['output'];
@@ -1229,6 +1229,11 @@ export interface AffiliateCampaignProductSnapshot {
   snapshotHash: Scalars['String']['output'];
   status?: Maybe<Scalars['String']['output']>;
   title: Scalars['String']['output'];
+}
+
+export interface AffiliateCampaignProductType {
+  commissionRatePercent: Scalars['Float']['output'];
+  productId: Scalars['String']['output'];
 }
 
 export const AffiliateCampaignRuleFilterResult = {
@@ -13960,7 +13965,6 @@ export interface WriteAffiliateBusinessDeveloperInput {
 }
 
 export interface WriteAffiliateCampaignInput {
-  commissionRatePercent: Scalars['Float']['input'];
   dailyOutreachTarget: Scalars['Int']['input'];
   endDays?: InputMaybe<Scalars['Int']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
@@ -13969,13 +13973,19 @@ export interface WriteAffiliateCampaignInput {
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
   messageTemplateText: Scalars['String']['input'];
   name: Scalars['String']['input'];
-  primaryProductId: Scalars['String']['input'];
+  /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
+  products: Array<WriteAffiliateCampaignProductInput>;
   refreshProductSnapshot?: InputMaybe<Scalars['Boolean']['input']>;
   searchPlanGuidance?: InputMaybe<Scalars['String']['input']>;
   selectionPolicy: AffiliateCampaignSelectionPolicyInput;
   sellerContactEmail?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCampaignStatus>;
+}
+
+export interface WriteAffiliateCampaignProductInput {
+  commissionRatePercent: Scalars['Float']['input'];
+  productId: Scalars['String']['input'];
 }
 
 export interface WriteAffiliateCreatorChannelContactInput {

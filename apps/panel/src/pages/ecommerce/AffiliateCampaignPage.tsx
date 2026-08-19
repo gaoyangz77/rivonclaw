@@ -41,9 +41,18 @@ import {
   WRITE_AFFILIATE_CAMPAIGN_MUTATION,
 } from "../../api/shops-queries.js";
 
+/**
+ * One row of the offer. The first row is the product discovery searches on and
+ * the message names, so its order in this list is meaningful.
+ */
+type CampaignProductForm = {
+  productId: string;
+  commissionRate: string;
+};
+
 type CampaignForm = {
   shopId: string;
-  productId: string;
+  products: CampaignProductForm[];
   name: string;
   dailyTarget: string;
   endDays: string;
@@ -51,7 +60,6 @@ type CampaignForm = {
   sellerContactEmail: string;
   minimumFollowers: string;
   maximumFollowers: string;
-  commissionRate: string;
   refreshProductSnapshot: boolean;
   searchPlanGuidance: string;
   strategy: GQL.AffiliateCampaignSelectionStrategy;
@@ -83,7 +91,7 @@ type CampaignForm = {
 
 const emptyForm: CampaignForm = {
   shopId: "",
-  productId: "",
+  products: [{ productId: "", commissionRate: "10" }],
   name: "",
   dailyTarget: "100",
   endDays: "30",
@@ -91,7 +99,6 @@ const emptyForm: CampaignForm = {
   sellerContactEmail: "",
   minimumFollowers: "1000",
   maximumFollowers: "",
-  commissionRate: "10",
   refreshProductSnapshot: false,
   searchPlanGuidance: "",
   strategy: GQL.AffiliateCampaignSelectionStrategy.MarketplaceRules,
@@ -454,7 +461,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const openEdit = (campaign: GQL.AffiliateCampaign) => {
     setForm({
       shopId: campaign.shopId,
-      productId: campaign.primaryProductId,
+      products: campaign.products.map((product) => ({
+        productId: product.productId,
+        commissionRate: String(product.commissionRatePercent),
+      })),
       name: campaign.name,
       dailyTarget: String(campaign.dailyOutreachTarget),
       endDays: String(campaign.endDays ?? 30),
@@ -462,7 +472,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       sellerContactEmail: campaign.sellerContactEmail ?? "",
       minimumFollowers: "",
       maximumFollowers: "",
-      commissionRate: String(campaignCommissionRate(campaign)),
       refreshProductSnapshot: false,
       searchPlanGuidance: campaign.searchPlanGuidance ?? "",
       strategy: campaign.selectionPolicy.strategy,
@@ -490,7 +499,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       templateGuidance: "",
       templateSource: campaign.messageTemplateSource,
       messageProductName:
-        campaign.messageProductName || campaign.productSnapshot?.title || campaign.primaryProductId,
+        campaign.messageProductName || campaign.productSnapshot?.title || campaignLeadProductId(campaign),
     });
     setEditingCampaignId(campaign.id);
     setProductPreview(campaign.productSnapshot ?? null);
@@ -503,13 +512,48 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const leadProductId = form.products[0]?.productId.trim() ?? "";
+
+  const updateProduct = (index: number, patch: Partial<CampaignProductForm>) => {
+    setForm((current) => ({
+      ...current,
+      products: current.products.map((product, position) =>
+        position === index ? { ...product, ...patch } : product),
+    }));
+  };
+
+  const addProduct = () => {
+    setForm((current) => ({
+      ...current,
+      products: [...current.products, { productId: "", commissionRate: "10" }],
+    }));
+  };
+
+  const removeProduct = (index: number) => {
+    setForm((current) => ({
+      ...current,
+      // The first row drives discovery and the message, so dropping it promotes
+      // the next one rather than leaving the Campaign without a lead product.
+      products: current.products.length > 1
+        ? current.products.filter((_product, position) => position !== index)
+        : current.products,
+    }));
+  };
+
+  const productsInvalid = form.products.some((product) => {
+    const rate = Number(product.commissionRate);
+    return !product.productId.trim() || !Number.isFinite(rate) || rate < 0 || rate > 100;
+  }) || new Set(form.products.map((product) => product.productId.trim())).size
+    !== form.products.length;
+
   const validateStep = () => {
     if (
       wizardStep === 1 &&
       (!form.shopId ||
-        !form.productId ||
+        !leadProductId ||
+        productsInvalid ||
         !form.name.trim() ||
-        productPreview?.productId !== form.productId)
+        productPreview?.productId !== leadProductId)
     ) {
       showToast(t("ecommerce.affiliateCampaign.completeShopProduct"), "error");
       return false;
@@ -517,8 +561,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     if (
       wizardStep === 2 &&
       (Number(form.dailyTarget) < 1 ||
-        Number(form.commissionRate) < 0 ||
-        Number(form.commissionRate) > 100 ||
+        productsInvalid ||
         !Number.isInteger(Number(form.endDays)) ||
         Number(form.endDays) < 1 ||
         Number(form.endDays) > 365 ||
@@ -548,14 +591,14 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const fetchProduct = async () => {
-    if (!form.shopId || !form.productId.trim()) {
+    if (!form.shopId || !leadProductId) {
       showToast(t("ecommerce.affiliateCampaign.completeShopProduct"), "error");
       return;
     }
     try {
       const result = await resolveProduct({
         variables: {
-          input: { shopId: form.shopId, productId: form.productId.trim() },
+          input: { shopId: form.shopId, productId: leadProductId },
         },
       });
       const preview = result.data?.affiliateCampaignProductPreview;
@@ -577,7 +620,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const applyProductResolution = (preview: CampaignProductPreview) => {
     setForm((current) => ({
       ...current,
-      productId: preview.productId,
+      products: current.products.map((product, index) =>
+        index === 0 ? { ...product, productId: preview.productId } : product),
       refreshProductSnapshot: true,
       messageProductName: "",
     }));
@@ -593,11 +637,13 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         ...(editingCampaignId ? { id: editingCampaignId } : {}),
         shopId: form.shopId,
         name: form.name.trim(),
-        primaryProductId: form.productId,
+        products: form.products.map((product) => ({
+          productId: product.productId.trim(),
+          commissionRatePercent: Number(product.commissionRate),
+        })),
         refreshProductSnapshot: form.refreshProductSnapshot,
         searchPlanGuidance: form.searchPlanGuidance.trim() || null,
         dailyOutreachTarget: Number(form.dailyTarget),
-        commissionRatePercent: Number(form.commissionRate),
         endDays: Number(form.endDays),
         isSampleApprovalExempt: form.isSampleApprovalExempt,
         sellerContactEmail: form.sellerContactEmail.trim(),
@@ -638,7 +684,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     try {
       const suggestion = await generateAffiliateCampaignMessageTemplate({
         shopId: form.shopId,
-        productId: form.productId,
+        productId: leadProductId,
         uiLocale: i18n.resolvedLanguage ?? i18n.language,
         guidance: form.templateGuidance.trim() || undefined,
         mode: form.templateText.trim()
@@ -1048,7 +1094,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <td>
                         <div className="affiliate-campaign-directory-product">
                           <strong title={campaign.productSnapshot?.title ?? undefined}>
-                            {campaign.productSnapshot?.title?.trim() || campaign.primaryProductId}
+                            {campaign.productSnapshot?.title?.trim() || campaignLeadProductId(campaign)}
                           </strong>
                           <small title={campaignProductReference(campaign, t)}>
                             {campaignProductReference(campaign, t)}
@@ -1238,7 +1284,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
                 <h3 title={selectedCampaign.productSnapshot?.title ?? undefined}>
                   {selectedCampaign.productSnapshot?.title?.trim() ||
-                    selectedCampaign.primaryProductId}
+                    campaignLeadProductId(selectedCampaign)}
                 </h3>
                 <p>
                   {[
@@ -1266,8 +1312,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </div>
               <div className="affiliate-campaign-product-spotlight-reference">
                 <span>{t("ecommerce.affiliateCampaign.productIdLabel")}</span>
-                <strong title={selectedCampaign.primaryProductId}>
-                  {selectedCampaign.primaryProductId}
+                <strong title={campaignLeadProductId(selectedCampaign)}>
+                  {campaignLeadProductId(selectedCampaign)}
                 </strong>
                 {selectedCampaign.productSnapshot?.observedAt && (
                   <small>
@@ -1728,10 +1774,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <span>{t("ecommerce.affiliateCampaign.primaryProduct")}</span>
                   <div className="affiliate-campaign-product-fetch-row">
                     <input
-                      value={form.productId}
+                      value={form.products[0]?.productId ?? ""}
                       disabled={!form.shopId}
                       onChange={(event) => {
-                        updateForm("productId", event.target.value.trim());
+                        updateProduct(0, { productId: event.target.value.trim() });
                         updateForm("refreshProductSnapshot", false);
                         updateForm("messageProductName", "");
                         setProductPreview(null);
@@ -1743,7 +1789,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       type="button"
                       className="affiliate-campaign-fetch-button"
                       disabled={
-                        !form.shopId || !form.productId.trim() || resolveProductState.loading
+                        !form.shopId || !leadProductId || resolveProductState.loading
                       }
                       onClick={fetchProduct}
                     >
@@ -1753,6 +1799,50 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     </button>
                   </div>
                   <small>{t("ecommerce.affiliateCampaign.productFetchHint")}</small>
+                </div>
+                <div className="affiliate-campaign-offer">
+                  <span>{t("ecommerce.affiliateCampaign.offerTitle")}</span>
+                  {form.products.map((product, index) => (
+                    <div className="affiliate-campaign-offer-row" key={`offer-${index}`}>
+                      <input
+                        value={product.productId}
+                        // The lead product is owned by the fetch control above,
+                        // which resolves the snapshot discovery and the message
+                        // are built from.
+                        disabled={index === 0 || !form.shopId}
+                        onChange={(event) =>
+                          updateProduct(index, { productId: event.target.value.trim() })}
+                        placeholder={t("ecommerce.affiliateCampaign.productIdPlaceholder")}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.1"
+                        value={product.commissionRate}
+                        onChange={(event) =>
+                          updateProduct(index, { commissionRate: event.target.value })}
+                        aria-label={t("ecommerce.affiliateCampaign.commissionRate")}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        disabled={form.products.length < 2}
+                        onClick={() => removeProduct(index)}
+                      >
+                        {t("ecommerce.affiliateCampaign.removeProduct")}
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={!form.shopId}
+                    onClick={addProduct}
+                  >
+                    {t("ecommerce.affiliateCampaign.addProduct")}
+                  </button>
+                  <small>{t("ecommerce.affiliateCampaign.offerHint")}</small>
                 </div>
                 {pendingProductResolution && productPreview && (
                   <div className="affiliate-campaign-product-diff">
@@ -1901,18 +1991,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       onChange={(event) => updateForm("dailyTarget", event.target.value)}
                     />
                     <small>{t("ecommerce.affiliateCampaign.dailyTargetHint")}</small>
-                  </label>
-                  <label>
-                    <span>{t("ecommerce.affiliateCampaign.commissionRate")}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step="0.1"
-                      value={form.commissionRate}
-                      onChange={(event) => updateForm("commissionRate", event.target.value)}
-                    />
-                    <small>{t("ecommerce.affiliateCampaign.commissionRateHint")}</small>
                   </label>
                   <label>
                     <span>{t("ecommerce.affiliateCampaign.endDays")}</span>
@@ -2291,7 +2369,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               <div className="affiliate-campaign-confirm-grid">
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.shopAndProduct")}
-                  value={`${selectedShop?.shopName ?? "—"} · ${productPreview?.title ?? form.productId}`}
+                  value={`${selectedShop?.shopName ?? "—"} · ${productPreview?.title ?? leadProductId}`}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.dailyTarget")}
@@ -2305,7 +2383,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.commissionRate")}
-                  value={`${form.commissionRate}%`}
+                  value={form.products
+                    .map((product) => `${product.productId} · ${product.commissionRate}%`)
+                    .join("  |  ")}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.endDays")}
@@ -3461,8 +3541,19 @@ export function campaignShopDisplayName(
   return shop?.alias?.trim() || shop?.shopName?.trim() || fallback;
 }
 
+/**
+ * The product a Campaign is searched and written around: the first it promotes.
+ * Mirrors the backend, which reads the same position rather than a separate
+ * field.
+ */
+export function campaignLeadProductId(
+  campaign: Pick<GQL.AffiliateCampaign, "products">,
+): string {
+  return campaign.products?.[0]?.productId ?? "";
+}
+
 function campaignProductReference(
-  campaign: Pick<GQL.AffiliateCampaign, "primaryProductId" | "productSnapshot">,
+  campaign: Pick<GQL.AffiliateCampaign, "products" | "productSnapshot">,
   t: (key: string) => string,
 ): string {
   const sellerSkus = [
@@ -3473,7 +3564,7 @@ function campaignProductReference(
     ),
   ];
   if (sellerSkus.length === 0) {
-    return `${t("ecommerce.affiliateCampaign.productIdLabel")} · ${campaign.primaryProductId}`;
+    return `${t("ecommerce.affiliateCampaign.productIdLabel")} · ${campaignLeadProductId(campaign)}`;
   }
   const remaining = sellerSkus.length - 1;
   return `${t("ecommerce.affiliateCampaign.skuLabel")} · ${sellerSkus[0]}${
@@ -3549,10 +3640,12 @@ function executionStatusLabel(
   return t(`ecommerce.affiliateCampaign.executionStatus.${status.toLowerCase()}`);
 }
 
+/**
+ * Commission for a Campaign's lead product. Other products carry their own
+ * rates, which the detail view lists separately.
+ */
 function campaignCommissionRate(campaign: GQL.AffiliateCampaign): number {
-  const value = Number(
-    (campaign as GQL.AffiliateCampaign & { commissionRatePercent?: number }).commissionRatePercent,
-  );
+  const value = Number(campaign.products?.[0]?.commissionRatePercent);
   return Number.isFinite(value) ? value : 10;
 }
 
