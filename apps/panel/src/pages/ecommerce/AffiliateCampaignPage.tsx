@@ -1790,15 +1790,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </label>
                 <div className="affiliate-campaign-offer">
                   <span>{t("ecommerce.affiliateCampaign.offerTitle")}</span>
-                  {/* Column headers rather than a label per row: the rate field
-                      is a bare number otherwise, and nothing on screen says
-                      what it is. */}
-                  <div className="affiliate-campaign-offer-columns">
-                    <span>{t("ecommerce.affiliateCampaign.productIdLabel")}</span>
-                    <span>{t("ecommerce.affiliateCampaign.commissionColumn")}</span>
-                    <span />
-                    <span />
-                  </div>
                   {form.products.map((product, index) => {
                     const rowProductId = product.productId.trim();
                     const rowPreview = rowProductId
@@ -1810,29 +1801,34 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       // instead of in a pile below the list.
                       <div className="affiliate-campaign-offer-item" key={`offer-${index}`}>
                         <div className="affiliate-campaign-offer-row">
-                          <input
-                            value={product.productId}
-                            disabled={!form.shopId}
-                            onChange={(event) => {
-                              updateProduct(index, { productId: event.target.value.trim() });
-                              if (index === 0) {
-                                updateForm("refreshProductSnapshot", false);
-                                updateForm("messageProductName", "");
-                              }
-                              setPendingProductResolution(null);
-                            }}
-                            placeholder={t("ecommerce.affiliateCampaign.productIdPlaceholder")}
-                          />
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step="0.1"
-                            value={product.commissionRate}
-                            onChange={(event) =>
-                              updateProduct(index, { commissionRate: event.target.value })}
-                            aria-label={t("ecommerce.affiliateCampaign.commissionRate")}
-                          />
+                          <label className="affiliate-campaign-offer-field">
+                            <span>{t("ecommerce.affiliateCampaign.productIdLabel")}</span>
+                            <input
+                              value={product.productId}
+                              disabled={!form.shopId}
+                              onChange={(event) => {
+                                updateProduct(index, { productId: event.target.value.trim() });
+                                if (index === 0) {
+                                  updateForm("refreshProductSnapshot", false);
+                                  updateForm("messageProductName", "");
+                                }
+                                setPendingProductResolution(null);
+                              }}
+                              placeholder={t("ecommerce.affiliateCampaign.productIdPlaceholder")}
+                            />
+                          </label>
+                          <label className="affiliate-campaign-offer-field">
+                            <span>{t("ecommerce.affiliateCampaign.commissionColumn")}</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="0.1"
+                              value={product.commissionRate}
+                              onChange={(event) =>
+                                updateProduct(index, { commissionRate: event.target.value })}
+                            />
+                          </label>
                           <button
                             type="button"
                             className="affiliate-campaign-fetch-button"
@@ -1887,10 +1883,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       </div>
                     );
                   })}
+                  {/* Not gated on the shop: adding a row is just making space
+                      to type an id. Only resolving one needs a shop. */}
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    disabled={!form.shopId}
                     onClick={addProduct}
                   >
                     {t("ecommerce.affiliateCampaign.addProduct")}
