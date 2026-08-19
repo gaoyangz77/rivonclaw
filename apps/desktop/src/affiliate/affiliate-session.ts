@@ -5,7 +5,7 @@ import { AFFILIATE_AGENT_ID } from "@rivonclaw/core/node";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { rootStore } from "../app/store/desktop-store.js";
-import { normalizePlatform } from "../utils/platform.js";
+import { creatorFacingPlatformName, normalizePlatform } from "../utils/platform.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import {
   AFFILIATE_CONTEXT_BUILDER_QUERY,
@@ -258,8 +258,13 @@ export class AffiliateSession {
       // The platform token is an internal identifier. A run that has to tell a
       // Creator where an earlier conversation happened needs the name that
       // Creator would recognise, and one live run simply omitted the platform
-      // rather than translate `tiktok` itself.
-      "- Creator-facing platform name: TikTok Shop. Use this wording when naming the platform to a Creator; never show the internal platform token.",
+      // rather than translate `tiktok` itself. Derived from the same token so a
+      // second platform cannot leave a stale literal here saying TikTok Shop.
+      ...(creatorFacingPlatformName(this.platform)
+        ? [
+            `- Creator-facing platform name: ${creatorFacingPlatformName(this.platform)}. Use this wording when naming the platform to a Creator; never show the internal platform token.`,
+          ]
+        : []),
       "- Commerce Program: TikTok Shop Affiliate for the current seller account.",
       "- TikTok Shop platform chat, WhatsApp, and Outlook email are communication routes for one seller-creator Relationship.",
       "- Reply on the latest inbound channel by default. preferredChannel requests an intentional channel override and remains subject to backend route validation.",
