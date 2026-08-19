@@ -32662,10 +32662,20 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-campaign-offer-item {
   margin-bottom: 12px;
 }
-.affiliate-campaign-offer-row {
+.affiliate-campaign-offer-row,
+.affiliate-campaign-offer-columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 88px auto auto;
   gap: 9px;
+}
+.affiliate-campaign-offer-columns {
+  margin-bottom: 5px;
+}
+.affiliate-campaign-offer-columns > span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 /* The snapshot belongs to the row above it, so it is inset and sits flush
    under that product rather than floating below the whole list. */

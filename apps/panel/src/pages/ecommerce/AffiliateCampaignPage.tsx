@@ -1790,6 +1790,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </label>
                 <div className="affiliate-campaign-offer">
                   <span>{t("ecommerce.affiliateCampaign.offerTitle")}</span>
+                  {/* Column headers rather than a label per row: the rate field
+                      is a bare number otherwise, and nothing on screen says
+                      what it is. */}
+                  <div className="affiliate-campaign-offer-columns">
+                    <span>{t("ecommerce.affiliateCampaign.productIdLabel")}</span>
+                    <span>{t("ecommerce.affiliateCampaign.commissionColumn")}</span>
+                    <span />
+                    <span />
+                  </div>
                   {form.products.map((product, index) => {
                     const rowProductId = product.productId.trim();
                     const rowPreview = rowProductId
