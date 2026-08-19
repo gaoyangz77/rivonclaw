@@ -169,4 +169,29 @@ describe("AffiliateWorkspaceModel", () => {
     expect(workspace.getBusinessDeveloper("bd-1")?.creatorDisplayName).toBe("Maria");
     expect(workspace.operationalSettings?.onboardingCompletedAt).toBe(NOW);
   });
+
+  it("keeps the delivered message on a closed proposal", () => {
+    // A proposal's review draft is scrubbed at terminal state, so the delivered
+    // content is the only body a closed card can still show. An undeclared prop
+    // is dropped on ingestion, which would blank that card silently.
+    const workspace = AffiliateWorkspaceModel.create({});
+    workspace.upsertAffiliateActionProposal({
+      id: "proposal-1",
+      type: "SEND_MESSAGE",
+      status: "EXECUTED",
+      executionResult: { deliveryId: "delivery-1", deliveryStatus: "SENT" },
+      deliveredMessage: {
+        deliveryId: "delivery-1",
+        status: "SENT",
+        channel: "PLATFORM_CHAT",
+        parts: [{ sequence: 0, kind: "TEXT", text: "Hola, gracias por avisarnos." }],
+      },
+      createdAt: NOW,
+      updatedAt: NOW,
+    } as any);
+
+    const projection = workspace.proposalProjection("proposal-1");
+    expect(projection?.proposal.deliveredMessage?.parts?.[0]?.text)
+      .toBe("Hola, gracias por avisarnos.");
+  });
 });

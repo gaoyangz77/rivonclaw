@@ -326,6 +326,11 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   policySnapshot: types.maybeNull(types.frozen<Record<string, any>>()),
   decision: types.maybeNull(types.frozen<Record<string, any>>()),
   executionResult: types.maybeNull(types.frozen<Record<string, any>>()),
+  /** Content the linked Delivery actually delivered. The review draft below is
+   * scrubbed at terminal state, so this is the only message body a closed
+   * proposal can still show. A prop the model does not declare is dropped on
+   * ingestion, which is why this must stay in step with the GraphQL type. */
+  deliveredMessage: types.maybeNull(types.frozen<Record<string, any>>()),
   sourceWorkBoundary: types.maybeNull(types.frozen<Record<string, any>>()),
   messageIntent: types.maybeNull(types.frozen<Record<string, any>>()),
   sampleReviewIntent: types.maybeNull(types.frozen<Record<string, any>>()),
