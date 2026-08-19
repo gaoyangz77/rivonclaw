@@ -10783,7 +10783,7 @@ export interface Query {
   ecommerceSearchCancellations: Array<EcomCancellation>;
   /** Search fulfillment packages with optional filters and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchPackages: Array<EcomPackage>;
-  /** Search/list products with optional filters and return a flat summary list. Pagination is handled internally by the backend. For full product details including images use ecommerceGetProduct. */
+  /** Search/list products with optional filters and return a flat summary list. When creation-time and update-time filters are both provided, products must match both ranges. Pagination is handled internally by the backend. For full product details including images use ecommerceGetProduct. */
   ecommerceSearchProducts: Array<EcomProductSummary>;
   /** Search return/refund/replacement requests and return a flat list. Pagination is handled internally by the backend. */
   ecommerceSearchReturns: Array<EcomReturn>;
@@ -11471,6 +11471,8 @@ export interface QueryEcommerceSearchProductsArgs {
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['String']['input'];
   status?: InputMaybe<EcomProductStatus>;
+  updateTimeGe?: InputMaybe<Scalars['Float']['input']>;
+  updateTimeLe?: InputMaybe<Scalars['Float']['input']>;
 }
 
 
