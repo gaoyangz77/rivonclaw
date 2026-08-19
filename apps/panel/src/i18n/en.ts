@@ -1923,7 +1923,9 @@ export default {
         // Affiliate Management
         AFFILIATE_GET_CREATOR_RELATIONSHIP: "Get Creator Relationship",
         AFFILIATE_GET_CREATOR_PROFILE: "Get Creator Profile",
-        AFFILIATE_GET_COLLABORATION: "Get Collaboration",
+        AFFILIATE_LIST_OPEN_COLLABORATIONS: "List Open Collaborations",
+        AFFILIATE_LIST_SHOP_OPEN_COLLABORATIONS: "List Shop Open Collaborations",
+        AFFILIATE_LIST_SHOP_TARGET_COLLABORATIONS: "List Shop Target Collaborations",
         AFFILIATE_GET_SAMPLE_APPLICATION: "Get Sample Application",
         AFFILIATE_GET_RELATIONSHIP_TIMELINE: "Get Creator Relationship Timeline",
         AFFILIATE_LIST_CREATOR_COLLABORATIONS: "List Creator Collaborations",
