@@ -216,3 +216,43 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(mutation).toContain("preferredEmailAccountBindingId");
   });
 });
+
+describe("executed message proposal content", () => {
+  it("reads the delivered message back on both proposal read and decide paths", () => {
+    for (const [name, document] of [
+      ["AFFILIATE_ACTION_PROPOSALS_QUERY", AFFILIATE_ACTION_PROPOSALS_QUERY],
+      ["DECIDE_ACTION_PROPOSAL_MUTATION", DECIDE_ACTION_PROPOSAL_MUTATION],
+    ] as const) {
+      const query = queryText(document);
+      const delivered = query.split("deliveredMessage")[1] || "";
+
+      expect(query, name).toContain("deliveredMessage");
+      expect(delivered.slice(0, 200), name).toContain("deliveryId");
+      expect(delivered.slice(0, 200), name).toContain("sequence");
+      expect(delivered.slice(0, 200), name).toContain("kind");
+      expect(delivered.slice(0, 200), name).toContain("text");
+    }
+  });
+
+  it("does not request the delivered message on revision history, which never carries one", () => {
+    const query = queryText(DECIDE_ACTION_PROPOSAL_MUTATION);
+    const start = query.indexOf("revisionHistory {");
+    expect(start).toBeGreaterThan(-1);
+
+    let depth = 0;
+    let end = start;
+    for (let index = query.indexOf("{", start); index < query.length; index += 1) {
+      if (query[index] === "{") depth += 1;
+      if (query[index] === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          end = index;
+          break;
+        }
+      }
+    }
+
+    expect(query.slice(start, end)).not.toContain("deliveredMessage");
+    expect(query.split("deliveredMessage").length - 1).toBe(1);
+  });
+});

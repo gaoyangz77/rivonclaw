@@ -24802,6 +24802,12 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-bg);
 }
 
+.affiliate-message-content-cleared {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
 .affiliate-policy-note {
   display: flex;
   align-items: flex-start;

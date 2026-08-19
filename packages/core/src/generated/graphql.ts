@@ -54,6 +54,8 @@ export interface ActionProposal {
   creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   decision?: Maybe<ActionProposalDecisionSnapshot>;
+  /** Content actually delivered for this proposal, resolved from executionResult.deliveryId. Absent when the proposal never executed a message, or when the Delivery predates retained conversation content. */
+  deliveredMessage?: Maybe<ActionProposalDeliveredMessage>;
   executionResult?: Maybe<ActionProposalExecutionResultSnapshot>;
   expiresAt?: Maybe<Scalars['DateTimeISO']['output']>;
   /** @deprecated Fabricated single-shop anchor. Read shopIds — the honest set of shops the proposal acts for. */
@@ -156,6 +158,23 @@ export interface ActionProposalDecisionSnapshotInput {
   actorType?: InputMaybe<AffiliateLifecycleActorType>;
   decidedAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   note?: InputMaybe<Scalars['String']['input']>;
+}
+
+/** Content actually delivered for an executed message proposal, retained on the linked Delivery. A proposal's review draft is scrubbed of creator-facing text once it reaches a terminal state, so this is the only message body still available then. */
+export interface ActionProposalDeliveredMessage {
+  /** Channel the delivery actually used, falling back to the preferred channel while no actual channel has been recorded. */
+  channel?: Maybe<AffiliateMessageChannel>;
+  deliveryId: Scalars['ID']['output'];
+  /** Delivered parts in their canonical conversation-turn order. */
+  parts: Array<ActionProposalDeliveredMessagePart>;
+  status: AffiliateDeliveryStatus;
+}
+
+/** One ordered part of the content actually delivered to the creator, read back from the Delivery rather than from the proposal's review draft. */
+export interface ActionProposalDeliveredMessagePart {
+  kind: AffiliateMessagePartKind;
+  sequence: Scalars['Int']['output'];
+  text?: Maybe<Scalars['String']['output']>;
 }
 
 export interface ActionProposalExecutionResultSnapshot {
