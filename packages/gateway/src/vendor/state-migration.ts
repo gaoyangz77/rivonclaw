@@ -90,6 +90,12 @@ type AgentDatabaseTarget = {
   databasePath: string;
 };
 
+type RunningSessionNodeRow = {
+  current_session_id: string;
+  entry_json: string;
+  session_key: string;
+};
+
 type OpenClawChannelConfig = {
   accounts?: Record<string, unknown>;
   defaultAccount?: unknown;
@@ -643,6 +649,97 @@ export function inspectVendorStateMigration(
   return { required: reasons.length > 0, reasons, targetAgentSchemaVersion };
 }
 
+function sqliteTableExists(database: DatabaseSync, tableName: string): boolean {
+  return Boolean(
+    database
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(tableName),
+  );
+}
+
+/**
+ * A gateway starts before any agent run can exist, so every persisted
+ * `running` row belongs to the previous process. When local restart replay is
+ * disabled, converge those orphaned rows to OpenClaw's recoverable `killed`
+ * terminal state without changing their freshness or replay metadata.
+ */
+export function convergeOrphanedRunningSessionsBeforeGateway(
+  stateDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  if (env.OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY !== "1") return 0;
+
+  let converged = 0;
+  for (const target of listAgentDatabaseTargets(stateDir)) {
+    if (!existsSync(target.databasePath)) continue;
+    const database = new DatabaseSync(target.databasePath);
+    try {
+      // Empty/current-version fixtures and databases not yet owned by the
+      // current session schema have nothing that can be converged here.
+      if (!sqliteTableExists(database, "session_nodes")) continue;
+      const generationTable = sqliteTableExists(database, "session_windows")
+        ? "session_windows"
+        : sqliteTableExists(database, "sessions")
+          ? "sessions"
+          : undefined;
+      if (!generationTable) {
+        throw new Error(
+          `OpenClaw agent database has session_nodes without session generations: ${target.databasePath}`,
+        );
+      }
+
+      database.exec("BEGIN IMMEDIATE");
+      try {
+        const rows = database
+          .prepare(
+            `SELECT session_key, current_session_id, entry_json
+             FROM session_nodes
+             WHERE status = 'running'`,
+          )
+          .all() as RunningSessionNodeRow[];
+        const updateNode = database.prepare(
+          `UPDATE session_nodes
+           SET entry_json = ?, status = 'killed'
+           WHERE session_key = ? AND status = 'running'`,
+        );
+        const updateCurrentGeneration = database.prepare(
+          `UPDATE ${generationTable} SET status = 'killed' WHERE session_id = ?`,
+        );
+
+        for (const row of rows) {
+          const entry = JSON.parse(row.entry_json) as unknown;
+          if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+            throw new Error(
+              `Invalid running OpenClaw session entry for ${row.session_key}: ${target.databasePath}`,
+            );
+          }
+          const killedEntry = { ...(entry as Record<string, unknown>), status: "killed" };
+          const result = updateNode.run(JSON.stringify(killedEntry), row.session_key);
+          if (result.changes !== 1) {
+            throw new Error(
+              `OpenClaw running session changed during startup convergence: ${row.session_key}`,
+            );
+          }
+          const generationResult = updateCurrentGeneration.run(row.current_session_id);
+          if (generationResult.changes !== 1) {
+            throw new Error(
+              `OpenClaw current session generation is missing during startup convergence: ${row.session_key}`,
+            );
+          }
+          converged += 1;
+        }
+        database.exec("COMMIT");
+      } catch (error) {
+        database.exec("ROLLBACK");
+        throw error;
+      }
+    } finally {
+      database.close();
+    }
+  }
+  return converged;
+}
+
 /**
  * Run OpenClaw's schema owner before Desktop writes auth state or starts the
  * gateway. Do not invoke the full Doctor here: it also loads plugins, refreshes
@@ -694,6 +791,15 @@ export async function migrateVendorStateBeforeGateway(
       );
     }
     log.info("OpenClaw agent database migration completed");
+  }
+
+  const convergedRunningSessions = convergeOrphanedRunningSessionsBeforeGateway(
+    options.stateDir,
+  );
+  if (convergedRunningSessions > 0) {
+    log.info(
+      `Converged ${convergedRunningSessions} orphaned running OpenClaw session(s) to killed`,
+    );
   }
 
   if (options.configPath) {
