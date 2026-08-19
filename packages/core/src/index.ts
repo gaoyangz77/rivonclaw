@@ -122,6 +122,8 @@ export {
   providerSecretKey,
   getProviderMeta,
   resolveGatewayProvider,
+  stripProviderPrefix,
+  resolveGatewayModelParts,
   getDefaultModelForRegion,
   getDefaultModelForProvider,
   getModelsForProvider,
