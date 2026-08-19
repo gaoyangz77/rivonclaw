@@ -3070,24 +3070,20 @@ export default {
         "APPROVE_SAMPLE_REQUEST": "Aprobar esta solicitud de muestra",
         "REJECT_SAMPLE_REQUEST": "Rechazar esta solicitud de muestra",
         "SEND_MESSAGE": "Enviar un mensaje al creador",
-        "CREATE_TARGET_COLLABORATION": "Crear una colaboración dirigida"
       },
       "proposalExecutionDescriptions": {
         "APPROVE_SAMPLE_REQUEST": "El sistema aprobará la solicitud de muestra del creador en TikTok Shop.",
         "REJECT_SAMPLE_REQUEST": "El sistema rechazará la solicitud de muestra del creador en TikTok Shop.",
         "REVIEW_SAMPLE_REQUEST": "El sistema enviará esta decisión de revisión de muestra a TikTok Shop.",
         "SEND_MESSAGE": "El sistema enviará el siguiente mensaje al creador.",
-        "CREATE_TARGET_COLLABORATION": "El sistema creará una invitación de colaboración dirigida para este creador."
       },
       "policyActions": {
         "SEND_MESSAGE": "Enviar mensaje",
         "REVIEW_SAMPLE_APPLICATION": "Revisar solicitud de muestra",
-        "CREATE_TARGET_COLLABORATION": "Crear colaboración dirigida"
       },
       "policyActionDescriptions": {
         "SEND_MESSAGE": "Exigir aprobación antes de que el agente envíe mensajes a creadores.",
         "REVIEW_SAMPLE_APPLICATION": "Exigir aprobación antes de aprobar o rechazar solicitudes de muestra.",
-        "CREATE_TARGET_COLLABORATION": "Exigir aprobación antes de crear invitaciones de colaboración dirigida."
       },
       "policies": {
         "title": "Políticas de aprobación",
@@ -3547,7 +3543,6 @@ export default {
           "REJECT": "Rechazar"
         },
         "sampleShipmentPreview": "Envíe artículos de muestra {{quantity}} para la aplicación {{applicationId}}",
-        "targetCollaborationPreview": "Cree una colaboración de destino \"{{name}}\" con los productos {{count}}.",
         "blockCreatorPreview": "Creador de bloques {{creatorId}}.",
         "creatorTagPreview": "Actualizar etiqueta {{tagId}} para el creador {{creatorId}}.",
         "campaignProductPreview": "Actualizar producto de campaña {{productId}}.",
@@ -3559,7 +3554,6 @@ export default {
           "APPROVE_SAMPLE": "Aprobar muestra",
           "REJECT_SAMPLE": "Rechazar muestra",
           "SHIP_SAMPLE": "Muestra de envío",
-          "CREATE_TARGET_COLLABORATION": "Invitación de destino",
           "ADD_CREATOR_TAG": "Agregar etiqueta",
           "REMOVE_CREATOR_TAG": "Quitar etiqueta",
           "BLOCK_CREATOR": "Creador de bloques",

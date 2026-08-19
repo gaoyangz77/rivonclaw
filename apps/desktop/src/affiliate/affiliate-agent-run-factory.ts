@@ -753,7 +753,6 @@ function frozenRevisionIntent(
 ): Record<string, unknown> {
   return {
     messageIntent: proposal.messageIntent ?? null,
-    targetCollaborationIntent: proposal.targetCollaborationIntent ?? null,
     sampleReviewIntent: proposal.sampleReviewIntent ?? null,
     steps: proposal.steps ?? [],
   };

@@ -3070,24 +3070,20 @@ export default {
         "APPROVE_SAMPLE_REQUEST": "Setujui permintaan sampel ini",
         "REJECT_SAMPLE_REQUEST": "Tolak permintaan sampel ini",
         "SEND_MESSAGE": "Kirim pesan ke kreator",
-        "CREATE_TARGET_COLLABORATION": "Buat kolaborasi target"
       },
       "proposalExecutionDescriptions": {
         "APPROVE_SAMPLE_REQUEST": "Sistem akan menyetujui permintaan sampel kreator di TikTok Shop.",
         "REJECT_SAMPLE_REQUEST": "Sistem akan menolak permintaan sampel kreator di TikTok Shop.",
         "REVIEW_SAMPLE_REQUEST": "Sistem akan mengirim keputusan ulasan sampel ini ke TikTok Shop.",
         "SEND_MESSAGE": "Sistem akan mengirim pesan di bawah ini ke kreator.",
-        "CREATE_TARGET_COLLABORATION": "Sistem akan membuat undangan kolaborasi target untuk kreator ini."
       },
       "policyActions": {
         "SEND_MESSAGE": "Kirim pesan",
         "REVIEW_SAMPLE_APPLICATION": "Tinjau permintaan sampel",
-        "CREATE_TARGET_COLLABORATION": "Buat kolaborasi target"
       },
       "policyActionDescriptions": {
         "SEND_MESSAGE": "Wajibkan persetujuan sebelum agen mengirim pesan ke kreator.",
         "REVIEW_SAMPLE_APPLICATION": "Wajibkan persetujuan sebelum permintaan sampel disetujui atau ditolak.",
-        "CREATE_TARGET_COLLABORATION": "Wajibkan persetujuan sebelum undangan kolaborasi target dibuat."
       },
       "policies": {
         "title": "Kebijakan Persetujuan",
@@ -3545,7 +3541,6 @@ export default {
           "REJECT": "Tolak"
         },
         "sampleShipmentPreview": "Kirim item sampel {{quantity}} untuk aplikasi {{applicationId}}",
-        "targetCollaborationPreview": "Buat kolaborasi target \"{{name}}\" dengan produk {{count}}.",
         "blockCreatorPreview": "Blokir pembuat {{creatorId}}.",
         "creatorTagPreview": "Perbarui tag {{tagId}} untuk pembuat {{creatorId}}.",
         "campaignProductPreview": "Perbarui produk kampanye {{productId}}.",
@@ -3557,7 +3552,6 @@ export default {
           "APPROVE_SAMPLE": "Setujui sampel",
           "REJECT_SAMPLE": "Tolak sampel",
           "SHIP_SAMPLE": "Sampel kapal",
-          "CREATE_TARGET_COLLABORATION": "Undangan sasaran",
           "ADD_CREATOR_TAG": "Tambahkan tanda",
           "REMOVE_CREATOR_TAG": "Hapus tanda",
           "BLOCK_CREATOR": "Blokir pencipta",

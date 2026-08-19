@@ -790,7 +790,6 @@ describe("cloud-graphql handler", () => {
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
             messageIntent: {},
-            targetCollaborationIntent: {},
             sampleReviewIntent: {
               sampleApplicationRecordId: "sample-1",
               platformApplicationId: "platform-app-1",
@@ -860,7 +859,6 @@ describe("cloud-graphql handler", () => {
           action: {
             type: "REVIEW_SAMPLE_APPLICATION",
             messageIntent: {},
-            targetCollaborationIntent: {},
             sampleReviewIntent: {},
           },
           actions: [
@@ -1059,7 +1057,6 @@ describe("cloud-graphql handler", () => {
           action: {
             type: "SEND_MESSAGE",
             messageIntent: {},
-            targetCollaborationIntent: {},
             sampleReviewIntent: {},
             expiresAt: "",
           },

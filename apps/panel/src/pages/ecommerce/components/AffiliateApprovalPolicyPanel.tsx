@@ -21,9 +21,6 @@ type AffiliatePolicyAction = GQL.ActionProposalType;
 export const AFFILIATE_POLICY_ACTIONS = [
   GQL.ActionProposalType.SendMessage,
   GQL.ActionProposalType.ReviewSampleApplication,
-  GQL.ActionProposalType.CreateTargetCollaboration,
-  GQL.ActionProposalType.ManageOpenCollaboration,
-  GQL.ActionProposalType.ManageTargetCollaboration,
   GQL.ActionProposalType.NoActionNeeded,
 ] as const;
 
@@ -35,36 +32,24 @@ export const AFFILIATE_POLICY_ACTIONS = [
 export const AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
-  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
-  [GQL.ActionProposalType.ManageOpenCollaboration]: false,
-  [GQL.ActionProposalType.ManageTargetCollaboration]: false,
   [GQL.ActionProposalType.NoActionNeeded]: false,
 };
 
 export const AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
-  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
-  [GQL.ActionProposalType.ManageOpenCollaboration]: false,
-  [GQL.ActionProposalType.ManageTargetCollaboration]: false,
   [GQL.ActionProposalType.NoActionNeeded]: true,
 };
 
 export const AFFILIATE_POLICY_SUPPORTS_CAMPAIGN: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
-  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
-  [GQL.ActionProposalType.ManageOpenCollaboration]: false,
-  [GQL.ActionProposalType.ManageTargetCollaboration]: false,
   [GQL.ActionProposalType.NoActionNeeded]: false,
 };
 
 export const AFFILIATE_POLICY_SUPPORTS_PRODUCT: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
-  [GQL.ActionProposalType.CreateTargetCollaboration]: true,
-  [GQL.ActionProposalType.ManageOpenCollaboration]: true,
-  [GQL.ActionProposalType.ManageTargetCollaboration]: true,
   [GQL.ActionProposalType.NoActionNeeded]: false,
 };
 

@@ -91,15 +91,12 @@ export interface ActionProposal {
   sampleShipmentIntent?: Maybe<ActionProposalSampleShipmentIntent>;
   /** Every shop this proposal acts for: the union of its steps' own shops. Empty for a pure direct-channel proposal, which is relationship-level work with no shop anchor. */
   shopIds: Array<Scalars['ID']['output']>;
-  /** Frozen structured intent for seller-wide Open/Target Collaboration operations. */
-  shopOperationIntent?: Maybe<Scalars['JSONObject']['output']>;
   sourceWorkBoundary?: Maybe<ActionProposalSourceWorkBoundary>;
   status: ActionProposalStatus;
   /** Frozen ordered action steps. Current single-action proposals contain exactly one step. */
   steps: Array<ActionProposalStep>;
   /** Direct rewritten successor created from this proposal. */
   supersededByProposalId?: Maybe<Scalars['ID']['output']>;
-  targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
   targetEventCursor?: Maybe<Scalars['Int']['output']>;
   type: ActionProposalType;
   updatedAt: Scalars['DateTimeISO']['output'];
@@ -269,22 +266,6 @@ export interface ActionProposalSampleShipmentIntent {
   warehouseId?: Maybe<Scalars['ID']['output']>;
 }
 
-export interface ActionProposalSellerContactInfoIntent {
-  email: Scalars['String']['output'];
-  line?: Maybe<Scalars['String']['output']>;
-  phoneNumber?: Maybe<Scalars['String']['output']>;
-  telegram?: Maybe<Scalars['String']['output']>;
-  whatsapp?: Maybe<Scalars['String']['output']>;
-}
-
-export interface ActionProposalSellerContactInfoIntentInput {
-  email: Scalars['String']['input'];
-  line?: InputMaybe<Scalars['String']['input']>;
-  phoneNumber?: InputMaybe<Scalars['String']['input']>;
-  telegram?: InputMaybe<Scalars['String']['input']>;
-  whatsapp?: InputMaybe<Scalars['String']['input']>;
-}
-
 export interface ActionProposalSourceWorkBoundary {
   /** Optional canonical platform Collaboration context inside the CreatorRelationship. */
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
@@ -349,39 +330,11 @@ export interface ActionProposalStep {
   /** Platform-action shop scope for this step. Null exactly on direct-channel (WhatsApp/Email) SEND_MESSAGE steps, which carry no sending shop. The proposal itself is owned by creatorRelationshipId. */
   shopId?: Maybe<Scalars['ID']['output']>;
   stepId: Scalars['String']['output'];
-  targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
   targetEventCursor?: Maybe<Scalars['Int']['output']>;
   type: ActionProposalType;
 }
 
-export interface ActionProposalTargetCollaborationIntent {
-  creatorIds?: Maybe<Array<Scalars['ID']['output']>>;
-  creatorOpenIds?: Maybe<Array<Scalars['String']['output']>>;
-  endTime: Scalars['DateTimeISO']['output'];
-  hasFreeSample: Scalars['Boolean']['output'];
-  isSampleApprovalExempt: Scalars['Boolean']['output'];
-  message?: Maybe<Scalars['String']['output']>;
-  name: Scalars['String']['output'];
-  products: Array<ActionProposalTargetCollaborationProductIntent>;
-  sellerContactInfo: ActionProposalSellerContactInfoIntent;
-}
-
-export interface ActionProposalTargetCollaborationProductIntent {
-  productId: Scalars['String']['output'];
-  shopAdsCommissionRateBps?: Maybe<Scalars['Int']['output']>;
-  targetCommissionRateBps: Scalars['Int']['output'];
-}
-
-export interface ActionProposalTargetCollaborationProductIntentInput {
-  productId: Scalars['String']['input'];
-  shopAdsCommissionRateBps?: InputMaybe<Scalars['Int']['input']>;
-  targetCommissionRateBps: Scalars['Int']['input'];
-}
-
 export const ActionProposalType = {
-  CreateTargetCollaboration: 'CREATE_TARGET_COLLABORATION',
-  ManageOpenCollaboration: 'MANAGE_OPEN_COLLABORATION',
-  ManageTargetCollaboration: 'MANAGE_TARGET_COLLABORATION',
   NoActionNeeded: 'NO_ACTION_NEEDED',
   ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
   SendMessage: 'SEND_MESSAGE'
@@ -895,6 +848,7 @@ export interface AffiliateCampaign {
   status: AffiliateCampaignStatus;
   templateTextHash: Scalars['String']['output'];
   templateVersion: Scalars['Int']['output'];
+  type: AffiliateCampaignType;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
 }
@@ -1446,6 +1400,12 @@ export const AffiliateCampaignTemplateGenerationMode = {
 } as const;
 
 export type AffiliateCampaignTemplateGenerationMode = typeof AffiliateCampaignTemplateGenerationMode[keyof typeof AffiliateCampaignTemplateGenerationMode];
+export const AffiliateCampaignType = {
+  Market: 'MARKET',
+  Vic: 'VIC'
+} as const;
+
+export type AffiliateCampaignType = typeof AffiliateCampaignType[keyof typeof AffiliateCampaignType];
 /** Platform-level affiliate collaboration, normalized across TikTok open and target collaborations. */
 export interface AffiliateCollaboration {
   campaignId?: Maybe<Scalars['ID']['output']>;
@@ -2939,6 +2899,26 @@ export interface AffiliateOpenAutoAddProductInput {
   enable: Scalars['Boolean']['input'];
 }
 
+/** One Open Collaboration a shop currently runs, with the commission it carries. An Open Collaboration is a product-level public offer with no Creator roster, so this type deliberately carries no Creator identity. */
+export interface AffiliateOpenCollaborationCommission {
+  affiliateCollaborationId: Scalars['ID']['output'];
+  /** The public commission rate this Open Collaboration carries. Null means the projection has no rate for it, which is not the same as zero — never read a missing rate as free. */
+  commissionRate?: Maybe<Scalars['Float']['output']>;
+  endTime?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  productIds: Array<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  status: AffiliateCollaborationStatus;
+}
+
+/** The Open Collaborations one shop currently runs, newest observation first. */
+export interface AffiliateOpenCollaborationCommissionListPayload {
+  items: Array<AffiliateOpenCollaborationCommission>;
+  /** Active Open Collaborations matched before the result limit, so a truncated list can be told apart from a complete one. */
+  matchedCollaborationCount: Scalars['Int']['output'];
+}
+
 /** Seller shop operation performed against Open Collaboration configuration. */
 export const AffiliateOpenCollaborationOperation = {
   Create: 'CREATE',
@@ -3186,21 +3166,6 @@ export const AffiliatePredictionType = {
 } as const;
 
 export type AffiliatePredictionType = typeof AffiliatePredictionType[keyof typeof AffiliatePredictionType];
-/** The Open Collaboration commission a product currently carries in one shop, for use as the reference when drafting a Target Collaboration. */
-export interface AffiliateProductOpenCommission {
-  affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
-  collaborationName?: Maybe<Scalars['String']['output']>;
-  commissionRate?: Maybe<Scalars['Float']['output']>;
-  /** False when this shop has no active Open Collaboration covering the product. The commission is then genuinely unknown, which is not the same as zero. */
-  found: Scalars['Boolean']['output'];
-  lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  /** Active Open Collaborations covering this shop and product. More than one means the shop carries several commissions for the same product, so the reported rate is the most recently observed of them and is not the only one in force. */
-  matchedOpenCollaborationCount: Scalars['Float']['output'];
-  productId: Scalars['String']['output'];
-  shopId: Scalars['ID']['output'];
-  status?: Maybe<Scalars['String']['output']>;
-}
-
 export interface AffiliateProductSummaryBatchInput {
   refs: Array<AffiliateProductSummaryReferenceInput>;
 }
@@ -3590,32 +3555,6 @@ export interface AffiliateRelationshipWorkSummary {
   staffRequiredCount: Scalars['Int']['output'];
 }
 
-/** One Target Collaboration a Creator could be added to, with the seat accounting that decides whether it is reusable. */
-export interface AffiliateReusableTargetCollaboration {
-  affiliateCollaborationId: Scalars['ID']['output'];
-  /** True when this Creator is already invited here, so adding them again would be a no-op. */
-  alreadyIncludesCreator: Scalars['Boolean']['output'];
-  commissionRate?: Maybe<Scalars['Float']['output']>;
-  createdAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  /** Creators already invited. The platform caps a Target Collaboration at 50. */
-  creatorCount: Scalars['Float']['output'];
-  endTime?: Maybe<Scalars['DateTimeISO']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-  productIds: Array<Scalars['String']['output']>;
-  /** Seats left before the platform cap. Zero means the collaboration is full. */
-  remainingSeats: Scalars['Float']['output'];
-  shopId: Scalars['ID']['output'];
-  status: Scalars['String']['output'];
-}
-
-/** Target Collaborations that could take another Creator for this shop and product, newest first. */
-export interface AffiliateReusableTargetCollaborationsPayload {
-  items: Array<AffiliateReusableTargetCollaboration>;
-  /** Active Target Collaborations covering this shop and product before the seat filter, so an empty list can be told apart from no collaborations at all. */
-  matchedCollaborationCount: Scalars['Float']['output'];
-  seatCap: Scalars['Float']['output'];
-}
-
 /** Frozen revision source attached only to the Agent working agenda created by a staff revision request. */
 export interface AffiliateRevisionRequestedProposalContext {
   decision?: Maybe<ActionProposalDecisionSnapshot>;
@@ -3625,7 +3564,6 @@ export interface AffiliateRevisionRequestedProposalContext {
   sampleReviewIntent?: Maybe<ActionProposalSampleReviewIntent>;
   status: ActionProposalStatus;
   steps: Array<ActionProposalStep>;
-  targetCollaborationIntent?: Maybe<ActionProposalTargetCollaborationIntent>;
   type: ActionProposalType;
 }
 
@@ -3764,10 +3702,19 @@ export interface AffiliateServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
-export interface AffiliateShopOperationProposalPayload {
-  actionMode: AffiliateActionRequestMode;
+/** Platform Collaborations for one shop, as seller shop operations read them. Unlike the Creator-scoped Affiliate reads this keeps the complete Creator roster, because shop operations act on the collaboration itself rather than on one Creator relationship. */
+export interface AffiliateShopCollaborationListPayload {
+  items: Array<AffiliateCollaboration>;
+  /** Collaborations matched before the result limit, so a truncated list can be told apart from a complete one. */
+  matchedCollaborationCount: Scalars['Int']['output'];
+}
+
+/** The result of one seller shop operation on a platform Collaboration. Shop operations run a staff member's own typed instruction, so they execute against the Provider immediately and this payload reports what the Provider did — there is no proposal and no approval gate to report. */
+export interface AffiliateShopOperationResultPayload {
+  /** The Collaboration the operation acted on, re-read after execution. Null for operations that touch no single Collaboration, such as editing shop-wide Open Collaboration settings. */
   collaboration?: Maybe<AffiliateCollaboration>;
-  proposal: ActionProposal;
+  /** The Provider-side Collaboration id the operation created or changed, when it has one. */
+  platformObjectId?: Maybe<Scalars['String']['output']>;
 }
 
 /** Whether a shop-level affiliate decision reference was configured, absent, or unreadable. NOT_CONFIGURED is a business answer; SHOP_UNRESOLVED is a missing fact and must never be read as one. */
@@ -8683,7 +8630,6 @@ export interface ManageAffiliateOpenCollaborationInput {
   collaborationId?: InputMaybe<Scalars['ID']['input']>;
   commissionRateBps?: InputMaybe<Scalars['Int']['input']>;
   operation: AffiliateOpenCollaborationOperation;
-  operatorSummary: Scalars['String']['input'];
   productId?: InputMaybe<Scalars['String']['input']>;
   sampleRule?: InputMaybe<AffiliateOpenCollaborationSampleRuleInput>;
   shopId: Scalars['ID']['input'];
@@ -8699,7 +8645,6 @@ export interface ManageAffiliateTargetCollaborationInput {
   message?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   operation: AffiliateTargetCollaborationOperation;
-  operatorSummary: Scalars['String']['input'];
   sellerContactInfo?: InputMaybe<AffiliateSellerContactInfoInput>;
   shopId: Scalars['ID']['input'];
   updateProducts?: InputMaybe<Array<AffiliateTargetCollaborationUpdateProductInput>>;
@@ -8996,8 +8941,8 @@ export interface Mutation {
   login: AuthPayload;
   /** Log out (revoke the provided refresh token) */
   logout: Scalars['Boolean']['output'];
-  manageAffiliateOpenCollaboration: AffiliateShopOperationProposalPayload;
-  manageAffiliateTargetCollaboration: AffiliateShopOperationProposalPayload;
+  manageAffiliateOpenCollaboration: AffiliateShopOperationResultPayload;
+  manageAffiliateTargetCollaboration: AffiliateShopOperationResultPayload;
   /** Promote a temporary uploaded image into permanent object storage and link it to an entity. Pass the assetId returned by POST /api/uploads/images; imageUri is accepted as a fallback. */
   promoteImageAsset: ImageAsset;
   protectAffiliateCreatorRelationship: AffiliateCreatorProtection;
@@ -10683,7 +10628,6 @@ export interface Query {
   affiliateCampaigns: Array<AffiliateCampaign>;
   /** Read one canonical Open or Target platform Collaboration with its linked Creator, Sample Application, and Product context. */
   affiliateCollaborationDetail: AffiliateCollaborationDetailPayload;
-  affiliateCollaborationState: AffiliateCollaboration;
   /** Read platform-level affiliate collaborations, normalized across open and target collaborations. */
   affiliateCollaborations: Array<AffiliateCollaboration>;
   /** Prepare checkpoint metadata for one Affiliate Agent dispatch, optionally including legacy event/workspace projections. */
@@ -10721,6 +10665,7 @@ export interface Query {
   affiliateMlInsightsBulk: AffiliateMlInsightsBulkPayload;
   /** Read shop-wide TikTok Open Collaboration auto-add settings from the Provider. */
   affiliateOpenCollaborationSettings: EcomOpenCollaborationSettings;
+  affiliateOpenCollaborations: AffiliateOpenCollaborationCommissionListPayload;
   /** Read shop-level Affiliate Collaboration and Sample Application projection readiness. */
   affiliateOperationalProjectionHealth: AffiliateOperationalProjectionHealthPayload;
   affiliateOperationalSettings: AffiliateOperationalSettings;
@@ -10728,7 +10673,6 @@ export interface Query {
   affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatusPayload;
   /** Agent-facing expected-sales fit check for a candidate affiliate creator-product pair. This wraps affiliateExpectedSalesPredictions without mutating collaboration product context. */
   affiliatePredictCreatorProductFit: AffiliateCreatorProductFitPayload;
-  affiliateProductOpenCommission: AffiliateProductOpenCommission;
   /** Read deduplicated Product summaries for Affiliate pages through the authorized shop-scoped Product cache. */
   affiliateProductSummaries: Array<AffiliateRelationshipProductSummary>;
   /** Read Target Collaboration memberships and Sample-referenced Open Collaborations for one CreatorRelationship without creator-level expansion. */
@@ -10737,8 +10681,9 @@ export interface Query {
   affiliateRelationshipSampleApplications: AffiliateRelationshipSampleApplicationPage;
   /** Read a Provider-backed CreatorRelationship timeline ordered by business occurredAt. */
   affiliateRelationshipTimeline: AffiliateRelationshipTimelinePayload;
-  affiliateReusableTargetCollaborations: AffiliateReusableTargetCollaborationsPayload;
   affiliateSampleApplicationState: AffiliateSampleApplicationStatePayload;
+  affiliateShopOpenCollaborations: AffiliateShopCollaborationListPayload;
+  affiliateShopTargetCollaborations: AffiliateShopCollaborationListPayload;
   /** List seller-level WhatsApp account bindings available to affiliate workflows. */
   affiliateWhatsAppAccounts: Array<WhatsAppAccountBinding>;
   /** Read current backend-materialized affiliate work projections. Desktop uses this for initial review/dispatch state; subscriptions keep it fresh. */
@@ -11044,12 +10989,6 @@ export interface QueryAffiliateCollaborationDetailArgs {
 }
 
 
-export interface QueryAffiliateCollaborationStateArgs {
-  affiliateCollaborationId: Scalars['ID']['input'];
-  creatorRelationshipId: Scalars['ID']['input'];
-}
-
-
 export interface QueryAffiliateCollaborationsArgs {
   input: ReadAffiliateCollaborationsInput;
 }
@@ -11160,6 +11099,13 @@ export interface QueryAffiliateOpenCollaborationSettingsArgs {
 }
 
 
+export interface QueryAffiliateOpenCollaborationsArgs {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+}
+
+
 export interface QueryAffiliateOperationalProjectionHealthArgs {
   shopId: Scalars['ID']['input'];
 }
@@ -11172,12 +11118,6 @@ export interface QueryAffiliateOutreachOperationalStatusArgs {
 
 export interface QueryAffiliatePredictCreatorProductFitArgs {
   input: AffiliateCreatorProductFitInput;
-}
-
-
-export interface QueryAffiliateProductOpenCommissionArgs {
-  productId: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
 }
 
 
@@ -11201,16 +11141,26 @@ export interface QueryAffiliateRelationshipTimelineArgs {
 }
 
 
-export interface QueryAffiliateReusableTargetCollaborationsArgs {
-  creatorRelationshipId: Scalars['ID']['input'];
-  productId: Scalars['String']['input'];
-  shopId: Scalars['ID']['input'];
-}
-
-
 export interface QueryAffiliateSampleApplicationStateArgs {
   creatorRelationshipId: Scalars['ID']['input'];
   sampleApplicationRecordId: Scalars['ID']['input'];
+}
+
+
+export interface QueryAffiliateShopOpenCollaborationsArgs {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+  status?: InputMaybe<AffiliateCollaborationStatus>;
+}
+
+
+export interface QueryAffiliateShopTargetCollaborationsArgs {
+  campaignId?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  shopId: Scalars['ID']['input'];
+  status?: InputMaybe<AffiliateCollaborationStatus>;
 }
 
 
@@ -12021,20 +11971,7 @@ export interface ResolveAffiliateCampaignProductInput {
   shopId: Scalars['ID']['input'];
 }
 
-/** Agent-authored Target Collaboration details for the ONE Creator of the current Affiliate work item. Creator identity is injected from the trusted CreatorRelationship context and is never accepted from the agent: there is no field here for naming, substituting, or batch-inviting Creators, and exactly one Creator is invited. Choose the shop and the collaboration terms; the Creator is already decided by the work item. */
-export interface ResolveAffiliateTargetCollaborationIntentInput {
-  endTime: Scalars['DateTimeISO']['input'];
-  hasFreeSample: Scalars['Boolean']['input'];
-  isSampleApprovalExempt: Scalars['Boolean']['input'];
-  message?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  products: Array<ActionProposalTargetCollaborationProductIntentInput>;
-  sellerContactInfo: ActionProposalSellerContactInfoIntentInput;
-  /** Authorized seller shop that should own the new Target Collaboration. This is selected explicitly and is not forced to the trigger shop. */
-  shopId: Scalars['ID']['input'];
-}
-
-/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent, CREATE_TARGET_COLLABORATION -> targetCollaborationIntent. */
+/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent. */
 export interface ResolveAffiliateWorkItemActionInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
@@ -12050,9 +11987,7 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
-  /** Required only when type is CREATE_TARGET_COLLABORATION. Creates a Target Collaboration for the ONE Creator of the current Affiliate work item; that Creator's identity is injected from the trusted CreatorRelationship context, so you cannot name, substitute, or batch-invite Creators here. Select the owning shop explicitly. */
-  targetCollaborationIntent?: InputMaybe<ResolveAffiliateTargetCollaborationIntentInput>;
-  /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION, and CREATE_TARGET_COLLABORATION. Do not invent unsupported seller operations. */
+  /** Supported values are SEND_MESSAGE and REVIEW_SAMPLE_APPLICATION. Do not invent unsupported seller operations. */
   type: ActionProposalType;
 }
 
@@ -13367,19 +13302,19 @@ export const ToolId = {
   AffiliateCheckCreatorWhatsapp: 'AFFILIATE_CHECK_CREATOR_WHATSAPP',
   AffiliateCopyMessageAttachment: 'AFFILIATE_COPY_MESSAGE_ATTACHMENT',
   AffiliateDecideProposal: 'AFFILIATE_DECIDE_PROPOSAL',
-  AffiliateGetCollaboration: 'AFFILIATE_GET_COLLABORATION',
   AffiliateGetCreatorContactState: 'AFFILIATE_GET_CREATOR_CONTACT_STATE',
   AffiliateGetCreatorProfile: 'AFFILIATE_GET_CREATOR_PROFILE',
   AffiliateGetCreatorRelationship: 'AFFILIATE_GET_CREATOR_RELATIONSHIP',
   AffiliateGetProduct: 'AFFILIATE_GET_PRODUCT',
-  AffiliateGetProductOpenCommission: 'AFFILIATE_GET_PRODUCT_OPEN_COMMISSION',
   AffiliateGetRelationshipTimeline: 'AFFILIATE_GET_RELATIONSHIP_TIMELINE',
   AffiliateGetSampleApplication: 'AFFILIATE_GET_SAMPLE_APPLICATION',
   AffiliateListCreatorCollaborations: 'AFFILIATE_LIST_CREATOR_COLLABORATIONS',
   AffiliateListCreatorSampleApplications: 'AFFILIATE_LIST_CREATOR_SAMPLE_APPLICATIONS',
   AffiliateListEmailAccounts: 'AFFILIATE_LIST_EMAIL_ACCOUNTS',
-  AffiliateListReusableTargetCollaborations: 'AFFILIATE_LIST_REUSABLE_TARGET_COLLABORATIONS',
+  AffiliateListOpenCollaborations: 'AFFILIATE_LIST_OPEN_COLLABORATIONS',
   AffiliateListShops: 'AFFILIATE_LIST_SHOPS',
+  AffiliateListShopOpenCollaborations: 'AFFILIATE_LIST_SHOP_OPEN_COLLABORATIONS',
+  AffiliateListShopTargetCollaborations: 'AFFILIATE_LIST_SHOP_TARGET_COLLABORATIONS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliateManageOpenCollaboration: 'AFFILIATE_MANAGE_OPEN_COLLABORATION',
   AffiliateManageTargetCollaboration: 'AFFILIATE_MANAGE_TARGET_COLLABORATION',
@@ -14047,6 +13982,8 @@ export interface WriteAffiliateCampaignInput {
   sellerContactEmail?: InputMaybe<Scalars['String']['input']>;
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<AffiliateCampaignStatus>;
+  /** Defaults to MARKET. An existing Campaign keeps its stored kind when omitted. */
+  type?: InputMaybe<AffiliateCampaignType>;
 }
 
 export interface WriteAffiliateCampaignProductInput {

@@ -411,8 +411,6 @@ function normalizeAffiliateResolveAction(
       return normalizeAffiliateSendMessageAction({ ...action, type: actionType });
     case "REVIEW_SAMPLE_APPLICATION":
       return normalizeAffiliateSampleReviewAction({ ...action, type: actionType }, context);
-    case "CREATE_TARGET_COLLABORATION":
-      return normalizeAffiliateTargetCollaborationAction({ ...action, type: actionType }, context);
     default:
       return value;
   }
@@ -539,22 +537,9 @@ function normalizeAffiliateSendMessageAction(action: Record<string, unknown>): u
   }));
 }
 
-function normalizeAffiliateTargetCollaborationAction(
-  action: Record<string, unknown>,
-  context?: AffiliateResolveActionContext,
-): unknown {
-  const existingIntent = asRecord(action.targetCollaborationIntent);
-  if (!existingIntent) return action;
-  return pickAffiliateActionFields(
-    action,
-    "targetCollaborationIntent",
-    existingIntent,
-  );
-}
-
 function pickAffiliateActionFields(
   action: Record<string, unknown>,
-  intentField: "messageIntent" | "sampleReviewIntent" | "targetCollaborationIntent",
+  intentField: "messageIntent" | "sampleReviewIntent",
   intentValue: Record<string, unknown>,
 ): Record<string, unknown> {
   return omitEmptyAffiliateStrings({
@@ -607,8 +592,6 @@ function isInvalidAffiliateResolveAction(value: unknown): boolean {
       if (rejectReason == null) return true;
       return rejectReason === "OTHER" && rejectReasonExplanation == null;
     }
-    case "CREATE_TARGET_COLLABORATION":
-      return !asRecord(action.targetCollaborationIntent);
     default:
       return true;
   }
@@ -675,7 +658,6 @@ function describeAffiliateResolveActionShape(actions: unknown[]): string {
     if (!action) return { action: typeof value };
     const messageIntent = asRecord(action.messageIntent);
     const sampleReviewIntent = asRecord(action.sampleReviewIntent);
-    const targetCollaborationIntent = asRecord(action.targetCollaborationIntent);
     return {
       type: action.type,
       fields: Object.keys(action).sort(),
@@ -709,7 +691,6 @@ function describeAffiliateResolveActionShape(actions: unknown[]): string {
         "rejectReasonExplanation",
         "reason",
       ]) : undefined,
-      targetCollaborationIntentFields: targetCollaborationIntent ? Object.keys(targetCollaborationIntent).sort() : [],
     };
   });
   return `actionShape=${JSON.stringify(shapes)}`;
