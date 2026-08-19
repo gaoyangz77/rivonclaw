@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.102",
+    "date": "2026-08-19",
+    "en": [
+      "Improve differential update reliability, Feishu connection stability, Affiliate offer editing, and gateway execution approvals"
+    ],
+    "zh": [
+      "改善增量更新可靠性、飞书连接稳定性、达人报价编辑与 Gateway 执行审批"
+    ]
+  },
+  {
     "version": "1.8.101",
     "date": "2026-08-18",
     "en": [
