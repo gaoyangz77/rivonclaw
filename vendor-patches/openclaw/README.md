@@ -181,6 +181,20 @@ This is the minimal source fix from upstream commit
 Removal: the pinned OpenClaw includes upstream commit
 `b550c140c7ee21a8a297d089f09be84e9e4b2541` / PR `#120722`.
 
+### 0034 - Feishu websocket liveness timeout
+
+Raises the Feishu long-connection ping timeout from upstream's 3s to 25s. The
+Lark SDK terminates the socket unless an inbound frame arrives within that
+window of each ping, and 3s is short enough that a transient network stall or a
+busy gateway event loop trips it. Each false termination blinds the connection
+for a 0-30s reconnect nonce plus 120s between retries, during which Feishu has
+no online long-connection consumer and interactive card callbacks fail with
+"target callback service is offline". 25s still detects a genuinely half-open
+socket well inside one ping cycle.
+
+Removal: upstream makes the Feishu websocket ping timeout configurable, or
+raises it above the range a single transient stall can cross.
+
 ## Dropped In 1609ae9b624
 
 - `0007`: startup model prewarm now publishes the configured static runtime
