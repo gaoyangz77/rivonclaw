@@ -1170,6 +1170,49 @@ export function resolveGatewayProvider(provider: LLMProvider): string {
   return parent;
 }
 
+/**
+ * Strip a leading `<provider>/` prefix from a stored model id.
+ *
+ * Stored model ids are sometimes bare (`gpt-5.6`) and sometimes already
+ * qualified (`openai/gpt-5.6`). Gateway model refs are always built as
+ * `<gatewayProvider>/<modelId>`, so the prefix must be removed first to avoid
+ * emitting `openai/openai/gpt-5.6`.
+ */
+export function stripProviderPrefix(model: string, provider: string): string {
+  const prefix = `${provider}/`;
+  let normalized = model.trim();
+  while (normalized.startsWith(prefix)) {
+    normalized = normalized.slice(prefix.length);
+  }
+  return normalized;
+}
+
+/**
+ * Resolve the gateway-facing `{ provider, modelId }` parts for a stored
+ * provider key, or `null` when the key cannot name a model.
+ *
+ * This is the single definition of how a Desktop provider key maps onto
+ * OpenClaw's `agents.defaults.model.primary`. Both the gateway config builder
+ * and the LLM provider manager resolve through it so the written config and
+ * the runtime session patches cannot disagree.
+ */
+export function resolveGatewayModelParts(key: {
+  provider?: string | null;
+  model?: string | null;
+  authType?: string | null;
+}): { provider: string; modelId: string } | null {
+  const provider = key.provider?.trim();
+  const model = key.model?.trim();
+  if (!provider || !model) return null;
+  // Custom providers are registered under their own id, so they are already
+  // gateway-facing and must not be remapped through the product registry.
+  const gatewayProvider =
+    key.authType === "custom" ? provider : resolveGatewayProvider(provider as LLMProvider);
+  const modelId = stripProviderPrefix(model, gatewayProvider);
+  if (!modelId) return null;
+  return { provider: gatewayProvider, modelId };
+}
+
 function getSupplementalModels(provider: LLMProvider): ModelConfig[] {
   const meta = getProviderMeta(provider);
   const extra = meta?.extraModels ?? [];

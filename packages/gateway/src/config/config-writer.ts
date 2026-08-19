@@ -706,6 +706,16 @@ export interface WriteGatewayConfigOptions {
   gatewayToken?: string;
   /** Default model configuration (provider + model ID). Use null to clear a stale default. */
   defaultModel?: { provider: string; modelId: string } | null;
+  /**
+   * Default model applied ONLY when no `agents.defaults.model.primary` is
+   * configured yet. Targeted mutations own that field once it exists, so a full
+   * config regeneration must not clobber it — but leaving it absent is unsafe:
+   * OpenClaw then derives its own default, and that derivation stops at the
+   * first configured provider row carrying its built-in default model. Seeding
+   * from the active provider key keeps the user's selection authoritative
+   * without overriding a deliberate vendor-side choice.
+   */
+  defaultModelSeed?: { provider: string; modelId: string } | null;
   /** Image generation model configuration. Use null to clear a stale route. */
   imageGenerationModel?: {
     primary: string;
@@ -1038,7 +1048,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   }
 
   // Default model selection → agents.defaults.model.primary
-  if (options.defaultModel !== undefined) {
+  if (options.defaultModel !== undefined || options.defaultModelSeed) {
     const existingAgents =
       typeof config.agents === "object" && config.agents !== null
         ? (config.agents as Record<string, unknown>)
@@ -1052,10 +1062,15 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         ? (existingDefaults.model as Record<string, unknown>)
         : {};
     const nextModel = { ...existingModel };
+    const hasConfiguredPrimary =
+      typeof existingModel.primary === "string" && existingModel.primary.trim().length > 0;
     if (options.defaultModel === null) {
       delete nextModel.primary;
-    } else {
+    } else if (options.defaultModel !== undefined) {
       nextModel.primary = `${resolveGatewayProvider(options.defaultModel.provider as LLMProvider)}/${options.defaultModel.modelId}`;
+    } else if (options.defaultModelSeed && !hasConfiguredPrimary) {
+      // Seed only — an existing selection always wins.
+      nextModel.primary = `${resolveGatewayProvider(options.defaultModelSeed.provider as LLMProvider)}/${options.defaultModelSeed.modelId}`;
     }
     config.agents = {
       ...existingAgents,

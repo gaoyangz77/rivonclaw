@@ -469,4 +469,77 @@ describe("gateway config builder", () => {
     expect(config.managedProviderKeys).toBeUndefined();
     expect(config.overlayProviderKeys).toEqual(["openai"]);
   });
+
+  /**
+   * The compatibility overlay always writes an `openai` provider row holding
+   * OpenClaw's built-in default model, which disables OpenClaw's own
+   * configured-provider fallback. The builder must therefore state the active
+   * key as an explicit default, or the gateway silently runs the OpenAI default
+   * regardless of what the user selected. See
+   * vendor-default-model-fallback.test.ts for the vendor half of this pair.
+   */
+  it("seeds the gateway default model from the active provider key", async () => {
+    const arkKey = {
+      id: "ark-1",
+      provider: "volcengine-coding",
+      label: "Volcengine Coding Plan",
+      isDefault: true,
+      model: "ark-code-latest",
+    };
+    const builder = createGatewayConfigBuilder({
+      storage: {
+        providerKeys: {
+          getActive: () => arkKey,
+          getAll: () => [arkKey],
+          getByProvider: (provider: string) => (provider === arkKey.provider ? [arkKey] : []),
+        },
+        settings: { get: () => undefined },
+        channelAccounts: { list: () => [], get: () => undefined },
+        channelRecipients: { getOwners: () => [] },
+      } as never,
+      secretStore: { get: async () => null } as never,
+      locale: "en",
+      configPath: "/tmp/openclaw.json",
+      stateDir: "/tmp/openclaw",
+      extensionsDir: "/tmp/extensions",
+      sttCliPath: "/tmp/stt.js",
+      channelPluginEntries: () => ({}),
+      channelConfigAccounts: () => [],
+    });
+
+    const config = await builder.buildFullGatewayConfig(18789);
+    expect(config.defaultModelSeed).toEqual({
+      provider: "volcengine-coding",
+      modelId: "ark-code-latest",
+    });
+    // Regeneration must still never overwrite an existing selection.
+    expect(config.defaultModel).toBeUndefined();
+  });
+
+  it("leaves the gateway default model untouched when no provider key is active", async () => {
+    const builder = createGatewayConfigBuilder({
+      storage: {
+        providerKeys: {
+          getActive: () => undefined,
+          getAll: () => [],
+          getByProvider: () => [],
+        },
+        settings: { get: () => undefined },
+        channelAccounts: { list: () => [], get: () => undefined },
+        channelRecipients: { getOwners: () => [] },
+      } as never,
+      secretStore: { get: async () => null } as never,
+      locale: "en",
+      configPath: "/tmp/openclaw.json",
+      stateDir: "/tmp/openclaw",
+      extensionsDir: "/tmp/extensions",
+      sttCliPath: "/tmp/stt.js",
+      channelPluginEntries: () => ({}),
+      channelConfigAccounts: () => [],
+    });
+
+    const config = await builder.buildFullGatewayConfig(18789);
+    expect(config.defaultModelSeed).toBeNull();
+    expect(config.defaultModel).toBeUndefined();
+  });
 });

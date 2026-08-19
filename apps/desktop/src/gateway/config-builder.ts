@@ -3,6 +3,7 @@ import {
   LOCAL_PROVIDER_IDS,
   getProviderMeta,
   getOllamaOpenAiBaseUrl,
+  resolveGatewayModelParts,
   TEMPORARY_OPENAI_CODEX_MODELS,
 } from "@rivonclaw/core";
 import {
@@ -462,6 +463,18 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       isOpenAICodexOAuthActive(openAIAuthState),
     );
 
+    // Floor for the default model when the config carries no selection yet.
+    // An absent `agents.defaults.model.primary` is not neutral: OpenClaw then
+    // derives its own default, and that derivation stops as soon as the
+    // configured `openai` row contains its built-in default model — which the
+    // compatibility overlay above always writes. The gateway would silently run
+    // `openai/gpt-5.6-sol` no matter which provider the user selected. Seeding
+    // only (never overwriting) keeps targeted mutations authoritative.
+    const activeProviderKey = storage.providerKeys.getActive();
+    const defaultModelSeed = activeProviderKey
+      ? resolveGatewayModelParts(activeProviderKey)
+      : null;
+
     return {
       configPath,
       gatewayPort,
@@ -529,7 +542,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       skipBootstrap: false,
       // OpenClaw config is authoritative for selections. Omitting these fields
       // preserves the vendor state across startup/full config regeneration.
+      // `defaultModelSeed` does not break that: it applies only when no
+      // selection exists at all, so a regeneration can never clobber one.
       defaultModel: undefined,
+      defaultModelSeed,
       imageGenerationModel: undefined,
       stt: {
         enabled: curSttEnabled,

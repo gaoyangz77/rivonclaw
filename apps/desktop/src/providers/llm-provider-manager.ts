@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   parseProxyUrl,
   resolveGatewayProvider,
+  stripProviderPrefix,
   getApiBaseUrl,
   ScopeType,
   isUsageQueryableProvider,
@@ -156,15 +157,6 @@ function splitModelRef(modelRef: string): SessionModelOverride {
     provider: modelRef.slice(0, separator),
     model: modelRef.slice(separator + 1),
   };
-}
-
-function stripProviderPrefix(model: string, provider: string): string {
-  const prefix = `${provider}/`;
-  let normalized = model.trim();
-  while (normalized.startsWith(prefix)) {
-    normalized = normalized.slice(prefix.length);
-  }
-  return normalized;
 }
 
 // ---------------------------------------------------------------------------

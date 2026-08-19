@@ -125,6 +125,16 @@
       "file": "apps/desktop/src/gateway/vendor-models-cache-reconciliation.test.ts",
       "vendorPath": "vendor/openclaw/src/gateway/server-startup-post-attach.ts",
       "reason": "Lifecycle guard — verifies models.json reconciliation failures cannot block Gateway startup"
+    },
+    {
+      "file": "apps/desktop/src/gateway/vendor-default-model-fallback.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/defaults.ts",
+      "reason": "Drift guard — pins the hardcoded provider/model a user silently gets when agents.defaults.model.primary is absent, which is what default-model seeding exists to prevent"
+    },
+    {
+      "file": "apps/desktop/src/gateway/vendor-default-model-fallback.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/configured-provider-fallback.ts",
+      "reason": "Drift guard — pins the branch that abandons configured-provider selection once the default provider row carries the default model, the precondition our OpenAI compatibility overlay always satisfies"
     }
   ],
   "allowlist": [
