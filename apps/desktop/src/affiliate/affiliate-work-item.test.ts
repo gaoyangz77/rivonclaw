@@ -1190,7 +1190,7 @@ describe("affiliate work item dispatch", () => {
     expect(agentCall?.[1]?.message).toContain("[Agent Working Agenda]");
     expect(agentCall?.[1]?.message).toContain("Work Kind: SAMPLE_APPLICATION_DECISION");
     expect(agentCall?.[1]?.message).toContain("Reasons: SAMPLE_PENDING_REVIEW");
-    expect(agentCall?.[1]?.message).toContain("Shop ID: shop-001");
+    expect(agentCall?.[1]?.message).toMatch(/Shop: .*\(ID: shop-001\)/);
     expect(agentCall?.[1]?.message).toContain("Sample Application Record ID: sample-record-001");
     expect(agentCall?.[1]?.message).not.toContain("Current Authoritative Workspace Snapshot");
     expect(agentCall?.[1]?.message).not.toContain("Authoritative Sample Application State");
@@ -2700,13 +2700,52 @@ describe("affiliate work item dispatch", () => {
 
     expect(request?.message).toContain("1. Agenda Item:");
     expect(request?.message).toContain("2. Agenda Item:");
-    expect(request?.message).toContain("Shop ID: shop-001");
-    expect(request?.message).toContain("Shop ID: shop-002");
+    expect(request?.message).toMatch(/Shop: .*\(ID: shop-001\)/);
+    expect(request?.message).toMatch(/Shop: .*\(ID: shop-002\)/);
     expect(request?.message).toContain("Shop Region: US");
     expect(request?.message).toContain("Shop Region: FR");
     expect(request?.message).toContain("Product ID: product-001");
     expect(request?.message).toContain("Product ID: product-002");
     expect(request?.message).toContain("Campaign ID: campaign-002");
+  });
+
+  /**
+   * The Agent has to name the shop to the Creator, and an agenda item carries
+   * only an opaque id. A live run introduced itself on WhatsApp as the WhatsApp
+   * binding's display name rather than the shop's own name, because the name
+   * was reachable only through whichever tool result happened to mention a shop.
+   */
+  it("names each agenda item's shop when the dispatch context supplies it", () => {
+    const base = createSampleReviewWorkItem();
+    const firstAgenda = { ...(base.creatorRelationship?.agendaItems ?? [])[0]! };
+    const secondAgenda = { ...firstAgenda, key: "second-item", shopId: "shop-002" };
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createSampleReviewWorkItem({
+        agentWorkingAgendaItems: [firstAgenda, secondAgenda],
+      }),
+      platform: "tiktok",
+      involvedShopInstructions: [
+        { shopId: firstAgenda.shopId!, shopName: "Holylegend Jewelry USA", businessPrompt: null },
+        { shopId: "shop-002", shopName: "DIYCOM France", businessPrompt: null },
+      ] as GQL.AffiliateInvolvedShopInstruction[],
+    });
+
+    expect(request?.message).toContain(`Shop: Holylegend Jewelry USA (ID: ${firstAgenda.shopId})`);
+    expect(request?.message).toContain("Shop: DIYCOM France (ID: shop-002)");
+  });
+
+  /**
+   * An unknown name must stay an admitted gap. Rendering the id alone would read
+   * as though the shop had no name, and inventing one is worse.
+   */
+  it("admits an unknown shop name instead of hiding the gap", () => {
+    const request = buildAffiliateAgentRunRequest({
+      workItem: createSampleReviewWorkItem(),
+      platform: "tiktok",
+      involvedShopInstructions: [],
+    });
+
+    expect(request?.message).toContain("(name unavailable) (ID: ");
   });
 
   it("renders a revision-requested proposal only from the dispatching working agenda", () => {
