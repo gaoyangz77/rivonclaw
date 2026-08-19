@@ -160,7 +160,7 @@ export interface ActionProposalDecisionSnapshotInput {
   note?: InputMaybe<Scalars['String']['input']>;
 }
 
-/** Content actually delivered for an executed message proposal, retained on the linked Delivery. A proposal's review draft is scrubbed of creator-facing text once it reaches a terminal state, so this is the only message body still available then. */
+/** Content actually delivered for an executed message proposal, retained on the linked Delivery. The proposal's own draft says what was proposed; this says what was actually delivered. Both facts are available. For proposals whose drafts were deleted before message wording became permanently retained, this is the only message body still available. */
 export interface ActionProposalDeliveredMessage {
   /** Channel the delivery actually used, falling back to the preferred channel while no actual channel has been recorded. */
   channel?: Maybe<AffiliateMessageChannel>;
