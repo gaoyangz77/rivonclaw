@@ -31,16 +31,18 @@ describe("vendor patch 0034: Feishu websocket liveness timeout", () => {
     expect(patch).toContain("-  pingTimeout: 3,");
   });
 
-  it("widens the watchdog past a single transient stall without disabling it", () => {
+  it("widens the watchdog past a measured event-loop stall without disabling it", () => {
     const patched = /^\+  pingTimeout: (\d+),$/m.exec(patch);
     expect(patched).not.toBeNull();
 
     const pingTimeoutSeconds = Number(patched?.[1]);
-    // A terminated socket costs a reconnect window Feishu sees as an offline
-    // callback consumer, so the watchdog must outlast a routine stall. It must
-    // also stay well inside one ping cycle (~120s) so a genuinely half-open
-    // socket is still detected.
-    expect(pingTimeoutSeconds).toBeGreaterThanOrEqual(20);
+    // The deadline is measured inside the gateway's event loop, so it must
+    // outlast a stall there rather than a network round trip. A desktop host
+    // running concurrent CS agents was measured at a 22.9s peak event-loop
+    // delay, so anything at or below that reproduces the failure. It must also
+    // stay inside one ping cycle (~120s) so a genuinely half-open socket is
+    // still detected.
+    expect(pingTimeoutSeconds).toBeGreaterThan(23);
     expect(pingTimeoutSeconds).toBeLessThan(120);
   });
 
