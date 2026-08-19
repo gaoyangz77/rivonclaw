@@ -87,8 +87,6 @@ export type {
   WriteChannelAccountOptions,
   RemoveChannelAccountOptions,
 } from "./config/channel-config-writer.js";
-export { syncExecApprovalsYolo } from "./config/exec-approvals-writer.js";
-export type { SyncExecApprovalsOptions } from "./config/exec-approvals-writer.js";
 export { generateAudioConfig, mergeAudioConfig } from "./config/audio-config-writer.js";
 export { resolveVolcengineSttCliPath } from "./stt/volcengine-stt-cli-path.js";
 export type { OAuthFlowCallbacks, OAuthFlowResult } from "./oauth/oauth-flow.js";
