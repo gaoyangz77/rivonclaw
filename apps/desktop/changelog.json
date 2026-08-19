@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.103",
+    "date": "2026-08-19",
+    "en": [
+      "Improve Feishu final replies, gateway session recovery, and Affiliate collaboration consistency"
+    ],
+    "zh": [
+      "改善飞书最终回复、Gateway 会话恢复与达人协作状态一致性"
+    ]
+  },
+  {
     "version": "1.8.102",
     "date": "2026-08-19",
     "en": [
