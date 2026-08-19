@@ -1,0 +1,72 @@
+From 934d77edd9c9dfacc7c5413c41d774b3bf9375e4 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Wed, 19 Aug 2026 01:53:43 -0700
+Subject: [PATCH] vendor(openclaw): widen Feishu websocket liveness timeout
+
+Why:
+- Upstream terminates the Feishu long connection when no inbound frame arrives
+  within 3s of a ping. A transient network stall or a busy gateway event loop
+  exceeds that routinely, and each false termination blinds the connection for
+  a 0-30s reconnect nonce plus 120s between retries. Feishu then has no online
+  long-connection consumer, so interactive card callbacks (CS escalation form
+  submits) fail with "target callback service is offline" until the socket is
+  back.
+
+Removal:
+- Drop when upstream makes the Feishu websocket ping timeout configurable, or
+  raises it above the range a single transient stall can cross.
+
+Tests:
+- apps/desktop/src/channels/vendor-feishu-ws-liveness.sentinel.test.ts
+---
+ extensions/feishu/src/client.test.ts |  4 ++--
+ extensions/feishu/src/client.ts      | 10 +++++++++-
+ 2 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/extensions/feishu/src/client.test.ts b/extensions/feishu/src/client.test.ts
+index 9be99fc6aff..b8d344c8c3e 100644
+--- a/extensions/feishu/src/client.test.ts
++++ b/extensions/feishu/src/client.test.ts
+@@ -791,7 +791,7 @@ describe("createFeishuWSClient proxy handling", () => {
+ 
+     const options = firstWsClientOptions();
+     expect(options.wsConfig).toEqual({
+-      pingTimeout: 3,
++      pingTimeout: 25,
+     });
+   });
+ 
+@@ -814,7 +814,7 @@ describe("createFeishuWSClient proxy handling", () => {
+     expect(options.onReconnected).toBe(onReconnected);
+     expect(options.onReconnecting).toBe(onReconnecting);
+     expect(options.wsConfig).toEqual({
+-      pingTimeout: 3,
++      pingTimeout: 25,
+     });
+   });
+ 
+diff --git a/extensions/feishu/src/client.ts b/extensions/feishu/src/client.ts
+index 525b5fe5552..a9d39226387 100644
+--- a/extensions/feishu/src/client.ts
++++ b/extensions/feishu/src/client.ts
+@@ -16,8 +16,16 @@ const pluginVersion = readPluginPackageVersion({ require });
+ const FEISHU_USER_AGENT = `openclaw-feishu-builtin/${pluginVersion}/${process.platform}`;
+ const FEISHU_SDK_ORIGIN = "https://open.feishu.cn";
+ 
++// Liveness watchdog: after each ping (server-configured, ~120s), the Lark SDK
++// terminates the socket unless any inbound frame arrives within this window.
++// Upstream uses 3s, which a single network hiccup or a busy gateway event loop
++// exceeds routinely. Every false termination costs a reconnect window (0-30s
++// random nonce, then 120s between retries) during which Feishu has no online
++// long-connection consumer, so card callbacks fail with
++// "target callback service is offline" until the socket is back. 25s still
++// detects a genuinely half-open socket well inside one ping cycle.
+ const FEISHU_WS_CONFIG = {
+-  pingTimeout: 3,
++  pingTimeout: 25,
+ } as const;
+ 
+ /** User-Agent header value for all Feishu API requests. */
+-- 
+2.50.1 (Apple Git-155)
+
