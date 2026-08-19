@@ -3070,24 +3070,20 @@ export default {
         "APPROVE_SAMPLE_REQUEST": "Approuver cette demande d'échantillon",
         "REJECT_SAMPLE_REQUEST": "Rejeter cette demande d'échantillon",
         "SEND_MESSAGE": "Envoyer un message au créateur",
-        "CREATE_TARGET_COLLABORATION": "Créer une collaboration ciblée"
       },
       "proposalExecutionDescriptions": {
         "APPROVE_SAMPLE_REQUEST": "Le système approuvera la demande d'échantillon du créateur dans TikTok Shop.",
         "REJECT_SAMPLE_REQUEST": "Le système rejettera la demande d'échantillon du créateur dans TikTok Shop.",
         "REVIEW_SAMPLE_REQUEST": "Le système enverra cette décision de revue d'échantillon à TikTok Shop.",
         "SEND_MESSAGE": "Le système enverra le message ci-dessous au créateur.",
-        "CREATE_TARGET_COLLABORATION": "Le système créera une invitation de collaboration ciblée pour ce créateur."
       },
       "policyActions": {
         "SEND_MESSAGE": "Envoyer un message",
         "REVIEW_SAMPLE_APPLICATION": "Examiner une demande d'échantillon",
-        "CREATE_TARGET_COLLABORATION": "Créer une collaboration ciblée"
       },
       "policyActionDescriptions": {
         "SEND_MESSAGE": "Exiger une approbation avant l'envoi de messages aux créateurs.",
         "REVIEW_SAMPLE_APPLICATION": "Exiger une approbation avant d'accepter ou refuser les demandes d'échantillon.",
-        "CREATE_TARGET_COLLABORATION": "Exiger une approbation avant de créer des invitations de collaboration ciblée."
       },
       "policies": {
         "title": "Politiques d'approbation",
@@ -3547,7 +3543,6 @@ export default {
           "REJECT": "Rejeter"
         },
         "sampleShipmentPreview": "Expédier des échantillons d'articles {{quantity}} pour l'application {{applicationId}}",
-        "targetCollaborationPreview": "Créez une collaboration cible « {{name}} » avec le(s) produit(s) {{count}}.",
         "blockCreatorPreview": "Créateur de blocs {{creatorId}}.",
         "creatorTagPreview": "Mise à jour de la balise {{tagId}} pour le créateur {{creatorId}}.",
         "campaignProductPreview": "Mettez à jour le produit de campagne {{productId}}.",
@@ -3559,7 +3554,6 @@ export default {
           "APPROVE_SAMPLE": "Approuver l'échantillon",
           "REJECT_SAMPLE": "Rejeter l'échantillon",
           "SHIP_SAMPLE": "Échantillon de navire",
-          "CREATE_TARGET_COLLABORATION": "Invitation cible",
           "ADD_CREATOR_TAG": "Ajouter une balise",
           "REMOVE_CREATOR_TAG": "Supprimer la balise",
           "BLOCK_CREATOR": "Créateur de blocs",

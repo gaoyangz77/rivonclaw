@@ -340,7 +340,6 @@ const PROPOSAL_TYPE_FILTERS = [
   GQL.ActionProposalType.NoActionNeeded,
   GQL.ActionProposalType.SendMessage,
   GQL.ActionProposalType.ReviewSampleApplication,
-  GQL.ActionProposalType.CreateTargetCollaboration,
 ] as const;
 
 type ProposalTypeFilter = (typeof PROPOSAL_TYPE_FILTERS)[number];
@@ -6175,7 +6174,6 @@ function isPureSampleReviewProposalSource(source: {
   type?: GQL.ActionProposalType | null;
   candidateDecisionIntent?: unknown;
   messageIntent?: unknown;
-  targetCollaborationIntent?: unknown;
   sampleReviewIntent?: GQL.ActionProposalSampleReviewIntent | null;
   sampleShipmentIntent?: unknown;
   creatorTagIntent?: unknown;
@@ -6187,7 +6185,6 @@ function isPureSampleReviewProposalSource(source: {
     && source.sampleReviewIntent != null
     && source.candidateDecisionIntent == null
     && source.messageIntent == null
-    && source.targetCollaborationIntent == null
     && source.sampleShipmentIntent == null
     && source.creatorTagIntent == null
     && source.blockCreatorIntent == null
@@ -8809,14 +8806,12 @@ export function getProposalActionProductId(proposal: GQL.ActionProposal | null):
   if (!proposal) return null;
   const directProductId = proposal.messageIntent?.parts.find((part) => part.productId)?.productId
     ?? proposal.campaignProductUpdateIntent?.productId
-    ?? proposal.targetCollaborationIntent?.products[0]?.productId
     ?? (proposal.sampleReviewIntent ? proposal.productId : null)
     ?? null;
   if (directProductId) return directProductId;
   for (const step of proposal.steps ?? []) {
     const stepProductId = step.messageIntent?.parts.find((part) => part.productId)?.productId
       ?? step.campaignProductUpdateIntent?.productId
-      ?? step.targetCollaborationIntent?.products[0]?.productId
       ?? (step.sampleReviewIntent ? step.productId : null)
       ?? null;
     if (stepProductId) return stepProductId;
@@ -8958,9 +8953,6 @@ function renderProposalRecommendationTitle(
   if (proposal.type === GQL.ActionProposalType.SendMessage) {
     return t("ecommerce.affiliateWorkspace.proposalRecommendationTitles.SEND_MESSAGE");
   }
-  if (proposal.type === GQL.ActionProposalType.CreateTargetCollaboration) {
-    return t("ecommerce.affiliateWorkspace.proposalRecommendationTitles.CREATE_TARGET_COLLABORATION");
-  }
   return t(`ecommerce.shopDrawer.affiliate.proposalTypes.${proposal.type}`, {
     defaultValue: proposal.type,
   });
@@ -9000,9 +8992,6 @@ function renderProposalExecutionDescription(
         ? "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_EXECUTED"
         : "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_NOT_SENT",
     );
-  }
-  if (proposal.type === GQL.ActionProposalType.CreateTargetCollaboration) {
-    return t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.CREATE_TARGET_COLLABORATION");
   }
   return renderProposalPreview(proposal, t);
 }
@@ -9192,12 +9181,6 @@ function renderProposalPreview(
       applicationId: proposal.sampleShipmentIntent.platformApplicationId
         ?? proposal.sampleShipmentIntent.sampleApplicationRecordId,
       quantity: proposal.sampleShipmentIntent.quantity ?? 1,
-    });
-  }
-  if (proposal.targetCollaborationIntent) {
-    return t("ecommerce.shopDrawer.affiliate.targetCollaborationPreview", {
-      name: proposal.targetCollaborationIntent.name,
-      count: proposal.targetCollaborationIntent.products.length,
     });
   }
   if (proposal.blockCreatorIntent) {

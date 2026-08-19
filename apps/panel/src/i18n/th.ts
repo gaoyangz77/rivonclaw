@@ -3070,24 +3070,20 @@ export default {
         "APPROVE_SAMPLE_REQUEST": "อนุมัติคำขอตัวอย่างนี้",
         "REJECT_SAMPLE_REQUEST": "ปฏิเสธคำขอตัวอย่างนี้",
         "SEND_MESSAGE": "ส่งข้อความให้ครีเอเตอร์",
-        "CREATE_TARGET_COLLABORATION": "สร้างคำเชิญร่วมงานแบบเจาะจง"
       },
       "proposalExecutionDescriptions": {
         "APPROVE_SAMPLE_REQUEST": "ระบบจะอนุมัติคำขอตัวอย่างของครีเอเตอร์ใน TikTok Shop",
         "REJECT_SAMPLE_REQUEST": "ระบบจะปฏิเสธคำขอตัวอย่างของครีเอเตอร์ใน TikTok Shop",
         "REVIEW_SAMPLE_REQUEST": "ระบบจะส่งผลการพิจารณาคำขอตัวอย่างนี้ไปยัง TikTok Shop",
         "SEND_MESSAGE": "ระบบจะส่งข้อความด้านล่างนี้ให้ครีเอเตอร์",
-        "CREATE_TARGET_COLLABORATION": "ระบบจะสร้างคำเชิญร่วมงานแบบเจาะจงสำหรับครีเอเตอร์รายนี้"
       },
       "policyActions": {
         "SEND_MESSAGE": "ส่งข้อความ",
         "REVIEW_SAMPLE_APPLICATION": "ตรวจคำขอตัวอย่าง",
-        "CREATE_TARGET_COLLABORATION": "สร้างความร่วมมือแบบเจาะจง"
       },
       "policyActionDescriptions": {
         "SEND_MESSAGE": "ต้องอนุมัติก่อนที่ Agent จะส่งข้อความถึงครีเอเตอร์",
         "REVIEW_SAMPLE_APPLICATION": "ต้องอนุมัติก่อนอนุมัติหรือปฏิเสธคำขอตัวอย่าง",
-        "CREATE_TARGET_COLLABORATION": "ต้องอนุมัติก่อนสร้างคำเชิญร่วมงานแบบเจาะจง"
       },
       "policies": {
         "title": "นโยบายการอนุมัติ",
@@ -3547,7 +3543,6 @@ export default {
           "REJECT": "ปฏิเสธ"
         },
         "sampleShipmentPreview": "จัดส่งรายการตัวอย่าง {{quantity}} สำหรับการใช้งาน {{applicationId}}",
-        "targetCollaborationPreview": "สร้างการทำงานร่วมกันตามเป้าหมาย \"{{name}}\" กับผลิตภัณฑ์ {{count}}",
         "blockCreatorPreview": "ผู้สร้างบล็อก {{creatorId}}",
         "creatorTagPreview": "อัปเดตแท็ก {{tagId}} สำหรับผู้สร้าง {{creatorId}}",
         "campaignProductPreview": "อัพเดตสินค้าแคมเปญ {{productId}}",
@@ -3559,7 +3554,6 @@ export default {
           "APPROVE_SAMPLE": "อนุมัติตัวอย่าง",
           "REJECT_SAMPLE": "ปฏิเสธตัวอย่าง",
           "SHIP_SAMPLE": "ส่งตัวอย่าง",
-          "CREATE_TARGET_COLLABORATION": "เป้าหมายคำเชิญ",
           "ADD_CREATOR_TAG": "เพิ่มแท็ก",
           "REMOVE_CREATOR_TAG": "ลบแท็ก",
           "BLOCK_CREATOR": "ผู้สร้างบล็อก",

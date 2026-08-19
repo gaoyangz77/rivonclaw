@@ -254,15 +254,9 @@ const th = localized({
   enabled: "เปิดใช้งาน", disabled: "ปิดใช้งาน", saveSettings: "บันทึกการตั้งค่า", operationFailed: "การดำเนินการบนแพลตฟอร์มล้มเหลว",
 });
 
+// The two manage tools survive as agent tools even though their proposal-type
+// counterparts were removed, so these ToolId-keyed selector names stay.
 const policyEn = {
-  actions: {
-    MANAGE_OPEN_COLLABORATION: "Manage Open Collaboration",
-    MANAGE_TARGET_COLLABORATION: "Manage Target Collaboration",
-  },
-  descriptions: {
-    MANAGE_OPEN_COLLABORATION: "Create, edit, or stop a shop's public product collaboration.",
-    MANAGE_TARGET_COLLABORATION: "Create, edit, or stop a private creator invitation.",
-  },
   tools: {
     AFFILIATE_MANAGE_OPEN_COLLABORATION: "Manage Open Collaboration",
     AFFILIATE_MANAGE_TARGET_COLLABORATION: "Manage Target Collaboration",
@@ -270,20 +264,10 @@ const policyEn = {
 } as const;
 
 type CollaborationPolicyTranslations = {
-  actions: Record<keyof typeof policyEn.actions, string>;
-  descriptions: Record<keyof typeof policyEn.descriptions, string>;
   tools: Record<keyof typeof policyEn.tools, string>;
 };
 
 const policyZh = {
-  actions: {
-    MANAGE_OPEN_COLLABORATION: "管理 Open Collaboration",
-    MANAGE_TARGET_COLLABORATION: "管理 Target Collaboration",
-  },
-  descriptions: {
-    MANAGE_OPEN_COLLABORATION: "创建、编辑或停止店铺的公开商品合作。",
-    MANAGE_TARGET_COLLABORATION: "创建、编辑或停止面向指定达人的定向邀请。",
-  },
   tools: {
     AFFILIATE_MANAGE_OPEN_COLLABORATION: "管理 Open Collaboration",
     AFFILIATE_MANAGE_TARGET_COLLABORATION: "管理 Target Collaboration",
@@ -297,8 +281,6 @@ const languageResource = (
   ecommerce: {
     affiliateWorkspace: {
       collaborationOperations,
-      policyActions: policy.actions,
-      policyActionDescriptions: policy.descriptions,
     },
   },
   tools: { selector: { name: policy.tools } },

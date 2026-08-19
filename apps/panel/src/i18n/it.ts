@@ -3070,24 +3070,20 @@ export default {
         "APPROVE_SAMPLE_REQUEST": "Approva questa richiesta campione",
         "REJECT_SAMPLE_REQUEST": "Rifiuta questa richiesta campione",
         "SEND_MESSAGE": "Invia un messaggio al creator",
-        "CREATE_TARGET_COLLABORATION": "Crea una collaborazione target"
       },
       "proposalExecutionDescriptions": {
         "APPROVE_SAMPLE_REQUEST": "Il sistema approverà la richiesta campione del creator su TikTok Shop.",
         "REJECT_SAMPLE_REQUEST": "Il sistema rifiuterà la richiesta campione del creator su TikTok Shop.",
         "REVIEW_SAMPLE_REQUEST": "Il sistema invierà questa decisione sulla richiesta campione a TikTok Shop.",
         "SEND_MESSAGE": "Il sistema invierà il messaggio qui sotto al creator.",
-        "CREATE_TARGET_COLLABORATION": "Il sistema creerà un invito di collaborazione target per questo creator."
       },
       "policyActions": {
         "SEND_MESSAGE": "Invia messaggio",
         "REVIEW_SAMPLE_APPLICATION": "Revisiona richiesta campione",
-        "CREATE_TARGET_COLLABORATION": "Crea collaborazione target"
       },
       "policyActionDescriptions": {
         "SEND_MESSAGE": "Richiedi approvazione prima che l'agente invii messaggi ai creator.",
         "REVIEW_SAMPLE_APPLICATION": "Richiedi approvazione prima di approvare o rifiutare richieste campione.",
-        "CREATE_TARGET_COLLABORATION": "Richiedi approvazione prima di creare inviti di collaborazione target."
       },
       "policies": {
         "title": "Policy di approvazione",
@@ -3547,7 +3543,6 @@ export default {
           "REJECT": "Rifiuta"
         },
         "sampleShipmentPreview": "Spedire gli articoli campione {{quantity}} per l'applicazione {{applicationId}}",
-        "targetCollaborationPreview": "Crea una collaborazione target \"{{name}}\" con i prodotti {{count}}.",
         "blockCreatorPreview": "Creatore del blocco {{creatorId}}.",
         "creatorTagPreview": "Aggiorna il tag {{tagId}} per il creatore {{creatorId}}.",
         "campaignProductPreview": "Aggiorna il prodotto della campagna {{productId}}.",
@@ -3559,7 +3554,6 @@ export default {
           "APPROVE_SAMPLE": "Approvare il campione",
           "REJECT_SAMPLE": "Rifiutare il campione",
           "SHIP_SAMPLE": "Spedire il campione",
-          "CREATE_TARGET_COLLABORATION": "Invito mirato",
           "ADD_CREATOR_TAG": "Aggiungi etichetta",
           "REMOVE_CREATOR_TAG": "Rimuovi l'etichetta",
           "BLOCK_CREATOR": "Creatore di blocchi",

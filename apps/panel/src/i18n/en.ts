@@ -4032,7 +4032,6 @@ export default {
         APPROVE_SAMPLE_REQUEST: "Approve this sample request",
         REJECT_SAMPLE_REQUEST: "Reject this sample request",
         SEND_MESSAGE: "Send a message to the creator",
-        CREATE_TARGET_COLLABORATION: "Create a target collaboration",
       },
       proposalExecutionDescriptions: {
         NO_ACTION_NEEDED: "The Agent completed this dispatch without requesting or executing a platform action.",
@@ -4042,20 +4041,15 @@ export default {
           "The system will reject the creator's sample request on TikTok Shop.",
         REVIEW_SAMPLE_REQUEST: "The system will submit this sample-review decision on TikTok Shop.",
         SEND_MESSAGE: "The system will send the message below to the creator.",
-        CREATE_TARGET_COLLABORATION:
-          "The system will create a target collaboration invitation for this creator.",
       },
       policyActions: {
         SEND_MESSAGE: "Send message",
         REVIEW_SAMPLE_APPLICATION: "Review sample application",
-        CREATE_TARGET_COLLABORATION: "Create target collaboration",
       },
       policyActionDescriptions: {
         SEND_MESSAGE: "Require approval before the agent sends creator messages.",
         REVIEW_SAMPLE_APPLICATION:
           "Require approval before sample requests are approved or rejected.",
-        CREATE_TARGET_COLLABORATION:
-          "Require approval before targeted collaboration invitations are created.",
       },
       policies: {
         title: "Approval Policies",
@@ -4762,8 +4756,6 @@ export default {
           REJECT: "Reject",
         },
         sampleShipmentPreview: "Ship {{quantity}} sample item(s) for application {{applicationId}}",
-        targetCollaborationPreview:
-          'Create target collaboration "{{name}}" with {{count}} product(s).',
         blockCreatorPreview: "Block creator {{creatorId}}.",
         creatorTagPreview: "Update tag {{tagId}} for creator {{creatorId}}.",
         campaignProductPreview: "Update campaign product {{productId}}.",
@@ -4776,7 +4768,6 @@ export default {
           APPROVE_SAMPLE: "Approve sample",
           REJECT_SAMPLE: "Reject sample",
           SHIP_SAMPLE: "Ship sample",
-          CREATE_TARGET_COLLABORATION: "Target invite",
           ADD_CREATOR_TAG: "Add tag",
           REMOVE_CREATOR_TAG: "Remove tag",
           BLOCK_CREATOR: "Block creator",

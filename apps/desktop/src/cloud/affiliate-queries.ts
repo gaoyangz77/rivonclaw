@@ -303,17 +303,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
             parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
           sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
-          targetCollaborationIntent {
-            name
-            message
-            endTime
-            hasFreeSample
-            isSampleApprovalExempt
-            creatorIds
-            creatorOpenIds
-            products { productId targetCommissionRateBps shopAdsCommissionRateBps }
-            sellerContactInfo { email phoneNumber whatsapp telegram line }
-          }
           steps {
             stepId
             type
@@ -325,17 +314,6 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
             sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
-            targetCollaborationIntent {
-              name
-              message
-              endTime
-              hasFreeSample
-              isSampleApprovalExempt
-              creatorIds
-              creatorOpenIds
-              products { productId targetCommissionRateBps shopAdsCommissionRateBps }
-              sellerContactInfo { email phoneNumber whatsapp telegram line }
-            }
           }
         }
       }

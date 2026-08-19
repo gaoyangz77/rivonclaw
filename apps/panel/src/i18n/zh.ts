@@ -3833,7 +3833,6 @@ export default {
         APPROVE_SAMPLE_REQUEST: "同意这条样品申请",
         REJECT_SAMPLE_REQUEST: "拒绝这条样品申请",
         SEND_MESSAGE: "向达人发送消息",
-        CREATE_TARGET_COLLABORATION: "创建定向合作邀请",
       },
       proposalExecutionDescriptions: {
         NO_ACTION_NEEDED: "Agent 已完成这次 dispatch，没有请求或执行任何平台动作。",
@@ -3841,17 +3840,14 @@ export default {
         REJECT_SAMPLE_REQUEST: "系统会在 TikTok Shop 中拒绝该达人的样品申请。",
         REVIEW_SAMPLE_REQUEST: "系统会把这个样品审核决定提交到 TikTok Shop。",
         SEND_MESSAGE: "系统会把下面这条消息发送给达人。",
-        CREATE_TARGET_COLLABORATION: "系统会为该达人创建一条定向合作邀请。",
       },
       policyActions: {
         SEND_MESSAGE: "发送消息",
         REVIEW_SAMPLE_APPLICATION: "审核样品申请",
-        CREATE_TARGET_COLLABORATION: "创建定向合作",
       },
       policyActionDescriptions: {
         SEND_MESSAGE: "Agent 向达人发送消息前，需要员工审批。",
         REVIEW_SAMPLE_APPLICATION: "样品申请同意或拒绝前，需要员工审批。",
-        CREATE_TARGET_COLLABORATION: "创建定向合作邀请前，需要员工审批。",
       },
       policies: {
         title: "安全策略",
@@ -4507,7 +4503,6 @@ export default {
           REJECT: "拒绝",
         },
         sampleShipmentPreview: "为申请 {{applicationId}} 寄出 {{quantity}} 件样品",
-        targetCollaborationPreview: "创建定向合作「{{name}}」，包含 {{count}} 个商品。",
         blockCreatorPreview: "拉黑达人 {{creatorId}}。",
         creatorTagPreview: "更新达人 {{creatorId}} 的标签 {{tagId}}。",
         campaignProductPreview: "更新推广商品 {{productId}}。",
@@ -4520,7 +4515,6 @@ export default {
           APPROVE_SAMPLE: "同意样品",
           REJECT_SAMPLE: "拒绝样品",
           SHIP_SAMPLE: "寄出样品",
-          CREATE_TARGET_COLLABORATION: "定向邀约",
           ADD_CREATOR_TAG: "添加标签",
           REMOVE_CREATOR_TAG: "移除标签",
           BLOCK_CREATOR: "拉黑达人",

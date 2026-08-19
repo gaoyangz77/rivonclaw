@@ -26,13 +26,13 @@ describe("Affiliate approval policy actions", () => {
     expect(AFFILIATE_POLICY_SUPPORTS_PRODUCT[GQL.ActionProposalType.NoActionNeeded]).toBe(false);
 
     for (const action of [
-      GQL.ActionProposalType.ManageOpenCollaboration,
-      GQL.ActionProposalType.ManageTargetCollaboration,
+      GQL.ActionProposalType.SendMessage,
+      GQL.ActionProposalType.ReviewSampleApplication,
     ]) {
-      expect(AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[action]).toBe(false);
-      expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[action]).toBe(false);
+      expect(AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[action]).toBe(true);
+      expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[action]).toBe(true);
       expect(AFFILIATE_POLICY_SUPPORTS_PRODUCT[action]).toBe(true);
-      expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[action]).toBe(false);
+      expect(AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT[action]).toBe(true);
     }
   });
 

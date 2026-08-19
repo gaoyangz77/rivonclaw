@@ -3070,24 +3070,20 @@ export default {
         "APPROVE_SAMPLE_REQUEST": "Diesen Probenantrag genehmigen",
         "REJECT_SAMPLE_REQUEST": "Diesen Probenantrag ablehnen",
         "SEND_MESSAGE": "Nachricht an den Creator senden",
-        "CREATE_TARGET_COLLABORATION": "Zielkooperation erstellen"
       },
       "proposalExecutionDescriptions": {
         "APPROVE_SAMPLE_REQUEST": "Das System genehmigt den Probenantrag des Creators in TikTok Shop.",
         "REJECT_SAMPLE_REQUEST": "Das System lehnt den Probenantrag des Creators in TikTok Shop ab.",
         "REVIEW_SAMPLE_REQUEST": "Das System übermittelt diese Probenentscheidung an TikTok Shop.",
         "SEND_MESSAGE": "Das System sendet die folgende Nachricht an den Creator.",
-        "CREATE_TARGET_COLLABORATION": "Das System erstellt eine Zielkooperations-Einladung für diesen Creator."
       },
       "policyActions": {
         "SEND_MESSAGE": "Nachricht senden",
         "REVIEW_SAMPLE_APPLICATION": "Probenantrag prüfen",
-        "CREATE_TARGET_COLLABORATION": "Zielkooperation erstellen"
       },
       "policyActionDescriptions": {
         "SEND_MESSAGE": "Vor dem Senden von Creator-Nachrichten eine Freigabe verlangen.",
         "REVIEW_SAMPLE_APPLICATION": "Vor dem Genehmigen oder Ablehnen von Probenanträgen eine Freigabe verlangen.",
-        "CREATE_TARGET_COLLABORATION": "Vor dem Erstellen von Zielkooperations-Einladungen eine Freigabe verlangen."
       },
       "policies": {
         "title": "Freigaberichtlinien",
@@ -3547,7 +3543,6 @@ export default {
           "REJECT": "Ablehnen"
         },
         "sampleShipmentPreview": "Versenden Sie {{quantity}} Musterartikel für die Anwendung {{applicationId}}",
-        "targetCollaborationPreview": "Erstellen Sie eine Zielkollaboration „{{name}}“ mit {{count}}-Produkt(en).",
         "blockCreatorPreview": "Blockersteller {{creatorId}}.",
         "creatorTagPreview": "Aktualisieren Sie das Tag {{tagId}} für den Ersteller {{creatorId}}.",
         "campaignProductPreview": "Kampagnenprodukt {{productId}} aktualisieren.",
@@ -3559,7 +3554,6 @@ export default {
           "APPROVE_SAMPLE": "Probe genehmigen",
           "REJECT_SAMPLE": "Probe ablehnen",
           "SHIP_SAMPLE": "Schiffsprobe",
-          "CREATE_TARGET_COLLABORATION": "Zielgruppe einladen",
           "ADD_CREATOR_TAG": "Tag hinzufügen",
           "REMOVE_CREATOR_TAG": "Tag entfernen",
           "BLOCK_CREATOR": "Blockersteller",

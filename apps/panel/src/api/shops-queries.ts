@@ -1430,27 +1430,6 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         skuId
         quantity
       }
-      targetCollaborationIntent {
-        name
-        message
-        endTime
-        hasFreeSample
-        isSampleApprovalExempt
-        creatorIds
-        creatorOpenIds
-        products {
-          productId
-          targetCommissionRateBps
-          shopAdsCommissionRateBps
-        }
-        sellerContactInfo {
-          email
-          phoneNumber
-          whatsapp
-          telegram
-          line
-        }
-      }
       creatorTagIntent {
         creatorId
         tagId
@@ -2400,17 +2379,6 @@ export const AFFILIATE_CREATORS_QUERY = gql`
             rejectReason
             rejectReasonExplanation
           }
-          targetCollaborationIntent {
-            name
-            message
-            creatorIds
-            creatorOpenIds
-            products {
-              productId
-              targetCommissionRateBps
-              shopAdsCommissionRateBps
-            }
-          }
         }
         latestSampleApplicationRecord {
           id
@@ -3234,27 +3202,6 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         warehouseId
         skuId
         quantity
-      }
-      targetCollaborationIntent {
-        name
-        message
-        endTime
-        hasFreeSample
-        isSampleApprovalExempt
-        creatorIds
-        creatorOpenIds
-        products {
-          productId
-          targetCommissionRateBps
-          shopAdsCommissionRateBps
-        }
-        sellerContactInfo {
-          email
-          phoneNumber
-          whatsapp
-          telegram
-          line
-        }
       }
       creatorTagIntent {
         creatorId
