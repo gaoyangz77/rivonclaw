@@ -236,7 +236,6 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     shopId
     name
     status
-    primaryProductId
     productSnapshotId
     productSnapshotHash
     productSnapshot {
@@ -266,7 +265,10 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     market
     resolvedTimeZone
     dailyOutreachTarget
-    commissionRatePercent
+    products {
+      productId
+      commissionRatePercent
+    }
     endDays
     isSampleApprovalExempt
     sellerContactEmail

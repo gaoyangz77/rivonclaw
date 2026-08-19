@@ -32639,6 +32639,33 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-muted);
   font-size: 10px;
 }
+.affiliate-campaign-offer {
+  margin-top: 14px;
+}
+.affiliate-campaign-offer > span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+}
+.affiliate-campaign-offer > small {
+  display: block;
+  margin-top: 7px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+.affiliate-campaign-offer > button {
+  margin-top: 9px;
+}
+.affiliate-campaign-offer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto;
+  gap: 9px;
+  margin-bottom: 9px;
+}
+
 .affiliate-campaign-product-fetch-row,
 .affiliate-campaign-keyword-input-row {
   display: grid;
