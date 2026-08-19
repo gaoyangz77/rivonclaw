@@ -255,6 +255,11 @@ export class AffiliateSession {
       "",
       "## Affiliate Business Context",
       `- Commerce Platform: ${this.platform}`,
+      // The platform token is an internal identifier. A run that has to tell a
+      // Creator where an earlier conversation happened needs the name that
+      // Creator would recognise, and one live run simply omitted the platform
+      // rather than translate `tiktok` itself.
+      "- Creator-facing platform name: TikTok Shop. Use this wording when naming the platform to a Creator; never show the internal platform token.",
       "- Commerce Program: TikTok Shop Affiliate for the current seller account.",
       "- TikTok Shop platform chat, WhatsApp, and Outlook email are communication routes for one seller-creator Relationship.",
       "- Reply on the latest inbound channel by default. preferredChannel requests an intentional channel override and remains subject to backend route validation.",
@@ -319,6 +324,7 @@ export class AffiliateSession {
     const request = buildAffiliateAgentRunRequest({
       workItem,
       platform: this.platform,
+      involvedShopInstructions: dispatchContext.checkpoint.involvedShopInstructions,
     });
     if (!request) return { runId: undefined };
 

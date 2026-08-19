@@ -2,6 +2,18 @@ import { GQL } from "@rivonclaw/core";
 
 export interface AffiliateAgentRunFactoryInput {
   workItem: GQL.AffiliateWorkItem;
+  /**
+   * Creator-facing shop identity, keyed by shop id.
+   *
+   * The Agent has to name the shop to the Creator — above all on a channel the
+   * Creator has never seen it on — and an agenda item carries only an opaque
+   * shop ObjectId. Without this map the name is reachable only by joining that
+   * id back to a heading in the system prompt, or by whichever tool result
+   * happened to mention a shop; a live run introduced itself on WhatsApp as
+   * "Holylegend", the WhatsApp binding's display name, rather than the shop's
+   * own "Holylegend Jewelry USA".
+   */
+  involvedShopInstructions?: readonly GQL.AffiliateInvolvedShopInstruction[] | null;
   platform: string;
 }
 
@@ -33,7 +45,7 @@ export function buildAffiliateAgentRunRequest(
       : null;
 
   return {
-    message: renderAgentWorkingAgenda(workItem),
+    message: renderAgentWorkingAgenda(workItem, input.involvedShopInstructions),
     idempotencyKey: [
       "affiliate",
       platform,
@@ -75,7 +87,33 @@ export function resolveSampleApplicationRecordId(
  * The user turn carries the frozen canonical working agenda and, for inbound
  * messages, its bounded Conversation Window. Other business state remains tool-read.
  */
-export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): string {
+/**
+ * The shop as the Creator knows it, beside the id the tools need.
+ *
+ * Rendering the id alone made the Agent responsible for joining it to a name it
+ * had seen elsewhere, and the names in reach disagree: the shop's own name, the
+ * brand prefix on a product title, and the WhatsApp binding's display name are
+ * three different strings for one shop. Naming it here settles which one is the
+ * shop. An id with no name stays honest about the gap rather than inventing one.
+ */
+function renderShopIdentity(
+  shopId: string | null | undefined,
+  shopNamesById: ReadonlyMap<string, string>,
+): string {
+  if (!shopId) return "(unavailable)";
+  const shopName = shopNamesById.get(String(shopId));
+  return shopName ? `${shopName} (ID: ${shopId})` : `(name unavailable) (ID: ${shopId})`;
+}
+
+export function renderAgentWorkingAgenda(
+  workItem: GQL.AffiliateWorkItem,
+  involvedShopInstructions?: readonly GQL.AffiliateInvolvedShopInstruction[] | null,
+): string {
+  const shopNamesById = new Map(
+    (involvedShopInstructions ?? [])
+      .filter((shop) => shop.shopName?.trim())
+      .map((shop) => [String(shop.shopId), shop.shopName.trim()] as const),
+  );
   const creatorProfile = workItem.context?.creatorProfile ?? null;
   const creatorId = creatorProfile?.id ?? workItem.creatorRelationship?.creatorId ?? null;
   const agendaItems = resolveOpenAgentAgenda(workItem);
@@ -97,7 +135,7 @@ export function renderAgentWorkingAgenda(workItem: GQL.AffiliateWorkItem): strin
       `${index + 1}. Agenda Item: ${item.key}`,
       `   Work Kind: ${item.workKind}`,
       `   Required Action: ${item.requiredAction}`,
-      `   Shop ID: ${item.shopId ?? "(unavailable)"}`,
+      `   Shop: ${renderShopIdentity(item.shopId, shopNamesById)}`,
       `   Shop Region: ${item.shopRegion ?? "(unavailable)"}`,
       `   Product ID: ${item.productId ?? "(unavailable)"}`,
       `   Reasons: ${(item.reasons ?? []).join(", ") || "(none)"}`,
