@@ -7273,6 +7273,7 @@ export interface EcomProductSku {
 /** Currency used by TikTok Shop product SKU pricing fields. */
 export const EcomProductSkuCurrency = {
   Brl: 'BRL',
+  Czk: 'CZK',
   Eur: 'EUR',
   Gbp: 'GBP',
   Idr: 'IDR',
