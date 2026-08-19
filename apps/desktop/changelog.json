@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.101",
+    "date": "2026-08-18",
+    "en": [
+      "Improve Affiliate campaign terms, per-shop Working Agendas, device assignments, WMS validation, and gateway provider persistence"
+    ],
+    "zh": [
+      "改善达人 Campaign 条款、按店铺 Working Agenda、设备分配、WMS 校验与 Gateway 模型服务商选择持久化"
+    ]
+  },
+  {
     "version": "1.8.100",
     "date": "2026-08-17",
     "en": [
