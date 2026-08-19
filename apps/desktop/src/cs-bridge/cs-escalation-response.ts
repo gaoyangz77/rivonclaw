@@ -34,7 +34,11 @@ export interface CsEscalationFeedback {
   version?: number | null;
 }
 
-export interface CsEscalationResponseView {
+/**
+ * The escalation fields a card needs to repaint itself. Known only after a successful
+ * preflight, which is what makes them the gate on freezing the submit button.
+ */
+export interface CsEscalationResponseDetails {
   escalationId: string;
   shop: string;
   conversationId: string;
@@ -42,6 +46,9 @@ export interface CsEscalationResponseView {
   orderId?: string | null;
   reason: string;
   context?: string | null;
+}
+
+export interface CsEscalationResponseView extends CsEscalationResponseDetails {
   resolved: boolean;
   alreadyProcessed: boolean;
   feedback: CsEscalationFeedback[];
@@ -89,7 +96,35 @@ export interface CsEscalationResponseChannelAdapter {
     submission: CsEscalationResponseSubmission,
     view: CsEscalationResponseView,
   ): Promise<void>;
-  sendFailure(submission: CsEscalationResponseSubmission): Promise<void>;
+  /**
+   * Acknowledge that the submission was accepted and is being processed.
+   *
+   * `details` is required, not optional: this fires only after a successful preflight,
+   * and requiring it is what lets the type system enforce that a channel never freezes
+   * a card it could not later repaint.
+   */
+  acknowledgeSubmission(
+    submission: CsEscalationResponseSubmission,
+    details: CsEscalationResponseDetails,
+  ): Promise<void>;
+  /**
+   * `details` is absent exactly on the paths that run before the acknowledgement — the
+   * inflight limit, missing auth, and a failed preflight. There is no frozen card to
+   * repaint on those, so the channel must leave the card alone.
+   */
+  sendFailure(
+    submission: CsEscalationResponseSubmission,
+    details?: CsEscalationResponseDetails,
+  ): Promise<void>;
+  /**
+   * The response may or may not have reached the backend. The employee must be told the
+   * result is unknown rather than that it failed, so they do not re-submit a decision
+   * that already landed.
+   */
+  sendUncertain(
+    submission: CsEscalationResponseSubmission,
+    details: CsEscalationResponseDetails,
+  ): Promise<void>;
   sendSuccessFallback(
     submission: CsEscalationResponseSubmission,
     options: { alreadyProcessed: boolean },
@@ -201,6 +236,23 @@ export class CsEscalationResponseProcessor {
       return;
     }
 
+    // Freeze the submit button now that the escalation details are known, so any later
+    // repaint — success, definite failure, or unconfirmed — can keep them on screen.
+    //
+    // Waiting for the preflight costs one backend round-trip of freeze latency, but the
+    // long pole is the mutation and its 30s timeout, not this query. The freeze is a UX
+    // affordance rather than a correctness mechanism: the `inflight` set already drops
+    // concurrent duplicate clicks, including any landing during the preflight window.
+    // If the preflight hangs, the button simply stays live, which is today's behaviour.
+    //
+    // Deliberate exception to fail-fast: a cosmetic acknowledgement must never abort the
+    // business mutation the employee asked for.
+    try {
+      await this.deps.adapter.acknowledgeSubmission(submission, this.buildDetails(escalation));
+    } catch (error) {
+      log.warn(`CS response acknowledgement failed escalation=${submission.escalationId}`, error);
+    }
+
     const ownerId = auth.getCachedUser?.()?.userId?.trim() || "unknown";
     this.ensureBackendFeedback(ownerId, submission, escalation);
     const locallyResolved =
@@ -244,7 +296,7 @@ export class CsEscalationResponseProcessor {
           mutation.csRespond,
           startedAt,
         );
-        await this.deps.adapter.sendFailure(submission);
+        await this.deps.adapter.sendFailure(submission, this.buildDetails(escalation));
         return;
       }
 
@@ -281,7 +333,9 @@ export class CsEscalationResponseProcessor {
         return;
       }
       this.emitTelemetry(submission, "mutation_failed", error, undefined, startedAt);
-      await this.deps.adapter.sendFailure(submission);
+      // The mutation timed out or the transport threw, and the recheck did not observe a
+      // new result. The backend may still be processing it, so this is unknown, not failed.
+      await this.deps.adapter.sendUncertain(submission, this.buildDetails(escalation));
     }
   }
 
@@ -372,6 +426,20 @@ export class CsEscalationResponseProcessor {
     }
   }
 
+  /** Map an escalation record onto the fields a card renders above the fold. */
+  private buildDetails(escalation: EscalationRecord): CsEscalationResponseDetails {
+    const shopId = escalation.shopId?.trim() ?? "";
+    return {
+      escalationId: escalation.id,
+      shop: (shopId && this.deps.resolveShopName(shopId)) || shopId || "-",
+      conversationId: escalation.conversationId?.trim() || "-",
+      buyer: escalation.buyerNickname?.trim() || escalation.buyerUserId?.trim() || "-",
+      orderId: escalation.orderId,
+      reason: escalation.reason?.trim() || "-",
+      context: escalation.context,
+    };
+  }
+
   private buildView(
     ownerId: string,
     escalation: EscalationRecord,
@@ -404,16 +472,9 @@ export class CsEscalationResponseProcessor {
       ].slice(-MAX_VISIBLE_FEEDBACK);
       feedbackTotal += 1;
     }
-    const shopId = escalation.shopId?.trim() ?? "";
     const resolved = isResolved(escalation) || feedback.at(-1)?.resolved === true;
     return {
-      escalationId: escalation.id,
-      shop: (shopId && this.deps.resolveShopName(shopId)) || shopId || "-",
-      conversationId: escalation.conversationId?.trim() || "-",
-      buyer: escalation.buyerNickname?.trim() || escalation.buyerUserId?.trim() || "-",
-      orderId: escalation.orderId,
-      reason: escalation.reason?.trim() || "-",
-      context: escalation.context,
+      ...this.buildDetails(escalation),
       resolved,
       alreadyProcessed,
       feedback,
@@ -449,7 +510,7 @@ export class CsEscalationResponseProcessor {
       );
     } catch (error) {
       log.warn(
-        `CS mutation succeeded but response message update failed escalation=${submission.escalationId} ` +
+        `CS response card update failed escalation=${submission.escalationId} ` +
           `channel=${submission.channelId} message=${submission.messageId}`,
         error,
       );

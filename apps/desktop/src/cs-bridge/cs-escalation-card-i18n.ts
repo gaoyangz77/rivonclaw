@@ -16,6 +16,9 @@ export type CsEscalationCardMessages = {
   resolved: string;
   submit: string;
   submitting: string;
+  submissionInProgress: string;
+  submitDisabledTip: string;
+  resultUnconfirmed: string;
   unauthorized: string;
   failed: string;
   succeeded: string;
@@ -43,6 +46,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "Resolved",
     submit: "Submit",
     submitting: "Submitting your response…",
+    submissionInProgress: "Submitting your response, please wait…",
+    submitDisabledTip: "Processing — please do not submit again.",
+    resultUnconfirmed: "The result could not be confirmed. Please refresh later to check.",
     unauthorized: "You are not authorized to respond to this escalation.",
     failed: "Could not submit the response. Please try again.",
     succeeded: "Response submitted successfully.",
@@ -68,6 +74,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "已解决",
     submit: "提交",
     submitting: "正在提交处理意见…",
+    submissionInProgress: "正在提交处理意见，请稍候…",
+    submitDisabledTip: "正在处理，请勿重复提交。",
+    resultUnconfirmed: "结果未确认，请稍后刷新查看。",
     unauthorized: "你没有权限处理此升级请求。",
     failed: "提交失败，请重试。",
     succeeded: "处理意见已成功提交。",
@@ -93,6 +102,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "Gelöst",
     submit: "Senden",
     submitting: "Antwort wird gesendet…",
+    submissionInProgress: "Antwort wird gesendet, bitte warten…",
+    submitDisabledTip: "Wird verarbeitet – bitte nicht erneut senden.",
+    resultUnconfirmed: "Das Ergebnis konnte nicht bestätigt werden. Bitte später erneut prüfen.",
     unauthorized: "Sie dürfen diese Eskalation nicht bearbeiten.",
     failed: "Antwort konnte nicht gesendet werden. Bitte erneut versuchen.",
     succeeded: "Antwort erfolgreich gesendet.",
@@ -119,6 +131,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "Resuelto",
     submit: "Enviar",
     submitting: "Enviando la respuesta…",
+    submissionInProgress: "Enviando la respuesta, espera un momento…",
+    submitDisabledTip: "Procesando: no vuelvas a enviar.",
+    resultUnconfirmed: "No se pudo confirmar el resultado. Vuelve a consultarlo más tarde.",
     unauthorized: "No tienes permiso para responder a esta escalación.",
     failed: "No se pudo enviar la respuesta. Inténtalo de nuevo.",
     succeeded: "Respuesta enviada correctamente.",
@@ -145,6 +160,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "Résolu",
     submit: "Envoyer",
     submitting: "Envoi de la réponse…",
+    submissionInProgress: "Envoi de la réponse, veuillez patienter…",
+    submitDisabledTip: "Traitement en cours, n’envoyez pas de nouveau.",
+    resultUnconfirmed: "Le résultat n’a pas pu être confirmé. Veuillez vérifier plus tard.",
     unauthorized: "Vous n’êtes pas autorisé à traiter cette escalade.",
     failed: "Impossible d’envoyer la réponse. Réessayez.",
     succeeded: "Réponse envoyée avec succès.",
@@ -171,6 +189,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "Selesai",
     submit: "Kirim",
     submitting: "Mengirim respons…",
+    submissionInProgress: "Mengirim respons, mohon tunggu…",
+    submitDisabledTip: "Sedang diproses, jangan kirim ulang.",
+    resultUnconfirmed: "Hasil belum dapat dipastikan. Silakan periksa lagi nanti.",
     unauthorized: "Anda tidak berwenang menangani eskalasi ini.",
     failed: "Respons tidak dapat dikirim. Coba lagi.",
     succeeded: "Respons berhasil dikirim.",
@@ -197,6 +218,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "Risolto",
     submit: "Invia",
     submitting: "Invio della risposta…",
+    submissionInProgress: "Invio della risposta, attendi…",
+    submitDisabledTip: "Elaborazione in corso: non inviare di nuovo.",
+    resultUnconfirmed: "Non è stato possibile confermare l’esito. Controlla più tardi.",
     unauthorized: "Non sei autorizzato a gestire questa escalation.",
     failed: "Impossibile inviare la risposta. Riprova.",
     succeeded: "Risposta inviata correttamente.",
@@ -223,6 +247,9 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
     resolved: "แก้ไขแล้ว",
     submit: "ส่ง",
     submitting: "กำลังส่งคำตอบ…",
+    submissionInProgress: "กำลังส่งคำตอบ โปรดรอสักครู่…",
+    submitDisabledTip: "กำลังดำเนินการ โปรดอย่าส่งซ้ำ",
+    resultUnconfirmed: "ยังไม่สามารถยืนยันผลได้ โปรดตรวจสอบอีกครั้งภายหลัง",
     unauthorized: "คุณไม่มีสิทธิ์จัดการเคสนี้",
     failed: "ส่งคำตอบไม่สำเร็จ โปรดลองอีกครั้ง",
     succeeded: "ส่งคำตอบสำเร็จแล้ว",

@@ -6,6 +6,8 @@ import {
   getCsRelayHttpUrl,
   getCsRelayWsUrl,
   getCsTelemetryUrl,
+  getFeishuMessagePatchUrl,
+  getFeishuMessageUrl,
   getFirstPartyDomainRoute,
   getObjectStorageBaseUrl,
   getReleaseFeedUrl,
@@ -122,5 +124,31 @@ describe("first-party domain routing", () => {
       "relay.zhuazhuaai.cn",
       "www.zhuazhuaai.cn",
     ]));
+  });
+});
+
+describe("Feishu message endpoints", () => {
+  it("defaults the send endpoint to open_id and honours an explicit receive_id_type", () => {
+    expect(getFeishuMessageUrl("feishu")).toBe(
+      "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id",
+    );
+    expect(getFeishuMessageUrl("feishu", "chat_id")).toBe(
+      "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id",
+    );
+    expect(getFeishuMessageUrl("lark", "user_id")).toBe(
+      "https://open.larksuite.com/open-apis/im/v1/messages?receive_id_type=user_id",
+    );
+  });
+
+  it("builds the update-sent-message path per domain and escapes the message id", () => {
+    expect(getFeishuMessagePatchUrl("feishu", "om_card")).toBe(
+      "https://open.feishu.cn/open-apis/im/v1/messages/om_card",
+    );
+    expect(getFeishuMessagePatchUrl("lark", "om_card")).toBe(
+      "https://open.larksuite.com/open-apis/im/v1/messages/om_card",
+    );
+    expect(getFeishuMessagePatchUrl("feishu", "om a/b")).toBe(
+      "https://open.feishu.cn/open-apis/im/v1/messages/om%20a%2Fb",
+    );
   });
 });

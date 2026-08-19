@@ -1,6 +1,7 @@
 import { createLogger } from "@rivonclaw/logger";
 import { resolveOpenClawConfigPath, readExistingConfig } from "@rivonclaw/gateway";
-import { getTelegramSendUrl, getFeishuTokenUrl, getFeishuMessageUrl, getLinePushUrl } from "@rivonclaw/core";
+import { getTelegramSendUrl, getFeishuMessageUrl, getLinePushUrl } from "@rivonclaw/core";
+import { getFeishuTenantAccessToken } from "./feishu-open-api.js";
 
 const log = createLogger("channel-senders");
 
@@ -55,30 +56,6 @@ async function sendTelegramMessage(chatId: string, text: string, proxiedFetch: P
 }
 
 // Feishu: Get tenant_access_token, then POST to /im/v1/messages
-const feishuTokenCache: { token?: string; expiresAt?: number } = {};
-
-async function getFeishuTenantToken(appId: string, appSecret: string, domain: string): Promise<string | null> {
-  if (feishuTokenCache.token && feishuTokenCache.expiresAt && Date.now() < feishuTokenCache.expiresAt) {
-    return feishuTokenCache.token;
-  }
-  try {
-    const res = await fetch(getFeishuTokenUrl(domain), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json() as { tenant_access_token?: string; expire?: number };
-    if (!data.tenant_access_token) return null;
-    feishuTokenCache.token = data.tenant_access_token;
-    feishuTokenCache.expiresAt = Date.now() + ((data.expire ?? 7200) - 60) * 1000;
-    return data.tenant_access_token;
-  } catch (err) {
-    log.error("Feishu tenant token error:", err);
-    return null;
-  }
-}
-
 async function sendFeishuMessage(chatId: string, text: string): Promise<boolean> {
   const account = resolveFirstChannelAccount("feishu");
   if (!account) return false;
@@ -89,9 +66,8 @@ async function sendFeishuMessage(chatId: string, text: string): Promise<boolean>
     log.error("Feishu: missing appId or appSecret");
     return false;
   }
-  const token = await getFeishuTenantToken(appId, appSecret, domain);
-  if (!token) return false;
   try {
+    const token = await getFeishuTenantAccessToken(appId, appSecret, domain);
     const res = await fetch(getFeishuMessageUrl(domain), {
       method: "POST",
       headers: {
