@@ -4,7 +4,6 @@ import {
   writeGatewayConfig,
   readExistingConfig,
   resolveGatewayRpcClientIdentityPath,
-  syncExecApprovalsYolo,
 } from "@rivonclaw/gateway";
 import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
@@ -92,12 +91,12 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     channelConfigAccounts: () => rootStore.channelManager.buildConfigAccounts(),
   });
 
+  // The unattended exec policy is carried by tools.exec in openclaw.json
+  // (security=full, ask=off), which writeGatewayConfig writes on every pass.
+  // A host-local exec-approvals.json is NOT written: OpenClaw retired that
+  // store in favour of SQLite, and its mere presence now hard-blocks every run
+  // with ExecApprovalsMigrationRequiredError.
   writeGatewayConfig(await buildFullGatewayConfig(gatewayPort));
-  try {
-    syncExecApprovalsYolo();
-  } catch (err) {
-    log.warn("Failed to sync unattended exec approval policy:", err);
-  }
 
   // Create launcher
   const launcher = new GatewayLauncher({

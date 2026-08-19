@@ -1,12 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  requiresExecApproval,
-  resolveExecApprovalsFromFile,
-} from "../../../../vendor/openclaw/dist/plugin-sdk/infra-runtime.js";
-import { syncExecApprovalsYolo } from "../config/exec-approvals-writer.js";
+import { requiresExecApproval } from "../../../../vendor/openclaw/dist/plugin-sdk/infra-runtime.js";
+import { writeGatewayConfig } from "../config/config-writer.js";
 
 /**
  * Validates that EasyClaw's ask=off + security=full configuration works
@@ -52,63 +49,46 @@ describe("exec approval + ask=off contract", () => {
     expect(result).toBe(true);
   });
 
-  it("RivonClaw host approval sync resolves to no approval under vendor policy logic", () => {
+  /**
+   * The unattended policy used to be pushed through a host-local
+   * exec-approvals.json. OpenClaw retired that store in favour of SQLite, and
+   * its mere presence now hard-blocks every run with
+   * ExecApprovalsMigrationRequiredError -- so the config is the only route left.
+   */
+  it("carries the unattended policy in tools.exec so no approval is ever required", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-exec-approval-policy-test-"));
     try {
-      const approvalsPath = join(tmpDir, ".openclaw", "exec-approvals.json");
-      mkdirSync(join(tmpDir, ".openclaw"), { recursive: true });
-      writeFileSync(
-        approvalsPath,
-        JSON.stringify({
-          version: 1,
-          defaults: {
-            security: "allowlist",
-            ask: "on-miss",
-            askFallback: "deny",
-          },
-          agents: {
-            main: {
-              security: "allowlist",
-              ask: "always",
-              askFallback: "deny",
-            },
-          },
-        }),
-        "utf-8",
-      );
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath });
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
 
-      syncExecApprovalsYolo({ approvalsPath });
+      expect(config.tools.exec).toMatchObject({ security: "full", ask: "off" });
 
-      const file = JSON.parse(readFileSync(approvalsPath, "utf-8"));
-      const mainPolicy = resolveExecApprovalsFromFile({
-        file,
-        agentId: "main",
-        path: approvalsPath,
-      });
-      const cronPolicy = resolveExecApprovalsFromFile({
-        file,
-        agentId: "cron-job-agent",
-        path: approvalsPath,
-      });
-
-      expect(mainPolicy.agent).toMatchObject({
-        security: "full",
-        ask: "off",
-        askFallback: "full",
-      });
-      expect(cronPolicy.agent).toMatchObject({
-        security: "full",
-        ask: "off",
-        askFallback: "full",
-      });
+      // Vendor's own resolver must agree that this pair needs no approval,
+      // including on an allowlist miss with failed analysis.
       expect(
         requiresExecApproval({
-          ask: mainPolicy.agent.ask,
-          security: mainPolicy.agent.security,
+          ask: config.tools.exec.ask,
+          security: config.tools.exec.security,
           analysisOk: false,
           allowlistSatisfied: false,
         }),
       ).toBe(false);
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("never writes the retired host-local exec approvals file", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-exec-approval-file-test-"));
+    try {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeGatewayConfig({ configPath });
+
+      // Recreating this file is what put customers into a permanent
+      // ExecApprovalsMigrationRequiredError loop: OpenClaw's Doctor removes it,
+      // and the next gateway start wrote it straight back.
+      expect(existsSync(join(tmpDir, "exec-approvals.json"))).toBe(false);
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
