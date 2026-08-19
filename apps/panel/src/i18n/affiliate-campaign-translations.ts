@@ -210,7 +210,7 @@ const en = {
   wizardConfirm: "Authorize",
   stepShopTitle: "Anchor the campaign",
   stepShopDescription:
-    "The first release is deliberately scoped to one authorized shop and one primary product. Market and timezone are derived by the system.",
+    "A Campaign runs against one authorized shop and the products you list below. Market and timezone are derived by the system.",
   campaignName: "Campaign name",
   campaignNamePlaceholder: "Summer creator acquisition",
   shop: "Shop",
@@ -706,7 +706,7 @@ const zh = {
   wizardMessage: "首信模板",
   wizardConfirm: "确认授权",
   stepShopTitle: "确定计划范围",
-  stepShopDescription: "首版严格限定一家已授权店铺和一个主商品。市场与时区由系统自动派生。",
+  stepShopDescription: "一个计划对应一家已授权店铺，推广下方列出的商品。市场与时区由系统自动派生。",
   campaignName: "计划名称",
   campaignNamePlaceholder: "夏季达人获客",
   shop: "店铺",
