@@ -335,11 +335,11 @@ function normalizeFeishuStreamingConfig(config: Record<string, unknown>): Record
     ? { ...legacyStreaming as Record<string, unknown> }
     : {};
 
-  if (typeof legacyStreaming === "boolean") {
-    streaming.mode = legacyStreaming ? "partial" : "off";
-  } else if (streaming.mode !== "off" && streaming.mode !== "partial") {
-    streaming.mode = "partial";
-  }
+  // The Feishu plugin creates its CardKit preview in onReplyStart, before
+  // dispatch has been admitted. A synchronous dispatch failure therefore
+  // leaves an empty card behind. EasyClaw has no dispatcher-error hook at the
+  // channel boundary, so wait for the final payload and send one static card.
+  streaming.mode = "off";
   if (
     streaming.chunkMode === undefined &&
     (chunkMode === "length" || chunkMode === "newline")
@@ -1110,7 +1110,7 @@ export const ChannelManagerModel = types
         connectionMode: "websocket",
         mediaMaxMb: FEISHU_MEDIA_MAX_MB,
         renderMode: "card",
-        streaming: { mode: "partial", block: { enabled: false } },
+        streaming: { mode: "off", block: { enabled: false } },
         requireMention: true,
         dmPolicy: "open",
         allowFrom: ["*"],

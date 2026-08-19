@@ -711,7 +711,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     }
   });
 
-  it("defaults Feishu accounts to streaming cards without opting into core block streaming", () => {
+  it("disables Feishu preview cards until dispatch has produced a final reply", () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-streaming-"));
     try {
       const configPath = join(stateDir, "openclaw.json");
@@ -790,7 +790,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(accounts.find((account) => account.accountId === "default")?.config).toMatchObject({
         mediaMaxMb: 30,
         renderMode: "card",
-        streaming: { mode: "partial", block: { enabled: false } },
+        streaming: { mode: "off", block: { enabled: false } },
       });
       expect(accounts.find((account) => account.accountId === "quiet")?.config).toMatchObject({
         mediaMaxMb: 12,
@@ -798,14 +798,14 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       });
       expect(accounts.find((account) => account.accountId === "blocks")?.config).toMatchObject({
         renderMode: "card",
-        streaming: { mode: "partial", block: { enabled: true } },
+        streaming: { mode: "off", block: { enabled: true } },
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.feishu.accounts.default.renderMode).toBe("card");
       expect(config.channels.feishu.accounts.default.mediaMaxMb).toBe(30);
       expect(config.channels.feishu.accounts.default.streaming).toEqual({
-        mode: "partial",
+        mode: "off",
         block: { enabled: false },
       });
       expect(config.channels.feishu.accounts.default.blockStreaming).toBeUndefined();
@@ -817,7 +817,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(config.channels.feishu.accounts.quiet.blockStreaming).toBeUndefined();
       expect(config.channels.feishu.accounts.blocks.renderMode).toBe("card");
       expect(config.channels.feishu.accounts.blocks.streaming).toEqual({
-        mode: "partial",
+        mode: "off",
         block: { enabled: true },
       });
       expect(config.channels.feishu.accounts.blocks.blockStreaming).toBeUndefined();
@@ -912,7 +912,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         "/Users/test/Library/Application Support/@rivonclaw/desktop/runtime/old/openclaw/dist/extensions/feishu",
       );
       expect(config.channels.feishu.streaming).toEqual({
-        mode: "partial",
+        mode: "off",
         block: { enabled: false },
       });
       expect(config.channels.feishu.blockStreaming).toBeUndefined();
@@ -1034,7 +1034,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(official?.config).toMatchObject({
         mediaMaxMb: 30,
         renderMode: "card",
-        streaming: { mode: "partial", block: { enabled: false } },
+        streaming: { mode: "off", block: { enabled: false } },
         dmPolicy: "open",
         allowFrom: ["*"],
         groupPolicy: "open",
@@ -1048,7 +1048,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(config.channels.feishu.accounts[accountId].mediaMaxMb).toBe(30);
       expect(config.channels.feishu.accounts[accountId].renderMode).toBe("card");
       expect(config.channels.feishu.accounts[accountId].streaming).toEqual({
-        mode: "partial",
+        mode: "off",
         block: { enabled: false },
       });
       expect(config.channels.feishu.accounts[accountId].blockStreaming).toBeUndefined();
@@ -1212,7 +1212,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         appSecret: "new_secret",
         mediaMaxMb: 30,
         renderMode: "card",
-        streaming: { mode: "partial", block: { enabled: false } },
+        streaming: { mode: "off", block: { enabled: false } },
         dmPolicy: "open",
         groupPolicy: "open",
       });
@@ -1223,7 +1223,7 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(config.channels.feishu.accounts[newAccountId].mediaMaxMb).toBe(30);
       expect(config.channels.feishu.accounts[newAccountId].renderMode).toBe("card");
       expect(config.channels.feishu.accounts[newAccountId].streaming).toEqual({
-        mode: "partial",
+        mode: "off",
         block: { enabled: false },
       });
       expect(config.channels.feishu.accounts[newAccountId].blockStreaming).toBeUndefined();
