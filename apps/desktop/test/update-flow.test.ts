@@ -9,6 +9,26 @@ import { resetFirstPartyDomainRouteForTests, setApiBaseUrlOverride } from "@rivo
 import { queryCheckUpdate } from "../src/cloud/backend-subscription-client.js";
 import { getReleaseFeedUrl } from "../../../packages/core/src/api/endpoints.js";
 
+const electronUpdaterMock = vi.hoisted(() => ({
+  autoUpdater: {
+    setFeedURL: vi.fn(),
+    on: vi.fn(),
+    autoDownload: true,
+    autoInstallOnAppQuit: true,
+    logger: null as unknown,
+  },
+}));
+
+vi.mock("electron-updater", () => electronUpdaterMock);
+vi.mock("electron", () => ({
+  app: { getVersion: () => "1.0.0", getPath: () => "/tmp", isPackaged: false },
+  Notification: class {
+    show() {}
+  },
+}));
+
+import { createAutoUpdater } from "../src/updater/auto-updater.js";
+
 /* ─── helpers ───────────────────────────────────────────────────────── */
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -248,5 +268,40 @@ describe("check-then-process flow", () => {
     // processUpdatePayload accepts it and the client resolves the URL itself
     const { accepted } = simulateProcessUpdatePayload("1.0.0", payload!);
     expect(accepted).toBe(true);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   5. electron-updater feed configuration
+   ═══════════════════════════════════════════════════════════════════════ */
+
+describe("auto-updater feed configuration", () => {
+  function configuredFeed(): Record<string, unknown> {
+    electronUpdaterMock.autoUpdater.setFeedURL.mockClear();
+    createAutoUpdater({
+      locale: "zh",
+      systemLocale: "zh-CN",
+      getMainWindow: () => null,
+      showMainWindow: () => {},
+      setIsQuitting: () => {},
+      updateTray: () => {},
+    });
+    expect(electronUpdaterMock.autoUpdater.setFeedURL).toHaveBeenCalledTimes(1);
+    return electronUpdaterMock.autoUpdater.setFeedURL.mock.calls[0][0] as Record<string, unknown>;
+  }
+
+  // Every CDN in front of the release feed caps multi-range requests well below
+  // electron-updater's 1000-per-request batching, so a multi-range differential
+  // download is abandoned and the whole installer is fetched instead. Keep this
+  // assertion: the CN feed switch in "Route first-party domains through CN relay
+  // when blocked" silently undid the previous fix for this exact problem.
+  it("disables multi-range requests so differential download survives any CDN", () => {
+    expect(configuredFeed().useMultipleRangeRequest).toBe(false);
+  });
+
+  it("still points at the release feed through the generic provider", () => {
+    const feed = configuredFeed();
+    expect(feed.provider).toBe("generic");
+    expect(feed.url).toBe(getReleaseFeedUrl("zh"));
   });
 });
