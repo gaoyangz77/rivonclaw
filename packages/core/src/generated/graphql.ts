@@ -1393,7 +1393,27 @@ export interface AffiliateCampaignSummary {
   counters: AffiliateCampaignExecutionCounters;
   latestExecution?: Maybe<AffiliateCampaignDailyExecution>;
   shopDailyCapacity: AffiliateCampaignShopDailyCapacity;
+  targetCollaborationCreateQuota: AffiliateCampaignTargetCollaborationCreateQuota;
   totalCreators: Scalars['Int']['output'];
+}
+
+export interface AffiliateCampaignTargetCollaborationCreateQuota {
+  active: Scalars['Boolean']['output'];
+  affectedDeliveryCountToday: Scalars['Int']['output'];
+  firstObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastObservedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  lastSuccessfulCreateAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  liveQuotaErrorCountToday: Scalars['Int']['output'];
+  nextRetryAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  recentEvents: Array<AffiliateCampaignTargetCollaborationCreateQuotaEvent>;
+  waitingDeliveryCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateCampaignTargetCollaborationCreateQuotaEvent {
+  affectedDeliveryCount: Scalars['Int']['output'];
+  inferredFromLegacy: Scalars['Boolean']['output'];
+  occurredAt: Scalars['DateTimeISO']['output'];
+  outcome: Scalars['String']['output'];
 }
 
 export const AffiliateCampaignTemplateGenerationMode = {

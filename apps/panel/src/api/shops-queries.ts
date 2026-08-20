@@ -393,6 +393,22 @@ export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
         circuitOpenUntil
         circuitReason
       }
+      targetCollaborationCreateQuota {
+        active
+        firstObservedAt
+        lastObservedAt
+        lastSuccessfulCreateAt
+        liveQuotaErrorCountToday
+        affectedDeliveryCountToday
+        waitingDeliveryCount
+        nextRetryAt
+        recentEvents {
+          occurredAt
+          outcome
+          affectedDeliveryCount
+          inferredFromLegacy
+        }
+      }
       latestExecution {
         ...AffiliateCampaignExecutionFields
       }
