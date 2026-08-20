@@ -3,10 +3,10 @@
     "version": "1.8.107",
     "date": "2026-08-20",
     "en": [
-      "Improve customer service concurrency, scheduled task tools, Affiliate tutorials, and campaign quota visibility"
+      "Improve customer service concurrency, scheduled task tools, Affiliate tutorials, campaign quota visibility, and Feishu media delivery reliability"
     ],
     "zh": [
-      "优化客服并发控制、定时任务工具访问、达人教程与 Campaign 额度等待提示"
+      "优化客服并发控制、定时任务工具访问、达人教程、Campaign 额度等待提示与飞书媒体发送稳定性"
     ]
   },
   {
