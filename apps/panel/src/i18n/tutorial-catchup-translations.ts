@@ -1,9 +1,9 @@
 /**
  * Staged tutorial refresh translations.
  *
- * English and Chinese are the reviewed source locales. New keys temporarily
- * fall back to English in the other locales until the walkthrough logic is
- * approved and the remaining translations are commissioned.
+ * English and Chinese are the source locales. Non-Affiliate additions still
+ * fall back to English where a reviewed locale override is not yet available;
+ * Affiliate tutorial overrides live in affiliate-tutorial-translations.ts.
  */
 export const TUTORIAL_NEW_KEYS_EN = {
   tutorial: {

@@ -7,6 +7,15 @@ import { getStepsForRoute } from "./index.js"
 
 const SRC_ROOT = resolve(__dirname, "../..")
 const TARGET_SELECTOR = /^\[data-tutorial-id="([^"]+)"\]$/
+const AFFILIATE_TUTORIAL_ROUTES = [
+  "/commerce/affiliate/attention",
+  "/commerce/affiliate/team",
+  "/commerce/product-knowledge",
+  "/commerce/affiliate/campaigns",
+  "/commerce/affiliate/creators",
+  "/commerce/affiliate/history",
+  "/commerce/affiliate/intelligence",
+] as const
 
 function walkSource(directory: string, files: string[] = []): string[] {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -18,12 +27,16 @@ function walkSource(directory: string, files: string[] = []): string[] {
 }
 
 function hasTranslation(resource: object, key: string): boolean {
+  return getTranslation(resource, key) !== undefined
+}
+
+function getTranslation(resource: object, key: string): string | undefined {
   let value: unknown = resource
   for (const segment of key.split(".")) {
-    if (!value || typeof value !== "object" || !(segment in value)) return false
+    if (!value || typeof value !== "object" || !(segment in value)) return undefined
     value = (value as Record<string, unknown>)[segment]
   }
-  return typeof value === "string" && value.length > 0
+  return typeof value === "string" && value.length > 0 ? value : undefined
 }
 
 const renderedSource = ["pages", "components"]
@@ -115,5 +128,27 @@ describe("tutorial step registry", () => {
       }
     }
     expect(missing).toEqual([])
+  })
+
+  it("provides dedicated translations for every Affiliate tutorial locale", () => {
+    const english = LANGUAGE_OPTIONS.find((language) => language.code === "en")
+    expect(english).toBeDefined()
+
+    const missingOrFallback: string[] = []
+    for (const route of AFFILIATE_TUTORIAL_ROUTES) {
+      for (const step of getStepsForRoute(route)) {
+        for (const language of LANGUAGE_OPTIONS.filter((entry) => entry.code !== "en")) {
+          for (const key of [step.titleKey, step.bodyKey]) {
+            const localized = getTranslation(language.resource, key)
+            const source = getTranslation(english!.resource, key)
+            if (!localized || localized === source) {
+              missingOrFallback.push(`${language.code} ${key}`)
+            }
+          }
+        }
+      }
+    }
+
+    expect(missingOrFallback).toEqual([])
   })
 })
