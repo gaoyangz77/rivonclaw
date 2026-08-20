@@ -1,0 +1,171 @@
+From 26b886063bdddf912213b5b7fdea9dd4342990f9 Mon Sep 17 00:00:00 2001
+From: RivonClaw Vendor Replay <vendor-replay@rivonclaw.invalid>
+Date: Thu, 20 Aug 2026 01:28:26 -0700
+Subject: [PATCH] vendor(openclaw): bound known-key session reads
+
+Why:
+- known-key gateway helpers materialize the entire SQLite session catalog, causing multi-GB memory and event-loop starvation on large Desktop stores
+
+Removal:
+- drop when upstream makes both known-key helpers use exact indexed SQLite reads or equivalent indexed session lookup support lands; commit 257b8e0 is related but currently unmerged
+
+Tests:
+- apps/desktop/src/gateway/vendor-session-known-key-exact-read.sentinel.test.ts
+- src/gateway/server-methods/sessions-shared.exact-read.test.ts
+---
+ .../sessions-shared.exact-read.test.ts        | 78 +++++++++++++++++++
+ src/gateway/server-methods/sessions-shared.ts | 31 +++++++-
+ 2 files changed, 107 insertions(+), 2 deletions(-)
+ create mode 100644 src/gateway/server-methods/sessions-shared.exact-read.test.ts
+
+diff --git a/src/gateway/server-methods/sessions-shared.exact-read.test.ts b/src/gateway/server-methods/sessions-shared.exact-read.test.ts
+new file mode 100644
+index 00000000000..e7daa3760e4
+--- /dev/null
++++ b/src/gateway/server-methods/sessions-shared.exact-read.test.ts
+@@ -0,0 +1,78 @@
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import type { SessionEntry } from "../../config/sessions/types.js";
++import type { OpenClawConfig } from "../../config/types.openclaw.js";
++
++const mocks = vi.hoisted(() => ({
++  resolveCanonicalEntry: vi.fn(),
++  resolveTarget: vi.fn(),
++}));
++
++vi.mock("../session-utils.js", () => ({
++  resolveCanonicalSessionEntryFromStoreKeys: mocks.resolveCanonicalEntry,
++  resolveGatewaySessionStoreTarget: vi.fn(),
++  resolveGatewaySessionStoreTargetWithStore: mocks.resolveTarget,
++}));
++
++import {
++  loadAccessorSessionEntryForGatewayTarget,
++  loadSessionEntriesForTarget,
++} from "./sessions-shared.js";
++
++const cfg = {} as OpenClawConfig;
++const entry: SessionEntry = { sessionId: "session-1", updatedAt: 1 };
++const target = {
++  agentId: "main",
++  canonicalKey: "agent:main:thread",
++  store: { "agent:main:thread": entry },
++  storeKeys: ["agent:main:thread"],
++  storePath: process.cwd(),
++};
++
++describe("exact-key gateway session helpers", () => {
++  beforeEach(() => {
++    mocks.resolveCanonicalEntry.mockReset();
++    mocks.resolveCanonicalEntry.mockReturnValue(entry);
++    mocks.resolveTarget.mockReset();
++    mocks.resolveTarget.mockReturnValue(target);
++  });
++
++  it.each([
++    ["accessor", loadAccessorSessionEntryForGatewayTarget],
++    ["read", loadSessionEntriesForTarget],
++  ] as const)("keeps %s lookup bounded to the requested SQLite row", (_name, load) => {
++    load({ cfg, key: "agent:main:thread" });
++
++    expect(mocks.resolveTarget).toHaveBeenCalledWith({
++      cfg,
++      key: "agent:main:thread",
++      clone: false,
++      exactRead: true,
++    });
++  });
++
++  it.each([
++    ["accessor", loadAccessorSessionEntryForGatewayTarget],
++    ["read", loadSessionEntriesForTarget],
++  ] as const)("preserves %s database creation for a missing store", (_name, load) => {
++    const emptyTarget = {
++      ...target,
++      store: {},
++      storePath: "/openclaw-test-missing/session-store.sqlite",
++    };
++    mocks.resolveTarget.mockReturnValue(emptyTarget);
++
++    load({ cfg, key: "agent:main:new" });
++
++    expect(mocks.resolveTarget).toHaveBeenNthCalledWith(1, {
++      cfg,
++      key: "agent:main:new",
++      clone: false,
++      exactRead: true,
++    });
++    expect(mocks.resolveTarget).toHaveBeenNthCalledWith(2, {
++      cfg,
++      key: "agent:main:new",
++      clone: false,
++    });
++  });
++});
+diff --git a/src/gateway/server-methods/sessions-shared.ts b/src/gateway/server-methods/sessions-shared.ts
+index 609e56d9e39..4619d8c1263 100644
+--- a/src/gateway/server-methods/sessions-shared.ts
++++ b/src/gateway/server-methods/sessions-shared.ts
+@@ -1,4 +1,5 @@
+ // Shared session-handler target resolution and mutation guards.
++import fs from "node:fs";
+ import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
+ import {
+   ErrorCodes,
+@@ -170,12 +171,27 @@ export function loadAccessorSessionEntryForGatewayTarget(params: {
+   cfg: OpenClawConfig;
+   agentId?: string;
+ }) {
+-  const target = resolveGatewaySessionStoreTargetWithStore({
++  let target = resolveGatewaySessionStoreTargetWithStore({
+     cfg: params.cfg,
+     key: params.key,
+     clone: false,
++    // The caller already owns a concrete session key. Reading every SQLite
++    // row here makes routine dispatch/compaction work scale with the entire
++    // session catalog and can starve the gateway on large desktop stores.
++    exactRead: true,
+     ...(params.agentId ? { agentId: params.agentId } : {}),
+   });
++  // Exact reads intentionally do not create a missing configured-agent DB.
++  // Preserve the existing creation side effect without turning an ordinary
++  // miss in an existing large store back into a full catalog scan.
++  if (Object.keys(target.store).length === 0 && !fs.existsSync(target.storePath)) {
++    target = resolveGatewaySessionStoreTargetWithStore({
++      cfg: params.cfg,
++      key: params.key,
++      clone: false,
++      ...(params.agentId ? { agentId: params.agentId } : {}),
++    });
++  }
+   let best:
+     | {
+         entry: SessionEntry;
+@@ -213,12 +229,23 @@ export function loadSessionEntriesForTarget(params: {
+   cfg: OpenClawConfig;
+   agentId?: string;
+ }) {
+-  const target = resolveGatewaySessionStoreTargetWithStore({
++  let target = resolveGatewaySessionStoreTargetWithStore({
+     cfg: params.cfg,
+     key: params.key,
+     clone: false,
++    // describe/get only need this key (plus its canonical lookup aliases).
++    // Keep the query bounded instead of materializing the full session store.
++    exactRead: true,
+     ...(params.agentId ? { agentId: params.agentId } : {}),
+   });
++  if (Object.keys(target.store).length === 0 && !fs.existsSync(target.storePath)) {
++    target = resolveGatewaySessionStoreTargetWithStore({
++      cfg: params.cfg,
++      key: params.key,
++      clone: false,
++      ...(params.agentId ? { agentId: params.agentId } : {}),
++    });
++  }
+   const store = target.store;
+   const entry = resolveCanonicalSessionEntryFromStoreKeys(store, target.storeKeys);
+   return { target, storePath: target.storePath, store, entry };
+-- 
+2.50.1 (Apple Git-155)
+
