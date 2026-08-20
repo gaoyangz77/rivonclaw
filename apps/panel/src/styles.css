@@ -31811,6 +31811,107 @@ html[lang="zh"] .acct-tool-chips {
   font-weight: 700;
 }
 
+.affiliate-campaign-quota-issue,
+.affiliate-campaign-quota-recovered {
+  margin: 20px 30px 0;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 45%, var(--campaign-line));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg));
+  padding: 20px 22px;
+}
+
+.affiliate-campaign-quota-issue-copy strong,
+.affiliate-campaign-quota-recovered strong {
+  display: block;
+  color: var(--campaign-amber);
+  font-size: 15px;
+}
+
+.affiliate-campaign-quota-issue-copy p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.affiliate-campaign-quota-issue dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0 0;
+}
+
+.affiliate-campaign-quota-issue dl > div {
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg-alt) 86%, transparent);
+}
+
+.affiliate-campaign-quota-issue dt,
+.affiliate-campaign-quota-issue small {
+  color: var(--campaign-muted);
+  font-size: 10px;
+}
+
+.affiliate-campaign-quota-issue dd {
+  margin: 5px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.affiliate-campaign-quota-issue details {
+  margin-top: 14px;
+}
+
+.affiliate-campaign-quota-issue summary {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.affiliate-campaign-quota-issue ol {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
+
+.affiliate-campaign-quota-issue li {
+  display: grid;
+  grid-template-columns: minmax(140px, auto) 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.affiliate-campaign-quota-recovered {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-color: color-mix(in srgb, var(--campaign-green) 40%, var(--campaign-line));
+  background: color-mix(in srgb, var(--campaign-mint) 42%, var(--color-bg));
+}
+
+.affiliate-campaign-quota-recovered strong {
+  color: var(--campaign-green);
+}
+
+.affiliate-campaign-quota-recovered span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+@media (max-width: 960px) {
+  .affiliate-campaign-quota-issue dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .affiliate-campaign-quota-issue li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
 .affiliate-campaign-funnel,
 .affiliate-campaign-state-panel,
 .affiliate-campaign-configuration,

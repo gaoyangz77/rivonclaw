@@ -150,6 +150,21 @@ describe("Affiliate Campaign presentation contracts", () => {
     }
   });
 
+  it("localizes Target Collaboration quota waiting copy without exposing Provider codes", () => {
+    const localized = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
+      (translations) => translations.ecommerce.affiliateCampaign,
+    );
+    for (const campaign of localized) {
+      expect(campaign.targetCollaborationQuotaTitle).toBeTruthy();
+      expect(campaign.targetCollaborationQuotaDescription).toContain("{{count}}");
+      expect(campaign.targetCollaborationQuotaScheduled).toBeTruthy();
+      expect(campaign.targetCollaborationQuotaNextRetry).toBeTruthy();
+      expect(JSON.stringify(campaign)).not.toContain("16024035");
+    }
+    expect(new Set(localized.map((campaign) => campaign.targetCollaborationQuotaTitle)).size)
+      .toBe(localized.length);
+  });
+
   it("maps selection decision codes through i18n instead of exposing English audit text", () => {
     const t = (key: string) => `translated:${key}`;
     expect(

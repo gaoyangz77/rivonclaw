@@ -409,6 +409,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const editingCampaign = campaigns.find((campaign) => campaign.id === editingCampaignId) ?? null;
   const summary = summaryQuery.data?.affiliateCampaignSummary;
   const latestExecution = summary?.latestExecution;
+  const targetCollaborationQuota = summary?.targetCollaborationCreateQuota;
+  const targetCollaborationQuotaRecovered = Boolean(
+    targetCollaborationQuota &&
+      !targetCollaborationQuota.active &&
+      targetCollaborationQuota.lastObservedAt &&
+      targetCollaborationQuota.lastSuccessfulCreateAt &&
+      new Date(targetCollaborationQuota.lastSuccessfulCreateAt).getTime() >
+        new Date(targetCollaborationQuota.lastObservedAt).getTime(),
+  );
   const shops = (shopsQuery.data?.shops ?? []).filter(
     (shop) =>
       shop.platform === GQL.ShopPlatform.TiktokShop &&
@@ -1438,6 +1447,76 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </div>
             </section>
 
+            {targetCollaborationQuota?.active && (
+              <section className="affiliate-campaign-quota-issue" role="status">
+                <div className="affiliate-campaign-quota-issue-copy">
+                  <strong>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaTitle")}</strong>
+                  <p>
+                    {t("ecommerce.affiliateCampaign.targetCollaborationQuotaDescription", {
+                      count: targetCollaborationQuota.waitingDeliveryCount,
+                    })}
+                  </p>
+                </div>
+                <dl>
+                  <div>
+                    <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaFirstObserved")}</dt>
+                    <dd>{targetCollaborationQuota.firstObservedAt
+                      ? formatDateTime(targetCollaborationQuota.firstObservedAt)
+                      : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaLastObserved")}</dt>
+                    <dd>{targetCollaborationQuota.lastObservedAt
+                      ? formatDateTime(targetCollaborationQuota.lastObservedAt)
+                      : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaFailures")}</dt>
+                    <dd>{formatNumber(targetCollaborationQuota.liveQuotaErrorCountToday)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaAffected")}</dt>
+                    <dd>{formatNumber(targetCollaborationQuota.affectedDeliveryCountToday)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaNextRetry")}</dt>
+                    <dd>{targetCollaborationQuota.nextRetryAt
+                      ? formatDateTime(targetCollaborationQuota.nextRetryAt)
+                      : "—"}</dd>
+                  </div>
+                </dl>
+                {targetCollaborationQuota.recentEvents.length > 0 && (
+                  <details>
+                    <summary>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecent")}</summary>
+                    <ol>
+                      {targetCollaborationQuota.recentEvents.map((event, index) => (
+                        <li key={`${event.occurredAt}-${index}`}>
+                          <time>{formatDateTime(event.occurredAt)}</time>
+                          <span>{t(
+                            event.outcome === "CREATED"
+                              ? "ecommerce.affiliateCampaign.targetCollaborationQuotaEventCreated"
+                              : "ecommerce.affiliateCampaign.targetCollaborationQuotaEventExhausted",
+                            { count: event.affectedDeliveryCount },
+                          )}</span>
+                          {event.inferredFromLegacy && (
+                            <small>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaLegacy")}</small>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </details>
+                )}
+              </section>
+            )}
+            {targetCollaborationQuotaRecovered && targetCollaborationQuota?.lastSuccessfulCreateAt && (
+              <section className="affiliate-campaign-quota-recovered" role="status">
+                <strong>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecovered")}</strong>
+                <span>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecoveredAt", {
+                  time: formatDateTime(targetCollaborationQuota.lastSuccessfulCreateAt),
+                })}</span>
+              </section>
+            )}
+
             <CampaignFunnel
               counters={summary?.counters}
               counterSchemaVersion={latestExecution?.counterSchemaVersion ?? 3}
@@ -1676,6 +1755,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                           key={state.id}
                           state={state}
                           t={t}
+                          waitingForTargetCollaborationQuota={Boolean(targetCollaborationQuota?.active)}
                           onOpen={() => setSelectedCreatorDetail(campaignCreatorDetailItem(state))}
                         />
                       ),
@@ -2570,10 +2650,12 @@ function CampaignCreatorStateRow({
   state,
   t,
   onOpen,
+  waitingForTargetCollaborationQuota,
 }: {
   state: CampaignCreatorState;
   t: (key: string, options?: Record<string, unknown>) => string;
   onOpen: () => void;
+  waitingForTargetCollaborationQuota: boolean;
 }) {
   const profile = state.creatorProfile;
   const performance = state.creatorPerformance;
@@ -2625,7 +2707,10 @@ function CampaignCreatorStateRow({
           {t(`ecommerce.affiliateCampaign.disposition.${disposition}`)}
         </span>
         <small>
-          {state.reachedOutAt
+          {waitingForTargetCollaborationQuota &&
+          state.status === GQL.AffiliateCampaignCreatorStateStatus.Scheduled
+            ? t("ecommerce.affiliateCampaign.targetCollaborationQuotaScheduled")
+            : state.reachedOutAt
             ? formatDateTime(state.reachedOutAt)
             : t("ecommerce.affiliateCampaign.notSent")}
         </small>
