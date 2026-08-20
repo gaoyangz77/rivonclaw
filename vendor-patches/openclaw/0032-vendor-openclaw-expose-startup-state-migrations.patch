@@ -1,4 +1,4 @@
-From 00a1ca7584dd58494ccf6772e83ff9af93346b7d Mon Sep 17 00:00:00 2001
+From 931896ce64b5438d6c8669b3a7ff94522656d801 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:21:05 -0700
 Subject: [PATCH] vendor(openclaw): expose embedded state migrations
@@ -17,7 +17,7 @@ Tests:
  1 file changed, 5 insertions(+)
 
 diff --git a/src/plugin-sdk/node-host.ts b/src/plugin-sdk/node-host.ts
-index b3cd1a94a39..6a13f88648d 100644
+index eebbd0c6fac..b6b07dbe00e 100644
 --- a/src/plugin-sdk/node-host.ts
 +++ b/src/plugin-sdk/node-host.ts
 @@ -8,6 +8,11 @@ export {

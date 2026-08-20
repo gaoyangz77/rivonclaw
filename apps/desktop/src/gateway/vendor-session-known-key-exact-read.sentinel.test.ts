@@ -13,7 +13,7 @@ const PATCH_FILE = resolve(
 
 const VENDOR_SOURCE = resolve(
   __dirname,
-  "../../../../vendor/openclaw/src/gateway/server-methods/sessions-shared.ts",
+  "../../../../tmp/vendor-patched/openclaw/src/gateway/server-methods/sessions-shared.ts",
 );
 
 function functionBody(source: string, name: string, nextName: string): string {

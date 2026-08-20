@@ -73,7 +73,10 @@ describe("runGatewayStartupCoordinator", () => {
     });
 
     expect(request).toHaveBeenCalledTimes(2);
-    expect(request).toHaveBeenCalledWith("tools.catalog", { includePlugins: true });
+    expect(request).toHaveBeenCalledWith("tools.catalog", {
+      agentId: "main",
+      includePlugins: true,
+    });
     expect(request).toHaveBeenCalledWith(CLOUD_TOOLS_STATUS_METHOD);
     expect(task).toHaveBeenCalledOnce();
   });

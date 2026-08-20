@@ -1,4 +1,4 @@
-From 64f7d6a7aecd4e49791414771fd17eb64f139a6c Mon Sep 17 00:00:00 2001
+From e74a23ac7afbf19060566b9e13bd61c496db3084 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 00:52:01 -0700
 Subject: [PATCH] vendor(openclaw): expose silent completion for agent RPC
@@ -51,7 +51,7 @@ index ea46d48d118..825c6a08a9f 100644
      expect(
        Value.Check(AgentParamsSchema, {
 diff --git a/packages/gateway-protocol/src/schema/agent.ts b/packages/gateway-protocol/src/schema/agent.ts
-index 208bec0218a..6bbaa870e29 100644
+index 8bcc4217059..74d2f473d36 100644
 --- a/packages/gateway-protocol/src/schema/agent.ts
 +++ b/packages/gateway-protocol/src/schema/agent.ts
 @@ -316,6 +316,7 @@ export const AgentParamsSchema = closedObject({
@@ -63,10 +63,10 @@ index 208bec0218a..6bbaa870e29 100644
    bootstrapContextMode: Type.Optional(
      Type.Union([Type.Literal("full"), Type.Literal("lightweight")]),
 diff --git a/src/agents/command/attempt-execution.cli.test.ts b/src/agents/command/attempt-execution.cli.test.ts
-index e68d14458e2..f5c2d843d58 100644
+index d2b5685ce89..4ffa87bad39 100644
 --- a/src/agents/command/attempt-execution.cli.test.ts
 +++ b/src/agents/command/attempt-execution.cli.test.ts
-@@ -3564,6 +3564,7 @@ describe("CLI attempt execution", () => {
+@@ -3422,6 +3422,7 @@ describe("CLI attempt execution", () => {
        opts: {
          modelRun: true,
          promptMode: "none",
@@ -74,7 +74,7 @@ index e68d14458e2..f5c2d843d58 100644
          messageProvider: "discord-voice",
          inputProvenance: {
            kind: "inter_session",
-@@ -3586,6 +3587,7 @@ describe("CLI attempt execution", () => {
+@@ -3444,6 +3445,7 @@ describe("CLI attempt execution", () => {
        messageProvider: "discord-voice",
        modelRun: true,
        promptMode: "none",
@@ -83,10 +83,10 @@ index e68d14458e2..f5c2d843d58 100644
      });
      expect(firstEmbeddedAgentArg().prompt).not.toContain("[Inter-session message]");
 diff --git a/src/agents/command/attempt-execution.ts b/src/agents/command/attempt-execution.ts
-index 56b4dfc5195..1c97df83d90 100644
+index 3e411245c4a..48ecc16f062 100644
 --- a/src/agents/command/attempt-execution.ts
 +++ b/src/agents/command/attempt-execution.ts
-@@ -1225,7 +1225,8 @@ export function runAgentAttempt(params: {
+@@ -1227,7 +1227,8 @@ export function runAgentAttempt(params: {
      modelRun: params.opts.modelRun,
      promptMode: params.opts.promptMode,
      disableTools,
@@ -97,10 +97,10 @@ index 56b4dfc5195..1c97df83d90 100644
      deferTerminalLifecycle: params.deferTerminalLifecycle,
      suppressNextUserMessagePersistence: params.suppressPromptPersistenceOnRetry === true,
 diff --git a/src/agents/command/types.ts b/src/agents/command/types.ts
-index eee4fb30032..cfae945c6a5 100644
+index 282605b68ff..08652a9d2fa 100644
 --- a/src/agents/command/types.ts
 +++ b/src/agents/command/types.ts
-@@ -219,6 +219,8 @@ export type AgentCommandOpts = {
+@@ -221,6 +221,8 @@ export type AgentCommandOpts = {
    modelRun?: boolean;
    /** Internal prompt-mode override for trusted local/gateway callsites. */
    promptMode?: PromptMode;
@@ -110,17 +110,17 @@ index eee4fb30032..cfae945c6a5 100644
    acpTurnSource?: AcpTurnSource;
    /** Internal handoffs can feed the model without writing the synthetic prompt to transcript. */
 diff --git a/src/gateway/agent-turn/agent-run-execution-phase.ts b/src/gateway/agent-turn/agent-run-execution-phase.ts
-index 3a2fc9266ab..f17fbab7b14 100644
+index 2a589c632f4..37eb369fac8 100644
 --- a/src/gateway/agent-turn/agent-run-execution-phase.ts
 +++ b/src/gateway/agent-turn/agent-run-execution-phase.ts
-@@ -404,6 +404,7 @@ export function startAgentRunExecution(params: {
-           lane: params.request.lane,
-           modelRun: params.request.modelRun === true,
-           promptMode: params.request.promptMode,
-+          allowEmptyAssistantReplyAsSilent: params.request.allowEmptyAssistantReplyAsSilent,
-           extraSystemPrompt: params.request.extraSystemPrompt,
-           bootstrapContextMode: params.request.bootstrapContextMode,
-           bootstrapContextRunKind: params.effectiveBootstrapContextRunKind,
+@@ -309,6 +309,7 @@ export function startAgentRunExecution(params: {
+               lane: params.request.lane,
+               modelRun: params.request.modelRun === true,
+               promptMode: params.request.promptMode,
++              allowEmptyAssistantReplyAsSilent: params.request.allowEmptyAssistantReplyAsSilent,
+               extraSystemPrompt: params.request.extraSystemPrompt,
+               gitCoauthorAttribution: prepareGitCoauthorAttribution({
+                 agentId: params.activeSessionAgentId,
 diff --git a/src/gateway/server-methods/agent-request-types.ts b/src/gateway/server-methods/agent-request-types.ts
 index 7dbe6270614..dfbbd833ec0 100644
 --- a/src/gateway/server-methods/agent-request-types.ts
@@ -134,7 +134,7 @@ index 7dbe6270614..dfbbd833ec0 100644
    bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
    acpTurnSource?: "manual_spawn";
 diff --git a/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts b/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
-index 053d2bd4742..c015dfde61e 100644
+index 2b35cfbba6d..603cbd08d47 100644
 --- a/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
 +++ b/src/gateway/server-methods/agent.events-and-subagents.test-utils.ts
 @@ -487,6 +487,7 @@ describe("gateway agent handler", () => {
