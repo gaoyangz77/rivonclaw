@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.106",
+    "date": "2026-08-20",
+    "en": [
+      "Make Affiliate campaign plan generation resilient to partial data and generation failures"
+    ],
+    "zh": [
+      "提升达人 Campaign 计划生成对数据缺失与生成异常的容错能力"
+    ]
+  },
+  {
     "version": "1.8.105",
     "date": "2026-08-20",
     "en": [
