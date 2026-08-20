@@ -1,4 +1,4 @@
-From 3cc11b9c7ef61d93794fb873b7b22a89ec5ae0a6 Mon Sep 17 00:00:00 2001
+From a575596e174ad4a2fa5a82ac612489b91884a1a2 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 20:28:02 -0700
 Subject: [PATCH] vendor(openclaw): run image tool prompts in child process
@@ -63,10 +63,10 @@ index 00000000000..5d8af64b06d
 +  }
 +});
 diff --git a/src/agents/tools/image-tool.test.ts b/src/agents/tools/image-tool.test.ts
-index 47a907b759f..bd0030c98c0 100644
+index 5144eb67034..ea0d2496e44 100644
 --- a/src/agents/tools/image-tool.test.ts
 +++ b/src/agents/tools/image-tool.test.ts
-@@ -3487,4 +3487,53 @@ describe("image tool run abort", () => {
+@@ -3593,4 +3593,53 @@ describe("image tool run abort", () => {
      });
    });
  });
@@ -103,7 +103,7 @@ index 47a907b759f..bd0030c98c0 100644
 +
 +      const result = await tool.execute("t1", {
 +        prompt: "Describe the image.",
-+        image: `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
++        path: `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
 +      });
 +
 +      expect(childRunner).toHaveBeenCalledTimes(1);
@@ -121,10 +121,10 @@ index 47a907b759f..bd0030c98c0 100644
 +});
  /* oxlint-disable max-lines -- TODO: split this grandfathered oversized file. */
 diff --git a/src/agents/tools/image-tool.ts b/src/agents/tools/image-tool.ts
-index f203faf4a43..bf8e949b3ca 100644
+index 9bfdb28797a..6a281c0b1ca 100644
 --- a/src/agents/tools/image-tool.ts
 +++ b/src/agents/tools/image-tool.ts
-@@ -1,8 +1,13 @@
+@@ -1,9 +1,14 @@
 -import { resolve, isAbsolute } from "node:path";
 +import { fork } from "node:child_process";
 +import { existsSync } from "node:fs";
@@ -132,6 +132,7 @@ index f203faf4a43..bf8e949b3ca 100644
 +import { fileURLToPath } from "node:url";
  import { Type } from "typebox";
  import { findCapabilityProviderById } from "../../../packages/media-generation-core/src/capability-model-ref.js";
+ import { normalizeMediaProviderId } from "../../../packages/media-understanding-common/src/provider-id.js";
  import type { OpenClawConfig } from "../../config/types.openclaw.js";
  import type { MediaUnderstandingModelConfig } from "../../config/types.tools.js";
 +import { formatErrorMessage } from "../../infra/errors.js";
@@ -139,7 +140,7 @@ index f203faf4a43..bf8e949b3ca 100644
  import {
    DEFAULT_TIMEOUT_SECONDS,
    resolveAutoMediaKeyProviders,
-@@ -88,6 +93,8 @@ import {
+@@ -83,6 +88,8 @@ import {
  
  const DEFAULT_PROMPT = "Describe the image.";
  const DEFAULT_MAX_IMAGES = 20;
@@ -148,7 +149,7 @@ index f203faf4a43..bf8e949b3ca 100644
  
  type ImageToolLoadWebMediaOptions = {
    maxBytes?: number;
-@@ -232,6 +239,9 @@ const testing = {
+@@ -223,6 +230,9 @@ const testing = {
      imageToolProviderDeps.loadImageWebMediaRuntime =
        overrides?.loadImageWebMediaRuntime ?? loadImageWebMediaRuntime;
    },
@@ -158,7 +159,7 @@ index f203faf4a43..bf8e949b3ca 100644
  } as const;
  
  function resolveImageToolMaxTokens(modelMaxTokens: number | undefined, requestedMaxTokens = 4096) {
-@@ -692,7 +702,7 @@ type ImageSandboxConfig = {
+@@ -663,7 +673,7 @@ type ImageSandboxConfig = {
    bridge: SandboxFsBridge;
  };
  
@@ -167,7 +168,7 @@ index f203faf4a43..bf8e949b3ca 100644
    cfg?: OpenClawConfig;
    agentId?: string;
    agentDir: string;
-@@ -704,12 +714,16 @@ async function runImagePrompt(params: {
+@@ -675,12 +685,16 @@ async function runImagePrompt(params: {
    workspaceDir?: string;
    preparedModelRuntime?: PreparedModelRuntimeSnapshot;
    signal?: AbortSignal;
@@ -186,7 +187,7 @@ index f203faf4a43..bf8e949b3ca 100644
    const effectiveCfg = applyImageModelConfigDefaults(params.cfg, params.imageModelConfig);
    const providerCfg: OpenClawConfig = effectiveCfg ?? {};
    const preparedProviders =
-@@ -842,6 +856,129 @@ async function runImagePrompt(params: {
+@@ -813,6 +827,129 @@ async function runImagePrompt(params: {
    };
  }
  
@@ -316,7 +317,7 @@ index f203faf4a43..bf8e949b3ca 100644
  export function createImageTool(options?: {
    config?: OpenClawConfig;
    agentId?: string;
-@@ -1156,7 +1293,7 @@ export function createImageTool(options?: {
+@@ -1127,7 +1264,7 @@ export function createImageTool(options?: {
        // Do not issue a paid vision-provider call for an already-aborted run.
        signal?.throwIfAborted();
        // Text-only runs delegate image understanding to the configured fallback model.
@@ -326,13 +327,13 @@ index f203faf4a43..bf8e949b3ca 100644
          cfg: options?.config,
          agentId: options?.agentId,
 diff --git a/tsdown.config.ts b/tsdown.config.ts
-index 8e03a849e51..9f9e75f8551 100644
+index 4e57d4aaf1a..7ea679e85d7 100644
 --- a/tsdown.config.ts
 +++ b/tsdown.config.ts
-@@ -293,6 +293,7 @@ function buildCoreDistEntries(): Record<string, string> {
-     "agents/code-mode.worker": "src/agents/code-mode.worker.ts",
+@@ -358,6 +358,7 @@ function buildCoreDistEntries(): Record<string, string> {
      "agents/compaction-planning.worker": "src/agents/compaction-planning.worker.ts",
      "agents/model-provider-auth.worker": "src/agents/model-provider-auth.worker.ts",
+     "agents/prepared-model-catalog.worker": "src/agents/prepared-model-catalog.worker.ts",
 +    "agents/tools/image-tool-worker": "src/agents/tools/image-tool-worker.ts",
      "audit/audit-event-writer.worker": "src/audit/audit-event-writer.worker.ts",
      "config/sessions/session-accessor.sqlite-archive.worker":

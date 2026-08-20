@@ -43,6 +43,10 @@ describe("loadGatewayToolCatalogTools", () => {
     });
 
     expect(request).toHaveBeenCalledTimes(4);
+    expect(request).toHaveBeenCalledWith("tools.catalog", {
+      agentId: "main",
+      includePlugins: true,
+    });
     expect(sleep).toHaveBeenCalledTimes(1);
     expect(tools).toEqual([
       { id: "read", source: "core" },

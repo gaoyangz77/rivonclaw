@@ -851,7 +851,6 @@ describe("config-writer", () => {
         custom: { default: false, workspace: "/custom" },
         "customer-service": {
           workspace: "/state/workspace-customer-service",
-          contextTokens: 100_000,
           thinkingDefault: "off",
           reasoningDefault: "off",
         },
