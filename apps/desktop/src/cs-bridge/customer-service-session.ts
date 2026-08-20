@@ -61,6 +61,11 @@ import {
 } from "./cs-agent-dispatch-resolver.js";
 import { buildCustomerServiceSessionKey } from "./customer-service-agent.js";
 import { buildFeishuCsEscalationCard } from "./cs-escalation-card.js";
+import type {
+  CsRunAdmissionLease,
+  CsRunAdmissionMode,
+  CsRunAdmissionRequest,
+} from "./cs-run-admission.js";
 
 const log = createLogger("cs-session");
 const WEIXIN_CHANNEL_ID = "openclaw-weixin";
@@ -252,6 +257,7 @@ interface CatchUpDispatchOptions {
   latestMessagePreview?: string;
   currentMessageCursor?: CustomerServiceMessageCursor;
   useMessageDelta?: boolean;
+  admissionMode?: CsRunAdmissionMode;
 }
 
 type PendingBuyerDispatchBase = {
@@ -318,6 +324,9 @@ export class CustomerServiceSession {
   /** Lookup from gateway runId → owning round. */
   private roundsByRunId = new Map<string, CSRound>();
 
+  /** Admission mode of each accepted run, retained for delivery-recovery follow-ups. */
+  private admissionModeByRunId = new Map<string, CsRunAdmissionMode>();
+
   /** Number of runs aborted since the last successful delivery to the buyer. */
   private undeliveredCount = 0;
 
@@ -339,8 +348,9 @@ export class CustomerServiceSession {
     private readonly opts?: {
       defaultRunProfileId?: string;
       locale?: () => string | undefined;
+      acquireRunAdmission?: (request: CsRunAdmissionRequest) => Promise<CsRunAdmissionLease>;
       /** Called after a successful agent dispatch, so the Bridge can track the run globally. */
-      onRunDispatched?: (runId: string) => void;
+      onRunDispatched?: (runId: string, admissionLease?: CsRunAdmissionLease) => void;
     },
   ) {
     this.platform = shop.platform ?? "tiktok";
@@ -411,24 +421,37 @@ export class CustomerServiceSession {
 
   // -- Round lifecycle --------------------------------------------------------
 
-  private createBuyerRound(roundId: string, messageIndex?: string): CSRound {
-    return new CSRound(roundId, this.undeliveredCount, roundId, messageIndex);
+  private createBuyerRound(
+    roundId: string,
+    messageIndex?: string,
+    admissionMode: CsRunAdmissionMode = "bypass",
+  ): CSRound {
+    return new CSRound(roundId, this.undeliveredCount, roundId, messageIndex, admissionMode);
   }
 
-  private ensureActiveRound(roundId: string): CSRound {
+  private ensureActiveRound(
+    roundId: string,
+    admissionMode: CsRunAdmissionMode = "bypass",
+  ): CSRound {
     if (this.activeRound) return this.activeRound;
-    const round = new CSRound(roundId, 0);
+    const round = new CSRound(roundId, 0, undefined, undefined, admissionMode);
     this.activeRound = round;
     return round;
   }
 
-  private attachRunToRound(runId: string, round: CSRound): void {
+  private attachRunToRound(
+    runId: string,
+    round: CSRound,
+    admissionMode?: CsRunAdmissionMode,
+  ): void {
     this.roundsByRunId.set(runId, round);
+    if (admissionMode) this.admissionModeByRunId.set(runId, admissionMode);
   }
 
   private disposeRound(round: CSRound): void {
     for (const runId of round.getTrackedRunIds()) {
       this.roundsByRunId.delete(runId);
+      this.admissionModeByRunId.delete(runId);
     }
     if (this.activeRound === round) {
       this.activeRound = null;
@@ -614,7 +637,7 @@ export class CustomerServiceSession {
     messageId: string,
     messageIndex?: string,
   ): PendingBuyerDispatch {
-    const round = this.createBuyerRound(messageId, messageIndex);
+    const round = this.createBuyerRound(messageId, messageIndex, input.options.admissionMode);
     const placeholder = round.placeholderRunId;
     let resolve!: (result: DispatchResult) => void;
     let reject!: (error: unknown) => void;
@@ -1110,6 +1133,7 @@ export class CustomerServiceSession {
     const round =
       this.roundsByRunId.get(params.failedRunId) ??
       this.ensureActiveRound(`recovery:${params.failedRunId}`);
+    const admissionMode = this.admissionModeByRunId.get(params.failedRunId) ?? round.admissionMode;
     this.attachRunToRound(params.failedRunId, round);
 
     const recovery = round.planSensitiveRecovery(
@@ -1153,6 +1177,7 @@ export class CustomerServiceSession {
         idempotencyKey,
         round,
         placeholder,
+        admissionMode,
       });
       if (result.runId) {
         round.registerSensitiveRecoveryRun(result.runId);
@@ -1447,6 +1472,7 @@ export class CustomerServiceSession {
           currentMessageIndex: options.currentMessageIndex,
           messageType: options.messageType,
           senderRole: options.senderRole,
+          admissionMode: options.admissionMode,
           advanceSessionCursor: options.currentMessageCursor ?? {
             messageId: options.currentMessageId,
           },
@@ -1463,6 +1489,7 @@ export class CustomerServiceSession {
       currentMessageIndex: options?.currentMessageIndex,
       messageType: options?.messageType,
       senderRole: options?.senderRole,
+      admissionMode: options?.admissionMode,
       advanceSessionCursor: options?.currentMessageCursor,
     });
   }
@@ -1608,6 +1635,7 @@ export class CustomerServiceSession {
         messageType: options.messageType,
         senderRole: options.senderRole,
         attachments,
+        admissionMode: options.admissionMode,
         advanceSessionCursor: options.currentMessageCursor ?? {
           messageId: options.currentMessageId,
         },
@@ -2091,11 +2119,23 @@ export class CustomerServiceSession {
     currentMessageIndex?: string;
     messageType?: string;
     senderRole?: string;
+    admissionMode?: CsRunAdmissionMode;
     advanceSessionCursor?: CustomerServiceMessageCursor;
   }): Promise<DispatchResult> {
     const dispatchStartedAt = Date.now();
+    const admissionMode = params.admissionMode ?? params.round?.admissionMode ?? "bypass";
     let extraSystemPrompt = "";
+    let admissionLease: CsRunAdmissionLease | undefined;
+    let admissionTransferred = false;
+    let acceptedRunId: string | undefined;
     try {
+      if (admissionMode === "automatic" && this.opts?.acquireRunAdmission) {
+        admissionLease = await this.opts.acquireRunAdmission({
+          conversationId: this.csContext.conversationId,
+          dispatchReason: params.dispatchReason,
+          source: params.dispatchSource,
+        });
+      }
       await this.setup();
       extraSystemPrompt = this.extraSystemPrompt;
       this.emitDispatchTelemetry({
@@ -2137,6 +2177,7 @@ export class CustomerServiceSession {
       );
 
       const runId = response?.runId;
+      acceptedRunId = runId;
       log.info(
         `Agent dispatch accepted: runId=${runId ?? "none"} conv=${this.csContext.conversationId} ` +
           `acceptedMs=${Date.now() - dispatchStartedAt}`,
@@ -2158,7 +2199,8 @@ export class CustomerServiceSession {
         messageChars: params.message.length,
         attachmentCount: params.attachments?.length ?? 0,
       });
-      const round = params.round ?? this.ensureActiveRound(`dispatch:${params.idempotencyKey}`);
+      const round =
+        params.round ?? this.ensureActiveRound(`dispatch:${params.idempotencyKey}`, admissionMode);
       if (!this.activeRound) {
         this.activeRound = round;
       }
@@ -2181,7 +2223,7 @@ export class CustomerServiceSession {
             this.activeRound === round,
             params.placeholder,
           );
-          this.attachRunToRound(runId, round);
+          this.attachRunToRound(runId, round, admissionMode);
           if (disposition === "aborted") {
             log.info(
               `Dispatch completed for aborted placeholder ${params.placeholder} → runId=${runId} (not tracking, newer message took over)`,
@@ -2199,7 +2241,8 @@ export class CustomerServiceSession {
               idempotencyKey: params.idempotencyKey,
               runId,
             });
-            this.opts?.onRunDispatched?.(runId);
+            this.opts?.onRunDispatched?.(runId, admissionLease);
+            admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
           } else if (disposition === "stale") {
             log.info(
               `Dispatch completed but placeholder ${params.placeholder} was replaced, marking runId=${runId} as aborted`,
@@ -2217,16 +2260,19 @@ export class CustomerServiceSession {
               idempotencyKey: params.idempotencyKey,
               runId,
             });
-            this.opts?.onRunDispatched?.(runId);
+            this.opts?.onRunDispatched?.(runId, admissionLease);
+            admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
           } else {
             log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
-            this.opts?.onRunDispatched?.(runId);
+            this.opts?.onRunDispatched?.(runId, admissionLease);
+            admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
           }
         } else {
           round.assumeRunDispatched(runId);
-          this.attachRunToRound(runId, round);
+          this.attachRunToRound(runId, round, admissionMode);
           log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
-          this.opts?.onRunDispatched?.(runId);
+          this.opts?.onRunDispatched?.(runId, admissionLease);
+          admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
         }
       } else {
         if (round && params.placeholder && this.activeRound === round) {
@@ -2253,6 +2299,10 @@ export class CustomerServiceSession {
         errorMessage: err,
       });
       throw err;
+    } finally {
+      if (admissionLease && !admissionTransferred) {
+        admissionLease.release(acceptedRunId ? "untracked_run" : "dispatch_not_accepted");
+      }
     }
   }
 

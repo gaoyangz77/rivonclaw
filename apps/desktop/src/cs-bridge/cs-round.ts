@@ -1,3 +1,5 @@
+import type { CsRunAdmissionMode } from "./cs-run-admission.js";
+
 export interface SensitiveRecoveryPlan {
   ok: boolean;
   status?: "skipped_nested_recovery" | "skipped_limit_reached";
@@ -26,6 +28,7 @@ export class CSRound {
     readonly undeliveredCountAtStart: number,
     readonly buyerMessageId?: string,
     readonly buyerMessageIndex?: string,
+    readonly admissionMode: CsRunAdmissionMode = "bypass",
   ) {
     this.placeholderRunId = `pending:${roundId}`;
     this.activeRunId = this.placeholderRunId;

@@ -316,7 +316,6 @@ function buildTestConversationDeltaResult(currentMessageId: unknown): {
   };
 }
 
-
 /** Simulate the production backend signal path for a buyer message. */
 async function triggerMessage(
   bridge: CustomerServiceBridge,
@@ -374,7 +373,6 @@ async function triggerMessage(
   });
 }
 
-
 function setChannelManagerTestEnv(stateDir: string): void {
   rootStore.channelManager.setEnv({
     storage: {
@@ -406,6 +404,7 @@ beforeEach(() => {
   csTestFramesByMessageId.clear();
   rootStore.llmManager.clearVolatileSessionState();
   process.env.RIVONCLAW_CS_BUYER_QUIET_WINDOW_MS = "0";
+  delete process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT;
   delete process.env.RIVONCLAW_CS_IMAGE_COMPRESSION;
   applySnapshot(rootStore.toolCapability.sessionProfiles, {});
   setSessionRunProfileCalls.length = 0;
@@ -590,7 +589,6 @@ beforeEach(() => {
   // the fixture value on each shop they seed (or omit it / set it to null to
   // exercise the "prompt not ready yet" path).
 });
-
 
 // ─── 1. Shop context management ─────────────────────────────────────────────
 
@@ -2950,7 +2948,362 @@ describe("escalate", () => {
   });
 });
 
-// ─── 13. Rapid buyer message handling (abort + redispatch) ────────────────────
+// ─── 13. Automatic CS run admission ──────────────────────────────────────────
+
+describe("automatic CS run admission", () => {
+  function installImmediateAgentRpc(): void {
+    mockRpcRequest.mockImplementation((method: string, params?: any) => {
+      if (method === "agent") return Promise.resolve({ runId: params.idempotencyKey });
+      if (method === "chat.abort") return Promise.resolve({ aborted: true });
+      if (method === "cs_register_session") return Promise.resolve(true);
+      if (method === "sessions.patch") return Promise.resolve(true);
+      return Promise.resolve({ ok: true });
+    });
+  }
+
+  it("holds automatic slots until Gateway run terminals and admits the next waiter", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "2";
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    await Promise.all([
+      triggerMessage(
+        bridge,
+        createFrame({ conversationId: "conv-limit-1", messageId: "msg-limit-1" }),
+      ),
+      triggerMessage(
+        bridge,
+        createFrame({ conversationId: "conv-limit-2", messageId: "msg-limit-2" }),
+      ),
+    ]);
+    const third = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-limit-3", messageId: "msg-limit-3" }),
+    );
+
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+        active: 2,
+        queued: 1,
+      });
+    });
+    expect(mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent")).toHaveLength(2);
+
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: "cs-start:conv-limit-1:msg-limit-1", state: "final" },
+    } as any);
+    await third;
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent");
+    expect(agentCalls).toHaveLength(3);
+    expect(agentCalls[2][1].idempotencyKey).toBe("cs-start:conv-limit-3:msg-limit-3");
+    expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+      active: 2,
+      queued: 0,
+    });
+    bridge.stop();
+  });
+
+  it("admits queued automatic dispatches in FIFO order", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-fifo-1", messageId: "msg-fifo-1" }),
+    );
+    const second = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-fifo-2", messageId: "msg-fifo-2" }),
+    );
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState().queued).toBe(1);
+    });
+    const third = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-fifo-3", messageId: "msg-fifo-3" }),
+    );
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState().queued).toBe(2);
+    });
+
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: "cs-start:conv-fifo-1:msg-fifo-1", state: "final" },
+    } as any);
+    await second;
+    let agentCalls = mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent");
+    expect(agentCalls.map((call: any[]) => call[1].idempotencyKey)).toEqual([
+      "cs-start:conv-fifo-1:msg-fifo-1",
+      "cs-start:conv-fifo-2:msg-fifo-2",
+    ]);
+
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: "cs-start:conv-fifo-2:msg-fifo-2", state: "error" },
+    } as any);
+    await third;
+    agentCalls = mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent");
+    expect(agentCalls.map((call: any[]) => call[1].idempotencyKey)).toEqual([
+      "cs-start:conv-fifo-1:msg-fifo-1",
+      "cs-start:conv-fifo-2:msg-fifo-2",
+      "cs-start:conv-fifo-3:msg-fifo-3",
+    ]);
+    bridge.stop();
+  });
+
+  it("shares one automatic pool across buyer, Airflow, session-expiry, and bad-review dispatches", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    const dispatchAutomatic = (
+      conversationId: string,
+      dispatchReason:
+        | "PENDING_BUYER_MESSAGE"
+        | "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"
+        | "BAD_REVIEW_REACHOUT",
+      source: string,
+    ) =>
+      (bridge as any).dispatchCsConversationSignalNow({
+        type: "UNREAD_DETECTED",
+        source,
+        shopId: defaultShop.objectId,
+        platformShopId: defaultShop.platformShopId,
+        conversationId,
+        messageId: dispatchReason === "PENDING_BUYER_MESSAGE" ? `msg-${conversationId}` : undefined,
+        buyerUserId: `buyer-${conversationId}`,
+        senderRole: "BUYER",
+        aiEnabled: true,
+        dispatchReason,
+        useMessageDelta: false,
+      });
+
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-buyer-shared", messageId: "msg-buyer-shared" }),
+    );
+    const airflow = dispatchAutomatic("conv-airflow-shared", "PENDING_BUYER_MESSAGE", "AIRFLOW");
+    const expiry = dispatchAutomatic(
+      "conv-expiry-shared",
+      "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
+      "backend_subscription",
+    );
+    const review = dispatchAutomatic(
+      "conv-review-shared",
+      "BAD_REVIEW_REACHOUT",
+      "backend_subscription",
+    );
+
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+        active: 1,
+        queued: 3,
+      });
+    });
+    expect(
+      mockRpcRequest.mock.calls
+        .filter((call: any[]) => call[0] === "agent")
+        .map((call: any[]) => call[1].sessionKey),
+    ).toEqual(["agent:customer-service:cs:tiktok:mongo-id-123:conv-buyer-shared"]);
+
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: {
+        runId: "cs-start:conv-buyer-shared:msg-buyer-shared",
+        state: "final",
+      },
+    } as any);
+    await airflow;
+    expect(
+      mockRpcRequest.mock.calls
+        .filter((call: any[]) => call[0] === "agent")
+        .map((call: any[]) => call[1].sessionKey),
+    ).toEqual([
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-buyer-shared",
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-airflow-shared",
+    ]);
+
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: {
+        runId: "cs-retry:conv-airflow-shared:msg-conv-airflow-shared:unknown",
+        state: "final",
+      },
+    } as any);
+    await expiry;
+    expect(
+      mockRpcRequest.mock.calls
+        .filter((call: any[]) => call[0] === "agent")
+        .map((call: any[]) => call[1].sessionKey),
+    ).toEqual([
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-buyer-shared",
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-airflow-shared",
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-expiry-shared",
+    ]);
+
+    const expiryRunId = mockRpcRequest.mock.calls
+      .filter((call: any[]) => call[0] === "agent")
+      .find((call: any[]) =>
+        call[1].sessionKey.endsWith(":conv-expiry-shared"),
+      )?.[1].idempotencyKey;
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: expiryRunId, state: "error" },
+    } as any);
+    await review;
+    expect(
+      mockRpcRequest.mock.calls
+        .filter((call: any[]) => call[0] === "agent")
+        .map((call: any[]) => call[1].sessionKey),
+    ).toEqual([
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-buyer-shared",
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-airflow-shared",
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-expiry-shared",
+      "agent:customer-service:cs:tiktok:mongo-id-123:conv-review-shared",
+    ]);
+    bridge.stop();
+  });
+
+  it("lets panel and manager dispatches bypass a saturated automatic queue", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-auto-active", messageId: "msg-auto-active" }),
+    );
+    await bridge.dispatchCatchUp({
+      shopObjectId: defaultShop.objectId,
+      conversationId: "conv-panel-manual",
+      buyerUserId: "buyer-manual",
+      dispatchReason: "MANUAL_START",
+      operatorInstruction: "Review this conversation",
+    });
+    await bridge.executeCsEscalationEvent({
+      escalation: {
+        id: "esc-limit-bypass",
+        shopId: defaultShop.objectId,
+        conversationId: "conv-manager-bypass",
+        buyerUserId: "buyer-manager",
+        orderId: null,
+        reason: "Manager review",
+        context: null,
+        version: 1,
+        status: "RESOLVED",
+      },
+      event: {
+        id: "event-limit-bypass",
+        type: "ESCALATION_RESOLVED",
+        status: "RESOLVED",
+        decision: "Approved",
+        instructions: "Reply to the buyer",
+        createdAt: "2026-08-20T00:00:00.000Z",
+        updatedAt: "2026-08-20T00:00:00.000Z",
+      },
+    } as any);
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent");
+    expect(agentCalls).toHaveLength(3);
+    expect(agentCalls[1][1].idempotencyKey).toContain("cs-start:conv-panel-manual:");
+    expect(agentCalls[2][1].idempotencyKey).toBe("esc-event:esc-limit-bypass:1");
+    expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+      active: 1,
+      queued: 0,
+    });
+    bridge.stop();
+  });
+
+  it("releases an automatic slot when Gateway accepts no run", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    let resolveFirst!: (value: { runId?: string }) => void;
+    let agentCallCount = 0;
+    mockRpcRequest.mockImplementation((method: string, params?: any) => {
+      if (method === "agent") {
+        agentCallCount += 1;
+        if (agentCallCount === 1) {
+          return new Promise<{ runId?: string }>((resolve) => {
+            resolveFirst = resolve;
+          });
+        }
+        return Promise.resolve({ runId: params.idempotencyKey });
+      }
+      if (method === "cs_register_session") return Promise.resolve(true);
+      if (method === "sessions.patch") return Promise.resolve(true);
+      return Promise.resolve({ ok: true });
+    });
+
+    const first = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-empty-1", messageId: "msg-empty-1" }),
+    );
+    await vi.waitFor(() => expect(agentCallCount).toBe(1));
+    const second = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-empty-2", messageId: "msg-empty-2" }),
+    );
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState().queued).toBe(1);
+    });
+
+    resolveFirst({});
+    await Promise.all([first, second]);
+    expect(agentCallCount).toBe(2);
+    expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+      active: 1,
+      queued: 0,
+    });
+    bridge.stop();
+  });
+
+  it("queues a superseding buyer message until the aborted run reaches terminal", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    installImmediateAgentRpc();
+
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-limit-rapid", messageId: "msg-limit-old" }),
+    );
+    const latest = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-limit-rapid", messageId: "msg-limit-new" }),
+    );
+
+    await vi.waitFor(() => {
+      expect(mockRpcRequest.mock.calls.some((call: any[]) => call[0] === "chat.abort")).toBe(true);
+      expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+        active: 1,
+        queued: 1,
+      });
+    });
+
+    bridge.onGatewayEvent({
+      event: "chat",
+      payload: { runId: "cs-start:conv-limit-rapid:msg-limit-old", state: "aborted" },
+    } as any);
+    await latest;
+
+    const agentCalls = mockRpcRequest.mock.calls.filter((call: any[]) => call[0] === "agent");
+    expect(agentCalls.map((call: any[]) => call[1].idempotencyKey)).toEqual([
+      "cs-start:conv-limit-rapid:msg-limit-old",
+      "cs-start:conv-limit-rapid:msg-limit-new",
+    ]);
+    bridge.stop();
+  });
+});
+
+// ─── 14. Rapid buyer message handling (abort + redispatch) ────────────────────
 
 describe("rapid buyer messages (abort + redispatch)", () => {
   /**
