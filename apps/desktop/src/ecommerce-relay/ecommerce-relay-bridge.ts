@@ -24,6 +24,11 @@ import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
 import { emitCsDispatchEvent, emitCsError, CS_ERROR_STAGE } from "../telemetry/cs-telemetry-ref.js";
 import { AffiliateInbound } from "../affiliate/affiliate-inbound.js";
 import { openClawConnector } from "../openclaw/index.js";
+import {
+  CsAutomaticRunAdmission,
+  type CsRunAdmissionLease,
+  type CsRunAdmissionMode,
+} from "../cs-bridge/cs-run-admission.js";
 
 const log = createLogger("ecommerce-relay");
 const DEFAULT_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS = 30_000;
@@ -67,6 +72,10 @@ function isAirflowPendingBuyerDispatch(dispatch: CsAgentDispatchRequest): boolea
     dispatch.dispatchReason === "PENDING_BUYER_MESSAGE" &&
     Boolean(dispatch.messageId)
   );
+}
+
+function csSignalAdmissionMode(dispatch: CsAgentDispatchRequest): CsRunAdmissionMode {
+  return dispatch.dispatchReason === "MANUAL_START" ? "bypass" : "automatic";
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +125,8 @@ export class EcommerceRelayBridge {
 
   private closed = false;
 
+  private readonly automaticRunAdmission = new CsAutomaticRunAdmission();
+
   /** Shop context keyed by platformShopId (from webhook). */
   private shopContexts = new Map<string, CSShopContext>();
 
@@ -136,6 +147,7 @@ export class EcommerceRelayBridge {
       conversationId: string;
       session: CustomerServiceSession;
       acceptedAt: number;
+      admissionLease?: CsRunAdmissionLease;
     }
   >();
 
@@ -162,6 +174,7 @@ export class EcommerceRelayBridge {
 
   async start(): Promise<void> {
     this.closed = false;
+    this.automaticRunAdmission.resume();
     this.subscribeToCacheChanges();
     this.syncFromCache();
     runtimeStatusStore.setCsBridgeConnected();
@@ -171,6 +184,7 @@ export class EcommerceRelayBridge {
   stop(): void {
     this.gatewayGeneration += 1;
     this.closed = true;
+    this.automaticRunAdmission.reset("bridge_stopped");
     // Unsubscribe from entity cache
     if (this.cacheUnsubscribe) {
       this.cacheUnsubscribe();
@@ -192,6 +206,7 @@ export class EcommerceRelayBridge {
   suspendForGatewayDisconnect(): void {
     this.gatewayGeneration += 1;
     this.closed = true;
+    this.automaticRunAdmission.pause();
     runtimeStatusStore.setCsBridgeDisconnected();
     log.warn(`Ecommerce signal bridge suspended with ${this.pendingRuns.size} pending run(s)`);
   }
@@ -216,6 +231,9 @@ export class EcommerceRelayBridge {
     } finally {
       if (this.reconnectRecovery?.promise === recovery) {
         this.reconnectRecovery = null;
+      }
+      if (this.isGatewayGenerationCurrent(generation)) {
+        this.automaticRunAdmission.resume();
       }
     }
   }
@@ -303,7 +321,7 @@ export class EcommerceRelayBridge {
    *   or lifecycle-end), the accumulated-but-unsent text is forwarded to the buyer
    *   as a separate message. This gives the buyer incremental responses instead of
    *   one large blob at run completion.
-   * - `chat` events with `state: "final"`: run lifecycle cleanup. Text
+   * - terminal `chat` events (`final`, `error`, or `aborted`): run lifecycle cleanup. Text
    *   forwarding is handled by agent events, so the chat handler no longer
    *   sends text.
    */
@@ -331,7 +349,7 @@ export class EcommerceRelayBridge {
       return;
     }
 
-    if (payload.state === "final" || payload.state === "error") {
+    if (payload.state === "final" || payload.state === "error" || payload.state === "aborted") {
       this.pendingRuns.delete(payload.runId);
       this.completePendingRun(payload.runId, pending, payload);
     }
@@ -339,37 +357,41 @@ export class EcommerceRelayBridge {
 
   private completePendingRun(
     runId: string,
-    pending: { session: CustomerServiceSession },
+    pending: { session: CustomerServiceSession; admissionLease?: CsRunAdmissionLease },
     payload: { state?: string; errorKind?: string; errorMessage?: string },
   ): void {
-    const session = pending.session;
-    // Lifecycle events normally flush the last assistant turn first. Keep
-    // chat completion as a safety net so a missing lifecycle frame cannot
-    // turn real buffered text into a handled-without-reply acknowledgement.
-    this.flushTurnText(runId, session);
-    const completion = session.onRunCompleted(runId);
-    if (completion.wasAborted) {
-      log.info(`Run ${runId} was aborted, skipping auto-forward`);
-    } else if (payload.state === "error") {
-      const errorMessage = payload.errorMessage?.trim() || "Gateway agent run failed";
-      log.warn(`Agent run ${runId} failed: ${errorMessage}`);
-      session.emitError(CS_ERROR_STAGE.RUN_ERROR, {
-        reason: payload.errorKind?.trim() || "gateway_error",
-        errorMessage,
-        runId,
-      });
-    } else if (
-      !completion.hadForwardedText &&
-      !completion.hadTerminalToolAction &&
-      !completion.hadOperationalFailure
-    ) {
-      void session.acknowledgeHandledWithoutReply({
-        runId,
-        messageId: completion.buyerMessageId,
-        messageIndex: completion.buyerMessageIndex,
-      });
+    try {
+      const session = pending.session;
+      // Lifecycle events normally flush the last assistant turn first. Keep
+      // chat completion as a safety net so a missing lifecycle frame cannot
+      // turn real buffered text into a handled-without-reply acknowledgement.
+      this.flushTurnText(runId, session);
+      const completion = session.onRunCompleted(runId);
+      if (completion.wasAborted) {
+        log.info(`Run ${runId} was aborted, skipping auto-forward`);
+      } else if (payload.state === "error") {
+        const errorMessage = payload.errorMessage?.trim() || "Gateway agent run failed";
+        log.warn(`Agent run ${runId} failed: ${errorMessage}`);
+        session.emitError(CS_ERROR_STAGE.RUN_ERROR, {
+          reason: payload.errorKind?.trim() || "gateway_error",
+          errorMessage,
+          runId,
+        });
+      } else if (
+        !completion.hadForwardedText &&
+        !completion.hadTerminalToolAction &&
+        !completion.hadOperationalFailure
+      ) {
+        void session.acknowledgeHandledWithoutReply({
+          runId,
+          messageId: completion.buyerMessageId,
+          messageIndex: completion.buyerMessageIndex,
+        });
+      }
+      session.clearTurnText(runId);
+    } finally {
+      pending.admissionLease?.release(`run_${payload.state ?? "terminal"}`);
     }
-    session.clearTurnText(runId);
   }
 
   private async restorePendingRunDelivery(generation: number): Promise<void> {
@@ -940,6 +962,7 @@ export class EcommerceRelayBridge {
         senderRole: dispatch.senderRole ?? undefined,
         latestMessagePreview: dispatch.latestMessagePreview ?? undefined,
         useMessageDelta: dispatch.useMessageDelta,
+        admissionMode: csSignalAdmissionMode(dispatch),
         currentMessageCursor:
           dispatch.messageId || dispatch.messageIndex || dispatch.eventTime
             ? {
@@ -1068,6 +1091,7 @@ export class EcommerceRelayBridge {
       currentMessageId: params.currentMessageId,
       currentMessageIndex: params.currentMessageIndex,
       source: "panel",
+      admissionMode: "bypass",
       useMessageDelta: params.useMessageDelta,
       currentMessageCursor:
         params.currentMessageId ||
@@ -1125,12 +1149,20 @@ export class EcommerceRelayBridge {
     session = new CustomerServiceSession(shop, csContext, {
       defaultRunProfileId: this.opts.defaultRunProfileId,
       locale: () => this.opts.locale,
-      onRunDispatched: (runId) => {
+      acquireRunAdmission: (request) => this.automaticRunAdmission.acquire(request),
+      onRunDispatched: (runId, admissionLease) => {
+        const existing = this.pendingRuns.get(runId);
+        if (existing) {
+          admissionLease?.release("duplicate_run_id");
+          log.warn(`Ignoring duplicate CS run registration for runId=${runId}`);
+          return;
+        }
         this.pendingRuns.set(runId, {
           shopObjectId,
           conversationId: params.conversationId,
           session,
           acceptedAt: Date.now(),
+          admissionLease,
         });
       },
     });
