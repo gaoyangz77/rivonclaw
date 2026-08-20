@@ -229,6 +229,21 @@ export const DEFAULT_CAMPAIGN_STATUS_FILTERS: GQL.AffiliateCampaignStatus[] = [
   GQL.AffiliateCampaignStatus.Draft,
 ];
 
+const CAMPAIGN_TEMPLATE_VARIABLES = new Set([
+  "creator_name",
+  "product_name",
+  "shop_name",
+]);
+
+export function unsupportedAffiliateCampaignTemplateVariables(value: string): string[] {
+  const unsupported = new Set<string>();
+  for (const match of value.matchAll(/\{\{\s*([^}]+)\s*\}\}/g)) {
+    const variable = match[1]?.trim();
+    if (variable && !CAMPAIGN_TEMPLATE_VARIABLES.has(variable)) unsupported.add(variable);
+  }
+  return [...unsupported];
+}
+
 export function paginateCampaigns<T>(
   items: readonly T[],
   page: number,
@@ -553,6 +568,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     return !product.productId.trim() || !Number.isFinite(rate) || rate < 0 || rate > 100;
   }) || new Set(form.products.map((product) => product.productId.trim())).size
     !== form.products.length;
+  const unsupportedTemplateVariables = unsupportedAffiliateCampaignTemplateVariables(
+    form.templateText,
+  );
 
   const validateStep = () => {
     if (
@@ -589,6 +607,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       showToast(t("ecommerce.affiliateCampaign.templateRequired"), "error");
       return false;
     }
+    if (wizardStep >= 3 && unsupportedTemplateVariables.length > 0) return false;
     if (wizardStep === 2 && form.searchPlanGuidance.length > 500) return false;
     return true;
   };
@@ -2329,6 +2348,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     rows={8}
                     maxLength={2000}
                     value={form.templateText}
+                    aria-invalid={unsupportedTemplateVariables.length > 0}
+                    aria-describedby={
+                      unsupportedTemplateVariables.length > 0
+                        ? "affiliate-campaign-template-variable-error"
+                        : undefined
+                    }
                     onChange={(event) => {
                       updateForm("templateText", event.target.value);
                       updateForm(
@@ -2338,6 +2363,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     }}
                     placeholder={t("ecommerce.affiliateCampaign.messagePlaceholder")}
                   />
+                  {unsupportedTemplateVariables.length > 0 && (
+                    <small
+                      id="affiliate-campaign-template-variable-error"
+                      className="affiliate-campaign-template-error"
+                      role="alert"
+                    >
+                      {t("ecommerce.affiliateCampaign.templateUnsupportedVariables", {
+                        variables: unsupportedTemplateVariables
+                          .map((variable) => `{{${variable}}}`)
+                          .join(", "),
+                      })}
+                    </small>
+                  )}
                   <small>
                     {form.templateText.length}/2000 ·{" "}
                     {form.templateSource === GQL.AffiliateCampaignMessageTemplateSource.AiGenerated

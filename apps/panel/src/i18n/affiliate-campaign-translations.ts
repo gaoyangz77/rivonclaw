@@ -356,6 +356,8 @@ const en = {
   messageTemplate: "Message template",
   messagePlaceholder:
     "Hi {{creator_name}}, we'd love to invite you to feature {{product_name}} from {{shop_name}}.",
+  templateUnsupportedVariables:
+    "Unsupported template variables: {{variables}}. Use only the supported variables shown above.",
   userAuthored: "User-authored template",
   aiDraftReviewRequired: "AI draft — review before publishing",
   preview: "Rendered preview",
@@ -841,6 +843,7 @@ const zh = {
   generating: "生成中…",
   messageTemplate: "首信模板",
   messagePlaceholder: "你好 {{creator_name}}，我们想邀请你推广 {{shop_name}} 的 {{product_name}}。",
+  templateUnsupportedVariables: "不支持的模板变量：{{variables}}。请只使用上方列出的变量。",
   userAuthored: "用户编写",
   aiDraftReviewRequired: "AI 草稿 · 发布前必须人工确认",
   preview: "发送预览",
@@ -1007,6 +1010,8 @@ const operationalCopy = {
         "Dieser Creator hat das beworbene Produkt bereits in einer anderen Kooperation.",
     },
     updated: "Kampagnenkonfiguration aktualisiert.",
+    templateUnsupportedVariables:
+      "Nicht unterstützte Vorlagenvariablen: {{variables}}. Verwende nur die oben aufgeführten Variablen.",
     authorizationBody: "Nach der Aktivierung darf das Backend qualifizierte Creator mit der neuesten veröffentlichten Vorlage kontaktieren. Eine Pause stoppt neue Sendungen; kritische Produkt- oder Qualifikationsänderungen machen betroffene Warteschlangenaufträge ungültig.",
     searchPlanGuidanceHint: "{{count}} / 500 Zeichen. Präferenzen und Stile sind weiche Richtungen. „Muss“, „nur“, „mindestens“, „höchstens“ und „ausschließen“ sind harte Vorgaben: Sie müssen einem unterstützten TikTok-Filter entsprechen, sonst stoppt die Plangenerierung.",
     softGuidanceLabel: "Weiche Richtung",
@@ -1063,6 +1068,8 @@ const operationalCopy = {
         "Este creator ya tiene el producto promocionado en otra colaboración.",
     },
     updated: "Configuración de la campaña actualizada.",
+    templateUnsupportedVariables:
+      "Variables de plantilla no compatibles: {{variables}}. Usa solo las variables indicadas arriba.",
     authorizationBody: "Tras activarla, el backend puede contactar a creators cualificados con la última plantilla publicada. Pausar detiene los nuevos envíos; los cambios críticos de producto o cualificación invalidan las tareas afectadas en cola.",
     searchPlanGuidanceHint: "{{count}} / 500 caracteres. Las preferencias y estilos son orientaciones flexibles. «Debe», «solo», «al menos», «como máximo» y «excluir» son restricciones obligatorias: deben corresponder a un filtro de TikTok compatible o se detendrá la generación.",
     softGuidanceLabel: "Orientación flexible",
@@ -1119,6 +1126,8 @@ const operationalCopy = {
         "Ce créateur possède déjà le produit promu dans une autre collaboration.",
     },
     updated: "Configuration de la campagne mise à jour.",
+    templateUnsupportedVariables:
+      "Variables de modèle non prises en charge : {{variables}}. Utilisez uniquement les variables indiquées ci-dessus.",
     authorizationBody: "Après activation, le backend peut contacter les créateurs qualifiés avec le dernier modèle publié. La pause arrête les nouveaux envois ; les changements critiques de produit ou de qualification invalident les tâches concernées en file d’attente.",
     searchPlanGuidanceHint: "{{count}} / 500 caractères. Les préférences et styles sont des orientations souples. « Doit », « uniquement », « au moins », « au plus » et « exclure » sont des contraintes strictes : elles doivent correspondre à un filtre TikTok pris en charge, sinon la génération s’arrête.",
     softGuidanceLabel: "Orientation souple",
@@ -1175,6 +1184,8 @@ const operationalCopy = {
         "Creator ini sudah memiliki produk promosi dalam kolaborasi lain.",
     },
     updated: "Konfigurasi kampanye diperbarui.",
+    templateUnsupportedVariables:
+      "Variabel template tidak didukung: {{variables}}. Gunakan hanya variabel yang ditampilkan di atas.",
     authorizationBody: "Setelah diaktifkan, backend dapat menghubungi kreator yang memenuhi syarat dengan template terbaru yang dipublikasikan. Menjeda menghentikan pengiriman baru; perubahan penting pada produk atau kualifikasi membatalkan tugas antrean yang terdampak.",
     searchPlanGuidanceHint: "{{count}} / 500 karakter. Preferensi dan gaya adalah arahan lunak. «Harus», «hanya», «minimal», «maksimal», dan «kecualikan» adalah batasan keras: semuanya harus dipetakan ke filter TikTok yang didukung atau pembuatan rencana dihentikan.",
     softGuidanceLabel: "Arahan lunak",
@@ -1231,6 +1242,8 @@ const operationalCopy = {
         "Questo creator ha già il prodotto promosso in un'altra collaborazione.",
     },
     updated: "Configurazione della campagna aggiornata.",
+    templateUnsupportedVariables:
+      "Variabili del modello non supportate: {{variables}}. Usa solo le variabili indicate sopra.",
     authorizationBody: "Dopo l’attivazione, il backend può contattare i creator idonei con l’ultimo modello pubblicato. La pausa interrompe i nuovi invii; le modifiche critiche al prodotto o alla qualifica invalidano le attività in coda interessate.",
     searchPlanGuidanceHint: "{{count}} / 500 caratteri. Preferenze e stili sono indicazioni flessibili. «Deve», «solo», «almeno», «al massimo» ed «escludere» sono vincoli rigidi: devono corrispondere a un filtro TikTok supportato, altrimenti la generazione si interrompe.",
     softGuidanceLabel: "Indicazione flessibile",
@@ -1287,6 +1300,8 @@ const operationalCopy = {
         "ครีเอเตอร์รายนี้มีสินค้าที่โปรโมตอยู่แล้วในความร่วมมืออื่น",
     },
     updated: "อัปเดตการตั้งค่าแคมเปญแล้ว",
+    templateUnsupportedVariables:
+      "ตัวแปรเทมเพลตที่ไม่รองรับ: {{variables}} โปรดใช้เฉพาะตัวแปรที่แสดงด้านบน",
     authorizationBody: "หลังเปิดใช้งาน Backend สามารถติดต่อครีเอเตอร์ที่ผ่านเกณฑ์ด้วยเทมเพลตล่าสุดที่เผยแพร่ได้ การหยุดชั่วคราวจะหยุดการส่งใหม่ ส่วนการเปลี่ยนแปลงสำคัญของสินค้าหรือเกณฑ์คัดเลือกจะยกเลิกงานในคิวที่ได้รับผลกระทบ",
     searchPlanGuidanceHint: "{{count}} / 500 ตัวอักษร ความชอบและสไตล์เป็นแนวทางแบบยืดหยุ่น ส่วนคำว่า “ต้อง”, “เท่านั้น”, “อย่างน้อย”, “ไม่เกิน” และ “ยกเว้น” เป็นเงื่อนไขบังคับ ซึ่งต้องแมปกับตัวกรอง TikTok ที่รองรับ มิฉะนั้นระบบจะหยุดสร้างแผน",
     softGuidanceLabel: "แนวทางแบบยืดหยุ่น",
