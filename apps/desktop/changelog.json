@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.107",
+    "date": "2026-08-20",
+    "en": [
+      "Improve customer service concurrency, scheduled task tools, Affiliate tutorials, and campaign quota visibility"
+    ],
+    "zh": [
+      "优化客服并发控制、定时任务工具访问、达人教程与 Campaign 额度等待提示"
+    ]
+  },
+  {
     "version": "1.8.106",
     "date": "2026-08-20",
     "en": [
