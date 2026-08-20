@@ -1,6 +1,6 @@
 # OpenClaw Configuration Reference
 
-Generated from OpenClaw commit `bcaec0cf145c897db47269e60f06c7c42f74c83a`.
+Generated from OpenClaw commit `fa62fccb867f315bf4282cfc67066d5d878c598a`.
 
 This index reflects the canonical Zod schema in `vendor/openclaw/src/config/zod-schema*.ts` and
 `vendor/openclaw/src/config/types.openclaw.ts`. OpenClaw remains authoritative for defaults,
@@ -166,6 +166,9 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | Path | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `secrets` | object | no |  |
+| `secrets.egressProxy` | object | no |  |
+| `secrets.egressProxy.enabled` | boolean | no |  |
+| `secrets.egressProxy.bypassHosts` | string[] | no |  |
 | `secrets.providers` | object | no |  |
 | `secrets.providers.*` | object | no | map value |
 | `secrets.providers.*.source` | "store" | yes |  |
@@ -239,8 +242,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `models.providers.*.apiKey` | string | no |  |
 | `models.providers.*.auth` | "api-key" \| "aws-sdk" \| "oauth" \| "token" | no |  |
 | `models.providers.*.api` | "openai-completions" \| "openai-responses" \| "openai-chatgpt-responses" \| "anthropic-messages" \| "google-generative-ai" \| "google-vertex" \| "github-copilot" \| "bedrock-converse-stream" \| "ollama" \| "azure-openai-responses" | no |  |
-| `models.providers.*.contextWindow` | number | no | > 0 |
-| `models.providers.*.contextTokens` | integer | no | > 0; max 9007199254740991 |
 | `models.providers.*.maxTokens` | number | no | > 0 |
 | `models.providers.*.timeoutSeconds` | integer | no | > 0; max 9007199254740991 |
 | `models.providers.*.region` | string | no |  |
@@ -301,6 +302,8 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `nodeHost.agentRuns` | object | no |  |
 | `nodeHost.agentRuns.claude` | object | no |  |
 | `nodeHost.agentRuns.claude.enabled` | boolean | no |  |
+| `nodeHost.workerRuns` | object | no |  |
+| `nodeHost.workerRuns.enabled` | boolean | no |  |
 | `nodeHost.browserProxy` | object | no |  |
 | `nodeHost.browserProxy.enabled` | boolean | no |  |
 | `nodeHost.browserProxy.allowProfiles` | string[] | no |  |
@@ -322,6 +325,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `nodeHost.mcp.servers.*.supportsParallelToolCalls` | boolean | no |  |
 | `nodeHost.mcp.servers.*.auth` | "oauth" | no |  |
 | `nodeHost.mcp.servers.*.oauth` | object | no |  |
+| `nodeHost.mcp.servers.*.oauth.identity` | "shared" \| "per-requester" | no |  |
 | `nodeHost.mcp.servers.*.oauth.authProfileId` | string | no |  |
 | `nodeHost.mcp.servers.*.oauth.scope` | string | no |  |
 | `nodeHost.mcp.servers.*.oauth.redirectUrl` | string | no |  |
@@ -344,6 +348,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | Path | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `agents` | object | no |  |
+| `agents.ownership` | "explicit" | no |  |
 | `agents.defaults` | object | no |  |
 | `agents.defaults.params` | object | no |  |
 | `agents.defaults.params.*` | any | no | map value |
@@ -412,7 +417,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.defaults.contextLimits` | object | no |  |
 | `agents.defaults.contextLimits.memoryGetMaxChars` | integer | no | min 1; max 250000 |
 | `agents.defaults.contextLimits.postCompactionMaxChars` | integer | no | min 1; max 50000 |
-| `agents.defaults.contextTokens` | integer | no | > 0; max 9007199254740991 |
 | `agents.defaults.contextPruning` | object | no |  |
 | `agents.defaults.contextPruning.mode` | "off" \| "cache-ttl" | no |  |
 | `agents.defaults.contextPruning.ttl` | string | no |  |
@@ -494,6 +498,10 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.defaults.heartbeat.agentId` | string | no |  |
 | `agents.defaults.systemAgent` | object | no |  |
 | `agents.defaults.systemAgent.agentId` | string | no |  |
+| `agents.defaults.authInheritance` | object | no |  |
+| `agents.defaults.authInheritance.agentId` | string | no |  |
+| `agents.defaults.sessionStore` | object | no |  |
+| `agents.defaults.sessionStore.agentId` | string | no |  |
 | `agents.defaults.maxConcurrent` | integer | no | > 0; max 9007199254740991 |
 | `agents.defaults.subagents` | object | no |  |
 | `agents.defaults.subagents.delegationMode` | "suggest" \| "prefer" | no |  |
@@ -577,7 +585,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.defaults.sandbox.prune.maxAgeDays` | integer | no | min 0; max 9007199254740991 |
 | `agents.entries` | object | no |  |
 | `agents.entries.*` | object | no | map value |
-| `agents.entries.*.default` | boolean | no |  |
 | `agents.entries.*.name` | string | no |  |
 | `agents.entries.*.description` | string | no |  |
 | `agents.entries.*.workspace` | string | no |  |
@@ -691,7 +698,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.contextLimits` | object | no |  |
 | `agents.entries.*.contextLimits.memoryGetMaxChars` | integer | no | min 1; max 250000 |
 | `agents.entries.*.contextLimits.postCompactionMaxChars` | integer | no | min 1; max 50000 |
-| `agents.entries.*.contextTokens` | integer | no | > 0; max 9007199254740991 |
 | `agents.entries.*.heartbeat` | object | no |  |
 | `agents.entries.*.heartbeat.every` | string | no |  |
 | `agents.entries.*.heartbeat.activeHours` | object | no |  |
@@ -867,6 +873,11 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.tools.exec.applyPatch.enabled` | boolean | no |  |
 | `agents.entries.*.tools.exec.applyPatch.workspaceOnly` | boolean | no |  |
 | `agents.entries.*.tools.exec.applyPatch.allowModels` | string[] | no |  |
+| `agents.entries.*.tools.github` | object | no |  |
+| `agents.entries.*.tools.github.profileId` | string | yes | pattern `^ghp_[a-f0-9]{32}$` |
+| `agents.entries.*.tools.github.gitAuthor` | object | no |  |
+| `agents.entries.*.tools.github.gitAuthor.name` | string | no |  |
+| `agents.entries.*.tools.github.gitAuthor.email` | string | no |  |
 | `agents.entries.*.tools.fs` | object | no |  |
 | `agents.entries.*.tools.fs.workspaceOnly` | boolean | no |  |
 | `agents.entries.*.tools.loopDetection` | object | no |  |
@@ -895,6 +906,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.runtime.acp.backend` | string | no |  |
 | `agents.entries.*.runtime.acp.mode` | "persistent" \| "oneshot" | no |  |
 | `agents.entries.*.runtime.acp.cwd` | string | no |  |
+| `agents.entries.*.default` | boolean | no |  |
 
 ## `tools`
 
@@ -949,6 +961,11 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `tools.web.fetch.ssrfPolicy.allowRfc2544BenchmarkRange` | boolean | no |  |
 | `tools.web.fetch.ssrfPolicy.allowIpv6UniqueLocalRange` | boolean | no |  |
 | `tools.web.fetch.ssrfPolicy.allowedHostnames` | string[] | no |  |
+| `tools.github` | object | no |  |
+| `tools.github.profileId` | string | yes | pattern `^ghp_[a-f0-9]{32}$` |
+| `tools.github.gitAuthor` | object | no |  |
+| `tools.github.gitAuthor.name` | string | no |  |
+| `tools.github.gitAuthor.email` | string | no |  |
 | `tools.media` | object | no |  |
 | `tools.media.models` | object[] | no |  |
 | `tools.media.concurrency` | integer | no | > 0; max 9007199254740991 |
@@ -1376,6 +1393,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `session` | object | no |  |
 | `session.scope` | "per-sender" \| "global" | no |  |
 | `session.dmScope` | "main" \| "per-peer" \| "per-channel-peer" \| "per-account-channel-peer" | no |  |
+| `session.groupScope` | "main" \| "per-group" | no |  |
 | `session.identityLinks` | object | no |  |
 | `session.identityLinks.*` | string[] | no | map value |
 | `session.resetTriggers` | string[] | no |  |
@@ -1419,7 +1437,9 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `session.maintenance` | object | no |  |
 | `session.maintenance.mode` | "enforce" \| "warn" | no |  |
 | `session.maintenance.pruneAfter` | string \| number | no |  |
+| `session.maintenance.archiveDashboardAfter` | false \| 0 | no |  |
 | `session.maintenance.maxEntries` | integer | no | > 0; max 9007199254740991 |
+| `session.maintenance.preserveRecent` | false | no |  |
 | `session.maintenance.resetArchiveRetention` | false | no |  |
 | `session.maintenance.maxDiskBytes` | string \| number \| false | no |  |
 | `session.maintenance.highWaterBytes` | string \| number | no |  |
@@ -1584,11 +1604,14 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.mode` | "local" \| "remote" | no |  |
 | `gateway.bind` | "auto" \| "lan" \| "loopback" \| "custom" \| "tailnet" | no |  |
 | `gateway.customBindHost` | string | no |  |
+| `gateway.publicOrigin` | string | no |  |
 | `gateway.controlUi` | object | no |  |
 | `gateway.controlUi.dangerouslyDisableDeviceAuth` | boolean | no |  |
 | `gateway.controlUi.enabled` | boolean | no |  |
 | `gateway.controlUi.basePath` | string | no |  |
 | `gateway.controlUi.root` | string | no |  |
+| `gateway.controlUi.github` | object | no |  |
+| `gateway.controlUi.github.token` | string | no |  |
 | `gateway.controlUi.toolTitles` | boolean | no |  |
 | `gateway.controlUi.sessionObserver` | boolean | no |  |
 | `gateway.controlUi.embedSandbox` | "strict" \| "scripts" \| "trusted" | no |  |
@@ -1628,8 +1651,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.tools.allow` | string[] | no |  |
 | `gateway.tailscale` | object | no |  |
 | `gateway.tailscale.mode` | "off" \| "serve" \| "funnel" | no |  |
-| `gateway.tailscale.resetOnExit` | boolean | no |  |
-| `gateway.tailscale.serviceName` | string | no | pattern `^svc:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$` |
 | `gateway.tailscale.preserveFunnel` | boolean | no |  |
 | `gateway.remote` | object | no |  |
 | `gateway.remote.url` | string | no |  |
@@ -1637,6 +1658,8 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.remote.remotePort` | integer | no | min 1; max 65535 |
 | `gateway.remote.token` | string | no |  |
 | `gateway.remote.password` | string | no |  |
+| `gateway.remote.edgeAuth` | object | no |  |
+| `gateway.remote.edgeAuth.*` | string | no | map value |
 | `gateway.remote.tlsFingerprint` | string | no |  |
 | `gateway.remote.sshTarget` | string | no |  |
 | `gateway.remote.sshIdentity` | string | no |  |
@@ -1721,6 +1744,17 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `cloudWorkers.profiles.*.settings` | object | no |  |
 | `cloudWorkers.profiles.*.settings.*` | any | no | map value |
 
+## `desktop`
+
+| Path | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `desktop` | object | no |  |
+| `desktop.host` | object | no |  |
+| `desktop.host.enabled` | boolean | yes |  |
+| `desktop.host.managed` | boolean | no |  |
+| `desktop.host.port` | integer | no | min 1; max 65535 |
+| `desktop.host.passwordFile` | string | no |  |
+
 ## `memory`
 
 | Path | Type | Required | Constraints |
@@ -1788,6 +1822,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `mcp.servers.*.supportsParallelToolCalls` | boolean | no |  |
 | `mcp.servers.*.auth` | "oauth" | no |  |
 | `mcp.servers.*.oauth` | object | no |  |
+| `mcp.servers.*.oauth.identity` | "shared" \| "per-requester" | no |  |
 | `mcp.servers.*.oauth.authProfileId` | string | no |  |
 | `mcp.servers.*.oauth.scope` | string | no |  |
 | `mcp.servers.*.oauth.redirectUrl` | string | no |  |
