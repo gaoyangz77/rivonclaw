@@ -110,6 +110,7 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("hasMore");
     expect(query).toContain("creatorRelationshipId");
     expect(query).toContain("creatorRelationship");
+    expect(query).toContain("businessDeveloperIdSnapshot");
     expect(query).toContain("shopStates");
     expect(query).toContain("creatorProfile");
     expect(query).toContain("sourceWorkBoundary");
@@ -194,6 +195,7 @@ describe("affiliate workspace GraphQL contracts", () => {
 
     expect(mutation).toContain("decideActionProposal(input: $input)");
     expect(mutation).toContain("creatorRelationshipId");
+    expect(mutation).toContain("businessDeveloperIdSnapshot");
     expect(mutation).toContain("decision");
     expect(mutation).toContain("predictionSnapshots");
   });

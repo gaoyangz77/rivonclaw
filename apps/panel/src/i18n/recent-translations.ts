@@ -109,6 +109,11 @@ export const RECENT_TRANSLATIONS = {
         showAdvancedFilters: "Weitere Filter",
         hideAdvancedFilters: "Filter ausblenden",
       },
+      affiliateWorkspace: {
+        businessDeveloperFilter: "BD-Filter",
+        businessDeveloperSearchPlaceholder: "BD-Namen suchen",
+        allBusinessDevelopers: "Alle BDs",
+      },
       shopDrawer: {
         aiCS: {
           ...UNPAID_EXPERIMENT_TRANSLATIONS,
@@ -195,6 +200,11 @@ export const RECENT_TRANSLATIONS = {
         showAdvancedFilters: "Más filtros",
         hideAdvancedFilters: "Ocultar filtros",
       },
+      affiliateWorkspace: {
+        businessDeveloperFilter: "Filtro de BD",
+        businessDeveloperSearchPlaceholder: "Buscar nombre de BD",
+        allBusinessDevelopers: "Todos los BD",
+      },
       shopDrawer: {
         aiCS: {
           ...UNPAID_EXPERIMENT_TRANSLATIONS,
@@ -280,6 +290,11 @@ export const RECENT_TRANSLATIONS = {
         showAdvancedFilters: "Plus de filtres",
         hideAdvancedFilters: "Masquer les filtres",
       },
+      affiliateWorkspace: {
+        businessDeveloperFilter: "Filtre BD",
+        businessDeveloperSearchPlaceholder: "Rechercher un nom de BD",
+        allBusinessDevelopers: "Tous les BD",
+      },
       shopDrawer: {
         aiCS: {
           ...UNPAID_EXPERIMENT_TRANSLATIONS,
@@ -332,6 +347,9 @@ export const RECENT_TRANSLATIONS = {
     },
     ecommerce: {
       affiliateWorkspace: {
+        businessDeveloperFilter: "Filter BD",
+        businessDeveloperSearchPlaceholder: "Cari nama BD",
+        allBusinessDevelopers: "Semua BD",
         sampleWorkStatusDescriptions: {
           PLATFORM_STATUS_UNKNOWN:
             "TikTok Shop tidak mengembalikan status sampel yang dapat diverifikasi; tindakan peninjauan tidak akan dicoba.",
@@ -457,6 +475,11 @@ export const RECENT_TRANSLATIONS = {
         showAdvancedFilters: "Altri filtri",
         hideAdvancedFilters: "Nascondi filtri",
       },
+      affiliateWorkspace: {
+        businessDeveloperFilter: "Filtro BD",
+        businessDeveloperSearchPlaceholder: "Cerca nome BD",
+        allBusinessDevelopers: "Tutti i BD",
+      },
       shopDrawer: {
         aiCS: {
           ...UNPAID_EXPERIMENT_TRANSLATIONS,
@@ -541,6 +564,11 @@ export const RECENT_TRANSLATIONS = {
         hasBadReview: "มีรีวิวเชิงลบ",
         showAdvancedFilters: "ตัวกรองเพิ่มเติม",
         hideAdvancedFilters: "ซ่อนตัวกรอง",
+      },
+      affiliateWorkspace: {
+        businessDeveloperFilter: "ตัวกรอง BD",
+        businessDeveloperSearchPlaceholder: "ค้นหาชื่อ BD",
+        allBusinessDevelopers: "BD ทั้งหมด",
       },
       shopDrawer: {
         aiCS: {

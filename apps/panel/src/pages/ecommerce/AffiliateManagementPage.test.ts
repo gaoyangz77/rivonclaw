@@ -105,6 +105,29 @@ describe("AffiliateManagementPage proposal source", () => {
     ]);
   });
 
+  it("routes realtime proposal changes by the frozen Business Developer snapshot", () => {
+    const owned = {
+      ...proposal("proposal-owned", "PENDING"),
+      businessDeveloperIdSnapshot: "bd-1",
+    } as unknown as GQL.ActionProposal;
+    const other = {
+      ...owned,
+      id: "proposal-other",
+      businessDeveloperIdSnapshot: "bd-2",
+    } as unknown as GQL.ActionProposal;
+    const reassigned = {
+      ...other,
+      id: owned.id,
+    } as GQL.ActionProposal;
+
+    expect(applyAffiliateProposalChange([], owned, { businessDeveloperId: "bd-1" }))
+      .toEqual([owned]);
+    expect(applyAffiliateProposalChange([], other, { businessDeveloperId: "bd-1" }))
+      .toEqual([]);
+    expect(applyAffiliateProposalChange([owned], reassigned, { businessDeveloperId: "bd-1" }))
+      .toEqual([]);
+  });
+
   it("orders the proposal timeline by creation time, not later status updates", () => {
     const older = {
       ...proposal("proposal-older", "PENDING"),
@@ -194,6 +217,11 @@ describe("AffiliateManagementPage proposal source", () => {
       userId: "user-2",
       status: "PENDING" as never,
     });
+    const businessDeveloperKey = affiliateProposalPageQueryKey({
+      userId: "user-1",
+      businessDeveloperId: "bd-1",
+      status: "PENDING" as never,
+    });
     const pendingPage = {
       items: [proposal("proposal-1", "PENDING")],
       nextCursor: "cursor-1",
@@ -203,6 +231,7 @@ describe("AffiliateManagementPage proposal source", () => {
 
     expect(pending.queryKey).not.toBe(approvedKey);
     expect(pending.queryKey).not.toBe(otherUserKey);
+    expect(pending.queryKey).not.toBe(businessDeveloperKey);
     expect(emptyAffiliateProposalPageBuffer(approvedKey).items).toEqual([]);
     expect(
       appendAffiliateProposalPageBuffer(pending, approvedKey, {
@@ -740,6 +769,9 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).not.toContain("AGENT_WORKSPACE_VIEWS.map");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueTitle");
     expect(page).not.toContain("ecommerce.affiliateWorkspace.approvalQueueHint");
+    expect(page).toContain("selectedBusinessDeveloperId");
+    expect(page).toContain("businessDeveloperSearchPlaceholder");
+    expect(page).toContain("searchable");
   });
 
   it("lets staff decide a policy-gated no-action proposal", () => {
