@@ -153,7 +153,7 @@ test.describe("Affiliate workspace entity pages", () => {
     await expectAffiliatePage(
       window,
       "/commerce/affiliate/attention",
-      "Action proposals",
+      "Agent workspace",
       ".affiliate-action-proposal-card-row",
     );
     await expectAffiliatePage(
