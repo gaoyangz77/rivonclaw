@@ -5,7 +5,11 @@
  * - caller-side state management (manual check, startup check)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { resetFirstPartyDomainRouteForTests, setApiBaseUrlOverride } from "@rivonclaw/core";
+import {
+  resetFirstPartyDomainRouteForTests,
+  setApiBaseUrlOverride,
+  setFirstPartyDomainRoute,
+} from "@rivonclaw/core";
 import { queryCheckUpdate } from "../src/cloud/backend-subscription-client.js";
 import { getReleaseFeedUrl } from "../../../packages/core/src/api/endpoints.js";
 
@@ -303,5 +307,10 @@ describe("auto-updater feed configuration", () => {
     const feed = configuredFeed();
     expect(feed.provider).toBe("generic");
     expect(feed.url).toBe(getReleaseFeedUrl("zh"));
+  });
+
+  it("uses the cache-gated CN updater host on the CN relay route", () => {
+    setFirstPartyDomainRoute("cn-relay");
+    expect(configuredFeed().url).toBe("https://www.tkjiang.cn/releases");
   });
 });

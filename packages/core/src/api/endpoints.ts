@@ -93,7 +93,9 @@ export function routeFirstPartyUrl(url: string | URL): string | URL {
 }
 
 export function getCnRelaySystemProxyBypassDomains(): string[] {
-	return Array.from(new Set(Object.values(FIRST_PARTY_CN_HOST_BY_GLOBAL_HOST)));
+	return Array.from(
+		new Set([...Object.values(FIRST_PARTY_CN_HOST_BY_GLOBAL_HOST), DEFAULTS.domains.updaterCn]),
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -193,10 +195,10 @@ export function getReleaseFeedUrl(locale: string): string {
 	if (explicitOverride) return explicitOverride.replace(/\/+$/, "");
 	const useStaging = typeof process !== "undefined" && process.env.UPDATE_FROM_STAGING === "1";
 	if (useStaging) return `https://${firstPartyDomain(DEFAULTS.domains.staging, DEFAULTS.domains.stagingCn)}/releases`;
-	// Auto-updater uses a dedicated feed domain so update traffic can bypass the
-	// website CDN and hit a source-origin path that fully supports differential
-	// download range requests.
-	return `https://${firstPartyDomain(DEFAULTS.domains.updater, DEFAULTS.domains.webCn)}/releases`;
+	// Auto-updater uses dedicated release hosts. The production release pipeline
+	// warms and cache-gates updaterCn before notifying clients, while webCn is a
+	// legacy compatibility edge that is intentionally no longer prefetched.
+	return `https://${firstPartyDomain(DEFAULTS.domains.updater, DEFAULTS.domains.updaterCn)}/releases`;
 }
 
 /** Return the object-storage base URL used for first-party media assets. */

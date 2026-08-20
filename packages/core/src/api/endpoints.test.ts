@@ -70,7 +70,7 @@ describe("first-party domain routing", () => {
     expect(getCsTelemetryUrl("en")).toBe("https://t.zhuazhuaai.cn/v1/cs-events");
     expect(getCsRelayWsUrl()).toBe("wss://relay.zhuazhuaai.cn/ws");
     expect(getCsRelayHttpUrl()).toBe("https://relay.zhuazhuaai.cn");
-    expect(getReleaseFeedUrl("en")).toBe("https://www.zhuazhuaai.cn/releases");
+    expect(getReleaseFeedUrl("en")).toBe("https://www.tkjiang.cn/releases");
     expect(getObjectStorageBaseUrl()).toBe("https://minio.zhuazhuaai.cn");
   });
 
@@ -123,6 +123,7 @@ describe("first-party domain routing", () => {
       "api-stg.zhuazhuaai.cn",
       "relay.zhuazhuaai.cn",
       "www.zhuazhuaai.cn",
+      "www.tkjiang.cn",
     ]));
   });
 });
