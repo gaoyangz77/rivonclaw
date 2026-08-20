@@ -368,12 +368,14 @@ type AffiliateProposalPageBuffer = {
 export function affiliateProposalPageQueryKey(filters: {
   userId?: string | null;
   shopId?: string | null;
+  businessDeveloperId?: string | null;
   status?: GQL.ActionProposalStatus;
   type?: GQL.ActionProposalType;
 }): string {
   return JSON.stringify([
     filters.userId ?? "",
     filters.shopId ?? "",
+    filters.businessDeveloperId ?? "",
     filters.status ?? "ALL",
     filters.type ?? "ALL",
   ]);
@@ -479,6 +481,7 @@ export function applyAffiliateProposalChange(
     status?: GQL.ActionProposalStatus;
     type?: GQL.ActionProposalType;
     shopId?: string;
+    businessDeveloperId?: string;
   },
 ): GQL.ActionProposal[] {
   const existingIndex = current.findIndex((candidate) => candidate.id === proposal.id);
@@ -490,9 +493,14 @@ export function applyAffiliateProposalChange(
     || proposal.steps.some((step) => step.shopId === filters.shopId)
     || proposal.creatorRelationship?.shopStates.some((state) => state.shopId === filters.shopId)
   );
+  const hasBusinessDeveloperSnapshot = proposal.businessDeveloperIdSnapshot != null;
+  const targetsBusinessDeveloper = !filters.businessDeveloperId
+    || proposal.businessDeveloperIdSnapshot === filters.businessDeveloperId
+    || (existingIndex >= 0 && !hasBusinessDeveloperSnapshot);
   const matches = (
     (!filters.status || proposal.status === filters.status)
     && (!filters.type || proposal.type === filters.type)
+    && targetsBusinessDeveloper
     && (targetsShop || existingIndex >= 0)
   );
   if (!matches) {
@@ -733,6 +741,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const shops = entityStore.shops;
   const [selectedShopId, setSelectedShopId] = useState("");
+  const [selectedBusinessDeveloperId, setSelectedBusinessDeveloperId] = useState("");
   const [agentWorkspaceView, setAgentWorkspaceView] = useState<AgentWorkspaceView>("PENDING");
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>("ALL");
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
@@ -747,6 +756,26 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     }
   }, [entityStore, user]);
 
+  const {
+    data: businessDeveloperData,
+    loading: businessDevelopersLoading,
+  } = useQuery<{ affiliateBusinessDevelopers: GQL.AffiliateBusinessDeveloper[] }>(
+    AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
+    {
+      variables: { includeArchived: false },
+      fetchPolicy: "cache-and-network",
+      skip: !user,
+    },
+  );
+
+  useEffect(() => {
+    if (businessDeveloperData) {
+      entityStore.affiliateWorkspace.replaceAffiliateBusinessDevelopers(
+        businessDeveloperData.affiliateBusinessDevelopers,
+      );
+    }
+  }, [businessDeveloperData, entityStore.affiliateWorkspace]);
+
   const shopOptions = [
     { value: "", label: t("ecommerce.affiliateWorkspace.allShops") },
     ...shops
@@ -754,6 +783,16 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       .map((shop) => ({
         value: shop.id,
         label: shop.alias || shop.shopName || shop.platformShopId || shop.id,
+      })),
+  ];
+  const businessDeveloperOptions = [
+    { value: "", label: t("ecommerce.affiliateWorkspace.allBusinessDevelopers") },
+    ...[...(businessDeveloperData?.affiliateBusinessDevelopers ?? [])]
+      .filter((developer) => !developer.archivedAt)
+      .sort((left, right) => left.displayName.localeCompare(right.displayName))
+      .map((developer) => ({
+        value: developer.id,
+        label: developer.displayName,
       })),
   ];
   const proposalFilterOptions = useMemo(
@@ -785,6 +824,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const proposalQueryKey = affiliateProposalPageQueryKey({
     userId: user?.userId,
     shopId: selectedShopId,
+    businessDeveloperId: selectedBusinessDeveloperId,
     status: proposalStatus,
     type: proposalType,
   });
@@ -812,6 +852,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     variables: {
       input: {
         shopId: selectedShopId || null,
+        businessDeveloperId: selectedBusinessDeveloperId || null,
         status: proposalStatus,
         type: proposalType,
         limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
@@ -856,6 +897,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
         variables: {
           input: {
             shopId: selectedShopId || null,
+            businessDeveloperId: selectedBusinessDeveloperId || null,
             status: proposalStatus,
             type: proposalType,
             limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
@@ -887,6 +929,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     proposalQueryKey,
     proposalStatus,
     proposalType,
+    selectedBusinessDeveloperId,
     selectedShopId,
     showToast,
     t,
@@ -918,13 +961,21 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
             ...current,
             items: applyAffiliateProposalChange(current.items, proposal, {
               shopId: selectedShopId || undefined,
+              businessDeveloperId: selectedBusinessDeveloperId || undefined,
               status: proposalStatus,
               type: proposalType,
             }),
           });
     });
     return unsubscribeProposal;
-  }, [entityStore.affiliateWorkspace, proposalQueryKey, proposalStatus, proposalType, selectedShopId]);
+  }, [
+    entityStore.affiliateWorkspace,
+    proposalQueryKey,
+    proposalStatus,
+    proposalType,
+    selectedBusinessDeveloperId,
+    selectedShopId,
+  ]);
 
   const proposalItemsFromQuery = loadedProposals.map((proposal) =>
     hydrateAffiliateProposalProjection(
@@ -980,6 +1031,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
               ...current,
               items: applyAffiliateProposalChange(current.items, updatedProposal, {
                 shopId: selectedShopId || undefined,
+                businessDeveloperId: selectedBusinessDeveloperId || undefined,
                 status: proposalStatus,
                 type: proposalType,
               }),
@@ -1006,6 +1058,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       const result = await refetchProposals({
         input: {
           shopId: selectedShopId || null,
+          businessDeveloperId: selectedBusinessDeveloperId || null,
           status: proposalStatus,
           type: proposalType,
           limit: AFFILIATE_PROPOSAL_PAGE_SIZE,
@@ -1093,6 +1146,19 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           <div
             className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
           >
+            <label className="affiliate-filter-field">
+              <span>{t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}</span>
+              <Select
+                value={selectedBusinessDeveloperId}
+                onChange={setSelectedBusinessDeveloperId}
+                options={businessDeveloperOptions}
+                className="affiliate-status-select"
+                ariaLabel={t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}
+                searchable
+                searchPlaceholder={t("ecommerce.affiliateWorkspace.businessDeveloperSearchPlaceholder")}
+                disabled={businessDevelopersLoading && businessDeveloperOptions.length === 1}
+              />
+            </label>
             {agentWorkspaceView === "ALL" ? (
               <label className="affiliate-filter-field">
                 <span>{t("ecommerce.affiliateWorkspace.statusFilter")}</span>

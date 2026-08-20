@@ -39,6 +39,8 @@ export interface ActionProposal {
   baseCheckpointId?: Maybe<Scalars['String']['output']>;
   baseEventCursor?: Maybe<Scalars['Int']['output']>;
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
+  /** Business Developer assignment frozen when this proposal was created. Historical rows without a snapshot remain null. */
+  businessDeveloperIdSnapshot?: Maybe<Scalars['ID']['output']>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
   /** Candidate checkpoint produced by the agent run. It is promoted only after direct execution or approved execution succeeds. */
@@ -11696,6 +11698,8 @@ export interface QueryWhatsAppProxiesArgs {
 
 export interface ReadActionProposalsInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  /** Filter work by the Business Developer assignment frozen on the proposal. */
+  businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   creatorRelationshipId?: InputMaybe<Scalars['ID']['input']>;
   /** Opaque cursor returned by affiliateActionProposalPage. Cursors are scoped to the current filters. */

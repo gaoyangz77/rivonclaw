@@ -1094,6 +1094,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       campaignId
       creatorId
       creatorRelationshipId
+      businessDeveloperIdSnapshot
       creatorRelationship {
         id
         creatorId
@@ -2948,6 +2949,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       sampleApplicationRecordId
       productId
       creatorRelationshipId
+      businessDeveloperIdSnapshot
       sourceWorkBoundary {
         subjectType
         affiliateCollaborationId

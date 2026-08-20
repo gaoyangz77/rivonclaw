@@ -23075,12 +23075,12 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-agent-workspace-controls .affiliate-attention-toolbar-compact {
-  grid-template-columns: minmax(180px, 220px) minmax(280px, 1fr);
+  grid-template-columns: minmax(180px, 220px) minmax(180px, 220px) minmax(260px, 1fr);
 }
 
 .affiliate-attention-toolbar {
   display: grid;
-  grid-template-columns: minmax(150px, 180px) minmax(180px, 220px) minmax(260px, 1fr);
+  grid-template-columns: minmax(150px, 180px) minmax(150px, 180px) minmax(180px, 220px) minmax(240px, 1fr);
   align-items: flex-end;
   gap: 10px;
   min-width: 0;
@@ -23235,7 +23235,8 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 620px) {
-  .affiliate-attention-toolbar {
+  .affiliate-attention-toolbar,
+  .affiliate-agent-workspace-controls .affiliate-attention-toolbar-compact {
     grid-template-columns: 1fr;
   }
 }
