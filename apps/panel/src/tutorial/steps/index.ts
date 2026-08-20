@@ -18,8 +18,10 @@ import {
   customerServicePerformanceSteps,
   customerServiceExperimentsSteps,
 } from "./ecommerceCustomerService.js"
-import { ecommerceAffiliateSteps } from "./ecommerceAffiliate.js"
+import { ecommerceAffiliateAttentionSteps } from "./ecommerceAffiliateAttention.js"
 import { ecommerceAffiliateCampaignSteps } from "./ecommerceAffiliateCampaign.js"
+import { ecommerceAffiliateCreatorsSteps } from "./ecommerceAffiliateCreators.js"
+import { ecommerceAffiliateHistorySteps } from "./ecommerceAffiliateHistory.js"
 import { ecommerceAffiliateIntelligenceSteps } from "./ecommerceAffiliateIntelligence.js"
 import { ecommerceAffiliateTeamSteps } from "./ecommerceAffiliateTeam.js"
 import { inventoryManagementSteps } from "./inventoryManagement.js"
@@ -36,10 +38,10 @@ const stepRegistry: Record<string, TutorialStep[]> = {
   "/commerce/customer-service/escalations": customerServiceEscalationsSteps,
   "/commerce/customer-service/performance": customerServicePerformanceSteps,
   "/commerce/customer-service/experiments": customerServiceExperimentsSteps,
-  "/commerce/affiliate": ecommerceAffiliateSteps,
-  "/commerce/affiliate/attention": ecommerceAffiliateSteps,
-  "/commerce/affiliate/history": ecommerceAffiliateSteps,
-  "/commerce/affiliate/creators": ecommerceAffiliateSteps,
+  "/commerce/affiliate": ecommerceAffiliateCreatorsSteps,
+  "/commerce/affiliate/attention": ecommerceAffiliateAttentionSteps,
+  "/commerce/affiliate/history": ecommerceAffiliateHistorySteps,
+  "/commerce/affiliate/creators": ecommerceAffiliateCreatorsSteps,
   "/commerce/affiliate/intelligence": ecommerceAffiliateIntelligenceSteps,
   "/commerce/affiliate/team": ecommerceAffiliateTeamSteps,
   "/commerce/affiliate/campaigns": ecommerceAffiliateCampaignSteps,

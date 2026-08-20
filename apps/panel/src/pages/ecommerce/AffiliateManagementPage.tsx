@@ -1100,14 +1100,20 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
   return (
     <div className="page-enter affiliate-workbench">
-      <div className="ecommerce-page-header affiliate-workbench-header">
+      <div
+        className="ecommerce-page-header affiliate-workbench-header"
+        data-tutorial-id="affiliate-attention-header"
+      >
         <div>
           <h1>{t("ecommerce.affiliateWorkspace.pageTitles.NEEDS_ATTENTION")}</h1>
           <p className="ecommerce-page-subtitle">
             {t("ecommerce.affiliateWorkspace.pageSubtitles.NEEDS_ATTENTION")}
           </p>
         </div>
-        <div className="affiliate-workbench-controls">
+        <div
+          className="affiliate-workbench-controls"
+          data-tutorial-id="affiliate-attention-controls"
+        >
           <Select
             value={selectedShopId}
             onChange={setSelectedShopId}
@@ -1129,7 +1135,10 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head affiliate-attention-panel-head affiliate-agent-workspace-controls">
-          <div className="affiliate-agent-workspace-view-control">
+          <div
+            className="affiliate-agent-workspace-view-control"
+            data-tutorial-id="affiliate-attention-scope"
+          >
             <span className="affiliate-agent-workspace-view-label">
               {t("ecommerce.affiliateWorkspace.agentWorkspaceViews.label")}
             </span>
@@ -1145,6 +1154,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           </div>
           <div
             className={`affiliate-attention-toolbar${agentWorkspaceView === "PENDING" ? " affiliate-attention-toolbar-compact" : ""}`}
+            data-tutorial-id="affiliate-attention-filters"
           >
             <label className="affiliate-filter-field">
               <span>{t("ecommerce.affiliateWorkspace.businessDeveloperFilter")}</span>
@@ -1196,9 +1206,14 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
 
         <div className="affiliate-attention-active-list">
           {proposalsLoading && visibleAgentWorkBundles.length === 0 ? (
-            <AffiliateLoadingState />
+            <div data-tutorial-id="affiliate-attention-queue">
+              <AffiliateLoadingState />
+            </div>
           ) : visibleAgentWorkBundles.length === 0 ? (
-            <div className="affiliate-proposal-empty">
+            <div
+              className="affiliate-proposal-empty"
+              data-tutorial-id="affiliate-attention-queue"
+            >
               {agentWorkspaceView === "PENDING"
                 ? t("ecommerce.affiliateWorkspace.emptyApprovals")
                 : t("ecommerce.affiliateWorkspace.emptyProposalEntities")}
@@ -2802,14 +2817,20 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
   return (
     <div className="page-enter affiliate-workbench">
-      <div className="ecommerce-page-header affiliate-workbench-header">
+      <div
+        className="ecommerce-page-header affiliate-workbench-header"
+        data-tutorial-id="affiliate-creators-header"
+      >
         <div>
           <h1>{t("ecommerce.affiliateWorkspace.creatorsTitle")}</h1>
           <p className="ecommerce-page-subtitle">
             {t("ecommerce.affiliateWorkspace.creatorsSubtitle")}
           </p>
         </div>
-        <div className="affiliate-workbench-controls">
+        <div
+          className="affiliate-workbench-controls"
+          data-tutorial-id="affiliate-creators-controls"
+        >
           <Select
             value={selectedShopId}
             onChange={setSelectedShopId}
@@ -2879,7 +2900,10 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               {t("ecommerce.affiliateWorkspace.creatorsPanelHint")}
             </div>
           </div>
-          <div className="affiliate-attention-toolbar">
+          <div
+            className="affiliate-attention-toolbar"
+            data-tutorial-id="affiliate-creators-filters"
+          >
             <label className="affiliate-filter-field">
               <span>{t("ecommerce.affiliateWorkspace.creatorTagFilter")}</span>
               <Select
@@ -2912,9 +2936,14 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
         </div>
 
         {loading && creatorItems.length === 0 ? (
-          <AffiliateLoadingState />
+          <div data-tutorial-id="affiliate-creators-results">
+            <AffiliateLoadingState />
+          </div>
         ) : creatorItems.length === 0 ? (
-          <div className="affiliate-proposal-empty">
+          <div
+            className="affiliate-proposal-empty"
+            data-tutorial-id="affiliate-creators-results"
+          >
             {t("ecommerce.affiliateWorkspace.emptyCreators")}
           </div>
         ) : (
@@ -3065,6 +3094,7 @@ function CreatorRelationshipCard({
   return (
     <article
       className="affiliate-creator-row affiliate-relationship-card"
+      data-tutorial-id="affiliate-creators-results"
       role="button"
       tabIndex={0}
       onClick={() => onOpenRelationship(relationshipDetail)}
@@ -3329,6 +3359,7 @@ function AffiliateCollaborationCard({
   return (
     <article
       className="affiliate-collaboration-card affiliate-collaboration-record-card affiliate-collaboration-card-interactive"
+      data-tutorial-id="affiliate-history-results"
       onClick={onOpen}
     >
       <div className="affiliate-work-item-head">
@@ -5059,14 +5090,20 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
 
   return (
     <div className="page-enter affiliate-workbench">
-      <div className="ecommerce-page-header affiliate-workbench-header">
+      <div
+        className="ecommerce-page-header affiliate-workbench-header"
+        data-tutorial-id="affiliate-history-header"
+      >
         <div>
           <h1>{t("ecommerce.affiliateWorkspace.historyTitle")}</h1>
           <p className="ecommerce-page-subtitle">
             {t("ecommerce.affiliateWorkspace.historySubtitle")}
           </p>
         </div>
-        <div className="affiliate-workbench-controls">
+        <div
+          className="affiliate-workbench-controls"
+          data-tutorial-id="affiliate-history-controls"
+        >
           <Select
             value={selectedShopId}
             onChange={setSelectedShopId}
@@ -5117,7 +5154,10 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
               <InfoIcon />
             </button>
           </div>
-          <div className="affiliate-attention-toolbar">
+          <div
+            className="affiliate-attention-toolbar"
+            data-tutorial-id="affiliate-history-filters"
+          >
             <label className="affiliate-filter-field">
               <span>{t("ecommerce.affiliateWorkspace.statusFilter")}</span>
               <Select
@@ -5154,11 +5194,18 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
         </div>
 
         {error ? (
-          <AffiliateQueryErrorState error={error} onRetry={() => void refetch()} />
+          <div data-tutorial-id="affiliate-history-results">
+            <AffiliateQueryErrorState error={error} onRetry={() => void refetch()} />
+          </div>
         ) : loading && visibleItems.length === 0 ? (
-          <AffiliateLoadingState />
+          <div data-tutorial-id="affiliate-history-results">
+            <AffiliateLoadingState />
+          </div>
         ) : visibleItems.length === 0 ? (
-          <div className="affiliate-proposal-empty">
+          <div
+            className="affiliate-proposal-empty"
+            data-tutorial-id="affiliate-history-results"
+          >
             {t("ecommerce.affiliateWorkspace.emptyHistory")}
           </div>
         ) : (
@@ -5916,7 +5963,10 @@ function AgentWorkBundleCard({
           </div>
 
           <div className="affiliate-proposal-row-main">
-            <div className="affiliate-proposal-row-heading">
+            <div
+              className="affiliate-proposal-row-heading"
+              data-tutorial-id="affiliate-attention-queue"
+            >
               <div>
                 <div className="affiliate-card-section-label">
                   {t("ecommerce.affiliateWorkspace.labels.aiRecommendation")}

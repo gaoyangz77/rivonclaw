@@ -7,15 +7,6 @@ import { getStepsForRoute } from "./index.js"
 
 const SRC_ROOT = resolve(__dirname, "../..")
 const TARGET_SELECTOR = /^\[data-tutorial-id="([^"]+)"\]$/
-const AUDITED_AFFILIATE_ROUTES = new Set([
-  "/commerce/affiliate/team",
-  "/commerce/affiliate/campaigns",
-  "/commerce/affiliate/intelligence",
-])
-
-function isAuditedRoute(path: string): boolean {
-  return !path.startsWith("/commerce/affiliate") || AUDITED_AFFILIATE_ROUTES.has(path)
-}
 
 function walkSource(directory: string, files: string[] = []): string[] {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -41,6 +32,26 @@ const renderedSource = ["pages", "components"]
   .join("\n")
 
 describe("tutorial step registry", () => {
+  it("keeps the audited Affiliate tutorials at their intended coverage", () => {
+    const expectedStepCounts: Record<string, number> = {
+      "/commerce/affiliate/attention": 5,
+      "/commerce/affiliate/team": 5,
+      "/commerce/product-knowledge": 3,
+      "/commerce/affiliate/campaigns": 5,
+      "/commerce/affiliate/creators": 4,
+      "/commerce/affiliate/history": 4,
+      "/commerce/affiliate/intelligence": 4,
+    }
+
+    for (const [route, expectedCount] of Object.entries(expectedStepCounts)) {
+      expect(getStepsForRoute(route), `${route} tutorial step count`).toHaveLength(expectedCount)
+    }
+
+    expect(getStepsForRoute("/commerce/affiliate")).toBe(
+      getStepsForRoute("/commerce/affiliate/creators"),
+    )
+  })
+
   it("covers every sidebar route with a tutorial", () => {
     const sidebarRoutes = ROUTES.filter((route) =>
       route.navLabelKey &&
@@ -68,9 +79,7 @@ describe("tutorial step registry", () => {
   })
 
   it("uses stable, rendered targets for every audited tutorial", () => {
-    const auditedRoutes = ROUTES.filter((route) =>
-      !route.internal && isAuditedRoute(route.path)
-    )
+    const auditedRoutes = ROUTES.filter((route) => !route.internal)
 
     for (const route of auditedRoutes) {
       const stepIds = new Set<string>()
@@ -96,9 +105,7 @@ describe("tutorial step registry", () => {
     expect(chinese).toBeDefined()
 
     const missing: string[] = []
-    for (const route of ROUTES.filter((entry) =>
-      !entry.internal && isAuditedRoute(entry.path)
-    )) {
+    for (const route of ROUTES.filter((entry) => !entry.internal)) {
       for (const step of getStepsForRoute(route.path)) {
         for (const language of [english!, chinese!]) {
           for (const key of [step.titleKey, step.bodyKey]) {
