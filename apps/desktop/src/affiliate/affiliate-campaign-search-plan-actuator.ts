@@ -2,6 +2,7 @@ import { createLogger } from "@rivonclaw/logger";
 import type { AuthSessionManager } from "../auth/session.js";
 import type { AffiliateCampaignSearchPlanRequestPayload } from "../cloud/backend-subscription-client.js";
 import { runStructuredOneShotAgent } from "../gateway/structured-one-shot-agent.js";
+import { openClawConnector } from "../openclaw/index.js";
 
 const log = createLogger("affiliate-campaign-search-plan");
 export const DEFAULT_SEARCH_PLAN_GENERATION_CONCURRENCY = 3;
@@ -70,6 +71,7 @@ export class AffiliateCampaignSearchPlanActuator {
     private readonly getUiLocale: () => string,
     private readonly generate: typeof generatePlan = generatePlan,
     maxConcurrency = DEFAULT_SEARCH_PLAN_GENERATION_CONCURRENCY,
+    private readonly isGenerationReady: () => boolean = () => openClawConnector.isReady,
   ) {
     this.maxConcurrency = Number.isFinite(maxConcurrency)
       ? Math.max(1, Math.floor(maxConcurrency))
@@ -151,6 +153,16 @@ export class AffiliateCampaignSearchPlanActuator {
   }
 
   private async process(request: AffiliateCampaignSearchPlanRequestPayload): Promise<void> {
+    // Subscription delivery can race Desktop gateway startup. Do not claim a
+    // durable generation attempt until the local raw-model executor is ready;
+    // the Backend will republish the still-waiting plan on a later worker tick.
+    if (!this.isGenerationReady()) {
+      log.info("SearchPlan generation deferred until Desktop gateway is ready", {
+        searchPlanId: request.searchPlanId,
+        generation: request.generation,
+      });
+      return;
+    }
     let context: GenerationContext;
     try {
       const claimed = await this.authSession.graphqlFetch<{
@@ -389,25 +401,30 @@ export function validateGeneratedPlan(value: unknown, context: GenerationContext
     !Array.isArray(item.guidanceInterpretation)
       ? (item.guidanceInterpretation as Record<string, unknown>)
       : {};
-  const hardConstraints =
+  const guidance = String(context.campaign.searchPlanGuidance ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/gu, " ");
+  // Empty guidance is valid. The product context may still drive keyword and
+  // rule generation, but model-authored guidance interpretation is not user
+  // intent and must be normalized away deterministically.
+  const hardConstraints = guidance &&
     rawInterpretation.hardConstraints &&
     typeof rawInterpretation.hardConstraints === "object" &&
     !Array.isArray(rawInterpretation.hardConstraints)
       ? (rawInterpretation.hardConstraints as SearchRules)
       : {};
   const rules = removeNonNarrowingEnumFilters(rawRules, context.capability, hardConstraints);
-  const guidance = String(context.campaign.searchPlanGuidance ?? "")
-    .normalize("NFKC")
-    .trim()
-    .replace(/\s+/gu, " ");
   const hasHardGuidance = guidanceAppearsToContainHardConstraint(guidance);
-  const softDirections = normalizeSoftDirections({
-    value: rawInterpretation.softDirections,
-    explanation,
-    uiLocale: context.uiLocale,
-    allowLocalizedFallback: Boolean(guidance) && !hasHardGuidance,
-  });
-  const unsupportedHardConstraints = rawInterpretation.unsupportedHardConstraints === undefined
+  const softDirections = guidance
+    ? normalizeSoftDirections({
+        value: rawInterpretation.softDirections,
+        explanation,
+        uiLocale: context.uiLocale,
+        allowLocalizedFallback: !hasHardGuidance,
+      })
+    : [];
+  const unsupportedHardConstraints = !guidance || rawInterpretation.unsupportedHardConstraints === undefined
     ? []
     : normalizeInterpretationStatements(
       rawInterpretation.unsupportedHardConstraints,
@@ -416,9 +433,6 @@ export function validateGeneratedPlan(value: unknown, context: GenerationContext
   const hasHardConstraints = hasMeaningfulRule(hardConstraints);
   if (unsupportedHardConstraints.length) {
     throw new Error("SEARCH_PLAN_GUIDANCE_HARD_CONSTRAINT_UNSUPPORTED");
-  }
-  if (!guidance && (softDirections.length || hasHardConstraints)) {
-    throw new Error("SEARCH_PLAN_GUIDANCE_INTERPRETATION_INVALID");
   }
   if (guidance && !softDirections.length && !hasHardConstraints) {
     throw new Error(

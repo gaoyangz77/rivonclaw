@@ -79,6 +79,7 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
       () => "zh-CN",
       generate as never,
       1,
+      () => true,
     );
 
     actuator.enqueue(request("plan-1", 1));
@@ -135,6 +136,8 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
       "device-1",
       () => "zh-CN",
       generate as never,
+      undefined,
+      () => true,
     );
 
     for (let index = 1; index <= 4; index += 1) {
@@ -167,6 +170,7 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
       () => "zh-CN",
       generate as never,
       1,
+      () => true,
     );
 
     actuator.enqueue(request("shop-a-1", 1, "shop-a"));
@@ -185,6 +189,58 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
     expect(started[3]).toBe("shop-b-2");
     releases.get("shop-b-2")?.();
     await actuator.waitForIdle();
+  });
+
+  it("does not claim a generation attempt before the Desktop gateway is ready", async () => {
+    const graphqlFetch = graphqlClient();
+    const generate = vi.fn(async () => generated("plan-not-ready"));
+    const actuator = new AffiliateCampaignSearchPlanActuator(
+      { graphqlFetch } as never,
+      "device-1",
+      () => "zh-CN",
+      generate as never,
+      1,
+      () => false,
+    );
+
+    actuator.enqueue(request("plan-not-ready", 1));
+    await actuator.waitForIdle();
+
+    expect(graphqlFetch).not.toHaveBeenCalled();
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("accepts an omitted guidance interpretation when Campaign guidance is empty", () => {
+    const result = validateGeneratedPlan({
+      keyword: "automotive accessory creators",
+      explanation: "寻找适合汽车配件推广的达人。",
+      rules: {},
+    }, generationContext("") as never);
+
+    expect(result.guidanceInterpretation).toEqual({
+      softDirections: [],
+      hardConstraints: {},
+      unsupportedHardConstraints: [],
+    });
+  });
+
+  it("ignores model-invented guidance interpretation when Campaign guidance is empty", () => {
+    const result = validateGeneratedPlan({
+      keyword: "automotive accessory creators",
+      explanation: "寻找适合汽车配件推广的达人。",
+      rules: {},
+      guidanceInterpretation: {
+        softDirections: ["优先寻找汽车用品达人"],
+        hardConstraints: { minimumFollowers: 10_000 },
+        unsupportedHardConstraints: ["Creator must own a sports car"],
+      },
+    }, generationContext("") as never);
+
+    expect(result.guidanceInterpretation).toEqual({
+      softDirections: [],
+      hardConstraints: {},
+      unsupportedHardConstraints: [],
+    });
   });
 
   it("requires explicit hard guidance to be applied to provider rules", () => {
