@@ -1,5 +1,4 @@
 import { createLogger } from "@rivonclaw/logger";
-import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
 import { GatewayRpcClient } from "@rivonclaw/gateway";
 import type { GatewayLauncher, GatewayEventFrame } from "@rivonclaw/gateway";
 import { runtimeStatusStore } from "../app/store/runtime-status-store.js";
@@ -45,11 +44,7 @@ export type RpcConnectedCallback = () => void | Promise<void>;
 // ---------------------------------------------------------------------------
 
 const SIDECAR_PROBE_METHOD = "chat.history";
-const SIDECAR_PROBE_PARAMS = {
-  agentId: DEFAULT_AGENT_ID,
-  sessionKey: `agent:${DEFAULT_AGENT_ID}:probe`,
-  limit: 1,
-};
+const SIDECAR_PROBE_PARAMS = { sessionKey: "probe", limit: 1 };
 // Per-attempt timeout. Deliberately short — when the gateway event loop
 // is blocked by sidecar init, we'd rather time out fast and retry than
 // sit on a single 30s request that blocks the probing loop.

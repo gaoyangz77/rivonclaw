@@ -1,4 +1,4 @@
-From 6cdf52a7ee9deb49d150aac016bf1c952d8ea522 Mon Sep 17 00:00:00 2001
+From 309c8c9a9fe2ee5684c4488b36363e799bc9523b Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 18 Jun 2026 23:53:22 -0700
 Subject: [PATCH] vendor(openclaw): allow session context token patch
@@ -21,22 +21,22 @@ Tests:
  3 files changed, 40 insertions(+)
 
 diff --git a/packages/gateway-protocol/src/schema/sessions-patch.ts b/packages/gateway-protocol/src/schema/sessions-patch.ts
-index 9c5beab40d4..b06907ae85f 100644
+index dc62cb15bbd..bbd4f1b5bdb 100644
 --- a/packages/gateway-protocol/src/schema/sessions-patch.ts
 +++ b/packages/gateway-protocol/src/schema/sessions-patch.ts
-@@ -51,6 +51,7 @@ const SessionsPatchMutationProperties = {
+@@ -49,6 +49,7 @@ const SessionsPatchMutationProperties = {
+   execAsk: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
    execNode: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
-   permissionMode: Type.Optional(Type.Union([SessionPermissionModeSchema, Type.Null()])),
    model: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
 +  contextTokens: Type.Optional(Type.Union([Type.Integer({ minimum: 1 }), Type.Null()])),
    completionOwnerSessionKey: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
    inheritedToolPolicyVersion: Type.Optional(Type.Union([Type.Literal(1), Type.Null()])),
    inheritedToolAllow: Type.Optional(Type.Union([Type.Array(NonEmptyString), Type.Null()])),
 diff --git a/src/gateway/sessions-patch.test.ts b/src/gateway/sessions-patch.test.ts
-index 07b31e63216..0b60893bcac 100644
+index 6f5991af99b..5b6a5fc6f6c 100644
 --- a/src/gateway/sessions-patch.test.ts
 +++ b/src/gateway/sessions-patch.test.ts
-@@ -533,6 +533,33 @@ describe("gateway sessions patch", () => {
+@@ -504,6 +504,33 @@ describe("gateway sessions patch", () => {
      expect(entry.thinkingLevel).toBeUndefined();
    });
  
@@ -71,10 +71,10 @@ index 07b31e63216..0b60893bcac 100644
      const entry = expectPatchOk(
        await runPatch({
 diff --git a/src/gateway/sessions-patch.ts b/src/gateway/sessions-patch.ts
-index 9ef433d3853..ff5aa7116c3 100644
+index 4616513e9d3..91f96d4bbc3 100644
 --- a/src/gateway/sessions-patch.ts
 +++ b/src/gateway/sessions-patch.ts
-@@ -653,6 +653,18 @@ export async function projectSessionsPatchEntry(params: {
+@@ -609,6 +609,18 @@ export async function projectSessionsPatchEntry(params: {
      }
    }
  

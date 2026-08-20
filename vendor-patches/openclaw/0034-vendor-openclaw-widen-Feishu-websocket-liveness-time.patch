@@ -1,4 +1,4 @@
-From f12b65c29d936108201ce805ee4b5a2b60c4e8bd Mon Sep 17 00:00:00 2001
+From c48061d43519eeb0167f2bf7da61a0dac7331f12 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 19 Aug 2026 01:53:43 -0700
 Subject: [PATCH] vendor(openclaw): widen Feishu websocket liveness timeout

@@ -1,5 +1,3 @@
-import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
-
 export const CLOUD_TOOLS_PLUGIN_ID = "rivonclaw-cloud-tools";
 export const CLOUD_TOOLS_STATUS_METHOD = "rivonclaw_cloud_tools.status";
 
@@ -70,10 +68,7 @@ export async function loadGatewayToolCatalogTools(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const tools = flattenGatewayCatalog(
-      await rpc.request<GatewayCatalog>("tools.catalog", {
-        agentId: DEFAULT_AGENT_ID,
-        includePlugins: true,
-      }),
+      await rpc.request<GatewayCatalog>("tools.catalog", { includePlugins: true }),
     );
 
     const status = await getCloudToolsStatus(rpc);

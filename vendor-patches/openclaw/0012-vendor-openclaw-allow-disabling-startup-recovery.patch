@@ -1,4 +1,4 @@
-From c2eab27c623476c462e65a399f89837d094572e3 Mon Sep 17 00:00:00 2001
+From 5393258d3ebd86eb1007fd54d579d967f0d946dd Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:00:58 -0700
 Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
@@ -19,14 +19,14 @@ Tests:
  src/gateway/server-runtime-services.ts        | 36 +++++++++++++------
  src/gateway/server-startup-finish.ts          |  1 +
  .../server-startup-post-attach.test.ts        |  9 +++++
- src/gateway/server-startup-post-attach.ts     | 35 ++++++++++++------
- 5 files changed, 78 insertions(+), 20 deletions(-)
+ src/gateway/server-startup-post-attach.ts     | 13 ++++++-
+ 5 files changed, 65 insertions(+), 11 deletions(-)
 
 diff --git a/src/gateway/server-runtime-services.test.ts b/src/gateway/server-runtime-services.test.ts
-index e97393d6a46..888b82cd173 100644
+index ed75691a351..3ff860e927c 100644
 --- a/src/gateway/server-runtime-services.test.ts
 +++ b/src/gateway/server-runtime-services.test.ts
-@@ -492,6 +492,23 @@ describe("server-runtime-services", () => {
+@@ -497,6 +497,23 @@ describe("server-runtime-services", () => {
      );
    });
  
@@ -51,7 +51,7 @@ index e97393d6a46..888b82cd173 100644
      vi.useFakeTimers();
      const cron = { start: vi.fn(async () => undefined) };
 diff --git a/src/gateway/server-runtime-services.ts b/src/gateway/server-runtime-services.ts
-index 948c8bef0a9..e5c3625ff95 100644
+index 6d34c432e65..8027d5364bb 100644
 --- a/src/gateway/server-runtime-services.ts
 +++ b/src/gateway/server-runtime-services.ts
 @@ -3,6 +3,7 @@
@@ -141,10 +141,10 @@ index 948c8bef0a9..e5c3625ff95 100644
    const heartbeatRunnerWithUpstreamMonitor: HeartbeatRunner = {
      updateConfig: heartbeatRunner.updateConfig,
 diff --git a/src/gateway/server-startup-finish.ts b/src/gateway/server-startup-finish.ts
-index 20a6c410a81..2afd44872d7 100644
+index 777c4fc811a..6947963a7fa 100644
 --- a/src/gateway/server-startup-finish.ts
 +++ b/src/gateway/server-startup-finish.ts
-@@ -226,6 +226,7 @@ export async function finishGatewayStartup(params: {
+@@ -224,6 +224,7 @@ export async function finishGatewayStartup(params: {
            startCron: false,
            logCron,
            log,
@@ -153,10 +153,10 @@ index 20a6c410a81..2afd44872d7 100644
          kernel.setScheduledServiceHandles(activated);
        });
 diff --git a/src/gateway/server-startup-post-attach.test.ts b/src/gateway/server-startup-post-attach.test.ts
-index 406669cb911..396e6f72071 100644
+index 6cd798969df..121c6eb95f4 100644
 --- a/src/gateway/server-startup-post-attach.test.ts
 +++ b/src/gateway/server-startup-post-attach.test.ts
-@@ -529,6 +529,15 @@ describe("startGatewayPostAttachRuntime", () => {
+@@ -515,6 +515,15 @@ describe("startGatewayPostAttachRuntime", () => {
      await cleanupGatewayTestState();
    });
  
@@ -173,10 +173,10 @@ index 406669cb911..396e6f72071 100644
      const firstError = new Error("first cleanup failure");
      const stopOrder: string[] = [];
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index 5df2e9a6b6f..46b859e0629 100644
+index 5f82ab511df..54ee2eb1be0 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -54,8 +54,13 @@ const PROVIDER_AUTH_PREWARM_START_DELAY_MS = 5_000;
+@@ -51,8 +51,13 @@ const PROVIDER_AUTH_PREWARM_START_DELAY_MS = 5_000;
  const PROVIDER_AUTH_REWARM_DELAY_MS = 1_000;
  const DEFERRED_SIDECAR_START_DELAY_MS = 100;
  const SKIP_STARTUP_MODEL_PREWARM_ENV = "OPENCLAW_SKIP_STARTUP_MODEL_PREWARM";
@@ -190,7 +190,7 @@ index 5df2e9a6b6f..46b859e0629 100644
  const loadMainSessionRestartRecoveryModule = createLazyRuntimeModule(
    () => import("../agents/main-session-recovery/main-session-restart-recovery.js"),
  );
-@@ -632,6 +637,9 @@ export async function startGatewaySidecars(params: {
+@@ -633,6 +638,9 @@ export async function startGatewaySidecars(params: {
    // These runs were orphaned by the previous Gateway lifecycle. Record that fact
    // even if this process later fails model preparation and never starts channels.
    await measureStartup(params.startupTrace, "sidecars.main-session-recovery", async () => {
@@ -200,40 +200,18 @@ index 5df2e9a6b6f..46b859e0629 100644
      try {
        const { markStartupOrphanedMainSessionsForRecovery } = await measureStartup(
          params.startupTrace,
-@@ -1461,16 +1469,22 @@ export async function startGatewayPostAttachRuntime(
-             return await stopStartupSidecars(mainSessionRecoverySidecar);
-           }
+@@ -1329,7 +1337,9 @@ export async function startGatewayPostAttachRuntime(
+           ]);
+           let mainSessionRecoverySidecar: GatewayPostReadySidecarHandle | undefined;
            try {
--            const { scheduleRestartAbortedMainSessionRecovery } =
--              await loadMainSessionRestartRecoveryModule();
 -            if (params.isClosing?.() !== true) {
--              mainSessionRecoverySidecar = scheduleRestartAbortedMainSessionRecovery({
--                delayMs: 0,
--                getConfig: params.getConfig,
--                shouldContinue: () => params.isClosing?.() !== true,
--                waitForStart: params.waitForPostReadyWork,
--                gatewayRuntime: params.recoveryRuntime,
--              });
 +            if (shouldDisableSessionRestartRecovery()) {
 +              params.log.info("main-session restart recovery disabled by environment");
 +            } else if (params.isClosing?.() !== true) {
-+              const { scheduleRestartAbortedMainSessionRecovery } =
-+                await loadMainSessionRestartRecoveryModule();
-+              // Closing can begin while the runtime module is loading; a late owner
-+              // would miss lifetime registration and race the replacement gateway.
-+              if (params.isClosing?.() !== true) {
-+                mainSessionRecoverySidecar = scheduleRestartAbortedMainSessionRecovery({
-+                  delayMs: 0,
-+                  getConfig: params.getConfig,
-+                  shouldContinue: () => params.isClosing?.() !== true,
-+                  waitForStart: params.waitForPostReadyWork,
-+                  gatewayRuntime: params.recoveryRuntime,
-+                });
-+              }
-             }
-           } catch (err) {
-             params.log.warn(`main-session restart recovery failed to schedule: ${String(err)}`);
-@@ -1638,6 +1652,7 @@ export const testing = {
+               const { scheduleRestartAbortedMainSessionRecovery } =
+                 await loadMainSessionRestartRecoveryModule();
+               // Closing can begin while the runtime module is loading; a late owner
+@@ -1515,6 +1525,7 @@ export const testing = {
    publishConfiguredModelRuntimeSnapshots,
    publishStartupModelRuntime,
    refreshLatestUpdateRestartSentinelIfPresent,
