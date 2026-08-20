@@ -310,9 +310,175 @@ function resolveUserPath(input, env = process.env, homedir = os.homedir) {
   return resolveHomeRelativePath(input, { env, homedir });
 }
 
-// vendor/openclaw/packages/normalization-core/src/number-coercion.ts
+// vendor/openclaw/packages/retry/src/index.ts
 var MAX_TIMER_TIMEOUT_MS = 2147e6;
-var MAX_TIMER_TIMEOUT_SECONDS = Math.floor(MAX_TIMER_TIMEOUT_MS / 1e3);
+var DEFAULT_RETRY_CONFIG = {
+  attempts: 3,
+  minDelayMs: 300,
+  maxDelayMs: 3e4,
+  jitter: 0,
+};
+var defaultSleep = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+function asFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : void 0;
+}
+function clampNumber(value, fallback, min, max) {
+  const next = asFiniteNumber(value);
+  if (next === void 0) {
+    return fallback;
+  }
+  return Math.min(Math.max(next, min ?? Number.NEGATIVE_INFINITY), max ?? Number.POSITIVE_INFINITY);
+}
+function resolveAttemptCount(value, fallback) {
+  return Math.max(1, Math.round(asFiniteNumber(value) ?? fallback));
+}
+function resolveRetryDelayMs(value) {
+  const finite =
+    value === Number.POSITIVE_INFINITY ? MAX_TIMER_TIMEOUT_MS : (asFiniteNumber(value) ?? 0);
+  return Math.min(Math.max(Math.round(finite), 0), MAX_TIMER_TIMEOUT_MS);
+}
+function resolveJitterConfig(value, fallback) {
+  if (value === "full") {
+    return "full";
+  }
+  const fraction = asFiniteNumber(value);
+  return fraction === void 0 ? fallback : Math.min(Math.max(fraction, 0), 1);
+}
+function resolveRetryConfig(defaults = DEFAULT_RETRY_CONFIG, overrides) {
+  const attempts = resolveAttemptCount(overrides?.attempts, defaults.attempts);
+  const minDelayMs = resolveRetryDelayMs(
+    clampNumber(overrides?.minDelayMs, defaults.minDelayMs, 0),
+  );
+  const maxDelayMs = Math.max(
+    minDelayMs,
+    resolveRetryDelayMs(clampNumber(overrides?.maxDelayMs, defaults.maxDelayMs, 0)),
+  );
+  return {
+    attempts,
+    minDelayMs,
+    maxDelayMs,
+    jitter: resolveJitterConfig(overrides?.jitter, defaults.jitter),
+  };
+}
+function applyJitter(delayMs, jitter, mode, random) {
+  if (jitter === "full") {
+    if (mode === "symmetric") {
+      return Math.max(0, Math.round(delayMs * (0.5 + random() * 0.5)));
+    }
+    return Math.max(0, Math.ceil(delayMs * (1 + random())));
+  }
+  if (jitter <= 0) {
+    return mode === "positive" ? Math.ceil(delayMs) : delayMs;
+  }
+  const fraction = random();
+  const offset = mode === "positive" ? fraction * jitter : (fraction * 2 - 1) * jitter;
+  const raw = delayMs * (1 + offset);
+  return Math.max(0, mode === "positive" ? Math.ceil(raw) : Math.round(raw));
+}
+function toRetryError(value, fallbackMessage = "Non-Error thrown") {
+  if (value instanceof Error) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return new Error(value);
+  }
+  const error = new Error(fallbackMessage, { cause: value });
+  if ((typeof value === "object" && value !== null) || typeof value === "function") {
+    Object.assign(error, value);
+  }
+  return error;
+}
+function createRetryRunner(runtime = {}) {
+  const runtimeSleep = runtime.sleep ?? defaultSleep;
+  const runtimeRandom = runtime.random ?? Math.random;
+  const createFailure =
+    runtime.createFailure ?? ((errors) => toRetryError(errors.at(-1) ?? new Error("Retry failed")));
+  return async function retryAsync2(fn, attemptsOrOptions = 3, initialDelayMs = 300) {
+    const attemptErrors = [];
+    if (typeof attemptsOrOptions === "number") {
+      const attempts = resolveAttemptCount(attemptsOrOptions, DEFAULT_RETRY_CONFIG.attempts);
+      for (let index = 0; index < attempts; index += 1) {
+        try {
+          return await fn();
+        } catch (err) {
+          attemptErrors.push(err);
+          if (index === attempts - 1) {
+            break;
+          }
+          await runtimeSleep(resolveRetryDelayMs(initialDelayMs * 2 ** index));
+        }
+      }
+      throw createFailure(attemptErrors);
+    }
+    const options = attemptsOrOptions;
+    const resolved = resolveRetryConfig(DEFAULT_RETRY_CONFIG, options);
+    const maxAttempts = resolved.attempts;
+    const minDelayMs = resolved.minDelayMs;
+    const maxDelayMs = resolved.maxDelayMs > 0 ? resolved.maxDelayMs : Number.POSITIVE_INFINITY;
+    const retryAfterMaxDelayMs =
+      options.retryAfterMaxDelayMs === void 0
+        ? maxDelayMs
+        : Math.max(
+            minDelayMs,
+            resolveRetryDelayMs(clampNumber(options.retryAfterMaxDelayMs, maxDelayMs, 0)),
+          );
+    const random = options.random ?? runtimeRandom;
+    const sleep2 = options.sleep ?? runtimeSleep;
+    const shouldRetry = options.shouldRetry ?? (() => true);
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await fn();
+      } catch (err) {
+        attemptErrors.push(err);
+        if (attempt >= maxAttempts || !shouldRetry(err, attempt)) {
+          break;
+        }
+        const context = {
+          attempt,
+          maxAttempts,
+          err,
+          label: options.label,
+        };
+        const retryAfterMs = options.retryAfterMs?.(err);
+        const hasRetryAfter = typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs);
+        const configuredDelay =
+          typeof options.delayMs === "function" ? options.delayMs(context) : options.delayMs;
+        const resolvedConfiguredDelay =
+          configuredDelay === void 0 ? void 0 : resolveRetryDelayMs(configuredDelay);
+        const baseDelay = hasRetryAfter
+          ? Math.max(retryAfterMs, minDelayMs)
+          : resolvedConfiguredDelay === void 0
+            ? minDelayMs * 2 ** (attempt - 1)
+            : Math.max(resolvedConfiguredDelay, minDelayMs);
+        const delayCap = hasRetryAfter ? retryAfterMaxDelayMs : maxDelayMs;
+        let delay = Math.min(baseDelay, delayCap);
+        const canHonorRetryAfter = hasRetryAfter && (retryAfterMs ?? 0) <= delayCap;
+        const wantsPositiveDraw =
+          resolved.jitter === "full" ? !hasRetryAfter || canHonorRetryAfter : canHonorRetryAfter;
+        delay = applyJitter(
+          delay,
+          resolved.jitter,
+          wantsPositiveDraw ? "positive" : "symmetric",
+          random,
+        );
+        delay = Math.min(Math.max(delay, minDelayMs), delayCap);
+        await options.onRetry?.({ ...context, delayMs: delay });
+        if (delay > 0) {
+          await sleep2(delay);
+        }
+      }
+    }
+    throw createFailure(attemptErrors);
+  };
+}
+var retryAsync = createRetryRunner();
+
+// vendor/openclaw/packages/normalization-core/src/number-coercion.ts
+var MAX_TIMER_TIMEOUT_MS2 = 2147e6;
+var MAX_TIMER_TIMEOUT_SECONDS = Math.floor(MAX_TIMER_TIMEOUT_MS2 / 1e3);
 
 // vendor/openclaw/packages/normalization-core/src/record-coerce.ts
 function isRecord(value) {
@@ -867,7 +1033,10 @@ function isSecretRef(value) {
     return false;
   }
   return (
-    (value.source === "env" || value.source === "file" || value.source === "exec") &&
+    (value.source === "env" ||
+      value.source === "file" ||
+      value.source === "exec" ||
+      value.source === "store") &&
     typeof value.provider === "string" &&
     value.provider.trim().length > 0 &&
     typeof value.id === "string" &&
@@ -921,6 +1090,9 @@ function isValidSecretRef(ref) {
   }
   if (ref.source === "file") {
     return isValidFileSecretRefId(ref.id);
+  }
+  if (ref.source === "store") {
+    return isValidEnvSecretRefId(ref.id);
   }
   return isValidExecSecretRefId(ref.id);
 }
@@ -994,8 +1166,6 @@ var sensitive = z3.registry();
 var configUiMetadata = z3.registry();
 
 // vendor/openclaw/src/config/zod-schema.core.ts
-var ENV_SECRET_REF_ID_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
-var SECRET_PROVIDER_ALIAS_PATTERN2 = /^[a-z][a-z0-9_-]{0,63}$/;
 var WINDOWS_ABS_PATH_PATTERN = /^[A-Za-z]:[\\/]/;
 var WINDOWS_UNC_PATH_PATTERN = /^\\\\[^\\]+\\[^\\]+/;
 function isAbsolutePath(value) {
@@ -1011,13 +1181,13 @@ var EnvSecretRefSchema = z4
     provider: z4
       .string()
       .regex(
-        SECRET_PROVIDER_ALIAS_PATTERN2,
+        SECRET_PROVIDER_ALIAS_PATTERN,
         'Secret reference provider must match /^[a-z][a-z0-9_-]{0,63}$/ (example: "default").',
       ),
     id: z4
       .string()
       .regex(
-        ENV_SECRET_REF_ID_PATTERN,
+        ENV_SECRET_REF_ID_RE,
         'Env secret reference id must match /^[A-Z][A-Z0-9_]{0,127}$/ (example: "OPENAI_API_KEY").',
       ),
   })
@@ -1028,7 +1198,7 @@ var FileSecretRefSchema = z4
     provider: z4
       .string()
       .regex(
-        SECRET_PROVIDER_ALIAS_PATTERN2,
+        SECRET_PROVIDER_ALIAS_PATTERN,
         'Secret reference provider must match /^[a-z][a-z0-9_-]{0,63}$/ (example: "default").',
       ),
     id: z4
@@ -1045,16 +1215,34 @@ var ExecSecretRefSchema = z4
     provider: z4
       .string()
       .regex(
-        SECRET_PROVIDER_ALIAS_PATTERN2,
+        SECRET_PROVIDER_ALIAS_PATTERN,
         'Secret reference provider must match /^[a-z][a-z0-9_-]{0,63}$/ (example: "default").',
       ),
     id: z4.string().refine(isValidExecSecretRefId, formatExecSecretRefIdValidationMessage()),
+  })
+  .strict();
+var StoreSecretRefSchema = z4
+  .object({
+    source: z4.literal("store"),
+    provider: z4
+      .string()
+      .regex(
+        SECRET_PROVIDER_ALIAS_PATTERN,
+        'Secret reference provider must match /^[a-z][a-z0-9_-]{0,63}$/ (example: "default").',
+      ),
+    id: z4
+      .string()
+      .regex(
+        ENV_SECRET_REF_ID_RE,
+        'Store secret reference id must match /^[A-Z][A-Z0-9_]{0,127}$/ (example: "OPENAI_API_KEY").',
+      ),
   })
   .strict();
 var SecretRefSchema = z4.discriminatedUnion("source", [
   EnvSecretRefSchema,
   FileSecretRefSchema,
   ExecSecretRefSchema,
+  StoreSecretRefSchema,
 ]);
 var SecretInputSchema = z4.union([z4.string(), SecretRefSchema]);
 var SsrFPolicyConfigSchema = z4
@@ -1068,7 +1256,7 @@ var SsrFPolicyConfigSchema = z4
 var SecretsEnvProviderSchema = z4
   .object({
     source: z4.literal("env"),
-    allowlist: z4.array(z4.string().regex(ENV_SECRET_REF_ID_PATTERN)).max(256).optional(),
+    allowlist: z4.array(z4.string().regex(ENV_SECRET_REF_ID_RE)).max(256).optional(),
   })
   .strict();
 var SecretsFileProviderSchema = z4
@@ -1107,7 +1295,7 @@ var SecretsManualExecProviderSchema = z4
       .optional(),
     jsonOnly: z4.boolean().optional(),
     env: z4.record(z4.string(), z4.string()).optional(),
-    passEnv: z4.array(z4.string().regex(ENV_SECRET_REF_ID_PATTERN)).max(128).optional(),
+    passEnv: z4.array(z4.string().regex(ENV_SECRET_REF_ID_RE)).max(128).optional(),
     trustedDirs: z4
       .array(
         z4
@@ -1134,10 +1322,12 @@ var SecretsExecProviderSchema = z4.union([
   SecretsManualExecProviderSchema,
   SecretsPluginIntegrationExecProviderSchema,
 ]);
+var SecretsStoreProviderSchema = z4.object({ source: z4.literal("store") }).strict();
 var SecretProviderSchema = z4.union([
   SecretsEnvProviderSchema,
   SecretsFileProviderSchema,
   SecretsExecProviderSchema,
+  SecretsStoreProviderSchema,
 ]);
 var SecretsConfigSchema = z4
   .object({
@@ -1149,9 +1339,10 @@ var SecretsConfigSchema = z4
       .optional(),
     defaults: z4
       .object({
-        env: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN2).optional(),
-        file: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN2).optional(),
-        exec: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN2).optional(),
+        env: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN).optional(),
+        file: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN).optional(),
+        exec: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN).optional(),
+        store: z4.string().regex(SECRET_PROVIDER_ALIAS_PATTERN).optional(),
       })
       .strict()
       .optional(),
@@ -2521,22 +2712,13 @@ var MemorySearchSchema = z5
     enabled: z5.boolean().optional(),
     rememberAcrossConversations: z5.boolean().optional(),
     sources: z5.array(z5.union([z5.literal("memory"), z5.literal("sessions")])).optional(),
-    extraPaths: z5.array(z5.string()).optional(),
-    qmd: z5
-      .object({
-        extraCollections: z5
-          .array(
-            z5
-              .object({
-                path: z5.string(),
-                name: z5.string().optional(),
-                pattern: z5.string().optional(),
-              })
-              .strict(),
-          )
-          .optional(),
-      })
-      .strict()
+    extraPaths: z5
+      .array(
+        z5.union([
+          z5.string(),
+          z5.object({ path: z5.string(), pattern: z5.string().optional() }).strict(),
+        ]),
+      )
       .optional(),
     multimodal: z5
       .object({
@@ -3431,6 +3613,10 @@ var CloudWorkerProfileIdSchema = z12
     "Worker profile ids must not contain outer whitespace",
   );
 var CloudWorkersConfigShape = {
+  desktop: z12.boolean().optional().register(configUiMetadata, {
+    label: "Cloud Worker Desktop (Labs)",
+    help: "Enables the experimental worker.desktop.observe surface and Control UI Desktop panel for desktop-capable cloud worker environments.",
+  }),
   profiles: z12
     .record(CloudWorkerProfileIdSchema, CloudWorkerProfileSchema)
     .optional()
@@ -3441,6 +3627,7 @@ var CloudWorkersConfigShape = {
 };
 var CloudWorkersConfigSchema = z12.object(CloudWorkersConfigShape).strict().optional();
 var CLOUD_WORKER_FIELD_SCHEMAS = {
+  "cloudWorkers.desktop": CloudWorkersConfigShape.desktop,
   "cloudWorkers.profiles": CloudWorkersConfigShape.profiles,
   "cloudWorkers.profiles.*": CloudWorkerProfileSchema,
   "cloudWorkers.profiles.*.provider": CloudWorkerProfileShape.provider,
@@ -3459,7 +3646,28 @@ var CLOUD_WORKER_FIELD_LABELS = projectCloudWorkerFieldMetadata("label");
 var CLOUD_WORKER_FIELD_HELP = projectCloudWorkerFieldMetadata("help");
 
 // vendor/openclaw/src/config/zod-schema.gateway.ts
-import { z as z16 } from "zod";
+import { z as z15 } from "zod";
+
+// vendor/openclaw/src/gateway/operator-scopes.ts
+var ADMIN_SCOPE = "operator.admin";
+var READ_SCOPE = "operator.read";
+var WRITE_SCOPE = "operator.write";
+var APPROVALS_SCOPE = "operator.approvals";
+var QUESTIONS_SCOPE = "operator.questions";
+var PAIRING_SCOPE = "operator.pairing";
+var TALK_SCOPE = "operator.talk";
+var TALK_SECRETS_SCOPE = "operator.talk.secrets";
+var KNOWN_OPERATOR_SCOPE_VALUES = [
+  ADMIN_SCOPE,
+  READ_SCOPE,
+  WRITE_SCOPE,
+  APPROVALS_SCOPE,
+  QUESTIONS_SCOPE,
+  PAIRING_SCOPE,
+  TALK_SCOPE,
+  TALK_SECRETS_SCOPE,
+];
+var KNOWN_OPERATOR_SCOPES = new Set(KNOWN_OPERATOR_SCOPE_VALUES);
 
 // vendor/openclaw/packages/net-policy/src/url-protocol.ts
 function parseUrl(value) {
@@ -3481,7 +3689,7 @@ function isHttpsUrl(value) {
 }
 
 // vendor/openclaw/src/config/zod-schema.root-support.ts
-import { z as z15 } from "zod";
+import { z as z14 } from "zod";
 
 // vendor/openclaw/src/config/zod-schema.node-host.ts
 import { z as z13 } from "zod";
@@ -3503,291 +3711,97 @@ var NodeHostAgentRunsSchema = z13
   .strict()
   .optional();
 
-// vendor/openclaw/src/config/zod-schema.session.ts
-import { z as z14 } from "zod";
-var SessionResetConfigSchema = z14
-  .object({
-    mode: z14.union([z14.literal("none"), z14.literal("daily"), z14.literal("idle")]).optional(),
-    atHour: z14.number().int().min(0).max(23).optional(),
-    idleMinutes: z14.number().int().positive().optional(),
-  })
-  .strict();
-var PositiveDurationSchema = z14.union([z14.string(), z14.number()]).superRefine((value, ctx) => {
-  try {
-    const ms = parseDurationMs(normalizeStringifiedOptionalString(value) ?? "", {
-      defaultUnit: "d",
-    });
-    if (ms <= 0) {
-      ctx.addIssue({
-        code: z14.ZodIssueCode.custom,
-        message: "duration must be positive (use ms, s, m, h, d), e.g. 30d",
-      });
-    }
-  } catch {
-    ctx.addIssue({
-      code: z14.ZodIssueCode.custom,
-      message: "invalid duration (use ms, s, m, h, d)",
-    });
-  }
-});
-var SessionSendPolicySchema = createAllowDenyChannelRulesSchema();
-var SessionSchema = z14
-  .object({
-    scope: z14.union([z14.literal("per-sender"), z14.literal("global")]).optional(),
-    dmScope: z14
-      .union([
-        z14.literal("main"),
-        z14.literal("per-peer"),
-        z14.literal("per-channel-peer"),
-        z14.literal("per-account-channel-peer"),
-      ])
-      .optional(),
-    identityLinks: z14.record(z14.string(), z14.array(z14.string())).optional(),
-    resetTriggers: z14.array(z14.string()).optional(),
-    reset: SessionResetConfigSchema.optional(),
-    resetByType: z14
-      .object({
-        direct: SessionResetConfigSchema.optional(),
-        group: SessionResetConfigSchema.optional(),
-        thread: SessionResetConfigSchema.optional(),
-      })
-      .strict()
-      .optional(),
-    resetByChannel: z14.record(z14.string(), SessionResetConfigSchema).optional(),
-    store: z14.string().optional(),
-    mainKey: z14.string().optional(),
-    sendPolicy: SessionSendPolicySchema.optional(),
-    threadBindings: z14
-      .object({
-        enabled: z14.boolean().optional(),
-        idleHours: z14.number().nonnegative().optional(),
-        maxAgeHours: z14.number().nonnegative().optional(),
-        spawnSessions: z14.boolean().optional(),
-        defaultSpawnContext: z14.enum(["isolated", "fork"]).optional(),
-      })
-      .strict()
-      .optional(),
-    sharing: z14
-      .object({
-        readOnly: z14.boolean().optional(),
-        suggest: z14.boolean().optional(),
-        drafts: z14.boolean().optional(),
-      })
-      .strict()
-      .optional(),
-    maintenance: z14
-      .object({
-        mode: z14.enum(["enforce", "warn"]).optional(),
-        pruneAfter: PositiveDurationSchema.optional(),
-        maxEntries: z14.number().int().positive().optional(),
-        resetArchiveRetention: z14.union([PositiveDurationSchema, z14.literal(false)]).optional(),
-        maxDiskBytes: z14.union([z14.string(), z14.number(), z14.literal(false)]).optional(),
-        highWaterBytes: z14.union([z14.string(), z14.number()]).optional(),
-      })
-      .strict()
-      .superRefine((val, ctx) => {
-        if (val.maxDiskBytes !== void 0 && val.maxDiskBytes !== false) {
-          try {
-            parseByteSize(normalizeStringifiedOptionalString(val.maxDiskBytes) ?? "", {
-              defaultUnit: "b",
-            });
-          } catch {
-            ctx.addIssue({
-              code: z14.ZodIssueCode.custom,
-              path: ["maxDiskBytes"],
-              message: "invalid size (use b, kb, mb, gb, tb)",
-            });
-          }
-        }
-        if (val.highWaterBytes !== void 0) {
-          try {
-            parseByteSize(normalizeStringifiedOptionalString(val.highWaterBytes) ?? "", {
-              defaultUnit: "b",
-            });
-          } catch {
-            ctx.addIssue({
-              code: z14.ZodIssueCode.custom,
-              path: ["highWaterBytes"],
-              message: "invalid size (use b, kb, mb, gb, tb)",
-            });
-          }
-        }
-      })
-      .optional(),
-  })
-  .strict()
-  .optional();
-var ResponseUsageModeSchema = z14.enum(["on", "off", "tokens", "full"]);
-var MessagesSchema = z14
-  .object({
-    visibleReplies: VisibleRepliesSchema.optional(),
-    responsePrefix: z14.string().optional(),
-    usageTemplate: z14.union([z14.string(), z14.record(z14.string(), z14.unknown())]).optional(),
-    responseUsage: z14
-      .union([ResponseUsageModeSchema, z14.record(z14.string(), ResponseUsageModeSchema)])
-      .optional(),
-    groupChat: GroupChatSchema,
-    queue: QueueSchema,
-    inbound: InboundDebounceSchema,
-    ackReaction: z14.string().optional(),
-    ackReactionScope: z14
-      .enum(["group-mentions", "group-all", "direct", "all", "off", "none"])
-      .optional(),
-    statusReactions: z14
-      .object({
-        enabled: z14.boolean().optional(),
-      })
-      .strict()
-      .optional(),
-    suppressToolErrors: z14.boolean().optional(),
-  })
-  .strict()
-  .optional();
-var CommandsSchema = z14
-  .object({
-    native: NativeCommandsSettingSchema.optional().default("auto"),
-    nativeSkills: NativeCommandsSettingSchema.optional().default("auto"),
-    text: z14.boolean().optional(),
-    bash: z14.boolean().optional(),
-    bashForegroundMs: z14.number().int().min(0).max(3e4).optional(),
-    config: z14.boolean().optional(),
-    mcp: z14.boolean().optional(),
-    plugins: z14.boolean().optional(),
-    debug: z14.boolean().optional(),
-    restart: z14.boolean().optional().default(true),
-    ownerAllowFrom: z14.array(z14.union([z14.string(), z14.number()])).optional(),
-    allowFrom: ElevatedAllowFromSchema.optional(),
-  })
-  .strict()
-  .optional()
-  .default(() => ({
-    native: "auto",
-    nativeSkills: "auto",
-    restart: true,
-  }));
-
 // vendor/openclaw/src/config/zod-schema.root-support.ts
 var GatewayRemoteSchemaShape = {
-  url: z15.string().optional(),
-  transport: z15.union([z15.literal("ssh"), z15.literal("direct")]).optional(),
-  remotePort: z15.number().int().min(1).max(65535).optional(),
+  url: z14.string().optional(),
+  transport: z14.union([z14.literal("ssh"), z14.literal("direct")]).optional(),
+  remotePort: z14.number().int().min(1).max(65535).optional(),
   token: SecretInputSchema.optional().register(sensitive),
   password: SecretInputSchema.optional().register(sensitive),
-  tlsFingerprint: z15.string().optional(),
-  sshTarget: z15.string().optional(),
-  sshIdentity: z15.string().optional(),
-  sshHostKeyPolicy: z15.union([z15.literal("strict"), z15.literal("openssh")]).optional(),
+  tlsFingerprint: z14.string().optional(),
+  sshTarget: z14.string().optional(),
+  sshIdentity: z14.string().optional(),
+  sshHostKeyPolicy: z14.union([z14.literal("strict"), z14.literal("openssh")]).optional(),
 };
-var GatewayRemoteConfigSchema = z15.strictObject(GatewayRemoteSchemaShape).optional();
-var TailscaleServiceNameSchema = z15.string().regex(/^svc:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/, {
+var GatewayRemoteConfigSchema = z14.strictObject(GatewayRemoteSchemaShape).optional();
+var TailscaleServiceNameSchema = z14.string().regex(/^svc:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/, {
   message:
     'Tailscale serviceName must use the "svc:<dns-label>" format, for example "svc:openclaw"',
 });
-var SecuritySchema = z15
+var SecuritySchema = z14
   .strictObject({
-    audit: z15
+    audit: z14
       .strictObject({
-        suppressions: z15
+        suppressions: z14
           .array(
-            z15.strictObject({
-              checkId: z15.string().min(1),
-              titleIncludes: z15.string().min(1).optional(),
-              detailIncludes: z15.string().min(1).optional(),
-              reason: z15.string().min(1).optional(),
+            z14.strictObject({
+              checkId: z14.string().min(1),
+              titleIncludes: z14.string().min(1).optional(),
+              detailIncludes: z14.string().min(1).optional(),
+              reason: z14.string().min(1).optional(),
             }),
           )
           .optional(),
       })
       .optional(),
-    installPolicy: z15
+    installPolicy: z14
       .strictObject({
-        enabled: z15.boolean().optional(),
-        targets: z15
-          .array(z15.union([z15.literal("skill"), z15.literal("plugin")]))
+        enabled: z14.boolean().optional(),
+        targets: z14
+          .array(z14.union([z14.literal("skill"), z14.literal("plugin")]))
           .min(1)
           .optional(),
-        exec: z15
+        exec: z14
           .strictObject({
-            source: z15.literal("exec"),
-            command: z15.string().min(1),
-            args: z15.array(z15.string()).optional(),
-            timeoutMs: z15.number().int().min(1).optional(),
-            noOutputTimeoutMs: z15.number().int().min(1).optional(),
-            maxOutputBytes: z15.number().int().min(1).optional(),
-            env: z15.record(z15.string(), z15.string().register(sensitive)).optional(),
-            passEnv: z15.array(z15.string()).optional(),
-            trustedDirs: z15.array(z15.string()).optional(),
+            source: z14.literal("exec"),
+            command: z14.string().min(1),
+            args: z14.array(z14.string()).optional(),
+            timeoutMs: z14.number().int().min(1).optional(),
+            noOutputTimeoutMs: z14.number().int().min(1).optional(),
+            maxOutputBytes: z14.number().int().min(1).optional(),
+            env: z14.record(z14.string(), z14.string().register(sensitive)).optional(),
+            passEnv: z14.array(z14.string()).optional(),
+            trustedDirs: z14.array(z14.string()).optional(),
           })
           .optional(),
       })
       .optional(),
   })
   .optional();
-var AccessGroupsSchema = z15
+var AccessGroupsSchema = z14
   .record(
-    z15.string().min(1),
-    z15.discriminatedUnion("type", [
-      z15.strictObject({
-        type: z15.literal("discord.channelAudience"),
-        guildId: z15.string().min(1),
-        channelId: z15.string().min(1),
-        membership: z15.literal("canViewChannel").optional(),
+    z14.string().min(1),
+    z14.discriminatedUnion("type", [
+      z14.strictObject({
+        type: z14.literal("discord.channelAudience"),
+        guildId: z14.string().min(1),
+        channelId: z14.string().min(1),
+        membership: z14.literal("canViewChannel").optional(),
       }),
-      z15.strictObject({
-        type: z15.literal("message.senders"),
-        members: z15.record(z15.string().min(1), z15.array(z15.string().min(1))),
+      z14.strictObject({
+        type: z14.literal("message.senders"),
+        members: z14.record(z14.string().min(1), z14.array(z14.string().min(1))),
       }),
     ]),
   )
   .optional();
-var MemoryQmdPathSchema = z15.strictObject({
-  path: z15.string(),
-  name: z15.string().optional(),
-  pattern: z15.string().optional(),
-});
-var MemoryQmdSessionSchema = z15.strictObject({
-  enabled: z15.boolean().optional(),
-  exportDir: z15.string().optional(),
-  retentionDays: z15.number().int().nonnegative().optional(),
-});
-var MemoryQmdLimitsSchema = z15.strictObject({
-  maxResults: z15.number().int().positive().optional(),
-  maxSnippetChars: z15.number().int().positive().optional(),
-  maxInjectedChars: z15.number().int().positive().optional(),
-  timeoutMs: z15.number().int().nonnegative().optional(),
-});
-var LoggingLevelSchema = z15.union([
-  z15.literal("silent"),
-  z15.literal("fatal"),
-  z15.literal("error"),
-  z15.literal("warn"),
-  z15.literal("info"),
-  z15.literal("debug"),
-  z15.literal("trace"),
+var LoggingLevelSchema = z14.union([
+  z14.literal("silent"),
+  z14.literal("fatal"),
+  z14.literal("error"),
+  z14.literal("warn"),
+  z14.literal("info"),
+  z14.literal("debug"),
+  z14.literal("trace"),
 ]);
-var MemoryQmdSchema = z15.strictObject({
-  command: z15.string().optional(),
-  searchMode: z15
-    .union([z15.literal("query"), z15.literal("search"), z15.literal("vsearch")])
-    .optional(),
-  rerank: z15.boolean().optional(),
-  searchTool: z15.string().trim().min(1).optional(),
-  includeDefaultMemory: z15.boolean().optional(),
-  paths: z15.array(MemoryQmdPathSchema).optional(),
-  sessions: MemoryQmdSessionSchema.optional(),
-  limits: MemoryQmdLimitsSchema.optional(),
-  scope: SessionSendPolicySchema.optional(),
-});
-var MemorySchema = z15
+var MemorySchema = z14
   .strictObject({
-    backend: z15.union([z15.literal("builtin"), z15.literal("qmd")]).optional(),
-    citations: z15.union([z15.literal("auto"), z15.literal("on"), z15.literal("off")]).optional(),
+    citations: z14.union([z14.literal("auto"), z14.literal("on"), z14.literal("off")]).optional(),
     search: MemorySearchSchema,
-    qmd: MemoryQmdSchema.optional(),
   })
   .optional();
-var HttpUrlSchema = z15.string().url().refine(isHttpUrl, "Expected http:// or https:// URL");
-var McpOAuthClientMetadataUrlSchema = z15
+var HttpUrlSchema = z14.string().url().refine(isHttpUrl, "Expected http:// or https:// URL");
+var McpOAuthClientMetadataUrlSchema = z14
   .string()
   .url()
   .refine((value) => {
@@ -3795,180 +3809,180 @@ var McpOAuthClientMetadataUrlSchema = z15
     return isHttpsUrl(url) && url.pathname !== "/";
   }, "Expected https:// URL with a non-root pathname");
 var ResponsesEndpointUrlFetchShape = {
-  allowUrl: z15.boolean().optional(),
-  urlAllowlist: z15.array(z15.string()).optional(),
-  allowedMimes: z15.array(z15.string()).optional(),
-  maxBytes: z15.number().int().positive().optional(),
-  maxRedirects: z15.number().int().nonnegative().optional(),
-  timeoutMs: z15.number().int().positive().optional(),
+  allowUrl: z14.boolean().optional(),
+  urlAllowlist: z14.array(z14.string()).optional(),
+  allowedMimes: z14.array(z14.string()).optional(),
+  maxBytes: z14.number().int().positive().optional(),
+  maxRedirects: z14.number().int().nonnegative().optional(),
+  timeoutMs: z14.number().int().positive().optional(),
 };
-var SkillEntrySchema = z15.strictObject({
-  enabled: z15.boolean().optional(),
+var SkillEntrySchema = z14.strictObject({
+  enabled: z14.boolean().optional(),
   apiKey: SecretInputSchema.optional().register(sensitive),
-  env: z15.record(z15.string(), z15.string()).optional(),
-  config: z15.record(z15.string(), z15.unknown()).optional(),
+  env: z14.record(z14.string(), z14.string()).optional(),
+  config: z14.record(z14.string(), z14.unknown()).optional(),
 });
-var PluginEntrySchema = z15.strictObject({
-  enabled: z15.boolean().optional(),
-  hooks: z15
+var PluginEntrySchema = z14.strictObject({
+  enabled: z14.boolean().optional(),
+  hooks: z14
     .strictObject({
-      allowPromptInjection: z15.boolean().optional(),
-      allowConversationAccess: z15.boolean().optional(),
-      timeoutMs: z15.number().int().positive().max(6e5).optional(),
-      timeouts: z15.record(z15.string(), z15.number().int().positive().max(6e5)).optional(),
+      allowPromptInjection: z14.boolean().optional(),
+      allowConversationAccess: z14.boolean().optional(),
+      timeoutMs: z14.number().int().positive().max(6e5).optional(),
+      timeouts: z14.record(z14.string(), z14.number().int().positive().max(6e5)).optional(),
     })
     .optional(),
-  subagent: z15
+  subagent: z14
     .strictObject({
-      allowModelOverride: z15.boolean().optional(),
-      allowedModels: z15.array(z15.string()).optional(),
+      allowModelOverride: z14.boolean().optional(),
+      allowedModels: z14.array(z14.string()).optional(),
     })
     .optional(),
-  llm: z15
+  llm: z14
     .strictObject({
-      allowModelOverride: z15.boolean().optional(),
-      allowedModels: z15.array(z15.string()).optional(),
-      allowedCompletionModels: z15.array(z15.string()).optional(),
-      allowAuthProfileOverride: z15.boolean().optional(),
-      allowAgentIdOverride: z15.boolean().optional(),
+      allowModelOverride: z14.boolean().optional(),
+      allowedModels: z14.array(z14.string()).optional(),
+      allowedCompletionModels: z14.array(z14.string()).optional(),
+      allowAuthProfileOverride: z14.boolean().optional(),
+      allowAgentIdOverride: z14.boolean().optional(),
     })
     .optional(),
-  config: z15.record(z15.string(), z15.unknown()).optional(),
+  config: z14.record(z14.string(), z14.unknown()).optional(),
 });
-var TalkProviderEntrySchema = z15
+var TalkProviderEntrySchema = z14
   .object({
     apiKey: SecretInputSchema.optional().register(sensitive),
   })
-  .catchall(z15.unknown());
-var TalkRealtimeSchema = z15
+  .catchall(z14.unknown());
+var TalkRealtimeSchema = z14
   .strictObject({
-    provider: z15.string().optional(),
-    providers: z15.record(z15.string(), TalkProviderEntrySchema).optional(),
-    model: z15.string().optional(),
-    speakerVoice: z15.string().optional(),
-    speakerVoiceId: z15.string().optional(),
-    instructions: z15.string().optional(),
-    mode: z15.enum(["realtime", "stt-tts", "transcription"]).optional(),
-    transport: z15
+    provider: z14.string().optional(),
+    providers: z14.record(z14.string(), TalkProviderEntrySchema).optional(),
+    model: z14.string().optional(),
+    speakerVoice: z14.string().optional(),
+    speakerVoiceId: z14.string().optional(),
+    instructions: z14.string().optional(),
+    mode: z14.enum(["realtime", "stt-tts", "transcription"]).optional(),
+    transport: z14
       .enum(["webrtc", "provider-websocket", "gateway-relay", "managed-room"])
       .optional(),
-    vadThreshold: z15.number().min(0).max(1).optional(),
-    silenceDurationMs: z15.number().int().positive().optional(),
-    prefixPaddingMs: z15.number().int().nonnegative().optional(),
-    reasoningEffort: z15.string().min(1).optional(),
-    brain: z15.enum(["agent-consult", "direct-tools", "none"]).optional(),
-    consultRouting: z15.enum(["provider-direct", "force-agent-consult"]).optional(),
+    vadThreshold: z14.number().min(0).max(1).optional(),
+    silenceDurationMs: z14.number().int().positive().optional(),
+    prefixPaddingMs: z14.number().int().nonnegative().optional(),
+    reasoningEffort: z14.string().min(1).optional(),
+    brain: z14.enum(["agent-consult", "direct-tools", "none"]).optional(),
+    consultRouting: z14.enum(["provider-direct", "force-agent-consult"]).optional(),
   })
   .superRefine((realtime, ctx) => {
     const provider = normalizeLowercaseStringOrEmpty(realtime.provider ?? "");
     const providers = realtime.providers ? Object.keys(realtime.providers) : [];
     if (provider && providers.length > 0 && !Object.hasOwn(realtime.providers, provider)) {
       ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         path: ["provider"],
         message: `talk.realtime.provider must match a key in talk.realtime.providers (missing "${provider}")`,
       });
     }
     if (!provider && providers.length > 1) {
       ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         path: ["provider"],
         message:
           "talk.realtime.provider is required when talk.realtime.providers defines multiple providers",
       });
     }
   });
-var TalkSchema = z15
+var TalkSchema = z14
   .strictObject({
-    agentId: z15.string().trim().min(1).optional(),
-    provider: z15.string().optional(),
-    providers: z15.record(z15.string(), TalkProviderEntrySchema).optional(),
+    agentId: z14.string().trim().min(1).optional(),
+    provider: z14.string().optional(),
+    providers: z14.record(z14.string(), TalkProviderEntrySchema).optional(),
     realtime: TalkRealtimeSchema.optional(),
-    consultThinkingLevel: z15
+    consultThinkingLevel: z14
       .enum(["off", "minimal", "low", "medium", "high", "xhigh", "adaptive", "max", "ultra"])
       .optional(),
-    consultFastMode: z15.boolean().optional(),
-    speechLocale: z15.string().optional(),
-    interruptOnSpeech: z15.boolean().optional(),
-    silenceTimeoutMs: z15.number().int().positive().optional(),
+    consultFastMode: z14.boolean().optional(),
+    speechLocale: z14.string().optional(),
+    interruptOnSpeech: z14.boolean().optional(),
+    silenceTimeoutMs: z14.number().int().positive().optional(),
   })
   .superRefine((talk, ctx) => {
     const provider = normalizeLowercaseStringOrEmpty(talk.provider ?? "");
     const providers = talk.providers ? Object.keys(talk.providers) : [];
     if (provider && providers.length > 0 && !Object.hasOwn(talk.providers, provider)) {
       ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         path: ["provider"],
         message: `talk.provider must match a key in talk.providers (missing "${provider}")`,
       });
     }
     if (!provider && providers.length > 1) {
       ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         path: ["provider"],
         message: "talk.provider is required when talk.providers defines multiple providers",
       });
     }
   });
-var McpServerSchema = z15
+var McpServerSchema = z14
   .object({
-    enabled: z15.boolean().optional(),
-    command: z15.string().optional(),
-    args: z15.array(z15.string()).optional(),
-    env: z15
+    enabled: z14.boolean().optional(),
+    command: z14.string().optional(),
+    args: z14.array(z14.string()).optional(),
+    env: z14
       .record(
-        z15.string(),
-        z15
-          .union([z15.string().register(sensitive), z15.number(), z15.boolean()])
+        z14.string(),
+        z14
+          .union([z14.string().register(sensitive), z14.number(), z14.boolean()])
           .register(sensitive),
       )
       .optional(),
-    cwd: z15.string().optional(),
+    cwd: z14.string().optional(),
     url: HttpUrlSchema.optional(),
-    transport: z15
-      .union([z15.literal("stdio"), z15.literal("sse"), z15.literal("streamable-http")])
+    transport: z14
+      .union([z14.literal("stdio"), z14.literal("sse"), z14.literal("streamable-http")])
       .optional(),
-    headers: z15
+    headers: z14
       .record(
-        z15.string(),
-        z15
-          .union([z15.string().register(sensitive), z15.number(), z15.boolean()])
+        z14.string(),
+        z14
+          .union([z14.string().register(sensitive), z14.number(), z14.boolean()])
           .register(sensitive),
       )
       .optional(),
-    connectionTimeoutMs: z15.number().finite().positive().optional(),
-    requestTimeoutMs: z15.number().finite().positive().optional(),
-    supportsParallelToolCalls: z15.boolean().optional(),
-    auth: z15.literal("oauth").optional(),
-    oauth: z15
+    connectionTimeoutMs: z14.number().finite().positive().optional(),
+    requestTimeoutMs: z14.number().finite().positive().optional(),
+    supportsParallelToolCalls: z14.boolean().optional(),
+    auth: z14.literal("oauth").optional(),
+    oauth: z14
       .strictObject({
-        authProfileId: z15.string().trim().min(1).optional(),
-        scope: z15.string().trim().min(1).optional(),
+        authProfileId: z14.string().trim().min(1).optional(),
+        scope: z14.string().trim().min(1).optional(),
         redirectUrl: HttpUrlSchema.optional(),
         clientMetadataUrl: McpOAuthClientMetadataUrlSchema.optional(),
       })
       .optional(),
-    sslVerify: z15.boolean().optional(),
-    clientCert: z15.string().optional(),
-    clientKey: z15.string().optional(),
-    toolFilter: z15
+    sslVerify: z14.boolean().optional(),
+    clientCert: z14.string().optional(),
+    clientKey: z14.string().optional(),
+    toolFilter: z14
       .strictObject({
-        include: z15.array(z15.string().trim().min(1)).min(1).optional(),
-        exclude: z15.array(z15.string().trim().min(1)).min(1).optional(),
+        include: z14.array(z14.string().trim().min(1)).min(1).optional(),
+        exclude: z14.array(z14.string().trim().min(1)).min(1).optional(),
       })
       .optional(),
-    codex: z15
+    codex: z14
       .strictObject({
-        agents: z15
+        agents: z14
           .array(
-            z15
+            z14
               .string()
               .trim()
               .regex(/^[a-z0-9][a-z0-9_-]{0,63}$/i),
           )
           .min(1)
           .optional(),
-        defaultToolsApprovalMode: z15.enum(["auto", "prompt", "approve"]).optional(),
+        defaultToolsApprovalMode: z14.enum(["auto", "prompt", "approve"]).optional(),
       })
       .optional(),
   })
@@ -3985,7 +3999,7 @@ var McpServerSchema = z15
     ]) {
       if (Object.hasOwn(data, key)) {
         ctx.addIssue({
-          code: z15.ZodIssueCode.custom,
+          code: z14.ZodIssueCode.custom,
           message: `Unrecognized key: "${key}"`,
         });
       }
@@ -3993,7 +4007,7 @@ var McpServerSchema = z15
     const codex = data.codex;
     if (codex && Object.hasOwn(codex, "default_tools_approval_mode")) {
       ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         path: ["codex", "default_tools_approval_mode"],
         message: 'Unrecognized key: "default_tools_approval_mode"',
       });
@@ -4005,7 +4019,7 @@ var McpServerSchema = z15
           ? `"enabled: ${!disabled}" instead, then run "openclaw doctor --fix" to migrate existing config`
           : 'the canonical "enabled" boolean instead';
       ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         message: `unsupported key "disabled"; use ${replacement}`,
         path: ["disabled"],
       });
@@ -4015,16 +4029,16 @@ var McpServerSchema = z15
       (typeof data.command !== "string" || data.command.trim().length === 0)
     ) {
       ctx.addIssue({
-        code: z15.ZodIssueCode.custom,
+        code: z14.ZodIssueCode.custom,
         message: '"stdio" transport requires a non-empty command',
         path: ["transport"],
       });
     }
   })
-  .catchall(z15.unknown());
+  .catchall(z14.unknown());
 var RESERVED_MCP_SERVER_NAME = "__proto__";
 var RESERVED_MCP_SERVER_NAME_ERROR = 'MCP server name "__proto__" is reserved; rename the server';
-var McpServerNameSchema = z15
+var McpServerNameSchema = z14
   .string()
   .refine((value) => value !== RESERVED_MCP_SERVER_NAME, RESERVED_MCP_SERVER_NAME_ERROR);
 var NodeHostMcpServerNameSchema = McpServerNameSchema.refine(
@@ -4032,7 +4046,7 @@ var NodeHostMcpServerNameSchema = McpServerNameSchema.refine(
   "MCP server name must be non-empty and must not have surrounding whitespace",
 );
 function createMcpServersSchema(serverNameSchema) {
-  return z15.preprocess(
+  return z14.preprocess(
     (value, ctx) => {
       if (
         value !== null &&
@@ -4041,24 +4055,24 @@ function createMcpServersSchema(serverNameSchema) {
         Object.hasOwn(value, RESERVED_MCP_SERVER_NAME)
       ) {
         ctx.addIssue({
-          code: z15.ZodIssueCode.custom,
+          code: z14.ZodIssueCode.custom,
           path: [RESERVED_MCP_SERVER_NAME],
           message: RESERVED_MCP_SERVER_NAME_ERROR,
         });
-        return z15.NEVER;
+        return z14.NEVER;
       }
       return value;
     },
-    z15.record(serverNameSchema, McpServerSchema),
+    z14.record(serverNameSchema, McpServerSchema),
   );
 }
-var McpConfigSchema = z15
+var McpConfigSchema = z14
   .strictObject({
     servers: createMcpServersSchema(McpServerNameSchema).optional(),
-    apps: z15
+    apps: z14
       .strictObject({
-        enabled: z15.boolean().optional(),
-        sandboxOrigin: z15
+        enabled: z14.boolean().optional(),
+        sandboxOrigin: z14
           .string()
           .url()
           .refine((value) => {
@@ -4075,184 +4089,200 @@ var McpConfigSchema = z15
             }
           }, "sandboxOrigin must be an HTTP(S) origin without a path, query, or credentials")
           .optional(),
-        sandboxPort: z15.number().int().min(1).max(65535).optional(),
+        sandboxPort: z14.number().int().min(1).max(65535).optional(),
       })
       .optional(),
   })
   .optional();
-var NodeHostSchema = z15
+var NodeHostSchema = z14
   .strictObject({
     agentRuns: NodeHostAgentRunsSchema,
-    browserProxy: z15
+    browserProxy: z14
       .strictObject({
-        enabled: z15.boolean().optional(),
-        allowProfiles: z15.array(z15.string()).optional(),
+        enabled: z14.boolean().optional(),
+        allowProfiles: z14.array(z14.string()).optional(),
       })
       .optional(),
-    mcp: z15
+    mcp: z14
       .strictObject({
         servers: createMcpServersSchema(NodeHostMcpServerNameSchema).optional(),
       })
       .optional(),
-    skills: z15
+    skills: z14
       .strictObject({
-        enabled: z15.boolean().optional(),
+        enabled: z14.boolean().optional(),
       })
       .optional(),
   })
   .optional();
 
 // vendor/openclaw/src/config/zod-schema.gateway.ts
-var GatewayConfigSchema = z16
+var OperatorScopeSchema = z15.enum([
+  ADMIN_SCOPE,
+  READ_SCOPE,
+  WRITE_SCOPE,
+  APPROVALS_SCOPE,
+  QUESTIONS_SCOPE,
+  PAIRING_SCOPE,
+  TALK_SCOPE,
+  TALK_SECRETS_SCOPE,
+]);
+var GatewayConfigSchema = z15
   .strictObject({
-    port: z16.number().int().min(1).max(65535).optional(),
-    mode: z16.union([z16.literal("local"), z16.literal("remote")]).optional(),
-    bind: z16
+    port: z15.number().int().min(1).max(65535).optional(),
+    mode: z15.union([z15.literal("local"), z15.literal("remote")]).optional(),
+    bind: z15
       .union([
-        z16.literal("auto"),
-        z16.literal("lan"),
-        z16.literal("loopback"),
-        z16.literal("custom"),
-        z16.literal("tailnet"),
+        z15.literal("auto"),
+        z15.literal("lan"),
+        z15.literal("loopback"),
+        z15.literal("custom"),
+        z15.literal("tailnet"),
       ])
       .optional(),
-    customBindHost: z16.string().optional(),
-    controlUi: z16
+    customBindHost: z15.string().optional(),
+    controlUi: z15
       .strictObject({
         // Shipped legacy input. Doctor removes it after recording migration state.
-        dangerouslyDisableDeviceAuth: z16.boolean().optional(),
-        enabled: z16.boolean().optional(),
-        basePath: z16.string().optional(),
-        root: z16.string().optional(),
-        toolTitles: z16.boolean().optional(),
-        sessionObserver: z16.boolean().optional(),
-        embedSandbox: z16
-          .union([z16.literal("strict"), z16.literal("scripts"), z16.literal("trusted")])
+        dangerouslyDisableDeviceAuth: z15.boolean().optional(),
+        enabled: z15.boolean().optional(),
+        basePath: z15.string().optional(),
+        root: z15.string().optional(),
+        toolTitles: z15.boolean().optional(),
+        sessionObserver: z15.boolean().optional(),
+        embedSandbox: z15
+          .union([z15.literal("strict"), z15.literal("scripts"), z15.literal("trusted")])
           .optional(),
-        allowExternalEmbedUrls: z16.boolean().optional(),
-        allowedOrigins: z16.array(z16.string()).optional(),
-        dangerouslyAllowHostHeaderOriginFallback: z16.boolean().optional(),
+        allowExternalEmbedUrls: z15.boolean().optional(),
+        allowedOrigins: z15.array(z15.string()).optional(),
+        dangerouslyAllowHostHeaderOriginFallback: z15.boolean().optional(),
       })
       .optional(),
-    terminal: z16
+    cliAgents: z15
       .strictObject({
-        enabled: z16.boolean().optional(),
-        shell: z16.string().optional(),
-        detachedSessionTimeoutSeconds: z16.number().int().min(0).optional(),
+        enabled: z15.boolean().optional(),
       })
       .optional(),
-    auth: z16
+    terminal: z15
       .strictObject({
-        mode: z16
+        enabled: z15.boolean().optional(),
+        shell: z15.string().optional(),
+        detachedSessionTimeoutSeconds: z15.number().int().min(0).optional(),
+      })
+      .optional(),
+    auth: z15
+      .strictObject({
+        mode: z15
           .union([
-            z16.literal("none"),
-            z16.literal("token"),
-            z16.literal("password"),
-            z16.literal("trusted-proxy"),
+            z15.literal("none"),
+            z15.literal("token"),
+            z15.literal("password"),
+            z15.literal("trusted-proxy"),
           ])
           .optional(),
         token: SecretInputSchema.optional().register(sensitive),
         password: SecretInputSchema.optional().register(sensitive),
-        allowTailscale: z16.boolean().optional(),
-        rateLimit: z16
+        allowTailscale: z15.boolean().optional(),
+        identityScopes: z15.record(z15.string().min(1), z15.array(OperatorScopeSchema)).optional(),
+        rateLimit: z15
           .strictObject({
-            maxAttempts: z16.number().optional(),
-            windowMs: z16.number().optional(),
-            lockoutMs: z16.number().optional(),
-            exemptLoopback: z16.boolean().optional(),
+            maxAttempts: z15.number().optional(),
+            windowMs: z15.number().optional(),
+            lockoutMs: z15.number().optional(),
+            exemptLoopback: z15.boolean().optional(),
           })
           .optional(),
-        trustedProxy: z16
+        trustedProxy: z15
           .strictObject({
-            userHeader: z16.string().min(1, "userHeader is required for trusted-proxy mode"),
-            requiredHeaders: z16.array(z16.string()).optional(),
-            allowUsers: z16.array(z16.string()).optional(),
-            allowLoopback: z16.boolean().optional(),
-            deviceAutoApprove: z16
+            userHeader: z15.string().min(1, "userHeader is required for trusted-proxy mode"),
+            requiredHeaders: z15.array(z15.string()).optional(),
+            allowUsers: z15.array(z15.string()).optional(),
+            allowLoopback: z15.boolean().optional(),
+            deviceAutoApprove: z15
               .strictObject({
-                enabled: z16.boolean().optional(),
-                scopes: z16.array(z16.string().min(1)).optional(),
+                enabled: z15.boolean().optional(),
+                scopes: z15.array(z15.string().min(1)).optional(),
               })
               .optional(),
           })
           .optional(),
       })
       .optional(),
-    trustedProxies: z16.array(z16.string()).optional(),
-    allowRealIpFallback: z16.boolean().optional(),
-    tools: z16
+    trustedProxies: z15.array(z15.string()).optional(),
+    allowRealIpFallback: z15.boolean().optional(),
+    tools: z15
       .strictObject({
-        deny: z16.array(z16.string()).optional(),
-        allow: z16.array(z16.string()).optional(),
+        deny: z15.array(z15.string()).optional(),
+        allow: z15.array(z15.string()).optional(),
       })
       .optional(),
-    tailscale: z16
+    tailscale: z15
       .strictObject({
-        mode: z16
-          .union([z16.literal("off"), z16.literal("serve"), z16.literal("funnel")])
+        mode: z15
+          .union([z15.literal("off"), z15.literal("serve"), z15.literal("funnel")])
           .optional(),
-        resetOnExit: z16.boolean().optional(),
+        resetOnExit: z15.boolean().optional(),
         serviceName: TailscaleServiceNameSchema.optional(),
-        preserveFunnel: z16.boolean().optional(),
+        preserveFunnel: z15.boolean().optional(),
       })
       .optional(),
     remote: GatewayRemoteConfigSchema,
-    reload: z16
+    reload: z15
       .strictObject({
-        mode: z16.union([z16.literal("off"), z16.literal("hybrid")]).optional(),
+        mode: z15.union([z15.literal("off"), z15.literal("hybrid")]).optional(),
       })
       .optional(),
-    tls: z16
+    tls: z15
       .object({
-        enabled: z16.boolean().optional(),
-        autoGenerate: z16.boolean().optional(),
+        enabled: z15.boolean().optional(),
+        autoGenerate: z15.boolean().optional(),
         // Reject blank values without transforming the string. Trimming here would
         // silently rewrite a legitimate filesystem path that contains leading or
         // trailing spaces and persist the trimmed value into validated config;
         // runtime path resolution (resolveUserPath) owns all normalization.
-        certPath: z16
+        certPath: z15
           .string()
           .optional()
           .refine((v) => v === void 0 || v.trim().length > 0, "certPath must not be blank"),
-        keyPath: z16
+        keyPath: z15
           .string()
           .optional()
           .refine((v) => v === void 0 || v.trim().length > 0, "keyPath must not be blank"),
-        caPath: z16.string().optional(),
+        caPath: z15.string().optional(),
       })
       .optional(),
-    http: z16
+    http: z15
       .strictObject({
-        endpoints: z16
+        endpoints: z15
           .strictObject({
-            chatCompletions: z16
+            chatCompletions: z15
               .strictObject({
-                enabled: z16.boolean().optional(),
-                images: z16
+                enabled: z15.boolean().optional(),
+                images: z15
                   .strictObject({
                     ...ResponsesEndpointUrlFetchShape,
                   })
                   .optional(),
               })
               .optional(),
-            responses: z16
+            responses: z15
               .strictObject({
-                enabled: z16.boolean().optional(),
-                maxUrlParts: z16.number().int().nonnegative().optional(),
-                files: z16
+                enabled: z15.boolean().optional(),
+                maxUrlParts: z15.number().int().nonnegative().optional(),
+                files: z15
                   .strictObject({
                     ...ResponsesEndpointUrlFetchShape,
-                    maxChars: z16.number().int().positive().optional(),
-                    pdf: z16
+                    maxChars: z15.number().int().positive().optional(),
+                    pdf: z15
                       .strictObject({
-                        maxPages: z16.number().int().positive().optional(),
-                        maxPixels: z16.number().int().positive().optional(),
-                        minTextChars: z16.number().int().nonnegative().optional(),
+                        maxPages: z15.number().int().positive().optional(),
+                        maxPixels: z15.number().int().positive().optional(),
+                        minTextChars: z15.number().int().nonnegative().optional(),
                       })
                       .optional(),
                   })
                   .optional(),
-                images: z16
+                images: z15
                   .strictObject({
                     ...ResponsesEndpointUrlFetchShape,
                   })
@@ -4261,64 +4291,64 @@ var GatewayConfigSchema = z16
               .optional(),
           })
           .optional(),
-        securityHeaders: z16
+        securityHeaders: z15
           .strictObject({
-            strictTransportSecurity: z16.union([z16.string(), z16.literal(false)]).optional(),
+            strictTransportSecurity: z15.union([z15.string(), z15.literal(false)]).optional(),
           })
           .optional(),
       })
       .optional(),
-    push: z16
+    push: z15
       .strictObject({
-        apns: z16
+        apns: z15
           .strictObject({
-            relay: z16
+            relay: z15
               .strictObject({
-                baseUrl: z16.string().optional(),
-                timeoutMs: z16.number().int().positive().optional(),
+                baseUrl: z15.string().optional(),
+                timeoutMs: z15.number().int().positive().optional(),
               })
               .optional(),
           })
           .optional(),
       })
       .optional(),
-    nodes: z16
+    nodes: z15
       .strictObject({
-        browser: z16
+        browser: z15
           .strictObject({
-            mode: z16
-              .union([z16.literal("auto"), z16.literal("manual"), z16.literal("off")])
+            mode: z15
+              .union([z15.literal("auto"), z15.literal("manual"), z15.literal("off")])
               .optional(),
-            node: z16.string().optional(),
+            node: z15.string().optional(),
           })
           .optional(),
-        pairing: z16
+        pairing: z15
           .strictObject({
-            autoApproveLocal: z16.boolean().optional(),
-            autoApproveCidrs: z16.array(z16.string()).optional(),
-            sshVerify: z16
+            autoApproveLocal: z15.boolean().optional(),
+            autoApproveCidrs: z15.array(z15.string()).optional(),
+            sshVerify: z15
               .union([
-                z16.boolean(),
-                z16.strictObject({
-                  user: z16.string().optional(),
-                  identity: z16.string().optional(),
-                  timeoutMs: z16.number().int().positive().optional(),
-                  cidrs: z16.array(z16.string()).optional(),
+                z15.boolean(),
+                z15.strictObject({
+                  user: z15.string().optional(),
+                  identity: z15.string().optional(),
+                  timeoutMs: z15.number().int().positive().optional(),
+                  cidrs: z15.array(z15.string()).optional(),
                 }),
               ])
               .optional(),
           })
           .optional(),
-        pluginTools: z16
+        pluginTools: z15
           .strictObject({
-            enabled: z16.boolean().optional(),
+            enabled: z15.boolean().optional(),
           })
           .optional(),
-        allowSkills: z16.boolean().optional(),
-        commands: z16
+        allowSkills: z15.boolean().optional(),
+        commands: z15
           .strictObject({
-            allow: z16.array(z16.string()).optional(),
-            deny: z16.array(z16.string()).optional(),
+            allow: z15.array(z15.string()).optional(),
+            deny: z15.array(z15.string()).optional(),
           })
           .optional(),
       })
@@ -4328,7 +4358,7 @@ var GatewayConfigSchema = z16
 
 // vendor/openclaw/src/config/zod-schema.hooks.ts
 import path6 from "node:path";
-import { z as z17 } from "zod";
+import { z as z16 } from "zod";
 function isSafeRelativeModulePath(raw) {
   const value = raw.trim();
   if (!value) {
@@ -4349,111 +4379,103 @@ function isSafeRelativeModulePath(raw) {
   }
   return true;
 }
-var SafeRelativeModulePathSchema = z17
+var SafeRelativeModulePathSchema = z16
   .string()
   .refine(isSafeRelativeModulePath, "module must be a safe relative path (no absolute paths)");
-var HookMappingSchema = z17
+var HookMappingSchema = z16
   .object({
-    id: z17.string().optional(),
-    match: z17
+    id: z16.string().optional(),
+    match: z16
       .object({
-        path: z17.string().optional(),
-        source: z17.string().optional(),
+        path: z16.string().optional(),
+        source: z16.string().optional(),
       })
       .optional(),
-    action: z17.union([z17.literal("wake"), z17.literal("agent")]).optional(),
-    wakeMode: z17.union([z17.literal("now"), z17.literal("next-heartbeat")]).optional(),
-    name: z17.string().optional(),
-    agentId: z17.string().optional(),
-    sessionKey: z17.string().optional().register(sensitive),
-    sessionMode: z17.union([z17.literal("isolated"), z17.literal("persistent")]).optional(),
-    messageTemplate: z17.string().optional(),
-    textTemplate: z17.string().optional(),
-    deliver: z17.boolean().optional(),
-    allowUnsafeExternalContent: z17.boolean().optional(),
+    action: z16.union([z16.literal("wake"), z16.literal("agent")]).optional(),
+    wakeMode: z16.union([z16.literal("now"), z16.literal("next-heartbeat")]).optional(),
+    name: z16.string().optional(),
+    agentId: z16.string().optional(),
+    sessionKey: z16.string().optional().register(sensitive),
+    sessionMode: z16.union([z16.literal("isolated"), z16.literal("persistent")]).optional(),
+    messageTemplate: z16.string().optional(),
+    textTemplate: z16.string().optional(),
+    deliver: z16.boolean().optional(),
+    allowUnsafeExternalContent: z16.boolean().optional(),
     // Keep this open-ended so runtime channel plugins (for example feishu) can be
     // referenced without hard-coding every channel id in the config schema.
     // Runtime still validates the resolved value against currently registered channels.
-    channel: z17.string().trim().min(1).optional(),
-    to: z17.string().optional(),
-    model: z17.string().optional(),
-    thinking: z17.string().optional(),
-    timeoutSeconds: z17.number().int().positive().optional(),
-    transform: z17
+    channel: z16.string().trim().min(1).optional(),
+    to: z16.string().optional(),
+    model: z16.string().optional(),
+    thinking: z16.string().optional(),
+    timeoutSeconds: z16.number().int().positive().optional(),
+    transform: z16
       .object({
         module: SafeRelativeModulePathSchema,
-        export: z17.string().optional(),
+        export: z16.string().optional(),
       })
       .strict()
       .optional(),
   })
   .strict()
   .optional();
-var InternalHookHandlerSchema = z17
+var HookConfigSchema = z16
   .object({
-    event: z17.string(),
-    module: SafeRelativeModulePathSchema,
-    export: z17.string().optional(),
-  })
-  .strict();
-var HookConfigSchema = z17
-  .object({
-    enabled: z17.boolean().optional(),
-    env: z17.record(z17.string(), z17.string()).optional(),
+    enabled: z16.boolean().optional(),
+    env: z16.record(z16.string(), z16.string()).optional(),
   })
   .passthrough();
-var InternalHooksSchema = z17
+var InternalHooksSchema = z16
   .object({
-    enabled: z17.boolean().optional(),
-    handlers: z17.array(InternalHookHandlerSchema).optional(),
-    entries: z17.record(z17.string(), HookConfigSchema).optional(),
-    load: z17
+    enabled: z16.boolean().optional(),
+    entries: z16.record(z16.string(), HookConfigSchema).optional(),
+    load: z16
       .object({
-        extraDirs: z17.array(z17.string()).optional(),
+        extraDirs: z16.array(z16.string()).optional(),
       })
       .strict()
       .optional(),
   })
   .strict()
   .optional();
-var HooksGmailSchema = z17
+var HooksGmailSchema = z16
   .object({
-    account: z17.string().optional(),
-    label: z17.string().optional(),
-    topic: z17.string().optional(),
-    subscription: z17.string().optional(),
-    pushToken: z17.string().optional().register(sensitive),
-    hookUrl: z17.string().optional(),
-    includeBody: z17.boolean().optional(),
-    maxBytes: z17.number().int().positive().optional(),
-    renewEveryMinutes: z17.number().int().positive().optional(),
-    allowUnsafeExternalContent: z17.boolean().optional(),
-    serve: z17
+    account: z16.string().optional(),
+    label: z16.string().optional(),
+    topic: z16.string().optional(),
+    subscription: z16.string().optional(),
+    pushToken: z16.string().optional().register(sensitive),
+    hookUrl: z16.string().optional(),
+    includeBody: z16.boolean().optional(),
+    maxBytes: z16.number().int().positive().optional(),
+    renewEveryMinutes: z16.number().int().positive().optional(),
+    allowUnsafeExternalContent: z16.boolean().optional(),
+    serve: z16
       .object({
-        bind: z17.string().optional(),
-        port: z17.number().int().positive().optional(),
-        path: z17.string().optional(),
+        bind: z16.string().optional(),
+        port: z16.number().int().positive().optional(),
+        path: z16.string().optional(),
       })
       .strict()
       .optional(),
-    tailscale: z17
+    tailscale: z16
       .object({
-        mode: z17
-          .union([z17.literal("off"), z17.literal("serve"), z17.literal("funnel")])
+        mode: z16
+          .union([z16.literal("off"), z16.literal("serve"), z16.literal("funnel")])
           .optional(),
-        path: z17.string().optional(),
-        target: z17.string().optional(),
+        path: z16.string().optional(),
+        target: z16.string().optional(),
       })
       .strict()
       .optional(),
-    model: z17.string().optional(),
-    thinking: z17
+    model: z16.string().optional(),
+    thinking: z16
       .union([
-        z17.literal("off"),
-        z17.literal("minimal"),
-        z17.literal("low"),
-        z17.literal("medium"),
-        z17.literal("high"),
+        z16.literal("off"),
+        z16.literal("minimal"),
+        z16.literal("low"),
+        z16.literal("medium"),
+        z16.literal("high"),
       ])
       .optional(),
   })
@@ -4461,18 +4483,18 @@ var HooksGmailSchema = z17
   .optional();
 
 // vendor/openclaw/src/config/zod-schema.proxy.ts
-import { z as z18 } from "zod";
-var ProxyLoopbackModeSchema = z18.enum(["gateway-only", "proxy", "block"]);
-var ProxyTlsConfigSchema = z18
+import { z as z17 } from "zod";
+var ProxyLoopbackModeSchema = z17.enum(["gateway-only", "proxy", "block"]);
+var ProxyTlsConfigSchema = z17
   .object({
-    caFile: z18.string().min(1).optional(),
+    caFile: z17.string().min(1).optional(),
   })
   .strict()
   .optional();
-var ProxyConfigSchema = z18
+var ProxyConfigSchema = z17
   .object({
-    enabled: z18.boolean().optional(),
-    proxyUrl: z18
+    enabled: z17.boolean().optional(),
+    proxyUrl: z17
       .url()
       .refine(isHttpUrl, {
         message: "proxyUrl must use http:// or https://",
@@ -4484,6 +4506,169 @@ var ProxyConfigSchema = z18
   })
   .strict()
   .optional();
+
+// vendor/openclaw/src/config/zod-schema.session.ts
+import { z as z18 } from "zod";
+var SessionResetConfigSchema = z18
+  .object({
+    mode: z18.union([z18.literal("none"), z18.literal("daily"), z18.literal("idle")]).optional(),
+    atHour: z18.number().int().min(0).max(23).optional(),
+    idleMinutes: z18.number().int().positive().optional(),
+  })
+  .strict();
+var PositiveDurationSchema = z18.union([z18.string(), z18.number()]).superRefine((value, ctx) => {
+  try {
+    const ms = parseDurationMs(normalizeStringifiedOptionalString(value) ?? "", {
+      defaultUnit: "d",
+    });
+    if (ms <= 0) {
+      ctx.addIssue({
+        code: z18.ZodIssueCode.custom,
+        message: "duration must be positive (use ms, s, m, h, d), e.g. 30d",
+      });
+    }
+  } catch {
+    ctx.addIssue({
+      code: z18.ZodIssueCode.custom,
+      message: "invalid duration (use ms, s, m, h, d)",
+    });
+  }
+});
+var SessionSendPolicySchema = createAllowDenyChannelRulesSchema();
+var SessionSchema = z18
+  .object({
+    scope: z18.union([z18.literal("per-sender"), z18.literal("global")]).optional(),
+    dmScope: z18
+      .union([
+        z18.literal("main"),
+        z18.literal("per-peer"),
+        z18.literal("per-channel-peer"),
+        z18.literal("per-account-channel-peer"),
+      ])
+      .optional(),
+    identityLinks: z18.record(z18.string(), z18.array(z18.string())).optional(),
+    resetTriggers: z18.array(z18.string()).optional(),
+    reset: SessionResetConfigSchema.optional(),
+    resetByType: z18
+      .object({
+        direct: SessionResetConfigSchema.optional(),
+        group: SessionResetConfigSchema.optional(),
+        thread: SessionResetConfigSchema.optional(),
+      })
+      .strict()
+      .optional(),
+    resetByChannel: z18.record(z18.string(), SessionResetConfigSchema).optional(),
+    store: z18.string().optional(),
+    mainKey: z18.string().optional(),
+    sendPolicy: SessionSendPolicySchema.optional(),
+    threadBindings: z18
+      .object({
+        enabled: z18.boolean().optional(),
+        idleHours: z18.number().nonnegative().optional(),
+        maxAgeHours: z18.number().nonnegative().optional(),
+        spawnSessions: z18.boolean().optional(),
+        defaultSpawnContext: z18.enum(["isolated", "fork"]).optional(),
+      })
+      .strict()
+      .optional(),
+    sharing: z18
+      .object({
+        readOnly: z18.boolean().optional(),
+        suggest: z18.boolean().optional(),
+        drafts: z18.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    maintenance: z18
+      .object({
+        mode: z18.enum(["enforce", "warn"]).optional(),
+        pruneAfter: PositiveDurationSchema.optional(),
+        maxEntries: z18.number().int().positive().optional(),
+        resetArchiveRetention: z18.union([PositiveDurationSchema, z18.literal(false)]).optional(),
+        maxDiskBytes: z18.union([z18.string(), z18.number(), z18.literal(false)]).optional(),
+        highWaterBytes: z18.union([z18.string(), z18.number()]).optional(),
+      })
+      .strict()
+      .superRefine((val, ctx) => {
+        if (val.maxDiskBytes !== void 0 && val.maxDiskBytes !== false) {
+          try {
+            parseByteSize(normalizeStringifiedOptionalString(val.maxDiskBytes) ?? "", {
+              defaultUnit: "b",
+            });
+          } catch {
+            ctx.addIssue({
+              code: z18.ZodIssueCode.custom,
+              path: ["maxDiskBytes"],
+              message: "invalid size (use b, kb, mb, gb, tb)",
+            });
+          }
+        }
+        if (val.highWaterBytes !== void 0) {
+          try {
+            parseByteSize(normalizeStringifiedOptionalString(val.highWaterBytes) ?? "", {
+              defaultUnit: "b",
+            });
+          } catch {
+            ctx.addIssue({
+              code: z18.ZodIssueCode.custom,
+              path: ["highWaterBytes"],
+              message: "invalid size (use b, kb, mb, gb, tb)",
+            });
+          }
+        }
+      })
+      .optional(),
+  })
+  .strict()
+  .optional();
+var ResponseUsageModeSchema = z18.enum(["on", "off", "tokens", "full"]);
+var MessagesSchema = z18
+  .object({
+    visibleReplies: VisibleRepliesSchema.optional(),
+    responsePrefix: z18.string().optional(),
+    usageTemplate: z18.union([z18.string(), z18.record(z18.string(), z18.unknown())]).optional(),
+    responseUsage: z18
+      .union([ResponseUsageModeSchema, z18.record(z18.string(), ResponseUsageModeSchema)])
+      .optional(),
+    groupChat: GroupChatSchema,
+    queue: QueueSchema,
+    inbound: InboundDebounceSchema,
+    ackReaction: z18.string().optional(),
+    ackReactionScope: z18
+      .enum(["group-mentions", "group-all", "direct", "all", "off", "none"])
+      .optional(),
+    statusReactions: z18
+      .object({
+        enabled: z18.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    suppressToolErrors: z18.boolean().optional(),
+  })
+  .strict()
+  .optional();
+var CommandsSchema = z18
+  .object({
+    native: NativeCommandsSettingSchema.optional().default("auto"),
+    nativeSkills: NativeCommandsSettingSchema.optional().default("auto"),
+    text: z18.boolean().optional(),
+    bash: z18.boolean().optional(),
+    bashForegroundMs: z18.number().int().min(0).max(3e4).optional(),
+    config: z18.boolean().optional(),
+    mcp: z18.boolean().optional(),
+    plugins: z18.boolean().optional(),
+    debug: z18.boolean().optional(),
+    restart: z18.boolean().optional().default(true),
+    ownerAllowFrom: z18.array(z18.union([z18.string(), z18.number()])).optional(),
+    allowFrom: ElevatedAllowFromSchema.optional(),
+  })
+  .strict()
+  .optional()
+  .default(() => ({
+    native: "auto",
+    nativeSkills: "auto",
+    restart: true,
+  }));
 
 // vendor/openclaw/src/config/zod-schema.root-shape.ts
 var MetricNamePrefixSchema = z19

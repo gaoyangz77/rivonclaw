@@ -1,4 +1,4 @@
-From 9eacf917ff16091acfbecf836584eaf6865c7322 Mon Sep 17 00:00:00 2001
+From 1ca3f18fba21181238c4c4723e242241c8a40d14 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 00:52:01 -0700
 Subject: [PATCH] vendor(openclaw): rotate sessions after compaction failure
@@ -22,10 +22,10 @@ Tests:
  7 files changed, 75 insertions(+), 8 deletions(-)
 
 diff --git a/src/auto-reply/reply/agent-runner-error-handler.ts b/src/auto-reply/reply/agent-runner-error-handler.ts
-index 44101ad9d01..de99710da99 100644
+index 76784d400ca..e909719ce4b 100644
 --- a/src/auto-reply/reply/agent-runner-error-handler.ts
 +++ b/src/auto-reply/reply/agent-runner-error-handler.ts
-@@ -284,8 +284,18 @@ export async function handleAgentExecutionError(params: {
+@@ -242,8 +242,18 @@ export async function handleAgentExecutionError(params: {
    }
    if (isCompactionFailure) {
      takePendingLifecycleTerminal()?.emit("error", err);
@@ -45,7 +45,7 @@ index 44101ad9d01..de99710da99 100644
      );
      turn.replyOperation?.fail("run_failed", err);
      return {
-@@ -293,7 +303,7 @@ export async function handleAgentExecutionError(params: {
+@@ -251,7 +261,7 @@ export async function handleAgentExecutionError(params: {
        payload: markAgentRunFailureReplyPayload({
          text: buildContextOverflowRecoveryText({
            duringCompaction: true,
@@ -55,10 +55,10 @@ index 44101ad9d01..de99710da99 100644
            agentId: turn.followupRun.run.agentId,
            primaryProvider: turn.followupRun.run.provider,
 diff --git a/src/auto-reply/reply/agent-runner-execute.ts b/src/auto-reply/reply/agent-runner-execute.ts
-index af40df5f43a..307bf36a382 100644
+index 6b882942728..afd9a20eca2 100644
 --- a/src/auto-reply/reply/agent-runner-execute.ts
 +++ b/src/auto-reply/reply/agent-runner-execute.ts
-@@ -88,6 +88,7 @@ type ExecutePreparedReplyAgentRunInput = Pick<
+@@ -84,6 +84,7 @@ type ExecutePreparedReplyAgentRunInput = Pick<
    replyRouteThreadId: ReturnType<typeof resolveRoutedDeliveryThreadId>;
    replyToChannel: OriginatingChannelType | undefined;
    replyToMode: ReturnType<typeof resolveReplyToMode>;
@@ -66,7 +66,7 @@ index af40df5f43a..307bf36a382 100644
    resetSessionAfterRoleOrderingConflict: (reason: string) => Promise<boolean>;
    returnWithQueuedFollowupDrain: <T>(value: T) => T;
    runFollowupTurn: (queued: FollowupRun) => Promise<void>;
-@@ -134,6 +135,7 @@ export async function executePreparedReplyAgentRun(
+@@ -128,6 +129,7 @@ export async function executePreparedReplyAgentRun(
      replyThreadingOverride,
      replyToChannel,
      replyToMode,
@@ -74,7 +74,7 @@ index af40df5f43a..307bf36a382 100644
      resetSessionAfterRoleOrderingConflict,
      resolvedBlockStreamingBreak,
      resolvedQueue,
-@@ -380,6 +382,7 @@ export async function executePreparedReplyAgentRun(
+@@ -377,6 +379,7 @@ export async function executePreparedReplyAgentRun(
            shouldEmitToolResult,
            shouldEmitToolOutput,
            pendingToolTasks,
@@ -164,10 +164,10 @@ index 0b38a8a9fe4..039c710c97e 100644
  
    it.each([
 diff --git a/src/auto-reply/reply/agent-runner-execution.types.ts b/src/auto-reply/reply/agent-runner-execution.types.ts
-index a058614defe..4af4aacec56 100644
+index 6cce7ab54a8..517d412cf1e 100644
 --- a/src/auto-reply/reply/agent-runner-execution.types.ts
 +++ b/src/auto-reply/reply/agent-runner-execution.types.ts
-@@ -94,6 +94,7 @@ export type AgentTurnParams = {
+@@ -95,6 +95,7 @@ export type AgentTurnParams = {
    shouldEmitToolResult: () => boolean;
    shouldEmitToolOutput: () => boolean;
    pendingToolTasks: Set<Promise<void>>;
@@ -176,10 +176,10 @@ index a058614defe..4af4aacec56 100644
    isHeartbeat: boolean;
    sessionKey?: string;
 diff --git a/src/auto-reply/reply/agent-runner-fallback-settlement.ts b/src/auto-reply/reply/agent-runner-fallback-settlement.ts
-index 3609eb96a2d..58b661f6e20 100644
+index c2ee243f973..5782d25ca08 100644
 --- a/src/auto-reply/reply/agent-runner-fallback-settlement.ts
 +++ b/src/auto-reply/reply/agent-runner-fallback-settlement.ts
-@@ -92,15 +92,25 @@ export async function settleAgentFallbackCycle(params: {
+@@ -94,15 +94,25 @@ export async function settleAgentFallbackCycle(params: {
    };
    if (embeddedError && isContextOverflowError(embeddedError.message)) {
      emitSettledLifecycleError(new Error(terminalErrorMessage ?? "Agent run failed"));
@@ -208,10 +208,10 @@ index 3609eb96a2d..58b661f6e20 100644
            agentId: turn.followupRun.run.agentId,
            primaryProvider: turn.followupRun.run.provider,
 diff --git a/src/auto-reply/reply/agent-runner-run.ts b/src/auto-reply/reply/agent-runner-run.ts
-index 80810495149..7cb698c79a4 100644
+index d650bb0f41b..db1d27f2aad 100644
 --- a/src/auto-reply/reply/agent-runner-run.ts
 +++ b/src/auto-reply/reply/agent-runner-run.ts
-@@ -624,6 +624,12 @@ export async function runReplyAgent(
+@@ -508,6 +508,12 @@ export async function runReplyAgent(
          `Role ordering conflict (${reason}). Restarting session ${sessionKey} -> ${nextSessionId}.`,
        cleanupTranscripts: true,
      });
@@ -224,7 +224,7 @@ index 80810495149..7cb698c79a4 100644
    try {
      return await executePreparedReplyAgentRun({
        activeSessionStore,
-@@ -655,6 +661,7 @@ export async function runReplyAgent(
+@@ -537,6 +543,7 @@ export async function runReplyAgent(
        replyThreadingOverride,
        replyToChannel,
        replyToMode,
@@ -233,10 +233,10 @@ index 80810495149..7cb698c79a4 100644
        resolvedBlockStreamingBreak,
        resolvedQueue,
 diff --git a/src/auto-reply/reply/followup-turn-execution.ts b/src/auto-reply/reply/followup-turn-execution.ts
-index b3937eeae73..81edde2a403 100644
+index b5c3c92291f..22fc3285c7d 100644
 --- a/src/auto-reply/reply/followup-turn-execution.ts
 +++ b/src/auto-reply/reply/followup-turn-execution.ts
-@@ -284,6 +284,32 @@ export async function executeFollowupTurn(params: {
+@@ -345,6 +345,32 @@ export async function executeFollowupTurn(params: {
          shouldEmitToolResult,
          shouldEmitToolOutput,
          pendingToolTasks,
@@ -271,3 +271,4 @@ index b3937eeae73..81edde2a403 100644
            if (session.kind !== "session") {
 -- 
 2.50.1 (Apple Git-155)
+

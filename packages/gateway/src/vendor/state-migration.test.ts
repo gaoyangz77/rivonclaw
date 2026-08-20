@@ -28,6 +28,7 @@ import {
 
 const tempDirs: string[] = [];
 const VENDOR_ROOT = resolve(import.meta.dirname, "../../../../vendor/openclaw");
+const TARGET_AGENT_SCHEMA_VERSION = 17;
 const LEGACY_DEVICE_ID = "56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c";
 const LEGACY_DEVICE_IDENTITY = {
   deviceId: LEGACY_DEVICE_ID,
@@ -36,7 +37,10 @@ const LEGACY_DEVICE_IDENTITY = {
   createdAtMs: 1_700_000_000_000,
 };
 
-function makeFixture(targetVersion = 16): { stateDir: string; vendorDir: string } {
+function makeFixture(targetVersion = TARGET_AGENT_SCHEMA_VERSION): {
+  stateDir: string;
+  vendorDir: string;
+} {
   const root = mkdtempSync(join(tmpdir(), "vendor-state-migration-"));
   tempDirs.push(root);
   const stateDir = join(root, "state");
@@ -171,7 +175,7 @@ describe("inspectVendorStateMigration", () => {
     expect(inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir)).toEqual({
       required: false,
       reasons: [],
-      targetAgentSchemaVersion: 16,
+      targetAgentSchemaVersion: TARGET_AGENT_SCHEMA_VERSION,
     });
   });
 
@@ -180,12 +184,14 @@ describe("inspectVendorStateMigration", () => {
     const databasePath = createAgentDatabase(fixture.stateDir, "main", 1);
     const inspection = inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir);
     expect(inspection.required).toBe(true);
-    expect(inspection.reasons).toContain(`agent schema 1 -> 16: ${databasePath}`);
+    expect(inspection.reasons).toContain(
+      `agent schema 1 -> ${TARGET_AGENT_SCHEMA_VERSION}: ${databasePath}`,
+    );
   });
 
   it("leaves legacy auth JSON to the auth bootstrap when SQLite is current", () => {
     const fixture = makeFixture();
-    createAgentDatabase(fixture.stateDir, "main", 16);
+    createAgentDatabase(fixture.stateDir, "main", TARGET_AGENT_SCHEMA_VERSION);
     const authPath = join(fixture.stateDir, "agents", "main", "agent", "auth-profiles.json");
     writeFileSync(authPath, '{"version":1,"profiles":{}}\n');
     const inspection = inspectVendorStateMigration(fixture.stateDir, fixture.vendorDir);
@@ -193,35 +199,42 @@ describe("inspectVendorStateMigration", () => {
     expect(inspection.reasons).toEqual([]);
   });
 
-  it("migrates only agent databases even when unrelated legacy channel state is malformed", async () => {
-    const fixture = makeFixture();
-    const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
-    const credentialsDir = join(fixture.stateDir, "credentials");
-    mkdirSync(credentialsDir, { recursive: true });
-    writeFileSync(
-      join(credentialsDir, "feishu-pairing.json"),
-      '{"version":1,"requests":[{"accountId":"*"}]}\n',
-    );
+  it(
+    "migrates only agent databases even when unrelated legacy channel state is malformed",
+    async () => {
+      const fixture = makeFixture();
+      const databasePath = createLegacyAgentDatabase(fixture.stateDir, "main");
+      const credentialsDir = join(fixture.stateDir, "credentials");
+      mkdirSync(credentialsDir, { recursive: true });
+      writeFileSync(
+        join(credentialsDir, "feishu-pairing.json"),
+        '{"version":1,"requests":[{"accountId":"*"}]}\n',
+      );
 
-    await migrateVendorStateBeforeGateway({
-      stateDir: fixture.stateDir,
-      vendorDir: VENDOR_ROOT,
-    });
+      await migrateVendorStateBeforeGateway({
+        stateDir: fixture.stateDir,
+        vendorDir: VENDOR_ROOT,
+      });
 
-    const database = new DatabaseSync(databasePath, { readOnly: true });
-    try {
-      const version = database.prepare("PRAGMA user_version").get() as {
-        user_version: number;
-      };
-      const metadata = database
-        .prepare("SELECT agent_id, schema_version FROM schema_meta WHERE meta_key = 'primary'")
-        .get();
-      expect(version.user_version).toBe(16);
-      expect(metadata).toEqual({ agent_id: "main", schema_version: 16 });
-    } finally {
-      database.close();
-    }
-  });
+      const database = new DatabaseSync(databasePath, { readOnly: true });
+      try {
+        const version = database.prepare("PRAGMA user_version").get() as {
+          user_version: number;
+        };
+        const metadata = database
+          .prepare("SELECT agent_id, schema_version FROM schema_meta WHERE meta_key = 'primary'")
+          .get();
+        expect(version.user_version).toBe(TARGET_AGENT_SCHEMA_VERSION);
+        expect(metadata).toEqual({
+          agent_id: "main",
+          schema_version: TARGET_AGENT_SCHEMA_VERSION,
+        });
+      } finally {
+        database.close();
+      }
+    },
+    15_000,
+  );
 
   it("preserves a legacy device identity through OpenClaw's official startup migration", async () => {
     const fixture = makeFixture();
@@ -675,7 +688,7 @@ describe("restoreFeishuPairingStateFromAgentDatabases", () => {
     agentId: string,
     rows: Array<{ accountId: string; kind: string; peerId: string; deliveryTarget: string }>,
   ): void {
-    const databasePath = createAgentDatabase(stateDir, agentId, 16);
+    const databasePath = createAgentDatabase(stateDir, agentId, TARGET_AGENT_SCHEMA_VERSION);
     const database = new DatabaseSync(databasePath);
     try {
       database.exec(`

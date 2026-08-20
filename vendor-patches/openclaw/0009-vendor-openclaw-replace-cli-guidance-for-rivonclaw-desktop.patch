@@ -1,4 +1,4 @@
-From 0ab80281ab13d20890d4e08c15745044a87f7ae4 Mon Sep 17 00:00:00 2001
+From 825815764edf11b297897f531dee92bf8b6b6d51 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 25 Apr 2026 20:08:44 -0700
 Subject: [PATCH] vendor(openclaw): replace CLI guidance for RivonClaw desktop
@@ -17,10 +17,10 @@ Tests:
  1 file changed, 8 insertions(+), 12 deletions(-)
 
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index c50f7803317..3158ce42046 100644
+index d235c0da214..93d3401e43a 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -727,9 +727,9 @@ function buildDocsSection(params: {
+@@ -728,9 +728,9 @@ function buildDocsSection(params: {
        : "OpenClaw behavior questions: docs mirror first when web exists. AGENTS/project/workspace/profile/memory = instructions/user memory, not product design truth.",
      "Config field: `gateway(config.schema.lookup)` exact path. Broader: `docs/gateway/configuration.md`, `docs/gateway/configuration-reference.md`.",
      sourcePath
@@ -33,7 +33,7 @@ index c50f7803317..3158ce42046 100644
      "",
    ];
    return lines.filter((line): line is string => line !== undefined);
-@@ -1312,15 +1312,11 @@ export function buildAgentSystemPrompt(params: {
+@@ -1314,15 +1314,11 @@ export function buildAgentSystemPrompt(params: {
          fallback: [],
        }),
        ...safetySection,

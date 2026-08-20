@@ -1,4 +1,4 @@
-From 8450a93236c7f1a6732fb1c93a9e87eda18b8a2c Mon Sep 17 00:00:00 2001
+From 00a1ca7584dd58494ccf6772e83ff9af93346b7d Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:21:05 -0700
 Subject: [PATCH] vendor(openclaw): expose embedded state migrations
