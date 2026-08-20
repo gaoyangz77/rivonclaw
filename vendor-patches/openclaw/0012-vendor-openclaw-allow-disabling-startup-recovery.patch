@@ -1,4 +1,4 @@
-From 977c1f2d7a7b1a7422a07c48288c3a528fc59ac7 Mon Sep 17 00:00:00 2001
+From 5393258d3ebd86eb1007fd54d579d967f0d946dd Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 05:00:58 -0700
 Subject: [PATCH] vendor(openclaw): allow disabling startup recovery
@@ -141,22 +141,22 @@ index 6d34c432e65..8027d5364bb 100644
    const heartbeatRunnerWithUpstreamMonitor: HeartbeatRunner = {
      updateConfig: heartbeatRunner.updateConfig,
 diff --git a/src/gateway/server-startup-finish.ts b/src/gateway/server-startup-finish.ts
-index a6e5868fc0b..dda6aa3b8dd 100644
+index 777c4fc811a..6947963a7fa 100644
 --- a/src/gateway/server-startup-finish.ts
 +++ b/src/gateway/server-startup-finish.ts
-@@ -402,6 +402,7 @@ export async function finishGatewayStartup(params: {
-         startCron: false,
-         logCron,
-         log,
-+        env: process.env,
+@@ -224,6 +224,7 @@ export async function finishGatewayStartup(params: {
+           startCron: false,
+           logCron,
+           log,
++          env: process.env,
+         });
+         kernel.setScheduledServiceHandles(activated);
        });
-       runtimeState.heartbeatRunner = activated.heartbeatRunner;
-       runtimeState.stopOutboundDeliveryRecovery = activated.stopOutboundDeliveryRecovery;
 diff --git a/src/gateway/server-startup-post-attach.test.ts b/src/gateway/server-startup-post-attach.test.ts
-index 563049f76ce..4e92c59f194 100644
+index 6cd798969df..121c6eb95f4 100644
 --- a/src/gateway/server-startup-post-attach.test.ts
 +++ b/src/gateway/server-startup-post-attach.test.ts
-@@ -507,6 +507,15 @@ describe("startGatewayPostAttachRuntime", () => {
+@@ -515,6 +515,15 @@ describe("startGatewayPostAttachRuntime", () => {
      await cleanupGatewayTestState();
    });
  
@@ -173,11 +173,11 @@ index 563049f76ce..4e92c59f194 100644
      const firstError = new Error("first cleanup failure");
      const stopOrder: string[] = [];
 diff --git a/src/gateway/server-startup-post-attach.ts b/src/gateway/server-startup-post-attach.ts
-index 646ef15130f..ce1c39c782f 100644
+index 5f82ab511df..54ee2eb1be0 100644
 --- a/src/gateway/server-startup-post-attach.ts
 +++ b/src/gateway/server-startup-post-attach.ts
-@@ -56,8 +56,13 @@ const AGENT_RUNTIME_PLUGIN_PREWARM_START_DELAY_MS = 0;
- const AGENT_RUNTIME_PLUGIN_PREWARM_RETRY_DELAY_MS = 250;
+@@ -51,8 +51,13 @@ const PROVIDER_AUTH_PREWARM_START_DELAY_MS = 5_000;
+ const PROVIDER_AUTH_REWARM_DELAY_MS = 1_000;
  const DEFERRED_SIDECAR_START_DELAY_MS = 100;
  const SKIP_STARTUP_MODEL_PREWARM_ENV = "OPENCLAW_SKIP_STARTUP_MODEL_PREWARM";
 +const DISABLE_SESSION_RESTART_RECOVERY_ENV = "OPENCLAW_DISABLE_SESSION_RESTART_RECOVERY";
@@ -187,10 +187,10 @@ index 646ef15130f..ce1c39c782f 100644
 +  return isTruthyEnvValue(env[DISABLE_SESSION_RESTART_RECOVERY_ENV]);
 +}
 +
- type GatewayMemoryStartupPolicy =
-   | { mode: "off" }
-   | { mode: "immediate" }
-@@ -678,6 +683,9 @@ export async function startGatewaySidecars(params: {
+ const loadMainSessionRestartRecoveryModule = createLazyRuntimeModule(
+   () => import("../agents/main-session-recovery/main-session-restart-recovery.js"),
+ );
+@@ -633,6 +638,9 @@ export async function startGatewaySidecars(params: {
    // These runs were orphaned by the previous Gateway lifecycle. Record that fact
    // even if this process later fails model preparation and never starts channels.
    await measureStartup(params.startupTrace, "sidecars.main-session-recovery", async () => {
@@ -200,21 +200,21 @@ index 646ef15130f..ce1c39c782f 100644
      try {
        const { markStartupOrphanedMainSessionsForRecovery } = await measureStartup(
          params.startupTrace,
-@@ -1338,7 +1346,9 @@ export async function startGatewayPostAttachRuntime(
-         ]);
-         let mainSessionRecoverySidecar: GatewayPostReadySidecarHandle | undefined;
-         try {
--          if (params.isClosing?.() !== true) {
-+          if (shouldDisableSessionRestartRecovery()) {
-+            params.log.info("main-session restart recovery disabled by environment");
-+          } else if (params.isClosing?.() !== true) {
-             const { scheduleRestartAbortedMainSessionRecovery } =
-               await loadMainSessionRestartRecoveryModule();
-             // Closing can begin while the runtime module is loading; a late owner
-@@ -1511,6 +1521,7 @@ export const testing = {
+@@ -1329,7 +1337,9 @@ export async function startGatewayPostAttachRuntime(
+           ]);
+           let mainSessionRecoverySidecar: GatewayPostReadySidecarHandle | undefined;
+           try {
+-            if (params.isClosing?.() !== true) {
++            if (shouldDisableSessionRestartRecovery()) {
++              params.log.info("main-session restart recovery disabled by environment");
++            } else if (params.isClosing?.() !== true) {
+               const { scheduleRestartAbortedMainSessionRecovery } =
+                 await loadMainSessionRestartRecoveryModule();
+               // Closing can begin while the runtime module is loading; a late owner
+@@ -1515,6 +1525,7 @@ export const testing = {
+   publishConfiguredModelRuntimeSnapshots,
    publishStartupModelRuntime,
    refreshLatestUpdateRestartSentinelIfPresent,
-   resolveGatewayMemoryStartupPolicy,
 +  shouldDisableSessionRestartRecovery,
    scheduleProviderAuthStatePrewarm,
    scheduleRestartSentinelWakeAfterReady,

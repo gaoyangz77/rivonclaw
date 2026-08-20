@@ -1,4 +1,4 @@
-From d2e7b3300a959f2480c9223c825ac72f1a26e646 Mon Sep 17 00:00:00 2001
+From b8a79813967c9c5c89702c43e5084c48344fd468 Mon Sep 17 00:00:00 2001
 From: Gaoyang Zhang <younglobalization@gmail.com>
 Date: Sat, 8 Aug 2026 20:31:10 -0700
 Subject: [PATCH] vendor(openclaw): surface failed Feishu quote reads
@@ -24,10 +24,10 @@ Tests:
  5 files changed, 504 insertions(+), 44 deletions(-)
 
 diff --git a/extensions/feishu/src/bot-content.ts b/extensions/feishu/src/bot-content.ts
-index 7edf1979b68..d3e1f4f6dfb 100644
+index f1ebad8ff08..be140b641ab 100644
 --- a/extensions/feishu/src/bot-content.ts
 +++ b/extensions/feishu/src/bot-content.ts
-@@ -335,7 +335,7 @@ function parseMediaKeys(
+@@ -346,7 +346,7 @@ function parseMediaKeys(
    }
  }
  
@@ -37,7 +37,7 @@ index 7edf1979b68..d3e1f4f6dfb 100644
  }
  
 diff --git a/extensions/feishu/src/bot.test.ts b/extensions/feishu/src/bot.test.ts
-index 6509adca265..e53f6b9da69 100644
+index 32dd598254b..82480032b66 100644
 --- a/extensions/feishu/src/bot.test.ts
 +++ b/extensions/feishu/src/bot.test.ts
 @@ -400,6 +400,8 @@ vi.mock("./send.js", () => ({
@@ -132,7 +132,7 @@ index 6509adca265..e53f6b9da69 100644
    it("uses message create_time for the inbound context and model envelope", async () => {
      mockShouldComputeCommandAuthorized.mockReturnValue(false);
      await dispatchMessage({
-@@ -3066,6 +3144,37 @@ describe("handleFeishuMessage command authorization", () => {
+@@ -3118,6 +3196,37 @@ describe("handleFeishuMessage command authorization", () => {
      expect(mockCreateFeishuReplyDispatcher).toHaveBeenCalledWith(expect.objectContaining(expected));
    });
  
@@ -171,7 +171,7 @@ index 6509adca265..e53f6b9da69 100644
      mockShouldComputeCommandAuthorized.mockReturnValue(false);
  
 diff --git a/extensions/feishu/src/bot.ts b/extensions/feishu/src/bot.ts
-index 5adfa6a1721..48b506b043b 100644
+index 5aad1078316..41a4eb12b11 100644
 --- a/extensions/feishu/src/bot.ts
 +++ b/extensions/feishu/src/bot.ts
 @@ -83,7 +83,12 @@ import {
@@ -202,7 +202,7 @@ index 5adfa6a1721..48b506b043b 100644
  // Cache permission errors to avoid spamming the user with repeated notifications.
  // Key: appId or "default", Value: timestamp of last notification
  const permissionErrorNotifiedAt = new Map<string, number>();
-@@ -991,13 +1003,15 @@ export async function handleFeishuMessage(params: {
+@@ -992,13 +1004,15 @@ export async function handleFeishuMessage(params: {
      // Fetch quoted/replied message content before the empty-message guard
      // so a reply with only @bot (no text, no media) is not dropped when
      // the quoted message carries meaningful content.
@@ -221,7 +221,7 @@ index 5adfa6a1721..48b506b043b 100644
            accountId: account.accountId,
          });
          if (
-@@ -1022,9 +1036,22 @@ export async function handleFeishuMessage(params: {
+@@ -1023,9 +1037,22 @@ export async function handleFeishuMessage(params: {
            log(
              `feishu[${account.accountId}]: skipped quoted message from sender ${quotedMessageInfo.senderId ?? "unknown"} (mode=${contextVisibilityMode})`,
            );
@@ -245,7 +245,7 @@ index 5adfa6a1721..48b506b043b 100644
        }
      }
  
-@@ -1188,7 +1215,7 @@ export async function handleFeishuMessage(params: {
+@@ -1189,7 +1216,7 @@ export async function handleFeishuMessage(params: {
          threadLabel?: string;
        }
      >();
@@ -254,7 +254,7 @@ index 5adfa6a1721..48b506b043b 100644
      let rootMessageThreadId: string | undefined;
      let rootMessageFetched = false;
      const getRootMessageInfo = async () => {
-@@ -1197,7 +1224,7 @@ export async function handleFeishuMessage(params: {
+@@ -1198,7 +1225,7 @@ export async function handleFeishuMessage(params: {
        }
        if (!rootMessageFetched) {
          rootMessageFetched = true;
@@ -263,7 +263,7 @@ index 5adfa6a1721..48b506b043b 100644
            rootMessageInfo = quotedMessageInfo;
          } else {
            try {
-@@ -1370,7 +1397,7 @@ export async function handleFeishuMessage(params: {
+@@ -1371,7 +1398,7 @@ export async function handleFeishuMessage(params: {
        return buildChannelInboundEventContext({
          channel: "feishu",
          supplemental: {
@@ -272,7 +272,7 @@ index 5adfa6a1721..48b506b043b 100644
            thread: {
              starterBody: threadContext.threadStarterBody,
              historyBody: threadContext.threadHistoryBody,
-@@ -1404,7 +1431,7 @@ export async function handleFeishuMessage(params: {
+@@ -1405,7 +1432,7 @@ export async function handleFeishuMessage(params: {
          },
          reply: {
            to: feishuTo,

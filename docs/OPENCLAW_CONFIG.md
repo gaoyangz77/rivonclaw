@@ -1,6 +1,6 @@
 # OpenClaw Configuration Reference
 
-Generated from OpenClaw commit `1609ae9b62491892c94e405e753e131ced56578f`.
+Generated from OpenClaw commit `bcaec0cf145c897db47269e60f06c7c42f74c83a`.
 
 This index reflects the canonical Zod schema in `vendor/openclaw/src/config/zod-schema*.ts` and
 `vendor/openclaw/src/config/types.openclaw.ts`. OpenClaw remains authoritative for defaults,
@@ -168,7 +168,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `secrets` | object | no |  |
 | `secrets.providers` | object | no |  |
 | `secrets.providers.*` | object | no | map value |
-| `secrets.providers.*.source` | "file" | yes |  |
+| `secrets.providers.*.source` | "store" | yes |  |
 | `secrets.providers.*.allowlist` | string[] | no |  |
 | `secrets.providers.*.path` | string | yes |  |
 | `secrets.providers.*.mode` | "singleValue" \| "json" | no |  |
@@ -178,6 +178,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `secrets.defaults.env` | string | no | pattern `^[a-z][a-z0-9_-]{0,63}$` |
 | `secrets.defaults.file` | string | no | pattern `^[a-z][a-z0-9_-]{0,63}$` |
 | `secrets.defaults.exec` | string | no | pattern `^[a-z][a-z0-9_-]{0,63}$` |
+| `secrets.defaults.store` | string | no | pattern `^[a-z][a-z0-9_-]{0,63}$` |
 
 ## `auth`
 
@@ -611,9 +612,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `agents.entries.*.memory.search.enabled` | boolean | no |  |
 | `agents.entries.*.memory.search.rememberAcrossConversations` | boolean | no |  |
 | `agents.entries.*.memory.search.sources` | "memory" \| "sessions"[] | no |  |
-| `agents.entries.*.memory.search.extraPaths` | string[] | no |  |
-| `agents.entries.*.memory.search.qmd` | object | no |  |
-| `agents.entries.*.memory.search.qmd.extraCollections` | object[] | no |  |
+| `agents.entries.*.memory.search.extraPaths` | string \| object[] | no |  |
 | `agents.entries.*.memory.search.multimodal` | object | no |  |
 | `agents.entries.*.memory.search.multimodal.enabled` | boolean | no |  |
 | `agents.entries.*.memory.search.multimodal.modalities` | "image" \| "audio" \| "all"[] | no |  |
@@ -1496,7 +1495,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `hooks.gmail.thinking` | "off" \| "minimal" \| "low" \| "medium" \| "high" | no |  |
 | `hooks.internal` | object | no |  |
 | `hooks.internal.enabled` | boolean | no |  |
-| `hooks.internal.handlers` | object[] | no |  |
 | `hooks.internal.entries` | object | no |  |
 | `hooks.internal.entries.*` | object | no | map value |
 | `hooks.internal.entries.*.enabled` | boolean | no |  |
@@ -1597,6 +1595,8 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.controlUi.allowExternalEmbedUrls` | boolean | no |  |
 | `gateway.controlUi.allowedOrigins` | string[] | no |  |
 | `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback` | boolean | no |  |
+| `gateway.cliAgents` | object | no |  |
+| `gateway.cliAgents.enabled` | boolean | no |  |
 | `gateway.terminal` | object | no |  |
 | `gateway.terminal.enabled` | boolean | no |  |
 | `gateway.terminal.shell` | string | no |  |
@@ -1606,6 +1606,8 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `gateway.auth.token` | string | no |  |
 | `gateway.auth.password` | string | no |  |
 | `gateway.auth.allowTailscale` | boolean | no |  |
+| `gateway.auth.identityScopes` | object | no |  |
+| `gateway.auth.identityScopes.*` | "operator.admin" \| "operator.read" \| "operator.write" \| "operator.approvals" \| "operator.questions" \| "operator.pairing" \| "operator.talk" \| "operator.talk.secrets"[] | no | map value |
 | `gateway.auth.rateLimit` | object | no |  |
 | `gateway.auth.rateLimit.maxAttempts` | number | no |  |
 | `gateway.auth.rateLimit.windowMs` | number | no |  |
@@ -1711,6 +1713,7 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | Path | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `cloudWorkers` | object | no |  |
+| `cloudWorkers.desktop` | boolean | no |  |
 | `cloudWorkers.profiles` | object | no |  |
 | `cloudWorkers.profiles.*` | object | no | map value |
 | `cloudWorkers.profiles.*.provider` | string | yes |  |
@@ -1723,15 +1726,12 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | Path | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `memory` | object | no |  |
-| `memory.backend` | "builtin" \| "qmd" | no |  |
 | `memory.citations` | "auto" \| "on" \| "off" | no |  |
 | `memory.search` | object | no |  |
 | `memory.search.enabled` | boolean | no |  |
 | `memory.search.rememberAcrossConversations` | boolean | no |  |
 | `memory.search.sources` | "memory" \| "sessions"[] | no |  |
-| `memory.search.extraPaths` | string[] | no |  |
-| `memory.search.qmd` | object | no |  |
-| `memory.search.qmd.extraCollections` | object[] | no |  |
+| `memory.search.extraPaths` | string \| object[] | no |  |
 | `memory.search.multimodal` | object | no |  |
 | `memory.search.multimodal.enabled` | boolean | no |  |
 | `memory.search.multimodal.modalities` | "image" \| "audio" \| "all"[] | no |  |
@@ -1765,25 +1765,6 @@ cross-field validation, transforms, and provider-specific runtime behavior.
 | `memory.search.query.minScore` | number | no | min 0; max 1 |
 | `memory.search.cache` | object | no |  |
 | `memory.search.cache.enabled` | boolean | no |  |
-| `memory.qmd` | object | no |  |
-| `memory.qmd.command` | string | no |  |
-| `memory.qmd.searchMode` | "query" \| "search" \| "vsearch" | no |  |
-| `memory.qmd.rerank` | boolean | no |  |
-| `memory.qmd.searchTool` | string | no |  |
-| `memory.qmd.includeDefaultMemory` | boolean | no |  |
-| `memory.qmd.paths` | object[] | no |  |
-| `memory.qmd.sessions` | object | no |  |
-| `memory.qmd.sessions.enabled` | boolean | no |  |
-| `memory.qmd.sessions.exportDir` | string | no |  |
-| `memory.qmd.sessions.retentionDays` | integer | no | min 0; max 9007199254740991 |
-| `memory.qmd.limits` | object | no |  |
-| `memory.qmd.limits.maxResults` | integer | no | > 0; max 9007199254740991 |
-| `memory.qmd.limits.maxSnippetChars` | integer | no | > 0; max 9007199254740991 |
-| `memory.qmd.limits.maxInjectedChars` | integer | no | > 0; max 9007199254740991 |
-| `memory.qmd.limits.timeoutMs` | integer | no | min 0; max 9007199254740991 |
-| `memory.qmd.scope` | object | no |  |
-| `memory.qmd.scope.default` | "allow" \| "deny" | no |  |
-| `memory.qmd.scope.rules` | object[] | no |  |
 
 ## `mcp`
 

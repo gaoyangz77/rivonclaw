@@ -167,20 +167,6 @@ exec-approval, and configured-workspace migrations before connecting.
 Removal: OpenClaw exposes both migration surfaces from a stable public runtime,
 or RivonClaw starts Gateway through a host flow that invokes them itself.
 
-### 0033 - Avoid legacy context-engine self-degradation
-
-Keeps OpenClaw's baseline `legacy` context engine selected when it is already
-the configured engine and fallback. Without this guard, normal transcript-host
-turns can emit a misleading `legacy` to `legacy` degradation warning because
-the compatibility engine intentionally delegates durable transcript ownership
-to `SessionManager`.
-
-This is the minimal source fix from upstream commit
-`b550c140c7ee21a8a297d089f09be84e9e4b2541` (PR `#120722`).
-
-Removal: the pinned OpenClaw includes upstream commit
-`b550c140c7ee21a8a297d089f09be84e9e4b2541` / PR `#120722`.
-
 ### 0034 - Feishu websocket liveness timeout
 
 Raises the Feishu long-connection ping timeout from upstream's 3s to 60s. The
@@ -197,6 +183,12 @@ inside one ~120s ping cycle.
 
 Removal: upstream makes the Feishu websocket ping timeout configurable, or
 raises it above the range a gateway event-loop stall can cross.
+
+## Dropped In bcaec0cf145
+
+- `0033`: OpenClaw now contains commit
+  `b550c140c7ee21a8a297d089f09be84e9e4b2541` (PR `#120722`), which avoids
+  degrading the baseline `legacy` context engine to itself.
 
 ## Dropped In 1609ae9b624
 

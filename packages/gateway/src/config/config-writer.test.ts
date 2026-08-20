@@ -674,7 +674,7 @@ describe("config-writer", () => {
           meta: { lastTouchedVersion: "1.0" },
           logging: { level: "debug" },
           ui: { seamColor: "#aabbcc" },
-          memory: { backend: "builtin" },
+          memory: { citations: "auto" },
         }),
       );
 
@@ -685,7 +685,7 @@ describe("config-writer", () => {
       expect(config.meta).toEqual({ lastTouchedVersion: "1.0" });
       expect(config.logging).toEqual({ level: "debug" });
       expect(config.ui).toEqual({ seamColor: "#aabbcc" });
-      expect(config.memory).toEqual({ backend: "builtin" });
+      expect(config.memory).toEqual({ citations: "auto" });
     });
 
     it("sanitisation is idempotent", () => {

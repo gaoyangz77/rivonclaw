@@ -1,4 +1,4 @@
-From afcf5f7009dd8ae6c51de28ea021eae18097ed9a Mon Sep 17 00:00:00 2001
+From 0b214000f577784becffc7ea44547e54958ece8b Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Mon, 20 Jul 2026 03:09:21 -0700
 Subject: [PATCH] vendor(openclaw): bridge Feishu business form cards
@@ -24,10 +24,10 @@ Tests:
  create mode 100644 extensions/feishu/src/monitor.card-action-form.test.ts
 
 diff --git a/extensions/feishu/src/bot.card-action.test.ts b/extensions/feishu/src/bot.card-action.test.ts
-index f0756f0b076..7245d7c3ed0 100644
+index cbb4c56b7f8..88d70b01693 100644
 --- a/extensions/feishu/src/bot.card-action.test.ts
 +++ b/extensions/feishu/src/bot.card-action.test.ts
-@@ -15,10 +15,18 @@ import {
+@@ -16,10 +16,18 @@ import {
    FEISHU_APPROVAL_REQUEST_ACTION,
  } from "./card-ux-approval.js";
  
@@ -47,7 +47,7 @@ index f0756f0b076..7245d7c3ed0 100644
  }));
  
  // Mock bot.js to verify handleFeishuMessage call
-@@ -119,6 +127,15 @@ describe("Feishu Card Action Handler", () => {
+@@ -120,6 +128,15 @@ describe("Feishu Card Action Handler", () => {
        .mockResolvedValue(undefined as never);
      processedCardActions.clear();
      resolvedCardActionChatTypes.clear();
@@ -63,7 +63,7 @@ index f0756f0b076..7245d7c3ed0 100644
    });
  
    function mockCallArg(
-@@ -192,6 +209,204 @@ describe("Feishu Card Action Handler", () => {
+@@ -188,6 +205,204 @@ describe("Feishu Card Action Handler", () => {
      expect(message.typing_target_message_id).toBe("om_card_message");
    });
  
@@ -659,10 +659,10 @@ index ae263da1735..fa61287509f 100644
      throw err;
    }
 diff --git a/extensions/feishu/src/channel.test.ts b/extensions/feishu/src/channel.test.ts
-index 13f9bed36f9..2e5ea8e4c29 100644
+index 246c3041c63..6b0d8392465 100644
 --- a/extensions/feishu/src/channel.test.ts
 +++ b/extensions/feishu/src/channel.test.ts
-@@ -799,6 +799,73 @@ describe("feishuPlugin actions", () => {
+@@ -824,6 +824,73 @@ describe("feishuPlugin actions", () => {
      });
    });
  
@@ -737,10 +737,10 @@ index 13f9bed36f9..2e5ea8e4c29 100644
      sendCardFeishuMock.mockResolvedValueOnce({ messageId: "om_card", chatId: "oc_group_1" });
  
 diff --git a/extensions/feishu/src/channel.ts b/extensions/feishu/src/channel.ts
-index a19a173f9ab..a2d4716c59e 100644
+index a88fc4874fb..dedc25477df 100644
 --- a/extensions/feishu/src/channel.ts
 +++ b/extensions/feishu/src/channel.ts
-@@ -163,6 +163,26 @@ function containsLegacyFeishuCardCommandValue(node: unknown): boolean {
+@@ -164,6 +164,26 @@ function containsLegacyFeishuCardCommandValue(node: unknown): boolean {
    return Object.values(node).some((value) => containsLegacyFeishuCardCommandValue(value));
  }
  
@@ -767,7 +767,7 @@ index a19a173f9ab..a2d4716c59e 100644
  const meta: ChannelMeta = {
    id: "feishu",
    label: "Feishu",
-@@ -1046,6 +1066,13 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
+@@ -1082,6 +1102,13 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
                (interactive ? legacyInteractiveReplyToPresentation(interactive) : undefined);
              const mediaUrl = readFeishuMediaParam(ctx.params);
              const audioAsVoice = readBooleanParam(ctx.params, ["asVoice", "audioAsVoice"]);
@@ -781,7 +781,7 @@ index a19a173f9ab..a2d4716c59e 100644
              if (textCard && !presentation) {
                assertFeishuCardWithinEnvelope(textCard, "Feishu native card");
              }
-@@ -1062,7 +1089,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
+@@ -1098,7 +1125,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
                  ? generatedCard
                  : undefined;
              const presentationFellBack = Boolean(generatedCard && !presentationCard);
@@ -791,10 +791,10 @@ index a19a173f9ab..a2d4716c59e 100644
                throw new Error(`Feishu ${ctx.action} does not support card with media.`);
              }
 diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
-index cec1d4a22d7..4edfe7dda73 100644
+index 62cca798d3e..2e426dfbc7e 100644
 --- a/extensions/feishu/src/monitor.account.ts
 +++ b/extensions/feishu/src/monitor.account.ts
-@@ -216,7 +216,7 @@ function readFeishuIdentityField(
+@@ -221,7 +221,7 @@ function readFeishuIdentityField(
    return firstString(value[field]);
  }
  
@@ -803,7 +803,7 @@ index cec1d4a22d7..4edfe7dda73 100644
    if (!isRecord(value)) {
      return null;
    }
-@@ -227,7 +227,11 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+@@ -232,7 +232,11 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
      return null;
    }
    const operatorUserId = operator.user_id;
@@ -816,7 +816,7 @@ index cec1d4a22d7..4edfe7dda73 100644
    const openId = firstString(
      operator.open_id,
      readFeishuIdentityField(operatorUserId, "open_id"),
-@@ -245,14 +249,24 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+@@ -250,14 +254,24 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
      readFeishuIdentityField(operatorUserId, "union_id"),
    );
    const tag = readString(action.tag);
@@ -843,7 +843,7 @@ index cec1d4a22d7..4edfe7dda73 100644
      return null;
    }
    return {
-@@ -265,6 +279,9 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+@@ -270,6 +284,9 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
      action: {
        value: actionValue,
        tag,
@@ -853,7 +853,7 @@ index cec1d4a22d7..4edfe7dda73 100644
      },
      ...(openMessageId ? { open_message_id: openMessageId } : {}),
      context: {
-@@ -276,6 +293,22 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
+@@ -281,6 +298,22 @@ function parseFeishuCardActionEventPayload(value: unknown): FeishuCardActionEven
    };
  }
  
@@ -876,7 +876,7 @@ index cec1d4a22d7..4edfe7dda73 100644
  function registerEventHandlers(
    eventDispatcher: Lark.EventDispatcher,
    context: RegisterEventHandlersContext,
-@@ -433,10 +466,13 @@ function registerEventHandlers(
+@@ -438,10 +471,13 @@ function registerEventHandlers(
        try {
          const event = parseFeishuCardActionEventPayload(data);
          if (!event) {
@@ -892,7 +892,7 @@ index cec1d4a22d7..4edfe7dda73 100644
            cfg,
            event,
            botOpenId: botOpenIds.get(accountId),
-@@ -444,15 +480,9 @@ function registerEventHandlers(
+@@ -449,15 +485,9 @@ function registerEventHandlers(
            channelRuntime,
            accountId,
          });

@@ -28,7 +28,7 @@ describe("vendor patch 0015: hide media tool model overrides", () => {
     expect(patch).toContain("diff --git a/src/agents/tools/video-generate-tool.ts");
     expect(patch).toContain("-  model: Type.Optional(");
     expect(patch).toContain("Provider/model override, e.g. qwen/wan2.6-t2v.");
-    expect(patch).toContain('-      const model = readStringParam(args, "model");');
+    expect(patch).toContain('-      const model = readToolStringParam(args, "model");');
     expect(patch).toContain("-      modelOverride: params.model,");
     expect(patch).toContain("-        modelOverride: model,");
   });

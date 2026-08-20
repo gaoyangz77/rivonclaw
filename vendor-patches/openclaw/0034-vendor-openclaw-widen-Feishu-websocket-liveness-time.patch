@@ -1,4 +1,4 @@
-From 934d77edd9c9dfacc7c5413c41d774b3bf9375e4 Mon Sep 17 00:00:00 2001
+From c48061d43519eeb0167f2bf7da61a0dac7331f12 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 19 Aug 2026 01:53:43 -0700
 Subject: [PATCH] vendor(openclaw): widen Feishu websocket liveness timeout
@@ -25,7 +25,7 @@ Tests:
  2 files changed, 11 insertions(+), 3 deletions(-)
 
 diff --git a/extensions/feishu/src/client.test.ts b/extensions/feishu/src/client.test.ts
-index 9be99fc6aff..b8d344c8c3e 100644
+index 00f41732a10..af7893da722 100644
 --- a/extensions/feishu/src/client.test.ts
 +++ b/extensions/feishu/src/client.test.ts
 @@ -791,7 +791,7 @@ describe("createFeishuWSClient proxy handling", () => {
@@ -47,7 +47,7 @@ index 9be99fc6aff..b8d344c8c3e 100644
    });
  
 diff --git a/extensions/feishu/src/client.ts b/extensions/feishu/src/client.ts
-index 525b5fe5552..a9d39226387 100644
+index 525b5fe5552..ca29fc1e4c5 100644
 --- a/extensions/feishu/src/client.ts
 +++ b/extensions/feishu/src/client.ts
 @@ -16,8 +16,16 @@ const pluginVersion = readPluginPackageVersion({ require });

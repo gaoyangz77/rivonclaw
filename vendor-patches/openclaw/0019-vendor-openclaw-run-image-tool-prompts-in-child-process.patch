@@ -1,4 +1,4 @@
-From 01c892f7700c6844a90da8212a0661247c0366a0 Mon Sep 17 00:00:00 2001
+From 3cc11b9c7ef61d93794fb873b7b22a89ec5ae0a6 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 8 Aug 2026 20:28:02 -0700
 Subject: [PATCH] vendor(openclaw): run image tool prompts in child process
@@ -63,10 +63,10 @@ index 00000000000..5d8af64b06d
 +  }
 +});
 diff --git a/src/agents/tools/image-tool.test.ts b/src/agents/tools/image-tool.test.ts
-index 34a6516a907..d3a3a61b441 100644
+index 47a907b759f..bd0030c98c0 100644
 --- a/src/agents/tools/image-tool.test.ts
 +++ b/src/agents/tools/image-tool.test.ts
-@@ -3461,4 +3461,53 @@ describe("image tool run abort", () => {
+@@ -3487,4 +3487,53 @@ describe("image tool run abort", () => {
      });
    });
  });
@@ -326,10 +326,10 @@ index f203faf4a43..bf8e949b3ca 100644
          cfg: options?.config,
          agentId: options?.agentId,
 diff --git a/tsdown.config.ts b/tsdown.config.ts
-index e6a5a1db3fe..191ea1f9599 100644
+index 8e03a849e51..9f9e75f8551 100644
 --- a/tsdown.config.ts
 +++ b/tsdown.config.ts
-@@ -289,6 +289,7 @@ function buildCoreDistEntries(): Record<string, string> {
+@@ -293,6 +293,7 @@ function buildCoreDistEntries(): Record<string, string> {
      "agents/code-mode.worker": "src/agents/code-mode.worker.ts",
      "agents/compaction-planning.worker": "src/agents/compaction-planning.worker.ts",
      "agents/model-provider-auth.worker": "src/agents/model-provider-auth.worker.ts",

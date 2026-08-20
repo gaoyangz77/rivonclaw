@@ -30,7 +30,7 @@ const VENDOR_TYPES_FILE = resolve(VENDOR_ROOT, "src/agents/system-prompt.types.t
 
 const ATTEMPT_FILE = resolve(
   VENDOR_ROOT,
-  "src/agents/embedded-agent-runner/run/attempt-session.ts",
+  "src/agents/embedded-agent-runner/run/attempt-session-prepare.ts",
 );
 const EMBEDDED_SYSTEM_PROMPT_FILE = resolve(
   VENDOR_ROOT,

@@ -1,4 +1,4 @@
-From e05c4e9d1af1c78ad7c3fb1c949c76c3b890853c Mon Sep 17 00:00:00 2001
+From 183c34f2038742ca349adc604d7470a5ca66706f Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Wed, 13 May 2026 00:20:04 -0700
 Subject: [PATCH] vendor(openclaw): add promptMode "raw" for custom persona
@@ -36,7 +36,7 @@ Tests:
  7 files changed, 22 insertions(+), 6 deletions(-)
 
 diff --git a/packages/gateway-protocol/src/schema/agent.ts b/packages/gateway-protocol/src/schema/agent.ts
-index 09eee97a0ad..a5a82dcc878 100644
+index ca6884b5930..208bec0218a 100644
 --- a/packages/gateway-protocol/src/schema/agent.ts
 +++ b/packages/gateway-protocol/src/schema/agent.ts
 @@ -309,7 +309,12 @@ export const AgentParamsSchema = closedObject({
@@ -54,18 +54,18 @@ index 09eee97a0ad..a5a82dcc878 100644
    extraSystemPrompt: Type.Optional(Type.String()),
    bootstrapContextMode: Type.Optional(
 diff --git a/src/agents/embedded-agent-runner/compact.types.ts b/src/agents/embedded-agent-runner/compact.types.ts
-index 81215798c15..2d96d347115 100644
+index 6fd17fbc113..210ca91b214 100644
 --- a/src/agents/embedded-agent-runner/compact.types.ts
 +++ b/src/agents/embedded-agent-runner/compact.types.ts
-@@ -15,6 +15,7 @@ import type { ExecElevatedDefaults, ExecToolDefaults } from "../bash-tools.exec-
+@@ -16,6 +16,7 @@ import type { ExecElevatedDefaults, ExecToolDefaults } from "../bash-tools.exec-
  import type { AgentRunSessionTarget } from "../run-session-target.js";
  import type { AgentRuntimeAuthPlan, AgentRuntimePlan } from "../runtime-plan/types.js";
- import type { TrustedSubagentCompletionHandoff } from "../subagent-announce-handoff.js";
+ import type { TrustedSubagentCompletionHandoff } from "../subagents/announce/subagent-announce-handoff.js";
 +import type { PromptMode } from "../system-prompt.types.js";
  
  export type CompactEmbeddedAgentSessionParams = {
    sessionId: string;
-@@ -111,6 +112,8 @@ export type CompactEmbeddedAgentSessionParams = {
+@@ -113,6 +114,8 @@ export type CompactEmbeddedAgentSessionParams = {
    lane?: string;
    enqueue?: CommandQueueEnqueueFn;
    extraSystemPrompt?: string;
@@ -75,10 +75,10 @@ index 81215798c15..2d96d347115 100644
    ownerNumbers?: string[];
    abortSignal?: AbortSignal;
 diff --git a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-index c68388edb2a..54db51a6fb9 100644
+index 607a5bdbf4a..b55bcead6f6 100644
 --- a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
 +++ b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-@@ -512,9 +512,10 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
+@@ -514,9 +514,10 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
      const userDate = formatDateStamp(Date.now(), userTimezone);
      const promptSurface = resolveAgentPromptSurfaceForSessionKey(params.sessionKey);
      const promptMode =
@@ -92,7 +92,7 @@ index c68388edb2a..54db51a6fb9 100644
        surface: promptSurface,
      });
 diff --git a/src/agents/runtime-plan/types.ts b/src/agents/runtime-plan/types.ts
-index 052ebf3045b..441a2bd104a 100644
+index 4ea49c0b85d..9eb8fabc4ba 100644
 --- a/src/agents/runtime-plan/types.ts
 +++ b/src/agents/runtime-plan/types.ts
 @@ -28,7 +28,7 @@ type AgentRuntimeThinkLevel =
@@ -105,10 +105,10 @@ index 052ebf3045b..441a2bd104a 100644
  type AgentRuntimePromptTrigger = "cron" | "heartbeat" | "manual" | "memory" | "overflow" | "user";
  
 diff --git a/src/agents/system-prompt.ts b/src/agents/system-prompt.ts
-index 4b35046a9e8..c50f7803317 100644
+index 98329d6a76b..d235c0da214 100644
 --- a/src/agents/system-prompt.ts
 +++ b/src/agents/system-prompt.ts
-@@ -1144,6 +1144,13 @@ export function buildAgentSystemPrompt(params: {
+@@ -1146,6 +1146,13 @@ export function buildAgentSystemPrompt(params: {
    });
    const workspaceNotes = normalizeStringEntries(params.workspaceNotes);
  
@@ -132,7 +132,7 @@ index ecb6aa40621..a35f82d8919 100644
 +export type PromptMode = "full" | "minimal" | "none" | "raw";
  export type SilentReplyPromptMode = "generic" | "none";
 diff --git a/src/gateway/server-methods/agent-request-types.ts b/src/gateway/server-methods/agent-request-types.ts
-index 4b6721b5982..1c8cbc0cad1 100644
+index 5e2032150d2..7dbe6270614 100644
 --- a/src/gateway/server-methods/agent-request-types.ts
 +++ b/src/gateway/server-methods/agent-request-types.ts
 @@ -31,7 +31,7 @@ export type AgentRunRequest = {
@@ -142,8 +142,8 @@ index 4b6721b5982..1c8cbc0cad1 100644
 -  promptMode?: "full" | "minimal" | "none";
 +  promptMode?: "full" | "minimal" | "none" | "raw";
    bootstrapContextMode?: "full" | "lightweight";
-   // Commitment fan-out scope is scheduler-internal and cannot be selected over Gateway RPC.
    bootstrapContextRunKind?: "default" | "heartbeat" | "cron";
+   acpTurnSource?: "manual_spawn";
 -- 
 2.50.1 (Apple Git-155)
 
