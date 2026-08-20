@@ -102,6 +102,9 @@ describe("first-party domain routing", () => {
     expect(getCnRelayUrlForGlobalFirstPartyUrl("https://api.rivonclaw.com/graphql?x=1")).toBe(
       "https://api.zhuazhuaai.cn/graphql?x=1",
     );
+    expect(getCnRelayUrlForGlobalFirstPartyUrl("https://www.rivonclaw.com/account")).toBe(
+      "https://www.tkjiang.cn/account",
+    );
     expect(getCnRelayUrlForGlobalFirstPartyUrl("wss://relay.rivonclaw.com/ws")).toBe(
       "wss://relay.zhuazhuaai.cn/ws",
     );
@@ -122,7 +125,6 @@ describe("first-party domain routing", () => {
       "api.zhuazhuaai.cn",
       "api-stg.zhuazhuaai.cn",
       "relay.zhuazhuaai.cn",
-      "www.zhuazhuaai.cn",
       "www.tkjiang.cn",
     ]));
   });

@@ -295,6 +295,7 @@ describe("checkForUpdate", () => {
   });
 
   it("uses CN manifest URL when region is cn", async () => {
+    expect(MANIFEST_URLS.cn).toBe("https://www.tkjiang.cn/update-manifest-cn.json");
     await checkForUpdate("1.0.0", { region: "cn" });
     expect(fetch).toHaveBeenCalledWith(
       MANIFEST_URLS.cn,
@@ -328,4 +329,3 @@ describe("checkForUpdate", () => {
     expect(result.download).toBeUndefined();
   });
 });
-

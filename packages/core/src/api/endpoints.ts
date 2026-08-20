@@ -196,8 +196,7 @@ export function getReleaseFeedUrl(locale: string): string {
 	const useStaging = typeof process !== "undefined" && process.env.UPDATE_FROM_STAGING === "1";
 	if (useStaging) return `https://${firstPartyDomain(DEFAULTS.domains.staging, DEFAULTS.domains.stagingCn)}/releases`;
 	// Auto-updater uses dedicated release hosts. The production release pipeline
-	// warms and cache-gates updaterCn before notifying clients, while webCn is a
-	// legacy compatibility edge that is intentionally no longer prefetched.
+	// warms and cache-gates updaterCn before notifying clients.
 	return `https://${firstPartyDomain(DEFAULTS.domains.updater, DEFAULTS.domains.updaterCn)}/releases`;
 }
 

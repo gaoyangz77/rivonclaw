@@ -6,7 +6,7 @@ const log = createLogger("updater");
 
 export const MANIFEST_URLS = {
   default: "https://www.rivonclaw.com/update-manifest.json",
-  cn: "https://www.zhuazhuaai.cn/update-manifest-cn.json",
+  cn: "https://www.tkjiang.cn/update-manifest-cn.json",
 } as const;
 
 /**
