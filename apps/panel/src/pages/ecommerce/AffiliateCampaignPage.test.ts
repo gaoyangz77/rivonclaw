@@ -15,6 +15,7 @@ import {
   normalizeSuggestedDiscoveryRules,
   paginateCampaigns,
   renderAffiliateCampaignTemplatePreview,
+  unsupportedAffiliateCampaignTemplateVariables,
 } from "./AffiliateCampaignPage.js";
 
 describe("Affiliate Campaign presentation contracts", () => {
@@ -65,6 +66,28 @@ describe("Affiliate Campaign presentation contracts", () => {
         "Rivon",
       ),
     ).toBe("Hi Alex, feature Summer Bag from Rivon.");
+  });
+
+  it("reports unsupported template variables before Campaign submission", () => {
+    expect(
+      unsupportedAffiliateCampaignTemplateVariables(
+        "Hi {{ user_name }}, meet {{product_name}} from {{shop_name}} and {{user_name}}.",
+      ),
+    ).toEqual(["user_name"]);
+    expect(
+      unsupportedAffiliateCampaignTemplateVariables(
+        "Hi {{creator_name}}, meet {{product_name}} from {{shop_name}}.",
+      ),
+    ).toEqual([]);
+  });
+
+  it("localizes unsupported template-variable guidance in every Campaign locale", () => {
+    const messages = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
+      (translations) =>
+        translations.ecommerce.affiliateCampaign.templateUnsupportedVariables,
+    );
+    expect(messages.every(Boolean)).toBe(true);
+    expect(new Set(messages).size).toBe(messages.length);
   });
 
   it("paginates the campaign directory in stable twenty-row pages", () => {

@@ -32842,11 +32842,21 @@ html[lang="zh"] .acct-tool-chips {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
+.affiliate-campaign-wizard-fields textarea[aria-invalid="true"],
+.affiliate-campaign-wizard-fields textarea[aria-invalid="true"]:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 14%, transparent);
+}
 .affiliate-campaign-wizard-fields label > small {
   display: block;
   margin-top: 6px;
   color: var(--color-text-muted);
   font-size: 10px;
+}
+.affiliate-campaign-wizard-fields label > .affiliate-campaign-template-error {
+  color: var(--color-danger);
+  font-weight: 650;
+  line-height: 1.45;
 }
 .affiliate-campaign-wizard-fields .custom-select-trigger {
   min-height: 46px;
