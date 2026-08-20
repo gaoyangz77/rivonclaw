@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.105",
+    "date": "2026-08-20",
+    "en": [
+      "Filter Affiliate Agent work by Business Developer across pending and complete work"
+    ],
+    "zh": [
+      "支持按商务开发人员筛选达人 Agent 的待审核与全部工作"
+    ]
+  },
+  {
     "version": "1.8.104",
     "date": "2026-08-19",
     "en": [
