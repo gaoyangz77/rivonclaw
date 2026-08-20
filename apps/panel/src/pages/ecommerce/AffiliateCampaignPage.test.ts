@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from
+  "../../i18n/affiliate-campaign-translations.js";
 import {
   campaignDecisionReasonLabel,
   campaignErrorMessage,
@@ -110,6 +112,19 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(eligibilityReasonLabel("PROTECTION_LIST", t)).toBe(
       "translated:ecommerce.affiliateCampaign.eligibilityReason.protection_list",
     );
+    expect(eligibilityReasonLabel("PROVIDER_PRODUCT_COLLABORATION_CONFLICT", t)).toBe(
+      "translated:ecommerce.affiliateCampaign.eligibilityReason." +
+        "provider_product_collaboration_conflict",
+    );
+  });
+
+  it("has localized Provider product-conflict copy in every supported Campaign locale", () => {
+    for (const translations of Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS)) {
+      expect(
+        translations.ecommerce.affiliateCampaign.eligibilityReason
+          .provider_product_collaboration_conflict,
+      ).toBeTruthy();
+    }
   });
 
   it("maps selection decision codes through i18n instead of exposing English audit text", () => {

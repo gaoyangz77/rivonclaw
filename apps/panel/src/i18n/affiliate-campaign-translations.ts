@@ -489,6 +489,8 @@ const en = {
     provider_result_invalid: "TikTok returned incomplete creator data",
     follower_data_required: "Follower data is required for qualification",
     pre_approval_rejected: "Did not pass pre-screening before the first message",
+    provider_product_collaboration_conflict:
+      "This creator already holds a promoted product in another collaboration",
   },
   decisionReason: {
     providerFilterMatch:
@@ -961,6 +963,7 @@ const zh = {
     provider_result_invalid: "TikTok 返回的达人资料不完整",
     follower_data_required: "资格判断缺少粉丝数据",
     pre_approval_rejected: "发第一条消息前的预审未通过",
+    provider_product_collaboration_conflict: "该达人已在其他合作中持有本推广商品，暂不重复邀请",
   },
   decisionReason: {
     providerFilterMatch: "符合已发布的 TikTok 搜索条件，并按平台顺序进入候选池。",
@@ -999,6 +1002,10 @@ const zhTutorial = {
 
 const operationalCopy = {
   de: {
+    eligibilityReason: {
+      provider_product_collaboration_conflict:
+        "Dieser Creator hat das beworbene Produkt bereits in einer anderen Kooperation.",
+    },
     updated: "Kampagnenkonfiguration aktualisiert.",
     authorizationBody: "Nach der Aktivierung darf das Backend qualifizierte Creator mit der neuesten veröffentlichten Vorlage kontaktieren. Eine Pause stoppt neue Sendungen; kritische Produkt- oder Qualifikationsänderungen machen betroffene Warteschlangenaufträge ungültig.",
     searchPlanGuidanceHint: "{{count}} / 500 Zeichen. Präferenzen und Stile sind weiche Richtungen. „Muss“, „nur“, „mindestens“, „höchstens“ und „ausschließen“ sind harte Vorgaben: Sie müssen einem unterstützten TikTok-Filter entsprechen, sonst stoppt die Plangenerierung.",
@@ -1051,6 +1058,10 @@ const operationalCopy = {
     funnel: { submitted: "Provider-Versuche", uncertain: "Ergebnis ausstehend", failed: "Fehlgeschlagen" },
   },
   es: {
+    eligibilityReason: {
+      provider_product_collaboration_conflict:
+        "Este creator ya tiene el producto promocionado en otra colaboración.",
+    },
     updated: "Configuración de la campaña actualizada.",
     authorizationBody: "Tras activarla, el backend puede contactar a creators cualificados con la última plantilla publicada. Pausar detiene los nuevos envíos; los cambios críticos de producto o cualificación invalidan las tareas afectadas en cola.",
     searchPlanGuidanceHint: "{{count}} / 500 caracteres. Las preferencias y estilos son orientaciones flexibles. «Debe», «solo», «al menos», «como máximo» y «excluir» son restricciones obligatorias: deben corresponder a un filtro de TikTok compatible o se detendrá la generación.",
@@ -1103,6 +1114,10 @@ const operationalCopy = {
     funnel: { submitted: "Intentos al proveedor", uncertain: "Resultado pendiente", failed: "Fallidos" },
   },
   fr: {
+    eligibilityReason: {
+      provider_product_collaboration_conflict:
+        "Ce créateur possède déjà le produit promu dans une autre collaboration.",
+    },
     updated: "Configuration de la campagne mise à jour.",
     authorizationBody: "Après activation, le backend peut contacter les créateurs qualifiés avec le dernier modèle publié. La pause arrête les nouveaux envois ; les changements critiques de produit ou de qualification invalident les tâches concernées en file d’attente.",
     searchPlanGuidanceHint: "{{count}} / 500 caractères. Les préférences et styles sont des orientations souples. « Doit », « uniquement », « au moins », « au plus » et « exclure » sont des contraintes strictes : elles doivent correspondre à un filtre TikTok pris en charge, sinon la génération s’arrête.",
@@ -1155,6 +1170,10 @@ const operationalCopy = {
     funnel: { submitted: "Tentatives fournisseur", uncertain: "Résultat en attente", failed: "Échecs" },
   },
   id: {
+    eligibilityReason: {
+      provider_product_collaboration_conflict:
+        "Creator ini sudah memiliki produk promosi dalam kolaborasi lain.",
+    },
     updated: "Konfigurasi kampanye diperbarui.",
     authorizationBody: "Setelah diaktifkan, backend dapat menghubungi kreator yang memenuhi syarat dengan template terbaru yang dipublikasikan. Menjeda menghentikan pengiriman baru; perubahan penting pada produk atau kualifikasi membatalkan tugas antrean yang terdampak.",
     searchPlanGuidanceHint: "{{count}} / 500 karakter. Preferensi dan gaya adalah arahan lunak. «Harus», «hanya», «minimal», «maksimal», dan «kecualikan» adalah batasan keras: semuanya harus dipetakan ke filter TikTok yang didukung atau pembuatan rencana dihentikan.",
@@ -1207,6 +1226,10 @@ const operationalCopy = {
     funnel: { submitted: "Percobaan provider", uncertain: "Hasil tertunda", failed: "Gagal" },
   },
   it: {
+    eligibilityReason: {
+      provider_product_collaboration_conflict:
+        "Questo creator ha già il prodotto promosso in un'altra collaborazione.",
+    },
     updated: "Configurazione della campagna aggiornata.",
     authorizationBody: "Dopo l’attivazione, il backend può contattare i creator idonei con l’ultimo modello pubblicato. La pausa interrompe i nuovi invii; le modifiche critiche al prodotto o alla qualifica invalidano le attività in coda interessate.",
     searchPlanGuidanceHint: "{{count}} / 500 caratteri. Preferenze e stili sono indicazioni flessibili. «Deve», «solo», «almeno», «al massimo» ed «escludere» sono vincoli rigidi: devono corrispondere a un filtro TikTok supportato, altrimenti la generazione si interrompe.",
@@ -1259,6 +1282,10 @@ const operationalCopy = {
     funnel: { submitted: "Tentativi provider", uncertain: "Risultato in attesa", failed: "Non riusciti" },
   },
   th: {
+    eligibilityReason: {
+      provider_product_collaboration_conflict:
+        "ครีเอเตอร์รายนี้มีสินค้าที่โปรโมตอยู่แล้วในความร่วมมืออื่น",
+    },
     updated: "อัปเดตการตั้งค่าแคมเปญแล้ว",
     authorizationBody: "หลังเปิดใช้งาน Backend สามารถติดต่อครีเอเตอร์ที่ผ่านเกณฑ์ด้วยเทมเพลตล่าสุดที่เผยแพร่ได้ การหยุดชั่วคราวจะหยุดการส่งใหม่ ส่วนการเปลี่ยนแปลงสำคัญของสินค้าหรือเกณฑ์คัดเลือกจะยกเลิกงานในคิวที่ได้รับผลกระทบ",
     searchPlanGuidanceHint: "{{count}} / 500 ตัวอักษร ความชอบและสไตล์เป็นแนวทางแบบยืดหยุ่น ส่วนคำว่า “ต้อง”, “เท่านั้น”, “อย่างน้อย”, “ไม่เกิน” และ “ยกเว้น” เป็นเงื่อนไขบังคับ ซึ่งต้องแมปกับตัวกรอง TikTok ที่รองรับ มิฉะนั้นระบบจะหยุดสร้างแผน",
@@ -1354,6 +1381,10 @@ function locale(
     funnel: {
       ...en.funnel,
       ...(operational?.funnel ?? {}),
+    },
+    eligibilityReason: {
+      ...en.eligibilityReason,
+      ...(operational?.eligibilityReason ?? {}),
     },
   };
 }
