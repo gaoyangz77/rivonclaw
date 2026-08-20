@@ -20,7 +20,7 @@ const vendorDir = process.env.VENDOR_DIR_OVERRIDE
   ? path.resolve(process.env.VENDOR_DIR_OVERRIDE)
   : path.resolve(__dirname, "..", "..", "..", "vendor", "openclaw");
 const nmDir = path.join(vendorDir, "node_modules");
-const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-20.1";
+const PRUNE_PROFILE_VERSION = "cross-platform-mid-blacklist-2026-08-13.1";
 const stageOfficialVendorPluginsScript = path.join(__dirname, "stage-official-vendor-plugins.cjs");
 const DISABLED_VENDOR_EXTENSIONS = [
   "copilot",
@@ -31,7 +31,6 @@ const DISABLED_VENDOR_EXTENSIONS = [
   // to every packaged app.
   "memory-lancedb",
   "mxc",
-  "cua-computer",
 ];
 const PRESERVED_DIST_RUNTIME_EXTENSIONS = new Set(
   STAGED_VENDOR_SOURCE_PLUGINS.map((plugin) => plugin.id),
@@ -110,7 +109,6 @@ const EXTRA_REMOVE = [
   "onnxruntime-web",
   "@microsoft/mxc-sdk",
   "node-pty",
-  "@trycua",
 
   // Build/UI dependencies left behind by hoisted production installs.
   "@awesome.me",

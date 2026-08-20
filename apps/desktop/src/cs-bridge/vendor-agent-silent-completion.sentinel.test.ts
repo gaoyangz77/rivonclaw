@@ -21,7 +21,7 @@ describe("vendor patch 0030: agent RPC silent completion", () => {
 
   it("forwards the option through Gateway command execution", () => {
     expect(patch).toContain(
-      "+              allowEmptyAssistantReplyAsSilent: params.request.allowEmptyAssistantReplyAsSilent,",
+      "+          allowEmptyAssistantReplyAsSilent: params.request.allowEmptyAssistantReplyAsSilent,",
     );
     expect(patch).toContain(
       "+      params.opts.allowEmptyAssistantReplyAsSilent === true || isSubagentAnnounceHandoff,",

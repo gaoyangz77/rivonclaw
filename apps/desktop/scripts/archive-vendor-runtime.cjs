@@ -77,7 +77,6 @@ console.log(`[archive-vendor-runtime] Version key: ${version}`);
 // .git (455MB), .github, CI configs, and other repo metadata.
 const RUNTIME_INCLUDES = [
   "openclaw.mjs",
-  "node-version.mjs",
   "package.json",
   "src/agents/templates",
   "docs/reference/templates",

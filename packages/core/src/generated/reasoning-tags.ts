@@ -8045,7 +8045,6 @@ var REASONING_TAG_NAMES = [
   "thinking",
   "thought",
   "reasoning",
-  "internal",
   "antthinking",
   "antml:think",
   "antml:thinking",
@@ -8135,7 +8134,6 @@ function parseReasoningTagAt(text3, start, final) {
           text: text3.slice(start, end),
           isClose,
           isSelfClosing: !isClose && lastSignificant === "/",
-          isPrivate: partialName === "internal",
         },
       };
     }
@@ -8260,20 +8258,18 @@ function reduceReasoningText(text3, codeSpans, state, options) {
       index: scannedTag.index + start,
       isClose: scannedTag.isClose,
       isSelfClosing: scannedTag.isSelfClosing,
-      isPrivate: scannedTag.isPrivate,
       text: scannedTag.text,
     };
     if (!isInsideCode(tag.index, codeSpans)) {
       tags.push(tag);
     }
   }
-  const mustParseRemainder = [];
+  const hasCloseAfter = [];
   if (options.scope === "leading") {
-    let mustParse = false;
+    let seenClose = false;
     for (let index2 = tags.length - 1; index2 >= 0; index2 -= 1) {
-      mustParse ||= tags[index2]?.isPrivate === true;
-      mustParseRemainder[index2] = mustParse;
-      mustParse ||= tags[index2]?.isClose === true;
+      hasCloseAfter[index2] = seenClose;
+      seenClose ||= tags[index2]?.isClose === true;
     }
   }
   let cursor = start;
@@ -8299,7 +8295,7 @@ function reduceReasoningText(text3, codeSpans, state, options) {
         state.depth === 0 &&
         options.scope === "leading" &&
         state.visibleEver &&
-        !mustParseRemainder[tagIndex]
+        !hasCloseAfter[tagIndex]
       ) {
         emit("text", text3.slice(tag.index));
         cursor = text3.length;
@@ -8308,13 +8304,10 @@ function reduceReasoningText(text3, codeSpans, state, options) {
       if (state.depth === 0) {
         state.pending = {
           content: "",
-          containsPrivate: tag.isPrivate,
           openTag: tag.text,
           protectedClose: false,
           visibleBefore: state.visibleEver,
         };
-      } else if (state.pending) {
-        state.pending.containsPrivate ||= tag.isPrivate;
       }
       state.depth += 1;
       cursor = tagEnd;
@@ -8323,9 +8316,7 @@ function reduceReasoningText(text3, codeSpans, state, options) {
     if (state.depth > 0) {
       state.depth -= 1;
       if (state.depth === 0 && state.pending) {
-        if (!state.pending.containsPrivate) {
-          emit("thinking", state.pending.content);
-        }
+        emit("thinking", state.pending.content);
         state.pending = void 0;
       } else if (state.pending) {
         state.pending.protectedClose = true;
@@ -8348,20 +8339,18 @@ function reduceReasoningText(text3, codeSpans, state, options) {
   append(text3.slice(cursor));
   if (options.final && state.depth > 0 && state.pending) {
     const pending = state.pending;
-    if (!pending.containsPrivate) {
-      const recoverAsText =
-        options.mode === "static-preserve" ||
-        (options.mode === "static-strict" && !pending.visibleBefore && !pending.protectedClose) ||
-        (options.mode === "visible" && !pending.protectedClose);
-      if (recoverAsText) {
-        const value =
-          options.mode === "visible" && pending.visibleBefore
-            ? pending.openTag + pending.content
-            : pending.content;
-        emit("text", value);
-      } else {
-        emit("thinking", pending.content);
-      }
+    const recoverAsText =
+      options.mode === "static-preserve" ||
+      (options.mode === "static-strict" && !pending.visibleBefore && !pending.protectedClose) ||
+      (options.mode === "visible" && !pending.protectedClose);
+    if (recoverAsText) {
+      const value =
+        options.mode === "visible" && pending.visibleBefore
+          ? pending.openTag + pending.content
+          : pending.content;
+      emit("text", value);
+    } else {
+      emit("thinking", pending.content);
     }
     state.depth = 0;
     state.pending = void 0;

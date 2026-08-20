@@ -1,4 +1,4 @@
-From a40b8516751d830a4d546d5b530c69b51bd9d384 Mon Sep 17 00:00:00 2001
+From d15f0b681599b312ea4ff774b9933356d3208852 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Fri, 10 Apr 2026 18:12:32 -0700
 Subject: [PATCH] vendor(openclaw): add before_tool_resolve hook for
@@ -28,10 +28,10 @@ Tests:
  create mode 100644 src/agents/tool-resolve-hook.ts
 
 diff --git a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-index 8c742bf1b45..f93d4de3d2f 100644
+index 40b29f75b08..607a5bdbf4a 100644
 --- a/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
 +++ b/src/agents/embedded-agent-runner/prepared-compaction-runtime.ts
-@@ -78,6 +78,7 @@ import {
+@@ -75,6 +75,7 @@ import {
  } from "./sandbox-skills.js";
  import { buildEmbeddedSystemPrompt } from "./system-prompt.js";
  import { collectAllowedToolNames } from "./tool-name-allowlist.js";
@@ -39,7 +39,7 @@ index 8c742bf1b45..f93d4de3d2f 100644
  import { mapThinkingLevelForProvider } from "./utils.js";
  
  export async function buildPreparedCompactionRuntime(prepared: DirectCompactionPreparation) {
-@@ -433,7 +434,11 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
+@@ -416,7 +417,11 @@ export async function buildPreparedCompactionRuntime(prepared: DirectCompactionP
        sessionKey: params.sessionKey,
        sessionId: params.sessionId,
      });
@@ -53,7 +53,7 @@ index 8c742bf1b45..f93d4de3d2f 100644
      runtimePlan.tools.logDiagnostics(effectiveTools, runtimePlanModelContext);
      const machineName = await getMachineDisplayName();
 diff --git a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
-index a3f86c65a12..f431b55c14f 100644
+index 3bc6bbf56bd..a3ed021a325 100644
 --- a/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
 +++ b/src/agents/embedded-agent-runner/run/attempt-bundle-tools.ts
 @@ -8,6 +8,7 @@ import { filterLocalModelLeanTools } from "../../local-model-lean.js";
@@ -64,7 +64,7 @@ index a3f86c65a12..f431b55c14f 100644
  import { filterRuntimeCompatibleTools } from "../../tool-schema-projection.js";
  import { logRuntimeToolSchemaQuarantine } from "../../tool-schema-quarantine.js";
  import { captureFinalEffectiveCronCreatorToolAllowlist } from "../../tools/cron-tool.js";
-@@ -232,12 +233,17 @@ export async function prepareEmbeddedAttemptBundleTools(params: {
+@@ -231,12 +232,17 @@ export async function prepareEmbeddedAttemptBundleTools(params: {
        sessionKey: params.attempt.sessionKey,
        sessionId: params.attempt.sessionId,
      });
@@ -163,10 +163,10 @@ index 00000000000..7bb50cac051
 +  return tools.filter((tool) => allowedToolNames.has(tool.name));
 +}
 diff --git a/src/plugins/hook-types.ts b/src/plugins/hook-types.ts
-index 3634f5167da..b42fa6e5fe3 100644
+index c71633a7372..f5d5acd1b63 100644
 --- a/src/plugins/hook-types.ts
 +++ b/src/plugins/hook-types.ts
-@@ -135,7 +135,8 @@ export type PluginHookName =
+@@ -141,7 +141,8 @@ export type PluginHookName =
    | "reply_dispatch"
    | "before_install"
    | "before_agent_run"
@@ -176,7 +176,7 @@ index 3634f5167da..b42fa6e5fe3 100644
  
  const PLUGIN_HOOK_NAMES = [
    "before_model_resolve",
-@@ -180,6 +181,7 @@ const PLUGIN_HOOK_NAMES = [
+@@ -188,6 +189,7 @@ const PLUGIN_HOOK_NAMES = [
    "before_install",
    "before_agent_run",
    "resolve_exec_env",
@@ -184,7 +184,7 @@ index 3634f5167da..b42fa6e5fe3 100644
  ] as const satisfies readonly PluginHookName[];
  
  type MissingPluginHookNames = Exclude<PluginHookName, (typeof PLUGIN_HOOK_NAMES)[number]>;
-@@ -1034,6 +1036,13 @@ export type PluginHookGatewayCronService = {
+@@ -1112,6 +1114,13 @@ export type PluginHookGatewayCronService = {
    }) => Promise<number>;
  };
  
@@ -198,7 +198,7 @@ index 3634f5167da..b42fa6e5fe3 100644
  export type PluginInstallTargetType = "skill" | "plugin";
  type PluginInstallRequestKind =
    | "skill-install"
-@@ -1336,6 +1345,10 @@ export type PluginHookHandlerMap = {
+@@ -1436,6 +1445,10 @@ export type PluginHookHandlerMap = {
      event: PluginHookResolveExecEnvEvent,
      ctx: PluginHookResolveExecEnvContext,
    ) => Promise<Record<string, string> | void> | Record<string, string> | void;
@@ -210,10 +210,10 @@ index 3634f5167da..b42fa6e5fe3 100644
  
  export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = {
 diff --git a/src/plugins/hooks.ts b/src/plugins/hooks.ts
-index ede16de0af5..f6989d07dda 100644
+index fbb820b6a1f..f4cbbfd9d77 100644
 --- a/src/plugins/hooks.ts
 +++ b/src/plugins/hooks.ts
-@@ -101,6 +101,8 @@ import type {
+@@ -103,6 +103,8 @@ import type {
    PluginHookBeforeInstallResult,
    PluginHookResolveExecEnvContext,
    PluginHookResolveExecEnvEvent,
@@ -222,7 +222,7 @@ index ede16de0af5..f6989d07dda 100644
    PluginHookSkillChangedEvent,
    PluginHookSkillContext,
    PluginHookSkillProposalChangedEvent,
-@@ -1248,6 +1250,23 @@ export function createHookRunner(
+@@ -1268,6 +1270,23 @@ export function createHookRunner(
    // Tool Hooks
    // =========================================================================
  
@@ -246,7 +246,7 @@ index ede16de0af5..f6989d07dda 100644
    /**
     * Run before_tool_call hook.
     * Allows plugins to modify or block tool calls.
-@@ -1633,6 +1652,7 @@ export function createHookRunner(
+@@ -1670,6 +1689,7 @@ export function createHookRunner(
        ctx: PluginHookMessageContext,
      ): Promise<void> => runVoidHook("message_sent", event, ctx),
      // Tool hooks
