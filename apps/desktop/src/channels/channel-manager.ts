@@ -56,6 +56,11 @@ const FEISHU_OFFICIAL_PLUGIN_ID = "feishu";
 const FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID = "openclaw-lark";
 const FEISHU_OFFICIAL_ACCOUNT_ID = "default";
 const FEISHU_MEDIA_MAX_MB = 30;
+// Feishu media uploads already use a 120-second transport timeout in the
+// channel plugin. Keep the follow-up message dispatch on the same budget so a
+// temporarily busy Gateway cannot upload a file successfully and then abort
+// the much smaller /messages request at the SDK's 30-second default.
+const FEISHU_HTTP_TIMEOUT_MS = 120_000;
 const FEISHU_ACCOUNT_ID_MAX_LENGTH = 64;
 const FEISHU_OFFICIAL_PLUGIN_ROOTS = [
   "dist-runtime/extensions/feishu",
@@ -398,6 +403,12 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
         typeof next.mediaMaxMb === "number" && Number.isFinite(next.mediaMaxMb) && next.mediaMaxMb > 0
           ? next.mediaMaxMb
           : FEISHU_MEDIA_MAX_MB,
+      httpTimeoutMs:
+        typeof next.httpTimeoutMs === "number" &&
+        Number.isFinite(next.httpTimeoutMs) &&
+        next.httpTimeoutMs > 0
+          ? next.httpTimeoutMs
+          : FEISHU_HTTP_TIMEOUT_MS,
       renderMode: typeof next.renderMode === "string" ? next.renderMode : "card",
     });
   }
@@ -641,6 +652,7 @@ function mirrorFeishuDefaultAccountToChannelRoot(
     "domain",
     "connectionMode",
     "mediaMaxMb",
+    "httpTimeoutMs",
     "requireMention",
     "dmPolicy",
     "allowFrom",
@@ -1109,6 +1121,7 @@ export const ChannelManagerModel = types
         domain: params.domain,
         connectionMode: "websocket",
         mediaMaxMb: FEISHU_MEDIA_MAX_MB,
+        httpTimeoutMs: FEISHU_HTTP_TIMEOUT_MS,
         renderMode: "card",
         streaming: { mode: "off", block: { enabled: false } },
         requireMention: true,
