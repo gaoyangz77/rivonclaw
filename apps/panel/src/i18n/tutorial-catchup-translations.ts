@@ -7,6 +7,38 @@
  */
 export const TUTORIAL_NEW_KEYS_EN = {
   tutorial: {
+    ecommerceAffiliateAttention: {
+      welcomeTitle: "Agent work queue",
+      welcomeBody: "Review affiliate actions that need a human decision and inspect completed work without leaving the operating queue.",
+      controlsTitle: "Shop scope and refresh",
+      controlsBody: "Choose one affiliate-enabled shop or keep the account-wide view, then refresh to load the latest Agent proposals.",
+      scopeTitle: "Pending and completed work",
+      scopeBody: "Keep the pending-only switch on for decisions that still need attention. Turn it off when you need to audit approved, rejected, or revised work.",
+      filtersTitle: "Focus the queue",
+      filtersBody: "Filter by business developer and action type, or search creator, shop, product, and proposal context. Completed mode also adds a status filter.",
+      queueTitle: "Review Agent work",
+      queueBody: "Each timeline item preserves the recommendation, evidence, draft, and revision history. Open its relationship context before approving, rejecting, or requesting changes.",
+    },
+    ecommerceAffiliateCreators: {
+      welcomeTitle: "Creators",
+      welcomeBody: "Use the creator roster to understand relationship health, current collaboration work, performance signals, and the next action across shops.",
+      controlsTitle: "Shop scope and projection status",
+      controlsBody: "Choose a shop and refresh its creator projection. The synchronization notice above the roster tells you whether current and historical data are ready.",
+      filtersTitle: "Find the right creators",
+      filtersBody: "Filter by creator tag, search by identity, or show only relationships that currently need attention.",
+      resultsTitle: "Creator relationship cards",
+      resultsBody: "Review shop coverage, tags, active samples and collaborations, performance, and pending work. Open a card for the complete relationship workspace.",
+    },
+    ecommerceAffiliateHistory: {
+      welcomeTitle: "Collaboration history",
+      welcomeBody: "Review open and target collaborations across shops, including their lifecycle, creators, products, commission, and platform identifiers.",
+      controlsTitle: "Collaboration operations",
+      controlsBody: "Choose a shop, configure open-collaboration settings, create a new collaboration, or refresh the latest platform state from this control area.",
+      filtersTitle: "Filter collaboration records",
+      filtersBody: "Narrow the history by lifecycle status, collaboration type, or creator, product, shop, and platform identifiers.",
+      resultsTitle: "Collaboration records",
+      resultsBody: "Each card summarizes the lifecycle and commercial scope. Open it to inspect creators, products, samples, settings, and supported management actions.",
+    },
     ecommerceAffiliateTeam: {
       welcomeTitle: "Team and channels",
       welcomeBody: "Define who owns each creator relationship and which WhatsApp or Outlook account they use, then keep creator protections and approval rules in one operational workspace.",
@@ -40,6 +72,10 @@ export const TUTORIAL_NEW_KEYS_EN = {
       scopesBody: "Start with the account model or choose an enabled shop. Each scope reports whether a trained model is ready, falling back, unavailable, or still missing data.",
       analysisTitle: "Compare model and human decisions",
       analysisBody: "Read same-budget expected-sales lift together with probability, uncertainty range, and data-foundation signals. Treat unavailable or weak evidence as a reason to wait, not as proof of improvement.",
+    },
+    productKnowledge: {
+      createTitle: "Create product knowledge",
+      createBody: "Start a reusable knowledge record here. Creating it only needs a name; instructions, Q&A, creative cases, and product bindings are managed after creation.",
     },
     ecommerceCustomerService: {
       conversationsWelcomeTitle: "Conversation inbox",
@@ -188,6 +224,38 @@ export const TUTORIAL_CATCHUP_EN = {
 
 export const TUTORIAL_CATCHUP_ZH = {
   tutorial: {
+    ecommerceAffiliateAttention: {
+      welcomeTitle: "Agent 工作队列",
+      welcomeBody: "集中处理需要人工决策的达人联盟操作，也可在同一队列中复核已经完成的工作。",
+      controlsTitle: "店铺范围与刷新",
+      controlsBody: "可选择一家已启用达人联盟的店铺，或保留账号全局视图；刷新后会加载最新的 Agent 提案。",
+      scopeTitle: "待处理与已完成工作",
+      scopeBody: "开启开关时只显示仍需决策的工作；关闭后可审计已批准、已拒绝或要求修改的记录。",
+      filtersTitle: "聚焦当前队列",
+      filtersBody: "可按 BD 和操作类型筛选，也可搜索达人、店铺、商品及提案上下文；已完成模式还会显示状态筛选。",
+      queueTitle: "审核 Agent 工作",
+      queueBody: "时间线会保留建议、证据、消息草稿和修改历史；批准、拒绝或要求修改前，可先打开完整达人关系上下文。",
+    },
+    ecommerceAffiliateCreators: {
+      welcomeTitle: "达人",
+      welcomeBody: "通过达人名册查看跨店铺关系健康、当前合作、表现信号及下一步工作。",
+      controlsTitle: "店铺范围与数据状态",
+      controlsBody: "选择店铺并刷新达人数据；名册上方的同步提示会说明当前数据和历史数据是否已经就绪。",
+      filtersTitle: "找到目标达人",
+      filtersBody: "可按达人标签筛选、搜索身份信息，或仅显示当前需要处理的达人关系。",
+      resultsTitle: "达人关系卡片",
+      resultsBody: "查看合作店铺、标签、进行中的样品与合作、表现及待处理工作；打开卡片可进入完整关系工作区。",
+    },
+    ecommerceAffiliateHistory: {
+      welcomeTitle: "合作历史",
+      welcomeBody: "查看跨店铺的公开合作和定向合作，包括生命周期、达人、商品、佣金及平台标识。",
+      controlsTitle: "合作操作",
+      controlsBody: "可选择店铺、配置公开合作设置、新建合作，或刷新平台上的最新状态。",
+      filtersTitle: "筛选合作记录",
+      filtersBody: "可按生命周期状态、合作类型，或达人、商品、店铺及平台标识筛选历史记录。",
+      resultsTitle: "合作记录",
+      resultsBody: "每张卡片汇总合作生命周期与商业范围；打开后可查看达人、商品、样品、设置及支持的管理操作。",
+    },
     ecommerceAffiliateTeam: {
       welcomeTitle: "团队与渠道",
       welcomeBody: "统一管理达人关系负责人及其 WhatsApp、Outlook 发送账号，并维护达人保护范围和审批规则。",
@@ -221,6 +289,10 @@ export const TUTORIAL_CATCHUP_ZH = {
       scopesBody: "可先查看账号模型，或选择已启用的店铺；每个范围都会显示模型已就绪、回退、不可用或仍缺少数据。",
       analysisTitle: "比较模型与人工决策",
       analysisBody: "结合相同预算下的预期销量提升、胜出概率、不确定区间和数据基础解读结果；证据不足时应等待，不应视为模型有效。",
+    },
+    productKnowledge: {
+      createTitle: "创建商品知识",
+      createBody: "从这里新建可复用的知识记录；创建时只需填写名称，使用说明、问答、创意案例和商品绑定会在创建后管理。",
     },
     ecommerceCustomerService: {
       conversationsWelcomeTitle: "会话收件箱",
