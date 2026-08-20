@@ -24,10 +24,12 @@ function readPingTimeout(source: string): number | null {
 describe("vendor patch 0034: Feishu websocket liveness timeout", () => {
   const patch = readFileSync(PATCH_FILE, "utf-8");
 
-  it("still has an upstream 3s watchdog to widen", () => {
-    // Guards the patch's reason for existing: if upstream ever raises or removes
-    // its own value, this fails and the patch should be re-evaluated or dropped.
-    expect(readPingTimeout(readFileSync(VENDOR_CLIENT, "utf-8"))).toBe(3);
+  it("keeps the patched vendor source aligned with the patch target", () => {
+    const patched = /^\+  pingTimeout: (\d+),$/m.exec(patch);
+    expect(patched).not.toBeNull();
+
+    expect(readPingTimeout(readFileSync(VENDOR_CLIENT, "utf-8"))).toBe(Number(patched?.[1]));
+    // Patch replay remains the fail-fast guard for an upstream baseline change.
     expect(patch).toContain("-  pingTimeout: 3,");
   });
 

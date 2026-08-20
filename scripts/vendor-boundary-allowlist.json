@@ -2,6 +2,16 @@
   "_comment": "Vendor boundary access control per ADR-030. 'sentinels' are permanent drift-detection tests that intentionally read vendor source. 'allowlist' is for temporary migration exceptions (should be empty when migration is complete).",
   "sentinels": [
     {
+      "file": "apps/desktop/src/generated/system-tool-catalog.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/tool-catalog.ts",
+      "reason": "Compatibility guard — fails vendor upgrades when Desktop's static system-tool catalog becomes stale"
+    },
+    {
+      "file": "apps/desktop/src/generated/system-tool-catalog.test.ts",
+      "vendorPath": "vendor/openclaw/src/agents/tools/automations-tool-name.ts",
+      "reason": "Compatibility guard — validates renamed vendor tool IDs such as cron to automations"
+    },
+    {
       "file": "packages/gateway/src/__tests__/exec-obfuscation-ask-off.test.ts",
       "vendorPath": "vendor/openclaw/src/infra/exec-obfuscation-detect.js",
       "reason": "Drift guard — validates obfuscation detection respects ask=off (vendor patch 0003)"

@@ -19,17 +19,33 @@ const SESSION_PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_PROFILE_CLEANUP_THRESHOLD = 100;
 // Scope gate: image generation is intentionally outside the customer-service agent's role.
 const CUSTOMER_SERVICE_DISABLED_TOOL_IDS = new Set(["IMAGE_GENERATE"]);
+const LEGACY_TOOL_ID_ALIASES = new Map([["CRON", "automations"]]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/** Case-insensitive tool ID matching. */
+/** Normalize renamed vendor tool IDs while preserving canonical casing. */
+export function normalizeToolId(toolId: string): string {
+  return LEGACY_TOOL_ID_ALIASES.get(toolId.toUpperCase()) ?? toolId;
+}
+
+function normalizeToolIds(toolIds: string[]): string[] {
+  const normalized = new Map<string, string>();
+  for (const toolId of toolIds) {
+    const canonical = normalizeToolId(toolId);
+    normalized.set(canonical.toUpperCase(), canonical);
+  }
+  return [...normalized.values()];
+}
+
+/** Case-insensitive tool ID matching with legacy rename compatibility. */
 export function toolIdMatch(a: string, b: string): boolean {
-  return a.toUpperCase() === b.toUpperCase();
+  return normalizeToolId(a).toUpperCase() === normalizeToolId(b).toUpperCase();
 }
 
 /** Check if a tool ID is in a set (case-insensitive). */
 function toolIdInSet(toolId: string, idSet: Set<string>): boolean {
-  return idSet.has(toolId) || idSet.has(toolId.toUpperCase());
+  const normalized = normalizeToolId(toolId);
+  return idSet.has(normalized) || idSet.has(normalized.toUpperCase());
 }
 
 function applyScopeToolExclusions(scopeType: ScopeType, toolIds: string[]): string[] {
@@ -172,7 +188,7 @@ export const ToolCapabilityModel = types
             name: s.name,
             userId: s.userId ?? "",
             // System surfaces: entitled tools from allowedToolIds + system tools always included
-            resolvedToolIds: [...systemToolIds, ...s.allowedToolIds],
+            resolvedToolIds: normalizeToolIds([...systemToolIds, ...s.allowedToolIds]),
           }),
         );
 
@@ -182,7 +198,7 @@ export const ToolCapabilityModel = types
           name: s.name,
           userId: s.userId ?? "",
           // User surfaces: strict — only what they selected
-          resolvedToolIds: [...s.allowedToolIds],
+          resolvedToolIds: normalizeToolIds([...s.allowedToolIds]),
         }));
 
         return [defaultSurface, ...systemSurfaces, ...userSurfaces];
@@ -209,7 +225,7 @@ export const ToolCapabilityModel = types
             name: p.name,
             userId: p.userId ?? "",
             surfaceId: p.surfaceId ?? "Default",
-            selectedToolIds: p.selectedToolIds,
+            selectedToolIds: normalizeToolIds(p.selectedToolIds),
           }),
         );
 
@@ -218,7 +234,7 @@ export const ToolCapabilityModel = types
           name: p.name,
           userId: p.userId ?? "",
           surfaceId: p.surfaceId ?? "Default",
-          selectedToolIds: [...p.selectedToolIds],
+          selectedToolIds: normalizeToolIds([...p.selectedToolIds]),
         }));
 
         return [...systemProfiles, ...userProfiles];
@@ -256,7 +272,9 @@ export const ToolCapabilityModel = types
         };
       }
 
-      const surfaceSet = new Set(surface.allowedToolIds.map((id: string) => id.toUpperCase()));
+      const surfaceSet = new Set(
+        surface.allowedToolIds.map((id: string) => normalizeToolId(id).toUpperCase()),
+      );
       const systemToolSet = new Set(self.systemToolIds);
 
       // System surfaces (userId empty): system tools always pass through

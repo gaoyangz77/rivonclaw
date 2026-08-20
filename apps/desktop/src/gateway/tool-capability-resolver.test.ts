@@ -168,6 +168,12 @@ function seedTestStore(): void {
         selectedToolIds: ["entitled_tool_1", "entitled_tool_2"],
         surfaceId: "cs-surface",
       },
+      {
+        id: "profile-legacy-cron",
+        name: "Legacy Cron",
+        selectedToolIds: ["cron"],
+        surfaceId: "Default",
+      },
     ],
   });
 
@@ -176,6 +182,7 @@ function seedTestStore(): void {
     { id: "write", source: "core" },
     { id: "exec", source: "core" },
     { id: "image", source: "core" },
+    { id: "automations", source: "core" },
     // This plugin is in OUR_PLUGIN_IDS, so it should be excluded from customExtensionToolIds
     { id: "ecom_send_message", source: "plugin", pluginId: "rivonclaw-cloud-tools" },
     // This plugin is NOT in OUR_PLUGIN_IDS, so it becomes a custom extension tool
@@ -223,6 +230,13 @@ describe("ToolCapabilityModel.getEffectiveToolsForScope", () => {
       "agent:main:panel-abc",
     );
     expect(result).toEqual(expect.arrayContaining(["read", "write", "exec", "custom_ext_tool"]));
+  });
+
+  it("maps persisted cron selections to the renamed automations tool", () => {
+    const result = rootStore.toolCapability.computeEffectiveTools("profile-legacy-cron");
+    expect(result.runProfileSelectedToolIds).toEqual(["automations"]);
+    expect(result.effectiveToolIds).toEqual(["automations"]);
+    expect(result.effectiveToolIds).not.toContain("cron");
   });
 
   it("trusted scope + RunProfile overrides default", () => {
