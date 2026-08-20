@@ -183,8 +183,40 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.plugins.entries).toEqual({
+        codex: { config: { codexDynamicToolsLoading: "direct" } },
         "memory-core": { config: { dreaming: { enabled: false } } },
         "my-plugin": { enabled: true },
+      });
+    });
+
+    it("keeps Codex dynamic tools directly callable", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          plugins: {
+            entries: {
+              codex: {
+                enabled: true,
+                config: {
+                  codexDynamicToolsLoading: "searchable",
+                  sessionCatalog: { enabled: false },
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.plugins.entries.codex).toEqual({
+        enabled: true,
+        config: {
+          codexDynamicToolsLoading: "direct",
+          sessionCatalog: { enabled: false },
+        },
       });
     });
 
@@ -495,6 +527,7 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.port).toBe(9999);
       expect(config.plugins.entries).toEqual({
+        codex: { config: { codexDynamicToolsLoading: "direct" } },
         "memory-core": { config: { dreaming: { enabled: false } } },
         p1: {},
       });
@@ -761,6 +794,7 @@ describe("config-writer", () => {
       expect(config.gateway.port).toBe(9999);
       expect(config.agents.defaults.model.primary).toBe("openai/gpt-4o");
       expect(config.plugins.entries).toEqual({
+        codex: { config: { codexDynamicToolsLoading: "direct" } },
         "memory-core": { config: { dreaming: { enabled: false } } },
         p1: {},
       });

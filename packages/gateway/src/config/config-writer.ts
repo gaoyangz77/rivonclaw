@@ -79,6 +79,18 @@ function applyBackgroundAgentDefaults(config: Record<string, unknown>): void {
   }
 }
 
+function applyCodexDynamicToolDefaults(config: Record<string, unknown>): void {
+  const plugins = ensureRecord(config, "plugins");
+  const entries = ensureRecord(plugins, "entries");
+  const codex = ensureRecord(entries, "codex");
+  const codexConfig = ensureRecord(codex, "config");
+
+  // RivonClaw's Codex model surface does not always expose tool_search. Keep
+  // authorized OpenClaw tools directly callable so deferred tools such as
+  // automations cannot silently disappear from a turn.
+  codexConfig.codexDynamicToolsLoading = "direct";
+}
+
 function collectAgentEntries(
   agents: Record<string, unknown>,
 ): Map<string, Record<string, unknown>> {
@@ -1304,6 +1316,12 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // Preserve explicit values so a future product control or manual config can
   // intentionally enable either feature without the config sync undoing it.
   applyBackgroundAgentDefaults(config);
+
+  // Use OpenClaw's supported compatibility mode for Codex dynamic tools.
+  // This is intentionally enforced rather than inherited from the upstream
+  // default because "searchable" requires a tool_search surface that is not
+  // present for every RivonClaw model/provider combination.
+  applyCodexDynamicToolDefaults(config);
 
   // Tools profile — RivonClaw is a desktop app with full agent capabilities.
   // OpenClaw v2026.3.2 defaults new installs to "messaging" (no file/exec tools).
