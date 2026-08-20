@@ -29,6 +29,11 @@ export const OPENCLAW_PLUGIN_MODEL_CATALOG = {
       contextWindow: 1048576,
     },
     {
+      id: "gemini-3.7-flash",
+      name: "Gemini 3.7 Flash",
+      contextWindow: 1048576,
+    },
+    {
       id: "gemini-3.5-flash-lite",
       name: "Gemini 3.5 Flash-Lite",
       contextWindow: 1048576,
@@ -76,6 +81,11 @@ export const OPENCLAW_PLUGIN_MODEL_CATALOG = {
       contextWindow: 1048576,
     },
     {
+      id: "gemini-3.7-flash",
+      name: "Gemini 3.7 Flash",
+      contextWindow: 1048576,
+    },
+    {
       id: "gemini-3.5-flash-lite",
       name: "Gemini 3.5 Flash-Lite",
       contextWindow: 1048576,
@@ -120,6 +130,11 @@ export const OPENCLAW_PLUGIN_MODEL_CATALOG = {
     {
       id: "gemini-3.6-flash",
       name: "Gemini 3.6 Flash",
+      contextWindow: 1048576,
+    },
+    {
+      id: "gemini-3.7-flash",
+      name: "Gemini 3.7 Flash",
       contextWindow: 1048576,
     },
     {

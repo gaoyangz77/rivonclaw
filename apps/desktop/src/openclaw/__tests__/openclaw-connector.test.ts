@@ -494,6 +494,11 @@ describe("OpenClawConnector", () => {
 
       await connector.probeSidecarReady();
 
+      expect(mockRpcClientInstance.request).toHaveBeenCalledWith(
+        "chat.history",
+        { agentId: "main", sessionKey: "agent:main:probe", limit: 1 },
+        5000,
+      );
       expect(mockRuntimeStatusStore.setConnectorSidecarState).toHaveBeenCalledWith("probing");
       expect(mockRuntimeStatusStore.setConnectorSidecarState).toHaveBeenCalledWith("ready");
     });
