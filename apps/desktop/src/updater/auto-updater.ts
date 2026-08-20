@@ -244,11 +244,10 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     // electron-updater's 1000-per-request batching assumes: the CN CDN refuses
     // past ~20-40 with 416, and Cloudflare silently drops the header past
     // ~200-300 and returns the whole installer. Either way the differential
-    // download is abandoned and the full ~227 MB installer is fetched to save
-    // the ~16 MB a single-version bump actually changes. Single-range requests
-    // are universally supported, so this no longer depends on any CDN's
-    // undocumented multi-range policy. They are also the only path that
-    // reports download progress (see DifferentialDownloader).
+    // download is abandoned and the full installer is fetched. Single-range
+    // requests are universally supported, and the CN updater host is warmed by
+    // the release pipeline before clients are notified. This path is also the
+    // only one that reports download progress (see DifferentialDownloader).
     useMultipleRangeRequest: false,
     // Per-arch update channel: electron-updater appends "-mac" on macOS,
     // so channel "arm64" reads "arm64-mac.yml", "x64" reads "x64-mac.yml".

@@ -139,6 +139,7 @@ export const DEFAULTS = {
     web: "www.rivonclaw.com",
     webCn: "www.zhuazhuaai.cn",
     updater: "www.rivonclaw.com",
+    updaterCn: "www.tkjiang.cn",
     staging: "stg.rivonclaw.com",
     stagingCn: "stg.zhuazhuaai.cn",
     apiStaging: "api-stg.rivonclaw.com",
