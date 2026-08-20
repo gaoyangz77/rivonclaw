@@ -6,6 +6,7 @@ import { rootStore } from "../app/store/desktop-store.js";
 
 const log = createLogger("structured-one-shot-agent");
 const DEFAULT_TIMEOUT_MS = 120_000;
+const AGENT_WAIT_TRANSPORT_GRACE_MS = 5_000;
 const MAX_REPAIR_OUTPUT_CHARS = 60_000;
 const MAX_REPAIR_CONTEXT_CHARS = 40_000;
 
@@ -55,7 +56,15 @@ const defaultRuntime: StructuredOneShotAgentRuntime = {
     return openClawConnector.request<{ runId?: string }>("agent", input);
   },
   wait(runId, timeoutMs) {
-    return openClawConnector.request("agent.wait", { runId, timeoutMs });
+    // agent.wait is a long-polling RPC. Its transport deadline must outlive the
+    // server-side wait; otherwise the RPC client's 30s default rejects first,
+    // session cleanup aborts the still-running model request, and a healthy
+    // one-shot run is reported as a generation failure.
+    return openClawConnector.request(
+      "agent.wait",
+      { runId, timeoutMs },
+      timeoutMs + AGENT_WAIT_TRANSPORT_GRACE_MS,
+    );
   },
   history(sessionKey) {
     return openClawConnector.request("chat.history", {
