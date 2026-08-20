@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.104",
+    "date": "2026-08-19",
+    "en": [
+      "Upgrade the bundled OpenClaw runtime and clarify Affiliate campaign product conflicts"
+    ],
+    "zh": [
+      "升级内置 OpenClaw runtime，并优化达人 Campaign 商品冲突说明"
+    ]
+  },
+  {
     "version": "1.8.103",
     "date": "2026-08-19",
     "en": [
