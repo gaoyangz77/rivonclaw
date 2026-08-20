@@ -184,6 +184,19 @@ inside one ~120s ping cycle.
 Removal: upstream makes the Feishu websocket ping timeout configurable, or
 raises it above the range a gateway event-loop stall can cross.
 
+### 0035 - Bounded known-key session reads
+
+Makes the shared Gateway helpers used by dispatch, compaction, rewind,
+`sessions.describe`, and `sessions.get` read only the requested SQLite row and
+its canonical aliases. This prevents routine work for one session from
+materializing and cloning an entire large session catalog. A missing database
+still follows the original path so configured-agent database creation semantics
+remain unchanged.
+
+Removal: upstream makes both known-key helpers use exact indexed SQLite reads,
+or lands equivalent indexed session lookup support. OpenClaw commit `257b8e0`
+is related but remains unmerged and is much broader than this temporary patch.
+
 ## Dropped In bcaec0cf145
 
 - `0033`: OpenClaw now contains commit

@@ -37,6 +37,11 @@
       "reason": "Lifecycle guard — validates RivonClaw channel diagnostics follow OpenClaw's process-root active registry"
     },
     {
+      "file": "apps/desktop/src/gateway/vendor-session-known-key-exact-read.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/src/gateway/server-methods/sessions-shared.ts",
+      "reason": "Performance guard — validates known-key Gateway session reads stay bounded to exact SQLite rows (vendor patch 0035)"
+    },
+    {
       "file": "apps/desktop/src/gateway/vendor-pairing-wildcard-migration.sentinel.test.ts",
       "vendorPath": "vendor/openclaw/src/infra/state-migrations.channel-pairing.ts",
       "reason": "Migration guard — validates one invalid pairing account cannot abort all legacy pairing migrations"
