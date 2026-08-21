@@ -5,7 +5,6 @@ import {
   readExistingConfig,
   resolveGatewayRpcClientIdentityPath,
 } from "@rivonclaw/gateway";
-import { createLogger } from "@rivonclaw/logger";
 import type { Storage } from "@rivonclaw/storage";
 import type { SecretStore } from "@rivonclaw/secrets";
 import { existsSync } from "node:fs";
@@ -18,9 +17,6 @@ import { rootStore } from "./store/desktop-store.js";
 import type { BroadcastEvent } from "./panel-server.js";
 import { openClawConnector } from "../openclaw/index.js";
 import { ensurePackagedOpenClawRuntimeDepsStage } from "./openclaw-runtime-deps-stage.js";
-import { createFeishuEscalationResponseProcessor } from "../cs-bridge/feishu-escalation-response.js";
-
-const log = createLogger("gateway-runtime");
 
 export interface SetupGatewayDeps {
   storage: Storage;
@@ -109,10 +105,6 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
   });
 
   // Create gateway event dispatcher — routes WS events to Panel SSE
-  const feishuCsResponseProcessor = createFeishuEscalationResponseProcessor(
-    () => storage.settings.get("locale") ?? locale,
-    storage.csEscalationResponseHistory,
-  );
   const dispatchGatewayEvent = createGatewayEventDispatcher({
     broadcastEvent,
     chatSessions: storage.chatSessions,
@@ -122,7 +114,6 @@ export async function setupGateway(deps: SetupGatewayDeps): Promise<GatewayRunti
     onSessionActivity: (sessionKey) => {
       rootStore.llmManager.trackSessionActivity(sessionKey);
     },
-    onCsEscalationResponse: (payload) => feishuCsResponseProcessor.handle(payload),
   });
   const handleGatewayEvent: GatewayEventHandler = (evt) => {
     // CS bridge still needs the raw gateway stream for per-turn forwarding.

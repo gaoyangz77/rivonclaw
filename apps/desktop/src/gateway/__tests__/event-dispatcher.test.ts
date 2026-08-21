@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createGatewayEventDispatcher, type GatewayEventDispatcherDeps } from "../event-dispatcher.js";
+import {
+  createGatewayEventDispatcher,
+  type GatewayEventDispatcherDeps,
+} from "../event-dispatcher.js";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
@@ -18,12 +21,10 @@ function createDeps() {
       upsert: vi.fn(),
     },
     onRecipientSeen: vi.fn().mockReturnValue({ inserted: true, membershipChanged: false }),
-    onCsEscalationResponse: vi.fn(),
   } as unknown as GatewayEventDispatcherDeps & {
     broadcastEvent: ReturnType<typeof vi.fn>;
     chatSessions: { getByKey: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn> };
     onRecipientSeen: ReturnType<typeof vi.fn>;
-    onCsEscalationResponse: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -40,28 +41,6 @@ describe("createGatewayEventDispatcher", () => {
   beforeEach(() => {
     deps = createDeps();
     dispatch = createGatewayEventDispatcher(deps);
-  });
-
-  describe("plugin.rivonclaw.cs-escalation-response", () => {
-    it("routes the typed payload to the direct CS response processor", () => {
-      const payload = {
-        schemaVersion: 1,
-        callbackId: "callback-1",
-        accountId: "default",
-        operatorOpenId: "ou_operator",
-        chatId: "oc_chat",
-        messageId: "om_card",
-        escalationId: "M1DG8V",
-        decision: "Approve the full refund",
-        resolved: true,
-        submittedAt: 123,
-      };
-
-      dispatch(makeEvent("plugin.rivonclaw.cs-escalation-response", payload));
-
-      expect(deps.onCsEscalationResponse).toHaveBeenCalledWith(payload);
-      expect(deps.broadcastEvent).not.toHaveBeenCalled();
-    });
   });
 
   // ── mobile.session-reset ────────────────────────────────────────────────
@@ -110,29 +89,35 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("does NOT push service session mirrors to Webchat SSE", () => {
-      dispatch(makeEvent("plugin.rivonclaw.chat-mirror", {
-        runId: "run-cs",
-        sessionKey: "agent:main:cs:tiktok:conv-1",
-        stream: "assistant",
-        data: { text: "internal cs run" },
-      }));
-      dispatch(makeEvent("plugin.rivonclaw.chat-mirror", {
-        runId: "run-affiliate",
-        sessionKey: "agent:affiliate:affiliate:tiktok:conv-2",
-        stream: "assistant",
-        data: { text: "internal affiliate run" },
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.chat-mirror", {
+          runId: "run-cs",
+          sessionKey: "agent:main:cs:tiktok:conv-1",
+          stream: "assistant",
+          data: { text: "internal cs run" },
+        }),
+      );
+      dispatch(
+        makeEvent("plugin.rivonclaw.chat-mirror", {
+          runId: "run-affiliate",
+          sessionKey: "agent:affiliate:affiliate:tiktok:conv-2",
+          stream: "assistant",
+          data: { text: "internal affiliate run" },
+        }),
+      );
 
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does NOT push Telegram debug support mirrors to Webchat SSE", () => {
-      dispatch(makeEvent("plugin.rivonclaw.chat-mirror", {
-        runId: "run-support",
-        sessionKey: "agent:main:telegram:rivonclaw-support:direct:5453468009",
-        stream: "assistant",
-        data: { text: "debug internals" },
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.chat-mirror", {
+          runId: "run-support",
+          sessionKey: "agent:main:telegram:rivonclaw-support:direct:5453468009",
+          stream: "assistant",
+          data: { text: "debug internals" },
+        }),
+      );
 
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
@@ -144,12 +129,14 @@ describe("createGatewayEventDispatcher", () => {
     it("pushes SSE inbound with runId, sessionKey, channel, message, timestamp", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
-        sessionKey: "sk-abc",
-        message: "Hi there",
-        timestamp: 1700000000,
-        channel: "whatsapp",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.channel-inbound", {
+          sessionKey: "sk-abc",
+          message: "Hi there",
+          timestamp: 1700000000,
+          channel: "whatsapp",
+        }),
+      );
 
       expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", {
         runId: "test-uuid-1234",
@@ -163,11 +150,13 @@ describe("createGatewayEventDispatcher", () => {
     it("auto-unarchives session when archivedAt is set", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: 1699999999 });
 
-      dispatch(makeEvent("rivonclaw.channel-inbound", {
-        sessionKey: "sk-archived",
-        message: "Wake up",
-        channel: "telegram",
-      }));
+      dispatch(
+        makeEvent("rivonclaw.channel-inbound", {
+          sessionKey: "sk-archived",
+          message: "Wake up",
+          channel: "telegram",
+        }),
+      );
 
       expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-archived", { archivedAt: null });
       expect(deps.broadcastEvent).toHaveBeenCalled();
@@ -176,27 +165,34 @@ describe("createGatewayEventDispatcher", () => {
     it("keeps legacy rivonclaw.channel-inbound compatible", () => {
       deps.chatSessions.getByKey.mockReturnValue(undefined);
 
-      dispatch(makeEvent("rivonclaw.channel-inbound", {
-        sessionKey: "sk-legacy",
-        message: "Legacy",
-        channel: "telegram",
-      }));
+      dispatch(
+        makeEvent("rivonclaw.channel-inbound", {
+          sessionKey: "sk-legacy",
+          message: "Legacy",
+          channel: "telegram",
+        }),
+      );
 
       expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-legacy", { archivedAt: null });
-      expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
-        sessionKey: "sk-legacy",
-        channel: "telegram",
-      }));
+      expect(deps.broadcastEvent).toHaveBeenCalledWith(
+        "inbound",
+        expect.objectContaining({
+          sessionKey: "sk-legacy",
+          channel: "telegram",
+        }),
+      );
     });
 
     it("does NOT write when session is already active", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
-        sessionKey: "sk-active",
-        message: "Hello",
-        channel: "web",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.channel-inbound", {
+          sessionKey: "sk-active",
+          message: "Hello",
+          channel: "web",
+        }),
+      );
 
       expect(deps.chatSessions.upsert).not.toHaveBeenCalled();
     });
@@ -204,30 +200,40 @@ describe("createGatewayEventDispatcher", () => {
     it("creates local chat session metadata when session is new", () => {
       deps.chatSessions.getByKey.mockReturnValue(undefined);
 
-      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
-        sessionKey: "sk-new",
-        message: "Hello",
-        channel: "telegram",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.channel-inbound", {
+          sessionKey: "sk-new",
+          message: "Hello",
+          channel: "telegram",
+        }),
+      );
 
       expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-new", { archivedAt: null });
-      expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
-        sessionKey: "sk-new",
-        channel: "telegram",
-      }));
+      expect(deps.broadcastEvent).toHaveBeenCalledWith(
+        "inbound",
+        expect.objectContaining({
+          sessionKey: "sk-new",
+          channel: "telegram",
+        }),
+      );
     });
 
     it("defaults channel to 'unknown' when not provided", () => {
       deps.chatSessions.getByKey.mockReturnValue(undefined);
 
-      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
-        sessionKey: "sk-1",
-        message: "test",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.channel-inbound", {
+          sessionKey: "sk-1",
+          message: "test",
+        }),
+      );
 
-      expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
-        channel: "unknown",
-      }));
+      expect(deps.broadcastEvent).toHaveBeenCalledWith(
+        "inbound",
+        expect.objectContaining({
+          channel: "unknown",
+        }),
+      );
       expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-1", { archivedAt: null });
     });
 
@@ -242,22 +248,26 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("does NOT push service session inbound messages to Webchat SSE", () => {
-      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
-        sessionKey: "agent:affiliate:affiliate:tiktok:conv-1",
-        message: "[Affiliate Backend Signal]",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.channel-inbound", {
+          sessionKey: "agent:affiliate:affiliate:tiktok:conv-1",
+          message: "[Affiliate Backend Signal]",
+        }),
+      );
 
       expect(deps.chatSessions.upsert).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
 
     it("does NOT create chat metadata for Telegram debug support inbound messages", () => {
-      dispatch(makeEvent("plugin.rivonclaw.channel-inbound", {
-        sessionKey: "agent:main:telegram:rivonclaw-support:direct:5453468009",
-        message: "debug question",
-        channel: "telegram",
-        accountId: "rivonclaw-support",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.channel-inbound", {
+          sessionKey: "agent:main:telegram:rivonclaw-support:direct:5453468009",
+          message: "debug question",
+          channel: "telegram",
+          accountId: "rivonclaw-support",
+        }),
+      );
 
       expect(deps.chatSessions.getByKey).not.toHaveBeenCalled();
       expect(deps.chatSessions.upsert).not.toHaveBeenCalled();
@@ -271,16 +281,18 @@ describe("createGatewayEventDispatcher", () => {
     it("pushes SSE with converted media URLs", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("mobile.inbound", {
-        sessionKey: "sk-mob",
-        message: "Photo",
-        timestamp: 1700000000,
-        channel: "mobile",
-        mediaPaths: [
-          "/home/user/.local/share/openclaw/media/images/photo.jpg",
-          "/var/data/openclaw/media/voice/msg.ogg",
-        ],
-      }));
+      dispatch(
+        makeEvent("mobile.inbound", {
+          sessionKey: "sk-mob",
+          message: "Photo",
+          timestamp: 1700000000,
+          channel: "mobile",
+          mediaPaths: [
+            "/home/user/.local/share/openclaw/media/images/photo.jpg",
+            "/var/data/openclaw/media/voice/msg.ogg",
+          ],
+        }),
+      );
 
       expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", {
         runId: "test-uuid-1234",
@@ -288,21 +300,20 @@ describe("createGatewayEventDispatcher", () => {
         channel: "mobile",
         message: "Photo",
         timestamp: 1700000000,
-        mediaUrls: [
-          "/api/media/images/photo.jpg",
-          "/api/media/voice/msg.ogg",
-        ],
+        mediaUrls: ["/api/media/images/photo.jpg", "/api/media/voice/msg.ogg"],
       });
     });
 
     it("omits mediaUrls when no media paths provided", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("mobile.inbound", {
-        sessionKey: "sk-mob",
-        message: "Text only",
-        timestamp: 1700000000,
-      }));
+      dispatch(
+        makeEvent("mobile.inbound", {
+          sessionKey: "sk-mob",
+          message: "Text only",
+          timestamp: 1700000000,
+        }),
+      );
 
       const call = deps.broadcastEvent.mock.calls[0]!;
       expect(call[1]).not.toHaveProperty("mediaUrls");
@@ -311,11 +322,13 @@ describe("createGatewayEventDispatcher", () => {
     it("omits mediaUrls when mediaPaths is empty array", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("mobile.inbound", {
-        sessionKey: "sk-mob",
-        message: "Nothing",
-        mediaPaths: [],
-      }));
+      dispatch(
+        makeEvent("mobile.inbound", {
+          sessionKey: "sk-mob",
+          message: "Nothing",
+          mediaPaths: [],
+        }),
+      );
 
       const call = deps.broadcastEvent.mock.calls[0]!;
       expect(call[1]).not.toHaveProperty("mediaUrls");
@@ -324,26 +337,35 @@ describe("createGatewayEventDispatcher", () => {
     it("auto-unarchives session when archivedAt is set", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: 1699999999 });
 
-      dispatch(makeEvent("mobile.inbound", {
-        sessionKey: "sk-archived-mob",
-        message: "Back",
-        channel: "mobile",
-      }));
+      dispatch(
+        makeEvent("mobile.inbound", {
+          sessionKey: "sk-archived-mob",
+          message: "Back",
+          channel: "mobile",
+        }),
+      );
 
-      expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-archived-mob", { archivedAt: null });
+      expect(deps.chatSessions.upsert).toHaveBeenCalledWith("sk-archived-mob", {
+        archivedAt: null,
+      });
     });
 
     it("defaults channel to 'mobile' when not provided", () => {
       deps.chatSessions.getByKey.mockReturnValue(undefined);
 
-      dispatch(makeEvent("mobile.inbound", {
-        sessionKey: "sk-mob",
-        message: "test",
-      }));
+      dispatch(
+        makeEvent("mobile.inbound", {
+          sessionKey: "sk-mob",
+          message: "test",
+        }),
+      );
 
-      expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
-        channel: "mobile",
-      }));
+      expect(deps.broadcastEvent).toHaveBeenCalledWith(
+        "inbound",
+        expect.objectContaining({
+          channel: "mobile",
+        }),
+      );
     });
 
     it("does NOT push SSE when sessionKey is missing", () => {
@@ -357,10 +379,12 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("does NOT push mobile service session inbound messages to Webchat SSE", () => {
-      dispatch(makeEvent("mobile.inbound", {
-        sessionKey: "agent:main:cs:tiktok:conv-1",
-        message: "internal",
-      }));
+      dispatch(
+        makeEvent("mobile.inbound", {
+          sessionKey: "agent:main:cs:tiktok:conv-1",
+          message: "internal",
+        }),
+      );
 
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
     });
@@ -368,18 +392,20 @@ describe("createGatewayEventDispatcher", () => {
     it("skips media paths that do not contain the marker segment", () => {
       deps.chatSessions.getByKey.mockReturnValue({ archivedAt: null });
 
-      dispatch(makeEvent("mobile.inbound", {
-        sessionKey: "sk-mob",
-        message: "Mixed",
-        mediaPaths: [
-          "/tmp/random/file.jpg",
-          "/home/user/.local/share/openclaw/media/img.png",
-        ],
-      }));
+      dispatch(
+        makeEvent("mobile.inbound", {
+          sessionKey: "sk-mob",
+          message: "Mixed",
+          mediaPaths: ["/tmp/random/file.jpg", "/home/user/.local/share/openclaw/media/img.png"],
+        }),
+      );
 
-      expect(deps.broadcastEvent).toHaveBeenCalledWith("inbound", expect.objectContaining({
-        mediaUrls: ["/api/media/img.png"],
-      }));
+      expect(deps.broadcastEvent).toHaveBeenCalledWith(
+        "inbound",
+        expect.objectContaining({
+          mediaUrls: ["/api/media/img.png"],
+        }),
+      );
     });
   });
 
@@ -389,11 +415,13 @@ describe("createGatewayEventDispatcher", () => {
     it("delegates a new recipient to the domain action and emits recipient-added SSE", () => {
       deps.onRecipientSeen.mockReturnValue({ inserted: true, membershipChanged: false });
 
-      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
-        channelId: "openclaw-weixin",
-        accountId: "acct-1",
-        recipientId: "wxid_abc",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.recipient-seen", {
+          channelId: "openclaw-weixin",
+          accountId: "acct-1",
+          recipientId: "wxid_abc",
+        }),
+      );
 
       expect(deps.onRecipientSeen).toHaveBeenCalledWith({
         channelId: "openclaw-weixin",
@@ -410,10 +438,12 @@ describe("createGatewayEventDispatcher", () => {
     it("does NOT emit SSE when the recipient already exists and membership did not change", () => {
       deps.onRecipientSeen.mockReturnValue({ inserted: false, membershipChanged: false });
 
-      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
-        channelId: "openclaw-weixin",
-        recipientId: "wxid_abc",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.recipient-seen", {
+          channelId: "openclaw-weixin",
+          recipientId: "wxid_abc",
+        }),
+      );
 
       expect(deps.onRecipientSeen).toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
@@ -422,11 +452,13 @@ describe("createGatewayEventDispatcher", () => {
     it("emits SSE when account-scoped membership is newly persisted", () => {
       deps.onRecipientSeen.mockReturnValue({ inserted: false, membershipChanged: true });
 
-      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
-        channelId: "openclaw-weixin",
-        accountId: "acct-2",
-        recipientId: "wxid_abc",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.recipient-seen", {
+          channelId: "openclaw-weixin",
+          accountId: "acct-2",
+          recipientId: "wxid_abc",
+        }),
+      );
 
       expect(deps.broadcastEvent).toHaveBeenCalledWith("recipient-added", {
         channelId: "openclaw-weixin",
@@ -436,10 +468,12 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("passes non-WeChat recipient events to the domain action", () => {
-      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
-        channelId: "telegram",
-        recipientId: "123",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.recipient-seen", {
+          channelId: "telegram",
+          recipientId: "123",
+        }),
+      );
 
       expect(deps.onRecipientSeen).toHaveBeenCalledWith({
         channelId: "telegram",
@@ -449,11 +483,13 @@ describe("createGatewayEventDispatcher", () => {
     });
 
     it("does NOT persist recipients seen through the Telegram debug support account", () => {
-      dispatch(makeEvent("plugin.rivonclaw.recipient-seen", {
-        channelId: "telegram",
-        accountId: "rivonclaw-support",
-        recipientId: "5453468009",
-      }));
+      dispatch(
+        makeEvent("plugin.rivonclaw.recipient-seen", {
+          channelId: "telegram",
+          accountId: "rivonclaw-support",
+          recipientId: "5453468009",
+        }),
+      );
 
       expect(deps.onRecipientSeen).not.toHaveBeenCalled();
       expect(deps.broadcastEvent).not.toHaveBeenCalled();
@@ -462,11 +498,13 @@ describe("createGatewayEventDispatcher", () => {
     it("accepts the legacy non-plugin event name", () => {
       deps.onRecipientSeen.mockReturnValue({ inserted: true, membershipChanged: false });
 
-      dispatch(makeEvent("rivonclaw.recipient-seen", {
-        channelId: "openclaw-weixin",
-        accountId: "acct-legacy",
-        recipientId: "wxid_legacy",
-      }));
+      dispatch(
+        makeEvent("rivonclaw.recipient-seen", {
+          channelId: "openclaw-weixin",
+          accountId: "acct-legacy",
+          recipientId: "wxid_legacy",
+        }),
+      );
 
       expect(deps.onRecipientSeen).toHaveBeenCalledWith({
         channelId: "openclaw-weixin",

@@ -2,20 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import eventBridgePlugin, {
   createRunSessionTracker,
-  parseCsEscalationResponseInteraction,
   shouldMirrorExternalSession,
 } from "./index.js";
-
-type InteractiveRegistration = {
-  channel: string;
-  namespace: string;
-  handler: (context: unknown) => unknown | Promise<unknown>;
-};
 
 const gatewayStopHandlers: Array<() => void> = [];
 
 function activateEventBridge() {
-  let interactive: InteractiveRegistration | undefined;
   let initGateway: ((args: unknown) => void) | undefined;
   let agentEventHandler: ((event: unknown) => void) | undefined;
   const registeredHooks: string[] = [];
@@ -33,9 +25,7 @@ function activateEventBridge() {
     registerGatewayMethod: vi.fn((name: string, handler: (args: unknown) => void) => {
       if (name === "event_bridge_init") initGateway = handler;
     }),
-    registerInteractiveHandler: vi.fn((registration: InteractiveRegistration) => {
-      interactive = registration;
-    }),
+    registerInteractiveHandler: vi.fn(),
     runtime: {
       events: {
         onAgentEvent: vi.fn((handler: (event: unknown) => void) => {
@@ -47,7 +37,7 @@ function activateEventBridge() {
   };
   eventBridgePlugin.activate(api as never);
   return {
-    interactive: () => interactive,
+    registerInteractiveHandler: api.registerInteractiveHandler,
     logger: api.logger,
     registeredHooks,
     captureBroadcast: (broadcast: (event: string, payload: unknown) => void) =>
@@ -69,6 +59,11 @@ describe("OpenClaw lifecycle compatibility", () => {
 
     expect(activated.registeredHooks).toContain("before_agent_run");
     expect(activated.registeredHooks).not.toContain("before_agent_start");
+  });
+
+  it("does not register a Feishu business callback handler", () => {
+    const activated = activateEventBridge();
+    expect(activated.registerInteractiveHandler).not.toHaveBeenCalled();
   });
 });
 
@@ -178,144 +173,5 @@ describe("agent event mirroring", () => {
       "plugin.rivonclaw.chat-mirror",
       expect.objectContaining({ runId: "external-run", sessionKey }),
     );
-  });
-});
-
-describe("Feishu CS escalation form interactions", () => {
-  const baseContext = {
-    channel: "feishu",
-    accountId: "main",
-    callbackId: "callback-1",
-    conversationId: "oc_chat",
-    messageId: "om_card",
-    senderId: "ou_operator",
-    interaction: {
-      payload: "respond",
-      value: {
-        escalationId: "M1DG8V",
-        chatType: "group",
-        processingText: "Submitting now",
-        failureText: "Please retry",
-      },
-      formValue: { decision: "Issue a refund", resolution: "resolved" },
-    },
-  };
-
-  it("parses resolved and unresolved submissions without retaining raw callback data", () => {
-    expect(parseCsEscalationResponseInteraction(baseContext, 123)).toEqual({
-      schemaVersion: 1,
-      callbackId: "callback-1",
-      accountId: "main",
-      operatorOpenId: "ou_operator",
-      chatId: "oc_chat",
-      messageId: "om_card",
-      escalationId: "M1DG8V",
-      decision: "Issue a refund",
-      resolved: true,
-      chatType: "group",
-      submittedAt: 123,
-    });
-    expect(
-      parseCsEscalationResponseInteraction(
-        {
-          ...baseContext,
-          interaction: {
-            ...baseContext.interaction,
-            formValue: { decision: "Need more information", resolution: "unresolved" },
-          },
-        },
-        456,
-      )?.resolved,
-    ).toBe(false);
-
-    expect(
-      parseCsEscalationResponseInteraction(
-        {
-          ...baseContext,
-          interaction: {
-            ...baseContext.interaction,
-            payload: "respond:chat_type=p2p:0B67JE",
-            value: {
-              action: "rivonclaw.cs:respond:chat_type=p2p:0B67JE",
-              chatType: "p2p",
-            },
-          },
-        },
-        789,
-      ),
-    ).toEqual(
-      expect.objectContaining({ escalationId: "0B67JE", chatType: "p2p", submittedAt: 789 }),
-    );
-  });
-
-  it("registers the namespace and broadcasts one typed event", async () => {
-    const broadcast = vi.fn();
-    const activated = activateEventBridge();
-    activated.captureBroadcast(broadcast);
-    const registration = activated.interactive();
-
-    expect(registration).toMatchObject({ channel: "feishu", namespace: "rivonclaw.cs" });
-    const result = await registration?.handler(baseContext);
-
-    expect(result).toEqual({
-      handled: true,
-      response: { toast: { type: "info", content: "Submitting now" } },
-    });
-    expect(broadcast).toHaveBeenCalledTimes(1);
-    expect(broadcast).toHaveBeenCalledWith(
-      "plugin.rivonclaw.cs-escalation-response",
-      expect.objectContaining({
-        escalationId: "M1DG8V",
-        decision: "Issue a refund",
-        resolved: true,
-      }),
-    );
-  });
-
-  it("fails closed when the broadcast bridge is unavailable", async () => {
-    const activated = activateEventBridge();
-    const result = await activated.interactive()?.handler(baseContext);
-
-    expect(result).toEqual({
-      handled: true,
-      response: { toast: { type: "error", content: "Please retry" } },
-    });
-  });
-
-  it.each([
-    [
-      "missing escalation",
-      { ...baseContext, interaction: { ...baseContext.interaction, value: {} } },
-    ],
-    [
-      "empty decision",
-      {
-        ...baseContext,
-        interaction: {
-          ...baseContext.interaction,
-          formValue: { decision: "", resolution: "resolved" },
-        },
-      },
-    ],
-    [
-      "unknown resolution",
-      {
-        ...baseContext,
-        interaction: {
-          ...baseContext.interaction,
-          formValue: { decision: "ok", resolution: "maybe" },
-        },
-      },
-    ],
-    ["missing message", { ...baseContext, messageId: undefined }],
-  ])("rejects malformed callbacks: %s", async (_label, context) => {
-    const broadcast = vi.fn();
-    const activated = activateEventBridge();
-    activated.captureBroadcast(broadcast);
-
-    const result = await activated.interactive()?.handler(context);
-
-    expect(result).toEqual(expect.objectContaining({ handled: true }));
-    expect(broadcast).not.toHaveBeenCalled();
   });
 });

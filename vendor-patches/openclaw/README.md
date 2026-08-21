@@ -126,15 +126,15 @@ existing behavior.
 Removal: upstream retries quoted-message reads, surfaces diagnostic failures,
 and preserves an explicit unavailable-quote marker in agent context.
 
-### 0028 - Feishu business form cards
+### 0028 - Trusted Feishu raw card sends
 
-Allows trusted Desktop Gateway clients to send raw Schema 2.0 cards and routes
-namespaced form callbacks through OpenClaw's interactive-handler registry. Form
-values and callback context are preserved, policy checks fail closed, and
-claimed business callbacks never become synthetic agent messages.
+Allows trusted Desktop Gateway clients with `operator.admin` scope to send a
+structured Schema 2.0 card through `params.card` without rewriting its payload.
+Card interaction callbacks go directly to the Backend and are intentionally not
+handled by OpenClaw or the event bridge.
 
-Removal: upstream bundled Feishu supports trusted raw form-card sends and
-synchronous, policy-aware plugin interactive dispatch with complete form data.
+Removal: upstream bundled Feishu officially accepts `operator.admin`-scoped
+Schema 2.0 `params.card` sends without rewriting the payload.
 
 ### 0029 - Compaction-failure lifecycle reset
 

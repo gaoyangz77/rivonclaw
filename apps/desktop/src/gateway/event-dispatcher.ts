@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { GatewayEventFrame } from "@rivonclaw/gateway";
-import type { CsEscalationResponseGatewayPayload } from "../cs-bridge/feishu-escalation-response.js";
 
 const TELEGRAM_CHANNEL_ID = "telegram";
 const RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID = "rivonclaw-support";
@@ -18,7 +17,6 @@ export interface GatewayEventDispatcherDeps {
     membershipChanged: boolean;
   };
   onSessionActivity?: (sessionKey: string) => void;
-  onCsEscalationResponse?: (payload: CsEscalationResponseGatewayPayload) => void | Promise<void>;
 }
 
 export type GatewayEventHandler = (evt: GatewayEventFrame) => void;
@@ -31,7 +29,11 @@ function isInternalServiceSessionKey(sessionKey?: string): boolean {
   );
 }
 
-function isInternalTelegramDebugAccount(input: { channelId?: string; channel?: string; accountId?: string }): boolean {
+function isInternalTelegramDebugAccount(input: {
+  channelId?: string;
+  channel?: string;
+  accountId?: string;
+}): boolean {
   const channel = input.channelId ?? input.channel;
   return channel === TELEGRAM_CHANNEL_ID && input.accountId === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID;
 }
@@ -40,18 +42,12 @@ function isInternalTelegramDebugAccount(input: { channelId?: string; channel?: s
  * Create a handler that routes Gateway WebSocket events to Panel SSE.
  * Keeps main.ts clean by centralizing event dispatch logic.
  */
-export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): GatewayEventHandler {
-  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity, onCsEscalationResponse } = deps;
+export function createGatewayEventDispatcher(
+  deps: GatewayEventDispatcherDeps,
+): GatewayEventHandler {
+  const { broadcastEvent, chatSessions, onRecipientSeen, onSessionActivity } = deps;
 
   return (evt: GatewayEventFrame): void => {
-    if (evt.event === "plugin.rivonclaw.cs-escalation-response") {
-      const payload = evt.payload as CsEscalationResponseGatewayPayload;
-      void Promise.resolve(onCsEscalationResponse?.(payload)).catch(() => {
-        // The processor owns detailed diagnostics and employee-facing fallback.
-      });
-      return;
-    }
-
     if (evt.event === "mobile.session-reset") {
       const payload = evt.payload as { sessionKey?: string } | undefined;
       if (payload?.sessionKey) {
@@ -59,14 +55,11 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
       }
     }
 
-    if (
-      evt.event === "plugin.rivonclaw.chat-mirror"
-      || evt.event === "rivonclaw.chat-mirror"
-    ) {
+    if (evt.event === "plugin.rivonclaw.chat-mirror" || evt.event === "rivonclaw.chat-mirror") {
       const p = evt.payload as {
         runId: string;
         sessionKey: string;
-        stream: string;  // "assistant" | "lifecycle" | "tool"
+        stream: string; // "assistant" | "lifecycle" | "tool"
         data: unknown;
         seq?: number;
       };
@@ -76,20 +69,26 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
     }
 
     if (
-      evt.event === "plugin.rivonclaw.channel-inbound"
-      || evt.event === "rivonclaw.channel-inbound"
+      evt.event === "plugin.rivonclaw.channel-inbound" ||
+      evt.event === "rivonclaw.channel-inbound"
     ) {
-      const p = evt.payload as {
-        sessionKey?: string;
-        message?: string;
-        timestamp?: number;
-        channel?: string;
-        accountId?: string;
-      } | undefined;
-      if (isInternalServiceSessionKey(p?.sessionKey) || isInternalTelegramDebugAccount({
-        channel: p?.channel,
-        accountId: p?.accountId,
-      })) return;
+      const p = evt.payload as
+        | {
+            sessionKey?: string;
+            message?: string;
+            timestamp?: number;
+            channel?: string;
+            accountId?: string;
+          }
+        | undefined;
+      if (
+        isInternalServiceSessionKey(p?.sessionKey) ||
+        isInternalTelegramDebugAccount({
+          channel: p?.channel,
+          accountId: p?.accountId,
+        })
+      )
+        return;
       if (p?.sessionKey && p?.message) {
         onSessionActivity?.(p.sessionKey);
         const session = chatSessions.getByKey(p.sessionKey);
@@ -113,10 +112,12 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
     // event-bridge extension). Emits `recipient-added` SSE only for brand-new
     // rows so the Panel can live-refresh without redundant traffic.
     if (
-      evt.event === "plugin.rivonclaw.recipient-seen"
-      || evt.event === "rivonclaw.recipient-seen"
+      evt.event === "plugin.rivonclaw.recipient-seen" ||
+      evt.event === "rivonclaw.recipient-seen"
     ) {
-      const p = evt.payload as { channelId?: string; accountId?: string; recipientId?: string } | undefined;
+      const p = evt.payload as
+        | { channelId?: string; accountId?: string; recipientId?: string }
+        | undefined;
       if (!p?.channelId || !p.recipientId) return;
       if (isInternalTelegramDebugAccount(p)) return;
 
@@ -136,7 +137,15 @@ export function createGatewayEventDispatcher(deps: GatewayEventDispatcherDeps): 
     }
 
     if (evt.event === "mobile.inbound") {
-      const p = evt.payload as { sessionKey?: string; message?: string; timestamp?: number; channel?: string; mediaPaths?: string[] } | undefined;
+      const p = evt.payload as
+        | {
+            sessionKey?: string;
+            message?: string;
+            timestamp?: number;
+            channel?: string;
+            mediaPaths?: string[];
+          }
+        | undefined;
       if (isInternalServiceSessionKey(p?.sessionKey)) return;
       if (p?.sessionKey && p?.message) {
         onSessionActivity?.(p.sessionKey);

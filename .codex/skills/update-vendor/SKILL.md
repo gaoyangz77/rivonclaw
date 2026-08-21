@@ -269,9 +269,14 @@ source-level mocks:
 - Feishu quoted interactive cards expose their content to the Agent, and one
   small attachment plus one ZIP/XLSX below the configured limit is delivered
   exactly once with send failures visible to the Agent.
-- Feishu CS escalation: submitting a resolution updates the original card to
-  its resolved/green state, removes the form, and does not fall back to a new
-  textual receipt.
+- Feishu CS escalation cards submit directly to the Backend HTTP callback; the
+  event bridge and Gateway must not register or dispatch `rivonclaw.cs` card
+  interactions. Verify the Desktop automatically configures the callback URL
+  for both a newly scanned account and an existing account before sending a
+  card. With Desktop/Gateway stopped or CPU-stalled, submitting a resolution
+  must still update the original card to its resolved/green state, remove the
+  form, create exactly one durable escalation event, and never emit a separate
+  textual receipt. An unresolved response must keep the orange form available.
 - Weixin: plugin runtime loads, QR login RPC methods register, and one message
   round trip works.
 - Telegram and every other enabled production channel complete one basic round

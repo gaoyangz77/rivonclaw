@@ -47,6 +47,10 @@ import {
   serializeTelegramDebugOperatorUserIds,
 } from "./telegram-debug-support.js";
 import { getVendorDir } from "../gateway/vendor-dir-ref.js";
+import {
+  ensureFeishuCsCallbackConfigured,
+  getFeishuCsCallbackWarning,
+} from "./feishu-cs-callback-config.js";
 
 const log = createLogger("channel-manager");
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
@@ -138,6 +142,7 @@ export interface ChannelAccountSnapshotForMst {
   config: Record<string, unknown>;
   status: {
     hasContextToken: boolean | null;
+    warning?: string | null;
   };
   recipients: ChannelRecipientsSnapshot;
 }
@@ -181,12 +186,19 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
   return next;
 }
 
-function ensureChannelPluginConfig(config: Record<string, unknown>, channelId: string, enabled: boolean): void {
+function ensureChannelPluginConfig(
+  config: Record<string, unknown>,
+  channelId: string,
+  enabled: boolean,
+): void {
   const plugins = ensureRecord(config, "plugins");
   const entries = ensureRecord(plugins, "entries");
-  const existing = entries[channelId] !== null && typeof entries[channelId] === "object" && !Array.isArray(entries[channelId])
-    ? (entries[channelId] as Record<string, unknown>)
-    : {};
+  const existing =
+    entries[channelId] !== null &&
+    typeof entries[channelId] === "object" &&
+    !Array.isArray(entries[channelId])
+      ? (entries[channelId] as Record<string, unknown>)
+      : {};
   entries[channelId] = { ...existing, enabled };
 }
 
@@ -194,11 +206,12 @@ function ensureLegacyFeishuPluginConfig(config: Record<string, unknown>): void {
   ensureChannelPluginConfig(config, FEISHU_CHANNEL_ID, true);
   const plugins = ensureRecord(config, "plugins");
   const entries = ensureRecord(plugins, "entries");
-  const existingOfficial = entries[FEISHU_OFFICIAL_PLUGIN_ID] !== null &&
+  const existingOfficial =
+    entries[FEISHU_OFFICIAL_PLUGIN_ID] !== null &&
     typeof entries[FEISHU_OFFICIAL_PLUGIN_ID] === "object" &&
     !Array.isArray(entries[FEISHU_OFFICIAL_PLUGIN_ID])
-    ? (entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>)
-    : {};
+      ? (entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>)
+      : {};
   entries[FEISHU_OFFICIAL_PLUGIN_ID] = { ...existingOfficial, enabled: true };
   delete entries[FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID];
   const allow = ensureArrayRecord(plugins, "allow");
@@ -207,14 +220,19 @@ function ensureLegacyFeishuPluginConfig(config: Record<string, unknown>): void {
 }
 
 function ensureWildcardBinding(config: Record<string, unknown>, channelId: string): void {
-  const bindings = (Array.isArray(config.bindings) ? config.bindings : []) as Array<Record<string, unknown>>;
+  const bindings = (Array.isArray(config.bindings) ? config.bindings : []) as Array<
+    Record<string, unknown>
+  >;
   const channelLower = channelId.toLowerCase();
   const hasCovering = bindings.some((binding) => {
     const match = binding.match;
     if (match === null || typeof match !== "object" || Array.isArray(match)) return false;
     const record = match as Record<string, unknown>;
-    return String(record.channel ?? "").trim().toLowerCase() === channelLower &&
-      String(record.accountId ?? "").trim() === "*";
+    return (
+      String(record.channel ?? "")
+        .trim()
+        .toLowerCase() === channelLower && String(record.accountId ?? "").trim() === "*"
+    );
   });
   if (!hasCovering) {
     bindings.push({
@@ -241,7 +259,9 @@ async function readPairingRequests(channelId: string): Promise<PairingRequest[]>
 
 function requestMatchesAccountId(request: PairingRequest, accountId?: string): boolean {
   if (!accountId) return true;
-  return (request.meta?.accountId ?? "default").trim().toLowerCase() === accountId.trim().toLowerCase();
+  return (
+    (request.meta?.accountId ?? "default").trim().toLowerCase() === accountId.trim().toLowerCase()
+  );
 }
 
 function readPairingRequestsSync(channelId: string, accountId?: string): PairingRequest[] {
@@ -276,7 +296,9 @@ function readAllowFromListSyncForPath(filePath: string): string[] {
     const raw = readFileSync(filePath, "utf-8");
     if (!raw.trim()) return [];
     const parsed = JSON.parse(raw) as AllowFromStore;
-    return Array.isArray(parsed.allowFrom) ? parsed.allowFrom.filter((entry) => typeof entry === "string" && entry.trim()) : [];
+    return Array.isArray(parsed.allowFrom)
+      ? parsed.allowFrom.filter((entry) => typeof entry === "string" && entry.trim())
+      : [];
   } catch {
     return [];
   }
@@ -287,20 +309,25 @@ function readAccountAllowFromListSync(
   accountId: string | undefined,
   stateDir: string,
 ): string[] {
-  const sharedEntries = channelId === FEISHU_CHANNEL_ID
-    ? readVendorChannelAllowFrom(stateDir, channelId, accountId)
-    : [];
+  const sharedEntries =
+    channelId === FEISHU_CHANNEL_ID
+      ? readVendorChannelAllowFrom(stateDir, channelId, accountId)
+      : [];
   if (shouldIncludeLegacyAllowFromEntries(accountId)) {
-    return [...new Set([
-      ...sharedEntries,
-      ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, "default")),
-      ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId)),
-    ])];
+    return [
+      ...new Set([
+        ...sharedEntries,
+        ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, "default")),
+        ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId)),
+      ]),
+    ];
   }
-  return [...new Set([
-    ...sharedEntries,
-    ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, accountId)),
-  ])];
+  return [
+    ...new Set([
+      ...sharedEntries,
+      ...readAllowFromListSyncForPath(resolveAllowFromPathForChannel(channelId, accountId)),
+    ]),
+  ];
 }
 
 function collectConfigAllowFrom(config?: Record<string, unknown>): string[] {
@@ -336,25 +363,24 @@ function normalizeFeishuStreamingConfig(config: Record<string, unknown>): Record
     chunkMode,
     ...rest
   } = config;
-  const streaming = legacyStreaming && typeof legacyStreaming === "object" && !Array.isArray(legacyStreaming)
-    ? { ...legacyStreaming as Record<string, unknown> }
-    : {};
+  const streaming =
+    legacyStreaming && typeof legacyStreaming === "object" && !Array.isArray(legacyStreaming)
+      ? { ...(legacyStreaming as Record<string, unknown>) }
+      : {};
 
   // The Feishu plugin creates its CardKit preview in onReplyStart, before
   // dispatch has been admitted. A synchronous dispatch failure therefore
   // leaves an empty card behind. EasyClaw has no dispatcher-error hook at the
   // channel boundary, so wait for the final payload and send one static card.
   streaming.mode = "off";
-  if (
-    streaming.chunkMode === undefined &&
-    (chunkMode === "length" || chunkMode === "newline")
-  ) {
+  if (streaming.chunkMode === undefined && (chunkMode === "length" || chunkMode === "newline")) {
     streaming.chunkMode = chunkMode;
   }
 
-  const existingBlock = streaming.block && typeof streaming.block === "object" && !Array.isArray(streaming.block)
-    ? { ...streaming.block as Record<string, unknown> }
-    : {};
+  const existingBlock =
+    streaming.block && typeof streaming.block === "object" && !Array.isArray(streaming.block)
+      ? { ...(streaming.block as Record<string, unknown>) }
+      : {};
   if (existingBlock.enabled === undefined) {
     existingBlock.enabled = typeof blockStreaming === "boolean" ? blockStreaming : false;
   }
@@ -379,7 +405,10 @@ function normalizeFeishuStreamingConfig(config: Record<string, unknown>): Record
   return { ...rest, streaming };
 }
 
-function sanitizeChannelAccountConfig(channelId: string, config: Record<string, unknown>): Record<string, unknown> {
+function sanitizeChannelAccountConfig(
+  channelId: string,
+  config: Record<string, unknown>,
+): Record<string, unknown> {
   let next = config;
   if (channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId")) {
     const { userId: _providerOwnedUserId, ...rest } = config;
@@ -400,7 +429,9 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
       // the limit explicit so valid Feishu attachments are not dropped before
       // they reach the channel plugin.
       mediaMaxMb:
-        typeof next.mediaMaxMb === "number" && Number.isFinite(next.mediaMaxMb) && next.mediaMaxMb > 0
+        typeof next.mediaMaxMb === "number" &&
+        Number.isFinite(next.mediaMaxMb) &&
+        next.mediaMaxMb > 0
           ? next.mediaMaxMb
           : FEISHU_MEDIA_MAX_MB,
       httpTimeoutMs:
@@ -418,7 +449,10 @@ function sanitizeChannelAccountConfig(channelId: string, config: Record<string, 
   return next;
 }
 
-function channelAccountConfigHasWeixinUserId(channelId: string, config: Record<string, unknown>): boolean {
+function channelAccountConfigHasWeixinUserId(
+  channelId: string,
+  config: Record<string, unknown>,
+): boolean {
   return channelId === WEIXIN_CHANNEL_ID && Object.prototype.hasOwnProperty.call(config, "userId");
 }
 
@@ -429,23 +463,27 @@ function normalizeTelegramDebugApiRoot(apiRoot: string): string {
 function isWeixinBusinessHealthError(lastError: unknown): boolean {
   if (typeof lastError !== "string") return false;
   const normalized = lastError.toLowerCase();
-  return normalized.includes("wechat sendmessage business failure")
-    || normalized.includes("sendmessage result status=200 ret=-2")
-    || normalized.includes("ret=-2")
-    || normalized.includes("errcode=-14")
-    || normalized.includes("errcode -14")
-    || normalized.includes("context token expired")
-    || normalized.includes("session expired");
+  return (
+    normalized.includes("wechat sendmessage business failure") ||
+    normalized.includes("sendmessage result status=200 ret=-2") ||
+    normalized.includes("ret=-2") ||
+    normalized.includes("errcode=-14") ||
+    normalized.includes("errcode -14") ||
+    normalized.includes("context token expired") ||
+    normalized.includes("session expired")
+  );
 }
 
-function resolveWeixinBusinessHealthState(lastError: unknown): "reauth-required" | "send-unavailable" {
+function resolveWeixinBusinessHealthState(
+  lastError: unknown,
+): "reauth-required" | "send-unavailable" {
   if (typeof lastError !== "string") return "send-unavailable";
   const normalized = lastError.toLowerCase();
   if (
-    normalized.includes("session expired")
-    || normalized.includes("errcode=-14")
-    || normalized.includes("errcode -14")
-    || normalized.includes("context token expired")
+    normalized.includes("session expired") ||
+    normalized.includes("errcode=-14") ||
+    normalized.includes("errcode -14") ||
+    normalized.includes("context token expired")
   ) {
     return "reauth-required";
   }
@@ -459,7 +497,8 @@ function normalizeWeixinBusinessHealth(snapshot: ChannelsStatusSnapshot): void {
   for (const account of accounts) {
     if (!isWeixinBusinessHealthError(account.lastError)) continue;
     account.healthy = false;
-    account.healthState = account.healthState ?? resolveWeixinBusinessHealthState(account.lastError);
+    account.healthState =
+      account.healthState ?? resolveWeixinBusinessHealthState(account.lastError);
     if (account.healthState === "reauth-required") {
       account.running = false;
       account.connected = false;
@@ -467,7 +506,11 @@ function normalizeWeixinBusinessHealth(snapshot: ChannelsStatusSnapshot): void {
   }
 }
 
-function buildTelegramDebugAccountConfig(proxyToken: string, apiRoot: string, deviceId: string): Record<string, unknown> {
+function buildTelegramDebugAccountConfig(
+  proxyToken: string,
+  apiRoot: string,
+  deviceId: string,
+): Record<string, unknown> {
   const deviceApiRoot = `${normalizeTelegramDebugApiRoot(apiRoot)}/telegram-debug/devices/${encodeURIComponent(deviceId)}`;
   return {
     name: RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_NAME,
@@ -554,7 +597,8 @@ function deriveFeishuOfficialAccountId(appId: string): string {
   const suffix = `-${digest}`;
   const prefix = "feishu-";
   const maxBaseLength = FEISHU_ACCOUNT_ID_MAX_LENGTH - prefix.length - suffix.length;
-  const base = (sanitized || "bot").slice(0, Math.max(1, maxBaseLength)).replace(/-+$/, "") || "bot";
+  const base =
+    (sanitized || "bot").slice(0, Math.max(1, maxBaseLength)).replace(/-+$/, "") || "bot";
   return `${prefix}${base}${suffix}`;
 }
 
@@ -565,7 +609,9 @@ function readFeishuOfficialToolIds(pluginRoot: string): string[] {
       contracts?: { tools?: unknown };
     };
     return Array.isArray(manifest.contracts?.tools)
-      ? manifest.contracts.tools.filter((tool): tool is string => typeof tool === "string" && tool.trim().length > 0)
+      ? manifest.contracts.tools.filter(
+          (tool): tool is string => typeof tool === "string" && tool.trim().length > 0,
+        )
       : [];
   } catch (err) {
     log.warn("failed to read Feishu official plugin manifest tools:", err);
@@ -591,14 +637,16 @@ function ensureFeishuOfficialPluginConfig(config: Record<string, unknown>): void
   const entries = ensureRecord(plugins, "entries");
   entries.feishu = {
     ...(entries.feishu && typeof entries.feishu === "object" && !Array.isArray(entries.feishu)
-      ? entries.feishu as Record<string, unknown>
+      ? (entries.feishu as Record<string, unknown>)
       : {}),
     enabled: true,
   };
   delete entries[FEISHU_OFFICIAL_PLUGIN_PACKAGE_ID];
   entries[FEISHU_OFFICIAL_PLUGIN_ID] = {
-    ...(entries[FEISHU_OFFICIAL_PLUGIN_ID] && typeof entries[FEISHU_OFFICIAL_PLUGIN_ID] === "object" && !Array.isArray(entries[FEISHU_OFFICIAL_PLUGIN_ID])
-      ? entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>
+    ...(entries[FEISHU_OFFICIAL_PLUGIN_ID] &&
+    typeof entries[FEISHU_OFFICIAL_PLUGIN_ID] === "object" &&
+    !Array.isArray(entries[FEISHU_OFFICIAL_PLUGIN_ID])
+      ? (entries[FEISHU_OFFICIAL_PLUGIN_ID] as Record<string, unknown>)
       : {}),
     enabled: true,
   };
@@ -692,9 +740,8 @@ function resolveTelegramDefaultAccountId(
   const accountIds = Object.keys(accounts);
   if (accountIds.length === 0) return undefined;
 
-  const configuredDefault = typeof existingChannel.defaultAccount === "string"
-    ? existingChannel.defaultAccount.trim()
-    : "";
+  const configuredDefault =
+    typeof existingChannel.defaultAccount === "string" ? existingChannel.defaultAccount.trim() : "";
   if (
     configuredDefault &&
     configuredDefault !== RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID &&
@@ -724,12 +771,17 @@ function applyTelegramDefaultAccount(
   }
 }
 
-function isWeixinAlreadyConnectedQrResult(result: { connected?: boolean; message?: string }): boolean {
+function isWeixinAlreadyConnectedQrResult(result: {
+  connected?: boolean;
+  message?: string;
+}): boolean {
   if (result.connected) return false;
   const message = result.message ?? "";
-  return message.includes("已连接过此 OpenClaw") ||
+  return (
+    message.includes("已连接过此 OpenClaw") ||
     message.includes("无需重复连接") ||
-    /\balready\s+(connected|bound)\b/i.test(message);
+    /\balready\s+(connected|bound)\b/i.test(message)
+  );
 }
 
 function mergeProviderOwnedChannelConfig(
@@ -821,7 +873,11 @@ export const ChannelManagerModel = types
      * Build channel account configs for gateway config write-back.
      * Does NOT include mobile accounts (mobile plugin manages its own config).
      */
-    buildConfigAccounts(): Array<{ channelId: string; accountId: string; config: Record<string, unknown> }> {
+    buildConfigAccounts(): Array<{
+      channelId: string;
+      accountId: string;
+      config: Record<string, unknown>;
+    }> {
       const env = self._env;
       return self.root.channelAccounts
         .filter((a: any) => a.channelId !== "mobile")
@@ -878,10 +934,13 @@ export const ChannelManagerModel = types
         const accounts = (channelData as Record<string, unknown>).accounts;
         if (!accounts || typeof accounts !== "object") continue;
 
-        for (const [accountId, accountData] of Object.entries(accounts as Record<string, unknown>)) {
-          const configObj = typeof accountData === "object" && accountData !== null
-            ? (accountData as Record<string, unknown>)
-            : {};
+        for (const [accountId, accountData] of Object.entries(
+          accounts as Record<string, unknown>,
+        )) {
+          const configObj =
+            typeof accountData === "object" && accountData !== null
+              ? (accountData as Record<string, unknown>)
+              : {};
           const sqliteConfigObj = sanitizeChannelAccountConfig(channelId, configObj);
           const key = `${channelId}:${accountId}`;
           const sqliteRecord = sqliteMap.get(key);
@@ -938,12 +997,14 @@ export const ChannelManagerModel = types
     function writeChannelAccountsSnapshot(channelId: string): void {
       const { storage, configPath, stateDir } = getEnv();
       const config = readExistingConfig(configPath);
-      const channels = (config.channels && typeof config.channels === "object")
-        ? (config.channels as Record<string, unknown>)
-        : {};
-      const existingChannel = channels[channelId] && typeof channels[channelId] === "object"
-        ? (channels[channelId] as Record<string, unknown>)
-        : {};
+      const channels =
+        config.channels && typeof config.channels === "object"
+          ? (config.channels as Record<string, unknown>)
+          : {};
+      const existingChannel =
+        channels[channelId] && typeof channels[channelId] === "object"
+          ? (channels[channelId] as Record<string, unknown>)
+          : {};
       const accounts: Record<string, Record<string, unknown>> = {};
 
       for (const account of storage.channelAccounts.list(channelId)) {
@@ -977,16 +1038,26 @@ export const ChannelManagerModel = types
           ensureLegacyFeishuPluginConfig(config);
         }
       } else {
-        ensureChannelPluginConfig(config, channelId, Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID);
+        ensureChannelPluginConfig(
+          config,
+          channelId,
+          Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID,
+        );
       }
       if (Object.keys(accounts).some((accountId) => accountId.trim().toLowerCase() !== "default")) {
         ensureWildcardBinding(config, channelId);
       }
       writeDesktopOpenClawConfig(configPath, config, `channel account snapshot: ${channelId}`);
-      log.info(`Wrote channel account snapshot: ${channelId}/${Object.keys(accounts).length} account(s)`);
+      log.info(
+        `Wrote channel account snapshot: ${channelId}/${Object.keys(accounts).length} account(s)`,
+      );
     }
 
-    function removeAccountById(channelId: string, accountId: string, options?: { writeConfig?: boolean }): void {
+    function removeAccountById(
+      channelId: string,
+      accountId: string,
+      options?: { writeConfig?: boolean },
+    ): void {
       const { storage, stateDir } = getEnv();
 
       // Defensive canonicalization (see addAccount for rationale).
@@ -1001,7 +1072,9 @@ export const ChannelManagerModel = types
         const equivalentIds = resolveEquivalentWeixinAccountIds(accountId);
         for (const id of equivalentIds) {
           for (const suffix of [".json", ".sync.json", ".context-tokens.json"]) {
-            fs.rm(join(weixinStateDir, "accounts", `${id}${suffix}`), { force: true }).catch(() => {});
+            fs.rm(join(weixinStateDir, "accounts", `${id}${suffix}`), { force: true }).catch(
+              () => {},
+            );
           }
         }
         // Remove accountId from index
@@ -1012,7 +1085,9 @@ export const ChannelManagerModel = types
             const ids: string[] = JSON.parse(raw);
             const updated = ids.filter((id: string) => normalizeWeixinAccountId(id) !== accountId);
             await fs.writeFile(indexPath, JSON.stringify(updated, null, 2), "utf-8");
-          } catch { /* index file may not exist */ }
+          } catch {
+            /* index file may not exist */
+          }
         })();
       }
 
@@ -1022,9 +1097,10 @@ export const ChannelManagerModel = types
       }
 
       // Remove any account-scoped legacy allowFrom file to prevent orphaned recipients.
-      const allowFromAccountIds = channelId === WEIXIN_CHANNEL_ID
-        ? resolveEquivalentWeixinAccountIds(accountId)
-        : [accountId];
+      const allowFromAccountIds =
+        channelId === WEIXIN_CHANNEL_ID
+          ? resolveEquivalentWeixinAccountIds(accountId)
+          : [accountId];
       for (const allowFromAccountId of allowFromAccountIds) {
         const allowFromPath = resolveAllowFromPathForChannel(channelId, allowFromAccountId);
         fs.rm(allowFromPath, { force: true }).catch(() => {});
@@ -1093,7 +1169,10 @@ export const ChannelManagerModel = types
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams(params).toString(),
       });
-      const payload = await response.json().catch(() => ({})) as T & { error?: string; error_description?: string };
+      const payload = (await response.json().catch(() => ({}))) as T & {
+        error?: string;
+        error_description?: string;
+      };
       if (!response.ok && !payload.error) {
         throw new Error(`Feishu setup request failed with HTTP ${response.status}`);
       }
@@ -1107,11 +1186,14 @@ export const ChannelManagerModel = types
       openId?: string;
     }): Promise<ChannelAccountSnapshotForMst> {
       const { storage, stateDir } = getEnv();
-      const existingAccount = storage.channelAccounts.list(FEISHU_CHANNEL_ID).find((account) => (
-        typeof account.config === "object" &&
-        account.config !== null &&
-        (account.config as Record<string, unknown>).appId === params.appId
-      ));
+      const existingAccount = storage.channelAccounts
+        .list(FEISHU_CHANNEL_ID)
+        .find(
+          (account) =>
+            typeof account.config === "object" &&
+            account.config !== null &&
+            (account.config as Record<string, unknown>).appId === params.appId,
+        );
       const accountId = existingAccount?.accountId ?? deriveFeishuOfficialAccountId(params.appId);
       const shortAppId = params.appId.trim().slice(-6);
       const accountConfig: Record<string, unknown> = {
@@ -1140,15 +1222,27 @@ export const ChannelManagerModel = types
 
       if (params.openId) {
         const { configPath } = getEnv();
-        addVendorChannelAllowFromEntry(
-          stateDir,
-          FEISHU_CHANNEL_ID,
-          accountId,
-          params.openId,
-        );
+        addVendorChannelAllowFromEntry(stateDir, FEISHU_CHANNEL_ID, accountId, params.openId);
         storage.channelRecipients.ensureExists(FEISHU_CHANNEL_ID, params.openId, true);
         syncOwnerAllowFrom(storage, configPath);
         updateChannelAccountRecipients(FEISHU_CHANNEL_ID, accountId);
+      }
+
+      try {
+        await ensureFeishuCsCallbackConfigured(accountId);
+      } catch (error) {
+        log.warn(
+          `Feishu account ${accountId} was saved, but its CS callback is not configured yet: ${String(error)}`,
+        );
+      } finally {
+        const latest = storage.channelAccounts.get(FEISHU_CHANNEL_ID, accountId);
+        if (latest) {
+          (getRoot(self) as any).updateChannelAccountStatus(
+            FEISHU_CHANNEL_ID,
+            accountId,
+            buildChannelAccountSnapshot(latest).status,
+          );
+        }
       }
 
       return entry;
@@ -1175,7 +1269,9 @@ export const ChannelManagerModel = types
     function loadWeixinContextTokens(accountId: string): Map<string, string> {
       const { stateDir } = getEnv();
       const canonicalAccountId = normalizeWeixinAccountId(accountId);
-      const tokens = new Map(Object.entries(readWeixinContextTokensSync(stateDir, canonicalAccountId)));
+      const tokens = new Map(
+        Object.entries(readWeixinContextTokensSync(stateDir, canonicalAccountId)),
+      );
       self._weixinContextTokens.set(canonicalAccountId, tokens);
       return tokens;
     }
@@ -1191,7 +1287,10 @@ export const ChannelManagerModel = types
       return getWeixinContextTokens(accountId).has(trimmedRecipientId);
     }
 
-    function getLoadedWeixinContextToken(accountId: string, recipientId: string): string | undefined {
+    function getLoadedWeixinContextToken(
+      accountId: string,
+      recipientId: string,
+    ): string | undefined {
       const trimmedRecipientId = recipientId.trim();
       if (!trimmedRecipientId) return undefined;
       return getWeixinContextTokens(accountId).get(trimmedRecipientId);
@@ -1201,7 +1300,10 @@ export const ChannelManagerModel = types
       self._weixinContextTokens.delete(normalizeWeixinAccountId(accountId));
     }
 
-    function applyWeixinContextTokenSync(accountId: string, recipientId?: string): {
+    function applyWeixinContextTokenSync(
+      accountId: string,
+      recipientId?: string,
+    ): {
       hasRecipientToken: boolean;
     } {
       const canonicalAccountId = normalizeWeixinAccountId(accountId);
@@ -1210,14 +1312,20 @@ export const ChannelManagerModel = types
       updateChannelRecipientsForAccounts(WEIXIN_CHANNEL_ID, canonicalAccountId);
 
       const trimmedRecipientId = recipientId?.trim();
-      const hasRecipientToken = trimmedRecipientId ? tokens.has(trimmedRecipientId) : tokens.size > 0;
+      const hasRecipientToken = trimmedRecipientId
+        ? tokens.has(trimmedRecipientId)
+        : tokens.size > 0;
       if (trimmedRecipientId && hasRecipientToken) {
         clearPendingWeixinContextTokenSync(canonicalAccountId, trimmedRecipientId);
       }
       return { hasRecipientToken };
     }
 
-    function scheduleWeixinContextTokenSync(accountId: string, recipientId: string, attempt = 0): void {
+    function scheduleWeixinContextTokenSync(
+      accountId: string,
+      recipientId: string,
+      attempt = 0,
+    ): void {
       const trimmedRecipientId = recipientId.trim();
       if (!trimmedRecipientId) return;
       if (attempt >= WEIXIN_CONTEXT_TOKEN_RETRY_DELAYS_MS.length) return;
@@ -1234,12 +1342,19 @@ export const ChannelManagerModel = types
     }
 
     function buildChannelAccountSnapshot(account: ChannelAccount): ChannelAccountSnapshotForMst {
-      const canonicalAccountId = account.channelId === WEIXIN_CHANNEL_ID
-        ? normalizeWeixinAccountId(account.accountId)
-        : account.accountId;
+      const { storage } = getEnv();
+      const canonicalAccountId =
+        account.channelId === WEIXIN_CHANNEL_ID
+          ? normalizeWeixinAccountId(account.accountId)
+          : account.accountId;
       const status: ChannelAccountSnapshotForMst["status"] = {
         hasContextToken: null,
       };
+
+      if (account.channelId === FEISHU_CHANNEL_ID) {
+        const warning = getFeishuCsCallbackWarning(storage, account.config);
+        if (warning) status.warning = warning;
+      }
 
       if (account.channelId === WEIXIN_CHANNEL_ID) {
         status.hasContextToken = getWeixinContextTokens(canonicalAccountId).size > 0;
@@ -1251,15 +1366,24 @@ export const ChannelManagerModel = types
         name: account.name,
         config: sanitizeChannelAccountConfig(account.channelId, account.config),
         status,
-        recipients: buildChannelRecipientsSnapshot(account.channelId, canonicalAccountId, account.config),
+        recipients: buildChannelRecipientsSnapshot(
+          account.channelId,
+          canonicalAccountId,
+          account.config,
+        ),
       };
     }
 
     function refreshWeixinContextTokenStatus(accountId?: string): void {
       const { storage } = getEnv();
       const root = getRoot(self) as any;
-      const accounts = storage.channelAccounts.list(WEIXIN_CHANNEL_ID)
-        .filter((account) => !accountId || normalizeWeixinAccountId(account.accountId) === normalizeWeixinAccountId(accountId));
+      const accounts = storage.channelAccounts
+        .list(WEIXIN_CHANNEL_ID)
+        .filter(
+          (account) =>
+            !accountId ||
+            normalizeWeixinAccountId(account.accountId) === normalizeWeixinAccountId(accountId),
+        );
 
       for (const account of accounts) {
         const snapshot = buildChannelAccountSnapshot(account);
@@ -1277,9 +1401,7 @@ export const ChannelManagerModel = types
       accountConfig?: Record<string, unknown>,
     ): ChannelRecipientsSnapshot {
       const { storage, stateDir } = getEnv();
-      const entries = new Set<string>(
-        readAccountAllowFromListSync(channelId, accountId, stateDir),
-      );
+      const entries = new Set<string>(readAccountAllowFromListSync(channelId, accountId, stateDir));
       for (const entry of collectConfigAllowFrom(accountConfig)) {
         entries.add(entry);
       }
@@ -1291,7 +1413,10 @@ export const ChannelManagerModel = types
       }
 
       const meta = storage.channelRecipients.getRecipientMeta(channelId);
-      if (channelId !== WEIXIN_CHANNEL_ID && shouldIncludeChannelWideRecipientMeta(channelId, accountId)) {
+      if (
+        channelId !== WEIXIN_CHANNEL_ID &&
+        shouldIncludeChannelWideRecipientMeta(channelId, accountId)
+      ) {
         for (const id of Object.keys(meta)) {
           entries.add(id);
         }
@@ -1316,10 +1441,16 @@ export const ChannelManagerModel = types
       };
     }
 
-    function updateChannelAccountRecipients(channelId: string, accountId: string): ChannelRecipientsSnapshot {
+    function updateChannelAccountRecipients(
+      channelId: string,
+      accountId: string,
+    ): ChannelRecipientsSnapshot {
       const { storage } = getEnv();
-      const account = storage.channelAccounts.get?.(channelId, accountId)
-        ?? storage.channelAccounts.list(channelId).find((candidate) => candidate.accountId === accountId);
+      const account =
+        storage.channelAccounts.get?.(channelId, accountId) ??
+        storage.channelAccounts
+          .list(channelId)
+          .find((candidate) => candidate.accountId === accountId);
       const recipients = buildChannelRecipientsSnapshot(channelId, accountId, account?.config);
       (getRoot(self) as any).updateChannelAccountRecipients(channelId, accountId, recipients);
       return recipients;
@@ -1358,13 +1489,16 @@ export const ChannelManagerModel = types
             loadWeixinContextTokens(account.accountId);
           }
         }
-        if (allAccounts.some((account) => (
-          account.channelId === FEISHU_CHANNEL_ID &&
-          typeof account.config === "object" &&
-          account.config !== null &&
-          typeof (account.config as Record<string, unknown>).appId === "string" &&
-          typeof (account.config as Record<string, unknown>).appSecret === "string"
-        ))) {
+        if (
+          allAccounts.some(
+            (account) =>
+              account.channelId === FEISHU_CHANNEL_ID &&
+              typeof account.config === "object" &&
+              account.config !== null &&
+              typeof (account.config as Record<string, unknown>).appId === "string" &&
+              typeof (account.config as Record<string, unknown>).appSecret === "string",
+          )
+        ) {
           hydrateFeishuOfficialPluginConfigOnStartup(configPath);
         }
         (getRoot(self) as any).loadChannelAccounts(
@@ -1372,6 +1506,21 @@ export const ChannelManagerModel = types
         );
 
         self.initialized = true;
+        for (const account of allAccounts.filter(
+          (candidate) => candidate.channelId === FEISHU_CHANNEL_ID,
+        )) {
+          void ensureFeishuCsCallbackConfigured(account.accountId)
+            .catch(() => {})
+            .finally(() => {
+              const latest = storage.channelAccounts.get(FEISHU_CHANNEL_ID, account.accountId);
+              if (!latest) return;
+              (getRoot(self) as any).updateChannelAccountStatus(
+                FEISHU_CHANNEL_ID,
+                account.accountId,
+                buildChannelAccountSnapshot(latest).status,
+              );
+            });
+        }
         log.info(`Channel manager initialized with ${allAccounts.length} account(s)`);
       },
 
@@ -1384,7 +1533,9 @@ export const ChannelManagerModel = types
       },
 
       retryWeixinContextTokenSync(accountId: string, recipientId: string, attempt: number) {
-        self._weixinContextTokenSyncTimers.delete(weixinContextTokenSyncKey(accountId, recipientId));
+        self._weixinContextTokenSyncTimers.delete(
+          weixinContextTokenSyncKey(accountId, recipientId),
+        );
         const result = applyWeixinContextTokenSync(accountId, recipientId);
         if (!result.hasRecipientToken) {
           scheduleWeixinContextTokenSync(accountId, recipientId, attempt + 1);
@@ -1413,7 +1564,10 @@ export const ChannelManagerModel = types
         return hasLoadedWeixinContextToken(canonicalAccountId, recipientId);
       },
 
-      getWeixinContextTokenForRecipient(accountId: string, recipientId: string): string | undefined {
+      getWeixinContextTokenForRecipient(
+        accountId: string,
+        recipientId: string,
+      ): string | undefined {
         const canonicalAccountId = normalizeWeixinAccountId(accountId);
         return getLoadedWeixinContextToken(canonicalAccountId, recipientId);
       },
@@ -1457,14 +1611,13 @@ export const ChannelManagerModel = types
 
         if (params.channelId === FEISHU_CHANNEL_ID && accountId) {
           try {
-            membershipChanged = addVendorChannelAllowFromEntry(
-              stateDir,
-              params.channelId,
-              accountId,
-              recipientId,
-            ) || membershipChanged;
+            membershipChanged =
+              addVendorChannelAllowFromEntry(stateDir, params.channelId, accountId, recipientId) ||
+              membershipChanged;
           } catch (error) {
-            log.warn(`Failed to persist Feishu recipient in shared pairing state: ${String(error)}`);
+            log.warn(
+              `Failed to persist Feishu recipient in shared pairing state: ${String(error)}`,
+            );
           }
         }
 
@@ -1508,7 +1661,9 @@ export const ChannelManagerModel = types
         let settingsChanged = false;
 
         if (!proxyToken) {
-          settingsChanged = storage.settings.delete(RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY);
+          settingsChanged = storage.settings.delete(
+            RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY,
+          );
           if (!storage.channelAccounts.get(TELEGRAM_CHANNEL_ID, accountId)) {
             return { changed: settingsChanged, channelId: TELEGRAM_CHANNEL_ID, accountId };
           }
@@ -1518,13 +1673,23 @@ export const ChannelManagerModel = types
 
         if (params.operatorUserIds) {
           const nextOperatorUserIds = serializeTelegramDebugOperatorUserIds(params.operatorUserIds);
-          if (storage.settings.get(RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY) !== nextOperatorUserIds) {
-            storage.settings.set(RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY, nextOperatorUserIds);
+          if (
+            storage.settings.get(RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY) !==
+            nextOperatorUserIds
+          ) {
+            storage.settings.set(
+              RIVONCLAW_TELEGRAM_DEBUG_OPERATOR_USER_IDS_SETTING_KEY,
+              nextOperatorUserIds,
+            );
             settingsChanged = true;
           }
         }
 
-        const desiredConfig = buildTelegramDebugAccountConfig(proxyToken, params.apiRoot, params.deviceId);
+        const desiredConfig = buildTelegramDebugAccountConfig(
+          proxyToken,
+          params.apiRoot,
+          params.deviceId,
+        );
         const existing = storage.channelAccounts.get(TELEGRAM_CHANNEL_ID, accountId);
         if (
           !settingsChanged &&
@@ -1586,7 +1751,12 @@ export const ChannelManagerModel = types
 
         // Persist UI-owned account metadata to SQLite. Provider-owned WeChat
         // identity stays in the WeChat sidecar files.
-        const savedAccount = storage.channelAccounts.upsert(params.channelId, params.accountId, params.name ?? null, accountConfig);
+        const savedAccount = storage.channelAccounts.upsert(
+          params.channelId,
+          params.accountId,
+          params.name ?? null,
+          accountConfig,
+        );
 
         // Update MST state via root store
         const entry = buildChannelAccountSnapshot(savedAccount);
@@ -1629,7 +1799,10 @@ export const ChannelManagerModel = types
         try {
           const { configPath } = getEnv();
           const fullConfig = readExistingConfig(configPath);
-          const channelsCfg = (fullConfig.channels ?? {}) as Record<string, Record<string, unknown>>;
+          const channelsCfg = (fullConfig.channels ?? {}) as Record<
+            string,
+            Record<string, unknown>
+          >;
 
           for (const [channelId, accounts] of Object.entries(snapshot.channelAccounts)) {
             const chCfg = channelsCfg[channelId] ?? {};
@@ -1641,7 +1814,6 @@ export const ChannelManagerModel = types
                 const acctCfg = accountsCfg[account.accountId];
                 account.dmPolicy = (acctCfg?.dmPolicy as string) ?? rootDmPolicy ?? "pairing";
               }
-
             }
           }
         } catch {
@@ -1671,12 +1843,16 @@ export const ChannelManagerModel = types
        * Approve a pairing request: validate code, update allowlist, register recipient.
        * Returns the recipient ID and the matched pairing entry.
        */
-      approvePairing: flow(function* (params: { channelId: string; code: string; accountId?: string }) {
+      approvePairing: flow(function* (params: {
+        channelId: string;
+        code: string;
+        accountId?: string;
+      }) {
         const requests: PairingRequest[] = yield readPairingRequests(params.channelId);
         const codeUpper = params.code.trim().toUpperCase();
-        const requestIndex = requests.findIndex((r) => (
-          r.code.toUpperCase() === codeUpper && requestMatchesAccountId(r, params.accountId)
-        ));
+        const requestIndex = requests.findIndex(
+          (r) => r.code.toUpperCase() === codeUpper && requestMatchesAccountId(r, params.accountId),
+        );
 
         if (requestIndex < 0) {
           throw new Error("Pairing code not found or expired");
@@ -1782,7 +1958,12 @@ export const ChannelManagerModel = types
       },
 
       /** Set or unset the owner flag for a recipient. Syncs ownerAllowFrom to config. */
-      setRecipientOwner(channelId: string, recipientId: string, isOwner: boolean, accountId?: string) {
+      setRecipientOwner(
+        channelId: string,
+        recipientId: string,
+        isOwner: boolean,
+        accountId?: string,
+      ) {
         const { storage, configPath } = getEnv();
         storage.channelRecipients.ensureExists(channelId, recipientId);
         storage.channelRecipients.setOwner(channelId, recipientId, isOwner);
@@ -1814,9 +1995,10 @@ export const ChannelManagerModel = types
         }
 
         // Feishu pairing state is authoritative in OpenClaw's shared SQLite.
-        let changed = channelId === FEISHU_CHANNEL_ID
-          ? removeVendorChannelAllowFromEntry(stateDir, channelId, accountId, entry)
-          : false;
+        let changed =
+          channelId === FEISHU_CHANNEL_ID
+            ? removeVendorChannelAllowFromEntry(stateDir, channelId, accountId, entry)
+            : false;
 
         // Generic channel: remove entry from the scoped allowFrom file when
         // an account is provided; otherwise preserve the legacy channel-wide
@@ -1850,7 +2032,11 @@ export const ChannelManagerModel = types
             if (!Array.isArray(data.allowFrom)) continue;
             const filtered = data.allowFrom.filter((e: string) => e !== entry);
             if (filtered.length !== data.allowFrom.length) {
-              yield fs.writeFile(filePath, JSON.stringify({ version: 1, allowFrom: filtered }, null, 2) + "\n", "utf-8");
+              yield fs.writeFile(
+                filePath,
+                JSON.stringify({ version: 1, allowFrom: filtered }, null, 2) + "\n",
+                "utf-8",
+              );
               changed = true;
             }
           } catch {
@@ -1880,7 +2066,10 @@ export const ChannelManagerModel = types
           supported_auth_methods?: string[];
         };
 
-        if (!Array.isArray(initRes.supported_auth_methods) || !initRes.supported_auth_methods.includes("client_secret")) {
+        if (
+          !Array.isArray(initRes.supported_auth_methods) ||
+          !initRes.supported_auth_methods.includes("client_secret")
+        ) {
           throw new Error("Current Feishu environment does not support client_secret bot setup");
         }
 
@@ -1889,12 +2078,15 @@ export const ChannelManagerModel = types
           verification_uri_complete?: string;
           interval?: number;
           expire_in?: number;
-        }>({ baseUrl: FEISHU_AUTH_BASE_URL }, {
-          action: "begin",
-          archetype: "PersonalAgent",
-          auth_method: "client_secret",
-          request_user_info: "open_id",
-        })) as {
+        }>(
+          { baseUrl: FEISHU_AUTH_BASE_URL },
+          {
+            action: "begin",
+            archetype: "PersonalAgent",
+            auth_method: "client_secret",
+            request_user_info: "open_id",
+          },
+        )) as {
           device_code?: string;
           verification_uri_complete?: string;
           interval?: number;
@@ -1923,7 +2115,9 @@ export const ChannelManagerModel = types
           domain: "feishu",
           domainSwitched: false,
         });
-        log.info(`Feishu QR setup started: session=${sessionKey.slice(0, 8)} expiresInMs=${expiresAt - Date.now()} intervalMs=${intervalMs}`);
+        log.info(
+          `Feishu QR setup started: session=${sessionKey.slice(0, 8)} expiresInMs=${expiresAt - Date.now()} intervalMs=${intervalMs}`,
+        );
 
         return {
           sessionKey,
@@ -1936,12 +2130,16 @@ export const ChannelManagerModel = types
       pollFeishuSetup: flow(function* (sessionKey: string) {
         const session = self._feishuSetupSessions.get(sessionKey);
         if (!session) {
-          log.info(`Feishu QR setup poll expired: session=${sessionKey.slice(0, 8)} reason=missing`);
+          log.info(
+            `Feishu QR setup poll expired: session=${sessionKey.slice(0, 8)} reason=missing`,
+          );
           return { status: "expired" as const, message: "Setup session not found or expired" };
         }
         if (Date.now() > session.expiresAt) {
           self._feishuSetupSessions.delete(sessionKey);
-          log.info(`Feishu QR setup poll expired: session=${sessionKey.slice(0, 8)} reason=timeout`);
+          log.info(
+            `Feishu QR setup poll expired: session=${sessionKey.slice(0, 8)} reason=timeout`,
+          );
           return { status: "expired" as const, message: "Setup session expired" };
         }
 
@@ -1954,14 +2152,17 @@ export const ChannelManagerModel = types
           session.baseUrl = LARK_AUTH_BASE_URL;
           session.domain = "lark";
           session.domainSwitched = true;
-          log.info(`Feishu QR setup tenant brand is lark; switching poll domain: session=${sessionKey.slice(0, 8)}`);
+          log.info(
+            `Feishu QR setup tenant brand is lark; switching poll domain: session=${sessionKey.slice(0, 8)}`,
+          );
           return { status: "pending" as const, intervalMs: session.intervalMs };
         }
 
         if (pollRes.client_id && pollRes.client_secret) {
-          const openId = typeof pollRes.user_info?.open_id === "string" && pollRes.user_info.open_id.trim()
-            ? pollRes.user_info.open_id.trim()
-            : undefined;
+          const openId =
+            typeof pollRes.user_info?.open_id === "string" && pollRes.user_info.open_id.trim()
+              ? pollRes.user_info.open_id.trim()
+              : undefined;
           const account = (yield persistFeishuOfficialAccount({
             appId: pollRes.client_id,
             appSecret: pollRes.client_secret,
@@ -1969,7 +2170,9 @@ export const ChannelManagerModel = types
             ...(openId ? { openId } : {}),
           })) as ChannelAccountSnapshotForMst;
           self._feishuSetupSessions.delete(sessionKey);
-          log.info(`Feishu QR setup connected: session=${sessionKey.slice(0, 8)} domain=${session.domain} openId=${openId ? "yes" : "no"}`);
+          log.info(
+            `Feishu QR setup connected: session=${sessionKey.slice(0, 8)} domain=${session.domain} openId=${openId ? "yes" : "no"}`,
+          );
           return {
             status: "connected" as const,
             accountId: account.accountId,
@@ -1979,12 +2182,16 @@ export const ChannelManagerModel = types
         }
 
         if (!pollRes.error || pollRes.error === "authorization_pending") {
-          log.info(`Feishu QR setup pending: session=${sessionKey.slice(0, 8)} keys=${Object.keys(pollRes).sort().join(",") || "none"}`);
+          log.info(
+            `Feishu QR setup pending: session=${sessionKey.slice(0, 8)} keys=${Object.keys(pollRes).sort().join(",") || "none"}`,
+          );
           return { status: "pending" as const, intervalMs: session.intervalMs };
         }
         if (pollRes.error === "slow_down") {
           session.intervalMs += 5_000;
-          log.info(`Feishu QR setup slow_down: session=${sessionKey.slice(0, 8)} intervalMs=${session.intervalMs}`);
+          log.info(
+            `Feishu QR setup slow_down: session=${sessionKey.slice(0, 8)} intervalMs=${session.intervalMs}`,
+          );
           return { status: "pending" as const, intervalMs: session.intervalMs };
         }
         if (pollRes.error === "expired_token") {
@@ -1999,7 +2206,9 @@ export const ChannelManagerModel = types
         }
 
         self._feishuSetupSessions.delete(sessionKey);
-        log.info(`Feishu QR setup failed: session=${sessionKey.slice(0, 8)} error=${pollRes.error || "unknown"}`);
+        log.info(
+          `Feishu QR setup failed: session=${sessionKey.slice(0, 8)} error=${pollRes.error || "unknown"}`,
+        );
         return {
           status: "error" as const,
           message: pollRes.error_description || pollRes.error || "Feishu setup failed",
@@ -2011,10 +2220,7 @@ export const ChannelManagerModel = types
       // -----------------------------------------------------------------------
 
       /** Start WeChat QR login. Caller must provide a ready RPC client. */
-      startQrLogin: flow(function* (
-        rpcClient: GatewayRpcClient,
-        accountId?: string,
-      ) {
+      startQrLogin: flow(function* (rpcClient: GatewayRpcClient, accountId?: string) {
         return (yield rpcClient.request(RIVONCLAW_WEIXIN_LOGIN_START, { accountId })) as {
           connected?: boolean;
           qrDataUrl?: string;
@@ -2045,7 +2251,9 @@ export const ChannelManagerModel = types
           const existingAccounts = storage.channelAccounts.list(WEIXIN_CHANNEL_ID);
           if (existingAccounts.length === 1) {
             const existingAccountId = normalizeWeixinAccountId(existingAccounts[0]!.accountId);
-            log.info(`WeChat QR login returned already-connected; treating ${existingAccountId} as existing account`);
+            log.info(
+              `WeChat QR login returned already-connected; treating ${existingAccountId} as existing account`,
+            );
             refreshWeixinContextTokenStatus(existingAccountId);
             return {
               ...result,
@@ -2056,8 +2264,8 @@ export const ChannelManagerModel = types
             };
           }
           log.warn(
-            `WeChat QR login returned already-connected but could not resolve a unique account `
-            + `(count=${existingAccounts.length})`,
+            `WeChat QR login returned already-connected but could not resolve a unique account ` +
+              `(count=${existingAccounts.length})`,
           );
         }
 
@@ -2068,9 +2276,10 @@ export const ChannelManagerModel = types
           ? "existing"
           : "created";
 
-        const userId = (typeof result.userId === "string" && result.userId.trim())
-          ? result.userId.trim()
-          : yield readWeixinAccountUserId(stateDir, canonicalAccountId);
+        const userId =
+          typeof result.userId === "string" && result.userId.trim()
+            ? result.userId.trim()
+            : yield readWeixinAccountUserId(stateDir, canonicalAccountId);
 
         const weixinAccounts = storage.channelAccounts.list(WEIXIN_CHANNEL_ID);
         let staleAccountIds: string[] = [];
@@ -2085,7 +2294,10 @@ export const ChannelManagerModel = types
 
           for (const account of weixinAccounts) {
             const existingAccountId = normalizeWeixinAccountId(account.accountId);
-            const existingUserId: string | undefined = yield readWeixinAccountUserId(stateDir, existingAccountId);
+            const existingUserId: string | undefined = yield readWeixinAccountUserId(
+              stateDir,
+              existingAccountId,
+            );
             accountUserIds.set(existingAccountId, existingUserId);
             if (yield hasWeixinAccountFile(stateDir, existingAccountId)) {
               accountFileExists.add(existingAccountId);
@@ -2114,8 +2326,8 @@ export const ChannelManagerModel = types
 
         if (staleAccountIds.length > 0) {
           log.info(
-            `Merged duplicate WeChat account(s) for userId=${userId}: `
-            + `${staleAccountIds.join(", ")} -> ${canonicalAccountId}`,
+            `Merged duplicate WeChat account(s) for userId=${userId}: ` +
+              `${staleAccountIds.join(", ")} -> ${canonicalAccountId}`,
           );
         }
 

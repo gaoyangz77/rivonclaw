@@ -43,6 +43,13 @@ vi.mock("../gateway/vendor-dir-ref.js", () => ({
   getVendorDir: () => "/fake/vendor",
 }));
 
+const { mockEnsureFeishuCsCallbackConfigured } = vi.hoisted(() => ({
+  mockEnsureFeishuCsCallbackConfigured: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("../channels/feishu-cs-callback-config.js", () => ({
+  ensureFeishuCsCallbackConfigured: mockEnsureFeishuCsCallbackConfigured,
+}));
+
 const mockReadFullModelCatalog = vi.fn().mockResolvedValue({});
 vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: (...args: unknown[]) => mockReadFullModelCatalog(...args),
@@ -409,6 +416,7 @@ beforeEach(() => {
   applySnapshot(rootStore.toolCapability.sessionProfiles, {});
   setSessionRunProfileCalls.length = 0;
   mockRpcRequest.mockResolvedValue({ ok: true });
+  mockEnsureFeishuCsCallbackConfigured.mockResolvedValue(undefined);
   mockEnsureRpcReady.mockReturnValue({ request: mockRpcRequest, isConnected: () => true });
   mockReadFullModelCatalog.mockResolvedValue({});
   mockGraphqlFetch.mockImplementation(async (query: string, variables?: Record<string, any>) => {
@@ -2480,8 +2488,52 @@ describe("escalate", () => {
     );
     const request = mockRpcRequest.mock.calls.find((call) => call[0] === "message.action")?.[1];
     expect(JSON.stringify(request?.params?.card)).toContain("客服升级请求");
-    expect(JSON.stringify(request?.params?.card)).toContain("chat_type=p2p");
+    expect(request?.params?.card).toMatchObject({
+      body: {
+        elements: expect.arrayContaining([
+          expect.objectContaining({
+            tag: "form",
+            elements: expect.arrayContaining([
+              expect.objectContaining({
+                value: expect.objectContaining({
+                  action: "rivonclaw.cs:respond",
+                  callbackVersion: 2,
+                  conversationId: "conv-esc-001",
+                }),
+              }),
+            ]),
+          }),
+        ]),
+      },
+    });
     expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
+  });
+
+  it("refuses to send a Feishu escalation card until its Backend callback is configured", async () => {
+    seedShopWithEscalation({
+      escalationChannelId: "feishu:acct_feishu",
+      escalationRecipientId: "ou_manager",
+    });
+    mockEnsureFeishuCsCallbackConfigured.mockRejectedValueOnce(
+      new Error("Customer-service card callback is not configured"),
+    );
+    const bridge = createBridge({ locale: "zh" });
+    bridge.setShopContext(escalationShop);
+
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
+    const result = await session.escalate({ reason: defaultEscalateParams.reason });
+
+    expect(result.ok).toBe(false);
+    expect(mockRpcRequest).not.toHaveBeenCalledWith("message.action", expect.anything());
+    expect(mockEmitCsError).toHaveBeenCalledWith(
+      "escalate",
+      expect.objectContaining({
+        reason: "feishu_callback_not_configured",
+      }),
+    );
   });
 
   it("handles cloud escalation-created events with a direct outbound send, not an agent run", async () => {
