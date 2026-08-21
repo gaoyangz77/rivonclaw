@@ -840,6 +840,7 @@ export interface AffiliateCampaign {
   products: Array<AffiliateCampaignProductType>;
   resolvedTimeZone: Scalars['String']['output'];
   searchPlanErrorCode?: Maybe<Scalars['String']['output']>;
+  searchPlanExplanationLocale: AffiliateCampaignSearchPlanExplanationLocale;
   searchPlanGeneration: Scalars['Int']['output'];
   searchPlanGuidance?: Maybe<Scalars['String']['output']>;
   searchPlanningState: AffiliateCampaignSearchPlanningState;
@@ -1223,8 +1224,10 @@ export interface AffiliateCampaignSearchPlan {
   configRevision: Scalars['Int']['output'];
   discoveryRules?: Maybe<AffiliateCampaignDiscoveryRules>;
   errorCode?: Maybe<Scalars['String']['output']>;
+  generatedBy?: Maybe<AffiliateCampaignSearchPlanGeneratedBy>;
   generation: Scalars['Int']['output'];
   generationAttemptCount: Scalars['Int']['output'];
+  generationRoute?: Maybe<AffiliateCampaignSearchPlanGenerationRoute>;
   guidanceInterpretation?: Maybe<AffiliateCampaignSearchPlanGuidanceInterpretation>;
   id: Scalars['ID']['output'];
   lastSearchedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -1270,6 +1273,31 @@ export interface AffiliateCampaignSearchPlanExecution {
   startedAt: Scalars['DateTimeISO']['output'];
 }
 
+export const AffiliateCampaignSearchPlanExplanationLocale = {
+  De: 'DE',
+  En: 'EN',
+  Es: 'ES',
+  Fr: 'FR',
+  Id: 'ID',
+  It: 'IT',
+  Th: 'TH',
+  Zh: 'ZH'
+} as const;
+
+export type AffiliateCampaignSearchPlanExplanationLocale = typeof AffiliateCampaignSearchPlanExplanationLocale[keyof typeof AffiliateCampaignSearchPlanExplanationLocale];
+export interface AffiliateCampaignSearchPlanGeneratedBy {
+  completedAt: Scalars['DateTimeISO']['output'];
+  requestedModel?: Maybe<Scalars['String']['output']>;
+  resolvedModel?: Maybe<Scalars['String']['output']>;
+  source: AffiliateCampaignSearchPlanGeneratedBySource;
+}
+
+export const AffiliateCampaignSearchPlanGeneratedBySource = {
+  BackendCloud: 'BACKEND_CLOUD',
+  Desktop: 'DESKTOP'
+} as const;
+
+export type AffiliateCampaignSearchPlanGeneratedBySource = typeof AffiliateCampaignSearchPlanGeneratedBySource[keyof typeof AffiliateCampaignSearchPlanGeneratedBySource];
 export interface AffiliateCampaignSearchPlanGenerationContext {
   campaign: Scalars['JSONObject']['output'];
   capability: Scalars['JSONObject']['output'];
@@ -1281,6 +1309,13 @@ export interface AffiliateCampaignSearchPlanGenerationContext {
   uiLocale: Scalars['String']['output'];
 }
 
+export const AffiliateCampaignSearchPlanGenerationRoute = {
+  CloudPrimaryDesktopFallback: 'CLOUD_PRIMARY_DESKTOP_FALLBACK',
+  DesktopFallback: 'DESKTOP_FALLBACK',
+  DesktopOnly: 'DESKTOP_ONLY'
+} as const;
+
+export type AffiliateCampaignSearchPlanGenerationRoute = typeof AffiliateCampaignSearchPlanGenerationRoute[keyof typeof AffiliateCampaignSearchPlanGenerationRoute];
 export interface AffiliateCampaignSearchPlanGuidanceInterpretation {
   hardConstraints?: Maybe<AffiliateCampaignDiscoveryRules>;
   softDirections: Array<Scalars['String']['output']>;
@@ -14002,6 +14037,7 @@ export interface WriteAffiliateCampaignInput {
   /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
   products: Array<WriteAffiliateCampaignProductInput>;
   refreshProductSnapshot?: InputMaybe<Scalars['Boolean']['input']>;
+  searchPlanExplanationLocale?: InputMaybe<AffiliateCampaignSearchPlanExplanationLocale>;
   searchPlanGuidance?: InputMaybe<Scalars['String']['input']>;
   selectionPolicy: AffiliateCampaignSelectionPolicyInput;
   sellerContactEmail?: InputMaybe<Scalars['String']['input']>;

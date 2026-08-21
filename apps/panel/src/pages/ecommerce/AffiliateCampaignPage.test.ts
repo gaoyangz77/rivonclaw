@@ -13,6 +13,7 @@ import {
   eligibilityReasonLabel,
   isEnglishCampaignSearchPhrase,
   normalizeSuggestedDiscoveryRules,
+  normalizeCampaignExplanationLocale,
   paginateCampaigns,
   renderAffiliateCampaignTemplatePreview,
   unsupportedAffiliateCampaignTemplateVariables,
@@ -88,6 +89,23 @@ describe("Affiliate Campaign presentation contracts", () => {
     );
     expect(messages.every(Boolean)).toBe(true);
     expect(new Set(messages).size).toBe(messages.length);
+  });
+
+  it("persists the supported UI language for Backend SearchPlan explanations", () => {
+    expect(normalizeCampaignExplanationLocale("zh-CN")).toBe("ZH");
+    expect(normalizeCampaignExplanationLocale("th_TH")).toBe("TH");
+    expect(normalizeCampaignExplanationLocale("ja-JP")).toBe("EN");
+  });
+
+  it("localizes Cloud and Desktop SearchPlan provenance in all eight locales", () => {
+    const sources = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
+      ({ ecommerce }) => [
+        ecommerce.affiliateCampaign.searchPlanGeneratedByCloud,
+        ecommerce.affiliateCampaign.searchPlanGeneratedByDesktop,
+      ],
+    );
+    expect(sources.flat().every(Boolean)).toBe(true);
+    expect(new Set(sources.map((pair) => pair.join("|"))).size).toBe(8);
   });
 
   it("paginates the campaign directory in stable twenty-row pages", () => {

@@ -189,6 +189,17 @@ type CampaignSearchPlanView = {
   id: string;
   generation: number;
   status: string;
+  generationRoute?:
+    | "CLOUD_PRIMARY_DESKTOP_FALLBACK"
+    | "DESKTOP_ONLY"
+    | "DESKTOP_FALLBACK"
+    | null;
+  generatedBy?: {
+    source: "BACKEND_CLOUD" | "DESKTOP";
+    requestedModel?: string | null;
+    resolvedModel?: string | null;
+    completedAt: string;
+  } | null;
   phrase?: { text: string; explanation: string; explanationLocale: string } | null;
   discoveryRules?: GQL.AffiliateCampaignDiscoveryRules | null;
   guidanceInterpretation?: {
@@ -685,6 +696,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         })),
         refreshProductSnapshot: form.refreshProductSnapshot,
         searchPlanGuidance: form.searchPlanGuidance.trim() || null,
+        searchPlanExplanationLocale: normalizeCampaignExplanationLocale(
+          i18n.resolvedLanguage ?? i18n.language,
+        ),
         dailyOutreachTarget: Number(form.dailyTarget),
         endDays: Number(form.endDays),
         isSampleApprovalExempt: form.isSampleApprovalExempt,
@@ -1549,6 +1563,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <p lang={currentSearchPlan.phrase.explanationLocale || undefined}>
                       {currentSearchPlan.phrase.explanation}
                     </p>
+                    {currentSearchPlan.generatedBy && (
+                      <small>
+                        {t(
+                          currentSearchPlan.generatedBy.source === "BACKEND_CLOUD"
+                            ? "ecommerce.affiliateCampaign.searchPlanGeneratedByCloud"
+                            : "ecommerce.affiliateCampaign.searchPlanGeneratedByDesktop",
+                        )}
+                      </small>
+                    )}
                   </div>
                   <div className="affiliate-campaign-plan-progress">
                     <span>{t("ecommerce.affiliateCampaign.successfulPages")}</span>
@@ -1632,6 +1655,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         <small>
                           {plan.pageSequence}/50 · {formatNumber(plan.totals.matched)} {t("ecommerce.affiliateCampaign.funnel.matched")}
                         </small>
+                        {plan.generatedBy && (
+                          <small>
+                            {t(
+                              plan.generatedBy.source === "BACKEND_CLOUD"
+                                ? "ecommerce.affiliateCampaign.searchPlanGeneratedByCloud"
+                                : "ecommerce.affiliateCampaign.searchPlanGeneratedByDesktop",
+                            )}
+                          </small>
+                        )}
                       </article>
                     ))}
                   </div>
@@ -3949,6 +3981,21 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+export function normalizeCampaignExplanationLocale(value: string):
+  | "EN"
+  | "ZH"
+  | "DE"
+  | "ES"
+  | "FR"
+  | "ID"
+  | "IT"
+  | "TH" {
+  const locale = value.normalize("NFKC").trim().toLocaleLowerCase().split(/[-_]/u)[0];
+  return ["en", "zh", "de", "es", "fr", "id", "it", "th"].includes(locale)
+    ? locale.toLocaleUpperCase() as "EN" | "ZH" | "DE" | "ES" | "FR" | "ID" | "IT" | "TH"
+    : "EN";
 }
 
 function shortId(value: string) {
