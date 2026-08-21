@@ -1,7 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { types, applySnapshot } from "mobx-state-tree";
 import { MobilePairingModel } from "@rivonclaw/core/models";
 import { MobileManagerModel, isLegacyZhuaZhuaRelayUrl } from "../src/mobile/mobile-manager.js";
+
+const mockSyncOwnerAllowFrom = vi.hoisted(() => vi.fn());
+
+vi.mock("../src/auth/owner-sync.js", () => ({
+  syncOwnerAllowFrom: mockSyncOwnerAllowFrom,
+}));
 
 /**
  * Build a minimal MST tree that mirrors the desktop store structure
@@ -37,8 +46,11 @@ function createTestStore() {
 describe("MobileManagerModel", () => {
   let mockStorage: any;
   let store: ReturnType<typeof createTestStore>;
+  let stateDir: string;
 
   beforeEach(() => {
+    stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-mobile-manager-test-"));
+    mockSyncOwnerAllowFrom.mockReset();
     mockStorage = {
       mobilePairings: {
         getActivePairing: vi.fn(),
@@ -68,9 +80,13 @@ describe("MobileManagerModel", () => {
     store.mobileManager.setEnv({
       storage: mockStorage,
       controlPlaneUrl: "http://mock-cp",
-      stateDir: "",
+      stateDir,
       getRpcClient: () => null,
     });
+  });
+
+  afterEach(() => {
+    rmSync(stateDir, { recursive: true, force: true });
   });
 
   it("should generate and cache a desktop device ID", () => {
@@ -125,7 +141,7 @@ describe("MobileManagerModel", () => {
     expect(store.mobilePairings.length).toBe(1);
   });
 
-  it("should remove a pairing from MST and storage", () => {
+  it("should remove a pairing from MST and storage", async () => {
     mockStorage.mobilePairings.getAllPairings.mockReturnValue([
       {
         id: "p1",
@@ -142,11 +158,13 @@ describe("MobileManagerModel", () => {
 
     store.mobileManager.removePairing("p1");
 
+    await vi.waitFor(() => expect(mockSyncOwnerAllowFrom).toHaveBeenCalledOnce());
+
     expect(mockStorage.mobilePairings.removePairingById).toHaveBeenCalledWith("p1");
     expect(store.mobilePairings.length).toBe(0);
   });
 
-  it("should disconnect all pairings", () => {
+  it("should disconnect all pairings", async () => {
     mockStorage.mobilePairings.getAllPairings.mockReturnValue([
       {
         id: "p1",
@@ -161,6 +179,12 @@ describe("MobileManagerModel", () => {
     store.mobileManager.init();
 
     store.mobileManager.disconnectAll();
+
+    const allowlistPath = join(stateDir, "credentials", "mobile-allowFrom.json");
+    await vi.waitFor(() => {
+      expect(existsSync(allowlistPath)).toBe(true);
+      expect(mockSyncOwnerAllowFrom).toHaveBeenCalledOnce();
+    });
 
     expect(mockStorage.mobilePairings.clearPairing).toHaveBeenCalled();
     expect(store.mobilePairings.length).toBe(0);
@@ -192,12 +216,12 @@ describe("MobileManagerModel", () => {
     expect(isLegacyZhuaZhuaRelayUrl("wss://relay.rivonclaw.com/ws")).toBe(false);
   });
 
-  it("does not start sync for disabled legacy zhuazhua relay pairings", () => {
+  it("does not start sync for disabled legacy zhuazhua relay pairings", async () => {
     const request = vi.fn();
     store.mobileManager.setEnv({
       storage: mockStorage,
       controlPlaneUrl: "http://mock-cp",
-      stateDir: "",
+      stateDir,
       getRpcClient: () => ({
         isConnected: () => true,
         request,
@@ -210,6 +234,19 @@ describe("MobileManagerModel", () => {
       pairingId: "legacy-pairing",
       desktopDeviceId: "desktop-1",
       mobileDeviceId: "mobile-1",
+    });
+
+    const allowlistPath = join(stateDir, "credentials", "mobile-allowFrom.json");
+    await vi.waitFor(() => {
+      expect(JSON.parse(readFileSync(allowlistPath, "utf-8"))).toEqual({
+        version: 1,
+        allowFrom: ["legacy-pairing"],
+      });
+      expect(mockStorage.channelRecipients.ensureExists).toHaveBeenCalledWith(
+        "mobile",
+        "legacy-pairing",
+        true,
+      );
     });
 
     expect(request).not.toHaveBeenCalledWith("mobile_chat_start_sync", expect.anything());

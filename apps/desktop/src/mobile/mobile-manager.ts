@@ -47,9 +47,18 @@ interface AllowFromStore {
   allowFrom: string[];
 }
 
-async function readMobileAllowlist(): Promise<string[]> {
+function resolveMobileAllowlistPath(stateDir?: string): string {
+  const credentialsDir = stateDir ? join(stateDir, "credentials") : resolveCredentialsDir();
+  return join(credentialsDir, "mobile-allowFrom.json");
+}
+
+function resolveMobileConfigPath(stateDir?: string): string {
+  return stateDir ? join(stateDir, "openclaw.json") : resolveOpenClawConfigPath();
+}
+
+async function readMobileAllowlist(stateDir?: string): Promise<string[]> {
   try {
-    const filePath = join(resolveCredentialsDir(), "mobile-allowFrom.json");
+    const filePath = resolveMobileAllowlistPath(stateDir);
     const content = await fs.readFile(filePath, "utf-8");
     if (!content.trim()) return [];
     const data: AllowFromStore = JSON.parse(content);
@@ -61,8 +70,8 @@ async function readMobileAllowlist(): Promise<string[]> {
   }
 }
 
-async function writeMobileAllowlist(allowFrom: string[]): Promise<void> {
-  const credDir = resolveCredentialsDir();
+async function writeMobileAllowlist(allowFrom: string[], stateDir?: string): Promise<void> {
+  const credDir = stateDir ? join(stateDir, "credentials") : resolveCredentialsDir();
   await fs.mkdir(credDir, { recursive: true });
   const filePath = join(credDir, "mobile-allowFrom.json");
   const data: AllowFromStore = { version: 1, allowFrom };
@@ -112,11 +121,11 @@ export const MobileManagerModel = types
       allowlistMigrated = true;
 
       try {
-        const { storage } = getEnv();
+        const { storage, stateDir } = getEnv();
         const allPairings = storage.mobilePairings.getAllPairings();
         if (allPairings.length === 0) return;
 
-        const allowlist = await readMobileAllowlist();
+        const allowlist = await readMobileAllowlist(stateDir);
         if (allowlist.length === 0) return;
 
         let changed = false;
@@ -137,8 +146,8 @@ export const MobileManagerModel = types
         }
 
         if (changed) {
-          await writeMobileAllowlist(newAllowlist);
-          const configPath = resolveOpenClawConfigPath();
+          await writeMobileAllowlist(newAllowlist, stateDir);
+          const configPath = resolveMobileConfigPath(stateDir);
           syncOwnerAllowFrom(storage, configPath);
         }
       } catch (err: any) {
@@ -253,7 +262,7 @@ export const MobileManagerModel = types
        * Cleans up SQLite, allowlist, channel_recipients, and stops the sync engine.
        */
       removePairing(id: string) {
-        const { storage, getRpcClient } = getEnv();
+        const { storage, getRpcClient, stateDir } = getEnv();
 
         // Look up pairing from MST to get the allowlist key before deletion
         const pairing = self.root.mobilePairings.find((p: any) => p.id === id);
@@ -269,14 +278,14 @@ export const MobileManagerModel = types
         (async () => {
           try {
             if (allowlistKey) {
-              const allowlist = await readMobileAllowlist();
+              const allowlist = await readMobileAllowlist(stateDir);
               const filtered = allowlist.filter((e) => e !== allowlistKey);
               if (filtered.length !== allowlist.length) {
-                await writeMobileAllowlist(filtered);
+                await writeMobileAllowlist(filtered, stateDir);
               }
               storage.channelRecipients.delete("mobile", allowlistKey);
             }
-            const configPath = resolveOpenClawConfigPath();
+            const configPath = resolveMobileConfigPath(stateDir);
             syncOwnerAllowFrom(storage, configPath);
           } catch (err: any) {
             log.error("Failed to cleanup allowlist after removePairing:", err);
@@ -298,16 +307,16 @@ export const MobileManagerModel = types
 
       /** Disconnect all pairings. Clears SQLite, allowlist, and stops all sync engines. */
       disconnectAll() {
-        const { storage, getRpcClient } = getEnv();
+        const { storage, getRpcClient, stateDir } = getEnv();
 
         // Read allowlist entries before clearing (for channel_recipients cleanup)
-        const cleanupAllowlist = readMobileAllowlist().then(async (allowlist) => {
+        const cleanupAllowlist = readMobileAllowlist(stateDir).then(async (allowlist) => {
           try {
             for (const entry of allowlist) {
               storage.channelRecipients.delete("mobile", entry);
             }
-            await writeMobileAllowlist([]);
-            const configPath = resolveOpenClawConfigPath();
+            await writeMobileAllowlist([], stateDir);
+            const configPath = resolveMobileConfigPath(stateDir);
             syncOwnerAllowFrom(storage, configPath);
           } catch (err: any) {
             log.error("Failed to cleanup allowlist after disconnectAll:", err);
@@ -415,7 +424,7 @@ export const MobileManagerModel = types
         desktopDeviceId?: string;
         mobileDeviceId?: string;
       }) {
-        const { storage, getRpcClient } = getEnv();
+        const { storage, getRpcClient, stateDir } = getEnv();
 
         const newPairing = (self as any).addPairing({
           pairingId: status.pairingId,
@@ -432,17 +441,17 @@ export const MobileManagerModel = types
         // Async allowlist + recipient registration (fire-and-forget)
         (async () => {
           try {
-            const allowlist = await readMobileAllowlist();
+            const allowlist = await readMobileAllowlist(stateDir);
             if (!allowlist.includes(recipientId)) {
               allowlist.push(recipientId);
-              await writeMobileAllowlist(allowlist);
+              await writeMobileAllowlist(allowlist, stateDir);
             }
             // Every new recipient is provisioned as owner by default; single-operator
             // is the common case. Users can demote via the Role toggle in the
             // Channels page.
             const inserted = storage.channelRecipients.ensureExists("mobile", recipientId, true);
             if (inserted) {
-              const configPath = resolveOpenClawConfigPath();
+              const configPath = resolveMobileConfigPath(stateDir);
               syncOwnerAllowFrom(storage, configPath);
             }
             log.info("Added recipient to mobile allowlist:", recipientId);
