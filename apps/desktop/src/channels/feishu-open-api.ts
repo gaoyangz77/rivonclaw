@@ -154,7 +154,12 @@ export async function patchFeishuMessageCardCallbackUrl(params: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ bot: { message_card_callback_url: params.callbackUrl } }),
+      body: JSON.stringify({
+        bot: {
+          enable: true,
+          message_card_callback_url: params.callbackUrl,
+        },
+      }),
     },
     label,
   );

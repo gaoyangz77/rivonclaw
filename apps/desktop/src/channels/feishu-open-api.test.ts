@@ -115,6 +115,7 @@ describe("patchFeishuMessageCardCallbackUrl", () => {
     });
     expect(JSON.parse(init.body)).toEqual({
       bot: {
+        enable: true,
         message_card_callback_url: "https://api.example.com/api/webhooks/feishu/cs-escalation-card",
       },
     });
