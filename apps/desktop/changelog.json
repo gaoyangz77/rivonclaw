@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.109",
+    "date": "2026-08-21",
+    "en": [
+      "Acknowledge Feishu customer-service cards without requiring a chat lookup"
+    ],
+    "zh": [
+      "无需查询会话即可确认飞书客服卡片"
+    ]
+  },
+  {
     "version": "1.8.108",
     "date": "2026-08-20",
     "en": [
