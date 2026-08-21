@@ -52,6 +52,16 @@
       "reason": "Performance guard — validates known-key Gateway session reads stay bounded to exact SQLite rows (vendor patch 0035)"
     },
     {
+      "file": "apps/desktop/src/channels/vendor-feishu-visible-delivery-custody.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/src/channels/turn/lifecycle.ts",
+      "reason": "Delivery guard — validates visible Feishu partial replies settle as delivered instead of creating false ambiguity notices (vendor patch 0036)"
+    },
+    {
+      "file": "apps/desktop/src/channels/vendor-feishu-visible-delivery-custody.sentinel.test.ts",
+      "vendorPath": "vendor/openclaw/extensions/feishu/src/reply-dispatcher.ts",
+      "reason": "Delivery guard — validates Feishu preview cleanup retains visible partial custody (vendor patch 0036)"
+    },
+    {
       "file": "apps/desktop/src/gateway/vendor-pairing-wildcard-migration.sentinel.test.ts",
       "vendorPath": "vendor/openclaw/src/infra/state-migrations.channel-pairing.ts",
       "reason": "Migration guard — validates one invalid pairing account cannot abort all legacy pairing migrations"
