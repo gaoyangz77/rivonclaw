@@ -9,6 +9,7 @@ import {
   resolveCsConversationDispatch,
   resolveCsSignalDispatch,
 } from "./cs-agent-dispatch-resolver.js";
+import { queueCsDispatchUntilBridgeReady } from "./cs-conversation-signal-buffer.js";
 
 const log = createLogger("cs-signal-actuator");
 
@@ -64,7 +65,11 @@ export async function handleCsConversationSignal(
   }
 
   if (!bridge) {
-    log.warn(`CS signal arrived before bridge was ready: shop=${signal.platformShopId} conv=${signal.conversationId}`);
+    const pending = queueCsDispatchUntilBridgeReady(dispatch);
+    log.warn(
+      `CS signal queued until bridge is ready: shop=${signal.platformShopId} ` +
+      `conv=${signal.conversationId} queued=${pending.queued} replaced=${pending.replaced}`,
+    );
     return;
   }
 
@@ -110,7 +115,11 @@ export async function handleCsConversationChanged(
   }
 
   if (!bridge) {
-    log.warn(`CS conversation change arrived before bridge was ready: shop=${dispatch.platformShopId} conv=${dispatch.conversationId}`);
+    const pending = queueCsDispatchUntilBridgeReady(dispatch);
+    log.warn(
+      `CS conversation change queued until bridge is ready: shop=${dispatch.platformShopId} ` +
+      `conv=${dispatch.conversationId} queued=${pending.queued} replaced=${pending.replaced}`,
+    );
     return;
   }
 

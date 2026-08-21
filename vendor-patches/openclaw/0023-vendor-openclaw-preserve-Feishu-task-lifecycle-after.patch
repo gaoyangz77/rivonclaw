@@ -1,4 +1,4 @@
-From b24eac57f45e79287d57954b7aaa9ab90d966eae Mon Sep 17 00:00:00 2001
+From d019aade53fc1b0703b5e2a1e4a15bbf07db6741 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Sat, 11 Jul 2026 01:52:53 -0700
 Subject: [PATCH] vendor(openclaw): preserve Feishu task lifecycle after queue

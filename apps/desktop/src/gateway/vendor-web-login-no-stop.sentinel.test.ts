@@ -17,10 +17,14 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/openclaw");
+const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
+  ? PATCHED_VENDOR_ROOT
+  : resolve(__dirname, "../../../../vendor/openclaw");
 
 const VENDOR_FILE = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/src/gateway/server-methods/web.ts",
+  VENDOR_ROOT,
+  "src/gateway/server-methods/web.ts",
 );
 
 /** Check if the vendor source has the patch applied. */

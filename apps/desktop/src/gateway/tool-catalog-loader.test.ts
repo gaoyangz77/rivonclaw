@@ -9,6 +9,21 @@ import {
 type RpcClientLike = Parameters<typeof loadGatewayToolCatalogTools>[0];
 
 describe("loadGatewayToolCatalogTools", () => {
+  it("requests the catalog with an explicit main-agent owner", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === CLOUD_TOOLS_STATUS_METHOD) return { ready: true, toolCount: 0 };
+      return { groups: [] };
+    });
+    const rpc: RpcClientLike = { request: request as RpcClientLike["request"] };
+
+    await loadGatewayToolCatalogTools(rpc);
+
+    expect(request).toHaveBeenCalledWith("tools.catalog", {
+      agentId: "main",
+      includePlugins: true,
+    });
+  });
+
   it("waits until cloud tools appear before returning the catalog", async () => {
     const catalogResponses = [
       {
@@ -43,6 +58,10 @@ describe("loadGatewayToolCatalogTools", () => {
     });
 
     expect(request).toHaveBeenCalledTimes(4);
+    expect(request).toHaveBeenCalledWith("tools.catalog", {
+      agentId: "main",
+      includePlugins: true,
+    });
     expect(sleep).toHaveBeenCalledTimes(1);
     expect(tools).toEqual([
       { id: "read", source: "core" },

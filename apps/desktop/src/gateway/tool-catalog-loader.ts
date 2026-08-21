@@ -1,3 +1,5 @@
+import { DEFAULT_AGENT_ID } from "@rivonclaw/core/node";
+
 export const CLOUD_TOOLS_PLUGIN_ID = "rivonclaw-cloud-tools";
 export const CLOUD_TOOLS_STATUS_METHOD = "rivonclaw_cloud_tools.status";
 
@@ -52,6 +54,7 @@ type LoggerLike = {
 };
 
 export type LoadGatewayToolCatalogOptions = {
+  agentId?: string;
   maxAttempts?: number;
   retryDelayMs?: number;
   logger?: LoggerLike;
@@ -64,11 +67,12 @@ export async function loadGatewayToolCatalogTools(
 ): Promise<GatewayCatalogTool[]> {
   const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_CLOUD_TOOLS_CATALOG_ATTEMPTS);
   const retryDelayMs = Math.max(0, options.retryDelayMs ?? DEFAULT_CLOUD_TOOLS_CATALOG_RETRY_MS);
+  const agentId = options.agentId?.trim() || DEFAULT_AGENT_ID;
   const sleep = options.sleep ?? defaultSleep;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const tools = flattenGatewayCatalog(
-      await rpc.request<GatewayCatalog>("tools.catalog", { includePlugins: true }),
+      await rpc.request<GatewayCatalog>("tools.catalog", { agentId, includePlugins: true }),
     );
 
     const status = await getCloudToolsStatus(rpc);
