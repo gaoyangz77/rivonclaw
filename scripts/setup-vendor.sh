@@ -25,6 +25,17 @@ cd "$REPO_ROOT/vendor/openclaw"
 git checkout "$HASH"
 git checkout -B main
 
+# Apply patches before dependency installation or the first build. Some patches
+# fix platform-specific build failures, so a pristine build may never reach a
+# later patch replay step on the affected platform.
+PATCH_DIR="$REPO_ROOT/vendor-patches/openclaw"
+if ls "$PATCH_DIR"/*.patch &>/dev/null; then
+  echo "Applying vendor patches from $PATCH_DIR..."
+  git config user.email "ci@rivonclaw.com"
+  git config user.name "RivonClaw CI"
+  git am --3way "$PATCH_DIR"/*.patch
+fi
+
 # Use env var for hoisted layout instead of modifying .npmrc,
 # so vendor git stays clean (pre-commit hook checks for dirty state).
 export npm_config_node_linker=hoisted
@@ -36,17 +47,10 @@ else
   pnpm install --frozen-lockfile
 fi
 
-# Detect vendor patches
-PATCH_DIR="$REPO_ROOT/vendor-patches/openclaw"
-HAS_PATCHES=false
-if ls "$PATCH_DIR"/*.patch &>/dev/null; then
-  HAS_PATCHES=true
-fi
-
 # Build (skip if CI cache hit)
 # When dist is cached, the cached output already includes patched builds
-# (the cache key incorporates patch file hashes). We still apply patches
-# to source so git state matches the built artifacts.
+# (the cache key incorporates patch file hashes). Patches are still applied to
+# source above so git state matches the built artifacts.
 # If dist cache claims to be valid but any required build output is missing,
 # the cache is incomplete (e.g. stale from a prior vendor version). OpenClaw
 # workspace packages are linked from node_modules, so their dist directories
@@ -77,12 +81,6 @@ fi
 
 if [ "${SKIP_VENDOR_BUILD:-}" = "true" ]; then
   echo "Skipping pnpm run build (cache hit, dist verified)"
-  if [ "$HAS_PATCHES" = true ]; then
-    echo "Applying patches to source (dist already cached with patches)..."
-    git config user.email "ci@rivonclaw.com"
-    git config user.name "RivonClaw CI"
-    git am --3way "$PATCH_DIR"/*.patch
-  fi
 else
   # Ensure dev dependencies are available with hoisted layout.
   # The node_modules cache may have been created with a different linker mode
@@ -92,20 +90,6 @@ else
   pnpm install --frozen-lockfile
   pnpm run build
   pnpm ui:build
-  # Replay EasyClaw vendor patches (if any exist)
-  if [ "$HAS_PATCHES" = true ]; then
-    echo "Replaying vendor patches from $PATCH_DIR..."
-    git config user.email "ci@rivonclaw.com"
-    git config user.name "RivonClaw CI"
-    git am --3way "$PATCH_DIR"/*.patch
-    # Full rebuild after patches so plugin-sdk dist chunks stay consistent.
-    # Incremental tsdown-build.mjs only rebuilds changed files, leaving other
-    # chunks with stale references that trigger ERR_INTERNAL_ASSERTION in
-    # Electron's CJS/ESM module loader.
-    pnpm run build
-    pnpm ui:build
-    echo "Vendor patches applied and rebuilt."
-  fi
   # Mark dist/ as complete so CI cache can verify integrity on restore.
   # Without this marker, a cached dist/ from an incomplete/failed build
   # would silently break the app (e.g. missing dist/plugins/runtime/).
