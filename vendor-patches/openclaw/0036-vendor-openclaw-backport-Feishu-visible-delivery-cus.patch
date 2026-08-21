@@ -1,0 +1,378 @@
+From 9f4a8f071f17ebec7a8ded298fefc852492da3fc Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Thu, 20 Aug 2026 17:44:20 -0700
+Subject: [PATCH] vendor(openclaw): backport Feishu visible delivery custody
+ fix
+
+Why:
+- The pinned vendor includes durable ambiguous-delivery notices but predates upstream commit 1096ca2a708, so visible Feishu CardKit replies can remain unknown and emit a false warning on the next inbound turn.
+- Backport the upstream fix without advancing across hundreds of unrelated OpenClaw commits.
+
+Removal:
+- Drop this patch when .openclaw-version includes upstream commit 1096ca2a708f600386b6efd349823c759e041fcc (fix(feishu): retain partial custody on preview cleanup).
+
+Tests:
+- apps/desktop/src/channels/vendor-feishu-visible-delivery-custody.sentinel.test.ts
+- vendor/openclaw/src/channels/turn/run-channel-turn.custody.test.ts
+- vendor/openclaw/extensions/feishu/src/delivery-trace.test.ts
+---
+ extensions/feishu/src/delivery-trace.test.ts  | 135 +++++++++++++++++-
+ extensions/feishu/src/reply-dispatcher.ts     |  49 ++++---
+ src/channels/turn/lifecycle.ts                |  15 +-
+ .../turn/run-channel-turn.custody.test.ts     |   9 ++
+ 4 files changed, 179 insertions(+), 29 deletions(-)
+
+diff --git a/extensions/feishu/src/delivery-trace.test.ts b/extensions/feishu/src/delivery-trace.test.ts
+index c1499a005ad..d2078da9538 100644
+--- a/extensions/feishu/src/delivery-trace.test.ts
++++ b/extensions/feishu/src/delivery-trace.test.ts
+@@ -13,11 +13,26 @@ import {
+   type DeliveryTraceScenarioName,
+   type WireRecorder,
+ } from "openclaw/plugin-sdk/channel-contract-testing";
++import {
++  dispatchChannelInboundReply,
++  isChannelPartialDeliveryError,
++} from "openclaw/plugin-sdk/channel-inbound";
++import { setReplyPayloadMetadata } from "openclaw/plugin-sdk/reply-payload-testing";
+ import { withFetchPreconnect } from "openclaw/plugin-sdk/test-env";
+-import { afterAll, afterEach, beforeAll, describe, it, vi } from "vitest";
++import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+ import { FeishuConfigSchema } from "./config-schema.js";
+ import type { ResolvedFeishuAccount } from "./types.js";
+ 
++const settlePendingFinalDeliveryMock = vi.hoisted(() =>
++  vi.fn(async (_completion: unknown, state: string) => ({ state })),
++);
++
++vi.mock("../../../src/infra/outbound/delivery-completion.js", async (importOriginal) => {
++  const actual =
++    await importOriginal<typeof import("../../../src/infra/outbound/delivery-completion.js")>();
++  return { ...actual, settlePendingFinalDelivery: settlePendingFinalDeliveryMock };
++});
++
+ type RecordedWireCall = Parameters<WireRecorder["recordWireCall"]>[0];
+ type CreateFeishuReplyDispatcher =
+   typeof import("./reply-dispatcher.js").createFeishuReplyDispatcher;
+@@ -34,6 +49,8 @@ type FeishuTraceState = {
+   cardCount: number;
+   setupCount: number;
+   wireFaults: Array<{ fault: "rate-limit"; retryAfterMs: number }>;
++  messageResult: "identified" | "no-id";
++  failNextReplace: boolean;
+ };
+ 
+ const traceState = vi.hoisted(
+@@ -47,6 +64,8 @@ const traceState = vi.hoisted(
+     cardCount: 0,
+     setupCount: 0,
+     wireFaults: [],
++    messageResult: "identified",
++    failNextReplace: false,
+   }),
+ );
+ 
+@@ -135,6 +154,10 @@ beforeAll(async () => {
+   ({ streamingStartBackoffUntilByAccount } = await import("./reply-dispatcher-state.js"));
+ });
+ 
++beforeEach(() => {
++  settlePendingFinalDeliveryMock.mockClear();
++});
++
+ afterAll(() => {
+   vi.doUnmock("./accounts.js");
+   vi.doUnmock("./client.js");
+@@ -171,11 +194,10 @@ function nextMessageId(): string {
+ }
+ 
+ function createRecordingLarkClient() {
+-  const messageSendResult = (messageId: string) => ({
+-    code: 0,
+-    msg: "ok",
+-    data: { message_id: messageId },
+-  });
++  const messageSendResult = (messageId: string) =>
++    traceState.messageResult === "identified"
++      ? { code: 0, msg: "ok", data: { message_id: messageId } }
++      : { code: 0, msg: "ok", data: {} };
+   return {
+     im: {
+       message: {
+@@ -296,6 +318,14 @@ function createRecordingCardKitFetch(): typeof fetch {
+       }
+       if (wirePath.endsWith("/elements/content")) {
+         const body = parseJsonRecord(init?.body);
++        if (traceState.failNextReplace) {
++          traceState.failNextReplace = false;
++          record(
++            { element: parseJsonRecord(body.element), sequence: body.sequence, uuid: body.uuid },
++            { status: 500 },
++          );
++          return jsonResponse({ code: 230099, msg: "replace rejected" }, 500);
++        }
+         record(
+           { element: parseJsonRecord(body.element), sequence: body.sequence, uuid: body.uuid },
+           { code: 0 },
+@@ -343,6 +373,8 @@ function setupFeishuTrace(recorder: WireRecorder, scenario: DeliveryTraceScenari
+   traceState.reactionCount = 0;
+   traceState.cardCount = 0;
+   traceState.wireFaults = [];
++  traceState.messageResult = "identified";
++  traceState.failNextReplace = false;
+   traceState.account = makeTraceAccount(scenario);
+   traceState.larkClient = createRecordingLarkClient();
+   traceState.cardKitFetch = createRecordingCardKitFetch();
+@@ -406,6 +438,43 @@ const FEISHU_TRACE_SCENARIOS: readonly DeliveryTraceScenarioName[] = [
+   "overflow-pagination",
+ ];
+ 
++const pendingFinalCompletion = {
++  deliveryId: "delivery-feishu-custody",
++  intentId: "intent-feishu-custody",
++  sessionId: "session-feishu-custody",
++  sessionKey: "agent:agent:feishu:direct:oc-trace-chat",
++  storePath: "/tmp/feishu-custody-sessions.json",
++};
++
++function createTraceContext() {
++  return {
++    Body: "hello",
++    RawBody: "hello",
++    CommandBody: "hello",
++    CommandAuthorized: false,
++    From: "ou-sender",
++    To: "oc-trace-chat",
++    SessionKey: pendingFinalCompletion.sessionKey,
++    Provider: "feishu",
++    Surface: "feishu",
++  };
++}
++
++function expectDeliveredCustody() {
++  expect(settlePendingFinalDeliveryMock).toHaveBeenNthCalledWith(
++    1,
++    { kind: "pending-final", ...pendingFinalCompletion },
++    "unknown",
++    ["prepared", "queued"],
++  );
++  expect(settlePendingFinalDeliveryMock).toHaveBeenNthCalledWith(
++    2,
++    { kind: "pending-final", ...pendingFinalCompletion },
++    "delivered",
++    ["queued", "unknown"],
++  );
++}
++
+ describe("feishu delivery trace goldens", () => {
+   for (const scenarioName of FEISHU_TRACE_SCENARIOS) {
+     it(`records ${scenarioName}`, async () => {
+@@ -420,3 +489,57 @@ describe("feishu delivery trace goldens", () => {
+     });
+   }
+ });
++
++describe("feishu producer custody boundaries", () => {
++  it("retains visible custody when no-ID preview disposition fails", async () => {
++    const wireCalls: RecordedWireCall[] = [];
++    traceState.recordWireCall = (call) => wireCalls.push(call);
++    traceState.messageCount = 0;
++    traceState.cardCount = 0;
++    traceState.messageResult = "no-id";
++    traceState.failNextReplace = true;
++    traceState.account = {
++      ...makeTraceAccount("final-only"),
++      config: FeishuConfigSchema.parse({ renderMode: "card", streaming: { mode: "partial" } }),
++    };
++    traceState.larkClient = createRecordingLarkClient();
++    traceState.cardKitFetch = createRecordingCardKitFetch();
++    const created = createFeishuReplyDispatcher({
++      cfg: {} as never,
++      agentId: "agent",
++      runtime: { log: () => {}, error: () => {} } as never,
++      chatId: "oc-trace-chat",
++      sendTarget: "oc-trace-chat",
++      replyToMessageId: "om-inbound",
++    });
++    const sourcePayload = setReplyPayloadMetadata(
++      { text: "x".repeat(4001) },
++      { pendingFinalDeliveryCompletion: pendingFinalCompletion },
++    );
++
++    const error = await dispatchChannelInboundReply({
++      cfg: {},
++      channel: "feishu",
++      accountId: "main",
++      agentId: "agent",
++      routeSessionKey: pendingFinalCompletion.sessionKey,
++      storePath: pendingFinalCompletion.storePath,
++      ctxPayload: createTraceContext(),
++      recordInboundSession: async () => undefined,
++      dispatchReplyWithBufferedBlockDispatcher: async ({ dispatcherOptions }) => {
++        await dispatcherOptions.onReplyStart?.();
++        created.replyOptions.onPartialReply?.({ text: "accepted preview" });
++        await dispatcherOptions.deliver?.(sourcePayload, { kind: "final" });
++        return { queuedFinal: true, counts: { tool: 0, block: 0, final: 1 } };
++      },
++      dispatcherOptions: created.dispatcherOptions,
++      replyOptions: created.replyOptions,
++      delivery: created.delivery,
++    }).catch((caught: unknown) => caught);
++
++    expect(isChannelPartialDeliveryError(error)).toBe(true);
++    expect(error).toMatchObject({ deliveryResult: { visibleReplySent: true } });
++    expectDeliveredCustody();
++    expect(wireCalls.some((call) => call.method === "im.message.delete")).toBe(false);
++  });
++});
+diff --git a/extensions/feishu/src/reply-dispatcher.ts b/extensions/feishu/src/reply-dispatcher.ts
+index 9ef31a9c11c..39988152896 100644
+--- a/extensions/feishu/src/reply-dispatcher.ts
++++ b/extensions/feishu/src/reply-dispatcher.ts
+@@ -348,6 +348,27 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+     visibleReplySent = true;
+   };
+ 
++  const normalizeStreamingFinalizationFailure = (
++    error: unknown,
++  ): { result: FeishuReplyDeliveryResult; error: Error } | undefined => {
++    if (!(error instanceof FeishuStreamingFinalizationError)) {
++      return undefined;
++    }
++    const result = createFeishuReplyDeliveryResult({
++      results: [error.result],
++      visibleReplySent: error.result.visibleReplySent,
++      content: error.result.content,
++      kind: "card",
++    });
++    if (result.visibleReplySent) {
++      markVisibleReplySent();
++    }
++    return {
++      result,
++      error: createFeishuPartialReplyDeliveryError(error.cause ?? error, result),
++    };
++  };
++
+   const formatReasoningPrefix = (thinking: string): string => {
+     if (!thinking) {
+       return "";
+@@ -552,23 +573,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+         try {
+           closed = await streamingToClose.closeWithResult(text, { note: finalNote });
+         } catch (error: unknown) {
+-          if (!(error instanceof FeishuStreamingFinalizationError)) {
++          const failure = normalizeStreamingFinalizationFailure(error);
++          if (!failure) {
+             throw error;
+           }
+-          const failedResult = createFeishuReplyDeliveryResult({
+-            results: [error.result],
+-            visibleReplySent: error.result.visibleReplySent,
+-            content: error.result.content,
+-            kind: "card",
+-          });
+-          if (failedResult.visibleReplySent) {
+-            markVisibleReplySent();
+-          }
++          const failedResult = failure.result;
+           if (failedResult.visibleReplySent && finalizedAnswerText) {
+-            const partialError = createFeishuPartialReplyDeliveryError(
+-              error.cause ?? error,
+-              failedResult,
+-            );
+             if (failedResult.content === text) {
+               deliveredFinalTexts.add(finalizedAnswerText);
+             }
+@@ -576,12 +586,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+               generationToClose,
+               finalizedAnswerText,
+               failedResult,
+-              partialError,
++              failure.error,
+             );
+             return {
+               result: failedResult,
+               ...(generationToClose === undefined ? {} : { generation: generationToClose }),
+-              error: partialError,
++              error: failure.error,
+             };
+           }
+           // Preserve the non-visible result so the settlement owner can recover the accepted
+@@ -693,7 +703,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+       }
+       await partialUpdateQueue;
+       if (streaming?.isActive()) {
+-        await streaming.discard();
++        try {
++          await streaming.discard();
++        } catch (error: unknown) {
++          const failure = normalizeStreamingFinalizationFailure(error);
++          throw failure?.result.visibleReplySent ? failure.error : error;
++        }
+       }
+     } finally {
+       resetStreamingState();
+diff --git a/src/channels/turn/lifecycle.ts b/src/channels/turn/lifecycle.ts
+index ae485dd9034..3b4ed7a6cbd 100644
+--- a/src/channels/turn/lifecycle.ts
++++ b/src/channels/turn/lifecycle.ts
+@@ -224,11 +224,12 @@ async function settleChannelDeliveryAttempts(params: {
+   }
+ }
+ 
+-// Failed-send custody policy: a permanent typed non-dispatch rejection is a
+-// proven no-send (terminal suppression, no replay, no notice); an untyped error
+-// after the pre-I/O claim affirms real ambiguity (unknown -> owed notice); a
+-// retryable typed rejection restores prepared custody so recovery can replay —
+-// the pre-claim already wrote unknown, and leaving it would fake ambiguity.
++// Failed-send custody policy: visible partial delivery is terminally delivered;
++// a permanent typed non-dispatch rejection is a proven no-send (terminal
++// suppression, no replay, no notice); an untyped error after the pre-I/O claim
++// affirms real ambiguity (unknown -> owed notice); a retryable typed rejection
++// restores prepared custody so recovery can replay — the pre-claim already
++// wrote unknown, and leaving it would fake ambiguity.
+ async function settleFailedPendingFinalDelivery(
+   payload: ReplyPayload,
+   error: unknown,
+@@ -237,7 +238,9 @@ async function settleFailedPendingFinalDelivery(
+   if (!completion) {
+     return;
+   }
+-  if (isPlatformMessageRejectedError(error)) {
++  if (resolvePartialChannelDeliveryResult(error) !== undefined) {
++    await settlePendingFinalDelivery(completion, "delivered", ["queued", "unknown"]);
++  } else if (isPlatformMessageRejectedError(error)) {
+     await settlePendingFinalDelivery(completion, "suppressed", ["prepared", "queued", "unknown"]);
+   } else if (isPlatformMessageNotDispatchedError(error)) {
+     await settlePendingFinalDelivery(completion, "prepared", ["queued", "unknown"]);
+diff --git a/src/channels/turn/run-channel-turn.custody.test.ts b/src/channels/turn/run-channel-turn.custody.test.ts
+index d77ae2b4042..5cf5ee6469a 100644
+--- a/src/channels/turn/run-channel-turn.custody.test.ts
++++ b/src/channels/turn/run-channel-turn.custody.test.ts
+@@ -4,6 +4,7 @@ import type { DispatchReplyWithDispatcher } from "../../auto-reply/reply/provide
+ import type { FinalizedMsgContext } from "../../auto-reply/templating.js";
+ import type { OpenClawConfig } from "../../config/types.openclaw.js";
+ import { PlatformMessageNotDispatchedError } from "../../infra/outbound/deliver-types.js";
++import { createChannelPartialDeliveryError } from "./delivery-result.js";
+ import { dispatchRoutedChannelTurn } from "./lifecycle.js";
+ 
+ const dispatchReplyWithRoutedChannelDispatcherCore = vi.hoisted(() => vi.fn());
+@@ -107,6 +108,14 @@ describe("channel turn failed-send custody", () => {
+       error: new Error("adapter failed after entry"),
+       failureSettle: ["unknown", ["queued", "unknown"]] as const,
+     },
++    {
++      label: "visible partial delivery settles delivered custody",
++      error: createChannelPartialDeliveryError(new Error("finalization failed"), {
++        visibleReplySent: true,
++        content: "accepted partial",
++      }),
++      failureSettle: ["delivered", ["queued", "unknown"]] as const,
++    },
+   ])("$label", async ({ error, failureSettle }) => {
+     await expect(run(error)).rejects.toBe(error);
+ 
+-- 
+2.50.1 (Apple Git-155)
+

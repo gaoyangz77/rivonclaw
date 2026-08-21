@@ -197,6 +197,18 @@ Removal: upstream makes both known-key helpers use exact indexed SQLite reads,
 or lands equivalent indexed session lookup support. OpenClaw commit `257b8e0`
 is related but remains unmerged and is much broader than this temporary patch.
 
+### 0036 - Feishu visible delivery custody backport
+
+Backports OpenClaw commit `1096ca2a708f600386b6efd349823c759e041fcc`.
+The pinned vendor already records ambiguous final delivery as notice debt, but
+predates the Feishu follow-up that recognizes an already-visible partial CardKit
+delivery as delivered. Without the follow-up, the next inbound turn emits a
+false warning that the previous reply could not be confirmed.
+
+Removal: drop this patch when `.openclaw-version` includes upstream commit
+`1096ca2a708f600386b6efd349823c759e041fcc` (`fix(feishu): retain partial custody
+on preview cleanup`) or an equivalent successor.
+
 ## Dropped In bcaec0cf145
 
 - `0033`: OpenClaw now contains commit
