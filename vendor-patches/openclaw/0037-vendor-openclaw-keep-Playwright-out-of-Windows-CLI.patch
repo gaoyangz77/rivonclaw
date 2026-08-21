@@ -1,0 +1,151 @@
+From 6e092d311029c79d92a2f48cc006b61713c42612 Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Fri, 21 Aug 2026 12:07:19 -0700
+Subject: [PATCH] vendor(openclaw): keep Playwright out of Windows CLI
+ registration
+
+Why:
+- OpenClaw fa62fccb867 eagerly pulls browser action policy and Playwright into CLI registration.
+- Windows vendor builds then fail while rendering source browser help for CLI startup metadata.
+- Backports upstream commit b1b2608f8ca9a56d573487c7eae8ecbdfa3aa8cc (PR #127035).
+
+Removal:
+- Drop this patch when the pinned vendor contains b1b2608f8ca9a56d573487c7eae8ecbdfa3aa8cc or equivalent Windows CLI registration laziness.
+
+Tests:
+- apps/desktop/src/gateway/vendor-browser-windows-cli-laziness.sentinel.test.ts
+---
+ extensions/browser/src/browser-tool.schema.test.ts           | 2 +-
+ extensions/browser/src/browser-tool.schema.ts                | 2 +-
+ extensions/browser/src/browser/act-policy.ts                 | 2 --
+ extensions/browser/src/browser/config.ts                     | 3 ++-
+ extensions/browser/src/browser/constants.ts                  | 2 ++
+ extensions/browser/src/browser/pw-tools-core.snapshot.ts     | 3 ++-
+ extensions/browser/src/browser/routes/agent.act.normalize.ts | 2 +-
+ extensions/browser/src/cli/browser-cli-resize.ts             | 2 +-
+ 8 files changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/extensions/browser/src/browser-tool.schema.test.ts b/extensions/browser/src/browser-tool.schema.test.ts
+index 791ccd08c07..1262dc34141 100644
+--- a/extensions/browser/src/browser-tool.schema.test.ts
++++ b/extensions/browser/src/browser-tool.schema.test.ts
+@@ -2,7 +2,7 @@
+ import { expectDefined } from "@openclaw/normalization-core";
+ import { describe, expect, it } from "vitest";
+ import { createBrowserToolSchema, resolveBrowserToolCapabilities } from "./browser-tool.schema.js";
+-import { ACT_MAX_VIEWPORT_DIMENSION } from "./browser/act-policy.js";
++import { ACT_MAX_VIEWPORT_DIMENSION } from "./browser/constants.js";
+ 
+ type SchemaRecord = Record<string, { maximum?: number; properties?: SchemaRecord }>;
+ type SchemaProperty = {
+diff --git a/extensions/browser/src/browser-tool.schema.ts b/extensions/browser/src/browser-tool.schema.ts
+index 7fea5cfabee..bdba04e85dc 100644
+--- a/extensions/browser/src/browser-tool.schema.ts
++++ b/extensions/browser/src/browser-tool.schema.ts
+@@ -13,7 +13,7 @@ import {
+ } from "openclaw/plugin-sdk/channel-actions";
+ import { Type } from "typebox";
+ import { BROWSER_TAB_BOUND_ACTIONS } from "./browser-tool-binding.js";
+-import { ACT_MAX_VIEWPORT_DIMENSION } from "./browser/act-policy.js";
++import { ACT_MAX_VIEWPORT_DIMENSION } from "./browser/constants.js";
+ import type { BrowserProfileCapabilities } from "./browser/profile-capabilities.js";
+ 
+ const BROWSER_ACT_KINDS = [
+diff --git a/extensions/browser/src/browser/act-policy.ts b/extensions/browser/src/browser/act-policy.ts
+index 0417db4f693..c35f6a8d702 100644
+--- a/extensions/browser/src/browser/act-policy.ts
++++ b/extensions/browser/src/browser/act-policy.ts
+@@ -23,8 +23,6 @@ export const ACT_MAX_BATCH_DEPTH = 5;
+ export const ACT_MAX_CLICK_DELAY_MS = 5_000;
+ /** Maximum explicit wait duration accepted from model/tool input. */
+ export const ACT_MAX_WAIT_TIME_MS = 30_000;
+-/** Maximum viewport side length accepted by resize actions. */
+-export const ACT_MAX_VIEWPORT_DIMENSION = 8192;
+ 
+ const ACT_MIN_TIMEOUT_MS = 500;
+ const ACT_MAX_INTERACTION_TIMEOUT_MS = 60_000;
+diff --git a/extensions/browser/src/browser/config.ts b/extensions/browser/src/browser/config.ts
+index 0d12c647612..f4d3651b79b 100644
+--- a/extensions/browser/src/browser/config.ts
++++ b/extensions/browser/src/browser/config.ts
+@@ -6,6 +6,7 @@
+  */
+ import os from "node:os";
+ import path from "node:path";
++import { parseBrowserHttpUrl, redactCdpUrl } from "openclaw/plugin-sdk/browser-config";
+ import { mergeSsrFPolicies } from "openclaw/plugin-sdk/ssrf-policy";
+ import {
+   normalizeOptionalString,
+@@ -18,10 +19,10 @@ import {
+   deriveDefaultBrowserCdpPortRange,
+   deriveDefaultBrowserControlPort,
+ } from "../config/port-defaults.js";
++import { isLoopbackHost } from "../gateway/net.js";
+ import type { SsrFPolicy } from "../infra/net/ssrf.js";
+ import { parseBooleanValue } from "../sdk-config.js";
+ import { resolveUserPath } from "../utils.js";
+-import { parseBrowserHttpUrl, redactCdpUrl, isLoopbackHost } from "./cdp.helpers.js";
+ import {
+   DEFAULT_AI_SNAPSHOT_MAX_CHARS,
+   DEFAULT_BROWSER_ACTION_TIMEOUT_MS,
+diff --git a/extensions/browser/src/browser/constants.ts b/extensions/browser/src/browser/constants.ts
+index 90a22ff5a08..a093179df6f 100644
+--- a/extensions/browser/src/browser/constants.ts
++++ b/extensions/browser/src/browser/constants.ts
+@@ -26,6 +26,8 @@ export const DEFAULT_BROWSER_LOCAL_CDP_READY_TIMEOUT_MS = 8_000;
+ export const DEFAULT_BROWSER_SCREENSHOT_TIMEOUT_MS = 20_000;
+ /** Default timeout for snapshot capture. */
+ export const DEFAULT_BROWSER_SNAPSHOT_TIMEOUT_MS = 20_000;
++/** Maximum viewport side length accepted by browser actions. */
++export const ACT_MAX_VIEWPORT_DIMENSION = 8192;
+ /** Default idle age before session tab cleanup can close tabs. */
+ export const DEFAULT_BROWSER_TAB_CLEANUP_IDLE_MINUTES = 120;
+ /** Default maximum tracked tabs kept per session. */
+diff --git a/extensions/browser/src/browser/pw-tools-core.snapshot.ts b/extensions/browser/src/browser/pw-tools-core.snapshot.ts
+index ad16bd3cb61..6a202242538 100644
+--- a/extensions/browser/src/browser/pw-tools-core.snapshot.ts
++++ b/extensions/browser/src/browser/pw-tools-core.snapshot.ts
+@@ -10,8 +10,9 @@ import {
+ import { truncateUtf16Safe } from "openclaw/plugin-sdk/text-utility-runtime";
+ import type { Frame, Page } from "playwright-core";
+ import type { SsrFPolicy } from "../infra/net/ssrf.js";
+-import { ACT_MAX_VIEWPORT_DIMENSION, resolveBrowserNavigationTimeoutMs } from "./act-policy.js";
++import { resolveBrowserNavigationTimeoutMs } from "./act-policy.js";
+ import { type AriaSnapshotNode, formatAriaSnapshot, type RawAXNode } from "./cdp.js";
++import { ACT_MAX_VIEWPORT_DIMENSION } from "./constants.js";
+ import type { BrowserDownloadResult } from "./download-types.js";
+ import {
+   assertBrowserNavigationAllowed,
+diff --git a/extensions/browser/src/browser/routes/agent.act.normalize.ts b/extensions/browser/src/browser/routes/agent.act.normalize.ts
+index fdc773ccdf6..296022543f5 100644
+--- a/extensions/browser/src/browser/routes/agent.act.normalize.ts
++++ b/extensions/browser/src/browser/routes/agent.act.normalize.ts
+@@ -8,11 +8,11 @@ import {
+   ACT_MAX_BATCH_ACTIONS,
+   ACT_MAX_BATCH_DEPTH,
+   ACT_MAX_CLICK_DELAY_MS,
+-  ACT_MAX_VIEWPORT_DIMENSION,
+   ACT_MAX_WAIT_TIME_MS,
+   normalizeActBoundedNonNegativeMs,
+ } from "../act-policy.js";
+ import type { BrowserActRequest, BrowserFormField } from "../client-actions.types.js";
++import { ACT_MAX_VIEWPORT_DIMENSION } from "../constants.js";
+ import { normalizeBrowserFormField } from "../form-fields.js";
+ import { resolveTargetIdFromTabs } from "../target-id.js";
+ import {
+diff --git a/extensions/browser/src/cli/browser-cli-resize.ts b/extensions/browser/src/cli/browser-cli-resize.ts
+index 2fdc0531dc8..b27075706cf 100644
+--- a/extensions/browser/src/cli/browser-cli-resize.ts
++++ b/extensions/browser/src/cli/browser-cli-resize.ts
+@@ -1,7 +1,7 @@
+ /**
+  * Shared Browser CLI resize runner used by resize and set viewport commands.
+  */
+-import { ACT_MAX_VIEWPORT_DIMENSION } from "../browser/act-policy.js";
++import { ACT_MAX_VIEWPORT_DIMENSION } from "../browser/constants.js";
+ import {
+   callBrowserResize,
+   parseBrowserPositiveIntegerValue,
+-- 
+2.50.1 (Apple Git-155)
+
