@@ -65,8 +65,13 @@ export type CsEscalationResponseEventPayload = {
   escalationId: string;
   decision: string;
   resolved: boolean;
+  chatType?: "p2p" | "group";
   submittedAt: number;
 };
+
+function readFeishuChatType(value: unknown): "p2p" | "group" | undefined {
+  return value === "p2p" || value === "group" ? value : undefined;
+}
 
 function readBoundedString(value: unknown, maxLength: number): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -98,12 +103,15 @@ export function parseCsEscalationResponseInteraction(
   const messageId = readBoundedString(context.messageId, 256);
   const operatorOpenId = readBoundedString(context.senderId, 256);
   let escalationId = readBoundedString(context.interaction.value?.escalationId, 64);
+  let chatType = readFeishuChatType(context.interaction.value?.chatType);
   if (!escalationId && interactionPayload?.startsWith("respond:")) {
     try {
-      escalationId = readBoundedString(
-        decodeURIComponent(interactionPayload.slice("respond:".length)),
-        64,
-      );
+      const fallbackPayload = interactionPayload.slice("respond:".length);
+      const scoped = /^chat_type=(p2p|group):(.*)$/.exec(fallbackPayload);
+      if (scoped) {
+        chatType = readFeishuChatType(scoped[1]);
+      }
+      escalationId = readBoundedString(decodeURIComponent(scoped?.[2] ?? fallbackPayload), 64);
     } catch {
       escalationId = undefined;
     }
@@ -132,6 +140,7 @@ export function parseCsEscalationResponseInteraction(
     escalationId,
     decision,
     resolved: resolution === "resolved",
+    ...(chatType ? { chatType } : {}),
     submittedAt: now,
   };
 }

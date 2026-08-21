@@ -22,6 +22,7 @@ export interface CsEscalationResponseSubmission {
   escalationId: string;
   decision: string;
   resolved: boolean;
+  chatType?: "p2p" | "group";
   submittedAt: number;
 }
 
@@ -46,6 +47,7 @@ export interface CsEscalationResponseDetails {
   orderId?: string | null;
   reason: string;
   context?: string | null;
+  chatType?: "p2p" | "group";
 }
 
 export interface CsEscalationResponseView extends CsEscalationResponseDetails {
@@ -248,7 +250,10 @@ export class CsEscalationResponseProcessor {
     // Deliberate exception to fail-fast: a cosmetic acknowledgement must never abort the
     // business mutation the employee asked for.
     try {
-      await this.deps.adapter.acknowledgeSubmission(submission, this.buildDetails(escalation));
+      await this.deps.adapter.acknowledgeSubmission(
+        submission,
+        this.buildDetails(escalation, submission.chatType),
+      );
     } catch (error) {
       log.warn(`CS response acknowledgement failed escalation=${submission.escalationId}`, error);
     }
@@ -296,7 +301,10 @@ export class CsEscalationResponseProcessor {
           mutation.csRespond,
           startedAt,
         );
-        await this.deps.adapter.sendFailure(submission, this.buildDetails(escalation));
+        await this.deps.adapter.sendFailure(
+          submission,
+          this.buildDetails(escalation, submission.chatType),
+        );
         return;
       }
 
@@ -335,7 +343,10 @@ export class CsEscalationResponseProcessor {
       this.emitTelemetry(submission, "mutation_failed", error, undefined, startedAt);
       // The mutation timed out or the transport threw, and the recheck did not observe a
       // new result. The backend may still be processing it, so this is unknown, not failed.
-      await this.deps.adapter.sendUncertain(submission, this.buildDetails(escalation));
+      await this.deps.adapter.sendUncertain(
+        submission,
+        this.buildDetails(escalation, submission.chatType),
+      );
     }
   }
 
@@ -427,7 +438,10 @@ export class CsEscalationResponseProcessor {
   }
 
   /** Map an escalation record onto the fields a card renders above the fold. */
-  private buildDetails(escalation: EscalationRecord): CsEscalationResponseDetails {
+  private buildDetails(
+    escalation: EscalationRecord,
+    chatType?: "p2p" | "group",
+  ): CsEscalationResponseDetails {
     const shopId = escalation.shopId?.trim() ?? "";
     return {
       escalationId: escalation.id,
@@ -437,6 +451,7 @@ export class CsEscalationResponseProcessor {
       orderId: escalation.orderId,
       reason: escalation.reason?.trim() || "-",
       context: escalation.context,
+      ...(chatType ? { chatType } : {}),
     };
   }
 
@@ -444,6 +459,7 @@ export class CsEscalationResponseProcessor {
     ownerId: string,
     escalation: EscalationRecord,
     alreadyProcessed: boolean,
+    chatType?: "p2p" | "group",
   ): CsEscalationResponseView {
     const stored = this.deps.history.listByEscalationId(
       ownerId,
@@ -474,7 +490,7 @@ export class CsEscalationResponseProcessor {
     }
     const resolved = isResolved(escalation) || feedback.at(-1)?.resolved === true;
     return {
-      ...this.buildDetails(escalation),
+      ...this.buildDetails(escalation, chatType),
       resolved,
       alreadyProcessed,
       feedback,
@@ -502,7 +518,7 @@ export class CsEscalationResponseProcessor {
     try {
       await this.deps.adapter.updateMessage(
         submission,
-        this.buildView(ownerId, escalation, alreadyProcessed),
+        this.buildView(ownerId, escalation, alreadyProcessed, submission.chatType),
       );
       log.info(
         `CS response message updated escalation=${submission.escalationId} ` +

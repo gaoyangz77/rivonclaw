@@ -11,6 +11,7 @@ export interface CsEscalationCardInput {
   orderId?: string | null;
   reason: string;
   context?: string | null;
+  chatType?: "p2p" | "group";
   locale?: string | null;
 }
 
@@ -52,6 +53,9 @@ function buildResponseForm(
 ): Record<string, unknown> {
   const t = getCsEscalationCardMessages(input.locale);
   const disabled = options?.disabled === true;
+  const actionName = input.chatType
+    ? `rivonclaw.cs:respond:chat_type=${input.chatType}:${encodeURIComponent(input.escalationId)}`
+    : `rivonclaw.cs:respond:${encodeURIComponent(input.escalationId)}`;
   return {
     tag: "form",
     name: "cs_escalation_response",
@@ -86,7 +90,7 @@ function buildResponseForm(
         tag: "button",
         // Feishu Schema 2 form_submit callbacks can omit button.value.
         // Keep a routable, self-contained fallback in the button name.
-        name: `rivonclaw.cs:respond:${encodeURIComponent(input.escalationId)}`,
+        name: actionName,
         type: "primary",
         text: plainText(t.submit),
         form_action_type: "submit",
@@ -94,6 +98,7 @@ function buildResponseForm(
         value: {
           action: "rivonclaw.cs:respond",
           escalationId: input.escalationId,
+          ...(input.chatType ? { chatType: input.chatType } : {}),
           processingText: t.submitting,
           unauthorizedText: t.unauthorized,
           unavailableText: t.failed,

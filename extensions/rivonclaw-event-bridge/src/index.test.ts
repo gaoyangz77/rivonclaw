@@ -156,10 +156,7 @@ describe("agent event mirroring", () => {
       data: { phase: "start" },
     });
 
-    expect(broadcast).not.toHaveBeenCalledWith(
-      "plugin.rivonclaw.chat-mirror",
-      expect.anything(),
-    );
+    expect(broadcast).not.toHaveBeenCalledWith("plugin.rivonclaw.chat-mirror", expect.anything());
   });
 
   it("still mirrors mapped external-channel runs", () => {
@@ -196,6 +193,7 @@ describe("Feishu CS escalation form interactions", () => {
       payload: "respond",
       value: {
         escalationId: "M1DG8V",
+        chatType: "group",
         processingText: "Submitting now",
         failureText: "Please retry",
       },
@@ -214,6 +212,7 @@ describe("Feishu CS escalation form interactions", () => {
       escalationId: "M1DG8V",
       decision: "Issue a refund",
       resolved: true,
+      chatType: "group",
       submittedAt: 123,
     });
     expect(
@@ -235,13 +234,18 @@ describe("Feishu CS escalation form interactions", () => {
           ...baseContext,
           interaction: {
             ...baseContext.interaction,
-            payload: "respond:0B67JE",
-            value: { action: "rivonclaw.cs:respond:0B67JE" },
+            payload: "respond:chat_type=p2p:0B67JE",
+            value: {
+              action: "rivonclaw.cs:respond:chat_type=p2p:0B67JE",
+              chatType: "p2p",
+            },
           },
         },
         789,
       ),
-    ).toEqual(expect.objectContaining({ escalationId: "0B67JE", submittedAt: 789 }));
+    ).toEqual(
+      expect.objectContaining({ escalationId: "0B67JE", chatType: "p2p", submittedAt: 789 }),
+    );
   });
 
   it("registers the namespace and broadcasts one typed event", async () => {

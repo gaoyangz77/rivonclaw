@@ -2480,6 +2480,7 @@ describe("escalate", () => {
     );
     const request = mockRpcRequest.mock.calls.find((call) => call[0] === "message.action")?.[1];
     expect(JSON.stringify(request?.params?.card)).toContain("客服升级请求");
+    expect(JSON.stringify(request?.params?.card)).toContain("chat_type=p2p");
     expect(mockRpcRequest).not.toHaveBeenCalledWith("send", expect.anything());
   });
 

@@ -16,6 +16,7 @@ const payload: CsEscalationResponseGatewayPayload = {
   accountId: "account-1",
   operatorOpenId: "ou_staff",
   chatId: "oc_chat",
+  chatType: "group",
   messageId: "om_card",
   escalationId: "M1DG8V",
   decision: "Approve the full refund",
@@ -205,6 +206,8 @@ describe("FeishuEscalationResponseProcessor", () => {
     expect(serialized).toContain("Feedback history");
     expect(serialized).toContain('"tag":"form"');
     expect(serialized).toContain('"tag":"button"');
+    expect(serialized).toContain("rivonclaw.cs:respond:chat_type=group:M1DG8V");
+    expect(serialized).toContain('"chatType":"group"');
   });
 
   it("skips mutation and renders already processed when the escalation is resolved", async () => {
@@ -316,10 +319,7 @@ describe("FeishuEscalationResponseProcessor", () => {
 
   it.each([
     ["preflight query failure", () => vi.fn().mockRejectedValueOnce(new Error("offline"))],
-    [
-      "escalation not found",
-      () => vi.fn().mockResolvedValueOnce({ csGetEscalationResult: null }),
-    ],
+    ["escalation not found", () => vi.fn().mockResolvedValueOnce({ csGetEscalationResult: null })],
   ])("leaves the card untouched on %s and sends a failure reply", async (_name, makeFetch) => {
     const { processor, messenger } = createHarness(makeFetch());
 
