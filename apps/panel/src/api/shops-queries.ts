@@ -257,6 +257,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
       snapshotHash
     }
     searchPlanGuidance
+    searchPlanExplanationLocale
     searchPlanningState
     activeSearchPlanId
     searchPlanGeneration
@@ -564,6 +565,13 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
         generation
         configRevision
         status
+        generationRoute
+        generatedBy {
+          source
+          requestedModel
+          resolvedModel
+          completedAt
+        }
         phrase {
           key
           text
