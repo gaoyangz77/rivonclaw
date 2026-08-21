@@ -13,7 +13,15 @@ const resolveFeishuAccountCredentials = vi.fn(() => ({
   domain: "feishu",
 }));
 
+class MockPermissionRequiredError extends Error {
+  constructor(readonly permissionUrl: string) {
+    super("permission required");
+  }
+}
+
 vi.mock("./feishu-open-api.js", () => ({
+  isFeishuCallbackPermissionRequiredError: (error: unknown) =>
+    error instanceof MockPermissionRequiredError,
   patchFeishuMessageCardCallbackUrl,
   resolveFeishuAccountCredentials,
 }));
@@ -102,6 +110,32 @@ describe("Feishu CS callback configuration", () => {
         appId: "cli_test",
         domain: "feishu",
       }),
-    ).toBe("Customer-service card callback is not configured");
+    ).toEqual({
+      kind: "configuration_failed",
+      message: "Customer-service card callback is not configured",
+    });
+  });
+
+  it("fails fast and exposes the permission remediation URL", async () => {
+    const { storage } = createStorage();
+    configureFeishuCsCallbackRuntime({ storage, locale: "zh-CN" });
+    patchFeishuMessageCardCallbackUrl.mockRejectedValue(
+      new MockPermissionRequiredError("https://open.feishu.cn/app/cli_test/auth?q=permission"),
+    );
+
+    await expect(ensureFeishuCsCallbackConfigured("account-one")).rejects.toBeInstanceOf(
+      MockPermissionRequiredError,
+    );
+
+    expect(patchFeishuMessageCardCallbackUrl).toHaveBeenCalledTimes(1);
+    expect(
+      getFeishuCsCallbackWarning(storage, {
+        appId: "cli_test",
+        domain: "feishu",
+      }),
+    ).toMatchObject({
+      kind: "permission_required",
+      actionUrl: "https://open.feishu.cn/app/cli_test/auth?q=permission",
+    });
   });
 });

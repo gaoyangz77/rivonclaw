@@ -51,6 +51,7 @@ import {
   ensureFeishuCsCallbackConfigured,
   getFeishuCsCallbackWarning,
 } from "./feishu-cs-callback-config.js";
+import { isFeishuCallbackPermissionRequiredError } from "./feishu-open-api.js";
 
 const log = createLogger("channel-manager");
 const RIVONCLAW_WEIXIN_LOGIN_START = "rivonclaw.weixin.login.start";
@@ -143,6 +144,7 @@ export interface ChannelAccountSnapshotForMst {
   status: {
     hasContextToken: boolean | null;
     warning?: string | null;
+    warningActionUrl?: string | null;
   };
   recipients: ChannelRecipientsSnapshot;
 }
@@ -1184,7 +1186,10 @@ export const ChannelManagerModel = types
       appSecret: string;
       domain: "feishu" | "lark";
       openId?: string;
-    }): Promise<ChannelAccountSnapshotForMst> {
+    }): Promise<{
+      account: ChannelAccountSnapshotForMst;
+      callbackPermissionUrl?: string;
+    }> {
       const { storage, stateDir } = getEnv();
       const existingAccount = storage.channelAccounts
         .list(FEISHU_CHANNEL_ID)
@@ -1228,9 +1233,13 @@ export const ChannelManagerModel = types
         updateChannelAccountRecipients(FEISHU_CHANNEL_ID, accountId);
       }
 
+      let callbackPermissionUrl: string | undefined;
       try {
         await ensureFeishuCsCallbackConfigured(accountId);
       } catch (error) {
+        if (isFeishuCallbackPermissionRequiredError(error)) {
+          callbackPermissionUrl = error.permissionUrl;
+        }
         log.warn(
           `Feishu account ${accountId} was saved, but its CS callback is not configured yet: ${String(error)}`,
         );
@@ -1245,7 +1254,10 @@ export const ChannelManagerModel = types
         }
       }
 
-      return entry;
+      return {
+        account: entry,
+        ...(callbackPermissionUrl ? { callbackPermissionUrl } : {}),
+      };
     }
 
     function weixinContextTokenSyncKey(accountId: string, recipientId: string): string {
@@ -1353,7 +1365,10 @@ export const ChannelManagerModel = types
 
       if (account.channelId === FEISHU_CHANNEL_ID) {
         const warning = getFeishuCsCallbackWarning(storage, account.config);
-        if (warning) status.warning = warning;
+        if (warning) {
+          status.warning = warning.message;
+          if (warning.actionUrl) status.warningActionUrl = warning.actionUrl;
+        }
       }
 
       if (account.channelId === WEIXIN_CHANNEL_ID) {
@@ -2059,6 +2074,34 @@ export const ChannelManagerModel = types
       // Feishu official QR setup
       // -----------------------------------------------------------------------
 
+      retryFeishuCsCallback: flow(function* (accountId: string) {
+        const { storage } = getEnv();
+        const account = storage.channelAccounts.get(FEISHU_CHANNEL_ID, accountId);
+        if (!account) throw new Error(`Feishu account not found: ${accountId}`);
+
+        try {
+          yield ensureFeishuCsCallbackConfigured(accountId);
+          return { status: "configured" as const };
+        } catch (error) {
+          if (isFeishuCallbackPermissionRequiredError(error)) {
+            return {
+              status: "permission_required" as const,
+              permissionUrl: error.permissionUrl,
+            };
+          }
+          throw error;
+        } finally {
+          const latest = storage.channelAccounts.get(FEISHU_CHANNEL_ID, accountId);
+          if (latest) {
+            (getRoot(self) as any).updateChannelAccountStatus(
+              FEISHU_CHANNEL_ID,
+              accountId,
+              buildChannelAccountSnapshot(latest).status,
+            );
+          }
+        }
+      }),
+
       startFeishuSetup: flow(function* () {
         const initRes = (yield feishuRegistrationRequest<{
           supported_auth_methods?: string[];
@@ -2163,19 +2206,28 @@ export const ChannelManagerModel = types
             typeof pollRes.user_info?.open_id === "string" && pollRes.user_info.open_id.trim()
               ? pollRes.user_info.open_id.trim()
               : undefined;
-          const account = (yield persistFeishuOfficialAccount({
+          const persisted = (yield persistFeishuOfficialAccount({
             appId: pollRes.client_id,
             appSecret: pollRes.client_secret,
             domain: session.domain,
             ...(openId ? { openId } : {}),
-          })) as ChannelAccountSnapshotForMst;
+          })) as Awaited<ReturnType<typeof persistFeishuOfficialAccount>>;
           self._feishuSetupSessions.delete(sessionKey);
           log.info(
             `Feishu QR setup connected: session=${sessionKey.slice(0, 8)} domain=${session.domain} openId=${openId ? "yes" : "no"}`,
           );
+          if (persisted.callbackPermissionUrl) {
+            return {
+              status: "permission_required" as const,
+              accountId: persisted.account.accountId,
+              openId,
+              domain: session.domain,
+              permissionUrl: persisted.callbackPermissionUrl,
+            };
+          }
           return {
             status: "connected" as const,
-            accountId: account.accountId,
+            accountId: persisted.account.accountId,
             openId,
             domain: session.domain,
           };

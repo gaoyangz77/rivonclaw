@@ -3904,6 +3904,7 @@ tbody td {
 }
 
 .wechat-activation-warning {
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3918,6 +3919,10 @@ tbody td {
   font-weight: 700;
   line-height: 1;
   cursor: help;
+}
+
+.wechat-activation-warning-action {
+  cursor: pointer;
 }
 
 .wechat-activation-tooltip {

@@ -374,11 +374,32 @@ const feishuSetupPoll: EndpointHandler = async (req, res, _url, _params, ctx: Ap
   try {
     const result = await cm.pollFeishuSetup(body.sessionKey);
     sendJson(res, 200, result);
-    if (result.status === "connected") {
+    if (result.status === "connected" || result.status === "permission_required") {
       ctx.onChannelConfigured?.(FEISHU_CHANNEL_ID);
     }
   } catch (err) {
     log.error("Failed to poll Feishu setup:", err);
+    sendJson(res, 500, { error: formatError(err) });
+  }
+};
+
+// ── POST /api/channels/feishu-setup/retry-callback ──
+
+const feishuSetupRetryCallback: EndpointHandler = async (req, res, _url, _params, ctx) => {
+  const cm = requireChannelManager(ctx, res);
+  if (!cm) return;
+
+  const body = (await parseBody(req)) as { accountId?: string };
+  const accountId = body.accountId?.trim();
+  if (!accountId) {
+    sendJson(res, 400, { error: "Missing required field: accountId" });
+    return;
+  }
+
+  try {
+    sendJson(res, 200, await cm.retryFeishuCsCallback(accountId));
+  } catch (err) {
+    log.error("Failed to retry Feishu CS callback setup:", err);
     sendJson(res, 500, { error: formatError(err) });
   }
 };
@@ -540,6 +561,7 @@ export function registerChannelsHandlers(registry: RouteRegistry): void {
   registry.register(API["channels.qrLogin.wait"], qrLoginWait);
   registry.register(API["channels.feishuSetup.start"], feishuSetupStart);
   registry.register(API["channels.feishuSetup.poll"], feishuSetupPoll);
+  registry.register(API["channels.feishuSetup.retryCallback"], feishuSetupRetryCallback);
   registry.register(API["pairing.requests"], pairingRequests);
   registry.register(API["pairing.allowlist.get"], getAllowlist);
   registry.register(API["pairing.allowlist.setLabel"], setLabel);

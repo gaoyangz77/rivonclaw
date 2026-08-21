@@ -8,6 +8,8 @@ vi.mock("@rivonclaw/gateway", () => ({
 }));
 
 const {
+  FeishuCallbackPermissionRequiredError,
+  getFeishuCallbackPermissionUrl,
   getFeishuTenantAccessToken,
   patchFeishuMessageCardCallbackUrl,
   resetFeishuTokenCacheForTests,
@@ -132,5 +134,33 @@ describe("patchFeishuMessageCardCallbackUrl", () => {
         callbackUrl: "https://api.example.com/callback",
       }),
     ).rejects.toThrow(/code=99991663 msg=permission denied/);
+  });
+
+  it("surfaces the one-click permission URL for the required application scope", async () => {
+    mockFetch(
+      jsonResponse(TOKEN_OK),
+      jsonResponse({
+        code: 99991672,
+        msg: "Access denied. Required: application:application:patch",
+      }),
+    );
+
+    const request = patchFeishuMessageCardCallbackUrl({
+      appId: "cli_one",
+      appSecret: "secret_one",
+      domain: "feishu",
+      callbackUrl: "https://api.example.com/callback",
+    });
+
+    await expect(request).rejects.toBeInstanceOf(FeishuCallbackPermissionRequiredError);
+    await expect(request).rejects.toMatchObject({
+      appId: "cli_one",
+      permissionUrl: getFeishuCallbackPermissionUrl({ appId: "cli_one", domain: "feishu" }),
+    });
+    const permissionUrl = new URL(
+      getFeishuCallbackPermissionUrl({ appId: "cli_one", domain: "feishu" }),
+    );
+    expect(permissionUrl.searchParams.get("q")).toBe("application:application:patch");
+    expect(permissionUrl.searchParams.get("token_type")).toBe("tenant");
   });
 });

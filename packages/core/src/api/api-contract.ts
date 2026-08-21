@@ -134,6 +134,7 @@ export const API = {
   "channels.qrLogin.wait":   { method: "POST",   path: "/api/channels/qr-login/wait",    desc: "Wait for QR login completion" },
   "channels.feishuSetup.start": { method: "POST", path: "/api/channels/feishu-setup/start", desc: "Start Feishu official QR setup" },
   "channels.feishuSetup.poll":  { method: "POST", path: "/api/channels/feishu-setup/poll",  desc: "Poll Feishu official QR setup" },
+  "channels.feishuSetup.retryCallback": { method: "POST", path: "/api/channels/feishu-setup/retry-callback", desc: "Retry Feishu CS callback configuration after permission grant" },
 
   // ── Pairing ──
   "pairing.requests":        { method: "GET",    path: "/api/pairing/requests/:channelId", desc: "List pairing requests for channel" },
