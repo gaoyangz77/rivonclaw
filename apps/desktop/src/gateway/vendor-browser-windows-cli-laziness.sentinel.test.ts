@@ -14,6 +14,7 @@ const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/o
 const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
   ? PATCHED_VENDOR_ROOT
   : resolve(__dirname, "../../../../vendor/openclaw");
+const SETUP_VENDOR_SCRIPT = resolve(__dirname, "../../../../scripts/setup-vendor.sh");
 
 describe("vendor patch 0037: lazy Windows browser CLI registration", () => {
   const patch = readFileSync(PATCH_FILE, "utf8");
@@ -52,5 +53,14 @@ describe("vendor patch 0037: lazy Windows browser CLI registration", () => {
     expect(patch).toContain(
       "apps/desktop/src/gateway/vendor-browser-windows-cli-laziness.sentinel.test.ts",
     );
+  });
+
+  it("applies vendor patches before the first build", () => {
+    const setupScript = readFileSync(SETUP_VENDOR_SCRIPT, "utf8");
+    const patchIndex = setupScript.indexOf('git am --3way "$PATCH_DIR"/*.patch');
+    const buildIndex = setupScript.indexOf("\n  pnpm run build\n");
+
+    expect(patchIndex).toBeGreaterThanOrEqual(0);
+    expect(buildIndex).toBeGreaterThan(patchIndex);
   });
 });
