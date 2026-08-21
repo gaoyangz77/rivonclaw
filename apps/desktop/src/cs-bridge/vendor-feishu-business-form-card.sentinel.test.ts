@@ -11,7 +11,7 @@ const PATCH_FILE = resolve(
   "../../../../vendor-patches/openclaw/0028-vendor-openclaw-bridge-Feishu-business-form-cards.patch",
 );
 
-describe("vendor patch 0028: Feishu business form cards", () => {
+describe("vendor patch 0028: trusted Feishu raw card sends", () => {
   const patch = readFileSync(PATCH_FILE, "utf-8");
 
   it("allows only trusted Gateway clients to send raw Schema 2.0 cards", () => {
@@ -21,26 +21,13 @@ describe("vendor patch 0028: Feishu business form cards", () => {
     expect(patch).toContain("sendCardFeishu");
   });
 
-  it("preserves form fields and dispatches business actions through plugin handlers", () => {
-    expect(patch).toContain("form_value");
-    expect(patch).toContain("form_name");
-    expect(patch).toContain("value.event_id");
-    expect(patch).toContain("actionName?.includes");
-    expect(patch).toContain("recovers a namespaced business action from form_submit name");
-    expect(patch).toContain("dispatchPluginInteractiveHandler");
-    expect(patch).toContain("readBusinessAction");
-  });
-
-  it("keeps business callbacks synchronous and out of synthetic agent dispatch", () => {
-    expect(patch).toContain("return await handleFeishuCardAction");
-    expect(patch).toContain("fails closed when a namespaced business handler is unavailable");
-    expect(patch).toContain("never invokes the agent");
-    expect(patch).not.toContain("cs_list_open_escalations");
-  });
-
-  it("uses trusted card chat-type hints before the three-second callback deadline", () => {
-    expect(patch).toContain("readBusinessChatTypeHint");
-    expect(patch).toContain("chat_type=(p2p|group)");
-    expect(patch).toContain("business callback must not perform a chat lookup");
+  it("does not carry the retired Gateway callback bridge", () => {
+    expect(patch).not.toContain("dispatchPluginInteractiveHandler");
+    expect(patch).not.toContain("readBusinessAction");
+    expect(patch).not.toContain("readBusinessChatTypeHint");
+    expect(patch).not.toContain("form_value");
+    expect(patch).not.toContain("rivonclaw.cs");
+    expect(patch).not.toContain("monitor.account.ts");
+    expect(patch).not.toContain("card-action.ts");
   });
 });

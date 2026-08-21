@@ -52,6 +52,8 @@ export type ChannelAccountSnapshot = {
   application?: unknown;
   /** WeChat-only: whether the bound userId has a cached context token for outbound sends. */
   contextTokenReady?: boolean | null;
+  /** Desktop-owned warning for account setup that is independent of Gateway health. */
+  warning?: string | null;
   recipients?: {
     allowlist: string[];
     labels: Record<string, string>;

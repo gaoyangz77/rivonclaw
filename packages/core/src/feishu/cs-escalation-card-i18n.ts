@@ -1,4 +1,6 @@
-import { normalizeAppLocale, type AppLocale } from "../i18n/locale.js";
+export const CS_ESCALATION_CARD_LOCALES = ["en", "zh", "de", "es", "fr", "id", "it", "th"] as const;
+
+export type CsEscalationCardLocale = (typeof CS_ESCALATION_CARD_LOCALES)[number];
 
 export type CsEscalationCardMessages = {
   title: string;
@@ -29,7 +31,7 @@ export type CsEscalationCardMessages = {
   stillOpen: string;
 };
 
-const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
+const MESSAGES: Record<CsEscalationCardLocale, CsEscalationCardMessages> = {
   en: {
     title: "CS escalation",
     escalationId: "Escalation ID",
@@ -261,10 +263,17 @@ const MESSAGES: Record<AppLocale, CsEscalationCardMessages> = {
   },
 };
 
-export function getCsEscalationCardMessages(locale?: string | null): CsEscalationCardMessages {
-  return MESSAGES[normalizeAppLocale(locale)];
+export function normalizeCsEscalationCardLocale(locale?: string | null): CsEscalationCardLocale {
+  const language = locale?.trim().toLowerCase().split(/[-_]/)[0];
+  return CS_ESCALATION_CARD_LOCALES.includes(language as CsEscalationCardLocale)
+    ? (language as CsEscalationCardLocale)
+    : "en";
 }
 
-export function getCsEscalationCardLocales(): readonly AppLocale[] {
-  return Object.keys(MESSAGES) as AppLocale[];
+export function getCsEscalationCardMessages(locale?: string | null): CsEscalationCardMessages {
+  return MESSAGES[normalizeCsEscalationCardLocale(locale)];
+}
+
+export function getCsEscalationCardLocales(): readonly CsEscalationCardLocale[] {
+  return Object.keys(MESSAGES) as CsEscalationCardLocale[];
 }

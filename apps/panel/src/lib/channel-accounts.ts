@@ -17,6 +17,7 @@ export interface MstChannelAccountLike {
   recipients?: ChannelAccountSnapshot["recipients"];
   status?: {
     hasContextToken?: boolean | null;
+    warning?: string | null;
   };
 }
 
@@ -140,6 +141,7 @@ function buildAccountWithRuntime(
   if (mst.status?.hasContextToken !== undefined) {
     merged.contextTokenReady = mst.status.hasContextToken;
   }
+  if (mst.status?.warning !== undefined) merged.warning = mst.status.warning;
   merged.recipients = mst.recipients ?? runtime.recipients;
 
   return merged;
@@ -167,6 +169,7 @@ function buildAccountWithoutRuntime(mst: MstChannelAccountLike): ChannelAccountS
   if (mst.status?.hasContextToken !== undefined) {
     account.contextTokenReady = mst.status.hasContextToken;
   }
+  if (mst.status?.warning !== undefined) account.warning = mst.status.warning;
   if (mst.recipients) {
     account.recipients = mst.recipients;
   }

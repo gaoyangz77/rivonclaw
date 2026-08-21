@@ -120,6 +120,7 @@ import { setupGateway } from "./gateway-runtime.js";
 import { setupAuth } from "./auth-runtime.js";
 import { bootstrapDesktopAuthState } from "./bootstrap-auth-state.js";
 import { fetchTelegramDebugOperatorUserIds } from "../channels/telegram-debug-relay.js";
+import { configureFeishuCsCallbackRuntime } from "../channels/feishu-cs-callback-config.js";
 import { isLegacyZhuaZhuaRelayUrl } from "../mobile/mobile-manager.js";
 import { detectAndApplyFirstPartyDomainRoute } from "../infra/network/first-party-domain-route.js";
 import {
@@ -754,6 +755,7 @@ app.whenReady().then(async () => {
   // Initialize Channel Manager -- loads accounts from SQLite (runs migration if needed).
   // Must happen BEFORE createGatewayConfigBuilder so that buildPluginEntries() and
   // buildConfigAccounts() have data when buildFullGatewayConfig is first invoked.
+  configureFeishuCsCallbackRuntime({ storage, locale });
   initChannelManagerEnv({
     storage,
     configPath,

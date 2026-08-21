@@ -60,7 +60,8 @@ import {
   type CsAgentDispatchReason,
 } from "./cs-agent-dispatch-resolver.js";
 import { buildCustomerServiceSessionKey } from "./customer-service-agent.js";
-import { buildFeishuCsEscalationCard } from "./cs-escalation-card.js";
+import { buildFeishuCsEscalationCard } from "@rivonclaw/core";
+import { ensureFeishuCsCallbackConfigured } from "../channels/feishu-cs-callback-config.js";
 import type {
   CsRunAdmissionLease,
   CsRunAdmissionMode,
@@ -1700,6 +1701,7 @@ export class CustomerServiceSession {
       const message = err instanceof Error ? err.message : String(err);
       if (
         message === "Escalation routing not configured" ||
+        message === "Customer-service card callback is not configured" ||
         message.startsWith("WeChat escalation recipient is not active yet")
       ) {
         return { ok: false, error: message };
@@ -1784,6 +1786,7 @@ export class CustomerServiceSession {
     lines.push("", 'Please reply with your decision (e.g., "Approved, process full refund").');
 
     let sendMessageId: string | undefined;
+    let sendFailureReason = "send_failed";
     try {
       const idempotencyKey = params.idempotencyKey ?? `cs-escalate:${params.escalationId}`;
       log.info(
@@ -1792,30 +1795,33 @@ export class CustomerServiceSession {
       );
       const sendResult =
         channel === "feishu"
-          ? await openClawConnector.request("message.action", {
-              channel: "feishu",
-              action: "send",
-              accountId: outboundAccountId,
-              params: {
-                to: escalationRecipientId,
-                card: buildFeishuCsEscalationCard({
-                  escalationId: params.escalationId,
-                  shop: this.shop.shopName,
-                  conversationId: this.csContext.conversationId,
-                  buyer: buyerNickname ?? this.csContext.buyerUserId,
-                  orderId,
-                  reason: params.reason,
-                  context: params.context,
-                  chatType:
-                    escalationRecipientId.startsWith("oc_") ||
-                    escalationRecipientId.startsWith("chat:")
-                      ? "group"
-                      : "p2p",
-                  locale: this.opts?.locale?.(),
-                }),
-              },
-              idempotencyKey,
-            })
+          ? await (async () => {
+              try {
+                await ensureFeishuCsCallbackConfigured(outboundAccountId);
+              } catch (error) {
+                sendFailureReason = "feishu_callback_not_configured";
+                throw error;
+              }
+              return openClawConnector.request("message.action", {
+                channel: "feishu",
+                action: "send",
+                accountId: outboundAccountId,
+                params: {
+                  to: escalationRecipientId,
+                  card: buildFeishuCsEscalationCard({
+                    escalationId: params.escalationId,
+                    shop: this.shop.shopName,
+                    conversationId: this.csContext.conversationId,
+                    buyer: buyerNickname ?? this.csContext.buyerUserId,
+                    orderId,
+                    reason: params.reason,
+                    context: params.context,
+                    locale: this.opts?.locale?.(),
+                  }),
+                },
+                idempotencyKey,
+              });
+            })()
           : await openClawConnector.request("send", {
               to: escalationRecipientId,
               channel,
@@ -1834,7 +1840,7 @@ export class CustomerServiceSession {
       // is broken — then rethrow so the REST handler returns 500 and the
       // calling tool reports the failure to the agent.
       this.emitError(CS_ERROR_STAGE.ESCALATE, {
-        reason: "send_failed",
+        reason: sendFailureReason,
         errorMessage: err,
       });
       this.emitEscalationTelemetry({

@@ -1,7 +1,15 @@
 import { getCsEscalationCardMessages } from "./cs-escalation-card-i18n.js";
-import type { CsEscalationFeedback } from "./cs-escalation-response.js";
 
 const MAX_DYNAMIC_TEXT = 2_000;
+
+export interface CsEscalationFeedback {
+  callbackId: string;
+  decision: string;
+  resolved: boolean;
+  submittedAt: number;
+  operatorId?: string;
+  version?: number | null;
+}
 
 export interface CsEscalationCardInput {
   escalationId: string;
@@ -11,7 +19,6 @@ export interface CsEscalationCardInput {
   orderId?: string | null;
   reason: string;
   context?: string | null;
-  chatType?: "p2p" | "group";
   locale?: string | null;
 }
 
@@ -41,21 +48,12 @@ function buildEscalationDetails(input: CsEscalationCardInput): string {
   ].join("\n");
 }
 
-/**
- * Freeze/unfreeze policy for the response form.
- *
- * Only the submit button is disabled: the input and select stay editable so an
- * employee can keep drafting while a submission is in flight.
- */
 function buildResponseForm(
   input: CsEscalationCardInput,
   options?: { disabled?: boolean },
 ): Record<string, unknown> {
   const t = getCsEscalationCardMessages(input.locale);
   const disabled = options?.disabled === true;
-  const actionName = input.chatType
-    ? `rivonclaw.cs:respond:chat_type=${input.chatType}:${encodeURIComponent(input.escalationId)}`
-    : `rivonclaw.cs:respond:${encodeURIComponent(input.escalationId)}`;
   return {
     tag: "form",
     name: "cs_escalation_response",
@@ -75,9 +73,6 @@ function buildResponseForm(
       {
         tag: "select_static",
         name: "resolution",
-        // Feishu Schema 2.0 does not accept `label` on select_static.
-        // Keep the visible label as a separate form element, matching
-        // the official Lark plugin's form-card structure.
         placeholder: plainText(t.resolutionLabel),
         required: true,
         initial_option: "resolved",
@@ -88,21 +83,17 @@ function buildResponseForm(
       },
       {
         tag: "button",
-        // Feishu Schema 2 form_submit callbacks can omit button.value.
-        // Keep a routable, self-contained fallback in the button name.
-        name: actionName,
+        name: `rivonclaw.cs:respond:${encodeURIComponent(input.escalationId)}`,
         type: "primary",
         text: plainText(t.submit),
         form_action_type: "submit",
         ...(disabled ? { disabled: true, disabled_tips: plainText(t.submitDisabledTip) } : {}),
         value: {
           action: "rivonclaw.cs:respond",
+          callbackVersion: 2,
           escalationId: input.escalationId,
-          ...(input.chatType ? { chatType: input.chatType } : {}),
-          processingText: t.submitting,
-          unauthorizedText: t.unauthorized,
-          unavailableText: t.failed,
-          failureText: t.failed,
+          conversationId: input.conversationId,
+          locale: input.locale ?? "en",
         },
       },
     ],
@@ -121,10 +112,7 @@ function formatFeedbackTime(timestamp: number, locale?: string | null): string {
 }
 
 function buildFeedbackHistory(
-  input: CsEscalationCardInput & {
-    feedback: CsEscalationFeedback[];
-    feedbackTotal: number;
-  },
+  input: CsEscalationCardInput & { feedback: CsEscalationFeedback[]; feedbackTotal: number },
 ): string {
   const t = getCsEscalationCardMessages(input.locale);
   const omitted = Math.max(0, input.feedbackTotal - input.feedback.length);
@@ -150,57 +138,14 @@ function buildFinalResult(input: CsEscalationCardInput, feedback: CsEscalationFe
 
 export function buildFeishuCsEscalationCard(input: CsEscalationCardInput): Record<string, unknown> {
   const t = getCsEscalationCardMessages(input.locale);
-  const details = buildEscalationDetails(input);
-
   return {
     schema: "2.0",
     config: { update_multi: true },
-    header: {
-      title: plainText(t.title),
-      template: "orange",
-    },
-    body: {
-      elements: [{ tag: "markdown", content: details }, buildResponseForm(input)],
-    },
-  };
-}
-
-/** Transient states the card can show while a submission is not yet a final result. */
-export type CsEscalationNoticeState = "submitting" | "unconfirmed" | "failed";
-
-/**
- * The single freeze/unfreeze policy table.
- *
- * `submitting` and `unconfirmed` both keep the button frozen: in the uncertain case the
- * backend mutation may still land, so re-enabling the button would invite a duplicate
- * submission of a response that already succeeded. Only a definite rejection unfreezes.
- */
-const NOTICE_STATES: Record<
-  CsEscalationNoticeState,
-  { message: (t: ReturnType<typeof getCsEscalationCardMessages>) => string; formDisabled: boolean }
-> = {
-  submitting: { message: (t) => t.submissionInProgress, formDisabled: true },
-  unconfirmed: { message: (t) => t.resultUnconfirmed, formDisabled: true },
-  failed: { message: (t) => t.failed, formDisabled: false },
-};
-
-/** Card for a submission that is in flight, unconfirmed, or definitively rejected. */
-export function buildFeishuCsEscalationNoticeCard(
-  input: CsEscalationCardInput & { state: CsEscalationNoticeState },
-): Record<string, unknown> {
-  const t = getCsEscalationCardMessages(input.locale);
-  const state = NOTICE_STATES[input.state];
-  return {
-    schema: "2.0",
-    config: { update_multi: true },
-    // None of these states is a resolved escalation, so the header stays orange.
     header: { title: plainText(t.title), template: "orange" },
     body: {
       elements: [
         { tag: "markdown", content: buildEscalationDetails(input) },
-        { tag: "hr" },
-        { tag: "markdown", content: state.message(t) },
-        buildResponseForm(input, { disabled: state.formDisabled }),
+        buildResponseForm(input),
       ],
     },
   };
@@ -239,7 +184,6 @@ export function buildFeishuCsEscalationResultCard(
     ...(input.resolved && finalFeedback ? [buildFinalResult(input, finalFeedback)] : []),
     content,
   ];
-  const result = resultSections.join("\n\n");
   return {
     schema: "2.0",
     config: { update_multi: true },
@@ -248,7 +192,7 @@ export function buildFeishuCsEscalationResultCard(
       elements: [
         { tag: "markdown", content: buildEscalationDetails(input) },
         { tag: "hr" },
-        { tag: "markdown", content: result },
+        { tag: "markdown", content: resultSections.join("\n\n") },
         ...(input.resolved ? [] : [buildResponseForm(input)]),
       ],
     },

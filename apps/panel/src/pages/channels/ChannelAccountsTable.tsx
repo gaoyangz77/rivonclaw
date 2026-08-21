@@ -14,25 +14,36 @@ function TruncatedId({ value, t }: { value: string; t: (key: string) => string }
   const suffix = value.length > 3 ? `...${value.slice(-3)}` : value;
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }).catch(() => { });
+    navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {});
   }, [value]);
 
   return (
     <span className="id-truncated">
       <code>{suffix}</code>
-      <button className={`id-copy-btn${copied ? " copied" : ""}`} onClick={handleCopy} title={value}>
+      <button
+        className={`id-copy-btn${copied ? " copied" : ""}`}
+        onClick={handleCopy}
+        title={value}
+      >
         {copied ? t("pairing.copied") : "⧉"}
       </button>
     </span>
   );
 }
 
-function WechatActivationWarning({ tooltip }: { tooltip: string }) {
+function AccountWarning({ tooltip }: { tooltip: string }) {
   const triggerRef = useRef<HTMLSpanElement>(null);
-  const [bubble, setBubble] = useState<{ top: number; left: number; placement: "top" | "bottom" } | null>(null);
+  const [bubble, setBubble] = useState<{
+    top: number;
+    left: number;
+    placement: "top" | "bottom";
+  } | null>(null);
 
   const show = useCallback(() => {
     const trigger = triggerRef.current;
@@ -68,16 +79,17 @@ function WechatActivationWarning({ tooltip }: { tooltip: string }) {
       >
         !
       </span>
-      {bubble && createPortal(
-        <div
-          className={`wechat-activation-tooltip wechat-activation-tooltip-${bubble.placement}`}
-          style={{ top: bubble.top, left: bubble.left }}
-          role="tooltip"
-        >
-          {tooltip}
-        </div>,
-        document.body,
-      )}
+      {bubble &&
+        createPortal(
+          <div
+            className={`wechat-activation-tooltip wechat-activation-tooltip-${bubble.placement}`}
+            style={{ top: bubble.top, left: bubble.left }}
+            role="tooltip"
+          >
+            {tooltip}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
@@ -109,8 +121,15 @@ export function ChannelAccountsTable({
   const [recipientUiState, setRecipientUiState] = useState<Record<string, RecipientUiState>>({});
   const [recipientData, setRecipientData] = useState<Record<string, RecipientSnapshot>>({});
   const [processing, setProcessing] = useState<string | null>(null);
-  const [removeConfirm, setRemoveConfirm] = useState<{ compositeKey: string; channelId: string; accountId?: string; entry: string } | null>(null);
-  const [mobileDeviceStatus, setMobileDeviceStatus] = useState<MobileDeviceStatusResponse["devices"]>({});
+  const [removeConfirm, setRemoveConfirm] = useState<{
+    compositeKey: string;
+    channelId: string;
+    accountId?: string;
+    entry: string;
+  } | null>(null);
+  const [mobileDeviceStatus, setMobileDeviceStatus] = useState<
+    MobileDeviceStatusResponse["devices"]
+  >({});
   const [mobilePairings, setMobilePairings] = useState<MobilePairingInfo[]>([]);
 
   // Track in-flight label saves to show subtle feedback
@@ -131,7 +150,7 @@ export function ChannelAccountsTable({
   }
 
   // Poll mobile device status and fetch pairings while any mobile account is expanded
-  const hasMobileExpanded = Array.from(expandedAccounts).some(key => key.startsWith("mobile:"));
+  const hasMobileExpanded = Array.from(expandedAccounts).some((key) => key.startsWith("mobile:"));
   useEffect(() => {
     if (!hasMobileExpanded) return;
 
@@ -146,11 +165,16 @@ export function ChannelAccountsTable({
           setMobileDeviceStatus(statusResult.devices);
           if (pairingResult.pairings) setMobilePairings(pairingResult.pairings);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     poll();
     const timer = setInterval(poll, 10_000);
-    return () => { cancelled = true; clearInterval(timer); };
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [hasMobileExpanded]);
 
   // Background refresh: Desktop channelManager updates account.recipients in MST;
@@ -163,7 +187,7 @@ export function ChannelAccountsTable({
         entityStore.channelManager.getAllowlist(channelId, accountId),
         entityStore.channelManager.getPairingRequests(channelId, accountId),
       ]);
-      setRecipientData(prev => ({
+      setRecipientData((prev) => ({
         ...prev,
         [compositeKey]: {
           allowlist: result.allowlist,
@@ -172,7 +196,7 @@ export function ChannelAccountsTable({
           pairingRequests: requests,
         },
       }));
-      setRecipientUiState(prev => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
+      setRecipientUiState((prev) => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
     } catch {
       // Silently ignore background refresh errors to avoid disrupting the UI
     }
@@ -183,7 +207,9 @@ export function ChannelAccountsTable({
   //   1. pairing-notifier (Telegram/Feishu pairing file watcher)
   //   2. gateway event-dispatcher (rivonclaw.recipient-seen — WeChat etc.)
   useEffect(() => {
-    const nonMobileExpanded = Array.from(expandedAccounts).filter(key => !key.startsWith("mobile:"));
+    const nonMobileExpanded = Array.from(expandedAccounts).filter(
+      (key) => !key.startsWith("mobile:"),
+    );
     if (nonMobileExpanded.length === 0) return;
 
     const unsubscribe = panelEventBus.subscribe("recipient-added", (raw) => {
@@ -202,7 +228,9 @@ export function ChannelAccountsTable({
   }, [expandedAccounts]);
 
   useEffect(() => {
-    const nonMobileExpanded = Array.from(expandedAccounts).filter(key => !key.startsWith("mobile:"));
+    const nonMobileExpanded = Array.from(expandedAccounts).filter(
+      (key) => !key.startsWith("mobile:"),
+    );
     if (nonMobileExpanded.length === 0) return;
 
     let cancelled = false;
@@ -227,7 +255,7 @@ export function ChannelAccountsTable({
     const accountId = account.accountId;
     const compositeKey = `${channelId}:${accountId}`;
     const hasMstRecipients = channelId !== "mobile" && Boolean(account.recipients);
-    setRecipientUiState(prev => ({
+    setRecipientUiState((prev) => ({
       ...prev,
       [compositeKey]: { loading: !hasMstRecipients, error: null },
     }));
@@ -237,7 +265,7 @@ export function ChannelAccountsTable({
         entityStore.channelManager.getAllowlist(channelId, accountId),
         entityStore.channelManager.getPairingRequests(channelId, accountId),
       ]);
-      setRecipientData(prev => ({
+      setRecipientData((prev) => ({
         ...prev,
         [compositeKey]: {
           allowlist: result.allowlist,
@@ -246,9 +274,9 @@ export function ChannelAccountsTable({
           pairingRequests: requests,
         },
       }));
-      setRecipientUiState(prev => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
+      setRecipientUiState((prev) => ({ ...prev, [compositeKey]: { loading: false, error: null } }));
     } catch (err) {
-      setRecipientUiState(prev => ({
+      setRecipientUiState((prev) => ({
         ...prev,
         [compositeKey]: { loading: false, error: String(err) },
       }));
@@ -258,7 +286,7 @@ export function ChannelAccountsTable({
   function toggleExpand(channelId: string, account: ChannelAccountSnapshot) {
     const accountId = account.accountId;
     const compositeKey = `${channelId}:${accountId}`;
-    setExpandedAccounts(prev => {
+    setExpandedAccounts((prev) => {
       const next = new Set(prev);
       if (next.has(compositeKey)) {
         next.delete(compositeKey);
@@ -270,13 +298,18 @@ export function ChannelAccountsTable({
     });
   }
 
-  async function handleApprove(compositeKey: string, channelId: string, accountId: string, code: string) {
+  async function handleApprove(
+    compositeKey: string,
+    channelId: string,
+    accountId: string,
+    code: string,
+  ) {
     setProcessing(code);
     try {
       await entityStore.channelManager.approvePairing(channelId, code, i18nLang, accountId);
       await refreshRecipientData(channelId, accountId);
     } catch (err) {
-      setRecipientUiState(prev => ({
+      setRecipientUiState((prev) => ({
         ...prev,
         [compositeKey]: { loading: false, error: `${t("pairing.failedToApprove")} ${String(err)}` },
       }));
@@ -285,7 +318,12 @@ export function ChannelAccountsTable({
     }
   }
 
-  function requestRemove(compositeKey: string, channelId: string, accountId: string, entry: string) {
+  function requestRemove(
+    compositeKey: string,
+    channelId: string,
+    accountId: string,
+    entry: string,
+  ) {
     setRemoveConfirm({ compositeKey, channelId, accountId, entry });
   }
 
@@ -300,7 +338,7 @@ export function ChannelAccountsTable({
         // Mobile channel: use full disconnect (DB + allowlist + engine cleanup)
         // Find the pairing DB id by mobileDeviceId
         const statusResp = await entityStore.mobileManager.getStatus();
-        const pairing = statusResp.pairings?.find(p => p.pairingId === entry || p.id === entry);
+        const pairing = statusResp.pairings?.find((p) => p.pairingId === entry || p.id === entry);
         if (pairing?.id) {
           await entityStore.mobileManager.disconnectOne(pairing.id);
         }
@@ -308,28 +346,28 @@ export function ChannelAccountsTable({
         await entityStore.channelManager.removeFromAllowlist(channelId, entry, accountId);
       }
       if (channelId === "mobile") {
-        setRecipientData(prev => {
+        setRecipientData((prev) => {
           const data = prev[compositeKey];
           if (!data) return prev;
           return {
             ...prev,
             [compositeKey]: {
               ...data,
-              allowlist: data.allowlist.filter(e => e !== entry),
+              allowlist: data.allowlist.filter((e) => e !== entry),
             },
           };
         });
       }
       // Clear stale status from local state
       if (channelId === "mobile") {
-        setMobileDeviceStatus(prev => {
+        setMobileDeviceStatus((prev) => {
           const next = { ...prev };
           delete next[entry];
           return next;
         });
       }
     } catch (err) {
-      setRecipientUiState(prev => ({
+      setRecipientUiState((prev) => ({
         ...prev,
         [compositeKey]: { loading: false, error: `${t("pairing.failedToRemove")} ${String(err)}` },
       }));
@@ -338,11 +376,22 @@ export function ChannelAccountsTable({
     }
   }
 
-  async function handleOwnerToggle(compositeKey: string, channelId: string, accountId: string, recipientId: string, newValue: boolean) {
+  async function handleOwnerToggle(
+    compositeKey: string,
+    channelId: string,
+    accountId: string,
+    recipientId: string,
+    newValue: boolean,
+  ) {
     try {
-      await entityStore.channelManager.setRecipientOwner(channelId, recipientId, newValue, accountId);
+      await entityStore.channelManager.setRecipientOwner(
+        channelId,
+        recipientId,
+        newValue,
+        accountId,
+      );
       if (channelId === "mobile") {
-        setRecipientData(prev => {
+        setRecipientData((prev) => {
           const data = prev[compositeKey];
           if (!data) return prev;
           return {
@@ -355,23 +404,35 @@ export function ChannelAccountsTable({
         });
       }
     } catch (err) {
-      setRecipientUiState(prev => ({
+      setRecipientUiState((prev) => ({
         ...prev,
         [compositeKey]: { loading: false, error: String(err) },
       }));
     }
   }
 
-  async function handleLabelBlur(compositeKey: string, channelId: string, accountId: string, recipientId: string, oldLabel: string, newLabel: string) {
+  async function handleLabelBlur(
+    compositeKey: string,
+    channelId: string,
+    accountId: string,
+    recipientId: string,
+    oldLabel: string,
+    newLabel: string,
+  ) {
     if (newLabel === oldLabel) return;
 
     const saveKey = `${compositeKey}:${recipientId}`;
     savingLabelsRef.current.add(saveKey);
 
     try {
-      await entityStore.channelManager.setRecipientLabel(channelId, recipientId, newLabel, accountId);
+      await entityStore.channelManager.setRecipientLabel(
+        channelId,
+        recipientId,
+        newLabel,
+        accountId,
+      );
       if (channelId === "mobile") {
-        setRecipientData(prev => {
+        setRecipientData((prev) => {
           const data = prev[compositeKey];
           if (!data) return prev;
           return {
@@ -384,7 +445,7 @@ export function ChannelAccountsTable({
         });
       }
     } catch (err) {
-      setRecipientUiState(prev => ({
+      setRecipientUiState((prev) => ({
         ...prev,
         [compositeKey]: { loading: false, error: String(err) },
       }));
@@ -409,12 +470,17 @@ export function ChannelAccountsTable({
     return t("pairing.timeDaysAgo", { count: diffDays });
   }
 
-  function renderExpandedRow(compositeKey: string, channelId: string, account: ChannelAccountSnapshot) {
+  function renderExpandedRow(
+    compositeKey: string,
+    channelId: string,
+    account: ChannelAccountSnapshot,
+  ) {
     const accountId = account.accountId;
     const state = recipientUiState[compositeKey] ?? { loading: false, error: null };
-    const data = channelId === "mobile"
-      ? (recipientData[compositeKey] ?? emptyRecipients())
-      : (recipientData[compositeKey] ?? normalizeRecipients(account));
+    const data =
+      channelId === "mobile"
+        ? (recipientData[compositeKey] ?? emptyRecipients())
+        : (recipientData[compositeKey] ?? normalizeRecipients(account));
 
     if (state.loading) {
       return (
@@ -448,7 +514,9 @@ export function ChannelAccountsTable({
             {/* Pending Pairing Requests */}
             {data.pairingRequests.length > 0 && (
               <div>
-                <h4>{t("pairing.pendingRequests")} ({data.pairingRequests.length})</h4>
+                <h4>
+                  {t("pairing.pendingRequests")} ({data.pairingRequests.length})
+                </h4>
                 <table className="recipients-table">
                   <thead>
                     <tr>
@@ -459,18 +527,24 @@ export function ChannelAccountsTable({
                     </tr>
                   </thead>
                   <tbody>
-                    {data.pairingRequests.map(request => (
+                    {data.pairingRequests.map((request) => (
                       <tr key={request.code}>
-                        <td><code className="td-code">{request.code}</code></td>
+                        <td>
+                          <code className="td-code">{request.code}</code>
+                        </td>
                         <td>{request.id}</td>
                         <td className="td-muted">{formatTimeAgo(request.createdAt)}</td>
                         <td className="text-right">
                           <button
                             className="btn btn-primary btn-sm"
-                            onClick={() => handleApprove(compositeKey, channelId, accountId, request.code)}
+                            onClick={() =>
+                              handleApprove(compositeKey, channelId, accountId, request.code)
+                            }
                             disabled={processing === request.code}
                           >
-                            {processing === request.code ? t("pairing.approving") : t("pairing.approve")}
+                            {processing === request.code
+                              ? t("pairing.approving")
+                              : t("pairing.approve")}
                           </button>
                         </td>
                       </tr>
@@ -482,7 +556,9 @@ export function ChannelAccountsTable({
 
             {/* Allowlist */}
             <div>
-              <h4>{t("pairing.currentAllowlist")} ({data.allowlist.length})</h4>
+              <h4>
+                {t("pairing.currentAllowlist")} ({data.allowlist.length})
+              </h4>
               {data.allowlist.length === 0 ? (
                 <div className="recipients-empty">{t("pairing.noRecipients")}</div>
               ) : (
@@ -498,30 +574,47 @@ export function ChannelAccountsTable({
                     </tr>
                   </thead>
                   <tbody>
-                    {data.allowlist.map(entry => {
+                    {data.allowlist.map((entry) => {
                       const isOwner = data.owners[entry] ?? false;
-                      const deviceStatus = channelId === "mobile" ? mobileDeviceStatus[entry] : undefined;
-                      const pairingInfo = channelId === "mobile"
-                        ? mobilePairings.find(p => p.pairingId === entry || p.id === entry)
-                        : undefined;
+                      const deviceStatus =
+                        channelId === "mobile" ? mobileDeviceStatus[entry] : undefined;
+                      const pairingInfo =
+                        channelId === "mobile"
+                          ? mobilePairings.find((p) => p.pairingId === entry || p.id === entry)
+                          : undefined;
                       return (
                         <tr key={entry}>
                           {channelId === "mobile" && (
                             <td className="presence-col">
                               <span
                                 className={`presence-dot ${deviceStatus?.stale ? "presence-stale" : deviceStatus?.mobileOnline ? "presence-online" : "presence-offline"}`}
-                                title={deviceStatus?.stale ? t("pairing.staleTooltip") : deviceStatus?.mobileOnline ? "Online" : "Offline"}
+                                title={
+                                  deviceStatus?.stale
+                                    ? t("pairing.staleTooltip")
+                                    : deviceStatus?.mobileOnline
+                                      ? "Online"
+                                      : "Offline"
+                                }
                               />
                             </td>
                           )}
                           <td>
-                            <TruncatedId value={channelId === "mobile" ? (pairingInfo?.mobileDeviceId || entry) : entry} t={t} />
+                            <TruncatedId
+                              value={
+                                channelId === "mobile"
+                                  ? pairingInfo?.mobileDeviceId || entry
+                                  : entry
+                              }
+                              t={t}
+                            />
                             {deviceStatus?.stale && (
                               <span className="stale-hint">{t("pairing.staleHint")}</span>
                             )}
                           </td>
                           {channelId === "mobile" && (
-                            <td><TruncatedId value={entry} t={t} /></td>
+                            <td>
+                              <TruncatedId value={entry} t={t} />
+                            </td>
                           )}
                           <td>
                             <input
@@ -529,20 +622,41 @@ export function ChannelAccountsTable({
                               className="recipient-label-input"
                               defaultValue={data.labels[entry] || ""}
                               placeholder={t("pairing.labelPlaceholder")}
-                              onBlur={e => handleLabelBlur(compositeKey, channelId, accountId, entry, data.labels[entry] || "", e.target.value.trim())}
+                              onBlur={(e) =>
+                                handleLabelBlur(
+                                  compositeKey,
+                                  channelId,
+                                  accountId,
+                                  entry,
+                                  data.labels[entry] || "",
+                                  e.target.value.trim(),
+                                )
+                              }
                             />
                           </td>
                           <td>
                             <div className="perm-switcher">
                               <button
                                 className={`perm-switcher-btn perm-switcher-btn-left ${isOwner ? "perm-switcher-btn-active" : "perm-switcher-btn-inactive"}`}
-                                onClick={() => !isOwner && handleOwnerToggle(compositeKey, channelId, accountId, entry, true)}
+                                onClick={() =>
+                                  !isOwner &&
+                                  handleOwnerToggle(compositeKey, channelId, accountId, entry, true)
+                                }
                               >
                                 {t("pairing.ownerBadge")}
                               </button>
                               <button
                                 className={`perm-switcher-btn perm-switcher-btn-right ${!isOwner ? "perm-switcher-btn-active" : "perm-switcher-btn-inactive"}`}
-                                onClick={() => isOwner && handleOwnerToggle(compositeKey, channelId, accountId, entry, false)}
+                                onClick={() =>
+                                  isOwner &&
+                                  handleOwnerToggle(
+                                    compositeKey,
+                                    channelId,
+                                    accountId,
+                                    entry,
+                                    false,
+                                  )
+                                }
                               >
                                 {t("pairing.nonOwnerBadge")}
                               </button>
@@ -551,7 +665,9 @@ export function ChannelAccountsTable({
                           <td className="text-right">
                             <button
                               className="btn btn-danger btn-sm"
-                              onClick={() => requestRemove(compositeKey, channelId, accountId, entry)}
+                              onClick={() =>
+                                requestRemove(compositeKey, channelId, accountId, entry)
+                              }
                               disabled={processing === entry}
                             >
                               {processing === entry ? t("pairing.removing") : t("common.remove")}
@@ -601,27 +717,28 @@ export function ChannelAccountsTable({
                 const isExpanded = expandedAccounts.has(compositeKey);
                 const canExpand = true;
                 const canEdit = channelId !== "mobile";
-                const needsWeixinActivation = channelId === "openclaw-weixin" && (
-                  account.contextTokenReady === false
-                  || account.healthy === false
-                  || account.healthState === "send-unavailable"
-                  || account.healthState === "reauth-required"
-                );
+                const needsWeixinActivation =
+                  channelId === "openclaw-weixin" &&
+                  (account.contextTokenReady === false ||
+                    account.healthy === false ||
+                    account.healthState === "send-unavailable" ||
+                    account.healthState === "reauth-required");
                 const weixinContextTooltip = t("channels.wechatContextTokenNotReadyTooltip");
                 const weixinSendUnavailableTooltip = t("channels.wechatSendUnavailableTooltip");
-                const weixinActivationTooltip = account.healthState === "send-unavailable"
-                  ? account.lastError
-                    ? `${weixinSendUnavailableTooltip}\n${account.lastError}`
-                    : weixinSendUnavailableTooltip
-                  : account.contextTokenReady === false
-                  ? account.lastError
-                    ? `${weixinContextTooltip}\n${account.lastError}`
-                    : weixinContextTooltip
-                  : account.lastError
-                    ? `${weixinContextTooltip}\n${account.lastError}`
-                    : t("channels.wechatOutboundUnknownTooltip", {
-                      defaultValue: "WeChat is running, but outbound send health is unknown.",
-                    });
+                const weixinActivationTooltip =
+                  account.healthState === "send-unavailable"
+                    ? account.lastError
+                      ? `${weixinSendUnavailableTooltip}\n${account.lastError}`
+                      : weixinSendUnavailableTooltip
+                    : account.contextTokenReady === false
+                      ? account.lastError
+                        ? `${weixinContextTooltip}\n${account.lastError}`
+                        : weixinContextTooltip
+                      : account.lastError
+                        ? `${weixinContextTooltip}\n${account.lastError}`
+                        : t("channels.wechatOutboundUnknownTooltip", {
+                            defaultValue: "WeChat is running, but outbound send health is unknown.",
+                          });
                 const displayedRunning = resolveDisplayedRunningStatus(channelId, account);
                 return (
                   <Fragment key={rowKey}>
@@ -636,20 +753,37 @@ export function ChannelAccountsTable({
                       }}
                     >
                       <td className="channel-expand-col">
-                        {canExpand && <span className={`advanced-chevron${isExpanded ? " advanced-chevron-open" : ""}`}><ChevronRightIcon /></span>}
+                        {canExpand && (
+                          <span
+                            className={`advanced-chevron${isExpanded ? " advanced-chevron-open" : ""}`}
+                          >
+                            <ChevronRightIcon />
+                          </span>
+                        )}
                       </td>
                       <td className="font-medium">
                         <span className="channel-label-with-status">
                           {needsWeixinActivation && (
-                            <WechatActivationWarning tooltip={weixinActivationTooltip} />
+                            <AccountWarning tooltip={weixinActivationTooltip} />
                           )}
+                          {account.warning && <AccountWarning tooltip={account.warning} />}
                           <span>{channelLabel}</span>
                         </span>
                       </td>
                       <td>{account.name || "\u2014"}</td>
-                      <td><StatusBadge status={account.configured} t={t} /></td>
-                      <td><StatusBadge status={displayedRunning} t={t} /></td>
-                      <td>{account.dmPolicy ? t(`channels.dmPolicyLabel_${account.dmPolicy}`, { defaultValue: account.dmPolicy }) : "\u2014"}</td>
+                      <td>
+                        <StatusBadge status={account.configured} t={t} />
+                      </td>
+                      <td>
+                        <StatusBadge status={displayedRunning} t={t} />
+                      </td>
+                      <td>
+                        {account.dmPolicy
+                          ? t(`channels.dmPolicyLabel_${account.dmPolicy}`, {
+                              defaultValue: account.dmPolicy,
+                            })
+                          : "\u2014"}
+                      </td>
                       <td>
                         <div className="td-actions">
                           {canEdit ? (
@@ -661,7 +795,13 @@ export function ChannelAccountsTable({
                               {t("common.edit")}
                             </button>
                           ) : (
-                            <button className="btn btn-secondary btn-invisible" disabled aria-hidden="true">{t("common.edit")}</button>
+                            <button
+                              className="btn btn-secondary btn-invisible"
+                              disabled
+                              aria-hidden="true"
+                            >
+                              {t("common.edit")}
+                            </button>
                           )}
                           <button
                             className="btn btn-danger"

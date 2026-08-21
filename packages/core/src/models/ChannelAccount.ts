@@ -2,6 +2,7 @@ import { types, type Instance } from "mobx-state-tree";
 
 export const ChannelAccountStatusModel = types.model("ChannelAccountStatus", {
   hasContextToken: types.maybeNull(types.boolean),
+  warning: types.maybeNull(types.string),
 });
 
 export const ChannelPairingRequestModel = types.model("ChannelPairingRequest", {

@@ -1,50 +1,21 @@
 import { readExistingConfig, resolveOpenClawConfigPath } from "@rivonclaw/gateway";
-import {
-  getFeishuMessagePatchUrl,
-  getFeishuMessageUrl,
-  getFeishuTokenUrl,
-  type FeishuReceiveIdType,
-} from "@rivonclaw/core";
+import { getFeishuApplicationAbilityUrl, getFeishuTokenUrl } from "@rivonclaw/core";
 
 /**
  * Direct Feishu/Lark Open API transport for the Desktop main process.
  *
- * The gateway process serves `message.action` for the same operations, but its event
- * loop can stall for tens of seconds on busy machines. Calls that must land promptly
- * (card write-backs for interactive callbacks) go out from Desktop over plain HTTP
- * instead. Errors are thrown, never swallowed — callers decide what is best-effort.
+ * This module configures Feishu applications without routing card callbacks through
+ * the Gateway. Errors are thrown, never swallowed; callers decide retry policy.
  */
 
-const CHAT_ID_PREFIX = "oc_";
-const OPEN_ID_PREFIX = "ou_";
 const TOKEN_EXPIRY_SKEW_SECONDS = 60;
 const DEFAULT_TOKEN_TTL_SECONDS = 7200;
-/**
- * Every call here must settle. `CsEscalationResponseProcessor` releases its per-card
- * `inflight` key in a `finally`, so a request that never settles never releases it, and
- * every later submission on that card is dropped as a duplicate while its submit button
- * stays frozen. Feishu calls from these hosts have been observed taking ~100s, so the
- * bound is not hypothetical. Generous against a measured ~75ms round trip.
- */
 const FEISHU_REQUEST_TIMEOUT_MS = 15_000;
 
 export interface FeishuAccountCredentials {
   appId: string;
   appSecret: string;
   domain: string;
-}
-
-/**
- * Mirror of the vendored plugin's `resolveReceiveIdType` prefix rule
- * (`vendor/openclaw/extensions/feishu/src/targets.ts`). Callback payloads carry raw
- * Feishu ids, so only the prefix branch applies here — the `chat:` / `user:` / `dm:`
- * textual prefixes are a gateway-side input convention.
- */
-export function resolveFeishuReceiveIdType(receiveId: string): FeishuReceiveIdType {
-  const trimmed = receiveId.trim();
-  if (trimmed.startsWith(CHAT_ID_PREFIX)) return "chat_id";
-  if (trimmed.startsWith(OPEN_ID_PREFIX)) return "open_id";
-  return "user_id";
 }
 
 function readString(source: Record<string, unknown>, key: string): string | undefined {
@@ -166,62 +137,26 @@ async function fetchFeishu(url: string, init: RequestInit, label: string): Promi
   }
 }
 
-async function authHeaders(accountId: string): Promise<{
+/** Configure this application's message-card interaction callback URL. */
+export async function patchFeishuMessageCardCallbackUrl(params: {
+  appId: string;
+  appSecret: string;
   domain: string;
-  headers: Record<string, string>;
-}> {
-  const { appId, appSecret, domain } = resolveFeishuAccountCredentials(accountId);
-  const token = await getFeishuTenantAccessToken(appId, appSecret, domain);
-  return {
-    domain,
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  };
-}
-
-/**
- * Update an interactive card this app previously sent.
- *
- * `PATCH /open-apis/im/v1/messages/{message_id}` with `{ content: JSON.stringify(card) }`.
- * The card must declare `config.update_multi: true`. Note this is PATCH, not the PUT
- * method on the same path — PUT only supports text and post messages.
- */
-export async function patchFeishuCardMessage(params: {
-  accountId: string;
-  messageId: string;
-  card: Record<string, unknown>;
+  callbackUrl: string;
 }): Promise<void> {
-  const { domain, headers } = await authHeaders(params.accountId);
+  const token = await getFeishuTenantAccessToken(params.appId, params.appSecret, params.domain);
+  const label = `Feishu application ability update app=${params.appId.slice(-6)}`;
   const res = await fetchFeishu(
-    getFeishuMessagePatchUrl(domain, params.messageId),
+    getFeishuApplicationAbilityUrl(params.domain, params.appId),
     {
       method: "PATCH",
-      headers,
-      body: JSON.stringify({ content: JSON.stringify(params.card) }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ bot: { message_card_callback_url: params.callbackUrl } }),
     },
-    `Feishu card update message=${params.messageId}`,
+    label,
   );
-  await readFeishuBody(res, `Feishu card update message=${params.messageId}`);
-}
-
-/** Send a plain-text message. `receive_id_type` is derived from the id's prefix. */
-export async function sendFeishuTextMessage(params: {
-  accountId: string;
-  receiveId: string;
-  text: string;
-}): Promise<void> {
-  const { domain, headers } = await authHeaders(params.accountId);
-  const res = await fetchFeishu(
-    getFeishuMessageUrl(domain, resolveFeishuReceiveIdType(params.receiveId)),
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        receive_id: params.receiveId,
-        msg_type: "text",
-        content: JSON.stringify({ text: params.text }),
-      }),
-    },
-    `Feishu text send to=${params.receiveId}`,
-  );
-  await readFeishuBody(res, `Feishu text send to=${params.receiveId}`);
+  await readFeishuBody(res, label);
 }

@@ -5,9 +5,17 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { applySnapshot, types } from "mobx-state-tree";
 import { readVendorChannelAllowFrom } from "@rivonclaw/gateway";
-import { ChannelManagerModel, RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID } from "./channel-manager.js";
 import { WEIXIN_CHANNEL_ID } from "./weixin-account-dedupe.js";
 import { getVendorDir, setVendorDir } from "../gateway/vendor-dir-ref.js";
+
+vi.mock("./feishu-cs-callback-config.js", () => ({
+  ensureFeishuCsCallbackConfigured: vi.fn().mockResolvedValue(undefined),
+  getFeishuCsCallbackWarning: vi.fn().mockReturnValue(null),
+}));
+
+const { ChannelManagerModel, RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID } =
+  await import("./channel-manager.js");
+const { ensureFeishuCsCallbackConfigured } = await import("./feishu-cs-callback-config.js");
 
 function createSharedPairingDatabase(stateDir: string): void {
   const databaseDir = join(stateDir, "state");
@@ -99,31 +107,44 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         config: Record<string, unknown>;
         createdAt: number;
         updatedAt: number;
-      }> = [{
-        channelId: "telegram",
-        accountId: "owner-bot",
-        name: "Owner Bot",
-        config: { name: "Owner Bot", botToken: "real-user-token", streaming: "partial" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
-
-      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
-        const existingIndex = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
-        const record = {
-          channelId,
-          accountId,
-          name,
-          config,
+      }> = [
+        {
+          channelId: "telegram",
+          accountId: "owner-bot",
+          name: "Owner Bot",
+          config: { name: "Owner Bot", botToken: "real-user-token", streaming: "partial" },
           createdAt: 1,
-          updatedAt: existingIndex >= 0 ? accounts[existingIndex]!.updatedAt + 1 : 1,
-        };
-        if (existingIndex >= 0) accounts[existingIndex] = record;
-        else accounts.push(record);
-        return record;
-      });
+          updatedAt: 1,
+        },
+      ];
+
+      const upsertAccount = vi.fn(
+        (
+          channelId: string,
+          accountId: string,
+          name: string | null,
+          config: Record<string, unknown>,
+        ) => {
+          const existingIndex = accounts.findIndex(
+            (account) => account.channelId === channelId && account.accountId === accountId,
+          );
+          const record = {
+            channelId,
+            accountId,
+            name,
+            config,
+            createdAt: 1,
+            updatedAt: existingIndex >= 0 ? accounts[existingIndex]!.updatedAt + 1 : 1,
+          };
+          if (existingIndex >= 0) accounts[existingIndex] = record;
+          else accounts.push(record);
+          return record;
+        },
+      );
       const deleteAccount = vi.fn((channelId: string, accountId: string) => {
-        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
+        const index = accounts.findIndex(
+          (account) => account.channelId === channelId && account.accountId === accountId,
+        );
         if (index >= 0) accounts.splice(index, 1);
       });
 
@@ -131,8 +152,12 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
-            get: (channelId: string, accountId: string) => accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: upsertAccount,
             delete: deleteAccount,
           },
@@ -153,13 +178,17 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       root.channelManager.init();
 
-      expect(root.channelManager.syncTelegramDebugProxyAccount({
-        proxyToken: "proxy-token",
-        apiRoot: "https://relay.example.com/",
-        deviceId: "device-a",
-      }).changed).toBe(true);
+      expect(
+        root.channelManager.syncTelegramDebugProxyAccount({
+          proxyToken: "proxy-token",
+          apiRoot: "https://relay.example.com/",
+          deviceId: "device-a",
+        }).changed,
+      ).toBe(true);
 
-      const supportAccount = accounts.find((account) => account.accountId === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID);
+      const supportAccount = accounts.find(
+        (account) => account.accountId === RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID,
+      );
       expect(supportAccount?.config).toMatchObject({
         name: "RivonClaw Support",
         botToken: "proxy-token",
@@ -178,27 +207,38 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       });
       expect(accounts.find((account) => account.accountId === "owner-bot")).toBeTruthy();
 
-      expect(root.channelManager.syncTelegramDebugProxyAccount({
-        proxyToken: "proxy-token",
-        apiRoot: "https://relay.example.com",
-        deviceId: "device-a",
-      }).changed).toBe(false);
+      expect(
+        root.channelManager.syncTelegramDebugProxyAccount({
+          proxyToken: "proxy-token",
+          apiRoot: "https://relay.example.com",
+          deviceId: "device-a",
+        }).changed,
+      ).toBe(false);
       expect(upsertAccount).toHaveBeenCalledTimes(1);
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.channels.telegram.defaultAccount).toBe("owner-bot");
-      expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].apiRoot).toBe("https://relay.example.com/telegram-debug/devices/device-a");
-      expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].streaming).toEqual({ mode: "block" });
-      expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].direct["*"].systemPrompt).toContain("Do not set timeoutMs");
+      expect(config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].apiRoot).toBe(
+        "https://relay.example.com/telegram-debug/devices/device-a",
+      );
+      expect(
+        config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].streaming,
+      ).toEqual({ mode: "block" });
+      expect(
+        config.channels.telegram.accounts[RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID].direct["*"]
+          .systemPrompt,
+      ).toContain("Do not set timeoutMs");
       expect(config.channels.telegram.accounts["owner-bot"].botToken).toBe("real-user-token");
       expect(config.channels.telegram.accounts["owner-bot"].streaming).toEqual({ mode: "block" });
       expect(config.channels.telegram.accounts["owner-bot"].direct).toBeUndefined();
 
-      expect(root.channelManager.syncTelegramDebugProxyAccount({
-        proxyToken: null,
-        apiRoot: "https://relay.example.com",
-        deviceId: "device-a",
-      }).changed).toBe(true);
+      expect(
+        root.channelManager.syncTelegramDebugProxyAccount({
+          proxyToken: null,
+          apiRoot: "https://relay.example.com",
+          deviceId: "device-a",
+        }).changed,
+      ).toBe(true);
       expect(deleteAccount).toHaveBeenCalledWith("telegram", RIVONCLAW_TELEGRAM_DEBUG_ACCOUNT_ID);
       expect(accounts.map((account) => account.accountId)).toEqual(["owner-bot"]);
     } finally {
@@ -221,21 +261,27 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         "utf-8",
       );
 
-      const accounts = [{
-        channelId: "telegram",
-        accountId: "owner-bot",
-        name: "Owner Bot",
-        config: { name: "Owner Bot", botToken: "real-user-token" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
+      const accounts = [
+        {
+          channelId: "telegram",
+          accountId: "owner-bot",
+          name: "Owner Bot",
+          config: { name: "Owner Bot", botToken: "real-user-token" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
 
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
-            get: (channelId: string, accountId: string) => accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: vi.fn(),
             delete: vi.fn(),
           },
@@ -278,19 +324,22 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-weixin-"));
     try {
       const accountId = "acct123-im-bot";
-      const accounts = [{
-        channelId: WEIXIN_CHANNEL_ID,
-        accountId,
-        name: "赵总",
-        config: { name: "赵总" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
+      const accounts = [
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId,
+          name: "赵总",
+          config: { name: "赵总" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: () => accounts[0],
             upsert: vi.fn(),
             delete: vi.fn(),
@@ -421,11 +470,13 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       expect(upsert).toHaveBeenCalledWith(WEIXIN_CHANNEL_ID, accountId, "赵总", { name: "赵总" });
       expect(root.channelAccounts[0].config).toEqual({ name: "赵总" });
-      expect(root.channelManager.buildConfigAccounts()).toEqual([{
-        channelId: WEIXIN_CHANNEL_ID,
-        accountId,
-        config: { name: "赵总", userId },
-      }]);
+      expect(root.channelManager.buildConfigAccounts()).toEqual([
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId,
+          config: { name: "赵总", userId },
+        },
+      ]);
       expect(root.channelAccounts[0].status).toEqual({ hasContextToken: true });
     } finally {
       rmSync(stateDir, { recursive: true, force: true });
@@ -440,26 +491,33 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const activeRecipientId = "active@im.wechat";
       const accountsDir = join(stateDir, WEIXIN_CHANNEL_ID, "accounts");
       mkdirSync(accountsDir, { recursive: true });
-      writeFileSync(join(accountsDir, `${accountId}.json`), JSON.stringify({ userId: staleUserId }), "utf-8");
+      writeFileSync(
+        join(accountsDir, `${accountId}.json`),
+        JSON.stringify({ userId: staleUserId }),
+        "utf-8",
+      );
       writeFileSync(
         join(accountsDir, `${accountId}.context-tokens.json`),
         JSON.stringify({ [activeRecipientId]: "context-token" }),
         "utf-8",
       );
 
-      const accounts = [{
-        channelId: WEIXIN_CHANNEL_ID,
-        accountId,
-        name: "赵总",
-        config: { name: "赵总" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
+      const accounts = [
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId,
+          name: "赵总",
+          config: { name: "赵总" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: () => undefined,
             upsert: vi.fn(),
             delete: vi.fn(),
@@ -482,7 +540,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       root.channelManager.init();
 
       expect(root.channelAccounts[0].status).toEqual({ hasContextToken: true });
-      expect((root.channelAccounts[0].recipients as { allowlist: string[] }).allowlist).toContain(activeRecipientId);
+      expect((root.channelAccounts[0].recipients as { allowlist: string[] }).allowlist).toContain(
+        activeRecipientId,
+      );
     } finally {
       rmSync(stateDir, { recursive: true, force: true });
     }
@@ -556,10 +616,12 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       root.channelManager.init();
 
-      const firstRecipients = root.channelAccounts.find((account) => account.accountId === firstAccountId)
-        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
-      const secondRecipients = root.channelAccounts.find((account) => account.accountId === secondAccountId)
-        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
+      const firstRecipients = root.channelAccounts.find(
+        (account) => account.accountId === firstAccountId,
+      )?.recipients as { allowlist: string[]; labels: Record<string, string> };
+      const secondRecipients = root.channelAccounts.find(
+        (account) => account.accountId === secondAccountId,
+      )?.recipients as { allowlist: string[]; labels: Record<string, string> };
 
       expect(firstRecipients.allowlist).toEqual([firstRecipientId]);
       expect(firstRecipients.labels).toEqual({ [firstRecipientId]: "First" });
@@ -600,7 +662,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
             list: (channelId?: string) =>
               channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: (channelId: string, accountId: string) =>
-              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: vi.fn(),
             delete: vi.fn(),
           },
@@ -624,10 +688,12 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       root.channelManager.init();
 
-      const legacyRecipients = root.channelAccounts.find((account) => account.accountId === "acct_legacy")
-        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
-      const officialRecipients = root.channelAccounts.find((account) => account.accountId === "acct_official")
-        ?.recipients as { allowlist: string[]; labels: Record<string, string> };
+      const legacyRecipients = root.channelAccounts.find(
+        (account) => account.accountId === "acct_legacy",
+      )?.recipients as { allowlist: string[]; labels: Record<string, string> };
+      const officialRecipients = root.channelAccounts.find(
+        (account) => account.accountId === "acct_official",
+      )?.recipients as { allowlist: string[]; labels: Record<string, string> };
 
       expect(legacyRecipients.allowlist).toEqual(["ou_legacy"]);
       expect(legacyRecipients.labels).toEqual({ ou_legacy: "Legacy Owner" });
@@ -646,14 +712,16 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const configPath = join(stateDir, "openclaw.json");
       createSharedPairingDatabase(stateDir);
       writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
-      const accounts = [{
-        channelId: "feishu",
-        accountId: "default",
-        name: "Feishu Official Bot",
-        config: { allowFrom: ["*"] },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
+      const accounts = [
+        {
+          channelId: "feishu",
+          accountId: "default",
+          name: "Feishu Official Bot",
+          config: { allowFrom: ["*"] },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
       const meta: Record<string, { label: string; isOwner: boolean }> = {};
       const ensureExists = vi.fn((channelId: string, recipientId: string, isOwner = false) => {
         expect(channelId).toBe("feishu");
@@ -667,7 +735,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
             list: (channelId?: string) =>
               channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: (channelId: string, accountId: string) =>
-              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: vi.fn(),
             delete: vi.fn(),
           },
@@ -697,8 +767,13 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(result).toEqual({ inserted: true, membershipChanged: true });
       expect(ensureExists).toHaveBeenCalledWith("feishu", "ou_seen", false);
       expect(readVendorChannelAllowFrom(stateDir, "feishu", "default")).toEqual(["ou_seen"]);
-      expect(existsSync(join(stateDir, "credentials", "feishu-default-allowFrom.json"))).toBe(false);
-      const recipients = root.channelAccounts[0].recipients as { allowlist: string[]; owners: Record<string, boolean> };
+      expect(existsSync(join(stateDir, "credentials", "feishu-default-allowFrom.json"))).toBe(
+        false,
+      );
+      const recipients = root.channelAccounts[0].recipients as {
+        allowlist: string[];
+        owners: Record<string, boolean>;
+      };
       expect(recipients.allowlist).toEqual(["ou_seen"]);
       expect(recipients.owners).toEqual({ ou_seen: false });
     } finally {
@@ -724,13 +799,22 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         createdAt: number;
         updatedAt: number;
       }> = [];
-      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
-        const record = { channelId, accountId, name, config, createdAt: 1, updatedAt: 1 };
-        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
-        if (index >= 0) accounts[index] = record;
-        else accounts.push(record);
-        return record;
-      });
+      const upsertAccount = vi.fn(
+        (
+          channelId: string,
+          accountId: string,
+          name: string | null,
+          config: Record<string, unknown>,
+        ) => {
+          const record = { channelId, accountId, name, config, createdAt: 1, updatedAt: 1 };
+          const index = accounts.findIndex(
+            (account) => account.channelId === channelId && account.accountId === accountId,
+          );
+          if (index >= 0) accounts[index] = record;
+          else accounts.push(record);
+          return record;
+        },
+      );
 
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
@@ -739,7 +823,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
             list: (channelId?: string) =>
               channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: (channelId: string, accountId: string) =>
-              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: upsertAccount,
             delete: vi.fn(),
           },
@@ -836,54 +922,76 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     const previousVendorDir = getVendorDir();
     try {
       const configPath = join(stateDir, "openclaw.json");
-      const pluginRoot = join(stateDir, "vendor", "openclaw", "dist-runtime", "extensions", "feishu");
+      const pluginRoot = join(
+        stateDir,
+        "vendor",
+        "openclaw",
+        "dist-runtime",
+        "extensions",
+        "feishu",
+      );
       mkdirSync(pluginRoot, { recursive: true });
       writeFileSync(
         join(pluginRoot, "openclaw.plugin.json"),
         JSON.stringify({ contracts: { tools: ["feishu_send"] } }, null, 2),
         "utf-8",
       );
-      writeFileSync(configPath, JSON.stringify({
-        channels: {
-          feishu: {
-            streaming: true,
-            blockStreaming: false,
-            accounts: {
-              default: {
-                appId: "app_123",
-                appSecret: "secret_123",
-                streaming: false,
-                blockStreaming: true,
+      writeFileSync(
+        configPath,
+        JSON.stringify(
+          {
+            channels: {
+              feishu: {
+                streaming: true,
+                blockStreaming: false,
+                accounts: {
+                  default: {
+                    appId: "app_123",
+                    appSecret: "secret_123",
+                    streaming: false,
+                    blockStreaming: true,
+                  },
+                },
+              },
+            },
+            plugins: {
+              load: {
+                paths: [
+                  "/Users/test/old-checkout/vendor/openclaw/dist/extensions/feishu",
+                  "/Users/test/Library/Application Support/@rivonclaw/desktop/runtime/old/openclaw/dist/extensions/feishu",
+                  "/custom/plugin",
+                ],
               },
             },
           },
-        },
-        plugins: {
-          load: { paths: [
-            "/Users/test/old-checkout/vendor/openclaw/dist/extensions/feishu",
-            "/Users/test/Library/Application Support/@rivonclaw/desktop/runtime/old/openclaw/dist/extensions/feishu",
-            "/custom/plugin",
-          ] },
-        },
-        }, null, 2), "utf-8");
+          null,
+          2,
+        ),
+        "utf-8",
+      );
       setVendorDir(join(stateDir, "vendor", "openclaw"));
 
-      const accounts = [{
-        channelId: "feishu",
-        accountId: "default",
-        name: "Feishu Official Bot",
-        config: { appId: "app_123", appSecret: "secret_123" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
+      const accounts = [
+        {
+          channelId: "feishu",
+          accountId: "default",
+          name: "Feishu Official Bot",
+          config: { appId: "app_123", appSecret: "secret_123" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
 
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: (channelId: string, accountId: string) =>
-              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: vi.fn(),
             delete: vi.fn(),
           },
@@ -952,42 +1060,52 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         createdAt: number;
         updatedAt: number;
       }> = [];
-      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
-        const record = {
-          channelId,
-          accountId,
-          name,
-          config,
-          createdAt: 1,
-          updatedAt: 1,
-        };
-        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
-        if (index >= 0) accounts[index] = record;
-        else accounts.push(record);
-        return record;
-      });
+      const upsertAccount = vi.fn(
+        (
+          channelId: string,
+          accountId: string,
+          name: string | null,
+          config: Record<string, unknown>,
+        ) => {
+          const record = {
+            channelId,
+            accountId,
+            name,
+            config,
+            createdAt: 1,
+            updatedAt: 1,
+          };
+          const index = accounts.findIndex(
+            (account) => account.channelId === channelId && account.accountId === accountId,
+          );
+          if (index >= 0) accounts[index] = record;
+          else accounts.push(record);
+          return record;
+        },
+      );
       const ensureExists = vi.fn(() => true);
 
       globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
         const params = new URLSearchParams(String(init?.body ?? ""));
         const action = params.get("action");
-        const body = action === "init"
-          ? { supported_auth_methods: ["client_secret"] }
-          : action === "begin"
-            ? {
-                device_code: "device-code",
-                verification_uri_complete: "https://accounts.feishu.cn/qr?token=abc",
-                interval: 1,
-                expire_in: 60,
-              }
-            : {
-                client_id: "cli_test",
-                client_secret: "secret_test",
-                user_info: {
-                  open_id: "ou_creator",
-                  tenant_brand: "feishu",
-                },
-              };
+        const body =
+          action === "init"
+            ? { supported_auth_methods: ["client_secret"] }
+            : action === "begin"
+              ? {
+                  device_code: "device-code",
+                  verification_uri_complete: "https://accounts.feishu.cn/qr?token=abc",
+                  interval: 1,
+                  expire_in: 60,
+                }
+              : {
+                  client_id: "cli_test",
+                  client_secret: "secret_test",
+                  user_info: {
+                    open_id: "ou_creator",
+                    tenant_brand: "feishu",
+                  },
+                };
         return new Response(JSON.stringify(body), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -1001,7 +1119,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
             list: (channelId?: string) =>
               channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: (channelId: string, accountId: string) =>
-              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: upsertAccount,
             delete: vi.fn(),
           },
@@ -1024,6 +1144,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
 
       const start = await root.channelManager.startFeishuSetup();
       expect(start.verificationUrl).toContain("from=onboard");
+      vi.mocked(ensureFeishuCsCallbackConfigured).mockRejectedValueOnce(
+        new Error("callback setup unavailable"),
+      );
 
       const poll = await root.channelManager.pollFeishuSetup(start.sessionKey);
       expect(poll).toMatchObject({
@@ -1034,7 +1157,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(poll.accountId).toMatch(/^feishu-cli_test-[a-f0-9]{8}$/);
 
       const accountId = poll.accountId!;
-      const official = accounts.find((account) => account.channelId === "feishu" && account.accountId === accountId);
+      const official = accounts.find(
+        (account) => account.channelId === "feishu" && account.accountId === accountId,
+      );
       expect(official?.name).toBe("Feishu Official Bot (i_test)");
       expect(official?.config).toMatchObject({
         mediaMaxMb: 30,
@@ -1068,10 +1193,17 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(config.channels.feishu.groupAllowFrom).toBeUndefined();
 
       expect(readVendorChannelAllowFrom(stateDir, "feishu", accountId)).toEqual(["ou_creator"]);
-      expect(existsSync(join(stateDir, "credentials", `feishu-${accountId}-allowFrom.json`))).toBe(false);
+      expect(existsSync(join(stateDir, "credentials", `feishu-${accountId}-allowFrom.json`))).toBe(
+        false,
+      );
 
-      const recipients = root.channelAccounts.find((account) => account.channelId === "feishu" && account.accountId === accountId)
-        ?.recipients as { allowlist: string[]; labels: Record<string, string>; owners: Record<string, boolean> };
+      const recipients = root.channelAccounts.find(
+        (account) => account.channelId === "feishu" && account.accountId === accountId,
+      )?.recipients as {
+        allowlist: string[];
+        labels: Record<string, string>;
+        owners: Record<string, boolean>;
+      };
       expect(recipients.allowlist).toEqual(["ou_creator"]);
       expect(recipients.allowlist).not.toContain("*");
       expect(recipients.labels).toEqual({ ou_creator: "Creator" });
@@ -1105,56 +1237,68 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         config: Record<string, unknown>;
         createdAt: number;
         updatedAt: number;
-      }> = [{
-        channelId: "feishu",
-        accountId: "default",
-        name: "Existing Feishu Bot",
-        config: {
-          enabled: true,
-          appId: "cli_existing",
-          appSecret: "existing_secret",
-          domain: "feishu",
-          dmPolicy: "pairing",
-          groupPolicy: "allowlist",
-        },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
-      const upsertAccount = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
-        const record = {
-          channelId,
-          accountId,
-          name,
-          config,
+      }> = [
+        {
+          channelId: "feishu",
+          accountId: "default",
+          name: "Existing Feishu Bot",
+          config: {
+            enabled: true,
+            appId: "cli_existing",
+            appSecret: "existing_secret",
+            domain: "feishu",
+            dmPolicy: "pairing",
+            groupPolicy: "allowlist",
+          },
           createdAt: 1,
-          updatedAt: 2,
-        };
-        const index = accounts.findIndex((account) => account.channelId === channelId && account.accountId === accountId);
-        if (index >= 0) accounts[index] = record;
-        else accounts.push(record);
-        return record;
-      });
+          updatedAt: 1,
+        },
+      ];
+      const upsertAccount = vi.fn(
+        (
+          channelId: string,
+          accountId: string,
+          name: string | null,
+          config: Record<string, unknown>,
+        ) => {
+          const record = {
+            channelId,
+            accountId,
+            name,
+            config,
+            createdAt: 1,
+            updatedAt: 2,
+          };
+          const index = accounts.findIndex(
+            (account) => account.channelId === channelId && account.accountId === accountId,
+          );
+          if (index >= 0) accounts[index] = record;
+          else accounts.push(record);
+          return record;
+        },
+      );
 
       globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
         const params = new URLSearchParams(String(init?.body ?? ""));
         const action = params.get("action");
-        const body = action === "init"
-          ? { supported_auth_methods: ["client_secret"] }
-          : action === "begin"
-            ? {
-                device_code: "device-code",
-                verification_uri_complete: "https://accounts.feishu.cn/qr?token=abc",
-                interval: 1,
-                expire_in: 60,
-              }
-            : {
-                client_id: "cli_new_bot",
-                client_secret: "new_secret",
-                user_info: {
-                  open_id: "ou_creator",
-                  tenant_brand: "feishu",
-                },
-              };
+        const body =
+          action === "init"
+            ? { supported_auth_methods: ["client_secret"] }
+            : action === "begin"
+              ? {
+                  device_code: "device-code",
+                  verification_uri_complete: "https://accounts.feishu.cn/qr?token=abc",
+                  interval: 1,
+                  expire_in: 60,
+                }
+              : {
+                  client_id: "cli_new_bot",
+                  client_secret: "new_secret",
+                  user_info: {
+                    open_id: "ou_creator",
+                    tenant_brand: "feishu",
+                  },
+                };
         return new Response(JSON.stringify(body), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -1177,7 +1321,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
             list: (channelId?: string) =>
               channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: (channelId: string, accountId: string) =>
-              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert: upsertAccount,
             delete: vi.fn(),
           },
@@ -1259,11 +1405,23 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       const accountsDir = join(stateDir, WEIXIN_CHANNEL_ID, "accounts");
       const configPath = join(stateDir, "openclaw.json");
       mkdirSync(accountsDir, { recursive: true });
-      writeFileSync(configPath, JSON.stringify({ channels: { [WEIXIN_CHANNEL_ID]: { accounts: {} } } }), "utf-8");
-      writeFileSync(join(stateDir, WEIXIN_CHANNEL_ID, "accounts.json"), JSON.stringify([oldAccountId, newAccountId]), "utf-8");
+      writeFileSync(
+        configPath,
+        JSON.stringify({ channels: { [WEIXIN_CHANNEL_ID]: { accounts: {} } } }),
+        "utf-8",
+      );
+      writeFileSync(
+        join(stateDir, WEIXIN_CHANNEL_ID, "accounts.json"),
+        JSON.stringify([oldAccountId, newAccountId]),
+        "utf-8",
+      );
       writeFileSync(join(accountsDir, `${oldAccountId}.json`), JSON.stringify({ userId }), "utf-8");
       writeFileSync(join(accountsDir, `${newAccountId}.json`), JSON.stringify({ userId }), "utf-8");
-      writeFileSync(join(accountsDir, `${oldAccountId}.context-tokens.json`), JSON.stringify({ [userId]: "old-context-token" }), "utf-8");
+      writeFileSync(
+        join(accountsDir, `${oldAccountId}.context-tokens.json`),
+        JSON.stringify({ [userId]: "old-context-token" }),
+        "utf-8",
+      );
 
       let accounts: Array<{
         channelId: string;
@@ -1272,30 +1430,46 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         config: Record<string, unknown>;
         createdAt: number;
         updatedAt: number;
-      }> = [{
-        channelId: WEIXIN_CHANNEL_ID,
-        accountId: oldAccountId,
-        name: "客服微信",
-        config: { name: "客服微信" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
-      const upsert = vi.fn((channelId: string, accountId: string, name: string | null, config: Record<string, unknown>) => {
-        const saved = { channelId, accountId, name, config, createdAt: 1, updatedAt: 2 };
-        accounts = accounts.filter((account) => !(account.channelId === channelId && account.accountId === accountId));
-        accounts.push(saved);
-        return saved;
-      });
+      }> = [
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId: oldAccountId,
+          name: "客服微信",
+          config: { name: "客服微信" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+      const upsert = vi.fn(
+        (
+          channelId: string,
+          accountId: string,
+          name: string | null,
+          config: Record<string, unknown>,
+        ) => {
+          const saved = { channelId, accountId, name, config, createdAt: 1, updatedAt: 2 };
+          accounts = accounts.filter(
+            (account) => !(account.channelId === channelId && account.accountId === accountId),
+          );
+          accounts.push(saved);
+          return saved;
+        },
+      );
       const deleteAccount = vi.fn((channelId: string, accountId: string) => {
-        accounts = accounts.filter((account) => !(account.channelId === channelId && account.accountId === accountId));
+        accounts = accounts.filter(
+          (account) => !(account.channelId === channelId && account.accountId === accountId),
+        );
       });
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: (channelId: string, accountId: string) =>
-              accounts.find((account) => account.channelId === channelId && account.accountId === accountId),
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
             upsert,
             delete: deleteAccount,
           },
@@ -1324,7 +1498,12 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
         })),
       };
 
-      const result = await root.channelManager.waitQrLogin(rpcClient as any, undefined, 90_000, "session-new");
+      const result = await root.channelManager.waitQrLogin(
+        rpcClient as any,
+        undefined,
+        90_000,
+        "session-new",
+      );
 
       expect(result).toMatchObject({
         accountId: newAccountId,
@@ -1351,19 +1530,22 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       mkdirSync(accountsDir, { recursive: true });
       writeFileSync(join(accountsDir, `${accountId}.json`), JSON.stringify({ userId }), "utf-8");
 
-      const accounts = [{
-        channelId: WEIXIN_CHANNEL_ID,
-        accountId,
-        name: "赵总",
-        config: { name: "赵总" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
+      const accounts = [
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId,
+          name: "赵总",
+          config: { name: "赵总" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: () => undefined,
             upsert: vi.fn(),
             delete: vi.fn(),
@@ -1402,7 +1584,9 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
       expect(root.channelAccounts[0].recipients).toMatchObject({
         allowlist: [userId],
       });
-      expect(root.channelManager.getWeixinContextTokenForRecipient(accountId, userId)).toBe("context-token");
+      expect(root.channelManager.getWeixinContextTokenForRecipient(accountId, userId)).toBe(
+        "context-token",
+      );
     } finally {
       rmSync(stateDir, { recursive: true, force: true });
     }
@@ -1413,36 +1597,44 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     try {
       const accountId = "acct123-im-bot";
       const configPath = join(stateDir, "openclaw.json");
-      writeFileSync(configPath, JSON.stringify({
-        channels: {
-          [WEIXIN_CHANNEL_ID]: {
-            accounts: {
-              [accountId]: { dmPolicy: "pairing" },
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            [WEIXIN_CHANNEL_ID]: {
+              accounts: {
+                [accountId]: { dmPolicy: "pairing" },
+              },
             },
           },
-        },
-      }), "utf-8");
+        }),
+        "utf-8",
+      );
 
-      const accounts = [{
-        channelId: WEIXIN_CHANNEL_ID,
-        accountId,
-        name: "客服微信",
-        config: { name: "客服微信" },
-        createdAt: 1,
-        updatedAt: 1,
-      }, {
-        channelId: WEIXIN_CHANNEL_ID,
-        accountId: "other-im-bot",
-        name: "另一个微信",
-        config: { name: "另一个微信" },
-        createdAt: 1,
-        updatedAt: 1,
-      }];
+      const accounts = [
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId,
+          name: "客服微信",
+          config: { name: "客服微信" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          channelId: WEIXIN_CHANNEL_ID,
+          accountId: "other-im-bot",
+          name: "另一个微信",
+          config: { name: "另一个微信" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
       const root = TestRootModel.create({});
       root.channelManager.setEnv({
         storage: {
           channelAccounts: {
-            list: (channelId?: string) => channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
             get: () => accounts[0],
             upsert: vi.fn(),
             delete: vi.fn(),
@@ -1469,24 +1661,33 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
           channelLabels: { [WEIXIN_CHANNEL_ID]: "WeChat" },
           channels: {},
           channelAccounts: {
-            [WEIXIN_CHANNEL_ID]: [{
-              accountId,
-              configured: true,
-              running: true,
-              connected: true,
-              lastError: "WeChat sendmessage business failure: sendmessage result status=200 ret=-2 errcode= errmsg= clientId=client accountId=acct123-im-bot to=manager@im.wechat",
-            }, {
-              accountId: "other-im-bot",
-              configured: true,
-              running: true,
-              connected: true,
-            }],
+            [WEIXIN_CHANNEL_ID]: [
+              {
+                accountId,
+                configured: true,
+                running: true,
+                connected: true,
+                lastError:
+                  "WeChat sendmessage business failure: sendmessage result status=200 ret=-2 errcode= errmsg= clientId=client accountId=acct123-im-bot to=manager@im.wechat",
+              },
+              {
+                accountId: "other-im-bot",
+                configured: true,
+                running: true,
+                connected: true,
+              },
+            ],
           },
           channelDefaultAccountId: { [WEIXIN_CHANNEL_ID]: accountId },
         })),
       };
 
-      const snapshot = await root.channelManager.getChannelStatus(rpcClient as any, false, 2000, 5000);
+      const snapshot = await root.channelManager.getChannelStatus(
+        rpcClient as any,
+        false,
+        2000,
+        5000,
+      );
       const [account] = snapshot.channelAccounts[WEIXIN_CHANNEL_ID]!;
       expect(account).toMatchObject({
         accountId,
