@@ -163,4 +163,30 @@ describe("patchFeishuMessageCardCallbackUrl", () => {
     expect(permissionUrl.searchParams.get("q")).toBe("application:application:patch");
     expect(permissionUrl.searchParams.get("token_type")).toBe("tenant");
   });
+
+  it("surfaces the permission URL when Feishu returns the scope error with HTTP 400", async () => {
+    mockFetch(
+      jsonResponse(TOKEN_OK),
+      jsonResponse(
+        {
+          code: 99991672,
+          msg: "Access denied. Required: application:application:patch",
+        },
+        400,
+      ),
+    );
+
+    await expect(
+      patchFeishuMessageCardCallbackUrl({
+        appId: "cli_one",
+        appSecret: "secret_one",
+        domain: "feishu",
+        callbackUrl: "https://api.example.com/callback",
+      }),
+    ).rejects.toMatchObject({
+      name: "FeishuCallbackPermissionRequiredError",
+      appId: "cli_one",
+      permissionUrl: getFeishuCallbackPermissionUrl({ appId: "cli_one", domain: "feishu" }),
+    });
+  });
 });

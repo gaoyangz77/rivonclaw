@@ -149,14 +149,22 @@ export function isFeishuCallbackPermissionRequiredError(
  */
 async function readFeishuBody(res: Response, label: string): Promise<FeishuResponseBody> {
   const raw = await res.text();
-  if (!res.ok) {
-    throw new Error(`${label} failed: HTTP ${res.status} ${raw.slice(0, 300)}`);
-  }
   let body: FeishuResponseBody;
   try {
     body = JSON.parse(raw) as FeishuResponseBody;
   } catch {
+    if (!res.ok) {
+      throw new Error(`${label} failed: HTTP ${res.status} ${raw.slice(0, 300)}`);
+    }
     throw new Error(`${label} returned a non-JSON body: ${raw.slice(0, 300)}`);
+  }
+  if (!res.ok) {
+    const apiMessage = String(body.msg ?? "");
+    throw new FeishuApiError(
+      `${label} failed: HTTP ${res.status} code=${String(body.code)} msg=${apiMessage}`,
+      body.code,
+      apiMessage,
+    );
   }
   if (body.code !== 0) {
     const apiMessage = String(body.msg ?? "");

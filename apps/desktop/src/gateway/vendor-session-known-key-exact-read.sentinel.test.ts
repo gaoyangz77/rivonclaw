@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -11,10 +11,11 @@ const PATCH_FILE = resolve(
   "../../../../vendor-patches/openclaw/0035-vendor-openclaw-bound-known-key-session-reads.patch",
 );
 
-const VENDOR_SOURCE = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/src/gateway/server-methods/sessions-shared.ts",
-);
+const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/openclaw");
+const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
+  ? PATCHED_VENDOR_ROOT
+  : resolve(__dirname, "../../../../vendor/openclaw");
+const VENDOR_SOURCE = resolve(VENDOR_ROOT, "src/gateway/server-methods/sessions-shared.ts");
 
 function functionBody(source: string, name: string, nextName: string): string {
   const start = source.indexOf(`export function ${name}`);

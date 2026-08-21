@@ -4,6 +4,10 @@ import { CustomerServiceBridge } from "../cs-bridge/customer-service-bridge.js";
 import { rootStore } from "../app/store/desktop-store.js";
 import { getAuthSession } from "../auth/session-ref.js";
 import { ensureAgentToolingReady } from "./agent-tooling-readiness.js";
+import {
+  clearPendingCsDispatches,
+  flushCsDispatchesAfterBridgeReady,
+} from "../cs-bridge/cs-conversation-signal-buffer.js";
 
 const log = createLogger("gateway-connection");
 
@@ -39,6 +43,18 @@ export function stopCsBridge(): void {
     _csBridge = null;
   }
   _csBridgeSuspended = false;
+  clearPendingCsDispatches();
+}
+
+async function flushPendingCsDispatches(bridge: CustomerServiceBridge): Promise<void> {
+  const result = await flushCsDispatchesAfterBridgeReady((dispatch) =>
+    bridge.handleCsConversationSignal(dispatch));
+  if (result.flushed > 0) {
+    log.info(
+      `CS bridge replayed ${result.flushed} startup dispatch(es) ` +
+      `(maxWaitMs=${result.maxWaitMs})`,
+    );
+  }
 }
 
 export function suspendCsBridge(): void {
@@ -80,6 +96,7 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
           await _csBridge.resumeAfterGatewayReconnect();
           if (generation !== _csBridgeLifecycleGeneration || !_csBridge) return;
           _csBridgeSuspended = false;
+          await flushPendingCsDispatches(_csBridge);
           log.info("CS bridge resumed after Gateway RPC reconnect");
           return;
         }
@@ -104,13 +121,19 @@ export function tryStartCsBridge(gatewayId: string, locale?: string): void {
         const latestUser = authSession.getCachedUser();
         if (!latestUser) return;
 
-        _csBridge = new CustomerServiceBridge({
+        const bridge = new CustomerServiceBridge({
           gatewayId,
           locale,
         });
+        await bridge.start();
+        if (generation !== _csBridgeLifecycleGeneration || _csBridge) {
+          bridge.stop();
+          return;
+        }
+        _csBridge = bridge;
         _csBridgeSuspended = false;
         rootStore.llmManager.refreshModelCatalog().catch(() => {});
-        _csBridge.start().catch((e: unknown) => log.error("CS bridge start failed:", e));
+        await flushPendingCsDispatches(bridge);
         log.info("CS bridge started (signed-in ecommerce workspace)");
       } finally {
         if (generation === _csBridgeLifecycleGeneration) {

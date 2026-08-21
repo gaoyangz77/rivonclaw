@@ -1,4 +1,4 @@
-From 9f4a8f071f17ebec7a8ded298fefc852492da3fc Mon Sep 17 00:00:00 2001
+From f53ca0a0f0aad6ff40e6470cb7da9643e0bd3619 Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 20 Aug 2026 17:44:20 -0700
 Subject: [PATCH] vendor(openclaw): backport Feishu visible delivery custody
@@ -18,9 +18,9 @@ Tests:
 ---
  extensions/feishu/src/delivery-trace.test.ts  | 135 +++++++++++++++++-
  extensions/feishu/src/reply-dispatcher.ts     |  49 ++++---
- src/channels/turn/lifecycle.ts                |  15 +-
+ src/channels/turn/lifecycle.ts                |   9 +-
  .../turn/run-channel-turn.custody.test.ts     |   9 ++
- 4 files changed, 179 insertions(+), 29 deletions(-)
+ 4 files changed, 176 insertions(+), 26 deletions(-)
 
 diff --git a/extensions/feishu/src/delivery-trace.test.ts b/extensions/feishu/src/delivery-trace.test.ts
 index c1499a005ad..d2078da9538 100644
@@ -226,10 +226,10 @@ index c1499a005ad..d2078da9538 100644
 +  });
 +});
 diff --git a/extensions/feishu/src/reply-dispatcher.ts b/extensions/feishu/src/reply-dispatcher.ts
-index 9ef31a9c11c..39988152896 100644
+index 04c3c6e985b..59537705bcc 100644
 --- a/extensions/feishu/src/reply-dispatcher.ts
 +++ b/extensions/feishu/src/reply-dispatcher.ts
-@@ -348,6 +348,27 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -345,6 +345,27 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
      visibleReplySent = true;
    };
  
@@ -257,7 +257,7 @@ index 9ef31a9c11c..39988152896 100644
    const formatReasoningPrefix = (thinking: string): string => {
      if (!thinking) {
        return "";
-@@ -552,23 +573,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -549,23 +570,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
          try {
            closed = await streamingToClose.closeWithResult(text, { note: finalNote });
          } catch (error: unknown) {
@@ -284,7 +284,7 @@ index 9ef31a9c11c..39988152896 100644
              if (failedResult.content === text) {
                deliveredFinalTexts.add(finalizedAnswerText);
              }
-@@ -576,12 +586,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -573,12 +583,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
                generationToClose,
                finalizedAnswerText,
                failedResult,
@@ -299,7 +299,7 @@ index 9ef31a9c11c..39988152896 100644
              };
            }
            // Preserve the non-visible result so the settlement owner can recover the accepted
-@@ -693,7 +703,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
+@@ -690,7 +700,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
        }
        await partialUpdateQueue;
        if (streaming?.isActive()) {
@@ -314,24 +314,18 @@ index 9ef31a9c11c..39988152896 100644
      } finally {
        resetStreamingState();
 diff --git a/src/channels/turn/lifecycle.ts b/src/channels/turn/lifecycle.ts
-index ae485dd9034..3b4ed7a6cbd 100644
+index 81542c18e36..278c25e5e35 100644
 --- a/src/channels/turn/lifecycle.ts
 +++ b/src/channels/turn/lifecycle.ts
-@@ -224,11 +224,12 @@ async function settleChannelDeliveryAttempts(params: {
+@@ -227,8 +227,9 @@ async function settleChannelDeliveryAttempts(params: {
    }
  }
  
--// Failed-send custody policy: a permanent typed non-dispatch rejection is a
--// proven no-send (terminal suppression, no replay, no notice); an untyped error
--// after the pre-I/O claim affirms real ambiguity (unknown -> owed notice); a
--// retryable typed rejection restores prepared custody so recovery can replay —
--// the pre-claim already wrote unknown, and leaving it would fake ambiguity.
-+// Failed-send custody policy: visible partial delivery is terminally delivered;
-+// a permanent typed non-dispatch rejection is a proven no-send (terminal
-+// suppression, no replay, no notice); an untyped error after the pre-I/O claim
-+// affirms real ambiguity (unknown -> owed notice); a retryable typed rejection
-+// restores prepared custody so recovery can replay — the pre-claim already
-+// wrote unknown, and leaving it would fake ambiguity.
+-// Permanent non-dispatch rejection proves no send; an untyped post-claim error stays ambiguous.
+-// Retryable rejection restores prepared custody so recovery can replay instead of faking ambiguity.
++// Visible partial delivery is terminally delivered. Permanent non-dispatch rejection proves no
++// send; an untyped post-claim error stays ambiguous. Retryable rejection restores prepared custody
++// so recovery can replay instead of faking ambiguity.
  async function settleFailedPendingFinalDelivery(
    payload: ReplyPayload,
    error: unknown,

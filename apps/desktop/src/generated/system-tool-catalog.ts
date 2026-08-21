@@ -246,6 +246,13 @@ export const SYSTEM_TOOL_CATALOG: SystemToolEntry[] = [
     sectionLabel: "UI",
   },
   {
+    id: "portal",
+    label: "portal",
+    description: "Expose local web apps through the gateway",
+    section: "ui",
+    sectionLabel: "UI",
+  },
+  {
     id: "canvas",
     label: "canvas",
     description: "Control canvases",
@@ -345,9 +352,9 @@ export const SYSTEM_TOOL_CATALOG: SystemToolEntry[] = [
     sectionLabel: "Agents",
   },
   {
-    id: "update_plan",
-    label: "update_plan",
-    description: "Update the task plan",
+    id: "progress_card",
+    label: "progress_card",
+    description: "Maintain the session progress card",
     section: "agents",
     sectionLabel: "Agents",
   },
@@ -368,8 +375,8 @@ export const SYSTEM_TOOL_CATALOG: SystemToolEntry[] = [
 
   // ── Media ──
   {
-    id: "image",
-    label: "image",
+    id: "view_image",
+    label: "view_image",
     description: "Image understanding",
     section: "media",
     sectionLabel: "Media",

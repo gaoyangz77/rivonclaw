@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleCsConversationChanged } from "./cs-conversation-signal-actuator.js";
+import {
+  clearPendingCsDispatches,
+  flushCsDispatchesAfterBridgeReady,
+} from "./cs-conversation-signal-buffer.js";
 import type { CsConversationChangedPayload } from "../cloud/backend-subscription-client.js";
 
 const state = vi.hoisted(() => ({
   bridge: {
     handleCsConversationSignal: vi.fn(),
-  },
+  } as { handleCsConversationSignal: ReturnType<typeof vi.fn> } | null,
   shops: [] as any[],
 }));
 
@@ -128,14 +132,15 @@ function makeConversationWithIndexOnlyHint(): CsConversationChangedPayload {
 
 describe("handleCsConversationChanged", () => {
   beforeEach(() => {
-    state.bridge.handleCsConversationSignal.mockReset();
+    state.bridge = { handleCsConversationSignal: vi.fn() };
+    clearPendingCsDispatches();
     state.shops = [makeShop()];
   });
 
   it("dispatches recognized pending buyer message hints", async () => {
     await handleCsConversationChanged("device-1", makeConversation("PENDING_BUYER_MESSAGE"));
 
-    expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
       type: "UNREAD_DETECTED",
       dispatchReason: "PENDING_BUYER_MESSAGE",
       useMessageDelta: true,
@@ -150,7 +155,7 @@ describe("handleCsConversationChanged", () => {
   it("dispatches recognized session-expiring hints", async () => {
     await handleCsConversationChanged("device-1", makeConversation("SESSION_EXPIRING_ESCALATION_FOLLOW_UP"));
 
-    expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
       type: "UNREAD_DETECTED",
       dispatchReason: "SESSION_EXPIRING_ESCALATION_FOLLOW_UP",
       useMessageDelta: false,
@@ -161,7 +166,7 @@ describe("handleCsConversationChanged", () => {
   it("uses close-out instructions without conversation delta for session-expiring customer follow-ups", async () => {
     await handleCsConversationChanged("device-1", makeConversation("SESSION_EXPIRING_CUSTOMER_FOLLOW_UP"));
 
-    expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
       type: "UNREAD_DETECTED",
       dispatchReason: "SESSION_EXPIRING_CUSTOMER_FOLLOW_UP",
       useMessageDelta: false,
@@ -172,25 +177,25 @@ describe("handleCsConversationChanged", () => {
   it("ignores unknown dispatch hints instead of defaulting to an agent run", async () => {
     await handleCsConversationChanged("device-1", makeConversation("FUTURE_REASON"));
 
-    expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
+    expect(state.bridge!.handleCsConversationSignal).not.toHaveBeenCalled();
   });
 
   it("ignores pending buyer hints without backend cursor instead of falling back to local latest message", async () => {
     await handleCsConversationChanged("device-1", makeConversationWithoutHintCursor());
 
-    expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
+    expect(state.bridge!.handleCsConversationSignal).not.toHaveBeenCalled();
   });
 
   it("ignores pending buyer hints without message id even when message index exists", async () => {
     await handleCsConversationChanged("device-1", makeConversationWithIndexOnlyHint());
 
-    expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
+    expect(state.bridge!.handleCsConversationSignal).not.toHaveBeenCalled();
   });
 
   it("dispatches pending buyer hints anchored by message id without local latest fallback", async () => {
     await handleCsConversationChanged("device-1", makeConversationWithMessageIdOnlyHint());
 
-    expect(state.bridge.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
+    expect(state.bridge!.handleCsConversationSignal).toHaveBeenCalledWith(expect.objectContaining({
       dispatchReason: "PENDING_BUYER_MESSAGE",
       messageId: "msg-id-only",
       messageIndex: undefined,
@@ -205,6 +210,20 @@ describe("handleCsConversationChanged", () => {
 
     await handleCsConversationChanged("device-1", makeConversation("PENDING_BUYER_MESSAGE"));
 
-    expect(state.bridge.handleCsConversationSignal).not.toHaveBeenCalled();
+    expect(state.bridge!.handleCsConversationSignal).not.toHaveBeenCalled();
+  });
+
+  it("queues a buyer dispatch received before the bridge is ready", async () => {
+    state.bridge = null;
+    const handle = vi.fn().mockResolvedValue(undefined);
+
+    await handleCsConversationChanged("device-1", makeConversation("PENDING_BUYER_MESSAGE"));
+    await flushCsDispatchesAfterBridgeReady(handle);
+
+    expect(handle).toHaveBeenCalledWith(expect.objectContaining({
+      conversationId: "conv-1",
+      messageId: "msg-1",
+      dispatchReason: "PENDING_BUYER_MESSAGE",
+    }));
   });
 });

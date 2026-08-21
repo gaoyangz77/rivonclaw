@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -10,10 +10,14 @@ const PATCH_FILE = resolve(
   __dirname,
   "../../../../vendor-patches/openclaw/0034-vendor-openclaw-widen-Feishu-websocket-liveness-time.patch",
 );
+const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/openclaw");
+const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
+  ? PATCHED_VENDOR_ROOT
+  : resolve(__dirname, "../../../../vendor/openclaw");
 
 const VENDOR_CLIENT = resolve(
-  __dirname,
-  "../../../../vendor/openclaw/extensions/feishu/src/client.ts",
+  VENDOR_ROOT,
+  "extensions/feishu/src/client.ts",
 );
 
 function readPingTimeout(source: string): number | null {
