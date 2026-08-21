@@ -29,6 +29,7 @@ export interface CsEscalationResponseGatewayPayload {
   escalationId: string;
   decision: string;
   resolved: boolean;
+  chatType?: "p2p" | "group";
   submittedAt: number;
 }
 
@@ -75,6 +76,7 @@ function toSubmission(payload: CsEscalationResponseGatewayPayload): CsEscalation
     escalationId: payload.escalationId,
     decision: payload.decision,
     resolved: payload.resolved,
+    ...(payload.chatType ? { chatType: payload.chatType } : {}),
     submittedAt: payload.submittedAt,
   };
 }

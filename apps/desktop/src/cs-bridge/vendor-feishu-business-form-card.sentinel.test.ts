@@ -37,4 +37,10 @@ describe("vendor patch 0028: Feishu business form cards", () => {
     expect(patch).toContain("never invokes the agent");
     expect(patch).not.toContain("cs_list_open_escalations");
   });
+
+  it("uses trusted card chat-type hints before the three-second callback deadline", () => {
+    expect(patch).toContain("readBusinessChatTypeHint");
+    expect(patch).toContain("chat_type=(p2p|group)");
+    expect(patch).toContain("business callback must not perform a chat lookup");
+  });
 });

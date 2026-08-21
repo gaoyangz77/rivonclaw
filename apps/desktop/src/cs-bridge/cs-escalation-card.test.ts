@@ -21,6 +21,7 @@ describe("Feishu CS escalation card", () => {
       orderId: "576924518065478202",
       reason: "Refund requested",
       context: "Buyer contacted support",
+      chatType: "group",
       locale: "en",
     }) as any;
     const form = card.body.elements.find((element: any) => element.tag === "form");
@@ -41,11 +42,12 @@ describe("Feishu CS escalation card", () => {
     ).not.toHaveProperty("label");
     expect(form.elements.filter((element: any) => element.tag === "button")).toEqual([
       expect.objectContaining({
-        name: "rivonclaw.cs:respond:M1DG8V",
+        name: "rivonclaw.cs:respond:chat_type=group:M1DG8V",
         form_action_type: "submit",
         value: expect.objectContaining({
           action: "rivonclaw.cs:respond",
           escalationId: "M1DG8V",
+          chatType: "group",
         }),
       }),
     ]);
@@ -217,9 +219,9 @@ describe("Feishu CS escalation card", () => {
     expect(form.elements.find((element: any) => element.tag === "input")).not.toHaveProperty(
       "disabled",
     );
-    expect(form.elements.find((element: any) => element.tag === "select_static")).not.toHaveProperty(
-      "disabled",
-    );
+    expect(
+      form.elements.find((element: any) => element.tag === "select_static"),
+    ).not.toHaveProperty("disabled");
   });
 
   it("unfreezes the submit button in the failed notice", () => {
@@ -236,7 +238,11 @@ describe("Feishu CS escalation card", () => {
     for (const locale of SUPPORTED_LOCALES) {
       const messages = getCsEscalationCardMessages(locale);
       expect(Object.values(messages).every(Boolean)).toBe(true);
-      for (const key of ["submissionInProgress", "submitDisabledTip", "resultUnconfirmed"] as const) {
+      for (const key of [
+        "submissionInProgress",
+        "submitDisabledTip",
+        "resultUnconfirmed",
+      ] as const) {
         expect(messages[key].trim().length).toBeGreaterThan(0);
       }
       // The card body copy is distinct from the gateway toast string.

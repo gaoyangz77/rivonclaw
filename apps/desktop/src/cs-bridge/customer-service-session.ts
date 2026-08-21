@@ -1806,6 +1806,11 @@ export class CustomerServiceSession {
                   orderId,
                   reason: params.reason,
                   context: params.context,
+                  chatType:
+                    escalationRecipientId.startsWith("oc_") ||
+                    escalationRecipientId.startsWith("chat:")
+                      ? "group"
+                      : "p2p",
                   locale: this.opts?.locale?.(),
                 }),
               },
