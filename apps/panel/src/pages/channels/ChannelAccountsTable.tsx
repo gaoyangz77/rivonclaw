@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { panelEventBus } from "../../lib/event-bus.js";
-import type { ChannelAccountSnapshot } from "../../api/index.js";
+import { retryFeishuCallbackSetup, type ChannelAccountSnapshot } from "../../api/index.js";
 import { ChevronRightIcon } from "../../components/icons.js";
 import type { MobileDeviceStatusResponse, MobilePairingInfo } from "../../api/mobile-chat.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
@@ -37,8 +37,8 @@ function TruncatedId({ value, t }: { value: string; t: (key: string) => string }
   );
 }
 
-function AccountWarning({ tooltip }: { tooltip: string }) {
-  const triggerRef = useRef<HTMLSpanElement>(null);
+function AccountWarning({ tooltip, actionUrl }: { tooltip: string; actionUrl?: string | null }) {
+  const triggerRef = useRef<HTMLElement | null>(null);
   const [bubble, setBubble] = useState<{
     top: number;
     left: number;
@@ -64,21 +64,43 @@ function AccountWarning({ tooltip }: { tooltip: string }) {
   }, []);
 
   const hide = useCallback(() => setBubble(null), []);
+  const setTriggerRef = useCallback((node: HTMLElement | null) => {
+    triggerRef.current = node;
+  }, []);
 
   return (
     <>
-      <span
-        ref={triggerRef}
-        className="wechat-activation-warning"
-        aria-label={tooltip}
-        tabIndex={0}
-        onMouseEnter={show}
-        onMouseLeave={hide}
-        onFocus={show}
-        onBlur={hide}
-      >
-        !
-      </span>
+      {actionUrl ? (
+        <button
+          ref={setTriggerRef}
+          type="button"
+          className="wechat-activation-warning wechat-activation-warning-action"
+          aria-label={tooltip}
+          onClick={(event) => {
+            event.stopPropagation();
+            window.open(actionUrl, "_blank", "noopener,noreferrer");
+          }}
+          onMouseEnter={show}
+          onMouseLeave={hide}
+          onFocus={show}
+          onBlur={hide}
+        >
+          !
+        </button>
+      ) : (
+        <span
+          ref={setTriggerRef}
+          className="wechat-activation-warning"
+          aria-label={tooltip}
+          tabIndex={0}
+          onMouseEnter={show}
+          onMouseLeave={hide}
+          onFocus={show}
+          onBlur={hide}
+        >
+          !
+        </span>
+      )}
       {bubble &&
         createPortal(
           <div
@@ -121,6 +143,8 @@ export function ChannelAccountsTable({
   const [recipientUiState, setRecipientUiState] = useState<Record<string, RecipientUiState>>({});
   const [recipientData, setRecipientData] = useState<Record<string, RecipientSnapshot>>({});
   const [processing, setProcessing] = useState<string | null>(null);
+  const [permissionOpened, setPermissionOpened] = useState<Set<string>>(new Set());
+  const [permissionVerifying, setPermissionVerifying] = useState<string | null>(null);
   const [removeConfirm, setRemoveConfirm] = useState<{
     compositeKey: string;
     channelId: string;
@@ -766,7 +790,12 @@ export function ChannelAccountsTable({
                           {needsWeixinActivation && (
                             <AccountWarning tooltip={weixinActivationTooltip} />
                           )}
-                          {account.warning && <AccountWarning tooltip={account.warning} />}
+                          {account.warning && (
+                            <AccountWarning
+                              tooltip={account.warning}
+                              actionUrl={account.warningActionUrl}
+                            />
+                          )}
                           <span>{channelLabel}</span>
                         </span>
                       </td>
@@ -786,6 +815,66 @@ export function ChannelAccountsTable({
                       </td>
                       <td>
                         <div className="td-actions">
+                          {account.warningActionUrl && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              disabled={permissionVerifying === compositeKey}
+                              onClick={async (event) => {
+                                event.stopPropagation();
+                                if (!permissionOpened.has(compositeKey)) {
+                                  window.open(
+                                    account.warningActionUrl!,
+                                    "_blank",
+                                    "noopener,noreferrer",
+                                  );
+                                  setPermissionOpened((current) =>
+                                    new Set(current).add(compositeKey),
+                                  );
+                                  return;
+                                }
+
+                                setPermissionVerifying(compositeKey);
+                                try {
+                                  const result = await retryFeishuCallbackSetup(account.accountId);
+                                  if (result.status === "permission_required") {
+                                    window.open(
+                                      result.permissionUrl,
+                                      "_blank",
+                                      "noopener,noreferrer",
+                                    );
+                                  } else {
+                                    setPermissionOpened((current) => {
+                                      const next = new Set(current);
+                                      next.delete(compositeKey);
+                                      return next;
+                                    });
+                                  }
+                                } catch (error) {
+                                  console.warn(
+                                    "Failed to verify Feishu callback permission",
+                                    error,
+                                  );
+                                } finally {
+                                  setPermissionVerifying(null);
+                                }
+                              }}
+                            >
+                              {permissionVerifying === compositeKey
+                                ? i18nLang.toLowerCase().startsWith("zh")
+                                  ? "验证中..."
+                                  : "Verifying..."
+                                : permissionOpened.has(compositeKey)
+                                  ? i18nLang.toLowerCase().startsWith("zh")
+                                    ? "验证权限"
+                                    : "Verify permission"
+                                  : t("channels.grantFeishuPermission", {
+                                      defaultValue: i18nLang.toLowerCase().startsWith("zh")
+                                        ? "开通权限"
+                                        : "Grant permission",
+                                    })}
+                            </button>
+                          )}
                           {canEdit ? (
                             <button
                               className="btn btn-secondary"

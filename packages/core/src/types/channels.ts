@@ -54,6 +54,8 @@ export type ChannelAccountSnapshot = {
   contextTokenReady?: boolean | null;
   /** Desktop-owned warning for account setup that is independent of Gateway health. */
   warning?: string | null;
+  /** Optional remediation URL associated with the Desktop-owned warning. */
+  warningActionUrl?: string | null;
   recipients?: {
     allowlist: string[];
     labels: Record<string, string>;

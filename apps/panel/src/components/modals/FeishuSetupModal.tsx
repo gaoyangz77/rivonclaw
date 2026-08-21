@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import QRCode from "qrcode";
-import { pollFeishuSetup, startFeishuSetup } from "../../api/channels.js";
+import { pollFeishuSetup, retryFeishuCallbackSetup, startFeishuSetup } from "../../api/channels.js";
 import { Modal } from "./Modal.js";
 
-type Phase = "starting" | "scanning" | "refreshing" | "error";
+type Phase = "starting" | "scanning" | "refreshing" | "permission" | "verifying" | "error";
 type SetupToken = { aborted: boolean; controller: AbortController };
 
 const SETUP_TIMEOUT_MS = 15 * 60_000;
@@ -34,6 +34,13 @@ function copy(language: string) {
     expired: zh ? "二维码已过期，请重试。" : "The QR code expired. Please try again.",
     denied: zh ? "授权已取消。" : "Authorization was cancelled.",
     failed: zh ? "飞书连接失败，请重试。" : "Feishu/Lark setup failed. Please try again.",
+    permissionHeading: zh ? "还需开通一项飞书权限" : "One Feishu permission is still required",
+    permissionBody: zh
+      ? "请开通“更新应用”权限，以便把客服升级卡片的提交直接发送到 TK匠服务端。完成后回到这里验证。"
+      : "Grant the application update permission so customer-service card submissions can go directly to TK Copilot. Return here to verify afterwards.",
+    grantPermission: zh ? "开通飞书权限" : "Grant Feishu permission",
+    verifyPermission: zh ? "已开通，验证" : "Verify permission",
+    verifying: zh ? "正在验证权限..." : "Verifying permission...",
   };
 }
 
@@ -53,6 +60,8 @@ export function FeishuSetupModal({
   const [phase, setPhase] = useState<Phase>("starting");
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [permissionUrl, setPermissionUrl] = useState<string | null>(null);
+  const [permissionAccountId, setPermissionAccountId] = useState<string | null>(null);
   const activeTokenRef = useRef<SetupToken | null>(null);
   const completedRef = useRef(false);
   const callbacksRef = useRef({ onClose, onSuccess, onManualSetup });
@@ -87,6 +96,8 @@ export function FeishuSetupModal({
     setPhase("starting");
     setQrImageUrl(null);
     setErrorMessage(null);
+    setPermissionUrl(null);
+    setPermissionAccountId(null);
 
     try {
       const deadline = Date.now() + SETUP_TIMEOUT_MS;
@@ -128,6 +139,15 @@ export function FeishuSetupModal({
             activeTokenRef.current = null;
             callbacksRef.current.onClose();
             void callbacksRef.current.onSuccess();
+            return;
+          }
+
+          if (result.status === "permission_required") {
+            token.aborted = true;
+            activeTokenRef.current = null;
+            setPermissionUrl(result.permissionUrl);
+            setPermissionAccountId(result.accountId);
+            setPhase("permission");
             return;
           }
 
@@ -175,6 +195,26 @@ export function FeishuSetupModal({
     callbacksRef.current.onManualSetup();
   }
 
+  async function handleVerifyPermission() {
+    if (!permissionAccountId) return;
+    setPhase("verifying");
+    setErrorMessage(null);
+    try {
+      const result = await retryFeishuCallbackSetup(permissionAccountId);
+      if (result.status === "permission_required") {
+        setPermissionUrl(result.permissionUrl);
+        setPhase("permission");
+        return;
+      }
+      completedRef.current = true;
+      callbacksRef.current.onClose();
+      void callbacksRef.current.onSuccess();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : text.failed);
+      setPhase("permission");
+    }
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={text.title} maxWidth={460}>
       <div className="feishu-setup-modal">
@@ -189,6 +229,31 @@ export function FeishuSetupModal({
         {(phase === "starting" || phase === "refreshing") && !qrImageUrl && (
           <div className="centered-muted">
             {phase === "refreshing" ? text.refreshing : text.starting}
+          </div>
+        )}
+
+        {phase === "verifying" && <div className="centered-muted">{text.verifying}</div>}
+
+        {phase === "permission" && permissionUrl && (
+          <div className="feishu-setup-permission">
+            <h3>{text.permissionHeading}</h3>
+            <p>{text.permissionBody}</p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => window.open(permissionUrl, "_blank", "noopener,noreferrer")}
+              >
+                {text.grantPermission}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void handleVerifyPermission()}
+              >
+                {text.verifyPermission}
+              </button>
+            </div>
           </div>
         )}
 

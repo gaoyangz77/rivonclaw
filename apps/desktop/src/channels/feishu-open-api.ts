@@ -11,6 +11,8 @@ import { getFeishuApplicationAbilityUrl, getFeishuTokenUrl } from "@rivonclaw/co
 const TOKEN_EXPIRY_SKEW_SECONDS = 60;
 const DEFAULT_TOKEN_TTL_SECONDS = 7200;
 const FEISHU_REQUEST_TIMEOUT_MS = 15_000;
+export const FEISHU_CS_CALLBACK_PERMISSION = "application:application:patch";
+const FEISHU_PERMISSION_REQUIRED_CODE = 99991672;
 
 export interface FeishuAccountCredentials {
   appId: string;
@@ -100,6 +102,47 @@ type FeishuResponseBody = {
   expire?: unknown;
 };
 
+export class FeishuApiError extends Error {
+  constructor(
+    message: string,
+    readonly code: unknown,
+    readonly apiMessage: string,
+  ) {
+    super(message);
+    this.name = "FeishuApiError";
+  }
+}
+
+export class FeishuCallbackPermissionRequiredError extends Error {
+  readonly permission = FEISHU_CS_CALLBACK_PERMISSION;
+
+  constructor(
+    readonly appId: string,
+    readonly domain: string,
+    readonly permissionUrl: string,
+    options?: ErrorOptions,
+  ) {
+    super(`Feishu application requires ${FEISHU_CS_CALLBACK_PERMISSION}`, options);
+    this.name = "FeishuCallbackPermissionRequiredError";
+  }
+}
+
+export function getFeishuCallbackPermissionUrl(params: { appId: string; domain: string }): string {
+  const baseUrl =
+    params.domain === "lark" ? "https://open.larksuite.com" : "https://open.feishu.cn";
+  const url = new URL(`${baseUrl}/app/${encodeURIComponent(params.appId)}/auth`);
+  url.searchParams.set("q", FEISHU_CS_CALLBACK_PERMISSION);
+  url.searchParams.set("op_from", "openapi");
+  url.searchParams.set("token_type", "tenant");
+  return url.toString();
+}
+
+export function isFeishuCallbackPermissionRequiredError(
+  error: unknown,
+): error is FeishuCallbackPermissionRequiredError {
+  return error instanceof FeishuCallbackPermissionRequiredError;
+}
+
 /**
  * Feishu answers API-level failures with HTTP 200 and a non-zero `code` in the body,
  * so the status line alone proves nothing.
@@ -116,7 +159,12 @@ async function readFeishuBody(res: Response, label: string): Promise<FeishuRespo
     throw new Error(`${label} returned a non-JSON body: ${raw.slice(0, 300)}`);
   }
   if (body.code !== 0) {
-    throw new Error(`${label} failed: code=${String(body.code)} msg=${String(body.msg ?? "")}`);
+    const apiMessage = String(body.msg ?? "");
+    throw new FeishuApiError(
+      `${label} failed: code=${String(body.code)} msg=${apiMessage}`,
+      body.code,
+      apiMessage,
+    );
   }
   return body;
 }
@@ -163,5 +211,21 @@ export async function patchFeishuMessageCardCallbackUrl(params: {
     },
     label,
   );
-  await readFeishuBody(res, label);
+  try {
+    await readFeishuBody(res, label);
+  } catch (error) {
+    if (
+      error instanceof FeishuApiError &&
+      (error.code === FEISHU_PERMISSION_REQUIRED_CODE ||
+        error.apiMessage.includes(FEISHU_CS_CALLBACK_PERMISSION))
+    ) {
+      throw new FeishuCallbackPermissionRequiredError(
+        params.appId,
+        params.domain,
+        getFeishuCallbackPermissionUrl(params),
+        { cause: error },
+      );
+    }
+    throw error;
+  }
 }

@@ -129,7 +129,18 @@ export interface FeishuSetupStartResult {
 export type FeishuSetupPollResult =
   | { status: "pending"; intervalMs?: number }
   | { status: "connected"; accountId: string; openId?: string; domain?: "feishu" | "lark" }
+  | {
+      status: "permission_required";
+      accountId: string;
+      permissionUrl: string;
+      openId?: string;
+      domain?: "feishu" | "lark";
+    }
   | { status: "expired" | "denied" | "error"; message?: string };
+
+export type FeishuCallbackRetryResult =
+  | { status: "configured" }
+  | { status: "permission_required"; permissionUrl: string };
 
 export async function startFeishuSetup(signal?: AbortSignal): Promise<FeishuSetupStartResult> {
   return fetchJson<FeishuSetupStartResult>(clientPath(API["channels.feishuSetup.start"]), {
@@ -145,4 +156,18 @@ export async function pollFeishuSetup(sessionKey: string, signal?: AbortSignal):
     body: JSON.stringify({ sessionKey }),
     signal,
   });
+}
+
+export async function retryFeishuCallbackSetup(
+  accountId: string,
+  signal?: AbortSignal,
+): Promise<FeishuCallbackRetryResult> {
+  return fetchJson<FeishuCallbackRetryResult>(
+    clientPath(API["channels.feishuSetup.retryCallback"]),
+    {
+      method: "POST",
+      body: JSON.stringify({ accountId }),
+      signal,
+    },
+  );
 }

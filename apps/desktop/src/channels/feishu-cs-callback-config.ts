@@ -3,6 +3,7 @@ import { getApiBaseUrl } from "@rivonclaw/core";
 import type { Storage } from "@rivonclaw/storage";
 import { createLogger } from "@rivonclaw/logger";
 import {
+  isFeishuCallbackPermissionRequiredError,
   patchFeishuMessageCardCallbackUrl,
   resolveFeishuAccountCredentials,
 } from "./feishu-open-api.js";
@@ -16,6 +17,12 @@ const RETRY_DELAYS_MS = [0, 1_000, 4_000] as const;
 let storageRef: Storage | undefined;
 let localeRef = "en";
 const inflight = new Map<string, Promise<void>>();
+
+export interface FeishuCsCallbackWarning {
+  kind: "permission_required" | "configuration_failed";
+  message: string;
+  actionUrl?: string;
+}
 
 function key(prefix: string, domain: string, appId: string): string {
   return `${prefix}:${domain}:${appId}`;
@@ -44,11 +51,29 @@ export function resolveFeishuCsCallbackUrl(locale = localeRef): string {
 export function getFeishuCsCallbackWarning(
   storage: Storage,
   config: Record<string, unknown>,
-): string | null {
+): FeishuCsCallbackWarning | null {
   const appId = typeof config.appId === "string" ? config.appId.trim() : "";
   const domain =
     typeof config.domain === "string" && config.domain.trim() ? config.domain.trim() : "feishu";
-  return appId ? (storage.settings.get(key(WARNING_PREFIX, domain, appId)) ?? null) : null;
+  if (!appId) return null;
+  const stored = storage.settings.get(key(WARNING_PREFIX, domain, appId));
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored) as Partial<FeishuCsCallbackWarning>;
+    if (
+      (parsed.kind === "permission_required" || parsed.kind === "configuration_failed") &&
+      typeof parsed.message === "string"
+    ) {
+      return {
+        kind: parsed.kind,
+        message: parsed.message,
+        ...(typeof parsed.actionUrl === "string" ? { actionUrl: parsed.actionUrl } : {}),
+      };
+    }
+  } catch {
+    // Older builds stored a plain warning string.
+  }
+  return { kind: "configuration_failed", message: stored };
 }
 
 export async function ensureFeishuCsCallbackConfigured(accountId: string): Promise<void> {
@@ -93,15 +118,31 @@ export async function ensureFeishuCsCallbackConfigured(accountId: string): Promi
         return;
       } catch (error) {
         lastError = error;
+        if (isFeishuCallbackPermissionRequiredError(error)) break;
       }
     }
 
-    const message = "Customer-service card callback is not configured";
-    storageRef!.settings.set(warningKey, message);
+    const permissionError = isFeishuCallbackPermissionRequiredError(lastError)
+      ? lastError
+      : undefined;
+    const warning: FeishuCsCallbackWarning = permissionError
+      ? {
+          kind: "permission_required",
+          message: localeRef.toLowerCase().startsWith("zh")
+            ? "飞书应用需要开通“更新应用”权限，客服升级卡片才能提交。点击授权后返回客户端重试。"
+            : "Grant the Feishu application update permission before customer-service cards can be submitted.",
+          actionUrl: permissionError.permissionUrl,
+        }
+      : {
+          kind: "configuration_failed",
+          message: "Customer-service card callback is not configured",
+        };
+    storageRef!.settings.set(warningKey, JSON.stringify(warning));
     log.warn(
       `Failed to configure Feishu CS callback account=${accountId} domain=${domain}: ${String(lastError)}`,
     );
-    throw new Error(message, { cause: lastError });
+    if (permissionError) throw permissionError;
+    throw new Error(warning.message, { cause: lastError });
   })().finally(() => inflight.delete(accountId));
   inflight.set(accountId, task);
   return task;

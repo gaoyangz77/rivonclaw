@@ -75,11 +75,7 @@ function makeRes(): ServerResponse & { _status: number; _body: unknown } {
 
 describe("channels QR login routes", () => {
   it("coalesces concurrent Weixin QR start calls for the same account", async () => {
-    let resolveStart!: (value: {
-      message: string;
-      qrDataUrl: string;
-      sessionKey: string;
-    }) => void;
+    let resolveStart!: (value: { message: string; qrDataUrl: string; sessionKey: string }) => void;
     const startPromise = new Promise<{
       message: string;
       qrDataUrl: string;
@@ -96,8 +92,12 @@ describe("channels QR login routes", () => {
     };
     const ctx = { channelManager } as unknown as ApiContext;
 
-    const firstPromise = dispatch("POST", "/api/channels/qr-login/start", ctx, { accountId: "acct-concurrent" });
-    const secondPromise = dispatch("POST", "/api/channels/qr-login/start", ctx, { accountId: "acct-concurrent" });
+    const firstPromise = dispatch("POST", "/api/channels/qr-login/start", ctx, {
+      accountId: "acct-concurrent",
+    });
+    const secondPromise = dispatch("POST", "/api/channels/qr-login/start", ctx, {
+      accountId: "acct-concurrent",
+    });
 
     await waitForAssertion(() => {
       expect(channelManager.startQrLogin).toHaveBeenCalledTimes(1);
@@ -123,7 +123,8 @@ describe("channels QR login routes", () => {
 
   it("reuses an active Weixin QR start session and clears it after wait", async () => {
     const channelManager = {
-      startQrLogin: vi.fn()
+      startQrLogin: vi
+        .fn()
         .mockResolvedValueOnce({
           message: "scan",
           qrDataUrl: "https://qr.example/one",
@@ -158,7 +159,12 @@ describe("channels QR login routes", () => {
     });
 
     expect(wait.res._status).toBe(200);
-    expect(channelManager.waitQrLogin).toHaveBeenCalledWith(rpcClient, undefined, 30_000, "session-one");
+    expect(channelManager.waitQrLogin).toHaveBeenCalledWith(
+      rpcClient,
+      undefined,
+      30_000,
+      "session-one",
+    );
     expect(onChannelConfigured).toHaveBeenCalledWith("openclaw-weixin");
 
     const third = await dispatch("POST", "/api/channels/qr-login/start", ctx, {});
@@ -219,6 +225,21 @@ describe("channels Feishu setup routes", () => {
     });
     expect(channelManager.pollFeishuSetup).toHaveBeenCalledWith("feishu-session");
     expect(onChannelConfigured).toHaveBeenCalledWith("feishu");
+  });
+
+  it("retries Backend callback configuration after Feishu permission is granted", async () => {
+    const channelManager = {
+      retryFeishuCsCallback: vi.fn().mockResolvedValue({ status: "configured" }),
+    };
+    const ctx = { channelManager } as unknown as ApiContext;
+
+    const result = await dispatch("POST", "/api/channels/feishu-setup/retry-callback", ctx, {
+      accountId: "feishu-cli_one",
+    });
+
+    expect(result.res._status).toBe(200);
+    expect(result.res._body).toEqual({ status: "configured" });
+    expect(channelManager.retryFeishuCsCallback).toHaveBeenCalledWith("feishu-cli_one");
   });
 
   it("rejects Feishu setup polling without a session key", async () => {
