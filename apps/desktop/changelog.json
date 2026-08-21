@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.108",
+    "date": "2026-08-20",
+    "en": [
+      "Restore reliable Feishu delivery custody for visible messages"
+    ],
+    "zh": [
+      "恢复飞书可见消息的可靠发送托管"
+    ]
+  },
+  {
     "version": "1.8.107",
     "date": "2026-08-20",
     "en": [
