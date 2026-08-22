@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.112",
+    "date": "2026-08-22",
+    "en": [
+      "Activate Feishu customer-service card callbacks through the backend"
+    ],
+    "zh": [
+      "通过后端激活飞书客服卡片回调"
+    ]
+  },
+  {
     "version": "1.8.111",
     "date": "2026-08-22",
     "en": [
