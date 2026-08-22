@@ -814,7 +814,6 @@ export interface AffiliateBusinessDeveloperSummary {
 /** One affiliate campaign objective owned by a TikTok seller shop. */
 export interface AffiliateCampaign {
   activatedAt?: Maybe<Scalars['DateTimeISO']['output']>;
-  activeSearchPlanId?: Maybe<Scalars['ID']['output']>;
   completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   configRevision: Scalars['Int']['output'];
   createdAt: Scalars['DateTimeISO']['output'];
@@ -824,7 +823,6 @@ export interface AffiliateCampaign {
   id: Scalars['ID']['output'];
   /** Whether Creators reached by this Campaign skip the seller's sample approval step. Leaving this false keeps producing the approval decisions the screening models learn from. */
   isSampleApprovalExempt: Scalars['Boolean']['output'];
-  lastSearchPlanCompletedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   market: ShopRegion;
   messageProductName: Scalars['String']['output'];
   messageTemplateSource: AffiliateCampaignMessageTemplateSource;
@@ -839,11 +837,9 @@ export interface AffiliateCampaign {
   /** Every product the Campaign promotes, each with its own commission rate. The first is the one discovery searches on and the message names. */
   products: Array<AffiliateCampaignProductType>;
   resolvedTimeZone: Scalars['String']['output'];
-  searchPlanErrorCode?: Maybe<Scalars['String']['output']>;
   searchPlanExplanationLocale: AffiliateCampaignSearchPlanExplanationLocale;
-  searchPlanGeneration: Scalars['Int']['output'];
   searchPlanGuidance?: Maybe<Scalars['String']['output']>;
-  searchPlanningState: AffiliateCampaignSearchPlanningState;
+  searchPlanning: AffiliateCampaignSearchPlanning;
   selectionPolicy: AffiliateCampaignSelectionPolicy;
   /** Seller contact address published on Target Collaborations this Campaign creates. */
   sellerContactEmail?: Maybe<Scalars['String']['output']>;
@@ -1224,18 +1220,16 @@ export interface AffiliateCampaignSearchPlan {
   configRevision: Scalars['Int']['output'];
   discoveryRules?: Maybe<AffiliateCampaignDiscoveryRules>;
   errorCode?: Maybe<Scalars['String']['output']>;
+  generatedAt: Scalars['DateTimeISO']['output'];
   generatedBy?: Maybe<AffiliateCampaignSearchPlanGeneratedBy>;
   generation: Scalars['Int']['output'];
-  generationAttemptCount: Scalars['Int']['output'];
-  generationRoute?: Maybe<AffiliateCampaignSearchPlanGenerationRoute>;
   guidanceInterpretation?: Maybe<AffiliateCampaignSearchPlanGuidanceInterpretation>;
   id: Scalars['ID']['output'];
   lastSearchedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   pageSequence: Scalars['Int']['output'];
-  phrase?: Maybe<AffiliateCampaignSearchPlanPhrase>;
+  phrase: AffiliateCampaignSearchPlanPhrase;
   productId: Scalars['String']['output'];
   providerFailureCount: Scalars['Int']['output'];
-  requestedAt: Scalars['DateTimeISO']['output'];
   shopId: Scalars['ID']['output'];
   startedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   status: AffiliateCampaignSearchPlanStatus;
@@ -1243,7 +1237,6 @@ export interface AffiliateCampaignSearchPlan {
 }
 
 export const AffiliateCampaignSearchPlanBlockStage = {
-  AgentGeneration: 'AGENT_GENERATION',
   ProviderSearch: 'PROVIDER_SEARCH'
 } as const;
 
@@ -1301,21 +1294,38 @@ export type AffiliateCampaignSearchPlanGeneratedBySource = typeof AffiliateCampa
 export interface AffiliateCampaignSearchPlanGenerationContext {
   campaign: Scalars['JSONObject']['output'];
   capability: Scalars['JSONObject']['output'];
+  generationRequestId: Scalars['ID']['output'];
   leaseToken: Scalars['String']['output'];
   productSnapshot: Scalars['JSONObject']['output'];
   recentPlans: Array<Scalars['JSONObject']['output']>;
-  searchPlanId: Scalars['ID']['output'];
   shop: Scalars['JSONObject']['output'];
   uiLocale: Scalars['String']['output'];
 }
 
-export const AffiliateCampaignSearchPlanGenerationRoute = {
-  CloudPrimaryDesktopFallback: 'CLOUD_PRIMARY_DESKTOP_FALLBACK',
-  DesktopFallback: 'DESKTOP_FALLBACK',
-  DesktopOnly: 'DESKTOP_ONLY'
+export const AffiliateCampaignSearchPlanGenerationReason = {
+  CampaignConfigChanged: 'CAMPAIGN_CONFIG_CHANGED',
+  Initial: 'INITIAL',
+  ManualRetry: 'MANUAL_RETRY',
+  PageBudgetReached: 'PAGE_BUDGET_REACHED',
+  ProviderCursorExpired: 'PROVIDER_CURSOR_EXPIRED',
+  ProviderExhausted: 'PROVIDER_EXHAUSTED'
 } as const;
 
-export type AffiliateCampaignSearchPlanGenerationRoute = typeof AffiliateCampaignSearchPlanGenerationRoute[keyof typeof AffiliateCampaignSearchPlanGenerationRoute];
+export type AffiliateCampaignSearchPlanGenerationReason = typeof AffiliateCampaignSearchPlanGenerationReason[keyof typeof AffiliateCampaignSearchPlanGenerationReason];
+export interface AffiliateCampaignSearchPlanGenerationRequest {
+  blocked: Scalars['Boolean']['output'];
+  cloudAttemptCount: Scalars['Int']['output'];
+  configRevision: Scalars['Int']['output'];
+  desktopAttemptCount: Scalars['Int']['output'];
+  errorCode?: Maybe<Scalars['String']['output']>;
+  generating: Scalars['Boolean']['output'];
+  generation: Scalars['Int']['output'];
+  id: Scalars['ID']['output'];
+  nextAttemptAt: Scalars['DateTimeISO']['output'];
+  reason: AffiliateCampaignSearchPlanGenerationReason;
+  requestedAt: Scalars['DateTimeISO']['output'];
+}
+
 export interface AffiliateCampaignSearchPlanGuidanceInterpretation {
   hardConstraints?: Maybe<AffiliateCampaignDiscoveryRules>;
   softDirections: Array<Scalars['String']['output']>;
@@ -1346,9 +1356,9 @@ export interface AffiliateCampaignSearchPlanRequest {
   campaignId: Scalars['ID']['output'];
   configRevision: Scalars['Int']['output'];
   generation: Scalars['Int']['output'];
+  generationRequestId: Scalars['ID']['output'];
   platformShopId: Scalars['String']['output'];
   requestedAt: Scalars['DateTimeISO']['output'];
-  searchPlanId: Scalars['ID']['output'];
   shopId: Scalars['ID']['output'];
 }
 
@@ -1356,9 +1366,7 @@ export const AffiliateCampaignSearchPlanStatus = {
   Active: 'ACTIVE',
   Blocked: 'BLOCKED',
   Exhausted: 'EXHAUSTED',
-  Generating: 'GENERATING',
-  Invalidated: 'INVALIDATED',
-  WaitingForDesktopAgent: 'WAITING_FOR_DESKTOP_AGENT'
+  Invalidated: 'INVALIDATED'
 } as const;
 
 export type AffiliateCampaignSearchPlanStatus = typeof AffiliateCampaignSearchPlanStatus[keyof typeof AffiliateCampaignSearchPlanStatus];
@@ -1372,11 +1380,20 @@ export interface AffiliateCampaignSearchPlanTotals {
   scheduled: Scalars['Int']['output'];
 }
 
+export interface AffiliateCampaignSearchPlanning {
+  activePlanId?: Maybe<Scalars['ID']['output']>;
+  generationRequest?: Maybe<AffiliateCampaignSearchPlanGenerationRequest>;
+  generationSequence: Scalars['Int']['output'];
+  lastPlanCompletedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  state: AffiliateCampaignSearchPlanningState;
+}
+
 export const AffiliateCampaignSearchPlanningState = {
   Blocked: 'BLOCKED',
+  Generating: 'GENERATING',
   Idle: 'IDLE',
   PlanActive: 'PLAN_ACTIVE',
-  WaitingForDesktopAgent: 'WAITING_FOR_DESKTOP_AGENT'
+  WaitingForGeneration: 'WAITING_FOR_GENERATION'
 } as const;
 
 export type AffiliateCampaignSearchPlanningState = typeof AffiliateCampaignSearchPlanningState[keyof typeof AffiliateCampaignSearchPlanningState];
@@ -4411,7 +4428,7 @@ export interface CheckCreatorWhatsAppContactPayload {
 export interface ClaimAffiliateCampaignSearchPlanGenerationInput {
   deviceId: Scalars['String']['input'];
   generation: Scalars['Int']['input'];
-  searchPlanId: Scalars['ID']['input'];
+  generationRequestId: Scalars['ID']['input'];
   uiLocale: Scalars['String']['input'];
 }
 
@@ -9034,7 +9051,7 @@ export interface Mutation {
   /** Remove a shop-scoped tag from a user-level creator relation. */
   removeCreatorTag: AffiliateCreatorRelationship;
   renameExpertConversation: ExpertConversation;
-  reportAffiliateCampaignSearchPlanGenerationFailure: AffiliateCampaignSearchPlan;
+  reportAffiliateCampaignSearchPlanGenerationFailure: Scalars['Boolean']['output'];
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
   reportDevicePresenceProbe: Scalars['Boolean']['output'];
   /** Request a new captcha challenge */
@@ -9048,7 +9065,7 @@ export interface Mutation {
   restoreProductKnowledge: ProductKnowledge;
   /** Retry a deterministic Affiliate Agent failure. This clears only the relationship-level Agent failure marker, recomputes the authoritative working agenda, and republishes eligible work. */
   retryAffiliateAgentFailure: AffiliateCreatorRelationshipStatePayload;
-  retryAffiliateCampaignSearchPlanGeneration: AffiliateCampaignSearchPlan;
+  retryAffiliateCampaignSearchPlanGeneration: Scalars['Boolean']['output'];
   /** Revoke all sessions for the current user (remote logout) */
   revokeAllSessions: Scalars['Int']['output'];
   /** Revoke an Outlook/Microsoft Graph email account binding. */
@@ -12022,8 +12039,8 @@ export interface RemoveAffiliateTargetCollaborationPayload {
 export interface ReportAffiliateCampaignSearchPlanGenerationFailureInput {
   errorCode: Scalars['String']['input'];
   generation: Scalars['Int']['input'];
+  generationRequestId: Scalars['ID']['input'];
   leaseToken: Scalars['String']['input'];
-  searchPlanId: Scalars['ID']['input'];
 }
 
 export interface ResolveAffiliateCampaignProductInput {
@@ -12661,11 +12678,11 @@ export interface StripeBillingPortalSessionPayload {
 export interface SubmitAffiliateCampaignSearchPlanInput {
   configRevision: Scalars['Int']['input'];
   generation: Scalars['Int']['input'];
+  generationRequestId: Scalars['ID']['input'];
   guidanceInterpretation: AffiliateCampaignSearchPlanGuidanceInterpretationInput;
   leaseToken: Scalars['String']['input'];
   phrase: AffiliateCampaignSearchPhraseCandidateInput;
   productSnapshotHash: Scalars['String']['input'];
-  searchPlanId: Scalars['ID']['input'];
   uiLocale: Scalars['String']['input'];
 }
 

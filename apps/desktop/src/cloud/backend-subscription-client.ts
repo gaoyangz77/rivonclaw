@@ -651,7 +651,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
 export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_REQUESTED_SUBSCRIPTION = `
   subscription AffiliateCampaignSearchPlanRequested($deviceId: String!) {
     affiliateCampaignSearchPlanRequested(deviceId: $deviceId) {
-      searchPlanId
+      generationRequestId
       campaignId
       shopId
       platformShopId
@@ -986,7 +986,7 @@ export type CsConversationChangedPayload = GQL.CustomerServiceConversation;
 export type AffiliateWorkItemPayload = GQL.AffiliateWorkItem;
 
 export interface AffiliateCampaignSearchPlanRequestPayload {
-  searchPlanId: string;
+  generationRequestId: string;
   campaignId: string;
   shopId: string;
   platformShopId: string;

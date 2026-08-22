@@ -12,7 +12,7 @@ function request(
   shopId = "shop-1",
 ): AffiliateCampaignSearchPlanRequestPayload {
   return {
-    searchPlanId: id,
+    generationRequestId: id,
     campaignId: `campaign-${id}`,
     shopId,
     platformShopId: `platform-${shopId}`,
@@ -28,12 +28,12 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
     const operations: string[] = [];
     const graphqlFetch = vi.fn(async (query: string, variables?: Record<string, any>) => {
       if (query.includes("ClaimAffiliateCampaignSearchPlanGeneration")) {
-        const id = variables?.input.searchPlanId as string;
+        const id = variables?.input.generationRequestId as string;
         operations.push(`claim:${id}`);
         return {
           claimAffiliateCampaignSearchPlanGeneration: {
             leaseToken: `lease-${id}`,
-            searchPlanId: id,
+            generationRequestId: id,
             campaign: {
               searchPlanGuidance: "automotive creators",
               searchPlanGuidanceHash: "guidance-hash",
@@ -47,14 +47,14 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
         };
       }
       if (query.includes("SubmitAffiliateCampaignSearchPlan")) {
-        const id = variables?.input.searchPlanId as string;
+        const id = variables?.input.generationRequestId as string;
         operations.push(`submit:${id}`);
         return { submitAffiliateCampaignSearchPlan: { id, status: "ACTIVE" } };
       }
       throw new Error("unexpected GraphQL operation");
     });
-    const generate = vi.fn(async (context: { searchPlanId: string }) => {
-      operations.push(`generate:${context.searchPlanId}`);
+    const generate = vi.fn(async (context: { generationRequestId: string }) => {
+      operations.push(`generate:${context.generationRequestId}`);
       return {
         value: {
           keyword: "car organization creators",
@@ -68,7 +68,7 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
         },
         provider: "user-provider",
         model: "user-default-model",
-        runIds: [`run-${context.searchPlanId}`],
+        runIds: [`run-${context.generationRequestId}`],
         repaired: false,
         durationMs: 12,
       };
@@ -123,13 +123,13 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
     let active = 0;
     let peakActive = 0;
     const graphqlFetch = graphqlClient();
-    const generate = vi.fn(async (context: { searchPlanId: string }) => {
-      started.push(context.searchPlanId);
+    const generate = vi.fn(async (context: { generationRequestId: string }) => {
+      started.push(context.generationRequestId);
       active += 1;
       peakActive = Math.max(peakActive, active);
-      await new Promise<void>((resolve) => releases.set(context.searchPlanId, resolve));
+      await new Promise<void>((resolve) => releases.set(context.generationRequestId, resolve));
       active -= 1;
-      return generated(context.searchPlanId);
+      return generated(context.generationRequestId);
     });
     const actuator = new AffiliateCampaignSearchPlanActuator(
       { graphqlFetch } as never,
@@ -159,10 +159,10 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
     const started: string[] = [];
     const releases = new Map<string, () => void>();
     const graphqlFetch = graphqlClient();
-    const generate = vi.fn(async (context: { searchPlanId: string }) => {
-      started.push(context.searchPlanId);
-      await new Promise<void>((resolve) => releases.set(context.searchPlanId, resolve));
-      return generated(context.searchPlanId);
+    const generate = vi.fn(async (context: { generationRequestId: string }) => {
+      started.push(context.generationRequestId);
+      await new Promise<void>((resolve) => releases.set(context.generationRequestId, resolve));
+      return generated(context.generationRequestId);
     });
     const actuator = new AffiliateCampaignSearchPlanActuator(
       { graphqlFetch } as never,
@@ -360,12 +360,12 @@ describe("AffiliateCampaignSearchPlanActuator", () => {
 
 function graphqlClient() {
   return vi.fn(async (query: string, variables?: Record<string, any>) => {
-    const id = variables?.input.searchPlanId as string;
+    const id = variables?.input.generationRequestId as string;
     if (query.includes("ClaimAffiliateCampaignSearchPlanGeneration")) {
       return {
         claimAffiliateCampaignSearchPlanGeneration: {
           leaseToken: `lease-${id}`,
-          searchPlanId: id,
+          generationRequestId: id,
           campaign: {},
           shop: {},
           productSnapshot: { snapshotHash: `snapshot-${id}` },
@@ -405,7 +405,7 @@ function generated(id: string) {
 function generationContext(guidance: string) {
   return {
     leaseToken: "lease",
-    searchPlanId: "plan",
+    generationRequestId: "plan",
     campaign: {
       searchPlanGuidance: guidance,
       searchPlanGuidanceHash: "guidance-hash",

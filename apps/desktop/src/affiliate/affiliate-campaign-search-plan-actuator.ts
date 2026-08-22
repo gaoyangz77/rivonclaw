@@ -10,14 +10,14 @@ export const SEARCH_PLAN_AGENT_TIMEOUT_MS = 3 * 60 * 1000;
 
 const CLAIM = `mutation ClaimAffiliateCampaignSearchPlanGeneration($input: ClaimAffiliateCampaignSearchPlanGenerationInput!) {
   claimAffiliateCampaignSearchPlanGeneration(input: $input) {
-    leaseToken searchPlanId campaign shop productSnapshot capability uiLocale recentPlans
+    leaseToken generationRequestId campaign shop productSnapshot capability uiLocale recentPlans
   }
 }`;
 const SUBMIT = `mutation SubmitAffiliateCampaignSearchPlan($input: SubmitAffiliateCampaignSearchPlanInput!) {
   submitAffiliateCampaignSearchPlan(input: $input) { id status generation pageSequence }
 }`;
 const REPORT = `mutation ReportAffiliateCampaignSearchPlanGenerationFailure($input: ReportAffiliateCampaignSearchPlanGenerationFailureInput!) {
-  reportAffiliateCampaignSearchPlanGenerationFailure(input: $input) { id status errorCode }
+  reportAffiliateCampaignSearchPlanGenerationFailure(input: $input)
 }`;
 
 type BackendClient = Pick<AuthSessionManager, "graphqlFetch">;
@@ -46,7 +46,7 @@ type GeneratedPlan = {
 };
 type GenerationContext = {
   leaseToken: string;
-  searchPlanId: string;
+  generationRequestId: string;
   campaign: Record<string, unknown>;
   shop: Record<string, unknown>;
   productSnapshot: Record<string, unknown> & { snapshotHash: string };
@@ -79,7 +79,7 @@ export class AffiliateCampaignSearchPlanActuator {
   }
 
   enqueue(request: AffiliateCampaignSearchPlanRequestPayload): void {
-    const key = `${request.searchPlanId}:${request.generation}:${request.attempt}`;
+    const key = `${request.generationRequestId}:${request.generation}:${request.attempt}`;
     if (this.enqueued.has(key)) return;
     this.enqueued.add(key);
     const shopQueue = this.pendingByShop.get(request.shopId);
@@ -103,11 +103,11 @@ export class AffiliateCampaignSearchPlanActuator {
       const request = this.takeNext();
       if (!request) break;
       this.activeCount += 1;
-      const key = `${request.searchPlanId}:${request.generation}:${request.attempt}`;
+      const key = `${request.generationRequestId}:${request.generation}:${request.attempt}`;
       void this.process(request)
         .catch((error) => {
           log.error("SearchPlan actuator queue failed", {
-            searchPlanId: request.searchPlanId,
+            generationRequestId: request.generationRequestId,
             generation: request.generation,
             error: errorMessage(error),
           });
@@ -158,7 +158,7 @@ export class AffiliateCampaignSearchPlanActuator {
     // the Backend will republish the still-waiting plan on a later worker tick.
     if (!this.isGenerationReady()) {
       log.info("SearchPlan generation deferred until Desktop gateway is ready", {
-        searchPlanId: request.searchPlanId,
+        generationRequestId: request.generationRequestId,
         generation: request.generation,
       });
       return;
@@ -169,7 +169,7 @@ export class AffiliateCampaignSearchPlanActuator {
         claimAffiliateCampaignSearchPlanGeneration: GenerationContext;
       }>(CLAIM, {
         input: {
-          searchPlanId: request.searchPlanId,
+          generationRequestId: request.generationRequestId,
           generation: request.generation,
           deviceId: this.deviceId,
           uiLocale: this.getUiLocale(),
@@ -178,7 +178,7 @@ export class AffiliateCampaignSearchPlanActuator {
       context = claimed.claimAffiliateCampaignSearchPlanGeneration;
     } catch (error) {
       log.info("SearchPlan request was not claimable", {
-        searchPlanId: request.searchPlanId,
+        generationRequestId: request.generationRequestId,
         generation: request.generation,
         error: errorMessage(error),
       });
@@ -191,7 +191,7 @@ export class AffiliateCampaignSearchPlanActuator {
         try {
           await this.authSession.graphqlFetch(SUBMIT, {
             input: {
-              searchPlanId: request.searchPlanId,
+              generationRequestId: request.generationRequestId,
               generation: request.generation,
               configRevision: request.configRevision,
               leaseToken: context.leaseToken,
@@ -214,7 +214,7 @@ export class AffiliateCampaignSearchPlanActuator {
             },
           });
           log.info("Dynamic Affiliate Campaign SearchPlan generated", {
-            searchPlanId: request.searchPlanId,
+            generationRequestId: request.generationRequestId,
             generation: request.generation,
             model: `${generated.provider}/${generated.model}`,
             durationMs: generated.durationMs,
@@ -235,14 +235,14 @@ export class AffiliateCampaignSearchPlanActuator {
       }
     } catch (error) {
       log.warn("Dynamic Affiliate Campaign SearchPlan generation failed", {
-        searchPlanId: request.searchPlanId,
+        generationRequestId: request.generationRequestId,
         generation: request.generation,
         error: errorMessage(error),
       });
       await this.authSession
         .graphqlFetch(REPORT, {
           input: {
-            searchPlanId: request.searchPlanId,
+            generationRequestId: request.generationRequestId,
             generation: request.generation,
             leaseToken: context.leaseToken,
             errorCode: classifyError(error),
@@ -250,7 +250,7 @@ export class AffiliateCampaignSearchPlanActuator {
         })
         .catch((reportError) =>
           log.warn("Failed to report SearchPlan generation failure", {
-            searchPlanId: request.searchPlanId,
+            generationRequestId: request.generationRequestId,
             error: errorMessage(reportError),
           }),
         );
