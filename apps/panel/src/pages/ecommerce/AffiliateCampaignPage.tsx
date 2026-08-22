@@ -189,11 +189,6 @@ type CampaignSearchPlanView = {
   id: string;
   generation: number;
   status: string;
-  generationRoute?:
-    | "CLOUD_PRIMARY_DESKTOP_FALLBACK"
-    | "DESKTOP_ONLY"
-    | "DESKTOP_FALLBACK"
-    | null;
   generatedBy?: {
     source: "BACKEND_CLOUD" | "DESKTOP";
     requestedModel?: string | null;
@@ -220,7 +215,7 @@ type CampaignSearchPlanView = {
   blockStage?: string | null;
   errorCode?: string | null;
   completionReason?: string | null;
-  requestedAt: string;
+  generatedAt: string;
   startedAt?: string | null;
   lastSearchedAt?: string | null;
   completedAt?: string | null;
@@ -441,7 +436,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const selectionReadiness = selectionReadinessQuery.data?.affiliateCampaignSelectionReadiness;
   const searchPlans = searchPlansQuery.data?.affiliateCampaignSearchPlans.items ?? [];
   const currentSearchPlan =
-    searchPlans.find((plan) => plan.id === selectedCampaign?.activeSearchPlanId) ??
+    searchPlans.find((plan) => plan.id === selectedCampaign?.searchPlanning.activePlanId) ??
     searchPlans[0] ??
     null;
 
@@ -1544,9 +1539,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   <h3>{t("ecommerce.affiliateCampaign.currentSearchPlan")}</h3>
                   <p>{t("ecommerce.affiliateCampaign.currentSearchPlanDescription")}</p>
                 </div>
-                <span className={`affiliate-campaign-plan-status is-${String(currentSearchPlan?.status ?? selectedCampaign.searchPlanningState).toLowerCase()}`}>
+                <span className={`affiliate-campaign-plan-status is-${String(currentSearchPlan?.status ?? selectedCampaign.searchPlanning.state).toLowerCase()}`}>
                   {searchPlanStatusLabel(
-                    currentSearchPlan?.status ?? selectedCampaign.searchPlanningState,
+                    currentSearchPlan?.status ?? selectedCampaign.searchPlanning.state,
                     t,
                   )}
                 </span>
@@ -1626,14 +1621,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
               ) : (
                 <div className="affiliate-campaign-plan-waiting">
-                  <strong>{searchPlanStatusLabel(selectedCampaign.searchPlanningState, t)}</strong>
-                  <p>{t("ecommerce.affiliateCampaign.waitingDesktopPlanDescription")}</p>
+                  <strong>{searchPlanStatusLabel(selectedCampaign.searchPlanning.state, t)}</strong>
+                  <p>{t("ecommerce.affiliateCampaign.dynamicSearchPlanGenerationDescription")}</p>
                 </div>
               )}
               {(currentSearchPlan?.status === "BLOCKED" ||
-                selectedCampaign.searchPlanningState === "BLOCKED") && (
+                selectedCampaign.searchPlanning.state === "BLOCKED") && (
                 <div className="affiliate-campaign-search-plan-blocked">
-                  <p>{searchPlanGenerationErrorMessage(currentSearchPlan?.errorCode, t)}</p>
+                  <p>{searchPlanGenerationErrorMessage(
+                    currentSearchPlan?.errorCode ??
+                      selectedCampaign.searchPlanning.generationRequest?.errorCode,
+                    t,
+                  )}</p>
                   <button
                     type="button"
                     className="btn btn-primary"

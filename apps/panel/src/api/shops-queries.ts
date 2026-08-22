@@ -258,11 +258,25 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     }
     searchPlanGuidance
     searchPlanExplanationLocale
-    searchPlanningState
-    activeSearchPlanId
-    searchPlanGeneration
-    lastSearchPlanCompletedAt
-    searchPlanErrorCode
+    searchPlanning {
+      state
+      generationSequence
+      activePlanId
+      lastPlanCompletedAt
+      generationRequest {
+        id
+        generation
+        reason
+        configRevision
+        requestedAt
+        nextAttemptAt
+        desktopAttemptCount
+        cloudAttemptCount
+        generating
+        blocked
+        errorCode
+      }
+    }
     market
     resolvedTimeZone
     dailyOutreachTarget
@@ -565,7 +579,6 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
         generation
         configRevision
         status
-        generationRoute
         generatedBy {
           source
           requestedModel
@@ -642,12 +655,11 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
           qualified
           scheduled
         }
-        generationAttemptCount
         providerFailureCount
         blockStage
         errorCode
         completionReason
-        requestedAt
+        generatedAt
         startedAt
         lastSearchedAt
         completedAt
@@ -658,14 +670,7 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
 
 export const RETRY_AFFILIATE_CAMPAIGN_SEARCH_PLAN_MUTATION = gql`
   mutation RetryAffiliateCampaignSearchPlan($campaignId: ID!) {
-    retryAffiliateCampaignSearchPlanGeneration(campaignId: $campaignId) {
-      id
-      campaignId
-      generation
-      status
-      blockStage
-      errorCode
-    }
+    retryAffiliateCampaignSearchPlanGeneration(campaignId: $campaignId)
   }
 `;
 
