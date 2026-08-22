@@ -278,6 +278,7 @@ describe("migrateLegacyMainAgentWorkspace", () => {
     writeFileSync(join(legacyWorkspace, "MEMORY.md"), "legacy memory", "utf-8");
     writeFileSync(join(legacyWorkspace, "memory", "2026-08-22.md"), "daily memory", "utf-8");
     writeFileSync(join(legacyWorkspace, "skills", "local-skill", "SKILL.md"), "local", "utf-8");
+    writeFileSync(join(legacyWorkspace, "report.xlsx"), "keep working output", "utf-8");
     writeFileSync(join(mainWorkspace, "BOOTSTRAP.md"), "new setup", "utf-8");
     writeFileSync(join(mainWorkspace, "IDENTITY.md"), "generated template", "utf-8");
     writeFileSync(join(globalSkills, "official-preset", "SKILL.md"), "official", "utf-8");
@@ -297,9 +298,13 @@ describe("migrateLegacyMainAgentWorkspace", () => {
     expect(readFileSync(join(globalSkills, "official-preset", "SKILL.md"), "utf-8")).toBe(
       "official",
     );
-    expect(readFileSync(join(legacyWorkspace, "IDENTITY.md"), "utf-8")).toBe("legacy identity");
+    expect(existsSync(join(legacyWorkspace, "IDENTITY.md"))).toBe(false);
+    expect(existsSync(join(legacyWorkspace, "memory"))).toBe(false);
+    expect(existsSync(join(legacyWorkspace, "skills"))).toBe(false);
+    expect(readFileSync(join(legacyWorkspace, "report.xlsx"), "utf-8")).toBe("keep working output");
+    expect(existsSync(join(mainWorkspace, ".rivonclaw-main-workspace-migrated-v1"))).toBe(false);
+    expect(existsSync(join(mainWorkspace, ".rivonclaw-main-workspace-migrated-v2"))).toBe(true);
 
-    writeFileSync(join(legacyWorkspace, "IDENTITY.md"), "changed after migration", "utf-8");
     migrateLegacyMainAgentWorkspace(stateDir);
     expect(readFileSync(join(mainWorkspace, "IDENTITY.md"), "utf-8")).toBe("legacy identity");
   });
@@ -320,5 +325,51 @@ describe("migrateLegacyMainAgentWorkspace", () => {
 
     expect(readFileSync(join(mainWorkspace, "IDENTITY.md"), "utf-8")).toBe("active identity");
     expect(readFileSync(join(mainWorkspace, "memory", "old.md"), "utf-8")).toBe("old memory");
+    expect(existsSync(join(legacyWorkspace, "IDENTITY.md"))).toBe(false);
+    expect(existsSync(join(legacyWorkspace, "memory"))).toBe(false);
+  });
+
+  it("moves an unfinished legacy bootstrap before removing the old copy", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-main-workspace-migration-"));
+    roots.push(stateDir);
+    const legacyWorkspace = join(stateDir, "workspace");
+    const mainWorkspace = join(legacyWorkspace, "main");
+
+    mkdirSync(legacyWorkspace, { recursive: true });
+    writeFileSync(join(legacyWorkspace, "BOOTSTRAP.md"), "finish setup", "utf-8");
+
+    migrateLegacyMainAgentWorkspace(stateDir);
+
+    expect(readFileSync(join(mainWorkspace, "BOOTSTRAP.md"), "utf-8")).toBe("finish setup");
+    expect(existsSync(join(legacyWorkspace, "BOOTSTRAP.md"))).toBe(false);
+    expect(existsSync(join(mainWorkspace, ".rivonclaw-main-workspace-migrated-v2"))).toBe(true);
+  });
+
+  it("finishes cleanup for installations that already completed the v1 copy", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-main-workspace-migration-"));
+    roots.push(stateDir);
+    const legacyWorkspace = join(stateDir, "workspace");
+    const mainWorkspace = join(legacyWorkspace, "main");
+
+    mkdirSync(join(legacyWorkspace, "memory"), { recursive: true });
+    mkdirSync(join(mainWorkspace, "memory"), { recursive: true });
+    writeFileSync(join(legacyWorkspace, "MEMORY.md"), "legacy memory", "utf-8");
+    writeFileSync(join(legacyWorkspace, "memory", "old.md"), "old memory", "utf-8");
+    writeFileSync(join(mainWorkspace, "MEMORY.md"), "legacy memory", "utf-8");
+    writeFileSync(join(mainWorkspace, "memory", "old.md"), "old memory", "utf-8");
+    writeFileSync(
+      join(mainWorkspace, ".rivonclaw-main-workspace-migrated-v1"),
+      '{"version":1,"copiedFiles":2}\n',
+      "utf-8",
+    );
+
+    migrateLegacyMainAgentWorkspace(stateDir);
+
+    expect(existsSync(join(legacyWorkspace, "MEMORY.md"))).toBe(false);
+    expect(existsSync(join(legacyWorkspace, "memory"))).toBe(false);
+    expect(readFileSync(join(mainWorkspace, "MEMORY.md"), "utf-8")).toBe("legacy memory");
+    expect(readFileSync(join(mainWorkspace, "memory", "old.md"), "utf-8")).toBe("old memory");
+    expect(existsSync(join(mainWorkspace, ".rivonclaw-main-workspace-migrated-v1"))).toBe(false);
+    expect(existsSync(join(mainWorkspace, ".rivonclaw-main-workspace-migrated-v2"))).toBe(true);
   });
 });

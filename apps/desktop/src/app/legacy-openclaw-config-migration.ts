@@ -6,6 +6,7 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   statSync,
   symlinkSync,
   unlinkSync,
@@ -19,7 +20,8 @@ import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.
 
 const log = createLogger("legacy-openclaw-config-migration");
 
-const MAIN_WORKSPACE_MIGRATION_MARKER = ".rivonclaw-main-workspace-migrated-v1";
+const MAIN_WORKSPACE_COPY_MARKER = ".rivonclaw-main-workspace-migrated-v1";
+const MAIN_WORKSPACE_CLEANUP_MARKER = ".rivonclaw-main-workspace-migrated-v2";
 const MAIN_WORKSPACE_FILES = [
   "AGENTS.md",
   "SOUL.md",
@@ -115,9 +117,9 @@ function copyMissingTree(sourceDir: string, targetDir: string): number {
 
 /**
  * OpenClaw's roster workspaces now live below `<workspace>/<agentId>`. Older
- * RivonClaw builds used the parent directory itself for the main agent. Copy
+ * RivonClaw builds used the parent directory itself for the main agent. Move
  * only durable agent-owned context into the new main workspace; large outputs
- * and arbitrary working files stay in place for rollback and manual access.
+ * and arbitrary working files remain in the shared parent workspace.
  */
 export function migrateLegacyMainAgentWorkspace(stateDir: string): void {
   const legacyWorkspace = join(stateDir, "workspace");
@@ -125,8 +127,9 @@ export function migrateLegacyMainAgentWorkspace(stateDir: string): void {
     ...process.env,
     OPENCLAW_STATE_DIR: stateDir,
   });
-  const markerPath = join(mainWorkspace, MAIN_WORKSPACE_MIGRATION_MARKER);
-  if (!existsSync(legacyWorkspace) || existsSync(markerPath)) return;
+  const copyMarkerPath = join(mainWorkspace, MAIN_WORKSPACE_COPY_MARKER);
+  const cleanupMarkerPath = join(mainWorkspace, MAIN_WORKSPACE_CLEANUP_MARKER);
+  if (!existsSync(legacyWorkspace) || existsSync(cleanupMarkerPath)) return;
 
   const sourceFiles = MAIN_WORKSPACE_FILES.filter((name) =>
     existsSync(join(legacyWorkspace, name)),
@@ -134,7 +137,21 @@ export function migrateLegacyMainAgentWorkspace(stateDir: string): void {
   const sourceDirectories = MAIN_WORKSPACE_DIRECTORIES.filter((name) =>
     existsSync(join(legacyWorkspace, name)),
   );
-  if (sourceFiles.length === 0 && sourceDirectories.length === 0) return;
+  const legacyBootstrapPath = join(legacyWorkspace, "BOOTSTRAP.md");
+  const mainBootstrapPath = join(mainWorkspace, "BOOTSTRAP.md");
+  const hasLegacyContext =
+    sourceFiles.length > 0 || sourceDirectories.length > 0 || existsSync(legacyBootstrapPath);
+  if (!hasLegacyContext) {
+    if (existsSync(copyMarkerPath)) {
+      writeFileSync(
+        cleanupMarkerPath,
+        `${JSON.stringify({ version: 2, copiedFiles: 0, source: legacyWorkspace })}\n`,
+        "utf-8",
+      );
+      unlinkSync(copyMarkerPath);
+    }
+    return;
+  }
 
   mkdirSync(mainWorkspace, { recursive: true });
   const legacySetupCompleted =
@@ -155,17 +172,42 @@ export function migrateLegacyMainAgentWorkspace(stateDir: string): void {
   for (const name of sourceDirectories) {
     copiedFiles += copyMissingTree(join(legacyWorkspace, name), join(mainWorkspace, name));
   }
-
-  if (legacySetupCompleted && existsSync(join(mainWorkspace, "BOOTSTRAP.md"))) {
-    unlinkSync(join(mainWorkspace, "BOOTSTRAP.md"));
+  if (existsSync(legacyBootstrapPath) && !existsSync(mainBootstrapPath)) {
+    copyFileSync(legacyBootstrapPath, mainBootstrapPath);
+    copiedFiles += 1;
   }
+
+  if (legacySetupCompleted && existsSync(mainBootstrapPath)) {
+    unlinkSync(mainBootstrapPath);
+  }
+
+  // The v1 marker is the durable boundary between copy and cleanup. Existing
+  // installations may already have this marker from the copy-only migration;
+  // rerunning the copy above is idempotent and lets them continue into cleanup.
   writeFileSync(
-    markerPath,
+    copyMarkerPath,
     `${JSON.stringify({ version: 1, copiedFiles, source: legacyWorkspace })}\n`,
     "utf-8",
   );
+
+  for (const name of sourceFiles) {
+    unlinkSync(join(legacyWorkspace, name));
+  }
+  for (const name of sourceDirectories) {
+    rmSync(join(legacyWorkspace, name), { recursive: true, force: true });
+  }
+  if (existsSync(legacyBootstrapPath)) {
+    unlinkSync(legacyBootstrapPath);
+  }
+
+  writeFileSync(
+    cleanupMarkerPath,
+    `${JSON.stringify({ version: 2, copiedFiles, source: legacyWorkspace })}\n`,
+    "utf-8",
+  );
+  unlinkSync(copyMarkerPath);
   log.info(
-    `migrated main agent context to ${mainWorkspace} (${copiedFiles} file(s)); legacy workspace preserved`,
+    `migrated main agent context to ${mainWorkspace} (${copiedFiles} copied file(s)); removed legacy agent files`,
   );
 }
 
