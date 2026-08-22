@@ -153,6 +153,91 @@ function canonicalizeAgentRoster(config: Record<string, unknown>): void {
   config.agents = nextAgents;
 }
 
+/**
+ * Guarantee every configured channel has a channel-wide wildcard binding.
+ *
+ * Runs immediately after canonicalizeAgentRoster: multi-agent rosters carry
+ * `agents.ownership = "explicit"`, which removes OpenClaw's legacy
+ * default-agent fallback. A channel account with no covering binding then
+ * fails inbound dispatch with AgentSelectionRequiredError. Appending a
+ * channel-wide wildcard (`match.accountId = "*"`) restores the pre-explicit
+ * fallback semantics without ever overriding user routing — exact account
+ * and peer bindings always outrank the channel wildcard in OpenClaw's
+ * tiered binding resolution, and an existing wildcard is left untouched.
+ *
+ * Existing bindings are never modified or removed; missing wildcards are
+ * only appended. Because writeGatewayConfig runs on every Desktop startup,
+ * this also self-heals installs whose accounts predate binding writes.
+ */
+function ensureChannelOwnerBindings(config: Record<string, unknown>): void {
+  const agents =
+    config.agents && typeof config.agents === "object" && !Array.isArray(config.agents)
+      ? (config.agents as Record<string, unknown>)
+      : {};
+  const entries =
+    agents.entries && typeof agents.entries === "object" && !Array.isArray(agents.entries)
+      ? (agents.entries as Record<string, unknown>)
+      : {};
+  const agentIds = Object.keys(entries);
+  // Sole-agent rosters keep OpenClaw's legacy default-agent fallback
+  // (canonicalizeAgentRoster only sets ownership="explicit" for >1 agent),
+  // so unbound accounts still route and no binding is needed.
+  if (agentIds.length <= 1) return;
+
+  const channels =
+    config.channels && typeof config.channels === "object" && !Array.isArray(config.channels)
+      ? (config.channels as Record<string, unknown>)
+      : {};
+
+  // The binding owner must resolve to a configured agent — OpenClaw throws at
+  // dispatch when a binding names an unknown agentId.
+  const defaults =
+    agents.defaults && typeof agents.defaults === "object" && !Array.isArray(agents.defaults)
+      ? (agents.defaults as Record<string, unknown>)
+      : {};
+  const systemAgent =
+    defaults.systemAgent &&
+    typeof defaults.systemAgent === "object" &&
+    !Array.isArray(defaults.systemAgent)
+      ? (defaults.systemAgent as Record<string, unknown>)
+      : {};
+  const systemAgentId = typeof systemAgent.agentId === "string" ? systemAgent.agentId : undefined;
+  const ownerAgentId =
+    "main" in entries
+      ? "main"
+      : systemAgentId !== undefined && systemAgentId in entries
+        ? systemAgentId
+        : agentIds[0];
+
+  const bindings = (Array.isArray(config.bindings) ? config.bindings : []) as Array<
+    Record<string, unknown>
+  >;
+
+  for (const [channelId, channelValue] of Object.entries(channels)) {
+    if (!channelValue || typeof channelValue !== "object" || Array.isArray(channelValue)) continue;
+    const channelLower = channelId.trim().toLowerCase();
+    const hasCovering = bindings.some((binding) => {
+      if (!binding || typeof binding !== "object" || Array.isArray(binding)) return false;
+      const match = binding.match;
+      if (!match || typeof match !== "object" || Array.isArray(match)) return false;
+      const record = match as Record<string, unknown>;
+      const matchChannel =
+        typeof record.channel === "string" ? record.channel.trim().toLowerCase() : "";
+      if (matchChannel !== channelLower) return false;
+      const matchAccountId = typeof record.accountId === "string" ? record.accountId.trim() : "";
+      return matchAccountId === "*";
+    });
+    if (!hasCovering) {
+      bindings.push({
+        agentId: ownerAgentId,
+        match: { channel: channelId, accountId: "*" },
+      });
+      config.bindings = bindings;
+      log.info(`Added wildcard binding for channel "${channelId}" -> agent "${ownerAgentId}"`);
+    }
+  }
+}
+
 function removeGeminiOAuthRuntimeConfig(config: Record<string, unknown>, stateDir: string): void {
   rmSync(join(stateDir, "bin", "rivonclaw-gemini-cli"), { force: true });
   rmSync(join(stateDir, "bin", "rivonclaw-gemini-cli.cmd"), { force: true });
@@ -2116,6 +2201,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   // old migrations don't cause "Config invalid – Unrecognized key" on
   // gateway startup.
   canonicalizeAgentRoster(config);
+  ensureChannelOwnerBindings(config);
   const removedKeys = stripUnknownKeys(config);
   if (removedKeys.length > 0) {
     log.warn(`Stripped unknown config keys: ${removedKeys.join(", ")}`);

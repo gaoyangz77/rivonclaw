@@ -20,6 +20,15 @@ const AUTH_WS_CLOSE_CODES = new Set([
   4403, // Forbidden
 ]);
 
+/**
+ * How long the transport may go without any connection progress event
+ * (connecting/connected/closed) while long-lived operations still need it,
+ * before the stall watchdog forces the pending connect attempt to settle.
+ * Must exceed graphql-ws's max retry backoff (30s) plus a full handshake,
+ * so a healthy retry cycle never trips it.
+ */
+const TRANSPORT_STALL_TIMEOUT_MS = 90_000;
+
 const UPDATE_SUBSCRIPTION = `
   subscription UpdateAvailable($clientVersion: String!) {
     updateAvailable(clientVersion: $clientVersion) {
@@ -1157,6 +1166,11 @@ class LongLivedSubscriptionOperation {
     return this.config.longLived === true;
   }
 
+  /** True while this operation needs a live transport (subscribed or awaiting retry). */
+  get engaged(): boolean {
+    return this.state === "active" || this.state === "retry_wait";
+  }
+
   start(reason: string, options?: { preserveFailures?: boolean }): void {
     this.cancelRecovery();
     this.stopActiveAttempt(reason);
@@ -1369,6 +1383,15 @@ export class BackendSubscriptionClient {
   /** Pong watchdog for graphql-ws keep-alive pings. */
   private pongTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  /** True only while the graphql-ws transport has an acknowledged connection. */
+  private transportConnected = false;
+
+  /** Stall watchdog: fires when a reconnect cycle stops emitting progress events. */
+  private transportStallTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Escalation counter for consecutive stall recoveries without a successful connect. */
+  private transportStallStage = 0;
+
   /**
    * @param deviceId This Desktop's device id, announced to the backend as a
    * graphql-ws connection param next to `authorization`. The backend's
@@ -1387,8 +1410,9 @@ export class BackendSubscriptionClient {
     private readonly deviceId?: string,
   ) {}
 
+  /** True only while the WebSocket transport is actually connected and acknowledged. */
   isConnected(): boolean {
-    return this.client !== null;
+    return this.transportConnected;
   }
 
   connect(getToken: () => string | null, options?: ConnectOptions): void {
@@ -1405,9 +1429,18 @@ export class BackendSubscriptionClient {
     }
     this.subscriptionOperations.clear();
 
-    this.client?.dispose();
+    const client = this.client;
     this.client = null;
     this.clearPongTimeout();
+    this.clearTransportStallWatchdog();
+    if (client) {
+      // dispose() marks the client disposed so no retry loop survives it, but
+      // it blocks on any pending connect attempt — terminate() settles a
+      // stalled attempt so shutdown never hangs on a dead socket.
+      void Promise.resolve(client.dispose()).catch(() => {});
+      if (!this.transportConnected) client.terminate();
+    }
+    this.transportConnected = false;
   }
 
   reconnect(): void {
@@ -1527,12 +1560,20 @@ export class BackendSubscriptionClient {
       retryBlocked: shouldResume || tokenChanged || options.forceReconnect === true,
     });
 
+    // A credentials change must never leave a dead transport looking healthy:
+    // when the socket is down, the stall watchdog guarantees recovery progress
+    // even if the pending connect attempt is wedged.
+    if (!this.transportConnected) {
+      this.armTransportStallWatchdog();
+    }
+
     if (previousState !== this.authenticatedSubscriptionState || tokenChanged) {
       log.info("Authenticated backend subscriptions state changed", {
         from: previousState,
         to: this.authenticatedSubscriptionState,
         reason: options.reason,
         tokenChanged,
+        transportConnected: this.transportConnected,
       });
     }
   }
@@ -1818,6 +1859,87 @@ export class BackendSubscriptionClient {
     if (!this.pongTimeout) return;
     clearTimeout(this.pongTimeout);
     this.pongTimeout = null;
+  }
+
+  private countEngagedLongLivedOperations(): number {
+    let count = 0;
+    for (const operation of this.subscriptionOperations.values()) {
+      if (operation.longLived && operation.engaged) count += 1;
+    }
+    return count;
+  }
+
+  /**
+   * (Re-)arm the transport stall watchdog. Every transport progress event
+   * (connecting/closed) re-arms it, so it only ever fires when a reconnect
+   * cycle has gone completely silent — the failure mode where a connect
+   * attempt hangs in CONNECTING with no timeout anywhere in the stack
+   * (graphql-ws, ws, proxy CONNECT) and graphql-ws waits on it forever.
+   */
+  private armTransportStallWatchdog(): void {
+    if (this.transportStallTimer) {
+      clearTimeout(this.transportStallTimer);
+      this.transportStallTimer = null;
+    }
+    if (!this.client || this.transportConnected) return;
+    if (this.countEngagedLongLivedOperations() === 0) return;
+    this.transportStallTimer = setTimeout(() => {
+      this.transportStallTimer = null;
+      this.handleTransportStall();
+    }, TRANSPORT_STALL_TIMEOUT_MS);
+  }
+
+  private clearTransportStallWatchdog(): void {
+    if (this.transportStallTimer) {
+      clearTimeout(this.transportStallTimer);
+      this.transportStallTimer = null;
+    }
+    this.transportStallStage = 0;
+  }
+
+  private handleTransportStall(): void {
+    if (!this.client || this.transportConnected) return;
+    if (this.countEngagedLongLivedOperations() === 0) return;
+    this.transportStallStage += 1;
+    if (this.transportStallStage === 1) {
+      log.warn("Backend subscription transport stalled; terminating socket to force retry", {
+        stalledForMs: TRANSPORT_STALL_TIMEOUT_MS,
+        engagedLongLivedOperations: this.countEngagedLongLivedOperations(),
+      });
+      this.client.terminate();
+    } else {
+      log.warn("Backend subscription transport still stalled; rebuilding transport", {
+        stage: this.transportStallStage,
+        stalledForMs: TRANSPORT_STALL_TIMEOUT_MS,
+        engagedLongLivedOperations: this.countEngagedLongLivedOperations(),
+      });
+      this.rebuildTransport("transport_stalled");
+    }
+    this.armTransportStallWatchdog();
+  }
+
+  /**
+   * Drop the current graphql-ws client and build a fresh one, re-issuing every
+   * long-lived operation on it. Last-resort recovery for a client whose
+   * internal connect promise can no longer settle (terminate() had no effect).
+   */
+  private rebuildTransport(reason: string): void {
+    const previous = this.client;
+    if (!previous) return;
+    this.client = null;
+    this.transportConnected = false;
+    this.clearPongTimeout();
+    // dispose() marks the old client disposed so its retry loops exit instead
+    // of racing the replacement; it can block on the very connect promise this
+    // rebuild recovers from, so it is intentionally not awaited. terminate()
+    // then settles whatever pending attempt can still be settled.
+    void Promise.resolve(previous.dispose()).catch(() => {});
+    previous.terminate();
+    if (!this.getToken) return;
+    this.doConnect();
+    for (const operation of this.subscriptionOperations.values()) {
+      if (operation.longLived) operation.start(reason, { preserveFailures: true });
+    }
   }
 
   private registerSubscription(config: SubscriptionConfig): () => void {
@@ -2489,13 +2611,17 @@ export class BackendSubscriptionClient {
     const baseUrl = getApiBaseUrl(this.locale);
     const wsUrl = baseUrl.replace(/^http/, "ws") + "/graphql";
     let activeSocket: RestartableSocket | null = null;
-    let restartRequested = false;
+    let wrapped: RestartableClient | null = null;
     const restart = () => {
       if (activeSocket?.readyState === 1) {
         activeSocket.close(4205, "Client Restart");
-      } else {
-        restartRequested = true;
+        return;
       }
+      // No open socket. A healthy in-flight attempt reads connectionParams at
+      // open time and needs no restart, but a stalled attempt may never get
+      // there — terminate() settles the pending connect so the retry loop
+      // reconnects with fresh credentials. No-op when the client is idle.
+      wrapped?.terminate();
     };
 
     const client = createClient({
@@ -2517,14 +2643,17 @@ export class BackendSubscriptionClient {
       keepAlive: 30_000,
       shouldRetry: (errOrCloseEvent) => this.shouldRetryConnection(errOrCloseEvent),
       on: {
+        connecting: () => {
+          if (wrapped && this.client !== wrapped) return;
+          this.armTransportStallWatchdog();
+        },
         opened: (socket) => {
           activeSocket = socket as RestartableSocket;
-          if (restartRequested) {
-            restartRequested = false;
-            restart();
-          }
         },
         connected: (_socket, _payload, retrying) => {
+          if (wrapped && this.client !== wrapped) return;
+          this.transportConnected = true;
+          this.clearTransportStallWatchdog();
           log.info(`Backend subscription WebSocket connected${retrying ? " after retry" : ""}`);
           if (retrying) {
             void (async () => {
@@ -2542,14 +2671,20 @@ export class BackendSubscriptionClient {
         },
         closed: (event) => {
           activeSocket = null;
+          if (wrapped && this.client !== wrapped) return;
+          this.transportConnected = false;
           this.clearPongTimeout();
-          log.info("Backend subscription WebSocket closed", this.formatUnknownError(event));
+          log.info("Backend subscription WebSocket closed", {
+            ...this.formatUnknownError(event),
+            engagedLongLivedOperations: this.countEngagedLongLivedOperations(),
+          });
           const code = typeof event === "object" && event !== null
             ? (event as { code?: unknown }).code
             : undefined;
           if (typeof code === "number" && AUTH_WS_CLOSE_CODES.has(code)) {
             this.handleConnectionAuthFailure(`connection_close_${code}`, event);
           }
+          this.armTransportStallWatchdog();
         },
         error: (err) => {
           log.warn("Backend subscription WebSocket error (will auto-retry)", this.formatUnknownError(err));
@@ -2572,7 +2707,8 @@ export class BackendSubscriptionClient {
         },
       },
     });
-    this.client = Object.assign(client, { restart });
+    wrapped = Object.assign(client, { restart });
+    this.client = wrapped;
 
     // Establish previously registered subscriptions (e.g. after disconnect → connect cycle)
     this.reconcileSubscriptions("transport_connected");

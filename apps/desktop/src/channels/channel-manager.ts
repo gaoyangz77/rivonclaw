@@ -1046,7 +1046,11 @@ export const ChannelManagerModel = types
           Object.keys(accounts).length > 0 || channelId === WEIXIN_CHANNEL_ID,
         );
       }
-      if (Object.keys(accounts).some((accountId) => accountId.trim().toLowerCase() !== "default")) {
+      // Every account — including "default" — needs binding coverage: with
+      // agents.ownership="explicit" (any multi-agent roster) OpenClaw has no
+      // default-agent fallback and unbound accounts fail inbound dispatch
+      // with AgentSelectionRequiredError.
+      if (Object.keys(accounts).length > 0) {
         ensureWildcardBinding(config, channelId);
       }
       writeDesktopOpenClawConfig(configPath, config, `channel account snapshot: ${channelId}`);
