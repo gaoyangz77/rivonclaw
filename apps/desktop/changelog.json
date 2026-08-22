@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.110",
+    "date": "2026-08-21",
+    "en": [
+      "Upgrade the bundled OpenClaw runtime and improve Feishu customer-service cards, channel setup, campaign search planning, mobile isolation, and concurrent run recovery"
+    ],
+    "zh": [
+      "升级内置 OpenClaw runtime，并改善飞书客服卡片与渠道配置、Campaign 搜索计划、移动端隔离和并发任务恢复"
+    ]
+  },
+  {
     "version": "1.8.109",
     "date": "2026-08-21",
     "en": [
