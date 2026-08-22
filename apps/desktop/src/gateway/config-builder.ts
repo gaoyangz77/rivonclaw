@@ -11,7 +11,9 @@ import {
   AFFILIATE_WORKFLOW_SKILL_SLUG,
   CUSTOMER_SERVICE_AGENT_ID,
   DEFAULT_AGENT_ID,
+  resolveAgentWorkspaceBaseDir,
   resolveAffiliateAgentWorkspaceDir,
+  resolveMainAgentWorkspaceDir,
   resolveUserSkillsDir,
 } from "@rivonclaw/core/node";
 import {
@@ -196,8 +198,16 @@ export function isOpenAICodexOAuthActive(state: AuthProfileRuntimeState): boolea
 }
 
 export function buildManagedGatewayAgents(stateDir: string): ManagedGatewayAgents {
+  const stateEnv = {
+    ...process.env,
+    OPENCLAW_STATE_DIR: stateDir,
+  };
   return [
-    { id: DEFAULT_AGENT_ID, default: true },
+    {
+      id: DEFAULT_AGENT_ID,
+      default: true,
+      workspace: resolveMainAgentWorkspaceDir(stateEnv),
+    },
     {
       id: CUSTOMER_SERVICE_AGENT_ID,
       workspace: join(stateDir, "workspace-customer-service"),
@@ -207,10 +217,7 @@ export function buildManagedGatewayAgents(stateDir: string): ManagedGatewayAgent
     },
     {
       id: AFFILIATE_AGENT_ID,
-      workspace: resolveAffiliateAgentWorkspaceDir({
-        ...process.env,
-        OPENCLAW_STATE_DIR: stateDir,
-      }),
+      workspace: resolveAffiliateAgentWorkspaceDir(stateEnv),
       skills: [AFFILIATE_WORKFLOW_SKILL_SLUG],
       contextTokens: null,
       thinkingDefault: "low",
@@ -471,9 +478,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     // `openai/gpt-5.6-sol` no matter which provider the user selected. Seeding
     // only (never overwriting) keeps targeted mutations authoritative.
     const activeProviderKey = storage.providerKeys.getActive();
-    const defaultModelSeed = activeProviderKey
-      ? resolveGatewayModelParts(activeProviderKey)
-      : null;
+    const defaultModelSeed = activeProviderKey ? resolveGatewayModelParts(activeProviderKey) : null;
 
     return {
       configPath,
@@ -570,7 +575,10 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       overlayProviderKeys: [OPENAI_PROVIDER_ID],
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,
-      agentWorkspace: join(stateDir, "workspace"),
+      agentWorkspace: resolveAgentWorkspaceBaseDir({
+        ...process.env,
+        OPENCLAW_STATE_DIR: stateDir,
+      }),
       managedAgents: buildManagedGatewayAgents(stateDir),
       extraSkillDirs: [resolveUserSkillsDir()],
       // Keep the default OpenClaw profile unrestricted, and use alsoAllow only

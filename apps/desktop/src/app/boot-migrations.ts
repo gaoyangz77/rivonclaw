@@ -23,6 +23,7 @@ const log = createLogger("boot-migrations");
  * │ 3  │ migrateDeprecatedPluginIds    │ postConfig   │ v1.8.9     │ v2.0.0       │
  * │ 4  │ migrateLegacyOpenClawConfig   │ postConfig   │ v1.8.10    │ v2.0.0       │
  * │ 5  │ migrateOpenAIProviderRefs      │ postConfig   │ v1.8.81    │ v2.0.0       │
+ * │ 6  │ migrateMainAgentWorkspace      │ postConfig   │ v1.8.112   │ v2.0.0       │
  *
  * When removing a migration:
  *   1. Delete the corresponding entry from the phase body below.
@@ -61,7 +62,8 @@ export async function runPostConfigMigrations(configPath: string, stateDir: stri
   // The rules/policy layer and `rivonclaw-policy` extension were removed.
   // Strip stale plugin IDs from openclaw.json during startup so upgraded
   // installs do not ask OpenClaw to load a missing plugin.
-  const { migrateDeprecatedPluginIds } = await import("../gateway/plugin-id-deprecation-migration.js");
+  const { migrateDeprecatedPluginIds } =
+    await import("../gateway/plugin-id-deprecation-migration.js");
   migrateDeprecatedPluginIds(configPath);
 
   // [4] v1.8.10 - remove after v2.0.0
@@ -78,6 +80,13 @@ export async function runPostConfigMigrations(configPath: string, stateDir: stri
   const { migrateLegacyOpenAISessionProviders } =
     await import("./legacy-openclaw-config-migration.js");
   migrateLegacyOpenAISessionProviders(stateDir);
+
+  // [6] v1.8.112 - remove after v2.0.0
+  // Multi-agent OpenClaw versions derive the default agent workspace as
+  // `<agents.defaults.workspace>/main`. Preserve the identity, memory, and
+  // workspace-local skills created by older single-workspace RivonClaw builds.
+  const { migrateLegacyMainAgentWorkspace } = await import("./legacy-openclaw-config-migration.js");
+  migrateLegacyMainAgentWorkspace(stateDir);
 
   log.debug("post-config migrations complete");
 }
