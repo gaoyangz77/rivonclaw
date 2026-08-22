@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.113",
+    "date": "2026-08-22",
+    "en": [
+      "Restore channel owner bindings automatically and recover stalled backend subscriptions"
+    ],
+    "zh": [
+      "自动修复渠道归属绑定，并恢复卡住的后端订阅连接"
+    ]
+  },
+  {
     "version": "1.8.112",
     "date": "2026-08-22",
     "en": [
