@@ -1,4 +1,4 @@
-From f53ca0a0f0aad6ff40e6470cb7da9643e0bd3619 Mon Sep 17 00:00:00 2001
+From 54668ce8dc11aaa9b9fc6d047a129efa0ddc424e Mon Sep 17 00:00:00 2001
 From: RivonClaw CI <ci@rivonclaw.com>
 Date: Thu, 20 Aug 2026 17:44:20 -0700
 Subject: [PATCH] vendor(openclaw): backport Feishu visible delivery custody
@@ -6,21 +6,25 @@ Subject: [PATCH] vendor(openclaw): backport Feishu visible delivery custody
 
 Why:
 - The pinned vendor includes durable ambiguous-delivery notices but predates upstream commit 1096ca2a708, so visible Feishu CardKit replies can remain unknown and emit a false warning on the next inbound turn.
-- Backport the upstream fix without advancing across hundreds of unrelated OpenClaw commits.
+- Feishu notice debt created before the custody fix survives upgrades; clear it silently instead of injecting transport prose into a real conversation.
 
 Removal:
-- Drop this patch when .openclaw-version includes upstream commit 1096ca2a708f600386b6efd349823c759e041fcc (fix(feishu): retain partial custody on preview cleanup).
+- Drop the custody backport when .openclaw-version includes upstream commit 1096ca2a708f600386b6efd349823c759e041fcc (fix(feishu): retain partial custody on preview cleanup).
+- Drop the Feishu notice suppression after all supported Desktop versions include that upstream fix and pre-backport notice debt has aged out, or when upstream provides channel-appropriate silent reconciliation.
 
 Tests:
 - apps/desktop/src/channels/vendor-feishu-visible-delivery-custody.sentinel.test.ts
+- vendor/openclaw/src/channels/turn/pending-delivery-notice.test.ts
 - vendor/openclaw/src/channels/turn/run-channel-turn.custody.test.ts
 - vendor/openclaw/extensions/feishu/src/delivery-trace.test.ts
 ---
  extensions/feishu/src/delivery-trace.test.ts  | 135 +++++++++++++++++-
  extensions/feishu/src/reply-dispatcher.ts     |  49 ++++---
  src/channels/turn/lifecycle.ts                |   9 +-
+ .../turn/pending-delivery-notice.test.ts      |  28 ++++
+ src/channels/turn/pending-delivery-notice.ts  |  40 ++++--
  .../turn/run-channel-turn.custody.test.ts     |   9 ++
- 4 files changed, 176 insertions(+), 26 deletions(-)
+ 6 files changed, 235 insertions(+), 35 deletions(-)
 
 diff --git a/extensions/feishu/src/delivery-trace.test.ts b/extensions/feishu/src/delivery-trace.test.ts
 index c1499a005ad..d2078da9538 100644
@@ -340,6 +344,110 @@ index 81542c18e36..278c25e5e35 100644
      await settlePendingFinalDelivery(completion, "suppressed", ["prepared", "queued", "unknown"]);
    } else if (isPlatformMessageNotDispatchedError(error)) {
      await settlePendingFinalDelivery(completion, "prepared", ["queued", "unknown"]);
+diff --git a/src/channels/turn/pending-delivery-notice.test.ts b/src/channels/turn/pending-delivery-notice.test.ts
+index 7985a60a9b9..6a09d8827fe 100644
+--- a/src/channels/turn/pending-delivery-notice.test.ts
++++ b/src/channels/turn/pending-delivery-notice.test.ts
+@@ -83,6 +83,34 @@ describe("pending delivery notice", () => {
+     expect(loadSessionEntry({ sessionKey, storePath })?.pendingDeliveryNotice).toBeUndefined();
+   });
+ 
++  it("silently clears legacy Feishu debt without injecting a chat message", async () => {
++    const entry = loadSessionEntry({ sessionKey, storePath })!;
++    await replaceSessionEntry(
++      { sessionKey, storePath },
++      {
++        ...entry,
++        delivery: {
++          kind: "external",
++          route: { channel: "feishu", accountId: "default" },
++          context: { channel: "feishu", to: "oc-chat-1", accountId: "default" },
++          origin: {},
++        },
++        pendingDeliveryNotice: {
++          createdAt: Date.now(),
++          context: { channel: "feishu", to: "oc-chat-1", accountId: "default" },
++          intentId: "intent-feishu-1",
++          state: "owed",
++        },
++      },
++    );
++
++    await deliverPendingDeliveryNotice(sessionKey, storePath);
++
++    expect(sendRecoveryNotice).not.toHaveBeenCalled();
++    expect(appendAssistantMessageToSessionTranscript).not.toHaveBeenCalled();
++    expect(loadSessionEntry({ sessionKey, storePath })?.pendingDeliveryNotice).toBeUndefined();
++  });
++
+   it("does not cross an account or thread route", async () => {
+     const entry = loadSessionEntry({ sessionKey, storePath })!;
+     await replaceSessionEntry(
+diff --git a/src/channels/turn/pending-delivery-notice.ts b/src/channels/turn/pending-delivery-notice.ts
+index 360768f91c5..efb7abdd0be 100644
+--- a/src/channels/turn/pending-delivery-notice.ts
++++ b/src/channels/turn/pending-delivery-notice.ts
+@@ -18,6 +18,23 @@ function noticeId(intentId: string): string {
+   return `main-session-restart-recovery:pending-final:${intentId}`;
+ }
+ 
++async function clearPendingDeliveryNotice(params: {
++  sessionKey: string;
++  storePath: string;
++  sessionId: string;
++  intentId: string;
++}): Promise<void> {
++  await updateSessionEntry(
++    { sessionKey: params.sessionKey, storePath: params.storePath },
++    (current) =>
++      current.sessionId === params.sessionId &&
++      current.pendingDeliveryNotice?.intentId === params.intentId
++        ? { pendingDeliveryNotice: undefined, updatedAt: Date.now() }
++        : null,
++    { skipMaintenance: true, takeCacheOwnership: true },
++  );
++}
++
+ async function acknowledgePendingDeliveryNotice(params: {
+   sessionKey: string;
+   storePath: string;
+@@ -38,15 +55,7 @@ async function acknowledgePendingDeliveryNotice(params: {
+   ) {
+     return;
+   }
+-  await updateSessionEntry(
+-    { sessionKey: params.sessionKey, storePath: params.storePath },
+-    (current) =>
+-      current.sessionId === params.sessionId &&
+-      current.pendingDeliveryNotice?.intentId === params.intentId
+-        ? { pendingDeliveryNotice: undefined, updatedAt: Date.now() }
+-        : null,
+-    { skipMaintenance: true, takeCacheOwnership: true },
+-  );
++  await clearPendingDeliveryNotice(params);
+ }
+ 
+ export async function deliverPendingDeliveryNotice(
+@@ -73,6 +82,19 @@ export async function deliverPendingDeliveryNotice(
+   ) {
+     return;
+   }
++  // Feishu's in-place card lifecycle already communicates reply progress. Old
++  // ambiguous debt can survive a Desktop upgrade and otherwise inject an
++  // English transport warning into the next real conversation turn. Clear it
++  // without sending or mirroring synthetic chat content.
++  if (context.channel === "feishu") {
++    await clearPendingDeliveryNotice({
++      sessionKey,
++      storePath,
++      sessionId: entry.sessionId,
++      intentId: notice.intentId,
++    });
++    return;
++  }
+   const idempotencyKey = noticeId(notice.intentId);
+   try {
+     const outcome = await runtime.sendRecoveryNotice({
 diff --git a/src/channels/turn/run-channel-turn.custody.test.ts b/src/channels/turn/run-channel-turn.custody.test.ts
 index d77ae2b4042..5cf5ee6469a 100644
 --- a/src/channels/turn/run-channel-turn.custody.test.ts

@@ -14,13 +14,11 @@ const PATCHED_VENDOR_ROOT = resolve(__dirname, "../../../../tmp/vendor-patched/o
 const VENDOR_ROOT = existsSync(PATCHED_VENDOR_ROOT)
   ? PATCHED_VENDOR_ROOT
   : resolve(__dirname, "../../../../vendor/openclaw");
-const VENDOR_LIFECYCLE = resolve(
+const VENDOR_LIFECYCLE = resolve(VENDOR_ROOT, "src/channels/turn/lifecycle.ts");
+const VENDOR_FEISHU_DISPATCHER = resolve(VENDOR_ROOT, "extensions/feishu/src/reply-dispatcher.ts");
+const VENDOR_PENDING_DELIVERY_NOTICE = resolve(
   VENDOR_ROOT,
-  "src/channels/turn/lifecycle.ts",
-);
-const VENDOR_FEISHU_DISPATCHER = resolve(
-  VENDOR_ROOT,
-  "extensions/feishu/src/reply-dispatcher.ts",
+  "src/channels/turn/pending-delivery-notice.ts",
 );
 
 describe("vendor patch 0036: Feishu visible delivery custody", () => {
@@ -43,5 +41,11 @@ describe("vendor patch 0036: Feishu visible delivery custody", () => {
     const dispatcher = readFileSync(VENDOR_FEISHU_DISPATCHER, "utf8");
     expect(dispatcher).toContain("normalizeStreamingFinalizationFailure");
     expect(dispatcher).toContain("failure?.result.visibleReplySent ? failure.error : error");
+  });
+
+  it("silently clears stale Feishu recovery debt", () => {
+    const pendingNotice = readFileSync(VENDOR_PENDING_DELIVERY_NOTICE, "utf8");
+    expect(pendingNotice).toContain('if (context.channel === "feishu")');
+    expect(pendingNotice).toContain("await clearPendingDeliveryNotice({");
   });
 });
