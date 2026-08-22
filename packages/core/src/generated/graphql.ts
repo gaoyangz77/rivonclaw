@@ -3298,6 +3298,8 @@ export interface AffiliateRelationshipAgendaItem {
   /** The frozen proposal being revised when this agenda item was created by a staff revision request. Ordinary pending proposals are never attached. */
   revisionRequestedProposal?: Maybe<AffiliateRevisionRequestedProposalContext>;
   sampleApplicationRecordId?: Maybe<Scalars['ID']['output']>;
+  /** Exact D+3, D+7, or D+12 Sample content follow-up checkpoint. It asks the Agent to review recent Sample-specific conversation and decide whether contact is needed. */
+  sampleContentFollowUpStage?: Maybe<Scalars['String']['output']>;
   /** Why the Sample Application ended, on HANDLE_SAMPLE_TERMINAL_STATE work. Absent on every other agenda item, and on a terminal item whose transition event carried no work status at all. */
   sampleTerminalState?: Maybe<AffiliateSampleTerminalStateContext>;
   /** Who is responsible for handling this item. Uniform per Relationship — BUSINESS_DEVELOPER when the Relationship has an assigned business developer, SHOP otherwise (the shop owner is the fallback handler) — and stamped per item so each projected item is self-describing. Orthogonal to shopId, which names WHICH shop's business the item concerns. Request-scoped; null only on surfaces that predate this field or bypass the work-item projection. */

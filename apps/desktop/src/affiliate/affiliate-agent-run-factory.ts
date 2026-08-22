@@ -178,6 +178,9 @@ export function renderAgentWorkingAgenda(
     if (item.nextActionAt) {
       lines.push(`   Due At: ${item.nextActionAt}`);
     }
+    if (item.sampleContentFollowUpStage) {
+      lines.push(`   Sample Content Follow-up Stage: ${item.sampleContentFollowUpStage}`);
+    }
   });
   return lines.join("\n");
 }
