@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.8.111",
+    "date": "2026-08-22",
+    "en": [
+      "Add stage-aware D+3, D+7, and D+12 Affiliate sample content follow-up context"
+    ],
+    "zh": [
+      "新增按 D+3、D+7、D+12 分阶段的达人样品内容跟进上下文"
+    ]
+  },
+  {
     "version": "1.8.110",
     "date": "2026-08-21",
     "en": [
