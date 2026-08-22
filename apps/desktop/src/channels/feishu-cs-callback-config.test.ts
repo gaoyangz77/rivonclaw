@@ -6,7 +6,7 @@ import {
   setStagingDevMode,
 } from "@rivonclaw/core";
 
-const patchFeishuMessageCardCallbackUrl = vi.fn();
+const configureFeishuCardActionCallback = vi.fn();
 const resolveFeishuAccountCredentials = vi.fn(() => ({
   appId: "cli_test",
   appSecret: "secret_test",
@@ -22,7 +22,7 @@ class MockPermissionRequiredError extends Error {
 vi.mock("./feishu-open-api.js", () => ({
   isFeishuCallbackPermissionRequiredError: (error: unknown) =>
     error instanceof MockPermissionRequiredError,
-  patchFeishuMessageCardCallbackUrl,
+  configureFeishuCardActionCallback,
   resolveFeishuAccountCredentials,
 }));
 
@@ -53,7 +53,7 @@ beforeEach(() => {
   resetFirstPartyDomainRouteForTests();
   setStagingDevMode(false);
   resetFeishuCsCallbackRuntimeForTests();
-  patchFeishuMessageCardCallbackUrl.mockResolvedValue(undefined);
+  configureFeishuCardActionCallback.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -80,31 +80,45 @@ describe("Feishu CS callback configuration", () => {
 
     await ensureFeishuCsCallbackConfigured("account-one");
     await ensureFeishuCsCallbackConfigured("account-one");
-    expect(patchFeishuMessageCardCallbackUrl).toHaveBeenCalledTimes(1);
+    expect(configureFeishuCardActionCallback).toHaveBeenCalledTimes(1);
 
     setApiBaseUrlOverride("https://new-api.example.com");
     await ensureFeishuCsCallbackConfigured("account-one");
-    expect(patchFeishuMessageCardCallbackUrl).toHaveBeenCalledTimes(2);
-    expect(patchFeishuMessageCardCallbackUrl).toHaveBeenLastCalledWith(
+    expect(configureFeishuCardActionCallback).toHaveBeenCalledTimes(2);
+    expect(configureFeishuCardActionCallback).toHaveBeenLastCalledWith(
       expect.objectContaining({
         callbackUrl: "https://new-api.example.com/api/webhooks/feishu/cs-escalation-card",
       }),
     );
   });
 
+  it("ignores the pre-publish v3 marker so upgraded accounts publish the subscription", async () => {
+    const { storage, values } = createStorage();
+    values.set(
+      "_internal.feishu-card-callback-v3:feishu:cli_test",
+      JSON.stringify({ urlHash: "old-marker" }),
+    );
+    configureFeishuCsCallbackRuntime({ storage, locale: "en" });
+
+    await ensureFeishuCsCallbackConfigured("account-one");
+
+    expect(configureFeishuCardActionCallback).toHaveBeenCalledTimes(1);
+    expect([...values.keys()]).toContain("_internal.feishu-card-callback-v4:feishu:cli_test");
+  });
+
   it("keeps the account unmarked and exposes a warning after bounded retries fail", async () => {
     vi.useFakeTimers();
     const { storage, values } = createStorage();
     configureFeishuCsCallbackRuntime({ storage, locale: "en" });
-    patchFeishuMessageCardCallbackUrl.mockRejectedValue(new Error("permission denied"));
+    configureFeishuCardActionCallback.mockRejectedValue(new Error("permission denied"));
 
     const request = ensureFeishuCsCallbackConfigured("account-one");
     const rejection = expect(request).rejects.toThrow("not configured");
     await vi.runAllTimersAsync();
     await rejection;
 
-    expect(patchFeishuMessageCardCallbackUrl).toHaveBeenCalledTimes(3);
-    expect([...values.keys()].some((key) => key.includes("callback-v2"))).toBe(false);
+    expect(configureFeishuCardActionCallback).toHaveBeenCalledTimes(3);
+    expect([...values.keys()].some((key) => key.includes("callback-v4"))).toBe(false);
     expect(
       getFeishuCsCallbackWarning(storage, {
         appId: "cli_test",
@@ -119,7 +133,7 @@ describe("Feishu CS callback configuration", () => {
   it("fails fast and exposes the permission remediation URL", async () => {
     const { storage } = createStorage();
     configureFeishuCsCallbackRuntime({ storage, locale: "zh-CN" });
-    patchFeishuMessageCardCallbackUrl.mockRejectedValue(
+    configureFeishuCardActionCallback.mockRejectedValue(
       new MockPermissionRequiredError("https://open.feishu.cn/app/cli_test/auth?q=permission"),
     );
 
@@ -127,7 +141,7 @@ describe("Feishu CS callback configuration", () => {
       MockPermissionRequiredError,
     );
 
-    expect(patchFeishuMessageCardCallbackUrl).toHaveBeenCalledTimes(1);
+    expect(configureFeishuCardActionCallback).toHaveBeenCalledTimes(1);
     expect(
       getFeishuCsCallbackWarning(storage, {
         appId: "cli_test",

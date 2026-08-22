@@ -30,6 +30,7 @@ describe("Feishu CS escalation card contract", () => {
     const button = form.elements.find((element: any) => element.tag === "button");
 
     expect(button).toMatchObject({
+      name: "rivonclaw.cs:respond:v2:conversation%3Aone:M1DG8V:en",
       form_action_type: "submit",
       value: {
         action: "rivonclaw.cs:respond",

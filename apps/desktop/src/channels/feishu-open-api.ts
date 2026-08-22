@@ -1,5 +1,12 @@
 import { readExistingConfig, resolveOpenClawConfigPath } from "@rivonclaw/gateway";
-import { getFeishuApplicationAbilityUrl, getFeishuTokenUrl } from "@rivonclaw/core";
+import {
+  getFeishuApplicationAbilityUrl,
+  getFeishuApplicationConfigUrl,
+  getFeishuApplicationInfoUrl,
+  getFeishuApplicationPublishUrl,
+  getFeishuApplicationVersionsUrl,
+  getFeishuTokenUrl,
+} from "@rivonclaw/core";
 
 /**
  * Direct Feishu/Lark Open API transport for the Desktop main process.
@@ -11,6 +18,8 @@ import { getFeishuApplicationAbilityUrl, getFeishuTokenUrl } from "@rivonclaw/co
 const TOKEN_EXPIRY_SKEW_SECONDS = 60;
 const DEFAULT_TOKEN_TTL_SECONDS = 7200;
 const FEISHU_REQUEST_TIMEOUT_MS = 15_000;
+const CALLBACK_ACTIVATION_ATTEMPTS = 8;
+const CALLBACK_ACTIVATION_POLL_MS = 500;
 export const FEISHU_CS_CALLBACK_PERMISSION = "application:application:patch";
 const FEISHU_PERMISSION_REQUIRED_CODE = 99991672;
 
@@ -100,6 +109,18 @@ type FeishuResponseBody = {
   msg?: unknown;
   tenant_access_token?: unknown;
   expire?: unknown;
+  data?: {
+    items?: Array<{ version?: unknown }>;
+    app?: {
+      callback_info?: {
+        callback_type?: unknown;
+        request_url?: unknown;
+        subscribed_callbacks?: unknown;
+      };
+    };
+    version?: unknown;
+    version_id?: unknown;
+  };
 };
 
 export class FeishuApiError extends Error {
@@ -193,34 +214,138 @@ async function fetchFeishu(url: string, init: RequestInit, label: string): Promi
   }
 }
 
-/** Configure this application's message-card interaction callback URL. */
-export async function patchFeishuMessageCardCallbackUrl(params: {
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function nextFeishuApplicationVersion(versions: unknown[]): string {
+  const parsed = versions
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => {
+      const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value.trim());
+      return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+    })
+    .filter((value): value is [number, number, number] => value !== null)
+    .sort((left, right) => right[0] - left[0] || right[1] - left[1] || right[2] - left[2]);
+  const latest = parsed[0];
+  if (latest) return `${latest[0]}.${latest[1]}.${latest[2] + 1}`;
+  return `1.0.${Math.floor(Date.now() / 1000)}`;
+}
+
+async function verifyFeishuCardCallbackActive(params: {
+  appId: string;
+  domain: string;
+  token: string;
+  callbackUrl: string;
+}): Promise<void> {
+  for (let attempt = 0; attempt < CALLBACK_ACTIVATION_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) await sleep(CALLBACK_ACTIVATION_POLL_MS);
+    const label = `Feishu card callback activation check app=${params.appId.slice(-6)}`;
+    const response = await fetchFeishu(
+      getFeishuApplicationInfoUrl(params.domain, params.appId),
+      { headers: { Authorization: `Bearer ${params.token}` } },
+      label,
+    );
+    const body = await readFeishuBody(response, label);
+    const callback = body.data?.app?.callback_info;
+    const callbacks = Array.isArray(callback?.subscribed_callbacks)
+      ? callback.subscribed_callbacks
+      : [];
+    if (
+      callback?.callback_type === "webhook" &&
+      callback.request_url === params.callbackUrl &&
+      callbacks.includes("card.action.trigger")
+    ) {
+      return;
+    }
+  }
+  throw new Error(
+    `Feishu card callback was not activated after publishing app=${params.appId.slice(-6)}`,
+  );
+}
+
+/** Subscribe this application to Schema 2.0 card actions and remove the legacy callback. */
+export async function configureFeishuCardActionCallback(params: {
   appId: string;
   appSecret: string;
   domain: string;
   callbackUrl: string;
 }): Promise<void> {
   const token = await getFeishuTenantAccessToken(params.appId, params.appSecret, params.domain);
-  const label = `Feishu application ability update app=${params.appId.slice(-6)}`;
-  const res = await fetchFeishu(
-    getFeishuApplicationAbilityUrl(params.domain, params.appId),
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        bot: {
-          enable: true,
-          message_card_callback_url: params.callbackUrl,
-        },
-      }),
-    },
-    label,
-  );
   try {
-    await readFeishuBody(res, label);
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+    const configLabel = `Feishu card callback subscription update app=${params.appId.slice(-6)}`;
+    const configResponse = await fetchFeishu(
+      getFeishuApplicationConfigUrl(params.domain, params.appId),
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          callback: {
+            callback_type: "webhook",
+            request_url: params.callbackUrl,
+            add_callbacks: ["card.action.trigger"],
+          },
+        }),
+      },
+      configLabel,
+    );
+    await readFeishuBody(configResponse, configLabel);
+
+    const abilityLabel = `Feishu legacy card callback removal app=${params.appId.slice(-6)}`;
+    const abilityResponse = await fetchFeishu(
+      getFeishuApplicationAbilityUrl(params.domain, params.appId),
+      {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          bot: {
+            enable: true,
+            message_card_callback_url: "",
+          },
+        }),
+      },
+      abilityLabel,
+    );
+    await readFeishuBody(abilityResponse, abilityLabel);
+
+    const versionsLabel = `Feishu application versions request app=${params.appId.slice(-6)}`;
+    const versionsResponse = await fetchFeishu(
+      getFeishuApplicationVersionsUrl(params.domain, params.appId),
+      { headers: { Authorization: `Bearer ${token}` } },
+      versionsLabel,
+    );
+    const versionsBody = await readFeishuBody(versionsResponse, versionsLabel);
+    const version = nextFeishuApplicationVersion(
+      versionsBody.data?.items?.map((item) => item.version) ?? [],
+    );
+
+    const publishLabel = `Feishu application publish app=${params.appId.slice(-6)}`;
+    const publishResponse = await fetchFeishu(
+      getFeishuApplicationPublishUrl(params.domain, params.appId),
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          mobile_default_ability: "bot",
+          pc_default_ability: "bot",
+          remark: "Enable RivonClaw customer-service card callback",
+          changelog: "Route customer-service card actions to RivonClaw backend",
+          version,
+        }),
+      },
+      publishLabel,
+    );
+    await readFeishuBody(publishResponse, publishLabel);
+    await verifyFeishuCardCallbackActive({
+      appId: params.appId,
+      domain: params.domain,
+      token,
+      callbackUrl: params.callbackUrl,
+    });
   } catch (error) {
     if (
       error instanceof FeishuApiError &&

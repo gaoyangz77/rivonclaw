@@ -9,9 +9,10 @@ vi.mock("@rivonclaw/gateway", () => ({
 
 const {
   FeishuCallbackPermissionRequiredError,
+  configureFeishuCardActionCallback,
   getFeishuCallbackPermissionUrl,
   getFeishuTenantAccessToken,
-  patchFeishuMessageCardCallbackUrl,
+  nextFeishuApplicationVersion,
   resetFeishuTokenCacheForTests,
   resolveFeishuAccountCredentials,
 } = await import("./feishu-open-api.js");
@@ -95,39 +96,108 @@ describe("getFeishuTenantAccessToken", () => {
   });
 });
 
-describe("patchFeishuMessageCardCallbackUrl", () => {
-  it("PATCHes the application ability with the Backend callback URL", async () => {
-    const fetchMock = mockFetch(jsonResponse(TOKEN_OK), jsonResponse({ code: 0, msg: "success" }));
+describe("configureFeishuCardActionCallback", () => {
+  it("subscribes, publishes, and verifies the v2 card callback", async () => {
+    const fetchMock = mockFetch(
+      jsonResponse(TOKEN_OK),
+      jsonResponse({ code: 0, msg: "success" }),
+      jsonResponse({ code: 0, msg: "success" }),
+      jsonResponse({
+        code: 0,
+        msg: "success",
+        data: { items: [{ version: "1.0.3" }, { version: "1.0.2" }] },
+      }),
+      jsonResponse({ code: 0, msg: "success", data: { version: "1.0.4" } }),
+      jsonResponse({
+        code: 0,
+        msg: "success",
+        data: {
+          app: {
+            callback_info: {
+              callback_type: "webhook",
+              request_url: "https://api.example.com/api/webhooks/feishu/cs-escalation-card",
+              subscribed_callbacks: ["card.action.trigger"],
+            },
+          },
+        },
+      }),
+    );
 
-    await patchFeishuMessageCardCallbackUrl({
+    await configureFeishuCardActionCallback({
       appId: "cli_one",
       appSecret: "secret_one",
       domain: "feishu",
       callbackUrl: "https://api.example.com/api/webhooks/feishu/cs-escalation-card",
     });
 
-    const [url, init] = fetchMock.mock.calls[1];
-    expect(url).toBe(
-      "https://open.feishu.cn/open-apis/application/v7/applications/cli_one/ability",
+    const [configUrl, configInit] = fetchMock.mock.calls[1];
+    expect(configUrl).toBe(
+      "https://open.feishu.cn/open-apis/application/v7/applications/cli_one/config",
     );
-    expect(init.method).toBe("PATCH");
-    expect(init.headers).toEqual({
+    expect(configInit.method).toBe("PATCH");
+    expect(configInit.headers).toEqual({
       "Content-Type": "application/json",
       Authorization: "Bearer t-abc",
     });
-    expect(JSON.parse(init.body)).toEqual({
-      bot: {
-        enable: true,
-        message_card_callback_url: "https://api.example.com/api/webhooks/feishu/cs-escalation-card",
+    expect(JSON.parse(configInit.body)).toEqual({
+      callback: {
+        callback_type: "webhook",
+        request_url: "https://api.example.com/api/webhooks/feishu/cs-escalation-card",
+        add_callbacks: ["card.action.trigger"],
       },
     });
+
+    const [abilityUrl, abilityInit] = fetchMock.mock.calls[2];
+    expect(abilityUrl).toBe(
+      "https://open.feishu.cn/open-apis/application/v7/applications/cli_one/ability",
+    );
+    expect(abilityInit.method).toBe("PATCH");
+    expect(abilityInit.headers).toEqual({
+      "Content-Type": "application/json",
+      Authorization: "Bearer t-abc",
+    });
+    expect(JSON.parse(abilityInit.body)).toEqual({
+      bot: {
+        enable: true,
+        message_card_callback_url: "",
+      },
+    });
+
+    const [versionsUrl, versionsInit] = fetchMock.mock.calls[3];
+    expect(versionsUrl).toBe(
+      "https://open.feishu.cn/open-apis/application/v6/applications/cli_one/app_versions?lang=zh_cn&page_size=20",
+    );
+    expect(versionsInit).toEqual(
+      expect.objectContaining({ headers: { Authorization: "Bearer t-abc" } }),
+    );
+
+    const [publishUrl, publishInit] = fetchMock.mock.calls[4];
+    expect(publishUrl).toBe(
+      "https://open.feishu.cn/open-apis/application/v7/applications/cli_one/publish",
+    );
+    expect(publishInit.method).toBe("POST");
+    expect(JSON.parse(publishInit.body)).toEqual({
+      mobile_default_ability: "bot",
+      pc_default_ability: "bot",
+      remark: "Enable RivonClaw customer-service card callback",
+      changelog: "Route customer-service card actions to RivonClaw backend",
+      version: "1.0.4",
+    });
+
+    expect(fetchMock.mock.calls[5][0]).toBe(
+      "https://open.feishu.cn/open-apis/application/v6/applications/cli_one?lang=zh_cn",
+    );
+  });
+
+  it("increments the highest semantic application version", () => {
+    expect(nextFeishuApplicationVersion(["1.0.3", "2.4.8", "2.4.10", "draft"])).toBe("2.4.11");
   });
 
   it("does not accept an HTTP-200 API error as configured", async () => {
     mockFetch(jsonResponse(TOKEN_OK), jsonResponse({ code: 99991663, msg: "permission denied" }));
 
     await expect(
-      patchFeishuMessageCardCallbackUrl({
+      configureFeishuCardActionCallback({
         appId: "cli_one",
         appSecret: "secret_one",
         domain: "feishu",
@@ -145,7 +215,7 @@ describe("patchFeishuMessageCardCallbackUrl", () => {
       }),
     );
 
-    const request = patchFeishuMessageCardCallbackUrl({
+    const request = configureFeishuCardActionCallback({
       appId: "cli_one",
       appSecret: "secret_one",
       domain: "feishu",
@@ -177,7 +247,7 @@ describe("patchFeishuMessageCardCallbackUrl", () => {
     );
 
     await expect(
-      patchFeishuMessageCardCallbackUrl({
+      configureFeishuCardActionCallback({
         appId: "cli_one",
         appSecret: "secret_one",
         domain: "feishu",

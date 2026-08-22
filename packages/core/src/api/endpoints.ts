@@ -253,6 +253,26 @@ export function getFeishuApplicationAbilityUrl(domain: string, appId: string): s
   return `https://${getFeishuHost(domain)}/open-apis/application/v7/applications/${encodeURIComponent(appId)}/ability`;
 }
 
+/** Update one self-built Feishu/Lark application's event and callback configuration. */
+export function getFeishuApplicationConfigUrl(domain: string, appId: string): string {
+  return `https://${getFeishuHost(domain)}/open-apis/application/v7/applications/${encodeURIComponent(appId)}/config`;
+}
+
+/** Read one self-built Feishu/Lark application's active configuration. */
+export function getFeishuApplicationInfoUrl(domain: string, appId: string): string {
+  return `https://${getFeishuHost(domain)}/open-apis/application/v6/applications/${encodeURIComponent(appId)}?lang=zh_cn`;
+}
+
+/** List published versions for one self-built Feishu/Lark application. */
+export function getFeishuApplicationVersionsUrl(domain: string, appId: string): string {
+  return `https://${getFeishuHost(domain)}/open-apis/application/v6/applications/${encodeURIComponent(appId)}/app_versions?lang=zh_cn&page_size=20`;
+}
+
+/** Publish pending configuration for one self-built Feishu/Lark application. */
+export function getFeishuApplicationPublishUrl(domain: string, appId: string): string {
+  return `https://${getFeishuHost(domain)}/open-apis/application/v7/applications/${encodeURIComponent(appId)}/publish`;
+}
+
 /** LINE Messaging API: push message endpoint. */
 export function getLinePushUrl(): string {
   return `https://${DEFAULTS.channels.line}/v2/bot/message/push`;
