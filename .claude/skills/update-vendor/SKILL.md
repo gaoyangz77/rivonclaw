@@ -16,6 +16,12 @@ It produces a clean, verified vendor state with all downstream artifacts in sync
 
 ### 1. Resolve target commit
 
+Read `vendor-patches/openclaw/UPSTREAM_WATCHLIST.md` before selecting a target. Refresh its
+active P0/P1 evidence against the current OpenClaw `origin/main`; its stored
+snapshot is context, not proof of current upstream state. Prefer the earliest
+reliable pin that resolves the highest-value gaps while minimizing migration,
+channel, tool-contract, and packaging risk. Do not default to latest `main`.
+
 If the caller specifies "latest", resolve to the actual commit hash:
 
 ```bash
@@ -92,6 +98,10 @@ Replay success is not semantic compatibility. For every patch:
   corresponding sentinel/behavior test passes without the patch.
 - For retained patches, run their focused sentinel tests and verify the patched
   API still has the same ownership, lifecycle, and error semantics.
+- Reconcile the patch with `vendor-patches/openclaw/UPSTREAM_WATCHLIST.md`. Explicit upstream
+  commits require ancestry verification; squashed or rewritten replacements
+  require source inspection plus the pristine-vendor sentinel. Do not retire a
+  patch from a matching commit title alone.
 
 ### 5. Compatibility audit
 
@@ -327,6 +337,8 @@ Summarize the update with:
   code was adapted
 - **Config schema changes** — added, removed, or modified config keys
 - **Patch replay status** — all patches applied cleanly, or which needed refresh
+- **Watchlist reconciliation** — newly satisfied P0/P1 gaps, still-blocked gaps,
+  removable workarounds pending verification, and the smallest useful pin
 - **Test results** — unit tests, build, and e2e status
 - **Upgrade acceptance matrix** — pass/fail for legacy-state migration, large
   state startup, each production channel, CS reconnect recovery, runtime plugin
@@ -356,6 +368,8 @@ A completed vendor update must leave behind:
 - `.openclaw-version` updated to the new hash
 - `vendor/openclaw/` provisioned and verified (main branch, clean tree, patches applied)
 - All carried patches replaying cleanly on the new vendor
+- `vendor-patches/openclaw/UPSTREAM_WATCHLIST.md` reconciled against the selected pin and
+  reflected in the final upgrade report
 - Vendor boundary artifacts regenerated (`packages/*/src/generated/`)
 - `docs/OPENCLAW_CONFIG.md` regenerated with current schema
 - All EasyClaw code adapted to any breaking vendor changes
