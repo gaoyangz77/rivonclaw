@@ -843,7 +843,7 @@ describe("config-writer", () => {
   });
 
   describe("writeGatewayConfig - managed agents", () => {
-    it("upserts managed agents, preserves custom agents, and keeps one default", () => {
+    it("upserts managed agents and migrates the fleet to explicit ownership", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
@@ -858,7 +858,7 @@ describe("config-writer", () => {
       );
 
       const managedAgents = [
-        { id: "main", default: true },
+        { id: "main" },
         {
           id: "customer-service",
           workspace: "/state/workspace-customer-service",
@@ -880,9 +880,11 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, managedAgents });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.ownership).toBe("explicit");
+      expect(config.agents.defaults.systemAgent).toEqual({ agentId: "main" });
       expect(config.agents.entries).toEqual({
-        main: { name: "Primary", default: true },
-        custom: { default: false, workspace: "/custom" },
+        main: { name: "Primary" },
+        custom: { workspace: "/custom" },
         "customer-service": {
           workspace: "/state/workspace-customer-service",
           thinkingDefault: "off",
@@ -932,7 +934,6 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.entries).toEqual({
         "customer-service": {
-          default: true,
           thinkingDefault: "low",
           reasoningDefault: "off",
         },
@@ -2501,7 +2502,7 @@ describe("config-writer", () => {
   });
 
   describe("writeGatewayConfig - background agent defaults", () => {
-    it("disables heartbeat and memory dreaming for a new config", () => {
+    it("disables unrequested autonomous background work for a new config", () => {
       const configPath = join(tmpDir, "openclaw.json");
 
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
@@ -2509,6 +2510,7 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.agents.defaults.heartbeat.every).toBe("0m");
       expect(config.plugins.entries["memory-core"].config.dreaming.enabled).toBe(false);
+      expect(config.skills.workshop.autonomous.mode).toBe("off");
     });
 
     it("adds disabled defaults to an existing config that has no explicit choice", () => {
@@ -2522,6 +2524,7 @@ describe("config-writer", () => {
               "memory-core": { config: { dreaming: { frequency: "0 4 * * *" } } },
             },
           },
+          skills: { workshop: { approvalPolicy: "pending" } },
         }),
       );
 
@@ -2533,9 +2536,13 @@ describe("config-writer", () => {
         enabled: false,
         frequency: "0 4 * * *",
       });
+      expect(config.skills.workshop).toEqual({
+        approvalPolicy: "pending",
+        autonomous: { mode: "off" },
+      });
     });
 
-    it("preserves explicit heartbeat and memory dreaming settings", () => {
+    it("preserves explicit background-work settings", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeFileSync(
         configPath,
@@ -2546,6 +2553,7 @@ describe("config-writer", () => {
               "memory-core": { config: { dreaming: { enabled: true, frequency: "0 2 * * *" } } },
             },
           },
+          skills: { workshop: { autonomous: { mode: "propose" } } },
         }),
       );
 
@@ -2557,6 +2565,7 @@ describe("config-writer", () => {
         enabled: true,
         frequency: "0 2 * * *",
       });
+      expect(config.skills.workshop.autonomous.mode).toBe("propose");
     });
   });
 

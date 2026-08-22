@@ -77,6 +77,13 @@ function applyBackgroundAgentDefaults(config: Record<string, unknown>): void {
   if (typeof dreaming.enabled !== "boolean") {
     dreaming.enabled = false;
   }
+
+  const skills = ensureRecord(config, "skills");
+  const workshop = ensureRecord(skills, "workshop");
+  const autonomous = ensureRecord(workshop, "autonomous");
+  if (typeof autonomous.mode !== "string") {
+    autonomous.mode = "off";
+  }
 }
 
 function applyCodexDynamicToolDefaults(config: Record<string, unknown>): void {
@@ -122,23 +129,28 @@ function canonicalizeAgentRoster(config: Record<string, unknown>): void {
       : {};
   const byId = collectAgentEntries(agents);
   if (byId.size === 0) {
-    byId.set("main", { default: true });
+    byId.set("main", {});
   }
 
-  const defaultIds = [...byId].flatMap(([id, entry]) => (entry.default === true ? [id] : []));
-  const fallbackId = byId.has("main") ? "main" : byId.keys().next().value;
-  if (!fallbackId) throw new Error("Agent roster must contain at least one entry");
-  const defaultId = defaultIds.length === 1 ? defaultIds[0] : (defaultIds[0] ?? fallbackId);
-  for (const [id, entry] of byId) {
-    if (id === defaultId) {
-      entry.default = true;
-    } else if (entry.default === true) {
-      entry.default = false;
-    }
+  for (const entry of byId.values()) {
+    delete entry.default;
   }
 
   const { list: _list, ...rest } = agents;
-  config.agents = { ...rest, entries: Object.fromEntries(byId) };
+  const nextAgents: Record<string, unknown> = {
+    ...rest,
+    entries: Object.fromEntries(byId),
+  };
+  if (byId.size > 1) {
+    nextAgents.ownership = "explicit";
+
+    const defaults = ensureRecord(nextAgents, "defaults");
+    const systemAgent = ensureRecord(defaults, "systemAgent");
+    if (typeof systemAgent.agentId !== "string" && byId.has("main")) {
+      systemAgent.agentId = "main";
+    }
+  }
+  config.agents = nextAgents;
 }
 
 function removeGeminiOAuthRuntimeConfig(config: Record<string, unknown>, stateDir: string): void {
@@ -796,7 +808,6 @@ export interface WriteGatewayConfigOptions {
   /** RivonClaw-managed OpenClaw agents. Existing non-managed agents are preserved. */
   managedAgents?: Array<{
     id: string;
-    default?: boolean;
     workspace?: string;
     /** Explicit workspace-local Skill allowlist for this managed agent. */
     skills?: string[];
@@ -1156,23 +1167,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   }
 
   // Managed agents are merged by id so repeated config syncs are idempotent and
-  // user-created agents keep their fields. When RivonClaw declares a default,
-  // keep it as the sole default to avoid OpenClaw's order-dependent fallback.
+  // user-created agents keep their fields. Agent ownership is canonicalized
+  // after all mutations so multi-agent fleets use OpenClaw's explicit routing.
   if (options.managedAgents !== undefined) {
     const existingAgents =
       typeof config.agents === "object" && config.agents !== null
         ? (config.agents as Record<string, unknown>)
         : {};
-    const managedDefaultId = options.managedAgents.find((entry) => entry.default)?.id;
     const byId = collectAgentEntries(existingAgents);
-    for (const [id, entry] of byId) {
-      byId.set(id, {
-        ...entry,
-        ...(managedDefaultId && id !== managedDefaultId && entry.default === true
-          ? { default: false }
-          : {}),
-      });
-    }
     for (const managed of options.managedAgents) {
       const existingEntry = byId.get(managed.id) ?? {};
       const { id: managedId, ...managedConfig } = managed;

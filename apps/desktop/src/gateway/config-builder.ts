@@ -205,7 +205,6 @@ export function buildManagedGatewayAgents(stateDir: string): ManagedGatewayAgent
   return [
     {
       id: DEFAULT_AGENT_ID,
-      default: true,
       workspace: resolveMainAgentWorkspaceDir(stateEnv),
     },
     {

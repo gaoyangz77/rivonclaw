@@ -72,7 +72,6 @@ describe("gateway config builder", () => {
 
     expect(main).toEqual({
       id: "main",
-      default: true,
       workspace: "/tmp/rivonclaw-openclaw/workspace/main",
     });
     expect(main).not.toHaveProperty("tools");
