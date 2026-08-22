@@ -333,6 +333,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           proposalId
           reasons
           nextActionAt
+          sampleContentFollowUpStage
           boundaryEventCursor
           updatedAt
           conversationWindow {
@@ -468,6 +469,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             proposalId
             reasons
             nextActionAt
+            sampleContentFollowUpStage
             boundaryEventCursor
             updatedAt
           }

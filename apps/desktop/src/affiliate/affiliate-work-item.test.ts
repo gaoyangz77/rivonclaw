@@ -3777,6 +3777,7 @@ describe("affiliate work item dispatch", () => {
         workKind: GQL.AffiliateWorkKind.ContentFollowUp,
         requiredAction: GQL.AffiliateRelationshipRequiredAction.FollowUpCreator,
         reasons: [GQL.AffiliateWorkProcessReason.SampleContentFollowUpDue],
+        sampleContentFollowUpStage: "SAMPLE_CONTENT_FOLLOW_UP_DAY_7",
       })),
       creatorRelationship: {
         ...(createCreatorReplyWorkItem().creatorRelationship as GQL.AffiliateCreatorRelationship),
@@ -3790,6 +3791,9 @@ describe("affiliate work item dispatch", () => {
     expect(request?.message).toContain("[Agent Working Agenda]");
     expect(request?.message).toContain("Work Kind: CONTENT_FOLLOW_UP");
     expect(request?.message).toContain("Reasons: SAMPLE_CONTENT_FOLLOW_UP_DUE");
+    expect(request?.message).toContain(
+      "Sample Content Follow-up Stage: SAMPLE_CONTENT_FOLLOW_UP_DAY_7",
+    );
     expect(request?.message).not.toContain("2026-05-14T00:01:00.000Z");
   });
 

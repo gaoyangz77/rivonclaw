@@ -217,6 +217,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         proposalId
         reasons
         nextActionAt
+        sampleContentFollowUpStage
         boundaryEventCursor
         updatedAt
         conversationWindow {
