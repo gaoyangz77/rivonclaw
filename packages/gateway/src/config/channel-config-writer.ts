@@ -68,11 +68,11 @@ export function writeChannelAccount(options: WriteChannelAccountOptions): void {
   // Auto-enable the channel plugin in plugins.entries so the gateway loads it
   enableChannelPlugin(existingConfig, channelId);
 
-  // Ensure a wildcard binding exists for non-default accounts so OpenClaw's
-  // doctor doesn't warn about missing bindings and rewrite the config file.
-  if (accountId.trim().toLowerCase() !== "default") {
-    ensureWildcardBinding(existingConfig, channelId);
-  }
+  // Ensure a channel-wide wildcard binding exists for every account,
+  // including "default". With agents.ownership="explicit" (any multi-agent
+  // roster) OpenClaw has no default-agent fallback, so an unbound account
+  // fails inbound dispatch with AgentSelectionRequiredError.
+  ensureWildcardBinding(existingConfig, channelId);
 
   // Write back to file
   writeFileSync(configPath, JSON.stringify(existingConfig, null, 2), "utf-8");

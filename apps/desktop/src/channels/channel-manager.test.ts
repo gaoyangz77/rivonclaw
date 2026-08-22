@@ -704,6 +704,77 @@ describe("ChannelManagerModel WeChat provider-owned identity", () => {
     }
   });
 
+  it("writes a wildcard binding when the channel only has a default account", () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-default-binding-"));
+    try {
+      const configPath = join(stateDir, "openclaw.json");
+      writeFileSync(configPath, JSON.stringify({ version: 1 }, null, 2), "utf-8");
+      const accounts: Array<{
+        channelId: string;
+        accountId: string;
+        name: string | null;
+        config: Record<string, unknown>;
+        createdAt: number;
+        updatedAt: number;
+      }> = [];
+      const root = TestRootModel.create({});
+      root.channelManager.setEnv({
+        storage: {
+          channelAccounts: {
+            list: (channelId?: string) =>
+              channelId ? accounts.filter((account) => account.channelId === channelId) : accounts,
+            get: (channelId: string, accountId: string) =>
+              accounts.find(
+                (account) => account.channelId === channelId && account.accountId === accountId,
+              ),
+            upsert: vi.fn(
+              (
+                channelId: string,
+                accountId: string,
+                name: string | null,
+                config: Record<string, unknown>,
+              ) => {
+                const record = { channelId, accountId, name, config, createdAt: 1, updatedAt: 1 };
+                accounts.push(record);
+                return record;
+              },
+            ),
+            delete: vi.fn(),
+          },
+          channelRecipients: {
+            ensureExists: vi.fn(),
+            getRecipientMeta: () => ({}),
+            setLabel: vi.fn(),
+            delete: vi.fn(),
+            setOwner: vi.fn(),
+            getOwners: vi.fn(() => []),
+          },
+          mobilePairings: { getAllPairings: () => [] },
+          settings: { get: () => "1", set: vi.fn() },
+        } as any,
+        configPath,
+        stateDir,
+      });
+
+      root.channelManager.init();
+
+      root.channelManager.addAccount({
+        channelId: "feishu",
+        accountId: "default",
+        config: { appId: "cli_a1b2c3", appSecret: "secret" },
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.channels.feishu.accounts.default).toMatchObject({ appId: "cli_a1b2c3" });
+      expect(config.bindings).toContainEqual({
+        agentId: "main",
+        match: { channel: "feishu", accountId: "*" },
+      });
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+
   it("records Feishu inbound senders in the matching account recipient list", () => {
     const stateDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-manager-feishu-seen-"));
     const previousStateDir = process.env.OPENCLAW_STATE_DIR;

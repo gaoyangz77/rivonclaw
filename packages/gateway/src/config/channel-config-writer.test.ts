@@ -1,5 +1,60 @@
-import { describe, it, expect } from "vitest";
-import { migrateSingleAccountChannels } from "./channel-config-writer.js";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { migrateSingleAccountChannels, writeChannelAccount } from "./channel-config-writer.js";
+
+describe("writeChannelAccount", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-channel-config-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("adds a wildcard binding for the default account", () => {
+    const configPath = join(tmpDir, "openclaw.json");
+
+    writeChannelAccount({
+      configPath,
+      channelId: "feishu",
+      accountId: "default",
+      config: { appId: "cli_a1b2c3", appSecret: "secret" },
+    });
+
+    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    expect(config.channels.feishu.accounts.default).toEqual({
+      appId: "cli_a1b2c3",
+      appSecret: "secret",
+    });
+    expect(config.bindings).toContainEqual({
+      agentId: "main",
+      match: { channel: "feishu", accountId: "*" },
+    });
+  });
+
+  it("does not duplicate an existing wildcard binding for the channel", () => {
+    const configPath = join(tmpDir, "openclaw.json");
+    const userWildcard = {
+      agentId: "customer-service",
+      match: { channel: "feishu", accountId: "*" },
+    };
+    writeFileSync(configPath, JSON.stringify({ bindings: [userWildcard] }));
+
+    writeChannelAccount({
+      configPath,
+      channelId: "feishu",
+      accountId: "default",
+      config: { appId: "cli_a1b2c3", appSecret: "secret" },
+    });
+
+    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    expect(config.bindings).toEqual([userWildcard]);
+  });
+});
 
 describe("migrateSingleAccountChannels", () => {
   it("returns empty array when no channels exist", () => {

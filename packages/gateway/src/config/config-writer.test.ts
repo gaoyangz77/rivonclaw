@@ -942,6 +942,127 @@ describe("config-writer", () => {
     });
   });
 
+  describe("writeGatewayConfig - channel owner bindings", () => {
+    const managedAgents = [
+      { id: "main" },
+      { id: "customer-service", workspace: "/state/workspace-customer-service" },
+      { id: "affiliate", workspace: "/state/workspace-affiliate" },
+    ];
+
+    it("appends wildcard bindings for every configured channel when ownership is explicit", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            feishu: {
+              accounts: { default: { appId: "cli_a1b2c3", appSecret: "secret" } },
+            },
+            telegram: {
+              accounts: { "rivonclaw-support": { botToken: "123:ABC" } },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, managedAgents });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.agents.ownership).toBe("explicit");
+      expect(config.bindings).toContainEqual({
+        agentId: "main",
+        match: { channel: "feishu", accountId: "*" },
+      });
+      expect(config.bindings).toContainEqual({
+        agentId: "main",
+        match: { channel: "telegram", accountId: "*" },
+      });
+    });
+
+    it("preserves existing custom bindings and appends the wildcard alongside", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      const customBinding = {
+        agentId: "customer-service",
+        match: { channel: "feishu", accountId: "default" },
+      };
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            feishu: {
+              accounts: { default: { appId: "cli_a1b2c3", appSecret: "secret" } },
+            },
+          },
+          bindings: [customBinding],
+        }),
+      );
+
+      writeGatewayConfig({ configPath, managedAgents });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      // The custom binding survives byte-identical and the wildcard coexists;
+      // no other feishu bindings are introduced. (writeGatewayConfig also
+      // always registers the managed openclaw-weixin channel, which gets its
+      // own wildcard — irrelevant to feishu routing.)
+      const feishuBindings = (config.bindings as Array<Record<string, unknown>>).filter(
+        (binding) => (binding.match as Record<string, unknown>).channel === "feishu",
+      );
+      expect(feishuBindings).toEqual([
+        customBinding,
+        { agentId: "main", match: { channel: "feishu", accountId: "*" } },
+      ]);
+    });
+
+    it("does not append when a user wildcard binding already covers the channel", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      const userWildcard = {
+        agentId: "customer-service",
+        match: { channel: "feishu", accountId: "*" },
+      };
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            feishu: {
+              accounts: { default: { appId: "cli_a1b2c3", appSecret: "secret" } },
+            },
+          },
+          bindings: [userWildcard],
+        }),
+      );
+
+      writeGatewayConfig({ configPath, managedAgents });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      const feishuWildcards = (config.bindings as Array<Record<string, unknown>>).filter(
+        (binding) => {
+          const match = binding.match as Record<string, unknown>;
+          return match.channel === "feishu" && match.accountId === "*";
+        },
+      );
+      expect(feishuWildcards).toEqual([userWildcard]);
+    });
+
+    it("adds no bindings for a sole-agent roster", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: {
+            feishu: {
+              accounts: { default: { appId: "cli_a1b2c3", appSecret: "secret" } },
+            },
+          },
+        }),
+      );
+
+      writeGatewayConfig({ configPath, managedAgents: [{ id: "main" }] });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.bindings).toBeUndefined();
+    });
+  });
+
   describe("writeGatewayConfig - blockStreaming", () => {
     it("always writes blockStreamingDefault and blockStreamingBreak into agents.defaults", () => {
       const configPath = join(tmpDir, "openclaw.json");
