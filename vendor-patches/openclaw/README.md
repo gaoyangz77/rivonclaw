@@ -209,6 +209,17 @@ Removal: drop this patch when `.openclaw-version` includes upstream commit
 `1096ca2a708f600386b6efd349823c759e041fcc` (`fix(feishu): retain partial custody
 on preview cleanup`) or an equivalent successor.
 
+### 0037 - Lazy Playwright loading for Windows CLI
+
+Backports OpenClaw PR `#127035`, commit
+`b1b2608f8ca9a56d573487c7eae8ecbdfa3aa8cc`, so CLI registration does not
+eagerly import browser policy and Playwright while building the packaged
+Windows runtime.
+
+Removal: drop this patch when `.openclaw-version` contains that commit or an
+equivalent lazy-loading implementation and the packaged Windows CLI sentinel
+passes on pristine vendor.
+
 ### 0038 - Prepared model catalog generation recovery
 
 Backports OpenClaw PR `#126224` at head
