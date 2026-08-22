@@ -1,18 +1,36 @@
 import {
+  copyFileSync,
   existsSync,
+  mkdirSync,
+  readlinkSync,
   readFileSync,
   readdirSync,
   renameSync,
   statSync,
+  symlinkSync,
   unlinkSync,
   writeFileSync,
   type Dirent,
 } from "node:fs";
 import { join } from "node:path";
+import { resolveMainAgentWorkspaceDir } from "@rivonclaw/core/node";
 import { createLogger } from "@rivonclaw/logger";
 import { writeDesktopOpenClawConfig } from "../gateway/openclaw-config-mutation.js";
 
 const log = createLogger("legacy-openclaw-config-migration");
+
+const MAIN_WORKSPACE_MIGRATION_MARKER = ".rivonclaw-main-workspace-migrated-v1";
+const MAIN_WORKSPACE_FILES = [
+  "AGENTS.md",
+  "SOUL.md",
+  "USER.md",
+  "IDENTITY.md",
+  "TOOLS.md",
+  "HEARTBEAT.md",
+  "MEMORY.md",
+  "DREAMS.md",
+] as const;
+const MAIN_WORKSPACE_DIRECTORIES = ["memory", "skills"] as const;
 
 const REMOVED_PLUGIN_IDS = new Set([
   "wecom",
@@ -67,6 +85,88 @@ const WEB_SEARCH_PROVIDER_PLUGIN_IDS: Record<string, string> = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
+function copyMissingTree(sourceDir: string, targetDir: string): number {
+  if (!existsSync(sourceDir)) return 0;
+  mkdirSync(targetDir, { recursive: true });
+
+  let copied = 0;
+  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = join(sourceDir, entry.name);
+    const targetPath = join(targetDir, entry.name);
+    if (entry.isDirectory()) {
+      copied += copyMissingTree(sourcePath, targetPath);
+      continue;
+    }
+    if (existsSync(targetPath)) continue;
+    if (entry.isFile()) {
+      copyFileSync(sourcePath, targetPath);
+      copied += 1;
+      continue;
+    }
+    if (entry.isSymbolicLink()) {
+      symlinkSync(readlinkSync(sourcePath), targetPath);
+      copied += 1;
+    }
+  }
+  return copied;
+}
+
+/**
+ * OpenClaw's roster workspaces now live below `<workspace>/<agentId>`. Older
+ * RivonClaw builds used the parent directory itself for the main agent. Copy
+ * only durable agent-owned context into the new main workspace; large outputs
+ * and arbitrary working files stay in place for rollback and manual access.
+ */
+export function migrateLegacyMainAgentWorkspace(stateDir: string): void {
+  const legacyWorkspace = join(stateDir, "workspace");
+  const mainWorkspace = resolveMainAgentWorkspaceDir({
+    ...process.env,
+    OPENCLAW_STATE_DIR: stateDir,
+  });
+  const markerPath = join(mainWorkspace, MAIN_WORKSPACE_MIGRATION_MARKER);
+  if (!existsSync(legacyWorkspace) || existsSync(markerPath)) return;
+
+  const sourceFiles = MAIN_WORKSPACE_FILES.filter((name) =>
+    existsSync(join(legacyWorkspace, name)),
+  );
+  const sourceDirectories = MAIN_WORKSPACE_DIRECTORIES.filter((name) =>
+    existsSync(join(legacyWorkspace, name)),
+  );
+  if (sourceFiles.length === 0 && sourceDirectories.length === 0) return;
+
+  mkdirSync(mainWorkspace, { recursive: true });
+  const legacySetupCompleted =
+    !existsSync(join(legacyWorkspace, "BOOTSTRAP.md")) &&
+    sourceFiles.some(
+      (name) => name === "IDENTITY.md" || name === "USER.md" || name === "MEMORY.md",
+    );
+  const targetIsFreshBootstrap = existsSync(join(mainWorkspace, "BOOTSTRAP.md"));
+  const replaceGeneratedTemplates = legacySetupCompleted && targetIsFreshBootstrap;
+
+  let copiedFiles = 0;
+  for (const name of sourceFiles) {
+    const targetPath = join(mainWorkspace, name);
+    if (!replaceGeneratedTemplates && existsSync(targetPath)) continue;
+    copyFileSync(join(legacyWorkspace, name), targetPath);
+    copiedFiles += 1;
+  }
+  for (const name of sourceDirectories) {
+    copiedFiles += copyMissingTree(join(legacyWorkspace, name), join(mainWorkspace, name));
+  }
+
+  if (legacySetupCompleted && existsSync(join(mainWorkspace, "BOOTSTRAP.md"))) {
+    unlinkSync(join(mainWorkspace, "BOOTSTRAP.md"));
+  }
+  writeFileSync(
+    markerPath,
+    `${JSON.stringify({ version: 1, copiedFiles, source: legacyWorkspace })}\n`,
+    "utf-8",
+  );
+  log.info(
+    `migrated main agent context to ${mainWorkspace} (${copiedFiles} file(s)); legacy workspace preserved`,
+  );
 }
 
 function pruneRemovedPluginIds(value: unknown): { value: unknown; changed: boolean } {

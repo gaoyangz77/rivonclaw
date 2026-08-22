@@ -94,6 +94,20 @@ export const AFFILIATE_AGENT_ID = "affiliate";
 /** Official workflow skill installed only into the Affiliate agent workspace. */
 export const AFFILIATE_WORKFLOW_SKILL_SLUG = "affiliate-workflow";
 
+/** Resolve the shared parent directory for roster-managed agent workspaces. */
+export function resolveAgentWorkspaceBaseDir(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(resolveOpenClawStateDir(env), "workspace");
+}
+
+/** Resolve the canonical workspace for the default main agent. */
+export function resolveMainAgentWorkspaceDir(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(resolveAgentWorkspaceBaseDir(env), DEFAULT_AGENT_ID);
+}
+
 /** Resolve the dedicated Affiliate agent workspace. */
 export function resolveAffiliateAgentWorkspaceDir(
   env: Record<string, string | undefined> = process.env,

@@ -24,6 +24,8 @@ export {
   CUSTOMER_SERVICE_AGENT_ID,
   AFFILIATE_AGENT_ID,
   AFFILIATE_WORKFLOW_SKILL_SLUG,
+  resolveAgentWorkspaceBaseDir,
+  resolveMainAgentWorkspaceDir,
   resolveAffiliateAgentWorkspaceDir,
   resolveAffiliateAgentSkillsDir,
   resolveAffiliateWorkflowSkillDir,
