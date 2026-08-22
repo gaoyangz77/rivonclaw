@@ -4,13 +4,13 @@ import type { Storage } from "@rivonclaw/storage";
 import { createLogger } from "@rivonclaw/logger";
 import {
   isFeishuCallbackPermissionRequiredError,
-  patchFeishuMessageCardCallbackUrl,
+  configureFeishuCardActionCallback,
   resolveFeishuAccountCredentials,
 } from "./feishu-open-api.js";
 
 const log = createLogger("feishu-cs-callback");
 const CALLBACK_PATH = "/api/webhooks/feishu/cs-escalation-card";
-const MARKER_PREFIX = "_internal.feishu-card-callback-v2";
+const MARKER_PREFIX = "_internal.feishu-card-callback-v4";
 const WARNING_PREFIX = "_internal.feishu-card-callback-warning";
 const RETRY_DELAYS_MS = [0, 1_000, 4_000] as const;
 
@@ -103,7 +103,7 @@ export async function ensureFeishuCsCallbackConfigured(accountId: string): Promi
     for (const delayMs of RETRY_DELAYS_MS) {
       await sleep(delayMs);
       try {
-        await patchFeishuMessageCardCallbackUrl({
+        await configureFeishuCardActionCallback({
           appId,
           appSecret,
           domain,

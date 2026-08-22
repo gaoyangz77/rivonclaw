@@ -22,6 +22,19 @@ export interface CsEscalationCardInput {
   locale?: string | null;
 }
 
+export function buildCsEscalationResponseActionName(input: {
+  conversationId: string;
+  escalationId: string;
+  locale?: string | null;
+}): string {
+  return [
+    "rivonclaw.cs:respond:v2",
+    encodeURIComponent(input.conversationId),
+    encodeURIComponent(input.escalationId),
+    encodeURIComponent(input.locale ?? "en"),
+  ].join(":");
+}
+
 function safeCardMarkdown(value: string, limit = MAX_DYNAMIC_TEXT): string {
   return value
     .trim()
@@ -83,7 +96,7 @@ function buildResponseForm(
       },
       {
         tag: "button",
-        name: `rivonclaw.cs:respond:${encodeURIComponent(input.escalationId)}`,
+        name: buildCsEscalationResponseActionName(input),
         type: "primary",
         text: plainText(t.submit),
         form_action_type: "submit",

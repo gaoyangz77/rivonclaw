@@ -6,6 +6,11 @@ import {
   getCsRelayHttpUrl,
   getCsRelayWsUrl,
   getCsTelemetryUrl,
+  getFeishuApplicationAbilityUrl,
+  getFeishuApplicationConfigUrl,
+  getFeishuApplicationInfoUrl,
+  getFeishuApplicationPublishUrl,
+  getFeishuApplicationVersionsUrl,
   getFeishuMessagePatchUrl,
   getFeishuMessageUrl,
   getFirstPartyDomainRoute,
@@ -112,25 +117,49 @@ describe("first-party domain routing", () => {
   });
 
   it("routes arbitrary first-party URLs when the CN relay route is active", () => {
-    expect(routeFirstPartyUrl("https://api.rivonclaw.com/graphql")).toBe("https://api.rivonclaw.com/graphql");
+    expect(routeFirstPartyUrl("https://api.rivonclaw.com/graphql")).toBe(
+      "https://api.rivonclaw.com/graphql",
+    );
 
     setFirstPartyDomainRoute("cn-relay");
 
-    expect(routeFirstPartyUrl("https://api.rivonclaw.com/graphql")).toBe("https://api.zhuazhuaai.cn/graphql");
+    expect(routeFirstPartyUrl("https://api.rivonclaw.com/graphql")).toBe(
+      "https://api.zhuazhuaai.cn/graphql",
+    );
     expect(routeFirstPartyUrl("https://example.com/path")).toBe("https://example.com/path");
   });
 
   it("lists CN relay domains that should bypass a stale system proxy", () => {
-    expect(getCnRelaySystemProxyBypassDomains()).toEqual(expect.arrayContaining([
-      "api.zhuazhuaai.cn",
-      "api-stg.zhuazhuaai.cn",
-      "relay.zhuazhuaai.cn",
-      "www.tkjiang.cn",
-    ]));
+    expect(getCnRelaySystemProxyBypassDomains()).toEqual(
+      expect.arrayContaining([
+        "api.zhuazhuaai.cn",
+        "api-stg.zhuazhuaai.cn",
+        "relay.zhuazhuaai.cn",
+        "www.tkjiang.cn",
+      ]),
+    );
   });
 });
 
 describe("Feishu message endpoints", () => {
+  it("builds application configuration endpoints per domain", () => {
+    expect(getFeishuApplicationConfigUrl("feishu", "cli one")).toBe(
+      "https://open.feishu.cn/open-apis/application/v7/applications/cli%20one/config",
+    );
+    expect(getFeishuApplicationAbilityUrl("lark", "cli/one")).toBe(
+      "https://open.larksuite.com/open-apis/application/v7/applications/cli%2Fone/ability",
+    );
+    expect(getFeishuApplicationInfoUrl("feishu", "cli one")).toBe(
+      "https://open.feishu.cn/open-apis/application/v6/applications/cli%20one?lang=zh_cn",
+    );
+    expect(getFeishuApplicationVersionsUrl("lark", "cli/one")).toBe(
+      "https://open.larksuite.com/open-apis/application/v6/applications/cli%2Fone/app_versions?lang=zh_cn&page_size=20",
+    );
+    expect(getFeishuApplicationPublishUrl("feishu", "cli one")).toBe(
+      "https://open.feishu.cn/open-apis/application/v7/applications/cli%20one/publish",
+    );
+  });
+
   it("defaults the send endpoint to open_id and honours an explicit receive_id_type", () => {
     expect(getFeishuMessageUrl("feishu")).toBe(
       "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id",
