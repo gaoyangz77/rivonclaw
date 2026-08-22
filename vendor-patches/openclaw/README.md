@@ -209,6 +209,20 @@ Removal: drop this patch when `.openclaw-version` includes upstream commit
 `1096ca2a708f600386b6efd349823c759e041fcc` (`fix(feishu): retain partial custody
 on preview cleanup`) or an equivalent successor.
 
+### 0038 - Prepared model catalog generation recovery
+
+Backports OpenClaw PR `#126224` at head
+`059bea02f804144e33e169f90267d365b4d6a490`. When deferred full catalog
+discovery reconstructs plugin/runtime facts that no longer match the published
+configured owner, OpenClaw now retires the invalid worker, rebuilds that owner,
+and gates concurrent readers until the replacement is published. Unrelated
+worker failures retain their original error behavior.
+
+Removal: drop this patch when `.openclaw-version` contains merged OpenClaw PR
+`#126224` at `059bea02f804144e33e169f90267d365b4d6a490`, or an equivalent successor
+that replaces configured owners after catalog generation mismatch and gates
+concurrent recovery readers.
+
 ## Dropped In bcaec0cf145
 
 - `0033`: OpenClaw now contains commit
