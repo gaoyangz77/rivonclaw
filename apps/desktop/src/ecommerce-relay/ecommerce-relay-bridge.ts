@@ -1150,20 +1150,25 @@ export class EcommerceRelayBridge {
       defaultRunProfileId: this.opts.defaultRunProfileId,
       locale: () => this.opts.locale,
       acquireRunAdmission: (request) => this.automaticRunAdmission.acquire(request),
-      onRunDispatched: (runId, admissionLease) => {
+      onRunDispatched: (runId, admissionLease, options) => {
         const existing = this.pendingRuns.get(runId);
         if (existing) {
           admissionLease?.release("duplicate_run_id");
           log.warn(`Ignoring duplicate CS run registration for runId=${runId}`);
           return;
         }
-        this.pendingRuns.set(runId, {
+        const pending = {
           shopObjectId,
           conversationId: params.conversationId,
           session,
           acceptedAt: Date.now(),
           admissionLease,
-        });
+        };
+        this.pendingRuns.set(runId, pending);
+        if (options?.reconcileImmediately) {
+          log.info(`Reconciling cached CS run immediately: runId=${runId}`);
+          void this.reconcilePendingRun(runId, pending, this.gatewayGeneration);
+        }
       },
     });
 

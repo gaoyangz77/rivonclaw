@@ -243,6 +243,7 @@ export interface CSContext {
 
 export interface DispatchResult {
   runId?: string;
+  status?: "accepted" | "in_flight";
 }
 
 interface CatchUpDispatchOptions {
@@ -351,7 +352,11 @@ export class CustomerServiceSession {
       locale?: () => string | undefined;
       acquireRunAdmission?: (request: CsRunAdmissionRequest) => Promise<CsRunAdmissionLease>;
       /** Called after a successful agent dispatch, so the Bridge can track the run globally. */
-      onRunDispatched?: (runId: string, admissionLease?: CsRunAdmissionLease) => void;
+      onRunDispatched?: (
+        runId: string,
+        admissionLease?: CsRunAdmissionLease,
+        options?: { reconcileImmediately?: boolean },
+      ) => void;
     },
   ) {
     this.platform = shop.platform ?? "tiktok";
@@ -2188,10 +2193,11 @@ export class CustomerServiceSession {
       );
 
       const runId = response?.runId;
+      const reconcileImmediately = response?.status === "in_flight";
       acceptedRunId = runId;
       log.info(
         `Agent dispatch accepted: runId=${runId ?? "none"} conv=${this.csContext.conversationId} ` +
-          `acceptedMs=${Date.now() - dispatchStartedAt}`,
+          `status=${response?.status ?? "unknown"} acceptedMs=${Date.now() - dispatchStartedAt}`,
       );
       this.emitDispatchTelemetry({
         source: params.dispatchSource ?? "desktop",
@@ -2252,7 +2258,7 @@ export class CustomerServiceSession {
               idempotencyKey: params.idempotencyKey,
               runId,
             });
-            this.opts?.onRunDispatched?.(runId, admissionLease);
+            this.opts?.onRunDispatched?.(runId, admissionLease, { reconcileImmediately });
             admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
           } else if (disposition === "stale") {
             log.info(
@@ -2271,18 +2277,18 @@ export class CustomerServiceSession {
               idempotencyKey: params.idempotencyKey,
               runId,
             });
-            this.opts?.onRunDispatched?.(runId, admissionLease);
+            this.opts?.onRunDispatched?.(runId, admissionLease, { reconcileImmediately });
             admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
           } else {
             log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
-            this.opts?.onRunDispatched?.(runId, admissionLease);
+            this.opts?.onRunDispatched?.(runId, admissionLease, { reconcileImmediately });
             admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
           }
         } else {
           round.assumeRunDispatched(runId);
           this.attachRunToRound(runId, round, admissionMode);
           log.info(`Agent run dispatched: runId=${runId} conv=${this.csContext.conversationId}`);
-          this.opts?.onRunDispatched?.(runId, admissionLease);
+          this.opts?.onRunDispatched?.(runId, admissionLease, { reconcileImmediately });
           admissionTransferred = Boolean(admissionLease && this.opts?.onRunDispatched);
         }
       } else {

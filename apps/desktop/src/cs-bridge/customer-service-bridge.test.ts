@@ -3318,6 +3318,73 @@ describe("automatic CS run admission", () => {
     bridge.stop();
   });
 
+  it("reconciles an idempotency-cached run so its automatic slot cannot leak", async () => {
+    process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
+    const bridge = createBridge();
+    bridge.setShopContext(defaultShop);
+    let resolveWait!: (value: { status: string }) => void;
+    let agentCallCount = 0;
+    mockRpcRequest.mockImplementation((method: string, params?: any) => {
+      if (method === "agent") {
+        agentCallCount += 1;
+        return Promise.resolve({
+          runId: params.idempotencyKey,
+          status: agentCallCount === 1 ? "in_flight" : "accepted",
+        });
+      }
+      if (method === "agent.wait") {
+        return new Promise<{ status: string }>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+      if (method === "chat.history") {
+        return Promise.resolve({
+          messages: [
+            {
+              role: "user",
+              idempotencyKey: "cs-start:conv-cached-1:msg-cached-1:user",
+            },
+            {
+              role: "assistant",
+              content: [{ type: "toolCall", name: "ecom_cs_end_session" }],
+            },
+          ],
+        });
+      }
+      if (method === "cs_register_session") return Promise.resolve(true);
+      if (method === "sessions.patch") return Promise.resolve(true);
+      return Promise.resolve({ ok: true });
+    });
+
+    await triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-cached-1", messageId: "msg-cached-1" }),
+    );
+    const second = triggerMessage(
+      bridge,
+      createFrame({ conversationId: "conv-cached-2", messageId: "msg-cached-2" }),
+    );
+
+    await vi.waitFor(() => {
+      expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+        active: 1,
+        queued: 1,
+      });
+    });
+    expect(agentCallCount).toBe(1);
+
+    resolveWait({ status: "ok" });
+    await second;
+
+    expect(agentCallCount).toBe(2);
+    expect((bridge as any).pendingRuns.has("cs-start:conv-cached-1:msg-cached-1")).toBe(false);
+    expect((bridge as any).automaticRunAdmission.getDebugState()).toMatchObject({
+      active: 1,
+      queued: 0,
+    });
+    bridge.stop();
+  });
+
   it("queues a superseding buyer message until the aborted run reaches terminal", async () => {
     process.env.RIVONCLAW_CS_AUTO_MAX_CONCURRENT = "1";
     const bridge = createBridge();
