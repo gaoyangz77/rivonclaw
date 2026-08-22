@@ -21,6 +21,7 @@ const repoRoot = path.resolve(__dirname, "..", "..", "..");
 
 const REQUIRED_PATHS = [
   "openclaw.mjs",
+  "node-version.mjs",
   "package.json",
   "src/agents/templates/HEARTBEAT.md",
   "docs/reference/templates/AGENTS.md",

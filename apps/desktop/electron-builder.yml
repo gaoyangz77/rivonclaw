@@ -38,6 +38,7 @@ extraResources:
     to: "vendor/openclaw"
     filter:
       - "openclaw.mjs"
+      - "node-version.mjs"
       - "package.json"
       - "vendor-runtime.tar"
       - "vendor-runtime-manifest.json"
