@@ -125,6 +125,20 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(new Set(sources.map((pair) => pair.join("|"))).size).toBe(8);
   });
 
+  it("presents SearchPlan internals as localized search conditions", () => {
+    const campaigns = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
+      ({ ecommerce }) => ecommerce.affiliateCampaign,
+    );
+    for (const campaign of campaigns) {
+      expect(campaign.searchPlan).toBeTruthy();
+      expect(campaign.searchPlan).not.toMatch(/search\s*plan/i);
+      expect(campaign.searchPlanPerformance).not.toMatch(/search\s*plan/i);
+      expect(campaign.backToSearchConditions).toBeTruthy();
+      expect(campaign.loadingCreatorStates).toBeTruthy();
+    }
+    expect(new Set(campaigns.map((campaign) => campaign.searchPlan)).size).toBe(8);
+  });
+
   it("paginates the campaign directory in stable twenty-row pages", () => {
     const campaigns = Array.from({ length: 45 }, (_, index) => `campaign-${index + 1}`);
 

@@ -451,10 +451,12 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const searchPlanSummaries =
     searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.items ?? [];
   const selectedSearchPlanSummary =
-    searchPlanSummaries.find((summaryItem) => summaryItem.plan.id === selectedSearchPlanId) ??
-    searchPlanSummaries[0] ??
-    null;
+    searchPlanSummaries.find((summaryItem) => summaryItem.plan.id === selectedSearchPlanId) ?? null;
   const currentSearchPlan = selectedSearchPlanSummary?.plan ?? null;
+  const activeSearchPlan =
+    searchPlanSummaries.find(
+      (summaryItem) => summaryItem.plan.id === selectedCampaign?.searchPlanning.activePlanId,
+    )?.plan ?? null;
 
   useEffect(() => {
     setCampaignPage(1);
@@ -491,14 +493,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   }, [selectedCampaignId]);
 
   useEffect(() => {
-    if (!searchPlanSummaries.length) return;
+    if (!selectedSearchPlanId) return;
     if (searchPlanSummaries.some((item) => item.plan.id === selectedSearchPlanId)) return;
-    setSelectedSearchPlanId(
-      searchPlanSummaries.find(
-        (item) => item.plan.id === selectedCampaign?.searchPlanning.activePlanId,
-      )?.plan.id ?? searchPlanSummaries[0]!.plan.id,
-    );
-  }, [searchPlanSummaries, selectedCampaign?.searchPlanning.activePlanId, selectedSearchPlanId]);
+    setSelectedSearchPlanId("");
+  }, [searchPlanSummaries, selectedSearchPlanId]);
 
   useEffect(() => {
     setSelectedCreatorDetail(null);
@@ -1533,265 +1531,325 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
             />
 
             <section className="affiliate-campaign-search-plan-panel">
-              <div className="affiliate-campaign-section-heading">
-                <div>
-                  <span>{t("ecommerce.affiliateCampaign.dynamicDiscoveryEyebrow")}</span>
-                  <h3>{t("ecommerce.affiliateCampaign.searchPlanPerformance")}</h3>
-                  <p>{t("ecommerce.affiliateCampaign.searchPlanPerformanceDescription")}</p>
-                </div>
-              </div>
-              {searchPlanSummaries.length ? (
-                <div className="affiliate-campaign-search-plan-table-wrap">
-                  <table className="affiliate-campaign-search-plan-table">
-                    <thead>
-                      <tr>
-                        <th>{t("ecommerce.affiliateCampaign.searchPlan")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.searchProgress")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.searchYield")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.searchFiltered")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.funnel.scheduled")}</th>
-                        <th>{t("ecommerce.affiliateCampaign.deliveryOutcome")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {searchPlanSummaries.map((summaryItem) => {
-                        const plan = summaryItem.plan;
-                        const filtered = summaryItem.duplicateCount +
-                          plan.totals.protected +
-                          plan.totals.outreachPolicyBlocked +
-                          plan.totals.qualificationFailed;
-                        return (
-                          <tr
-                            key={plan.id}
-                            className={plan.id === selectedSearchPlanId ? "is-selected" : undefined}
-                            onClick={() => setSelectedSearchPlanId(plan.id)}
-                          >
-                            <td>
-                              <button
-                                type="button"
-                                className="affiliate-campaign-search-plan-select"
-                                aria-pressed={plan.id === selectedSearchPlanId}
-                                onClick={() => setSelectedSearchPlanId(plan.id)}
-                              >
-                                <span>#{plan.generation}</span>
-                                <strong>{plan.phrase?.text ?? searchPlanStatusLabel(plan.status, t)}</strong>
-                                <small lang={plan.phrase?.explanationLocale || undefined}>
-                                  {plan.phrase?.explanation ??
-                                    t("ecommerce.affiliateCampaign.dynamicSearchPlanGenerationDescription")}
-                                </small>
-                                <em>
-                                  {plan.discoveryRules
-                                    ? campaignSearchGroupRuleSummary(plan.discoveryRules, t)
-                                    : t("ecommerce.affiliateCampaign.noAdditionalProviderRules")}
-                                </em>
-                              </button>
-                            </td>
-                            <td>
-                              <span className={`affiliate-campaign-plan-status is-${plan.status.toLowerCase()}`}>
-                                {searchPlanStatusLabel(plan.status, t)}
-                              </span>
-                              <small>{plan.pageSequence} / 50 {t("ecommerce.affiliateCampaign.pagesUnit")}</small>
-                            </td>
-                            <td>
-                              <strong>{formatNumber(plan.totals.scanned)}</strong>
-                              <small>{formatNumber(plan.totals.matched)} {t("ecommerce.affiliateCampaign.uniqueCreatorsUnit")}</small>
-                            </td>
-                            <td>
-                              <strong>{formatNumber(filtered)}</strong>
-                              <small>
-                                {t("ecommerce.affiliateCampaign.searchFilteredBreakdown", {
-                                  duplicate: summaryItem.duplicateCount,
-                                  protected: plan.totals.protected,
-                                  policy: plan.totals.outreachPolicyBlocked,
-                                  qualification: plan.totals.qualificationFailed,
-                                })}
-                              </small>
-                            </td>
-                            <td>
-                              <strong>{formatNumber(plan.totals.scheduled)}</strong>
-                              <small>{formatNumber(plan.totals.qualified)} {t("ecommerce.affiliateCampaign.qualifiedCreatorsUnit")}</small>
-                            </td>
-                            <td>
-                              <strong>{formatNumber(summaryItem.delivery.sent)}</strong>
-                              <small>
-                                {t("ecommerce.affiliateCampaign.searchPlanDeliveryOutcome", {
-                                  sent: summaryItem.delivery.sent,
-                                  failed: summaryItem.delivery.failed,
-                                })}
-                              </small>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="affiliate-campaign-plan-waiting">
-                  <strong>{searchPlanStatusLabel(selectedCampaign.searchPlanning.state, t)}</strong>
-                  <p>{t("ecommerce.affiliateCampaign.dynamicSearchPlanGenerationDescription")}</p>
-                </div>
-              )}
-              {((currentSearchPlan?.id === selectedCampaign.searchPlanning.activePlanId &&
-                currentSearchPlan.status === "BLOCKED") ||
-                selectedCampaign.searchPlanning.state === "BLOCKED") && (
-                <div className="affiliate-campaign-search-plan-blocked">
-                  <p>{searchPlanGenerationErrorMessage(
-                    currentSearchPlan?.errorCode ??
-                      selectedCampaign.searchPlanning.generationRequest?.errorCode,
-                    t,
-                  )}</p>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={retrySearchPlanState.loading}
-                    onClick={() => void retryCurrentSearchPlan()}
-                  >
-                    {t("ecommerce.affiliateCampaign.retrySearchPlan")}
-                  </button>
-                </div>
-              )}
-              {searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.nextCursor && (
-                <button
-                  type="button"
-                  className="btn btn-secondary affiliate-campaign-load-more"
-                  disabled={searchPlansQuery.loading}
-                  onClick={() => void loadMoreSearchPlans()}
-                >
-                  {t("ecommerce.affiliateCampaign.loadMoreSearchPlans")}
-                </button>
-              )}
-            </section>
-
-            <section className="affiliate-campaign-state-panel">
-              <div className="affiliate-campaign-section-heading">
-                <div>
-                  <span>{t("ecommerce.affiliateCampaign.creatorPipeline")}</span>
-                  <h3>{t("ecommerce.affiliateCampaign.creatorStates")}</h3>
-                  <p>
-                    {currentSearchPlan?.phrase
-                      ? t("ecommerce.affiliateCampaign.creatorStatesForSearchPlan", {
-                          generation: currentSearchPlan.generation,
-                          phrase: currentSearchPlan.phrase.text,
-                        })
-                      : t("ecommerce.affiliateCampaign.selectSearchPlanForCreators")}
-                  </p>
-                </div>
-                {currentSearchPlan && (
-                  <span className="affiliate-campaign-selected-plan-chip">
-                    #{currentSearchPlan.generation} · {currentSearchPlan.phrase?.text}
-                  </span>
-                )}
-              </div>
-              <div className="affiliate-campaign-state-filters">
-                <CampaignStateFilterGroup
-                  label={t("ecommerce.affiliateCampaign.filterState")}
-                  options={stateStatusOptions.map((status) => ({
-                    value: status,
-                    label: campaignStateLabel(status, t),
-                  }))}
-                  selected={stateStatuses}
-                  onToggle={(status) =>
-                    setStateStatuses((current) => toggleValue(current, status))
-                  }
-                />
-                <CampaignStateFilterGroup
-                  label={t("ecommerce.affiliateCampaign.eligibilityCategoryFilter")}
-                  options={eligibilityCategoryOptions.map((category) => ({
-                    value: category,
-                    label: eligibilityCategoryLabel(category, t),
-                  }))}
-                  selected={eligibilityCategories}
-                  onToggle={(category) =>
-                    setEligibilityCategories((current) => toggleValue(current, category))
-                  }
-                />
-                <CampaignStateFilterGroup
-                  label={t("ecommerce.affiliateCampaign.reasonFilter")}
-                  options={eligibilityReasonOptions.map((reason) => ({
-                    value: reason,
-                    label: eligibilityReasonLabel(reason, t),
-                  }))}
-                  selected={eligibilityReasons}
-                  onToggle={(reason) =>
-                    setEligibilityReasons((current) => toggleValue(current, reason))
-                  }
-                />
-                {(stateStatuses.length > 0 ||
-                  eligibilityCategories.length > 0 ||
-                  eligibilityReasons.length > 0) && (
-                  <button
-                    type="button"
-                    className="affiliate-campaign-clear-state-filters"
-                    onClick={() => {
-                      setStateStatuses([]);
-                      setEligibilityCategories([]);
-                      setEligibilityReasons([]);
-                    }}
-                  >
-                    {t("ecommerce.affiliateCampaign.clearFilters")}
-                  </button>
-                )}
-              </div>
-              <div className="affiliate-campaign-state-table-wrap">
-                <table className="affiliate-campaign-state-table">
-                  <thead>
-                    <tr>
-                      <th>{t("ecommerce.affiliateCampaign.creator")}</th>
-                      <th>{t("ecommerce.affiliateCampaign.outreachDisposition")}</th>
-                      <th>{t("ecommerce.affiliateCampaign.state")}</th>
-                      <th>{t("ecommerce.affiliateCampaign.selectionEvidence")}</th>
-                      <th>{t("ecommerce.affiliateCampaign.relationship")}</th>
-                      <th>{t("ecommerce.affiliateCampaign.lastActivity")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.items ?? []).map(
-                      (state) => (
-                        <CampaignCreatorStateRow
-                          key={state.id}
-                          state={state}
-                          t={t}
-                          waitingForTargetCollaborationQuota={Boolean(targetCollaborationQuota?.active)}
-                          onOpen={() => setSelectedCreatorDetail(campaignCreatorDetailItem(state))}
-                        />
-                      ),
-                    )}
-                  </tbody>
-                </table>
-                {creatorStatesViewState === "error" && (
+              <div
+                className={`affiliate-campaign-search-workspace${currentSearchPlan ? " is-detail" : ""}`}
+              >
+                <div className="affiliate-campaign-search-workspace-track">
                   <div
-                    className="affiliate-campaign-table-empty affiliate-campaign-table-error"
-                    role="alert"
+                    className="affiliate-campaign-search-workspace-pane is-conditions"
+                    aria-hidden={Boolean(currentSearchPlan)}
+                    inert={currentSearchPlan ? true : undefined}
                   >
-                    <span>{t("ecommerce.affiliateCampaign.creatorStatesLoadFailed")}</span>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => void creatorStatesQuery.refetch()}
-                    >
-                      {t("ecommerce.affiliateCampaign.retryCreatorStates")}
-                    </button>
+                    <div className="affiliate-campaign-section-heading">
+                      <div>
+                        <span>{t("ecommerce.affiliateCampaign.dynamicDiscoveryEyebrow")}</span>
+                        <h3>{t("ecommerce.affiliateCampaign.searchPlanPerformance")}</h3>
+                        <p>{t("ecommerce.affiliateCampaign.searchPlanPerformanceDescription")}</p>
+                      </div>
+                    </div>
+                    {searchPlanSummaries.length ? (
+                      <div className="affiliate-campaign-search-plan-table-wrap">
+                        <table className="affiliate-campaign-search-plan-table">
+                          <thead>
+                            <tr>
+                              <th>{t("ecommerce.affiliateCampaign.searchPlan")}</th>
+                              <th>{t("ecommerce.affiliateCampaign.searchProgress")}</th>
+                              <th>{t("ecommerce.affiliateCampaign.searchYield")}</th>
+                              <th>{t("ecommerce.affiliateCampaign.searchFiltered")}</th>
+                              <th>{t("ecommerce.affiliateCampaign.funnel.scheduled")}</th>
+                              <th>{t("ecommerce.affiliateCampaign.deliveryOutcome")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {searchPlanSummaries.map((summaryItem) => {
+                              const plan = summaryItem.plan;
+                              const filtered =
+                                summaryItem.duplicateCount +
+                                plan.totals.protected +
+                                plan.totals.outreachPolicyBlocked +
+                                plan.totals.qualificationFailed;
+                              const openDetails = () => setSelectedSearchPlanId(plan.id);
+                              return (
+                                <tr
+                                  key={plan.id}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={openDetails}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      openDetails();
+                                    }
+                                  }}
+                                >
+                                  <td>
+                                    <div className="affiliate-campaign-search-plan-select">
+                                      <span>#{plan.generation}</span>
+                                      <strong>
+                                        {plan.phrase?.text ?? searchPlanStatusLabel(plan.status, t)}
+                                      </strong>
+                                      <small lang={plan.phrase?.explanationLocale || undefined}>
+                                        {plan.phrase?.explanation ??
+                                          t(
+                                            "ecommerce.affiliateCampaign.dynamicSearchPlanGenerationDescription",
+                                          )}
+                                      </small>
+                                      <em>
+                                        {plan.discoveryRules
+                                          ? campaignSearchGroupRuleSummary(plan.discoveryRules, t)
+                                          : t(
+                                              "ecommerce.affiliateCampaign.noAdditionalProviderRules",
+                                            )}
+                                      </em>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span
+                                      className={`affiliate-campaign-plan-status is-${plan.status.toLowerCase()}`}
+                                    >
+                                      {searchPlanStatusLabel(plan.status, t)}
+                                    </span>
+                                    <small>
+                                      {plan.pageSequence} / 50 {t("ecommerce.affiliateCampaign.pagesUnit")}
+                                    </small>
+                                  </td>
+                                  <td>
+                                    <strong>{formatNumber(plan.totals.scanned)}</strong>
+                                    <small>
+                                      {formatNumber(plan.totals.matched)}{" "}
+                                      {t("ecommerce.affiliateCampaign.uniqueCreatorsUnit")}
+                                    </small>
+                                  </td>
+                                  <td>
+                                    <strong>{formatNumber(filtered)}</strong>
+                                    <small>
+                                      {t("ecommerce.affiliateCampaign.searchFilteredBreakdown", {
+                                        duplicate: summaryItem.duplicateCount,
+                                        protected: plan.totals.protected,
+                                        policy: plan.totals.outreachPolicyBlocked,
+                                        qualification: plan.totals.qualificationFailed,
+                                      })}
+                                    </small>
+                                  </td>
+                                  <td>
+                                    <strong>{formatNumber(plan.totals.scheduled)}</strong>
+                                    <small>
+                                      {formatNumber(plan.totals.qualified)}{" "}
+                                      {t("ecommerce.affiliateCampaign.qualifiedCreatorsUnit")}
+                                    </small>
+                                  </td>
+                                  <td>
+                                    <strong>{formatNumber(summaryItem.delivery.sent)}</strong>
+                                    <small>
+                                      {t("ecommerce.affiliateCampaign.searchPlanDeliveryOutcome", {
+                                        sent: summaryItem.delivery.sent,
+                                        failed: summaryItem.delivery.failed,
+                                      })}
+                                    </small>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="affiliate-campaign-plan-waiting">
+                        <strong>
+                          {searchPlanStatusLabel(selectedCampaign.searchPlanning.state, t)}
+                        </strong>
+                        <p>
+                          {t("ecommerce.affiliateCampaign.dynamicSearchPlanGenerationDescription")}
+                        </p>
+                      </div>
+                    )}
+                    {(activeSearchPlan?.status === "BLOCKED" ||
+                      selectedCampaign.searchPlanning.state === "BLOCKED") && (
+                      <div className="affiliate-campaign-search-plan-blocked">
+                        <p>
+                          {searchPlanGenerationErrorMessage(
+                            activeSearchPlan?.errorCode ??
+                              selectedCampaign.searchPlanning.generationRequest?.errorCode,
+                            t,
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={retrySearchPlanState.loading}
+                          onClick={() => void retryCurrentSearchPlan()}
+                        >
+                          {t("ecommerce.affiliateCampaign.retrySearchPlan")}
+                        </button>
+                      </div>
+                    )}
+                    {searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.nextCursor && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary affiliate-campaign-load-more"
+                        disabled={searchPlansQuery.loading}
+                        onClick={() => void loadMoreSearchPlans()}
+                      >
+                        {t("ecommerce.affiliateCampaign.loadMoreSearchPlans")}
+                      </button>
+                    )}
                   </div>
-                )}
-                {creatorStatesViewState === "empty" && (
-                  <div className="affiliate-campaign-table-empty">
-                    {currentSearchPlan
-                      ? t("ecommerce.affiliateCampaign.noCreatorStates")
-                      : t("ecommerce.affiliateCampaign.selectSearchPlanForCreators")}
+
+                  <div
+                    className="affiliate-campaign-search-workspace-pane is-creators"
+                    aria-hidden={!currentSearchPlan}
+                    inert={!currentSearchPlan ? true : undefined}
+                  >
+                    <div className="affiliate-campaign-search-detail-heading">
+                      <button
+                        type="button"
+                        className="affiliate-campaign-search-back"
+                        onClick={() => setSelectedSearchPlanId("")}
+                      >
+                        <span aria-hidden="true">←</span>
+                        {t("ecommerce.affiliateCampaign.backToSearchConditions")}
+                      </button>
+                      <div className="affiliate-campaign-section-heading">
+                        <div>
+                          <span>{t("ecommerce.affiliateCampaign.creatorPipeline")}</span>
+                          <h3>{t("ecommerce.affiliateCampaign.creatorStates")}</h3>
+                          <p>
+                            {currentSearchPlan?.phrase
+                              ? t("ecommerce.affiliateCampaign.creatorStatesForSearchPlan", {
+                                  generation: currentSearchPlan.generation,
+                                  phrase: currentSearchPlan.phrase.text,
+                                })
+                              : t("ecommerce.affiliateCampaign.selectSearchPlanForCreators")}
+                          </p>
+                        </div>
+                        {currentSearchPlan && (
+                          <span className="affiliate-campaign-selected-plan-chip">
+                            #{currentSearchPlan.generation} · {currentSearchPlan.phrase?.text}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="affiliate-campaign-state-filters">
+                      <CampaignStateFilterGroup
+                        label={t("ecommerce.affiliateCampaign.filterState")}
+                        options={stateStatusOptions.map((status) => ({
+                          value: status,
+                          label: campaignStateLabel(status, t),
+                        }))}
+                        selected={stateStatuses}
+                        onToggle={(status) =>
+                          setStateStatuses((current) => toggleValue(current, status))
+                        }
+                      />
+                      <CampaignStateFilterGroup
+                        label={t("ecommerce.affiliateCampaign.eligibilityCategoryFilter")}
+                        options={eligibilityCategoryOptions.map((category) => ({
+                          value: category,
+                          label: eligibilityCategoryLabel(category, t),
+                        }))}
+                        selected={eligibilityCategories}
+                        onToggle={(category) =>
+                          setEligibilityCategories((current) => toggleValue(current, category))
+                        }
+                      />
+                      <CampaignStateFilterGroup
+                        label={t("ecommerce.affiliateCampaign.reasonFilter")}
+                        options={eligibilityReasonOptions.map((reason) => ({
+                          value: reason,
+                          label: eligibilityReasonLabel(reason, t),
+                        }))}
+                        selected={eligibilityReasons}
+                        onToggle={(reason) =>
+                          setEligibilityReasons((current) => toggleValue(current, reason))
+                        }
+                      />
+                      {(stateStatuses.length > 0 ||
+                        eligibilityCategories.length > 0 ||
+                        eligibilityReasons.length > 0) && (
+                        <button
+                          type="button"
+                          className="affiliate-campaign-clear-state-filters"
+                          onClick={() => {
+                            setStateStatuses([]);
+                            setEligibilityCategories([]);
+                            setEligibilityReasons([]);
+                          }}
+                        >
+                          {t("ecommerce.affiliateCampaign.clearFilters")}
+                        </button>
+                      )}
+                    </div>
+                    <div className="affiliate-campaign-state-table-wrap">
+                      <table className="affiliate-campaign-state-table">
+                        <thead>
+                          <tr>
+                            <th>{t("ecommerce.affiliateCampaign.creator")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.outreachDisposition")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.state")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.selectionEvidence")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.relationship")}</th>
+                            <th>{t("ecommerce.affiliateCampaign.lastActivity")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(
+                            creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates
+                              .items ?? []
+                          ).map((state) => (
+                            <CampaignCreatorStateRow
+                              key={state.id}
+                              state={state}
+                              t={t}
+                              waitingForTargetCollaborationQuota={Boolean(
+                                targetCollaborationQuota?.active,
+                              )}
+                              onOpen={() =>
+                                setSelectedCreatorDetail(campaignCreatorDetailItem(state))
+                              }
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                      {creatorStatesViewState === "loading" && (
+                        <div className="affiliate-campaign-table-empty">
+                          {t("ecommerce.affiliateCampaign.loadingCreatorStates")}
+                        </div>
+                      )}
+                      {creatorStatesViewState === "error" && (
+                        <div
+                          className="affiliate-campaign-table-empty affiliate-campaign-table-error"
+                          role="alert"
+                        >
+                          <span>{t("ecommerce.affiliateCampaign.creatorStatesLoadFailed")}</span>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => void creatorStatesQuery.refetch()}
+                          >
+                            {t("ecommerce.affiliateCampaign.retryCreatorStates")}
+                          </button>
+                        </div>
+                      )}
+                      {creatorStatesViewState === "empty" && (
+                        <div className="affiliate-campaign-table-empty">
+                          {t("ecommerce.affiliateCampaign.noCreatorStates")}
+                        </div>
+                      )}
+                    </div>
+                    {creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates
+                      .nextCursor && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary affiliate-campaign-load-more"
+                        disabled={creatorStatesQuery.loading}
+                        onClick={() => void loadMoreCreatorStates()}
+                      >
+                        {t("ecommerce.affiliateCampaign.loadMoreCreators")}
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-              {creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.nextCursor && (
-                <button
-                  type="button"
-                  className="btn btn-secondary affiliate-campaign-load-more"
-                  disabled={creatorStatesQuery.loading}
-                  onClick={() => void loadMoreCreatorStates()}
-                >
-                  {t("ecommerce.affiliateCampaign.loadMoreCreators")}
-                </button>
-              )}
             </section>
 
             <section className="affiliate-campaign-configuration">
@@ -3594,66 +3652,78 @@ function CampaignFunnel({
         </div>
       </div>
       <div className="affiliate-campaign-funnel-flow">
-        <CampaignFunnelStage
-          index="01"
-          label={t("ecommerce.affiliateCampaign.funnel.scannedToday")}
-          value={counters?.scanned ?? 0}
-          tone="neutral"
-        />
-        <CampaignFunnelStage
-          index="02"
-          label={t("ecommerce.affiliateCampaign.funnel.ineligible")}
-          value={ineligibleTotal}
-          tone="warning"
-          details={[
-            {
-              label: t("ecommerce.affiliateCampaign.funnel.duplicate"),
-              value: duplicate,
-              tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.duplicate"),
-            },
-            {
-              label: t("ecommerce.affiliateCampaign.funnel.protected"),
-              value: protectedCount,
-              tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.protected"),
-            },
-            {
-              label: t("ecommerce.affiliateCampaign.funnel.outreachPolicyBlocked"),
-              value: outreachPolicyCount,
-              tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.outreachPolicyBlocked"),
-            },
-            {
-              label: t("ecommerce.affiliateCampaign.funnel.qualificationFailed"),
-              value: qualificationCount,
-              tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.qualificationFailed"),
-            },
-          ]}
-        />
-        <CampaignFunnelStage
-          index="03"
-          label={t("ecommerce.affiliateCampaign.funnel.scheduledToday")}
-          value={counters?.scheduled ?? 0}
-          tone="primary"
-          note={t("ecommerce.affiliateCampaign.funnelTooltip.scheduled")}
-        />
-        <CampaignFunnelStage
-          index="04"
-          label={t("ecommerce.affiliateCampaign.funnel.deliveryFailed")}
-          value={counters?.failed ?? 0}
-          tone="danger"
-          details={failureBreakdown.map((reason) => ({
-            label: t(`ecommerce.affiliateCampaign.deliveryFailure.${reason.category}`),
-            value: reason.count,
-            tooltip: t(`ecommerce.affiliateCampaign.deliveryFailureTooltip.${reason.category}`),
-          }))}
-          emptyNote={t("ecommerce.affiliateCampaign.noDeliveryFailuresToday")}
-        />
-        <CampaignFunnelStage
-          index="05"
-          label={t("ecommerce.affiliateCampaign.funnel.targetInvitationsSent")}
-          value={counters?.sent ?? 0}
-          tone="success"
-          note={t("ecommerce.affiliateCampaign.funnelTooltip.sent")}
-        />
+        <div className="affiliate-campaign-funnel-mainline">
+          <CampaignFunnelStage
+            index="01"
+            label={t("ecommerce.affiliateCampaign.funnel.scannedToday")}
+            value={counters?.scanned ?? 0}
+            tone="neutral"
+          />
+          <span className="affiliate-campaign-funnel-connector" aria-hidden="true" />
+          <CampaignFunnelStage
+            index="02"
+            label={t("ecommerce.affiliateCampaign.funnel.scheduledToday")}
+            value={counters?.scheduled ?? 0}
+            tone="primary"
+            note={t("ecommerce.affiliateCampaign.funnelTooltip.scheduled")}
+          />
+          <span className="affiliate-campaign-funnel-connector" aria-hidden="true" />
+          <CampaignFunnelStage
+            index="03"
+            label={t("ecommerce.affiliateCampaign.funnel.targetInvitationsSent")}
+            value={counters?.sent ?? 0}
+            tone="success"
+            note={t("ecommerce.affiliateCampaign.funnelTooltip.sent")}
+          />
+        </div>
+        <div className="affiliate-campaign-funnel-branches">
+          <div className="affiliate-campaign-funnel-branch is-filtered">
+            <span aria-hidden="true" />
+            <CampaignFunnelStage
+              index="01A"
+              label={t("ecommerce.affiliateCampaign.funnel.ineligible")}
+              value={ineligibleTotal}
+              tone="warning"
+              details={[
+                {
+                  label: t("ecommerce.affiliateCampaign.funnel.duplicate"),
+                  value: duplicate,
+                  tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.duplicate"),
+                },
+                {
+                  label: t("ecommerce.affiliateCampaign.funnel.protected"),
+                  value: protectedCount,
+                  tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.protected"),
+                },
+                {
+                  label: t("ecommerce.affiliateCampaign.funnel.outreachPolicyBlocked"),
+                  value: outreachPolicyCount,
+                  tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.outreachPolicyBlocked"),
+                },
+                {
+                  label: t("ecommerce.affiliateCampaign.funnel.qualificationFailed"),
+                  value: qualificationCount,
+                  tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.qualificationFailed"),
+                },
+              ]}
+            />
+          </div>
+          <div className="affiliate-campaign-funnel-branch is-failed">
+            <span aria-hidden="true" />
+            <CampaignFunnelStage
+              index="02A"
+              label={t("ecommerce.affiliateCampaign.funnel.deliveryFailed")}
+              value={counters?.failed ?? 0}
+              tone="danger"
+              details={failureBreakdown.map((reason) => ({
+                label: t(`ecommerce.affiliateCampaign.deliveryFailure.${reason.category}`),
+                value: reason.count,
+                tooltip: t(`ecommerce.affiliateCampaign.deliveryFailureTooltip.${reason.category}`),
+              }))}
+              emptyNote={t("ecommerce.affiliateCampaign.noDeliveryFailuresToday")}
+            />
+          </div>
+        </div>
       </div>
     </section>
   );
