@@ -1395,7 +1395,7 @@ function BadReviewModal({
           </div>
           <div className="cs-bad-review-list">
             {reviews.map((review) => (
-              <article className="cs-bad-review-card" key={review.id}>
+              <article className="cs-bad-review-card data-card-hover" key={review.id}>
                 <div className="cs-bad-review-card-head">
                   <div className="cs-bad-review-rating-block">
                     <span className="cs-bad-review-rating-number">{review.rating ?? "-"}</span>

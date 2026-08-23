@@ -1058,7 +1058,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   ) : null;
 
   return (
-    <div className="affiliate-campaign-page">
+    <div className="page-enter affiliate-campaign-page">
       <header className="affiliate-campaign-hero" data-tutorial-id="affiliate-campaign-header">
         <div className="affiliate-campaign-hero-copy">
           <span className="affiliate-campaign-eyebrow">
@@ -1435,7 +1435,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
 
                 {messageTemplateOpen && (
                   <div
-                    className="affiliate-campaign-modal-template"
+                    className="affiliate-campaign-modal-template data-card-hover"
                     role="region"
                     aria-label={t("ecommerce.affiliateCampaign.firstMessage")}
                   >
@@ -1450,7 +1450,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 )}
               </section>
 
-              <section className="affiliate-campaign-kpi-strip">
+              <section className="affiliate-campaign-kpi-strip data-card-hover">
                 <CampaignKpiCard
                   label={t("ecommerce.affiliateCampaign.campaignTodayReachout")}
                   value={latestExecution?.counters.sent ?? 0}
@@ -1583,7 +1583,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               t={t}
             />
 
-            <section className="affiliate-campaign-search-plan-panel">
+            <section className="affiliate-campaign-search-plan-panel data-card-hover">
               <div
                 className={`affiliate-campaign-search-workspace${currentSearchPlan ? " is-detail" : ""}`}
               >
@@ -3820,7 +3820,7 @@ function CampaignFunnelStage({
     </div>
   );
   return (
-    <article className={`affiliate-campaign-funnel-stage is-${tone}`}>
+    <article className={`affiliate-campaign-funnel-stage data-card-hover is-${tone}`}>
       <header>
         <span>{index}</span>
         <strong>{label}</strong>

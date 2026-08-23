@@ -324,7 +324,7 @@ export const AdsManagementPage = observer(function AdsManagementPage() {
   }
 
   return (
-    <div>
+    <div className="page-enter">
       <div className="ecommerce-page-header" data-tutorial-id="ads-header">
         <div>
           <h1>{t("adsManagement.title")}</h1>

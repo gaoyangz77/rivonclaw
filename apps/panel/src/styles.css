@@ -743,10 +743,10 @@ tbody td {
   flex: 1;
   display: flex;
   flex-direction: column;
+  width: 100%;
   min-height: 0;
   min-width: 0;
   padding: 28px 48px 48px;
-  max-width: 1600px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -3526,6 +3526,10 @@ tbody td {
 }
 
 .page-enter {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin-inline: 0;
   animation: pageEnter 250ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
@@ -6652,7 +6656,6 @@ tbody td {
 /* ===== Product Knowledge catalog and detail workspace ===== */
 .product-knowledge-page {
   width: 100%;
-  max-width: 1600px;
 }
 
 .product-knowledge-header {
@@ -8164,8 +8167,7 @@ tbody td {
 /* ===== Account Page ===== */
 
 .account-page {
-  padding: 32px;
-  max-width: 1120px;
+  padding: 0;
 }
 
 .account-profile-card {
@@ -19520,12 +19522,6 @@ html[lang="zh"] .acct-tool-chips {
   padding-top: 2px;
 }
 
-.affiliate-workbench {
-  width: min(1380px, 100%);
-  max-width: 1380px;
-  margin: 0 auto;
-}
-
 .affiliate-workbench-header {
   gap: 16px;
 }
@@ -28239,10 +28235,6 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 760px) {
-  .account-page {
-    padding: 18px;
-  }
-
   .billing-shop-row {
     grid-template-columns: 1fr;
   }
@@ -28296,9 +28288,6 @@ html[lang="zh"] .acct-tool-chips {
   --warning-color: var(--color-warning);
   --danger-color: var(--color-danger);
   --info-color: var(--color-info);
-  width: min(1680px, 100%);
-  margin: 0 auto;
-  padding: 26px 0 56px;
   color: var(--text-primary);
 }
 
@@ -31582,10 +31571,6 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 1200px) {
-  .affiliate-team-page {
-    width: 100%;
-  }
-
   .affiliate-team-header {
     align-items: flex-start;
     flex-direction: column;
@@ -31605,10 +31590,6 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 900px) {
-  .affiliate-team-page {
-    width: min(100% - 24px, 1500px);
-    padding-top: 20px;
-  }
   .affiliate-protection-boundary-head,
   .affiliate-protection-console-toolbar,
   .affiliate-team-responsibility-head,
@@ -32222,9 +32203,6 @@ html[lang="zh"] .acct-tool-chips {
   --campaign-green: var(--color-primary);
   --campaign-mint: var(--color-primary-light);
   --campaign-amber: var(--color-warning);
-  width: min(1640px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 30px 0 64px;
   color: var(--campaign-ink);
 }
 
@@ -36196,9 +36174,6 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 @media (max-width: 1100px) {
-  .affiliate-campaign-page {
-    width: min(100% - 32px, 1680px);
-  }
   .affiliate-campaign-command-strip {
     grid-template-columns: 1.3fr repeat(3, 0.8fr);
   }
@@ -36223,10 +36198,6 @@ html[lang="zh"] .acct-tool-chips {
   }
   .modal-content {
     max-height: calc(100dvh - 16px);
-  }
-  .affiliate-campaign-page {
-    width: min(100% - 24px, 1680px);
-    padding-top: 28px;
   }
   .affiliate-campaign-hero {
     align-items: flex-start;
@@ -36478,4 +36449,18 @@ html[lang="zh"] .acct-tool-chips {
   align-items: center;
   gap: 10px;
   min-height: 38px;
+}
+
+/* Custom data surfaces use the same hover elevation as section-card without
+   inheriting section-card's layout, spacing, background, or radius. */
+.data-card-hover {
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.data-card-hover:hover,
+.data-card-hover:focus-within {
+  border-color: var(--card-hover-border);
+  box-shadow: var(--surface-card-hover-shadow, var(--shadow-lg));
 }

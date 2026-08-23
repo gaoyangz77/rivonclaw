@@ -120,7 +120,9 @@ function ShopDiagnosisCard({ shop }: { shop: GQL.SpsAnalyticsShopView }) {
   });
 
   return (
-    <article className={`sps-shop-card sps-shop-card-${available ? "available" : "unavailable"}`}>
+    <article
+      className={`sps-shop-card data-card-hover sps-shop-card-${available ? "available" : "unavailable"}`}
+    >
       <div className="sps-shop-card-heading">
         <div>
           <h3>{displayShopName(shop)}</h3>
@@ -462,22 +464,22 @@ export function ShopAnalyticsPage() {
       </div>
 
       <div className="sps-summary-grid" data-tutorial-id="analytics-summary">
-        <div className="sps-summary-card">
+        <div className="sps-summary-card data-card-hover">
           <span>{t("shopAnalytics.summary.markets")}</span>
           <strong>{report?.markets.length ?? "—"}</strong>
           <small>{t("shopAnalytics.summary.marketsHint")}</small>
         </div>
-        <div className="sps-summary-card">
+        <div className="sps-summary-card data-card-hover">
           <span>{t("shopAnalytics.summary.liveShops")}</span>
           <strong>{report ? availableShops.length : "—"}</strong>
           <small>{t("shopAnalytics.summary.liveShopsHint")}</small>
         </div>
-        <div className="sps-summary-card sps-summary-card-featured">
+        <div className="sps-summary-card data-card-hover sps-summary-card-featured">
           <span>{t("shopAnalytics.summary.averageSps")}</span>
           <strong>{formatSpsValue(averageScore, undefined, i18n.language)}</strong>
           <small>{t("shopAnalytics.summary.averageSpsHint")}</small>
         </div>
-        <div className="sps-summary-card">
+        <div className="sps-summary-card data-card-hover">
           <span>{t("shopAnalytics.summary.lastObserved")}</span>
           <strong className="sps-summary-time">
             {formatTimestamp(latestObservation, i18n.language)}
