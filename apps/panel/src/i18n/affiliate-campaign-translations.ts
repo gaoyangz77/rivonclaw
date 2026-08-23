@@ -48,6 +48,8 @@ const en = {
     invalidated: "Invalidated",
   },
   create: "New campaign",
+  activeShops: "Active shops",
+  activeShopsDescription: "Distinct shops with active campaigns",
   activeCampaigns: "Active campaigns",
   totalCampaigns: "{{count}} campaigns total",
   todaySent: "Sent today",
@@ -189,6 +191,10 @@ const en = {
   checkingReadiness: "Checking readiness…",
   commissionRate: "Planned commission rate",
   firstMessage: "Published first message",
+  viewFirstMessage: "View first message",
+  hideFirstMessage: "Hide first message",
+  searchConditionsUsedToday: "{{count}} search condition sets used today",
+  viewBreakdown: "View breakdown",
   creatorPipeline: "CREATOR PIPELINE",
   creatorStates: "Candidate decisions",
   creatorStatesDescription:
@@ -637,6 +643,8 @@ const zh = {
   title: "达人推广计划",
   subtitle: "按稳定的每日节奏发现、评分并联系真正适合商品的达人。",
   create: "新建推广计划",
+  activeShops: "运行中的店铺",
+  activeShopsDescription: "当前有运行中推广计划的去重店铺数",
   activeCampaigns: "运行中的计划",
   totalCampaigns: "共 {{count}} 个计划",
   todaySent: "今日已发送",
@@ -772,6 +780,10 @@ const zh = {
   checkingReadiness: "正在检查…",
   commissionRate: "计划佣金率",
   firstMessage: "已发布首信",
+  viewFirstMessage: "查看首信",
+  hideFirstMessage: "收起首信",
+  searchConditionsUsedToday: "今天已使用 {{count}} 组搜索条件",
+  viewBreakdown: "查看原因明细",
   creatorPipeline: "达人处理流水线",
   creatorStates: "候选达人决策",
   creatorStatesDescription: "该计划看过的每位达人都会保留记录，无论已触达、暂缓还是未触达。",
@@ -1163,6 +1175,8 @@ const zhTutorial = {
 
 const operationalCopy = {
   de: {
+    activeShops: "Aktive Shops",
+    activeShopsDescription: "Eindeutige Shops mit aktiven Kampagnen",
     campaignTodayReachout: "Heute erreicht / Tagesziel",
     campaignLifetimeReachout: "Insgesamt erreicht / aktive Tage",
     shopTodayReachout: "Shop heute erreicht / Kapazität",
@@ -1174,6 +1188,10 @@ const operationalCopy = {
     funnelDescription:
       "Erfolgreiche Einladungen bleiben im Hauptpfad; Filter und Provider-Ablehnungen zweigen nachvollziehbar ab.",
     noDeliveryFailuresToday: "Heute keine ausdrückliche Provider-Ablehnung",
+    viewFirstMessage: "Erste Nachricht ansehen",
+    hideFirstMessage: "Erste Nachricht ausblenden",
+    searchConditionsUsedToday: "Heute wurden {{count}} Suchbedingungsgruppen verwendet",
+    viewBreakdown: "Aufschlüsselung anzeigen",
     creatorStatesForSearchPlan: "Creator aus Suchbedingungen #{{generation}} · {{phrase}}.",
     selectSearchPlanForCreators: "Wähle Suchbedingungen, um die Creator-Entscheidungen zu sehen.",
     searchPlanPerformance: "Suchbedingungen",
@@ -1300,6 +1318,8 @@ const operationalCopy = {
     },
   },
   es: {
+    activeShops: "Tiendas activas",
+    activeShopsDescription: "Tiendas distintas con campañas activas",
     campaignTodayReachout: "Contactados hoy / objetivo",
     campaignLifetimeReachout: "Contactados históricos / días activos",
     shopTodayReachout: "Tienda hoy / capacidad",
@@ -1311,6 +1331,10 @@ const operationalCopy = {
     funnelDescription:
       "Las invitaciones exitosas siguen por la ruta principal; los filtros y rechazos se desvían por ramas trazables.",
     noDeliveryFailuresToday: "Hoy no hubo rechazos explícitos del proveedor",
+    viewFirstMessage: "Ver primer mensaje",
+    hideFirstMessage: "Ocultar primer mensaje",
+    searchConditionsUsedToday: "Hoy se usaron {{count}} grupos de condiciones de búsqueda",
+    viewBreakdown: "Ver desglose",
     creatorStatesForSearchPlan:
       "Creadores evaluados por las condiciones #{{generation}} · {{phrase}}.",
     selectSearchPlanForCreators:
@@ -1440,6 +1464,8 @@ const operationalCopy = {
     },
   },
   fr: {
+    activeShops: "Boutiques actives",
+    activeShopsDescription: "Boutiques distinctes avec des campagnes actives",
     campaignTodayReachout: "Contactés aujourd’hui / objectif",
     campaignLifetimeReachout: "Contactés au total / jours actifs",
     shopTodayReachout: "Boutique aujourd’hui / capacité",
@@ -1451,6 +1477,10 @@ const operationalCopy = {
     funnelDescription:
       "Les invitations réussies restent sur l’axe principal ; filtres et refus partent dans des branches traçables.",
     noDeliveryFailuresToday: "Aucun refus explicite du Provider aujourd’hui",
+    viewFirstMessage: "Voir le premier message",
+    hideFirstMessage: "Masquer le premier message",
+    searchConditionsUsedToday: "{{count}} groupes de conditions de recherche utilisés aujourd’hui",
+    viewBreakdown: "Voir le détail",
     creatorStatesForSearchPlan:
       "Créateurs évalués par les conditions #{{generation}} · {{phrase}}.",
     selectSearchPlanForCreators:
@@ -1579,6 +1609,8 @@ const operationalCopy = {
     },
   },
   id: {
+    activeShops: "Toko aktif",
+    activeShopsDescription: "Toko unik dengan kampanye aktif",
     campaignTodayReachout: "Dihubungi hari ini / target",
     campaignLifetimeReachout: "Total dihubungi / hari aktif",
     shopTodayReachout: "Toko hari ini / kapasitas",
@@ -1590,6 +1622,10 @@ const operationalCopy = {
     funnelDescription:
       "Undangan berhasil tetap di jalur utama; filter dan penolakan provider bercabang dan tetap terlacak.",
     noDeliveryFailuresToday: "Tidak ada penolakan provider eksplisit hari ini",
+    viewFirstMessage: "Lihat pesan pertama",
+    hideFirstMessage: "Sembunyikan pesan pertama",
+    searchConditionsUsedToday: "{{count}} kelompok kondisi pencarian digunakan hari ini",
+    viewBreakdown: "Lihat rincian",
     creatorStatesForSearchPlan:
       "Creator yang dinilai oleh kondisi pencarian #{{generation}} · {{phrase}}.",
     selectSearchPlanForCreators: "Pilih kondisi pencarian untuk melihat keputusan creator.",
@@ -1716,6 +1752,8 @@ const operationalCopy = {
     },
   },
   it: {
+    activeShops: "Negozi attivi",
+    activeShopsDescription: "Negozi distinti con campagne attive",
     campaignTodayReachout: "Contattati oggi / obiettivo",
     campaignLifetimeReachout: "Contattati totali / giorni attivi",
     shopTodayReachout: "Negozio oggi / capacità",
@@ -1727,6 +1765,10 @@ const operationalCopy = {
     funnelDescription:
       "Gli inviti riusciti restano sul percorso principale; filtri e rifiuti si diramano in modo tracciabile.",
     noDeliveryFailuresToday: "Nessun rifiuto esplicito del provider oggi",
+    viewFirstMessage: "Vedi il primo messaggio",
+    hideFirstMessage: "Nascondi il primo messaggio",
+    searchConditionsUsedToday: "Oggi sono stati usati {{count}} gruppi di condizioni di ricerca",
+    viewBreakdown: "Mostra dettaglio",
     creatorStatesForSearchPlan: "Creator valutati dalle condizioni #{{generation}} · {{phrase}}.",
     selectSearchPlanForCreators:
       "Seleziona le condizioni di ricerca per vedere le decisioni sui creator.",
@@ -1854,6 +1896,8 @@ const operationalCopy = {
     },
   },
   th: {
+    activeShops: "ร้านค้าที่กำลังใช้งาน",
+    activeShopsDescription: "ร้านค้าที่ไม่ซ้ำกันซึ่งมีแคมเปญทำงานอยู่",
     campaignTodayReachout: "ติดต่อวันนี้ / เป้าหมาย",
     campaignLifetimeReachout: "ติดต่อสะสม / วันที่เปิดใช้งาน",
     shopTodayReachout: "ร้านค้าวันนี้ / ความจุ",
@@ -1864,6 +1908,10 @@ const operationalCopy = {
     discoveryToInvitation: "จากการสแกน Marketplace ถึงคำเชิญแบบเจาะจง",
     funnelDescription: "คำเชิญที่สำเร็จอยู่บนเส้นทางหลัก ส่วนการคัดออกและการปฏิเสธแยกเป็นแขนงที่ตรวจสอบย้อนกลับได้",
     noDeliveryFailuresToday: "วันนี้ไม่มีการปฏิเสธจากผู้ให้บริการอย่างชัดเจน",
+    viewFirstMessage: "ดูข้อความแรก",
+    hideFirstMessage: "ซ่อนข้อความแรก",
+    searchConditionsUsedToday: "วันนี้ใช้เงื่อนไขการค้นหา {{count}} ชุด",
+    viewBreakdown: "ดูรายละเอียด",
     creatorStatesForSearchPlan: "ครีเอเตอร์ที่ประเมินด้วยเงื่อนไขการค้นหา #{{generation}} · {{phrase}}",
     selectSearchPlanForCreators: "เลือกเงื่อนไขการค้นหาเพื่อดูผลการตัดสินครีเอเตอร์",
     searchPlanPerformance: "เงื่อนไขการค้นหา",

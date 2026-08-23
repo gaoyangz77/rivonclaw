@@ -11,6 +11,8 @@ export interface ModalProps {
   onBackdropClose?: () => void;
   title: string;
   headerContent?: ReactNode;
+  /** Optional content that shares one scroll region with the modal body while the title stays fixed. */
+  bodyLeadContent?: ReactNode;
   children: ReactNode;
   maxWidth?: number;
   hideCloseButton?: boolean;
@@ -28,6 +30,7 @@ export function Modal({
   onBackdropClose,
   title,
   headerContent,
+  bodyLeadContent,
   children,
   maxWidth = 600,
   hideCloseButton,
@@ -132,7 +135,14 @@ export function Modal({
             </button>
           )}
         </div>
-        {children}
+        {bodyLeadContent ? (
+          <div className="modal-scroll-region">
+            {bodyLeadContent}
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

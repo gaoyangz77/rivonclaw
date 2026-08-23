@@ -29,7 +29,6 @@ import {
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_AI_READINESS_QUERY,
   AFFILIATE_CAMPAIGN_SEARCH_PLAN_CREATOR_STATES_QUERY,
-  AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY,
   AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
@@ -247,6 +246,17 @@ export const DEFAULT_CAMPAIGN_STATUS_FILTERS: GQL.AffiliateCampaignStatus[] = [
   GQL.AffiliateCampaignStatus.Draft,
 ];
 
+export function countDistinctActiveCampaignShops(
+  campaigns: ReadonlyArray<Pick<GQL.AffiliateCampaign, "shopId" | "status">>,
+): number {
+  return new Set(
+    campaigns
+      .filter((campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active)
+      .map((campaign) => campaign.shopId)
+      .filter(Boolean),
+  ).size;
+}
+
 const CAMPAIGN_TEMPLATE_VARIABLES = new Set([
   "creator_name",
   "product_name",
@@ -282,6 +292,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [editingCampaignId, setEditingCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [selectedSearchPlanId, setSelectedSearchPlanId] = useState("");
+  const [messageTemplateOpen, setMessageTemplateOpen] = useState(false);
   const [selectedCreatorDetail, setSelectedCreatorDetail] =
     useState<CreatorRelationshipDetailItem | null>(null);
   const [campaignPage, setCampaignPage] = useState(1);
@@ -352,12 +363,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       pollInterval: selectedCampaignId ? 15_000 : 0,
     },
   );
-  const executionsQuery = useQuery<{
-    affiliateCampaignDailyExecutions: GQL.AffiliateCampaignDailyExecution[];
-  }>(AFFILIATE_CAMPAIGN_EXECUTIONS_QUERY, {
-    variables: { input: { campaignId: selectedCampaignId, limit: 14 } },
-    skip: !selectedCampaignId,
-  });
   const creatorStatesQuery = useQuery<{
     affiliateCampaignSearchPlanCreatorStates: CampaignCreatorStatePage;
   }>(AFFILIATE_CAMPAIGN_SEARCH_PLAN_CREATOR_STATES_QUERY, {
@@ -490,6 +495,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setEligibilityReasons([]);
     setSelectedCreatorDetail(null);
     setSelectedSearchPlanId("");
+    setMessageTemplateOpen(false);
   }, [selectedCampaignId]);
 
   useEffect(() => {
@@ -903,12 +909,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     void executeDeleteDraftCampaign(pending.campaignId);
   };
 
-  const activeCount = campaignPortfolio.filter(
+  const activeCampaigns = campaignPortfolio.filter(
     (campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active,
-  ).length;
-  const dailyTargetTotal = campaignPortfolio
-    .filter((campaign) => campaign.status === GQL.AffiliateCampaignStatus.Active)
-    .reduce((sum, campaign) => sum + campaign.dailyOutreachTarget, 0);
+  );
+  const activeCount = activeCampaigns.length;
+  const activeShopCount = countDistinctActiveCampaignShops(activeCampaigns);
+  const dailyTargetTotal = activeCampaigns.reduce(
+    (sum, campaign) => sum + campaign.dailyOutreachTarget,
+    0,
+  );
 
   const loadMoreCreatorStates = async () => {
     const nextCursor =
@@ -1020,6 +1029,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           </div>
         </div>
         <CampaignMetric
+          label={t("ecommerce.affiliateCampaign.activeShops")}
+          value={activeShopCount}
+          detail={t("ecommerce.affiliateCampaign.activeShopsDescription")}
+        />
+        <CampaignMetric
           label={t("ecommerce.affiliateCampaign.activeCampaigns")}
           value={activeCount}
           detail={t("ecommerce.affiliateCampaign.totalCampaigns", {
@@ -1030,11 +1044,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           label={t("ecommerce.affiliateCampaign.dailyTargetTotal")}
           value={dailyTargetTotal}
           detail={t("ecommerce.affiliateCampaign.acrossActiveCampaigns")}
-        />
-        <CampaignMetric
-          label={t("ecommerce.affiliateCampaign.agentCost")}
-          value="0"
-          detail={t("ecommerce.affiliateCampaign.firstTouchNoAgent")}
         />
       </section>
 
@@ -1235,224 +1244,230 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         isOpen={Boolean(selectedCampaign)}
         onClose={() => setSelectedCampaignId("")}
         title={selectedCampaign?.name ?? t("ecommerce.affiliateCampaign.detailTitle")}
+        bodyLeadContent={
+          selectedCampaign ? (
+            <div className="affiliate-campaign-modal-header-content">
+              <div className="affiliate-campaign-modal-header-top">
+                <div className="affiliate-campaign-modal-identity">
+                  <div className="affiliate-campaign-modal-product-image">
+                    {selectedCampaign.productSnapshot?.coverImage ? (
+                      <RemoteMediaImage
+                        sourceUrl={selectedCampaign.productSnapshot.coverImage}
+                        alt={selectedCampaign.productSnapshot.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <ShopIcon />
+                    )}
+                  </div>
+                  <div className="affiliate-campaign-modal-identity-copy">
+                    <div className="affiliate-campaign-title-line">
+                      <span
+                        className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}
+                      >
+                        {campaignStatusLabel(selectedCampaign.status, t)}
+                      </span>
+                      <span>{selectedCampaign.market}</span>
+                      <span>{selectedCampaign.resolvedTimeZone}</span>
+                      <span>
+                        {t("ecommerce.affiliateCampaign.templateVersion", {
+                          version: selectedCampaign.templateVersion,
+                        })}
+                      </span>
+                    </div>
+                    <div className="affiliate-campaign-modal-shop-line">
+                      <ShopIcon />
+                      <strong>
+                        {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
+                      </strong>
+                      {selectedCampaignShop?.alias?.trim() &&
+                        selectedCampaignShop.shopName?.trim() &&
+                        selectedCampaignShop.alias.trim() !==
+                          selectedCampaignShop.shopName.trim() && (
+                          <small>{selectedCampaignShop.shopName.trim()}</small>
+                        )}
+                    </div>
+                    <div className="affiliate-campaign-modal-product-line">
+                      <strong title={selectedCampaign.productSnapshot?.title ?? undefined}>
+                        {selectedCampaign.productSnapshot?.title?.trim() ||
+                          campaignLeadProductId(selectedCampaign)}
+                      </strong>
+                      <span>
+                        {t("ecommerce.affiliateCampaign.skuLabel")} ·{" "}
+                        {selectedCampaign.productSnapshot?.sellerSkus?.[0] ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="affiliate-campaign-detail-actions">
+                  {!isTerminalCampaignStatus(selectedCampaign.status) && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => openEdit(selectedCampaign)}
+                    >
+                      {t("ecommerce.affiliateCampaign.edit")}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={duplicateCampaignState.loading}
+                    onClick={() => void copyCampaign(selectedCampaign)}
+                  >
+                    {t("ecommerce.affiliateCampaign.copyCampaign")}
+                  </button>
+                  {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived && (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      disabled={statusMutationState.loading}
+                      onClick={() => archiveCampaign(selectedCampaign)}
+                    >
+                      {t("ecommerce.affiliateCampaign.archive")}
+                    </button>
+                  )}
+                  {selectedCampaign.status === GQL.AffiliateCampaignStatus.Draft && (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      disabled={deleteDraftState.loading}
+                      onClick={() => void deleteDraftCampaign(selectedCampaign)}
+                    >
+                      {t("ecommerce.affiliateCampaign.deleteDraft")}
+                    </button>
+                  )}
+                  {!isTerminalCampaignStatus(selectedCampaign.status) && (
+                    <button
+                      type="button"
+                      className={
+                        selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
+                          ? "btn btn-secondary"
+                          : "btn btn-primary affiliate-campaign-primary-action"
+                      }
+                      disabled={
+                        statusMutationState.loading ||
+                        (selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
+                          selectionReadiness?.ready === false)
+                      }
+                      onClick={() => void changeStatus(selectedCampaign)}
+                    >
+                      {selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
+                        ? t("ecommerce.affiliateCampaign.pause")
+                        : t("ecommerce.affiliateCampaign.reopen")}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="affiliate-campaign-modal-policy-row">
+                <span className="affiliate-campaign-modal-policy-pill">
+                  {campaignStrategyLabel(selectedCampaign.selectionPolicy.strategy, t)}
+                </span>
+                <span
+                  className={`affiliate-campaign-modal-readiness${
+                    selectionReadiness == null
+                      ? ""
+                      : selectionReadiness.ready
+                        ? " is-ready"
+                        : " is-blocked"
+                  }`}
+                  title={
+                    selectionReadiness == null
+                      ? t("ecommerce.affiliateCampaign.checkingReadiness")
+                      : selectionReadiness.ready
+                      ? t("ecommerce.affiliateCampaign.ready")
+                      : campaignReadinessMessage(selectionReadiness.reasonCode, t)
+                  }
+                >
+                  {selectionReadiness == null
+                    ? t("ecommerce.affiliateCampaign.checkingReadiness")
+                    : selectionReadiness.ready
+                    ? t("ecommerce.affiliateCampaign.ready")
+                    : campaignReadinessMessage(selectionReadiness.reasonCode, t)}
+                </span>
+                <span className="affiliate-campaign-modal-commission">
+                  {t("ecommerce.affiliateCampaign.commissionRate")} ·{" "}
+                  {selectedCampaign.products[0]?.commissionRatePercent ?? 0}%
+                </span>
+                <button
+                  type="button"
+                  className="affiliate-campaign-template-toggle"
+                  aria-expanded={messageTemplateOpen}
+                  onClick={() => setMessageTemplateOpen((open) => !open)}
+                >
+                  {messageTemplateOpen
+                    ? t("ecommerce.affiliateCampaign.hideFirstMessage")
+                    : t("ecommerce.affiliateCampaign.viewFirstMessage")}
+                </button>
+              </div>
+
+              {messageTemplateOpen && (
+                <div
+                  className="affiliate-campaign-modal-template"
+                  role="region"
+                  aria-label={t("ecommerce.affiliateCampaign.firstMessage")}
+                >
+                  <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
+                  <p>{selectedCampaign.messageTemplateText}</p>
+                </div>
+              )}
+
+              <section className="affiliate-campaign-kpi-strip">
+                <CampaignKpiCard
+                  label={t("ecommerce.affiliateCampaign.campaignTodayReachout")}
+                  value={latestExecution?.counters.sent ?? 0}
+                  denominator={
+                    latestExecution?.effectiveTarget ?? selectedCampaign.dailyOutreachTarget
+                  }
+                  denominatorLabel={t("ecommerce.affiliateCampaign.todayTargetUnit")}
+                  supportingText={
+                    latestExecution?.nextTickAt
+                      ? t("ecommerce.affiliateCampaign.nextSend", {
+                          time: formatDateTime(latestExecution.nextTickAt),
+                        })
+                      : latestExecution?.underDeliveryReason
+                        ? campaignExecutionReasonLabel(latestExecution.underDeliveryReason, t)
+                        : t("ecommerce.affiliateCampaign.waitingForWindow")
+                  }
+                  progress
+                  emphasis
+                />
+                <CampaignKpiCard
+                  label={t("ecommerce.affiliateCampaign.campaignLifetimeReachout")}
+                  value={summary?.lifetimeReachedOut ?? 0}
+                  denominator={summary?.activeDayCount ?? 0}
+                  denominatorLabel={t("ecommerce.affiliateCampaign.activeDaysUnit")}
+                  supportingText={t("ecommerce.affiliateCampaign.lifetimeReachoutDescription")}
+                />
+                <CampaignKpiCard
+                  label={t("ecommerce.affiliateCampaign.shopTodayReachout")}
+                  value={summary?.shopDailyCapacity.countedOutreachCount ?? 0}
+                  denominator={summary?.shopDailyCapacity.effectiveDailyLimit ?? null}
+                  denominatorLabel={t("ecommerce.affiliateCampaign.shopCapacityUnit")}
+                  supportingText={
+                    summary?.shopDailyCapacity.effectiveDailyLimit == null
+                      ? t("ecommerce.affiliateCampaign.dailyCreatorOutreachLimitRequired")
+                      : summary.shopDailyCapacity.circuitOpenUntil
+                        ? t("ecommerce.affiliateCampaign.shopCircuitUntil", {
+                            time: formatDateTime(summary.shopDailyCapacity.circuitOpenUntil),
+                          })
+                        : t("ecommerce.affiliateCampaign.shopCapacityRemaining", {
+                            count: summary.shopDailyCapacity.remainingOutreachCapacity,
+                          })
+                  }
+                  progress
+                />
+              </section>
+            </div>
+          ) : null
+        }
         maxWidth={1480}
         portal
         className="affiliate-campaign-detail-modal"
       >
         {selectedCampaign && (
           <div className="affiliate-campaign-detail-modal-body">
-            <header className="affiliate-campaign-detail-header">
-              <div>
-                <div className="affiliate-campaign-title-line">
-                  <span
-                    className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}
-                  >
-                    {campaignStatusLabel(selectedCampaign.status, t)}
-                  </span>
-                  <span>
-                    {selectedCampaign.market} · {selectedCampaign.resolvedTimeZone}
-                  </span>
-                  <span>
-                    {t("ecommerce.affiliateCampaign.templateVersion", {
-                      version: selectedCampaign.templateVersion,
-                    })}
-                  </span>
-                </div>
-                <p>{t("ecommerce.affiliateCampaign.detailDescription")}</p>
-              </div>
-              <div className="affiliate-campaign-detail-actions">
-                {!isTerminalCampaignStatus(selectedCampaign.status) && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => openEdit(selectedCampaign)}
-                  >
-                    {t("ecommerce.affiliateCampaign.edit")}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={duplicateCampaignState.loading}
-                  onClick={() => void copyCampaign(selectedCampaign)}
-                >
-                  {t("ecommerce.affiliateCampaign.copyCampaign")}
-                </button>
-                {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived && (
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    disabled={statusMutationState.loading}
-                    onClick={() => archiveCampaign(selectedCampaign)}
-                  >
-                    {t("ecommerce.affiliateCampaign.archive")}
-                  </button>
-                )}
-                {selectedCampaign.status === GQL.AffiliateCampaignStatus.Draft && (
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    disabled={deleteDraftState.loading}
-                    onClick={() => void deleteDraftCampaign(selectedCampaign)}
-                  >
-                    {t("ecommerce.affiliateCampaign.deleteDraft")}
-                  </button>
-                )}
-                {!isTerminalCampaignStatus(selectedCampaign.status) && (
-                  <button
-                    type="button"
-                    className={
-                      selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
-                        ? "btn btn-secondary"
-                        : "btn btn-primary affiliate-campaign-primary-action"
-                    }
-                    disabled={
-                      statusMutationState.loading ||
-                      (selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
-                        selectionReadiness?.ready === false)
-                    }
-                    onClick={() => void changeStatus(selectedCampaign)}
-                  >
-                    {selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
-                      ? t("ecommerce.affiliateCampaign.pause")
-                      : t("ecommerce.affiliateCampaign.reopen")}
-                  </button>
-                )}
-              </div>
-            </header>
-            {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
-              selectionReadiness?.ready === false &&
-              !isTerminalCampaignStatus(selectedCampaign.status) && (
-                <div className="affiliate-campaign-readiness-warning">
-                  <strong>{t("ecommerce.affiliateCampaign.reopenBlocked")}</strong>
-                  <span>{campaignReadinessMessage(selectionReadiness.reasonCode, t)}</span>
-                </div>
-              )}
-
-            <section
-              className="affiliate-campaign-product-spotlight"
-              aria-label={t("ecommerce.affiliateCampaign.leadProduct")}
-            >
-              <div className="affiliate-campaign-product-spotlight-media">
-                {selectedCampaign.productSnapshot?.coverImage ? (
-                  <RemoteMediaImage
-                    sourceUrl={selectedCampaign.productSnapshot.coverImage}
-                    alt={selectedCampaign.productSnapshot.title}
-                    loading="lazy"
-                  />
-                ) : (
-                  <ShopIcon />
-                )}
-              </div>
-              <div className="affiliate-campaign-product-spotlight-copy">
-                <div className="affiliate-campaign-product-spotlight-eyebrow">
-                  <span>{t("ecommerce.affiliateCampaign.leadProduct")}</span>
-                </div>
-                <div className="affiliate-campaign-product-spotlight-shop">
-                  <span className="affiliate-campaign-product-spotlight-shop-icon">
-                    <ShopIcon />
-                  </span>
-                  <div>
-                    <span>{t("ecommerce.affiliateCampaign.shop")}</span>
-                    <strong>
-                      {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
-                    </strong>
-                    {selectedCampaignShop?.alias?.trim() &&
-                      selectedCampaignShop.shopName?.trim() &&
-                      selectedCampaignShop.alias.trim() !== selectedCampaignShop.shopName.trim() && (
-                        <small>{selectedCampaignShop.shopName.trim()}</small>
-                      )}
-                  </div>
-                  <i>{selectedCampaign.market}</i>
-                </div>
-                <h3 title={selectedCampaign.productSnapshot?.title ?? undefined}>
-                  {selectedCampaign.productSnapshot?.title?.trim() ||
-                    campaignLeadProductId(selectedCampaign)}
-                </h3>
-                <p>
-                  {[
-                    selectedCampaign.productSnapshot?.brandName,
-                    selectedCampaign.productSnapshot?.categoryPathNames.join(" / "),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || t("ecommerce.affiliateCampaign.noBrand")}
-                </p>
-                <div className="affiliate-campaign-product-spotlight-skus">
-                  <span>{t("ecommerce.affiliateCampaign.skuLabel")}</span>
-                  {(selectedCampaign.productSnapshot?.sellerSkus ?? []).length > 0 ? (
-                    <div title={selectedCampaign.productSnapshot?.sellerSkus.join(" · ")}>
-                      {selectedCampaign.productSnapshot?.sellerSkus.slice(0, 3).map((sellerSku) => (
-                        <code key={sellerSku}>{sellerSku}</code>
-                      ))}
-                      {(selectedCampaign.productSnapshot?.sellerSkus.length ?? 0) > 3 && (
-                        <small>+{(selectedCampaign.productSnapshot?.sellerSkus.length ?? 0) - 3}</small>
-                      )}
-                    </div>
-                  ) : (
-                    <code>—</code>
-                  )}
-                </div>
-              </div>
-              <div className="affiliate-campaign-product-spotlight-reference">
-                <span>{t("ecommerce.affiliateCampaign.productIdLabel")}</span>
-                <strong title={campaignLeadProductId(selectedCampaign)}>
-                  {campaignLeadProductId(selectedCampaign)}
-                </strong>
-                {selectedCampaign.productSnapshot?.observedAt && (
-                  <small>
-                    {t("ecommerce.affiliateCampaign.snapshotObservedAt", {
-                      time: formatDateTime(selectedCampaign.productSnapshot.observedAt),
-                    })}
-                  </small>
-                )}
-              </div>
-            </section>
-
-            <section className="affiliate-campaign-kpi-strip">
-              <CampaignKpiCard
-                label={t("ecommerce.affiliateCampaign.campaignTodayReachout")}
-                value={latestExecution?.counters.sent ?? 0}
-                denominator={latestExecution?.effectiveTarget ?? selectedCampaign.dailyOutreachTarget}
-                denominatorLabel={t("ecommerce.affiliateCampaign.todayTargetUnit")}
-                supportingText={
-                  latestExecution?.nextTickAt
-                    ? t("ecommerce.affiliateCampaign.nextSend", {
-                        time: formatDateTime(latestExecution.nextTickAt),
-                      })
-                    : latestExecution?.underDeliveryReason
-                      ? campaignExecutionReasonLabel(latestExecution.underDeliveryReason, t)
-                      : t("ecommerce.affiliateCampaign.waitingForWindow")
-                }
-                progress
-                emphasis
-              />
-              <CampaignKpiCard
-                label={t("ecommerce.affiliateCampaign.campaignLifetimeReachout")}
-                value={summary?.lifetimeReachedOut ?? 0}
-                denominator={summary?.activeDayCount ?? 0}
-                denominatorLabel={t("ecommerce.affiliateCampaign.activeDaysUnit")}
-                supportingText={t("ecommerce.affiliateCampaign.lifetimeReachoutDescription")}
-              />
-              <CampaignKpiCard
-                label={t("ecommerce.affiliateCampaign.shopTodayReachout")}
-                value={summary?.shopDailyCapacity.countedOutreachCount ?? 0}
-                denominator={summary?.shopDailyCapacity.effectiveDailyLimit ?? null}
-                denominatorLabel={t("ecommerce.affiliateCampaign.shopCapacityUnit")}
-                supportingText={
-                  summary?.shopDailyCapacity.effectiveDailyLimit == null
-                    ? t("ecommerce.affiliateCampaign.dailyCreatorOutreachLimitRequired")
-                    : summary.shopDailyCapacity.circuitOpenUntil
-                      ? t("ecommerce.affiliateCampaign.shopCircuitUntil", {
-                          time: formatDateTime(summary.shopDailyCapacity.circuitOpenUntil),
-                        })
-                      : t("ecommerce.affiliateCampaign.shopCapacityRemaining", {
-                          count: summary.shopDailyCapacity.remainingOutreachCapacity,
-                        })
-                }
-                progress
-              />
-            </section>
-
             {targetCollaborationQuota?.active && (
               <section className="affiliate-campaign-quota-issue" role="status">
                 <div className="affiliate-campaign-quota-issue-copy">
@@ -1527,6 +1542,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               counters={summary?.counters}
               counterSchemaVersion={latestExecution?.counterSchemaVersion ?? 3}
               deliveryFailureReasons={summary?.deliveryFailureReasons ?? []}
+              searchPlanCount={latestExecution?.searchPlanExecutions?.length ?? 0}
               t={t}
             />
 
@@ -1852,52 +1868,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               </div>
             </section>
 
-            <section className="affiliate-campaign-configuration">
-              <div>
-                <span>{t("ecommerce.affiliateCampaign.selectionStrategy")}</span>
-                <strong>
-                  {campaignStrategyLabel(selectedCampaign.selectionPolicy.strategy, t)}
-                </strong>
-              </div>
-              <div>
-                <span>{t("ecommerce.affiliateCampaign.selectionReadiness")}</span>
-                <strong>
-                  {selectionReadiness?.ready
-                    ? t("ecommerce.affiliateCampaign.ready")
-                    : campaignReadinessMessage(selectionReadiness?.reasonCode, t)}
-                </strong>
-              </div>
-              <div>
-                <span>{t("ecommerce.affiliateCampaign.offerTitle")}</span>
-                <strong>
-                  {selectedCampaign.products
-                    .map((product) => `${product.productId} · ${product.commissionRatePercent}%`)
-                    .join("  |  ")}
-                </strong>
-              </div>
-              <div className="affiliate-campaign-template-readout">
-                <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
-                <p>{selectedCampaign.messageTemplateText}</p>
-              </div>
-            </section>
-
-            {(executionsQuery.data?.affiliateCampaignDailyExecutions.length ?? 0) > 1 && (
-              <section className="affiliate-campaign-history-strip">
-                <span>{t("ecommerce.affiliateCampaign.recentExecutions")}</span>
-                <div>
-                  {executionsQuery
-                    .data!.affiliateCampaignDailyExecutions.slice(0, 7)
-                    .map((execution) => (
-                      <article key={execution.id}>
-                        <strong>{execution.marketLocalDate}</strong>
-                        <small>
-                          {execution.counters.sent}/{execution.allocatedTarget}
-                        </small>
-                      </article>
-                    ))}
-                </div>
-              </section>
-            )}
           </div>
         )}
       </Modal>
@@ -3600,11 +3570,13 @@ function CampaignFunnel({
   counters,
   counterSchemaVersion,
   deliveryFailureReasons,
+  searchPlanCount,
   t,
 }: {
   counters?: GQL.AffiliateCampaignExecutionCounters;
   counterSchemaVersion: number;
   deliveryFailureReasons: GQL.AffiliateCampaignDeliveryFailureReason[];
+  searchPlanCount: number;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const legacyUnrecorded = counterSchemaVersion < 2;
@@ -3658,6 +3630,9 @@ function CampaignFunnel({
             label={t("ecommerce.affiliateCampaign.funnel.scannedToday")}
             value={counters?.scanned ?? 0}
             tone="neutral"
+            note={t("ecommerce.affiliateCampaign.searchConditionsUsedToday", {
+              count: searchPlanCount,
+            })}
           />
           <span className="affiliate-campaign-funnel-connector" aria-hidden="true" />
           <CampaignFunnelStage
@@ -3706,6 +3681,8 @@ function CampaignFunnel({
                   tooltip: t("ecommerce.affiliateCampaign.funnelTooltip.qualificationFailed"),
                 },
               ]}
+              collapsibleDetails
+              detailsLabel={t("ecommerce.affiliateCampaign.viewBreakdown")}
             />
           </div>
           <div className="affiliate-campaign-funnel-branch is-failed">
@@ -3721,6 +3698,8 @@ function CampaignFunnel({
                 tooltip: t(`ecommerce.affiliateCampaign.deliveryFailureTooltip.${reason.category}`),
               }))}
               emptyNote={t("ecommerce.affiliateCampaign.noDeliveryFailuresToday")}
+              collapsibleDetails
+              detailsLabel={t("ecommerce.affiliateCampaign.viewBreakdown")}
             />
           </div>
         </div>
@@ -3780,6 +3759,8 @@ function CampaignFunnelStage({
   details = [],
   note,
   emptyNote,
+  collapsibleDetails = false,
+  detailsLabel,
 }: {
   index: string;
   label: string;
@@ -3788,7 +3769,19 @@ function CampaignFunnelStage({
   details?: CampaignFunnelDetail[];
   note?: string;
   emptyNote?: string;
+  collapsibleDetails?: boolean;
+  detailsLabel?: string;
 }) {
+  const detailRows = details.length > 0 && (
+    <div className="affiliate-campaign-funnel-details">
+      {details.map((detail) => (
+        <div key={detail.label}>
+          <AffiliateMetricLabel label={detail.label} tooltip={detail.tooltip} />
+          <strong>{detail.value == null ? "—" : formatNumber(detail.value)}</strong>
+        </div>
+      ))}
+    </div>
+  );
   return (
     <article className={`affiliate-campaign-funnel-stage is-${tone}`}>
       <header>
@@ -3798,15 +3791,13 @@ function CampaignFunnelStage({
       <div className="affiliate-campaign-funnel-stage-value">
         {value == null ? "—" : formatNumber(value)}
       </div>
-      {details.length > 0 ? (
-        <div className="affiliate-campaign-funnel-details">
-          {details.map((detail) => (
-            <div key={detail.label}>
-              <AffiliateMetricLabel label={detail.label} tooltip={detail.tooltip} />
-              <strong>{detail.value == null ? "—" : formatNumber(detail.value)}</strong>
-            </div>
-          ))}
-        </div>
+      {details.length > 0 && collapsibleDetails ? (
+        <details className="affiliate-campaign-funnel-detail-disclosure">
+          <summary>{detailsLabel}</summary>
+          {detailRows}
+        </details>
+      ) : details.length > 0 ? (
+        detailRows
       ) : note || emptyNote ? (
         <p>{note ?? emptyNote}</p>
       ) : null}
