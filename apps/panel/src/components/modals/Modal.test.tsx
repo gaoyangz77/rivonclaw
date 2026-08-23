@@ -69,6 +69,28 @@ describe("Modal", () => {
     );
   });
 
+  it("can omit the visible header while retaining an accessible dialog name", () => {
+    render(
+      <Modal
+        isOpen
+        onClose={() => undefined}
+        title="Campaign detail"
+        hideHeader
+        bodyLeadContent={<section>Campaign controls and summary</section>}
+      >
+        <section>Campaign funnel</section>
+      </Modal>,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Campaign detail" });
+    expect(dialog.querySelector(".modal-header")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Campaign detail" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(dialog.querySelector(".modal-scroll-region")?.textContent).toContain(
+      "Campaign controls and summary",
+    );
+  });
+
   it("renders a portal modal outside a clipped parent and leaves the parent open when closed", () => {
     render(<NestedPortalModal />);
     const trigger = screen.getByRole("button", { name: "Experiment settings" });
