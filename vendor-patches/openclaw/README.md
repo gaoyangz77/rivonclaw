@@ -234,6 +234,31 @@ Removal: drop this patch when `.openclaw-version` contains merged OpenClaw PR
 that replaces configured owners after catalog generation mismatch and gates
 concurrent recovery readers.
 
+### 0039 - Windows process identity for the cron durable fence
+
+The cron durable fence introduced by OpenClaw `d3308e2cfd9` (`fix(cron): fence
+executions with durable receipts`, `#122948`) refuses to claim a run without a
+process start time, but `src/shared/pid-alive.ts#getFileLockProcessStartTime`
+implements Linux procfs and macOS `ps` only and returns null on Windows. Every
+Windows cron execution therefore failed immediately with `cron run cannot
+acquire a durable fence without process start identity`, for both scheduled
+runs and manual run-now.
+
+This patch gives `src/cron/store/run-receipt-store.ts` its own cross-platform
+reader built on the `readWindowsProcessStartTimeSync` helper OpenClaw already
+ships, mirroring the win32 branch that `infra/gateway-lock.ts` and
+`node-host/node-worker-process-identity.ts` already use. Both the claim and the
+staleness comparison read through it so the persisted and observed owner
+identities stay in one unit, and our own immutable start time is cached so a
+claim never respawns PowerShell. The fix stays at the cron call site rather
+than in `shared/pid-alive.ts`, whose other consumers (file locks, startup
+migration checkpoints, stale-lock adjudication) are out of scope.
+
+Removal: drop this patch when `.openclaw-version` resolves a Windows process
+start time for the cron fence, either in `getFileLockProcessStartTime` itself or
+through an equivalent cron-side reader. See `WINDOWS-CRON-001` in
+`UPSTREAM_WATCHLIST.md`.
+
 ## Dropped In bcaec0cf145
 
 - `0033`: OpenClaw now contains commit
