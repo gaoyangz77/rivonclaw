@@ -1,5 +1,17 @@
 import type { TutorialStep } from "../types.js"
-import { tutorialTarget } from "../targets.js"
+import { clickTutorialTarget, findTutorialTarget, tutorialTarget } from "../targets.js"
+
+function openFirstAgentWorkBundle() {
+  if (!findTutorialTarget("affiliate-attention-detail")) {
+    clickTutorialTarget("affiliate-attention-bundle")
+  }
+}
+
+function closeAgentWorkBundle() {
+  if (findTutorialTarget("affiliate-attention-detail")) {
+    clickTutorialTarget("affiliate-attention-detail-close")
+  }
+}
 
 function step(
   id: string,
@@ -24,4 +36,26 @@ export const ecommerceAffiliateAttentionSteps: TutorialStep[] = [
   step("affiliate-attention-scope", "affiliate-attention-scope", "scope", "bottom"),
   step("affiliate-attention-filters", "affiliate-attention-filters", "filters", "top"),
   step("affiliate-attention-queue", "affiliate-attention-queue", "queue", "top", 5000),
+  {
+    ...step(
+      "affiliate-attention-detail-context",
+      "affiliate-attention-detail-context",
+      "detailContext",
+      "right",
+      1200,
+    ),
+    prepare: openFirstAgentWorkBundle,
+    cleanup: closeAgentWorkBundle,
+    lifecycleGroup: "affiliate-attention-detail",
+  },
+  {
+    ...step(
+      "affiliate-attention-detail-decision",
+      "affiliate-attention-detail-decision",
+      "detailDecision",
+      "left",
+      1200,
+    ),
+    lifecycleGroup: "affiliate-attention-detail",
+  },
 ]
