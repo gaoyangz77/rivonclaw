@@ -381,6 +381,12 @@ export const AFFILIATE_CAMPAIGN_SUMMARY_QUERY = gql`
     affiliateCampaignSummary(campaignId: $campaignId) {
       campaignId
       totalCreators
+      lifetimeReachedOut
+      activeDayCount
+      deliveryFailureReasons {
+        code
+        count
+      }
       counters {
         scanned
         matched
@@ -499,6 +505,7 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
         scheduledAt
         reachedOutAt
         repliedAt
+        outreachErrorCode
         creatorProfile {
           id
           platform
@@ -521,6 +528,91 @@ export const AFFILIATE_CAMPAIGN_CREATOR_STATES_QUERY = gql`
           shopStates {
             shopId
           }
+          lastInboundAt
+          lastOutboundAt
+          activeAffiliateCollaborationIds
+          blocked
+          workSummary {
+            agentRequiredCount
+            staffRequiredCount
+            externalWaitingCount
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_CREATOR_STATES_QUERY = gql`
+  query AffiliateCampaignSearchPlanCreatorStates(
+    $input: ReadAffiliateCampaignSearchPlanCreatorStatesInput!
+  ) {
+    affiliateCampaignSearchPlanCreatorStates(input: $input) {
+      nextCursor
+      items {
+        id
+        campaignId
+        shopId
+        creatorId
+        productId
+        market
+        status
+        firstSeenAt
+        lastSeenAt
+        searchOccurrenceCount
+        eligibilityCategory
+        eligibilityReasonCode
+        eligibilityPolicyVersion
+        eligibilityEvaluatedAt
+        sourceSearchPlanIds
+        latestSearchDailyExecutionId
+        latestSearchPlanId
+        latestSearchPlanGeneration
+        latestSearchProviderOrdinal
+        latestSearchMatchedAt
+        followerCount
+        decisionReason
+        selectionStrategy
+        predictionStatus
+        filterResult
+        decisionReasonCodes
+        providerOrdinal
+        providerPageSequence
+        evaluationAttemptCount
+        nextEvaluationAt
+        evaluationFailureStage
+        preApprovalProbability
+        preApprovalCutoff
+        preApproved
+        preApprovalModelVersion
+        preApprovalContractVersion
+        preApprovalObservedAt
+        qualificationDecision
+        qualifiedAt
+        scheduledAt
+        reachedOutAt
+        repliedAt
+        outreachErrorCode
+        creatorProfile {
+          id
+          platform
+          creatorOpenId
+          username
+          nickname
+          avatarUrl
+          bioDescription
+          lastObservedAt
+        }
+        creatorPerformance {
+          market
+          observedAt
+          sourceType
+          followerCount
+          categoryIds
+        }
+        creatorRelationship {
+          id
+          shopStates { shopId }
           lastInboundAt
           lastOutboundAt
           activeAffiliateCollaborationIds
@@ -663,6 +755,116 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
         startedAt
         lastSearchedAt
         completedAt
+      }
+    }
+  }
+`;
+
+export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY = gql`
+  query AffiliateCampaignSearchPlanSummaries($input: ReadAffiliateCampaignSearchPlansInput!) {
+    affiliateCampaignSearchPlanSummaries(input: $input) {
+      nextCursor
+      items {
+        duplicateCount
+        delivery {
+          submitted
+          sent
+          failed
+          failureReasons { code count }
+        }
+        plan {
+          id
+          campaignId
+          shopId
+          productId
+          generation
+          configRevision
+          status
+          generatedBy {
+            source
+            requestedModel
+            resolvedModel
+            completedAt
+          }
+          phrase {
+            key
+            text
+            explanation
+            explanationLocale
+          }
+          discoveryRules {
+            followerCount { minimum maximum }
+            audience {
+              ageRanges
+              genderDistribution { gender minimumPercentage }
+            }
+            salesPerformance30d { gmvRanges unitsSoldRanges }
+            categories { parentCategoryId }
+            contentPerformance30d {
+              averageVideoViews
+              averageShoppableVideoViews
+              averageEngagementRate
+              averageShoppableEngagementRate
+              averageLiveViewers
+              averageShoppableLiveViewers
+            }
+            affiliatePerformance30d {
+              averageCommissionRate
+              postRate
+              creatorAgencyStatus
+              fastGrowingOnly
+              notInvitedLast90Days
+            }
+            marketSpecific { languages creatorLevels categoryPros }
+          }
+          guidanceInterpretation {
+            sourceGuidanceHash
+            softDirections
+            hardConstraints {
+              followerCount { minimum maximum }
+              audience {
+                ageRanges
+                genderDistribution { gender minimumPercentage }
+              }
+              salesPerformance30d { gmvRanges unitsSoldRanges }
+              categories { parentCategoryId }
+              contentPerformance30d {
+                averageVideoViews
+                averageShoppableVideoViews
+                averageEngagementRate
+                averageShoppableEngagementRate
+                averageLiveViewers
+                averageShoppableLiveViewers
+              }
+              affiliatePerformance30d {
+                averageCommissionRate
+                postRate
+                creatorAgencyStatus
+                fastGrowingOnly
+                notInvitedLast90Days
+              }
+              marketSpecific { languages creatorLevels categoryPros }
+            }
+          }
+          pageSequence
+          totals {
+            scanned
+            matched
+            protected
+            outreachPolicyBlocked
+            qualificationFailed
+            qualified
+            scheduled
+          }
+          providerFailureCount
+          blockStage
+          errorCode
+          completionReason
+          generatedAt
+          startedAt
+          lastSearchedAt
+          completedAt
+        }
       }
     }
   }
