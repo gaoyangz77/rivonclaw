@@ -62,6 +62,16 @@ export interface GatewayRpcClientOptions {
   reconnectDelay?: number;
   /** Maximum reconnect delay in ms (default: 30000) */
   maxReconnectDelay?: number;
+  /**
+   * Deadline for one full connection attempt — socket open plus the
+   * `connect.challenge` handshake (default: 20000).
+   *
+   * A gateway whose event loop is stalled can accept the WebSocket upgrade and
+   * then go quiet, which leaves the attempt hanging with no `close` event to
+   * end it. This deadline terminates such a socket so the attempt always
+   * finishes and the reconnect timeline can continue.
+   */
+  connectTimeoutMs?: number;
 }
 
 /**
@@ -75,6 +85,7 @@ export class GatewayRpcClient {
   private connected = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempt = 0;
+  private connecting = false;
   private deviceIdentity: DeviceIdentity | null = null;
   private connectNonce: string | null = null;
   private _last503 = false;
@@ -93,9 +104,13 @@ export class GatewayRpcClient {
     this.reconnectAttempt = 0;
     try {
       await this.connect();
-    } catch {
-      // Initial connect failed — scheduleReconnect() was already called from the
-      // close handler, so we don't throw; the client will keep retrying in the background.
+    } catch (err) {
+      // Initial connect failed. Callers treat start() as fire-and-forget, so
+      // keep retrying in the background rather than throwing. Schedule the
+      // retry here: a failed attempt does not always end in a socket "close",
+      // so the close handler cannot be relied on to do it.
+      log.warn(`Initial connect failed: ${(err as Error).message ?? err}`);
+      this.scheduleReconnect();
     }
   }
 
@@ -109,6 +124,7 @@ export class GatewayRpcClient {
       this.reconnectTimer = null;
     }
     this.reconnectAttempt = 0;
+    this.connecting = false;
     this.ws?.close();
     this.ws = null;
     this.connected = false;
@@ -174,14 +190,53 @@ export class GatewayRpcClient {
       return;
     }
 
+    // Marks the window in which scheduleReconnect() must stay quiet: the
+    // caller of connect() owns scheduling the next attempt once this one has
+    // finished, so a "close" arriving mid-attempt must not start a second
+    // reconnect timeline.
+    this.connecting = true;
+    try {
+      await this.openSocket();
+    } finally {
+      this.connecting = false;
+    }
+  }
+
+  /** Open the WebSocket and complete the `connect` handshake. */
+  private openSocket(): Promise<void> {
     return new Promise((resolve, reject) => {
       log.info(`Connecting to gateway at ${this.opts.url}...`);
 
-      this.ws = new WebSocket(this.opts.url);
+      const ws = new WebSocket(this.opts.url);
+      this.ws = ws;
       this.connectNonce = null;
       let settled = false;
 
-      this.ws.on("message", (data) => {
+      // Bound the whole attempt. Without this a gateway that accepts the
+      // upgrade but never sends connect.challenge leaves this promise pending
+      // forever, and the reconnect timeline stops with it.
+      const connectTimeoutMs = this.opts.connectTimeoutMs ?? 20000;
+      const deadline = setTimeout(() => {
+        if (settled) return;
+        log.warn(`Gateway handshake did not complete within ${connectTimeoutMs}ms; terminating socket`);
+        // Settle first so the reported failure is the timeout rather than the
+        // close it triggers. Terminate rather than close: a stalled gateway
+        // will not answer a close handshake either, and a half-open socket
+        // would keep the client wedged in a not-connected state.
+        settle(new Error(`Gateway handshake timed out after ${connectTimeoutMs}ms`));
+        ws.terminate();
+      }, connectTimeoutMs);
+
+      /** Resolve or reject exactly once, always clearing the deadline. */
+      function settle(err?: unknown): void {
+        if (settled) return;
+        settled = true;
+        clearTimeout(deadline);
+        if (err) reject(err);
+        else resolve();
+      }
+
+      ws.on("message", (data) => {
         const raw = data.toString();
 
         // Intercept connect.challenge before the generic handler so we can
@@ -194,9 +249,8 @@ export class GatewayRpcClient {
             if (frame.type === "event" && frame.event === "connect.challenge") {
               const nonce = frame.payload?.nonce?.trim() ?? "";
               if (!nonce) {
-                settled = true;
-                reject(new Error("connect challenge missing nonce"));
-                this.ws?.close(1008, "connect challenge missing nonce");
+                settle(new Error("connect challenge missing nonce"));
+                ws.close(1008, "connect challenge missing nonce");
                 return;
               }
               this.connectNonce = nonce;
@@ -205,12 +259,14 @@ export class GatewayRpcClient {
                   this.connected = true;
                   this.reconnectAttempt = 0;
                   this.opts.onConnect?.();
-                  settled = true;
-                  resolve();
+                  settle();
                 })
                 .catch((err) => {
-                  settled = true;
-                  reject(err);
+                  // The handshake request failed or timed out while the socket
+                  // itself stayed open. Terminate it so the client is not left
+                  // holding a socket it never completed a handshake on.
+                  settle(err);
+                  ws.terminate();
                 });
               return;
             }
@@ -222,21 +278,20 @@ export class GatewayRpcClient {
         this.handleMessage(raw);
       });
 
-      this.ws.on("close", (code, reason) => {
+      ws.on("close", (code, reason) => {
         log.info(`Gateway WebSocket closed: ${code} ${reason.toString()}`);
         this.ws = null;
         this.connected = false;
         this.connectNonce = null;
         this.flushPending(new Error(`Gateway closed (${code}): ${reason.toString()}`));
         this.opts.onClose?.();
-        if (!settled) {
-          settled = true;
-          reject(new Error(`Gateway closed before connect (${code}): ${reason.toString()}`));
-        }
+        settle(new Error(`Gateway closed before connect (${code}): ${reason.toString()}`));
+        // No-op while this attempt is still running: connect()'s caller owns
+        // scheduling the retry once the attempt has settled.
         this.scheduleReconnect();
       });
 
-      this.ws.on("error", (err) => {
+      ws.on("error", (err) => {
         const msg = (err as Error).message ?? String(err);
         log.warn(`Gateway WebSocket error: ${msg}`);
         // Track 503 so the close handler can use fast retry instead of backoff.
@@ -244,16 +299,22 @@ export class GatewayRpcClient {
         if (msg.includes("503")) {
           this._last503 = true;
         }
-        if (!settled) {
-          settled = true;
-          reject(err);
-        }
+        settle(err);
       });
     });
   }
 
   private scheduleReconnect(): void {
     if (this.closed || (this.opts.autoReconnect === false)) {
+      return;
+    }
+
+    // Keep exactly one reconnect timeline alive. A single failed attempt can
+    // surface twice — once as a socket "close" and once as the connect()
+    // rejection — and two timers would race, doubling the attempt counter and
+    // defeating the backoff. While an attempt is in flight, its caller is
+    // responsible for scheduling the next one.
+    if (this.reconnectTimer || this.connecting) {
       return;
     }
 
@@ -276,7 +337,10 @@ export class GatewayRpcClient {
       this.reconnectTimer = null;
       this.connect().catch((err) => {
         log.warn(`Reconnect failed: ${(err as Error).message ?? err}`);
-        // connect() failure triggers ws close → scheduleReconnect() will be called again
+        // Schedule the next attempt here rather than relying on the socket's
+        // close handler: a handshake that times out rejects connect() without
+        // the socket ever emitting "close" on its own.
+        this.scheduleReconnect();
       });
     }, delay);
   }
