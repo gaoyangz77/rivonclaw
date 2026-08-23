@@ -23649,16 +23649,6 @@ html[lang="zh"] .acct-tool-chips {
   gap: 8px;
 }
 
-.affiliate-agent-work-detail-relationship-button {
-  gap: 6px;
-  min-height: 34px;
-}
-
-.affiliate-agent-work-detail-relationship-button svg {
-  width: 15px;
-  height: 15px;
-}
-
 .affiliate-agent-work-detail-body {
   display: grid;
   grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
@@ -24094,10 +24084,6 @@ html[lang="zh"] .acct-tool-chips {
 
   .affiliate-agent-work-detail-header {
     padding: 15px 14px 13px;
-  }
-
-  .affiliate-agent-work-detail-header-actions .affiliate-agent-work-detail-relationship-button span {
-    display: none;
   }
 
   .affiliate-agent-work-detail-body {
@@ -24695,6 +24681,25 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-primary);
   font-size: 14px;
   font-weight: 800;
+}
+
+.affiliate-creator-avatar-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.affiliate-creator-avatar-button:hover .affiliate-avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 38%, transparent);
+}
+
+.affiliate-creator-avatar-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .affiliate-remote-avatar-image {

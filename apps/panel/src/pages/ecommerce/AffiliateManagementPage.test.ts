@@ -844,6 +844,53 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("showRevisionHistory={false}");
   });
 
+  it("opens Creator details from the work-detail avatar without a redundant workspace button", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const detailModal = page.slice(
+      page.indexOf("function AgentWorkBundleDetailModal"),
+      page.indexOf("function AgentWorkReviewContext"),
+    );
+    const card = page.slice(
+      page.indexOf("function AgentWorkBundleCard"),
+      page.indexOf("function AgentWorkRevisionHistory"),
+    );
+
+    expect(detailModal).toContain("onOpenCreator={onOpenCreator}");
+    expect(detailModal).not.toContain("agentWorkDetail.openRelationship");
+    expect(card).toContain("onOpen={openCreator}");
+    expect(page).toContain('className="affiliate-creator-avatar-button"');
+    const openCreatorDetailStart = page.indexOf("function openCreatorDetail");
+    const openCreatorDetail = page.slice(
+      openCreatorDetailStart,
+      page.indexOf("if (authChecking)", openCreatorDetailStart),
+    );
+    expect(openCreatorDetail).toContain("setSelectedRelationship(detail)");
+    expect(openCreatorDetail).not.toContain("setSelectedAgentWorkBundle(null)");
+    expect(page).toContain("covered={Boolean(selectedRelationship)}");
+    expect(detailModal).toContain("if (covered) return");
+  });
+
+  it("removes a decided row before the mutation resolves and restores it on failure", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const decideProposal = page.slice(
+      page.indexOf("async function decideProposal"),
+      page.indexOf("async function refetchActive"),
+    );
+    const mutationIndex = decideProposal.indexOf("await decideActionProposal");
+
+    expect(decideProposal.indexOf("const optimisticProposal")).toBeLessThan(mutationIndex);
+    expect(decideProposal.indexOf("setProposalPageBuffer")).toBeLessThan(mutationIndex);
+    expect(decideProposal).toContain("optimisticApplied = true");
+    expect(decideProposal).toContain("items: applyAffiliateProposalChange(current.items, proposal, decisionFilters)");
+    expect(decideProposal).toContain("return false");
+  });
+
   it("anchors review context to the Agent run and shows prior relationship work", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),

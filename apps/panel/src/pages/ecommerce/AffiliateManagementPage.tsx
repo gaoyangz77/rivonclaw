@@ -999,7 +999,14 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
     proposal: GQL.ActionProposal,
     status: GQL.ActionProposalStatus,
     note?: string,
-  ) {
+  ): Promise<boolean> {
+    let optimisticApplied = false;
+    const decisionFilters = {
+      shopId: selectedShopId || undefined,
+      businessDeveloperId: selectedBusinessDeveloperId || undefined,
+      status: proposalStatus,
+      type: proposalType,
+    };
     try {
       const creatorRelationshipId = proposal.creatorRelationshipId ?? proposal.sourceWorkBoundary?.creatorRelationshipId;
       if (!creatorRelationshipId) {
@@ -1014,6 +1021,19 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
             ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.overrideNote")
             : t("ecommerce.shopDrawer.affiliate.proposalRejectedNote")
       );
+      const decidedAt = new Date().toISOString();
+      const optimisticProposal = {
+        ...proposal,
+        status,
+        updatedAt: decidedAt,
+      } as GQL.ActionProposal;
+      setProposalPageBuffer((current) => current.queryKey !== proposalQueryKey
+        ? current
+        : {
+            ...current,
+            items: applyAffiliateProposalChange(current.items, optimisticProposal, decisionFilters),
+          });
+      optimisticApplied = true;
       const result = await decideActionProposal({
         variables: {
           input: {
@@ -1021,7 +1041,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
             creatorRelationshipId,
             status,
             decision: {
-              decidedAt: new Date().toISOString(),
+              decidedAt,
               note: decisionNote,
             },
           },
@@ -1044,12 +1064,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           ? current
           : {
               ...current,
-              items: applyAffiliateProposalChange(current.items, updatedProposal, {
-                shopId: selectedShopId || undefined,
-                businessDeveloperId: selectedBusinessDeveloperId || undefined,
-                status: proposalStatus,
-                type: proposalType,
-              }),
+              items: applyAffiliateProposalChange(current.items, updatedProposal, decisionFilters),
             });
       }
       showToast(
@@ -1062,8 +1077,18 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           : t("ecommerce.shopDrawer.affiliate.proposalRejectSuccess"),
         "success",
       );
+      return true;
     } catch (err) {
+      if (optimisticApplied) {
+        setProposalPageBuffer((current) => current.queryKey !== proposalQueryKey
+          ? current
+          : {
+              ...current,
+              items: applyAffiliateProposalChange(current.items, proposal, decisionFilters),
+            });
+      }
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
+      return false;
     }
   }
 
@@ -1092,6 +1117,20 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   function shopLabel(shopId: string): string {
     const shop = shops.find((candidate) => candidate.id === shopId);
     return shop?.alias || shop?.shopName || t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
+  }
+
+  function openCreatorDetail(proposal: GQL.ActionProposal): void {
+    const detailItem = relationshipWorkItemFromProposal(
+      proposal,
+      entityStore.affiliateWorkspace,
+    );
+    const detail = detailItem
+      ? relationshipDetailFromWorkItem(detailItem)
+      : proposal.creatorProfile
+        ? relationshipDetailFromProfile(proposal.creatorProfile)
+        : null;
+    if (!detail) return;
+    setSelectedRelationship(detail);
   }
 
   if (authChecking) {
@@ -1238,17 +1277,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
               bundles={visibleAgentWorkBundles}
               shopLabelForId={shopLabel}
               onOpen={setSelectedAgentWorkBundle}
-              onOpenCreator={(bundle) => {
-                const detailItem = relationshipWorkItemFromProposal(
-                  bundle.proposal,
-                  entityStore.affiliateWorkspace,
-                );
-                if (detailItem) {
-                  setSelectedRelationship(relationshipDetailFromWorkItem(detailItem));
-                } else if (bundle.proposal.creatorProfile) {
-                  setSelectedRelationship(relationshipDetailFromProfile(bundle.proposal.creatorProfile));
-                }
-              }}
+              onOpenCreator={(bundle) => openCreatorDetail(bundle.proposal)}
             />
           )}
           {(hasMoreProposals || loadingMoreProposals) ? (
@@ -1285,11 +1314,9 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           shopLabelForId={shopLabel}
           decidingProposal={decidingProposal}
           affiliateWorkspace={entityStore.affiliateWorkspace}
+          covered={Boolean(selectedRelationship)}
           onClose={() => setSelectedAgentWorkBundle(null)}
-          onOpenRelationshipWork={(detailItem) => {
-            setSelectedAgentWorkBundle(null);
-            setSelectedRelationship(relationshipDetailFromWorkItem(detailItem));
-          }}
+          onOpenCreator={() => openCreatorDetail(selectedAgentWorkBundle.proposal)}
           onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
           onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
           onRequestRevision={(item, revisionNote) =>
@@ -5978,8 +6005,9 @@ function AgentWorkBundleDetailModal({
   shopLabelForId,
   decidingProposal,
   affiliateWorkspace,
+  covered,
   onClose,
-  onOpenRelationshipWork,
+  onOpenCreator,
   onApprove,
   onReject,
   onRequestRevision,
@@ -5988,18 +6016,18 @@ function AgentWorkBundleDetailModal({
   shopLabelForId: (shopId: string) => string;
   decidingProposal: boolean;
   affiliateWorkspace: AffiliateWorkspaceStore;
+  covered: boolean;
   onClose: () => void;
-  onOpenRelationshipWork: (item: CreatorRelationshipWorkItem) => void;
-  onApprove: (proposal: GQL.ActionProposal) => Promise<void>;
-  onReject: (proposal: GQL.ActionProposal) => Promise<void>;
-  onRequestRevision: (proposal: GQL.ActionProposal, note: string) => Promise<void>;
+  onOpenCreator: (profile: GQL.AffiliateCreatorIdentity) => void;
+  onApprove: (proposal: GQL.ActionProposal) => Promise<boolean>;
+  onReject: (proposal: GQL.ActionProposal) => Promise<boolean>;
+  onRequestRevision: (proposal: GQL.ActionProposal, note: string) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
   const proposal = bundle.proposal;
   const shopLabels = actionProposalDisplayShopIds(proposal).map(shopLabelForId);
   const primaryShopLabel = shopLabels[0]
     ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
-  const detailItem = relationshipWorkItemFromProposal(proposal, affiliateWorkspace);
   const isPending = proposal.status === GQL.ActionProposalStatus.Pending;
   const titleId = `affiliate-agent-work-detail-${proposal.id}`;
   const relationshipId = proposal.creatorRelationshipId
@@ -6055,12 +6083,13 @@ function AgentWorkBundleDetailModal({
   });
 
   useEffect(() => {
+    if (covered) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [covered, onClose]);
 
   return (
     <div className="modal-backdrop affiliate-agent-work-detail-backdrop" role="presentation" onClick={onClose}>
@@ -6086,16 +6115,6 @@ function AgentWorkBundleDetailModal({
             </p>
           </div>
           <div className="affiliate-agent-work-detail-header-actions">
-            {detailItem ? (
-              <button
-                className="btn btn-secondary affiliate-agent-work-detail-relationship-button"
-                type="button"
-                onClick={() => onOpenRelationshipWork(detailItem)}
-              >
-                <EyeIcon />
-                <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.openRelationship")}</span>
-              </button>
-            ) : null}
             <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
               ×
             </button>
@@ -6125,6 +6144,7 @@ function AgentWorkBundleDetailModal({
               allowDecisionActions={isPending}
               showRevisionHistory={false}
               affiliateWorkspace={affiliateWorkspace}
+              onOpenCreator={onOpenCreator}
               onApprove={isPending ? onApprove : undefined}
               onReject={isPending ? onReject : undefined}
               onRequestRevision={isPending ? onRequestRevision : undefined}
@@ -6341,9 +6361,9 @@ function AgentWorkBundleCard({
   affiliateWorkspace?: AffiliateWorkspaceStore;
   onOpenRelationshipWork?: (item: CreatorRelationshipWorkItem) => void;
   onOpenCreator?: (profile: GQL.AffiliateCreatorIdentity) => void;
-  onApprove?: (proposal: GQL.ActionProposal) => Promise<void>;
-  onReject?: (proposal: GQL.ActionProposal) => Promise<void>;
-  onRequestRevision?: (proposal: GQL.ActionProposal, note: string) => Promise<void>;
+  onApprove?: (proposal: GQL.ActionProposal) => Promise<boolean>;
+  onReject?: (proposal: GQL.ActionProposal) => Promise<boolean>;
+  onRequestRevision?: (proposal: GQL.ActionProposal, note: string) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
   const [compactOpen, setCompactOpen] = useState(false);
@@ -6355,6 +6375,9 @@ function AgentWorkBundleCard({
     : t("ecommerce.affiliateWorkspace.unknownCreator");
   const creatorHandle = proposal.creatorProfile ? creatorTikTokHandle(proposal.creatorProfile) : null;
   const creatorPlatformId = proposal.creatorProfile ? creatorPlatformIdentity(proposal.creatorProfile) : null;
+  const openCreator = proposal.creatorProfile && onOpenCreator
+    ? () => onOpenCreator(proposal.creatorProfile as GQL.AffiliateCreatorIdentity)
+    : undefined;
   const sampleReviewRows = proposalSampleReviewRows(proposal);
   const recommendationTitle = renderAgentWorkRecommendationTitle(proposal, t);
   const executionDescription = sampleReviewRows.length > 0
@@ -6494,7 +6517,8 @@ function AgentWorkBundleCard({
             if (!trimmedRevisionNote) return;
             const revisionPromise = onRequestRevision?.(proposal, trimmedRevisionNote);
             if (revisionPromise) {
-              void revisionPromise.then(() => {
+              void revisionPromise.then((succeeded) => {
+                if (!succeeded) return;
                 setRevisionOpen(false);
                 setRevisionNote("");
               });
@@ -6540,15 +6564,12 @@ function AgentWorkBundleCard({
                 avatarUrl={proposal.creatorProfile?.avatarUrl}
                 className="affiliate-avatar affiliate-remote-avatar-image"
                 name={creatorName}
+                onOpen={openCreator}
               />
               <div className="affiliate-creator-text">
                 <CreatorName
                   name={creatorName}
-                  onOpen={
-                    proposal.creatorProfile && onOpenCreator
-                      ? () => onOpenCreator(proposal.creatorProfile as GQL.AffiliateCreatorIdentity)
-                      : undefined
-                  }
+                  onOpen={openCreator}
                 />
                 <CreatorPlatformId
                   handle={creatorHandle}
@@ -6712,15 +6733,12 @@ function AgentWorkBundleCard({
             avatarUrl={proposal.creatorProfile?.avatarUrl}
             className="affiliate-avatar affiliate-remote-avatar-image"
             name={creatorName}
+            onOpen={openCreator}
           />
           <div className="affiliate-creator-text">
             <CreatorName
               name={creatorName}
-              onOpen={
-                proposal.creatorProfile && onOpenCreator
-                  ? () => onOpenCreator(proposal.creatorProfile as GQL.AffiliateCreatorIdentity)
-                  : undefined
-              }
+              onOpen={openCreator}
             />
             <CreatorPlatformId
               handle={creatorHandle}
@@ -8008,12 +8026,15 @@ function CreatorAvatarImage({
   className,
   fallbackClassName,
   name,
+  onOpen,
 }: {
   avatarUrl?: string | null;
   className: string;
   fallbackClassName?: string;
   name: string;
+  onOpen?: () => void;
 }) {
+  const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
   const initial = name.trim().slice(0, 1).toUpperCase() || "?";
   const handleImageError = useCallback(() => setFailed(true), []);
@@ -8022,23 +8043,39 @@ function CreatorAvatarImage({
     setFailed(false);
   }, [avatarUrl]);
 
-  if (!avatarUrl || failed) {
-    return (
+  const avatar = !avatarUrl || failed
+    ? (
       <div className={`${className} ${fallbackClassName ?? ""}`.trim()} aria-hidden="true">
         {initial}
       </div>
+    )
+    : (
+      <RemoteMediaImage
+        alt=""
+        cachePolicy="force"
+        className={className}
+        loading="lazy"
+        onImageError={handleImageError}
+        sourceUrl={avatarUrl}
+      />
     );
-  }
+
+  if (!onOpen) return avatar;
 
   return (
-    <RemoteMediaImage
-      alt=""
-      cachePolicy="force"
-      className={className}
-      loading="lazy"
-      onImageError={handleImageError}
-      sourceUrl={avatarUrl}
-    />
+    <button
+      className="affiliate-creator-avatar-button"
+      type="button"
+      title={t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+      aria-label={t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen();
+      }}
+    >
+      {avatar}
+    </button>
   );
 }
 
