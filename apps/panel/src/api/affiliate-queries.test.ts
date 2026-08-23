@@ -112,8 +112,13 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorRelationship");
     expect(query).toContain("businessDeveloperIdSnapshot");
     expect(query).toContain("shopStates");
+    expect(query).toContain("activeSampleApplicationCount");
+    expect(query).not.toContain("activeSampleApplicationRecordIds");
     expect(query).toContain("creatorProfile");
+    expect(query).toContain("currentPerformance");
+    expect(query).toContain("averageVideoViews");
     expect(query).toContain("sourceWorkBoundary");
+    expect(query).toContain("triggerShopId");
     expect(query).toContain("affiliateCollaboration");
     expect(query).toContain("sampleApplicationRecord");
     expect(query).toContain("sampleReviewIntent");
@@ -169,6 +174,7 @@ describe("affiliate workspace GraphQL contracts", () => {
 
     expect(detail).toContain("agendaItems");
     expect(detail).toContain("activeSampleApplicationCount");
+    expect(detail).toContain("activeSampleApplicationRecordIds");
     expect(detail).toContain("activePlatformCollaborationCount");
     expect(samples).toContain("affiliateRelationshipSampleApplications");
     expect(samples).toContain("platformApplicationId");

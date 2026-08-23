@@ -23266,94 +23266,834 @@ html[lang="zh"] .acct-tool-chips {
   min-height: 180px;
 }
 
-.affiliate-workbench-list.affiliate-proposal-timeline {
-  position: relative;
-  display: block;
-  padding: 20px 18px 28px;
+.affiliate-agent-work-table-shell {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--color-bg);
 }
 
-.affiliate-proposal-timeline::before {
-  content: "";
-  position: absolute;
-  top: 22px;
-  bottom: 30px;
-  left: 118px;
-  width: 2px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+.affiliate-agent-work-table {
+  width: 100%;
+  min-width: 1260px;
+  border-collapse: collapse;
+  table-layout: auto;
 }
 
-.affiliate-proposal-timeline-entry {
-  position: relative;
-  display: grid;
-  grid-template-columns: 88px 24px minmax(0, 1fr);
-  align-items: start;
-  margin-bottom: 18px;
+.affiliate-agent-work-col-time {
+  width: 108px;
 }
 
-.affiliate-proposal-timeline-entry:last-child {
-  margin-bottom: 0;
+.affiliate-agent-work-col-shop {
+  width: 1%;
 }
 
-.affiliate-proposal-timeline-entry > time {
-  padding: 13px 12px 0 0;
+.affiliate-agent-work-col-creator {
+  width: 200px;
+}
+
+.affiliate-agent-work-col-creator-metrics {
+  width: 292px;
+}
+
+.affiliate-agent-work-col-type {
+  width: 142px;
+}
+
+.affiliate-agent-work-col-work {
+  width: 240px;
+}
+
+.affiliate-agent-work-col-status {
+  width: 116px;
+}
+
+.affiliate-agent-work-table th {
+  height: 42px;
+  padding: 0 13px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg));
   color: var(--color-text-muted);
   font-size: 11px;
-  font-weight: 720;
-  line-height: 1.35;
-  text-align: right;
+  font-weight: 760;
+  letter-spacing: 0.035em;
+  text-align: left;
+  white-space: nowrap;
 }
 
-.affiliate-proposal-timeline-marker {
+.affiliate-agent-work-table-row {
   position: relative;
-  z-index: 1;
-  width: 12px;
-  height: 12px;
-  margin: 16px auto 0;
-  border: 3px solid var(--color-bg);
-  border-radius: 999px;
-  background: var(--color-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 34%, var(--color-border-light));
+  height: 82px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
-.affiliate-proposal-timeline-entry > .affiliate-action-proposal-card-row {
+.affiliate-agent-work-table-row + .affiliate-agent-work-table-row td {
+  border-top: 1px solid color-mix(in srgb, var(--color-border-light) 72%, transparent);
+}
+
+.affiliate-agent-work-table-row:hover {
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg));
+}
+
+.affiliate-agent-work-table-row:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg));
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.affiliate-agent-work-table td {
+  min-width: 0;
+  padding: 10px 13px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  vertical-align: middle;
+}
+
+.affiliate-agent-work-table-time time {
+  display: grid;
+  gap: 2px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.affiliate-agent-work-table-time time strong {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.affiliate-agent-work-table-time time span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.affiliate-agent-work-table-shop {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.affiliate-agent-work-table-shop strong {
+  display: inline-block;
+  max-width: 142px;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.affiliate-agent-work-table-shop span {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.affiliate-agent-work-table-creator {
   min-width: 0;
 }
 
+.affiliate-agent-work-table-creator-button {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.affiliate-agent-work-table-creator-button:hover .affiliate-agent-work-table-creator-copy strong,
+.affiliate-agent-work-table-creator-button:focus-visible .affiliate-agent-work-table-creator-copy strong {
+  color: var(--color-primary);
+}
+
+.affiliate-agent-work-table-creator-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.affiliate-agent-work-table-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 0;
+  font-size: 12px;
+  object-fit: cover;
+}
+
+.affiliate-agent-work-table-creator-copy {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+
+.affiliate-agent-work-table-creator-copy strong,
+.affiliate-agent-work-table-creator-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-agent-work-table-creator-copy strong {
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 740;
+}
+
+.affiliate-agent-work-table-creator-copy small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.affiliate-agent-work-creator-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.affiliate-agent-work-creator-metric-grid > span {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 5px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-border-light) 82%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg-alt) 62%, var(--color-bg));
+}
+
+.affiliate-agent-work-creator-metric-grid small,
+.affiliate-agent-work-creator-metric-grid strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-agent-work-creator-metric-grid small {
+  color: var(--color-text-muted);
+  font-size: 8px;
+  font-weight: 680;
+}
+
+.affiliate-agent-work-creator-metric-grid strong {
+  color: var(--color-text);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 780;
+}
+
+.affiliate-agent-work-table-type > span {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 24px;
+  align-items: center;
+  overflow: hidden;
+  padding: 3px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-agent-work-type-send-message {
+  border-color: color-mix(in srgb, #288bd7 34%, var(--color-border-light)) !important;
+  background: color-mix(in srgb, #288bd7 10%, var(--color-bg)) !important;
+  color: color-mix(in srgb, #288bd7 82%, var(--color-text)) !important;
+}
+
+.affiliate-agent-work-type-review-sample-application {
+  border-color: color-mix(in srgb, #d27b18 36%, var(--color-border-light)) !important;
+  background: color-mix(in srgb, #d27b18 10%, var(--color-bg)) !important;
+  color: color-mix(in srgb, #d27b18 80%, var(--color-text)) !important;
+}
+
+.affiliate-agent-work-type-no-action-needed {
+  border-color: color-mix(in srgb, #2f9c72 32%, var(--color-border-light)) !important;
+  background: color-mix(in srgb, #2f9c72 9%, var(--color-bg)) !important;
+  color: color-mix(in srgb, #2f9c72 78%, var(--color-text)) !important;
+}
+
+.affiliate-agent-work-table-work {
+  overflow: hidden;
+}
+
+.affiliate-agent-work-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.affiliate-agent-work-table-action {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.affiliate-agent-work-table-action-reject {
+  border-color: color-mix(in srgb, var(--color-danger, #cf3e43) 38%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-danger, #cf3e43) 10%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-danger, #cf3e43) 84%, var(--color-text));
+}
+
+.affiliate-agent-work-table-action-approve {
+  border-color: color-mix(in srgb, #25835f 36%, var(--color-border-light));
+  background: color-mix(in srgb, #25835f 10%, var(--color-bg));
+  color: color-mix(in srgb, #25835f 84%, var(--color-text));
+}
+
+.affiliate-agent-work-table-action-message {
+  border-color: color-mix(in srgb, var(--color-text-muted) 34%, var(--color-border-light));
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.affiliate-agent-work-table-status {
+  white-space: nowrap;
+}
+
+.affiliate-agent-work-detail-backdrop {
+  align-items: center;
+  padding: 24px;
+}
+
+.affiliate-agent-work-detail-modal {
+  display: flex;
+  width: min(1240px, calc(100vw - 32px));
+  max-width: 1240px;
+  height: min(820px, calc(100vh - 40px));
+  max-height: calc(100vh - 40px);
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.affiliate-agent-work-detail-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px 15px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--color-bg-alt) 52%, var(--color-bg));
+}
+
+.affiliate-agent-work-detail-heading {
+  min-width: 0;
+}
+
+.affiliate-agent-work-detail-heading > span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--color-primary);
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: 0.13em;
+}
+
+.affiliate-agent-work-detail-heading h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 19px;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.affiliate-agent-work-detail-heading p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 10px;
+  margin: 7px 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.affiliate-agent-work-detail-heading p > strong {
+  color: var(--color-text-secondary);
+}
+
+.affiliate-agent-work-detail-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.affiliate-agent-work-detail-relationship-button {
+  gap: 6px;
+  min-height: 34px;
+}
+
+.affiliate-agent-work-detail-relationship-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.affiliate-agent-work-detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 18px;
+  overflow: hidden;
+  padding: 18px 18px 20px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg)) 0%,
+    var(--color-bg) 170px
+  );
+}
+
+.affiliate-agent-work-detail-main {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 2px 2px 18px;
+}
+
+.affiliate-agent-work-detail-main > .affiliate-work-item-card {
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--color-text) 7%, transparent);
+}
+
+.affiliate-agent-review-context {
+  min-width: 0;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.affiliate-agent-review-context-head {
+  padding: 15px 15px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-primary) 7%, var(--color-bg)) 0%,
+    color-mix(in srgb, var(--color-bg-alt) 68%, var(--color-bg)) 100%
+  );
+}
+
+.affiliate-agent-review-context-head > span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--color-primary);
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: 0.12em;
+}
+
+.affiliate-agent-review-context-head h3,
+.affiliate-agent-review-context-section h4 {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.affiliate-agent-review-context-head h3 {
+  font-size: 16px;
+  font-weight: 790;
+}
+
+.affiliate-agent-review-context-head p {
+  margin: 5px 0 9px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.affiliate-agent-review-context-head time {
+  display: inline-flex;
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border-light));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.affiliate-agent-review-context-section {
+  padding: 13px 14px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-light) 76%, transparent);
+}
+
+.affiliate-agent-review-context-section:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-agent-review-context-section h4 {
+  font-size: 11px;
+  font-weight: 790;
+}
+
+.affiliate-agent-review-context-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.affiliate-agent-review-context-section-head > span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+
+.affiliate-agent-review-trigger-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.affiliate-agent-review-trigger-facts > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  padding: 6px 7px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-bg-alt);
+}
+
+.affiliate-agent-review-trigger-facts span,
+.affiliate-agent-review-trigger-facts strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-agent-review-trigger-facts span {
+  color: var(--color-text-muted);
+  font-size: 8px;
+  font-weight: 680;
+}
+
+.affiliate-agent-review-trigger-facts strong {
+  color: var(--color-text-secondary);
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.affiliate-agent-review-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.affiliate-agent-review-metrics .affiliate-relationship-work-metric {
+  padding: 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg-alt) 62%, var(--color-bg));
+}
+
+.affiliate-agent-review-metrics .affiliate-relationship-work-metric strong {
+  font-size: 12px;
+}
+
+.affiliate-agent-review-context-state {
+  padding: 12px 0 2px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.affiliate-agent-review-context-state-error {
+  color: var(--color-danger, #c84747);
+}
+
+.affiliate-agent-review-history-section {
+  min-height: 160px;
+}
+
+.affiliate-agent-review-previous-work {
+  margin-top: 15px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.affiliate-agent-review-previous-work-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.affiliate-agent-review-previous-work-list article {
+  padding: 8px 9px;
+  border: 1px solid color-mix(in srgb, #3c74ba 20%, var(--color-border-light));
+  border-radius: 7px;
+  background: color-mix(in srgb, #3c74ba 5%, var(--color-bg));
+}
+
+.affiliate-agent-review-previous-work-list article > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  color: var(--color-text-muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.affiliate-agent-review-previous-work-list article time {
+  margin-left: auto;
+}
+
+.affiliate-agent-review-previous-work-list p {
+  display: -webkit-box;
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.affiliate-agent-review-history {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-left: 13px;
+}
+
+.affiliate-agent-review-history::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 7px;
+  left: 3px;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+}
+
+.affiliate-agent-review-history-item {
+  position: relative;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg-alt) 46%, var(--color-bg));
+}
+
+.affiliate-agent-review-history-item::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: -14px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--color-bg);
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.affiliate-agent-review-history-meta {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.affiliate-agent-review-history-item > strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 770;
+}
+
+.affiliate-agent-review-history-item p {
+  display: -webkit-box;
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  white-space: pre-wrap;
+}
+
+.affiliate-agent-review-history-gap {
+  display: grid;
+  grid-template-columns: minmax(8px, 1fr) auto minmax(8px, 1fr);
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text-muted);
+  font-size: 8px;
+}
+
+.affiliate-agent-review-history-gap span {
+  height: 1px;
+  background: var(--color-border-light);
+}
+
+.affiliate-agent-review-history-gap em {
+  font-style: normal;
+}
+
+@media (max-width: 1040px) {
+  .affiliate-agent-work-detail-body {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .affiliate-agent-work-detail-main,
+  .affiliate-agent-review-context {
+    overflow: visible;
+  }
+
+  .affiliate-agent-review-context {
+    margin-top: 14px;
+  }
+}
+
 @media (max-width: 760px) {
-  .affiliate-workbench-list.affiliate-proposal-timeline {
-    padding: 14px 12px 22px;
+  .affiliate-agent-work-table-shell {
+    overflow: visible;
+    padding: 8px;
+    background: color-mix(in srgb, var(--color-bg-alt) 58%, var(--color-bg));
   }
 
-  .affiliate-proposal-timeline::before {
-    top: 18px;
-    bottom: 24px;
-    left: 23px;
+  .affiliate-agent-work-table,
+  .affiliate-agent-work-table tbody {
+    display: block;
+    min-width: 0;
   }
 
-  .affiliate-proposal-timeline-entry {
-    grid-template-columns: 22px minmax(0, 1fr);
-    margin-bottom: 14px;
+  .affiliate-agent-work-table colgroup,
+  .affiliate-agent-work-table thead {
+    display: none;
   }
 
-  .affiliate-proposal-timeline-entry > time {
-    grid-column: 2;
-    grid-row: 1;
-    padding: 0 0 7px 4px;
-    text-align: left;
+  .affiliate-agent-work-table tbody {
+    display: grid;
+    gap: 8px;
   }
 
-  .affiliate-proposal-timeline-marker {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    width: 10px;
-    height: 10px;
-    margin-top: 1px;
+  .affiliate-agent-work-table-row {
+    display: grid;
+    height: auto;
+    min-height: 112px;
+    grid-template-areas:
+      "work status"
+      "creator creator"
+      "metrics metrics"
+      "time time"
+      "shop type";
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    padding: 12px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    background: var(--color-bg);
+    box-shadow: var(--shadow-sm);
   }
 
-  .affiliate-proposal-timeline-entry > .affiliate-action-proposal-card-row {
-    grid-column: 2;
-    grid-row: 2;
+  .affiliate-agent-work-table-row + .affiliate-agent-work-table-row td {
+    border-top: 0;
+  }
+
+  .affiliate-agent-work-table td {
+    display: flex;
+    padding: 0;
+    border: 0;
+  }
+
+  .affiliate-agent-work-table-time {
+    grid-area: time;
+  }
+
+  .affiliate-agent-work-table-shop {
+    grid-area: shop;
+  }
+
+  .affiliate-agent-work-table-creator {
+    grid-area: creator;
+  }
+
+  .affiliate-agent-work-table-creator-button {
+    width: auto;
+  }
+
+  .affiliate-agent-work-table-creator-metrics {
+    grid-area: metrics;
+  }
+
+  .affiliate-agent-work-creator-metric-grid {
+    width: 100%;
+  }
+
+  .affiliate-agent-work-table-type {
+    grid-area: type;
+    justify-content: flex-end;
+  }
+
+  .affiliate-agent-work-table-work {
+    grid-area: work;
+    display: block !important;
+    width: auto;
+  }
+
+  .affiliate-agent-work-table-status {
+    grid-area: status;
+    justify-content: flex-end;
+  }
+
+  .affiliate-agent-work-detail-backdrop {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .affiliate-agent-work-detail-modal {
+    width: 100%;
+    max-width: none;
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .affiliate-agent-work-detail-header {
+    padding: 15px 14px 13px;
+  }
+
+  .affiliate-agent-work-detail-header-actions .affiliate-agent-work-detail-relationship-button span {
+    display: none;
+  }
+
+  .affiliate-agent-work-detail-body {
+    padding: 12px;
   }
 }
 
@@ -24820,6 +25560,19 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-card-execution-section .affiliate-work-item-preview {
+  margin-top: 4px;
+  background: var(--color-bg);
+}
+
+.affiliate-card-bundled-message-section {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #288bd7 24%, var(--color-border-light));
+  border-left: 3px solid color-mix(in srgb, #288bd7 72%, var(--color-primary));
+  border-radius: 8px;
+  background: color-mix(in srgb, #288bd7 5%, var(--color-bg));
+}
+
+.affiliate-card-bundled-message-section .affiliate-work-item-preview {
   margin-top: 4px;
   background: var(--color-bg);
 }

@@ -1333,6 +1333,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           shopId
         }
       }
+      activeSampleApplicationCount
       creatorProfile {
         id
         creatorOpenId
@@ -1340,6 +1341,19 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         username
         nickname
         avatarUrl
+        currentPerformance {
+          observedAt
+          followerCount
+          averageVideoViews
+          gmv {
+            amount
+            currency
+            minimumAmount
+            maximumAmount
+            window
+            precision
+          }
+        }
         createdAt
         updatedAt
       }
@@ -1358,6 +1372,7 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         triggerKind
         triggerId
         triggerChannel
+        triggerShopId
         triggerLifecycleEventId
         recommendedActionTypes
       }
@@ -2708,6 +2723,7 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
       creatorRelationship {
         id
         creatorId
+        activeSampleApplicationRecordIds
         businessDeveloperId
         operationalConfigRevision
         blocked
