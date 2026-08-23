@@ -1,0 +1,175 @@
+From 40392d3dd16b4d5e09a6dc3b4f9e63a84e9ba10a Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Sat, 22 Aug 2026 22:34:11 -0700
+Subject: [PATCH] vendor(openclaw): give the cron fence a Windows process
+ identity
+
+Why:
+- `prepareCronRunReceiptClaim` requires a non-null process start time, but
+  `shared/pid-alive.ts#getFileLockProcessStartTime` implements Linux procfs and
+  macOS `ps` only and returns null on every other platform. On Windows every
+  cron execution therefore fails immediately with "cron run cannot acquire a
+  durable fence without process start identity", for both scheduled runs and
+  manual run-now, because both enter through the same admission claim.
+- Upstream already ships `infra/windows-port-pids.ts#readWindowsProcessStartTimeSync`
+  for exactly this purpose, and both `infra/gateway-lock.ts` and
+  `node-host/node-worker-process-identity.ts` already wrap the shared helper
+  with this win32 branch. The cron receipt store was simply missed.
+- The staleness comparison is switched to the same reader so the persisted and
+  observed owner identities stay in one unit; fixing only the claim would make
+  Windows write a creation timestamp and then compare it against null, silently
+  disabling PID-reuse detection.
+- Fixed at the cron call site rather than in `shared/pid-alive.ts` to keep the
+  blast radius on cron: the shared helper also backs file locks, startup
+  migration checkpoints, and stale-lock adjudication, whose Windows semantics
+  are out of scope here, and `shared/` deliberately does not depend on `infra/`.
+
+Removal:
+- Drop this patch once the pin contains an upstream `getFileLockProcessStartTime`
+  that resolves a Windows process start time (or an equivalent cron-side fix).
+  Verify by running the vendor regression below on pristine vendor with the
+  platform stubbed to win32; it must still acquire a fence.
+
+Tests:
+- src/cron/store/run-receipt-store.windows-start-time.test.ts
+- apps/desktop/src/gateway/vendor-windows-cron-fence.sentinel.test.ts
+---
+ src/cron/store/run-receipt-store.ts           | 33 +++++++++-
+ ...n-receipt-store.windows-start-time.test.ts | 60 +++++++++++++++++++
+ 2 files changed, 91 insertions(+), 2 deletions(-)
+ create mode 100644 src/cron/store/run-receipt-store.windows-start-time.test.ts
+
+diff --git a/src/cron/store/run-receipt-store.ts b/src/cron/store/run-receipt-store.ts
+index 77a5b5e3758..0c28d0bec58 100644
+--- a/src/cron/store/run-receipt-store.ts
++++ b/src/cron/store/run-receipt-store.ts
+@@ -6,6 +6,7 @@ import {
+   executeSqliteQueryTakeFirstSync,
+   getNodeSqliteKysely,
+ } from "../../infra/kysely-sync.js";
++import { readWindowsProcessStartTimeSync } from "../../infra/windows-port-pids.js";
+ import { getFileLockProcessStartTime, isPidDefinitelyDead } from "../../shared/pid-alive.js";
+ import type { DB as OpenClawStateDatabase } from "../../state/openclaw-state-db.generated.js";
+ import {
+@@ -254,6 +255,34 @@ function observeOwner(row: CronRunReceiptRow): CronRunReceiptOwnerObservation {
+   };
+ }
+ 
++/**
++ * Cross-platform process start identity for the cron durable fence.
++ *
++ * `getFileLockProcessStartTime` implements Linux procfs and macOS `ps` only,
++ * so it returns null on Windows and the fence below can never be acquired
++ * there. `infra/gateway-lock.ts` and `node-host/node-worker-process-identity.ts`
++ * already wrap it with exactly this win32 branch; the cron receipt store was
++ * missed. Both the claim and the staleness comparison must read through here
++ * so the persisted and observed identities stay in the same unit.
++ */
++function readCronOwnerStartTime(pid: number): number | null {
++  return process.platform === "win32"
++    ? readWindowsProcessStartTimeSync(pid)
++    : getFileLockProcessStartTime(pid);
++}
++
++/**
++ * Our own start time is immutable, and the Windows probe spawns PowerShell, so
++ * cache it per process. A failed probe stays uncached so a transient failure
++ * can still recover on the next claim (mirrors `infra/file-lock-sync.ts`).
++ */
++let currentProcessStartTime: number | null | undefined;
++
++function readCurrentProcessStartTime(): number | null {
++  currentProcessStartTime ??= readCronOwnerStartTime(process.pid);
++  return currentProcessStartTime;
++}
++
+ function ownerDefinitelyStale(owner: {
+   receiptId: string;
+   ownerPid: number;
+@@ -265,7 +294,7 @@ function ownerDefinitelyStale(owner: {
+   if (isPidDefinitelyDead(owner.ownerPid)) {
+     return true;
+   }
+-  const observedStartTime = getFileLockProcessStartTime(owner.ownerPid);
++  const observedStartTime = readCronOwnerStartTime(owner.ownerPid);
+   return (
+     owner.ownerStartTime !== null &&
+     observedStartTime !== null &&
+@@ -367,7 +396,7 @@ export function prepareCronRunReceiptClaim(params: {
+   requestRunId?: string;
+   env?: NodeJS.ProcessEnv;
+ }): PreparedCronRunReceiptClaim {
+-  const ownerStartTime = getFileLockProcessStartTime(process.pid);
++  const ownerStartTime = readCurrentProcessStartTime();
+   if (ownerStartTime === null) {
+     throw new Error("cron run cannot acquire a durable fence without process start identity");
+   }
+diff --git a/src/cron/store/run-receipt-store.windows-start-time.test.ts b/src/cron/store/run-receipt-store.windows-start-time.test.ts
+new file mode 100644
+index 00000000000..d0668ce3579
+--- /dev/null
++++ b/src/cron/store/run-receipt-store.windows-start-time.test.ts
+@@ -0,0 +1,60 @@
++import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
++import { setupCronServiceSuite } from "../service.test-harness.js";
++import type { CronJob } from "../types.js";
++
++const WINDOWS_START_TIME = 1_787_000_000_000;
++
++// Windows has no procfs and no `ps`, so the shared helper the cron fence used
++// returns null there. Stub the platform plus the Windows probe (which would
++// otherwise spawn PowerShell) and assert the claim still acquires a fence.
++vi.mock("../../shared/pid-alive.js", async (importOriginal) => ({
++  ...(await importOriginal<typeof import("../../shared/pid-alive.js")>()),
++  getFileLockProcessStartTime: () => null,
++}));
++
++vi.mock("../../infra/windows-port-pids.js", async (importOriginal) => ({
++  ...(await importOriginal<typeof import("../../infra/windows-port-pids.js")>()),
++  readWindowsProcessStartTimeSync: () => WINDOWS_START_TIME,
++}));
++
++const { makeStorePath } = setupCronServiceSuite({ prefix: "cron-run-receipt-win32-" });
++const { prepareCronRunReceiptClaim } = await import("./run-receipt-store.js");
++
++const originalPlatform = Object.getOwnPropertyDescriptor(process, "platform")!;
++
++describe("cron run receipt process identity on Windows", () => {
++  beforeAll(() => {
++    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
++  });
++
++  afterAll(() => {
++    Object.defineProperty(process, "platform", originalPlatform);
++  });
++
++  it("acquires a durable fence from the Windows process creation time", async () => {
++    const job: CronJob = {
++      id: "windows-process-incarnation",
++      agentId: "main",
++      name: "windows process incarnation",
++      enabled: true,
++      createdAtMs: 1,
++      updatedAtMs: 1,
++      schedule: { kind: "every", everyMs: 60_000 },
++      sessionTarget: "isolated",
++      wakeMode: "next-heartbeat",
++      payload: { kind: "agentTurn", message: "must run" },
++      state: {},
++    };
++
++    const { storePath } = await makeStorePath();
++    const prepared = prepareCronRunReceiptClaim({
++      storePath,
++      job,
++      agentId: "main",
++      startedAtMs: 10,
++    });
++
++    expect(prepared.handle.ownerStartTime).toBe(WINDOWS_START_TIME);
++    expect(prepared.handle.ownerPid).toBe(process.pid);
++  });
++});
+-- 
+2.50.1 (Apple Git-155)
+

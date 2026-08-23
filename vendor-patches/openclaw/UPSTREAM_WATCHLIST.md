@@ -183,6 +183,37 @@ Priorities:
 - Exit condition: a Windows packaged build and empty-PATH runtime contract pass
   on pristine vendor without eager Playwright loading.
 
+### WINDOWS-CRON-001 - Windows process identity for the cron fence
+
+- Priority/status: `P0 waiting-upstream`
+- Symptom: every cron execution on Windows fails immediately with `cron run
+  cannot acquire a durable fence without process start identity`. Scheduled
+  runs and manual run-now both fail because both enter through the same
+  admission claim. macOS and Linux are unaffected.
+- Cause: the durable fence added in `d3308e2cfd9` (`fix(cron): fence executions
+  with durable receipts`, #122948) requires a non-null process start time, but
+  `src/shared/pid-alive.ts#getFileLockProcessStartTime` implements Linux procfs
+  and macOS `ps` only and returns null on Windows. Upstream already ships
+  `src/infra/windows-port-pids.ts#readWindowsProcessStartTimeSync`, and both
+  `infra/gateway-lock.ts` and `node-host/node-worker-process-identity.ts`
+  already wrap the shared helper with a win32 branch; the cron receipt store
+  was missed.
+- Current mitigation: patch `0039` gives the cron receipt store its own
+  cross-platform reader, used by both the claim and the staleness comparison so
+  the persisted and observed owner identities stay in one unit. Fixed at the
+  cron call site, not in `shared/pid-alive.ts`, to keep the blast radius off
+  file locks, startup migration checkpoints, and stale-lock adjudication.
+- Snapshot result: at the `fa62fccb867` pin, `origin/main` was 989 commits ahead
+  and contained no commit touching `src/shared/pid-alive.ts` or
+  `src/cron/store/run-receipt-store.ts`. Upstream has not fixed this.
+- Exit condition: the pin resolves a Windows process start time for the cron
+  fence, either through `getFileLockProcessStartTime` itself or an equivalent
+  cron-side reader. Verify on pristine vendor by running
+  `src/cron/store/run-receipt-store.windows-start-time.test.ts` with the
+  platform stubbed to win32; it must acquire a fence rather than throw. Then
+  retire patch `0039` and
+  `apps/desktop/src/gateway/vendor-windows-cron-fence.sentinel.test.ts`.
+
 ### QR-ACCOUNT-001 - New QR login must not stop existing accounts
 
 - Priority/status: `P1 waiting-upstream`
