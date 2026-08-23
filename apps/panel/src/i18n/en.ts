@@ -3494,9 +3494,9 @@ export default {
         creatorMetrics: {
           title: "Creator data",
           followers: "Followers",
-          gmv: "Commerce GMV",
           avgViews: "Avg. views",
-          activeSamples: "Active samples",
+          engagementRate: "Engagement",
+          shoppableVideos: "Shoppable videos",
         },
         type: "Type",
         work: "Agent work",

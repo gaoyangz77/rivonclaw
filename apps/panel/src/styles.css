@@ -23274,13 +23274,13 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-agent-work-table {
   width: 100%;
-  min-width: 1260px;
+  min-width: 1120px;
   border-collapse: collapse;
   table-layout: auto;
 }
 
 .affiliate-agent-work-col-time {
-  width: 108px;
+  width: 96px;
 }
 
 .affiliate-agent-work-col-shop {
@@ -23288,28 +23288,28 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-agent-work-col-creator {
-  width: 200px;
+  width: 190px;
 }
 
 .affiliate-agent-work-col-creator-metrics {
-  width: 292px;
+  width: 340px;
 }
 
 .affiliate-agent-work-col-type {
-  width: 142px;
+  width: 132px;
 }
 
 .affiliate-agent-work-col-work {
-  width: 240px;
+  width: 190px;
 }
 
 .affiliate-agent-work-col-status {
-  width: 116px;
+  width: 108px;
 }
 
 .affiliate-agent-work-table th {
-  height: 42px;
-  padding: 0 13px;
+  height: 38px;
+  padding: 0 11px;
   border-bottom: 1px solid var(--color-border-light);
   background: color-mix(in srgb, var(--color-bg-alt) 78%, var(--color-bg));
   color: var(--color-text-muted);
@@ -23322,7 +23322,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-agent-work-table-row {
   position: relative;
-  height: 82px;
+  height: 68px;
   cursor: pointer;
   outline: none;
   transition:
@@ -23345,7 +23345,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-agent-work-table td {
   min-width: 0;
-  padding: 10px 13px;
+  padding: 7px 11px;
   color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.35;
@@ -23464,20 +23464,21 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-agent-work-creator-metric-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
 }
 
 .affiliate-agent-work-creator-metric-grid > span {
-  display: flex;
+  display: grid;
   min-width: 0;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 5px;
-  padding: 5px 7px;
-  border: 1px solid color-mix(in srgb, var(--color-border-light) 82%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--color-bg-alt) 62%, var(--color-bg));
+  gap: 2px;
+  padding: 2px 8px;
+  border-left: 1px solid color-mix(in srgb, var(--color-border-light) 86%, transparent);
+}
+
+.affiliate-agent-work-creator-metric-grid > span:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
 
 .affiliate-agent-work-creator-metric-grid small,
@@ -23490,12 +23491,12 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-agent-work-creator-metric-grid small {
   color: var(--color-text-muted);
   font-size: 8px;
-  font-weight: 680;
+  font-weight: 700;
 }
 
 .affiliate-agent-work-creator-metric-grid strong {
   color: var(--color-text);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 780;
 }
@@ -23660,7 +23661,7 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-agent-work-detail-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
   flex: 1 1 auto;
   min-height: 0;
   gap: 18px;
@@ -23975,7 +23976,7 @@ html[lang="zh"] .acct-tool-chips {
     overflow: visible;
   }
 
-  .affiliate-agent-review-context {
+  .affiliate-agent-work-detail-main {
     margin-top: 14px;
   }
 }
@@ -24054,6 +24055,13 @@ html[lang="zh"] .acct-tool-chips {
 
   .affiliate-agent-work-creator-metric-grid {
     width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 8px;
+  }
+
+  .affiliate-agent-work-creator-metric-grid > span:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
   }
 
   .affiliate-agent-work-table-type {

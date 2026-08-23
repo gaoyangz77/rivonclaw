@@ -15,6 +15,7 @@ import {
   formatExpectedSalesUnits,
   getProposalActionProductId,
   groupAgentWorkBundles,
+  hydrateAffiliateProposalProjection,
   mergeAffiliateProposalPage,
   predictionEvidenceHighlightTarget,
   predictionSignalFallbackLabel,
@@ -260,6 +261,27 @@ describe("AffiliateManagementPage proposal source", () => {
     expect(
       selectAffiliateProposalItems(queried, [{ id: "stale-proposal" }]),
     ).toBe(queried);
+  });
+
+  it("keeps fresh list metrics when the cached proposal projection lacks new fields", () => {
+    const queried = {
+      ...proposal("proposal-with-metrics", "PENDING"),
+      creatorFollowerCount: 105_800,
+      creatorAverageVideoViews: 835,
+      creatorEngagementRate: 0.0166,
+      creatorShoppableVideoCount: 34,
+    } as GQL.ActionProposal;
+
+    const hydrated = hydrateAffiliateProposalProjection({
+      proposal: proposal("proposal-with-metrics", "PENDING"),
+    }, queried);
+
+    expect(hydrated).toMatchObject({
+      creatorFollowerCount: 105_800,
+      creatorAverageVideoViews: 835,
+      creatorEngagementRate: 0.0166,
+      creatorShoppableVideoCount: 34,
+    });
   });
 
   const signalFixture = (
@@ -798,11 +820,14 @@ describe("Affiliate canonical UI contract", () => {
     expect(table).toContain("event.stopPropagation()");
     expect(table).toContain("proposal.creatorProfile.username");
     expect(table).toContain("affiliate-agent-work-table-creator-metrics");
-    expect(table).toContain("latestCreatorPerformance(proposal.creatorProfile)");
-    expect(table).toContain("proposal.activeSampleApplicationCount");
+    expect(table).toContain("proposal.creatorFollowerCount");
+    expect(table).toContain("proposal.creatorAverageVideoViews");
+    expect(table).toContain("proposal.creatorEngagementRate");
+    expect(table).toContain("proposal.creatorShoppableVideoCount");
     expect(table).toContain("affiliate-agent-work-type-");
     expect(table).toContain("agentWorkTableActions(proposal, t)");
     expect(table).toContain("affiliate-agent-work-table-action-${action.tone}");
+    expect(page).toContain("sampleRows.length === 0 && proposalHasMessageIntent(proposal)");
     expect(table).not.toContain("proposal.operatorSummary");
   });
 
@@ -837,6 +862,8 @@ describe("Affiliate canonical UI contract", () => {
     expect(detailModal).toContain("item.relatedIds.actionProposalId !== proposal.id");
     expect(detailModal).toContain("previousAgentWork");
     expect(detailModal).toContain("<AgentWorkReviewContext");
+    expect(detailModal.indexOf("<AgentWorkReviewContext"))
+      .toBeLessThan(detailModal.indexOf('className="affiliate-agent-work-detail-main"'));
     expect(detailModal).toContain("ecommerce.affiliateWorkspace.triggerKinds.${source.triggerKind}");
     expect(detailModal.indexOf("agentWorkDetail.recentContext"))
       .toBeLessThan(detailModal.indexOf("agentWorkDetail.previousAgentWork"));

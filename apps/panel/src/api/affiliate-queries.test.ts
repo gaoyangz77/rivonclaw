@@ -112,11 +112,14 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorRelationship");
     expect(query).toContain("businessDeveloperIdSnapshot");
     expect(query).toContain("shopStates");
-    expect(query).toContain("activeSampleApplicationCount");
+    expect(query).not.toContain("activeSampleApplicationCount");
     expect(query).not.toContain("activeSampleApplicationRecordIds");
     expect(query).toContain("creatorProfile");
-    expect(query).toContain("currentPerformance");
-    expect(query).toContain("averageVideoViews");
+    expect(query).not.toContain("currentPerformance");
+    expect(query).toContain("creatorFollowerCount");
+    expect(query).toContain("creatorAverageVideoViews");
+    expect(query).toContain("creatorEngagementRate");
+    expect(query).toContain("creatorShoppableVideoCount");
     expect(query).toContain("sourceWorkBoundary");
     expect(query).toContain("triggerShopId");
     expect(query).toContain("affiliateCollaboration");

@@ -49,6 +49,12 @@ export interface ActionProposal {
   candidateCheckpointId?: Maybe<Scalars['String']['output']>;
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   createdAt: Scalars['DateTimeISO']['output'];
+  /** Latest Creator average video views for compact Agent work list display. */
+  creatorAverageVideoViews?: Maybe<Scalars['Float']['output']>;
+  /** Latest Creator engagement rate for compact Agent work list display. */
+  creatorEngagementRate?: Maybe<Scalars['Float']['output']>;
+  /** Latest Creator follower count for compact Agent work list display. */
+  creatorFollowerCount?: Maybe<Scalars['Int']['output']>;
   creatorId?: Maybe<Scalars['ID']['output']>;
   /** Best-known creator identity for staff review display. This is a profile projection, not proposal execution input. */
   creatorProfile?: Maybe<AffiliateCreatorIdentity>;
@@ -56,6 +62,8 @@ export interface ActionProposal {
   creatorRelationship?: Maybe<AffiliateCreatorRelationship>;
   /** CreatorRelationship owner for BD work; absent for seller shop-operations proposals. */
   creatorRelationshipId?: Maybe<Scalars['ID']['output']>;
+  /** Latest Creator shoppable video count for compact Agent work list display. */
+  creatorShoppableVideoCount?: Maybe<Scalars['Int']['output']>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   decision?: Maybe<ActionProposalDecisionSnapshot>;
   /** Content actually delivered for this proposal, resolved from executionResult.deliveryId. Absent when the proposal never executed a message, or when the Delivery predates retained conversation content. */
