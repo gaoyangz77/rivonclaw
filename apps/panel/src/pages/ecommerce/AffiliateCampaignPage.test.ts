@@ -150,6 +150,9 @@ describe("Affiliate Campaign presentation contracts", () => {
       expect(campaign.loadingCreatorStates).toBeTruthy();
       expect(campaign.viewFirstMessage).toBeTruthy();
       expect(campaign.hideFirstMessage).toBeTruthy();
+      expect(campaign.copyFirstMessage).toBeTruthy();
+      expect(campaign.firstMessageCopied).toBeTruthy();
+      expect(campaign.firstMessageCopyFailed).toBeTruthy();
       expect(campaign.searchConditionsUsedToday).toContain("{{count}}");
       expect(campaign.viewBreakdown).toBeTruthy();
       expect(campaign.activeShops).toBeTruthy();

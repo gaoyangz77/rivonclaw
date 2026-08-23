@@ -982,6 +982,81 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
   };
 
+  const copyFirstMessage = async () => {
+    if (!selectedCampaign) return;
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error(t("ecommerce.affiliateCampaign.firstMessageCopyFailed"));
+      }
+      await navigator.clipboard.writeText(selectedCampaign.messageTemplateText);
+      showToast(t("ecommerce.affiliateCampaign.firstMessageCopied"), "success");
+    } catch {
+      showToast(t("ecommerce.affiliateCampaign.firstMessageCopyFailed"), "error");
+    }
+  };
+
+  const campaignDetailActions = selectedCampaign ? (
+    <div className="affiliate-campaign-detail-actions affiliate-campaign-detail-actions-card">
+      {!isTerminalCampaignStatus(selectedCampaign.status) && (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => openEdit(selectedCampaign)}
+        >
+          {t("ecommerce.affiliateCampaign.edit")}
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn btn-secondary"
+        disabled={duplicateCampaignState.loading}
+        onClick={() => void copyCampaign(selectedCampaign)}
+      >
+        {t("ecommerce.affiliateCampaign.copyCampaign")}
+      </button>
+      {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived && (
+        <button
+          type="button"
+          className="btn btn-danger"
+          disabled={statusMutationState.loading}
+          onClick={() => archiveCampaign(selectedCampaign)}
+        >
+          {t("ecommerce.affiliateCampaign.archive")}
+        </button>
+      )}
+      {selectedCampaign.status === GQL.AffiliateCampaignStatus.Draft && (
+        <button
+          type="button"
+          className="btn btn-danger"
+          disabled={deleteDraftState.loading}
+          onClick={() => void deleteDraftCampaign(selectedCampaign)}
+        >
+          {t("ecommerce.affiliateCampaign.deleteDraft")}
+        </button>
+      )}
+      {!isTerminalCampaignStatus(selectedCampaign.status) && (
+        <button
+          type="button"
+          className={
+            selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
+              ? "btn btn-secondary"
+              : "btn btn-primary affiliate-campaign-primary-action"
+          }
+          disabled={
+            statusMutationState.loading ||
+            (selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
+              selectionReadiness?.ready === false)
+          }
+          onClick={() => void changeStatus(selectedCampaign)}
+        >
+          {selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
+            ? t("ecommerce.affiliateCampaign.pause")
+            : t("ecommerce.affiliateCampaign.reopen")}
+        </button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="affiliate-campaign-page">
       <header className="affiliate-campaign-hero" data-tutorial-id="affiliate-campaign-header">
@@ -1243,175 +1318,137 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       <Modal
         isOpen={Boolean(selectedCampaign)}
         onClose={() => setSelectedCampaignId("")}
-        title={selectedCampaign?.name ?? t("ecommerce.affiliateCampaign.detailTitle")}
+        title={
+          selectedCampaign
+            ? `${selectedCampaign.name} - ${campaignShopDisplayName(
+                selectedCampaignShop,
+                selectedCampaign.shopId,
+              )}`
+            : t("ecommerce.affiliateCampaign.detailTitle")
+        }
+        hideCloseButton
         bodyLeadContent={
           selectedCampaign ? (
-            <div className="affiliate-campaign-modal-header-content">
-              <div className="affiliate-campaign-modal-header-top">
-                <div className="affiliate-campaign-modal-identity">
-                  <div className="affiliate-campaign-modal-product-image">
-                    {selectedCampaign.productSnapshot?.coverImage ? (
-                      <RemoteMediaImage
-                        sourceUrl={selectedCampaign.productSnapshot.coverImage}
-                        alt={selectedCampaign.productSnapshot.title}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <ShopIcon />
-                    )}
+            <div className="affiliate-campaign-modal-lead">
+              <section className="affiliate-campaign-modal-overview">
+                <div className="affiliate-campaign-modal-overview-top">
+                  <div className="affiliate-campaign-modal-identity">
+                    <div className="affiliate-campaign-modal-product-image">
+                      {selectedCampaign.productSnapshot?.coverImage ? (
+                        <RemoteMediaImage
+                          sourceUrl={selectedCampaign.productSnapshot.coverImage}
+                          alt={selectedCampaign.productSnapshot.title}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <ShopIcon />
+                      )}
+                    </div>
+                    <div className="affiliate-campaign-modal-identity-copy">
+                      <div className="affiliate-campaign-modal-campaign-heading">
+                        <strong className="affiliate-campaign-modal-campaign-name">
+                          {selectedCampaign.name}
+                        </strong>
+                        <span
+                          className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}
+                        >
+                          {campaignStatusLabel(selectedCampaign.status, t)}
+                        </span>
+                      </div>
+                      <div className="affiliate-campaign-modal-context">
+                        <span>{selectedCampaign.market}</span>
+                        <span>{selectedCampaign.resolvedTimeZone}</span>
+                        <span>
+                          {t("ecommerce.affiliateCampaign.templateVersion", {
+                            version: selectedCampaign.templateVersion,
+                          })}
+                        </span>
+                      </div>
+                      <div className="affiliate-campaign-modal-shop-line">
+                        <ShopIcon />
+                        <strong>
+                          {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
+                        </strong>
+                        {selectedCampaignShop?.alias?.trim() &&
+                          selectedCampaignShop.shopName?.trim() &&
+                          selectedCampaignShop.alias.trim() !==
+                            selectedCampaignShop.shopName.trim() && (
+                            <small>{selectedCampaignShop.shopName.trim()}</small>
+                          )}
+                      </div>
+                      <div className="affiliate-campaign-modal-product-line">
+                        <strong title={selectedCampaign.productSnapshot?.title ?? undefined}>
+                          {selectedCampaign.productSnapshot?.title?.trim() ||
+                            campaignLeadProductId(selectedCampaign)}
+                        </strong>
+                        <span>
+                          {t("ecommerce.affiliateCampaign.skuLabel")} ·{" "}
+                          {selectedCampaign.productSnapshot?.sellerSkus?.[0] ?? "—"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="affiliate-campaign-modal-identity-copy">
-                    <div className="affiliate-campaign-title-line">
-                      <span
-                        className={`affiliate-campaign-status is-${selectedCampaign.status.toLowerCase()}`}
-                      >
-                        {campaignStatusLabel(selectedCampaign.status, t)}
-                      </span>
-                      <span>{selectedCampaign.market}</span>
-                      <span>{selectedCampaign.resolvedTimeZone}</span>
-                      <span>
-                        {t("ecommerce.affiliateCampaign.templateVersion", {
-                          version: selectedCampaign.templateVersion,
-                        })}
-                      </span>
-                    </div>
-                    <div className="affiliate-campaign-modal-shop-line">
-                      <ShopIcon />
-                      <strong>
-                        {campaignShopDisplayName(selectedCampaignShop, selectedCampaign.shopId)}
-                      </strong>
-                      {selectedCampaignShop?.alias?.trim() &&
-                        selectedCampaignShop.shopName?.trim() &&
-                        selectedCampaignShop.alias.trim() !==
-                          selectedCampaignShop.shopName.trim() && (
-                          <small>{selectedCampaignShop.shopName.trim()}</small>
-                        )}
-                    </div>
-                    <div className="affiliate-campaign-modal-product-line">
-                      <strong title={selectedCampaign.productSnapshot?.title ?? undefined}>
-                        {selectedCampaign.productSnapshot?.title?.trim() ||
-                          campaignLeadProductId(selectedCampaign)}
-                      </strong>
-                      <span>
-                        {t("ecommerce.affiliateCampaign.skuLabel")} ·{" "}
-                        {selectedCampaign.productSnapshot?.sellerSkus?.[0] ?? "—"}
-                      </span>
-                    </div>
-                  </div>
+                  {campaignDetailActions}
                 </div>
-                <div className="affiliate-campaign-detail-actions">
-                  {!isTerminalCampaignStatus(selectedCampaign.status) && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => openEdit(selectedCampaign)}
-                    >
-                      {t("ecommerce.affiliateCampaign.edit")}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled={duplicateCampaignState.loading}
-                    onClick={() => void copyCampaign(selectedCampaign)}
-                  >
-                    {t("ecommerce.affiliateCampaign.copyCampaign")}
-                  </button>
-                  {selectedCampaign.status !== GQL.AffiliateCampaignStatus.Archived && (
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      disabled={statusMutationState.loading}
-                      onClick={() => archiveCampaign(selectedCampaign)}
-                    >
-                      {t("ecommerce.affiliateCampaign.archive")}
-                    </button>
-                  )}
-                  {selectedCampaign.status === GQL.AffiliateCampaignStatus.Draft && (
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      disabled={deleteDraftState.loading}
-                      onClick={() => void deleteDraftCampaign(selectedCampaign)}
-                    >
-                      {t("ecommerce.affiliateCampaign.deleteDraft")}
-                    </button>
-                  )}
-                  {!isTerminalCampaignStatus(selectedCampaign.status) && (
-                    <button
-                      type="button"
-                      className={
-                        selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
-                          ? "btn btn-secondary"
-                          : "btn btn-primary affiliate-campaign-primary-action"
-                      }
-                      disabled={
-                        statusMutationState.loading ||
-                        (selectedCampaign.status !== GQL.AffiliateCampaignStatus.Active &&
-                          selectionReadiness?.ready === false)
-                      }
-                      onClick={() => void changeStatus(selectedCampaign)}
-                    >
-                      {selectedCampaign.status === GQL.AffiliateCampaignStatus.Active
-                        ? t("ecommerce.affiliateCampaign.pause")
-                        : t("ecommerce.affiliateCampaign.reopen")}
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              <div className="affiliate-campaign-modal-policy-row">
-                <span className="affiliate-campaign-modal-policy-pill">
-                  {campaignStrategyLabel(selectedCampaign.selectionPolicy.strategy, t)}
-                </span>
-                <span
-                  className={`affiliate-campaign-modal-readiness${
-                    selectionReadiness == null
-                      ? ""
-                      : selectionReadiness.ready
-                        ? " is-ready"
-                        : " is-blocked"
-                  }`}
-                  title={
-                    selectionReadiness == null
+                <div className="affiliate-campaign-modal-policy-row">
+                  <span className="affiliate-campaign-modal-policy-pill">
+                    {campaignStrategyLabel(selectedCampaign.selectionPolicy.strategy, t)}
+                  </span>
+                  <span
+                    className={`affiliate-campaign-modal-readiness${
+                      selectionReadiness == null
+                        ? ""
+                        : selectionReadiness.ready
+                          ? " is-ready"
+                          : " is-blocked"
+                    }`}
+                    title={
+                      selectionReadiness == null
+                        ? t("ecommerce.affiliateCampaign.checkingReadiness")
+                        : selectionReadiness.ready
+                          ? t("ecommerce.affiliateCampaign.ready")
+                          : campaignReadinessMessage(selectionReadiness.reasonCode, t)
+                    }
+                  >
+                    {selectionReadiness == null
                       ? t("ecommerce.affiliateCampaign.checkingReadiness")
                       : selectionReadiness.ready
-                      ? t("ecommerce.affiliateCampaign.ready")
-                      : campaignReadinessMessage(selectionReadiness.reasonCode, t)
-                  }
-                >
-                  {selectionReadiness == null
-                    ? t("ecommerce.affiliateCampaign.checkingReadiness")
-                    : selectionReadiness.ready
-                    ? t("ecommerce.affiliateCampaign.ready")
-                    : campaignReadinessMessage(selectionReadiness.reasonCode, t)}
-                </span>
-                <span className="affiliate-campaign-modal-commission">
-                  {t("ecommerce.affiliateCampaign.commissionRate")} ·{" "}
-                  {selectedCampaign.products[0]?.commissionRatePercent ?? 0}%
-                </span>
-                <button
-                  type="button"
-                  className="affiliate-campaign-template-toggle"
-                  aria-expanded={messageTemplateOpen}
-                  onClick={() => setMessageTemplateOpen((open) => !open)}
-                >
-                  {messageTemplateOpen
-                    ? t("ecommerce.affiliateCampaign.hideFirstMessage")
-                    : t("ecommerce.affiliateCampaign.viewFirstMessage")}
-                </button>
-              </div>
-
-              {messageTemplateOpen && (
-                <div
-                  className="affiliate-campaign-modal-template"
-                  role="region"
-                  aria-label={t("ecommerce.affiliateCampaign.firstMessage")}
-                >
-                  <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
-                  <p>{selectedCampaign.messageTemplateText}</p>
+                        ? t("ecommerce.affiliateCampaign.ready")
+                        : campaignReadinessMessage(selectionReadiness.reasonCode, t)}
+                  </span>
+                  <span className="affiliate-campaign-modal-commission">
+                    {t("ecommerce.affiliateCampaign.commissionRate")} ·{" "}
+                    {selectedCampaign.products[0]?.commissionRatePercent ?? 0}%
+                  </span>
+                  <button
+                    type="button"
+                    className="affiliate-campaign-template-toggle"
+                    aria-expanded={messageTemplateOpen}
+                    onClick={() => setMessageTemplateOpen((open) => !open)}
+                  >
+                    {messageTemplateOpen
+                      ? t("ecommerce.affiliateCampaign.hideFirstMessage")
+                      : t("ecommerce.affiliateCampaign.viewFirstMessage")}
+                  </button>
                 </div>
-              )}
+
+                {messageTemplateOpen && (
+                  <div
+                    className="affiliate-campaign-modal-template"
+                    role="region"
+                    aria-label={t("ecommerce.affiliateCampaign.firstMessage")}
+                  >
+                    <div className="affiliate-campaign-modal-template-heading">
+                      <span>{t("ecommerce.affiliateCampaign.firstMessage")}</span>
+                      <button type="button" onClick={() => void copyFirstMessage()}>
+                        {t("ecommerce.affiliateCampaign.copyFirstMessage")}
+                      </button>
+                    </div>
+                    <p>{selectedCampaign.messageTemplateText}</p>
+                  </div>
+                )}
+              </section>
 
               <section className="affiliate-campaign-kpi-strip">
                 <CampaignKpiCard

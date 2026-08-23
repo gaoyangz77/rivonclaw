@@ -15,6 +15,8 @@ export interface ModalProps {
   bodyLeadContent?: ReactNode;
   children: ReactNode;
   maxWidth?: number;
+  /** Omit the visible title bar while retaining the title as the dialog's accessible label. */
+  hideHeader?: boolean;
   hideCloseButton?: boolean;
   /** When true, clicking the backdrop overlay will not trigger onClose. */
   preventBackdropClose?: boolean;
@@ -33,6 +35,7 @@ export function Modal({
   bodyLeadContent,
   children,
   maxWidth = 600,
+  hideHeader = false,
   hideCloseButton,
   preventBackdropClose,
   className,
@@ -119,22 +122,25 @@ export function Modal({
         style={{ maxWidth: `${maxWidth}px` }}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-label={hideHeader ? title : undefined}
+        aria-labelledby={hideHeader ? undefined : titleId}
         tabIndex={-1}
       >
-        <div className="modal-header">
-          <div className="modal-header-main">
-            <h2 id={titleId} className="modal-title">
-              {title}
-            </h2>
-            {headerContent}
+        {!hideHeader && (
+          <div className="modal-header">
+            <div className="modal-header-main">
+              <h2 id={titleId} className="modal-title">
+                {title}
+              </h2>
+              {headerContent}
+            </div>
+            {!hideCloseButton && (
+              <button onClick={onClose} className="modal-close-btn" aria-label={closeLabel}>
+                ×
+              </button>
+            )}
           </div>
-          {!hideCloseButton && (
-            <button onClick={onClose} className="modal-close-btn" aria-label={closeLabel}>
-              ×
-            </button>
-          )}
-        </div>
+        )}
         {bodyLeadContent ? (
           <div className="modal-scroll-region">
             {bodyLeadContent}
