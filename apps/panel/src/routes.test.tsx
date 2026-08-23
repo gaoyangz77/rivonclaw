@@ -12,6 +12,7 @@ describe("commerce navigation", () => {
       "/commerce/affiliate/team",
       "/commerce/product-knowledge",
       "/commerce/affiliate/campaigns",
+      "/commerce/affiliate/analytics",
       "/commerce/affiliate/creators",
       "/commerce/affiliate/history",
       "/commerce/affiliate/intelligence",

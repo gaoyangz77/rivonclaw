@@ -686,6 +686,218 @@ export const AffiliateAgentEligibilityReason = {
 } as const;
 
 export type AffiliateAgentEligibilityReason = typeof AffiliateAgentEligibilityReason[keyof typeof AffiliateAgentEligibilityReason];
+export interface AffiliateAnalyticsBasisCount {
+  basis: Scalars['String']['output'];
+  invitations: Scalars['Float']['output'];
+}
+
+export const AffiliateAnalyticsComparisonMode = {
+  None: 'NONE',
+  PreviousPeriod: 'PREVIOUS_PERIOD',
+  PreviousYear: 'PREVIOUS_YEAR'
+} as const;
+
+export type AffiliateAnalyticsComparisonMode = typeof AffiliateAnalyticsComparisonMode[keyof typeof AffiliateAnalyticsComparisonMode];
+export interface AffiliateAnalyticsFreshnessBundle {
+  liveResponseObservedAt?: Maybe<Scalars['String']['output']>;
+  platform: EcomBiFreshness;
+  sample: EcomBiFreshness;
+}
+
+export interface AffiliateAnalyticsHealth {
+  campaignMappedApplicationShare?: Maybe<Scalars['Float']['output']>;
+  creatorIdentityGmvCoverage?: Maybe<Scalars['Float']['output']>;
+  creatorIdentityRowCoverage?: Maybe<Scalars['Float']['output']>;
+  exactApplicationTimeShare?: Maybe<Scalars['Float']['output']>;
+  targetMappedApplicationShare?: Maybe<Scalars['Float']['output']>;
+  warnings: Array<Scalars['String']['output']>;
+}
+
+export interface AffiliateAnalyticsLeaderboard {
+  entityType: Scalars['String']['output'];
+  platform: Array<AffiliateAnalyticsLeaderboardRow>;
+  sample: Array<AffiliateAnalyticsLeaderboardRow>;
+}
+
+export interface AffiliateAnalyticsLeaderboardRow {
+  applications: Scalars['Float']['output'];
+  entityId: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+  netGmvUsd: Scalars['Float']['output'];
+  orders: Scalars['Float']['output'];
+  responses: Scalars['Float']['output'];
+  secondaryLabel?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateAnalyticsOutreachMaturityPoint {
+  freshFetchInvitations: Scalars['Float']['output'];
+  horizon: Scalars['String']['output'];
+  horizonHours: Scalars['Float']['output'];
+  matureInvitations: Scalars['Float']['output'];
+  responseRate?: Maybe<Scalars['Float']['output']>;
+  responsesWithinHorizon: Scalars['Float']['output'];
+  staleFetchInvitations: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsOverview {
+  campaignStages: Array<AffiliateAnalyticsStage>;
+  freshness: AffiliateAnalyticsFreshnessBundle;
+  health: AffiliateAnalyticsHealth;
+  leaderboards: Array<AffiliateAnalyticsLeaderboard>;
+  outreachMaturity: Array<AffiliateAnalyticsOutreachMaturityPoint>;
+  outreachMaturityBasis: Array<AffiliateAnalyticsBasisCount>;
+  platform: AffiliateAnalyticsPlatformBlock;
+  portfolio: AffiliateAnalyticsPortfolio;
+  sample: AffiliateAnalyticsSampleBlock;
+  sampleMaturity: Array<AffiliateAnalyticsSampleMaturityPoint>;
+  sampleStatuses: Array<AffiliateAnalyticsStatusBucket>;
+  scope: AffiliateAnalyticsScope;
+}
+
+export interface AffiliateAnalyticsOverviewInput {
+  comparisonMode?: InputMaybe<AffiliateAnalyticsComparisonMode>;
+  endDateLt: Scalars['String']['input'];
+  granularity?: InputMaybe<EcomBiGranularity>;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  shopRegions?: InputMaybe<Array<ShopRegion>>;
+  startDateGe: Scalars['String']['input'];
+}
+
+export interface AffiliateAnalyticsPeriod {
+  endDateLt: Scalars['String']['output'];
+  startDateGe: Scalars['String']['output'];
+}
+
+export interface AffiliateAnalyticsPlatformBlock {
+  comparison?: Maybe<AffiliateAnalyticsPlatformMetrics>;
+  comparisonTrend: Array<AffiliateAnalyticsPlatformTrendPoint>;
+  current: AffiliateAnalyticsPlatformMetrics;
+  trend: Array<AffiliateAnalyticsPlatformTrendPoint>;
+}
+
+export interface AffiliateAnalyticsPlatformMetrics {
+  actualCommissionUsd: Scalars['Float']['output'];
+  estimatedCommissionUsd: Scalars['Float']['output'];
+  failed: Scalars['Float']['output'];
+  grossGmvUsd: Scalars['Float']['output'];
+  netGmvUsd: Scalars['Float']['output'];
+  orders: Scalars['Float']['output'];
+  qualified: Scalars['Float']['output'];
+  replied: Scalars['Float']['output'];
+  requestedTarget: Scalars['Float']['output'];
+  sent: Scalars['Float']['output'];
+  targetCreatorsInvited: Scalars['Float']['output'];
+  targetResponseRate?: Maybe<Scalars['Float']['output']>;
+  targetSampleResponses: Scalars['Float']['output'];
+  units: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsPlatformTrendPoint {
+  actualCommissionUsd: Scalars['Float']['output'];
+  bucketStart: Scalars['String']['output'];
+  estimatedCommissionUsd: Scalars['Float']['output'];
+  failed: Scalars['Float']['output'];
+  grossGmvUsd: Scalars['Float']['output'];
+  netGmvUsd: Scalars['Float']['output'];
+  orders: Scalars['Float']['output'];
+  qualified: Scalars['Float']['output'];
+  replied: Scalars['Float']['output'];
+  requestedTarget: Scalars['Float']['output'];
+  sent: Scalars['Float']['output'];
+  targetCreatorsInvited: Scalars['Float']['output'];
+  targetResponseRate?: Maybe<Scalars['Float']['output']>;
+  targetSampleResponses: Scalars['Float']['output'];
+  units: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsPortfolio {
+  activeCampaigns: Scalars['Float']['output'];
+  activeOpenCollaborations: Scalars['Float']['output'];
+  activeTargetCollaborations: Scalars['Float']['output'];
+  shops: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsSampleBlock {
+  comparison?: Maybe<AffiliateAnalyticsSampleMetrics>;
+  comparisonTrend: Array<AffiliateAnalyticsSampleTrendPoint>;
+  current: AffiliateAnalyticsSampleMetrics;
+  trend: Array<AffiliateAnalyticsSampleTrendPoint>;
+}
+
+export interface AffiliateAnalyticsSampleMaturityPoint {
+  ageBucket: Scalars['String']['output'];
+  applications: Scalars['Float']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Float']['output'];
+  completed: Scalars['Float']['output'];
+  completionRate?: Maybe<Scalars['Float']['output']>;
+  fulfillmentObservedRate?: Maybe<Scalars['Float']['output']>;
+  shippedObserved: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsSampleMetrics {
+  actualCommissionUsd: Scalars['Float']['output'];
+  applications: Scalars['Float']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Float']['output'];
+  completed: Scalars['Float']['output'];
+  completionRate?: Maybe<Scalars['Float']['output']>;
+  contents: Scalars['Float']['output'];
+  estimatedCommissionUsd: Scalars['Float']['output'];
+  fulfillmentObservedRate?: Maybe<Scalars['Float']['output']>;
+  grossGmvUsd: Scalars['Float']['output'];
+  inFlight: Scalars['Float']['output'];
+  netGmvUsd: Scalars['Float']['output'];
+  orders: Scalars['Float']['output'];
+  overdue: Scalars['Float']['output'];
+  rejected: Scalars['Float']['output'];
+  shippedObserved: Scalars['Float']['output'];
+  statusBucketsExclusive: Scalars['Boolean']['output'];
+  units: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsSampleTrendPoint {
+  actualCommissionUsd: Scalars['Float']['output'];
+  applications: Scalars['Float']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Float']['output'];
+  bucketStart: Scalars['String']['output'];
+  completed: Scalars['Float']['output'];
+  completionRate?: Maybe<Scalars['Float']['output']>;
+  contents: Scalars['Float']['output'];
+  estimatedCommissionUsd: Scalars['Float']['output'];
+  fulfillmentObservedRate?: Maybe<Scalars['Float']['output']>;
+  grossGmvUsd: Scalars['Float']['output'];
+  inFlight: Scalars['Float']['output'];
+  netGmvUsd: Scalars['Float']['output'];
+  orders: Scalars['Float']['output'];
+  overdue: Scalars['Float']['output'];
+  rejected: Scalars['Float']['output'];
+  shippedObserved: Scalars['Float']['output'];
+  statusBucketsExclusive: Scalars['Boolean']['output'];
+  units: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsScope {
+  comparison?: Maybe<AffiliateAnalyticsPeriod>;
+  current: AffiliateAnalyticsPeriod;
+  shopCount: Scalars['Float']['output'];
+  shopIds: Array<Scalars['ID']['output']>;
+}
+
+export interface AffiliateAnalyticsStage {
+  key: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+  value: Scalars['Float']['output'];
+}
+
+export interface AffiliateAnalyticsStatusBucket {
+  key: Scalars['String']['output'];
+  label: Scalars['String']['output'];
+  share?: Maybe<Scalars['Float']['output']>;
+  value: Scalars['Float']['output'];
+}
+
 /** Approval interception policy for affiliate actions. If all non-empty condition arrays match, the backend creates an ActionProposal instead of executing automatically. */
 export interface AffiliateApprovalPolicy {
   action: ActionProposalType;
@@ -6299,6 +6511,8 @@ export const EcomBiDatasetId = {
   AdsGmvCreativeProductDaily: 'ADS_GMV_CREATIVE_PRODUCT_DAILY',
   AdsGmvProductDaily: 'ADS_GMV_PRODUCT_DAILY',
   AffiliateOrderExportLine: 'AFFILIATE_ORDER_EXPORT_LINE',
+  AffiliatePlatformPerformanceDaily: 'AFFILIATE_PLATFORM_PERFORMANCE_DAILY',
+  AffiliateSampleConversionDaily: 'AFFILIATE_SAMPLE_CONVERSION_DAILY',
   CsDailySummary: 'CS_DAILY_SUMMARY',
   FinanceIncomeExportLine: 'FINANCE_INCOME_EXPORT_LINE',
   FinancePaymentExportLine: 'FINANCE_PAYMENT_EXPORT_LINE',
@@ -6323,6 +6537,8 @@ export interface EcomBiDatasetMetadata {
   description: Scalars['String']['output'];
   dimensions: Array<EcomBiDimensionMetadata>;
   grain: Scalars['String']['output'];
+  /** Supported entity grouping combinations. Empty means the dataset has no additional grouping restriction. */
+  groupingSets: Array<EcomBiGroupingSetMetadata>;
   id: EcomBiDatasetId;
   label: Scalars['String']['output'];
   metrics: Array<EcomBiMetricMetadata>;
@@ -6344,6 +6560,9 @@ export const EcomBiDimension = {
   AdvertiserId: 'ADVERTISER_ID',
   AdvertiserName: 'ADVERTISER_NAME',
   AdvertiserTimezone: 'ADVERTISER_TIMEZONE',
+  AffiliateCollaborationId: 'AFFILIATE_COLLABORATION_ID',
+  AffiliateCollaborationName: 'AFFILIATE_COLLABORATION_NAME',
+  AffiliateCollaborationType: 'AFFILIATE_COLLABORATION_TYPE',
   AffiliateOrderAttributionKey: 'AFFILIATE_ORDER_ATTRIBUTION_KEY',
   BankAccountMasked: 'BANK_ACCOUNT_MASKED',
   BuyerMessage: 'BUYER_MESSAGE',
@@ -6374,6 +6593,7 @@ export const EcomBiDimension = {
   CreativeReviewStatus: 'CREATIVE_REVIEW_STATUS',
   CreativeTitle: 'CREATIVE_TITLE',
   CreativeType: 'CREATIVE_TYPE',
+  CreatorOpenId: 'CREATOR_OPEN_ID',
   CreatorUsername: 'CREATOR_USERNAME',
   Currency: 'CURRENCY',
   CurrentOptimizations: 'CURRENT_OPTIMIZATIONS',
@@ -6504,9 +6724,11 @@ export type EcomBiDimensionCardinality = typeof EcomBiDimensionCardinality[keyof
 /** Business entity described by a BI dimension. */
 export const EcomBiDimensionEntity = {
   Advertiser: 'ADVERTISER',
+  AffiliateCollaboration: 'AFFILIATE_COLLABORATION',
   AffiliateOrder: 'AFFILIATE_ORDER',
   Campaign: 'CAMPAIGN',
   Creative: 'CREATIVE',
+  Creator: 'CREATOR',
   CustomerService: 'CUSTOMER_SERVICE',
   Date: 'DATE',
   Finance: 'FINANCE',
@@ -6543,6 +6765,31 @@ export const EcomBiDimensionSource = {
 } as const;
 
 export type EcomBiDimensionSource = typeof EcomBiDimensionSource[keyof typeof EcomBiDimensionSource];
+export interface EcomBiDimensionValue {
+  label: Scalars['String']['output'];
+  secondaryLabel?: Maybe<Scalars['String']['output']>;
+  value: Scalars['String']['output'];
+}
+
+/** Search authorized values for one BI dimension. */
+export interface EcomBiDimensionValuesInput {
+  datasetId: EcomBiDatasetId;
+  dimension: EcomBiDimension;
+  endDateLt?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  shopRegions?: InputMaybe<Array<ShopRegion>>;
+  startDateGe?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface EcomBiDimensionValuesResult {
+  datasetId: EcomBiDatasetId;
+  dimension: EcomBiDimension;
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<EcomBiDimensionValue>;
+}
+
 /** Whether a BI output column is a dimension or metric. */
 export const EcomBiFieldRole = {
   Dimension: 'DIMENSION',
@@ -6567,12 +6814,31 @@ export const EcomBiFilterOperator = {
 } as const;
 
 export type EcomBiFilterOperator = typeof EcomBiFilterOperator[keyof typeof EcomBiFilterOperator];
+/** Materialization freshness for a warehouse-backed BI result. */
+export interface EcomBiFreshness {
+  asOf?: Maybe<Scalars['String']['output']>;
+  cutoffAt?: Maybe<Scalars['String']['output']>;
+  lastRunId?: Maybe<Scalars['String']['output']>;
+  logicVersion?: Maybe<Scalars['Int']['output']>;
+  stale: Scalars['Boolean']['output'];
+  warnings: Array<Scalars['String']['output']>;
+  watermarkStatus?: Maybe<Scalars['String']['output']>;
+}
+
 /** Supported BI date granularities. The first Ads GMV Max catalogs are daily. */
 export const EcomBiGranularity = {
-  Daily: 'DAILY'
+  Daily: 'DAILY',
+  Monthly: 'MONTHLY',
+  Weekly: 'WEEKLY'
 } as const;
 
 export type EcomBiGranularity = typeof EcomBiGranularity[keyof typeof EcomBiGranularity];
+/** A supported combination of entity key dimensions for a BI dataset. */
+export interface EcomBiGroupingSetMetadata {
+  /** Canonical entity key dimensions in this grouping. DATE and Shop dimensions do not participate in the physical aggregate-level choice. */
+  dimensions: Array<EcomBiDimension>;
+}
+
 /** Allowed BI metrics. Dataset metadata declares which are valid per dataset. */
 export const EcomBiMetric = {
   ActiveConversations: 'ACTIVE_CONVERSATIONS',
@@ -6589,12 +6855,70 @@ export const EcomBiMetric = {
   AdVideoViewRate_50P: 'AD_VIDEO_VIEW_RATE_50P',
   AdVideoViewRate_75P: 'AD_VIDEO_VIEW_RATE_75P',
   AdVideoViewRate_100P: 'AD_VIDEO_VIEW_RATE_100P',
+  AffiliateActualCommissionNative: 'AFFILIATE_ACTUAL_COMMISSION_NATIVE',
+  AffiliateActualCommissionUsd: 'AFFILIATE_ACTUAL_COMMISSION_USD',
+  AffiliateAllocatedTarget: 'AFFILIATE_ALLOCATED_TARGET',
+  AffiliateApplicationsCreated: 'AFFILIATE_APPLICATIONS_CREATED',
+  AffiliateApplicationTimeExact: 'AFFILIATE_APPLICATION_TIME_EXACT',
+  AffiliateApplicationTimeExactRate: 'AFFILIATE_APPLICATION_TIME_EXACT_RATE',
+  AffiliateApplicationTimeProxy: 'AFFILIATE_APPLICATION_TIME_PROXY',
+  AffiliateApprovalRate: 'AFFILIATE_APPROVAL_RATE',
+  AffiliateCampaignMappedApplications: 'AFFILIATE_CAMPAIGN_MAPPED_APPLICATIONS',
+  AffiliateCampaignMappingEligible: 'AFFILIATE_CAMPAIGN_MAPPING_ELIGIBLE',
+  AffiliateCampaignMappingGmvCoverage: 'AFFILIATE_CAMPAIGN_MAPPING_GMV_COVERAGE',
+  AffiliateCampaignMappingRate: 'AFFILIATE_CAMPAIGN_MAPPING_RATE',
+  AffiliateCampaignMappingResolved: 'AFFILIATE_CAMPAIGN_MAPPING_RESOLVED',
+  AffiliateCampaignMappingRowCoverage: 'AFFILIATE_CAMPAIGN_MAPPING_ROW_COVERAGE',
+  AffiliateCampaignReplyRate: 'AFFILIATE_CAMPAIGN_REPLY_RATE',
+  AffiliateCancelled: 'AFFILIATE_CANCELLED',
   AffiliateCommissionAmount: 'AFFILIATE_COMMISSION_AMOUNT',
   AffiliateCommissionDepositAmount: 'AFFILIATE_COMMISSION_DEPOSIT_AMOUNT',
   AffiliateCommissionRefundAmount: 'AFFILIATE_COMMISSION_REFUND_AMOUNT',
+  AffiliateCompletionRate: 'AFFILIATE_COMPLETION_RATE',
+  AffiliateContentsCreated: 'AFFILIATE_CONTENTS_CREATED',
+  AffiliateCreatorIdentityEligible: 'AFFILIATE_CREATOR_IDENTITY_ELIGIBLE',
+  AffiliateCreatorIdentityGmvCoverage: 'AFFILIATE_CREATOR_IDENTITY_GMV_COVERAGE',
+  AffiliateCreatorIdentityResolved: 'AFFILIATE_CREATOR_IDENTITY_RESOLVED',
+  AffiliateCreatorIdentityRowCoverage: 'AFFILIATE_CREATOR_IDENTITY_ROW_COVERAGE',
+  AffiliateCurrentlyApproved: 'AFFILIATE_CURRENTLY_APPROVED',
+  AffiliateCurrentlyCompleted: 'AFFILIATE_CURRENTLY_COMPLETED',
+  AffiliateCurrentlyInFlight: 'AFFILIATE_CURRENTLY_IN_FLIGHT',
+  AffiliateCurrentlyMerchantRejected: 'AFFILIATE_CURRENTLY_MERCHANT_REJECTED',
+  AffiliateCurrentlyOverdueByUs: 'AFFILIATE_CURRENTLY_OVERDUE_BY_US',
+  AffiliateCurrentlyTerminal: 'AFFILIATE_CURRENTLY_TERMINAL',
+  AffiliateEstimatedCommissionNative: 'AFFILIATE_ESTIMATED_COMMISSION_NATIVE',
+  AffiliateEstimatedCommissionUsd: 'AFFILIATE_ESTIMATED_COMMISSION_USD',
+  AffiliateEvaluated: 'AFFILIATE_EVALUATED',
+  AffiliateFailed: 'AFFILIATE_FAILED',
+  AffiliateFulfillmentObservedRate: 'AFFILIATE_FULFILLMENT_OBSERVED_RATE',
+  AffiliateGrossGmvNative: 'AFFILIATE_GROSS_GMV_NATIVE',
+  AffiliateGrossGmvUsd: 'AFFILIATE_GROSS_GMV_USD',
+  AffiliateMatched: 'AFFILIATE_MATCHED',
+  AffiliateNetGmvNative: 'AFFILIATE_NET_GMV_NATIVE',
+  AffiliateNetGmvUsd: 'AFFILIATE_NET_GMV_USD',
+  AffiliateOrders: 'AFFILIATE_ORDERS',
+  AffiliateOrderLines: 'AFFILIATE_ORDER_LINES',
+  AffiliateOutreachPolicyBlocked: 'AFFILIATE_OUTREACH_POLICY_BLOCKED',
   AffiliatePartnerCommissionAmount: 'AFFILIATE_PARTNER_COMMISSION_AMOUNT',
   AffiliatePartnerShopAdsCommissionAmount: 'AFFILIATE_PARTNER_SHOP_ADS_COMMISSION_AMOUNT',
+  AffiliateProtected: 'AFFILIATE_PROTECTED',
+  AffiliateQualificationFailed: 'AFFILIATE_QUALIFICATION_FAILED',
+  AffiliateQualified: 'AFFILIATE_QUALIFIED',
+  AffiliateReplied: 'AFFILIATE_REPLIED',
+  AffiliateRequestedTarget: 'AFFILIATE_REQUESTED_TARGET',
+  AffiliateScanned: 'AFFILIATE_SCANNED',
+  AffiliateScheduled: 'AFFILIATE_SCHEDULED',
+  AffiliateSent: 'AFFILIATE_SENT',
+  AffiliateShippedObservedCurrent: 'AFFILIATE_SHIPPED_OBSERVED_CURRENT',
   AffiliateShopAdsCommissionAmount: 'AFFILIATE_SHOP_ADS_COMMISSION_AMOUNT',
+  AffiliateSubmitted: 'AFFILIATE_SUBMITTED',
+  AffiliateTargetCreatorsInvited: 'AFFILIATE_TARGET_CREATORS_INVITED',
+  AffiliateTargetMappedApplications: 'AFFILIATE_TARGET_MAPPED_APPLICATIONS',
+  AffiliateTargetMappingRate: 'AFFILIATE_TARGET_MAPPING_RATE',
+  AffiliateTargetResponseRate: 'AFFILIATE_TARGET_RESPONSE_RATE',
+  AffiliateTargetSampleResponses: 'AFFILIATE_TARGET_SAMPLE_RESPONSES',
+  AffiliateUncertain: 'AFFILIATE_UNCERTAIN',
+  AffiliateUnits: 'AFFILIATE_UNITS',
   AvgFirstResponseSecs: 'AVG_FIRST_RESPONSE_SECS',
   CampaignResourceFeeAmount: 'CAMPAIGN_RESOURCE_FEE_AMOUNT',
   CampaignServiceFeeAmount: 'CAMPAIGN_SERVICE_FEE_AMOUNT',
@@ -6812,6 +7136,7 @@ export interface EcomBiQueryInput {
 export interface EcomBiQueryResult {
   columns: Array<EcomBiResultColumn>;
   datasetId: EcomBiDatasetId;
+  freshness?: Maybe<EcomBiFreshness>;
   granularity: EcomBiGranularity;
   pageInfo: EcomBiPageInfo;
   rows: Array<Scalars['JSONObject']['output']>;
@@ -10894,10 +11219,14 @@ export interface Query {
   expertConversations: ExpertConversationPage;
   expertProfile?: Maybe<ExpertProfile>;
   expertUsageStatus: ExpertUsageStatus;
+  /** Return the strongly typed Affiliate Analytics Overview. Platform Performance and Sample Conversion are parallel contracts and their GMV values must not be added. */
+  getAffiliateAnalyticsOverview: AffiliateAnalyticsOverview;
   /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
   getEcommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Query typed warehouse-backed ecommerce BI data. */
   getEcommerceBiData: EcomBiQueryResult;
+  /** Search authorized Affiliate BI dimension values for interactive filters. Values are scoped by the same Shop ownership and Analytics entitlement checks as BI data queries. */
+  getEcommerceBiDimensionValues: EcomBiDimensionValuesResult;
   /** List recent image assets for the authenticated user */
   imageAssets: Array<ImageAsset>;
   /** Get current authenticated user profile */
@@ -11641,8 +11970,18 @@ export interface QueryExpertConversationsArgs {
 }
 
 
+export interface QueryGetAffiliateAnalyticsOverviewArgs {
+  input: AffiliateAnalyticsOverviewInput;
+}
+
+
 export interface QueryGetEcommerceBiDataArgs {
   input: EcomBiQueryInput;
+}
+
+
+export interface QueryGetEcommerceBiDimensionValuesArgs {
+  input: EcomBiDimensionValuesInput;
 }
 
 
