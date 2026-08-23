@@ -1727,7 +1727,7 @@ function AffiliateProductionModelDashboard({
 
           <div className="affiliate-intelligence-evidence-grid">
             {outperformanceProbability != null ? (
-              <div className="affiliate-intelligence-evidence-card affiliate-intelligence-evidence-card-probability">
+              <div className="affiliate-intelligence-evidence-card data-card-hover affiliate-intelligence-evidence-card-probability">
                 <strong>
                   <AffiliateMetricLabel
                     label={t("ecommerce.affiliateWorkspace.intelligenceOutperformanceProbability")}
@@ -1738,7 +1738,7 @@ function AffiliateProductionModelDashboard({
               </div>
             ) : null}
             {rangeLower != null && rangeUpper != null ? (
-              <div className="affiliate-intelligence-evidence-card affiliate-intelligence-evidence-card-range">
+              <div className="affiliate-intelligence-evidence-card data-card-hover affiliate-intelligence-evidence-card-range">
                 <strong>
                   <AffiliateMetricLabel
                     label={t("ecommerce.affiliateWorkspace.intelligencePrimaryRange", {
@@ -1751,7 +1751,7 @@ function AffiliateProductionModelDashboard({
               </div>
             ) : null}
             {dataFoundationLevel ? (
-              <div className="affiliate-intelligence-evidence-card affiliate-intelligence-evidence-card-foundation">
+              <div className="affiliate-intelligence-evidence-card data-card-hover affiliate-intelligence-evidence-card-foundation">
                 <strong>
                   <AffiliateMetricLabel
                     label={t("ecommerce.affiliateWorkspace.intelligenceDataFoundation")}
@@ -1997,7 +1997,7 @@ function AffiliateClaimDistributionPanel({
   const hasCompleteData = completeSeries.length === series.length;
 
   return (
-    <section className="affiliate-intelligence-distribution-card">
+    <section className="affiliate-intelligence-distribution-card data-card-hover">
       <div className="affiliate-intelligence-distribution-head">
         <div>
           <span>{title}</span>

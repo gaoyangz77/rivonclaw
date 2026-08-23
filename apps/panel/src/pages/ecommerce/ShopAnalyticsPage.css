@@ -2,9 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 1500px;
-  margin: 0 auto;
-  padding: 24px;
 }
 
 .sps-hero {
@@ -686,10 +683,6 @@
 }
 
 @media (max-width: 720px) {
-  .sps-analytics-page {
-    padding: 16px;
-  }
-
   .sps-hero {
     padding: 24px;
   }
