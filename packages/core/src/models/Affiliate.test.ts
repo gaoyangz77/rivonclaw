@@ -153,6 +153,25 @@ describe("AffiliateWorkspaceModel", () => {
     expect(projection?.affiliateCollaboration?.id).toBe("collaboration-1");
   });
 
+  it("retains compact Creator metrics on Agent work proposals", () => {
+    const workspace = AffiliateWorkspaceModel.create({});
+    workspace.upsertAffiliateActionProposal({
+      id: "proposal-1",
+      creatorFollowerCount: 105_800,
+      creatorAverageVideoViews: 835,
+      creatorEngagementRate: 0.0166,
+      creatorShoppableVideoCount: 14,
+      createdAt: NOW,
+      updatedAt: NOW,
+    } as any);
+
+    const proposal = workspace.proposalProjection("proposal-1")?.proposal;
+    expect(proposal?.creatorFollowerCount).toBe(105_800);
+    expect(proposal?.creatorAverageVideoViews).toBe(835);
+    expect(proposal?.creatorEngagementRate).toBe(0.0166);
+    expect(proposal?.creatorShoppableVideoCount).toBe(14);
+  });
+
   it("normalizes BD ownership, operational settings, and outreach accounts", () => {
     const workspace = AffiliateWorkspaceModel.create({});
     workspace.replaceAffiliateBusinessDevelopers([{

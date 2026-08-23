@@ -1333,7 +1333,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           shopId
         }
       }
-      activeSampleApplicationCount
+      creatorFollowerCount
+      creatorAverageVideoViews
+      creatorEngagementRate
+      creatorShoppableVideoCount
       creatorProfile {
         id
         creatorOpenId
@@ -1341,19 +1344,6 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         username
         nickname
         avatarUrl
-        currentPerformance {
-          observedAt
-          followerCount
-          averageVideoViews
-          gmv {
-            amount
-            currency
-            minimumAmount
-            maximumAmount
-            window
-            precision
-          }
-        }
         createdAt
         updatedAt
       }

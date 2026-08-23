@@ -239,14 +239,17 @@ export function selectAffiliateProposalItems<T>(
   return queryItems === undefined ? storedItems : queryItems;
 }
 
-function hydrateAffiliateProposalProjection(projection: {
+export function hydrateAffiliateProposalProjection(projection: {
   proposal: unknown;
   affiliateCollaboration?: unknown | null;
   sampleApplicationRecord?: unknown | null;
   creatorProfile?: unknown | null;
   productSummary?: unknown | null;
-}): GQL.ActionProposal {
-  const proposal = affiliateSnapshot(projection.proposal);
+}, authoritativeProposal?: GQL.ActionProposal): GQL.ActionProposal {
+  const storedProposal = affiliateSnapshot(projection.proposal) ?? {};
+  const proposal = authoritativeProposal
+    ? { ...storedProposal, ...affiliateSnapshot(authoritativeProposal) }
+    : storedProposal;
   return {
     ...proposal,
     affiliateCollaboration: affiliateSnapshot(
@@ -981,6 +984,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const proposalItemsFromQuery = loadedProposals.map((proposal) =>
     hydrateAffiliateProposalProjection(
       proposalProjectionSnapshot(entityStore.affiliateWorkspace, proposal.id) ?? { proposal },
+      proposal,
     ),
   );
   const visibleProposalItems = sortAffiliateProposalsNewestFirst(filterActionProposals(
@@ -5789,7 +5793,7 @@ function agentWorkTableActions(
       tone: "approve",
     });
   }
-  if (proposalHasMessageIntent(proposal)) {
+  if (sampleRows.length === 0 && proposalHasMessageIntent(proposal)) {
     actions.push({
       key: "send-message",
       label: t("ecommerce.affiliateWorkspace.agentWorkTable.actions.sendMessage"),
@@ -5859,10 +5863,6 @@ function AgentWorkBundleTable({
               && normalizeTikTokUsername(creatorNickname) !== creatorUsername
               ? creatorNickname
               : null;
-            const creatorPerformance = proposal.creatorProfile
-              ? latestCreatorPerformance(proposal.creatorProfile)
-              : null;
-            const activeSampleApplicationCount = proposal.activeSampleApplicationCount;
             const recommendationTitle = renderAgentWorkRecommendationTitle(proposal, t);
             const workActions = agentWorkTableActions(proposal, t);
             const shopLabels = actionProposalDisplayShopIds(proposal).map(shopLabelForId);
@@ -5924,21 +5924,19 @@ function AgentWorkBundleTable({
                   <div className="affiliate-agent-work-creator-metric-grid">
                     <span>
                       <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.followers")}</small>
-                      <strong>{formatCount(creatorPerformance?.followerCount) ?? "—"}</strong>
-                    </span>
-                    <span>
-                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.gmv")}</small>
-                      <strong>{formatPerformanceMoney(creatorPerformance?.gmv) ?? "—"}</strong>
+                      <strong>{formatCount(proposal.creatorFollowerCount) ?? "—"}</strong>
                     </span>
                     <span>
                       <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.avgViews")}</small>
-                      <strong>{formatCount(creatorPerformance?.averageVideoViews) ?? "—"}</strong>
+                      <strong>{formatCount(proposal.creatorAverageVideoViews) ?? "—"}</strong>
                     </span>
                     <span>
-                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.activeSamples")}</small>
-                      <strong>{activeSampleApplicationCount == null
-                        ? "—"
-                        : formatInteger(activeSampleApplicationCount)}</strong>
+                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.engagementRate")}</small>
+                      <strong>{formatPerformanceRate(proposal.creatorEngagementRate) ?? "—"}</strong>
+                    </span>
+                    <span>
+                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.shoppableVideos")}</small>
+                      <strong>{formatCount(proposal.creatorShoppableVideoCount) ?? "—"}</strong>
                     </span>
                   </div>
                 </td>
@@ -6104,6 +6102,19 @@ function AgentWorkBundleDetailModal({
           </div>
         </div>
         <div className="affiliate-agent-work-detail-body">
+          <AgentWorkReviewContext
+            proposal={proposal}
+            contextEndAt={contextEndAt}
+            relationshipDetail={reviewRelationshipData?.affiliateCreatorRelationshipDetail ?? null}
+            timelineItems={(reviewTimelineData?.affiliateRelationshipTimeline.items ?? [])
+              .filter((item) => item.relatedIds.actionProposalId !== proposal.id)}
+            previousAgentWork={(reviewProposalHistoryData?.affiliateActionProposalPage.items ?? [])
+              .filter((item) => item.id !== proposal.id && proposalTimestamp(item.createdAt) <= proposalTimestamp(proposal.createdAt))
+              .slice(0, 4)}
+            loading={reviewRelationshipLoading || reviewTimelineLoading || reviewProposalHistoryLoading}
+            failed={Boolean(reviewRelationshipError || reviewTimelineError || reviewProposalHistoryError)}
+            shopLabelForId={shopLabelForId}
+          />
           <div className="affiliate-agent-work-detail-main">
             <AgentWorkBundleCard
               proposal={proposal}
@@ -6119,19 +6130,6 @@ function AgentWorkBundleDetailModal({
               onRequestRevision={isPending ? onRequestRevision : undefined}
             />
           </div>
-          <AgentWorkReviewContext
-            proposal={proposal}
-            contextEndAt={contextEndAt}
-            relationshipDetail={reviewRelationshipData?.affiliateCreatorRelationshipDetail ?? null}
-            timelineItems={(reviewTimelineData?.affiliateRelationshipTimeline.items ?? [])
-              .filter((item) => item.relatedIds.actionProposalId !== proposal.id)}
-            previousAgentWork={(reviewProposalHistoryData?.affiliateActionProposalPage.items ?? [])
-              .filter((item) => item.id !== proposal.id && proposalTimestamp(item.createdAt) <= proposalTimestamp(proposal.createdAt))
-              .slice(0, 4)}
-            loading={reviewRelationshipLoading || reviewTimelineLoading || reviewProposalHistoryLoading}
-            failed={Boolean(reviewRelationshipError || reviewTimelineError || reviewProposalHistoryError)}
-            shopLabelForId={shopLabelForId}
-          />
         </div>
       </div>
     </div>

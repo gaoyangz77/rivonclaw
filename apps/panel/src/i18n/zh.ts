@@ -3316,9 +3316,9 @@ export default {
         creatorMetrics: {
           title: "达人数据",
           followers: "粉丝",
-          gmv: "带货 GMV",
           avgViews: "平均播放",
-          activeSamples: "进行中样品",
+          engagementRate: "互动率",
+          shoppableVideos: "带货视频",
         },
         type: "类型",
         work: "Agent 工作",
