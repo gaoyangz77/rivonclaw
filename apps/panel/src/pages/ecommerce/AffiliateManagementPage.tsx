@@ -5905,6 +5905,7 @@ function AgentWorkBundleTable({
               <tr
                 key={bundle.rootProposalId}
                 className="affiliate-agent-work-table-row"
+                data-tutorial-id="affiliate-attention-bundle"
                 tabIndex={0}
                 aria-label={openLabel}
                 onClick={() => onOpen(bundle)}
@@ -6095,6 +6096,7 @@ function AgentWorkBundleDetailModal({
     <div className="modal-backdrop affiliate-agent-work-detail-backdrop" role="presentation" onClick={onClose}>
       <div
         className="modal-content affiliate-agent-work-detail-modal"
+        data-tutorial-id="affiliate-attention-detail"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -6115,7 +6117,13 @@ function AgentWorkBundleDetailModal({
             </p>
           </div>
           <div className="affiliate-agent-work-detail-header-actions">
-            <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
+            <button
+              className="modal-close-btn"
+              data-tutorial-id="affiliate-attention-detail-close"
+              type="button"
+              onClick={onClose}
+              aria-label={t("common.close")}
+            >
               ×
             </button>
           </div>
@@ -6134,7 +6142,10 @@ function AgentWorkBundleDetailModal({
             failed={Boolean(reviewRelationshipError || reviewTimelineError || reviewProposalHistoryError)}
             shopLabelForId={shopLabelForId}
           />
-          <div className="affiliate-agent-work-detail-main">
+          <div
+            className="affiliate-agent-work-detail-main"
+            data-tutorial-id="affiliate-attention-detail-decision"
+          >
             <AgentWorkBundleCard
               proposal={proposal}
               revisionHistory={bundle.revisionHistory}
@@ -6213,7 +6224,10 @@ function AgentWorkReviewContext({
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact));
 
   return (
-    <aside className="affiliate-agent-review-context">
+    <aside
+      className="affiliate-agent-review-context"
+      data-tutorial-id="affiliate-attention-detail-context"
+    >
       <div className="affiliate-agent-review-context-head">
         <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextEyebrow")}</span>
         <h3>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextTitle")}</h3>

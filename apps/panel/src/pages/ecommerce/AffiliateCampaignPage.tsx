@@ -1210,6 +1210,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   return (
                     <tr
                       key={campaign.id}
+                      data-tutorial-id="affiliate-campaign-item"
                       tabIndex={0}
                       onClick={() => setSelectedCampaignId(campaign.id)}
                       onKeyDown={(event) => {
@@ -1329,7 +1330,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         hideCloseButton
         bodyLeadContent={
           selectedCampaign ? (
-            <div className="affiliate-campaign-modal-lead">
+            <div
+              className="affiliate-campaign-modal-lead"
+              data-tutorial-id="affiliate-campaign-detail-overview"
+            >
               <section className="affiliate-campaign-modal-overview">
                 <div className="affiliate-campaign-modal-overview-top">
                   <div className="affiliate-campaign-modal-identity">
@@ -1583,7 +1587,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
               t={t}
             />
 
-            <section className="affiliate-campaign-search-plan-panel data-card-hover">
+            <section
+              className="affiliate-campaign-search-plan-panel data-card-hover"
+              data-tutorial-id="affiliate-campaign-detail-operations"
+            >
               <div
                 className={`affiliate-campaign-search-workspace${currentSearchPlan ? " is-detail" : ""}`}
               >
@@ -3889,7 +3896,10 @@ function CampaignWizardSteps({ step, t }: { step: number; t: (key: string) => st
     t("ecommerce.affiliateCampaign.wizardConfirm"),
   ];
   return (
-    <div className="affiliate-campaign-wizard-steps">
+    <div
+      className="affiliate-campaign-wizard-steps"
+      data-tutorial-id="affiliate-campaign-wizard-stages"
+    >
       {labels.map((label, index) => {
         const number = index + 1;
         return (
