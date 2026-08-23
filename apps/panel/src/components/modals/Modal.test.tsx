@@ -48,6 +48,27 @@ function StackedPortalModals() {
 }
 
 describe("Modal", () => {
+  it("keeps only the title in the fixed header when body lead content is provided", () => {
+    render(
+      <Modal
+        isOpen
+        onClose={() => undefined}
+        title="Campaign detail"
+        bodyLeadContent={<section>Campaign summary</section>}
+      >
+        <section>Campaign funnel</section>
+      </Modal>,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Campaign detail" });
+    const scrollRegion = dialog.querySelector(".modal-scroll-region");
+    expect(scrollRegion?.textContent).toContain("Campaign summary");
+    expect(scrollRegion?.textContent).toContain("Campaign funnel");
+    expect(scrollRegion?.contains(screen.getByRole("heading", { name: "Campaign detail" }))).toBe(
+      false,
+    );
+  });
+
   it("renders a portal modal outside a clipped parent and leaves the parent open when closed", () => {
     render(<NestedPortalModal />);
     const trigger = screen.getByRole("button", { name: "Experiment settings" });

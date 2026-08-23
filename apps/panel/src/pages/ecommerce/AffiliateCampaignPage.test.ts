@@ -1,3 +1,4 @@
+import { GQL } from "@rivonclaw/core";
 import { describe, expect, it } from "vitest";
 import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from
   "../../i18n/affiliate-campaign-translations.js";
@@ -9,6 +10,7 @@ import {
   campaignFunnelCounterValue,
   campaignSearchGroupRuleSummary,
   campaignShopDisplayName,
+  countDistinctActiveCampaignShops,
   DEFAULT_CAMPAIGN_STATUS_FILTERS,
   estimateCampaignCadence,
   eligibilityReasonLabel,
@@ -23,6 +25,17 @@ import {
 describe("Affiliate Campaign presentation contracts", () => {
   it("defaults the campaign directory to active, paused, and draft campaigns", () => {
     expect(DEFAULT_CAMPAIGN_STATUS_FILTERS).toEqual(["ACTIVE", "PAUSED", "DRAFT"]);
+  });
+
+  it("counts distinct shops only across active campaigns", () => {
+    expect(
+      countDistinctActiveCampaignShops([
+        { shopId: "shop-a", status: GQL.AffiliateCampaignStatus.Active },
+        { shopId: "shop-a", status: GQL.AffiliateCampaignStatus.Active },
+        { shopId: "shop-b", status: GQL.AffiliateCampaignStatus.Active },
+        { shopId: "shop-c", status: GQL.AffiliateCampaignStatus.Paused },
+      ]),
+    ).toBe(2);
   });
 
   it("reports the average target rate over the twelve-hour paced window", () => {
@@ -135,8 +148,15 @@ describe("Affiliate Campaign presentation contracts", () => {
       expect(campaign.searchPlanPerformance).not.toMatch(/search\s*plan/i);
       expect(campaign.backToSearchConditions).toBeTruthy();
       expect(campaign.loadingCreatorStates).toBeTruthy();
+      expect(campaign.viewFirstMessage).toBeTruthy();
+      expect(campaign.hideFirstMessage).toBeTruthy();
+      expect(campaign.searchConditionsUsedToday).toContain("{{count}}");
+      expect(campaign.viewBreakdown).toBeTruthy();
+      expect(campaign.activeShops).toBeTruthy();
+      expect(campaign.activeShopsDescription).toBeTruthy();
     }
     expect(new Set(campaigns.map((campaign) => campaign.searchPlan)).size).toBe(8);
+    expect(new Set(campaigns.map((campaign) => campaign.viewFirstMessage)).size).toBe(8);
   });
 
   it("paginates the campaign directory in stable twenty-row pages", () => {
