@@ -774,6 +774,90 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("searchable");
   });
 
+  it("uses a dense Agent work table as the workspace entry point", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain("<AgentWorkBundleTable");
+    expect(page).toContain('className="affiliate-agent-work-table"');
+    expect(page).toContain("ecommerce.affiliateWorkspace.agentWorkTable.shop");
+    expect(page).toContain("ecommerce.affiliateWorkspace.agentWorkTable.type");
+    expect(page).toContain("ecommerce.affiliateWorkspace.agentWorkTable.work");
+    expect(page).not.toContain("affiliate-proposal-timeline-entry");
+    expect(page).not.toContain("affiliate-proposal-timeline-marker");
+
+    const table = page.slice(
+      page.indexOf("function AgentWorkBundleTable"),
+      page.indexOf("function AgentWorkBundleDetailModal"),
+    );
+    expect(table).toContain("formatProposalTableTime(proposal.createdAt)");
+    expect(table).toContain("formatProposalTableDate(proposal.createdAt)");
+    expect(table).toContain("affiliate-agent-work-table-creator-button");
+    expect(table).toContain("event.stopPropagation()");
+    expect(table).toContain("proposal.creatorProfile.username");
+    expect(table).toContain("affiliate-agent-work-table-creator-metrics");
+    expect(table).toContain("latestCreatorPerformance(proposal.creatorProfile)");
+    expect(table).toContain("proposal.activeSampleApplicationCount");
+    expect(table).toContain("affiliate-agent-work-type-");
+    expect(table).toContain("agentWorkTableActions(proposal, t)");
+    expect(table).toContain("affiliate-agent-work-table-action-${action.tone}");
+    expect(table).not.toContain("proposal.operatorSummary");
+  });
+
+  it("keeps decisions inside one shared detail modal and hides customer-facing versions", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain("<AgentWorkBundleDetailModal");
+    expect(page).toContain('className="modal-content affiliate-agent-work-detail-modal"');
+    expect(page).toContain("allowDecisionActions={isPending}");
+    expect(page).toContain("onApprove={isPending ? onApprove : undefined}");
+    expect(page).toContain("showRevisionHistory={false}");
+  });
+
+  it("anchors review context to the Agent run and shows prior relationship work", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const detailModal = page.slice(
+      page.indexOf("function AgentWorkBundleDetailModal"),
+      page.indexOf("function AgentWorkBundleCard"),
+    );
+
+    expect(detailModal).toContain("proposal.sourceWorkBoundary?.versionAt ?? proposal.createdAt");
+    expect(detailModal).toContain("AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY");
+    expect(detailModal).toContain("AFFILIATE_RELATIONSHIP_TIMELINE_QUERY");
+    expect(detailModal).toContain("AFFILIATE_ACTION_PROPOSALS_QUERY");
+    expect(detailModal).toContain("endAt: contextEndAt");
+    expect(detailModal).toContain("item.relatedIds.actionProposalId !== proposal.id");
+    expect(detailModal).toContain("previousAgentWork");
+    expect(detailModal).toContain("<AgentWorkReviewContext");
+    expect(detailModal).toContain("ecommerce.affiliateWorkspace.triggerKinds.${source.triggerKind}");
+    expect(detailModal.indexOf("agentWorkDetail.recentContext"))
+      .toBeLessThan(detailModal.indexOf("agentWorkDetail.previousAgentWork"));
+  });
+
+  it("shows message copy alongside Sample decisions for mixed work", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const card = page.slice(
+      page.indexOf("function AgentWorkBundleCard"),
+      page.indexOf("function AgentWorkRevisionHistory"),
+    );
+
+    expect(card).toContain("sampleReviewRows.length > 0 && proposalHasMessageIntent(proposal)");
+    expect(card).toContain("agentWorkDetail.bundledMessage");
+    expect(card).toContain("messagePreview");
+    expect(card).toContain("messageContentCleared");
+  });
+
   it("lets staff decide a policy-gated no-action proposal", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
@@ -1031,6 +1115,37 @@ describe("SEND_MESSAGE proposal message box", () => {
 
     expect(resolveProposalMessageDisplay(proposal)).toEqual({
       text: "Hi there, are you interested?",
+      contentCleared: false,
+    });
+  });
+
+  it("reads a message step from a mixed Sample review proposal", () => {
+    const proposal = sendMessageProposal(GQL.ActionProposalStatus.Pending, {
+      type: GQL.ActionProposalType.ReviewSampleApplication,
+      messageIntent: null,
+      steps: [
+        {
+          stepId: "review-sample",
+          type: GQL.ActionProposalType.ReviewSampleApplication,
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "application-1",
+            decision: GQL.AffiliateSampleReviewDecision.Approve,
+          },
+        },
+        {
+          stepId: "reply-to-creator",
+          type: GQL.ActionProposalType.SendMessage,
+          messageIntent: {
+            creatorId: "creator-1",
+            parts: [{ kind: GQL.AffiliateMessagePartKind.Text, text: "Your sample was approved." }],
+          },
+        },
+      ],
+    } as unknown as Partial<GQL.ActionProposal>);
+
+    expect(resolveProposalMessageDisplay(proposal)).toEqual({
+      text: "Your sample was approved.",
       contentCleared: false,
     });
   });

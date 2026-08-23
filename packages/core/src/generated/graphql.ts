@@ -31,6 +31,8 @@ export interface AckCsEscalationEventInput {
 
 /** Durable result of one Affiliate Agent dispatch. It may remain pending for staff review, execute automatically, record no action needed, or retain a terminal review outcome. */
 export interface ActionProposal {
+  /** Current active Sample Application count for list display. Read active record IDs from affiliateCreatorRelationshipDetail instead. */
+  activeSampleApplicationCount: Scalars['Int']['output'];
   /** Current canonical platform Collaboration projection for staff review display. */
   affiliateCollaboration?: Maybe<AffiliateCollaboration>;
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
@@ -304,16 +306,11 @@ export type ActionProposalStatus = typeof ActionProposalStatus[keyof typeof Acti
 export interface ActionProposalStep {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   approvalPolicyUpdateIntent?: Maybe<ActionProposalApprovalPolicyUpdateIntent>;
-  /** Committed relationship checkpoint used as this proposal's reasoning base. */
-  baseCheckpointId?: Maybe<Scalars['String']['output']>;
-  baseEventCursor?: Maybe<Scalars['Int']['output']>;
   blockCreatorIntent?: Maybe<ActionProposalBlockCreatorIntent>;
   businessDeveloperConfigRevision?: Maybe<Scalars['Int']['output']>;
   businessDeveloperIdSnapshot?: Maybe<Scalars['ID']['output']>;
   campaignId?: Maybe<Scalars['ID']['output']>;
   campaignProductUpdateIntent?: Maybe<ActionProposalCampaignProductUpdateIntent>;
-  /** Candidate checkpoint produced by the agent run. It is promoted only after direct execution or approved execution succeeds. */
-  candidateCheckpointId?: Maybe<Scalars['String']['output']>;
   candidateDecisionIntent?: Maybe<ActionProposalCandidateDecisionIntent>;
   creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   messageIntent?: Maybe<ActionProposalMessageIntent>;
@@ -332,7 +329,6 @@ export interface ActionProposalStep {
   /** Platform-action shop scope for this step. Null exactly on direct-channel (WhatsApp/Email) SEND_MESSAGE steps, which carry no sending shop. The proposal itself is owned by creatorRelationshipId. */
   shopId?: Maybe<Scalars['ID']['output']>;
   stepId: Scalars['String']['output'];
-  targetEventCursor?: Maybe<Scalars['Int']['output']>;
   type: ActionProposalType;
 }
 
@@ -2756,12 +2752,9 @@ export interface AffiliateMessageDelivery {
   actualChannel?: Maybe<AffiliateMessageChannel>;
   attemptCount: Scalars['Int']['output'];
   attempts: Array<AffiliateMessageDeliveryAttempt>;
-  baseCheckpointId?: Maybe<Scalars['String']['output']>;
-  baseEventCursor?: Maybe<Scalars['Int']['output']>;
   campaignCreatorStateId?: Maybe<Scalars['ID']['output']>;
   campaignDailyExecutionId?: Maybe<Scalars['ID']['output']>;
   campaignId?: Maybe<Scalars['ID']['output']>;
-  candidateCheckpointId?: Maybe<Scalars['String']['output']>;
   channelContactId?: Maybe<Scalars['ID']['output']>;
   channelSelectionSource: AffiliateDeliveryChannelSelectionSource;
   contactSelectionSource: AffiliateContactSelectionSource;
@@ -2786,7 +2779,6 @@ export interface AffiliateMessageDelivery {
   shopId?: Maybe<Scalars['ID']['output']>;
   source: AffiliateDeliverySource;
   status: AffiliateDeliveryStatus;
-  targetEventCursor?: Maybe<Scalars['Int']['output']>;
   templateVersion?: Maybe<Scalars['Int']['output']>;
   textHash?: Maybe<Scalars['String']['output']>;
   textLength?: Maybe<Scalars['Int']['output']>;

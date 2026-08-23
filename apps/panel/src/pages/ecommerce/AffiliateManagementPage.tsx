@@ -746,6 +746,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   const [proposalFilter, setProposalFilter] = useState<ProposalFilter>("ALL");
   const [proposalTypeFilter, setProposalTypeFilter] = useState<ProposalTypeFilter>("ALL");
   const [attentionSearch, setAttentionSearch] = useState("");
+  const [selectedAgentWorkBundle, setSelectedAgentWorkBundle] = useState<AgentWorkBundle | null>(null);
   const [selectedRelationship, setSelectedRelationship] = useState<CreatorRelationshipDetailItem | null>(null);
   const [loadingMoreProposalQueryKey, setLoadingMoreProposalQueryKey] = useState<string | null>(null);
   const proposalLoadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -1025,6 +1026,16 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
       const updatedProposal = result.data?.decideActionProposal;
       if (updatedProposal) {
         entityStore.affiliateWorkspace.upsertAffiliateActionProposal(updatedProposal);
+        setSelectedAgentWorkBundle((current) => {
+          if (!current) return current;
+          const updatedRootProposalId = updatedProposal.revisionRootProposalId || updatedProposal.id;
+          if (current.rootProposalId !== updatedRootProposalId) return current;
+          return {
+            ...current,
+            proposal: updatedProposal,
+            revisionHistory: updatedProposal.revisionHistory ?? current.revisionHistory,
+          };
+        });
         setProposalPageBuffer((current) => current.queryKey !== proposalQueryKey
           ? current
           : {
@@ -1219,31 +1230,22 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
                 : t("ecommerce.affiliateWorkspace.emptyProposalEntities")}
             </div>
           ) : (
-            <div className="affiliate-workbench-list affiliate-proposal-timeline" role="list">
-              {visibleAgentWorkBundles.map((bundle) => (
-                <div className="affiliate-proposal-timeline-entry" key={bundle.rootProposalId} role="listitem">
-                  <time dateTime={bundle.proposal.createdAt}>
-                    {formatProposalTime(bundle.proposal.createdAt)}
-                  </time>
-                  <span className="affiliate-proposal-timeline-marker" aria-hidden="true" />
-                  <AgentWorkBundleCard
-                    proposal={bundle.proposal}
-                    revisionHistory={bundle.revisionHistory}
-                    // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId): single-shop
-                    // label slot; the removal batch derives display from shopIds.
-                    shopLabel={shopLabel(bundle.proposal.focusShopId)}
-                    shopLabelForId={shopLabel}
-                    decidingProposal={decidingProposal}
-                    affiliateWorkspace={entityStore.affiliateWorkspace}
-                    onOpenRelationshipWork={(detailItem) => setSelectedRelationship(relationshipDetailFromWorkItem(detailItem))}
-                    onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
-                    onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
-                    onRequestRevision={(item, revisionNote) =>
-                      decideProposal(item, GQL.ActionProposalStatus.RevisionRequested, revisionNote)}
-                  />
-                </div>
-              ))}
-            </div>
+            <AgentWorkBundleTable
+              bundles={visibleAgentWorkBundles}
+              shopLabelForId={shopLabel}
+              onOpen={setSelectedAgentWorkBundle}
+              onOpenCreator={(bundle) => {
+                const detailItem = relationshipWorkItemFromProposal(
+                  bundle.proposal,
+                  entityStore.affiliateWorkspace,
+                );
+                if (detailItem) {
+                  setSelectedRelationship(relationshipDetailFromWorkItem(detailItem));
+                } else if (bundle.proposal.creatorProfile) {
+                  setSelectedRelationship(relationshipDetailFromProfile(bundle.proposal.creatorProfile));
+                }
+              }}
+            />
           )}
           {(hasMoreProposals || loadingMoreProposals) ? (
             <div className="affiliate-proposal-stream-footer" ref={proposalLoadMoreRef}>
@@ -1272,6 +1274,24 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           ) : null}
         </div>
       </div>
+
+      {selectedAgentWorkBundle ? (
+        <AgentWorkBundleDetailModal
+          bundle={selectedAgentWorkBundle}
+          shopLabelForId={shopLabel}
+          decidingProposal={decidingProposal}
+          affiliateWorkspace={entityStore.affiliateWorkspace}
+          onClose={() => setSelectedAgentWorkBundle(null)}
+          onOpenRelationshipWork={(detailItem) => {
+            setSelectedAgentWorkBundle(null);
+            setSelectedRelationship(relationshipDetailFromWorkItem(detailItem));
+          }}
+          onApprove={(item) => decideProposal(item, GQL.ActionProposalStatus.Approved)}
+          onReject={(item) => decideProposal(item, GQL.ActionProposalStatus.Rejected)}
+          onRequestRevision={(item, revisionNote) =>
+            decideProposal(item, GQL.ActionProposalStatus.RevisionRequested, revisionNote)}
+        />
+      ) : null}
 
       {selectedRelationship ? (
         <CreatorRelationshipDetailModal
@@ -2430,12 +2450,10 @@ function actionProposalSearchText(
 ): string {
   const creatorProfile = proposal.creatorProfile;
   const collaboration = proposal.affiliateCollaboration;
+  const displayShopIds = actionProposalDisplayShopIds(proposal);
   const values = [
     proposal.id,
-    // FROZEN-LEGACY-UNTIL-REMOVAL (focusShopId): search text keeps the legacy
-    // anchor until the removal batch derives it from shopIds labels.
-    proposal.focusShopId,
-    shopLabel(proposal.focusShopId),
+    ...displayShopIds.flatMap((shopId) => [shopId, shopLabel(shopId)]),
     proposal.creatorId,
     proposal.operatorSummary,
     proposal.type,
@@ -2460,6 +2478,23 @@ function actionProposalSearchText(
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .join(" ")
     .toLowerCase();
+}
+
+function actionProposalDisplayShopIds(proposal: GQL.ActionProposal): string[] {
+  const actedOnShopIds = [
+    ...(proposal.shopIds ?? []),
+    ...(proposal.steps ?? []).map((step) => step.shopId),
+  ].filter((shopId): shopId is string => Boolean(shopId));
+  if (actedOnShopIds.length > 0) return [...new Set(actedOnShopIds)];
+
+  const relationshipShopIds = (proposal.creatorRelationship?.shopStates ?? [])
+    .map((state) => state.shopId)
+    .filter(Boolean);
+  if (relationshipShopIds.length > 0) return [...new Set(relationshipShopIds)];
+
+  // FROZEN-LEGACY (focusShopId): only proposals from before shopIds/steps need
+  // the old single-shop anchor as a display fallback.
+  return proposal.focusShopId ? [proposal.focusShopId] : [];
 }
 
 function filterRelationshipWorkItems(
@@ -5707,6 +5742,580 @@ function formatConversationMoney(amount: string | null | undefined, currency?: G
   }
 }
 
+function renderAgentWorkRecommendationTitle(
+  proposal: GQL.ActionProposal,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const sampleReviewRows = proposalSampleReviewRows(proposal);
+  if (sampleReviewRows.length <= 1) return renderProposalRecommendationTitle(proposal, t);
+  const summary = summarizeSampleProposalReviewRows(sampleReviewRows);
+  return t("ecommerce.affiliateWorkspace.sampleDecisionBundle.recommendationTitle", {
+    count: sampleReviewRows.length,
+    approveCount: summary.approveCount,
+    rejectCount: summary.rejectCount,
+  });
+}
+
+type AgentWorkTableAction = {
+  key: string;
+  label: string;
+  tone: "approve" | "reject" | "message" | "neutral";
+};
+
+function proposalHasMessageIntent(proposal: GQL.ActionProposal): boolean {
+  return Boolean(
+    proposal.messageIntent ||
+    (proposal.steps ?? []).some((step) => Boolean(step.messageIntent)),
+  );
+}
+
+function agentWorkTableActions(
+  proposal: GQL.ActionProposal,
+  t: ReturnType<typeof useTranslation>["t"],
+): AgentWorkTableAction[] {
+  const sampleRows = proposalSampleReviewRows(proposal);
+  const actions: AgentWorkTableAction[] = [];
+  if (sampleRows.some((row) => row.decision === GQL.AffiliateSampleReviewDecision.Reject)) {
+    actions.push({
+      key: "reject-sample",
+      label: t("ecommerce.affiliateWorkspace.agentWorkTable.actions.rejectSample"),
+      tone: "reject",
+    });
+  }
+  if (sampleRows.some((row) => row.decision === GQL.AffiliateSampleReviewDecision.Approve)) {
+    actions.push({
+      key: "approve-sample",
+      label: t("ecommerce.affiliateWorkspace.agentWorkTable.actions.approveSample"),
+      tone: "approve",
+    });
+  }
+  if (proposalHasMessageIntent(proposal)) {
+    actions.push({
+      key: "send-message",
+      label: t("ecommerce.affiliateWorkspace.agentWorkTable.actions.sendMessage"),
+      tone: "message",
+    });
+  }
+  if (actions.length === 0) {
+    actions.push({
+      key: "no-action",
+      label: t("ecommerce.affiliateWorkspace.agentWorkTable.actions.noAction"),
+      tone: "neutral",
+    });
+  }
+  return actions;
+}
+
+function AgentWorkBundleTable({
+  bundles,
+  shopLabelForId,
+  onOpen,
+  onOpenCreator,
+}: {
+  bundles: AgentWorkBundle[];
+  shopLabelForId: (shopId: string) => string;
+  onOpen: (bundle: AgentWorkBundle) => void;
+  onOpenCreator: (bundle: AgentWorkBundle) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      className="affiliate-agent-work-table-shell"
+      data-tutorial-id="affiliate-attention-queue"
+    >
+      <table className="affiliate-agent-work-table">
+        <colgroup>
+          <col className="affiliate-agent-work-col-time" />
+          <col className="affiliate-agent-work-col-shop" />
+          <col className="affiliate-agent-work-col-creator" />
+          <col className="affiliate-agent-work-col-creator-metrics" />
+          <col className="affiliate-agent-work-col-type" />
+          <col className="affiliate-agent-work-col-work" />
+          <col className="affiliate-agent-work-col-status" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.time")}</th>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.shop")}</th>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.creator")}</th>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.title")}</th>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.type")}</th>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.work")}</th>
+            <th scope="col">{t("ecommerce.affiliateWorkspace.agentWorkTable.status")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bundles.map((bundle) => {
+            const proposal = bundle.proposal;
+            const creatorName = proposal.creatorProfile
+              ? creatorPrimaryName(proposal.creatorProfile, t("ecommerce.affiliateWorkspace.unknownCreator"))
+              : t("ecommerce.affiliateWorkspace.unknownCreator");
+            const creatorUsername = proposal.creatorProfile
+              ? normalizeTikTokUsername(proposal.creatorProfile.username)
+              : null;
+            const creatorNickname = proposal.creatorProfile?.nickname?.trim() || null;
+            const creatorSecondaryName = creatorNickname
+              && normalizeTikTokUsername(creatorNickname) !== creatorUsername
+              ? creatorNickname
+              : null;
+            const creatorPerformance = proposal.creatorProfile
+              ? latestCreatorPerformance(proposal.creatorProfile)
+              : null;
+            const activeSampleApplicationCount = proposal.activeSampleApplicationCount;
+            const recommendationTitle = renderAgentWorkRecommendationTitle(proposal, t);
+            const workActions = agentWorkTableActions(proposal, t);
+            const shopLabels = actionProposalDisplayShopIds(proposal).map(shopLabelForId);
+            const primaryShopLabel = shopLabels[0]
+              ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
+            const additionalShopCount = Math.max(0, shopLabels.length - 1);
+            const openLabel = t("ecommerce.affiliateWorkspace.agentWorkTable.openDetail", {
+              creator: creatorName,
+              work: recommendationTitle,
+            });
+
+            return (
+              <tr
+                key={bundle.rootProposalId}
+                className="affiliate-agent-work-table-row"
+                tabIndex={0}
+                aria-label={openLabel}
+                onClick={() => onOpen(bundle)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  onOpen(bundle);
+                }}
+              >
+                <td className="affiliate-agent-work-table-time">
+                  <time dateTime={proposal.createdAt}>
+                    <strong>{formatProposalTableTime(proposal.createdAt)}</strong>
+                    <span>{formatProposalTableDate(proposal.createdAt)}</span>
+                  </time>
+                </td>
+                <td className="affiliate-agent-work-table-shop" title={shopLabels.join(" · ")}>
+                  <strong>{primaryShopLabel}</strong>
+                  {additionalShopCount > 0 ? (
+                    <span>{t("ecommerce.affiliateWorkspace.agentWorkTable.moreShops", { count: additionalShopCount })}</span>
+                  ) : null}
+                </td>
+                <td className="affiliate-agent-work-table-creator">
+                  <button
+                    className="affiliate-agent-work-table-creator-button"
+                    type="button"
+                    title={t("ecommerce.affiliateWorkspace.openCreatorDetail")}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpenCreator(bundle);
+                    }}
+                  >
+                    <CreatorAvatarImage
+                      avatarUrl={proposal.creatorProfile?.avatarUrl}
+                      className="affiliate-avatar affiliate-agent-work-table-avatar affiliate-remote-avatar-image"
+                      name={creatorName}
+                    />
+                    <span className="affiliate-agent-work-table-creator-copy">
+                      <strong>{creatorUsername ? `@${creatorUsername}` : creatorName}</strong>
+                      {creatorSecondaryName ? <small>{creatorSecondaryName}</small> : null}
+                    </span>
+                  </button>
+                </td>
+                <td className="affiliate-agent-work-table-creator-metrics">
+                  <div className="affiliate-agent-work-creator-metric-grid">
+                    <span>
+                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.followers")}</small>
+                      <strong>{formatCount(creatorPerformance?.followerCount) ?? "—"}</strong>
+                    </span>
+                    <span>
+                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.gmv")}</small>
+                      <strong>{formatPerformanceMoney(creatorPerformance?.gmv) ?? "—"}</strong>
+                    </span>
+                    <span>
+                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.avgViews")}</small>
+                      <strong>{formatCount(creatorPerformance?.averageVideoViews) ?? "—"}</strong>
+                    </span>
+                    <span>
+                      <small>{t("ecommerce.affiliateWorkspace.agentWorkTable.creatorMetrics.activeSamples")}</small>
+                      <strong>{activeSampleApplicationCount == null
+                        ? "—"
+                        : formatInteger(activeSampleApplicationCount)}</strong>
+                    </span>
+                  </div>
+                </td>
+                <td className="affiliate-agent-work-table-type">
+                  <span className={`affiliate-agent-work-type-${proposal.type.toLowerCase().replace(/_/g, "-")}`}>
+                    {formatActionProposalTypeLabel(proposal.type, t)}
+                  </span>
+                </td>
+                <td className="affiliate-agent-work-table-work">
+                  <div className="affiliate-agent-work-table-actions" aria-label={recommendationTitle}>
+                    {workActions.map((action) => (
+                      <span
+                        className={`affiliate-agent-work-table-action affiliate-agent-work-table-action-${action.tone}`}
+                        key={action.key}
+                      >
+                        {action.label}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td className="affiliate-agent-work-table-status">
+                  <span className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}>
+                    {t(`ecommerce.affiliateWorkspace.proposalFilters.${proposal.status}`, {
+                      defaultValue: proposal.status,
+                    })}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AgentWorkBundleDetailModal({
+  bundle,
+  shopLabelForId,
+  decidingProposal,
+  affiliateWorkspace,
+  onClose,
+  onOpenRelationshipWork,
+  onApprove,
+  onReject,
+  onRequestRevision,
+}: {
+  bundle: AgentWorkBundle;
+  shopLabelForId: (shopId: string) => string;
+  decidingProposal: boolean;
+  affiliateWorkspace: AffiliateWorkspaceStore;
+  onClose: () => void;
+  onOpenRelationshipWork: (item: CreatorRelationshipWorkItem) => void;
+  onApprove: (proposal: GQL.ActionProposal) => Promise<void>;
+  onReject: (proposal: GQL.ActionProposal) => Promise<void>;
+  onRequestRevision: (proposal: GQL.ActionProposal, note: string) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const proposal = bundle.proposal;
+  const shopLabels = actionProposalDisplayShopIds(proposal).map(shopLabelForId);
+  const primaryShopLabel = shopLabels[0]
+    ?? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.unknownShop");
+  const detailItem = relationshipWorkItemFromProposal(proposal, affiliateWorkspace);
+  const isPending = proposal.status === GQL.ActionProposalStatus.Pending;
+  const titleId = `affiliate-agent-work-detail-${proposal.id}`;
+  const relationshipId = proposal.creatorRelationshipId
+    ?? proposal.sourceWorkBoundary?.creatorRelationshipId
+    ?? null;
+  const contextEndAt = proposal.sourceWorkBoundary?.versionAt ?? proposal.createdAt;
+  const {
+    data: reviewRelationshipData,
+    loading: reviewRelationshipLoading,
+    error: reviewRelationshipError,
+  } = useQuery<
+    { affiliateCreatorRelationshipDetail: GQL.AffiliateCreatorRelationshipDetailPayload },
+    { input: GQL.AffiliateCreatorRelationshipDetailInput }
+  >(AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY, {
+    variables: { input: { creatorRelationshipId: relationshipId ?? "" } },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId,
+  });
+  const {
+    data: reviewTimelineData,
+    loading: reviewTimelineLoading,
+    error: reviewTimelineError,
+  } = useQuery<
+    { affiliateRelationshipTimeline: GQL.AffiliateRelationshipTimelinePayload },
+    { input: GQL.AffiliateRelationshipTimelineInput }
+  >(AFFILIATE_RELATIONSHIP_TIMELINE_QUERY, {
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        endAt: contextEndAt,
+        limit: 10,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId,
+  });
+  const {
+    data: reviewProposalHistoryData,
+    loading: reviewProposalHistoryLoading,
+    error: reviewProposalHistoryError,
+  } = useQuery<
+    AffiliateActionProposalPageData,
+    { input: ReadAffiliateActionProposalPageInput }
+  >(AFFILIATE_ACTION_PROPOSALS_QUERY, {
+    variables: {
+      input: {
+        creatorRelationshipId: relationshipId ?? "",
+        limit: 8,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !relationshipId,
+  });
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="modal-backdrop affiliate-agent-work-detail-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="modal-content affiliate-agent-work-detail-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header affiliate-agent-work-detail-header">
+          <div className="affiliate-agent-work-detail-heading">
+            <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.eyebrow")}</span>
+            <h2 id={titleId}>{t("ecommerce.affiliateWorkspace.agentWorkDetail.title")}</h2>
+            <p>
+              <strong>{primaryShopLabel}</strong>
+              <span>{formatActionProposalTypeLabel(proposal.type, t)}</span>
+              <span className={`affiliate-kind-badge affiliate-kind-${proposal.status.toLowerCase()}`}>
+                {t(`ecommerce.affiliateWorkspace.proposalFilters.${proposal.status}`, {
+                  defaultValue: proposal.status,
+                })}
+              </span>
+            </p>
+          </div>
+          <div className="affiliate-agent-work-detail-header-actions">
+            {detailItem ? (
+              <button
+                className="btn btn-secondary affiliate-agent-work-detail-relationship-button"
+                type="button"
+                onClick={() => onOpenRelationshipWork(detailItem)}
+              >
+                <EyeIcon />
+                <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.openRelationship")}</span>
+              </button>
+            ) : null}
+            <button className="modal-close-btn" type="button" onClick={onClose} aria-label={t("common.close")}>
+              ×
+            </button>
+          </div>
+        </div>
+        <div className="affiliate-agent-work-detail-body">
+          <div className="affiliate-agent-work-detail-main">
+            <AgentWorkBundleCard
+              proposal={proposal}
+              revisionHistory={bundle.revisionHistory}
+              shopLabel={primaryShopLabel}
+              shopLabelForId={shopLabelForId}
+              decidingProposal={decidingProposal}
+              allowDecisionActions={isPending}
+              showRevisionHistory={false}
+              affiliateWorkspace={affiliateWorkspace}
+              onApprove={isPending ? onApprove : undefined}
+              onReject={isPending ? onReject : undefined}
+              onRequestRevision={isPending ? onRequestRevision : undefined}
+            />
+          </div>
+          <AgentWorkReviewContext
+            proposal={proposal}
+            contextEndAt={contextEndAt}
+            relationshipDetail={reviewRelationshipData?.affiliateCreatorRelationshipDetail ?? null}
+            timelineItems={(reviewTimelineData?.affiliateRelationshipTimeline.items ?? [])
+              .filter((item) => item.relatedIds.actionProposalId !== proposal.id)}
+            previousAgentWork={(reviewProposalHistoryData?.affiliateActionProposalPage.items ?? [])
+              .filter((item) => item.id !== proposal.id && proposalTimestamp(item.createdAt) <= proposalTimestamp(proposal.createdAt))
+              .slice(0, 4)}
+            loading={reviewRelationshipLoading || reviewTimelineLoading || reviewProposalHistoryLoading}
+            failed={Boolean(reviewRelationshipError || reviewTimelineError || reviewProposalHistoryError)}
+            shopLabelForId={shopLabelForId}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgentWorkReviewContext({
+  proposal,
+  contextEndAt,
+  relationshipDetail,
+  timelineItems,
+  previousAgentWork,
+  loading,
+  failed,
+  shopLabelForId,
+}: {
+  proposal: GQL.ActionProposal;
+  contextEndAt: string;
+  relationshipDetail: GQL.AffiliateCreatorRelationshipDetailPayload | null;
+  timelineItems: GQL.AffiliateRelationshipTimelineItem[];
+  previousAgentWork: GQL.ActionProposal[];
+  loading: boolean;
+  failed: boolean;
+  shopLabelForId: (shopId: string) => string;
+}) {
+  const { t } = useTranslation();
+  const source = proposal.sourceWorkBoundary;
+  const contextEntries = buildRelationshipTimelineEntries(timelineItems, [], t).slice(-8);
+  const counts = relationshipDetail?.counts;
+  const triggerFacts = [
+    source?.workKind
+      ? {
+          label: t("ecommerce.affiliateWorkspace.agentWorkDetail.triggerWorkKind"),
+          value: t(`ecommerce.affiliateWorkspace.workKinds.${source.workKind}`, {
+            defaultValue: formatAffiliateEnumLabel(source.workKind),
+          }),
+        }
+      : null,
+    source?.triggerKind
+      ? {
+          label: t("ecommerce.affiliateWorkspace.agentWorkDetail.triggerKind"),
+          value: t(`ecommerce.affiliateWorkspace.triggerKinds.${source.triggerKind}`, {
+            defaultValue: formatAffiliateEnumLabel(source.triggerKind),
+          }),
+        }
+      : null,
+    source?.triggerChannel
+      ? {
+          label: t("ecommerce.affiliateWorkspace.agentWorkDetail.triggerChannel"),
+          value: t(`ecommerce.affiliateWorkspace.messageChannels.${source.triggerChannel}`, {
+            defaultValue: formatAffiliateEnumLabel(source.triggerChannel),
+          }),
+        }
+      : null,
+    source?.triggerShopId
+      ? {
+          label: t("ecommerce.affiliateWorkspace.agentWorkDetail.triggerShop"),
+          value: shopLabelForId(source.triggerShopId),
+        }
+      : null,
+  ].filter((fact): fact is { label: string; value: string } => Boolean(fact));
+
+  return (
+    <aside className="affiliate-agent-review-context">
+      <div className="affiliate-agent-review-context-head">
+        <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextEyebrow")}</span>
+        <h3>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextTitle")}</h3>
+        <p>{t("ecommerce.affiliateWorkspace.agentWorkDetail.contextSubtitle")}</p>
+        <time dateTime={contextEndAt}>
+          {t("ecommerce.affiliateWorkspace.agentWorkDetail.contextAsOf", {
+            time: formatProposalTime(contextEndAt),
+          })}
+        </time>
+      </div>
+
+      {triggerFacts.length > 0 ? (
+        <section className="affiliate-agent-review-context-section">
+          <h4>{t("ecommerce.affiliateWorkspace.agentWorkDetail.triggerContext")}</h4>
+          <div className="affiliate-agent-review-trigger-facts">
+            {triggerFacts.map((fact) => (
+              <div key={`${fact.label}-${fact.value}`}>
+                <span>{fact.label}</span>
+                <strong>{fact.value}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="affiliate-agent-review-context-section">
+        <div className="affiliate-agent-review-context-section-head">
+          <h4>{t("ecommerce.affiliateWorkspace.agentWorkDetail.currentBusinessContext")}</h4>
+          <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.currentBusinessContextHint")}</span>
+        </div>
+        {reviewContextHasCurrentFacts(relationshipDetail) ? (
+          <div className="affiliate-agent-review-metrics">
+            <RelationshipMetric
+              label={t("ecommerce.affiliateWorkspace.creatorLastContactedAt")}
+              value={relationshipDetail?.lastContactedAt
+                ? formatProposalTime(relationshipDetail.lastContactedAt)
+                : t("ecommerce.affiliateWorkspace.noRecentContact")}
+            />
+            <RelationshipMetric
+              label={t("ecommerce.affiliateWorkspace.creatorDetail.followers")}
+              value={formatCount(relationshipDetail?.performance?.followerCount) ?? "—"}
+            />
+            <RelationshipMetric
+              label={t("ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications")}
+              value={formatInteger(counts?.activeSampleApplicationCount ?? 0)}
+            />
+            <RelationshipMetric
+              label={t("ecommerce.affiliateWorkspace.relationshipPanelPlatformCollaborations")}
+              value={formatInteger(counts?.activePlatformCollaborationCount ?? 0)}
+            />
+          </div>
+        ) : loading ? (
+          <div className="affiliate-agent-review-context-state">{t("common.loading")}</div>
+        ) : (
+          <div className="affiliate-agent-review-context-state">—</div>
+        )}
+      </section>
+
+      <section className="affiliate-agent-review-context-section affiliate-agent-review-history-section">
+        <h4>{t("ecommerce.affiliateWorkspace.agentWorkDetail.recentContext")}</h4>
+        {failed && contextEntries.length === 0 ? (
+          <div className="affiliate-agent-review-context-state affiliate-agent-review-context-state-error">
+            {t("ecommerce.affiliateWorkspace.agentWorkDetail.contextLoadFailed")}
+          </div>
+        ) : loading && contextEntries.length === 0 ? (
+          <div className="affiliate-agent-review-context-state">{t("common.loading")}</div>
+        ) : contextEntries.length > 0 ? (
+          <div className="affiliate-agent-review-history">
+            {contextEntries.map((entry) => entry.type === "time-passed" ? (
+              <div className="affiliate-agent-review-history-gap" key={entry.id}>
+                <span />
+                <em>{entry.title}</em>
+                <span />
+              </div>
+            ) : (
+              <article className="affiliate-agent-review-history-item" key={entry.id}>
+                <div className="affiliate-agent-review-history-meta">
+                  <span>{entry.kind}</span>
+                  <time dateTime={entry.time}>{formatProposalTime(entry.time)}</time>
+                </div>
+                <strong>{entry.title}</strong>
+                {entry.detail ? <p>{entry.detail}</p> : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="affiliate-agent-review-context-state">
+            {t("ecommerce.affiliateWorkspace.agentWorkDetail.noRecentContext")}
+          </div>
+        )}
+        {previousAgentWork.length > 0 ? (
+          <div className="affiliate-agent-review-previous-work">
+            <h4>{t("ecommerce.affiliateWorkspace.agentWorkDetail.previousAgentWork")}</h4>
+            <div className="affiliate-agent-review-previous-work-list">
+              {previousAgentWork.map((item) => (
+                <article key={item.id}>
+                  <div>
+                    <span>{formatActionProposalTypeLabel(item.type, t)}</span>
+                    <span>{t(`ecommerce.affiliateWorkspace.proposalFilters.${item.status}`, {
+                      defaultValue: item.status,
+                    })}</span>
+                    <time dateTime={item.createdAt}>{formatProposalTime(item.createdAt)}</time>
+                  </div>
+                  <p>{item.operatorSummary}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </aside>
+  );
+}
+
+function reviewContextHasCurrentFacts(
+  detail: GQL.AffiliateCreatorRelationshipDetailPayload | null,
+): boolean {
+  return Boolean(detail?.lastContactedAt || detail?.performance || detail?.counts);
+}
+
 function AgentWorkBundleCard({
   proposal,
   revisionHistory = proposal.revisionHistory ?? [],
@@ -5715,6 +6324,7 @@ function AgentWorkBundleCard({
   decidingProposal = false,
   variant = "full",
   allowDecisionActions,
+  showRevisionHistory = false,
   affiliateWorkspace,
   onOpenRelationshipWork,
   onOpenCreator,
@@ -5729,6 +6339,7 @@ function AgentWorkBundleCard({
   decidingProposal?: boolean;
   variant?: "full" | "compact";
   allowDecisionActions?: boolean;
+  showRevisionHistory?: boolean;
   affiliateWorkspace?: AffiliateWorkspaceStore;
   onOpenRelationshipWork?: (item: CreatorRelationshipWorkItem) => void;
   onOpenCreator?: (profile: GQL.AffiliateCreatorIdentity) => void;
@@ -5747,19 +6358,13 @@ function AgentWorkBundleCard({
   const creatorHandle = proposal.creatorProfile ? creatorTikTokHandle(proposal.creatorProfile) : null;
   const creatorPlatformId = proposal.creatorProfile ? creatorPlatformIdentity(proposal.creatorProfile) : null;
   const sampleReviewRows = proposalSampleReviewRows(proposal);
-  const sampleReviewSummary = summarizeSampleProposalReviewRows(sampleReviewRows);
-  const recommendationTitle = sampleReviewRows.length > 1
-    ? t("ecommerce.affiliateWorkspace.sampleDecisionBundle.recommendationTitle", {
-        count: sampleReviewRows.length,
-        approveCount: sampleReviewSummary.approveCount,
-        rejectCount: sampleReviewSummary.rejectCount,
-      })
-    : renderProposalRecommendationTitle(proposal, t);
+  const recommendationTitle = renderAgentWorkRecommendationTitle(proposal, t);
   const executionDescription = sampleReviewRows.length > 0
     ? null
     : renderProposalExecutionDescription(proposal, t);
   const { text: messagePreview, contentCleared: messageContentCleared } =
     resolveProposalMessageDisplay(proposal);
+  const showsBundledMessage = sampleReviewRows.length > 0 && proposalHasMessageIntent(proposal);
   const predictionSnapshot =
     sampleReviewRows.length === 0 &&
     proposal.type === GQL.ActionProposalType.ReviewSampleApplication
@@ -5791,7 +6396,7 @@ function AgentWorkBundleCard({
     ? t("ecommerce.affiliateWorkspace.activity.proposalStepCount", { count: proposalStepCount })
     : null;
   const revisionCount = Math.max(proposal.revisionNumber ?? 1, revisionHistory.length);
-  const hasRevisionHistory = revisionCount > 1;
+  const hasRevisionHistory = showRevisionHistory && revisionCount > 1;
   const detailItem = relationshipWorkItemFromProposal(proposal, affiliateWorkspace);
   const canOpenRelationshipWork = !isCompact && Boolean(detailItem && onOpenRelationshipWork);
   const openPrimaryTarget = () => {
@@ -6013,6 +6618,24 @@ function AgentWorkBundleCard({
                   shopLabelForId={shopLabelForId ?? (() => shopLabel)}
                 />
               ) : null}
+              {showsBundledMessage ? (
+                <section className="affiliate-card-section affiliate-card-bundled-message-section">
+                  <div className="affiliate-card-section-label">
+                    {t("ecommerce.affiliateWorkspace.agentWorkDetail.bundledMessage")}
+                  </div>
+                  {messagePreview ? (
+                    <div className="affiliate-work-item-preview">{messagePreview}</div>
+                  ) : messageContentCleared ? (
+                    <div className="affiliate-card-section-copy affiliate-message-content-cleared">
+                      {t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_CONTENT_CLEARED")}
+                    </div>
+                  ) : (
+                    <div className="affiliate-card-section-copy">
+                      {t("ecommerce.affiliateWorkspace.agentWorkDetail.bundledMessageUnavailable")}
+                    </div>
+                  )}
+                </section>
+              ) : null}
               <ProposalPredictionComparison
                 snapshot={predictionSnapshot}
               />
@@ -6147,6 +6770,24 @@ function AgentWorkBundleCard({
                 rows={sampleReviewRows}
                 shopLabelForId={shopLabelForId ?? (() => shopLabel)}
               />
+            ) : null}
+            {showsBundledMessage ? (
+              <section className="affiliate-card-section affiliate-card-bundled-message-section">
+                <div className="affiliate-card-section-label">
+                  {t("ecommerce.affiliateWorkspace.agentWorkDetail.bundledMessage")}
+                </div>
+                {messagePreview ? (
+                  <div className="affiliate-work-item-preview">{messagePreview}</div>
+                ) : messageContentCleared ? (
+                  <div className="affiliate-card-section-copy affiliate-message-content-cleared">
+                    {t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_CONTENT_CLEARED")}
+                  </div>
+                ) : (
+                  <div className="affiliate-card-section-copy">
+                    {t("ecommerce.affiliateWorkspace.agentWorkDetail.bundledMessageUnavailable")}
+                  </div>
+                )}
+              </section>
             ) : null}
             <ProposalPredictionComparison
               snapshot={predictionSnapshot}
@@ -8092,7 +8733,7 @@ export function CreatorRelationshipDetailModal({
                   value={relationshipDetail?.counts.pendingProposalCount ?? visiblePendingProposals.length}
                 />
                 <SampleApplicationFact
-                  label={t("ecommerce.affiliateWorkspace.relationshipPanelSamples", { defaultValue: "Active samples" })}
+                  label={t("ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications")}
                   value={relationshipDetail?.counts.activeSampleApplicationCount ?? 0}
                 />
                 <SampleApplicationFact
@@ -8194,7 +8835,7 @@ export function CreatorRelationshipDetailModal({
                       </div>
                       <div className="affiliate-relationship-work-current-work-actions">
                         <div>
-                          <span>{t("ecommerce.affiliateWorkspace.relationshipPanelSamples", { defaultValue: "Samples & fulfillment" })}</span>
+                          <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications")}</span>
                           <strong>{relationshipDetail?.counts.activeSampleApplicationCount ?? 0}</strong>
                           <small>{t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}</small>
                         </div>
@@ -9023,6 +9664,27 @@ function formatProposalTime(value: string | null | undefined): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+function formatProposalTableTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatProposalTableDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  }).format(date);
 }
 
 function formatCount(value?: number | null): string | null {
