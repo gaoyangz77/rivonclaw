@@ -947,6 +947,7 @@ export interface AffiliateCampaignCreatorState {
   latestSearchProviderOrdinal?: Maybe<Scalars['Int']['output']>;
   market: Scalars['String']['output'];
   nextEvaluationAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  outreachErrorCode?: Maybe<Scalars['String']['output']>;
   preApprovalContractVersion?: Maybe<Scalars['String']['output']>;
   /** The artifact's own cutoff. Frozen at training time, never seller-set. */
   preApprovalCutoff?: Maybe<Scalars['Float']['output']>;
@@ -1040,6 +1041,11 @@ export const AffiliateCampaignDailyExecutionStatus = {
 } as const;
 
 export type AffiliateCampaignDailyExecutionStatus = typeof AffiliateCampaignDailyExecutionStatus[keyof typeof AffiliateCampaignDailyExecutionStatus];
+export interface AffiliateCampaignDeliveryFailureReason {
+  code: Scalars['String']['output'];
+  count: Scalars['Int']['output'];
+}
+
 export interface AffiliateCampaignDiscoveryRules {
   affiliatePerformance30d?: Maybe<AffiliateCampaignAffiliatePerformanceRules>;
   audience?: Maybe<AffiliateCampaignAudienceRules>;
@@ -1250,6 +1256,13 @@ export const AffiliateCampaignSearchPlanCompletionReason = {
 } as const;
 
 export type AffiliateCampaignSearchPlanCompletionReason = typeof AffiliateCampaignSearchPlanCompletionReason[keyof typeof AffiliateCampaignSearchPlanCompletionReason];
+export interface AffiliateCampaignSearchPlanDeliverySummary {
+  failed: Scalars['Int']['output'];
+  failureReasons: Array<AffiliateCampaignDeliveryFailureReason>;
+  sent: Scalars['Int']['output'];
+  submitted: Scalars['Int']['output'];
+}
+
 export interface AffiliateCampaignSearchPlanExecution {
   completedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   endPageSequence: Scalars['Int']['output'];
@@ -1370,6 +1383,17 @@ export const AffiliateCampaignSearchPlanStatus = {
 } as const;
 
 export type AffiliateCampaignSearchPlanStatus = typeof AffiliateCampaignSearchPlanStatus[keyof typeof AffiliateCampaignSearchPlanStatus];
+export interface AffiliateCampaignSearchPlanSummary {
+  delivery: AffiliateCampaignSearchPlanDeliverySummary;
+  duplicateCount: Scalars['Int']['output'];
+  plan: AffiliateCampaignSearchPlan;
+}
+
+export interface AffiliateCampaignSearchPlanSummaryPage {
+  items: Array<AffiliateCampaignSearchPlanSummary>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+}
+
 export interface AffiliateCampaignSearchPlanTotals {
   matched: Scalars['Int']['output'];
   outreachPolicyBlocked: Scalars['Int']['output'];
@@ -1441,9 +1465,12 @@ export const AffiliateCampaignStatus = {
 
 export type AffiliateCampaignStatus = typeof AffiliateCampaignStatus[keyof typeof AffiliateCampaignStatus];
 export interface AffiliateCampaignSummary {
+  activeDayCount: Scalars['Int']['output'];
   campaignId: Scalars['ID']['output'];
   counters: AffiliateCampaignExecutionCounters;
+  deliveryFailureReasons: Array<AffiliateCampaignDeliveryFailureReason>;
   latestExecution?: Maybe<AffiliateCampaignDailyExecution>;
+  lifetimeReachedOut: Scalars['Int']['output'];
   shopDailyCapacity: AffiliateCampaignShopDailyCapacity;
   targetCollaborationCreateQuota: AffiliateCampaignTargetCollaborationCreateQuota;
   totalCreators: Scalars['Int']['output'];
@@ -10696,6 +10723,10 @@ export interface Query {
   affiliateCampaignDailyExecutions: Array<AffiliateCampaignDailyExecution>;
   /** Fetch and normalize one owned-shop product for Campaign review without creating persistent draft state. */
   affiliateCampaignProductPreview: AffiliateCampaignProductPreview;
+  /** Cursor-paginated Creator decisions attributed to one SearchPlan in an owned Campaign. */
+  affiliateCampaignSearchPlanCreatorStates: AffiliateCampaignCreatorStatePage;
+  /** Read SearchPlan-level discovery, qualification, and first-touch outcomes for one Campaign. */
+  affiliateCampaignSearchPlanSummaries: AffiliateCampaignSearchPlanSummaryPage;
   affiliateCampaignSearchPlans: AffiliateCampaignSearchPlanPage;
   /** Read whether the Campaign's explicitly selected evaluation strategy can run now. */
   affiliateCampaignSelectionReadiness: AffiliateCampaignSelectionReadiness;
@@ -11038,6 +11069,16 @@ export interface QueryAffiliateCampaignDailyExecutionsArgs {
 
 export interface QueryAffiliateCampaignProductPreviewArgs {
   input: ResolveAffiliateCampaignProductInput;
+}
+
+
+export interface QueryAffiliateCampaignSearchPlanCreatorStatesArgs {
+  input: ReadAffiliateCampaignSearchPlanCreatorStatesInput;
+}
+
+
+export interface QueryAffiliateCampaignSearchPlanSummariesArgs {
+  input: ReadAffiliateCampaignSearchPlansInput;
 }
 
 
@@ -11796,6 +11837,7 @@ export interface ReadAffiliateCampaignCreatorStatesInput {
   eligibilityCategories?: InputMaybe<Array<AffiliateCampaignEligibilityCategory>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   reasonCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+  searchPlanId?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<AffiliateCampaignCreatorStateStatus>;
   statuses?: InputMaybe<Array<AffiliateCampaignCreatorStateStatus>>;
 }
@@ -11803,6 +11845,16 @@ export interface ReadAffiliateCampaignCreatorStatesInput {
 export interface ReadAffiliateCampaignDailyExecutionsInput {
   campaignId: Scalars['ID']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface ReadAffiliateCampaignSearchPlanCreatorStatesInput {
+  campaignId: Scalars['ID']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  eligibilityCategories?: InputMaybe<Array<AffiliateCampaignEligibilityCategory>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  reasonCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+  searchPlanId: Scalars['ID']['input'];
+  statuses?: InputMaybe<Array<AffiliateCampaignCreatorStateStatus>>;
 }
 
 export interface ReadAffiliateCampaignSearchPlansInput {

@@ -3,6 +3,7 @@ import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from
   "../../i18n/affiliate-campaign-translations.js";
 import {
   campaignDecisionReasonLabel,
+  campaignDeliveryFailureBreakdown,
   campaignErrorMessage,
   campaignCreatorStatesViewState,
   campaignFunnelCounterValue,
@@ -57,6 +58,22 @@ describe("Affiliate Campaign presentation contracts", () => {
         value: 0,
       }),
     ).toBe(0);
+  });
+
+  it("groups Provider delivery failures into stable product-facing reasons", () => {
+    expect(
+      campaignDeliveryFailureBreakdown([
+        { code: "COLLABORATION_CREATOR_PRODUCT_CONFLICT", count: 5 },
+        { code: "COLLABORATION_CREATOR_INVALID_OPEN_ID", count: 4 },
+        { code: "COLLABORATION_CREATOR_NOT_ACCEPTED", count: 5 },
+        { code: "UNCLASSIFIED_PROVIDER_ERROR", count: 6 },
+      ], 20),
+    ).toEqual([
+      { category: "duplicateCollaboration", count: 5 },
+      { category: "invalidCreator", count: 4 },
+      { category: "providerNotAccepted", count: 5 },
+      { category: "otherProviderRejection", count: 6 },
+    ]);
   });
 
   it("renders only the supported first-touch template variables", () => {
