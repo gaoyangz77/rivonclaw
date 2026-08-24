@@ -12,125 +12,122 @@ const AFFILIATE_FRESHNESS_FIELDS = gql`
   }
 `;
 
-const AFFILIATE_PLATFORM_METRICS_FIELDS = gql`
-  fragment AffiliatePlatformMetricsFields on AffiliateAnalyticsPlatformMetrics {
-    grossGmvUsd
-    netGmvUsd
-    orders
-    units
-    estimatedCommissionUsd
-    actualCommissionUsd
-    targetCreatorsInvited
-    targetSampleResponses
-    targetResponseRate
-    requestedTarget
-    qualified
-    sent
-    replied
-    failed
+/**
+ * Affiliate Overview — three sections, each its own root query so a failing
+ * section degrades on its own instead of taking the page down.
+ *
+ * The Panel-side mirrors of these payloads live in
+ * `pages/ecommerce/affiliate-overview-types.ts`; swap them for `GQL.*` once the
+ * backend schema has been through codegen.
+ *
+ * Deliberately absent: GMV, commission, leaderboards, campaign stage bars, the
+ * platform-vs-sample contract split, and any comparison period. Order-line GMV
+ * is 98.2% missing at 0–7 days of order age and keeps a ~17% permanent hole,
+ * so a cohort-by-age money column would render a backfill curve as a business
+ * trend. This page is built on invitations, applications and units only.
+ */
+export const AFFILIATE_OVERVIEW_REACHOUT_QUERY = gql`
+  query AffiliateOverviewReachout($input: AffiliateOverviewInput!) {
+    getAffiliateOverviewReachout(input: $input) {
+      invitations
+      responded
+      cohortResponseRate
+      immatureShare
+      responsesExact
+      responsesProxy
+      horizons {
+        horizon
+        matureInvitations
+        responsesWithinHorizon
+        responseRate
+      }
+      daily {
+        inviteDs
+        invitations
+        responded
+        mature
+      }
+    }
   }
 `;
 
-const AFFILIATE_SAMPLE_METRICS_FIELDS = gql`
-  fragment AffiliateSampleMetricsFields on AffiliateAnalyticsSampleMetrics {
-    grossGmvUsd
-    netGmvUsd
-    orders
-    units
-    estimatedCommissionUsd
-    actualCommissionUsd
-    applications
-    approved
-    rejected
-    overdue
-    inFlight
-    completed
-    shippedObserved
-    contents
-    approvalRate
-    fulfillmentObservedRate
-    completionRate
-    statusBucketsExclusive
+export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
+  query AffiliateOverviewApproval($input: AffiliateOverviewInput!) {
+    getAffiliateOverviewApproval(input: $input) {
+      applications
+      approved
+      merchantRejected
+      overdueByUs
+      inFlight
+      approvalRate
+      merchantRejectRate
+      overdueRate
+      daily {
+        cohortDs
+        applications
+        approved
+        merchantRejected
+        overdueByUs
+        inFlight
+        approvalRate
+      }
+      byAge {
+        ageBucket
+        applications
+        approved
+        merchantRejected
+        overdueByUs
+        inFlight
+        approvalRate
+      }
+    }
   }
 `;
 
-export const AFFILIATE_ANALYTICS_OVERVIEW_QUERY = gql`
-  ${AFFILIATE_FRESHNESS_FIELDS}
-  ${AFFILIATE_PLATFORM_METRICS_FIELDS}
-  ${AFFILIATE_SAMPLE_METRICS_FIELDS}
-  query AffiliateAnalyticsOverviewCore($input: AffiliateAnalyticsOverviewInput!) {
+export const AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY = gql`
+  query AffiliateOverviewPostApproval($input: AffiliateOverviewInput!) {
+    getAffiliateOverviewPostApproval(input: $input) {
+      approvedApplications
+      applicationsWithOrder
+      orderRate
+      actualUnits
+      projectedUnits
+      unitsPerApprovedActual
+      unitsPerApprovedProjected
+      cohorts {
+        cohortDs
+        approvedApplications
+        actualUnits
+        projectedRemainingUnits
+        completionFactor
+        ageDays
+      }
+      maturationCurve {
+        lagDays
+        cumulativeShare
+        basisCohorts
+      }
+    }
+  }
+`;
+
+/**
+ * Portfolio counts for the Overview header.
+ *
+ * The cohort sections carry no portfolio, so these come from the existing
+ * overview resolver, which applies no date predicate to them — they are current
+ * values. The date range below is required by the input type and is therefore
+ * held constant rather than tracking the cohort window, so changing the window
+ * does not refetch a number that cannot move.
+ */
+export const AFFILIATE_OVERVIEW_PORTFOLIO_QUERY = gql`
+  query AffiliateOverviewPortfolio($input: AffiliateAnalyticsOverviewInput!) {
     getAffiliateAnalyticsOverviewCore(input: $input) {
-      scope {
-        shopIds
-        shopCount
-        current { startDateGe endDateLt }
-        comparison { startDateGe endDateLt }
+      portfolio {
+        activeCampaigns
+        activeTargetCollaborations
+        activeOpenCollaborations
       }
-      portfolio { shops activeCampaigns activeTargetCollaborations activeOpenCollaborations }
-      freshness {
-        platform { ...AffiliateFreshnessFields }
-        sample { ...AffiliateFreshnessFields }
-        liveResponseObservedAt
-      }
-      platform {
-        current { ...AffiliatePlatformMetricsFields }
-        comparison { ...AffiliatePlatformMetricsFields }
-        trend {
-          bucketStart grossGmvUsd netGmvUsd orders units estimatedCommissionUsd actualCommissionUsd
-          targetCreatorsInvited targetSampleResponses targetResponseRate requestedTarget qualified sent replied failed
-        }
-        comparisonTrend {
-          bucketStart grossGmvUsd netGmvUsd orders units estimatedCommissionUsd actualCommissionUsd
-          targetCreatorsInvited targetSampleResponses targetResponseRate requestedTarget qualified sent replied failed
-        }
-      }
-      sample {
-        current { ...AffiliateSampleMetricsFields }
-        comparison { ...AffiliateSampleMetricsFields }
-        trend {
-          bucketStart grossGmvUsd netGmvUsd orders units estimatedCommissionUsd actualCommissionUsd
-          applications approved rejected overdue inFlight completed shippedObserved contents
-          approvalRate fulfillmentObservedRate completionRate statusBucketsExclusive
-        }
-        comparisonTrend {
-          bucketStart grossGmvUsd netGmvUsd orders units estimatedCommissionUsd actualCommissionUsd
-          applications approved rejected overdue inFlight completed shippedObserved contents
-          approvalRate fulfillmentObservedRate completionRate statusBucketsExclusive
-        }
-      }
-      campaignStages { key label value }
-      sampleStatuses { key label value share }
-      sampleMaturity {
-        ageBucket applications approved shippedObserved completed
-        approvalRate fulfillmentObservedRate completionRate
-      }
-      health {
-        creatorIdentityRowCoverage creatorIdentityGmvCoverage exactApplicationTimeShare
-        targetMappedApplicationShare campaignMappedApplicationShare warnings
-      }
-    }
-  }
-`;
-
-export const AFFILIATE_ANALYTICS_MATURITY_QUERY = gql`
-  query AffiliateAnalyticsOutreachMaturity($input: AffiliateAnalyticsOverviewInput!) {
-    getAffiliateAnalyticsOutreachMaturity(input: $input) {
-      observedAt
-      points {
-        horizon horizonHours matureInvitations responsesWithinHorizon responseRate
-        freshFetchInvitations staleFetchInvitations
-      }
-      basis { basis invitations }
-    }
-  }
-`;
-
-export const AFFILIATE_ANALYTICS_LEADERBOARD_QUERY = gql`
-  query AffiliateAnalyticsLeaderboard($input: AffiliateAnalyticsLeaderboardInput!) {
-    getAffiliateAnalyticsLeaderboard(input: $input) {
-      entityType
-      platform { entityId label secondaryLabel netGmvUsd orders applications responses }
-      sample { entityId label secondaryLabel netGmvUsd orders applications responses }
     }
   }
 `;

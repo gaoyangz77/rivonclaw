@@ -933,6 +933,26 @@ export interface AffiliateAnalyticsStatusBucket {
   value: Scalars['Float']['output'];
 }
 
+export interface AffiliateApprovalAgePoint {
+  ageBucket: Scalars['String']['output'];
+  applications: Scalars['Int']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Int']['output'];
+  inFlight: Scalars['Int']['output'];
+  merchantRejected: Scalars['Int']['output'];
+  overdueByUs: Scalars['Int']['output'];
+}
+
+export interface AffiliateApprovalDailyPoint {
+  applications: Scalars['Int']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Int']['output'];
+  cohortDs: Scalars['String']['output'];
+  inFlight: Scalars['Int']['output'];
+  merchantRejected: Scalars['Int']['output'];
+  overdueByUs: Scalars['Int']['output'];
+}
+
 /** Approval interception policy for affiliate actions. If all non-empty condition arrays match, the backend creates an ActionProposal instead of executing automatically. */
 export interface AffiliateApprovalPolicy {
   action: ActionProposalType;
@@ -959,6 +979,19 @@ export interface AffiliateApprovalPolicyContextShop {
   creatorTags: Array<CreatorTag>;
   shopId: Scalars['ID']['output'];
   shopName: Scalars['String']['output'];
+}
+
+export interface AffiliateApprovalSection {
+  applications: Scalars['Int']['output'];
+  approvalRate?: Maybe<Scalars['Float']['output']>;
+  approved: Scalars['Int']['output'];
+  byAge: Array<AffiliateApprovalAgePoint>;
+  daily: Array<AffiliateApprovalDailyPoint>;
+  inFlight: Scalars['Int']['output'];
+  merchantRejectRate?: Maybe<Scalars['Float']['output']>;
+  merchantRejected: Scalars['Int']['output'];
+  overdueByUs: Scalars['Int']['output'];
+  overdueRate?: Maybe<Scalars['Float']['output']>;
 }
 
 export interface AffiliateBusinessDeveloper {
@@ -1758,6 +1791,15 @@ export const AffiliateCampaignType = {
 } as const;
 
 export type AffiliateCampaignType = typeof AffiliateCampaignType[keyof typeof AffiliateCampaignType];
+export interface AffiliateCohortUnitsPoint {
+  actualUnits: Scalars['Int']['output'];
+  ageDays: Scalars['Int']['output'];
+  approvedApplications: Scalars['Int']['output'];
+  cohortDs: Scalars['String']['output'];
+  completionFactor?: Maybe<Scalars['Float']['output']>;
+  projectedRemainingUnits?: Maybe<Scalars['Float']['output']>;
+}
+
 /** Platform-level affiliate collaboration, normalized across TikTok open and target collaborations. */
 export interface AffiliateCollaboration {
   campaignId?: Maybe<Scalars['ID']['output']>;
@@ -2848,6 +2890,13 @@ export interface AffiliateHumanReviewRequestInput {
   reason: AffiliateHumanReviewReason;
 }
 
+export interface AffiliateInviteDailyPoint {
+  invitations: Scalars['Int']['output'];
+  inviteDs: Scalars['String']['output'];
+  mature: Scalars['Boolean']['output'];
+  responded: Scalars['Int']['output'];
+}
+
 export interface AffiliateInvolvedShopInstruction {
   businessPrompt?: Maybe<Scalars['String']['output']>;
   shopId: Scalars['ID']['output'];
@@ -2994,6 +3043,12 @@ export const AffiliateMarketplaceUnitsSoldRange = {
 } as const;
 
 export type AffiliateMarketplaceUnitsSoldRange = typeof AffiliateMarketplaceUnitsSoldRange[keyof typeof AffiliateMarketplaceUnitsSoldRange];
+export interface AffiliateMaturationPoint {
+  basisCohorts: Scalars['Int']['output'];
+  cumulativeShare: Scalars['Float']['output'];
+  lagDays: Scalars['Int']['output'];
+}
+
 /** Creator communication channel for affiliate outreach */
 export const AffiliateMessageChannel = {
   Email: 'EMAIL',
@@ -3465,6 +3520,24 @@ export interface AffiliateOutreachOperationalStatusPayload {
   whatsappAccountsUsingUnavailableProxyCount: Scalars['Int']['output'];
 }
 
+export interface AffiliateOverviewInput {
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Cohort window length in days, counting back from today (UTC). Exactly 30, 60 or 90. */
+  windowDays: Scalars['Int']['input'];
+}
+
+export interface AffiliatePostApprovalSection {
+  actualUnits: Scalars['Int']['output'];
+  applicationsWithOrder: Scalars['Int']['output'];
+  approvedApplications: Scalars['Int']['output'];
+  cohorts: Array<AffiliateCohortUnitsPoint>;
+  maturationCurve: Array<AffiliateMaturationPoint>;
+  orderRate?: Maybe<Scalars['Float']['output']>;
+  projectedUnits?: Maybe<Scalars['Float']['output']>;
+  unitsPerApprovedActual?: Maybe<Scalars['Float']['output']>;
+  unitsPerApprovedProjected?: Maybe<Scalars['Float']['output']>;
+}
+
 export const AffiliatePredictionCaptureMode = {
   PromotedFromCache: 'PROMOTED_FROM_CACHE',
   QueryCache: 'QUERY_CACHE',
@@ -3546,6 +3619,17 @@ export const AffiliateProviderReadSource = {
 } as const;
 
 export type AffiliateProviderReadSource = typeof AffiliateProviderReadSource[keyof typeof AffiliateProviderReadSource];
+export interface AffiliateReachoutSection {
+  cohortResponseRate?: Maybe<Scalars['Float']['output']>;
+  daily: Array<AffiliateInviteDailyPoint>;
+  horizons: Array<AffiliateResponseHorizon>;
+  immatureShare?: Maybe<Scalars['Float']['output']>;
+  invitations: Scalars['Int']['output'];
+  responded: Scalars['Int']['output'];
+  responsesExact: Scalars['Int']['output'];
+  responsesProxy: Scalars['Int']['output'];
+}
+
 export interface AffiliateRelationshipAgendaItem {
   affiliateCollaborationId?: Maybe<Scalars['ID']['output']>;
   boundaryEventCursor?: Maybe<Scalars['Int']['output']>;
@@ -3903,6 +3987,13 @@ export interface AffiliateRelationshipWorkSummary {
   externalWaitingCount: Scalars['Int']['output'];
   nextActionAt?: Maybe<Scalars['DateTimeISO']['output']>;
   staffRequiredCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateResponseHorizon {
+  horizon: Scalars['String']['output'];
+  matureInvitations: Scalars['Int']['output'];
+  responseRate?: Maybe<Scalars['Float']['output']>;
+  responsesWithinHorizon: Scalars['Int']['output'];
 }
 
 /** Frozen revision source attached only to the Agent working agenda created by a staff revision request. */
@@ -11262,6 +11353,12 @@ export interface Query {
   getAffiliateAnalyticsOverview: AffiliateAnalyticsOverview;
   /** Return the fast materialized Affiliate Analytics core without live outreach maturity or hidden leaderboard tabs. */
   getAffiliateAnalyticsOverviewCore: AffiliateAnalyticsOverviewCore;
+  /** Return the Affiliate Overview approval section: sample application cohorts by submission date and their current outcome mix, by day and by cohort age. */
+  getAffiliateOverviewApproval: AffiliateApprovalSection;
+  /** Return the Affiliate Overview post-approval section: units realised by approved sample application cohorts, with the completion-factor projection and the maturation curve it is derived from. Units only — no GMV. */
+  getAffiliateOverviewPostApproval: AffiliatePostApprovalSection;
+  /** Return the Affiliate Overview reachout section: TARGET invitation cohorts by real invitation date, their response rate by horizon, and the exact/proxy submission-time split that gates the sub-day horizons. */
+  getAffiliateOverviewReachout: AffiliateReachoutSection;
   /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
   getEcommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Query typed warehouse-backed ecommerce BI data. */
@@ -12028,6 +12125,21 @@ export interface QueryGetAffiliateAnalyticsOverviewArgs {
 
 export interface QueryGetAffiliateAnalyticsOverviewCoreArgs {
   input: AffiliateAnalyticsOverviewInput;
+}
+
+
+export interface QueryGetAffiliateOverviewApprovalArgs {
+  input: AffiliateOverviewInput;
+}
+
+
+export interface QueryGetAffiliateOverviewPostApprovalArgs {
+  input: AffiliateOverviewInput;
+}
+
+
+export interface QueryGetAffiliateOverviewReachoutArgs {
+  input: AffiliateOverviewInput;
 }
 
 

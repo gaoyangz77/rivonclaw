@@ -1,0 +1,79 @@
+import { useTranslation } from "react-i18next";
+import { RefreshIcon } from "../../../components/icons.js";
+import { formatNumber } from "../affiliate-analytics-format.js";
+import type { AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
+import { AFFILIATE_WINDOW_DAYS, type AffiliateOverviewPortfolio } from "../affiliate-overview-types.js";
+import { useAffiliateOverview } from "../hooks/useAffiliateOverview.js";
+import { AffiliateApprovalSectionView } from "./AffiliateApprovalSectionView.js";
+import { AffiliatePostApprovalSectionView } from "./AffiliatePostApprovalSectionView.js";
+import { AffiliateReachoutSectionView } from "./AffiliateReachoutSectionView.js";
+import { AffiliateShopScopeControl } from "./AffiliateShopScopeControl.js";
+
+/**
+ * Portfolio counts. These are current values read without any date predicate,
+ * so they deliberately do not move when the cohort window changes — the caption
+ * says so, because a number sitting next to a window control reads as windowed.
+ */
+function AffiliatePortfolioStrip({ portfolio }: { portfolio: AffiliateOverviewPortfolio | null }) {
+  const { t, i18n } = useTranslation();
+  const entries = [
+    ["campaigns", portfolio?.activeCampaigns],
+    ["target", portfolio?.activeTargetCollaborations],
+    ["open", portfolio?.activeOpenCollaborations],
+  ] as const;
+
+  return (
+    <div className="affiliate-portfolio-current">
+      <span className="affiliate-portfolio-caption">{t("ecommerce.affiliateAnalytics.portfolio.caption")}</span>
+      {entries.map(([key, value]) => (
+        <div key={key}>
+          <span>{t(`ecommerce.affiliateAnalytics.portfolio.${key}`)}</span>
+          <strong>{value == null ? "—" : formatNumber(value, i18n.language)}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AffiliateOverviewTab({ shops }: { shops: AffiliateAnalyticsShop[] }) {
+  const { t } = useTranslation();
+  const state = useAffiliateOverview(shops);
+
+  return (
+    <div className="affiliate-overview">
+      <section className="affiliate-control-bar" data-tutorial-id="affiliate-analytics-controls">
+        <AffiliateShopScopeControl shops={shops} selected={state.shopIds} onChange={state.setShopIds} />
+        <div className="affiliate-window-control">
+          <span>{t("ecommerce.affiliateAnalytics.window")}</span>
+          <div className="affiliate-segmented" role="group" aria-label={t("ecommerce.affiliateAnalytics.window")}>
+            {AFFILIATE_WINDOW_DAYS.map((days) => (
+              <button
+                key={days}
+                type="button"
+                aria-pressed={state.windowDays === days}
+                className={state.windowDays === days ? "active" : ""}
+                onClick={() => state.setWindowDays(days)}
+              >
+                {t("ecommerce.affiliateAnalytics.windowDays", { count: days })}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button
+          className="btn btn-secondary affiliate-refresh"
+          type="button"
+          onClick={state.refetchAll}
+          disabled={state.refreshing || state.shopIds.length === 0}
+        >
+          <RefreshIcon aria-hidden="true" />
+          {state.refreshing ? t("ecommerce.affiliateAnalytics.refreshing") : t("ecommerce.affiliateAnalytics.refresh")}
+        </button>
+        <AffiliatePortfolioStrip portfolio={state.portfolio} />
+      </section>
+
+      <AffiliateReachoutSectionView query={state.reachout} />
+      <AffiliateApprovalSectionView query={state.approval} />
+      <AffiliatePostApprovalSectionView query={state.postApproval} />
+    </div>
+  );
+}
