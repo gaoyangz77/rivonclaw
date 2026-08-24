@@ -27,9 +27,9 @@ function restoreOverview() {
 export const ecommerceAffiliateAnalyticsSteps: TutorialStep[] = [
   step("affiliate-analytics-welcome", "affiliate-analytics-header", "welcome", "bottom"),
   step("affiliate-analytics-scope", "affiliate-analytics-controls", "scope", "bottom"),
-  step("affiliate-analytics-contracts", "affiliate-analytics-contracts", "contracts", "bottom"),
-  step("affiliate-analytics-maturity", "affiliate-analytics-maturity", "maturity", "top"),
-  step("affiliate-analytics-health", "affiliate-analytics-health", "health", "top"),
+  step("affiliate-analytics-reachout", "affiliate-analytics-reachout", "reachout", "bottom"),
+  step("affiliate-analytics-approval", "affiliate-analytics-approval", "approval", "top"),
+  step("affiliate-analytics-post-approval", "affiliate-analytics-post-approval", "postApproval", "top"),
   {
     ...step("affiliate-analytics-explore", "affiliate-analytics-query", "explore", "bottom"),
     prepare: openExplore,

@@ -1,14 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AffiliateAnalyticsPage } from "./AffiliateAnalyticsPage.js";
 
 const mocks = vi.hoisted(() => ({
   entityStore: {} as Record<string, unknown>,
-  overview: {} as Record<string, unknown>,
-  maturity: {} as Record<string, unknown>,
-  leaderboard: {} as Record<string, unknown>,
+  sections: {} as Record<string, Record<string, unknown>>,
   queryCalls: [] as Array<{ operation?: string; variables?: Record<string, unknown> }>,
   dataQuery: vi.fn(),
   valuesQuery: vi.fn(),
@@ -26,39 +24,37 @@ vi.mock("@apollo/client/react", () => ({
   useQuery: (document: Parameters<typeof operationName>[0], options?: { variables?: Record<string, unknown> }) => {
     const operation = operationName(document);
     mocks.queryCalls.push({ operation, variables: options?.variables });
-    if (operation === "AffiliateAnalyticsOverviewCore") return mocks.overview;
-    if (operation === "AffiliateAnalyticsOutreachMaturity") return mocks.maturity;
-    if (operation === "AffiliateAnalyticsLeaderboard") return mocks.leaderboard;
+    if (operation && operation in mocks.sections) return mocks.sections[operation];
     return {
-        loading: false,
-        error: undefined,
-        data: {
-          getEcommerceBiCatalog: [
-            {
-              id: "AFFILIATE_PLATFORM_PERFORMANCE_DAILY",
-              label: "Platform Performance",
-              dimensions: [{ id: "DATE", label: "Date", filterable: true }],
-              metrics: [
-                { id: "AFFILIATE_NET_GMV_USD", label: "Net GMV USD" },
-                { id: "AFFILIATE_ORDERS", label: "Orders" },
-              ],
-              groupingSets: [{ dimensions: [] }],
-            },
-            {
-              id: "AFFILIATE_SAMPLE_CONVERSION_DAILY",
-              label: "Sample Conversion",
-              dimensions: [{ id: "DATE", label: "Date", filterable: true }],
-              metrics: [
-                { id: "AFFILIATE_APPLICATIONS_CREATED", label: "Applications" },
-                { id: "AFFILIATE_CURRENTLY_APPROVED", label: "Approved" },
-                { id: "AFFILIATE_SHIPPED_OBSERVED_CURRENT", label: "Shipped" },
-                { id: "AFFILIATE_NET_GMV_USD", label: "Net GMV USD" },
-              ],
-              groupingSets: [{ dimensions: [] }],
-            },
-          ],
-        },
-      };
+      loading: false,
+      error: undefined,
+      data: {
+        getEcommerceBiCatalog: [
+          {
+            id: "AFFILIATE_PLATFORM_PERFORMANCE_DAILY",
+            label: "Platform Performance",
+            dimensions: [{ id: "DATE", label: "Date", filterable: true }],
+            metrics: [
+              { id: "AFFILIATE_NET_GMV_USD", label: "Net GMV USD" },
+              { id: "AFFILIATE_ORDERS", label: "Orders" },
+            ],
+            groupingSets: [{ dimensions: [] }],
+          },
+          {
+            id: "AFFILIATE_SAMPLE_CONVERSION_DAILY",
+            label: "Sample Conversion",
+            dimensions: [{ id: "DATE", label: "Date", filterable: true }],
+            metrics: [
+              { id: "AFFILIATE_APPLICATIONS_CREATED", label: "Applications" },
+              { id: "AFFILIATE_CURRENTLY_APPROVED", label: "Approved" },
+              { id: "AFFILIATE_SHIPPED_OBSERVED_CURRENT", label: "Shipped" },
+              { id: "AFFILIATE_NET_GMV_USD", label: "Net GMV USD" },
+            ],
+            groupingSets: [{ dimensions: [] }],
+          },
+        ],
+      },
+    };
   },
   useLazyQuery: (document: Parameters<typeof operationName>[0]) => operationName(document) === "AffiliateBiData"
     ? [mocks.dataQuery, { loading: false, error: undefined, data: undefined }]
@@ -72,6 +68,7 @@ vi.mock("recharts", () => {
     ResponsiveContainer: Container,
     LineChart: Container,
     BarChart: Container,
+    ComposedChart: Container,
     CartesianGrid: Element,
     Legend: Element,
     Line: Element,
@@ -82,65 +79,117 @@ vi.mock("recharts", () => {
   };
 });
 
+/**
+ * Keys not in this dictionary resolve to the key itself, which is exactly what
+ * `affiliateCatalogLabel` relies on to fall back to the server-sent label.
+ */
+const COPY: Record<string, string> = {
+  "ecommerce.affiliateAnalytics.title": "Affiliate Analytics",
+  "ecommerce.affiliateAnalytics.overview": "Overview",
+  "ecommerce.affiliateAnalytics.explore.title": "Explore",
+  "ecommerce.affiliateAnalytics.platformTitle": "Platform performance",
+  "ecommerce.affiliateAnalytics.sampleTitle": "Sample conversion",
+  "ecommerce.affiliateAnalytics.run": "Run",
+  "ecommerce.affiliateAnalytics.noEntitlementTitle": "Analytics access is not enabled",
+  "ecommerce.affiliateAnalytics.region": "Shop region",
+  "ecommerce.affiliateAnalytics.allRegions": "All regions",
+  "ecommerce.affiliateAnalytics.window": "Cohort window",
+  "ecommerce.affiliateAnalytics.portfolio.caption": "Current values · unaffected by the window",
+  "ecommerce.affiliateAnalytics.portfolio.campaigns": "Active campaigns",
+  "ecommerce.affiliateAnalytics.portfolio.target": "Active TARGET",
+  "ecommerce.affiliateAnalytics.portfolio.open": "Active OPEN",
+  "ecommerce.affiliateAnalytics.sectionUnavailableTitle": "This section is unavailable",
+  "ecommerce.affiliateAnalytics.reachout.title": "Reachout",
+  "ecommerce.affiliateAnalytics.reachout.axis": "Cohort axis: the real invitation date",
+  "ecommerce.affiliateAnalytics.reachout.cohortResponseRate": "Cohort response rate",
+  "ecommerce.affiliateAnalytics.reachout.exactShare": "Exact share",
+  "ecommerce.affiliateAnalytics.approval.title": "Sample approval",
+  "ecommerce.affiliateAnalytics.approval.axis": "Cohort axis: the application submission date",
+  "ecommerce.affiliateAnalytics.approval.overdueRate": "Overdue rate",
+  "ecommerce.affiliateAnalytics.postApproval.title": "Post-approval performance",
+  "ecommerce.affiliateAnalytics.postApproval.axis": "Cohort axis: the application date · measured in units",
+  "ecommerce.affiliateAnalytics.postApproval.actualUnits": "Units to date",
+  "ecommerce.affiliateAnalytics.explore.operators.IN": "Is one of",
+  "ecommerce.affiliateAnalytics.explore.directions.DESC": "Descending",
+  "ecommerce.affiliateAnalytics.catalog.dimensions.DATE": "Date",
+  "ecommerce.affiliateAnalytics.catalog.metrics.AFFILIATE_APPLICATIONS_CREATED": "Applications",
+};
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     i18n: { language: "en-US" },
-    t: (key: string, values?: { count?: number; date?: string }) => ({
-      "ecommerce.affiliateAnalytics.title": "Affiliate Analytics",
-      "ecommerce.affiliateAnalytics.overview": "Overview",
-      "ecommerce.affiliateAnalytics.explore.title": "Explore",
-      "ecommerce.affiliateAnalytics.platformTitle": "Platform performance",
-      "ecommerce.affiliateAnalytics.sampleTitle": "Sample conversion",
-      "ecommerce.affiliateAnalytics.nonAdditive": "These GMV contracts can overlap. Never add them into an Affiliate Total.",
-      "ecommerce.affiliateAnalytics.run": "Run",
-      "ecommerce.affiliateAnalytics.running": "Running…",
-      "ecommerce.affiliateAnalytics.noEntitlementTitle": "Analytics access is not enabled",
-      "ecommerce.affiliateAnalytics.region": "Shop region",
-      "ecommerce.affiliateAnalytics.allRegions": "All regions",
-      "ecommerce.affiliateAnalytics.customShopScope": "Custom shop scope",
-      "ecommerce.affiliateAnalytics.selectedShops": `${values?.count ?? 0} shops selected`,
-      "ecommerce.affiliateAnalytics.liveObserved": `Live observed ${values?.date ?? ""}`,
-    }[key] ?? key.split(".").at(-1) ?? key),
+    t: (key: string, values?: Record<string, unknown>) => {
+      const copy = COPY[key];
+      if (copy) return copy;
+      if (key === "ecommerce.affiliateAnalytics.windowDays") return `Last ${values?.count}d`;
+      if (key === "ecommerce.affiliateAnalytics.selectedShops") return `${values?.count ?? 0} shops selected`;
+      return key;
+    },
   }),
 }));
 
-const totals = {
-  grossGmvUsd: 0,
-  netGmvUsd: 125,
-  orders: 5,
-  units: 7,
-  estimatedCommissionUsd: 3,
-  actualCommissionUsd: 2,
-  targetCreatorsInvited: 10,
-  targetSampleResponses: 4,
-  targetResponseRate: 0.4,
-  requestedTarget: 10,
-  qualified: 8,
-  sent: 6,
-  replied: 4,
-  failed: 1,
-};
-
-function overviewFixture() {
+function sectionResult(field: string, value: unknown) {
   return {
-    scope: { shopIds: ["shop-1"], shopCount: 1, current: {}, comparison: {} },
-    portfolio: { shops: 1, activeCampaigns: 2, activeTargetCollaborations: 3, activeOpenCollaborations: 4 },
-    freshness: {
-      platform: { asOf: "2026-08-23T12:00:00Z", stale: true, warnings: ["late"] },
-      sample: { asOf: "2026-08-23T12:00:00Z", stale: false, warnings: [] },
-      liveResponseObservedAt: "2026-08-23T12:30:00Z",
-    },
-    platform: { current: totals, comparison: { ...totals, netGmvUsd: 100 }, trend: [], comparisonTrend: [] },
-    sample: {
-      current: { ...totals, netGmvUsd: 75, applications: 12, approved: 6, rejected: 2, overdue: 1, inFlight: 2, completed: 3, shippedObserved: 4, contents: 5, approvalRate: 0.5, fulfillmentObservedRate: 2 / 3, completionRate: 0.5, statusBucketsExclusive: true },
-      comparison: { ...totals, netGmvUsd: 50, applications: 10, approvalRate: 0.4, completionRate: 0.4 },
-      trend: [],
-      comparisonTrend: [],
-    },
-    campaignStages: [{ key: "sent", label: "Sent", value: 6 }],
-    sampleStatuses: [{ key: "approved", label: "Approved", value: 6, share: 0.5 }],
-    sampleMaturity: [{ ageBucket: "0–1d", approvalRate: 0.5, fulfillmentObservedRate: 0.4, completionRate: 0.2 }],
-    health: { creatorIdentityRowCoverage: 0.98, creatorIdentityGmvCoverage: 0.99, exactApplicationTimeShare: 0.9, targetMappedApplicationShare: 0.8, campaignMappedApplicationShare: 0.7, warnings: [] },
+    loading: false,
+    error: undefined,
+    networkStatus: 7,
+    refetch: vi.fn(),
+    data: { [field]: value },
+  };
+}
+
+function reachoutFixture() {
+  return {
+    invitations: 1_178_913,
+    responded: 1_353,
+    cohortResponseRate: 0.001148,
+    immatureShare: 0.24,
+    responsesExact: 92,
+    responsesProxy: 8,
+    horizons: [
+      { horizon: "3h", matureInvitations: 620_000, responsesWithinHorizon: 210, responseRate: 0.00034 },
+      { horizon: "72h", matureInvitations: 540_000, responsesWithinHorizon: 749, responseRate: 0.00139 },
+      { horizon: "7d", matureInvitations: 480_000, responsesWithinHorizon: 627, responseRate: 0.00131 },
+    ],
+    daily: [
+      { inviteDs: "2026-06-01", invitations: 800, responded: 9, mature: true },
+      { inviteDs: "2026-08-20", invitations: 640, responded: 1, mature: false },
+    ],
+  };
+}
+
+function approvalFixture() {
+  return {
+    applications: 420,
+    approved: 300,
+    merchantRejected: 60,
+    overdueByUs: 20,
+    inFlight: 40,
+    approvalRate: 0.714,
+    merchantRejectRate: 0.143,
+    overdueRate: 0.048,
+    daily: [{ cohortDs: "2026-08-01", applications: 40, approved: 30, merchantRejected: 5, overdueByUs: 2, inFlight: 3 }],
+    byAge: [{ ageBucket: "0–1d", applications: 40, approved: 20, merchantRejected: 4, overdueByUs: 1, inFlight: 15 }],
+  };
+}
+
+function postApprovalFixture() {
+  return {
+    approvedApplications: 300,
+    applicationsWithOrder: 96,
+    orderRate: 0.32,
+    actualUnits: 812,
+    projectedUnits: 954.4,
+    unitsPerApprovedActual: 2.71,
+    unitsPerApprovedProjected: 3.18,
+    cohorts: [
+      { cohortDs: "2026-06-01", approvedApplications: 40, actualUnits: 120, projectedRemainingUnits: 0, completionFactor: 1, ageDays: 84 },
+      { cohortDs: "2026-08-18", approvedApplications: 30, actualUnits: 22, projectedRemainingUnits: 41.5, completionFactor: 0.35, ageDays: 6 },
+    ],
+    maturationCurve: [
+      { lagDays: 0, cumulativeShare: 0.04, basisCohorts: 41 },
+      { lagDays: 30, cumulativeShare: 0.78, basisCohorts: 41 },
+    ],
   };
 }
 
@@ -150,38 +199,13 @@ beforeEach(() => {
     shops: [{ id: "shop-1", shopName: "North Shop", alias: "North", region: "US" }],
     billingOverview: { shops: [{ shopId: "shop-1", analytics: { allowed: true } }] },
   };
-  mocks.overview = {
-    loading: false,
-    error: undefined,
-    networkStatus: 7,
-    refetch: vi.fn(),
-    data: { getAffiliateAnalyticsOverviewCore: overviewFixture() },
-  };
-  mocks.maturity = {
-    loading: false,
-    error: undefined,
-    networkStatus: 7,
-    refetch: vi.fn(),
-    data: {
-      getAffiliateAnalyticsOutreachMaturity: {
-        observedAt: "2026-08-23T12:30:00Z",
-        points: [{ horizon: "3h", horizonHours: 3, responseRate: 0.25, matureInvitations: 8, responsesWithinHorizon: 2, freshFetchInvitations: 8, staleFetchInvitations: 0 }],
-        basis: [{ basis: "SENT_AT", invitations: 8 }],
-      },
-    },
-  };
-  mocks.leaderboard = {
-    loading: false,
-    error: undefined,
-    networkStatus: 7,
-    refetch: vi.fn(),
-    data: {
-      getAffiliateAnalyticsLeaderboard: {
-        entityType: "SHOP",
-        platform: [{ entityId: "shop-1", label: "North", secondaryLabel: "US", netGmvUsd: 125, orders: 5, applications: 0, responses: 4 }],
-        sample: [{ entityId: "shop-1", label: "North", secondaryLabel: "US", netGmvUsd: 75, orders: 3, applications: 12, responses: 0 }],
-      },
-    },
+  mocks.sections = {
+    AffiliateOverviewReachout: sectionResult("getAffiliateOverviewReachout", reachoutFixture()),
+    AffiliateOverviewApproval: sectionResult("getAffiliateOverviewApproval", approvalFixture()),
+    AffiliateOverviewPostApproval: sectionResult("getAffiliateOverviewPostApproval", postApprovalFixture()),
+    AffiliateOverviewPortfolio: sectionResult("getAffiliateAnalyticsOverviewCore", {
+      portfolio: { activeCampaigns: 7, activeTargetCollaborations: 11, activeOpenCollaborations: 3 },
+    }),
   };
   mocks.queryCalls = [];
   mocks.dataQuery.mockReset();
@@ -207,46 +231,104 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe("AffiliateAnalyticsPage", () => {
-  it("shows parallel Overview contracts, stale state and the permanent non-additive warning", () => {
+function overviewInputs(): Array<{ shopIds?: string[]; windowDays?: number }> {
+  return mocks.queryCalls
+    .filter((call) => call.operation === "AffiliateOverviewReachout")
+    .map((call) => call.variables?.input as { shopIds?: string[]; windowDays?: number });
+}
+
+function portfolioInputs(): Array<Record<string, unknown>> {
+  return mocks.queryCalls
+    .filter((call) => call.operation === "AffiliateOverviewPortfolio")
+    .map((call) => call.variables?.input as Record<string, unknown>);
+}
+
+describe("AffiliateAnalyticsPage Overview", () => {
+  it("renders the three cohort sections, each declaring its own time axis", () => {
     render(<AffiliateAnalyticsPage />);
 
-    expect(screen.getByRole("heading", { name: "Affiliate Analytics" })).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 2, name: "Platform performance" })).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 2, name: "Sample conversion" })).toBeTruthy();
-    expect(screen.getByText(/Never add them into an Affiliate Total/)).toBeTruthy();
-    expect(screen.getByText("stale")).toBeTruthy();
-    expect(screen.getByText(/^Live observed /)).toBeTruthy();
-    expect(screen.getAllByText("North").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { level: 2, name: "Reachout" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Sample approval" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Post-approval performance" })).toBeTruthy();
+    expect(screen.getByText("Cohort axis: the real invitation date")).toBeTruthy();
+    expect(screen.getByText("Cohort axis: the application submission date")).toBeTruthy();
+    expect(screen.getByText("Cohort axis: the application date · measured in units")).toBeTruthy();
   });
 
-  it("loads only the active leaderboard and switches its entity query on demand", () => {
-    const { rerender } = render(<AffiliateAnalyticsPage />);
-
-    expect(mocks.queryCalls.some((call) => call.operation === "AffiliateAnalyticsLeaderboard"
-      && (call.variables?.input as { entityType?: string })?.entityType === "SHOP")).toBe(true);
-
-    fireEvent.click(screen.getByRole("button", { name: "CREATOR" }));
-    rerender(<AffiliateAnalyticsPage />);
-
-    expect(mocks.queryCalls.some((call) => call.operation === "AffiliateAnalyticsLeaderboard"
-      && (call.variables?.input as { entityType?: string })?.entityType === "CREATOR")).toBe(true);
-  });
-
-  it("does not query Explore until Run and resets to Sample metrics on contract switch", async () => {
+  it("opens on the 30 day window and re-queries when another window is chosen", () => {
     render(<AffiliateAnalyticsPage />);
-    fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
 
-    expect(mocks.dataQuery).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Sample conversion" }));
-    expect(screen.getAllByText("Applications").length).toBeGreaterThan(0);
-    expect(mocks.dataQuery).not.toHaveBeenCalled();
+    expect(overviewInputs().at(0)).toEqual({ shopIds: ["shop-1"], windowDays: 30 });
 
-    fireEvent.click(screen.getByRole("button", { name: "Run" }));
-    await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Last 90d" }));
+
+    expect(overviewInputs().some((input) => input.windowDays === 90)).toBe(true);
   });
 
-  it("keeps the selected Region visible after resolving its authorized Shop scope", () => {
+  it("labels the portfolio counts as current values that the window does not move", () => {
+    render(<AffiliateAnalyticsPage />);
+
+    expect(screen.getByText("Current values · unaffected by the window")).toBeTruthy();
+    for (const [label, value] of [["Active campaigns", "7"], ["Active TARGET", "11"], ["Active OPEN", "3"]]) {
+      expect(screen.getByText(label).parentElement?.textContent).toContain(value);
+    }
+  });
+
+  it("never varies the portfolio query with the cohort window", () => {
+    render(<AffiliateAnalyticsPage />);
+    const before = portfolioInputs().at(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Last 60d" }));
+
+    expect(before).toBeDefined();
+    for (const input of portfolioInputs()) expect(input).toEqual(before);
+    expect(Object.keys(before!)).not.toContain("windowDays");
+  });
+
+  it("drops the comparison selector and the free date range from the Overview controls", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+
+    expect(container.querySelector(".affiliate-overview input[type=\"date\"]")).toBeNull();
+    expect(screen.queryByText("ecommerce.affiliateAnalytics.comparison")).toBeNull();
+  });
+
+  it("uses no native select in the Overview controls", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+
+    expect(container.querySelectorAll(".affiliate-overview select")).toHaveLength(0);
+  });
+
+  it("renders a sub-percent cohort response rate with real precision", () => {
+    render(<AffiliateAnalyticsPage />);
+
+    const metric = screen.getByText("Cohort response rate").parentElement;
+    expect(metric?.textContent).toContain("0.115%");
+  });
+
+  it("keeps the other sections readable when one section comes back absent", () => {
+    mocks.sections = {
+      ...mocks.sections,
+      AffiliateOverviewPostApproval: sectionResult("getAffiliateOverviewPostApproval", null),
+    };
+    render(<AffiliateAnalyticsPage />);
+
+    expect(screen.getByText("This section is unavailable")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Reachout" })).toBeTruthy();
+    expect(screen.queryByText("Units to date")).toBeNull();
+  });
+
+  it("shows the entitlement state without leaking an analytics query", () => {
+    mocks.entityStore = {
+      ...mocks.entityStore,
+      billingOverview: { shops: [{ shopId: "shop-1", analytics: { allowed: false } }] },
+    };
+    render(<AffiliateAnalyticsPage />);
+
+    expect(screen.getByText("Analytics access is not enabled")).toBeTruthy();
+    expect(mocks.queryCalls.some((call) => call.operation?.startsWith("AffiliateOverview"))).toBe(false);
+  });
+
+  it("narrows the queried shop scope to the chosen region", async () => {
     mocks.entityStore = {
       ...mocks.entityStore,
       shops: [
@@ -262,19 +344,36 @@ describe("AffiliateAnalyticsPage", () => {
     };
     render(<AffiliateAnalyticsPage />);
 
-    const region = screen.getByLabelText("Shop region") as HTMLSelectElement;
-    fireEvent.change(region, { target: { value: "DE" } });
+    fireEvent.click(screen.getByRole("button", { name: "Shop region" }));
+    fireEvent.click(await screen.findByRole("button", { name: "DE" }));
 
-    expect(region.value).toBe("DE");
+    await waitFor(() => expect(overviewInputs().some((input) => input.shopIds?.length === 1 && input.shopIds[0] === "shop-2")).toBe(true));
     expect(screen.getByText("1 shops selected")).toBeTruthy();
   });
+});
 
-  it("shows the entitlement state without leaking an analytics query", () => {
-    mocks.entityStore = {
-      ...mocks.entityStore,
-      billingOverview: { shops: [{ shopId: "shop-1", analytics: { allowed: false } }] },
-    };
+describe("AffiliateAnalyticsPage Explore", () => {
+  it("does not query until Run and resets to Sample metrics on contract switch", async () => {
     render(<AffiliateAnalyticsPage />);
-    expect(screen.getByText("Analytics access is not enabled")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
+
+    expect(mocks.dataQuery).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Sample conversion" }));
+    expect(screen.getAllByText("Applications").length).toBeGreaterThan(0);
+    expect(mocks.dataQuery).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await waitFor(() => expect(mocks.dataQuery).toHaveBeenCalledTimes(1));
+  });
+
+  it("localizes the filter operator and sort direction instead of showing raw codes", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+    fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
+
+    const explore = container.querySelector(".affiliate-explore")!;
+    expect(within(explore as HTMLElement).getByText("Is one of")).toBeTruthy();
+    expect(within(explore as HTMLElement).getByText("Descending")).toBeTruthy();
+    expect(within(explore as HTMLElement).queryByText("NOT IN")).toBeNull();
+    expect(explore.querySelectorAll("select")).toHaveLength(0);
   });
 });
