@@ -301,7 +301,7 @@ export const TUTORIAL_CATCHUP_ZH = {
       wizardBody: "第一阶段会命名计划、选择店铺，并按商品分别设置佣金来建立多商品方案；继续前需要把每个商品解析为最新快照。本教程会保留为空白且不保存。",
     },
     ecommerceAffiliateIntelligence: {
-      welcomeTitle: "达人智能分析",
+      welcomeTitle: "智能分析",
       welcomeBody: "评估预期销量模型能否改善达人选择，并确认每次决策实际使用的是账号、区域还是店铺模型。",
       refreshTitle: "刷新模型证据",
       refreshBody: "模型训练或生产版本变化后，重新加载最新的可用性与评估快照。",
