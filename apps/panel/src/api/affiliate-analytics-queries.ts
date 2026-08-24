@@ -58,8 +58,8 @@ export const AFFILIATE_ANALYTICS_OVERVIEW_QUERY = gql`
   ${AFFILIATE_FRESHNESS_FIELDS}
   ${AFFILIATE_PLATFORM_METRICS_FIELDS}
   ${AFFILIATE_SAMPLE_METRICS_FIELDS}
-  query AffiliateAnalyticsOverview($input: AffiliateAnalyticsOverviewInput!) {
-    getAffiliateAnalyticsOverview(input: $input) {
+  query AffiliateAnalyticsOverviewCore($input: AffiliateAnalyticsOverviewInput!) {
+    getAffiliateAnalyticsOverviewCore(input: $input) {
       scope {
         shopIds
         shopCount
@@ -100,24 +100,37 @@ export const AFFILIATE_ANALYTICS_OVERVIEW_QUERY = gql`
       }
       campaignStages { key label value }
       sampleStatuses { key label value share }
-      outreachMaturity {
-        horizon horizonHours matureInvitations responsesWithinHorizon responseRate
-        freshFetchInvitations staleFetchInvitations
-      }
-      outreachMaturityBasis { basis invitations }
       sampleMaturity {
         ageBucket applications approved shippedObserved completed
         approvalRate fulfillmentObservedRate completionRate
-      }
-      leaderboards {
-        entityType
-        platform { entityId label secondaryLabel netGmvUsd orders applications responses }
-        sample { entityId label secondaryLabel netGmvUsd orders applications responses }
       }
       health {
         creatorIdentityRowCoverage creatorIdentityGmvCoverage exactApplicationTimeShare
         targetMappedApplicationShare campaignMappedApplicationShare warnings
       }
+    }
+  }
+`;
+
+export const AFFILIATE_ANALYTICS_MATURITY_QUERY = gql`
+  query AffiliateAnalyticsOutreachMaturity($input: AffiliateAnalyticsOverviewInput!) {
+    getAffiliateAnalyticsOutreachMaturity(input: $input) {
+      observedAt
+      points {
+        horizon horizonHours matureInvitations responsesWithinHorizon responseRate
+        freshFetchInvitations staleFetchInvitations
+      }
+      basis { basis invitations }
+    }
+  }
+`;
+
+export const AFFILIATE_ANALYTICS_LEADERBOARD_QUERY = gql`
+  query AffiliateAnalyticsLeaderboard($input: AffiliateAnalyticsLeaderboardInput!) {
+    getAffiliateAnalyticsLeaderboard(input: $input) {
+      entityType
+      platform { entityId label secondaryLabel netGmvUsd orders applications responses }
+      sample { entityId label secondaryLabel netGmvUsd orders applications responses }
     }
   }
 `;

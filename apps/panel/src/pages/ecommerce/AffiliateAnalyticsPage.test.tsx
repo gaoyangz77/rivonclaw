@@ -7,6 +7,9 @@ import { AffiliateAnalyticsPage } from "./AffiliateAnalyticsPage.js";
 const mocks = vi.hoisted(() => ({
   entityStore: {} as Record<string, unknown>,
   overview: {} as Record<string, unknown>,
+  maturity: {} as Record<string, unknown>,
+  leaderboard: {} as Record<string, unknown>,
+  queryCalls: [] as Array<{ operation?: string; variables?: Record<string, unknown> }>,
   dataQuery: vi.fn(),
   valuesQuery: vi.fn(),
 }));
@@ -20,9 +23,13 @@ vi.mock("../../store/EntityStoreProvider.js", () => ({
 }));
 
 vi.mock("@apollo/client/react", () => ({
-  useQuery: (document: Parameters<typeof operationName>[0]) => operationName(document) === "AffiliateAnalyticsOverview"
-    ? mocks.overview
-    : {
+  useQuery: (document: Parameters<typeof operationName>[0], options?: { variables?: Record<string, unknown> }) => {
+    const operation = operationName(document);
+    mocks.queryCalls.push({ operation, variables: options?.variables });
+    if (operation === "AffiliateAnalyticsOverviewCore") return mocks.overview;
+    if (operation === "AffiliateAnalyticsOutreachMaturity") return mocks.maturity;
+    if (operation === "AffiliateAnalyticsLeaderboard") return mocks.leaderboard;
+    return {
         loading: false,
         error: undefined,
         data: {
@@ -51,7 +58,8 @@ vi.mock("@apollo/client/react", () => ({
             },
           ],
         },
-      },
+      };
+  },
   useLazyQuery: (document: Parameters<typeof operationName>[0]) => operationName(document) === "AffiliateBiData"
     ? [mocks.dataQuery, { loading: false, error: undefined, data: undefined }]
     : [mocks.valuesQuery, { loading: false, error: undefined, data: undefined }],
@@ -131,10 +139,7 @@ function overviewFixture() {
     },
     campaignStages: [{ key: "sent", label: "Sent", value: 6 }],
     sampleStatuses: [{ key: "approved", label: "Approved", value: 6, share: 0.5 }],
-    outreachMaturity: [{ horizon: "3h", responseRate: 0.25, matureInvitations: 8 }],
-    outreachMaturityBasis: [{ basis: "SENT_AT", invitations: 8 }],
     sampleMaturity: [{ ageBucket: "0–1d", approvalRate: 0.5, fulfillmentObservedRate: 0.4, completionRate: 0.2 }],
-    leaderboards: [{ entityType: "SHOP", platform: [], sample: [] }],
     health: { creatorIdentityRowCoverage: 0.98, creatorIdentityGmvCoverage: 0.99, exactApplicationTimeShare: 0.9, targetMappedApplicationShare: 0.8, campaignMappedApplicationShare: 0.7, warnings: [] },
   };
 }
@@ -150,8 +155,35 @@ beforeEach(() => {
     error: undefined,
     networkStatus: 7,
     refetch: vi.fn(),
-    data: { getAffiliateAnalyticsOverview: overviewFixture() },
+    data: { getAffiliateAnalyticsOverviewCore: overviewFixture() },
   };
+  mocks.maturity = {
+    loading: false,
+    error: undefined,
+    networkStatus: 7,
+    refetch: vi.fn(),
+    data: {
+      getAffiliateAnalyticsOutreachMaturity: {
+        observedAt: "2026-08-23T12:30:00Z",
+        points: [{ horizon: "3h", horizonHours: 3, responseRate: 0.25, matureInvitations: 8, responsesWithinHorizon: 2, freshFetchInvitations: 8, staleFetchInvitations: 0 }],
+        basis: [{ basis: "SENT_AT", invitations: 8 }],
+      },
+    },
+  };
+  mocks.leaderboard = {
+    loading: false,
+    error: undefined,
+    networkStatus: 7,
+    refetch: vi.fn(),
+    data: {
+      getAffiliateAnalyticsLeaderboard: {
+        entityType: "SHOP",
+        platform: [{ entityId: "shop-1", label: "North", secondaryLabel: "US", netGmvUsd: 125, orders: 5, applications: 0, responses: 4 }],
+        sample: [{ entityId: "shop-1", label: "North", secondaryLabel: "US", netGmvUsd: 75, orders: 3, applications: 12, responses: 0 }],
+      },
+    },
+  };
+  mocks.queryCalls = [];
   mocks.dataQuery.mockReset();
   mocks.valuesQuery.mockReset();
   mocks.dataQuery.mockResolvedValue({
@@ -184,6 +216,21 @@ describe("AffiliateAnalyticsPage", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Sample conversion" })).toBeTruthy();
     expect(screen.getByText(/Never add them into an Affiliate Total/)).toBeTruthy();
     expect(screen.getByText("stale")).toBeTruthy();
+    expect(screen.getByText(/^Live observed /)).toBeTruthy();
+    expect(screen.getAllByText("North").length).toBeGreaterThan(0);
+  });
+
+  it("loads only the active leaderboard and switches its entity query on demand", () => {
+    const { rerender } = render(<AffiliateAnalyticsPage />);
+
+    expect(mocks.queryCalls.some((call) => call.operation === "AffiliateAnalyticsLeaderboard"
+      && (call.variables?.input as { entityType?: string })?.entityType === "SHOP")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "CREATOR" }));
+    rerender(<AffiliateAnalyticsPage />);
+
+    expect(mocks.queryCalls.some((call) => call.operation === "AffiliateAnalyticsLeaderboard"
+      && (call.variables?.input as { entityType?: string })?.entityType === "CREATOR")).toBe(true);
   });
 
   it("does not query Explore until Run and resets to Sample metrics on contract switch", async () => {
