@@ -1,0 +1,148 @@
+From 56538731eae1fbfe5db565eb22a5bc4e0f261bed Mon Sep 17 00:00:00 2001
+From: RivonClaw CI <ci@rivonclaw.com>
+Date: Mon, 24 Aug 2026 04:20:38 -0700
+Subject: [PATCH] vendor(openclaw): keep precheck overflow compaction for
+ replay-unsafe turns
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Why:
+- Upstream b46181bfc0c (#122516, on main since 2026-08-12, not yet in any
+  stable release) fences replay-unsafe attempts out of ALL recovery so a
+  post-tool timeout can never replay completed tools. The fence is too wide:
+  it also swallows overflow recovery for context overflows raised by the
+  mid-turn precheck, which fires BEFORE the provider request is dispatched
+  and whose recovery continues the CURRENT transcript via
+  prepareCurrentTranscriptRetry — no tool is ever replayed on that path.
+- Tool-heavy sessions execute tools nearly every turn, so once their context
+  crosses the budget mid-turn the attempt is always replay-unsafe: the fence
+  skips auto-compaction, the turn surfaces "Agent couldn't generate a
+  response", the failed turn writes no usage facts, and the session stays
+  permanently wedged until a manual /reset. Observed in production as every
+  reply failing on long-lived Feishu CS sessions at ~230k estimated prompt
+  tokens against a 224k budget, with compactions=0 and replaySafe=no on all
+  eight overflow turns and zero [context-overflow-diag] entries.
+- The carve-out is narrow: only promptErrorSource === "precheck" errors that
+  classify as context overflow pass the fence, and a second fence directly
+  after overflow recovery keeps replay-unsafe attempts out of every replaying
+  recovery branch below, exactly as #122516 intended.
+
+Removal:
+- Drop this patch once the pin lets a replay-unsafe attempt with a
+  precheck-sourced context overflow reach overflow-recovery compaction —
+  either by narrowing the #122516 fence upstream or by an equivalent
+  mid-turn compaction path. Verify by running the regression below on
+  pristine vendor: the replay-unsafe mid-turn precheck test must compact and
+  finish without a surfaced error.
+
+Tests:
+- src/agents/embedded-agent-runner/run.midturn-precheck-retry.test-support.ts
+- apps/desktop/src/gateway/vendor-midturn-overflow-compaction.sentinel.test.ts
+---
+ ...run.midturn-precheck-retry.test-support.ts | 39 +++++++++++++++++++
+ .../run/attempt-recovery.ts                   | 24 +++++++++++-
+ 2 files changed, 62 insertions(+), 1 deletion(-)
+
+diff --git a/src/agents/embedded-agent-runner/run.midturn-precheck-retry.test-support.ts b/src/agents/embedded-agent-runner/run.midturn-precheck-retry.test-support.ts
+index 91ba9a0c3ac..561da0be850 100644
+--- a/src/agents/embedded-agent-runner/run.midturn-precheck-retry.test-support.ts
++++ b/src/agents/embedded-agent-runner/run.midturn-precheck-retry.test-support.ts
+@@ -83,6 +83,45 @@ describe("runEmbeddedAgent mid-turn precheck retry", () => {
+     expect(result.meta.error).toBeUndefined();
+   });
+ 
++  it("compacts a replay-unsafe mid-turn precheck overflow instead of surfacing the error", async () => {
++    // Tool-heavy sessions execute tools before the mid-turn guard trips, so the
++    // attempt is replay-unsafe. The precheck fired before any provider dispatch
++    // and recovery continues the current transcript, so compaction must still run.
++    mockedRunEmbeddedAttempt
++      .mockResolvedValueOnce(
++        makeAttemptResult({
++          promptError: makeOverflowError(),
++          promptErrorSource: "precheck",
++          preflightRecovery: {
++            route: "compact_only",
++            source: "mid-turn",
++            estimatedPromptTokens: 229_976,
++            promptBudgetBeforeReserve: 224_000,
++            overflowTokens: 5_976,
++          },
++          toolMetas: [{ toolName: "exec", meta: "step=1", replaySafe: false }],
++        }),
++      )
++      .mockResolvedValueOnce(makeAttemptResult());
++    mockedCompactDirect.mockResolvedValueOnce(
++      makeCompactionSuccess({
++        summary: "Compacted replay-unsafe mid-turn overflow",
++        firstKeptEntryId: "entry-replay-unsafe",
++        tokensBefore: 229_976,
++      }),
++    );
++
++    const result = await runEmbeddedAgent({
++      ...overflowBaseRunParams,
++      runId: "run-midturn-precheck-replay-unsafe",
++    });
++
++    expect(mockedCompactDirect).toHaveBeenCalledTimes(1);
++    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(2);
++    expectRetryContinuesFromTranscript();
++    expect(result.meta.error).toBeUndefined();
++  });
++
+   it("still compacts after a real provider overflow follows the no-op", async () => {
+     mockedRunEmbeddedAttempt
+       .mockResolvedValueOnce(
+diff --git a/src/agents/embedded-agent-runner/run/attempt-recovery.ts b/src/agents/embedded-agent-runner/run/attempt-recovery.ts
+index 6a3dcf17976..86e12471d8b 100644
+--- a/src/agents/embedded-agent-runner/run/attempt-recovery.ts
++++ b/src/agents/embedded-agent-runner/run/attempt-recovery.ts
+@@ -2,6 +2,7 @@ import { formatErrorMessage, toErrorObject } from "../../../infra/errors.js";
+ import { projectAgentRunAttemptTerminal } from "../../agent-run-terminal-outcome.js";
+ import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../defaults.js";
+ import type { FailoverReason } from "../../embedded-agent-helpers.js";
++import { isLikelyContextOverflowError } from "../../failover/context-overflow.js";
+ import { LiveSessionModelSwitchError } from "../../live-model-switch-error.js";
+ import { shouldSwitchToLiveModel, clearLiveModelSwitchPending } from "../../live-model-switch.js";
+ import type { normalizeUsage } from "../../usage.js";
+@@ -165,7 +166,18 @@ export async function recoverEmbeddedRunAttempt(input: {
+       }),
+     };
+   }
+-  if (!currentAttemptReplaySafe) {
++  // #122516 fences replay-unsafe attempts out of recovery so completed tools
++  // are never replayed. A precheck-sourced context overflow is the one case
++  // that must stay eligible: the guard fired BEFORE the provider request was
++  // dispatched, and its overflow recovery continues the CURRENT transcript
++  // (prepareCurrentTranscriptRetry) instead of replaying the prompt. Without
++  // this carve-out a tool-heavy session that crosses the context budget
++  // mid-turn can never auto-compact and stays wedged until a manual /reset.
++  const precheckOverflowRecoveryEligible =
++    promptErrorSource === "precheck" &&
++    promptError !== undefined &&
++    isLikelyContextOverflowError(formatErrorMessage(promptError));
++  if (!currentAttemptReplaySafe && !precheckOverflowRecoveryEligible) {
+     return {
+       action: "proceed",
+       shouldSurfaceCodexCompletionTimeout:
+@@ -292,6 +304,16 @@ export async function recoverEmbeddedRunAttempt(input: {
+       }),
+     };
+   }
++  // The precheck carve-out above extends only to overflow recovery. A
++  // replay-unsafe attempt must never reach the replaying recovery branches
++  // below, exactly as the #122516 fence intended.
++  if (!currentAttemptReplaySafe) {
++    return {
++      action: "proceed",
++      shouldSurfaceCodexCompletionTimeout:
++        attempt.codexAppServerFailure?.kind === "turn_completion_idle_timeout" && timedOut,
++    };
++  }
+   const hasRecoverableCodexAppServerTimeoutOutcome = Boolean(
+     attempt.codexAppServerFailure && attempt.promptTimeoutOutcome,
+   );
+-- 
+2.50.1 (Apple Git-155)
+

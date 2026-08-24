@@ -214,6 +214,50 @@ Priorities:
   retire patch `0039` and
   `apps/desktop/src/gateway/vendor-windows-cron-fence.sentinel.test.ts`.
 
+### MIDTURN-OVERFLOW-001 - Replay-unsafe turns must still auto-compact
+
+- Priority/status: `P0 waiting-upstream`
+- Symptom: a long-lived session that crosses the context budget mid-turn never
+  auto-compacts and wedges permanently. Every reply fails with "Agent couldn't
+  generate a response. Note: some tool actions may have already been
+  executed", `compactions=0`, `replaySafe=no`, and zero
+  `[context-overflow-diag]` entries; only a manual `/reset` recovers the
+  session. Observed 2026-08-24 on production Feishu CS group sessions at
+  ~230k estimated prompt tokens against the 224k budget (8 overflow turns,
+  3 sessions).
+- Cause: upstream `b46181bfc0c` (#122516, on main since 2026-08-12, in
+  v2026.8.1-beta.2+ but in NO stable release) fences replay-unsafe attempts
+  out of ALL recovery so a post-tool timeout cannot replay completed tools.
+  The fence also swallows overflow recovery for mid-turn precheck overflows,
+  which fire BEFORE the provider request is dispatched and whose recovery
+  continues the current transcript (`prepareCurrentTranscriptRetry`) without
+  replaying any tool. Tool-heavy workloads (TK Copilot: ~90 tools, tool calls
+  on nearly every CS turn) make every overflow turn replay-unsafe, so both
+  compaction defenses fail together: the per-turn preflight misses because
+  failed turns freeze the session's usage facts while its message-only
+  estimator sits below threshold, and the overflow recovery that would have
+  compacted is fenced off.
+- Current mitigation: patch `0040` narrows the fence — only
+  `promptErrorSource === "precheck"` errors classifying as context overflow
+  pass through to overflow recovery, and a second fence directly after
+  overflow recovery keeps replay-unsafe attempts out of every replaying
+  recovery branch below, preserving the #122516 intent.
+- Related, unpatched: the preflight estimator scope mismatch (messages-only
+  vs provider-anchored totals including system prompt + tool schemas) leaves
+  a dead zone roughly `(budget − overhead, threshold)` where preflight never
+  compacts; with patch `0040` the overflow recovery now self-heals inside it,
+  so the mismatch is a latent inefficiency rather than an outage. Revisit if
+  upstream reworks `runPreflightCompactionIfNeeded` token sourcing.
+- Snapshot result: at the `fa62fccb867` pin, no upstream fix existed;
+  stable releases (up to v2026.7.1) predate the fence entirely.
+- Exit condition: the pin lets a replay-unsafe attempt with a
+  precheck-sourced context overflow reach overflow-recovery compaction.
+  Verify on pristine vendor by running the mid-turn precheck retry suite
+  (`run.shared-integration.test.ts -t "replay-unsafe mid-turn precheck
+  overflow"`): it must compact and finish without a surfaced error. Then
+  retire patch `0040` and
+  `apps/desktop/src/gateway/vendor-midturn-overflow-compaction.sentinel.test.ts`.
+
 ### QR-ACCOUNT-001 - New QR login must not stop existing accounts
 
 - Priority/status: `P1 waiting-upstream`

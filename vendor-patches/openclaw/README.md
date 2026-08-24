@@ -259,6 +259,28 @@ start time for the cron fence, either in `getFileLockProcessStartTime` itself or
 through an equivalent cron-side reader. See `WINDOWS-CRON-001` in
 `UPSTREAM_WATCHLIST.md`.
 
+### 0040 - Precheck overflow compaction for replay-unsafe turns
+
+Upstream `b46181bfc0c` (#122516) fences replay-unsafe attempts out of all
+recovery so a post-tool timeout can never replay completed tools. The fence is
+wider than its intent: it also swallows overflow recovery for context
+overflows raised by the mid-turn precheck, which fires before the provider
+request is dispatched and whose recovery continues the current transcript
+without replaying any tool. Tool-heavy sessions (tool calls on nearly every
+turn) are always replay-unsafe at that point, so once such a session crosses
+the context budget it can never auto-compact: every turn surfaces "Agent
+couldn't generate a response", the failed turn writes no usage facts, and the
+session stays wedged until a manual `/reset`.
+
+This patch narrows the fence: only `promptErrorSource === "precheck"` errors
+that classify as context overflow pass through to overflow recovery, and a
+second fence directly after overflow recovery keeps replay-unsafe attempts out
+of every replaying recovery branch below, preserving the #122516 intent.
+
+Removal: drop this patch when the pin lets a replay-unsafe attempt with a
+precheck-sourced context overflow reach overflow-recovery compaction. See
+`MIDTURN-OVERFLOW-001` in `UPSTREAM_WATCHLIST.md`.
+
 ## Dropped In bcaec0cf145
 
 - `0033`: OpenClaw now contains commit
