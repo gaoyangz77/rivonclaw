@@ -719,6 +719,23 @@ export interface AffiliateAnalyticsLeaderboard {
   sample: Array<AffiliateAnalyticsLeaderboardRow>;
 }
 
+export const AffiliateAnalyticsLeaderboardEntityType = {
+  Campaign: 'CAMPAIGN',
+  Collaboration: 'COLLABORATION',
+  Creator: 'CREATOR',
+  Product: 'PRODUCT',
+  Shop: 'SHOP'
+} as const;
+
+export type AffiliateAnalyticsLeaderboardEntityType = typeof AffiliateAnalyticsLeaderboardEntityType[keyof typeof AffiliateAnalyticsLeaderboardEntityType];
+export interface AffiliateAnalyticsLeaderboardInput {
+  endDateLt: Scalars['String']['input'];
+  entityType: AffiliateAnalyticsLeaderboardEntityType;
+  shopIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  shopRegions?: InputMaybe<Array<ShopRegion>>;
+  startDateGe: Scalars['String']['input'];
+}
+
 export interface AffiliateAnalyticsLeaderboardRow {
   applications: Scalars['Float']['output'];
   entityId: Scalars['String']['output'];
@@ -727,6 +744,12 @@ export interface AffiliateAnalyticsLeaderboardRow {
   orders: Scalars['Float']['output'];
   responses: Scalars['Float']['output'];
   secondaryLabel?: Maybe<Scalars['String']['output']>;
+}
+
+export interface AffiliateAnalyticsOutreachMaturity {
+  basis: Array<AffiliateAnalyticsBasisCount>;
+  observedAt?: Maybe<Scalars['String']['output']>;
+  points: Array<AffiliateAnalyticsOutreachMaturityPoint>;
 }
 
 export interface AffiliateAnalyticsOutreachMaturityPoint {
@@ -746,6 +769,18 @@ export interface AffiliateAnalyticsOverview {
   leaderboards: Array<AffiliateAnalyticsLeaderboard>;
   outreachMaturity: Array<AffiliateAnalyticsOutreachMaturityPoint>;
   outreachMaturityBasis: Array<AffiliateAnalyticsBasisCount>;
+  platform: AffiliateAnalyticsPlatformBlock;
+  portfolio: AffiliateAnalyticsPortfolio;
+  sample: AffiliateAnalyticsSampleBlock;
+  sampleMaturity: Array<AffiliateAnalyticsSampleMaturityPoint>;
+  sampleStatuses: Array<AffiliateAnalyticsStatusBucket>;
+  scope: AffiliateAnalyticsScope;
+}
+
+export interface AffiliateAnalyticsOverviewCore {
+  campaignStages: Array<AffiliateAnalyticsStage>;
+  freshness: AffiliateAnalyticsFreshnessBundle;
+  health: AffiliateAnalyticsHealth;
   platform: AffiliateAnalyticsPlatformBlock;
   portfolio: AffiliateAnalyticsPortfolio;
   sample: AffiliateAnalyticsSampleBlock;
@@ -11219,8 +11254,14 @@ export interface Query {
   expertConversations: ExpertConversationPage;
   expertProfile?: Maybe<ExpertProfile>;
   expertUsageStatus: ExpertUsageStatus;
+  /** Return one Affiliate leaderboard entity level so Overview tabs load only when selected. */
+  getAffiliateAnalyticsLeaderboard: AffiliateAnalyticsLeaderboard;
+  /** Return live TARGET outreach response maturity independently from the materialized Affiliate Overview core. */
+  getAffiliateAnalyticsOutreachMaturity: AffiliateAnalyticsOutreachMaturity;
   /** Return the strongly typed Affiliate Analytics Overview. Platform Performance and Sample Conversion are parallel contracts and their GMV values must not be added. */
   getAffiliateAnalyticsOverview: AffiliateAnalyticsOverview;
+  /** Return the fast materialized Affiliate Analytics core without live outreach maturity or hidden leaderboard tabs. */
+  getAffiliateAnalyticsOverviewCore: AffiliateAnalyticsOverviewCore;
   /** List warehouse-backed ecommerce BI datasets and their dimensions/metrics. */
   getEcommerceBiCatalog: Array<EcomBiDatasetMetadata>;
   /** Query typed warehouse-backed ecommerce BI data. */
@@ -11970,7 +12011,22 @@ export interface QueryExpertConversationsArgs {
 }
 
 
+export interface QueryGetAffiliateAnalyticsLeaderboardArgs {
+  input: AffiliateAnalyticsLeaderboardInput;
+}
+
+
+export interface QueryGetAffiliateAnalyticsOutreachMaturityArgs {
+  input: AffiliateAnalyticsOverviewInput;
+}
+
+
 export interface QueryGetAffiliateAnalyticsOverviewArgs {
+  input: AffiliateAnalyticsOverviewInput;
+}
+
+
+export interface QueryGetAffiliateAnalyticsOverviewCoreArgs {
   input: AffiliateAnalyticsOverviewInput;
 }
 

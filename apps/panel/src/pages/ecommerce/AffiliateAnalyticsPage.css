@@ -358,6 +358,44 @@
 
 .affiliate-skeleton-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .affiliate-skeleton-grid i { height: 110px; border-radius: 12px; background: linear-gradient(100deg, var(--color-bg-secondary), color-mix(in srgb, var(--color-bg-secondary) 65%, white), var(--color-bg-secondary)); background-size: 200% 100%; animation: affiliate-shimmer 1.3s linear infinite; }
+.affiliate-inline-loading {
+  display: grid;
+  gap: 10px;
+  min-height: 250px;
+  align-content: center;
+  padding: 22px;
+}
+.affiliate-inline-loading i,
+.affiliate-table-loading {
+  border-radius: 8px;
+  background: linear-gradient(100deg, var(--color-bg-secondary), color-mix(in srgb, var(--color-bg-secondary) 65%, white), var(--color-bg-secondary));
+  background-size: 200% 100%;
+  animation: affiliate-shimmer 1.3s linear infinite;
+}
+.affiliate-inline-loading i { display: block; height: 22px; }
+.affiliate-inline-loading i:nth-child(2) { width: 82%; }
+.affiliate-inline-loading i:nth-child(3) { width: 64%; }
+.affiliate-table-loading { height: 122px; }
+.affiliate-inline-state {
+  display: flex;
+  min-height: 122px;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+.affiliate-inline-state button {
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-bg-primary);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.affiliate-inline-state.is-error { color: var(--color-danger); }
 @keyframes affiliate-shimmer { to { background-position-x: -200%; } }
 
 .affiliate-state { padding: 28px; text-align: center; }

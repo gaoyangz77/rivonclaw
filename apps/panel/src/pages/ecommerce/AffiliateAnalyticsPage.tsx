@@ -16,6 +16,8 @@ import {
   YAxis,
 } from "recharts";
 import {
+  AFFILIATE_ANALYTICS_LEADERBOARD_QUERY,
+  AFFILIATE_ANALYTICS_MATURITY_QUERY,
   AFFILIATE_ANALYTICS_OVERVIEW_QUERY,
   AFFILIATE_BI_CATALOG_QUERY,
   AFFILIATE_BI_DATA_QUERY,
@@ -47,7 +49,9 @@ import {
 } from "./affiliate-analytics.js";
 import "./AffiliateAnalyticsPage.css";
 
-type OverviewResult = { getAffiliateAnalyticsOverview: GQL.AffiliateAnalyticsOverview };
+type OverviewResult = { getAffiliateAnalyticsOverviewCore: GQL.AffiliateAnalyticsOverviewCore };
+type MaturityResult = { getAffiliateAnalyticsOutreachMaturity: GQL.AffiliateAnalyticsOutreachMaturity };
+type LeaderboardResult = { getAffiliateAnalyticsLeaderboard: GQL.AffiliateAnalyticsLeaderboard };
 type CatalogResult = { getEcommerceBiCatalog: GQL.EcomBiDatasetMetadata[] };
 type DataResult = { getEcommerceBiData: GQL.EcomBiQueryResult };
 type DimensionValuesResult = { getEcommerceBiDimensionValues: GQL.EcomBiDimensionValuesResult };
@@ -227,8 +231,30 @@ function OverviewTab({ shops }: { shops: AnalyticsShop[] }) {
       notifyOnNetworkStatusChange: true,
     },
   );
-  const report = query.data?.getAffiliateAnalyticsOverview;
-  const refreshing = query.networkStatus === NetworkStatus.refetch;
+  const maturityQuery = useQuery<MaturityResult, { input: GQL.AffiliateAnalyticsOverviewInput }>(
+    AFFILIATE_ANALYTICS_MATURITY_QUERY,
+    {
+      variables: { input: { shopIds, ...range } as GQL.AffiliateAnalyticsOverviewInput },
+      skip: shopIds.length === 0,
+      fetchPolicy: "cache-and-network",
+      notifyOnNetworkStatusChange: true,
+    },
+  );
+  const leaderboardQuery = useQuery<LeaderboardResult, { input: GQL.AffiliateAnalyticsLeaderboardInput }>(
+    AFFILIATE_ANALYTICS_LEADERBOARD_QUERY,
+    {
+      variables: { input: { shopIds, ...range, entityType: leaderType } as GQL.AffiliateAnalyticsLeaderboardInput },
+      skip: shopIds.length === 0,
+      fetchPolicy: "cache-and-network",
+      notifyOnNetworkStatusChange: true,
+    },
+  );
+  const report = query.data?.getAffiliateAnalyticsOverviewCore;
+  const maturity = maturityQuery.data?.getAffiliateAnalyticsOutreachMaturity;
+  const loadedLeaderboard = leaderboardQuery.data?.getAffiliateAnalyticsLeaderboard;
+  const leader = loadedLeaderboard?.entityType === leaderType ? loadedLeaderboard : undefined;
+  const refreshing = [query, maturityQuery, leaderboardQuery]
+    .some((state) => state.networkStatus === NetworkStatus.refetch);
   const trendRows = useMemo(() => {
     if (!report) return [];
     const length = Math.max(report.platform.trend.length, report.sample.trend.length);
@@ -240,7 +266,6 @@ function OverviewTab({ shops }: { shops: AnalyticsShop[] }) {
       sampleComparison: report.sample.comparisonTrend[index] == null ? null : numberValue(report.sample.comparisonTrend[index]?.[trendMetric]),
     }));
   }, [report, trendMetric]);
-  const leader = report?.leaderboards.find((item) => item.entityType === leaderType);
   const maxStage = Math.max(1, ...(report?.campaignStages.map((stage) => stage.value) ?? [1]));
   const maxStatus = Math.max(1, ...(report?.sampleStatuses.map((status) => status.value) ?? [1]));
 
@@ -254,7 +279,7 @@ function OverviewTab({ shops }: { shops: AnalyticsShop[] }) {
         <div className="affiliate-segmented" aria-label={t("ecommerce.affiliateAnalytics.granularity")}>
           {GRANULARITIES.map((item) => <button key={item} type="button" className={granularity === item ? "active" : ""} onClick={() => setGranularity(item)}>{t(`ecommerce.affiliateAnalytics.granularities.${item}`)}</button>)}
         </div>
-        <button className="btn btn-secondary affiliate-refresh" type="button" onClick={() => void query.refetch()} disabled={refreshing || !shopIds.length}><RefreshIcon aria-hidden="true" />{refreshing ? t("ecommerce.affiliateAnalytics.refreshing") : t("ecommerce.affiliateAnalytics.refresh")}</button>
+        <button className="btn btn-secondary affiliate-refresh" type="button" onClick={() => void Promise.all([query.refetch(), maturityQuery.refetch(), leaderboardQuery.refetch()])} disabled={refreshing || !shopIds.length}><RefreshIcon aria-hidden="true" />{refreshing ? t("ecommerce.affiliateAnalytics.refreshing") : t("ecommerce.affiliateAnalytics.refresh")}</button>
         <div className="affiliate-freshness-pair">
           <FreshnessBadge label={t("ecommerce.affiliateAnalytics.platformShort")} freshness={report?.freshness.platform} />
           <FreshnessBadge label={t("ecommerce.affiliateAnalytics.sampleShort")} freshness={report?.freshness.sample} />
@@ -323,9 +348,11 @@ function OverviewTab({ shops }: { shops: AnalyticsShop[] }) {
 
           <section className="affiliate-two-column" data-tutorial-id="affiliate-analytics-maturity">
             <article className="affiliate-panel">
-              <header><div><span>{t("ecommerce.affiliateAnalytics.maturity")}</span><h2>{t("ecommerce.affiliateAnalytics.responseMaturity")}</h2></div><small>{t("ecommerce.affiliateAnalytics.liveObserved", { date: formatTimestamp(report.freshness.liveResponseObservedAt, i18n.language) })}</small></header>
-              <div className="affiliate-chart-medium"><ResponsiveContainer width="100%" height="100%"><LineChart data={report.outreachMaturity}><CartesianGrid strokeDasharray="3 6" vertical={false} /><XAxis dataKey="horizon" /><YAxis tickFormatter={(value) => formatPercent(Number(value), i18n.language)} domain={[0, 1]} /><Tooltip formatter={(value, name, item) => [formatPercent(Number(value), i18n.language), `${String(name)} · n=${item.payload.matureInvitations}`]} /><Line type="monotone" dataKey="responseRate" stroke="var(--affiliate-platform)" strokeWidth={3} /></LineChart></ResponsiveContainer></div>
-              <div className="affiliate-basis-row">{report.outreachMaturityBasis.map((basis) => <span key={basis.basis}>{basis.basis}: <b>{formatNumber(basis.invitations, i18n.language)}</b></span>)}</div>
+              <header><div><span>{t("ecommerce.affiliateAnalytics.maturity")}</span><h2>{t("ecommerce.affiliateAnalytics.responseMaturity")}</h2></div><small>{t("ecommerce.affiliateAnalytics.liveObserved", { date: formatTimestamp(maturity?.observedAt, i18n.language) })}</small></header>
+              {maturityQuery.loading && !maturity && <div className="affiliate-inline-loading" aria-label={t("ecommerce.affiliateAnalytics.loading")}><i /><i /><i /></div>}
+              {maturityQuery.error && !maturity && <div className="affiliate-inline-state is-error"><span>{maturityQuery.error.message}</span><button type="button" onClick={() => void maturityQuery.refetch()}>{t("ecommerce.affiliateAnalytics.retry")}</button></div>}
+              {maturity && <><div className="affiliate-chart-medium"><ResponsiveContainer width="100%" height="100%"><LineChart data={maturity.points}><CartesianGrid strokeDasharray="3 6" vertical={false} /><XAxis dataKey="horizon" /><YAxis tickFormatter={(value) => formatPercent(Number(value), i18n.language)} domain={[0, 1]} /><Tooltip formatter={(value, name, item) => [formatPercent(Number(value), i18n.language), `${String(name)} · n=${item.payload.matureInvitations}`]} /><Line type="monotone" dataKey="responseRate" stroke="var(--affiliate-platform)" strokeWidth={3} /></LineChart></ResponsiveContainer></div>
+              <div className="affiliate-basis-row">{maturity.basis.map((basis) => <span key={basis.basis}>{basis.basis}: <b>{formatNumber(basis.invitations, i18n.language)}</b></span>)}</div></>}
             </article>
             <article className="affiliate-panel">
               <header><div><span>{t("ecommerce.affiliateAnalytics.maturity")}</span><h2>{t("ecommerce.affiliateAnalytics.sampleAge")}</h2></div><small>{t("ecommerce.affiliateAnalytics.sampleAgeNote")}</small></header>
@@ -336,7 +363,11 @@ function OverviewTab({ shops }: { shops: AnalyticsShop[] }) {
           <section className="affiliate-panel affiliate-leaderboard" data-tutorial-id="affiliate-analytics-leaders">
             <header><div><span>{t("ecommerce.affiliateAnalytics.section.portfolio")}</span><h2>{t("ecommerce.affiliateAnalytics.section.leaderboard")}</h2></div><div className="affiliate-segmented">{LEADER_TYPES.map((type) => <button type="button" key={type} className={leaderType === type ? "active" : ""} onClick={() => setLeaderType(type)}>{t(`ecommerce.affiliateAnalytics.leaderTypes.${type}`)}</button>)}</div></header>
             <div className="affiliate-leader-columns">
-              {(["platform", "sample"] as const).map((contract) => <div key={contract}><h3>{contract === "platform" ? t("ecommerce.affiliateAnalytics.platformTitle") : t("ecommerce.affiliateAnalytics.sampleTitle")}</h3><table><thead><tr><th>{t("ecommerce.affiliateAnalytics.entity")}</th><th>{contract === "platform" ? t("ecommerce.affiliateAnalytics.metrics.netGmv") : t("ecommerce.affiliateAnalytics.metrics.applications")}</th><th>{t("ecommerce.affiliateAnalytics.metrics.orders")}</th></tr></thead><tbody>{leader?.[contract].map((row) => <tr key={row.entityId}><td><strong>{row.label}</strong><small>{row.secondaryLabel}</small></td><td>{contract === "platform" ? formatMoney(row.netGmvUsd, i18n.language) : formatNumber(row.applications, i18n.language)}</td><td>{formatNumber(row.orders, i18n.language)}</td></tr>)}</tbody></table></div>)}
+              {(["platform", "sample"] as const).map((contract) => <div key={contract}><h3>{contract === "platform" ? t("ecommerce.affiliateAnalytics.platformTitle") : t("ecommerce.affiliateAnalytics.sampleTitle")}</h3><table><thead><tr><th>{t("ecommerce.affiliateAnalytics.entity")}</th><th>{contract === "platform" ? t("ecommerce.affiliateAnalytics.metrics.netGmv") : t("ecommerce.affiliateAnalytics.metrics.applications")}</th><th>{t("ecommerce.affiliateAnalytics.metrics.orders")}</th></tr></thead><tbody>
+                {leaderboardQuery.loading && !leader && <tr><td colSpan={3}><div className="affiliate-table-loading" aria-label={t("ecommerce.affiliateAnalytics.loading")} /></td></tr>}
+                {leaderboardQuery.error && !leader && <tr><td colSpan={3}><div className="affiliate-inline-state is-error"><span>{leaderboardQuery.error.message}</span><button type="button" onClick={() => void leaderboardQuery.refetch()}>{t("ecommerce.affiliateAnalytics.retry")}</button></div></td></tr>}
+                {leader?.[contract].map((row) => <tr key={row.entityId}><td><strong>{row.label}</strong><small>{row.secondaryLabel}</small></td><td>{contract === "platform" ? formatMoney(row.netGmvUsd, i18n.language) : formatNumber(row.applications, i18n.language)}</td><td>{formatNumber(row.orders, i18n.language)}</td></tr>)}
+              </tbody></table></div>)}
             </div>
           </section>
 
