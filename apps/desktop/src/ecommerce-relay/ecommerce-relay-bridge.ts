@@ -31,6 +31,12 @@ import {
 } from "../cs-bridge/cs-run-admission.js";
 
 const log = createLogger("ecommerce-relay");
+
+/** Age at which a pending CS run without a terminal event gets reconciled. */
+const PENDING_RUN_RECONCILE_AFTER_MS = 3 * 60_000;
+
+/** Cadence of the pending-run reconciliation sweep. */
+const PENDING_RUN_SWEEP_INTERVAL_MS = 2 * 60_000;
 const DEFAULT_AIRFLOW_PENDING_CATCH_UP_WINDOW_MS = 30_000;
 
 function resolveAirflowPendingCatchUpWindowMs(): number {
@@ -166,6 +172,19 @@ export class EcommerceRelayBridge {
   /** Entity cache subscription unsubscribe function. */
   private cacheUnsubscribe: (() => void) | null = null;
 
+  /**
+   * Periodic reconciliation of pending CS runs whose terminal event never
+   * arrived. Release of the admission lease normally happens on the run's
+   * terminal event; if that event is lost (SSE hiccup, RPC gap) the slot used
+   * to leak forever — two production incidents wedged all four slots this
+   * way. The sweeper re-drives reconcilePendingRun (idempotent,
+   * generation-guarded) so lost terminals are recovered with their output;
+   * the admission-side lease watchdog remains the last-resort backstop.
+   */
+  private pendingRunSweepTimer: ReturnType<typeof setInterval> | null = null;
+
+  private pendingRunSweepInFlight = false;
+
   constructor(private readonly opts: EcommerceRelayBridgeOptions) {
     this.affiliateInbound = new AffiliateInbound(opts.locale);
   }
@@ -177,6 +196,7 @@ export class EcommerceRelayBridge {
     this.automaticRunAdmission.resume();
     this.subscribeToCacheChanges();
     this.syncFromCache();
+    this.startPendingRunSweeper();
     runtimeStatusStore.setCsBridgeConnected();
     log.info("Ecommerce signal bridge started");
   }
@@ -184,6 +204,7 @@ export class EcommerceRelayBridge {
   stop(): void {
     this.gatewayGeneration += 1;
     this.closed = true;
+    this.stopPendingRunSweeper();
     this.automaticRunAdmission.reset("bridge_stopped");
     // Unsubscribe from entity cache
     if (this.cacheUnsubscribe) {
@@ -206,6 +227,7 @@ export class EcommerceRelayBridge {
   suspendForGatewayDisconnect(): void {
     this.gatewayGeneration += 1;
     this.closed = true;
+    this.stopPendingRunSweeper();
     this.automaticRunAdmission.pause();
     runtimeStatusStore.setCsBridgeDisconnected();
     log.warn(`Ecommerce signal bridge suspended with ${this.pendingRuns.size} pending run(s)`);
@@ -217,6 +239,7 @@ export class EcommerceRelayBridge {
     this.closed = false;
     this.subscribeToCacheChanges();
     this.syncFromCache();
+    this.startPendingRunSweeper();
     runtimeStatusStore.setCsBridgeConnected();
 
     if (this.reconnectRecovery?.generation === generation) {
@@ -391,6 +414,51 @@ export class EcommerceRelayBridge {
       session.clearTurnText(runId);
     } finally {
       pending.admissionLease?.release(`run_${payload.state ?? "terminal"}`);
+    }
+  }
+
+  private startPendingRunSweeper(): void {
+    if (this.pendingRunSweepTimer) return;
+    this.pendingRunSweepTimer = setInterval(() => {
+      void this.sweepStalePendingRuns();
+    }, PENDING_RUN_SWEEP_INTERVAL_MS);
+    this.pendingRunSweepTimer.unref?.();
+  }
+
+  private stopPendingRunSweeper(): void {
+    if (!this.pendingRunSweepTimer) return;
+    clearInterval(this.pendingRunSweepTimer);
+    this.pendingRunSweepTimer = null;
+  }
+
+  /**
+   * Re-drives reconciliation for pending runs old enough that their terminal
+   * event should long have arrived. reconcilePendingRun keeps genuinely
+   * running work pending (agent.wait reports it), recovers lost terminals
+   * with their forwarded output, and releases the admission lease through the
+   * normal completion path. Failures are retried on the next sweep instead of
+   * leaking the slot forever.
+   */
+  private async sweepStalePendingRuns(): Promise<void> {
+    if (this.closed || this.pendingRunSweepInFlight) return;
+    const generation = this.gatewayGeneration;
+    const now = Date.now();
+    const stale = [...this.pendingRuns.entries()].filter(
+      ([, pending]) => now - pending.acceptedAt >= PENDING_RUN_RECONCILE_AFTER_MS,
+    );
+    if (stale.length === 0) return;
+    this.pendingRunSweepInFlight = true;
+    log.warn(
+      `CS pending-run sweep: ${stale.length} run(s) older than ` +
+        `${PENDING_RUN_RECONCILE_AFTER_MS}ms without a terminal event; reconciling`,
+    );
+    try {
+      for (const [runId, pending] of stale) {
+        if (this.closed || !this.isGatewayGenerationCurrent(generation)) return;
+        await this.reconcilePendingRun(runId, pending, generation);
+      }
+    } finally {
+      this.pendingRunSweepInFlight = false;
     }
   }
 
