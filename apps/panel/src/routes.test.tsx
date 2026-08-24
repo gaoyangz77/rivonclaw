@@ -8,10 +8,10 @@ describe("commerce navigation", () => {
       .map((route) => route.path);
 
     expect(affiliateChildren).toEqual([
+      "/commerce/affiliate/campaigns",
       "/commerce/affiliate/attention",
       "/commerce/affiliate/team",
       "/commerce/product-knowledge",
-      "/commerce/affiliate/campaigns",
       "/commerce/affiliate/creators",
       "/commerce/affiliate/history",
       "/commerce/affiliate/analytics",
