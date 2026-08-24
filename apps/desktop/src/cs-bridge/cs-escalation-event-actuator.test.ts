@@ -29,6 +29,8 @@ vi.mock("../gateway/vendor-dir-ref.js", () => ({
 
 vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: vi.fn().mockResolvedValue({}),
+  // Sole-agent roster: no owner to pin, which is what these tests assume.
+  readChannelOwnerAgentId: vi.fn(() => undefined),
 }));
 
 vi.mock("../telemetry/cs-telemetry-ref.js", () => ({

@@ -154,6 +154,66 @@ function canonicalizeAgentRoster(config: Record<string, unknown>): void {
 }
 
 /**
+ * Resolve the agent that owns ambient channel traffic for this roster.
+ *
+ * Single source of truth for the question "when no caller-supplied agent is in
+ * play, which agent should a channel message belong to?". Two places need the
+ * same answer and must not drift: the inbound wildcard bindings written by
+ * `ensureChannelOwnerBindings`, and outbound sends Desktop initiates without a
+ * session key (CS escalation notifications).
+ *
+ * Returns undefined for a sole-agent roster: `canonicalizeAgentRoster` only
+ * sets `agents.ownership = "explicit"` for >1 agent, so OpenClaw's legacy
+ * default-agent fallback still resolves those and pinning an owner would be
+ * noise.
+ */
+export function resolveChannelOwnerAgentId(
+  config: Record<string, unknown>,
+): string | undefined {
+  const agents =
+    config.agents && typeof config.agents === "object" && !Array.isArray(config.agents)
+      ? (config.agents as Record<string, unknown>)
+      : {};
+  const entries =
+    agents.entries && typeof agents.entries === "object" && !Array.isArray(agents.entries)
+      ? (agents.entries as Record<string, unknown>)
+      : {};
+  const agentIds = Object.keys(entries);
+  if (agentIds.length <= 1) return undefined;
+
+  // The owner must resolve to a configured agent — OpenClaw throws at dispatch
+  // when a binding names an unknown agentId, and rejects an unknown agentId on
+  // send with INVALID_REQUEST.
+  const defaults =
+    agents.defaults && typeof agents.defaults === "object" && !Array.isArray(agents.defaults)
+      ? (agents.defaults as Record<string, unknown>)
+      : {};
+  const systemAgent =
+    defaults.systemAgent &&
+    typeof defaults.systemAgent === "object" &&
+    !Array.isArray(defaults.systemAgent)
+      ? (defaults.systemAgent as Record<string, unknown>)
+      : {};
+  const systemAgentId = typeof systemAgent.agentId === "string" ? systemAgent.agentId : undefined;
+  if ("main" in entries) return "main";
+  if (systemAgentId !== undefined && systemAgentId in entries) return systemAgentId;
+  return agentIds[0];
+}
+
+/**
+ * Read the on-disk config and resolve its ambient channel owner.
+ *
+ * Runtime callers outside config writing (Desktop's outbound sends) use this so
+ * the owner is read from the same config the gateway is running on rather than
+ * re-derived from a local guess.
+ */
+export function readChannelOwnerAgentId(configPath?: string): string | undefined {
+  return resolveChannelOwnerAgentId(
+    readExistingConfig(configPath ?? resolveOpenClawConfigPath()),
+  );
+}
+
+/**
  * Guarantee every configured channel has a channel-wide wildcard binding.
  *
  * Runs immediately after canonicalizeAgentRoster: multi-agent rosters carry
@@ -170,44 +230,15 @@ function canonicalizeAgentRoster(config: Record<string, unknown>): void {
  * this also self-heals installs whose accounts predate binding writes.
  */
 function ensureChannelOwnerBindings(config: Record<string, unknown>): void {
-  const agents =
-    config.agents && typeof config.agents === "object" && !Array.isArray(config.agents)
-      ? (config.agents as Record<string, unknown>)
-      : {};
-  const entries =
-    agents.entries && typeof agents.entries === "object" && !Array.isArray(agents.entries)
-      ? (agents.entries as Record<string, unknown>)
-      : {};
-  const agentIds = Object.keys(entries);
-  // Sole-agent rosters keep OpenClaw's legacy default-agent fallback
-  // (canonicalizeAgentRoster only sets ownership="explicit" for >1 agent),
-  // so unbound accounts still route and no binding is needed.
-  if (agentIds.length <= 1) return;
+  // Sole-agent rosters keep OpenClaw's legacy default-agent fallback, so
+  // unbound accounts still route and no binding is needed.
+  const ownerAgentId = resolveChannelOwnerAgentId(config);
+  if (!ownerAgentId) return;
 
   const channels =
     config.channels && typeof config.channels === "object" && !Array.isArray(config.channels)
       ? (config.channels as Record<string, unknown>)
       : {};
-
-  // The binding owner must resolve to a configured agent — OpenClaw throws at
-  // dispatch when a binding names an unknown agentId.
-  const defaults =
-    agents.defaults && typeof agents.defaults === "object" && !Array.isArray(agents.defaults)
-      ? (agents.defaults as Record<string, unknown>)
-      : {};
-  const systemAgent =
-    defaults.systemAgent &&
-    typeof defaults.systemAgent === "object" &&
-    !Array.isArray(defaults.systemAgent)
-      ? (defaults.systemAgent as Record<string, unknown>)
-      : {};
-  const systemAgentId = typeof systemAgent.agentId === "string" ? systemAgent.agentId : undefined;
-  const ownerAgentId =
-    "main" in entries
-      ? "main"
-      : systemAgentId !== undefined && systemAgentId in entries
-        ? systemAgentId
-        : agentIds[0];
 
   const bindings = (Array.isArray(config.bindings) ? config.bindings : []) as Array<
     Record<string, unknown>

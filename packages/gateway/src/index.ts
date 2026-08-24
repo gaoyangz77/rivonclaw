@@ -26,6 +26,8 @@ export {
   writeGatewayConfig,
   ensureGatewayConfig,
   readExistingConfig,
+  resolveChannelOwnerAgentId,
+  readChannelOwnerAgentId,
   resolveOpenClawStateDir,
   resolveOpenClawConfigPath,
   generateGatewayToken,

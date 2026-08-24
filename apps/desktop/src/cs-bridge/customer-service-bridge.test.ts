@@ -51,8 +51,13 @@ vi.mock("../channels/feishu-cs-callback-config.js", () => ({
 }));
 
 const mockReadFullModelCatalog = vi.fn().mockResolvedValue({});
+const { mockReadChannelOwnerAgentId } = vi.hoisted(() => ({
+  // undefined = sole-agent roster, which is the default shape most tests assume.
+  mockReadChannelOwnerAgentId: vi.fn<() => string | undefined>(() => undefined),
+}));
 vi.mock("@rivonclaw/gateway", () => ({
   readFullModelCatalog: (...args: unknown[]) => mockReadFullModelCatalog(...args),
+  readChannelOwnerAgentId: () => mockReadChannelOwnerAgentId(),
 }));
 
 vi.mock("../affiliate/affiliate-workflow-skill.js", () => ({
@@ -2457,6 +2462,61 @@ describe("escalate", () => {
         accountId: "acct_test123",
       }),
     );
+  });
+
+  // A multi-agent roster carries agents.ownership = "explicit", which removes
+  // OpenClaw's implicit "main" fallback. An escalation send that names no agent
+  // is then rejected with INVALID_REQUEST and the merchant is never notified.
+  it("pins the escalation send to the agent that owns inbound channel traffic", async () => {
+    mockReadChannelOwnerAgentId.mockReturnValue("main");
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(escalationShop);
+
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
+    const result = await session.escalate({ reason: defaultEscalateParams.reason });
+
+    expect(result.ok).toBe(true);
+    const sendCall = mockRpcRequest.mock.calls.find((call) => call[0] === "send");
+    expect(sendCall?.[1]).toMatchObject({ channel: "telegram", agentId: "main" });
+  });
+
+  it("pins the Feishu card send to the same owner agent", async () => {
+    mockReadChannelOwnerAgentId.mockReturnValue("main");
+    seedShopWithEscalation({
+      escalationChannelId: "feishu:acct_feishu",
+      escalationRecipientId: "ou_manager",
+    });
+    const bridge = createBridge();
+    bridge.setShopContext(escalationShop);
+
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
+    await session.escalate({ reason: defaultEscalateParams.reason });
+
+    const actionCall = mockRpcRequest.mock.calls.find((call) => call[0] === "message.action");
+    expect(actionCall?.[1]).toMatchObject({ channel: "feishu", agentId: "main" });
+  });
+
+  it("omits agentId on a sole-agent roster so OpenClaw keeps its own fallback", async () => {
+    mockReadChannelOwnerAgentId.mockReturnValue(undefined);
+    seedShopWithEscalation();
+    const bridge = createBridge();
+    bridge.setShopContext(escalationShop);
+
+    const session = await bridge.getOrCreateSession(
+      defaultEscalateParams.shopId,
+      defaultEscalateParams,
+    );
+    await session.escalate({ reason: defaultEscalateParams.reason });
+
+    const sendCall = mockRpcRequest.mock.calls.find((call) => call[0] === "send");
+    expect(sendCall?.[1]).not.toHaveProperty("agentId");
   });
 
   it("sends a Feishu form card while leaving other channels on the text adapter", async () => {
