@@ -24,6 +24,7 @@ import { createLogger } from "@rivonclaw/logger";
 import { ScopeType, GQL, normalizeWeixinAccountId } from "@rivonclaw/core";
 import { isStagingDevMode } from "@rivonclaw/core/endpoints";
 import { CUSTOMER_SERVICE_AGENT_ID, resolveAgentSessionsDir } from "@rivonclaw/core/node";
+import { readChannelOwnerAgentId } from "@rivonclaw/gateway";
 import { openClawConnector } from "../openclaw/index.js";
 import { requestAgent } from "../gateway/agent-tooling-readiness.js";
 import { getAuthSession } from "../auth/session-ref.js";
@@ -1794,9 +1795,16 @@ export class CustomerServiceSession {
     let sendFailureReason = "send_failed";
     try {
       const idempotencyKey = params.idempotencyKey ?? `cs-escalate:${params.escalationId}`;
+      // This send carries no session key, so OpenClaw has nothing to derive an
+      // owner from. Under a multi-agent roster `agents.ownership` is "explicit"
+      // and the implicit "main" fallback is gone, so an unpinned send is
+      // rejected outright with INVALID_REQUEST. Pin the same agent that owns
+      // inbound traffic on this channel, so the merchant's reply and this
+      // notification stay under one agent.
+      const ownerAgentId = readChannelOwnerAgentId();
       log.info(
         `Sending escalation ${params.escalationId} for conv=${this.csContext.conversationId} via ${channel} ` +
-          `account=${outboundAccountId} to=${escalationRecipientId}`,
+          `account=${outboundAccountId} to=${escalationRecipientId} agent=${ownerAgentId ?? "implicit"}`,
       );
       const sendResult =
         channel === "feishu"
@@ -1811,6 +1819,7 @@ export class CustomerServiceSession {
                 channel: "feishu",
                 action: "send",
                 accountId: outboundAccountId,
+                ...(ownerAgentId ? { agentId: ownerAgentId } : {}),
                 params: {
                   to: escalationRecipientId,
                   card: buildFeishuCsEscalationCard({
@@ -1832,6 +1841,7 @@ export class CustomerServiceSession {
               channel,
               accountId: outboundAccountId,
               message: lines.join("\n"),
+              ...(ownerAgentId ? { agentId: ownerAgentId } : {}),
               idempotencyKey,
             });
       sendMessageId =

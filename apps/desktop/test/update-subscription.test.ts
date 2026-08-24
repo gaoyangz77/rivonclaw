@@ -26,6 +26,8 @@ function buildMockServer() {
   let storedUpdate: StoredUpdate | null = null;
   let completeImmediately = false;
   let subscribeCount = 0;
+  /** Wall-clock arrival of each subscribe, so retry pacing can be asserted. */
+  let subscribeTimes: number[] = [];
 
   /** Emitter for runtime (admin) pushes. */
   const pushEmitter = new EventEmitter();
@@ -54,6 +56,7 @@ function buildMockServer() {
           },
           subscribe: (_root, args) => {
             subscribeCount += 1;
+            subscribeTimes.push(Date.now());
             if (completeImmediately) {
               const iterator: AsyncIterableIterator<StoredUpdate> = {
                 next() {
@@ -139,8 +142,12 @@ function buildMockServer() {
     getSubscribeCount() {
       return subscribeCount;
     },
+    getSubscribeTimes() {
+      return [...subscribeTimes];
+    },
     resetSubscribeCount() {
       subscribeCount = 0;
+      subscribeTimes = [];
     },
     pushUpdate(payload: StoredUpdate) {
       pushEmitter.emit("push", payload);
@@ -309,8 +316,20 @@ describe("BackendSubscriptionClient", () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it("does not re-subscribe in a loop when the server completes the subscription", async () => {
+  // A server-side `complete` (backend deploy, restart, resolver teardown) must
+  // be recovered from — otherwise update notifications end silently for the
+  // rest of the process lifetime — but recovery has to be paced. The failure
+  // this guards against is a tight re-subscribe loop hammering the backend.
+  //
+  // The previous version of this test asserted exactly one subscribe within
+  // 1500ms, which read as "never re-subscribes". It never held: the client has
+  // always retried after a complete (`handleComplete` -> `scheduleRecovery`,
+  // backing off 1s, 2s, 4s ... capped at 30s). It passed only because the
+  // second subscribe happened to land just outside the window, and any change
+  // that shaved latency off the first connect broke it.
+  it("recovers from a server-side complete with a backed-off retry, not a hot loop", async () => {
     mockServer.setCompleteImmediately(true);
+    mockServer.resetSubscribeCount();
 
     const c = new BackendSubscriptionClient("en");
     c.connect(() => "test-token");
@@ -318,8 +337,21 @@ describe("BackendSubscriptionClient", () => {
     c.subscribeToUpdates("1.0.0", vi.fn());
     client = c;
 
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 4_000));
 
-    expect(mockServer.getSubscribeCount()).toBe(1);
-  });
+    const times = mockServer.getSubscribeTimes();
+    // Recovery happened at all.
+    expect(times.length).toBeGreaterThanOrEqual(2);
+    // Backoff starts at 1s and doubles, so four seconds admits only a handful.
+    // A hot loop would put hundreds or thousands here.
+    expect(times.length).toBeLessThanOrEqual(5);
+    // The first retry waits out the base delay rather than firing immediately.
+    expect(times[1]! - times[0]!).toBeGreaterThanOrEqual(800);
+    // And each subsequent wait is no shorter than the one before it.
+    for (let index = 2; index < times.length; index += 1) {
+      const previousGap = times[index - 1]! - times[index - 2]!;
+      const gap = times[index]! - times[index - 1]!;
+      expect(gap).toBeGreaterThanOrEqual(previousGap * 0.9);
+    }
+  }, 15_000);
 });

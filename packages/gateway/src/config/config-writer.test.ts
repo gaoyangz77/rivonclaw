@@ -12,6 +12,8 @@ import {
   buildExtraProviderConfigs,
   assertValidOpenClawConfig,
   writeOpenClawConfigAtomically,
+  resolveChannelOwnerAgentId,
+  readChannelOwnerAgentId,
   DEFAULT_GATEWAY_PORT,
 } from "./config-writer.js";
 import { OpenClawSchema } from "../generated/openclaw-schema.js";
@@ -1060,6 +1062,73 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.bindings).toBeUndefined();
+    });
+  });
+
+  describe("resolveChannelOwnerAgentId", () => {
+    // Outbound sends that carry no session key resolve their owner through this
+    // function. It must agree with the wildcard bindings above, or the merchant's
+    // reply lands on a different agent than the message they are replying to.
+    it("returns undefined for a sole-agent roster", () => {
+      expect(resolveChannelOwnerAgentId({ agents: { entries: { main: {} } } })).toBeUndefined();
+    });
+
+    it("returns undefined when no agents are configured at all", () => {
+      expect(resolveChannelOwnerAgentId({})).toBeUndefined();
+    });
+
+    it("prefers main when the roster has several agents", () => {
+      expect(
+        resolveChannelOwnerAgentId({
+          agents: { entries: { affiliate: {}, main: {}, "customer-service": {} } },
+        }),
+      ).toBe("main");
+    });
+
+    it("falls back to the configured system agent when main is absent", () => {
+      expect(
+        resolveChannelOwnerAgentId({
+          agents: {
+            entries: { affiliate: {}, "customer-service": {} },
+            defaults: { systemAgent: { agentId: "customer-service" } },
+          },
+        }),
+      ).toBe("customer-service");
+    });
+
+    it("ignores a system agent that is not in the roster", () => {
+      // OpenClaw rejects an unknown agentId outright, so an owner that is not a
+      // configured agent would be worse than falling back to the first entry.
+      expect(
+        resolveChannelOwnerAgentId({
+          agents: {
+            entries: { affiliate: {}, "customer-service": {} },
+            defaults: { systemAgent: { agentId: "retired" } },
+          },
+        }),
+      ).toBe("affiliate");
+    });
+
+    it("agrees with the owner written into the channel wildcard bindings", () => {
+      const configPath = join(tmpDir, "openclaw.json");
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          channels: { telegram: { accounts: { "rivonclaw-support": { botToken: "123:ABC" } } } },
+        }),
+      );
+
+      writeGatewayConfig({
+        configPath,
+        managedAgents: [{ id: "main" }, { id: "customer-service" }, { id: "affiliate" }],
+      });
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
+      const wildcard = (config.bindings as Array<Record<string, unknown>>).find((binding) => {
+        const match = binding.match as Record<string, unknown>;
+        return match.channel === "telegram" && match.accountId === "*";
+      });
+      expect(readChannelOwnerAgentId(configPath)).toBe(wildcard?.agentId);
     });
   });
 
