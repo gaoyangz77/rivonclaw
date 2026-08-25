@@ -26675,6 +26675,24 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-bg-alt);
 }
 
+.affiliate-platform-product-commission-snapshot {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.affiliate-platform-product-commission-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.4fr) repeat(2, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 9px;
+  background: var(--color-bg-alt);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 .affiliate-platform-product-remove {
   display: grid;
   width: 28px;
@@ -26900,6 +26918,10 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-platform-form-grid-three,
   .affiliate-platform-binary-grid,
   .affiliate-platform-product-editor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-platform-product-commission-row {
     grid-template-columns: 1fr;
   }
 

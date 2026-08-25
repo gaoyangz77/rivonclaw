@@ -3339,6 +3339,7 @@ export const AffiliateModelSignalStatus = {
 
 export type AffiliateModelSignalStatus = typeof AffiliateModelSignalStatus[keyof typeof AffiliateModelSignalStatus];
 export interface AffiliateOpenAutoAddProductInput {
+  /** Open Collaboration ordinary commission in basis points. TikTok's current Open settings API exposes no separate Shop Ads commission parameter. */
   commissionRateBps: Scalars['Int']['input'];
   enable: Scalars['Boolean']['input'];
 }
@@ -4218,7 +4219,9 @@ export const AffiliateShopReferenceAvailability = {
 export type AffiliateShopReferenceAvailability = typeof AffiliateShopReferenceAvailability[keyof typeof AffiliateShopReferenceAvailability];
 export interface AffiliateTargetCollaborationCreateProductInput {
   productId: Scalars['String']['input'];
+  /** Target Collaboration Shop Ads-attributed commission in basis points. */
   shopAdsCommissionRateBps?: InputMaybe<Scalars['Int']['input']>;
+  /** Target Collaboration ordinary commission in basis points. */
   targetCommissionRateBps: Scalars['Int']['input'];
 }
 
@@ -4231,8 +4234,10 @@ export const AffiliateTargetCollaborationOperation = {
 
 export type AffiliateTargetCollaborationOperation = typeof AffiliateTargetCollaborationOperation[keyof typeof AffiliateTargetCollaborationOperation];
 export interface AffiliateTargetCollaborationUpdateProductInput {
+  /** Target Collaboration ordinary commission in basis points. */
   commissionRateBps: Scalars['Int']['input'];
   productId: Scalars['String']['input'];
+  /** Target Collaboration Shop Ads-attributed commission in basis points. This maps to TikTok target_ad_commission_rate on update. */
   targetAdCommissionRateBps?: InputMaybe<Scalars['Int']['input']>;
 }
 
@@ -4944,6 +4949,7 @@ export interface CreateAccountMemberInput {
 }
 
 export interface CreateAffiliateOpenCollaborationInput {
+  /** Open Collaboration ordinary commission in basis points. TikTok's current Open create API exposes no separate Shop Ads commission parameter. */
   commissionRateBps: Scalars['Int']['input'];
   productId: Scalars['String']['input'];
   shopId: Scalars['ID']['input'];
@@ -9242,6 +9248,7 @@ export interface ManageAffiliateOpenCollaborationInput {
   activateStatus?: InputMaybe<AffiliateOpenSampleRuleActivation>;
   autoAddProduct?: InputMaybe<AffiliateOpenAutoAddProductInput>;
   collaborationId?: InputMaybe<Scalars['ID']['input']>;
+  /** Open Collaboration ordinary commission in basis points. The current Open Provider API exposes no separate Shop Ads commission parameter. */
   commissionRateBps?: InputMaybe<Scalars['Int']['input']>;
   operation: AffiliateOpenCollaborationOperation;
   productId?: InputMaybe<Scalars['String']['input']>;

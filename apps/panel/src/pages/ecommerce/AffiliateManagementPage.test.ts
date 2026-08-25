@@ -9,6 +9,7 @@ import {
   affiliateModelStagePresentation,
   affiliateExpectedSalesModelAvailabilityState,
   affiliateCommissionPercentToBps,
+  affiliateCommissionPercentRange,
   affiliateDelimitedIdentifiers,
   affiliateSellerSafeMetrics,
   emptyAffiliateProposalPageBuffer,
@@ -706,6 +707,22 @@ describe("Affiliate canonical UI contract", () => {
     expect(() => affiliateCommissionPercentToBps("81")).toThrow(/1% and 80%/);
     expect(affiliateDelimitedIdentifiers("creator-1, creator-2\ncreator-1"))
       .toEqual(["creator-1", "creator-2"]);
+  });
+
+  it("shows both Target standard and Shop Ads commissions in list and detail reads", () => {
+    expect(affiliateCommissionPercentRange(["12", "5", "12"])).toContain("5%");
+    expect(affiliateCommissionPercentRange(["12", "5", "12"])).toContain("12%");
+    expect(affiliateCommissionPercentRange([])).toBe("—");
+    expect(affiliateCommissionPercentRange([""])).toBe("—");
+
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const queries = readFileSync(resolve(process.cwd(), "src/api/shops-queries.ts"), "utf8");
+    expect(page).toContain("targetAdsCommissionRates");
+    expect(page).toContain("affiliate-platform-product-commission-snapshot");
+    expect(queries).toContain("shopAdsCommissionRate");
   });
 
   it("renders create, settings, edit, and stop controls for platform collaborations", () => {
