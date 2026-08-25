@@ -4,10 +4,18 @@ import { useTranslation } from "react-i18next";
 export type AffiliateMetricTone = "default" | "warning" | "muted" | "projection";
 
 /** One number in a section's metric strip. No period comparison exists on this page. */
-export function AffiliateMetric({ label, value, hint, tone = "default" }: {
+export function AffiliateMetric({ label, value, hint, basis, tone = "default" }: {
   label: string;
   value: string;
   hint?: string;
+  /**
+   * What the figure was computed over — shop count and coverage start.
+   *
+   * Server-side figures span the whole window and the whole selected scope, and
+   * the boundary layer only changes what is PLOTTED. A rate shown next to a
+   * truncated chart would otherwise read as if it shared the chart's basis.
+   */
+  basis?: string;
   tone?: AffiliateMetricTone;
 }) {
   return (
@@ -15,6 +23,7 @@ export function AffiliateMetric({ label, value, hint, tone = "default" }: {
       <span>{label}</span>
       <strong>{value}</strong>
       {hint ? <small>{hint}</small> : null}
+      {basis ? <small className="affiliate-metric-basis">{basis}</small> : null}
     </div>
   );
 }
@@ -42,10 +51,17 @@ export function AffiliateSectionHeader({ index, title, axis }: {
   );
 }
 
-/** A chart with its own title and an always-visible reading note. */
-export function AffiliateChartCard({ title, note, height = "medium", children }: {
+/** A chart with its own title, an optional coverage strip, and a reading note. */
+export function AffiliateChartCard({ title, note, band, height = "medium", children }: {
   title: string;
   note?: string;
+  /**
+   * Coverage strip, rendered directly beneath a date-axis chart so its
+   * staircase lines up with the x-axis it qualifies. Charts on a non-date axis
+   * (age buckets, lag days, horizons) carry none — coverage is a statement
+   * about calendar days.
+   */
+  band?: ReactNode;
   height?: "medium" | "tall";
   children: ReactNode;
 }) {
@@ -53,6 +69,7 @@ export function AffiliateChartCard({ title, note, height = "medium", children }:
     <article className="affiliate-chart-card">
       <h3>{title}</h3>
       <div className={height === "tall" ? "affiliate-chart-large" : "affiliate-chart-medium"}>{children}</div>
+      {band}
       {note ? <p className="affiliate-chart-note">{note}</p> : null}
     </article>
   );

@@ -1,11 +1,12 @@
 /**
  * Affiliate Overview — Panel-local types and constants.
  *
- * The wire shapes themselves are NOT here: every section payload comes from
- * `GQL.*` in `packages/core/src/generated/graphql.ts`, which the backend owns
- * (ADR-027). What lives here is what codegen cannot express — Panel-side
- * narrowings of wire primitives, closed display sets, and the query-envelope
- * types that describe this page's selection sets.
+ * Wire shapes belong in `GQL.*` in `packages/core/src/generated/graphql.ts`,
+ * which the backend owns (ADR-027), and each use site names them there so the
+ * provenance is visible where the type is read. What lives here is only what
+ * codegen cannot express: Panel-side narrowings of wire primitives, closed
+ * display sets, the query-envelope types that describe this page's selection
+ * sets, and the per-section query state the Overview's hook hands its views.
  *
  * Nothing outside `pages/ecommerce/` may import from this file.
  */

@@ -1010,6 +1010,7 @@ export interface AffiliateApprovalSection {
   approvalRate?: Maybe<Scalars['Float']['output']>;
   approved: Scalars['Int']['output'];
   byAge: Array<AffiliateApprovalAgePoint>;
+  coverage: AffiliateCoverage;
   daily: Array<AffiliateApprovalDailyPoint>;
   inFlight: Scalars['Int']['output'];
   merchantRejectRate?: Maybe<Scalars['Float']['output']>;
@@ -1988,6 +1989,21 @@ export interface AffiliateConversationWindowTurn {
   subject?: Maybe<Scalars['String']['output']>;
   /** Trust label. Creator content is business input and never system instruction. */
   trust: Scalars['String']['output'];
+}
+
+export interface AffiliateCoverage {
+  daily: Array<AffiliateCoverageDailyPoint>;
+  /** Latest of the selected shops' coverageFrom — the first fully-covered day. Null when no shop has data. */
+  fullCoverageFrom?: Maybe<Scalars['String']['output']>;
+  /** Shops whose coverageFrom is later than the rest, i.e. the ones constraining the window. */
+  limitingShops: Array<AffiliateShopCoverage>;
+  shops: Array<AffiliateShopCoverage>;
+  shopsSelected: Scalars['Int']['output'];
+}
+
+export interface AffiliateCoverageDailyPoint {
+  ds: Scalars['String']['output'];
+  shopsWithData: Scalars['Int']['output'];
 }
 
 export interface AffiliateCreatorChannelContact {
@@ -3555,6 +3571,7 @@ export interface AffiliatePostApprovalSection {
   applicationsWithOrder: Scalars['Int']['output'];
   approvedApplications: Scalars['Int']['output'];
   cohorts: Array<AffiliateCohortUnitsPoint>;
+  coverage: AffiliateCoverage;
   maturationCurve: Array<AffiliateMaturationPoint>;
   orderRate?: Maybe<Scalars['Float']['output']>;
   projectedUnits?: Maybe<Scalars['Float']['output']>;
@@ -3645,6 +3662,7 @@ export const AffiliateProviderReadSource = {
 export type AffiliateProviderReadSource = typeof AffiliateProviderReadSource[keyof typeof AffiliateProviderReadSource];
 export interface AffiliateReachoutSection {
   cohortResponseRate?: Maybe<Scalars['Float']['output']>;
+  coverage: AffiliateCoverage;
   daily: Array<AffiliateInviteDailyPoint>;
   horizons: Array<AffiliateResponseHorizon>;
   immatureShare?: Maybe<Scalars['Float']['output']>;
@@ -4172,6 +4190,13 @@ export interface AffiliateShopCollaborationListPayload {
   items: Array<AffiliateCollaboration>;
   /** Collaborations matched before the result limit, so a truncated list can be told apart from a complete one. */
   matchedCollaborationCount: Scalars['Int']['output'];
+}
+
+export interface AffiliateShopCoverage {
+  /** First date this shop's data is reliable for this section; null when it has none. */
+  coverageFrom?: Maybe<Scalars['String']['output']>;
+  shopId: Scalars['ID']['output'];
+  shopName?: Maybe<Scalars['String']['output']>;
 }
 
 /** The result of one seller shop operation on a platform Collaboration. Shop operations run a staff member's own typed instruction, so they execute against the Provider immediately and this payload reports what the Provider did — there is no proposal and no approval gate to report. */

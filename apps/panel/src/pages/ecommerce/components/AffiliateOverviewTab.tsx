@@ -71,9 +71,15 @@ export function AffiliateOverviewTab({ shops }: { shops: AffiliateAnalyticsShop[
         <AffiliatePortfolioStrip portfolio={state.portfolio} />
       </section>
 
-      <AffiliateReachoutSectionView query={state.reachout} />
-      <AffiliateApprovalSectionView query={state.approval} />
-      <AffiliatePostApprovalSectionView query={state.postApproval} />
+      {/*
+        Excluding a section's limiting shops narrows the PAGE's shop scope, not
+        just that section's chart: the three sections share one selection, and a
+        per-section shop set would make their figures silently incomparable —
+        the defect this whole layer exists to surface.
+      */}
+      <AffiliateReachoutSectionView query={state.reachout} onExcludeShops={state.setShopIds} />
+      <AffiliateApprovalSectionView query={state.approval} onExcludeShops={state.setShopIds} />
+      <AffiliatePostApprovalSectionView query={state.postApproval} onExcludeShops={state.setShopIds} />
     </div>
   );
 }

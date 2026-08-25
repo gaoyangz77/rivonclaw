@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { GQL } from "@rivonclaw/core";
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
@@ -12,10 +15,22 @@ import {
   YAxis,
 } from "recharts";
 import { formatCohortDay, formatNumber, formatPercent, formatRatio } from "../affiliate-analytics-format.js";
-import { buildCohortUnitsRows, countAxisDomain, countImmatureCohorts, rateAxisDomain } from "../affiliate-overview.js";
-import type { GQL } from "@rivonclaw/core";
+import {
+  applyCoverageWindow,
+  buildCohortUnitsRows,
+  countAxisDomain,
+  countImmatureCohorts,
+  countPartialDays,
+  coverageBasis,
+  isFullyCoveredDay,
+  rateAxisDomain,
+} from "../affiliate-overview.js";
 import type { AffiliateSectionQuery } from "../affiliate-overview-types.js";
+import { AffiliateCoverageBand, AffiliateCoverageNotice } from "./AffiliateCoverageBand.js";
 import { AffiliateChartCard, AffiliateMetric, AffiliateSectionHeader, AffiliateSectionState } from "./AffiliateOverviewParts.js";
+
+/** How solid a bar in the partial range is drawn, relative to a covered one. */
+const PARTIAL_BAR_OPACITY = 0.35;
 
 /**
  * Section 3 — Post-approval performance. Cohort axis: the application date, and
@@ -23,17 +38,40 @@ import { AffiliateChartCard, AffiliateMetric, AffiliateSectionHeader, AffiliateS
  * missing at 0–7 days old and keeps a ~17% permanent hole, while `units` is
  * never missing.
  */
-export function AffiliatePostApprovalSectionView({ query }: { query: AffiliateSectionQuery<GQL.AffiliatePostApprovalSection> }) {
+export function AffiliatePostApprovalSectionView({ query, onExcludeShops }: {
+  query: AffiliateSectionQuery<GQL.AffiliatePostApprovalSection>;
+  onExcludeShops?: (shopIds: string[]) => void;
+}) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const section = query.section;
+  // Primitive UI state only: the boundary itself lives in the section payload.
+  const [showPartial, setShowPartial] = useState(false);
 
   const body = (() => {
     if (!section) return <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />;
 
-    const cohortRows = buildCohortUnitsRows(section.cohorts);
+    const coverage = section.coverage;
+    const boundary = coverage.fullCoverageFrom ?? null;
+    const allRows = buildCohortUnitsRows(section.cohorts);
+    const partialDays = countPartialDays(allRows.map((row) => row.cohortDs), boundary);
+    const cohortRows = applyCoverageWindow(allRows, (row) => row.cohortDs, boundary, showPartial);
+    const basis = coverageBasis(coverage);
+    const basisNote = t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
+      shops: formatNumber(basis.shopsWithData, locale),
+      selected: formatNumber(basis.shopsSelected, locale),
+      date: basis.fullCoverageFrom
+        ? formatCohortDay(basis.fullCoverageFrom, locale)
+        : t("ecommerce.affiliateAnalytics.coverage.noDate"),
+    });
+
     const immatureCohorts = countImmatureCohorts(cohortRows);
     const unitsDomain = countAxisDomain(cohortRows.map((row) => row.actualUnits + row.projectedRemainingUnits));
+    // The bar analogue of a dashed line: a partial-range cohort keeps its real
+    // height but is drawn faint, so it is never read as comparable.
+    const coverageCells = cohortRows.map((row) => (
+      <Cell key={row.cohortDs} fillOpacity={isFullyCoveredDay(row.cohortDs, boundary) ? 1 : PARTIAL_BAR_OPACITY} />
+    ));
     const maturationDomain = rateAxisDomain(section.maturationCurve.map((point) => point.cumulativeShare), 1);
 
     return (
@@ -49,6 +87,7 @@ export function AffiliatePostApprovalSectionView({ query }: { query: AffiliateSe
             hint={t("ecommerce.affiliateAnalytics.postApproval.orderRateHint", {
               count: section.applicationsWithOrder,
             })}
+            basis={basisNote}
           />
           <AffiliateMetric
             label={t("ecommerce.affiliateAnalytics.postApproval.actualUnits")}
@@ -67,10 +106,19 @@ export function AffiliatePostApprovalSectionView({ query }: { query: AffiliateSe
           />
         </div>
 
+        <AffiliateCoverageNotice
+          coverage={coverage}
+          partialDays={partialDays}
+          showPartial={showPartial}
+          onShowPartialChange={setShowPartial}
+          onExcludeShops={onExcludeShops}
+        />
+
         <div className="affiliate-chart-grid">
           <AffiliateChartCard
             title={t("ecommerce.affiliateAnalytics.postApproval.cohortsTitle")}
             note={t("ecommerce.affiliateAnalytics.postApproval.cohortsNote", { count: immatureCohorts })}
+            band={<AffiliateCoverageBand coverage={coverage} />}
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={cohortRows}>
@@ -87,13 +135,17 @@ export function AffiliatePostApprovalSectionView({ query }: { query: AffiliateSe
                   stackId="units"
                   name={t("ecommerce.affiliateAnalytics.postApproval.actualUnitsSeries")}
                   fill="var(--affiliate-units)"
-                />
+                >
+                  {coverageCells}
+                </Bar>
                 <Bar
                   dataKey="projectedRemainingUnits"
                   stackId="units"
                   name={t("ecommerce.affiliateAnalytics.postApproval.projectedUnitsSeries")}
                   fill="var(--affiliate-projection)"
-                />
+                >
+                  {coverageCells}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </AffiliateChartCard>
