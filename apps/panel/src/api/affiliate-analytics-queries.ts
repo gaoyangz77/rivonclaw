@@ -16,9 +16,9 @@ const AFFILIATE_FRESHNESS_FIELDS = gql`
  * Affiliate Overview — three sections, each its own root query so a failing
  * section degrades on its own instead of taking the page down.
  *
- * The Panel-side mirrors of these payloads live in
- * `pages/ecommerce/affiliate-overview-types.ts`; swap them for `GQL.*` once the
- * backend schema has been through codegen.
+ * These payloads are typed by the backend-owned `GQL.Affiliate*Section` types;
+ * `pages/ecommerce/affiliate-overview-types.ts` only wraps them in the query
+ * envelopes that describe these selection sets.
  *
  * Deliberately absent: GMV, commission, leaderboards, campaign stage bars, the
  * platform-vs-sample contract split, and any comparison period. Order-line GMV
@@ -46,6 +46,13 @@ export const AFFILIATE_OVERVIEW_REACHOUT_QUERY = gql`
         invitations
         responded
         mature
+      }
+      coverage {
+        fullCoverageFrom
+        shopsSelected
+        limitingShops { shopId shopName coverageFrom }
+        shops { shopId shopName coverageFrom }
+        daily { ds shopsWithData }
       }
     }
   }
@@ -80,6 +87,13 @@ export const AFFILIATE_OVERVIEW_APPROVAL_QUERY = gql`
         inFlight
         approvalRate
       }
+      coverage {
+        fullCoverageFrom
+        shopsSelected
+        limitingShops { shopId shopName coverageFrom }
+        shops { shopId shopName coverageFrom }
+        daily { ds shopsWithData }
+      }
     }
   }
 `;
@@ -106,6 +120,13 @@ export const AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY = gql`
         lagDays
         cumulativeShare
         basisCohorts
+      }
+      coverage {
+        fullCoverageFrom
+        shopsSelected
+        limitingShops { shopId shopName coverageFrom }
+        shops { shopId shopName coverageFrom }
+        daily { ds shopsWithData }
       }
     }
   }

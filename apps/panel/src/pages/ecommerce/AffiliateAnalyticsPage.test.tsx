@@ -61,17 +61,29 @@ vi.mock("@apollo/client/react", () => ({
     : [mocks.valuesQuery, { loading: false, error: undefined, data: undefined }],
 }));
 
+/**
+ * Chart roots record which data array they were handed, because a truncated
+ * series is invisible in the DOM otherwise: the assertions that matter here are
+ * about which ROWS reached the chart, not about pixels.
+ */
 vi.mock("recharts", () => {
   const Container = ({ children }: { children?: unknown }) => <div>{children as never}</div>;
   const Element = () => <span />;
+  const chart = (kind: string) => ({ children, data }: { children?: unknown; data?: unknown[] }) => (
+    <div data-chart={kind} data-rows={String(data?.length ?? 0)}>{children as never}</div>
+  );
   return {
     ResponsiveContainer: Container,
-    LineChart: Container,
-    BarChart: Container,
-    ComposedChart: Container,
+    LineChart: chart("line"),
+    BarChart: chart("bar"),
+    ComposedChart: chart("composed"),
+    AreaChart: chart("area"),
+    Area: Element,
     CartesianGrid: Element,
+    Cell: Element,
     Legend: Element,
     Line: Element,
+    ReferenceArea: Element,
     Bar: Element,
     Tooltip: Element,
     XAxis: Element,
@@ -113,6 +125,15 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.explore.directions.DESC": "Descending",
   "ecommerce.affiliateAnalytics.catalog.dimensions.DATE": "Date",
   "ecommerce.affiliateAnalytics.catalog.metrics.AFFILIATE_APPLICATIONS_CREATED": "Applications",
+  "ecommerce.affiliateAnalytics.coverage.boundary": "Series start on {{date}} · {{shops}} shops with data",
+  "ecommerce.affiliateAnalytics.coverage.partialDays": "{{count}} earlier partial days",
+  "ecommerce.affiliateAnalytics.coverage.showPartial": "Show the partial range anyway",
+  "ecommerce.affiliateAnalytics.coverage.hidePartial": "Hide the partial range",
+  "ecommerce.affiliateAnalytics.coverage.excludeLimiting": "Exclude the {{count}} latest-starting shops",
+  "ecommerce.affiliateAnalytics.coverage.limitingShops": "Latest to start: {{shops}}",
+  "ecommerce.affiliateAnalytics.coverage.noneTitle": "No selected shop has data for this section",
+  "ecommerce.affiliateAnalytics.coverage.metricBasis": "Computed over {{shops}} of {{selected}} shops · fully covered from {{date}}",
+  "ecommerce.affiliateAnalytics.coverage.bandCaption": "Data coverage over {{count}} shops",
 };
 
 vi.mock("react-i18next", () => ({
@@ -120,7 +141,7 @@ vi.mock("react-i18next", () => ({
     i18n: { language: "en-US" },
     t: (key: string, values?: Record<string, unknown>) => {
       const copy = COPY[key];
-      if (copy) return copy;
+      if (copy) return copy.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => String(values?.[name] ?? ""));
       if (key === "ecommerce.affiliateAnalytics.windowDays") return `Last ${values?.count}d`;
       if (key === "ecommerce.affiliateAnalytics.selectedShops") return `${values?.count ?? 0} shops selected`;
       return key;
@@ -135,6 +156,25 @@ function sectionResult(field: string, value: unknown) {
     networkStatus: 7,
     refetch: vi.fn(),
     data: { [field]: value },
+  };
+}
+
+/**
+ * A boundary with real spread: `shop-1` starts on 2026-06-01 and `shop-2` only
+ * on 2026-08-19, so every day between them was measured over one shop rather
+ * than two. `shop-3` has no data at all and must not become the boundary.
+ */
+function coverageFixture(days: string[]) {
+  return {
+    fullCoverageFrom: "2026-08-19",
+    shopsSelected: 3,
+    limitingShops: [{ shopId: "shop-2", shopName: "Berlin Shop", coverageFrom: "2026-08-19" }],
+    shops: [
+      { shopId: "shop-1", shopName: "North Shop", coverageFrom: "2026-06-01" },
+      { shopId: "shop-2", shopName: "Berlin Shop", coverageFrom: "2026-08-19" },
+      { shopId: "shop-3", shopName: "Quiet Shop", coverageFrom: null },
+    ],
+    daily: days.map((ds) => ({ ds, shopsWithData: ds >= "2026-08-19" ? 2 : 1 })),
   };
 }
 
@@ -155,6 +195,7 @@ function reachoutFixture() {
       { inviteDs: "2026-06-01", invitations: 800, responded: 9, mature: true },
       { inviteDs: "2026-08-20", invitations: 640, responded: 1, mature: false },
     ],
+    coverage: coverageFixture(["2026-06-01", "2026-08-20"]),
   };
 }
 
@@ -170,6 +211,7 @@ function approvalFixture() {
     overdueRate: 0.048,
     daily: [{ cohortDs: "2026-08-01", applications: 40, approved: 30, merchantRejected: 5, overdueByUs: 2, inFlight: 3 }],
     byAge: [{ ageBucket: "0–1d", applications: 40, approved: 20, merchantRejected: 4, overdueByUs: 1, inFlight: 15 }],
+    coverage: coverageFixture(["2026-08-01"]),
   };
 }
 
@@ -190,6 +232,7 @@ function postApprovalFixture() {
       { lagDays: 0, cumulativeShare: 0.04, basisCohorts: 41 },
       { lagDays: 30, cumulativeShare: 0.78, basisCohorts: 41 },
     ],
+    coverage: coverageFixture(["2026-06-01", "2026-08-18"]),
   };
 }
 
@@ -349,6 +392,114 @@ describe("AffiliateAnalyticsPage Overview", () => {
 
     await waitFor(() => expect(overviewInputs().some((input) => input.shopIds?.length === 1 && input.shopIds[0] === "shop-2")).toBe(true));
     expect(screen.getByText("1 shops selected")).toBeTruthy();
+  });
+});
+
+
+describe("AffiliateAnalyticsPage Overview data coverage", () => {
+  function section(container: HTMLElement, id: string): HTMLElement {
+    return container.querySelector(`[data-tutorial-id="affiliate-analytics-${id}"]`) as HTMLElement;
+  }
+
+  function chartRows(scope: HTMLElement, kind: string): number[] {
+    return [...scope.querySelectorAll(`[data-chart="${kind}"]`)]
+      .map((node) => Number(node.getAttribute("data-rows")));
+  }
+
+  it("states the boundary and names the shops that set it", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const reachout = section(container, "reachout");
+
+    expect(within(reachout).getByText("Series start on Aug 19 · 2 shops with data")).toBeTruthy();
+    expect(within(reachout).getByText("Latest to start: Berlin Shop")).toBeTruthy();
+  });
+
+  it("plots only the fully-covered days by default, while the band keeps the whole span", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const reachout = section(container, "reachout");
+
+    // The daily fixture holds 2026-06-01 and 2026-08-20; only the second is at
+    // or after the 2026-08-19 boundary.
+    expect(chartRows(reachout, "composed")).toEqual([1]);
+    // The band still covers both days, so the reader sees that earlier data
+    // exists and is partial rather than absent.
+    expect(chartRows(reachout, "area")).toEqual([2]);
+  });
+
+  it("restores the partial range only when the reader asks for it", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const reachout = section(container, "reachout");
+
+    fireEvent.click(within(reachout).getByRole("button", { name: "Show the partial range anyway" }));
+
+    expect(chartRows(reachout, "composed")).toEqual([2]);
+    expect(within(reachout).getByRole("button", { name: "Hide the partial range" })).toBeTruthy();
+  });
+
+  it("truncates the other two sections on their own boundaries", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+
+    // The approval cohort day 2026-08-01 precedes the boundary, so its daily
+    // chart truncates to nothing while the age chart, which has no date axis,
+    // keeps its bucket.
+    expect(chartRows(section(container, "approval"), "bar")).toEqual([0, 1]);
+    expect(chartRows(section(container, "post-approval"), "bar")).toEqual([0]);
+  });
+
+  it("discloses the shop basis next to the rate it was computed over", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+
+    expect(within(section(container, "reachout"))
+      .getByText("Computed over 2 of 3 shops · fully covered from Aug 19")).toBeTruthy();
+  });
+
+  it("narrows the page shop scope when the limiting shops are excluded", async () => {
+    mocks.entityStore = {
+      ...mocks.entityStore,
+      shops: [
+        { id: "shop-1", shopName: "North Shop", alias: "North", region: "US" },
+        { id: "shop-2", shopName: "Berlin Shop", alias: "Berlin", region: "DE" },
+        { id: "shop-3", shopName: "Quiet Shop", alias: "Quiet", region: "US" },
+      ],
+      billingOverview: {
+        shops: [
+          { shopId: "shop-1", analytics: { allowed: true } },
+          { shopId: "shop-2", analytics: { allowed: true } },
+          { shopId: "shop-3", analytics: { allowed: true } },
+        ],
+      },
+    };
+    const { container } = render(<AffiliateAnalyticsPage />);
+    expect(overviewInputs().at(0)?.shopIds).toEqual(["shop-1", "shop-2", "shop-3"]);
+
+    fireEvent.click(within(section(container, "reachout"))
+      .getByRole("button", { name: "Exclude the 1 latest-starting shops" }));
+
+    await waitFor(() => expect(overviewInputs().at(-1)?.shopIds).toEqual(["shop-1", "shop-3"]));
+  });
+
+  it("says so plainly when no selected shop has data, instead of drawing an empty window", () => {
+    mocks.sections = {
+      ...mocks.sections,
+      AffiliateOverviewReachout: sectionResult("getAffiliateOverviewReachout", {
+        ...reachoutFixture(),
+        coverage: {
+          fullCoverageFrom: null,
+          shopsSelected: 3,
+          limitingShops: [],
+          shops: [{ shopId: "shop-1", shopName: "North Shop", coverageFrom: null }],
+          daily: [],
+        },
+      }),
+    };
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const reachout = section(container, "reachout");
+
+    expect(within(reachout).getByText("No selected shop has data for this section")).toBeTruthy();
+    // Nothing is covered, so nothing is truncated: the reader still sees the
+    // rows that exist rather than a blank chart.
+    expect(chartRows(reachout, "composed")).toEqual([2]);
+    expect(chartRows(reachout, "area")).toEqual([]);
   });
 });
 

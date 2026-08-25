@@ -18,6 +18,8 @@
   --affiliate-response: #0f9d7a;
   /* Cohorts still accruing: never read as a bad result */
   --affiliate-immature: #b9c4d1;
+  /* Data-coverage strip: how many selected shops had data that day */
+  --affiliate-coverage: #6b7c8f;
 
   /* Overview · section 2 — approval outcome mix */
   --affiliate-approved: #0f9d7a;
@@ -54,6 +56,7 @@
   --affiliate-reachout: #6aa9e3;
   --affiliate-response: #3fc9a2;
   --affiliate-immature: #4a5563;
+  --affiliate-coverage: #8ea2b8;
   --affiliate-approved: #3fc9a2;
   --affiliate-rejected: #e5876a;
   --affiliate-overdue: #edb44a;
@@ -342,6 +345,7 @@
   letter-spacing: -.035em;
 }
 .affiliate-metric > small { color: var(--color-text-muted); font-size: 10px; line-height: 1.35; }
+.affiliate-metric-basis { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 .affiliate-metric[data-tone="warning"] > strong { color: var(--color-warning); }
 .affiliate-metric[data-tone="muted"] > strong { color: var(--color-text-secondary); }
 .affiliate-metric[data-tone="projection"] > strong { color: var(--affiliate-units); }
@@ -358,6 +362,44 @@
 
 .affiliate-chart-card h3 { margin: 0; color: var(--color-text); font-size: 13px; }
 .affiliate-chart-note { margin: 6px 0 0; color: var(--color-text-muted); font-size: 10px; line-height: 1.4; }
+
+/*
+ * Coverage strip.  It is a separate chart from the one above it, so the
+ * horizontal padding here MUST match `.affiliate-chart-medium` exactly: the
+ * band reserves the same recharts axis gutters, and these paddings are the
+ * other half of keeping the two x-axes on the same pixels.
+ */
+.affiliate-coverage-band { margin-top: 4px; }
+.affiliate-coverage-band-plot { height: 26px; padding: 0 8px 0 0; }
+.affiliate-coverage-band-caption {
+  margin: 3px 0 0;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.affiliate-coverage-notice {
+  display: grid;
+  gap: 6px;
+  padding: 11px 13px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--affiliate-coverage);
+  border-radius: 10px;
+  background: var(--color-bg-secondary);
+}
+
+.affiliate-coverage-notice.is-empty { border-left-color: var(--color-warning); }
+.affiliate-coverage-notice strong { color: var(--color-text); font-size: 13px; }
+.affiliate-coverage-notice p { margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.45; }
+.affiliate-coverage-boundary { color: var(--color-text-secondary); }
+.affiliate-coverage-limiting { font-size: 10px; }
+.affiliate-coverage-dashed { font-size: 10px; }
+.affiliate-coverage-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.affiliate-coverage-actions .btn { padding: 5px 11px; font-size: 11px; }
+.affiliate-coverage-actions .btn[aria-pressed="true"] {
+  border-color: var(--affiliate-coverage);
+  color: var(--color-text);
+}
 
 .affiliate-chart-large { height: 330px; padding: 18px 12px 8px 0; }
 .affiliate-chart-medium { height: 260px; padding: 14px 8px 6px 0; }

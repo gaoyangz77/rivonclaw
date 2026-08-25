@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { GQL } from "@rivonclaw/core";
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   ResponsiveContainer,
   Tooltip,
@@ -10,10 +13,19 @@ import {
   YAxis,
 } from "recharts";
 import { formatCohortDay, formatNumber, formatPercent } from "../affiliate-analytics-format.js";
-import { countAxisDomain } from "../affiliate-overview.js";
-import type { GQL } from "@rivonclaw/core";
+import {
+  applyCoverageWindow,
+  countAxisDomain,
+  countPartialDays,
+  coverageBasis,
+  isFullyCoveredDay,
+} from "../affiliate-overview.js";
 import type { AffiliateSectionQuery } from "../affiliate-overview-types.js";
+import { AffiliateCoverageBand, AffiliateCoverageNotice } from "./AffiliateCoverageBand.js";
 import { AffiliateChartCard, AffiliateMetric, AffiliateSectionHeader, AffiliateSectionState } from "./AffiliateOverviewParts.js";
+
+/** How solid a bar in the partial range is drawn, relative to a covered one. */
+const PARTIAL_BAR_OPACITY = 0.35;
 
 const OUTCOME_SERIES = [
   { key: "approved", labelKey: "approved", fill: "var(--affiliate-approved)" },
@@ -26,10 +38,15 @@ const OUTCOME_SERIES = [
  * Section 2 — Approval. Cohort axis: the application submission date, so an
  * outcome is always counted back against the day the Creator applied.
  */
-export function AffiliateApprovalSectionView({ query }: { query: AffiliateSectionQuery<GQL.AffiliateApprovalSection> }) {
+export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
+  query: AffiliateSectionQuery<GQL.AffiliateApprovalSection>;
+  onExcludeShops?: (shopIds: string[]) => void;
+}) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const section = query.section;
+  // Primitive UI state only: the boundary itself lives in the section payload.
+  const [showPartial, setShowPartial] = useState(false);
 
   const outcomeBars = OUTCOME_SERIES.map((series) => (
     <Bar
@@ -44,8 +61,41 @@ export function AffiliateApprovalSectionView({ query }: { query: AffiliateSectio
   const body = (() => {
     if (!section) return <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />;
 
-    const dailyDomain = countAxisDomain(section.daily.map((point) => point.applications));
+    const coverage = section.coverage;
+    const boundary = coverage.fullCoverageFrom ?? null;
+    const partialDays = countPartialDays(section.daily.map((point) => point.cohortDs), boundary);
+    const dailyRows = applyCoverageWindow(section.daily, (point) => point.cohortDs, boundary, showPartial);
+    const basis = coverageBasis(coverage);
+    const basisNote = t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
+      shops: formatNumber(basis.shopsWithData, locale),
+      selected: formatNumber(basis.shopsSelected, locale),
+      date: basis.fullCoverageFrom
+        ? formatCohortDay(basis.fullCoverageFrom, locale)
+        : t("ecommerce.affiliateAnalytics.coverage.noDate"),
+    });
+
+    const dailyDomain = countAxisDomain(dailyRows.map((point) => point.applications));
     const ageDomain = countAxisDomain(section.byAge.map((point) => point.applications));
+
+    // The bar analogue of a dashed line: a partial-range day keeps its real
+    // height, but is drawn faint so its stack is never read as comparable with
+    // a fully-covered one.
+    const dailyOutcomeBars = OUTCOME_SERIES.map((series) => (
+      <Bar
+        key={series.key}
+        dataKey={series.key}
+        stackId="outcome"
+        name={t(`ecommerce.affiliateAnalytics.approval.${series.labelKey}`)}
+        fill={series.fill}
+      >
+        {dailyRows.map((point) => (
+          <Cell
+            key={point.cohortDs}
+            fillOpacity={isFullyCoveredDay(point.cohortDs, boundary) ? 1 : PARTIAL_BAR_OPACITY}
+          />
+        ))}
+      </Bar>
+    ));
 
     return (
       <>
@@ -57,6 +107,7 @@ export function AffiliateApprovalSectionView({ query }: { query: AffiliateSectio
           <AffiliateMetric
             label={t("ecommerce.affiliateAnalytics.approval.approvalRate")}
             value={formatPercent(section.approvalRate, locale)}
+            basis={basisNote}
           />
           <AffiliateMetric
             label={t("ecommerce.affiliateAnalytics.approval.merchantRejectRate")}
@@ -70,13 +121,22 @@ export function AffiliateApprovalSectionView({ query }: { query: AffiliateSectio
           />
         </div>
 
+        <AffiliateCoverageNotice
+          coverage={coverage}
+          partialDays={partialDays}
+          showPartial={showPartial}
+          onShowPartialChange={setShowPartial}
+          onExcludeShops={onExcludeShops}
+        />
+
         <div className="affiliate-chart-grid">
           <AffiliateChartCard
             title={t("ecommerce.affiliateAnalytics.approval.dailyTitle")}
             note={t("ecommerce.affiliateAnalytics.approval.dailyNote")}
+            band={<AffiliateCoverageBand coverage={coverage} />}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={section.daily}>
+              <BarChart data={dailyRows}>
                 <CartesianGrid strokeDasharray="3 6" vertical={false} />
                 <XAxis dataKey="cohortDs" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
                 <YAxis domain={dailyDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
@@ -85,7 +145,7 @@ export function AffiliateApprovalSectionView({ query }: { query: AffiliateSectio
                   formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]}
                 />
                 <Legend />
-                {outcomeBars}
+                {dailyOutcomeBars}
               </BarChart>
             </ResponsiveContainer>
           </AffiliateChartCard>

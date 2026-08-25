@@ -3,15 +3,23 @@
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_EXACT_SHARE_THRESHOLD,
+  applyCoverageWindow,
   buildCohortUnitsRows,
+  buildCoverageBandRows,
   buildInviteDailyRows,
+  firstImmatureCohortDay,
   buildResponseHorizonSeries,
   countAxisDomain,
   countImmatureCohorts,
+  countPartialDays,
+  coverageBasis,
+  coverageShopLabel,
   exactSubmissionShare,
+  isFullyCoveredDay,
   orderResponseHorizons,
   rateAxisDomain,
   safeShare,
+  splitCoverageSeries,
 } from "./affiliate-overview.js";
 import type { GQL } from "@rivonclaw/core";
 
@@ -179,22 +187,62 @@ describe("countAxisDomain", () => {
 
 describe("buildInviteDailyRows", () => {
   const daily: GQL.AffiliateInviteDailyPoint[] = [
-    { inviteDs: "2026-06-01", invitations: 800, responded: 9, mature: true },
-    { inviteDs: "2026-08-20", invitations: 640, responded: 1, mature: false },
+    { inviteDs: "2026-06-01", invitations: 8_000, responded: 9, mature: true },
+    { inviteDs: "2026-08-20", invitations: 6_400, responded: 1, mature: false },
   ];
 
-  it("splits mature and immature cohorts into separate series", () => {
+  it("keeps invitations in one series and derives the response rate", () => {
     expect(buildInviteDailyRows(daily)).toEqual([
-      { inviteDs: "2026-06-01", mature: true, matureInvitations: 800, immatureInvitations: 0, responded: 9 },
-      { inviteDs: "2026-08-20", mature: false, matureInvitations: 0, immatureInvitations: 640, responded: 1 },
+      { inviteDs: "2026-06-01", mature: true, invitations: 8_000, responded: 9, responseRate: 9 / 8_000 },
+      { inviteDs: "2026-08-20", mature: false, invitations: 6_400, responded: 1, responseRate: 1 / 6_400 },
     ]);
   });
 
-  it("never double-counts an invitation across the two series", () => {
+  // Maturity is a property of the cohort DAY: every invitation on a day shares
+  // one age, so a day is entirely mature or entirely not. Splitting it into two
+  // stacked bar series rendered two segments that could never coexist, which
+  // read as "part of this day is mature" - a state that cannot occur. The
+  // immature span is a background band instead.
+  it("exposes maturity as a per-day flag, not a split within the day", () => {
     for (const row of buildInviteDailyRows(daily)) {
-      expect(row.matureInvitations + row.immatureInvitations).toBeGreaterThan(0);
-      expect(Math.min(row.matureInvitations, row.immatureInvitations)).toBe(0);
+      expect(typeof row.mature).toBe("boolean");
+      expect(row.invitations).toBeGreaterThan(0);
     }
+  });
+
+  it("reports null response rate rather than zero when a day had no invitations", () => {
+    const [row] = buildInviteDailyRows([
+      { inviteDs: "2026-07-04", invitations: 0, responded: 0, mature: true } as GQL.AffiliateInviteDailyPoint,
+    ]);
+    expect(row.responseRate).toBeNull();
+  });
+
+  // Deliberately NOT suppressed by a denominator floor: a 3-invitation cohort
+  // reading 66.7% is a symptom of missing collaboration detail upstream, and
+  // masking it here would disguise incomplete data as small-sample noise.
+  it("reports the real rate for a tiny cohort instead of hiding it", () => {
+    const [row] = buildInviteDailyRows([
+      { inviteDs: "2026-06-05", invitations: 3, responded: 2, mature: true } as GQL.AffiliateInviteDailyPoint,
+    ]);
+    expect(row.responseRate).toBeCloseTo(2 / 3);
+  });
+});
+
+describe("firstImmatureCohortDay", () => {
+  it("returns the left edge of the immature band", () => {
+    const rows = buildInviteDailyRows([
+      { inviteDs: "2026-06-01", invitations: 800, responded: 9, mature: true },
+      { inviteDs: "2026-08-20", invitations: 640, responded: 1, mature: false },
+      { inviteDs: "2026-08-21", invitations: 610, responded: 0, mature: false },
+    ] as GQL.AffiliateInviteDailyPoint[]);
+    expect(firstImmatureCohortDay(rows)).toBe("2026-08-20");
+  });
+
+  it("returns null when every day in the window is mature", () => {
+    const rows = buildInviteDailyRows([
+      { inviteDs: "2026-06-01", invitations: 800, responded: 9, mature: true } as GQL.AffiliateInviteDailyPoint,
+    ]);
+    expect(firstImmatureCohortDay(rows)).toBeNull();
   });
 });
 
@@ -249,5 +297,98 @@ describe("buildCohortUnitsRows", () => {
     ]);
 
     expect(countImmatureCohorts(rows)).toBe(2);
+  });
+});
+
+describe("coverage boundary shaping", () => {
+  const coverage: GQL.AffiliateCoverage = {
+    fullCoverageFrom: "2026-08-01",
+    shopsSelected: 4,
+    limitingShops: [{ shopId: "shop-late", shopName: "Late Shop", coverageFrom: "2026-08-01" }],
+    shops: [
+      { shopId: "shop-early", shopName: "Early Shop", coverageFrom: "2026-05-01" },
+      { shopId: "shop-mid", shopName: "Mid Shop", coverageFrom: "2026-06-15" },
+      { shopId: "shop-late", shopName: "Late Shop", coverageFrom: "2026-08-01" },
+      { shopId: "shop-empty", shopName: "Empty Shop", coverageFrom: null },
+    ],
+    daily: [
+      { ds: "2026-07-30", shopsWithData: 2 },
+      { ds: "2026-08-01", shopsWithData: 3 },
+      { ds: "2026-08-02", shopsWithData: 3 },
+    ],
+  };
+
+  it("fills the band to the selected scope so the empty part is visible", () => {
+    expect(buildCoverageBandRows(coverage)).toEqual([
+      { ds: "2026-07-30", shopsWithData: 2, shopsMissing: 2 },
+      { ds: "2026-08-01", shopsWithData: 3, shopsMissing: 1 },
+      { ds: "2026-08-02", shopsWithData: 3, shopsMissing: 1 },
+    ]);
+  });
+
+  it("treats an absent boundary as nothing covered, never as everything covered", () => {
+    expect(isFullyCoveredDay("2026-08-02", null)).toBe(false);
+    expect(isFullyCoveredDay("2026-07-31", "2026-08-01")).toBe(false);
+    expect(isFullyCoveredDay("2026-08-01", "2026-08-01")).toBe(true);
+  });
+
+  it("truncates a series at the boundary by default and restores it on request", () => {
+    const rows = [{ ds: "2026-07-30" }, { ds: "2026-08-01" }, { ds: "2026-08-02" }];
+    const dsOf = (row: { ds: string }) => row.ds;
+
+    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", false).map(dsOf))
+      .toEqual(["2026-08-01", "2026-08-02"]);
+    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", true).map(dsOf))
+      .toEqual(["2026-07-30", "2026-08-01", "2026-08-02"]);
+    // With no boundary there is nothing to truncate against, so the caller must
+    // still see its rows rather than an empty chart.
+    expect(applyCoverageWindow(rows, dsOf, null, false)).toHaveLength(3);
+  });
+
+  it("counts the days that would be dropped", () => {
+    expect(countPartialDays(["2026-07-30", "2026-08-01", "2026-08-02"], "2026-08-01")).toBe(1);
+    expect(countPartialDays(["2026-07-30"], null)).toBe(1);
+  });
+
+  it("splits a series into a solid covered half and a dashed partial half", () => {
+    const rows = [
+      { ds: "2026-07-30", rate: 0.1 },
+      { ds: "2026-08-01", rate: 0.2 },
+      { ds: "2026-08-02", rate: 0.3 },
+    ];
+    const split = splitCoverageSeries(rows, (row) => row.ds, (row) => row.rate, "2026-08-01");
+
+    expect(split.map((row) => [row.coveredValue, row.partialValue])).toEqual([
+      [null, 0.1],
+      // The boundary day carries both, so the dashed segment meets the solid
+      // one instead of leaving a gap where only the population changed.
+      [0.2, 0.2],
+      [0.3, null],
+    ]);
+    expect(split.map((row) => row.covered)).toEqual([false, true, true]);
+  });
+
+  it("reports a non-finite value as absent rather than as zero", () => {
+    const split = splitCoverageSeries(
+      [{ ds: "2026-08-02", rate: null }],
+      (row) => row.ds,
+      (row) => row.rate,
+      "2026-08-01",
+    );
+    expect(split[0].coveredValue).toBeNull();
+  });
+
+  it("states the basis as shops with data out of the selected scope", () => {
+    expect(coverageBasis(coverage)).toEqual({
+      shopsSelected: 4,
+      shopsWithData: 3,
+      fullCoverageFrom: "2026-08-01",
+    });
+  });
+
+  it("labels a shop by name and falls back to its id, never to an empty string", () => {
+    expect(coverageShopLabel({ shopId: "shop-1", shopName: "North Shop" })).toBe("North Shop");
+    expect(coverageShopLabel({ shopId: "shop-1", shopName: "  " })).toBe("shop-1");
+    expect(coverageShopLabel({ shopId: "shop-1", shopName: null })).toBe("shop-1");
   });
 });

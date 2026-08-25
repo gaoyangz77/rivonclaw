@@ -7,10 +7,7 @@
  */
 
 import type { GQL } from "@rivonclaw/core";
-import {
-  AFFILIATE_RESPONSE_HORIZONS,
-  AFFILIATE_SUB_DAY_HORIZONS,
-} from "./affiliate-overview-types.js";
+import { AFFILIATE_RESPONSE_HORIZONS, AFFILIATE_SUB_DAY_HORIZONS } from "./affiliate-overview-types.js";
 
 /**
  * Sub-day horizons are only interpretable where most response times are real
@@ -107,27 +104,52 @@ export function countAxisDomain(values: ReadonlyArray<number | null | undefined>
 
 export interface AffiliateInviteDailyRow {
   inviteDs: string;
+  /**
+   * Whether this cohort day is old enough to have produced its full response
+   * tail. Every invitation on a day shares one age, so this is a property of
+   * the DAY, never a split within it — which is why maturity is drawn as a
+   * background band over the immature date range rather than as a second bar
+   * series. Two stacked segments would imply a day can be part-mature.
+   */
   mature: boolean;
-  /** Invitations old enough to have produced their full response tail. */
-  matureInvitations: number;
-  /** Trailing-30d invitations; still accruing responses. */
-  immatureInvitations: number;
+  invitations: number;
   responded: number;
+  /**
+   * Rendered on its own right-hand axis. Invitations run to ~80k/day while
+   * responses run 0-156, so a shared axis pins the response series flat to the
+   * baseline - the same defect as a hardcoded [0, 1] rate domain.
+   */
+  responseRate: number | null;
 }
 
 /**
- * Splits daily invitation cohorts into a mature and an immature series so the
- * chart can colour them differently. A short trailing bar must read as "not
- * finished yet", never as a bad day.
+ * One row per invitation cohort day: the volume, and the rate it produced.
+ *
+ * No denominator floor is applied. A cohort of 3 invitations with 2 responses
+ * genuinely reads 66.7%, and hiding that would disguise a data-completeness
+ * problem as a small-sample one: 150,690 of 178,371 TARGET collaborations
+ * (84.5%) have never had their detail fetched, so their start_at and member
+ * list are absent and early cohorts are undercounted. That fix belongs in
+ * acquisition, not in this chart.
  */
 export function buildInviteDailyRows(daily: readonly GQL.AffiliateInviteDailyPoint[]): AffiliateInviteDailyRow[] {
   return daily.map((point) => ({
     inviteDs: point.inviteDs,
     mature: point.mature,
-    matureInvitations: point.mature ? point.invitations : 0,
-    immatureInvitations: point.mature ? 0 : point.invitations,
+    invitations: point.invitations,
     responded: point.responded,
+    responseRate: safeShare(point.responded, point.invitations),
   }));
+}
+
+/**
+ * First cohort day that is still accruing responses, or null when every day in
+ * the window is mature. Maturity only ever flips once across the window - days
+ * are ordered and age monotonically - so this is the left edge of the immature
+ * band.
+ */
+export function firstImmatureCohortDay(rows: readonly AffiliateInviteDailyRow[]): string | null {
+  return rows.find((row) => !row.mature)?.inviteDs ?? null;
 }
 
 export interface AffiliateCohortUnitsRow {
@@ -170,4 +192,140 @@ export function buildCohortUnitsRows(cohorts: readonly GQL.AffiliateCohortUnitsP
 /** Number of cohorts in the series that are still accruing units. */
 export function countImmatureCohorts(rows: readonly AffiliateCohortUnitsRow[]): number {
   return rows.filter((row) => row.immature).length;
+}
+
+/* -------------------------------------------------------------------------
+ * Data-coverage boundary
+ *
+ * Shops onboard on different days, so on any day before the last of them
+ * started, a cohort rate is computed over a SMALLER shop set than the day
+ * after. Drawing those days on the same series as the rest presents a changing
+ * population as a moving business number — the same defect this page exists to
+ * remove. Nothing here repairs the data; it only makes the boundary a visible
+ * layer so the reader decides what to do about it.
+ * ------------------------------------------------------------------------- */
+
+/** One day of the band strip: how many shops had started, and how many had not. */
+export interface AffiliateCoverageBandRow {
+  ds: string;
+  shopsWithData: number;
+  /** The remainder up to `shopsSelected`; drawn as the empty part of the strip. */
+  shopsMissing: number;
+}
+
+/**
+ * Band rows for one section, on that section's own series days.
+ *
+ * `shopsMissing` is materialised rather than computed in the chart so the strip
+ * is a plain stacked series summing to `shopsSelected` on every day: the full
+ * height is always the selected scope, and the filled part is what that day
+ * actually had.
+ */
+export function buildCoverageBandRows(coverage: GQL.AffiliateCoverage): AffiliateCoverageBandRow[] {
+  return coverage.daily.map((point) => ({
+    ds: point.ds,
+    shopsWithData: point.shopsWithData,
+    shopsMissing: Math.max(coverage.shopsSelected - point.shopsWithData, 0),
+  }));
+}
+
+/**
+ * Whether `ds` is inside the fully-covered window.
+ *
+ * A null boundary means no selected shop has data at all, in which case NO day
+ * is covered — never the reverse. Reading an absent boundary as "everything is
+ * fine" is exactly the silent resolution this layer exists to stop.
+ */
+export function isFullyCoveredDay(ds: string, fullCoverageFrom: string | null | undefined): boolean {
+  return fullCoverageFrom != null && ds >= fullCoverageFrom;
+}
+
+/**
+ * Drops the days before the boundary unless the reader explicitly asked to see
+ * the partial range. The band is rendered from the section's own `coverage`
+ * rather than from these rows, so it keeps showing the whole span and the
+ * reader can still see that earlier data exists.
+ */
+export function applyCoverageWindow<TRow>(
+  rows: readonly TRow[],
+  dsOf: (row: TRow) => string,
+  fullCoverageFrom: string | null | undefined,
+  showPartial: boolean,
+): TRow[] {
+  if (showPartial || fullCoverageFrom == null) return [...rows];
+  return rows.filter((row) => isFullyCoveredDay(dsOf(row), fullCoverageFrom));
+}
+
+/** Number of days in a series that sit before the boundary. */
+export function countPartialDays(
+  dates: readonly string[],
+  fullCoverageFrom: string | null | undefined,
+): number {
+  return dates.filter((ds) => !isFullyCoveredDay(ds, fullCoverageFrom)).length;
+}
+
+export interface AffiliateCoverageSplitRow {
+  /** True when this day sits inside the fully-covered window. */
+  covered: boolean;
+  /** The value on covered days, null elsewhere — drawn solid. */
+  coveredValue: number | null;
+  /** The value on partial days, null elsewhere — drawn dashed. */
+  partialValue: number | null;
+}
+
+/**
+ * Splits one numeric series into a solid covered half and a dashed partial
+ * half, so a partial-range line can never be read as a comparable trend.
+ *
+ * The boundary day carries BOTH values on purpose: without it the two line
+ * segments would not touch and the chart would show a gap where the population
+ * merely changed. Recharts draws two series; only their styling differs.
+ */
+export function splitCoverageSeries<TRow>(
+  rows: readonly TRow[],
+  dsOf: (row: TRow) => string,
+  valueOf: (row: TRow) => number | null | undefined,
+  fullCoverageFrom: string | null | undefined,
+): Array<TRow & AffiliateCoverageSplitRow> {
+  return rows.map((row) => {
+    const covered = isFullyCoveredDay(dsOf(row), fullCoverageFrom);
+    const raw = valueOf(row);
+    const value = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+    const onBoundary = fullCoverageFrom != null && dsOf(row) === fullCoverageFrom;
+    return {
+      ...row,
+      covered,
+      coveredValue: covered ? value : null,
+      partialValue: !covered || onBoundary ? value : null,
+    };
+  });
+}
+
+/** What a section's headline figures were actually computed over. */
+export interface AffiliateCoverageBasis {
+  shopsSelected: number;
+  /** Selected shops that carry any data for this section at all. */
+  shopsWithData: number;
+  fullCoverageFrom: string | null;
+}
+
+/**
+ * The basis a section's metric strip must disclose.
+ *
+ * The server computes those figures across the WHOLE window and the WHOLE
+ * selected scope — truncation is a display decision made here — so the card
+ * has to say how many shops stood behind the number and from when they were
+ * all present, rather than letting a reader assume both.
+ */
+export function coverageBasis(coverage: GQL.AffiliateCoverage): AffiliateCoverageBasis {
+  return {
+    shopsSelected: coverage.shopsSelected,
+    shopsWithData: coverage.shops.filter((shop) => shop.coverageFrom != null).length,
+    fullCoverageFrom: coverage.fullCoverageFrom ?? null,
+  };
+}
+
+/** Display label for a shop in the coverage layer; never a bare id when a name exists. */
+export function coverageShopLabel(shop: GQL.AffiliateShopCoverage): string {
+  return shop.shopName?.trim() || shop.shopId;
 }
