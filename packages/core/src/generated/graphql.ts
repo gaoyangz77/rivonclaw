@@ -1502,6 +1502,7 @@ export interface AffiliateCampaignProductSnapshot {
 export interface AffiliateCampaignProductType {
   commissionRatePercent: Scalars['Float']['output'];
   productId: Scalars['String']['output'];
+  shopAdsCommissionRatePercent: Scalars['Float']['output'];
 }
 
 export const AffiliateCampaignRuleFilterResult = {
@@ -14762,6 +14763,8 @@ export interface WriteAffiliateCampaignInput {
 export interface WriteAffiliateCampaignProductInput {
   commissionRatePercent: Scalars['Float']['input'];
   productId: Scalars['String']['input'];
+  /** Commission for Shop Ads-attributed orders. On create, omission copies commissionRatePercent; on update, omission preserves the existing value. */
+  shopAdsCommissionRatePercent?: InputMaybe<Scalars['Float']['input']>;
 }
 
 export interface WriteAffiliateCreatorChannelContactInput {
