@@ -10,15 +10,14 @@ import { panelEventBus } from "../../../lib/event-bus.js";
 import {
   CREATE_WHATSAPP_ACCOUNT_BINDING_MUTATION,
   ASSIGN_AFFILIATE_WHATSAPP_ACCOUNT_MUTATION,
-  CREATE_WHATSAPP_PROXY_MUTATION,
   REFRESH_WHATSAPP_ACCOUNT_BINDING_MUTATION,
   REVOKE_WHATSAPP_ACCOUNT_BINDING_MUTATION,
   START_WHATSAPP_QR_ONBOARDING_MUTATION,
-  UPDATE_WHATSAPP_PROXY_MUTATION,
   WHATSAPP_ACCOUNT_BINDINGS_QUERY,
   WHATSAPP_CONNECTOR_STATUS_QUERY,
   WHATSAPP_PROXIES_QUERY,
 } from "../../../api/shops-queries.js";
+import { AffiliateWhatsAppProxyPanel, proxyDisplayLabel } from "./AffiliateWhatsAppProxyPanel.js";
 
 type WhatsAppAccount = GQL.WhatsAppAccountBinding;
 type WhatsAppProxy = GQL.WhatsAppProxy;
@@ -41,48 +40,43 @@ type ConnectorStatus = {
   proxyCounts: Array<{ status: GQL.ProxyStatus; count: number }>;
 };
 
-type ProxyForm = {
-  protocol: GQL.ProxyProtocol;
-  host: string;
-  port: string;
-  username: string;
-  password: string;
-  region: string;
-};
+/** Which surface of the connect modal is on screen. The proxy pool replaces the flow, never nests inside it. */
+type PanelView = "CONNECT" | "PROXIES";
+/** The three linear steps of the connect flow: prepare -> scan -> done. */
+type ConnectStage = "IDLE" | "SCANNING" | "DONE";
 
 const NO_PROXY_VALUE = "__NO_PROXY__";
-const DEFAULT_PROXY_FORM: ProxyForm = {
-  protocol: GQL.ProxyProtocol.Socks5,
-  host: "",
-  port: "",
-  username: "",
-  password: "",
-  region: "",
-};
+/** WhatsApp pairing codes are short. Anything longer is a raw QR payload and must never be shown as a code. */
+const MAX_PAIRING_CODE_LENGTH = 16;
 
 export function AffiliateWhatsAppAccountPanel({
   businessDeveloperId = null,
   showAccountList = true,
   reconnectBindingId = null,
-  onReconnectComplete,
+  onFlowComplete,
   onAccountsChanged,
 }: {
   businessDeveloperId?: string | null;
   showAccountList?: boolean;
   reconnectBindingId?: string | null;
-  onReconnectComplete?: () => void;
+  onFlowComplete?: () => void;
   onAccountsChanged?: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const [view, setView] = useState<PanelView>("CONNECT");
+  const [stage, setStage] = useState<ConnectStage>(reconnectBindingId ? "SCANNING" : "IDLE");
   const [selectedProxyId, setSelectedProxyId] = useState(NO_PROXY_VALUE);
   const [activeQr, setActiveQr] = useState<QrPayload | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
-  const [proxyForm, setProxyForm] = useState<ProxyForm>(DEFAULT_PROXY_FORM);
-  const [editingProxyId, setEditingProxyId] = useState<string | null>(null);
+  const [connectedBindingId, setConnectedBindingId] = useState<string | null>(null);
   const handledConnectedAccountIds = useRef(new Set<string>());
   const requestedReconnectIds = useRef(new Set<string>());
+  /** Id of a binding this flow created that is not connected yet, so it can be revoked instead of orphaned. */
+  const disposableBindingId = useRef<string | null>(null);
+  /** Id of the binding this modal is currently showing a QR for, so a connect event for any other account is ignored. */
+  const scanningBindingId = useRef<string | null>(reconnectBindingId);
 
   const {
     data: accountsData,
@@ -91,15 +85,12 @@ export function AffiliateWhatsAppAccountPanel({
   } = useQuery<{ whatsAppAccountBindings: WhatsAppAccount[] }>(WHATSAPP_ACCOUNT_BINDINGS_QUERY, {
     fetchPolicy: "cache-and-network",
   });
-  const {
-    data: proxiesData,
-    refetch: refetchProxies,
-  } = useQuery<{ whatsAppProxies: WhatsAppProxy[] }, { status?: GQL.ProxyStatus | null }>(
-    WHATSAPP_PROXIES_QUERY,
-    {
-      fetchPolicy: "cache-and-network",
-    },
-  );
+  const { data: proxiesData } = useQuery<
+    { whatsAppProxies: WhatsAppProxy[] },
+    { status?: GQL.ProxyStatus | null }
+  >(WHATSAPP_PROXIES_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
   const {
     data: connectorData,
     loading: connectorLoading,
@@ -128,14 +119,8 @@ export function AffiliateWhatsAppAccountPanel({
     { revokeWhatsAppAccountBinding: WhatsAppAccount },
     { bindingId: string; deleteInstance?: boolean | null }
   >(REVOKE_WHATSAPP_ACCOUNT_BINDING_MUTATION);
-  const [createProxy, { loading: creatingProxy }] = useMutation<
-    { createWhatsAppProxy: WhatsAppProxy },
-    { input: GQL.CreateWhatsAppProxyInput }
-  >(CREATE_WHATSAPP_PROXY_MUTATION);
-  const [updateProxy, { loading: updatingProxy }] = useMutation<
-    { updateWhatsAppProxy: WhatsAppProxy },
-    { input: GQL.UpdateWhatsAppProxyInput }
-  >(UPDATE_WHATSAPP_PROXY_MUTATION);
+  const revokeBindingRef = useRef(revokeBinding);
+  revokeBindingRef.current = revokeBinding;
 
   const accounts = accountsData?.whatsAppAccountBindings ?? [];
   const visibleAccounts = businessDeveloperId
@@ -145,13 +130,20 @@ export function AffiliateWhatsAppAccountPanel({
   const activeProxies = proxies.filter((proxy) => proxy.status === GQL.ProxyStatus.Active);
   const connectorStatus = connectorData?.whatsAppConnectorStatus ?? null;
   const busy = creatingBinding || startingQr || refreshingBinding || revokingBinding;
-  const proxyBusy = creatingProxy || updatingProxy;
   const onboardingDisabled = busy || connectorLoading || !connectorStatus?.ready;
   const onboardingDisabledReason = connectorStatus
     ? connectorStatusText(t, connectorStatus)
     : t("ecommerce.affiliateWorkspace.whatsapp.connectorStatusLoading", {
       defaultValue: "Checking Evolution API connector status.",
     });
+  // A proxy disabled from the proxy pool must not stay selected here.
+  const effectiveProxyId = selectedProxyId !== NO_PROXY_VALUE
+    && !activeProxies.some((proxy) => proxy.id === selectedProxyId)
+    ? NO_PROXY_VALUE
+    : selectedProxyId;
+  const connectedAccount = connectedBindingId
+    ? accounts.find((account) => account.id === connectedBindingId) ?? null
+    : null;
 
   const proxyOptions = useMemo(
     () => [
@@ -195,7 +187,9 @@ export function AffiliateWhatsAppAccountPanel({
       const event = raw as { channel?: unknown; accountId?: unknown };
       if (event.channel !== "WHATSAPP") return;
       const accountId = typeof event.accountId === "string" ? event.accountId : undefined;
-      const reconnectMatches = !reconnectBindingId || !accountId || accountId === reconnectBindingId;
+      // Another account connecting elsewhere must not finish this modal, or finish it under the wrong identity.
+      const scanningId = reconnectBindingId ?? scanningBindingId.current;
+      const flowMatches = Boolean(scanningId) && (!accountId || accountId === scanningId);
       const alreadyHandled = accountId ? handledConnectedAccountIds.current.has(accountId) : false;
       if (accountId) handledConnectedAccountIds.current.add(accountId);
       setActiveQr((current) =>
@@ -204,7 +198,15 @@ export function AffiliateWhatsAppAccountPanel({
       void Promise.all([refetchAccounts(), refetchConnectorStatus()])
         .then(() => {
           void onAccountsChanged?.();
-          if (reconnectMatches) onReconnectComplete?.();
+          if (flowMatches) {
+            // The account exists now, so it is no longer an orphan this flow must clean up.
+            if (!accountId || disposableBindingId.current === accountId) {
+              disposableBindingId.current = null;
+            }
+            scanningBindingId.current = null;
+            setConnectedBindingId(accountId ?? scanningId);
+            setStage("DONE");
+          }
           if (alreadyHandled) return;
           showToast(
             t("ecommerce.affiliateWorkspace.whatsapp.accountConnected", {
@@ -217,24 +219,40 @@ export function AffiliateWhatsAppAccountPanel({
           showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
         });
     });
-  }, [onAccountsChanged, onReconnectComplete, reconnectBindingId, refetchAccounts, refetchConnectorStatus, showToast, t]);
+  }, [onAccountsChanged, reconnectBindingId, refetchAccounts, refetchConnectorStatus, showToast, t]);
 
   useEffect(() => {
     if (!reconnectBindingId || !connectorStatus?.ready) return;
+    setStage((current) => (current === "IDLE" ? "SCANNING" : current));
     if (requestedReconnectIds.current.has(reconnectBindingId)) return;
     requestedReconnectIds.current.add(reconnectBindingId);
     void handleStartQr(reconnectBindingId);
   }, [connectorStatus?.ready, reconnectBindingId]);
+
+  useEffect(() => {
+    return () => {
+      const bindingId = disposableBindingId.current;
+      disposableBindingId.current = null;
+      if (!bindingId) return;
+      void revokeBindingRef.current({ variables: { bindingId, deleteInstance: true } })
+        .catch((err: unknown) => {
+          console.error("Failed to revoke the pending WhatsApp binding left by the connect flow", err);
+        });
+    };
+  }, []);
 
   async function handleConnectNew() {
     if (!connectorStatus?.ready) {
       showToast(onboardingDisabledReason, "error");
       return;
     }
+    // Enter SCANNING before awaiting so a second click cannot create a second binding.
+    setStage("SCANNING");
+    setQrError(null);
     try {
       const created = await createBinding({
         variables: {
-          proxyId: selectedProxyId === NO_PROXY_VALUE ? null : selectedProxyId,
+          proxyId: effectiveProxyId === NO_PROXY_VALUE ? null : effectiveProxyId,
         },
       });
       const bindingId = created.data?.createWhatsAppAccountBinding.id;
@@ -243,6 +261,7 @@ export function AffiliateWhatsAppAccountPanel({
           defaultValue: "The WhatsApp account could not be created.",
         }));
       }
+      disposableBindingId.current = bindingId;
       if (businessDeveloperId) {
         await assignBinding({ variables: { accountBindingId: bindingId, businessDeveloperId } });
       }
@@ -250,8 +269,25 @@ export function AffiliateWhatsAppAccountPanel({
       await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
       await onAccountsChanged?.();
     } catch (err) {
+      // A binding created before the failure would otherwise be orphaned by the next attempt.
+      discardPendingBinding();
+      setStage("IDLE");
       showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
     }
+  }
+
+  /** Revoke the not-yet-connected binding this flow created, if any, so no orphan is left behind. */
+  function discardPendingBinding() {
+    const bindingId = disposableBindingId.current;
+    disposableBindingId.current = null;
+    scanningBindingId.current = null;
+    if (!bindingId) return;
+    void revokeBinding({ variables: { bindingId, deleteInstance: true } })
+      .then(() => Promise.all([refetchAccounts(), refetchConnectorStatus()]))
+      .then(() => onAccountsChanged?.())
+      .catch((err: unknown) => {
+        showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
+      });
   }
 
   async function handleStartQr(bindingId: string) {
@@ -261,6 +297,8 @@ export function AffiliateWhatsAppAccountPanel({
     }
     try {
       setQrError(null);
+      setStage("SCANNING");
+      scanningBindingId.current = bindingId;
       const result = await startQr({
         variables: {
           input: { bindingId },
@@ -276,7 +314,10 @@ export function AffiliateWhatsAppAccountPanel({
         setActiveQr(null);
         await Promise.all([refetchAccounts(), refetchConnectorStatus()]);
         await onAccountsChanged?.();
-        onReconnectComplete?.();
+        if (disposableBindingId.current === bindingId) disposableBindingId.current = null;
+        scanningBindingId.current = null;
+        setConnectedBindingId(bindingId);
+        setStage("DONE");
         return;
       }
       setActiveQr(payload);
@@ -288,6 +329,24 @@ export function AffiliateWhatsAppAccountPanel({
       requestedReconnectIds.current.delete(bindingId);
       showToast(message, "error");
     }
+  }
+
+  function handleRestartQr(bindingId: string) {
+    requestedReconnectIds.current.delete(bindingId);
+    setActiveQr(null);
+    void handleStartQr(bindingId);
+  }
+
+  function handleCancelScanning() {
+    setActiveQr(null);
+    setQrError(null);
+    discardPendingBinding();
+    if (reconnectBindingId) {
+      // The reconnect flow has no earlier step to return to; leaving it ends the flow.
+      onFlowComplete?.();
+      return;
+    }
+    setStage("IDLE");
   }
 
   async function handleRefresh(bindingId: string) {
@@ -313,172 +372,49 @@ export function AffiliateWhatsAppAccountPanel({
     }
   }
 
-  async function handleSaveProxy() {
-    const host = proxyForm.host.trim();
-    const port = proxyForm.port.trim();
-    if (!host || !port) {
-      showToast(t("ecommerce.affiliateWorkspace.whatsapp.proxyRequired", { defaultValue: "Proxy host and port are required." }), "error");
-      return;
-    }
-    const input = {
-      protocol: proxyForm.protocol,
-      host,
-      port,
-      username: cleanOptional(proxyForm.username),
-      password: cleanOptional(proxyForm.password),
-      region: cleanOptional(proxyForm.region),
-    };
-    try {
-      if (editingProxyId) {
-        await updateProxy({
-          variables: {
-            input: {
-              id: editingProxyId,
-              ...input,
-            },
-          },
-        });
-        showToast(t("ecommerce.affiliateWorkspace.whatsapp.proxyUpdated", { defaultValue: "WhatsApp proxy updated." }), "success");
-      } else {
-        await createProxy({ variables: { input } });
-        showToast(t("ecommerce.affiliateWorkspace.whatsapp.proxyCreated", { defaultValue: "WhatsApp proxy created." }), "success");
-      }
-      resetProxyForm();
-      await Promise.all([refetchProxies(), refetchConnectorStatus()]);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
-    }
-  }
-
-  async function handleToggleProxy(proxy: WhatsAppProxy) {
-    const nextStatus = proxy.status === GQL.ProxyStatus.Active
-      ? GQL.ProxyStatus.Disabled
-      : GQL.ProxyStatus.Active;
-    try {
-      await updateProxy({
-        variables: {
-          input: {
-            id: proxy.id,
-            status: nextStatus,
-          },
-        },
-      });
-      if (selectedProxyId === proxy.id && nextStatus !== GQL.ProxyStatus.Active) {
-        setSelectedProxyId(NO_PROXY_VALUE);
-      }
-      await Promise.all([refetchProxies(), refetchConnectorStatus()]);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : t("ecommerce.updateFailed"), "error");
-    }
-  }
-
-  function handleEditProxy(proxy: WhatsAppProxy) {
-    setEditingProxyId(proxy.id);
-    setProxyForm({
-      protocol: proxy.protocol,
-      host: proxy.host,
-      port: proxy.port,
-      username: proxy.username ?? "",
-      password: "",
-      region: proxy.region ?? "",
-    });
-  }
-
-  function resetProxyForm() {
-    setEditingProxyId(null);
-    setProxyForm(DEFAULT_PROXY_FORM);
-  }
-
-  if (reconnectBindingId) {
+  if (view === "PROXIES") {
     return (
-      <div className="affiliate-whatsapp-panel affiliate-whatsapp-reconnect-panel">
-        <div className="affiliate-whatsapp-reconnect-head">
-          <span className="affiliate-whatsapp-reconnect-pulse" aria-hidden="true" />
-          <div>
-            <strong>{t("ecommerce.affiliateWorkspace.whatsapp.reconnectTitle", { defaultValue: "Reconnect this WhatsApp account" })}</strong>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.reconnectHint", { defaultValue: "The existing account, BD ownership, proxy, and message routes will be preserved." })}</span>
-          </div>
-        </div>
-        {!connectorStatus?.ready ? (
-          <div className="affiliate-whatsapp-reconnect-warning">{onboardingDisabledReason}</div>
-        ) : qrError ? (
-          <div className="affiliate-whatsapp-reconnect-warning">
-            <span>{qrError}</span>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => void handleStartQr(reconnectBindingId)}
-              disabled={startingQr}
-            >
-              <RefreshIcon size={15} />
-              {t("common.retry", { defaultValue: "Try again" })}
-            </button>
-          </div>
-        ) : activeQr ? (
-          <div className="affiliate-whatsapp-qr is-reconnect">
-            <div className="affiliate-whatsapp-qr-frame">
-              {qrImageUrl ? (
-                <img
-                  src={qrImageUrl}
-                  alt={t("ecommerce.affiliateWorkspace.whatsapp.qrAlt", { defaultValue: "WhatsApp login QR code" })}
-                />
-              ) : (
-                <span>{t("ecommerce.affiliateWorkspace.whatsapp.qrUnavailable", { defaultValue: "QR image unavailable" })}</span>
-              )}
-            </div>
-            <div className="affiliate-whatsapp-qr-copy">
-              <strong>{t("ecommerce.affiliateWorkspace.whatsapp.scanTitle", { defaultValue: "Scan with WhatsApp" })}</strong>
-              <span>{t("ecommerce.affiliateWorkspace.whatsapp.scanHint", { defaultValue: "Open WhatsApp on the seller phone, choose Linked devices, then scan this QR code." })}</span>
-              <small>{t("ecommerce.affiliateWorkspace.whatsapp.reconnectWaiting", { defaultValue: "This screen will update automatically after WhatsApp confirms the connection." })}</small>
-              {activeQr.pairingCode && <code>{activeQr.pairingCode}</code>}
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  requestedReconnectIds.current.delete(reconnectBindingId);
-                  setActiveQr(null);
-                  void handleStartQr(reconnectBindingId);
-                }}
-                disabled={startingQr}
-              >
-                <RefreshIcon size={15} />
-                {t("ecommerce.affiliateWorkspace.whatsapp.refreshQr", { defaultValue: "Refresh QR code" })}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="affiliate-whatsapp-reconnect-loading">
-            <span className="affiliate-whatsapp-reconnect-spinner" aria-hidden="true" />
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.generatingQr", { defaultValue: "Generating a secure QR code…" })}</span>
-          </div>
-        )}
+      <div className="affiliate-whatsapp-panel">
+        <AffiliateWhatsAppProxyPanel onBack={() => setView("CONNECT")} />
       </div>
     );
   }
 
-  return (
-    <div className="affiliate-whatsapp-panel">
-      <div className="affiliate-whatsapp-head">
-        <div>
-          <strong>{t("ecommerce.affiliateWorkspace.whatsapp.title", { defaultValue: "WhatsApp outreach accounts" })}</strong>
-          <span>{t("ecommerce.affiliateWorkspace.whatsapp.subtitle", { defaultValue: "Seller-level linked-device accounts used for affiliate creator outreach." })}</span>
-        </div>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={() => {
-            void Promise.all([refetchAccounts(), refetchConnectorStatus()]);
-          }}
-          disabled={accountsLoading || connectorLoading}
-          title={t("common.refresh", { defaultValue: "Refresh" })}
-        >
-          <RefreshIcon size={15} />
-          <span>{accountsLoading || connectorLoading ? t("common.loading") : t("common.refresh", { defaultValue: "Refresh" })}</span>
-        </button>
-      </div>
+  const scanBindingId = reconnectBindingId
+    ?? activeQr?.binding.id
+    ?? disposableBindingId.current
+    ?? scanningBindingId.current;
+  const pairingCode = activeQr?.pairingCode?.trim() ?? "";
+  // The backend may still fall back to the raw QR payload; never render that as a pairing code.
+  const showPairingCode = Boolean(pairingCode)
+    && pairingCode !== activeQr?.qrCode?.trim()
+    && pairingCode.length <= MAX_PAIRING_CODE_LENGTH;
 
-      {connectorStatus && (
-        <div className={`affiliate-whatsapp-connector affiliate-whatsapp-connector-${connectorStatus.ready ? "ready" : "warning"}`}>
+  return (
+    <div className={`affiliate-whatsapp-panel ${stage === "SCANNING" ? "affiliate-whatsapp-scan-panel" : ""}`}>
+      {showAccountList && stage === "IDLE" && (
+        <div className="affiliate-whatsapp-head">
+          <div>
+            <strong>{t("ecommerce.affiliateWorkspace.whatsapp.title", { defaultValue: "WhatsApp outreach accounts" })}</strong>
+            <span>{t("ecommerce.affiliateWorkspace.whatsapp.subtitle", { defaultValue: "Seller-level linked-device accounts used for affiliate creator outreach." })}</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              void Promise.all([refetchAccounts(), refetchConnectorStatus()]);
+            }}
+            disabled={accountsLoading || connectorLoading}
+            title={t("common.refresh", { defaultValue: "Refresh" })}
+          >
+            <RefreshIcon size={15} />
+            <span>{accountsLoading || connectorLoading ? t("common.loading") : t("common.refresh", { defaultValue: "Refresh" })}</span>
+          </button>
+        </div>
+      )}
+
+      {connectorStatus && !connectorStatus.ready && (
+        <div className="affiliate-whatsapp-connector affiliate-whatsapp-connector-warning">
           <div>
             <strong>
               {t("ecommerce.affiliateWorkspace.whatsapp.connectorStatus", {
@@ -487,190 +423,173 @@ export function AffiliateWhatsAppAccountPanel({
             </strong>
             <span>{connectorStatusText(t, connectorStatus)}</span>
           </div>
-          <div className="affiliate-whatsapp-connector-metrics">
-            <span>
-              {t("ecommerce.affiliateWorkspace.whatsapp.connectedAccounts", {
-                defaultValue: "Connected",
-              })}
-              : {countAccountStatus(connectorStatus, GQL.WhatsAppAccountStatus.Connected)}
-            </span>
-            <span>
-              {t("ecommerce.affiliateWorkspace.whatsapp.pendingAccounts", {
-                defaultValue: "Pending QR",
-              })}
-              : {countAccountStatus(connectorStatus, GQL.WhatsAppAccountStatus.PendingQr)}
-            </span>
-            <span>
-              {t("ecommerce.affiliateWorkspace.whatsapp.activeProxies", {
-                defaultValue: "Active proxies",
-              })}
-              : {countProxyStatus(connectorStatus, GQL.ProxyStatus.Active)}
-            </span>
-          </div>
         </div>
       )}
 
-      <div className="affiliate-whatsapp-connect">
-        <label>
-          <span>{t("ecommerce.affiliateWorkspace.whatsapp.proxyLabel", { defaultValue: "Proxy for new account" })}</span>
-          <Select
-            value={selectedProxyId}
-            onChange={setSelectedProxyId}
-            options={proxyOptions}
-            className="input-full"
-            disabled={onboardingDisabled}
-          />
-        </label>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={handleConnectNew}
-          disabled={onboardingDisabled}
-          title={onboardingDisabled ? onboardingDisabledReason : undefined}
-        >
-          {startingQr || creatingBinding
-            ? t("common.loading")
-            : t("ecommerce.affiliateWorkspace.whatsapp.connect", { defaultValue: "Connect WhatsApp" })}
-        </button>
-      </div>
-
-      <div className="affiliate-whatsapp-proxy-panel">
-        <div className="affiliate-whatsapp-proxy-head">
-          <div>
-            <strong>{t("ecommerce.affiliateWorkspace.whatsapp.proxyPool", { defaultValue: "Proxy pool" })}</strong>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.proxyPoolHint", { defaultValue: "Assign one stable egress proxy before scanning a seller WhatsApp account." })}</span>
+      {stage === "IDLE" && (
+        <>
+          <div className="affiliate-whatsapp-intro">
+            <strong>{t("ecommerce.affiliateWorkspace.whatsapp.connectIntroTitle", { defaultValue: "Connect a WhatsApp account" })}</strong>
+            <span>{t("ecommerce.affiliateWorkspace.whatsapp.connectIntroHint", { defaultValue: "Scan a QR code with the seller phone. The account is assigned to this BD automatically." })}</span>
           </div>
-          {editingProxyId && (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={resetProxyForm} disabled={proxyBusy}>
-              {t("common.cancel", { defaultValue: "Cancel" })}
-            </button>
+
+          <div className="affiliate-whatsapp-connect">
+            <div className="affiliate-whatsapp-connect-row">
+              <label>
+                <span>{t("ecommerce.affiliateWorkspace.whatsapp.proxyLabel", { defaultValue: "Proxy for new account" })}</span>
+                <Select
+                  value={effectiveProxyId}
+                  onChange={setSelectedProxyId}
+                  options={proxyOptions}
+                  className="input-full"
+                  disabled={onboardingDisabled}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConnectNew}
+                disabled={onboardingDisabled}
+                title={onboardingDisabled ? onboardingDisabledReason : undefined}
+              >
+                {startingQr || creatingBinding
+                  ? t("common.loading")
+                  : t("ecommerce.affiliateWorkspace.whatsapp.connect", { defaultValue: "Connect WhatsApp" })}
+              </button>
+            </div>
+            <div className="affiliate-whatsapp-connect-footnote">
+              <small className="form-hint">
+                {t("ecommerce.affiliateWorkspace.whatsapp.proxyOptional", { defaultValue: "A proxy is optional. Leave it empty to connect without one." })}
+              </small>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setView("PROXIES")}>
+                {t("ecommerce.affiliateWorkspace.whatsapp.manageProxies", { defaultValue: "Manage proxy pool" })}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {stage === "SCANNING" && (
+        <>
+          <div className="affiliate-whatsapp-scan-head">
+            {reconnectBindingId && <span className="affiliate-whatsapp-reconnect-pulse" aria-hidden="true" />}
+            <div>
+              <strong>
+                {reconnectBindingId
+                  ? t("ecommerce.affiliateWorkspace.whatsapp.reconnectTitle", { defaultValue: "Reconnect this WhatsApp account" })
+                  : t("ecommerce.affiliateWorkspace.whatsapp.scanTitle", { defaultValue: "Scan with WhatsApp" })}
+              </strong>
+              <span>
+                {reconnectBindingId
+                  ? t("ecommerce.affiliateWorkspace.whatsapp.reconnectHint", { defaultValue: "The existing account, BD ownership, proxy, and message routes will be preserved." })
+                  : t("ecommerce.affiliateWorkspace.whatsapp.scanHint", { defaultValue: "Open WhatsApp on the seller phone, choose Linked devices, then scan this QR code." })}
+              </span>
+            </div>
+          </div>
+
+          {!connectorStatus?.ready ? (
+            <div className="affiliate-whatsapp-scan-warning">
+              <span>{onboardingDisabledReason}</span>
+              <div className="affiliate-whatsapp-qr-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleCancelScanning}
+                    disabled={revokingBinding}
+                  >
+                    {t("common.cancel", { defaultValue: "Cancel" })}
+                  </button>
+              </div>
+            </div>
+          ) : qrError ? (
+            <div className="affiliate-whatsapp-scan-warning">
+              <span>{qrError}</span>
+              <div className="affiliate-whatsapp-qr-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => scanBindingId && handleRestartQr(scanBindingId)}
+                  disabled={startingQr || !scanBindingId}
+                >
+                  <RefreshIcon size={15} />
+                  {t("common.retry", { defaultValue: "Try again" })}
+                </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleCancelScanning}
+                    disabled={revokingBinding}
+                  >
+                    {t("common.cancel", { defaultValue: "Cancel" })}
+                  </button>
+              </div>
+            </div>
+          ) : activeQr ? (
+            <div className="affiliate-whatsapp-qr">
+              <div className="affiliate-whatsapp-qr-frame">
+                {qrImageUrl ? (
+                  <img
+                    src={qrImageUrl}
+                    alt={t("ecommerce.affiliateWorkspace.whatsapp.qrAlt", { defaultValue: "WhatsApp login QR code" })}
+                  />
+                ) : (
+                  <span>{t("ecommerce.affiliateWorkspace.whatsapp.qrUnavailable", { defaultValue: "QR image unavailable" })}</span>
+                )}
+              </div>
+              <div className="affiliate-whatsapp-qr-copy">
+                <ol className="affiliate-whatsapp-steps">
+                  <li>{t("ecommerce.affiliateWorkspace.whatsapp.scanStep1", { defaultValue: "Open WhatsApp on the seller phone and go to Settings." })}</li>
+                  <li>{t("ecommerce.affiliateWorkspace.whatsapp.scanStep2", { defaultValue: "Tap Linked devices, then Link a device." })}</li>
+                  <li>{t("ecommerce.affiliateWorkspace.whatsapp.scanStep3", { defaultValue: "Point the camera at this QR code and wait for confirmation." })}</li>
+                </ol>
+                <small>{t("ecommerce.affiliateWorkspace.whatsapp.reconnectWaiting", { defaultValue: "This screen will update automatically after WhatsApp confirms the connection." })}</small>
+                {showPairingCode && <code>{pairingCode}</code>}
+                <div className="affiliate-whatsapp-qr-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => scanBindingId && handleRestartQr(scanBindingId)}
+                    disabled={startingQr || !scanBindingId}
+                  >
+                    <RefreshIcon size={15} />
+                    {t("ecommerce.affiliateWorkspace.whatsapp.refreshQr", { defaultValue: "Refresh QR code" })}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleCancelScanning}
+                    disabled={revokingBinding}
+                  >
+                    {t("common.cancel", { defaultValue: "Cancel" })}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="affiliate-whatsapp-scan-loading">
+              <span className="affiliate-whatsapp-scan-spinner" aria-hidden="true" />
+              <span>{t("ecommerce.affiliateWorkspace.whatsapp.generatingQr", { defaultValue: "Generating a secure QR code…" })}</span>
+            </div>
           )}
-        </div>
-        <div className="affiliate-whatsapp-proxy-form">
-          <label>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.protocol", { defaultValue: "Protocol" })}</span>
-            <Select
-              value={proxyForm.protocol}
-              onChange={(value) => setProxyForm((prev) => ({ ...prev, protocol: value as GQL.ProxyProtocol }))}
-              options={[
-                { value: GQL.ProxyProtocol.Socks5, label: "SOCKS5" },
-                { value: GQL.ProxyProtocol.Http, label: "HTTP" },
-              ]}
-              disabled={proxyBusy}
-            />
-          </label>
-          <label>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.host", { defaultValue: "Host" })}</span>
-            <input
-              className="input"
-              value={proxyForm.host}
-              onChange={(event) => setProxyForm((prev) => ({ ...prev, host: event.target.value }))}
-              placeholder="proxy.example.com"
-              disabled={proxyBusy}
-            />
-          </label>
-          <label>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.port", { defaultValue: "Port" })}</span>
-            <input
-              className="input"
-              value={proxyForm.port}
-              onChange={(event) => setProxyForm((prev) => ({ ...prev, port: event.target.value }))}
-              placeholder="1080"
-              inputMode="numeric"
-              disabled={proxyBusy}
-            />
-          </label>
-          <label>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.region", { defaultValue: "Region" })}</span>
-            <input
-              className="input"
-              value={proxyForm.region}
-              onChange={(event) => setProxyForm((prev) => ({ ...prev, region: event.target.value }))}
-              placeholder="US"
-              disabled={proxyBusy}
-            />
-          </label>
-          <label>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.username", { defaultValue: "Username" })}</span>
-            <input
-              className="input"
-              value={proxyForm.username}
-              onChange={(event) => setProxyForm((prev) => ({ ...prev, username: event.target.value }))}
-              disabled={proxyBusy}
-            />
-          </label>
-          <label>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.password", { defaultValue: "Password" })}</span>
-            <input
-              className="input"
-              value={proxyForm.password}
-              onChange={(event) => setProxyForm((prev) => ({ ...prev, password: event.target.value }))}
-              placeholder={editingProxyId ? t("ecommerce.affiliateWorkspace.whatsapp.passwordKeep", { defaultValue: "Leave blank to keep" }) : ""}
-              type="password"
-              disabled={proxyBusy}
-            />
-          </label>
-          <button type="button" className="btn btn-secondary" onClick={handleSaveProxy} disabled={proxyBusy}>
-            {proxyBusy
-              ? t("common.loading")
-              : editingProxyId
-                ? t("common.save", { defaultValue: "Save" })
-                : t("ecommerce.affiliateWorkspace.whatsapp.addProxy", { defaultValue: "Add proxy" })}
+        </>
+      )}
+
+      {stage === "DONE" && (
+        <div className="affiliate-whatsapp-done">
+          <span className="affiliate-whatsapp-done-mark" aria-hidden="true" />
+          <strong>{t("ecommerce.affiliateWorkspace.whatsapp.accountConnected", { defaultValue: "WhatsApp account connected." })}</strong>
+          {connectedAccount && (
+            <span>
+              {connectedAccount.displayName || connectedAccount.phoneNumber || connectedAccount.evolutionInstanceName}
+            </span>
+          )}
+          <button type="button" className="btn btn-primary" onClick={() => onFlowComplete?.()}>
+            {t("common.done", { defaultValue: "Done" })}
           </button>
         </div>
-        <div className="affiliate-whatsapp-proxy-list">
-          {proxies.length === 0 && (
-            <div className="affiliate-policy-option-empty">
-              {t("ecommerce.affiliateWorkspace.whatsapp.noProxies", { defaultValue: "No proxy configured yet." })}
-            </div>
-          )}
-          {proxies.map((proxy) => (
-            <div className="affiliate-whatsapp-proxy-row" key={proxy.id}>
-              <div>
-                <span className={`affiliate-whatsapp-status affiliate-whatsapp-status-${proxy.status.toLowerCase()}`}>
-                  {proxyStatusLabel(t, proxy.status)}
-                </span>
-                <strong>{proxyDisplayLabel(proxy)}</strong>
-                {proxy.lastError && <em>{proxy.lastError}</em>}
-              </div>
-              <div className="affiliate-whatsapp-account-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEditProxy(proxy)} disabled={proxyBusy}>
-                  {t("common.edit", { defaultValue: "Edit" })}
-                </button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleToggleProxy(proxy)} disabled={proxyBusy}>
-                  {proxy.status === GQL.ProxyStatus.Active
-                    ? t("common.disable", { defaultValue: "Disable" })
-                    : t("common.enable", { defaultValue: "Enable" })}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {activeQr && (
-        <div className="affiliate-whatsapp-qr">
-          <div className="affiliate-whatsapp-qr-frame">
-            {qrImageUrl ? (
-              <img
-                src={qrImageUrl}
-                alt={t("ecommerce.affiliateWorkspace.whatsapp.qrAlt", { defaultValue: "WhatsApp login QR code" })}
-              />
-            ) : (
-              <span>{t("ecommerce.affiliateWorkspace.whatsapp.qrUnavailable", { defaultValue: "QR image unavailable" })}</span>
-            )}
-          </div>
-          <div className="affiliate-whatsapp-qr-copy">
-            <strong>{t("ecommerce.affiliateWorkspace.whatsapp.scanTitle", { defaultValue: "Scan with WhatsApp" })}</strong>
-            <span>{t("ecommerce.affiliateWorkspace.whatsapp.scanHint", { defaultValue: "Open WhatsApp on the seller phone, choose Linked devices, then scan this QR code." })}</span>
-            {activeQr.pairingCode && (
-              <code>{activeQr.pairingCode}</code>
-            )}
-          </div>
-        </div>
       )}
 
-      {showAccountList && <div className="affiliate-whatsapp-list">
+      {showAccountList && view === "CONNECT" && stage === "IDLE" && <div className="affiliate-whatsapp-list">
         {visibleAccounts.length === 0 && (
           <div className="affiliate-policy-option-empty">
             {accountsLoading
@@ -733,15 +652,6 @@ function whatsAppStatusLabel(
   });
 }
 
-function proxyStatusLabel(
-  t: ReturnType<typeof useTranslation>["t"],
-  status: GQL.ProxyStatus,
-): string {
-  return t(`ecommerce.affiliateWorkspace.whatsapp.proxyStatus.${status}`, {
-    defaultValue: status.replace(/_/g, " ").toLowerCase(),
-  });
-}
-
 function connectorStatusText(
   t: ReturnType<typeof useTranslation>["t"],
   status: ConnectorStatus,
@@ -769,25 +679,4 @@ function connectorStatusText(
   return t("ecommerce.affiliateWorkspace.whatsapp.connectorReady", {
     defaultValue: "Evolution API is ready for seller onboarding.",
   });
-}
-
-function countAccountStatus(
-  status: ConnectorStatus,
-  accountStatus: GQL.WhatsAppAccountStatus,
-): number {
-  return status.accountCounts.find((item) => item.status === accountStatus)?.count ?? 0;
-}
-
-function countProxyStatus(status: ConnectorStatus, proxyStatus: GQL.ProxyStatus): number {
-  return status.proxyCounts.find((item) => item.status === proxyStatus)?.count ?? 0;
-}
-
-function cleanOptional(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-function proxyDisplayLabel(proxy: WhatsAppProxy): string {
-  const base = `${proxy.protocol.toLowerCase()}://${proxy.host}:${proxy.port}`;
-  return proxy.region ? `${proxy.region} · ${base}` : base;
 }

@@ -265,6 +265,21 @@ describe("affiliate outreach connector onboarding gates", () => {
     expect(screen.queryByRole("button", { name: "Connect WhatsApp" })).toBeNull();
   });
 
+  it("keeps the proxy pool out of the connect flow until it is opened", () => {
+    renderWhatsAppPanel({ ready: true });
+
+    expect(screen.queryByRole("button", { name: "Add proxy" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Manage proxy pool" }));
+
+    expect(screen.getByRole("button", { name: "Add proxy" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Connect WhatsApp" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(screen.getByRole("button", { name: "Connect WhatsApp" })).toBeTruthy();
+  });
+
   it("refreshes WhatsApp accounts when the desktop reports QR connection completion", async () => {
     renderWhatsAppPanel({ ready: true });
 
