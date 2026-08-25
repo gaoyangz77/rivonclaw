@@ -18,6 +18,14 @@
   --color-info: #2563eb;
   --color-info-light: rgba(37, 99, 235, 0.1);
   --color-info-border: rgba(37, 99, 235, 0.12);
+  /* Vendor brand — owned by WhatsApp, identical in both themes. Deliberately absent from the
+     [data-theme="dark"] block: a brand mark that shifts with the theme is no longer the brand. */
+  --color-whatsapp-brand: #25d366;
+  --color-whatsapp-brand-shade: #0b3d22;
+  --color-whatsapp-brand-contrast: #ffffff;
+  /* A QR quiet zone must stay light in dark mode or the code stops scanning reliably,
+     so this is its own token rather than --color-bg. */
+  --color-qr-quiet-zone: #ffffff;
   /* Sidebar — neutral tokens (brand tints are in theme file) */
   --color-sidebar-text: #4b5563;
   --color-sidebar-muted: #6b7280;
@@ -20564,7 +20572,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-whatsapp-head,
-.affiliate-whatsapp-connect,
+.affiliate-whatsapp-connect-row,
 .affiliate-whatsapp-account {
   display: flex;
   align-items: center;
@@ -20574,7 +20582,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-whatsapp-head > div,
-.affiliate-whatsapp-connect label,
+.affiliate-whatsapp-connect-row label,
 .affiliate-whatsapp-account-main,
 .affiliate-whatsapp-qr-copy {
   display: grid;
@@ -20595,7 +20603,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-whatsapp-head span,
-.affiliate-whatsapp-connect label > span,
+.affiliate-whatsapp-connect-row label > span,
 .affiliate-whatsapp-qr-copy span,
 .affiliate-whatsapp-account-main small,
 .affiliate-whatsapp-account-main em {
@@ -20611,11 +20619,38 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-whatsapp-connect {
-  align-items: end;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--color-border-light) 75%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg-alt) 60%, var(--color-bg));
+}
+
+/* The action sits beside the field itself, so the row aligns on the input rather than on
+   whatever the label stack happens to end with. */
+.affiliate-whatsapp-connect-row {
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.affiliate-whatsapp-connect-row .btn-primary {
+  flex: 0 0 auto;
+}
+
+.affiliate-whatsapp-connect-footnote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.affiliate-whatsapp-connect-footnote .form-hint {
+  margin: 0;
+  min-width: 0;
 }
 
 .affiliate-email-connect {
@@ -20682,7 +20717,7 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 
-.affiliate-whatsapp-connect label {
+.affiliate-whatsapp-connect-row label {
   flex: 1 1 260px;
 }
 
@@ -20752,30 +20787,33 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-whatsapp-qr {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: 176px minmax(0, 1fr);
   gap: 14px;
   align-items: center;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-whatsapp-brand) 28%, var(--color-border-light));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+  background: color-mix(in srgb, var(--color-whatsapp-brand) 5%, var(--color-bg));
 }
 
 .affiliate-whatsapp-qr-frame {
   display: grid;
   place-items: center;
-  width: 150px;
+  width: 176px;
   aspect-ratio: 1;
-  border: 1px solid var(--color-border-light);
+  border: 1px solid color-mix(in srgb, var(--color-whatsapp-brand) 24%, var(--color-border-light));
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-qr-quiet-zone);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--color-whatsapp-brand-shade) 12%, transparent);
 }
 
 .affiliate-whatsapp-qr-frame img {
   display: block;
-  width: 132px;
-  height: 132px;
+  width: 158px;
+  height: 158px;
   object-fit: contain;
 }
 
@@ -20799,34 +20837,34 @@ html[lang="zh"] .acct-tool-chips {
   overflow-wrap: anywhere;
 }
 
-.affiliate-whatsapp-reconnect-panel {
+.affiliate-whatsapp-scan-panel {
   position: relative;
   overflow: hidden;
   gap: 16px;
   padding: 18px;
-  border-color: color-mix(in srgb, #25d366 34%, var(--color-border-light));
+  border-color: color-mix(in srgb, var(--color-whatsapp-brand) 34%, var(--color-border-light));
   background:
     radial-gradient(
       circle at 100% 0%,
-      color-mix(in srgb, #25d366 12%, transparent),
+      color-mix(in srgb, var(--color-whatsapp-brand) 12%, transparent),
       transparent 42%
     ),
     var(--color-bg);
 }
 
-.affiliate-whatsapp-reconnect-panel::after {
+.affiliate-whatsapp-scan-panel::after {
   position: absolute;
   top: -42px;
   right: -30px;
   width: 122px;
   height: 122px;
-  border: 1px solid color-mix(in srgb, #25d366 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-whatsapp-brand) 18%, transparent);
   border-radius: 50%;
   content: "";
   pointer-events: none;
 }
 
-.affiliate-whatsapp-reconnect-head {
+.affiliate-whatsapp-scan-head {
   position: relative;
   z-index: 1;
   display: flex;
@@ -20834,18 +20872,18 @@ html[lang="zh"] .acct-tool-chips {
   gap: 11px;
 }
 
-.affiliate-whatsapp-reconnect-head > div {
+.affiliate-whatsapp-scan-head > div {
   display: grid;
   gap: 4px;
 }
 
-.affiliate-whatsapp-reconnect-head strong {
+.affiliate-whatsapp-scan-head strong {
   color: var(--color-text);
   font-size: 14px;
   font-weight: 780;
 }
 
-.affiliate-whatsapp-reconnect-head span,
+.affiliate-whatsapp-scan-head span,
 .affiliate-whatsapp-qr-copy small {
   color: var(--color-text-muted);
   font-size: 12px;
@@ -20859,14 +20897,14 @@ html[lang="zh"] .acct-tool-chips {
   height: 11px;
   margin-top: 4px;
   border-radius: 50%;
-  background: #25d366;
-  box-shadow: 0 0 0 5px color-mix(in srgb, #25d366 14%, transparent);
+  background: var(--color-whatsapp-brand);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-whatsapp-brand) 14%, transparent);
 }
 
 .affiliate-whatsapp-reconnect-pulse::after {
   position: absolute;
   inset: -5px;
-  border: 1px solid color-mix(in srgb, #25d366 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-whatsapp-brand) 42%, transparent);
   border-radius: 50%;
   animation: affiliate-reconnect-pulse 1.8s ease-out infinite;
   content: "";
@@ -20883,37 +20921,116 @@ html[lang="zh"] .acct-tool-chips {
   }
 }
 
-.affiliate-whatsapp-qr.is-reconnect {
-  position: relative;
-  z-index: 1;
-  grid-template-columns: 176px minmax(0, 1fr);
-  padding: 16px;
-  border-color: color-mix(in srgb, #25d366 28%, var(--color-border-light));
-  background: color-mix(in srgb, #25d366 5%, var(--color-bg));
-}
-
-.affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-frame {
-  width: 176px;
-  border-color: color-mix(in srgb, #25d366 24%, var(--color-border-light));
-  box-shadow: 0 14px 30px color-mix(in srgb, #0b3d22 12%, transparent);
-}
-
-.affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-frame img {
-  width: 158px;
-  height: 158px;
-}
-
-.affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-copy {
+.affiliate-whatsapp-qr .affiliate-whatsapp-qr-copy {
   gap: 8px;
 }
 
-.affiliate-whatsapp-qr.is-reconnect .btn,
-.affiliate-whatsapp-reconnect-warning .btn {
+.affiliate-whatsapp-qr .btn,
+.affiliate-whatsapp-scan-warning .btn {
   width: fit-content;
 }
 
-.affiliate-whatsapp-reconnect-loading,
-.affiliate-whatsapp-reconnect-warning {
+.affiliate-whatsapp-qr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.affiliate-whatsapp-steps {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 17px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.affiliate-whatsapp-steps li::marker {
+  color: var(--color-text-muted);
+  font-weight: 720;
+}
+
+.affiliate-whatsapp-intro {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.affiliate-whatsapp-intro strong {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.3;
+}
+
+.affiliate-whatsapp-intro span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.affiliate-whatsapp-proxy-head-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.affiliate-whatsapp-done {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 26px 18px;
+  border: 1px solid color-mix(in srgb, var(--color-whatsapp-brand) 28%, var(--color-border-light));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--color-whatsapp-brand) 6%, var(--color-bg));
+  text-align: center;
+}
+
+.affiliate-whatsapp-done strong {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 780;
+  line-height: 1.3;
+}
+
+.affiliate-whatsapp-done span {
+  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.affiliate-whatsapp-done .btn {
+  margin-top: 6px;
+}
+
+.affiliate-whatsapp-done-mark {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--color-whatsapp-brand);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-whatsapp-brand) 14%, transparent);
+}
+
+.affiliate-whatsapp-done-mark::after {
+  position: absolute;
+  top: 11px;
+  left: 14px;
+  width: 8px;
+  height: 15px;
+  border: solid var(--color-whatsapp-brand-contrast);
+  border-width: 0 2.5px 2.5px 0;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.affiliate-whatsapp-scan-loading,
+.affiliate-whatsapp-scan-warning {
   position: relative;
   z-index: 1;
   display: flex;
@@ -20928,17 +21045,17 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 12px;
 }
 
-.affiliate-whatsapp-reconnect-warning {
+.affiliate-whatsapp-scan-warning {
   justify-content: space-between;
   border-color: color-mix(in srgb, var(--color-danger, #ef4444) 26%, var(--color-border-light));
   color: var(--color-danger, #ef4444);
 }
 
-.affiliate-whatsapp-reconnect-spinner {
+.affiliate-whatsapp-scan-spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid color-mix(in srgb, #25d366 22%, transparent);
-  border-top-color: #25d366;
+  border: 2px solid color-mix(in srgb, var(--color-whatsapp-brand) 22%, transparent);
+  border-top-color: var(--color-whatsapp-brand);
   border-radius: 50%;
   animation: affiliate-reconnect-spin 0.8s linear infinite;
 }
@@ -21346,24 +21463,21 @@ html[lang="zh"] .acct-tool-chips {
   }
 
   .affiliate-whatsapp-head,
-  .affiliate-whatsapp-connect {
+  .affiliate-whatsapp-connect-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  /* The 260px basis is a width for the side-by-side row; in a column it would become a height. */
+  .affiliate-whatsapp-connect-row label {
+    flex: 0 0 auto;
   }
 
   .affiliate-whatsapp-qr {
     grid-template-columns: 1fr;
   }
 
-  .affiliate-whatsapp-qr.is-reconnect {
-    grid-template-columns: 1fr;
-  }
-
   .affiliate-whatsapp-qr-frame {
-    width: min(150px, 100%);
-  }
-
-  .affiliate-whatsapp-qr.is-reconnect .affiliate-whatsapp-qr-frame {
     width: min(176px, 100%);
   }
 

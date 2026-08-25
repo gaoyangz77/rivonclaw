@@ -34,6 +34,7 @@ import { useMyDeviceId } from "./hooks/useDeviceBinding.js";
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
+import { AffiliateWhatsAppProxyPanel } from "./components/AffiliateWhatsAppProxyPanel.js";
 import {
   buildAffiliateDeveloperProvisionBatches,
   buildAffiliateProtectionDeveloperResolutionSeeds,
@@ -224,6 +225,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
   const [transferTargetId, setTransferTargetId] = useState("");
   const [transferBusy, setTransferBusy] = useState(false);
   const [showUnassignedAccounts, setShowUnassignedAccounts] = useState(false);
+  const [showProxyPool, setShowProxyPool] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingDeveloperId, setEditingDeveloperId] = useState<string | null>(null);
   const [form, setForm] = useState<DeveloperForm>(EMPTY_DEVELOPER);
@@ -1303,6 +1305,9 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           ])} disabled={loading}>
             <RefreshIcon /> {t("common.refresh")}
           </button>
+          {pageTab === "TEAM" && <button className="btn btn-secondary" type="button" onClick={() => setShowProxyPool(true)}>
+            {t("ecommerce.affiliateWorkspace.whatsapp.proxyPoolButton", { defaultValue: "Proxy pool" })}
+          </button>}
           {pageTab === "TEAM" && <button className="btn btn-primary" type="button" onClick={beginCreateDeveloper}>
             <UserPlusIcon /> {t("ecommerce.affiliateTeam.addDeveloper")}
           </button>}
@@ -2431,7 +2436,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           businessDeveloperId={detailDeveloper.id}
           showAccountList={false}
           reconnectBindingId={reconnectWhatsAppAccountId}
-          onReconnectComplete={() => {
+          onFlowComplete={() => {
             setReconnectWhatsAppAccountId(null);
             setConnectChannel(null);
           }}
@@ -2442,6 +2447,18 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           showAccountList={false}
           onAccountsChanged={refreshChannelData}
         />}
+      </Modal>
+
+      <Modal
+        isOpen={showProxyPool}
+        onClose={() => setShowProxyPool(false)}
+        title={t("ecommerce.affiliateWorkspace.whatsapp.proxyPool", { defaultValue: "Proxy pool" })}
+        maxWidth={920}
+        className="affiliate-proxy-pool-modal"
+        closeLabel={t("common.close")}
+        portal
+      >
+        <AffiliateWhatsAppProxyPanel />
       </Modal>
 
       <Modal
