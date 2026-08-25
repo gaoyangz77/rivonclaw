@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { Layout } from "./layout/Layout.js";
-import { VALID_PATHS, ROUTE_MAP } from "./routes.js";
+import { VALID_PATHS, ROUTE_MAP, resolveLandingPath } from "./routes.js";
 import { WhatsNewModal } from "./components/modals/WhatsNewModal.js";
 import { TelemetryConsentModal } from "./components/modals/TelemetryConsentModal.js";
 import {
@@ -31,6 +31,7 @@ import {
 import { API, clientPath } from "@rivonclaw/core/api-contract";
 import { normalizeLanguageCode } from "./i18n/languages.js";
 import { navigationAllowed } from "./lib/navigation-guard.js";
+import { canSeeRoute } from "./lib/permission-scope.js";
 
 /** Normalise a browser pathname to one of our known routes, defaulting to "/" */
 function resolveRoute(pathname: string): string {
@@ -71,6 +72,7 @@ export const App = observer(function App() {
   const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>([]);
   const [currentVersion, setCurrentVersion] = useState("");
   const impressedAnnouncementKeys = useRef(new Set<string>());
+  const landingRedirectedForUserId = useRef<string | null>(null);
 
   // Keep state in sync when user presses browser Back / Forward
   useEffect(() => {
@@ -110,6 +112,36 @@ export const App = observer(function App() {
     if (route !== window.location.pathname && !navigationAllowed(currentPath, route, proceed)) return;
     proceed();
   }, [currentPath]);
+
+  // Primitives, not the MST node: the user node is replaced on every `me`
+  // ingestion, and reading these during render is what makes observer() track
+  // them. Never hand the node itself to an effect.
+  const authBootstrapLoading = (entityStore as any).authBootstrap?.status === "loading";
+  const currentUserId = entityStore.currentUser?.userId ?? null;
+  const currentUserIsOwner = entityStore.currentUser?.isOwner ?? true;
+  const currentUserScopes = entityStore.currentUser?.permissionScopes.join(",") ?? "";
+
+  // A member account whose role does not grant CHAT would otherwise sit on a
+  // page its sidebar no longer offers. Send it to the first page its role does
+  // unlock — once per signed-in user, so a later deliberate navigation stands.
+  useEffect(() => {
+    if (authBootstrapLoading || !currentUserId) return;
+    if (landingRedirectedForUserId.current === currentUserId) return;
+    landingRedirectedForUserId.current = currentUserId;
+    if (currentPath !== "/") return;
+    const scopes = currentUserScopes ? currentUserScopes.split(",") : [];
+    if (canSeeRoute(ROUTE_MAP.get("/")!, { isOwner: currentUserIsOwner, permissionScopes: scopes })) {
+      return;
+    }
+    navigate(resolveLandingPath(scopes));
+  }, [
+    authBootstrapLoading,
+    currentUserId,
+    currentUserIsOwner,
+    currentUserScopes,
+    currentPath,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (import.meta.env.VITE_FORCE_WELCOME === "1") {
