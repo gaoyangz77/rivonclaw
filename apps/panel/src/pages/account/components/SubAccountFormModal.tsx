@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
 import { Modal } from "../../../components/modals/Modal.js";
 import { Select } from "../../../components/inputs/Select.js";
+import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import type { AccountMember, AccountRole } from "../hooks/useSubAccounts.js";
 
 interface SubAccountFormModalProps {
@@ -26,6 +27,7 @@ export function SubAccountFormModal({
   onClose,
 }: SubAccountFormModalProps) {
   const { t } = useTranslation();
+  const { ofRole } = useRoleDisplayName(roles);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -125,7 +127,7 @@ export function SubAccountFormModal({
             placeholder={t("subAccounts.rolePlaceholder")}
             options={roles.map((role) => ({
               value: role.id,
-              label: role.name,
+              label: ofRole(role),
               description: t("subAccounts.roleMemberCount", { count: role.memberCount }),
             }))}
           />

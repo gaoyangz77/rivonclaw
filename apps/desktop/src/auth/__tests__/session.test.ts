@@ -23,6 +23,9 @@ const mockUser: GQL.MeResponse = {
   createdAt: "2025-01-01T00:00:00Z",
   enrolledModules: ["GLOBAL_ECOMMERCE_SELLER"],
   entitlementKeys: [],
+  accountId: "u1",
+  isOwner: true,
+  permissionScopes: [],
   defaultRunProfileId: "SHOP_OPERATIONS",
 };
 

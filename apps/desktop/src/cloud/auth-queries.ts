@@ -10,6 +10,10 @@ export const REFRESH_TOKEN_MUTATION = `
         createdAt
         enrolledModules
         entitlementKeys
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         defaultRunProfileId
         support {
           telegramDebugProxyToken
@@ -36,6 +40,10 @@ export const ME_QUERY = `
       createdAt
       enrolledModules
       entitlementKeys
+      accountId
+      isOwner
+      permissionScopes
+      roleName
       defaultRunProfileId
       support {
         telegramDebugProxyToken
@@ -70,6 +78,10 @@ export const LOGIN_MUTATION = `
         createdAt
         enrolledModules
         entitlementKeys
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         defaultRunProfileId
         support {
           telegramDebugProxyToken
@@ -99,6 +111,10 @@ export const REGISTER_MUTATION = `
         createdAt
         enrolledModules
         entitlementKeys
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         defaultRunProfileId
         support {
           telegramDebugProxyToken
@@ -152,6 +168,10 @@ export const GOOGLE_LOGIN_MUTATION = `
         createdAt
         enrolledModules
         entitlementKeys
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         defaultRunProfileId
         support {
           telegramDebugProxyToken
@@ -191,6 +211,10 @@ export const EXCHANGE_BROWSER_TO_DESKTOP_LOGIN_MUTATION = `
         createdAt
         enrolledModules
         entitlementKeys
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         defaultRunProfileId
         support {
           telegramDebugProxyToken

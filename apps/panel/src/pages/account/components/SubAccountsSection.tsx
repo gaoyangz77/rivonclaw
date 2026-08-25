@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
+import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import { useSubAccounts } from "../hooks/useSubAccounts.js";
 import { AccountRolesPanel } from "./AccountRolesPanel.js";
 import { SubAccountFormModal } from "./SubAccountFormModal.js";
@@ -19,6 +20,7 @@ export function SubAccountsSection() {
   const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState<string | null>(null);
 
   const { members, roles } = subAccounts;
+  const { ofMember } = useRoleDisplayName(roles);
   const editingMember = editingMemberId
     ? members.find((member) => member.id === editingMemberId) ?? null
     : null;
@@ -109,7 +111,7 @@ export function SubAccountsSection() {
               </div>
               <div className="acct-item-meta">
                 <span>{member.email}</span>
-                <span>{member.roleName || t("subAccounts.noRole")}</span>
+                <span>{ofMember(member) || t("subAccounts.noRole")}</span>
                 <span>
                   {t("subAccounts.createdAt", {
                     date: new Date(member.createdAt).toLocaleDateString(),

@@ -73,6 +73,7 @@ export const App = observer(function App() {
   const [currentVersion, setCurrentVersion] = useState("");
   const impressedAnnouncementKeys = useRef(new Set<string>());
   const landingRedirectedForUserId = useRef<string | null>(null);
+  const cachedForUserId = useRef<string | null>(null);
 
   // Keep state in sync when user presses browser Back / Forward
   useEffect(() => {
@@ -120,6 +121,19 @@ export const App = observer(function App() {
   const currentUserId = entityStore.currentUser?.userId ?? null;
   const currentUserIsOwner = entityStore.currentUser?.isOwner ?? true;
   const currentUserScopes = entityStore.currentUser?.permissionScopes.join(",") ?? "";
+
+  // Apollo's cache lives for the lifetime of the Panel, but the signed-in
+  // account does not. Without this, signing in as a member after the owner
+  // would serve the owner's cached results — the account switch has to wipe it.
+  useEffect(() => {
+    if (cachedForUserId.current === currentUserId) return;
+    const previousUserId = cachedForUserId.current;
+    cachedForUserId.current = currentUserId;
+    if (previousUserId === null) return;
+    getClient().clearStore().catch((error) => {
+      console.error("Failed to clear the GraphQL cache on account switch", error);
+    });
+  }, [currentUserId]);
 
   // A member account whose role does not grant CHAT would otherwise sit on a
   // page its sidebar no longer offers. Send it to the first page its role does
