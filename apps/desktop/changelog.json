@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.116",
+    "date": "2026-08-25",
+    "en": [
+      "Add permission-scoped sub-account management and a clearer WhatsApp connection flow",
+      "Improve Affiliate shop data boundaries and Shop Ads commission configuration"
+    ],
+    "zh": [
+      "新增按权限范围控制的子账户管理，并优化 WhatsApp 连接流程",
+      "完善达人联盟店铺数据边界与 Shop Ads 佣金配置"
+    ]
+  },
+  {
     "version": "1.8.115",
     "date": "2026-08-24",
     "en": [
