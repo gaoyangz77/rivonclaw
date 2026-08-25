@@ -14,6 +14,7 @@ import { SurfacePresetModal } from "./components/SurfacePresetModal.js";
 import { RunProfilesSection } from "./components/RunProfilesSection.js";
 import { RunProfileFormModal } from "./components/RunProfileFormModal.js";
 import { RunProfilePresetModal } from "./components/RunProfilePresetModal.js";
+import { SubAccountsSection } from "./components/SubAccountsSection.js";
 
 /** Resolve a display name for system-provided surfaces/profiles via i18n. */
 function useSystemName() {
@@ -119,6 +120,9 @@ export const AccountPage = observer(function AccountPage({
       <AccountProfileCard
         onLogout={handleLogout}
       />
+
+      {/* ── Sub-accounts (owner only) ── */}
+      {user.isOwner && <SubAccountsSection />}
 
       {/* ── Surfaces ── */}
       <SurfacesSection

@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
+import { GQL } from "@rivonclaw/core";
 import {
   ChatIcon, ProvidersIcon, ChannelsIcon,
   ExtrasIcon, UsageIcon, SkillsIcon,
@@ -67,6 +68,13 @@ export interface RouteEntry {
   parentPath?: string;
   /** Render in sidebar as a non-clickable parent label for child routes. */
   navGroupOnly?: boolean;
+  /**
+   * Permission scope the signed-in user must hold for this route to appear in
+   * the sidebar. Absent = a base page every account may see.
+   *
+   * This is job separation, not a security boundary: it only masks nav items.
+   */
+  scope?: GQL.PermissionScope;
 }
 
 /**
@@ -74,33 +82,33 @@ export interface RouteEntry {
  * auth requirements, and mount behavior. Array order = sidebar nav order.
  */
 export const ROUTES: RouteEntry[] = [
-  { path: "/", pageKey: "chat", component: ChatPage, icon: <ChatIcon />, navLabelKey: "nav.chat", keepMounted: true },
-  { path: "/commerce/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true },
-  { path: "/commerce/shops", pageKey: "ecommerce-shops", component: EcommercePage, icon: <ShopIcon />, navLabelKey: "nav.shopManagement", authRequired: true },
-  { path: "/commerce/shop-analytics", pageKey: "ecommerce-shop-analytics", component: ShopAnalyticsPage, icon: <EcommerceIcon />, navLabelKey: "nav.shopAnalytics", authRequired: true },
-  { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, navGroupOnly: true },
-  { path: "/commerce/customer-service/conversations", pageKey: "ecommerce-customer-service-conversations", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceConversations", authRequired: true, parentPath: "/commerce/customer-service" },
-  { path: "/commerce/customer-service/escalations", pageKey: "ecommerce-customer-service-escalations", component: CustomerServiceEscalationQueuePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceEscalations", authRequired: true, parentPath: "/commerce/customer-service" },
-  { path: "/commerce/customer-service/performance", pageKey: "ecommerce-customer-service-performance", component: CustomerServicePerformancePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServicePerformance", authRequired: true, parentPath: "/commerce/customer-service" },
-  { path: "/commerce/customer-service/experiments", pageKey: "ecommerce-customer-service-experiments", component: CustomerServiceExperimentsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceExperiments", authRequired: true, parentPath: "/commerce/customer-service" },
-  { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true },
-  { path: "/commerce/affiliate/campaigns", pageKey: "ecommerce-affiliate-campaigns", component: AffiliateCampaignPage, icon: <AdsIcon />, navLabelKey: "nav.affiliateCampaigns", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/affiliate/team", pageKey: "ecommerce-affiliate-team", component: AffiliateTeamPage, icon: <ChannelsIcon />, navLabelKey: "nav.affiliateTeam", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/product-knowledge", pageKey: "ecommerce-product-knowledge", component: ProductKnowledgePage, icon: <EcommerceIcon />, navLabelKey: "nav.productKnowledge", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/affiliate/creators", pageKey: "ecommerce-affiliate-creators", component: AffiliateCreatorsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateCreators", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/affiliate/analytics", pageKey: "ecommerce-affiliate-analytics", component: AffiliateAnalyticsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateAnalytics", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/affiliate/intelligence", pageKey: "ecommerce-affiliate-intelligence", component: AffiliateIntelligencePage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateIntelligence", authRequired: true, parentPath: "/commerce/affiliate" },
-  { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", authRequired: true },
-  { path: "/commerce/inventory", pageKey: "ecommerce-inventory", component: InventoryManagementPage, icon: <ModuleIcon />, navLabelKey: "nav.inventoryManagement", authRequired: true },
+  { path: "/", pageKey: "chat", component: ChatPage, icon: <ChatIcon />, navLabelKey: "nav.chat", keepMounted: true, scope: GQL.PermissionScope.Chat },
+  { path: "/commerce/tiktok-shops", pageKey: "tiktok-shops", component: TikTokShopsPage, icon: <ShopIcon />, navLabelKey: "nav.tiktokShops", authRequired: true, navHidden: true, scope: GQL.PermissionScope.ShopManagement },
+  { path: "/commerce/shops", pageKey: "ecommerce-shops", component: EcommercePage, icon: <ShopIcon />, navLabelKey: "nav.shopManagement", authRequired: true, scope: GQL.PermissionScope.ShopManagement },
+  { path: "/commerce/shop-analytics", pageKey: "ecommerce-shop-analytics", component: ShopAnalyticsPage, icon: <EcommerceIcon />, navLabelKey: "nav.shopAnalytics", authRequired: true, scope: GQL.PermissionScope.ShopAnalytics },
+  { path: "/commerce/customer-service", pageKey: "ecommerce-customer-service", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerService", authRequired: true, navGroupOnly: true, scope: GQL.PermissionScope.CustomerService },
+  { path: "/commerce/customer-service/conversations", pageKey: "ecommerce-customer-service-conversations", component: CustomerServiceConversationsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceConversations", authRequired: true, parentPath: "/commerce/customer-service", scope: GQL.PermissionScope.CustomerService },
+  { path: "/commerce/customer-service/escalations", pageKey: "ecommerce-customer-service-escalations", component: CustomerServiceEscalationQueuePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceEscalations", authRequired: true, parentPath: "/commerce/customer-service", scope: GQL.PermissionScope.CustomerService },
+  { path: "/commerce/customer-service/performance", pageKey: "ecommerce-customer-service-performance", component: CustomerServicePerformancePage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServicePerformance", authRequired: true, parentPath: "/commerce/customer-service", scope: GQL.PermissionScope.CustomerService },
+  { path: "/commerce/customer-service/experiments", pageKey: "ecommerce-customer-service-experiments", component: CustomerServiceExperimentsPage, icon: <ChannelsIcon />, navLabelKey: "nav.customerServiceExperiments", authRequired: true, parentPath: "/commerce/customer-service", scope: GQL.PermissionScope.CustomerService },
+  { path: "/commerce/affiliate", pageKey: "ecommerce-affiliate", component: AffiliateManagementPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateManagement", authRequired: true, navGroupOnly: true, scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/campaigns", pageKey: "ecommerce-affiliate-campaigns", component: AffiliateCampaignPage, icon: <AdsIcon />, navLabelKey: "nav.affiliateCampaigns", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/attention", pageKey: "ecommerce-affiliate-attention", component: AffiliateNeedsAttentionPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateNeedsAttention", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/team", pageKey: "ecommerce-affiliate-team", component: AffiliateTeamPage, icon: <ChannelsIcon />, navLabelKey: "nav.affiliateTeam", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/product-knowledge", pageKey: "ecommerce-product-knowledge", component: ProductKnowledgePage, icon: <EcommerceIcon />, navLabelKey: "nav.productKnowledge", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/creators", pageKey: "ecommerce-affiliate-creators", component: AffiliateCreatorsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateCreators", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/history", pageKey: "ecommerce-affiliate-history", component: AffiliateHistoryPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateHistory", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/analytics", pageKey: "ecommerce-affiliate-analytics", component: AffiliateAnalyticsPage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateAnalytics", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/affiliate/intelligence", pageKey: "ecommerce-affiliate-intelligence", component: AffiliateIntelligencePage, icon: <EcommerceIcon />, navLabelKey: "nav.affiliateIntelligence", authRequired: true, parentPath: "/commerce/affiliate", scope: GQL.PermissionScope.Affiliate },
+  { path: "/commerce/ads", pageKey: "tiktok-ads", component: AdsManagementPage, icon: <AdsIcon />, navLabelKey: "nav.adsManagement", authRequired: true, scope: GQL.PermissionScope.Ads },
+  { path: "/commerce/inventory", pageKey: "ecommerce-inventory", component: InventoryManagementPage, icon: <ModuleIcon />, navLabelKey: "nav.inventoryManagement", authRequired: true, scope: GQL.PermissionScope.Inventory },
   { path: "/automation/skills", pageKey: "skills", component: SkillsPage, icon: <SkillsIcon />, navLabelKey: "nav.skills", navGroupKey: "nav.group.automation" },
   { path: "/automation/crons", pageKey: "crons", component: CronsPage, icon: <CronsIcon />, navLabelKey: "nav.crons", navGroupKey: "nav.group.automation" },
   { path: "/connections/channels", pageKey: "channels", component: ChannelsPage, icon: <ChannelsIcon />, navLabelKey: "nav.channels", navGroupKey: "nav.group.connections" },
   { path: "/connections/models", pageKey: "providers", component: ProvidersPage, icon: <ProvidersIcon />, navLabelKey: "nav.providers", navGroupKey: "nav.group.connections" },
   { path: "/connections/extensions", pageKey: "extras", component: ExtrasPage, icon: <ExtrasIcon />, navLabelKey: "nav.extras", navGroupKey: "nav.group.connections" },
   { path: "/account/usage", pageKey: "usage", component: KeyUsagePage, icon: <UsageIcon />, navLabelKey: "nav.usage", navGroupKey: "nav.group.accountSystem" },
-  { path: "/account/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", navGroupKey: "nav.group.accountSystem", authRequired: true, navAuthOnly: true },
+  { path: "/account/billing", pageKey: "billing", component: BillingPage, icon: <BillingIcon />, navLabelKey: "nav.billing", navGroupKey: "nav.group.accountSystem", authRequired: true, navAuthOnly: true, scope: GQL.PermissionScope.Billing },
   { path: "/account/settings", pageKey: "settings", component: SettingsPage, icon: <SettingsIcon />, navLabelKey: "nav.settings", navGroupKey: "nav.group.accountSystem" },
   { path: "/account/profile", pageKey: "account", component: AccountPage, icon: <AccountIcon />, navLabelKey: "nav.account", navGroupKey: "nav.group.accountSystem", authRequired: true },
   { path: "/welcome", pageKey: "welcome", component: WelcomePage, internal: true },
@@ -111,3 +119,36 @@ export const VALID_PATHS = new Set(ROUTES.filter(r => !r.internal).map(r => r.pa
 
 /** Lookup map: path → route entry */
 export const ROUTE_MAP = new Map(ROUTES.map(r => [r.path, r]));
+
+/**
+ * Landing page for a member account that holds a given scope but not CHAT.
+ * The order of this record is the priority order used by resolveLandingPath.
+ */
+export const SCOPE_LANDING_PATH: Partial<Record<GQL.PermissionScope, string>> = {
+  [GQL.PermissionScope.Chat]: "/",
+  [GQL.PermissionScope.Affiliate]: "/commerce/affiliate/campaigns",
+  [GQL.PermissionScope.CustomerService]: "/commerce/customer-service/conversations",
+  [GQL.PermissionScope.ShopManagement]: "/commerce/shops",
+  [GQL.PermissionScope.ShopAnalytics]: "/commerce/shop-analytics",
+  [GQL.PermissionScope.Ads]: "/commerce/ads",
+  [GQL.PermissionScope.Inventory]: "/commerce/inventory",
+  [GQL.PermissionScope.Billing]: "/account/billing",
+};
+
+/**
+ * Base page shown when a member's role grants no scope we have a landing page
+ * for. Automation carries no scope, so the sidebar is never empty here.
+ */
+export const FALLBACK_LANDING_PATH = "/automation/skills";
+
+/**
+ * First landing path the given scopes unlock, in SCOPE_LANDING_PATH order.
+ * CHAT comes first, so a user who may open the chat page keeps landing on "/".
+ */
+export function resolveLandingPath(scopes: readonly string[]): string {
+  const held = new Set(scopes);
+  for (const [scope, path] of Object.entries(SCOPE_LANDING_PATH)) {
+    if (held.has(scope) && path) return path;
+  }
+  return FALLBACK_LANDING_PATH;
+}

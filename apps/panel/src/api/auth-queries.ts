@@ -22,6 +22,10 @@ export const LOGIN_MUTATION = gql`
         enrolledModules
         entitlementKeys
         defaultRunProfileId
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         agent {
           active
           inviteCode
@@ -48,6 +52,10 @@ export const REGISTER_MUTATION = gql`
         enrolledModules
         entitlementKeys
         defaultRunProfileId
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         agent {
           active
           inviteCode
@@ -74,6 +82,10 @@ export const REFRESH_TOKEN_MUTATION = gql`
         enrolledModules
         entitlementKeys
         defaultRunProfileId
+        accountId
+        isOwner
+        permissionScopes
+        roleName
         agent {
           active
           inviteCode
@@ -96,6 +108,10 @@ const ME_FIELDS_FRAGMENT = gql`
     enrolledModules
     entitlementKeys
     defaultRunProfileId
+    accountId
+    isOwner
+    permissionScopes
+    roleName
     support {
       telegramDebugProxyToken
     }

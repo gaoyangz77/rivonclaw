@@ -9558,6 +9558,32 @@ tbody td {
   border-color: transparent;
 }
 
+/* ── Account: Sub-account roles ── */
+
+.acct-role-panel {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.acct-role-panel h4 {
+  margin-bottom: 4px;
+}
+
+.acct-role-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-bg-alt);
+}
+
+.acct-role-scope-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .acct-item-main {
   display: flex;
   align-items: center;

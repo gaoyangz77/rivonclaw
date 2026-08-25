@@ -10,6 +10,7 @@ import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { useRuntimeStatus } from "../store/RuntimeStatusProvider.js";
 import { AuthModal } from "../components/modals/AuthModal.js";
 import { getUserInitial } from "../lib/user-manager.js";
+import { canSeeRoute } from "../lib/permission-scope.js";
 
 const SIDEBAR_MIN = 140;
 const SIDEBAR_MAX = 360;
@@ -76,7 +77,7 @@ export const Layout = observer(function Layout({
   }, []);
 
   const navRoutes = ROUTES.filter(
-    (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user),
+    (r) => r.navLabelKey && !r.navHidden && (!r.navAuthOnly || !!user) && canSeeRoute(r, user),
   );
 
   useEffect(() => {

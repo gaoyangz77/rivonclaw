@@ -23,6 +23,30 @@ export interface AccountLlmBillingStatus {
   planId?: Maybe<BillingPlanId>;
 }
 
+/** A member account belonging to a main account. */
+export interface AccountMember {
+  createdAt: Scalars['DateTimeISO']['output'];
+  disabled: Scalars['Boolean']['output'];
+  email: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  name?: Maybe<Scalars['String']['output']>;
+  roleId?: Maybe<Scalars['String']['output']>;
+  roleName?: Maybe<Scalars['String']['output']>;
+  /** Effective scopes after intersecting the role grant with account entitlements. */
+  scopes: Array<PermissionScope>;
+}
+
+/** A named permission-scope bundle owned by one main account. */
+export interface AccountRoleType {
+  id: Scalars['String']['output'];
+  /** Seeded template role; its name cannot be changed. */
+  isSystem: Scalars['Boolean']['output'];
+  /** Number of member accounts currently assigned this role. */
+  memberCount: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
+  scopes: Array<PermissionScope>;
+}
+
 /** Input for acknowledging a CS escalation event */
 export interface AckCsEscalationEventInput {
   eventId: Scalars['ID']['input'];
@@ -4884,6 +4908,15 @@ export interface ConversationMessageDeltaMeta {
   pageLimitReached: Scalars['Boolean']['output'];
 }
 
+/** Create a member account under the current main account. */
+export interface CreateAccountMemberInput {
+  email: Scalars['String']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** Initial password set by the owner. */
+  password: Scalars['String']['input'];
+  roleId: Scalars['String']['input'];
+}
+
 export interface CreateAffiliateOpenCollaborationInput {
   commissionRateBps: Scalars['Int']['input'];
   productId: Scalars['String']['input'];
@@ -9227,13 +9260,21 @@ export interface MarketingTouchInput {
 
 /** Current user profile */
 export interface MeResponse {
+  /** Account that owns this user's business data. Equals userId for a main account. */
+  accountId: Scalars['String']['output'];
   agent?: Maybe<UserAgentProfile>;
   createdAt: Scalars['DateTimeISO']['output'];
   defaultRunProfileId?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
   enrolledModules: Array<ModuleId>;
   entitlementKeys: Array<EntitlementKey>;
+  /** Whether this user is a main account rather than a member of one. */
+  isOwner: Scalars['Boolean']['output'];
   name?: Maybe<Scalars['String']['output']>;
+  /** Sections this user may open, after intersecting the role grant with account entitlements. */
+  permissionScopes: Array<PermissionScope>;
+  /** Role name for a member account. */
+  roleName?: Maybe<Scalars['String']['output']>;
   support?: Maybe<UserSupport>;
   userId: Scalars['String']['output'];
 }
@@ -9367,6 +9408,8 @@ export interface Mutation {
   consumeDesktopToWebLogin: WebAuthPayload;
   consumeTikTokOAuthBrowserStart: TikTokOAuthBrowserStart;
   consumeWebSessionTransfer: WebAuthPayload;
+  /** Create a member account */
+  createAccountMember: AccountMember;
   /** Enable one product for TikTok Open Collaboration and immediately project it. */
   createAffiliateOpenCollaboration: CreateAffiliateOpenCollaborationPayload;
   /** Create a TikTok Target Collaboration and immediately project its Provider detail. */
@@ -9419,6 +9462,10 @@ export interface Mutation {
   csStartSession: CsConversationSignal;
   /** Record a proposal decision. APPROVED executes the frozen intent; REJECTED reverses exactly one pure Sample Application review and is unsupported for multi-action or mixed proposals; REVISION_REQUESTED requires a concrete note. */
   decideActionProposal: ActionProposal;
+  /** Delete a member account */
+  deleteAccountMember: Scalars['Boolean']['output'];
+  /** Delete an account role that no member uses */
+  deleteAccountRole: Scalars['Boolean']['output'];
   /** Delete an affiliate approval interception policy. */
   deleteAffiliateApprovalPolicy: Scalars['Boolean']['output'];
   /** Delete an empty draft Campaign that has no execution, Creator, or delivery history. */
@@ -9590,6 +9637,8 @@ export interface Mutation {
   /** Unenroll from a product module */
   unenrollModule: MeResponse;
   unlinkProductKnowledgeBinding: Scalars['Boolean']['output'];
+  /** Update a member account */
+  updateAccountMember: AccountMember;
   updateAffiliateCreatorChannelContact: AffiliateCreatorChannelContact;
   /** Patch a TikTok Target Collaboration without clearing unspecified Provider fields. */
   updateAffiliateTargetCollaboration: UpdateAffiliateTargetCollaborationPayload;
@@ -9618,6 +9667,8 @@ export interface Mutation {
   webRefresh: WebAuthPayload;
   /** Register in a browser and store the rotating refresh token in an HttpOnly cookie */
   webRegister: WebAuthPayload;
+  /** Create or update an account role */
+  writeAccountRole: AccountRoleType;
   /** Create or update an affiliate approval interception policy. */
   writeAffiliateApprovalPolicy: AffiliateApprovalPolicy;
   writeAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
@@ -9778,6 +9829,11 @@ export interface MutationConsumeWebSessionTransferArgs {
 }
 
 
+export interface MutationCreateAccountMemberArgs {
+  input: CreateAccountMemberInput;
+}
+
+
 export interface MutationCreateAffiliateOpenCollaborationArgs {
   input: CreateAffiliateOpenCollaborationInput;
 }
@@ -9928,6 +9984,16 @@ export interface MutationCsStartSessionArgs {
 
 export interface MutationDecideActionProposalArgs {
   input: DecideActionProposalInput;
+}
+
+
+export interface MutationDeleteAccountMemberArgs {
+  memberId: Scalars['String']['input'];
+}
+
+
+export interface MutationDeleteAccountRoleArgs {
+  roleId: Scalars['String']['input'];
 }
 
 
@@ -10456,6 +10522,11 @@ export interface MutationUnlinkProductKnowledgeBindingArgs {
 }
 
 
+export interface MutationUpdateAccountMemberArgs {
+  input: UpdateAccountMemberInput;
+}
+
+
 export interface MutationUpdateAffiliateCreatorChannelContactArgs {
   input: UpdateAffiliateCreatorChannelContactInput;
 }
@@ -10528,6 +10599,11 @@ export interface MutationWebLoginArgs {
 
 export interface MutationWebRegisterArgs {
   input: RegisterInput;
+}
+
+
+export interface MutationWriteAccountRoleArgs {
+  input: WriteAccountRoleInput;
 }
 
 
@@ -10701,6 +10777,19 @@ export interface PendingTikTokShopClaimView {
   status: PendingTikTokShopClaimStatus;
 }
 
+/** Section-level permission scope granted to an account member through its role. */
+export const PermissionScope = {
+  Ads: 'ADS',
+  Affiliate: 'AFFILIATE',
+  Billing: 'BILLING',
+  Chat: 'CHAT',
+  CustomerService: 'CUSTOMER_SERVICE',
+  Inventory: 'INVENTORY',
+  ShopAnalytics: 'SHOP_ANALYTICS',
+  ShopManagement: 'SHOP_MANAGEMENT'
+} as const;
+
+export type PermissionScope = typeof PermissionScope[keyof typeof PermissionScope];
 export interface PersistentResultArtifact {
   archiveSha256: Scalars['String']['output'];
   compressedBytes: Scalars['Int']['output'];
@@ -11137,6 +11226,10 @@ export interface PublishCsConversationSignalInput {
 }
 
 export interface Query {
+  /** List member accounts under the current account */
+  accountMembers: Array<AccountMember>;
+  /** List roles defined for the current account */
+  accountRoles: Array<AccountRoleType>;
   /** Read durable Affiliate Agent work bundles. */
   actionProposals: Array<ActionProposal>;
   /** Read server-driven announcements for the current user, surface, app version, and locale. */
@@ -14174,6 +14267,15 @@ export interface UnrecognizedWmsInventoryGood {
   widthValue?: Maybe<Scalars['Float']['output']>;
 }
 
+/** Update a member account. Omitted fields are left unchanged. */
+export interface UpdateAccountMemberInput {
+  disabled?: InputMaybe<Scalars['Boolean']['input']>;
+  memberId: Scalars['String']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
+  roleId?: InputMaybe<Scalars['String']['input']>;
+}
+
 export interface UpdateAffiliateCreatorChannelContactInput {
   customAlias?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
@@ -14579,6 +14681,13 @@ export interface WmsWarehouseSyncPayload {
   warehousesSynced: Scalars['Int']['output'];
   /** WMS account ID that was synced. */
   wmsAccountId: Scalars['ID']['output'];
+}
+
+/** Create a role when roleId is absent, otherwise update it. */
+export interface WriteAccountRoleInput {
+  name: Scalars['String']['input'];
+  roleId?: InputMaybe<Scalars['String']['input']>;
+  scopes: Array<PermissionScope>;
 }
 
 export interface WriteAffiliateApprovalPolicyInput {
