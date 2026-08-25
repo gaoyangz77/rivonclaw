@@ -48,6 +48,7 @@ import {
 type CampaignProductForm = {
   productId: string;
   commissionRate: string;
+  shopAdsCommissionRate: string;
 };
 
 type CampaignForm = {
@@ -91,7 +92,7 @@ type CampaignForm = {
 
 const emptyForm: CampaignForm = {
   shopId: "",
-  products: [{ productId: "", commissionRate: "10" }],
+  products: [{ productId: "", commissionRate: "10", shopAdsCommissionRate: "10" }],
   name: "",
   dailyTarget: "100",
   endDays: "30",
@@ -532,6 +533,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       products: campaign.products.map((product) => ({
         productId: product.productId,
         commissionRate: String(product.commissionRatePercent),
+        shopAdsCommissionRate: String(
+          product.shopAdsCommissionRatePercent ?? product.commissionRatePercent,
+        ),
       })),
       name: campaign.name,
       dailyTarget: String(campaign.dailyOutreachTarget),
@@ -598,7 +602,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const addProduct = () => {
     setForm((current) => ({
       ...current,
-      products: [...current.products, { productId: "", commissionRate: "10" }],
+      products: [...current.products, {
+        productId: "",
+        commissionRate: "10",
+        shopAdsCommissionRate: "10",
+      }],
     }));
   };
 
@@ -614,8 +622,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const productsInvalid = form.products.some((product) => {
-    const rate = Number(product.commissionRate);
-    return !product.productId.trim() || !Number.isFinite(rate) || rate < 0 || rate > 100;
+    return !product.productId.trim() ||
+      !isAffiliateCampaignCommissionRateValid(product.commissionRate) ||
+      !isAffiliateCampaignCommissionRateValid(product.shopAdsCommissionRate);
   }) || new Set(form.products.map((product) => product.productId.trim())).size
     !== form.products.length;
   const unsupportedTemplateVariables = unsupportedAffiliateCampaignTemplateVariables(
@@ -723,6 +732,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         products: form.products.map((product) => ({
           productId: product.productId.trim(),
           commissionRatePercent: Number(product.commissionRate),
+          shopAdsCommissionRatePercent: Number(product.shopAdsCommissionRate),
         })),
         refreshProductSnapshot: form.refreshProductSnapshot,
         searchPlanGuidance: form.searchPlanGuidance.trim() || null,
@@ -1422,8 +1432,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                         : campaignReadinessMessage(selectionReadiness.reasonCode, t)}
                   </span>
                   <span className="affiliate-campaign-modal-commission">
-                    {t("ecommerce.affiliateCampaign.commissionRate")} ·{" "}
-                    {selectedCampaign.products[0]?.commissionRatePercent ?? 0}%
+                    {t("ecommerce.affiliateCampaign.ordinaryCommissionRate")} ·{" "}
+                    {selectedCampaign.products.map((product) =>
+                      `${product.productId} ${product.commissionRatePercent}%`).join(" · ")}
+                  </span>
+                  <span className="affiliate-campaign-modal-commission">
+                    {t("ecommerce.affiliateCampaign.shopAdsCommissionRate")} ·{" "}
+                    {selectedCampaign.products.map((product) =>
+                      `${product.productId} ${product.shopAdsCommissionRatePercent ??
+                        product.commissionRatePercent}%`).join(" · ")}
                   </span>
                   <button
                     type="button"
@@ -2017,15 +2034,28 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                             />
                           </label>
                           <label className="affiliate-campaign-offer-field">
-                            <span>{t("ecommerce.affiliateCampaign.commissionColumn")}</span>
+                            <span>{t("ecommerce.affiliateCampaign.ordinaryCommissionColumn")}</span>
                             <input
                               type="number"
-                              min={0}
-                              max={100}
+                              min={1}
+                              max={80}
                               step="0.1"
                               value={product.commissionRate}
                               onChange={(event) =>
                                 updateProduct(index, { commissionRate: event.target.value })}
+                            />
+                          </label>
+                          <label className="affiliate-campaign-offer-field">
+                            <span>{t("ecommerce.affiliateCampaign.shopAdsCommissionColumn")}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={80}
+                              step="0.1"
+                              value={product.shopAdsCommissionRate}
+                              onChange={(event) => updateProduct(index, {
+                                shopAdsCommissionRate: event.target.value,
+                              })}
                             />
                           </label>
                           <button
@@ -2621,9 +2651,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   value={campaignStrategyLabel(form.strategy, t)}
                 />
                 <ConfirmationItem
-                  title={t("ecommerce.affiliateCampaign.commissionRate")}
+                  title={t("ecommerce.affiliateCampaign.ordinaryCommissionRate")}
                   value={form.products
                     .map((product) => `${product.productId} · ${product.commissionRate}%`)
+                    .join("  |  ")}
+                />
+                <ConfirmationItem
+                  title={t("ecommerce.affiliateCampaign.shopAdsCommissionRate")}
+                  value={form.products
+                    .map((product) => `${product.productId} · ${product.shopAdsCommissionRate}%`)
                     .join("  |  ")}
                 />
                 <ConfirmationItem
@@ -4043,6 +4079,11 @@ function executionStatusLabel(
 function campaignCommissionRate(campaign: GQL.AffiliateCampaign): number {
   const value = Number(campaign.products?.[0]?.commissionRatePercent);
   return Number.isFinite(value) ? value : 10;
+}
+
+export function isAffiliateCampaignCommissionRateValid(value: string | number): boolean {
+  const rate = Number(value);
+  return Number.isFinite(rate) && rate >= 1 && rate <= 80;
 }
 
 export function estimateCampaignCadence(target: number, submitted: number) {

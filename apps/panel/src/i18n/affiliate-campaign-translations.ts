@@ -180,7 +180,9 @@ const en = {
   leadProduct: "Search and message product",
   offerTitle: "Products and commission",
   commissionColumn: "Commission %",
-  offerHint: "Each product carries its own commission. The first product is the one Creator search and the message are built around; the rest ride along in the same collaboration.",
+  ordinaryCommissionColumn: "Standard commission %",
+  shopAdsCommissionColumn: "Shop Ads commission %",
+  offerHint: "Standard commission applies to organic-attributed orders. Shop Ads commission applies when the order is attributed to seller-funded Shop Ads. Each product keeps both terms independently; TikTok settles the applicable rate.",
   addProduct: "Add product",
   removeProduct: "Remove",
   minimumFollowers: "Minimum followers",
@@ -190,6 +192,8 @@ const en = {
   ready: "Ready",
   checkingReadiness: "Checking readiness…",
   commissionRate: "Planned commission rate",
+  ordinaryCommissionRate: "Standard commission rate",
+  shopAdsCommissionRate: "Shop Ads commission rate",
   firstMessage: "Published first message",
   viewFirstMessage: "View first message",
   hideFirstMessage: "Hide first message",
@@ -305,6 +309,8 @@ const en = {
   providerOrderNoFollowerFloor: "Provider order · no follower floor",
   commissionRateHint:
     "A campaign business term shown in the offer; it is not substituted into the Expected Sales feature contract.",
+  shopAdsCommissionRateHint:
+    "Used for orders attributed to seller-funded Shop Ads. It may be higher or lower than the standard commission.",
   noMinimum: "No minimum",
   marketplaceKeyword: "Marketplace keyword (optional)",
   marketplaceSearchPhrases: "Creator Marketplace search phrases",
@@ -772,7 +778,9 @@ const zh = {
   leadProduct: "搜索与文案商品",
   offerTitle: "推广商品与佣金",
   commissionColumn: "佣金 %",
-  offerHint: "每个商品各自设定佣金。第一个商品决定达人搜索方向和消息文案，其余商品一起放进同一个合作。",
+  ordinaryCommissionColumn: "普通佣金 %",
+  shopAdsCommissionColumn: "Shop Ads 广告佣金 %",
+  offerHint: "自然流量归因订单使用普通佣金；商家投放的 Shop Ads 归因订单使用广告佣金。每个商品的两项条款独立设置，由 TikTok 自动按归因结算。",
   addProduct: "添加商品",
   removeProduct: "移除",
   minimumFollowers: "最低粉丝数",
@@ -782,6 +790,8 @@ const zh = {
   ready: "已就绪",
   checkingReadiness: "正在检查…",
   commissionRate: "计划佣金率",
+  ordinaryCommissionRate: "普通佣金率",
+  shopAdsCommissionRate: "Shop Ads 广告佣金率",
   firstMessage: "已发布首信",
   viewFirstMessage: "查看首信",
   hideFirstMessage: "收起首信",
@@ -890,6 +900,7 @@ const zh = {
   followerRangeCompact: "粉丝 {{minimum}}–{{maximum}}",
   providerOrderNoFollowerFloor: "按达人广场顺序 · 不设粉丝下限",
   commissionRateHint: "这是首信邀约中的商业条款，不会被伪装成 Expected Sales 模型特征。",
+  shopAdsCommissionRateHint: "用于商家投放的 Shop Ads 归因订单，可高于或低于普通佣金率。",
   noMinimum: "不设下限",
   marketplaceKeyword: "达人广场关键词（可选）",
   marketplaceSearchPhrases: "达人广场搜索短语",
@@ -2057,6 +2068,69 @@ const operationalCopy = {
   },
 } as const;
 
+const commissionCopy = {
+  de: {
+    ordinaryCommissionColumn: "Standardprovision %",
+    shopAdsCommissionColumn: "Shop-Ads-Provision %",
+    ordinaryCommissionRate: "Standardprovision",
+    shopAdsCommissionRate: "Shop-Ads-Provision",
+    offerHint:
+      "Für organisch zugeordnete Bestellungen gilt die Standardprovision. Für Bestellungen aus vom Verkäufer finanzierten Shop Ads gilt die Shop-Ads-Provision. TikTok rechnet den passenden Satz automatisch ab.",
+    shopAdsCommissionRateHint:
+      "Gilt für Bestellungen aus vom Verkäufer finanzierten Shop Ads und kann höher oder niedriger als die Standardprovision sein.",
+  },
+  es: {
+    ordinaryCommissionColumn: "Comisión estándar %",
+    shopAdsCommissionColumn: "Comisión de Shop Ads %",
+    ordinaryCommissionRate: "Comisión estándar",
+    shopAdsCommissionRate: "Comisión de Shop Ads",
+    offerHint:
+      "La comisión estándar se aplica a pedidos atribuidos al tráfico orgánico. La comisión de Shop Ads se aplica a pedidos atribuidos a anuncios financiados por el vendedor. TikTok liquida automáticamente la tarifa correspondiente.",
+    shopAdsCommissionRateHint:
+      "Se usa para pedidos atribuidos a Shop Ads financiados por el vendedor y puede ser mayor o menor que la comisión estándar.",
+  },
+  fr: {
+    ordinaryCommissionColumn: "Commission standard %",
+    shopAdsCommissionColumn: "Commission Shop Ads %",
+    ordinaryCommissionRate: "Commission standard",
+    shopAdsCommissionRate: "Commission Shop Ads",
+    offerHint:
+      "La commission standard s’applique aux commandes attribuées au trafic organique. La commission Shop Ads s’applique aux commandes attribuées aux publicités financées par le vendeur. TikTok règle automatiquement le taux applicable.",
+    shopAdsCommissionRateHint:
+      "Utilisée pour les commandes attribuées aux Shop Ads financées par le vendeur ; elle peut être supérieure ou inférieure à la commission standard.",
+  },
+  id: {
+    ordinaryCommissionColumn: "Komisi standar %",
+    shopAdsCommissionColumn: "Komisi Shop Ads %",
+    ordinaryCommissionRate: "Komisi standar",
+    shopAdsCommissionRate: "Komisi Shop Ads",
+    offerHint:
+      "Komisi standar berlaku untuk pesanan dari trafik organik. Komisi Shop Ads berlaku untuk pesanan yang diatribusikan ke iklan yang didanai penjual. TikTok menghitung tarif yang sesuai secara otomatis.",
+    shopAdsCommissionRateHint:
+      "Digunakan untuk pesanan dari Shop Ads yang didanai penjual dan dapat lebih tinggi atau lebih rendah dari komisi standar.",
+  },
+  it: {
+    ordinaryCommissionColumn: "Commissione standard %",
+    shopAdsCommissionColumn: "Commissione Shop Ads %",
+    ordinaryCommissionRate: "Commissione standard",
+    shopAdsCommissionRate: "Commissione Shop Ads",
+    offerHint:
+      "La commissione standard si applica agli ordini attribuiti al traffico organico. La commissione Shop Ads si applica agli ordini attribuiti agli annunci finanziati dal venditore. TikTok liquida automaticamente la tariffa applicabile.",
+    shopAdsCommissionRateHint:
+      "Usata per gli ordini attribuiti a Shop Ads finanziati dal venditore; può essere superiore o inferiore alla commissione standard.",
+  },
+  th: {
+    ordinaryCommissionColumn: "คอมมิชชันปกติ %",
+    shopAdsCommissionColumn: "คอมมิชชัน Shop Ads %",
+    ordinaryCommissionRate: "อัตราคอมมิชชันปกติ",
+    shopAdsCommissionRate: "อัตราคอมมิชชัน Shop Ads",
+    offerHint:
+      "คำสั่งซื้อจากทราฟฟิกธรรมชาติใช้อัตราคอมมิชชันปกติ ส่วนคำสั่งซื้อที่มาจาก Shop Ads ที่ผู้ขายเป็นผู้ลงโฆษณาใช้อัตรา Shop Ads โดย TikTok จะคำนวณอัตราที่เกี่ยวข้องให้อัตโนมัติ",
+    shopAdsCommissionRateHint:
+      "ใช้กับคำสั่งซื้อที่มาจาก Shop Ads ของผู้ขาย และอาจสูงหรือต่ำกว่าอัตราคอมมิชชันปกติได้",
+  },
+} as const;
+
 function locale(
   title: string,
   subtitle: string,
@@ -2092,6 +2166,7 @@ function locale(
       ...decisionReason,
     },
     ...(operational ?? {}),
+    ...(operationalLocale ? commissionCopy[operationalLocale] : {}),
     errors: {
       ...en.errors,
       ...(operational?.errors ?? {}),

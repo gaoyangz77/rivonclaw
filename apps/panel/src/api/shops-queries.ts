@@ -283,6 +283,7 @@ const AFFILIATE_CAMPAIGN_FIELDS = gql`
     products {
       productId
       commissionRatePercent
+      shopAdsCommissionRatePercent
     }
     endDays
     isSampleApprovalExempt

@@ -34222,7 +34222,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 .affiliate-campaign-offer-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px auto auto;
+  grid-template-columns: minmax(0, 1fr) 104px 124px auto auto;
   gap: 9px;
   /* The buttons have no label above them, so they align to the inputs' bottom
      edge rather than stretching to the label's height. */
@@ -36495,6 +36495,12 @@ html[lang="zh"] .acct-tool-chips {
   }
   .affiliate-campaign-command-strip > div {
     border-right: 0;
+  }
+  .affiliate-campaign-offer-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .affiliate-campaign-offer-row > .affiliate-campaign-offer-field:first-child {
+    grid-column: 1 / -1;
   }
   .affiliate-campaign-detail-header,
   .affiliate-campaign-section-heading {

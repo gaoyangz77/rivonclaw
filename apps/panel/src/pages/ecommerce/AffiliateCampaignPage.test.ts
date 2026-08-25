@@ -15,6 +15,7 @@ import {
   estimateCampaignCadence,
   eligibilityReasonLabel,
   isEnglishCampaignSearchPhrase,
+  isAffiliateCampaignCommissionRateValid,
   normalizeSuggestedDiscoveryRules,
   normalizeCampaignExplanationLocale,
   paginateCampaigns,
@@ -42,6 +43,22 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(estimateCampaignCadence(100, 0)).toBe("8.3");
     expect(estimateCampaignCadence(100, 50)).toBe("4.2");
     expect(estimateCampaignCadence(1, 0)).toBe("0.1");
+  });
+
+  it("validates standard and Shop Ads rates against TikTok's 1–80% range", () => {
+    expect(isAffiliateCampaignCommissionRateValid("1")).toBe(true);
+    expect(isAffiliateCampaignCommissionRateValid("80")).toBe(true);
+    expect(isAffiliateCampaignCommissionRateValid("0.5")).toBe(false);
+    expect(isAffiliateCampaignCommissionRateValid("80.1")).toBe(false);
+    expect(isAffiliateCampaignCommissionRateValid("")).toBe(false);
+  });
+
+  it("ships both commission labels and attribution guidance in all eight locales", () => {
+    for (const { ecommerce } of Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS)) {
+      expect(ecommerce.affiliateCampaign.ordinaryCommissionRate).toBeTruthy();
+      expect(ecommerce.affiliateCampaign.shopAdsCommissionRate).toBeTruthy();
+      expect(ecommerce.affiliateCampaign.offerHint).toBeTruthy();
+    }
   });
 
   it("never presents a failed CreatorState query as an empty campaign", () => {
