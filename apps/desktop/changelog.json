@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.115",
+    "date": "2026-08-24",
+    "en": [
+      "Add a cohort-based Affiliate Analytics overview and improve campaign workflows",
+      "Recover stalled customer-service runs and long tool-heavy conversations automatically"
+    ],
+    "zh": [
+      "新增基于分群的联盟分析总览，并优化达人活动工作流",
+      "自动恢复卡住的客服任务和工具调用较多的长会话"
+    ]
+  },
+  {
     "version": "1.8.114",
     "date": "2026-08-22",
     "en": [
