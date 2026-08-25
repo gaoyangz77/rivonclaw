@@ -527,6 +527,9 @@ describe("LLMProviderManager", () => {
       createdAt: "2026-01-01T00:00:00Z",
       enrolledModules: [],
       entitlementKeys: [],
+      accountId: "u1",
+      isOwner: true,
+      permissionScopes: [],
       defaultRunProfileId: null,
     });
 
@@ -674,6 +677,9 @@ describe("LLMProviderManager", () => {
       createdAt: "2026-01-01T00:00:00Z",
       enrolledModules: [],
       entitlementKeys: [],
+      accountId: "u1",
+      isOwner: true,
+      permissionScopes: [],
       defaultRunProfileId: null,
     });
 
@@ -812,6 +818,9 @@ describe("LLMProviderManager", () => {
       createdAt: "2026-01-01T00:00:00Z",
       enrolledModules: [],
       entitlementKeys: [],
+      accountId: "u1",
+      isOwner: true,
+      permissionScopes: [],
       defaultRunProfileId: null,
     });
 
@@ -912,6 +921,9 @@ describe("LLMProviderManager", () => {
       createdAt: "2026-01-01T00:00:00Z",
       enrolledModules: [],
       entitlementKeys: [],
+      accountId: "u1",
+      isOwner: true,
+      permissionScopes: [],
       defaultRunProfileId: null,
     });
 
@@ -1004,6 +1016,9 @@ describe("LLMProviderManager", () => {
       createdAt: "2026-01-01T00:00:00Z",
       enrolledModules: [],
       entitlementKeys: [],
+      accountId: "u1",
+      isOwner: true,
+      permissionScopes: [],
       defaultRunProfileId: null,
     });
 

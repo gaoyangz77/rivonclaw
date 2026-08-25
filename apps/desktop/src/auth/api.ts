@@ -166,10 +166,21 @@ const storeTokens: EndpointHandler = async (req, res, _url, _params, ctx: ApiCon
   if (!user) {
     const payload = decodeJwtPayload(body.accessToken);
     if (payload && typeof payload.email === "string") {
+      const actorId = typeof payload.userId === "string" ? payload.userId : ((payload.sub as string) ?? "");
+      // The token carries its owning account; a token issued before sub-accounts
+      // existed has none, which means the signer was a main account.
+      const accountId = typeof payload.accountId === "string" ? payload.accountId : "";
       user = {
-        userId: (payload.sub as string) ?? "",
+        userId: actorId,
         email: payload.email,
         name: null,
+        accountId: accountId || actorId,
+        // Offline we cannot know a member's scopes, so grant none: a member sees
+        // only the unscoped base pages until `me` succeeds. Never default a member
+        // to owner here — that would unlock every menu on a network blip.
+        isOwner: !accountId || accountId === actorId,
+        permissionScopes: [],
+        roleName: null,
         enrolledModules: [],
         entitlementKeys: [],
         defaultRunProfileId: null,

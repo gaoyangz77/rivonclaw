@@ -113,6 +113,10 @@ export const INIT_ME_QUERY = `
       createdAt
       enrolledModules
       entitlementKeys
+      accountId
+      isOwner
+      permissionScopes
+      roleName
       defaultRunProfileId
       support {
         telegramDebugProxyToken

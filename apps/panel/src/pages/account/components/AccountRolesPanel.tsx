@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
+import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import type { AccountRole } from "../hooks/useSubAccounts.js";
 
 const ALL_SCOPES = Object.values(GQL.PermissionScope);
@@ -26,6 +27,7 @@ export function AccountRolesPanel({
   onDeleteRole,
 }: AccountRolesPanelProps) {
   const { t } = useTranslation();
+  const { ofRole } = useRoleDisplayName(roles);
   // "new" = the create form; a role id = that role's inline editor.
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -64,18 +66,37 @@ export function AccountRolesPanel({
     if (ok) closeEditor();
   }
 
+  /**
+   * Why a role cannot be deleted, or null when it can be.
+   *
+   * A built-in role re-seeds itself, so the backend refuses to delete it at
+   * all — that case is checked first, because telling the owner to move its
+   * sub-accounts away would promise a deletion that still would not happen.
+   */
+  function deleteBlockedHint(role: AccountRole): string | null {
+    if (role.isSystem) return t("subAccounts.systemRoleUndeletableHint");
+    if (role.memberCount > 0) return t("subAccounts.roleInUseHint");
+    return null;
+  }
+
   const confirmDeleteRole = confirmDeleteRoleId
     ? roles.find((role) => role.id === confirmDeleteRoleId) ?? null
     : null;
 
-  function renderEditor(isSystem: boolean) {
+  /** @param role the role being edited, or null for the create form. */
+  function renderEditor(role: AccountRole | null) {
+    const isSystem = role?.isSystem ?? false;
+    // A built-in role's name is fixed, so it is shown translated while the
+    // draft keeps the stored name — saving its sections must not read as a
+    // rename, which the backend rejects.
+    const nameValue = role && role.isSystem ? ofRole(role) : draftName;
     return (
       <div className="acct-item acct-role-editor">
         <div>
           <label className="form-label-block">{t("subAccounts.roleNameLabel")}</label>
           <input
             type="text"
-            value={draftName}
+            value={nameValue}
             onChange={(e) => setDraftName(e.target.value)}
             placeholder={t("subAccounts.roleNamePlaceholder")}
             className="input-full"
@@ -133,7 +154,7 @@ export function AccountRolesPanel({
         </div>
       </div>
 
-      {editingKey === "new" && renderEditor(false)}
+      {editingKey === "new" && renderEditor(null)}
 
       {roles.length === 0 && editingKey !== "new" ? (
         <div className="empty-cell">{t("subAccounts.noRoles")}</div>
@@ -141,11 +162,11 @@ export function AccountRolesPanel({
         <div className="acct-item-list">
           {roles.map((role) =>
             editingKey === role.id ? (
-              <div key={role.id}>{renderEditor(role.isSystem)}</div>
+              <div key={role.id}>{renderEditor(role)}</div>
             ) : (
               <div key={role.id} className="acct-item">
                 <div className="acct-item-title-row">
-                  <span className="acct-item-name">{role.name}</span>
+                  <span className="acct-item-name">{ofRole(role)}</span>
                   {role.isSystem && (
                     <span className="badge badge-muted">{t("subAccounts.systemRole")}</span>
                   )}
@@ -156,10 +177,8 @@ export function AccountRolesPanel({
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => setConfirmDeleteRoleId(role.id)}
-                      disabled={role.memberCount > 0 || deletingRole}
-                      title={
-                        role.memberCount > 0 ? t("subAccounts.roleInUseHint") : undefined
-                      }
+                      disabled={role.isSystem || role.memberCount > 0 || deletingRole}
+                      title={deleteBlockedHint(role) ?? undefined}
                     >
                       {t("common.delete")}
                     </button>
@@ -168,8 +187,8 @@ export function AccountRolesPanel({
                 <div className="acct-item-meta">
                   <span>{t("subAccounts.roleMemberCount", { count: role.memberCount })}</span>
                 </div>
-                {role.memberCount > 0 && (
-                  <div className="form-hint">{t("subAccounts.roleInUseHint")}</div>
+                {deleteBlockedHint(role) && (
+                  <div className="form-hint">{deleteBlockedHint(role)}</div>
                 )}
                 <div className="acct-tool-chips">
                   {role.scopes.length === 0 ? (
@@ -191,7 +210,9 @@ export function AccountRolesPanel({
       <ConfirmDialog
         isOpen={confirmDeleteRole !== null}
         title={t("subAccounts.deleteRoleTitle")}
-        message={t("subAccounts.deleteRoleMessage", { name: confirmDeleteRole?.name ?? "" })}
+        message={t("subAccounts.deleteRoleMessage", {
+          name: confirmDeleteRole ? ofRole(confirmDeleteRole) : "",
+        })}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
         onConfirm={() => {
