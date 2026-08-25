@@ -3410,6 +3410,12 @@ function AffiliateCollaborationCard({
   const { t } = useTranslation();
   const creatorCount = collaboration.creatorIds.length || collaboration.creatorOpenIds.length;
   const productCount = collaboration.productIds.length;
+  const targetCommissionRates = collaboration.products
+    .filter((product) => !["DELETED", "DELETING"].includes(product.collaborationStatus?.toUpperCase() ?? ""))
+    .map((product) => affiliateBpsPercentValue(product.commission?.rate));
+  const targetAdsCommissionRates = collaboration.products
+    .filter((product) => !["DELETED", "DELETING"].includes(product.collaborationStatus?.toUpperCase() ?? ""))
+    .map((product) => affiliateBpsPercentValue(product.commission?.shopAdsCommissionRate));
   const statusDisplay = {
     primary: formatAffiliateEnumLabel(collaboration.status),
     secondary: formatAffiliateEnumLabel(collaboration.type),
@@ -3480,10 +3486,23 @@ function AffiliateCollaborationCard({
             label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
             value={formatInteger(productCount)}
           />
-          <RelationshipMetric
-            label={t("ecommerce.affiliateWorkspace.collaborationOperations.commissionRate")}
-            value={collaboration.commissionRate == null ? "—" : formatPercent(collaboration.commissionRate)}
-          />
+          {collaboration.type === GQL.AffiliateCollaborationType.Target ? (
+            <>
+              <RelationshipMetric
+                label={t("ecommerce.affiliateWorkspace.collaborationOperations.commissionPercent")}
+                value={affiliateCommissionPercentRange(targetCommissionRates)}
+              />
+              <RelationshipMetric
+                label={t("ecommerce.affiliateWorkspace.collaborationOperations.adsCommissionPercent")}
+                value={affiliateCommissionPercentRange(targetAdsCommissionRates)}
+              />
+            </>
+          ) : (
+            <RelationshipMetric
+              label={t("ecommerce.affiliateWorkspace.collaborationOperations.commissionRate")}
+              value={collaboration.commissionRate == null ? "—" : formatPercent(collaboration.commissionRate)}
+            />
+          )}
         </div>
       </div>
       <div className="affiliate-collaboration-card-footer">
@@ -3815,6 +3834,19 @@ function affiliateBpsPercentValue(value: number | null | undefined): string {
   return String(value / 100);
 }
 
+export function affiliateCommissionPercentRange(values: readonly string[]): string {
+  const rates = [...new Set(values.flatMap((value) => {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) && parsed >= 0 ? [parsed] : [];
+  }))].sort((left, right) => left - right);
+  if (rates.length === 0) return "—";
+  const first = formatPercent(rates[0]! / 100);
+  const last = formatPercent(rates[rates.length - 1]! / 100);
+  return first === last ? first : `${first}–${last}`;
+}
+
 function affiliateDateTimeLocalValue(value: string | number | null | undefined): string {
   if (value == null || value === "") return "";
   const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
@@ -3929,6 +3961,21 @@ function AffiliateCollaborationConfigurationSnapshot({
           </div>
         ))}
       </div>
+      {collaboration.type === GQL.AffiliateCollaborationType.Target ? (
+        <div className="affiliate-platform-product-commission-snapshot">
+          {targetProductDrafts(collaboration).map((product) => (
+            <div className="affiliate-platform-product-commission-row" key={product.productId}>
+              <span className="input-mono">{product.productId}</span>
+              <span>
+                {t("ecommerce.affiliateWorkspace.collaborationOperations.commissionPercent")}: {affiliateCommissionPercentRange([product.commissionPercent])}
+              </span>
+              <span>
+                {t("ecommerce.affiliateWorkspace.collaborationOperations.adsCommissionPercent")}: {affiliateCommissionPercentRange([product.adsCommissionPercent])}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {collaboration.type === GQL.AffiliateCollaborationType.Open ? (
         <div className="affiliate-platform-collaboration-guardrail">
           <InfoIcon />

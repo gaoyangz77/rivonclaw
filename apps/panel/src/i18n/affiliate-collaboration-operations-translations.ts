@@ -25,7 +25,7 @@ const en = {
   targetInvitation: "Private creator invitation",
   targetInvitationHint: "Visible only to the creators explicitly included in this Target Collaboration.",
   commissionRate: "Commission rate",
-  commissionPercent: "Commission %",
+  commissionPercent: "Standard commission %",
   adsCommissionPercent: "Shop Ads commission %",
   commissionRangeHint: "Enter 1–80%. The API receives basis points.",
   commissionLockedTitle: "Commission is set at creation",
@@ -130,7 +130,7 @@ const zh = {
   targetInvitation: "定向达人邀请",
   targetInvitationHint: "仅对这个 Target Collaboration 中明确邀请的达人可见。",
   commissionRate: "佣金率",
-  commissionPercent: "佣金率 %",
+  commissionPercent: "普通佣金率 %",
   adsCommissionPercent: "Shop Ads 佣金率 %",
   commissionRangeHint: "请输入 1–80%，系统会转换为基点提交。",
   commissionLockedTitle: "佣金仅在创建时设定",
@@ -217,6 +217,7 @@ const de = localized({
   removeConfirmTitle: "Kooperation beenden?", removeConfirmAction: "Kooperation beenden", createOnTikTok: "Auf TikTok erstellen",
   shop: "Shop", productId: "Produkt-ID", name: "Name", endTime: "Endzeit", sellerContact: "Verkäuferkontakt",
   enabled: "Aktiviert", disabled: "Deaktiviert", saveSettings: "Einstellungen speichern", operationFailed: "Plattformvorgang fehlgeschlagen",
+  commissionPercent: "Standardprovision %", adsCommissionPercent: "Shop-Ads-Provision %",
 });
 const es = localized({
   openSettings: "Ajustes de Open", newCollaboration: "Nueva colaboración", editConfiguration: "Editar configuración",
@@ -224,6 +225,7 @@ const es = localized({
   removeConfirmTitle: "¿Detener colaboración?", removeConfirmAction: "Detener colaboración", createOnTikTok: "Crear en TikTok",
   shop: "Tienda", productId: "ID de producto", name: "Nombre", endTime: "Fecha de fin", sellerContact: "Contacto del vendedor",
   enabled: "Activado", disabled: "Desactivado", saveSettings: "Guardar ajustes", operationFailed: "Falló la operación de plataforma",
+  commissionPercent: "Comisión estándar %", adsCommissionPercent: "Comisión de Shop Ads %",
 });
 const fr = localized({
   openSettings: "Paramètres Open", newCollaboration: "Nouvelle collaboration", editConfiguration: "Modifier la configuration",
@@ -231,6 +233,7 @@ const fr = localized({
   removeConfirmTitle: "Arrêter la collaboration ?", removeConfirmAction: "Arrêter", createOnTikTok: "Créer sur TikTok",
   shop: "Boutique", productId: "ID produit", name: "Nom", endTime: "Date de fin", sellerContact: "Contact vendeur",
   enabled: "Activé", disabled: "Désactivé", saveSettings: "Enregistrer les paramètres", operationFailed: "L’opération de plateforme a échoué",
+  commissionPercent: "Commission standard %", adsCommissionPercent: "Commission Shop Ads %",
 });
 const id = localized({
   openSettings: "Pengaturan Open", newCollaboration: "Kolaborasi baru", editConfiguration: "Edit konfigurasi",
@@ -238,6 +241,7 @@ const id = localized({
   removeConfirmTitle: "Hentikan kolaborasi?", removeConfirmAction: "Hentikan kolaborasi", createOnTikTok: "Buat di TikTok",
   shop: "Toko", productId: "ID produk", name: "Nama", endTime: "Waktu berakhir", sellerContact: "Kontak penjual",
   enabled: "Aktif", disabled: "Nonaktif", saveSettings: "Simpan pengaturan", operationFailed: "Operasi platform gagal",
+  commissionPercent: "Komisi standar %", adsCommissionPercent: "Komisi Shop Ads %",
 });
 const it = localized({
   openSettings: "Impostazioni Open", newCollaboration: "Nuova collaborazione", editConfiguration: "Modifica configurazione",
@@ -245,6 +249,7 @@ const it = localized({
   removeConfirmTitle: "Interrompere la collaborazione?", removeConfirmAction: "Interrompi", createOnTikTok: "Crea su TikTok",
   shop: "Negozio", productId: "ID prodotto", name: "Nome", endTime: "Data di fine", sellerContact: "Contatto venditore",
   enabled: "Attivo", disabled: "Disattivato", saveSettings: "Salva impostazioni", operationFailed: "Operazione piattaforma non riuscita",
+  commissionPercent: "Commissione standard %", adsCommissionPercent: "Commissione Shop Ads %",
 });
 const th = localized({
   openSettings: "การตั้งค่า Open", newCollaboration: "สร้างความร่วมมือ", editConfiguration: "แก้ไขการตั้งค่า",
@@ -252,6 +257,7 @@ const th = localized({
   removeConfirmTitle: "หยุดความร่วมมือหรือไม่", removeConfirmAction: "หยุดความร่วมมือ", createOnTikTok: "สร้างบน TikTok",
   shop: "ร้านค้า", productId: "รหัสสินค้า", name: "ชื่อ", endTime: "เวลาสิ้นสุด", sellerContact: "ข้อมูลติดต่อผู้ขาย",
   enabled: "เปิดใช้งาน", disabled: "ปิดใช้งาน", saveSettings: "บันทึกการตั้งค่า", operationFailed: "การดำเนินการบนแพลตฟอร์มล้มเหลว",
+  commissionPercent: "ค่าคอมมิชชันมาตรฐาน %", adsCommissionPercent: "ค่าคอมมิชชัน Shop Ads %",
 });
 
 // The two manage tools survive as agent tools even though their proposal-type
