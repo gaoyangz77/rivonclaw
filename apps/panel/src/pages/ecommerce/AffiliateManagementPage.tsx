@@ -42,7 +42,7 @@ import {
   REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION,
   UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
 } from "../../api/shops-queries.js";
-import { creatorSampleTierDisplay } from "./affiliate-creator-tiers.js";
+import { creatorSampleTierDisplay, creatorSampleTierLabel } from "./affiliate-creator-tiers.js";
 import { AffiliateCreatorFilterGroups } from "./components/AffiliateCreatorFilterGroups.js";
 import {
   AffiliateCreatorManualTagEditor,
@@ -2948,7 +2948,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head affiliate-creators-panel-head">
-          <div>
+          <div className="affiliate-creators-panel-head-copy">
             <div className="affiliate-workbench-panel-title">
               {t("ecommerce.affiliateWorkspace.creatorsPanelTitle")}
             </div>
@@ -2956,39 +2956,28 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               {t("ecommerce.affiliateWorkspace.creatorsPanelHint")}
             </div>
           </div>
-          <div
-            className="affiliate-attention-toolbar"
-            data-tutorial-id="affiliate-creators-filters"
-          >
-            <label className="affiliate-filter-field affiliate-filter-field-search">
-              <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
-              <input
-                className="affiliate-attention-search"
-                value={creatorSearch}
-                onChange={(event) => setCreatorSearch(event.target.value)}
-                placeholder={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
-                aria-label={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
-              />
-            </label>
-            <label className="affiliate-creators-toggle">
-              <input
-                type="checkbox"
-                checked={needsAttentionOnly}
-                onChange={(event) => setNeedsAttentionOnly(event.target.checked)}
-              />
-              <span>{t("ecommerce.affiliateWorkspace.creatorAttentionOnly")}</span>
-            </label>
-          </div>
+          <label className="affiliate-filter-field affiliate-creators-search">
+            <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
+            <input
+              className="affiliate-attention-search"
+              value={creatorSearch}
+              onChange={(event) => setCreatorSearch(event.target.value)}
+              placeholder={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
+              aria-label={t("ecommerce.affiliateWorkspace.creatorSearchPlaceholder")}
+            />
+          </label>
         </div>
 
         <AffiliateCreatorFilterGroups
           manualTagCatalog={manualTagCatalog}
           manualTagMatchMode={manualTagMatchMode}
+          needsAttentionOnly={needsAttentionOnly}
           selectedManualTagIds={selectedManualTagIds}
           selectedSampleTiers={selectedSampleTiers}
           selectedShopSampleTiers={selectedShopSampleTiers}
           shopSelected={Boolean(selectedShopId)}
           onManualTagMatchModeChange={setManualTagMatchMode}
+          onNeedsAttentionOnlyChange={setNeedsAttentionOnly}
           onSelectedManualTagIdsChange={setSelectedManualTagIds}
           onSelectedSampleTiersChange={setSelectedSampleTiers}
           onSelectedShopSampleTiersChange={setSelectedShopSampleTiers}
@@ -3141,6 +3130,10 @@ function CreatorRelationshipCard({
     latestRecord?.shopId,
   ].filter((shopId): shopId is string => Boolean(shopId))));
   const followerCount = formatCount(item.creatorPerformance?.followerCount);
+  // Absent means no rung has been reached, which is not the lowest rung — the
+  // chip is simply not rendered rather than standing in for a rung.
+  const sampleTier = item.creatorRelation?.highestSampleTier ?? null;
+  const observedContentCount = item.latestSampleApplicationRecord?.observedContentCount ?? null;
   const relationshipDetail = relationshipDetailFromManagementItem(item);
 
   return (
@@ -3172,6 +3165,14 @@ function CreatorRelationshipCard({
                 ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
                 : t("ecommerce.affiliateWorkspace.creatorStable")}
             </span>
+            {sampleTier ? (
+              <span
+                className="affiliate-creator-tier-chip"
+                title={`${t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")} · ${t("ecommerce.affiliateWorkspace.sampleTierColumnHint")}`}
+              >
+                {creatorSampleTierLabel(t, sampleTier)}
+              </span>
+            ) : null}
           </div>
           <div className="affiliate-creator-row-meta">
             <CreatorPlatformId handle={handle} platformId={platformId} />
@@ -3231,28 +3232,34 @@ function CreatorRelationshipCard({
           <strong>{nextAction}</strong>
           {nextActionContext ? <small>{nextActionContext}</small> : null}
         </div>
-        <div className="affiliate-creator-work-summary-item">
-          <span>{t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}</span>
-          <strong>{creatorSampleTierDisplay(t, item.creatorRelation?.highestSampleTier)}</strong>
-          <small>{t("ecommerce.affiliateWorkspace.sampleTierColumnHint")}</small>
-        </div>
-        <div className="affiliate-creator-work-summary-item">
-          <span>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</span>
-          <strong>{lifecycleLabel}</strong>
-          <small>{t("ecommerce.affiliateWorkspace.creatorActivePlatformCollaborations", { count: item.activeCollaborationCount, defaultValue: "{{count}} active platform collaborations" })}</small>
-        </div>
-        <div className="affiliate-creator-work-summary-item">
-          <span>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</span>
-          <strong>{sampleStatusLabel}</strong>
-          {sampleStatusDescription ? <small>{sampleStatusDescription}</small> : null}
-          {item.latestSampleApplicationRecord?.observedContentCount ? (
-            <small>{formatCount(item.latestSampleApplicationRecord.observedContentCount)}</small>
-          ) : null}
-        </div>
-        <div className="affiliate-creator-work-summary-item">
-          <span>{t("ecommerce.affiliateWorkspace.creatorLastInteraction")}</span>
-          <strong>{item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}</strong>
-        </div>
+        <dl className="affiliate-creator-work-facts">
+          <dt>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</dt>
+          <dd>
+            <span className="affiliate-creator-work-fact-value">{lifecycleLabel}</span>
+          </dd>
+          <dt>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</dt>
+          <dd>
+            <span
+              className="affiliate-creator-work-fact-value"
+              title={sampleStatusDescription ?? undefined}
+            >
+              {sampleStatusLabel}
+            </span>
+            {observedContentCount ? (
+              <span className="affiliate-creator-work-fact-note">
+                {t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}
+                {" "}
+                {formatCount(observedContentCount)}
+              </span>
+            ) : null}
+          </dd>
+          <dt>{t("ecommerce.affiliateWorkspace.creatorLastInteraction")}</dt>
+          <dd>
+            <span className="affiliate-creator-work-fact-value">
+              {item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}
+            </span>
+          </dd>
+        </dl>
       </div>
     </article>
   );

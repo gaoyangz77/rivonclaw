@@ -19876,8 +19876,30 @@ html[lang="zh"] .acct-tool-chips {
   );
 }
 
+/*
+ * The creators panel head is followed by the filter chip groups, and the two
+ * are one control surface. The separating rule belongs below the filters, so
+ * the head drops its own.
+ */
 .affiliate-creators-panel-head {
   align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 0;
+}
+
+.affiliate-creators-panel-head-copy {
+  min-width: 0;
+}
+
+/*
+ * Identity lookup, not a filter condition — hence its place beside the panel
+ * title rather than in the chip row below. It grows into the space the title
+ * leaves and ends flush with the panel's right padding, so the header's right
+ * edge is a single line shared with the needs-attention switch under it.
+ */
+.affiliate-creators-search {
+  flex: 0 1 420px;
+  min-width: 220px;
 }
 
 .affiliate-creators-toggle {
@@ -19987,6 +20009,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-creator-state,
+.affiliate-creator-tier-chip,
 .affiliate-creator-tag,
 .affiliate-creator-tag-empty {
   display: inline-flex;
@@ -19996,6 +20019,19 @@ html[lang="zh"] .acct-tool-chips {
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
+}
+
+/*
+ * The sample rung a creator currently holds, rendered in the same pill
+ * vocabulary as the selected chip in the progress filter — the reader should
+ * recognise it as the thing they just filtered on. Absent means no rung has
+ * been reached, and absent renders nothing at all.
+ */
+.affiliate-creator-tier-chip {
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border-light));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
+  color: var(--color-primary);
 }
 
 .affiliate-creator-state {
@@ -20031,8 +20067,18 @@ html[lang="zh"] .acct-tool-chips {
   line-height: 1;
 }
 
-.affiliate-creator-tag button:hover {
+.affiliate-creator-tag button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.affiliate-creator-tag button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* The pencil is a taller glyph than the ×, so it needs less size to weigh the same. */
+.affiliate-creator-tag-rename {
+  font-size: 11px;
 }
 
 .affiliate-creator-tag-empty {
@@ -20047,13 +20093,39 @@ html[lang="zh"] .acct-tool-chips {
   border-style: dashed;
 }
 
-/* Relationship-level creator filters: chip groups under the toolbar row. */
+/*
+ * Relationship-level creator filters. They continue the toolbar's surface
+ * rather than sitting on a rule of their own, so the panel header reads as one
+ * band of controls instead of two severed ones.
+ *
+ * Columns are content-proportional, not equal: the progress groups hold a
+ * fixed set of four chips and should take only the width those need, the
+ * open-ended manual tag group takes the remainder, and the needs-attention
+ * switch closes the row at its natural width. fit-content caps a progress
+ * group whose translated labels would otherwise dictate the whole row.
+ */
 .affiliate-creator-filter-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-  padding: 12px 0 4px;
-  border-top: 1px solid var(--color-border-light);
+  grid-template-columns: fit-content(340px) minmax(0, 1fr) max-content;
+  gap: 14px 20px;
+  align-items: start;
+  padding: 4px 16px 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-alt);
+}
+
+.affiliate-creator-filter-groups-with-shop-tier {
+  grid-template-columns: fit-content(340px) fit-content(340px) minmax(0, 1fr) max-content;
+}
+
+/*
+ * The needs-attention switch is a condition like the chips, so it sits on the
+ * chips' own line rather than on the group labels' line: bottom-aligned, and
+ * sized to a chip so the two read as one row even when the manual tags wrap.
+ */
+.affiliate-creator-filter-groups .affiliate-creators-toggle {
+  align-self: end;
+  min-height: 26px;
 }
 
 .affiliate-creator-filter-group {
@@ -20072,6 +20144,13 @@ html[lang="zh"] .acct-tool-chips {
   line-height: 1.35;
 }
 
+/* Marks a label whose explanation is on its tooltip instead of a visible line. */
+.affiliate-chip-select-label-explained {
+  cursor: help;
+  text-decoration: underline dotted var(--color-text-muted);
+  text-underline-offset: 3px;
+}
+
 /* Manual tag editor in the relationship detail drawer. */
 .affiliate-manual-tag-card {
   display: grid;
@@ -20085,6 +20164,41 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-manual-tag-options {
   max-height: 180px;
   overflow-y: auto;
+}
+
+/*
+ * Rename is a catalog write, not a change to this one relationship, so it is
+ * set apart from the assign/remove controls around it and states its reach
+ * before the seller commits.
+ */
+.affiliate-manual-tag-rename {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 26%, var(--color-border-light));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+}
+
+.affiliate-manual-tag-rename-scope {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.affiliate-manual-tag-rename-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.affiliate-manual-tag-rename-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .affiliate-manual-tag-create {
@@ -20150,10 +20264,17 @@ html[lang="zh"] .acct-tool-chips {
   color: var(--color-text-muted);
 }
 
+/*
+ * Right column of a creator row: one primary "next step" block over a compact
+ * fact list. Only the next step answers "why would I open this row", so it is
+ * the only entry that keeps a box. The supporting facts are label/value lines
+ * instead of boxes — an even grid of boxes ranked every fact the same and left
+ * an orphan cell whenever the count was odd.
+ */
 .affiliate-creator-work-summary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  align-content: start;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -20179,34 +20300,14 @@ html[lang="zh"] .acct-tool-chips {
   color: color-mix(in srgb, var(--color-primary) 76%, var(--color-text-muted));
 }
 
-.affiliate-creator-work-summary-button {
-  cursor: pointer;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-
-.affiliate-creator-work-summary-button:hover:not(:disabled),
-.affiliate-creator-work-summary-button:focus-visible:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border-light));
-  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
-  box-shadow: var(--shadow-sm);
-  outline: none;
-}
-
-.affiliate-creator-work-summary-button:disabled {
-  cursor: default;
-}
-
-.affiliate-creator-work-summary span,
-.affiliate-creator-work-summary small {
+.affiliate-creator-work-summary-item > span,
+.affiliate-creator-work-summary-item > small {
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.3;
 }
 
-.affiliate-creator-work-summary strong {
+.affiliate-creator-work-summary-item > strong {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text);
@@ -20217,11 +20318,58 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 
-.affiliate-creator-work-summary small {
+.affiliate-creator-work-summary-item > small {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+/*
+ * Supporting facts. One grid for the whole list rather than one per row, so
+ * the values line up in a column and the eye can run straight down them.
+ */
+.affiliate-creator-work-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px 12px;
+  align-items: baseline;
+  margin: 0;
+  min-width: 0;
+}
+
+.affiliate-creator-work-facts dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.affiliate-creator-work-facts dd {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.affiliate-creator-work-fact-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affiliate-creator-work-fact-note {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .affiliate-relationship-card {
@@ -21475,6 +21623,15 @@ html[lang="zh"] .acct-tool-chips {
     grid-template-columns: 1fr;
   }
 
+  .affiliate-creator-filter-groups,
+  .affiliate-creator-filter-groups-with-shop-tier {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .affiliate-creator-filter-groups .affiliate-creators-toggle {
+    align-self: start;
+  }
+
   .affiliate-policy-layout {
     grid-template-columns: 1fr;
   }
@@ -21521,8 +21678,8 @@ html[lang="zh"] .acct-tool-chips {
     padding: 14px;
   }
 
-  .affiliate-creator-work-summary {
-    grid-template-columns: 1fr;
+  .affiliate-creator-filter-groups {
+    padding-inline: 14px;
   }
 
   .affiliate-policy-drawer-summary {
@@ -23440,6 +23597,12 @@ html[lang="zh"] .acct-tool-chips {
   .affiliate-workbench-panel-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  /* The head stacks here, so a horizontal basis would size the field's height. */
+  .affiliate-creators-search {
+    flex: none;
+    min-width: 0;
   }
 
   .affiliate-attention-panel-head {
@@ -28725,12 +28888,17 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--surface-primary);
 }
 
-.affiliate-team-policy-section {
+.affiliate-team-policy-section,
+.affiliate-tag-catalog {
   margin-top: 18px;
   overflow: hidden;
   border: 1px solid var(--border-color);
   border-radius: 14px;
   background: var(--surface-primary);
+}
+
+.affiliate-tag-catalog .affiliate-team-policy-heading {
+  border-bottom: 1px solid var(--border-color);
 }
 
 .affiliate-team-policy-heading {
@@ -28784,6 +28952,249 @@ html[lang="zh"] .acct-tool-chips {
     width: 100%;
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+/*
+ * Seller-wide manual tag catalog, sitting under the protected-creator directory
+ * on the assignments tab. It borrows the directory's table vocabulary on
+ * purpose: same card, same head band, same row rhythm, so it reads as another
+ * section of that page rather than a transplant from the creators list.
+ */
+.affiliate-tag-catalog-body {
+  padding: 16px 20px 18px;
+  background: color-mix(in srgb, var(--surface-secondary) 30%, var(--surface-primary));
+}
+
+/*
+ * Search and create are one row of equal-weight fields because they are the
+ * same gesture from the seller's side — find a tag, or find that it is missing
+ * and add it. The button closes the row at its natural width.
+ */
+.affiliate-tag-catalog-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) max-content;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.affiliate-tag-catalog-field {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.affiliate-tag-catalog-field > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.affiliate-tag-catalog-field input,
+.affiliate-tag-catalog-rename input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font: inherit;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.affiliate-tag-catalog-field input:focus,
+.affiliate-tag-catalog-rename input:focus {
+  outline: 0;
+  border-color: color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 10%, transparent);
+}
+
+.affiliate-tag-catalog-error {
+  margin: 0 0 12px;
+  /* Pure --color-danger only reaches 3.7:1 on the section's tinted background;
+     pulling it toward the text colour keeps the hue and clears 4.5:1. */
+  color: color-mix(in srgb, var(--color-danger) 70%, var(--text-primary));
+  font-size: 12px;
+}
+
+.affiliate-tag-catalog-table {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-primary);
+}
+
+/*
+ * Fixed tracks for the date and action columns, not max-content. Each row is
+ * its own grid container, so a content-sized track resolves per row: the header
+ * ("Actions", 55px), an ordinary row (two buttons, 136-178px depending on
+ * locale) and a row mid-rename would each pick a different width and the date
+ * column would step sideways from row to row. 180px clears the widest
+ * translated Rename + Delete pair, which is German at 178px.
+ */
+.affiliate-tag-catalog-table-head,
+.affiliate-tag-catalog-row {
+  min-width: 562px;
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 110px 180px;
+  align-items: center;
+  gap: 18px;
+  padding-right: 18px;
+  padding-left: 18px;
+}
+
+.affiliate-tag-catalog-table-head {
+  min-height: 42px;
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--surface-secondary) 74%, var(--surface-primary));
+  color: var(--text-muted);
+}
+
+.affiliate-tag-catalog-table-head > span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.affiliate-tag-catalog-table-head > span:last-child {
+  justify-self: end;
+}
+
+.affiliate-tag-catalog-row {
+  min-height: 56px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+
+.affiliate-tag-catalog-row:last-child {
+  border-bottom: 0;
+}
+
+.affiliate-tag-catalog-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.affiliate-tag-catalog-date {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.affiliate-tag-catalog-actions,
+.affiliate-tag-catalog-rename-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.affiliate-tag-catalog-rename-actions {
+  margin-top: 2px;
+}
+
+/* The open rename form takes the name cell, so the row grows instead of the
+   table reflowing around a field that is wider than the name it replaces. */
+.affiliate-tag-catalog-rename {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.affiliate-tag-catalog-scope {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.affiliate-tag-catalog-rename .affiliate-tag-catalog-error {
+  margin: 0;
+}
+
+/*
+ * The delete dialog is portalled to document.body, so it falls outside
+ * .affiliate-team-page and inherits none of that page's token aliases. Re-declare
+ * them here, the same way the protection import modal does.
+ */
+.affiliate-tag-catalog-delete-modal {
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --accent-color: var(--color-primary);
+  --border-color: var(--color-border-light);
+  --surface-primary: var(--color-bg);
+  --surface-secondary: var(--color-bg-alt);
+}
+
+.affiliate-tag-catalog-delete-lead {
+  margin: 0 0 12px;
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+
+.affiliate-tag-catalog-delete-loading {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.affiliate-tag-catalog-delete-consequences {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 12px 14px 12px 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-secondary) 60%, var(--surface-primary));
+}
+
+.affiliate-tag-catalog-delete-consequence {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/*
+ * Disabling an approval rule is the one consequence the seller cannot see
+ * coming from the tag name, so it carries the warning weight on its own.
+ *
+ * The emphasis is a rule in the margin, not just a hue: warning amber at full
+ * strength reads at 2.8:1 on this surface, which would make the most important
+ * line the hardest one to read, and hue alone is invisible to a colour-blind
+ * reader anyway. The bar carries the signal; the text is mixed back toward the
+ * body colour until it clears 4.5:1.
+ */
+.affiliate-tag-catalog-delete-consequence.is-severe {
+  margin-left: -18px;
+  padding-left: 15px;
+  border-left: 3px solid var(--color-warning);
+  color: color-mix(in srgb, var(--color-warning) 45%, var(--text-primary));
+  font-weight: 650;
+  /* The bar is this line's marker; a bullet as well reads as a stray dot. */
+  list-style: none;
+}
+
+.affiliate-tag-catalog-delete-irreversible {
+  margin: 0 0 4px;
+  color: color-mix(in srgb, var(--color-danger) 80%, var(--text-primary));
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+@media (max-width: 840px) {
+  .affiliate-tag-catalog-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
   }
 }
 
@@ -32275,11 +32686,12 @@ html[lang="zh"] .acct-tool-chips {
 
 .affiliate-protection-directory-table-head,
 .affiliate-protection-directory-row {
-  min-width: 900px;
+  min-width: 1068px;
   display: grid;
   grid-template-columns:
     minmax(220px, 1.45fr)
     minmax(150px, 0.9fr)
+    minmax(150px, 1.05fr)
     minmax(160px, 1.15fr)
     104px
     118px;
@@ -32379,13 +32791,40 @@ html[lang="zh"] .acct-tool-chips {
   white-space: nowrap;
 }
 
+/*
+ * The protected-creator row carries the same manual-tag chips as the Creator
+ * list, so the cell lays them out in the shared chip rhythm rather than the
+ * row's default stacked cell.
+ */
+.affiliate-protection-directory-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+/*
+ * .affiliate-protection-directory-row span paints every cell muted, which would
+ * repaint a chip that must stay recognisable as the same chip shown elsewhere.
+ * Scoped to the chip classes so every other cell keeps the row's own colour.
+ */
+.affiliate-protection-directory-row .affiliate-creator-tag,
+.affiliate-protection-directory-row .affiliate-creator-tag span {
+  color: var(--color-primary);
+}
+
+.affiliate-protection-directory-row .affiliate-creator-tag-empty {
+  color: var(--color-text-muted);
+}
+
 .affiliate-protection-directory-action {
   justify-self: end;
   white-space: nowrap;
 }
 
 .affiliate-protection-directory-table .affiliate-empty-state {
-  min-width: 900px;
+  min-width: 1068px;
 }
 
 .affiliate-relationship-protection-control {
