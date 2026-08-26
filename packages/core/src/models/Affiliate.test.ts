@@ -12,7 +12,7 @@ function relationship(overrides: Record<string, unknown> = {}) {
     blockedShopIds: [],
     activeAffiliateCollaborationIds: ["collaboration-1"],
     activeSampleApplicationRecordIds: ["sample-1"],
-    shopStates: [{ shopId: "shop-1", tagIds: [] }],
+    shopStates: [{ shopId: "shop-1" }],
     operationalConfigRevision: 1,
     stateUpdatedAt: NOW,
     createdAt: NOW,

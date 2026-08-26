@@ -17,7 +17,9 @@ import {
   getProposalActionProductId,
   groupAgentWorkBundles,
   hydrateAffiliateProposalProjection,
+  latestManualTagChange,
   mergeAffiliateProposalPage,
+  proposalManualTagRows,
   predictionEvidenceHighlightTarget,
   predictionSignalFallbackLabel,
   resolvePredictionEvidenceState,
@@ -1384,5 +1386,187 @@ describe("relationship processing status with pending proposals", () => {
     ]) {
       expect(reconcileAgendaProcessingStatusWithPendingProposals(status, true)).toBe(status);
     }
+  });
+});
+
+describe("manual tag proposal rows", () => {
+  const tagIntentProposal = (
+    steps: Array<{ stepId: string; operation: GQL.CreatorTagOperation; manualTagId: string }>,
+    referencedManualTags: Array<{ id: string; name: string }>,
+  ) => ({
+    id: "proposal-tag-1",
+    type: GQL.ActionProposalType.ManageCreatorTag,
+    status: GQL.ActionProposalStatus.Pending,
+    referencedManualTags,
+    steps: steps.map((step) => ({
+      stepId: step.stepId,
+      type: GQL.ActionProposalType.ManageCreatorTag,
+      creatorTagIntent: {
+        operation: step.operation,
+        manualTagId: step.manualTagId,
+        contextShopId: "shop-1",
+      },
+    })),
+  }) as unknown as GQL.ActionProposal;
+
+  it("names an ADD target the relationship does not carry yet", () => {
+    // referencedManualTags is the only source that can name it: joining against
+    // the relationship's own tags would come back empty for every ADD.
+    const rows = proposalManualTagRows(
+      tagIntentProposal(
+        [{ stepId: "step-1", operation: GQL.CreatorTagOperation.Add, manualTagId: "tag-1" }],
+        [{ id: "tag-1", name: "VIP" }],
+      ),
+    );
+    expect(rows).toEqual([
+      {
+        key: "step-1",
+        operation: GQL.CreatorTagOperation.Add,
+        manualTagId: "tag-1",
+        tagName: "VIP",
+        contextShopId: "shop-1",
+      },
+    ]);
+  });
+
+  it("shows a renamed tag under its current catalog name", () => {
+    const rows = proposalManualTagRows(
+      tagIntentProposal(
+        [{ stepId: "step-1", operation: GQL.CreatorTagOperation.Remove, manualTagId: "tag-9" }],
+        [{ id: "tag-9", name: "Renamed later" }],
+      ),
+    );
+    expect(rows[0]?.tagName).toBe("Renamed later");
+    expect(rows[0]?.operation).toBe(GQL.CreatorTagOperation.Remove);
+  });
+
+  it("reports a deleted catalog row as an unnamed tag rather than guessing", () => {
+    const rows = proposalManualTagRows(
+      tagIntentProposal(
+        [{ stepId: "step-1", operation: GQL.CreatorTagOperation.Add, manualTagId: "tag-gone" }],
+        [],
+      ),
+    );
+    expect(rows[0]?.tagName).toBeNull();
+  });
+
+  it("falls back to the proposal-level intent for a stepless proposal", () => {
+    const proposal = {
+      id: "proposal-legacy",
+      type: GQL.ActionProposalType.ManageCreatorTag,
+      status: GQL.ActionProposalStatus.Pending,
+      steps: [],
+      referencedManualTags: [{ id: "tag-2", name: "误打扰" }],
+      creatorTagIntent: {
+        operation: GQL.CreatorTagOperation.Remove,
+        manualTagId: "tag-2",
+        contextShopId: null,
+      },
+    } as unknown as GQL.ActionProposal;
+    const rows = proposalManualTagRows(proposal);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.key).toBe("proposal-legacy");
+    expect(rows[0]?.tagName).toBe("误打扰");
+    expect(rows[0]?.contextShopId).toBeNull();
+  });
+
+  it("returns no rows for a proposal that changes no tag", () => {
+    const proposal = {
+      id: "proposal-message",
+      type: GQL.ActionProposalType.SendMessage,
+      status: GQL.ActionProposalStatus.Pending,
+      steps: [{ stepId: "step-1", type: GQL.ActionProposalType.SendMessage }],
+      referencedManualTags: [],
+    } as unknown as GQL.ActionProposal;
+    expect(proposalManualTagRows(proposal)).toEqual([]);
+  });
+});
+
+describe("manual tag change source", () => {
+  const timelineItem = (
+    id: string,
+    occurredAt: string,
+    eventType: GQL.AffiliateLifecycleEventType,
+    actorType: GQL.AffiliateLifecycleActorType,
+  ) => ({
+    id,
+    occurredAt,
+    actorType,
+    summary: `${eventType} ${id}`,
+    businessEvent: { eventType },
+  }) as unknown as GQL.AffiliateRelationshipTimelineItem;
+
+  it("reads the newest tag event and keeps HUMAN and AGENT distinct", () => {
+    const change = latestManualTagChange([
+      timelineItem(
+        "a",
+        "2026-08-01T00:00:00.000Z",
+        GQL.AffiliateLifecycleEventType.TagAdded,
+        GQL.AffiliateLifecycleActorType.Human,
+      ),
+      timelineItem(
+        "b",
+        "2026-08-03T00:00:00.000Z",
+        GQL.AffiliateLifecycleEventType.TagRemoved,
+        GQL.AffiliateLifecycleActorType.Agent,
+      ),
+      timelineItem(
+        "c",
+        "2026-08-02T00:00:00.000Z",
+        GQL.AffiliateLifecycleEventType.TagAdded,
+        GQL.AffiliateLifecycleActorType.Human,
+      ),
+    ]);
+    expect(change?.occurredAt).toBe("2026-08-03T00:00:00.000Z");
+    expect(change?.added).toBe(false);
+    expect(change?.actorType).toBe(GQL.AffiliateLifecycleActorType.Agent);
+  });
+
+  it("ignores timeline items that are not tag changes", () => {
+    const change = latestManualTagChange([
+      timelineItem(
+        "a",
+        "2026-08-05T00:00:00.000Z",
+        GQL.AffiliateLifecycleEventType.MessageReceived,
+        GQL.AffiliateLifecycleActorType.System,
+      ),
+    ]);
+    expect(change).toBeNull();
+  });
+});
+
+describe("creator tag catalog wiring", () => {
+  const page = readFileSync(
+    resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+    "utf8",
+  );
+
+  it("reads the tag catalog from creatorManualTags, not the policy context", () => {
+    // Regression: the catalog used to be typed as `{ creatorTags: CreatorTag[] }`
+    // on AFFILIATE_POLICY_CONTEXT_QUERY, which returns no such top-level field,
+    // so the dropdown was permanently empty.
+    expect(page).toContain("CREATOR_MANUAL_TAGS_QUERY");
+    expect(page).not.toContain("policyContextData");
+    expect(page).not.toContain("GQL.CreatorTag[]");
+    expect(page).not.toContain("?.creatorTags");
+  });
+
+  it("drops the variables and shop guard the catalog query never needed", () => {
+    expect(page).not.toContain("campaignsInput: { shopId: selectedShopId, limit: 1 }");
+    expect(page).not.toContain("ALL_CREATOR_TAGS_FILTER");
+  });
+
+  it("sends every Relationship-level filter dimension the backend accepts", () => {
+    expect(page).toContain("manualTagIds: selectedManualTagIds.length");
+    expect(page).toContain("manualTagMatchMode: selectedManualTagIds.length");
+    expect(page).toContain("sampleTiers: selectedSampleTiers.length");
+    expect(page).toContain("shopSampleTiers: selectedShopId && selectedShopSampleTiers.length");
+  });
+
+  it("keeps the per-shop tier read-only in the relationship detail", () => {
+    // Tiers are backend-derived; the detail must offer no add/remove affordance.
+    expect(page).toContain("affiliate-relationship-shop-tier");
+    expect(page).not.toContain("onUpdateTier");
+    expect(page).not.toContain("setSampleTier");
   });
 });

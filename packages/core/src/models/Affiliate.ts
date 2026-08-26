@@ -49,7 +49,9 @@ export const AffiliateCreatorProfileModel = types.model("AffiliateCreatorProfile
 
 export const AffiliateCreatorRelationshipShopStateModel = types.model("AffiliateCreatorRelationshipShopState", {
   shopId: types.string,
-  tagIds: types.optional(types.array(types.string), []),
+  /** Backend-derived rung of the sample review ladder at this shop. Exactly one
+   * per (relationship, shop); absent means no rung reached, not the lowest one. */
+  sampleTier: types.maybeNull(types.string),
   lastContactedAt: types.maybeNull(types.string),
   lastInvitedAt: types.maybeNull(types.string),
   lastQualifiedAt: types.maybeNull(types.string),
@@ -61,6 +63,12 @@ export const AffiliateCreatorRelationshipModel = types.model("AffiliateCreatorRe
   creatorId: types.string,
   businessDeveloperId: types.maybeNull(types.string),
   operationalConfigRevision: types.optional(types.number, 1),
+  /** Seller-scoped manual tags on the relationship itself. Never shop-scoped. */
+  manualTagIds: types.optional(types.array(types.string), []),
+  /** Catalog rows for manualTagIds, resolved by the backend for display. */
+  manualTags: types.optional(types.array(types.frozen<Record<string, any>>()), []),
+  /** Highest sample tier across shopStates, derived by the backend at read time. */
+  highestSampleTier: types.maybeNull(types.string),
   shopStates: types.optional(types.array(AffiliateCreatorRelationshipShopStateModel), []),
   processingStatus: types.optional(types.string, "IDLE"),
   requiredAction: types.optional(types.string, "NO_ACTION"),
@@ -341,6 +349,10 @@ export const AffiliateActionProposalModel = types.model("AffiliateActionProposal
   sampleShipmentIntent: types.maybeNull(types.frozen<Record<string, any>>()),
   targetCollaborationIntent: types.maybeNull(types.frozen<Record<string, any>>()),
   creatorTagIntent: types.maybeNull(types.frozen<Record<string, any>>()),
+  /** Current catalog rows for every manual tag the steps name. An ADD names a tag
+   * the relationship does not carry yet, so review must render from this, not
+   * from creatorRelationship.manualTags. */
+  referencedManualTags: types.optional(types.array(types.frozen<Record<string, any>>()), []),
   blockCreatorIntent: types.maybeNull(types.frozen<Record<string, any>>()),
   campaignProductUpdateIntent: types.maybeNull(types.frozen<Record<string, any>>()),
   approvalPolicyUpdateIntent: types.maybeNull(types.frozen<Record<string, any>>()),
