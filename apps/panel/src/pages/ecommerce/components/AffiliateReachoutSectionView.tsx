@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { GQL } from "@rivonclaw/core";
 import {
   Bar,
   CartesianGrid,
@@ -10,6 +9,7 @@ import {
   Line,
   LineChart,
   ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,17 +17,19 @@ import {
 } from "recharts";
 import { formatCohortDay, formatNumber, formatPercent } from "../affiliate-analytics-format.js";
 import {
+  AFFILIATE_HORIZON_MIN_COHORT,
   applyCoverageWindow,
   buildInviteDailyRows,
   buildResponseHorizonSeries,
   countAxisDomain,
   countPartialDays,
   coverageBasis,
+  coverageBoundaryMark,
   firstImmatureCohortDay,
   rateAxisDomain,
   splitCoverageSeries,
 } from "../affiliate-overview.js";
-import type { AffiliateSectionQuery } from "../affiliate-overview-types.js";
+import type { AffiliateReachoutSection, AffiliateSectionQuery } from "../affiliate-overview-types.js";
 import { AffiliateCoverageBand, AffiliateCoverageNotice } from "./AffiliateCoverageBand.js";
 import { AffiliateChartCard, AffiliateMetric, AffiliateSectionHeader, AffiliateSectionState } from "./AffiliateOverviewParts.js";
 
@@ -42,14 +44,16 @@ const PARTIAL_BAR_OPACITY = 0.35;
  * (`start_at`, 100% coverage), never the day a response happened to land.
  */
 export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
-  query: AffiliateSectionQuery<GQL.AffiliateReachoutSection>;
+  query: AffiliateSectionQuery<AffiliateReachoutSection>;
   onExcludeShops?: (shopIds: string[]) => void;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const section = query.section;
   // Primitive UI state only: the boundary itself lives in the section payload.
-  const [showPartial, setShowPartial] = useState(false);
+  // Defaults to false — the full range is the default view, and narrowing to
+  // the fully-covered range is the reader's explicit choice.
+  const [restrictToCovered, setRestrictToCovered] = useState(false);
 
   const body = (() => {
     if (!section) return <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />;
@@ -58,7 +62,7 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
     const boundary = coverage.fullCoverageFrom ?? null;
     const allRows = buildInviteDailyRows(section.daily);
     const partialDays = countPartialDays(allRows.map((row) => row.inviteDs), boundary);
-    const windowRows = applyCoverageWindow(allRows, (row) => row.inviteDs, boundary, showPartial);
+    const windowRows = applyCoverageWindow(allRows, (row) => row.inviteDs, boundary, restrictToCovered);
     const dailyRows = splitCoverageSeries(windowRows, (row) => row.inviteDs, (row) => row.responseRate, boundary);
     const basis = coverageBasis(coverage);
 
@@ -68,6 +72,32 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
     const dailyRateDomain = rateAxisDomain(dailyRows.map((row) => row.responseRate));
     const firstImmatureDay = firstImmatureCohortDay(windowRows);
     const immatureDays = windowRows.filter((row) => !row.mature).length;
+    const boundaryOnChart = coverageBoundaryMark(windowRows.map((row) => row.inviteDs), boundary);
+    /*
+     * The horizon curve and the daily bars describe DIFFERENT date ranges, and
+     * the note has to say so. The curve is computed over one fixed cohort — the
+     * invitations old enough for the 30d horizon — which necessarily stops
+     * ~30 days before the bars beside it do. Leaving the reader to infer that
+     * is how two honest charts become one misleading comparison.
+     */
+    const horizonNote = horizonSeries.cohortTooSmall
+      ? t("ecommerce.affiliateAnalytics.reachout.cohortTooSmallNote")
+      : [
+        t("ecommerce.affiliateAnalytics.reachout.horizonNote", {
+          count: horizonSeries.cohortSize,
+        }),
+        section.horizonCohortFrom && section.horizonCohortTo
+          ? t("ecommerce.affiliateAnalytics.reachout.horizonCohortRange", {
+            from: formatCohortDay(section.horizonCohortFrom, locale),
+            to: formatCohortDay(section.horizonCohortTo, locale),
+          })
+          : null,
+        horizonSeries.subDaySuppressed
+          ? t("ecommerce.affiliateAnalytics.reachout.subDaySuppressed", {
+            share: formatPercent(horizonSeries.exactShare, locale),
+          })
+          : null,
+      ].filter(Boolean).join(" ");
     const basisNote = t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
       shops: formatNumber(basis.shopsWithData, locale),
       selected: formatNumber(basis.shopsSelected, locale),
@@ -104,43 +134,48 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
         <AffiliateCoverageNotice
           coverage={coverage}
           partialDays={partialDays}
-          showPartial={showPartial}
-          onShowPartialChange={setShowPartial}
+          restrictToCovered={restrictToCovered}
+          onRestrictToCoveredChange={setRestrictToCovered}
           onExcludeShops={onExcludeShops}
         />
 
         <div className="affiliate-chart-grid">
           <AffiliateChartCard
             title={t("ecommerce.affiliateAnalytics.reachout.horizonTitle")}
-            note={horizonSeries.subDaySuppressed
-              ? t("ecommerce.affiliateAnalytics.reachout.subDaySuppressed", {
-                share: formatPercent(horizonSeries.exactShare, locale),
-              })
-              : t("ecommerce.affiliateAnalytics.reachout.horizonNote")}
+            note={horizonNote}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={horizonSeries.points}>
-                <CartesianGrid strokeDasharray="3 6" vertical={false} />
-                <XAxis dataKey="horizon" />
-                <YAxis domain={rateDomain} tickFormatter={(value) => formatPercent(Number(value), locale)} />
-                <Tooltip
-                  formatter={(value, _name, item) => [
-                    formatPercent(Number(value), locale),
-                    t("ecommerce.affiliateAnalytics.reachout.matureBasis", {
-                      count: Number((item?.payload as { matureInvitations?: number } | undefined)?.matureInvitations ?? 0),
-                    }),
-                  ]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="responseRate"
-                  name={t("ecommerce.affiliateAnalytics.reachout.responseRateSeries")}
-                  stroke="var(--affiliate-reachout)"
-                  strokeWidth={3}
-                  dot={{ r: 3 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {horizonSeries.cohortTooSmall ? (
+              <p className="affiliate-chart-suppressed">
+                {t("ecommerce.affiliateAnalytics.reachout.cohortTooSmall", {
+                  count: horizonSeries.cohortSize,
+                  minimum: formatNumber(AFFILIATE_HORIZON_MIN_COHORT, locale),
+                })}
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={horizonSeries.points}>
+                  <CartesianGrid strokeDasharray="3 6" vertical={false} />
+                  <XAxis dataKey="horizon" />
+                  <YAxis domain={rateDomain} tickFormatter={(value) => formatPercent(Number(value), locale)} />
+                  <Tooltip
+                    formatter={(value, _name, item) => [
+                      formatPercent(Number(value), locale),
+                      t("ecommerce.affiliateAnalytics.reachout.matureBasis", {
+                        count: Number((item?.payload as { matureInvitations?: number } | undefined)?.matureInvitations ?? 0),
+                      }),
+                    ]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="responseRate"
+                    name={t("ecommerce.affiliateAnalytics.reachout.responseRateSeries")}
+                    stroke="var(--affiliate-reachout)"
+                    strokeWidth={3}
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </AffiliateChartCard>
 
           <AffiliateChartCard
@@ -168,6 +203,25 @@ export function AffiliateReachoutSectionView({ query, onExcludeShops }: {
                   )}
                 />
                 <Legend />
+                {/*
+                  The boundary is marked, not enforced. Days to its left are
+                  real and are drawn; they were simply measured over fewer
+                  shops, which the faint bars, the dashed rate line and this
+                  line together say without deleting anything.
+                */}
+                {boundaryOnChart && (
+                  <ReferenceLine
+                    yAxisId="invites"
+                    x={boundaryOnChart}
+                    stroke="var(--affiliate-coverage)"
+                    strokeDasharray={PARTIAL_DASH}
+                    label={{
+                      value: t("ecommerce.affiliateAnalytics.coverage.boundaryMark"),
+                      position: "insideTopLeft",
+                      fontSize: 11,
+                    }}
+                  />
+                )}
                 {firstImmatureDay && (
                   <ReferenceArea
                     yAxisId="invites"

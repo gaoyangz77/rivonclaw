@@ -109,6 +109,8 @@ export interface ActionProposal {
   productId?: Maybe<Scalars['String']['output']>;
   /** Best-known related product summary for staff review display. Proposal execution still uses frozen proposal fields. */
   productSummary?: Maybe<EcomProductSummary>;
+  /** Current catalog rows for every manual tag a MANAGE_CREATOR_TAG step names, so review renders the tag by name. An ADD names a tag the Relationship does not carry yet, so this is not the same set as creatorRelationship.manualTags. */
+  referencedManualTags: Array<CreatorManualTag>;
   requestedByActorId?: Maybe<Scalars['String']['output']>;
   requestedByActorType?: Maybe<AffiliateLifecycleActorType>;
   reviewSource: AffiliateProposalReviewSource;
@@ -142,11 +144,14 @@ export interface ActionProposal {
 export interface ActionProposalApprovalPolicyUpdateIntent {
   action: ActionProposalType;
   campaignIds?: Maybe<Array<Scalars['ID']['output']>>;
-  creatorTagIds?: Maybe<Array<Scalars['ID']['output']>>;
   enabled: Scalars['Boolean']['output'];
+  excludedManualTagIds?: Maybe<Array<Scalars['ID']['output']>>;
+  excludedSampleTiers?: Maybe<Array<CreatorSampleTier>>;
+  manualTagIds?: Maybe<Array<Scalars['ID']['output']>>;
   policyId?: Maybe<Scalars['ID']['output']>;
   productIds?: Maybe<Array<Scalars['String']['output']>>;
   reason?: Maybe<Scalars['String']['output']>;
+  sampleTiers?: Maybe<Array<CreatorSampleTier>>;
 }
 
 export interface ActionProposalBlockCreatorIntent {
@@ -174,9 +179,19 @@ export interface ActionProposalCandidateDecisionIntent {
   status: CreatorCandidateStatus;
 }
 
+/** One manual tag change on the proposal's Creator relationship. Names no creator of its own — the proposal already carries the Relationship. */
 export interface ActionProposalCreatorTagIntent {
-  creatorId: Scalars['ID']['output'];
-  tagId: Scalars['ID']['output'];
+  /** The shop the Agent was working in. Entitlement and review focus only; a manual tag is seller-wide and this never narrows its scope. */
+  contextShopId?: Maybe<Scalars['ID']['output']>;
+  manualTagId: Scalars['ID']['output'];
+  operation: CreatorTagOperation;
+}
+
+export interface ActionProposalCreatorTagIntentInput {
+  /** The shop the Agent was working in. Entitlement and review focus only; a manual tag is seller-wide and this never narrows its scope. */
+  contextShopId?: InputMaybe<Scalars['ID']['input']>;
+  manualTagId: Scalars['ID']['input'];
+  operation: CreatorTagOperation;
 }
 
 export interface ActionProposalDecisionSnapshot {
@@ -365,6 +380,7 @@ export interface ActionProposalStep {
 }
 
 export const ActionProposalType = {
+  ManageCreatorTag: 'MANAGE_CREATOR_TAG',
   NoActionNeeded: 'NO_ACTION_NEEDED',
   ReviewSampleApplication: 'REVIEW_SAMPLE_APPLICATION',
   SendMessage: 'SEND_MESSAGE'
@@ -983,13 +999,19 @@ export interface AffiliateApprovalPolicy {
   /** AND condition dimension. Empty means any campaign. */
   campaignIds: Array<Scalars['ID']['output']>;
   createdAt: Scalars['DateTimeISO']['output'];
-  /** AND condition dimension. Empty means any creator tags. Non-empty matches when the creator has at least one listed tag. */
-  creatorTagIds: Array<Scalars['ID']['output']>;
   enabled: Scalars['Boolean']['output'];
+  /** NOT condition dimension. Non-empty fails the match when the Relationship carries any listed manual tag. */
+  excludedManualTagIds: Array<Scalars['ID']['output']>;
+  /** NOT condition dimension. Non-empty fails the match when any of the Relationship's shops holds a listed tier. */
+  excludedSampleTiers: Array<CreatorSampleTier>;
   id: Scalars['ID']['output'];
+  /** AND condition dimension. Empty means any manual tags. Non-empty matches when the Relationship carries at least one listed tag. */
+  manualTagIds: Array<Scalars['ID']['output']>;
   /** AND condition dimension. Empty means any product. */
   productIds: Array<Scalars['String']['output']>;
   reason?: Maybe<Scalars['String']['output']>;
+  /** AND condition dimension over the tiers held across all of the Relationship's shops. Exact rungs, never a threshold. */
+  sampleTiers: Array<CreatorSampleTier>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
 }
@@ -1000,7 +1022,6 @@ export interface AffiliateApprovalPolicyContextPayload {
 
 export interface AffiliateApprovalPolicyContextShop {
   campaigns: Array<AffiliateCampaign>;
-  creatorTags: Array<CreatorTag>;
   shopId: Scalars['ID']['output'];
   shopName: Scalars['String']['output'];
 }
@@ -1817,15 +1838,6 @@ export const AffiliateCampaignType = {
 } as const;
 
 export type AffiliateCampaignType = typeof AffiliateCampaignType[keyof typeof AffiliateCampaignType];
-export interface AffiliateCohortUnitsPoint {
-  actualUnits: Scalars['Int']['output'];
-  ageDays: Scalars['Int']['output'];
-  approvedApplications: Scalars['Int']['output'];
-  cohortDs: Scalars['String']['output'];
-  completionFactor?: Maybe<Scalars['Float']['output']>;
-  projectedRemainingUnits?: Maybe<Scalars['Float']['output']>;
-}
-
 /** Platform-level affiliate collaboration, normalized across TikTok open and target collaborations. */
 export interface AffiliateCollaboration {
   campaignId?: Maybe<Scalars['ID']['output']>;
@@ -2134,8 +2146,6 @@ export interface AffiliateCreatorManagementItem {
   market?: Maybe<Scalars['String']['output']>;
   needsAttention: Scalars['Boolean']['output'];
   shopState?: Maybe<AffiliateCreatorRelationshipShopState>;
-  tagIds: Array<Scalars['ID']['output']>;
-  tags: Array<CreatorTag>;
 }
 
 /** Server-paginated, shop-scoped Creator relationship management page. */
@@ -2362,6 +2372,8 @@ export interface AffiliateCreatorRelationship {
   createdAt: Scalars['DateTimeISO']['output'];
   creatorId: Scalars['ID']['output'];
   creatorImId?: Maybe<Scalars['String']['output']>;
+  /** Highest sample tier across every shop state, derived at read time and never stored. Null means no rung has been reached anywhere, which is not the lowest rung. */
+  highestSampleTier?: Maybe<CreatorSampleTier>;
   id: Scalars['ID']['output'];
   lastAgentHandledAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastBlockedAt?: Maybe<Scalars['DateTimeISO']['output']>;
@@ -2371,6 +2383,10 @@ export interface AffiliateCreatorRelationship {
   lastOutboundAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastPlatformSyncedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lifecycleEventSequence?: Maybe<Scalars['Int']['output']>;
+  /** Seller-scoped manual tags attached to this Creator. Never shop-scoped. */
+  manualTagIds: Array<Scalars['ID']['output']>;
+  /** The manual tags named by manualTagIds, resolved to their current catalog rows. */
+  manualTags: Array<CreatorManualTag>;
   operationalConfigRevision: Scalars['Int']['output'];
   shopStates: Array<AffiliateCreatorRelationshipShopState>;
   stateUpdatedAt: Scalars['DateTimeISO']['output'];
@@ -2419,13 +2435,14 @@ export interface AffiliateCreatorRelationshipShopActivitySummary {
   shopId: Scalars['ID']['output'];
 }
 
-/** Embedded shop membership, tags, and activity timestamps for a user-level creator relation. */
+/** Embedded shop membership, sample tier, and activity timestamps for a user-level creator relation. */
 export interface AffiliateCreatorRelationshipShopState {
   lastContactedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastInvitedAt?: Maybe<Scalars['DateTimeISO']['output']>;
   lastQualifiedAt?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** How far this Creator has climbed the sample review path at this shop. Absent means no rung reached, which is not the lowest rung. */
+  sampleTier?: Maybe<CreatorSampleTier>;
   shopId: Scalars['ID']['output'];
-  tagIds: Array<Scalars['ID']['output']>;
 }
 
 /** Current relationship and BD configuration for Agent reads. Creator profile facts are available only through affiliate_get_creator_profile. */
@@ -3084,12 +3101,6 @@ export const AffiliateMarketplaceUnitsSoldRange = {
 } as const;
 
 export type AffiliateMarketplaceUnitsSoldRange = typeof AffiliateMarketplaceUnitsSoldRange[keyof typeof AffiliateMarketplaceUnitsSoldRange];
-export interface AffiliateMaturationPoint {
-  basisCohorts: Scalars['Int']['output'];
-  cumulativeShare: Scalars['Float']['output'];
-  lagDays: Scalars['Int']['output'];
-}
-
 /** Creator communication channel for affiliate outreach */
 export const AffiliateMessageChannel = {
   Email: 'EMAIL',
@@ -3570,15 +3581,16 @@ export interface AffiliateOverviewInput {
 
 export interface AffiliatePostApprovalSection {
   actualUnits: Scalars['Int']['output'];
+  affiliateUnits: Scalars['Int']['output'];
   applicationsWithOrder: Scalars['Int']['output'];
   approvedApplications: Scalars['Int']['output'];
-  cohorts: Array<AffiliateCohortUnitsPoint>;
   coverage: AffiliateCoverage;
-  maturationCurve: Array<AffiliateMaturationPoint>;
+  daily: Array<AffiliateShipmentDailyPoint>;
   orderRate?: Maybe<Scalars['Float']['output']>;
-  projectedUnits?: Maybe<Scalars['Float']['output']>;
+  samplesShipped: Scalars['Int']['output'];
+  shipmentCoverage: AffiliateCoverage;
   unitsPerApprovedActual?: Maybe<Scalars['Float']['output']>;
-  unitsPerApprovedProjected?: Maybe<Scalars['Float']['output']>;
+  unitsPerSampleShipped?: Maybe<Scalars['Float']['output']>;
 }
 
 export const AffiliatePredictionCaptureMode = {
@@ -3666,6 +3678,9 @@ export interface AffiliateReachoutSection {
   cohortResponseRate?: Maybe<Scalars['Float']['output']>;
   coverage: AffiliateCoverage;
   daily: Array<AffiliateInviteDailyPoint>;
+  horizonCohortFrom?: Maybe<Scalars['String']['output']>;
+  horizonCohortSize: Scalars['Int']['output'];
+  horizonCohortTo?: Maybe<Scalars['String']['output']>;
   horizons: Array<AffiliateResponseHorizon>;
   immatureShare?: Maybe<Scalars['Float']['output']>;
   invitations: Scalars['Int']['output'];
@@ -4187,6 +4202,13 @@ export interface AffiliateServiceSettingsInput {
   runProfileId?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface AffiliateShipmentDailyPoint {
+  affiliateUnits: Scalars['Int']['output'];
+  ds: Scalars['String']['output'];
+  samplesShipped: Scalars['Int']['output'];
+  unitsPerSample?: Maybe<Scalars['Float']['output']>;
+}
+
 /** Platform Collaborations for one shop, as seller shop operations read them. Unlike the Creator-scoped Affiliate reads this keeps the complete Creator roster, because shop operations act on the collaboration itself rather than on one Creator relationship. */
 export interface AffiliateShopCollaborationListPayload {
   items: Array<AffiliateCollaboration>;
@@ -4467,7 +4489,6 @@ export interface AffiliateWorkspacePayload {
   /** Best-known creator profile facts for the selected workspace filters. Use this when a dynamic decision needs creator metrics such as follower count. */
   creatorProfiles: Array<AffiliateCreatorIdentity>;
   creatorRelations: Array<AffiliateCreatorRelationship>;
-  creatorTags: Array<CreatorTag>;
   sampleApplicationRecords: Array<SampleApplicationRecord>;
   searchRuns: Array<CreatorSearchRun>;
 }
@@ -4562,12 +4583,6 @@ export const AnnouncementTemplateFormat = {
 } as const;
 
 export type AnnouncementTemplateFormat = typeof AnnouncementTemplateFormat[keyof typeof AnnouncementTemplateFormat];
-export interface ApplyCreatorTagInput {
-  creatorId: Scalars['ID']['input'];
-  shopId: Scalars['ID']['input'];
-  tagId: Scalars['ID']['input'];
-}
-
 export interface AssignAffiliateBusinessDeveloperInput {
   businessDeveloperId?: InputMaybe<Scalars['ID']['input']>;
   creatorRelationshipId: Scalars['ID']['input'];
@@ -4975,6 +4990,11 @@ export interface CreateAffiliateTargetCollaborationPayload {
   providerResult: EcomCreateTargetCollaborationResult;
 }
 
+export interface CreateCreatorManualTagInput {
+  name: Scalars['String']['input'];
+  sensitive: Scalars['Boolean']['input'];
+}
+
 /** Create a provider-backed payment. */
 export interface CreatePaymentGraphqlInput {
   /** Amount in the currency minor unit: cents for USD, fen for CNY. */
@@ -5093,6 +5113,16 @@ export const CreatorCandidateStatus = {
 } as const;
 
 export type CreatorCandidateStatus = typeof CreatorCandidateStatus[keyof typeof CreatorCandidateStatus];
+/** Seller-owned free-form label attachable to a Creator relationship. Seller-wide, never shop-scoped, and carries no backend-derived meaning. */
+export interface CreatorManualTag {
+  createdAt: Scalars['DateTimeISO']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sensitive: Scalars['Boolean']['output'];
+  updatedAt: Scalars['DateTimeISO']['output'];
+  userId: Scalars['ID']['output'];
+}
+
 export interface CreatorMarketplaceSearchParams {
   advancedFilters?: Maybe<CreatorSearchAdvancedFilter>;
   affiliateData?: Maybe<CreatorSearchAffiliateDataFilter>;
@@ -5119,6 +5149,20 @@ export interface CreatorMarketplaceSearchParamsInput {
   searchKey?: InputMaybe<Scalars['String']['input']>;
 }
 
+export interface CreatorRelationshipManualTagInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  manualTagId: Scalars['ID']['input'];
+}
+
+/** How far a Creator has climbed the sample review path at one shop. Ordered rungs of one ladder — a (Relationship, Shop) pair holds exactly one. Backend-derived; never writable by staff or the Agent. */
+export const CreatorSampleTier = {
+  AttributableOrder: 'ATTRIBUTABLE_ORDER',
+  SampleDelivered: 'SAMPLE_DELIVERED',
+  SampleFulfilled: 'SAMPLE_FULFILLED',
+  SampleShipped: 'SAMPLE_SHIPPED'
+} as const;
+
+export type CreatorSampleTier = typeof CreatorSampleTier[keyof typeof CreatorSampleTier];
 export interface CreatorSearchAdvancedFilter {
   categoryPros?: Maybe<Array<Scalars['String']['output']>>;
   creatorLevels?: Maybe<Array<Scalars['String']['output']>>;
@@ -5229,37 +5273,13 @@ export const CreatorSearchRunStatus = {
 } as const;
 
 export type CreatorSearchRunStatus = typeof CreatorSearchRunStatus[keyof typeof CreatorSearchRunStatus];
-export const CreatorSystemTagKey = {
-  Blocked: 'BLOCKED',
-  Dormant: 'DORMANT',
-  GoodFulfillment: 'GOOD_FULFILLMENT',
-  HighGmv: 'HIGH_GMV',
-  NoSampleAgain: 'NO_SAMPLE_AGAIN',
-  SampleRisk: 'SAMPLE_RISK',
-  Vip: 'VIP'
+/** Direction of a manual tag change on a Creator relationship. Both directions are idempotent, so replaying a bundle never double-applies one. */
+export const CreatorTagOperation = {
+  Add: 'ADD',
+  Remove: 'REMOVE'
 } as const;
 
-export type CreatorSystemTagKey = typeof CreatorSystemTagKey[keyof typeof CreatorSystemTagKey];
-/** Tag used by approval policies, segmentation, and human review boundaries. */
-export interface CreatorTag {
-  createdAt: Scalars['DateTimeISO']['output'];
-  id: Scalars['ID']['output'];
-  name: Scalars['String']['output'];
-  sensitive: Scalars['Boolean']['output'];
-  shopId: Scalars['ID']['output'];
-  /** Stable system key for default tags such as VIP or BLOCKED. */
-  systemKey?: Maybe<CreatorSystemTagKey>;
-  type: CreatorTagType;
-  updatedAt: Scalars['DateTimeISO']['output'];
-  userId: Scalars['ID']['output'];
-}
-
-export const CreatorTagType = {
-  Custom: 'CUSTOM',
-  System: 'SYSTEM'
-} as const;
-
-export type CreatorTagType = typeof CreatorTagType[keyof typeof CreatorTagType];
+export type CreatorTagOperation = typeof CreatorTagOperation[keyof typeof CreatorTagOperation];
 /** Ephemeral customer-service conversation signal pushed to desktop. The platform API remains the source of truth for messages and conversation state. */
 export interface CsConversationSignal {
   /** Whether desktop should let the local AI agent run for this conversation. False means skip automation. */
@@ -9412,14 +9432,14 @@ export interface Mutation {
   adminSetDebugChannel: AdminDebugChannelResult;
   /** Publish an ephemeral affiliate signal to active desktop subscribers. This does not persist conversation, creator, or order data. */
   affiliatePublishRelationshipSignal: AffiliateRelationshipSignal;
-  /** Apply a shop-scoped tag inside a user-level creator relation. */
-  applyCreatorTag: AffiliateCreatorRelationship;
   approveBrowserToDesktopLogin: BrowserToDesktopLoginApproval;
   archiveAffiliateBusinessDeveloper: AffiliateBusinessDeveloper;
   archiveProductKnowledge: ProductKnowledge;
   assignAffiliateBusinessDeveloper: AffiliateCreatorRelationship;
   assignAffiliateEmailAccount: EmailAccountBinding;
   assignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
+  /** Attach a manual tag to a Creator relationship. Idempotent. */
+  assignCreatorRelationshipTag: AffiliateCreatorRelationship;
   /** Assign a manual subscription for testing or operator-driven activation. */
   assignManualBillingSubscription: BillingSubscription;
   /** Admin-only: assign or adjust the account-level onboarding trial window. This marker does not directly grant entitlements; newly onboarded shops receive shop/seller trials with the remaining window. */
@@ -9447,6 +9467,8 @@ export interface Mutation {
   createAffiliateOpenCollaboration: CreateAffiliateOpenCollaborationPayload;
   /** Create a TikTok Target Collaboration and immediately project its Provider detail. */
   createAffiliateTargetCollaboration: CreateAffiliateTargetCollaborationPayload;
+  /** Create a seller-scoped manual tag. Staff only; the Agent may only select one. */
+  createCreatorManualTag: CreatorManualTag;
   createDesktopToWebLogin: DesktopToWebLoginStart;
   createExpertConversation: ExpertConversation;
   /** Create an additional original LLM proxy API key for the current user. Requires an active RivonClaw AI subscription. Most clients should use provisionLlmApiKey instead. */
@@ -9608,8 +9630,10 @@ export interface Mutation {
   removeAffiliateOpenCollaboration: RemoveAffiliateOpenCollaborationPayload;
   /** Remove a TikTok Target Collaboration and immediately mark it terminating. */
   removeAffiliateTargetCollaboration: RemoveAffiliateTargetCollaborationPayload;
-  /** Remove a shop-scoped tag from a user-level creator relation. */
-  removeCreatorTag: AffiliateCreatorRelationship;
+  /** Detach a manual tag from a Creator relationship. Idempotent. */
+  removeCreatorRelationshipTag: AffiliateCreatorRelationship;
+  /** Rename a seller-scoped manual tag, or change whether it is sensitive. */
+  renameCreatorManualTag: CreatorManualTag;
   renameExpertConversation: ExpertConversation;
   reportAffiliateCampaignSearchPlanGenerationFailure: Scalars['Boolean']['output'];
   /** Desktop-only: report that this authenticated desktop client is online for an admin device probe. */
@@ -9712,8 +9736,6 @@ export interface Mutation {
   writeCampaignProduct: CampaignProduct;
   /** Create or update a concrete creator marketplace search run. This is platform/search audit state, not workflow planning state. */
   writeCreatorSearchRun: CreatorSearchRun;
-  /** Create or update a creator tag. */
-  writeCreatorTag: CreatorTag;
   /** Write external SKU to InventoryGood mappings in batch. Omit id to locate by sourceSystem + sourceId + sellerSku or create a new mapping. */
   writeInventoryGoodMappings: Array<InventoryGoodMapping>;
   /** Write canonical stockable inventory goods in batch. Omit id to locate by exact sku or create a new good. */
@@ -9757,11 +9779,6 @@ export interface MutationAffiliatePublishRelationshipSignalArgs {
 }
 
 
-export interface MutationApplyCreatorTagArgs {
-  input: ApplyCreatorTagInput;
-}
-
-
 export interface MutationApproveBrowserToDesktopLoginArgs {
   ticket: Scalars['String']['input'];
 }
@@ -9792,6 +9809,11 @@ export interface MutationAssignAffiliateEmailAccountArgs {
 export interface MutationAssignAffiliateWhatsAppAccountArgs {
   accountBindingId: Scalars['ID']['input'];
   businessDeveloperId: Scalars['ID']['input'];
+}
+
+
+export interface MutationAssignCreatorRelationshipTagArgs {
+  input: CreatorRelationshipManualTagInput;
 }
 
 
@@ -9874,6 +9896,11 @@ export interface MutationCreateAffiliateOpenCollaborationArgs {
 
 export interface MutationCreateAffiliateTargetCollaborationArgs {
   input: CreateAffiliateTargetCollaborationInput;
+}
+
+
+export interface MutationCreateCreatorManualTagArgs {
+  input: CreateCreatorManualTagInput;
 }
 
 
@@ -10366,8 +10393,13 @@ export interface MutationRemoveAffiliateTargetCollaborationArgs {
 }
 
 
-export interface MutationRemoveCreatorTagArgs {
-  input: ApplyCreatorTagInput;
+export interface MutationRemoveCreatorRelationshipTagArgs {
+  input: CreatorRelationshipManualTagInput;
+}
+
+
+export interface MutationRenameCreatorManualTagArgs {
+  input: RenameCreatorManualTagInput;
 }
 
 
@@ -10667,11 +10699,6 @@ export interface MutationWriteCampaignProductArgs {
 
 export interface MutationWriteCreatorSearchRunArgs {
   input: WriteCreatorSearchRunInput;
-}
-
-
-export interface MutationWriteCreatorTagArgs {
-  input: WriteCreatorTagInput;
 }
 
 
@@ -11286,7 +11313,7 @@ export interface Query {
   affiliateActionProposalPage: AffiliateActionProposalPage;
   /** Read affiliate approval interception policies. */
   affiliateApprovalPolicies: Array<AffiliateApprovalPolicy>;
-  /** Read tag and campaign condition options across all Affiliate shops owned by the authenticated seller account. */
+  /** Read campaign condition options across all Affiliate shops owned by the authenticated seller account. */
   affiliateApprovalPolicyContext: AffiliateApprovalPolicyContextPayload;
   /** List paginated user-level Affiliate business developers with workload and channel counts. */
   affiliateBusinessDeveloperPage: AffiliateBusinessDeveloperPage;
@@ -11386,12 +11413,12 @@ export interface Query {
   checkUpdate?: Maybe<UpdatePayload>;
   /** Read creator candidates discovered by search and qualification. Blocked creator relations are filtered out at read time. */
   creatorCandidates: Array<CreatorCandidate>;
+  /** Read the seller's manual tag catalog. Seller-wide: manual tags are never shop-scoped. */
+  creatorManualTags: Array<CreatorManualTag>;
   /** Read user-scoped creator relationships for a shop. Commercial lifecycle belongs to collaboration records; protected creators are excluded unless blocked=true. */
   creatorRelationships: Array<AffiliateCreatorRelationship>;
   /** Read concrete creator marketplace search runs from Mongo state. */
   creatorSearchRuns: Array<CreatorSearchRun>;
-  /** Read shop-scoped creator tags used by segmentation and approval policies. */
-  creatorTags: Array<CreatorTag>;
   /** Read the current cloud status and result for a CS escalation */
   csGetEscalationResult?: Maybe<CsEscalationLookupResult>;
   /** List open CS escalations for the authenticated user, including pending and in-progress items */
@@ -11481,7 +11508,7 @@ export interface Query {
   getAffiliateAnalyticsOverviewCore: AffiliateAnalyticsOverviewCore;
   /** Return the Affiliate Overview approval section: sample application cohorts by submission date and their current outcome mix, by day and by cohort age. */
   getAffiliateOverviewApproval: AffiliateApprovalSection;
-  /** Return the Affiliate Overview post-approval section: units realised by approved sample application cohorts, with the completion-factor projection and the maturation curve it is derived from. Units only — no GMV. */
+  /** Return the Affiliate Overview post-approval section: outcomes of approved sample applications, plus a same-day comparison of samples shipped against affiliate-channel units sold. Observed counts only — no projection, and no GMV. */
   getAffiliateOverviewPostApproval: AffiliatePostApprovalSection;
   /** Return the Affiliate Overview reachout section: TARGET invitation cohorts by real invitation date, their response rate by horizon, and the exact/proxy submission-time split that gates the sub-day horizons. */
   getAffiliateOverviewReachout: AffiliateReachoutSection;
@@ -11910,6 +11937,11 @@ export interface QueryCreatorCandidatesArgs {
 }
 
 
+export interface QueryCreatorManualTagsArgs {
+  input?: InputMaybe<ReadCreatorManualTagsInput>;
+}
+
+
 export interface QueryCreatorRelationshipsArgs {
   input: ReadCreatorRelationsInput;
 }
@@ -11917,11 +11949,6 @@ export interface QueryCreatorRelationshipsArgs {
 
 export interface QueryCreatorSearchRunsArgs {
   input: ReadCreatorSearchRunsInput;
-}
-
-
-export interface QueryCreatorTagsArgs {
-  shopId: Scalars['String']['input'];
 }
 
 
@@ -12519,11 +12546,18 @@ export interface ReadAffiliateCreatorsInput {
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   lifecycleStage?: InputMaybe<AffiliateLifecycleStage>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Relationship-level manual tags, combined per manualTagMatchMode. */
+  manualTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** How manualTagIds combine. Defaults to ANY. */
+  manualTagMatchMode?: InputMaybe<TagMatchMode>;
   needsAttentionOnly?: InputMaybe<Scalars['Boolean']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+  /** Exact tiers in any of the Relationship's shops, ORed within the list. Selecting one rung returns creators currently at that rung, not creators that ever passed it. */
+  sampleTiers?: InputMaybe<Array<CreatorSampleTier>>;
   search?: InputMaybe<Scalars['String']['input']>;
   shopId?: InputMaybe<Scalars['ID']['input']>;
-  tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Exact tiers within the selected shopId. Ignored when no shopId is given. */
+  shopSampleTiers?: InputMaybe<Array<CreatorSampleTier>>;
 }
 
 export interface ReadAffiliateWorkItemsInput {
@@ -12548,13 +12582,17 @@ export interface ReadCreatorCandidatesInput {
   status?: InputMaybe<CreatorCandidateStatus>;
 }
 
+export interface ReadCreatorManualTagsInput {
+  /** Case-insensitive substring match on the tag name. */
+  search?: InputMaybe<Scalars['String']['input']>;
+}
+
 export interface ReadCreatorRelationsInput {
   /** When true, return relationships protected for this shop; otherwise protected relationships are excluded. */
   blocked?: InputMaybe<Scalars['Boolean']['input']>;
   creatorId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   shopId: Scalars['ID']['input'];
-  tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 }
 
 export interface ReadCreatorSearchRunsInput {
@@ -12723,6 +12761,12 @@ export interface RemoveAffiliateTargetCollaborationPayload {
   collaboration: AffiliateCollaboration;
 }
 
+export interface RenameCreatorManualTagInput {
+  name: Scalars['String']['input'];
+  sensitive: Scalars['Boolean']['input'];
+  tagId: Scalars['ID']['input'];
+}
+
 export interface ReportAffiliateCampaignSearchPlanGenerationFailureInput {
   errorCode: Scalars['String']['input'];
   generation: Scalars['Int']['input'];
@@ -12735,9 +12779,11 @@ export interface ResolveAffiliateCampaignProductInput {
   shopId: Scalars['ID']['input'];
 }
 
-/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent. */
+/** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent, MANAGE_CREATOR_TAG -> creatorTagIntent.operation + creatorTagIntent.manualTagId. */
 export interface ResolveAffiliateWorkItemActionInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
+  /** Required only when type is MANAGE_CREATOR_TAG. Set operation to ADD or REMOVE and manualTagId to an id affiliate_search_manual_tags returned; never name a tag by text and never send an id that tool did not return. The tag lands on this work item's Relationship and is seller-wide, so contextShopId is optional and never narrows it. */
+  creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
   messageIntent?: InputMaybe<ResolveAffiliateWorkItemMessageIntentInput>;
@@ -12751,7 +12797,7 @@ export interface ResolveAffiliateWorkItemActionInput {
   sampleReviewDecision?: InputMaybe<AffiliateSampleReviewDecision>;
   /** Required only when type is REVIEW_SAMPLE_APPLICATION unless the agent-facing sample review shortcut fields are provided. Prefer the flat shortcut fields when calling affiliate_resolve_work_item from an agent. */
   sampleReviewIntent?: InputMaybe<ActionProposalSampleReviewIntentInput>;
-  /** Supported values are SEND_MESSAGE and REVIEW_SAMPLE_APPLICATION. Do not invent unsupported seller operations. */
+  /** Supported values are SEND_MESSAGE, REVIEW_SAMPLE_APPLICATION and MANAGE_CREATOR_TAG. Do not invent unsupported seller operations. */
   type: ActionProposalType;
 }
 
@@ -13970,6 +14016,13 @@ export const SystemSurface = {
 } as const;
 
 export type SystemSurface = typeof SystemSurface[keyof typeof SystemSurface];
+/** How a multi-value manual tag filter combines its members: ALL requires every listed tag, ANY requires at least one. */
+export const TagMatchMode = {
+  All: 'ALL',
+  Any: 'ANY'
+} as const;
+
+export type TagMatchMode = typeof TagMatchMode[keyof typeof TagMatchMode];
 export interface TikTokOAuthBrowserStart {
   authUrl: Scalars['String']['output'];
   expiresAt: Scalars['DateTimeISO']['output'];
@@ -14085,6 +14138,7 @@ export const ToolId = {
   AffiliatePredictCreatorProductFit: 'AFFILIATE_PREDICT_CREATOR_PRODUCT_FIT',
   AffiliateReadMessageAttachment: 'AFFILIATE_READ_MESSAGE_ATTACHMENT',
   AffiliateResolveWorkItem: 'AFFILIATE_RESOLVE_WORK_ITEM',
+  AffiliateSearchManualTags: 'AFFILIATE_SEARCH_MANUAL_TAGS',
   AffiliateSearchProducts: 'AFFILIATE_SEARCH_PRODUCTS',
   AffiliateSetCreatorEmail: 'AFFILIATE_SET_CREATOR_EMAIL',
   AffiliateSetCreatorWhatsapp: 'AFFILIATE_SET_CREATOR_WHATSAPP',
@@ -14726,11 +14780,14 @@ export interface WriteAccountRoleInput {
 export interface WriteAffiliateApprovalPolicyInput {
   action: ActionProposalType;
   campaignIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  creatorTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  excludedManualTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  excludedSampleTiers?: InputMaybe<Array<CreatorSampleTier>>;
   id?: InputMaybe<Scalars['ID']['input']>;
+  manualTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   productIds?: InputMaybe<Array<Scalars['String']['input']>>;
   reason?: InputMaybe<Scalars['String']['input']>;
+  sampleTiers?: InputMaybe<Array<CreatorSampleTier>>;
 }
 
 export interface WriteAffiliateBusinessDeveloperInput {
@@ -14812,15 +14869,6 @@ export interface WriteCreatorSearchRunInput {
   searchParams: CreatorMarketplaceSearchParamsInput;
   shopId: Scalars['ID']['input'];
   status?: InputMaybe<CreatorSearchRunStatus>;
-}
-
-export interface WriteCreatorTagInput {
-  id?: InputMaybe<Scalars['ID']['input']>;
-  name: Scalars['String']['input'];
-  sensitive?: InputMaybe<Scalars['Boolean']['input']>;
-  shopId: Scalars['ID']['input'];
-  systemKey?: InputMaybe<CreatorSystemTagKey>;
-  type?: InputMaybe<CreatorTagType>;
 }
 
 /** Write a canonical stockable inventory item. Omit id to locate by exact sku or create a new item. */

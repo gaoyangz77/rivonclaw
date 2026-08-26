@@ -119,16 +119,26 @@ const COPY: Record<string, string> = {
   "ecommerce.affiliateAnalytics.approval.axis": "Cohort axis: the application submission date",
   "ecommerce.affiliateAnalytics.approval.overdueRate": "Overdue rate",
   "ecommerce.affiliateAnalytics.postApproval.title": "Post-approval performance",
-  "ecommerce.affiliateAnalytics.postApproval.axis": "Cohort axis: the application date · measured in units",
+  "ecommerce.affiliateAnalytics.postApproval.axis": "Two bases: the application date and the calendar day",
   "ecommerce.affiliateAnalytics.postApproval.actualUnits": "Units to date",
+  "ecommerce.affiliateAnalytics.postApproval.samplesShipped": "Free samples shipped",
+  "ecommerce.affiliateAnalytics.postApproval.affiliateUnits": "Affiliate units sold",
+  "ecommerce.affiliateAnalytics.postApproval.unitsPerSampleShipped": "Units per sample shipped",
+  "ecommerce.affiliateAnalytics.postApproval.shipmentBoundary": "Shipment data starts",
+  "ecommerce.affiliateAnalytics.postApproval.twoBases": "Applications from {{applicationDate}}; shipment observation from {{shipmentDate}}.",
   "ecommerce.affiliateAnalytics.explore.operators.IN": "Is one of",
   "ecommerce.affiliateAnalytics.explore.directions.DESC": "Descending",
   "ecommerce.affiliateAnalytics.catalog.dimensions.DATE": "Date",
   "ecommerce.affiliateAnalytics.catalog.metrics.AFFILIATE_APPLICATIONS_CREATED": "Applications",
   "ecommerce.affiliateAnalytics.coverage.boundary": "Series start on {{date}} · {{shops}} shops with data",
   "ecommerce.affiliateAnalytics.coverage.partialDays": "{{count}} earlier partial days",
-  "ecommerce.affiliateAnalytics.coverage.showPartial": "Show the partial range anyway",
-  "ecommerce.affiliateAnalytics.coverage.hidePartial": "Hide the partial range",
+  "ecommerce.affiliateAnalytics.coverage.restrictToCovered": "Narrow to the fully-covered range",
+  "ecommerce.affiliateAnalytics.coverage.showFullRange": "Show the full range",
+  "ecommerce.affiliateAnalytics.coverage.boundaryMark": "Full coverage",
+  "ecommerce.affiliateAnalytics.postApproval.pinnedWindow": "Always measured over {{count}} days, whatever the window control says.",
+  "ecommerce.affiliateAnalytics.reachout.cohortTooSmall": "Only {{count}} invitations are mature; at least {{minimum}} are needed.",
+  "ecommerce.affiliateAnalytics.reachout.cohortTooSmallNote": "Not enough mature invitations to plot a curve.",
+  "ecommerce.affiliateAnalytics.reachout.horizonCohortRange": "Cohort invited between {{from}} and {{to}}.",
   "ecommerce.affiliateAnalytics.coverage.excludeLimiting": "Exclude the {{count}} latest-starting shops",
   "ecommerce.affiliateAnalytics.coverage.limitingShops": "Latest to start: {{shops}}",
   "ecommerce.affiliateAnalytics.coverage.noneTitle": "No selected shop has data for this section",
@@ -221,18 +231,18 @@ function postApprovalFixture() {
     applicationsWithOrder: 96,
     orderRate: 0.32,
     actualUnits: 812,
-    projectedUnits: 954.4,
     unitsPerApprovedActual: 2.71,
-    unitsPerApprovedProjected: 3.18,
-    cohorts: [
-      { cohortDs: "2026-06-01", approvedApplications: 40, actualUnits: 120, projectedRemainingUnits: 0, completionFactor: 1, ageDays: 84 },
-      { cohortDs: "2026-08-18", approvedApplications: 30, actualUnits: 22, projectedRemainingUnits: 41.5, completionFactor: 0.35, ageDays: 6 },
-    ],
-    maturationCurve: [
-      { lagDays: 0, cumulativeShare: 0.04, basisCohorts: 41 },
-      { lagDays: 30, cumulativeShare: 0.78, basisCohorts: 41 },
+    samplesShipped: 1_940,
+    affiliateUnits: 14_585,
+    unitsPerSampleShipped: 7.52,
+    // Shipment observation starts later than application coverage, and the day
+    // before it legitimately carries real units with no samples.
+    daily: [
+      { ds: "2026-06-01", samplesShipped: 0, affiliateUnits: 5_177 },
+      { ds: "2026-08-18", samplesShipped: 1_940, affiliateUnits: 9_408 },
     ],
     coverage: coverageFixture(["2026-06-01", "2026-08-18"]),
+    shipmentCoverage: coverageFixture(["2026-06-01", "2026-08-18"]),
   };
 }
 
@@ -280,6 +290,12 @@ function overviewInputs(): Array<{ shopIds?: string[]; windowDays?: number }> {
     .map((call) => call.variables?.input as { shopIds?: string[]; windowDays?: number });
 }
 
+function postApprovalInputs(): Array<{ shopIds?: string[]; windowDays?: number }> {
+  return mocks.queryCalls
+    .filter((call) => call.operation === "AffiliateOverviewPostApproval")
+    .map((call) => call.variables?.input as { shopIds?: string[]; windowDays?: number });
+}
+
 function portfolioInputs(): Array<Record<string, unknown>> {
   return mocks.queryCalls
     .filter((call) => call.operation === "AffiliateOverviewPortfolio")
@@ -295,7 +311,7 @@ describe("AffiliateAnalyticsPage Overview", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Post-approval performance" })).toBeTruthy();
     expect(screen.getByText("Cohort axis: the real invitation date")).toBeTruthy();
     expect(screen.getByText("Cohort axis: the application submission date")).toBeTruthy();
-    expect(screen.getByText("Cohort axis: the application date · measured in units")).toBeTruthy();
+    expect(screen.getByText("Two bases: the application date and the calendar day")).toBeTruthy();
   });
 
   it("opens on the 30 day window and re-queries when another window is chosen", () => {
@@ -306,6 +322,31 @@ describe("AffiliateAnalyticsPage Overview", () => {
     fireEvent.click(screen.getByRole("button", { name: "Last 90d" }));
 
     expect(overviewInputs().some((input) => input.windowDays === 90)).toBe(true);
+  });
+
+  it("pins the post-approval window at 90 days whatever the control says", () => {
+    render(<AffiliateAnalyticsPage />);
+
+    // The page opens on 30 days, but this section's cohorts need ~90 days to
+    // produce anything, so a 30-day request would return a structurally empty
+    // chart for a seller who is selling.
+    expect(overviewInputs().at(0)?.windowDays).toBe(30);
+    expect(postApprovalInputs().every((input) => input.windowDays === 90)).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Last 60d" }));
+
+    expect(overviewInputs().some((input) => input.windowDays === 60)).toBe(true);
+    expect(postApprovalInputs().every((input) => input.windowDays === 90)).toBe(true);
+    // The shop scope still follows the page, only the window is pinned.
+    expect(postApprovalInputs().every((input) => input.shopIds?.includes("shop-1"))).toBe(true);
+  });
+
+  it("says on the section that its window is pinned rather than inherited", () => {
+    const { container } = render(<AffiliateAnalyticsPage />);
+    const postApproval = container
+      .querySelector('[data-tutorial-id="affiliate-analytics-post-approval"]') as HTMLElement;
+
+    expect(within(postApproval).getByText("Always measured over 90 days", { exact: false })).toBeTruthy();
   });
 
   it("labels the portfolio counts as current values that the window does not move", () => {
@@ -414,36 +455,37 @@ describe("AffiliateAnalyticsPage Overview data coverage", () => {
     expect(within(reachout).getByText("Latest to start: Berlin Shop")).toBeTruthy();
   });
 
-  it("plots only the fully-covered days by default, while the band keeps the whole span", () => {
+  it("plots the whole span by default rather than truncating at the boundary", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
     const reachout = section(container, "reachout");
 
-    // The daily fixture holds 2026-06-01 and 2026-08-20; only the second is at
-    // or after the 2026-08-19 boundary.
-    expect(chartRows(reachout, "composed")).toEqual([1]);
-    // The band still covers both days, so the reader sees that earlier data
-    // exists and is partial rather than absent.
+    // The daily fixture holds 2026-06-01 and 2026-08-20, and the boundary is
+    // 2026-08-19. Both days are drawn: the earlier one is marked as partial,
+    // not deleted.
+    expect(chartRows(reachout, "composed")).toEqual([2]);
     expect(chartRows(reachout, "area")).toEqual([2]);
   });
 
-  it("restores the partial range only when the reader asks for it", () => {
+  it("narrows to the fully-covered range only when the reader asks for it", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
     const reachout = section(container, "reachout");
 
-    fireEvent.click(within(reachout).getByRole("button", { name: "Show the partial range anyway" }));
+    fireEvent.click(within(reachout).getByRole("button", { name: "Narrow to the fully-covered range" }));
 
-    expect(chartRows(reachout, "composed")).toEqual([2]);
-    expect(within(reachout).getByRole("button", { name: "Hide the partial range" })).toBeTruthy();
+    expect(chartRows(reachout, "composed")).toEqual([1]);
+    expect(within(reachout).getByRole("button", { name: "Show the full range" })).toBeTruthy();
   });
 
-  it("truncates the other two sections on their own boundaries", () => {
+  it("keeps the other two sections whole on their own boundaries too", () => {
     const { container } = render(<AffiliateAnalyticsPage />);
 
-    // The approval cohort day 2026-08-01 precedes the boundary, so its daily
-    // chart truncates to nothing while the age chart, which has no date axis,
-    // keeps its bucket.
-    expect(chartRows(section(container, "approval"), "bar")).toEqual([0, 1]);
-    expect(chartRows(section(container, "post-approval"), "bar")).toEqual([0]);
+    // The approval cohort day 2026-08-01 precedes the boundary. It used to be
+    // truncated away, leaving an empty daily chart beside a populated age
+    // chart; now both keep their rows.
+    expect(chartRows(section(container, "approval"), "bar")).toEqual([1, 1]);
+    // Post-approval is one composed chart: the 2026-06-01 day sits before the
+    // shipment boundary and carries real units with no samples. It is drawn.
+    expect(chartRows(section(container, "post-approval"), "composed")).toEqual([2]);
   });
 
   it("discloses the shop basis next to the rate it was computed over", () => {

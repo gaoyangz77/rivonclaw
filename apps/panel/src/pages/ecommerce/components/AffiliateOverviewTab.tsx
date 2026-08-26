@@ -79,7 +79,11 @@ export function AffiliateOverviewTab({ shops }: { shops: AffiliateAnalyticsShop[
       */}
       <AffiliateReachoutSectionView query={state.reachout} onExcludeShops={state.setShopIds} />
       <AffiliateApprovalSectionView query={state.approval} onExcludeShops={state.setShopIds} />
-      <AffiliatePostApprovalSectionView query={state.postApproval} onExcludeShops={state.setShopIds} />
+      <AffiliatePostApprovalSectionView
+        query={state.postApproval}
+        windowDays={state.postApprovalWindowDays}
+        onExcludeShops={state.setShopIds}
+      />
     </div>
   );
 }

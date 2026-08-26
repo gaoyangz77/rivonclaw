@@ -7,7 +7,11 @@
  */
 
 import type { GQL } from "@rivonclaw/core";
-import { AFFILIATE_RESPONSE_HORIZONS, AFFILIATE_SUB_DAY_HORIZONS } from "./affiliate-overview-types.js";
+import {
+  AFFILIATE_RESPONSE_HORIZONS,
+  AFFILIATE_SUB_DAY_HORIZONS,
+  type AffiliateHorizonCohortFields,
+} from "./affiliate-overview-types.js";
 
 /**
  * Sub-day horizons are only interpretable where most response times are real
@@ -15,6 +19,18 @@ import { AFFILIATE_RESPONSE_HORIZONS, AFFILIATE_SUB_DAY_HORIZONS } from "./affil
  * 2026-06 = 11% — below this bar a 3h/12h/24h point is a misleading zero.
  */
 export const AFFILIATE_EXACT_SHARE_THRESHOLD = 0.6;
+
+/**
+ * Smallest horizon cohort that can carry a curve at all.
+ *
+ * This is a resolution floor, not a taste threshold. The curve reports a rate,
+ * and the smallest non-zero rate a cohort of N can express is 1/N. Response
+ * rates on this page run around 0.1%, so below N = 1,000 the chart cannot
+ * resolve the quantity it is drawing: every point collapses to either zero or a
+ * spike an order of magnitude above the true rate. The measured 30-day cohort
+ * that exposed this was 32 invitations — a curve drawn from a rounding error.
+ */
+export const AFFILIATE_HORIZON_MIN_COHORT = 1000;
 
 const HORIZON_ORDER = new Map(AFFILIATE_RESPONSE_HORIZONS.map((horizon, index) => [horizon as string, index]));
 
@@ -44,32 +60,52 @@ export function orderResponseHorizons(horizons: readonly GQL.AffiliateResponseHo
 }
 
 export interface AffiliateHorizonSeries {
-  /** Ordered horizons that may be plotted. */
+  /** Ordered horizons that may be plotted. Empty when the cohort is too small. */
   points: GQL.AffiliateResponseHorizon[];
   /** Share of responses carrying an exact submission timestamp, or null. */
   exactShare: number | null;
   /** True when 3h/12h/24h were withheld because the exact share is too low. */
   subDaySuppressed: boolean;
+  /** The one denominator behind every point. */
+  cohortSize: number;
+  /** True when the whole curve is withheld for resting on too few invitations. */
+  cohortTooSmall: boolean;
 }
 
 /**
- * Builds the plottable horizon series. Sub-day horizons are suppressed — not
- * zeroed — when the exact-submission share is below the threshold, so the chart
- * never draws a proxy artefact as a real short-horizon response rate.
+ * Builds the plottable horizon series.
+ *
+ * Two independent suppressions, because they answer different questions and a
+ * reader told the wrong one would go looking in the wrong place:
+ *
+ *  - sub-day horizons are dropped when the exact-submission share is too low,
+ *    since a 3h point computed off a day-coarse proxy is an artefact;
+ *  - the WHOLE curve is dropped when the fixed cohort is below the resolution
+ *    floor, since no amount of correct arithmetic makes a rate over 32
+ *    invitations informative.
+ *
+ * Neither zeroes anything. A suppressed point is absent and named as absent.
  */
 export function buildResponseHorizonSeries(
-  section: Pick<GQL.AffiliateReachoutSection, "horizons" | "responsesExact" | "responsesProxy">,
+  section: Pick<GQL.AffiliateReachoutSection, "horizons" | "responsesExact" | "responsesProxy">
+    & AffiliateHorizonCohortFields,
   threshold = AFFILIATE_EXACT_SHARE_THRESHOLD,
+  minCohort = AFFILIATE_HORIZON_MIN_COHORT,
 ): AffiliateHorizonSeries {
   const exactShare = exactSubmissionShare(section);
   const subDaySuppressed = exactShare == null || exactShare < threshold;
+  const cohortSize = section.horizonCohortSize;
+  const cohortTooSmall = cohortSize < minCohort;
   const ordered = orderResponseHorizons(section.horizons);
+  const withinExactShare = subDaySuppressed
+    ? ordered.filter((point) => !AFFILIATE_SUB_DAY_HORIZONS.includes(point.horizon))
+    : ordered;
   return {
-    points: subDaySuppressed
-      ? ordered.filter((point) => !AFFILIATE_SUB_DAY_HORIZONS.includes(point.horizon))
-      : ordered,
+    points: cohortTooSmall ? [] : withinExactShare,
     exactShare,
     subDaySuppressed,
+    cohortSize,
+    cohortTooSmall,
   };
 }
 
@@ -152,46 +188,66 @@ export function firstImmatureCohortDay(rows: readonly AffiliateInviteDailyRow[])
   return rows.find((row) => !row.mature)?.inviteDs ?? null;
 }
 
-export interface AffiliateCohortUnitsRow {
-  cohortDs: string;
-  approvedApplications: number;
-  actualUnits: number;
-  projectedRemainingUnits: number;
+/**
+ * Length of the trailing window behind the shipment ratio line.
+ *
+ * Seven days, so the window closes over one whole week and cannot be read as a
+ * weekday effect. It is a summing window, not a smoothing parameter: the point
+ * it produces is still a ratio of two counts that were actually observed.
+ */
+export const AFFILIATE_SHIPMENT_TRAILING_DAYS = 7;
+
+export interface AffiliateShipmentDailyRow {
+  ds: string;
+  /** Free samples we observed shipping that day. */
+  samplesShipped: number;
+  /** Units the affiliate channel sold that day. */
+  affiliateUnits: number;
   /**
-   * Normalized to a single absent value. Codegen models a nullable field as
-   * `?: Maybe<T>`, so the wire shape carries both `null` and `undefined`; a
-   * display row should not make a reader handle two kinds of missing.
+   * Trailing 7-day sum(affiliateUnits) / sum(samplesShipped).
+   *
+   * Null for the first six days of the series, which have no full window
+   * behind them, and null when the trailing shipment sum is zero. Both are
+   * genuine absences and are drawn as gaps, never as a zero.
    */
-  completionFactor: number | null;
-  ageDays: number;
-  /** Cohort still accruing units — its bar carries a projection segment. */
-  immature: boolean;
+  trailingUnitsPerSample: number | null;
 }
 
 /**
- * Shapes the cohort units series. `projectedRemainingUnits` is clamped at zero
- * and day-0 cohorts never carry a projection, matching the producer contract.
+ * Shapes the shipment series and derives the trailing ratio drawn beside it.
+ *
+ * The per-day ratio the producer already sends is unusable as a line: measured
+ * on production for one seller, the first two shipment days carry four samples
+ * each and read 1202 and 1150, against a stable 6–13 from the third day on. A
+ * shared axis is destroyed by those two points.
+ *
+ * The fix is to widen the window, not to filter the days. Summing seven days of
+ * each count before dividing absorbs the ramp-up without a cutoff, and keeps
+ * the result a ratio of two direct observations — no estimator, no completion
+ * factor, and deliberately NO minimum-denominator threshold, which would
+ * disguise a data-completeness problem as a small-sample one.
+ *
+ * Days before shipment observation began legitimately carry `samplesShipped: 0`
+ * with real `affiliateUnits`. They are kept: the shipment coverage boundary is
+ * what explains them, and dropping them would hide it.
  */
-export function buildCohortUnitsRows(cohorts: readonly GQL.AffiliateCohortUnitsPoint[]): AffiliateCohortUnitsRow[] {
-  return cohorts.map((cohort) => {
-    const projected = cohort.ageDays >= 1 && isPositiveFinite(cohort.projectedRemainingUnits)
-      ? cohort.projectedRemainingUnits
-      : 0;
+export function buildShipmentDailyRows(
+  daily: readonly GQL.AffiliateShipmentDailyPoint[],
+  trailingDays = AFFILIATE_SHIPMENT_TRAILING_DAYS,
+): AffiliateShipmentDailyRow[] {
+  return daily.map((point, index) => {
+    const start = index + 1 - trailingDays;
+    const window = start < 0 ? null : daily.slice(start, index + 1);
     return {
-      cohortDs: cohort.cohortDs,
-      approvedApplications: cohort.approvedApplications,
-      actualUnits: cohort.actualUnits,
-      projectedRemainingUnits: projected,
-      completionFactor: cohort.completionFactor ?? null,
-      ageDays: cohort.ageDays,
-      immature: projected > 0 || (cohort.completionFactor != null && cohort.completionFactor < 1),
+      ds: point.ds,
+      samplesShipped: point.samplesShipped,
+      affiliateUnits: point.affiliateUnits,
+      trailingUnitsPerSample: window == null ? null : safeShare(
+        window.reduce((total, day) => total + day.affiliateUnits, 0),
+        window.reduce((total, day) => total + day.samplesShipped, 0),
+      ),
     };
   });
-}
-
-/** Number of cohorts in the series that are still accruing units. */
-export function countImmatureCohorts(rows: readonly AffiliateCohortUnitsRow[]): number {
-  return rows.filter((row) => row.immature).length;
 }
 
 /* -------------------------------------------------------------------------
@@ -241,18 +297,28 @@ export function isFullyCoveredDay(ds: string, fullCoverageFrom: string | null | 
 }
 
 /**
- * Drops the days before the boundary unless the reader explicitly asked to see
- * the partial range. The band is rendered from the section's own `coverage`
- * rather than from these rows, so it keeps showing the whole span and the
- * reader can still see that earlier data exists.
+ * Narrows a series to the fully-covered range — ONLY when the reader has asked
+ * for it.
+ *
+ * The default is the full range, which is the opposite of what this layer
+ * originally did. Defaulting to the intersection let one late shop erase the
+ * rest: measured on production 2026-08-25 for one owner, a German shop with a
+ * 2026-08-06 floor and 99 rows (0 units) and a UK shop with a 2026-08-04 floor
+ * and 808 rows (0 units) truncated away 81,627 rows and 142,397 units of
+ * history belonging to three US shops covered from 2026-05-15.
+ *
+ * The boundary is real and still stated — by the coverage band, the reference
+ * line at the first fully-covered day, and the dashed/faint treatment of the
+ * partial region. What it must not do is silently delete the data it describes.
+ * Narrowing scope remains available as an explicit, reversible action.
  */
 export function applyCoverageWindow<TRow>(
   rows: readonly TRow[],
   dsOf: (row: TRow) => string,
   fullCoverageFrom: string | null | undefined,
-  showPartial: boolean,
+  restrictToCovered: boolean,
 ): TRow[] {
-  if (showPartial || fullCoverageFrom == null) return [...rows];
+  if (!restrictToCovered || fullCoverageFrom == null) return [...rows];
   return rows.filter((row) => isFullyCoveredDay(dsOf(row), fullCoverageFrom));
 }
 
@@ -262,6 +328,24 @@ export function countPartialDays(
   fullCoverageFrom: string | null | undefined,
 ): number {
   return dates.filter((ds) => !isFullyCoveredDay(ds, fullCoverageFrom)).length;
+}
+
+/**
+ * The x-axis category to mark as the first fully-covered day, or null.
+ *
+ * Charts here use a categorical axis, so a reference line can only land on a
+ * value that is actually plotted — an interpolated date would silently not
+ * render. It returns null when the boundary is absent, is not one of the
+ * plotted days, or has nothing before it, because a line with no partial region
+ * to its left marks a distinction that does not exist in the view.
+ */
+export function coverageBoundaryMark(
+  dates: readonly string[],
+  fullCoverageFrom: string | null | undefined,
+): string | null {
+  if (fullCoverageFrom == null) return null;
+  if (!dates.includes(fullCoverageFrom)) return null;
+  return dates.some((ds) => ds < fullCoverageFrom) ? fullCoverageFrom : null;
 }
 
 export interface AffiliateCoverageSplitRow {

@@ -358,7 +358,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         }
         shopStates {
           shopId
-          tagIds
+          sampleTier
           lastContactedAt
           lastInvitedAt
           lastQualifiedAt
@@ -399,7 +399,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           blockedShopIds
           shopStates {
             shopId
-            tagIds
+            sampleTier
             lastContactedAt
             lastInvitedAt
             lastQualifiedAt
