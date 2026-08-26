@@ -25,18 +25,16 @@ import {
   AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY,
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
-  AFFILIATE_POLICY_CONTEXT_QUERY,
   AFFILIATE_OPERATIONAL_PROJECTION_HEALTH_QUERY,
   AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY,
   AFFILIATE_PRODUCT_SUMMARIES_QUERY,
-  APPLY_CREATOR_TAG_MUTATION,
   ASSIGN_AFFILIATE_BUSINESS_DEVELOPER_MUTATION,
+  CREATOR_MANUAL_TAGS_QUERY,
   CREATE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
   CREATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
   DECIDE_ACTION_PROPOSAL_MUTATION,
   EDIT_AFFILIATE_OPEN_COLLABORATION_SAMPLE_RULE_MUTATION,
   EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION,
-  REMOVE_CREATOR_TAG_MUTATION,
   REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
   REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
   SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
@@ -44,7 +42,12 @@ import {
   REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION,
   UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
 } from "../../api/shops-queries.js";
-import { creatorTagLabel } from "./affiliate-tag-labels.js";
+import { creatorSampleTierDisplay } from "./affiliate-creator-tiers.js";
+import { AffiliateCreatorFilterGroups } from "./components/AffiliateCreatorFilterGroups.js";
+import {
+  AffiliateCreatorManualTagEditor,
+  type CreatorManualTagChange,
+} from "./components/AffiliateCreatorManualTagEditor.js";
 import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 
@@ -135,7 +138,8 @@ const CREATOR_RELATIONSHIP_WORK_PAGE_SIZE = 24;
 const AFFILIATE_TIMELINE_PAGE_SIZE = 25;
 const AFFILIATE_CREATORS_PAGE_SIZE = 24;
 const AFFILIATE_PROPOSAL_PAGE_SIZE = 20;
-const ALL_CREATOR_TAGS_FILTER = "__ALL_CREATOR_TAGS__";
+/** Chips beyond this many collapse into a single "+N" chip. */
+const CREATOR_MANUAL_TAG_CHIP_LIMIT = 3;
 const PROJECTION_DATASET_I18N_KEY: Record<string, string> = {
   COLLABORATIONS: "ecommerce.affiliateWorkspace.projectionDataset.COLLABORATIONS",
   SAMPLE_APPLICATIONS: "ecommerce.affiliateWorkspace.projectionDataset.SAMPLE_APPLICATIONS",
@@ -343,6 +347,7 @@ const PROPOSAL_TYPE_FILTERS = [
   GQL.ActionProposalType.NoActionNeeded,
   GQL.ActionProposalType.SendMessage,
   GQL.ActionProposalType.ReviewSampleApplication,
+  GQL.ActionProposalType.ManageCreatorTag,
 ] as const;
 
 type ProposalTypeFilter = (typeof PROPOSAL_TYPE_FILTERS)[number];
@@ -2677,20 +2682,21 @@ function AffiliateQueryErrorState({
 
 export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const authChecking = (entityStore as any).authBootstrap?.status === "loading";
   const affiliateShops = entityStore.shops.filter((shop) => shop.services?.affiliateService?.enabled);
   const [selectedShopId, setSelectedShopId] = useState("");
-  const [selectedTagId, setSelectedTagId] = useState(ALL_CREATOR_TAGS_FILTER);
+  const [selectedManualTagIds, setSelectedManualTagIds] = useState<string[]>([]);
+  const [manualTagMatchMode, setManualTagMatchMode] = useState<GQL.TagMatchMode>(GQL.TagMatchMode.Any);
+  const [selectedSampleTiers, setSelectedSampleTiers] = useState<GQL.CreatorSampleTier[]>([]);
+  const [selectedShopSampleTiers, setSelectedShopSampleTiers] = useState<GQL.CreatorSampleTier[]>([]);
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
   const [creatorSearch, setCreatorSearch] = useState("");
   const [debouncedCreatorSearch, setDebouncedCreatorSearch] = useState("");
   const [creatorPage, setCreatorPage] = useState(1);
   const [creatorPageInput, setCreatorPageInput] = useState("1");
   const [selectedRelationship, setSelectedRelationship] = useState<CreatorRelationshipDetailItem | null>(null);
-  const [updatingTagKey, setUpdatingTagKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -2710,17 +2716,18 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     return shop?.alias || shop?.shopName || shop?.platformShopId || shopId;
   }
 
-  const { data: policyContextData } = useQuery<
-    { creatorTags: GQL.CreatorTag[] },
-    { campaignsInput: GQL.ReadAffiliateCampaignsInput; shopId: string }
-  >(AFFILIATE_POLICY_CONTEXT_QUERY, {
-    variables: {
-      campaignsInput: { shopId: selectedShopId, limit: 1 },
-      shopId: selectedShopId,
-    },
+  // Manual tags are seller-scoped, so this catalog takes no shop and no campaign
+  // input. The previous read went through the policy-context query, which never
+  // returned a top-level `creatorTags` field, leaving the dropdown permanently empty.
+  const { data: manualTagCatalogData } = useQuery<
+    { creatorManualTags: GQL.CreatorManualTag[] },
+    { input: GQL.ReadCreatorManualTagsInput }
+  >(CREATOR_MANUAL_TAGS_QUERY, {
+    variables: { input: {} },
     fetchPolicy: "cache-and-network",
-    skip: !user || !selectedShopId,
+    skip: !user,
   });
+  const manualTagCatalog = manualTagCatalogData?.creatorManualTags ?? [];
 
   const { data: projectionHealthData, refetch: refetchProjectionHealth } = useQuery<
     { affiliateOperationalProjectionHealth: GQL.AffiliateOperationalProjectionHealthPayload },
@@ -2743,20 +2750,20 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     { defaultValue: status },
   );
 
-  const tagOptions = useMemo(() => {
-    const tags = policyContextData?.creatorTags ?? [];
-    return [
-      { value: ALL_CREATOR_TAGS_FILTER, label: t("ecommerce.affiliateWorkspace.allCreatorTagsFilter") },
-      ...tags.map((tag) => ({ value: tag.id, label: creatorTagLabel(t, tag) })),
-    ];
-  }, [policyContextData?.creatorTags, t]);
+  const manualTagCatalogSignature = manualTagCatalog.map((tag) => tag.id).join(",");
+  useEffect(() => {
+    // A deleted or renamed-away catalog row must not keep filtering the list.
+    const available = new Set(manualTagCatalogSignature ? manualTagCatalogSignature.split(",") : []);
+    setSelectedManualTagIds((current) => {
+      const next = current.filter((tagId) => available.has(tagId));
+      return next.length === current.length ? current : next;
+    });
+  }, [manualTagCatalogSignature]);
 
   useEffect(() => {
-    const available = new Set(tagOptions.map((option) => option.value));
-    if (!available.has(selectedTagId)) {
-      setSelectedTagId(ALL_CREATOR_TAGS_FILTER);
-    }
-  }, [selectedTagId, tagOptions]);
+    // The per-shop tier filter only exists while a shop is selected.
+    if (!selectedShopId) setSelectedShopSampleTiers([]);
+  }, [selectedShopId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -2772,7 +2779,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     variables: {
       input: {
         shopId: selectedShopId || null,
-        tagIds: selectedTagId === ALL_CREATOR_TAGS_FILTER ? undefined : [selectedTagId],
+        manualTagIds: selectedManualTagIds.length ? selectedManualTagIds : undefined,
+        manualTagMatchMode: selectedManualTagIds.length ? manualTagMatchMode : undefined,
+        sampleTiers: selectedSampleTiers.length ? selectedSampleTiers : undefined,
+        shopSampleTiers: selectedShopId && selectedShopSampleTiers.length
+          ? selectedShopSampleTiers
+          : undefined,
         needsAttentionOnly,
         search: debouncedCreatorSearch || undefined,
         offset: (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE,
@@ -2782,15 +2794,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     fetchPolicy: "cache-and-network",
     skip: !user,
   });
-  const [applyCreatorTag] = useMutation<
-    { applyCreatorTag: GQL.AffiliateCreatorRelationship },
-    { input: GQL.ApplyCreatorTagInput }
-  >(APPLY_CREATOR_TAG_MUTATION);
-  const [removeCreatorTag] = useMutation<
-    { removeCreatorTag: GQL.AffiliateCreatorRelationship },
-    { input: GQL.ApplyCreatorTagInput }
-  >(REMOVE_CREATOR_TAG_MUTATION);
-
   useEffect(() => {
     const unsubscribeProposal = panelEventBus.subscribe("affiliate-action-proposal-changed", () => {
       void refetch();
@@ -2811,7 +2814,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     if (creatorPageResult) setStableCreatorTotalCount(creatorPageResult.totalCount);
   }, [creatorPageResult]);
   const totalCreatorCount = creatorPageResult?.totalCount ?? stableCreatorTotalCount;
-  const allTags = policyContextData?.creatorTags ?? [];
   const creatorPageCount = Math.max(1, Math.ceil(totalCreatorCount / AFFILIATE_CREATORS_PAGE_SIZE));
   const creatorPageStart = totalCreatorCount === 0
     ? 0
@@ -2820,7 +2822,15 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
   useEffect(() => {
     setCreatorPage(1);
-  }, [debouncedCreatorSearch, needsAttentionOnly, selectedShopId, selectedTagId]);
+  }, [
+    debouncedCreatorSearch,
+    manualTagMatchMode,
+    needsAttentionOnly,
+    selectedManualTagIds,
+    selectedSampleTiers,
+    selectedShopId,
+    selectedShopSampleTiers,
+  ]);
 
   useEffect(() => {
     if (!creatorPageResult) return;
@@ -2840,26 +2850,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
     const clampedPage = Math.min(creatorPageCount, Math.max(1, nextPage));
     setCreatorPage(clampedPage);
     setCreatorPageInput(String(clampedPage));
-  }
-
-  async function updateCreatorTag(creatorId: string, tagId: string, mode: "apply" | "remove"): Promise<void> {
-    if (!selectedShopId) return;
-    const key = `${mode}:${creatorId}:${tagId}`;
-    setUpdatingTagKey(key);
-    try {
-      const variables = { input: { shopId: selectedShopId, creatorId, tagId } };
-      if (mode === "apply") {
-        await applyCreatorTag({ variables });
-      } else {
-        await removeCreatorTag({ variables });
-      }
-      showToast(t("ecommerce.affiliateWorkspace.creatorTagApplySuccess"), "success");
-      await refetch();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : t("ecommerce.affiliateWorkspace.creatorTagUpdateFailed"), "error");
-    } finally {
-      setUpdatingTagKey(null);
-    }
   }
 
   if (authChecking) {
@@ -2970,16 +2960,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
             className="affiliate-attention-toolbar"
             data-tutorial-id="affiliate-creators-filters"
           >
-            <label className="affiliate-filter-field">
-              <span>{t("ecommerce.affiliateWorkspace.creatorTagFilter")}</span>
-              <Select
-                value={selectedTagId}
-                onChange={setSelectedTagId}
-                options={tagOptions}
-                className="affiliate-status-select"
-                ariaLabel={t("ecommerce.affiliateWorkspace.creatorTagFilter")}
-              />
-            </label>
             <label className="affiliate-filter-field affiliate-filter-field-search">
               <span>{t("ecommerce.affiliateWorkspace.searchFilter")}</span>
               <input
@@ -3001,6 +2981,19 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           </div>
         </div>
 
+        <AffiliateCreatorFilterGroups
+          manualTagCatalog={manualTagCatalog}
+          manualTagMatchMode={manualTagMatchMode}
+          selectedManualTagIds={selectedManualTagIds}
+          selectedSampleTiers={selectedSampleTiers}
+          selectedShopSampleTiers={selectedShopSampleTiers}
+          shopSelected={Boolean(selectedShopId)}
+          onManualTagMatchModeChange={setManualTagMatchMode}
+          onSelectedManualTagIdsChange={setSelectedManualTagIds}
+          onSelectedSampleTiersChange={setSelectedSampleTiers}
+          onSelectedShopSampleTiersChange={setSelectedShopSampleTiers}
+        />
+
         {loading && creatorItems.length === 0 ? (
           <div data-tutorial-id="affiliate-creators-results">
             <AffiliateLoadingState />
@@ -3018,11 +3011,8 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
               <CreatorRelationshipCard
                 key={item.creatorId}
                 item={item}
-                allTags={allTags}
                 shopLabel={shopLabel}
-                updatingTagKey={updatingTagKey}
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
-                onUpdateTag={(creatorId, tagId, mode) => void updateCreatorTag(creatorId, tagId, mode)}
               />
             ))}
             {totalCreatorCount > AFFILIATE_CREATORS_PAGE_SIZE ? (
@@ -3096,18 +3086,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
 function CreatorRelationshipCard({
   item,
-  allTags,
   shopLabel,
-  updatingTagKey,
   onOpenRelationship,
-  onUpdateTag,
 }: {
   item: AffiliateCreatorManagementItem;
-  allTags: GQL.CreatorTag[];
   shopLabel: (shopId: string) => string;
-  updatingTagKey: string | null;
   onOpenRelationship: (item: CreatorRelationshipDetailItem) => void;
-  onUpdateTag: (creatorId: string, tagId: string, mode: "apply" | "remove") => void;
 }) {
   const { t } = useTranslation();
   const profile = item.creatorProfile;
@@ -3118,7 +3102,9 @@ function CreatorRelationshipCard({
   const platformId = profile
     ? creatorPlatformIdentity(profile)
     : item.latestAffiliateCollaboration?.creatorOpenIds[0] ?? null;
-  const missingTags = allTags.filter((tag) => !item.tagIds.includes(tag.id));
+  const manualTags = item.creatorRelation?.manualTags ?? [];
+  const visibleManualTags = manualTags.slice(0, CREATOR_MANUAL_TAG_CHIP_LIMIT);
+  const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
   const latestRecord = item.latestAffiliateCollaboration;
   const latestStatus = latestRecord?.status
     ? t(`ecommerce.affiliateWorkspace.collaborationFilters.${latestRecord.status}`, {
@@ -3214,45 +3200,27 @@ function CreatorRelationshipCard({
             </div>
           ) : null}
           <div className="affiliate-creator-tag-list">
-            {item.tags.length ? item.tags.map((tag) => {
-              const updateKey = `remove:${item.creatorId}:${tag.id}`;
-              return (
-                <span className="affiliate-creator-tag" key={tag.id}>
-                  <span>{creatorTagLabel(t, tag)}</span>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onUpdateTag(item.creatorId, tag.id, "remove");
-                    }}
-                    disabled={updatingTagKey === updateKey}
-                    aria-label={t("ecommerce.affiliateWorkspace.creatorTagRemove")}
-                    title={t("ecommerce.affiliateWorkspace.creatorTagRemove")}
+            {visibleManualTags.length ? (
+              <>
+                {visibleManualTags.map((tag) => (
+                  <span className="affiliate-creator-tag" key={tag.id}>
+                    <span>{tag.name}</span>
+                  </span>
+                ))}
+                {hiddenManualTagCount > 0 ? (
+                  <span
+                    className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                    title={manualTags.map((tag) => tag.name).join(", ")}
                   >
-                    ×
-                  </button>
-                </span>
-              );
-            }) : (
+                    <span>+{hiddenManualTagCount}</span>
+                  </span>
+                ) : null}
+              </>
+            ) : (
               <span className="affiliate-creator-tag-empty">
-                {t("ecommerce.affiliateWorkspace.creatorTagsEmpty")}
+                {t("ecommerce.affiliateWorkspace.manualTagsEmpty")}
               </span>
             )}
-            <span
-              className="affiliate-creator-tag-select-wrap"
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-            >
-              <Select
-                value=""
-                onChange={(tagId) => onUpdateTag(item.creatorId, tagId, "apply")}
-                options={missingTags.map((tag) => ({ value: tag.id, label: creatorTagLabel(t, tag) }))}
-                placeholder={t("ecommerce.affiliateWorkspace.creatorTagAdd")}
-                ariaLabel={t("ecommerce.affiliateWorkspace.creatorTagAdd")}
-                disabled={missingTags.length === 0 || updatingTagKey?.startsWith(`apply:${item.creatorId}:`)}
-                className="affiliate-creator-tag-select"
-              />
-            </span>
           </div>
         </div>
       </div>
@@ -3262,6 +3230,11 @@ function CreatorRelationshipCard({
           <span>{t("ecommerce.affiliateWorkspace.labels.nextStep")}</span>
           <strong>{nextAction}</strong>
           {nextActionContext ? <small>{nextActionContext}</small> : null}
+        </div>
+        <div className="affiliate-creator-work-summary-item">
+          <span>{t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}</span>
+          <strong>{creatorSampleTierDisplay(t, item.creatorRelation?.highestSampleTier)}</strong>
+          <small>{t("ecommerce.affiliateWorkspace.sampleTierColumnHint")}</small>
         </div>
         <div className="affiliate-creator-work-summary-item">
           <span>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</span>
@@ -5820,6 +5793,98 @@ function formatConversationMoney(amount: string | null | undefined, currency?: G
   }
 }
 
+export type AffiliateProposalManualTagRow = {
+  key: string;
+  operation: GQL.CreatorTagOperation;
+  manualTagId: string;
+  /** Current catalog name. Null only when the tag was deleted after the proposal froze. */
+  tagName: string | null;
+  contextShopId: string | null;
+};
+
+/**
+ * Manual tag changes a proposal will apply.
+ *
+ * Names come from `referencedManualTags`, which the backend resolves for exactly
+ * this: an ADD names a tag the Relationship does not carry yet, and a renamed
+ * tag must show its current name, so neither can be recovered by joining against
+ * the Relationship's own tags.
+ */
+export function proposalManualTagRows(
+  proposal: GQL.ActionProposal,
+): AffiliateProposalManualTagRow[] {
+  const nameById = new Map(
+    (proposal.referencedManualTags ?? []).map((tag) => [tag.id, tag.name] as const),
+  );
+  const sources: Array<{ key: string; intent: GQL.ActionProposalCreatorTagIntent }> = [];
+  for (const step of proposal.steps ?? []) {
+    if (step.creatorTagIntent) sources.push({ key: step.stepId, intent: step.creatorTagIntent });
+  }
+  if (sources.length === 0 && proposal.creatorTagIntent) {
+    sources.push({ key: proposal.id, intent: proposal.creatorTagIntent });
+  }
+  return sources.map(({ key, intent }) => ({
+    key,
+    operation: intent.operation,
+    manualTagId: intent.manualTagId,
+    tagName: nameById.get(intent.manualTagId) ?? null,
+    contextShopId: intent.contextShopId ?? null,
+  }));
+}
+
+function renderCreatorTagIntentSummary(
+  proposal: GQL.ActionProposal,
+  intent: GQL.ActionProposalCreatorTagIntent,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const tagName = (proposal.referencedManualTags ?? []).find(
+    (tag) => tag.id === intent.manualTagId,
+  )?.name;
+  return t(
+    intent.operation === GQL.CreatorTagOperation.Add
+      ? "ecommerce.shopDrawer.affiliate.manualTagAddPreview"
+      : "ecommerce.shopDrawer.affiliate.manualTagRemovePreview",
+    { name: tagName ?? intent.manualTagId },
+  );
+}
+
+function ProposalManualTagChanges({
+  rows,
+  relationshipLabel,
+}: {
+  rows: AffiliateProposalManualTagRow[];
+  relationshipLabel: string;
+}) {
+  const { t } = useTranslation();
+  if (rows.length === 0) return null;
+  return (
+    <section className="affiliate-card-section affiliate-card-manual-tag-section">
+      <div className="affiliate-card-section-label">
+        {t("ecommerce.affiliateWorkspace.manualTags.proposalSectionLabel")}
+      </div>
+      <div className="affiliate-manual-tag-change-list">
+        {rows.map((row) => (
+          <div className="affiliate-manual-tag-change" key={row.key}>
+            <span
+              className={`affiliate-manual-tag-operation affiliate-manual-tag-operation-${row.operation.toLowerCase()}`}
+            >
+              {t(
+                row.operation === GQL.CreatorTagOperation.Add
+                  ? "ecommerce.affiliateWorkspace.manualTags.operationAdd"
+                  : "ecommerce.affiliateWorkspace.manualTags.operationRemove",
+              )}
+            </span>
+            <strong>{row.tagName ?? t("ecommerce.affiliateWorkspace.manualTags.deletedTag")}</strong>
+            <span className="affiliate-manual-tag-change-target">
+              {t("ecommerce.affiliateWorkspace.manualTags.proposalTarget", { name: relationshipLabel })}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function renderAgentWorkRecommendationTitle(
   proposal: GQL.ActionProposal,
   t: ReturnType<typeof useTranslation>["t"],
@@ -6440,6 +6505,7 @@ function AgentWorkBundleCard({
     ? () => onOpenCreator(proposal.creatorProfile as GQL.AffiliateCreatorIdentity)
     : undefined;
   const sampleReviewRows = proposalSampleReviewRows(proposal);
+  const manualTagRows = proposalManualTagRows(proposal);
   const recommendationTitle = renderAgentWorkRecommendationTitle(proposal, t);
   const executionDescription = sampleReviewRows.length > 0
     ? null
@@ -6698,6 +6764,7 @@ function AgentWorkBundleCard({
                   shopLabelForId={shopLabelForId ?? (() => shopLabel)}
                 />
               ) : null}
+              <ProposalManualTagChanges rows={manualTagRows} relationshipLabel={creatorName} />
               {showsBundledMessage ? (
                 <section className="affiliate-card-section affiliate-card-bundled-message-section">
                   <div className="affiliate-card-section-label">
@@ -6848,6 +6915,7 @@ function AgentWorkBundleCard({
                 shopLabelForId={shopLabelForId ?? (() => shopLabel)}
               />
             ) : null}
+            <ProposalManualTagChanges rows={manualTagRows} relationshipLabel={creatorName} />
             {showsBundledMessage ? (
               <section className="affiliate-card-section affiliate-card-bundled-message-section">
                 <div className="affiliate-card-section-label">
@@ -8476,6 +8544,7 @@ export function CreatorRelationshipDetailModal({
     skip: !relationshipId,
   });
   const relationshipTimeline = relationshipTimelineData?.affiliateRelationshipTimeline;
+  const lastManualTagChange = latestManualTagChange(relationshipTimeline?.items ?? []);
   const canLoadOlderActivity = Boolean(relationshipTimeline?.hasOlder && relationshipTimeline.olderCursor);
   const activityEntries = buildRelationshipTimelineEntries(
     relationshipTimeline?.items ?? [],
@@ -8765,16 +8834,18 @@ export function CreatorRelationshipDetailModal({
                   {marketplaceBio}
                 </p>
               ) : null}
-              {management?.tags?.length ? (
-                <div className="affiliate-creator-tag-list affiliate-relationship-tag-list">
-                  {management.tags.map((tag) => (
-                    <span className="affiliate-creator-tag" key={tag.id}>
-                      <span>{creatorTagLabel(t, tag)}</span>
-                    </span>
-                  ))}
-                </div>
-              ) : null}
             </section>
+            {relationshipId ? (
+              <AffiliateCreatorManualTagEditor
+                relationshipId={relationshipId}
+                manualTags={relationship?.manualTags ?? []}
+                lastChange={lastManualTagChange}
+                onChanged={() => {
+                  void refetchRelationshipDetail();
+                  void refetchRelationshipTimeline();
+                }}
+              />
+            ) : null}
             <section className="affiliate-relationship-work-side-card affiliate-relationship-owner-card">
               <div className="affiliate-relationship-work-side-card-head">
                 <span>{t("ecommerce.affiliateWorkspace.relationshipOwner")}</span>
@@ -8859,6 +8930,12 @@ export function CreatorRelationshipDetailModal({
                   {shopActivitySummaries.slice(0, 4).map((summary) => (
                     <div className="affiliate-relationship-shop-state" key={summary.shopId}>
                       <strong>{relationshipShopName(summary.shopId)}</strong>
+                      <span className="affiliate-relationship-shop-tier">
+                        {t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}: {creatorSampleTierDisplay(
+                          t,
+                          rawShopStates.find((state) => state.shopId === summary.shopId)?.sampleTier,
+                        )}
+                      </span>
                       <span>
                         {t("ecommerce.affiliateWorkspace.creatorLastContactedAt", { defaultValue: "Last contacted" })}: {summary.lastContactedAt
                           ? formatProposalTime(summary.lastContactedAt)
@@ -9817,6 +9894,34 @@ function formatCompactIdentifier(value: string, maxLength: number): string {
   return `${value.slice(0, sideLength)}…${value.slice(-tailLength)}`;
 }
 
+/**
+ * The manual tag audit trail is the ordinary lifecycle event stream — there is
+ * no separate tag history query — so the most recent change is the newest
+ * TAG_ADDED / TAG_REMOVED item on the relationship timeline.
+ */
+export function latestManualTagChange(
+  items: readonly GQL.AffiliateRelationshipTimelineItem[],
+): CreatorManualTagChange | null {
+  let latest: CreatorManualTagChange | null = null;
+  for (const item of items) {
+    const eventType = item.businessEvent?.eventType ?? item.actionEvent?.eventType ?? null;
+    if (
+      eventType !== GQL.AffiliateLifecycleEventType.TagAdded
+      && eventType !== GQL.AffiliateLifecycleEventType.TagRemoved
+    ) {
+      continue;
+    }
+    if (latest && latest.occurredAt >= item.occurredAt) continue;
+    latest = {
+      occurredAt: item.occurredAt,
+      added: eventType === GQL.AffiliateLifecycleEventType.TagAdded,
+      actorType: item.actorType ?? null,
+      summary: item.summary,
+    };
+  }
+  return latest;
+}
+
 function formatActionProposalTypeLabel(
   value: string | null | undefined,
   t: ReturnType<typeof useTranslation>["t"],
@@ -9846,6 +9951,21 @@ function renderProposalRecommendationTitle(
   }
   if (proposal.type === GQL.ActionProposalType.SendMessage) {
     return t("ecommerce.affiliateWorkspace.proposalRecommendationTitles.SEND_MESSAGE");
+  }
+  if (proposal.type === GQL.ActionProposalType.ManageCreatorTag) {
+    const rows = proposalManualTagRows(proposal);
+    if (rows.length === 1) {
+      const row = rows[0]!;
+      return t(
+        row.operation === GQL.CreatorTagOperation.Add
+          ? "ecommerce.affiliateWorkspace.proposalRecommendationTitles.ADD_CREATOR_TAG"
+          : "ecommerce.affiliateWorkspace.proposalRecommendationTitles.REMOVE_CREATOR_TAG",
+        { name: row.tagName ?? t("ecommerce.affiliateWorkspace.manualTags.deletedTag") },
+      );
+    }
+    return t("ecommerce.affiliateWorkspace.proposalRecommendationTitles.MANAGE_CREATOR_TAG", {
+      count: rows.length,
+    });
   }
   return t(`ecommerce.shopDrawer.affiliate.proposalTypes.${proposal.type}`, {
     defaultValue: proposal.type,
@@ -9886,6 +10006,12 @@ function renderProposalExecutionDescription(
         ? "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_EXECUTED"
         : "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.SEND_MESSAGE_NOT_SENT",
     );
+  }
+  if (proposal.type === GQL.ActionProposalType.ManageCreatorTag) {
+    const rows = proposalManualTagRows(proposal);
+    return t("ecommerce.affiliateWorkspace.proposalExecutionDescriptions.MANAGE_CREATOR_TAG", {
+      count: rows.length,
+    });
   }
   return renderProposalPreview(proposal, t);
 }
@@ -10083,10 +10209,7 @@ function renderProposalPreview(
     });
   }
   if (proposal.creatorTagIntent) {
-    return t("ecommerce.shopDrawer.affiliate.creatorTagPreview", {
-      creatorId: proposal.creatorTagIntent.creatorId,
-      tagId: proposal.creatorTagIntent.tagId,
-    });
+    return renderCreatorTagIntentSummary(proposal, proposal.creatorTagIntent, t);
   }
   if (proposal.campaignProductUpdateIntent) {
     return t("ecommerce.shopDrawer.affiliate.campaignProductPreview", {

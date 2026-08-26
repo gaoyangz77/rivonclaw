@@ -10,10 +10,12 @@ import { CheckIcon, CopyIcon, InfoIcon, RefreshIcon } from "../../../components/
 import {
   AFFILIATE_APPROVAL_POLICIES_QUERY,
   AFFILIATE_POLICY_CONTEXT_QUERY,
+  CREATOR_MANUAL_TAGS_QUERY,
   DELETE_AFFILIATE_APPROVAL_POLICY_MUTATION,
   WRITE_AFFILIATE_APPROVAL_POLICY_MUTATION,
 } from "../../../api/shops-queries.js";
-import { creatorTagLabel } from "../affiliate-tag-labels.js";
+import { CREATOR_SAMPLE_TIER_ORDER, creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
+import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
 
 type AffiliateApprovalPolicy = GQL.AffiliateApprovalPolicy;
 type AffiliatePolicyAction = GQL.ActionProposalType;
@@ -21,35 +23,48 @@ type AffiliatePolicyAction = GQL.ActionProposalType;
 export const AFFILIATE_POLICY_ACTIONS = [
   GQL.ActionProposalType.SendMessage,
   GQL.ActionProposalType.ReviewSampleApplication,
+  GQL.ActionProposalType.ManageCreatorTag,
   GQL.ActionProposalType.NoActionNeeded,
 ] as const;
 
 /**
  * Mirrors AFFILIATE_POLICY_DIMENSIONS_BY_ACTION in the backend policy catalog.
- * A no-action decision carries no product and no campaign, so those conditions
- * are rejected by the backend and must not be offered here.
+ * A no-action decision and a tag change both carry no product and no campaign,
+ * so those conditions are rejected by the backend and must not be offered here.
  */
 export const AFFILIATE_POLICY_SUPPORTS_CAMPAIGN_AND_PRODUCT: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.ManageCreatorTag]: false,
   [GQL.ActionProposalType.NoActionNeeded]: false,
 };
 
-export const AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG: Record<AffiliatePolicyAction, boolean> = {
+/** Both tag dimensions resolve from the relationship, so every action supports them. */
+export const AFFILIATE_POLICY_SUPPORTS_MANUAL_TAG: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.ManageCreatorTag]: true,
+  [GQL.ActionProposalType.NoActionNeeded]: true,
+};
+
+export const AFFILIATE_POLICY_SUPPORTS_SAMPLE_TIER: Record<AffiliatePolicyAction, boolean> = {
+  [GQL.ActionProposalType.SendMessage]: true,
+  [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.ManageCreatorTag]: true,
   [GQL.ActionProposalType.NoActionNeeded]: true,
 };
 
 export const AFFILIATE_POLICY_SUPPORTS_CAMPAIGN: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.ManageCreatorTag]: false,
   [GQL.ActionProposalType.NoActionNeeded]: false,
 };
 
 export const AFFILIATE_POLICY_SUPPORTS_PRODUCT: Record<AffiliatePolicyAction, boolean> = {
   [GQL.ActionProposalType.SendMessage]: true,
   [GQL.ActionProposalType.ReviewSampleApplication]: true,
+  [GQL.ActionProposalType.ManageCreatorTag]: false,
   [GQL.ActionProposalType.NoActionNeeded]: false,
 };
 
@@ -58,7 +73,10 @@ type AffiliatePolicyFormState = {
   action: AffiliatePolicyAction;
   enabled: boolean;
   reason: string;
-  creatorTagIds: string[];
+  manualTagIds: string[];
+  excludedManualTagIds: string[];
+  sampleTiers: GQL.CreatorSampleTier[];
+  excludedSampleTiers: GQL.CreatorSampleTier[];
   campaignIds: string[];
   productIdsText: string;
 };
@@ -67,7 +85,10 @@ const EMPTY_POLICY_FORM: AffiliatePolicyFormState = {
   action: GQL.ActionProposalType.SendMessage,
   enabled: true,
   reason: "",
-  creatorTagIds: [],
+  manualTagIds: [],
+  excludedManualTagIds: [],
+  sampleTiers: [],
+  excludedSampleTiers: [],
   campaignIds: [],
   productIdsText: "",
 };
@@ -99,6 +120,16 @@ export function AffiliateApprovalPolicyPanel() {
     fetchPolicy: "cache-and-network",
   });
 
+  // Manual tags are seller-scoped, so the catalog comes from its own query
+  // rather than being flatMapped out of the per-shop policy context.
+  const { data: manualTagData } = useQuery<
+    { creatorManualTags: GQL.CreatorManualTag[] },
+    { input: GQL.ReadCreatorManualTagsInput }
+  >(CREATOR_MANUAL_TAGS_QUERY, {
+    variables: { input: {} },
+    fetchPolicy: "cache-and-network",
+  });
+
   const [writePolicy, { loading: savingPolicy }] = useMutation<
     { writeAffiliateApprovalPolicy: AffiliateApprovalPolicy },
     { input: GQL.WriteAffiliateApprovalPolicyInput }
@@ -114,18 +145,25 @@ export function AffiliateApprovalPolicyPanel() {
     () => contextData?.affiliateApprovalPolicyContext.shops ?? [],
     [contextData],
   );
-  const creatorTags = contextShops.flatMap((shopContext) => shopContext.creatorTags);
+  const manualTags = useMemo(
+    () => manualTagData?.creatorManualTags ?? [],
+    [manualTagData],
+  );
   const campaigns = contextShops.flatMap((shopContext) => shopContext.campaigns);
   const shopNameById = useMemo(
     () => new Map(contextShops.map((shopContext) => [shopContext.shopId, shopContext.shopName])),
     [contextShops],
   );
-  const creatorTagOptions = useMemo(
-    () => creatorTags.map((tag) => ({
-      id: tag.id,
-      label: `${shopNameById.get(tag.shopId) ?? tag.shopId} · ${creatorTagLabel(t, tag)}`,
+  const manualTagOptions = useMemo(
+    () => manualTags.map((tag) => ({ id: tag.id, label: tag.name })),
+    [manualTags],
+  );
+  const sampleTierOptions = useMemo(
+    () => CREATOR_SAMPLE_TIER_ORDER.map((tier) => ({
+      id: tier,
+      label: creatorSampleTierLabel(t, tier),
     })),
-    [creatorTags, shopNameById, t],
+    [t],
   );
   const campaignOptions = useMemo(
     () => campaigns.map((campaign) => ({
@@ -191,7 +229,10 @@ export function AffiliateApprovalPolicyPanel() {
             action: form.action,
             enabled: form.enabled,
             reason: form.reason.trim() || undefined,
-            creatorTagIds: form.creatorTagIds,
+            manualTagIds: form.manualTagIds,
+            excludedManualTagIds: form.excludedManualTagIds,
+            sampleTiers: form.sampleTiers,
+            excludedSampleTiers: form.excludedSampleTiers,
             campaignIds: form.campaignIds,
             productIds: parsePolicyIds(form.productIdsText),
           },
@@ -214,7 +255,10 @@ export function AffiliateApprovalPolicyPanel() {
             action: policy.action,
             enabled: !policy.enabled,
             reason: policy.reason ?? undefined,
-            creatorTagIds: policy.creatorTagIds,
+            manualTagIds: policy.manualTagIds,
+            excludedManualTagIds: policy.excludedManualTagIds,
+            sampleTiers: policy.sampleTiers,
+            excludedSampleTiers: policy.excludedSampleTiers,
             campaignIds: policy.campaignIds,
             productIds: policy.productIds,
           },
@@ -250,12 +294,7 @@ export function AffiliateApprovalPolicyPanel() {
   async function createRecommendedPolicies() {
     try {
       for (const action of AFFILIATE_POLICY_ACTIONS) {
-        const existingGlobal = policies.find((policy) =>
-          policy.action === action &&
-          policy.creatorTagIds.length === 0 &&
-          policy.campaignIds.length === 0 &&
-          policy.productIds.length === 0
-        );
+        const existingGlobal = policies.find((policy) => policy.action === action && isGlobalPolicy(policy));
         await writePolicy({
           variables: {
             input: {
@@ -263,7 +302,10 @@ export function AffiliateApprovalPolicyPanel() {
               action,
               enabled: true,
               reason: existingGlobal?.reason || t("ecommerce.affiliateWorkspace.policies.defaultReason"),
-              creatorTagIds: [],
+              manualTagIds: [],
+              excludedManualTagIds: [],
+              sampleTiers: [],
+              excludedSampleTiers: [],
               campaignIds: [],
               productIds: [],
             },
@@ -424,7 +466,7 @@ export function AffiliateApprovalPolicyPanel() {
                     key={policy.id}
                     policy={policy}
                     copiedPolicyId={copiedPolicyId}
-                    creatorTags={creatorTags}
+                    manualTags={manualTags}
                     campaigns={campaigns}
                     busy={busy}
                     onCopyId={copyPolicyId}
@@ -450,7 +492,8 @@ export function AffiliateApprovalPolicyPanel() {
         <AffiliatePolicyForm
           actionOptions={actionOptions}
           campaignOptions={campaignOptions}
-          creatorTagOptions={creatorTagOptions}
+          manualTagOptions={manualTagOptions}
+          sampleTierOptions={sampleTierOptions}
           form={form}
           saving={savingPolicy}
           onCancel={closeModal}
@@ -475,7 +518,8 @@ export function AffiliateApprovalPolicyPanel() {
 function AffiliatePolicyForm({
   actionOptions,
   campaignOptions,
-  creatorTagOptions,
+  manualTagOptions,
+  sampleTierOptions,
   form,
   saving,
   onCancel,
@@ -484,7 +528,8 @@ function AffiliatePolicyForm({
 }: {
   actionOptions: Array<{ value: AffiliatePolicyAction; label: string }>;
   campaignOptions: Array<{ id: string; label: string }>;
-  creatorTagOptions: Array<{ id: string; label: string }>;
+  manualTagOptions: Array<{ id: string; label: string }>;
+  sampleTierOptions: Array<{ id: GQL.CreatorSampleTier; label: string }>;
   form: AffiliatePolicyFormState;
   saving: boolean;
   onCancel: () => void;
@@ -492,7 +537,8 @@ function AffiliatePolicyForm({
   onSave: () => void;
 }) {
   const { t } = useTranslation();
-  const supportsCreatorTag = AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[form.action];
+  const supportsManualTag = AFFILIATE_POLICY_SUPPORTS_MANUAL_TAG[form.action];
+  const supportsSampleTier = AFFILIATE_POLICY_SUPPORTS_SAMPLE_TIER[form.action];
   const supportsCampaign = AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[form.action];
   const supportsProduct = AFFILIATE_POLICY_SUPPORTS_PRODUCT[form.action];
 
@@ -509,7 +555,14 @@ function AffiliatePolicyForm({
             onChange({
               ...form,
               action,
-              creatorTagIds: AFFILIATE_POLICY_SUPPORTS_CREATOR_TAG[action] ? form.creatorTagIds : [],
+              manualTagIds: AFFILIATE_POLICY_SUPPORTS_MANUAL_TAG[action] ? form.manualTagIds : [],
+              excludedManualTagIds: AFFILIATE_POLICY_SUPPORTS_MANUAL_TAG[action]
+                ? form.excludedManualTagIds
+                : [],
+              sampleTiers: AFFILIATE_POLICY_SUPPORTS_SAMPLE_TIER[action] ? form.sampleTiers : [],
+              excludedSampleTiers: AFFILIATE_POLICY_SUPPORTS_SAMPLE_TIER[action]
+                ? form.excludedSampleTiers
+                : [],
               campaignIds: AFFILIATE_POLICY_SUPPORTS_CAMPAIGN[action] ? form.campaignIds : [],
               productIdsText: AFFILIATE_POLICY_SUPPORTS_PRODUCT[action] ? form.productIdsText : "",
             });
@@ -541,14 +594,45 @@ function AffiliatePolicyForm({
         />
       </label>
 
-      {supportsCreatorTag ? (
-        <AffiliatePolicyMultiSelect
-          label={t("ecommerce.affiliateWorkspace.policies.creatorTagsLabel")}
-          allLabel={t("ecommerce.affiliateWorkspace.policies.allCreatorTags")}
-          options={creatorTagOptions}
-          selectedIds={form.creatorTagIds}
-          onChange={(creatorTagIds) => onChange({ ...form, creatorTagIds })}
-        />
+      {supportsManualTag ? (
+        <>
+          <AffiliateChipMultiSelect
+            label={t("ecommerce.affiliateWorkspace.policies.manualTagsLabel")}
+            emptyLabel={t("ecommerce.affiliateWorkspace.policies.allManualTags")}
+            options={manualTagOptions}
+            selectedIds={form.manualTagIds}
+            onChange={(manualTagIds) => onChange({ ...form, manualTagIds })}
+          />
+          <AffiliateChipMultiSelect
+            label={t("ecommerce.affiliateWorkspace.policies.excludedManualTagsLabel")}
+            hint={t("ecommerce.affiliateWorkspace.policies.exclusionHint")}
+            emptyLabel={t("ecommerce.affiliateWorkspace.policies.noExcludedManualTags")}
+            options={manualTagOptions}
+            selectedIds={form.excludedManualTagIds}
+            onChange={(excludedManualTagIds) => onChange({ ...form, excludedManualTagIds })}
+          />
+        </>
+      ) : null}
+
+      {supportsSampleTier ? (
+        <>
+          <AffiliateChipMultiSelect
+            label={t("ecommerce.affiliateWorkspace.policies.sampleTiersLabel")}
+            hint={t("ecommerce.affiliateWorkspace.policies.sampleTierHint")}
+            emptyLabel={t("ecommerce.affiliateWorkspace.policies.allSampleTiers")}
+            options={sampleTierOptions}
+            selectedIds={form.sampleTiers}
+            onChange={(sampleTiers) => onChange({ ...form, sampleTiers })}
+          />
+          <AffiliateChipMultiSelect
+            label={t("ecommerce.affiliateWorkspace.policies.excludedSampleTiersLabel")}
+            hint={t("ecommerce.affiliateWorkspace.policies.exclusionHint")}
+            emptyLabel={t("ecommerce.affiliateWorkspace.policies.noExcludedSampleTiers")}
+            options={sampleTierOptions}
+            selectedIds={form.excludedSampleTiers}
+            onChange={(excludedSampleTiers) => onChange({ ...form, excludedSampleTiers })}
+          />
+        </>
       ) : null}
 
       {supportsCampaign ? (
@@ -580,7 +664,7 @@ function AffiliatePolicyForm({
           </label>
       ) : null}
 
-      {supportsCreatorTag && !supportsCampaign && !supportsProduct ? (
+      {supportsManualTag && !supportsCampaign && !supportsProduct ? (
         <div className="affiliate-policy-match-preview">
           <InfoIcon />
           <span>{t("ecommerce.affiliateWorkspace.policies.creatorTagOnlyHint")}</span>
@@ -613,7 +697,7 @@ function AffiliatePolicyForm({
 function AffiliatePolicyCard({
   policy,
   copiedPolicyId,
-  creatorTags,
+  manualTags,
   campaigns,
   busy,
   onCopyId,
@@ -623,7 +707,7 @@ function AffiliatePolicyCard({
 }: {
   policy: AffiliateApprovalPolicy;
   copiedPolicyId: string | null;
-  creatorTags: GQL.CreatorTag[];
+  manualTags: GQL.CreatorManualTag[];
   campaigns: GQL.AffiliateCampaign[];
   busy: boolean;
   onCopyId: (policyId: string) => void;
@@ -632,7 +716,7 @@ function AffiliatePolicyCard({
   onDelete: (policy: AffiliateApprovalPolicy) => void;
 }) {
   const { t } = useTranslation();
-  const conditionSummary = buildPolicyConditionSummary(t, policy, creatorTags, campaigns);
+  const conditionSummary = buildPolicyConditionSummary(t, policy, manualTags, campaigns);
   const matchesAll = isGlobalPolicy(policy);
 
   return (
@@ -776,7 +860,10 @@ function policyToForm(policy: AffiliateApprovalPolicy): AffiliatePolicyFormState
     action: policy.action,
     enabled: policy.enabled,
     reason: policy.reason ?? "",
-    creatorTagIds: [...policy.creatorTagIds],
+    manualTagIds: [...policy.manualTagIds],
+    excludedManualTagIds: [...policy.excludedManualTagIds],
+    sampleTiers: [...policy.sampleTiers],
+    excludedSampleTiers: [...policy.excludedSampleTiers],
     campaignIds: [...policy.campaignIds],
     productIdsText: policy.productIds.join("\n"),
   };
@@ -788,20 +875,40 @@ function parsePolicyIds(value: string): string[] {
 
 function policyFormMatchesAll(form: AffiliatePolicyFormState): boolean {
   return (
-    form.creatorTagIds.length === 0 &&
+    form.manualTagIds.length === 0 &&
+    form.excludedManualTagIds.length === 0 &&
+    form.sampleTiers.length === 0 &&
+    form.excludedSampleTiers.length === 0 &&
     form.campaignIds.length === 0 &&
     parsePolicyIds(form.productIdsText).length === 0
   );
 }
 
-function isGlobalPolicy(policy: Pick<AffiliateApprovalPolicy, "creatorTagIds" | "campaignIds" | "productIds">): boolean {
-  return policy.creatorTagIds.length === 0 && policy.campaignIds.length === 0 && policy.productIds.length === 0;
+type AffiliatePolicyConditionArrays = Pick<
+  AffiliateApprovalPolicy,
+  | "manualTagIds"
+  | "excludedManualTagIds"
+  | "sampleTiers"
+  | "excludedSampleTiers"
+  | "campaignIds"
+  | "productIds"
+>;
+
+function isGlobalPolicy(policy: AffiliatePolicyConditionArrays): boolean {
+  return (
+    policy.manualTagIds.length === 0 &&
+    policy.excludedManualTagIds.length === 0 &&
+    policy.sampleTiers.length === 0 &&
+    policy.excludedSampleTiers.length === 0 &&
+    policy.campaignIds.length === 0 &&
+    policy.productIds.length === 0
+  );
 }
 
 function buildPolicyConditionSummary(
   t: AffiliatePolicyTranslate,
   policy: AffiliateApprovalPolicy,
-  creatorTags: GQL.CreatorTag[],
+  manualTags: GQL.CreatorManualTag[],
   campaigns: GQL.AffiliateCampaign[],
 ): { title: string; description: string } {
   if (isGlobalPolicy(policy)) {
@@ -812,9 +919,29 @@ function buildPolicyConditionSummary(
   }
 
   const pieces: string[] = [];
-  if (policy.creatorTagIds.length > 0) {
-    pieces.push(t("ecommerce.affiliateWorkspace.policies.creatorTagSummary", {
-      value: summarizeKnownNames(policy.creatorTagIds, creatorTags.map((tag) => ({ id: tag.id, label: creatorTagLabel(t, tag) })), t),
+  const manualTagLabels = manualTags.map((tag) => ({ id: tag.id, label: tag.name }));
+  const sampleTierLabels = CREATOR_SAMPLE_TIER_ORDER.map((tier) => ({
+    id: tier as string,
+    label: creatorSampleTierLabel(t, tier),
+  }));
+  if (policy.manualTagIds.length > 0) {
+    pieces.push(t("ecommerce.affiliateWorkspace.policies.manualTagSummary", {
+      value: summarizeKnownNames(policy.manualTagIds, manualTagLabels, t),
+    }));
+  }
+  if (policy.excludedManualTagIds.length > 0) {
+    pieces.push(t("ecommerce.affiliateWorkspace.policies.excludedManualTagSummary", {
+      value: summarizeKnownNames(policy.excludedManualTagIds, manualTagLabels, t),
+    }));
+  }
+  if (policy.sampleTiers.length > 0) {
+    pieces.push(t("ecommerce.affiliateWorkspace.policies.sampleTierSummary", {
+      value: summarizeKnownNames(policy.sampleTiers, sampleTierLabels, t),
+    }));
+  }
+  if (policy.excludedSampleTiers.length > 0) {
+    pieces.push(t("ecommerce.affiliateWorkspace.policies.excludedSampleTierSummary", {
+      value: summarizeKnownNames(policy.excludedSampleTiers, sampleTierLabels, t),
     }));
   }
   if (policy.campaignIds.length > 0) {

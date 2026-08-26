@@ -19986,11 +19986,6 @@ html[lang="zh"] .acct-tool-chips {
   line-height: 1.2;
 }
 
-.affiliate-creator-tag-select-wrap {
-  display: inline-flex;
-  min-width: 140px;
-}
-
 .affiliate-creator-state,
 .affiliate-creator-tag,
 .affiliate-creator-tag-empty {
@@ -20046,14 +20041,113 @@ html[lang="zh"] .acct-tool-chips {
   background: var(--color-bg-alt);
 }
 
-.affiliate-creator-tag-select {
-  min-width: 128px;
-  max-width: 180px;
+/* Overflow chip standing in for the manual tags the row could not fit. */
+.affiliate-creator-tag-overflow {
+  padding: 3px 9px;
+  border-style: dashed;
 }
 
-.affiliate-creator-tag-select .custom-select-trigger {
-  min-height: 28px;
+/* Relationship-level creator filters: chip groups under the toolbar row. */
+.affiliate-creator-filter-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.affiliate-creator-filter-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.affiliate-creator-filter-match-mode {
+  max-width: 220px;
+}
+
+.affiliate-chip-select-hint {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* Manual tag editor in the relationship detail drawer. */
+.affiliate-manual-tag-card {
+  display: grid;
+  gap: 10px;
+}
+
+.affiliate-manual-tag-search {
+  max-width: 100%;
+}
+
+.affiliate-manual-tag-options {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.affiliate-manual-tag-create {
+  justify-self: start;
+}
+
+.affiliate-manual-tag-last-change {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Read-only sample tier line inside a relationship shop-state row. */
+.affiliate-relationship-shop-tier {
+  color: var(--color-text-secondary);
+  font-weight: 650;
+}
+
+/* Manual tag changes a proposal will apply. */
+.affiliate-card-manual-tag-section {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border-light));
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 62%, var(--color-border-light));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+}
+
+.affiliate-manual-tag-change-list {
+  display: grid;
+  gap: 6px;
+}
+
+.affiliate-manual-tag-change {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
   font-size: 12px;
+}
+
+.affiliate-manual-tag-operation {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.affiliate-manual-tag-operation-add {
+  background: color-mix(in srgb, var(--color-success, #22c55e) 12%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-success, #15803d) 82%, var(--color-text));
+}
+
+.affiliate-manual-tag-operation-remove {
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 14%, var(--color-bg));
+  color: color-mix(in srgb, var(--color-warning, #b45309) 82%, var(--color-text));
+}
+
+.affiliate-manual-tag-change-target {
+  color: var(--color-text-muted);
 }
 
 .affiliate-creator-work-summary {
@@ -20140,10 +20234,6 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-relationship-card:hover {
   background: color-mix(in srgb, var(--color-primary) 3%, var(--color-bg));
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-primary) 58%, var(--color-border-light));
-}
-
-.affiliate-relationship-tag-list {
-  margin-top: 10px;
 }
 
 .affiliate-creator-pagination {

@@ -515,6 +515,8 @@ function createSampleReviewWorkItem(
       creatorId: "creator-001",
       operationalConfigRevision: 1,
       shopStates: [],
+      manualTagIds: [],
+      manualTags: [],
       lastInboundAt: null,
       lastOutboundAt: null,
       lastAgentHandledAt: null,

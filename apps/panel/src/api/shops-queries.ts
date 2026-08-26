@@ -1607,6 +1607,11 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
           skuId
           quantity
         }
+        creatorTagIntent {
+          operation
+          manualTagId
+          contextShopId
+        }
       }
       createdAt
       updatedAt
@@ -1669,8 +1674,15 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         quantity
       }
       creatorTagIntent {
-        creatorId
-        tagId
+        operation
+        manualTagId
+        contextShopId
+      }
+      referencedManualTags {
+        id
+        name
+        sensitive
+        updatedAt
       }
       blockCreatorIntent {
         creatorId
@@ -1691,7 +1703,10 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
       approvalPolicyUpdateIntent {
         policyId
         action
-        creatorTagIds
+        manualTagIds
+        excludedManualTagIds
+        sampleTiers
+        excludedSampleTiers
         campaignIds
         productIds
         reason
@@ -1813,7 +1828,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = gql`
           blockedShopIds
           shopStates {
             shopId
-            tagIds
+            sampleTier
             lastContactedAt
             lastInvitedAt
             lastQualifiedAt
@@ -2375,7 +2390,10 @@ export const AFFILIATE_APPROVAL_POLICIES_QUERY = gql`
       id
       userId
       action
-      creatorTagIds
+      manualTagIds
+      excludedManualTagIds
+      sampleTiers
+      excludedSampleTiers
       campaignIds
       productIds
       reason
@@ -2397,15 +2415,6 @@ export const AFFILIATE_POLICY_CONTEXT_QUERY = gql`
           shopId
           name
           status
-          updatedAt
-        }
-        creatorTags {
-          id
-          shopId
-          name
-          type
-          systemKey
-          sensitive
           updatedAt
         }
       }
@@ -2472,23 +2481,13 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           ratingScore
           contentWindow
         }
-        tagIds
-        tags {
-          id
-          shopId
-          name
-          type
-          systemKey
-          sensitive
-          updatedAt
-        }
         needsAttention
         activeCollaborationCount
         activeSampleApplicationCount
         lastInteractionAt
         shopState {
           shopId
-          tagIds
+          sampleTier
           lastContactedAt
           lastInvitedAt
           lastQualifiedAt
@@ -2500,6 +2499,14 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           operationalConfigRevision
           blocked
           blockedShopIds
+          manualTagIds
+          manualTags {
+            id
+            name
+            sensitive
+            updatedAt
+          }
+          highestSampleTier
           committedCheckpointId
           committedEventCursor
           lifecycleEventSequence
@@ -2526,7 +2533,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           }
           shopStates {
             shopId
-            tagIds
+            sampleTier
             lastContactedAt
             lastInvitedAt
             lastQualifiedAt
@@ -2719,6 +2726,14 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
         operationalConfigRevision
         blocked
         blockedShopIds
+        manualTagIds
+        manualTags {
+          id
+          name
+          sensitive
+          updatedAt
+        }
+        highestSampleTier
         lastInboundAt
         lastInboundChannel
         lastOutboundAt
@@ -2750,7 +2765,7 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
         }
         shopStates {
           shopId
-          tagIds
+          sampleTier
           lastContactedAt
           lastInvitedAt
           lastQualifiedAt
@@ -2959,64 +2974,54 @@ export const AFFILIATE_CREATOR_PROFILE_QUERY = gql`
   }
 `;
 
-export const APPLY_CREATOR_TAG_MUTATION = gql`
-  mutation ApplyCreatorTag($input: ApplyCreatorTagInput!) {
-    applyCreatorTag(input: $input) {
+export const CREATOR_MANUAL_TAGS_QUERY = gql`
+  query CreatorManualTags($input: ReadCreatorManualTagsInput) {
+    creatorManualTags(input: $input) {
       id
-      creatorId
-      blocked
-      blockedShopIds
-      committedCheckpointId
-      committedEventCursor
-      lifecycleEventSequence
-      agendaItems {
-        key
-        owner
-        sourceType
-        workKind
-        requiredAction
-        shopId
-        affiliateCollaborationId
-        sampleApplicationRecordId
-        proposalId
-        reasons
-        nextActionAt
-        boundaryEventCursor
-        updatedAt
-      }
-      workSummary {
-        agentRequiredCount
-        staffRequiredCount
-        externalWaitingCount
-        nextActionAt
-      }
-      shopStates {
-        shopId
-        tagIds
-        lastContactedAt
-        lastInvitedAt
-        lastQualifiedAt
-      }
+      name
+      sensitive
       updatedAt
     }
   }
 `;
 
-export const REMOVE_CREATOR_TAG_MUTATION = gql`
-  mutation RemoveCreatorTag($input: ApplyCreatorTagInput!) {
-    removeCreatorTag(input: $input) {
+export const CREATE_CREATOR_MANUAL_TAG_MUTATION = gql`
+  mutation CreateCreatorManualTag($input: CreateCreatorManualTagInput!) {
+    createCreatorManualTag(input: $input) {
       id
-      creatorId
-      blocked
-      blockedShopIds
-      shopStates {
-        shopId
-        tagIds
-        lastContactedAt
-        lastInvitedAt
-        lastQualifiedAt
-      }
+      name
+      sensitive
       updatedAt
+    }
+  }
+`;
+
+const CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT = `
+    id
+    creatorId
+    manualTagIds
+    manualTags {
+      id
+      name
+      sensitive
+      updatedAt
+    }
+    highestSampleTier
+    updatedAt
+`;
+
+export const ASSIGN_CREATOR_RELATIONSHIP_TAG_MUTATION = gql`
+  mutation AssignCreatorRelationshipTag($input: CreatorRelationshipManualTagInput!) {
+    assignCreatorRelationshipTag(input: $input) {
+      ${CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT}
+    }
+  }
+`;
+
+export const REMOVE_CREATOR_RELATIONSHIP_TAG_MUTATION = gql`
+  mutation RemoveCreatorRelationshipTag($input: CreatorRelationshipManualTagInput!) {
+    removeCreatorRelationshipTag(input: $input) {
+      ${CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT}
     }
   }
 `;
@@ -3027,7 +3032,10 @@ export const WRITE_AFFILIATE_APPROVAL_POLICY_MUTATION = gql`
       id
       userId
       action
-      creatorTagIds
+      manualTagIds
+      excludedManualTagIds
+      sampleTiers
+      excludedSampleTiers
       campaignIds
       productIds
       reason
@@ -3382,6 +3390,11 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
           skuId
           quantity
         }
+        creatorTagIntent {
+          operation
+          manualTagId
+          contextShopId
+        }
       }
       createdAt
       updatedAt
@@ -3444,8 +3457,15 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         quantity
       }
       creatorTagIntent {
-        creatorId
-        tagId
+        operation
+        manualTagId
+        contextShopId
+      }
+      referencedManualTags {
+        id
+        name
+        sensitive
+        updatedAt
       }
       blockCreatorIntent {
         creatorId
@@ -3466,7 +3486,10 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       approvalPolicyUpdateIntent {
         policyId
         action
-        creatorTagIds
+        manualTagIds
+        excludedManualTagIds
+        sampleTiers
+        excludedSampleTiers
         campaignIds
         productIds
         reason
