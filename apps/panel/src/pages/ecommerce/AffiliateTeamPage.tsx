@@ -33,6 +33,7 @@ import {
 import { useMyDeviceId } from "./hooks/useDeviceBinding.js";
 import { AffiliateEmailAccountPanel } from "./components/AffiliateEmailAccountPanel.js";
 import { AffiliateApprovalPolicyPanel } from "./components/AffiliateApprovalPolicyPanel.js";
+import { AffiliateCreatorTagCatalogPanel } from "./components/AffiliateCreatorTagCatalogPanel.js";
 import { AffiliateWhatsAppAccountPanel } from "./components/AffiliateWhatsAppAccountPanel.js";
 import { AffiliateWhatsAppProxyPanel } from "./components/AffiliateWhatsAppProxyPanel.js";
 import {
@@ -48,6 +49,8 @@ const UNASSIGNED_ID = "__UNASSIGNED__";
 const DEVELOPER_PAGE_SIZE = 25;
 const PROTECTION_PAGE_SIZE = 25;
 const PROTECTION_PREVIEW_PAGE_SIZE = 50;
+/** Matches the Creator list's chip cap so both tables truncate at the same point. */
+const PROTECTION_MANUAL_TAG_CHIP_LIMIT = 3;
 const PROTECTION_IMPORT_BATCH_TIMEOUT_MS = 90_000;
 export const SHOP_REGIONS = Object.values(GQL.ShopRegion);
 export const PROTECTED_CREATOR_TEMPLATE_HEADERS = [
@@ -1613,6 +1616,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
             <div className="affiliate-protection-directory-table-head" aria-hidden="true">
               <span>{t("ecommerce.affiliateTeam.creatorIdentity")}</span>
               <span>{t("ecommerce.affiliateTeam.businessDeveloper")}</span>
+              <span>{t("ecommerce.affiliateWorkspace.manualTags.title")}</span>
               <span>{t("ecommerce.affiliateTeam.note")}</span>
               <span>{t("ecommerce.affiliateTeam.protectionUpdatedAt", { defaultValue: "Updated" })}</span>
               <span className="sr-only">{t("common.actions", { defaultValue: "Actions" })}</span>
@@ -1622,6 +1626,12 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                 const developer = protection.businessDeveloperId
                   ? workspace.getBusinessDeveloper(protection.businessDeveloperId)
                   : null;
+                // Same chip vocabulary and overflow cap as the Creator list: a
+                // protection row's tags are that Creator's tags, not a second
+                // tag system.
+                const manualTags = protection.manualTags ?? [];
+                const visibleManualTags = manualTags.slice(0, PROTECTION_MANUAL_TAG_CHIP_LIMIT);
+                const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
                 return (
                   <div className="affiliate-protection-directory-row" key={protection.id}>
                     <div className="affiliate-protection-directory-creator">
@@ -1636,6 +1646,29 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                       <strong>{developer?.displayName ?? t("ecommerce.affiliateTeam.protectedOnly")}</strong>
                       <span>{protection.source}</span>
                     </div>
+                    <span className="affiliate-protection-directory-tags">
+                      {visibleManualTags.length ? (
+                        <>
+                          {visibleManualTags.map((tag) => (
+                            <span className="affiliate-creator-tag" key={tag.id}>
+                              <span>{tag.name}</span>
+                            </span>
+                          ))}
+                          {hiddenManualTagCount > 0 ? (
+                            <span
+                              className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                              title={manualTags.map((tag) => tag.name).join(", ")}
+                            >
+                              <span>+{hiddenManualTagCount}</span>
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="affiliate-creator-tag-empty">
+                          {t("ecommerce.affiliateWorkspace.manualTagsEmpty")}
+                        </span>
+                      )}
+                    </span>
                     <span className="affiliate-protection-directory-note">{protection.note || "—"}</span>
                     <span className="affiliate-protection-directory-date">{new Date(protection.updatedAt).toLocaleDateString()}</span>
                     <button
@@ -1665,6 +1698,8 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
           )}
         </div>
       </section>
+
+      <AffiliateCreatorTagCatalogPanel />
 
       </div>
 

@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   canCreateManualTag,
+  isDuplicateManualTagNameError,
+  manualTagRenameIssue,
   selectableManualTags,
 } from "./AffiliateCreatorManualTagEditor.js";
 
@@ -40,6 +42,35 @@ describe("manual tag selection", () => {
   });
 });
 
+describe("manual tag rename", () => {
+  it("blocks an empty name and a name that did not change", () => {
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "")).toBe("EMPTY");
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "   ")).toBe("EMPTY");
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "VIP")).toBe("UNCHANGED");
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "  VIP  ")).toBe("UNCHANGED");
+  });
+
+  it("does not treat the tag being renamed as its own duplicate", () => {
+    // Re-casing a tag is a legitimate rename, and the only row it collides with
+    // under trim+lowercase is itself.
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "vip")).toBeNull();
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "VIP creators")).toBeNull();
+  });
+
+  it("uses the backend uniqueness key of trim plus lowercase for other rows", () => {
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "误打扰")).toBe("DUPLICATE");
+    expect(manualTagRenameIssue(CATALOG, "tag-1", "VIP", "  spaced ")).toBe("DUPLICATE");
+  });
+
+  it("recognises the unique-index violation a losing rename returns", () => {
+    // The catalog the client checks is search-filtered, so the index is still
+    // the authority and its error has to become something a seller can act on.
+    expect(isDuplicateManualTagNameError("E11000 duplicate key error collection")).toBe(true);
+    expect(isDuplicateManualTagNameError("duplicate key error")).toBe(true);
+    expect(isDuplicateManualTagNameError("CreatorManualTag not found")).toBe(false);
+  });
+});
+
 describe("manual tag editor state discipline", () => {
   const source = readFileSync(
     resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateCreatorManualTagEditor.tsx"),
@@ -53,6 +84,13 @@ describe("manual tag editor state discipline", () => {
     expect(source).toContain("useState<string | null>(null)");
     expect(source).not.toContain("useRef");
     expect(source).not.toMatch(/useState<GQL\./);
+  });
+
+  it("re-reads the rename target by id instead of capturing the row", () => {
+    // The form outlives a refetch, so the row it writes has to come from the
+    // current props at save time, not from whatever was clicked.
+    expect(source).toContain("manualTags.find((tag) => tag.id === renameTagId)");
+    expect(source).not.toMatch(/useState<\{[^}]*name/);
   });
 
   it("writes every change through the relationship id it was given", () => {

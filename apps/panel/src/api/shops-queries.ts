@@ -2996,6 +2996,46 @@ export const CREATE_CREATOR_MANUAL_TAG_MUTATION = gql`
   }
 `;
 
+export const RENAME_CREATOR_MANUAL_TAG_MUTATION = gql`
+  mutation RenameCreatorManualTag($input: RenameCreatorManualTagInput!) {
+    renameCreatorManualTag(input: $input) {
+      id
+      name
+      sensitive
+      updatedAt
+    }
+  }
+`;
+
+/**
+ * Read-only cost of deleting one tag. Deletion cascades across creators and
+ * approval policies, so the confirmation needs these counts before the seller
+ * commits — never after.
+ */
+export const CREATOR_MANUAL_TAG_USAGE_QUERY = gql`
+  query CreatorManualTagUsage($tagId: ID!) {
+    creatorManualTagUsage(tagId: $tagId) {
+      manualTagId
+      creatorRelationshipCount
+      approvalPolicyMatchCount
+      approvalPolicyExclusionCount
+      approvalPolicyDisableCount
+    }
+  }
+`;
+
+export const DELETE_CREATOR_MANUAL_TAG_MUTATION = gql`
+  mutation DeleteCreatorManualTag($tagId: ID!) {
+    deleteCreatorManualTag(tagId: $tagId) {
+      manualTagId
+      creatorRelationshipsDetached
+      approvalPolicyMatchesStripped
+      approvalPolicyExclusionsStripped
+      approvalPoliciesDisabled
+    }
+  }
+`;
+
 const CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT = `
     id
     creatorId
@@ -3905,6 +3945,10 @@ export const AFFILIATE_CREATOR_PROTECTIONS_QUERY = gql`
         importBatchId
         note
         source
+        manualTags {
+          id
+          name
+        }
         createdAt
         updatedAt
       }

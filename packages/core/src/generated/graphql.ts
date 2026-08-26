@@ -2295,6 +2295,8 @@ export interface AffiliateCreatorProtection {
   creatorOpenId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   importBatchId?: Maybe<Scalars['String']['output']>;
+  /** Manual tags carried by this protection's Creator, read through that Creator's relationship and resolved to their current catalog rows. Empty when creatorId is absent or the Creator has no relationship: the row carries no tags. Never a tag of the protection itself. */
+  manualTags: Array<CreatorManualTag>;
   note?: Maybe<Scalars['String']['output']>;
   platform: ShopPlatform;
   source: AffiliateCreatorProtectionSource;
@@ -5123,6 +5125,19 @@ export interface CreatorManualTag {
   userId: Scalars['ID']['output'];
 }
 
+/** What deleting one manual tag would cost, read without deleting anything. Backs the confirmation the seller sees before committing. */
+export interface CreatorManualTagUsage {
+  /** Enabled policies whose positive condition is this tag and nothing else. Deleting the tag disables them rather than letting them widen from 'creators tagged X' to every Creator. */
+  approvalPolicyDisableCount: Scalars['Int']['output'];
+  /** Approval policies naming the tag as an exclusion, enabled or not. Losing an exclusion only makes a policy easier to match, which fails toward requiring approval. */
+  approvalPolicyExclusionCount: Scalars['Int']['output'];
+  /** Approval policies naming the tag as a positive condition, enabled or not. Losing a positive condition widens a policy, because an empty condition array matches every Creator. */
+  approvalPolicyMatchCount: Scalars['Int']['output'];
+  /** Creator relationships currently carrying the tag; deleting detaches every one. */
+  creatorRelationshipCount: Scalars['Int']['output'];
+  manualTagId: Scalars['ID']['output'];
+}
+
 export interface CreatorMarketplaceSearchParams {
   advancedFilters?: Maybe<CreatorSearchAdvancedFilter>;
   affiliateData?: Maybe<CreatorSearchAffiliateDataFilter>;
@@ -6589,6 +6604,17 @@ export interface DecideActionProposalInput {
 
 export interface DeleteAffiliateCampaignDraftInput {
   campaignId: Scalars['ID']['input'];
+}
+
+/** What deleting one manual tag actually changed. */
+export interface DeleteCreatorManualTagResult {
+  /** Enabled policies disabled because this delete emptied their positive condition. */
+  approvalPoliciesDisabled: Scalars['Int']['output'];
+  approvalPolicyExclusionsStripped: Scalars['Int']['output'];
+  /** Policies the tag was removed from as a positive condition. Includes the disabled ones, which are a subset. */
+  approvalPolicyMatchesStripped: Scalars['Int']['output'];
+  creatorRelationshipsDetached: Scalars['Int']['output'];
+  manualTagId: Scalars['ID']['output'];
 }
 
 /** Public Google sign-in configuration for native desktop clients. */
@@ -9525,6 +9551,8 @@ export interface Mutation {
   deleteAffiliateApprovalPolicy: Scalars['Boolean']['output'];
   /** Delete an empty draft Campaign that has no execution, Creator, or delivery history. */
   deleteAffiliateCampaignDraft: Scalars['Boolean']['output'];
+  /** Delete a seller-scoped manual tag and every reference to it: the tag is detached from every Creator relationship carrying it, removed from every approval policy condition, and any policy left with an empty positive tag condition is disabled rather than silently widened to every Creator. Staff only; the Agent may only select a tag. */
+  deleteCreatorManualTag: DeleteCreatorManualTagResult;
   deleteExpertConversation: Scalars['Boolean']['output'];
   /** Delete a run profile */
   deleteRunProfile: Scalars['Boolean']['output'];
@@ -10064,6 +10092,11 @@ export interface MutationDeleteAffiliateApprovalPolicyArgs {
 
 export interface MutationDeleteAffiliateCampaignDraftArgs {
   input: DeleteAffiliateCampaignDraftInput;
+}
+
+
+export interface MutationDeleteCreatorManualTagArgs {
+  tagId: Scalars['ID']['input'];
 }
 
 
@@ -11413,6 +11446,8 @@ export interface Query {
   checkUpdate?: Maybe<UpdatePayload>;
   /** Read creator candidates discovered by search and qualification. Blocked creator relations are filtered out at read time. */
   creatorCandidates: Array<CreatorCandidate>;
+  /** Count what deleting one manual tag would affect, without deleting anything. Staff only. */
+  creatorManualTagUsage: CreatorManualTagUsage;
   /** Read the seller's manual tag catalog. Seller-wide: manual tags are never shop-scoped. */
   creatorManualTags: Array<CreatorManualTag>;
   /** Read user-scoped creator relationships for a shop. Commercial lifecycle belongs to collaboration records; protected creators are excluded unless blocked=true. */
@@ -11934,6 +11969,11 @@ export interface QueryCheckUpdateArgs {
 
 export interface QueryCreatorCandidatesArgs {
   input: ReadCreatorCandidatesInput;
+}
+
+
+export interface QueryCreatorManualTagUsageArgs {
+  tagId: Scalars['ID']['input'];
 }
 
 

@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 export function AffiliateChipMultiSelect<T extends string>({
   label,
   hint,
+  labelTitle,
   emptyLabel,
   options,
   selectedIds,
@@ -18,6 +19,14 @@ export function AffiliateChipMultiSelect<T extends string>({
 }: {
   label: string;
   hint?: string;
+  /**
+   * The same explanation as `hint`, carried on the label's tooltip instead of a
+   * visible line. A filter bar puts several of these groups side by side, and a
+   * hint rendered in one of them pushes only that group's chips down a line, so
+   * the row loses its shared baseline. Forms that stack their fields vertically
+   * have no such constraint and keep using `hint`.
+   */
+  labelTitle?: string;
   /** Shown under the grid when nothing is selected, i.e. the "matches all" state. */
   emptyLabel?: string;
   options: Array<{ id: T; label: string }>;
@@ -39,7 +48,12 @@ export function AffiliateChipMultiSelect<T extends string>({
 
   return (
     <div className={className ? `affiliate-policy-field ${className}` : "affiliate-policy-field"}>
-      <span>{label}</span>
+      <span
+        className={labelTitle ? "affiliate-chip-select-label-explained" : undefined}
+        title={labelTitle}
+      >
+        {label}
+      </span>
       {hint ? <small className="affiliate-chip-select-hint">{hint}</small> : null}
       <div className="affiliate-policy-option-grid">
         {options.length === 0 ? (

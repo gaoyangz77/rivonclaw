@@ -11,26 +11,43 @@ import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
  * stopped at* 已发样, never every creator that ever shipped a sample. That is
  * why the group is labelled 当前进度 rather than 标签, and why it must be
  * multi-select — several rungs are expressed by selecting several.
+ *
+ * Order is layout-bearing: both progress groups hold the same fixed four
+ * chips, so they sit adjacent and take only the width those chips need, the
+ * open-ended manual tag group absorbs the remainder, and the needs-attention
+ * switch closes the row flush against the panel edge.
+ *
+ * The switch lives here rather than beside the search box because it is a
+ * condition, not a lookup: it narrows the same result set the chips narrow,
+ * while the search box answers "which creator is this".
+ *
+ * Every group's explanation rides on its label tooltip. A visible hint line
+ * exists in only some groups, and it silently shifts that group's chips down
+ * one line, which is what broke the row's shared baseline before.
  */
 export function AffiliateCreatorFilterGroups({
   manualTagCatalog,
   manualTagMatchMode,
   selectedManualTagIds,
+  needsAttentionOnly,
   selectedSampleTiers,
   selectedShopSampleTiers,
   shopSelected,
   onManualTagMatchModeChange,
+  onNeedsAttentionOnlyChange,
   onSelectedManualTagIdsChange,
   onSelectedSampleTiersChange,
   onSelectedShopSampleTiersChange,
 }: {
   manualTagCatalog: ReadonlyArray<Pick<GQL.CreatorManualTag, "id" | "name">>;
   manualTagMatchMode: GQL.TagMatchMode;
+  needsAttentionOnly: boolean;
   selectedManualTagIds: string[];
   selectedSampleTiers: GQL.CreatorSampleTier[];
   selectedShopSampleTiers: GQL.CreatorSampleTier[];
   shopSelected: boolean;
   onManualTagMatchModeChange: (mode: GQL.TagMatchMode) => void;
+  onNeedsAttentionOnlyChange: (needsAttentionOnly: boolean) => void;
   onSelectedManualTagIdsChange: (tagIds: string[]) => void;
   onSelectedSampleTiersChange: (tiers: GQL.CreatorSampleTier[]) => void;
   onSelectedShopSampleTiersChange: (tiers: GQL.CreatorSampleTier[]) => void;
@@ -43,20 +60,33 @@ export function AffiliateCreatorFilterGroups({
   const manualTagOptions = manualTagCatalog.map((tag) => ({ id: tag.id, label: tag.name }));
 
   return (
-    <div className="affiliate-creator-filter-groups" data-tutorial-id="affiliate-creators-filters">
+    <div
+      className={shopSelected
+        ? "affiliate-creator-filter-groups affiliate-creator-filter-groups-with-shop-tier"
+        : "affiliate-creator-filter-groups"}
+      data-tutorial-id="affiliate-creators-filters"
+    >
       <AffiliateChipMultiSelect
         label={t("ecommerce.affiliateWorkspace.sampleTierFilterLabel")}
-        hint={t("ecommerce.affiliateWorkspace.sampleTierFilterHint")}
-        emptyLabel={t("ecommerce.affiliateWorkspace.allSampleTiersFilter")}
+        labelTitle={t("ecommerce.affiliateWorkspace.sampleTierFilterHint")}
         options={tierOptions}
         selectedIds={selectedSampleTiers}
         onChange={onSelectedSampleTiersChange}
       />
 
+      {shopSelected ? (
+        <AffiliateChipMultiSelect
+          label={t("ecommerce.affiliateWorkspace.shopSampleTierFilterLabel")}
+          labelTitle={t("ecommerce.affiliateWorkspace.shopSampleTierFilterHint")}
+          options={tierOptions}
+          selectedIds={selectedShopSampleTiers}
+          onChange={onSelectedShopSampleTiersChange}
+        />
+      ) : null}
+
       <div className="affiliate-creator-filter-group">
         <AffiliateChipMultiSelect
           label={t("ecommerce.affiliateWorkspace.manualTagFilterLabel")}
-          emptyLabel={t("ecommerce.affiliateWorkspace.allManualTagsFilter")}
           options={manualTagOptions}
           selectedIds={selectedManualTagIds}
           onChange={onSelectedManualTagIdsChange}
@@ -78,16 +108,14 @@ export function AffiliateCreatorFilterGroups({
         ) : null}
       </div>
 
-      {shopSelected ? (
-        <AffiliateChipMultiSelect
-          label={t("ecommerce.affiliateWorkspace.shopSampleTierFilterLabel")}
-          hint={t("ecommerce.affiliateWorkspace.shopSampleTierFilterHint")}
-          emptyLabel={t("ecommerce.affiliateWorkspace.allSampleTiersFilter")}
-          options={tierOptions}
-          selectedIds={selectedShopSampleTiers}
-          onChange={onSelectedShopSampleTiersChange}
+      <label className="affiliate-creators-toggle">
+        <input
+          type="checkbox"
+          checked={needsAttentionOnly}
+          onChange={(event) => onNeedsAttentionOnlyChange(event.target.checked)}
         />
-      ) : null}
+        <span>{t("ecommerce.affiliateWorkspace.creatorAttentionOnly")}</span>
+      </label>
     </div>
   );
 }
