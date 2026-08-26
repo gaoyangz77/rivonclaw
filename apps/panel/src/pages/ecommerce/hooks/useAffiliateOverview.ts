@@ -10,14 +10,16 @@ import {
 } from "../../../api/affiliate-analytics-queries.js";
 import { defaultAffiliateDateRange } from "../affiliate-analytics.js";
 import { reconcileShopSelection, type AffiliateAnalyticsShop } from "../affiliate-analytics-scope.js";
-import type {
-  AffiliateApprovalResult,
-  AffiliateOverviewPortfolio,
-  AffiliateOverviewPortfolioResult,
-  AffiliatePostApprovalResult,
-  AffiliateReachoutResult,
-  AffiliateSectionQuery,
-  AffiliateWindowDays,
+import {
+  AFFILIATE_POST_APPROVAL_WINDOW_DAYS,
+  type AffiliateApprovalResult,
+  type AffiliateOverviewPortfolio,
+  type AffiliateOverviewPortfolioResult,
+  type AffiliatePostApprovalResult,
+  type AffiliateReachoutResult,
+  type AffiliateReachoutSection,
+  type AffiliateSectionQuery,
+  type AffiliateWindowDays,
 } from "../affiliate-overview-types.js";
 
 export interface AffiliateOverviewState {
@@ -26,9 +28,15 @@ export interface AffiliateOverviewState {
   windowDays: AffiliateWindowDays;
   setWindowDays: (next: AffiliateWindowDays) => void;
   portfolio: AffiliateOverviewPortfolio | null;
-  reachout: AffiliateSectionQuery<GQL.AffiliateReachoutSection>;
+  reachout: AffiliateSectionQuery<AffiliateReachoutSection>;
   approval: AffiliateSectionQuery<GQL.AffiliateApprovalSection>;
   postApproval: AffiliateSectionQuery<GQL.AffiliatePostApprovalSection>;
+  /**
+   * The window the post-approval section actually used. It is pinned rather
+   * than following `windowDays`, so the view states it instead of letting the
+   * control bar imply a window that section never asked for.
+   */
+  postApprovalWindowDays: AffiliateWindowDays;
   refreshing: boolean;
   refetchAll: () => void;
 }
@@ -69,9 +77,18 @@ export function useAffiliateOverview(shops: AffiliateAnalyticsShop[]): Affiliate
     AFFILIATE_OVERVIEW_APPROVAL_QUERY,
     sectionOptions,
   );
+  // Pinned at 90 days rather than following the control: cohorts on this
+  // section's axis need ~90 days to produce anything, so a 30- or 60-day
+  // request returns a structurally empty chart. See
+  // AFFILIATE_POST_APPROVAL_WINDOW_DAYS for the measurement.
   const postApprovalQuery = useQuery<AffiliatePostApprovalResult, { input: GQL.AffiliateOverviewInput }>(
     AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY,
-    sectionOptions,
+    {
+      ...sectionOptions,
+      variables: {
+        input: { shopIds, windowDays: AFFILIATE_POST_APPROVAL_WINDOW_DAYS } as GQL.AffiliateOverviewInput,
+      },
+    },
   );
   const portfolioQuery = useQuery<AffiliateOverviewPortfolioResult, { input: GQL.AffiliateAnalyticsOverviewInput }>(
     AFFILIATE_OVERVIEW_PORTFOLIO_QUERY,
@@ -109,6 +126,7 @@ export function useAffiliateOverview(shops: AffiliateAnalyticsShop[]): Affiliate
       error: postApprovalQuery.error,
       retry: () => void postApprovalQuery.refetch(),
     },
+    postApprovalWindowDays: AFFILIATE_POST_APPROVAL_WINDOW_DAYS,
     refreshing: sectionQueries.some((query) => query.networkStatus === NetworkStatus.refetch),
     refetchAll: () => void Promise.all(sectionQueries.map((query) => query.refetch())),
   };

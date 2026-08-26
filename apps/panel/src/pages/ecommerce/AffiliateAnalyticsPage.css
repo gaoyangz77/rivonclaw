@@ -320,6 +320,38 @@
   font-size: 11px;
 }
 
+/*
+ * Stated where the section's own window differs from the page control's, so a
+ * reader never assumes the control applied to it.
+ */
+.affiliate-section-window-note {
+  margin: 8px 0 0;
+  padding: 7px 11px;
+  border-left: 3px solid var(--affiliate-projection);
+  border-radius: 0 8px 8px 0;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/*
+ * A strip that has to name its own basis.
+ *
+ * Section 3 carries two of them — one dated by application, one by shipment —
+ * and the two are not interchangeable. The heading sits tight against its own
+ * strip rather than at the section's row gap, so a reader cannot pair it with
+ * the wrong four cards.
+ */
+.affiliate-metric-group { display: grid; gap: 7px; }
+
+.affiliate-metric-group > h3 {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .affiliate-metric-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -399,6 +431,25 @@
 .affiliate-coverage-actions .btn[aria-pressed="true"] {
   border-color: var(--affiliate-coverage);
   color: var(--color-text);
+}
+
+/*
+ * Shown in place of a chart whose basis is too small to resolve what it would
+ * be drawing. It replaces the plot rather than sitting beside an empty one:
+ * a suppressed curve must not leave axes implying a measurement was made.
+ */
+.affiliate-chart-suppressed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: 0;
+  padding: 0 22px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
 }
 
 .affiliate-chart-large { height: 330px; padding: 18px 12px 8px 0; }

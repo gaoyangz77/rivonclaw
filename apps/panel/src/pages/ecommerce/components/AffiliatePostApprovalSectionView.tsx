@@ -3,12 +3,12 @@ import { useTranslation } from "react-i18next";
 import type { GQL } from "@rivonclaw/core";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -16,173 +16,277 @@ import {
 } from "recharts";
 import { formatCohortDay, formatNumber, formatPercent, formatRatio } from "../affiliate-analytics-format.js";
 import {
+  AFFILIATE_SHIPMENT_TRAILING_DAYS,
   applyCoverageWindow,
-  buildCohortUnitsRows,
+  buildShipmentDailyRows,
   countAxisDomain,
-  countImmatureCohorts,
   countPartialDays,
   coverageBasis,
-  isFullyCoveredDay,
+  coverageBoundaryMark,
   rateAxisDomain,
+  splitCoverageSeries,
 } from "../affiliate-overview.js";
-import type { AffiliateSectionQuery } from "../affiliate-overview-types.js";
+import type { AffiliateSectionQuery, AffiliateWindowDays } from "../affiliate-overview-types.js";
 import { AffiliateCoverageBand, AffiliateCoverageNotice } from "./AffiliateCoverageBand.js";
 import { AffiliateChartCard, AffiliateMetric, AffiliateSectionHeader, AffiliateSectionState } from "./AffiliateOverviewParts.js";
+
+/** Partial-range series are drawn with this dash so they cannot read as a trend. */
+const PARTIAL_DASH = "4 4";
 
 /** How solid a bar in the partial range is drawn, relative to a covered one. */
 const PARTIAL_BAR_OPACITY = 0.35;
 
 /**
- * Section 3 — Post-approval performance. Cohort axis: the application date, and
- * the measure is UNITS. GMV is deliberately absent: order-line GMV is 98.2%
- * missing at 0–7 days old and keeps a ~17% permanent hole, while `units` is
- * never missing.
+ * Section 3 — Post-approval performance.
+ *
+ * Two bases live here, and the section states which is which rather than
+ * blending them:
+ *
+ *  - the approval basis counts what happened to the applications we approved
+ *    inside the window, on the application date;
+ *  - the shipment basis is a same-day comparison — we shipped N free samples on
+ *    day D and the affiliate channel sold M units on day D — with the trailing
+ *    7-day ratio of those two counts drawn beside them.
+ *
+ * There is no cohorting, no lag model, and no estimate of any kind on this
+ * section: every figure is a count the producer observed, or a ratio of two.
+ * GMV is likewise absent — order-line GMV is 98.2% missing at 0–7 days old and
+ * keeps a ~17% permanent hole, while units are never missing.
  */
-export function AffiliatePostApprovalSectionView({ query, onExcludeShops }: {
+export function AffiliatePostApprovalSectionView({ query, windowDays, onExcludeShops }: {
   query: AffiliateSectionQuery<GQL.AffiliatePostApprovalSection>;
+  /**
+   * The window this section actually asked for. It is pinned rather than taken
+   * from the page control, so the section states it — a number sitting under a
+   * 30/60/90 control otherwise reads as though it followed it.
+   */
+  windowDays: AffiliateWindowDays;
   onExcludeShops?: (shopIds: string[]) => void;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const section = query.section;
-  // Primitive UI state only: the boundary itself lives in the section payload.
-  const [showPartial, setShowPartial] = useState(false);
+  // Defaults to false: the full range is the default view, and narrowing to
+  // the fully-covered range is the reader's explicit choice.
+  const [restrictToCovered, setRestrictToCovered] = useState(false);
 
   const body = (() => {
     if (!section) return <AffiliateSectionState loading={query.loading} error={query.error} onRetry={query.retry} />;
 
+    /*
+     * The chart sits on the shipment basis, so the boundary it is drawn against
+     * is the SHIPMENT one. Ship date is our own observation rather than a
+     * platform fact, so it begins later than application coverage and no
+     * earlier day can ever gain one — which is exactly why the two coverage
+     * objects are reported separately below instead of collapsed into one.
+     */
     const coverage = section.coverage;
-    const boundary = coverage.fullCoverageFrom ?? null;
-    const allRows = buildCohortUnitsRows(section.cohorts);
-    const partialDays = countPartialDays(allRows.map((row) => row.cohortDs), boundary);
-    const cohortRows = applyCoverageWindow(allRows, (row) => row.cohortDs, boundary, showPartial);
+    const shipmentCoverage = section.shipmentCoverage;
+    const shipmentBoundary = shipmentCoverage.fullCoverageFrom ?? null;
+
+    // The trailing window is summed over the WHOLE series the producer sent, so
+    // narrowing the view afterwards hides days without silently rebasing the
+    // ratio drawn on the days that remain.
+    const allRows = buildShipmentDailyRows(section.daily);
+    const partialDays = countPartialDays(allRows.map((row) => row.ds), shipmentBoundary);
+    const windowRows = applyCoverageWindow(allRows, (row) => row.ds, shipmentBoundary, restrictToCovered);
+    const dailyRows = splitCoverageSeries(
+      windowRows,
+      (row) => row.ds,
+      (row) => row.trailingUnitsPerSample,
+      shipmentBoundary,
+    );
+    const boundaryOnChart = coverageBoundaryMark(windowRows.map((row) => row.ds), shipmentBoundary);
+    const countsDomain = countAxisDomain(
+      dailyRows.flatMap((row) => [row.samplesShipped, row.affiliateUnits]),
+    );
+    const ratioDomain = rateAxisDomain(dailyRows.map((row) => row.trailingUnitsPerSample));
+
     const basis = coverageBasis(coverage);
-    const basisNote = t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
-      shops: formatNumber(basis.shopsWithData, locale),
-      selected: formatNumber(basis.shopsSelected, locale),
-      date: basis.fullCoverageFrom
-        ? formatCohortDay(basis.fullCoverageFrom, locale)
+    const shipmentBasis = coverageBasis(shipmentCoverage);
+    const basisNote = (source: typeof basis) => t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
+      shops: formatNumber(source.shopsWithData, locale),
+      selected: formatNumber(source.shopsSelected, locale),
+      date: source.fullCoverageFrom
+        ? formatCohortDay(source.fullCoverageFrom, locale)
         : t("ecommerce.affiliateAnalytics.coverage.noDate"),
     });
 
-    const immatureCohorts = countImmatureCohorts(cohortRows);
-    const unitsDomain = countAxisDomain(cohortRows.map((row) => row.actualUnits + row.projectedRemainingUnits));
-    // The bar analogue of a dashed line: a partial-range cohort keeps its real
-    // height but is drawn faint, so it is never read as comparable.
-    const coverageCells = cohortRows.map((row) => (
-      <Cell key={row.cohortDs} fillOpacity={isFullyCoveredDay(row.cohortDs, boundary) ? 1 : PARTIAL_BAR_OPACITY} />
-    ));
-    const maturationDomain = rateAxisDomain(section.maturationCurve.map((point) => point.cumulativeShare), 1);
-
     return (
       <>
-        <div className="affiliate-metric-strip">
-          <AffiliateMetric
-            label={t("ecommerce.affiliateAnalytics.postApproval.approvedApplications")}
-            value={formatNumber(section.approvedApplications, locale)}
-          />
-          <AffiliateMetric
-            label={t("ecommerce.affiliateAnalytics.postApproval.orderRate")}
-            value={formatPercent(section.orderRate, locale)}
-            hint={t("ecommerce.affiliateAnalytics.postApproval.orderRateHint", {
-              count: section.applicationsWithOrder,
-            })}
-            basis={basisNote}
-          />
-          <AffiliateMetric
-            label={t("ecommerce.affiliateAnalytics.postApproval.actualUnits")}
-            value={formatNumber(section.actualUnits, locale)}
-            hint={t("ecommerce.affiliateAnalytics.postApproval.unitsPerApprovedActual", {
-              value: formatRatio(section.unitsPerApprovedActual, locale),
-            })}
-          />
-          <AffiliateMetric
-            label={t("ecommerce.affiliateAnalytics.postApproval.projectedUnits")}
-            value={formatNumber(section.projectedUnits, locale)}
-            hint={t("ecommerce.affiliateAnalytics.postApproval.unitsPerApprovedProjected", {
-              value: formatRatio(section.unitsPerApprovedProjected, locale),
-            })}
-            tone="projection"
-          />
+        <p className="affiliate-section-window-note">
+          {t("ecommerce.affiliateAnalytics.postApproval.twoBases", {
+            applicationDate: basis.fullCoverageFrom
+              ? formatCohortDay(basis.fullCoverageFrom, locale)
+              : t("ecommerce.affiliateAnalytics.coverage.noDate"),
+            shipmentDate: shipmentBasis.fullCoverageFrom
+              ? formatCohortDay(shipmentBasis.fullCoverageFrom, locale)
+              : t("ecommerce.affiliateAnalytics.coverage.noDate"),
+          })}
+        </p>
+
+        <div className="affiliate-metric-group">
+          <h3>{t("ecommerce.affiliateAnalytics.postApproval.approvalBasisTitle")}</h3>
+          <div className="affiliate-metric-strip">
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.approvedApplications")}
+              value={formatNumber(section.approvedApplications, locale)}
+            />
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.applicationsWithOrder")}
+              value={formatNumber(section.applicationsWithOrder, locale)}
+            />
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.orderRate")}
+              value={formatPercent(section.orderRate, locale)}
+              hint={t("ecommerce.affiliateAnalytics.postApproval.orderRateHint", {
+                count: section.applicationsWithOrder,
+              })}
+              basis={basisNote(basis)}
+            />
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.actualUnits")}
+              value={formatNumber(section.actualUnits, locale)}
+              hint={t("ecommerce.affiliateAnalytics.postApproval.unitsPerApprovedActual", {
+                value: formatRatio(section.unitsPerApprovedActual, locale),
+              })}
+            />
+          </div>
+        </div>
+
+        <div className="affiliate-metric-group">
+          <h3>{t("ecommerce.affiliateAnalytics.postApproval.shipmentBasisTitle")}</h3>
+          <div className="affiliate-metric-strip">
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.samplesShipped")}
+              value={formatNumber(section.samplesShipped, locale)}
+            />
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.affiliateUnits")}
+              value={formatNumber(section.affiliateUnits, locale)}
+            />
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.unitsPerSampleShipped")}
+              value={formatRatio(section.unitsPerSampleShipped, locale)}
+              hint={t("ecommerce.affiliateAnalytics.postApproval.unitsPerSampleShippedHint")}
+              basis={basisNote(shipmentBasis)}
+            />
+            <AffiliateMetric
+              label={t("ecommerce.affiliateAnalytics.postApproval.shipmentBoundary")}
+              value={shipmentBoundary
+                ? formatCohortDay(shipmentBoundary, locale)
+                : t("ecommerce.affiliateAnalytics.coverage.noDate")}
+              hint={t("ecommerce.affiliateAnalytics.postApproval.shipmentBoundaryHint")}
+              tone="muted"
+            />
+          </div>
         </div>
 
         <AffiliateCoverageNotice
-          coverage={coverage}
+          coverage={shipmentCoverage}
           partialDays={partialDays}
-          showPartial={showPartial}
-          onShowPartialChange={setShowPartial}
+          restrictToCovered={restrictToCovered}
+          onRestrictToCoveredChange={setRestrictToCovered}
           onExcludeShops={onExcludeShops}
         />
 
-        <div className="affiliate-chart-grid">
-          <AffiliateChartCard
-            title={t("ecommerce.affiliateAnalytics.postApproval.cohortsTitle")}
-            note={t("ecommerce.affiliateAnalytics.postApproval.cohortsNote", { count: immatureCohorts })}
-            band={<AffiliateCoverageBand coverage={coverage} />}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={cohortRows}>
-                <CartesianGrid strokeDasharray="3 6" vertical={false} />
-                <XAxis dataKey="cohortDs" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
-                <YAxis domain={unitsDomain} tickFormatter={(value) => formatNumber(Number(value), locale, true)} />
-                <Tooltip
-                  labelFormatter={(value) => formatCohortDay(String(value), locale)}
-                  formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]}
+        <AffiliateChartCard
+          title={t("ecommerce.affiliateAnalytics.postApproval.shipmentTitle")}
+          note={t("ecommerce.affiliateAnalytics.postApproval.shipmentNote", {
+            count: AFFILIATE_SHIPMENT_TRAILING_DAYS,
+          })}
+          band={<AffiliateCoverageBand coverage={shipmentCoverage} reserveRightGutter />}
+          height="tall"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={dailyRows}>
+              <CartesianGrid strokeDasharray="3 6" vertical={false} />
+              <XAxis dataKey="ds" minTickGap={26} tickFormatter={(value) => formatCohortDay(String(value), locale)} />
+              <YAxis
+                yAxisId="counts"
+                domain={countsDomain}
+                tickFormatter={(value) => formatNumber(Number(value), locale, true)}
+              />
+              <YAxis
+                yAxisId="ratio"
+                orientation="right"
+                domain={ratioDomain}
+                tickFormatter={(value) => formatRatio(Number(value), locale)}
+              />
+              <Tooltip
+                labelFormatter={(value) => formatCohortDay(String(value), locale)}
+                formatter={(value, name, item) => (
+                  (item?.dataKey === "coveredValue" || item?.dataKey === "partialValue")
+                    ? [formatRatio(Number(value), locale), String(name)]
+                    : [formatNumber(Number(value), locale), String(name)]
+                )}
+              />
+              <Legend />
+              {/*
+                The boundary is marked, never used to drop days. A day to its
+                left with zero samples and real units is honest: shipment
+                observation had not begun, and the band beneath says so.
+              */}
+              {boundaryOnChart && (
+                <ReferenceLine
+                  yAxisId="counts"
+                  x={boundaryOnChart}
+                  stroke="var(--affiliate-coverage)"
+                  strokeDasharray={PARTIAL_DASH}
+                  label={{
+                    value: t("ecommerce.affiliateAnalytics.coverage.boundaryMark"),
+                    position: "insideTopLeft",
+                    fontSize: 11,
+                  }}
                 />
-                <Legend />
-                <Bar
-                  dataKey="actualUnits"
-                  stackId="units"
-                  name={t("ecommerce.affiliateAnalytics.postApproval.actualUnitsSeries")}
-                  fill="var(--affiliate-units)"
-                >
-                  {coverageCells}
-                </Bar>
-                <Bar
-                  dataKey="projectedRemainingUnits"
-                  stackId="units"
-                  name={t("ecommerce.affiliateAnalytics.postApproval.projectedUnitsSeries")}
-                  fill="var(--affiliate-projection)"
-                >
-                  {coverageCells}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </AffiliateChartCard>
-
-          <AffiliateChartCard
-            title={t("ecommerce.affiliateAnalytics.postApproval.maturationTitle")}
-            note={t("ecommerce.affiliateAnalytics.postApproval.maturationNote")}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={section.maturationCurve}>
-                <CartesianGrid strokeDasharray="3 6" vertical={false} />
-                <XAxis
-                  dataKey="lagDays"
-                  tickFormatter={(value) => t("ecommerce.affiliateAnalytics.postApproval.lagDay", { count: Number(value) })}
-                />
-                <YAxis domain={maturationDomain} tickFormatter={(value) => formatPercent(Number(value), locale)} />
-                <Tooltip
-                  labelFormatter={(value) => t("ecommerce.affiliateAnalytics.postApproval.lagDay", { count: Number(value) })}
-                  formatter={(value, _name, item) => [
-                    formatPercent(Number(value), locale),
-                    t("ecommerce.affiliateAnalytics.postApproval.basisCohorts", {
-                      count: Number((item?.payload as { basisCohorts?: number } | undefined)?.basisCohorts ?? 0),
-                    }),
-                  ]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cumulativeShare"
-                  name={t("ecommerce.affiliateAnalytics.postApproval.maturationSeries")}
-                  stroke="var(--affiliate-units)"
-                  strokeWidth={3}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </AffiliateChartCard>
-        </div>
+              )}
+              <Bar
+                yAxisId="counts"
+                dataKey="samplesShipped"
+                name={t("ecommerce.affiliateAnalytics.postApproval.samplesShippedSeries")}
+                fill="var(--affiliate-sample)"
+              >
+                {dailyRows.map((row) => (
+                  <Cell key={row.ds} fillOpacity={row.covered ? 1 : PARTIAL_BAR_OPACITY} />
+                ))}
+              </Bar>
+              <Bar
+                yAxisId="counts"
+                dataKey="affiliateUnits"
+                name={t("ecommerce.affiliateAnalytics.postApproval.affiliateUnitsSeries")}
+                fill="var(--affiliate-units)"
+              >
+                {dailyRows.map((row) => (
+                  <Cell key={row.ds} fillOpacity={row.covered ? 1 : PARTIAL_BAR_OPACITY} />
+                ))}
+              </Bar>
+              <Line
+                yAxisId="ratio"
+                type="monotone"
+                dataKey="coveredValue"
+                name={t("ecommerce.affiliateAnalytics.postApproval.trailingRatioSeries", {
+                  count: AFFILIATE_SHIPMENT_TRAILING_DAYS,
+                })}
+                stroke="var(--affiliate-response)"
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+              />
+              <Line
+                yAxisId="ratio"
+                type="monotone"
+                dataKey="partialValue"
+                name={t("ecommerce.affiliateAnalytics.coverage.partialSeries")}
+                stroke="var(--affiliate-response)"
+                strokeDasharray={PARTIAL_DASH}
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+                legendType="none"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </AffiliateChartCard>
       </>
     );
   })();
@@ -194,6 +298,9 @@ export function AffiliatePostApprovalSectionView({ query, onExcludeShops }: {
         title={t("ecommerce.affiliateAnalytics.postApproval.title")}
         axis={t("ecommerce.affiliateAnalytics.postApproval.axis")}
       />
+      <p className="affiliate-section-window-note">
+        {t("ecommerce.affiliateAnalytics.postApproval.pinnedWindow", { count: windowDays })}
+      </p>
       {body}
     </section>
   );

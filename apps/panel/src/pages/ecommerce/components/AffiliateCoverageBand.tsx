@@ -89,26 +89,32 @@ export function AffiliateCoverageBand({ coverage, reserveRightGutter = false }: 
 }
 
 /**
- * The section-level statement of the boundary, plus the two ways out of it.
+ * The section-level statement of the boundary, plus the two ways to act on it.
  *
- * Both escape hatches are explicit and reversible, and neither hides what it
- * did: showing the partial range redraws the excluded days as a dashed
- * continuation, and excluding the limiting shops narrows the shop scope for the
- * whole page — which is why those shops are named before the choice is made
- * rather than after.
+ * The boundary INFORMS; it does not truncate. The full range is drawn by
+ * default and the partial region is marked — band, reference line, dashed and
+ * faint series — so the reader can see both that the earlier days exist and
+ * that they were measured over fewer shops.
+ *
+ * Restricting to the fully-covered range is therefore opt-in, the inverse of
+ * what this notice originally offered. Defaulting to the intersection let a
+ * 99-row shop that started three weeks ago erase 81,627 rows belonging to three
+ * older shops. Both actions stay explicit and reversible, and excluding the
+ * limiting shops names them before the choice is made rather than after.
  */
 export function AffiliateCoverageNotice({
   coverage,
   partialDays,
-  showPartial,
-  onShowPartialChange,
+  restrictToCovered,
+  onRestrictToCoveredChange,
   onExcludeShops,
 }: {
   coverage: GQL.AffiliateCoverage;
   /** Days in this section's series that sit before the boundary. */
   partialDays: number;
-  showPartial: boolean;
-  onShowPartialChange: (next: boolean) => void;
+  /** Opt-in narrowing to the fully-covered range; false is the default view. */
+  restrictToCovered: boolean;
+  onRestrictToCoveredChange: (next: boolean) => void;
   /** Narrows the page's shop scope. Absent when the page cannot change it. */
   onExcludeShops?: (shopIds: string[]) => void;
 }) {
@@ -152,12 +158,12 @@ export function AffiliateCoverageNotice({
           <button
             className="btn btn-secondary"
             type="button"
-            aria-pressed={showPartial}
-            onClick={() => onShowPartialChange(!showPartial)}
+            aria-pressed={restrictToCovered}
+            onClick={() => onRestrictToCoveredChange(!restrictToCovered)}
           >
-            {showPartial
-              ? t("ecommerce.affiliateAnalytics.coverage.hidePartial")
-              : t("ecommerce.affiliateAnalytics.coverage.showPartial")}
+            {restrictToCovered
+              ? t("ecommerce.affiliateAnalytics.coverage.showFullRange")
+              : t("ecommerce.affiliateAnalytics.coverage.restrictToCovered")}
           </button>
         ) : null}
         {canExclude ? (
@@ -173,9 +179,9 @@ export function AffiliateCoverageNotice({
           })}
         </p>
       ) : null}
-      {showPartial ? (
+      {restrictToCovered ? null : (
         <p className="affiliate-coverage-dashed">{t("ecommerce.affiliateAnalytics.coverage.dashedNote")}</p>
-      ) : null}
+      )}
     </div>
   );
 }

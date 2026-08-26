@@ -34,6 +34,44 @@ export type AffiliateResponseHorizonKey = (typeof AFFILIATE_RESPONSE_HORIZONS)[n
 export const AFFILIATE_SUB_DAY_HORIZONS: readonly string[] = ["3h", "12h", "24h"];
 
 /**
+ * The post-approval section's own window, pinned at 90 days.
+ *
+ * This section does NOT follow the page's 30/60/90 control, and that is
+ * deliberate rather than an oversight. Orders lag approval by so much that a
+ * cohort bucketed by application date has produced almost nothing before it is
+ * 60-90 days old. Measured on production 2026-08-25 for one seller: cohorts
+ * aged 0-9d and 10-19d had 0 units, 20-29d had 1, while the 90-99d cohort had
+ * 92,586 — and 65% of the last 30 days' order lines belonged to cohorts that
+ * applied 60-89 days earlier. A 30-day view of this measure therefore renders a
+ * seller doing several hundred thousand dollars a month as having sold nothing.
+ *
+ * The other two sections follow the control normally; only this one is pinned,
+ * and it says so on the section so a reader never assumes otherwise.
+ */
+export const AFFILIATE_POST_APPROVAL_WINDOW_DAYS: AffiliateWindowDays = 90;
+
+/**
+ * Local mirror of the reachout section's fixed-cohort fields.
+ *
+ * The backend owns these types (ADR-027) and `GQL.AffiliateReachoutSection`
+ * gains them when `packages/core/src/generated/graphql.ts` is regenerated from
+ * the backend schema. Codegen writes a file shared with the root repo and is
+ * sequenced separately, so this file carries the shape in the meantime — the
+ * same stopgap it has used before. DELETE this and read the fields straight off
+ * `GQL.AffiliateReachoutSection` once codegen has run.
+ */
+export interface AffiliateHorizonCohortFields {
+  /** The single denominator every horizon point rests on. */
+  horizonCohortSize: number;
+  /** Earliest invitation day in that cohort; null when it is empty. */
+  horizonCohortFrom?: string | null;
+  /** Latest invitation day in that cohort; null when it is empty. */
+  horizonCohortTo?: string | null;
+}
+
+export type AffiliateReachoutSection = GQL.AffiliateReachoutSection & AffiliateHorizonCohortFields;
+
+/**
  * Query envelopes for this page's selection sets.
  *
  * Each section field is non-null in the schema; Apollo still leaves `data`
@@ -41,7 +79,7 @@ export const AFFILIATE_SUB_DAY_HORIZONS: readonly string[] = ["3h", "12h", "24h"
  * read site covers.
  */
 export interface AffiliateReachoutResult {
-  getAffiliateOverviewReachout: GQL.AffiliateReachoutSection;
+  getAffiliateOverviewReachout: AffiliateReachoutSection;
 }
 
 export interface AffiliateApprovalResult {

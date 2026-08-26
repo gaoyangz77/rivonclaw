@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -18,6 +19,7 @@ import {
   countAxisDomain,
   countPartialDays,
   coverageBasis,
+  coverageBoundaryMark,
   isFullyCoveredDay,
 } from "../affiliate-overview.js";
 import type { AffiliateSectionQuery } from "../affiliate-overview-types.js";
@@ -46,7 +48,9 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
   const locale = i18n.language;
   const section = query.section;
   // Primitive UI state only: the boundary itself lives in the section payload.
-  const [showPartial, setShowPartial] = useState(false);
+  // Defaults to false: the full range is the default view, and narrowing to
+  // the fully-covered range is the reader's explicit choice.
+  const [restrictToCovered, setRestrictToCovered] = useState(false);
 
   const outcomeBars = OUTCOME_SERIES.map((series) => (
     <Bar
@@ -64,7 +68,8 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
     const coverage = section.coverage;
     const boundary = coverage.fullCoverageFrom ?? null;
     const partialDays = countPartialDays(section.daily.map((point) => point.cohortDs), boundary);
-    const dailyRows = applyCoverageWindow(section.daily, (point) => point.cohortDs, boundary, showPartial);
+    const dailyRows = applyCoverageWindow(section.daily, (point) => point.cohortDs, boundary, restrictToCovered);
+    const boundaryOnChart = coverageBoundaryMark(dailyRows.map((point) => point.cohortDs), boundary);
     const basis = coverageBasis(coverage);
     const basisNote = t("ecommerce.affiliateAnalytics.coverage.metricBasis", {
       shops: formatNumber(basis.shopsWithData, locale),
@@ -124,8 +129,8 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
         <AffiliateCoverageNotice
           coverage={coverage}
           partialDays={partialDays}
-          showPartial={showPartial}
-          onShowPartialChange={setShowPartial}
+          restrictToCovered={restrictToCovered}
+          onRestrictToCoveredChange={setRestrictToCovered}
           onExcludeShops={onExcludeShops}
         />
 
@@ -145,6 +150,19 @@ export function AffiliateApprovalSectionView({ query, onExcludeShops }: {
                   formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]}
                 />
                 <Legend />
+                {/* The boundary is marked, never used to drop days. */}
+                {boundaryOnChart && (
+                  <ReferenceLine
+                    x={boundaryOnChart}
+                    stroke="var(--affiliate-coverage)"
+                    strokeDasharray="4 4"
+                    label={{
+                      value: t("ecommerce.affiliateAnalytics.coverage.boundaryMark"),
+                      position: "insideTopLeft",
+                      fontSize: 11,
+                    }}
+                  />
+                )}
                 {dailyOutcomeBars}
               </BarChart>
             </ResponsiveContainer>

@@ -3,16 +3,18 @@
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_EXACT_SHARE_THRESHOLD,
+  AFFILIATE_HORIZON_MIN_COHORT,
+  AFFILIATE_SHIPMENT_TRAILING_DAYS,
   applyCoverageWindow,
-  buildCohortUnitsRows,
   buildCoverageBandRows,
   buildInviteDailyRows,
+  buildShipmentDailyRows,
   firstImmatureCohortDay,
   buildResponseHorizonSeries,
   countAxisDomain,
-  countImmatureCohorts,
   countPartialDays,
   coverageBasis,
+  coverageBoundaryMark,
   coverageShopLabel,
   exactSubmissionShare,
   isFullyCoveredDay,
@@ -37,18 +39,32 @@ function horizon(
 }
 
 /**
- * Production shape: the raw numerator is NOT monotone across horizons because
- * it is gated on invitation maturity (within_72h = 749 > within_7d = 627).
+ * The producer's shape since the fixed-cohort fix: ONE denominator on every
+ * point, and a numerator that only ever rises. Deliberately shuffled, because
+ * the ordering is this module's job rather than the server's.
+ *
+ * The shape it replaced carried a per-horizon denominator that shrank as the
+ * horizon widened (620,000 at 3h down to 250,000 at 30d), which let the
+ * "cumulative" rate fall between points.
  */
+const COHORT_SIZE = 620_000;
+
 const PRODUCTION_HORIZONS: GQL.AffiliateResponseHorizon[] = [
-  horizon("7d", 400_000, 627),
-  horizon("3h", 620_000, 210),
-  horizon("72h", 540_000, 749),
-  horizon("30d", 250_000, 430),
-  horizon("12h", 610_000, 320),
-  horizon("14d", 340_000, 540),
-  horizon("24h", 600_000, 500),
+  horizon("7d", COHORT_SIZE, 853),
+  horizon("3h", COHORT_SIZE, 258),
+  horizon("72h", COHORT_SIZE, 756),
+  horizon("30d", COHORT_SIZE, 1011),
+  horizon("12h", COHORT_SIZE, 467),
+  horizon("14d", COHORT_SIZE, 917),
+  horizon("24h", COHORT_SIZE, 594),
 ];
+
+/** The cohort fields the producer sends alongside `horizons`. */
+const COHORT_FIELDS = {
+  horizonCohortSize: COHORT_SIZE,
+  horizonCohortFrom: "2026-07-01",
+  horizonCohortTo: "2026-07-26",
+};
 
 describe("safeShare", () => {
   it("returns null instead of dividing by an empty denominator", () => {
@@ -84,6 +100,7 @@ describe("orderResponseHorizons", () => {
 describe("buildResponseHorizonSeries", () => {
   it("keeps sub-day horizons when the exact-submission share is high", () => {
     const series = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
       horizons: PRODUCTION_HORIZONS,
       responsesExact: 92,
       responsesProxy: 8,
@@ -97,6 +114,7 @@ describe("buildResponseHorizonSeries", () => {
 
   it("suppresses 3h/12h/24h when most response times are proxies", () => {
     const series = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
       horizons: PRODUCTION_HORIZONS,
       responsesExact: 11,
       responsesProxy: 89,
@@ -108,6 +126,7 @@ describe("buildResponseHorizonSeries", () => {
 
   it("suppresses sub-day horizons when there is no response evidence at all", () => {
     const series = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
       horizons: PRODUCTION_HORIZONS,
       responsesExact: 0,
       responsesProxy: 0,
@@ -120,6 +139,7 @@ describe("buildResponseHorizonSeries", () => {
   it("treats the threshold as inclusive of the passing side", () => {
     const exact = Math.round(AFFILIATE_EXACT_SHARE_THRESHOLD * 100);
     const series = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
       horizons: PRODUCTION_HORIZONS,
       responsesExact: exact,
       responsesProxy: 100 - exact,
@@ -128,17 +148,84 @@ describe("buildResponseHorizonSeries", () => {
     expect(series.subDaySuppressed).toBe(false);
   });
 
-  it("plots only rates — the raw numerator it carries is non-monotone", () => {
+  it("plots a curve that never falls, over one unchanging denominator", () => {
     const series = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
       horizons: PRODUCTION_HORIZONS,
       responsesExact: 92,
       responsesProxy: 8,
     });
-    const within72h = series.points.find((point) => point.horizon === "72h")!;
-    const within7d = series.points.find((point) => point.horizon === "7d")!;
 
-    expect(within72h.responsesWithinHorizon).toBeGreaterThan(within7d.responsesWithinHorizon);
-    expect(within72h.responseRate!).toBeLessThan(within7d.responseRate!);
+    // The defect this replaced: 3h 0.044% -> 72h 0.114% -> 7d 0.090% -> 30d 0%,
+    // measured on production over a 30-day window, because each point divided
+    // by its own maturity population instead of one shared cohort.
+    const denominators = series.points.map((point) => point.matureInvitations);
+    expect(new Set(denominators)).toEqual(new Set([COHORT_SIZE]));
+
+    const counts = series.points.map((point) => point.responsesWithinHorizon);
+    const rates = series.points.map((point) => point.responseRate!);
+    for (const [index] of counts.entries()) {
+      if (index === 0) continue;
+      expect(counts[index]).toBeGreaterThanOrEqual(counts[index - 1]);
+      expect(rates[index]).toBeGreaterThanOrEqual(rates[index - 1]);
+    }
+    expect(series.cohortSize).toBe(COHORT_SIZE);
+    expect(series.cohortTooSmall).toBe(false);
+  });
+
+  it("withholds the whole curve when the cohort is below the resolution floor", () => {
+    // The measured 30-day cohort: 32 invitations old enough to judge at 30d,
+    // against 415,035 invitations in the window. A rate over 32 rows cannot
+    // resolve the ~0.1% it would be drawing.
+    const series = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
+      horizonCohortSize: 32,
+      horizons: PRODUCTION_HORIZONS,
+      responsesExact: 92,
+      responsesProxy: 8,
+    });
+
+    expect(series.cohortTooSmall).toBe(true);
+    expect(series.points).toEqual([]);
+    expect(series.cohortSize).toBe(32);
+  });
+
+  it("draws the curve exactly at the floor, and withholds it one below", () => {
+    const atFloor = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
+      horizonCohortSize: AFFILIATE_HORIZON_MIN_COHORT,
+      horizons: PRODUCTION_HORIZONS,
+      responsesExact: 92,
+      responsesProxy: 8,
+    });
+    const belowFloor = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
+      horizonCohortSize: AFFILIATE_HORIZON_MIN_COHORT - 1,
+      horizons: PRODUCTION_HORIZONS,
+      responsesExact: 92,
+      responsesProxy: 8,
+    });
+
+    expect(atFloor.cohortTooSmall).toBe(false);
+    expect(atFloor.points).not.toEqual([]);
+    expect(belowFloor.cohortTooSmall).toBe(true);
+  });
+
+  it("withholds an empty cohort rather than plotting seven null points", () => {
+    const series = buildResponseHorizonSeries({
+      ...COHORT_FIELDS,
+      horizonCohortSize: 0,
+      horizonCohortFrom: null,
+      horizonCohortTo: null,
+      horizons: PRODUCTION_HORIZONS.map((point) => ({
+        ...point, matureInvitations: 0, responsesWithinHorizon: 0, responseRate: null,
+      })),
+      responsesExact: 0,
+      responsesProxy: 0,
+    });
+
+    expect(series.cohortTooSmall).toBe(true);
+    expect(series.points).toEqual([]);
   });
 });
 
@@ -246,57 +333,104 @@ describe("firstImmatureCohortDay", () => {
   });
 });
 
-describe("buildCohortUnitsRows", () => {
-  function cohort(overrides: Partial<GQL.AffiliateCohortUnitsPoint>): GQL.AffiliateCohortUnitsPoint {
-    return {
-      cohortDs: "2026-08-01",
-      approvedApplications: 40,
-      actualUnits: 30,
-      projectedRemainingUnits: 0,
-      completionFactor: 1,
-      ageDays: 60,
-      ...overrides,
-    };
+describe("buildShipmentDailyRows", () => {
+  function day(ds: string, samplesShipped: number, affiliateUnits: number): GQL.AffiliateShipmentDailyPoint {
+    return { ds, samplesShipped, affiliateUnits };
   }
 
-  it("marks a cohort with an outstanding projection as immature", () => {
-    const [row] = buildCohortUnitsRows([cohort({ projectedRemainingUnits: 12.5, completionFactor: 0.7, ageDays: 9 })]);
+  /**
+   * The measured production shape for the reference seller: shipment
+   * observation starts 2026-07-22 with two four-sample days, which read 1202
+   * and 1150 units per sample, before the series settles into a stable 6-13
+   * band from 07-24 on. Two of those points on a shared axis flatten the rest.
+   */
+  const RAMP_UP: GQL.AffiliateShipmentDailyPoint[] = [
+    day("2026-07-21", 0, 5_177),
+    day("2026-07-22", 4, 4_808),
+    day("2026-07-23", 4, 4_600),
+    day("2026-07-24", 512, 4_390),
+    day("2026-07-25", 1_429, 4_234),
+    day("2026-07-26", 980, 4_910),
+    day("2026-07-27", 1_104, 5_301),
+    day("2026-07-28", 861, 5_612),
+    day("2026-07-29", 1_002, 5_780),
+  ];
 
-    expect(row.projectedRemainingUnits).toBeCloseTo(12.5);
-    expect(row.immature).toBe(true);
+  it("keeps both daily counts exactly as the producer sent them", () => {
+    const rows = buildShipmentDailyRows(RAMP_UP);
+
+    expect(rows.map((row) => row.ds)).toEqual(RAMP_UP.map((point) => point.ds));
+    expect(rows.map((row) => row.samplesShipped)).toEqual(RAMP_UP.map((point) => point.samplesShipped));
+    expect(rows.map((row) => row.affiliateUnits)).toEqual(RAMP_UP.map((point) => point.affiliateUnits));
   });
 
-  it("leaves a fully mature cohort without a projection segment", () => {
-    const [row] = buildCohortUnitsRows([cohort({})]);
+  // The boundary is stated by shipmentCoverage, not enforced by dropping days.
+  // A day with real units and no shipment observation is the record.
+  it("keeps a pre-shipment day carrying real units and zero samples", () => {
+    const [first] = buildShipmentDailyRows(RAMP_UP);
 
-    expect(row.projectedRemainingUnits).toBe(0);
-    expect(row.immature).toBe(false);
+    expect(first.samplesShipped).toBe(0);
+    expect(first.affiliateUnits).toBe(5_177);
   });
 
-  it("never projects a day-0 cohort, which has no signal", () => {
-    const [row] = buildCohortUnitsRows([cohort({ ageDays: 0, projectedRemainingUnits: 99, completionFactor: null })]);
+  it("has no ratio until a full trailing window has passed", () => {
+    const rows = buildShipmentDailyRows(RAMP_UP);
+    const withoutWindow = rows.slice(0, AFFILIATE_SHIPMENT_TRAILING_DAYS - 1);
 
-    expect(row.projectedRemainingUnits).toBe(0);
-    expect(row.immature).toBe(false);
+    expect(withoutWindow).toHaveLength(6);
+    for (const row of withoutWindow) expect(row.trailingUnitsPerSample).toBeNull();
+    expect(rows[AFFILIATE_SHIPMENT_TRAILING_DAYS - 1].trailingUnitsPerSample).not.toBeNull();
   });
 
-  it("clamps a negative or non-finite projection at zero", () => {
-    const rows = buildCohortUnitsRows([
-      cohort({ projectedRemainingUnits: -4, ageDays: 5 }),
-      cohort({ projectedRemainingUnits: null, ageDays: 5, completionFactor: 1 }),
-    ]);
+  it("divides summed units by summed samples over the trailing window", () => {
+    const rows = buildShipmentDailyRows(RAMP_UP);
+    const window = RAMP_UP.slice(0, AFFILIATE_SHIPMENT_TRAILING_DAYS);
+    const units = window.reduce((total, point) => total + point.affiliateUnits, 0);
+    const samples = window.reduce((total, point) => total + point.samplesShipped, 0);
 
-    expect(rows.map((row) => row.projectedRemainingUnits)).toEqual([0, 0]);
+    expect(rows[AFFILIATE_SHIPMENT_TRAILING_DAYS - 1].trailingUnitsPerSample).toBeCloseTo(units / samples);
   });
 
-  it("counts the cohorts still accruing units", () => {
-    const rows = buildCohortUnitsRows([
-      cohort({ projectedRemainingUnits: 3, completionFactor: 0.8, ageDays: 4 }),
-      cohort({ completionFactor: 0.5, ageDays: 2 }),
-      cohort({}),
-    ]);
+  /*
+   * The whole point of widening the window rather than filtering days: the
+   * two four-sample days read 1202 and 1150 on their own, and the trailing
+   * ratio absorbs them into the same order of magnitude as the rest of the
+   * series. No cutoff, no minimum denominator, no estimate.
+   */
+  it("absorbs the ramp-up instead of spiking three orders of magnitude", () => {
+    const ratios = buildShipmentDailyRows(RAMP_UP)
+      .map((row) => row.trailingUnitsPerSample)
+      .filter((value): value is number => value != null);
 
-    expect(countImmatureCohorts(rows)).toBe(2);
+    expect(ratios.length).toBeGreaterThan(0);
+    for (const ratio of ratios) expect(ratio).toBeLessThan(20);
+    // Left as a raw per-day ratio, day two alone would have been this.
+    expect(RAMP_UP[1].affiliateUnits / RAMP_UP[1].samplesShipped).toBeGreaterThan(1_000);
+  });
+
+  it("reports no ratio, never a zero, when the trailing window shipped nothing", () => {
+    const rows = buildShipmentDailyRows([
+      day("2026-07-15", 0, 4_100),
+      day("2026-07-16", 0, 4_250),
+      day("2026-07-17", 0, 3_980),
+    ], 2);
+
+    expect(rows.map((row) => row.trailingUnitsPerSample)).toEqual([null, null, null]);
+  });
+
+  it("uses only the trailing window, not the whole series to date", () => {
+    const rows = buildShipmentDailyRows([
+      day("2026-08-01", 100, 100),
+      day("2026-08-02", 100, 100),
+      day("2026-08-03", 10, 100),
+    ], 2);
+
+    // Last two days: (100 + 100) / (100 + 10) — the first day is outside it.
+    expect(rows[2].trailingUnitsPerSample).toBeCloseTo(200 / 110);
+  });
+
+  it("returns nothing for an empty series rather than a placeholder point", () => {
+    expect(buildShipmentDailyRows([])).toEqual([]);
   });
 });
 
@@ -332,22 +466,48 @@ describe("coverage boundary shaping", () => {
     expect(isFullyCoveredDay("2026-08-01", "2026-08-01")).toBe(true);
   });
 
-  it("truncates a series at the boundary by default and restores it on request", () => {
+  it("keeps every day by default — the boundary informs, it does not truncate", () => {
     const rows = [{ ds: "2026-07-30" }, { ds: "2026-08-01" }, { ds: "2026-08-02" }];
     const dsOf = (row: { ds: string }) => row.ds;
 
     expect(applyCoverageWindow(rows, dsOf, "2026-08-01", false).map(dsOf))
-      .toEqual(["2026-08-01", "2026-08-02"]);
-    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", true).map(dsOf))
       .toEqual(["2026-07-30", "2026-08-01", "2026-08-02"]);
-    // With no boundary there is nothing to truncate against, so the caller must
-    // still see its rows rather than an empty chart.
+    // Narrowing is opt-in, and still available.
+    expect(applyCoverageWindow(rows, dsOf, "2026-08-01", true).map(dsOf))
+      .toEqual(["2026-08-01", "2026-08-02"]);
     expect(applyCoverageWindow(rows, dsOf, null, false)).toHaveLength(3);
+    expect(applyCoverageWindow(rows, dsOf, null, true)).toHaveLength(3);
   });
 
-  it("counts the days that would be dropped", () => {
+  it("never lets one late shop erase the history of older ones", () => {
+    // The measured case: a German shop covered from 2026-08-06 with 99 rows and
+    // 0 units, and a UK shop from 2026-08-04 with 808 rows and 0 units, set the
+    // boundary for three US shops covered from 2026-05-15 carrying 81,627 rows
+    // and 142,397 units. Truncating by default deleted the US history.
+    const usHistory = ["2026-05-15", "2026-06-20", "2026-07-15", "2026-08-01"];
+    const rows = [...usHistory, "2026-08-06", "2026-08-20"].map((ds) => ({ ds }));
+    const dsOf = (row: { ds: string }) => row.ds;
+
+    const shown = applyCoverageWindow(rows, dsOf, "2026-08-06", false).map(dsOf);
+    for (const ds of usHistory) expect(shown).toContain(ds);
+    expect(shown).toHaveLength(rows.length);
+  });
+
+  it("counts the days that sit before the boundary without removing them", () => {
     expect(countPartialDays(["2026-07-30", "2026-08-01", "2026-08-02"], "2026-08-01")).toBe(1);
     expect(countPartialDays(["2026-07-30"], null)).toBe(1);
+  });
+
+  it("marks the boundary only where it is a plotted day with history behind it", () => {
+    const dates = ["2026-07-30", "2026-08-01", "2026-08-02"];
+
+    expect(coverageBoundaryMark(dates, "2026-08-01")).toBe("2026-08-01");
+    // Nothing before it: the mark would separate the series from nothing.
+    expect(coverageBoundaryMark(dates, "2026-07-30")).toBeNull();
+    // A categorical axis cannot place a line on a day it does not plot.
+    expect(coverageBoundaryMark(dates, "2026-07-31")).toBeNull();
+    expect(coverageBoundaryMark(dates, null)).toBeNull();
+    expect(coverageBoundaryMark([], "2026-08-01")).toBeNull();
   });
 
   it("splits a series into a solid covered half and a dashed partial half", () => {

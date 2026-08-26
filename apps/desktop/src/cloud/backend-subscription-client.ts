@@ -494,7 +494,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           activeAffiliateCollaborationIds
           shopStates {
             shopId
-            tagIds
+            sampleTier
             lastContactedAt
             lastInvitedAt
             lastQualifiedAt
@@ -535,7 +535,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             blockedShopIds
             shopStates {
               shopId
-              tagIds
+              sampleTier
               lastContactedAt
               lastInvitedAt
               lastQualifiedAt
@@ -916,8 +916,15 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
           parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
         }
         creatorTagIntent {
-          creatorId
-          tagId
+          operation
+          manualTagId
+          contextShopId
+        }
+        referencedManualTags {
+          id
+          name
+          sensitive
+          updatedAt
         }
         blockCreatorIntent {
           creatorId
@@ -938,7 +945,10 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         approvalPolicyUpdateIntent {
           policyId
           action
-          creatorTagIds
+          manualTagIds
+          excludedManualTagIds
+          sampleTiers
+          excludedSampleTiers
           campaignIds
           productIds
           reason

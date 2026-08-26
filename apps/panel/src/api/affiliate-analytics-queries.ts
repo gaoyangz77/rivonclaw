@@ -41,6 +41,9 @@ export const AFFILIATE_OVERVIEW_REACHOUT_QUERY = gql`
         responsesWithinHorizon
         responseRate
       }
+      horizonCohortSize
+      horizonCohortFrom
+      horizonCohortTo
       daily {
         inviteDs
         invitations
@@ -105,23 +108,27 @@ export const AFFILIATE_OVERVIEW_POST_APPROVAL_QUERY = gql`
       applicationsWithOrder
       orderRate
       actualUnits
-      projectedUnits
       unitsPerApprovedActual
-      unitsPerApprovedProjected
-      cohorts {
-        cohortDs
-        approvedApplications
-        actualUnits
-        projectedRemainingUnits
-        completionFactor
-        ageDays
-      }
-      maturationCurve {
-        lagDays
-        cumulativeShare
-        basisCohorts
+      samplesShipped
+      affiliateUnits
+      unitsPerSampleShipped
+      # The per-day unitsPerSample is deliberately not selected. Its first
+      # shipment days sit three orders of magnitude above the rest, so nothing
+      # here plots it; the trailing 7-day ratio is derived from these two counts
+      # instead.
+      daily {
+        ds
+        samplesShipped
+        affiliateUnits
       }
       coverage {
+        fullCoverageFrom
+        shopsSelected
+        limitingShops { shopId shopName coverageFrom }
+        shops { shopId shopName coverageFrom }
+        daily { ds shopsWithData }
+      }
+      shipmentCoverage {
         fullCoverageFrom
         shopsSelected
         limitingShops { shopId shopName coverageFrom }
