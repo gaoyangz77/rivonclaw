@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.117",
+    "date": "2026-08-26",
+    "en": [
+      "Rebuild Affiliate creator filters with seller-wide manual tags and clearer progress tiers",
+      "Turn the post-approval workflow into a same-day shipment comparison view"
+    ],
+    "zh": [
+      "重构达人筛选，新增卖家级手动标签目录并简化进度分层",
+      "将审核后流程升级为当日发货对比视图"
+    ]
+  },
+  {
     "version": "1.8.116",
     "date": "2026-08-25",
     "en": [
