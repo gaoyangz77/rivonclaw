@@ -7,13 +7,14 @@ import {
   billingEnumLabel,
   usagePercentLabel,
 } from "../../../components/billing/billing-labels.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 interface TikTokShopBillingTabProps {
   shop: Shop;
 }
 
 export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
 
@@ -38,7 +39,7 @@ export function TikTokShopBillingTab({ shop }: TikTokShopBillingTabProps) {
                 </div>
                 <div className="acct-item-meta">
                   <span>{t("billing.usageUsedPercent", { percent: usagePercentLabel(usage.usedPercent) })}</span>
-                  <span>{new Date(usage.refreshAt).toLocaleString()}</span>
+                  <span>{formatLocalizedDateTime(usage.refreshAt, i18n.language)}</span>
                 </div>
               </div>
             ))}

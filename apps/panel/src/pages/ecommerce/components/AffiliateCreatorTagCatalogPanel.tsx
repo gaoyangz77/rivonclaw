@@ -16,6 +16,7 @@ import {
   isDuplicateManualTagNameError,
   manualTagRenameIssue,
 } from "./AffiliateCreatorManualTagEditor.js";
+import { formatLocalizedDate } from "../../../lib/format-datetime.js";
 
 /**
  * One consequence line the delete confirmation renders. Deleting a tag cascades
@@ -84,7 +85,7 @@ const CONSEQUENCE_KEYS: Record<ManualTagDeleteConsequence["kind"], string> = {
  * cannot write through a stale row.
  */
 export function AffiliateCreatorTagCatalogPanel() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const [search, setSearch] = useState("");
   const [createDraft, setCreateDraft] = useState("");
@@ -320,7 +321,7 @@ export function AffiliateCreatorTagCatalogPanel() {
                   <span className="affiliate-tag-catalog-name">{tag.name}</span>
                 )}
                 <span className="affiliate-tag-catalog-date">
-                  {new Date(tag.updatedAt).toLocaleDateString()}
+                  {formatLocalizedDate(tag.updatedAt, i18n.language)}
                 </span>
                 <div className="affiliate-tag-catalog-actions">
                   {renameTarget?.id === tag.id ? null : (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import {
   Area,
   CartesianGrid,
@@ -404,7 +405,7 @@ export function ExperimentPaymentProgressChart({
           </span>
           <small>
             {t("ecommerce.customerServiceExperiments.curve.asOf", {
-              time: new Date(curve.asOf).toLocaleString(locale),
+              time: formatLocalizedDateTime(curve.asOf, locale),
             })}
           </small>
         </div>

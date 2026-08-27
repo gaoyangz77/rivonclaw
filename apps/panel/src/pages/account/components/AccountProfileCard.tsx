@@ -11,6 +11,7 @@ import {
 import { CheckIcon, CopyIcon, InfoIcon } from "../../../components/icons.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { getUserInitial } from "../../../lib/user-manager.js";
+import { formatLocalizedDate, formatShortDateTime } from "../../../lib/format-datetime.js";
 
 interface AccountProfileCardProps {
   onLogout: () => void;
@@ -19,7 +20,7 @@ interface AccountProfileCardProps {
 export function AccountProfileCard({
   onLogout,
 }: AccountProfileCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const user = entityStore.currentUser;
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -92,13 +93,13 @@ export function AccountProfileCard({
         <div className="account-info-item">
           <span className="account-info-label">{t("account.memberSince")}</span>
           <span className="account-info-value">
-            {new Date(user.createdAt).toLocaleDateString()}
+            {formatLocalizedDate(user.createdAt, i18n.language)}
           </span>
         </div>
         <div className="account-info-item">
           <span className="account-info-label">{t("account.validUntil")}</span>
           <span className="account-info-value">
-            {validUntil ? new Date(validUntil).toLocaleDateString() : "\u2014"}
+            {formatLocalizedDate(validUntil, i18n.language)}
           </span>
         </div>
         {inviteCode && (
@@ -142,7 +143,7 @@ export function AccountProfileCard({
                       </span>
                     </span>
                     <span className="quota-refresh-time">
-                      {t("account.quotaRefreshAt", { time: new Date(usage.refreshAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}
+                      {t("account.quotaRefreshAt", { time: formatShortDateTime(usage.refreshAt, i18n.language) })}
                     </span>
                   </div>
                   <div className="quota-bar-wrap">

@@ -2,6 +2,7 @@
  * Shared, React-free formatting helpers for the Affiliate Analytics feature.
  * Used by both the Overview and the Explore tab.
  */
+import { formatLocalizedDateTime, formatLocalizedMonthDay } from "../../lib/format-datetime.js";
 
 export function formatNumber(value: number | null | undefined, locale: string, compact = false): string {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -38,17 +39,18 @@ export function formatRatio(value: number | null | undefined, locale: string): s
 }
 
 export function formatTimestamp(value: string | null | undefined, locale: string): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return formatLocalizedDateTime(
+    value,
+    locale,
+    { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
+    value ?? "—",
+  );
 }
 
 /** Short axis label for a `YYYY-MM-DD` cohort day. */
 export function formatCohortDay(value: string, locale: string): string {
   const date = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(locale, { month: "short", day: "numeric", timeZone: "UTC" });
+  return formatLocalizedMonthDay(date, locale, "UTC", value);
 }
 
 export function metricDisplay(value: number | null | undefined, key: string, locale: string): string {

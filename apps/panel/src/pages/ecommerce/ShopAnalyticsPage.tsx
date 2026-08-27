@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { ECOMMERCE_GET_SPS_ANALYTICS_QUERY } from "../../api/sps-analytics-query.js";
 import { RefreshIcon } from "../../components/icons.js";
+import { formatLocalizedDateTime, formatLocalizedMonthDay } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   buildSpsMarketChart,
@@ -78,15 +79,11 @@ function SpsChartTooltip({
 
 function formatChartDate(value: string, locale: string): string {
   const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  return formatLocalizedMonthDay(date, locale, undefined, value);
 }
 
 function formatTimestamp(value: string | null | undefined, locale: string): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString(locale, {
+  return formatLocalizedDateTime(value, locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",

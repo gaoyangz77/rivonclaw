@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
 import { getAuthStatusBadgeClass } from "../tiktok-shops-utils.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 interface TikTokShopOverviewTabProps {
   shop: Shop;
@@ -22,7 +23,7 @@ export function TikTokShopOverviewTab({
   onToggleCustomerService,
   onSaveBusinessPrompt,
 }: TikTokShopOverviewTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <div className="shop-detail-section">
@@ -52,19 +53,11 @@ export function TikTokShopOverviewTab({
       <div className="shop-detail-grid">
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.detail.accessTokenExpiry")}</span>
-          <span>
-            {shop.accessTokenExpiresAt
-              ? new Date(shop.accessTokenExpiresAt).toLocaleString()
-              : "\u2014"}
-          </span>
+          <span>{formatLocalizedDateTime(shop.accessTokenExpiresAt, i18n.language)}</span>
         </div>
         <div className="shop-detail-field">
           <span className="form-label-block">{t("tiktokShops.detail.refreshTokenExpiry")}</span>
-          <span>
-            {shop.refreshTokenExpiresAt
-              ? new Date(shop.refreshTokenExpiresAt).toLocaleString()
-              : "\u2014"}
-          </span>
+          <span>{formatLocalizedDateTime(shop.refreshTokenExpiresAt, i18n.language)}</span>
         </div>
       </div>
 

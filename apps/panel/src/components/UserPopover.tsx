@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react-lite";
 import { useEntityStore } from "../store/EntityStoreProvider.js";
 import { getUserInitial } from "../lib/user-manager.js";
+import { formatLocalizedDate } from "../lib/format-datetime.js";
 import { LogOutIcon } from "./icons.js";
 import { billingPlanDisplayName, entitlementStatusLabel, findPlanDefinition } from "./billing/billing-labels.js";
 
@@ -13,7 +14,7 @@ interface UserPopoverProps {
 }
 
 export const UserPopover = observer(function UserPopover({ open, onClose, onNavigate }: UserPopoverProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const entityStore = useEntityStore();
     const user = entityStore.currentUser;
     const ref = useRef<HTMLDivElement>(null);
@@ -54,7 +55,7 @@ export const UserPopover = observer(function UserPopover({ open, onClose, onNavi
                 <div className="upop-avatar">{initial}</div>
                 <div className="upop-email">{user.email}</div>
                 <div className="upop-member-since">
-                    {t("account.memberSince")} {new Date(user.createdAt).toLocaleDateString()}
+                    {t("account.memberSince")} {formatLocalizedDate(user.createdAt, i18n.language)}
                 </div>
             </div>
             <div className="upop-plan-section">
@@ -68,7 +69,7 @@ export const UserPopover = observer(function UserPopover({ open, onClose, onNavi
                     <div className="upop-plan-row">
                         <span className="upop-plan-label">{t("account.validUntil")}</span>
                         <span className="upop-plan-value">
-                            {accountLlm?.entitlement.validUntil ? new Date(accountLlm.entitlement.validUntil).toLocaleDateString() : "-"}
+                            {formatLocalizedDate(accountLlm?.entitlement.validUntil, i18n.language, undefined, "-")}
                         </span>
                     </div>
                 </div>

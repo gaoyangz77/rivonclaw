@@ -5,15 +5,12 @@ import type { Warehouse, WmsAccount } from "@rivonclaw/core/models";
 import { ChevronRightIcon, HelpCircleIcon, RefreshIcon } from "../../../components/icons.js";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 interface WmsAccountTableProps {
   accounts: WmsAccount[];
   warehouses: Warehouse[];
   onAddAccount: () => void;
-}
-
-function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleString() : "\u2014";
 }
 
 function warehouseCode(warehouse: Warehouse) {
@@ -29,7 +26,7 @@ export const WmsAccountTable = observer(function WmsAccountTable({
   warehouses,
   onAddAccount,
 }: WmsAccountTableProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const inventory = entityStore.ecommerceInventory;
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
@@ -117,7 +114,7 @@ export const WmsAccountTable = observer(function WmsAccountTable({
                       <td>{currencyLabel(t, account.declaredValueCurrency)}</td>
                       <td className="td-meta wms-endpoint-cell">{account.endpoint}</td>
                       <td>{accountWarehouses.length}</td>
-                      <td className="td-date">{formatDate(account.lastSyncedAt)}</td>
+                      <td className="td-date">{formatLocalizedDateTime(account.lastSyncedAt, i18n.language)}</td>
                       <td className="text-right">
                         <div className="td-actions shop-table-actions wms-account-actions">
                           <button

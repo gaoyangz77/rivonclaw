@@ -4,6 +4,7 @@ import { Modal } from "../../components/modals/Modal.js";
 import type { CronRunLogEntry, CronRunsResult } from "./cron-utils.js";
 import { formatDuration } from "./cron-utils.js";
 import { DEFAULTS } from "@rivonclaw/core";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 
 interface CronRunHistoryProps {
   jobId: string;
@@ -15,7 +16,7 @@ interface CronRunHistoryProps {
 const PAGE_SIZE = DEFAULTS.pagination.cronHistory;
 
 export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHistoryProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<CronRunLogEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -91,7 +92,7 @@ export function CronRunHistory({ jobId, jobName, fetchRuns, onClose }: CronRunHi
                 {entries.map((entry, i) => (
                   <tr key={`${entry.ts}-${i}`} className="table-hover-row">
                     <td className="crons-time-cell">
-                      {new Date(entry.ts).toLocaleString()}
+                      {formatLocalizedDateTime(entry.ts, i18n.language)}
                     </td>
                     <td>{statusBadge(entry.status)}</td>
                     <td className="crons-time-cell">

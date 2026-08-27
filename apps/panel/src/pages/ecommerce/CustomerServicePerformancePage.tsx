@@ -21,6 +21,8 @@ import {
 import { DownloadIcon, InfoIcon, RefreshIcon } from "../../components/icons.js";
 import { Select } from "../../components/inputs/Select.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
+import panelI18n from "../../i18n/index.js";
+import { formatLocalizedTime } from "../../lib/format-datetime.js";
 
 type PerformanceTab = "history" | "realtime" | "unpaid";
 type TimeRange = "7d" | "30d" | "90d";
@@ -71,9 +73,12 @@ function formatSeconds(value: number | null | undefined): string {
 }
 
 function formatRealtimeLabel(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(11, 16);
-  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return formatLocalizedTime(
+    value,
+    panelI18n.language,
+    { hour: "2-digit", minute: "2-digit" },
+    value.slice(11, 16),
+  );
 }
 
 function formatDecimal(value: number | null | undefined): string {

@@ -9,6 +9,12 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
+import panelI18n from "../../i18n/index.js";
+import {
+  formatLocalizedDate,
+  formatLocalizedDateTime,
+  formatLocalizedTime,
+} from "../../lib/format-datetime.js";
 import { observer } from "mobx-react-lite";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GQL } from "@rivonclaw/core";
@@ -2572,9 +2578,7 @@ export function affiliateSellerSafeMetrics(summary: GQL.AffiliateMlModelEfficien
 }
 
 function formatDate(value: string | Date | null | undefined): string {
-  if (!value) return "—";
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+  return formatLocalizedDateTime(value, panelI18n.language);
 }
 
 function filterActionProposals(
@@ -11703,31 +11707,20 @@ function getPredictionSalesJudgmentLabel(
 }
 
 function formatProposalTime(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return formatLocalizedDateTime(value, panelI18n.language, undefined, value ?? "—");
 }
 
 function formatProposalTableTime(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatLocalizedTime(value, panelI18n.language);
 }
 
 function formatProposalTableDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  }).format(date);
+  return formatLocalizedDate(
+    value,
+    panelI18n.language,
+    { year: "numeric", month: "short", day: "2-digit" },
+    value ?? "—",
+  );
 }
 
 function formatCount(value?: number | null): string | null {

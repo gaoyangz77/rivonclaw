@@ -9,6 +9,7 @@ import { useToast } from "../../../components/Toast.js";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { AFFILIATE_OUTREACH_OPERATIONAL_STATUS_QUERY } from "../../../api/shops-queries.js";
 import { resolveDailyCreatorOutreachLimit } from "../ecommerce-utils.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 const AFFILIATE_BUSINESS_PROMPT_MAX_LENGTH = 10_000;
 
@@ -364,7 +365,7 @@ type AffiliateOutreachOperationalStatus = {
 };
 
 export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data, loading, refetch } = useQuery<
     { affiliateOutreachOperationalStatus: AffiliateOutreachOperationalStatus },
     { input: GQL.AffiliateOutreachOperationalStatusInput }
@@ -390,7 +391,7 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
           {status
             ? t("ecommerce.affiliateWorkspace.ops.subtitle", {
                 defaultValue: "Last 7 days since {{since}}",
-                since: formatCompactDate(status.since),
+                since: formatCompactDate(status.since, i18n.language),
               })
             : t("common.loading", { defaultValue: "Loading..." })}
         </span>
@@ -398,7 +399,7 @@ export function AffiliateOutreachOpsPanel({ shopId }: { shopId: string }) {
           <span>
             {t("ecommerce.affiliateWorkspace.ops.latestInbound", {
               defaultValue: "Latest inbound: {{time}}",
-              time: formatCompactDate(status.latestInboundAt),
+              time: formatCompactDate(status.latestInboundAt, i18n.language),
             })}
           </span>
         ) : null}
@@ -499,10 +500,8 @@ function countInbound(
     .reduce((sum, item) => sum + item.count, 0) ?? 0;
 }
 
-function formatCompactDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+function formatCompactDate(value: string, locale: string): string {
+  return formatLocalizedDateTime(value, locale, undefined, value);
 }
 
 function AffiliateModelScopeDiagnosticsPanel({

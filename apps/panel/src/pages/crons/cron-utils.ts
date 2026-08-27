@@ -1,4 +1,5 @@
 import { DEFAULTS } from "@rivonclaw/core";
+import { formatLocalizedDateTime, formatLocalizedRelativeTime } from "../../lib/format-datetime.js";
 
 // ── Type definitions ──
 // Mirror the subset of OpenClaw cron types needed by the panel UI.
@@ -349,7 +350,7 @@ export function getTzI18nKey(tz: string): string | null {
 
 // ── Formatting ──
 
-export function formatSchedule(schedule: CronSchedule): string {
+export function formatSchedule(schedule: CronSchedule, locale = "en"): string {
   if (schedule.kind === "cron") {
     const tz = schedule.tz ? ` (${schedule.tz})` : "";
     return `${schedule.expr}${tz}`;
@@ -361,32 +362,11 @@ export function formatSchedule(schedule: CronSchedule): string {
     return `Every ${ms / 1000}s`;
   }
   // "at"
-  try {
-    return new Date(schedule.at).toLocaleString();
-  } catch {
-    return schedule.at;
-  }
+  return formatLocalizedDateTime(schedule.at, locale, undefined, schedule.at);
 }
 
-export function formatRelativeTime(targetMs: number, nowMs: number): string {
-  const diffMs = targetMs - nowMs;
-  const absDiff = Math.abs(diffMs);
-  const isFuture = diffMs > 0;
-
-  if (absDiff < 60000) {
-    const s = Math.round(absDiff / 1000);
-    return isFuture ? `in ${s}s` : `${s}s ago`;
-  }
-  if (absDiff < 3600000) {
-    const m = Math.round(absDiff / 60000);
-    return isFuture ? `in ${m}m` : `${m}m ago`;
-  }
-  if (absDiff < 86400000) {
-    const h = Math.round(absDiff / 3600000);
-    return isFuture ? `in ${h}h` : `${h}h ago`;
-  }
-  const d = Math.round(absDiff / 86400000);
-  return isFuture ? `in ${d}d` : `${d}d ago`;
+export function formatRelativeTime(targetMs: number, nowMs: number, locale = "en"): string {
+  return formatLocalizedRelativeTime(targetMs, nowMs, locale);
 }
 
 export function formatDuration(ms: number): string {

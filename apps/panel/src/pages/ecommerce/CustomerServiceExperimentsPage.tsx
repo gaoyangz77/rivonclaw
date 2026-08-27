@@ -21,6 +21,7 @@ import { Select } from "../../components/inputs/Select.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { ExperimentPaymentProgressChart } from "./ExperimentPaymentProgressChart.js";
+import { formatLocalizedDate, formatLocalizedDateTime } from "../../lib/format-datetime.js";
 
 type View = "REALTIME" | "HISTORY";
 type SignalView = "PAYMENT_PROGRESS" | "METRIC_TREND";
@@ -81,15 +82,15 @@ function usePageVisibility(): boolean {
 }
 
 function formatDate(value?: string | null, includeTime = true, locale?: string): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(
-    locale,
-    includeTime
-      ? { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
-      : { year: "numeric", month: "short", day: "numeric" },
-  ).format(date);
+  const resolvedLocale = locale ?? "en";
+  return includeTime
+    ? formatLocalizedDateTime(
+        value,
+        resolvedLocale,
+        { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
+        value ?? "—",
+      )
+    : formatLocalizedDate(value, resolvedLocale, undefined, value ?? "—");
 }
 function formatMetric(metric: GQL.CsExperimentMetricKey, value?: number | null): string {
   if (value == null || Number.isNaN(value)) return "—";

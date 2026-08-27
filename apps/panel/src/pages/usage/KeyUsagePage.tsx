@@ -14,6 +14,7 @@ import {
 } from "./usage-utils.js";
 import { UsageTable } from "./UsageTable.js";
 import { UsageChart } from "./UsageChart.js";
+import { formatLocalizedTime } from "../../lib/format-datetime.js";
 
 export function KeyUsagePage() {
   const { t, i18n } = useTranslation();
@@ -243,7 +244,7 @@ export function KeyUsagePage() {
       )}
 
       <p className="td-meta" data-tutorial-id="usage-updated">
-        {t("keyUsage.lastUpdated")}: {lastRefresh.toLocaleTimeString()}
+        {t("keyUsage.lastUpdated")}: {formatLocalizedTime(lastRefresh, i18n.language)}
       </p>
     </div>
   );

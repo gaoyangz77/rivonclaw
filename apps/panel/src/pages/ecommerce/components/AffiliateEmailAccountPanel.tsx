@@ -11,6 +11,7 @@ import {
 import { Select } from "../../../components/inputs/Select.js";
 import { useToast } from "../../../components/Toast.js";
 import { panelEventBus } from "../../../lib/event-bus.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 type EmailAccount = GQL.EmailAccountBinding;
 
@@ -377,7 +378,5 @@ function countSubscriptionHealth(
 }
 
 function formatDate(value: string, locale: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale);
+  return formatLocalizedDateTime(value, locale, undefined, value);
 }

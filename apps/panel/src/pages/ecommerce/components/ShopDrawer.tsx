@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, CloseIcon, ShopIcon } from "../../../components/icons.js";
 import { formatShopRegionLabel } from "../../../lib/ecommerce-labels.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 import { getAuthStatusBadgeClass } from "../ecommerce-utils.js";
 import {
   getReadinessBadgeClass,
@@ -166,7 +167,7 @@ export const ShopDrawer = observer(function ShopDrawer({
   onBindAffiliateDevice,
   onUnbindAffiliateDevice,
 }: ShopDrawerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const shop = shopId ? (entityStore.shops.find((item) => item.id === shopId) ?? null) : null;
   const shopAlias = shop?.alias?.trim() ?? "";
@@ -558,9 +559,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                           <span
                             className={`shop-info-value${shop.accessTokenExpiresAt && new Date(shop.accessTokenExpiresAt).getTime() < Date.now() ? " shop-info-value-danger" : ""}`}
                           >
-                            {shop.accessTokenExpiresAt
-                              ? new Date(shop.accessTokenExpiresAt).toLocaleString()
-                              : "\u2014"}
+                            {formatLocalizedDateTime(shop.accessTokenExpiresAt, i18n.language)}
                           </span>
                         </div>
                         <div className="shop-info-row">
@@ -570,9 +569,7 @@ export const ShopDrawer = observer(function ShopDrawer({
                           <span
                             className={`shop-info-value${shop.refreshTokenExpiresAt && new Date(shop.refreshTokenExpiresAt).getTime() < Date.now() ? " shop-info-value-danger" : ""}`}
                           >
-                            {shop.refreshTokenExpiresAt
-                              ? new Date(shop.refreshTokenExpiresAt).toLocaleString()
-                              : "\u2014"}
+                            {formatLocalizedDateTime(shop.refreshTokenExpiresAt, i18n.language)}
                           </span>
                         </div>
                       </div>

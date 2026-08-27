@@ -15,6 +15,8 @@ import {
   entitlementStatusLabel,
   shouldShowRenewalReminder,
 } from "./billing-labels.js";
+import panelI18n from "../../i18n/index.js";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 
 interface CustomerServiceBillingCtaProps {
   shopId: string;
@@ -24,7 +26,7 @@ interface CustomerServiceBillingCtaProps {
 }
 
 function formatDateTime(value?: string | null): string {
-  return value ? new Date(value).toLocaleString() : "-";
+  return formatLocalizedDateTime(value, panelI18n.language, undefined, "-");
 }
 
 function formatMoneyFromMajor(value: string | null | undefined, currency: string): string {

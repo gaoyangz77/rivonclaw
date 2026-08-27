@@ -9,6 +9,7 @@ import { ConfirmDialog } from "../../components/modals/ConfirmDialog.js";
 import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import { formatShopRegionLabel } from "../../lib/ecommerce-labels.js";
+import { formatLocalizedDate } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import {
   AFFILIATE_BUSINESS_DEVELOPERS_QUERY,
@@ -212,7 +213,7 @@ function readTeamPageTab(): TeamPageTab {
 }
 
 export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const entityStore = useEntityStore();
   const workspace = entityStore.affiliateWorkspace;
@@ -1674,7 +1675,7 @@ export const AffiliateTeamPage = observer(function AffiliateTeamPage() {
                       )}
                     </span>
                     <span className="affiliate-protection-directory-note">{protection.note || "—"}</span>
-                    <span className="affiliate-protection-directory-date">{new Date(protection.updatedAt).toLocaleDateString()}</span>
+                    <span className="affiliate-protection-directory-date">{formatLocalizedDate(protection.updatedAt, i18n.language)}</span>
                     <button
                       className="btn btn-secondary btn-sm affiliate-protection-directory-action"
                       type="button"
