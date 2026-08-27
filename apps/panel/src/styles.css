@@ -20093,6 +20093,12 @@ html[lang="zh"] .acct-tool-chips {
   border-style: dashed;
 }
 
+.affiliate-creator-system-tag {
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-bg));
+  color: var(--color-text);
+}
+
 /*
  * Relationship-level creator filters. They continue the toolbar's surface
  * rather than sitting on a rule of their own, so the panel header reads as one
@@ -20106,7 +20112,7 @@ html[lang="zh"] .acct-tool-chips {
  */
 .affiliate-creator-filter-groups {
   display: grid;
-  grid-template-columns: fit-content(340px) minmax(0, 1fr) max-content;
+  grid-template-columns: fit-content(340px) fit-content(260px) minmax(0, 1fr) max-content;
   gap: 14px 20px;
   align-items: start;
   padding: 4px 16px 14px;
@@ -20115,7 +20121,7 @@ html[lang="zh"] .acct-tool-chips {
 }
 
 .affiliate-creator-filter-groups-with-shop-tier {
-  grid-template-columns: fit-content(340px) fit-content(340px) minmax(0, 1fr) max-content;
+  grid-template-columns: fit-content(300px) fit-content(300px) fit-content(240px) minmax(0, 1fr) max-content;
 }
 
 /*
@@ -20155,6 +20161,46 @@ html[lang="zh"] .acct-tool-chips {
 .affiliate-manual-tag-card {
   display: grid;
   gap: 10px;
+}
+
+.affiliate-system-tag-editor {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.affiliate-system-tag-options {
+  display: grid;
+  gap: 8px;
+}
+
+.affiliate-system-tag-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 35%, var(--color-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg));
+}
+
+.affiliate-system-tag-option > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.affiliate-system-tag-option span,
+.affiliate-system-tag-scope {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.affiliate-tag-editor-section-title {
+  padding-top: 2px;
 }
 
 .affiliate-manual-tag-search {

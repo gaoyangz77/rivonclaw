@@ -6,6 +6,7 @@ import {
   AFFILIATE_CREATOR_CHANNEL_CONTACTS_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY,
+  AFFILIATE_CREATOR_SYSTEM_TAG_DEFINITIONS_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY,
   AFFILIATE_CREATORS_QUERY,
@@ -16,12 +17,14 @@ import {
   AFFILIATE_RELATIONSHIP_TIMELINE_QUERY,
   AFFILIATE_WORK_ITEMS_QUERY,
   DECIDE_ACTION_PROPOSAL_MUTATION,
+  ASSIGN_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION,
   CREATE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
   CREATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
   EDIT_AFFILIATE_OPEN_COLLABORATION_SAMPLE_RULE_MUTATION,
   EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION,
   REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
   REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
+  REMOVE_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION,
   UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
   SET_AFFILIATE_BUSINESS_DEVELOPER_PREFERRED_ACCOUNT_MUTATION,
 } from "./shops-queries.js";
@@ -74,6 +77,22 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("latestPendingProposal");
     expect(query).toContain("totalCount");
     expect(query).toContain("creatorPerformance");
+    expect(query).toContain("systemTags");
+  });
+
+  it("loads the fixed system tag catalog and exposes direct seller override mutations", () => {
+    const catalog = queryText(AFFILIATE_CREATOR_SYSTEM_TAG_DEFINITIONS_QUERY);
+    const assign = queryText(ASSIGN_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION);
+    const remove = queryText(REMOVE_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION);
+
+    expect(catalog).toContain("affiliateCreatorSystemTagDefinitions");
+    expect(catalog).toContain("agentCanAdd");
+    expect(catalog).toContain("agentCanRemove");
+    expect(catalog).toContain("blocksCampaignOutreach");
+    expect(assign).toContain("assignCreatorRelationshipSystemTag(input: $input)");
+    expect(remove).toContain("removeCreatorRelationshipSystemTag(input: $input)");
+    expect(assign).toContain("systemTags");
+    expect(remove).toContain("systemTags");
   });
 
   it("loads the authoritative market-scoped Creator profile through one query", () => {
@@ -129,6 +148,7 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("sourceCacheId");
     expect(query).toContain("capturedAt");
     expect(query).toContain("steps");
+    expect(query).toContain("systemTag");
   });
 
   it("loads canonical platform collaborations directly for the collaboration history page", () => {
@@ -157,7 +177,9 @@ describe("affiliate workspace GraphQL contracts", () => {
       CREATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
       UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
       REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
-    ].map(queryText).join("\n");
+    ]
+      .map(queryText)
+      .join("\n");
 
     expect(operations).toContain("affiliateOpenCollaborationSettings(shopId: $shopId)");
     expect(operations).toContain("editAffiliateOpenCollaborationSettings(input: $input)");

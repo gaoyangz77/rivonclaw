@@ -613,7 +613,9 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_CREATOR_STATES_QUERY = gql`
         }
         creatorRelationship {
           id
-          shopStates { shopId }
+          shopStates {
+            shopId
+          }
           lastInboundAt
           lastOutboundAt
           activeAffiliateCollaborationIds
@@ -685,13 +687,24 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
           explanationLocale
         }
         discoveryRules {
-          followerCount { minimum maximum }
+          followerCount {
+            minimum
+            maximum
+          }
           audience {
             ageRanges
-            genderDistribution { gender minimumPercentage }
+            genderDistribution {
+              gender
+              minimumPercentage
+            }
           }
-          salesPerformance30d { gmvRanges unitsSoldRanges }
-          categories { parentCategoryId }
+          salesPerformance30d {
+            gmvRanges
+            unitsSoldRanges
+          }
+          categories {
+            parentCategoryId
+          }
           contentPerformance30d {
             averageVideoViews
             averageShoppableVideoViews
@@ -707,19 +720,34 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
             fastGrowingOnly
             notInvitedLast90Days
           }
-          marketSpecific { languages creatorLevels categoryPros }
+          marketSpecific {
+            languages
+            creatorLevels
+            categoryPros
+          }
         }
         guidanceInterpretation {
           sourceGuidanceHash
           softDirections
           hardConstraints {
-            followerCount { minimum maximum }
+            followerCount {
+              minimum
+              maximum
+            }
             audience {
               ageRanges
-              genderDistribution { gender minimumPercentage }
+              genderDistribution {
+                gender
+                minimumPercentage
+              }
             }
-            salesPerformance30d { gmvRanges unitsSoldRanges }
-            categories { parentCategoryId }
+            salesPerformance30d {
+              gmvRanges
+              unitsSoldRanges
+            }
+            categories {
+              parentCategoryId
+            }
             contentPerformance30d {
               averageVideoViews
               averageShoppableVideoViews
@@ -735,7 +763,11 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLANS_QUERY = gql`
               fastGrowingOnly
               notInvitedLast90Days
             }
-            marketSpecific { languages creatorLevels categoryPros }
+            marketSpecific {
+              languages
+              creatorLevels
+              categoryPros
+            }
           }
         }
         pageSequence
@@ -771,7 +803,10 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY = gql`
           submitted
           sent
           failed
-          failureReasons { code count }
+          failureReasons {
+            code
+            count
+          }
         }
         plan {
           id
@@ -794,13 +829,24 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY = gql`
             explanationLocale
           }
           discoveryRules {
-            followerCount { minimum maximum }
+            followerCount {
+              minimum
+              maximum
+            }
             audience {
               ageRanges
-              genderDistribution { gender minimumPercentage }
+              genderDistribution {
+                gender
+                minimumPercentage
+              }
             }
-            salesPerformance30d { gmvRanges unitsSoldRanges }
-            categories { parentCategoryId }
+            salesPerformance30d {
+              gmvRanges
+              unitsSoldRanges
+            }
+            categories {
+              parentCategoryId
+            }
             contentPerformance30d {
               averageVideoViews
               averageShoppableVideoViews
@@ -816,19 +862,34 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY = gql`
               fastGrowingOnly
               notInvitedLast90Days
             }
-            marketSpecific { languages creatorLevels categoryPros }
+            marketSpecific {
+              languages
+              creatorLevels
+              categoryPros
+            }
           }
           guidanceInterpretation {
             sourceGuidanceHash
             softDirections
             hardConstraints {
-              followerCount { minimum maximum }
+              followerCount {
+                minimum
+                maximum
+              }
               audience {
                 ageRanges
-                genderDistribution { gender minimumPercentage }
+                genderDistribution {
+                  gender
+                  minimumPercentage
+                }
               }
-              salesPerformance30d { gmvRanges unitsSoldRanges }
-              categories { parentCategoryId }
+              salesPerformance30d {
+                gmvRanges
+                unitsSoldRanges
+              }
+              categories {
+                parentCategoryId
+              }
               contentPerformance30d {
                 averageVideoViews
                 averageShoppableVideoViews
@@ -844,7 +905,11 @@ export const AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY = gql`
                 fastGrowingOnly
                 notInvitedLast90Days
               }
-              marketSpecific { languages creatorLevels categoryPros }
+              marketSpecific {
+                languages
+                creatorLevels
+                categoryPros
+              }
             }
           }
           pageSequence
@@ -1102,11 +1167,7 @@ export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
     $orderId: String!
     $buyerUserId: String
   ) {
-    order: ecommerceGetOrder(
-      shopId: $shopId
-      orderId: $orderId
-      buyerUserId: $buyerUserId
-    ) {
+    order: ecommerceGetOrder(shopId: $shopId, orderId: $orderId, buyerUserId: $buyerUserId) {
       orderId
       buyerUserId
       status
@@ -1144,11 +1205,7 @@ export const CS_CONVERSATION_ORDER_CONTEXT_QUERY = gql`
         trackingNumber
       }
     }
-    returns: ecommerceSearchReturns(
-      shopId: $shopId
-      limit: 20
-      orderIds: [$orderId]
-    ) {
+    returns: ecommerceSearchReturns(shopId: $shopId, limit: 20, orderIds: [$orderId]) {
       returnId
       orderId
       returnType
@@ -1319,119 +1376,108 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
   query AffiliateActionProposals($input: ReadActionProposalsInput!) {
     affiliateActionProposalPage(input: $input) {
       items {
-      id
-      userId
-      focusShopId
-      shopIds
-      campaignId
-      creatorId
-      creatorRelationshipId
-      businessDeveloperIdSnapshot
-      creatorRelationship {
         id
+        userId
+        focusShopId
+        shopIds
+        campaignId
         creatorId
-        shopStates {
-          shopId
+        creatorRelationshipId
+        businessDeveloperIdSnapshot
+        creatorRelationship {
+          id
+          creatorId
+          shopStates {
+            shopId
+          }
         }
-      }
-      creatorFollowerCount
-      creatorAverageVideoViews
-      creatorEngagementRate
-      creatorShoppableVideoCount
-      creatorProfile {
-        id
-        creatorOpenId
-        creatorImId
-        username
-        nickname
-        avatarUrl
-        createdAt
-        updatedAt
-      }
-      affiliateCollaborationId
-      sampleApplicationRecordId
-      productId
-      sourceWorkBoundary {
-        subjectType
+        creatorFollowerCount
+        creatorAverageVideoViews
+        creatorEngagementRate
+        creatorShoppableVideoCount
+        creatorProfile {
+          id
+          creatorOpenId
+          creatorImId
+          username
+          nickname
+          avatarUrl
+          createdAt
+          updatedAt
+        }
         affiliateCollaborationId
         sampleApplicationRecordId
         productId
-        creatorRelationshipId
-        workKind
-        workBundleKind
-        versionAt
-        triggerKind
-        triggerId
-        triggerChannel
-        triggerShopId
-        triggerLifecycleEventId
-        recommendedActionTypes
-      }
-      affiliateCollaboration {
-        id
-        userId
-        shopId
-        creatorIds
-        creatorOpenIds
-        productIds
-        type
-        status
-        platformCollaborationId
-        campaignId
-        commissionRate
-        effectiveTime
-        platformUpdatedAt
-        firstObservedAt
-        lastObservedAt
-        projectionRevision
-        lastSyncSource
-        createdAt
-        updatedAt
-      }
-      sampleApplicationRecord {
-        id
-        platformApplicationId
-        creatorId
-        creatorOpenId
-        productId
-        affiliateCollaborationId
-        collaborationType
-        platformCollaborationId
-        sampleWorkStatus
-        trackingNumber
-        carrier
-        shippedAt
-        deliveredAt
-        observedContentCount
-        latestObservedContentAt
-        updatedAt
-      }
-      productSummary {
-        productId
-        title
-        coverImage
-        status
-        priceMin
-        priceMax
-        skus {
-          skuId
-          skuName
-          sellerSku
-          price
-          currency
+        sourceWorkBoundary {
+          subjectType
+          affiliateCollaborationId
+          sampleApplicationRecordId
+          productId
+          creatorRelationshipId
+          workKind
+          workBundleKind
+          versionAt
+          triggerKind
+          triggerId
+          triggerChannel
+          triggerShopId
+          triggerLifecycleEventId
+          recommendedActionTypes
         }
-      }
-      type
-      status
-      operatorSummary
-      requestedByActorType
-      requestedByActorId
-      revisionOfProposalId
-      revisionRootProposalId
-      revisionNumber
-      supersededByProposalId
-      revisionHistory {
-        id
+        affiliateCollaboration {
+          id
+          userId
+          shopId
+          creatorIds
+          creatorOpenIds
+          productIds
+          type
+          status
+          platformCollaborationId
+          campaignId
+          commissionRate
+          effectiveTime
+          platformUpdatedAt
+          firstObservedAt
+          lastObservedAt
+          projectionRevision
+          lastSyncSource
+          createdAt
+          updatedAt
+        }
+        sampleApplicationRecord {
+          id
+          platformApplicationId
+          creatorId
+          creatorOpenId
+          productId
+          affiliateCollaborationId
+          collaborationType
+          platformCollaborationId
+          sampleWorkStatus
+          trackingNumber
+          carrier
+          shippedAt
+          deliveredAt
+          observedContentCount
+          latestObservedContentAt
+          updatedAt
+        }
+        productSummary {
+          productId
+          title
+          coverImage
+          status
+          priceMin
+          priceMax
+          skus {
+            skuId
+            skuName
+            sellerSku
+            price
+            currency
+          }
+        }
         type
         status
         operatorSummary
@@ -1441,132 +1487,210 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         revisionRootProposalId
         revisionNumber
         supersededByProposalId
+        revisionHistory {
+          id
+          type
+          status
+          operatorSummary
+          requestedByActorType
+          requestedByActorId
+          revisionOfProposalId
+          revisionRootProposalId
+          revisionNumber
+          supersededByProposalId
+          decision {
+            decidedAt
+            note
+            actorType
+            actorId
+          }
+          executionResult {
+            executedAt
+            errorMessage
+            deliveryStatus
+          }
+          createdAt
+          updatedAt
+        }
+        predictionCacheIds
+        predictionSnapshots {
+          sourceCacheId
+          predictionType
+          captureMode
+          scenario
+          status
+          output
+          model
+          diagnostics
+          message
+          predictedAt
+          capturedAt
+          predictionEvidence {
+            evidenceMode
+            expectedSales {
+              family
+              status
+              selection {
+                requestedScope
+                effectiveScope
+                modelVersion
+                evaluatedScopes {
+                  tenantScope
+                  tenantId
+                  artifactFound
+                  expectedSalesReliability
+                  reliabilityReasons
+                  reason
+                }
+              }
+              error {
+                code
+                message
+              }
+              value {
+                units
+                percentile
+                quality {
+                  level
+                  score
+                }
+                reliability
+                reliabilityReasons
+              }
+            }
+            humanDecision {
+              family
+              status
+              selection {
+                requestedScope
+                effectiveScope
+                modelVersion
+                evaluatedScopes {
+                  tenantScope
+                  tenantId
+                  artifactFound
+                  expectedSalesReliability
+                  reliabilityReasons
+                  reason
+                }
+              }
+              error {
+                code
+                message
+              }
+              value {
+                wouldApprove
+                approvalProbability
+                approvalPercentile
+                cutoff
+                historicalApprovalRate
+              }
+            }
+          }
+          subject {
+            sampleApplicationRecordId
+            platformApplicationId
+            creatorId
+            creatorOpenId
+            creatorCandidateId
+            campaignId
+            affiliateCollaborationId
+            platformCollaborationId
+            productId
+          }
+          resolvedContext {
+            shopId
+            campaignId
+            affiliateCollaborationId
+            platformCollaborationId
+            sampleApplicationRecordId
+            platformApplicationId
+            creatorId
+            creatorOpenId
+            creatorUsername
+            creatorNickname
+            productId
+            skuId
+            productTitle
+            source
+          }
+        }
+        steps {
+          stepId
+          shopId
+          campaignId
+          affiliateCollaborationId
+          sampleApplicationRecordId
+          productId
+          type
+          predictionCacheIds
+          messageIntent {
+            creatorId
+            creatorOpenId
+            preferredChannel
+            emailSubject
+            subjectHash
+            subjectLength
+            parts {
+              kind
+              text
+              textHash
+              textLength
+              draftAssetId
+              caption
+              captionHash
+              captionLength
+              emailDisposition
+              fileName
+              mimeType
+              sizeBytes
+              sha256
+              productId
+              targetCollaborationId
+              sampleApplicationId
+            }
+          }
+          sampleReviewIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            decision
+            rejectReason
+            rejectReasonExplanation
+          }
+          sampleShipmentIntent {
+            sampleApplicationRecordId
+            platformApplicationId
+            warehouseId
+            skuId
+            quantity
+          }
+          creatorTagIntent {
+            operation
+            manualTagId
+            systemTag
+            contextShopId
+          }
+        }
+        createdAt
+        updatedAt
+        expiresAt
+        policySnapshot {
+          action
+          requiresApproval
+          matchedPolicyIds
+          reasons
+        }
+        reviewSource
+        humanReviewRequest {
+          reason
+          question
+        }
         decision {
           decidedAt
           note
           actorType
           actorId
         }
-        executionResult {
-          executedAt
-          errorMessage
-          deliveryStatus
-        }
-        createdAt
-        updatedAt
-      }
-      predictionCacheIds
-      predictionSnapshots {
-        sourceCacheId
-        predictionType
-        captureMode
-        scenario
-        status
-        output
-        model
-        diagnostics
-        message
-        predictedAt
-        capturedAt
-        predictionEvidence {
-          evidenceMode
-          expectedSales {
-            family
-            status
-            selection {
-              requestedScope
-              effectiveScope
-              modelVersion
-              evaluatedScopes {
-                tenantScope
-                tenantId
-                artifactFound
-                expectedSalesReliability
-                reliabilityReasons
-                reason
-              }
-            }
-            error {
-              code
-              message
-            }
-            value {
-              units
-              percentile
-              quality {
-                level
-                score
-              }
-              reliability
-              reliabilityReasons
-            }
-          }
-          humanDecision {
-            family
-            status
-            selection {
-              requestedScope
-              effectiveScope
-              modelVersion
-              evaluatedScopes {
-                tenantScope
-                tenantId
-                artifactFound
-                expectedSalesReliability
-                reliabilityReasons
-                reason
-              }
-            }
-            error {
-              code
-              message
-            }
-            value {
-              wouldApprove
-              approvalProbability
-              approvalPercentile
-              cutoff
-              historicalApprovalRate
-            }
-          }
-        }
-        subject {
-          sampleApplicationRecordId
-          platformApplicationId
-          creatorId
-          creatorOpenId
-          creatorCandidateId
-          campaignId
-          affiliateCollaborationId
-          platformCollaborationId
-          productId
-        }
-        resolvedContext {
-          shopId
-          campaignId
-          affiliateCollaborationId
-          platformCollaborationId
-          sampleApplicationRecordId
-          platformApplicationId
-          creatorId
-          creatorOpenId
-          creatorUsername
-          creatorNickname
-          productId
-          skuId
-          productTitle
-          source
-        }
-      }
-      steps {
-        stepId
-        shopId
-        campaignId
-        affiliateCollaborationId
-        sampleApplicationRecordId
-        productId
-        type
-        predictionCacheIds
         messageIntent {
           creatorId
           creatorOpenId
@@ -1610,135 +1734,70 @@ export const AFFILIATE_ACTION_PROPOSALS_QUERY = gql`
         creatorTagIntent {
           operation
           manualTagId
+          systemTag
           contextShopId
         }
-      }
-      createdAt
-      updatedAt
-      expiresAt
-      policySnapshot {
-        action
-        requiresApproval
-        matchedPolicyIds
-        reasons
-      }
-      reviewSource
-      humanReviewRequest {
-        reason
-        question
-      }
-      decision {
-        decidedAt
-        note
-        actorType
-        actorId
-      }
-      messageIntent {
-        creatorId
-        creatorOpenId
-        preferredChannel
-        emailSubject
-        subjectHash
-        subjectLength
-        parts {
-          kind
-          text
-          textHash
-          textLength
-          draftAssetId
-          caption
-          captionHash
-          captionLength
-          emailDisposition
-          fileName
-          mimeType
-          sizeBytes
-          sha256
+        referencedManualTags {
+          id
+          name
+          sensitive
+          updatedAt
+        }
+        blockCreatorIntent {
+          creatorId
+          reason
+        }
+        campaignProductUpdateIntent {
+          campaignId
+          campaignProductId
           productId
-          targetCollaborationId
-          sampleApplicationId
+          commissionRate
+          maxCommissionRate
+          sampleOfferMode
+          sampleQuota
+          sampleUnitCostAmount
+          sampleUnitCostCurrency
+          promotionPriority
         }
-      }
-      sampleReviewIntent {
-        sampleApplicationRecordId
-        platformApplicationId
-        decision
-        rejectReason
-        rejectReasonExplanation
-      }
-      sampleShipmentIntent {
-        sampleApplicationRecordId
-        platformApplicationId
-        warehouseId
-        skuId
-        quantity
-      }
-      creatorTagIntent {
-        operation
-        manualTagId
-        contextShopId
-      }
-      referencedManualTags {
-        id
-        name
-        sensitive
-        updatedAt
-      }
-      blockCreatorIntent {
-        creatorId
-        reason
-      }
-      campaignProductUpdateIntent {
-        campaignId
-        campaignProductId
-        productId
-        commissionRate
-        maxCommissionRate
-        sampleOfferMode
-        sampleQuota
-        sampleUnitCostAmount
-        sampleUnitCostCurrency
-        promotionPriority
-      }
-      approvalPolicyUpdateIntent {
-        policyId
-        action
-        manualTagIds
-        excludedManualTagIds
-        sampleTiers
-        excludedSampleTiers
-        campaignIds
-        productIds
-        reason
-        enabled
-      }
-      candidateDecisionIntent {
-        candidateIds
-        status
-        rationale
-      }
-      executionResult {
-        platformObjectId
-        domainObjectId
-        lifecycleEventIds
-        executedAt
-        errorMessage
-        deliveryId
-        deliveryStatus
-        preferredChannel
-        actualChannel
-        channelSelectionSource
-      }
-      deliveredMessage {
-        deliveryId
-        status
-        channel
-        parts {
-          sequence
-          kind
-          text
+        approvalPolicyUpdateIntent {
+          policyId
+          action
+          manualTagIds
+          excludedManualTagIds
+          sampleTiers
+          excludedSampleTiers
+          campaignIds
+          productIds
+          reason
+          enabled
         }
-      }
+        candidateDecisionIntent {
+          candidateIds
+          status
+          rationale
+        }
+        executionResult {
+          platformObjectId
+          domainObjectId
+          lifecycleEventIds
+          executedAt
+          errorMessage
+          deliveryId
+          deliveryStatus
+          preferredChannel
+          actualChannel
+          channelSelectionSource
+        }
+        deliveredMessage {
+          deliveryId
+          status
+          channel
+          parts {
+            sequence
+            kind
+            text
+          }
+        }
       }
       nextCursor
       hasMore
@@ -2028,7 +2087,11 @@ export const AFFILIATE_COLLABORATION_FIELDS_FRAGMENT = gql`
       selectionRegion
       showcaseProductCount
       contentProductCount
-      avatar { url width height }
+      avatar {
+        url
+        width
+        height
+      }
     }
     platformUpdatedAt
     firstObservedAt
@@ -2091,10 +2154,15 @@ export const AFFILIATE_COLLABORATION_DETAIL_QUERY = gql`
 `;
 
 export const EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION = gql`
-  mutation EditAffiliateOpenCollaborationSettings($input: EditAffiliateOpenCollaborationSettingsInput!) {
+  mutation EditAffiliateOpenCollaborationSettings(
+    $input: EditAffiliateOpenCollaborationSettingsInput!
+  ) {
     editAffiliateOpenCollaborationSettings(input: $input) {
       settings {
-        autoAddProduct { enable commissionRate }
+        autoAddProduct {
+          enable
+          commissionRate
+        }
       }
     }
   }
@@ -2103,7 +2171,10 @@ export const EDIT_AFFILIATE_OPEN_COLLABORATION_SETTINGS_MUTATION = gql`
 export const AFFILIATE_OPEN_COLLABORATION_SETTINGS_QUERY = gql`
   query AffiliateOpenCollaborationSettings($shopId: ID!) {
     affiliateOpenCollaborationSettings(shopId: $shopId) {
-      autoAddProduct { enable commissionRate }
+      autoAddProduct {
+        enable
+        commissionRate
+      }
     }
   }
 `;
@@ -2500,6 +2571,7 @@ export const AFFILIATE_CREATORS_QUERY = gql`
           blocked
           blockedShopIds
           manualTagIds
+          systemTags
           manualTags {
             id
             name
@@ -2688,10 +2760,38 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
         preciseDataAuthorized
         followerCount
         categoryIds
-        gmv { amount currency minimumAmount maximumAmount window precision }
-        videoGmv { amount currency minimumAmount maximumAmount window precision }
-        liveGmv { amount currency minimumAmount maximumAmount window precision }
-        gpm { amount currency minimumAmount maximumAmount window precision }
+        gmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        videoGmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        liveGmv {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
+        gpm {
+          amount
+          currency
+          minimumAmount
+          maximumAmount
+          window
+          precision
+        }
         unitsSold
         videoCount
         liveCount
@@ -2727,6 +2827,7 @@ export const AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY = gql`
         blocked
         blockedShopIds
         manualTagIds
+        systemTags
         manualTags {
           id
           name
@@ -2790,7 +2891,13 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
           status
           priceMin
           priceMax
-          skus { skuId skuName sellerSku price currency }
+          skus {
+            skuId
+            skuName
+            sellerSku
+            price
+            currency
+          }
         }
       }
       items {
@@ -2817,7 +2924,11 @@ export const AFFILIATE_RELATIONSHIP_SAMPLE_APPLICATIONS_QUERY = gql`
         lastObservedAt
         providerEventAt
         projectionRevision
-        order { platformOrderId trackingNumber carrier }
+        order {
+          platformOrderId
+          trackingNumber
+          carrier
+        }
         trackingNumber
         carrier
         shippedAt
@@ -2849,7 +2960,13 @@ export const AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY = gql`
           status
           priceMin
           priceMax
-          skus { skuId skuName sellerSku price currency }
+          skus {
+            skuId
+            skuName
+            sellerSku
+            price
+            currency
+          }
         }
       }
       items {
@@ -2891,7 +3008,13 @@ export const AFFILIATE_PRODUCT_SUMMARIES_QUERY = gql`
         status
         priceMin
         priceMax
-        skus { skuId skuName sellerSku price currency }
+        skus {
+          skuId
+          skuName
+          sellerSku
+          price
+          currency
+        }
       }
     }
   }
@@ -2985,6 +3108,19 @@ export const CREATOR_MANUAL_TAGS_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_CREATOR_SYSTEM_TAG_DEFINITIONS_QUERY = gql`
+  query AffiliateCreatorSystemTagDefinitions {
+    affiliateCreatorSystemTagDefinitions {
+      tag
+      name
+      description
+      agentCanAdd
+      agentCanRemove
+      blocksCampaignOutreach
+    }
+  }
+`;
+
 export const CREATE_CREATOR_MANUAL_TAG_MUTATION = gql`
   mutation CreateCreatorManualTag($input: CreateCreatorManualTagInput!) {
     createCreatorManualTag(input: $input) {
@@ -3040,6 +3176,7 @@ const CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT = `
     id
     creatorId
     manualTagIds
+    systemTags
     manualTags {
       id
       name
@@ -3061,6 +3198,22 @@ export const ASSIGN_CREATOR_RELATIONSHIP_TAG_MUTATION = gql`
 export const REMOVE_CREATOR_RELATIONSHIP_TAG_MUTATION = gql`
   mutation RemoveCreatorRelationshipTag($input: CreatorRelationshipManualTagInput!) {
     removeCreatorRelationshipTag(input: $input) {
+      ${CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT}
+    }
+  }
+`;
+
+export const ASSIGN_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION = gql`
+  mutation AssignCreatorRelationshipSystemTag($input: CreatorRelationshipSystemTagInput!) {
+    assignCreatorRelationshipSystemTag(input: $input) {
+      ${CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT}
+    }
+  }
+`;
+
+export const REMOVE_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION = gql`
+  mutation RemoveCreatorRelationshipSystemTag($input: CreatorRelationshipSystemTagInput!) {
+    removeCreatorRelationshipSystemTag(input: $input) {
       ${CREATOR_RELATIONSHIP_MANUAL_TAG_RESULT}
     }
   }
@@ -3433,6 +3586,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
         creatorTagIntent {
           operation
           manualTagId
+          systemTag
           contextShopId
         }
       }
@@ -3499,6 +3653,7 @@ export const DECIDE_ACTION_PROPOSAL_MUTATION = gql`
       creatorTagIntent {
         operation
         manualTagId
+        systemTag
         contextShopId
       }
       referencedManualTags {

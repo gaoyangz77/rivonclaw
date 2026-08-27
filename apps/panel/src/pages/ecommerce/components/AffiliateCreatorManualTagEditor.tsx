@@ -5,11 +5,18 @@ import { GQL } from "@rivonclaw/core";
 import { useToast } from "../../../components/Toast.js";
 import {
   ASSIGN_CREATOR_RELATIONSHIP_TAG_MUTATION,
+  ASSIGN_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION,
+  AFFILIATE_CREATOR_SYSTEM_TAG_DEFINITIONS_QUERY,
   CREATE_CREATOR_MANUAL_TAG_MUTATION,
   CREATOR_MANUAL_TAGS_QUERY,
   REMOVE_CREATOR_RELATIONSHIP_TAG_MUTATION,
+  REMOVE_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION,
   RENAME_CREATOR_MANUAL_TAG_MUTATION,
 } from "../../../api/shops-queries.js";
+import {
+  creatorSystemTagDescription,
+  creatorSystemTagLabel,
+} from "../affiliate-creator-system-tags.js";
 
 export type CreatorManualTagChange = {
   occurredAt: string;
@@ -17,6 +24,8 @@ export type CreatorManualTagChange = {
   actorType?: GQL.AffiliateLifecycleActorType | null;
   summary: string;
 };
+
+export type CreatorSystemTagChange = CreatorManualTagChange;
 
 /** Catalog rows the relationship does not already carry. */
 export function selectableManualTags<T extends { id: string }>(
@@ -63,9 +72,7 @@ export function manualTagRenameIssue(
   if (trimmed.length === 0) return "EMPTY";
   if (trimmed === currentName.trim()) return "UNCHANGED";
   const key = trimmed.toLowerCase();
-  const clash = catalog.some(
-    (tag) => tag.id !== tagId && tag.name.trim().toLowerCase() === key,
-  );
+  const clash = catalog.some((tag) => tag.id !== tagId && tag.name.trim().toLowerCase() === key);
   return clash ? "DUPLICATE" : null;
 }
 
@@ -88,18 +95,23 @@ export function isDuplicateManualTagNameError(message: string): boolean {
 export function AffiliateCreatorManualTagEditor({
   relationshipId,
   manualTags,
+  systemTags = [],
   lastChange,
+  lastSystemTagChange = null,
   onChanged,
 }: {
   relationshipId: string;
   manualTags: ReadonlyArray<Pick<GQL.CreatorManualTag, "id" | "name" | "sensitive">>;
+  systemTags?: readonly GQL.AffiliateCreatorSystemTag[];
   lastChange: CreatorManualTagChange | null;
+  lastSystemTagChange?: CreatorSystemTagChange | null;
   onChanged: () => void;
 }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [search, setSearch] = useState("");
   const [busyTagId, setBusyTagId] = useState<string | null>(null);
+  const [busySystemTag, setBusySystemTag] = useState<GQL.AffiliateCreatorSystemTag | null>(null);
   const [creating, setCreating] = useState(false);
   // Only the id and a primitive draft: the row this points at is re-read from
   // the current props on every render, so a refetch between opening the form
@@ -115,6 +127,11 @@ export function AffiliateCreatorManualTagEditor({
     variables: { input: { search: search.trim() || undefined } },
     fetchPolicy: "cache-and-network",
   });
+  const { data: systemTagDefinitionData } = useQuery<{
+    affiliateCreatorSystemTagDefinitions: GQL.AffiliateCreatorSystemTagDefinition[];
+  }>(AFFILIATE_CREATOR_SYSTEM_TAG_DEFINITIONS_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
   const [assignTag] = useMutation<
     { assignCreatorRelationshipTag: GQL.AffiliateCreatorRelationship },
     { input: GQL.CreatorRelationshipManualTagInput }
@@ -123,6 +140,14 @@ export function AffiliateCreatorManualTagEditor({
     { removeCreatorRelationshipTag: GQL.AffiliateCreatorRelationship },
     { input: GQL.CreatorRelationshipManualTagInput }
   >(REMOVE_CREATOR_RELATIONSHIP_TAG_MUTATION);
+  const [assignSystemTag] = useMutation<
+    { assignCreatorRelationshipSystemTag: GQL.AffiliateCreatorRelationship },
+    { input: GQL.CreatorRelationshipSystemTagInput }
+  >(ASSIGN_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION);
+  const [removeSystemTag] = useMutation<
+    { removeCreatorRelationshipSystemTag: GQL.AffiliateCreatorRelationship },
+    { input: GQL.CreatorRelationshipSystemTagInput }
+  >(REMOVE_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION);
   const [createTag] = useMutation<
     { createCreatorManualTag: GQL.CreatorManualTag },
     { input: GQL.CreateCreatorManualTagInput }
@@ -133,26 +158,64 @@ export function AffiliateCreatorManualTagEditor({
   >(RENAME_CREATOR_MANUAL_TAG_MUTATION);
 
   const catalog = catalogData?.creatorManualTags ?? [];
+  const systemTagDefinitions = systemTagDefinitionData?.affiliateCreatorSystemTagDefinitions ?? [];
   const selectable = selectableManualTags(catalog, manualTags);
   const trimmedSearch = search.trim();
   const canCreate = canCreateManualTag(catalog, trimmedSearch);
   const renameTarget = renameTagId
-    ? manualTags.find((tag) => tag.id === renameTagId) ?? null
+    ? (manualTags.find((tag) => tag.id === renameTagId) ?? null)
     : null;
   const renameIssue = renameTarget
     ? manualTagRenameIssue(catalog, renameTarget.id, renameTarget.name, renameDraft)
     : null;
-  const busy = busyTagId !== null || creating || renaming;
+  const busy = busyTagId !== null || busySystemTag !== null || creating || renaming;
+
+  async function setSystemTag(
+    systemTag: GQL.AffiliateCreatorSystemTag,
+    attached: boolean,
+  ): Promise<void> {
+    setBusySystemTag(systemTag);
+    try {
+      const variables = { input: { creatorRelationshipId: relationshipId, systemTag } };
+      if (attached) {
+        await removeSystemTag({ variables });
+      } else {
+        await assignSystemTag({ variables });
+      }
+      showToast(
+        t(
+          attached
+            ? "ecommerce.affiliateWorkspace.systemTags.removeSuccess"
+            : "ecommerce.affiliateWorkspace.systemTags.addSuccess",
+        ),
+        "success",
+      );
+      onChanged();
+    } catch (err) {
+      showToast(
+        err instanceof Error
+          ? err.message
+          : t("ecommerce.affiliateWorkspace.systemTags.updateFailed"),
+        "error",
+      );
+    } finally {
+      setBusySystemTag(null);
+    }
+  }
 
   async function assign(manualTagId: string): Promise<void> {
     setBusyTagId(manualTagId);
     try {
-      await assignTag({ variables: { input: { creatorRelationshipId: relationshipId, manualTagId } } });
+      await assignTag({
+        variables: { input: { creatorRelationshipId: relationshipId, manualTagId } },
+      });
       showToast(t("ecommerce.affiliateWorkspace.manualTags.addSuccess"), "success");
       onChanged();
     } catch (err) {
       showToast(
-        err instanceof Error ? err.message : t("ecommerce.affiliateWorkspace.manualTags.updateFailed"),
+        err instanceof Error
+          ? err.message
+          : t("ecommerce.affiliateWorkspace.manualTags.updateFailed"),
         "error",
       );
     } finally {
@@ -163,12 +226,16 @@ export function AffiliateCreatorManualTagEditor({
   async function remove(manualTagId: string): Promise<void> {
     setBusyTagId(manualTagId);
     try {
-      await removeTag({ variables: { input: { creatorRelationshipId: relationshipId, manualTagId } } });
+      await removeTag({
+        variables: { input: { creatorRelationshipId: relationshipId, manualTagId } },
+      });
       showToast(t("ecommerce.affiliateWorkspace.manualTags.removeSuccess"), "success");
       onChanged();
     } catch (err) {
       showToast(
-        err instanceof Error ? err.message : t("ecommerce.affiliateWorkspace.manualTags.updateFailed"),
+        err instanceof Error
+          ? err.message
+          : t("ecommerce.affiliateWorkspace.manualTags.updateFailed"),
         "error",
       );
     } finally {
@@ -187,14 +254,18 @@ export function AffiliateCreatorManualTagEditor({
       if (!manualTagId) {
         throw new Error(t("ecommerce.affiliateWorkspace.manualTags.createFailed"));
       }
-      await assignTag({ variables: { input: { creatorRelationshipId: relationshipId, manualTagId } } });
+      await assignTag({
+        variables: { input: { creatorRelationshipId: relationshipId, manualTagId } },
+      });
       setSearch("");
       await refetchCatalog();
       showToast(t("ecommerce.affiliateWorkspace.manualTags.createSuccess"), "success");
       onChanged();
     } catch (err) {
       showToast(
-        err instanceof Error ? err.message : t("ecommerce.affiliateWorkspace.manualTags.createFailed"),
+        err instanceof Error
+          ? err.message
+          : t("ecommerce.affiliateWorkspace.manualTags.createFailed"),
         "error",
       );
     } finally {
@@ -237,7 +308,57 @@ export function AffiliateCreatorManualTagEditor({
   return (
     <section className="affiliate-relationship-work-side-card affiliate-manual-tag-card">
       <div className="affiliate-relationship-work-side-card-head">
-        <span>{t("ecommerce.affiliateWorkspace.manualTags.title")}</span>
+        <span>{t("ecommerce.affiliateWorkspace.systemTags.editorTitle")}</span>
+      </div>
+      <div className="affiliate-system-tag-editor">
+        <strong>{t("ecommerce.affiliateWorkspace.systemTags.title")}</strong>
+        <p className="form-hint">{t("ecommerce.affiliateWorkspace.systemTags.hint")}</p>
+        <div className="affiliate-system-tag-options">
+          {systemTagDefinitions.map((definition) => {
+            const attached = systemTags.includes(definition.tag);
+            return (
+              <div className="affiliate-system-tag-option" key={definition.tag}>
+                <div>
+                  <strong>{creatorSystemTagLabel(t, definition.tag)}</strong>
+                  <span>{creatorSystemTagDescription(t, definition.tag)}</span>
+                </div>
+                <button
+                  className={attached ? "btn btn-secondary btn-sm" : "btn btn-primary btn-sm"}
+                  type="button"
+                  onClick={() => void setSystemTag(definition.tag, attached)}
+                  disabled={busy}
+                >
+                  {t(
+                    attached
+                      ? "ecommerce.affiliateWorkspace.systemTags.remove"
+                      : "ecommerce.affiliateWorkspace.systemTags.add",
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="affiliate-manual-tag-last-change">
+          {lastSystemTagChange ? (
+            <span>
+              {t(
+                lastSystemTagChange.added
+                  ? "ecommerce.affiliateWorkspace.systemTags.lastChangeAdded"
+                  : "ecommerce.affiliateWorkspace.systemTags.lastChangeRemoved",
+                {
+                  time: formatManualTagChangeTime(lastSystemTagChange.occurredAt),
+                  source: manualTagChangeSourceLabel(t, lastSystemTagChange.actorType),
+                },
+              )}
+            </span>
+          ) : (
+            <span>{t("ecommerce.affiliateWorkspace.systemTags.noChanges")}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="affiliate-tag-editor-section-title">
+        <strong>{t("ecommerce.affiliateWorkspace.manualTags.title")}</strong>
       </div>
       <p className="form-hint">{t("ecommerce.affiliateWorkspace.manualTags.hint")}</p>
 

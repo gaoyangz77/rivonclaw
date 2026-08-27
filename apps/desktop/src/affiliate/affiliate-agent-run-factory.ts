@@ -124,6 +124,7 @@ export function renderAgentWorkingAgenda(
     `Creator Relationship ID: ${workItem.creatorRelationshipId}`,
     `Creator ID: ${creatorId ?? "(unavailable)"}`,
     `TikTok Creator Open ID: ${creatorProfile?.creatorOpenId ?? "(unavailable)"}`,
+    `Current System Tags: ${(workItem.creatorRelationship?.systemTags ?? workItem.context?.creatorRelation?.systemTags ?? []).join(", ") || "(none)"}`,
     "The Creator Relationship and Creator identity are trusted run constants, not a Creator profile snapshot. Read profile or performance facts only through affiliate_get_creator_profile.",
     "The routing shop selects a device/session only. It is not message business provenance and must never fill a missing Agenda Shop ID.",
     "",
@@ -757,6 +758,7 @@ function frozenRevisionIntent(
   return {
     messageIntent: proposal.messageIntent ?? null,
     sampleReviewIntent: proposal.sampleReviewIntent ?? null,
+    creatorTagIntent: proposal.creatorTagIntent ?? null,
     steps: proposal.steps ?? [],
   };
 }

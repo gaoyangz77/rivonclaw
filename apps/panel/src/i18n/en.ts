@@ -3354,7 +3354,9 @@ export default {
       sampleTierFilterLabel: "Current progress",
       sampleTierFilterHint: "Matches creators currently stopped at the selected rungs.",
       manualTagFilterLabel: "Manual tags",
+      systemTagFilterLabel: "System tags",
       manualTagMatchModeLabel: "Tag match",
+      systemTagMatchModeLabel: "System tag match",
       manualTagMatchModes: {
         ANY: "Any selected tag",
         ALL: "All selected tags",
@@ -3362,6 +3364,27 @@ export default {
       shopSampleTierFilterLabel: "Progress in this shop",
       shopSampleTierFilterHint: "Matches the rung held in the selected shop only.",
       manualTagsEmpty: "No manual tags",
+      systemTags: {
+        editorTitle: "Creator tags",
+        title: "System tags",
+        hint: "Fixed business controls you can override for this creator. They are seller-wide and separate from manual labels.",
+        add: "Add",
+        remove: "Remove",
+        addSuccess: "System tag added",
+        removeSuccess: "System tag removed",
+        updateFailed: "Failed to update the system tag",
+        lastChangeAdded: "Last change: system tag added {{time}} · {{source}}",
+        lastChangeRemoved: "Last change: system tag removed {{time}} · {{source}}",
+        noChanges: "No system tag changes recorded yet",
+        proposalScope: "Blocks new Campaign outreach only",
+        values: {
+          NO_CAMPAIGN_DISTURB: {
+            label: "Do not campaign",
+            description:
+              "Stop new automated Campaign outreach. Normal Affiliate workflows and direct replies continue.",
+          },
+        },
+      },
       manualTags: {
         title: "Manual tags",
         hint: "Seller-wide labels on this creator relationship. They are never tied to a shop.",
@@ -3377,7 +3400,8 @@ export default {
         rename: "Rename tag {{name}}",
         renameLabel: "Rename “{{name}}”",
         renamePlaceholder: "New tag name",
-        renameScopeWarning: "This tag is shared across your whole account. Renaming it changes the name for every creator that carries it.",
+        renameScopeWarning:
+          "This tag is shared across your whole account. Renaming it changes the name for every creator that carries it.",
         renameConfirm: "Rename tag",
         renameSuccess: "Tag renamed",
         renameFailed: "Failed to rename the tag",
@@ -3517,7 +3541,8 @@ export default {
       historySubtitle:
         "Review TikTok Open and Target Collaboration platform objects, statuses, and products.",
       approvalQueueTitle: "Agent work",
-      approvalQueueHint: "One card per Agent dispatch, including pending proposals, completed actions, no-action decisions, and rewrite history.",
+      approvalQueueHint:
+        "One card per Agent dispatch, including pending proposals, completed actions, no-action decisions, and rewrite history.",
       approvalQueueShortTitle: "Agent work",
       agentWorkspaceViews: {
         label: "View",
@@ -3553,7 +3578,8 @@ export default {
         openRelationship: "Creator workspace",
         contextEyebrow: "DECISION BASIS",
         contextTitle: "Review context",
-        contextSubtitle: "Reconstructs the relationship information visible when the Agent produced this work.",
+        contextSubtitle:
+          "Reconstructs the relationship information visible when the Agent produced this work.",
         contextAsOf: "Agent context through {{time}}",
         triggerContext: "What triggered this work",
         triggerWorkKind: "Work scenario",
@@ -3564,7 +3590,8 @@ export default {
         currentBusinessContextHint: "Current data",
         activeSampleApplications: "Active sample applications",
         bundledMessage: "Message sent with this work",
-        bundledMessageUnavailable: "This work includes a message reply, but no displayable text is available in the current record.",
+        bundledMessageUnavailable:
+          "This work includes a message reply, but no displayable text is available in the current record.",
         previousAgentWork: "Previous Agent decisions",
         recentContext: "Recent records visible to the Agent",
         contextLoadFailed: "Relationship context is temporarily unavailable.",
@@ -3913,6 +3940,8 @@ export default {
         PROPOSAL_EXECUTED: "Proposal executed",
         TAG_ADDED: "Creator tag added",
         TAG_REMOVED: "Creator tag removed",
+        CREATOR_SYSTEM_TAG_ADDED: "Creator system tag added",
+        CREATOR_SYSTEM_TAG_REMOVED: "Creator system tag removed",
         RELATIONSHIP_CONTACT_UPDATED: "Creator contact updated",
         MESSAGE_RECEIVED: "Message received",
         MESSAGE_SENT: "Message sent",
@@ -4131,8 +4160,10 @@ export default {
         SEND_MESSAGE: "Send a message to the creator",
       },
       proposalExecutionDescriptions: {
-        MANAGE_CREATOR_TAG: "The system will apply {{count}} manual tag change(s) to this creator relationship.",
-        NO_ACTION_NEEDED: "The Agent completed this dispatch without requesting or executing a platform action.",
+        MANAGE_CREATOR_TAG:
+          "The system will apply {{count}} manual tag change(s) to this creator relationship.",
+        NO_ACTION_NEEDED:
+          "The Agent completed this dispatch without requesting or executing a platform action.",
         APPROVE_SAMPLE_REQUEST:
           "The system will approve the creator's sample request on TikTok Shop.",
         REJECT_SAMPLE_REQUEST:
@@ -4796,7 +4827,8 @@ export default {
         dailyCreatorOutreachLimit: "Daily automatic creator outreach limit",
         dailyCreatorOutreachLimitHint:
           "How many creators this shop may contact automatically per local day. Defaults to TikTok's standard daily allowance of 10,000; lower it to pace outreach more slowly.",
-        dailyCreatorOutreachLimitInvalid: "The daily limit must be a whole number from 1 to 20,000.",
+        dailyCreatorOutreachLimitInvalid:
+          "The daily limit must be a whole number from 1 to 20,000.",
         dailyCreatorOutreachLimitSaved: "Daily creator outreach limit saved.",
         dailyCreatorOutreachLimitSaveFailed: "The daily creator outreach limit could not be saved.",
         bindDevice: "Handle affiliate inbound on this device",
@@ -4816,7 +4848,8 @@ export default {
         modelScopeDiagnosticsHint:
           "Diagnostic comparison of the account-, region-, and shop-scope models by historical outperformance. It does not pick the model in use — each prediction resolves its served model through the reliability chain (shop → region → account, first TRUSTED artifact); when no scope is TRUSTED, the most local usable artifact is served labeled DEGRADED; if the merchant historical approval tendency is available (READY), it then becomes the primary signal.",
         modelScopeDiagnosticsProbabilityBasis: "Highest outperformance probability",
-        modelScopeDiagnosticsInsufficient: "Not enough comparison data for a probability-based diagnosis.",
+        modelScopeDiagnosticsInsufficient:
+          "Not enough comparison data for a probability-based diagnosis.",
         modelScopeDiagnosticsUnavailable: "Scope comparison not yet available",
         modelScopeDiagnosticsLoading: "Loading model evaluation data.",
         outperformanceProbability: "Probability of outperforming historical selection",
@@ -4962,7 +4995,8 @@ export default {
       apiTokenEditPlaceholder: "Leave blank to keep existing token",
       apiTokenHint: "The token is write-only and will not be shown again.",
       apiTokenIssues: {
-        invalidJson: "Not valid JSON. Paste the credential object, for example {\"appKey\":\"...\",\"appSecret\":\"...\"}.",
+        invalidJson:
+          'Not valid JSON. Paste the credential object, for example {"appKey":"...","appSecret":"..."}.',
         missingFields: "The credential object is missing {{fields}}.",
       },
       apiTokenPlaceholders: {

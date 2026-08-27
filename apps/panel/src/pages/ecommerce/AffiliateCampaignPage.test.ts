@@ -1,7 +1,6 @@
 import { GQL } from "@rivonclaw/core";
 import { describe, expect, it } from "vitest";
-import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from
-  "../../i18n/affiliate-campaign-translations.js";
+import { AFFILIATE_CAMPAIGN_TRANSLATIONS } from "../../i18n/affiliate-campaign-translations.js";
 import {
   campaignDecisionReasonLabel,
   campaignDeliveryFailureBreakdown,
@@ -62,15 +61,15 @@ describe("Affiliate Campaign presentation contracts", () => {
   });
 
   it("never presents a failed CreatorState query as an empty campaign", () => {
-    expect(
-      campaignCreatorStatesViewState({ loading: false, hasError: true, itemCount: 0 }),
-    ).toBe("error");
-    expect(
-      campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 0 }),
-    ).toBe("empty");
-    expect(
-      campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 3 }),
-    ).toBe("ready");
+    expect(campaignCreatorStatesViewState({ loading: false, hasError: true, itemCount: 0 })).toBe(
+      "error",
+    );
+    expect(campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 0 })).toBe(
+      "empty",
+    );
+    expect(campaignCreatorStatesViewState({ loading: false, hasError: false, itemCount: 3 })).toBe(
+      "ready",
+    );
   });
 
   it("does not render an unrecorded legacy funnel metric as zero", () => {
@@ -92,12 +91,15 @@ describe("Affiliate Campaign presentation contracts", () => {
 
   it("groups Provider delivery failures into stable product-facing reasons", () => {
     expect(
-      campaignDeliveryFailureBreakdown([
-        { code: "COLLABORATION_CREATOR_PRODUCT_CONFLICT", count: 5 },
-        { code: "COLLABORATION_CREATOR_INVALID_OPEN_ID", count: 4 },
-        { code: "COLLABORATION_CREATOR_NOT_ACCEPTED", count: 5 },
-        { code: "UNCLASSIFIED_PROVIDER_ERROR", count: 6 },
-      ], 20),
+      campaignDeliveryFailureBreakdown(
+        [
+          { code: "COLLABORATION_CREATOR_PRODUCT_CONFLICT", count: 5 },
+          { code: "COLLABORATION_CREATOR_INVALID_OPEN_ID", count: 4 },
+          { code: "COLLABORATION_CREATOR_NOT_ACCEPTED", count: 5 },
+          { code: "UNCLASSIFIED_PROVIDER_ERROR", count: 6 },
+        ],
+        20,
+      ),
     ).toEqual([
       { category: "duplicateCollaboration", count: 5 },
       { category: "invalidCreator", count: 4 },
@@ -131,8 +133,7 @@ describe("Affiliate Campaign presentation contracts", () => {
 
   it("localizes unsupported template-variable guidance in every Campaign locale", () => {
     const messages = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
-      (translations) =>
-        translations.ecommerce.affiliateCampaign.templateUnsupportedVariables,
+      (translations) => translations.ecommerce.affiliateCampaign.templateUnsupportedVariables,
     );
     expect(messages.every(Boolean)).toBe(true);
     expect(new Set(messages).size).toBe(messages.length);
@@ -145,12 +146,10 @@ describe("Affiliate Campaign presentation contracts", () => {
   });
 
   it("localizes Cloud and Desktop SearchPlan provenance in all eight locales", () => {
-    const sources = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(
-      ({ ecommerce }) => [
-        ecommerce.affiliateCampaign.searchPlanGeneratedByCloud,
-        ecommerce.affiliateCampaign.searchPlanGeneratedByDesktop,
-      ],
-    );
+    const sources = Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS).map(({ ecommerce }) => [
+      ecommerce.affiliateCampaign.searchPlanGeneratedByCloud,
+      ecommerce.affiliateCampaign.searchPlanGeneratedByDesktop,
+    ]);
     expect(sources.flat().every(Boolean)).toBe(true);
     expect(new Set(sources.map((pair) => pair.join("|"))).size).toBe(8);
   });
@@ -224,6 +223,9 @@ describe("Affiliate Campaign presentation contracts", () => {
     expect(eligibilityReasonLabel("PROTECTION_LIST", t)).toBe(
       "translated:ecommerce.affiliateCampaign.eligibilityReason.protection_list",
     );
+    expect(eligibilityReasonLabel("NO_CAMPAIGN_DISTURB", t)).toBe(
+      "translated:ecommerce.affiliateCampaign.eligibilityReason.no_campaign_disturb",
+    );
     expect(eligibilityReasonLabel("PROVIDER_PRODUCT_COLLABORATION_CONFLICT", t)).toBe(
       "translated:ecommerce.affiliateCampaign.eligibilityReason." +
         "provider_product_collaboration_conflict",
@@ -232,6 +234,9 @@ describe("Affiliate Campaign presentation contracts", () => {
 
   it("has localized Provider product-conflict copy in every supported Campaign locale", () => {
     for (const translations of Object.values(AFFILIATE_CAMPAIGN_TRANSLATIONS)) {
+      expect(
+        translations.ecommerce.affiliateCampaign.eligibilityReason.no_campaign_disturb,
+      ).toBeTruthy();
       expect(
         translations.ecommerce.affiliateCampaign.eligibilityReason
           .provider_product_collaboration_conflict,
@@ -250,8 +255,9 @@ describe("Affiliate Campaign presentation contracts", () => {
       expect(campaign.targetCollaborationQuotaNextRetry).toBeTruthy();
       expect(JSON.stringify(campaign)).not.toContain("16024035");
     }
-    expect(new Set(localized.map((campaign) => campaign.targetCollaborationQuotaTitle)).size)
-      .toBe(localized.length);
+    expect(new Set(localized.map((campaign) => campaign.targetCollaborationQuotaTitle)).size).toBe(
+      localized.length,
+    );
   });
 
   it("maps selection decision codes through i18n instead of exposing English audit text", () => {
@@ -262,9 +268,7 @@ describe("Affiliate Campaign presentation contracts", () => {
         "Qualified by TikTok Marketplace filters in provider order",
         t,
       ),
-    ).toBe(
-      "translated:ecommerce.affiliateCampaign.decisionReason.providerFilterMatch",
-    );
+    ).toBe("translated:ecommerce.affiliateCampaign.decisionReason.providerFilterMatch");
     expect(campaignDecisionReasonLabel([], "UNMAPPED_BACKEND_TEXT", t)).toBe(
       "translated:ecommerce.affiliateCampaign.decisionReason.recorded",
     );

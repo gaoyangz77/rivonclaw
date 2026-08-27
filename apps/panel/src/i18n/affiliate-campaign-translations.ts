@@ -88,12 +88,14 @@ const en = {
   minimumFollowersCompact: "{{value}}+ followers",
   preApprovalSummary: "Pre-screened before the first message",
   endDays: "Collaboration length",
-  endDaysHint: "How long each collaboration stays open, in days. Counted from the moment it is created, so every batch gets the full window.",
+  endDaysHint:
+    "How long each collaboration stays open, in days. Counted from the moment it is created, so every batch gets the full window.",
   endDaysValue: "{{count}} days",
   sellerContactEmail: "Seller contact email",
   sellerContactEmailHint: "Published to creators on the collaboration. TikTok requires it.",
   sampleApprovalExempt: "Skip sample approval",
-  sampleApprovalExemptHint: "Leave this off unless you mean it. With approval on, your own decisions keep training the pre-screening model.",
+  sampleApprovalExemptHint:
+    "Leave this off unless you mean it. With approval on, your own decisions keep training the pre-screening model.",
   sampleApprovalExemptOn: "On — samples are approved automatically",
   sampleApprovalExemptOff: "Off — you approve each sample",
   dailyTargetTotal: "Daily outreach target",
@@ -157,11 +159,13 @@ const en = {
   targetCollaborationQuotaNextRetry: "Next system check",
   targetCollaborationQuotaRecent: "Recent collaboration creation records",
   targetCollaborationQuotaEventCreated: "Collaboration created for {{count}} scheduled messages",
-  targetCollaborationQuotaEventExhausted: "Creation capacity unavailable for {{count}} scheduled messages",
+  targetCollaborationQuotaEventExhausted:
+    "Creation capacity unavailable for {{count}} scheduled messages",
   targetCollaborationQuotaLegacy: "Inferred from the deployment-time delivery snapshot",
   targetCollaborationQuotaRecovered: "Target collaboration creation has recovered",
   targetCollaborationQuotaRecoveredAt: "First successful creation recorded at {{time}}",
-  targetCollaborationQuotaScheduled: "Scheduled · waiting for TikTok collaboration creation capacity",
+  targetCollaborationQuotaScheduled:
+    "Scheduled · waiting for TikTok collaboration creation capacity",
   riskNormal: "Provider risk controls normal",
   riskThrottled: "Provider throttling · backing off",
   riskCircuitOpen: "Shop sending paused by risk circuit",
@@ -182,7 +186,8 @@ const en = {
   commissionColumn: "Commission %",
   ordinaryCommissionColumn: "Standard commission %",
   shopAdsCommissionColumn: "Shop Ads commission %",
-  offerHint: "Standard commission applies to organic-attributed orders. Shop Ads commission applies when the order is attributed to seller-funded Shop Ads. Each product keeps both terms independently; TikTok settles the applicable rate.",
+  offerHint:
+    "Standard commission applies to organic-attributed orders. Shop Ads commission applies when the order is attributed to seller-funded Shop Ads. Each product keeps both terms independently; TikTok settles the applicable rate.",
   addProduct: "Add product",
   removeProduct: "Remove",
   minimumFollowers: "Minimum followers",
@@ -223,7 +228,8 @@ const en = {
   pagesUnit: "pages",
   uniqueCreatorsUnit: "unique",
   qualifiedCreatorsUnit: "qualified",
-  searchFilteredBreakdown: "{{duplicate}} duplicate · {{protected}} protected · {{policy}} policy · {{qualification}} pre-screen",
+  searchFilteredBreakdown:
+    "{{duplicate}} duplicate · {{protected}} protected · {{policy}} policy · {{qualification}} pre-screen",
   searchPlanDeliveryOutcome: "{{sent}} sent · {{failed}} failed",
   filterState: "Filter creator state",
   eligibilityCategoryFilter: "Reachability category",
@@ -467,10 +473,8 @@ const en = {
       "Set this shop's daily automatic creator outreach limit before activating a campaign.",
     dailyCreatorOutreachLimitInvalid: "The shop daily creator outreach limit must be 1–20,000.",
     campaignMaintenance: "Campaign outreach is temporarily paused for maintenance.",
-    modelNotReady:
-      "AI mode is not available for this seller yet. Use Marketplace rules instead.",
-    modelTemporarilyUnavailable:
-      "Pre-screening is temporarily unreachable. Try again shortly.",
+    modelNotReady: "AI mode is not available for this seller yet. Use Marketplace rules instead.",
+    modelTemporarilyUnavailable: "Pre-screening is temporarily unreachable. Try again shortly.",
     reconfigurationRequired:
       "Review the product snapshot and selection configuration before reopening.",
     providerRuleUnsupported:
@@ -572,10 +576,14 @@ const en = {
     otherProviderRejection: "Other explicit rejection",
   },
   deliveryFailureTooltip: {
-    duplicateCollaboration: "TikTok reported that this creator already holds the promoted product in a conflicting collaboration.",
-    invalidCreator: "TikTok rejected the creator Open ID used for the target collaboration invitation.",
-    providerNotAccepted: "TikTok completed the collaboration request but did not retain this creator and returned no more specific reason.",
-    otherProviderRejection: "A terminal Provider response explicitly rejected the invitation. Retryable or uncertain attempts are not counted here.",
+    duplicateCollaboration:
+      "TikTok reported that this creator already holds the promoted product in a conflicting collaboration.",
+    invalidCreator:
+      "TikTok rejected the creator Open ID used for the target collaboration invitation.",
+    providerNotAccepted:
+      "TikTok completed the collaboration request but did not retain this creator and returned no more specific reason.",
+    otherProviderRejection:
+      "A terminal Provider response explicitly rejected the invitation. Retryable or uncertain attempts are not counted here.",
   },
   eligibilityCategory: {
     protected: "Protection list",
@@ -584,6 +592,7 @@ const en = {
   },
   eligibilityReason: {
     protection_list: "Seller protection list",
+    no_campaign_disturb: "Creator has disabled new Campaign outreach",
     same_product_already_contacted: "Already contacted for this product",
     same_product_reserved_or_submitted: "This product outreach is already in progress",
     shop_creator_7d_limit: "Automatic outreach limit reached for the last 7 days",
@@ -780,7 +789,8 @@ const zh = {
   commissionColumn: "佣金 %",
   ordinaryCommissionColumn: "普通佣金 %",
   shopAdsCommissionColumn: "Shop Ads 广告佣金 %",
-  offerHint: "自然流量归因订单使用普通佣金；商家投放的 Shop Ads 归因订单使用广告佣金。每个商品的两项条款独立设置，由 TikTok 自动按归因结算。",
+  offerHint:
+    "自然流量归因订单使用普通佣金；商家投放的 Shop Ads 归因订单使用广告佣金。每个商品的两项条款独立设置，由 TikTok 自动按归因结算。",
   addProduct: "添加商品",
   removeProduct: "移除",
   minimumFollowers: "最低粉丝数",
@@ -817,7 +827,8 @@ const zh = {
   pagesUnit: "页",
   uniqueCreatorsUnit: "位去重达人",
   qualifiedCreatorsUnit: "位合格达人",
-  searchFilteredBreakdown: "重复 {{duplicate}} · 保护 {{protected}} · 防骚扰 {{policy}} · 预审 {{qualification}}",
+  searchFilteredBreakdown:
+    "重复 {{duplicate}} · 保护 {{protected}} · 防骚扰 {{policy}} · 预审 {{qualification}}",
   searchPlanDeliveryOutcome: "已发送 {{sent}} · 失败 {{failed}}",
   filterState: "筛选达人状态",
   eligibilityCategoryFilter: "可触达性分类",
@@ -1047,8 +1058,10 @@ const zh = {
     modelTemporarilyUnavailable: "预审服务暂时无法连接，请稍后再试。",
     reconfigurationRequired: "重新开启前，请先确认商品快照和达人选择配置。",
     providerRuleUnsupported: "当前店铺已不再支持部分达人广场筛选条件。",
-    searchPlanHardConstraintUnsupported: "搜索方向中有硬约束无法映射到该店铺支持的 TikTok 筛选条件。请修改搜索方向后重试。",
-    searchPlanHardConstraintRequired: "Agent 未把所有硬约束应用到 TikTok 筛选条件，因此计划已阻塞，不会静默弱化你的要求。",
+    searchPlanHardConstraintUnsupported:
+      "搜索方向中有硬约束无法映射到该店铺支持的 TikTok 筛选条件。请修改搜索方向后重试。",
+    searchPlanHardConstraintRequired:
+      "Agent 未把所有硬约束应用到 TikTok 筛选条件，因此计划已阻塞，不会静默弱化你的要求。",
     productSnapshotExpired: "商品草稿快照已过期，请重新抓取商品。",
     templateNotDistinct: "AI 未能生成足够不同的草稿，请重试或调整写作要求。",
     copyRequired: "已完成或已归档的计划需要复制为新草稿后再开启。",
@@ -1146,6 +1159,7 @@ const zh = {
   },
   eligibilityReason: {
     protection_list: "已进入卖家保护名单",
+    no_campaign_disturb: "达人已关闭新的 Campaign 主动触达",
     same_product_already_contacted: "已经推广过同一商品",
     same_product_reserved_or_submitted: "同一商品的触达正在处理中",
     shop_creator_7d_limit: "7 天内自动触达次数已达上限",
@@ -1262,31 +1276,37 @@ const operationalCopy = {
     searchPlanGeneratedByCloud: "Vom Cloud-LLM erzeugt",
     searchPlanGeneratedByDesktop: "Vom Desktop Agent erzeugt",
     eligibilityReason: {
+      no_campaign_disturb: "Dieser Creator hat neue Kampagnenansprachen deaktiviert.",
       provider_product_collaboration_conflict:
         "Dieser Creator hat das beworbene Produkt bereits in einer anderen Kooperation.",
     },
     updated: "Kampagnenkonfiguration aktualisiert.",
     templateUnsupportedVariables:
       "Nicht unterstützte Vorlagenvariablen: {{variables}}. Verwende nur die oben aufgeführten Variablen.",
-    authorizationBody: "Nach der Aktivierung darf das Backend qualifizierte Creator mit der neuesten veröffentlichten Vorlage kontaktieren. Eine Pause stoppt neue Sendungen; kritische Produkt- oder Qualifikationsänderungen machen betroffene Warteschlangenaufträge ungültig.",
-    searchPlanGuidanceHint: "{{count}} / 500 Zeichen. Präferenzen und Stile sind weiche Richtungen. „Muss“, „nur“, „mindestens“, „höchstens“ und „ausschließen“ sind harte Vorgaben: Sie müssen einem unterstützten TikTok-Filter entsprechen, sonst stoppt die Plangenerierung.",
+    authorizationBody:
+      "Nach der Aktivierung darf das Backend qualifizierte Creator mit der neuesten veröffentlichten Vorlage kontaktieren. Eine Pause stoppt neue Sendungen; kritische Produkt- oder Qualifikationsänderungen machen betroffene Warteschlangenaufträge ungültig.",
+    searchPlanGuidanceHint:
+      "{{count}} / 500 Zeichen. Präferenzen und Stile sind weiche Richtungen. „Muss“, „nur“, „mindestens“, „höchstens“ und „ausschließen“ sind harte Vorgaben: Sie müssen einem unterstützten TikTok-Filter entsprechen, sonst stoppt die Plangenerierung.",
     softGuidanceLabel: "Weiche Richtung",
     hardConstraintsLabel: "Harte Vorgaben",
     noSoftGuidance: "Keine weiche Richtung",
     noHardConstraints: "Keine verpflichtenden Provider-Filter",
-        offerTitle: "Produkte und Provision",
-    offerHint: "Jedes Produkt hat seine eigene Provision. Das erste Produkt bestimmt die Creator-Suche und den Nachrichtentext; die übrigen laufen in derselben Kollaboration mit.",
+    offerTitle: "Produkte und Provision",
+    offerHint:
+      "Jedes Produkt hat seine eigene Provision. Das erste Produkt bestimmt die Creator-Suche und den Nachrichtentext; die übrigen laufen in derselben Kollaboration mit.",
     addProduct: "Produkt hinzufügen",
     removeProduct: "Entfernen",
-        leadProduct: "Produkt für Suche und Nachricht",
-        commissionColumn: "Provision %",
+    leadProduct: "Produkt für Suche und Nachricht",
+    commissionColumn: "Provision %",
     endDays: "Kollaborationsdauer",
-    endDaysHint: "Wie viele Tage jede Kollaboration offen bleibt. Ab dem Moment der Erstellung gezählt, damit jede Charge das volle Fenster bekommt.",
+    endDaysHint:
+      "Wie viele Tage jede Kollaboration offen bleibt. Ab dem Moment der Erstellung gezählt, damit jede Charge das volle Fenster bekommt.",
     endDaysValue: "{{count}} Tage",
     sellerContactEmail: "Kontakt-E-Mail des Verkäufers",
     sellerContactEmailHint: "Wird Creators in der Kollaboration angezeigt. TikTok verlangt sie.",
     sampleApprovalExempt: "Musterfreigabe überspringen",
-    sampleApprovalExemptHint: "Lass das aus, sofern du es nicht wirklich willst. Mit Freigabe trainieren deine eigenen Entscheidungen die Vorprüfung weiter.",
+    sampleApprovalExemptHint:
+      "Lass das aus, sofern du es nicht wirklich willst. Mit Freigabe trainieren deine eigenen Entscheidungen die Vorprüfung weiter.",
     sampleApprovalExemptOn: "An — Muster werden automatisch freigegeben",
     sampleApprovalExemptOff: "Aus — du gibst jedes Muster frei",
     preApprovalSummary: "Vor der ersten Nachricht vorgeprüft",
@@ -1296,19 +1316,24 @@ const operationalCopy = {
     preApprovalScore: "Wert {{probability}} · Schwelle {{cutoff}}",
     preApprovalModel: "Modell {{model}}",
     preApprovalObservedAt: "Creator-Daten gelesen am {{date}}",
-    preApprovalDisclaimer: "Eine bestandene Vorprüfung heißt nur, dass sich eine erste Einladung lohnt. Sie heißt nicht, dass ein Musterantrag genehmigt wird.",
+    preApprovalDisclaimer:
+      "Eine bestandene Vorprüfung heißt nur, dass sich eine erste Einladung lohnt. Sie heißt nicht, dass ein Musterantrag genehmigt wird.",
     strategyMlChecking: "Verfügbarkeit wird geprüft…",
     strategyMlReady: "Für diesen Shop verfügbar",
     strategyMlNotConfigured: "Verfügbar, sobald genügend eigene Musterentscheidungen vorliegen.",
-    strategyMlTemporarilyUnavailable: "Vorübergehend nicht verfügbar – bitte später erneut versuchen",
-    strategyMlDescription: "Bevor die erste Einladung rausgeht, prüft ein Modell aus deinen eigenen Musterentscheidungen die Creator vor.",
-    dailyCreatorOutreachLimitRequired: "Lege zuerst das tägliche automatische Creator-Kontaktlimit des Shops fest.",
+    strategyMlTemporarilyUnavailable:
+      "Vorübergehend nicht verfügbar – bitte später erneut versuchen",
+    strategyMlDescription:
+      "Bevor die erste Einladung rausgeht, prüft ein Modell aus deinen eigenen Musterentscheidungen die Creator vor.",
+    dailyCreatorOutreachLimitRequired:
+      "Lege zuerst das tägliche automatische Creator-Kontaktlimit des Shops fest.",
     shopDailyCapacity: "Tägliche Creator-Kapazität des Shops",
     shopCapacityRemaining: "Heute sind noch {{count}} Creator-Kontakte verfügbar",
     activeTargetsVsLimit: "{{targets}} aktive Ziele · {{ratio}} % des Shop-Limits",
     shopCircuitUntil: "Risikosperre des Shops bis {{time}}",
     targetCollaborationQuotaTitle: "TikTok begrenzt derzeit neue Zielkooperationen",
-    targetCollaborationQuotaDescription: "TikTok hat das Limit von 200 Zielkooperationen in den letzten 24 Stunden erreicht. {{count}} geplante Erstnachrichten warten auf freie Kapazität. Das System prüft regelmäßig weiter; bestehende Kooperationen sind nicht betroffen.",
+    targetCollaborationQuotaDescription:
+      "TikTok hat das Limit von 200 Zielkooperationen in den letzten 24 Stunden erreicht. {{count}} geplante Erstnachrichten warten auf freie Kapazität. Das System prüft regelmäßig weiter; bestehende Kooperationen sind nicht betroffen.",
     targetCollaborationQuotaFirstObserved: "Erstmals erkannt",
     targetCollaborationQuotaLastObserved: "Letzter Fehler",
     targetCollaborationQuotaFailures: "CREATE-Limitfehler heute",
@@ -1316,25 +1341,38 @@ const operationalCopy = {
     targetCollaborationQuotaNextRetry: "Nächste Systemprüfung",
     targetCollaborationQuotaRecent: "Letzte Erstellungsereignisse",
     targetCollaborationQuotaEventCreated: "Kooperation für {{count}} geplante Nachrichten erstellt",
-    targetCollaborationQuotaEventExhausted: "Keine Erstellungskapazität für {{count}} geplante Nachrichten",
+    targetCollaborationQuotaEventExhausted:
+      "Keine Erstellungskapazität für {{count}} geplante Nachrichten",
     targetCollaborationQuotaLegacy: "Aus dem Delivery-Snapshot bei der Bereitstellung abgeleitet",
     targetCollaborationQuotaRecovered: "Zielkooperationen können wieder erstellt werden",
     targetCollaborationQuotaRecoveredAt: "Erste erfolgreiche Erstellung um {{time}}",
-    targetCollaborationQuotaScheduled: "Geplant · wartet auf TikTok-Kapazität für Zielkooperationen",
+    targetCollaborationQuotaScheduled:
+      "Geplant · wartet auf TikTok-Kapazität für Zielkooperationen",
     errors: {
-      modelNotReady: "Der KI-Modus ist für diesen Verkäufer noch nicht verfügbar. Nutze den Regelmodus des Creator-Marktplatzes.",
-      modelTemporarilyUnavailable: "Die Vorprüfung ist vorübergehend nicht erreichbar. Bitte versuche es gleich noch einmal.",
-      dailyCreatorOutreachLimitRequired: "Lege zuerst das tägliche automatische Creator-Kontaktlimit des Shops fest.",
-      dailyCreatorOutreachLimitInvalid: "Das tägliche Limit muss eine ganze Zahl von 1 bis 20.000 sein.",
+      modelNotReady:
+        "Der KI-Modus ist für diesen Verkäufer noch nicht verfügbar. Nutze den Regelmodus des Creator-Marktplatzes.",
+      modelTemporarilyUnavailable:
+        "Die Vorprüfung ist vorübergehend nicht erreichbar. Bitte versuche es gleich noch einmal.",
+      dailyCreatorOutreachLimitRequired:
+        "Lege zuerst das tägliche automatische Creator-Kontaktlimit des Shops fest.",
+      dailyCreatorOutreachLimitInvalid:
+        "Das tägliche Limit muss eine ganze Zahl von 1 bis 20.000 sein.",
       campaignMaintenance: "Campaign-Outreach ist wegen Wartungsarbeiten vorübergehend pausiert.",
-      searchPlanHardConstraintUnsupported: "Eine verpflichtende Suchanforderung lässt sich nicht mit den unterstützten TikTok-Filtern abbilden. Passe die Suchrichtung vor dem nächsten Versuch an.",
-      searchPlanHardConstraintRequired: "Der Agent hat nicht alle verpflichtenden Anforderungen auf TikTok-Filter angewendet. Der Plan wurde blockiert, statt die Vorgaben still abzuschwächen.",
+      searchPlanHardConstraintUnsupported:
+        "Eine verpflichtende Suchanforderung lässt sich nicht mit den unterstützten TikTok-Filtern abbilden. Passe die Suchrichtung vor dem nächsten Versuch an.",
+      searchPlanHardConstraintRequired:
+        "Der Agent hat nicht alle verpflichtenden Anforderungen auf TikTok-Filter angewendet. Der Plan wurde blockiert, statt die Vorgaben still abzuschwächen.",
     },
     funnel: {
-      submitted: "Provider-Versuche", uncertain: "Ergebnis ausstehend", failed: "Fehlgeschlagen",
-      scannedToday: "Heute gescannte Creator", ineligible: "Nicht geeignete Creator",
-      duplicate: "Doppelte Treffer", scheduledToday: "Eingeplante Creator",
-      deliveryFailed: "Provider abgelehnt", targetInvitationsSent: "Gesendete Zieleinladungen",
+      submitted: "Provider-Versuche",
+      uncertain: "Ergebnis ausstehend",
+      failed: "Fehlgeschlagen",
+      scannedToday: "Heute gescannte Creator",
+      ineligible: "Nicht geeignete Creator",
+      duplicate: "Doppelte Treffer",
+      scheduledToday: "Eingeplante Creator",
+      deliveryFailed: "Provider abgelehnt",
+      targetInvitationsSent: "Gesendete Zieleinladungen",
     },
   },
   es: {
@@ -1411,31 +1449,37 @@ const operationalCopy = {
     searchPlanGeneratedByCloud: "Generado por el LLM Cloud",
     searchPlanGeneratedByDesktop: "Generado por Desktop Agent",
     eligibilityReason: {
+      no_campaign_disturb: "Este creador ha desactivado los nuevos contactos de Campaign.",
       provider_product_collaboration_conflict:
         "Este creator ya tiene el producto promocionado en otra colaboración.",
     },
     updated: "Configuración de la campaña actualizada.",
     templateUnsupportedVariables:
       "Variables de plantilla no compatibles: {{variables}}. Usa solo las variables indicadas arriba.",
-    authorizationBody: "Tras activarla, el backend puede contactar a creators cualificados con la última plantilla publicada. Pausar detiene los nuevos envíos; los cambios críticos de producto o cualificación invalidan las tareas afectadas en cola.",
-    searchPlanGuidanceHint: "{{count}} / 500 caracteres. Las preferencias y estilos son orientaciones flexibles. «Debe», «solo», «al menos», «como máximo» y «excluir» son restricciones obligatorias: deben corresponder a un filtro de TikTok compatible o se detendrá la generación.",
+    authorizationBody:
+      "Tras activarla, el backend puede contactar a creators cualificados con la última plantilla publicada. Pausar detiene los nuevos envíos; los cambios críticos de producto o cualificación invalidan las tareas afectadas en cola.",
+    searchPlanGuidanceHint:
+      "{{count}} / 500 caracteres. Las preferencias y estilos son orientaciones flexibles. «Debe», «solo», «al menos», «como máximo» y «excluir» son restricciones obligatorias: deben corresponder a un filtro de TikTok compatible o se detendrá la generación.",
     softGuidanceLabel: "Orientación flexible",
     hardConstraintsLabel: "Restricciones obligatorias",
     noSoftGuidance: "Sin orientación flexible",
     noHardConstraints: "Sin filtros obligatorios del proveedor",
-        offerTitle: "Productos y comisión",
-    offerHint: "Cada producto lleva su propia comisión. El primer producto define la búsqueda de creadores y el mensaje; los demás acompañan en la misma colaboración.",
+    offerTitle: "Productos y comisión",
+    offerHint:
+      "Cada producto lleva su propia comisión. El primer producto define la búsqueda de creadores y el mensaje; los demás acompañan en la misma colaboración.",
     addProduct: "Añadir producto",
     removeProduct: "Quitar",
-        leadProduct: "Producto de búsqueda y mensaje",
-        commissionColumn: "Comisión %",
+    leadProduct: "Producto de búsqueda y mensaje",
+    commissionColumn: "Comisión %",
     endDays: "Duración de la colaboración",
-    endDaysHint: "Cuántos días permanece abierta cada colaboración. Se cuenta desde su creación, así cada lote recibe la ventana completa.",
+    endDaysHint:
+      "Cuántos días permanece abierta cada colaboración. Se cuenta desde su creación, así cada lote recibe la ventana completa.",
     endDaysValue: "{{count}} días",
     sellerContactEmail: "Correo de contacto del vendedor",
     sellerContactEmailHint: "Se muestra a los creators en la colaboración. TikTok lo exige.",
     sampleApprovalExempt: "Omitir la aprobación de muestras",
-    sampleApprovalExemptHint: "Déjalo desactivado salvo que lo quieras de verdad. Con la aprobación activa, tus decisiones siguen entrenando la preselección.",
+    sampleApprovalExemptHint:
+      "Déjalo desactivado salvo que lo quieras de verdad. Con la aprobación activa, tus decisiones siguen entrenando la preselección.",
     sampleApprovalExemptOn: "Activado: las muestras se aprueban solas",
     sampleApprovalExemptOff: "Desactivado: tú apruebas cada muestra",
     preApprovalSummary: "Preseleccionado antes del primer mensaje",
@@ -1445,19 +1489,24 @@ const operationalCopy = {
     preApprovalScore: "Puntuación {{probability}} · umbral {{cutoff}}",
     preApprovalModel: "Modelo {{model}}",
     preApprovalObservedAt: "Datos del creator leídos el {{date}}",
-    preApprovalDisclaimer: "Superar la preselección solo significa que vale la pena una primera invitación. No significa que se vaya a aprobar una solicitud de muestra.",
+    preApprovalDisclaimer:
+      "Superar la preselección solo significa que vale la pena una primera invitación. No significa que se vaya a aprobar una solicitud de muestra.",
     strategyMlChecking: "Comprobando disponibilidad…",
     strategyMlReady: "Disponible para este comercio",
-    strategyMlNotConfigured: "Disponible cuando se reúnan suficientes decisiones de muestra propias.",
+    strategyMlNotConfigured:
+      "Disponible cuando se reúnan suficientes decisiones de muestra propias.",
     strategyMlTemporarilyUnavailable: "No disponible temporalmente: inténtalo en breve",
-    strategyMlDescription: "Antes de enviar la primera invitación, un modelo entrenado con tus propias decisiones de muestra filtra a los creators.",
-    dailyCreatorOutreachLimitRequired: "Configura primero el límite diario de contactos automáticos del comercio.",
+    strategyMlDescription:
+      "Antes de enviar la primera invitación, un modelo entrenado con tus propias decisiones de muestra filtra a los creators.",
+    dailyCreatorOutreachLimitRequired:
+      "Configura primero el límite diario de contactos automáticos del comercio.",
     shopDailyCapacity: "Capacidad diaria de creators del comercio",
     shopCapacityRemaining: "Quedan {{count}} contactos de creators hoy",
     activeTargetsVsLimit: "{{targets}} objetivos activos · {{ratio}} % del límite del comercio",
     shopCircuitUntil: "Circuito de riesgo del comercio abierto hasta {{time}}",
     targetCollaborationQuotaTitle: "TikTok limita temporalmente nuevas colaboraciones dirigidas",
-    targetCollaborationQuotaDescription: "TikTok alcanzó el límite de 200 colaboraciones dirigidas en las últimas 24 horas. {{count}} primeros mensajes programados esperan capacidad. El sistema seguirá comprobando periódicamente; las colaboraciones existentes no se ven afectadas.",
+    targetCollaborationQuotaDescription:
+      "TikTok alcanzó el límite de 200 colaboraciones dirigidas en las últimas 24 horas. {{count}} primeros mensajes programados esperan capacidad. El sistema seguirá comprobando periódicamente; las colaboraciones existentes no se ven afectadas.",
     targetCollaborationQuotaFirstObserved: "Primera detección",
     targetCollaborationQuotaLastObserved: "Último fallo",
     targetCollaborationQuotaFailures: "Fallos de cuota CREATE hoy",
@@ -1469,21 +1518,32 @@ const operationalCopy = {
     targetCollaborationQuotaLegacy: "Inferido de la instantánea de Delivery del despliegue",
     targetCollaborationQuotaRecovered: "La creación de colaboraciones dirigidas se ha recuperado",
     targetCollaborationQuotaRecoveredAt: "Primera creación correcta registrada a las {{time}}",
-    targetCollaborationQuotaScheduled: "Programado · esperando capacidad de colaboración dirigida de TikTok",
+    targetCollaborationQuotaScheduled:
+      "Programado · esperando capacidad de colaboración dirigida de TikTok",
     errors: {
-      modelNotReady: "El modo IA todavía no está disponible para este vendedor. Usa el modo de reglas del marketplace.",
-      modelTemporarilyUnavailable: "La preselección no está disponible en este momento. Vuelve a intentarlo en breve.",
-      dailyCreatorOutreachLimitRequired: "Configura primero el límite diario de contactos automáticos del comercio.",
+      modelNotReady:
+        "El modo IA todavía no está disponible para este vendedor. Usa el modo de reglas del marketplace.",
+      modelTemporarilyUnavailable:
+        "La preselección no está disponible en este momento. Vuelve a intentarlo en breve.",
+      dailyCreatorOutreachLimitRequired:
+        "Configura primero el límite diario de contactos automáticos del comercio.",
       dailyCreatorOutreachLimitInvalid: "El límite diario debe ser un entero entre 1 y 20.000.",
       campaignMaintenance: "El alcance de campañas está pausado temporalmente por mantenimiento.",
-      searchPlanHardConstraintUnsupported: "Un requisito obligatorio no se puede representar con los filtros de TikTok compatibles. Edita la dirección de búsqueda antes de reintentar.",
-      searchPlanHardConstraintRequired: "El Agent no aplicó todos los requisitos obligatorios a los filtros de TikTok. El plan se bloqueó en vez de debilitar tus instrucciones.",
+      searchPlanHardConstraintUnsupported:
+        "Un requisito obligatorio no se puede representar con los filtros de TikTok compatibles. Edita la dirección de búsqueda antes de reintentar.",
+      searchPlanHardConstraintRequired:
+        "El Agent no aplicó todos los requisitos obligatorios a los filtros de TikTok. El plan se bloqueó en vez de debilitar tus instrucciones.",
     },
     funnel: {
-      submitted: "Intentos al proveedor", uncertain: "Resultado pendiente", failed: "Fallidos",
-      scannedToday: "Creadores escaneados hoy", ineligible: "Creadores no aptos",
-      duplicate: "Resultados repetidos", scheduledToday: "Creadores programados",
-      deliveryFailed: "Proveedor rechazó", targetInvitationsSent: "Invitaciones dirigidas enviadas",
+      submitted: "Intentos al proveedor",
+      uncertain: "Resultado pendiente",
+      failed: "Fallidos",
+      scannedToday: "Creadores escaneados hoy",
+      ineligible: "Creadores no aptos",
+      duplicate: "Resultados repetidos",
+      scheduledToday: "Creadores programados",
+      deliveryFailed: "Proveedor rechazó",
+      targetInvitationsSent: "Invitaciones dirigidas enviadas",
     },
   },
   fr: {
@@ -1559,31 +1619,37 @@ const operationalCopy = {
     searchPlanGeneratedByCloud: "Généré par le LLM Cloud",
     searchPlanGeneratedByDesktop: "Généré par Desktop Agent",
     eligibilityReason: {
+      no_campaign_disturb: "Ce créateur a désactivé les nouvelles prises de contact Campaign.",
       provider_product_collaboration_conflict:
         "Ce créateur possède déjà le produit promu dans une autre collaboration.",
     },
     updated: "Configuration de la campagne mise à jour.",
     templateUnsupportedVariables:
       "Variables de modèle non prises en charge : {{variables}}. Utilisez uniquement les variables indiquées ci-dessus.",
-    authorizationBody: "Après activation, le backend peut contacter les créateurs qualifiés avec le dernier modèle publié. La pause arrête les nouveaux envois ; les changements critiques de produit ou de qualification invalident les tâches concernées en file d’attente.",
-    searchPlanGuidanceHint: "{{count}} / 500 caractères. Les préférences et styles sont des orientations souples. « Doit », « uniquement », « au moins », « au plus » et « exclure » sont des contraintes strictes : elles doivent correspondre à un filtre TikTok pris en charge, sinon la génération s’arrête.",
+    authorizationBody:
+      "Après activation, le backend peut contacter les créateurs qualifiés avec le dernier modèle publié. La pause arrête les nouveaux envois ; les changements critiques de produit ou de qualification invalident les tâches concernées en file d’attente.",
+    searchPlanGuidanceHint:
+      "{{count}} / 500 caractères. Les préférences et styles sont des orientations souples. « Doit », « uniquement », « au moins », « au plus » et « exclure » sont des contraintes strictes : elles doivent correspondre à un filtre TikTok pris en charge, sinon la génération s’arrête.",
     softGuidanceLabel: "Orientation souple",
     hardConstraintsLabel: "Contraintes strictes",
     noSoftGuidance: "Aucune orientation souple",
     noHardConstraints: "Aucun filtre fournisseur obligatoire",
-        offerTitle: "Produits et commission",
-    offerHint: "Chaque produit a sa propre commission. Le premier produit détermine la recherche de créateurs et le message ; les autres suivent dans la même collaboration.",
+    offerTitle: "Produits et commission",
+    offerHint:
+      "Chaque produit a sa propre commission. Le premier produit détermine la recherche de créateurs et le message ; les autres suivent dans la même collaboration.",
     addProduct: "Ajouter un produit",
     removeProduct: "Retirer",
-        leadProduct: "Produit pour la recherche et le message",
-        commissionColumn: "Commission %",
+    leadProduct: "Produit pour la recherche et le message",
+    commissionColumn: "Commission %",
     endDays: "Durée de la collaboration",
-    endDaysHint: "Combien de jours chaque collaboration reste ouverte. Compté à partir de sa création, pour que chaque lot ait la fenêtre complète.",
+    endDaysHint:
+      "Combien de jours chaque collaboration reste ouverte. Compté à partir de sa création, pour que chaque lot ait la fenêtre complète.",
     endDaysValue: "{{count}} jours",
     sellerContactEmail: "E-mail de contact du vendeur",
     sellerContactEmailHint: "Affiché aux créateurs sur la collaboration. TikTok l'exige.",
     sampleApprovalExempt: "Ignorer la validation des échantillons",
-    sampleApprovalExemptHint: "Laissez désactivé sauf intention explicite. Avec la validation, vos décisions continuent d'entraîner la présélection.",
+    sampleApprovalExemptHint:
+      "Laissez désactivé sauf intention explicite. Avec la validation, vos décisions continuent d'entraîner la présélection.",
     sampleApprovalExemptOn: "Activé — les échantillons sont validés automatiquement",
     sampleApprovalExemptOff: "Désactivé — vous validez chaque échantillon",
     preApprovalSummary: "Présélectionné avant le premier message",
@@ -1593,19 +1659,25 @@ const operationalCopy = {
     preApprovalScore: "Score {{probability}} · seuil {{cutoff}}",
     preApprovalModel: "Modèle {{model}}",
     preApprovalObservedAt: "Données créateur lues le {{date}}",
-    preApprovalDisclaimer: "Une présélection réussie signifie seulement qu'une première invitation vaut la peine. Elle ne garantit pas l'acceptation d'une demande d'échantillon.",
+    preApprovalDisclaimer:
+      "Une présélection réussie signifie seulement qu'une première invitation vaut la peine. Elle ne garantit pas l'acceptation d'une demande d'échantillon.",
     strategyMlChecking: "Vérification de la disponibilité…",
     strategyMlReady: "Disponible pour cette boutique",
-    strategyMlNotConfigured: "Disponible une fois assez de vos propres décisions d'échantillon réunies.",
+    strategyMlNotConfigured:
+      "Disponible une fois assez de vos propres décisions d'échantillon réunies.",
     strategyMlTemporarilyUnavailable: "Indisponible pour le moment — réessayez sous peu",
-    strategyMlDescription: "Avant le premier envoi, un modèle entraîné sur vos propres décisions d'échantillon filtre les créateurs.",
-    dailyCreatorOutreachLimitRequired: "Définissez d’abord la limite quotidienne de contacts automatiques de la boutique.",
+    strategyMlDescription:
+      "Avant le premier envoi, un modèle entraîné sur vos propres décisions d'échantillon filtre les créateurs.",
+    dailyCreatorOutreachLimitRequired:
+      "Définissez d’abord la limite quotidienne de contacts automatiques de la boutique.",
     shopDailyCapacity: "Capacité quotidienne de créateurs de la boutique",
     shopCapacityRemaining: "{{count}} contacts créateurs encore disponibles aujourd’hui",
     activeTargetsVsLimit: "{{targets}} objectifs actifs · {{ratio}} % de la limite boutique",
     shopCircuitUntil: "Circuit de risque de la boutique ouvert jusqu’à {{time}}",
-    targetCollaborationQuotaTitle: "TikTok limite temporairement les nouvelles collaborations ciblées",
-    targetCollaborationQuotaDescription: "TikTok a atteint la limite de 200 collaborations ciblées sur les dernières 24 heures. {{count}} premiers messages planifiés attendent de la capacité. Le système continue ses vérifications périodiques ; les collaborations existantes ne sont pas affectées.",
+    targetCollaborationQuotaTitle:
+      "TikTok limite temporairement les nouvelles collaborations ciblées",
+    targetCollaborationQuotaDescription:
+      "TikTok a atteint la limite de 200 collaborations ciblées sur les dernières 24 heures. {{count}} premiers messages planifiés attendent de la capacité. Le système continue ses vérifications périodiques ; les collaborations existantes ne sont pas affectées.",
     targetCollaborationQuotaFirstObserved: "Première détection",
     targetCollaborationQuotaLastObserved: "Dernier échec",
     targetCollaborationQuotaFailures: "Échecs de quota CREATE aujourd’hui",
@@ -1613,25 +1685,39 @@ const operationalCopy = {
     targetCollaborationQuotaNextRetry: "Prochaine vérification",
     targetCollaborationQuotaRecent: "Créations récentes",
     targetCollaborationQuotaEventCreated: "Collaboration créée pour {{count}} messages planifiés",
-    targetCollaborationQuotaEventExhausted: "Capacité indisponible pour {{count}} messages planifiés",
+    targetCollaborationQuotaEventExhausted:
+      "Capacité indisponible pour {{count}} messages planifiés",
     targetCollaborationQuotaLegacy: "Déduit de l’instantané Delivery au déploiement",
     targetCollaborationQuotaRecovered: "La création de collaborations ciblées a repris",
     targetCollaborationQuotaRecoveredAt: "Première création réussie enregistrée à {{time}}",
-    targetCollaborationQuotaScheduled: "Planifié · en attente de capacité TikTok pour la collaboration ciblée",
+    targetCollaborationQuotaScheduled:
+      "Planifié · en attente de capacité TikTok pour la collaboration ciblée",
     errors: {
-      modelNotReady: "Le mode IA n'est pas encore disponible pour ce vendeur. Utilisez le mode règles du marketplace.",
-      modelTemporarilyUnavailable: "La présélection est momentanément indisponible. Réessayez dans un instant.",
-      dailyCreatorOutreachLimitRequired: "Définissez d’abord la limite quotidienne de contacts automatiques de la boutique.",
-      dailyCreatorOutreachLimitInvalid: "La limite quotidienne doit être un entier compris entre 1 et 20 000.",
-      campaignMaintenance: "La prospection des campagnes est temporairement suspendue pour maintenance.",
-      searchPlanHardConstraintUnsupported: "Une exigence obligatoire ne peut pas être représentée par les filtres TikTok pris en charge. Modifiez l’orientation avant de réessayer.",
-      searchPlanHardConstraintRequired: "L’Agent n’a pas appliqué toutes les exigences obligatoires aux filtres TikTok. Le plan a été bloqué plutôt que d’affaiblir silencieusement vos instructions.",
+      modelNotReady:
+        "Le mode IA n'est pas encore disponible pour ce vendeur. Utilisez le mode règles du marketplace.",
+      modelTemporarilyUnavailable:
+        "La présélection est momentanément indisponible. Réessayez dans un instant.",
+      dailyCreatorOutreachLimitRequired:
+        "Définissez d’abord la limite quotidienne de contacts automatiques de la boutique.",
+      dailyCreatorOutreachLimitInvalid:
+        "La limite quotidienne doit être un entier compris entre 1 et 20 000.",
+      campaignMaintenance:
+        "La prospection des campagnes est temporairement suspendue pour maintenance.",
+      searchPlanHardConstraintUnsupported:
+        "Une exigence obligatoire ne peut pas être représentée par les filtres TikTok pris en charge. Modifiez l’orientation avant de réessayer.",
+      searchPlanHardConstraintRequired:
+        "L’Agent n’a pas appliqué toutes les exigences obligatoires aux filtres TikTok. Le plan a été bloqué plutôt que d’affaiblir silencieusement vos instructions.",
     },
     funnel: {
-      submitted: "Tentatives fournisseur", uncertain: "Résultat en attente", failed: "Échecs",
-      scannedToday: "Creators scannés aujourd’hui", ineligible: "Creators non éligibles",
-      duplicate: "Résultats en double", scheduledToday: "Creators programmés",
-      deliveryFailed: "Refus Provider", targetInvitationsSent: "Invitations ciblées envoyées",
+      submitted: "Tentatives fournisseur",
+      uncertain: "Résultat en attente",
+      failed: "Échecs",
+      scannedToday: "Creators scannés aujourd’hui",
+      ineligible: "Creators non éligibles",
+      duplicate: "Résultats en double",
+      scheduledToday: "Creators programmés",
+      deliveryFailed: "Refus Provider",
+      targetInvitationsSent: "Invitations ciblées envoyées",
     },
   },
   id: {
@@ -1705,31 +1791,37 @@ const operationalCopy = {
     searchPlanGeneratedByCloud: "Dibuat oleh LLM Cloud",
     searchPlanGeneratedByDesktop: "Dibuat oleh Desktop Agent",
     eligibilityReason: {
+      no_campaign_disturb: "Kreator ini menonaktifkan outreach Campaign baru.",
       provider_product_collaboration_conflict:
         "Creator ini sudah memiliki produk promosi dalam kolaborasi lain.",
     },
     updated: "Konfigurasi kampanye diperbarui.",
     templateUnsupportedVariables:
       "Variabel template tidak didukung: {{variables}}. Gunakan hanya variabel yang ditampilkan di atas.",
-    authorizationBody: "Setelah diaktifkan, backend dapat menghubungi kreator yang memenuhi syarat dengan template terbaru yang dipublikasikan. Menjeda menghentikan pengiriman baru; perubahan penting pada produk atau kualifikasi membatalkan tugas antrean yang terdampak.",
-    searchPlanGuidanceHint: "{{count}} / 500 karakter. Preferensi dan gaya adalah arahan lunak. «Harus», «hanya», «minimal», «maksimal», dan «kecualikan» adalah batasan keras: semuanya harus dipetakan ke filter TikTok yang didukung atau pembuatan rencana dihentikan.",
+    authorizationBody:
+      "Setelah diaktifkan, backend dapat menghubungi kreator yang memenuhi syarat dengan template terbaru yang dipublikasikan. Menjeda menghentikan pengiriman baru; perubahan penting pada produk atau kualifikasi membatalkan tugas antrean yang terdampak.",
+    searchPlanGuidanceHint:
+      "{{count}} / 500 karakter. Preferensi dan gaya adalah arahan lunak. «Harus», «hanya», «minimal», «maksimal», dan «kecualikan» adalah batasan keras: semuanya harus dipetakan ke filter TikTok yang didukung atau pembuatan rencana dihentikan.",
     softGuidanceLabel: "Arahan lunak",
     hardConstraintsLabel: "Batasan keras",
     noSoftGuidance: "Tidak ada arahan lunak",
     noHardConstraints: "Tidak ada filter provider wajib",
-        offerTitle: "Produk dan komisi",
-    offerHint: "Setiap produk punya komisinya sendiri. Produk pertama menentukan pencarian kreator dan isi pesan; sisanya ikut dalam kolaborasi yang sama.",
+    offerTitle: "Produk dan komisi",
+    offerHint:
+      "Setiap produk punya komisinya sendiri. Produk pertama menentukan pencarian kreator dan isi pesan; sisanya ikut dalam kolaborasi yang sama.",
     addProduct: "Tambah produk",
     removeProduct: "Hapus",
-        leadProduct: "Produk untuk pencarian dan pesan",
-        commissionColumn: "Komisi %",
+    leadProduct: "Produk untuk pencarian dan pesan",
+    commissionColumn: "Komisi %",
     endDays: "Durasi kolaborasi",
-    endDaysHint: "Berapa hari tiap kolaborasi tetap terbuka. Dihitung sejak dibuat, sehingga tiap batch mendapat jendela penuh.",
+    endDaysHint:
+      "Berapa hari tiap kolaborasi tetap terbuka. Dihitung sejak dibuat, sehingga tiap batch mendapat jendela penuh.",
     endDaysValue: "{{count}} hari",
     sellerContactEmail: "Email kontak penjual",
     sellerContactEmailHint: "Ditampilkan ke creator pada kolaborasi. TikTok mewajibkannya.",
     sampleApprovalExempt: "Lewati persetujuan sampel",
-    sampleApprovalExemptHint: "Biarkan mati kecuali memang diinginkan. Dengan persetujuan aktif, keputusan Anda terus melatih praseleksi.",
+    sampleApprovalExemptHint:
+      "Biarkan mati kecuali memang diinginkan. Dengan persetujuan aktif, keputusan Anda terus melatih praseleksi.",
     sampleApprovalExemptOn: "Aktif — sampel disetujui otomatis",
     sampleApprovalExemptOff: "Mati — Anda menyetujui tiap sampel",
     preApprovalSummary: "Disaring sebelum pesan pertama",
@@ -1739,19 +1831,23 @@ const operationalCopy = {
     preApprovalScore: "Skor {{probability}} · ambang {{cutoff}}",
     preApprovalModel: "Model {{model}}",
     preApprovalObservedAt: "Data creator dibaca {{date}}",
-    preApprovalDisclaimer: "Lolos praseleksi hanya berarti creator ini layak diundang pertama kali. Bukan berarti pengajuan sampel akan disetujui.",
+    preApprovalDisclaimer:
+      "Lolos praseleksi hanya berarti creator ini layak diundang pertama kali. Bukan berarti pengajuan sampel akan disetujui.",
     strategyMlChecking: "Memeriksa ketersediaan…",
     strategyMlReady: "Tersedia untuk toko ini",
     strategyMlNotConfigured: "Tersedia setelah cukup keputusan sampel Anda sendiri terkumpul.",
     strategyMlTemporarilyUnavailable: "Sementara tidak tersedia — coba lagi sebentar",
-    strategyMlDescription: "Sebelum undangan pertama dikirim, model dari keputusan sampel Anda sendiri menyaring creator lebih dulu.",
-    dailyCreatorOutreachLimitRequired: "Atur terlebih dahulu batas harian kontak kreator otomatis untuk toko ini.",
+    strategyMlDescription:
+      "Sebelum undangan pertama dikirim, model dari keputusan sampel Anda sendiri menyaring creator lebih dulu.",
+    dailyCreatorOutreachLimitRequired:
+      "Atur terlebih dahulu batas harian kontak kreator otomatis untuk toko ini.",
     shopDailyCapacity: "Kapasitas kreator harian toko",
     shopCapacityRemaining: "Tersisa {{count}} kontak kreator hari ini",
     activeTargetsVsLimit: "{{targets}} target aktif · {{ratio}}% dari batas toko",
     shopCircuitUntil: "Sirkuit risiko toko aktif hingga {{time}}",
     targetCollaborationQuotaTitle: "Pembuatan kolaborasi target TikTok sementara dibatasi",
-    targetCollaborationQuotaDescription: "TikTok telah mencapai batas 200 kolaborasi target dalam 24 jam terakhir. {{count}} pesan pertama terjadwal sedang menunggu kapasitas. Sistem tetap memeriksa secara berkala; kolaborasi yang sudah ada tidak terpengaruh.",
+    targetCollaborationQuotaDescription:
+      "TikTok telah mencapai batas 200 kolaborasi target dalam 24 jam terakhir. {{count}} pesan pertama terjadwal sedang menunggu kapasitas. Sistem tetap memeriksa secara berkala; kolaborasi yang sudah ada tidak terpengaruh.",
     targetCollaborationQuotaFirstObserved: "Pertama terdeteksi",
     targetCollaborationQuotaLastObserved: "Kegagalan terbaru",
     targetCollaborationQuotaFailures: "Kegagalan kuota CREATE hari ini",
@@ -1759,25 +1855,35 @@ const operationalCopy = {
     targetCollaborationQuotaNextRetry: "Pemeriksaan sistem berikutnya",
     targetCollaborationQuotaRecent: "Catatan pembuatan terbaru",
     targetCollaborationQuotaEventCreated: "Kolaborasi dibuat untuk {{count}} pesan terjadwal",
-    targetCollaborationQuotaEventExhausted: "Kapasitas tidak tersedia untuk {{count}} pesan terjadwal",
+    targetCollaborationQuotaEventExhausted:
+      "Kapasitas tidak tersedia untuk {{count}} pesan terjadwal",
     targetCollaborationQuotaLegacy: "Disimpulkan dari snapshot Delivery saat deployment",
     targetCollaborationQuotaRecovered: "Pembuatan kolaborasi target telah pulih",
     targetCollaborationQuotaRecoveredAt: "Pembuatan pertama yang berhasil tercatat pada {{time}}",
     targetCollaborationQuotaScheduled: "Terjadwal · menunggu kapasitas kolaborasi target TikTok",
     errors: {
-      modelNotReady: "Mode AI belum tersedia untuk penjual ini. Gunakan mode aturan marketplace creator.",
+      modelNotReady:
+        "Mode AI belum tersedia untuk penjual ini. Gunakan mode aturan marketplace creator.",
       modelTemporarilyUnavailable: "Praseleksi sedang tidak tersedia. Coba lagi sebentar lagi.",
-      dailyCreatorOutreachLimitRequired: "Atur terlebih dahulu batas harian kontak kreator otomatis untuk toko ini.",
+      dailyCreatorOutreachLimitRequired:
+        "Atur terlebih dahulu batas harian kontak kreator otomatis untuk toko ini.",
       dailyCreatorOutreachLimitInvalid: "Batas harian harus berupa bilangan bulat 1–20.000.",
       campaignMaintenance: "Outreach kampanye dijeda sementara untuk pemeliharaan.",
-      searchPlanHardConstraintUnsupported: "Persyaratan wajib tidak dapat dipetakan ke filter TikTok yang didukung. Ubah arahan pencarian sebelum mencoba lagi.",
-      searchPlanHardConstraintRequired: "Agent tidak menerapkan semua persyaratan wajib ke filter TikTok. Rencana diblokir alih-alih melemahkan arahan secara diam-diam.",
+      searchPlanHardConstraintUnsupported:
+        "Persyaratan wajib tidak dapat dipetakan ke filter TikTok yang didukung. Ubah arahan pencarian sebelum mencoba lagi.",
+      searchPlanHardConstraintRequired:
+        "Agent tidak menerapkan semua persyaratan wajib ke filter TikTok. Rencana diblokir alih-alih melemahkan arahan secara diam-diam.",
     },
     funnel: {
-      submitted: "Percobaan provider", uncertain: "Hasil tertunda", failed: "Gagal",
-      scannedToday: "Creator dipindai hari ini", ineligible: "Creator tidak memenuhi syarat",
-      duplicate: "Hasil duplikat", scheduledToday: "Creator terjadwal",
-      deliveryFailed: "Ditolak provider", targetInvitationsSent: "Undangan target terkirim",
+      submitted: "Percobaan provider",
+      uncertain: "Hasil tertunda",
+      failed: "Gagal",
+      scannedToday: "Creator dipindai hari ini",
+      ineligible: "Creator tidak memenuhi syarat",
+      duplicate: "Hasil duplikat",
+      scheduledToday: "Creator terjadwal",
+      deliveryFailed: "Ditolak provider",
+      targetInvitationsSent: "Undangan target terkirim",
     },
   },
   it: {
@@ -1852,31 +1958,37 @@ const operationalCopy = {
     searchPlanGeneratedByCloud: "Generato dal LLM Cloud",
     searchPlanGeneratedByDesktop: "Generato da Desktop Agent",
     eligibilityReason: {
+      no_campaign_disturb: "Questo creator ha disattivato i nuovi contatti Campaign.",
       provider_product_collaboration_conflict:
         "Questo creator ha già il prodotto promosso in un'altra collaborazione.",
     },
     updated: "Configurazione della campagna aggiornata.",
     templateUnsupportedVariables:
       "Variabili del modello non supportate: {{variables}}. Usa solo le variabili indicate sopra.",
-    authorizationBody: "Dopo l’attivazione, il backend può contattare i creator idonei con l’ultimo modello pubblicato. La pausa interrompe i nuovi invii; le modifiche critiche al prodotto o alla qualifica invalidano le attività in coda interessate.",
-    searchPlanGuidanceHint: "{{count}} / 500 caratteri. Preferenze e stili sono indicazioni flessibili. «Deve», «solo», «almeno», «al massimo» ed «escludere» sono vincoli rigidi: devono corrispondere a un filtro TikTok supportato, altrimenti la generazione si interrompe.",
+    authorizationBody:
+      "Dopo l’attivazione, il backend può contattare i creator idonei con l’ultimo modello pubblicato. La pausa interrompe i nuovi invii; le modifiche critiche al prodotto o alla qualifica invalidano le attività in coda interessate.",
+    searchPlanGuidanceHint:
+      "{{count}} / 500 caratteri. Preferenze e stili sono indicazioni flessibili. «Deve», «solo», «almeno», «al massimo» ed «escludere» sono vincoli rigidi: devono corrispondere a un filtro TikTok supportato, altrimenti la generazione si interrompe.",
     softGuidanceLabel: "Indicazione flessibile",
     hardConstraintsLabel: "Vincoli rigidi",
     noSoftGuidance: "Nessuna indicazione flessibile",
     noHardConstraints: "Nessun filtro provider obbligatorio",
-        offerTitle: "Prodotti e commissione",
-    offerHint: "Ogni prodotto ha la propria commissione. Il primo prodotto guida la ricerca dei creator e il messaggio; gli altri viaggiano nella stessa collaborazione.",
+    offerTitle: "Prodotti e commissione",
+    offerHint:
+      "Ogni prodotto ha la propria commissione. Il primo prodotto guida la ricerca dei creator e il messaggio; gli altri viaggiano nella stessa collaborazione.",
     addProduct: "Aggiungi prodotto",
     removeProduct: "Rimuovi",
-        leadProduct: "Prodotto per ricerca e messaggio",
-        commissionColumn: "Commissione %",
+    leadProduct: "Prodotto per ricerca e messaggio",
+    commissionColumn: "Commissione %",
     endDays: "Durata della collaborazione",
-    endDaysHint: "Per quanti giorni ogni collaborazione resta aperta. Conteggiata dalla creazione, così ogni lotto ottiene la finestra intera.",
+    endDaysHint:
+      "Per quanti giorni ogni collaborazione resta aperta. Conteggiata dalla creazione, così ogni lotto ottiene la finestra intera.",
     endDaysValue: "{{count}} giorni",
     sellerContactEmail: "Email di contatto del venditore",
     sellerContactEmailHint: "Mostrata ai creator sulla collaborazione. TikTok la richiede.",
     sampleApprovalExempt: "Salta l'approvazione dei campioni",
-    sampleApprovalExemptHint: "Lascialo disattivato se non serve davvero. Con l'approvazione attiva le tue decisioni continuano ad addestrare la preselezione.",
+    sampleApprovalExemptHint:
+      "Lascialo disattivato se non serve davvero. Con l'approvazione attiva le tue decisioni continuano ad addestrare la preselezione.",
     sampleApprovalExemptOn: "Attivo — i campioni si approvano da soli",
     sampleApprovalExemptOff: "Disattivo — approvi tu ogni campione",
     preApprovalSummary: "Preselezionato prima del primo messaggio",
@@ -1886,45 +1998,63 @@ const operationalCopy = {
     preApprovalScore: "Punteggio {{probability}} · soglia {{cutoff}}",
     preApprovalModel: "Modello {{model}}",
     preApprovalObservedAt: "Dati creator letti il {{date}}",
-    preApprovalDisclaimer: "Superare la preselezione significa solo che vale la pena un primo invito. Non significa che una richiesta di campione verrà approvata.",
+    preApprovalDisclaimer:
+      "Superare la preselezione significa solo che vale la pena un primo invito. Non significa che una richiesta di campione verrà approvata.",
     strategyMlChecking: "Verifica della disponibilità…",
     strategyMlReady: "Disponibile per questo negozio",
     strategyMlNotConfigured: "Disponibile quando ci saranno abbastanza tue decisioni sui campioni.",
     strategyMlTemporarilyUnavailable: "Momentaneamente non disponibile: riprova a breve",
-    strategyMlDescription: "Prima del primo invito, un modello addestrato sulle tue decisioni sui campioni filtra i creator.",
-    dailyCreatorOutreachLimitRequired: "Imposta prima il limite giornaliero di contatti automatici del negozio.",
+    strategyMlDescription:
+      "Prima del primo invito, un modello addestrato sulle tue decisioni sui campioni filtra i creator.",
+    dailyCreatorOutreachLimitRequired:
+      "Imposta prima il limite giornaliero di contatti automatici del negozio.",
     shopDailyCapacity: "Capacità giornaliera creator del negozio",
     shopCapacityRemaining: "Restano {{count}} contatti creator oggi",
     activeTargetsVsLimit: "{{targets}} obiettivi attivi · {{ratio}}% del limite negozio",
     shopCircuitUntil: "Circuito di rischio del negozio aperto fino alle {{time}}",
     targetCollaborationQuotaTitle: "TikTok limita temporaneamente le nuove collaborazioni mirate",
-    targetCollaborationQuotaDescription: "TikTok ha raggiunto il limite di 200 collaborazioni mirate nelle ultime 24 ore. {{count}} primi messaggi pianificati attendono capacità. Il sistema continua a controllare periodicamente; le collaborazioni esistenti non sono interessate.",
+    targetCollaborationQuotaDescription:
+      "TikTok ha raggiunto il limite di 200 collaborazioni mirate nelle ultime 24 ore. {{count}} primi messaggi pianificati attendono capacità. Il sistema continua a controllare periodicamente; le collaborazioni esistenti non sono interessate.",
     targetCollaborationQuotaFirstObserved: "Prima rilevazione",
     targetCollaborationQuotaLastObserved: "Ultimo errore",
     targetCollaborationQuotaFailures: "Errori quota CREATE oggi",
     targetCollaborationQuotaAffected: "Messaggi pianificati interessati oggi",
     targetCollaborationQuotaNextRetry: "Prossimo controllo",
     targetCollaborationQuotaRecent: "Creazioni recenti",
-    targetCollaborationQuotaEventCreated: "Collaborazione creata per {{count}} messaggi pianificati",
-    targetCollaborationQuotaEventExhausted: "Capacità non disponibile per {{count}} messaggi pianificati",
+    targetCollaborationQuotaEventCreated:
+      "Collaborazione creata per {{count}} messaggi pianificati",
+    targetCollaborationQuotaEventExhausted:
+      "Capacità non disponibile per {{count}} messaggi pianificati",
     targetCollaborationQuotaLegacy: "Derivato dallo snapshot Delivery al deployment",
     targetCollaborationQuotaRecovered: "La creazione di collaborazioni mirate è ripresa",
     targetCollaborationQuotaRecoveredAt: "Prima creazione riuscita registrata alle {{time}}",
-    targetCollaborationQuotaScheduled: "Pianificato · in attesa di capacità TikTok per la collaborazione mirata",
+    targetCollaborationQuotaScheduled:
+      "Pianificato · in attesa di capacità TikTok per la collaborazione mirata",
     errors: {
-      modelNotReady: "La modalità IA non è ancora disponibile per questo venditore. Usa la modalità regole del marketplace.",
-      modelTemporarilyUnavailable: "La preselezione non è al momento raggiungibile. Riprova tra poco.",
-      dailyCreatorOutreachLimitRequired: "Imposta prima il limite giornaliero di contatti automatici del negozio.",
-      dailyCreatorOutreachLimitInvalid: "Il limite giornaliero deve essere un intero tra 1 e 20.000.",
+      modelNotReady:
+        "La modalità IA non è ancora disponibile per questo venditore. Usa la modalità regole del marketplace.",
+      modelTemporarilyUnavailable:
+        "La preselezione non è al momento raggiungibile. Riprova tra poco.",
+      dailyCreatorOutreachLimitRequired:
+        "Imposta prima il limite giornaliero di contatti automatici del negozio.",
+      dailyCreatorOutreachLimitInvalid:
+        "Il limite giornaliero deve essere un intero tra 1 e 20.000.",
       campaignMaintenance: "L’outreach delle campagne è temporaneamente sospeso per manutenzione.",
-      searchPlanHardConstraintUnsupported: "Un requisito obbligatorio non può essere rappresentato dai filtri TikTok supportati. Modifica l’indicazione di ricerca prima di riprovare.",
-      searchPlanHardConstraintRequired: "L’Agent non ha applicato tutti i requisiti obbligatori ai filtri TikTok. Il piano è stato bloccato invece di indebolire silenziosamente le istruzioni.",
+      searchPlanHardConstraintUnsupported:
+        "Un requisito obbligatorio non può essere rappresentato dai filtri TikTok supportati. Modifica l’indicazione di ricerca prima di riprovare.",
+      searchPlanHardConstraintRequired:
+        "L’Agent non ha applicato tutti i requisiti obbligatori ai filtri TikTok. Il piano è stato bloccato invece di indebolire silenziosamente le istruzioni.",
     },
     funnel: {
-      submitted: "Tentativi provider", uncertain: "Risultato in attesa", failed: "Non riusciti",
-      scannedToday: "Creator scansionati oggi", ineligible: "Creator non idonei",
-      duplicate: "Risultati duplicati", scheduledToday: "Creator programmati",
-      deliveryFailed: "Rifiutati dal provider", targetInvitationsSent: "Inviti mirati inviati",
+      submitted: "Tentativi provider",
+      uncertain: "Risultato in attesa",
+      failed: "Non riusciti",
+      scannedToday: "Creator scansionati oggi",
+      ineligible: "Creator non idonei",
+      duplicate: "Risultati duplicati",
+      scheduledToday: "Creator programmati",
+      deliveryFailed: "Rifiutati dal provider",
+      targetInvitationsSent: "Inviti mirati inviati",
     },
   },
   th: {
@@ -1989,6 +2119,7 @@ const operationalCopy = {
     searchPlanGeneratedByCloud: "สร้างโดย Cloud LLM",
     searchPlanGeneratedByDesktop: "สร้างโดย Desktop Agent",
     eligibilityReason: {
+      no_campaign_disturb: "ครีเอเตอร์ปิดการติดต่อ Campaign ใหม่แล้ว",
       provider_product_collaboration_conflict: "ครีเอเตอร์รายนี้มีสินค้าที่โปรโมตอยู่แล้วในความร่วมมืออื่น",
     },
     updated: "อัปเดตการตั้งค่าแคมเปญแล้ว",
@@ -2025,7 +2156,8 @@ const operationalCopy = {
     preApprovalScore: "คะแนน {{probability}} · เกณฑ์ {{cutoff}}",
     preApprovalModel: "โมเดล {{model}}",
     preApprovalObservedAt: "อ่านข้อมูลครีเอเตอร์เมื่อ {{date}}",
-    preApprovalDisclaimer: "การผ่านการคัดกรองหมายความเพียงว่าควรส่งคำเชิญแรกเท่านั้น ไม่ได้แปลว่าคำขอตัวอย่างจะได้รับอนุมัติ",
+    preApprovalDisclaimer:
+      "การผ่านการคัดกรองหมายความเพียงว่าควรส่งคำเชิญแรกเท่านั้น ไม่ได้แปลว่าคำขอตัวอย่างจะได้รับอนุมัติ",
     strategyMlChecking: "กำลังตรวจสอบว่าพร้อมใช้งานหรือไม่…",
     strategyMlReady: "พร้อมใช้งานสำหรับร้านนี้",
     strategyMlNotConfigured: "ใช้ได้เมื่อมีประวัติการอนุมัติตัวอย่างของคุณเองมากพอ",
@@ -2037,7 +2169,8 @@ const operationalCopy = {
     activeTargetsVsLimit: "เป้าหมายที่ทำงาน {{targets}} · {{ratio}}% ของขีดจำกัดร้าน",
     shopCircuitUntil: "วงจรป้องกันความเสี่ยงของร้านเปิดถึง {{time}}",
     targetCollaborationQuotaTitle: "TikTok จำกัดการสร้างความร่วมมือแบบกำหนดเป้าหมายชั่วคราว",
-    targetCollaborationQuotaDescription: "TikTok ถึงขีดจำกัด 200 ความร่วมมือแบบกำหนดเป้าหมายใน 24 ชั่วโมงที่ผ่านมา มีข้อความแรกที่จัดกำหนดการไว้ {{count}} รายการกำลังรอความจุ ระบบจะตรวจสอบเป็นระยะต่อไป โดยความร่วมมือเดิมไม่ได้รับผลกระทบ",
+    targetCollaborationQuotaDescription:
+      "TikTok ถึงขีดจำกัด 200 ความร่วมมือแบบกำหนดเป้าหมายใน 24 ชั่วโมงที่ผ่านมา มีข้อความแรกที่จัดกำหนดการไว้ {{count}} รายการกำลังรอความจุ ระบบจะตรวจสอบเป็นระยะต่อไป โดยความร่วมมือเดิมไม่ได้รับผลกระทบ",
     targetCollaborationQuotaFirstObserved: "ตรวจพบครั้งแรก",
     targetCollaborationQuotaLastObserved: "ล้มเหลวล่าสุด",
     targetCollaborationQuotaFailures: "จำนวนข้อผิดพลาดโควตา CREATE วันนี้",
@@ -2053,17 +2186,25 @@ const operationalCopy = {
     errors: {
       modelNotReady: "โหมด AI ยังไม่พร้อมสำหรับผู้ขายรายนี้ กรุณาใช้โหมดกฎของ Creator Marketplace",
       modelTemporarilyUnavailable: "การคัดกรองเบื้องต้นใช้งานไม่ได้ชั่วคราว กรุณาลองอีกครั้ง",
-      dailyCreatorOutreachLimitRequired: "โปรดตั้งค่าจำนวนครีเอเตอร์สูงสุดที่ร้านจะติดต่ออัตโนมัติต่อวันก่อนเปิดแคมเปญ",
+      dailyCreatorOutreachLimitRequired:
+        "โปรดตั้งค่าจำนวนครีเอเตอร์สูงสุดที่ร้านจะติดต่ออัตโนมัติต่อวันก่อนเปิดแคมเปญ",
       dailyCreatorOutreachLimitInvalid: "ขีดจำกัดรายวันต้องเป็นจำนวนเต็มระหว่าง 1–20,000",
       campaignMaintenance: "การติดต่อจากแคมเปญหยุดชั่วคราวเพื่อบำรุงรักษา",
-      searchPlanHardConstraintUnsupported: "ข้อกำหนดบังคับบางข้อไม่สามารถแมปกับตัวกรอง TikTok ที่รองรับได้ โปรดแก้ไขแนวทางการค้นหาก่อนลองอีกครั้ง",
-      searchPlanHardConstraintRequired: "Agent ไม่ได้ใช้ข้อกำหนดบังคับทั้งหมดกับตัวกรอง TikTok ระบบจึงบล็อกแผนแทนที่จะลดทอนคำสั่งโดยไม่แจ้ง",
+      searchPlanHardConstraintUnsupported:
+        "ข้อกำหนดบังคับบางข้อไม่สามารถแมปกับตัวกรอง TikTok ที่รองรับได้ โปรดแก้ไขแนวทางการค้นหาก่อนลองอีกครั้ง",
+      searchPlanHardConstraintRequired:
+        "Agent ไม่ได้ใช้ข้อกำหนดบังคับทั้งหมดกับตัวกรอง TikTok ระบบจึงบล็อกแผนแทนที่จะลดทอนคำสั่งโดยไม่แจ้ง",
     },
     funnel: {
-      submitted: "ความพยายามส่ง", uncertain: "รอยืนยันผล", failed: "ล้มเหลว",
-      scannedToday: "ครีเอเตอร์ที่สแกนวันนี้", ineligible: "ครีเอเตอร์ไม่ผ่านเกณฑ์",
-      duplicate: "ผลลัพธ์ซ้ำ", scheduledToday: "ครีเอเตอร์ที่จัดกำหนดแล้ว",
-      deliveryFailed: "ผู้ให้บริการปฏิเสธ", targetInvitationsSent: "ส่งคำเชิญแบบเจาะจงแล้ว",
+      submitted: "ความพยายามส่ง",
+      uncertain: "รอยืนยันผล",
+      failed: "ล้มเหลว",
+      scannedToday: "ครีเอเตอร์ที่สแกนวันนี้",
+      ineligible: "ครีเอเตอร์ไม่ผ่านเกณฑ์",
+      duplicate: "ผลลัพธ์ซ้ำ",
+      scheduledToday: "ครีเอเตอร์ที่จัดกำหนดแล้ว",
+      deliveryFailed: "ผู้ให้บริการปฏิเสธ",
+      targetInvitationsSent: "ส่งคำเชิญแบบเจาะจงแล้ว",
     },
   },
 } as const;
@@ -2126,8 +2267,7 @@ const commissionCopy = {
     shopAdsCommissionRate: "อัตราคอมมิชชัน Shop Ads",
     offerHint:
       "คำสั่งซื้อจากทราฟฟิกธรรมชาติใช้อัตราคอมมิชชันปกติ ส่วนคำสั่งซื้อที่มาจาก Shop Ads ที่ผู้ขายเป็นผู้ลงโฆษณาใช้อัตรา Shop Ads โดย TikTok จะคำนวณอัตราที่เกี่ยวข้องให้อัตโนมัติ",
-    shopAdsCommissionRateHint:
-      "ใช้กับคำสั่งซื้อที่มาจาก Shop Ads ของผู้ขาย และอาจสูงหรือต่ำกว่าอัตราคอมมิชชันปกติได้",
+    shopAdsCommissionRateHint: "ใช้กับคำสั่งซื้อที่มาจาก Shop Ads ของผู้ขาย และอาจสูงหรือต่ำกว่าอัตราคอมมิชชันปกติได้",
   },
 } as const;
 
@@ -2248,7 +2388,8 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS: Record<
           ignored: "Ignoriert",
         },
         {
-          providerFilterMatch: "Entspricht den veröffentlichten TikTok-Suchfiltern und bleibt in der Anbieterreihenfolge.",
+          providerFilterMatch:
+            "Entspricht den veröffentlichten TikTok-Suchfiltern und bleibt in der Anbieterreihenfolge.",
           preApprovalQualified: "Erreicht die Modellschwelle und ist eine erste Einladung wert.",
           preApprovalRejected: "Liegt unter der Modellschwelle für eine erste Einladung.",
           preApprovalUnavailable: "Die Vorprüfung konnte für diesen Creator noch nicht laufen.",
@@ -2292,7 +2433,8 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS: Record<
           ignored: "Ignorado",
         },
         {
-          providerFilterMatch: "Cumple los filtros de búsqueda publicados de TikTok y mantiene el orden del proveedor.",
+          providerFilterMatch:
+            "Cumple los filtros de búsqueda publicados de TikTok y mantiene el orden del proveedor.",
           preApprovalQualified: "Alcanza el umbral del modelo y merece una primera invitación.",
           preApprovalRejected: "Por debajo del umbral del modelo para una primera invitación.",
           preApprovalUnavailable: "La preselección aún no pudo ejecutarse para este creator.",
@@ -2336,7 +2478,8 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS: Record<
           ignored: "Ignoré",
         },
         {
-          providerFilterMatch: "Correspond aux filtres de recherche TikTok publiés et conserve l’ordre du fournisseur.",
+          providerFilterMatch:
+            "Correspond aux filtres de recherche TikTok publiés et conserve l’ordre du fournisseur.",
           preApprovalQualified: "Atteint le seuil du modèle et mérite une première invitation.",
           preApprovalRejected: "Sous le seuil du modèle pour une première invitation.",
           preApprovalUnavailable: "La présélection n'a pas encore pu s'exécuter pour ce créateur.",
@@ -2380,7 +2523,8 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS: Record<
           ignored: "Diabaikan",
         },
         {
-          providerFilterMatch: "Sesuai dengan filter pencarian TikTok yang diterbitkan dan tetap mengikuti urutan penyedia.",
+          providerFilterMatch:
+            "Sesuai dengan filter pencarian TikTok yang diterbitkan dan tetap mengikuti urutan penyedia.",
           preApprovalQualified: "Memenuhi ambang model dan layak diundang pertama kali.",
           preApprovalRejected: "Di bawah ambang model untuk undangan pertama.",
           preApprovalUnavailable: "Praseleksi belum dapat dijalankan untuk creator ini.",
@@ -2424,7 +2568,8 @@ export const AFFILIATE_CAMPAIGN_TRANSLATIONS: Record<
           ignored: "Ignorato",
         },
         {
-          providerFilterMatch: "Corrisponde ai filtri di ricerca TikTok pubblicati e mantiene l’ordine del provider.",
+          providerFilterMatch:
+            "Corrisponde ai filtri di ricerca TikTok pubblicati e mantiene l’ordine del provider.",
           preApprovalQualified: "Raggiunge la soglia del modello e merita un primo invito.",
           preApprovalRejected: "Sotto la soglia del modello per un primo invito.",
           preApprovalUnavailable: "La preselezione non è ancora stata eseguita per questo creator.",

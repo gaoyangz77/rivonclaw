@@ -80,10 +80,12 @@ describe("manual tag editor state discipline", () => {
   it("keeps only ids and primitive drafts in React state", () => {
     // A tag modal holding a Relationship node across a store refresh is exactly
     // the dead-node bug .claude/rules/mst-react-state.md exists for.
-    expect(source).toContain("useState(\"\")");
+    expect(source).toContain('useState("")');
     expect(source).toContain("useState<string | null>(null)");
+    expect(source).toContain("useState<GQL.AffiliateCreatorSystemTag | null>(null)");
     expect(source).not.toContain("useRef");
-    expect(source).not.toMatch(/useState<GQL\./);
+    expect(source).not.toContain("useState<GQL.CreatorManualTag");
+    expect(source).not.toContain("useState<GQL.AffiliateCreatorRelationship");
   });
 
   it("re-reads the rename target by id instead of capturing the row", () => {
@@ -96,6 +98,15 @@ describe("manual tag editor state discipline", () => {
   it("writes every change through the relationship id it was given", () => {
     expect(source).toContain("creatorRelationshipId: relationshipId");
     expect(source).not.toContain("shopId:");
+  });
+
+  it("keeps fixed system tags separate while exposing direct seller overrides", () => {
+    expect(source).toContain("AFFILIATE_CREATOR_SYSTEM_TAG_DEFINITIONS_QUERY");
+    expect(source).toContain("ASSIGN_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION");
+    expect(source).toContain("REMOVE_CREATOR_RELATIONSHIP_SYSTEM_TAG_MUTATION");
+    expect(source).toContain("creatorSystemTagDescription");
+    expect(source).not.toContain("createSystemTag");
+    expect(source).not.toContain("renameSystemTag");
   });
 
   it("surfaces a failed write instead of swallowing it", () => {
