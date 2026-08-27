@@ -1,0 +1,216 @@
+import type { ReactNode } from "react";
+
+function classes(...values: Array<string | false | null | undefined>): string {
+  return values.filter(Boolean).join(" ");
+}
+
+export function AffiliatePageFrame({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={classes("page-enter", "affiliate-page-shell", "affiliate-page-frame", className)}>
+      {children}
+    </div>
+  );
+}
+
+export function AffiliatePageHeader({
+  title,
+  subtitle,
+  eyebrow,
+  actions,
+  className,
+  tutorialId,
+  "data-tutorial-id": dataTutorialId,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  eyebrow?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+  tutorialId?: string;
+  "data-tutorial-id"?: string;
+}) {
+  return (
+    <header
+      className={classes("affiliate-page-hero", "affiliate-page-header", className)}
+      data-tutorial-id={dataTutorialId ?? tutorialId}
+    >
+      <div className="affiliate-page-header-copy">
+        {eyebrow ? <span className="affiliate-page-header-eyebrow">{eyebrow}</span> : null}
+        <h1>{title}</h1>
+        {subtitle ? <p className="ecommerce-page-subtitle">{subtitle}</p> : null}
+      </div>
+      {actions ? <div className="affiliate-page-header-actions">{actions}</div> : null}
+    </header>
+  );
+}
+
+export function AffiliateToolbar({
+  children,
+  className,
+  tutorialId,
+  "data-tutorial-id": dataTutorialId,
+}: {
+  children: ReactNode;
+  className?: string;
+  tutorialId?: string;
+  "data-tutorial-id"?: string;
+}) {
+  return (
+    <div
+      className={classes("affiliate-toolbar", className)}
+      data-tutorial-id={dataTutorialId ?? tutorialId}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function AffiliateDetailModal({
+  children,
+  onClose,
+  ariaLabel,
+  ariaLabelledBy,
+  className,
+  backdropClassName,
+  tutorialId,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
+  className?: string;
+  backdropClassName?: string;
+  tutorialId?: string;
+}) {
+  return (
+    <div
+      className={classes("modal-backdrop", "affiliate-detail-modal-backdrop", backdropClassName)}
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className={classes("modal-content", "affiliate-detail-modal", className)}
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        data-tutorial-id={tutorialId}
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function AffiliateMetricGrid({
+  children,
+  className,
+  compact = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={classes(
+        "affiliate-metric-grid",
+        compact && "affiliate-metric-grid-compact",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function AffiliateMetric({
+  label,
+  value,
+  detail,
+  tone = "neutral",
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  detail?: ReactNode;
+  tone?: "neutral" | "primary" | "success" | "warning" | "danger";
+}) {
+  return (
+    <div className={classes("affiliate-metric", `is-${tone}`)}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {detail ? <small>{detail}</small> : null}
+    </div>
+  );
+}
+
+export function AffiliateStatusPill({
+  children,
+  tone = "neutral",
+  className,
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "primary" | "success" | "warning" | "danger" | "info";
+  className?: string;
+}) {
+  return (
+    <span className={classes("affiliate-status-pill", `is-${tone}`, className)}>{children}</span>
+  );
+}
+
+export function AffiliateContextInspector({
+  children,
+  open,
+  title,
+  onClose,
+  className,
+}: {
+  children: ReactNode;
+  open: boolean;
+  title: ReactNode;
+  onClose: () => void;
+  className?: string;
+}) {
+  return (
+    <aside
+      className={classes(
+        "affiliate-context-inspector",
+        open && "is-open",
+        className,
+      )}
+      aria-hidden={!open}
+    >
+      <div className="affiliate-context-inspector-header">
+        <strong>{title}</strong>
+        <button type="button" onClick={onClose} aria-label="Close">
+          ×
+        </button>
+      </div>
+      <div className="affiliate-context-inspector-body">{children}</div>
+    </aside>
+  );
+}
+
+export type AffiliateEntityCardVariant = "listing" | "embedded" | "compact";
+
+export function affiliateEntityCardClassName(
+  variant: AffiliateEntityCardVariant,
+  interactive = false,
+  className?: string,
+): string {
+  return classes(
+    "affiliate-entity-card",
+    `affiliate-entity-card-${variant}`,
+    interactive && "is-interactive",
+    className,
+  );
+}

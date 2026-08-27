@@ -7,6 +7,7 @@ import { GQL } from "@rivonclaw/core";
 import {
   CheckIcon,
   ChevronRightIcon,
+  CopyIcon,
   RefreshIcon,
   ShopIcon,
   UserPlusIcon,
@@ -21,6 +22,8 @@ import {
   type CreatorRelationshipDetailItem,
 } from "./AffiliateManagementPage.js";
 import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
+import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
+import "./components/AffiliateUi.css";
 import { generateAffiliateCampaignMessageTemplate } from "../../api/affiliate-campaign-ai.js";
 import {
   AFFILIATE_CAMPAIGNS_QUERY,
@@ -29,6 +32,7 @@ import {
   AFFILIATE_CAMPAIGN_SEARCH_PLAN_CREATOR_STATES_QUERY,
   AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY,
   AFFILIATE_CAMPAIGN_SUMMARY_QUERY,
+  AFFILIATE_PRODUCT_SUMMARIES_QUERY,
   AFFILIATE_MARKETPLACE_RULE_CAPABILITIES_QUERY,
   DELETE_AFFILIATE_CAMPAIGN_DRAFT_MUTATION,
   DUPLICATE_AFFILIATE_CAMPAIGN_MUTATION,
@@ -430,6 +434,21 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const campaignPageStart = (campaignPage - 1) * CAMPAIGNS_PER_PAGE;
   const visibleCampaigns = paginateCampaigns(campaigns, campaignPage);
   const selectedCampaign = campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
+  const selectedCampaignProductRefs =
+    selectedCampaign?.products.map((product) => ({
+      shopId: selectedCampaign.shopId,
+      productId: product.productId,
+    })) ?? [];
+  const { data: selectedCampaignProductData } = useQuery<
+    { affiliateProductSummaries: GQL.AffiliateRelationshipProductSummary[] },
+    { input: GQL.AffiliateProductSummaryBatchInput }
+  >(AFFILIATE_PRODUCT_SUMMARIES_QUERY, {
+    variables: { input: { refs: selectedCampaignProductRefs } },
+    skip: selectedCampaignProductRefs.length === 0,
+    fetchPolicy: "cache-first",
+  });
+  const selectedCampaignProductSummaries =
+    selectedCampaignProductData?.affiliateProductSummaries ?? [];
   const editingCampaign = campaigns.find((campaign) => campaign.id === editingCampaignId) ?? null;
   const summary = summaryQuery.data?.affiliateCampaignSummary;
   const latestExecution = summary?.latestExecution;
@@ -1008,6 +1027,16 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     }
   };
 
+  const copyCampaignProductId = async (productId: string) => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(productId);
+      showToast(t("common.copied"), "success");
+    } catch {
+      showToast(t("ecommerce.affiliateWorkspace.copyFailed"), "error");
+    }
+  };
+
   const campaignDetailActions = selectedCampaign ? (
     <div className="affiliate-campaign-detail-actions affiliate-campaign-detail-actions-card">
       {!isTerminalCampaignStatus(selectedCampaign.status) && (
@@ -1071,16 +1100,15 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   ) : null;
 
   return (
-    <div className="page-enter affiliate-campaign-page">
-      <header className="affiliate-campaign-hero" data-tutorial-id="affiliate-campaign-header">
-        <div className="affiliate-campaign-hero-copy">
-          <span className="affiliate-campaign-eyebrow">
-            {t("ecommerce.affiliateCampaign.eyebrow")}
-          </span>
-          <h1>{t("ecommerce.affiliateCampaign.title")}</h1>
-          <p>{t("ecommerce.affiliateCampaign.subtitle")}</p>
-        </div>
-        <div className="affiliate-campaign-hero-actions">
+    <AffiliatePageFrame className="affiliate-campaign-page">
+      <AffiliatePageHeader
+        className="affiliate-campaign-hero"
+        data-tutorial-id="affiliate-campaign-header"
+        eyebrow={t("ecommerce.affiliateCampaign.eyebrow")}
+        title={t("ecommerce.affiliateCampaign.title")}
+        subtitle={t("ecommerce.affiliateCampaign.subtitle")}
+        actions={(
+          <div className="affiliate-campaign-hero-actions">
           <button
             type="button"
             className="btn btn-secondary"
@@ -1098,8 +1126,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           >
             <UserPlusIcon /> {t("ecommerce.affiliateCampaign.create")}
           </button>
-        </div>
-      </header>
+          </div>
+        )}
+      />
 
       <section
         className="affiliate-campaign-command-strip"
@@ -1446,20 +1475,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </span>
                   <span className="affiliate-campaign-modal-commission">
                     {t("ecommerce.affiliateCampaign.ordinaryCommissionRate")} ·{" "}
-                    {selectedCampaign.products
-                      .map((product) => `${product.productId} ${product.commissionRatePercent}%`)
-                      .join(" · ")}
+                    {affiliateCampaignCommissionRange(
+                      selectedCampaign.products.map((product) => product.commissionRatePercent),
+                    )}
                   </span>
                   <span className="affiliate-campaign-modal-commission">
                     {t("ecommerce.affiliateCampaign.shopAdsCommissionRate")} ·{" "}
-                    {selectedCampaign.products
-                      .map(
+                    {affiliateCampaignCommissionRange(
+                      selectedCampaign.products.map(
                         (product) =>
-                          `${product.productId} ${
-                            product.shopAdsCommissionRatePercent ?? product.commissionRatePercent
-                          }%`,
-                      )
-                      .join(" · ")}
+                          product.shopAdsCommissionRatePercent ?? product.commissionRatePercent,
+                      ),
+                    )}
                   </span>
                   <button
                     type="button"
@@ -1472,6 +1499,58 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       : t("ecommerce.affiliateCampaign.viewFirstMessage")}
                   </button>
                 </div>
+
+                {selectedCampaign.products.length > 1 ? (
+                  <div className="affiliate-campaign-product-rate-table">
+                    {selectedCampaign.products.map((product, index) => {
+                      const summary = selectedCampaignProductSummaries.find(
+                        (entry) =>
+                          entry.shopId === selectedCampaign.shopId &&
+                          entry.product.productId === product.productId,
+                      )?.product;
+                      return (
+                        <div className="affiliate-campaign-product-rate-row" key={product.productId}>
+                          <div className="affiliate-campaign-product-rate-identity">
+                            {summary?.coverImage ? (
+                              <RemoteMediaImage sourceUrl={summary.coverImage} alt="" loading="lazy" />
+                            ) : (
+                              <span className="affiliate-campaign-product-rate-fallback">
+                                <ShopIcon />
+                              </span>
+                            )}
+                            <div>
+                              <strong>{summary?.title || `Product ${index + 1}`}</strong>
+                              <small>
+                                {summary?.skus?.[0]?.sellerSku ||
+                                  t("ecommerce.affiliateCampaign.skuLabel")}
+                              </small>
+                            </div>
+                          </div>
+                          <div>
+                            <span>{t("ecommerce.affiliateCampaign.ordinaryCommissionRate")}</span>
+                            <strong>{affiliateCampaignCommissionRange([product.commissionRatePercent])}</strong>
+                          </div>
+                          <div>
+                            <span>{t("ecommerce.affiliateCampaign.shopAdsCommissionRate")}</span>
+                            <strong>
+                              {affiliateCampaignCommissionRange([
+                                product.shopAdsCommissionRatePercent ?? product.commissionRatePercent,
+                              ])}
+                            </strong>
+                          </div>
+                          <button
+                            type="button"
+                            title={product.productId}
+                            onClick={() => void copyCampaignProductId(product.productId)}
+                          >
+                            <CopyIcon />
+                            {t("ecommerce.affiliateWorkspace.copyProductPlatformId")}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
 
                 {messageTemplateOpen && (
                   <div
@@ -2686,15 +2765,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.ordinaryCommissionRate")}
-                  value={form.products
-                    .map((product) => `${product.productId} · ${product.commissionRate}%`)
-                    .join("  |  ")}
+                  value={affiliateCampaignCommissionRange(
+                    form.products.map((product) => product.commissionRate),
+                  )}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.shopAdsCommissionRate")}
-                  value={form.products
-                    .map((product) => `${product.productId} · ${product.shopAdsCommissionRate}%`)
-                    .join("  |  ")}
+                  value={affiliateCampaignCommissionRange(
+                    form.products.map(
+                      (product) => product.shopAdsCommissionRate || product.commissionRate,
+                    ),
+                  )}
                 />
                 <ConfirmationItem
                   title={t("ecommerce.affiliateCampaign.endDays")}
@@ -2812,7 +2893,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         cancelLabel={t("common.cancel")}
         confirmVariant="danger"
       />
-    </div>
+    </AffiliatePageFrame>
   );
 });
 
@@ -4300,4 +4381,26 @@ export function renderAffiliateCampaignTemplatePreview(
     .replaceAll("{{creator_name}}", "Alex")
     .replaceAll("{{product_name}}", productName)
     .replaceAll("{{shop_name}}", shopName);
+}
+
+/** Customer-facing commission summary. Product ids belong in technical
+ * metadata and must never be concatenated into this label. */
+export function affiliateCampaignCommissionRange(
+  values: ReadonlyArray<number | string | null | undefined>,
+): string {
+  const rates = [
+    ...new Set(
+      values.flatMap((value) => {
+        if (value == null || String(value).trim() === "") return [];
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? [numeric] : [];
+      }),
+    ),
+  ].sort((left, right) => left - right);
+  if (rates.length === 0) return "—";
+  const format = (value: number) =>
+    `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)}%`;
+  const first = format(rates[0]!);
+  const last = format(rates[rates.length - 1]!);
+  return first === last ? first : `${first}–${last}`;
 }

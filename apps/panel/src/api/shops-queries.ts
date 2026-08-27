@@ -3096,6 +3096,56 @@ export const AFFILIATE_CREATOR_PROFILE_QUERY = gql`
   }
 `;
 
+export const AFFILIATE_CREATOR_CONTACT_STATE_QUERY = gql`
+  query AffiliateCreatorContactState($input: AffiliateCreatorContactStateInput!) {
+    affiliateCreatorContactState(input: $input) {
+      defaultOutboundChannel
+      hasUsableEmailContact
+      hasUsableWhatsAppContact
+      businessDeveloper {
+        id
+        displayName
+      }
+      channelContacts {
+        id
+        creatorRelationshipId
+        accountBindingId
+        businessDeveloperId
+        channel
+        creatorEmail
+        creatorPhone
+        customAlias
+        effectiveAlias
+        source
+        status
+        verifiedAt
+        lastInboundAt
+        lastOutboundAt
+        lastObservedAt
+      }
+      creatorRelationship {
+        id
+      }
+    }
+  }
+`;
+
+export const SET_AFFILIATE_CREATOR_EMAIL_MUTATION = gql`
+  mutation SetAffiliateCreatorEmail($input: SetCreatorEmailContactInput!) {
+    setAffiliateCreatorEmail(input: $input) {
+      id
+    }
+  }
+`;
+
+export const SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION = gql`
+  mutation SetAffiliateCreatorWhatsApp($input: SetCreatorWhatsAppContactInput!) {
+    setAffiliateCreatorWhatsApp(input: $input) {
+      id
+    }
+  }
+`;
+
 export const CREATOR_MANUAL_TAGS_QUERY = gql`
   query CreatorManualTags($input: ReadCreatorManualTagsInput) {
     creatorManualTags(input: $input) {

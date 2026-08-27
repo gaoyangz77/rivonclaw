@@ -4,7 +4,9 @@ import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import type { AffiliateAnalyticsShop } from "./affiliate-analytics-scope.js";
 import { AffiliateExploreTab } from "./components/AffiliateExploreTab.js";
 import { AffiliateOverviewTab } from "./components/AffiliateOverviewTab.js";
+import { AffiliatePageFrame, AffiliatePageHeader } from "./components/AffiliateUi.js";
 import "./AffiliateAnalyticsPage.css";
+import "./components/AffiliateUi.css";
 
 export function AffiliateAnalyticsPage() {
   const { t } = useTranslation();
@@ -33,14 +35,15 @@ export function AffiliateAnalyticsPage() {
   }
 
   return (
-    <div className="page-enter affiliate-analytics-page">
-      <header className="affiliate-analytics-hero" data-tutorial-id="affiliate-analytics-header">
-        <div>
-          <span>{t("ecommerce.affiliateAnalytics.eyebrow")}</span>
-          <h1>{t("ecommerce.affiliateAnalytics.title")}</h1>
-          <p>{t("ecommerce.affiliateAnalytics.subtitle")}</p>
-        </div>
-        <div className="affiliate-tabs" role="tablist" data-tutorial-id="affiliate-analytics-tabs">
+    <AffiliatePageFrame className="affiliate-analytics-page">
+      <AffiliatePageHeader
+        className="affiliate-analytics-hero"
+        data-tutorial-id="affiliate-analytics-header"
+        eyebrow={t("ecommerce.affiliateAnalytics.eyebrow")}
+        title={t("ecommerce.affiliateAnalytics.title")}
+        subtitle={t("ecommerce.affiliateAnalytics.subtitle")}
+        actions={(
+          <div className="affiliate-tabs" role="tablist" data-tutorial-id="affiliate-analytics-tabs">
           <button
             data-tutorial-id="affiliate-analytics-overview-tab"
             role="tab"
@@ -61,8 +64,9 @@ export function AffiliateAnalyticsPage() {
           >
             {t("ecommerce.affiliateAnalytics.explore.title")}
           </button>
-        </div>
-      </header>
+          </div>
+        )}
+      />
       {shops.length === 0 ? (
         <section className="affiliate-state is-upgrade">
           <strong>{t("ecommerce.affiliateAnalytics.noEntitlementTitle")}</strong>
@@ -73,6 +77,6 @@ export function AffiliateAnalyticsPage() {
       ) : (
         <AffiliateExploreTab shops={shops} />
       )}
-    </div>
+    </AffiliatePageFrame>
   );
 }

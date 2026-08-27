@@ -766,17 +766,40 @@ describe("Affiliate canonical UI contract", () => {
     }
   });
 
-  it("defaults platform inventory to Open collaborations and exposes a real detail query", () => {
+  it("opens platform collaborations in one untabbed detail modal backed by the real detail query", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
     );
     const queries = readFileSync(resolve(process.cwd(), "src/api/shops-queries.ts"), "utf8");
+    const styles = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateUi.css"),
+      "utf8",
+    );
 
     expect(page).toMatch(
       /useState<HistoryTypeFilter>\(\s*GQL\.AffiliateCollaborationType\.Open,?\s*\)/u,
     );
     expect(page).toContain("AffiliateCollaborationDetailModal");
+    expect(page).toContain('className="affiliate-platform-collaboration-detail-modal"');
+    expect(page).toContain("affiliate-platform-collaboration-workspace");
+    expect(page).toContain("affiliate-platform-collaboration-primary-panel");
+    expect(page).toContain("affiliate-platform-collaboration-context-panel");
+    expect(page).toContain("affiliate-platform-collaboration-empty-row");
+    expect(page).toContain("affiliate-platform-collaboration-edit-drawer");
+    expect(page).not.toMatch(
+      /affiliate-platform-collaboration-header-actions[\s\S]{0,700}className="modal-close"/u,
+    );
+    expect(page).not.toContain("affiliate-platform-collaboration-detail-sections");
+    expect(page).not.toContain("affiliate-platform-collaboration-tabs");
+    expect(page).not.toContain('className="affiliate-platform-collaboration-history"');
+    expect(page).not.toContain("affiliate-platform-collaboration-detail-page");
+    expect(page).not.toContain("collaborationOperations.detailsSummary");
+    expect(page).toContain('allowDetailOpen={variant !== "listing"}');
+    expect(styles).toMatch(
+      /\.affiliate-platform-collaboration-detail-modal\s*\{[^}]*height:\s*auto;/su,
+    );
+    expect(styles).toContain("grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.85fr)");
     expect(queries).toContain("query AffiliateCollaborationDetail");
     expect(queries).toContain("shopActivitySummaries");
   });
@@ -865,7 +888,8 @@ describe("Affiliate canonical UI contract", () => {
     );
 
     expect(page).toContain("<AgentWorkBundleDetailModal");
-    expect(page).toContain('className="modal-content affiliate-agent-work-detail-modal"');
+    expect(page).toContain("<AffiliateDetailModal");
+    expect(page).toContain('className="affiliate-agent-work-detail-modal"');
     expect(page).toContain("allowDecisionActions={isPending}");
     expect(page).toContain("onApprove={isPending ? onApprove : undefined}");
     expect(page).toContain("showRevisionHistory={false}");

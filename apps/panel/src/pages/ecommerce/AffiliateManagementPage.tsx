@@ -35,6 +35,7 @@ import {
   AFFILIATE_COLLABORATION_DETAIL_QUERY,
   AFFILIATE_COLLABORATIONS_QUERY,
   AFFILIATE_CREATOR_MESSAGE_HISTORY_QUERY,
+  AFFILIATE_CREATOR_CONTACT_STATE_QUERY,
   AFFILIATE_CREATOR_PROFILE_QUERY,
   AFFILIATE_CREATOR_RELATIONSHIP_DETAIL_QUERY,
   AFFILIATE_CREATORS_QUERY,
@@ -56,6 +57,8 @@ import {
   REMOVE_AFFILIATE_OPEN_COLLABORATION_MUTATION,
   REMOVE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
   SEND_AFFILIATE_CREATOR_MESSAGE_MUTATION,
+  SET_AFFILIATE_CREATOR_EMAIL_MUTATION,
+  SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION,
   PROTECT_AFFILIATE_CREATOR_RELATIONSHIP_MUTATION,
   REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION,
   UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
@@ -70,6 +73,18 @@ import {
 } from "./components/AffiliateCreatorManualTagEditor.js";
 import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
 import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
+import {
+  AffiliateContextInspector,
+  AffiliateDetailModal,
+  AffiliateMetric,
+  AffiliateMetricGrid,
+  AffiliatePageFrame,
+  AffiliatePageHeader,
+  AffiliateToolbar,
+  affiliateEntityCardClassName,
+  type AffiliateEntityCardVariant,
+} from "./components/AffiliateUi.js";
+import "./components/AffiliateUi.css";
 
 type CreatorRelationshipWorkItem = {
   relationshipId: string;
@@ -748,18 +763,15 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
   }
 
   return (
-    <div className="page-enter affiliate-workbench affiliate-intelligence-page">
-      <div className="affiliate-intelligence-hero" data-tutorial-id="affiliate-intelligence-header">
-        <div>
-          <p className="affiliate-intelligence-kicker">
-            {t("ecommerce.affiliateWorkspace.intelligenceKicker")}
-          </p>
-          <h1>{t("ecommerce.affiliateWorkspace.mlInsightsTitle")}</h1>
-          <p className="ecommerce-page-subtitle">
-            {t("ecommerce.affiliateWorkspace.mlInsightsHint")}
-          </p>
-        </div>
-        <div className="affiliate-intelligence-controls">
+    <AffiliatePageFrame className="affiliate-workbench affiliate-intelligence-page">
+      <AffiliatePageHeader
+        className="affiliate-intelligence-hero"
+        data-tutorial-id="affiliate-intelligence-header"
+        eyebrow={t("ecommerce.affiliateWorkspace.intelligenceKicker")}
+        title={t("ecommerce.affiliateWorkspace.mlInsightsTitle")}
+        subtitle={t("ecommerce.affiliateWorkspace.mlInsightsHint")}
+        actions={(
+          <AffiliateToolbar className="affiliate-intelligence-controls">
           <button
             className="btn btn-secondary affiliate-intelligence-refresh"
             type="button"
@@ -774,8 +786,9 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
                 : t("ecommerce.affiliateWorkspace.intelligenceRefresh")}
             </span>
           </button>
-        </div>
-      </div>
+          </AffiliateToolbar>
+        )}
+      />
 
       <AffiliateMlInsightsPanel
         loading={entityStore.affiliateMlInsightsLoading}
@@ -784,7 +797,7 @@ export const AffiliateIntelligencePage = observer(function AffiliateIntelligence
         selectedKey={selectedScopeKey}
         onSelect={setSelectedScopeKey}
       />
-    </div>
+    </AffiliatePageFrame>
   );
 });
 
@@ -1240,21 +1253,17 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
   }
 
   return (
-    <div className="page-enter affiliate-workbench">
-      <div
+    <AffiliatePageFrame className="affiliate-workbench">
+      <AffiliatePageHeader
         className="ecommerce-page-header affiliate-workbench-header"
         data-tutorial-id="affiliate-attention-header"
-      >
-        <div>
-          <h1>{t("ecommerce.affiliateWorkspace.pageTitles.NEEDS_ATTENTION")}</h1>
-          <p className="ecommerce-page-subtitle">
-            {t("ecommerce.affiliateWorkspace.pageSubtitles.NEEDS_ATTENTION")}
-          </p>
-        </div>
-        <div
-          className="affiliate-workbench-controls"
-          data-tutorial-id="affiliate-attention-controls"
-        >
+        title={t("ecommerce.affiliateWorkspace.pageTitles.NEEDS_ATTENTION")}
+        subtitle={t("ecommerce.affiliateWorkspace.pageSubtitles.NEEDS_ATTENTION")}
+        actions={(
+          <AffiliateToolbar
+            className="affiliate-workbench-controls"
+            data-tutorial-id="affiliate-attention-controls"
+          >
           <Select
             value={selectedShopId}
             onChange={setSelectedShopId}
@@ -1271,8 +1280,9 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
               ? t("common.loading")
               : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
           </button>
-        </div>
-      </div>
+          </AffiliateToolbar>
+        )}
+      />
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head affiliate-attention-panel-head affiliate-agent-workspace-controls">
@@ -1420,7 +1430,7 @@ export const AffiliateNeedsAttentionPage = observer(function AffiliateNeedsAtten
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
-    </div>
+    </AffiliatePageFrame>
   );
 });
 
@@ -1515,8 +1525,8 @@ export const AffiliateStaffHandlingPage = observer(function AffiliateStaffHandli
   }
 
   return (
-    <div className="page-enter affiliate-workbench">
-      <div className="ecommerce-page-header affiliate-workbench-header">
+    <div className="page-enter affiliate-page-shell affiliate-workbench">
+      <div className="ecommerce-page-header affiliate-page-hero affiliate-workbench-header">
         <div>
           <h1>{t("ecommerce.affiliateWorkspace.collaborationWorkQueueTitle")}</h1>
           <p className="ecommerce-page-subtitle">
@@ -2983,21 +2993,17 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   }
 
   return (
-    <div className="page-enter affiliate-workbench">
-      <div
+    <AffiliatePageFrame className="affiliate-workbench">
+      <AffiliatePageHeader
         className="ecommerce-page-header affiliate-workbench-header"
         data-tutorial-id="affiliate-creators-header"
-      >
-        <div>
-          <h1>{t("ecommerce.affiliateWorkspace.creatorsTitle")}</h1>
-          <p className="ecommerce-page-subtitle">
-            {t("ecommerce.affiliateWorkspace.creatorsSubtitle")}
-          </p>
-        </div>
-        <div
-          className="affiliate-workbench-controls"
-          data-tutorial-id="affiliate-creators-controls"
-        >
+        title={t("ecommerce.affiliateWorkspace.creatorsTitle")}
+        subtitle={t("ecommerce.affiliateWorkspace.creatorsSubtitle")}
+        actions={(
+          <AffiliateToolbar
+            className="affiliate-workbench-controls"
+            data-tutorial-id="affiliate-creators-controls"
+          >
           <Select
             value={selectedShopId}
             onChange={setSelectedShopId}
@@ -3016,8 +3022,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           >
             {loading ? t("common.loading") : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
           </button>
-        </div>
-      </div>
+          </AffiliateToolbar>
+        )}
+      />
 
       {projectionHealth && !projectionHealth.ready ? (
         <div className="affiliate-projection-health-banner" role="status">
@@ -3165,7 +3172,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
           onClose={() => setSelectedRelationship(null)}
         />
       ) : null}
-    </div>
+    </AffiliatePageFrame>
   );
 });
 
@@ -3241,7 +3248,11 @@ function CreatorRelationshipCard({
 
   return (
     <article
-      className="affiliate-creator-row affiliate-relationship-card"
+      className={affiliateEntityCardClassName(
+        "listing",
+        true,
+        "affiliate-creator-row affiliate-relationship-card",
+      )}
       data-tutorial-id="affiliate-creators-results"
       role="button"
       tabIndex={0}
@@ -3305,50 +3316,72 @@ function CreatorRelationshipCard({
               })}
             </span>
           </div>
-          {relationshipShopIds.length ? (
-            <div className="affiliate-creator-shop-list">
-              <span className="affiliate-creator-shop-label">
-                {t("ecommerce.affiliateWorkspace.creatorCooperationShops")}
-              </span>
-              {relationshipShopIds.map((shopId) => (
-                <span className="affiliate-creator-shop-pill" key={shopId}>
-                  {shopLabel(shopId)}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          <div className="affiliate-creator-tag-list">
-            {systemTags.map((tag) => (
-              <span
-                className="affiliate-creator-tag affiliate-creator-system-tag"
-                key={tag}
-                title={t("ecommerce.affiliateWorkspace.systemTags.hint")}
-              >
-                <span>{creatorSystemTagLabel(t, tag)}</span>
+        </div>
+      </div>
+
+      <AffiliateMetricGrid className="affiliate-creator-card-metrics" compact>
+        <AffiliateMetric
+          label={t("ecommerce.affiliateWorkspace.creatorDetail.followers")}
+          value={followerCount || "—"}
+        />
+        <AffiliateMetric
+          label={t("ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications")}
+          value={formatCount(item.activeSampleApplicationCount)}
+        />
+        <AffiliateMetric
+          label={t("ecommerce.affiliateWorkspace.relationshipPanelPlatformCollaborations")}
+          value={formatCount(item.activeCollaborationCount)}
+        />
+        <AffiliateMetric
+          label={t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}
+          value={observedContentCount == null ? "—" : formatCount(observedContentCount)}
+        />
+      </AffiliateMetricGrid>
+
+      <div className="affiliate-creator-relationship-context">
+        {relationshipShopIds.length ? (
+          <div className="affiliate-creator-shop-list">
+            <span className="affiliate-creator-shop-label">
+              {t("ecommerce.affiliateWorkspace.creatorCooperationShops")}
+            </span>
+            {relationshipShopIds.map((shopId) => (
+              <span className="affiliate-creator-shop-pill" key={shopId}>
+                {shopLabel(shopId)}
               </span>
             ))}
-            {visibleManualTags.length ? (
-              <>
-                {visibleManualTags.map((tag) => (
-                  <span className="affiliate-creator-tag" key={tag.id}>
-                    <span>{tag.name}</span>
-                  </span>
-                ))}
-                {hiddenManualTagCount > 0 ? (
-                  <span
-                    className="affiliate-creator-tag affiliate-creator-tag-overflow"
-                    title={manualTags.map((tag) => tag.name).join(", ")}
-                  >
-                    <span>+{hiddenManualTagCount}</span>
-                  </span>
-                ) : null}
-              </>
-            ) : systemTags.length === 0 ? (
-              <span className="affiliate-creator-tag-empty">
-                {t("ecommerce.affiliateWorkspace.manualTagsEmpty")}
-              </span>
-            ) : null}
           </div>
+        ) : null}
+        <div className="affiliate-creator-tag-list">
+          {systemTags.map((tag) => (
+            <span
+              className="affiliate-creator-tag affiliate-creator-system-tag"
+              key={tag}
+              title={t("ecommerce.affiliateWorkspace.systemTags.hint")}
+            >
+              <span>{creatorSystemTagLabel(t, tag)}</span>
+            </span>
+          ))}
+          {visibleManualTags.length ? (
+            <>
+              {visibleManualTags.map((tag) => (
+                <span className="affiliate-creator-tag" key={tag.id}>
+                  <span>{tag.name}</span>
+                </span>
+              ))}
+              {hiddenManualTagCount > 0 ? (
+                <span
+                  className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                  title={manualTags.map((tag) => tag.name).join(", ")}
+                >
+                  <span>+{hiddenManualTagCount}</span>
+                </span>
+              ) : null}
+            </>
+          ) : systemTags.length === 0 ? (
+            <span className="affiliate-creator-tag-empty">
+              {t("ecommerce.affiliateWorkspace.manualTagsEmpty")}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -3507,16 +3540,22 @@ function CreatorRelationshipWorkCard({
   );
 }
 
-function AffiliateCollaborationCard({
+export function AffiliateCollaborationCard({
   collaboration,
   shopLabel,
   productSummary,
+  productSummaries,
+  contextLabels = [],
+  variant = "listing",
   onOpen,
 }: {
   collaboration: GQL.AffiliateCollaboration;
   shopLabel: string;
   productSummary?: GQL.EcomProductSummary | null;
-  onOpen: () => void;
+  productSummaries?: GQL.EcomProductSummary[];
+  contextLabels?: string[];
+  variant?: AffiliateEntityCardVariant;
+  onOpen?: () => void;
 }) {
   const { t } = useTranslation();
   const creatorCount = collaboration.creatorIds.length || collaboration.creatorOpenIds.length;
@@ -3544,12 +3583,36 @@ function AffiliateCollaborationCard({
           collaboration.status === GQL.AffiliateCollaborationStatus.Terminating
         ? "attention"
         : "waiting";
+  const isInteractive = Boolean(onOpen);
+  const visibleProductIds =
+    variant === "embedded" ? collaboration.productIds : collaboration.productIds.slice(0, 1);
+  const productForId = (productId: string | undefined) =>
+    productSummaries?.find((product) => product.productId === productId) ??
+    (productSummary?.productId === productId ? productSummary : null);
 
   return (
     <article
-      className="affiliate-collaboration-card affiliate-collaboration-record-card affiliate-collaboration-card-interactive"
-      data-tutorial-id="affiliate-history-results"
+      className={affiliateEntityCardClassName(
+        variant,
+        isInteractive,
+        [
+          "affiliate-collaboration-card",
+          "affiliate-collaboration-record-card",
+          variant === "embedded" ? "affiliate-entity-card-embedded" : "",
+          isInteractive ? "affiliate-collaboration-card-interactive" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      )}
+      data-tutorial-id={variant === "listing" ? "affiliate-history-results" : undefined}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
       onClick={onOpen}
+      onKeyDown={(event) => {
+        if (!onOpen || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        onOpen();
+      }}
     >
       <div className="affiliate-work-item-head">
         <div className="affiliate-creator-text">
@@ -3557,9 +3620,15 @@ function AffiliateCollaborationCard({
             {formatAffiliateEnumLabel(collaboration.type)} · {shopLabel}
           </div>
           <div className="affiliate-work-item-meta">
-            <span>
-              {formatProposalTime(collaboration.platformUpdatedAt ?? collaboration.lastObservedAt)}
-            </span>
+            {contextLabels.length > 0 ? (
+              <span>{contextLabels.join(" · ")}</span>
+            ) : (
+              <span>
+                {formatProposalTime(
+                  collaboration.platformUpdatedAt ?? collaboration.lastObservedAt,
+                )}
+              </span>
+            )}
             <SystemIdCopy value={collaboration.id} />
             <PlatformIdCopy value={collaboration.platformCollaborationId} />
           </div>
@@ -3573,11 +3642,9 @@ function AffiliateCollaborationCard({
             {t("ecommerce.affiliateWorkspace.historyTitle")}
           </div>
           <div className="affiliate-card-section-title">
-            {collaboration.productIds[0]
-              ? t("ecommerce.affiliateWorkspace.productIdShort", {
-                  productId: formatCompactIdentifier(collaboration.productIds[0], 28),
-                })
-              : collaboration.platformCollaborationId}
+            {productForId(collaboration.productIds[0])?.title ||
+              collaboration.name ||
+              `${formatAffiliateEnumLabel(collaboration.type)} · ${shopLabel}`}
           </div>
           <div className="affiliate-card-section-copy">
             {formatAffiliateEnumLabel(collaboration.status)} ·{" "}
@@ -3585,13 +3652,30 @@ function AffiliateCollaborationCard({
           </div>
         </section>
 
-        <ProductSummaryCard
-          product={productSummary}
-          productId={collaboration.productIds[0]}
-          shopId={collaboration.shopId}
-          label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
-          allowInlineLoad={false}
-        />
+        {visibleProductIds.length > 0 ? (
+          visibleProductIds.map((productId) => (
+            <ProductSummaryCard
+              key={`${collaboration.shopId}:${productId}`}
+              product={productForId(productId)}
+              productId={productId}
+              shopId={collaboration.shopId}
+              label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+              allowInlineLoad={false}
+              allowDetailOpen={variant !== "listing"}
+              variant={variant === "listing" ? "compact" : "embedded"}
+            />
+          ))
+        ) : (
+          <ProductSummaryCard
+            product={null}
+            productId={undefined}
+            shopId={collaboration.shopId}
+            label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+            allowInlineLoad={false}
+            allowDetailOpen={variant !== "listing"}
+            variant={variant === "listing" ? "compact" : "embedded"}
+          />
+        )}
 
         <div className="affiliate-relationship-work-card-priority">
           <RelationshipMetric
@@ -3630,20 +3714,6 @@ function AffiliateCollaborationCard({
             />
           )}
         </div>
-      </div>
-      <div className="affiliate-collaboration-card-footer">
-        <span>{t("ecommerce.affiliateWorkspace.collaborationOperations.detailsSummary")}</span>
-        <button
-          className="affiliate-collaboration-card-footer-action"
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-        >
-          <EyeIcon size={16} />
-          <span>{t("ecommerce.affiliateWorkspace.viewDetails")}</span>
-        </button>
       </div>
     </article>
   );
@@ -3722,23 +3792,13 @@ function AffiliateCollaborationDetailModal({
 
   return (
     <>
-      <div
-        className="modal-backdrop affiliate-creator-detail-backdrop"
-        role="presentation"
-        onClick={onClose}
+      <AffiliateDetailModal
+        className="affiliate-platform-collaboration-detail-modal"
+        ariaLabel={t("ecommerce.affiliateWorkspace.collaborationOperations.detailsTitle")}
+        onClose={onClose}
       >
-        <div
-          className="modal-content affiliate-collaboration-modal affiliate-platform-collaboration-detail-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t("ecommerce.affiliateWorkspace.collaborationOperations.detailsTitle")}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="modal-header affiliate-platform-collaboration-modal-header">
+          <header className="modal-header affiliate-platform-collaboration-modal-header">
             <div className="affiliate-collaboration-modal-title-block">
-              <div className="affiliate-platform-collaboration-kicker">
-                {t("ecommerce.affiliateWorkspace.collaborationOperations.livePlatformObject")}
-              </div>
               <h2>
                 {collaboration?.name ||
                   t("ecommerce.affiliateWorkspace.collaborationOperations.detailsTitle")}
@@ -3767,16 +3827,8 @@ function AffiliateCollaborationDetailModal({
                     : t("ecommerce.affiliateWorkspace.collaborationOperations.editConfiguration")}
                 </button>
               ) : null}
-              <button
-                className="modal-close-btn"
-                type="button"
-                onClick={onClose}
-                aria-label={t("common.close")}
-              >
-                ×
-              </button>
             </div>
-          </div>
+          </header>
           <div className="affiliate-platform-collaboration-detail-body">
             {error ? (
               <AffiliateQueryErrorState error={error} onRetry={() => void refetch()} />
@@ -3785,192 +3837,192 @@ function AffiliateCollaborationDetailModal({
             ) : collaboration && detail ? (
               <>
                 <section className="affiliate-platform-collaboration-hero">
-                  <div>
+                  <div className="affiliate-platform-collaboration-hero-identity">
                     <span
                       className={`affiliate-platform-collaboration-status is-${collaboration.status.toLowerCase()}`}
                     >
                       {formatAffiliateEnumLabel(collaboration.status)}
                     </span>
-                    <h3>
-                      {collaboration.type === GQL.AffiliateCollaborationType.Open
-                        ? t(
-                            "ecommerce.affiliateWorkspace.collaborationOperations.openProductProgram",
-                          )
-                        : t(
-                            "ecommerce.affiliateWorkspace.collaborationOperations.targetInvitation",
-                          )}
-                    </h3>
-                    <p>
-                      {collaboration.type === GQL.AffiliateCollaborationType.Open
-                        ? t(
-                            "ecommerce.affiliateWorkspace.collaborationOperations.openProductProgramHint",
-                          )
-                        : t(
-                            "ecommerce.affiliateWorkspace.collaborationOperations.targetInvitationHint",
-                          )}
-                    </p>
-                  </div>
-                  <div className="affiliate-platform-collaboration-detail-summary">
-                    <RelationshipMetric
-                      label={t("ecommerce.affiliateWorkspace.collaborationOperations.creators")}
-                      value={formatInteger(
-                        detail.creators.length || collaboration.creatorOpenIds.length,
-                      )}
-                    />
-                    <RelationshipMetric
-                      label={t(
-                        "ecommerce.affiliateWorkspace.collaborationOperations.sampleApplications",
-                      )}
-                      value={formatInteger(detail.sampleApplications.length)}
-                    />
-                    <RelationshipMetric
-                      label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
-                      value={formatInteger(collaboration.productIds.length)}
-                    />
-                    <RelationshipMetric
-                      label={t("ecommerce.affiliateWorkspace.collaborationOperations.lastObserved")}
-                      value={formatProposalTime(collaboration.lastObservedAt)}
-                    />
-                  </div>
-                </section>
-
-                {editing ? (
-                  collaboration.type === GQL.AffiliateCollaborationType.Open ? (
-                    <AffiliateOpenCollaborationEditor
-                      collaboration={collaboration}
-                      onSaved={async () => {
-                        setEditing(false);
-                        await refreshAfterChange();
-                      }}
-                    />
-                  ) : (
-                    <AffiliateTargetCollaborationEditor
-                      collaboration={collaboration}
-                      onSaved={async () => {
-                        setEditing(false);
-                        await refreshAfterChange();
-                      }}
-                    />
-                  )
-                ) : (
-                  <AffiliateCollaborationConfigurationSnapshot collaboration={collaboration} />
-                )}
-
-                <section className="affiliate-platform-collaboration-linked-section">
-                  <div className="affiliate-platform-collaboration-section-heading">
-                    <div>
-                      <span>
-                        {t(
-                          "ecommerce.affiliateWorkspace.collaborationOperations.linkedBusinessData",
-                        )}
-                      </span>
-                      <h3>{t("ecommerce.affiliateWorkspace.labels.relatedProduct")}</h3>
-                    </div>
-                    <small>{formatInteger(collaboration.productIds.length)}</small>
-                  </div>
-                  <div className="affiliate-platform-collaboration-detail-grid">
-                    {collaboration.productIds.map((productId) => (
-                      <ProductSummaryCard
-                        key={`${collaboration.shopId}:${productId}`}
-                        product={
-                          detail.productSummaries.find(
-                            (entry) => entry.product.productId === productId,
-                          )?.product ?? null
-                        }
-                        productId={productId}
-                        shopId={collaboration.shopId}
-                        label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
-                        allowInlineLoad={false}
-                      />
-                    ))}
-                  </div>
-                </section>
-
-                <section className="affiliate-platform-collaboration-linked-section">
-                  <div className="affiliate-platform-collaboration-section-heading">
-                    <div>
-                      <span>
-                        {t(
-                          "ecommerce.affiliateWorkspace.collaborationOperations.linkedBusinessData",
-                        )}
-                      </span>
-                      <h3>{t("ecommerce.affiliateWorkspace.collaborationOperations.creators")}</h3>
-                    </div>
-                    <small>{formatInteger(detail.creators.length)}</small>
-                  </div>
-                  {detail.creators.length > 0 ? (
-                    <div className="affiliate-platform-collaboration-identity-list">
-                      {detail.creators.map((creator) => (
-                        <div className="affiliate-platform-collaboration-identity" key={creator.id}>
-                          <CreatorAvatarImage
-                            avatarUrl={creator.avatarUrl}
-                            className="affiliate-avatar"
-                            fallbackClassName="affiliate-creator-avatar-empty"
-                            name={creatorPrimaryName(
-                              creator,
-                              t("ecommerce.affiliateWorkspace.unknownCreator"),
-                            )}
-                          />
-                          <div>
-                            <strong>
-                              {creatorPrimaryName(
-                                creator,
-                                t("ecommerce.affiliateWorkspace.unknownCreator"),
-                              )}
-                            </strong>
-                            <span>{creatorTikTokHandle(creator) ?? creator.creatorOpenId}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="affiliate-proposal-empty">
-                      {collaboration.type === GQL.AffiliateCollaborationType.Open
-                        ? t(
-                            "ecommerce.affiliateWorkspace.collaborationOperations.noExpandedOpenCreators",
-                          )
-                        : t("ecommerce.affiliateWorkspace.collaborationOperations.noCreators")}
-                    </div>
-                  )}
-                </section>
-
-                <section className="affiliate-platform-collaboration-linked-section">
-                  <div className="affiliate-platform-collaboration-section-heading">
-                    <div>
-                      <span>
-                        {t(
-                          "ecommerce.affiliateWorkspace.collaborationOperations.linkedBusinessData",
-                        )}
-                      </span>
+                    <div className="affiliate-platform-collaboration-hero-copy">
                       <h3>
-                        {t(
-                          "ecommerce.affiliateWorkspace.collaborationOperations.samplesAndFulfillment",
-                        )}
+                        {collaboration.type === GQL.AffiliateCollaborationType.Open
+                          ? t(
+                              "ecommerce.affiliateWorkspace.collaborationOperations.openProductProgram",
+                            )
+                          : t(
+                              "ecommerce.affiliateWorkspace.collaborationOperations.targetInvitation",
+                            )}
                       </h3>
+                      <p>
+                        {collaboration.type === GQL.AffiliateCollaborationType.Open
+                          ? t(
+                              "ecommerce.affiliateWorkspace.collaborationOperations.openProductProgramHint",
+                            )
+                          : t(
+                              "ecommerce.affiliateWorkspace.collaborationOperations.targetInvitationHint",
+                            )}
+                      </p>
                     </div>
-                    <small>{formatInteger(detail.sampleApplications.length)}</small>
                   </div>
-                  {detail.sampleApplications.length > 0 ? (
-                    <div className="affiliate-platform-collaboration-detail-grid">
-                      {detail.sampleApplications.map((sample) => (
-                        <div className="affiliate-relationship-work-side-card" key={sample.id}>
-                          <strong>{sample.platformApplicationId}</strong>
-                          <span>{formatAffiliateEnumLabel(sample.sampleWorkStatus)}</span>
-                          <span>{formatProposalTime(sample.updatedAt)}</span>
-                          <SystemIdCopy value={sample.id} />
-                        </div>
-                      ))}
+                  <dl className="affiliate-platform-collaboration-detail-summary">
+                    <div>
+                      <dt>{t("ecommerce.affiliateWorkspace.collaborationOperations.creators")}</dt>
+                      <dd>
+                        {formatInteger(
+                          detail.creators.length || collaboration.creatorOpenIds.length,
+                        )}
+                      </dd>
                     </div>
-                  ) : (
-                    <div className="affiliate-proposal-empty">
-                      {t(
-                        "ecommerce.affiliateWorkspace.collaborationOperations.noSampleApplications",
-                      )}
+                    <div>
+                      <dt>
+                        {t(
+                          "ecommerce.affiliateWorkspace.collaborationOperations.sampleApplications",
+                        )}
+                      </dt>
+                      <dd>{formatInteger(detail.sampleApplications.length)}</dd>
                     </div>
-                  )}
+                    <div>
+                      <dt>{t("ecommerce.affiliateWorkspace.labels.relatedProduct")}</dt>
+                      <dd>{formatInteger(collaboration.productIds.length)}</dd>
+                    </div>
+                    <div className="is-time">
+                      <dt>
+                        {t("ecommerce.affiliateWorkspace.collaborationOperations.lastObserved")}
+                      </dt>
+                      <dd>{formatProposalTime(collaboration.lastObservedAt)}</dd>
+                    </div>
+                  </dl>
                 </section>
 
-                <section className="affiliate-platform-collaboration-danger-zone">
+                <div className="affiliate-platform-collaboration-workspace">
+                  <main className="affiliate-platform-collaboration-primary-panel">
+                    <section className="affiliate-platform-collaboration-linked-section is-products">
+                      <div className="affiliate-platform-collaboration-section-heading">
+                        <h3>{t("ecommerce.affiliateWorkspace.labels.relatedProduct")}</h3>
+                        <small>{formatInteger(collaboration.productIds.length)}</small>
+                      </div>
+                      {collaboration.productIds.length > 0 ? (
+                        <div className="affiliate-platform-collaboration-detail-grid">
+                          {collaboration.productIds.map((productId) => (
+                            <ProductSummaryCard
+                              key={`${collaboration.shopId}:${productId}`}
+                              product={
+                                detail.productSummaries.find(
+                                  (entry) => entry.product.productId === productId,
+                                )?.product ?? null
+                              }
+                              productId={productId}
+                              shopId={collaboration.shopId}
+                              label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
+                              allowInlineLoad={false}
+                              variant="compact"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="affiliate-platform-collaboration-empty-row">
+                          <span aria-hidden="true">—</span>
+                          <p>{t("ecommerce.affiliateWorkspace.productContextMissing")}</p>
+                        </div>
+                      )}
+                    </section>
+
+                    <AffiliateCollaborationConfigurationSnapshot collaboration={collaboration} />
+                  </main>
+
+                  <aside className="affiliate-platform-collaboration-context-panel">
+                    <section className="affiliate-platform-collaboration-linked-section is-creators">
+                      <div className="affiliate-platform-collaboration-section-heading">
+                        <h3>
+                          {t("ecommerce.affiliateWorkspace.collaborationOperations.creators")}
+                        </h3>
+                        <small>{formatInteger(detail.creators.length)}</small>
+                      </div>
+                      {detail.creators.length > 0 ? (
+                        <div className="affiliate-platform-collaboration-identity-list">
+                          {detail.creators.map((creator) => (
+                            <div
+                              className="affiliate-platform-collaboration-identity"
+                              key={creator.id}
+                            >
+                              <CreatorAvatarImage
+                                avatarUrl={creator.avatarUrl}
+                                className="affiliate-avatar"
+                                fallbackClassName="affiliate-creator-avatar-empty"
+                                name={creatorPrimaryName(
+                                  creator,
+                                  t("ecommerce.affiliateWorkspace.unknownCreator"),
+                                )}
+                              />
+                              <div>
+                                <strong>
+                                  {creatorPrimaryName(
+                                    creator,
+                                    t("ecommerce.affiliateWorkspace.unknownCreator"),
+                                  )}
+                                </strong>
+                                <span>{creatorTikTokHandle(creator) ?? creator.creatorOpenId}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="affiliate-platform-collaboration-empty-row">
+                          <span aria-hidden="true">—</span>
+                          <p>
+                            {collaboration.type === GQL.AffiliateCollaborationType.Open
+                              ? t(
+                                  "ecommerce.affiliateWorkspace.collaborationOperations.noExpandedOpenCreators",
+                                )
+                              : t(
+                                  "ecommerce.affiliateWorkspace.collaborationOperations.noCreators",
+                                )}
+                          </p>
+                        </div>
+                      )}
+                    </section>
+
+                    <section className="affiliate-platform-collaboration-linked-section is-samples">
+                      <div className="affiliate-platform-collaboration-section-heading">
+                        <h3>
+                          {t(
+                            "ecommerce.affiliateWorkspace.collaborationOperations.samplesAndFulfillment",
+                          )}
+                        </h3>
+                        <small>{formatInteger(detail.sampleApplications.length)}</small>
+                      </div>
+                      {detail.sampleApplications.length > 0 ? (
+                        <div className="affiliate-entity-card-list">
+                          {detail.sampleApplications.map((sample) => (
+                            <SampleApplicationSummaryCard
+                              key={sample.id}
+                              sampleApplication={sample}
+                              productSummary={
+                                detail.productSummaries.find(
+                                  (entry) =>
+                                    entry.shopId === sample.shopId &&
+                                    entry.product.productId === sample.productId,
+                                )?.product ?? null
+                              }
+                              shopId={sample.shopId}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="affiliate-platform-collaboration-empty-row">
+                          <span aria-hidden="true">—</span>
+                          <p>
+                            {t(
+                              "ecommerce.affiliateWorkspace.collaborationOperations.noSampleApplications",
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </section>
+                  </aside>
+                </div>
+
+                <footer className="affiliate-platform-collaboration-danger-zone">
                   <div>
                     <strong>
                       {t("ecommerce.affiliateWorkspace.collaborationOperations.stopCollaboration")}
@@ -3988,12 +4040,54 @@ function AffiliateCollaborationDetailModal({
                   >
                     {t("ecommerce.affiliateWorkspace.collaborationOperations.removeFromPlatform")}
                   </button>
-                </section>
+                </footer>
+
+                {editing ? (
+                  <aside
+                    className="affiliate-platform-editor-drawer affiliate-platform-collaboration-edit-drawer is-open"
+                    aria-label={t(
+                      "ecommerce.affiliateWorkspace.collaborationOperations.editConfiguration",
+                    )}
+                  >
+                    <div className="affiliate-platform-editor-drawer-head">
+                      <strong>
+                        {t(
+                          "ecommerce.affiliateWorkspace.collaborationOperations.editConfiguration",
+                        )}
+                      </strong>
+                      <button
+                        type="button"
+                        aria-label={t("common.close")}
+                        onClick={() => setEditing(false)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="affiliate-platform-editor-drawer-body">
+                      {collaboration.type === GQL.AffiliateCollaborationType.Open ? (
+                        <AffiliateOpenCollaborationEditor
+                          collaboration={collaboration}
+                          onSaved={async () => {
+                            setEditing(false);
+                            await refreshAfterChange();
+                          }}
+                        />
+                      ) : (
+                        <AffiliateTargetCollaborationEditor
+                          collaboration={collaboration}
+                          onSaved={async () => {
+                            setEditing(false);
+                            await refreshAfterChange();
+                          }}
+                        />
+                      )}
+                    </div>
+                  </aside>
+                ) : null}
               </>
             ) : null}
           </div>
-        </div>
-      </div>
+      </AffiliateDetailModal>
 
       <ConfirmDialog
         isOpen={removeConfirmOpen}
@@ -4176,16 +4270,7 @@ function AffiliateCollaborationConfigurationSnapshot({
   return (
     <section className="affiliate-platform-collaboration-config-snapshot">
       <div className="affiliate-platform-collaboration-section-heading">
-        <div>
-          <span>
-            {t("ecommerce.affiliateWorkspace.collaborationOperations.platformConfiguration")}
-          </span>
-          <h3>{t("ecommerce.affiliateWorkspace.collaborationOperations.currentConfiguration")}</h3>
-        </div>
-        <span className="affiliate-platform-live-indicator">
-          <i />
-          {t("ecommerce.affiliateWorkspace.collaborationOperations.syncedProjection")}
-        </span>
+        <h3>{t("ecommerce.affiliateWorkspace.collaborationOperations.currentConfiguration")}</h3>
       </div>
       <div className="affiliate-platform-collaboration-fact-grid">
         {facts.map((fact) => (
@@ -5349,15 +5434,17 @@ function AffiliateOpenCollaborationSettingsModal({
       onClick={onClose}
     >
       <form
-        className="modal-content affiliate-platform-settings-modal"
+        className="modal-content affiliate-platform-settings-modal affiliate-platform-auto-add-modal"
         role="dialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => void submit(event)}
       >
-        <div className="modal-header affiliate-platform-collaboration-modal-header">
+        <div className="modal-header affiliate-platform-collaboration-modal-header affiliate-platform-settings-header">
           <div className="affiliate-collaboration-modal-title-block">
-            <div className="affiliate-platform-collaboration-kicker">Open Collaboration</div>
+            <div className="affiliate-platform-collaboration-kicker">
+              {t("ecommerce.affiliateWorkspace.collaborationOperations.settingsScopeTitle")}
+            </div>
             <h2>{t("ecommerce.affiliateWorkspace.collaborationOperations.openSettings")}</h2>
             <p>{t("ecommerce.affiliateWorkspace.collaborationOperations.openSettingsHint")}</p>
           </div>
@@ -5371,48 +5458,74 @@ function AffiliateOpenCollaborationSettingsModal({
           </button>
         </div>
         <div className="affiliate-platform-settings-body">
-          <AffiliateOperationField
-            label={t("ecommerce.affiliateWorkspace.collaborationOperations.shop")}
-          >
+          <section className="affiliate-platform-settings-scope">
+            <div className="affiliate-platform-settings-step">
+              <span>01</span>
+              <div>
+                <strong>{t("ecommerce.affiliateWorkspace.collaborationOperations.shop")}</strong>
+                <small>
+                  {t("ecommerce.affiliateWorkspace.collaborationOperations.settingsScopeTitle")}
+                </small>
+              </div>
+            </div>
             <Select value={shopId} onChange={setShopId} options={shopOptions} />
-          </AffiliateOperationField>
+          </section>
           {error ? <AffiliateQueryErrorState error={error} onRetry={() => void refetch()} /> : null}
           {loading ? (
             <AffiliateLoadingState />
           ) : (
             <>
-              <label className="affiliate-platform-toggle-field">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(event) => setEnabled(event.target.checked)}
-                />
-                <span>
+              <section className="affiliate-platform-settings-rule">
+                <div className="affiliate-platform-settings-step">
+                  <span>02</span>
+                  <div>
+                    <strong>
+                      {t("ecommerce.affiliateWorkspace.collaborationOperations.autoAddProducts")}
+                    </strong>
+                    <small>
+                      {t(
+                        "ecommerce.affiliateWorkspace.collaborationOperations.autoAddProductsHint",
+                      )}
+                    </small>
+                  </div>
+                </div>
+                <label className="affiliate-platform-settings-switch">
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(event) => setEnabled(event.target.checked)}
+                  />
+                  <span aria-hidden="true" />
                   <strong>
-                    {t("ecommerce.affiliateWorkspace.collaborationOperations.autoAddProducts")}
+                    {enabled
+                      ? t("ecommerce.affiliateWorkspace.collaborationOperations.enabled")
+                      : t("ecommerce.affiliateWorkspace.collaborationOperations.disabled")}
                   </strong>
-                  <small>
-                    {t("ecommerce.affiliateWorkspace.collaborationOperations.autoAddProductsHint")}
-                  </small>
-                </span>
-              </label>
-              <AffiliateOperationField
-                label={t(
-                  "ecommerce.affiliateWorkspace.collaborationOperations.defaultCommissionPercent",
-                )}
-                hint={t("ecommerce.affiliateWorkspace.collaborationOperations.commissionRangeHint")}
-              >
-                <input
-                  className="input-full"
-                  type="number"
-                  min={1}
-                  max={80}
-                  step={0.01}
-                  value={commissionPercent}
-                  onChange={(event) => setCommissionPercent(event.target.value)}
-                  required
-                />
-              </AffiliateOperationField>
+                </label>
+                <AffiliateOperationField
+                  className="affiliate-platform-settings-commission"
+                  label={t(
+                    "ecommerce.affiliateWorkspace.collaborationOperations.defaultCommissionPercent",
+                  )}
+                  hint={t(
+                    "ecommerce.affiliateWorkspace.collaborationOperations.commissionRangeHint",
+                  )}
+                >
+                  <div className="affiliate-platform-settings-percent-input">
+                    <input
+                      className="input-full"
+                      type="number"
+                      min={1}
+                      max={80}
+                      step={0.01}
+                      value={commissionPercent}
+                      onChange={(event) => setCommissionPercent(event.target.value)}
+                      required
+                    />
+                    <span>%</span>
+                  </div>
+                </AffiliateOperationField>
+              </section>
               <div className="affiliate-platform-collaboration-data-warning is-neutral">
                 <strong>
                   {t("ecommerce.affiliateWorkspace.collaborationOperations.settingsScopeTitle")}
@@ -5468,56 +5581,13 @@ function RelationshipPlatformCollaborationCard({
   );
 
   return (
-    <article className="affiliate-collaboration-card affiliate-collaboration-record-card">
-      <div className="affiliate-work-item-head">
-        <div className="affiliate-creator-text">
-          <div className="affiliate-creator-name-static">
-            {formatAffiliateEnumLabel(collaboration.type)} · {shopLabel}
-          </div>
-          <div className="affiliate-work-item-meta">
-            <span>{sourceLabels.join(" · ")}</span>
-            <SystemIdCopy value={collaboration.id} />
-            <PlatformIdCopy value={collaboration.platformCollaborationId} />
-          </div>
-        </div>
-        <RelationshipStatusBadge
-          display={{
-            primary: formatAffiliateEnumLabel(collaboration.status),
-            secondary: formatAffiliateEnumLabel(collaboration.type),
-          }}
-          tone={
-            collaboration.status === GQL.AffiliateCollaborationStatus.Active
-              ? "done"
-              : collaboration.status === GQL.AffiliateCollaborationStatus.Expiring ||
-                  collaboration.status === GQL.AffiliateCollaborationStatus.Terminating
-                ? "attention"
-                : "waiting"
-          }
-        />
-      </div>
-      <div className="affiliate-collaboration-card-body affiliate-collaboration-record-card-body">
-        <div className="affiliate-relationship-work-card-priority">
-          <RelationshipMetric
-            label={t("account.status")}
-            value={formatAffiliateEnumLabel(collaboration.status)}
-          />
-          <RelationshipMetric
-            label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
-            value={formatInteger(collaboration.productIds.length)}
-          />
-        </div>
-        {collaboration.productIds.map((productId) => (
-          <ProductSummaryCard
-            key={`${collaboration.shopId}:${productId}`}
-            product={productSummaries.find((product) => product.productId === productId) ?? null}
-            productId={productId}
-            shopId={collaboration.shopId}
-            label={t("ecommerce.affiliateWorkspace.labels.relatedProduct")}
-            allowInlineLoad={false}
-          />
-        ))}
-      </div>
-    </article>
+    <AffiliateCollaborationCard
+      collaboration={collaboration}
+      shopLabel={shopLabel}
+      productSummaries={productSummaries}
+      contextLabels={sourceLabels}
+      variant="embedded"
+    />
   );
 }
 
@@ -5986,18 +6056,14 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
   }
 
   return (
-    <div className="page-enter affiliate-workbench">
-      <div
+    <AffiliatePageFrame className="affiliate-workbench">
+      <AffiliatePageHeader
         className="ecommerce-page-header affiliate-workbench-header"
         data-tutorial-id="affiliate-history-header"
-      >
-        <div>
-          <h1>{t("ecommerce.affiliateWorkspace.historyTitle")}</h1>
-          <p className="ecommerce-page-subtitle">
-            {t("ecommerce.affiliateWorkspace.historySubtitle")}
-          </p>
-        </div>
-        <div className="affiliate-workbench-controls" data-tutorial-id="affiliate-history-controls">
+        title={t("ecommerce.affiliateWorkspace.historyTitle")}
+        subtitle={t("ecommerce.affiliateWorkspace.historySubtitle")}
+        actions={selectedCollaborationId ? undefined : (
+          <AffiliateToolbar className="affiliate-workbench-controls" data-tutorial-id="affiliate-history-controls">
           <Select
             value={selectedShopId}
             onChange={setSelectedShopId}
@@ -6028,8 +6094,9 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
           >
             {loading ? t("common.loading") : t("ecommerce.shopDrawer.affiliate.refreshProposals")}
           </button>
-        </div>
-      </div>
+          </AffiliateToolbar>
+        )}
+      />
 
       <div className="affiliate-workbench-panel">
         <div className="affiliate-workbench-panel-head">
@@ -6100,7 +6167,7 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
           </div>
         ) : (
           <>
-            <div className="affiliate-collaboration-list">
+            <div className="affiliate-collaboration-list affiliate-platform-collaboration-list">
               {pagedVisibleItems.map((record) => (
                 <AffiliateCollaborationCard
                   key={record.id}
@@ -6178,15 +6245,6 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
         )}
       </div>
 
-      {selectedCollaborationId ? (
-        <AffiliateCollaborationDetailModal
-          collaborationId={selectedCollaborationId}
-          shopLabel={shopLabel}
-          onClose={() => setSelectedCollaborationId(null)}
-          onChanged={() => void refetch()}
-        />
-      ) : null}
-
       {createCollaborationOpen ? (
         <AffiliateCollaborationCreateModal
           defaultShopId={selectedShopId}
@@ -6203,7 +6261,16 @@ export const AffiliateHistoryPage = observer(function AffiliateHistoryPage() {
           onClose={() => setOpenSettingsOpen(false)}
         />
       ) : null}
-    </div>
+
+      {selectedCollaborationId ? (
+        <AffiliateCollaborationDetailModal
+          collaborationId={selectedCollaborationId}
+          shopLabel={shopLabel}
+          onClose={() => setSelectedCollaborationId(null)}
+          onChanged={() => void refetch()}
+        />
+      ) : null}
+    </AffiliatePageFrame>
   );
 });
 
@@ -7109,19 +7176,13 @@ function AgentWorkBundleDetailModal({
   }, [covered, onClose]);
 
   return (
-    <div
-      className="modal-backdrop affiliate-agent-work-detail-backdrop"
-      role="presentation"
-      onClick={onClose}
+    <AffiliateDetailModal
+      backdropClassName="affiliate-agent-work-detail-backdrop"
+      className="affiliate-agent-work-detail-modal"
+      ariaLabelledBy={titleId}
+      tutorialId="affiliate-attention-detail"
+      onClose={onClose}
     >
-      <div
-        className="modal-content affiliate-agent-work-detail-modal"
-        data-tutorial-id="affiliate-attention-detail"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(event) => event.stopPropagation()}
-      >
         <div className="modal-header affiliate-agent-work-detail-header">
           <div className="affiliate-agent-work-detail-heading">
             <span>{t("ecommerce.affiliateWorkspace.agentWorkDetail.eyebrow")}</span>
@@ -7184,6 +7245,7 @@ function AgentWorkBundleDetailModal({
               shopLabelForId={shopLabelForId}
               decidingProposal={decidingProposal}
               allowDecisionActions={isPending}
+              variant="embedded"
               showRevisionHistory={false}
               affiliateWorkspace={affiliateWorkspace}
               onOpenCreator={onOpenCreator}
@@ -7193,8 +7255,7 @@ function AgentWorkBundleDetailModal({
             />
           </div>
         </div>
-      </div>
-    </div>
+    </AffiliateDetailModal>
   );
 }
 
@@ -7387,7 +7448,7 @@ function reviewContextHasCurrentFacts(
   return Boolean(detail?.lastContactedAt || detail?.performance || detail?.counts);
 }
 
-function AgentWorkBundleCard({
+export function AgentWorkBundleCard({
   proposal,
   revisionHistory = proposal.revisionHistory ?? [],
   shopLabel,
@@ -7408,7 +7469,7 @@ function AgentWorkBundleCard({
   shopLabel: string;
   shopLabelForId?: (shopId: string) => string;
   decidingProposal?: boolean;
-  variant?: "full" | "compact";
+  variant?: AffiliateEntityCardVariant | "full";
   allowDecisionActions?: boolean;
   showRevisionHistory?: boolean;
   affiliateWorkspace?: AffiliateWorkspaceStore;
@@ -7449,7 +7510,8 @@ function AgentWorkBundleCard({
     proposal.type === GQL.ActionProposalType.ReviewSampleApplication
       ? findProposalPredictionSnapshot(proposal)
       : null;
-  const isCompact = variant === "compact";
+  const resolvedVariant = variant === "full" ? "listing" : variant;
+  const isCompact = resolvedVariant === "compact";
   const bodyExpanded = !isCompact || compactOpen;
   const canDecide =
     proposal.status === GQL.ActionProposalStatus.Pending &&
@@ -7598,14 +7660,18 @@ function AgentWorkBundleCard({
   if (!isCompact) {
     return (
       <article
-        className={[
-          "affiliate-work-item-card",
-          "affiliate-work-item-needs_attention",
-          "affiliate-action-proposal-card-row",
-          canOpenRelationshipWork ? "affiliate-work-item-clickable" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        className={affiliateEntityCardClassName(
+          resolvedVariant,
+          canOpenRelationshipWork,
+          [
+            "affiliate-work-item-card",
+            "affiliate-work-item-needs_attention",
+            "affiliate-action-proposal-card-row",
+            canOpenRelationshipWork ? "affiliate-work-item-clickable" : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        )}
         role={canOpenRelationshipWork ? "button" : undefined}
         tabIndex={canOpenRelationshipWork ? 0 : undefined}
         onClick={() => {
@@ -7769,14 +7835,18 @@ function AgentWorkBundleCard({
 
   return (
     <article
-      className={[
-        "affiliate-work-item-card",
-        "affiliate-work-item-needs_attention",
-        isCompact ? "affiliate-action-proposal-card-compact" : "",
-        canOpenRelationshipWork ? "affiliate-work-item-clickable" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={affiliateEntityCardClassName(
+        resolvedVariant,
+        canOpenRelationshipWork,
+        [
+          "affiliate-work-item-card",
+          "affiliate-work-item-needs_attention",
+          isCompact ? "affiliate-action-proposal-card-compact" : "",
+          canOpenRelationshipWork ? "affiliate-work-item-clickable" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      )}
       role={canOpenRelationshipWork ? "button" : undefined}
       tabIndex={canOpenRelationshipWork ? 0 : undefined}
       onClick={() => {
@@ -8512,16 +8582,18 @@ export function predictionSignalFallbackLabel(
   return unavailableText;
 }
 
-function SampleApplicationSummaryCard({
+export function SampleApplicationSummaryCard({
   sampleApplication,
   productSummary,
   shopId,
   embedded = false,
+  variant,
 }: {
   sampleApplication: GQL.SampleApplicationRecord;
   productSummary?: GQL.EcomProductSummary | null;
   shopId?: string | null;
   embedded?: boolean;
+  variant?: AffiliateEntityCardVariant;
 }) {
   const { t } = useTranslation();
   const [detailOpen, setDetailOpen] = useState(false);
@@ -8596,29 +8668,42 @@ function SampleApplicationSummaryCard({
       typeof field.value === "string" && field.value.trim().length > 0,
   );
   const contentCount = sampleApplication.observedContentCount ?? 0;
+  const resolvedVariant = variant ?? (embedded ? "embedded" : "listing");
+  const isEmbedded = resolvedVariant === "embedded" || embedded;
 
   return (
     <article
-      className={[
-        "affiliate-collaboration-sample-card",
-        embedded ? "affiliate-collaboration-sample-card-embedded" : "",
-        detailOpen ? "affiliate-collaboration-sample-card-expanded" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={affiliateEntityCardClassName(
+        resolvedVariant,
+        false,
+        [
+          "affiliate-collaboration-sample-card",
+          isEmbedded ? "affiliate-collaboration-sample-card-embedded" : "",
+          detailOpen ? "affiliate-collaboration-sample-card-expanded" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      )}
     >
       <div className="affiliate-collaboration-sample-card-head">
         <div>
           <span>{t("ecommerce.affiliateWorkspace.sampleApplication.title")}</span>
-          <strong>{t("ecommerce.affiliateWorkspace.sampleApplication.title")}</strong>
-          <PlatformIdCopy
-            value={sampleApplication.platformApplicationId}
-            labelKey="ecommerce.affiliateWorkspace.copySamplePlatformId"
-          />
+          <strong>
+            {productSummary?.title ||
+              sampleApplication.platformApplicationId ||
+              t("ecommerce.affiliateWorkspace.sampleApplication.title")}
+          </strong>
+          <div className="affiliate-entity-card-identifiers">
+            <SystemIdCopy value={sampleApplication.id} />
+            <PlatformIdCopy
+              value={sampleApplication.platformApplicationId}
+              labelKey="ecommerce.affiliateWorkspace.copySamplePlatformId"
+            />
+          </div>
         </div>
         <div className="affiliate-collaboration-sample-status">{status}</div>
       </div>
-      {!embedded ? (
+      {!isEmbedded ? (
         <ProductSummaryCard
           product={productSummary ?? null}
           productId={sampleApplication.productId}
@@ -9194,6 +9279,143 @@ function CreatorAvatarImage({
   );
 }
 
+function CreatorContactPanel({ relationshipId }: { relationshipId: string }) {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  const { data, loading, error, refetch } = useQuery<
+    { affiliateCreatorContactState: GQL.AffiliateCreatorContactStatePayload },
+    { input: GQL.AffiliateCreatorContactStateInput }
+  >(AFFILIATE_CREATOR_CONTACT_STATE_QUERY, {
+    variables: { input: { creatorRelationshipId: relationshipId } },
+    fetchPolicy: "cache-and-network",
+  });
+  const [email, setEmail] = useState("");
+  const [whatsApp, setWhatsApp] = useState("");
+  const [saveEmail, saveEmailState] = useMutation<
+    { setAffiliateCreatorEmail: GQL.AffiliateCreatorRelationship },
+    { input: GQL.SetCreatorEmailContactInput }
+  >(SET_AFFILIATE_CREATOR_EMAIL_MUTATION);
+  const [saveWhatsApp, saveWhatsAppState] = useMutation<
+    { setAffiliateCreatorWhatsApp: GQL.AffiliateCreatorRelationship },
+    { input: GQL.SetCreatorWhatsAppContactInput }
+  >(SET_AFFILIATE_CREATOR_WHATSAPP_MUTATION);
+  const contactState = data?.affiliateCreatorContactState;
+  const emailContact = contactState?.channelContacts.find(
+    (contact) => contact.channel === GQL.AffiliateMessageChannel.Email,
+  );
+  const whatsAppContact = contactState?.channelContacts.find(
+    (contact) => contact.channel === GQL.AffiliateMessageChannel.Whatsapp,
+  );
+
+  useEffect(() => {
+    setEmail(emailContact?.creatorEmail ?? "");
+    setWhatsApp(whatsAppContact?.creatorPhone ?? "");
+  }, [emailContact?.creatorEmail, whatsAppContact?.creatorPhone]);
+
+  async function updateEmail(): Promise<void> {
+    const nextEmail = email.trim();
+    if (!nextEmail || saveEmailState.loading) return;
+    try {
+      await saveEmail({
+        variables: { input: { creatorRelationshipId: relationshipId, email: nextEmail } },
+      });
+      await refetch();
+      showToast(t("ecommerce.affiliateTeam.saved"), "success");
+    } catch (mutationError) {
+      showToast(
+        mutationError instanceof Error ? mutationError.message : t("ecommerce.updateFailed"),
+        "error",
+      );
+    }
+  }
+
+  async function updateWhatsApp(): Promise<void> {
+    const creatorPhone = whatsApp.trim();
+    if (!creatorPhone || saveWhatsAppState.loading) return;
+    try {
+      await saveWhatsApp({
+        variables: {
+          input: { creatorRelationshipId: relationshipId, creatorPhone },
+        },
+      });
+      await refetch();
+      showToast(t("ecommerce.affiliateTeam.saved"), "success");
+    } catch (mutationError) {
+      showToast(
+        mutationError instanceof Error ? mutationError.message : t("ecommerce.updateFailed"),
+        "error",
+      );
+    }
+  }
+
+  return (
+    <section className="affiliate-relationship-work-side-card affiliate-creator-contact-panel">
+      <div className="affiliate-relationship-work-side-card-head">
+        <span>
+          {t("ecommerce.affiliateWorkspace.relationshipContacts", {
+            defaultValue: "Creator contacts",
+          })}
+        </span>
+        {loading ? <small>{t("common.loading")}</small> : null}
+      </div>
+      {error ? (
+        <button className="affiliate-inline-link-button" type="button" onClick={() => void refetch()}>
+          {t("common.retry", { defaultValue: "Retry" })}
+        </button>
+      ) : (
+        <>
+          <label className="affiliate-creator-contact-field">
+            <span>Email</span>
+            <div>
+              <input
+                type="email"
+                value={email}
+                placeholder="creator@example.com"
+                onChange={(event) => setEmail(event.target.value)}
+              />
+              <button
+                className="btn btn-secondary btn-sm"
+                type="button"
+                disabled={!email.trim() || saveEmailState.loading}
+                onClick={() => void updateEmail()}
+              >
+                {t("common.save")}
+              </button>
+            </div>
+          </label>
+          <label className="affiliate-creator-contact-field">
+            <span>WhatsApp</span>
+            <div>
+              <input
+                value={whatsApp}
+                placeholder="+1 555 000 0000"
+                onChange={(event) => setWhatsApp(event.target.value)}
+              />
+              <button
+                className="btn btn-secondary btn-sm"
+                type="button"
+                disabled={!whatsApp.trim() || saveWhatsAppState.loading}
+                onClick={() => void updateWhatsApp()}
+              >
+                {t("common.save")}
+              </button>
+            </div>
+          </label>
+          <div className="affiliate-creator-contact-health">
+            <span className={contactState?.hasUsableEmailContact ? "is-ready" : ""}>
+              Email · {contactState?.hasUsableEmailContact ? t("common.yes") : t("common.no")}
+            </span>
+            <span className={contactState?.hasUsableWhatsAppContact ? "is-ready" : ""}>
+              WhatsApp ·{" "}
+              {contactState?.hasUsableWhatsAppContact ? t("common.yes") : t("common.no")}
+            </span>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function CreatorRelationshipDetailModal({
   item,
   selectedShopId,
@@ -9210,6 +9432,7 @@ export function CreatorRelationshipDetailModal({
   const [activeTab, setActiveTab] = useState<
     "profile" | "overview" | "samples" | "platform" | "conversation" | "activity"
   >("overview");
+  const [contextInspectorOpen, setContextInspectorOpen] = useState(true);
   const [composerText, setComposerText] = useState("");
   const [composerChannel, setComposerChannel] = useState<"AUTO" | GQL.AffiliateMessageChannel>(
     "AUTO",
@@ -9395,7 +9618,16 @@ export function CreatorRelationshipDetailModal({
   const proposalPage = proposalQuery.data?.affiliateActionProposalPage;
   const relationshipSampleApplications = samplePage?.items ?? [];
   const platformCollaborations = platformPage?.items ?? [];
-  const relationshipProposals = proposalPage?.items ?? [];
+  // The list/work-item payload already carries the exact pending proposal that
+  // produced the queue row. Use it as an immediate entity snapshot while the
+  // detail query catches up; the query result wins when both contain the same ID.
+  const relationshipProposals = mergeById([
+    ...(item.workItems ?? []).flatMap((workItem) => [
+      ...workItem.pendingProposals,
+      ...(workItem.focusedProposal ? [workItem.focusedProposal] : []),
+    ]),
+    ...(proposalPage?.items ?? []),
+  ]);
   const visiblePendingProposals = relationshipProposals.filter(
     (proposal) => proposal.status === GQL.ActionProposalStatus.Pending,
   );
@@ -9595,16 +9827,14 @@ export function CreatorRelationshipDetailModal({
   }, [activeTab, activityEntries.length]);
   const tabItems = [
     {
-      id: "profile" as const,
-      label: t("ecommerce.affiliateWorkspace.relationshipPanelProfile", {
-        defaultValue: "Creator profile",
-      }),
-      count: performance ? 1 : 0,
-    },
-    {
       id: "overview" as const,
       label: t("ecommerce.affiliateWorkspace.relationshipPanelCurrentWork"),
-      count: relationshipAgenda.length + visiblePendingProposals.length,
+      count: visiblePendingProposals.length || relationshipAgenda.length,
+    },
+    {
+      id: "conversation" as const,
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelCommunication"),
+      count: conversationMessages.length,
     },
     {
       id: "samples" as const,
@@ -9622,9 +9852,11 @@ export function CreatorRelationshipDetailModal({
       count: relationshipDetail?.counts.platformCollaborationCount ?? platformCollaborations.length,
     },
     {
-      id: "conversation" as const,
-      label: t("ecommerce.affiliateWorkspace.relationshipPanelCommunication"),
-      count: conversationMessages.length,
+      id: "profile" as const,
+      label: t("ecommerce.affiliateWorkspace.relationshipPanelProfile", {
+        defaultValue: "Creator profile",
+      }),
+      count: performance ? 1 : 0,
     },
     {
       id: "activity" as const,
@@ -9830,36 +10062,26 @@ export function CreatorRelationshipDetailModal({
 
   if (relationshipDetailError && !relationshipDetail) {
     return (
-      <div
-        className="modal-backdrop affiliate-creator-detail-backdrop"
-        role="presentation"
-        onClick={onClose}
+      <AffiliateDetailModal
+        backdropClassName="affiliate-creator-detail-backdrop"
+        className="affiliate-collaboration-modal"
+        onClose={onClose}
       >
-        <div
-          className="modal-content affiliate-collaboration-modal"
-          role="dialog"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <AffiliateQueryErrorState
-            error={relationshipDetailError}
-            onRetry={() => void refetchRelationshipDetail()}
-          />
-        </div>
-      </div>
+        <AffiliateQueryErrorState
+          error={relationshipDetailError}
+          onRetry={() => void refetchRelationshipDetail()}
+        />
+      </AffiliateDetailModal>
     );
   }
 
   return (
-    <div
-      className="modal-backdrop affiliate-creator-detail-backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
-      <div
-        className="modal-content affiliate-collaboration-modal affiliate-relationship-detail-modal affiliate-relationship-work-modal"
-        role="dialog"
-        aria-modal="true"
-        onClick={(event) => event.stopPropagation()}
+    <>
+      <AffiliateDetailModal
+        backdropClassName="affiliate-creator-detail-backdrop"
+        className="affiliate-collaboration-modal affiliate-relationship-detail-modal affiliate-relationship-work-modal"
+        ariaLabel={name}
+        onClose={onClose}
       >
         <div className="modal-header affiliate-relationship-work-modal-header">
           <div className="affiliate-relationship-work-modal-heading">
@@ -9871,31 +10093,45 @@ export function CreatorRelationshipDetailModal({
             />
             <div className="affiliate-collaboration-modal-title-block">
               <h2 className="affiliate-relationship-detail-title">{name}</h2>
-              <p>
-                <span>{t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}</span>
+              <div className="affiliate-relationship-work-modal-meta">
+                <span className="affiliate-relationship-work-modal-object">
+                  {t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}
+                </span>
                 <CreatorPlatformId handle={handle} platformId={platformId} />
-              </p>
-              {relationshipId ? (
-                <div className="affiliate-modal-id-actions">
-                  <SystemIdCopy value={relationshipId} />
-                </div>
-              ) : null}
-              <div className="affiliate-relationship-work-modal-subtitle">
-                {t("ecommerce.affiliateWorkspace.relationshipWorkbenchSubtitle")}
+                {relationshipId ? <SystemIdCopy value={relationshipId} /> : null}
               </div>
             </div>
           </div>
-          <button
-            className="modal-close-btn"
-            type="button"
-            onClick={onClose}
-            aria-label={t("common.close")}
-          >
-            ×
-          </button>
+          <div className="affiliate-relationship-work-modal-header-actions">
+            <button
+              className="btn btn-secondary btn-sm"
+              type="button"
+              aria-expanded={contextInspectorOpen}
+              onClick={() => setContextInspectorOpen((open) => !open)}
+            >
+              {t("ecommerce.affiliateWorkspace.relationshipInformation", {
+                defaultValue: "Relationship information",
+              })}
+            </button>
+            <button
+              className="modal-close-btn"
+              type="button"
+              onClick={onClose}
+              aria-label={t("common.close")}
+            >
+              ×
+            </button>
+          </div>
         </div>
         <div className="affiliate-collaboration-modal-body affiliate-relationship-workspace-body">
-          <aside className="affiliate-collaboration-context-pane">
+          <AffiliateContextInspector
+            className="affiliate-collaboration-context-pane"
+            open={contextInspectorOpen}
+            title={t("ecommerce.affiliateWorkspace.relationshipInformation", {
+              defaultValue: "Relationship information",
+            })}
+            onClose={() => setContextInspectorOpen(false)}
+          >
             <section className="affiliate-relationship-work-side-card affiliate-relationship-work-side-card-primary">
               <div className="affiliate-relationship-work-side-card-head">
                 <span>{t("ecommerce.affiliateWorkspace.relationshipProfileSummary")}</span>
@@ -9903,13 +10139,15 @@ export function CreatorRelationshipDetailModal({
                   <button
                     className="affiliate-inline-link-button"
                     type="button"
-                    onClick={() => setActiveTab("profile")}
+                    onClick={() => {
+                      setActiveTab("profile");
+                      setContextInspectorOpen(false);
+                    }}
                   >
                     {t("ecommerce.affiliateWorkspace.openCreatorDetail")}
                   </button>
                 ) : null}
               </div>
-              <strong>{name}</strong>
               <div className="affiliate-relationship-work-side-meta">
                 {handle ? <span>{handle}</span> : null}
                 <span>
@@ -9926,6 +10164,7 @@ export function CreatorRelationshipDetailModal({
                 <p className="affiliate-relationship-creator-bio">{marketplaceBio}</p>
               ) : null}
             </section>
+            {relationshipId ? <CreatorContactPanel relationshipId={relationshipId} /> : null}
             {relationshipId ? (
               <AffiliateCreatorManualTagEditor
                 relationshipId={relationshipId}
@@ -10104,7 +10343,7 @@ export function CreatorRelationshipDetailModal({
                 </div>
               </section>
             ) : null}
-          </aside>
+          </AffiliateContextInspector>
           <section className="affiliate-collaboration-work-pane">
             <div className="affiliate-collaboration-detail-tabs" role="tablist">
               {tabItems.map((tab) => (
@@ -10114,7 +10353,10 @@ export function CreatorRelationshipDetailModal({
                   type="button"
                   role="tab"
                   aria-selected={activeTab === tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setContextInspectorOpen(tab.id === "overview");
+                  }}
                 >
                   <span>{tab.label}</span>
                   <strong>{tab.count}</strong>
@@ -10179,7 +10421,7 @@ export function CreatorRelationshipDetailModal({
                       </div>
                     </section>
                   ) : null}
-                  {relationshipAgenda.length > 0 ? (
+                  {relationshipAgenda.length > 0 && visiblePendingProposals.length === 0 ? (
                     <section className="affiliate-relationship-work-overview-section">
                       <h3>{t("ecommerce.affiliateWorkspace.relationshipPanelCurrentWork")}</h3>
                       <div className="affiliate-relationship-work-overview-proposal-list">
@@ -10229,7 +10471,7 @@ export function CreatorRelationshipDetailModal({
                             proposal={proposal}
                             shopLabel={t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}
                             shopLabelForId={relationshipShopName}
-                            variant="full"
+                            variant="embedded"
                           />
                         ))}
                       </div>
@@ -10544,7 +10786,7 @@ export function CreatorRelationshipDetailModal({
             </div>
           </section>
         </div>
-      </div>
+      </AffiliateDetailModal>
       <ConfirmDialog
         isOpen={Boolean(pendingOwnershipConfirmation)}
         onCancel={() => setPendingOwnershipConfirmation(null)}
@@ -10569,7 +10811,7 @@ export function CreatorRelationshipDetailModal({
         cancelLabel={t("common.cancel")}
         confirmVariant={pendingOwnershipConfirmation?.kind === "OWNER" ? "primary" : "danger"}
       />
-    </div>
+    </>
   );
 }
 
@@ -10598,7 +10840,6 @@ function CreatorProfilePanel({
       </div>
     );
   }
-  const name = creatorPrimaryName(profile, t("ecommerce.affiliateWorkspace.unknownCreator"));
   const handle = creatorTikTokHandle(profile);
   const platformId = creatorPlatformIdentity(profile);
   const marketplaceBio = profile.bioDescription?.trim() || null;
@@ -10614,20 +10855,12 @@ function CreatorProfilePanel({
 
   return (
     <div className="affiliate-creator-profile-panel">
-      <div className="affiliate-creator-profile-panel-hero">
-        <div className="affiliate-creator-detail-header">
-          <div className="affiliate-creator-detail-identity">
-            <CreatorAvatarImage
-              avatarUrl={profile.avatarUrl}
-              className="affiliate-creator-detail-avatar"
-              fallbackClassName="affiliate-creator-detail-avatar-empty"
-              name={name}
-            />
-            <div>
-              <h2>{name}</h2>
-              {handle ? <p>{handle}</p> : null}
-            </div>
-          </div>
+      <div className="affiliate-creator-profile-panel-hero affiliate-creator-profile-toolbar">
+        <div className="affiliate-creator-profile-toolbar-copy">
+          <span>{t("ecommerce.affiliateWorkspace.relationshipPanelProfile")}</span>
+          <strong>
+            {t("ecommerce.affiliateWorkspace.creatorDetail.marketplacePerformance")}
+          </strong>
         </div>
         <div className="affiliate-creator-profile-freshness">
           <span

@@ -1,5 +1,5 @@
 const en = {
-  openSettings: "Open settings",
+  openSettings: "Auto-add rules",
   newCollaboration: "New collaboration",
   platformOperation: "TikTok platform operation",
   collaborationType: "Collaboration type",
@@ -93,7 +93,7 @@ const en = {
   createOnTikTok: "Create on TikTok",
   createSuccess: "Collaboration created",
   targetCreateConflict: "TikTok returned conflicts and did not create a complete collaboration. Review the submitted creators and products.",
-  openSettingsHint: "Control whether newly eligible products are added to Open Collaboration automatically.",
+  openSettingsHint: "Choose whether future eligible products join Open Collaboration automatically and which default commission they use.",
   autoAddProducts: "Automatically add eligible products",
   autoAddProductsHint: "TikTok will enable future eligible products using the default commission below.",
   defaultCommissionPercent: "Default commission %",
@@ -104,7 +104,7 @@ const en = {
 } as const;
 
 const zh = {
-  openSettings: "Open 设置",
+  openSettings: "自动加入规则",
   newCollaboration: "新建合作",
   platformOperation: "TikTok 平台操作",
   collaborationType: "合作类型",
@@ -198,7 +198,7 @@ const zh = {
   createOnTikTok: "在 TikTok 创建",
   createSuccess: "合作已创建",
   targetCreateConflict: "TikTok 返回冲突，未生成完整合作。请检查提交的达人和商品。",
-  openSettingsHint: "控制新符合条件的商品是否自动加入 Open Collaboration。",
+  openSettingsHint: "设置未来符合条件的商品是否自动加入公开合作，以及加入时使用的默认佣金。",
   autoAddProducts: "自动加入符合条件的商品",
   autoAddProductsHint: "TikTok 会按下方默认佣金启用未来符合条件的商品。",
   defaultCommissionPercent: "默认佣金率 %",
@@ -212,7 +212,7 @@ type CollaborationOperationTranslations = Record<keyof typeof en, string>;
 const localized = (overrides: Partial<CollaborationOperationTranslations>): CollaborationOperationTranslations => ({ ...en, ...overrides });
 
 const de = localized({
-  openSettings: "Open-Einstellungen", newCollaboration: "Neue Kooperation", editConfiguration: "Konfiguration bearbeiten",
+  openSettings: "Regeln für automatisches Hinzufügen", newCollaboration: "Neue Kooperation", editConfiguration: "Konfiguration bearbeiten",
   saveChanges: "Änderungen speichern", stopCollaboration: "Kooperation beenden", removeFromPlatform: "Auf TikTok beenden",
   removeConfirmTitle: "Kooperation beenden?", removeConfirmAction: "Kooperation beenden", createOnTikTok: "Auf TikTok erstellen",
   shop: "Shop", productId: "Produkt-ID", name: "Name", endTime: "Endzeit", sellerContact: "Verkäuferkontakt",
@@ -220,7 +220,7 @@ const de = localized({
   commissionPercent: "Standardprovision %", adsCommissionPercent: "Shop-Ads-Provision %",
 });
 const es = localized({
-  openSettings: "Ajustes de Open", newCollaboration: "Nueva colaboración", editConfiguration: "Editar configuración",
+  openSettings: "Reglas de incorporación automática", newCollaboration: "Nueva colaboración", editConfiguration: "Editar configuración",
   saveChanges: "Guardar cambios", stopCollaboration: "Detener colaboración", removeFromPlatform: "Detener en TikTok",
   removeConfirmTitle: "¿Detener colaboración?", removeConfirmAction: "Detener colaboración", createOnTikTok: "Crear en TikTok",
   shop: "Tienda", productId: "ID de producto", name: "Nombre", endTime: "Fecha de fin", sellerContact: "Contacto del vendedor",
@@ -228,7 +228,7 @@ const es = localized({
   commissionPercent: "Comisión estándar %", adsCommissionPercent: "Comisión de Shop Ads %",
 });
 const fr = localized({
-  openSettings: "Paramètres Open", newCollaboration: "Nouvelle collaboration", editConfiguration: "Modifier la configuration",
+  openSettings: "Règles d’ajout automatique", newCollaboration: "Nouvelle collaboration", editConfiguration: "Modifier la configuration",
   saveChanges: "Enregistrer", stopCollaboration: "Arrêter la collaboration", removeFromPlatform: "Arrêter sur TikTok",
   removeConfirmTitle: "Arrêter la collaboration ?", removeConfirmAction: "Arrêter", createOnTikTok: "Créer sur TikTok",
   shop: "Boutique", productId: "ID produit", name: "Nom", endTime: "Date de fin", sellerContact: "Contact vendeur",
@@ -236,7 +236,7 @@ const fr = localized({
   commissionPercent: "Commission standard %", adsCommissionPercent: "Commission Shop Ads %",
 });
 const id = localized({
-  openSettings: "Pengaturan Open", newCollaboration: "Kolaborasi baru", editConfiguration: "Edit konfigurasi",
+  openSettings: "Aturan tambah otomatis", newCollaboration: "Kolaborasi baru", editConfiguration: "Edit konfigurasi",
   saveChanges: "Simpan perubahan", stopCollaboration: "Hentikan kolaborasi", removeFromPlatform: "Hentikan di TikTok",
   removeConfirmTitle: "Hentikan kolaborasi?", removeConfirmAction: "Hentikan kolaborasi", createOnTikTok: "Buat di TikTok",
   shop: "Toko", productId: "ID produk", name: "Nama", endTime: "Waktu berakhir", sellerContact: "Kontak penjual",
@@ -244,7 +244,7 @@ const id = localized({
   commissionPercent: "Komisi standar %", adsCommissionPercent: "Komisi Shop Ads %",
 });
 const it = localized({
-  openSettings: "Impostazioni Open", newCollaboration: "Nuova collaborazione", editConfiguration: "Modifica configurazione",
+  openSettings: "Regole di aggiunta automatica", newCollaboration: "Nuova collaborazione", editConfiguration: "Modifica configurazione",
   saveChanges: "Salva modifiche", stopCollaboration: "Interrompi collaborazione", removeFromPlatform: "Interrompi su TikTok",
   removeConfirmTitle: "Interrompere la collaborazione?", removeConfirmAction: "Interrompi", createOnTikTok: "Crea su TikTok",
   shop: "Negozio", productId: "ID prodotto", name: "Nome", endTime: "Data di fine", sellerContact: "Contatto venditore",
@@ -252,7 +252,7 @@ const it = localized({
   commissionPercent: "Commissione standard %", adsCommissionPercent: "Commissione Shop Ads %",
 });
 const th = localized({
-  openSettings: "การตั้งค่า Open", newCollaboration: "สร้างความร่วมมือ", editConfiguration: "แก้ไขการตั้งค่า",
+  openSettings: "กฎการเพิ่มอัตโนมัติ", newCollaboration: "สร้างความร่วมมือ", editConfiguration: "แก้ไขการตั้งค่า",
   saveChanges: "บันทึกการเปลี่ยนแปลง", stopCollaboration: "หยุดความร่วมมือ", removeFromPlatform: "หยุดบน TikTok",
   removeConfirmTitle: "หยุดความร่วมมือหรือไม่", removeConfirmAction: "หยุดความร่วมมือ", createOnTikTok: "สร้างบน TikTok",
   shop: "ร้านค้า", productId: "รหัสสินค้า", name: "ชื่อ", endTime: "เวลาสิ้นสุด", sellerContact: "ข้อมูลติดต่อผู้ขาย",

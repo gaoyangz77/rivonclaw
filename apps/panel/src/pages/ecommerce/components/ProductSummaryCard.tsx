@@ -6,6 +6,10 @@ import { GQL } from "@rivonclaw/core";
 import { ECOMMERCE_GET_PRODUCT_QUERY } from "../../../api/shops-queries.js";
 import { CopyIcon } from "../../../components/icons.js";
 import { RemoteMediaImage } from "../../../components/images/RemoteMediaImage.js";
+import {
+  affiliateEntityCardClassName,
+  type AffiliateEntityCardVariant,
+} from "./AffiliateUi.js";
 
 type ProductDetailQuery = {
   ecommerceGetProduct: GQL.EcomProduct;
@@ -29,17 +33,21 @@ export function ProductSummaryCard({
   shopId,
   label,
   allowInlineLoad = true,
+  allowDetailOpen = true,
+  variant = "embedded",
 }: {
   product?: GQL.EcomProductSummary | null;
   productId?: string | null;
   shopId?: string | null;
   label?: string;
   allowInlineLoad?: boolean;
+  allowDetailOpen?: boolean;
+  variant?: AffiliateEntityCardVariant;
 }) {
   const { t } = useTranslation();
   const [detailOpen, setDetailOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const canOpenDetail = Boolean(shopId && productId);
+  const canOpenDetail = allowDetailOpen && Boolean(shopId && productId);
   const shouldLoadInlineProduct = allowInlineLoad && canOpenDetail && !hasUsefulProductSummary(product);
   const [loadInlineProduct, { data: inlineProductData, loading: inlineProductLoading }] = useLazyQuery<
     ProductDetailQuery,
@@ -58,9 +66,10 @@ export function ProductSummaryCard({
   }, [loadInlineProduct, productId, shouldLoadInlineProduct, shopId]);
 
   function openDetail(event: MouseEvent<HTMLElement>) {
+    if (!canOpenDetail) return;
     event.preventDefault();
     event.stopPropagation();
-    if (canOpenDetail) setDetailOpen(true);
+    setDetailOpen(true);
   }
 
   function openImage(event: MouseEvent<HTMLElement>) {
@@ -71,7 +80,13 @@ export function ProductSummaryCard({
 
   if (!productId) {
     return (
-      <div className="affiliate-product-summary affiliate-product-summary-missing">
+      <div
+        className={affiliateEntityCardClassName(
+          variant,
+          false,
+          "affiliate-product-summary affiliate-product-summary-missing",
+        )}
+      >
         {label ? <div className="affiliate-product-label">{label}</div> : null}
         <div className="affiliate-product-thumb affiliate-product-thumb-empty" aria-hidden="true" />
         <div>
@@ -102,7 +117,11 @@ export function ProductSummaryCard({
   return (
     <>
       <article
-        className={`affiliate-product-summary${canOpenDetail ? " affiliate-product-summary-clickable" : ""}`}
+        className={affiliateEntityCardClassName(
+          variant,
+          canOpenDetail,
+          `affiliate-product-summary${canOpenDetail ? " affiliate-product-summary-clickable" : ""}`,
+        )}
         role={canOpenDetail ? "button" : undefined}
         tabIndex={canOpenDetail ? 0 : undefined}
         title={canOpenDetail ? t("ecommerce.productCard.openProductDetail") : undefined}
@@ -117,7 +136,7 @@ export function ProductSummaryCard({
         }}
       >
         {label ? <div className="affiliate-product-label">{label}</div> : null}
-        {resolvedProduct?.coverImage ? (
+        {resolvedProduct?.coverImage && canOpenDetail ? (
           <button
             className="affiliate-product-thumb-button"
             type="button"
@@ -132,6 +151,13 @@ export function ProductSummaryCard({
               sourceUrl={resolvedProduct.coverImage}
             />
           </button>
+        ) : resolvedProduct?.coverImage ? (
+          <RemoteMediaImage
+            alt=""
+            className="affiliate-product-thumb"
+            loading="lazy"
+            sourceUrl={resolvedProduct.coverImage}
+          />
         ) : (
           <div className="affiliate-product-thumb affiliate-product-thumb-empty" aria-hidden="true" />
         )}
