@@ -63,6 +63,30 @@ describe("Affiliate UI primitives", () => {
     expect(screen.getByText("Contacts").closest("aside")?.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("supports a single-layer navigation header without a redundant title", () => {
+    const { container } = render(
+      <AffiliateContextInspector
+        open
+        onClose={() => undefined}
+        headerContent={
+          <nav aria-label="Relationship sections">
+            <button type="button">Overview</button>
+            <button type="button">Contacts</button>
+            <button type="button">Management</button>
+          </nav>
+        }
+      >
+        <span>Relationship summary</span>
+      </AffiliateContextInspector>,
+    );
+
+    expect(
+      container.querySelector(".affiliate-context-inspector-header.is-navigation-only"),
+    ).not.toBeNull();
+    expect(container.querySelector(".affiliate-context-inspector-header strong")).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Relationship sections" })).not.toBeNull();
+  });
+
   it("isolates shared detail-modal content clicks from the backdrop", () => {
     const onClose = vi.fn();
     const { container } = render(

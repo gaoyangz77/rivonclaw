@@ -85,14 +85,10 @@ describe("AffiliateManagementPage proposal source", () => {
       ),
     ).toBe("creator");
     expect(
-      relationshipTimelineLane(
-        timelineItem({ actorRole: GQL.AffiliateLifecycleActorRole.Staff }),
-      ),
+      relationshipTimelineLane(timelineItem({ actorRole: GQL.AffiliateLifecycleActorRole.Staff })),
     ).toBe("operator");
     expect(
-      relationshipTimelineLane(
-        timelineItem({ actorRole: GQL.AffiliateLifecycleActorRole.System }),
-      ),
+      relationshipTimelineLane(timelineItem({ actorRole: GQL.AffiliateLifecycleActorRole.System })),
     ).toBe("system");
   });
 
@@ -931,6 +927,27 @@ describe("Affiliate canonical UI contract", () => {
     expect(page).toContain("showRevisionHistory={false}");
   });
 
+  it("reuses the actionable pending proposal card inside Creator details", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const creatorModal = page.slice(
+      page.indexOf("export function CreatorRelationshipDetailModal"),
+      page.indexOf("function CreatorProfilePanel"),
+    );
+
+    expect(creatorModal).toContain("async function decideRelationshipProposal");
+    expect(creatorModal).toContain("optimisticallyDecidedProposalIds");
+    expect(creatorModal).toContain("<AgentWorkBundleCard");
+    expect(creatorModal).toContain("allowDecisionActions");
+    expect(creatorModal).toContain("onApprove={(item) =>");
+    expect(creatorModal).toContain("onReject={(item) =>");
+    expect(creatorModal).toContain("onRequestRevision={(item, revisionNote) =>");
+    expect(creatorModal).toContain("decideRelationshipActionProposal");
+    expect(page).toContain("onDecideProposal={decideProposal}");
+  });
+
   it("opens Creator details from the work-detail avatar without a redundant workspace button", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
@@ -972,7 +989,7 @@ describe("Affiliate canonical UI contract", () => {
     const chinese = readFileSync(resolve(process.cwd(), "src/i18n/zh.ts"), "utf8");
 
     expect(page).toContain('"overview" | "contacts" | "management"');
-    expect(page).toContain('const [proposalHistoryOpen, setProposalHistoryOpen] = useState(false)');
+    expect(page).toContain("const [proposalHistoryOpen, setProposalHistoryOpen] = useState(false)");
     expect(page).toContain("aria-expanded={proposalHistoryOpen}");
     expect(page).toContain("historicalProposals.length");
     expect(page).toContain('t("auth.email")');
@@ -986,6 +1003,10 @@ describe("Affiliate canonical UI contract", () => {
   it("keeps relationship context pinned across Creator tabs and tolerates embedded collaboration data", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateUi.css"),
       "utf8",
     );
     const queries = readFileSync(resolve(process.cwd(), "src/api/shops-queries.ts"), "utf8");
@@ -1007,6 +1028,16 @@ describe("Affiliate canonical UI contract", () => {
     expect(creatorModal).not.toMatch(
       /setActiveTab\("profile"\);\s*setContextInspectorOpen\(false\)/,
     );
+    expect(creatorModal).toContain('window.matchMedia("(min-width: 1081px)").matches');
+    expect(creatorModal).toContain("affiliate-relationship-inspector-mobile-toggle");
+    expect(creatorModal).toContain("headerContent={");
+    const inspectorOpening = creatorModal.slice(
+      creatorModal.indexOf("<AffiliateContextInspector"),
+      creatorModal.indexOf("headerContent={"),
+    );
+    expect(inspectorOpening).not.toContain("title=");
+    expect(styles).toContain(".affiliate-relationship-inspector-mobile-toggle");
+    expect(styles).toContain(".affiliate-context-inspector-header.is-navigation-only");
     expect(collaborationCard).toContain("const products = collaboration.products ?? []");
     expect(collaborationCard).toContain("const productIds = collaboration.productIds ?? []");
     expect(collaborationCard).not.toContain("collaboration.products.filter");
