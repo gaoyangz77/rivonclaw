@@ -106,6 +106,11 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
       if (dropdownRef.current?.contains(target)) return;
       setOpen(false);
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus({ preventScroll: true });
+    }
     function handleScroll(e: Event) {
       // Ignore scroll events from within the select wrapper or the portal dropdown
       if (ref.current && ref.current.contains(e.target as Node)) return;
@@ -143,11 +148,14 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
     function handleResize() {
       setOpen(false);
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    // Capture outside presses before a modal or nested control can stop propagation.
+    document.addEventListener("mousedown", handleClickOutside, true);
+    document.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("scroll", handleScroll, true);
     window.addEventListener("resize", handleResize);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("resize", handleResize);
     };
@@ -172,6 +180,8 @@ export function Select({ value, onChange, options, placeholder, ariaLabel, disab
         type="button"
         className="custom-select-trigger"
         aria-label={ariaLabel}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
       >
