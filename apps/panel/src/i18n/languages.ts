@@ -70,30 +70,60 @@ function mergeTranslationResources<T extends TranslationResourceRecord>(
   ) as T;
 }
 
+const AFFILIATE_TIMELINE_EVENT_BACKFILL = {
+  AFFILIATE_ONBOARDING_COMPLETED: "Affiliate onboarding completed",
+  BD_ACCOUNT_BOUND: "BD channel account connected",
+  BD_ACCOUNT_TRANSFERRED: "BD channel account transferred",
+  BD_ACCOUNT_UNBOUND: "BD channel account disconnected",
+  BUSINESS_DEVELOPER_ARCHIVED: "Business developer archived",
+  BUSINESS_DEVELOPER_CREATED: "Business developer created",
+  BUSINESS_DEVELOPER_RESTORED: "Business developer restored",
+  BUSINESS_DEVELOPER_UPDATED: "Business developer updated",
+  CANDIDATE_QUALIFIED: "Creator candidate qualified",
+  CHANNEL_CONTACT_CREATED: "Creator channel contact created",
+  CHANNEL_CONTACT_UPDATED: "Creator channel contact updated",
+  COLLABORATION_FIRST_OBSERVED: "Platform collaboration first observed",
+  COLLABORATION_TERMINAL_STATE_FIRST_OBSERVED: "Collaboration terminal state first observed",
+  CREATOR_PROTECTION_ADDED: "Creator relationship protection added",
+  CREATOR_PROTECTION_MERGED: "Creator relationship protection merged",
+  CREATOR_PROTECTION_REMOVED: "Creator relationship protection removed",
+  CREATOR_PROTECTION_UPDATED: "Creator relationship protection updated",
+  RELATIONSHIP_BD_ASSIGNED: "Creator relationship owner assigned",
+  SAMPLE_APPLICATION_FIRST_OBSERVED: "Sample request first observed",
+  SAMPLE_APPLICATION_STATE_OBSERVED: "Sample request status updated",
+  SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED:
+    "Sample request terminal state first observed",
+  SAMPLE_COLLABORATION_LINK_CONFLICT_OBSERVED: "Sample collaboration link conflict observed",
+  SAMPLE_COMMISSION_RATE_CONFLICT_OBSERVED: "Sample commission rate conflict observed",
+  STAGE_CHANGED: "Creator relationship stage updated",
+  WORK_ITEM_REQUEUED: "Agent work requeued",
+  WORK_ITEM_RETRY_REQUESTED: "Agent work retry requested",
+} as const;
+
 const AFFILIATE_TIMELINE_TRANSLATIONS = {
   de: {
     tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Bewertung unbezahlter Bestellungen abrufen", AFFILIATE_LIST_SHOPS: "Affiliate-Shops auflisten" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Verstrichene Zeit", timePassedDuration: "{{duration}} vergangen", timePassedDaysHours: "{{days}} T {{hours}} Std.", timePassedDays: "{{days}} T", timePassedHours: "{{hours}} Std.", timePassedHint: "Verstrichene Zeit zwischen Zeitleisteneinträgen; ausgefilterte Ereignisse können dazwischen liegen." } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Verstrichene Zeit", timePassedDuration: "{{duration}} vergangen", timePassedDaysHours: "{{days}} T {{hours}} Std.", timePassedDays: "{{days}} T", timePassedHours: "{{hours}} Std.", timePassedHint: "Verstrichene Zeit zwischen Zeitleisteneinträgen; ausgefilterte Ereignisse können dazwischen liegen.", messageComposerTitle: "Creator antworten", messageComposerAttachmentCount: "{{count}} Anhang/Anhänge hinzugefügt", creatorDetail: { profileFacts: "Profilübersicht" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
   },
   es: {
     tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtener evaluación de pedidos impagados", AFFILIATE_LIST_SHOPS: "Listar tiendas de afiliados" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Tiempo transcurrido", timePassedDuration: "Han pasado {{duration}}", timePassedDaysHours: "{{days}} d {{hours}} h", timePassedDays: "{{days}} d", timePassedHours: "{{hours}} h", timePassedHint: "Tiempo transcurrido entre elementos de la cronología; puede haber eventos filtrados." } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Tiempo transcurrido", timePassedDuration: "Han pasado {{duration}}", timePassedDaysHours: "{{days}} d {{hours}} h", timePassedDays: "{{days}} d", timePassedHours: "{{hours}} h", timePassedHint: "Tiempo transcurrido entre elementos de la cronología; puede haber eventos filtrados.", messageComposerTitle: "Responder al creador", messageComposerAttachmentCount: "{{count}} archivo(s) adjunto(s) añadido(s)", creatorDetail: { profileFacts: "Resumen del perfil" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
   },
   fr: {
     tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Obtenir l’évaluation des commandes impayées", AFFILIATE_LIST_SHOPS: "Lister les boutiques Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Temps écoulé", timePassedDuration: "{{duration}} écoulé", timePassedDaysHours: "{{days}} j {{hours}} h", timePassedDays: "{{days}} j", timePassedHours: "{{hours}} h", timePassedHint: "Temps écoulé entre les éléments de la chronologie ; des événements filtrés peuvent exister." } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Temps écoulé", timePassedDuration: "{{duration}} écoulé", timePassedDaysHours: "{{days}} j {{hours}} h", timePassedDays: "{{days}} j", timePassedHours: "{{hours}} h", timePassedHint: "Temps écoulé entre les éléments de la chronologie ; des événements filtrés peuvent exister.", messageComposerTitle: "Répondre au créateur", messageComposerAttachmentCount: "{{count}} pièce(s) jointe(s) ajoutée(s)", creatorDetail: { profileFacts: "Aperçu du profil" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
   },
   id: {
     tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Dapatkan evaluasi pesanan belum dibayar", AFFILIATE_LIST_SHOPS: "Daftar toko Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Waktu berlalu", timePassedDuration: "{{duration}} berlalu", timePassedDaysHours: "{{days}} h {{hours}} j", timePassedDays: "{{days}} h", timePassedHours: "{{hours}} j", timePassedHint: "Waktu antara item linimasa; peristiwa yang difilter mungkin ada di antaranya." } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Waktu berlalu", timePassedDuration: "{{duration}} berlalu", timePassedDaysHours: "{{days}} h {{hours}} j", timePassedDays: "{{days}} h", timePassedHours: "{{hours}} j", timePassedHint: "Waktu antara item linimasa; peristiwa yang difilter mungkin ada di antaranya.", messageComposerTitle: "Balas kreator", messageComposerAttachmentCount: "{{count}} lampiran ditambahkan", creatorDetail: { profileFacts: "Ringkasan profil" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
   },
   it: {
     tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "Ottieni valutazione ordini non pagati", AFFILIATE_LIST_SHOPS: "Elenca negozi Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "Tempo trascorso", timePassedDuration: "Trascorsi {{duration}}", timePassedDaysHours: "{{days}} g {{hours}} h", timePassedDays: "{{days}} g", timePassedHours: "{{hours}} h", timePassedHint: "Tempo trascorso tra gli elementi della cronologia; potrebbero esserci eventi filtrati." } },
+    ecommerce: { affiliateWorkspace: { timePassed: "Tempo trascorso", timePassedDuration: "Trascorsi {{duration}}", timePassedDaysHours: "{{days}} g {{hours}} h", timePassedDays: "{{days}} g", timePassedHours: "{{hours}} h", timePassedHint: "Tempo trascorso tra gli elementi della cronologia; potrebbero esserci eventi filtrati.", messageComposerTitle: "Rispondi al creator", messageComposerAttachmentCount: "{{count}} allegato/i aggiunto/i", creatorDetail: { profileFacts: "Panoramica del profilo" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
   },
   th: {
     tools: { selector: { name: { ECOM_GET_CS_UNPAID_ORDER_EVALUATION: "ดูการประเมินคำสั่งซื้อที่ยังไม่ชำระ", AFFILIATE_LIST_SHOPS: "แสดงร้านค้า Affiliate" } } },
-    ecommerce: { affiliateWorkspace: { timePassed: "เวลาที่ผ่านไป", timePassedDuration: "ผ่านไป {{duration}}", timePassedDaysHours: "{{days}} วัน {{hours}} ชม.", timePassedDays: "{{days}} วัน", timePassedHours: "{{hours}} ชม.", timePassedHint: "เวลาระหว่างรายการบนไทม์ไลน์ อาจมีเหตุการณ์ที่ถูกกรองออกอยู่ระหว่างนั้น" } },
+    ecommerce: { affiliateWorkspace: { timePassed: "เวลาที่ผ่านไป", timePassedDuration: "ผ่านไป {{duration}}", timePassedDaysHours: "{{days}} วัน {{hours}} ชม.", timePassedDays: "{{days}} วัน", timePassedHours: "{{hours}} ชม.", timePassedHint: "เวลาระหว่างรายการบนไทม์ไลน์ อาจมีเหตุการณ์ที่ถูกกรองออกอยู่ระหว่างนั้น", messageComposerTitle: "ตอบกลับครีเอเตอร์", messageComposerAttachmentCount: "เพิ่มไฟล์แนบแล้ว {{count}} ไฟล์", creatorDetail: { profileFacts: "ภาพรวมโปรไฟล์" }, lifecycleEvents: AFFILIATE_TIMELINE_EVENT_BACKFILL } },
   },
 } as const;
 

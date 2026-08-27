@@ -26,6 +26,7 @@ import {
   resolvePredictionEvidenceState,
   proposalSampleDecisionOverrideTarget,
   proposalSampleReviewRows,
+  relationshipTimelineLane,
   replaceAffiliateProposalPageBuffer,
   selectAffiliateProposalItems,
   sortAffiliateProposalsNewestFirst,
@@ -58,6 +59,41 @@ describe("AffiliateManagementPage proposal source", () => {
         [proposal("proposal-2", "PENDING"), proposal("proposal-3", "PENDING")],
       ).map((item) => item.id),
     ).toEqual(["proposal-1", "proposal-2", "proposal-3"]);
+  });
+
+  it("places Creator and operator activity on opposite timeline lanes", () => {
+    const timelineItem = (
+      overrides: Partial<GQL.AffiliateRelationshipTimelineItem>,
+    ): GQL.AffiliateRelationshipTimelineItem =>
+      ({
+        id: "timeline-1",
+        kind: GQL.AffiliateRelationshipTimelineItemKind.BusinessEvent,
+        occurredAt: "2026-08-27T00:00:00.000Z",
+        relatedIds: {},
+        summary: "",
+        ...overrides,
+      }) as GQL.AffiliateRelationshipTimelineItem;
+
+    expect(
+      relationshipTimelineLane(
+        timelineItem({
+          message: {
+            channel: GQL.AffiliateMessageChannel.PlatformChat,
+            direction: GQL.AffiliateCreatorMessageDirection.Creator,
+          },
+        }),
+      ),
+    ).toBe("creator");
+    expect(
+      relationshipTimelineLane(
+        timelineItem({ actorRole: GQL.AffiliateLifecycleActorRole.Staff }),
+      ),
+    ).toBe("operator");
+    expect(
+      relationshipTimelineLane(
+        timelineItem({ actorRole: GQL.AffiliateLifecycleActorRole.System }),
+      ),
+    ).toBe("system");
   });
 
   it("removes a locally decided proposal from the pending queue", () => {
@@ -922,6 +958,85 @@ describe("Affiliate canonical UI contract", () => {
     expect(openCreatorDetail).not.toContain("setSelectedAgentWorkBundle(null)");
     expect(page).toContain("covered={Boolean(selectedRelationship)}");
     expect(detailModal).toContain("if (covered) return");
+  });
+
+  it("organizes Creator relationship context and keeps proposal history collapsed by default", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateUi.css"),
+      "utf8",
+    );
+    const chinese = readFileSync(resolve(process.cwd(), "src/i18n/zh.ts"), "utf8");
+
+    expect(page).toContain('"overview" | "contacts" | "management"');
+    expect(page).toContain('const [proposalHistoryOpen, setProposalHistoryOpen] = useState(false)');
+    expect(page).toContain("aria-expanded={proposalHistoryOpen}");
+    expect(page).toContain("historicalProposals.length");
+    expect(page).toContain('t("auth.email")');
+    expect(page).not.toContain("<span>Email</span>");
+    expect(styles).toContain(".affiliate-relationship-context-nav");
+    expect(styles).toContain(".affiliate-relationship-proposal-history-toggle");
+    expect(chinese).toContain('relationshipInformation: "达人关系信息"');
+    expect(chinese).toContain('relationshipContacts: "达人联系方式"');
+  });
+
+  it("keeps relationship context pinned across Creator tabs and tolerates embedded collaboration data", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const queries = readFileSync(resolve(process.cwd(), "src/api/shops-queries.ts"), "utf8");
+    const creatorModal = page.slice(
+      page.indexOf("export function CreatorRelationshipDetailModal"),
+      page.indexOf("function CreatorProfilePanel"),
+    );
+    const collaborationCard = page.slice(
+      page.indexOf("export function AffiliateCollaborationCard"),
+      page.indexOf("type AffiliateCollaborationDetailQueryData"),
+    );
+    const relationshipCollaborationQuery = queries.slice(
+      queries.indexOf("export const AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY"),
+      queries.indexOf("export const AFFILIATE_PRODUCT_SUMMARIES_QUERY"),
+    );
+
+    expect(creatorModal).toContain("onClick={() => setActiveTab(tab.id)}");
+    expect(creatorModal).not.toContain('setContextInspectorOpen(tab.id === "overview")');
+    expect(creatorModal).not.toMatch(
+      /setActiveTab\("profile"\);\s*setContextInspectorOpen\(false\)/,
+    );
+    expect(collaborationCard).toContain("const products = collaboration.products ?? []");
+    expect(collaborationCard).toContain("const productIds = collaboration.productIds ?? []");
+    expect(collaborationCard).not.toContain("collaboration.products.filter");
+    expect(relationshipCollaborationQuery).toContain("products {");
+    expect(relationshipCollaborationQuery).toContain("shopAdsCommissionRate");
+  });
+
+  it("uses dense shared entity layouts across Creator detail tabs", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/components/AffiliateUi.css"),
+      "utf8",
+    );
+    const chinese = readFileSync(resolve(process.cwd(), "src/i18n/zh.ts"), "utf8");
+
+    expect(page).toContain("affiliate-relationship-sample-list");
+    expect(page).toContain("affiliate-relationship-platform-list");
+    expect(page).toContain('variant="listing"');
+    expect(page).toContain("affiliate-creator-profile-dashboard");
+    expect(page).toContain("affiliate-timeline-row-${entry.lane}");
+    expect(styles).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
+    expect(styles).toContain("affiliate-timeline-row-creator");
+    expect(styles).toContain("affiliate-timeline-row-operator");
+    expect(chinese).toContain('RELATIONSHIP_BD_ASSIGNED: "分配达人关系负责人"');
+    expect(chinese).toContain(
+      'SAMPLE_APPLICATION_TERMINAL_STATE_FIRST_OBSERVED: "首次发现样品申请已结束"',
+    );
   });
 
   it("removes a decided row before the mutation resolves and restores it on failure", () => {

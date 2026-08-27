@@ -2978,10 +2978,19 @@ export const AFFILIATE_RELATIONSHIP_PLATFORM_COLLABORATIONS_QUERY = gql`
           type
           platformCollaborationId
           status
+          name
           creatorIds
           creatorOpenIds
           productIds
           commissionRate
+          products {
+            productId
+            collaborationStatus
+            commission {
+              rate
+              shopAdsCommissionRate
+            }
+          }
           effectiveTime
           platformUpdatedAt
           firstObservedAt
