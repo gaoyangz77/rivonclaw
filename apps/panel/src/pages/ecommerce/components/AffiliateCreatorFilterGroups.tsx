@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { GQL } from "@rivonclaw/core";
 import { Select } from "../../../components/inputs/Select.js";
 import { CREATOR_SAMPLE_TIER_ORDER, creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
+import { creatorSystemTagLabel } from "../affiliate-creator-system-tags.js";
 import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
 
 /**
@@ -28,27 +29,37 @@ import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
 export function AffiliateCreatorFilterGroups({
   manualTagCatalog,
   manualTagMatchMode,
+  systemTagDefinitions,
+  systemTagMatchMode,
   selectedManualTagIds,
+  selectedSystemTags,
   needsAttentionOnly,
   selectedSampleTiers,
   selectedShopSampleTiers,
   shopSelected,
   onManualTagMatchModeChange,
+  onSystemTagMatchModeChange,
   onNeedsAttentionOnlyChange,
   onSelectedManualTagIdsChange,
+  onSelectedSystemTagsChange,
   onSelectedSampleTiersChange,
   onSelectedShopSampleTiersChange,
 }: {
   manualTagCatalog: ReadonlyArray<Pick<GQL.CreatorManualTag, "id" | "name">>;
   manualTagMatchMode: GQL.TagMatchMode;
+  systemTagDefinitions: ReadonlyArray<Pick<GQL.AffiliateCreatorSystemTagDefinition, "tag">>;
+  systemTagMatchMode: GQL.TagMatchMode;
   needsAttentionOnly: boolean;
   selectedManualTagIds: string[];
+  selectedSystemTags: GQL.AffiliateCreatorSystemTag[];
   selectedSampleTiers: GQL.CreatorSampleTier[];
   selectedShopSampleTiers: GQL.CreatorSampleTier[];
   shopSelected: boolean;
   onManualTagMatchModeChange: (mode: GQL.TagMatchMode) => void;
+  onSystemTagMatchModeChange: (mode: GQL.TagMatchMode) => void;
   onNeedsAttentionOnlyChange: (needsAttentionOnly: boolean) => void;
   onSelectedManualTagIdsChange: (tagIds: string[]) => void;
+  onSelectedSystemTagsChange: (tags: GQL.AffiliateCreatorSystemTag[]) => void;
   onSelectedSampleTiersChange: (tiers: GQL.CreatorSampleTier[]) => void;
   onSelectedShopSampleTiersChange: (tiers: GQL.CreatorSampleTier[]) => void;
 }) {
@@ -58,12 +69,18 @@ export function AffiliateCreatorFilterGroups({
     label: creatorSampleTierLabel(t, tier),
   }));
   const manualTagOptions = manualTagCatalog.map((tag) => ({ id: tag.id, label: tag.name }));
+  const systemTagOptions = systemTagDefinitions.map((definition) => ({
+    id: definition.tag,
+    label: creatorSystemTagLabel(t, definition.tag),
+  }));
 
   return (
     <div
-      className={shopSelected
-        ? "affiliate-creator-filter-groups affiliate-creator-filter-groups-with-shop-tier"
-        : "affiliate-creator-filter-groups"}
+      className={
+        shopSelected
+          ? "affiliate-creator-filter-groups affiliate-creator-filter-groups-with-shop-tier"
+          : "affiliate-creator-filter-groups"
+      }
       data-tutorial-id="affiliate-creators-filters"
     >
       <AffiliateChipMultiSelect
@@ -86,6 +103,37 @@ export function AffiliateCreatorFilterGroups({
 
       <div className="affiliate-creator-filter-group">
         <AffiliateChipMultiSelect
+          label={t("ecommerce.affiliateWorkspace.systemTagFilterLabel")}
+          labelTitle={t("ecommerce.affiliateWorkspace.systemTags.hint")}
+          options={systemTagOptions}
+          selectedIds={selectedSystemTags}
+          onChange={(tags) => onSelectedSystemTagsChange(tags as GQL.AffiliateCreatorSystemTag[])}
+        />
+        {selectedSystemTags.length > 1 ? (
+          <label className="affiliate-filter-field affiliate-creator-filter-match-mode">
+            <span>{t("ecommerce.affiliateWorkspace.systemTagMatchModeLabel")}</span>
+            <Select
+              value={systemTagMatchMode}
+              onChange={(value) => onSystemTagMatchModeChange(value as GQL.TagMatchMode)}
+              options={[
+                {
+                  value: GQL.TagMatchMode.Any,
+                  label: t("ecommerce.affiliateWorkspace.manualTagMatchModes.ANY"),
+                },
+                {
+                  value: GQL.TagMatchMode.All,
+                  label: t("ecommerce.affiliateWorkspace.manualTagMatchModes.ALL"),
+                },
+              ]}
+              className="affiliate-status-select"
+              ariaLabel={t("ecommerce.affiliateWorkspace.systemTagMatchModeLabel")}
+            />
+          </label>
+        ) : null}
+      </div>
+
+      <div className="affiliate-creator-filter-group">
+        <AffiliateChipMultiSelect
           label={t("ecommerce.affiliateWorkspace.manualTagFilterLabel")}
           options={manualTagOptions}
           selectedIds={selectedManualTagIds}
@@ -98,8 +146,14 @@ export function AffiliateCreatorFilterGroups({
               value={manualTagMatchMode}
               onChange={(value) => onManualTagMatchModeChange(value as GQL.TagMatchMode)}
               options={[
-                { value: GQL.TagMatchMode.Any, label: t("ecommerce.affiliateWorkspace.manualTagMatchModes.ANY") },
-                { value: GQL.TagMatchMode.All, label: t("ecommerce.affiliateWorkspace.manualTagMatchModes.ALL") },
+                {
+                  value: GQL.TagMatchMode.Any,
+                  label: t("ecommerce.affiliateWorkspace.manualTagMatchModes.ANY"),
+                },
+                {
+                  value: GQL.TagMatchMode.All,
+                  label: t("ecommerce.affiliateWorkspace.manualTagMatchModes.ALL"),
+                },
               ]}
               className="affiliate-status-select"
               ariaLabel={t("ecommerce.affiliateWorkspace.manualTagMatchModeLabel")}

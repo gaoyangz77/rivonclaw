@@ -21,9 +21,7 @@ import {
   type CreatorRelationshipDetailItem,
 } from "./AffiliateManagementPage.js";
 import { AffiliateMetricLabel } from "./components/AffiliateMetricLabel.js";
-import {
-  generateAffiliateCampaignMessageTemplate,
-} from "../../api/affiliate-campaign-ai.js";
+import { generateAffiliateCampaignMessageTemplate } from "../../api/affiliate-campaign-ai.js";
 import {
   AFFILIATE_CAMPAIGNS_QUERY,
   AFFILIATE_CAMPAIGN_SELECTION_READINESS_QUERY,
@@ -133,6 +131,7 @@ const stateStatusOptions = Object.values(GQL.AffiliateCampaignCreatorStateStatus
 const eligibilityCategoryOptions = Object.values(GQL.AffiliateCampaignEligibilityCategory);
 const eligibilityReasonOptions = [
   "PROTECTION_LIST",
+  "NO_CAMPAIGN_DISTURB",
   "SAME_PRODUCT_ALREADY_CONTACTED",
   "SAME_PRODUCT_RESERVED_OR_SUBMITTED",
   "SHOP_CREATOR_7D_LIMIT",
@@ -258,11 +257,7 @@ export function countDistinctActiveCampaignShops(
   ).size;
 }
 
-const CAMPAIGN_TEMPLATE_VARIABLES = new Set([
-  "creator_name",
-  "product_name",
-  "shop_name",
-]);
+const CAMPAIGN_TEMPLATE_VARIABLES = new Set(["creator_name", "product_name", "shop_name"]);
 
 export function unsupportedAffiliateCampaignTemplateVariables(value: string): string[] {
   const unsupported = new Set<string>();
@@ -308,9 +303,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
   // Keyed by product id so each row can show what it resolved to. The lead
   // product's entry is also what the backend freezes as the Campaign snapshot.
-  const [productPreviews, setProductPreviews] = useState<
-    Record<string, CampaignProductPreview>
-  >({});
+  const [productPreviews, setProductPreviews] = useState<Record<string, CampaignProductPreview>>(
+    {},
+  );
   const [fetchingProductId, setFetchingProductId] = useState("");
   const [pendingProductResolution, setPendingProductResolution] =
     useState<CampaignProductPreview | null>(null);
@@ -398,8 +393,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
     hasError: Boolean(creatorStatesQuery.error),
-    itemCount:
-      creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.items.length ?? 0,
+    itemCount: creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.items.length ?? 0,
   });
 
   const [writeCampaign, writeCampaignState] = useMutation<
@@ -438,11 +432,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   const targetCollaborationQuota = summary?.targetCollaborationCreateQuota;
   const targetCollaborationQuotaRecovered = Boolean(
     targetCollaborationQuota &&
-      !targetCollaborationQuota.active &&
-      targetCollaborationQuota.lastObservedAt &&
-      targetCollaborationQuota.lastSuccessfulCreateAt &&
-      new Date(targetCollaborationQuota.lastSuccessfulCreateAt).getTime() >
-        new Date(targetCollaborationQuota.lastObservedAt).getTime(),
+    !targetCollaborationQuota.active &&
+    targetCollaborationQuota.lastObservedAt &&
+    targetCollaborationQuota.lastSuccessfulCreateAt &&
+    new Date(targetCollaborationQuota.lastSuccessfulCreateAt).getTime() >
+      new Date(targetCollaborationQuota.lastObservedAt).getTime(),
   );
   const shops = (shopsQuery.data?.shops ?? []).filter(
     (shop) =>
@@ -571,14 +565,18 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       templateGuidance: "",
       templateSource: campaign.messageTemplateSource,
       messageProductName:
-        campaign.messageProductName || campaign.productSnapshot?.title || campaignLeadProductId(campaign),
+        campaign.messageProductName ||
+        campaign.productSnapshot?.title ||
+        campaignLeadProductId(campaign),
     });
     setEditingCampaignId(campaign.id);
     // Only the lead product has a stored snapshot; the other rows show nothing
     // until the seller fetches them.
-    setProductPreviews(campaign.productSnapshot
-      ? { [campaign.productSnapshot.productId]: campaign.productSnapshot }
-      : {});
+    setProductPreviews(
+      campaign.productSnapshot
+        ? { [campaign.productSnapshot.productId]: campaign.productSnapshot }
+        : {},
+    );
     setPendingProductResolution(null);
     setWizardStep(1);
     setWizardOpen(true);
@@ -589,24 +587,28 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const leadProductId = form.products[0]?.productId.trim() ?? "";
-  const productPreview = leadProductId ? productPreviews[leadProductId] ?? null : null;
+  const productPreview = leadProductId ? (productPreviews[leadProductId] ?? null) : null;
 
   const updateProduct = (index: number, patch: Partial<CampaignProductForm>) => {
     setForm((current) => ({
       ...current,
       products: current.products.map((product, position) =>
-        position === index ? { ...product, ...patch } : product),
+        position === index ? { ...product, ...patch } : product,
+      ),
     }));
   };
 
   const addProduct = () => {
     setForm((current) => ({
       ...current,
-      products: [...current.products, {
-        productId: "",
-        commissionRate: "10",
-        shopAdsCommissionRate: "10",
-      }],
+      products: [
+        ...current.products,
+        {
+          productId: "",
+          commissionRate: "10",
+          shopAdsCommissionRate: "10",
+        },
+      ],
     }));
   };
 
@@ -615,18 +617,22 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       ...current,
       // The first row drives discovery and the message, so dropping it promotes
       // the next one rather than leaving the Campaign without a lead product.
-      products: current.products.length > 1
-        ? current.products.filter((_product, position) => position !== index)
-        : current.products,
+      products:
+        current.products.length > 1
+          ? current.products.filter((_product, position) => position !== index)
+          : current.products,
     }));
   };
 
-  const productsInvalid = form.products.some((product) => {
-    return !product.productId.trim() ||
-      !isAffiliateCampaignCommissionRateValid(product.commissionRate) ||
-      !isAffiliateCampaignCommissionRateValid(product.shopAdsCommissionRate);
-  }) || new Set(form.products.map((product) => product.productId.trim())).size
-    !== form.products.length;
+  const productsInvalid =
+    form.products.some((product) => {
+      return (
+        !product.productId.trim() ||
+        !isAffiliateCampaignCommissionRateValid(product.commissionRate) ||
+        !isAffiliateCampaignCommissionRateValid(product.shopAdsCommissionRate)
+      );
+    }) ||
+    new Set(form.products.map((product) => product.productId.trim())).size !== form.products.length;
   const unsupportedTemplateVariables = unsupportedAffiliateCampaignTemplateVariables(
     form.templateText,
   );
@@ -691,11 +697,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       if (!preview) throw new Error(t("ecommerce.affiliateCampaign.productFetchFailed"));
       // Only the lead product is frozen onto the Campaign, so only it can
       // present the seller with a "this product changed" decision.
-      if (
-        index === 0 &&
-        productPreview &&
-        productPreview.snapshotHash !== preview.snapshotHash
-      ) {
+      if (index === 0 && productPreview && productPreview.snapshotHash !== preview.snapshotHash) {
         setPendingProductResolution(preview);
         return;
       }
@@ -712,10 +714,9 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
     setForm((current) => ({
       ...current,
       products: current.products.map((product, position) =>
-        position === index ? { ...product, productId: preview.productId } : product),
-      ...(index === 0
-        ? { refreshProductSnapshot: true, messageProductName: "" }
-        : {}),
+        position === index ? { ...product, productId: preview.productId } : product,
+      ),
+      ...(index === 0 ? { refreshProductSnapshot: true, messageProductName: "" } : {}),
     }));
     setProductPreviews((current) => ({ ...current, [preview.productId]: preview }));
     setPendingProductResolution(null);
@@ -930,8 +931,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   );
 
   const loadMoreCreatorStates = async () => {
-    const nextCursor =
-      creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.nextCursor;
+    const nextCursor = creatorStatesQuery.data?.affiliateCampaignSearchPlanCreatorStates.nextCursor;
     if (!nextCursor) return;
     await creatorStatesQuery.fetchMore({
       variables: {
@@ -958,8 +958,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   };
 
   const loadMoreSearchPlans = async () => {
-    const nextCursor =
-      searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.nextCursor;
+    const nextCursor = searchPlansQuery.data?.affiliateCampaignSearchPlanSummaries.nextCursor;
     if (!nextCursor || !selectedCampaignId) return;
     await searchPlansQuery.fetchMore({
       variables: {
@@ -1098,7 +1097,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         </div>
       </header>
 
-      <section className="affiliate-campaign-command-strip" data-tutorial-id="affiliate-campaign-summary">
+      <section
+        className="affiliate-campaign-command-strip"
+        data-tutorial-id="affiliate-campaign-summary"
+      >
         <div className="affiliate-campaign-window">
           <div className="affiliate-campaign-window-copy">
             <span>{t("ecommerce.affiliateCampaign.sendingWindow")}</span>
@@ -1133,7 +1135,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
       </section>
 
       {campaignPortfolio.length === 0 && !campaignPortfolioQuery.loading ? (
-        <section className="affiliate-campaign-empty" data-tutorial-id="affiliate-campaign-directory">
+        <section
+          className="affiliate-campaign-empty"
+          data-tutorial-id="affiliate-campaign-directory"
+        >
           <div className="affiliate-campaign-empty-orbit" aria-hidden="true">
             <span />
             <span />
@@ -1149,7 +1154,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
           </div>
         </section>
       ) : (
-        <section className="affiliate-campaign-directory" data-tutorial-id="affiliate-campaign-directory">
+        <section
+          className="affiliate-campaign-directory"
+          data-tutorial-id="affiliate-campaign-directory"
+        >
           <header className="affiliate-campaign-directory-header">
             <div>
               <span>{t("ecommerce.affiliateCampaign.portfolio")}</span>
@@ -1272,7 +1280,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       <td>
                         <div className="affiliate-campaign-directory-product">
                           <strong title={campaign.productSnapshot?.title ?? undefined}>
-                            {campaign.productSnapshot?.title?.trim() || campaignLeadProductId(campaign)}
+                            {campaign.productSnapshot?.title?.trim() ||
+                              campaignLeadProductId(campaign)}
                           </strong>
                           <small title={campaignProductReference(campaign, t)}>
                             {campaignProductReference(campaign, t)}
@@ -1433,14 +1442,20 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </span>
                   <span className="affiliate-campaign-modal-commission">
                     {t("ecommerce.affiliateCampaign.ordinaryCommissionRate")} ·{" "}
-                    {selectedCampaign.products.map((product) =>
-                      `${product.productId} ${product.commissionRatePercent}%`).join(" · ")}
+                    {selectedCampaign.products
+                      .map((product) => `${product.productId} ${product.commissionRatePercent}%`)
+                      .join(" · ")}
                   </span>
                   <span className="affiliate-campaign-modal-commission">
                     {t("ecommerce.affiliateCampaign.shopAdsCommissionRate")} ·{" "}
-                    {selectedCampaign.products.map((product) =>
-                      `${product.productId} ${product.shopAdsCommissionRatePercent ??
-                        product.commissionRatePercent}%`).join(" · ")}
+                    {selectedCampaign.products
+                      .map(
+                        (product) =>
+                          `${product.productId} ${
+                            product.shopAdsCommissionRatePercent ?? product.commissionRatePercent
+                          }%`,
+                      )
+                      .join(" · ")}
                   </span>
                   <button
                     type="button"
@@ -1538,16 +1553,22 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
                 <dl>
                   <div>
-                    <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaFirstObserved")}</dt>
-                    <dd>{targetCollaborationQuota.firstObservedAt
-                      ? formatDateTime(targetCollaborationQuota.firstObservedAt)
-                      : "—"}</dd>
+                    <dt>
+                      {t("ecommerce.affiliateCampaign.targetCollaborationQuotaFirstObserved")}
+                    </dt>
+                    <dd>
+                      {targetCollaborationQuota.firstObservedAt
+                        ? formatDateTime(targetCollaborationQuota.firstObservedAt)
+                        : "—"}
+                    </dd>
                   </div>
                   <div>
                     <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaLastObserved")}</dt>
-                    <dd>{targetCollaborationQuota.lastObservedAt
-                      ? formatDateTime(targetCollaborationQuota.lastObservedAt)
-                      : "—"}</dd>
+                    <dd>
+                      {targetCollaborationQuota.lastObservedAt
+                        ? formatDateTime(targetCollaborationQuota.lastObservedAt)
+                        : "—"}
+                    </dd>
                   </div>
                   <div>
                     <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaFailures")}</dt>
@@ -1559,26 +1580,34 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   </div>
                   <div>
                     <dt>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaNextRetry")}</dt>
-                    <dd>{targetCollaborationQuota.nextRetryAt
-                      ? formatDateTime(targetCollaborationQuota.nextRetryAt)
-                      : "—"}</dd>
+                    <dd>
+                      {targetCollaborationQuota.nextRetryAt
+                        ? formatDateTime(targetCollaborationQuota.nextRetryAt)
+                        : "—"}
+                    </dd>
                   </div>
                 </dl>
                 {targetCollaborationQuota.recentEvents.length > 0 && (
                   <details>
-                    <summary>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecent")}</summary>
+                    <summary>
+                      {t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecent")}
+                    </summary>
                     <ol>
                       {targetCollaborationQuota.recentEvents.map((event, index) => (
                         <li key={`${event.occurredAt}-${index}`}>
                           <time>{formatDateTime(event.occurredAt)}</time>
-                          <span>{t(
-                            event.outcome === "CREATED"
-                              ? "ecommerce.affiliateCampaign.targetCollaborationQuotaEventCreated"
-                              : "ecommerce.affiliateCampaign.targetCollaborationQuotaEventExhausted",
-                            { count: event.affectedDeliveryCount },
-                          )}</span>
+                          <span>
+                            {t(
+                              event.outcome === "CREATED"
+                                ? "ecommerce.affiliateCampaign.targetCollaborationQuotaEventCreated"
+                                : "ecommerce.affiliateCampaign.targetCollaborationQuotaEventExhausted",
+                              { count: event.affectedDeliveryCount },
+                            )}
+                          </span>
                           {event.inferredFromLegacy && (
-                            <small>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaLegacy")}</small>
+                            <small>
+                              {t("ecommerce.affiliateCampaign.targetCollaborationQuotaLegacy")}
+                            </small>
                           )}
                         </li>
                       ))}
@@ -1587,14 +1616,19 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 )}
               </section>
             )}
-            {targetCollaborationQuotaRecovered && targetCollaborationQuota?.lastSuccessfulCreateAt && (
-              <section className="affiliate-campaign-quota-recovered" role="status">
-                <strong>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecovered")}</strong>
-                <span>{t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecoveredAt", {
-                  time: formatDateTime(targetCollaborationQuota.lastSuccessfulCreateAt),
-                })}</span>
-              </section>
-            )}
+            {targetCollaborationQuotaRecovered &&
+              targetCollaborationQuota?.lastSuccessfulCreateAt && (
+                <section className="affiliate-campaign-quota-recovered" role="status">
+                  <strong>
+                    {t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecovered")}
+                  </strong>
+                  <span>
+                    {t("ecommerce.affiliateCampaign.targetCollaborationQuotaRecoveredAt", {
+                      time: formatDateTime(targetCollaborationQuota.lastSuccessfulCreateAt),
+                    })}
+                  </span>
+                </section>
+              )}
 
             <CampaignFunnel
               counters={summary?.counters}
@@ -1687,7 +1721,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                       {searchPlanStatusLabel(plan.status, t)}
                                     </span>
                                     <small>
-                                      {plan.pageSequence} / 50 {t("ecommerce.affiliateCampaign.pagesUnit")}
+                                      {plan.pageSequence} / 50{" "}
+                                      {t("ecommerce.affiliateCampaign.pagesUnit")}
                                     </small>
                                   </td>
                                   <td>
@@ -1928,7 +1963,6 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                 </div>
               </div>
             </section>
-
           </div>
         )}
       </Modal>
@@ -1957,7 +1991,10 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
         preventBackdropClose={writeCampaignState.loading}
       >
         <CampaignWizardSteps step={wizardStep} t={t} />
-        <div className="affiliate-campaign-wizard-body" data-tutorial-id="affiliate-campaign-wizard">
+        <div
+          className="affiliate-campaign-wizard-body"
+          data-tutorial-id="affiliate-campaign-wizard"
+        >
           {wizardStep === 1 && (
             <div className="affiliate-campaign-wizard-grid">
               <section className="affiliate-campaign-wizard-copy">
@@ -2009,7 +2046,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   {form.products.map((product, index) => {
                     const rowProductId = product.productId.trim();
                     const rowPreview = rowProductId
-                      ? productPreviews[rowProductId] ?? null
+                      ? (productPreviews[rowProductId] ?? null)
                       : null;
                     return (
                       // Each product owns its own id, rate, fetch and snapshot,
@@ -2042,7 +2079,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                               step="0.1"
                               value={product.commissionRate}
                               onChange={(event) =>
-                                updateProduct(index, { commissionRate: event.target.value })}
+                                updateProduct(index, { commissionRate: event.target.value })
+                              }
                             />
                           </label>
                           <label className="affiliate-campaign-offer-field">
@@ -2053,17 +2091,17 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                               max={80}
                               step="0.1"
                               value={product.shopAdsCommissionRate}
-                              onChange={(event) => updateProduct(index, {
-                                shopAdsCommissionRate: event.target.value,
-                              })}
+                              onChange={(event) =>
+                                updateProduct(index, {
+                                  shopAdsCommissionRate: event.target.value,
+                                })
+                              }
                             />
                           </label>
                           <button
                             type="button"
                             className="affiliate-campaign-fetch-button"
-                            disabled={
-                              !form.shopId || !rowProductId || resolveProductState.loading
-                            }
+                            disabled={!form.shopId || !rowProductId || resolveProductState.loading}
                             onClick={() => fetchProduct(index)}
                           >
                             {fetchingProductId === rowProductId && resolveProductState.loading
@@ -2098,8 +2136,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                                   rowPreview.minimumPriceUsdAmount &&
                                   ` – $${rowPreview.maximumPriceUsdAmount.toFixed(2)}`}
                                 {" · "}
-                                {rowPreview.brandName
-                                  || t("ecommerce.affiliateCampaign.noBrand")}
+                                {rowPreview.brandName || t("ecommerce.affiliateCampaign.noBrand")}
                                 {" · "}
                                 {t("ecommerce.affiliateCampaign.snapshotObservedAt", {
                                   time: formatDateTime(rowPreview.observedAt),
@@ -2114,11 +2151,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                   })}
                   {/* Not gated on the shop: adding a row is just making space
                       to type an id. Only resolving one needs a shop. */}
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={addProduct}
-                  >
+                  <button type="button" className="btn btn-secondary" onClick={addProduct}>
                     {t("ecommerce.affiliateCampaign.addProduct")}
                   </button>
                   <small>{t("ecommerce.affiliateCampaign.offerHint")}</small>
@@ -2203,10 +2236,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       undefined
                     }
                     onClick={() =>
-                      updateForm(
-                        "strategy",
-                        GQL.AffiliateCampaignSelectionStrategy.AiPreApproval,
-                      )
+                      updateForm("strategy", GQL.AffiliateCampaignSelectionStrategy.AiPreApproval)
                     }
                   >
                     <span>{t("ecommerce.affiliateCampaign.strategyMlKicker")}</span>
@@ -2259,8 +2289,7 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                     <input
                       type="email"
                       value={form.sellerContactEmail}
-                      onChange={(event) =>
-                        updateForm("sellerContactEmail", event.target.value)}
+                      onChange={(event) => updateForm("sellerContactEmail", event.target.value)}
                     />
                     <small>{t("ecommerce.affiliateCampaign.sellerContactEmailHint")}</small>
                   </label>
@@ -2269,7 +2298,8 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
                       type="checkbox"
                       checked={form.isSampleApprovalExempt}
                       onChange={(event) =>
-                        updateForm("isSampleApprovalExempt", event.target.checked)}
+                        updateForm("isSampleApprovalExempt", event.target.checked)
+                      }
                     />
                     <span>{t("ecommerce.affiliateCampaign.sampleApprovalExempt")}</span>
                   </label>
@@ -2849,8 +2879,8 @@ function CampaignCreatorStateRow({
           state.status === GQL.AffiliateCampaignCreatorStateStatus.Scheduled
             ? t("ecommerce.affiliateCampaign.targetCollaborationQuotaScheduled")
             : state.reachedOutAt
-            ? formatDateTime(state.reachedOutAt)
-            : t("ecommerce.affiliateCampaign.notSent")}
+              ? formatDateTime(state.reachedOutAt)
+              : t("ecommerce.affiliateCampaign.notSent")}
         </small>
       </td>
       <td>
@@ -3622,9 +3652,7 @@ function campaignRuleSummary(
   campaign: GQL.AffiliateCampaign,
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  if (
-    campaign.selectionPolicy.strategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval
-  ) {
+  if (campaign.selectionPolicy.strategy === GQL.AffiliateCampaignSelectionStrategy.AiPreApproval) {
     return t("ecommerce.affiliateCampaign.preApprovalSummary");
   }
   return t("ecommerce.affiliateCampaign.dynamicSearchPlanSummary");
@@ -3665,9 +3693,7 @@ function CampaignFunnel({
     introducedInVersion: 2,
     value: counters?.matched ?? 0,
   });
-  const duplicate = matched == null
-    ? null
-    : Math.max(0, (counters?.scanned ?? 0) - matched);
+  const duplicate = matched == null ? null : Math.max(0, (counters?.scanned ?? 0) - matched);
   const protectedCount = campaignFunnelCounterValue({
     counterSchemaVersion,
     introducedInVersion: 2,
@@ -3805,15 +3831,16 @@ function CampaignKpiCard({
   progress?: boolean;
   emphasis?: boolean;
 }) {
-  const progressValue = denominator && denominator > 0
-    ? Math.min(100, Math.max(0, (value / denominator) * 100))
-    : 0;
+  const progressValue =
+    denominator && denominator > 0 ? Math.min(100, Math.max(0, (value / denominator) * 100)) : 0;
   return (
     <article className={`affiliate-campaign-kpi-card${emphasis ? " is-emphasis" : ""}`}>
       <span>{label}</span>
       <div className="affiliate-campaign-kpi-value">
         <strong>{formatNumber(value)}</strong>
-        <small>/ {denominator == null ? "—" : formatNumber(denominator)} {denominatorLabel}</small>
+        <small>
+          / {denominator == null ? "—" : formatNumber(denominator)} {denominatorLabel}
+        </small>
       </div>
       {progress && (
         <div className="affiliate-campaign-kpi-progress" aria-hidden="true">
@@ -3914,12 +3941,14 @@ export function campaignDeliveryFailureBreakdown(
       (counts.get("otherProviderRejection") ?? 0) + failedTotal - explained,
     );
   }
-  return ([
-    "duplicateCollaboration",
-    "invalidCreator",
-    "providerNotAccepted",
-    "otherProviderRejection",
-  ] as const)
+  return (
+    [
+      "duplicateCollaboration",
+      "invalidCreator",
+      "providerNotAccepted",
+      "otherProviderRejection",
+    ] as const
+  )
     .map((category) => ({ category, count: counts.get(category) ?? 0 }))
     .filter(({ count }) => count > 0);
 }
@@ -3978,9 +4007,7 @@ export function campaignShopDisplayName(
  * Mirrors the backend, which reads the same position rather than a separate
  * field.
  */
-export function campaignLeadProductId(
-  campaign: Pick<GQL.AffiliateCampaign, "products">,
-): string {
+export function campaignLeadProductId(campaign: Pick<GQL.AffiliateCampaign, "products">): string {
   return campaign.products?.[0]?.productId ?? "";
 }
 
@@ -4053,9 +4080,9 @@ export function campaignCreatorDetailItem(
   const relationship = state.creatorRelationship ?? null;
   return {
     creatorId: state.creatorProfile?.id ?? state.creatorId,
-    creatorProfile: (state.creatorProfile as GQL.AffiliateCreatorIdentity | null | undefined) ?? null,
-    creatorRelation:
-      (relationship as GQL.AffiliateCreatorRelationship | null | undefined) ?? null,
+    creatorProfile:
+      (state.creatorProfile as GQL.AffiliateCreatorIdentity | null | undefined) ?? null,
+    creatorRelation: (relationship as GQL.AffiliateCreatorRelationship | null | undefined) ?? null,
     shopState:
       (relationship?.shopStates.find((shopState) => shopState.shopId === state.shopId) as
         | GQL.AffiliateCreatorRelationshipShopState
@@ -4106,9 +4133,7 @@ export function campaignFunnelCounterValue(input: {
   value: number;
   introducedInVersion?: number;
 }): number | null {
-  return input.counterSchemaVersion < (input.introducedInVersion ?? 1)
-    ? null
-    : input.value;
+  return input.counterSchemaVersion < (input.introducedInVersion ?? 1) ? null : input.value;
 }
 
 export function isEnglishCampaignSearchPhrase(value: string): boolean {
@@ -4130,10 +4155,7 @@ export function campaignErrorMessage(
       "AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_REQUIRED",
       "dailyCreatorOutreachLimitRequired",
     ],
-    [
-      "AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_INVALID",
-      "dailyCreatorOutreachLimitInvalid",
-    ],
+    ["AFFILIATE_CAMPAIGN_DAILY_CREATOR_OUTREACH_LIMIT_INVALID", "dailyCreatorOutreachLimitInvalid"],
     ["AFFILIATE_CAMPAIGN_MAINTENANCE", "campaignMaintenance"],
     ["AFFILIATE_CAMPAIGN_QUALIFICATION_MODEL_NOT_READY", "modelNotReady"],
     ["AFFILIATE_CAMPAIGN_MODEL_READINESS_RETRY", "modelTemporarilyUnavailable"],
@@ -4231,18 +4253,12 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-export function normalizeCampaignExplanationLocale(value: string):
-  | "EN"
-  | "ZH"
-  | "DE"
-  | "ES"
-  | "FR"
-  | "ID"
-  | "IT"
-  | "TH" {
+export function normalizeCampaignExplanationLocale(
+  value: string,
+): "EN" | "ZH" | "DE" | "ES" | "FR" | "ID" | "IT" | "TH" {
   const locale = value.normalize("NFKC").trim().toLocaleLowerCase().split(/[-_]/u)[0];
   return ["en", "zh", "de", "es", "fr", "id", "it", "th"].includes(locale)
-    ? locale.toLocaleUpperCase() as "EN" | "ZH" | "DE" | "ES" | "FR" | "ID" | "IT" | "TH"
+    ? (locale.toLocaleUpperCase() as "EN" | "ZH" | "DE" | "ES" | "FR" | "ID" | "IT" | "TH")
     : "EN";
 }
 

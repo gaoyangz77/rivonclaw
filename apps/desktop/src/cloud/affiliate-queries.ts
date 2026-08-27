@@ -304,6 +304,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
             parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
           }
           sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+          creatorTagIntent { operation manualTagId systemTag contextShopId }
           steps {
             stepId
             type
@@ -315,6 +316,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
             sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+            creatorTagIntent { operation manualTagId systemTag contextShopId }
           }
         }
       }
@@ -336,6 +338,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
         operationalConfigRevision
         blocked
         blockedShopIds
+        systemTags
         lastInboundAt
         lastInboundChannel
         lastInboundLifecycleEventId
@@ -397,6 +400,7 @@ export const AFFILIATE_WORK_ITEMS_QUERY = `
           creatorId
           blocked
           blockedShopIds
+          systemTags
           shopStates {
             shopId
             sampleTier

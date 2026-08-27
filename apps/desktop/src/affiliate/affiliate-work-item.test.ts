@@ -82,7 +82,10 @@ import {
   buildBusinessDeveloperPromptSection,
   redactBusinessDeveloperContactDetails,
 } from "./affiliate-session.js";
-import { buildAffiliateAgentRunRequest } from "./affiliate-agent-run-factory.js";
+import {
+  buildAffiliateAgentRunRequest,
+  renderAgentWorkingAgenda,
+} from "./affiliate-agent-run-factory.js";
 import { AffiliateInbound, resolveMaxActiveAffiliateAgentRuns } from "./affiliate-inbound.js";
 import {
   __clearActiveAffiliateRunCheckpointsForTests,
@@ -515,6 +518,7 @@ function createSampleReviewWorkItem(
       creatorId: "creator-001",
       operationalConfigRevision: 1,
       shopStates: [],
+      systemTags: [],
       manualTagIds: [],
       manualTags: [],
       lastInboundAt: null,
@@ -580,6 +584,51 @@ function createSampleReviewWorkItem(
     ...overrides,
   };
 }
+
+describe("affiliate system-tag run context", () => {
+  it("renders the Relationship system tags into the bound Agent context", () => {
+    const base = createSampleReviewWorkItem();
+    const workItem = createSampleReviewWorkItem({
+      creatorRelationship: {
+        ...(base.creatorRelationship as GQL.AffiliateCreatorRelationship),
+        systemTags: [GQL.AffiliateCreatorSystemTag.NoCampaignDisturb],
+      },
+    });
+
+    expect(renderAgentWorkingAgenda(workItem)).toContain(
+      "Current System Tags: NO_CAMPAIGN_DISTURB",
+    );
+  });
+
+  it("keeps system-tag management distinct from a general workflow block", () => {
+    const session = new AffiliateSession(
+      {
+        objectId: "shop-001",
+        userId: "user-001",
+        platformShopId: "platform-shop-001",
+        shopName: "Affiliate Test Shop",
+        platform: "tiktok",
+        runProfileId: "AFFILIATE_OPERATOR",
+      },
+      {
+        routingShopId: "shop-001",
+        platformShopId: "platform-shop-001",
+        creatorRelationshipId: "relationship-001",
+        triggerKind: AffiliateTriggerKind.CREATOR_MESSAGE,
+        triggerId: "message-001",
+      },
+    );
+
+    expect(session.extraSystemPrompt).toContain(
+      "affiliate_resolve_work_item supports three action types",
+    );
+    expect(session.extraSystemPrompt).toContain("MANAGE_CREATOR_TAG");
+    expect(session.extraSystemPrompt).toContain("affiliate_list_system_tags");
+    expect(session.extraSystemPrompt).toContain(
+      "NO_CAMPAIGN_DISTURB blocks only future mechanical Campaign outreach",
+    );
+  });
+});
 
 function createCreatorReplyWorkItem(
   overrides: Partial<GQL.AffiliateWorkItem> = {},

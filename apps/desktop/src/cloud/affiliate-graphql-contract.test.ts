@@ -56,6 +56,16 @@ describe("affiliate desktop GraphQL contracts", () => {
     expect(compactQuery).toContain("activeRunBaseEventCursor");
   });
 
+  it("keeps system tags and tag revision intents in the authoritative work-item query", () => {
+    const compactQuery = AFFILIATE_WORK_ITEMS_QUERY.replace(/\s+/g, " ");
+
+    expect(compactQuery).toContain("creatorRelationship { id creatorId");
+    expect(compactQuery).toContain("systemTags");
+    expect(compactQuery).toContain(
+      "creatorTagIntent { operation manualTagId systemTag contextShopId }",
+    );
+  });
+
   it("keeps prediction lineage scaffold-owned instead of Agent-authored", () => {
     const actionInput = backendSchema.getType("ResolveAffiliateWorkItemActionInput");
 

@@ -18,6 +18,7 @@ import {
   groupAgentWorkBundles,
   hydrateAffiliateProposalProjection,
   latestManualTagChange,
+  latestSystemTagChange,
   mergeAffiliateProposalPage,
   proposalManualTagRows,
   predictionEvidenceHighlightTarget,
@@ -35,14 +36,20 @@ import {
 } from "./AffiliateManagementPage.js";
 
 describe("AffiliateManagementPage proposal source", () => {
-  const proposal = (id: string, status: string, type = "SEND_MESSAGE", shopId = "shop-1"): GQL.ActionProposal => ({
-    id,
-    status,
-    type,
-    focusShopId: shopId,
-    steps: [],
-    creatorRelationship: null,
-  } as unknown as GQL.ActionProposal);
+  const proposal = (
+    id: string,
+    status: string,
+    type = "SEND_MESSAGE",
+    shopId = "shop-1",
+  ): GQL.ActionProposal =>
+    ({
+      id,
+      status,
+      type,
+      focusShopId: shopId,
+      steps: [],
+      creatorRelationship: null,
+    }) as unknown as GQL.ActionProposal;
 
   it("appends cursor pages without duplicating proposals", () => {
     expect(
@@ -69,8 +76,7 @@ describe("AffiliateManagementPage proposal source", () => {
       shopIds: ["shop-1", "shop-2"],
     } as GQL.ActionProposal;
     expect(
-      applyAffiliateProposalChange([], multiShop, { shopId: "shop-2" })
-        .map((item) => item.id),
+      applyAffiliateProposalChange([], multiShop, { shopId: "shop-2" }).map((item) => item.id),
     ).toEqual(["proposal-multi"]);
     expect(applyAffiliateProposalChange([], multiShop, { shopId: "shop-3" })).toEqual([]);
 
@@ -90,8 +96,7 @@ describe("AffiliateManagementPage proposal source", () => {
       creatorRelationship: { shopStates: [{ shopId: "shop-1" }] },
     } as unknown as GQL.ActionProposal;
     expect(
-      applyAffiliateProposalChange([], direct, { shopId: "shop-1" })
-        .map((item) => item.id),
+      applyAffiliateProposalChange([], direct, { shopId: "shop-1" }).map((item) => item.id),
     ).toEqual(["proposal-direct"]);
     expect(applyAffiliateProposalChange([], direct, { shopId: "shop-9" })).toEqual([]);
   });
@@ -124,12 +129,13 @@ describe("AffiliateManagementPage proposal source", () => {
       id: owned.id,
     } as GQL.ActionProposal;
 
-    expect(applyAffiliateProposalChange([], owned, { businessDeveloperId: "bd-1" }))
-      .toEqual([owned]);
-    expect(applyAffiliateProposalChange([], other, { businessDeveloperId: "bd-1" }))
-      .toEqual([]);
-    expect(applyAffiliateProposalChange([owned], reassigned, { businessDeveloperId: "bd-1" }))
-      .toEqual([]);
+    expect(applyAffiliateProposalChange([], owned, { businessDeveloperId: "bd-1" })).toEqual([
+      owned,
+    ]);
+    expect(applyAffiliateProposalChange([], other, { businessDeveloperId: "bd-1" })).toEqual([]);
+    expect(
+      applyAffiliateProposalChange([owned], reassigned, { businessDeveloperId: "bd-1" }),
+    ).toEqual([]);
   });
 
   it("orders the proposal timeline by creation time, not later status updates", () => {
@@ -144,8 +150,10 @@ describe("AffiliateManagementPage proposal source", () => {
       updatedAt: "2026-08-13T02:00:00.000Z",
     } as GQL.ActionProposal;
 
-    expect(sortAffiliateProposalsNewestFirst([older, newer]).map((item) => item.id))
-      .toEqual(["proposal-newer", "proposal-older"]);
+    expect(sortAffiliateProposalsNewestFirst([older, newer]).map((item) => item.id)).toEqual([
+      "proposal-newer",
+      "proposal-older",
+    ]);
   });
 
   it("groups rewrite versions into one Agent work bundle", () => {
@@ -204,8 +212,9 @@ describe("AffiliateManagementPage proposal source", () => {
       steps: [{ shopId: "shop-2" }],
     } as GQL.ActionProposal;
 
-    expect(applyAffiliateProposalChange([], multiShopProposal, { shopId: "shop-2" as never }))
-      .toEqual([multiShopProposal]);
+    expect(
+      applyAffiliateProposalChange([], multiShopProposal, { shopId: "shop-2" as never }),
+    ).toEqual([multiShopProposal]);
   });
 
   it("keeps proposal pagination state isolated by account and filters", () => {
@@ -247,9 +256,7 @@ describe("AffiliateManagementPage proposal source", () => {
   });
 
   it("treats an empty query result as authoritative", () => {
-    expect(
-      selectAffiliateProposalItems([], [{ id: "stale-pending-proposal" }]),
-    ).toEqual([]);
+    expect(selectAffiliateProposalItems([], [{ id: "stale-pending-proposal" }])).toEqual([]);
   });
 
   it("uses stored proposals only before the query has returned data", () => {
@@ -261,9 +268,7 @@ describe("AffiliateManagementPage proposal source", () => {
   it("prefers non-empty query results over stored proposals", () => {
     const queried = [{ id: "authoritative-proposal" }];
 
-    expect(
-      selectAffiliateProposalItems(queried, [{ id: "stale-proposal" }]),
-    ).toBe(queried);
+    expect(selectAffiliateProposalItems(queried, [{ id: "stale-proposal" }])).toBe(queried);
   });
 
   it("keeps fresh list metrics when the cached proposal projection lacks new fields", () => {
@@ -275,9 +280,12 @@ describe("AffiliateManagementPage proposal source", () => {
       creatorShoppableVideoCount: 34,
     } as GQL.ActionProposal;
 
-    const hydrated = hydrateAffiliateProposalProjection({
-      proposal: proposal("proposal-with-metrics", "PENDING"),
-    }, queried);
+    const hydrated = hydrateAffiliateProposalProjection(
+      {
+        proposal: proposal("proposal-with-metrics", "PENDING"),
+      },
+      queried,
+    );
 
     expect(hydrated).toMatchObject({
       creatorFollowerCount: 105_800,
@@ -314,11 +322,12 @@ describe("AffiliateManagementPage proposal source", () => {
       expectedSales?: Record<string, unknown>;
       humanDecision?: Record<string, unknown>;
     } = {},
-  ) => ({
-    evidenceMode: mode,
-    expectedSales: signalFixture("EXPECTED_SALES", overrides.expectedSales),
-    humanDecision: signalFixture("HUMAN_DECISION", overrides.humanDecision),
-  }) as unknown as GQL.AffiliatePredictionEvidence;
+  ) =>
+    ({
+      evidenceMode: mode,
+      expectedSales: signalFixture("EXPECTED_SALES", overrides.expectedSales),
+      humanDecision: signalFixture("HUMAN_DECISION", overrides.humanDecision),
+    }) as unknown as GQL.AffiliatePredictionEvidence;
 
   it.each([
     ["EXPECTED_SALES_TRUSTED", "EXPECTED_SALES"],
@@ -328,9 +337,7 @@ describe("AffiliateManagementPage proposal source", () => {
   ] as const)(
     "maps the frozen evidence mode 1:1 to the highlight target: %s → %s",
     (mode, expected) => {
-      expect(
-        predictionEvidenceHighlightTarget({ evidenceMode: mode }),
-      ).toBe(expected);
+      expect(predictionEvidenceHighlightTarget({ evidenceMode: mode })).toBe(expected);
     },
   );
 
@@ -380,9 +387,7 @@ describe("AffiliateManagementPage proposal source", () => {
   });
 
   it("renders signal fallbacks from the family's own error code and never from a status", () => {
-    expect(
-      predictionSignalFallbackLabel({ status: "READY", error: null }, "不可用"),
-    ).toBeNull();
+    expect(predictionSignalFallbackLabel({ status: "READY", error: null }, "不可用")).toBeNull();
     // NOT_AVAILABLE is the sanctioned absence: plain text, no parenthetical,
     // even when a stray error object is present.
     expect(
@@ -397,9 +402,9 @@ describe("AffiliateManagementPage proposal source", () => {
         "不可用",
       ),
     ).toBe("不可用 (SERVICE_ERROR)");
-    expect(
-      predictionSignalFallbackLabel({ status: "ERROR", error: null }, "不可用"),
-    ).toBe("不可用 (ERROR)");
+    expect(predictionSignalFallbackLabel({ status: "ERROR", error: null }, "不可用")).toBe(
+      "不可用 (ERROR)",
+    );
     // "不可用 (OK)" must be impossible: the signal status is never printed.
     for (const status of ["READY", "NOT_AVAILABLE", "ERROR"] as const) {
       const label = predictionSignalFallbackLabel(
@@ -481,22 +486,22 @@ describe("AffiliateManagementPage proposal source", () => {
     const rows = proposalSampleReviewRows(multiSampleProposal);
 
     expect(rows).toHaveLength(2);
+    expect(rows.every((row) => !Object.prototype.hasOwnProperty.call(row, "operatorSummary"))).toBe(
+      true,
+    );
     expect(
-      rows.every((row) => !Object.prototype.hasOwnProperty.call(row, "operatorSummary")),
-    ).toBe(true);
-    expect(rows.map((row) => ({
-      sampleId: row.sampleApplicationRecordId,
-      decision: row.decision,
-      productTitle: row.productTitle,
-      expectedSalesUnits: (() => {
-        const state = resolvePredictionEvidenceState(row.predictionSnapshot);
-        return state?.kind === "EVIDENCE"
-          ? state.evidence.expectedSales.value?.units
-          : undefined;
-      })(),
-      rejectReason: row.rejectReason,
-      rejectReasonExplanation: row.rejectReasonExplanation,
-    }))).toEqual([
+      rows.map((row) => ({
+        sampleId: row.sampleApplicationRecordId,
+        decision: row.decision,
+        productTitle: row.productTitle,
+        expectedSalesUnits: (() => {
+          const state = resolvePredictionEvidenceState(row.predictionSnapshot);
+          return state?.kind === "EVIDENCE" ? state.evidence.expectedSales.value?.units : undefined;
+        })(),
+        rejectReason: row.rejectReason,
+        rejectReasonExplanation: row.rejectReasonExplanation,
+      })),
+    ).toEqual([
       {
         sampleId: "sample-1",
         decision: "APPROVE",
@@ -576,23 +581,26 @@ describe("AffiliateManagementPage proposal source", () => {
           subject: { sampleApplicationRecordId: "sample-another" },
         },
       ],
-      steps: [{
-        stepId: "step-target",
-        shopId: "shop-1",
-        type: "REVIEW_SAMPLE_APPLICATION",
-        productId: "product-target",
-        sampleApplicationRecordId: "sample-target",
-        predictionCacheIds: ["prediction-target"],
-        sampleReviewIntent: {
+      steps: [
+        {
+          stepId: "step-target",
+          shopId: "shop-1",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          productId: "product-target",
           sampleApplicationRecordId: "sample-target",
-          platformApplicationId: "platform-target",
-          decision: "APPROVE",
+          predictionCacheIds: ["prediction-target"],
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-target",
+            platformApplicationId: "platform-target",
+            decision: "APPROVE",
+          },
         },
-      }],
+      ],
     } as unknown as GQL.ActionProposal;
 
-    expect(proposalSampleReviewRows(proposalWithoutMatchingPrediction)[0]?.predictionSnapshot)
-      .toBeNull();
+    expect(
+      proposalSampleReviewRows(proposalWithoutMatchingPrediction)[0]?.predictionSnapshot,
+    ).toBeNull();
   });
 
   it("offers rejection only as the opposite decision for one pure Sample action", () => {
@@ -603,15 +611,17 @@ describe("AffiliateManagementPage proposal source", () => {
         platformApplicationId: "platform-1",
         decision: "APPROVE",
       },
-      steps: [{
-        stepId: "step-1",
-        type: "REVIEW_SAMPLE_APPLICATION",
-        sampleReviewIntent: {
-          sampleApplicationRecordId: "sample-1",
-          platformApplicationId: "platform-1",
-          decision: "APPROVE",
+      steps: [
+        {
+          stepId: "step-1",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "platform-1",
+            decision: "APPROVE",
+          },
         },
-      }],
+      ],
     } as unknown as GQL.ActionProposal;
     const singleReject = {
       ...singleApprove,
@@ -620,13 +630,15 @@ describe("AffiliateManagementPage proposal source", () => {
         ...singleApprove.sampleReviewIntent!,
         decision: "REJECT",
       },
-      steps: [{
-        ...singleApprove.steps[0]!,
-        sampleReviewIntent: {
-          ...singleApprove.steps[0]!.sampleReviewIntent!,
-          decision: "REJECT",
+      steps: [
+        {
+          ...singleApprove.steps[0]!,
+          sampleReviewIntent: {
+            ...singleApprove.steps[0]!.sampleReviewIntent!,
+            decision: "REJECT",
+          },
         },
-      }],
+      ],
     } as unknown as GQL.ActionProposal;
 
     expect(proposalSampleDecisionOverrideTarget(singleApprove)).toBe("REJECT");
@@ -641,22 +653,21 @@ describe("AffiliateManagementPage proposal source", () => {
         platformApplicationId: "platform-1",
         decision: "APPROVE",
       },
-      steps: [{
-        stepId: "step-1",
-        type: "REVIEW_SAMPLE_APPLICATION",
-        sampleReviewIntent: {
-          sampleApplicationRecordId: "sample-1",
-          platformApplicationId: "platform-1",
-          decision: "APPROVE",
+      steps: [
+        {
+          stepId: "step-1",
+          type: "REVIEW_SAMPLE_APPLICATION",
+          sampleReviewIntent: {
+            sampleApplicationRecordId: "sample-1",
+            platformApplicationId: "platform-1",
+            decision: "APPROVE",
+          },
         },
-      }],
+      ],
     } as unknown as GQL.ActionProposal;
     const multi = {
       ...single,
-      steps: [
-        single.steps[0],
-        { ...single.steps[0], stepId: "step-2" },
-      ],
+      steps: [single.steps[0], { ...single.steps[0], stepId: "step-2" }],
     } as GQL.ActionProposal;
     const mixed = {
       ...single,
@@ -665,9 +676,9 @@ describe("AffiliateManagementPage proposal source", () => {
 
     expect(proposalSampleDecisionOverrideTarget(multi)).toBeNull();
     expect(proposalSampleDecisionOverrideTarget(mixed)).toBeNull();
-    expect(proposalSampleDecisionOverrideTarget(
-      proposal("proposal-message", "PENDING", "SEND_MESSAGE"),
-    )).toBeNull();
+    expect(
+      proposalSampleDecisionOverrideTarget(proposal("proposal-message", "PENDING", "SEND_MESSAGE")),
+    ).toBeNull();
   });
 
   it("does not treat a Sample-trigger provenance product as part of a text-only reply", () => {
@@ -707,8 +718,10 @@ describe("Affiliate canonical UI contract", () => {
     expect(affiliateCommissionPercentToBps("12.5")).toBe(1250);
     expect(() => affiliateCommissionPercentToBps("0.5")).toThrow(/1% and 80%/);
     expect(() => affiliateCommissionPercentToBps("81")).toThrow(/1% and 80%/);
-    expect(affiliateDelimitedIdentifiers("creator-1, creator-2\ncreator-1"))
-      .toEqual(["creator-1", "creator-2"]);
+    expect(affiliateDelimitedIdentifiers("creator-1, creator-2\ncreator-1")).toEqual([
+      "creator-1",
+      "creator-2",
+    ]);
   });
 
   it("shows both Target standard and Shop Ads commissions in list and detail reads", () => {
@@ -758,13 +771,10 @@ describe("Affiliate canonical UI contract", () => {
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
     );
-    const queries = readFileSync(
-      resolve(process.cwd(), "src/api/shops-queries.ts"),
-      "utf8",
-    );
+    const queries = readFileSync(resolve(process.cwd(), "src/api/shops-queries.ts"), "utf8");
 
-    expect(page).toContain(
-      "useState<HistoryTypeFilter>(GQL.AffiliateCollaborationType.Open)",
+    expect(page).toMatch(
+      /useState<HistoryTypeFilter>\(\s*GQL\.AffiliateCollaborationType\.Open,?\s*\)/u,
     );
     expect(page).toContain("AffiliateCollaborationDetailModal");
     expect(queries).toContain("query AffiliateCollaborationDetail");
@@ -786,10 +796,7 @@ describe("Affiliate canonical UI contract", () => {
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
     );
-    const queries = readFileSync(
-      resolve(process.cwd(), "src/api/shops-queries.ts"),
-      "utf8",
-    );
+    const queries = readFileSync(resolve(process.cwd(), "src/api/shops-queries.ts"), "utf8");
 
     expect(page).toContain('placeholder={t("ecommerce.affiliateTeam.aiTeam")}');
     expect(page).not.toContain("__AI_TEAM__");
@@ -906,7 +913,9 @@ describe("Affiliate canonical UI contract", () => {
     expect(decideProposal.indexOf("const optimisticProposal")).toBeLessThan(mutationIndex);
     expect(decideProposal.indexOf("setProposalPageBuffer")).toBeLessThan(mutationIndex);
     expect(decideProposal).toContain("optimisticApplied = true");
-    expect(decideProposal).toContain("items: applyAffiliateProposalChange(current.items, proposal, decisionFilters)");
+    expect(decideProposal).toContain(
+      "items: applyAffiliateProposalChange(current.items, proposal, decisionFilters)",
+    );
     expect(decideProposal).toContain("return false");
   });
 
@@ -928,11 +937,15 @@ describe("Affiliate canonical UI contract", () => {
     expect(detailModal).toContain("item.relatedIds.actionProposalId !== proposal.id");
     expect(detailModal).toContain("previousAgentWork");
     expect(detailModal).toContain("<AgentWorkReviewContext");
-    expect(detailModal.indexOf("<AgentWorkReviewContext"))
-      .toBeLessThan(detailModal.indexOf('className="affiliate-agent-work-detail-main"'));
-    expect(detailModal).toContain("ecommerce.affiliateWorkspace.triggerKinds.${source.triggerKind}");
-    expect(detailModal.indexOf("agentWorkDetail.recentContext"))
-      .toBeLessThan(detailModal.indexOf("agentWorkDetail.previousAgentWork"));
+    expect(detailModal.indexOf("<AgentWorkReviewContext")).toBeLessThan(
+      detailModal.indexOf('className="affiliate-agent-work-detail-main"'),
+    );
+    expect(detailModal).toContain(
+      "ecommerce.affiliateWorkspace.triggerKinds.${source.triggerKind}",
+    );
+    expect(detailModal.indexOf("agentWorkDetail.recentContext")).toBeLessThan(
+      detailModal.indexOf("agentWorkDetail.previousAgentWork"),
+    );
   });
 
   it("shows message copy alongside Sample decisions for mixed work", () => {
@@ -959,9 +972,7 @@ describe("Affiliate canonical UI contract", () => {
 
     // A NO_ACTION_NEEDED proposal can now be held PENDING by approval policy, so
     // the review card must not exclude it from the decision actions.
-    expect(page).not.toContain(
-      "proposal.type !== GQL.ActionProposalType.NoActionNeeded",
-    );
+    expect(page).not.toContain("proposal.type !== GQL.ActionProposalType.NoActionNeeded");
     expect(page).toContain("ecommerce.affiliateWorkspace.noActionDecision.confirm");
     expect(page).toContain(
       "ecommerce.affiliateWorkspace.proposalExecutionDescriptions.NO_ACTION_NEEDED_PENDING",
@@ -993,11 +1004,7 @@ describe("Expected Sales model-stage presentation", () => {
     const availability = [entry("EXPECTED_SALES", "READY")];
 
     expect(
-      affiliateModelStagePresentation(
-        availability,
-        "EXPECTED_SALES",
-        "UNIFIED",
-      ).statusKey,
+      affiliateModelStagePresentation(availability, "EXPECTED_SALES", "UNIFIED").statusKey,
     ).toBe("bestAvailableCurrentReview");
   });
 
@@ -1005,11 +1012,7 @@ describe("Expected Sales model-stage presentation", () => {
     const availability = [entry("EXPECTED_SALES", "FALLBACK")];
 
     expect(
-      affiliateModelStagePresentation(
-        availability,
-        "EXPECTED_SALES",
-        "UNIFIED",
-      ).statusKey,
+      affiliateModelStagePresentation(availability, "EXPECTED_SALES", "UNIFIED").statusKey,
     ).toBe("bestAvailableCurrentReview");
   });
 
@@ -1017,28 +1020,28 @@ describe("Expected Sales model-stage presentation", () => {
     const availability = [entry("EXPECTED_SALES", "UNAVAILABLE")];
 
     expect(
-      affiliateModelStagePresentation(
-        availability,
-        "EXPECTED_SALES",
-        "UNIFIED",
-      ).statusKey,
+      affiliateModelStagePresentation(availability, "EXPECTED_SALES", "UNIFIED").statusKey,
     ).toBe("modelDataAccumulating");
   });
 
   it("derives exact, fallback, and unavailable states from live availability", () => {
-    expect(affiliateExpectedSalesModelAvailabilityState([
-      entry("EXPECTED_SALES", "READY"),
-    ])).toMatchObject({ status: "ready", effectiveTenantScope: "SHOP" });
-    expect(affiliateExpectedSalesModelAvailabilityState([
-      entry("EXPECTED_SALES", "FALLBACK"),
-    ])).toMatchObject({ status: "fallback", effectiveTenantScope: "REGION" });
-    expect(affiliateExpectedSalesModelAvailabilityState([
-      entry("EXPECTED_SALES", "UNAVAILABLE"),
-    ])).toMatchObject({ status: "unavailable" });
-    expect(affiliateExpectedSalesModelAvailabilityState([{
-      ...entry("EXPECTED_SALES", "READY"),
-      contractStatus: "MISMATCH",
-    }])).toMatchObject({ status: "unavailable" });
+    expect(
+      affiliateExpectedSalesModelAvailabilityState([entry("EXPECTED_SALES", "READY")]),
+    ).toMatchObject({ status: "ready", effectiveTenantScope: "SHOP" });
+    expect(
+      affiliateExpectedSalesModelAvailabilityState([entry("EXPECTED_SALES", "FALLBACK")]),
+    ).toMatchObject({ status: "fallback", effectiveTenantScope: "REGION" });
+    expect(
+      affiliateExpectedSalesModelAvailabilityState([entry("EXPECTED_SALES", "UNAVAILABLE")]),
+    ).toMatchObject({ status: "unavailable" });
+    expect(
+      affiliateExpectedSalesModelAvailabilityState([
+        {
+          ...entry("EXPECTED_SALES", "READY"),
+          contractStatus: "MISMATCH",
+        },
+      ]),
+    ).toMatchObject({ status: "unavailable" });
     expect(affiliateExpectedSalesModelAvailabilityState([])).toMatchObject({
       status: "unavailable",
     });
@@ -1080,20 +1083,10 @@ describe("Expected Sales model-stage presentation", () => {
         belowThresholdModelExpectedUnitsHistogram: [{ key: "0", label: "0", count: 3_089 }],
       },
     };
-    const availability = [
-      entry(
-        "EXPECTED_SALES",
-        "READY",
-        sellerSafeEvaluation,
-      ),
-    ];
+    const availability = [entry("EXPECTED_SALES", "READY", sellerSafeEvaluation)];
 
     expect(
-      affiliateModelStagePresentation(
-        availability,
-        "EXPECTED_SALES",
-        "UNIFIED",
-      ).evaluationSummary,
+      affiliateModelStagePresentation(availability, "EXPECTED_SALES", "UNIFIED").evaluationSummary,
     ).toBe(sellerSafeEvaluation);
 
     expect(affiliateSellerSafeMetrics(sellerSafeEvaluation as never)).toEqual({
@@ -1106,16 +1099,14 @@ describe("Expected Sales model-stage presentation", () => {
   });
 
   it("does not expose a comparison when the parent contract does not match", () => {
-    const availability = [{
-      ...entry("EXPECTED_SALES", "READY", { comparisonAvailable: true }),
-      contractStatus: "MISMATCH",
-    }];
+    const availability = [
+      {
+        ...entry("EXPECTED_SALES", "READY", { comparisonAvailable: true }),
+        contractStatus: "MISMATCH",
+      },
+    ];
 
-    const presentation = affiliateModelStagePresentation(
-      availability,
-      "EXPECTED_SALES",
-      "UNIFIED",
-    );
+    const presentation = affiliateModelStagePresentation(availability, "EXPECTED_SALES", "UNIFIED");
 
     expect(presentation.ready).toBe(false);
     expect(presentation.evaluationSummary).toBeNull();
@@ -1133,30 +1124,16 @@ describe("Expected Sales model-stage presentation", () => {
     ];
 
     expect(
-      affiliateModelStagePresentation(
-        availability,
-        "EXPECTED_SALES",
-        "UNIFIED",
-      ).evaluationSummary,
+      affiliateModelStagePresentation(availability, "EXPECTED_SALES", "UNIFIED").evaluationSummary,
     ).toBe(expectedEvaluation);
     expect(
-      affiliateModelStagePresentation(
-        availability,
-        "HUMAN_DECISION",
-        "UNIFIED",
-      ).evaluationSummary,
+      affiliateModelStagePresentation(availability, "HUMAN_DECISION", "UNIFIED").evaluationSummary,
     ).toBeNull();
   });
 
   it("retains requested/effective scope fallback independently of evaluation", () => {
-    const availability = [
-      entry("HUMAN_DECISION", "FALLBACK"),
-    ];
-    const presentation = affiliateModelStagePresentation(
-      availability,
-      "HUMAN_DECISION",
-      "UNIFIED",
-    );
+    const availability = [entry("HUMAN_DECISION", "FALLBACK")];
+    const presentation = affiliateModelStagePresentation(availability, "HUMAN_DECISION", "UNIFIED");
 
     expect(presentation.entry).toMatchObject({
       requestedTenantScope: "SHOP",
@@ -1171,26 +1148,27 @@ describe("SEND_MESSAGE proposal message box", () => {
   const sendMessageProposal = (
     status: GQL.ActionProposalStatus,
     overrides: Partial<GQL.ActionProposal> = {},
-  ): GQL.ActionProposal => ({
-    id: "proposal-message",
-    status,
-    type: GQL.ActionProposalType.SendMessage,
-    focusShopId: "shop-1",
-    steps: [],
-    creatorRelationship: null,
-    messageIntent: {
-      creatorId: "creator-1",
-      preferredChannel: GQL.AffiliateMessageChannel.PlatformChat,
-      parts: [
-        {
-          kind: GQL.AffiliateMessagePartKind.Text,
-          textHash: "hash",
-          textLength: 501,
-        },
-      ],
-    },
-    ...overrides,
-  } as unknown as GQL.ActionProposal);
+  ): GQL.ActionProposal =>
+    ({
+      id: "proposal-message",
+      status,
+      type: GQL.ActionProposalType.SendMessage,
+      focusShopId: "shop-1",
+      steps: [],
+      creatorRelationship: null,
+      messageIntent: {
+        creatorId: "creator-1",
+        preferredChannel: GQL.AffiliateMessageChannel.PlatformChat,
+        parts: [
+          {
+            kind: GQL.AffiliateMessagePartKind.Text,
+            textHash: "hash",
+            textLength: 501,
+          },
+        ],
+      },
+      ...overrides,
+    }) as unknown as GQL.ActionProposal;
 
   it("shows the review draft while the proposal is still open", () => {
     const proposal = sendMessageProposal(GQL.ActionProposalStatus.Pending, {
@@ -1313,7 +1291,10 @@ describe("SEND_MESSAGE proposal message box", () => {
 
   it("prefers the delivery's own status over the execution snapshot", () => {
     const proposal = sendMessageProposal(GQL.ActionProposalStatus.ExecutionFailed, {
-      executionResult: { deliveryId: "delivery-1", deliveryStatus: GQL.AffiliateDeliveryStatus.Failed },
+      executionResult: {
+        deliveryId: "delivery-1",
+        deliveryStatus: GQL.AffiliateDeliveryStatus.Failed,
+      },
       deliveredMessage: {
         deliveryId: "delivery-1",
         status: GQL.AffiliateDeliveryStatus.Failed,
@@ -1329,13 +1310,15 @@ describe("SEND_MESSAGE proposal message box", () => {
   });
 
   it("does not treat a proposal without any delivery as sent", () => {
-    expect(
-      proposalMessageWasDelivered(sendMessageProposal(GQL.ActionProposalStatus.Expired)),
-    ).toBe(false);
+    expect(proposalMessageWasDelivered(sendMessageProposal(GQL.ActionProposalStatus.Expired))).toBe(
+      false,
+    );
   });
 
   it("keeps an open proposal without draft text out of the cleared-content note", () => {
-    expect(resolveProposalMessageDisplay(sendMessageProposal(GQL.ActionProposalStatus.Pending))).toEqual({
+    expect(
+      resolveProposalMessageDisplay(sendMessageProposal(GQL.ActionProposalStatus.Pending)),
+    ).toEqual({
       text: null,
       contentCleared: false,
     });
@@ -1393,21 +1376,22 @@ describe("manual tag proposal rows", () => {
   const tagIntentProposal = (
     steps: Array<{ stepId: string; operation: GQL.CreatorTagOperation; manualTagId: string }>,
     referencedManualTags: Array<{ id: string; name: string }>,
-  ) => ({
-    id: "proposal-tag-1",
-    type: GQL.ActionProposalType.ManageCreatorTag,
-    status: GQL.ActionProposalStatus.Pending,
-    referencedManualTags,
-    steps: steps.map((step) => ({
-      stepId: step.stepId,
+  ) =>
+    ({
+      id: "proposal-tag-1",
       type: GQL.ActionProposalType.ManageCreatorTag,
-      creatorTagIntent: {
-        operation: step.operation,
-        manualTagId: step.manualTagId,
-        contextShopId: "shop-1",
-      },
-    })),
-  }) as unknown as GQL.ActionProposal;
+      status: GQL.ActionProposalStatus.Pending,
+      referencedManualTags,
+      steps: steps.map((step) => ({
+        stepId: step.stepId,
+        type: GQL.ActionProposalType.ManageCreatorTag,
+        creatorTagIntent: {
+          operation: step.operation,
+          manualTagId: step.manualTagId,
+          contextShopId: "shop-1",
+        },
+      })),
+    }) as unknown as GQL.ActionProposal;
 
   it("names an ADD target the relationship does not carry yet", () => {
     // referencedManualTags is the only source that can name it: joining against
@@ -1423,6 +1407,7 @@ describe("manual tag proposal rows", () => {
         key: "step-1",
         operation: GQL.CreatorTagOperation.Add,
         manualTagId: "tag-1",
+        systemTag: null,
         tagName: "VIP",
         contextShopId: "shop-1",
       },
@@ -1480,6 +1465,36 @@ describe("manual tag proposal rows", () => {
     } as unknown as GQL.ActionProposal;
     expect(proposalManualTagRows(proposal)).toEqual([]);
   });
+
+  it("renders a system tag from its enum without a manual-tag projection", () => {
+    const proposal = {
+      id: "proposal-system-tag",
+      type: GQL.ActionProposalType.ManageCreatorTag,
+      status: GQL.ActionProposalStatus.Pending,
+      referencedManualTags: [],
+      steps: [
+        {
+          stepId: "step-system-tag",
+          type: GQL.ActionProposalType.ManageCreatorTag,
+          creatorTagIntent: {
+            operation: GQL.CreatorTagOperation.Add,
+            systemTag: GQL.AffiliateCreatorSystemTag.NoCampaignDisturb,
+          },
+        },
+      ],
+    } as unknown as GQL.ActionProposal;
+
+    expect(proposalManualTagRows(proposal)).toEqual([
+      {
+        key: "step-system-tag",
+        operation: GQL.CreatorTagOperation.Add,
+        manualTagId: null,
+        systemTag: GQL.AffiliateCreatorSystemTag.NoCampaignDisturb,
+        tagName: null,
+        contextShopId: null,
+      },
+    ]);
+  });
 });
 
 describe("manual tag change source", () => {
@@ -1488,13 +1503,14 @@ describe("manual tag change source", () => {
     occurredAt: string,
     eventType: GQL.AffiliateLifecycleEventType,
     actorType: GQL.AffiliateLifecycleActorType,
-  ) => ({
-    id,
-    occurredAt,
-    actorType,
-    summary: `${eventType} ${id}`,
-    businessEvent: { eventType },
-  }) as unknown as GQL.AffiliateRelationshipTimelineItem;
+  ) =>
+    ({
+      id,
+      occurredAt,
+      actorType,
+      summary: `${eventType} ${id}`,
+      businessEvent: { eventType },
+    }) as unknown as GQL.AffiliateRelationshipTimelineItem;
 
   it("reads the newest tag event and keeps HUMAN and AGENT distinct", () => {
     const change = latestManualTagChange([
@@ -1533,6 +1549,30 @@ describe("manual tag change source", () => {
     ]);
     expect(change).toBeNull();
   });
+
+  it("tracks system-tag changes separately from manual-tag changes", () => {
+    const items = [
+      timelineItem(
+        "manual",
+        "2026-08-05T00:00:00.000Z",
+        GQL.AffiliateLifecycleEventType.TagAdded,
+        GQL.AffiliateLifecycleActorType.Human,
+      ),
+      timelineItem(
+        "system",
+        "2026-08-04T00:00:00.000Z",
+        GQL.AffiliateLifecycleEventType.CreatorSystemTagAdded,
+        GQL.AffiliateLifecycleActorType.Agent,
+      ),
+    ];
+
+    expect(latestSystemTagChange(items)).toMatchObject({
+      occurredAt: "2026-08-04T00:00:00.000Z",
+      added: true,
+      actorType: GQL.AffiliateLifecycleActorType.Agent,
+    });
+    expect(latestManualTagChange(items)?.occurredAt).toBe("2026-08-05T00:00:00.000Z");
+  });
 });
 
 describe("creator tag catalog wiring", () => {
@@ -1559,8 +1599,12 @@ describe("creator tag catalog wiring", () => {
   it("sends every Relationship-level filter dimension the backend accepts", () => {
     expect(page).toContain("manualTagIds: selectedManualTagIds.length");
     expect(page).toContain("manualTagMatchMode: selectedManualTagIds.length");
+    expect(page).toMatch(/systemTags:\s*selectedSystemTags\.length/u);
+    expect(page).toMatch(/systemTagMatchMode:\s*selectedSystemTags\.length/u);
     expect(page).toContain("sampleTiers: selectedSampleTiers.length");
-    expect(page).toContain("shopSampleTiers: selectedShopId && selectedShopSampleTiers.length");
+    expect(page).toMatch(
+      /shopSampleTiers:\s*selectedShopId\s*&&\s*selectedShopSampleTiers\.length/u,
+    );
   });
 
   it("keeps the per-shop tier read-only in the relationship detail", () => {

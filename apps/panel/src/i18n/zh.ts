@@ -3182,7 +3182,9 @@ export default {
       sampleTierFilterLabel: "当前进度",
       sampleTierFilterHint: "筛选当前正停留在所选档位的达人。",
       manualTagFilterLabel: "手动标签",
+      systemTagFilterLabel: "系统标签",
       manualTagMatchModeLabel: "标签匹配",
+      systemTagMatchModeLabel: "系统标签匹配",
       manualTagMatchModes: {
         ANY: "任一标签",
         ALL: "全部标签",
@@ -3190,6 +3192,26 @@ export default {
       shopSampleTierFilterLabel: "店内进度",
       shopSampleTierFilterHint: "仅匹配所选店铺内的档位。",
       manualTagsEmpty: "暂无手动标签",
+      systemTags: {
+        editorTitle: "达人标签",
+        title: "系统标签",
+        hint: "可为该达人覆盖的固定业务控制，作用于整个达人关系，并与手动标签分开存储。",
+        add: "添加",
+        remove: "移除",
+        addSuccess: "系统标签已添加",
+        removeSuccess: "系统标签已移除",
+        updateFailed: "更新系统标签失败",
+        lastChangeAdded: "最近变更：{{time}} 添加系统标签 · {{source}}",
+        lastChangeRemoved: "最近变更：{{time}} 移除系统标签 · {{source}}",
+        noChanges: "暂无系统标签变更记录",
+        proposalScope: "仅阻止新的 Campaign 主动触达",
+        values: {
+          NO_CAMPAIGN_DISTURB: {
+            label: "勿扰",
+            description: "停止新的自动 Campaign 触达；正常 Affiliate 工作流和直接回复不受影响。",
+          },
+        },
+      },
       manualTags: {
         title: "手动标签",
         hint: "作用于该达人关系的商家级标签，与店铺无关。",
@@ -3339,7 +3361,8 @@ export default {
       historyTitle: "平台合作",
       historySubtitle: "查看 TikTok Open 与 Target Collaboration 平台对象、状态和关联商品。",
       approvalQueueTitle: "Agent 工作",
-      approvalQueueHint: "每张卡片对应一次 Agent dispatch，统一展示待审批提案、已执行动作、无需动作结果与重写历史。",
+      approvalQueueHint:
+        "每张卡片对应一次 Agent dispatch，统一展示待审批提案、已执行动作、无需动作结果与重写历史。",
       approvalQueueShortTitle: "Agent 工作",
       agentWorkspaceViews: {
         label: "显示范围",
@@ -3563,7 +3586,8 @@ export default {
         HISTORY: "达人处理历史",
       },
       pageSubtitles: {
-        NEEDS_ATTENTION: "处理待审批决定，或查看 Affiliate Agent 每次 dispatch 产生的完整工作记录。",
+        NEEDS_ATTENTION:
+          "处理待审批决定，或查看 Affiliate Agent 每次 dispatch 产生的完整工作记录。",
         IN_PROGRESS: "查看已经进入流程、当前等待达人或平台推进的合作。",
         HISTORY: "回看已执行、已拒绝、已替代和平台同步产生的达人事件。",
       },
@@ -3715,6 +3739,8 @@ export default {
         PROPOSAL_EXECUTED: "提案已执行",
         TAG_ADDED: "添加达人标签",
         TAG_REMOVED: "移除达人标签",
+        CREATOR_SYSTEM_TAG_ADDED: "添加达人系统标签",
+        CREATOR_SYSTEM_TAG_REMOVED: "移除达人系统标签",
         RELATIONSHIP_CONTACT_UPDATED: "更新达人联系方式",
         MESSAGE_RECEIVED: "收到消息",
         MESSAGE_SENT: "发送消息",
@@ -4565,7 +4591,8 @@ export default {
         runProfileNone: "未选择运行配置",
         modelScopeDiagnostics: "模型范围表现诊断（非当前服务选择）",
         modelScopeDiagnosticsLeader: "表现最优范围：{{scope}}",
-        modelScopeDiagnosticsHint: "按历史优于概率对账号级、区域级、店铺级模型做诊断比较，不代表当前服务选择；实际服务模型在每次预测时按可靠性链（店铺 → 区域 → 账号）取第一个 TRUSTED artifact 解析；若所有范围都未达 TRUSTED，则服务最局部的可用 artifact 并标记为 DEGRADED；此时若商家历史审批倾向可用（READY），则以其为主要信号。",
+        modelScopeDiagnosticsHint:
+          "按历史优于概率对账号级、区域级、店铺级模型做诊断比较，不代表当前服务选择；实际服务模型在每次预测时按可靠性链（店铺 → 区域 → 账号）取第一个 TRUSTED artifact 解析；若所有范围都未达 TRUSTED，则服务最局部的可用 artifact 并标记为 DEGRADED；此时若商家历史审批倾向可用（READY），则以其为主要信号。",
         modelScopeDiagnosticsProbabilityBasis: "优于历史选择的概率最高",
         modelScopeDiagnosticsInsufficient: "对比数据不足，暂无概率化诊断结论。",
         modelScopeDiagnosticsUnavailable: "暂无模型范围诊断比较",
@@ -4706,7 +4733,7 @@ export default {
       apiTokenEditPlaceholder: "留空则保持现有 API 令牌",
       apiTokenHint: "API 令牌只写入后端，不会再次展示。",
       apiTokenIssues: {
-        invalidJson: "不是有效的 JSON。请粘贴凭证对象，例如 {\"appKey\":\"...\",\"appSecret\":\"...\"}。",
+        invalidJson: '不是有效的 JSON。请粘贴凭证对象，例如 {"appKey":"...","appSecret":"..."}。',
         missingFields: "凭证对象缺少 {{fields}}。",
       },
       apiTokenPlaceholders: {

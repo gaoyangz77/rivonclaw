@@ -429,6 +429,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
               parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
             }
             sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+            creatorTagIntent { operation manualTagId systemTag contextShopId }
             steps {
               stepId
               type
@@ -440,6 +441,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
                 parts { kind text textHash textLength draftAssetId caption captionHash captionLength emailDisposition fileName mimeType sizeBytes sha256 productId targetCollaborationId sampleApplicationId }
               }
               sampleReviewIntent { sampleApplicationRecordId platformApplicationId projectionRevision lastObservedAt decision rejectReason rejectReasonExplanation }
+              creatorTagIntent { operation manualTagId systemTag contextShopId }
             }
           }
         }
@@ -457,6 +459,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
           creatorId
           blocked
           blockedShopIds
+          systemTags
           lastInboundAt
           committedCheckpointId
           committedCheckpointAt
@@ -533,6 +536,7 @@ export const AFFILIATE_WORK_ITEM_CHANGED_SUBSCRIPTION = `
             creatorId
             blocked
             blockedShopIds
+            systemTags
             shopStates {
               shopId
               sampleTier
@@ -688,6 +692,7 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         creatorRelationship {
           id
           creatorId
+          systemTags
           shopStates {
             shopId
           }
@@ -918,6 +923,7 @@ export const AFFILIATE_ACTION_PROPOSAL_CHANGED_SUBSCRIPTION = `
         creatorTagIntent {
           operation
           manualTagId
+          systemTag
           contextShopId
         }
         referencedManualTags {

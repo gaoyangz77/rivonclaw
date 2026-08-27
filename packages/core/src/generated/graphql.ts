@@ -179,19 +179,25 @@ export interface ActionProposalCandidateDecisionIntent {
   status: CreatorCandidateStatus;
 }
 
-/** One manual tag change on the proposal's Creator relationship. Names no creator of its own — the proposal already carries the Relationship. */
+/** One manual or system tag change on the proposal's Creator relationship. Names no creator of its own — the proposal already carries the Relationship. */
 export interface ActionProposalCreatorTagIntent {
-  /** The shop the Agent was working in. Entitlement and review focus only; a manual tag is seller-wide and this never narrows its scope. */
+  /** The shop the Agent was working in. Entitlement and review focus only; relationship tags are seller-wide and this never narrows their scope. */
   contextShopId?: Maybe<Scalars['ID']['output']>;
-  manualTagId: Scalars['ID']['output'];
+  /** A seller-owned manual tag id. Exactly one of manualTagId and systemTag is required. */
+  manualTagId?: Maybe<Scalars['ID']['output']>;
   operation: CreatorTagOperation;
+  /** A Backend-defined system tag. Exactly one of manualTagId and systemTag is required. */
+  systemTag?: Maybe<AffiliateCreatorSystemTag>;
 }
 
 export interface ActionProposalCreatorTagIntentInput {
-  /** The shop the Agent was working in. Entitlement and review focus only; a manual tag is seller-wide and this never narrows its scope. */
+  /** The shop the Agent was working in. Entitlement and review focus only; relationship tags are seller-wide and this never narrows their scope. */
   contextShopId?: InputMaybe<Scalars['ID']['input']>;
-  manualTagId: Scalars['ID']['input'];
+  /** A seller-owned manual tag id. Exactly one of manualTagId and systemTag is required. */
+  manualTagId?: InputMaybe<Scalars['ID']['input']>;
   operation: CreatorTagOperation;
+  /** A Backend-defined system tag. Exactly one of manualTagId and systemTag is required. */
+  systemTag?: InputMaybe<AffiliateCreatorSystemTag>;
 }
 
 export interface ActionProposalDecisionSnapshot {
@@ -2392,6 +2398,8 @@ export interface AffiliateCreatorRelationship {
   operationalConfigRevision: Scalars['Int']['output'];
   shopStates: Array<AffiliateCreatorRelationshipShopState>;
   stateUpdatedAt: Scalars['DateTimeISO']['output'];
+  /** Backend-defined, seller-overridable tags attached to this Creator relationship. Never shop-scoped. */
+  systemTags: Array<AffiliateCreatorSystemTag>;
   updatedAt: Scalars['DateTimeISO']['output'];
   userId: Scalars['ID']['output'];
   workSummary?: Maybe<AffiliateRelationshipWorkSummary>;
@@ -2474,6 +2482,22 @@ export interface AffiliateCreatorSampleApplicationListPayload {
   shopCoverage: Array<AffiliateOperationalProjectionShopCoverage>;
   source: AffiliateProviderReadSource;
   username?: Maybe<Scalars['String']['output']>;
+}
+
+/** Backend-defined, user-overridable Creator relationship tags with explicit business semantics. */
+export const AffiliateCreatorSystemTag = {
+  NoCampaignDisturb: 'NO_CAMPAIGN_DISTURB'
+} as const;
+
+export type AffiliateCreatorSystemTag = typeof AffiliateCreatorSystemTag[keyof typeof AffiliateCreatorSystemTag];
+/** One fixed Backend-defined Creator tag and the operations the Affiliate Agent may request for it. */
+export interface AffiliateCreatorSystemTagDefinition {
+  agentCanAdd: Scalars['Boolean']['output'];
+  agentCanRemove: Scalars['Boolean']['output'];
+  blocksCampaignOutreach: Scalars['Boolean']['output'];
+  description: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  tag: AffiliateCreatorSystemTag;
 }
 
 /** Shop-level affiliate decision references. They inform Agent judgment but do not directly approve or reject a Sample Application. */
@@ -3025,6 +3049,8 @@ export const AffiliateLifecycleEventType = {
   CreatorProtectionMerged: 'CREATOR_PROTECTION_MERGED',
   CreatorProtectionRemoved: 'CREATOR_PROTECTION_REMOVED',
   CreatorProtectionUpdated: 'CREATOR_PROTECTION_UPDATED',
+  CreatorSystemTagAdded: 'CREATOR_SYSTEM_TAG_ADDED',
+  CreatorSystemTagRemoved: 'CREATOR_SYSTEM_TAG_REMOVED',
   MessageReceived: 'MESSAGE_RECEIVED',
   MessageSent: 'MESSAGE_SENT',
   ProposalApproved: 'PROPOSAL_APPROVED',
@@ -4059,6 +4085,7 @@ export interface AffiliateResponseHorizon {
 
 /** Frozen revision source attached only to the Agent working agenda created by a staff revision request. */
 export interface AffiliateRevisionRequestedProposalContext {
+  creatorTagIntent?: Maybe<ActionProposalCreatorTagIntent>;
   decision?: Maybe<ActionProposalDecisionSnapshot>;
   id: Scalars['ID']['output'];
   messageIntent?: Maybe<ActionProposalMessageIntent>;
@@ -5169,6 +5196,11 @@ export interface CreatorRelationshipManualTagInput {
   manualTagId: Scalars['ID']['input'];
 }
 
+export interface CreatorRelationshipSystemTagInput {
+  creatorRelationshipId: Scalars['ID']['input'];
+  systemTag: AffiliateCreatorSystemTag;
+}
+
 /** How far a Creator has climbed the sample review path at one shop. Ordered rungs of one ladder — a (Relationship, Shop) pair holds exactly one. Backend-derived; never writable by staff or the Agent. */
 export const CreatorSampleTier = {
   AttributableOrder: 'ATTRIBUTABLE_ORDER',
@@ -5288,7 +5320,7 @@ export const CreatorSearchRunStatus = {
 } as const;
 
 export type CreatorSearchRunStatus = typeof CreatorSearchRunStatus[keyof typeof CreatorSearchRunStatus];
-/** Direction of a manual tag change on a Creator relationship. Both directions are idempotent, so replaying a bundle never double-applies one. */
+/** Direction of a manual or system tag change on a Creator relationship. Both directions are idempotent, so replaying a bundle never double-applies one. */
 export const CreatorTagOperation = {
   Add: 'ADD',
   Remove: 'REMOVE'
@@ -9464,6 +9496,8 @@ export interface Mutation {
   assignAffiliateBusinessDeveloper: AffiliateCreatorRelationship;
   assignAffiliateEmailAccount: EmailAccountBinding;
   assignAffiliateWhatsAppAccount: WhatsAppAccountBinding;
+  /** Attach a Backend-defined system tag to a Creator relationship. Idempotent. */
+  assignCreatorRelationshipSystemTag: AffiliateCreatorRelationship;
   /** Attach a manual tag to a Creator relationship. Idempotent. */
   assignCreatorRelationshipTag: AffiliateCreatorRelationship;
   /** Assign a manual subscription for testing or operator-driven activation. */
@@ -9658,6 +9692,8 @@ export interface Mutation {
   removeAffiliateOpenCollaboration: RemoveAffiliateOpenCollaborationPayload;
   /** Remove a TikTok Target Collaboration and immediately mark it terminating. */
   removeAffiliateTargetCollaboration: RemoveAffiliateTargetCollaborationPayload;
+  /** Detach a Backend-defined system tag from a Creator relationship. Idempotent. */
+  removeCreatorRelationshipSystemTag: AffiliateCreatorRelationship;
   /** Detach a manual tag from a Creator relationship. Idempotent. */
   removeCreatorRelationshipTag: AffiliateCreatorRelationship;
   /** Rename a seller-scoped manual tag, or change whether it is sensitive. */
@@ -9837,6 +9873,11 @@ export interface MutationAssignAffiliateEmailAccountArgs {
 export interface MutationAssignAffiliateWhatsAppAccountArgs {
   accountBindingId: Scalars['ID']['input'];
   businessDeveloperId: Scalars['ID']['input'];
+}
+
+
+export interface MutationAssignCreatorRelationshipSystemTagArgs {
+  input: CreatorRelationshipSystemTagInput;
 }
 
 
@@ -10423,6 +10464,11 @@ export interface MutationRemoveAffiliateOpenCollaborationArgs {
 
 export interface MutationRemoveAffiliateTargetCollaborationArgs {
   input: RemoveAffiliateTargetCollaborationInput;
+}
+
+
+export interface MutationRemoveCreatorRelationshipSystemTagArgs {
+  input: CreatorRelationshipSystemTagInput;
 }
 
 
@@ -11390,6 +11436,8 @@ export interface Query {
   affiliateCreatorRelationshipDetail: AffiliateCreatorRelationshipDetailPayload;
   affiliateCreatorRelationshipState: AffiliateCreatorRelationshipStatePayload;
   affiliateCreatorSampleApplicationsForRelationship: AffiliateCreatorSampleApplicationListPayload;
+  /** Read the fixed catalog of Backend-defined Creator system tags. */
+  affiliateCreatorSystemTagDefinitions: Array<AffiliateCreatorSystemTagDefinition>;
   /** Read WhatsApp messages on demand from the bound provider for an affiliate creator relationship. */
   affiliateCreatorWhatsAppMessages: Array<AffiliateCreatorMessageHistoryItem>;
   /** Read a server-paginated shop-scoped Creator relationship page with profile, tags, latest collaboration, and attention context. */
@@ -12598,6 +12646,10 @@ export interface ReadAffiliateCreatorsInput {
   shopId?: InputMaybe<Scalars['ID']['input']>;
   /** Exact tiers within the selected shopId. Ignored when no shopId is given. */
   shopSampleTiers?: InputMaybe<Array<CreatorSampleTier>>;
+  /** How systemTags combine. Defaults to ANY. */
+  systemTagMatchMode?: InputMaybe<TagMatchMode>;
+  /** Relationship-level system tags, combined per systemTagMatchMode. */
+  systemTags?: InputMaybe<Array<AffiliateCreatorSystemTag>>;
 }
 
 export interface ReadAffiliateWorkItemsInput {
@@ -12822,7 +12874,7 @@ export interface ResolveAffiliateCampaignProductInput {
 /** One backend-supported Affiliate action. Populate required fields matching type: SEND_MESSAGE -> structured messageIntent.parts, REVIEW_SAMPLE_APPLICATION -> sampleApplicationRecordId + sampleReviewDecision or sampleReviewIntent, MANAGE_CREATOR_TAG -> creatorTagIntent.operation + creatorTagIntent.manualTagId. */
 export interface ResolveAffiliateWorkItemActionInput {
   affiliateCollaborationId?: InputMaybe<Scalars['ID']['input']>;
-  /** Required only when type is MANAGE_CREATOR_TAG. Set operation to ADD or REMOVE and manualTagId to an id affiliate_search_manual_tags returned; never name a tag by text and never send an id that tool did not return. The tag lands on this work item's Relationship and is seller-wide, so contextShopId is optional and never narrows it. */
+  /** Required only when type is MANAGE_CREATOR_TAG. Set operation to ADD or REMOVE and exactly one target: manualTagId from affiliate_search_manual_tags, or systemTag from affiliate_list_system_tags. Never name a tag by text, guess an enum, or provide both. The tag lands on this work item's Relationship and is seller-wide, so contextShopId is optional and never narrows it. */
   creatorTagIntent?: InputMaybe<ActionProposalCreatorTagIntentInput>;
   expiresAt?: InputMaybe<Scalars['DateTimeISO']['input']>;
   /** Required only when type is SEND_MESSAGE. Supply one to ten ordered parts; attachments must reference staged draft assets. */
@@ -14172,6 +14224,7 @@ export const ToolId = {
   AffiliateListShops: 'AFFILIATE_LIST_SHOPS',
   AffiliateListShopOpenCollaborations: 'AFFILIATE_LIST_SHOP_OPEN_COLLABORATIONS',
   AffiliateListShopTargetCollaborations: 'AFFILIATE_LIST_SHOP_TARGET_COLLABORATIONS',
+  AffiliateListSystemTags: 'AFFILIATE_LIST_SYSTEM_TAGS',
   AffiliateListWhatsappAccounts: 'AFFILIATE_LIST_WHATSAPP_ACCOUNTS',
   AffiliateManageOpenCollaboration: 'AFFILIATE_MANAGE_OPEN_COLLABORATION',
   AffiliateManageTargetCollaboration: 'AFFILIATE_MANAGE_TARGET_COLLABORATION',
