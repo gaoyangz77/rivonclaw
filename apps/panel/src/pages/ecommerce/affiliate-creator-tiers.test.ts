@@ -6,6 +6,7 @@ import {
   creatorSampleTierLabel,
   creatorSampleTierMedal,
   creatorSampleTierName,
+  highestCreatorSampleTier,
 } from "./affiliate-creator-tiers.js";
 
 const t = (key: string, options?: Record<string, unknown>) =>
@@ -45,5 +46,17 @@ describe("creator sample tiers", () => {
     expect(creatorSampleTierDisplay(t, null)).not.toContain(
       creatorSampleTierMedal(GQL.CreatorSampleTier.SampleShipped),
     );
+  });
+
+  it("derives the highest current rung from shop-scoped relationship facts", () => {
+    expect(
+      highestCreatorSampleTier([
+        GQL.CreatorSampleTier.SampleDelivered,
+        null,
+        GQL.CreatorSampleTier.AttributableOrder,
+        GQL.CreatorSampleTier.SampleShipped,
+      ]),
+    ).toBe(GQL.CreatorSampleTier.AttributableOrder);
+    expect(highestCreatorSampleTier([null, undefined])).toBeNull();
   });
 });

@@ -1045,6 +1045,32 @@ describe("Affiliate canonical UI contract", () => {
     expect(relationshipCollaborationQuery).toContain("shopAdsCommissionRate");
   });
 
+  it("localizes relationship agenda owners, actions, reasons, and source types", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
+      "utf8",
+    );
+    const chinese = readFileSync(resolve(process.cwd(), "src/i18n/zh.ts"), "utf8");
+    const creatorModal = page.slice(
+      page.indexOf("export function CreatorRelationshipDetailModal"),
+      page.indexOf("function CreatorProfilePanel"),
+    );
+
+    expect(creatorModal).toContain('affiliateWorkspaceEnumLabel(t, "agendaOwners", agenda.owner)');
+    expect(creatorModal).toMatch(
+      /affiliateWorkspaceEnumLabel\(\s*t,\s*"requiredActions",\s*agenda\.requiredAction/,
+    );
+    expect(creatorModal).toMatch(
+      /affiliateWorkspaceEnumLabel\(\s*t,\s*"agendaSourceTypes",\s*agenda\.sourceType/,
+    );
+    expect(creatorModal).toContain('affiliateWorkspaceEnumLabel(t, "processReasons", reason)');
+    expect(creatorModal).not.toContain("formatAffiliateEnumLabel(agenda.owner)");
+    expect(creatorModal).not.toContain("formatAffiliateEnumLabel(agenda.sourceType)");
+    expect(chinese).toContain('EXTERNAL: "外部"');
+    expect(chinese).toContain('WAIT_PLATFORM_UPDATE: "等待平台更新"');
+    expect(chinese).toContain('SAMPLE_APPLICATION: "样品申请"');
+  });
+
   it("uses dense shared entity layouts across Creator detail tabs", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
@@ -1776,6 +1802,40 @@ describe("creator tag catalog wiring", () => {
     expect(page).toMatch(
       /shopSampleTiers:\s*selectedShopId\s*&&\s*selectedShopSampleTiers\.length/u,
     );
+  });
+
+  it("shows collaboration progress and both tag groups on compact creator cards and detail headers", () => {
+    const creatorCard = page.slice(
+      page.indexOf("function CreatorRelationshipCompactCard"),
+      page.indexOf("function CreatorRelationshipWorkCard"),
+    );
+    const creatorDetail = page.slice(
+      page.indexOf("export function CreatorRelationshipDetailModal"),
+      page.indexOf("function CreatorProfilePanel"),
+    );
+    const chinese = readFileSync(resolve(process.cwd(), "src/i18n/zh.ts"), "utf8");
+    const english = readFileSync(resolve(process.cwd(), "src/i18n/en.ts"), "utf8");
+
+    expect(page).toContain('className="affiliate-creator-compact-list"');
+    expect(page).not.toContain('className="affiliate-creator-table"');
+    expect(creatorCard).toContain("affiliate-creator-compact-card");
+    expect(creatorCard).toContain("affiliate-creator-compact-metrics");
+    expect(creatorCard).toContain("affiliate-creator-compact-relationship");
+    expect(creatorCard).toContain("affiliate-creator-compact-work");
+    expect(creatorCard).not.toContain("affiliate-creator-card-stat-strip");
+    expect(creatorCard).toContain("highestCreatorSampleTier");
+    expect(creatorCard).toContain("creatorSampleTierLabel(t, sampleTier)");
+    expect(creatorCard).toContain("creatorSystemTagLabel(t, tag)");
+    expect(creatorCard).toContain("visibleManualTags.map");
+    expect(creatorDetail).toContain("affiliate-relationship-header-progress");
+    expect(creatorDetail).toContain("affiliate-relationship-detail-title-row");
+    expect(creatorDetail).toContain("creatorSampleTierDisplay(t, cooperationProgressTier)");
+    expect(creatorDetail.indexOf("affiliate-relationship-header-progress")).toBeLessThan(
+      creatorDetail.indexOf("affiliate-relationship-work-modal-meta"),
+    );
+    expect(chinese).toContain('sampleTierColumnLabel: "合作进度"');
+    expect(chinese).toContain('sampleTierFilterLabel: "合作进度"');
+    expect(english).toContain('sampleTierColumnLabel: "Collaboration progress"');
   });
 
   it("keeps the per-shop tier read-only in the relationship detail", () => {
