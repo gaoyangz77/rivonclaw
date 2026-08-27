@@ -388,7 +388,11 @@ export const AffiliateCampaignPage = observer(function AffiliateCampaignPage() {
   }>(AFFILIATE_CAMPAIGN_SEARCH_PLAN_SUMMARIES_QUERY, {
     variables: { input: { campaignId: selectedCampaignId, limit: 20 } },
     skip: !selectedCampaignId,
-    pollInterval: selectedCampaignId ? 15_000 : 0,
+    // Search-plan history is an operator view, not a dispatch control loop.
+    // Mutations still refetch immediately; the background refresh can be
+    // slower and should stop entirely while the page is not visible.
+    pollInterval: selectedCampaignId ? 60_000 : 0,
+    skipPollAttempt: () => document.visibilityState === "hidden",
   });
   const creatorStatesViewState = campaignCreatorStatesViewState({
     loading: creatorStatesQuery.loading,
