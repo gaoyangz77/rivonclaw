@@ -2496,7 +2496,6 @@ export const AFFILIATE_POLICY_CONTEXT_QUERY = gql`
 export const AFFILIATE_CREATORS_QUERY = gql`
   query AffiliateCreators($input: ReadAffiliateCreatorsInput!) {
     affiliateCreators(input: $input) {
-      totalCount
       offset
       limit
       hasMore

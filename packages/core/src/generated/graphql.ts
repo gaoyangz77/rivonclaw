@@ -2160,7 +2160,6 @@ export interface AffiliateCreatorManagementPage {
   items: Array<AffiliateCreatorManagementItem>;
   limit: Scalars['Int']['output'];
   offset: Scalars['Int']['output'];
-  totalCount: Scalars['Int']['output'];
 }
 
 /** Direction of an observed affiliate IM message. */
