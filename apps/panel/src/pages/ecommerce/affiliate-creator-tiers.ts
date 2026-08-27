@@ -47,6 +47,23 @@ export function creatorSampleTierDisplay(
   return tier ? creatorSampleTierLabel(t, tier) : "—";
 }
 
+/**
+ * Resolve the highest current rung from shop-scoped relationship facts.
+ * Those facts are authoritative and also let list views retain the same
+ * business meaning while a convenience projection is being refreshed.
+ */
+export function highestCreatorSampleTier(
+  tiers: ReadonlyArray<GQL.CreatorSampleTier | null | undefined>,
+): GQL.CreatorSampleTier | null {
+  let highestIndex = -1;
+  for (const tier of tiers) {
+    if (!tier) continue;
+    const tierIndex = CREATOR_SAMPLE_TIER_ORDER.indexOf(tier);
+    if (tierIndex > highestIndex) highestIndex = tierIndex;
+  }
+  return highestIndex >= 0 ? CREATOR_SAMPLE_TIER_ORDER[highestIndex]! : null;
+}
+
 /** Manual tags are free-form seller rows; the catalog name is the only label. */
 export function creatorManualTagLabel(tag: Pick<GQL.CreatorManualTag, "name">): string {
   return tag.name;

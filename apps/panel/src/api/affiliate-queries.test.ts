@@ -79,6 +79,9 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).not.toContain("totalCount");
     expect(query).toContain("creatorPerformance");
     expect(query).toContain("systemTags");
+    expect(query).toContain("manualTags {");
+    expect(query).toContain("highestSampleTier");
+    expect(query).toMatch(/shopStates\s*\{[^}]*sampleTier/u);
   });
 
   it("loads the fixed system tag catalog and exposes direct seller override mutations", () => {

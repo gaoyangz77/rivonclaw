@@ -63,7 +63,11 @@ import {
   REMOVE_AFFILIATE_CREATOR_RELATIONSHIP_PROTECTION_MUTATION,
   UPDATE_AFFILIATE_TARGET_COLLABORATION_MUTATION,
 } from "../../api/shops-queries.js";
-import { creatorSampleTierDisplay, creatorSampleTierLabel } from "./affiliate-creator-tiers.js";
+import {
+  creatorSampleTierDisplay,
+  creatorSampleTierLabel,
+  highestCreatorSampleTier,
+} from "./affiliate-creator-tiers.js";
 import { creatorSystemTagLabel } from "./affiliate-creator-system-tags.js";
 import { AffiliateCreatorFilterGroups } from "./components/AffiliateCreatorFilterGroups.js";
 import {
@@ -76,8 +80,6 @@ import { ProductSummaryCard } from "./components/ProductSummaryCard.js";
 import {
   AffiliateContextInspector,
   AffiliateDetailModal,
-  AffiliateMetric,
-  AffiliateMetricGrid,
   AffiliatePageFrame,
   AffiliatePageHeader,
   AffiliateToolbar,
@@ -3105,9 +3107,12 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
             {t("ecommerce.affiliateWorkspace.emptyCreators")}
           </div>
         ) : (
-          <div className="affiliate-creator-roster">
+          <div
+            className="affiliate-creator-compact-list"
+            aria-label={t("ecommerce.affiliateWorkspace.creatorsTitle")}
+          >
             {creatorItems.map((item) => (
-              <CreatorRelationshipCard
+              <CreatorRelationshipCompactCard
                 key={item.creatorId}
                 item={item}
                 shopLabel={shopLabel}
@@ -3158,7 +3163,7 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   );
 });
 
-function CreatorRelationshipCard({
+function CreatorRelationshipCompactCard({
   item,
   shopLabel,
   onOpenRelationship,
@@ -3178,6 +3183,8 @@ function CreatorRelationshipCard({
     : (item.latestAffiliateCollaboration?.creatorOpenIds[0] ?? null);
   const manualTags = item.creatorRelation?.manualTags ?? [];
   const systemTags = item.creatorRelation?.systemTags ?? [];
+  const visibleSystemTags = systemTags.slice(0, 2);
+  const hiddenSystemTagCount = systemTags.length - visibleSystemTags.length;
   const visibleManualTags = manualTags.slice(0, CREATOR_MANUAL_TAG_CHIP_LIMIT);
   const hiddenManualTagCount = manualTags.length - visibleManualTags.length;
   const latestRecord = item.latestAffiliateCollaboration;
@@ -3222,19 +3229,19 @@ function CreatorRelationshipCard({
     ),
   );
   const followerCount = formatCount(item.creatorPerformance?.followerCount);
-  // Absent means no rung has been reached, which is not the lowest rung — the
-  // chip is simply not rendered rather than standing in for a rung.
-  const sampleTier = item.creatorRelation?.highestSampleTier ?? null;
+  // Absent means no rung has been reached, which is not the lowest rung. Keep
+  // the field visible with an explicit empty state rather than inventing one.
+  const sampleTier =
+    item.creatorRelation?.highestSampleTier ??
+    highestCreatorSampleTier(
+      (item.creatorRelation?.shopStates ?? []).map((state) => state.sampleTier),
+    );
   const observedContentCount = item.latestSampleApplicationRecord?.observedContentCount ?? null;
   const relationshipDetail = relationshipDetailFromManagementItem(item);
 
   return (
     <article
-      className={affiliateEntityCardClassName(
-        "listing",
-        true,
-        "affiliate-creator-row affiliate-relationship-card",
-      )}
+      className="affiliate-creator-compact-card"
       data-tutorial-id="affiliate-creators-results"
       role="button"
       tabIndex={0}
@@ -3246,161 +3253,166 @@ function CreatorRelationshipCard({
         }
       }}
     >
-      <div className="affiliate-creator-row-main">
-        <CreatorAvatarImage
-          avatarUrl={profile?.avatarUrl}
-          className="affiliate-creator-avatar"
-          fallbackClassName="affiliate-creator-avatar-empty"
-          name={name}
-        />
-        <div className="affiliate-creator-row-copy">
-          <div className="affiliate-creator-row-title">
-            <CreatorName name={name} onOpen={() => onOpenRelationship(relationshipDetail)} />
-            <span
-              className={`affiliate-creator-state ${item.needsAttention ? "affiliate-creator-state-attention" : ""}`}
-            >
-              {item.needsAttention
-                ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
-                : t("ecommerce.affiliateWorkspace.creatorStable")}
-            </span>
+      <section className="affiliate-creator-compact-identity">
+        <div className="affiliate-creator-row-main">
+          <CreatorAvatarImage
+            avatarUrl={profile?.avatarUrl}
+            className="affiliate-creator-avatar"
+            fallbackClassName="affiliate-creator-avatar-empty"
+            name={name}
+            onOpen={() => onOpenRelationship(relationshipDetail)}
+          />
+          <div className="affiliate-creator-row-copy">
+            <div className="affiliate-creator-row-title">
+              <CreatorName name={name} onOpen={() => onOpenRelationship(relationshipDetail)} />
+              <span
+                className={`affiliate-creator-state ${item.needsAttention ? "affiliate-creator-state-attention" : ""}`}
+              >
+                {item.needsAttention
+                  ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
+                  : t("ecommerce.affiliateWorkspace.creatorStable")}
+              </span>
+            </div>
+            <div className="affiliate-creator-row-meta">
+              <CreatorPlatformId handle={handle} platformId={platformId} />
+              {item.market ? (
+                <span className="affiliate-creator-market-pill">{item.market}</span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="affiliate-creator-compact-relationship">
+        <div className="affiliate-creator-compact-detail-row">
+          <span className="affiliate-creator-compact-label">
+            {t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}
+          </span>
+          <div className="affiliate-creator-compact-values">
             {sampleTier ? (
               <span
                 className="affiliate-creator-tier-chip"
-                title={`${t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")} · ${t("ecommerce.affiliateWorkspace.sampleTierColumnHint")}`}
+                title={t("ecommerce.affiliateWorkspace.sampleTierColumnHint")}
               >
                 {creatorSampleTierLabel(t, sampleTier)}
               </span>
-            ) : null}
+            ) : (
+              <span className="affiliate-creator-compact-empty">—</span>
+            )}
           </div>
-          <div className="affiliate-creator-row-meta">
-            <CreatorPlatformId handle={handle} platformId={platformId} />
-            <span>
-              {followerCount
-                ? t("ecommerce.affiliateWorkspace.creatorFollowerCount", {
-                    value: followerCount,
-                    defaultValue: "{{value}} followers",
-                  })
-                : t("ecommerce.affiliateWorkspace.creatorFollowerDataPending")}
-            </span>
-            {item.market ? (
-              <span className="affiliate-creator-market-pill">{item.market}</span>
-            ) : null}
-            <span>
-              {t("ecommerce.affiliateWorkspace.creatorActiveSamples", {
-                count: item.activeSampleApplicationCount,
-                defaultValue: "{{count}} active samples",
-              })}
-            </span>
-            <span>
-              {t("ecommerce.affiliateWorkspace.creatorActivePlatformCollaborations", {
-                count: item.activeCollaborationCount,
-                defaultValue: "{{count}} active platform collaborations",
-              })}
-            </span>
+          <span className="affiliate-creator-compact-label affiliate-creator-compact-label-secondary">
+            {t("ecommerce.affiliateWorkspace.creatorCooperationShops")}
+          </span>
+          <div className="affiliate-creator-compact-values">
+            {relationshipShopIds.length ? (
+              relationshipShopIds.map((shopId) => (
+                <span className="affiliate-creator-shop-pill" key={shopId}>
+                  {shopLabel(shopId)}
+                </span>
+              ))
+            ) : (
+              <span className="affiliate-creator-compact-empty">—</span>
+            )}
           </div>
         </div>
-      </div>
-
-      <AffiliateMetricGrid className="affiliate-creator-card-metrics" compact>
-        <AffiliateMetric
-          label={t("ecommerce.affiliateWorkspace.creatorDetail.followers")}
-          value={followerCount || "—"}
-        />
-        <AffiliateMetric
-          label={t("ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications")}
-          value={formatCount(item.activeSampleApplicationCount)}
-        />
-        <AffiliateMetric
-          label={t("ecommerce.affiliateWorkspace.relationshipPanelPlatformCollaborations")}
-          value={formatCount(item.activeCollaborationCount)}
-        />
-        <AffiliateMetric
-          label={t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}
-          value={observedContentCount == null ? "—" : formatCount(observedContentCount)}
-        />
-      </AffiliateMetricGrid>
-
-      <div className="affiliate-creator-relationship-context">
-        {relationshipShopIds.length ? (
-          <div className="affiliate-creator-shop-list">
-            <span className="affiliate-creator-shop-label">
-              {t("ecommerce.affiliateWorkspace.creatorCooperationShops")}
-            </span>
-            {relationshipShopIds.map((shopId) => (
-              <span className="affiliate-creator-shop-pill" key={shopId}>
-                {shopLabel(shopId)}
-              </span>
-            ))}
+        <div className="affiliate-creator-compact-detail-row">
+          <span className="affiliate-creator-compact-label">
+            {t("ecommerce.affiliateWorkspace.systemTagFilterLabel")}
+          </span>
+          <div className="affiliate-creator-compact-values">
+            {visibleSystemTags.length ? (
+              <>
+                {visibleSystemTags.map((tag) => (
+                  <span
+                    className="affiliate-creator-tag affiliate-creator-system-tag"
+                    key={tag}
+                    title={t("ecommerce.affiliateWorkspace.systemTags.hint")}
+                  >
+                    <span>{creatorSystemTagLabel(t, tag)}</span>
+                  </span>
+                ))}
+                {hiddenSystemTagCount > 0 ? (
+                  <span
+                    className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                    title={systemTags.map((tag) => creatorSystemTagLabel(t, tag)).join(", ")}
+                  >
+                    <span>+{hiddenSystemTagCount}</span>
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <span className="affiliate-creator-compact-empty">—</span>
+            )}
           </div>
-        ) : null}
-        <div className="affiliate-creator-tag-list">
-          {systemTags.map((tag) => (
-            <span
-              className="affiliate-creator-tag affiliate-creator-system-tag"
-              key={tag}
-              title={t("ecommerce.affiliateWorkspace.systemTags.hint")}
-            >
-              <span>{creatorSystemTagLabel(t, tag)}</span>
-            </span>
-          ))}
-          {visibleManualTags.length ? (
-            <>
-              {visibleManualTags.map((tag) => (
-                <span className="affiliate-creator-tag" key={tag.id}>
-                  <span>{tag.name}</span>
-                </span>
-              ))}
-              {hiddenManualTagCount > 0 ? (
-                <span
-                  className="affiliate-creator-tag affiliate-creator-tag-overflow"
-                  title={manualTags.map((tag) => tag.name).join(", ")}
-                >
-                  <span>+{hiddenManualTagCount}</span>
-                </span>
-              ) : null}
-            </>
-          ) : systemTags.length === 0 ? (
-            <span className="affiliate-creator-tag-empty">
-              {t("ecommerce.affiliateWorkspace.manualTagsEmpty")}
-            </span>
-          ) : null}
+          <span className="affiliate-creator-compact-label affiliate-creator-compact-label-secondary">
+            {t("ecommerce.affiliateWorkspace.manualTagFilterLabel")}
+          </span>
+          <div className="affiliate-creator-compact-values">
+            {visibleManualTags.length ? (
+              <>
+                {visibleManualTags.map((tag) => (
+                  <span className="affiliate-creator-tag" key={tag.id}>
+                    <span>{tag.name}</span>
+                  </span>
+                ))}
+                {hiddenManualTagCount > 0 ? (
+                  <span
+                    className="affiliate-creator-tag affiliate-creator-tag-overflow"
+                    title={manualTags.map((tag) => tag.name).join(", ")}
+                  >
+                    <span>+{hiddenManualTagCount}</span>
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <span className="affiliate-creator-compact-empty">—</span>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="affiliate-creator-work-summary">
-        <div className="affiliate-creator-work-summary-item affiliate-creator-work-summary-item-primary">
+      <dl className="affiliate-creator-compact-metrics">
+        <div>
+          <dt>{t("ecommerce.affiliateWorkspace.creatorDetail.followers")}</dt>
+          <dd>{followerCount || "—"}</dd>
+        </div>
+        <div>
+          <dt>{t("ecommerce.affiliateWorkspace.agentWorkDetail.activeSampleApplications")}</dt>
+          <dd>{formatCount(item.activeSampleApplicationCount)}</dd>
+        </div>
+        <div>
+          <dt>{t("ecommerce.affiliateWorkspace.relationshipPanelPlatformCollaborations")}</dt>
+          <dd>{formatCount(item.activeCollaborationCount)}</dd>
+        </div>
+        <div>
+          <dt>{t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}</dt>
+          <dd>{observedContentCount == null ? "—" : formatCount(observedContentCount)}</dd>
+        </div>
+      </dl>
+
+      <section className="affiliate-creator-compact-work">
+        <div className="affiliate-creator-compact-next">
           <span>{t("ecommerce.affiliateWorkspace.labels.nextStep")}</span>
-          <strong>{nextAction}</strong>
-          {nextActionContext ? <small>{nextActionContext}</small> : null}
+          <strong title={nextAction}>{nextAction}</strong>
+          {nextActionContext ? <small title={nextActionContext}>{nextActionContext}</small> : null}
         </div>
-        <dl className="affiliate-creator-work-facts">
-          <dt>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</dt>
-          <dd>
-            <span className="affiliate-creator-work-fact-value">{lifecycleLabel}</span>
-          </dd>
-          <dt>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</dt>
-          <dd>
-            <span
-              className="affiliate-creator-work-fact-value"
-              title={sampleStatusDescription ?? undefined}
-            >
-              {sampleStatusLabel}
-            </span>
-            {observedContentCount ? (
-              <span className="affiliate-creator-work-fact-note">
-                {t("ecommerce.affiliateWorkspace.sampleApplication.contentCount")}{" "}
-                {formatCount(observedContentCount)}
-              </span>
-            ) : null}
-          </dd>
-          <dt>{t("ecommerce.affiliateWorkspace.creatorLastInteraction")}</dt>
-          <dd>
-            <span className="affiliate-creator-work-fact-value">
+        <dl className="affiliate-creator-compact-facts">
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.creatorLifecycle")}</dt>
+            <dd title={lifecycleLabel}>{lifecycleLabel}</dd>
+          </div>
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.creatorSampleStatus")}</dt>
+            <dd title={sampleStatusDescription ?? sampleStatusLabel}>{sampleStatusLabel}</dd>
+          </div>
+          <div>
+            <dt>{t("ecommerce.affiliateWorkspace.creatorLastInteraction")}</dt>
+            <dd title={item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}>
               {item.lastInteractionAt ? formatProposalTime(item.lastInteractionAt) : "—"}
-            </span>
-          </dd>
+            </dd>
+          </div>
         </dl>
-      </div>
+      </section>
     </article>
   );
 }
@@ -9106,6 +9118,16 @@ function withRelationshipContext(
   } as GQL.ActionProposal;
 }
 
+function affiliateWorkspaceEnumLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  group: "agendaOwners" | "agendaSourceTypes" | "processReasons" | "requiredActions" | "workKinds",
+  value: string,
+): string {
+  return t(`ecommerce.affiliateWorkspace.${group}.${value}`, {
+    defaultValue: formatAffiliateEnumLabel(value),
+  });
+}
+
 function relationshipStatusTone(
   status: GQL.AffiliateRelationshipProcessingStatus,
 ): CollaborationWorkViewModel["badgeTone"] {
@@ -9555,6 +9577,13 @@ export function CreatorRelationshipDetailModal({
   }, [refetchRelationshipDetail]);
   const relationshipDetail = relationshipDetailData?.affiliateCreatorRelationshipDetail ?? null;
   const relationship = relationshipDetail?.creatorRelationship ?? item.creatorRelation ?? null;
+  const cooperationProgressTier =
+    relationship?.highestSampleTier ??
+    highestCreatorSampleTier(
+      (relationship?.shopStates ?? (item.shopState ? [item.shopState] : [])).map(
+        (state) => state.sampleTier,
+      ),
+    );
   const {
     data: creatorProfileData,
     loading: creatorProfileLoading,
@@ -9747,7 +9776,7 @@ export function CreatorRelationshipDetailModal({
           defaultValue: formatAffiliateEnumLabel(relationshipAggregateStatus),
         }),
         secondary: relationshipAgenda[0]
-          ? formatAffiliateEnumLabel(relationshipAgenda[0].workKind)
+          ? affiliateWorkspaceEnumLabel(t, "workKinds", relationshipAgenda[0].workKind)
           : null,
       }
     : {
@@ -9771,7 +9800,9 @@ export function CreatorRelationshipDetailModal({
         ? t("ecommerce.affiliateWorkspace.creatorNeedsAttention")
         : t("ecommerce.affiliateWorkspace.relationshipNoCurrentWork");
   const currentSummary = relationshipAgenda[0]?.reasons?.length
-    ? relationshipAgenda[0].reasons.map(formatAffiliateEnumLabel).join(" · ")
+    ? relationshipAgenda[0].reasons
+        .map((reason) => affiliateWorkspaceEnumLabel(t, "processReasons", reason))
+        .join(" · ")
     : management?.needsAttention
       ? t("ecommerce.affiliateWorkspace.relationshipNeedsManualReview")
       : t("ecommerce.affiliateWorkspace.relationshipNoCurrentWorkHint");
@@ -10252,7 +10283,16 @@ export function CreatorRelationshipDetailModal({
               name={name}
             />
             <div className="affiliate-collaboration-modal-title-block">
-              <h2 className="affiliate-relationship-detail-title">{name}</h2>
+              <div className="affiliate-relationship-detail-title-row">
+                <h2 className="affiliate-relationship-detail-title">{name}</h2>
+                <span
+                  className="affiliate-relationship-header-progress"
+                  title={t("ecommerce.affiliateWorkspace.sampleTierColumnHint")}
+                >
+                  <span>{t("ecommerce.affiliateWorkspace.sampleTierColumnLabel")}</span>
+                  <strong>{creatorSampleTierDisplay(t, cooperationProgressTier)}</strong>
+                </span>
+              </div>
               <div className="affiliate-relationship-work-modal-meta">
                 <span className="affiliate-relationship-work-modal-object">
                   {t("ecommerce.affiliateWorkspace.creatorRelationshipPrimaryObject")}
@@ -10628,7 +10668,7 @@ export function CreatorRelationshipDetailModal({
                                 {agenda.shopId
                                   ? relationshipShopName(agenda.shopId)
                                   : t("ecommerce.affiliateWorkspace.relationshipAcrossShops")}{" "}
-                                · {formatAffiliateEnumLabel(agenda.owner)}
+                                · {affiliateWorkspaceEnumLabel(t, "agendaOwners", agenda.owner)}
                               </span>
                               <h3>
                                 {t(`ecommerce.affiliateWorkspace.workKinds.${agenda.workKind}`, {
@@ -10636,14 +10676,30 @@ export function CreatorRelationshipDetailModal({
                                 })}
                               </h3>
                               <p>
-                                {agenda.reasons.map(formatAffiliateEnumLabel).join(" · ") ||
-                                  formatAffiliateEnumLabel(agenda.requiredAction)}
+                                {agenda.reasons
+                                  .map((reason) =>
+                                    affiliateWorkspaceEnumLabel(t, "processReasons", reason),
+                                  )
+                                  .join(" · ") ||
+                                  affiliateWorkspaceEnumLabel(
+                                    t,
+                                    "requiredActions",
+                                    agenda.requiredAction,
+                                  )}
                               </p>
                             </div>
                             <RelationshipStatusBadge
                               display={{
-                                primary: formatAffiliateEnumLabel(agenda.requiredAction),
-                                secondary: formatAffiliateEnumLabel(agenda.sourceType),
+                                primary: affiliateWorkspaceEnumLabel(
+                                  t,
+                                  "requiredActions",
+                                  agenda.requiredAction,
+                                ),
+                                secondary: affiliateWorkspaceEnumLabel(
+                                  t,
+                                  "agendaSourceTypes",
+                                  agenda.sourceType,
+                                ),
                               }}
                               tone={relationshipStatusTone(
                                 relationshipProcessingStatusFromAgendaOwner(agenda.owner),

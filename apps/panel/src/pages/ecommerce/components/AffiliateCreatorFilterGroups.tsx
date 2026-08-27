@@ -10,7 +10,7 @@ import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
  *
  * Tier filtering is exact-match: selecting 已发样 returns creators *currently
  * stopped at* 已发样, never every creator that ever shipped a sample. That is
- * why the group is labelled 当前进度 rather than 标签, and why it must be
+ * why the group is labelled 合作进度 rather than 标签, and why it must be
  * multi-select — several rungs are expressed by selecting several.
  *
  * Order is layout-bearing: both progress groups hold the same fixed four
