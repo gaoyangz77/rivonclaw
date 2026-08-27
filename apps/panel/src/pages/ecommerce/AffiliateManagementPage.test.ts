@@ -781,13 +781,14 @@ describe("Affiliate canonical UI contract", () => {
     expect(queries).toContain("shopActivitySummaries");
   });
 
-  it("keeps Creator pagination totals stable while cache-and-network fetches a new page", () => {
+  it("paginates Creators from hasMore without requesting an exact total", () => {
     const page = readFileSync(
       resolve(process.cwd(), "src/pages/ecommerce/AffiliateManagementPage.tsx"),
       "utf8",
     );
 
-    expect(page).toContain("stableCreatorTotalCount");
+    expect(page).toContain("hasMoreCreators");
+    expect(page).not.toContain("stableCreatorTotalCount");
     expect(page).toContain("if (!creatorPageResult) return;");
   });
 

@@ -2819,7 +2819,6 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
   const [creatorSearch, setCreatorSearch] = useState("");
   const [debouncedCreatorSearch, setDebouncedCreatorSearch] = useState("");
   const [creatorPage, setCreatorPage] = useState(1);
-  const [creatorPageInput, setCreatorPageInput] = useState("1");
   const [selectedRelationship, setSelectedRelationship] =
     useState<CreatorRelationshipDetailItem | null>(null);
 
@@ -2939,15 +2938,9 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
   const creatorPageResult = data?.affiliateCreators;
   const creatorItems = creatorPageResult?.items ?? [];
-  const [stableCreatorTotalCount, setStableCreatorTotalCount] = useState(0);
-  useEffect(() => {
-    if (creatorPageResult) setStableCreatorTotalCount(creatorPageResult.totalCount);
-  }, [creatorPageResult]);
-  const totalCreatorCount = creatorPageResult?.totalCount ?? stableCreatorTotalCount;
-  const creatorPageCount = Math.max(1, Math.ceil(totalCreatorCount / AFFILIATE_CREATORS_PAGE_SIZE));
-  const creatorPageStart =
-    totalCreatorCount === 0 ? 0 : (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE + 1;
-  const creatorPageEnd = Math.min(creatorPage * AFFILIATE_CREATORS_PAGE_SIZE, totalCreatorCount);
+  const hasMoreCreators = creatorPageResult?.hasMore ?? false;
+  const creatorPageStart = (creatorPage - 1) * AFFILIATE_CREATORS_PAGE_SIZE + 1;
+  const creatorPageEnd = creatorPageStart + Math.max(0, creatorItems.length - 1);
 
   useEffect(() => {
     setCreatorPage(1);
@@ -2965,23 +2958,10 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
 
   useEffect(() => {
     if (!creatorPageResult) return;
-    setCreatorPage((page) => Math.min(page, creatorPageCount));
-  }, [creatorPageCount, creatorPageResult]);
-
-  useEffect(() => {
-    setCreatorPageInput(String(creatorPage));
-  }, [creatorPage]);
-
-  function commitCreatorPageInput(): void {
-    const nextPage = Number.parseInt(creatorPageInput, 10);
-    if (!Number.isFinite(nextPage)) {
-      setCreatorPageInput(String(creatorPage));
-      return;
+    if (creatorPageResult.items.length === 0) {
+      setCreatorPage((page) => Math.max(1, page - 1));
     }
-    const clampedPage = Math.min(creatorPageCount, Math.max(1, nextPage));
-    setCreatorPage(clampedPage);
-    setCreatorPageInput(String(clampedPage));
-  }
+  }, [creatorPageResult]);
 
   if (authChecking) {
     return (
@@ -3143,19 +3123,13 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                 onOpenRelationship={(relationship) => setSelectedRelationship(relationship)}
               />
             ))}
-            {totalCreatorCount > AFFILIATE_CREATORS_PAGE_SIZE ? (
+            {creatorPage > 1 || hasMoreCreators ? (
               <div
                 className="affiliate-collaboration-pagination affiliate-creator-pagination"
                 aria-label={t("ecommerce.affiliateWorkspace.creatorsTitle")}
               >
                 <span className="affiliate-collaboration-pagination-summary">
-                  {t("ecommerce.affiliateWorkspace.pageSummary", {
-                    start: creatorPageStart,
-                    end: creatorPageEnd,
-                    total: totalCreatorCount,
-                    page: creatorPage,
-                    pages: creatorPageCount,
-                  })}
+                  {creatorPageStart}–{creatorPageEnd}
                 </span>
                 <div className="affiliate-collaboration-pagination-actions">
                   <button
@@ -3167,33 +3141,13 @@ export const AffiliateCreatorsPage = observer(function AffiliateCreatorsPage() {
                     {t("ecommerce.affiliateWorkspace.prevPage")}
                   </button>
                   <span className="affiliate-collaboration-page-pill">
-                    {t("ecommerce.affiliateWorkspace.page", {
-                      page: creatorPage,
-                      pages: creatorPageCount,
-                    })}
+                    {creatorPage}
                   </span>
-                  <label className="affiliate-collaboration-page-jump">
-                    <span>{t("ecommerce.affiliateWorkspace.jumpToPage")}</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={creatorPageCount}
-                      value={creatorPageInput}
-                      aria-label={t("ecommerce.affiliateWorkspace.creatorsTitle")}
-                      onChange={(event) => setCreatorPageInput(event.target.value)}
-                      onBlur={commitCreatorPageInput}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.currentTarget.blur();
-                        }
-                      }}
-                    />
-                  </label>
                   <button
                     className="btn btn-secondary"
                     type="button"
-                    disabled={creatorPage >= creatorPageCount}
-                    onClick={() => setCreatorPage((page) => Math.min(creatorPageCount, page + 1))}
+                    disabled={!hasMoreCreators}
+                    onClick={() => setCreatorPage((page) => page + 1)}
                   >
                     {t("ecommerce.affiliateWorkspace.nextPage")}
                   </button>

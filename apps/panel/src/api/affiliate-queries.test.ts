@@ -75,7 +75,8 @@ describe("affiliate workspace GraphQL contracts", () => {
     expect(query).toContain("creatorProfile");
     expect(query).toContain("latestAffiliateCollaboration");
     expect(query).toContain("latestPendingProposal");
-    expect(query).toContain("totalCount");
+    expect(query).toContain("hasMore");
+    expect(query).not.toContain("totalCount");
     expect(query).toContain("creatorPerformance");
     expect(query).toContain("systemTags");
   });
