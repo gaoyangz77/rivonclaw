@@ -510,39 +510,39 @@ describe("formatRelativeTime", () => {
   const now = 1700000000000;
 
   it("formats seconds in the future", () => {
-    expect(formatRelativeTime(now + 30000, now)).toBe("in 30s");
+    expect(formatRelativeTime(now + 30000, now, "en")).toContain("30 sec");
   });
 
   it("formats seconds in the past", () => {
-    expect(formatRelativeTime(now - 45000, now)).toBe("45s ago");
+    expect(formatRelativeTime(now - 45000, now, "en")).toContain("45 sec");
   });
 
   it("formats minutes in the future", () => {
-    expect(formatRelativeTime(now + 300000, now)).toBe("in 5m");
+    expect(formatRelativeTime(now + 300000, now, "en")).toContain("5 min");
   });
 
   it("formats minutes in the past", () => {
-    expect(formatRelativeTime(now - 600000, now)).toBe("10m ago");
+    expect(formatRelativeTime(now - 600000, now, "en")).toContain("10 min");
   });
 
   it("formats hours in the future", () => {
-    expect(formatRelativeTime(now + 7200000, now)).toBe("in 2h");
+    expect(formatRelativeTime(now + 7200000, now, "en")).toContain("2 hr");
   });
 
   it("formats hours in the past", () => {
-    expect(formatRelativeTime(now - 10800000, now)).toBe("3h ago");
+    expect(formatRelativeTime(now - 10800000, now, "en")).toContain("3 hr");
   });
 
   it("formats days in the future", () => {
-    expect(formatRelativeTime(now + 172800000, now)).toBe("in 2d");
+    expect(formatRelativeTime(now + 172800000, now, "en")).toContain("2 days");
   });
 
   it("formats days in the past", () => {
-    expect(formatRelativeTime(now - 259200000, now)).toBe("3d ago");
+    expect(formatRelativeTime(now - 259200000, now, "en")).toContain("3 days");
   });
 
   it("handles exact boundary (60s = 1m)", () => {
-    expect(formatRelativeTime(now + 60000, now)).toBe("in 1m");
+    expect(formatRelativeTime(now + 60000, now, "zh")).toBe("1分钟后");
   });
 });
 

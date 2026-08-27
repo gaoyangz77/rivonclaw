@@ -7,6 +7,8 @@ import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import { CheckIcon, ChevronRightIcon, CopyIcon, InfoIcon, ModuleIcon, RefreshIcon } from "../../components/icons.js";
 import { panelEventBus } from "../../lib/event-bus.js";
+import panelI18n from "../../i18n/index.js";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { MarkdownMessage } from "../../components/markdown/MarkdownMessage.js";
 import { RemoteMediaImage } from "../../components/images/RemoteMediaImage.js";
@@ -2083,14 +2085,13 @@ function escalationStatusLabel(status: GQL.CsEscalationStatus, t: (key: string) 
 
 function formatCompactDateTime(value?: string | number | null): string {
   if (value == null) return "-";
-  const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  const date = typeof value === "number" ? new Date(value * 1000) : value;
+  return formatLocalizedDateTime(
+    date,
+    panelI18n.language,
+    { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
+    "-",
+  );
 }
 
 function formatOrderMoney(
@@ -2123,16 +2124,7 @@ function humanizePlatformValue(value?: string | null): string {
 }
 
 function formatDateTime(value?: string | null): string {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatLocalizedDateTime(value, panelI18n.language, undefined, "-");
 }
 
 function shortId(value: string): string {

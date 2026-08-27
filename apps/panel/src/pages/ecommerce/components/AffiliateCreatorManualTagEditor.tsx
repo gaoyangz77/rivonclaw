@@ -17,6 +17,8 @@ import {
   creatorSystemTagDescription,
   creatorSystemTagLabel,
 } from "../affiliate-creator-system-tags.js";
+import panelI18n from "../../../i18n/index.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 export type CreatorManualTagChange = {
   occurredAt: string;
@@ -511,9 +513,7 @@ export function AffiliateCreatorManualTagEditor({
 }
 
 function formatManualTagChangeTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return formatLocalizedDateTime(value, panelI18n.language, undefined, value);
 }
 
 function manualTagChangeSourceLabel(

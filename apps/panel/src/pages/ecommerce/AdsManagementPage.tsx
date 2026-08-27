@@ -16,11 +16,11 @@ import {
   shopCollectionDisplayName,
   shopCollectionRegions,
 } from "../../lib/shop-collections.js";
+import panelI18n from "../../i18n/index.js";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 
 function formatDate(value?: string | null): string {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString();
+  return formatLocalizedDateTime(value, panelI18n.language, undefined, "-");
 }
 
 function statusClass(status?: string | null): string {

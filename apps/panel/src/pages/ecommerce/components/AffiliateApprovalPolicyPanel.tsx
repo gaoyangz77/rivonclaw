@@ -16,6 +16,8 @@ import {
 } from "../../../api/shops-queries.js";
 import { CREATOR_SAMPLE_TIER_ORDER, creatorSampleTierLabel } from "../affiliate-creator-tiers.js";
 import { AffiliateChipMultiSelect } from "./AffiliateChipMultiSelect.js";
+import panelI18n from "../../../i18n/index.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 type AffiliateApprovalPolicy = GQL.AffiliateApprovalPolicy;
 type AffiliatePolicyAction = GQL.ActionProposalType;
@@ -980,7 +982,5 @@ function summarizeKnownNames(
 }
 
 function formatPolicyTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return formatLocalizedDateTime(value, panelI18n.language, undefined, value);
 }

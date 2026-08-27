@@ -15,6 +15,7 @@ import { Modal } from "../../components/modals/Modal.js";
 import { useToast } from "../../components/Toast.js";
 import { useEntityStore } from "../../store/EntityStoreProvider.js";
 import { BEFORE_NAVIGATE_EVENT, type BeforeNavigateDetail } from "../../lib/navigation-guard.js";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 import {
   ARCHIVE_PRODUCT_KNOWLEDGE_MUTATION,
   CREATE_PRODUCT_KNOWLEDGE_MUTATION,
@@ -540,7 +541,7 @@ export const ProductKnowledgePage = observer(function ProductKnowledgePage() {
                             </div>
                           </td>
                           <td><span className="product-knowledge-product-count"><ShopIcon size={14} />{item.bindingCount}</span></td>
-                          <td><time dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleString(i18n.language, { dateStyle: "medium", timeStyle: "short" })}</time></td>
+                          <td><time dateTime={item.updatedAt}>{formatLocalizedDateTime(item.updatedAt, i18n.language)}</time></td>
                         </tr>
                       );
                     })}

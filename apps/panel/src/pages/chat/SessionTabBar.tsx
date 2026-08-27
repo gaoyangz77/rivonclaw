@@ -10,6 +10,11 @@ import {
 } from "./chat-utils.js";
 import type { ChatSessionMeta } from "../../api/chat-sessions.js";
 import { fetchChatSessions, deleteChatSession } from "../../api/chat-sessions.js";
+import {
+  formatLocalizedDate,
+  formatLocalizedRelativeTime,
+  formatLocalizedTime,
+} from "../../lib/format-datetime.js";
 
 export type SessionTabBarProps = {
   sessions: SessionTabInfo[];
@@ -185,23 +190,15 @@ function formatArchivedTime(ts: number, locale: string): string {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return locale.startsWith("zh")
-      ? `${pad(d.getHours())}:${pad(d.getMinutes())}`
-      : `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return formatLocalizedTime(d, locale);
   }
   if (diffDays === 1) {
-    return locale.startsWith("zh") ? "昨天" : "Yesterday";
+    return formatLocalizedRelativeTime(now.getTime() - 86_400_000, now.getTime(), locale, "auto");
   }
   if (diffDays < 7) {
-    return locale.startsWith("zh") ? `${diffDays}天前` : `${diffDays}d ago`;
+    return formatLocalizedRelativeTime(ts, now.getTime(), locale);
   }
-  const pad = (n: number) => String(n).padStart(2, "0");
-  if (locale.startsWith("zh")) {
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  return formatLocalizedDate(d, locale);
 }
 
 /** Merged archived item: SQLite metadata + optional gateway data. */

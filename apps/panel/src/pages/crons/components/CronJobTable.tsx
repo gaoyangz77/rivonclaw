@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { CronJob } from "../cron-utils.js";
 import { formatSchedule, formatRelativeTime, getTzI18nKey } from "../cron-utils.js";
+import { formatLocalizedDateTime } from "../../../lib/format-datetime.js";
 
 interface CronJobTableProps {
   jobs: CronJob[];
@@ -25,7 +26,7 @@ function getStatusBadge(job: CronJob, t: (key: string) => string) {
 }
 
 export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggle, onRun, onHistory, onDelete }: CronJobTableProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (loading && jobs.length === 0) {
     return (
@@ -85,7 +86,7 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
                       )}
                     </>
                   ) : (
-                    <span className="crons-schedule-text">{formatSchedule(job.schedule)}</span>
+                    <span className="crons-schedule-text">{formatSchedule(job.schedule, i18n.language)}</span>
                   )}
                 </td>
                 <td>
@@ -104,8 +105,8 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
                   <div className="crons-time-cell">
                     {getStatusBadge(job, t)}
                     {job.state?.lastRunAtMs && (
-                      <div className="text-muted" title={new Date(job.state.lastRunAtMs).toLocaleString()}>
-                        {formatRelativeTime(job.state.lastRunAtMs, now)}
+                      <div className="text-muted" title={formatLocalizedDateTime(job.state.lastRunAtMs, i18n.language)}>
+                        {formatRelativeTime(job.state.lastRunAtMs, now, i18n.language)}
                       </div>
                     )}
                   </div>
@@ -113,7 +114,7 @@ export function CronJobTable({ jobs, loading, now, runningJobId, onEdit, onToggl
                 <td>
                   <div className="crons-time-cell">
                     {job.state?.nextRunAtMs
-                      ? <span title={new Date(job.state.nextRunAtMs).toLocaleString()}>{formatRelativeTime(job.state.nextRunAtMs, now)}</span>
+                      ? <span title={formatLocalizedDateTime(job.state.nextRunAtMs, i18n.language)}>{formatRelativeTime(job.state.nextRunAtMs, now, i18n.language)}</span>
                       : <span className="text-muted">—</span>
                     }
                   </div>

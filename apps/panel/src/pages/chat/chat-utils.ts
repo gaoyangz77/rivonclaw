@@ -1,4 +1,5 @@
 import { stripReasoningTagsFromText, DEFAULTS } from "@rivonclaw/core";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 export {
   SESSION_CHANNEL_IDS,
   inferSessionChannelFromKey,
@@ -306,28 +307,14 @@ export function buildAutoSessionTitle(raw: string): string | undefined {
 }
 
 export function formatTimestamp(ts: number, locale: string): string {
-  const d = new Date(ts);
-  if (locale.startsWith("zh")) {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatLocalizedDateTime(ts, locale, {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 /**

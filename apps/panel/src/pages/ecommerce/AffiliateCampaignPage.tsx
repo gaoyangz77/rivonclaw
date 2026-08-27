@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "react-i18next";
+import panelI18n from "../../i18n/index.js";
+import { formatShortDateTime } from "../../lib/format-datetime.js";
 import { GQL } from "@rivonclaw/core";
 import {
   CheckIcon,
@@ -4330,12 +4332,7 @@ export function campaignPreApprovalOutcomeLabel(
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return formatShortDateTime(value, panelI18n.language);
 }
 
 export function normalizeCampaignExplanationLocale(

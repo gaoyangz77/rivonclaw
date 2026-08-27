@@ -2,13 +2,14 @@ import { useTranslation } from "react-i18next";
 import type { Shop } from "@rivonclaw/core/models";
 import { useEntityStore } from "../../../store/EntityStoreProvider.js";
 import { entitlementStatusLabel } from "../../../components/billing/billing-labels.js";
+import { formatLocalizedDate } from "../../../lib/format-datetime.js";
 
 interface TikTokShopSessionsTabProps {
   shop: Shop;
 }
 
 export function TikTokShopSessionsTab({ shop }: TikTokShopSessionsTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const entityStore = useEntityStore();
   const entitlement = entityStore.billingOverview?.shops.find((item) => item.shopId === shop.id)?.customerService ?? null;
 
@@ -35,7 +36,7 @@ export function TikTokShopSessionsTab({ shop }: TikTokShopSessionsTabProps) {
         {entitlement.validUntil && (
           <div className="shop-detail-field">
             <span className="form-label-block">{t("tiktokShops.detail.balanceExpiry")}</span>
-            <span>{new Date(entitlement.validUntil).toLocaleDateString()}</span>
+            <span>{formatLocalizedDate(entitlement.validUntil, i18n.language)}</span>
           </div>
         )}
       </div>

@@ -20,6 +20,7 @@ import { ChannelAccountsTable } from "./ChannelAccountsTable.js";
 import { QrLoginModal } from "../../components/modals/QrLoginModal.js";
 import { panelEventBus } from "../../lib/event-bus.js";
 import { FeishuSetupModal } from "../../components/modals/FeishuSetupModal.js";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 
 export const ChannelsPage = observer(function ChannelsPage() {
   const { t, i18n } = useTranslation();
@@ -374,7 +375,7 @@ export const ChannelsPage = observer(function ChannelsPage() {
 
       {/* Last Updated */}
       <div className="channel-last-updated" data-tutorial-id="channels-last-updated">
-        {t("channels.lastUpdated")} {new Date(snapshot.ts).toLocaleString()}
+        {t("channels.lastUpdated")} {formatLocalizedDateTime(snapshot.ts, i18n.language)}
       </div>
 
       {/* Add/Edit Account Modal */}

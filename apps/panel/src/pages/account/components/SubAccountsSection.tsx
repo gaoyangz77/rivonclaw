@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../../components/modals/ConfirmDialog.js";
 import { useRoleDisplayName } from "../hooks/useRoleDisplayName.js";
 import { useSubAccounts } from "../hooks/useSubAccounts.js";
+import { formatLocalizedDate } from "../../../lib/format-datetime.js";
 import { AccountRolesPanel } from "./AccountRolesPanel.js";
 import { SubAccountFormModal } from "./SubAccountFormModal.js";
 
@@ -13,7 +14,7 @@ import { SubAccountFormModal } from "./SubAccountFormModal.js";
  * section is where those members and roles are administered.
  */
 export function SubAccountsSection() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const subAccounts = useSubAccounts();
   const [formOpen, setFormOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export function SubAccountsSection() {
                 <span>{ofMember(member) || t("subAccounts.noRole")}</span>
                 <span>
                   {t("subAccounts.createdAt", {
-                    date: new Date(member.createdAt).toLocaleDateString(),
+                    date: formatLocalizedDate(member.createdAt, i18n.language),
                   })}
                 </span>
               </div>

@@ -35,6 +35,8 @@ import {
   type ShopServiceBillingGroup,
   type ShopServiceBillingRow,
 } from "../../lib/shop-billing-groups.js";
+import panelI18n from "../../i18n/index.js";
+import { formatLocalizedDateTime } from "../../lib/format-datetime.js";
 
 type ShopServiceKey = "customerService" | "inventory" | "affiliate";
 const SHOP_SERVICE_KEYS: readonly ShopServiceKey[] = ["customerService", "inventory", "affiliate"];
@@ -73,7 +75,7 @@ function serviceProduct(key: ShopServiceKey): string {
 }
 
 function formatDateTime(value?: string | null): string {
-  return value ? new Date(value).toLocaleString() : "-";
+  return formatLocalizedDateTime(value, panelI18n.language, undefined, "-");
 }
 
 function formatMoneyFromMajor(value: string | null | undefined, currency: string): string {
